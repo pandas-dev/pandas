@@ -419,7 +419,7 @@ def is_datetime64_dtype(arr_or_dtype):
         return False
     try:
         tipo = _get_dtype_type(arr_or_dtype)
-    except TypeError:
+    except (TypeError, UnicodeEncodeError):
         return False
     return issubclass(tipo, np.datetime64)
 
@@ -2067,7 +2067,6 @@ def pandas_dtype(dtype):
     Raises
     ------
     TypeError if not a dtype
-
     """
     # short-circuit
     if isinstance(dtype, np.ndarray):

@@ -77,7 +77,7 @@ _shared_doc_kwargs = dict(
 def remove_na(arr):
     """Remove null values from array like structure.
 
-    .. deprecated :: 0.21.0
+    .. deprecated:: 0.21.0
         Use s[s.notnull()] instead.
     """
 
@@ -118,7 +118,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
     Parameters
     ----------
     data : array-like, Iterable, dict, or scalar value
-        Contains data stored in Series
+        Contains data stored in Series.
 
         .. versionchanged :: 0.23.0
            If data is a dict, argument order is maintained for Python 3.6
@@ -133,8 +133,8 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
     dtype : str, numpy.dtype, or ExtensionDtype, optional
         dtype for the output Series. If not specified, this will be
         inferred from `data`.
-    copy : boolean, default False
-        Copy input data
+    copy : bool, default False
+        Copy input data.
     """
     _metadata = ['name']
     _accessors = {'dt', 'cat', 'str', 'sparse'}
@@ -389,22 +389,30 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
     # ndarray compatibility
     @property
     def dtype(self):
-        """ return the dtype object of the underlying data """
+        """
+        Return the dtype object of the underlying data.
+        """
         return self._data.dtype
 
     @property
     def dtypes(self):
-        """ return the dtype object of the underlying data """
+        """
+        Return the dtype object of the underlying data.
+        """
         return self._data.dtype
 
     @property
     def ftype(self):
-        """ return if the data is sparse|dense """
+        """
+        Return if the data is sparse|dense.
+        """
         return self._data.ftype
 
     @property
     def ftypes(self):
-        """ return if the data is sparse|dense """
+        """
+        Return if the data is sparse|dense.
+        """
         return self._data.ftype
 
     @property
@@ -441,7 +449,9 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
     @property
     def _values(self):
-        """ return the internal repr of this data """
+        """
+        Return the internal repr of this data.
+        """
         return self._data.internal_values()
 
     def _formatting_values(self):
@@ -451,7 +461,9 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         return self._data.formatting_values()
 
     def get_values(self):
-        """ same as values (but handles sparseness conversions); is a view """
+        """
+        Same as values (but handles sparseness conversions); is a view.
+        """
         return self._data.get_values()
 
     @property
@@ -2281,37 +2293,71 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
     def combine(self, other, func, fill_value=None):
         """
-        Perform elementwise binary operation on two Series using given function
-        with optional fill value when an index is missing from one Series or
-        the other
+        Combine the Series with a Series or scalar according to `func`.
+
+        Combine the Series and `other` using `func` to perform elementwise
+        selection for combined Series.
+        `fill_value` is assumed when value is missing at some index
+        from one of the two objects being combined.
 
         Parameters
         ----------
-        other : Series or scalar value
+        other : Series or scalar
+            The value(s) to be combined with the `Series`.
         func : function
-            Function that takes two scalars as inputs and return a scalar
-        fill_value : scalar value
-            The default specifies to use the appropriate NaN value for
-            the underlying dtype of the Series
+            Function that takes two scalars as inputs and returns an element.
+        fill_value : scalar, optional
+            The value to assume when an index is missing from
+            one Series or the other. The default specifies to use the
+            appropriate NaN value for the underlying dtype of the Series.
 
         Returns
         -------
-        result : Series
-
-        Examples
-        --------
-        >>> s1 = pd.Series([1, 2])
-        >>> s2 = pd.Series([0, 3])
-        >>> s1.combine(s2, lambda x1, x2: x1 if x1 < x2 else x2)
-        0    0
-        1    2
-        dtype: int64
+        Series
+            The result of combining the Series with the other object.
 
         See Also
         --------
         Series.combine_first : Combine Series values, choosing the calling
-            Series's values first.
-        """
+            Series' values first.
+
+        Examples
+        --------
+        Consider 2 Datasets ``s1`` and ``s2`` containing
+        highest clocked speeds of different birds.
+
+        >>> s1 = pd.Series({'falcon': 330.0, 'eagle': 160.0})
+        >>> s1
+        falcon    330.0
+        eagle     160.0
+        dtype: float64
+        >>> s2 = pd.Series({'falcon': 345.0, 'eagle': 200.0, 'duck': 30.0})
+        >>> s2
+        falcon    345.0
+        eagle     200.0
+        duck       30.0
+        dtype: float64
+
+        Now, to combine the two datasets and view the highest speeds
+        of the birds across the two datasets
+
+        >>> s1.combine(s2, max)
+        duck        NaN
+        eagle     200.0
+        falcon    345.0
+        dtype: float64
+
+        In the previous example, the resulting value for duck is missing,
+        because the maximum of a NaN and a float is a NaN.
+        So, in the example, we set ``fill_value=0``,
+        so the maximum value returned will be the value from some dataset.
+
+        >>> s1.combine(s2, max, fill_value=0)
+        duck       30.0
+        eagle     200.0
+        falcon    345.0
+        dtype: float64
+"""
         if fill_value is None:
             fill_value = na_value_for_dtype(self.dtype, compat=False)
 
@@ -2352,16 +2398,26 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
     def combine_first(self, other):
         """
-        Combine Series values, choosing the calling Series's values
-        first. Result index will be the union of the two indexes
+        Combine Series values, choosing the calling Series's values first.
 
         Parameters
         ----------
         other : Series
+            The value(s) to be combined with the `Series`.
 
         Returns
         -------
-        combined : Series
+        Series
+            The result of combining the Series with the other object.
+
+        See Also
+        --------
+        Series.combine : Perform elementwise operation on two Series
+            using a given function.
+
+        Notes
+        -----
+        Result index will be the union of the two indexes.
 
         Examples
         --------
@@ -2371,11 +2427,6 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         0    1.0
         1    4.0
         dtype: float64
-
-        See Also
-        --------
-        Series.combine : Perform elementwise operation on two Series
-            using a given function.
         """
         new_index = self.index.union(other.index)
         this = self.reindex(new_index, copy=False)
@@ -3237,23 +3288,27 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
     def apply(self, func, convert_dtype=True, args=(), **kwds):
         """
-        Invoke function on values of Series. Can be ufunc (a NumPy function
-        that applies to the entire Series) or a Python function that only works
-        on single values
+        Invoke function on values of Series.
+
+        Can be ufunc (a NumPy function that applies to the entire Series) or a
+        Python function that only works on single values.
 
         Parameters
         ----------
         func : function
-        convert_dtype : boolean, default True
+            Python function or NumPy ufunc to apply.
+        convert_dtype : bool, default True
             Try to find better dtype for elementwise function results. If
-            False, leave as dtype=object
+            False, leave as dtype=object.
         args : tuple
-            Positional arguments to pass to function in addition to the value
-        Additional keyword arguments will be passed as keywords to the function
+            Positional arguments passed to func after the series value.
+        **kwds
+            Additional keyword arguments passed to func.
 
         Returns
         -------
-        y : Series or DataFrame if func returns a Series
+        Series or DataFrame
+            If func returns a Series object the result will be a DataFrame.
 
         See Also
         --------
@@ -3263,12 +3318,11 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
         Examples
         --------
-
         Create a series with typical summer temperatures for each city.
 
-        >>> series = pd.Series([20, 21, 12], index=['London',
-        ... 'New York','Helsinki'])
-        >>> series
+        >>> s = pd.Series([20, 21, 12],
+        ...               index=['London', 'New York', 'Helsinki'])
+        >>> s
         London      20
         New York    21
         Helsinki    12
@@ -3278,8 +3332,8 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         argument to ``apply()``.
 
         >>> def square(x):
-        ...     return x**2
-        >>> series.apply(square)
+        ...     return x ** 2
+        >>> s.apply(square)
         London      400
         New York    441
         Helsinki    144
@@ -3288,7 +3342,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         Square the values by passing an anonymous function as an
         argument to ``apply()``.
 
-        >>> series.apply(lambda x: x**2)
+        >>> s.apply(lambda x: x ** 2)
         London      400
         New York    441
         Helsinki    144
@@ -3299,9 +3353,9 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         ``args`` keyword.
 
         >>> def subtract_custom_value(x, custom_value):
-        ...     return x-custom_value
+        ...     return x - custom_value
 
-        >>> series.apply(subtract_custom_value, args=(5,))
+        >>> s.apply(subtract_custom_value, args=(5,))
         London      15
         New York    16
         Helsinki     7
@@ -3312,10 +3366,10 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
         >>> def add_custom_values(x, **kwargs):
         ...     for month in kwargs:
-        ...         x+=kwargs[month]
+        ...         x += kwargs[month]
         ...     return x
 
-        >>> series.apply(add_custom_values, june=30, july=20, august=25)
+        >>> s.apply(add_custom_values, june=30, july=20, august=25)
         London      95
         New York    96
         Helsinki    87
@@ -3323,7 +3377,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
         Use a function from the Numpy library.
 
-        >>> series.apply(np.log)
+        >>> s.apply(np.log)
         London      2.995732
         New York    3.044522
         Helsinki    2.484907
@@ -3443,9 +3497,9 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
             the index.
             Scalar or hashable sequence-like will alter the ``Series.name``
             attribute.
-        copy : boolean, default True
+        copy : bool, default True
             Also copy underlying data
-        inplace : boolean, default False
+        inplace : bool, default False
             Whether to return a new Series. If True then value of copy is
             ignored.
         level : int or level name, default None

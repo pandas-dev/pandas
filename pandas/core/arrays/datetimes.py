@@ -183,7 +183,7 @@ class DatetimeArrayMixin(dtl.DatetimeLikeArrayMixin):
     _freq = None
 
     @classmethod
-    def _simple_new(cls, values, freq=None, tz=None, **kwargs):
+    def _simple_new(cls, values, freq=None, tz=None):
         """
         we require the we have a dtype compat for the values
         if we are passed a non-dtype compat, then coerce using the constructor
@@ -790,7 +790,8 @@ class DatetimeArrayMixin(dtl.DatetimeLikeArrayMixin):
 
         if self.tz is not None:
             if tz is None:
-                new_dates = conversion.tz_convert(self.asi8, 'UTC', self.tz)
+                new_dates = conversion.tz_convert(self.asi8, timezones.UTC,
+                                                  self.tz)
             else:
                 raise TypeError("Already tz-aware, use tz_convert to convert.")
         else:

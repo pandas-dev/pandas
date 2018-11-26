@@ -167,7 +167,6 @@ class DatetimeIndex(DatetimeArray, DatelikeOps, TimelikeOps,
     TimedeltaIndex : Index of timedelta64 data.
     PeriodIndex : Index of Period data.
     pandas.to_datetime : Convert argument to datetime.
-
     """
     _typ = 'datetimeindex'
     _join_precedence = 10
@@ -318,8 +317,7 @@ class DatetimeIndex(DatetimeArray, DatelikeOps, TimelikeOps,
         return subarr._deepcopy_if_needed(ref_to_data, copy)
 
     @classmethod
-    def _simple_new(cls, values, name=None, freq=None, tz=None,
-                    dtype=None, **kwargs):
+    def _simple_new(cls, values, name=None, freq=None, tz=None, dtype=None):
         """
         we require the we have a dtype compat for the values
         if we are passed a non-dtype compat, then coerce using the constructor
@@ -327,8 +325,7 @@ class DatetimeIndex(DatetimeArray, DatelikeOps, TimelikeOps,
         # DatetimeArray._simple_new will accept either i8 or M8[ns] dtypes
         assert isinstance(values, np.ndarray), type(values)
 
-        result = super(DatetimeIndex, cls)._simple_new(values, freq, tz,
-                                                       **kwargs)
+        result = super(DatetimeIndex, cls)._simple_new(values, freq, tz)
         result.name = name
         result._reset_identity()
         return result
@@ -546,7 +543,6 @@ class DatetimeIndex(DatetimeArray, DatelikeOps, TimelikeOps,
     def snap(self, freq='S'):
         """
         Snap time stamps to nearest occurring frequency
-
         """
         # Superdumb, punting on any optimizing
         freq = to_offset(freq)
