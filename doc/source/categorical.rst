@@ -60,14 +60,14 @@ By specifying ``dtype="category"`` when constructing a ``Series``:
 
 .. ipython:: python
 
-    s = pd.Series(["a","b","c","a"], dtype="category")
+    s = pd.Series(["a", "b", "c", "a"], dtype="category")
     s
 
 By converting an existing ``Series`` or column to a ``category`` dtype:
 
 .. ipython:: python
 
-    df = pd.DataFrame({"A":["a","b","c","a"]})
+    df = pd.DataFrame({"A": ["a", "b", "c", "a"]})
     df["B"] = df["A"].astype('category')
     df
 
@@ -86,11 +86,11 @@ By passing a :class:`pandas.Categorical` object to a ``Series`` or assigning it 
 
 .. ipython:: python
 
-    raw_cat = pd.Categorical(["a","b","c","a"], categories=["b","c","d"],
+    raw_cat = pd.Categorical(["a", "b", "c", "a"], categories=["b", "c", "d"],
                              ordered=False)
     s = pd.Series(raw_cat)
     s
-    df = pd.DataFrame({"A":["a","b","c","a"]})
+    df = pd.DataFrame({"A": ["a", "b", "c", "a"]})
     df["B"] = raw_cat
     df
 
@@ -155,7 +155,6 @@ of :class:`~pandas.api.types.CategoricalDtype`.
 .. ipython:: python
 
     from pandas.api.types import CategoricalDtype
-
     s = pd.Series(["a", "b", "c", "a"])
     cat_type = CategoricalDtype(categories=["b", "c", "d"],
                                 ordered=True)
@@ -167,6 +166,7 @@ are consistent among all columns.
 
 .. ipython:: python
 
+    from pandas.api.types import CategoricalDtype
     df = pd.DataFrame({'A': list('abca'), 'B': list('bccd')})
     cat_type = CategoricalDtype(categories=list('abcd'),
                                 ordered=True)
@@ -186,8 +186,9 @@ during normal constructor mode:
 
 .. ipython:: python
 
-    splitter = np.random.choice([0,1], 5, p=[0.5,0.5])
-    s = pd.Series(pd.Categorical.from_codes(splitter, categories=["train", "test"]))
+    splitter = np.random.choice([0, 1], 5, p=[0.5, 0.5])
+    s = pd.Series(pd.Categorical.from_codes(splitter,
+                                            categories=["train", "test"]))
 
 
 Regaining Original Data
@@ -198,7 +199,7 @@ To get back to the original ``Series`` or NumPy array, use
 
 .. ipython:: python
 
-    s = pd.Series(["a","b","c","a"])
+    s = pd.Series(["a", "b", "c", "a"])
     s
     s2 = s.astype('category')
     s2
@@ -236,7 +237,6 @@ by default.
 .. ipython:: python
 
    from pandas.api.types import CategoricalDtype
-
    CategoricalDtype(['a', 'b', 'c'])
    CategoricalDtype(['a', 'b', 'c'], ordered=True)
    CategoricalDtype()
@@ -268,7 +268,7 @@ unordered categoricals, the order of the ``categories`` is not considered.
    c1 == CategoricalDtype(['b', 'c', 'a'], ordered=False)
 
    # Unequal, since the second CategoricalDtype is ordered
-   c1 == CategoricalDtype(['a',  'b', 'c'], ordered=True)
+   c1 == CategoricalDtype(['a', 'b', 'c'], ordered=True)
 
 All instances of ``CategoricalDtype`` compare equal to the string ``'category'``.
 
@@ -293,7 +293,7 @@ output to a ``Series`` or ``DataFrame`` of type ``string``.
 .. ipython:: python
 
     cat = pd.Categorical(["a", "c", "c", np.nan], categories=["b", "a", "c"])
-    df = pd.DataFrame({"cat":cat, "s":["a", "c", "c", np.nan]})
+    df = pd.DataFrame({"cat": cat, "s": ["a", "c", "c", np.nan]})
     df.describe()
     df["cat"].describe()
 
@@ -309,7 +309,7 @@ specify categories and ordering, they are inferred from the passed arguments.
 
 .. ipython:: python
 
-    s = pd.Series(["a","b","c","a"], dtype="category")
+    s = pd.Series(["a", "b", "c", "a"], dtype="category")
     s.cat.categories
     s.cat.ordered
 
@@ -317,7 +317,8 @@ It's also possible to pass in the categories in a specific order:
 
 .. ipython:: python
 
-    s = pd.Series(pd.Categorical(["a","b","c","a"], categories=["c","b","a"]))
+    s = pd.Series(pd.Categorical(["a", "b", "c", "a"],
+                  categories=["c", "b", "a"]))
     s.cat.categories
     s.cat.ordered
 
@@ -354,11 +355,11 @@ Renaming categories is done by assigning new values to the
 
 .. ipython:: python
 
-    s = pd.Series(["a","b","c","a"], dtype="category")
+    s = pd.Series(["a", "b", "c", "a"], dtype="category")
     s
     s.cat.categories = ["Group %s" % g for g in s.cat.categories]
     s
-    s = s.cat.rename_categories([1,2,3])
+    s = s.cat.rename_categories([1, 2, 3])
     s
     # You can also pass a dict-like object to map the renaming
     s = s.cat.rename_categories({1: 'x', 2: 'y', 3: 'z'})
@@ -378,18 +379,18 @@ Categories must be unique or a `ValueError` is raised:
 .. ipython:: python
 
     try:
-        s.cat.categories = [1,1,1]
+        s.cat.categories = [1, 1, 1]
     except ValueError as e:
-        print("ValueError: " + str(e))
+        print("ValueError:", str(e))
 
 Categories must also not be ``NaN`` or a `ValueError` is raised:
 
 .. ipython:: python
 
     try:
-        s.cat.categories = [1,2,np.nan]
+        s.cat.categories = [1, 2, np.nan]
     except ValueError as e:
-        print("ValueError: " + str(e))
+        print("ValueError:", str(e))
 
 Appending new categories
 ~~~~~~~~~~~~~~~~~~~~~~~~
@@ -422,7 +423,8 @@ Removing unused categories can also be done:
 
 .. ipython:: python
 
-    s = pd.Series(pd.Categorical(["a","b","a"], categories=["a","b","c","d"]))
+    s = pd.Series(pd.Categorical(["a", "b", "a"],
+                  categories=["a", "b", "c", "d"]))
     s
     s.cat.remove_unused_categories()
 
@@ -436,9 +438,9 @@ use :meth:`~pandas.Categorical.set_categories`.
 
 .. ipython:: python
 
-    s = pd.Series(["one","two","four", "-"], dtype="category")
+    s = pd.Series(["one", "two", "four", "-"], dtype="category")
     s
-    s = s.cat.set_categories(["one","two","three","four"])
+    s = s.cat.set_categories(["one", "two", "three", "four"])
     s
 
 .. note::
@@ -456,9 +458,9 @@ meaning and certain operations are possible. If the categorical is unordered, ``
 
 .. ipython:: python
 
-    s = pd.Series(pd.Categorical(["a","b","c","a"], ordered=False))
+    s = pd.Series(pd.Categorical(["a", "b", "c", "a"], ordered=False))
     s.sort_values(inplace=True)
-    s = pd.Series(["a","b","c","a"]).astype(
+    s = pd.Series(["a", "b", "c", "a"]).astype(
         CategoricalDtype(ordered=True)
     )
     s.sort_values(inplace=True)
@@ -478,8 +480,8 @@ This is even true for strings and numeric data:
 
 .. ipython:: python
 
-    s = pd.Series([1,2,3,1], dtype="category")
-    s = s.cat.set_categories([2,3,1], ordered=True)
+    s = pd.Series([1, 2, 3, 1], dtype="category")
+    s = s.cat.set_categories([2, 3, 1], ordered=True)
     s
     s.sort_values(inplace=True)
     s
@@ -496,8 +498,8 @@ necessarily make the sort order the same as the categories order.
 
 .. ipython:: python
 
-    s = pd.Series([1,2,3,1], dtype="category")
-    s = s.cat.reorder_categories([2,3,1], ordered=True)
+    s = pd.Series([1, 2, 3, 1], dtype="category")
+    s = s.cat.reorder_categories([2, 3, 1], ordered=True)
     s
     s.sort_values(inplace=True)
     s
@@ -526,16 +528,18 @@ The ordering of the categorical is determined by the ``categories`` of that colu
 
 .. ipython:: python
 
-   dfs = pd.DataFrame({'A' : pd.Categorical(list('bbeebbaa'), categories=['e','a','b'], ordered=True),
-                       'B' : [1,2,1,2,2,1,2,1] })
+   dfs = pd.DataFrame({'A': pd.Categorical(list('bbeebbaa'),
+                                           categories=['e', 'a', 'b'],
+                                           ordered=True),
+                       'B': [1, 2, 1, 2, 2, 1, 2, 1]})
    dfs.sort_values(by=['A', 'B'])
 
 Reordering the ``categories`` changes a future sort.
 
 .. ipython:: python
 
-   dfs['A'] = dfs['A'].cat.reorder_categories(['a','b','e'])
-   dfs.sort_values(by=['A','B'])
+   dfs['A'] = dfs['A'].cat.reorder_categories(['a', 'b', 'e'])
+   dfs.sort_values(by=['A', 'B'])
 
 Comparisons
 -----------
@@ -560,13 +564,13 @@ categories or a categorical with any list-like object, will raise a ``TypeError`
 
 .. ipython:: python
 
-    cat = pd.Series([1,2,3]).astype(
+    cat = pd.Series([1, 2, 3]).astype(
         CategoricalDtype([3, 2, 1], ordered=True)
     )
-    cat_base = pd.Series([2,2,2]).astype(
+    cat_base = pd.Series([2, 2, 2]).astype(
         CategoricalDtype([3, 2, 1], ordered=True)
     )
-    cat_base2 = pd.Series([2,2,2]).astype(
+    cat_base2 = pd.Series([2, 2, 2]).astype(
         CategoricalDtype(ordered=True)
     )
 
@@ -586,7 +590,7 @@ Equality comparisons work with any list-like object of same length and scalars:
 .. ipython:: python
 
     cat == cat_base
-    cat == np.array([1,2,3])
+    cat == np.array([1, 2, 3])
     cat == 2
 
 This doesn't work because the categories are not the same:
@@ -596,7 +600,7 @@ This doesn't work because the categories are not the same:
     try:
         cat > cat_base2
     except TypeError as e:
-         print("TypeError: " + str(e))
+        print("TypeError:", str(e))
 
 If you want to do a "non-equality" comparison of a categorical series with a list-like object
 which is not categorical data, you need to be explicit and convert the categorical data back to
@@ -604,12 +608,12 @@ the original values:
 
 .. ipython:: python
 
-    base = np.array([1,2,3])
+    base = np.array([1, 2, 3])
 
     try:
         cat > base
     except TypeError as e:
-         print("TypeError: " + str(e))
+        print("TypeError:", str(e))
 
     np.asarray(cat) > base
 
@@ -632,28 +636,34 @@ even if some categories are not present in the data:
 
 .. ipython:: python
 
-    s = pd.Series(pd.Categorical(["a","b","c","c"], categories=["c","a","b","d"]))
+    s = pd.Series(pd.Categorical(["a", "b", "c", "c"],
+                  categories=["c", "a", "b", "d"]))
     s.value_counts()
 
 Groupby will also show "unused" categories:
 
 .. ipython:: python
 
-    cats = pd.Categorical(["a","b","b","b","c","c","c"], categories=["a","b","c","d"])
-    df = pd.DataFrame({"cats":cats,"values":[1,2,2,2,3,4,5]})
+    cats = pd.Categorical(["a", "b", "b", "b", "c", "c", "c"],
+                          categories=["a", "b", "c", "d"])
+    df = pd.DataFrame({"cats": cats, "values": [1, 2, 2, 2, 3, 4, 5]})
     df.groupby("cats").mean()
 
-    cats2 = pd.Categorical(["a","a","b","b"], categories=["a","b","c"])
-    df2 = pd.DataFrame({"cats":cats2,"B":["c","d","c","d"], "values":[1,2,3,4]})
-    df2.groupby(["cats","B"]).mean()
+    cats2 = pd.Categorical(["a", "a", "b", "b"], categories=["a", "b", "c"])
+    df2 = pd.DataFrame({"cats": cats2,
+                        "B": ["c", "d", "c", "d"],
+                        "values": [1, 2, 3, 4]})
+    df2.groupby(["cats", "B"]).mean()
 
 
 Pivot tables:
 
 .. ipython:: python
 
-    raw_cat = pd.Categorical(["a","a","b","b"], categories=["a","b","c"])
-    df = pd.DataFrame({"A":raw_cat,"B":["c","d","c","d"], "values":[1,2,3,4]})
+    raw_cat = pd.Categorical(["a", "a", "b", "b"], categories=["a", "b", "c"])
+    df = pd.DataFrame({"A": raw_cat,
+                       "B": ["c", "d", "c", "d"],
+                       "values": [1, 2, 3, 4]})
     pd.pivot_table(df, values='values', index=['A', 'B'])
 
 Data munging
@@ -671,13 +681,14 @@ If the slicing operation returns either a ``DataFrame`` or a column of type
 
 .. ipython:: python
 
-    idx = pd.Index(["h","i","j","k","l","m","n",])
-    cats = pd.Series(["a","b","b","b","c","c","c"], dtype="category", index=idx)
-    values= [1,2,2,2,3,4,5]
-    df = pd.DataFrame({"cats":cats,"values":values}, index=idx)
-    df.iloc[2:4,:]
-    df.iloc[2:4,:].dtypes
-    df.loc["h":"j","cats"]
+    idx = pd.Index(["h", "i", "j", "k", "l", "m", "n"])
+    cats = pd.Series(["a", "b", "b", "b", "c", "c", "c"],
+                     dtype="category", index=idx)
+    values = [1, 2, 2, 2, 3, 4, 5]
+    df = pd.DataFrame({"cats": cats, "values": values}, index=idx)
+    df.iloc[2:4, :]
+    df.iloc[2:4, :].dtypes
+    df.loc["h":"j", "cats"]
     df[df["cats"] == "b"]
 
 An example where the category type is not preserved is if you take one single 
@@ -693,9 +704,9 @@ of length "1".
 
 .. ipython:: python
 
-    df.iat[0,0]
-    df["cats"].cat.categories = ["x","y","z"]
-    df.at["h","cats"] # returns a string
+    df.iat[0, 0]
+    df["cats"].cat.categories = ["x", "y", "z"]
+    df.at["h", "cats"]  # returns a string
 
 .. note::
     The is in contrast to R's `factor` function, where ``factor(c(1,2,3))[1]``
@@ -706,7 +717,7 @@ a single value:
 
 .. ipython:: python
 
-    df.loc[["h"],"cats"]
+    df.loc[["h"], "cats"]
 
 String and datetime accessors
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -760,36 +771,38 @@ value is included in the `categories`:
 
 .. ipython:: python
 
-    idx = pd.Index(["h","i","j","k","l","m","n"])
-    cats = pd.Categorical(["a","a","a","a","a","a","a"], categories=["a","b"])
-    values = [1,1,1,1,1,1,1]
-    df = pd.DataFrame({"cats":cats,"values":values}, index=idx)
+    idx = pd.Index(["h", "i", "j", "k", "l", "m", "n"])
+    cats = pd.Categorical(["a", "a", "a", "a", "a", "a", "a"],
+                          categories=["a", "b"])
+    values = [1, 1, 1, 1, 1, 1, 1]
+    df = pd.DataFrame({"cats": cats, "values": values}, index=idx)
 
-    df.iloc[2:4,:] = [["b",2],["b",2]]
+    df.iloc[2:4, :] = [["b", 2], ["b", 2]]
     df
     try:
-        df.iloc[2:4,:] = [["c",3],["c",3]]
+        df.iloc[2:4, :] = [["c", 3], ["c", 3]]
     except ValueError as e:
-        print("ValueError: " + str(e))
+        print("ValueError:", str(e))
 
 Setting values by assigning categorical data will also check that the `categories` match:
 
 .. ipython:: python
 
-    df.loc["j":"k","cats"] = pd.Categorical(["a","a"], categories=["a","b"])
+    df.loc["j":"k", "cats"] = pd.Categorical(["a", "a"], categories=["a", "b"])
     df
     try:
-        df.loc["j":"k","cats"] = pd.Categorical(["b","b"], categories=["a","b","c"])
+        df.loc["j":"k", "cats"] = pd.Categorical(["b", "b"],
+                                                  categories=["a", "b", "c"])
     except ValueError as e:
-        print("ValueError: " + str(e))
+        print("ValueError:", str(e))
 
 Assigning a ``Categorical`` to parts of a column of other types will use the values:
 
 .. ipython:: python
 
-    df = pd.DataFrame({"a":[1,1,1,1,1], "b":["a","a","a","a","a"]})
-    df.loc[1:2,"a"] = pd.Categorical(["b","b"], categories=["a","b"])
-    df.loc[2:3,"b"] = pd.Categorical(["b","b"], categories=["a","b"])
+    df = pd.DataFrame({"a": [1, 1, 1, 1, 1], "b": ["a", "a", "a", "a", "a"]})
+    df.loc[1:2, "a"] = pd.Categorical(["b", "b"], categories=["a", "b"])
+    df.loc[2:3, "b"] = pd.Categorical(["b", "b"], categories=["a", "b"])
     df
     df.dtypes
 
@@ -803,10 +816,10 @@ but the categories of these categoricals need to be the same:
 
 .. ipython:: python
 
-    cat = pd.Series(["a","b"], dtype="category")
-    vals = [1,2]
-    df = pd.DataFrame({"cats":cat, "vals":vals})
-    res = pd.concat([df,df])
+    cat = pd.Series(["a", "b"], dtype="category")
+    vals = [1, 2]
+    df = pd.DataFrame({"cats": cat, "vals": vals})
+    res = pd.concat([df, df])
     res
     res.dtypes
 
@@ -815,11 +828,11 @@ In this case the categories are not the same, and therefore an error is raised:
 .. ipython:: python
 
     df_different = df.copy()
-    df_different["cats"].cat.categories = ["c","d"]
+    df_different["cats"].cat.categories = ["c", "d"]
     try:
-        pd.concat([df,df_different])
+        pd.concat([df, df_different])
     except ValueError as e:
-        print("ValueError: " + str(e))
+        print("ValueError:", str(e))
 
 The same applies to ``df.append(df_different)``.
 
@@ -976,16 +989,16 @@ relevant columns back to `category` and assign the right categories and categori
 .. ipython:: python
     :suppress:
 
-    from pandas.compat import StringIO
 
 .. ipython:: python
 
+    from pandas.compat import StringIO
     s = pd.Series(pd.Categorical(['a', 'b', 'b', 'a', 'a', 'd']))
     # rename the categories
     s.cat.categories = ["very good", "good", "bad"]
     # reorder the categories and add missing categories
     s = s.cat.set_categories(["very bad", "bad", "medium", "good", "very good"])
-    df = pd.DataFrame({"cats":s, "vals":[1,2,3,4,5,6]})
+    df = pd.DataFrame({"cats": s, "vals": [1, 2, 3, 4, 5, 6]})
     csv = StringIO()
     df.to_csv(csv)
     df2 = pd.read_csv(StringIO(csv.getvalue()))
@@ -993,7 +1006,8 @@ relevant columns back to `category` and assign the right categories and categori
     df2["cats"]
     # Redo the category
     df2["cats"] = df2["cats"].astype("category")
-    df2["cats"].cat.set_categories(["very bad", "bad", "medium", "good", "very good"],
+    df2["cats"].cat.set_categories(["very bad", "bad", "medium",
+                                    "good", "very good"],
                                    inplace=True)
     df2.dtypes
     df2["cats"]
@@ -1062,7 +1076,7 @@ an ``object`` dtype is a constant times the length of the data.
 
 .. ipython:: python
 
-   s = pd.Series(['foo','bar']*1000)
+   s = pd.Series(['foo', 'bar'] * 1000)
 
    # object dtype
    s.nbytes
@@ -1099,13 +1113,13 @@ NumPy itself doesn't know about the new `dtype`:
     try:
         np.dtype("category")
     except TypeError as e:
-        print("TypeError: " + str(e))
+        print("TypeError:", str(e))
 
     dtype = pd.Categorical(["a"]).dtype
     try:
         np.dtype(dtype)
     except TypeError as e:
-         print("TypeError: " + str(e))
+        print("TypeError:", str(e))
 
 Dtype comparisons work:
 
@@ -1126,12 +1140,12 @@ are not numeric data (even in the case that ``.categories`` is numeric).
 
 .. ipython:: python
 
-    s = pd.Series(pd.Categorical([1,2,3,4]))
+    s = pd.Series(pd.Categorical([1, 2, 3, 4]))
     try:
         np.sum(s)
-        #same with np.log(s),..
+        # same with np.log(s),...
     except TypeError as e:
-         print("TypeError: " + str(e))
+        print("TypeError:", str(e))
 
 .. note::
     If such a function works, please file a bug at https://github.com/pandas-dev/pandas!
@@ -1145,9 +1159,9 @@ basic type) and applying along columns will also convert to object.
 
 .. ipython:: python
 
-    df = pd.DataFrame({"a":[1,2,3,4],
-                       "b":["a","b","c","d"],
-                       "cats":pd.Categorical([1,2,3,2])})
+    df = pd.DataFrame({"a": [1, 2, 3, 4],
+                       "b": ["a", "b", "c", "d"],
+                       "cats": pd.Categorical([1, 2, 3, 2])})
     df.apply(lambda row: type(row["cats"]), axis=1)
     df.apply(lambda col: col.dtype, axis=0)
 
@@ -1164,10 +1178,10 @@ Setting the index will create a ``CategoricalIndex``:
 
 .. ipython:: python
 
-    cats = pd.Categorical([1,2,3,4], categories=[4,2,3,1])
-    strings = ["a","b","c","d"]
-    values = [4,2,3,1]
-    df = pd.DataFrame({"strings":strings, "values":values}, index=cats)
+    cats = pd.Categorical([1, 2, 3, 4], categories=[4, 2, 3, 1])
+    strings = ["a", "b", "c", "d"]
+    values = [4, 2, 3, 1]
+    df = pd.DataFrame({"strings": strings, "values": values}, index=cats)
     df.index
     # This now sorts by the categories order
     df.sort_index()
@@ -1181,20 +1195,20 @@ change the original ``Categorical``:
 
 .. ipython:: python
 
-    cat = pd.Categorical([1,2,3,10], categories=[1,2,3,4,10])
+    cat = pd.Categorical([1, 2, 3, 10], categories=[1, 2, 3, 4, 10])
     s = pd.Series(cat, name="cat")
     cat
     s.iloc[0:2] = 10
     cat
     df = pd.DataFrame(s)
-    df["cat"].cat.categories = [1,2,3,4,5]
+    df["cat"].cat.categories = [1, 2, 3, 4, 5]
     cat
 
 Use ``copy=True`` to prevent such a behaviour or simply don't reuse ``Categoricals``:
 
 .. ipython:: python
 
-    cat = pd.Categorical([1,2,3,10], categories=[1,2,3,4,10])
+    cat = pd.Categorical([1, 2, 3, 10], categories=[1, 2, 3, 4, 10])
     s = pd.Series(cat, name="cat", copy=True)
     cat
     s.iloc[0:2] = 10

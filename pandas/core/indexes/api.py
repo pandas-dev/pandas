@@ -1,23 +1,21 @@
 import textwrap
 import warnings
 
-from pandas.core.indexes.base import (Index,
-                                      _new_Index,
-                                      ensure_index,
-                                      ensure_index_from_sequences,
-                                      InvalidIndexError)  # noqa
-from pandas.core.indexes.category import CategoricalIndex  # noqa
-from pandas.core.indexes.multi import MultiIndex  # noqa
-from pandas.core.indexes.interval import IntervalIndex  # noqa
-from pandas.core.indexes.numeric import (NumericIndex, Float64Index,  # noqa
-                                    Int64Index, UInt64Index)
-from pandas.core.indexes.range import RangeIndex  # noqa
-from pandas.core.indexes.timedeltas import TimedeltaIndex
-from pandas.core.indexes.period import PeriodIndex
-from pandas.core.indexes.datetimes import DatetimeIndex
+from pandas._libs import NaT, lib
 
 import pandas.core.common as com
-from pandas._libs import lib, NaT
+from pandas.core.indexes.base import (
+    Index, _new_Index, ensure_index, ensure_index_from_sequences)
+from pandas.core.indexes.base import InvalidIndexError  # noqa:F401
+from pandas.core.indexes.category import CategoricalIndex  # noqa:F401
+from pandas.core.indexes.datetimes import DatetimeIndex
+from pandas.core.indexes.interval import IntervalIndex  # noqa:F401
+from pandas.core.indexes.multi import MultiIndex  # noqa:F401
+from pandas.core.indexes.numeric import (  # noqa:F401
+    Float64Index, Int64Index, NumericIndex, UInt64Index)
+from pandas.core.indexes.period import PeriodIndex
+from pandas.core.indexes.range import RangeIndex  # noqa:F401
+from pandas.core.indexes.timedeltas import TimedeltaIndex
 
 _sort_msg = textwrap.dedent("""\
 Sorting because non-concatenation axis is not aligned. A future version

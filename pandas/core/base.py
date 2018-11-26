@@ -1,32 +1,28 @@
 """
 Base and utility classes for pandas objects.
 """
-import warnings
 import textwrap
-from pandas import compat
-from pandas.compat import builtins
+import warnings
+
 import numpy as np
 
-from pandas.core.dtypes.missing import isna
-from pandas.core.dtypes.generic import ABCDataFrame, ABCSeries, ABCIndexClass
-from pandas.core.dtypes.common import (
-    is_datetimelike,
-    is_object_dtype,
-    is_list_like,
-    is_scalar,
-    is_extension_type,
-    is_extension_array_dtype, is_datetime64tz_dtype)
-
-from pandas.util._validators import validate_bool_kwarg
-from pandas.errors import AbstractMethodError
-from pandas.core import common as com, algorithms
-import pandas.core.nanops as nanops
 import pandas._libs.lib as lib
+import pandas.compat as compat
+from pandas.compat import PYPY, OrderedDict, builtins
 from pandas.compat.numpy import function as nv
-from pandas.compat import PYPY, OrderedDict
-from pandas.util._decorators import Appender, cache_readonly, Substitution
+from pandas.errors import AbstractMethodError
+from pandas.util._decorators import Appender, Substitution, cache_readonly
+from pandas.util._validators import validate_bool_kwarg
 
+from pandas.core.dtypes.common import (
+    is_datetime64tz_dtype, is_datetimelike, is_extension_array_dtype,
+    is_extension_type, is_list_like, is_object_dtype, is_scalar)
+from pandas.core.dtypes.generic import ABCDataFrame, ABCIndexClass, ABCSeries
+from pandas.core.dtypes.missing import isna
+
+from pandas.core import algorithms, common as com
 from pandas.core.accessor import DirNamesMixin
+import pandas.core.nanops as nanops
 
 _shared_docs = dict()
 _indexops_doc_kwargs = dict(klass='IndexOpsMixin', inplace='',
@@ -668,12 +664,14 @@ class IndexOpsMixin(object):
     __array_priority__ = 1000
 
     def transpose(self, *args, **kwargs):
-        """ return the transpose, which is by definition self """
+        """
+        Return the transpose, which is by definition self.
+        """
         nv.validate_transpose(args, kwargs)
         return self
 
-    T = property(transpose, doc="return the transpose, which is by "
-                                "definition self")
+    T = property(transpose, doc="Return the transpose, which is by "
+                                "definition self.")
 
     @property
     def _is_homogeneous_type(self):
@@ -692,19 +690,21 @@ class IndexOpsMixin(object):
 
     @property
     def shape(self):
-        """ return a tuple of the shape of the underlying data """
+        """
+        Return a tuple of the shape of the underlying data.
+        """
         return self._values.shape
 
     @property
     def ndim(self):
-        """ return the number of dimensions of the underlying data,
-        by definition 1
+        """
+        Number of dimensions of the underlying data, by definition 1.
         """
         return 1
 
     def item(self):
-        """ return the first element of the underlying data as a python
-        scalar
+        """
+        Return the first element of the underlying data as a python scalar.
         """
         try:
             return self.values.item()
@@ -715,7 +715,9 @@ class IndexOpsMixin(object):
 
     @property
     def data(self):
-        """ return the data pointer of the underlying data """
+        """
+        Return the data pointer of the underlying data.
+        """
         warnings.warn("{obj}.data is deprecated and will be removed "
                       "in a future version".format(obj=type(self).__name__),
                       FutureWarning, stacklevel=2)
@@ -723,7 +725,9 @@ class IndexOpsMixin(object):
 
     @property
     def itemsize(self):
-        """ return the size of the dtype of the item of the underlying data """
+        """
+        Return the size of the dtype of the item of the underlying data.
+        """
         warnings.warn("{obj}.itemsize is deprecated and will be removed "
                       "in a future version".format(obj=type(self).__name__),
                       FutureWarning, stacklevel=2)
@@ -731,12 +735,16 @@ class IndexOpsMixin(object):
 
     @property
     def nbytes(self):
-        """ return the number of bytes in the underlying data """
+        """
+        Return the number of bytes in the underlying data.
+        """
         return self._values.nbytes
 
     @property
     def strides(self):
-        """ return the strides of the underlying data """
+        """
+        Return the strides of the underlying data.
+        """
         warnings.warn("{obj}.strides is deprecated and will be removed "
                       "in a future version".format(obj=type(self).__name__),
                       FutureWarning, stacklevel=2)
@@ -744,12 +752,16 @@ class IndexOpsMixin(object):
 
     @property
     def size(self):
-        """ return the number of elements in the underlying data """
+        """
+        Return the number of elements in the underlying data.
+        """
         return self._values.size
 
     @property
     def flags(self):
-        """ return the ndarray.flags for the underlying data """
+        """
+        Return the ndarray.flags for the underlying data.
+        """
         warnings.warn("{obj}.flags is deprecated and will be removed "
                       "in a future version".format(obj=type(self).__name__),
                       FutureWarning, stacklevel=2)
@@ -757,8 +769,8 @@ class IndexOpsMixin(object):
 
     @property
     def base(self):
-        """ return the base object if the memory of the underlying data is
-        shared
+        """
+        Return the base object if the memory of the underlying data is shared.
         """
         warnings.warn("{obj}.base is deprecated and will be removed "
                       "in a future version".format(obj=type(self).__name__),
@@ -920,7 +932,7 @@ class IndexOpsMixin(object):
 
     def argmax(self, axis=None):
         """
-        return a ndarray of the maximum argument indexer
+        Return a ndarray of the maximum argument indexer.
 
         See Also
         --------
@@ -963,7 +975,7 @@ class IndexOpsMixin(object):
 
     def argmin(self, axis=None):
         """
-        return a ndarray of the minimum argument indexer
+        Return a ndarray of the minimum argument indexer.
 
         See Also
         --------
@@ -1002,7 +1014,9 @@ class IndexOpsMixin(object):
 
     @cache_readonly
     def hasnans(self):
-        """ return if I have any nans; enables various perf speedups """
+        """
+        Return if I have any nans; enables various perf speedups.
+        """
         return bool(isna(self).any())
 
     def _reduce(self, op, name, axis=0, skipna=True, numeric_only=None,

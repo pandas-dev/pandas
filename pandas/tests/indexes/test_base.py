@@ -15,14 +15,16 @@ import pandas.util.testing as tm
 from pandas import (
     CategoricalIndex, DataFrame, DatetimeIndex, Float64Index, Int64Index,
     PeriodIndex, RangeIndex, Series, TimedeltaIndex, UInt64Index, date_range,
-    isna, period_range
+    isna, period_range,
 )
 from pandas._libs.tslib import Timestamp
 from pandas.compat import (
     PY3, PY35, PY36, StringIO, lrange, lzip, range, text_type, u, zip
 )
 from pandas.compat.numpy import np_datetime64_compat
-from pandas.core.dtypes.common import is_unsigned_integer_dtype
+from pandas.core.dtypes.common import (
+    is_unsigned_integer_dtype,
+)
 from pandas.core.dtypes.generic import ABCIndex
 from pandas.core.index import _get_combined_index, ensure_index_from_sequences
 from pandas.core.indexes.api import Index, MultiIndex
@@ -75,9 +77,7 @@ class TestIndex(Base):
         assert new_index.ndim == 2
         assert isinstance(new_index, np.ndarray)
 
-    def test_copy_and_deepcopy(self, indices):
-        super(TestIndex, self).test_copy_and_deepcopy(indices)
-
+    def test_copy_and_deepcopy(self):
         new_copy2 = self.intIndex.copy(dtype=int)
         assert new_copy2.dtype.kind == 'i'
 
@@ -251,25 +251,6 @@ class TestIndex(Base):
         expected = Float64Index(data)
         result = Index(data, dtype='float')
         tm.assert_index_equal(result, expected)
-
-    def test_droplevel(self, indices):
-        # GH 21115
-        if isinstance(indices, MultiIndex):
-            # Tested separately in test_multi.py
-            return
-
-        assert indices.droplevel([]).equals(indices)
-
-        for level in indices.name, [indices.name]:
-            if isinstance(indices.name, tuple) and level is indices.name:
-                # GH 21121 : droplevel with tuple name
-                continue
-            with pytest.raises(ValueError):
-                indices.droplevel(level)
-
-        for level in 'wrong', ['wrong']:
-            with pytest.raises(KeyError):
-                indices.droplevel(level)
 
     @pytest.mark.parametrize("dtype", ['int64', 'uint64'])
     def test_constructor_int_dtype_nan_raises(self, dtype):
@@ -473,23 +454,6 @@ class TestIndex(Base):
         assert isinstance(empty, klass)
         assert not len(empty)
 
-    def test_constructor_non_hashable_name(self, indices):
-        # GH 20527
-
-        if isinstance(indices, MultiIndex):
-            pytest.skip("multiindex handled in test_multi.py")
-
-        message = "Index.name must be a hashable type"
-        renamed = [['1']]
-
-        # With .rename()
-        with pytest.raises(TypeError, match=message):
-            indices.rename(name=renamed)
-
-        # With .set_names()
-        with pytest.raises(TypeError, match=message):
-            indices.set_names(names=renamed)
-
     def test_constructor_overflow_int64(self):
         # see gh-15832
         msg = ("The elements provided in the data cannot "
@@ -504,13 +468,6 @@ class TestIndex(Base):
         msg = "could not convert string to float"
         with pytest.raises(ValueError, match=msg):
             Index(["a", "b", "c"], dtype=float)
-
-    def test_constructor_unwraps_index(self, indices):
-        if isinstance(indices, pd.MultiIndex):
-            raise pytest.skip("MultiIndex has no ._data")
-        a = indices
-        b = type(a)(a)
-        tm.assert_equal(a._data, b._data)
 
     def test_view_with_args(self):
 
@@ -726,13 +683,6 @@ class TestIndex(Base):
         # np.ndarray only accepts ndarray of int & bool dtypes, so should Index
         pytest.raises(IndexError, index.__getitem__, empty_farr)
 
-    @pytest.mark.parametrize("itm", [101, 'no_int'])
-    # FutureWarning from non-tuple sequence of nd indexing
-    @pytest.mark.filterwarnings("ignore::FutureWarning")
-    def test_getitem_error(self, indices, itm):
-        with pytest.raises(IndexError):
-            indices[itm]
-
     def test_intersection(self):
         first = self.strIndex[:20]
         second = self.strIndex[:10]
@@ -800,51 +750,6 @@ class TestIndex(Base):
         result = i2.intersection(i1)
 
         assert len(result) == 0
-
-    @pytest.mark.parametrize(
-        'fname, sname, expected_name',
-        [
-            ('A', 'A', 'A'),
-            ('A', 'B', None),
-            ('A', None, None),
-            (None, 'B', None),
-            (None, None, None),
-        ])
-    def test_corner_union(self, indices, fname, sname, expected_name):
-        # GH 9943 9862
-        # Test unions with various name combinations
-        # Do not test MultiIndex or repeats
-
-        if isinstance(indices, MultiIndex) or not indices.is_unique:
-            pytest.skip("Not for MultiIndex or repeated indices")
-
-        # Test copy.union(copy)
-        first = indices.copy().set_names(fname)
-        second = indices.copy().set_names(sname)
-        union = first.union(second)
-        expected = indices.copy().set_names(expected_name)
-        tm.assert_index_equal(union, expected)
-
-        # Test copy.union(empty)
-        first = indices.copy().set_names(fname)
-        second = indices.drop(indices).set_names(sname)
-        union = first.union(second)
-        expected = indices.copy().set_names(expected_name)
-        tm.assert_index_equal(union, expected)
-
-        # Test empty.union(copy)
-        first = indices.drop(indices).set_names(fname)
-        second = indices.copy().set_names(sname)
-        union = first.union(second)
-        expected = indices.copy().set_names(expected_name)
-        tm.assert_index_equal(union, expected)
-
-        # Test empty.union(empty)
-        first = indices.drop(indices).set_names(fname)
-        second = indices.drop(indices).set_names(sname)
-        union = first.union(second)
-        expected = indices.drop(indices).set_names(expected_name)
-        tm.assert_index_equal(union, expected)
 
     def test_chained_union(self):
         # Chained unions handles names correctly
@@ -2292,14 +2197,6 @@ Index([u'a', u'bb', u'ccc', u'a', u'bb', u'ccc', u'a', u'bb', u'ccc', u'a',
             with provisionalcompleter('ignore'):
                 list(ip.Completer.completions('idx.', 4))
 
-    def test_to_flat_index(self, indices):
-        # 22866
-        if isinstance(indices, MultiIndex):
-            pytest.skip("Separate expectation for MultiIndex")
-
-        result = indices.to_flat_index()
-        tm.assert_index_equal(result, indices)
-
 
 class TestMixedIntIndex(Base):
     # Mostly the tests from common.py for which the results differ
@@ -2421,6 +2318,12 @@ class TestMixedIntIndex(Base):
             result = first.union(klass(second.values))
 
         assert tm.equalContents(result, index)
+
+    def test_unique_na(self):
+        idx = pd.Index([2, np.nan, 2, 1], name='my_index')
+        expected = pd.Index([2, np.nan, 1], name='my_index')
+        result = idx.unique()
+        tm.assert_index_equal(result, expected)
 
     def test_intersection_base(self):
         # (same results for py2 and py3 but sortedness not tested elsewhere)
