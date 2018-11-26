@@ -535,6 +535,8 @@ cpdef inline object parse_timedelta_unit(object unit):
     ----------
     unit : an unit string
     """
+
+    # Preserve, will be dealt with eventually in other functions
     if unit is None or unit == 'M':
         return unit
 
