@@ -18,7 +18,7 @@ from pandas.core.dtypes.common import (
     ensure_float64, ensure_int64, ensure_object, is_array_like, is_bool,
     is_bool_dtype, is_categorical_dtype, is_datetime64_dtype,
     is_datetime64tz_dtype, is_datetimelike, is_dtype_equal, is_float_dtype,
-    is_int64_dtype, is_int_or_datetime_dtype, is_integer, is_integer_dtype,
+    is_int64_dtype, is_integer, is_integer_dtype,
     is_list_like, is_number, is_numeric_dtype, needs_i8_conversion)
 from pandas.core.dtypes.missing import isnull, na_value_for_dtype
 
@@ -1604,7 +1604,8 @@ def _factorize_keys(lk, rk, sort=True):
 
         lk = ensure_int64(lk.codes)
         rk = ensure_int64(rk)
-    elif is_int_or_datetime_dtype(lk) and is_int_or_datetime_dtype(rk):
+    elif (issubclass(lk.dtype, (np.integer, np.timedelta64, np.datetime64)) and
+          issubclass(rk.dtype, (np.integer, np.timedelta64, np.datetime64))):
         klass = libhashtable.Int64Factorizer
         lk = ensure_int64(com.values_from_object(lk))
         rk = ensure_int64(com.values_from_object(rk))

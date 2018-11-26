@@ -1058,54 +1058,6 @@ def is_int64_dtype(arr_or_dtype):
     return issubclass(tipo, np.int64)
 
 
-def is_int_or_datetime_dtype(arr_or_dtype):
-    """
-    Check whether the provided array or dtype is of an
-    integer, timedelta64, or datetime64 dtype.
-
-    Parameters
-    ----------
-    arr_or_dtype : array-like
-        The array or dtype to check.
-
-    Returns
-    -------
-    boolean : Whether or not the array or dtype is of an
-              integer, timedelta64, or datetime64 dtype.
-
-    Examples
-    --------
-    >>> is_int_or_datetime_dtype(str)
-    False
-    >>> is_int_or_datetime_dtype(int)
-    True
-    >>> is_int_or_datetime_dtype(float)
-    False
-    >>> is_int_or_datetime_dtype(np.uint64)
-    True
-    >>> is_int_or_datetime_dtype(np.datetime64)
-    True
-    >>> is_int_or_datetime_dtype(np.timedelta64)
-    True
-    >>> is_int_or_datetime_dtype(np.array(['a', 'b']))
-    False
-    >>> is_int_or_datetime_dtype(pd.Series([1, 2]))
-    True
-    >>> is_int_or_datetime_dtype(np.array([], dtype=np.timedelta64))
-    True
-    >>> is_int_or_datetime_dtype(np.array([], dtype=np.datetime64))
-    True
-    >>> is_int_or_datetime_dtype(pd.Index([1, 2.]))  # float
-    False
-    """
-
-    if arr_or_dtype is None:
-        return False
-    tipo = _get_dtype_type(arr_or_dtype)
-    return (issubclass(tipo, np.integer) or
-            issubclass(tipo, (np.datetime64, np.timedelta64)))
-
-
 def is_datetime64_any_dtype(arr_or_dtype):
     """
     Check whether the provided array or dtype is of the datetime64 dtype.

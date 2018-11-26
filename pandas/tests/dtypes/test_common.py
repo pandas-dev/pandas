@@ -331,21 +331,6 @@ def test_is_int64_dtype():
     assert com.is_int64_dtype(np.array([1, 2], dtype=np.int64))
 
 
-def test_is_int_or_datetime_dtype():
-    assert not com.is_int_or_datetime_dtype(str)
-    assert not com.is_int_or_datetime_dtype(float)
-    assert not com.is_int_or_datetime_dtype(pd.Index([1, 2.]))
-    assert not com.is_int_or_datetime_dtype(np.array(['a', 'b']))
-
-    assert com.is_int_or_datetime_dtype(int)
-    assert com.is_int_or_datetime_dtype(np.uint64)
-    assert com.is_int_or_datetime_dtype(np.datetime64)
-    assert com.is_int_or_datetime_dtype(np.timedelta64)
-    assert com.is_int_or_datetime_dtype(pd.Series([1, 2]))
-    assert com.is_int_or_datetime_dtype(np.array([], dtype=np.datetime64))
-    assert com.is_int_or_datetime_dtype(np.array([], dtype=np.timedelta64))
-
-
 def test_is_datetime64_any_dtype():
     assert not com.is_datetime64_any_dtype(int)
     assert not com.is_datetime64_any_dtype(str)
