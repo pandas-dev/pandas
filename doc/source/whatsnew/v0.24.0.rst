@@ -1334,6 +1334,8 @@ MultiIndex
 I/O
 ^^^
 
+- Bug in :meth:`DataFrame.to_dict` when the resulting dict contains non-Python scalars in the case of numeric data (:issue:`23753`)
+
 .. _whatsnew_0240.bug_fixes.nan_with_str_dtype:
 
 Proper handling of `np.NaN` in a string data-typed column with the Python engine

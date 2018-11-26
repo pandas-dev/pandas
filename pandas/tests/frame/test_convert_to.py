@@ -281,36 +281,26 @@ class TestDataFrameConvertTo(TestData):
         # both converted to UTC, so they are equal
         tm.assert_numpy_array_equal(result, expected)
 
-    def test_to_dict_box_scalars(self):
+    @pytest.mark.parametrize('orient,item_getter',
+                             [('dict', lambda d, col, idx: d[col][idx]),
+                              ('records', lambda d, col, idx: d[idx][col]),
+                              ('list', lambda d, col, idx: d[col][idx]),
+                              ('split', lambda d, col, idx: d['data'][idx][d['columns'].index(col)]),
+                              ('index', lambda d, col, idx: d[idx][col])
+    ])
+    def test_to_dict_box_scalars(self, orient, item_getter):
         # 14216, 23753
         # make sure that we are boxing properly
         df = DataFrame({'a': [1, 2], 'b': [.1, .2]})
-
-        result = df.to_dict()
-        assert isinstance(result['a'][0], (int, long))
-        assert isinstance(result['b'][0], float)
-
-        result = df.to_dict(orient='records')
-        assert isinstance(result[0]['a'], (int, long))
-        assert isinstance(result[0]['b'], float)
-
-        result = df.to_dict(orient='list')
-        assert isinstance(result['a'][0], (int, long))
-        assert isinstance(result['b'][0], float)
-
-        result = df.to_dict(orient='split')
-        assert isinstance(result['data'][0][0], (int, long))
-        assert isinstance(result['data'][0][1], float)
-
-        result = df.to_dict(orient='index')
-        assert isinstance(result[0]['a'], (int, long))
-        assert isinstance(result[0]['b'], float)
+        result = df.to_dict(orient=orient)
+        assert isinstance(item_getter(result, 'a', 0), (int, long))
+        assert isinstance(item_getter(result, 'b', 0), float)
 
     def test_frame_to_dict_tz(self):
         # GH18372 When converting to dict with orient='records' columns of
         # datetime that are tz-aware were not converted to required arrays
         data = [(datetime(2017, 11, 18, 21, 53, 0, 219225, tzinfo=pytz.utc),),
-                (datetime(2017, 11, 18, 22, 6, 30, 61810, tzinfo=pytz.utc, ),)]
+                (datetime(2017, 11, 18, 22, 6, 30, 61810, tzinfo=pytz.utc,),)]
         df = DataFrame(list(data), columns=["d", ])
 
         result = df.to_dict(orient='records')
