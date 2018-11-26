@@ -314,10 +314,11 @@ class TestDatetimeIndex(object):
 
         msg = 'periods must be a number, got foo'
         with pytest.raises(TypeError, match=msg):
-            DatetimeIndex(start='1/1/2000', periods='foo', freq='D')
+            date_range(start='1/1/2000', periods='foo', freq='D')
 
-        pytest.raises(ValueError, DatetimeIndex, start='1/1/2000',
-                      end='1/10/2000')
+        with pytest.raises(ValueError):
+            with tm.assert_produces_warning(FutureWarning):
+                DatetimeIndex(start='1/1/2000', end='1/10/2000')
 
         with pytest.raises(TypeError):
             DatetimeIndex('1/1/2000')
@@ -351,11 +352,11 @@ class TestDatetimeIndex(object):
         pytest.raises(ValueError, DatetimeIndex,
                       ['2000-01-01', '2000-01-02', '2000-01-04'], freq='D')
 
-        pytest.raises(ValueError, DatetimeIndex, start='2011-01-01',
+        pytest.raises(ValueError, date_range, start='2011-01-01',
                       freq='b')
-        pytest.raises(ValueError, DatetimeIndex, end='2011-01-01',
+        pytest.raises(ValueError, date_range, end='2011-01-01',
                       freq='B')
-        pytest.raises(ValueError, DatetimeIndex, periods=10, freq='D')
+        pytest.raises(ValueError, date_range, periods=10, freq='D')
 
     @pytest.mark.parametrize('freq', ['AS', 'W-SUN'])
     def test_constructor_datetime64_tzformat(self, freq):
@@ -436,8 +437,8 @@ class TestDatetimeIndex(object):
         tm.assert_index_equal(idx, result)
 
     def test_constructor_name(self):
-        idx = DatetimeIndex(start='2000-01-01', periods=1, freq='A',
-                            name='TEST')
+        idx = date_range(start='2000-01-01', periods=1, freq='A',
+                         name='TEST')
         assert idx.name == 'TEST'
 
     def test_000constructor_resolution(self):
@@ -460,7 +461,7 @@ class TestDatetimeIndex(object):
         # GH 18595
         start = Timestamp('2013-01-01 06:00:00', tz='America/Los_Angeles')
         end = Timestamp('2013-01-02 06:00:00', tz='America/Los_Angeles')
-        result = DatetimeIndex(freq='D', start=start, end=end, tz=tz)
+        result = date_range(freq='D', start=start, end=end, tz=tz)
         expected = DatetimeIndex(['2013-01-01 06:00:00',
                                   '2013-01-02 06:00:00'],
                                  tz='America/Los_Angeles')
@@ -576,7 +577,7 @@ class TestTimeSeries(object):
         assert rng[0].second == 1
 
     def test_is_(self):
-        dti = DatetimeIndex(start='1/1/2005', end='12/1/2005', freq='M')
+        dti = date_range(start='1/1/2005', end='12/1/2005', freq='M')
         assert dti.is_(dti)
         assert dti.is_(dti.view())
         assert not dti.is_(dti.copy())
@@ -604,12 +605,12 @@ class TestTimeSeries(object):
     @pytest.mark.parametrize('freq', ['M', 'Q', 'A', 'D', 'B', 'BH',
                                       'T', 'S', 'L', 'U', 'H', 'N', 'C'])
     def test_from_freq_recreate_from_data(self, freq):
-        org = DatetimeIndex(start='2001/02/01 09:00', freq=freq, periods=1)
+        org = date_range(start='2001/02/01 09:00', freq=freq, periods=1)
         idx = DatetimeIndex(org, freq=freq)
         tm.assert_index_equal(idx, org)
 
-        org = DatetimeIndex(start='2001/02/01 09:00', freq=freq,
-                            tz='US/Pacific', periods=1)
+        org = date_range(start='2001/02/01 09:00', freq=freq,
+                         tz='US/Pacific', periods=1)
         idx = DatetimeIndex(org, freq=freq, tz='US/Pacific')
         tm.assert_index_equal(idx, org)
 
@@ -648,30 +649,30 @@ class TestTimeSeries(object):
 
         sdate = datetime(1999, 12, 25)
         edate = datetime(2000, 1, 1)
-        idx = DatetimeIndex(start=sdate, freq='1B', periods=20)
+        idx = date_range(start=sdate, freq='1B', periods=20)
         assert len(idx) == 20
         assert idx[0] == sdate + 0 * offsets.BDay()
         assert idx.freq == 'B'
 
-        idx = DatetimeIndex(end=edate, freq=('D', 5), periods=20)
+        idx = date_range(end=edate, freq=('D', 5), periods=20)
         assert len(idx) == 20
         assert idx[-1] == edate
         assert idx.freq == '5D'
 
-        idx1 = DatetimeIndex(start=sdate, end=edate, freq='W-SUN')
-        idx2 = DatetimeIndex(start=sdate, end=edate,
-                             freq=offsets.Week(weekday=6))
+        idx1 = date_range(start=sdate, end=edate, freq='W-SUN')
+        idx2 = date_range(start=sdate, end=edate,
+                          freq=offsets.Week(weekday=6))
         assert len(idx1) == len(idx2)
         assert idx1.freq == idx2.freq
 
-        idx1 = DatetimeIndex(start=sdate, end=edate, freq='QS')
-        idx2 = DatetimeIndex(start=sdate, end=edate,
-                             freq=offsets.QuarterBegin(startingMonth=1))
+        idx1 = date_range(start=sdate, end=edate, freq='QS')
+        idx2 = date_range(start=sdate, end=edate,
+                          freq=offsets.QuarterBegin(startingMonth=1))
         assert len(idx1) == len(idx2)
         assert idx1.freq == idx2.freq
 
-        idx1 = DatetimeIndex(start=sdate, end=edate, freq='BQ')
-        idx2 = DatetimeIndex(start=sdate, end=edate,
-                             freq=offsets.BQuarterEnd(startingMonth=12))
+        idx1 = date_range(start=sdate, end=edate, freq='BQ')
+        idx2 = date_range(start=sdate, end=edate,
+                          freq=offsets.BQuarterEnd(startingMonth=12))
         assert len(idx1) == len(idx2)
         assert idx1.freq == idx2.freq

@@ -221,8 +221,16 @@ class DatetimeIndex(DatetimeArray, DatelikeOps, TimelikeOps,
                 dayfirst=False, yearfirst=False, dtype=None,
                 copy=False, name=None, verify_integrity=True):
 
+        if verify_integrity is not True:
+            warnings.warn("The 'verify_integrity' argument is deprecated, "
+                          "will be removed in a future version.",
+                          FutureWarning, stacklevel=2)
+
         if data is None:
-            # TODO: Remove this block and associated kwargs; GH#20535
+            warnings.warn("Creating a DatetimeIndex by passing range "
+                          "endpoints is deprecated.  Use "
+                          "`pandas.date_range` instead.",
+                          FutureWarning, stacklevel=2)
             result = cls._generate_range(start, end, periods,
                                          freq=freq, tz=tz, normalize=normalize,
                                          closed=closed, ambiguous=ambiguous)
@@ -1514,9 +1522,13 @@ def date_range(start=None, end=None, periods=None, freq=None, tz=None,
     if freq is None and com._any_none(periods, start, end):
         freq = 'D'
 
-    return DatetimeIndex(start=start, end=end, periods=periods,
-                         freq=freq, tz=tz, normalize=normalize, name=name,
-                         closed=closed, **kwargs)
+    result = DatetimeIndex._generate_range(
+        start=start, end=end, periods=periods,
+        freq=freq, tz=tz, normalize=normalize,
+        closed=closed, **kwargs)
+
+    result.name = name
+    return result
 
 
 def bdate_range(start=None, end=None, periods=None, freq='B', tz=None,
@@ -1602,9 +1614,9 @@ def bdate_range(start=None, end=None, periods=None, freq='B', tz=None,
                'weekmask are passed, got frequency {freq}').format(freq=freq)
         raise ValueError(msg)
 
-    return DatetimeIndex(start=start, end=end, periods=periods,
-                         freq=freq, tz=tz, normalize=normalize, name=name,
-                         closed=closed, **kwargs)
+    return date_range(start=start, end=end, periods=periods,
+                      freq=freq, tz=tz, normalize=normalize, name=name,
+                      closed=closed, **kwargs)
 
 
 def cdate_range(start=None, end=None, periods=None, freq='C', tz=None,
@@ -1661,9 +1673,10 @@ def cdate_range(start=None, end=None, periods=None, freq='C', tz=None,
         holidays = kwargs.pop('holidays', [])
         weekmask = kwargs.pop('weekmask', 'Mon Tue Wed Thu Fri')
         freq = CDay(holidays=holidays, weekmask=weekmask)
-    return DatetimeIndex(start=start, end=end, periods=periods, freq=freq,
-                         tz=tz, normalize=normalize, name=name,
-                         closed=closed, **kwargs)
+
+    return date_range(start=start, end=end, periods=periods, freq=freq,
+                      tz=tz, normalize=normalize, name=name,
+                      closed=closed, **kwargs)
 
 
 def _time_to_micros(time):

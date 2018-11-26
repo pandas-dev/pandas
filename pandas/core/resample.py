@@ -1375,11 +1375,11 @@ class TimeGrouper(Grouper):
         # because replace() will swallow the nanosecond part
         # thus last bin maybe slightly before the end if the end contains
         # nanosecond part and lead to `Values falls after last bin` error
-        binner = labels = DatetimeIndex(freq=self.freq,
-                                        start=first,
-                                        end=last,
-                                        tz=tz,
-                                        name=ax.name)
+        binner = labels = date_range(freq=self.freq,
+                                     start=first,
+                                     end=last,
+                                     tz=tz,
+                                     name=ax.name)
 
         # GH 15549
         # In edge case of tz-aware resapmling binner last index can be

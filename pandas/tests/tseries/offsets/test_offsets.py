@@ -15,7 +15,7 @@ from pandas._libs.tslibs import conversion
 from pandas._libs.tslibs.frequencies import (get_freq_code, get_freq_str,
                                              INVALID_FREQ_ERR_MSG)
 from pandas.tseries.frequencies import _offset_map, get_offset
-from pandas.core.indexes.datetimes import _to_m8, DatetimeIndex
+from pandas.core.indexes.datetimes import _to_m8, DatetimeIndex, date_range
 from pandas.core.indexes.timedeltas import TimedeltaIndex
 import pandas._libs.tslibs.offsets as liboffsets
 from pandas.tseries.offsets import (BDay, CDay, BQuarterEnd, BMonthEnd,
@@ -1367,10 +1367,10 @@ class TestBusinessHour(Base):
                 assert_offset_equal(offset, base, expected)
 
     def test_datetimeindex(self):
-        idx1 = DatetimeIndex(start='2014-07-04 15:00', end='2014-07-08 10:00',
-                             freq='BH')
-        idx2 = DatetimeIndex(start='2014-07-04 15:00', periods=12, freq='BH')
-        idx3 = DatetimeIndex(end='2014-07-08 10:00', periods=12, freq='BH')
+        idx1 = date_range(start='2014-07-04 15:00', end='2014-07-08 10:00',
+                          freq='BH')
+        idx2 = date_range(start='2014-07-04 15:00', periods=12, freq='BH')
+        idx3 = date_range(end='2014-07-08 10:00', periods=12, freq='BH')
         expected = DatetimeIndex(['2014-07-04 15:00', '2014-07-04 16:00',
                                   '2014-07-07 09:00',
                                   '2014-07-07 10:00', '2014-07-07 11:00',
@@ -1383,10 +1383,10 @@ class TestBusinessHour(Base):
         for idx in [idx1, idx2, idx3]:
             tm.assert_index_equal(idx, expected)
 
-        idx1 = DatetimeIndex(start='2014-07-04 15:45', end='2014-07-08 10:45',
-                             freq='BH')
-        idx2 = DatetimeIndex(start='2014-07-04 15:45', periods=12, freq='BH')
-        idx3 = DatetimeIndex(end='2014-07-08 10:45', periods=12, freq='BH')
+        idx1 = date_range(start='2014-07-04 15:45', end='2014-07-08 10:45',
+                          freq='BH')
+        idx2 = date_range(start='2014-07-04 15:45', periods=12, freq='BH')
+        idx3 = date_range(end='2014-07-08 10:45', periods=12, freq='BH')
 
         expected = DatetimeIndex(['2014-07-04 15:45', '2014-07-04 16:45',
                                   '2014-07-07 09:45',
@@ -2005,8 +2005,8 @@ class TestCustomBusinessMonthEnd(CustomBusinessMonthBase, Base):
         hcal = USFederalHolidayCalendar()
         freq = CBMonthEnd(calendar=hcal)
 
-        assert (DatetimeIndex(start='20120101', end='20130101',
-                              freq=freq).tolist()[0] == datetime(2012, 1, 31))
+        assert (date_range(start='20120101', end='20130101',
+                           freq=freq).tolist()[0] == datetime(2012, 1, 31))
 
 
 class TestCustomBusinessMonthBegin(CustomBusinessMonthBase, Base):
@@ -2122,8 +2122,8 @@ class TestCustomBusinessMonthBegin(CustomBusinessMonthBase, Base):
     def test_datetimeindex(self):
         hcal = USFederalHolidayCalendar()
         cbmb = CBMonthBegin(calendar=hcal)
-        assert (DatetimeIndex(start='20120101', end='20130101',
-                              freq=cbmb).tolist()[0] == datetime(2012, 1, 3))
+        assert (date_range(start='20120101', end='20130101',
+                           freq=cbmb).tolist()[0] == datetime(2012, 1, 3))
 
 
 class TestWeek(Base):
@@ -2425,7 +2425,7 @@ class TestSemiMonthEnd(Base):
         tm.assert_index_equal(result, exp)
 
         # ensure generating a range with DatetimeIndex gives same result
-        result = DatetimeIndex(start=dates[0], end=dates[-1], freq='SM')
+        result = date_range(start=dates[0], end=dates[-1], freq='SM')
         exp = DatetimeIndex(dates)
         tm.assert_index_equal(result, exp)
 
@@ -2612,7 +2612,7 @@ class TestSemiMonthBegin(Base):
         tm.assert_index_equal(result, exp)
 
         # ensure generating a range with DatetimeIndex gives same result
-        result = DatetimeIndex(start=dates[0], end=dates[-1], freq='SMS')
+        result = date_range(start=dates[0], end=dates[-1], freq='SMS')
         exp = DatetimeIndex(dates)
         tm.assert_index_equal(result, exp)
 

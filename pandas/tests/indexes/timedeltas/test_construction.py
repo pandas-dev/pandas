@@ -128,10 +128,11 @@ class TestTimedeltaIndex(object):
 
         msg = 'periods must be a number, got foo'
         with pytest.raises(TypeError, match=msg):
-            TimedeltaIndex(start='1 days', periods='foo', freq='D')
+            timedelta_range(start='1 days', periods='foo', freq='D')
 
-        pytest.raises(ValueError, TimedeltaIndex, start='1 days',
-                      end='10 days')
+        with pytest.raises(ValueError):
+            with tm.assert_produces_warning(FutureWarning):
+                TimedeltaIndex(start='1 days', end='10 days')
 
         with pytest.raises(TypeError):
             TimedeltaIndex('1 days')
@@ -155,10 +156,10 @@ class TestTimedeltaIndex(object):
         pytest.raises(ValueError, TimedeltaIndex,
                       ['1 days', '2 days', '4 days'], freq='D')
 
-        pytest.raises(ValueError, TimedeltaIndex, periods=10, freq='D')
+        pytest.raises(ValueError, timedelta_range, periods=10, freq='D')
 
     def test_constructor_name(self):
-        idx = TimedeltaIndex(start='1 days', periods=1, freq='D', name='TEST')
+        idx = timedelta_range(start='1 days', periods=1, freq='D', name='TEST')
         assert idx.name == 'TEST'
 
         # GH10025
