@@ -52,15 +52,16 @@ cdef extern from "src/parse_helper.h":
 cimport util
 from util cimport is_nan, UINT64_MAX, INT64_MAX, INT64_MIN
 
-from tslib import array_to_datetime
-from tslibs.nattype cimport NPY_NAT
-from tslibs.nattype import NaT
-from tslibs.conversion cimport convert_to_tsobject
-from tslibs.timedeltas cimport convert_to_timedelta64
-from tslibs.timezones cimport get_timezone, tz_compare
+from pandas._libs.tslib import array_to_datetime
+from pandas._libs.tslibs.nattype cimport NPY_NAT
+from pandas._libs.tslibs.nattype import NaT
+from pandas._libs.tslibs.conversion cimport convert_to_tsobject
+from pandas._libs.tslibs.timedeltas cimport convert_to_timedelta64
+from pandas._libs.tslibs.timezones cimport get_timezone, tz_compare
 
-from missing cimport (checknull, isnaobj,
-                      is_null_datetime64, is_null_timedelta64, is_null_period)
+from pandas._libs.missing cimport (
+    checknull, isnaobj, is_null_datetime64, is_null_timedelta64, is_null_period
+)
 
 
 # constants that will be compared to potentially arbitrarily large

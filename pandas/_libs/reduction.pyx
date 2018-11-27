@@ -16,7 +16,7 @@ from numpy cimport (ndarray,
 cnp.import_array()
 
 cimport util
-from lib import maybe_convert_objects
+from pandas._libs.lib import maybe_convert_objects
 
 
 cdef _get_result_array(object obj, Py_ssize_t size, Py_ssize_t cnt):

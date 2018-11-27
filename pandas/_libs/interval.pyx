@@ -20,10 +20,10 @@ cnp.import_array()
 cimport util
 util.import_array()
 
-from hashtable cimport Int64Vector, Int64VectorData
+from pandas._libs.hashtable cimport Int64Vector, Int64VectorData
 
-from tslibs import Timestamp
-from tslibs.timezones cimport tz_compare
+from pandas._libs.tslibs import Timestamp
+from pandas._libs.tslibs.timezones cimport tz_compare
 
 
 _VALID_CLOSED = frozenset(['left', 'right', 'both', 'neither'])

@@ -29,27 +29,30 @@ cdef extern from "src/datetime/np_datetime.h":
     int64_t npy_datetimestruct_to_datetime(NPY_DATETIMEUNIT fr,
                                            npy_datetimestruct *d) nogil
 
-cimport util
-from util cimport is_period_object, is_string_object
+cimport pandas._libs.tslibs.util as util
+from pandas._libs.tslibs.util cimport is_period_object, is_string_object
 
-from timestamps import Timestamp, maybe_integer_op_deprecated
-from timezones cimport is_utc, is_tzlocal, get_dst_info
-from timedeltas import Timedelta
-from timedeltas cimport delta_to_nanoseconds
+from pandas._libs.tslibs.timestamps import (
+    Timestamp, maybe_integer_op_deprecated)
+from pandas._libs.tslibs.timezones cimport is_utc, is_tzlocal, get_dst_info
+from pandas._libs.tslibs.timedeltas import Timedelta
+from pandas._libs.tslibs.timedeltas cimport delta_to_nanoseconds
 
-cimport ccalendar
-from ccalendar cimport dayofweek, get_day_of_year, is_leapyear
-from ccalendar import MONTH_NUMBERS
-from conversion cimport tz_convert_utc_to_tzlocal
-from frequencies cimport (get_freq_code, get_base_alias,
-                          get_to_timestamp_base, get_freq_str,
-                          get_rule_month)
-from parsing import parse_time_string
-from resolution import Resolution
-from nattype import nat_strings, NaT
-from nattype cimport _nat_scalar_rules, NPY_NAT, is_null_datetimelike
-from offsets cimport to_offset
-from offsets import _Tick
+cimport pandas._libs.tslibs.ccalendar
+from pandas._libs.tslibs.ccalendar cimport (
+    dayofweek, get_day_of_year, is_leapyear)
+from pandas._libs.tslibs.ccalendar import MONTH_NUMBERS
+from pandas._libs.tslibs.conversion cimport tz_convert_utc_to_tzlocal
+from pandas._libs.tslibs.frequencies cimport (
+    get_freq_code, get_base_alias, get_to_timestamp_base, get_freq_str,
+    get_rule_month)
+from pandas._libs.tslibs.parsing import parse_time_string
+from pandas._libs.tslibs.resolution import Resolution
+from pandas._libs.tslibs.nattype import nat_strings, NaT
+from pandas._libs.tslibs.nattype cimport (
+    _nat_scalar_rules, NPY_NAT, is_null_datetimelike)
+from pandas._libs.tslibs.offsets cimport to_offset
+from pandas._libs.tslibs.offsets import _Tick
 
 cdef bint PY2 = str == bytes
 cdef enum:

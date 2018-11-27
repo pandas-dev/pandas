@@ -28,19 +28,18 @@ from np_datetime cimport (check_dts_bounds,
                           pydatetime_to_dt64, NPY_DATETIMEUNIT, NPY_FR_ns)
 from np_datetime import OutOfBoundsDatetime
 
-from util cimport (is_string_object,
-                   is_datetime64_object,
-                   is_integer_object, is_float_object)
+from pandas._libs.tslibs.util cimport (
+    is_string_object, is_datetime64_object, is_integer_object, is_float_object)
 
-from timedeltas cimport cast_from_unit
-from timezones cimport (is_utc, is_tzlocal, is_fixed_offset,
-                        get_utcoffset, get_dst_info,
-                        get_timezone, maybe_get_tz, tz_compare)
-from timezones import UTC
-from parsing import parse_datetime_string
+from pandas._libs.tslibs.timedeltas cimport cast_from_unit
+from pandas._libs.tslibs.timezones cimport (
+    is_utc, is_tzlocal, is_fixed_offset, get_utcoffset, get_dst_info,
+    get_timezone, maybe_get_tz, tz_compare)
+from pandas._libs.tslibs.timezones import UTC
+from pandas._libs.tslibs.parsing import parse_datetime_string
 
-from nattype import nat_strings, NaT
-from nattype cimport NPY_NAT, checknull_with_nat
+from pandas._libs.tslibs.nattype import nat_strings, NaT
+from pandas._libs.tslibs.nattype cimport NPY_NAT, checknull_with_nat
 
 # ----------------------------------------------------------------------
 # Constants
