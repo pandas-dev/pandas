@@ -10025,6 +10025,7 @@ level : int or level name, default None
 numeric_only : bool, default None
     Include only float, int, bool columns. If None, will attempt to use
     everything, then use only numeric data. Not implemented for Series.
+%(min_count)s\
 **kwargs : any, default None
     Additional keyword arguments.
 
