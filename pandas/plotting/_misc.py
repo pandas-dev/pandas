@@ -138,9 +138,6 @@ def scatter_matrix(frame, alpha=0.5, figsize=None, ax=None, grid=False,
 
 def _get_marker_compat(marker):
     import matplotlib.lines as mlines
-    import matplotlib as mpl
-    if mpl.__version__ < '1.1.0' and marker == '.':
-        return 'o'
     if marker not in mlines.lineMarkers:
         return 'o'
     return marker

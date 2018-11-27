@@ -292,11 +292,10 @@ class TestIndexOps(Ops):
                 assert not result.iat[0]
                 assert not result.iat[1]
 
-                # this fails for numpy < 1.9
-                # and oddly for *some* platforms
-                # result = None != o  # noqa
-                # assert result.iat[0]
-                # assert result.iat[1]
+                result = None != o  # noqa
+                assert result.iat[0]
+                assert result.iat[1]
+
                 if (is_datetime64_dtype(o) or is_datetimetz(o)):
                     # Following DatetimeIndex (and Timestamp) convention,
                     # inequality comparisons with Series[datetime64] raise

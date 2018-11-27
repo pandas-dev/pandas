@@ -94,7 +94,6 @@ class TestChaining(object):
     def test_setitem_chained_setfault(self):
 
         # GH6026
-        # setfaults under numpy 1.7.1 (ok on 1.8)
         data = ['right', 'left', 'left', 'left', 'right', 'left', 'timeout']
         mdata = ['right', 'left', 'left', 'left', 'right', 'left', 'none']
 

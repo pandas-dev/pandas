@@ -42,13 +42,6 @@ cdef inline sparse_t __mod__(sparse_t a, sparse_t b):
 cdef inline sparse_t __floordiv__(sparse_t a, sparse_t b):
     if b == 0:
         if sparse_t is float64_t:
-            # numpy >= 1.11 returns NaN
-            # for a // 0, rather than +-inf
-            if _np_version_under1p11:
-                if a > 0:
-                    return INF
-                elif a < 0:
-                    return -INF
             return NaN
         else:
             return 0

@@ -767,8 +767,8 @@ class TestSeriesPlots(TestPlotBase):
             s.plot(yerr=np.arange(11))
 
         s_err = ['zzz'] * 10
-        # in mpl 1.5+ this is a TypeError
-        with pytest.raises((ValueError, TypeError)):
+        # MPL > 2.0.0 will most likely use TypeError here
+        with pytest.raises((TypeError, ValueError)):
             s.plot(yerr=s_err)
 
     @td.xfail_if_mpl_2_2

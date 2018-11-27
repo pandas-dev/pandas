@@ -275,11 +275,8 @@ def test_map_dictlike(idx, mapper):
     np.rad2deg
 ])
 def test_numpy_ufuncs(func):
-    # test ufuncs of numpy 1.9.2. see:
+    # test ufuncs of numpy. see:
     # http://docs.scipy.org/doc/numpy/reference/ufuncs.html
-
-    # some functions are skipped because it may return different result
-    # for unicode input depending on numpy version
 
     # copy and paste from idx fixture as pytest doesn't support
     # parameters and fixtures at the same time.

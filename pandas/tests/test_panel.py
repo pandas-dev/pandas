@@ -85,7 +85,6 @@ class SafeForLongAndSparse(object):
     def test_mean(self):
         self._check_stat_op('mean', np.mean)
 
-    @td.skip_if_no("numpy", min_version="1.10.0")
     def test_prod(self):
         self._check_stat_op('prod', np.prod, skipna_alternative=np.nanprod)
 

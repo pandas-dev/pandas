@@ -8,14 +8,6 @@ from numpy cimport (ndarray, uint8_t, int64_t, int32_t, int16_t, int8_t,
 cnp.import_array()
 
 
-from distutils.version import LooseVersion
-
-# numpy versioning
-_np_version = np.version.short_version
-_np_version_under1p10 = LooseVersion(_np_version) < LooseVersion('1.10')
-_np_version_under1p11 = LooseVersion(_np_version) < LooseVersion('1.11')
-
-
 # -----------------------------------------------------------------------------
 # Preamble stuff
 

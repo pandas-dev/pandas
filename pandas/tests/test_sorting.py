@@ -127,13 +127,6 @@ class TestSorting(object):
         # np.argsort(items2) may not place NaNs first
         items2 = np.array(items, dtype='O')
 
-        try:
-            # GH 2785; due to a regression in NumPy1.6.2
-            np.argsort(np.array([[1, 2], [1, 3], [1, 2]], dtype='i'))
-            np.argsort(items2, kind='mergesort')
-        except TypeError:
-            pytest.skip('requested sort not available for type')
-
         # mergesort is the most difficult to get right because we want it to be
         # stable.
 

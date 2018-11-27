@@ -334,8 +334,7 @@ def _bins_to_cuts(x, bins, right=True, labels=None,
     ids = ensure_int64(bins.searchsorted(x, side=side))
 
     if include_lowest:
-        # Numpy 1.9 support: ensure this mask is a Numpy array
-        ids[np.asarray(x == bins[0])] = 1
+        ids[x == bins[0]] = 1
 
     na_mask = isna(x) | (ids == len(bins)) | (ids == 0)
     has_nas = na_mask.any()

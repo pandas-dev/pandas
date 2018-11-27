@@ -171,7 +171,7 @@ pip install pandas
 ```
 
 ## Dependencies
-- [NumPy](https://www.numpy.org): 1.9.0 or higher
+- [NumPy](https://www.numpy.org): 1.12.0 or higher
 - [python-dateutil](https://labix.org/python-dateutil): 2.5.0 or higher
 - [pytz](https://pythonhosted.org/pytz): 2011k or higher
 
