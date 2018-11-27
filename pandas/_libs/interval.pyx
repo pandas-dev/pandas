@@ -17,7 +17,7 @@ from numpy cimport (
 cnp.import_array()
 
 
-cimport util
+cimport pandas._libs.util as util
 util.import_array()
 
 from pandas._libs.hashtable cimport Int64Vector, Int64VectorData

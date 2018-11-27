@@ -8,7 +8,7 @@ cimport numpy as cnp
 from numpy cimport ndarray, int64_t, uint8_t, float64_t
 cnp.import_array()
 
-cimport util
+cimport pandas._libs.util as util
 
 from pandas._libs.tslibs.np_datetime cimport (
     get_timedelta64_value, get_datetime64_value)

@@ -49,8 +49,8 @@ cdef extern from "numpy/arrayobject.h":
 cdef extern from "src/parse_helper.h":
     int floatify(object, float64_t *result, int *maybe_int) except -1
 
-cimport util
-from util cimport is_nan, UINT64_MAX, INT64_MAX, INT64_MIN
+cimport pandas._libs.util as util
+from pandas._libs.util cimport is_nan, UINT64_MAX, INT64_MAX, INT64_MIN
 
 from pandas._libs.tslib import array_to_datetime
 from pandas._libs.tslibs.nattype cimport NPY_NAT

@@ -16,11 +16,11 @@ from cpython.datetime cimport (datetime,
                                PyDateTime_IMPORT)
 PyDateTime_IMPORT
 
-from pandas._libsutil cimport (is_datetime64_object, is_timedelta64_object,
-                               is_integer_object, is_string_object, is_array,
-                               is_offset_object)
+from pandas._libs.util cimport (is_datetime64_object, is_timedelta64_object,
+                                is_integer_object, is_string_object, is_array,
+                                is_offset_object)
 
-cimport pandas._libs.tslibs.ccalendar
+cimport pandas._libs.tslibs.ccalendar as ccalendar
 from pandas._libs.tslibs.ccalendar import DAY_SECONDS
 from pandas._libs.tslibs.conversion import (
     tz_localize_to_utc, normalize_i8_timestamps)
@@ -70,7 +70,7 @@ cdef inline object create_timestamp_from_ts(int64_t value,
                                  dts.sec, dts.us, tz)
     ts_base.value = value
     ts_base.freq = freq
-    ts_base.nanosecond = dts.ps / 1000
+    ts_base.nanosecond = dts.ps // 1000
 
     return ts_base
 

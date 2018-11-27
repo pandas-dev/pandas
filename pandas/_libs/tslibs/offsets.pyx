@@ -534,7 +534,7 @@ def shift_day(other: datetime, days: int) -> datetime:
 
 cdef inline int year_add_months(npy_datetimestruct dts, int months) nogil:
     """new year number after shifting npy_datetimestruct number of months"""
-    return dts.year + (dts.month + months - 1) / 12
+    return dts.year + (dts.month + months - 1) // 12
 
 
 cdef inline int month_add_months(npy_datetimestruct dts, int months) nogil:

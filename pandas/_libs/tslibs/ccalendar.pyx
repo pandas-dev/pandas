@@ -163,7 +163,7 @@ cpdef int32_t get_week_of_year(int year, int month, int day) nogil:
     # estimate
     woy = (doy - 1) - dow + 3
     if woy >= 0:
-        woy = woy / 7 + 1
+        woy = woy // 7 + 1
 
     # verify
     if woy < 0:

@@ -20,10 +20,9 @@ from cpython.datetime cimport (PyDateTime_Check, PyDelta_Check, PyDate_Check,
 # import datetime C API
 PyDateTime_IMPORT
 
-from np_datetime cimport (npy_datetimestruct, dtstruct_to_dt64,
-                          dt64_to_dtstruct,
-                          pandas_datetime_to_datetimestruct,
-                          NPY_DATETIMEUNIT, NPY_FR_D)
+from pandas._libs.tslibs.np_datetime cimport (
+    npy_datetimestruct, dtstruct_to_dt64, dt64_to_dtstruct,
+    pandas_datetime_to_datetimestruct, NPY_DATETIMEUNIT, NPY_FR_D)
 
 cdef extern from "src/datetime/np_datetime.h":
     int64_t npy_datetimestruct_to_datetime(NPY_DATETIMEUNIT fr,
@@ -38,7 +37,7 @@ from pandas._libs.tslibs.timezones cimport is_utc, is_tzlocal, get_dst_info
 from pandas._libs.tslibs.timedeltas import Timedelta
 from pandas._libs.tslibs.timedeltas cimport delta_to_nanoseconds
 
-cimport pandas._libs.tslibs.ccalendar
+cimport pandas._libs.tslibs.ccalendar as ccalendar
 from pandas._libs.tslibs.ccalendar cimport (
     dayofweek, get_day_of_year, is_leapyear)
 from pandas._libs.tslibs.ccalendar import MONTH_NUMBERS

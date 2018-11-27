@@ -17,16 +17,15 @@ from cpython.datetime cimport (datetime, tzinfo,
                                PyDateTime_CheckExact, PyDateTime_IMPORT)
 PyDateTime_IMPORT
 
-from ccalendar import DAY_SECONDS, HOUR_SECONDS
+from pandas._libs.tslibs.ccalendar import DAY_SECONDS, HOUR_SECONDS
 
-from np_datetime cimport (check_dts_bounds,
-                          npy_datetimestruct,
-                          pandas_datetime_to_datetimestruct, _string_to_dts,
-                          npy_datetime,
-                          dt64_to_dtstruct, dtstruct_to_dt64,
-                          get_datetime64_unit, get_datetime64_value,
-                          pydatetime_to_dt64, NPY_DATETIMEUNIT, NPY_FR_ns)
-from np_datetime import OutOfBoundsDatetime
+from pandas._libs.tslibs.np_datetime cimport (
+    check_dts_bounds, npy_datetimestruct,
+    pandas_datetime_to_datetimestruct, _string_to_dts,
+    npy_datetime, dt64_to_dtstruct, dtstruct_to_dt64,
+    get_datetime64_unit, get_datetime64_value,
+    pydatetime_to_dt64, NPY_DATETIMEUNIT, NPY_FR_ns)
+from pandas._libs.tslibs.np_datetime import OutOfBoundsDatetime
 
 from pandas._libs.tslibs.util cimport (
     is_string_object, is_datetime64_object, is_integer_object, is_float_object)
@@ -454,7 +453,7 @@ cdef _TSObject convert_str_to_tsobject(object ts, object tz, object unit,
                                   obj.dts.hour, obj.dts.min, obj.dts.sec,
                                   obj.dts.us, obj.tzinfo)
                     obj = convert_datetime_to_tsobject(dt, tz,
-                                                       nanos=obj.dts.ps / 1000)
+                                                       nanos=obj.dts.ps // 1000)
                     return obj
 
             else:
