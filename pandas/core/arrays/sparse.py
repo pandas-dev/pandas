@@ -897,7 +897,7 @@ class SparseArray(PandasObject, ExtensionArray, ExtensionOpsMixin):
             [self.dtype.na_value] * min(abs(periods), len(self)),
             dtype=arr.dtype
         )
-        
+
         if periods > 0:
             a = empty
             b = arr[:-periods]
