@@ -17,7 +17,8 @@ import warnings
 import numpy as np
 
 from pandas._libs import Timestamp, groupby as libgroupby
-from pandas.api.types import is_integer_dtype, is_datetime64_dtype
+from pandas.api.types import (
+    is_integer_dtype, is_datetime64_dtype, is_object_dtype)
 import pandas.compat as compat
 from pandas.compat import callable, range, set_function_name, zip
 from pandas.compat.numpy import function as nv
@@ -1708,7 +1709,7 @@ class GroupBy(_GroupBy):
         }
 
         def pre_processor(vals):
-            if vals.dtype == np.object:
+            if is_object_dtype(vals):
                 raise TypeError("'quantile' cannot be performed against "
                                 "'object' dtypes!")
             elif is_integer_dtype(vals):
