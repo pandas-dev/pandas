@@ -105,6 +105,7 @@ before_script:
 
 script:
   - echo "script start"
+  - source activate pandas-dev
   - ci/run_build_docs.sh
   - ci/script_single.sh
   - ci/script_multi.sh
@@ -115,7 +116,7 @@ after_success:
 
 after_script:
   - echo "after_script start"
-  - source activate pandas && pushd /tmp && python -c "import pandas; pandas.show_versions();" && popd
+  - source activate pandas-dev && pushd /tmp && python -c "import pandas; pandas.show_versions();" && popd
   - if [ -e test-data-single.xml ]; then
     ci/print_skipped.py test-data-single.xml;
     fi

@@ -1075,7 +1075,6 @@ class TestTSPlot(TestPlotBase):
         _, ax = self.plt.subplots()
         _check_plot_works(df.plot, ax=ax)
 
-    @pytest.mark.xfail(not PY3, reason="failing on mpl 1.4.3 on PY2")
     @pytest.mark.slow
     def test_time(self):
         t = datetime(1, 1, 1, 3, 30, 0)

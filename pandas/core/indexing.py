@@ -3,25 +3,18 @@ import textwrap
 import warnings
 
 import numpy as np
+
 from pandas._libs.indexing import _NDFrameIndexerBase
-from pandas.util._decorators import Appender
-
-from pandas.errors import AbstractMethodError
-
 import pandas.compat as compat
 from pandas.compat import range, zip
+from pandas.errors import AbstractMethodError
+from pandas.util._decorators import Appender
 
 from pandas.core.dtypes.common import (
-    is_integer_dtype,
-    is_integer, is_float,
-    is_list_like,
-    is_sequence,
-    is_iterator,
-    is_scalar,
-    is_sparse,
-    ensure_platform_int)
+    ensure_platform_int, is_float, is_integer, is_integer_dtype, is_iterator,
+    is_list_like, is_scalar, is_sequence, is_sparse)
 from pandas.core.dtypes.generic import ABCDataFrame, ABCPanel, ABCSeries
-from pandas.core.dtypes.missing import isna, _infer_fill_value
+from pandas.core.dtypes.missing import _infer_fill_value, isna
 
 import pandas.core.common as com
 from pandas.core.index import Index, MultiIndex

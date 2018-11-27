@@ -1,64 +1,52 @@
 # pylint: disable=W0231,E1101
 import collections
 import functools
-import warnings
-import operator
-import weakref
 import gc
 import json
+import operator
+import warnings
+import weakref
 
 import numpy as np
-import pandas as pd
 
-from pandas._libs import properties, Timestamp, iNaT
+from pandas._libs import Timestamp, iNaT, properties
+import pandas.compat as compat
+from pandas.compat import (
+    cPickle as pkl, isidentifier, lrange, lzip, map, set_function_name,
+    string_types, to_str, zip)
+from pandas.compat.numpy import function as nv
 from pandas.errors import AbstractMethodError
+from pandas.util._decorators import (
+    Appender, Substitution, rewrite_axis_style_signature)
+from pandas.util._validators import validate_bool_kwarg, validate_fillna_kwargs
 
-from pandas.core.dtypes.common import (
-    ensure_int64,
-    ensure_object,
-    is_scalar,
-    is_number,
-    is_integer, is_bool,
-    is_bool_dtype,
-    is_numeric_dtype,
-    is_datetime64_any_dtype,
-    is_timedelta64_dtype,
-    is_datetime64tz_dtype,
-    is_list_like,
-    is_dict_like,
-    is_re_compilable,
-    is_period_arraylike,
-    is_object_dtype,
-    is_extension_array_dtype,
-    pandas_dtype)
 from pandas.core.dtypes.cast import maybe_promote, maybe_upcast_putmask
+from pandas.core.dtypes.common import (
+    ensure_int64, ensure_object, is_bool, is_bool_dtype,
+    is_datetime64_any_dtype, is_datetime64tz_dtype, is_dict_like,
+    is_extension_array_dtype, is_integer, is_list_like, is_number,
+    is_numeric_dtype, is_object_dtype, is_period_arraylike, is_re_compilable,
+    is_scalar, is_timedelta64_dtype, pandas_dtype)
+from pandas.core.dtypes.generic import ABCDataFrame, ABCPanel, ABCSeries
 from pandas.core.dtypes.inference import is_hashable
 from pandas.core.dtypes.missing import isna, notna
-from pandas.core.dtypes.generic import ABCSeries, ABCPanel, ABCDataFrame
 
-from pandas.core.base import PandasObject, SelectionMixin
-from pandas.core.index import (Index, MultiIndex, ensure_index,
-                               InvalidIndexError, RangeIndex)
-import pandas.core.indexing as indexing
-from pandas.core.indexes.datetimes import DatetimeIndex
-from pandas.core.indexes.period import PeriodIndex, Period
-from pandas.core.internals import BlockManager
+import pandas as pd
+from pandas.core import config, missing, nanops
 import pandas.core.algorithms as algos
+from pandas.core.base import PandasObject, SelectionMixin
 import pandas.core.common as com
-import pandas.core.missing as missing
-from pandas.io.formats.printing import pprint_thing
-from pandas.io.formats.format import format_percentiles, DataFrameFormatter
-from pandas.tseries.frequencies import to_offset
-from pandas import compat
-from pandas.compat.numpy import function as nv
-from pandas.compat import (map, zip, lzip, lrange, string_types, to_str,
-                           isidentifier, set_function_name, cPickle as pkl)
+from pandas.core.index import (
+    Index, InvalidIndexError, MultiIndex, RangeIndex, ensure_index)
+from pandas.core.indexes.datetimes import DatetimeIndex
+from pandas.core.indexes.period import Period, PeriodIndex
+import pandas.core.indexing as indexing
+from pandas.core.internals import BlockManager
 from pandas.core.ops import _align_method_FRAME
-import pandas.core.nanops as nanops
-from pandas.util._decorators import (Appender, Substitution,
-                                     rewrite_axis_style_signature)
-from pandas.util._validators import validate_bool_kwarg, validate_fillna_kwargs
-from pandas.core import config
+
+from pandas.io.formats.format import DataFrameFormatter, format_percentiles
+from pandas.io.formats.printing import pprint_thing
+from pandas.tseries.frequencies import to_offset
 
 # goal is to be able to define the docs close to function, while still being
 # able to share
@@ -2069,17 +2057,18 @@ class NDFrame(PandasObject, SelectionMixin):
     >>> df1 = pd.DataFrame([['a', 'b'], ['c', 'd']],
     ...                   index=['row 1', 'row 2'],
     ...                   columns=['col 1', 'col 2'])
-    >>> df1.to_excel("output.xlsx")
+    >>> df1.to_excel("output.xlsx")  # doctest: +SKIP
 
     To specify the sheet name:
 
-    >>> df1.to_excel("output.xlsx", sheet_name='Sheet_name_1')
+    >>> df1.to_excel("output.xlsx",
+    ...              sheet_name='Sheet_name_1')  # doctest: +SKIP
 
     If you wish to write to more than one sheet in the workbook, it is
     necessary to specify an ExcelWriter object:
 
     >>> df2 = df1.copy()
-    >>> with pd.ExcelWriter('output.xlsx') as writer:
+    >>> with pd.ExcelWriter('output.xlsx') as writer:  # doctest: +SKIP
     ...     df1.to_excel(writer, sheet_name='Sheet_name_1')
     ...     df2.to_excel(writer, sheet_name='Sheet_name_2')
 
@@ -2087,7 +2076,7 @@ class NDFrame(PandasObject, SelectionMixin):
     you can pass the `engine` keyword (the default engine is
     automatically chosen depending on the file extension):
 
-    >>> df1.to_excel('output1.xlsx', engine='xlsxwriter')
+    >>> df1.to_excel('output1.xlsx', engine='xlsxwriter')  # doctest: +SKIP
     """
 
     def to_json(self, path_or_buf=None, orient=None, date_format=None,
@@ -3434,29 +3423,99 @@ class NDFrame(PandasObject, SelectionMixin):
 
     def reindex_like(self, other, method=None, copy=True, limit=None,
                      tolerance=None):
-        """Return an object with matching indices to myself.
+        """
+        Return an object with matching indices as other object.
+
+        Conform the object to the same index on all axes. Optional
+        filling logic, placing NaN in locations having no value
+        in the previous index. A new object is produced unless the
+        new index is equivalent to the current one and copy=False.
 
         Parameters
         ----------
-        other : Object
-        method : string or None
-        copy : boolean, default True
+        other : Object of the same data type
+            Its row and column indices are used to define the new indices
+            of this object.
+        method : {None, 'backfill'/'bfill', 'pad'/'ffill', 'nearest'}
+            Method to use for filling holes in reindexed DataFrame.
+            Please note: this is only applicable to DataFrames/Series with a
+            monotonically increasing/decreasing index.
+
+            * None (default): don't fill gaps
+            * pad / ffill: propagate last valid observation forward to next
+              valid
+            * backfill / bfill: use next valid observation to fill gap
+            * nearest: use nearest valid observations to fill gap
+
+        copy : bool, default True
+            Return a new object, even if the passed indexes are the same.
         limit : int, default None
             Maximum number of consecutive labels to fill for inexact matches.
         tolerance : optional
-            Maximum distance between labels of the other object and this
-            object for inexact matches. Can be list-like.
+            Maximum distance between original and new labels for inexact
+            matches. The values of the index at the matching locations most
+            satisfy the equation ``abs(index[indexer] - target) <= tolerance``.
+
+            Tolerance may be a scalar value, which applies the same tolerance
+            to all values, or list-like, which applies variable tolerance per
+            element. List-like includes list, tuple, array, Series, and must be
+            the same size as the index and its dtype must exactly match the
+            index's type.
 
             .. versionadded:: 0.21.0 (list-like tolerance)
 
-        Notes
-        -----
-        Like calling s.reindex(index=other.index, columns=other.columns,
-                               method=...)
-
         Returns
         -------
-        reindexed : same as input
+        Series or DataFrame
+            Same type as caller, but with changed indices on each axis.
+
+        See Also
+        --------
+        DataFrame.set_index : Set row labels.
+        DataFrame.reset_index : Remove row labels or move them to new columns.
+        DataFrame.reindex : Change to new indices or expand indices.
+
+        Notes
+        -----
+        Same as calling
+        ``.reindex(index=other.index, columns=other.columns,...)``.
+
+        Examples
+        --------
+        >>> df1 = pd.DataFrame([[24.3, 75.7, 'high'],
+        ...                     [31, 87.8, 'high'],
+        ...                     [22, 71.6, 'medium'],
+        ...                     [35, 95, 'medium']],
+        ...     columns=['temp_celsius', 'temp_fahrenheit', 'windspeed'],
+        ...     index=pd.date_range(start='2014-02-12',
+        ...                         end='2014-02-15', freq='D'))
+
+        >>> df1
+                    temp_celsius  temp_fahrenheit windspeed
+        2014-02-12          24.3             75.7      high
+        2014-02-13          31.0             87.8      high
+        2014-02-14          22.0             71.6    medium
+        2014-02-15          35.0             95.0    medium
+
+        >>> df2 = pd.DataFrame([[28, 'low'],
+        ...                     [30, 'low'],
+        ...                     [35.1, 'medium']],
+        ...     columns=['temp_celsius', 'windspeed'],
+        ...     index=pd.DatetimeIndex(['2014-02-12', '2014-02-13',
+        ...                             '2014-02-15']))
+
+        >>> df2
+                    temp_celsius windspeed
+        2014-02-12          28.0       low
+        2014-02-13          30.0       low
+        2014-02-15          35.1    medium
+
+        >>> df2.reindex_like(df1)
+                    temp_celsius  temp_fahrenheit windspeed
+        2014-02-12          28.0              NaN       low
+        2014-02-13          30.0              NaN       low
+        2014-02-14           NaN              NaN       NaN
+        2014-02-15          35.1              NaN    medium
         """
         d = other._construct_axes_dict(axes=self._AXIS_ORDERS, method=method,
                                        copy=copy, limit=limit,
@@ -3823,36 +3882,36 @@ class NDFrame(PandasObject, SelectionMixin):
         Conform %(klass)s to new index with optional filling logic, placing
         NA/NaN in locations having no value in the previous index. A new object
         is produced unless the new index is equivalent to the current one and
-        copy=False
+        ``copy=False``.
 
         Parameters
         ----------
         %(optional_labels)s
-        %(axes)s : array-like, optional (should be specified using keywords)
-            New labels / index to conform to. Preferably an Index object to
-            avoid duplicating data
+        %(axes)s : array-like, optional
+            New labels / index to conform to, should be specified using
+            keywords. Preferably an Index object to avoid duplicating data
         %(optional_axis)s
-        method : {None, 'backfill'/'bfill', 'pad'/'ffill', 'nearest'}, optional
-            method to use for filling holes in reindexed DataFrame.
+        method : {None, 'backfill'/'bfill', 'pad'/'ffill', 'nearest'}
+            Method to use for filling holes in reindexed DataFrame.
             Please note: this is only applicable to DataFrames/Series with a
             monotonically increasing/decreasing index.
 
-            * default: don't fill gaps
+            * None (default): don't fill gaps
             * pad / ffill: propagate last valid observation forward to next
               valid
             * backfill / bfill: use next valid observation to fill gap
             * nearest: use nearest valid observations to fill gap
 
-        copy : boolean, default True
-            Return a new object, even if the passed indexes are the same
+        copy : bool, default True
+            Return a new object, even if the passed indexes are the same.
         level : int or name
             Broadcast across a level, matching Index values on the
-            passed MultiIndex level
+            passed MultiIndex level.
         fill_value : scalar, default np.NaN
             Value to use for missing values. Defaults to NaN, but can be any
-            "compatible" value
+            "compatible" value.
         limit : int, default None
-            Maximum number of consecutive elements to forward or backward fill
+            Maximum number of consecutive elements to forward or backward fill.
         tolerance : optional
             Maximum distance between original and new labels for inexact
             matches. The values of the index at the matching locations most
@@ -3865,6 +3924,12 @@ class NDFrame(PandasObject, SelectionMixin):
             index's type.
 
             .. versionadded:: 0.21.0 (list-like tolerance)
+
+        See Also
+        --------
+        DataFrame.set_index : Set row labels.
+        DataFrame.reset_index : Remove row labels or move them to new columns.
+        DataFrame.reindex_like : Change to same indices as other DataFrame.
 
         Examples
         --------
@@ -3957,12 +4022,12 @@ class NDFrame(PandasObject, SelectionMixin):
         ...                    index=date_index)
         >>> df2
                     prices
-        2010-01-01     100
-        2010-01-02     101
+        2010-01-01   100.0
+        2010-01-02   101.0
         2010-01-03     NaN
-        2010-01-04     100
-        2010-01-05      89
-        2010-01-06      88
+        2010-01-04   100.0
+        2010-01-05    89.0
+        2010-01-06    88.0
 
         Suppose we decide to expand the dataframe to cover a wider
         date range.
@@ -3973,12 +4038,12 @@ class NDFrame(PandasObject, SelectionMixin):
         2009-12-29     NaN
         2009-12-30     NaN
         2009-12-31     NaN
-        2010-01-01     100
-        2010-01-02     101
+        2010-01-01   100.0
+        2010-01-02   101.0
         2010-01-03     NaN
-        2010-01-04     100
-        2010-01-05      89
-        2010-01-06      88
+        2010-01-04   100.0
+        2010-01-05    89.0
+        2010-01-06    88.0
         2010-01-07     NaN
 
         The index entries that did not have a value in the original data frame
@@ -3991,15 +4056,15 @@ class NDFrame(PandasObject, SelectionMixin):
 
         >>> df2.reindex(date_index2, method='bfill')
                     prices
-        2009-12-29     100
-        2009-12-30     100
-        2009-12-31     100
-        2010-01-01     100
-        2010-01-02     101
+        2009-12-29   100.0
+        2009-12-30   100.0
+        2009-12-31   100.0
+        2010-01-01   100.0
+        2010-01-02   101.0
         2010-01-03     NaN
-        2010-01-04     100
-        2010-01-05      89
-        2010-01-06      88
+        2010-01-04   100.0
+        2010-01-05    89.0
+        2010-01-06    88.0
         2010-01-07     NaN
 
         Please note that the ``NaN`` value present in the original dataframe
@@ -4013,7 +4078,7 @@ class NDFrame(PandasObject, SelectionMixin):
 
         Returns
         -------
-        reindexed : %(klass)s
+        %(klass)s with changed index.
         """
         # TODO: Decide if we care about having different examples for different
         # kinds
@@ -4085,11 +4150,10 @@ class NDFrame(PandasObject, SelectionMixin):
     def _reindex_multi(self, axes, copy, fill_value):
         return NotImplemented
 
-    _shared_docs[
-        'reindex_axis'] = ("""Conform input object to new index with optional
-        filling logic, placing NA/NaN in locations having no value in the
-        previous index. A new object is produced unless the new index is
-        equivalent to the current one and copy=False
+    _shared_docs['reindex_axis'] = ("""Conform input object to new index
+        with optional filling logic, placing NA/NaN in locations having
+        no value in the previous index. A new object is produced unless
+        the new index is equivalent to the current one and copy=False.
 
         Parameters
         ----------
@@ -4126,17 +4190,20 @@ class NDFrame(PandasObject, SelectionMixin):
 
             .. versionadded:: 0.21.0 (list-like tolerance)
 
-        Examples
-        --------
-        >>> df.reindex_axis(['A', 'B', 'C'], axis=1)
-
         See Also
         --------
-        reindex, reindex_like
+        DataFrame.set_index : Set row labels.
+        DataFrame.reset_index : Remove row labels or move them to new columns.
+        DataFrame.reindex : Change to new indices or expand indices.
+        DataFrame.reindex_like : Change to same indices as other DataFrame.
 
         Returns
         -------
-        reindexed : %(klass)s
+        %(klass)s
+
+        Examples
+        --------
+        >>> df.reindex_axis(['A', 'B', 'C'], axis=1)
         """)
 
     @Appender(_shared_docs['reindex_axis'] % _shared_doc_kwargs)
