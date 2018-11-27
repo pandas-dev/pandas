@@ -460,7 +460,7 @@ def _factorize_array(values, na_sentinel=-1, size_hint=None,
     (hash_klass, _), values = _get_data_algo(values, _hashtables)
 
     table = hash_klass(size_hint or len(values))
-    labels, uniques = table.factorize(values, na_sentinel=na_sentinel,
+    uniques, labels = table.factorize(values, na_sentinel=na_sentinel,
                                       na_value=na_value)
 
     labels = ensure_platform_int(labels)

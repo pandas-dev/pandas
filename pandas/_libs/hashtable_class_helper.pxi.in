@@ -502,18 +502,15 @@ cdef class {{name}}HashTable(HashTable):
 
         Returns
         -------
-        labels : ndarray[int64]
-            The labels from values to uniques
         uniques : ndarray[{{dtype}}]
             Unique values of input, not sorted
+        labels : ndarray[int64]
+            The labels from values to uniques
         """
         uniques_vector = {{name}}Vector()
-        uniques, labels = self._unique(values, uniques_vector,
-                                       na_sentinel=na_sentinel,
-                                       na_value=na_value, ignore_na=True,
-                                       return_inverse=True)
-        # factorize has reversed outputs compared to _unique
-        return labels, uniques
+        return self._unique(values, uniques_vector, na_sentinel=na_sentinel,
+                            na_value=na_value, ignore_na=True,
+                            return_inverse=True)
 
     def get_labels(self, const {{dtype}}_t[:] values, {{name}}Vector uniques,
                    Py_ssize_t count_prior=0, Py_ssize_t na_sentinel=-1,
@@ -858,18 +855,15 @@ cdef class StringHashTable(HashTable):
 
         Returns
         -------
-        labels : ndarray[int64]
-            The labels from values to uniques
         uniques : ndarray[object]
             Unique values of input, not sorted
+        labels : ndarray[int64]
+            The labels from values to uniques
         """
         uniques_vector = ObjectVector()
-        uniques, labels = self._unique(values, uniques_vector,
-                                       na_sentinel=na_sentinel,
-                                       na_value=na_value, ignore_na=True,
-                                       return_inverse=True)
-        # factorize has reversed outputs compared to _unique
-        return labels, uniques
+        return self._unique(values, uniques_vector, na_sentinel=na_sentinel,
+                            na_value=na_value, ignore_na=True,
+                            return_inverse=True)
 
     def get_labels(self, ndarray[object] values, ObjectVector uniques,
                    Py_ssize_t count_prior=0, Py_ssize_t na_sentinel=-1,
@@ -1092,18 +1086,15 @@ cdef class PyObjectHashTable(HashTable):
 
         Returns
         -------
-        labels : ndarray[int64]
-            The labels from values to uniques
         uniques : ndarray[object]
             Unique values of input, not sorted
+        labels : ndarray[int64]
+            The labels from values to uniques
         """
         uniques_vector = ObjectVector()
-        uniques, labels = self._unique(values, uniques_vector,
-                                       na_sentinel=na_sentinel,
-                                       na_value=na_value, ignore_na=True,
-                                       return_inverse=True)
-        # factorize has reversed outputs compared to _unique
-        return labels, uniques
+        return self._unique(values, uniques_vector, na_sentinel=na_sentinel,
+                            na_value=na_value, ignore_na=True,
+                            return_inverse=True)
 
     def get_labels(self, ndarray[object] values, ObjectVector uniques,
                    Py_ssize_t count_prior=0, Py_ssize_t na_sentinel=-1,
