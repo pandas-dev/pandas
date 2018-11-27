@@ -85,6 +85,7 @@ cdef class IntervalTree(IntervalMixin):
     def is_overlapping(self):
         """
         Determine if the IntervalTree contains overlapping intervals.
+        Cached as self._is_overlapping.
         """
         if self._is_overlapping is not None:
             return self._is_overlapping
@@ -92,13 +93,11 @@ cdef class IntervalTree(IntervalMixin):
         # <= when both sides closed since endpoints can overlap
         op = le if self.closed == 'both' else lt
 
-        self._is_overlapping = False
-        for previous, current in zip(self.left_sorter, self.left_sorter[1:]):
-            # overlap if start of current interval < end of previous interval
-            # (previous in terms of sorted order by left/start side)
-            if op(self.left[current], self.right[previous]):
-                self._is_overlapping = True
-                break
+        # overlap if start of current interval < end of previous interval
+        # (current and previous in terms of sorted order by left/start side)
+        current = self.left[self.left_sorter[1:]]
+        previous = self.right[self.left_sorter[:-1]]
+        self._is_overlapping = bool(op(current, previous).any())
 
         return self._is_overlapping
 
