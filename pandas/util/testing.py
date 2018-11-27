@@ -1859,6 +1859,14 @@ def getArangeMat():
 
 
 # make index
+def makeEmptyIndex(name=None):
+    return Index([], name=name)
+
+
+def makeRepeatIndex(name=None):
+    return Index([0, 0, 1, 1, 2, 2], name=name)
+
+
 def makeStringIndex(k=10, name=None):
     return Index(rands_array(nchars=10, size=k), name=name)
 

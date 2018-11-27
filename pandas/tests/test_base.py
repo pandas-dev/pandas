@@ -263,77 +263,72 @@ class TestIndexOps(Ops):
         self.is_valid_objs = self.objs
         self.not_valid_objs = []
 
-    def test_none_comparison(self):
-
+    def test_none_comparison(self, all_series_fixture):
         # bug brought up by #1079
         # changed from TypeError in 0.17.0
-        for o in self.is_valid_objs:
-            if isinstance(o, Series):
+        s = all_series_fixture
+        s[0] = np.nan
 
-                o[0] = np.nan
+        # noinspection PyComparisonWithNone
+        result = s == None  # noqa
+        assert not result.iat[0]
+        assert not result.iat[1]
 
-                # noinspection PyComparisonWithNone
-                result = o == None  # noqa
-                assert not result.iat[0]
-                assert not result.iat[1]
+        # noinspection PyComparisonWithNone
+        result = s != None  # noqa
+        assert result.iat[0]
+        assert result.iat[1]
 
-                # noinspection PyComparisonWithNone
-                result = o != None  # noqa
-                assert result.iat[0]
-                assert result.iat[1]
+        result = None == s  # noqa
+        assert not result.iat[0]
+        assert not result.iat[1]
 
-                result = None == o  # noqa
-                assert not result.iat[0]
-                assert not result.iat[1]
+        result = None != s  # noqa
+        assert result.iat[0]
+        assert result.iat[1]
 
-                result = None != o  # noqa
-                assert result.iat[0]
-                assert result.iat[1]
+        if (is_datetime64_dtype(s) or
+                is_datetime64tz_dtype(s)):
+            # Following DatetimeIndex (and Timestamp) convention,
+            # inequality comparisons with Series[datetime64] raise
+            with pytest.raises(TypeError):
+                None > s
+            with pytest.raises(TypeError):
+                s > None
+        else:
+            result = None > s
+            assert not result.iat[0]
+            assert not result.iat[1]
 
-                if (is_datetime64_dtype(o) or is_datetime64tz_dtype(o)):
-                    # Following DatetimeIndex (and Timestamp) convention,
-                    # inequality comparisons with Series[datetime64] raise
-                    with pytest.raises(TypeError):
-                        None > o
-                    with pytest.raises(TypeError):
-                        o > None
-                else:
-                    result = None > o
-                    assert not result.iat[0]
-                    assert not result.iat[1]
+            result = s < None
+            assert not result.iat[0]
+            assert not result.iat[1]
 
-                    result = o < None
-                    assert not result.iat[0]
-                    assert not result.iat[1]
+    def test_ndarray_compat_properties(self, all_indices_and_series_fixture):
 
-    def test_ndarray_compat_properties(self):
+        o = all_indices_and_series_fixture
+        # Check that we work.
+        for p in ['shape', 'dtype', 'T', 'nbytes']:
+            assert getattr(o, p, None) is not None
 
-        for o in self.objs:
-            # Check that we work.
-            for p in ['shape', 'dtype', 'T', 'nbytes']:
+        # deprecated properties
+        for p in ['flags', 'strides', 'itemsize']:
+            with tm.assert_produces_warning(FutureWarning):
                 assert getattr(o, p, None) is not None
 
-            # deprecated properties
-            for p in ['flags', 'strides', 'itemsize']:
-                with tm.assert_produces_warning(FutureWarning):
-                    assert getattr(o, p, None) is not None
+        with tm.assert_produces_warning(FutureWarning):
+            assert hasattr(o, 'base')
 
-            with tm.assert_produces_warning(FutureWarning):
-                assert hasattr(o, 'base')
+        # If we have a datetime-like dtype then needs a view to work
+        # but the user is responsible for that
+        with tm.assert_produces_warning(FutureWarning):
+            assert o.data is not None
 
-            # If we have a datetime-like dtype then needs a view to work
-            # but the user is responsible for that
-            try:
-                with tm.assert_produces_warning(FutureWarning):
-                    assert o.data is not None
-            except ValueError:
-                pass
+        with pytest.raises(ValueError):
+            o.item()  # len > 1
 
-            with pytest.raises(ValueError):
-                o.item()  # len > 1
-
-            assert o.ndim == 1
-            assert o.size == len(o)
+        assert o.ndim == 1
+        assert o.size == len(o)
 
         assert Index([1]).item() == 1
         assert Series([1]).item() == 1
@@ -928,54 +923,53 @@ class TestIndexOps(Ops):
             with pytest.raises(ValueError):
                 self.int_series.drop_duplicates(inplace=value)
 
-    def test_getitem(self):
-        for i in self.indexes:
-            s = pd.Series(i)
+    def test_getitem(self, all_indices_fixture):
+        idx = all_indices_fixture
+        s = pd.Series(idx)
 
-            assert i[0] == s.iloc[0]
-            assert i[5] == s.iloc[5]
-            assert i[-1] == s.iloc[-1]
+        assert idx[0] == s.iloc[0]
+        assert idx[5] == s.iloc[5]
+        assert idx[-1] == s.iloc[-1]
 
-            assert i[-1] == i[9]
+        assert idx[-1] == idx[9]
 
-            with pytest.raises(IndexError):
-                i[20]
-            with pytest.raises(IndexError):
-                s.iloc[20]
+        with pytest.raises(IndexError):
+            idx[20]
+        with pytest.raises(IndexError):
+            s.iloc[20]
 
     @pytest.mark.parametrize('indexer_klass', [list, pd.Index])
     @pytest.mark.parametrize('indexer', [[True] * 10, [False] * 10,
                                          [True, False, True, True, False,
                                           False, True, True, False, True]])
-    def test_bool_indexing(self, indexer_klass, indexer):
+    def test_bool_indexing(self, indexer_klass, indexer, all_indices_fixture):
         # GH 22533
-        for idx in self.indexes:
-            exp_idx = [i for i in range(len(indexer)) if indexer[i]]
-            tm.assert_index_equal(idx[indexer_klass(indexer)], idx[exp_idx])
-            s = pd.Series(idx)
-            tm.assert_series_equal(s[indexer_klass(indexer)], s.iloc[exp_idx])
+        idx = all_indices_fixture
+        exp_idx = [i for i in range(len(indexer)) if indexer[i]]
+        tm.assert_index_equal(idx[indexer_klass(indexer)], idx[exp_idx])
+        s = pd.Series(idx)
+        tm.assert_series_equal(s[indexer_klass(indexer)], s.iloc[exp_idx])
 
 
 class TestTranspose(Ops):
     errmsg = "the 'axes' parameter is not supported"
 
-    def test_transpose(self):
-        for obj in self.objs:
-            tm.assert_equal(obj.transpose(), obj)
+    def test_transpose(self, all_indices_and_series_fixture):
+        obj = all_indices_and_series_fixture
+        tm.assert_equal(obj.transpose(), obj)
 
-    def test_transpose_non_default_axes(self):
-        for obj in self.objs:
-            with pytest.raises(ValueError, match=self.errmsg):
-                obj.transpose(1)
-            with pytest.raises(ValueError, match=self.errmsg):
-                obj.transpose(axes=1)
+    def test_transpose_non_default_axes(self, all_indices_and_series_fixture):
+        obj = all_indices_and_series_fixture
+        with pytest.raises(ValueError, match=self.errmsg):
+            obj.transpose(1)
+        with pytest.raises(ValueError, match=self.errmsg):
+            obj.transpose(axes=1)
 
-    def test_numpy_transpose(self):
-        for obj in self.objs:
-            tm.assert_equal(np.transpose(obj), obj)
-
-            with pytest.raises(ValueError, match=self.errmsg):
-                np.transpose(obj, axes=1)
+    def test_numpy_transpose(self, all_indices_and_series_fixture):
+        obj = all_indices_and_series_fixture
+        tm.assert_equal(np.transpose(obj), obj)
+        with pytest.raises(ValueError, match=self.errmsg):
+            np.transpose(obj, axes=1)
 
 
 class TestNoNewAttributesMixin(object):
