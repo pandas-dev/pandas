@@ -4,17 +4,15 @@ data hash pandas / numpy objects
 import itertools
 
 import numpy as np
-from pandas._libs import hashing, tslibs
-from pandas.core.dtypes.generic import (
-    ABCMultiIndex,
-    ABCIndexClass,
-    ABCSeries,
-    ABCDataFrame)
-from pandas.core.dtypes.common import (
-    is_categorical_dtype, is_list_like, is_extension_array_dtype)
-from pandas.core.dtypes.missing import isna
-from pandas.core.dtypes.cast import infer_dtype_from_scalar
 
+from pandas._libs import hashing, tslibs
+
+from pandas.core.dtypes.cast import infer_dtype_from_scalar
+from pandas.core.dtypes.common import (
+    is_categorical_dtype, is_extension_array_dtype, is_list_like)
+from pandas.core.dtypes.generic import (
+    ABCDataFrame, ABCIndexClass, ABCMultiIndex, ABCSeries)
+from pandas.core.dtypes.missing import isna
 
 # 16 byte long hashing key
 _default_hash_key = '0123456789123456'
@@ -71,7 +69,6 @@ def hash_pandas_object(obj, index=True, encoding='utf8', hash_key=None,
     Returns
     -------
     Series of uint64, same length as the object
-
     """
     from pandas import Series
     if hash_key is None:
@@ -250,7 +247,6 @@ def hash_array(vals, encoding='utf8', hash_key=None, categorize=True):
     Returns
     -------
     1d uint64 numpy array of hash values, same length as the vals
-
     """
 
     if not hasattr(vals, 'dtype'):

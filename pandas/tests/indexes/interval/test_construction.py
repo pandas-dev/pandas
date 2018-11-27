@@ -1,18 +1,20 @@
 from __future__ import division
 
-import pytest
-import numpy as np
 from functools import partial
 
+import numpy as np
+import pytest
+
+import pandas.core.common as com
+import pandas.util.testing as tm
 from pandas import (
-    Interval, IntervalIndex, Index, Int64Index, Float64Index, Categorical,
-    CategoricalIndex, date_range, timedelta_range, period_range, notna)
+    Categorical, CategoricalIndex, Float64Index, Index, Int64Index, Interval,
+    IntervalIndex, date_range, notna, period_range, timedelta_range
+)
 from pandas.compat import lzip
 from pandas.core.arrays import IntervalArray
 from pandas.core.dtypes.common import is_categorical_dtype
 from pandas.core.dtypes.dtypes import IntervalDtype
-import pandas.core.common as com
-import pandas.util.testing as tm
 
 
 @pytest.fixture(params=[None, 'foo'])
@@ -105,7 +107,7 @@ class Base(object):
         # GH 19016
         msg = ('category, object, and string subtypes are not supported '
                'for IntervalIndex')
-        with tm.assert_raises_regex(TypeError, msg):
+        with pytest.raises(TypeError, match=msg):
             constructor(**self.get_kwargs_from_breaks(breaks))
 
     @pytest.mark.parametrize('cat_constructor', [
@@ -130,30 +132,30 @@ class Base(object):
 
         # invalid closed
         msg = "invalid option for 'closed': invalid"
-        with tm.assert_raises_regex(ValueError, msg):
+        with pytest.raises(ValueError, match=msg):
             constructor(closed='invalid', **filler)
 
         # unsupported dtype
         msg = 'dtype must be an IntervalDtype, got int64'
-        with tm.assert_raises_regex(TypeError, msg):
+        with pytest.raises(TypeError, match=msg):
             constructor(dtype='int64', **filler)
 
         # invalid dtype
         msg = "data type 'invalid' not understood"
-        with tm.assert_raises_regex(TypeError, msg):
+        with pytest.raises(TypeError, match=msg):
             constructor(dtype='invalid', **filler)
 
         # no point in nesting periods in an IntervalIndex
         periods = period_range('2000-01-01', periods=10)
         periods_kwargs = self.get_kwargs_from_breaks(periods)
         msg = 'Period dtypes are not supported, use a PeriodIndex instead'
-        with tm.assert_raises_regex(ValueError, msg):
+        with pytest.raises(ValueError, match=msg):
             constructor(**periods_kwargs)
 
         # decreasing values
         decreasing_kwargs = self.get_kwargs_from_breaks(range(10, -1, -1))
         msg = 'left side of interval must be <= right side'
-        with tm.assert_raises_regex(ValueError, msg):
+        with pytest.raises(ValueError, match=msg):
             constructor(**decreasing_kwargs)
 
 
@@ -176,14 +178,14 @@ class TestFromArrays(Base):
         data = Categorical(list('01234abcde'), ordered=True)
         msg = ('category, object, and string subtypes are not supported '
                'for IntervalIndex')
-        with tm.assert_raises_regex(TypeError, msg):
+        with pytest.raises(TypeError, match=msg):
             IntervalIndex.from_arrays(data[:-1], data[1:])
 
         # unequal length
         left = [0, 1, 2]
         right = [2, 3]
         msg = 'left and right must have the same length'
-        with tm.assert_raises_regex(ValueError, msg):
+        with pytest.raises(ValueError, match=msg):
             IntervalIndex.from_arrays(left, right)
 
     @pytest.mark.parametrize('left_subtype, right_subtype', [
@@ -222,7 +224,7 @@ class TestFromBreaks(Base):
         data = Categorical(list('01234abcde'), ordered=True)
         msg = ('category, object, and string subtypes are not supported '
                'for IntervalIndex')
-        with tm.assert_raises_regex(TypeError, msg):
+        with pytest.raises(TypeError, match=msg):
             IntervalIndex.from_breaks(data)
 
     def test_length_one(self):
@@ -259,17 +261,17 @@ class TestFromTuples(Base):
         # non-tuple
         tuples = [(0, 1), 2, (3, 4)]
         msg = 'IntervalIndex.from_tuples received an invalid item, 2'
-        with tm.assert_raises_regex(TypeError, msg.format(t=tuples)):
+        with pytest.raises(TypeError, match=msg.format(t=tuples)):
             IntervalIndex.from_tuples(tuples)
 
         # too few/many items
         tuples = [(0, 1), (2,), (3, 4)]
         msg = 'IntervalIndex.from_tuples requires tuples of length 2, got {t}'
-        with tm.assert_raises_regex(ValueError, msg.format(t=tuples)):
+        with pytest.raises(ValueError, match=msg.format(t=tuples)):
             IntervalIndex.from_tuples(tuples)
 
         tuples = [(0, 1), (2, 3, 4), (5, 6)]
-        with tm.assert_raises_regex(ValueError, msg.format(t=tuples)):
+        with pytest.raises(ValueError, match=msg.format(t=tuples)):
             IntervalIndex.from_tuples(tuples)
 
     def test_na_tuples(self):
@@ -316,19 +318,19 @@ class TestClassConstructors(Base):
         # mismatched closed within intervals with no constructor override
         ivs = [Interval(0, 1, closed='right'), Interval(2, 3, closed='left')]
         msg = 'intervals must all be closed on the same side'
-        with tm.assert_raises_regex(ValueError, msg):
+        with pytest.raises(ValueError, match=msg):
             constructor(ivs)
 
         # scalar
         msg = (r'IntervalIndex\(...\) must be called with a collection of '
                'some kind, 5 was passed')
-        with tm.assert_raises_regex(TypeError, msg):
+        with pytest.raises(TypeError, match=msg):
             constructor(5)
 
         # not an interval
         msg = ("type <(class|type) 'numpy.int64'> with value 0 "
                "is not an interval")
-        with tm.assert_raises_regex(TypeError, msg):
+        with pytest.raises(TypeError, match=msg):
             constructor([0, 1])
 
     @pytest.mark.parametrize('data, closed', [

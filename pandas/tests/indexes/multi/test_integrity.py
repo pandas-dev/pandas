@@ -3,9 +3,10 @@
 import re
 
 import numpy as np
+import pytest
+
 import pandas as pd
 import pandas.util.testing as tm
-import pytest
 from pandas import IntervalIndex, MultiIndex, RangeIndex
 from pandas.compat import lrange, range
 from pandas.core.dtypes.cast import construct_1d_object_array_from_listlike
@@ -110,7 +111,7 @@ def test_consistency():
     index = MultiIndex(levels=[major_axis, minor_axis],
                        labels=[major_labels, minor_labels])
 
-    assert not index.is_unique
+    assert index.is_unique is False
 
 
 def test_hash_collisions():
@@ -138,16 +139,16 @@ def take_invalid_kwargs():
     indices = [1, 2]
 
     msg = r"take\(\) got an unexpected keyword argument 'foo'"
-    tm.assert_raises_regex(TypeError, msg, idx.take,
-                           indices, foo=2)
+    with pytest.raises(TypeError, match=msg):
+        idx.take(indices, foo=2)
 
     msg = "the 'out' parameter is not supported"
-    tm.assert_raises_regex(ValueError, msg, idx.take,
-                           indices, out=indices)
+    with pytest.raises(ValueError, match=msg):
+        idx.take(indices, out=indices)
 
     msg = "the 'mode' parameter is not supported"
-    tm.assert_raises_regex(ValueError, msg, idx.take,
-                           indices, mode='clip')
+    with pytest.raises(ValueError, match=msg):
+        idx.take(indices, mode='clip')
 
 
 def test_isna_behavior(idx):
@@ -182,8 +183,8 @@ def test_million_record_attribute_error():
     df = pd.DataFrame({'a': r, 'b': r},
                       index=pd.MultiIndex.from_tuples([(x, x) for x in r]))
 
-    with tm.assert_raises_regex(AttributeError,
-                                "'Series' object has no attribute 'foo'"):
+    msg = "'Series' object has no attribute 'foo'"
+    with pytest.raises(AttributeError, match=msg):
         df['a'].foo()
 
 
@@ -196,18 +197,18 @@ def test_metadata_immutable(idx):
     levels, labels = idx.levels, idx.labels
     # shouldn't be able to set at either the top level or base level
     mutable_regex = re.compile('does not support mutable operations')
-    with tm.assert_raises_regex(TypeError, mutable_regex):
+    with pytest.raises(TypeError, match=mutable_regex):
         levels[0] = levels[0]
-    with tm.assert_raises_regex(TypeError, mutable_regex):
+    with pytest.raises(TypeError, match=mutable_regex):
         levels[0][0] = levels[0][0]
     # ditto for labels
-    with tm.assert_raises_regex(TypeError, mutable_regex):
+    with pytest.raises(TypeError, match=mutable_regex):
         labels[0] = labels[0]
-    with tm.assert_raises_regex(TypeError, mutable_regex):
+    with pytest.raises(TypeError, match=mutable_regex):
         labels[0][0] = labels[0][0]
     # and for names
     names = idx.names
-    with tm.assert_raises_regex(TypeError, mutable_regex):
+    with pytest.raises(TypeError, match=mutable_regex):
         names[0] = names[0]
 
 
@@ -247,8 +248,9 @@ def test_rangeindex_fallback_coercion_bug():
 
 def test_hash_error(indices):
     index = indices
-    tm.assert_raises_regex(TypeError, "unhashable type: %r" %
-                           type(index).__name__, hash, indices)
+    with pytest.raises(TypeError, match=("unhashable type: %r" %
+                                         type(index).__name__)):
+        hash(indices)
 
 
 def test_mutability(indices):
@@ -258,9 +260,8 @@ def test_mutability(indices):
 
 
 def test_wrong_number_names(indices):
-    def testit(ind):
-        ind.names = ["apple", "banana", "carrot"]
-    tm.assert_raises_regex(ValueError, "^Length", testit, indices)
+    with pytest.raises(ValueError, match="^Length"):
+        indices.names = ["apple", "banana", "carrot"]
 
 
 def test_memory_usage(idx):
