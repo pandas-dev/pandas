@@ -97,6 +97,6 @@ class BaseInterfaceTests(BaseExtensionTests):
     ])
     def test_shift(self, data, periods, indices):
         subset = data[:2]
-        result = data.shift(periods)
+        result = subset.shift(periods)
         expected = subset.take(indices, allow_fill=True)
         self.assert_extension_array_equal(result, expected)
