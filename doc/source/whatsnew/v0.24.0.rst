@@ -1377,6 +1377,7 @@ Current Behavior:
 
 Notice how we now instead output ``np.nan`` itself instead of a stringified form of it.
 
+- Bug in :func:`read_csv` in which a column specified with ``CategoricalDtype`` of boolean categories was not being correctly coerced from string values to booleans (:issue:`20498`)
 - Bug in :meth:`to_sql` when writing timezone aware data (``datetime64[ns, tz]`` dtype) would raise a ``TypeError`` (:issue:`9086`)
 - Bug in :meth:`to_sql` where a naive DatetimeIndex would be written as ``TIMESTAMP WITH TIMEZONE`` type in supported databases, e.g. PostgreSQL (:issue:`23510`)
 - Bug in :meth:`read_excel()` when ``parse_cols`` is specified with an empty dataset (:issue:`9208`)
@@ -1469,6 +1470,7 @@ Sparse
 - Bug in unary inversion operator (``~``) on a ``SparseSeries`` with boolean values. The performance of this has also been improved (:issue:`22835`)
 - Bug in :meth:`SparseArary.unique` not returning the unique values (:issue:`19595`)
 - Bug in :meth:`SparseArray.nonzero` and :meth:`SparseDataFrame.dropna` returning shifted/incorrect results (:issue:`21172`)
+- Bug in :meth:`DataFrame.apply` where dtypes would lose sparseness (:issue:`23744`)
 
 Build Changes
 ^^^^^^^^^^^^^
@@ -1495,4 +1497,3 @@ Contributors
 ~~~~~~~~~~~~
 
 .. contributors:: v0.23.4..HEAD
-
