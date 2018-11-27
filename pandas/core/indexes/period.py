@@ -1,49 +1,40 @@
 # pylint: disable=E1101,E1103,W0232
 from datetime import datetime, timedelta
-import numpy as np
 import operator
 import warnings
 
-from pandas.core import common as com
-from pandas.core.dtypes.common import (
-    is_integer,
-    is_float,
-    is_float_dtype,
-    is_integer_dtype,
-    is_datetime64_any_dtype,
-    is_bool_dtype,
-    pandas_dtype
-)
-from pandas.core.ops import get_op_result_name
-from pandas.core.accessor import PandasDelegate, delegate_names
-from pandas.core.indexes.datetimes import DatetimeIndex, Int64Index, Index
-from pandas.core.indexes.datetimelike import (
-    DatelikeOps, DatetimeIndexOpsMixin, wrap_arithmetic_op
-)
-from pandas.core.tools.datetimes import parse_time_string, DateParseError
+import numpy as np
 
 from pandas._libs import index as libindex
-from pandas._libs.tslibs.period import (Period, IncompatibleFrequency,
-                                        DIFFERENT_FREQ_INDEX)
+from pandas._libs.tslibs import NaT, iNaT, resolution
+from pandas._libs.tslibs.period import (
+    DIFFERENT_FREQ_INDEX, IncompatibleFrequency, Period)
+from pandas.util._decorators import (
+    Appender, Substitution, cache_readonly, deprecate_kwarg)
 
-from pandas._libs.tslibs import resolution, NaT, iNaT
+from pandas.core.dtypes.common import (
+    is_bool_dtype, is_datetime64_any_dtype, is_float, is_float_dtype,
+    is_integer, is_integer_dtype, pandas_dtype)
 
+from pandas import compat
+from pandas.core import common as com
+from pandas.core.accessor import PandasDelegate, delegate_names
 from pandas.core.algorithms import unique1d
 import pandas.core.arrays.datetimelike as dtl
 from pandas.core.arrays.period import PeriodArray, period_array
 from pandas.core.base import _shared_docs
-from pandas.core.indexes.base import _index_shared_docs, ensure_index
-from pandas.core.missing import isna
-
-from pandas import compat
-from pandas.util._decorators import (
-    Appender, Substitution, cache_readonly, deprecate_kwarg
-)
-
-from pandas.tseries.offsets import Tick, DateOffset
-from pandas.tseries import frequencies
-
 import pandas.core.indexes.base as ibase
+from pandas.core.indexes.base import _index_shared_docs, ensure_index
+from pandas.core.indexes.datetimelike import (
+    DatelikeOps, DatetimeIndexOpsMixin, wrap_arithmetic_op)
+from pandas.core.indexes.datetimes import DatetimeIndex, Index, Int64Index
+from pandas.core.missing import isna
+from pandas.core.ops import get_op_result_name
+from pandas.core.tools.datetimes import DateParseError, parse_time_string
+
+from pandas.tseries import frequencies
+from pandas.tseries.offsets import DateOffset, Tick
+
 _index_doc_kwargs = dict(ibase._index_doc_kwargs)
 _index_doc_kwargs.update(
     dict(target_klass='PeriodIndex or list of Periods'))

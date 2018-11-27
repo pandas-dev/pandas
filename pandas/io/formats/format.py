@@ -730,12 +730,8 @@ class DataFrameFormatter(TableFormatter):
             .. versionadded:: 0.19.0
          """
         from pandas.io.formats.html import HTMLFormatter
-        html_renderer = HTMLFormatter(self, classes=classes,
-                                      max_rows=self.max_rows,
-                                      max_cols=self.max_cols,
-                                      notebook=notebook,
-                                      border=border,
-                                      table_id=self.table_id)
+        html_renderer = HTMLFormatter(self, classes=classes, notebook=notebook,
+                                      border=border, table_id=self.table_id)
         if hasattr(self.buf, 'write'):
             html_renderer.write_result(self.buf)
         elif isinstance(self.buf, compat.string_types):
@@ -960,6 +956,8 @@ class FloatArrayFormatter(GenericArrayFormatter):
         # float_format is expected to be a string
         # formatter should be used to pass a function
         if self.float_format is not None and self.formatter is None:
+            # GH21625, GH22270
+            self.fixed_width = False
             if callable(self.float_format):
                 self.formatter = self.float_format
                 self.float_format = None

@@ -248,9 +248,6 @@ class BlockManager(PandasObject):
 
     def __setstate__(self, state):
         def unpickle_block(values, mgr_locs):
-            # numpy < 1.7 pickle compat
-            if values.dtype == 'M8[us]':
-                values = values.astype('M8[ns]')
             return make_block(values, placement=mgr_locs)
 
         if (isinstance(state, tuple) and len(state) >= 4 and
@@ -776,18 +773,6 @@ class BlockManager(PandasObject):
 
         result = np.empty(self.shape, dtype=dtype)
 
-        if result.shape[0] == 0:
-            # Workaround for numpy 1.7 bug:
-            #
-            #     >>> a = np.empty((0,10))
-            #     >>> a[slice(0,0)]
-            #     array([], shape=(0, 10), dtype=float64)
-            #     >>> a[[]]
-            #     Traceback (most recent call last):
-            #       File "<stdin>", line 1, in <module>
-            #     IndexError: index 0 is out of bounds for axis 0 with size 0
-            return result
-
         itemmask = np.zeros(self.shape[0])
 
         for blk in self.blocks:
@@ -1170,8 +1155,7 @@ class BlockManager(PandasObject):
                 blk.mgr_locs = new_mgr_locs
 
         if loc == self._blklocs.shape[0]:
-            # np.append is a lot faster (at least in numpy 1.7.1), let's use it
-            # if we can.
+            # np.append is a lot faster, let's use it if we can.
             self._blklocs = np.append(self._blklocs, 0)
             self._blknos = np.append(self._blknos, len(self.blocks))
         else:
@@ -1995,13 +1979,9 @@ def _transform_index(index, func, level=None):
 
 def _fast_count_smallints(arr):
     """Faster version of set(arr) for sequences of small numbers."""
-    if len(arr) == 0:
-        # Handle empty arr case separately: numpy 1.6 chokes on that.
-        return np.empty((0, 2), dtype=arr.dtype)
-    else:
-        counts = np.bincount(arr.astype(np.int_))
-        nz = counts.nonzero()[0]
-        return np.c_[nz, counts[nz]]
+    counts = np.bincount(arr.astype(np.int_))
+    nz = counts.nonzero()[0]
+    return np.c_[nz, counts[nz]]
 
 
 def _preprocess_slice_or_indexer(slice_or_indexer, length, allow_fill):
