@@ -1627,7 +1627,8 @@ class GroupBy(_GroupBy):
                 # just returns NaN
                 raise ValueError("For a DataFrame groupby, dropna must be "
                                  "either None, 'any' or 'all', "
-                                 "(was passed %s)." % (dropna),)
+                                 "(was passed {dropna}).".format(
+                                     dropna=dropna))
 
         # old behaviour, but with all and any support for DataFrames.
         # modified in GH 7559 to have better perf
@@ -2071,6 +2072,6 @@ def groupby(obj, by, **kwds):
         from pandas.core.groupby.generic import DataFrameGroupBy
         klass = DataFrameGroupBy
     else:  # pragma: no cover
-        raise TypeError('invalid type: %s' % type(obj))
+        raise TypeError('invalid type: {}'.format(obj))
 
     return klass(obj, by, **kwds)
