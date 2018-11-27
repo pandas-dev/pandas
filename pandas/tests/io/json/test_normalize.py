@@ -261,6 +261,27 @@ class TestJSONNormalize(object):
         expected = DataFrame(ex_data)
         tm.assert_frame_equal(result, expected)
 
+    def test_records_path_with_nested_data(self):
+        data = [{'CreatedBy': {'Name': 'User001'},
+                 'Lookup': [{'TextField': 'Some text',
+                             'UserField': {'Id': 'ID001', 'Name': 'Name001'}},
+                            {'TextField': 'Some text',
+                             'UserField': {'Id': 'ID001', 'Name': 'Name001'}}
+                            ],
+                 'Image': {'a': 'b'},
+                 'random': [{'foo': 'something', 'bar': 'else'},
+                            {'foo': 'something2', 'bar': 'else2'}]
+                 }]
+
+        ex_data = [{"TextField": "Some text", "UserField.Id": "ID001",
+                    "UserField.Name": "Name001", "CreatedBy": {"Name": "User001"}, 'Image': {'a': 'b'}},
+                   {"TextField": "Some text", "UserField.Id": "ID001",
+                    "UserField.Name": "Name001", "CreatedBy": {"Name": "User001"}, 'Image': {'a': 'b'}}]
+
+        expected = DataFrame(ex_data, columns=['TextField', 'UserField.Id', 'UserField.Name', 'CreatedBy', "Image"])
+        result = json_normalize(data, record_path=["Lookup"], meta=[["CreatedBy"], ["Image"]])
+        tm.assert_frame_equal(result, expected)
+
 
 class TestNestedToRecord(object):
 
@@ -440,3 +461,4 @@ class TestNestedToRecord(object):
             'location.country.state.town.info.y': -33.148521423339844,
             'location.country.state.town.info.z': 27.572303771972656}
         assert result == expected
+

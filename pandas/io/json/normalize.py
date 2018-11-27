@@ -238,7 +238,7 @@ def json_normalize(data, record_path=None, meta=None,
         else:
             for obj in data:
                 recs = _pull_field(obj, path[0])
-
+                recs = [nested_to_record(r, sep=sep) if isinstance(r, dict) else r for r in recs]
                 # For repeating the metadata later
                 lengths.append(len(recs))
 
@@ -261,7 +261,6 @@ def json_normalize(data, record_path=None, meta=None,
                 records.extend(recs)
 
     _recursive_extract(data, record_path, {}, level=0)
-
     result = DataFrame(records)
 
     if record_prefix is not None:
@@ -278,5 +277,4 @@ def json_normalize(data, record_path=None, meta=None,
                              'need distinguishing prefix '.format(name=k))
 
         result[k] = np.array(v).repeat(lengths)
-
     return result
