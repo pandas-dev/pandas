@@ -46,6 +46,17 @@ def array(data,         # type: Sequence[object]
         NumPy cannot represent all the types of data that can be
         held in extension arrays.
 
+        Currently, pandas will infer an extension dtype for sequences of
+
+        ========================== ==================================
+        scalar type                Array Type
+        ========================== ==================================
+        * :class:`pandas.Interval` :class:`pandas.IntervalArray`
+        * :class:`pandas.Period`   :class:`pandas.arrays.PeriodArray`
+        ========================== ==================================
+
+        For all other cases, NumPy's usual inference rules will be used.
+
     copy : bool, default True
         Whether to copy the data, even if not necessary. Depending
         on the type of `data`, creating the new array may require
