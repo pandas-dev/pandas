@@ -199,8 +199,6 @@ class TestHDFStore(Base):
     def test_long_strings(self):
 
         # GH6166
-        # unconversion of long strings was being chopped in earlier
-        # versions of numpy < 1.7.2
         df = DataFrame({'a': tm.rands_array(100, size=10)},
                        index=tm.rands_array(100, size=10))
 

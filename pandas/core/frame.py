@@ -877,7 +877,6 @@ class DataFrame(NDFrame):
         --------
         itertuples : Iterate over DataFrame rows as namedtuples of the values.
         iteritems : Iterate over (column name, Series) pairs.
-
         """
         columns = self.columns
         klass = self._constructor_sliced
@@ -1722,7 +1721,6 @@ class DataFrame(NDFrame):
         Returns
         -------
         y : DataFrame
-
         """
 
         warnings.warn("from_csv is deprecated. Please use read_csv(...) "
@@ -1856,13 +1854,16 @@ class DataFrame(NDFrame):
                  data_label=None, variable_labels=None, version=114,
                  convert_strl=None):
         """
-        Export Stata binary dta files.
+        Export DataFrame object to Stata dta format.
+
+        Writes the DataFrame to a Stata dataset file.
+        "dta" files contain a Stata dataset.
 
         Parameters
         ----------
-        fname : path (string), buffer or path object
-            string, path object (pathlib.Path or py._path.local.LocalPath) or
-            object implementing a binary write() functions. If using a buffer
+        fname : str, buffer or path object
+            String, path object (pathlib.Path or py._path.local.LocalPath) or
+            object implementing a binary write() function. If using a buffer
             then the buffer will not be automatically closed after the file
             data has been written.
         convert_dates : dict
@@ -1881,7 +1882,7 @@ class DataFrame(NDFrame):
         time_stamp : datetime
             A datetime to use as file creation date.  Default is the current
             time.
-        data_label : str
+        data_label : str, optional
             A label for the data set.  Must be 80 characters or smaller.
         variable_labels : dict
             Dictionary containing columns as keys and variable labels as
@@ -1889,7 +1890,7 @@ class DataFrame(NDFrame):
 
             .. versionadded:: 0.19.0
 
-        version : {114, 117}
+        version : {114, 117}, default 114
             Version to use in the output dta file.  Version 114 can be used
             read by Stata 10 and later.  Version 117 can be read by Stata 13
             or later. Version 114 limits string variables to 244 characters or
@@ -1921,28 +1922,16 @@ class DataFrame(NDFrame):
 
         See Also
         --------
-        pandas.read_stata : Import Stata data files.
-        pandas.io.stata.StataWriter : Low-level writer for Stata data files.
-        pandas.io.stata.StataWriter117 : Low-level writer for version 117
-            files.
+        read_stata : Import Stata data files.
+        io.stata.StataWriter : Low-level writer for Stata data files.
+        io.stata.StataWriter117 : Low-level writer for version 117 files.
 
         Examples
         --------
-        >>> data.to_stata('./data_file.dta')
-
-        Or with dates
-
-        >>> data.to_stata('./date_data_file.dta', {2 : 'tw'})
-
-        Alternatively you can create an instance of the StataWriter class
-
-        >>> writer = StataWriter('./data_file.dta', data)
-        >>> writer.write_file()
-
-        With dates:
-
-        >>> writer = StataWriter('./date_data_file.dta', data, {2 : 'tw'})
-        >>> writer.write_file()
+        >>> df = pd.DataFrame({'animal': ['falcon', 'parrot', 'falcon',
+        ...                               'parrot'],
+        ...                    'speed': [350, 18, 361, 15]})
+        >>> df.to_stata('animals.dta')  # doctest: +SKIP
         """
         kwargs = {}
         if version not in (114, 117):
@@ -1972,7 +1961,6 @@ class DataFrame(NDFrame):
         ----------
         fname : str
             string file path
-
         """
         from pandas.io.feather_format import to_feather
         to_feather(self, fname)
@@ -2037,8 +2025,9 @@ class DataFrame(NDFrame):
         Examples
         --------
         >>> df = pd.DataFrame(data={'col1': [1, 2], 'col2': [3, 4]})
-        >>> df.to_parquet('df.parquet.gzip', compression='gzip')
-        >>> pd.read_parquet('df.parquet.gzip')
+        >>> df.to_parquet('df.parquet.gzip',
+        ...               compression='gzip')  # doctest: +SKIP
+        >>> pd.read_parquet('df.parquet.gzip')  # doctest: +SKIP
            col1  col2
         0     1     3
         1     2     4
@@ -2252,7 +2241,8 @@ class DataFrame(NDFrame):
         >>> buffer = io.StringIO()
         >>> df.info(buf=buffer)
         >>> s = buffer.getvalue()
-        >>> with open("df_info.txt", "w", encoding="utf-8") as f:
+        >>> with open("df_info.txt", "w",
+        ...           encoding="utf-8") as f:  # doctest: +SKIP
         ...     f.write(s)
         260
 
@@ -3585,7 +3575,6 @@ class DataFrame(NDFrame):
         --------
         values : ndarray
             The found values
-
         """
         n = len(row_labels)
         if n != len(col_labels):
@@ -4017,22 +4006,22 @@ class DataFrame(NDFrame):
     def reset_index(self, level=None, drop=False, inplace=False, col_level=0,
                     col_fill=''):
         """
-        For DataFrame with multi-level index, return new DataFrame with
-        labeling information in the columns under the index names, defaulting
-        to 'level_0', 'level_1', etc. if any are None. For a standard index,
-        the index name will be used (if set), otherwise a default 'index' or
-        'level_0' (if 'index' is already taken) will be used.
+        Reset the index, or a level of it.
+
+        Reset the index of the DataFrame, and use the default one instead.
+        If the DataFrame has a MultiIndex, this method can remove one or more
+        levels.
 
         Parameters
         ----------
         level : int, str, tuple, or list, default None
             Only remove the given levels from the index. Removes all levels by
-            default
-        drop : boolean, default False
+            default.
+        drop : bool, default False
             Do not try to insert index into dataframe columns. This resets
             the index to the default integer index.
-        inplace : boolean, default False
-            Modify the DataFrame in place (do not create a new object)
+        inplace : bool, default False
+            Modify the DataFrame in place (do not create a new object).
         col_level : int or str, default 0
             If the columns have multiple levels, determines which level the
             labels are inserted into. By default it is inserted into the first
@@ -4043,13 +4032,20 @@ class DataFrame(NDFrame):
 
         Returns
         -------
-        resetted : DataFrame
+        DataFrame
+            DataFrame with the new index.
+
+        See Also
+        --------
+        DataFrame.set_index : Opposite of reset_index.
+        DataFrame.reindex : Change to new indices or expand indices.
+        DataFrame.reindex_like : Change to same indices as other DataFrame.
 
         Examples
         --------
-        >>> df = pd.DataFrame([('bird',    389.0),
-        ...                    ('bird',     24.0),
-        ...                    ('mammal',   80.5),
+        >>> df = pd.DataFrame([('bird', 389.0),
+        ...                    ('bird', 24.0),
+        ...                    ('mammal', 80.5),
         ...                    ('mammal', np.nan)],
         ...                   index=['falcon', 'parrot', 'lion', 'monkey'],
         ...                   columns=('class', 'max_speed'))
@@ -4822,7 +4818,6 @@ class DataFrame(NDFrame):
 
            The indexes ``i`` and ``j`` are now optional, and default to
            the two innermost levels of the index.
-
         """
         result = self.copy()
 
@@ -7056,7 +7051,6 @@ class DataFrame(NDFrame):
         John      2
         Lewis     1
         Myla      1
-
         """
         axis = self._get_axis_number(axis)
         if level is not None:
@@ -7226,20 +7220,29 @@ class DataFrame(NDFrame):
 
     def nunique(self, axis=0, dropna=True):
         """
-        Return Series with number of distinct observations over requested
-        axis.
+        Count distinct observations over requested axis.
+
+        Return Series with number of distinct observations. Can ignore NaN
+        values.
 
         .. versionadded:: 0.20.0
 
         Parameters
         ----------
         axis : {0 or 'index', 1 or 'columns'}, default 0
-        dropna : boolean, default True
+            The axis to use. 0 or 'index' for row-wise, 1 or 'columns' for
+            column-wise.
+        dropna : bool, default True
             Don't include NaN in the counts.
 
         Returns
         -------
         nunique : Series
+
+        See Also
+        --------
+        Series.nunique: Method nunique for Series.
+        DataFrame.count: Count non-NA cells for each column or row.
 
         Examples
         --------
@@ -7247,11 +7250,13 @@ class DataFrame(NDFrame):
         >>> df.nunique()
         A    3
         B    1
+        dtype: int64
 
         >>> df.nunique(axis=1)
         0    1
         1    2
         2    2
+        dtype: int64
         """
         return self.apply(Series.nunique, axis=axis, dropna=dropna)
 
