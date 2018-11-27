@@ -1248,25 +1248,19 @@ def infer_dtype(value: object, skipna: bool=False) -> str:
     if util.is_datetime64_object(val):
         if is_datetime64_array(values):
             return 'datetime64'
-        elif is_timedelta_or_timedelta64_array(values):
-            return 'timedelta'
 
     elif is_timedelta(val):
         if is_timedelta_or_timedelta64_array(values):
             return 'timedelta'
 
     elif util.is_integer_object(val):
-        # a timedelta will show true here as well
-        if is_timedelta(val):
-            if is_timedelta_or_timedelta64_array(values):
-                return 'timedelta'
+        # ordering matters here; this check must come after the is_timedelta
+        #  check otherwise numpy timedelta64 objects would come through here
 
         if is_integer_array(values):
             return 'integer'
         elif is_integer_float_array(values):
             return 'mixed-integer-float'
-        elif is_timedelta_or_timedelta64_array(values):
-            return 'timedelta'
         return 'mixed-integer'
 
     elif PyDateTime_Check(val):
@@ -1697,27 +1691,6 @@ cdef class TimedeltaValidator(TemporalValidator):
 
     cdef inline bint is_valid_null(self, object value) except -1:
         return is_null_timedelta64(value)
-
-
-# TODO: Not used outside of tests; remove?
-def is_timedelta_array(values: ndarray) -> bool:
-    cdef:
-        TimedeltaValidator validator = TimedeltaValidator(len(values),
-                                                          skipna=True)
-    return validator.validate(values)
-
-
-cdef class Timedelta64Validator(TimedeltaValidator):
-    cdef inline bint is_value_typed(self, object value) except -1:
-        return util.is_timedelta64_object(value)
-
-
-# TODO: Not used outside of tests; remove?
-def is_timedelta64_array(values: ndarray) -> bool:
-    cdef:
-        Timedelta64Validator validator = Timedelta64Validator(len(values),
-                                                              skipna=True)
-    return validator.validate(values)
 
 
 cdef class AnyTimedeltaValidator(TimedeltaValidator):
