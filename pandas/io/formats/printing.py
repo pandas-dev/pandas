@@ -111,10 +111,9 @@ def _pprint_seq(seq, _nest_lvl=0, max_seq_items=None, **kwds):
 
     s = iter(seq)
     # handle sets, no slicing
-    r = [
-        pprint_thing(
-            next(s), _nest_lvl + 1, max_seq_items=max_seq_items, **kwds)
-        for i in range(min(nitems, len(seq)))]
+    r = [pprint_thing(next(s),
+                      _nest_lvl + 1, max_seq_items=max_seq_items, **kwds)
+         for i in range(min(nitems, len(seq)))]
     body = ", ".join(r)
 
     if nitems < len(seq):
