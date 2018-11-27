@@ -1458,15 +1458,18 @@ def maybe_convert_dtype(data, copy):
     """
     Convert data based on dtype conventions, issuing deprecation warnings
     or errors where appropriate.
-     Parameters
+
+    Parameters
     ----------
     data : np.ndarray or pd.Index
     copy : bool
-     Returns
+
+    Returns
     -------
     data : np.ndarray or pd.Index
     copy : bool
-     Raises
+
+    Raises
     ------
     TypeError : PeriodDType data is passed
     """
