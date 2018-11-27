@@ -7,6 +7,13 @@ from pandas import DataFrame, MultiIndex, Series
 from pandas.util import testing as tm
 
 
+@pytest.fixture
+def single_level_multiindex():
+    """single level MultiIndex"""
+    return MultiIndex(levels=[['foo', 'bar', 'baz', 'qux']],
+                      labels=[[0, 1, 2, 3]], names=['first'])
+
+
 @pytest.mark.filterwarnings("ignore:\\n.ix:DeprecationWarning")
 class TestMultiIndexLoc(object):
 
@@ -161,3 +168,10 @@ class TestMultiIndexLoc(object):
         expected = s.iloc[[6, 7, 8, 12, 13, 14]]
         result = s.loc[2:4:2, 'a':'c']
         tm.assert_series_equal(result, expected)
+
+    def test_get_loc_single_level(self, single_level_multiindex):
+        single_level = single_level_multiindex
+        s = Series(np.random.randn(len(single_level)),
+                   index=single_level)
+        for k in single_level.values:
+            s[k]

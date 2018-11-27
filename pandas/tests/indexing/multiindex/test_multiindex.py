@@ -15,13 +15,6 @@ import pandas.core.common as com
 from pandas.util import testing as tm
 
 
-@pytest.fixture
-def single_level_multiindex():
-    """single level MultiIndex"""
-    return MultiIndex(levels=[['foo', 'bar', 'baz', 'qux']],
-                      labels=[[0, 1, 2, 3]], names=['first'])
-
-
 @pytest.mark.filterwarnings("ignore:\\n.ix:DeprecationWarning")
 class TestMultiIndexBasic(object):
 
@@ -632,13 +625,6 @@ class TestMultiIndexBasic(object):
         result = df.loc[(2000, 1, 6), ['A', 'B', 'C']]
         expected = df.loc[2000, 1, 6][['A', 'B', 'C']]
         tm.assert_series_equal(result, expected)
-
-    def test_get_loc_single_level(self, single_level_multiindex):
-        single_level = single_level_multiindex
-        s = Series(np.random.randn(len(single_level)),
-                   index=single_level)
-        for k in single_level.values:
-            s[k]
 
     def test_getitem_toplevel(self, multiindex_dataframe_random_data):
         frame = multiindex_dataframe_random_data
