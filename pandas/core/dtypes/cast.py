@@ -263,28 +263,10 @@ def maybe_promote(dtype, fill_value=np.nan):
             fill_value = np.nan
 
     # returns tuple of (dtype, fill_value)
-    if issubclass(dtype.type, (np.datetime64, np.timedelta64)):
-        # for now: refuse to upcast datetime64
-        # (this is because datetime64 will not implicitly upconvert
-        #  to object correctly as of numpy 1.6.1)
-        if isna(fill_value):
-            fill_value = iNaT
-        else:
-            if issubclass(dtype.type, np.datetime64):
-                try:
-                    fill_value = tslibs.Timestamp(fill_value).value
-                except Exception:
-                    # the proper thing to do here would probably be to upcast
-                    # to object (but numpy 1.6.1 doesn't do this properly)
-                    fill_value = iNaT
-            elif issubclass(dtype.type, np.timedelta64):
-                try:
-                    fill_value = tslibs.Timedelta(fill_value).value
-                except Exception:
-                    # as for datetimes, cannot upcast to object
-                    fill_value = iNaT
-            else:
-                fill_value = iNaT
+    if issubclass(dtype.type, np.datetime64):
+        fill_value = tslibs.Timestamp(fill_value).value
+    elif issubclass(dtype.type, np.timedelta64):
+        fill_value = tslibs.Timedelta(fill_value).value
     elif is_datetimetz(dtype):
         if isna(fill_value):
             fill_value = iNaT

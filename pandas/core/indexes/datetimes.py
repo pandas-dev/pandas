@@ -423,11 +423,6 @@ class DatetimeIndex(DatetimeArray, DatelikeOps, TimelikeOps,
                 self._freq = own_state[1]
                 self._tz = timezones.tz_standardize(own_state[2])
 
-                # provide numpy < 1.7 compat
-                if nd_state[2] == 'M8[us]':
-                    new_state = np.ndarray.__reduce__(data.astype('M8[ns]'))
-                    np.ndarray.__setstate__(data, new_state[2])
-
             else:  # pragma: no cover
                 data = np.empty(state)
                 np.ndarray.__setstate__(data, state)
