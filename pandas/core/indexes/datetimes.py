@@ -232,7 +232,8 @@ class DatetimeIndex(DatetimeArray, DatelikeOps, TimelikeOps,
             warnings.warn("The 'verify_integrity' argument is deprecated, "
                           "will be removed in a future version.",
                           FutureWarning, stacklevel=2)
-        verify_integrity = True
+        else:
+            verify_integrity = True
 
         if data is None:
             warnings.warn("Creating a DatetimeIndex by passing range "
