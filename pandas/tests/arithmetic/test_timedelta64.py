@@ -49,14 +49,20 @@ class TestTimedelta64ArrayComparisons(object):
         for left, right in [(tdi, 'a'), ('a', tdi)]:
             with pytest.raises(TypeError):
                 left > right
-
             with pytest.raises(TypeError):
-                # FIXME: Shouldn't this return all-False?
-                left == right
-
+                left >= right
             with pytest.raises(TypeError):
-                # FIXME: Shouldn't this return all-True?
-                left != right
+                left < right
+            with pytest.raises(TypeError):
+                left <= right
+
+            result = left == right
+            expected = np.array([False, False], dtype=bool)
+            tm.assert_equal(result, expected)
+
+            result = left != right
+            expected = np.array([True, True], dtype=bool)
+            tm.assert_equal(result, expected)
 
     @pytest.mark.parametrize('dtype', [None, object])
     def test_comp_nat(self, dtype):
