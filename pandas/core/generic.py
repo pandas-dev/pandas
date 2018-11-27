@@ -9688,8 +9688,8 @@ class NDFrame(PandasObject, SelectionMixin):
         cls.max = _make_stat_function(
             cls, 'max', name, name2, axis_descr,
             "Return the maximum of the values in the object."
-            "\n\nIf you want the *index* of the maximum, use ``idxmax``. This is "
-            "the equivalent of the ``numpy.ndarray`` method ``argmax``.",
+            "\n\nIf you want the *index* of the maximum, use ``idxmax``. This "
+            "is the equivalent of the ``numpy.ndarray`` method ``argmax``.",
             nanops.nanmax, _min_max_see_also, _max_examples)
         cls.min = _make_stat_function(
             cls, 'min', name, name2, axis_descr,
@@ -10591,6 +10591,10 @@ Series.min : Return the minimum.
 Series.max : Return the maximum.
 Series.idxmin : Return the index of the minimum.
 Series.idxmax : Return the index of the maximum.
+DataFrame.min : Return the minimum over the requested axis.
+DataFrame.max : Return the maximum over the requested axis.
+DataFrame.idxmin : Return the index of the minimum over the requested axis.
+DataFrame.idxmax : Return the index of the maximum over the requested axis.
 """
 
 _sum_examples = """\
