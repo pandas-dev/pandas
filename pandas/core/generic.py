@@ -9687,13 +9687,13 @@ class NDFrame(PandasObject, SelectionMixin):
             nanops.nanmedian)
         cls.max = _make_stat_function(
             cls, 'max', name, name2, axis_descr,
-            "Returns the maximum of the values in the object."
+            "Return the maximum of the values in the object."
             "\n\nIf you want the *index* of the maximum, use ``idxmax``. This is "
             "the equivalent of the ``numpy.ndarray`` method ``argmax``.",
             nanops.nanmax, _min_max_see_also, _max_examples)
         cls.min = _make_stat_function(
             cls, 'min', name, name2, axis_descr,
-            "Returns the minimum of the values in the object."
+            "Return the minimum of the values in the object."
             "\n\nIf you want the *index* of the minimum, use ``idxmin``. This "
             "is the equivalent of the ``numpy.ndarray`` method ``argmin``.",
             nanops.nanmin, _min_max_see_also, _max_examples)
@@ -10003,7 +10003,7 @@ def _doc_parms(cls):
     return axis_descr, name, name2
 
 
-_num_doc = """\
+_num_doc = """
 %(desc)s
 
 Parameters
@@ -10033,8 +10033,7 @@ Returns
 %(outname)s : %(name1)s or %(name2)s (if level specified)
 
 %(see_also)s
-%(examples)s
-"""
+%(examples)s"""
 
 _num_ddof_doc = """
 %(desc)s
@@ -10517,7 +10516,7 @@ True
 Series([], dtype: bool)
 """
 
-_min_max_examples = """
+_min_max_examples = """\
 Examples
 --------
 **Series**
@@ -10711,7 +10710,6 @@ Jul    117
 Aug    113
 dtype: int64
 """
-
 
 _min_count_stub = """\
 min_count : int, default 0
