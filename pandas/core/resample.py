@@ -1517,17 +1517,19 @@ class TimeGrouper(Grouper):
                 data=[], freq=self.freq, name=ax.name)
             return binner, [], labels
 
-        start = ax.min().asfreq(self.freq, how=self.convention)
-        end = ax.max().asfreq(self.freq, how='end')
+        start = ax.min().asfreq(self.freq, how=self.convention).to_timestamp()
+        end = ax.max().asfreq(self.freq, how='end').to_timestamp()
 
-        start, end = _get_range_edges(start.to_timestamp(),
-                                      end.to_timestamp(),
-                                      self.freq,
-                                      closed=self.closed,
-                                      base=self.base)
+        p_start, p_end = _get_range_edges(start,
+                                          end,
+                                          self.freq,
+                                          closed=self.closed,
+                                          base=self.base)
 
-        labels = binner = PeriodIndex(start=start, end=end,
-                                      freq=self.freq, name=ax.name)[:-1]
+        i = None if self.freq.onOffset(start) else 1
+        j = -1 if self.freq.onOffset(end) else None
+        labels = binner = PeriodIndex(start=p_start, end=p_end,
+                                      freq=self.freq, name=ax.name)[i:j]
 
         i8 = memb.asi8
         freq_mult = self.freq.n
