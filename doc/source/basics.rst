@@ -853,7 +853,7 @@ Series operation on each column or row:
 
    tsdf = pd.DataFrame(np.random.randn(10, 3), columns=['A', 'B', 'C'],
                        index=pd.date_range('1/1/2000', periods=10))
-   tsdf.array[3:7] = np.nan
+   tsdf.iloc[3:7] = np.nan
 
 .. ipython:: python
 
