@@ -16,13 +16,15 @@ import pandas.util.testing as tm
 @pytest.mark.parametrize("data, dtype, expected", [
     ([1, 2], None, np.array([1, 2])),
     ([1, 2], object, np.array([1, 2], dtype=object)),
-    ([1, 2], 'float32', np.array([1., 2.0], dtype=np.dtype('float32'))),
+    ([1, 2], np.dtype('float32'),
+     np.array([1., 2.0], dtype=np.dtype('float32'))),
     (np.array([1, 2]), None, np.array([1, 2])),
     ([pd.Period('2000', 'D'), pd.Period('2001', 'D')], 'Period[D]',
      period_array(['2000', '2001'], freq='D')),
     ([pd.Period('2000', 'D')], pd.PeriodDtype('D'),
      period_array(['2000'], freq='D')),
-    ([1, 2], 'datetime64[ns]', np.array([1, 2], dtype='datetime64[ns]')),
+    ([1, 2], np.dtype('datetime64[ns]'),
+     np.array([1, 2], dtype='datetime64[ns]')),
     (['a', 'b'], 'category', pd.Categorical(['a', 'b'])),
     (['a', 'b'], pd.CategoricalDtype(None, ordered=True),
      pd.Categorical(['a', 'b'], ordered=True)),
@@ -89,6 +91,11 @@ def test_array_inference_fails(data):
     expected = np.array(data, dtype=object)
     tm.assert_numpy_array_equal(result, expected)
 
+
+def test_numpy_string_alias_raises():
+    match = "Ambiguous dtype 'int32'.*dtype=numpy.dtype.\"int32\"."
+    with pytest.raises(ValueError, match=match):
+        pd.array([1, 2], dtype='int32')
 
 # ---------------------------------------------------------------------------
 # A couple dummy classes to ensure that Series and Indexes are unboxed before

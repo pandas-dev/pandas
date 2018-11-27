@@ -57,6 +57,22 @@ def array(data,         # type: Sequence[object]
 
         For all other cases, NumPy's usual inference rules will be used.
 
+        To avoid *future* breaking changing, pandas will not pass through
+        string aliases like ``dtype="int32"`` through to NumPy.
+
+        >>> pd.array([1, 2, 3], dtype="int32")
+        Traceback (most recent call last):
+        ...
+        ValueError: Ambiguous dtype 'int32'...
+
+        In a future version of pandas, or with a different set of 3rd-party
+        extension types registered, the meaning of the string alias
+        ``"int32"`` may change. To avoid this ambiguity, pandas requires that
+        an actual NumPy dtype be passed instead.
+
+        >>> pd.array([1, 2, 3], dtype=np.dtype("int32"))
+        array([1, 2, 3], dtype=int32)
+
     copy : bool, default True
         Whether to copy the data, even if not necessary. Depending
         on the type of `data`, creating the new array may require
@@ -70,7 +86,7 @@ def array(data,         # type: Sequence[object]
     -----
     Omitting the `dtype` argument means pandas will attempt to infer the
     best array type from the values in the data. As new array types are
-    added by pandas and 3rd party libraries, the best array type may
+    added by pandas and 3rd party libraries, the "best" array type may
     change. We recommend specifying `dtype` to ensure that
 
     1. the correct array type for the data is returned
@@ -92,7 +108,7 @@ def array(data,         # type: Sequence[object]
 
     Or the NumPy dtype can be specified
 
-    >>> pd.array([1, 2], dtype=np.int32)
+    >>> pd.array([1, 2], dtype=np.dtype("int32"))
     array([1, 2], dtype=int32)
 
     You can use the string alias for `dtype`
@@ -120,6 +136,13 @@ def array(data,         # type: Sequence[object]
 
     >>> pd.array([1, 2, np.nan], dtype='Int64')
     IntegerArray([1, 2, nan], dtype='Int64')
+
+    Pandas will infer an ExtensionArray for some types of data:
+
+    >>> pd.array([pd.Period('2000', freq="D"), pd.Period("2000", freq="D")])
+    <PeriodArray>
+    ['2000-01-01', '2000-01-01']
+    Length: 2, dtype: period[D]
     """
     from pandas.core.arrays import (
         period_array, ExtensionArray, IntervalArray
@@ -158,5 +181,13 @@ def array(data,         # type: Sequence[object]
 
         # TODO(DatetimeArray): handle this type
         # TODO(BooleanArray): handle this type
+
+    if isinstance(dtype, compat.string_types):
+        msg = (
+            "Ambiguous dtype '{dtype}'. 'pandas.array' will not pass string "
+            "aliases to NumPy. If you want a NumPy array, specify "
+            "'dtype=numpy.dtype(\"{dtype}\")'."
+        ).format(dtype=dtype)
+        raise ValueError(msg)
 
     return np.array(data, dtype=dtype, copy=copy)
