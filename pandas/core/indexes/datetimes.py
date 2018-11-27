@@ -1128,6 +1128,11 @@ class DatetimeIndex(DatetimeArray, DatelikeOps, TimelikeOps,
     # --------------------------------------------------------------------
     # Wrapping DatetimeArray
 
+    # Compat for frequency inference, see GH#23789
+    _is_monotonic_increasing = Index.is_monotonic_increasing
+    _is_monotonic_decreasing = Index.is_monotonic_decreasing
+    _is_unique = Index.is_unique
+
     _timezone = cache_readonly(DatetimeArray._timezone.fget)
     is_normalized = cache_readonly(DatetimeArray.is_normalized.fget)
     _resolution = cache_readonly(DatetimeArray._resolution.fget)
