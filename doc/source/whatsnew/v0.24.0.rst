@@ -1048,6 +1048,8 @@ Deprecations
 - The ``keep_tz=False`` option (the default) of the ``keep_tz`` keyword of
   :meth:`DatetimeIndex.to_series` is deprecated (:issue:`17832`).
 - Timezone converting a tz-aware ``datetime.datetime`` or :class:`Timestamp` with :class:`Timestamp` and the ``tz`` argument is now deprecated. Instead, use :meth:`Timestamp.tz_convert` (:issue:`23579`)
+- :func:`pandas.types.is_period` is deprecated in favor of `pandas.types.is_period_dtype` (:issue:`23917`)
+- :func:`pandas.types.is_datetimetz` is deprecated in favor of `pandas.types.is_datetime64tz` (:issue:`23917`)
 
 .. _whatsnew_0240.deprecations.datetimelike_int_ops:
 
