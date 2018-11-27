@@ -9589,7 +9589,7 @@ class NDFrame(PandasObject, SelectionMixin):
                       desc="Return the mean absolute deviation of the values "
                            "for the requested axis",
                       name1=name, name2=name2, axis_descr=axis_descr,
-                      min_count='', examples='')
+                      min_count='', see_also='', examples='')
         @Appender(_num_doc)
         def mad(self, axis=None, skipna=None, level=None):
             if skipna is None:
@@ -9630,8 +9630,8 @@ class NDFrame(PandasObject, SelectionMixin):
         @Substitution(outname='compounded',
                       desc="Return the compound percentage of the values for "
                       "the requested axis", name1=name, name2=name2,
-                      axis_descr=axis_descr,
-                      min_count='', examples='')
+                      axis_descr=axis_descr, min_count='', see_also='',
+                      examples='')
         @Appender(_num_doc)
         def compound(self, axis=None, skipna=None, level=None):
             if skipna is None:
@@ -9687,16 +9687,16 @@ class NDFrame(PandasObject, SelectionMixin):
             nanops.nanmedian)
         cls.max = _make_stat_function(
             cls, 'max', name, name2, axis_descr,
-            """This method returns the maximum of the values in the object.
-            If you want the *index* of the maximum, use ``idxmax``. This is
-            the equivalent of the ``numpy.ndarray`` method ``argmax``.""",
-            nanops.nanmax, _max_examples)
+            "Returns the maximum of the values in the object."
+            "\n\nIf you want the *index* of the maximum, use ``idxmax``. This is "
+            "the equivalent of the ``numpy.ndarray`` method ``argmax``.",
+            nanops.nanmax, _min_max_see_also, _max_examples)
         cls.min = _make_stat_function(
             cls, 'min', name, name2, axis_descr,
-            """This method returns the minimum of the values in the object.
-            If you want the *index* of the minimum, use ``idxmin``. This is
-            the equivalent of the ``numpy.ndarray`` method ``argmin``.""",
-            nanops.nanmin)
+            "Returns the minimum of the values in the object."
+            "\n\nIf you want the *index* of the minimum, use ``idxmin``. This "
+            "is the equivalent of the ``numpy.ndarray`` method ``argmin``.",
+            nanops.nanmin, _min_max_see_also, _max_examples)
 
     @classmethod
     def _add_series_only_operations(cls):
@@ -10003,27 +10003,38 @@ def _doc_parms(cls):
     return axis_descr, name, name2
 
 
-_num_doc = """
+_num_doc = """\
 %(desc)s
 
 Parameters
 ----------
-axis : %(axis_descr)s
-skipna : boolean, default True
+axis : %(axis_descr)s, default 0
+    Indicate which axis should be reduced. Not implemented for Series.
+
+    * 0 / ‘index’ : reduce the index, return a Series whose index is the
+      original column labels.
+    * 1 / ‘columns’ : reduce the columns, return a Series whose index is the
+      original index.
+    For a DataFrame the value 0 applies %(outname)s on each column, and 1
+    applies it on each row.
+skipna : bool, default True
     Exclude NA/null values when computing the result.
 level : int or level name, default None
     If the axis is a MultiIndex (hierarchical), count along a
-    particular level, collapsing into a %(name1)s
-numeric_only : boolean, default None
-    Include only float, int, boolean columns. If None, will attempt to use
+    particular level, collapsing into a %(name1)s.
+numeric_only : bool, default None
+    Include only float, int, bool columns. If None, will attempt to use
     everything, then use only numeric data. Not implemented for Series.
-%(min_count)s\
+**kwargs : any, default None
+    Additional keyword arguments.
 
 Returns
 -------
-%(outname)s : %(name1)s or %(name2)s (if level specified)\
+%(outname)s : %(name1)s or %(name2)s (if level specified)
 
-%(examples)s"""
+%(see_also)s
+%(examples)s
+"""
 
 _num_ddof_doc = """
 %(desc)s
@@ -10506,6 +10517,82 @@ True
 Series([], dtype: bool)
 """
 
+_min_max_examples = """
+Examples
+--------
+**Series**
+
+>>> s = pd.Series([1, np.nan, 4, 3])
+>>> s
+0    1.0
+1    NaN
+2    4.0
+3    3.0
+dtype: float64
+
+By default NA's are ignored.
+
+>>> s.min()
+1.0
+
+If you choose to include NA's, the method will return ``nan`` if there is one
+in the Series.
+
+>>> s.min(skipna=False)
+nan
+
+**Dataframe**
+
+>>> df = pd.DataFrame([[1, np.nan, 9], [8, 6, 2]])
+>>> df
+   0    1  2
+0  1  NaN  9
+1  8  6.0  2
+
+By default NA's are ignored and it finds the minimum for each column, thereby
+reducing the index.
+
+>>> df.min()
+0    1.0
+1    6.0
+2    2.0
+dtype: float64
+
+You can also find the minimum per row, thereby reducing the columns.
+
+>>> df.min(axis=1)
+0    1.0
+1    2.0
+dtype: float64
+
+You can also use ``index`` or ``column`` to refer to an axis you want to
+reduce.
+
+>>> df.min(axis='index')
+0    1.0
+1    6.0
+2    2.0
+dtype: float64
+
+If you choose to include NA's, the method will return ``nan`` for rows or
+columns which contain a NA.
+
+>>> df.min(skipna=False)
+0    1.0
+1    NaN
+2    2.0
+dtype: float64
+"""
+
+_min_max_see_also = """\
+See Also
+--------
+Series.min : Return the minimum.
+Series.max : Return the maximum.
+Series.idxmin : Return the index of the minimum.
+Series.idxmax : Return the index of the maximum.
+"""
+
 _sum_examples = """\
 Examples
 --------
@@ -10643,7 +10730,7 @@ def _make_min_count_stat_function(cls, name, name1, name2, axis_descr, desc,
                                   f, examples):
     @Substitution(outname=name, desc=desc, name1=name1, name2=name2,
                   axis_descr=axis_descr, min_count=_min_count_stub,
-                  examples=examples)
+                  see_also='', examples=examples)
     @Appender(_num_doc)
     def stat_func(self, axis=None, skipna=None, level=None, numeric_only=None,
                   min_count=0,
@@ -10663,9 +10750,10 @@ def _make_min_count_stat_function(cls, name, name1, name2, axis_descr, desc,
 
 
 def _make_stat_function(cls, name, name1, name2, axis_descr, desc, f,
-                        examples=''):
+                        see_also='', examples=''):
     @Substitution(outname=name, desc=desc, name1=name1, name2=name2,
-                  axis_descr=axis_descr, min_count='', examples=examples)
+                  axis_descr=axis_descr, min_count='', see_also=see_also,
+                  examples=examples)
     @Appender(_num_doc)
     def stat_func(self, axis=None, skipna=None, level=None, numeric_only=None,
                   **kwargs):
