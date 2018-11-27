@@ -53,8 +53,7 @@ def _mpl(func):
 
 class Styler(object):
     """
-    Helps style a DataFrame or Series according to the
-    data with HTML and CSS.
+    Helps style a DataFrame or Series according to the data with HTML and CSS.
 
     Parameters
     ----------
@@ -157,7 +156,9 @@ class Styler(object):
         self._display_funcs = defaultdict(lambda: default_display_func)
 
     def _repr_html_(self):
-        """Hooks into Jupyter notebook rich display system."""
+        """
+        Hooks into Jupyter notebook rich display system.
+        """
         return self.render()
 
     @Appender(_shared_docs['to_excel'] % dict(
@@ -187,7 +188,7 @@ class Styler(object):
     def _translate(self):
         """
         Convert the DataFrame in `self.data` and the attrs from `_build_styles`
-        into a dictionary of {head, body, uuid, cellstyle}
+        into a dictionary of {head, body, uuid, cellstyle}.
         """
         table_styles = self.table_styles or []
         caption = self.caption
@@ -417,7 +418,8 @@ class Styler(object):
         return self
 
     def render(self, **kwargs):
-        """Render the built up styles to HTML
+        """
+        Render the built up styles to HTML.
 
         Parameters
         ----------
@@ -467,8 +469,9 @@ class Styler(object):
 
     def _update_ctx(self, attrs):
         """
-        update the state of the Styler. Collects a mapping
-        of {index_label: ['<property>: <value>']}
+        Update the state of the Styler.
+
+        Collects a mapping of {index_label: ['<property>: <value>']}.
 
         attrs : Series or DataFrame
         should contain strings of '<property>: <value>;<prop2>: <val2>'
@@ -504,7 +507,8 @@ class Styler(object):
         return self._copy(deepcopy=True)
 
     def clear(self):
-        """"Reset" the styler, removing any previously applied styles.
+        """
+        Reset the styler, removing any previously applied styles.
         Returns None.
         """
         self.ctx.clear()
@@ -696,9 +700,10 @@ class Styler(object):
 
     def set_table_attributes(self, attributes):
         """
-        Set the table attributes. These are the items
-        that show up in the opening ``<table>`` tag in addition
-        to to automatic (by default) id.
+        Set the table attributes.
+
+        These are the items that show up in the opening ``<table>`` tag
+        in addition to to automatic (by default) id.
 
         Parameters
         ----------
@@ -720,6 +725,7 @@ class Styler(object):
     def export(self):
         """
         Export the styles to applied to the current Styler.
+
         Can be applied to a second style with ``Styler.use``.
 
         Returns
@@ -785,8 +791,9 @@ class Styler(object):
 
     def set_table_styles(self, table_styles):
         """
-        Set the table styles on a Styler. These are placed in a
-        ``<style>`` tag before the generated HTML table.
+        Set the table styles on a Styler.
+
+        These are placed in a ``<style>`` tag before the generated HTML table.
 
         Parameters
         ----------
@@ -875,6 +882,7 @@ class Styler(object):
         """
         Color the background in a gradient according to
         the data in each column (optionally row).
+
         Requires matplotlib.
 
         Parameters
@@ -920,7 +928,9 @@ class Styler(object):
     @staticmethod
     def _background_gradient(s, cmap='PuBu', low=0, high=0,
                              text_color_threshold=0.408):
-        """Color background in a range according to the data."""
+        """
+        Color background in a range according to the data.
+        """
         if (not isinstance(text_color_threshold, (float, int)) or
                 not 0 <= text_color_threshold <= 1):
             msg = "`text_color_threshold` must be a value from 0 to 1."
@@ -1002,8 +1012,9 @@ class Styler(object):
 
     @staticmethod
     def _bar(s, align, colors, width=100, vmin=None, vmax=None):
-        """Draw bar chart in dataframe cells"""
-
+        """
+        Draw bar chart in dataframe cells.
+        """
         # Get input value range.
         smin = s.min() if vmin is None else vmin
         if isinstance(smin, ABCSeries):
@@ -1023,7 +1034,9 @@ class Styler(object):
         zero = -width * smin / (smax - smin + 1e-12)
 
         def css_bar(start, end, color):
-            """Generate CSS code to draw a bar from start to end."""
+            """
+            Generate CSS code to draw a bar from start to end.
+            """
             css = 'width: 10em; height: 80%;'
             if end > start:
                 css += 'background: linear-gradient(90deg,'
@@ -1128,7 +1141,7 @@ class Styler(object):
 
     def highlight_max(self, subset=None, color='yellow', axis=0):
         """
-        Highlight the maximum by shading the background
+        Highlight the maximum by shading the background.
 
         Parameters
         ----------
@@ -1148,7 +1161,7 @@ class Styler(object):
 
     def highlight_min(self, subset=None, color='yellow', axis=0):
         """
-        Highlight the minimum by shading the background
+        Highlight the minimum by shading the background.
 
         Parameters
         ----------
@@ -1175,7 +1188,9 @@ class Styler(object):
 
     @staticmethod
     def _highlight_extrema(data, color='yellow', max_=True):
-        """Highlight the min or max in a Series or DataFrame"""
+        """
+        Highlight the min or max in a Series or DataFrame.
+        """
         attr = 'background-color: {0}'.format(color)
         if data.ndim == 1:  # Series from .apply
             if max_:
@@ -1223,7 +1238,7 @@ class Styler(object):
 
 def _is_visible(idx_row, idx_col, lengths):
     """
-    Index -> {(idx_row, idx_col): bool})
+    Index -> {(idx_row, idx_col): bool}).
     """
     return (idx_col, idx_row) in lengths
 
@@ -1231,6 +1246,7 @@ def _is_visible(idx_row, idx_col, lengths):
 def _get_level_lengths(index, hidden_elements=None):
     """
     Given an index, find the level length for each element.
+
     Optional argument is a list of index positions which
     should not be visible.
 

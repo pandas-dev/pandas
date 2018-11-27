@@ -16,7 +16,7 @@ from pandas._libs.tslibs import NaT, Timedelta, Timestamp, iNaT
 from pandas.compat import StringIO, lzip, map, u, zip
 
 from pandas.core.dtypes.common import (
-    is_categorical_dtype, is_datetime64_dtype, is_datetimetz, is_float,
+    is_categorical_dtype, is_datetime64_dtype, is_datetime64tz_dtype, is_float,
     is_float_dtype, is_integer, is_integer_dtype, is_interval_dtype,
     is_list_like, is_numeric_dtype, is_period_arraylike, is_scalar,
     is_timedelta64_dtype)
@@ -730,12 +730,8 @@ class DataFrameFormatter(TableFormatter):
             .. versionadded:: 0.19.0
          """
         from pandas.io.formats.html import HTMLFormatter
-        html_renderer = HTMLFormatter(self, classes=classes,
-                                      max_rows=self.max_rows,
-                                      max_cols=self.max_cols,
-                                      notebook=notebook,
-                                      border=border,
-                                      table_id=self.table_id)
+        html_renderer = HTMLFormatter(self, classes=classes, notebook=notebook,
+                                      border=border, table_id=self.table_id)
         if hasattr(self.buf, 'write'):
             html_renderer.write_result(self.buf)
         elif isinstance(self.buf, compat.string_types):
@@ -856,7 +852,7 @@ def format_array(values, formatter, float_format=None, na_rep='NaN',
         fmt_klass = PeriodArrayFormatter
     elif is_integer_dtype(values.dtype):
         fmt_klass = IntArrayFormatter
-    elif is_datetimetz(values):
+    elif is_datetime64tz_dtype(values):
         fmt_klass = Datetime64TZFormatter
     elif is_datetime64_dtype(values.dtype):
         fmt_klass = Datetime64Formatter
@@ -960,6 +956,8 @@ class FloatArrayFormatter(GenericArrayFormatter):
         # float_format is expected to be a string
         # formatter should be used to pass a function
         if self.float_format is not None and self.formatter is None:
+            # GH21625, GH22270
+            self.fixed_width = False
             if callable(self.float_format):
                 self.formatter = self.float_format
                 self.float_format = None
