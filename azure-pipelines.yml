@@ -28,8 +28,6 @@ jobs:
   pool:
     vmImage: ubuntu-16.04
   timeoutInMinutes: 90
-  variables:
-  - group: pandas
   steps:
   - script: |
       # XXX not sure why setting $PATH here does not work
@@ -130,6 +128,8 @@ jobs:
       DESTINATION: 'docs'
 
   - script: |
+      echo "Publishing documentation to GitHub pages is still done in Travis"
+      exit 0
       if [ "$(Build.SourceBranch)" == "refs/heads/master" ]; then
           mkdir -p $REPO_DIR
           rm -rf $REPO_DIR/*
