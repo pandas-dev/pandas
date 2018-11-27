@@ -3971,10 +3971,6 @@ class DataFrame(NDFrame):
         DataFrame.reindex : Change to new indices or expand indices.
         DataFrame.reindex_like : Change to same indices as other DataFrame.
 
-        Returns
-        -------
-        DataFrame
-
         Examples
         --------
         >>> df = pd.DataFrame({'month': [1, 4, 7, 10],
