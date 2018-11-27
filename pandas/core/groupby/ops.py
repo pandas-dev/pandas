@@ -844,9 +844,6 @@ class SeriesSplitter(DataSplitter):
 
 class FrameSplitter(DataSplitter):
 
-    def __init__(self, data, labels, ngroups, axis=0):
-        super(FrameSplitter, self).__init__(data, labels, ngroups, axis=axis)
-
     def fast_apply(self, f, names):
         # must return keys::list, values::list, mutated::bool
         try:
