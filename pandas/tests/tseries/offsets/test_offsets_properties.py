@@ -21,6 +21,7 @@ from pandas.tseries.offsets import (
     BMonthBegin, BMonthEnd, BQuarterBegin, BQuarterEnd, BYearBegin, BYearEnd,
     MonthBegin, MonthEnd, QuarterBegin, QuarterEnd, YearBegin, YearEnd)
 
+
 # ----------------------------------------------------------------
 # Helpers for generating random data
 
