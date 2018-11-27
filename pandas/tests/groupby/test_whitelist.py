@@ -14,35 +14,15 @@ AGG_FUNCTIONS = ['sum', 'prod', 'min', 'max', 'median', 'mean', 'skew',
 AGG_FUNCTIONS_WITH_SKIPNA = ['skew', 'mad']
 
 df_whitelist = [
-    'last',
-    'first',
-    'mean',
-    'sum',
-    'min',
-    'max',
-    'head',
-    'tail',
-    'cumcount',
-    'ngroup',
-    'resample',
-    'rank',
     'quantile',
     'fillna',
     'mad',
-    'any',
-    'all',
     'take',
     'idxmax',
     'idxmin',
-    'shift',
     'tshift',
-    'ffill',
-    'bfill',
-    'pct_change',
     'skew',
-    'plot',
     'hist',
-    'median',
     'dtypes',
     'corrwith',
     'corr',
@@ -57,35 +37,15 @@ def df_whitelist_fixture(request):
 
 
 s_whitelist = [
-    'last',
-    'first',
-    'mean',
-    'sum',
-    'min',
-    'max',
-    'head',
-    'tail',
-    'cumcount',
-    'ngroup',
-    'resample',
-    'rank',
     'quantile',
     'fillna',
     'mad',
-    'any',
-    'all',
     'take',
     'idxmax',
     'idxmin',
-    'shift',
     'tshift',
-    'ffill',
-    'bfill',
-    'pct_change',
     'skew',
-    'plot',
     'hist',
-    'median',
     'dtype',
     'corr',
     'cov',
@@ -150,16 +110,7 @@ def test_groupby_whitelist(df_letters, whitelist):
 def check_whitelist(obj, df, m):
     # check the obj for a particular whitelist m
 
-    # these are aliases so ok to have the alias __name__
-    alias = {'bfill': 'backfill',
-             'ffill': 'pad',
-             'boxplot': None}
-
     gb = obj.groupby(df.letters)
-
-    m = alias.get(m, m)
-    if m is None:
-        return
 
     f = getattr(type(gb), m)
 
