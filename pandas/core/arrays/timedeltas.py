@@ -241,7 +241,7 @@ class TimedeltaArrayMixin(dtl.DatetimeLikeArrayMixin):
     def _add_delta(self, delta):
         """
         Add a timedelta-like, Tick, or TimedeltaIndex-like object
-        to self, yielding a new TimedeltaArray
+        to self, yielding a new TimedeltaArray.
 
         Parameters
         ----------
@@ -256,7 +256,9 @@ class TimedeltaArrayMixin(dtl.DatetimeLikeArrayMixin):
         return type(self)(new_values, freq='infer')
 
     def _add_datetime_arraylike(self, other):
-        """Add DatetimeArray/Index or ndarray[datetime64] to TimedeltaArray"""
+        """
+        Add DatetimeArray/Index or ndarray[datetime64] to TimedeltaArray.
+        """
         if isinstance(other, np.ndarray):
             # At this point we have already checked that dtype is datetime64
             from pandas.core.arrays import DatetimeArrayMixin
@@ -404,7 +406,7 @@ class TimedeltaArrayMixin(dtl.DatetimeLikeArrayMixin):
     def to_pytimedelta(self):
         """
         Return Timedelta Array/Index as object ndarray of datetime.timedelta
-        objects
+        objects.
 
         Returns
         -------
