@@ -1591,7 +1591,7 @@ class DataFrame(NDFrame):
     @classmethod
     def from_items(cls, items, columns=None, orient='columns'):
         """
-        Construct a dataframe from a list of tuples.
+        Construct a DataFrame from a list of tuples.
 
         .. deprecated:: 0.23.0
           `from_items` is deprecated and will be removed in a future version.
@@ -2896,7 +2896,7 @@ class DataFrame(NDFrame):
 
     def query(self, expr, inplace=False, **kwargs):
         """
-        Query the columns of a frame with a boolean expression.
+        Query the columns of a DataFrame with a boolean expression.
 
         Parameters
         ----------
