@@ -1131,6 +1131,8 @@ class DataFrame(NDFrame):
         """
         Convert the DataFrame to a NumPy array.
 
+        .. versionadded:: 0.24.0
+
         The dtype of the returned array will be the common NumPy
         dtype of all types in the DataFrame. This may require copying
         data and coercing values, which may be expensive.
