@@ -226,12 +226,13 @@ class DatetimeIndex(DatetimeArray, DatelikeOps, TimelikeOps,
                 freq=None, start=None, end=None, periods=None, tz=None,
                 normalize=False, closed=None, ambiguous='raise',
                 dayfirst=False, yearfirst=False, dtype=None,
-                copy=False, name=None, verify_integrity=True):
+                copy=False, name=None, verify_integrity=None):
 
-        if verify_integrity is not True:
+        if verify_integrity is not None:
             warnings.warn("The 'verify_integrity' argument is deprecated, "
                           "will be removed in a future version.",
                           FutureWarning, stacklevel=2)
+        verify_integrity = True
 
         if data is None:
             warnings.warn("Creating a DatetimeIndex by passing range "

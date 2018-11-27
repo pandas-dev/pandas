@@ -130,12 +130,13 @@ class TimedeltaIndex(TimedeltaArray, DatetimeIndexOpsMixin,
 
     def __new__(cls, data=None, unit=None, freq=None, start=None, end=None,
                 periods=None, closed=None, dtype=None, copy=False,
-                name=None, verify_integrity=True):
+                name=None, verify_integrity=None):
 
-        if verify_integrity is not True:
+        if verify_integrity is not None:
             warnings.warn("The 'verify_integrity' argument is deprecated, "
                           "will be removed in a future version.",
                           FutureWarning, stacklevel=2)
+        verify_integrity = True
 
         freq, freq_infer = dtl.maybe_infer_freq(freq)
 
