@@ -48,6 +48,7 @@ class Concat(object):
                        index=date_range('20130101', periods=N, freq='s'))
         self.empty_left = [DataFrame(), df]
         self.empty_right = [df, DataFrame()]
+        self.mixed_ndims = [df, df.head(N // 2)]
 
     def time_concat_series(self, axis):
         concat(self.series, axis=axis, sort=False)
@@ -60,6 +61,9 @@ class Concat(object):
 
     def time_concat_empty_left(self, axis):
         concat(self.empty_left, axis=axis)
+
+    def time_concat_mixed_ndims(self, axis):
+        concat(self.mixed_ndims, axis=axis)
 
 
 class ConcatPanels(object):
