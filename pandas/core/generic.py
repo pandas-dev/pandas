@@ -5949,7 +5949,7 @@ class NDFrame(PandasObject, SelectionMixin):
             value to use for each column (columns not in the dict will not be
             filled). Regular expressions, strings and lists or dicts of such
             objects are also allowed.
-        inplace : boolean, default False
+        inplace : bool, default False
             If True, in place. Note: this will modify any
             other views on this object (e.g. a column from a DataFrame).
             Returns the caller if this is True.
@@ -5967,12 +5967,6 @@ class NDFrame(PandasObject, SelectionMixin):
 
             .. versionchanged:: 0.23.0
                 Added to DataFrame.
-
-        See Also
-        --------
-        %(klass)s.fillna : Fill NA values.
-        %(klass)s.where : Replace values based on boolean condition.
-        Series.str.replace : Simple string replacement.
 
         Returns
         -------
@@ -5996,6 +5990,12 @@ class NDFrame(PandasObject, SelectionMixin):
         ValueError
             * If a ``list`` or an ``ndarray`` is passed to `to_replace` and
               `value` but they are not the same length.
+
+        See Also
+        --------
+        %(klass)s.fillna : Fill NA values.
+        %(klass)s.where : Replace values based on boolean condition.
+        Series.str.replace : Simple string replacement.
 
         Notes
         -----
@@ -6111,7 +6111,7 @@ class NDFrame(PandasObject, SelectionMixin):
         1   foo  new
         2  bait  xyz
 
-        >>> df.replace(regex={r'^ba.$':'new', 'foo':'xyz'})
+        >>> df.replace(regex={r'^ba.$': 'new', 'foo': 'xyz'})
               A    B
         0   new  abc
         1   xyz  new
