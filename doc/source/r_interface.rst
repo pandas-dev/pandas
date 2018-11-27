@@ -33,10 +33,11 @@ See also the documentation of the `rpy2 <http://rpy2.bitbucket.org/>`__ project:
 
 In the remainder of this page, a few examples of explicit conversion is given. The pandas conversion of rpy2 needs first to be activated:
 
-.. code-block:: python
+.. ipython::
+    :verbatim:
 
-    >>> from rpy2.robjects import pandas2ri  # doctest: +SKIP
-    >>> pandas2ri.activate()  # doctest: +SKIP
+    In [1]: from rpy2.robjects import pandas2ri
+       ...: pandas2ri.activate()
 
 Transferring R data sets into Python
 ------------------------------------
@@ -44,11 +45,15 @@ Transferring R data sets into Python
 Once the pandas conversion is activated (``pandas2ri.activate()``), many conversions
 of R to pandas objects will be done automatically. For example, to obtain the 'iris' dataset as a pandas DataFrame:
 
-.. code-block:: python
+.. ipython::
+    :verbatim:
 
-    >>> from rpy2.robjects import r  # doctest: +SKIP
-    >>> r.data('iris')  # doctest: +SKIP
-    >>> r['iris'].head()  # doctest: +SKIP
+    In [2]: from rpy2.robjects import r
+
+    In [3]: r.data('iris')
+
+    In [4]: r['iris'].head()
+    Out[4]:
         Sepal.Length  Sepal.Width  Petal.Length  Petal.Width Species
     0           5.1          3.5           1.4          0.2  setosa
     1           4.9          3.0           1.4          0.2  setosa
@@ -66,14 +71,19 @@ Converting DataFrames into R objects
 The ``pandas2ri.py2ri`` function support the reverse operation to convert
 DataFrames into the equivalent R object (that is, **data.frame**):
 
-.. code-block:: python
+.. ipython::
+   :verbatim:
 
-   >>> df = pd.DataFrame({'A': [1, 2, 3], 'B': [4, 5, 6], 'C': [7, 8, 9]},
-   ...                   index=["one", "two", "three"])  # doctest: +SKIP
-   >>> r_dataframe = pandas2ri.py2ri(df)  # doctest: +SKIP
-   >>> print(type(r_dataframe))  # doctest: +SKIP
-   <class 'rpy2.robjects.vectors.DataFrame'>
-   >>> print(r_dataframe)  # doctest: +SKIP
+   In [5]: df = pd.DataFrame({'A': [1, 2, 3], 'B': [4, 5, 6], 'C': [7, 8, 9]},
+      ...:                   index=["one", "two", "three"])
+
+   In [6]: r_dataframe = pandas2ri.py2ri(df)
+
+   In [7]: print(type(r_dataframe))
+   Out[7]: <class 'rpy2.robjects.vectors.DataFrame'>
+
+   In [8]: print(r_dataframe)
+   Out[8]:
          A B C
    one   1 4 7
    two   2 5 8
