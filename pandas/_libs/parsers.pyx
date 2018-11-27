@@ -1202,7 +1202,20 @@ cdef class TextReader:
                              bint user_dtype,
                              kh_str_t *na_hashset,
                              object na_flist):
-        if is_integer_dtype(dtype):
+        if is_categorical_dtype(dtype):
+            # TODO: I suspect that _categorical_convert could be
+            # optimized when dtype is an instance of CategoricalDtype
+            codes, cats, na_count = _categorical_convert(
+                self.parser, i, start, end, na_filter,
+                na_hashset, self.c_encoding)
+
+            # Method accepts list of strings, not encoded ones.
+            true_values = [x.decode() for x in self.true_values]
+            cat = Categorical._from_inferred_categories(
+                cats, codes, dtype, true_values=true_values)
+            return cat, na_count
+
+        elif is_integer_dtype(dtype):
             try:
                 result, na_count = _try_int64(self.parser, i, start,
                                               end, na_filter, na_hashset)
@@ -1233,6 +1246,7 @@ cdef class TextReader:
                                               na_filter, na_hashset,
                                               self.true_set, self.false_set)
             return result, na_count
+
         elif dtype.kind == 'S':
             # TODO: na handling
             width = dtype.itemsize
@@ -1252,15 +1266,6 @@ cdef class TextReader:
             # unicode variable width
             return self._string_convert(i, start, end, na_filter,
                                         na_hashset)
-        elif is_categorical_dtype(dtype):
-            # TODO: I suspect that _categorical_convert could be
-            # optimized when dtype is an instance of CategoricalDtype
-            codes, cats, na_count = _categorical_convert(
-                self.parser, i, start, end, na_filter,
-                na_hashset, self.c_encoding)
-            cat = Categorical._from_inferred_categories(cats, codes, dtype)
-            return cat, na_count
-
         elif is_object_dtype(dtype):
             return self._string_convert(i, start, end, na_filter,
                                         na_hashset)
