@@ -730,12 +730,8 @@ class DataFrameFormatter(TableFormatter):
             .. versionadded:: 0.19.0
          """
         from pandas.io.formats.html import HTMLFormatter
-        html_renderer = HTMLFormatter(self, classes=classes,
-                                      max_rows=self.max_rows,
-                                      max_cols=self.max_cols,
-                                      notebook=notebook,
-                                      border=border,
-                                      table_id=self.table_id)
+        html_renderer = HTMLFormatter(self, classes=classes, notebook=notebook,
+                                      border=border, table_id=self.table_id)
         if hasattr(self.buf, 'write'):
             html_renderer.write_result(self.buf)
         elif isinstance(self.buf, compat.string_types):
