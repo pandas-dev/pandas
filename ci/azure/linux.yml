@@ -9,7 +9,7 @@ jobs:
   strategy:
     maxParallel: 11
     matrix:
-      py27_np_19:
+      py27_np_120:
         ENV_FILE: ci/deps/azure-27-compat.yaml
         CONDA_PY: "27"
         TEST_ARGS: "--skip-slow --skip-network"
