@@ -1752,8 +1752,8 @@ class ParserBase(object):
 
             cats = Index(values).unique().dropna()
             values = Categorical._from_inferred_categories(
-                cats, cats.get_indexer(values), cast_type
-            )
+                cats, cats.get_indexer(values), cast_type,
+                true_values=self.true_values)
 
         else:
             try:
