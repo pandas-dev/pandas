@@ -501,6 +501,7 @@ _c_parser_defaults = {
 
 _fwf_defaults = {
     'colspecs': 'infer',
+    'infer_nrows': 100,
     'widths': None,
 }
 
@@ -718,8 +719,8 @@ Use :func:`pandas.read_csv` instead, passing ``sep='\\t'`` if necessary.""",
                       )(read_table)
 
 
-def read_fwf(filepath_or_buffer, colspecs='infer',
-             widths=None, **kwds):
+def read_fwf(filepath_or_buffer, colspecs='infer', widths=None,
+             infer_nrows=100, **kwds):
 
     r"""
     Read a table of fixed-width formatted lines into DataFrame.
@@ -752,6 +753,11 @@ def read_fwf(filepath_or_buffer, colspecs='infer',
     widths : list of int, optional
         A list of field widths which can be used instead of 'colspecs' if
         the intervals are contiguous.
+    infer_nrows : int, default 100
+        The number of rows to consider when letting the parser determine the
+        `colspecs`.
+
+        .. versionadded:: 0.24.0
     **kwds : optional
         Optional keyword arguments can be passed to ``TextFileReader``.
 
@@ -786,6 +792,7 @@ def read_fwf(filepath_or_buffer, colspecs='infer',
             col += w
 
     kwds['colspecs'] = colspecs
+    kwds['infer_nrows'] = infer_nrows
     kwds['engine'] = 'python-fwf'
     return _read(filepath_or_buffer, kwds)
 
@@ -1745,8 +1752,8 @@ class ParserBase(object):
 
             cats = Index(values).unique().dropna()
             values = Categorical._from_inferred_categories(
-                cats, cats.get_indexer(values), cast_type
-            )
+                cats, cats.get_indexer(values), cast_type,
+                true_values=self.true_values)
 
         else:
             try:
@@ -3442,13 +3449,15 @@ class FixedWidthReader(BaseIterator):
     A reader of fixed-width lines.
     """
 
-    def __init__(self, f, colspecs, delimiter, comment, skiprows=None):
+    def __init__(self, f, colspecs, delimiter, comment, skiprows=None,
+                 infer_nrows=100):
         self.f = f
         self.buffer = None
         self.delimiter = '\r\n' + delimiter if delimiter else '\n\r\t '
         self.comment = comment
         if colspecs == 'infer':
-            self.colspecs = self.detect_colspecs(skiprows=skiprows)
+            self.colspecs = self.detect_colspecs(infer_nrows=infer_nrows,
+                                                 skiprows=skiprows)
         else:
             self.colspecs = colspecs
 
@@ -3464,19 +3473,20 @@ class FixedWidthReader(BaseIterator):
                 raise TypeError('Each column specification must be '
                                 '2 element tuple or list of integers')
 
-    def get_rows(self, n, skiprows=None):
+    def get_rows(self, infer_nrows, skiprows=None):
         """
         Read rows from self.f, skipping as specified.
 
-        We distinguish buffer_rows (the first <= n lines)
-        from the rows returned to detect_colspecs because
-        it's simpler to leave the other locations with
-        skiprows logic alone than to modify them to deal
-        with the fact we skipped some rows here as well.
+        We distinguish buffer_rows (the first <= infer_nrows
+        lines) from the rows returned to detect_colspecs
+        because it's simpler to leave the other locations
+        with skiprows logic alone than to modify them to
+        deal with the fact we skipped some rows here as
+        well.
 
         Parameters
         ----------
-        n : int
+        infer_nrows : int
             Number of rows to read from self.f, not counting
             rows that are skipped.
         skiprows: set, optional
@@ -3496,16 +3506,16 @@ class FixedWidthReader(BaseIterator):
             if i not in skiprows:
                 detect_rows.append(row)
             buffer_rows.append(row)
-            if len(detect_rows) >= n:
+            if len(detect_rows) >= infer_nrows:
                 break
         self.buffer = iter(buffer_rows)
         return detect_rows
 
-    def detect_colspecs(self, n=100, skiprows=None):
+    def detect_colspecs(self, infer_nrows=100, skiprows=None):
         # Regex escape the delimiters
         delimiters = ''.join(r'\%s' % x for x in self.delimiter)
         pattern = re.compile('([^%s]+)' % delimiters)
-        rows = self.get_rows(n, skiprows)
+        rows = self.get_rows(infer_nrows, skiprows)
         if not rows:
             raise EmptyDataError("No rows from which to infer column width")
         max_len = max(map(len, rows))
@@ -3544,8 +3554,10 @@ class FixedWidthFieldParser(PythonParser):
     def __init__(self, f, **kwds):
         # Support iterators, convert to a list.
         self.colspecs = kwds.pop('colspecs')
+        self.infer_nrows = kwds.pop('infer_nrows')
         PythonParser.__init__(self, f, **kwds)
 
     def _make_reader(self, f):
         self.data = FixedWidthReader(f, self.colspecs, self.delimiter,
-                                     self.comment, self.skiprows)
+                                     self.comment, self.skiprows,
+                                     self.infer_nrows)
