@@ -1610,8 +1610,9 @@ def _factorize_keys(lk, rk, sort=True):
         klass = libhashtable.Int64Factorizer
         lk = ensure_int64(com.values_from_object(lk))
         rk = ensure_int64(com.values_from_object(rk))
-    elif needs_i8_conversion(lk) and needs_i8_conversion(rk):
-        # GH#23917 TODO: Needs tests for period_dtype, non-matching dtypes
+    elif (issubclass(lk.dtype.type, (np.timedelta64, np.datetime64)) and
+          issubclass(rk.dtype.type, (np.timedelta64, np.datetime64))):
+        # GH#23917 TODO: Needs tests for non-matching dtypes
         klass = libhashtable.Int64Factorizer
         lk = ensure_int64(com.values_from_object(lk))
         rk = ensure_int64(com.values_from_object(rk))
