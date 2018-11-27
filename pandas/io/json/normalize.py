@@ -12,7 +12,9 @@ from pandas import DataFrame, compat
 
 
 def _convert_to_line_delimits(s):
-    """Helper function that converts json lists to line delimited json."""
+    """
+    Helper function that converts JSON lists to line delimited JSON.
+    """
 
     # Determine we have a JSON list to turn to lines otherwise just return the
     # json object, only lists can
@@ -24,9 +26,10 @@ def _convert_to_line_delimits(s):
 
 
 def nested_to_record(ds, prefix="", sep=".", level=0):
-    """a simplified json_normalize
+    """
+    A simplified json_normalize.
 
-    converts a nested dict into a flat dict ("record"), unlike json_normalize,
+    Converts a nested dict into a flat dict ("record"), unlike json_normalize,
     it does not attempt to extract a subset of the data.
 
     Parameters
@@ -99,7 +102,7 @@ def json_normalize(data, record_path=None, meta=None,
                    errors='raise',
                    sep='.'):
     """
-    "Normalize" semi-structured JSON data into a flat table
+    Normalize semi-structured JSON data into a flat table.
 
     Parameters
     ----------

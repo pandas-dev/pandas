@@ -121,7 +121,7 @@ class MultiIndexPyIntEngine(libindex.BaseMultiIndexCodesEngine,
 
 class MultiIndex(Index):
     """
-    A multi-level, or hierarchical, index object for pandas objects
+    A multi-level, or hierarchical, index object for pandas objects.
 
     Parameters
     ----------
@@ -1195,13 +1195,13 @@ class MultiIndex(Index):
 
     def to_hierarchical(self, n_repeat, n_shuffle=1):
         """
-        .. deprecated:: 0.24.0
-
         Return a MultiIndex reshaped to conform to the
         shapes given by n_repeat and n_shuffle.
 
         Useful to replicate and rearrange a MultiIndex for combination
         with another Index with n_repeat items.
+
+        .. deprecated:: 0.24.0
 
         Parameters
         ----------

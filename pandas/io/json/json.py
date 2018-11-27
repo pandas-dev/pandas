@@ -77,7 +77,6 @@ def to_json(path_or_buf, obj, orient=None, date_format='epoch',
 
 
 class Writer(object):
-
     def __init__(self, obj, orient, date_format, double_precision,
                  ensure_ascii, date_unit, index, default_handler=None):
         self.obj = obj
@@ -139,7 +138,9 @@ class FrameWriter(Writer):
     _default_orient = 'columns'
 
     def _format_axes(self):
-        """ try to axes if they are datelike """
+        """
+        Try to format axes if they are datelike.
+        """
         if not self.obj.index.is_unique and self.orient in (
                 'index', 'columns'):
             raise ValueError("DataFrame index must be unique for orient="
@@ -230,7 +231,7 @@ def read_json(path_or_buf=None, orient=None, typ='frame', dtype=True,
               numpy=False, precise_float=False, date_unit=None, encoding=None,
               lines=False, chunksize=None, compression='infer'):
     """
-    Convert a JSON string to pandas object
+    Convert a JSON string to pandas object.
 
     Parameters
     ----------
@@ -486,7 +487,7 @@ class JsonReader(BaseIterator):
 
     def _get_data_from_filepath(self, filepath_or_buffer):
         """
-        read_json accepts three input types:
+        The function read_json accepts three input types:
             1. filepath (string-like)
             2. file-like object (e.g. open file object, StringIO)
             3. JSON string
@@ -494,7 +495,6 @@ class JsonReader(BaseIterator):
         This method turns (1) into (2) to simplify the rest of the processing.
         It returns input types (2) and (3) unchanged.
         """
-
         data = filepath_or_buffer
 
         exists = False
@@ -515,12 +515,16 @@ class JsonReader(BaseIterator):
         return data
 
     def _combine_lines(self, lines):
-        """Combines a list of JSON objects into one JSON object"""
+        """
+        Combines a list of JSON objects into one JSON object.
+        """
         lines = filter(None, map(lambda x: x.strip(), lines))
         return '[' + ','.join(lines) + ']'
 
     def read(self):
-        """Read the whole JSON input into a pandas object"""
+        """
+        Read the whole JSON input into a pandas object.
+        """
         if self.lines and self.chunksize:
             obj = concat(self)
         elif self.lines:
@@ -535,7 +539,9 @@ class JsonReader(BaseIterator):
         return obj
 
     def _get_object_parser(self, json):
-        """parses a json document into a pandas object"""
+        """
+        Parses a json document into a pandas object.
+        """
         typ = self.typ
         dtype = self.dtype
         kwargs = {
@@ -559,7 +565,9 @@ class JsonReader(BaseIterator):
     def close(self):
         """
         If we opened a stream earlier, in _get_data_from_filepath, we should
-        close it. If an open stream or file was passed, we leave it open.
+        close it.
+
+        If an open stream or file was passed, we leave it open.
         """
         if self.should_close:
             try:
@@ -624,7 +632,9 @@ class Parser(object):
         self.obj = None
 
     def check_keys_split(self, decoded):
-        "checks that dict has only the appropriate keys for orient='split'"
+        """
+        Checks that dict has only the appropriate keys for orient='split'.
+        """
         bad_keys = set(decoded.keys()).difference(set(self._split_keys))
         if bad_keys:
             bad_keys = ", ".join(bad_keys)
@@ -649,7 +659,9 @@ class Parser(object):
         return self.obj
 
     def _convert_axes(self):
-        """ try to convert axes """
+        """
+        Try to convert axes.
+        """
         for axis in self.obj._AXIS_NUMBERS.keys():
             new_axis, result = self._try_convert_data(
                 axis, self.obj._get_axis(axis), use_dtypes=False,
@@ -662,7 +674,9 @@ class Parser(object):
 
     def _try_convert_data(self, name, data, use_dtypes=True,
                           convert_dates=True):
-        """ try to parse a ndarray like into a column by inferring dtype """
+        """
+        Try to parse a ndarray like into a column by inferring dtype.
+        """
 
         # don't try to coerce, unless a force conversion
         if use_dtypes:
@@ -670,9 +684,7 @@ class Parser(object):
                 return data, False
             elif self.dtype is True:
                 pass
-
             else:
-
                 # dtype to force
                 dtype = (self.dtype.get(name)
                          if isinstance(self.dtype, dict) else self.dtype)
@@ -710,7 +722,7 @@ class Parser(object):
                 except (TypeError, ValueError):
                     pass
 
-        # do't coerce 0-len data
+        # don't coerce 0-len data
         if len(data) and (data.dtype == 'float' or data.dtype == 'object'):
 
             # coerce ints if we can
@@ -735,10 +747,12 @@ class Parser(object):
         return data, result
 
     def _try_convert_to_date(self, data):
-        """ try to parse a ndarray like into a date column
-            try to coerce object in epoch/iso formats and
-            integer/float in epcoh formats, return a boolean if parsing
-            was successful """
+        """
+        Try to parse a ndarray like into a date column.
+
+        Try to coerce object in epoch/iso formats and integer/float in epoch
+        formats. Return a boolean if parsing was successful.
+        """
 
         # no conversion on empty
         if not len(data):
@@ -871,7 +885,9 @@ class FrameParser(Parser):
                 loads(json, precise_float=self.precise_float), dtype=None)
 
     def _process_converter(self, f, filt=None):
-        """ take a conversion function and possibly recreate the frame """
+        """
+        Take a conversion function and possibly recreate the frame.
+        """
 
         if filt is None:
             filt = lambda col, c: True
@@ -913,7 +929,9 @@ class FrameParser(Parser):
         convert_dates = set(convert_dates)
 
         def is_ok(col):
-            """ return if this col is ok to try for a date parse """
+            """
+            Return if this col is ok to try for a date parse.
+            """
             if not isinstance(col, compat.string_types):
                 return False
 

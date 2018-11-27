@@ -414,7 +414,7 @@ def _is_metadata_of(group, parent_group):
 class HDFStore(StringMixin):
 
     """
-    dict-like IO interface for storing pandas objects in PyTables
+    Dict-like IO interface for storing pandas objects in PyTables
     either Fixed or Table format.
 
     Parameters
@@ -1217,7 +1217,7 @@ class HDFStore(StringMixin):
 
     def info(self):
         """
-        print detailed information on the store
+        Print detailed information on the store.
 
         .. versionadded:: 0.21.0
         """
