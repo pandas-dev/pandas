@@ -44,7 +44,10 @@ def cut(x, bins, right=True, labels=None, retbins=False, precision=3,
           range of `x` is extended by .1% on each side to include the minimum
           and maximum values of `x`.
         * str : Bin calculaton dispatched to `np.histogram_bin_edges`. See that
-          documentation for details. (versionadded:: 0.24.0)
+          documentation for details. 
+        
+          .. versionadded:: 0.24.0
+        
         * sequence of scalars : Defines the bin edges allowing for non-uniform
           width. No extension of the range of `x` is done.
         * IntervalIndex : Defines the exact bins to be used.
@@ -190,9 +193,9 @@ def cut(x, bins, right=True, labels=None, retbins=False, precision=3,
 
     Passng a string for `bins` dispatches the bin calculation to numpy's
     `histogram_bin_edges`. (Starting in version 0.24.)
+    
     >>> pd.cut(array([0.1, 0.1, 0.2, 0.5, 0.5, 0.9, 1.0]),
-    ...        bins="auto")
-    ... # doctest: +ELLIPSIS`
+    ...        bins="auto") # doctest: +ELLIPSIS`
     [(0.0991, 0.325], (0.0991, 0.325], (0.0991, 0.325], (0.325, 0.55],
     (0.325, 0.55], (0.775, 1.0], (0.775, 1.0]]
     Categories (4, interval[float64]): [(0.0991, 0.325] < (0.325, 0.55] <
