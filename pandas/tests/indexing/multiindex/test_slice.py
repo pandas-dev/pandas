@@ -1,3 +1,5 @@
+from warnings import catch_warnings
+
 import numpy as np
 import pytest
 
@@ -506,3 +508,64 @@ class TestMultiIndexSlicers(object):
         expected = df_orig.copy()
         expected.iloc[[0, 3], [1, 3]] *= expected.iloc[[0, 3], [1, 3]]
         tm.assert_frame_equal(df, expected)
+
+    def test_multiindex_label_slicing_with_negative_step(self):
+        s = Series(np.arange(20),
+                   MultiIndex.from_product([list('abcde'), np.arange(4)]))
+        SLC = pd.IndexSlice
+
+        def assert_slices_equivalent(l_slc, i_slc):
+            tm.assert_series_equal(s.loc[l_slc], s.iloc[i_slc])
+            tm.assert_series_equal(s[l_slc], s.iloc[i_slc])
+            with catch_warnings(record=True):
+                tm.assert_series_equal(s.ix[l_slc], s.iloc[i_slc])
+
+        assert_slices_equivalent(SLC[::-1], SLC[::-1])
+
+        assert_slices_equivalent(SLC['d'::-1], SLC[15::-1])
+        assert_slices_equivalent(SLC[('d', )::-1], SLC[15::-1])
+
+        assert_slices_equivalent(SLC[:'d':-1], SLC[:11:-1])
+        assert_slices_equivalent(SLC[:('d', ):-1], SLC[:11:-1])
+
+        assert_slices_equivalent(SLC['d':'b':-1], SLC[15:3:-1])
+        assert_slices_equivalent(SLC[('d', ):'b':-1], SLC[15:3:-1])
+        assert_slices_equivalent(SLC['d':('b', ):-1], SLC[15:3:-1])
+        assert_slices_equivalent(SLC[('d', ):('b', ):-1], SLC[15:3:-1])
+        assert_slices_equivalent(SLC['b':'d':-1], SLC[:0])
+
+        assert_slices_equivalent(SLC[('c', 2)::-1], SLC[10::-1])
+        assert_slices_equivalent(SLC[:('c', 2):-1], SLC[:9:-1])
+        assert_slices_equivalent(SLC[('e', 0):('c', 2):-1], SLC[16:9:-1])
+
+    def test_multiindex_slice_first_level(self):
+        # GH 12697
+        freq = ['a', 'b', 'c', 'd']
+        idx = MultiIndex.from_product([freq, np.arange(500)])
+        df = DataFrame(list(range(2000)), index=idx, columns=['Test'])
+        df_slice = df.loc[pd.IndexSlice[:, 30:70], :]
+        result = df_slice.loc['a']
+        expected = DataFrame(list(range(30, 71)),
+                             columns=['Test'], index=range(30, 71))
+        tm.assert_frame_equal(result, expected)
+        result = df_slice.loc['d']
+        expected = DataFrame(list(range(1530, 1571)),
+                             columns=['Test'], index=range(30, 71))
+        tm.assert_frame_equal(result, expected)
+
+    def test_int_series_slicing(
+            self, multiindex_year_month_day_dataframe_random_data):
+        ymd = multiindex_year_month_day_dataframe_random_data
+        s = ymd['A']
+        result = s[5:]
+        expected = s.reindex(s.index[5:])
+        tm.assert_series_equal(result, expected)
+
+        exp = ymd['A'].copy()
+        s[5:] = 0
+        exp.values[5:] = 0
+        tm.assert_numpy_array_equal(s.values, exp.values)
+
+        result = ymd[5:]
+        expected = ymd.reindex(s.index[5:])
+        tm.assert_frame_equal(result, expected)
