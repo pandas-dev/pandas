@@ -249,7 +249,6 @@ class DatetimeIndex(DatetimeArray, DatelikeOps, TimelikeOps,
         freq, freq_infer = dtl.maybe_infer_freq(freq)
         if freq is None and hasattr(data, "freq"):
             # i.e. DatetimeArray/Index
-            # TODO: Should this be the stronger condition of `freq_infer`?
             freq = data.freq
             verify_integrity = False
 
@@ -267,7 +266,6 @@ class DatetimeIndex(DatetimeArray, DatelikeOps, TimelikeOps,
             data = data._values
 
         # By this point we are assured to have either a numpy array or Index
-
         data, copy = maybe_convert_dtype(data, copy)
 
         if is_object_dtype(data) or is_string_dtype(data):
@@ -288,7 +286,7 @@ class DatetimeIndex(DatetimeArray, DatelikeOps, TimelikeOps,
             subarr = data._data
 
         elif is_datetime64_dtype(data):
-            # DatetimeIndex or ndarray[datetime64]
+            # tz-naive DatetimeArray/Index or ndarray[datetime64]
             data = getattr(data, "_data", data)
             if data.dtype != _NS_DTYPE:
                 data = conversion.ensure_datetime64ns(data)

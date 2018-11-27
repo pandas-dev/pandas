@@ -1473,13 +1473,13 @@ def maybe_convert_dtype(data, copy):
     ------
     TypeError : PeriodDType data is passed
     """
-
     if is_float_dtype(data):
         # Note: we must cast to datetime64[ns] here in order to treat these
         #  as wall-times instead of UTC timestamps.
         data = data.astype(_NS_DTYPE)
         copy = False
-        # TODO: Why do we treat this differently from integer dtypes?
+        # TODO: deprecate this behavior to instead treat symmetrically
+        #  with integer dtypes.  See discussion in GH#23675
 
     elif is_timedelta64_dtype(data):
         warnings.warn("Passing timedelta64-dtype data is deprecated, will "
