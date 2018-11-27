@@ -98,7 +98,7 @@ def _cat_compare_op(op):
                 ret[na_mask] = False
             return ret
 
-        # Numpy-1.9 and earlier may convert a scalar to a zerodim array during
+        # Numpy < 1.13 may convert a scalar to a zerodim array during
         # comparison operation when second arg has higher priority, e.g.
         #
         #     cat[0] < cat
@@ -2038,15 +2038,7 @@ class Categorical(ExtensionArray, PandasObject):
         elif isinstance(key, slice):
             pass
 
-        # Array of True/False in Series or Categorical
-        else:
-            # There is a bug in numpy, which does not accept a Series as a
-            # indexer
-            # https://github.com/pandas-dev/pandas/issues/6168
-            # https://github.com/numpy/numpy/issues/4240 -> fixed in numpy 1.9
-            # FIXME: remove when numpy 1.9 is the lowest numpy version pandas
-            # accepts...
-            key = np.asarray(key)
+        # else: array of True/False in Series or Categorical
 
         lindexer = self.categories.get_indexer(rvalue)
         lindexer = self._maybe_coerce_indexer(lindexer)

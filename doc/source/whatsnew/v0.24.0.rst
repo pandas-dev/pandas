@@ -303,6 +303,7 @@ Backwards incompatible API changes
 - A newly constructed empty :class:`DataFrame` with integer as the ``dtype`` will now only be cast to ``float64`` if ``index`` is specified (:issue:`22858`)
 - :meth:`Series.str.cat` will now raise if `others` is a `set` (:issue:`23009`)
 - Passing scalar values to :class:`DatetimeIndex` or :class:`TimedeltaIndex` will now raise ``TypeError`` instead of ``ValueError`` (:issue:`23539`)
+- ``max_rows`` and ``max_cols`` parameters removed from :class:`HTMLFormatter` since truncation is handled by :class:`DataFrameFormatter` (:issue:`23818`)
 
 .. _whatsnew_0240.api_breaking.deps:
 
@@ -1043,6 +1044,7 @@ Deprecations
   `use_threads` to reflect the changes in pyarrow 0.11.0. (:issue:`23053`)
 - :func:`pandas.read_excel` has deprecated accepting ``usecols`` as an integer. Please pass in a list of ints from 0 to ``usecols`` inclusive instead (:issue:`23527`)
 - Constructing a :class:`TimedeltaIndex` from data with ``datetime64``-dtyped data is deprecated, will raise ``TypeError`` in a future version (:issue:`23539`)
+- Constructing a :class:`DatetimeIndex` from data with ``timedelta64``-dtyped data is deprecated, will raise ``TypeError`` in a future version (:issue:`23675`)
 - The ``keep_tz=False`` option (the default) of the ``keep_tz`` keyword of
   :meth:`DatetimeIndex.to_series` is deprecated (:issue:`17832`).
 - Timezone converting a tz-aware ``datetime.datetime`` or :class:`Timestamp` with :class:`Timestamp` and the ``tz`` argument is now deprecated. Instead, use :meth:`Timestamp.tz_convert` (:issue:`23579`)
