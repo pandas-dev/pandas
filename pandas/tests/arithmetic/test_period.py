@@ -608,9 +608,8 @@ class TestPeriodIndexArithmetic(object):
         result = pi + to_offset('3M')
         tm.assert_equal(result, expected)
 
-        # This test is broken
-        # result = to_offset('3M') + pi
-        # tm.assert_equal(result, expected)
+        result = to_offset('3M') + pi
+        tm.assert_equal(result, expected)
 
     # ---------------------------------------------------------------
     # __add__/__sub__ with integer arrays
@@ -1090,6 +1089,7 @@ class TestPeriodIndexSeriesMethods(object):
 
 class TestPeriodArithmetic(object):
 
+    @pytest.mark.parametrize('n', [1, 2, 3, 4])
     @pytest.mark.parametrize('freq,expected', [
         (pd.offsets.Second, 18489600),
         (pd.offsets.Minute, 308160),
@@ -1098,9 +1098,8 @@ class TestPeriodArithmetic(object):
         (pd.offsets.MonthEnd, 7),
         (pd.offsets.YearEnd, 1),
     ])
-    def test_period_diff(self, freq, expected):
+    def test_period_diff(self, freq, expected, n):
         # GH 23878
-        for i in range(1, 4):
-            p1 = pd.Period('19910905', freq=freq(i))
-            p2 = pd.Period('19920406', freq=freq(i))
-            assert (p2 - p1) == freq(expected)
+        p1 = pd.Period('19910905', freq=freq(n))
+        p2 = pd.Period('19920406', freq=freq(n))
+        assert (p2 - p1) == freq(expected)
