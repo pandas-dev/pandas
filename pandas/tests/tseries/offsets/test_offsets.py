@@ -1,42 +1,36 @@
-from distutils.version import LooseVersion
 from datetime import date, datetime, timedelta
-
-import pytest
-import pytz
-from pandas.compat import range
-from pandas import compat
+from distutils.version import LooseVersion
 
 import numpy as np
+import pytest
+import pytz
 
+import pandas._libs.tslib as tslib
+from pandas._libs.tslib import NaT, Timestamp
+from pandas._libs.tslibs import conversion, timezones
+from pandas._libs.tslibs.frequencies import (
+    INVALID_FREQ_ERR_MSG, get_freq_code, get_freq_str)
+import pandas._libs.tslibs.offsets as liboffsets
+from pandas._libs.tslibs.timedeltas import Timedelta
+import pandas.compat as compat
+from pandas.compat import range
 from pandas.compat.numpy import np_datetime64_compat
 
-from pandas.core.series import Series
-from pandas._libs.tslibs import conversion
-from pandas._libs.tslibs.frequencies import (get_freq_code, get_freq_str,
-                                             INVALID_FREQ_ERR_MSG)
-from pandas.tseries.frequencies import _offset_map, get_offset
-from pandas.core.indexes.datetimes import _to_m8, DatetimeIndex
+from pandas.core.indexes.datetimes import DatetimeIndex, _to_m8
 from pandas.core.indexes.timedeltas import TimedeltaIndex
-import pandas._libs.tslibs.offsets as liboffsets
-from pandas.tseries.offsets import (BDay, CDay, BQuarterEnd, BMonthEnd,
-                                    BusinessHour, WeekOfMonth, CBMonthEnd,
-                                    CustomBusinessHour,
-                                    CBMonthBegin, BYearEnd, MonthEnd,
-                                    MonthBegin, SemiMonthBegin, SemiMonthEnd,
-                                    BYearBegin, QuarterBegin, BQuarterBegin,
-                                    BMonthBegin, DateOffset, Week, YearBegin,
-                                    YearEnd, Day,
-                                    QuarterEnd, FY5253,
-                                    Nano, Easter, FY5253Quarter,
-                                    LastWeekOfMonth, Tick, CalendarDay)
-import pandas.tseries.offsets as offsets
-from pandas.io.pickle import read_pickle
-from pandas._libs.tslibs import timezones
-from pandas._libs.tslib import NaT, Timestamp
-from pandas._libs.tslibs.timedeltas import Timedelta
-import pandas._libs.tslib as tslib
+from pandas.core.series import Series
 import pandas.util.testing as tm
+
+from pandas.io.pickle import read_pickle
+from pandas.tseries.frequencies import _offset_map, get_offset
 from pandas.tseries.holiday import USFederalHolidayCalendar
+import pandas.tseries.offsets as offsets
+from pandas.tseries.offsets import (
+    FY5253, BDay, BMonthBegin, BMonthEnd, BQuarterBegin, BQuarterEnd,
+    BusinessHour, BYearBegin, BYearEnd, CalendarDay, CBMonthBegin, CBMonthEnd,
+    CDay, CustomBusinessHour, DateOffset, Day, Easter, FY5253Quarter,
+    LastWeekOfMonth, MonthBegin, MonthEnd, Nano, QuarterBegin, QuarterEnd,
+    SemiMonthBegin, SemiMonthEnd, Tick, Week, WeekOfMonth, YearBegin, YearEnd)
 
 from .common import assert_offset_equal, assert_onOffset
 
