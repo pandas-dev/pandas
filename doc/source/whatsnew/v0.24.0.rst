@@ -1056,7 +1056,7 @@ from :class:`Period`, :class:`PeriodIndex`, and in some cases
 :class:`Timestamp`, :class:`DatetimeIndex` and :class:`TimedeltaIndex`.
 
 This usage is now deprecated.  Instead add or subtract integer multiples of
-the object's ``freq`` attribute (:issue:`21939`)
+the object's ``freq`` attribute (:issue:`21939`) / (:issue:`23878`)
 
 Previous Behavior:
 
