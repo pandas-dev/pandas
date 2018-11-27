@@ -8,6 +8,7 @@ from numpy cimport int64_t, int32_t, ndarray
 cnp.import_array()
 
 import pytz
+from dateutil.tz import tzutc
 
 # stdlib datetime imports
 from datetime import time as datetime_time
@@ -35,6 +36,7 @@ from timedeltas cimport cast_from_unit
 from timezones cimport (is_utc, is_tzlocal, is_fixed_offset,
                         get_utcoffset, get_dst_info,
                         get_timezone, maybe_get_tz, tz_compare)
+from timezones import UTC
 from parsing import parse_datetime_string
 
 from nattype import nat_strings, NaT
@@ -45,8 +47,6 @@ from nattype cimport NPY_NAT, checknull_with_nat
 
 NS_DTYPE = np.dtype('M8[ns]')
 TD_DTYPE = np.dtype('m8[ns]')
-
-UTC = pytz.UTC
 
 
 # ----------------------------------------------------------------------
@@ -362,7 +362,7 @@ cdef _TSObject convert_datetime_to_tsobject(datetime ts, object tz,
         else:
             # UTC
             obj.value = pydatetime_to_dt64(ts, &obj.dts)
-            obj.tzinfo = pytz.utc
+            obj.tzinfo = tz
     else:
         obj.value = pydatetime_to_dt64(ts, &obj.dts)
         obj.tzinfo = ts.tzinfo
@@ -442,7 +442,7 @@ cdef _TSObject convert_str_to_tsobject(object ts, object tz, object unit,
             check_dts_bounds(&obj.dts)
             if out_local == 1:
                 obj.tzinfo = pytz.FixedOffset(out_tzoffset)
-                obj.value = tz_convert_single(obj.value, obj.tzinfo, 'UTC')
+                obj.value = tz_convert_single(obj.value, obj.tzinfo, UTC)
                 if tz is None:
                     check_dts_bounds(&obj.dts)
                     check_overflows(obj)
@@ -576,8 +576,6 @@ cdef inline datetime _localize_pydatetime(datetime dt, tzinfo tz):
         identically, i.e. discards nanos from Timestamps.
         It also assumes that the `tz` input is not None.
     """
-    if tz == 'UTC' or tz is UTC:
-        return UTC.localize(dt)
     try:
         # datetime.replace with pytz may be incorrect result
         return tz.localize(dt)
@@ -603,8 +601,8 @@ cpdef inline datetime localize_pydatetime(datetime dt, object tz):
     elif not PyDateTime_CheckExact(dt):
         # i.e. is a Timestamp
         return dt.tz_localize(tz)
-    elif tz == 'UTC' or tz is UTC:
-        return UTC.localize(dt)
+    elif is_utc(tz):
+        return _localize_pydatetime(dt, tz)
     try:
         # datetime.replace with pytz may be incorrect result
         return tz.localize(dt)
@@ -642,15 +640,20 @@ cdef inline int64_t[:] _tz_convert_dst(int64_t[:] values, tzinfo tz,
         int64_t[:] deltas
         int64_t v
 
-    trans, deltas, typ = get_dst_info(tz)
-    if not to_utc:
-        # We add `offset` below instead of subtracting it
-        deltas = -1 * np.array(deltas, dtype='i8')
+    if not is_tzlocal(tz):
+        # get_dst_info cannot extract offsets from tzlocal because its
+        # dependent on a datetime
+        trans, deltas, typ = get_dst_info(tz)
+        if not to_utc:
+            # We add `offset` below instead of subtracting it
+            deltas = -1 * np.array(deltas, dtype='i8')
 
     for i in range(n):
         v = values[i]
         if v == NPY_NAT:
             result[i] = v
+        elif is_tzlocal(tz):
+            result[i] = _tz_convert_tzlocal_utc(v, tz, to_utc=to_utc)
         else:
             # TODO: Is it more efficient to call searchsorted pointwise or
             # on `values` outside the loop?  We are not consistent about this.
@@ -689,7 +692,12 @@ cdef inline int64_t _tz_convert_tzlocal_utc(int64_t val, tzinfo tz,
 
     dt64_to_dtstruct(val, &dts)
     dt = datetime(dts.year, dts.month, dts.day, dts.hour,
-                  dts.min, dts.sec, dts.us, tz)
+                  dts.min, dts.sec, dts.us)
+    # get_utcoffset (tz.utcoffset under the hood) only makes sense if datetime
+    # is _wall time_, so if val is a UTC timestamp convert to wall time
+    if not to_utc:
+        dt = dt.replace(tzinfo=tzutc())
+        dt = dt.astimezone(tz)
     delta = int(get_utcoffset(tz, dt).total_seconds()) * 1000000000
 
     if not to_utc:
@@ -735,7 +743,7 @@ cpdef int64_t tz_convert_single(int64_t val, object tz1, object tz2):
         int64_t arr[1]
 
     # See GH#17734 We should always be converting either from UTC or to UTC
-    assert (is_utc(tz1) or tz1 == 'UTC') or (is_utc(tz2) or tz2 == 'UTC')
+    assert is_utc(tz1) or is_utc(tz2)
 
     if val == NPY_NAT:
         return val
@@ -743,13 +751,13 @@ cpdef int64_t tz_convert_single(int64_t val, object tz1, object tz2):
     # Convert to UTC
     if is_tzlocal(tz1):
         utc_date = _tz_convert_tzlocal_utc(val, tz1, to_utc=True)
-    elif get_timezone(tz1) != 'UTC':
+    elif not is_utc(get_timezone(tz1)):
         arr[0] = val
         utc_date = _tz_convert_dst(arr, tz1, to_utc=True)[0]
     else:
         utc_date = val
 
-    if get_timezone(tz2) == 'UTC':
+    if is_utc(get_timezone(tz2)):
         return utc_date
     elif is_tzlocal(tz2):
         return _tz_convert_tzlocal_utc(utc_date, tz2, to_utc=False)
@@ -785,7 +793,7 @@ cdef inline int64_t[:] _tz_convert_one_way(int64_t[:] vals, object tz,
         Py_ssize_t i, n = len(vals)
         int64_t val
 
-    if get_timezone(tz) != 'UTC':
+    if not is_utc(get_timezone(tz)):
         converted = np.empty(n, dtype=np.int64)
         if is_tzlocal(tz):
             for i in range(n):
@@ -858,8 +866,8 @@ def tz_localize_to_utc(ndarray[int64_t] vals, object tz, object ambiguous=None,
         - bool if True, treat all vals as DST. If False, treat them as non-DST
         - 'NaT' will return NaT where there are ambiguous times
 
-    nonexistent : str
-        If arraylike, must have the same length as vals
+    nonexistent : {None, "NaT", "shift", "raise"}
+        How to handle non-existent times when converting wall times to UTC
 
         .. versionadded:: 0.24.0
 
@@ -890,7 +898,10 @@ def tz_localize_to_utc(ndarray[int64_t] vals, object tz, object ambiguous=None,
     if is_tzlocal(tz):
         for i in range(n):
             v = vals[i]
-            result[i] = _tz_convert_tzlocal_utc(v, tz, to_utc=True)
+            if v == NPY_NAT:
+                result[i] = NPY_NAT
+            else:
+                result[i] = _tz_convert_tzlocal_utc(v, tz, to_utc=True)
         return result
 
     if is_string_object(ambiguous):

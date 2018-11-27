@@ -1294,7 +1294,6 @@ class DataFrameGroupBy(NDFrameGroupBy):
     pandas.DataFrame.groupby.apply
     pandas.DataFrame.groupby.transform
     pandas.DataFrame.aggregate
-
     """)
 
     @Appender(_agg_doc)

@@ -1,37 +1,37 @@
-from datetime import timedelta
-import numpy as np
-import warnings
 import copy
+from datetime import timedelta
 from textwrap import dedent
+import warnings
 
-import pandas as pd
-from pandas.core.groupby.base import GroupByMixin
-from pandas.core.groupby.ops import BinGrouper
-from pandas.core.groupby.groupby import (
-    _GroupBy, GroupBy, groupby, _pipe_template
-)
-from pandas.core.groupby.grouper import Grouper
-from pandas.core.groupby.generic import SeriesGroupBy, PanelGroupBy
-
-from pandas.tseries.frequencies import to_offset, is_subperiod, is_superperiod
-from pandas.core.indexes.datetimes import DatetimeIndex, date_range
-from pandas.core.indexes.timedeltas import TimedeltaIndex
-from pandas.tseries.offsets import (DateOffset, Tick, Day,
-                                    delta_to_nanoseconds, Nano)
-from pandas.core.indexes.period import PeriodIndex
-from pandas.errors import AbstractMethodError
-import pandas.core.algorithms as algos
-from pandas.core.dtypes.generic import ABCDataFrame, ABCSeries
-
-import pandas.compat as compat
-from pandas.compat.numpy import function as nv
+import numpy as np
 
 from pandas._libs import lib
-from pandas._libs.tslibs import Timestamp, NaT
+from pandas._libs.tslibs import NaT, Timestamp
 from pandas._libs.tslibs.period import IncompatibleFrequency
-
+import pandas.compat as compat
+from pandas.compat.numpy import function as nv
+from pandas.errors import AbstractMethodError
 from pandas.util._decorators import Appender, Substitution
+
+from pandas.core.dtypes.generic import ABCDataFrame, ABCSeries
+
+import pandas as pd
+import pandas.core.algorithms as algos
 from pandas.core.generic import _shared_docs
+from pandas.core.groupby.base import GroupByMixin
+from pandas.core.groupby.generic import PanelGroupBy, SeriesGroupBy
+from pandas.core.groupby.groupby import (
+    GroupBy, _GroupBy, _pipe_template, groupby)
+from pandas.core.groupby.grouper import Grouper
+from pandas.core.groupby.ops import BinGrouper
+from pandas.core.indexes.datetimes import DatetimeIndex, date_range
+from pandas.core.indexes.period import PeriodIndex
+from pandas.core.indexes.timedeltas import TimedeltaIndex
+
+from pandas.tseries.frequencies import is_subperiod, is_superperiod, to_offset
+from pandas.tseries.offsets import (
+    DateOffset, Day, Nano, Tick, delta_to_nanoseconds)
+
 _shared_docs_kwargs = dict()
 
 
@@ -81,7 +81,9 @@ class Resampler(_GroupBy):
             self.groupby._set_grouper(self._convert_obj(obj), sort=True)
 
     def __unicode__(self):
-        """ provide a nice str repr of our rolling object """
+        """
+        Provide a nice str repr of our rolling object.
+        """
         attrs = ["{k}={v}".format(k=k, v=getattr(self.groupby, k))
                  for k in self._attributes if
                  getattr(self.groupby, k, None) is not None]
@@ -100,7 +102,7 @@ class Resampler(_GroupBy):
 
     def __iter__(self):
         """
-        Resampler iterator
+        Resampler iterator.
 
         Returns
         -------
@@ -110,7 +112,6 @@ class Resampler(_GroupBy):
         See Also
         --------
         GroupBy.__iter__
-
         """
         self._set_binner()
         return super(Resampler, self).__iter__()
@@ -125,14 +126,18 @@ class Resampler(_GroupBy):
 
     @property
     def _typ(self):
-        """ masquerade for compat as a Series or a DataFrame """
+        """
+        Masquerade for compat as a Series or a DataFrame.
+        """
         if isinstance(self._selected_obj, pd.Series):
             return 'series'
         return 'dataframe'
 
     @property
     def _from_selection(self):
-        """ is the resampling from a DataFrame column or MultiIndex level """
+        """
+        Is the resampling from a DataFrame column or MultiIndex level.
+        """
         # upsampling and PeriodIndex resampling do not work
         # with selection, this state used to catch and raise an error
         return (self.groupby is not None and
@@ -141,7 +146,7 @@ class Resampler(_GroupBy):
 
     def _convert_obj(self, obj):
         """
-        provide any conversions for the object in order to correctly handle
+        Provide any conversions for the object in order to correctly handle.
 
         Parameters
         ----------
@@ -159,17 +164,17 @@ class Resampler(_GroupBy):
 
     def _set_binner(self):
         """
-        setup our binners
-        cache these as we are an immutable object
-        """
+        Setup our binners.
 
+        Cache these as we are an immutable object
+        """
         if self.binner is None:
             self.binner, self.grouper = self._get_binner()
 
     def _get_binner(self):
         """
-        create the BinGrouper, assume that self.set_grouper(obj)
-        has already been called
+        Create the BinGrouper, assume that self.set_grouper(obj)
+        has already been called.
         """
 
         binner, bins, binlabels = self._get_binner_for_time()
@@ -177,34 +182,36 @@ class Resampler(_GroupBy):
         return binner, bin_grouper
 
     def _assure_grouper(self):
-        """ make sure that we are creating our binner & grouper """
+        """
+        Make sure that we are creating our binner & grouper.
+        """
         self._set_binner()
 
     @Substitution(klass='Resampler',
                   versionadded='.. versionadded:: 0.23.0',
                   examples="""
->>> df = pd.DataFrame({'A': [1, 2, 3, 4]},
-...                   index=pd.date_range('2012-08-02', periods=4))
->>> df
-            A
-2012-08-02  1
-2012-08-03  2
-2012-08-04  3
-2012-08-05  4
+    >>> df = pd.DataFrame({'A': [1, 2, 3, 4]},
+    ...                   index=pd.date_range('2012-08-02', periods=4))
+    >>> df
+                A
+    2012-08-02  1
+    2012-08-03  2
+    2012-08-04  3
+    2012-08-05  4
 
-To get the difference between each 2-day period's maximum and minimum value in
-one pass, you can do
+    To get the difference between each 2-day period's maximum and minimum
+    value in one pass, you can do
 
->>> df.resample('2D').pipe(lambda x: x.max() - x.min())
-            A
-2012-08-02  1
-2012-08-04  1""")
+    >>> df.resample('2D').pipe(lambda x: x.max() - x.min())
+                A
+    2012-08-02  1
+    2012-08-04  1
+    """)
     @Appender(_pipe_template)
     def pipe(self, func, *args, **kwargs):
         return super(Resampler, self).pipe(func, *args, **kwargs)
 
     _agg_doc = dedent("""
-
     Examples
     --------
     >>> s = pd.Series([1,2,3,4,5],
@@ -244,7 +251,6 @@ one pass, you can do
     pandas.DataFrame.groupby.aggregate
     pandas.DataFrame.resample.transform
     pandas.DataFrame.aggregate
-
     """)
 
     @Appender(_agg_doc)
@@ -273,7 +279,7 @@ one pass, you can do
     def transform(self, arg, *args, **kwargs):
         """
         Call function producing a like-indexed Series on each group and return
-        a Series with the transformed values
+        a Series with the transformed values.
 
         Parameters
         ----------
@@ -299,8 +305,7 @@ one pass, you can do
 
     def _gotitem(self, key, ndim, subset=None):
         """
-        sub-classes to define
-        return a sliced object
+        Sub-classes to define. Return a sliced object.
 
         Parameters
         ----------
@@ -323,7 +328,9 @@ one pass, you can do
             return grouped
 
     def _groupby_and_aggregate(self, how, grouper=None, *args, **kwargs):
-        """ re-evaluate the obj with a groupby aggregation """
+        """
+        Re-evaluate the obj with a groupby aggregation.
+        """
 
         if grouper is None:
             self._set_binner()
@@ -355,7 +362,7 @@ one pass, you can do
 
     def _apply_loffset(self, result):
         """
-        if loffset is set, offset the result index
+        If loffset is set, offset the result index.
 
         This is NOT an idempotent routine, it will be applied
         exactly once to the result.
@@ -380,11 +387,15 @@ one pass, you can do
         return result
 
     def _get_resampler_for_grouping(self, groupby, **kwargs):
-        """ return the correct class for resampling with groupby """
+        """
+        Return the correct class for resampling with groupby.
+        """
         return self._resampler_for_grouping(self, groupby=groupby, **kwargs)
 
     def _wrap_result(self, result):
-        """ potentially wrap any results """
+        """
+        Potentially wrap any results.
+        """
         if isinstance(result, ABCSeries) and self._selection is not None:
             result.name = self._selection
 
@@ -397,7 +408,7 @@ one pass, you can do
 
     def pad(self, limit=None):
         """
-        Forward fill the values
+        Forward fill the values.
 
         Parameters
         ----------
@@ -760,8 +771,7 @@ one pass, you can do
 
     def asfreq(self, fill_value=None):
         """
-        return the values at the new freq,
-        essentially a reindex
+        Return the values at the new freq, essentially a reindex.
 
         Parameters
         ----------
@@ -780,7 +790,7 @@ one pass, you can do
 
     def std(self, ddof=1, *args, **kwargs):
         """
-        Compute standard deviation of groups, excluding missing values
+        Compute standard deviation of groups, excluding missing values.
 
         Parameters
         ----------
@@ -792,12 +802,12 @@ one pass, you can do
 
     def var(self, ddof=1, *args, **kwargs):
         """
-        Compute variance of groups, excluding missing values
+        Compute variance of groups, excluding missing values.
 
         Parameters
         ----------
         ddof : integer, default 1
-        degrees of freedom
+            degrees of freedom
         """
         nv.validate_resampler_func('var', args, kwargs)
         return self._downsample('var', ddof=ddof)
@@ -866,8 +876,10 @@ for method in ['nunique']:
 
 
 def _maybe_process_deprecations(r, how=None, fill_method=None, limit=None):
-    """ potentially we might have a deprecation warning, show it
-    but call the appropriate methods anyhow """
+    """
+    Potentially we might have a deprecation warning, show it
+    but call the appropriate methods anyhow.
+    """
 
     if how is not None:
 
@@ -912,8 +924,9 @@ def _maybe_process_deprecations(r, how=None, fill_method=None, limit=None):
 
 
 class _GroupByMixin(GroupByMixin):
-    """ provide the groupby facilities """
-
+    """
+    Provide the groupby facilities.
+    """
     def __init__(self, obj, *args, **kwargs):
 
         parent = kwargs.pop('parent', None)
@@ -934,8 +947,8 @@ class _GroupByMixin(GroupByMixin):
 
     def _apply(self, f, grouper=None, *args, **kwargs):
         """
-        dispatch to _upsample; we are stripping all of the _upsample kwargs and
-        performing the original function call on the grouped object
+        Dispatch to _upsample; we are stripping all of the _upsample kwargs and
+        performing the original function call on the grouped object.
         """
 
         def func(x):
@@ -969,7 +982,7 @@ class DatetimeIndexResampler(Resampler):
 
     def _downsample(self, how, **kwargs):
         """
-        Downsample the cython defined function
+        Downsample the cython defined function.
 
         Parameters
         ----------
@@ -1006,6 +1019,7 @@ class DatetimeIndexResampler(Resampler):
     def _adjust_binner_for_upsample(self, binner):
         """
         Adjust our binner when upsampling.
+
         The range of a new index should not be outside specified range
         """
         if self.closed == 'right':
@@ -1016,6 +1030,8 @@ class DatetimeIndexResampler(Resampler):
 
     def _upsample(self, method, limit=None, fill_value=None):
         """
+        Parameters
+        ----------
         method : string {'backfill', 'bfill', 'pad',
             'ffill', 'asfreq'} method for upsampling
         limit : int, default None
@@ -1068,7 +1084,6 @@ class DatetimeIndexResamplerGroupby(_GroupByMixin, DatetimeIndexResampler):
     Provides a resample of a groupby implementation
 
     .. versionadded:: 0.18.1
-
     """
     @property
     def _constructor(self):
@@ -1109,7 +1124,7 @@ class PeriodIndexResampler(DatetimeIndexResampler):
 
     def _downsample(self, how, **kwargs):
         """
-        Downsample the cython defined function
+        Downsample the cython defined function.
 
         Parameters
         ----------
@@ -1146,6 +1161,8 @@ class PeriodIndexResampler(DatetimeIndexResampler):
 
     def _upsample(self, method, limit=None, fill_value=None):
         """
+        Parameters
+        ----------
         method : string {'backfill', 'bfill', 'pad', 'ffill'}
             method for upsampling
         limit : int, default None
@@ -1180,10 +1197,9 @@ class PeriodIndexResampler(DatetimeIndexResampler):
 
 class PeriodIndexResamplerGroupby(_GroupByMixin, PeriodIndexResampler):
     """
-    Provides a resample of a groupby implementation
+    Provides a resample of a groupby implementation.
 
     .. versionadded:: 0.18.1
-
     """
     @property
     def _constructor(self):
@@ -1202,6 +1218,7 @@ class TimedeltaIndexResampler(DatetimeIndexResampler):
     def _adjust_binner_for_upsample(self, binner):
         """
         Adjust our binner when upsampling.
+
         The range of a new index is allowed to be greater than original range
         so we don't need to change the length of a binner, GH 13022
         """
@@ -1210,10 +1227,9 @@ class TimedeltaIndexResampler(DatetimeIndexResampler):
 
 class TimedeltaIndexResamplerGroupby(_GroupByMixin, TimedeltaIndexResampler):
     """
-    Provides a resample of a groupby implementation
+    Provides a resample of a groupby implementation.
 
     .. versionadded:: 0.18.1
-
     """
     @property
     def _constructor(self):
@@ -1221,7 +1237,9 @@ class TimedeltaIndexResamplerGroupby(_GroupByMixin, TimedeltaIndexResampler):
 
 
 def resample(obj, kind=None, **kwds):
-    """ create a TimeGrouper and return our resampler """
+    """
+    Create a TimeGrouper and return our resampler.
+    """
     tg = TimeGrouper(**kwds)
     return tg._get_resampler(obj, kind=kind)
 
@@ -1231,7 +1249,9 @@ resample.__doc__ = Resampler.__doc__
 
 def get_resampler_for_grouping(groupby, rule, how=None, fill_method=None,
                                limit=None, kind=None, **kwargs):
-    """ return our appropriate resampler when grouping as well """
+    """
+    Return our appropriate resampler when grouping as well.
+    """
 
     # .resample uses 'on' similar to how .groupby uses 'key'
     kwargs['key'] = kwargs.pop('on', None)
@@ -1247,7 +1267,7 @@ def get_resampler_for_grouping(groupby, rule, how=None, fill_method=None,
 
 class TimeGrouper(Grouper):
     """
-    Custom groupby class for time-interval grouping
+    Custom groupby class for time-interval grouping.
 
     Parameters
     ----------
@@ -1314,7 +1334,7 @@ class TimeGrouper(Grouper):
 
     def _get_resampler(self, obj, kind=None):
         """
-        return my resampler or raise if we have an invalid axis
+        Return my resampler or raise if we have an invalid axis.
 
         Parameters
         ----------
@@ -1646,7 +1666,7 @@ def _adjust_dates_anchored(first, last, offset, closed='right', base=0):
 
 def asfreq(obj, freq, method=None, how=None, normalize=False, fill_value=None):
     """
-    Utility frequency conversion method for Series/DataFrame
+    Utility frequency conversion method for Series/DataFrame.
     """
     if isinstance(obj.index, PeriodIndex):
         if method is not None:

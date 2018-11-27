@@ -9,7 +9,7 @@ import numpy as np
 from pandas._libs.tslibs import (
     NaT, OutOfBoundsDatetime, Timedelta, Timestamp, ccalendar, conversion,
     delta_to_nanoseconds, frequencies as libfrequencies, normalize_date,
-    offsets as liboffsets)
+    offsets as liboffsets, timezones)
 from pandas._libs.tslibs.offsets import (
     ApplyTypeError, BaseOffset, _get_calendar, _is_normalized, _to_dt64,
     apply_index_wraps, as_datetime, roll_yearday, shift_month)
@@ -81,7 +81,7 @@ def apply_wraps(func):
                     if result.tz is not None:
                         # convert to UTC
                         value = conversion.tz_convert_single(
-                            result.value, 'UTC', result.tz)
+                            result.value, timezones.UTC, result.tz)
                     else:
                         value = result.value
                     result = Timestamp(value + nano)
@@ -248,7 +248,7 @@ class DateOffset(BaseOffset):
         """
         Vectorized apply of DateOffset to DatetimeIndex,
         raises NotImplentedError for offsets without a
-        vectorized implementation
+        vectorized implementation.
 
         Parameters
         ----------
@@ -330,14 +330,18 @@ class DateOffset(BaseOffset):
         return self.rule_code
 
     def rollback(self, dt):
-        """Roll provided date backward to next offset only if not on offset"""
+        """
+        Roll provided date backward to next offset only if not on offset.
+        """
         dt = as_timestamp(dt)
         if not self.onOffset(dt):
             dt = dt - self.__class__(1, normalize=self.normalize, **self.kwds)
         return dt
 
     def rollforward(self, dt):
-        """Roll provided date forward to next offset only if not on offset"""
+        """
+        Roll provided date forward to next offset only if not on offset.
+        """
         dt = as_timestamp(dt)
         if not self.onOffset(dt):
             dt = dt + self.__class__(1, normalize=self.normalize, **self.kwds)
@@ -407,7 +411,7 @@ class SingleConstructorOffset(DateOffset):
 class _CustomMixin(object):
     """
     Mixin for classes that define and validate calendar, holidays,
-    and weekdays attributes
+    and weekdays attributes.
     """
     def __init__(self, weekmask, holidays, calendar):
         calendar, holidays = _get_calendar(weekmask=weekmask,
@@ -423,11 +427,15 @@ class _CustomMixin(object):
 
 
 class BusinessMixin(object):
-    """ Mixin to business types to provide related functions """
+    """
+    Mixin to business types to provide related functions.
+    """
 
     @property
     def offset(self):
-        """Alias for self._offset"""
+        """
+        Alias for self._offset.
+        """
         # Alias for backward compat
         return self._offset
 
@@ -444,7 +452,7 @@ class BusinessMixin(object):
 
 class BusinessDay(BusinessMixin, SingleConstructorOffset):
     """
-    DateOffset subclass representing possibly n business days
+    DateOffset subclass representing possibly n business days.
     """
     _prefix = 'B'
     _adjust_dst = True
@@ -564,7 +572,9 @@ class BusinessHourMixin(BusinessMixin):
 
     @cache_readonly
     def next_bday(self):
-        """used for moving to next businessday"""
+        """
+        Used for moving to next business day.
+        """
         if self.n >= 0:
             nb_offset = 1
         else:
@@ -637,7 +647,9 @@ class BusinessHourMixin(BusinessMixin):
 
     @apply_wraps
     def rollback(self, dt):
-        """Roll provided date backward to next offset only if not on offset"""
+        """
+        Roll provided date backward to next offset only if not on offset.
+        """
         if not self.onOffset(dt):
             businesshours = self._get_business_hours_by_sec
             if self.n >= 0:
@@ -650,7 +662,9 @@ class BusinessHourMixin(BusinessMixin):
 
     @apply_wraps
     def rollforward(self, dt):
-        """Roll provided date forward to next offset only if not on offset"""
+        """
+        Roll provided date forward to next offset only if not on offset.
+        """
         if not self.onOffset(dt):
             if self.n >= 0:
                 return self._next_opening_time(dt)
@@ -747,7 +761,7 @@ class BusinessHourMixin(BusinessMixin):
 
     def _onOffset(self, dt, businesshours):
         """
-        Slight speedups using calculated values
+        Slight speedups using calculated values.
         """
         # if self.normalize and not _is_normalized(dt):
         #     return False
@@ -775,10 +789,9 @@ class BusinessHourMixin(BusinessMixin):
 
 class BusinessHour(BusinessHourMixin, SingleConstructorOffset):
     """
-    DateOffset subclass representing possibly n business days
+    DateOffset subclass representing possibly n business days.
 
     .. versionadded:: 0.16.1
-
     """
     _prefix = 'BH'
     _anchor = 0
@@ -793,7 +806,7 @@ class BusinessHour(BusinessHourMixin, SingleConstructorOffset):
 class CustomBusinessDay(_CustomMixin, BusinessDay):
     """
     DateOffset subclass representing possibly n custom business days,
-    excluding holidays
+    excluding holidays.
 
     Parameters
     ----------
@@ -860,10 +873,9 @@ class CustomBusinessDay(_CustomMixin, BusinessDay):
 class CustomBusinessHour(_CustomMixin, BusinessHourMixin,
                          SingleConstructorOffset):
     """
-    DateOffset subclass representing possibly n custom business days
+    DateOffset subclass representing possibly n custom business days.
 
     .. versionadded:: 0.18.1
-
     """
     _prefix = 'CBH'
     _anchor = 0
@@ -918,25 +930,33 @@ class MonthOffset(SingleConstructorOffset):
 
 
 class MonthEnd(MonthOffset):
-    """DateOffset of one month end"""
+    """
+    DateOffset of one month end.
+    """
     _prefix = 'M'
     _day_opt = 'end'
 
 
 class MonthBegin(MonthOffset):
-    """DateOffset of one month at beginning"""
+    """
+    DateOffset of one month at beginning.
+    """
     _prefix = 'MS'
     _day_opt = 'start'
 
 
 class BusinessMonthEnd(MonthOffset):
-    """DateOffset increments between business EOM dates"""
+    """
+    DateOffset increments between business EOM dates.
+    """
     _prefix = 'BM'
     _day_opt = 'business_end'
 
 
 class BusinessMonthBegin(MonthOffset):
-    """DateOffset of one business month at beginning"""
+    """
+    DateOffset of one business month at beginning.
+    """
     _prefix = 'BMS'
     _day_opt = 'business_start'
 
@@ -944,7 +964,7 @@ class BusinessMonthBegin(MonthOffset):
 class _CustomBusinessMonth(_CustomMixin, BusinessMixin, MonthOffset):
     """
     DateOffset subclass representing one custom business month, incrementing
-    between [BEGIN/END] of month dates
+    between [BEGIN/END] of month dates.
 
     Parameters
     ----------
@@ -974,7 +994,9 @@ class _CustomBusinessMonth(_CustomMixin, BusinessMixin, MonthOffset):
 
     @cache_readonly
     def cbday_roll(self):
-        """Define default roll function to be called in apply method"""
+        """
+        Define default roll function to be called in apply method.
+        """
         cbday = CustomBusinessDay(n=self.n, normalize=False, **self.kwds)
 
         if self._prefix.endswith('S'):
@@ -997,7 +1019,9 @@ class _CustomBusinessMonth(_CustomMixin, BusinessMixin, MonthOffset):
 
     @cache_readonly
     def month_roll(self):
-        """Define default roll function to be called in apply method"""
+        """
+        Define default roll function to be called in apply method.
+        """
         if self._prefix.endswith('S'):
             # MonthBegin
             roll_func = self.m_offset.rollback
@@ -1087,7 +1111,9 @@ class SemiMonthOffset(DateOffset):
         return self._apply(n, other)
 
     def _apply(self, n, other):
-        """Handle specific apply logic for child classes"""
+        """
+        Handle specific apply logic for child classes.
+        """
         raise AbstractMethodError(self)
 
     @apply_index_wraps
@@ -1123,7 +1149,8 @@ class SemiMonthOffset(DateOffset):
         return i + time
 
     def _get_roll(self, i, before_day_of_month, after_day_of_month):
-        """Return an array with the correct n for each date in i.
+        """
+        Return an array with the correct n for each date in i.
 
         The roll array is based on the fact that i gets rolled back to
         the first day of the month.
@@ -1131,7 +1158,9 @@ class SemiMonthOffset(DateOffset):
         raise AbstractMethodError(self)
 
     def _apply_index_days(self, i, roll):
-        """Apply the correct day for each date in i"""
+        """
+        Apply the correct day for each date in i.
+        """
         raise AbstractMethodError(self)
 
 
@@ -1178,7 +1207,8 @@ class SemiMonthEnd(SemiMonthOffset):
         return roll
 
     def _apply_index_days(self, i, roll):
-        """Add days portion of offset to DatetimeIndex i
+        """
+        Add days portion of offset to DatetimeIndex i.
 
         Parameters
         ----------
@@ -1235,7 +1265,8 @@ class SemiMonthBegin(SemiMonthOffset):
         return roll
 
     def _apply_index_days(self, i, roll):
-        """Add days portion of offset to DatetimeIndex i
+        """
+        Add days portion of offset to DatetimeIndex i.
 
         Parameters
         ----------
@@ -1255,7 +1286,7 @@ class SemiMonthBegin(SemiMonthOffset):
 
 class Week(DateOffset):
     """
-    Weekly offset
+    Weekly offset.
 
     Parameters
     ----------
@@ -1304,7 +1335,8 @@ class Week(DateOffset):
             return self._end_apply_index(i)
 
     def _end_apply_index(self, dtindex):
-        """Add self to the given DatetimeIndex, specialized for case where
+        """
+        Add self to the given DatetimeIndex, specialized for case where
         self.weekday is non-null.
 
         Parameters
@@ -1361,7 +1393,9 @@ class Week(DateOffset):
 
 
 class _WeekOfMonthMixin(object):
-    """Mixin for methods common to WeekOfMonth and LastWeekOfMonth"""
+    """
+    Mixin for methods common to WeekOfMonth and LastWeekOfMonth.
+    """
     @apply_wraps
     def apply(self, other):
         compare_day = self._get_offset_day(other)
@@ -1384,7 +1418,7 @@ class _WeekOfMonthMixin(object):
 
 class WeekOfMonth(_WeekOfMonthMixin, DateOffset):
     """
-    Describes monthly dates like "the Tuesday of the 2nd week of each month"
+    Describes monthly dates like "the Tuesday of the 2nd week of each month".
 
     Parameters
     ----------
@@ -1456,7 +1490,7 @@ class WeekOfMonth(_WeekOfMonthMixin, DateOffset):
 class LastWeekOfMonth(_WeekOfMonthMixin, DateOffset):
     """
     Describes monthly dates in last week of month like "the last Tuesday of
-    each month"
+    each month".
 
     Parameters
     ----------
@@ -1469,7 +1503,6 @@ class LastWeekOfMonth(_WeekOfMonthMixin, DateOffset):
         4: Fridays
         5: Saturdays
         6: Sundays
-
     """
     _prefix = 'LWOM'
     _adjust_dst = True
@@ -1525,7 +1558,9 @@ class LastWeekOfMonth(_WeekOfMonthMixin, DateOffset):
 
 
 class QuarterOffset(DateOffset):
-    """Quarter representation - doesn't call super"""
+    """
+    Quarter representation - doesn't call super.
+    """
     _default_startingMonth = None
     _from_name_startingMonth = None
     _adjust_dst = True
@@ -1586,7 +1621,9 @@ class QuarterOffset(DateOffset):
 
 
 class BQuarterEnd(QuarterOffset):
-    """DateOffset increments between business Quarter dates
+    """
+    DateOffset increments between business Quarter dates.
+
     startingMonth = 1 corresponds to dates like 1/31/2007, 4/30/2007, ...
     startingMonth = 2 corresponds to dates like 2/28/2007, 5/31/2007, ...
     startingMonth = 3 corresponds to dates like 3/30/2007, 6/29/2007, ...
@@ -1609,7 +1646,9 @@ class BQuarterBegin(QuarterOffset):
 
 
 class QuarterEnd(QuarterOffset):
-    """DateOffset increments between business Quarter dates
+    """
+    DateOffset increments between business Quarter dates.
+
     startingMonth = 1 corresponds to dates like 1/31/2007, 4/30/2007, ...
     startingMonth = 2 corresponds to dates like 2/28/2007, 5/31/2007, ...
     startingMonth = 3 corresponds to dates like 3/31/2007, 6/30/2007, ...
@@ -1632,7 +1671,9 @@ class QuarterBegin(QuarterOffset):
 # Year-Based Offset Classes
 
 class YearOffset(DateOffset):
-    """DateOffset that just needs a month"""
+    """
+    DateOffset that just needs a month.
+    """
     _adjust_dst = True
     _attributes = frozenset(['n', 'normalize', 'month'])
 
@@ -1683,7 +1724,9 @@ class YearOffset(DateOffset):
 
 
 class BYearEnd(YearOffset):
-    """DateOffset increments between business EOM dates"""
+    """
+    DateOffset increments between business EOM dates.
+    """
     _outputName = 'BusinessYearEnd'
     _default_month = 12
     _prefix = 'BA'
@@ -1691,7 +1734,9 @@ class BYearEnd(YearOffset):
 
 
 class BYearBegin(YearOffset):
-    """DateOffset increments between business year begin dates"""
+    """
+    DateOffset increments between business year begin dates.
+    """
     _outputName = 'BusinessYearBegin'
     _default_month = 1
     _prefix = 'BAS'
@@ -1699,14 +1744,18 @@ class BYearBegin(YearOffset):
 
 
 class YearEnd(YearOffset):
-    """DateOffset increments between calendar year ends"""
+    """
+    DateOffset increments between calendar year ends.
+    """
     _default_month = 12
     _prefix = 'A'
     _day_opt = 'end'
 
 
 class YearBegin(YearOffset):
-    """DateOffset increments between calendar year begin dates"""
+    """
+    DateOffset increments between calendar year begin dates.
+    """
     _default_month = 1
     _prefix = 'AS'
     _day_opt = 'start'
@@ -1976,8 +2025,11 @@ class FY5253Quarter(DateOffset):
         return self.n == 1 and self._offset.isAnchored()
 
     def _rollback_to_year(self, other):
-        """roll `other` back to the most recent date that was on a fiscal year
-        end.  Return the date of that year-end, the number of full quarters
+        """
+        Roll `other` back to the most recent date that was on a fiscal year
+        end.
+
+        Return the date of that year-end, the number of full quarters
         elapsed between that year-end and other, and the remaining Timedelta
         since the most recent quarter-end.
 
@@ -2100,10 +2152,9 @@ class FY5253Quarter(DateOffset):
 
 class Easter(DateOffset):
     """
-    DateOffset for the Easter holiday using
-    logic defined in dateutil.  Right now uses
-    the revised method which is valid in years
-    1583-4099.
+    DateOffset for the Easter holiday using logic defined in dateutil.
+
+    Right now uses the revised method which is valid in years 1583-4099.
     """
     _adjust_dst = True
     _attributes = frozenset(['n', 'normalize'])
@@ -2383,7 +2434,7 @@ def generate_range(start=None, end=None, periods=None,
     """
     Generates a sequence of dates corresponding to the specified time
     offset. Similar to dateutil.rrule except uses pandas DateOffset
-    objects to represent time increments
+    objects to represent time increments.
 
     Parameters
     ----------
