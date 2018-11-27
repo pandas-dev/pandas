@@ -31,14 +31,14 @@ from pandas.core.groupby.base import GroupByMixin
 _shared_docs = dict(**_shared_docs)
 _doc_template = """
 
-Returns
--------
-same type as input
+        Returns
+        -------
+        same type as input
 
-See Also
---------
-pandas.Series.%(name)s
-pandas.DataFrame.%(name)s
+        See Also
+        --------
+        Series.%(name)s
+        DataFrame.%(name)s
 """
 
 
