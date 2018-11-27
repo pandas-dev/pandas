@@ -16,9 +16,9 @@ from pandas.util._decorators import Appender, Substitution, cache_readonly
 
 from pandas.core.dtypes.common import (
     _INT64_DTYPE, _NS_DTYPE, ensure_int64, is_datetime64_dtype,
-    is_datetime64_ns_dtype, is_datetime64tz_dtype, is_datetimetz,
-    is_dtype_equal, is_float, is_integer, is_integer_dtype, is_list_like,
-    is_period_dtype, is_scalar, is_string_like, pandas_dtype)
+    is_datetime64_ns_dtype, is_datetime64tz_dtype, is_dtype_equal, is_float,
+    is_integer, is_integer_dtype, is_list_like, is_period_dtype, is_scalar,
+    is_string_like, pandas_dtype)
 import pandas.core.dtypes.concat as _concat
 from pandas.core.dtypes.generic import ABCSeries
 from pandas.core.dtypes.missing import isna
@@ -283,8 +283,7 @@ class DatetimeIndex(DatetimeArray, DatelikeOps, TimelikeOps,
 
         # By this point we are assured to have either a numpy array or Index
         data, copy = maybe_convert_dtype(data, copy)
-
-        if not (is_datetime64_dtype(data) or is_datetimetz(data) or
+        if not (is_datetime64_dtype(data) or is_datetime64tz_dtype(data) or
                 is_integer_dtype(data) or lib.infer_dtype(data) == 'integer'):
             data = tools.to_datetime(data, dayfirst=dayfirst,
                                      yearfirst=yearfirst)
