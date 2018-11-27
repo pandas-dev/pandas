@@ -442,61 +442,41 @@ class TestToHTML(object):
         expected = expected_html(datapath, expected_output)
         assert result == expected
 
-    @pytest.mark.parametrize(
-        'index_names', [True, False], ids=['index_names_true',
-                                           'index_names_false'])
-    @pytest.mark.parametrize(
-        'index', [True, False], ids=['index_true', 'index_false'])
-    @pytest.mark.parametrize('col_idx_type', [
-        (Index([0, 1]),
-         'columns_unnamed_standard'),
-        (Index([0, 1], name='columns.name'),
-         'columns_named_standard'),
-        (MultiIndex.from_product([['a'], ['b', 'c']]),
-         'columns_unnamed_multi'),
-        (MultiIndex.from_product([['a'], ['b', 'c']],
-                                 names=['columns.name.0',
-                                        'columns.name.1']),
-         'columns_named_multi')
-    ],
-        ids=['columns_unnamed_standard',
-             'columns_named_standard',
-             'columns_unnamed_multi',
-             'columns_named_multi'])
-    @pytest.mark.parametrize('idx_type', [
-        (Index([0, 1]),
-         'index_unnamed_standard'),
-        (Index([0, 1], name='index.name'),
-         'index_named_standard'),
-        (MultiIndex.from_product([['a'], ['b', 'c']]),
-         'index_unnamed_multi'),
-        (MultiIndex.from_product([['a'], ['b', 'c']],
-                                 names=['index.name.0',
-                                        'index.name.1']),
-         'index_named_multi')
-    ],
-        ids=['index_unnamed_standard',
-             'index_named_standard',
-             'index_unnamed_multi',
-             'index_named_multi'])
-    def test_to_html_basic_alignment(self, datapath, idx_type, col_idx_type,
-                                     index, index_names):
+    @pytest.mark.parametrize('index_names', [True, False])
+    @pytest.mark.parametrize('index', [True, False])
+    @pytest.mark.parametrize('column_index, column_type', [
+        (Index([0, 1]), 'unnamed_standard'),
+        (Index([0, 1], name='columns.name'), 'named_standard'),
+        (MultiIndex.from_product([['a'], ['b', 'c']]), 'unnamed_multi'),
+        (MultiIndex.from_product(
+            [['a'], ['b', 'c']], names=['columns.name.0',
+                                        'columns.name.1']), 'named_multi')
+    ])
+    @pytest.mark.parametrize('row_index, row_type', [
+        (Index([0, 1]), 'unnamed_standard'),
+        (Index([0, 1], name='index.name'), 'named_standard'),
+        (MultiIndex.from_product([['a'], ['b', 'c']]), 'unnamed_multi'),
+        (MultiIndex.from_product(
+            [['a'], ['b', 'c']], names=['index.name.0',
+                                        'index.name.1']), 'named_multi')
+    ])
+    def test_to_html_basic_alignment(
+            self, datapath, row_index, row_type, column_index, column_type,
+            index, index_names):
         # GH 22747, GH 22579
-        idx_type, idx_type_id = idx_type
-        col_idx_type, col_idx_type_id = col_idx_type
-
         df = DataFrame(np.zeros((2, 2), dtype=int),
-                       index=idx_type, columns=col_idx_type)
+                       index=row_index, columns=column_index)
         result = df.to_html(index=index, index_names=index_names)
 
         if not index:
-            idx_type_id = 'index_none'
-        elif not index_names:
-            idx_type_id = idx_type_id.replace('index_named', 'index_unnamed')
-        if not index_names:
-            col_idx_type_id = col_idx_type_id.replace(
-                'columns_named', 'columns_unnamed')
-        filename = idx_type_id + '_' + col_idx_type_id
+            row_type = 'none'
+        elif not index_names and row_type.startswith('named'):
+            row_type = 'un' + row_type
+
+        if not index_names and column_type.startswith('named'):
+            column_type = 'un' + column_type
+
+        filename = 'index_' + row_type + '_columns_' + column_type
         expected = expected_html(datapath, filename)
         assert result == expected
 
