@@ -95,10 +95,10 @@ def test_applymap(frame):
 
 def test_apply_keep_sparse_dtype():
     # GH 23744
-    expected = SparseDataFrame(np.array([[0, 1, 0], [0, 0, 0], [0, 0, 1]]),
-                               columns=['b', 'a', 'c'], default_fill_value=1)
-    result = DataFrame(expected)
+    sdf = SparseDataFrame(np.array([[0, 1, 0], [0, 0, 0], [0, 0, 1]]),
+                          columns=['b', 'a', 'c'], default_fill_value=1)
+    df = DataFrame(sdf)
 
-    expected = expected.apply(np.exp)
-    result = result.apply(np.exp)
+    expected = sdf.apply(np.exp)
+    result = df.apply(np.exp)
     tm.assert_frame_equal(expected, result)
