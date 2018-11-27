@@ -69,6 +69,36 @@ class Reindex(object):
         self.df2.reindex(np.random.permutation(range(1200)))
 
 
+class Rename(object):
+
+    def setup(self):
+        N = 10**3
+        self.df = DataFrame(np.random.randn(N * 10, N))
+        self.idx = np.arange(4 * N, 7 * N)
+        self.dict_idx = {k: k for k in self.idx}
+        self.df2 = DataFrame(
+            {c: {0: np.random.randint(0, 2, N).astype(np.bool_),
+                 1: np.random.randint(0, N, N).astype(np.int16),
+                 2: np.random.randint(0, N, N).astype(np.int32),
+                 3: np.random.randint(0, N, N).astype(np.int64)}
+                [np.random.randint(0, 4)] for c in range(N)})
+
+    def time_rename_single(self):
+        self.df.rename({0: 0})
+
+    def time_rename_axis0(self):
+        self.df.rename(self.dict_idx)
+
+    def time_rename_axis1(self):
+        self.df.rename(columns=self.dict_idx)
+
+    def time_rename_both_axes(self):
+        self.df.rename(index=self.dict_idx, columns=self.dict_idx)
+
+    def time_dict_rename_both_axes(self):
+        self.df.rename(index=self.dict_idx, columns=self.dict_idx)
+
+
 class Iteration(object):
 
     def setup(self):
