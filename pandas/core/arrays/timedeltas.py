@@ -521,7 +521,8 @@ def sequence_to_td64ns(data, copy=False, unit="ns", errors="raise"):
         # treat as multiples of the given unit.  If after converting to nanos,
         #  there are fractional components left, these are truncated
         #  (i.e. NOT rounded)
-        unit = unit if unit is not None else "ns"
+        if unit is None:
+            unit = "ns"
         mask = np.isnan(data)
         coeff = np.timedelta64(1, unit) / np.timedelta64(1, 'ns')
         data = (coeff * data).astype(np.int64).view('timedelta64[ns]')
