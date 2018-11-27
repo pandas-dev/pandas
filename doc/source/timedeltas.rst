@@ -4,18 +4,12 @@
 .. ipython:: python
    :suppress:
 
-   import datetime
    import numpy as np
    import pandas as pd
+
    np.random.seed(123456)
-   randn = np.random.randn
-   randint = np.random.randint
    np.set_printoptions(precision=4, suppress=True)
-   pd.options.display.max_rows=15
-   import dateutil
-   import pytz
-   from dateutil.relativedelta import relativedelta
-   from pandas.tseries.offsets import *
+   pd.options.display.max_rows = 15
 
 .. _timedeltas.timedeltas:
 
@@ -36,6 +30,8 @@ Parsing
 You can construct a ``Timedelta`` scalar through various arguments:
 
 .. ipython:: python
+
+   import datetime
 
    # strings
    pd.Timedelta('1 days')
@@ -74,13 +70,14 @@ You can construct a ``Timedelta`` scalar through various arguments:
 
 .. ipython:: python
 
-   pd.Timedelta(Second(2))
+   pd.Timedelta(pd.offsets.Second(2))
 
 Further, operations among the scalars yield another scalar ``Timedelta``.
 
 .. ipython:: python
 
-   pd.Timedelta(Day(2)) + pd.Timedelta(Second(2)) + pd.Timedelta('00:00:00.000123')
+   pd.Timedelta(pd.offsets.Day(2)) + pd.Timedelta(pd.offsets.Second(2)) +\
+       pd.Timedelta('00:00:00.000123')
 
 to_timedelta
 ~~~~~~~~~~~~
@@ -135,8 +132,8 @@ subtraction operations on ``datetime64[ns]`` Series, or ``Timestamps``.
 .. ipython:: python
 
    s = pd.Series(pd.date_range('2012-1-1', periods=3, freq='D'))
-   td = pd.Series([ pd.Timedelta(days=i) for i in range(3) ])
-   df = pd.DataFrame(dict(A = s, B = td))
+   td = pd.Series([pd.Timedelta(days=i) for i in range(3)])
+   df = pd.DataFrame({'A': s, 'B': td})
    df
    df['C'] = df['A'] + df['B']
    df
@@ -145,8 +142,8 @@ subtraction operations on ``datetime64[ns]`` Series, or ``Timestamps``.
    s - s.max()
    s - datetime.datetime(2011, 1, 1, 3, 5)
    s + datetime.timedelta(minutes=5)
-   s + Minute(5)
-   s + Minute(5) + Milli(5)
+   s + pd.offsets.Minute(5)
+   s + pd.offsets.Minute(5) + pd.offsets.Milli(5)
 
 Operations with scalars from a ``timedelta64[ns]`` series:
 
@@ -184,7 +181,7 @@ Operands can also appear in a reversed order (a singular object operated with a 
    A = s - pd.Timestamp('20120101') - pd.Timedelta('00:05:05')
    B = s - pd.Series(pd.date_range('2012-1-2', periods=3, freq='D'))
 
-   df = pd.DataFrame(dict(A=A, B=B))
+   df = pd.DataFrame({'A': A, 'B': B})
    df
 
    df.min()
@@ -232,7 +229,8 @@ Numeric reduction operation for ``timedelta64[ns]`` will return ``Timedelta`` ob
 
 .. ipython:: python
 
-   y2 = pd.Series(pd.to_timedelta(['-1 days +00:00:05', 'nat', '-1 days +00:00:05', '1 days']))
+   y2 = pd.Series(pd.to_timedelta(['-1 days +00:00:05', 'nat',
+                                   '-1 days +00:00:05', '1 days']))
    y2
    y2.mean()
    y2.median()
@@ -250,8 +248,10 @@ Note that division by the NumPy scalar is true division, while astyping is equiv
 
 .. ipython:: python
 
-   td = pd.Series(pd.date_range('20130101', periods=4)) - \
-        pd.Series(pd.date_range('20121201', periods=4))
+   december = pd.Series(pd.date_range('20121201', periods=4))
+   january = pd.Series(pd.date_range('20130101', periods=4))
+   td = january - december
+
    td[2] += datetime.timedelta(minutes=5, seconds=3)
    td[3] = np.nan
    td
@@ -360,8 +360,8 @@ or ``np.timedelta64`` objects. Passing ``np.nan/pd.NaT/nat`` will represent miss
 
 .. ipython:: python
 
-   pd.TimedeltaIndex(['1 days', '1 days, 00:00:05',
-                     np.timedelta64(2,'D'), datetime.timedelta(days=2,seconds=2)])
+   pd.TimedeltaIndex(['1 days', '1 days, 00:00:05', np.timedelta64(2, 'D'),
+                      datetime.timedelta(days=2, seconds=2)])
 
 The string 'infer' can be passed in order to set the frequency of the index as the
 inferred frequency upon creation:
@@ -458,7 +458,7 @@ Similarly to frequency conversion on a ``Series`` above, you can convert these i
 
 .. ipython:: python
 
-   tdi / np.timedelta64(1,'s')
+   tdi / np.timedelta64(1, 's')
    tdi.astype('timedelta64[s]')
 
 Scalars type ops work as well. These can potentially return a *different* type of index.
