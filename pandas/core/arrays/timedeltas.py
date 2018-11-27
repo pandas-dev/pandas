@@ -329,6 +329,7 @@ class TimedeltaArrayMixin(dtl.DatetimeLikeArrayMixin):
     __rfloordiv__ = _wrap_tdi_op(ops.rfloordiv)
 
     def __truediv__(self, other):
+        # timedelta / X is well-defined for timedelta-like or numeric X
         other = lib.item_from_zerodim(other)
 
         if isinstance(other, (ABCSeries, ABCDataFrame, ABCIndexClass)):
@@ -368,10 +369,6 @@ class TimedeltaArrayMixin(dtl.DatetimeLikeArrayMixin):
         elif is_object_dtype(other):
             result = [self[n] / other[n] for n in range(len(self))]
             result = np.array(result)
-
-            if all(isinstance(x, Timedelta) or x is NaT for x in result):
-                return type(self)(result)
-
             return result
 
         else:
@@ -379,6 +376,7 @@ class TimedeltaArrayMixin(dtl.DatetimeLikeArrayMixin):
             return type(self)(result)
 
     def __rtruediv__(self, other):
+        # X / timedelta is defined only for timedelta-like X
         other = lib.item_from_zerodim(other)
 
         if isinstance(other, (ABCSeries, ABCDataFrame, ABCIndexClass)):

@@ -1453,9 +1453,13 @@ class TestTimedeltaArraylikeMulDivOps(object):
         with pytest.raises(TypeError, match=pattern):
             vector / tdser
 
-        if not isinstance(vector, pd.Index):
+        if (not isinstance(vector, pd.Index) and
+                box_with_array is not pd.DataFrame):
             # Index.__rdiv__ won't try to operate elementwise, just raises
+            # DataFrame casts just-NaT object column to datetime64
             result = tdser / vector.astype(object)
+            expected = [tdser[n] / vector[n] for n in range(len(tdser))]
+            expected = tm.box_expected(expected, xbox)
             tm.assert_equal(result, expected)
 
         with pytest.raises(TypeError, match=pattern):
