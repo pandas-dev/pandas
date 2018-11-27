@@ -1222,6 +1222,7 @@ class SeriesGroupBy(GroupBy):
 
     def pct_change(self, periods=1, fill_method='pad', limit=None, freq=None):
         """Calcuate pct_change of each value to previous entry in group"""
+        # TODO: Remove this conditional when #23918 is fixed
         if freq:
             return self.apply(lambda x: x.pct_change(periods=periods,
                                                      fill_method=fill_method,
@@ -1230,9 +1231,6 @@ class SeriesGroupBy(GroupBy):
         fill_grp = filled.groupby(self.grouper.labels)
         shifted = fill_grp.shift(periods=periods, freq=freq)
 
-        # TODO: Remove this conditional when #23918 is fixed
-        if isinstance(shifted.index, MultiIndex):
-            shifted.reset_index(level=0, drop=True, inplace=True)
         return (filled / shifted) - 1
 
 
