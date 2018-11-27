@@ -54,7 +54,7 @@ from pandas.core.dtypes.common import (
     is_object_dtype,
     is_extension_type,
     is_extension_array_dtype,
-    is_datetimetz,
+    is_datetime64tz_dtype,
     is_datetime64_any_dtype,
     is_bool_dtype,
     is_integer_dtype,
@@ -285,7 +285,8 @@ ValueError: columns overlap but no suffix specified:
 
 
 class DataFrame(NDFrame):
-    """ Two-dimensional size-mutable, potentially heterogeneous tabular data
+    """
+    Two-dimensional size-mutable, potentially heterogeneous tabular data
     structure with labeled axes (rows and columns). Arithmetic operations
     align on both row and column labels. Can be thought of as a dict-like
     container for Series objects. The primary pandas data structure.
@@ -541,7 +542,8 @@ class DataFrame(NDFrame):
             index, columns = _get_axes(len(values), 1)
             return _arrays_to_mgr([values], columns, index, columns,
                                   dtype=dtype)
-        elif (is_datetimetz(values) or is_extension_array_dtype(values)):
+        elif (is_datetime64tz_dtype(values) or
+              is_extension_array_dtype(values)):
             # GH19157
             if columns is None:
                 columns = [0]
@@ -651,10 +653,11 @@ class DataFrame(NDFrame):
     def _repr_fits_horizontal_(self, ignore_width=False):
         """
         Check if full repr fits in horizontal boundaries imposed by the display
-        options width and max_columns. In case off non-interactive session, no
-        boundaries apply.
+        options width and max_columns.
 
-        ignore_width is here so ipnb+HTML output can behave the way
+        In case off non-interactive session, no boundaries apply.
+
+        `ignore_width` is here so ipnb+HTML output can behave the way
         users expect. display.max_columns remains in effect.
         GH3541, GH3573
         """
@@ -702,14 +705,16 @@ class DataFrame(NDFrame):
         return repr_width < width
 
     def _info_repr(self):
-        """True if the repr should show the info view."""
+        """
+        True if the repr should show the info view.
+        """
         info_repr_option = (get_option("display.large_repr") == "info")
         return info_repr_option and not (self._repr_fits_horizontal_() and
                                          self._repr_fits_vertical_())
 
     def __unicode__(self):
         """
-        Return a string representation for a particular DataFrame
+        Return a string representation for a particular DataFrame.
 
         Invoked by unicode(df) in py2 only. Yields a Unicode String in both
         py2/py3.
@@ -734,6 +739,7 @@ class DataFrame(NDFrame):
     def _repr_html_(self):
         """
         Return a html representation for a particular DataFrame.
+
         Mainly for IPython notebook.
         """
         # qtconsole doesn't report its line width, and also
@@ -974,12 +980,14 @@ class DataFrame(NDFrame):
     items = iteritems
 
     def __len__(self):
-        """Returns length of info axis, but here we use the index """
+        """
+        Returns length of info axis, but here we use the index.
+        """
         return len(self.index)
 
     def dot(self, other):
         """
-        Matrix multiplication with DataFrame or Series objects.  Can also be
+        Matrix multiplication with DataFrame or Series objects. Can also be
         called using `self @ other` in Python >= 3.5.
 
         Parameters
@@ -1024,11 +1032,15 @@ class DataFrame(NDFrame):
             raise TypeError('unsupported type: {oth}'.format(oth=type(other)))
 
     def __matmul__(self, other):
-        """ Matrix multiplication using binary `@` operator in Python>=3.5 """
+        """
+        Matrix multiplication using binary `@` operator in Python>=3.5.
+        """
         return self.dot(other)
 
     def __rmatmul__(self, other):
-        """ Matrix multiplication using binary `@` operator in Python>=3.5 """
+        """
+        Matrix multiplication using binary `@` operator in Python>=3.5.
+        """
         return self.T.dot(np.transpose(other)).T
 
     # ----------------------------------------------------------------------
@@ -1354,7 +1366,7 @@ class DataFrame(NDFrame):
     def from_records(cls, data, index=None, exclude=None, columns=None,
                      coerce_float=False, nrows=None):
         """
-        Convert structured or record ndarray to DataFrame
+        Convert structured or record ndarray to DataFrame.
 
         Parameters
         ----------
@@ -1579,7 +1591,8 @@ class DataFrame(NDFrame):
 
     @classmethod
     def from_items(cls, items, columns=None, orient='columns'):
-        """Construct a dataframe from a list of tuples
+        """
+        Construct a DataFrame from a list of tuples.
 
         .. deprecated:: 0.23.0
           `from_items` is deprecated and will be removed in a future version.
@@ -1673,7 +1686,8 @@ class DataFrame(NDFrame):
     def from_csv(cls, path, header=0, sep=',', index_col=0, parse_dates=True,
                  encoding=None, tupleize_cols=None,
                  infer_datetime_format=False):
-        """Read CSV file.
+        """
+        Read CSV file.
 
         .. deprecated:: 0.21.0
             Use :func:`pandas.read_csv` instead.
@@ -1953,7 +1967,7 @@ class DataFrame(NDFrame):
 
     def to_feather(self, fname):
         """
-        write out the binary feather-format for DataFrames
+        Write out the binary feather-format for DataFrames.
 
         .. versionadded:: 0.20.0
 
@@ -2610,7 +2624,8 @@ class DataFrame(NDFrame):
     # Getting and setting elements
 
     def get_value(self, index, col, takeable=False):
-        """Quickly retrieve single value at passed column and index
+        """
+        Quickly retrieve single value at passed column and index.
 
         .. deprecated:: 0.21.0
             Use .at[] or .iat[] accessors instead.
@@ -2653,7 +2668,8 @@ class DataFrame(NDFrame):
     _get_value.__doc__ = get_value.__doc__
 
     def set_value(self, index, col, value, takeable=False):
-        """Put single value at passed column and index
+        """
+        Put single value at passed column and index.
 
         .. deprecated:: 0.21.0
             Use .at[] or .iat[] accessors instead.
@@ -2698,18 +2714,17 @@ class DataFrame(NDFrame):
 
     def _ixs(self, i, axis=0):
         """
+        Parameters
+        ----------
         i : int, slice, or sequence of integers
         axis : int
-        """
 
+        Notes
+        -----
+        If slice passed, the resulting data will be a view.
+        """
         # irow
         if axis == 0:
-            """
-            Notes
-            -----
-            If slice passed, the resulting data will be a view
-            """
-
             if isinstance(i, slice):
                 return self[i]
             else:
@@ -2735,12 +2750,6 @@ class DataFrame(NDFrame):
 
         # icol
         else:
-            """
-            Notes
-            -----
-            If slice passed, the resulting data will be a view
-            """
-
             label = self.columns[i]
             if isinstance(i, slice):
                 # need to return view
@@ -2887,7 +2896,8 @@ class DataFrame(NDFrame):
         return self.where(key)
 
     def query(self, expr, inplace=False, **kwargs):
-        """Query the columns of a frame with a boolean expression.
+        """
+        Query the columns of a DataFrame with a boolean expression.
 
         Parameters
         ----------
@@ -3223,7 +3233,9 @@ class DataFrame(NDFrame):
             return self._box_col_values(values, items)
 
     def _box_col_values(self, values, items):
-        """ provide boxed values for a column """
+        """
+        Provide boxed values for a column.
+        """
         klass = self._constructor_sliced
         return klass(values, index=self.index, name=items, fastpath=True)
 
@@ -3289,8 +3301,8 @@ class DataFrame(NDFrame):
 
     def _ensure_valid_index(self, value):
         """
-        ensure that if we don't have an index, that we can create one from the
-        passed value
+        Ensure that if we don't have an index, that we can create one from the
+        passed value.
         """
         # GH5632, make sure that we are a Series convertible
         if not len(self.index) and is_list_like(value):
@@ -3552,7 +3564,9 @@ class DataFrame(NDFrame):
         return result
 
     def lookup(self, row_labels, col_labels):
-        """Label-based "fancy indexing" function for DataFrame.
+        """
+        Label-based "fancy indexing" function for DataFrame.
+
         Given equal-length arrays of row and column labels, return an
         array of the values corresponding to each (row, col) pair.
 
@@ -3639,7 +3653,9 @@ class DataFrame(NDFrame):
                                            allow_dups=False)
 
     def _reindex_multi(self, axes, copy, fill_value):
-        """ we are guaranteed non-Nones in the axes! """
+        """
+        We are guaranteed non-Nones in the axes.
+        """
 
         new_index, row_indexer = self.index.reindex(axes['index'])
         new_columns, col_indexer = self.columns.reindex(axes['columns'])
@@ -3819,7 +3835,8 @@ class DataFrame(NDFrame):
                                              ('inplace', False),
                                              ('level', None)])
     def rename(self, *args, **kwargs):
-        """Alter axes labels.
+        """
+        Alter axes labels.
 
         Function / dict values must be unique (1-to-1). Labels not contained in
         a dict / Series will be left as-is. Extra labels listed don't throw an
@@ -4392,7 +4409,7 @@ class DataFrame(NDFrame):
     def drop_duplicates(self, subset=None, keep='first', inplace=False):
         """
         Return DataFrame with duplicate rows removed, optionally only
-        considering certain columns
+        considering certain columns.
 
         Parameters
         ----------
@@ -4426,7 +4443,7 @@ class DataFrame(NDFrame):
     def duplicated(self, subset=None, keep='first'):
         """
         Return boolean Series denoting duplicate rows, optionally only
-        considering certain columns
+        considering certain columns.
 
         Parameters
         ----------
@@ -4803,7 +4820,7 @@ class DataFrame(NDFrame):
 
     def swaplevel(self, i=-2, j=-1, axis=0):
         """
-        Swap levels i and j in a MultiIndex on a particular axis
+        Swap levels i and j in a MultiIndex on a particular axis.
 
         Parameters
         ----------
@@ -4830,8 +4847,8 @@ class DataFrame(NDFrame):
 
     def reorder_levels(self, order, axis=0):
         """
-        Rearrange index levels using input order.
-        May not drop or duplicate levels
+        Rearrange index levels using input order. May not drop or
+        duplicate levels.
 
         Parameters
         ----------
@@ -5420,7 +5437,7 @@ class DataFrame(NDFrame):
     _shared_docs['pivot_table'] = """
         Create a spreadsheet-style pivot table as a DataFrame. The levels in
         the pivot table will be stored in MultiIndex objects (hierarchical
-        indexes) on the index and columns of the result DataFrame
+        indexes) on the index and columns of the result DataFrame.
 
         Parameters
         ----------%s
@@ -5722,9 +5739,11 @@ class DataFrame(NDFrame):
         """
         Pivot a level of the (necessarily hierarchical) index labels, returning
         a DataFrame having a new level of column labels whose inner-most level
-        consists of the pivoted index labels. If the index is not a MultiIndex,
-        the output will be a Series (the analogue of stack when the columns are
-        not a MultiIndex).
+        consists of the pivoted index labels.
+
+        If the index is not a MultiIndex, the output will be a Series
+        (the analogue of stack when the columns are not a MultiIndex).
+
         The level involved will automatically get sorted.
 
         Parameters
@@ -5780,7 +5799,7 @@ class DataFrame(NDFrame):
         return unstack(self, level, fill_value)
 
     _shared_docs['melt'] = ("""
-    "Unpivots" a DataFrame from wide format to long format, optionally
+    Unpivots a DataFrame from wide format to long format, optionally
     leaving identifier variables set.
 
     This function is useful to massage a DataFrame into a format where one
@@ -5986,8 +6005,7 @@ class DataFrame(NDFrame):
                  ):
         # type: (...) -> Union[Series, DataFrame]
         """
-        sub-classes to define
-        return a sliced object
+        Sub-classes to define. Return a sliced object.
 
         Parameters
         ----------
@@ -6738,7 +6756,7 @@ class DataFrame(NDFrame):
 
     def corr(self, method='pearson', min_periods=1):
         """
-        Compute pairwise correlation of columns, excluding NA/null values
+        Compute pairwise correlation of columns, excluding NA/null values.
 
         Parameters
         ----------
@@ -7333,7 +7351,9 @@ class DataFrame(NDFrame):
         return Series(result, index=self._get_agg_axis(axis))
 
     def _get_agg_axis(self, axis_num):
-        """ let's be explicit about this """
+        """
+        Let's be explicit about this.
+        """
         if axis_num == 0:
             return self.columns
         elif axis_num == 1:
@@ -7523,7 +7543,7 @@ class DataFrame(NDFrame):
 
     def to_timestamp(self, freq=None, how='start', axis=0, copy=True):
         """
-        Cast to DatetimeIndex of timestamps, at *beginning* of period
+        Cast to DatetimeIndex of timestamps, at *beginning* of period.
 
         Parameters
         ----------
@@ -7559,7 +7579,7 @@ class DataFrame(NDFrame):
     def to_period(self, freq=None, axis=0, copy=True):
         """
         Convert DataFrame from DatetimeIndex to PeriodIndex with desired
-        frequency (inferred from index if not passed)
+        frequency (inferred from index if not passed).
 
         Parameters
         ----------
@@ -7699,6 +7719,7 @@ ops.add_special_arithmetic_methods(DataFrame)
 def _arrays_to_mgr(arrays, arr_names, index, columns, dtype=None):
     """
     Segregate Series based on type and coerce into matrices.
+
     Needs to handle a lot of exceptional cases.
     """
     # figure out the index, if necessary
@@ -7807,7 +7828,7 @@ def _prep_ndarray(values, copy=True):
 
 def _to_arrays(data, columns, coerce_float=False, dtype=None):
     """
-    Return list of arrays, columns
+    Return list of arrays, columns.
     """
     if isinstance(data, DataFrame):
         if columns is not None:
@@ -7853,7 +7874,9 @@ def _to_arrays(data, columns, coerce_float=False, dtype=None):
 
 
 def _masked_rec_array_to_mgr(data, index, columns, dtype, copy):
-    """ extract from a masked rec array and create the manager """
+    """
+    Extract from a masked rec array and create the manager.
+    """
 
     # essentially process a record array then fill it
     fill_value = data.fill_value
