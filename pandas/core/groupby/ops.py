@@ -740,10 +740,6 @@ class BinGrouper(BaseGrouper):
                 ngroups)
 
     @cache_readonly
-    def ngroups(self):
-        return len(self.result_index)
-
-    @cache_readonly
     def result_index(self):
         if len(self.binlabels) != 0 and isna(self.binlabels[0]):
             return self.binlabels[1:]
