@@ -418,13 +418,13 @@ class ExtensionArray(object):
         return new_values
 
     def dropna(self):
-        """ Return ExtensionArray without NA values
+        """
+        Return ExtensionArray without NA values
 
         Returns
         -------
         valid : ExtensionArray
         """
-
         return self[~self.isna()]
 
     def shift(self, periods=1):
@@ -446,6 +446,15 @@ class ExtensionArray(object):
         Returns
         -------
         shifted : ExtensionArray
+
+        Notes
+        -----
+        If ``self`` is empty or ``periods`` is 0, a copy of ``self`` is
+        returned.
+
+        If ``periods`` > ``len(self)``, then an ExtensionArray of size
+        len(self) is returned, with all values filled with
+        ``self.dtype.na_value``.
         """
         # Note: this implementation assumes that `self.dtype.na_value` can be
         # stored in an instance of your ExtensionArray with `self.dtype`.
@@ -464,7 +473,8 @@ class ExtensionArray(object):
         return self._concat_same_type([a, b])
 
     def unique(self):
-        """Compute the ExtensionArray of unique values.
+        """
+        Compute the ExtensionArray of unique values.
 
         Returns
         -------
