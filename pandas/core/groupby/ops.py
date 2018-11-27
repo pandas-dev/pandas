@@ -769,11 +769,6 @@ class BinGrouper(BaseGrouper):
         grouper = reduction.SeriesBinGrouper(obj, func, self.bins, dummy)
         return grouper.get_result()
 
-    # ----------------------------------------------------------------------
-    # cython aggregation
-
-    _cython_functions = copy.deepcopy(BaseGrouper._cython_functions)
-
 
 def _get_axes(group):
     if isinstance(group, Series):
