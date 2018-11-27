@@ -875,37 +875,27 @@ class TestTypeInference(object):
         arr = np.array([np.nan, pd.NaT, np.datetime64('nat')])
         assert lib.is_datetime_array(arr)
         assert lib.is_datetime64_array(arr)
-        assert not lib.is_timedelta_array(arr)
-        assert not lib.is_timedelta64_array(arr)
         assert not lib.is_timedelta_or_timedelta64_array(arr)
 
         arr = np.array([np.nan, pd.NaT, np.timedelta64('nat')])
         assert not lib.is_datetime_array(arr)
         assert not lib.is_datetime64_array(arr)
-        assert lib.is_timedelta_array(arr)
-        assert lib.is_timedelta64_array(arr)
         assert lib.is_timedelta_or_timedelta64_array(arr)
 
         arr = np.array([np.nan, pd.NaT, np.datetime64('nat'),
                         np.timedelta64('nat')])
         assert not lib.is_datetime_array(arr)
         assert not lib.is_datetime64_array(arr)
-        assert not lib.is_timedelta_array(arr)
-        assert not lib.is_timedelta64_array(arr)
         assert not lib.is_timedelta_or_timedelta64_array(arr)
 
         arr = np.array([np.nan, pd.NaT])
         assert lib.is_datetime_array(arr)
         assert lib.is_datetime64_array(arr)
-        assert lib.is_timedelta_array(arr)
-        assert lib.is_timedelta64_array(arr)
         assert lib.is_timedelta_or_timedelta64_array(arr)
 
         arr = np.array([np.nan, np.nan], dtype=object)
         assert not lib.is_datetime_array(arr)
         assert not lib.is_datetime64_array(arr)
-        assert not lib.is_timedelta_array(arr)
-        assert not lib.is_timedelta64_array(arr)
         assert not lib.is_timedelta_or_timedelta64_array(arr)
 
         assert lib.is_datetime_with_singletz_array(
@@ -923,8 +913,6 @@ class TestTypeInference(object):
             'is_datetime_array',
             'is_datetime64_array',
             'is_bool_array',
-            'is_timedelta_array',
-            'is_timedelta64_array',
             'is_timedelta_or_timedelta64_array',
             'is_date_array',
             'is_time_array',

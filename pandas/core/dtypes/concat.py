@@ -8,7 +8,7 @@ from pandas._libs import tslib, tslibs
 
 from pandas.core.dtypes.common import (
     _NS_DTYPE, _TD_DTYPE, is_bool_dtype, is_categorical_dtype,
-    is_datetime64_dtype, is_datetimetz, is_dtype_equal,
+    is_datetime64_dtype, is_datetime64tz_dtype, is_dtype_equal,
     is_extension_array_dtype, is_interval_dtype, is_object_dtype,
     is_period_dtype, is_sparse, is_timedelta64_dtype)
 from pandas.core.dtypes.generic import (
@@ -39,7 +39,7 @@ def get_dtype_kinds(l):
             typ = 'sparse'
         elif isinstance(arr, ABCRangeIndex):
             typ = 'range'
-        elif is_datetimetz(arr):
+        elif is_datetime64tz_dtype(arr):
             # if to_concat contains different tz,
             # the result must be object dtype
             typ = str(arr.dtype)

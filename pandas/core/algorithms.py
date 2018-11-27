@@ -19,7 +19,7 @@ from pandas.core.dtypes.common import (
     ensure_float64, ensure_int64, ensure_object, ensure_platform_int,
     ensure_uint64, is_array_like, is_bool_dtype, is_categorical_dtype,
     is_complex_dtype, is_datetime64_any_dtype, is_datetime64tz_dtype,
-    is_datetimelike, is_datetimetz, is_extension_array_dtype, is_float_dtype,
+    is_datetimelike, is_extension_array_dtype, is_float_dtype,
     is_integer_dtype, is_interval_dtype, is_list_like, is_numeric_dtype,
     is_object_dtype, is_period_dtype, is_scalar, is_signed_integer_dtype,
     is_sparse, is_timedelta64_dtype, is_unsigned_integer_dtype,
@@ -1581,7 +1581,7 @@ def take_nd(arr, indexer, axis=0, out=None, fill_value=np.nan, mask_info=None,
     # dispatch to internal type takes
     if is_extension_array_dtype(arr):
         return arr.take(indexer, fill_value=fill_value, allow_fill=allow_fill)
-    elif is_datetimetz(arr):
+    elif is_datetime64tz_dtype(arr):
         return arr.take(indexer, fill_value=fill_value, allow_fill=allow_fill)
     elif is_interval_dtype(arr):
         return arr.take(indexer, fill_value=fill_value, allow_fill=allow_fill)
