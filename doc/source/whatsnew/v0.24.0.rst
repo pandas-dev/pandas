@@ -1334,7 +1334,6 @@ MultiIndex
 I/O
 ^^^
 
-- Bug in :meth:`DataFrame.to_dict` when the resulting dict contains non-Python scalars in the case of numeric data (:issue:`23753`)
 
 .. _whatsnew_0240.bug_fixes.nan_with_str_dtype:
 
@@ -1397,6 +1396,7 @@ Notice how we now instead output ``np.nan`` itself instead of a stringified form
 - Bug in :meth:`read_excel()` in which extraneous header names were extracted, even though none were specified (:issue:`11733`)
 - Bug in :meth:`read_excel()` in which ``index_col=None`` was not being respected and parsing index columns anyway (:issue:`20480`)
 - Bug in :meth:`read_excel()` in which ``usecols`` was not being validated for proper column names when passed in as a string (:issue:`20480`)
+- Bug in :meth:`DataFrame.to_dict` when the resulting dict contains non-Python scalars in the case of numeric data (:issue:`23753`)
 
 Plotting
 ^^^^^^^^

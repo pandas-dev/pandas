@@ -1117,6 +1117,7 @@ class DataFrame(NDFrame):
 
         return cls(data, index=index, columns=columns, dtype=dtype)
 
+
     def to_dict(self, orient='dict', into=dict):
         """
         Convert the DataFrame to a dictionary.
@@ -1184,10 +1185,10 @@ class DataFrame(NDFrame):
 
         >>> df.to_dict('split')
         {'index': ['row1', 'row2'], 'columns': ['col1', 'col2'],
-         'data': [[1.0, 0.5], [2.0, 0.75]]}
+         'data': [[1, 0.5], [2, 0.75]]}
 
         >>> df.to_dict('records')
-        [{'col1': 1.0, 'col2': 0.5}, {'col1': 2.0, 'col2': 0.75}]
+        [{'col1': 1, 'col2': 0.5}, {'col1': 2, 'col2': 0.75}]
 
         >>> df.to_dict('index')
         {'row1': {'col1': 1, 'col2': 0.5}, 'row2': {'col1': 2, 'col2': 0.75}}
@@ -1203,8 +1204,8 @@ class DataFrame(NDFrame):
 
         >>> dd = defaultdict(list)
         >>> df.to_dict('records', into=dd)
-        [defaultdict(<class 'list'>, {'col1': 1.0, 'col2': 0.5}),
-         defaultdict(<class 'list'>, {'col1': 2.0, 'col2': 0.75})]
+        [defaultdict(<class 'list'>, {'col1': 1, 'col2': 0.5}),
+         defaultdict(<class 'list'>, {'col1': 2, 'col2': 0.75})]
         """
         if not self.columns.is_unique:
             warnings.warn("DataFrame columns are not unique, some "

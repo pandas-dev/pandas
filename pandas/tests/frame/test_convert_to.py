@@ -281,12 +281,14 @@ class TestDataFrameConvertTo(TestData):
         # both converted to UTC, so they are equal
         tm.assert_numpy_array_equal(result, expected)
 
-    @pytest.mark.parametrize('orient,item_getter',
-                             [('dict', lambda d, col, idx: d[col][idx]),
-                              ('records', lambda d, col, idx: d[idx][col]),
-                              ('list', lambda d, col, idx: d[col][idx]),
-                              ('split', lambda d, col, idx: d['data'][idx][d['columns'].index(col)]),
-                              ('index', lambda d, col, idx: d[idx][col])
+    # orient - orient argument to to_dict function
+    # item_getter - function for extracting value from resulting dict using column name and index
+    @pytest.mark.parametrize('orient,item_getter', [
+        ('dict', lambda d, col, idx: d[col][idx]),
+        ('records', lambda d, col, idx: d[idx][col]),
+        ('list', lambda d, col, idx: d[col][idx]),
+        ('split', lambda d, col, idx: d['data'][idx][d['columns'].index(col)]),
+        ('index', lambda d, col, idx: d[idx][col])
     ])
     def test_to_dict_box_scalars(self, orient, item_getter):
         # 14216, 23753
