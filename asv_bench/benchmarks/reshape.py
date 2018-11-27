@@ -131,6 +131,14 @@ class PivotTable(object):
     def time_pivot_table(self):
         self.df.pivot_table(index='key1', columns=['key2', 'key3'])
 
+    def time_pivot_table_agg(self):
+        self.df.pivot_table(index='key1', columns=['key2', 'key3'],
+                            aggfunc=['sum', 'mean'])
+
+    def time_pivot_table_margins(self):
+        self.df.pivot_table(index='key1', columns=['key2', 'key3'],
+                            margins=True)
+
 
 class GetDummies(object):
     def setup(self):
