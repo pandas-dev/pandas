@@ -647,7 +647,7 @@ class TestDataFrameIndexing(TestData):
 
     def test_frame_setitem_timestamp(self):
         # GH#2155
-        columns = DatetimeIndex(start='1/1/2012', end='2/1/2012', freq=BDay())
+        columns = date_range(start='1/1/2012', end='2/1/2012', freq=BDay())
         index = lrange(10)
         data = DataFrame(columns=columns, index=index)
         t = datetime(2012, 11, 1)
