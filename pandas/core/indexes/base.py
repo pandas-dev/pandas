@@ -670,6 +670,15 @@ class Index(IndexOpsMixin, PandasObject):
         return self.copy(deep=True)
 
     # --------------------------------------------------------------------
+    # Engine/Identity Methods
+
+    @cache_readonly
+    def _engine(self):
+        # property, for now, slow to look up
+        return self._engine_type(lambda: self._ndarray_values, len(self))
+
+    def _cleanup(self):
+        self._engine.clear_mapping()
 
     def _update_inplace(self, result, **kwargs):
         # guard when called from IndexOpsMixin
@@ -792,8 +801,6 @@ class Index(IndexOpsMixin, PandasObject):
             msg = 'Cannot cast {name} to dtype {dtype}'
             raise TypeError(msg.format(name=type(self).__name__, dtype=dtype))
 
-    # --------------------------------------------------------------------
-
     @cache_readonly
     def dtype(self):
         """
@@ -807,6 +814,68 @@ class Index(IndexOpsMixin, PandasObject):
         Return the dtype str of the underlying data.
         """
         return str(self.dtype)
+
+    _index_shared_docs['take'] = """
+        Return a new %(klass)s of the values selected by the indices.
+
+        For internal compatibility with numpy arrays.
+
+        Parameters
+        ----------
+        indices : list
+            Indices to be taken
+        axis : int, optional
+            The axis over which to select values, always 0.
+        allow_fill : bool, default True
+        fill_value : bool, default None
+            If allow_fill=True and fill_value is not None, indices specified by
+            -1 is regarded as NA. If Index doesn't hold NA, raise ValueError
+
+        See Also
+        --------
+        numpy.ndarray.take
+        """
+
+    @Appender(_index_shared_docs['take'] % _index_doc_kwargs)
+    def take(self, indices, axis=0, allow_fill=True,
+             fill_value=None, **kwargs):
+        if kwargs:
+            nv.validate_take(tuple(), kwargs)
+        indices = ensure_platform_int(indices)
+        if self._can_hold_na:
+            taken = self._assert_take_fillable(self.values, indices,
+                                               allow_fill=allow_fill,
+                                               fill_value=fill_value,
+                                               na_value=self._na_value)
+        else:
+            if allow_fill and fill_value is not None:
+                msg = 'Unable to fill values because {0} cannot contain NA'
+                raise ValueError(msg.format(self.__class__.__name__))
+            taken = self.values.take(indices)
+        return self._shallow_copy(taken)
+
+    def _assert_take_fillable(self, values, indices, allow_fill=True,
+                              fill_value=None, na_value=np.nan):
+        """
+        Internal method to handle NA filling of take.
+        """
+        indices = ensure_platform_int(indices)
+
+        # only fill if we are passing a non-None fill_value
+        if allow_fill and fill_value is not None:
+            if (indices < -1).any():
+                msg = ('When allow_fill=True and fill_value is not None, '
+                       'all indices must be >= -1')
+                raise ValueError(msg)
+            taken = algos.take(values,
+                               indices,
+                               allow_fill=allow_fill,
+                               fill_value=na_value)
+        else:
+            taken = values.take(indices)
+        return taken
+
+    # --------------------------------------------------------------------
 
     @property
     def values(self):
@@ -1730,7 +1799,21 @@ class Index(IndexOpsMixin, PandasObject):
     def holds_integer(self):
         return self.inferred_type in ['integer', 'mixed-integer']
 
+    @cache_readonly
+    def inferred_type(self):
+        """
+        Return a string of the type inferred from the values.
+        """
+        return lib.infer_dtype(self)
+
+    @cache_readonly
+    def is_all_dates(self):
+        if self._data is None:
+            return False
+        return is_datetime_array(ensure_object(self.values))
+
     # --------------------------------------------------------------------
+    # Conversion Methods
 
     def to_flat_index(self):
         """
@@ -1839,6 +1922,45 @@ class Index(IndexOpsMixin, PandasObject):
         if index:
             result.index = self
         return result
+
+    # --------------------------------------------------------------------
+    # Pickle Methods
+
+    def __reduce__(self):
+        d = dict(data=self._data)
+        d.update(self._get_attributes_dict())
+        return _new_Index, (self.__class__, d), None
+
+    def __setstate__(self, state):
+        """
+        Necessary for making this object picklable.
+        """
+
+        if isinstance(state, dict):
+            self._data = state.pop('data')
+            for k, v in compat.iteritems(state):
+                setattr(self, k, v)
+
+        elif isinstance(state, tuple):
+
+            if len(state) == 2:
+                nd_state, own_state = state
+                data = np.empty(nd_state[1], dtype=nd_state[2])
+                np.ndarray.__setstate__(data, nd_state)
+                self.name = own_state[0]
+
+            else:  # pragma: no cover
+                data = np.empty(state)
+                np.ndarray.__setstate__(data, state)
+
+            self._data = data
+            self._reset_identity()
+        else:
+            raise Exception("invalid pickle state")
+
+    _unpickle_compat = __setstate__
+
+    # --------------------------------------------------------------------
 
     def _to_safe_for_reshape(self):
         """
@@ -2210,21 +2332,6 @@ class Index(IndexOpsMixin, PandasObject):
 
         return self[self.duplicated()].unique()
 
-    def _cleanup(self):
-        self._engine.clear_mapping()
-
-    @cache_readonly
-    def _engine(self):
-        # property, for now, slow to look up
-        return self._engine_type(lambda: self._ndarray_values, len(self))
-
-    @cache_readonly
-    def inferred_type(self):
-        """
-        Return a string of the type inferred from the values.
-        """
-        return lib.infer_dtype(self)
-
     def _is_memory_usage_qualified(self):
         """
         Return a boolean if we need a qualified .info display.
@@ -2233,46 +2340,6 @@ class Index(IndexOpsMixin, PandasObject):
 
     def is_type_compatible(self, kind):
         return kind == self.inferred_type
-
-    @cache_readonly
-    def is_all_dates(self):
-        if self._data is None:
-            return False
-        return is_datetime_array(ensure_object(self.values))
-
-    def __reduce__(self):
-        d = dict(data=self._data)
-        d.update(self._get_attributes_dict())
-        return _new_Index, (self.__class__, d), None
-
-    def __setstate__(self, state):
-        """
-        Necessary for making this object picklable.
-        """
-
-        if isinstance(state, dict):
-            self._data = state.pop('data')
-            for k, v in compat.iteritems(state):
-                setattr(self, k, v)
-
-        elif isinstance(state, tuple):
-
-            if len(state) == 2:
-                nd_state, own_state = state
-                data = np.empty(nd_state[1], dtype=nd_state[2])
-                np.ndarray.__setstate__(data, nd_state)
-                self.name = own_state[0]
-
-            else:  # pragma: no cover
-                data = np.empty(state)
-                np.ndarray.__setstate__(data, state)
-
-            self._data = data
-            self._reset_identity()
-        else:
-            raise Exception("invalid pickle state")
-
-    _unpickle_compat = __setstate__
 
     def __nonzero__(self):
         raise ValueError("The truth value of a {0} is ambiguous. "
@@ -2418,66 +2485,6 @@ class Index(IndexOpsMixin, PandasObject):
         """
         # must be overridden in specific classes
         return _concat._concat_index_asobject(to_concat, name)
-
-    _index_shared_docs['take'] = """
-        Return a new %(klass)s of the values selected by the indices.
-
-        For internal compatibility with numpy arrays.
-
-        Parameters
-        ----------
-        indices : list
-            Indices to be taken
-        axis : int, optional
-            The axis over which to select values, always 0.
-        allow_fill : bool, default True
-        fill_value : bool, default None
-            If allow_fill=True and fill_value is not None, indices specified by
-            -1 is regarded as NA. If Index doesn't hold NA, raise ValueError
-
-        See Also
-        --------
-        numpy.ndarray.take
-        """
-
-    @Appender(_index_shared_docs['take'] % _index_doc_kwargs)
-    def take(self, indices, axis=0, allow_fill=True,
-             fill_value=None, **kwargs):
-        if kwargs:
-            nv.validate_take(tuple(), kwargs)
-        indices = ensure_platform_int(indices)
-        if self._can_hold_na:
-            taken = self._assert_take_fillable(self.values, indices,
-                                               allow_fill=allow_fill,
-                                               fill_value=fill_value,
-                                               na_value=self._na_value)
-        else:
-            if allow_fill and fill_value is not None:
-                msg = 'Unable to fill values because {0} cannot contain NA'
-                raise ValueError(msg.format(self.__class__.__name__))
-            taken = self.values.take(indices)
-        return self._shallow_copy(taken)
-
-    def _assert_take_fillable(self, values, indices, allow_fill=True,
-                              fill_value=None, na_value=np.nan):
-        """
-        Internal method to handle NA filling of take.
-        """
-        indices = ensure_platform_int(indices)
-
-        # only fill if we are passing a non-None fill_value
-        if allow_fill and fill_value is not None:
-            if (indices < -1).any():
-                msg = ('When allow_fill=True and fill_value is not None, '
-                       'all indices must be >= -1')
-                raise ValueError(msg)
-            taken = algos.take(values,
-                               indices,
-                               allow_fill=allow_fill,
-                               fill_value=na_value)
-        else:
-            taken = values.take(indices)
-        return taken
 
     @cache_readonly
     def _isnan(self):
@@ -2952,6 +2959,9 @@ class Index(IndexOpsMixin, PandasObject):
     def __xor__(self, other):
         return self.symmetric_difference(other)
 
+    # --------------------------------------------------------------------
+    # Set Operation Methods
+
     def _get_reconciled_name_object(self, other):
         """
         If the result of a set operation will be self,
@@ -3240,6 +3250,8 @@ class Index(IndexOpsMixin, PandasObject):
         if 'freq' in attribs:
             attribs['freq'] = None
         return self._shallow_copy_with_infer(the_diff, **attribs)
+
+    # --------------------------------------------------------------------
 
     def _get_unique_index(self, dropna=False):
         """
@@ -3923,6 +3935,9 @@ class Index(IndexOpsMixin, PandasObject):
         new_index = self._shallow_copy_with_infer(new_labels, freq=None)
         return new_index, indexer, new_indexer
 
+    # --------------------------------------------------------------------
+    # Join Methods
+
     _index_shared_docs['join'] = """
         Compute join_index and indexers to conform data
         structures to the new index.
@@ -4314,6 +4329,8 @@ class Index(IndexOpsMixin, PandasObject):
     def _wrap_joined_index(self, joined, other):
         name = get_op_result_name(self, other)
         return Index(joined, name=name)
+
+    # --------------------------------------------------------------------
 
     def _get_string_slice(self, key, use_lhs=True, use_rhs=True):
         # this is for partial string indexing,
