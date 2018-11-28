@@ -826,8 +826,9 @@ class SeriesGroupBy(GroupBy):
         for name, func in arg:
             obj = self
             if name in results:
-                raise SpecificationError('Function names must be unique, '
-                                         'found multiple named %s' % name)
+                raise SpecificationError(
+                    'Function names must be unique, found multiple named '
+                    '{}'.format(name))
 
             # reset the cache so that we
             # only include the named selection
@@ -1027,8 +1028,7 @@ class SeriesGroupBy(GroupBy):
         try:
             sorter = np.lexsort((val, ids))
         except TypeError:  # catches object dtypes
-            msg = ('val.dtype must be object, got {dtype}'
-                   .format(dtype=val.dtype))
+            msg = 'val.dtype must be object, got {}'.format(val.dtype)
             assert val.dtype == object, msg
             val, _ = algorithms.factorize(val, sort=False)
             sorter = np.lexsort((val, ids))
