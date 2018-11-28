@@ -8,7 +8,7 @@ from pandas._libs import tslib, tslibs
 
 from pandas.core.dtypes.common import (
     _NS_DTYPE, _TD_DTYPE, is_bool_dtype, is_categorical_dtype,
-    is_datetime64_dtype, is_datetimetz, is_dtype_equal,
+    is_datetime64_dtype, is_datetime64tz_dtype, is_dtype_equal,
     is_extension_array_dtype, is_interval_dtype, is_object_dtype,
     is_period_dtype, is_sparse, is_timedelta64_dtype)
 from pandas.core.dtypes.generic import (
@@ -39,7 +39,7 @@ def get_dtype_kinds(l):
             typ = 'sparse'
         elif isinstance(arr, ABCRangeIndex):
             typ = 'range'
-        elif is_datetimetz(arr):
+        elif is_datetime64tz_dtype(arr):
             # if to_concat contains different tz,
             # the result must be object dtype
             typ = str(arr.dtype)
@@ -99,27 +99,6 @@ def _get_frame_result_type(result, objs):
     else:
         return next(obj for obj in objs if not isinstance(obj,
                                                           ABCSparseDataFrame))
-
-
-def _get_sliced_frame_result_type(data, obj):
-    """
-    return appropriate class of Series. When data is sparse
-    it will return a SparseSeries, otherwise it will return
-    the Series.
-
-    Parameters
-    ----------
-    data : array-like
-    obj : DataFrame
-
-    Returns
-    -------
-    Series or SparseSeries
-    """
-    if is_sparse(data):
-        from pandas.core.sparse.api import SparseSeries
-        return SparseSeries
-    return obj._constructor_sliced
 
 
 def _concat_compat(to_concat, axis=0):
@@ -252,7 +231,7 @@ def union_categoricals(to_union, sort_categories=False, ignore_order=False):
     sort_categories : boolean, default False
         If true, resulting categories will be lexsorted, otherwise
         they will be ordered as they appear in the data.
-    ignore_order: boolean, default False
+    ignore_order : boolean, default False
         If true, the ordered attribute of the Categoricals will be ignored.
         Results in an unordered categorical.
 
@@ -497,13 +476,7 @@ def _concat_datetimetz(to_concat, name=None):
     all inputs must be DatetimeIndex
     it is used in DatetimeIndex.append also
     """
-    # do not pass tz to set because tzlocal cannot be hashed
-    if len({str(x.dtype) for x in to_concat}) != 1:
-        raise ValueError('to_concat must have the same tz')
-    tz = to_concat[0].tz
-    # no need to localize because internal repr will not be changed
-    new_values = np.concatenate([x.asi8 for x in to_concat])
-    return to_concat[0]._simple_new(new_values, tz=tz, name=name)
+    return to_concat[0]._concat_same_dtype(to_concat, name=name)
 
 
 def _concat_index_same_dtype(indexes, klass=None):

@@ -4,9 +4,9 @@ Template for functions of IndexEngine subclasses.
 WARNING: DO NOT edit .pxi FILE directly, .pxi is generated from .pxi.in
 """
 
-#----------------------------------------------------------------------
+# ----------------------------------------------------------------------
 # IndexEngine Subclass Methods
-#----------------------------------------------------------------------
+# ----------------------------------------------------------------------
 
 {{py:
 
@@ -50,6 +50,8 @@ cdef class {{name}}Engine(IndexEngine):
         if util.is_bool_object(val):
             raise KeyError(val)
         elif util.is_float_object(val):
+            raise KeyError(val)
+        elif not util.is_integer_object(val):
             raise KeyError(val)
     {{endif}}
 

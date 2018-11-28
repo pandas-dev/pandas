@@ -49,12 +49,6 @@ class Numeric(Base):
         result = a - fidx
         tm.assert_index_equal(result, expected)
 
-    def test_ufunc_compat(self):
-        idx = self._holder(np.arange(5, dtype='int64'))
-        result = np.sin(idx)
-        expected = Float64Index(np.sin(np.arange(5, dtype='int64')))
-        tm.assert_index_equal(result, expected)
-
     def test_index_groupby(self):
         int_idx = Index(range(6))
         float_idx = Index(np.arange(0, 0.6, 0.1))
@@ -232,7 +226,7 @@ class TestFloat64Index(Numeric):
     def test_type_coercion_fail(self, any_int_dtype):
         # see gh-15832
         msg = "Trying to coerce float values to integers"
-        with tm.assert_raises_regex(ValueError, msg):
+        with pytest.raises(ValueError, match=msg):
             Index([1, 2, 3.5], dtype=any_int_dtype)
 
     def test_type_coercion_valid(self, float_dtype):
@@ -288,7 +282,7 @@ class TestFloat64Index(Numeric):
         pytest.raises(KeyError, idx.get_loc, True)
         pytest.raises(KeyError, idx.get_loc, False)
 
-        with tm.assert_raises_regex(ValueError, 'must be numeric'):
+        with pytest.raises(ValueError, match='must be numeric'):
             idx.get_loc(1.4, method='nearest', tolerance='foo')
 
         with pytest.raises(ValueError, match='must contain numeric elements'):
@@ -393,9 +387,9 @@ class TestFloat64Index(Numeric):
 
         msg = ('When allow_fill=True and fill_value is not None, '
                'all indices must be >= -1')
-        with tm.assert_raises_regex(ValueError, msg):
+        with pytest.raises(ValueError, match=msg):
             idx.take(np.array([1, 0, -2]), fill_value=True)
-        with tm.assert_raises_regex(ValueError, msg):
+        with pytest.raises(ValueError, match=msg):
             idx.take(np.array([1, 0, -5]), fill_value=True)
 
         with pytest.raises(IndexError):
@@ -404,9 +398,7 @@ class TestFloat64Index(Numeric):
 
 class NumericInt(Numeric):
 
-    def test_view(self, indices):
-        super(NumericInt, self).test_view(indices)
-
+    def test_view(self):
         i = self._holder([], name='Foo')
         i_view = i.view()
         assert i_view.name == 'Foo'
@@ -488,11 +480,10 @@ class NumericInt(Numeric):
         exp_ridx = np.array([2, 3, 2, 3, 0, 1, 0, 1], dtype=np.intp)
         tm.assert_numpy_array_equal(ridx, exp_ridx)
 
-    def test_join_self(self):
-        kinds = 'outer', 'inner', 'left', 'right'
-        for kind in kinds:
-            joined = self.index.join(self.index, how=kind)
-            assert self.index is joined
+    @pytest.mark.parametrize('kind', ['outer', 'inner', 'left', 'right'])
+    def test_join_self(self, kind):
+        joined = self.index.join(self.index, how=kind)
+        assert self.index is joined
 
     def test_union_noncomparable(self):
         from datetime import datetime, timedelta
@@ -540,7 +531,7 @@ class NumericInt(Numeric):
                "{name} cannot contain NA").format(name=name)
 
         # fill_value=True
-        with tm.assert_raises_regex(ValueError, msg):
+        with pytest.raises(ValueError, match=msg):
             idx.take(np.array([1, 0, -1]), fill_value=True)
 
         # allow_fill=False
@@ -549,9 +540,9 @@ class NumericInt(Numeric):
         expected = self._holder([2, 1, 3], name='xxx')
         tm.assert_index_equal(result, expected)
 
-        with tm.assert_raises_regex(ValueError, msg):
+        with pytest.raises(ValueError, match=msg):
             idx.take(np.array([1, 0, -2]), fill_value=True)
-        with tm.assert_raises_regex(ValueError, msg):
+        with pytest.raises(ValueError, match=msg):
             idx.take(np.array([1, 0, -5]), fill_value=True)
 
         with pytest.raises(IndexError):
@@ -613,11 +604,11 @@ class TestInt64Index(NumericInt):
 
         # preventing casting
         arr = np.array([1, '2', 3, '4'], dtype=object)
-        with tm.assert_raises_regex(TypeError, 'casting'):
+        with pytest.raises(TypeError, match='casting'):
             Int64Index(arr)
 
         arr_with_floats = [0, 2, 3, 4, 5, 1.25, 3, -1]
-        with tm.assert_raises_regex(TypeError, 'casting'):
+        with pytest.raises(TypeError, match='casting'):
             Int64Index(arr_with_floats)
 
     def test_constructor_coercion_signed_to_unsigned(self, uint_dtype):
@@ -625,7 +616,7 @@ class TestInt64Index(NumericInt):
         # see gh-15832
         msg = "Trying to coerce negative values to unsigned integers"
 
-        with tm.assert_raises_regex(OverflowError, msg):
+        with pytest.raises(OverflowError, match=msg):
             Index([-1], dtype=uint_dtype)
 
     def test_coerce_list(self):

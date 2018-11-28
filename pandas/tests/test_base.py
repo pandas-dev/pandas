@@ -10,7 +10,7 @@ import numpy as np
 import pandas as pd
 import pandas.compat as compat
 from pandas.core.dtypes.common import (
-    is_object_dtype, is_datetimetz, is_datetime64_dtype,
+    is_object_dtype, is_datetime64_dtype, is_datetime64tz_dtype,
     needs_i8_conversion)
 import pandas.util.testing as tm
 from pandas import (Series, Index, DatetimeIndex, TimedeltaIndex,
@@ -47,9 +47,9 @@ class CheckImmutable(object):
     mutable_regex = re.compile('does not support mutable operations')
 
     def check_mutable_error(self, *args, **kwargs):
-        # Pass whatever function you normally would to assert_raises_regex
+        # Pass whatever function you normally would to pytest.raises
         # (after the Exception kind).
-        tm.assert_raises_regex(
+        pytest.raises(
             TypeError, self.mutable_regex, *args, **kwargs)
 
     def test_no_mutable_funcs(self):
@@ -178,19 +178,20 @@ class Ops(object):
         self.unicode_index = tm.makeUnicodeIndex(10, name='a')
 
         arr = np.random.randn(10)
+        self.bool_series = Series(arr, index=self.bool_index, name='a')
         self.int_series = Series(arr, index=self.int_index, name='a')
         self.float_series = Series(arr, index=self.float_index, name='a')
         self.dt_series = Series(arr, index=self.dt_index, name='a')
         self.dt_tz_series = self.dt_tz_index.to_series(keep_tz=True)
         self.period_series = Series(arr, index=self.period_index, name='a')
         self.string_series = Series(arr, index=self.string_index, name='a')
+        self.unicode_series = Series(arr, index=self.unicode_index, name='a')
 
         types = ['bool', 'int', 'float', 'dt', 'dt_tz', 'period', 'string',
                  'unicode']
-        fmts = ["{0}_{1}".format(t, f)
-                for t in types for f in ['index', 'series']]
-        self.objs = [getattr(self, f)
-                     for f in fmts if getattr(self, f, None) is not None]
+        self.indexes = [getattr(self, '{}_index'.format(t)) for t in types]
+        self.series = [getattr(self, '{}_series'.format(t)) for t in types]
+        self.objs = self.indexes + self.series
 
     def check_ops_properties(self, props, filter=None, ignore_failures=False):
         for op in props:
@@ -291,12 +292,11 @@ class TestIndexOps(Ops):
                 assert not result.iat[0]
                 assert not result.iat[1]
 
-                # this fails for numpy < 1.9
-                # and oddly for *some* platforms
-                # result = None != o  # noqa
-                # assert result.iat[0]
-                # assert result.iat[1]
-                if (is_datetime64_dtype(o) or is_datetimetz(o)):
+                result = None != o  # noqa
+                assert result.iat[0]
+                assert result.iat[1]
+
+                if (is_datetime64_dtype(o) or is_datetime64tz_dtype(o)):
                     # Following DatetimeIndex (and Timestamp) convention,
                     # inequality comparisons with Series[datetime64] raise
                     with pytest.raises(TypeError):
@@ -446,7 +446,7 @@ class TestIndexOps(Ops):
             if isinstance(o, Index):
                 assert isinstance(result, o.__class__)
                 tm.assert_index_equal(result, orig)
-            elif is_datetimetz(o):
+            elif is_datetime64tz_dtype(o):
                 # datetimetz Series returns array of Timestamp
                 assert result[0] == orig[0]
                 for r in result:
@@ -470,7 +470,7 @@ class TestIndexOps(Ops):
                     continue
 
                 # special assign to the numpy array
-                if is_datetimetz(o):
+                if is_datetime64tz_dtype(o):
                     if isinstance(o, DatetimeIndex):
                         v = o.asi8
                         v[0:2] = iNaT
@@ -499,7 +499,7 @@ class TestIndexOps(Ops):
                     o = klass(values.repeat(range(1, len(o) + 1)))
                     o.name = 'a'
                 else:
-                    if is_datetimetz(o):
+                    if is_datetime64tz_dtype(o):
                         expected_index = orig._values._shallow_copy(values)
                     else:
                         expected_index = Index(values)
@@ -538,7 +538,7 @@ class TestIndexOps(Ops):
                 if isinstance(o, Index):
                     tm.assert_index_equal(result,
                                           Index(values[1:], name='a'))
-                elif is_datetimetz(o):
+                elif is_datetime64tz_dtype(o):
                     # unable to compare NaT / nan
                     vals = values[2:].astype(object).values
                     tm.assert_numpy_array_equal(result[1:], vals)
@@ -847,9 +847,9 @@ class TestIndexOps(Ops):
                 result = idx.drop_duplicates(keep=False)
                 tm.assert_index_equal(result, idx[~expected])
 
-                with tm.assert_raises_regex(
-                        TypeError, r"drop_duplicates\(\) got an unexpected "
-                        "keyword argument"):
+                with pytest.raises(TypeError,
+                                   match=(r"drop_duplicates\(\) got an "
+                                          r"unexpected keyword argument")):
                     idx.drop_duplicates(inplace=True)
 
             else:
@@ -997,6 +997,31 @@ class TestIndexOps(Ops):
             with pytest.raises(ValueError):
                 self.int_series.drop_duplicates(inplace=value)
 
+    def test_getitem(self):
+        for i in self.indexes:
+            s = pd.Series(i)
+
+            assert i[0] == s.iloc[0]
+            assert i[5] == s.iloc[5]
+            assert i[-1] == s.iloc[-1]
+
+            assert i[-1] == i[9]
+
+            pytest.raises(IndexError, i.__getitem__, 20)
+            pytest.raises(IndexError, s.iloc.__getitem__, 20)
+
+    @pytest.mark.parametrize('indexer_klass', [list, pd.Index])
+    @pytest.mark.parametrize('indexer', [[True] * 10, [False] * 10,
+                                         [True, False, True, True, False,
+                                          False, True, True, False, True]])
+    def test_bool_indexing(self, indexer_klass, indexer):
+        # GH 22533
+        for idx in self.indexes:
+            exp_idx = [i for i in range(len(indexer)) if indexer[i]]
+            tm.assert_index_equal(idx[indexer_klass(indexer)], idx[exp_idx])
+            s = pd.Series(idx)
+            tm.assert_series_equal(s[indexer_klass(indexer)], s.iloc[exp_idx])
+
 
 class TestTranspose(Ops):
     errmsg = "the 'axes' parameter is not supported"
@@ -1010,10 +1035,10 @@ class TestTranspose(Ops):
 
     def test_transpose_non_default_axes(self):
         for obj in self.objs:
-            tm.assert_raises_regex(ValueError, self.errmsg,
-                                   obj.transpose, 1)
-            tm.assert_raises_regex(ValueError, self.errmsg,
-                                   obj.transpose, axes=1)
+            with pytest.raises(ValueError, match=self.errmsg):
+                obj.transpose(1)
+            with pytest.raises(ValueError, match=self.errmsg):
+                obj.transpose(axes=1)
 
     def test_numpy_transpose(self):
         for obj in self.objs:
@@ -1022,8 +1047,8 @@ class TestTranspose(Ops):
             else:
                 tm.assert_series_equal(np.transpose(obj), obj)
 
-            tm.assert_raises_regex(ValueError, self.errmsg,
-                                   np.transpose, obj, axes=1)
+            with pytest.raises(ValueError, match=self.errmsg):
+                np.transpose(obj, axes=1)
 
 
 class TestNoNewAttributesMixin(object):

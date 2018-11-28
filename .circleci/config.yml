@@ -1,10 +1,6 @@
 version: 2
 jobs:
-
-  # --------------------------------------------------------------------------
-  # 1. py36_locale
-  # --------------------------------------------------------------------------
-  py36_locale:
+  build:
     docker:
       - image: continuumio/miniconda:latest
       # databases configuration
@@ -21,7 +17,7 @@ jobs:
 
     environment:
       JOB: "3.6_LOCALE"
-      ENV_FILE: "ci/circle-36-locale.yaml"
+      ENV_FILE: "ci/deps/circle-36-locale.yaml"
       LOCALE_OVERRIDE: "zh_CN.UTF-8"
       MINICONDA_DIR: /home/ubuntu/miniconda3
     steps:
@@ -30,13 +26,13 @@ jobs:
           name: build
           command: |
             ./ci/circle/install_circle.sh
-            ./ci/circle/show_circle.sh
+            export PATH="$MINICONDA_DIR/bin:$PATH"
+            source activate pandas-dev
+            python -c "import pandas; pandas.show_versions();"
       - run:
           name: test
-          command: ./ci/circle/run_circle.sh  --skip-slow --skip-network
-
-workflows:
-  version: 2
-  build_and_test:
-    jobs:
-      - py36_locale
+          command: |
+            export PATH="$MINICONDA_DIR/bin:$PATH"
+            source activate pandas-dev
+            echo "pytest --strict --durations=10 --color=no --junitxml=$CIRCLE_TEST_REPORTS/reports/junit.xml --skip-slow --skip-network pandas"
+            pytest       --strict --durations=10 --color=no --junitxml=$CIRCLE_TEST_REPORTS/reports/junit.xml --skip-slow --skip-network pandas

@@ -1,31 +1,30 @@
+from operator import le, lt
 import textwrap
+
 import numpy as np
 
-from operator import le, lt
-
-from pandas._libs.interval import (Interval, IntervalMixin,
-                                   intervals_to_interval_bounds)
+from pandas._libs.interval import (
+    Interval, IntervalMixin, intervals_to_interval_bounds)
 from pandas.compat import add_metaclass
 from pandas.compat.numpy import function as nv
-import pandas.core.common as com
-from pandas.core.config import get_option
-from pandas.core.dtypes.cast import maybe_convert_platform
-from pandas.core.dtypes.common import (is_categorical_dtype, is_float_dtype,
-                                       is_integer_dtype, is_interval_dtype,
-                                       is_scalar, is_string_dtype,
-                                       is_datetime64_any_dtype,
-                                       is_timedelta64_dtype, is_interval,
-                                       pandas_dtype)
-from pandas.core.dtypes.dtypes import IntervalDtype
-from pandas.core.dtypes.generic import (ABCDatetimeIndex, ABCPeriodIndex,
-                                        ABCSeries, ABCIntervalIndex,
-                                        ABCInterval)
-from pandas.core.dtypes.missing import isna, notna
-from pandas.core.indexes.base import Index, ensure_index
 from pandas.util._decorators import Appender
 from pandas.util._doctools import _WritableDoc
 
-from . import ExtensionArray, Categorical
+from pandas.core.dtypes.cast import maybe_convert_platform
+from pandas.core.dtypes.common import (
+    is_categorical_dtype, is_datetime64_any_dtype, is_float_dtype,
+    is_integer_dtype, is_interval, is_interval_dtype, is_scalar,
+    is_string_dtype, is_timedelta64_dtype, pandas_dtype)
+from pandas.core.dtypes.dtypes import IntervalDtype
+from pandas.core.dtypes.generic import (
+    ABCDatetimeIndex, ABCInterval, ABCIntervalIndex, ABCPeriodIndex, ABCSeries)
+from pandas.core.dtypes.missing import isna, notna
+
+import pandas.core.common as com
+from pandas.core.config import get_option
+from pandas.core.indexes.base import Index, ensure_index
+
+from . import Categorical, ExtensionArray
 
 _VALID_CLOSED = {'left', 'right', 'both', 'neither'}
 _interval_shared_docs = {}
@@ -94,11 +93,11 @@ for more.
 
 See Also
 --------
-Index : The base pandas Index type
-Interval : A bounded slice-like interval; the elements of an %(klass)s
-interval_range : Function to create a fixed frequency IntervalIndex
-cut : Bin values into discrete Intervals
-qcut : Bin values into equal-sized Intervals based on rank or sample quantiles
+Index : The base pandas Index type.
+Interval : A bounded slice-like interval; the elements of an %(klass)s.
+interval_range : Function to create a fixed frequency IntervalIndex.
+cut : Bin values into discrete Intervals.
+qcut : Bin values into equal-sized Intervals based on rank or sample quantiles.
 """
 
 
@@ -244,9 +243,9 @@ class IntervalArray(IntervalMixin, ExtensionArray):
 
     See Also
     --------
-    interval_range : Function to create a fixed frequency IntervalIndex
-    %(klass)s.from_arrays : Construct from a left and right array
-    %(klass)s.from_tuples : Construct from a sequence of tuples
+    interval_range : Function to create a fixed frequency IntervalIndex.
+    %(klass)s.from_arrays : Construct from a left and right array.
+    %(klass)s.from_tuples : Construct from a sequence of tuples.
     """
 
     @classmethod
@@ -354,13 +353,13 @@ class IntervalArray(IntervalMixin, ExtensionArray):
 
     See Also
     --------
-    interval_range : Function to create a fixed frequency IntervalIndex
+    interval_range : Function to create a fixed frequency IntervalIndex.
     %(klass)s.from_arrays : Construct an %(klass)s from a left and
-                                right array
+                                right array.
     %(klass)s.from_breaks : Construct an %(klass)s from an array of
-                                splits
+                                splits.
     %(klass)s.from_tuples : Construct an %(klass)s from an
-                                array-like of tuples
+                                array-like of tuples.
     """
 
     _interval_shared_docs['from_tuples'] = """
@@ -389,11 +388,11 @@ class IntervalArray(IntervalMixin, ExtensionArray):
 
     See Also
     --------
-    interval_range : Function to create a fixed frequency IntervalIndex
+    interval_range : Function to create a fixed frequency IntervalIndex.
     %(klass)s.from_arrays : Construct an %(klass)s from a left and
-                                right array
+                                right array.
     %(klass)s.from_breaks : Construct an %(klass)s from an array of
-                                splits
+                                splits.
     """
 
     @classmethod
@@ -1027,9 +1026,9 @@ class IntervalArray(IntervalMixin, ExtensionArray):
 
         See Also
         --------
-        Index.repeat : Equivalent function for Index
-        Series.repeat : Equivalent function for Series
-        numpy.repeat : Underlying implementation
+        Index.repeat : Equivalent function for Index.
+        Series.repeat : Equivalent function for Series.
+        numpy.repeat : Underlying implementation.
         """
         left_repeat = self.left.repeat(repeats, **kwargs)
         right_repeat = self.right.repeat(repeats, **kwargs)

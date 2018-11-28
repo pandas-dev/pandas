@@ -26,7 +26,7 @@ from pandas.util.testing import (
     assert_series_equal)
 
 
-class TestSeriesAnalytics():
+class TestSeriesAnalytics(object):
 
     @pytest.mark.parametrize("use_bottleneck", [True, False])
     @pytest.mark.parametrize("method, unit", [
@@ -338,7 +338,7 @@ class TestSeriesAnalytics():
     def test_describe_with_tz(self, tz_naive_fixture):
         # GH 21332
         tz = tz_naive_fixture
-        name = tz_naive_fixture
+        name = str(tz_naive_fixture)
         start = Timestamp(2018, 1, 1)
         end = Timestamp(2018, 1, 5)
         s = Series(date_range(start, end, tz=tz), name=name)
@@ -561,8 +561,8 @@ class TestSeriesAnalytics():
 
             # Unimplemented numeric_only parameter.
             if 'numeric_only' in compat.signature(f).args:
-                tm.assert_raises_regex(NotImplementedError, name, f,
-                                       string_series_, numeric_only=True)
+                with pytest.raises(NotImplementedError, match=name):
+                    f(string_series_, numeric_only=True)
 
     def _check_accum_op(self, name, datetime_series_, check_dtype=True):
         func = getattr(np, name)
@@ -601,12 +601,12 @@ class TestSeriesAnalytics():
 
         with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
             msg = "the 'axis' parameter is not supported"
-            tm.assert_raises_regex(ValueError, msg, np.compress,
-                                   cond, s, axis=1)
+            with pytest.raises(ValueError, match=msg):
+                np.compress(cond, s, axis=1)
 
             msg = "the 'out' parameter is not supported"
-            tm.assert_raises_regex(ValueError, msg, np.compress,
-                                   cond, s, out=s)
+            with pytest.raises(ValueError, match=msg):
+                np.compress(cond, s, out=s)
 
     def test_round(self, datetime_series):
         datetime_series.index.name = "index_name"
@@ -624,7 +624,7 @@ class TestSeriesAnalytics():
         assert_series_equal(out, expected)
 
         msg = "the 'out' parameter is not supported"
-        with tm.assert_raises_regex(ValueError, msg):
+        with pytest.raises(ValueError, match=msg):
             np.round(s, decimals=0, out=s)
 
     def test_built_in_round(self):
@@ -680,42 +680,6 @@ class TestSeriesAnalytics():
         # bool_only is not implemented alone.
         pytest.raises(NotImplementedError, s.any, bool_only=True)
         pytest.raises(NotImplementedError, s.all, bool_only=True)
-
-    def test_modulo(self):
-        with np.errstate(all='ignore'):
-
-            # GH3590, modulo as ints
-            p = DataFrame({'first': [3, 4, 5, 8], 'second': [0, 0, 0, 3]})
-            result = p['first'] % p['second']
-            expected = Series(p['first'].values % p['second'].values,
-                              dtype='float64')
-            expected.iloc[0:3] = np.nan
-            assert_series_equal(result, expected)
-
-            result = p['first'] % 0
-            expected = Series(np.nan, index=p.index, name='first')
-            assert_series_equal(result, expected)
-
-            p = p.astype('float64')
-            result = p['first'] % p['second']
-            expected = Series(p['first'].values % p['second'].values)
-            assert_series_equal(result, expected)
-
-            p = p.astype('float64')
-            result = p['first'] % p['second']
-            result2 = p['second'] % p['first']
-            assert not result.equals(result2)
-
-            # GH 9144
-            s = Series([0, 1])
-
-            result = s % 0
-            expected = Series([nan, nan])
-            assert_series_equal(result, expected)
-
-            result = 0 % s
-            expected = Series([nan, 0.0])
-            assert_series_equal(result, expected)
 
     @td.skip_if_no_scipy
     def test_corr(self, datetime_series):
@@ -789,7 +753,7 @@ class TestSeriesAnalytics():
         s2 = pd.Series(np.random.randn(10))
         msg = ("method must be either 'pearson', 'spearman', "
                "or 'kendall'")
-        with tm.assert_raises_regex(ValueError, msg):
+        with pytest.raises(ValueError, match=msg):
             s1.corr(s2, method="____")
 
     def test_corr_callable_method(self, datetime_series):
@@ -1051,12 +1015,6 @@ class TestSeriesAnalytics():
 
     def test_cummethods_bool(self):
         # GH 6270
-        # looks like a buggy np.maximum.accumulate for numpy 1.6.1, py 3.2
-        def cummin(x):
-            return np.minimum.accumulate(x)
-
-        def cummax(x):
-            return np.maximum.accumulate(x)
 
         a = pd.Series([False, False, False, True, True, False, False])
         b = ~a
@@ -1064,8 +1022,8 @@ class TestSeriesAnalytics():
         d = ~c
         methods = {'cumsum': np.cumsum,
                    'cumprod': np.cumprod,
-                   'cummin': cummin,
-                   'cummax': cummax}
+                   'cummin': np.minimum.accumulate,
+                   'cummax': np.maximum.accumulate}
         args = product((a, b, c, d), methods)
         for s, method in args:
             expected = Series(methods[method](s.values))
@@ -1254,8 +1212,8 @@ class TestSeriesAnalytics():
         with tm.assert_produces_warning(FutureWarning,
                                         check_stacklevel=False):
             msg = "the 'out' parameter is not supported"
-            tm.assert_raises_regex(ValueError, msg, np.argmin,
-                                   s, out=data)
+            with pytest.raises(ValueError, match=msg):
+                np.argmin(s, out=data)
 
     def test_idxmax(self, string_series):
         # test idxmax
@@ -1322,8 +1280,8 @@ class TestSeriesAnalytics():
         with tm.assert_produces_warning(FutureWarning,
                                         check_stacklevel=False):
             msg = "the 'out' parameter is not supported"
-            tm.assert_raises_regex(ValueError, msg, np.argmax,
-                                   s, out=data)
+            with pytest.raises(ValueError, match=msg):
+                np.argmax(s, out=data)
 
     def test_ptp(self):
         # GH21614
@@ -1392,7 +1350,8 @@ class TestSeriesAnalytics():
         assert_series_equal(np.repeat(s, 2), expected)
 
         msg = "the 'axis' parameter is not supported"
-        tm.assert_raises_regex(ValueError, msg, np.repeat, s, 2, axis=0)
+        with pytest.raises(ValueError, match=msg):
+            np.repeat(s, 2, axis=0)
 
     def test_searchsorted(self):
         s = Series([1, 2, 3])
@@ -1929,7 +1888,7 @@ class TestNLargestNSmallest(object):
         args = 2, len(r), 0, -1
         methods = r.nlargest, r.nsmallest
         for method, arg in product(methods, args):
-            with tm.assert_raises_regex(TypeError, msg):
+            with pytest.raises(TypeError, match=msg):
                 method(arg)
 
     def test_nsmallest_nlargest(self, s_main_dtypes_split):
@@ -1959,9 +1918,9 @@ class TestNLargestNSmallest(object):
         assert_series_equal(s.nsmallest(), s.iloc[[2, 3, 0, 4]])
 
         msg = 'keep must be either "first", "last"'
-        with tm.assert_raises_regex(ValueError, msg):
+        with pytest.raises(ValueError, match=msg):
             s.nsmallest(keep='invalid')
-        with tm.assert_raises_regex(ValueError, msg):
+        with pytest.raises(ValueError, match=msg):
             s.nlargest(keep='invalid')
 
         # GH 15297

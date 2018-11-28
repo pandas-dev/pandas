@@ -407,12 +407,12 @@ def crosstab(index, columns, values=None, rownames=None, colnames=None,
     values : array-like, optional
         Array of values to aggregate according to the factors.
         Requires `aggfunc` be specified.
-    aggfunc : function, optional
-        If specified, requires `values` be specified as well
     rownames : sequence, default None
         If passed, must match number of row arrays passed
     colnames : sequence, default None
         If passed, must match number of column arrays passed
+    aggfunc : function, optional
+        If specified, requires `values` be specified as well
     margins : boolean, default False
         Add row/column margins (subtotals)
     margins_name : string, default 'All'
@@ -432,7 +432,6 @@ def crosstab(index, columns, values=None, rownames=None, colnames=None,
         - If margins is `True`, will also normalize margin values.
 
         .. versionadded:: 0.18.1
-
 
     Notes
     -----

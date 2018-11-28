@@ -63,10 +63,8 @@ class TestRangeIndex(Numeric):
         self.check_binop(ops, scalars, idxs)
 
     def test_too_many_names(self):
-        def testit():
+        with pytest.raises(ValueError, match="^Length"):
             self.index.names = ["roger", "harold"]
-
-        tm.assert_raises_regex(ValueError, "^Length", testit)
 
     def test_constructor(self):
         index = RangeIndex(5)
@@ -91,7 +89,7 @@ class TestRangeIndex(Numeric):
         tm.assert_index_equal(Index(expected), index)
 
         msg = "RangeIndex\\(\\.\\.\\.\\) must be called with integers"
-        with tm.assert_raises_regex(TypeError, msg):
+        with pytest.raises(TypeError, match=msg):
             RangeIndex()
 
         for index in [RangeIndex(0), RangeIndex(start=0), RangeIndex(stop=0),
@@ -103,7 +101,7 @@ class TestRangeIndex(Numeric):
             assert index._step == 1
             tm.assert_index_equal(Index(expected), index)
 
-        with tm.assert_raises_regex(TypeError, msg):
+        with pytest.raises(TypeError, match=msg):
             RangeIndex(name='Foo')
 
         for index in [RangeIndex(0, name='Foo'),
@@ -338,9 +336,7 @@ class TestRangeIndex(Numeric):
             # either depending on numpy version
             result = idx.delete(len(idx))
 
-    def test_view(self, indices):
-        super(TestRangeIndex, self).test_view(indices)
-
+    def test_view(self):
         i = RangeIndex(0, name='Foo')
         i_view = i.view()
         assert i_view.name == 'Foo'
@@ -765,7 +761,7 @@ class TestRangeIndex(Numeric):
 
         # fill_value
         msg = "Unable to fill values because RangeIndex cannot contain NA"
-        with tm.assert_raises_regex(ValueError, msg):
+        with pytest.raises(ValueError, match=msg):
             idx.take(np.array([1, 0, -1]), fill_value=True)
 
         # allow_fill=False
@@ -775,9 +771,9 @@ class TestRangeIndex(Numeric):
         tm.assert_index_equal(result, expected)
 
         msg = "Unable to fill values because RangeIndex cannot contain NA"
-        with tm.assert_raises_regex(ValueError, msg):
+        with pytest.raises(ValueError, match=msg):
             idx.take(np.array([1, 0, -2]), fill_value=True)
-        with tm.assert_raises_regex(ValueError, msg):
+        with pytest.raises(ValueError, match=msg):
             idx.take(np.array([1, 0, -5]), fill_value=True)
 
         with pytest.raises(IndexError):
