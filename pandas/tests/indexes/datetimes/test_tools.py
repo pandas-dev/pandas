@@ -947,6 +947,9 @@ class TestToDatetimeMisc(object):
         with pytest.raises(OutOfBoundsDatetime):
             to_datetime(arr)
 
+        with pytest.raises(OutOfBoundsDatetime):
+            to_datetime(arr, format="%Y-%m-%d %H:%M:%S.%f")
+
     @pytest.mark.parametrize('cache', [True, False])
     def test_to_datetime_iso8601(self, cache):
         result = to_datetime(["2012-01-01 00:00:00"], cache=cache)
