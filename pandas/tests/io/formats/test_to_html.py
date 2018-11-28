@@ -504,30 +504,30 @@ class TestToHTML(object):
              ' target="_blank">')
         close_tag = not render_links and '</td>' or '</a></td>'
 
-        expected = dedent("""\
-        <table border="1" class="dataframe">
-          <thead>
-            <tr style="text-align: right;">
-              <th></th>
-              <th>foo</th>
-              <th>bar</th>
-              <th>None</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr>
-              <th>0</th>
-              <td>0</td>
-              {open_tag}http://pandas.pydata.org/?q1=a&amp;q2=b{close_tag}
-              <td>pydata.org</td>
-            </tr>
-            <tr>
-              <th>1</th>
-              <td>0</td>
-              <td>www.pydata.org</td>
-              <td>pydata.org</td>
-            </tr>
-          </tbody>
-        </table>""").format(open_tag=open_tag, close_tag=close_tag)
+        expected = """\
+<table border="1" class="dataframe">
+  <thead>
+    <tr style="text-align: right;">
+      <th></th>
+      <th>foo</th>
+      <th>bar</th>
+      <th>None</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <th>0</th>
+      <td>0</td>
+      {open_tag}http://pandas.pydata.org/?q1=a&amp;q2=b{close_tag}
+      <td>pydata.org</td>
+    </tr>
+    <tr>
+      <th>1</th>
+      <td>0</td>
+      <td>www.pydata.org</td>
+      <td>pydata.org</td>
+    </tr>
+  </tbody>
+</table>""".format(open_tag=open_tag, close_tag=close_tag)
 
         assert result == expected
