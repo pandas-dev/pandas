@@ -229,6 +229,30 @@ array, but rather an ``ExtensionArray``:
 This is the same behavior as ``Series.values`` for categorical data. See
 :ref:`whatsnew_0240.api_breaking.interval_values` for more.
 
+
+.. _whatsnew_0240.enhancements.styler_pipe:
+
+New ``Styler.pipe()`` method
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+The :class:`~pandas.io.formats.style.Styler` class has gained a
+:meth:`~pandas.io.formats.style.Styler.pipe` method (:issue:`23229`).  This provides a
+convenient way to apply users' predefined styling functions, and can help reduce
+"boilerplate" when using DataFrame styling functionality repeatedly within a notebook.
+
+.. ipython:: python
+
+    df = pandas.DataFrame({'N': [1250, 1500, 1750], 'X': [0.25, 0.35, 0.50]})
+
+    def format_and_align(styler):
+        return (styler.format({'N': '{:,}', 'X': '{:.1%}'})
+                      .set_properties(**{'text-align': 'right'}))
+
+    df.style.pipe(format_and_align).set_caption('Summary of results.')
+
+Similar methods already exist for other classes in pandas, including :meth:`DataFrame.pipe`,
+:meth:`Groupby.pipe`, and :meth:`Resampler.pipe`.
+
+
 .. _whatsnew_0240.enhancements.join_with_two_multiindexes:
 
 Joining with two multi-indexes
@@ -270,6 +294,7 @@ For earlier versions this can be done using the following.
    pd.merge(left.reset_index(), right.reset_index(),
             on=['key'], how='inner').set_index(['key', 'X', 'Y'])
 
+
 .. _whatsnew_0240.enhancements.rename_axis:
 
 Renaming names in a MultiIndex
@@ -292,6 +317,7 @@ Example:
     df.rename_axis(index={'CD': 'New'})
 
 See the :ref:`advanced docs on renaming<advanced.index_names>` for more details.
+
 
 .. _whatsnew_0240.enhancements.other:
 
@@ -1093,6 +1119,8 @@ Deprecations
 - The ``keep_tz=False`` option (the default) of the ``keep_tz`` keyword of
   :meth:`DatetimeIndex.to_series` is deprecated (:issue:`17832`).
 - Timezone converting a tz-aware ``datetime.datetime`` or :class:`Timestamp` with :class:`Timestamp` and the ``tz`` argument is now deprecated. Instead, use :meth:`Timestamp.tz_convert` (:issue:`23579`)
+- :func:`pandas.types.is_period` is deprecated in favor of `pandas.types.is_period_dtype` (:issue:`23917`)
+- :func:`pandas.types.is_datetimetz` is deprecated in favor of `pandas.types.is_datetime64tz` (:issue:`23917`)
 
 .. _whatsnew_0240.deprecations.datetimelike_int_ops:
 
@@ -1420,6 +1448,7 @@ Current Behavior:
 
 Notice how we now instead output ``np.nan`` itself instead of a stringified form of it.
 
+- Bug in :func:`read_csv` in which a column specified with ``CategoricalDtype`` of boolean categories was not being correctly coerced from string values to booleans (:issue:`20498`)
 - Bug in :meth:`to_sql` when writing timezone aware data (``datetime64[ns, tz]`` dtype) would raise a ``TypeError`` (:issue:`9086`)
 - Bug in :meth:`to_sql` where a naive DatetimeIndex would be written as ``TIMESTAMP WITH TIMEZONE`` type in supported databases, e.g. PostgreSQL (:issue:`23510`)
 - Bug in :meth:`read_excel()` when ``parse_cols`` is specified with an empty dataset (:issue:`9208`)
@@ -1512,6 +1541,7 @@ Sparse
 - Bug in unary inversion operator (``~``) on a ``SparseSeries`` with boolean values. The performance of this has also been improved (:issue:`22835`)
 - Bug in :meth:`SparseArary.unique` not returning the unique values (:issue:`19595`)
 - Bug in :meth:`SparseArray.nonzero` and :meth:`SparseDataFrame.dropna` returning shifted/incorrect results (:issue:`21172`)
+- Bug in :meth:`DataFrame.apply` where dtypes would lose sparseness (:issue:`23744`)
 
 Build Changes
 ^^^^^^^^^^^^^
@@ -1538,4 +1568,3 @@ Contributors
 ~~~~~~~~~~~~
 
 .. contributors:: v0.23.4..HEAD
-

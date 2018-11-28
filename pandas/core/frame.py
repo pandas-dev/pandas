@@ -54,7 +54,7 @@ from pandas.core.dtypes.common import (
     is_object_dtype,
     is_extension_type,
     is_extension_array_dtype,
-    is_datetimetz,
+    is_datetime64tz_dtype,
     is_datetime64_any_dtype,
     is_bool_dtype,
     is_integer_dtype,
@@ -542,7 +542,8 @@ class DataFrame(NDFrame):
             index, columns = _get_axes(len(values), 1)
             return _arrays_to_mgr([values], columns, index, columns,
                                   dtype=dtype)
-        elif (is_datetimetz(values) or is_extension_array_dtype(values)):
+        elif (is_datetime64tz_dtype(values) or
+              is_extension_array_dtype(values)):
             # GH19157
             if columns is None:
                 columns = [0]
@@ -4014,10 +4015,6 @@ class DataFrame(NDFrame):
         DataFrame.reset_index : Opposite of set_index.
         DataFrame.reindex : Change to new indices or expand indices.
         DataFrame.reindex_like : Change to same indices as other DataFrame.
-
-        Returns
-        -------
-        DataFrame
 
         Examples
         --------
