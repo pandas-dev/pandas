@@ -25,7 +25,6 @@ from pandas.core.indexes.numeric import Int64Index
 
 
 class RangeIndex(Int64Index):
-
     """
     Immutable Index implementing a monotonic integer range.
 
@@ -288,11 +287,11 @@ class RangeIndex(Int64Index):
 
         return self._start + self._step * no_steps
 
-    def min(self):
+    def min(self, skipna=True, axis=None):
         """The minimum value of the RangeIndex"""
         return self._minmax('min')
 
-    def max(self):
+    def max(self, skipna=True, axis=None):
         """The maximum value of the RangeIndex"""
         return self._minmax('max')
 
