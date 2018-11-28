@@ -1117,7 +1117,6 @@ class DataFrame(NDFrame):
 
         return cls(data, index=index, columns=columns, dtype=dtype)
 
-
     def to_dict(self, orient='dict', into=dict):
         """
         Convert the DataFrame to a dictionary.

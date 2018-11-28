@@ -282,7 +282,8 @@ class TestDataFrameConvertTo(TestData):
         tm.assert_numpy_array_equal(result, expected)
 
     # orient - orient argument to to_dict function
-    # item_getter - function for extracting value from resulting dict using column name and index
+    # item_getter - function for extracting value from
+    # the resulting dict using column name and index
     @pytest.mark.parametrize('orient,item_getter', [
         ('dict', lambda d, col, idx: d[col][idx]),
         ('records', lambda d, col, idx: d[idx][col]),
