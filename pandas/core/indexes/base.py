@@ -526,6 +526,87 @@ class Index(IndexOpsMixin, PandasObject):
         return type(self)
 
     # --------------------------------------------------------------------
+    # Construction helpers
+
+    @classmethod
+    def _try_convert_to_int_index(cls, data, copy, name, dtype):
+        """
+        Attempt to convert an array of data into an integer index.
+
+        Parameters
+        ----------
+        data : The data to convert.
+        copy : Whether to copy the data or not.
+        name : The name of the index returned.
+
+        Returns
+        -------
+        int_index : data converted to either an Int64Index or a
+                    UInt64Index
+
+        Raises
+        ------
+        ValueError if the conversion was not successful.
+        """
+
+        from .numeric import Int64Index, UInt64Index
+        if not is_unsigned_integer_dtype(dtype):
+            # skip int64 conversion attempt if uint-like dtype is passed, as
+            # this could return Int64Index when UInt64Index is what's desrired
+            try:
+                res = data.astype('i8', copy=False)
+                if (res == data).all():
+                    return Int64Index(res, copy=copy, name=name)
+            except (OverflowError, TypeError, ValueError):
+                pass
+
+        # Conversion to int64 failed (possibly due to overflow) or was skipped,
+        # so let's try now with uint64.
+        try:
+            res = data.astype('u8', copy=False)
+            if (res == data).all():
+                return UInt64Index(res, copy=copy, name=name)
+        except (OverflowError, TypeError, ValueError):
+            pass
+
+        raise ValueError
+
+    @classmethod
+    def _scalar_data_error(cls, data):
+        raise TypeError('{0}(...) must be called with a collection of some '
+                        'kind, {1} was passed'.format(cls.__name__,
+                                                      repr(data)))
+
+    @classmethod
+    def _string_data_error(cls, data):
+        raise TypeError('String dtype not supported, you may need '
+                        'to explicitly cast to a numeric type')
+
+    @classmethod
+    def _coerce_to_ndarray(cls, data):
+        """
+        Coerces data to ndarray.
+
+        Converts other iterables to list first and then to array.
+        Does not touch ndarrays.
+
+        Raises
+        ------
+        TypeError
+            When the data passed in is a scalar.
+        """
+
+        if not isinstance(data, (np.ndarray, Index)):
+            if data is None or is_scalar(data):
+                cls._scalar_data_error(data)
+
+            # other iterable of some kind
+            if not isinstance(data, (ABCSeries, list, tuple)):
+                data = list(data)
+            data = np.asarray(data)
+        return data
+
+    # --------------------------------------------------------------------
     # Copying Methods
 
     def _get_attributes_dict(self):
@@ -670,6 +751,55 @@ class Index(IndexOpsMixin, PandasObject):
         return self.copy(deep=True)
 
     # --------------------------------------------------------------------
+    # PandasObject/IndexOpsMixin Compat
+
+    @property
+    def values(self):
+        """
+        Return the underlying data as an ndarray.
+        """
+        return self._data.view(np.ndarray)
+
+    @property
+    def _values(self):
+        # type: () -> Union[ExtensionArray, Index, np.ndarray]
+        # TODO(EA): remove index types as they become extension arrays
+        """
+        The best array representation.
+
+        This is an ndarray, ExtensionArray, or Index subclass. This differs
+        from ``_ndarray_values``, which always returns an ndarray.
+
+        Both ``_values`` and ``_ndarray_values`` are consistent between
+        ``Series`` and ``Index``.
+
+        It may differ from the public '.values' method.
+
+        index             | values          | _values       | _ndarray_values |
+        ----------------- | --------------- | ------------- | --------------- |
+        Index             | ndarray         | ndarray       | ndarray         |
+        CategoricalIndex  | Categorical     | Categorical   | ndarray[int]    |
+        DatetimeIndex     | ndarray[M8ns]   | ndarray[M8ns] | ndarray[M8ns]   |
+        DatetimeIndex[tz] | ndarray[M8ns]   | DTI[tz]       | ndarray[M8ns]   |
+        PeriodIndex       | ndarray[object] | PeriodArray   | ndarray[int]    |
+        IntervalIndex     | IntervalArray   | IntervalArray | ndarray[object] |
+
+        See Also
+        --------
+        values
+        _ndarray_values
+        """
+        return self.values
+
+    @Appender(IndexOpsMixin.memory_usage.__doc__)
+    def memory_usage(self, deep=False):
+        result = super(Index, self).memory_usage(deep=deep)
+
+        # include our engine hashtable
+        result += self._engine.sizeof(deep=deep)
+        return result
+
+    # --------------------------------------------------------------------
     # Engine/Identity Methods
 
     @cache_readonly
@@ -679,10 +809,6 @@ class Index(IndexOpsMixin, PandasObject):
 
     def _cleanup(self):
         self._engine.clear_mapping()
-
-    def _update_inplace(self, result, **kwargs):
-        # guard when called from IndexOpsMixin
-        raise TypeError("Index can't be updated inplace")
 
     def is_(self, other):
         """
@@ -877,44 +1003,6 @@ class Index(IndexOpsMixin, PandasObject):
 
     # --------------------------------------------------------------------
 
-    @property
-    def values(self):
-        """
-        Return the underlying data as an ndarray.
-        """
-        return self._data.view(np.ndarray)
-
-    @property
-    def _values(self):
-        # type: () -> Union[ExtensionArray, Index, np.ndarray]
-        # TODO(EA): remove index types as they become extension arrays
-        """
-        The best array representation.
-
-        This is an ndarray, ExtensionArray, or Index subclass. This differs
-        from ``_ndarray_values``, which always returns an ndarray.
-
-        Both ``_values`` and ``_ndarray_values`` are consistent between
-        ``Series`` and ``Index``.
-
-        It may differ from the public '.values' method.
-
-        index             | values          | _values       | _ndarray_values |
-        ----------------- | --------------- | ------------- | --------------- |
-        Index             | ndarray         | ndarray       | ndarray         |
-        CategoricalIndex  | Categorical     | Categorical   | ndarray[int]    |
-        DatetimeIndex     | ndarray[M8ns]   | ndarray[M8ns] | ndarray[M8ns]   |
-        DatetimeIndex[tz] | ndarray[M8ns]   | DTI[tz]       | ndarray[M8ns]   |
-        PeriodIndex       | ndarray[object] | PeriodArray   | ndarray[int]    |
-        IntervalIndex     | IntervalArray   | IntervalArray | ndarray[object] |
-
-        See Also
-        --------
-        values
-        _ndarray_values
-        """
-        return self.values
-
     def get_values(self):
         """
         Return `Index` data as an `numpy.ndarray`.
@@ -959,13 +1047,9 @@ class Index(IndexOpsMixin, PandasObject):
         """
         return self.values
 
-    @Appender(IndexOpsMixin.memory_usage.__doc__)
-    def memory_usage(self, deep=False):
-        result = super(Index, self).memory_usage(deep=deep)
-
-        # include our engine hashtable
-        result += self._engine.sizeof(deep=deep)
-        return result
+    def _update_inplace(self, result, **kwargs):
+        # guard when called from IndexOpsMixin
+        raise TypeError("Index can't be updated inplace")
 
     # ops compat
     def repeat(self, repeats, *args, **kwargs):
@@ -1041,85 +1125,6 @@ class Index(IndexOpsMixin, PandasObject):
             dtype = None
 
         return self._shallow_copy_with_infer(values, dtype=dtype)
-
-    # construction helpers
-    @classmethod
-    def _try_convert_to_int_index(cls, data, copy, name, dtype):
-        """
-        Attempt to convert an array of data into an integer index.
-
-        Parameters
-        ----------
-        data : The data to convert.
-        copy : Whether to copy the data or not.
-        name : The name of the index returned.
-
-        Returns
-        -------
-        int_index : data converted to either an Int64Index or a
-                    UInt64Index
-
-        Raises
-        ------
-        ValueError if the conversion was not successful.
-        """
-
-        from .numeric import Int64Index, UInt64Index
-        if not is_unsigned_integer_dtype(dtype):
-            # skip int64 conversion attempt if uint-like dtype is passed, as
-            # this could return Int64Index when UInt64Index is what's desrired
-            try:
-                res = data.astype('i8', copy=False)
-                if (res == data).all():
-                    return Int64Index(res, copy=copy, name=name)
-            except (OverflowError, TypeError, ValueError):
-                pass
-
-        # Conversion to int64 failed (possibly due to overflow) or was skipped,
-        # so let's try now with uint64.
-        try:
-            res = data.astype('u8', copy=False)
-            if (res == data).all():
-                return UInt64Index(res, copy=copy, name=name)
-        except (OverflowError, TypeError, ValueError):
-            pass
-
-        raise ValueError
-
-    @classmethod
-    def _scalar_data_error(cls, data):
-        raise TypeError('{0}(...) must be called with a collection of some '
-                        'kind, {1} was passed'.format(cls.__name__,
-                                                      repr(data)))
-
-    @classmethod
-    def _string_data_error(cls, data):
-        raise TypeError('String dtype not supported, you may need '
-                        'to explicitly cast to a numeric type')
-
-    @classmethod
-    def _coerce_to_ndarray(cls, data):
-        """
-        Coerces data to ndarray.
-
-        Converts other iterables to list first and then to array.
-        Does not touch ndarrays.
-
-        Raises
-        ------
-        TypeError
-            When the data passed in is a scalar.
-        """
-
-        if not isinstance(data, (np.ndarray, Index)):
-            if data is None or is_scalar(data):
-                cls._scalar_data_error(data)
-
-            # other iterable of some kind
-            if not isinstance(data, (ABCSeries, list, tuple)):
-                data = list(data)
-            data = np.asarray(data)
-        return data
 
     def _coerce_scalar_to_index(self, item):
         """
@@ -1961,6 +1966,199 @@ class Index(IndexOpsMixin, PandasObject):
     _unpickle_compat = __setstate__
 
     # --------------------------------------------------------------------
+    # Null-Handling Methods
+    _na_value = np.nan
+    """The expected NA value to use with this index."""
+
+    @cache_readonly
+    def _isnan(self):
+        """
+        Return if each value is NaN.
+        """
+        if self._can_hold_na:
+            return isna(self)
+        else:
+            # shouldn't reach to this condition by checking hasnans beforehand
+            values = np.empty(len(self), dtype=np.bool_)
+            values.fill(False)
+            return values
+
+    @cache_readonly
+    def _nan_idxs(self):
+        if self._can_hold_na:
+            w, = self._isnan.nonzero()
+            return w
+        else:
+            return np.array([], dtype=np.int64)
+
+    @cache_readonly
+    def hasnans(self):
+        """
+        Return if I have any nans; enables various perf speedups.
+        """
+        if self._can_hold_na:
+            return bool(self._isnan.any())
+        else:
+            return False
+
+    def isna(self):
+        """
+        Detect missing values.
+
+        Return a boolean same-sized object indicating if the values are NA.
+        NA values, such as ``None``, :attr:`numpy.NaN` or :attr:`pd.NaT`, get
+        mapped to ``True`` values.
+        Everything else get mapped to ``False`` values. Characters such as
+        empty strings `''` or :attr:`numpy.inf` are not considered NA values
+        (unless you set ``pandas.options.mode.use_inf_as_na = True``).
+
+        .. versionadded:: 0.20.0
+
+        Returns
+        -------
+        numpy.ndarray
+            A boolean array of whether my values are NA
+
+        See Also
+        --------
+        pandas.Index.notna : Boolean inverse of isna.
+        pandas.Index.dropna : Omit entries with missing values.
+        pandas.isna : Top-level isna.
+        Series.isna : Detect missing values in Series object.
+
+        Examples
+        --------
+        Show which entries in a pandas.Index are NA. The result is an
+        array.
+
+        >>> idx = pd.Index([5.2, 6.0, np.NaN])
+        >>> idx
+        Float64Index([5.2, 6.0, nan], dtype='float64')
+        >>> idx.isna()
+        array([False, False,  True], dtype=bool)
+
+        Empty strings are not considered NA values. None is considered an NA
+        value.
+
+        >>> idx = pd.Index(['black', '', 'red', None])
+        >>> idx
+        Index(['black', '', 'red', None], dtype='object')
+        >>> idx.isna()
+        array([False, False, False,  True], dtype=bool)
+
+        For datetimes, `NaT` (Not a Time) is considered as an NA value.
+
+        >>> idx = pd.DatetimeIndex([pd.Timestamp('1940-04-25'),
+        ...                         pd.Timestamp(''), None, pd.NaT])
+        >>> idx
+        DatetimeIndex(['1940-04-25', 'NaT', 'NaT', 'NaT'],
+                      dtype='datetime64[ns]', freq=None)
+        >>> idx.isna()
+        array([False,  True,  True,  True], dtype=bool)
+        """
+        return self._isnan
+    isnull = isna
+
+    def notna(self):
+        """
+        Detect existing (non-missing) values.
+
+        Return a boolean same-sized object indicating if the values are not NA.
+        Non-missing values get mapped to ``True``. Characters such as empty
+        strings ``''`` or :attr:`numpy.inf` are not considered NA values
+        (unless you set ``pandas.options.mode.use_inf_as_na = True``).
+        NA values, such as None or :attr:`numpy.NaN`, get mapped to ``False``
+        values.
+
+        .. versionadded:: 0.20.0
+
+        Returns
+        -------
+        numpy.ndarray
+            Boolean array to indicate which entries are not NA.
+
+        See Also
+        --------
+        Index.notnull : Alias of notna.
+        Index.isna: Inverse of notna.
+        pandas.notna : Top-level notna.
+
+        Examples
+        --------
+        Show which entries in an Index are not NA. The result is an
+        array.
+
+        >>> idx = pd.Index([5.2, 6.0, np.NaN])
+        >>> idx
+        Float64Index([5.2, 6.0, nan], dtype='float64')
+        >>> idx.notna()
+        array([ True,  True, False])
+
+        Empty strings are not considered NA values. None is considered a NA
+        value.
+
+        >>> idx = pd.Index(['black', '', 'red', None])
+        >>> idx
+        Index(['black', '', 'red', None], dtype='object')
+        >>> idx.notna()
+        array([ True,  True,  True, False])
+        """
+        return ~self.isna()
+    notnull = notna
+
+    _index_shared_docs['fillna'] = """
+        Fill NA/NaN values with the specified value
+
+        Parameters
+        ----------
+        value : scalar
+            Scalar value to use to fill holes (e.g. 0).
+            This value cannot be a list-likes.
+        downcast : dict, default is None
+            a dict of item->dtype of what to downcast if possible,
+            or the string 'infer' which will try to downcast to an appropriate
+            equal type (e.g. float64 to int64 if possible)
+
+        Returns
+        -------
+        filled : %(klass)s
+        """
+
+    @Appender(_index_shared_docs['fillna'])
+    def fillna(self, value=None, downcast=None):
+        self._assert_can_do_op(value)
+        if self.hasnans:
+            result = self.putmask(self._isnan, value)
+            if downcast is None:
+                # no need to care metadata other than name
+                # because it can't have freq if
+                return Index(result, name=self.name)
+        return self._shallow_copy()
+
+    _index_shared_docs['dropna'] = """
+        Return Index without NA/NaN values
+
+        Parameters
+        ----------
+        how :  {'any', 'all'}, default 'any'
+            If the Index is a MultiIndex, drop the value when any or all levels
+            are NaN.
+
+        Returns
+        -------
+        valid : Index
+        """
+
+    @Appender(_index_shared_docs['dropna'])
+    def dropna(self, how='any'):
+        if how not in ('any', 'all'):
+            raise ValueError("invalid how option: {0}".format(how))
+
+        if self.hasnans:
+            return self._shallow_copy(self.values[~self._isnan])
+        return self._shallow_copy()
+
+    # --------------------------------------------------------------------
 
     def _to_safe_for_reshape(self):
         """
@@ -2040,9 +2238,6 @@ class Index(IndexOpsMixin, PandasObject):
         warnings.warn("'summary' is deprecated and will be removed in a "
                       "future version.", FutureWarning, stacklevel=2)
         return self._summary(name)
-
-    _na_value = np.nan
-    """The expected NA value to use with this index."""
 
     _index_shared_docs['_convert_scalar_indexer'] = """
         Convert a scalar indexer.
@@ -2485,142 +2680,6 @@ class Index(IndexOpsMixin, PandasObject):
         """
         # must be overridden in specific classes
         return _concat._concat_index_asobject(to_concat, name)
-
-    @cache_readonly
-    def _isnan(self):
-        """
-        Return if each value is NaN.
-        """
-        if self._can_hold_na:
-            return isna(self)
-        else:
-            # shouldn't reach to this condition by checking hasnans beforehand
-            values = np.empty(len(self), dtype=np.bool_)
-            values.fill(False)
-            return values
-
-    @cache_readonly
-    def _nan_idxs(self):
-        if self._can_hold_na:
-            w, = self._isnan.nonzero()
-            return w
-        else:
-            return np.array([], dtype=np.int64)
-
-    @cache_readonly
-    def hasnans(self):
-        """
-        Return if I have any nans; enables various perf speedups.
-        """
-        if self._can_hold_na:
-            return bool(self._isnan.any())
-        else:
-            return False
-
-    def isna(self):
-        """
-        Detect missing values.
-
-        Return a boolean same-sized object indicating if the values are NA.
-        NA values, such as ``None``, :attr:`numpy.NaN` or :attr:`pd.NaT`, get
-        mapped to ``True`` values.
-        Everything else get mapped to ``False`` values. Characters such as
-        empty strings `''` or :attr:`numpy.inf` are not considered NA values
-        (unless you set ``pandas.options.mode.use_inf_as_na = True``).
-
-        .. versionadded:: 0.20.0
-
-        Returns
-        -------
-        numpy.ndarray
-            A boolean array of whether my values are NA
-
-        See Also
-        --------
-        pandas.Index.notna : Boolean inverse of isna.
-        pandas.Index.dropna : Omit entries with missing values.
-        pandas.isna : Top-level isna.
-        Series.isna : Detect missing values in Series object.
-
-        Examples
-        --------
-        Show which entries in a pandas.Index are NA. The result is an
-        array.
-
-        >>> idx = pd.Index([5.2, 6.0, np.NaN])
-        >>> idx
-        Float64Index([5.2, 6.0, nan], dtype='float64')
-        >>> idx.isna()
-        array([False, False,  True], dtype=bool)
-
-        Empty strings are not considered NA values. None is considered an NA
-        value.
-
-        >>> idx = pd.Index(['black', '', 'red', None])
-        >>> idx
-        Index(['black', '', 'red', None], dtype='object')
-        >>> idx.isna()
-        array([False, False, False,  True], dtype=bool)
-
-        For datetimes, `NaT` (Not a Time) is considered as an NA value.
-
-        >>> idx = pd.DatetimeIndex([pd.Timestamp('1940-04-25'),
-        ...                         pd.Timestamp(''), None, pd.NaT])
-        >>> idx
-        DatetimeIndex(['1940-04-25', 'NaT', 'NaT', 'NaT'],
-                      dtype='datetime64[ns]', freq=None)
-        >>> idx.isna()
-        array([False,  True,  True,  True], dtype=bool)
-        """
-        return self._isnan
-    isnull = isna
-
-    def notna(self):
-        """
-        Detect existing (non-missing) values.
-
-        Return a boolean same-sized object indicating if the values are not NA.
-        Non-missing values get mapped to ``True``. Characters such as empty
-        strings ``''`` or :attr:`numpy.inf` are not considered NA values
-        (unless you set ``pandas.options.mode.use_inf_as_na = True``).
-        NA values, such as None or :attr:`numpy.NaN`, get mapped to ``False``
-        values.
-
-        .. versionadded:: 0.20.0
-
-        Returns
-        -------
-        numpy.ndarray
-            Boolean array to indicate which entries are not NA.
-
-        See Also
-        --------
-        Index.notnull : Alias of notna.
-        Index.isna: Inverse of notna.
-        pandas.notna : Top-level notna.
-
-        Examples
-        --------
-        Show which entries in an Index are not NA. The result is an
-        array.
-
-        >>> idx = pd.Index([5.2, 6.0, np.NaN])
-        >>> idx
-        Float64Index([5.2, 6.0, nan], dtype='float64')
-        >>> idx.notna()
-        array([ True,  True, False])
-
-        Empty strings are not considered NA values. None is considered a NA
-        value.
-
-        >>> idx = pd.Index(['black', '', 'red', None])
-        >>> idx
-        Index(['black', '', 'red', None], dtype='object')
-        >>> idx.notna()
-        array([ True,  True,  True, False])
-        """
-        return ~self.isna()
-    notnull = notna
 
     def putmask(self, mask, value):
         """
@@ -4805,58 +4864,6 @@ class Index(IndexOpsMixin, PandasObject):
         pandas.Index.drop_duplicates : Remove duplicate values from Index.
         """
         return super(Index, self).duplicated(keep=keep)
-
-    _index_shared_docs['fillna'] = """
-        Fill NA/NaN values with the specified value
-
-        Parameters
-        ----------
-        value : scalar
-            Scalar value to use to fill holes (e.g. 0).
-            This value cannot be a list-likes.
-        downcast : dict, default is None
-            a dict of item->dtype of what to downcast if possible,
-            or the string 'infer' which will try to downcast to an appropriate
-            equal type (e.g. float64 to int64 if possible)
-
-        Returns
-        -------
-        filled : %(klass)s
-        """
-
-    @Appender(_index_shared_docs['fillna'])
-    def fillna(self, value=None, downcast=None):
-        self._assert_can_do_op(value)
-        if self.hasnans:
-            result = self.putmask(self._isnan, value)
-            if downcast is None:
-                # no need to care metadata other than name
-                # because it can't have freq if
-                return Index(result, name=self.name)
-        return self._shallow_copy()
-
-    _index_shared_docs['dropna'] = """
-        Return Index without NA/NaN values
-
-        Parameters
-        ----------
-        how :  {'any', 'all'}, default 'any'
-            If the Index is a MultiIndex, drop the value when any or all levels
-            are NaN.
-
-        Returns
-        -------
-        valid : Index
-        """
-
-    @Appender(_index_shared_docs['dropna'])
-    def dropna(self, how='any'):
-        if how not in ('any', 'all'):
-            raise ValueError("invalid how option: {0}".format(how))
-
-        if self.hasnans:
-            return self._shallow_copy(self.values[~self._isnan])
-        return self._shallow_copy()
 
     def _evaluate_with_timedelta_like(self, other, op):
         # Timedelta knows how to operate with np.array, so dispatch to that
