@@ -1,28 +1,27 @@
 # pylint: disable-msg=E1101,W0612
 
-import operator
 from datetime import datetime
+import operator
 
+import numpy as np
+from numpy import nan
 import pytest
 
-from numpy import nan
-import numpy as np
-import pandas as pd
-
-
-from pandas import Series, DataFrame, bdate_range, isna, compat
-from pandas.errors import PerformanceWarning
-from pandas.tseries.offsets import BDay
-import pandas.util.testing as tm
-import pandas.util._test_decorators as td
-from pandas.compat import range, PY36
-from pandas.core.reshape.util import cartesian_product
-
-import pandas.core.sparse.frame as spf
-
 from pandas._libs.sparse import BlockIndex, IntIndex
-from pandas import SparseSeries, SparseDtype
+from pandas.compat import PY36, range
+from pandas.errors import PerformanceWarning
+import pandas.util._test_decorators as td
+import pandas.compat as compat
+
+import pandas as pd
+from pandas import (
+    DataFrame, Series, SparseDtype, SparseSeries, bdate_range, isna)
+from pandas.core.reshape.util import cartesian_product
+import pandas.core.sparse.frame as spf
 from pandas.tests.series.test_api import SharedWithSparse
+import pandas.util.testing as tm
+
+from pandas.tseries.offsets import BDay
 
 
 def _test_data1():
