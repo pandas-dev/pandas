@@ -15,8 +15,9 @@ from pandas.errors import PerformanceWarning
 from pandas.util._decorators import Appender, cache_readonly
 
 from pandas.core.dtypes.common import (
-    _NS_DTYPE, is_datetime64_dtype, is_datetime64tz_dtype, is_int64_dtype,
-    is_object_dtype)
+    _NS_DTYPE, is_datetime64_dtype, is_datetime64tz_dtype, is_extension_type,
+    is_float_dtype, is_int64_dtype, is_object_dtype, is_period_dtype,
+    is_timedelta64_dtype)
 from pandas.core.dtypes.dtypes import DatetimeTZDtype
 from pandas.core.dtypes.generic import ABCIndexClass, ABCSeries
 from pandas.core.dtypes.missing import isna
@@ -183,7 +184,7 @@ class DatetimeArrayMixin(dtl.DatetimeLikeArrayMixin):
     _freq = None
 
     @classmethod
-    def _simple_new(cls, values, freq=None, tz=None, **kwargs):
+    def _simple_new(cls, values, freq=None, tz=None):
         """
         we require the we have a dtype compat for the values
         if we are passed a non-dtype compat, then coerce using the constructor
@@ -790,7 +791,8 @@ class DatetimeArrayMixin(dtl.DatetimeLikeArrayMixin):
 
         if self.tz is not None:
             if tz is None:
-                new_dates = conversion.tz_convert(self.asi8, 'UTC', self.tz)
+                new_dates = conversion.tz_convert(self.asi8, timezones.UTC,
+                                                  self.tz)
             else:
                 raise TypeError("Already tz-aware, use tz_convert to convert.")
         else:
@@ -1418,6 +1420,86 @@ class DatetimeArrayMixin(dtl.DatetimeLikeArrayMixin):
 
 DatetimeArrayMixin._add_comparison_ops()
 DatetimeArrayMixin._add_datetimelike_methods()
+
+
+# -------------------------------------------------------------------
+# Constructor Helpers
+
+def maybe_infer_tz(tz, inferred_tz):
+    """
+    If a timezone is inferred from data, check that it is compatible with
+    the user-provided timezone, if any.
+
+    Parameters
+    ----------
+    tz : tzinfo or None
+    inferred_tz : tzinfo or None
+
+    Returns
+    -------
+    tz : tzinfo or None
+
+    Raises
+    ------
+    TypeError : if both timezones are present but do not match
+    """
+    if tz is None:
+        tz = inferred_tz
+    elif inferred_tz is None:
+        pass
+    elif not timezones.tz_compare(tz, inferred_tz):
+        raise TypeError('data is already tz-aware {inferred_tz}, unable to '
+                        'set specified tz: {tz}'
+                        .format(inferred_tz=inferred_tz, tz=tz))
+    return tz
+
+
+def maybe_convert_dtype(data, copy):
+    """
+    Convert data based on dtype conventions, issuing deprecation warnings
+    or errors where appropriate.
+
+    Parameters
+    ----------
+    data : np.ndarray or pd.Index
+    copy : bool
+
+    Returns
+    -------
+    data : np.ndarray or pd.Index
+    copy : bool
+
+    Raises
+    ------
+    TypeError : PeriodDType data is passed
+    """
+    if is_float_dtype(data):
+        # Note: we must cast to datetime64[ns] here in order to treat these
+        #  as wall-times instead of UTC timestamps.
+        data = data.astype(_NS_DTYPE)
+        copy = False
+        # TODO: deprecate this behavior to instead treat symmetrically
+        #  with integer dtypes.  See discussion in GH#23675
+
+    elif is_timedelta64_dtype(data):
+        warnings.warn("Passing timedelta64-dtype data is deprecated, will "
+                      "raise a TypeError in a future version",
+                      FutureWarning, stacklevel=3)
+        data = data.view(_NS_DTYPE)
+
+    elif is_period_dtype(data):
+        # Note: without explicitly raising here, PeriondIndex
+        #  test_setops.test_join_does_not_recur fails
+        raise TypeError("Passing PeriodDtype data is invalid.  "
+                        "Use `data.to_timestamp()` instead")
+
+    elif is_extension_type(data) and not is_datetime64tz_dtype(data):
+        # Includes categorical
+        # TODO: We have no tests for these
+        data = np.array(data, dtype=np.object_)
+        copy = False
+
+    return data, copy
 
 
 def _generate_regular_range(cls, start, end, periods, freq):
