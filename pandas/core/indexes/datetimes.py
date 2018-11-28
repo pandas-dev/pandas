@@ -16,7 +16,7 @@ from pandas.util._decorators import Appender, Substitution, cache_readonly
 
 from pandas.core.dtypes.common import (
     _INT64_DTYPE, _NS_DTYPE, ensure_int64, is_datetime64_dtype,
-    is_datetime64_ns_dtype, is_datetimetz, is_dtype_equal, is_float,
+    is_datetime64_ns_dtype, is_datetime64tz_dtype, is_dtype_equal, is_float,
     is_integer, is_integer_dtype, is_list_like, is_period_dtype, is_scalar,
     is_string_like, pandas_dtype)
 import pandas.core.dtypes.concat as _concat
@@ -25,7 +25,8 @@ from pandas.core.dtypes.missing import isna
 
 from pandas.core.arrays import datetimelike as dtl
 from pandas.core.arrays.datetimes import (
-    DatetimeArrayMixin as DatetimeArray, _to_m8)
+    DatetimeArrayMixin as DatetimeArray, _to_m8, maybe_convert_dtype,
+    maybe_infer_tz)
 from pandas.core.base import _shared_docs
 import pandas.core.common as com
 from pandas.core.indexes.base import Index, _index_shared_docs
@@ -167,7 +168,6 @@ class DatetimeIndex(DatetimeArray, DatelikeOps, TimelikeOps,
     TimedeltaIndex : Index of timedelta64 data.
     PeriodIndex : Index of Period data.
     pandas.to_datetime : Convert argument to datetime.
-
     """
     _typ = 'datetimeindex'
     _join_precedence = 10
@@ -247,50 +247,48 @@ class DatetimeIndex(DatetimeArray, DatelikeOps, TimelikeOps,
             name = data.name
 
         freq, freq_infer = dtl.maybe_infer_freq(freq)
+        if freq is None and hasattr(data, "freq"):
+            # i.e. DatetimeArray/Index
+            freq = data.freq
+            verify_integrity = False
 
         # if dtype has an embedded tz, capture it
         tz = dtl.validate_tz_from_dtype(dtype, tz)
 
-        if not isinstance(data, (np.ndarray, Index, ABCSeries, DatetimeArray)):
-            # other iterable of some kind
-            if not isinstance(data, (list, tuple)):
+        if not hasattr(data, "dtype"):
+            # e.g. list, tuple
+            if np.ndim(data) == 0:
+                # i.e. generator
                 data = list(data)
-            data = np.asarray(data, dtype='O')
+            data = np.asarray(data)
+            copy = False
         elif isinstance(data, ABCSeries):
             data = data._values
 
-        # data must be Index or np.ndarray here
-        if not (is_datetime64_dtype(data) or is_datetimetz(data) or
+        # By this point we are assured to have either a numpy array or Index
+        data, copy = maybe_convert_dtype(data, copy)
+        if not (is_datetime64_dtype(data) or is_datetime64tz_dtype(data) or
                 is_integer_dtype(data) or lib.infer_dtype(data) == 'integer'):
             data = tools.to_datetime(data, dayfirst=dayfirst,
                                      yearfirst=yearfirst)
 
-        if isinstance(data, DatetimeArray):
-            if tz is None:
-                tz = data.tz
-            elif data.tz is None:
-                data = data.tz_localize(tz, ambiguous=ambiguous)
-            else:
-                # the tz's must match
-                if not timezones.tz_compare(tz, data.tz):
-                    msg = ('data is already tz-aware {0}, unable to '
-                           'set specified tz: {1}')
-                    raise TypeError(msg.format(data.tz, tz))
-
+        if is_datetime64tz_dtype(data):
+            tz = maybe_infer_tz(tz, data.tz)
             subarr = data._data
 
-            if freq is None:
-                freq = data.freq
-                verify_integrity = False
-        elif issubclass(data.dtype.type, np.datetime64):
+        elif is_datetime64_dtype(data):
+            # tz-naive DatetimeArray/Index or ndarray[datetime64]
+            data = getattr(data, "_data", data)
             if data.dtype != _NS_DTYPE:
                 data = conversion.ensure_datetime64ns(data)
+
             if tz is not None:
                 # Convert tz-naive to UTC
                 tz = timezones.maybe_get_tz(tz)
                 data = conversion.tz_localize_to_utc(data.view('i8'), tz,
                                                      ambiguous=ambiguous)
             subarr = data.view(_NS_DTYPE)
+
         else:
             # must be integer dtype otherwise
             # assume this data are epoch timestamps
@@ -318,8 +316,7 @@ class DatetimeIndex(DatetimeArray, DatelikeOps, TimelikeOps,
         return subarr._deepcopy_if_needed(ref_to_data, copy)
 
     @classmethod
-    def _simple_new(cls, values, name=None, freq=None, tz=None,
-                    dtype=None, **kwargs):
+    def _simple_new(cls, values, name=None, freq=None, tz=None, dtype=None):
         """
         we require the we have a dtype compat for the values
         if we are passed a non-dtype compat, then coerce using the constructor
@@ -327,8 +324,7 @@ class DatetimeIndex(DatetimeArray, DatelikeOps, TimelikeOps,
         # DatetimeArray._simple_new will accept either i8 or M8[ns] dtypes
         assert isinstance(values, np.ndarray), type(values)
 
-        result = super(DatetimeIndex, cls)._simple_new(values, freq, tz,
-                                                       **kwargs)
+        result = super(DatetimeIndex, cls)._simple_new(values, freq, tz)
         result.name = name
         result._reset_identity()
         return result
@@ -417,11 +413,6 @@ class DatetimeIndex(DatetimeArray, DatelikeOps, TimelikeOps,
                 self.name = own_state[0]
                 self._freq = own_state[1]
                 self._tz = timezones.tz_standardize(own_state[2])
-
-                # provide numpy < 1.7 compat
-                if nd_state[2] == 'M8[us]':
-                    new_state = np.ndarray.__reduce__(data.astype('M8[ns]'))
-                    np.ndarray.__setstate__(data, new_state[2])
 
             else:  # pragma: no cover
                 data = np.empty(state)
@@ -546,7 +537,6 @@ class DatetimeIndex(DatetimeArray, DatelikeOps, TimelikeOps,
     def snap(self, freq='S'):
         """
         Snap time stamps to nearest occurring frequency
-
         """
         # Superdumb, punting on any optimizing
         freq = to_offset(freq)

@@ -1,31 +1,26 @@
 # -*- coding: utf-8 -*-
+import codecs
+import re
+import textwrap
+import warnings
+
 import numpy as np
 
-from pandas.compat import zip
-from pandas.core.dtypes.generic import ABCSeries, ABCIndex
-from pandas.core.dtypes.missing import isna
-from pandas.core.dtypes.common import (
-    ensure_object,
-    is_bool_dtype,
-    is_categorical_dtype,
-    is_object_dtype,
-    is_string_like,
-    is_list_like,
-    is_scalar,
-    is_integer,
-    is_re)
-
-import pandas.core.common as com
-from pandas.core.algorithms import take_1d
-import pandas.compat as compat
-from pandas.core.base import NoNewAttributesMixin
-from pandas.util._decorators import Appender, deprecate_kwarg
-import re
 import pandas._libs.lib as lib
 import pandas._libs.ops as libops
-import warnings
-import textwrap
-import codecs
+import pandas.compat as compat
+from pandas.compat import zip
+from pandas.util._decorators import Appender, deprecate_kwarg
+
+from pandas.core.dtypes.common import (
+    ensure_object, is_bool_dtype, is_categorical_dtype, is_integer,
+    is_list_like, is_object_dtype, is_re, is_scalar, is_string_like)
+from pandas.core.dtypes.generic import ABCIndex, ABCSeries
+from pandas.core.dtypes.missing import isna
+
+from pandas.core.algorithms import take_1d
+from pandas.core.base import NoNewAttributesMixin
+import pandas.core.common as com
 
 _cpython_optimized_encoders = (
     "utf-8", "utf8", "latin-1", "latin1", "iso-8859-1", "mbcs", "ascii"

@@ -2,31 +2,28 @@ import operator
 import warnings
 
 import numpy as np
+
 from pandas._libs import index as libindex
-
-from pandas import compat
+import pandas.compat as compat
 from pandas.compat.numpy import function as nv
-from pandas.core.dtypes.generic import ABCCategorical, ABCSeries
-from pandas.core.dtypes.dtypes import CategoricalDtype
-from pandas.core.dtypes.common import (
-    is_categorical_dtype,
-    ensure_platform_int,
-    is_list_like,
-    is_interval_dtype,
-    is_scalar)
-from pandas.core.dtypes.missing import array_equivalent, isna
-from pandas.core.algorithms import take_1d
-
-
 from pandas.util._decorators import Appender, cache_readonly
-from pandas.core.config import get_option
-from pandas.core.indexes.base import Index, _index_shared_docs
+
+from pandas.core.dtypes.common import (
+    ensure_platform_int, is_categorical_dtype, is_interval_dtype, is_list_like,
+    is_scalar)
+from pandas.core.dtypes.dtypes import CategoricalDtype
+from pandas.core.dtypes.generic import ABCCategorical, ABCSeries
+from pandas.core.dtypes.missing import array_equivalent, isna
+
 from pandas.core import accessor
-import pandas.core.common as com
-import pandas.core.missing as missing
-import pandas.core.indexes.base as ibase
-from pandas.core.ops import get_op_result_name
+from pandas.core.algorithms import take_1d
 from pandas.core.arrays.categorical import Categorical, contains
+import pandas.core.common as com
+from pandas.core.config import get_option
+import pandas.core.indexes.base as ibase
+from pandas.core.indexes.base import Index, _index_shared_docs
+import pandas.core.missing as missing
+from pandas.core.ops import get_op_result_name
 
 _index_doc_kwargs = dict(ibase._index_doc_kwargs)
 _index_doc_kwargs.update(dict(target_klass='CategoricalIndex'))
@@ -45,7 +42,6 @@ _index_doc_kwargs.update(dict(target_klass='CategoricalIndex'))
     typ='method', overwrite=True)
 class CategoricalIndex(Index, accessor.PandasDelegate):
     """
-
     Immutable Index implementing an ordered, sliceable set. CategoricalIndex
     represents a sparsely populated Index with an underlying Categorical.
 

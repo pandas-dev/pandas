@@ -60,9 +60,9 @@ fi
 
 # create envbuild deps
 echo "[create env]"
-time conda env create -q -n pandas --file="${ENV_FILE}" || exit 1
+time conda env create -q --file="${ENV_FILE}" || exit 1
 
-source activate pandas
+source activate pandas-dev
 
 # remove any installed pandas package
 # w/o removing anything else

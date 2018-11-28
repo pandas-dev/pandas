@@ -5,7 +5,7 @@ import re
 import numpy as np
 
 from pandas._libs.interval import Interval
-from pandas._libs.tslibs import NaT, Period, Timestamp
+from pandas._libs.tslibs import NaT, Period, Timestamp, timezones
 
 from pandas.core.dtypes.generic import ABCCategoricalIndex, ABCIndexClass
 
@@ -338,12 +338,7 @@ class CategoricalDtype(PandasExtensionDtype, ExtensionDtype):
             cat_array = [cat_array]
         hashed = _combine_hash_arrays(iter(cat_array),
                                       num_items=len(cat_array))
-        if len(hashed) == 0:
-            # bug in Numpy<1.12 for length 0 arrays. Just return the correct
-            # value of 0
-            return 0
-        else:
-            return np.bitwise_xor.reduce(hashed)
+        return np.bitwise_xor.reduce(hashed)
 
     @classmethod
     def construct_array_type(cls):
@@ -516,7 +511,7 @@ class DatetimeTZDtype(PandasExtensionDtype):
                 m = cls._match.search(unit)
                 if m is not None:
                     unit = m.groupdict()['unit']
-                    tz = m.groupdict()['tz']
+                    tz = timezones.maybe_get_tz(m.groupdict()['tz'])
             except TypeError:
                 raise ValueError("could not construct DatetimeTZDtype")
 
