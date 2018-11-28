@@ -1281,7 +1281,7 @@ def test_ndarray_values(array, expected):
 ])
 @pytest.mark.parametrize('box', [pd.Series, pd.Index])
 def test_array(array, attr, box):
-    if array.dtype.name in ('Int64', 'Sparse[int64, 0]'):
+    if array.dtype.name in ('Int64', 'Sparse[int64, 0]') and box is pd.Index:
         pytest.skip("No index type for {}".format(array.dtype))
     result = box(array, copy=False).array
 
