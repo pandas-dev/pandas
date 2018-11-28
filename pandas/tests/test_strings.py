@@ -9,7 +9,7 @@ from numpy import nan as NA
 import numpy as np
 from numpy.random import randint
 
-from pandas.compat import range, u
+from pandas.compat import range, u, PY3
 import pandas.compat as compat
 from pandas import Index, Series, DataFrame, isna, MultiIndex, notna, concat
 
@@ -118,6 +118,55 @@ def any_string_method(request):
     return request.param
 
 
+# subset of the full set from pandas/conftest.py
+_any_allowed_skipna_inferred_dtype = [
+    ('string', ['a', np.nan, 'c']),
+    ('unicode' if not PY3 else 'string', [u('a'), np.nan, u('c')]),
+    ('bytes' if PY3 else 'string', [b'a', np.nan, b'c']),
+    ('empty', [np.nan, np.nan, np.nan]),
+    ('empty', []),
+    ('mixed-integer', ['a', np.nan, 2])
+]
+ids, _ = zip(*_any_allowed_skipna_inferred_dtype)  # use inferred type as id
+
+
+@pytest.fixture(params=_any_allowed_skipna_inferred_dtype, ids=ids)
+def any_allowed_skipna_inferred_dtype(request):
+    """
+    Fixture for all (inferred) dtypes allowed in StringMethods.__init__
+
+    The covered (inferred) types are:
+    * 'string'
+    * 'unicode' (if PY2)
+    * 'empty'
+    * 'bytes' (if PY3)
+    * 'mixed'
+    * 'mixed-integer'
+
+    Returns
+    -------
+    inferred_dtype : str
+        The string for the inferred dtype from _libs.lib.infer_dtype
+    values : np.ndarray
+        An array of object dtype that will be inferred to have
+        `inferred_dtype`
+
+    Examples
+    --------
+    >>> import pandas._libs.lib as lib
+    >>>
+    >>> def test_something(any_allowed_skipna_inferred_dtype):
+    ...     inferred_dtype, values = any_skipna_inferred_dtype
+    ...     # will pass
+    ...     assert lib.infer_dtype(values, skipna=True) == inferred_dtype
+    """
+    inferred_dtype, values = request.param
+    values = np.array(values, dtype=object)  # object dtype to avoid casting
+
+    # correctness of inference tested in tests/dtypes/test_inference.py
+    return inferred_dtype, values
+
+
 class TestStringMethods(object):
 
     def test_api(self):
@@ -126,11 +175,103 @@ class TestStringMethods(object):
         assert Series.str is strings.StringMethods
         assert isinstance(Series(['']).str, strings.StringMethods)
 
-        # GH 9184
-        invalid = Series([1])
-        with pytest.raises(AttributeError, match="only use .str accessor"):
-            invalid.str
-        assert not hasattr(invalid, 'str')
+    @pytest.mark.parametrize('dtype', [object, 'category'])
+    @pytest.mark.parametrize('box', [Series, Index])
+    def test_api_per_dtype(self, box, dtype, any_skipna_inferred_dtype):
+        # one instance of parametrized fixture
+        inferred_dtype, values = any_skipna_inferred_dtype
+
+        t = box(values, dtype=dtype)  # explicit dtype to avoid casting
+
+        # TODO: get rid of these xfails
+        if dtype == 'category' and inferred_dtype in ['period', 'interval']:
+            pytest.xfail(reason='Conversion to numpy array fails because '
+                         'the ._values-attribute is not a numpy array for '
+                         'PeriodArray/IntervalArray; see GH 23553')
+        if box == Index and inferred_dtype in ['empty', 'bytes']:
+            pytest.xfail(reason='Raising too restrictively; '
+                         'solved by GH 23167')
+        if (box == Index and dtype == object
+                and inferred_dtype in ['boolean', 'date', 'time']):
+            pytest.xfail(reason='Inferring incorrectly because of NaNs; '
+                         'solved by GH 23167')
+        if (box == Series
+                and (dtype == object and inferred_dtype not in [
+                    'string', 'unicode', 'empty',
+                    'bytes', 'mixed', 'mixed-integer'])
+                or (dtype == 'category'
+                    and inferred_dtype in ['decimal', 'boolean', 'time'])):
+            pytest.xfail(reason='Not raising correctly; solved by GH 23167')
+
+        types_passing_constructor = ['string', 'unicode', 'empty',
+                                     'bytes', 'mixed', 'mixed-integer']
+        if inferred_dtype in types_passing_constructor:
+            # GH 6106
+            assert isinstance(t.str, strings.StringMethods)
+        else:
+            # GH 9184, GH 23011, GH 23163
+            with pytest.raises(AttributeError, match='Can only use .str '
+                               'accessor with string values.*'):
+                t.str
+            assert not hasattr(t, 'str')
+
+    @pytest.mark.parametrize('dtype', [object, 'category'])
+    @pytest.mark.parametrize('box', [Series, Index])
+    def test_api_per_method(self, box, dtype,
+                            any_allowed_skipna_inferred_dtype,
+                            any_string_method):
+        # this test does not check correctness of the different methods,
+        # just that the methods work on the specified (inferred) dtypes,
+        # and raise on all others
+
+        # one instance of each parametrized fixture
+        inferred_dtype, values = any_allowed_skipna_inferred_dtype
+        method_name, args, kwargs = any_string_method
+
+        # TODO: get rid of these xfails
+        if (method_name not in ['encode', 'decode', 'len']
+                and inferred_dtype == 'bytes'):
+            pytest.xfail(reason='Not raising for "bytes", see GH 23011;'
+                         'Also: malformed method names, see GH 23551; '
+                         'solved by GH 23167')
+        if (method_name == 'cat'
+                and inferred_dtype in ['mixed', 'mixed-integer']):
+            pytest.xfail(reason='Bad error message; should raise better; '
+                         'solved by GH 23167')
+        if box == Index and inferred_dtype in ['empty', 'bytes']:
+            pytest.xfail(reason='Raising too restrictively; '
+                         'solved by GH 23167')
+        if (box == Index and dtype == object
+                and inferred_dtype in ['boolean', 'date', 'time']):
+            pytest.xfail(reason='Inferring incorrectly because of NaNs; '
+                         'solved by GH 23167')
+        if box == Index and dtype == 'category':
+            pytest.xfail(reason='Broken methods on CategoricalIndex; '
+                         'see GH 23556')
+
+        t = box(values, dtype=dtype)  # explicit dtype to avoid casting
+        method = getattr(t.str, method_name)
+
+        bytes_allowed = method_name in ['encode', 'decode', 'len']
+        # as of v0.23.4, all methods except 'cat' are very lenient with the
+        # allowed data types, just returning NaN for entries that error.
+        # This could be changed with an 'errors'-kwarg to the `str`-accessor,
+        # see discussion in GH 13877
+        mixed_allowed = method_name not in ['cat']
+
+        allowed_types = (['string', 'unicode', 'empty']
+                         + ['bytes'] * bytes_allowed
+                         + ['mixed', 'mixed-integer'] * mixed_allowed)
+
+        if inferred_dtype in allowed_types:
+            method(*args, **kwargs)  # works!
+        else:
+            # GH 23011, GH 23163
+            msg = ('Cannot use .str.{name} with values of inferred dtype '
+                   '{inferred_dtype!r}.'.format(name=method_name,
+                                                inferred_dtype=inferred_dtype))
+            with pytest.raises(TypeError, match=msg):
+                method(*args, **kwargs)
 
     def test_api_for_categorical(self, any_string_method):
         # https://github.com/pandas-dev/pandas/issues/10661

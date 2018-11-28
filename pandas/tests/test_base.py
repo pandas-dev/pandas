@@ -10,7 +10,7 @@ import numpy as np
 import pandas as pd
 import pandas.compat as compat
 from pandas.core.dtypes.common import (
-    is_object_dtype, is_datetimetz, is_datetime64_dtype,
+    is_object_dtype, is_datetime64_dtype, is_datetime64tz_dtype,
     needs_i8_conversion)
 import pandas.util.testing as tm
 from pandas import (Series, Index, DatetimeIndex, TimedeltaIndex,
@@ -292,12 +292,11 @@ class TestIndexOps(Ops):
                 assert not result.iat[0]
                 assert not result.iat[1]
 
-                # this fails for numpy < 1.9
-                # and oddly for *some* platforms
-                # result = None != o  # noqa
-                # assert result.iat[0]
-                # assert result.iat[1]
-                if (is_datetime64_dtype(o) or is_datetimetz(o)):
+                result = None != o  # noqa
+                assert result.iat[0]
+                assert result.iat[1]
+
+                if (is_datetime64_dtype(o) or is_datetime64tz_dtype(o)):
                     # Following DatetimeIndex (and Timestamp) convention,
                     # inequality comparisons with Series[datetime64] raise
                     with pytest.raises(TypeError):
@@ -447,7 +446,7 @@ class TestIndexOps(Ops):
             if isinstance(o, Index):
                 assert isinstance(result, o.__class__)
                 tm.assert_index_equal(result, orig)
-            elif is_datetimetz(o):
+            elif is_datetime64tz_dtype(o):
                 # datetimetz Series returns array of Timestamp
                 assert result[0] == orig[0]
                 for r in result:
@@ -471,7 +470,7 @@ class TestIndexOps(Ops):
                     continue
 
                 # special assign to the numpy array
-                if is_datetimetz(o):
+                if is_datetime64tz_dtype(o):
                     if isinstance(o, DatetimeIndex):
                         v = o.asi8
                         v[0:2] = iNaT
@@ -500,7 +499,7 @@ class TestIndexOps(Ops):
                     o = klass(values.repeat(range(1, len(o) + 1)))
                     o.name = 'a'
                 else:
-                    if is_datetimetz(o):
+                    if is_datetime64tz_dtype(o):
                         expected_index = orig._values._shallow_copy(values)
                     else:
                         expected_index = Index(values)
@@ -539,7 +538,7 @@ class TestIndexOps(Ops):
                 if isinstance(o, Index):
                     tm.assert_index_equal(result,
                                           Index(values[1:], name='a'))
-                elif is_datetimetz(o):
+                elif is_datetime64tz_dtype(o):
                     # unable to compare NaT / nan
                     vals = values[2:].astype(object).values
                     tm.assert_numpy_array_equal(result[1:], vals)
