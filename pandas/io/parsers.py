@@ -27,9 +27,9 @@ from pandas.util._decorators import Appender
 
 from pandas.core.dtypes.cast import astype_nansafe
 from pandas.core.dtypes.common import (
-    ensure_object, is_categorical_dtype, is_dtype_equal, is_float, is_integer,
-    is_integer_dtype, is_list_like, is_object_dtype, is_scalar,
-    is_string_dtype)
+    ensure_object, is_bool_dtype, is_categorical_dtype, is_dtype_equal,
+    is_float, is_integer, is_integer_dtype, is_list_like, is_object_dtype,
+    is_scalar, is_string_dtype)
 from pandas.core.dtypes.dtypes import CategoricalDtype
 from pandas.core.dtypes.missing import isna
 
@@ -2434,6 +2434,20 @@ class PythonParser(ParserBase):
         else:
             clean_na_values = self.na_values
             clean_na_fvalues = self.na_fvalues
+
+        try:
+            if isinstance(clean_dtypes, dict):
+                for col, dt in clean_dtypes.items():
+                    if is_bool_dtype(dt) and data[col][data[col] == ''].size:
+                        raise ValueError("Bool column has NA values in "
+                                         "column {column}".format(column=col))
+            elif isinstance(clean_dtypes, string_types):
+                for col, values in data.items():
+                    if any(isna(values)):
+                        raise ValueError("Bool column has NA values in "
+                                         "column {column}".format(column=col))
+        except (AttributeError, TypeError):  # invalid input to is_bool_dtype
+            pass
 
         return self._convert_to_ndarrays(data, clean_na_values,
                                          clean_na_fvalues, self.verbose,
