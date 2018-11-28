@@ -84,7 +84,8 @@ class ValueCounts(object):
 
     def setup(self, dropna):
         n = 5 * 10**5
-        arr = ['s%04d' % i for i in np.random.randint(0, n // 10, size=n)]
+        arr = ['s{:04d}'.format(i) for i in np.random.randint(0, n // 10,
+                                                              size=n)]
         self.ts = pd.Series(arr).astype('category')
 
     def time_value_counts(self, dropna):
@@ -104,11 +105,24 @@ class SetCategories(object):
 
     def setup(self):
         n = 5 * 10**5
-        arr = ['s%04d' % i for i in np.random.randint(0, n // 10, size=n)]
+        arr = ['s{:04d}'.format(i) for i in np.random.randint(0, n // 10,
+                                                              size=n)]
         self.ts = pd.Series(arr).astype('category')
 
     def time_set_categories(self):
         self.ts.cat.set_categories(self.ts.cat.categories[::2])
+
+
+class RemoveCategories(object):
+
+    def setup(self):
+        n = 5 * 10**5
+        arr = ['s{:04d}'.format(i) for i in np.random.randint(0, n // 10,
+                                                              size=n)]
+        self.ts = pd.Series(arr).astype('category')
+
+    def time_remove_categories(self):
+        self.ts.cat.remove_categories(self.ts.cat.categories[::2])
 
 
 class Rank(object):
@@ -159,7 +173,7 @@ class Isin(object):
         sample_size = 100
         arr = [i for i in np.random.randint(0, n // 10, size=n)]
         if dtype == 'object':
-            arr = ['s%04d' % i for i in arr]
+            arr = ['s{:04d}'.format(i) for i in arr]
         self.sample = np.random.choice(arr, sample_size)
         self.series = pd.Series(arr).astype('category')
 
