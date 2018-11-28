@@ -276,5 +276,14 @@ class Indexing(object):
     def time_unique(self):
         self.index.unique()
 
+    def time_reindex(self):
+        self.index.reindex(self.index[:500])
+
+    def time_reindex_missing(self):
+        self.index.reindex(['a', 'b', 'c', 'd'])
+
+    def time_sort_values(self):
+        self.index.sort_values(ascending=False)
+
 
 from .pandas_vb_common import setup  # noqa: F401
