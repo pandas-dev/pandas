@@ -1,4 +1,5 @@
 import decimal
+import re
 
 import numpy as np
 import pytest
@@ -93,7 +94,10 @@ def test_array_inference_fails(data):
 
 
 def test_numpy_string_alias_raises():
-    match = "Ambiguous dtype 'int32'.*dtype=numpy.dtype.\"int32\"."
+    match = re.compile(
+        r"Ambiguous dtype 'int32'.*dtype=numpy.dtype.\"int32\".",
+        flags=re.DOTALL,
+    )
     with pytest.raises(ValueError, match=match):
         pd.array([1, 2], dtype='int32')
 

@@ -1,3 +1,5 @@
+import textwrap
+
 import numpy as np
 
 from pandas._libs import lib, tslibs
@@ -188,6 +190,6 @@ def array(data,         # type: Sequence[object]
             "aliases to NumPy. If you want a NumPy array, specify "
             "'dtype=numpy.dtype(\"{dtype}\")'."
         ).format(dtype=dtype)
-        raise ValueError(msg)
+        raise ValueError('\n'.join(textwrap.wrap(msg)))
 
     return np.array(data, dtype=dtype, copy=copy)
