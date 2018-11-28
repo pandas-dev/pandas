@@ -244,6 +244,9 @@ class Index(IndexOpsMixin, PandasObject):
 
     str = CachedAccessor("str", StringMethods)
 
+    # --------------------------------------------------------------------
+    # Constructors
+
     def __new__(cls, data=None, dtype=None, copy=False, name=None,
                 fastpath=None, tupleize_cols=True, **kwargs):
 
@@ -518,6 +521,12 @@ class Index(IndexOpsMixin, PandasObject):
             setattr(result, k, v)
         return result._reset_identity()
 
+    @cache_readonly
+    def _constructor(self):
+        return type(self)
+
+    # --------------------------------------------------------------------
+
     _index_shared_docs['_shallow_copy'] = """
         Create a new Index with the same class as the caller, don't copy the
         data, use the same object attributes with passed in attributes taking
@@ -608,12 +617,6 @@ class Index(IndexOpsMixin, PandasObject):
         # guard when called from IndexOpsMixin
         raise TypeError("Index can't be updated inplace")
 
-    def _sort_levels_monotonic(self):
-        """
-        Compat with MultiIndex.
-        """
-        return self
-
     _index_shared_docs['_get_grouper_for_level'] = """
         Get index grouper corresponding to an index level
 
@@ -671,6 +674,9 @@ class Index(IndexOpsMixin, PandasObject):
         self._id = _Identity()
         return self
 
+    # --------------------------------------------------------------------
+    # Array-Like Methods
+
     # ndarray compat
     def __len__(self):
         """
@@ -708,6 +714,131 @@ class Index(IndexOpsMixin, PandasObject):
         Return the dtype str of the underlying data.
         """
         return str(self.dtype)
+
+    def ravel(self, order='C'):
+        """
+        Return an ndarray of the flattened values of the underlying data.
+
+        See Also
+        --------
+        numpy.ndarray.ravel
+        """
+        return self._ndarray_values.ravel(order=order)
+
+    def view(self, cls=None):
+
+        # we need to see if we are subclassing an
+        # index type here
+        if cls is not None and not hasattr(cls, '_typ'):
+            result = self._data.view(cls)
+        else:
+            result = self._shallow_copy()
+        if isinstance(result, Index):
+            result._id = self._id
+        return result
+
+    _index_shared_docs['astype'] = """
+        Create an Index with values cast to dtypes. The class of a new Index
+        is determined by dtype. When conversion is impossible, a ValueError
+        exception is raised.
+
+        Parameters
+        ----------
+        dtype : numpy dtype or pandas type
+        copy : bool, default True
+            By default, astype always returns a newly allocated object.
+            If copy is set to False and internal requirements on dtype are
+            satisfied, the original data is used to create a new Index
+            or the original Index is returned.
+
+            .. versionadded:: 0.19.0
+        """
+
+    @Appender(_index_shared_docs['astype'])
+    def astype(self, dtype, copy=True):
+        if is_dtype_equal(self.dtype, dtype):
+            return self.copy() if copy else self
+
+        elif is_categorical_dtype(dtype):
+            from .category import CategoricalIndex
+            return CategoricalIndex(self.values, name=self.name, dtype=dtype,
+                                    copy=copy)
+
+        elif is_extension_array_dtype(dtype):
+            return Index(np.asarray(self), dtype=dtype, copy=copy)
+
+        try:
+            if is_datetime64tz_dtype(dtype):
+                from pandas import DatetimeIndex
+                return DatetimeIndex(self.values, name=self.name, dtype=dtype,
+                                     copy=copy)
+            return Index(self.values.astype(dtype, copy=copy), name=self.name,
+                         dtype=dtype)
+        except (TypeError, ValueError):
+            msg = 'Cannot cast {name} to dtype {dtype}'
+            raise TypeError(msg.format(name=type(self).__name__, dtype=dtype))
+
+    _index_shared_docs['take'] = """
+        Return a new %(klass)s of the values selected by the indices.
+
+        For internal compatibility with numpy arrays.
+
+        Parameters
+        ----------
+        indices : list
+            Indices to be taken
+        axis : int, optional
+            The axis over which to select values, always 0.
+        allow_fill : bool, default True
+        fill_value : bool, default None
+            If allow_fill=True and fill_value is not None, indices specified by
+            -1 is regarded as NA. If Index doesn't hold NA, raise ValueError
+
+        See Also
+        --------
+        numpy.ndarray.take
+        """
+
+    @Appender(_index_shared_docs['take'] % _index_doc_kwargs)
+    def take(self, indices, axis=0, allow_fill=True,
+             fill_value=None, **kwargs):
+        if kwargs:
+            nv.validate_take(tuple(), kwargs)
+        indices = ensure_platform_int(indices)
+        if self._can_hold_na:
+            taken = self._assert_take_fillable(self.values, indices,
+                                               allow_fill=allow_fill,
+                                               fill_value=fill_value,
+                                               na_value=self._na_value)
+        else:
+            if allow_fill and fill_value is not None:
+                msg = 'Unable to fill values because {0} cannot contain NA'
+                raise ValueError(msg.format(self.__class__.__name__))
+            taken = self.values.take(indices)
+        return self._shallow_copy(taken)
+
+    def _assert_take_fillable(self, values, indices, allow_fill=True,
+                              fill_value=None, na_value=np.nan):
+        """
+        Internal method to handle NA filling of take.
+        """
+        indices = ensure_platform_int(indices)
+
+        # only fill if we are passing a non-None fill_value
+        if allow_fill and fill_value is not None:
+            if (indices < -1).any():
+                msg = ('When allow_fill=True and fill_value is not None, '
+                       'all indices must be >= -1')
+                raise ValueError(msg)
+            taken = algos.take(values,
+                               indices,
+                               allow_fill=allow_fill,
+                               fill_value=na_value)
+        else:
+            taken = values.take(indices)
+        return taken
+
+    # --------------------------------------------------------------------
 
     @property
     def values(self):
@@ -874,16 +1005,6 @@ class Index(IndexOpsMixin, PandasObject):
 
         return self._shallow_copy_with_infer(values, dtype=dtype)
 
-    def ravel(self, order='C'):
-        """
-        Return an ndarray of the flattened values of the underlying data.
-
-        See Also
-        --------
-        numpy.ndarray.ravel
-        """
-        return self._ndarray_values.ravel(order=order)
-
     # construction helpers
     @classmethod
     def _try_convert_to_int_index(cls, data, copy, name, dtype):
@@ -969,18 +1090,6 @@ class Index(IndexOpsMixin, PandasObject):
         """
         return {k: getattr(self, k, None) for k in self._attributes}
 
-    def view(self, cls=None):
-
-        # we need to see if we are subclassing an
-        # index type here
-        if cls is not None and not hasattr(cls, '_typ'):
-            result = self._data.view(cls)
-        else:
-            result = self._shallow_copy()
-        if isinstance(result, Index):
-            result._id = self._id
-        return result
-
     def _coerce_scalar_to_index(self, item):
         """
         We need to coerce a scalar to a compat for our index type.
@@ -997,6 +1106,9 @@ class Index(IndexOpsMixin, PandasObject):
             dtype = None
 
         return Index([item], dtype=dtype, **self._get_attributes_dict())
+
+    # --------------------------------------------------------------------
+    # Copying Methods
 
     _index_shared_docs['copy'] = """
         Make a copy of this object.  Name and dtype sets those attributes on
@@ -1047,24 +1159,8 @@ class Index(IndexOpsMixin, PandasObject):
             memo = {}
         return self.copy(deep=True)
 
-    def _validate_names(self, name=None, names=None, deep=False):
-        """
-        Handles the quirks of having a singular 'name' parameter for general
-        Index and plural 'names' parameter for MultiIndex.
-        """
-        from copy import deepcopy
-        if names is not None and name is not None:
-            raise TypeError("Can only provide one of `names` and `name`")
-        elif names is None and name is None:
-            return deepcopy(self.names) if deep else self.names
-        elif names is not None:
-            if not is_list_like(names):
-                raise TypeError("Must pass list-like as `names`.")
-            return names
-        else:
-            if not is_list_like(name):
-                return [name]
-            return name
+    # --------------------------------------------------------------------
+    # Rendering Methods
 
     def __unicode__(self):
         """
@@ -1124,6 +1220,93 @@ class Index(IndexOpsMixin, PandasObject):
         Return a list of tuples of the (attr,formatted_value).
         """
         return format_object_attrs(self)
+
+    def _mpl_repr(self):
+        # how to represent ourselves to matplotlib
+        return self.values
+
+    def format(self, name=False, formatter=None, **kwargs):
+        """
+        Render a string representation of the Index.
+        """
+        header = []
+        if name:
+            header.append(pprint_thing(self.name,
+                                       escape_chars=('\t', '\r', '\n')) if
+                          self.name is not None else '')
+
+        if formatter is not None:
+            return header + list(self.map(formatter))
+
+        return self._format_with_header(header, **kwargs)
+
+    def _format_with_header(self, header, na_rep='NaN', **kwargs):
+        values = self.values
+
+        from pandas.io.formats.format import format_array
+
+        if is_categorical_dtype(values.dtype):
+            values = np.array(values)
+
+        elif is_object_dtype(values.dtype):
+            values = lib.maybe_convert_objects(values, safe=1)
+
+        if is_object_dtype(values.dtype):
+            result = [pprint_thing(x, escape_chars=('\t', '\r', '\n'))
+                      for x in values]
+
+            # could have nans
+            mask = isna(values)
+            if mask.any():
+                result = np.array(result)
+                result[mask] = na_rep
+                result = result.tolist()
+
+        else:
+            result = _trim_front(format_array(values, None, justify='left'))
+        return header + result
+
+    def to_native_types(self, slicer=None, **kwargs):
+        """
+        Format specified values of `self` and return them.
+
+        Parameters
+        ----------
+        slicer : int, array-like
+            An indexer into `self` that specifies which values
+            are used in the formatting process.
+        kwargs : dict
+            Options for specifying how the values should be formatted.
+            These options include the following:
+
+            1) na_rep : str
+                The value that serves as a placeholder for NULL values
+            2) quoting : bool or None
+                Whether or not there are quoted values in `self`
+            3) date_format : str
+                The format used to represent date-like values
+        """
+
+        values = self
+        if slicer is not None:
+            values = values[slicer]
+        return values._format_native_types(**kwargs)
+
+    def _format_native_types(self, na_rep='', quoting=None, **kwargs):
+        """
+        Actually format specific types of the index.
+        """
+        mask = isna(self)
+        if not self.is_object() and not quoting:
+            values = np.asarray(self).astype(str)
+        else:
+            values = np.array(self, dtype=object, copy=True)
+
+        values[mask] = na_rep
+        return values
+
+    # --------------------------------------------------------------------
+    # Conversion Methods
 
     def to_flat_index(self):
         """
@@ -1233,83 +1416,27 @@ class Index(IndexOpsMixin, PandasObject):
             result.index = self
         return result
 
-    _index_shared_docs['astype'] = """
-        Create an Index with values cast to dtypes. The class of a new Index
-        is determined by dtype. When conversion is impossible, a ValueError
-        exception is raised.
+    # --------------------------------------------------------------------
+    # Name-Centric Methods
 
-        Parameters
-        ----------
-        dtype : numpy dtype or pandas type
-        copy : bool, default True
-            By default, astype always returns a newly allocated object.
-            If copy is set to False and internal requirements on dtype are
-            satisfied, the original data is used to create a new Index
-            or the original Index is returned.
-
-            .. versionadded:: 0.19.0
+    def _validate_names(self, name=None, names=None, deep=False):
         """
-
-    @Appender(_index_shared_docs['astype'])
-    def astype(self, dtype, copy=True):
-        if is_dtype_equal(self.dtype, dtype):
-            return self.copy() if copy else self
-
-        elif is_categorical_dtype(dtype):
-            from .category import CategoricalIndex
-            return CategoricalIndex(self.values, name=self.name, dtype=dtype,
-                                    copy=copy)
-
-        elif is_extension_array_dtype(dtype):
-            return Index(np.asarray(self), dtype=dtype, copy=copy)
-
-        try:
-            if is_datetime64tz_dtype(dtype):
-                from pandas import DatetimeIndex
-                return DatetimeIndex(self.values, name=self.name, dtype=dtype,
-                                     copy=copy)
-            return Index(self.values.astype(dtype, copy=copy), name=self.name,
-                         dtype=dtype)
-        except (TypeError, ValueError):
-            msg = 'Cannot cast {name} to dtype {dtype}'
-            raise TypeError(msg.format(name=type(self).__name__, dtype=dtype))
-
-    def _to_safe_for_reshape(self):
+        Handles the quirks of having a singular 'name' parameter for general
+        Index and plural 'names' parameter for MultiIndex.
         """
-        Convert to object if we are a categorical.
-        """
-        return self
-
-    def _assert_can_do_setop(self, other):
-        if not is_list_like(other):
-            raise TypeError('Input must be Index or array-like')
-        return True
-
-    def _convert_can_do_setop(self, other):
-        if not isinstance(other, Index):
-            other = Index(other, name=self.name)
-            result_name = self.name
+        from copy import deepcopy
+        if names is not None and name is not None:
+            raise TypeError("Can only provide one of `names` and `name`")
+        elif names is None and name is None:
+            return deepcopy(self.names) if deep else self.names
+        elif names is not None:
+            if not is_list_like(names):
+                raise TypeError("Must pass list-like as `names`.")
+            return names
         else:
-            result_name = get_op_result_name(self, other)
-        return other, result_name
-
-    def _convert_for_op(self, value):
-        """
-        Convert value to be insertable to ndarray.
-        """
-        return value
-
-    def _assert_can_do_op(self, value):
-        """
-        Check value is valid for scalar op.
-        """
-        if not is_scalar(value):
-            msg = "'value' must be a scalar, passed: {0}"
-            raise TypeError(msg.format(type(value).__name__))
-
-    @property
-    def nlevels(self):
-        return 1
+            if not is_list_like(name):
+                return [name]
+            return name
 
     def _get_names(self):
         return FrozenList((self.name, ))
@@ -1468,6 +1595,195 @@ class Index(IndexOpsMixin, PandasObject):
         """
         return self.set_names([name], inplace=inplace)
 
+    # --------------------------------------------------------------------
+    # Level-Centric Methods
+
+    @property
+    def nlevels(self):
+        return 1
+
+    def _sort_levels_monotonic(self):
+        """
+        Compat with MultiIndex.
+        """
+        return self
+
+    def _validate_index_level(self, level):
+        """
+        Validate index level.
+
+        For single-level Index getting level number is a no-op, but some
+        verification must be done like in MultiIndex.
+
+        """
+        if isinstance(level, int):
+            if level < 0 and level != -1:
+                raise IndexError("Too many levels: Index has only 1 level,"
+                                 " %d is not a valid level number" % (level, ))
+            elif level > 0:
+                raise IndexError("Too many levels:"
+                                 " Index has only 1 level, not %d" %
+                                 (level + 1))
+        elif level != self.name:
+            raise KeyError('Level %s must be same as name (%s)' %
+                           (level, self.name))
+
+    def _get_level_number(self, level):
+        self._validate_index_level(level)
+        return 0
+
+    def sortlevel(self, level=None, ascending=True, sort_remaining=None):
+        """
+        For internal compatibility with with the Index API.
+
+        Sort the Index. This is for compat with MultiIndex
+
+        Parameters
+        ----------
+        ascending : boolean, default True
+            False to sort in descending order
+
+        level, sort_remaining are compat parameters
+
+        Returns
+        -------
+        sorted_index : Index
+        """
+        return self.sort_values(return_indexer=True, ascending=ascending)
+
+    def _get_level_values(self, level):
+        """
+        Return an Index of values for requested level.
+
+        This is primarily useful to get an individual level of values from a
+        MultiIndex, but is provided on Index as well for compatability.
+
+        Parameters
+        ----------
+        level : int or str
+            It is either the integer position or the name of the level.
+
+        Returns
+        -------
+        values : Index
+            Calling object, as there is only one level in the Index.
+
+        See Also
+        --------
+        MultiIndex.get_level_values : Get values for a level of a MultiIndex.
+
+        Notes
+        -----
+        For Index, level should be 0, since there are no multiple levels.
+
+        Examples
+        --------
+
+        >>> idx = pd.Index(list('abc'))
+        >>> idx
+        Index(['a', 'b', 'c'], dtype='object')
+
+        Get level values by supplying `level` as integer:
+
+        >>> idx.get_level_values(0)
+        Index(['a', 'b', 'c'], dtype='object')
+        """
+        self._validate_index_level(level)
+        return self
+
+    get_level_values = _get_level_values
+
+    def droplevel(self, level=0):
+        """
+        Return index with requested level(s) removed.
+
+        If resulting index has only 1 level left, the result will be
+        of Index type, not MultiIndex.
+
+        .. versionadded:: 0.23.1 (support for non-MultiIndex)
+
+        Parameters
+        ----------
+        level : int, str, or list-like, default 0
+            If a string is given, must be the name of a level
+            If list-like, elements must be names or indexes of levels.
+
+        Returns
+        -------
+        index : Index or MultiIndex
+        """
+        if not isinstance(level, (tuple, list)):
+            level = [level]
+
+        levnums = sorted(self._get_level_number(lev) for lev in level)[::-1]
+
+        if len(level) == 0:
+            return self
+        if len(level) >= self.nlevels:
+            raise ValueError("Cannot remove {} levels from an index with {} "
+                             "levels: at least one level must be "
+                             "left.".format(len(level), self.nlevels))
+        # The two checks above guarantee that here self is a MultiIndex
+
+        new_levels = list(self.levels)
+        new_labels = list(self.labels)
+        new_names = list(self.names)
+
+        for i in levnums:
+            new_levels.pop(i)
+            new_labels.pop(i)
+            new_names.pop(i)
+
+        if len(new_levels) == 1:
+
+            # set nan if needed
+            mask = new_labels[0] == -1
+            result = new_levels[0].take(new_labels[0])
+            if mask.any():
+                result = result.putmask(mask, np.nan)
+
+            result.name = new_names[0]
+            return result
+        else:
+            from .multi import MultiIndex
+            return MultiIndex(levels=new_levels, labels=new_labels,
+                              names=new_names, verify_integrity=False)
+
+    # --------------------------------------------------------------------
+
+    def _to_safe_for_reshape(self):
+        """
+        Convert to object if we are a categorical.
+        """
+        return self
+
+    def _assert_can_do_setop(self, other):
+        if not is_list_like(other):
+            raise TypeError('Input must be Index or array-like')
+        return True
+
+    def _convert_can_do_setop(self, other):
+        if not isinstance(other, Index):
+            other = Index(other, name=self.name)
+            result_name = self.name
+        else:
+            result_name = get_op_result_name(self, other)
+        return other, result_name
+
+    def _convert_for_op(self, value):
+        """
+        Convert value to be insertable to ndarray.
+        """
+        return value
+
+    def _assert_can_do_op(self, value):
+        """
+        Check value is valid for scalar op.
+        """
+        if not is_scalar(value):
+            msg = "'value' must be a scalar, passed: {0}"
+            raise TypeError(msg.format(type(value).__name__))
+
     @property
     def _has_complex_internals(self):
         # to disable groupby tricks in MultiIndex
@@ -1514,14 +1830,12 @@ class Index(IndexOpsMixin, PandasObject):
                       "future version.", FutureWarning, stacklevel=2)
         return self._summary(name)
 
-    def _mpl_repr(self):
-        # how to represent ourselves to matplotlib
-        return self.values
-
     _na_value = np.nan
     """The expected NA value to use with this index."""
 
-    # introspection
+    # --------------------------------------------------------------------
+    # Introspection Methods
+
     @property
     def is_monotonic(self):
         """
@@ -1670,6 +1984,21 @@ class Index(IndexOpsMixin, PandasObject):
 
     def holds_integer(self):
         return self.inferred_type in ['integer', 'mixed-integer']
+
+    @cache_readonly
+    def inferred_type(self):
+        """
+        Return a string of the type inferred from the values.
+        """
+        return lib.infer_dtype(self)
+
+    @cache_readonly
+    def is_all_dates(self):
+        if self._data is None:
+            return False
+        return is_datetime_array(ensure_object(self.values))
+
+    # --------------------------------------------------------------------
 
     _index_shared_docs['_convert_scalar_indexer'] = """
         Convert a scalar indexer.
@@ -1963,44 +2292,9 @@ class Index(IndexOpsMixin, PandasObject):
         self._engine.clear_mapping()
 
     @cache_readonly
-    def _constructor(self):
-        return type(self)
-
-    @cache_readonly
     def _engine(self):
         # property, for now, slow to look up
         return self._engine_type(lambda: self._ndarray_values, len(self))
-
-    def _validate_index_level(self, level):
-        """
-        Validate index level.
-
-        For single-level Index getting level number is a no-op, but some
-        verification must be done like in MultiIndex.
-
-        """
-        if isinstance(level, int):
-            if level < 0 and level != -1:
-                raise IndexError("Too many levels: Index has only 1 level,"
-                                 " %d is not a valid level number" % (level, ))
-            elif level > 0:
-                raise IndexError("Too many levels:"
-                                 " Index has only 1 level, not %d" %
-                                 (level + 1))
-        elif level != self.name:
-            raise KeyError('Level %s must be same as name (%s)' %
-                           (level, self.name))
-
-    def _get_level_number(self, level):
-        self._validate_index_level(level)
-        return 0
-
-    @cache_readonly
-    def inferred_type(self):
-        """
-        Return a string of the type inferred from the values.
-        """
-        return lib.infer_dtype(self)
 
     def _is_memory_usage_qualified(self):
         """
@@ -2010,12 +2304,6 @@ class Index(IndexOpsMixin, PandasObject):
 
     def is_type_compatible(self, kind):
         return kind == self.inferred_type
-
-    @cache_readonly
-    def is_all_dates(self):
-        if self._data is None:
-            return False
-        return is_datetime_array(ensure_object(self.values))
 
     def __reduce__(self):
         d = dict(data=self._data)
@@ -2196,66 +2484,6 @@ class Index(IndexOpsMixin, PandasObject):
         # must be overridden in specific classes
         return _concat._concat_index_asobject(to_concat, name)
 
-    _index_shared_docs['take'] = """
-        Return a new %(klass)s of the values selected by the indices.
-
-        For internal compatibility with numpy arrays.
-
-        Parameters
-        ----------
-        indices : list
-            Indices to be taken
-        axis : int, optional
-            The axis over which to select values, always 0.
-        allow_fill : bool, default True
-        fill_value : bool, default None
-            If allow_fill=True and fill_value is not None, indices specified by
-            -1 is regarded as NA. If Index doesn't hold NA, raise ValueError
-
-        See Also
-        --------
-        numpy.ndarray.take
-        """
-
-    @Appender(_index_shared_docs['take'] % _index_doc_kwargs)
-    def take(self, indices, axis=0, allow_fill=True,
-             fill_value=None, **kwargs):
-        if kwargs:
-            nv.validate_take(tuple(), kwargs)
-        indices = ensure_platform_int(indices)
-        if self._can_hold_na:
-            taken = self._assert_take_fillable(self.values, indices,
-                                               allow_fill=allow_fill,
-                                               fill_value=fill_value,
-                                               na_value=self._na_value)
-        else:
-            if allow_fill and fill_value is not None:
-                msg = 'Unable to fill values because {0} cannot contain NA'
-                raise ValueError(msg.format(self.__class__.__name__))
-            taken = self.values.take(indices)
-        return self._shallow_copy(taken)
-
-    def _assert_take_fillable(self, values, indices, allow_fill=True,
-                              fill_value=None, na_value=np.nan):
-        """
-        Internal method to handle NA filling of take.
-        """
-        indices = ensure_platform_int(indices)
-
-        # only fill if we are passing a non-None fill_value
-        if allow_fill and fill_value is not None:
-            if (indices < -1).any():
-                msg = ('When allow_fill=True and fill_value is not None, '
-                       'all indices must be >= -1')
-                raise ValueError(msg)
-            taken = algos.take(values,
-                               indices,
-                               allow_fill=allow_fill,
-                               fill_value=na_value)
-        else:
-            taken = values.take(indices)
-        return taken
-
     @cache_readonly
     def _isnan(self):
         """
@@ -2410,86 +2638,6 @@ class Index(IndexOpsMixin, PandasObject):
 
             # coerces to object
             return self.astype(object).putmask(mask, value)
-
-    def format(self, name=False, formatter=None, **kwargs):
-        """
-        Render a string representation of the Index.
-        """
-        header = []
-        if name:
-            header.append(pprint_thing(self.name,
-                                       escape_chars=('\t', '\r', '\n')) if
-                          self.name is not None else '')
-
-        if formatter is not None:
-            return header + list(self.map(formatter))
-
-        return self._format_with_header(header, **kwargs)
-
-    def _format_with_header(self, header, na_rep='NaN', **kwargs):
-        values = self.values
-
-        from pandas.io.formats.format import format_array
-
-        if is_categorical_dtype(values.dtype):
-            values = np.array(values)
-
-        elif is_object_dtype(values.dtype):
-            values = lib.maybe_convert_objects(values, safe=1)
-
-        if is_object_dtype(values.dtype):
-            result = [pprint_thing(x, escape_chars=('\t', '\r', '\n'))
-                      for x in values]
-
-            # could have nans
-            mask = isna(values)
-            if mask.any():
-                result = np.array(result)
-                result[mask] = na_rep
-                result = result.tolist()
-
-        else:
-            result = _trim_front(format_array(values, None, justify='left'))
-        return header + result
-
-    def to_native_types(self, slicer=None, **kwargs):
-        """
-        Format specified values of `self` and return them.
-
-        Parameters
-        ----------
-        slicer : int, array-like
-            An indexer into `self` that specifies which values
-            are used in the formatting process.
-        kwargs : dict
-            Options for specifying how the values should be formatted.
-            These options include the following:
-
-            1) na_rep : str
-                The value that serves as a placeholder for NULL values
-            2) quoting : bool or None
-                Whether or not there are quoted values in `self`
-            3) date_format : str
-                The format used to represent date-like values
-        """
-
-        values = self
-        if slicer is not None:
-            values = values[slicer]
-        return values._format_native_types(**kwargs)
-
-    def _format_native_types(self, na_rep='', quoting=None, **kwargs):
-        """
-        Actually format specific types of the index.
-        """
-        mask = isna(self)
-        if not self.is_object() and not quoting:
-            values = np.asarray(self).astype(str)
-        else:
-            values = np.array(self, dtype=object, copy=True)
-
-        values[mask] = na_rep
-        return values
 
     def equals(self, other):
         """
@@ -2682,25 +2830,6 @@ class Index(IndexOpsMixin, PandasObject):
     def sort(self, *args, **kwargs):
         raise TypeError("cannot sort an Index object in-place, use "
                         "sort_values instead")
-
-    def sortlevel(self, level=None, ascending=True, sort_remaining=None):
-        """
-        For internal compatibility with with the Index API.
-
-        Sort the Index. This is for compat with MultiIndex
-
-        Parameters
-        ----------
-        ascending : boolean, default True
-            False to sort in descending order
-
-        level, sort_remaining are compat parameters
-
-        Returns
-        -------
-        sorted_index : Index
-        """
-        return self.sort_values(return_indexer=True, ascending=ascending)
 
     def shift(self, periods=1, freq=None):
         """
@@ -3274,104 +3403,6 @@ class Index(IndexOpsMixin, PandasObject):
         """
         self._engine.set_value(com.values_from_object(arr),
                                com.values_from_object(key), value)
-
-    def _get_level_values(self, level):
-        """
-        Return an Index of values for requested level.
-
-        This is primarily useful to get an individual level of values from a
-        MultiIndex, but is provided on Index as well for compatability.
-
-        Parameters
-        ----------
-        level : int or str
-            It is either the integer position or the name of the level.
-
-        Returns
-        -------
-        values : Index
-            Calling object, as there is only one level in the Index.
-
-        See Also
-        --------
-        MultiIndex.get_level_values : Get values for a level of a MultiIndex.
-
-        Notes
-        -----
-        For Index, level should be 0, since there are no multiple levels.
-
-        Examples
-        --------
-
-        >>> idx = pd.Index(list('abc'))
-        >>> idx
-        Index(['a', 'b', 'c'], dtype='object')
-
-        Get level values by supplying `level` as integer:
-
-        >>> idx.get_level_values(0)
-        Index(['a', 'b', 'c'], dtype='object')
-        """
-        self._validate_index_level(level)
-        return self
-
-    get_level_values = _get_level_values
-
-    def droplevel(self, level=0):
-        """
-        Return index with requested level(s) removed.
-
-        If resulting index has only 1 level left, the result will be
-        of Index type, not MultiIndex.
-
-        .. versionadded:: 0.23.1 (support for non-MultiIndex)
-
-        Parameters
-        ----------
-        level : int, str, or list-like, default 0
-            If a string is given, must be the name of a level
-            If list-like, elements must be names or indexes of levels.
-
-        Returns
-        -------
-        index : Index or MultiIndex
-        """
-        if not isinstance(level, (tuple, list)):
-            level = [level]
-
-        levnums = sorted(self._get_level_number(lev) for lev in level)[::-1]
-
-        if len(level) == 0:
-            return self
-        if len(level) >= self.nlevels:
-            raise ValueError("Cannot remove {} levels from an index with {} "
-                             "levels: at least one level must be "
-                             "left.".format(len(level), self.nlevels))
-        # The two checks above guarantee that here self is a MultiIndex
-
-        new_levels = list(self.levels)
-        new_labels = list(self.labels)
-        new_names = list(self.names)
-
-        for i in levnums:
-            new_levels.pop(i)
-            new_labels.pop(i)
-            new_names.pop(i)
-
-        if len(new_levels) == 1:
-
-            # set nan if needed
-            mask = new_labels[0] == -1
-            result = new_levels[0].take(new_labels[0])
-            if mask.any():
-                result = result.putmask(mask, np.nan)
-
-            result.name = new_names[0]
-            return result
-        else:
-            from .multi import MultiIndex
-            return MultiIndex(levels=new_levels, labels=new_labels,
-                              names=new_names, verify_integrity=False)
 
     _index_shared_docs['get_indexer'] = """
         Compute indexer and mask for new index given the current index. The
