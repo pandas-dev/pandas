@@ -526,6 +526,7 @@ class Index(IndexOpsMixin, PandasObject):
         return type(self)
 
     # --------------------------------------------------------------------
+    # Index Internals Methods
 
     def _get_attributes_dict(self):
         """
@@ -822,7 +823,6 @@ class Index(IndexOpsMixin, PandasObject):
             taken = values.take(indices)
         return taken
 
-    # ops compat
     def repeat(self, repeats, *args, **kwargs):
         """
         Repeat elements of an Index.
@@ -860,230 +860,6 @@ class Index(IndexOpsMixin, PandasObject):
         """
         nv.validate_repeat(args, kwargs)
         return self._shallow_copy(self._values.repeat(repeats))
-
-    # --------------------------------------------------------------------
-
-    @property
-    def values(self):
-        """
-        Return the underlying data as an ndarray.
-        """
-        return self._data.view(np.ndarray)
-
-    @property
-    def _values(self):
-        # type: () -> Union[ExtensionArray, Index, np.ndarray]
-        # TODO(EA): remove index types as they become extension arrays
-        """
-        The best array representation.
-
-        This is an ndarray, ExtensionArray, or Index subclass. This differs
-        from ``_ndarray_values``, which always returns an ndarray.
-
-        Both ``_values`` and ``_ndarray_values`` are consistent between
-        ``Series`` and ``Index``.
-
-        It may differ from the public '.values' method.
-
-        index             | values          | _values       | _ndarray_values |
-        ----------------- | --------------- | ------------- | --------------- |
-        Index             | ndarray         | ndarray       | ndarray         |
-        CategoricalIndex  | Categorical     | Categorical   | ndarray[int]    |
-        DatetimeIndex     | ndarray[M8ns]   | ndarray[M8ns] | ndarray[M8ns]   |
-        DatetimeIndex[tz] | ndarray[M8ns]   | DTI[tz]       | ndarray[M8ns]   |
-        PeriodIndex       | ndarray[object] | PeriodArray   | ndarray[int]    |
-        IntervalIndex     | IntervalArray   | IntervalArray | ndarray[object] |
-
-        See Also
-        --------
-        values
-        _ndarray_values
-        """
-        return self.values
-
-    def get_values(self):
-        """
-        Return `Index` data as an `numpy.ndarray`.
-
-        Returns
-        -------
-        numpy.ndarray
-            A one-dimensional numpy array of the `Index` values.
-
-        See Also
-        --------
-        Index.values : The attribute that get_values wraps.
-
-        Examples
-        --------
-        Getting the `Index` values of a `DataFrame`:
-
-        >>> df = pd.DataFrame([[1, 2, 3], [4, 5, 6], [7, 8, 9]],
-        ...                    index=['a', 'b', 'c'], columns=['A', 'B', 'C'])
-        >>> df
-           A  B  C
-        a  1  2  3
-        b  4  5  6
-        c  7  8  9
-        >>> df.index.get_values()
-        array(['a', 'b', 'c'], dtype=object)
-
-        Standalone `Index` values:
-
-        >>> idx = pd.Index(['1', '2', '3'])
-        >>> idx.get_values()
-        array(['1', '2', '3'], dtype=object)
-
-        `MultiIndex` arrays also have only one dimension:
-
-        >>> midx = pd.MultiIndex.from_arrays([[1, 2, 3], ['a', 'b', 'c']],
-        ...                                  names=('number', 'letter'))
-        >>> midx.get_values()
-        array([(1, 'a'), (2, 'b'), (3, 'c')], dtype=object)
-        >>> midx.get_values().ndim
-        1
-        """
-        return self.values
-
-    @Appender(IndexOpsMixin.memory_usage.__doc__)
-    def memory_usage(self, deep=False):
-        result = super(Index, self).memory_usage(deep=deep)
-
-        # include our engine hashtable
-        result += self._engine.sizeof(deep=deep)
-        return result
-
-    _index_shared_docs['where'] = """
-        Return an Index of same shape as self and whose corresponding
-        entries are from self where cond is True and otherwise are from
-        other.
-
-        .. versionadded:: 0.19.0
-
-        Parameters
-        ----------
-        cond : boolean array-like with the same length as self
-        other : scalar, or array-like
-        """
-
-    @Appender(_index_shared_docs['where'])
-    def where(self, cond, other=None):
-        if other is None:
-            other = self._na_value
-
-        dtype = self.dtype
-        values = self.values
-
-        if is_bool(other) or is_bool_dtype(other):
-
-            # bools force casting
-            values = values.astype(object)
-            dtype = None
-
-        values = np.where(cond, values, other)
-
-        if self._is_numeric_dtype and np.any(isna(values)):
-            # We can't coerce to the numeric dtype of "self" (unless
-            # it's float) if there are NaN values in our output.
-            dtype = None
-
-        return self._shallow_copy_with_infer(values, dtype=dtype)
-
-    # construction helpers
-    @classmethod
-    def _try_convert_to_int_index(cls, data, copy, name, dtype):
-        """
-        Attempt to convert an array of data into an integer index.
-
-        Parameters
-        ----------
-        data : The data to convert.
-        copy : Whether to copy the data or not.
-        name : The name of the index returned.
-
-        Returns
-        -------
-        int_index : data converted to either an Int64Index or a
-                    UInt64Index
-
-        Raises
-        ------
-        ValueError if the conversion was not successful.
-        """
-
-        from .numeric import Int64Index, UInt64Index
-        if not is_unsigned_integer_dtype(dtype):
-            # skip int64 conversion attempt if uint-like dtype is passed, as
-            # this could return Int64Index when UInt64Index is what's desrired
-            try:
-                res = data.astype('i8', copy=False)
-                if (res == data).all():
-                    return Int64Index(res, copy=copy, name=name)
-            except (OverflowError, TypeError, ValueError):
-                pass
-
-        # Conversion to int64 failed (possibly due to overflow) or was skipped,
-        # so let's try now with uint64.
-        try:
-            res = data.astype('u8', copy=False)
-            if (res == data).all():
-                return UInt64Index(res, copy=copy, name=name)
-        except (OverflowError, TypeError, ValueError):
-            pass
-
-        raise ValueError
-
-    @classmethod
-    def _scalar_data_error(cls, data):
-        raise TypeError('{0}(...) must be called with a collection of some '
-                        'kind, {1} was passed'.format(cls.__name__,
-                                                      repr(data)))
-
-    @classmethod
-    def _string_data_error(cls, data):
-        raise TypeError('String dtype not supported, you may need '
-                        'to explicitly cast to a numeric type')
-
-    @classmethod
-    def _coerce_to_ndarray(cls, data):
-        """
-        Coerces data to ndarray.
-
-        Converts other iterables to list first and then to array.
-        Does not touch ndarrays.
-
-        Raises
-        ------
-        TypeError
-            When the data passed in is a scalar.
-        """
-
-        if not isinstance(data, (np.ndarray, Index)):
-            if data is None or is_scalar(data):
-                cls._scalar_data_error(data)
-
-            # other iterable of some kind
-            if not isinstance(data, (ABCSeries, list, tuple)):
-                data = list(data)
-            data = np.asarray(data)
-        return data
-
-    def _coerce_scalar_to_index(self, item):
-        """
-        We need to coerce a scalar to a compat for our index type.
-
-        Parameters
-        ----------
-        item : scalar item to coerce
-        """
-        dtype = self.dtype
-
-        if self._is_numeric_dtype and isna(item):
-            # We can't coerce to the numeric dtype of "self" (unless
-            # it's float) if there are NaN values in our output.
-            dtype = None
-
-        return Index([item], dtype=dtype, **self._get_attributes_dict())
 
     # --------------------------------------------------------------------
     # Copying Methods
@@ -1799,33 +1575,6 @@ class Index(IndexOpsMixin, PandasObject):
         return grouper, None, None
 
     # --------------------------------------------------------------------
-
-    def _to_safe_for_reshape(self):
-        """
-        Convert to object if we are a categorical.
-        """
-        return self
-
-    def _convert_for_op(self, value):
-        """
-        Convert value to be insertable to ndarray.
-        """
-        return value
-
-    def _assert_can_do_op(self, value):
-        """
-        Check value is valid for scalar op.
-        """
-        if not is_scalar(value):
-            msg = "'value' must be a scalar, passed: {0}"
-            raise TypeError(msg.format(type(value).__name__))
-
-    @property
-    def _has_complex_internals(self):
-        # to disable groupby tricks in MultiIndex
-        return False
-
-    # --------------------------------------------------------------------
     # Introspection Methods
 
     @property
@@ -2447,697 +2196,6 @@ class Index(IndexOpsMixin, PandasObject):
         return self._shallow_copy(values)
 
     # --------------------------------------------------------------------
-    # Indexer Conversion Methods
-
-    _index_shared_docs['_convert_scalar_indexer'] = """
-        Convert a scalar indexer.
-
-        Parameters
-        ----------
-        key : label of the slice bound
-        kind : {'ix', 'loc', 'getitem', 'iloc'} or None
-    """
-
-    @Appender(_index_shared_docs['_convert_scalar_indexer'])
-    def _convert_scalar_indexer(self, key, kind=None):
-        assert kind in ['ix', 'loc', 'getitem', 'iloc', None]
-
-        if kind == 'iloc':
-            return self._validate_indexer('positional', key, kind)
-
-        if len(self) and not isinstance(self, ABCMultiIndex,):
-
-            # we can raise here if we are definitive that this
-            # is positional indexing (eg. .ix on with a float)
-            # or label indexing if we are using a type able
-            # to be represented in the index
-
-            if kind in ['getitem', 'ix'] and is_float(key):
-                if not self.is_floating():
-                    return self._invalid_indexer('label', key)
-
-            elif kind in ['loc'] and is_float(key):
-
-                # we want to raise KeyError on string/mixed here
-                # technically we *could* raise a TypeError
-                # on anything but mixed though
-                if self.inferred_type not in ['floating',
-                                              'mixed-integer-float',
-                                              'string',
-                                              'unicode',
-                                              'mixed']:
-                    return self._invalid_indexer('label', key)
-
-            elif kind in ['loc'] and is_integer(key):
-                if not self.holds_integer():
-                    return self._invalid_indexer('label', key)
-
-        return key
-
-    _index_shared_docs['_convert_slice_indexer'] = """
-        Convert a slice indexer.
-
-        By definition, these are labels unless 'iloc' is passed in.
-        Floats are not allowed as the start, step, or stop of the slice.
-
-        Parameters
-        ----------
-        key : label of the slice bound
-        kind : {'ix', 'loc', 'getitem', 'iloc'} or None
-    """
-
-    @Appender(_index_shared_docs['_convert_slice_indexer'])
-    def _convert_slice_indexer(self, key, kind=None):
-        assert kind in ['ix', 'loc', 'getitem', 'iloc', None]
-
-        # if we are not a slice, then we are done
-        if not isinstance(key, slice):
-            return key
-
-        # validate iloc
-        if kind == 'iloc':
-            return slice(self._validate_indexer('slice', key.start, kind),
-                         self._validate_indexer('slice', key.stop, kind),
-                         self._validate_indexer('slice', key.step, kind))
-
-        # potentially cast the bounds to integers
-        start, stop, step = key.start, key.stop, key.step
-
-        # figure out if this is a positional indexer
-        def is_int(v):
-            return v is None or is_integer(v)
-
-        is_null_slicer = start is None and stop is None
-        is_index_slice = is_int(start) and is_int(stop)
-        is_positional = is_index_slice and not self.is_integer()
-
-        if kind == 'getitem':
-            """
-            called from the getitem slicers, validate that we are in fact
-            integers
-            """
-            if self.is_integer() or is_index_slice:
-                return slice(self._validate_indexer('slice', key.start, kind),
-                             self._validate_indexer('slice', key.stop, kind),
-                             self._validate_indexer('slice', key.step, kind))
-
-        # convert the slice to an indexer here
-
-        # if we are mixed and have integers
-        try:
-            if is_positional and self.is_mixed():
-                # Validate start & stop
-                if start is not None:
-                    self.get_loc(start)
-                if stop is not None:
-                    self.get_loc(stop)
-                is_positional = False
-        except KeyError:
-            if self.inferred_type == 'mixed-integer-float':
-                raise
-
-        if is_null_slicer:
-            indexer = key
-        elif is_positional:
-            indexer = key
-        else:
-            try:
-                indexer = self.slice_indexer(start, stop, step, kind=kind)
-            except Exception:
-                if is_index_slice:
-                    if self.is_integer():
-                        raise
-                    else:
-                        indexer = key
-                else:
-                    raise
-
-        return indexer
-
-    def _convert_listlike_indexer(self, keyarr, kind=None):
-        """
-        Parameters
-        ----------
-        keyarr : list-like
-            Indexer to convert.
-
-        Returns
-        -------
-        tuple (indexer, keyarr)
-            indexer is an ndarray or None if cannot convert
-            keyarr are tuple-safe keys
-        """
-        if isinstance(keyarr, Index):
-            keyarr = self._convert_index_indexer(keyarr)
-        else:
-            keyarr = self._convert_arr_indexer(keyarr)
-
-        indexer = self._convert_list_indexer(keyarr, kind=kind)
-        return indexer, keyarr
-
-    _index_shared_docs['_convert_arr_indexer'] = """
-        Convert an array-like indexer to the appropriate dtype.
-
-        Parameters
-        ----------
-        keyarr : array-like
-            Indexer to convert.
-
-        Returns
-        -------
-        converted_keyarr : array-like
-    """
-
-    @Appender(_index_shared_docs['_convert_arr_indexer'])
-    def _convert_arr_indexer(self, keyarr):
-        keyarr = com.asarray_tuplesafe(keyarr)
-        return keyarr
-
-    _index_shared_docs['_convert_index_indexer'] = """
-        Convert an Index indexer to the appropriate dtype.
-
-        Parameters
-        ----------
-        keyarr : Index (or sub-class)
-            Indexer to convert.
-
-        Returns
-        -------
-        converted_keyarr : Index (or sub-class)
-    """
-
-    @Appender(_index_shared_docs['_convert_index_indexer'])
-    def _convert_index_indexer(self, keyarr):
-        return keyarr
-
-    _index_shared_docs['_convert_list_indexer'] = """
-        Convert a list-like indexer to the appropriate dtype.
-
-        Parameters
-        ----------
-        keyarr : Index (or sub-class)
-            Indexer to convert.
-        kind : iloc, ix, loc, optional
-
-        Returns
-        -------
-        positional indexer or None
-    """
-
-    @Appender(_index_shared_docs['_convert_list_indexer'])
-    def _convert_list_indexer(self, keyarr, kind=None):
-        if (kind in [None, 'iloc', 'ix'] and
-                is_integer_dtype(keyarr) and not self.is_floating() and
-                not isinstance(keyarr, ABCPeriodIndex)):
-
-            if self.inferred_type == 'mixed-integer':
-                indexer = self.get_indexer(keyarr)
-                if (indexer >= 0).all():
-                    return indexer
-                # missing values are flagged as -1 by get_indexer and negative
-                # indices are already converted to positive indices in the
-                # above if-statement, so the negative flags are changed to
-                # values outside the range of indices so as to trigger an
-                # IndexError in maybe_convert_indices
-                indexer[indexer < 0] = len(self)
-                from pandas.core.indexing import maybe_convert_indices
-                return maybe_convert_indices(indexer, len(self))
-
-            elif not self.inferred_type == 'integer':
-                keyarr = np.where(keyarr < 0, len(self) + keyarr, keyarr)
-                return keyarr
-
-        return None
-
-    def _invalid_indexer(self, form, key):
-        """
-        Consistent invalid indexer message.
-        """
-        raise TypeError("cannot do {form} indexing on {klass} with these "
-                        "indexers [{key}] of {kind}".format(
-                            form=form, klass=type(self), key=key,
-                            kind=type(key)))
-
-    # --------------------------------------------------------------------
-
-    def _is_memory_usage_qualified(self):
-        """
-        Return a boolean if we need a qualified .info display.
-        """
-        return self.is_object()
-
-    def is_type_compatible(self, kind):
-        return kind == self.inferred_type
-
-    _index_shared_docs['__contains__'] = """
-        Return a boolean if this key is IN the index.
-
-        Parameters
-        ----------
-        key : object
-
-        Returns
-        -------
-        boolean
-        """
-
-    @Appender(_index_shared_docs['__contains__'] % _index_doc_kwargs)
-    def __contains__(self, key):
-        hash(key)
-        try:
-            return key in self._engine
-        except (OverflowError, TypeError, ValueError):
-            return False
-
-    _index_shared_docs['contains'] = """
-        Return a boolean if this key is IN the index.
-
-        Parameters
-        ----------
-        key : object
-
-        Returns
-        -------
-        boolean
-        """
-
-    @Appender(_index_shared_docs['contains'] % _index_doc_kwargs)
-    def contains(self, key):
-        hash(key)
-        try:
-            return key in self._engine
-        except (TypeError, ValueError):
-            return False
-
-    def __hash__(self):
-        raise TypeError("unhashable type: %r" % type(self).__name__)
-
-    def __setitem__(self, key, value):
-        raise TypeError("Index does not support mutable operations")
-
-    def __getitem__(self, key):
-        """
-        Override numpy.ndarray's __getitem__ method to work as desired.
-
-        This function adds lists and Series as valid boolean indexers
-        (ndarrays only supports ndarray with dtype=bool).
-
-        If resulting ndim != 1, plain ndarray is returned instead of
-        corresponding `Index` subclass.
-
-        """
-        # There's no custom logic to be implemented in __getslice__, so it's
-        # not overloaded intentionally.
-        getitem = self._data.__getitem__
-        promote = self._shallow_copy
-
-        if is_scalar(key):
-            key = com.cast_scalar_indexer(key)
-            return getitem(key)
-
-        if isinstance(key, slice):
-            # This case is separated from the conditional above to avoid
-            # pessimization of basic indexing.
-            return promote(getitem(key))
-
-        if com.is_bool_indexer(key):
-            key = np.asarray(key, dtype=bool)
-
-        key = com.values_from_object(key)
-        result = getitem(key)
-        if not is_scalar(result):
-            return promote(result)
-        else:
-            return result
-
-    def _can_hold_identifiers_and_holds_name(self, name):
-        """
-        Faster check for ``name in self`` when we know `name` is a Python
-        identifier (e.g. in NDFrame.__getattr__, which hits this to support
-        . key lookup). For indexes that can't hold identifiers (everything
-        but object & categorical) we just return False.
-
-        https://github.com/pandas-dev/pandas/issues/19764
-        """
-        if self.is_object() or self.is_categorical():
-            return name in self
-        return False
-
-    def append(self, other):
-        """
-        Append a collection of Index options together.
-
-        Parameters
-        ----------
-        other : Index or list/tuple of indices
-
-        Returns
-        -------
-        appended : Index
-        """
-
-        to_concat = [self]
-
-        if isinstance(other, (list, tuple)):
-            to_concat = to_concat + list(other)
-        else:
-            to_concat.append(other)
-
-        for obj in to_concat:
-            if not isinstance(obj, Index):
-                raise TypeError('all inputs must be Index')
-
-        names = {obj.name for obj in to_concat}
-        name = None if len(names) > 1 else self.name
-
-        return self._concat(to_concat, name)
-
-    def _concat(self, to_concat, name):
-
-        typs = _concat.get_dtype_kinds(to_concat)
-
-        if len(typs) == 1:
-            return self._concat_same_dtype(to_concat, name=name)
-        return _concat._concat_index_asobject(to_concat, name=name)
-
-    def _concat_same_dtype(self, to_concat, name):
-        """
-        Concatenate to_concat which has the same class.
-        """
-        # must be overridden in specific classes
-        return _concat._concat_index_asobject(to_concat, name)
-
-    def putmask(self, mask, value):
-        """
-        Return a new Index of the values set with the mask.
-
-        See Also
-        --------
-        numpy.ndarray.putmask
-        """
-        values = self.values.copy()
-        try:
-            np.putmask(values, mask, self._convert_for_op(value))
-            return self._shallow_copy(values)
-        except (ValueError, TypeError) as err:
-            if is_object_dtype(self):
-                raise err
-
-            # coerces to object
-            return self.astype(object).putmask(mask, value)
-
-    def equals(self, other):
-        """
-        Determines if two Index objects contain the same elements.
-        """
-        if self.is_(other):
-            return True
-
-        if not isinstance(other, Index):
-            return False
-
-        if is_object_dtype(self) and not is_object_dtype(other):
-            # if other is not object, use other's logic for coercion
-            return other.equals(self)
-
-        try:
-            return array_equivalent(com.values_from_object(self),
-                                    com.values_from_object(other))
-        except Exception:
-            return False
-
-    def identical(self, other):
-        """
-        Similar to equals, but check that other comparable attributes are
-        also equal.
-        """
-        return (self.equals(other) and
-                all((getattr(self, c, None) == getattr(other, c, None)
-                     for c in self._comparables)) and
-                type(self) == type(other))
-
-    def asof(self, label):
-        """
-        Return the label from the index, or, if not present, the previous one.
-
-        Assuming that the index is sorted, return the passed index label if it
-        is in the index, or return the previous index label if the passed one
-        is not in the index.
-
-        Parameters
-        ----------
-        label : object
-            The label up to which the method returns the latest index label.
-
-        Returns
-        -------
-        object
-            The passed label if it is in the index. The previous label if the
-            passed label is not in the sorted index or `NaN` if there is no
-            such label.
-
-        See Also
-        --------
-        Series.asof : Return the latest value in a Series up to the
-            passed index.
-        merge_asof : Perform an asof merge (similar to left join but it
-            matches on nearest key rather than equal key).
-        Index.get_loc : An `asof` is a thin wrapper around `get_loc`
-            with method='pad'.
-
-        Examples
-        --------
-        `Index.asof` returns the latest index label up to the passed label.
-
-        >>> idx = pd.Index(['2013-12-31', '2014-01-02', '2014-01-03'])
-        >>> idx.asof('2014-01-01')
-        '2013-12-31'
-
-        If the label is in the index, the method returns the passed label.
-
-        >>> idx.asof('2014-01-02')
-        '2014-01-02'
-
-        If all of the labels in the index are later than the passed label,
-        NaN is returned.
-
-        >>> idx.asof('1999-01-02')
-        nan
-
-        If the index is not sorted, an error is raised.
-
-        >>> idx_not_sorted = pd.Index(['2013-12-31', '2015-01-02',
-        ...                            '2014-01-03'])
-        >>> idx_not_sorted.asof('2013-12-31')
-        Traceback (most recent call last):
-        ValueError: index must be monotonic increasing or decreasing
-        """
-        try:
-            loc = self.get_loc(label, method='pad')
-        except KeyError:
-            return self._na_value
-        else:
-            if isinstance(loc, slice):
-                loc = loc.indices(len(self))[-1]
-            return self[loc]
-
-    def asof_locs(self, where, mask):
-        """
-        Finds the locations (indices) of the labels from the index for
-        every entry in the `where` argument.
-
-        As in the `asof` function, if the label (a particular entry in
-        `where`) is not in the index, the latest index label upto the
-        passed label is chosen and its index returned.
-
-        If all of the labels in the index are later than a label in `where`,
-        -1 is returned.
-
-        `mask` is used to ignore NA values in the index during calculation.
-
-        Parameters
-        ----------
-        where : Index
-            An Index consisting of an array of timestamps.
-        mask : array-like
-            Array of booleans denoting where values in the original
-            data are not NA.
-
-        Returns
-        -------
-        numpy.ndarray
-            An array of locations (indices) of the labels from the Index
-            which correspond to the return values of the `asof` function
-            for every element in `where`.
-        """
-        locs = self.values[mask].searchsorted(where.values, side='right')
-        locs = np.where(locs > 0, locs - 1, 0)
-
-        result = np.arange(len(self))[mask].take(locs)
-
-        first = mask.argmax()
-        result[(locs == 0) & (where.values < self.values[first])] = -1
-
-        return result
-
-    def sort_values(self, return_indexer=False, ascending=True):
-        """
-        Return a sorted copy of the index.
-
-        Return a sorted copy of the index, and optionally return the indices
-        that sorted the index itself.
-
-        Parameters
-        ----------
-        return_indexer : bool, default False
-            Should the indices that would sort the index be returned.
-        ascending : bool, default True
-            Should the index values be sorted in an ascending order.
-
-        Returns
-        -------
-        sorted_index : pandas.Index
-            Sorted copy of the index.
-        indexer : numpy.ndarray, optional
-            The indices that the index itself was sorted by.
-
-        See Also
-        --------
-        pandas.Series.sort_values : Sort values of a Series.
-        pandas.DataFrame.sort_values : Sort values in a DataFrame.
-
-        Examples
-        --------
-        >>> idx = pd.Index([10, 100, 1, 1000])
-        >>> idx
-        Int64Index([10, 100, 1, 1000], dtype='int64')
-
-        Sort values in ascending order (default behavior).
-
-        >>> idx.sort_values()
-        Int64Index([1, 10, 100, 1000], dtype='int64')
-
-        Sort values in descending order, and also get the indices `idx` was
-        sorted by.
-
-        >>> idx.sort_values(ascending=False, return_indexer=True)
-        (Int64Index([1000, 100, 10, 1], dtype='int64'), array([3, 1, 0, 2]))
-        """
-        _as = self.argsort()
-        if not ascending:
-            _as = _as[::-1]
-
-        sorted_index = self.take(_as)
-
-        if return_indexer:
-            return sorted_index, _as
-        else:
-            return sorted_index
-
-    def sort(self, *args, **kwargs):
-        raise TypeError("cannot sort an Index object in-place, use "
-                        "sort_values instead")
-
-    def shift(self, periods=1, freq=None):
-        """
-        Shift index by desired number of time frequency increments.
-
-        This method is for shifting the values of datetime-like indexes
-        by a specified time increment a given number of times.
-
-        Parameters
-        ----------
-        periods : int, default 1
-            Number of periods (or increments) to shift by,
-            can be positive or negative.
-        freq : pandas.DateOffset, pandas.Timedelta or string, optional
-            Frequency increment to shift by.
-            If None, the index is shifted by its own `freq` attribute.
-            Offset aliases are valid strings, e.g., 'D', 'W', 'M' etc.
-
-        Returns
-        -------
-        pandas.Index
-            shifted index
-
-        See Also
-        --------
-        Series.shift : Shift values of Series.
-
-        Examples
-        --------
-        Put the first 5 month starts of 2011 into an index.
-
-        >>> month_starts = pd.date_range('1/1/2011', periods=5, freq='MS')
-        >>> month_starts
-        DatetimeIndex(['2011-01-01', '2011-02-01', '2011-03-01', '2011-04-01',
-                       '2011-05-01'],
-                      dtype='datetime64[ns]', freq='MS')
-
-        Shift the index by 10 days.
-
-        >>> month_starts.shift(10, freq='D')
-        DatetimeIndex(['2011-01-11', '2011-02-11', '2011-03-11', '2011-04-11',
-                       '2011-05-11'],
-                      dtype='datetime64[ns]', freq=None)
-
-        The default value of `freq` is the `freq` attribute of the index,
-        which is 'MS' (month start) in this example.
-
-        >>> month_starts.shift(10)
-        DatetimeIndex(['2011-11-01', '2011-12-01', '2012-01-01', '2012-02-01',
-                       '2012-03-01'],
-                      dtype='datetime64[ns]', freq='MS')
-
-        Notes
-        -----
-        This method is only implemented for datetime-like index classes,
-        i.e., DatetimeIndex, PeriodIndex and TimedeltaIndex.
-        """
-        raise NotImplementedError("Not supported for type %s" %
-                                  type(self).__name__)
-
-    def argsort(self, *args, **kwargs):
-        """
-        Return the integer indices that would sort the index.
-
-        Parameters
-        ----------
-        *args
-            Passed to `numpy.ndarray.argsort`.
-        **kwargs
-            Passed to `numpy.ndarray.argsort`.
-
-        Returns
-        -------
-        numpy.ndarray
-            Integer indices that would sort the index if used as
-            an indexer.
-
-        See Also
-        --------
-        numpy.argsort : Similar method for NumPy arrays.
-        Index.sort_values : Return sorted copy of Index.
-
-        Examples
-        --------
-        >>> idx = pd.Index(['b', 'a', 'd', 'c'])
-        >>> idx
-        Index(['b', 'a', 'd', 'c'], dtype='object')
-
-        >>> order = idx.argsort()
-        >>> order
-        array([1, 0, 3, 2])
-
-        >>> idx[order]
-        Index(['a', 'b', 'c', 'd'], dtype='object')
-        """
-        result = self.asi8
-        if result is None:
-            result = np.array(self)
-        return result.argsort(*args, **kwargs)
-
-    # --------------------------------------------------------------------
     # Arithmetic & Logical Methods
 
     def __add__(self, other):
@@ -3714,292 +2772,236 @@ class Index(IndexOpsMixin, PandasObject):
         return indexer
 
     # --------------------------------------------------------------------
+    # Indexer Conversion Methods
 
-    def get_value(self, series, key):
-        """
-        Fast lookup of value from 1-dimensional ndarray. Only use this if you
-        know what you're doing.
-        """
-
-        # if we have something that is Index-like, then
-        # use this, e.g. DatetimeIndex
-        s = getattr(series, '_values', None)
-        if isinstance(s, (ExtensionArray, Index)) and is_scalar(key):
-            # GH 20882, 21257
-            # Unify Index and ExtensionArray treatment
-            # First try to convert the key to a location
-            # If that fails, raise a KeyError if an integer
-            # index, otherwise, see if key is an integer, and
-            # try that
-            try:
-                iloc = self.get_loc(key)
-                return s[iloc]
-            except KeyError:
-                if (len(self) > 0 and
-                        (self.holds_integer() or self.is_boolean())):
-                    raise
-                elif is_integer(key):
-                    return s[key]
-
-        s = com.values_from_object(series)
-        k = com.values_from_object(key)
-
-        k = self._convert_scalar_indexer(k, kind='getitem')
-        try:
-            return self._engine.get_value(s, k,
-                                          tz=getattr(series.dtype, 'tz', None))
-        except KeyError as e1:
-            if len(self) > 0 and (self.holds_integer() or self.is_boolean()):
-                raise
-
-            try:
-                return libindex.get_value_box(s, key)
-            except IndexError:
-                raise
-            except TypeError:
-                # generator/iterator-like
-                if is_iterator(key):
-                    raise InvalidIndexError(key)
-                else:
-                    raise e1
-            except Exception:  # pragma: no cover
-                raise e1
-        except TypeError:
-            # python 3
-            if is_scalar(key):  # pragma: no cover
-                raise IndexError(key)
-            raise InvalidIndexError(key)
-
-    def set_value(self, arr, key, value):
-        """
-        Fast lookup of value from 1-dimensional ndarray.
-
-        Notes
-        -----
-        Only use this if you know what you're doing.
-        """
-        self._engine.set_value(com.values_from_object(arr),
-                               com.values_from_object(key), value)
-
-    _index_shared_docs['get_indexer_non_unique'] = """
-        Compute indexer and mask for new index given the current index. The
-        indexer should be then used as an input to ndarray.take to align the
-        current data to the new index.
+    _index_shared_docs['_convert_scalar_indexer'] = """
+        Convert a scalar indexer.
 
         Parameters
         ----------
-        target : %(target_klass)s
+        key : label of the slice bound
+        kind : {'ix', 'loc', 'getitem', 'iloc'} or None
+    """
 
-        Returns
-        -------
-        indexer : ndarray of int
-            Integers from 0 to n - 1 indicating that the index at these
-            positions matches the corresponding target values. Missing values
-            in the target are marked by -1.
-        missing : ndarray of int
-            An indexer into the target of the values not found.
-            These correspond to the -1 in the indexer array
-        """
+    @Appender(_index_shared_docs['_convert_scalar_indexer'])
+    def _convert_scalar_indexer(self, key, kind=None):
+        assert kind in ['ix', 'loc', 'getitem', 'iloc', None]
 
-    @Appender(_index_shared_docs['get_indexer_non_unique'] % _index_doc_kwargs)
-    def get_indexer_non_unique(self, target):
-        target = ensure_index(target)
-        if is_categorical(target):
-            target = target.astype(target.dtype.categories.dtype)
-        pself, ptarget = self._maybe_promote(target)
-        if pself is not self or ptarget is not target:
-            return pself.get_indexer_non_unique(ptarget)
+        if kind == 'iloc':
+            return self._validate_indexer('positional', key, kind)
 
-        if self.is_all_dates:
-            self = Index(self.asi8)
-            tgt_values = target.asi8
+        if len(self) and not isinstance(self, ABCMultiIndex,):
+
+            # we can raise here if we are definitive that this
+            # is positional indexing (eg. .ix on with a float)
+            # or label indexing if we are using a type able
+            # to be represented in the index
+
+            if kind in ['getitem', 'ix'] and is_float(key):
+                if not self.is_floating():
+                    return self._invalid_indexer('label', key)
+
+            elif kind in ['loc'] and is_float(key):
+
+                # we want to raise KeyError on string/mixed here
+                # technically we *could* raise a TypeError
+                # on anything but mixed though
+                if self.inferred_type not in ['floating',
+                                              'mixed-integer-float',
+                                              'string',
+                                              'unicode',
+                                              'mixed']:
+                    return self._invalid_indexer('label', key)
+
+            elif kind in ['loc'] and is_integer(key):
+                if not self.holds_integer():
+                    return self._invalid_indexer('label', key)
+
+        return key
+
+    _index_shared_docs['_convert_slice_indexer'] = """
+        Convert a slice indexer.
+
+        By definition, these are labels unless 'iloc' is passed in.
+        Floats are not allowed as the start, step, or stop of the slice.
+
+        Parameters
+        ----------
+        key : label of the slice bound
+        kind : {'ix', 'loc', 'getitem', 'iloc'} or None
+    """
+
+    @Appender(_index_shared_docs['_convert_slice_indexer'])
+    def _convert_slice_indexer(self, key, kind=None):
+        assert kind in ['ix', 'loc', 'getitem', 'iloc', None]
+
+        # if we are not a slice, then we are done
+        if not isinstance(key, slice):
+            return key
+
+        # validate iloc
+        if kind == 'iloc':
+            return slice(self._validate_indexer('slice', key.start, kind),
+                         self._validate_indexer('slice', key.stop, kind),
+                         self._validate_indexer('slice', key.step, kind))
+
+        # potentially cast the bounds to integers
+        start, stop, step = key.start, key.stop, key.step
+
+        # figure out if this is a positional indexer
+        def is_int(v):
+            return v is None or is_integer(v)
+
+        is_null_slicer = start is None and stop is None
+        is_index_slice = is_int(start) and is_int(stop)
+        is_positional = is_index_slice and not self.is_integer()
+
+        if kind == 'getitem':
+            """
+            called from the getitem slicers, validate that we are in fact
+            integers
+            """
+            if self.is_integer() or is_index_slice:
+                return slice(self._validate_indexer('slice', key.start, kind),
+                             self._validate_indexer('slice', key.stop, kind),
+                             self._validate_indexer('slice', key.step, kind))
+
+        # convert the slice to an indexer here
+
+        # if we are mixed and have integers
+        try:
+            if is_positional and self.is_mixed():
+                # Validate start & stop
+                if start is not None:
+                    self.get_loc(start)
+                if stop is not None:
+                    self.get_loc(stop)
+                is_positional = False
+        except KeyError:
+            if self.inferred_type == 'mixed-integer-float':
+                raise
+
+        if is_null_slicer:
+            indexer = key
+        elif is_positional:
+            indexer = key
         else:
-            tgt_values = target._ndarray_values
+            try:
+                indexer = self.slice_indexer(start, stop, step, kind=kind)
+            except Exception:
+                if is_index_slice:
+                    if self.is_integer():
+                        raise
+                    else:
+                        indexer = key
+                else:
+                    raise
 
-        indexer, missing = self._engine.get_indexer_non_unique(tgt_values)
-        return ensure_platform_int(indexer), missing
-
-    def get_indexer_for(self, target, **kwargs):
-        """
-        Guaranteed return of an indexer even when non-unique.
-
-        This dispatches to get_indexer or get_indexer_nonunique
-        as appropriate.
-        """
-        if self.is_unique:
-            return self.get_indexer(target, **kwargs)
-        indexer, _ = self.get_indexer_non_unique(target, **kwargs)
         return indexer
 
-    def _maybe_promote(self, other):
-        # A hack, but it works
-        from pandas import DatetimeIndex
-        if self.inferred_type == 'date' and isinstance(other, DatetimeIndex):
-            return DatetimeIndex(self), other
-        elif self.inferred_type == 'boolean':
-            if not is_object_dtype(self.dtype):
-                return self.astype('object'), other.astype('object')
-        return self, other
-
-    def groupby(self, values):
+    def _convert_listlike_indexer(self, keyarr, kind=None):
         """
-        Group the index labels by a given array of values.
-
         Parameters
         ----------
-        values : array
-            Values used to determine the groups.
+        keyarr : list-like
+            Indexer to convert.
 
         Returns
         -------
-        groups : dict
-            {group name -> group labels}
+        tuple (indexer, keyarr)
+            indexer is an ndarray or None if cannot convert
+            keyarr are tuple-safe keys
         """
+        if isinstance(keyarr, Index):
+            keyarr = self._convert_index_indexer(keyarr)
+        else:
+            keyarr = self._convert_arr_indexer(keyarr)
 
-        # TODO: if we are a MultiIndex, we can do better
-        # that converting to tuples
-        from .multi import MultiIndex
-        if isinstance(values, MultiIndex):
-            values = values.values
-        values = ensure_categorical(values)
-        result = values._reverse_indexer()
+        indexer = self._convert_list_indexer(keyarr, kind=kind)
+        return indexer, keyarr
 
-        # map to the label
-        result = {k: self.take(v) for k, v in compat.iteritems(result)}
-
-        return result
-
-    def map(self, mapper, na_action=None):
-        """
-        Map values using input correspondence (a dict, Series, or function).
+    _index_shared_docs['_convert_arr_indexer'] = """
+        Convert an array-like indexer to the appropriate dtype.
 
         Parameters
         ----------
-        mapper : function, dict, or Series
-            Mapping correspondence.
-        na_action : {None, 'ignore'}
-            If 'ignore', propagate NA values, without passing them to the
-            mapping correspondence.
+        keyarr : array-like
+            Indexer to convert.
 
         Returns
         -------
-        applied : Union[Index, MultiIndex], inferred
-            The output of the mapping function applied to the index.
-            If the function returns a tuple with more than one element
-            a MultiIndex will be returned.
-        """
+        converted_keyarr : array-like
+    """
 
-        from .multi import MultiIndex
-        new_values = super(Index, self)._map_values(
-            mapper, na_action=na_action)
+    @Appender(_index_shared_docs['_convert_arr_indexer'])
+    def _convert_arr_indexer(self, keyarr):
+        keyarr = com.asarray_tuplesafe(keyarr)
+        return keyarr
 
-        attributes = self._get_attributes_dict()
-
-        # we can return a MultiIndex
-        if new_values.size and isinstance(new_values[0], tuple):
-            if isinstance(self, MultiIndex):
-                names = self.names
-            elif attributes.get('name'):
-                names = [attributes.get('name')] * len(new_values[0])
-            else:
-                names = None
-            return MultiIndex.from_tuples(new_values,
-                                          names=names)
-
-        attributes['copy'] = False
-        if not new_values.size:
-            # empty
-            attributes['dtype'] = self.dtype
-
-        return Index(new_values, **attributes)
-
-    def isin(self, values, level=None):
-        """
-        Return a boolean array where the index values are in `values`.
-
-        Compute boolean array of whether each index value is found in the
-        passed set of values. The length of the returned boolean array matches
-        the length of the index.
+    _index_shared_docs['_convert_index_indexer'] = """
+        Convert an Index indexer to the appropriate dtype.
 
         Parameters
         ----------
-        values : set or list-like
-            Sought values.
-
-            .. versionadded:: 0.18.1
-
-               Support for values as a set.
-
-        level : str or int, optional
-            Name or position of the index level to use (if the index is a
-            `MultiIndex`).
+        keyarr : Index (or sub-class)
+            Indexer to convert.
 
         Returns
         -------
-        is_contained : ndarray
-            NumPy array of boolean values.
+        converted_keyarr : Index (or sub-class)
+    """
 
-        See Also
-        --------
-        Series.isin : Same for Series.
-        DataFrame.isin : Same method for DataFrames.
+    @Appender(_index_shared_docs['_convert_index_indexer'])
+    def _convert_index_indexer(self, keyarr):
+        return keyarr
 
-        Notes
-        -----
-        In the case of `MultiIndex` you must either specify `values` as a
-        list-like object containing tuples that are the same length as the
-        number of levels, or specify `level`. Otherwise it will raise a
-        ``ValueError``.
+    _index_shared_docs['_convert_list_indexer'] = """
+        Convert a list-like indexer to the appropriate dtype.
 
-        If `level` is specified:
+        Parameters
+        ----------
+        keyarr : Index (or sub-class)
+            Indexer to convert.
+        kind : iloc, ix, loc, optional
 
-        - if it is the name of one *and only one* index level, use that level;
-        - otherwise it should be a number indicating level position.
+        Returns
+        -------
+        positional indexer or None
+    """
 
-        Examples
-        --------
-        >>> idx = pd.Index([1,2,3])
-        >>> idx
-        Int64Index([1, 2, 3], dtype='int64')
+    @Appender(_index_shared_docs['_convert_list_indexer'])
+    def _convert_list_indexer(self, keyarr, kind=None):
+        if (kind in [None, 'iloc', 'ix'] and
+                is_integer_dtype(keyarr) and not self.is_floating() and
+                not isinstance(keyarr, ABCPeriodIndex)):
 
-        Check whether each index value in a list of values.
-        >>> idx.isin([1, 4])
-        array([ True, False, False])
+            if self.inferred_type == 'mixed-integer':
+                indexer = self.get_indexer(keyarr)
+                if (indexer >= 0).all():
+                    return indexer
+                # missing values are flagged as -1 by get_indexer and negative
+                # indices are already converted to positive indices in the
+                # above if-statement, so the negative flags are changed to
+                # values outside the range of indices so as to trigger an
+                # IndexError in maybe_convert_indices
+                indexer[indexer < 0] = len(self)
+                from pandas.core.indexing import maybe_convert_indices
+                return maybe_convert_indices(indexer, len(self))
 
-        >>> midx = pd.MultiIndex.from_arrays([[1,2,3],
-        ...                                  ['red', 'blue', 'green']],
-        ...                                  names=('number', 'color'))
-        >>> midx
-        MultiIndex(levels=[[1, 2, 3], ['blue', 'green', 'red']],
-                   labels=[[0, 1, 2], [2, 0, 1]],
-                   names=['number', 'color'])
+            elif not self.inferred_type == 'integer':
+                keyarr = np.where(keyarr < 0, len(self) + keyarr, keyarr)
+                return keyarr
 
-        Check whether the strings in the 'color' level of the MultiIndex
-        are in a list of colors.
+        return None
 
-        >>> midx.isin(['red', 'orange', 'yellow'], level='color')
-        array([ True, False, False])
-
-        To check across the levels of a MultiIndex, pass a list of tuples:
-
-        >>> midx.isin([(1, 'red'), (3, 'red')])
-        array([ True, False, False])
-
-        For a DatetimeIndex, string values in `values` are converted to
-        Timestamps.
-
-        >>> dates = ['2000-03-11', '2000-03-12', '2000-03-13']
-        >>> dti = pd.to_datetime(dates)
-        >>> dti
-        DatetimeIndex(['2000-03-11', '2000-03-12', '2000-03-13'],
-        dtype='datetime64[ns]', freq=None)
-
-        >>> dti.isin(['2000-03-11'])
-        array([ True, False, False])
+    def _invalid_indexer(self, form, key):
         """
-        if level is not None:
-            self._validate_index_level(level)
-        return algos.isin(self, values)
+        Consistent invalid indexer message.
+        """
+        raise TypeError("cannot do {form} indexing on {klass} with these "
+                        "indexers [{key}] of {kind}".format(
+                            form=form, klass=type(self), key=key,
+                            kind=type(key)))
 
     # --------------------------------------------------------------------
     # Reindex Methods
@@ -4535,6 +3537,997 @@ class Index(IndexOpsMixin, PandasObject):
         return Index(joined, name=name)
 
     # --------------------------------------------------------------------
+    # Uncategorized Methods
+
+    @property
+    def values(self):
+        """
+        Return the underlying data as an ndarray.
+        """
+        return self._data.view(np.ndarray)
+
+    @property
+    def _values(self):
+        # type: () -> Union[ExtensionArray, Index, np.ndarray]
+        # TODO(EA): remove index types as they become extension arrays
+        """
+        The best array representation.
+
+        This is an ndarray, ExtensionArray, or Index subclass. This differs
+        from ``_ndarray_values``, which always returns an ndarray.
+
+        Both ``_values`` and ``_ndarray_values`` are consistent between
+        ``Series`` and ``Index``.
+
+        It may differ from the public '.values' method.
+
+        index             | values          | _values       | _ndarray_values |
+        ----------------- | --------------- | ------------- | --------------- |
+        Index             | ndarray         | ndarray       | ndarray         |
+        CategoricalIndex  | Categorical     | Categorical   | ndarray[int]    |
+        DatetimeIndex     | ndarray[M8ns]   | ndarray[M8ns] | ndarray[M8ns]   |
+        DatetimeIndex[tz] | ndarray[M8ns]   | DTI[tz]       | ndarray[M8ns]   |
+        PeriodIndex       | ndarray[object] | PeriodArray   | ndarray[int]    |
+        IntervalIndex     | IntervalArray   | IntervalArray | ndarray[object] |
+
+        See Also
+        --------
+        values
+        _ndarray_values
+        """
+        return self.values
+
+    def get_values(self):
+        """
+        Return `Index` data as an `numpy.ndarray`.
+
+        Returns
+        -------
+        numpy.ndarray
+            A one-dimensional numpy array of the `Index` values.
+
+        See Also
+        --------
+        Index.values : The attribute that get_values wraps.
+
+        Examples
+        --------
+        Getting the `Index` values of a `DataFrame`:
+
+        >>> df = pd.DataFrame([[1, 2, 3], [4, 5, 6], [7, 8, 9]],
+        ...                    index=['a', 'b', 'c'], columns=['A', 'B', 'C'])
+        >>> df
+           A  B  C
+        a  1  2  3
+        b  4  5  6
+        c  7  8  9
+        >>> df.index.get_values()
+        array(['a', 'b', 'c'], dtype=object)
+
+        Standalone `Index` values:
+
+        >>> idx = pd.Index(['1', '2', '3'])
+        >>> idx.get_values()
+        array(['1', '2', '3'], dtype=object)
+
+        `MultiIndex` arrays also have only one dimension:
+
+        >>> midx = pd.MultiIndex.from_arrays([[1, 2, 3], ['a', 'b', 'c']],
+        ...                                  names=('number', 'letter'))
+        >>> midx.get_values()
+        array([(1, 'a'), (2, 'b'), (3, 'c')], dtype=object)
+        >>> midx.get_values().ndim
+        1
+        """
+        return self.values
+
+    @Appender(IndexOpsMixin.memory_usage.__doc__)
+    def memory_usage(self, deep=False):
+        result = super(Index, self).memory_usage(deep=deep)
+
+        # include our engine hashtable
+        result += self._engine.sizeof(deep=deep)
+        return result
+
+    _index_shared_docs['where'] = """
+        Return an Index of same shape as self and whose corresponding
+        entries are from self where cond is True and otherwise are from
+        other.
+
+        .. versionadded:: 0.19.0
+
+        Parameters
+        ----------
+        cond : boolean array-like with the same length as self
+        other : scalar, or array-like
+        """
+
+    @Appender(_index_shared_docs['where'])
+    def where(self, cond, other=None):
+        if other is None:
+            other = self._na_value
+
+        dtype = self.dtype
+        values = self.values
+
+        if is_bool(other) or is_bool_dtype(other):
+
+            # bools force casting
+            values = values.astype(object)
+            dtype = None
+
+        values = np.where(cond, values, other)
+
+        if self._is_numeric_dtype and np.any(isna(values)):
+            # We can't coerce to the numeric dtype of "self" (unless
+            # it's float) if there are NaN values in our output.
+            dtype = None
+
+        return self._shallow_copy_with_infer(values, dtype=dtype)
+
+    # construction helpers
+    @classmethod
+    def _try_convert_to_int_index(cls, data, copy, name, dtype):
+        """
+        Attempt to convert an array of data into an integer index.
+
+        Parameters
+        ----------
+        data : The data to convert.
+        copy : Whether to copy the data or not.
+        name : The name of the index returned.
+
+        Returns
+        -------
+        int_index : data converted to either an Int64Index or a
+                    UInt64Index
+
+        Raises
+        ------
+        ValueError if the conversion was not successful.
+        """
+
+        from .numeric import Int64Index, UInt64Index
+        if not is_unsigned_integer_dtype(dtype):
+            # skip int64 conversion attempt if uint-like dtype is passed, as
+            # this could return Int64Index when UInt64Index is what's desrired
+            try:
+                res = data.astype('i8', copy=False)
+                if (res == data).all():
+                    return Int64Index(res, copy=copy, name=name)
+            except (OverflowError, TypeError, ValueError):
+                pass
+
+        # Conversion to int64 failed (possibly due to overflow) or was skipped,
+        # so let's try now with uint64.
+        try:
+            res = data.astype('u8', copy=False)
+            if (res == data).all():
+                return UInt64Index(res, copy=copy, name=name)
+        except (OverflowError, TypeError, ValueError):
+            pass
+
+        raise ValueError
+
+    @classmethod
+    def _scalar_data_error(cls, data):
+        raise TypeError('{0}(...) must be called with a collection of some '
+                        'kind, {1} was passed'.format(cls.__name__,
+                                                      repr(data)))
+
+    @classmethod
+    def _string_data_error(cls, data):
+        raise TypeError('String dtype not supported, you may need '
+                        'to explicitly cast to a numeric type')
+
+    @classmethod
+    def _coerce_to_ndarray(cls, data):
+        """
+        Coerces data to ndarray.
+
+        Converts other iterables to list first and then to array.
+        Does not touch ndarrays.
+
+        Raises
+        ------
+        TypeError
+            When the data passed in is a scalar.
+        """
+
+        if not isinstance(data, (np.ndarray, Index)):
+            if data is None or is_scalar(data):
+                cls._scalar_data_error(data)
+
+            # other iterable of some kind
+            if not isinstance(data, (ABCSeries, list, tuple)):
+                data = list(data)
+            data = np.asarray(data)
+        return data
+
+    def _coerce_scalar_to_index(self, item):
+        """
+        We need to coerce a scalar to a compat for our index type.
+
+        Parameters
+        ----------
+        item : scalar item to coerce
+        """
+        dtype = self.dtype
+
+        if self._is_numeric_dtype and isna(item):
+            # We can't coerce to the numeric dtype of "self" (unless
+            # it's float) if there are NaN values in our output.
+            dtype = None
+
+        return Index([item], dtype=dtype, **self._get_attributes_dict())
+
+    def _to_safe_for_reshape(self):
+        """
+        Convert to object if we are a categorical.
+        """
+        return self
+
+    def _convert_for_op(self, value):
+        """
+        Convert value to be insertable to ndarray.
+        """
+        return value
+
+    def _assert_can_do_op(self, value):
+        """
+        Check value is valid for scalar op.
+        """
+        if not is_scalar(value):
+            msg = "'value' must be a scalar, passed: {0}"
+            raise TypeError(msg.format(type(value).__name__))
+
+    @property
+    def _has_complex_internals(self):
+        # to disable groupby tricks in MultiIndex
+        return False
+
+    def _is_memory_usage_qualified(self):
+        """
+        Return a boolean if we need a qualified .info display.
+        """
+        return self.is_object()
+
+    def is_type_compatible(self, kind):
+        return kind == self.inferred_type
+
+    _index_shared_docs['__contains__'] = """
+        Return a boolean if this key is IN the index.
+
+        Parameters
+        ----------
+        key : object
+
+        Returns
+        -------
+        boolean
+        """
+
+    @Appender(_index_shared_docs['__contains__'] % _index_doc_kwargs)
+    def __contains__(self, key):
+        hash(key)
+        try:
+            return key in self._engine
+        except (OverflowError, TypeError, ValueError):
+            return False
+
+    _index_shared_docs['contains'] = """
+        Return a boolean if this key is IN the index.
+
+        Parameters
+        ----------
+        key : object
+
+        Returns
+        -------
+        boolean
+        """
+
+    @Appender(_index_shared_docs['contains'] % _index_doc_kwargs)
+    def contains(self, key):
+        hash(key)
+        try:
+            return key in self._engine
+        except (TypeError, ValueError):
+            return False
+
+    def __hash__(self):
+        raise TypeError("unhashable type: %r" % type(self).__name__)
+
+    def __setitem__(self, key, value):
+        raise TypeError("Index does not support mutable operations")
+
+    def __getitem__(self, key):
+        """
+        Override numpy.ndarray's __getitem__ method to work as desired.
+
+        This function adds lists and Series as valid boolean indexers
+        (ndarrays only supports ndarray with dtype=bool).
+
+        If resulting ndim != 1, plain ndarray is returned instead of
+        corresponding `Index` subclass.
+
+        """
+        # There's no custom logic to be implemented in __getslice__, so it's
+        # not overloaded intentionally.
+        getitem = self._data.__getitem__
+        promote = self._shallow_copy
+
+        if is_scalar(key):
+            key = com.cast_scalar_indexer(key)
+            return getitem(key)
+
+        if isinstance(key, slice):
+            # This case is separated from the conditional above to avoid
+            # pessimization of basic indexing.
+            return promote(getitem(key))
+
+        if com.is_bool_indexer(key):
+            key = np.asarray(key, dtype=bool)
+
+        key = com.values_from_object(key)
+        result = getitem(key)
+        if not is_scalar(result):
+            return promote(result)
+        else:
+            return result
+
+    def _can_hold_identifiers_and_holds_name(self, name):
+        """
+        Faster check for ``name in self`` when we know `name` is a Python
+        identifier (e.g. in NDFrame.__getattr__, which hits this to support
+        . key lookup). For indexes that can't hold identifiers (everything
+        but object & categorical) we just return False.
+
+        https://github.com/pandas-dev/pandas/issues/19764
+        """
+        if self.is_object() or self.is_categorical():
+            return name in self
+        return False
+
+    def append(self, other):
+        """
+        Append a collection of Index options together.
+
+        Parameters
+        ----------
+        other : Index or list/tuple of indices
+
+        Returns
+        -------
+        appended : Index
+        """
+
+        to_concat = [self]
+
+        if isinstance(other, (list, tuple)):
+            to_concat = to_concat + list(other)
+        else:
+            to_concat.append(other)
+
+        for obj in to_concat:
+            if not isinstance(obj, Index):
+                raise TypeError('all inputs must be Index')
+
+        names = {obj.name for obj in to_concat}
+        name = None if len(names) > 1 else self.name
+
+        return self._concat(to_concat, name)
+
+    def _concat(self, to_concat, name):
+
+        typs = _concat.get_dtype_kinds(to_concat)
+
+        if len(typs) == 1:
+            return self._concat_same_dtype(to_concat, name=name)
+        return _concat._concat_index_asobject(to_concat, name=name)
+
+    def _concat_same_dtype(self, to_concat, name):
+        """
+        Concatenate to_concat which has the same class.
+        """
+        # must be overridden in specific classes
+        return _concat._concat_index_asobject(to_concat, name)
+
+    def putmask(self, mask, value):
+        """
+        Return a new Index of the values set with the mask.
+
+        See Also
+        --------
+        numpy.ndarray.putmask
+        """
+        values = self.values.copy()
+        try:
+            np.putmask(values, mask, self._convert_for_op(value))
+            return self._shallow_copy(values)
+        except (ValueError, TypeError) as err:
+            if is_object_dtype(self):
+                raise err
+
+            # coerces to object
+            return self.astype(object).putmask(mask, value)
+
+    def equals(self, other):
+        """
+        Determines if two Index objects contain the same elements.
+        """
+        if self.is_(other):
+            return True
+
+        if not isinstance(other, Index):
+            return False
+
+        if is_object_dtype(self) and not is_object_dtype(other):
+            # if other is not object, use other's logic for coercion
+            return other.equals(self)
+
+        try:
+            return array_equivalent(com.values_from_object(self),
+                                    com.values_from_object(other))
+        except Exception:
+            return False
+
+    def identical(self, other):
+        """
+        Similar to equals, but check that other comparable attributes are
+        also equal.
+        """
+        return (self.equals(other) and
+                all((getattr(self, c, None) == getattr(other, c, None)
+                     for c in self._comparables)) and
+                type(self) == type(other))
+
+    def asof(self, label):
+        """
+        Return the label from the index, or, if not present, the previous one.
+
+        Assuming that the index is sorted, return the passed index label if it
+        is in the index, or return the previous index label if the passed one
+        is not in the index.
+
+        Parameters
+        ----------
+        label : object
+            The label up to which the method returns the latest index label.
+
+        Returns
+        -------
+        object
+            The passed label if it is in the index. The previous label if the
+            passed label is not in the sorted index or `NaN` if there is no
+            such label.
+
+        See Also
+        --------
+        Series.asof : Return the latest value in a Series up to the
+            passed index.
+        merge_asof : Perform an asof merge (similar to left join but it
+            matches on nearest key rather than equal key).
+        Index.get_loc : An `asof` is a thin wrapper around `get_loc`
+            with method='pad'.
+
+        Examples
+        --------
+        `Index.asof` returns the latest index label up to the passed label.
+
+        >>> idx = pd.Index(['2013-12-31', '2014-01-02', '2014-01-03'])
+        >>> idx.asof('2014-01-01')
+        '2013-12-31'
+
+        If the label is in the index, the method returns the passed label.
+
+        >>> idx.asof('2014-01-02')
+        '2014-01-02'
+
+        If all of the labels in the index are later than the passed label,
+        NaN is returned.
+
+        >>> idx.asof('1999-01-02')
+        nan
+
+        If the index is not sorted, an error is raised.
+
+        >>> idx_not_sorted = pd.Index(['2013-12-31', '2015-01-02',
+        ...                            '2014-01-03'])
+        >>> idx_not_sorted.asof('2013-12-31')
+        Traceback (most recent call last):
+        ValueError: index must be monotonic increasing or decreasing
+        """
+        try:
+            loc = self.get_loc(label, method='pad')
+        except KeyError:
+            return self._na_value
+        else:
+            if isinstance(loc, slice):
+                loc = loc.indices(len(self))[-1]
+            return self[loc]
+
+    def asof_locs(self, where, mask):
+        """
+        Finds the locations (indices) of the labels from the index for
+        every entry in the `where` argument.
+
+        As in the `asof` function, if the label (a particular entry in
+        `where`) is not in the index, the latest index label upto the
+        passed label is chosen and its index returned.
+
+        If all of the labels in the index are later than a label in `where`,
+        -1 is returned.
+
+        `mask` is used to ignore NA values in the index during calculation.
+
+        Parameters
+        ----------
+        where : Index
+            An Index consisting of an array of timestamps.
+        mask : array-like
+            Array of booleans denoting where values in the original
+            data are not NA.
+
+        Returns
+        -------
+        numpy.ndarray
+            An array of locations (indices) of the labels from the Index
+            which correspond to the return values of the `asof` function
+            for every element in `where`.
+        """
+        locs = self.values[mask].searchsorted(where.values, side='right')
+        locs = np.where(locs > 0, locs - 1, 0)
+
+        result = np.arange(len(self))[mask].take(locs)
+
+        first = mask.argmax()
+        result[(locs == 0) & (where.values < self.values[first])] = -1
+
+        return result
+
+    def sort_values(self, return_indexer=False, ascending=True):
+        """
+        Return a sorted copy of the index.
+
+        Return a sorted copy of the index, and optionally return the indices
+        that sorted the index itself.
+
+        Parameters
+        ----------
+        return_indexer : bool, default False
+            Should the indices that would sort the index be returned.
+        ascending : bool, default True
+            Should the index values be sorted in an ascending order.
+
+        Returns
+        -------
+        sorted_index : pandas.Index
+            Sorted copy of the index.
+        indexer : numpy.ndarray, optional
+            The indices that the index itself was sorted by.
+
+        See Also
+        --------
+        pandas.Series.sort_values : Sort values of a Series.
+        pandas.DataFrame.sort_values : Sort values in a DataFrame.
+
+        Examples
+        --------
+        >>> idx = pd.Index([10, 100, 1, 1000])
+        >>> idx
+        Int64Index([10, 100, 1, 1000], dtype='int64')
+
+        Sort values in ascending order (default behavior).
+
+        >>> idx.sort_values()
+        Int64Index([1, 10, 100, 1000], dtype='int64')
+
+        Sort values in descending order, and also get the indices `idx` was
+        sorted by.
+
+        >>> idx.sort_values(ascending=False, return_indexer=True)
+        (Int64Index([1000, 100, 10, 1], dtype='int64'), array([3, 1, 0, 2]))
+        """
+        _as = self.argsort()
+        if not ascending:
+            _as = _as[::-1]
+
+        sorted_index = self.take(_as)
+
+        if return_indexer:
+            return sorted_index, _as
+        else:
+            return sorted_index
+
+    def sort(self, *args, **kwargs):
+        raise TypeError("cannot sort an Index object in-place, use "
+                        "sort_values instead")
+
+    def shift(self, periods=1, freq=None):
+        """
+        Shift index by desired number of time frequency increments.
+
+        This method is for shifting the values of datetime-like indexes
+        by a specified time increment a given number of times.
+
+        Parameters
+        ----------
+        periods : int, default 1
+            Number of periods (or increments) to shift by,
+            can be positive or negative.
+        freq : pandas.DateOffset, pandas.Timedelta or string, optional
+            Frequency increment to shift by.
+            If None, the index is shifted by its own `freq` attribute.
+            Offset aliases are valid strings, e.g., 'D', 'W', 'M' etc.
+
+        Returns
+        -------
+        pandas.Index
+            shifted index
+
+        See Also
+        --------
+        Series.shift : Shift values of Series.
+
+        Examples
+        --------
+        Put the first 5 month starts of 2011 into an index.
+
+        >>> month_starts = pd.date_range('1/1/2011', periods=5, freq='MS')
+        >>> month_starts
+        DatetimeIndex(['2011-01-01', '2011-02-01', '2011-03-01', '2011-04-01',
+                       '2011-05-01'],
+                      dtype='datetime64[ns]', freq='MS')
+
+        Shift the index by 10 days.
+
+        >>> month_starts.shift(10, freq='D')
+        DatetimeIndex(['2011-01-11', '2011-02-11', '2011-03-11', '2011-04-11',
+                       '2011-05-11'],
+                      dtype='datetime64[ns]', freq=None)
+
+        The default value of `freq` is the `freq` attribute of the index,
+        which is 'MS' (month start) in this example.
+
+        >>> month_starts.shift(10)
+        DatetimeIndex(['2011-11-01', '2011-12-01', '2012-01-01', '2012-02-01',
+                       '2012-03-01'],
+                      dtype='datetime64[ns]', freq='MS')
+
+        Notes
+        -----
+        This method is only implemented for datetime-like index classes,
+        i.e., DatetimeIndex, PeriodIndex and TimedeltaIndex.
+        """
+        raise NotImplementedError("Not supported for type %s" %
+                                  type(self).__name__)
+
+    def argsort(self, *args, **kwargs):
+        """
+        Return the integer indices that would sort the index.
+
+        Parameters
+        ----------
+        *args
+            Passed to `numpy.ndarray.argsort`.
+        **kwargs
+            Passed to `numpy.ndarray.argsort`.
+
+        Returns
+        -------
+        numpy.ndarray
+            Integer indices that would sort the index if used as
+            an indexer.
+
+        See Also
+        --------
+        numpy.argsort : Similar method for NumPy arrays.
+        Index.sort_values : Return sorted copy of Index.
+
+        Examples
+        --------
+        >>> idx = pd.Index(['b', 'a', 'd', 'c'])
+        >>> idx
+        Index(['b', 'a', 'd', 'c'], dtype='object')
+
+        >>> order = idx.argsort()
+        >>> order
+        array([1, 0, 3, 2])
+
+        >>> idx[order]
+        Index(['a', 'b', 'c', 'd'], dtype='object')
+        """
+        result = self.asi8
+        if result is None:
+            result = np.array(self)
+        return result.argsort(*args, **kwargs)
+
+    def get_value(self, series, key):
+        """
+        Fast lookup of value from 1-dimensional ndarray. Only use this if you
+        know what you're doing.
+        """
+
+        # if we have something that is Index-like, then
+        # use this, e.g. DatetimeIndex
+        s = getattr(series, '_values', None)
+        if isinstance(s, (ExtensionArray, Index)) and is_scalar(key):
+            # GH 20882, 21257
+            # Unify Index and ExtensionArray treatment
+            # First try to convert the key to a location
+            # If that fails, raise a KeyError if an integer
+            # index, otherwise, see if key is an integer, and
+            # try that
+            try:
+                iloc = self.get_loc(key)
+                return s[iloc]
+            except KeyError:
+                if (len(self) > 0 and
+                        (self.holds_integer() or self.is_boolean())):
+                    raise
+                elif is_integer(key):
+                    return s[key]
+
+        s = com.values_from_object(series)
+        k = com.values_from_object(key)
+
+        k = self._convert_scalar_indexer(k, kind='getitem')
+        try:
+            return self._engine.get_value(s, k,
+                                          tz=getattr(series.dtype, 'tz', None))
+        except KeyError as e1:
+            if len(self) > 0 and (self.holds_integer() or self.is_boolean()):
+                raise
+
+            try:
+                return libindex.get_value_box(s, key)
+            except IndexError:
+                raise
+            except TypeError:
+                # generator/iterator-like
+                if is_iterator(key):
+                    raise InvalidIndexError(key)
+                else:
+                    raise e1
+            except Exception:  # pragma: no cover
+                raise e1
+        except TypeError:
+            # python 3
+            if is_scalar(key):  # pragma: no cover
+                raise IndexError(key)
+            raise InvalidIndexError(key)
+
+    def set_value(self, arr, key, value):
+        """
+        Fast lookup of value from 1-dimensional ndarray.
+
+        Notes
+        -----
+        Only use this if you know what you're doing.
+        """
+        self._engine.set_value(com.values_from_object(arr),
+                               com.values_from_object(key), value)
+
+    _index_shared_docs['get_indexer_non_unique'] = """
+        Compute indexer and mask for new index given the current index. The
+        indexer should be then used as an input to ndarray.take to align the
+        current data to the new index.
+
+        Parameters
+        ----------
+        target : %(target_klass)s
+
+        Returns
+        -------
+        indexer : ndarray of int
+            Integers from 0 to n - 1 indicating that the index at these
+            positions matches the corresponding target values. Missing values
+            in the target are marked by -1.
+        missing : ndarray of int
+            An indexer into the target of the values not found.
+            These correspond to the -1 in the indexer array
+        """
+
+    @Appender(_index_shared_docs['get_indexer_non_unique'] % _index_doc_kwargs)
+    def get_indexer_non_unique(self, target):
+        target = ensure_index(target)
+        if is_categorical(target):
+            target = target.astype(target.dtype.categories.dtype)
+        pself, ptarget = self._maybe_promote(target)
+        if pself is not self or ptarget is not target:
+            return pself.get_indexer_non_unique(ptarget)
+
+        if self.is_all_dates:
+            self = Index(self.asi8)
+            tgt_values = target.asi8
+        else:
+            tgt_values = target._ndarray_values
+
+        indexer, missing = self._engine.get_indexer_non_unique(tgt_values)
+        return ensure_platform_int(indexer), missing
+
+    def get_indexer_for(self, target, **kwargs):
+        """
+        Guaranteed return of an indexer even when non-unique.
+
+        This dispatches to get_indexer or get_indexer_nonunique
+        as appropriate.
+        """
+        if self.is_unique:
+            return self.get_indexer(target, **kwargs)
+        indexer, _ = self.get_indexer_non_unique(target, **kwargs)
+        return indexer
+
+    def _maybe_promote(self, other):
+        # A hack, but it works
+        from pandas import DatetimeIndex
+        if self.inferred_type == 'date' and isinstance(other, DatetimeIndex):
+            return DatetimeIndex(self), other
+        elif self.inferred_type == 'boolean':
+            if not is_object_dtype(self.dtype):
+                return self.astype('object'), other.astype('object')
+        return self, other
+
+    def groupby(self, values):
+        """
+        Group the index labels by a given array of values.
+
+        Parameters
+        ----------
+        values : array
+            Values used to determine the groups.
+
+        Returns
+        -------
+        groups : dict
+            {group name -> group labels}
+        """
+
+        # TODO: if we are a MultiIndex, we can do better
+        # that converting to tuples
+        from .multi import MultiIndex
+        if isinstance(values, MultiIndex):
+            values = values.values
+        values = ensure_categorical(values)
+        result = values._reverse_indexer()
+
+        # map to the label
+        result = {k: self.take(v) for k, v in compat.iteritems(result)}
+
+        return result
+
+    def map(self, mapper, na_action=None):
+        """
+        Map values using input correspondence (a dict, Series, or function).
+
+        Parameters
+        ----------
+        mapper : function, dict, or Series
+            Mapping correspondence.
+        na_action : {None, 'ignore'}
+            If 'ignore', propagate NA values, without passing them to the
+            mapping correspondence.
+
+        Returns
+        -------
+        applied : Union[Index, MultiIndex], inferred
+            The output of the mapping function applied to the index.
+            If the function returns a tuple with more than one element
+            a MultiIndex will be returned.
+        """
+
+        from .multi import MultiIndex
+        new_values = super(Index, self)._map_values(
+            mapper, na_action=na_action)
+
+        attributes = self._get_attributes_dict()
+
+        # we can return a MultiIndex
+        if new_values.size and isinstance(new_values[0], tuple):
+            if isinstance(self, MultiIndex):
+                names = self.names
+            elif attributes.get('name'):
+                names = [attributes.get('name')] * len(new_values[0])
+            else:
+                names = None
+            return MultiIndex.from_tuples(new_values,
+                                          names=names)
+
+        attributes['copy'] = False
+        if not new_values.size:
+            # empty
+            attributes['dtype'] = self.dtype
+
+        return Index(new_values, **attributes)
+
+    def isin(self, values, level=None):
+        """
+        Return a boolean array where the index values are in `values`.
+
+        Compute boolean array of whether each index value is found in the
+        passed set of values. The length of the returned boolean array matches
+        the length of the index.
+
+        Parameters
+        ----------
+        values : set or list-like
+            Sought values.
+
+            .. versionadded:: 0.18.1
+
+               Support for values as a set.
+
+        level : str or int, optional
+            Name or position of the index level to use (if the index is a
+            `MultiIndex`).
+
+        Returns
+        -------
+        is_contained : ndarray
+            NumPy array of boolean values.
+
+        See Also
+        --------
+        Series.isin : Same for Series.
+        DataFrame.isin : Same method for DataFrames.
+
+        Notes
+        -----
+        In the case of `MultiIndex` you must either specify `values` as a
+        list-like object containing tuples that are the same length as the
+        number of levels, or specify `level`. Otherwise it will raise a
+        ``ValueError``.
+
+        If `level` is specified:
+
+        - if it is the name of one *and only one* index level, use that level;
+        - otherwise it should be a number indicating level position.
+
+        Examples
+        --------
+        >>> idx = pd.Index([1,2,3])
+        >>> idx
+        Int64Index([1, 2, 3], dtype='int64')
+
+        Check whether each index value in a list of values.
+        >>> idx.isin([1, 4])
+        array([ True, False, False])
+
+        >>> midx = pd.MultiIndex.from_arrays([[1,2,3],
+        ...                                  ['red', 'blue', 'green']],
+        ...                                  names=('number', 'color'))
+        >>> midx
+        MultiIndex(levels=[[1, 2, 3], ['blue', 'green', 'red']],
+                   labels=[[0, 1, 2], [2, 0, 1]],
+                   names=['number', 'color'])
+
+        Check whether the strings in the 'color' level of the MultiIndex
+        are in a list of colors.
+
+        >>> midx.isin(['red', 'orange', 'yellow'], level='color')
+        array([ True, False, False])
+
+        To check across the levels of a MultiIndex, pass a list of tuples:
+
+        >>> midx.isin([(1, 'red'), (3, 'red')])
+        array([ True, False, False])
+
+        For a DatetimeIndex, string values in `values` are converted to
+        Timestamps.
+
+        >>> dates = ['2000-03-11', '2000-03-12', '2000-03-13']
+        >>> dti = pd.to_datetime(dates)
+        >>> dti
+        DatetimeIndex(['2000-03-11', '2000-03-12', '2000-03-13'],
+        dtype='datetime64[ns]', freq=None)
+
+        >>> dti.isin(['2000-03-11'])
+        array([ True, False, False])
+        """
+        if level is not None:
+            self._validate_index_level(level)
+        return algos.isin(self, values)
 
     def _get_string_slice(self, key, use_lhs=True, use_rhs=True):
         # this is for partial string indexing,
