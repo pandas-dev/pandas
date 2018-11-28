@@ -12,8 +12,6 @@ if [ "$DOC" ]; then
 
     echo "Will build docs"
 
-    source activate pandas
-
     echo ###############################
     echo # Log file for the doc build  #
     echo ###############################

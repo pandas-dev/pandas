@@ -85,7 +85,6 @@ class SafeForLongAndSparse(object):
     def test_mean(self):
         self._check_stat_op('mean', np.mean)
 
-    @td.skip_if_no("numpy", min_version="1.10.0")
     def test_prod(self):
         self._check_stat_op('prod', np.prod, skipna_alternative=np.nanprod)
 
@@ -335,13 +334,13 @@ class SafeForSparse(object):
         for op in ops:
             try:
                 check_op(getattr(operator, op), op)
-            except:
+            except AttributeError:
                 pprint_thing("Failing operation: %r" % op)
                 raise
         if compat.PY3:
             try:
                 check_op(operator.truediv, 'div')
-            except:
+            except AttributeError:
                 pprint_thing("Failing operation: %r" % 'div')
                 raise
 

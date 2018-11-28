@@ -1,48 +1,40 @@
 # pylint: disable=E1101,E1103,W0232
 from datetime import datetime, timedelta
-import numpy as np
 import operator
 import warnings
 
-from pandas.core import common as com
-from pandas.core.dtypes.common import (
-    is_integer,
-    is_float,
-    is_float_dtype,
-    is_integer_dtype,
-    is_datetime64_any_dtype,
-    is_bool_dtype,
-    pandas_dtype
-)
-from pandas.core.ops import get_op_result_name
-from pandas.core.accessor import PandasDelegate, delegate_names
-from pandas.core.indexes.datetimes import DatetimeIndex, Int64Index, Index
-from pandas.core.indexes.datetimelike import (
-    DatelikeOps, DatetimeIndexOpsMixin, wrap_arithmetic_op
-)
-from pandas.core.tools.datetimes import parse_time_string, DateParseError
+import numpy as np
 
 from pandas._libs import index as libindex
-from pandas._libs.tslibs.period import (Period, IncompatibleFrequency,
-                                        DIFFERENT_FREQ_INDEX)
+from pandas._libs.tslibs import NaT, iNaT, resolution
+from pandas._libs.tslibs.period import (
+    DIFFERENT_FREQ_INDEX, IncompatibleFrequency, Period)
+from pandas.util._decorators import (
+    Appender, Substitution, cache_readonly, deprecate_kwarg)
 
-from pandas._libs.tslibs import resolution, NaT, iNaT
+from pandas.core.dtypes.common import (
+    is_bool_dtype, is_datetime64_any_dtype, is_float, is_float_dtype,
+    is_integer, is_integer_dtype, pandas_dtype)
 
+from pandas import compat
+from pandas.core import common as com
+from pandas.core.accessor import PandasDelegate, delegate_names
 from pandas.core.algorithms import unique1d
 import pandas.core.arrays.datetimelike as dtl
 from pandas.core.arrays.period import PeriodArray, period_array
 from pandas.core.base import _shared_docs
-from pandas.core.indexes.base import _index_shared_docs, ensure_index
-
-from pandas import compat
-from pandas.util._decorators import (
-    Appender, Substitution, cache_readonly, deprecate_kwarg
-)
-
-from pandas.tseries.offsets import Tick, DateOffset
-from pandas.tseries import frequencies
-
 import pandas.core.indexes.base as ibase
+from pandas.core.indexes.base import _index_shared_docs, ensure_index
+from pandas.core.indexes.datetimelike import (
+    DatelikeOps, DatetimeIndexOpsMixin, wrap_arithmetic_op)
+from pandas.core.indexes.datetimes import DatetimeIndex, Index, Int64Index
+from pandas.core.missing import isna
+from pandas.core.ops import get_op_result_name
+from pandas.core.tools.datetimes import DateParseError, parse_time_string
+
+from pandas.tseries import frequencies
+from pandas.tseries.offsets import DateOffset, Tick
+
 _index_doc_kwargs = dict(ibase._index_doc_kwargs)
 _index_doc_kwargs.update(
     dict(target_klass='PeriodIndex or list of Periods'))
@@ -372,12 +364,6 @@ class PeriodIndex(DatelikeOps, DatetimeIndexOpsMixin,
                                          name=self.name,
                                          freq=result.freq)
 
-    def _format_native_types(self, na_rep=u'NaT', quoting=None, **kwargs):
-        # just dispatch, return ndarray
-        return self._data._format_native_types(na_rep=na_rep,
-                                               quoting=quoting,
-                                               **kwargs)
-
     def _maybe_convert_timedelta(self, other):
         """
         Convert timedelta-like input to an integer multiple of self.freq
@@ -419,6 +405,19 @@ class PeriodIndex(DatelikeOps, DatetimeIndexOpsMixin,
         msg = "Input has different freq from {cls}(freq={freqstr})"
         raise IncompatibleFrequency(msg.format(cls=type(self).__name__,
                                                freqstr=self.freqstr))
+
+    # ------------------------------------------------------------------------
+    # Rendering Methods
+
+    def _format_native_types(self, na_rep=u'NaT', quoting=None, **kwargs):
+        # just dispatch, return ndarray
+        return self._data._format_native_types(na_rep=na_rep,
+                                               quoting=quoting,
+                                               **kwargs)
+
+    def _mpl_repr(self):
+        # how to represent ourselves to matplotlib
+        return self.astype(object).values
 
     # ------------------------------------------------------------------------
     # Indexing
@@ -603,10 +602,6 @@ class PeriodIndex(DatelikeOps, DatetimeIndexOpsMixin,
         values = self.asi8
         return ((values[1:] - values[:-1]) < 2).all()
 
-    def _mpl_repr(self):
-        # how to represent ourselves to matplotlib
-        return self.astype(object).values
-
     @property
     def inferred_type(self):
         # b/c data is represented as ints make sure we can't have ambiguous
@@ -652,7 +647,8 @@ class PeriodIndex(DatelikeOps, DatetimeIndexOpsMixin,
             except TypeError:
                 pass
 
-            key = Period(key, self.freq).ordinal
+            period = Period(key, self.freq)
+            key = period.value if isna(period) else period.ordinal
             return com.maybe_box(self, self._engine.get_value(s, key),
                                  series, key)
 

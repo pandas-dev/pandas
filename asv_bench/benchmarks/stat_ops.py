@@ -96,14 +96,42 @@ class Rank(object):
 
 class Correlation(object):
 
-    params = ['spearman', 'kendall', 'pearson']
-    param_names = ['method']
+    params = [['spearman', 'kendall', 'pearson'], [True, False]]
+    param_names = ['method', 'use_bottleneck']
 
-    def setup(self, method):
+    def setup(self, method, use_bottleneck):
+        try:
+            pd.options.compute.use_bottleneck = use_bottleneck
+        except TypeError:
+            from pandas.core import nanops
+            nanops._USE_BOTTLENECK = use_bottleneck
         self.df = pd.DataFrame(np.random.randn(1000, 30))
+        self.s = pd.Series(np.random.randn(1000))
+        self.s2 = pd.Series(np.random.randn(1000))
 
-    def time_corr(self, method):
+    def time_corr(self, method, use_bottleneck):
         self.df.corr(method=method)
+
+    def time_corr_series(self, method, use_bottleneck):
+        self.s.corr(self.s2, method=method)
+
+
+class Covariance(object):
+
+    params = [[True, False]]
+    param_names = ['use_bottleneck']
+
+    def setup(self, use_bottleneck):
+        try:
+            pd.options.compute.use_bottleneck = use_bottleneck
+        except TypeError:
+            from pandas.core import nanops
+            nanops._USE_BOTTLENECK = use_bottleneck
+        self.s = pd.Series(np.random.randn(100000))
+        self.s2 = pd.Series(np.random.randn(100000))
+
+    def time_cov_series(self, use_bottleneck):
+        self.s.cov(self.s2)
 
 
 from .pandas_vb_common import setup  # noqa: F401

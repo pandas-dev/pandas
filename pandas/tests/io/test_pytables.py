@@ -51,7 +51,7 @@ def safe_remove(path):
     if path is not None:
         try:
             os.remove(path)
-        except:
+        except OSError:
             pass
 
 
@@ -59,7 +59,7 @@ def safe_close(store):
     try:
         if store is not None:
             store.close()
-    except:
+    except IOError:
         pass
 
 
@@ -117,7 +117,7 @@ def _maybe_remove(store, key):
     no content from previous tests using the same table name."""
     try:
         store.remove(key)
-    except:
+    except (ValueError, KeyError):
         pass
 
 
@@ -199,8 +199,6 @@ class TestHDFStore(Base):
     def test_long_strings(self):
 
         # GH6166
-        # unconversion of long strings was being chopped in earlier
-        # versions of numpy < 1.7.2
         df = DataFrame({'a': tm.rands_array(100, size=10)},
                        index=tm.rands_array(100, size=10))
 
@@ -4601,7 +4599,7 @@ class TestHDFStore(Base):
                     safe_close(tstore)
                     try:
                         os.close(fd)
-                    except:
+                    except (OSError, ValueError):
                         pass
                     safe_remove(new_f)
 

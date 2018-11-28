@@ -1,31 +1,31 @@
-# pylint: disable=E1101
-import os
-import warnings
-from datetime import datetime, date, time, timedelta
+from collections import OrderedDict
+import contextlib
+from datetime import date, datetime, time, timedelta
 from distutils.version import LooseVersion
 from functools import partial
+import os
+import warnings
 from warnings import catch_warnings
-from collections import OrderedDict
 
 import numpy as np
-import pytest
 from numpy import nan
+import pytest
+
+from pandas.compat import PY36, BytesIO, iteritems, map, range, u
+import pandas.util._test_decorators as td
 
 import pandas as pd
-import pandas.util.testing as tm
-import pandas.util._test_decorators as td
 from pandas import DataFrame, Index, MultiIndex, Series
-from pandas.compat import u, range, map, BytesIO, iteritems, PY36
-from pandas.core.config import set_option, get_option
-from pandas.io.common import URLError
-from pandas.io.excel import (
-    ExcelFile, ExcelWriter, read_excel, _XlwtWriter, _OpenpyxlWriter,
-    register_writer, _XlsxWriter
-)
-from pandas.io.formats.excel import ExcelFormatter
-from pandas.io.parsers import read_csv
+from pandas.core.config import get_option, set_option
+import pandas.util.testing as tm
 from pandas.util.testing import ensure_clean, makeCustomDataframe as mkdf
 
+from pandas.io.common import URLError
+from pandas.io.excel import (
+    ExcelFile, ExcelWriter, _OpenpyxlWriter, _XlsxWriter, _XlwtWriter,
+    read_excel, register_writer)
+from pandas.io.formats.excel import ExcelFormatter
+from pandas.io.parsers import read_csv
 
 _seriesd = tm.getSeriesData()
 _tsd = tm.getTimeSeriesData()
@@ -36,7 +36,21 @@ _mixed_frame = _frame.copy()
 _mixed_frame['foo'] = 'bar'
 
 
-@td.skip_if_no('xlrd', '0.9')
+@contextlib.contextmanager
+def ignore_xlrd_time_clock_warning():
+    """
+    Context manager to ignore warnings raised by the xlrd library,
+    regarding the deprecation of `time.clock` in Python 3.7.
+    """
+    with warnings.catch_warnings():
+        warnings.filterwarnings(
+            action='ignore',
+            message='time.clock has been deprecated',
+            category=DeprecationWarning)
+        yield
+
+
+@td.skip_if_no('xlrd', '1.0.0')
 class SharedItems(object):
 
     @pytest.fixture(autouse=True)
@@ -114,20 +128,23 @@ class ReadingTestsBase(SharedItems):
         # usecols as int
         with tm.assert_produces_warning(FutureWarning,
                                         check_stacklevel=False):
-            df1 = self.get_exceldf("test1", ext, "Sheet1",
-                                   index_col=0, usecols=3)
+            with ignore_xlrd_time_clock_warning():
+                df1 = self.get_exceldf("test1", ext, "Sheet1",
+                                       index_col=0, usecols=3)
 
         # usecols as int
         with tm.assert_produces_warning(FutureWarning,
                                         check_stacklevel=False):
-            df2 = self.get_exceldf("test1", ext, "Sheet2", skiprows=[1],
-                                   index_col=0, usecols=3)
+            with ignore_xlrd_time_clock_warning():
+                df2 = self.get_exceldf("test1", ext, "Sheet2", skiprows=[1],
+                                       index_col=0, usecols=3)
 
         # parse_cols instead of usecols, usecols as int
         with tm.assert_produces_warning(FutureWarning,
                                         check_stacklevel=False):
-            df3 = self.get_exceldf("test1", ext, "Sheet2", skiprows=[1],
-                                   index_col=0, parse_cols=3)
+            with ignore_xlrd_time_clock_warning():
+                df3 = self.get_exceldf("test1", ext, "Sheet2", skiprows=[1],
+                                       index_col=0, parse_cols=3)
 
         # TODO add index to xls file)
         tm.assert_frame_equal(df1, df_ref, check_names=False)
@@ -145,8 +162,9 @@ class ReadingTestsBase(SharedItems):
                                index_col=0, usecols=[0, 2, 3])
 
         with tm.assert_produces_warning(FutureWarning):
-            df3 = self.get_exceldf('test1', ext, 'Sheet2', skiprows=[1],
-                                   index_col=0, parse_cols=[0, 2, 3])
+            with ignore_xlrd_time_clock_warning():
+                df3 = self.get_exceldf('test1', ext, 'Sheet2', skiprows=[1],
+                                       index_col=0, parse_cols=[0, 2, 3])
 
         # TODO add index to xls file)
         tm.assert_frame_equal(df1, dfref, check_names=False)
@@ -165,8 +183,9 @@ class ReadingTestsBase(SharedItems):
                                index_col=0, usecols='A:D')
 
         with tm.assert_produces_warning(FutureWarning):
-            df4 = self.get_exceldf('test1', ext, 'Sheet2', skiprows=[1],
-                                   index_col=0, parse_cols='A:D')
+            with ignore_xlrd_time_clock_warning():
+                df4 = self.get_exceldf('test1', ext, 'Sheet2', skiprows=[1],
+                                       index_col=0, parse_cols='A:D')
 
         # TODO add index to xls, read xls ignores index name ?
         tm.assert_frame_equal(df2, df1, check_names=False)
@@ -243,6 +262,18 @@ class ReadingTestsBase(SharedItems):
                              index=MultiIndex(levels=[[]] * 3,
                                               labels=[[]] * 3,
                                               names=["A", "B", "C"]))
+        tm.assert_frame_equal(result, expected)
+
+    @pytest.mark.parametrize("index_col", [None, 2])
+    def test_index_col_with_unnamed(self, ext, index_col):
+        # see gh-18792
+        result = self.get_exceldf("test1", ext, "Sheet4",
+                                  index_col=index_col)
+        expected = DataFrame([["i1", "a", "x"], ["i2", "b", "y"]],
+                             columns=["Unnamed: 0", "col1", "col2"])
+        if index_col:
+            expected = expected.set_index(expected.columns[index_col])
+
         tm.assert_frame_equal(result, expected)
 
     def test_usecols_pass_non_existent_column(self, ext):
@@ -618,8 +649,9 @@ class ReadingTestsBase(SharedItems):
         df1 = self.get_exceldf(filename, ext,
                                sheet_name=sheet_name, index_col=0)  # doc
         with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
-            df2 = self.get_exceldf(filename, ext, index_col=0,
-                                   sheetname=sheet_name)  # backward compat
+            with ignore_xlrd_time_clock_warning():
+                df2 = self.get_exceldf(filename, ext, index_col=0,
+                                       sheetname=sheet_name)  # backward compat
 
         excel = self.get_excelfile(filename, ext)
         df1_parse = excel.parse(sheet_name=sheet_name, index_col=0)  # doc
@@ -796,35 +828,19 @@ class TestXlrdReader(ReadingTestsBase):
                 tm.assert_frame_equal(dfs[s], dfs_returned[s])
 
     def test_reader_seconds(self, ext):
-        import xlrd
 
         # Test reading times with and without milliseconds. GH5945.
-        if LooseVersion(xlrd.__VERSION__) >= LooseVersion("0.9.3"):
-            # Xlrd >= 0.9.3 can handle Excel milliseconds.
-            expected = DataFrame.from_dict({"Time": [time(1, 2, 3),
-                                            time(2, 45, 56, 100000),
-                                            time(4, 29, 49, 200000),
-                                            time(6, 13, 42, 300000),
-                                            time(7, 57, 35, 400000),
-                                            time(9, 41, 28, 500000),
-                                            time(11, 25, 21, 600000),
-                                            time(13, 9, 14, 700000),
-                                            time(14, 53, 7, 800000),
-                                            time(16, 37, 0, 900000),
-                                            time(18, 20, 54)]})
-        else:
-            # Xlrd < 0.9.3 rounds Excel milliseconds.
-            expected = DataFrame.from_dict({"Time": [time(1, 2, 3),
-                                            time(2, 45, 56),
-                                            time(4, 29, 49),
-                                            time(6, 13, 42),
-                                            time(7, 57, 35),
-                                            time(9, 41, 29),
-                                            time(11, 25, 22),
-                                            time(13, 9, 15),
-                                            time(14, 53, 8),
-                                            time(16, 37, 1),
-                                            time(18, 20, 54)]})
+        expected = DataFrame.from_dict({"Time": [time(1, 2, 3),
+                                                 time(2, 45, 56, 100000),
+                                                 time(4, 29, 49, 200000),
+                                                 time(6, 13, 42, 300000),
+                                                 time(7, 57, 35, 400000),
+                                                 time(9, 41, 28, 500000),
+                                                 time(11, 25, 21, 600000),
+                                                 time(13, 9, 14, 700000),
+                                                 time(14, 53, 7, 800000),
+                                                 time(16, 37, 0, 900000),
+                                                 time(18, 20, 54)]})
 
         actual = self.get_exceldf('times_1900', ext, 'Sheet1')
         tm.assert_frame_equal(actual, expected)
@@ -896,6 +912,17 @@ class TestXlrdReader(ReadingTestsBase):
                             header=[0, 1], skiprows=2)
         tm.assert_frame_equal(actual, expected)
 
+    def test_read_excel_multiindex_header_only(self, ext):
+        # see gh-11733.
+        #
+        # Don't try to parse a header name if there isn't one.
+        mi_file = os.path.join(self.dirpath, "testmultiindex" + ext)
+        result = read_excel(mi_file, "index_col_none", header=[0, 1])
+
+        exp_columns = MultiIndex.from_product([("A", "B"), ("key", "val")])
+        expected = DataFrame([[1, 2, 3, 4]] * 2, columns=exp_columns)
+        tm.assert_frame_equal(result, expected)
+
     @td.skip_if_no("xlsxwriter")
     def test_read_excel_multiindex_empty_level(self, ext):
         # see gh-12453
@@ -908,9 +935,9 @@ class TestXlrdReader(ReadingTestsBase):
             })
 
             expected = DataFrame({
-                ("One", u"x"): {0: 1},
-                ("Two", u"X"): {0: 3},
-                ("Two", u"Y"): {0: 7},
+                ("One", "x"): {0: 1},
+                ("Two", "X"): {0: 3},
+                ("Two", "Y"): {0: 7},
                 ("Zero", "Unnamed: 4_level_1"): {0: 0}
             })
 
@@ -927,9 +954,9 @@ class TestXlrdReader(ReadingTestsBase):
 
             expected = pd.DataFrame({
                 ("Beg", "Unnamed: 1_level_1"): {0: 0},
-                ("Middle", u"x"): {0: 1},
-                ("Tail", u"X"): {0: 3},
-                ("Tail", u"Y"): {0: 7}
+                ("Middle", "x"): {0: 1},
+                ("Tail", "X"): {0: 3},
+                ("Tail", "Y"): {0: 7}
             })
 
             df.to_excel(path)

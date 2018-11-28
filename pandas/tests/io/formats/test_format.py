@@ -70,7 +70,7 @@ def has_horizontally_truncated_repr(df):
     try:  # Check header row
         fst_line = np.array(repr(df).splitlines()[0].split())
         cand_col = np.where(fst_line == '...')[0][0]
-    except:
+    except IndexError:
         return False
     # Make sure each row has this ... in the same place
     r = repr(df)
@@ -459,7 +459,7 @@ class TestDataFrameFormatting(object):
         for line in rs[1:]:
             try:
                 line = line.decode(get_option("display.encoding"))
-            except:
+            except AttributeError:
                 pass
             if not line.startswith('dtype:'):
                 assert len(line) == line_len
@@ -1358,6 +1358,18 @@ class TestDataFrameFormatting(object):
                         '0  1.000000e+09\n'
                         '1  2.512000e-01')
         assert df_s == expected
+
+    def test_to_string_float_format_no_fixed_width(self):
+
+        # GH 21625
+        df = DataFrame({'x': [0.19999]})
+        expected = '      x\n0 0.200'
+        assert df.to_string(float_format='%.3f') == expected
+
+        # GH 22270
+        df = DataFrame({'x': [100.0]})
+        expected = '    x\n0 100'
+        assert df.to_string(float_format='%.0f') == expected
 
     def test_to_string_small_float_values(self):
         df = DataFrame({'a': [1.5, 1e-17, -5.5e-7]})

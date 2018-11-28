@@ -127,6 +127,9 @@ class TimedeltaIndex(TimedeltaArray, DatetimeIndexOpsMixin,
 
     _freq = None
 
+    # -------------------------------------------------------------------
+    # Constructors
+
     def __new__(cls, data=None, unit=None, freq=None, start=None, end=None,
                 periods=None, closed=None, dtype=None, copy=False,
                 name=None, verify_integrity=True):
@@ -193,10 +196,7 @@ class TimedeltaIndex(TimedeltaArray, DatetimeIndexOpsMixin,
         result._reset_identity()
         return result
 
-    @property
-    def _formatter_func(self):
-        from pandas.io.formats.format import _get_format_timedelta64
-        return _get_format_timedelta64(self, box=True)
+    # -------------------------------------------------------------------
 
     def __setstate__(self, state):
         """Necessary for making this object picklable"""
@@ -218,6 +218,14 @@ class TimedeltaIndex(TimedeltaArray, DatetimeIndexOpsMixin,
         result = TimedeltaArray._evaluate_with_timedelta_like(self, other, op)
         return wrap_arithmetic_op(self, other, result)
 
+    # -------------------------------------------------------------------
+    # Rendering Methods
+
+    @property
+    def _formatter_func(self):
+        from pandas.io.formats.format import _get_format_timedelta64
+        return _get_format_timedelta64(self, box=True)
+
     def _format_native_types(self, na_rep=u'NaT', date_format=None, **kwargs):
         from pandas.io.formats.format import Timedelta64Formatter
         return Timedelta64Formatter(values=self,
@@ -226,6 +234,14 @@ class TimedeltaIndex(TimedeltaArray, DatetimeIndexOpsMixin,
 
     # -------------------------------------------------------------------
     # Wrapping TimedeltaArray
+
+    __mul__ = Index.__mul__
+    __rmul__ = Index.__rmul__
+    __truediv__ = Index.__truediv__
+    __floordiv__ = Index.__floordiv__
+    __rfloordiv__ = Index.__rfloordiv__
+    if compat.PY2:
+        __div__ = Index.__div__
 
     days = wrap_field_accessor(TimedeltaArray.days)
     seconds = wrap_field_accessor(TimedeltaArray.seconds)

@@ -5,44 +5,33 @@ import warnings
 
 import numpy as np
 
-from pandas._libs import lib, iNaT, NaT
+from pandas._libs import NaT, iNaT, lib
 from pandas._libs.tslibs import timezones
-from pandas._libs.tslibs.timedeltas import delta_to_nanoseconds, Timedelta
-from pandas._libs.tslibs.timestamps import maybe_integer_op_deprecated
 from pandas._libs.tslibs.period import (
-    Period, DIFFERENT_FREQ_INDEX, IncompatibleFrequency)
-
+    DIFFERENT_FREQ_INDEX, IncompatibleFrequency, Period)
+from pandas._libs.tslibs.timedeltas import Timedelta, delta_to_nanoseconds
+from pandas._libs.tslibs.timestamps import maybe_integer_op_deprecated
+import pandas.compat as compat
 from pandas.errors import (
     AbstractMethodError, NullFrequencyError, PerformanceWarning)
-from pandas import compat
-
-from pandas.tseries import frequencies
-from pandas.tseries.offsets import Tick, DateOffset
+from pandas.util._decorators import deprecate_kwarg
 
 from pandas.core.dtypes.common import (
-    pandas_dtype,
-    needs_i8_conversion,
-    is_list_like,
-    is_offsetlike,
-    is_extension_array_dtype,
-    is_datetime64_dtype,
-    is_datetime64_any_dtype,
-    is_datetime64tz_dtype,
-    is_float_dtype,
-    is_integer_dtype,
-    is_bool_dtype,
-    is_period_dtype,
-    is_timedelta64_dtype,
-    is_object_dtype)
-from pandas.core.dtypes.generic import ABCSeries, ABCDataFrame, ABCIndexClass
+    is_bool_dtype, is_datetime64_any_dtype, is_datetime64_dtype,
+    is_datetime64tz_dtype, is_extension_array_dtype, is_float_dtype,
+    is_integer_dtype, is_list_like, is_object_dtype, is_offsetlike,
+    is_period_dtype, is_timedelta64_dtype, needs_i8_conversion, pandas_dtype)
 from pandas.core.dtypes.dtypes import DatetimeTZDtype
+from pandas.core.dtypes.generic import ABCDataFrame, ABCIndexClass, ABCSeries
 from pandas.core.dtypes.missing import isna
 
-import pandas.core.common as com
 from pandas.core.algorithms import checked_add_with_arr, take, unique1d
+import pandas.core.common as com
+
+from pandas.tseries import frequencies
+from pandas.tseries.offsets import DateOffset, Tick
 
 from .base import ExtensionOpsMixin
-from pandas.util._decorators import deprecate_kwarg
 
 
 def _make_comparison_op(cls, op):
@@ -727,6 +716,10 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin, AttributesMixin):
             else:  # pragma: no cover
                 return NotImplemented
 
+            if is_timedelta64_dtype(result) and isinstance(result, np.ndarray):
+                from pandas.core.arrays import TimedeltaArrayMixin
+                # TODO: infer freq?
+                return TimedeltaArrayMixin(result)
             return result
 
         cls.__add__ = __add__
@@ -791,6 +784,10 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin, AttributesMixin):
             else:  # pragma: no cover
                 return NotImplemented
 
+            if is_timedelta64_dtype(result) and isinstance(result, np.ndarray):
+                from pandas.core.arrays import TimedeltaArrayMixin
+                # TODO: infer freq?
+                return TimedeltaArrayMixin(result)
             return result
 
         cls.__sub__ = __sub__
@@ -838,8 +835,7 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin, AttributesMixin):
     def _evaluate_compare(self, other, op):
         """
         We have been called because a comparison between
-        8 aware arrays. numpy >= 1.11 will
-        now warn about NaT comparisons
+        8 aware arrays. numpy will warn about NaT comparisons
         """
         # Called by comparison methods when comparing datetimelike
         # with datetimelike
