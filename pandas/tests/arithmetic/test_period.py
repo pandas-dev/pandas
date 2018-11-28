@@ -1085,21 +1085,3 @@ class TestPeriodIndexSeriesMethods(object):
         exp = pd.TimedeltaIndex([np.nan, np.nan, np.nan, np.nan], name='idx')
         tm.assert_index_equal(idx - pd.Period('NaT', freq='M'), exp)
         tm.assert_index_equal(pd.Period('NaT', freq='M') - idx, exp)
-
-
-class TestPeriodArithmetic(object):
-
-    @pytest.mark.parametrize('n', [1, 2, 3, 4])
-    @pytest.mark.parametrize('freq,expected', [
-        (pd.offsets.Second, 18489600),
-        (pd.offsets.Minute, 308160),
-        (pd.offsets.Hour, 5136),
-        (pd.offsets.Day, 214),
-        (pd.offsets.MonthEnd, 7),
-        (pd.offsets.YearEnd, 1),
-    ])
-    def test_period_diff(self, freq, expected, n):
-        # GH 23878
-        p1 = pd.Period('19910905', freq=freq(n))
-        p2 = pd.Period('19920406', freq=freq(n))
-        assert (p2 - p1) == freq(expected)

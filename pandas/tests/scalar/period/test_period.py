@@ -1106,6 +1106,38 @@ class TestArithmetic(object):
         with pytest.raises(period.IncompatibleFrequency, match=msg):
             per1 - Period('2011-02', freq='M')
 
+    @pytest.mark.parametrize('kwds', [
+        {},
+        {'normalize': True},
+        {'normalize': False},
+        {'normalize': True, 'month': 4},
+        {'normalize': False, 'month': 4},
+    ])
+    @pytest.mark.parametrize('n', [1, 2, 3, 4])
+    @pytest.mark.parametrize('freq,expected', [
+        (pd.offsets.Second, 18489600),
+        (pd.offsets.Minute, 308160),
+        (pd.offsets.Hour, 5136),
+        (pd.offsets.Day, 214),
+        (pd.offsets.MonthEnd, 7),
+        (pd.offsets.YearEnd, 1),
+    ])
+    def test_sub_non_standard_freq(self, freq, expected, n, kwds):
+        # GH 23878
+        # Only kwd allowed in period compatible freqs is 'month' in `YearEnd`
+        if 'month' in kwds:
+            if freq is pd.offsets.YearEnd:
+                expected = 0
+            else:
+                return
+        # Only non-Tick frequencies can have normalize set to True
+        if pd.tseries.offsets.Tick in freq.__bases__ and kwds.get('normalize'):
+            return
+
+        p1 = pd.Period('19910905', freq=freq(n, **kwds))
+        p2 = pd.Period('19920406', freq=freq(n, **kwds))
+        assert (p2 - p1) == freq(expected, **kwds)
+
     def test_add_offset(self):
         # freq is DateOffset
         for freq in ['A', '2A', '3A']:
