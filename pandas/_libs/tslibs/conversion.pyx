@@ -103,7 +103,10 @@ def ensure_datetime64ns(arr: ndarray, copy: bool=True):
     iresult = result.ravel().view(np.int64)
 
     if len(iresult) == 0:
-        return arr.astype(NS_DTYPE, copy=copy)
+        result = arr.view(NS_DTYPE)
+        if copy:
+            result = result.copy()
+        return result
 
     unit = get_datetime64_unit(arr.flat[0])
     if unit == NPY_FR_ns:
