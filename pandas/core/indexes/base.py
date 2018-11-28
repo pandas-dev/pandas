@@ -726,8 +726,8 @@ class Index(IndexOpsMixin, PandasObject):
 
         See Also
         --------
-        Index.array
-        Index.to_numpy
+        Index.array : Reference to the underlying data.
+        Index.to_numpy : A NumPy array representing the underlying data.
         """
         return self._data.view(np.ndarray)
 
