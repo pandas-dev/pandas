@@ -4,7 +4,7 @@ from cython import Py_ssize_t
 
 import numpy as np
 cimport numpy as cnp
-from numpy cimport int64_t, int32_t, ndarray
+from numpy cimport uint8_t, int64_t, int32_t, ndarray
 cnp.import_array()
 
 import pytz
@@ -881,14 +881,14 @@ def tz_localize_to_utc(ndarray[int64_t] vals, object tz, object ambiguous=None,
     """
     cdef:
         int64_t[:] deltas, idx_shifted, idx_shifted_left, idx_shifted_right
-        ndarray[uint_8_t, cast=True] ambiguous_array, both_nat, both_eq
+        ndarray[uint8_t, cast=True] ambiguous_array, both_nat, both_eq
         Py_ssize_t i, idx, pos, ntrans, n = len(vals)
         Py_ssize_t delta_idx_offset, delta_idx, pos_left, pos_right
         int64_t *tdata
         int64_t v, left, right, val, v_left, v_right, new_local, remaining_mins
-        int64_t HOURS_NS = HOUR_SECONDS * 1000000000, one_diff
+        int64_t HOURS_NS = HOUR_SECONDS * 1000000000
         ndarray[int64_t] trans, result, result_a, result_b, dst_hours
-        ndarray[int64_t] trans_idx, grp, delta, a_idx, b_idx
+        ndarray[int64_t] trans_idx, grp, delta, a_idx, b_idx, one_diff
         npy_datetimestruct dts
         bint infer_dst = False, is_dst = False, fill = False
         bint shift = False, fill_nonexist = False
@@ -926,7 +926,7 @@ def tz_localize_to_utc(ndarray[int64_t] vals, object tz, object ambiguous=None,
         if len(ambiguous) != len(vals):
             raise ValueError("Length of ambiguous bool-array must be "
                              "the same size as vals")
-        ambiguous_array = np.asarray(ambiguous)
+        ambiguous_array = np.asarray(ambiguous, dtype=bool)
 
     if nonexistent == 'NaT':
         fill_nonexist = True
