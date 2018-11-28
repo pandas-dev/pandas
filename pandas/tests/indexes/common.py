@@ -663,11 +663,8 @@ class Base(object):
             tm.assert_series_equal(series_a == item, Series(expected3))
 
     def test_numpy_ufuncs(self):
-        # test ufuncs of numpy 1.9.2. see:
+        # test ufuncs of numpy, see:
         # http://docs.scipy.org/doc/numpy/reference/ufuncs.html
-
-        # some functions are skipped because it may return different result
-        # for unicode input depending on numpy version
 
         for name, idx in compat.iteritems(self.indices):
             for func in [np.exp, np.exp2, np.expm1, np.log, np.log2, np.log10,

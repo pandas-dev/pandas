@@ -25,7 +25,6 @@ from pandas.core.indexes.numeric import Int64Index
 
 
 class RangeIndex(Int64Index):
-
     """
     Immutable Index implementing a monotonic integer range.
 
@@ -122,7 +121,7 @@ class RangeIndex(Int64Index):
 
     @classmethod
     def from_range(cls, data, name=None, dtype=None, **kwargs):
-        """ create RangeIndex from a range (py3), or xrange (py2) object """
+        """ Create RangeIndex from a range (py3), or xrange (py2) object. """
         if not isinstance(data, range):
             raise TypeError(
                 '{0}(...) must be called with object coercible to a '
@@ -288,11 +287,11 @@ class RangeIndex(Int64Index):
 
         return self._start + self._step * no_steps
 
-    def min(self):
+    def min(self, skipna=True, axis=None):
         """The minimum value of the RangeIndex"""
         return self._minmax('min')
 
-    def max(self):
+    def max(self, skipna=True, axis=None):
         """The maximum value of the RangeIndex"""
         return self._minmax('max')
 

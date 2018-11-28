@@ -795,7 +795,7 @@ class IndexOpsMixin(object):
     def empty(self):
         return not self.size
 
-    def max(self):
+    def max(self, skipna=True, axis=None):
         """
         Return the maximum value of the Index.
 
@@ -826,9 +826,10 @@ class IndexOpsMixin(object):
         >>> idx.max()
         ('b', 2)
         """
+        nv.validate_minmax_axis(axis)
         return nanops.nanmax(self.values)
 
-    def argmax(self, axis=None):
+    def argmax(self, skipna=True, axis=None):
         """
         Return a ndarray of the maximum argument indexer.
 
@@ -836,9 +837,10 @@ class IndexOpsMixin(object):
         --------
         numpy.ndarray.argmax
         """
+        nv.validate_minmax_axis(axis)
         return nanops.nanargmax(self.values)
 
-    def min(self):
+    def min(self, skipna=True, axis=None):
         """
         Return the minimum value of the Index.
 
@@ -869,9 +871,10 @@ class IndexOpsMixin(object):
         >>> idx.min()
         ('a', 1)
         """
+        nv.validate_minmax_axis(axis)
         return nanops.nanmin(self.values)
 
-    def argmin(self, axis=None):
+    def argmin(self, skipna=True, axis=None):
         """
         Return a ndarray of the minimum argument indexer.
 
@@ -879,6 +882,7 @@ class IndexOpsMixin(object):
         --------
         numpy.ndarray.argmin
         """
+        nv.validate_minmax_axis(axis)
         return nanops.nanargmin(self.values)
 
     def tolist(self):
