@@ -662,10 +662,14 @@ class ExcelFile(object):
 
                 output[asheetname] = parser.read(nrows=nrows)
 
-                if ((not squeeze or isinstance(output[asheetname], DataFrame))
-                        and header_names):
-                    output[asheetname].columns = output[
-                        asheetname].columns.set_names(header_names)
+                if not squeeze or isinstance(output[asheetname], DataFrame):
+                    if header_names:
+                        output[asheetname].columns = output[
+                            asheetname].columns.set_names(header_names)
+                    elif compat.PY2:
+                        output[asheetname].columns = _maybe_convert_to_string(
+                            output[asheetname].columns)
+
             except EmptyDataError:
                 # No Data, return an empty DataFrame
                 output[asheetname] = DataFrame()
@@ -810,6 +814,39 @@ def _trim_excel_header(row):
     return row
 
 
+def _maybe_convert_to_string(row):
+    """
+    Convert elements in a row to string from Unicode.
+
+    This is purely a Python 2.x patch and is performed ONLY when all
+    elements of the row are string-like.
+
+    Parameters
+    ----------
+    row : array-like
+        The row of data to convert.
+
+    Returns
+    -------
+    converted : array-like
+    """
+    if compat.PY2:
+        converted = []
+
+        for i in range(len(row)):
+            if isinstance(row[i], compat.string_types):
+                try:
+                    converted.append(str(row[i]))
+                except UnicodeEncodeError:
+                    break
+            else:
+                break
+        else:
+            row = converted
+
+    return row
+
+
 def _fill_mi_header(row, control_row):
     """Forward fills blank entries in row, but only inside the same parent index
 
@@ -838,7 +875,7 @@ def _fill_mi_header(row, control_row):
             control_row[i] = False
             last = row[i]
 
-    return row, control_row
+    return _maybe_convert_to_string(row), control_row
 
 # fill blank if index_col not None
 
