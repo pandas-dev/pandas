@@ -1789,7 +1789,7 @@ def _coerce_to_dtype(dtype):
         ordered = getattr(dtype, 'ordered', False)
         dtype = CategoricalDtype(categories=categories, ordered=ordered)
     elif is_datetime64tz_dtype(dtype):
-        dtype = DatetimeTZDtype(dtype)
+        dtype = DatetimeTZDtype.construct_from_string(dtype)
     elif is_period_dtype(dtype):
         dtype = PeriodDtype(dtype)
     elif is_interval_dtype(dtype):
