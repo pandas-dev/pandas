@@ -369,6 +369,9 @@ class TimedeltaArrayMixin(dtl.DatetimeLikeArrayMixin):
             return self._data / other
 
         elif is_object_dtype(other):
+            # Note: we do not do type inference on the result, so either
+            #  an object array or numeric-dtyped (if numpy does inference)
+            #  will be returned.  GH#23829
             result = [self[n] / other[n] for n in range(len(self))]
             result = np.array(result)
             return result
@@ -412,6 +415,9 @@ class TimedeltaArrayMixin(dtl.DatetimeLikeArrayMixin):
             return other / self._data
 
         elif is_object_dtype(other):
+            # Note: unlike in __truediv__, we do not _need_ to do type#
+            #  inference on the result.  It does not raise, a numeric array
+            #  is returned.  GH#23829
             result = [other[n] / self[n] for n in range(len(self))]
             return np.array(result)
 
