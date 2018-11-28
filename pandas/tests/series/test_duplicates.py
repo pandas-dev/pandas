@@ -91,22 +91,17 @@ def test_is_unique_class_ne(capsys):
         ('last', Series([False, True, True, False, False, False, False])),
         (False, Series([False, True, True, False, True, True, False]))
     ])
-def test_drop_duplicates_non_bool(any_numpy_dtype, keep, expected):
-    tc = Series([1, 2, 3, 5, 3, 2, 4], dtype=np.dtype(any_numpy_dtype))
+def test_drop_duplicates(any_numpy_dtype, keep, expected):
+    tc = Series([1, 0, 3, 5, 3, 0, 4], dtype=np.dtype(any_numpy_dtype))
 
-    tm.assert_series_equal(tc.duplicated(keep=keep), expected)
-    tm.assert_series_equal(tc.drop_duplicates(keep=keep), tc[~expected])
-    sc = tc.copy()
-    sc.drop_duplicates(keep=keep, inplace=True)
-    tm.assert_series_equal(sc, tc[~expected])
-
-
-@pytest.mark.parametrize('keep, expected',
-                         [('first', Series([False, False, True, True])),
-                          ('last', Series([True, True, False, False])),
-                          (False, Series([True, True, True, True]))])
-def test_drop_duplicates_bool(keep, expected):
-    tc = Series([True, False, True, False])
+    if tc.dtype == 'bool':
+        # all non-zero values are True and hence duplicate
+        if keep == 'first':
+            expected = Series([False, False, True, True, True, True, True])
+        elif keep == 'last':
+            expected = Series([True, True, True, True, True, False, False])
+        else:
+            expected = Series([True] * 7)
 
     tm.assert_series_equal(tc.duplicated(keep=keep), expected)
     tm.assert_series_equal(tc.drop_duplicates(keep=keep), tc[~expected])
