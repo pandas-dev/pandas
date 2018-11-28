@@ -13,7 +13,6 @@ dependencies:
   - Cython>=0.28.2
   - flake8
   - flake8-comprehensions
-  - flake8-rst=0.4.2
   - gitpython
   - hypothesis>=3.58.0
   - isort

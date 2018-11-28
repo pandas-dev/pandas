@@ -9,7 +9,6 @@ dependencies:
   - fastparquet
   - flake8>=3.5
   - flake8-comprehensions
-  - flake8-rst=0.4.2
   - gcsfs
   - geopandas
   - html5lib
