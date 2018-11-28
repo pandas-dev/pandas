@@ -111,6 +111,9 @@ class NDFrame(PandasObject, SelectionMixin):
     _metadata = []
     _is_copy = None
 
+    # ----------------------------------------------------------------------
+    # Constructors
+
     def __init__(self, data, axes=None, copy=False, dtype=None,
                  fastpath=False):
 
@@ -127,43 +130,6 @@ class NDFrame(PandasObject, SelectionMixin):
         object.__setattr__(self, '_is_copy', None)
         object.__setattr__(self, '_data', data)
         object.__setattr__(self, '_item_cache', {})
-
-    @property
-    def is_copy(self):
-        warnings.warn("Attribute 'is_copy' is deprecated and will be removed "
-                      "in a future version.", FutureWarning, stacklevel=2)
-        return self._is_copy
-
-    @is_copy.setter
-    def is_copy(self, msg):
-        warnings.warn("Attribute 'is_copy' is deprecated and will be removed "
-                      "in a future version.", FutureWarning, stacklevel=2)
-        self._is_copy = msg
-
-    def _repr_data_resource_(self):
-        """
-        Not a real Jupyter special repr method, but we use the same
-        naming convention.
-        """
-        if config.get_option("display.html.table_schema"):
-            data = self.head(config.get_option('display.max_rows'))
-            payload = json.loads(data.to_json(orient='table'),
-                                 object_pairs_hook=collections.OrderedDict)
-            return payload
-
-    def _validate_dtype(self, dtype):
-        """ validate the passed dtype """
-
-        if dtype is not None:
-            dtype = pandas_dtype(dtype)
-
-            # a compound dtype
-            if dtype.kind == 'V':
-                raise NotImplementedError("compound dtypes are not implemented"
-                                          " in the {0} constructor"
-                                          .format(self.__class__.__name__))
-
-        return dtype
 
     def _init_mgr(self, mgr, axes=None, dtype=None, copy=False):
         """ passed a manager and a axes dict """
@@ -183,6 +149,34 @@ class NDFrame(PandasObject, SelectionMixin):
         return mgr
 
     # ----------------------------------------------------------------------
+
+    @property
+    def is_copy(self):
+        warnings.warn("Attribute 'is_copy' is deprecated and will be removed "
+                      "in a future version.", FutureWarning, stacklevel=2)
+        return self._is_copy
+
+    @is_copy.setter
+    def is_copy(self, msg):
+        warnings.warn("Attribute 'is_copy' is deprecated and will be removed "
+                      "in a future version.", FutureWarning, stacklevel=2)
+        self._is_copy = msg
+
+    def _validate_dtype(self, dtype):
+        """ validate the passed dtype """
+
+        if dtype is not None:
+            dtype = pandas_dtype(dtype)
+
+            # a compound dtype
+            if dtype.kind == 'V':
+                raise NotImplementedError("compound dtypes are not implemented"
+                                          " in the {0} constructor"
+                                          .format(self.__class__.__name__))
+
+        return dtype
+
+    # ----------------------------------------------------------------------
     # Construction
 
     @property
@@ -191,20 +185,6 @@ class NDFrame(PandasObject, SelectionMixin):
         original.
         """
         raise AbstractMethodError(self)
-
-    def __unicode__(self):
-        # unicode representation based upon iterating over self
-        # (since, by definition, `PandasContainers` are iterable)
-        prepr = '[%s]' % ','.join(map(pprint_thing, self))
-        return '%s(%s)' % (self.__class__.__name__, prepr)
-
-    def _dir_additions(self):
-        """ add the string-like attributes from the info_axis.
-        If info_axis is a MultiIndex, it's first level values are used.
-        """
-        additions = {c for c in self._info_axis.unique(level=0)[:100]
-                     if isinstance(c, string_types) and isidentifier(c)}
-        return super(NDFrame, self)._dir_additions().union(additions)
 
     @property
     def _constructor_sliced(self):
@@ -1338,47 +1318,11 @@ class NDFrame(PandasObject, SelectionMixin):
             return renamed
 
     # ----------------------------------------------------------------------
-    # Comparisons
+    # Comparison Methods
 
     def _indexed_same(self, other):
         return all(self._get_axis(a).equals(other._get_axis(a))
                    for a in self._AXIS_ORDERS)
-
-    def __neg__(self):
-        values = com.values_from_object(self)
-        if is_bool_dtype(values):
-            arr = operator.inv(values)
-        elif (is_numeric_dtype(values) or is_timedelta64_dtype(values)
-                or is_object_dtype(values)):
-            arr = operator.neg(values)
-        else:
-            raise TypeError("Unary negative expects numeric dtype, not {}"
-                            .format(values.dtype))
-        return self.__array_wrap__(arr)
-
-    def __pos__(self):
-        values = com.values_from_object(self)
-        if (is_bool_dtype(values) or is_period_arraylike(values)):
-            arr = values
-        elif (is_numeric_dtype(values) or is_timedelta64_dtype(values)
-                or is_object_dtype(values)):
-            arr = operator.pos(values)
-        else:
-            raise TypeError("Unary plus expects numeric dtype, not {}"
-                            .format(values.dtype))
-        return self.__array_wrap__(arr)
-
-    def __invert__(self):
-        try:
-            arr = operator.inv(com.values_from_object(self))
-            return self.__array_wrap__(arr)
-        except Exception:
-
-            # inv fails with 0 len
-            if not np.prod(self.shape):
-                return self
-
-            raise
 
     def equals(self, other):
         """
@@ -1465,6 +1409,74 @@ class NDFrame(PandasObject, SelectionMixin):
         if not isinstance(other, self._constructor):
             return False
         return self._data.equals(other._data)
+
+    # -------------------------------------------------------------------------
+    # Unary Methods
+
+    def __neg__(self):
+        values = com.values_from_object(self)
+        if is_bool_dtype(values):
+            arr = operator.inv(values)
+        elif (is_numeric_dtype(values) or is_timedelta64_dtype(values)
+                or is_object_dtype(values)):
+            arr = operator.neg(values)
+        else:
+            raise TypeError("Unary negative expects numeric dtype, not {}"
+                            .format(values.dtype))
+        return self.__array_wrap__(arr)
+
+    def __pos__(self):
+        values = com.values_from_object(self)
+        if (is_bool_dtype(values) or is_period_arraylike(values)):
+            arr = values
+        elif (is_numeric_dtype(values) or is_timedelta64_dtype(values)
+                or is_object_dtype(values)):
+            arr = operator.pos(values)
+        else:
+            raise TypeError("Unary plus expects numeric dtype, not {}"
+                            .format(values.dtype))
+        return self.__array_wrap__(arr)
+
+    def __invert__(self):
+        try:
+            arr = operator.inv(com.values_from_object(self))
+            return self.__array_wrap__(arr)
+        except Exception:
+
+            # inv fails with 0 len
+            if not np.prod(self.shape):
+                return self
+
+            raise
+
+    def __nonzero__(self):
+        raise ValueError("The truth value of a {0} is ambiguous. "
+                         "Use a.empty, a.bool(), a.item(), a.any() or a.all()."
+                         .format(self.__class__.__name__))
+
+    __bool__ = __nonzero__
+
+    def bool(self):
+        """Return the bool of a single element PandasObject.
+
+        This must be a boolean scalar value, either True or False.  Raise a
+        ValueError if the PandasObject does not have exactly 1 element, or that
+        element is not boolean
+        """
+        v = self.squeeze()
+        if isinstance(v, (bool, np.bool_)):
+            return bool(v)
+        elif is_scalar(v):
+            raise ValueError("bool cannot act on a non-boolean single element "
+                             "{0}".format(self.__class__.__name__))
+
+        self.__nonzero__()
+
+    def __abs__(self):
+        return self.abs()
+
+    def __round__(self, decimals=0):
+        return self.round(decimals)
 
     # -------------------------------------------------------------------------
     # Label or Level Combination Helpers
@@ -1858,35 +1870,6 @@ class NDFrame(PandasObject, SelectionMixin):
         """
         return any(len(self._get_axis(a)) == 0 for a in self._AXIS_ORDERS)
 
-    def __nonzero__(self):
-        raise ValueError("The truth value of a {0} is ambiguous. "
-                         "Use a.empty, a.bool(), a.item(), a.any() or a.all()."
-                         .format(self.__class__.__name__))
-
-    __bool__ = __nonzero__
-
-    def bool(self):
-        """Return the bool of a single element PandasObject.
-
-        This must be a boolean scalar value, either True or False.  Raise a
-        ValueError if the PandasObject does not have exactly 1 element, or that
-        element is not boolean
-        """
-        v = self.squeeze()
-        if isinstance(v, (bool, np.bool_)):
-            return bool(v)
-        elif is_scalar(v):
-            raise ValueError("bool cannot act on a non-boolean single element "
-                             "{0}".format(self.__class__.__name__))
-
-        self.__nonzero__()
-
-    def __abs__(self):
-        return self.abs()
-
-    def __round__(self, decimals=0):
-        return self.round(decimals)
-
     # ----------------------------------------------------------------------
     # Array Interface
 
@@ -1962,7 +1945,13 @@ class NDFrame(PandasObject, SelectionMixin):
         self._item_cache = {}
 
     # ----------------------------------------------------------------------
-    # IO
+    # Rendering Methods
+
+    def __unicode__(self):
+        # unicode representation based upon iterating over self
+        # (since, by definition, `PandasContainers` are iterable)
+        prepr = '[%s]' % ','.join(map(pprint_thing, self))
+        return '%s(%s)' % (self.__class__.__name__, prepr)
 
     def _repr_latex_(self):
         """
@@ -1973,6 +1962,17 @@ class NDFrame(PandasObject, SelectionMixin):
             return self.to_latex()
         else:
             return None
+
+    def _repr_data_resource_(self):
+        """
+        Not a real Jupyter special repr method, but we use the same
+        naming convention.
+        """
+        if config.get_option("display.html.table_schema"):
+            data = self.head(config.get_option('display.max_rows'))
+            payload = json.loads(data.to_json(orient='table'),
+                                 object_pairs_hook=collections.OrderedDict)
+            return payload
 
     # ----------------------------------------------------------------------
     # I/O Methods
@@ -2078,6 +2078,25 @@ class NDFrame(PandasObject, SelectionMixin):
 
     >>> df1.to_excel('output1.xlsx', engine='xlsxwriter')  # doctest: +SKIP
     """
+
+    @Appender(_shared_docs["to_excel"] % dict(klass="object"))
+    def to_excel(self, excel_writer, sheet_name="Sheet1", na_rep="",
+                 float_format=None, columns=None, header=True, index=True,
+                 index_label=None, startrow=0, startcol=0, engine=None,
+                 merge_cells=True, encoding=None, inf_rep="inf", verbose=True,
+                 freeze_panes=None):
+        df = self if isinstance(self, ABCDataFrame) else self.to_frame()
+
+        from pandas.io.formats.excel import ExcelFormatter
+        formatter = ExcelFormatter(df, na_rep=na_rep, cols=columns,
+                                   header=header,
+                                   float_format=float_format, index=index,
+                                   index_label=index_label,
+                                   merge_cells=merge_cells,
+                                   inf_rep=inf_rep)
+        formatter.write(excel_writer, sheet_name=sheet_name, startrow=startrow,
+                        startcol=startcol, freeze_panes=freeze_panes,
+                        engine=engine)
 
     def to_json(self, path_or_buf=None, orient=None, date_format=None,
                 double_precision=10, force_ascii=True, date_unit='ms',
@@ -2820,6 +2839,148 @@ class NDFrame(PandasObject, SelectionMixin):
 
         if buf is None:
             return formatter.buf.getvalue()
+
+    def to_csv(self, path_or_buf=None, sep=",", na_rep='', float_format=None,
+               columns=None, header=True, index=True, index_label=None,
+               mode='w', encoding=None, compression='infer', quoting=None,
+               quotechar='"', line_terminator=None, chunksize=None,
+               tupleize_cols=None, date_format=None, doublequote=True,
+               escapechar=None, decimal='.'):
+        r"""
+        Write object to a comma-separated values (csv) file.
+
+        .. versionchanged:: 0.24.0
+            The order of arguments for Series was changed.
+
+        Parameters
+        ----------
+        path_or_buf : str or file handle, default None
+            File path or object, if None is provided the result is returned as
+            a string.
+
+            .. versionchanged:: 0.24.0
+
+               Was previously named "path" for Series.
+
+        sep : str, default ','
+            String of length 1. Field delimiter for the output file.
+        na_rep : str, default ''
+            Missing data representation.
+        float_format : str, default None
+            Format string for floating point numbers.
+        columns : sequence, optional
+            Columns to write.
+        header : bool or list of str, default True
+            Write out the column names. If a list of strings is given it is
+            assumed to be aliases for the column names.
+
+            .. versionchanged:: 0.24.0
+
+               Previously defaulted to False for Series.
+
+        index : bool, default True
+            Write row names (index).
+        index_label : str or sequence, or False, default None
+            Column label for index column(s) if desired. If None is given, and
+            `header` and `index` are True, then the index names are used. A
+            sequence should be given if the object uses MultiIndex. If
+            False do not print fields for index names. Use index_label=False
+            for easier importing in R.
+        mode : str
+            Python write mode, default 'w'.
+        encoding : str, optional
+            A string representing the encoding to use in the output file,
+            defaults to 'ascii' on Python 2 and 'utf-8' on Python 3.
+        compression : str, default 'infer'
+            Compression mode among the following possible values: {'infer',
+            'gzip', 'bz2', 'zip', 'xz', None}. If 'infer' and `path_or_buf`
+            is path-like, then detect compression from the following
+            extensions: '.gz', '.bz2', '.zip' or '.xz'. (otherwise no
+            compression).
+
+            .. versionchanged:: 0.24.0
+
+               'infer' option added and set to default.
+
+        quoting : optional constant from csv module
+            Defaults to csv.QUOTE_MINIMAL. If you have set a `float_format`
+            then floats are converted to strings and thus csv.QUOTE_NONNUMERIC
+            will treat them as non-numeric.
+        quotechar : str, default '\"'
+            String of length 1. Character used to quote fields.
+        line_terminator : string, optional
+            The newline character or character sequence to use in the output
+            file. Defaults to `os.linesep`, which depends on the OS in which
+            this method is called ('\n' for linux, '\r\n' for Windows, i.e.).
+
+            .. versionchanged:: 0.24.0
+        chunksize : int or None
+            Rows to write at a time.
+        tupleize_cols : bool, default False
+            Write MultiIndex columns as a list of tuples (if True) or in
+            the new, expanded format, where each MultiIndex column is a row
+            in the CSV (if False).
+
+            .. deprecated:: 0.21.0
+               This argument will be removed and will always write each row
+               of the multi-index as a separate row in the CSV file.
+        date_format : str, default None
+            Format string for datetime objects.
+        doublequote : bool, default True
+            Control quoting of `quotechar` inside a field.
+        escapechar : str, default None
+            String of length 1. Character used to escape `sep` and `quotechar`
+            when appropriate.
+        decimal : str, default '.'
+            Character recognized as decimal separator. E.g. use ',' for
+            European data.
+
+        Returns
+        -------
+        None or str
+            If path_or_buf is None, returns the resulting csv format as a
+            string. Otherwise returns None.
+
+        See Also
+        --------
+        read_csv : Load a CSV file into a DataFrame.
+        to_excel : Load an Excel file into a DataFrame.
+
+        Examples
+        --------
+        >>> df = pd.DataFrame({'name': ['Raphael', 'Donatello'],
+        ...                    'mask': ['red', 'purple'],
+        ...                    'weapon': ['sai', 'bo staff']})
+        >>> df.to_csv(index=False)
+        'name,mask,weapon\nRaphael,red,sai\nDonatello,purple,bo staff\n'
+        """
+
+        df = self if isinstance(self, ABCDataFrame) else self.to_frame()
+
+        if tupleize_cols is not None:
+            warnings.warn("The 'tupleize_cols' parameter is deprecated and "
+                          "will be removed in a future version",
+                          FutureWarning, stacklevel=2)
+        else:
+            tupleize_cols = False
+
+        from pandas.io.formats.csvs import CSVFormatter
+        formatter = CSVFormatter(df, path_or_buf,
+                                 line_terminator=line_terminator, sep=sep,
+                                 encoding=encoding,
+                                 compression=compression, quoting=quoting,
+                                 na_rep=na_rep, float_format=float_format,
+                                 cols=columns, header=header, index=index,
+                                 index_label=index_label, mode=mode,
+                                 chunksize=chunksize, quotechar=quotechar,
+                                 tupleize_cols=tupleize_cols,
+                                 date_format=date_format,
+                                 doublequote=doublequote,
+                                 escapechar=escapechar, decimal=decimal)
+        formatter.save()
+
+        if path_or_buf is None:
+            return formatter.path_or_buf.getvalue()
 
     # ----------------------------------------------------------------------
     # Fancy Indexing
@@ -4856,6 +5017,14 @@ class NDFrame(PandasObject, SelectionMixin):
                                   "stable/indexing.html#attribute-access",
                                   stacklevel=2)
                 object.__setattr__(self, name, value)
+
+    def _dir_additions(self):
+        """ add the string-like attributes from the info_axis.
+        If info_axis is a MultiIndex, it's first level values are used.
+        """
+        additions = {c for c in self._info_axis.unique(level=0)[:100]
+                     if isinstance(c, string_types) and isidentifier(c)}
+        return super(NDFrame, self)._dir_additions().union(additions)
 
     # ----------------------------------------------------------------------
     # Getting and setting elements
@@ -9913,167 +10082,6 @@ class NDFrame(PandasObject, SelectionMixin):
                                              'klass': 'NDFrame'})
     def last_valid_index(self):
         return self._find_valid_index('last')
-
-    def to_csv(self, path_or_buf=None, sep=",", na_rep='', float_format=None,
-               columns=None, header=True, index=True, index_label=None,
-               mode='w', encoding=None, compression='infer', quoting=None,
-               quotechar='"', line_terminator=None, chunksize=None,
-               tupleize_cols=None, date_format=None, doublequote=True,
-               escapechar=None, decimal='.'):
-        r"""
-        Write object to a comma-separated values (csv) file.
-
-        .. versionchanged:: 0.24.0
-            The order of arguments for Series was changed.
-
-        Parameters
-        ----------
-        path_or_buf : str or file handle, default None
-            File path or object, if None is provided the result is returned as
-            a string.
-
-            .. versionchanged:: 0.24.0
-
-               Was previously named "path" for Series.
-
-        sep : str, default ','
-            String of length 1. Field delimiter for the output file.
-        na_rep : str, default ''
-            Missing data representation.
-        float_format : str, default None
-            Format string for floating point numbers.
-        columns : sequence, optional
-            Columns to write.
-        header : bool or list of str, default True
-            Write out the column names. If a list of strings is given it is
-            assumed to be aliases for the column names.
-
-            .. versionchanged:: 0.24.0
-
-               Previously defaulted to False for Series.
-
-        index : bool, default True
-            Write row names (index).
-        index_label : str or sequence, or False, default None
-            Column label for index column(s) if desired. If None is given, and
-            `header` and `index` are True, then the index names are used. A
-            sequence should be given if the object uses MultiIndex. If
-            False do not print fields for index names. Use index_label=False
-            for easier importing in R.
-        mode : str
-            Python write mode, default 'w'.
-        encoding : str, optional
-            A string representing the encoding to use in the output file,
-            defaults to 'ascii' on Python 2 and 'utf-8' on Python 3.
-        compression : str, default 'infer'
-            Compression mode among the following possible values: {'infer',
-            'gzip', 'bz2', 'zip', 'xz', None}. If 'infer' and `path_or_buf`
-            is path-like, then detect compression from the following
-            extensions: '.gz', '.bz2', '.zip' or '.xz'. (otherwise no
-            compression).
-
-            .. versionchanged:: 0.24.0
-
-               'infer' option added and set to default.
-
-        quoting : optional constant from csv module
-            Defaults to csv.QUOTE_MINIMAL. If you have set a `float_format`
-            then floats are converted to strings and thus csv.QUOTE_NONNUMERIC
-            will treat them as non-numeric.
-        quotechar : str, default '\"'
-            String of length 1. Character used to quote fields.
-        line_terminator : string, optional
-            The newline character or character sequence to use in the output
-            file. Defaults to `os.linesep`, which depends on the OS in which
-            this method is called ('\n' for linux, '\r\n' for Windows, i.e.).
-
-            .. versionchanged:: 0.24.0
-        chunksize : int or None
-            Rows to write at a time.
-        tupleize_cols : bool, default False
-            Write MultiIndex columns as a list of tuples (if True) or in
-            the new, expanded format, where each MultiIndex column is a row
-            in the CSV (if False).
-
-            .. deprecated:: 0.21.0
-               This argument will be removed and will always write each row
-               of the multi-index as a separate row in the CSV file.
-        date_format : str, default None
-            Format string for datetime objects.
-        doublequote : bool, default True
-            Control quoting of `quotechar` inside a field.
-        escapechar : str, default None
-            String of length 1. Character used to escape `sep` and `quotechar`
-            when appropriate.
-        decimal : str, default '.'
-            Character recognized as decimal separator. E.g. use ',' for
-            European data.
-
-        Returns
-        -------
-        None or str
-            If path_or_buf is None, returns the resulting csv format as a
-            string. Otherwise returns None.
-
-        See Also
-        --------
-        read_csv : Load a CSV file into a DataFrame.
-        to_excel : Load an Excel file into a DataFrame.
-
-        Examples
-        --------
-        >>> df = pd.DataFrame({'name': ['Raphael', 'Donatello'],
-        ...                    'mask': ['red', 'purple'],
-        ...                    'weapon': ['sai', 'bo staff']})
-        >>> df.to_csv(index=False)
-        'name,mask,weapon\nRaphael,red,sai\nDonatello,purple,bo staff\n'
-        """
-
-        df = self if isinstance(self, ABCDataFrame) else self.to_frame()
-
-        if tupleize_cols is not None:
-            warnings.warn("The 'tupleize_cols' parameter is deprecated and "
-                          "will be removed in a future version",
-                          FutureWarning, stacklevel=2)
-        else:
-            tupleize_cols = False
-
-        from pandas.io.formats.csvs import CSVFormatter
-        formatter = CSVFormatter(df, path_or_buf,
-                                 line_terminator=line_terminator, sep=sep,
-                                 encoding=encoding,
-                                 compression=compression, quoting=quoting,
-                                 na_rep=na_rep, float_format=float_format,
-                                 cols=columns, header=header, index=index,
-                                 index_label=index_label, mode=mode,
-                                 chunksize=chunksize, quotechar=quotechar,
-                                 tupleize_cols=tupleize_cols,
-                                 date_format=date_format,
-                                 doublequote=doublequote,
-                                 escapechar=escapechar, decimal=decimal)
-        formatter.save()
-
-        if path_or_buf is None:
-            return formatter.path_or_buf.getvalue()
-
-    @Appender(_shared_docs["to_excel"] % dict(klass="object"))
-    def to_excel(self, excel_writer, sheet_name="Sheet1", na_rep="",
-                 float_format=None, columns=None, header=True, index=True,
-                 index_label=None, startrow=0, startcol=0, engine=None,
-                 merge_cells=True, encoding=None, inf_rep="inf", verbose=True,
-                 freeze_panes=None):
-        df = self if isinstance(self, ABCDataFrame) else self.to_frame()
-
-        from pandas.io.formats.excel import ExcelFormatter
-        formatter = ExcelFormatter(df, na_rep=na_rep, cols=columns,
-                                   header=header,
-                                   float_format=float_format, index=index,
-                                   index_label=index_label,
-                                   merge_cells=merge_cells,
-                                   inf_rep=inf_rep)
-        formatter.write(excel_writer, sheet_name=sheet_name, startrow=startrow,
-                        startcol=startcol, freeze_panes=freeze_panes,
-                        engine=engine)
 
 
 def _doc_parms(cls):
