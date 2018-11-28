@@ -12,11 +12,15 @@ from pandas.core.dtypes.common import is_list_like, is_scalar
 
 
 class GroupByMixin(object):
-    """ provide the groupby facilities to the mixed object """
+    """
+    Provide the groupby facilities to the mixed object.
+    """
 
     @staticmethod
     def _dispatch(name, *args, **kwargs):
-        """ dispatch to apply """
+        """
+        Dispatch to apply.
+        """
 
         def outer(self, *args, **kwargs):
             def f(x):
@@ -28,8 +32,7 @@ class GroupByMixin(object):
 
     def _gotitem(self, key, ndim, subset=None):
         """
-        sub-classes to define
-        return a sliced object
+        Sub-classes to define. Return a sliced object.
 
         Parameters
         ----------
