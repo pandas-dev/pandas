@@ -136,8 +136,8 @@ class TestGetItem(object):
         tm.assert_series_equal(ts[[Period('2012-01-02', freq='D')]], exp)
 
     def test_getitem_seconds(self):
-        # GH 6716
-        didx = DatetimeIndex(start='2013/01/01 09:00:00', freq='S',
+        # GH#6716
+        didx = pd.date_range(start='2013/01/01 09:00:00', freq='S',
                              periods=4000)
         pidx = PeriodIndex(start='2013/01/01 09:00:00', freq='S', periods=4000)
 
@@ -160,9 +160,9 @@ class TestGetItem(object):
                 tm.assert_series_equal(s[d], s)
 
     def test_getitem_day(self):
-        # GH 6716
+        # GH#6716
         # Confirm DatetimeIndex and PeriodIndex works identically
-        didx = DatetimeIndex(start='2013/01/01', freq='D', periods=400)
+        didx = pd.date_range(start='2013/01/01', freq='D', periods=400)
         pidx = PeriodIndex(start='2013/01/01', freq='D', periods=400)
 
         for idx in [didx, pidx]:

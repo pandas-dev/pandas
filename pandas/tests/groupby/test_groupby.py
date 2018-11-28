@@ -8,7 +8,7 @@ from decimal import Decimal
 
 from pandas import (date_range, Timestamp,
                     Index, MultiIndex, DataFrame, Series,
-                    Panel, DatetimeIndex, read_csv)
+                    Panel, read_csv)
 from pandas.errors import PerformanceWarning
 from pandas.util.testing import (assert_frame_equal,
                                  assert_series_equal, assert_almost_equal)
@@ -1438,7 +1438,7 @@ def test_groupby_sort_multiindex_series():
 def test_groupby_reindex_inside_function():
 
     periods = 1000
-    ind = DatetimeIndex(start='2012/1/1', freq='5min', periods=periods)
+    ind = date_range(start='2012/1/1', freq='5min', periods=periods)
     df = DataFrame({'high': np.arange(
         periods), 'low': np.arange(periods)}, index=ind)
 
