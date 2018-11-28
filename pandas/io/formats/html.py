@@ -90,7 +90,7 @@ class HTMLFormatter(TableFormatter):
         else:
             end_a = ''
 
-        self.write('{start}{rs}{end_a}</{kind}>'
+        self.write(u'{start}{rs}{end_a}</{kind}>'
                    .format(start=start_tag, rs=rs, end_a=end_a, kind=kind),
                    indent)
 
