@@ -1304,7 +1304,7 @@ def test_array_multiindex_raises():
     (pd.core.arrays.period_array(['2000', '2001'], freq='D'),
      np.array([pd.Period('2000', freq="D"), pd.Period('2001', freq='D')])),
     (pd.core.arrays.integer_array([0, np.nan]),
-     np.array([1, np.nan], dtype=object)),
+     np.array([0, np.nan], dtype=object)),
     (pd.core.arrays.IntervalArray.from_breaks([0, 1, 2]),
      np.array([pd.Interval(0, 1), pd.Interval(1, 2)], dtype=object)),
     (pd.SparseArray([0, 1]), np.array([0, 1], dtype=np.int64)),
@@ -1314,7 +1314,7 @@ def test_array_multiindex_raises():
 def test_to_numpy(array, expected, box):
     thing = box(array)
 
-    if array.dtype.name in ('Int64', 'Sparse[int64, 0]'):
+    if array.dtype.name in ('Int64', 'Sparse[int64, 0]') and box is pd.Index:
         pytest.skip("No index type for {}".format(array.dtype))
 
     result = thing.to_numpy()

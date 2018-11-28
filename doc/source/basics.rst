@@ -80,6 +80,21 @@ the **array** property
    s.array
    s.index.array
 
+Depending on the data type (see :ref:`basics.dtypes`), :attr:`~Series.array`
+be either a NumPy array or an :ref:`ExtensionArray <extending.extension-type>`.
+If you know you need a NumPy array, use :meth:`~Series.to_numpy`
+or :meth:`numpy.asarray`.
+
+.. ipython:: python
+
+   s.to_numpy()
+   np.asarray(s)
+
+For Series and Indexes backed by NumPy arrays (like we have here), this will
+be the same as :attr:`~Series.array`. When the Series or Index is backed by
+a :class:`~pandas.api.extension.ExtensionArray`, :meth:`~Series.to_numpy`
+may involve copying data and coercing values.
+
 Getting the "raw data" inside a :class:`DataFrame` is possibly a bit more
 complex. When your ``DataFrame`` only has a single data type for all the
 columns, :atr:`DataFrame.to_numpy` will return the underlying data:
@@ -100,6 +115,21 @@ unlike the axis labels, cannot be assigned to.
     will be chosen to accommodate all of the data involved. For example, if
     strings are involved, the result will be of object dtype. If there are only
     floats and integers, the resulting array will be of float dtype.
+
+In the past, pandas recommended :attr:`Series.values` or :attr:`DataFrame.values`
+for extracting the data from a Series or DataFrame. You'll still find references
+to these in old code bases and online. Going forward, we recommend avoiding
+``.values`` and using ``.array`` or ``.to_numpy()``. ``.values`` has the following
+drawbacks:
+
+1. When your Series contains an :ref:`extension type <extending.extension-type>`, it's
+   unclear whether :attr:`Series.values` returns a NumPy array or the extension array.
+   :attr:`Series.array` will always return the actual array backing the Series,
+   while :meth:`Series.to_numpy` will always return a NumPy array.
+2. When your DataFrame contains a mixture of data types, :attr:`DataFrame.values` may
+   involve copying data and coercing values to a common dtype, a relatively expensive
+   operation. :meth:`DataFrame.to_numpy`, being a method, makes it clearer that the
+   returned NumPy array may not be a view on the same data in the DataFrame.
 
 .. _basics.accelerate:
 
@@ -555,7 +585,7 @@ will exclude NAs on Series input by default:
 .. ipython:: python
 
    np.mean(df['one'])
-   np.mean(df['one'].array)
+   np.mean(df['one'].to_numpy())
 
 :meth:`Series.nunique` will return the number of unique non-NA values in a
 Series:
@@ -2009,7 +2039,7 @@ from the current type (e.g. ``int`` to ``float``).
    df3
    df3.dtypes
 
-The ``values`` attribute on a DataFrame return the *lower-common-denominator* of the dtypes, meaning
+:meth:`DataFrame.to_numpy` will return the *lower-common-denominator* of the dtypes, meaning
 the dtype that can accommodate **ALL** of the types in the resulting homogeneous dtyped NumPy array. This can
 force some *upcasting*.
 

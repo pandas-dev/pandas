@@ -5060,6 +5060,7 @@ class NDFrame(PandasObject, SelectionMixin):
 
         See Also
         --------
+        DataFrame.to_numpy : Recommended alternative to this method.
         pandas.DataFrame.index : Retrieve the index labels.
         pandas.DataFrame.columns : Retrieving the column names.
         """

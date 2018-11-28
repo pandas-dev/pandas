@@ -1134,8 +1134,10 @@ class DataFrame(NDFrame):
         .. versionadded:: 0.24.0
 
         The dtype of the returned array will be the common NumPy
-        dtype of all types in the DataFrame. This may require copying
-        data and coercing values, which may be expensive.
+        dtype of all types in the DataFrame. For example,
+        if the dtypes are ``float16`` and ``float32``, the results
+        dtype will be ``float32``. This may require copying data and
+        coercing values, which may be expensive.
 
         Returns
         -------
@@ -1143,8 +1145,7 @@ class DataFrame(NDFrame):
 
         See Also
         --------
-        Series.to_nummpy
-        Series.array
+        Series.to_numpy : Similar method for Series.
 
         Examples
         --------

@@ -722,7 +722,7 @@ class Index(IndexOpsMixin, PandasObject):
 
         Returns
         -------
-        array: Union[np.ndarray, ExtensionArray]
+        array: numpy.ndarray or ExtensionArray
 
         See Also
         --------

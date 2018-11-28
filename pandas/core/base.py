@@ -780,7 +780,8 @@ class IndexOpsMixin(object):
     @property
     def array(self):
         # type: () -> Union[np.ndarray, ExtensionArray]
-        """The actual Array backing this Series or Index.
+        """
+        The actual Array backing this Series or Index.
 
         .. versionadded:: 0.24.0
 
@@ -790,6 +791,11 @@ class IndexOpsMixin(object):
             This is the actual array stored within this object. This differs
             from ``.values`` which may require converting the data
             to a different form.
+
+        See Also
+        --------
+        Index.to_numpy : Similar method that always returns a NumPy array.
+        Series.to_numpy : Similar method that always returns a NumPy array.
 
         Notes
         -----
@@ -803,27 +809,23 @@ class IndexOpsMixin(object):
         period             PeriodArray
         interval           IntervalArray
         IntegerNA          IntegerArray
-        datetime64[ns, tz] datetime64[ns]? DatetimeArray
+        datetime64[ns, tz] DatetimeArray
         ================== =============================
 
         For any 3rd-party extension types, the array type will be an
         ExtensionArray.
 
         For all remaining dtypes ``.array`` will be the :class:`numpy.ndarray`
-        stored within.
+        stored within. If you absolutely need a NumPy array (possibly with
+        copying / coercing data), then use :meth:`Series.to_numpy` instead.
 
         .. note::
 
            ``.array`` will always return the underlying object backing the
            Series or Index. If a future version of pandas adds a specialized
-           extension type for a data then the return type of ``.array`` for
-           that data type will change from an object-dtype ndarray to the
+           extension type for a data type, then the return type of ``.array``
+           for that data type will change from an object-dtype ndarray to the
            new ExtensionArray.
-
-        See Also
-        --------
-        Index.to_numpy : Similar method that always returns a NumPy array.
-        Series.to_numpy : Similar method that always returns a NumPy array.
 
         Examples
         --------
@@ -835,17 +837,27 @@ class IndexOpsMixin(object):
         return self._values
 
     def to_numpy(self):
-        """A NumPy array representing the values in this Series or Index.
+        """
+        A NumPy ndarray representing the values in this Series or Index.
 
         .. versionadded:: 0.24.0
 
         The returned array will be the same up to equality (values equal
         in `self` will be equal in the returned array; likewise for values
-        that are not equal).
+        that are not equal). When `self` contains an ExtensionArray, the
+        dtype may be different. For example, for a category-dtype Series,
+        ``to_numpy()`` will return a NumPy array and the categorical dtype
+        will be lost.
 
         Returns
         -------
         numpy.ndarray
+
+        See Also
+        --------
+        Series.array : Get the actual data stored within.
+        Index.array : Get the actual data stored within.
+        DataFrame.to_numpy : Similar method for DataFrame.
 
         Notes
         -----
@@ -856,7 +868,8 @@ class IndexOpsMixin(object):
 
         For extension types, ``to_numpy()`` *may* require copying data and
         coercing the result to a NumPy type (possibly object), which may be
-        expensive.
+        expensive. When you need a no-copy reference to the underlying data,
+        :attr:`Series.array` should be used instead.
 
         This table lays out the different dtypes and return types of
         ``to_numpy()`` for various dtypes within pandas.
@@ -868,14 +881,8 @@ class IndexOpsMixin(object):
         period             ndarray[object] (Periods)
         interval           ndarray[object] (Intervals)
         IntegerNA          ndarray[object]
-        datetime64[ns, tz] datetime64[ns]
+        datetime64[ns, tz] ndarray[object] (Timestamps)
         ================== ================================
-
-        See Also
-        --------
-        Series.array : Get the actual data stored within.
-        Index.array : Get the actual data stored within.
-        DataFrame.to_numpy : Similar method for DataFrame.
 
         Examples
         --------
