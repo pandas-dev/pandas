@@ -99,10 +99,13 @@ def ensure_datetime64ns(arr: ndarray, copy: bool=True):
 
     ivalues = arr.view(np.int64).ravel()
 
-    result = np.empty(shape, dtype='M8[ns]')
+    result = np.empty(shape, dtype=NS_DTYPE)
     iresult = result.ravel().view(np.int64)
 
     if len(iresult) == 0:
+        result = arr.view(NS_DTYPE)
+        if copy:
+            result = result.copy()
         return result
 
     unit = get_datetime64_unit(arr.flat[0])

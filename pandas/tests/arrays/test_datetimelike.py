@@ -167,6 +167,15 @@ class TestDatetimeArray(SharedTests):
         assert result.base is expected.base
         assert result.base is not None
 
+    def test_from_array_keeps_base(self):
+        # Ensure that DatetimeArray._data.base isn't lost.
+        arr = np.array(['2000-01-01', '2000-01-02'], dtype='M8[ns]')
+        dta = DatetimeArray(arr)
+
+        assert dta._data is arr
+        dta = DatetimeArray(arr[:0])
+        assert dta._data.base is arr
+
     def test_from_dti(self, tz_naive_fixture):
         tz = tz_naive_fixture
         dti = pd.date_range('2016-01-01', periods=3, tz=tz)
