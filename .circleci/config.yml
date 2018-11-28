@@ -26,7 +26,13 @@ jobs:
           name: build
           command: |
             ./ci/circle/install_circle.sh
-            ./ci/circle/show_circle.sh
+            export PATH="$MINICONDA_DIR/bin:$PATH"
+            source activate pandas-dev
+            python -c "import pandas; pandas.show_versions();"
       - run:
           name: test
-          command: ./ci/circle/run_circle.sh  --skip-slow --skip-network
+          command: |
+            export PATH="$MINICONDA_DIR/bin:$PATH"
+            source activate pandas-dev
+            echo "pytest --strict --durations=10 --color=no --junitxml=$CIRCLE_TEST_REPORTS/reports/junit.xml --skip-slow --skip-network pandas"
+            pytest       --strict --durations=10 --color=no --junitxml=$CIRCLE_TEST_REPORTS/reports/junit.xml --skip-slow --skip-network pandas

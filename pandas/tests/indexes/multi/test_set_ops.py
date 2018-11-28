@@ -56,11 +56,12 @@ def test_union_base(idx):
         first.union([1, 2, 3])
 
 
-def test_difference_base(idx):
+@pytest.mark.parametrize("sort", [True, False])
+def test_difference_base(idx, sort):
     first = idx[2:]
     second = idx[:4]
     answer = idx[4:]
-    result = first.difference(second)
+    result = first.difference(second, sort)
 
     assert tm.equalContents(result, answer)
 
@@ -68,12 +69,12 @@ def test_difference_base(idx):
     cases = [klass(second.values)
              for klass in [np.array, Series, list]]
     for case in cases:
-        result = first.difference(case)
+        result = first.difference(case, sort)
         assert tm.equalContents(result, answer)
 
     msg = "other must be a MultiIndex or a list of tuples"
     with pytest.raises(TypeError, match=msg):
-        first.difference([1, 2, 3])
+        first.difference([1, 2, 3], sort)
 
 
 def test_symmetric_difference(idx):
@@ -101,11 +102,17 @@ def test_empty(idx):
     assert idx[:0].empty
 
 
-def test_difference(idx):
+@pytest.mark.parametrize("sort", [True, False])
+def test_difference(idx, sort):
 
     first = idx
-    result = first.difference(idx[-3:])
-    expected = MultiIndex.from_tuples(sorted(idx[:-3].values),
+    result = first.difference(idx[-3:], sort)
+    vals = idx[:-3].values
+
+    if sort:
+        vals = sorted(vals)
+
+    expected = MultiIndex.from_tuples(vals,
                                       sortorder=0,
                                       names=idx.names)
 
@@ -114,19 +121,19 @@ def test_difference(idx):
     assert result.names == idx.names
 
     # empty difference: reflexive
-    result = idx.difference(idx)
+    result = idx.difference(idx, sort)
     expected = idx[:0]
     assert result.equals(expected)
     assert result.names == idx.names
 
     # empty difference: superset
-    result = idx[-3:].difference(idx)
+    result = idx[-3:].difference(idx, sort)
     expected = idx[:0]
     assert result.equals(expected)
     assert result.names == idx.names
 
     # empty difference: degenerate
-    result = idx[:0].difference(idx)
+    result = idx[:0].difference(idx, sort)
     expected = idx[:0]
     assert result.equals(expected)
     assert result.names == idx.names
@@ -134,24 +141,24 @@ def test_difference(idx):
     # names not the same
     chunklet = idx[-3:]
     chunklet.names = ['foo', 'baz']
-    result = first.difference(chunklet)
+    result = first.difference(chunklet, sort)
     assert result.names == (None, None)
 
     # empty, but non-equal
-    result = idx.difference(idx.sortlevel(1)[0])
+    result = idx.difference(idx.sortlevel(1)[0], sort)
     assert len(result) == 0
 
     # raise Exception called with non-MultiIndex
-    result = first.difference(first.values)
+    result = first.difference(first.values, sort)
     assert result.equals(first[:0])
 
     # name from empty array
-    result = first.difference([])
+    result = first.difference([], sort)
     assert first.equals(result)
     assert first.names == result.names
 
     # name from non-empty array
-    result = first.difference([('foo', 'one')])
+    result = first.difference([('foo', 'one')], sort)
     expected = pd.MultiIndex.from_tuples([('bar', 'one'), ('baz', 'two'), (
         'foo', 'two'), ('qux', 'one'), ('qux', 'two')])
     expected.names = first.names

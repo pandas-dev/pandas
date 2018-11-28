@@ -1070,18 +1070,6 @@ cdef class TextReader:
 
             conv = self._get_converter(i, name)
 
-            # XXX
-            na_flist = set()
-            if self.na_filter:
-                na_list, na_flist = self._get_na_list(i, name)
-                if na_list is None:
-                    na_filter = 0
-                else:
-                    na_filter = 1
-                    na_hashset = kset_from_list(na_list)
-            else:
-                na_filter = 0
-
             col_dtype = None
             if self.dtype is not None:
                 if isinstance(self.dtype, dict):
@@ -1106,13 +1094,34 @@ cdef class TextReader:
                                               self.c_encoding)
                 continue
 
-            # Should return as the desired dtype (inferred or specified)
-            col_res, na_count = self._convert_tokens(
-                i, start, end, name, na_filter, na_hashset,
-                na_flist, col_dtype)
+            # Collect the list of NaN values associated with the column.
+            # If we aren't supposed to do that, or none are collected,
+            # we set `na_filter` to `0` (`1` otherwise).
+            na_flist = set()
 
-            if na_filter:
-                self._free_na_set(na_hashset)
+            if self.na_filter:
+                na_list, na_flist = self._get_na_list(i, name)
+                if na_list is None:
+                    na_filter = 0
+                else:
+                    na_filter = 1
+                    na_hashset = kset_from_list(na_list)
+            else:
+                na_filter = 0
+
+            # Attempt to parse tokens and infer dtype of the column.
+            # Should return as the desired dtype (inferred or specified).
+            try:
+                col_res, na_count = self._convert_tokens(
+                    i, start, end, name, na_filter, na_hashset,
+                    na_flist, col_dtype)
+            finally:
+                # gh-21353
+                #
+                # Cleanup the NaN hash that we generated
+                # to avoid memory leaks.
+                if na_filter:
+                    self._free_na_set(na_hashset)
 
             if upcast_na and na_count > 0:
                 col_res = _maybe_upcast(col_res)
@@ -1193,7 +1202,20 @@ cdef class TextReader:
                              bint user_dtype,
                              kh_str_t *na_hashset,
                              object na_flist):
-        if is_integer_dtype(dtype):
+        if is_categorical_dtype(dtype):
+            # TODO: I suspect that _categorical_convert could be
+            # optimized when dtype is an instance of CategoricalDtype
+            codes, cats, na_count = _categorical_convert(
+                self.parser, i, start, end, na_filter,
+                na_hashset, self.c_encoding)
+
+            # Method accepts list of strings, not encoded ones.
+            true_values = [x.decode() for x in self.true_values]
+            cat = Categorical._from_inferred_categories(
+                cats, codes, dtype, true_values=true_values)
+            return cat, na_count
+
+        elif is_integer_dtype(dtype):
             try:
                 result, na_count = _try_int64(self.parser, i, start,
                                               end, na_filter, na_hashset)
@@ -1224,6 +1246,7 @@ cdef class TextReader:
                                               na_filter, na_hashset,
                                               self.true_set, self.false_set)
             return result, na_count
+
         elif dtype.kind == 'S':
             # TODO: na handling
             width = dtype.itemsize
@@ -1243,15 +1266,6 @@ cdef class TextReader:
             # unicode variable width
             return self._string_convert(i, start, end, na_filter,
                                         na_hashset)
-        elif is_categorical_dtype(dtype):
-            # TODO: I suspect that _categorical_convert could be
-            # optimized when dtype is an instance of CategoricalDtype
-            codes, cats, na_count = _categorical_convert(
-                self.parser, i, start, end, na_filter,
-                na_hashset, self.c_encoding)
-            cat = Categorical._from_inferred_categories(cats, codes, dtype)
-            return cat, na_count
-
         elif is_object_dtype(dtype):
             return self._string_convert(i, start, end, na_filter,
                                         na_hashset)
@@ -2059,6 +2073,7 @@ cdef kh_str_t* kset_from_list(list values) except NULL:
 
         # None creeps in sometimes, which isn't possible here
         if not isinstance(val, bytes):
+            kh_destroy_str(table)
             raise ValueError('Must be all encoded bytes')
 
         k = kh_put_str(table, PyBytes_AsString(val), &ret)

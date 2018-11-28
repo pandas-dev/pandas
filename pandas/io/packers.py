@@ -177,7 +177,6 @@ def read_msgpack(path_or_buf, encoding='utf-8', iterator=False, **kwargs):
     Returns
     -------
     obj : same type as object stored in file
-
     """
     path_or_buf, _, _, should_close = get_filepath_or_buffer(path_or_buf)
     if iterator:
@@ -251,7 +250,7 @@ c2f_dict = {'complex': np.float64,
             'complex128': np.float64,
             'complex64': np.float32}
 
-# numpy 1.6.1 compat
+# windows (32 bit) compat
 if hasattr(np, 'float128'):
     c2f_dict['complex256'] = np.float128
 

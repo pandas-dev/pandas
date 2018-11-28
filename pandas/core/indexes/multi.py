@@ -1,49 +1,39 @@
 
 # pylint: disable=E1101,E1103,W0232
 import datetime
-import warnings
 from collections import OrderedDict
 from sys import getsizeof
+import warnings
 
 import numpy as np
-from pandas._libs import algos as libalgos, index as libindex, lib, Timestamp
-from pandas._libs import tslibs
 
-from pandas.compat import range, zip, lrange, lzip, map
+from pandas._libs import (
+    Timestamp, algos as libalgos, index as libindex, lib, tslibs)
+import pandas.compat as compat
+from pandas.compat import lrange, lzip, map, range, zip
 from pandas.compat.numpy import function as nv
-from pandas import compat
-
-from pandas.core.dtypes.dtypes import (
-    ExtensionDtype, PandasExtensionDtype)
-from pandas.core.dtypes.common import (
-    ensure_int64,
-    ensure_platform_int,
-    is_categorical_dtype,
-    is_object_dtype,
-    is_hashable,
-    is_integer,
-    is_iterator,
-    is_list_like,
-    pandas_dtype,
-    is_scalar)
-from pandas.core.dtypes.generic import ABCDataFrame
-from pandas.core.dtypes.missing import isna, array_equivalent
 from pandas.errors import PerformanceWarning, UnsortedIndexError
-
 from pandas.util._decorators import Appender, cache_readonly
-import pandas.core.common as com
-import pandas.core.missing as missing
+
+from pandas.core.dtypes.common import (
+    ensure_int64, ensure_platform_int, is_categorical_dtype, is_hashable,
+    is_integer, is_iterator, is_list_like, is_object_dtype, is_scalar,
+    pandas_dtype)
+from pandas.core.dtypes.dtypes import ExtensionDtype, PandasExtensionDtype
+from pandas.core.dtypes.generic import ABCDataFrame
+from pandas.core.dtypes.missing import array_equivalent, isna
+
 import pandas.core.algorithms as algos
+import pandas.core.common as com
+from pandas.core.config import get_option
+import pandas.core.indexes.base as ibase
+from pandas.core.indexes.base import (
+    Index, InvalidIndexError, _index_shared_docs, ensure_index)
+from pandas.core.indexes.frozen import FrozenList, _ensure_frozen
+import pandas.core.missing as missing
+
 from pandas.io.formats.printing import pprint_thing
 
-from pandas.core.config import get_option
-
-from pandas.core.indexes.base import (
-    Index, ensure_index,
-    InvalidIndexError,
-    _index_shared_docs)
-from pandas.core.indexes.frozen import FrozenList, _ensure_frozen
-import pandas.core.indexes.base as ibase
 _index_doc_kwargs = dict(ibase._index_doc_kwargs)
 _index_doc_kwargs.update(
     dict(klass='MultiIndex',
@@ -133,7 +123,7 @@ class MultiIndexPyIntEngine(libindex.BaseMultiIndexCodesEngine,
 
 class MultiIndex(Index):
     """
-    A multi-level, or hierarchical, index object for pandas objects
+    A multi-level, or hierarchical, index object for pandas objects.
 
     Parameters
     ----------
@@ -368,7 +358,6 @@ class MultiIndex(Index):
         Returns
         -------
         new index (of same type and class...etc)
-
 
         Examples
         --------
@@ -1215,13 +1204,13 @@ class MultiIndex(Index):
 
     def to_hierarchical(self, n_repeat, n_shuffle=1):
         """
-        .. deprecated:: 0.24.0
-
         Return a MultiIndex reshaped to conform to the
         shapes given by n_repeat and n_shuffle.
 
         Useful to replicate and rearrange a MultiIndex for combination
         with another Index with n_repeat items.
+
+        .. deprecated:: 0.24.0
 
         Parameters
         ----------
@@ -1624,7 +1613,6 @@ class MultiIndex(Index):
         MultiIndex(levels=[[0, 1], ['a', 'b']],
                    labels=[[0, 0, 1, 1], [0, 1, 0, 1]])
 
-
         >>> i[2:]
         MultiIndex(levels=[[0, 1], ['a', 'b']],
                    labels=[[1, 1], [0, 1]])
@@ -1635,7 +1623,6 @@ class MultiIndex(Index):
         >>> i[2:].remove_unused_levels()
         MultiIndex(levels=[[1], ['a', 'b']],
                    labels=[[0, 0], [0, 1]])
-
         """
 
         new_levels = []
@@ -2017,7 +2004,6 @@ class MultiIndex(Index):
             Resulting index
         indexer : np.ndarray
             Indices of output values in original index
-
         """
         from pandas.core.sorting import indexer_from_factorized
 
@@ -2893,9 +2879,17 @@ class MultiIndex(Index):
             return MultiIndex.from_arrays(lzip(*uniq_tuples), sortorder=0,
                                           names=result_names)
 
-    def difference(self, other):
+    def difference(self, other, sort=True):
         """
         Compute sorted set difference of two MultiIndex objects
+
+        Parameters
+        ----------
+        other : MultiIndex
+        sort : bool, default True
+            Sort the resulting MultiIndex if possible
+
+            .. versionadded:: 0.24.0
 
         Returns
         -------
@@ -2912,8 +2906,16 @@ class MultiIndex(Index):
                               labels=[[]] * self.nlevels,
                               names=result_names, verify_integrity=False)
 
-        difference = sorted(set(self._ndarray_values) -
-                            set(other._ndarray_values))
+        this = self._get_unique_index()
+
+        indexer = this.get_indexer(other)
+        indexer = indexer.take((indexer != -1).nonzero()[0])
+
+        label_diff = np.setdiff1d(np.arange(this.size), indexer,
+                                  assume_unique=True)
+        difference = this.values.take(label_diff)
+        if sort:
+            difference = sorted(difference)
 
         if len(difference) == 0:
             return MultiIndex(levels=[[]] * self.nlevels,

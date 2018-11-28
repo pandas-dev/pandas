@@ -10,10 +10,11 @@ import collections
 import re
 from datetime import datetime, date, timedelta, time
 from decimal import Decimal
+from numbers import Number
+from fractions import Fraction
 import numpy as np
 import pytz
 import pytest
-
 import pandas as pd
 from pandas._libs import lib, iNaT, missing as libmissing
 from pandas import (Series, Index, DataFrame, Timedelta,
@@ -874,37 +875,27 @@ class TestTypeInference(object):
         arr = np.array([np.nan, pd.NaT, np.datetime64('nat')])
         assert lib.is_datetime_array(arr)
         assert lib.is_datetime64_array(arr)
-        assert not lib.is_timedelta_array(arr)
-        assert not lib.is_timedelta64_array(arr)
         assert not lib.is_timedelta_or_timedelta64_array(arr)
 
         arr = np.array([np.nan, pd.NaT, np.timedelta64('nat')])
         assert not lib.is_datetime_array(arr)
         assert not lib.is_datetime64_array(arr)
-        assert lib.is_timedelta_array(arr)
-        assert lib.is_timedelta64_array(arr)
         assert lib.is_timedelta_or_timedelta64_array(arr)
 
         arr = np.array([np.nan, pd.NaT, np.datetime64('nat'),
                         np.timedelta64('nat')])
         assert not lib.is_datetime_array(arr)
         assert not lib.is_datetime64_array(arr)
-        assert not lib.is_timedelta_array(arr)
-        assert not lib.is_timedelta64_array(arr)
         assert not lib.is_timedelta_or_timedelta64_array(arr)
 
         arr = np.array([np.nan, pd.NaT])
         assert lib.is_datetime_array(arr)
         assert lib.is_datetime64_array(arr)
-        assert lib.is_timedelta_array(arr)
-        assert lib.is_timedelta64_array(arr)
         assert lib.is_timedelta_or_timedelta64_array(arr)
 
         arr = np.array([np.nan, np.nan], dtype=object)
         assert not lib.is_datetime_array(arr)
         assert not lib.is_datetime64_array(arr)
-        assert not lib.is_timedelta_array(arr)
-        assert not lib.is_timedelta64_array(arr)
         assert not lib.is_timedelta_or_timedelta64_array(arr)
 
         assert lib.is_datetime_with_singletz_array(
@@ -922,8 +913,6 @@ class TestTypeInference(object):
             'is_datetime_array',
             'is_datetime64_array',
             'is_bool_array',
-            'is_timedelta_array',
-            'is_timedelta64_array',
             'is_timedelta_or_timedelta64_array',
             'is_date_array',
             'is_time_array',
@@ -1183,6 +1172,8 @@ class TestIsScalar(object):
         assert is_scalar(None)
         assert is_scalar(True)
         assert is_scalar(False)
+        assert is_scalar(Number())
+        assert is_scalar(Fraction())
         assert is_scalar(0.)
         assert is_scalar(np.nan)
         assert is_scalar('foobar')
@@ -1269,10 +1260,7 @@ def test_nan_to_nat_conversions():
     s._data = s._data.setitem(indexer=tuple([slice(8, 9)]), value=np.nan)
     assert (isna(s[8]))
 
-    # numpy < 1.7.0 is wrong
-    from distutils.version import LooseVersion
-    if LooseVersion(np.__version__) >= LooseVersion('1.7.0'):
-        assert (s[8].value == np.datetime64('NaT').astype(np.int64))
+    assert (s[8].value == np.datetime64('NaT').astype(np.int64))
 
 
 @td.skip_if_no_scipy
