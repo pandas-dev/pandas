@@ -52,6 +52,8 @@ class Ops2(object):
                                                    np.iinfo(np.int16).max,
                                                    size=(N, N)))
 
+        self.s = Series(np.random.randn(N))
+
     # Division
 
     def time_frame_float_div(self):
@@ -73,6 +75,17 @@ class Ops2(object):
 
     def time_frame_float_mod(self):
         self.df % self.df2
+
+    # Dot product
+
+    def time_frame_dot(self):
+        self.df.dot(self.df2)
+
+    def time_series_dot(self):
+        self.s.dot(self.s)
+
+    def time_frame_series_dot(self):
+        self.df.dot(self.s)
 
 
 class Timeseries(object):

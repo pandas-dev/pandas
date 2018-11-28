@@ -331,9 +331,6 @@ class DatetimeIndexOpsMixin(DatetimeLikeArrayMixin):
         from pandas.core.index import Index
         return Index(self._box_values(self.asi8), name=self.name, dtype=object)
 
-    def _format_with_header(self, header, **kwargs):
-        return header + list(self._format_native_types(**kwargs))
-
     @Appender(_index_shared_docs['__contains__'] % _index_doc_kwargs)
     def __contains__(self, key):
         try:
@@ -544,6 +541,12 @@ class DatetimeIndexOpsMixin(DatetimeLikeArrayMixin):
             i8[mask] = 0
         return i8.argmax()
 
+    # --------------------------------------------------------------------
+    # Rendering Methods
+
+    def _format_with_header(self, header, **kwargs):
+        return header + list(self._format_native_types(**kwargs))
+
     @property
     def _formatter_func(self):
         raise AbstractMethodError(self)
@@ -560,6 +563,8 @@ class DatetimeIndexOpsMixin(DatetimeLikeArrayMixin):
                     freq = "'%s'" % freq
                 attrs.append(('freq', freq))
         return attrs
+
+    # --------------------------------------------------------------------
 
     def _convert_scalar_indexer(self, key, kind=None):
         """

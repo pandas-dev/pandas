@@ -1,3 +1,5 @@
+from datetime import date, time, timedelta
+from decimal import Decimal
 import importlib
 import os
 
@@ -8,7 +10,7 @@ import numpy as np
 import pytest
 from pytz import FixedOffset, utc
 
-from pandas.compat import PY3
+from pandas.compat import PY3, u
 import pandas.util._test_decorators as td
 
 import pandas as pd
@@ -512,6 +514,84 @@ def any_numpy_dtype(request):
     """
 
     return request.param
+
+
+# categoricals are handled separately
+_any_skipna_inferred_dtype = [
+    ('string', ['a', np.nan, 'c']),
+    ('unicode' if not PY3 else 'string', [u('a'), np.nan, u('c')]),
+    ('bytes' if PY3 else 'string', [b'a', np.nan, b'c']),
+    ('empty', [np.nan, np.nan, np.nan]),
+    ('empty', []),
+    ('mixed-integer', ['a', np.nan, 2]),
+    ('mixed', ['a', np.nan, 2.0]),
+    ('floating', [1.0, np.nan, 2.0]),
+    ('integer', [1, np.nan, 2]),
+    ('mixed-integer-float', [1, np.nan, 2.0]),
+    ('decimal', [Decimal(1), np.nan, Decimal(2)]),
+    ('boolean', [True, np.nan, False]),
+    ('datetime64', [np.datetime64('2013-01-01'), np.nan,
+                    np.datetime64('2018-01-01')]),
+    ('datetime', [pd.Timestamp('20130101'), np.nan, pd.Timestamp('20180101')]),
+    ('date', [date(2013, 1, 1), np.nan, date(2018, 1, 1)]),
+    # The following two dtypes are commented out due to GH 23554
+    # ('complex', [1 + 1j, np.nan, 2 + 2j]),
+    # ('timedelta64', [np.timedelta64(1, 'D'),
+    #                  np.nan, np.timedelta64(2, 'D')]),
+    ('timedelta', [timedelta(1), np.nan, timedelta(2)]),
+    ('time', [time(1), np.nan, time(2)]),
+    ('period', [pd.Period(2013), pd.NaT, pd.Period(2018)]),
+    ('interval', [pd.Interval(0, 1), np.nan, pd.Interval(0, 2)])]
+ids, _ = zip(*_any_skipna_inferred_dtype)  # use inferred type as fixture-id
+
+
+@pytest.fixture(params=_any_skipna_inferred_dtype, ids=ids)
+def any_skipna_inferred_dtype(request):
+    """
+    Fixture for all inferred dtypes from _libs.lib.infer_dtype
+
+    The covered (inferred) types are:
+    * 'string'
+    * 'unicode' (if PY2)
+    * 'empty'
+    * 'bytes' (if PY3)
+    * 'mixed'
+    * 'mixed-integer'
+    * 'mixed-integer-float'
+    * 'floating'
+    * 'integer'
+    * 'decimal'
+    * 'boolean'
+    * 'datetime64'
+    * 'datetime'
+    * 'date'
+    * 'timedelta'
+    * 'time'
+    * 'period'
+    * 'interval'
+
+    Returns
+    -------
+    inferred_dtype : str
+        The string for the inferred dtype from _libs.lib.infer_dtype
+    values : np.ndarray
+        An array of object dtype that will be inferred to have
+        `inferred_dtype`
+
+    Examples
+    --------
+    >>> import pandas._libs.lib as lib
+    >>>
+    >>> def test_something(any_skipna_inferred_dtype):
+    ...     inferred_dtype, values = any_skipna_inferred_dtype
+    ...     # will pass
+    ...     assert lib.infer_dtype(values, skipna=True) == inferred_dtype
+    """
+    inferred_dtype, values = request.param
+    values = np.array(values, dtype=object)  # object dtype to avoid casting
+
+    # correctness of inference tested in tests/dtypes/test_inference.py
+    return inferred_dtype, values
 
 
 @pytest.fixture

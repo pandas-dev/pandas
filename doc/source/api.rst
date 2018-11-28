@@ -2557,6 +2557,7 @@ Style Application
    Styler.set_properties
    Styler.set_uuid
    Styler.clear
+   Styler.pipe
 
 Builtin Styles
 ~~~~~~~~~~~~~~

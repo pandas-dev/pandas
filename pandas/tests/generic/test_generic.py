@@ -4,26 +4,24 @@
 from copy import copy, deepcopy
 from warnings import catch_warnings, simplefilter
 
-import pytest
 import numpy as np
-import pandas as pd
+import pytest
+
+from pandas.compat import PY3, range, zip
 
 from pandas.core.dtypes.common import is_scalar
-from pandas import (Series, DataFrame, Panel,
-                    date_range, MultiIndex)
+
+import pandas as pd
+from pandas import DataFrame, MultiIndex, Panel, Series, date_range
+import pandas.util.testing as tm
+from pandas.util.testing import (
+    assert_frame_equal, assert_panel_equal, assert_series_equal)
 
 import pandas.io.formats.printing as printing
 
-from pandas.compat import range, zip, PY3
-from pandas.util.testing import (assert_series_equal,
-                                 assert_panel_equal,
-                                 assert_frame_equal)
-
-import pandas.util.testing as tm
-
-
 # ----------------------------------------------------------------------
 # Generic types test cases
+
 
 class Generic(object):
 
