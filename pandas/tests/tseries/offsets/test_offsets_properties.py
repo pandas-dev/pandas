@@ -10,18 +10,16 @@ tests, or when trying to pin down the bugs exposed by the tests below.
 """
 import warnings
 
-import pytest
-from hypothesis import given, assume, strategies as st
-from hypothesis.extra.pytz import timezones as pytz_timezones
+from hypothesis import assume, given, strategies as st
 from hypothesis.extra.dateutil import timezones as dateutil_timezones
+from hypothesis.extra.pytz import timezones as pytz_timezones
+import pytest
 
 import pandas as pd
 
 from pandas.tseries.offsets import (
-    MonthEnd, MonthBegin, BMonthEnd, BMonthBegin,
-    QuarterEnd, QuarterBegin, BQuarterEnd, BQuarterBegin,
-    YearEnd, YearBegin, BYearEnd, BYearBegin,
-)
+    BMonthBegin, BMonthEnd, BQuarterBegin, BQuarterEnd, BYearBegin, BYearEnd,
+    MonthBegin, MonthEnd, QuarterBegin, QuarterEnd, YearBegin, YearEnd)
 
 # ----------------------------------------------------------------
 # Helpers for generating random data
