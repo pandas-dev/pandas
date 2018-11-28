@@ -99,10 +99,13 @@ def ensure_datetime64ns(arr: ndarray, copy: bool=True):
 
     ivalues = arr.view(np.int64).ravel()
 
-    result = np.empty(shape, dtype='M8[ns]')
+    result = np.empty(shape, dtype=NS_DTYPE)
     iresult = result.ravel().view(np.int64)
 
     if len(iresult) == 0:
+        result = arr.view(NS_DTYPE)
+        if copy:
+            result = result.copy()
         return result
 
     unit = get_datetime64_unit(arr.flat[0])
@@ -866,8 +869,8 @@ def tz_localize_to_utc(ndarray[int64_t] vals, object tz, object ambiguous=None,
         - bool if True, treat all vals as DST. If False, treat them as non-DST
         - 'NaT' will return NaT where there are ambiguous times
 
-    nonexistent : str
-        If arraylike, must have the same length as vals
+    nonexistent : {None, "NaT", "shift", "raise"}
+        How to handle non-existent times when converting wall times to UTC
 
         .. versionadded:: 0.24.0
 

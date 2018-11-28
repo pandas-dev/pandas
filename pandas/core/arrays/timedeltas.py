@@ -161,15 +161,29 @@ class TimedeltaArrayMixin(dtl.DatetimeLikeArrayMixin):
         result._freq = freq
         return result
 
-    def __new__(cls, values, freq=None, dtype=_TD_DTYPE):
+    def __new__(cls, values, freq=None, dtype=_TD_DTYPE, copy=False):
 
         freq, freq_infer = dtl.maybe_infer_freq(freq)
 
-        values = np.array(values, copy=False)
-        if values.dtype == np.object_:
-            values = array_to_timedelta64(values)
+        values, inferred_freq = sequence_to_td64ns(
+            values, copy=copy, unit=None)
+        if inferred_freq is not None:
+            if freq is not None and freq != inferred_freq:
+                raise ValueError('Inferred frequency {inferred} from passed '
+                                 'values does not conform to passed frequency '
+                                 '{passed}'
+                                 .format(inferred=inferred_freq,
+                                         passed=freq.freqstr))
+            elif freq is None:
+                freq = inferred_freq
+                freq_infer = False
 
         result = cls._simple_new(values, freq=freq)
+        # check that we are matching freqs
+        if inferred_freq is None and len(result) > 0:
+            if freq is not None and not freq_infer:
+                cls._validate_frequency(result, freq)
+
         if freq_infer:
             result.freq = to_offset(result.inferred_freq)
 
@@ -226,16 +240,19 @@ class TimedeltaArrayMixin(dtl.DatetimeLikeArrayMixin):
                              "Got '{got}'.".format(got=fill_value))
         return fill_value
 
+    # monotonicity/uniqueness properties are called via frequencies.infer_freq,
+    #  see GH#23789
+
     @property
-    def is_monotonic_increasing(self):
+    def _is_monotonic_increasing(self):
         return algos.is_monotonic(self.asi8, timelike=True)[0]
 
     @property
-    def is_monotonic_decreasing(self):
+    def _is_monotonic_decreasing(self):
         return algos.is_monotonic(self.asi8, timelike=True)[1]
 
     @property
-    def is_unique(self):
+    def _is_unique(self):
         return len(unique1d(self.asi8)) == len(self)
 
     # ----------------------------------------------------------------
@@ -252,7 +269,7 @@ class TimedeltaArrayMixin(dtl.DatetimeLikeArrayMixin):
     def _add_delta(self, delta):
         """
         Add a timedelta-like, Tick, or TimedeltaIndex-like object
-        to self, yielding a new TimedeltaArray
+        to self, yielding a new TimedeltaArray.
 
         Parameters
         ----------
@@ -267,7 +284,9 @@ class TimedeltaArrayMixin(dtl.DatetimeLikeArrayMixin):
         return type(self)(new_values, freq='infer')
 
     def _add_datetime_arraylike(self, other):
-        """Add DatetimeArray/Index or ndarray[datetime64] to TimedeltaArray"""
+        """
+        Add DatetimeArray/Index or ndarray[datetime64] to TimedeltaArray.
+        """
         if isinstance(other, np.ndarray):
             # At this point we have already checked that dtype is datetime64
             from pandas.core.arrays import DatetimeArrayMixin
@@ -292,7 +311,7 @@ class TimedeltaArrayMixin(dtl.DatetimeLikeArrayMixin):
         result = checked_add_with_arr(i8, other.value,
                                       arr_mask=self._isnan)
         result = self._maybe_mask_results(result)
-        return DatetimeArrayMixin(result, tz=other.tz)
+        return DatetimeArrayMixin(result, tz=other.tz, freq=self.freq)
 
     def _addsub_offset_array(self, other, op):
         # Add or subtract Array-like of DateOffset objects
@@ -595,7 +614,7 @@ class TimedeltaArrayMixin(dtl.DatetimeLikeArrayMixin):
     def to_pytimedelta(self):
         """
         Return Timedelta Array/Index as object ndarray of datetime.timedelta
-        objects
+        objects.
 
         Returns
         -------
