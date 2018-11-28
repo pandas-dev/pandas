@@ -338,12 +338,7 @@ class CategoricalDtype(PandasExtensionDtype, ExtensionDtype):
             cat_array = [cat_array]
         hashed = _combine_hash_arrays(iter(cat_array),
                                       num_items=len(cat_array))
-        if len(hashed) == 0:
-            # bug in Numpy<1.12 for length 0 arrays. Just return the correct
-            # value of 0
-            return 0
-        else:
-            return np.bitwise_xor.reduce(hashed)
+        return np.bitwise_xor.reduce(hashed)
 
     @classmethod
     def construct_array_type(cls):
