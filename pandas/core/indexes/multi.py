@@ -432,7 +432,6 @@ class MultiIndex(Index):
 
     @property
     def _values(self):
-        # TODO: remove
         # We override here, since our parent uses _data, which we dont' use.
         return self.values
 
