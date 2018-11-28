@@ -1534,9 +1534,9 @@ class TimeGrouper(Grouper):
             p_start, p_end = start, end
             i = j = None
 
-
         labels = binner = PeriodIndex(start=p_start, end=p_end,
-                                      freq=self.freq, name=ax.name)[slice(i, j)]
+                                      freq=self.freq,
+                                      name=ax.name)[slice(i, j)]
 
         i8 = memb.asi8
         freq_mult = self.freq.n

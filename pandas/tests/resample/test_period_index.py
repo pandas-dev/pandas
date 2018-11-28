@@ -743,12 +743,16 @@ class TestPeriodIndex(Base):
 
     def test_resample_with_non_zero_base(self):
         # GH 23882
-        s = pd.Series(range(100), index=pd.period_range('19910905', periods=100, freq='H'))
+        s = pd.Series(range(100), index=pd.period_range('19910905',
+                                                        periods=100,
+                                                        freq='H'))
         pr = s.resample('24H', base=10).mean().to_timestamp().asfreq('24H')
         tr = s.to_timestamp().resample('24H', base=10).mean()
         assert_series_equal(pr, tr)
 
-        s = pd.Series(range(100), index=pd.period_range('19910905', periods=100, freq='2H'))
+        s = pd.Series(range(100), index=pd.period_range('19910905',
+                                                        periods=100,
+                                                        freq='2H'))
         pr = s.resample('24H', base=10).mean().to_timestamp().asfreq('24H')
         tr = s.to_timestamp().resample('24H', base=10).mean()
         assert_series_equal(pr, tr)
