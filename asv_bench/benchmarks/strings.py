@@ -26,20 +26,41 @@ class Methods(object):
     def time_findall(self):
         self.s.str.findall('[A-Z]+')
 
+    def time_find(self):
+        self.s.str.find('[A-Z]+')
+
+    def time_rfind(self):
+        self.s.str.rfind('[A-Z]+')
+
     def time_get(self):
         self.s.str.get(0)
 
     def time_len(self):
         self.s.str.len()
 
+    def time_join(self):
+        self.s.str.join(' ')
+
     def time_match(self):
         self.s.str.match('A')
+
+    def time_normalize(self):
+        self.s.str.normalize('NFC')
 
     def time_pad(self):
         self.s.str.pad(100, side='both')
 
+    def time_partition(self):
+        self.s.str.partition('A')
+
+    def time_rpartition(self):
+        self.s.str.rpartition('A')
+
     def time_replace(self):
         self.s.str.replace('A', '\x01\x01')
+
+    def time_translate(self):
+        self.s.str.translate({'A': '\x01\x01'})
 
     def time_slice(self):
         self.s.str.slice(5, 15, 2)
@@ -64,6 +85,12 @@ class Methods(object):
 
     def time_lower(self):
         self.s.str.lower()
+
+    def time_wrap(self):
+        self.s.str.wrap(10)
+
+    def time_zfill(self):
+        self.s.str.zfill(10)
 
 
 class Repeat(object):
@@ -128,6 +155,9 @@ class Split(object):
 
     def time_split(self, expand):
         self.s.str.split('--', expand=expand)
+
+    def time_rsplit(self, expand):
+        self.s.str.rsplit('--', expand=expand)
 
 
 class Dummies(object):
