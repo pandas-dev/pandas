@@ -16,7 +16,6 @@ from pandas.tseries.offsets import (
 
 from .common import assert_offset_equal
 
-
 # ---------------------------------------------------------------------
 # Test Helpers
 
