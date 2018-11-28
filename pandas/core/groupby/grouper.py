@@ -257,7 +257,7 @@ class Grouping(object):
         if level is not None:
             if not isinstance(level, int):
                 if level not in index.names:
-                    raise AssertionError('Level %s not in index' % str(level))
+                    raise AssertionError('Level {} not in index'.format(level))
                 level = index.names.index(level)
 
             if self.name is None:
@@ -317,7 +317,8 @@ class Grouping(object):
                                 (Series, Index, ExtensionArray, np.ndarray)):
                 if getattr(self.grouper, 'ndim', 1) != 1:
                     t = self.name or str(type(self.grouper))
-                    raise ValueError("Grouper for '%s' not 1-dimensional" % t)
+                    raise ValueError(
+                        "Grouper for '{}' not 1-dimensional".format(t))
                 self.grouper = self.index.map(self.grouper)
                 if not (hasattr(self.grouper, "__len__") and
                         len(self.grouper) == len(self.index)):
@@ -460,8 +461,8 @@ def _get_grouper(obj, key=None, axis=0, level=None, sort=True,
 
             if isinstance(level, compat.string_types):
                 if obj.index.name != level:
-                    raise ValueError('level name %s is not the name of the '
-                                     'index' % level)
+                    raise ValueError('level name {} is not the name of the '
+                                     'index'.format(level))
             elif level > 0 or level < -1:
                 raise ValueError('level > 0 or level < -1 only valid with '
                                  ' MultiIndex')

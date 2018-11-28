@@ -380,7 +380,8 @@ class BaseGrouper(object):
 
             # otherwise find dtype-specific version, falling back to object
             for dt in [dtype_str, 'object']:
-                f = getattr(libgroupby, "%s_%s" % (fname, dtype_str), None)
+                f = getattr(libgroupby, "{fname}_{dtype_str}".format(
+                    fname=fname, dtype_str=dtype_str), None)
                 if f is not None:
                     return f
 
@@ -403,9 +404,11 @@ class BaseGrouper(object):
             func = get_func(ftype)
 
         if func is None:
-            raise NotImplementedError("function is not implemented for this"
-                                      "dtype: [how->%s,dtype->%s]" %
-                                      (how, dtype_str))
+            raise NotImplementedError(
+                "function is not implemented for this dtype: "
+                "[how->{how},dtype->{dtype_str}]".format(how=how,
+                                                         dtype_str=dtype_str))
+
         return func
 
     def _cython_operation(self, kind, values, how, axis, min_count=-1,
@@ -485,7 +488,8 @@ class BaseGrouper(object):
             out_dtype = 'float'
         else:
             if is_numeric:
-                out_dtype = '%s%d' % (values.dtype.kind, values.dtype.itemsize)
+                out_dtype = '{kind}{itemsize}'.format(
+                    kind=values.dtype.kind, itemsize=values.dtype.itemsize)
             else:
                 out_dtype = 'object'
 
@@ -740,10 +744,6 @@ class BinGrouper(BaseGrouper):
                 ngroups)
 
     @cache_readonly
-    def ngroups(self):
-        return len(self.result_index)
-
-    @cache_readonly
     def result_index(self):
         if len(self.binlabels) != 0 and isna(self.binlabels[0]):
             return self.binlabels[1:]
@@ -768,11 +768,6 @@ class BinGrouper(BaseGrouper):
         dummy = obj[:0]
         grouper = reduction.SeriesBinGrouper(obj, func, self.bins, dummy)
         return grouper.get_result()
-
-    # ----------------------------------------------------------------------
-    # cython aggregation
-
-    _cython_functions = copy.deepcopy(BaseGrouper._cython_functions)
 
 
 def _get_axes(group):
@@ -852,9 +847,6 @@ class SeriesSplitter(DataSplitter):
 
 
 class FrameSplitter(DataSplitter):
-
-    def __init__(self, data, labels, ngroups, axis=0):
-        super(FrameSplitter, self).__init__(data, labels, ngroups, axis=axis)
 
     def fast_apply(self, f, names):
         # must return keys::list, values::list, mutated::bool
