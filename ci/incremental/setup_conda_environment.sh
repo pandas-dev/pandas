@@ -8,6 +8,7 @@ PIP_INSTALL="pip install -q"
 
 # Deactivate any environment
 echo "PATH inside setup_conda_environment.sh: $PATH"
+ls $HOME/miniconda3/bin/
 source deactivate
 # Display root environment (for debugging)
 conda list
