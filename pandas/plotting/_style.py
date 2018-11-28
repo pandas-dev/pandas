@@ -2,14 +2,15 @@
 # pylint: disable=E1101
 from __future__ import division
 
-import warnings
 from contextlib import contextmanager
+import warnings
 
 import numpy as np
 
-from pandas.core.dtypes.common import is_list_like
-from pandas.compat import lrange, lmap
 import pandas.compat as compat
+from pandas.compat import lmap, lrange
+
+from pandas.core.dtypes.common import is_list_like
 
 
 def _get_standard_colors(num_colors=None, colormap=None, color_type='default',
