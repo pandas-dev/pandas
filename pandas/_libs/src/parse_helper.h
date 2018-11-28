@@ -177,7 +177,7 @@ static double xstrtod(const char *str, char **endptr, char decimal, char sci,
     num_decimals = 0;
 
     // Process string of digits
-    while (isdigit(*p)) {
+    while (isdigit_ascii(*p)) {
         number = number * 10. + (*p - '0');
         p++;
         num_digits++;
@@ -188,7 +188,7 @@ static double xstrtod(const char *str, char **endptr, char decimal, char sci,
         *maybe_int = 0;
         p++;
 
-        while (isdigit(*p)) {
+        while (isdigit_ascii(*p)) {
             number = number * 10. + (*p - '0');
             p++;
             num_digits++;
@@ -222,7 +222,7 @@ static double xstrtod(const char *str, char **endptr, char decimal, char sci,
         // Process string of digits
         num_digits = 0;
         n = 0;
-        while (isdigit(*p)) {
+        while (isdigit_ascii(*p)) {
             n = n * 10 + (*p - '0');
             num_digits++;
             p++;
