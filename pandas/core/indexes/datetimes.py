@@ -772,8 +772,8 @@ class DatetimeIndex(DatetimeArray, DatelikeOps, TimelikeOps,
             snapped[i] = s
 
         # we know it conforms; skip check
-        return DatetimeIndex(snapped, freq=freq, verify_integrity=False)
-        # TODO: what about self.name?  if so, use shallow_copy?
+        return DatetimeIndex._simple_new(snapped, freq=freq)
+        # TODO: what about self.name?  tz? if so, use shallow_copy?
 
     def unique(self, level=None):
         if level is not None:
