@@ -200,6 +200,9 @@ class MultiIndex(Index):
     _comparables = ['names']
     rename = Index.set_names
 
+    # --------------------------------------------------------------------
+    # Constructors
+
     def __new__(cls, levels=None, labels=None, sortorder=None, names=None,
                 dtype=None, copy=False, name=None,
                 verify_integrity=True, _set_identity=True):
@@ -274,6 +277,154 @@ class MultiIndex(Index):
                                  "level {level}".format(
                                      values=[value for value in level],
                                      level=i))
+
+    @classmethod
+    def from_arrays(cls, arrays, sortorder=None, names=None):
+        """
+        Convert arrays to MultiIndex
+
+        Parameters
+        ----------
+        arrays : list / sequence of array-likes
+            Each array-like gives one level's value for each data point.
+            len(arrays) is the number of levels.
+        sortorder : int or None
+            Level of sortedness (must be lexicographically sorted by that
+            level)
+
+        Returns
+        -------
+        index : MultiIndex
+
+        Examples
+        --------
+        >>> arrays = [[1, 1, 2, 2], ['red', 'blue', 'red', 'blue']]
+        >>> pd.MultiIndex.from_arrays(arrays, names=('number', 'color'))
+
+        See Also
+        --------
+        MultiIndex.from_tuples : Convert list of tuples to MultiIndex.
+        MultiIndex.from_product : Make a MultiIndex from cartesian product
+                                  of iterables.
+        """
+        if not is_list_like(arrays):
+            raise TypeError("Input must be a list / sequence of array-likes.")
+        elif is_iterator(arrays):
+            arrays = list(arrays)
+
+        # Check if lengths of all arrays are equal or not,
+        # raise ValueError, if not
+        for i in range(1, len(arrays)):
+            if len(arrays[i]) != len(arrays[i - 1]):
+                raise ValueError('all arrays must be same length')
+
+        from pandas.core.arrays.categorical import _factorize_from_iterables
+
+        labels, levels = _factorize_from_iterables(arrays)
+        if names is None:
+            names = [getattr(arr, "name", None) for arr in arrays]
+
+        return MultiIndex(levels=levels, labels=labels, sortorder=sortorder,
+                          names=names, verify_integrity=False)
+
+    @classmethod
+    def from_tuples(cls, tuples, sortorder=None, names=None):
+        """
+        Convert list of tuples to MultiIndex
+
+        Parameters
+        ----------
+        tuples : list / sequence of tuple-likes
+            Each tuple is the index of one row/column.
+        sortorder : int or None
+            Level of sortedness (must be lexicographically sorted by that
+            level)
+
+        Returns
+        -------
+        index : MultiIndex
+
+        Examples
+        --------
+        >>> tuples = [(1, u'red'), (1, u'blue'),
+                      (2, u'red'), (2, u'blue')]
+        >>> pd.MultiIndex.from_tuples(tuples, names=('number', 'color'))
+
+        See Also
+        --------
+        MultiIndex.from_arrays : Convert list of arrays to MultiIndex
+        MultiIndex.from_product : Make a MultiIndex from cartesian product
+                                  of iterables
+        """
+        if not is_list_like(tuples):
+            raise TypeError('Input must be a list / sequence of tuple-likes.')
+        elif is_iterator(tuples):
+            tuples = list(tuples)
+
+        if len(tuples) == 0:
+            if names is None:
+                msg = 'Cannot infer number of levels from empty list'
+                raise TypeError(msg)
+            arrays = [[]] * len(names)
+        elif isinstance(tuples, (np.ndarray, Index)):
+            if isinstance(tuples, Index):
+                tuples = tuples._values
+
+            arrays = list(lib.tuples_to_object_array(tuples).T)
+        elif isinstance(tuples, list):
+            arrays = list(lib.to_object_array_tuples(tuples).T)
+        else:
+            arrays = lzip(*tuples)
+
+        return MultiIndex.from_arrays(arrays, sortorder=sortorder, names=names)
+
+    @classmethod
+    def from_product(cls, iterables, sortorder=None, names=None):
+        """
+        Make a MultiIndex from the cartesian product of multiple iterables
+
+        Parameters
+        ----------
+        iterables : list / sequence of iterables
+            Each iterable has unique labels for each level of the index.
+        sortorder : int or None
+            Level of sortedness (must be lexicographically sorted by that
+            level).
+        names : list / sequence of strings or None
+            Names for the levels in the index.
+
+        Returns
+        -------
+        index : MultiIndex
+
+        Examples
+        --------
+        >>> numbers = [0, 1, 2]
+        >>> colors = [u'green', u'purple']
+        >>> pd.MultiIndex.from_product([numbers, colors],
+                                       names=['number', 'color'])
+        MultiIndex(levels=[[0, 1, 2], [u'green', u'purple']],
+                   labels=[[0, 0, 1, 1, 2, 2], [0, 1, 0, 1, 0, 1]],
+                   names=[u'number', u'color'])
+
+        See Also
+        --------
+        MultiIndex.from_arrays : Convert list of arrays to MultiIndex.
+        MultiIndex.from_tuples : Convert list of tuples to MultiIndex.
+        """
+        from pandas.core.arrays.categorical import _factorize_from_iterables
+        from pandas.core.reshape.util import cartesian_product
+
+        if not is_list_like(iterables):
+            raise TypeError("Input must be a list / sequence of iterables.")
+        elif is_iterator(iterables):
+            iterables = list(iterables)
+
+        labels, levels = _factorize_from_iterables(iterables)
+        labels = cartesian_product(labels)
+        return MultiIndex(levels, labels, sortorder=sortorder, names=names)
+
+    # --------------------------------------------------------------------
 
     @property
     def levels(self):
@@ -622,6 +773,9 @@ class MultiIndex(Index):
         result += self._engine.sizeof(deep=deep)
         return result
 
+    # --------------------------------------------------------------------
+    # Rendering Methods
+
     def _format_attrs(self):
         """
         Return a list of tuples of the (attr,formatted_value)
@@ -643,6 +797,94 @@ class MultiIndex(Index):
     def _format_data(self, name=None):
         # we are formatting thru the attributes
         return None
+
+    def _format_native_types(self, na_rep='nan', **kwargs):
+        new_levels = []
+        new_labels = []
+
+        # go through the levels and format them
+        for level, label in zip(self.levels, self.labels):
+            level = level._format_native_types(na_rep=na_rep, **kwargs)
+            # add nan values, if there are any
+            mask = (label == -1)
+            if mask.any():
+                nan_index = len(level)
+                level = np.append(level, na_rep)
+                label = label.values()
+                label[mask] = nan_index
+            new_levels.append(level)
+            new_labels.append(label)
+
+        if len(new_levels) == 1:
+            return Index(new_levels[0])._format_native_types()
+        else:
+            # reconstruct the multi-index
+            mi = MultiIndex(levels=new_levels, labels=new_labels,
+                            names=self.names, sortorder=self.sortorder,
+                            verify_integrity=False)
+            return mi.values
+
+    def format(self, space=2, sparsify=None, adjoin=True, names=False,
+               na_rep=None, formatter=None):
+        if len(self) == 0:
+            return []
+
+        stringified_levels = []
+        for lev, lab in zip(self.levels, self.labels):
+            na = na_rep if na_rep is not None else _get_na_rep(lev.dtype.type)
+
+            if len(lev) > 0:
+
+                formatted = lev.take(lab).format(formatter=formatter)
+
+                # we have some NA
+                mask = lab == -1
+                if mask.any():
+                    formatted = np.array(formatted, dtype=object)
+                    formatted[mask] = na
+                    formatted = formatted.tolist()
+
+            else:
+                # weird all NA case
+                formatted = [pprint_thing(na if isna(x) else x,
+                                          escape_chars=('\t', '\r', '\n'))
+                             for x in algos.take_1d(lev._values, lab)]
+            stringified_levels.append(formatted)
+
+        result_levels = []
+        for lev, name in zip(stringified_levels, self.names):
+            level = []
+
+            if names:
+                level.append(pprint_thing(name,
+                                          escape_chars=('\t', '\r', '\n'))
+                             if name is not None else '')
+
+            level.extend(np.array(lev, dtype=object))
+            result_levels.append(level)
+
+        if sparsify is None:
+            sparsify = get_option("display.multi_sparse")
+
+        if sparsify:
+            sentinel = ''
+            # GH3547
+            # use value of sparsify as sentinel,  unless it's an obvious
+            # "Truthey" value
+            if sparsify not in [True, 1]:
+                sentinel = sparsify
+            # little bit of a kludge job for #1217
+            result_levels = _sparsify(result_levels, start=int(names),
+                                      sentinel=sentinel)
+
+        if adjoin:
+            from pandas.io.formats.format import _get_adjustment
+            adj = _get_adjustment()
+            return adj.adjoin(space, *result_levels).split('\n')
+        else:
+            return result_levels
+
+    # --------------------------------------------------------------------
 
     def __len__(self):
         return len(self.labels[0])
@@ -704,32 +946,6 @@ class MultiIndex(Index):
 
     names = property(fset=_set_names, fget=_get_names,
                      doc="Names of levels in MultiIndex")
-
-    def _format_native_types(self, na_rep='nan', **kwargs):
-        new_levels = []
-        new_labels = []
-
-        # go through the levels and format them
-        for level, label in zip(self.levels, self.labels):
-            level = level._format_native_types(na_rep=na_rep, **kwargs)
-            # add nan values, if there are any
-            mask = (label == -1)
-            if mask.any():
-                nan_index = len(level)
-                level = np.append(level, na_rep)
-                label = label.values()
-                label[mask] = nan_index
-            new_levels.append(level)
-            new_labels.append(label)
-
-        if len(new_levels) == 1:
-            return Index(new_levels[0])._format_native_types()
-        else:
-            # reconstruct the multi-index
-            mi = MultiIndex(levels=new_levels, labels=new_labels,
-                            names=self.names, sortorder=self.sortorder,
-                            verify_integrity=False)
-            return mi.values
 
     @Appender(_index_shared_docs['_get_grouper_for_level'])
     def _get_grouper_for_level(self, mapper, level):
@@ -1081,66 +1297,6 @@ class MultiIndex(Index):
             level = self._get_level_number(level)
             return self._get_level_values(level=level, unique=True)
 
-    def format(self, space=2, sparsify=None, adjoin=True, names=False,
-               na_rep=None, formatter=None):
-        if len(self) == 0:
-            return []
-
-        stringified_levels = []
-        for lev, lab in zip(self.levels, self.labels):
-            na = na_rep if na_rep is not None else _get_na_rep(lev.dtype.type)
-
-            if len(lev) > 0:
-
-                formatted = lev.take(lab).format(formatter=formatter)
-
-                # we have some NA
-                mask = lab == -1
-                if mask.any():
-                    formatted = np.array(formatted, dtype=object)
-                    formatted[mask] = na
-                    formatted = formatted.tolist()
-
-            else:
-                # weird all NA case
-                formatted = [pprint_thing(na if isna(x) else x,
-                                          escape_chars=('\t', '\r', '\n'))
-                             for x in algos.take_1d(lev._values, lab)]
-            stringified_levels.append(formatted)
-
-        result_levels = []
-        for lev, name in zip(stringified_levels, self.names):
-            level = []
-
-            if names:
-                level.append(pprint_thing(name,
-                                          escape_chars=('\t', '\r', '\n'))
-                             if name is not None else '')
-
-            level.extend(np.array(lev, dtype=object))
-            result_levels.append(level)
-
-        if sparsify is None:
-            sparsify = get_option("display.multi_sparse")
-
-        if sparsify:
-            sentinel = ''
-            # GH3547
-            # use value of sparsify as sentinel,  unless it's an obvious
-            # "Truthey" value
-            if sparsify not in [True, 1]:
-                sentinel = sparsify
-            # little bit of a kludge job for #1217
-            result_levels = _sparsify(result_levels, start=int(names),
-                                      sentinel=sentinel)
-
-        if adjoin:
-            from pandas.io.formats.format import _get_adjustment
-            adj = _get_adjustment()
-            return adj.adjoin(space, *result_levels).split('\n')
-        else:
-            return result_levels
-
     def _to_safe_for_reshape(self):
         """ convert to object if we are a categorical """
         return self.set_levels([i._to_safe_for_reshape() for i in self.levels])
@@ -1288,152 +1444,6 @@ class MultiIndex(Index):
                 return k
 
         return 0
-
-    @classmethod
-    def from_arrays(cls, arrays, sortorder=None, names=None):
-        """
-        Convert arrays to MultiIndex
-
-        Parameters
-        ----------
-        arrays : list / sequence of array-likes
-            Each array-like gives one level's value for each data point.
-            len(arrays) is the number of levels.
-        sortorder : int or None
-            Level of sortedness (must be lexicographically sorted by that
-            level)
-
-        Returns
-        -------
-        index : MultiIndex
-
-        Examples
-        --------
-        >>> arrays = [[1, 1, 2, 2], ['red', 'blue', 'red', 'blue']]
-        >>> pd.MultiIndex.from_arrays(arrays, names=('number', 'color'))
-
-        See Also
-        --------
-        MultiIndex.from_tuples : Convert list of tuples to MultiIndex.
-        MultiIndex.from_product : Make a MultiIndex from cartesian product
-                                  of iterables.
-        """
-        if not is_list_like(arrays):
-            raise TypeError("Input must be a list / sequence of array-likes.")
-        elif is_iterator(arrays):
-            arrays = list(arrays)
-
-        # Check if lengths of all arrays are equal or not,
-        # raise ValueError, if not
-        for i in range(1, len(arrays)):
-            if len(arrays[i]) != len(arrays[i - 1]):
-                raise ValueError('all arrays must be same length')
-
-        from pandas.core.arrays.categorical import _factorize_from_iterables
-
-        labels, levels = _factorize_from_iterables(arrays)
-        if names is None:
-            names = [getattr(arr, "name", None) for arr in arrays]
-
-        return MultiIndex(levels=levels, labels=labels, sortorder=sortorder,
-                          names=names, verify_integrity=False)
-
-    @classmethod
-    def from_tuples(cls, tuples, sortorder=None, names=None):
-        """
-        Convert list of tuples to MultiIndex
-
-        Parameters
-        ----------
-        tuples : list / sequence of tuple-likes
-            Each tuple is the index of one row/column.
-        sortorder : int or None
-            Level of sortedness (must be lexicographically sorted by that
-            level)
-
-        Returns
-        -------
-        index : MultiIndex
-
-        Examples
-        --------
-        >>> tuples = [(1, u'red'), (1, u'blue'),
-                      (2, u'red'), (2, u'blue')]
-        >>> pd.MultiIndex.from_tuples(tuples, names=('number', 'color'))
-
-        See Also
-        --------
-        MultiIndex.from_arrays : Convert list of arrays to MultiIndex
-        MultiIndex.from_product : Make a MultiIndex from cartesian product
-                                  of iterables
-        """
-        if not is_list_like(tuples):
-            raise TypeError('Input must be a list / sequence of tuple-likes.')
-        elif is_iterator(tuples):
-            tuples = list(tuples)
-
-        if len(tuples) == 0:
-            if names is None:
-                msg = 'Cannot infer number of levels from empty list'
-                raise TypeError(msg)
-            arrays = [[]] * len(names)
-        elif isinstance(tuples, (np.ndarray, Index)):
-            if isinstance(tuples, Index):
-                tuples = tuples._values
-
-            arrays = list(lib.tuples_to_object_array(tuples).T)
-        elif isinstance(tuples, list):
-            arrays = list(lib.to_object_array_tuples(tuples).T)
-        else:
-            arrays = lzip(*tuples)
-
-        return MultiIndex.from_arrays(arrays, sortorder=sortorder, names=names)
-
-    @classmethod
-    def from_product(cls, iterables, sortorder=None, names=None):
-        """
-        Make a MultiIndex from the cartesian product of multiple iterables
-
-        Parameters
-        ----------
-        iterables : list / sequence of iterables
-            Each iterable has unique labels for each level of the index.
-        sortorder : int or None
-            Level of sortedness (must be lexicographically sorted by that
-            level).
-        names : list / sequence of strings or None
-            Names for the levels in the index.
-
-        Returns
-        -------
-        index : MultiIndex
-
-        Examples
-        --------
-        >>> numbers = [0, 1, 2]
-        >>> colors = [u'green', u'purple']
-        >>> pd.MultiIndex.from_product([numbers, colors],
-                                       names=['number', 'color'])
-        MultiIndex(levels=[[0, 1, 2], [u'green', u'purple']],
-                   labels=[[0, 0, 1, 1, 2, 2], [0, 1, 0, 1, 0, 1]],
-                   names=[u'number', u'color'])
-
-        See Also
-        --------
-        MultiIndex.from_arrays : Convert list of arrays to MultiIndex.
-        MultiIndex.from_tuples : Convert list of tuples to MultiIndex.
-        """
-        from pandas.core.arrays.categorical import _factorize_from_iterables
-        from pandas.core.reshape.util import cartesian_product
-
-        if not is_list_like(iterables):
-            raise TypeError("Input must be a list / sequence of iterables.")
-        elif is_iterator(iterables):
-            iterables = list(iterables)
-
-        labels, levels = _factorize_from_iterables(iterables)
-        labels = cartesian_product(labels)
-        return MultiIndex(levels, labels, sortorder=sortorder, names=names)
 
     def _sort_levels_monotonic(self):
         """

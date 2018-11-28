@@ -94,6 +94,9 @@ class CategoricalIndex(Index, accessor.PandasDelegate):
 
     _attributes = ['name']
 
+    # --------------------------------------------------------------------
+    # Constructors
+
     def __new__(cls, data=None, categories=None, ordered=None, dtype=None,
                 copy=False, name=None, fastpath=None):
 
@@ -212,6 +215,8 @@ class CategoricalIndex(Index, accessor.PandasDelegate):
         result._reset_identity()
         return result
 
+    # --------------------------------------------------------------------
+
     @Appender(_index_shared_docs['_shallow_copy'])
     def _shallow_copy(self, values=None, categories=None, ordered=None,
                       dtype=None, **kwargs):
@@ -284,6 +289,9 @@ class CategoricalIndex(Index, accessor.PandasDelegate):
 
         return False
 
+    # --------------------------------------------------------------------
+    # Rendering Methods
+
     @property
     def _formatter_func(self):
         return self.categories._formatter_func
@@ -306,6 +314,8 @@ class CategoricalIndex(Index, accessor.PandasDelegate):
         if len(self) > max_seq_items:
             attrs.append(('length', len(self)))
         return attrs
+
+    # --------------------------------------------------------------------
 
     @property
     def inferred_type(self):

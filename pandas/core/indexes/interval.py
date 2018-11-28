@@ -137,6 +137,9 @@ class IntervalIndex(IntervalMixin, Index):
     # Immutable, so we are able to cache computations like isna in '_mask'
     _mask = None
 
+    # --------------------------------------------------------------------
+    # Constructors
+
     def __new__(cls, data, closed=None, dtype=None, copy=False,
                 name=None, verify_integrity=True):
 
@@ -167,6 +170,50 @@ class IntervalIndex(IntervalMixin, Index):
         result.name = name
         result._reset_identity()
         return result
+
+    @classmethod
+    @Appender(_interval_shared_docs['from_breaks'] % _index_doc_kwargs)
+    def from_breaks(cls, breaks, closed='right', name=None, copy=False,
+                    dtype=None):
+        with rewrite_exception("IntervalArray", cls.__name__):
+            array = IntervalArray.from_breaks(breaks, closed=closed, copy=copy,
+                                              dtype=dtype)
+        return cls._simple_new(array, name=name)
+
+    @classmethod
+    @Appender(_interval_shared_docs['from_arrays'] % _index_doc_kwargs)
+    def from_arrays(cls, left, right, closed='right', name=None, copy=False,
+                    dtype=None):
+        with rewrite_exception("IntervalArray", cls.__name__):
+            array = IntervalArray.from_arrays(left, right, closed, copy=copy,
+                                              dtype=dtype)
+        return cls._simple_new(array, name=name)
+
+    @classmethod
+    @Appender(_interval_shared_docs['from_intervals'] % _index_doc_kwargs)
+    def from_intervals(cls, data, closed=None, name=None, copy=False,
+                       dtype=None):
+        msg = ('IntervalIndex.from_intervals is deprecated and will be '
+               'removed in a future version; Use IntervalIndex(...) instead')
+        warnings.warn(msg, FutureWarning, stacklevel=2)
+        with rewrite_exception("IntervalArray", cls.__name__):
+            array = IntervalArray(data, closed=closed, copy=copy, dtype=dtype)
+
+        if name is None and isinstance(data, cls):
+            name = data.name
+
+        return cls._simple_new(array, name=name)
+
+    @classmethod
+    @Appender(_interval_shared_docs['from_tuples'] % _index_doc_kwargs)
+    def from_tuples(cls, data, closed='right', name=None, copy=False,
+                    dtype=None):
+        with rewrite_exception("IntervalArray", cls.__name__):
+            arr = IntervalArray.from_tuples(data, closed=closed, copy=copy,
+                                            dtype=dtype)
+        return cls._simple_new(arr, name=name)
+
+    # --------------------------------------------------------------------
 
     @Appender(_index_shared_docs['_shallow_copy'])
     def _shallow_copy(self, left=None, right=None, **kwargs):
@@ -230,48 +277,6 @@ class IntervalIndex(IntervalMixin, Index):
             return True
         except KeyError:
             return False
-
-    @classmethod
-    @Appender(_interval_shared_docs['from_breaks'] % _index_doc_kwargs)
-    def from_breaks(cls, breaks, closed='right', name=None, copy=False,
-                    dtype=None):
-        with rewrite_exception("IntervalArray", cls.__name__):
-            array = IntervalArray.from_breaks(breaks, closed=closed, copy=copy,
-                                              dtype=dtype)
-        return cls._simple_new(array, name=name)
-
-    @classmethod
-    @Appender(_interval_shared_docs['from_arrays'] % _index_doc_kwargs)
-    def from_arrays(cls, left, right, closed='right', name=None, copy=False,
-                    dtype=None):
-        with rewrite_exception("IntervalArray", cls.__name__):
-            array = IntervalArray.from_arrays(left, right, closed, copy=copy,
-                                              dtype=dtype)
-        return cls._simple_new(array, name=name)
-
-    @classmethod
-    @Appender(_interval_shared_docs['from_intervals'] % _index_doc_kwargs)
-    def from_intervals(cls, data, closed=None, name=None, copy=False,
-                       dtype=None):
-        msg = ('IntervalIndex.from_intervals is deprecated and will be '
-               'removed in a future version; Use IntervalIndex(...) instead')
-        warnings.warn(msg, FutureWarning, stacklevel=2)
-        with rewrite_exception("IntervalArray", cls.__name__):
-            array = IntervalArray(data, closed=closed, copy=copy, dtype=dtype)
-
-        if name is None and isinstance(data, cls):
-            name = data.name
-
-        return cls._simple_new(array, name=name)
-
-    @classmethod
-    @Appender(_interval_shared_docs['from_tuples'] % _index_doc_kwargs)
-    def from_tuples(cls, data, closed='right', name=None, copy=False,
-                    dtype=None):
-        with rewrite_exception("IntervalArray", cls.__name__):
-            arr = IntervalArray.from_tuples(data, closed=closed, copy=copy,
-                                            dtype=dtype)
-        return cls._simple_new(arr, name=name)
 
     @Appender(_interval_shared_docs['to_tuples'] % dict(
         return_type="Index",
@@ -941,6 +946,8 @@ class IntervalIndex(IntervalMixin, Index):
             # scalar
             return result
 
+    # --------------------------------------------------------------------
+    # Rendering Methods
     # __repr__ associated methods are based on MultiIndex
 
     def _format_with_header(self, header, **kwargs):
@@ -996,6 +1003,8 @@ class IntervalIndex(IntervalMixin, Index):
     def _format_space(self):
         space = ' ' * (len(self.__class__.__name__) + 1)
         return "\n{space}".format(space=space)
+
+    # --------------------------------------------------------------------
 
     def argsort(self, *args, **kwargs):
         return np.lexsort((self.right, self.left))
