@@ -19,9 +19,9 @@ from pandas.util.testing import (
 
 import pandas.io.formats.printing as printing
 
-
 # ----------------------------------------------------------------------
 # Generic types test cases
+
 
 class Generic(object):
 

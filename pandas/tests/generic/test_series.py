@@ -17,7 +17,6 @@ from pandas.util.testing import assert_almost_equal, assert_series_equal
 
 from .test_generic import Generic
 
-
 try:
     import xarray
     _XARRAY_INSTALLED = True

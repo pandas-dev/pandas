@@ -19,7 +19,6 @@ from pandas.util.testing import (
 
 from .test_generic import Generic
 
-
 try:
     import xarray
     _XARRAY_INSTALLED = True
