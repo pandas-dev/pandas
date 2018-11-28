@@ -1283,6 +1283,47 @@ class Index(IndexOpsMixin, PandasObject):
         values[mask] = na_rep
         return values
 
+    def _summary(self, name=None):
+        """
+        Return a summarized representation.
+
+        Parameters
+        ----------
+        name : str
+            name to use in the summary representation
+
+        Returns
+        -------
+        String with a summarized representation of the index
+        """
+        if len(self) > 0:
+            head = self[0]
+            if (hasattr(head, 'format') and
+                    not isinstance(head, compat.string_types)):
+                head = head.format()
+            tail = self[-1]
+            if (hasattr(tail, 'format') and
+                    not isinstance(tail, compat.string_types)):
+                tail = tail.format()
+            index_summary = ', %s to %s' % (pprint_thing(head),
+                                            pprint_thing(tail))
+        else:
+            index_summary = ''
+
+        if name is None:
+            name = type(self).__name__
+        return '%s: %s entries%s' % (name, len(self), index_summary)
+
+    def summary(self, name=None):
+        """
+        Return a summarized representation.
+
+        .. deprecated:: 0.23.0
+        """
+        warnings.warn("'summary' is deprecated and will be removed in a "
+                      "future version.", FutureWarning, stacklevel=2)
+        return self._summary(name)
+
     # --------------------------------------------------------------------
     # Conversion Methods
 
@@ -1783,47 +1824,6 @@ class Index(IndexOpsMixin, PandasObject):
     def _has_complex_internals(self):
         # to disable groupby tricks in MultiIndex
         return False
-
-    def _summary(self, name=None):
-        """
-        Return a summarized representation.
-
-        Parameters
-        ----------
-        name : str
-            name to use in the summary representation
-
-        Returns
-        -------
-        String with a summarized representation of the index
-        """
-        if len(self) > 0:
-            head = self[0]
-            if (hasattr(head, 'format') and
-                    not isinstance(head, compat.string_types)):
-                head = head.format()
-            tail = self[-1]
-            if (hasattr(tail, 'format') and
-                    not isinstance(tail, compat.string_types)):
-                tail = tail.format()
-            index_summary = ', %s to %s' % (pprint_thing(head),
-                                            pprint_thing(tail))
-        else:
-            index_summary = ''
-
-        if name is None:
-            name = type(self).__name__
-        return '%s: %s entries%s' % (name, len(self), index_summary)
-
-    def summary(self, name=None):
-        """
-        Return a summarized representation.
-
-        .. deprecated:: 0.23.0
-        """
-        warnings.warn("'summary' is deprecated and will be removed in a "
-                      "future version.", FutureWarning, stacklevel=2)
-        return self._summary(name)
 
     # --------------------------------------------------------------------
     # Introspection Methods
@@ -2447,6 +2447,7 @@ class Index(IndexOpsMixin, PandasObject):
         return self._shallow_copy(values)
 
     # --------------------------------------------------------------------
+    # Indexer Conversion Methods
 
     _index_shared_docs['_convert_scalar_indexer'] = """
         Convert a scalar indexer.
@@ -2676,6 +2677,8 @@ class Index(IndexOpsMixin, PandasObject):
                         "indexers [{key}] of {kind}".format(
                             form=form, klass=type(self), key=key,
                             kind=type(key)))
+
+    # --------------------------------------------------------------------
 
     def _is_memory_usage_qualified(self):
         """
@@ -3477,6 +3480,7 @@ class Index(IndexOpsMixin, PandasObject):
         return other, result_name
 
     # --------------------------------------------------------------------
+    # Indexing Methods
 
     _index_shared_docs['get_loc'] = """
         Get integer location, slice or boolean mask for requested label.
@@ -3539,72 +3543,6 @@ class Index(IndexOpsMixin, PandasObject):
         if loc == -1:
             raise KeyError(key)
         return loc
-
-    def get_value(self, series, key):
-        """
-        Fast lookup of value from 1-dimensional ndarray. Only use this if you
-        know what you're doing.
-        """
-
-        # if we have something that is Index-like, then
-        # use this, e.g. DatetimeIndex
-        s = getattr(series, '_values', None)
-        if isinstance(s, (ExtensionArray, Index)) and is_scalar(key):
-            # GH 20882, 21257
-            # Unify Index and ExtensionArray treatment
-            # First try to convert the key to a location
-            # If that fails, raise a KeyError if an integer
-            # index, otherwise, see if key is an integer, and
-            # try that
-            try:
-                iloc = self.get_loc(key)
-                return s[iloc]
-            except KeyError:
-                if (len(self) > 0 and
-                        (self.holds_integer() or self.is_boolean())):
-                    raise
-                elif is_integer(key):
-                    return s[key]
-
-        s = com.values_from_object(series)
-        k = com.values_from_object(key)
-
-        k = self._convert_scalar_indexer(k, kind='getitem')
-        try:
-            return self._engine.get_value(s, k,
-                                          tz=getattr(series.dtype, 'tz', None))
-        except KeyError as e1:
-            if len(self) > 0 and (self.holds_integer() or self.is_boolean()):
-                raise
-
-            try:
-                return libindex.get_value_box(s, key)
-            except IndexError:
-                raise
-            except TypeError:
-                # generator/iterator-like
-                if is_iterator(key):
-                    raise InvalidIndexError(key)
-                else:
-                    raise e1
-            except Exception:  # pragma: no cover
-                raise e1
-        except TypeError:
-            # python 3
-            if is_scalar(key):  # pragma: no cover
-                raise IndexError(key)
-            raise InvalidIndexError(key)
-
-    def set_value(self, arr, key, value):
-        """
-        Fast lookup of value from 1-dimensional ndarray.
-
-        Notes
-        -----
-        Only use this if you know what you're doing.
-        """
-        self._engine.set_value(com.values_from_object(arr),
-                               com.values_from_object(key), value)
 
     _index_shared_docs['get_indexer'] = """
         Compute indexer and mask for new index given the current index. The
@@ -3774,6 +3712,74 @@ class Index(IndexOpsMixin, PandasObject):
         distance = abs(self.values[indexer] - target)
         indexer = np.where(distance <= tolerance, indexer, -1)
         return indexer
+
+    # --------------------------------------------------------------------
+
+    def get_value(self, series, key):
+        """
+        Fast lookup of value from 1-dimensional ndarray. Only use this if you
+        know what you're doing.
+        """
+
+        # if we have something that is Index-like, then
+        # use this, e.g. DatetimeIndex
+        s = getattr(series, '_values', None)
+        if isinstance(s, (ExtensionArray, Index)) and is_scalar(key):
+            # GH 20882, 21257
+            # Unify Index and ExtensionArray treatment
+            # First try to convert the key to a location
+            # If that fails, raise a KeyError if an integer
+            # index, otherwise, see if key is an integer, and
+            # try that
+            try:
+                iloc = self.get_loc(key)
+                return s[iloc]
+            except KeyError:
+                if (len(self) > 0 and
+                        (self.holds_integer() or self.is_boolean())):
+                    raise
+                elif is_integer(key):
+                    return s[key]
+
+        s = com.values_from_object(series)
+        k = com.values_from_object(key)
+
+        k = self._convert_scalar_indexer(k, kind='getitem')
+        try:
+            return self._engine.get_value(s, k,
+                                          tz=getattr(series.dtype, 'tz', None))
+        except KeyError as e1:
+            if len(self) > 0 and (self.holds_integer() or self.is_boolean()):
+                raise
+
+            try:
+                return libindex.get_value_box(s, key)
+            except IndexError:
+                raise
+            except TypeError:
+                # generator/iterator-like
+                if is_iterator(key):
+                    raise InvalidIndexError(key)
+                else:
+                    raise e1
+            except Exception:  # pragma: no cover
+                raise e1
+        except TypeError:
+            # python 3
+            if is_scalar(key):  # pragma: no cover
+                raise IndexError(key)
+            raise InvalidIndexError(key)
+
+    def set_value(self, arr, key, value):
+        """
+        Fast lookup of value from 1-dimensional ndarray.
+
+        Notes
+        -----
+        Only use this if you know what you're doing.
+        """
+        self._engine.set_value(com.values_from_object(arr),
+                               com.values_from_object(key), value)
 
     _index_shared_docs['get_indexer_non_unique'] = """
         Compute indexer and mask for new index given the current index. The
@@ -3994,6 +4000,9 @@ class Index(IndexOpsMixin, PandasObject):
         if level is not None:
             self._validate_index_level(level)
         return algos.isin(self, values)
+
+    # --------------------------------------------------------------------
+    # Reindex Methods
 
     def _can_reindex(self, indexer):
         """
