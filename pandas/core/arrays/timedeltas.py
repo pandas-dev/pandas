@@ -1,5 +1,8 @@
 # -*- coding: utf-8 -*-
+from __future__ import division
+
 from datetime import timedelta
+import operator
 import warnings
 
 import numpy as np
@@ -16,9 +19,11 @@ from pandas.core.dtypes.common import (
     _TD_DTYPE, ensure_int64, is_datetime64_dtype, is_float_dtype,
     is_integer_dtype, is_list_like, is_object_dtype, is_string_dtype,
     is_timedelta64_dtype)
-from pandas.core.dtypes.generic import ABCSeries, ABCTimedeltaIndex
+from pandas.core.dtypes.generic import (
+    ABCDataFrame, ABCIndexClass, ABCSeries, ABCTimedeltaIndex)
 from pandas.core.dtypes.missing import isna
 
+from pandas.core import ops
 from pandas.core.algorithms import checked_add_with_arr
 import pandas.core.common as com
 
@@ -101,8 +106,32 @@ def _td_array_cmp(cls, op):
     return compat.set_function_name(wrapper, opname, cls)
 
 
+def _wrap_tdi_op(op):
+    """
+    Instead of re-implementing multiplication/division etc operations
+    in the Array class, for now we dispatch to the TimedeltaIndex
+    implementations.
+    """
+    # TODO: implement directly here and wrap in TimedeltaIndex, instead of
+    #  the other way around
+    def method(self, other):
+        if isinstance(other, (ABCSeries, ABCDataFrame, ABCIndexClass)):
+            return NotImplemented
+
+        from pandas import TimedeltaIndex
+        obj = TimedeltaIndex(self)
+        result = op(obj, other)
+        if is_timedelta64_dtype(result):
+            return type(self)(result)
+        return np.array(result)
+
+    method.__name__ = '__{name}__'.format(name=op.__name__)
+    return method
+
+
 class TimedeltaArrayMixin(dtl.DatetimeLikeArrayMixin):
     _typ = "timedeltaarray"
+    __array_priority__ = 1000
 
     @property
     def _box_func(self):
@@ -212,7 +241,7 @@ class TimedeltaArrayMixin(dtl.DatetimeLikeArrayMixin):
     def _add_delta(self, delta):
         """
         Add a timedelta-like, Tick, or TimedeltaIndex-like object
-        to self, yielding a new TimedeltaArray
+        to self, yielding a new TimedeltaArray.
 
         Parameters
         ----------
@@ -227,7 +256,9 @@ class TimedeltaArrayMixin(dtl.DatetimeLikeArrayMixin):
         return type(self)(new_values, freq='infer')
 
     def _add_datetime_arraylike(self, other):
-        """Add DatetimeArray/Index or ndarray[datetime64] to TimedeltaArray"""
+        """
+        Add DatetimeArray/Index or ndarray[datetime64] to TimedeltaArray.
+        """
         if isinstance(other, np.ndarray):
             # At this point we have already checked that dtype is datetime64
             from pandas.core.arrays import DatetimeArrayMixin
@@ -293,10 +324,24 @@ class TimedeltaArrayMixin(dtl.DatetimeLikeArrayMixin):
 
         return NotImplemented
 
+    __mul__ = _wrap_tdi_op(operator.mul)
+    __rmul__ = __mul__
+    __truediv__ = _wrap_tdi_op(operator.truediv)
+    __floordiv__ = _wrap_tdi_op(operator.floordiv)
+    __rfloordiv__ = _wrap_tdi_op(ops.rfloordiv)
+
+    if compat.PY2:
+        __div__ = __truediv__
+
+    # Note: TimedeltaIndex overrides this in call to cls._add_numeric_methods
     def __neg__(self):
         if self.freq is not None:
             return type(self)(-self._data, freq=-self.freq)
         return type(self)(-self._data)
+
+    def __abs__(self):
+        # Note: freq is not preserved
+        return type(self)(np.abs(self._data))
 
     # ----------------------------------------------------------------
     # Conversion Methods - Vectorized analogues of Timedelta methods
@@ -361,7 +406,7 @@ class TimedeltaArrayMixin(dtl.DatetimeLikeArrayMixin):
     def to_pytimedelta(self):
         """
         Return Timedelta Array/Index as object ndarray of datetime.timedelta
-        objects
+        objects.
 
         Returns
         -------

@@ -1,13 +1,14 @@
 # -*- coding: utf-8 -*-
-from datetime import datetime, date
+from datetime import date, datetime
 
+from dateutil.tz.tz import tzoffset
 import numpy as np
 import pytest
 import pytz
-from dateutil.tz.tz import tzoffset
 
 from pandas._libs import iNaT, tslib
 from pandas.compat.numpy import np_array_datetime64_compat
+
 import pandas.util.testing as tm
 
 

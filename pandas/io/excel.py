@@ -1647,15 +1647,15 @@ class _XlwtWriter(ExcelWriter):
         for example:
 
             hstyle = {"font": {"bold": True},
-            "border" : {"top": "thin",
-                        "right": "thin",
-                        "bottom": "thin",
-                        "left": "thin"},
-            "align" : {"horiz": "center"}}
+            "border": {"top": "thin",
+                    "right": "thin",
+                    "bottom": "thin",
+                    "left": "thin"},
+            "align": {"horiz": "center"}}
             will be converted to
-            font : bold on; \
-                    border : top thin, right thin, bottom thin, left thin; \
-                    align : horiz center;
+            font: bold on; \
+                    border: top thin, right thin, bottom thin, left thin; \
+                    align: horiz center;
         """
         if hasattr(item, 'items'):
             if firstlevel:

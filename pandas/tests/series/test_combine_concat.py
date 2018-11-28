@@ -10,10 +10,10 @@ import pytest
 import pandas as pd
 from pandas import DataFrame, DatetimeIndex, Series, compat, date_range
 import pandas.util.testing as tm
-from pandas.util.testing import assert_series_equal
+from pandas.util.testing import assert_frame_equal, assert_series_equal
 
 
-class TestSeriesCombine():
+class TestSeriesCombine(object):
 
     def test_append(self, datetime_series, string_series, object_series):
         appendedSeries = string_series.append(object_series)
@@ -116,8 +116,40 @@ class TestSeriesCombine():
         df = DataFrame([{"a": 1}, {"a": 3, "b": 2}])
         df['c'] = np.nan
 
-        # this will fail as long as series is a sub-class of ndarray
-        # df['c'].update(Series(['foo'],index=[0])) #####
+        df['c'].update(Series(['foo'], index=[0]))
+        expected = DataFrame([[1, np.nan, 'foo'], [3, 2., np.nan]],
+                             columns=['a', 'b', 'c'])
+        assert_frame_equal(df, expected)
+
+    @pytest.mark.parametrize('other, dtype, expected', [
+        # other is int
+        ([61, 63], 'int32', pd.Series([10, 61, 12], dtype='int32')),
+        ([61, 63], 'int64', pd.Series([10, 61, 12])),
+        ([61, 63], float, pd.Series([10., 61., 12.])),
+        ([61, 63], object, pd.Series([10, 61, 12], dtype=object)),
+        # other is float, but can be cast to int
+        ([61., 63.], 'int32', pd.Series([10, 61, 12], dtype='int32')),
+        ([61., 63.], 'int64', pd.Series([10, 61, 12])),
+        ([61., 63.], float, pd.Series([10., 61., 12.])),
+        ([61., 63.], object, pd.Series([10, 61., 12], dtype=object)),
+        # others is float, cannot be cast to int
+        ([61.1, 63.1], 'int32', pd.Series([10., 61.1, 12.])),
+        ([61.1, 63.1], 'int64', pd.Series([10., 61.1, 12.])),
+        ([61.1, 63.1], float, pd.Series([10., 61.1, 12.])),
+        ([61.1, 63.1], object, pd.Series([10, 61.1, 12], dtype=object)),
+        # other is object, cannot be cast
+        ([(61,), (63,)], 'int32', pd.Series([10, (61,), 12])),
+        ([(61,), (63,)], 'int64', pd.Series([10, (61,), 12])),
+        ([(61,), (63,)], float, pd.Series([10., (61,), 12.])),
+        ([(61,), (63,)], object, pd.Series([10, (61,), 12]))
+    ])
+    def test_update_dtypes(self, other, dtype, expected):
+
+        s = Series([10, 11, 12], dtype=dtype)
+        other = Series(other, index=[1, 3])
+        s.update(other)
+
+        assert_series_equal(s, expected)
 
     def test_concat_empty_series_dtypes_roundtrips(self):
 
