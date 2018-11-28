@@ -421,3 +421,12 @@ def test_na_values_with_dtype_str_and_na_filter(all_parsers, na_filter):
 
     result = parser.read_csv(StringIO(data), na_filter=na_filter, dtype=str)
     tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.xfail
+def test_cast_NA_to_bool_raises_error(all_parsers):
+    parser = all_parsers
+    data = "false,1\n,1\ntrue,"
+
+    parser.read_csv(StringIO(data), header=None, names=['a', 'b'],
+                    dtype={'a': 'bool'})
