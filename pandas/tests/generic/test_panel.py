@@ -3,12 +3,12 @@
 
 from warnings import catch_warnings, simplefilter
 
-from pandas import Panel
-from pandas.util.testing import (assert_panel_equal,
-                                 assert_almost_equal)
-
-import pandas.util.testing as tm
 import pandas.util._test_decorators as td
+
+from pandas import Panel
+import pandas.util.testing as tm
+from pandas.util.testing import assert_almost_equal, assert_panel_equal
+
 from .test_generic import Generic
 
 

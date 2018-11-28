@@ -2,23 +2,21 @@
 
 import functools
 
-import numpy as np
 from matplotlib import pylab
+import numpy as np
 
 from pandas._libs.tslibs.period import Period
-
-from pandas.core.dtypes.generic import (
-    ABCPeriodIndex, ABCDatetimeIndex, ABCTimedeltaIndex)
-
-from pandas.tseries.offsets import DateOffset
-import pandas.tseries.frequencies as frequencies
-
-from pandas.io.formats.printing import pprint_thing
 import pandas.compat as compat
 
-from pandas.plotting._converter import (TimeSeries_DateLocator,
-                                        TimeSeries_DateFormatter,
-                                        TimeSeries_TimedeltaFormatter)
+from pandas.core.dtypes.generic import (
+    ABCDatetimeIndex, ABCPeriodIndex, ABCTimedeltaIndex)
+
+from pandas.io.formats.printing import pprint_thing
+from pandas.plotting._converter import (
+    TimeSeries_DateFormatter, TimeSeries_DateLocator,
+    TimeSeries_TimedeltaFormatter)
+import pandas.tseries.frequencies as frequencies
+from pandas.tseries.offsets import DateOffset
 
 # ---------------------------------------------------------------------
 # Plotting functions and monkey patches

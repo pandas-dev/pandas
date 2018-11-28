@@ -2,42 +2,35 @@
 # pylint: disable=E1101
 from __future__ import division
 
-import warnings
-import re
 from collections import namedtuple
 from distutils.version import LooseVersion
+import re
+import warnings
 
 import numpy as np
 
-from pandas.util._decorators import cache_readonly, Appender
-from pandas.compat import range, lrange, map, zip, string_types
 import pandas.compat as compat
+from pandas.compat import lrange, map, range, string_types, zip
 from pandas.errors import AbstractMethodError
+from pandas.util._decorators import Appender, cache_readonly
 
-import pandas.core.common as com
-from pandas.core.base import PandasObject
-from pandas.core.config import get_option
-from pandas.core.generic import _shared_docs, _shared_doc_kwargs
-
-from pandas.core.dtypes.missing import isna, notna, remove_na_arraylike
 from pandas.core.dtypes.common import (
-    is_list_like,
-    is_integer,
-    is_number,
-    is_hashable,
-    is_iterator)
+    is_hashable, is_integer, is_iterator, is_list_like, is_number)
 from pandas.core.dtypes.generic import (
-    ABCSeries, ABCDataFrame, ABCPeriodIndex, ABCMultiIndex, ABCIndexClass)
+    ABCDataFrame, ABCIndexClass, ABCMultiIndex, ABCPeriodIndex, ABCSeries)
+from pandas.core.dtypes.missing import isna, notna, remove_na_arraylike
+
+from pandas.core.base import PandasObject
+import pandas.core.common as com
+from pandas.core.config import get_option
+from pandas.core.generic import _shared_doc_kwargs, _shared_docs
 
 from pandas.io.formats.printing import pprint_thing
-
 from pandas.plotting._compat import _mpl_ge_3_0_0
-from pandas.plotting._style import (plot_params,
-                                    _get_standard_colors)
-from pandas.plotting._tools import (_subplots, _flatten, table,
-                                    _handle_shared_axes, _get_all_lines,
-                                    _get_xlim, _set_ticks_props,
-                                    format_date_labels)
+from pandas.plotting._style import _get_standard_colors, plot_params
+from pandas.plotting._tools import (
+    _flatten, _get_all_lines, _get_xlim, _handle_shared_axes, _set_ticks_props,
+    _subplots, format_date_labels, table)
 
 try:
     from pandas.plotting import _converter

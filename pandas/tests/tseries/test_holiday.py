@@ -1,22 +1,19 @@
-import pytest
-
 from datetime import datetime
-import pandas.util.testing as tm
-from pandas import compat
-from pandas import DatetimeIndex
-from pandas.tseries.holiday import (USFederalHolidayCalendar, USMemorialDay,
-                                    USThanksgivingDay, nearest_workday,
-                                    next_monday_or_tuesday, next_monday,
-                                    previous_friday, sunday_to_monday, Holiday,
-                                    DateOffset, MO, SA, Timestamp,
-                                    AbstractHolidayCalendar, get_calendar,
-                                    HolidayCalendarFactory, next_workday,
-                                    previous_workday, before_nearest_workday,
-                                    EasterMonday, GoodFriday,
-                                    after_nearest_workday, weekend_to_monday,
-                                    USLaborDay, USColumbusDay,
-                                    USMartinLutherKingJr, USPresidentsDay)
+
+import pytest
 from pytz import utc
+
+from pandas import DatetimeIndex, compat
+import pandas.util.testing as tm
+
+from pandas.tseries.holiday import (
+    MO, SA, AbstractHolidayCalendar, DateOffset, EasterMonday, GoodFriday,
+    Holiday, HolidayCalendarFactory, Timestamp, USColumbusDay,
+    USFederalHolidayCalendar, USLaborDay, USMartinLutherKingJr, USMemorialDay,
+    USPresidentsDay, USThanksgivingDay, after_nearest_workday,
+    before_nearest_workday, get_calendar, nearest_workday, next_monday,
+    next_monday_or_tuesday, next_workday, previous_friday, previous_workday,
+    sunday_to_monday, weekend_to_monday)
 
 
 class TestCalendar(object):

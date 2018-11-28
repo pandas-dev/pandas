@@ -4,14 +4,15 @@ Tests for offsets.Tick and subclasses
 """
 from datetime import datetime, timedelta
 
-import pytest
+from hypothesis import assume, example, given, strategies as st
 import numpy as np
-from hypothesis import given, assume, example, strategies as st
+import pytest
 
 from pandas import Timedelta, Timestamp
+
 from pandas.tseries import offsets
-from pandas.tseries.offsets import (Day, Hour, Minute, Second, Milli, Micro,
-                                    Nano)
+from pandas.tseries.offsets import (
+    Day, Hour, Micro, Milli, Minute, Nano, Second)
 
 from .common import assert_offset_equal
 
