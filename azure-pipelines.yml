@@ -30,8 +30,7 @@ jobs:
   timeoutInMinutes: 90
   steps:
   - script: |
-      # XXX not sure why setting $PATH here does not work
-      # echo '##vso[task.setvariable variable=PATH]$HOME/miniconda3/bin:$PATH'
+      echo '##vso[task.prependpath]$HOME/miniconda3/bin'
       echo '##vso[task.setvariable variable=CONDA_ENV]pandas-dev'
       echo '##vso[task.setvariable variable=ENV_FILE]environment.yml'
       echo '##vso[task.setvariable variable=AZURE]true'
@@ -39,13 +38,11 @@ jobs:
 
   # Do not require a conda environment
   - script: |
-      export PATH=$HOME/miniconda3/bin:$PATH
       ci/code_checks.sh patterns
     displayName: 'Looking for unwanted patterns'
     condition: true
 
   - script: |
-      export PATH=$HOME/miniconda3/bin:$PATH
       sudo apt-get install -y libc6-dev-i386
       ci/incremental/install_miniconda.sh
       ci/incremental/setup_conda_environment.sh
@@ -53,21 +50,18 @@ jobs:
 
   # Do not require pandas
   - script: |
-      export PATH=$HOME/miniconda3/bin:$PATH
       source activate pandas-dev
       ci/code_checks.sh lint
     displayName: 'Linting'
     condition: true
 
   - script: |
-      export PATH=$HOME/miniconda3/bin:$PATH
       source activate pandas-dev
       ci/code_checks.sh dependencies
     displayName: 'Dependencies consistency'
     condition: true
 
   - script: |
-      export PATH=$HOME/miniconda3/bin:$PATH
       source activate pandas-dev
       ci/incremental/build.sh
     displayName: 'Build'
@@ -75,89 +69,28 @@ jobs:
 
   # Require pandas
   - script: |
-      export PATH=$HOME/miniconda3/bin:$PATH
       source activate pandas-dev
       ci/code_checks.sh code
     displayName: 'Checks on imported code'
     condition: true
 
   - script: |
-      export PATH=$HOME/miniconda3/bin:$PATH
       source activate pandas-dev
       ci/code_checks.sh doctests
     displayName: 'Running doctests'
     condition: true
 
   - script: |
-      export PATH=$HOME/miniconda3/bin:$PATH
       source activate pandas-dev
       ci/code_checks.sh docstrings
     displayName: 'Docstring validation'
     condition: true
 
   - script: |
-      export PATH=$HOME/miniconda3/bin:$PATH
       source activate pandas-dev
       pytest --capture=no --strict scripts
     displayName: 'Testing docstring validaton script'
     condition: true
-
-  - script: |
-      export PATH=$HOME/miniconda3/bin:$PATH
-      source activate pandas-dev
-      doc/make.py html
-    displayName: 'Building docs'
-    condition: true
-
-  - script: |
-      if [ "$(Build.SourceBranch)" == "refs/heads/master" ]; then
-          export NAME="master"
-      else
-          export NAME=$(System.PullRequest.PullRequestId)
-      fi
-      az extension add --name storage-preview
-      az storage blob upload-batch --connection-string $CONNECTION_STRING \
-                                   --source $SOURCE \
-                                   --destination $DESTINATION \
-                                   --destination-path $NAME
-      echo "Documentation uploaded to https://pandas.blob.core.windows.net/docs/$NAME"
-    displayName: 'Publishing docs (Azure storage)'
-    condition: true
-    env:
-      CONNECTION_STRING: $(AZURE_STORAGE_CONNECTION_STRING)
-      SOURCE: $(Build.SourcesDirectory)/doc/build/html/
-      DESTINATION: 'docs'
-
-  - script: |
-      echo "Publishing documentation to GitHub pages is still done in Travis"
-      exit 0
-      if [ "$(Build.SourceBranch)" == "refs/heads/master" ]; then
-          mkdir -p $REPO_DIR
-          rm -rf $REPO_DIR/*
-          cp -r doc/build/html/* $REPO_DIR/
-          cd $REPO_DIR
-          git config --global user.email "pandas-docs-bot@localhost.foo"
-          git config --global user.name "pandas-docs-bot"
-          git init
-          touch README
-          git add README
-          git commit -m "Initial commit" --allow-empty
-          git branch gh-pages
-          git checkout gh-pages
-          touch .nojekyll
-          git add --all .
-          git commit -m "Version" --allow-empty
-          git remote remove origin
-          git remote add origin "https://${TOKEN}@github.com/pandas-dev/pandas-docs-travis.git"
-          git fetch origin
-          git remote -v
-          git push origin gh-pages -f
-      fi
-    displayName: 'Publishing docs (GitHub pages)'
-    condition: true
-    env:
-      REPO_DIR: $(Build.ArtifactStagingDirectory)/pandas-docs-travis
-      TOKEN: $(GITHUB_DOCS_TOKEN)
 
   - script: |
       export PATH=$HOME/miniconda3/bin:$PATH
