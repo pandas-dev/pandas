@@ -1,12 +1,8 @@
-# pylint: disable=E1101
-
 from datetime import datetime
 from operator import methodcaller
 
 import numpy as np
 import pytest
-
-from pandas.compat import zip
 
 import pandas as pd
 from pandas import DataFrame, Panel, Series
@@ -104,20 +100,21 @@ def test_panel_aggregation():
     tm.assert_panel_equal(result, binagg)
 
 
-def test_fails_on_no_datetime_index():
-    index_names = ('Int64Index', 'Index', 'Float64Index', 'MultiIndex')
-    index_funcs = (tm.makeIntIndex,
-                   tm.makeUnicodeIndex, tm.makeFloatIndex,
-                   lambda m: tm.makeCustomIndex(m, 2))
+@pytest.mark.parametrize('name, func', [
+    ('Int64Index', tm.makeIntIndex),
+    ('Index', tm.makeUnicodeIndex),
+    ('Float64Index', tm.makeFloatIndex),
+    ('MultiIndex', lambda m: tm.makeCustomIndex(m, 2))
+])
+def test_fails_on_no_datetime_index(name, func):
     n = 2
-    for name, func in zip(index_names, index_funcs):
-        index = func(n)
-        df = DataFrame({'a': np.random.randn(n)}, index=index)
+    index = func(n)
+    df = DataFrame({'a': np.random.randn(n)}, index=index)
 
-        msg = ("Only valid with DatetimeIndex, TimedeltaIndex "
-               "or PeriodIndex, but got an instance of %r" % name)
-        with pytest.raises(TypeError, match=msg):
-            df.groupby(TimeGrouper('D'))
+    msg = ("Only valid with DatetimeIndex, TimedeltaIndex "
+           "or PeriodIndex, but got an instance of %r" % name)
+    with pytest.raises(TypeError, match=msg):
+        df.groupby(TimeGrouper('D'))
 
 
 def test_aaa_group_order():
@@ -143,7 +140,20 @@ def test_aaa_group_order():
                           df[4::5])
 
 
-def test_aggregate_normal():
+@pytest.mark.parametrize('func, assert_func', [
+    ('min', assert_frame_equal),
+    ('max', assert_frame_equal),
+    ('prod', assert_frame_equal),
+    ('var', assert_frame_equal),
+    ('std', assert_frame_equal),
+    ('mean', assert_frame_equal),
+    ('count', assert_frame_equal),
+    ('sum', assert_frame_equal),
+    ('size', assert_series_equal),  # GH 7453
+    ('first', assert_frame_equal),  # GH 7453
+    ('last', assert_frame_equal),  # GH 7453
+])
+def test_aggregate_normal(func, assert_func):
     # check TimeGrouper's aggregation is identical as normal groupby
 
     n = 20
@@ -159,35 +169,11 @@ def test_aggregate_normal():
     normal_grouped = normal_df.groupby('key')
     dt_grouped = dt_df.groupby(TimeGrouper(key='key', freq='D'))
 
-    for func in ['min', 'max', 'prod', 'var', 'std', 'mean']:
-        expected = getattr(normal_grouped, func)()
-        dt_result = getattr(dt_grouped, func)()
-        expected.index = date_range(start='2013-01-01', freq='D',
-                                    periods=5, name='key')
-        assert_frame_equal(expected, dt_result)
-
-    for func in ['count', 'sum']:
-        expected = getattr(normal_grouped, func)()
-        expected.index = date_range(start='2013-01-01', freq='D',
-                                    periods=5, name='key')
-        dt_result = getattr(dt_grouped, func)()
-        assert_frame_equal(expected, dt_result)
-
-    # GH 7453
-    for func in ['size']:
-        expected = getattr(normal_grouped, func)()
-        expected.index = date_range(start='2013-01-01', freq='D',
-                                    periods=5, name='key')
-        dt_result = getattr(dt_grouped, func)()
-        assert_series_equal(expected, dt_result)
-
-    # GH 7453
-    for func in ['first', 'last']:
-        expected = getattr(normal_grouped, func)()
-        expected.index = date_range(start='2013-01-01', freq='D',
-                                    periods=5, name='key')
-        dt_result = getattr(dt_grouped, func)()
-        assert_frame_equal(expected, dt_result)
+    expected = getattr(normal_grouped, func)()
+    dt_result = getattr(dt_grouped, func)()
+    expected.index = date_range(start='2013-01-01', freq='D',
+                                periods=5, name='key')
+    assert_func(expected, dt_result)
 
     # if TimeGrouper is used included, 'nth' doesn't work yet
 
@@ -201,30 +187,19 @@ def test_aggregate_normal():
     """
 
 
-@pytest.mark.parametrize('method, unit', [
-    ('sum', 0),
-    ('prod', 1),
+@pytest.mark.parametrize('method, method_args, unit', [
+    ('sum', dict(), 0),
+    ('sum', dict(min_count=0), 0),
+    ('sum', dict(min_count=1), np.nan),
+    ('prod', dict(), 1),
+    ('prod', dict(min_count=0), 1),
+    ('prod', dict(min_count=1), np.nan)
 ])
-def test_resample_entirly_nat_window(method, unit):
+def test_resample_entirly_nat_window(method, method_args, unit):
     s = pd.Series([0] * 2 + [np.nan] * 2,
                   index=pd.date_range('2017', periods=4))
-    # 0 / 1 by default
-    result = methodcaller(method)(s.resample("2d"))
+    result = methodcaller(method, **method_args)(s.resample("2d"))
     expected = pd.Series([0.0, unit],
-                         index=pd.to_datetime(['2017-01-01',
-                                               '2017-01-03']))
-    tm.assert_series_equal(result, expected)
-
-    # min_count=0
-    result = methodcaller(method, min_count=0)(s.resample("2d"))
-    expected = pd.Series([0.0, unit],
-                         index=pd.to_datetime(['2017-01-01',
-                                               '2017-01-03']))
-    tm.assert_series_equal(result, expected)
-
-    # min_count=1
-    result = methodcaller(method, min_count=1)(s.resample("2d"))
-    expected = pd.Series([0.0, np.nan],
                          index=pd.to_datetime(['2017-01-01',
                                                '2017-01-03']))
     tm.assert_series_equal(result, expected)
@@ -302,33 +277,22 @@ def test_repr():
     assert result == expected
 
 
-@pytest.mark.parametrize('method, unit', [
-    ('sum', 0),
-    ('prod', 1),
+@pytest.mark.parametrize('method, method_args, expected_values', [
+    ('sum', dict(), [1, 0, 1]),
+    ('sum', dict(min_count=0), [1, 0, 1]),
+    ('sum', dict(min_count=1), [1, np.nan, 1]),
+    ('sum', dict(min_count=2), [np.nan, np.nan, np.nan]),
+    ('prod', dict(), [1, 1, 1]),
+    ('prod', dict(min_count=0), [1, 1, 1]),
+    ('prod', dict(min_count=1), [1, np.nan, 1]),
+    ('prod', dict(min_count=2), [np.nan, np.nan, np.nan]),
 ])
-def test_upsample_sum(method, unit):
+def test_upsample_sum(method, method_args, expected_values):
     s = pd.Series(1, index=pd.date_range("2017", periods=2, freq="H"))
     resampled = s.resample("30T")
     index = pd.to_datetime(['2017-01-01T00:00:00',
                             '2017-01-01T00:30:00',
                             '2017-01-01T01:00:00'])
-
-    # 0 / 1 by default
-    result = methodcaller(method)(resampled)
-    expected = pd.Series([1, unit, 1], index=index)
-    tm.assert_series_equal(result, expected)
-
-    # min_count=0
-    result = methodcaller(method, min_count=0)(resampled)
-    expected = pd.Series([1, unit, 1], index=index)
-    tm.assert_series_equal(result, expected)
-
-    # min_count=1
-    result = methodcaller(method, min_count=1)(resampled)
-    expected = pd.Series([1, np.nan, 1], index=index)
-    tm.assert_series_equal(result, expected)
-
-    # min_count>1
-    result = methodcaller(method, min_count=2)(resampled)
-    expected = pd.Series([np.nan, np.nan, np.nan], index=index)
+    result = methodcaller(method, **method_args)(resampled)
+    expected = pd.Series(expected_values, index=index)
     tm.assert_series_equal(result, expected)
