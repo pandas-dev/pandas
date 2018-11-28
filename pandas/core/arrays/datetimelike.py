@@ -835,8 +835,7 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin, AttributesMixin):
     def _evaluate_compare(self, other, op):
         """
         We have been called because a comparison between
-        8 aware arrays. numpy >= 1.11 will
-        now warn about NaT comparisons
+        8 aware arrays. numpy will warn about NaT comparisons
         """
         # Called by comparison methods when comparing datetimelike
         # with datetimelike
