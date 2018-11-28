@@ -198,7 +198,7 @@ class TestTake(object):
         dates = [datetime(2010, 1, 1, 14), datetime(2010, 1, 1, 15),
                  datetime(2010, 1, 1, 17), datetime(2010, 1, 1, 21)]
 
-        idx = DatetimeIndex(start='2010-01-01 09:00',
+        idx = pd.date_range(start='2010-01-01 09:00',
                             end='2010-02-01 09:00', freq='H', tz=tz,
                             name='idx')
         expected = DatetimeIndex(dates, freq=None, name='idx', tz=tz)

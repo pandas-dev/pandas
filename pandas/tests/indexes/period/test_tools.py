@@ -127,7 +127,7 @@ class TestPeriodIndex(object):
         tm.assert_index_equal(res, exp)
 
     def test_dti_to_period(self):
-        dti = DatetimeIndex(start='1/1/2005', end='12/1/2005', freq='M')
+        dti = pd.date_range(start='1/1/2005', end='12/1/2005', freq='M')
         pi1 = dti.to_period()
         pi2 = dti.to_period(freq='D')
         pi3 = dti.to_period(freq='3D')
@@ -193,8 +193,8 @@ class TestPeriodIndex(object):
         tm.assert_index_equal(pi.to_timestamp(), dti)
 
     def test_combine_first(self):
-        # GH 3367
-        didx = pd.DatetimeIndex(start='1950-01-31', end='1950-07-31', freq='M')
+        # GH#3367
+        didx = pd.date_range(start='1950-01-31', end='1950-07-31', freq='M')
         pidx = pd.PeriodIndex(start=pd.Period('1950-1'),
                               end=pd.Period('1950-7'), freq='M')
         # check to be consistent with DatetimeIndex

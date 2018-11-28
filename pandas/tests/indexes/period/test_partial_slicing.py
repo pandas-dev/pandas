@@ -2,8 +2,7 @@ import numpy as np
 import pytest
 
 import pandas as pd
-from pandas import (
-    DataFrame, DatetimeIndex, Period, PeriodIndex, Series, period_range)
+from pandas import DataFrame, Period, PeriodIndex, Series, period_range
 from pandas.util import testing as tm
 
 
@@ -63,8 +62,8 @@ class TestPeriodIndex(object):
         tm.assert_series_equal(res, exp)
 
     def test_range_slice_day(self):
-        # GH 6716
-        didx = DatetimeIndex(start='2013/01/01', freq='D', periods=400)
+        # GH#6716
+        didx = pd.date_range(start='2013/01/01', freq='D', periods=400)
         pidx = PeriodIndex(start='2013/01/01', freq='D', periods=400)
 
         for idx in [didx, pidx]:
@@ -88,8 +87,8 @@ class TestPeriodIndex(object):
                     idx[v:]
 
     def test_range_slice_seconds(self):
-        # GH 6716
-        didx = DatetimeIndex(start='2013/01/01 09:00:00', freq='S',
+        # GH#6716
+        didx = pd.date_range(start='2013/01/01 09:00:00', freq='S',
                              periods=4000)
         pidx = PeriodIndex(start='2013/01/01 09:00:00', freq='S', periods=4000)
 
@@ -113,8 +112,8 @@ class TestPeriodIndex(object):
                 tm.assert_series_equal(s[d:], s)
 
     def test_range_slice_outofbounds(self):
-        # GH 5407
-        didx = DatetimeIndex(start='2013/10/01', freq='D', periods=10)
+        # GH#5407
+        didx = pd.date_range(start='2013/10/01', freq='D', periods=10)
         pidx = PeriodIndex(start='2013/10/01', freq='D', periods=10)
 
         for idx in [didx, pidx]:

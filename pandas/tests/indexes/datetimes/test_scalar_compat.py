@@ -184,7 +184,7 @@ class TestDatetimeIndexOps(object):
         '12H', '1D',
     ])
     def test_round_int64(self, start, index_freq, periods, round_freq):
-        dt = DatetimeIndex(start=start, freq=index_freq, periods=periods)
+        dt = date_range(start=start, freq=index_freq, periods=periods)
         unit = to_offset(round_freq).nanos
 
         # test floor

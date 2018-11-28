@@ -561,10 +561,10 @@ class TestGenRangeGeneration(object):
         assert rng == expected
 
     def test_precision_finer_than_offset(self):
-        # GH 9907
-        result1 = DatetimeIndex(start='2015-04-15 00:00:03',
+        # GH#9907
+        result1 = pd.date_range(start='2015-04-15 00:00:03',
                                 end='2016-04-22 00:00:00', freq='Q')
-        result2 = DatetimeIndex(start='2015-04-15 00:00:03',
+        result2 = pd.date_range(start='2015-04-15 00:00:03',
                                 end='2015-06-22 00:00:04', freq='W')
         expected1_list = ['2015-06-30 00:00:03', '2015-09-30 00:00:03',
                           '2015-12-31 00:00:03', '2016-03-31 00:00:03']
@@ -594,7 +594,7 @@ class TestGenRangeGeneration(object):
         with pytest.raises(TypeError):
             pd.date_range(start, end)
         with pytest.raises(TypeError):
-            pd.DatetimeIndex(start, end, freq=BDay())
+            pd.date_range(start, end, freq=BDay())
 
     def test_CalendarDay_range_with_dst_crossing(self):
         # GH 20596

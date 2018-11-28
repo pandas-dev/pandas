@@ -15,7 +15,6 @@ import pandas as pd
 from pandas import DataFrame, Series, Timestamp
 from pandas.core.indexes.datetimes import date_range
 from pandas.core.indexes.period import Period, PeriodIndex, period_range
-from pandas.core.resample import DatetimeIndex
 from pandas.tests.resample.test_base import (
     Base, resample_methods, simple_period_range_series)
 import pandas.util.testing as tm
@@ -542,7 +541,7 @@ class TestPeriodIndex(Base):
 
     def test_resample_weekly_bug_1726(self):
         # 8/6/12 is a Monday
-        ind = DatetimeIndex(start="8/6/2012", end="8/26/2012", freq="D")
+        ind = date_range(start="8/6/2012", end="8/26/2012", freq="D")
         n = len(ind)
         data = [[x] * 5 for x in range(n)]
         df = DataFrame(data, columns=['open', 'high', 'low', 'close', 'vol'],
@@ -605,7 +604,7 @@ class TestPeriodIndex(Base):
         end_types = ['M', 'A', 'Q', 'W']
 
         for from_freq, to_freq in zip(end_freq, end_types):
-            idx = DatetimeIndex(start='8/15/2012', periods=100, freq=from_freq)
+            idx = date_range(start='8/15/2012', periods=100, freq=from_freq)
             df = DataFrame(np.random.randn(len(idx), 2), idx)
 
             resampled = df.resample(to_freq).mean()
@@ -617,7 +616,7 @@ class TestPeriodIndex(Base):
         others_freq = ['D', 'Q', 'M', 'H', 'T']
 
         for from_freq, to_freq in zip(others_freq, others):
-            idx = DatetimeIndex(start='8/15/2012', periods=100, freq=from_freq)
+            idx = date_range(start='8/15/2012', periods=100, freq=from_freq)
             df = DataFrame(np.random.randn(len(idx), 2), idx)
 
             resampled = df.resample(to_freq).mean()

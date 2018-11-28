@@ -1,5 +1,6 @@
 """ implement the TimedeltaIndex """
 from datetime import datetime
+import warnings
 
 import numpy as np
 
@@ -132,12 +133,22 @@ class TimedeltaIndex(TimedeltaArray, DatetimeIndexOpsMixin,
 
     def __new__(cls, data=None, unit=None, freq=None, start=None, end=None,
                 periods=None, closed=None, dtype=None, copy=False,
-                name=None, verify_integrity=True):
+                name=None, verify_integrity=None):
+
+        if verify_integrity is not None:
+            warnings.warn("The 'verify_integrity' argument is deprecated, "
+                          "will be removed in a future version.",
+                          FutureWarning, stacklevel=2)
+        else:
+            verify_integrity = True
 
         freq, freq_infer = dtl.maybe_infer_freq(freq)
 
         if data is None:
-            # TODO: Remove this block and associated kwargs; GH#20535
+            warnings.warn("Creating a TimedeltaIndex by passing range "
+                          "endpoints is deprecated.  Use "
+                          "`pandas.timedelta_range` instead.",
+                          FutureWarning, stacklevel=2)
             result = cls._generate_range(start, end, periods, freq,
                                          closed=closed)
             result.name = name
@@ -740,5 +751,8 @@ def timedelta_range(start=None, end=None, periods=None, freq=None,
     if freq is None and com._any_none(periods, start, end):
         freq = 'D'
 
-    return TimedeltaIndex(start=start, end=end, periods=periods,
-                          freq=freq, name=name, closed=closed)
+    freq, freq_infer = dtl.maybe_infer_freq(freq)
+    result = TimedeltaIndex._generate_range(start, end, periods, freq,
+                                            closed=closed)
+    result.name = name
+    return result

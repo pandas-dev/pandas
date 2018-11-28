@@ -10,12 +10,11 @@ from pandas.compat import OrderedDict, range
 import pandas as pd
 from pandas import DataFrame, Series
 from pandas.core.indexes.datetimes import date_range
-from pandas.core.resample import DatetimeIndex
 import pandas.util.testing as tm
 from pandas.util.testing import assert_frame_equal, assert_series_equal
 
-dti = DatetimeIndex(start=datetime(2005, 1, 1),
-                    end=datetime(2005, 1, 10), freq='Min')
+dti = date_range(start=datetime(2005, 1, 1),
+                 end=datetime(2005, 1, 10), freq='Min')
 
 test_series = Series(np.random.rand(len(dti)), dti)
 test_frame = DataFrame(
