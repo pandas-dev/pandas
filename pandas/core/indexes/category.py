@@ -532,12 +532,16 @@ class CategoricalIndex(Index, accessor.PandasDelegate):
 
         target = ibase.ensure_index(target)
 
-        if not is_categorical_dtype(target) and not target.is_unique:
-            raise ValueError("cannot reindex with a non-unique indexer")
+        if self.equals(target):
+            indexer = None
+            missing = []
+        else:
+            if not target.is_unique:
+                raise ValueError("cannot reindex with a non-unique indexer")
 
-        indexer, missing = self.get_indexer_non_unique(np.array(target))
+            indexer, missing = self.get_indexer_non_unique(np.array(target))
 
-        if len(self.codes):
+        if len(self.codes) and indexer is not None:
             new_target = self.take(indexer)
         else:
             new_target = target
