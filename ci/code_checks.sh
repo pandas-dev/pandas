@@ -20,7 +20,6 @@ echo "inside $0"
 [[ -z "$1" || "$1" == "lint" || "$1" == "patterns" || "$1" == "doctests" || "$1" == "dependencies"  ]] \
     || { echo "Unknown command $1. Usage: $0 [lint|patterns|doctests|dependencies]"; exit 9999; }
 
-source activate pandas
 BASE_DIR="$(dirname $0)/.."
 RET=0
 CHECK=$1
@@ -148,7 +147,7 @@ if [[ -z "$CHECK" || "$CHECK" == "doctests" ]]; then
 
     MSG='Doctests frame.py' ; echo $MSG
     pytest -q --doctest-modules pandas/core/frame.py \
-        -k"-axes -combine -itertuples -join -nunique -pivot_table -quantile -query -reindex -reindex_axis -replace -round -set_index -stack"
+        -k"-axes -combine -itertuples -join -pivot_table -quantile -query -reindex -reindex_axis -replace -round -set_index -stack"
     RET=$(($RET + $?)) ; echo $MSG "DONE"
 
     MSG='Doctests series.py' ; echo $MSG

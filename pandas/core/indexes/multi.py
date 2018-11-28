@@ -121,7 +121,7 @@ class MultiIndexPyIntEngine(libindex.BaseMultiIndexCodesEngine,
 
 class MultiIndex(Index):
     """
-    A multi-level, or hierarchical, index object for pandas objects
+    A multi-level, or hierarchical, index object for pandas objects.
 
     Parameters
     ----------
@@ -355,7 +355,6 @@ class MultiIndex(Index):
         Returns
         -------
         new index (of same type and class...etc)
-
 
         Examples
         --------
@@ -1196,13 +1195,13 @@ class MultiIndex(Index):
 
     def to_hierarchical(self, n_repeat, n_shuffle=1):
         """
-        .. deprecated:: 0.24.0
-
         Return a MultiIndex reshaped to conform to the
         shapes given by n_repeat and n_shuffle.
 
         Useful to replicate and rearrange a MultiIndex for combination
         with another Index with n_repeat items.
+
+        .. deprecated:: 0.24.0
 
         Parameters
         ----------
@@ -1519,7 +1518,6 @@ class MultiIndex(Index):
         MultiIndex(levels=[[0, 1], ['a', 'b']],
                    labels=[[0, 0, 1, 1], [0, 1, 0, 1]])
 
-
         >>> i[2:]
         MultiIndex(levels=[[0, 1], ['a', 'b']],
                    labels=[[1, 1], [0, 1]])
@@ -1530,7 +1528,6 @@ class MultiIndex(Index):
         >>> i[2:].remove_unused_levels()
         MultiIndex(levels=[[1], ['a', 'b']],
                    labels=[[0, 0], [0, 1]])
-
         """
 
         new_levels = []
@@ -1912,7 +1909,6 @@ class MultiIndex(Index):
             Resulting index
         indexer : np.ndarray
             Indices of output values in original index
-
         """
         from pandas.core.sorting import indexer_from_factorized
 

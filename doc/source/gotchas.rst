@@ -9,14 +9,11 @@ Frequently Asked Questions (FAQ)
    :suppress:
 
    import numpy as np
+   import pandas as pd
+
    np.random.seed(123456)
    np.set_printoptions(precision=4, suppress=True)
-   import pandas as pd
    pd.options.display.max_rows = 15
-   import matplotlib
-   # matplotlib.style.use('default')
-   import matplotlib.pyplot as plt
-   plt.close('all')
 
 .. _df-memory-usage:
 
@@ -36,8 +33,7 @@ when calling :meth:`~DataFrame.info`:
     dtypes = ['int64', 'float64', 'datetime64[ns]', 'timedelta64[ns]',
               'complex128', 'object', 'bool']
     n = 5000
-    data = dict([(t, np.random.randint(100, size=n).astype(t))
-                  for t in dtypes])
+    data = {t: np.random.randint(100, size=n).astype(t) for t in dtypes}
     df = pd.DataFrame(data)
     df['categorical'] = df['object'].astype('category')
 
@@ -98,8 +94,8 @@ of the following code should be:
 
 .. code-block:: python
 
-    >>> if pd.Series([False, True, False]):     # noqa: E999
-         ...
+    >>> if pd.Series([False, True, False]):
+    ...     pass
 
 Should it be ``True`` because it's not zero-length, or ``False`` because there 
 are ``False`` values? It is unclear, so instead, pandas raises a ``ValueError``:
@@ -329,8 +325,8 @@ constructors using something similar to the following:
 
 .. ipython:: python
 
-   x = np.array(list(range(10)), '>i4') # big endian
-   newx = x.byteswap().newbyteorder() # force native byteorder
+   x = np.array(list(range(10)), '>i4')  # big endian
+   newx = x.byteswap().newbyteorder()  # force native byteorder
    s = pd.Series(newx)
 
 See `the NumPy documentation on byte order
