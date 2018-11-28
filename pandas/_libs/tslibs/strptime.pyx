@@ -242,7 +242,7 @@ def array_strptime(object[:] values, object fmt,
                 s += "0" * (9 - len(s))
                 us = long(s)
                 ns = us % 1000
-                us = us // 1000
+                us = us / 1000
             elif parse_code == 11:
                 weekday = locale_time.f_weekday.index(found_dict['A'].lower())
             elif parse_code == 12:
@@ -664,7 +664,7 @@ cdef parse_timezone_directive(object z):
     gmtoff_remainder_padding = "0" * pad_number
     microseconds = int(gmtoff_remainder + gmtoff_remainder_padding)
 
-    total_minutes = ((hours * 60) + minutes + (seconds // 60) +
-                     (microseconds // 60000000))
+    total_minutes = ((hours * 60) + minutes + (seconds / 60) +
+                     (microseconds / 60000000))
     total_minutes = -total_minutes if z.startswith("-") else total_minutes
     return pytz.FixedOffset(total_minutes)

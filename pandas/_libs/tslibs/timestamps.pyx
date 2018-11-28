@@ -70,7 +70,7 @@ cdef inline object create_timestamp_from_ts(int64_t value,
                                  dts.sec, dts.us, tz)
     ts_base.value = value
     ts_base.freq = freq
-    ts_base.nanosecond = dts.ps // 1000
+    ts_base.nanosecond = dts.ps / 1000
 
     return ts_base
 

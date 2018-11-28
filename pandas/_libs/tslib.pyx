@@ -277,7 +277,7 @@ def format_array_from_datetime(ndarray[int64_t] values, object tz=None,
                                                    dts.sec)
 
             if show_ns:
-                ns = dts.ps // 1000
+                ns = dts.ps / 1000
                 res += '.%.9d' % (ns + 1000 * dts.us)
             elif show_us:
                 res += '.%.6d' % dts.us

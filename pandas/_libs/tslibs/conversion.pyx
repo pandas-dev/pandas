@@ -453,7 +453,7 @@ cdef _TSObject convert_str_to_tsobject(object ts, object tz, object unit,
                                   obj.dts.hour, obj.dts.min, obj.dts.sec,
                                   obj.dts.us, obj.tzinfo)
                     obj = convert_datetime_to_tsobject(dt, tz,
-                                                       nanos=obj.dts.ps // 1000)
+                                                       nanos=obj.dts.ps / 1000)
                     return obj
 
             else:
