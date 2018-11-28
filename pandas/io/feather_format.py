@@ -116,6 +116,6 @@ def read_feather(path, use_threads=True):
         int_use_threads = int(use_threads)
         if int_use_threads < 1:
             int_use_threads = 1
-        return feather.read_feather(path, nthreads=int_use_threads)
+        return feather.read_feather(path, use_threads=int_use_threads)
 
     return feather.read_feather(path, use_threads=bool(use_threads))
