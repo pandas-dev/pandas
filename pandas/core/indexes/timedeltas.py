@@ -131,7 +131,7 @@ class TimedeltaIndex(TimedeltaArray, DatetimeIndexOpsMixin,
     # Constructors
 
     def __new__(cls, data=None, unit=None, freq=None, start=None, end=None,
-                periods=None, closed=None, dtype=None, copy=False,
+                periods=None, closed=None, dtype=_TD_DTYPE, copy=False,
                 name=None, verify_integrity=None):
 
         if verify_integrity is not None:
