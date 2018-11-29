@@ -232,8 +232,8 @@ def _convert_listlike_datetimes(arg, box, format, name=None, tz=None,
             require_iso8601 = not infer_datetime_format
             format = None
 
-    result = None
     tz_parsed = None
+    result = None
 
     if format is not None:
         try:
@@ -293,8 +293,9 @@ def _convert_listlike_datetimes(arg, box, format, name=None, tz=None,
         else:
             # Convert the datetime64 numpy array to an numpy array
             # of datetime objects
-            result = DatetimeIndex(result, tz=tz_parsed).to_pydatetime()
-            return result
+            result = [Timestamp(ts, tz=tz_parsed).to_pydatetime()
+                      for ts in result]
+            return np.array(result, dtype=object)
 
     if box:
         # Ensure we return an Index in all cases where box=True
