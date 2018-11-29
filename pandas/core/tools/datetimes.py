@@ -231,9 +231,9 @@ def _convert_listlike_datetimes(arg, box, format, name=None, tz=None,
             require_iso8601 = not infer_datetime_format
             format = None
 
+    tz_parsed = None
+    result = None
     try:
-        result = None
-
         if format is not None:
             # shortcut formatting here
             if format == '%Y%m%d':
@@ -267,7 +267,8 @@ def _convert_listlike_datetimes(arg, box, format, name=None, tz=None,
                             raise
                         result = arg
 
-        if result is None and (format is None or infer_datetime_format):
+        if result is None:
+            assert format is None or infer_datetime_format
             result, tz_parsed = tslib.array_to_datetime(
                 arg,
                 errors=errors,
@@ -276,35 +277,36 @@ def _convert_listlike_datetimes(arg, box, format, name=None, tz=None,
                 yearfirst=yearfirst,
                 require_iso8601=require_iso8601
             )
-            if tz_parsed is not None:
-                if box:
-                    # We can take a shortcut since the datetime64 numpy array
-                    # is in UTC
-                    return DatetimeIndex._simple_new(result, name=name,
-                                                     tz=tz_parsed)
-                else:
-                    # Convert the datetime64 numpy array to an numpy array
-                    # of datetime objects
-                    result = [Timestamp(ts, tz=tz_parsed).to_pydatetime()
-                              for ts in result]
-                    return np.array(result, dtype=object)
-
-        if box:
-            # Ensure we return an Index in all cases where box=True
-            if is_datetime64_dtype(result):
-                return DatetimeIndex(result, tz=tz, name=name)
-            elif is_object_dtype(result):
-                # e.g. an Index of datetime objects
-                from pandas import Index
-                return Index(result, name=name)
-        return result
-
     except ValueError as e:
+        # Fallback to try to convert datetime objects
         try:
             values, tz = conversion.datetime_to_datetime64(arg)
             return DatetimeIndex._simple_new(values, name=name, tz=tz)
         except (ValueError, TypeError):
             raise e
+
+    if tz_parsed is not None:
+        if box:
+            # We can take a shortcut since the datetime64 numpy array
+            # is in UTC
+            return DatetimeIndex._simple_new(result, name=name,
+                                             tz=tz_parsed)
+        else:
+            # Convert the datetime64 numpy array to an numpy array
+            # of datetime objects
+            result = [Timestamp(ts, tz=tz_parsed).to_pydatetime()
+                      for ts in result]
+            return np.array(result, dtype=object)
+
+    if box:
+        # Ensure we return an Index in all cases where box=True
+        if is_datetime64_dtype(result):
+            return DatetimeIndex(result, tz=tz, name=name)
+        elif is_object_dtype(result):
+            # e.g. an Index of datetime objects
+            from pandas import Index
+            return Index(result, name=name)
+    return result
 
 
 def _adjust_to_origin(arg, origin, unit):

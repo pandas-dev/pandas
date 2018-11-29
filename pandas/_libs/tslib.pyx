@@ -463,8 +463,7 @@ def array_with_unit_to_datetime(ndarray values, object unit,
 @cython.boundscheck(False)
 cpdef array_to_datetime(ndarray[object] values, str errors='raise',
                         bint dayfirst=False, bint yearfirst=False,
-                        object format=None, object utc=None,
-                        bint require_iso8601=False):
+                        object utc=None, bint require_iso8601=False):
     """
     Converts a 1D array of date-like values to a numpy array of either:
         1) datetime64[ns] data
@@ -488,8 +487,6 @@ cpdef array_to_datetime(ndarray[object] values, str errors='raise',
          dayfirst parsing behavior when encountering datetime strings
     yearfirst : bool, default False
          yearfirst parsing behavior when encountering datetime strings
-    format : str, default None
-         format of the string to parse
     utc : bool, default None
          indicator whether the dates should be UTC
     require_iso8601 : bool, default False
