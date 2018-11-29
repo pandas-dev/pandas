@@ -1,5 +1,4 @@
 import decimal
-import re
 
 import numpy as np
 import pytest
@@ -15,25 +14,37 @@ import pandas.util.testing as tm
 
 
 @pytest.mark.parametrize("data, dtype, expected", [
+    # Basic NumPy defaults.
     ([1, 2], None, np.array([1, 2])),
     ([1, 2], object, np.array([1, 2], dtype=object)),
     ([1, 2], np.dtype('float32'),
      np.array([1., 2.0], dtype=np.dtype('float32'))),
     (np.array([1, 2]), None, np.array([1, 2])),
+    # String alias passes through to NumPy
+    ([1, 2], 'float32', np.array([1, 2], dtype='float32')),
+    # Period alias
     ([pd.Period('2000', 'D'), pd.Period('2001', 'D')], 'Period[D]',
      period_array(['2000', '2001'], freq='D')),
+    # Period dtype
     ([pd.Period('2000', 'D')], pd.PeriodDtype('D'),
      period_array(['2000'], freq='D')),
+    # Datetime (naive)
     ([1, 2], np.dtype('datetime64[ns]'),
      np.array([1, 2], dtype='datetime64[ns]')),
+    # TODO(DatetimeArray): add here
+    # Category
     (['a', 'b'], 'category', pd.Categorical(['a', 'b'])),
     (['a', 'b'], pd.CategoricalDtype(None, ordered=True),
      pd.Categorical(['a', 'b'], ordered=True)),
+    # Interval
     ([pd.Interval(1, 2), pd.Interval(3, 4)], 'interval',
      pd.IntervalArray.from_tuples([(1, 2), (3, 4)])),
+    # Sparse
     ([0, 1], 'Sparse[int64]', pd.SparseArray([0, 1], dtype='int64')),
+    # IntegerNA
     ([1, None], 'Int16', integer_array([1, None], dtype='Int16')),
     (pd.Series([1, 2]), None, np.array([1, 2], dtype=np.int64)),
+    # Index
     (pd.Index([1, 2]), None, np.array([1, 2], dtype=np.int64)),
     # Series[EA] returns the EA
     (pd.Series(pd.Categorical(['a', 'b'], categories=['a', 'b', 'c'])),
@@ -48,7 +59,6 @@ import pandas.util.testing as tm
     (period_array(['2000', '2001'], freq='D'),
      'category',
      pd.Categorical([pd.Period('2000', 'D'), pd.Period('2001', 'D')])),
-
 ])
 def test_array(data, dtype, expected):
     result = pd.array(data, dtype=dtype)
@@ -92,14 +102,6 @@ def test_array_inference_fails(data):
     expected = np.array(data, dtype=object)
     tm.assert_numpy_array_equal(result, expected)
 
-
-def test_numpy_string_alias_raises():
-    match = re.compile(
-        r"Ambiguous dtype 'int32'.*dtype=numpy.dtype.\"int32\".",
-        flags=re.DOTALL,
-    )
-    with pytest.raises(ValueError, match=match):
-        pd.array([1, 2], dtype='int32')
 
 # ---------------------------------------------------------------------------
 # A couple dummy classes to ensure that Series and Indexes are unboxed before
