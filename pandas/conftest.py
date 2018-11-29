@@ -386,16 +386,17 @@ FLOAT_DTYPES = [float, "float32", "float64"]
 COMPLEX_DTYPES = [complex, "complex64", "complex128"]
 STRING_DTYPES = [str, 'str', 'U']
 
-DATETIMEDELTA_DTYPES = ['datetime64[ns]', 'M8[ns]',
-                        'timedelta64[ns]', 'm8[ns]']
+DATETIME_DTYPES = ['datetime64[ns]', 'M8[ns]']
+TIMEDELTA_DTYPES = ['timedelta64[ns]', 'm8[ns]']
+
 BOOL_DTYPES = [bool, 'bool']
 BYTES_DTYPES = [bytes, 'bytes']
 OBJECT_DTYPES = [object, 'object']
 
 ALL_REAL_DTYPES = FLOAT_DTYPES + ALL_INT_DTYPES
 ALL_NUMPY_DTYPES = (ALL_REAL_DTYPES + COMPLEX_DTYPES + STRING_DTYPES
-                    + DATETIMEDELTA_DTYPES + BOOL_DTYPES + OBJECT_DTYPES
-                    + BYTES_DTYPES * PY3)  # only add bytes for PY3
+                    + DATETIME_DTYPES + TIMEDELTA_DTYPES + BOOL_DTYPES
+                    + OBJECT_DTYPES + BYTES_DTYPES * PY3)  # bytes only for PY3
 
 
 @pytest.fixture(params=STRING_DTYPES)
