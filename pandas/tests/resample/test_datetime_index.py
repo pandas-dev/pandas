@@ -37,8 +37,8 @@ class TestDatetimeIndex(Base):
         return 'dti'
 
     def setup_method(self, method):
-        dti = DatetimeIndex(start=datetime(2005, 1, 1),
-                            end=datetime(2005, 1, 10), freq='Min')
+        dti = date_range(start=datetime(2005, 1, 1),
+                         end=datetime(2005, 1, 10), freq='Min')
 
         self.series = Series(np.random.rand(len(dti)), dti)
 
@@ -50,8 +50,8 @@ class TestDatetimeIndex(Base):
 
     def test_custom_grouper(self):
 
-        dti = DatetimeIndex(freq='Min', start=datetime(2005, 1, 1),
-                            end=datetime(2005, 1, 10))
+        dti = date_range(freq='Min', start=datetime(2005, 1, 1),
+                         end=datetime(2005, 1, 10))
 
         s = Series(np.array([1] * len(dti)), index=dti, dtype='int64')
 
@@ -189,9 +189,9 @@ class TestDatetimeIndex(Base):
                 getattr(r, func)(axis=1)
 
     def test_resample_how_callables(self):
-        # GH 7929
+        # GH#7929
         data = np.arange(5, dtype=np.int64)
-        ind = pd.DatetimeIndex(start='2014-01-01', periods=len(data), freq='d')
+        ind = date_range(start='2014-01-01', periods=len(data), freq='d')
         df = DataFrame({"A": data, "B": data}, index=ind)
 
         def fn(x, a=1):
@@ -308,8 +308,8 @@ class TestDatetimeIndex(Base):
 
     def test_resample_basic_from_daily(self):
         # from daily
-        dti = DatetimeIndex(start=datetime(2005, 1, 1),
-                            end=datetime(2005, 1, 10), freq='D', name='index')
+        dti = date_range(start=datetime(2005, 1, 1),
+                         end=datetime(2005, 1, 10), freq='D', name='index')
 
         s = Series(np.random.rand(len(dti)), dti)
 
@@ -426,8 +426,8 @@ class TestDatetimeIndex(Base):
         assert result.index.freq == Minute(5)
 
         # from daily
-        dti = DatetimeIndex(start=datetime(2005, 1, 1),
-                            end=datetime(2005, 1, 10), freq='D')
+        dti = date_range(start=datetime(2005, 1, 1),
+                         end=datetime(2005, 1, 10), freq='D')
         ser = Series(np.random.rand(len(dti)), dti)
 
         # to weekly
@@ -472,8 +472,8 @@ class TestDatetimeIndex(Base):
 
     def test_resample_upsample(self):
         # from daily
-        dti = DatetimeIndex(start=datetime(2005, 1, 1),
-                            end=datetime(2005, 1, 10), freq='D', name='index')
+        dti = date_range(start=datetime(2005, 1, 1),
+                         end=datetime(2005, 1, 10), freq='D', name='index')
 
         s = Series(np.random.rand(len(dti)), dti)
 
@@ -501,11 +501,11 @@ class TestDatetimeIndex(Base):
         assert_series_equal(s.resample("10S").mean(), expected)
 
     def test_resample_extra_index_point(self):
-        # GH 9756
-        index = DatetimeIndex(start='20150101', end='20150331', freq='BM')
+        # GH#9756
+        index = date_range(start='20150101', end='20150331', freq='BM')
         expected = DataFrame({'A': Series([21, 41, 63], index=index)})
 
-        index = DatetimeIndex(start='20150101', end='20150331', freq='B')
+        index = date_range(start='20150101', end='20150331', freq='B')
         df = DataFrame(
             {'A': Series(range(len(index)), index=index)}, dtype='int64')
         result = df.resample('BM').last()
@@ -619,8 +619,8 @@ class TestDatetimeIndex(Base):
         assert_frame_equal(result, expected)
 
     def test_resample_reresample(self):
-        dti = DatetimeIndex(start=datetime(2005, 1, 1),
-                            end=datetime(2005, 1, 10), freq='D')
+        dti = date_range(start=datetime(2005, 1, 1),
+                         end=datetime(2005, 1, 10), freq='D')
         s = Series(np.random.rand(len(dti)), dti)
         bs = s.resample('B', closed='right', label='right').mean()
         result = bs.resample('8H').mean()

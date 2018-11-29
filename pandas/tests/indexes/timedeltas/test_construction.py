@@ -6,9 +6,20 @@ import pytest
 import pandas as pd
 import pandas.util.testing as tm
 from pandas import TimedeltaIndex, timedelta_range, to_timedelta, Timedelta
+from pandas.core.arrays import TimedeltaArrayMixin as TimedeltaArray
 
 
 class TestTimedeltaIndex(object):
+
+    def test_verify_integrity_deprecated(self):
+        # GH#23919
+        with tm.assert_produces_warning(FutureWarning):
+            TimedeltaIndex(['1 Day'], verify_integrity=False)
+
+    def test_range_kwargs_deprecated(self):
+        # GH#23919
+        with tm.assert_produces_warning(FutureWarning):
+            TimedeltaIndex(start='1 Day', end='3 Days', freq='D')
 
     def test_int64_nocopy(self):
         # GH#23539 check that a copy isn't made when we pass int64 data
@@ -40,6 +51,10 @@ class TestTimedeltaIndex(object):
                "not conform to passed frequency")
         with pytest.raises(ValueError, match=msg):
             TimedeltaIndex(tdi, freq='D')
+
+        with pytest.raises(ValueError, match=msg):
+            # GH#23789
+            TimedeltaArray(tdi, freq='D')
 
     def test_dt64_data_invalid(self):
         # GH#23539
@@ -128,10 +143,11 @@ class TestTimedeltaIndex(object):
 
         msg = 'periods must be a number, got foo'
         with pytest.raises(TypeError, match=msg):
-            TimedeltaIndex(start='1 days', periods='foo', freq='D')
+            timedelta_range(start='1 days', periods='foo', freq='D')
 
-        pytest.raises(ValueError, TimedeltaIndex, start='1 days',
-                      end='10 days')
+        with pytest.raises(ValueError):
+            with tm.assert_produces_warning(FutureWarning):
+                TimedeltaIndex(start='1 days', end='10 days')
 
         with pytest.raises(TypeError):
             TimedeltaIndex('1 days')
@@ -155,10 +171,10 @@ class TestTimedeltaIndex(object):
         pytest.raises(ValueError, TimedeltaIndex,
                       ['1 days', '2 days', '4 days'], freq='D')
 
-        pytest.raises(ValueError, TimedeltaIndex, periods=10, freq='D')
+        pytest.raises(ValueError, timedelta_range, periods=10, freq='D')
 
     def test_constructor_name(self):
-        idx = TimedeltaIndex(start='1 days', periods=1, freq='D', name='TEST')
+        idx = timedelta_range(start='1 days', periods=1, freq='D', name='TEST')
         assert idx.name == 'TEST'
 
         # GH10025
