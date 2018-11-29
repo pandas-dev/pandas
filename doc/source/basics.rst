@@ -46,8 +46,8 @@ of elements to display is five, but you may pass a custom number.
 
 .. _basics.attrs:
 
-Attributes and the raw ndarray(s)
----------------------------------
+Attributes and Underlying Data
+------------------------------
 
 pandas objects have a number of attributes enabling you to access the metadata
 
@@ -65,14 +65,43 @@ Note, **these attributes can be safely assigned to**!
    df.columns = [x.lower() for x in df.columns]
    df
 
-To get the actual data inside a data structure, one need only access the
-**values** property:
+Pandas objects (:class:`Index`, :class:`Series`, :class:`DataFrame`) can be
+thought of as containers for arrays, which hold the actual data and do the
+actual computation. For many types, the underlying array is a
+:class:`numpy.ndarray`. However, pandas and 3rd party libraries may *extend*
+NumPy's type system to add support for custom arrays
+(see :ref:`basics.dtypes`).
+
+To get the actual data inside a :class:`Index` or :class:`Series`, use
+the **array** property
 
 .. ipython:: python
 
-    s.values
-    df.values
-    wp.values
+   s.array
+   s.index.array
+
+Depending on the data type (see :ref:`basics.dtypes`), :attr:`~Series.array`
+be either a NumPy array or an :ref:`ExtensionArray <extending.extension-type>`.
+If you know you need a NumPy array, use :meth:`~Series.to_numpy`
+or :meth:`numpy.asarray`.
+
+.. ipython:: python
+
+   s.to_numpy()
+   np.asarray(s)
+
+For Series and Indexes backed by NumPy arrays (like we have here), this will
+be the same as :attr:`~Series.array`. When the Series or Index is backed by
+a :class:`~pandas.api.extension.ExtensionArray`, :meth:`~Series.to_numpy`
+may involve copying data and coercing values.
+
+Getting the "raw data" inside a :class:`DataFrame` is possibly a bit more
+complex. When your ``DataFrame`` only has a single data type for all the
+columns, :atr:`DataFrame.to_numpy` will return the underlying data:
+
+.. ipython:: python
+
+   df.to_numpy()
 
 If a DataFrame or Panel contains homogeneously-typed data, the ndarray can
 actually be modified in-place, and the changes will be reflected in the data
@@ -86,6 +115,21 @@ unlike the axis labels, cannot be assigned to.
     will be chosen to accommodate all of the data involved. For example, if
     strings are involved, the result will be of object dtype. If there are only
     floats and integers, the resulting array will be of float dtype.
+
+In the past, pandas recommended :attr:`Series.values` or :attr:`DataFrame.values`
+for extracting the data from a Series or DataFrame. You'll still find references
+to these in old code bases and online. Going forward, we recommend avoiding
+``.values`` and using ``.array`` or ``.to_numpy()``. ``.values`` has the following
+drawbacks:
+
+1. When your Series contains an :ref:`extension type <extending.extension-type>`, it's
+   unclear whether :attr:`Series.values` returns a NumPy array or the extension array.
+   :attr:`Series.array` will always return the actual array backing the Series,
+   while :meth:`Series.to_numpy` will always return a NumPy array.
+2. When your DataFrame contains a mixture of data types, :attr:`DataFrame.values` may
+   involve copying data and coercing values to a common dtype, a relatively expensive
+   operation. :meth:`DataFrame.to_numpy`, being a method, makes it clearer that the
+   returned NumPy array may not be a view on the same data in the DataFrame.
 
 .. _basics.accelerate:
 
@@ -541,7 +585,7 @@ will exclude NAs on Series input by default:
 .. ipython:: python
 
    np.mean(df['one'])
-   np.mean(df['one'].values)
+   np.mean(df['one'].to_numpy())
 
 :meth:`Series.nunique` will return the number of unique non-NA values in a
 Series:
@@ -839,7 +883,7 @@ Series operation on each column or row:
 
    tsdf = pd.DataFrame(np.random.randn(10, 3), columns=['A', 'B', 'C'],
                        index=pd.date_range('1/1/2000', periods=10))
-   tsdf.values[3:7] = np.nan
+   tsdf.iloc[3:7] = np.nan
 
 .. ipython:: python
 
@@ -1875,17 +1919,29 @@ dtypes
 ------
 
 For the most part, pandas uses NumPy arrays and dtypes for Series or individual
-columns of a DataFrame. The main types allowed in pandas objects are ``float``,
-``int``, ``bool``, and ``datetime64[ns]`` (note that NumPy does not support
-timezone-aware datetimes).
+columns of a DataFrame. NumPy provides support for ``float``,
+``int``, ``bool``, ``timedelta64[ns]`` and ``datetime64[ns]`` (note that NumPy
+does not support timezone-aware datetimes).
 
-In addition to NumPy's types, pandas :ref:`extends <extending.extension-types>`
-NumPy's type-system for a few cases.
+Pandas and third-party libraries *extend* NumPy's type system in a few places.
+This section describes the extensions pandas has made internally.
+See :ref:`extending.extension-types` for how to write your own extension that
+works with pandas. See :ref:`ecosystem.extensions` for a list of third-party
+libraries that have implemented an extension.
 
-* :ref:`Categorical <categorical>`
-* :ref:`Datetime with Timezone <timeseries.timezone_series>`
-* :ref:`Period <timeseries.periods>`
-* :ref:`Interval <indexing.intervallindex>`
+The following table lists all of pandas extension types. See the respective
+documentation sections for more on each type.
+
+=================== ========================= ================== ============================= =============================
+Kind of Data        Data Type                 Scalar             Array                         Documentation
+=================== ========================= ================== ============================= =============================
+tz-aware datetime   :class:`DatetimeArray`    :class:`Timestamp` :class:`arrays.DatetimeArray` :ref:`timeseries.timezone`
+Categorical         :class:`CategoricalDtype` (none)             :class:`Categorical`          :ref:`categorical`
+period (time spans) :class:`PeriodDtype`      :class:`Period`    :class:`arrays.PeriodArray`   :ref:`timeseries.periods`
+sparse              :class:`SparseDtype`      (none)             :class:`arrays.SparseArray`   :ref:`sparse`
+intervals           :class:`IntervalDtype`    :class:`Interval`  :class:`arrays.IntervalArray` :ref:`advanced.intervalindex`
+nullable integer    :clsas:`Int64Dtype`, ...  (none)             :class:`arrays.IntegerArray`  :ref:`integer_na`
+=================== ========================= ================== ============================= =============================
 
 Pandas uses the ``object`` dtype for storing strings.
 
@@ -1983,13 +2039,13 @@ from the current type (e.g. ``int`` to ``float``).
    df3
    df3.dtypes
 
-The ``values`` attribute on a DataFrame return the *lower-common-denominator* of the dtypes, meaning
+:meth:`DataFrame.to_numpy` will return the *lower-common-denominator* of the dtypes, meaning
 the dtype that can accommodate **ALL** of the types in the resulting homogeneous dtyped NumPy array. This can
 force some *upcasting*.
 
 .. ipython:: python
 
-   df3.values.dtype
+   df3.to_numpy().dtype
 
 astype
 ~~~~~~
@@ -2211,11 +2267,11 @@ dtypes:
                       'float64': np.arange(4.0, 7.0),
                       'bool1': [True, False, True],
                       'bool2': [False, True, False],
-                      'dates': pd.date_range('now', periods=3).values,
+                      'dates': pd.date_range('now', periods=3),
                       'category': pd.Series(list("ABC")).astype('category')})
    df['tdeltas'] = df.dates.diff()
    df['uint64'] = np.arange(3, 6).astype('u8')
-   df['other_dates'] = pd.date_range('20130101', periods=3).values
+   df['other_dates'] = pd.date_range('20130101', periods=3)
    df['tz_aware_dates'] = pd.date_range('20130101', periods=3, tz='US/Eastern')
    df
 

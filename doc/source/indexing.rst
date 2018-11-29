@@ -190,7 +190,7 @@ columns.
 
    .. ipython:: python
 
-      df.loc[:,['B', 'A']] = df[['A', 'B']].values
+      df.loc[:,['B', 'A']] = df[['A', 'B']].to_numpy()
       df[['A', 'B']]
 
 

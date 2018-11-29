@@ -27,12 +27,12 @@ Reshaping by pivoting DataFrame objects
    tm.N = 3
 
    def unpivot(frame):
-           N, K = frame.shape
-           data = {'value': frame.values.ravel('F'),
-                   'variable': np.asarray(frame.columns).repeat(N),
-                   'date': np.tile(np.asarray(frame.index), K)}
-           columns = ['date', 'variable', 'value']
-           return pd.DataFrame(data, columns=columns)
+      N, K = frame.shape
+      data = {'value': frame.to_numpy().ravel('F'),
+              'variable': np.asarray(frame.columns).repeat(N),
+              'date': np.tile(np.asarray(frame.index), K)}
+      columns = ['date', 'variable', 'value']
+      return pd.DataFrame(data, columns=columns)
 
    df = unpivot(tm.makeTimeDataFrame())
 
@@ -54,7 +54,7 @@ For the curious here is how the above ``DataFrame`` was created:
 
    def unpivot(frame):
        N, K = frame.shape
-       data = {'value': frame.values.ravel('F'),
+       data = {'value': frame.to_numpy().ravel('F'),
                'variable': np.asarray(frame.columns).repeat(N),
                'date': np.tile(np.asarray(frame.index), K)}
        return pd.DataFrame(data, columns=['date', 'variable', 'value'])

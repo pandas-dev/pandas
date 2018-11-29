@@ -15,8 +15,8 @@ from pandas.util._decorators import Appender, Substitution, cache_readonly
 from pandas.util._validators import validate_bool_kwarg
 
 from pandas.core.dtypes.common import (
-    is_datetimelike, is_extension_array_dtype, is_extension_type, is_list_like,
-    is_object_dtype, is_scalar)
+    is_datetime64tz_dtype, is_datetimelike, is_extension_array_dtype,
+    is_extension_type, is_list_like, is_object_dtype, is_scalar)
 from pandas.core.dtypes.generic import ABCDataFrame, ABCIndexClass, ABCSeries
 from pandas.core.dtypes.missing import isna
 
@@ -776,6 +776,125 @@ class IndexOpsMixin(object):
                       "in a future version".format(obj=type(self).__name__),
                       FutureWarning, stacklevel=2)
         return self.values.base
+
+    @property
+    def array(self):
+        # type: () -> Union[np.ndarray, ExtensionArray]
+        """
+        The actual Array backing this Series or Index.
+
+        .. versionadded:: 0.24.0
+
+        Returns
+        -------
+        array : numpy.ndarray or ExtensionArray
+            This is the actual array stored within this object. This differs
+            from ``.values`` which may require converting the data
+            to a different form.
+
+        See Also
+        --------
+        Index.to_numpy : Similar method that always returns a NumPy array.
+        Series.to_numpy : Similar method that always returns a NumPy array.
+
+        Notes
+        -----
+        This table lays out the different array types for each extension
+        dtype within pandas.
+
+        ================== =============================
+        dtype              array type
+        ================== =============================
+        category           Categorical
+        period             PeriodArray
+        interval           IntervalArray
+        IntegerNA          IntegerArray
+        datetime64[ns, tz] DatetimeArray
+        ================== =============================
+
+        For any 3rd-party extension types, the array type will be an
+        ExtensionArray.
+
+        For all remaining dtypes ``.array`` will be the :class:`numpy.ndarray`
+        stored within. If you absolutely need a NumPy array (possibly with
+        copying / coercing data), then use :meth:`Series.to_numpy` instead.
+
+        .. note::
+
+           ``.array`` will always return the underlying object backing the
+           Series or Index. If a future version of pandas adds a specialized
+           extension type for a data type, then the return type of ``.array``
+           for that data type will change from an object-dtype ndarray to the
+           new ExtensionArray.
+
+        Examples
+        --------
+        >>> ser = pd.Series(pd.Categorical(['a', 'b', 'a']))
+        >>> ser.array
+        [a, b, a]
+        Categories (2, object): [a, b]
+        """
+        return self._values
+
+    def to_numpy(self):
+        """
+        A NumPy ndarray representing the values in this Series or Index.
+
+        .. versionadded:: 0.24.0
+
+        The returned array will be the same up to equality (values equal
+        in `self` will be equal in the returned array; likewise for values
+        that are not equal). When `self` contains an ExtensionArray, the
+        dtype may be different. For example, for a category-dtype Series,
+        ``to_numpy()`` will return a NumPy array and the categorical dtype
+        will be lost.
+
+        Returns
+        -------
+        numpy.ndarray
+
+        See Also
+        --------
+        Series.array : Get the actual data stored within.
+        Index.array : Get the actual data stored within.
+        DataFrame.to_numpy : Similar method for DataFrame.
+
+        Notes
+        -----
+        For NumPy dtypes, this will be a reference to the actual data stored
+        in this Series or Index. Modifying the result in place will modify
+        the data stored in the Series or Index (not that we recommend doing
+        that).
+
+        For extension types, ``to_numpy()`` *may* require copying data and
+        coercing the result to a NumPy type (possibly object), which may be
+        expensive. When you need a no-copy reference to the underlying data,
+        :attr:`Series.array` should be used instead.
+
+        This table lays out the different dtypes and return types of
+        ``to_numpy()`` for various dtypes within pandas.
+
+        ================== ================================
+        dtype              array type
+        ================== ================================
+        category[T]        ndarray[T] (same dtype as input)
+        period             ndarray[object] (Periods)
+        interval           ndarray[object] (Intervals)
+        IntegerNA          ndarray[object]
+        datetime64[ns, tz] ndarray[object] (Timestamps)
+        ================== ================================
+
+        Examples
+        --------
+        >>> ser = pd.Series(pd.Categorical(['a', 'b', 'a']))
+        >>> ser.to_numpy()
+        array(['a', 'b', 'a'], dtype=object)
+        """
+        if (is_extension_array_dtype(self.dtype) or
+                is_datetime64tz_dtype(self.dtype)):
+            # TODO(DatetimeArray): remove the second clause.
+            return np.asarray(self._values)
+        return self._values
 
     @property
     def _ndarray_values(self):

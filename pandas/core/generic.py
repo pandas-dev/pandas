@@ -5164,6 +5164,10 @@ class NDFrame(PandasObject, SelectionMixin):
         """
         Return a Numpy representation of the DataFrame.
 
+        .. warning::
+
+           We recommend using :meth:`DataFrame.to_numpy` instead.
+
         Only the values in the DataFrame will be returned, the axes labels
         will be removed.
 
@@ -5225,6 +5229,7 @@ class NDFrame(PandasObject, SelectionMixin):
 
         See Also
         --------
+        DataFrame.to_numpy : Recommended alternative to this method.
         pandas.DataFrame.index : Retrieve the index labels.
         pandas.DataFrame.columns : Retrieving the column names.
         """

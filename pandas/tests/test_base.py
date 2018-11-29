@@ -1268,3 +1268,54 @@ def test_ndarray_values(array, expected):
     r_values = pd.Index(array)._ndarray_values
     tm.assert_numpy_array_equal(l_values, r_values)
     tm.assert_numpy_array_equal(l_values, expected)
+
+
+@pytest.mark.parametrize("array, attr", [
+    (np.array([1, 2], dtype=np.int64), None),
+    (pd.Categorical(['a', 'b']), '_codes'),
+    (pd.core.arrays.period_array(['2000', '2001'], freq='D'), '_data'),
+    (pd.core.arrays.integer_array([0, np.nan]), '_data'),
+    (pd.core.arrays.IntervalArray.from_breaks([0, 1]), '_left'),
+    (pd.SparseArray([0, 1]), '_sparse_values'),
+    # TODO: DatetimeArray(add)
+])
+@pytest.mark.parametrize('box', [pd.Series, pd.Index])
+def test_array(array, attr, box):
+    if array.dtype.name in ('Int64', 'Sparse[int64, 0]') and box is pd.Index:
+        pytest.skip("No index type for {}".format(array.dtype))
+    result = box(array, copy=False).array
+
+    if attr:
+        array = getattr(array, attr)
+        result = getattr(result, attr)
+
+    assert result is array
+
+
+def test_array_multiindex_raises():
+    idx = pd.MultiIndex.from_product([['A'], ['a', 'b']])
+    with pytest.raises(ValueError, match='MultiIndex'):
+        idx.array
+
+
+@pytest.mark.parametrize('array, expected', [
+    (np.array([1, 2], dtype=np.int64), np.array([1, 2], dtype=np.int64)),
+    (pd.Categorical(['a', 'b']), np.array(['a', 'b'], dtype=object)),
+    (pd.core.arrays.period_array(['2000', '2001'], freq='D'),
+     np.array([pd.Period('2000', freq="D"), pd.Period('2001', freq='D')])),
+    (pd.core.arrays.integer_array([0, np.nan]),
+     np.array([0, np.nan], dtype=object)),
+    (pd.core.arrays.IntervalArray.from_breaks([0, 1, 2]),
+     np.array([pd.Interval(0, 1), pd.Interval(1, 2)], dtype=object)),
+    (pd.SparseArray([0, 1]), np.array([0, 1], dtype=np.int64)),
+    # TODO: DatetimeArray(add)
+])
+@pytest.mark.parametrize('box', [pd.Series, pd.Index])
+def test_to_numpy(array, expected, box):
+    thing = box(array)
+
+    if array.dtype.name in ('Int64', 'Sparse[int64, 0]') and box is pd.Index:
+        pytest.skip("No index type for {}".format(array.dtype))
+
+    result = thing.to_numpy()
+    tm.assert_numpy_array_equal(result, expected)
