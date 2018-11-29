@@ -17,8 +17,7 @@ from pandas.core.dtypes.missing import isna
 
 from pandas.core.arrays import datetimelike as dtl
 from pandas.core.arrays.timedeltas import (
-    TimedeltaArrayMixin as TimedeltaArray, _is_convertible_to_td, _to_m8,
-    sequence_to_td64ns)
+    TimedeltaArrayMixin as TimedeltaArray, _is_convertible_to_td, _to_m8)
 from pandas.core.base import _shared_docs
 import pandas.core.common as com
 from pandas.core.indexes.base import Index, _index_shared_docs
@@ -132,7 +131,7 @@ class TimedeltaIndex(TimedeltaArray, DatetimeIndexOpsMixin,
     # Constructors
 
     def __new__(cls, data=None, unit=None, freq=None, start=None, end=None,
-                periods=None, closed=None, dtype=None, copy=False,
+                periods=None, closed=None, dtype=_TD_DTYPE, copy=False,
                 name=None, verify_integrity=None):
 
         if verify_integrity is not None:
@@ -142,9 +141,8 @@ class TimedeltaIndex(TimedeltaArray, DatetimeIndexOpsMixin,
         else:
             verify_integrity = True
 
-        freq, freq_infer = dtl.maybe_infer_freq(freq)
-
         if data is None:
+            freq, freq_infer = dtl.maybe_infer_freq(freq)
             warnings.warn("Creating a TimedeltaIndex by passing range "
                           "endpoints is deprecated.  Use "
                           "`pandas.timedelta_range` instead.",
@@ -167,29 +165,10 @@ class TimedeltaIndex(TimedeltaArray, DatetimeIndexOpsMixin,
 
         # - Cases checked above all return/raise before reaching here - #
 
-        data, inferred_freq = sequence_to_td64ns(data, copy=copy, unit=unit)
-        if inferred_freq is not None:
-            if freq is not None and freq != inferred_freq:
-                raise ValueError('Inferred frequency {inferred} from passed '
-                                 'values does not conform to passed frequency '
-                                 '{passed}'
-                                 .format(inferred=inferred_freq,
-                                         passed=freq.freqstr))
-            elif freq_infer:
-                freq = inferred_freq
-                freq_infer = False
-            verify_integrity = False
-
-        subarr = cls._simple_new(data, name=name, freq=freq)
-        # check that we are matching freqs
-        if verify_integrity and len(subarr) > 0:
-            if freq is not None and not freq_infer:
-                cls._validate_frequency(subarr, freq)
-
-        if freq_infer:
-            subarr.freq = to_offset(subarr.inferred_freq)
-
-        return subarr
+        result = cls._from_sequence(data, freq=freq, unit=unit,
+                                    dtype=dtype, copy=copy)
+        result.name = name
+        return result
 
     @classmethod
     def _simple_new(cls, values, name=None, freq=None, dtype=_TD_DTYPE):
