@@ -655,6 +655,23 @@ class TestIntervalIndex(Base):
         tm.assert_index_equal(result, expected)
 
     @pytest.mark.parametrize('breaks', [
+        date_range('2018-01-01', periods=5),
+        timedelta_range('0 days', periods=5)])
+    def test_maybe_convert_i8_nat(self, breaks):
+        # GH 20636
+        index = IntervalIndex.from_breaks(breaks)
+
+        to_convert = breaks._constructor([pd.NaT] * 3)
+        expected = pd.Float64Index([np.nan] * 3)
+        result = index._maybe_convert_i8(to_convert)
+        tm.assert_index_equal(result, expected)
+
+        to_convert = to_convert.insert(0, breaks[0])
+        expected = expected.insert(0, float(breaks[0].value))
+        result = index._maybe_convert_i8(to_convert)
+        tm.assert_index_equal(result, expected)
+
+    @pytest.mark.parametrize('breaks', [
         np.arange(5, dtype='int64'),
         np.arange(5, dtype='float64')], ids=lambda x: str(x.dtype))
     @pytest.mark.parametrize('make_key', [
@@ -1081,6 +1098,50 @@ class TestIntervalIndex(Base):
         else:
             idx = IntervalIndex.from_breaks(range(4), closed=closed)
             assert idx.is_non_overlapping_monotonic is True
+
+    @pytest.mark.parametrize('start, shift, na_value', [
+        (0, 1, np.nan),
+        (Timestamp('2018-01-01'), Timedelta('1 day'), pd.NaT),
+        (Timedelta('0 days'), Timedelta('1 day'), pd.NaT)])
+    def test_is_overlapping(self, start, shift, na_value, closed):
+        # GH 23309
+        # see test_interval_tree.py for extensive tests; interface tests here
+
+        # non-overlapping
+        tuples = [(start + n * shift, start + (n + 1) * shift)
+                  for n in (0, 2, 4)]
+        index = IntervalIndex.from_tuples(tuples, closed=closed)
+        assert index.is_overlapping is False
+
+        # non-overlapping with NA
+        tuples = [(na_value, na_value)] + tuples + [(na_value, na_value)]
+        index = IntervalIndex.from_tuples(tuples, closed=closed)
+        assert index.is_overlapping is False
+
+        # overlapping
+        tuples = [(start + n * shift, start + (n + 2) * shift)
+                  for n in range(3)]
+        index = IntervalIndex.from_tuples(tuples, closed=closed)
+        assert index.is_overlapping is True
+
+        # overlapping with NA
+        tuples = [(na_value, na_value)] + tuples + [(na_value, na_value)]
+        index = IntervalIndex.from_tuples(tuples, closed=closed)
+        assert index.is_overlapping is True
+
+        # common endpoints
+        tuples = [(start + n * shift, start + (n + 1) * shift)
+                  for n in range(3)]
+        index = IntervalIndex.from_tuples(tuples, closed=closed)
+        result = index.is_overlapping
+        expected = closed == 'both'
+        assert result is expected
+
+        # common endpoints with NA
+        tuples = [(na_value, na_value)] + tuples + [(na_value, na_value)]
+        index = IntervalIndex.from_tuples(tuples, closed=closed)
+        result = index.is_overlapping
+        assert result is expected
 
     @pytest.mark.parametrize('tuples', [
         lzip(range(10), range(1, 11)),
