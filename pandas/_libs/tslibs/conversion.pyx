@@ -65,6 +65,9 @@ cdef inline int64_t get_datetime64_nanos(object val) except? -1:
     unit = get_datetime64_unit(val)
     ival = get_datetime64_value(val)
 
+    if ival == NPY_NAT:
+        return ival
+
     if unit != NPY_FR_ns:
         pandas_datetime_to_datetimestruct(ival, unit, &dts)
         check_dts_bounds(&dts)

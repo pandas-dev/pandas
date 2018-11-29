@@ -32,7 +32,9 @@ from tslibs.np_datetime import OutOfBoundsDatetime
 from tslibs.parsing import parse_datetime_string
 
 from tslibs.timedeltas cimport cast_from_unit
-from tslibs.timezones cimport is_utc, is_tzlocal, get_dst_info
+from tslibs.timezones cimport (
+    is_utc, is_tzlocal, get_dst_info, tz_cache_key, get_utcoffset,
+    is_fixed_offset, tz_compare, get_timezone)
 from tslibs.timezones import UTC
 from tslibs.conversion cimport (tz_convert_single, _TSObject,
                                 convert_datetime_to_tsobject,
@@ -459,12 +461,60 @@ def array_with_unit_to_datetime(ndarray values, object unit,
     return oresult
 
 
+cdef get_key(tz):
+    if tz is None:
+        return None
+    if is_fixed_offset(tz):
+        # TODO: these should all be mapped together
+        try:
+            # pytz
+            return str(tz._minutes)  # pytz specific?
+        except AttributeError:
+            try:
+                # dateutil.tz.tzoffset
+                return str(tz._offset.total_seconds())
+            except AttributeError:
+                return str(tz)
+    return tz_cache_key(tz)
+
+
+cdef fixed_offset_to_pytz(tz):
+    """
+    If we have a FixedOffset, ensure it is a pytz fixed offset
+    """
+    if is_fixed_offset(tz):
+        # tests expect pytz, not dateutil...
+        if tz is pytz.utc:
+            pass
+        elif hasattr(tz, '_minutes'):
+            # i.e. pytz
+            pass  # TODO: use the treat_as_pytz method?
+        elif hasattr(tz, '_offset'):
+            # i.e. dateutil  # TODO: use the treat_as_dateutil method?
+            secs = tz._offset.total_seconds()
+            assert secs % 60 == 0, secs
+            tz = pytz.FixedOffset(secs / 60)
+        else:
+            # e.g. custom FixedOffset implemented in tests
+            pass
+            # TODO: using the below breaks some tests and fixes others
+            # off = get_utcoffset(tz, Timestamp.now())
+            # secs = off.total_seconds()
+            # assert secs % 60 == 0, secs
+            # tz = pytz.FixedOffset(secs / 60)
+
+    elif is_utc(tz):
+        # if we have a dateutil UTC (or stdlib), change to pytz to make
+        #  tests happy
+        tz = pytz.utc
+    return tz
+
+
 @cython.wraparound(False)
 @cython.boundscheck(False)
 cpdef array_to_datetime(ndarray[object] values, str errors='raise',
                         bint dayfirst=False, bint yearfirst=False,
-                        object format=None, object utc=None,
-                        bint require_iso8601=False):
+                        object utc=None, bint require_iso8601=False):
     """
     Converts a 1D array of date-like values to a numpy array of either:
         1) datetime64[ns] data
@@ -488,8 +538,6 @@ cpdef array_to_datetime(ndarray[object] values, str errors='raise',
          dayfirst parsing behavior when encountering datetime strings
     yearfirst : bool, default False
          yearfirst parsing behavior when encountering datetime strings
-    format : str, default None
-         format of the string to parse
     utc : bool, default None
          indicator whether the dates should be UTC
     require_iso8601 : bool, default False
@@ -507,9 +555,7 @@ cpdef array_to_datetime(ndarray[object] values, str errors='raise',
         npy_datetimestruct dts
         bint utc_convert = bool(utc)
         bint seen_integer = 0
-        bint seen_string = 0
         bint seen_datetime = 0
-        bint seen_datetime_offset = 0
         bint is_raise = errors=='raise'
         bint is_ignore = errors=='ignore'
         bint is_coerce = errors=='coerce'
@@ -517,15 +563,14 @@ cpdef array_to_datetime(ndarray[object] values, str errors='raise',
         _TSObject _ts
         int64_t value
         int out_local=0, out_tzoffset=0
-        float offset_seconds, tz_offset
-        set out_tzoffset_vals = set()
+        dict out_tzinfos = {}
 
     # specify error conditions
     assert is_raise or is_ignore or is_coerce
 
+    result = np.empty(n, dtype='M8[ns]')
+    iresult = result.view('i8')
     try:
-        result = np.empty(n, dtype='M8[ns]')
-        iresult = result.view('i8')
         for i in range(n):
             val = values[i]
 
@@ -534,34 +579,18 @@ cpdef array_to_datetime(ndarray[object] values, str errors='raise',
 
             elif PyDateTime_Check(val):
                 seen_datetime = 1
-                if val.tzinfo is not None:
-                    if utc_convert:
-                        try:
-                            _ts = convert_datetime_to_tsobject(val, None)
-                            iresult[i] = _ts.value
-                        except OutOfBoundsDatetime:
-                            if is_coerce:
-                                iresult[i] = NPY_NAT
-                                continue
-                            raise
-                    else:
-                        raise ValueError('Tz-aware datetime.datetime cannot '
-                                         'be converted to datetime64 unless '
-                                         'utc=True')
-                else:
-                    iresult[i] = pydatetime_to_dt64(val, &dts)
-                    if not PyDateTime_CheckExact(val):
-                        # i.e. a Timestamp object
-                        iresult[i] += val.nanosecond
-                    try:
-                        check_dts_bounds(&dts)
-                    except OutOfBoundsDatetime:
-                        if is_coerce:
-                            iresult[i] = NPY_NAT
-                            continue
-                        raise
+                out_tzinfos[get_key(val.tzinfo)] = val.tzinfo
+                try:
+                    _ts = convert_datetime_to_tsobject(val, None)
+                    iresult[i] = _ts.value
+                except OutOfBoundsDatetime:
+                    if is_coerce:
+                        iresult[i] = NPY_NAT
+                        continue
+                    raise
 
             elif PyDate_Check(val):
+                # Treating as either naive or UTC
                 seen_datetime = 1
                 iresult[i] = pydate_to_dt64(val, &dts)
                 try:
@@ -573,17 +602,15 @@ cpdef array_to_datetime(ndarray[object] values, str errors='raise',
                     raise
 
             elif is_datetime64_object(val):
+                # Treating as either naive or UTC
                 seen_datetime = 1
-                if get_datetime64_value(val) == NPY_NAT:
-                    iresult[i] = NPY_NAT
-                else:
-                    try:
-                        iresult[i] = get_datetime64_nanos(val)
-                    except OutOfBoundsDatetime:
-                        if is_coerce:
-                            iresult[i] = NPY_NAT
-                            continue
-                        raise
+                try:
+                    iresult[i] = get_datetime64_nanos(val)
+                except OutOfBoundsDatetime:
+                    if is_coerce:
+                        iresult[i] = NPY_NAT
+                        continue
+                    raise
 
             elif is_integer_object(val) or is_float_object(val):
                 # these must be ns unit by-definition
@@ -606,11 +633,11 @@ cpdef array_to_datetime(ndarray[object] values, str errors='raise',
 
             elif is_string_object(val):
                 # string
-                seen_string = 1
 
                 if len(val) == 0 or val in nat_strings:
                     iresult[i] = NPY_NAT
                     continue
+
                 if isinstance(val, unicode) and PY2:
                     val = val.encode('utf-8')
 
@@ -620,6 +647,8 @@ cpdef array_to_datetime(ndarray[object] values, str errors='raise',
                     # A ValueError at this point is a _parsing_ error
                     # specifically _not_ OutOfBoundsDatetime
                     if _parse_today_now(val, &iresult[i]):
+                        # TODO: Do we treat this as local?
+                        #  "now" is UTC, "today" is local
                         continue
                     elif require_iso8601:
                         # if requiring iso8601 strings, skip trying
@@ -645,15 +674,8 @@ cpdef array_to_datetime(ndarray[object] values, str errors='raise',
                     # If the dateutil parser returned tzinfo, capture it
                     # to check if all arguments have the same tzinfo
                     tz = py_dt.utcoffset()
-                    if tz is not None:
-                        seen_datetime_offset = 1
-                        # dateutil timezone objects cannot be hashed, so store
-                        # the UTC offsets in seconds instead
-                        out_tzoffset_vals.add(tz.total_seconds())
-                    else:
-                        # Add a marker for naive string, to track if we are
-                        # parsing mixed naive and aware strings
-                        out_tzoffset_vals.add('naive')
+                    out_tzinfos[get_key(py_dt.tzinfo)] = py_dt.tzinfo
+
                     try:
                         _ts = convert_datetime_to_tsobject(py_dt, None)
                         iresult[i] = _ts.value
@@ -673,17 +695,17 @@ cpdef array_to_datetime(ndarray[object] values, str errors='raise',
                     # where we left off
                     value = dtstruct_to_dt64(&dts)
                     if out_local == 1:
-                        seen_datetime_offset = 1
                         # Store the out_tzoffset in seconds
                         # since we store the total_seconds of
                         # dateutil.tz.tzoffset objects
-                        out_tzoffset_vals.add(out_tzoffset * 60.)
                         tz = pytz.FixedOffset(out_tzoffset)
+                        out_tzinfos[get_key(tz)] = tz
                         value = tz_convert_single(value, tz, UTC)
                     else:
                         # Add a marker for naive string, to track if we are
                         # parsing mixed naive and aware strings
-                        out_tzoffset_vals.add('naive')
+                        out_tzinfos[None] = None
+
                     iresult[i] = value
                     try:
                         check_dts_bounds(&dts)
@@ -725,21 +747,28 @@ cpdef array_to_datetime(ndarray[object] values, str errors='raise',
             else:
                 raise TypeError
 
-        if seen_datetime_offset and not utc_convert:
+        # TODO: File bug report with cython.  it raises
+        #  Closures Not Supported
+        #  error when I tried to use
+        #  `if any(key is not None for key in out_tzinfos)`
+        keys = out_tzinfos.keys()
+        nnkeys = [x for x in keys if x is not None]
+        if len(nnkeys) and not utc_convert:
             # GH 17697
             # 1) If all the offsets are equal, return one offset for
             #    the parsed dates to (maybe) pass to DatetimeIndex
             # 2) If the offsets are different, then force the parsing down the
             #    object path where an array of datetimes
             #    (with individual dateutil.tzoffsets) are returned
-            is_same_offsets = len(out_tzoffset_vals) == 1
+            is_same_offsets = len(out_tzinfos) == 1
             if not is_same_offsets:
                 return array_to_datetime_object(values, is_raise,
                                                 dayfirst, yearfirst)
             else:
-                tz_offset = out_tzoffset_vals.pop()
-                tz_out = pytz.FixedOffset(tz_offset / 60.)
+                tz_out = list(out_tzinfos.values())[0]
+                tz_out = fixed_offset_to_pytz(tz_out)
         return result, tz_out
+
     except OutOfBoundsDatetime:
         if is_raise:
             raise
@@ -819,6 +848,8 @@ cdef array_to_datetime_object(ndarray[object] values, bint is_raise,
                 if is_raise:
                     raise
                 return values, None
+        elif PyDateTime_Check(val):
+            oresult[i] = val  # TODO: check_dts_bounds?
         else:
             if is_raise:
                 raise

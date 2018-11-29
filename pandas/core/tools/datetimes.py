@@ -5,7 +5,7 @@ from functools import partial
 import numpy as np
 
 from pandas._libs import tslib, tslibs
-from pandas._libs.tslibs import Timestamp, conversion, parsing
+from pandas._libs.tslibs import Timestamp, parsing
 from pandas._libs.tslibs.parsing import (  # noqa
     DateParseError, _format_is_iso, _guess_datetime_format, parse_time_string)
 from pandas._libs.tslibs.strptime import array_strptime
@@ -134,7 +134,7 @@ def _return_parsed_timezone_results(result, timezones, box, tz, name):
 def _convert_listlike_datetimes(arg, box, format, name=None, tz=None,
                                 unit=None, errors=None,
                                 infer_datetime_format=None, dayfirst=None,
-                                yearfirst=None, exact=None):
+                                yearfirst=None, exact=None, allow_object=True):
     """
     Helper function for to_datetime. Performs the conversions of 1D listlike
     of dates
@@ -231,80 +231,77 @@ def _convert_listlike_datetimes(arg, box, format, name=None, tz=None,
             require_iso8601 = not infer_datetime_format
             format = None
 
-    try:
-        result = None
+    tz_parsed = None
+    result = None
 
-        if format is not None:
-            # shortcut formatting here
-            if format == '%Y%m%d':
-                try:
-                    # pass orig_arg as float-dtype may have been converted to
-                    # datetime64[ns]
-                    orig_arg = ensure_object(orig_arg)
-                    result = _attempt_YYYYMMDD(orig_arg, errors=errors)
-                except (ValueError, TypeError, tslibs.OutOfBoundsDatetime):
-                    raise ValueError("cannot convert the input to "
-                                     "'%Y%m%d' date format")
+    if format is not None:
+        # shortcut formatting here
+        if format == '%Y%m%d':
+            try:
+                # pass orig_arg as float-dtype may have been converted to
+                # datetime64[ns]
+                orig_arg = ensure_object(orig_arg)
+                result = _attempt_YYYYMMDD(orig_arg, errors=errors)
+            except (ValueError, TypeError, tslibs.OutOfBoundsDatetime):
+                raise ValueError("cannot convert the input to "
+                                 "'%Y%m%d' date format")
 
-            # fallback
-            if result is None:
-                try:
-                    result, timezones = array_strptime(
-                        arg, format, exact=exact, errors=errors)
-                    if '%Z' in format or '%z' in format:
-                        return _return_parsed_timezone_results(
-                            result, timezones, box, tz, name)
-                except tslibs.OutOfBoundsDatetime:
+        # fallback
+        if result is None:
+            try:
+                result, timezones = array_strptime(
+                    arg, format, exact=exact, errors=errors)
+                if '%Z' in format or '%z' in format:
+                    return _return_parsed_timezone_results(
+                        result, timezones, box, tz, name)
+            except tslibs.OutOfBoundsDatetime:
+                if errors == 'raise':
+                    raise
+                result = arg
+            except ValueError:
+                # if format was inferred, try falling back
+                # to array_to_datetime - terminate here
+                # for specified formats
+                if not infer_datetime_format:
                     if errors == 'raise':
                         raise
                     result = arg
-                except ValueError:
-                    # if format was inferred, try falling back
-                    # to array_to_datetime - terminate here
-                    # for specified formats
-                    if not infer_datetime_format:
-                        if errors == 'raise':
-                            raise
-                        result = arg
 
-        if result is None and (format is None or infer_datetime_format):
-            result, tz_parsed = tslib.array_to_datetime(
-                arg,
-                errors=errors,
-                utc=tz == 'utc',
-                dayfirst=dayfirst,
-                yearfirst=yearfirst,
-                require_iso8601=require_iso8601
-            )
-            if tz_parsed is not None:
-                if box:
-                    # We can take a shortcut since the datetime64 numpy array
-                    # is in UTC
-                    return DatetimeIndex._simple_new(result, name=name,
-                                                     tz=tz_parsed)
-                else:
-                    # Convert the datetime64 numpy array to an numpy array
-                    # of datetime objects
-                    result = [Timestamp(ts, tz=tz_parsed).to_pydatetime()
-                              for ts in result]
-                    return np.array(result, dtype=object)
+    if result is None:
+        assert format is None or infer_datetime_format
+        result, tz_parsed = tslib.array_to_datetime(
+            arg,
+            errors=errors,
+            utc=tz == 'utc',
+            dayfirst=dayfirst,
+            yearfirst=yearfirst,
+            require_iso8601=require_iso8601
+        )
 
+    if tz_parsed is not None:
         if box:
-            # Ensure we return an Index in all cases where box=True
-            if is_datetime64_dtype(result):
-                return DatetimeIndex(result, tz=tz, name=name)
-            elif is_object_dtype(result):
-                # e.g. an Index of datetime objects
-                from pandas import Index
-                return Index(result, name=name)
-        return result
+            # We can take a shortcut since the datetime64 numpy array
+            # is in UTC
+            return DatetimeIndex._simple_new(result, name=name,
+                                             tz=tz_parsed)
+        else:
+            # Convert the datetime64 numpy array to an numpy array
+            # of datetime objects
+            result = [Timestamp(ts, tz=tz_parsed).to_pydatetime()
+                      for ts in result]
+            return np.array(result, dtype=object)
 
-    except ValueError as e:
-        try:
-            values, tz = conversion.datetime_to_datetime64(arg)
-            return DatetimeIndex._simple_new(values, name=name, tz=tz)
-        except (ValueError, TypeError):
-            raise e
+    if box:
+        # Ensure we return an Index in all cases where box=True
+        if is_datetime64_dtype(result):
+            return DatetimeIndex(result, tz=tz, name=name)
+        elif is_object_dtype(result):
+            # e.g. an Index of datetime objects
+            if not allow_object:
+                raise ValueError("Mixed timezones (including naive)")
+            from pandas import Index
+            return Index(result, name=name)
+    return result
 
 
 def _adjust_to_origin(arg, origin, unit):
@@ -383,7 +380,7 @@ def _adjust_to_origin(arg, origin, unit):
 def to_datetime(arg, errors='raise', dayfirst=False, yearfirst=False,
                 utc=None, box=True, format=None, exact=True,
                 unit=None, infer_datetime_format=False, origin='unix',
-                cache=False):
+                cache=False, allow_object=True):
     """
     Convert argument to datetime.
 
@@ -556,7 +553,7 @@ def to_datetime(arg, errors='raise', dayfirst=False, yearfirst=False,
     convert_listlike = partial(_convert_listlike_datetimes, tz=tz, unit=unit,
                                dayfirst=dayfirst, yearfirst=yearfirst,
                                errors=errors, exact=exact,
-                               infer_datetime_format=infer_datetime_format)
+                               infer_datetime_format=infer_datetime_format, allow_object=allow_object)
 
     if isinstance(arg, Timestamp):
         result = arg

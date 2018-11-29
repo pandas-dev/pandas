@@ -877,7 +877,7 @@ def maybe_infer_to_datetimelike(value, convert_dates=False):
         return value
 
     shape = v.shape
-    if not v.ndim == 1:
+    if v.ndim != 1:
         v = v.ravel()
 
     if not len(v):
@@ -887,9 +887,9 @@ def maybe_infer_to_datetimelike(value, convert_dates=False):
         # safe coerce to datetime64
         try:
             # GH19671
-            v = tslib.array_to_datetime(v,
-                                        require_iso8601=True,
-                                        errors='raise')[0]
+            v, inferred_tz = tslib.array_to_datetime(v,
+                                                     require_iso8601=True,
+                                                     errors='raise')
         except ValueError:
 
             # we might have a sequence of the same-datetimes with tz's
@@ -902,11 +902,17 @@ def maybe_infer_to_datetimelike(value, convert_dates=False):
                 values, tz = conversion.datetime_to_datetime64(v)
                 return DatetimeIndex(values).tz_localize(
                     'UTC').tz_convert(tz=tz)
+                # TODO: possibly reshape?
             except (ValueError, TypeError):
                 pass
 
         except Exception:
             pass
+        else:
+            if inferred_tz is not None:  # TODO: de-duplicate with to_datetime
+                from pandas import DatetimeIndex
+                return DatetimeIndex(v).tz_localize('UTC').tz_convert(tz=inferred_tz)
+                # TODO: possibly reshape?
 
         return v.reshape(shape)
 

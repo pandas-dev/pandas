@@ -14,3 +14,5 @@ cdef get_utcoffset(tzinfo, obj)
 cdef bint is_fixed_offset(object tz)
 
 cdef object get_dst_info(object tz)
+
+cpdef object tz_cache_key(object tz)

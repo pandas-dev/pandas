@@ -397,7 +397,9 @@ class TestToDatetime(object):
         # mixed tzs will raise
         arr = [pd.Timestamp('2013-01-01 13:00:00', tz='US/Pacific'),
                pd.Timestamp('2013-01-02 14:00:00', tz='US/Eastern')]
-        pytest.raises(ValueError, lambda: pd.to_datetime(arr, cache=cache))
+
+        with pytest.raises(ValueError):
+            pd.to_datetime(arr, cache=cache, allow_object=False)
 
     @pytest.mark.parametrize('cache', [True, False])
     def test_to_datetime_tz_pytz(self, cache):

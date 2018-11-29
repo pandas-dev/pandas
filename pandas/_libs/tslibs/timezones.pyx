@@ -112,7 +112,7 @@ def _p_tz_cache_key(tz):
 dst_cache = {}
 
 
-cdef inline object tz_cache_key(object tz):
+cpdef object tz_cache_key(object tz):
     """
     Return the key in the cache for the timezone info object or None
     if unknown.
