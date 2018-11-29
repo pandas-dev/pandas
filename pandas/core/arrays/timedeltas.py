@@ -2,7 +2,6 @@
 from __future__ import division
 
 from datetime import timedelta
-import operator
 import warnings
 
 import numpy as np
