@@ -1,5 +1,10 @@
 #!/bin/bash
 
+if [ "$DOC" ]; then
+    echo "We are not running pytest as this is a doc-build"
+    exit 0
+fi
+
 # Workaround for pytest-xdist flaky collection order
 # https://github.com/pytest-dev/pytest/issues/920
 # https://github.com/pytest-dev/pytest/issues/1075
