@@ -106,6 +106,29 @@ jobs:
   - script: |
       export PATH=$HOME/miniconda3/bin:$PATH
       source activate pandas-dev
+      doc/make.py html
+    displayName: 'Building docs'
+    condition: true
+
+  - script: |
+      if [ "$(Build.SourceBranch)" == "refs/heads/master" ]; then
+          az extension add --name storage-preview
+          az storage blob upload-batch --connection-string $CONNECTION_STRING \
+                                       --source $SOURCE \
+                                       --destination '$web'
+        echo "Documentation uploaded to https://pandas.blob.core.windows.net"
+      else
+        echo "Documentation is only uploaded for commits to master, and not PRs"
+      fi
+    displayName: 'Publishing docs (Azure storage)'
+    condition: true
+    env:
+      CONNECTION_STRING: $(AZURE_STORAGE_CONNECTION_STRING)
+      SOURCE: $(Build.SourcesDirectory)/doc/build/html/
+
+  - script: |
+      export PATH=$HOME/miniconda3/bin:$PATH
+      source activate pandas-dev
       git remote add upstream https://github.com/pandas-dev/pandas.git
       git fetch upstream
       if git diff upstream/master --name-only | grep -q "^asv_bench/"; then
