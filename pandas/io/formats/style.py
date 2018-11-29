@@ -1349,10 +1349,8 @@ def _get_level_lengths(index, hidden_elements=None):
             elif(j not in hidden_elements):
                 lengths[(i, last_label)] += 1
 
-    non_zero_lengths = {}
-    for element, length in lengths.items():
-        if(length >= 1):
-            non_zero_lengths[element] = length
+    non_zero_lengths = {
+        element: length for element, length in lengths.items() if length >= 1}
 
     return non_zero_lengths
 

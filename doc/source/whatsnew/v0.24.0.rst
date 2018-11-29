@@ -1076,6 +1076,7 @@ Deprecations
 - Timezone converting a tz-aware ``datetime.datetime`` or :class:`Timestamp` with :class:`Timestamp` and the ``tz`` argument is now deprecated. Instead, use :meth:`Timestamp.tz_convert` (:issue:`23579`)
 - :func:`pandas.types.is_period` is deprecated in favor of `pandas.types.is_period_dtype` (:issue:`23917`)
 - :func:`pandas.types.is_datetimetz` is deprecated in favor of `pandas.types.is_datetime64tz` (:issue:`23917`)
+- Creating a :class:`TimedeltaIndex` or :class:`DatetimeIndex` by passing range arguments `start`, `end`, and `periods` is deprecated in favor of :func:`timedelta_range` and :func:`date_range` (:issue:`23919`)
 
 .. _whatsnew_0240.deprecations.datetimelike_int_ops:
 
@@ -1255,7 +1256,7 @@ Timedelta
 - Bug in :class:`TimedeltaIndex` where adding a timezone-aware datetime scalar incorrectly returned a timezone-naive :class:`DatetimeIndex` (:issue:`23215`)
 - Bug in :class:`TimedeltaIndex` where adding ``np.timedelta64('NaT')`` incorrectly returned an all-`NaT` :class:`DatetimeIndex` instead of an all-`NaT` :class:`TimedeltaIndex` (:issue:`23215`)
 - Bug in :class:`Timedelta` and :func:`to_timedelta()` have inconsistencies in supported unit string (:issue:`21762`)
-
+- Bug in :class:`TimedeltaIndex` division where dividing by another :class:`TimedeltaIndex` raised ``TypeError`` instead of returning a :class:`Float64Index` (:issue:`23829`, :issue:`22631`)
 
 Timezones
 ^^^^^^^^^
