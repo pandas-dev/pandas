@@ -91,8 +91,8 @@ class TestDataFrameDataTypes(TestData):
         tzframe.iloc[1, 2] = pd.NaT
         result = tzframe.dtypes.sort_index()
         expected = Series([np.dtype('datetime64[ns]'),
-                           DatetimeTZDtype('datetime64[ns, US/Eastern]'),
-                           DatetimeTZDtype('datetime64[ns, CET]')],
+                           DatetimeTZDtype('ns', 'US/Eastern]'),
+                           DatetimeTZDtype('ns', 'CET')],
                           ['A', 'B', 'C'])
 
         assert_series_equal(result, expected)

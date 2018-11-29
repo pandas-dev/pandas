@@ -2672,11 +2672,10 @@ class DatetimeBlock(DatetimeLikeBlockMixin, Block):
         these automatically copy, so copy=True has no effect
         raise on an except if raise == True
         """
+        dtype = pandas_dtype(dtype)
 
         # if we are passed a datetime64[ns, tz]
         if is_datetime64tz_dtype(dtype):
-            dtype = DatetimeTZDtype(dtype)
-
             values = self.values
             if getattr(values, 'tz', None) is None:
                 values = DatetimeIndex(values).tz_localize('UTC')
