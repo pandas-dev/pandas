@@ -2734,8 +2734,8 @@ class StringMethods(NoNewAttributesMixin):
         return self._wrap_result(result)
 
     @copy(str_encode)
+    @forbid_nonstring_types(['bytes'])
     def encode(self, encoding, errors="strict"):
-        # allowing bytes here for easily dealing with mixed str/bytes Series
         result = str_encode(self._parent, encoding, errors)
         return self._wrap_result(result)
 
