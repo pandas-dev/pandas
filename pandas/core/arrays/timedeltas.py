@@ -7,7 +7,7 @@ import warnings
 
 import numpy as np
 
-from pandas._libs import algos, tslibs
+from pandas._libs import algos, lib, tslibs
 from pandas._libs.tslibs import NaT, Timedelta, Timestamp, iNaT
 from pandas._libs.tslibs.fields import get_timedelta_field
 from pandas._libs.tslibs.timedeltas import (
@@ -177,7 +177,7 @@ class TimedeltaArrayMixin(dtl.DatetimeLikeArrayMixin):
                                          passed=freq.freqstr))
             elif freq is None:
                 freq = inferred_freq
-                freq_infer = False
+            freq_infer = False
 
         result = cls._simple_new(values, freq=freq)
         # check that we are matching freqs
@@ -355,12 +355,108 @@ class TimedeltaArrayMixin(dtl.DatetimeLikeArrayMixin):
 
     __mul__ = _wrap_tdi_op(operator.mul)
     __rmul__ = __mul__
-    __truediv__ = _wrap_tdi_op(operator.truediv)
     __floordiv__ = _wrap_tdi_op(operator.floordiv)
     __rfloordiv__ = _wrap_tdi_op(ops.rfloordiv)
 
+    def __truediv__(self, other):
+        # timedelta / X is well-defined for timedelta-like or numeric X
+        other = lib.item_from_zerodim(other)
+
+        if isinstance(other, (ABCSeries, ABCDataFrame, ABCIndexClass)):
+            return NotImplemented
+
+        if isinstance(other, (timedelta, np.timedelta64, Tick)):
+            other = Timedelta(other)
+            if other is NaT:
+                # specifically timedelta64-NaT
+                result = np.empty(self.shape, dtype=np.float64)
+                result.fill(np.nan)
+                return result
+
+            # otherwise, dispatch to Timedelta implementation
+            return self._data / other
+
+        elif lib.is_scalar(other):
+            # assume it is numeric
+            result = self._data / other
+            freq = None
+            if self.freq is not None:
+                # Tick division is not implemented, so operate on Timedelta
+                freq = self.freq.delta / other
+            return type(self)(result, freq=freq)
+
+        if not hasattr(other, "dtype"):
+            # e.g. list, tuple
+            other = np.array(other)
+
+        if len(other) != len(self):
+            raise ValueError("Cannot divide vectors with unequal lengths")
+
+        elif is_timedelta64_dtype(other):
+            # let numpy handle it
+            return self._data / other
+
+        elif is_object_dtype(other):
+            # Note: we do not do type inference on the result, so either
+            #  an object array or numeric-dtyped (if numpy does inference)
+            #  will be returned.  GH#23829
+            result = [self[n] / other[n] for n in range(len(self))]
+            result = np.array(result)
+            return result
+
+        else:
+            result = self._data / other
+            return type(self)(result)
+
+    def __rtruediv__(self, other):
+        # X / timedelta is defined only for timedelta-like X
+        other = lib.item_from_zerodim(other)
+
+        if isinstance(other, (ABCSeries, ABCDataFrame, ABCIndexClass)):
+            return NotImplemented
+
+        if isinstance(other, (timedelta, np.timedelta64, Tick)):
+            other = Timedelta(other)
+            if other is NaT:
+                # specifically timedelta64-NaT
+                result = np.empty(self.shape, dtype=np.float64)
+                result.fill(np.nan)
+                return result
+
+            # otherwise, dispatch to Timedelta implementation
+            return other / self._data
+
+        elif lib.is_scalar(other):
+            raise TypeError("Cannot divide {typ} by {cls}"
+                            .format(typ=type(other).__name__,
+                                    cls=type(self).__name__))
+
+        if not hasattr(other, "dtype"):
+            # e.g. list, tuple
+            other = np.array(other)
+
+        if len(other) != len(self):
+            raise ValueError("Cannot divide vectors with unequal lengths")
+
+        elif is_timedelta64_dtype(other):
+            # let numpy handle it
+            return other / self._data
+
+        elif is_object_dtype(other):
+            # Note: unlike in __truediv__, we do not _need_ to do type#
+            #  inference on the result.  It does not raise, a numeric array
+            #  is returned.  GH#23829
+            result = [other[n] / self[n] for n in range(len(self))]
+            return np.array(result)
+
+        else:
+            raise TypeError("Cannot divide {dtype} data by {cls}"
+                            .format(dtype=other.dtype,
+                                    cls=type(self).__name__))
+
     if compat.PY2:
         __div__ = __truediv__
+        __rdiv__ = __rtruediv__
 
     # Note: TimedeltaIndex overrides this in call to cls._add_numeric_methods
     def __neg__(self):
