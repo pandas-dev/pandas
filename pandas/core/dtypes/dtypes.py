@@ -601,9 +601,10 @@ class DatetimeTZDtype(PandasExtensionDtype):
                 self.unit == other.unit and
                 str(self.tz) == str(other.tz))
 
-    def __getstate__(self):
+    def __setstate__(self, state):
         # for pickle compat.
-        return self.__dict__
+        self._tz = state['tz']
+        self._unit = state['unit']
 
 
 class PeriodDtype(ExtensionDtype, PandasExtensionDtype):
