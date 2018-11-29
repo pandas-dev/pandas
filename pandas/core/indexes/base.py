@@ -5017,21 +5017,19 @@ class Index(IndexOpsMixin, PandasObject):
         cls.__rpow__ = _make_arithmetic_op(ops.rpow, cls)
         cls.__pow__ = _make_arithmetic_op(operator.pow, cls)
 
-        if not issubclass(cls, ABCTimedeltaIndex):
-            # GH#23829 TimedeltaIndex defines these directly
-            cls.__truediv__ = _make_arithmetic_op(operator.truediv, cls)
-            cls.__rtruediv__ = _make_arithmetic_op(ops.rtruediv, cls)
-            if not compat.PY3:
-                cls.__div__ = _make_arithmetic_op(operator.div, cls)
-                cls.__rdiv__ = _make_arithmetic_op(ops.rdiv, cls)
+        cls.__truediv__ = _make_arithmetic_op(operator.truediv, cls)
+        cls.__rtruediv__ = _make_arithmetic_op(ops.rtruediv, cls)
+        if not compat.PY3:
+            cls.__div__ = _make_arithmetic_op(operator.div, cls)
+            cls.__rdiv__ = _make_arithmetic_op(ops.rdiv, cls)
 
-            # TODO: rmod? rdivmod?
-            cls.__mod__ = _make_arithmetic_op(operator.mod, cls)
-            cls.__floordiv__ = _make_arithmetic_op(operator.floordiv, cls)
-            cls.__rfloordiv__ = _make_arithmetic_op(ops.rfloordiv, cls)
-            cls.__divmod__ = _make_arithmetic_op(divmod, cls)
-            cls.__mul__ = _make_arithmetic_op(operator.mul, cls)
-            cls.__rmul__ = _make_arithmetic_op(ops.rmul, cls)
+        # TODO: rmod? rdivmod?
+        cls.__mod__ = _make_arithmetic_op(operator.mod, cls)
+        cls.__floordiv__ = _make_arithmetic_op(operator.floordiv, cls)
+        cls.__rfloordiv__ = _make_arithmetic_op(ops.rfloordiv, cls)
+        cls.__divmod__ = _make_arithmetic_op(divmod, cls)
+        cls.__mul__ = _make_arithmetic_op(operator.mul, cls)
+        cls.__rmul__ = _make_arithmetic_op(ops.rmul, cls)
 
     @classmethod
     def _add_numeric_methods_unary(cls):

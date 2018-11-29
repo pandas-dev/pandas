@@ -105,29 +105,6 @@ def _td_array_cmp(cls, op):
     return compat.set_function_name(wrapper, opname, cls)
 
 
-def _wrap_tdi_op(op):
-    """
-    Instead of re-implementing multiplication/division etc operations
-    in the Array class, for now we dispatch to the TimedeltaIndex
-    implementations.
-    """
-    # TODO: implement directly here and wrap in TimedeltaIndex, instead of
-    #  the other way around
-    def method(self, other):
-        if isinstance(other, (ABCSeries, ABCDataFrame, ABCIndexClass)):
-            return NotImplemented
-
-        from pandas import TimedeltaIndex
-        obj = TimedeltaIndex(self)
-        result = op(obj, other)
-        if is_timedelta64_dtype(result):
-            return type(self)(result)
-        return np.array(result)
-
-    method.__name__ = '__{name}__'.format(name=op.__name__)
-    return method
-
-
 class TimedeltaArrayMixin(dtl.DatetimeLikeArrayMixin):
     _typ = "timedeltaarray"
     __array_priority__ = 1000
@@ -324,33 +301,6 @@ class TimedeltaArrayMixin(dtl.DatetimeLikeArrayMixin):
         except AttributeError:
             raise TypeError("Cannot add/subtract non-tick DateOffset to {cls}"
                             .format(cls=type(self).__name__))
-
-    def _evaluate_with_timedelta_like(self, other, op):
-        if isinstance(other, ABCSeries):
-            # GH#19042
-            return NotImplemented
-
-        opstr = '__{opname}__'.format(opname=op.__name__).replace('__r', '__')
-        # allow division by a timedelta
-        if opstr in ['__div__', '__truediv__', '__floordiv__']:
-            if _is_convertible_to_td(other):
-                other = Timedelta(other)
-                if isna(other):
-                    raise NotImplementedError(
-                        "division by pd.NaT not implemented")
-
-                i8 = self.asi8
-                left, right = i8, other.value
-
-                if opstr in ['__floordiv__']:
-                    result = op(left, right)
-                else:
-                    result = op(left, np.float64(right))
-                result = self._maybe_mask_results(result, fill_value=None,
-                                                  convert='float64')
-                return result
-
-        return NotImplemented
 
     def __mul__(self, other):
         other = lib.item_from_zerodim(other)
