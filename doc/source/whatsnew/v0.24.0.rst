@@ -1150,7 +1150,7 @@ Performance Improvements
 - Improved performance of :func:`pd.concat` for `Series` objects (:issue:`23404`)
 - Improved performance of :meth:`DatetimeIndex.normalize` and :meth:`Timestamp.normalize` for timezone naive or UTC datetimes (:issue:`23634`)
 - Improved performance of :meth:`DatetimeIndex.tz_localize` and various ``DatetimeIndex`` attributes with dateutil UTC timezone (:issue:`23772`)
-- Improved performance of :meth:`Categorical.__init__` (:issue:`23814`)
+- Improved performance of :class:`Categorical` constructor for `Series` objects (:issue:`23814`)
 
 .. _whatsnew_0240.docs:
 

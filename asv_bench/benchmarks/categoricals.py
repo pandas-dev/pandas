@@ -47,6 +47,7 @@ class Constructor(object):
         self.values_all_nan = [np.nan] * len(self.values)
         self.values_all_int8 = np.ones(N, 'int8')
         self.categorical = pd.Categorical(self.values, self.categories)
+        self.series = pd.Series(self.categorical)
 
     def time_regular(self):
         pd.Categorical(self.values, self.categories)
@@ -71,6 +72,9 @@ class Constructor(object):
 
     def time_existing_categorical(self):
         pd.Categorical(self.categorical)
+
+    def time_existing_series(self):
+        pd.Categorical(self.series)
 
 
 class ValueCounts(object):
