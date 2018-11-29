@@ -188,7 +188,7 @@ highly performant. If you want to see only the used levels, you can use the
 
 .. ipython:: python
 
-   df[['foo', 'qux']].columns.values
+   df[['foo', 'qux']].columns.to_numpy()
 
    # for a specific level
    df[['foo', 'qux']].columns.get_level_values(0)
