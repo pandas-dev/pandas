@@ -531,10 +531,3 @@ def test_safe_import(monkeypatch):
     monkeypatch.setitem(sys.modules, mod_name, mod)
     assert not td.safe_import(mod_name, min_version="2.0")
     assert td.safe_import(mod_name, min_version="1.0")
-
-
-def test_lxml_import():
-    # See GH 23934
-    # lxml does not have attribute etree exception should not be thrown
-    subprocess.check_call([sys.executable, "-c",
-                           "import pandas; pandas.show_versions()"])
