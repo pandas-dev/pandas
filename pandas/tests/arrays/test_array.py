@@ -20,41 +20,54 @@ import pandas.util.testing as tm
     ([1, 2], np.dtype('float32'),
      np.array([1., 2.0], dtype=np.dtype('float32'))),
     (np.array([1, 2]), None, np.array([1, 2])),
+
     # String alias passes through to NumPy
     ([1, 2], 'float32', np.array([1, 2], dtype='float32')),
+
     # Period alias
     ([pd.Period('2000', 'D'), pd.Period('2001', 'D')], 'Period[D]',
      period_array(['2000', '2001'], freq='D')),
+
     # Period dtype
     ([pd.Period('2000', 'D')], pd.PeriodDtype('D'),
      period_array(['2000'], freq='D')),
+
     # Datetime (naive)
     ([1, 2], np.dtype('datetime64[ns]'),
      np.array([1, 2], dtype='datetime64[ns]')),
     # TODO(DatetimeArray): add here
+
     # Category
     (['a', 'b'], 'category', pd.Categorical(['a', 'b'])),
     (['a', 'b'], pd.CategoricalDtype(None, ordered=True),
      pd.Categorical(['a', 'b'], ordered=True)),
+
     # Interval
     ([pd.Interval(1, 2), pd.Interval(3, 4)], 'interval',
      pd.IntervalArray.from_tuples([(1, 2), (3, 4)])),
+
     # Sparse
     ([0, 1], 'Sparse[int64]', pd.SparseArray([0, 1], dtype='int64')),
+
     # IntegerNA
     ([1, None], 'Int16', integer_array([1, None], dtype='Int16')),
     (pd.Series([1, 2]), None, np.array([1, 2], dtype=np.int64)),
+
     # Index
     (pd.Index([1, 2]), None, np.array([1, 2], dtype=np.int64)),
+
     # Series[EA] returns the EA
     (pd.Series(pd.Categorical(['a', 'b'], categories=['a', 'b', 'c'])),
      None,
      pd.Categorical(['a', 'b'], categories=['a', 'b', 'c'])),
+
     # "3rd party" EAs work
     ([decimal.Decimal(0), decimal.Decimal(1)], 'decimal', to_decimal([0, 1])),
+
     # 2D ndarrays pass through
     (np.array([[1, 2], [3, 4]]), None, np.array([[1, 2], [3, 4]])),
     ([[1, 2], [3, 4]], None, np.array([[1, 2, ], [3, 4]])),
+
     # pass an ExtensionArray, but a different dtype
     (period_array(['2000', '2001'], freq='D'),
      'category',
