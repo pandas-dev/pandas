@@ -947,6 +947,11 @@ class TestToDatetimeMisc(object):
         with pytest.raises(OutOfBoundsDatetime):
             to_datetime(arr)
 
+    def test_to_datetime(self):
+        # GH#23830 raise the correct exception when
+        # the format argument is passed.
+        arr = np.array(['2262-04-11 23:47:16.854775808'], dtype=object)
+
         with pytest.raises(OutOfBoundsDatetime):
             to_datetime(arr, format="%Y-%m-%d %H:%M:%S.%f")
 

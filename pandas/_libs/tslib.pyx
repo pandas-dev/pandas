@@ -623,9 +623,7 @@ cpdef array_to_datetime(ndarray[object] values, errors='raise',
                             iresult[i] = NPY_NAT
                             continue
                         elif is_raise:
-                            raise ValueError("time data {val} doesn't match "
-                                             "format specified"
-                                             .format(val=val))
+                            raise
                         return values, tz_out
 
                     try:
@@ -691,7 +689,7 @@ cpdef array_to_datetime(ndarray[object] values, errors='raise',
                             continue
                         elif require_iso8601:
                             if is_raise:
-                                continue
+                                raise
                             return values, tz_out
                         raise
 
