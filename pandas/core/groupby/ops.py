@@ -7,7 +7,6 @@ are contained *in* the SeriesGroupBy and DataFrameGroupBy objects.
 """
 
 import collections
-import copy
 
 import numpy as np
 
@@ -679,10 +678,8 @@ class BinGrouper(BaseGrouper):
 
         # this is mainly for compat
         # GH 3881
-        result = {}
-        for key, value in zip(self.binlabels, self.bins):
-            if key is not NaT:
-                result[key] = value
+        result = {key: value for key, value in zip(self.binlabels, self.bins)
+                  if key is not NaT}
         return result
 
     @property
