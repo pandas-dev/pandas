@@ -327,11 +327,11 @@ class MultiIndex(Index):
 
         from pandas.core.arrays.categorical import _factorize_from_iterables
 
-        labels, levels = _factorize_from_iterables(arrays)
+        codes, levels = _factorize_from_iterables(arrays)
         if names is None:
             names = [getattr(arr, "name", None) for arr in arrays]
 
-        return MultiIndex(levels=levels, labels=labels, sortorder=sortorder,
+        return MultiIndex(levels=levels, codes=codes, sortorder=sortorder,
                           names=names, verify_integrity=False)
 
     @classmethod
@@ -427,9 +427,9 @@ class MultiIndex(Index):
         elif is_iterator(iterables):
             iterables = list(iterables)
 
-        labels, levels = _factorize_from_iterables(iterables)
-        labels = cartesian_product(labels)
-        return MultiIndex(levels, labels, sortorder=sortorder, names=names)
+        codes, levels = _factorize_from_iterables(iterables)
+        codes = cartesian_product(codes)
+        return MultiIndex(levels, codes, sortorder=sortorder, names=names)
 
     # --------------------------------------------------------------------
 
@@ -873,15 +873,15 @@ class MultiIndex(Index):
             return []
 
         stringified_levels = []
-        for lev, lab in zip(self.levels, self.labels):
+        for lev, level_codes in zip(self.levels, self.codes):
             na = na_rep if na_rep is not None else _get_na_rep(lev.dtype.type)
 
             if len(lev) > 0:
 
-                formatted = lev.take(lab).format(formatter=formatter)
+                formatted = lev.take(level_codes).format(formatter=formatter)
 
                 # we have some NA
-                mask = lab == -1
+                mask = level_codes == -1
                 if mask.any():
                     formatted = np.array(formatted, dtype=object)
                     formatted[mask] = na
@@ -891,7 +891,7 @@ class MultiIndex(Index):
                 # weird all NA case
                 formatted = [pprint_thing(na if isna(x) else x,
                                           escape_chars=('\t', '\r', '\n'))
-                             for x in algos.take_1d(lev._values, lab)]
+                             for x in algos.take_1d(lev._values, level_codes)]
             stringified_levels.append(formatted)
 
         result_levels = []

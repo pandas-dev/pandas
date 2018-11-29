@@ -39,9 +39,8 @@ def test_shallow_copy(idx):
 
 def test_labels_deprecated(idx):
     # GH23752
-    codes = idx.codes
     with tm.assert_produces_warning(FutureWarning):
-        idx.copy(labels=codes)
+        idx.copy(labels=idx.codes)
 
 
 def test_view(idx):
