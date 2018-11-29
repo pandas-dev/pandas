@@ -189,6 +189,10 @@ class TestDatetimeTZDtype(Base):
         pytest.raises(TypeError,
                       lambda: DatetimeTZDtype.construct_from_string('foo'))
 
+    def test_construct_from_string_raises(self):
+        with pytest.raises(TypeError, match="notatz"):
+            DatetimeTZDtype.construct_from_string('datetime64[ns, notatz]')
+
     def test_is_dtype(self):
         assert not DatetimeTZDtype.is_dtype(None)
         assert DatetimeTZDtype.is_dtype(self.dtype)

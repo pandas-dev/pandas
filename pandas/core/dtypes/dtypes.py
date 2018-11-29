@@ -569,16 +569,16 @@ class DatetimeTZDtype(PandasExtensionDtype):
         >>> DatetimeTZDtype.construct_from_string('datetime64[ns, UTC]')
         datetime64[ns, UTC]
         """
-        msg = "could not construct DatetimeTZDtype"""
+        msg = "Could not construct DatetimeTZDtype from {}"
         try:
             match = cls._match.match(string)
             if match:
                 d = match.groupdict()
                 return cls(unit=d['unit'], tz=d['tz'])
-            else:
-                raise TypeError(msg)
-        except ValueError:
-            raise TypeError(msg)
+        except Exception:
+            # TODO(py3): Change this pass to `raise TypeError(msg) from e`
+            pass
+        raise TypeError(msg.format(string))
 
     def __unicode__(self):
         return "datetime64[{unit}, {tz}]".format(unit=self.unit, tz=self.tz)
