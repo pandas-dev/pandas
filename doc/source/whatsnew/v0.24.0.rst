@@ -1529,6 +1529,7 @@ Reshaping
 - Bug in :func:`pandas.melt` when passing column names that are not present in ``DataFrame`` (:issue:`23575`)
 - Bug in :meth:`DataFrame.append` with a :class:`Series` with a dateutil timezone would raise a ``TypeError`` (:issue:`23682`)
 - Bug in ``Series`` construction when passing no data and ``dtype=str`` (:issue:`22477`)
+- Bug in :func:`cut` with ``bins`` as an overlapping ``IntervalIndex`` where multiple bins were returned per item instead of raising a ``ValueError`` (:issue:`23980`)
 
 .. _whatsnew_0240.bug_fixes.sparse:
 
