@@ -1672,7 +1672,7 @@ class ParserBase(object):
                     try:
                         if (is_bool_dtype(cast_type) and
                                 not is_categorical_dtype(cast_type)
-                                and set(values) - set(col_na_values)):
+                                and na_count > 0):
                             raise ValueError("Bool column has NA values in "
                                              "column {column}"
                                              .format(column=c))
