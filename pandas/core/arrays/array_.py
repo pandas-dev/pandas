@@ -1,5 +1,3 @@
-import textwrap
-
 import numpy as np
 
 from pandas._libs import lib, tslibs
@@ -23,7 +21,7 @@ def array(data,         # type: Sequence[object]
 
     Parameters
     ----------
-    data : Sequence of objects.
+    data : Sequence of objects
         The scalars inside `data` should be instances of the
         scalar type for `dtype`.
 
@@ -59,21 +57,20 @@ def array(data,         # type: Sequence[object]
 
         For all other cases, NumPy's usual inference rules will be used.
 
-        To avoid *future* breaking changing, pandas will not pass through
-        string aliases like ``dtype="int32"`` through to NumPy.
-
-        >>> pd.array([1, 2, 3], dtype="int32")
-        Traceback (most recent call last):
-        ...
-        ValueError: Ambiguous dtype 'int32'...
-
-        In a future version of pandas, or with a different set of 3rd-party
-        extension types registered, the meaning of the string alias
-        ``"int32"`` may change. To avoid this ambiguity, pandas requires that
-        an actual NumPy dtype be passed instead.
+        To avoid *future* breaking changing, pandas recommends using actual
+        dtypes, and not string aliases, for `dtype`. In other words, use
 
         >>> pd.array([1, 2, 3], dtype=np.dtype("int32"))
         array([1, 2, 3], dtype=int32)
+
+        rather than
+
+        >>> pd.array([1, 2, 3], dtype="int32")
+        array([1, 2, 3], dtype=int32)
+
+        If and when pandas switches to a different backend for storing arrays,
+        the meaning of the string aliases will change, while the actual
+        dtypes will be unambiguous.
 
     copy : bool, default True
         Whether to copy the data, even if not necessary. Depending
@@ -83,6 +80,11 @@ def array(data,         # type: Sequence[object]
     Returns
     -------
     array : Union[numpy.ndarray, ExtensionArray]
+
+    See Also
+    --------
+    numpy.array : Construct a NumPy array.
+    Series : Construct a pandas Series.
 
     Notes
     -----
@@ -94,11 +96,6 @@ def array(data,         # type: Sequence[object]
     1. the correct array type for the data is returned
     2. the returned array type doesn't change as new extension types
        are added by pandas and third-party libraries
-
-    See Also
-    --------
-    numpy.array : construct a NumPy array
-    Series : construct a pandas Series
 
     Examples
     --------
@@ -183,13 +180,5 @@ def array(data,         # type: Sequence[object]
 
         # TODO(DatetimeArray): handle this type
         # TODO(BooleanArray): handle this type
-
-    if isinstance(dtype, compat.string_types):
-        msg = (
-            "Ambiguous dtype '{dtype}'. 'pandas.array' will not pass string "
-            "aliases to NumPy. If you want a NumPy array, specify "
-            "'dtype=numpy.dtype(\"{dtype}\")'."
-        ).format(dtype=dtype)
-        raise ValueError('\n'.join(textwrap.wrap(msg)))
 
     return np.array(data, dtype=dtype, copy=copy)
