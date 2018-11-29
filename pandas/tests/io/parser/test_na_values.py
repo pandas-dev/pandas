@@ -431,8 +431,8 @@ def test_na_values_with_dtype_str_and_na_filter(all_parsers, na_filter):
 def test_cast_NA_to_bool_raises_error(all_parsers, data):
     parser = all_parsers
     msg = ("(Bool column has NA values in column [0a])|"
-            "(cannot safely convert passed user dtype of "
-            " bool for object dtyped data in column 0)")
+           "(cannot safely convert passed user dtype of "
+           " bool for object dtyped data in column 0)")
     with pytest.raises(ValueError, match=msg):
         parser.read_csv(StringIO(data), header=None, names=['a', 'b'],
                         dtype={'a': 'bool'})
