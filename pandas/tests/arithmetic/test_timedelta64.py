@@ -1280,7 +1280,8 @@ class TestTimedeltaArraylikeMulDivOps(object):
         result = idx // 1
         tm.assert_equal(result, idx)
 
-        pattern = 'floor_divide cannot use operands'
+        pattern = ('floor_divide cannot use operands|'
+                   'Cannot divide int by Timedelta*')
         with pytest.raises(TypeError, match=pattern):
             1 // idx
 
