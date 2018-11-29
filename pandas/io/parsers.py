@@ -2441,7 +2441,8 @@ class PythonParser(ParserBase):
                     if is_bool_dtype(dt) and data[col][data[col] == ''].size:
                         raise ValueError("Bool column has NA values in "
                                          "column {column}".format(column=col))
-            elif isinstance(clean_dtypes, string_types):
+            elif (isinstance(clean_dtypes, string_types) and
+                  is_bool_dtype(clean_dtypes)):
                 for col, values in data.items():
                     if any(isna(values)):
                         raise ValueError("Bool column has NA values in "
