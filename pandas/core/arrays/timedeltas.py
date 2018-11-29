@@ -165,7 +165,6 @@ class TimedeltaArrayMixin(dtl.DatetimeLikeArrayMixin):
     def __new__(cls, values, freq=None, dtype=_TD_DTYPE, copy=False):
 
         freq, freq_infer = dtl.maybe_infer_freq(freq)
-        values, inferred_freq = sequence_to_td64ns(values)
 
         values, inferred_freq = sequence_to_td64ns(
             values, copy=copy, unit=None)
@@ -178,7 +177,7 @@ class TimedeltaArrayMixin(dtl.DatetimeLikeArrayMixin):
                                          passed=freq.freqstr))
             elif freq is None:
                 freq = inferred_freq
-                freq_infer = False
+            freq_infer = False
 
         result = cls._simple_new(values, freq=freq)
         # check that we are matching freqs

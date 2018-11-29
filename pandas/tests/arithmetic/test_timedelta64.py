@@ -455,10 +455,10 @@ class TestTimedeltaArraylikeAddSubOps(object):
         ts = Timestamp('2012-01-01')
         # TODO: parametrize over types of datetime scalar?
 
-        tdarr = timedelta_range('1 day', periods=3)
+        tdi = timedelta_range('1 day', periods=3)
         expected = pd.date_range('2012-01-02', periods=3)
 
-        tdarr = tm.box_expected(tdarr, box_with_array)
+        tdarr = tm.box_expected(tdi, box_with_array)
         expected = tm.box_expected(expected, box_with_array)
 
         tm.assert_equal(ts + tdarr, expected)
@@ -1450,12 +1450,13 @@ class TestTimedeltaArraylikeMulDivOps(object):
         with pytest.raises(TypeError, match=pattern):
             vector / tdser
 
-        if (not isinstance(vector, pd.Index) and
-                box_with_array is not pd.DataFrame):
+        if not isinstance(vector, pd.Index):
             # Index.__rdiv__ won't try to operate elementwise, just raises
-            # DataFrame casts just-NaT object column to datetime64
             result = tdser / vector.astype(object)
-            expected = [tdser[n] / vector[n] for n in range(len(tdser))]
+            if box_with_array is pd.DataFrame:
+                expected = [tdser.iloc[0, n] / vector[n] for n in range(len(vector))]
+            else:
+                expected = [tdser[n] / vector[n] for n in range(len(tdser))]
             expected = tm.box_expected(expected, xbox)
             tm.assert_equal(result, expected)
 
