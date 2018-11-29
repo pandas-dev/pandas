@@ -6,6 +6,7 @@ import pytz
 
 from pandas._libs.interval import Interval
 from pandas._libs.tslibs import NaT, Period, Timestamp, timezones
+from pandas.util._decorators import cache_readonly
 
 from pandas.core.dtypes.generic import ABCCategoricalIndex, ABCIndexClass
 
@@ -531,12 +532,12 @@ class DatetimeTZDtype(PandasExtensionDtype):
         self._unit = unit
         self._tz = tz
 
-    @property
+    @cache_readonly
     def unit(self):
         """The precision of the datetime data."""
         return self._unit
 
-    @property
+    @cache_readonly
     def tz(self):
         """The timezone."""
         return self._tz
