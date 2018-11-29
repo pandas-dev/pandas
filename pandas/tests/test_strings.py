@@ -245,9 +245,6 @@ class TestStringMethods(object):
                 and inferred_dtype in ['boolean', 'date', 'time']):
             pytest.xfail(reason='Inferring incorrectly because of NaNs; '
                          'solved by GH 23167')
-        if box == Index and dtype == 'category':
-            pytest.xfail(reason='Broken methods on CategoricalIndex; '
-                         'see GH 23556')
 
         t = box(values, dtype=dtype)  # explicit dtype to avoid casting
         method = getattr(t.str, method_name)
@@ -264,6 +261,7 @@ class TestStringMethods(object):
                          + ['mixed', 'mixed-integer'] * mixed_allowed)
 
         if inferred_dtype in allowed_types:
+            # i.a. GH 23555, GH 23556
             method(*args, **kwargs)  # works!
         else:
             # GH 23011, GH 23163

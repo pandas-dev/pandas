@@ -15,7 +15,7 @@ from pandas.util._decorators import Appender, deprecate_kwarg
 from pandas.core.dtypes.common import (
     ensure_object, is_bool_dtype, is_categorical_dtype, is_integer,
     is_list_like, is_object_dtype, is_re, is_scalar, is_string_like)
-from pandas.core.dtypes.generic import ABCIndex, ABCSeries
+from pandas.core.dtypes.generic import ABCIndexClass, ABCSeries
 from pandas.core.dtypes.missing import isna
 
 from pandas.core.algorithms import take_1d
@@ -931,7 +931,7 @@ def str_extractall(arr, pat, flags=0):
     if regex.groups == 0:
         raise ValueError("pattern contains no capture groups")
 
-    if isinstance(arr, ABCIndex):
+    if isinstance(arr, ABCIndexClass):
         arr = arr.to_series().reset_index(drop=True)
 
     names = dict(zip(regex.groupindex.values(), regex.groupindex.keys()))
@@ -1854,7 +1854,7 @@ class StringMethods(NoNewAttributesMixin):
     def _wrap_result(self, result, use_codes=True,
                      name=None, expand=None, fill_value=np.nan):
 
-        from pandas.core.index import Index, MultiIndex
+        from pandas import Index, Series, MultiIndex
 
         # for category, we do the stuff on the categories, so blow it up
         # to the full series again
@@ -1862,7 +1862,8 @@ class StringMethods(NoNewAttributesMixin):
         # so make it possible to skip this step as the method already did this
         # before the transformation...
         if use_codes and self._is_categorical:
-            result = take_1d(result, self._orig.cat.codes,
+            # if self._orig is a CategoricalIndex, there is no .cat-accessor
+            result = take_1d(result, Series(self._orig).cat.codes,
                              fill_value=fill_value)
 
         if not hasattr(result, 'ndim') or not hasattr(result, 'dtype'):
