@@ -42,10 +42,7 @@ class TestPandasDtype(object):
         'datetime64[ns, US/Eastern]',
         'datetime64[ns, Asia/Tokyo]',
         'datetime64[ns, UTC]'])
-    @pytest.mark.xfail(reason="dtype-caching", strict=True)
     def test_datetimetz_dtype(self, dtype):
-        assert (com.pandas_dtype(dtype) is
-                DatetimeTZDtype.construct_from_string(dtype))
         assert (com.pandas_dtype(dtype) ==
                 DatetimeTZDtype.construct_from_string(dtype))
         assert com.pandas_dtype(dtype) == dtype
