@@ -7,7 +7,7 @@ import warnings
 
 import numpy as np
 
-from pandas._libs import algos, tslibs
+from pandas._libs import algos, lib, tslibs
 from pandas._libs.tslibs import NaT, Timedelta, Timestamp, iNaT
 from pandas._libs.tslibs.fields import get_timedelta_field
 from pandas._libs.tslibs.timedeltas import (
@@ -163,11 +163,17 @@ class TimedeltaArrayMixin(dtl.DatetimeLikeArrayMixin):
         return result
 
     def __new__(cls, values, freq=None, dtype=_TD_DTYPE, copy=False):
+        return cls._from_sequence(values, freq=freq, dtype=dtype, copy=copy)
+
+    @classmethod
+    def _from_sequence(cls, data, freq=None, unit=None,
+                       dtype=_TD_DTYPE, copy=False):
+        if dtype != _TD_DTYPE:
+            raise ValueError("Only timedelta64[ns] dtype is valid.")
 
         freq, freq_infer = dtl.maybe_infer_freq(freq)
 
-        values, inferred_freq = sequence_to_td64ns(
-            values, copy=copy, unit=None)
+        data, inferred_freq = sequence_to_td64ns(data, copy=copy, unit=unit)
         if inferred_freq is not None:
             if freq is not None and freq != inferred_freq:
                 raise ValueError('Inferred frequency {inferred} from passed '
@@ -177,15 +183,15 @@ class TimedeltaArrayMixin(dtl.DatetimeLikeArrayMixin):
                                          passed=freq.freqstr))
             elif freq is None:
                 freq = inferred_freq
-                freq_infer = False
+            freq_infer = False
 
-        result = cls._simple_new(values, freq=freq)
-        # check that we are matching freqs
-        if inferred_freq is None and len(result) > 0:
-            if freq is not None and not freq_infer:
-                cls._validate_frequency(result, freq)
+        result = cls._simple_new(data, freq=freq)
 
-        if freq_infer:
+        if inferred_freq is None and freq is not None:
+            # this condition precludes `freq_infer`
+            cls._validate_frequency(result, freq)
+
+        elif freq_infer:
             result.freq = to_offset(result.inferred_freq)
 
         return result
@@ -355,12 +361,108 @@ class TimedeltaArrayMixin(dtl.DatetimeLikeArrayMixin):
 
     __mul__ = _wrap_tdi_op(operator.mul)
     __rmul__ = __mul__
-    __truediv__ = _wrap_tdi_op(operator.truediv)
     __floordiv__ = _wrap_tdi_op(operator.floordiv)
     __rfloordiv__ = _wrap_tdi_op(ops.rfloordiv)
 
+    def __truediv__(self, other):
+        # timedelta / X is well-defined for timedelta-like or numeric X
+        other = lib.item_from_zerodim(other)
+
+        if isinstance(other, (ABCSeries, ABCDataFrame, ABCIndexClass)):
+            return NotImplemented
+
+        if isinstance(other, (timedelta, np.timedelta64, Tick)):
+            other = Timedelta(other)
+            if other is NaT:
+                # specifically timedelta64-NaT
+                result = np.empty(self.shape, dtype=np.float64)
+                result.fill(np.nan)
+                return result
+
+            # otherwise, dispatch to Timedelta implementation
+            return self._data / other
+
+        elif lib.is_scalar(other):
+            # assume it is numeric
+            result = self._data / other
+            freq = None
+            if self.freq is not None:
+                # Tick division is not implemented, so operate on Timedelta
+                freq = self.freq.delta / other
+            return type(self)(result, freq=freq)
+
+        if not hasattr(other, "dtype"):
+            # e.g. list, tuple
+            other = np.array(other)
+
+        if len(other) != len(self):
+            raise ValueError("Cannot divide vectors with unequal lengths")
+
+        elif is_timedelta64_dtype(other):
+            # let numpy handle it
+            return self._data / other
+
+        elif is_object_dtype(other):
+            # Note: we do not do type inference on the result, so either
+            #  an object array or numeric-dtyped (if numpy does inference)
+            #  will be returned.  GH#23829
+            result = [self[n] / other[n] for n in range(len(self))]
+            result = np.array(result)
+            return result
+
+        else:
+            result = self._data / other
+            return type(self)(result)
+
+    def __rtruediv__(self, other):
+        # X / timedelta is defined only for timedelta-like X
+        other = lib.item_from_zerodim(other)
+
+        if isinstance(other, (ABCSeries, ABCDataFrame, ABCIndexClass)):
+            return NotImplemented
+
+        if isinstance(other, (timedelta, np.timedelta64, Tick)):
+            other = Timedelta(other)
+            if other is NaT:
+                # specifically timedelta64-NaT
+                result = np.empty(self.shape, dtype=np.float64)
+                result.fill(np.nan)
+                return result
+
+            # otherwise, dispatch to Timedelta implementation
+            return other / self._data
+
+        elif lib.is_scalar(other):
+            raise TypeError("Cannot divide {typ} by {cls}"
+                            .format(typ=type(other).__name__,
+                                    cls=type(self).__name__))
+
+        if not hasattr(other, "dtype"):
+            # e.g. list, tuple
+            other = np.array(other)
+
+        if len(other) != len(self):
+            raise ValueError("Cannot divide vectors with unequal lengths")
+
+        elif is_timedelta64_dtype(other):
+            # let numpy handle it
+            return other / self._data
+
+        elif is_object_dtype(other):
+            # Note: unlike in __truediv__, we do not _need_ to do type#
+            #  inference on the result.  It does not raise, a numeric array
+            #  is returned.  GH#23829
+            result = [other[n] / self[n] for n in range(len(self))]
+            return np.array(result)
+
+        else:
+            raise TypeError("Cannot divide {dtype} data by {cls}"
+                            .format(dtype=other.dtype,
+                                    cls=type(self).__name__))
+
     if compat.PY2:
         __div__ = __truediv__
+        __rdiv__ = __rtruediv__
 
     # Note: TimedeltaIndex overrides this in call to cls._add_numeric_methods
     def __neg__(self):
@@ -570,7 +672,7 @@ def sequence_to_td64ns(data, copy=False, unit="ns", errors="raise"):
         warnings.warn("Passing datetime64-dtype data to TimedeltaIndex is "
                       "deprecated, will raise a TypeError in a future "
                       "version",
-                      FutureWarning, stacklevel=3)
+                      FutureWarning, stacklevel=4)
         data = ensure_int64(data).view(_TD_DTYPE)
 
     else:

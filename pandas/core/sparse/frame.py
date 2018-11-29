@@ -339,9 +339,8 @@ class SparseDataFrame(DataFrame):
     def _apply_columns(self, func):
         """ get new SparseDataFrame applying func to each columns """
 
-        new_data = {}
-        for col, series in compat.iteritems(self):
-            new_data[col] = func(series)
+        new_data = {col: func(series)
+                    for col, series in compat.iteritems(self)}
 
         return self._constructor(
             data=new_data, index=self.index, columns=self.columns,
