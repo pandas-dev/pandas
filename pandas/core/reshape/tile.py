@@ -219,7 +219,7 @@ def cut(x, bins, right=True, labels=None, retbins=False, precision=3,
     elif isinstance(bins, IntervalIndex):
         if bins.is_overlapping:
             raise ValueError('Overlapping IntervalIndex is not accepted.')
-        pass
+
     else:
         bins = np.asarray(bins)
         bins = _convert_bin_to_numeric_type(bins, dtype)
