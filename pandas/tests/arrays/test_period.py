@@ -195,21 +195,3 @@ def test_sub_period():
     other = pd.Period("2000", freq="M")
     with pytest.raises(IncompatibleFrequency, match="freq"):
         arr - other
-
-
-@pytest.mark.parametrize('data', [
-    period_array(['2001', '2002', '2003', '2004', '2005'], freq="D")
-])
-def test_setitem_slice_mismatch_length_raises(data):
-    arr = data[:5]
-    with pytest.raises(ValueError):
-        arr[:1] = arr[:2]
-
-
-@pytest.mark.parametrize('data', [
-    period_array(['2001', '2002', '2003', '2004', '2005'], freq="D")
-])
-def test_setitem_slice_array(data):
-    arr = data[:5].copy()
-    arr[:5] = data[-5:]
-    tm.assert_extension_array_equal(arr, data[-5:])
