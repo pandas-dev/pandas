@@ -16,10 +16,10 @@ from pandas import compat
 import pandas.core.common as com
 from pandas.core.config import get_option
 
+from pandas.io.common import _is_url
 from pandas.io.formats.format import (
     TableFormatter, buffer_put_lines, get_level_lengths)
 from pandas.io.formats.printing import pprint_thing
-from pandas.io.common import _is_url
 
 
 class HTMLFormatter(TableFormatter):
