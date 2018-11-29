@@ -2947,10 +2947,10 @@ class StataWriter117(StataWriter):
     def _convert_strls(self, data):
         """Convert columns to StrLs if either very large or in the
         convert_strl variable"""
-        convert_cols = []
-        for i, col in enumerate(data):
-            if self.typlist[i] == 32768 or col in self._convert_strl:
-                convert_cols.append(col)
+        convert_cols = [
+            col for i, col in enumerate(data)
+            if self.typlist[i] == 32768 or col in self._convert_strl]
+
         if convert_cols:
             ssw = StataStrLWriter(data, convert_cols)
             tab, new_data = ssw.generate_table()

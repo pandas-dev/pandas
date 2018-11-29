@@ -448,9 +448,8 @@ def wide_to_long(df, stubnames, i, j, sep="", suffix=r'\d+'):
     value_vars_flattened = [e for sublist in value_vars for e in sublist]
     id_vars = list(set(df.columns.tolist()).difference(value_vars_flattened))
 
-    melted = []
-    for s, v in zip(stubnames, value_vars):
-        melted.append(melt_stub(df, s, i, j, v, sep))
+    melted = [melt_stub(df, s, i, j, v, sep)
+              for s, v in zip(stubnames, value_vars)]
     melted = melted[0].join(melted[1:], how='outer')
 
     if len(i) == 1:

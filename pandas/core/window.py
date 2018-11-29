@@ -2479,9 +2479,8 @@ def _flex_binary_moment(arg1, arg2, f, pairwise=False):
             else:
                 raise ValueError("'pairwise' is not True/False")
         else:
-            results = {}
-            for i, col in enumerate(arg1.columns):
-                results[i] = f(*_prep_binary(arg1.iloc[:, i], arg2))
+            results = {i: f(*_prep_binary(arg1.iloc[:, i], arg2))
+                       for i, col in enumerate(arg1.columns)}
             return dataframe_from_int_dict(results, arg1)
 
     else:

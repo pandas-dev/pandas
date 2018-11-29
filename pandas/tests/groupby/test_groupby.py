@@ -348,9 +348,7 @@ def test_attr_wrapper(ts):
 
     # this is pretty cool
     result = grouped.describe()
-    expected = {}
-    for name, gp in grouped:
-        expected[name] = gp.describe()
+    expected = {name: gp.describe() for name, gp in grouped}
     expected = DataFrame(expected).T
     assert_frame_equal(result, expected)
 
@@ -1312,9 +1310,7 @@ def test_skip_group_keys():
     grouped = tsf.groupby(lambda x: x.month, group_keys=False)
     result = grouped.apply(lambda x: x.sort_values(by='A')[:3])
 
-    pieces = []
-    for key, group in grouped:
-        pieces.append(group.sort_values(by='A')[:3])
+    pieces = [group.sort_values(by='A')[:3] for key, group in grouped]
 
     expected = pd.concat(pieces)
     assert_frame_equal(result, expected)
@@ -1322,9 +1318,7 @@ def test_skip_group_keys():
     grouped = tsf['A'].groupby(lambda x: x.month, group_keys=False)
     result = grouped.apply(lambda x: x.sort_values()[:3])
 
-    pieces = []
-    for key, group in grouped:
-        pieces.append(group.sort_values()[:3])
+    pieces = [group.sort_values()[:3] for key, group in grouped]
 
     expected = pd.concat(pieces)
     assert_series_equal(result, expected)

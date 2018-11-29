@@ -157,9 +157,8 @@ class MPLPlot(object):
         # parse errorbar input if given
         xerr = kwds.pop('xerr', None)
         yerr = kwds.pop('yerr', None)
-        self.errors = {}
-        for kw, err in zip(['xerr', 'yerr'], [xerr, yerr]):
-            self.errors[kw] = self._parse_errorbars(kw, err)
+        self.errors = {kw: self._parse_errorbars(kw, err)
+                       for kw, err in zip(['xerr', 'yerr'], [xerr, yerr])}
 
         if not isinstance(secondary_y, (bool, tuple, list,
                                         np.ndarray, ABCIndexClass)):
@@ -1721,9 +1720,7 @@ _all_kinds = _common_kinds + _dataframe_kinds + _series_kinds
 _klasses = [LinePlot, BarPlot, BarhPlot, KdePlot, HistPlot, BoxPlot,
             ScatterPlot, HexBinPlot, AreaPlot, PiePlot]
 
-_plot_klass = {}
-for klass in _klasses:
-    _plot_klass[klass._kind] = klass
+_plot_klass = {klass._kind: klass for klass in _klasses}
 
 
 def _plot(data, x=None, y=None, subplots=False,

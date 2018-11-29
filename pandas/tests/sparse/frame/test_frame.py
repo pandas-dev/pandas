@@ -101,9 +101,7 @@ class TestSparseDataFrame(SharedWithSparse):
             assert isinstance(series, SparseSeries)
 
         # construct from nested dict
-        data = {}
-        for c, s in compat.iteritems(float_frame):
-            data[c] = s.to_dict()
+        data = {c: s.to_dict() for c, s in compat.iteritems(float_frame)}
 
         sdf = SparseDataFrame(data)
         tm.assert_sp_frame_equal(sdf, float_frame)

@@ -843,10 +843,10 @@ class TestSparseSeries(SharedWithSparse):
 
     def test_homogenize(self):
         def _check_matches(indices, expected):
-            data = {}
-            for i, idx in enumerate(indices):
-                data[i] = SparseSeries(idx.to_int_index().indices,
-                                       sparse_index=idx, fill_value=np.nan)
+            data = {i: SparseSeries(idx.to_int_index().indices,
+                                    sparse_index=idx, fill_value=np.nan)
+                    for i, idx in enumerate(indices)}
+
             # homogenized is only valid with NaN fill values
             homogenized = spf.homogenize(data)
 

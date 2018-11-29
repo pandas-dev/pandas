@@ -45,9 +45,7 @@ def test_cythonized_aggers(op_name):
 
     # single column
     grouped = df.drop(['B'], axis=1).groupby('A')
-    exp = {}
-    for cat, group in grouped:
-        exp[cat] = op(group['C'])
+    exp = {cat: op(group['C']) for cat, group in grouped}
     exp = DataFrame({'C': exp})
     exp.index.name = 'A'
     result = op(grouped)

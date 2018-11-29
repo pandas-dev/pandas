@@ -373,10 +373,8 @@ def union_categoricals(to_union, sort_categories=False, ignore_order=False):
         if sort_categories:
             categories = categories.sort_values()
 
-        new_codes = []
-        for c in to_union:
-            new_codes.append(_recode_for_categories(c.codes, c.categories,
-                                                    categories))
+        new_codes = [_recode_for_categories(c.codes, c.categories, categories)
+                     for c in to_union]
         new_codes = np.concatenate(new_codes)
     else:
         # ordered - to show a proper error message
