@@ -227,11 +227,8 @@ class TimedeltaIndex(TimedeltaArray, DatetimeIndexOpsMixin,
 
     __mul__ = Index.__mul__
     __rmul__ = Index.__rmul__
-    __truediv__ = Index.__truediv__
     __floordiv__ = Index.__floordiv__
     __rfloordiv__ = Index.__rfloordiv__
-    if compat.PY2:
-        __div__ = Index.__div__
 
     days = wrap_field_accessor(TimedeltaArray.days)
     seconds = wrap_field_accessor(TimedeltaArray.seconds)
@@ -239,6 +236,26 @@ class TimedeltaIndex(TimedeltaArray, DatetimeIndexOpsMixin,
     nanoseconds = wrap_field_accessor(TimedeltaArray.nanoseconds)
 
     total_seconds = wrap_array_method(TimedeltaArray.total_seconds, True)
+
+    def __truediv__(self, other):
+        oth = other
+        if isinstance(other, Index):
+            # TimedeltaArray defers, so we need to unwrap
+            oth = other._values
+        result = TimedeltaArray.__truediv__(self, oth)
+        return wrap_arithmetic_op(self, other, result)
+
+    def __rtruediv__(self, other):
+        oth = other
+        if isinstance(other, Index):
+            # TimedeltaArray defers, so we need to unwrap
+            oth = other._values
+        result = TimedeltaArray.__rtruediv__(self, oth)
+        return wrap_arithmetic_op(self, other, result)
+
+    if compat.PY2:
+        __div__ = __truediv__
+        __rdiv__ = __rtruediv__
 
     # Compat for frequency inference, see GH#23789
     _is_monotonic_increasing = Index.is_monotonic_increasing

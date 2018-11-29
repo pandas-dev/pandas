@@ -3569,11 +3569,8 @@ class DataFrame(NDFrame):
 
     @property
     def _series(self):
-        result = {}
-        for idx, item in enumerate(self.columns):
-            result[item] = Series(self._data.iget(idx), index=self.index,
-                                  name=item)
-        return result
+        return {item: Series(self._data.iget(idx), index=self.index, name=item)
+                for idx, item in enumerate(self.columns)}
 
     def lookup(self, row_labels, col_labels):
         """
@@ -3593,9 +3590,8 @@ class DataFrame(NDFrame):
         -----
         Akin to::
 
-            result = []
-            for row, col in zip(row_labels, col_labels):
-                result.append(df.get_value(row, col))
+            result = [df.get_value(row, col)
+                      for row, col in zip(row_labels, col_labels)]
 
         Examples
         --------
@@ -4600,10 +4596,8 @@ class DataFrame(NDFrame):
         if len(by) > 1:
             from pandas.core.sorting import lexsort_indexer
 
-            keys = []
-            for x in by:
-                k = self._get_label_or_level_values(x, axis=axis)
-                keys.append(k)
+            keys = [self._get_label_or_level_values(x, axis=axis)
+                    for x in by]
             indexer = lexsort_indexer(keys, orders=ascending,
                                       na_position=na_position)
             indexer = ensure_platform_int(indexer)
