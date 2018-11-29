@@ -7,7 +7,6 @@ are contained *in* the SeriesGroupBy and DataFrameGroupBy objects.
 """
 
 import collections
-import copy
 
 import numpy as np
 
