@@ -26,7 +26,7 @@ from pandas.core.groupby.grouper import Grouper
 from pandas.core.groupby.ops import BinGrouper
 from pandas.core.indexes.datetimes import DatetimeIndex, date_range
 from pandas.core.indexes.period import PeriodIndex
-from pandas.core.indexes.timedeltas import TimedeltaIndex
+from pandas.core.indexes.timedeltas import TimedeltaIndex, timedelta_range
 
 from pandas.tseries.frequencies import is_subperiod, is_superperiod, to_offset
 from pandas.tseries.offsets import (
@@ -1398,11 +1398,11 @@ class TimeGrouper(Grouper):
         # because replace() will swallow the nanosecond part
         # thus last bin maybe slightly before the end if the end contains
         # nanosecond part and lead to `Values falls after last bin` error
-        binner = labels = DatetimeIndex(freq=self.freq,
-                                        start=first,
-                                        end=last,
-                                        tz=tz,
-                                        name=ax.name)
+        binner = labels = date_range(freq=self.freq,
+                                     start=first,
+                                     end=last,
+                                     tz=tz,
+                                     name=ax.name)
 
         # GH 15549
         # In edge case of tz-aware resapmling binner last index can be
@@ -1484,10 +1484,10 @@ class TimeGrouper(Grouper):
             return binner, [], labels
 
         start, end = ax.min(), ax.max()
-        labels = binner = TimedeltaIndex(start=start,
-                                         end=end,
-                                         freq=self.freq,
-                                         name=ax.name)
+        labels = binner = timedelta_range(start=start,
+                                          end=end,
+                                          freq=self.freq,
+                                          name=ax.name)
 
         end_stamps = labels + self.freq
         bins = ax.searchsorted(end_stamps, side='left')
