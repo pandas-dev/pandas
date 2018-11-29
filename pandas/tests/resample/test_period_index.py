@@ -741,32 +741,22 @@ class TestPeriodIndex(Base):
         result = frame.resample('1s').mean()
         assert_frame_equal(result, expected)
 
-    def test_resample_with_non_zero_base(self):
+    @pytest.mark.parametrize('start,end,start_freq,end_freq,base', [
+        ('19910905', '19910909 03:00', 'H', '24H', 10),
+        ('19910905', '19910909 12:00', 'H', '24H', 10),
+        ('19910905 12:00', '19910909 03:00', 'H', '24H', 10),
+        ('19910905 12:00', '19910909 12:00', 'H', '24H', 10),
+        ('19910905', '19910913 06:00', '2H', '24H', 10),
+        ('19910905', '19910905 01:39', 'Min', '5Min', 3),
+        ('19910905', '19910905 03:18', '2Min', '5Min', 3),
+    ])
+    def test_resample_with_non_zero_base(self, start, end, start_freq,
+                                         end_freq, base):
         # GH 23882
         s = pd.Series(range(100), index=pd.period_range('19910905',
                                                         periods=100,
-                                                        freq='H'))
-        pr = s.resample('24H', base=10).mean().to_timestamp().asfreq('24H')
-        tr = s.to_timestamp().resample('24H', base=10).mean()
-        assert_series_equal(pr, tr)
-
-        s = pd.Series(range(100), index=pd.period_range('19910905',
-                                                        periods=100,
-                                                        freq='2H'))
-        pr = s.resample('24H', base=10).mean().to_timestamp().asfreq('24H')
-        tr = s.to_timestamp().resample('24H', base=10).mean()
-        assert_series_equal(pr, tr)
-
-        s = pd.Series(range(100), index=pd.period_range('19910905',
-                                                        periods=100,
-                                                        freq='Min'))
-        pr = s.resample('5Min', base=3).mean().to_timestamp()
-        tr = s.to_timestamp().resample('5Min', base=3).mean()
-        assert_series_equal(pr, tr)
-
-        s = pd.Series(range(100), index=pd.period_range('19910905',
-                                                        periods=100,
-                                                        freq='2Min'))
-        pr = s.resample('5Min', base=3).mean().to_timestamp()
-        tr = s.to_timestamp().resample('5Min', base=3).mean()
+                                                        freq=start_freq))
+        pr = (s.resample(end_freq, base=base).mean().to_timestamp()
+              .asfreq(end_freq))  # to_timestamp casts 24H -> D
+        tr = s.to_timestamp().resample(end_freq, base=base).mean()
         assert_series_equal(pr, tr)
