@@ -314,16 +314,6 @@ class Categorical(ExtensionArray, PandasObject):
     def __init__(self, values, categories=None, ordered=None, dtype=None,
                  fastpath=False):
 
-        # GH23814, for perf, if no optional params used and values already an
-        # instance of Categorical, simply return the same dtype/codes
-        if categories is None and ordered is None and dtype is None:
-            if isinstance(values, (ABCSeries, ABCIndexClass)):
-                values = values._values
-            if isinstance(values, type(self)):
-                self._dtype = values.dtype
-                self._codes = values.codes.copy()
-                return
-
         # Ways of specifying the dtype (prioritized ordered)
         # 1. dtype is a CategoricalDtype
         #    a.) with known categories, use dtype.categories
@@ -357,6 +347,16 @@ class Categorical(ExtensionArray, PandasObject):
             # the "ordered" and "categories" arguments
             dtype = values.dtype._from_categorical_dtype(values.dtype,
                                                          categories, ordered)
+
+            # GH23814, for perf, if no optional params used and values already
+            # an instance of Categorical, set values to codes like fastpath
+            if (isinstance(values, (ABCSeries, ABCIndexClass)) and
+               isinstance(values._values, type(self))):
+                values = values._values.codes.copy()
+                if categories is None:
+                    categories = dtype.categories
+                fastpath = True
+
         else:
             # If dtype=None and values is not categorical, create a new dtype
             dtype = CategoricalDtype(categories, ordered)
