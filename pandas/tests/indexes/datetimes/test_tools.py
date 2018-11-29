@@ -947,13 +947,16 @@ class TestToDatetimeMisc(object):
         with pytest.raises(OutOfBoundsDatetime):
             to_datetime(arr)
 
-    def test_to_datetime(self):
+    def test_to_datetime_out_of_bounds_with_format_arg(self):
         # GH#23830 raise the correct exception when
         # the format argument is passed.
-        arr = np.array(['2262-04-11 23:47:16.854775808'], dtype=object)
-
-        with pytest.raises(OutOfBoundsDatetime):
-            to_datetime(arr, format="%Y-%m-%d %H:%M:%S.%f")
+        msg = r"Out of bounds nanosecond timestamp"
+        with pytest.raises(
+                OutOfBoundsDatetime,
+                match=msg
+        ):
+            to_datetime("2417-10-27 00:00:00",
+                        format="%Y-%m-%d %H:%M:%S")
 
     @pytest.mark.parametrize('cache', [True, False])
     def test_to_datetime_iso8601(self, cache):
