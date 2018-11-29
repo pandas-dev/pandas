@@ -24,8 +24,53 @@ New features
   the user to override the engine's default behavior to include or omit the
   dataframe's indexes from the resulting Parquet file. (:issue:`20768`)
 - :meth:`DataFrame.corr` and :meth:`Series.corr` now accept a callable for generic calculation methods of correlation, e.g. histogram intersection (:issue:`22684`)
-- :func:`DataFrame.to_string` now accepts ``decimal`` as an argument, allowing
-the user to specify which decimal separator should be used in the output. (:issue:`23614`)
+- :func:`DataFrame.to_string` now accepts ``decimal`` as an argument, allowing the user to specify which decimal separator should be used in the output. (:issue:`23614`)
+
+.. _whatsnew_0240.values_api:
+
+Accessing the values in a Series or Index
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+:attr:`Series.array` and :attr:`Index.array` have been added for extracting the array backing a
+``Series`` or ``Index``.
+
+.. ipython:: python
+
+   idx = pd.period_range('2000', periods=4)
+   idx.array
+   pd.Series(idx).array
+
+Historically, this would have been done with ``series.values``, but with
+``.values`` it was unclear whether the returned value would be the actual array,
+some transformation of it, or one of pandas custom arrays (like
+``Categorical``). For example, with :class:`PeriodIndex`, ``.values`` generates
+a new ndarray of period objects each time.
+
+.. ipython:: python
+
+   id(idx.values)
+   id(idx.values)
+
+If you need an actual NumPy array, use :meth:`Series.to_numpy` or :meth:`Index.to_numpy`.
+
+.. ipython:: python
+
+   idx.to_numpy()
+   pd.Series(idx).to_numpy()
+
+For Series and Indexes backed by normal NumPy arrays, this will be the same thing (and the same
+as ``.values``).
+
+.. ipython:: python
+
+   ser = pd.Series([1, 2, 3])
+   ser.array
+   ser.to_numpy()
+
+We haven't removed or deprecated :attr:`Series.values` or :attr:`DataFrame.values`, but we
+recommend and using ``.array`` or ``.to_numpy()`` instead.
+
+See :ref:`basics.dtypes` and :ref:`dsintro.attrs` for more.
 
 .. _whatsnew_0240.enhancements.extension_array_operators:
 
