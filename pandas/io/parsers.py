@@ -1669,6 +1669,16 @@ class ParserBase(object):
 
                 # type specified in dtype param
                 if cast_type and not is_dtype_equal(cvals, cast_type):
+                    try:
+                        if (is_bool_dtype(cast_type) and
+                                not is_categorical_dtype(cast_type)
+                                and set(values) - set(col_na_values)):
+                            raise ValueError("Bool column has NA values in "
+                                             "column {column}"
+                                             .format(column=c))
+                    except (AttributeError, TypeError):
+                        # invalid input to is_bool_dtype
+                        pass
                     cvals = self._cast_types(cvals, cast_type, c)
 
             result[c] = cvals
@@ -2434,21 +2444,6 @@ class PythonParser(ParserBase):
         else:
             clean_na_values = self.na_values
             clean_na_fvalues = self.na_fvalues
-
-        try:
-            if isinstance(clean_dtypes, dict):
-                for col, dt in clean_dtypes.items():
-                    if is_bool_dtype(dt) and data[col][data[col] == ''].size:
-                        raise ValueError("Bool column has NA values in "
-                                         "column {column}".format(column=col))
-            elif (isinstance(clean_dtypes, string_types) and
-                  is_bool_dtype(clean_dtypes)):
-                for col, values in data.items():
-                    if any(isna(values)):
-                        raise ValueError("Bool column has NA values in "
-                                         "column {column}".format(column=col))
-        except (AttributeError, TypeError):  # invalid input to is_bool_dtype
-            pass
 
         return self._convert_to_ndarrays(data, clean_na_values,
                                          clean_na_fvalues, self.verbose,
