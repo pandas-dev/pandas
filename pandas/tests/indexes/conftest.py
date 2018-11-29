@@ -31,7 +31,7 @@ def indices(request):
 
 def _make_repeating_index(x=10):
     # x should be > 1
-    return Index(sorted([i for i in range(x//2 + 1)] * 2)[:x])
+    return Index(sorted([i for i in range(x // 2 + 1)] * 2)[:x])
 
 
 @pytest.fixture(params=[tm.makeUnicodeIndex,

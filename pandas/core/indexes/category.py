@@ -873,7 +873,8 @@ class CategoricalIndex(Index, accessor.PandasDelegate):
         return CategoricalIndex(res, name=self.name)
 
     def _is_compatible_with_other(self, other):
-        return type(self) is type(other) and type(self.dtype) is type(self.dtype)
+        return (type(self) is type(other) 
+                and type(self.dtype) is type(self.dtype))
 
 
 CategoricalIndex._add_numeric_methods_add_sub_disabled()

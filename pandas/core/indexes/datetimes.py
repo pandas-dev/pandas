@@ -566,7 +566,7 @@ class DatetimeIndex(DatetimeArray, DatelikeOps, TimelikeOps,
         is_compat = super(DatetimeIndex, self)._is_compatible_with_other(other)
         if not is_compat:
             # Allow mismatched timezones - UTC logic will take over
-            is_compat = (hasattr(other, 'dtype') 
+            is_compat = (hasattr(other, 'dtype')
                          and self.dtype.base == other.dtype.base)
         return is_compat
 

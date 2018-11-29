@@ -40,8 +40,8 @@ def test_union_different_types(idxfactory1, idxfactory2):
     idx1 = idxfactory1(10)
     idx2 = idxfactory2(20)
 
-    if (tuple(sorted([type(idx1), type(idx2)], key=lambda x: str(x))) 
-        in COMPATIBLE_INCONSISTENT_PAIRS):
+    pair = tuple(sorted([type(idx1), type(idx2)], key=lambda x: str(x)))
+    if pair in COMPATIBLE_INCONSISTENT_PAIRS:
         return
 
     if any(isinstance(idx, pd.MultiIndex) for idx in [idx1, idx2]):

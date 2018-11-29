@@ -2772,7 +2772,7 @@ class Index(IndexOpsMixin, PandasObject):
         Meaning a union can be formed between them without needing to be cast
         to dtype object.
         """
-        return (type(self) is type(other) 
+        return (type(self) is type(other)
                 and is_dtype_equal(self.dtype, other.dtype))
 
     def union(self, other):
@@ -2801,7 +2801,7 @@ class Index(IndexOpsMixin, PandasObject):
         if not self._is_compatible_with_other(other):
             return self._union_incompatible_dtypes(other)
 
-        # This line needs to be after _union_incompatible_dtypes to ensure 
+        # This line needs to be after _union_incompatible_dtypes to ensure
         # the original type of other is not lost after being cast to Index
         other = ensure_index(other)
         return self._union(other)
