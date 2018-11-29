@@ -26,7 +26,7 @@ cdef class IntervalTree(IntervalMixin):
     cdef:
         readonly object left, right, root, dtype
         readonly str closed
-        object _left_sorter, _right_sorter
+        object _is_overlapping, _left_sorter, _right_sorter
 
     def __init__(self, left, right, closed='right', leaf_size=100):
         """
@@ -80,6 +80,26 @@ cdef class IntervalTree(IntervalMixin):
         if self._right_sorter is None:
             self._right_sorter = np.argsort(self.right)
         return self._right_sorter
+
+    @property
+    def is_overlapping(self):
+        """
+        Determine if the IntervalTree contains overlapping intervals.
+        Cached as self._is_overlapping.
+        """
+        if self._is_overlapping is not None:
+            return self._is_overlapping
+
+        # <= when both sides closed since endpoints can overlap
+        op = le if self.closed == 'both' else lt
+
+        # overlap if start of current interval < end of previous interval
+        # (current and previous in terms of sorted order by left/start side)
+        current = self.left[self.left_sorter[1:]]
+        previous = self.right[self.left_sorter[:-1]]
+        self._is_overlapping = bool(op(current, previous).any())
+
+        return self._is_overlapping
 
     def get_loc(self, scalar_t key):
         """Return all positions corresponding to intervals that overlap with
