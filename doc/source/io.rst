@@ -662,8 +662,8 @@ If ``skip_blank_lines=False``, then ``read_csv`` will not ignore blank lines:
 
    .. ipython:: python
 
-      data = '# empty\n# second empty line\n# third empty' \
-                'line\nX,Y,Z\n1,2,3\nA,B,C\n1,2.,4.\n5.,NaN,10.0'
+      data = ('# empty\n# second empty line\n# third empty'
+                'line\nX,Y,Z\n1,2,3\nA,B,C\n1,2.,4.\n5.,NaN,10.0')
       print(data)
       pd.read_csv(StringIO(data), comment='#', skiprows=4, header=1)
 
