@@ -1767,38 +1767,6 @@ def is_complex_dtype(arr_or_dtype):
     return issubclass(tipo, np.complexfloating)
 
 
-def _coerce_to_dtype(dtype):
-    """
-    Coerce a string or np.dtype to a pandas or numpy
-    dtype if possible.
-
-    If we cannot convert to a pandas dtype initially,
-    we convert to a numpy dtype.
-
-    Parameters
-    ----------
-    dtype : The dtype that we want to coerce.
-
-    Returns
-    -------
-    pd_or_np_dtype : The coerced dtype.
-    """
-
-    if is_categorical_dtype(dtype):
-        categories = getattr(dtype, 'categories', None)
-        ordered = getattr(dtype, 'ordered', False)
-        dtype = CategoricalDtype(categories=categories, ordered=ordered)
-    elif is_datetime64tz_dtype(dtype):
-        dtype = DatetimeTZDtype.construct_from_string(dtype)
-    elif is_period_dtype(dtype):
-        dtype = PeriodDtype(dtype)
-    elif is_interval_dtype(dtype):
-        dtype = IntervalDtype(dtype)
-    else:
-        dtype = np.dtype(dtype)
-    return dtype
-
-
 def _get_dtype(arr_or_dtype):
     """
     Get the dtype instance associated with an array

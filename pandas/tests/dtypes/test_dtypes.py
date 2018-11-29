@@ -17,7 +17,6 @@ from pandas.core.dtypes.common import (
     is_dtype_equal, is_datetime64_ns_dtype,
     is_datetime64_dtype, is_interval_dtype,
     is_datetime64_any_dtype, is_string_dtype,
-    _coerce_to_dtype,
     is_bool_dtype,
 )
 from pandas.core.sparse.api import SparseDtype
@@ -173,12 +172,6 @@ class TestDatetimeTZDtype(Base):
         assert issubclass(type(a), type(a))
         assert issubclass(type(a), type(b))
 
-    def test_coerce_to_dtype(self):
-        assert (_coerce_to_dtype('datetime64[ns, US/Eastern]') ==
-                DatetimeTZDtype('ns', 'US/Eastern'))
-        assert (_coerce_to_dtype('datetime64[ns, Asia/Tokyo]') ==
-                DatetimeTZDtype('ns', 'Asia/Tokyo'))
-
     def test_compat(self):
         assert is_datetime64tz_dtype(self.dtype)
         assert is_datetime64tz_dtype('datetime64[ns, US/Eastern]')
@@ -318,10 +311,6 @@ class TestPeriodDtype(Base):
 
         assert PeriodDtype('period[1S1U]') == PeriodDtype('period[1000001U]')
         assert PeriodDtype('period[1S1U]') is PeriodDtype('period[1000001U]')
-
-    def test_coerce_to_dtype(self):
-        assert _coerce_to_dtype('period[D]') == PeriodDtype('period[D]')
-        assert _coerce_to_dtype('period[3M]') == PeriodDtype('period[3M]')
 
     def test_compat(self):
         assert not is_datetime64_ns_dtype(self.dtype)
@@ -516,10 +505,6 @@ class TestIntervalDtype(Base):
         assert not IntervalDtype.is_dtype(np.object_)
         assert not IntervalDtype.is_dtype(np.int64)
         assert not IntervalDtype.is_dtype(np.float64)
-
-    def test_coerce_to_dtype(self):
-        assert (_coerce_to_dtype('interval[int64]') ==
-                IntervalDtype('interval[int64]'))
 
     def test_equality(self):
         assert is_dtype_equal(self.dtype, 'interval[int64]')
