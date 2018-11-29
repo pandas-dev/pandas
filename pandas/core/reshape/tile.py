@@ -217,6 +217,8 @@ def cut(x, bins, right=True, labels=None, retbins=False, precision=3,
                 bins[-1] += adj
 
     elif isinstance(bins, IntervalIndex):
+        if bins.is_overlapping:
+            raise ValueError('Overlapping IntervalIndex is not accepted.')
         pass
     else:
         bins = np.asarray(bins)
