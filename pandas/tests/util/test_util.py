@@ -3,7 +3,6 @@ import codecs
 from collections import OrderedDict
 import locale
 import os
-import subprocess
 import sys
 from uuid import uuid4
 
