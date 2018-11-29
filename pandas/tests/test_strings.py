@@ -135,7 +135,10 @@ def any_allowed_skipna_inferred_dtype(request):
     """
     Fixture for all (inferred) dtypes allowed in StringMethods.__init__
 
-    The covered (inferred) types are:
+    Returns an np.ndarray that will be inferred to have the given dtype (when
+    skipping missing values).
+
+    The allowed (inferred) types are:
     * 'string'
     * 'unicode' (if PY2)
     * 'empty'
@@ -156,9 +159,12 @@ def any_allowed_skipna_inferred_dtype(request):
     >>> import pandas._libs.lib as lib
     >>>
     >>> def test_something(any_allowed_skipna_inferred_dtype):
-    ...     inferred_dtype, values = any_skipna_inferred_dtype
+    ...     inferred_dtype, values = any_allowed_skipna_inferred_dtype
     ...     # will pass
     ...     assert lib.infer_dtype(values, skipna=True) == inferred_dtype
+    ...
+    ...     # constructor for .str-accessor will also pass
+    ...     pd.Series(values).str
     """
     inferred_dtype, values = request.param
     values = np.array(values, dtype=object)  # object dtype to avoid casting
@@ -188,20 +194,6 @@ class TestStringMethods(object):
             pytest.xfail(reason='Conversion to numpy array fails because '
                          'the ._values-attribute is not a numpy array for '
                          'PeriodArray/IntervalArray; see GH 23553')
-        if box == Index and inferred_dtype in ['empty', 'bytes']:
-            pytest.xfail(reason='Raising too restrictively; '
-                         'solved by GH 23167')
-        if (box == Index and dtype == object
-                and inferred_dtype in ['boolean', 'date', 'time']):
-            pytest.xfail(reason='Inferring incorrectly because of NaNs; '
-                         'solved by GH 23167')
-        if (box == Series
-                and (dtype == object and inferred_dtype not in [
-                    'string', 'unicode', 'empty',
-                    'bytes', 'mixed', 'mixed-integer'])
-                or (dtype == 'category'
-                    and inferred_dtype in ['decimal', 'boolean', 'time'])):
-            pytest.xfail(reason='Not raising correctly; solved by GH 23167')
 
         types_passing_constructor = ['string', 'unicode', 'empty',
                                      'bytes', 'mixed', 'mixed-integer']
@@ -229,25 +221,19 @@ class TestStringMethods(object):
         method_name, args, kwargs = any_string_method
 
         # TODO: get rid of these xfails
-        if (method_name not in ['encode', 'decode', 'len']
-                and inferred_dtype == 'bytes'):
-            pytest.xfail(reason='Not raising for "bytes", see GH 23011;'
-                         'Also: malformed method names, see GH 23551; '
-                         'solved by GH 23167')
-        if (method_name == 'cat'
-                and inferred_dtype in ['mixed', 'mixed-integer']):
-            pytest.xfail(reason='Bad error message; should raise better; '
-                         'solved by GH 23167')
-        if box == Index and inferred_dtype in ['empty', 'bytes']:
-            pytest.xfail(reason='Raising too restrictively; '
-                         'solved by GH 23167')
-        if (box == Index and dtype == object
-                and inferred_dtype in ['boolean', 'date', 'time']):
-            pytest.xfail(reason='Inferring incorrectly because of NaNs; '
-                         'solved by GH 23167')
         if box == Index and dtype == 'category':
             pytest.xfail(reason='Broken methods on CategoricalIndex; '
                          'see GH 23556')
+        if (method_name in ['partition', 'rpartition'] and box == Index
+                and inferred_dtype == 'empty'):
+            pytest.xfail(reason='Method cannot deal with empty Index')
+        if (method_name == 'split' and box == Index and values.size == 0
+                and kwargs.get('expand', None) is not None):
+            pytest.xfail(reason='Split fails on empty Series when expand=True')
+        if (method_name == 'get_dummies' and box == Index
+                and inferred_dtype == 'empty' and (dtype == object
+                                                   or values.size == 0)):
+            pytest.xfail(reason='Need to fortify get_dummies corner cases')
 
         t = box(values, dtype=dtype)  # explicit dtype to avoid casting
         method = getattr(t.str, method_name)
@@ -629,12 +615,6 @@ class TestStringMethods(object):
         # unindexed object of wrong length in list
         with pytest.raises(ValueError, match=rgx):
             s.str.cat([t, z], join=join)
-
-    def test_str_cat_raises(self):
-        # non-strings hiding behind object dtype
-        s = Series([1, 2, 3, 4], dtype='object')
-        with pytest.raises(TypeError, match="unsupported operand type.*"):
-            s.str.cat(s)
 
     def test_str_cat_special_cases(self):
         s = Series(['a', 'b', 'c', 'd'])

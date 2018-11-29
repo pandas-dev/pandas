@@ -374,6 +374,8 @@ Backwards incompatible API changes
 
 - A newly constructed empty :class:`DataFrame` with integer as the ``dtype`` will now only be cast to ``float64`` if ``index`` is specified (:issue:`22858`)
 - :meth:`Series.str.cat` will now raise if `others` is a `set` (:issue:`23009`)
+- The `.str`-accessor will perform more rigorous type checking for inputs. Previously, some types that were never intended to be used
+  "worked" purely due to limitations of dtype checking -- e.g. ``bytes``, which is now disabled except for `encode`, `decode` and `len` (:issue:`23011`, :issue:`23163`)
 - Passing scalar values to :class:`DatetimeIndex` or :class:`TimedeltaIndex` will now raise ``TypeError`` instead of ``ValueError`` (:issue:`23539`)
 - ``max_rows`` and ``max_cols`` parameters removed from :class:`HTMLFormatter` since truncation is handled by :class:`DataFrameFormatter` (:issue:`23818`)
 
@@ -1363,6 +1365,7 @@ Strings
 - Bug in :meth:`Index.str.partition` was not nan-safe (:issue:`23558`).
 - Bug in :meth:`Index.str.split` was not nan-safe (:issue:`23677`).
 - Bug :func:`Series.str.contains` not respecting the ``na`` argument for a ``Categorical`` dtype ``Series`` (:issue:`22158`)
+- Bug in the ``__name__`` attribute of several methods of :class:`Series.str`, which were set incorrectly (:issue:`23551`)
 
 Interval
 ^^^^^^^^
