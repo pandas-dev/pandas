@@ -386,7 +386,8 @@ FLOAT_DTYPES = [float, "float32", "float64"]
 COMPLEX_DTYPES = [complex, "complex64", "complex128"]
 STRING_DTYPES = [str, 'str', 'U']
 
-DATETIMEDELTA_DTYPES = ['datetime64[ns]', 'M8[ns]', 'timedelta64[ns]', 'm8[ns]']
+DATETIMEDELTA_DTYPES = ['datetime64[ns]', 'M8[ns]',
+                        'timedelta64[ns]', 'm8[ns]']
 BOOL_DTYPES = [bool, 'bool']
 BYTES_DTYPES = [bytes, 'bytes']
 OBJECT_DTYPES = [object, 'object']
