@@ -1454,7 +1454,8 @@ class TestTimedeltaArraylikeMulDivOps(object):
             # Index.__rdiv__ won't try to operate elementwise, just raises
             result = tdser / vector.astype(object)
             if box_with_array is pd.DataFrame:
-                expected = [tdser.iloc[0, n] / vector[n] for n in range(len(vector))]
+                expected = [tdser.iloc[0, n] / vector[n]
+                            for n in range(len(vector))]
             else:
                 expected = [tdser[n] / vector[n] for n in range(len(tdser))]
             expected = tm.box_expected(expected, xbox)
