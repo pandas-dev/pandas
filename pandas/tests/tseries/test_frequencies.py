@@ -1,26 +1,24 @@
 from datetime import datetime, timedelta
-from pandas.compat import range
 
-import pytest
 import numpy as np
+import pytest
 
-from pandas import (Index, DatetimeIndex, Timestamp, Series,
-                    date_range, period_range)
-
-from pandas._libs.tslibs.frequencies import (_period_code_map,
-                                             INVALID_FREQ_ERR_MSG)
-from pandas._libs.tslibs.ccalendar import MONTHS
 from pandas._libs.tslibs import resolution
-import pandas.tseries.frequencies as frequencies
-from pandas.core.tools.datetimes import to_datetime
-
-import pandas.tseries.offsets as offsets
-from pandas.core.indexes.period import PeriodIndex
+from pandas._libs.tslibs.ccalendar import MONTHS
+from pandas._libs.tslibs.frequencies import (
+    INVALID_FREQ_ERR_MSG, _period_code_map)
 import pandas.compat as compat
-from pandas.compat import is_platform_windows
+from pandas.compat import is_platform_windows, range
 
+from pandas import (
+    DatetimeIndex, Index, Series, Timedelta, Timestamp, date_range,
+    period_range)
+from pandas.core.indexes.period import PeriodIndex
+from pandas.core.tools.datetimes import to_datetime
 import pandas.util.testing as tm
-from pandas import Timedelta
+
+import pandas.tseries.frequencies as frequencies
+import pandas.tseries.offsets as offsets
 
 
 class TestToOffset(object):

@@ -264,6 +264,18 @@ class ReadingTestsBase(SharedItems):
                                               names=["A", "B", "C"]))
         tm.assert_frame_equal(result, expected)
 
+    @pytest.mark.parametrize("index_col", [None, 2])
+    def test_index_col_with_unnamed(self, ext, index_col):
+        # see gh-18792
+        result = self.get_exceldf("test1", ext, "Sheet4",
+                                  index_col=index_col)
+        expected = DataFrame([["i1", "a", "x"], ["i2", "b", "y"]],
+                             columns=["Unnamed: 0", "col1", "col2"])
+        if index_col:
+            expected = expected.set_index(expected.columns[index_col])
+
+        tm.assert_frame_equal(result, expected)
+
     def test_usecols_pass_non_existent_column(self, ext):
         msg = ("Usecols do not match columns, "
                "columns expected but not found: " + r"\['E'\]")
@@ -923,9 +935,9 @@ class TestXlrdReader(ReadingTestsBase):
             })
 
             expected = DataFrame({
-                ("One", u"x"): {0: 1},
-                ("Two", u"X"): {0: 3},
-                ("Two", u"Y"): {0: 7},
+                ("One", "x"): {0: 1},
+                ("Two", "X"): {0: 3},
+                ("Two", "Y"): {0: 7},
                 ("Zero", "Unnamed: 4_level_1"): {0: 0}
             })
 
@@ -942,9 +954,9 @@ class TestXlrdReader(ReadingTestsBase):
 
             expected = pd.DataFrame({
                 ("Beg", "Unnamed: 1_level_1"): {0: 0},
-                ("Middle", u"x"): {0: 1},
-                ("Tail", u"X"): {0: 3},
-                ("Tail", u"Y"): {0: 7}
+                ("Middle", "x"): {0: 1},
+                ("Tail", "X"): {0: 3},
+                ("Tail", "Y"): {0: 7}
             })
 
             df.to_excel(path)

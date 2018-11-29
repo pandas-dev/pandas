@@ -1,5 +1,6 @@
 """ implement the TimedeltaIndex """
 from datetime import datetime
+import warnings
 
 import numpy as np
 
@@ -127,14 +128,27 @@ class TimedeltaIndex(TimedeltaArray, DatetimeIndexOpsMixin,
 
     _freq = None
 
+    # -------------------------------------------------------------------
+    # Constructors
+
     def __new__(cls, data=None, unit=None, freq=None, start=None, end=None,
                 periods=None, closed=None, dtype=None, copy=False,
-                name=None, verify_integrity=True):
+                name=None, verify_integrity=None):
+
+        if verify_integrity is not None:
+            warnings.warn("The 'verify_integrity' argument is deprecated, "
+                          "will be removed in a future version.",
+                          FutureWarning, stacklevel=2)
+        else:
+            verify_integrity = True
 
         freq, freq_infer = dtl.maybe_infer_freq(freq)
 
         if data is None:
-            # TODO: Remove this block and associated kwargs; GH#20535
+            warnings.warn("Creating a TimedeltaIndex by passing range "
+                          "endpoints is deprecated.  Use "
+                          "`pandas.timedelta_range` instead.",
+                          FutureWarning, stacklevel=2)
             result = cls._generate_range(start, end, periods, freq,
                                          closed=closed)
             result.name = name
@@ -193,10 +207,7 @@ class TimedeltaIndex(TimedeltaArray, DatetimeIndexOpsMixin,
         result._reset_identity()
         return result
 
-    @property
-    def _formatter_func(self):
-        from pandas.io.formats.format import _get_format_timedelta64
-        return _get_format_timedelta64(self, box=True)
+    # -------------------------------------------------------------------
 
     def __setstate__(self, state):
         """Necessary for making this object picklable"""
@@ -218,6 +229,14 @@ class TimedeltaIndex(TimedeltaArray, DatetimeIndexOpsMixin,
         result = TimedeltaArray._evaluate_with_timedelta_like(self, other, op)
         return wrap_arithmetic_op(self, other, result)
 
+    # -------------------------------------------------------------------
+    # Rendering Methods
+
+    @property
+    def _formatter_func(self):
+        from pandas.io.formats.format import _get_format_timedelta64
+        return _get_format_timedelta64(self, box=True)
+
     def _format_native_types(self, na_rep=u'NaT', date_format=None, **kwargs):
         from pandas.io.formats.format import Timedelta64Formatter
         return Timedelta64Formatter(values=self,
@@ -229,11 +248,8 @@ class TimedeltaIndex(TimedeltaArray, DatetimeIndexOpsMixin,
 
     __mul__ = Index.__mul__
     __rmul__ = Index.__rmul__
-    __truediv__ = Index.__truediv__
     __floordiv__ = Index.__floordiv__
     __rfloordiv__ = Index.__rfloordiv__
-    if compat.PY2:
-        __div__ = Index.__div__
 
     days = wrap_field_accessor(TimedeltaArray.days)
     seconds = wrap_field_accessor(TimedeltaArray.seconds)
@@ -241,6 +257,31 @@ class TimedeltaIndex(TimedeltaArray, DatetimeIndexOpsMixin,
     nanoseconds = wrap_field_accessor(TimedeltaArray.nanoseconds)
 
     total_seconds = wrap_array_method(TimedeltaArray.total_seconds, True)
+
+    def __truediv__(self, other):
+        oth = other
+        if isinstance(other, Index):
+            # TimedeltaArray defers, so we need to unwrap
+            oth = other._values
+        result = TimedeltaArray.__truediv__(self, oth)
+        return wrap_arithmetic_op(self, other, result)
+
+    def __rtruediv__(self, other):
+        oth = other
+        if isinstance(other, Index):
+            # TimedeltaArray defers, so we need to unwrap
+            oth = other._values
+        result = TimedeltaArray.__rtruediv__(self, oth)
+        return wrap_arithmetic_op(self, other, result)
+
+    if compat.PY2:
+        __div__ = __truediv__
+        __rdiv__ = __rtruediv__
+
+    # Compat for frequency inference, see GH#23789
+    _is_monotonic_increasing = Index.is_monotonic_increasing
+    _is_monotonic_decreasing = Index.is_monotonic_decreasing
+    _is_unique = Index.is_unique
 
     # -------------------------------------------------------------------
 
@@ -727,5 +768,8 @@ def timedelta_range(start=None, end=None, periods=None, freq=None,
     if freq is None and com._any_none(periods, start, end):
         freq = 'D'
 
-    return TimedeltaIndex(start=start, end=end, periods=periods,
-                          freq=freq, name=name, closed=closed)
+    freq, freq_infer = dtl.maybe_infer_freq(freq)
+    result = TimedeltaIndex._generate_range(start, end, periods, freq,
+                                            closed=closed)
+    result.name = name
+    return result
