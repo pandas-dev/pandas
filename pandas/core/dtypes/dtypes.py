@@ -542,6 +542,17 @@ class DatetimeTZDtype(PandasExtensionDtype):
         return self._tz
 
     @classmethod
+    def construct_array_type(cls):
+        """Return the array type associated with this dtype
+
+        Returns
+        -------
+        type
+        """
+        from pandas import DatetimeIndex
+        return DatetimeIndex
+
+    @classmethod
     def construct_from_string(cls, string):
         """
         Construct a DatetimeTZDtype from a string.
