@@ -890,28 +890,14 @@ def maybe_infer_to_datetimelike(value, convert_dates=False):
             v, inferred_tz = tslib.array_to_datetime(v,
                                                      require_iso8601=True,
                                                      errors='raise')
-        except ValueError:
-
-            # we might have a sequence of the same-datetimes with tz's
-            # if so coerce to a DatetimeIndex; if they are not the same,
-            # then these stay as object dtype, xref GH19671
-            try:
-                from pandas._libs.tslibs import conversion
-                from pandas import DatetimeIndex
-
-                values, tz = conversion.datetime_to_datetime64(v)
-                return DatetimeIndex(values).tz_localize(
-                    'UTC').tz_convert(tz=tz)
-                # TODO: possibly reshape?
-            except (ValueError, TypeError):
-                pass
-
         except Exception:
             pass
         else:
-            if inferred_tz is not None:  # TODO: de-duplicate with to_datetime
+            if inferred_tz is not None:
+                # TODO: de-duplicate with to_datetime
                 from pandas import DatetimeIndex
-                return DatetimeIndex(v).tz_localize('UTC').tz_convert(tz=inferred_tz)
+                dti = DatetimeIndex(v).tz_localize('UTC')
+                return dti.tz_convert(tz=inferred_tz)
                 # TODO: possibly reshape?
 
         return v.reshape(shape)

@@ -40,7 +40,7 @@ from timezones import UTC
 from parsing import parse_datetime_string
 
 from nattype import nat_strings, NaT
-from nattype cimport NPY_NAT, checknull_with_nat
+from nattype cimport NPY_NAT
 
 # ----------------------------------------------------------------------
 # Constants
@@ -144,58 +144,6 @@ def ensure_timedelta64ns(arr: ndarray, copy: bool=True):
     """
     return arr.astype(TD_DTYPE, copy=copy)
     # TODO: check for overflows when going from a lower-resolution to nanos
-
-
-@cython.boundscheck(False)
-@cython.wraparound(False)
-def datetime_to_datetime64(values: object[:]):
-    """
-    Convert ndarray of datetime-like objects to int64 array representing
-    nanosecond timestamps.
-
-    Parameters
-    ----------
-    values : ndarray[object]
-
-    Returns
-    -------
-    result : ndarray[int64_t]
-    inferred_tz : tzinfo or None
-    """
-    cdef:
-        Py_ssize_t i, n = len(values)
-        object val, inferred_tz = None
-        int64_t[:] iresult
-        npy_datetimestruct dts
-        _TSObject _ts
-
-    result = np.empty(n, dtype='M8[ns]')
-    iresult = result.view('i8')
-    for i in range(n):
-        val = values[i]
-        if checknull_with_nat(val):
-            iresult[i] = NPY_NAT
-        elif PyDateTime_Check(val):
-            if val.tzinfo is not None:
-                if inferred_tz is not None:
-                    if not tz_compare(val.tzinfo, inferred_tz):
-                        raise ValueError('Array must be all same time zone')
-                else:
-                    inferred_tz = get_timezone(val.tzinfo)
-
-                _ts = convert_datetime_to_tsobject(val, None)
-                iresult[i] = _ts.value
-                check_dts_bounds(&_ts.dts)
-            else:
-                if inferred_tz is not None:
-                    raise ValueError('Cannot mix tz-aware with '
-                                     'tz-naive values')
-                iresult[i] = pydatetime_to_dt64(val, &dts)
-                check_dts_bounds(&dts)
-        else:
-            raise TypeError('Unrecognized value type: %s' % type(val))
-
-    return result, inferred_tz
 
 
 cdef inline maybe_datetimelike_to_i8(object val):
