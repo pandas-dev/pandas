@@ -561,9 +561,6 @@ class DatetimeLikeArrayMixin(DatelikeOps, TimelikeOps,
         """
         raise AbstractMethodError(self)
 
-    def _formatting_values(self):
-        return np.array(self, dtype=object)
-
     def _formatter(self, boxed=False):
         return "'{}'".format
 

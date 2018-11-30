@@ -5,6 +5,9 @@ from datetime import datetime, time
 from distutils.version import LooseVersion
 import locale
 
+import dateutil
+from dateutil.parser import parse
+from dateutil.tz.tz import tzoffset
 import numpy as np
 import pytest
 import pytz
@@ -17,9 +20,6 @@ import pandas.util._test_decorators as td
 
 from pandas.core.dtypes.common import is_datetime64_ns_dtype
 
-import dateutil
-from dateutil.parser import parse
-from dateutil.tz.tz import tzoffset
 import pandas as pd
 from pandas import (
     DataFrame, DatetimeIndex, Index, NaT, Series, Timestamp, compat,

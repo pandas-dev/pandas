@@ -94,10 +94,9 @@ class TestGetitem(BaseDatetimeTests, base.BaseGetitemTests):
 
 
 class TestMethods(BaseDatetimeTests, base.BaseMethodsTests):
-    @pytest.mark.xfail(reason='GH-22843', strict=True)
+    @pytest.mark.skip(reason="Incorrect expected")
     def test_value_counts(self, all_data, dropna):
-        # fails without .value_counts
-        return super().test_value_counts(all_data, dropna)
+        pass
 
     def test_apply_simple_series(self, data):
         if data.tz:
@@ -222,4 +221,8 @@ class TestSetitem(BaseDatetimeTests, base.BaseSetitemTests):
 
 
 class TestGroupby(BaseDatetimeTests, base.BaseGroupbyTests):
+    pass
+
+
+class TestPrinting(BaseDatetimeTests, base.BasePrintingTests):
     pass

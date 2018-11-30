@@ -3,6 +3,7 @@ from datetime import date, datetime, timedelta
 import functools
 import operator
 
+from dateutil.easter import easter
 import numpy as np
 
 from pandas._libs.tslibs import (
@@ -19,7 +20,6 @@ from pandas.util._decorators import cache_readonly
 
 from pandas.core.dtypes.generic import ABCPeriod
 
-from dateutil.easter import easter
 from pandas.core.tools.datetimes import to_datetime
 
 __all__ = ['Day', 'BusinessDay', 'BDay', 'CustomBusinessDay', 'CDay',

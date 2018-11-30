@@ -1,11 +1,11 @@
 from datetime import datetime
 
+import dateutil
+from dateutil.tz import tzlocal
 import numpy as np
 import pytest
 import pytz
 
-import dateutil
-from dateutil.tz import tzlocal
 import pandas as pd
 from pandas import (
     DatetimeIndex, Index, Int64Index, NaT, Period, Series, Timestamp,
