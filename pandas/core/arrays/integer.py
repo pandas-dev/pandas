@@ -5,7 +5,7 @@ import warnings
 import numpy as np
 
 from pandas._libs import lib
-from pandas.compat import range, set_function_name, string_types, u
+from pandas.compat import range, set_function_name, string_types
 from pandas.util._decorators import cache_readonly
 
 from pandas.core.dtypes.base import ExtensionDtype
@@ -19,9 +19,6 @@ from pandas.core.dtypes.missing import isna, notna
 
 from pandas.core import nanops
 from pandas.core.arrays import ExtensionArray, ExtensionOpsMixin
-
-from pandas.io.formats.printing import (
-    default_pprint, format_object_attrs, format_object_summary)
 
 
 class _IntegerDtype(ExtensionDtype):
@@ -263,6 +260,13 @@ class IntegerArray(ExtensionArray, ExtensionOpsMixin):
     def _from_factorized(cls, values, original):
         return integer_array(values, dtype=original.dtype)
 
+    def _formatter(self, boxed=False):
+        def fmt(x):
+            if isna(x):
+                return 'NaN'
+            return str(x)
+        return fmt
+
     def __getitem__(self, item):
         if is_integer(item):
             if self._mask[item]:
@@ -295,10 +299,6 @@ class IntegerArray(ExtensionArray, ExtensionOpsMixin):
                 yield self.dtype.na_value
             else:
                 yield self._data[i]
-
-    def _formatting_values(self):
-        # type: () -> np.ndarray
-        return self._coerce_to_ndarray()
 
     def take(self, indexer, allow_fill=False, fill_value=None):
         from pandas.api.extensions import take
@@ -348,25 +348,6 @@ class IntegerArray(ExtensionArray, ExtensionOpsMixin):
 
     def __len__(self):
         return len(self._data)
-
-    def __repr__(self):
-        """
-        Return a string representation for this object.
-
-        Invoked by unicode(df) in py2 only. Yields a Unicode String in both
-        py2/py3.
-        """
-        klass = self.__class__.__name__
-        data = format_object_summary(self, default_pprint, False)
-        attrs = format_object_attrs(self)
-        space = " "
-
-        prepr = (u(",%s") %
-                 space).join(u("%s=%s") % (k, v) for k, v in attrs)
-
-        res = u("%s(%s%s)") % (klass, data, prepr)
-
-        return res
 
     @property
     def nbytes(self):

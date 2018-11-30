@@ -1735,6 +1735,9 @@ class SparseArray(PandasObject, ExtensionArray, ExtensionOpsMixin):
             fill=printing.pprint_thing(self.fill_value),
             index=printing.pprint_thing(self.sp_index))
 
+    def _formatter(self, boxed=False):
+        return None
+
 
 SparseArray._add_arithmetic_ops()
 SparseArray._add_comparison_ops()

@@ -210,3 +210,7 @@ class TestNumericReduce(base.BaseNumericReduceTests):
 
 class TestBooleanReduce(base.BaseBooleanReduceTests):
     pass
+
+
+class TestPrinting(base.BasePrintingTests):
+    pass
