@@ -25,18 +25,27 @@ def test_normalize_date():
 
 def test_rich_comparison_with_unsupported_type():
     # See https://github.com/pandas-dev/pandas/issues/24011
+
     class Inf:
-        def __lt__(self, o): return False
-        def __le__(self, o): return isinstance(o, Inf)
-        def __gt__(self, o): return not isinstance(o, Inf)
-        def __ge__(self, o): return True
-        def __eq__(self, o): return isinstance(o, Inf)
-        def __ne__(self, o): return not self == o  # Required for Python 2
-        def __repr__(self): return '+inf'
+        def __lt__(self, o):
+            return False
+
+        def __le__(self, o):
+            return isinstance(o, Inf)
+
+        def __gt__(self, o):
+            return not isinstance(o, Inf)
+
+        def __ge__(self, o):
+            return True
+
+        def __eq__(self, o):
+            return isinstance(o, Inf)
 
     timestamp = tslibs.Timestamp('2018-11-30')
 
-    # Comparison works if compared in *that* order, because magic method is called on Inf
+    # Comparison works if compared in *that* order, because
+    # magic method is called on Inf
     assert Inf() > timestamp
     assert not (Inf() < timestamp)
 
