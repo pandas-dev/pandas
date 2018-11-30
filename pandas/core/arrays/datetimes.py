@@ -120,13 +120,6 @@ def _dt_array_cmp(cls, op):
         else:
             if isinstance(other, list):
                 try:
-                    # TODO: verify
-                    # this failed pandas/tests/arithmetic/test_datetime64.py::
-                    # test_comparison_tzawareness_compat
-                    # but I think for a different reason.
-                    # I don't know how DatetimeArrayMixin.__new__ was ever
-                    # supposed to handle list-like, since we fail if there's
-                    # no dtype.
                     other = type(self)._from_sequence(other)
                 except ValueError:
                     other = np.array(other, dtype=np.object_)
@@ -221,9 +214,9 @@ class DatetimeArrayMixin(dtl.DatetimeLikeArrayMixin):
             result._dtype = values.dtype  # M8[ns]
         return result
 
-    def __new__(cls, values=None, freq=None, tz=None, dtype=None):
+    def __new__(cls, values, freq=None, tz=None, dtype=None):
         if values is None:
-            # pickle compat. change to init and remove
+            # pickle compat.
             values = np.array([], dtype='M8[ns]')
         if isinstance(values, (ABCSeries, ABCIndexClass)):
             values = values._values

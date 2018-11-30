@@ -252,10 +252,6 @@ def maybe_upcast_putmask(result, mask, other):
 def maybe_promote(dtype, fill_value=np.nan):
     # if we passed an array here, determine the fill value by dtype
 
-    # ughhhh this is going to cause so many issues.
-    # DatetimeArray / internals calls this, expecting a NaT
-    # _santize_array (via maybe_upcast) calls this expecting iNaT.
-
     if isinstance(fill_value, np.ndarray):
         if issubclass(fill_value.dtype.type, (np.datetime64, np.timedelta64)):
             fill_value = iNaT

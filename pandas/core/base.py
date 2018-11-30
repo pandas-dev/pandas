@@ -893,7 +893,10 @@ class IndexOpsMixin(object):
         if is_extension_array_dtype(self.dtype):
             return np.asarray(self._values)
         elif is_datetime64_dtype(self.dtype):
-            # this one is messy
+            # This secondary `asarray` may be unavoidable, as long as
+            # we have
+            # 1. DatetimeArray-backed Index
+            # 2. `M8[ns]` dtype for tz-naive, DatetimeTZDtype for tz-aware.
             return np.asarray(self._values)
         return self._values
 

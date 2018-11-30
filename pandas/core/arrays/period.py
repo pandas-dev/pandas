@@ -577,9 +577,6 @@ class PeriodArray(dtl.DatetimeLikeArrayMixin, ExtensionArray):
         return self._data.flags
 
     # ------------------------------------------------------------------
-    # DatetimeLikeMixin methods
-
-    # ------------------------------------------------------------------
     # Arithmetic Methods
     _create_comparison_method = classmethod(_period_array_cmp)
 

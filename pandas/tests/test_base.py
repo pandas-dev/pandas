@@ -1323,9 +1323,9 @@ def test_array_multiindex_raises():
     # Do we want to change that?
     # Or do we want `.to_numpy()` to be inconsistent with asarray? (no!)
     pytest.param(
-        (DatetimeArray(np.array(['2000', '2000'], dtype='M8[ns]'),
-                       tz='US/Central'),
-         np.array([pd.Timestamp("2000", tz="US/Central")] * 2)),
+        DatetimeArray(np.array(['2000', '2000'], dtype='M8[ns]'),
+                      tz='US/Central'),
+        np.array([pd.Timestamp("2000", tz="US/Central")] * 2),
         marks=pytest.mark.xfail(reason="np.asarray", strict=True))
 ])
 @pytest.mark.parametrize('box', [pd.Series, pd.Index])

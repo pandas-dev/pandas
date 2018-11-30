@@ -134,7 +134,6 @@ class TimedeltaArrayMixin(dtl.DatetimeLikeArrayMixin):
     _typ = "timedeltaarray"
     _scalar_type = Timedelta
     __array_priority__ = 1000
-    # define my properties & methods for delegation
     _other_ops = []
     _bool_ops = []
     _object_ops = ['freq']
@@ -185,9 +184,6 @@ class TimedeltaArrayMixin(dtl.DatetimeLikeArrayMixin):
 
         data, inferred_freq = sequence_to_td64ns(data, copy=copy, unit=unit)
 
-        # if freq is None and isinstance(data, cls):
-        #     freq = data.freq
-
         if inferred_freq is not None:
             if freq is not None and freq != inferred_freq:
                 raise ValueError('Inferred frequency {inferred} from passed '
@@ -198,10 +194,6 @@ class TimedeltaArrayMixin(dtl.DatetimeLikeArrayMixin):
             elif freq is None:
                 freq = inferred_freq
                 freq_infer = False
-
-        # elif (is_timedelta64_dtype(values.dtype)
-        #       and not is_timedelta64_ns_dtype(values.dtype)):
-        #     values = values.astype("timedelta64[ns]")
 
         result = cls._simple_new(data, freq=freq)
 

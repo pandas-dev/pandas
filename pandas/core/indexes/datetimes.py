@@ -379,7 +379,6 @@ class DatetimeIndex(DatelikeIndexMixin,
         """
         # DatetimeArray._simple_new will accept either i8 or M8[ns] dtypes
         values = DatetimeArray(values, dtype=dtype, freq=freq, tz=tz)
-        # assert isinstance(values, np.ndarray), type(values)
 
         result = super(DatetimeIndex, cls)._simple_new(values, freq, tz)
         result.name = name
