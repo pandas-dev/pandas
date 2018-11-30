@@ -283,10 +283,6 @@ class CategoricalIndex(Index, accessor.PandasDelegate):
 
         try:
             other = self._is_dtype_compat(other)
-            # changed from array_equivalent to avoid a ValueError
-            # from trying to convert NaT.
-            # This should also be faster, since we don't coerce to
-            # arryays
             if isinstance(other, type(self)):
                 other = other._data
             return self._data.equals(other)
