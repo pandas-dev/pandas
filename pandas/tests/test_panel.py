@@ -469,7 +469,13 @@ class CheckIndexing(object):
 
     def test_setitem(self):
         lp = self.panel.filter(['ItemA', 'ItemB']).to_frame()
-        with pytest.raises(ValueError):
+
+        # On master we go all the way down to
+        # MultiIndex.from_tuples(DatetimeIndex), which raise a
+        # ValueError: cannot include dtype 'M' in a buffer
+        # Now we (correctly) raise a TypeError.
+        # TODO: Add release note for this.
+        with pytest.raises(TypeError):
             self.panel['ItemE'] = lp
 
         # DataFrame

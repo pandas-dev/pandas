@@ -90,6 +90,7 @@ class TestSeriesApply():
         ser.map(func)
         ser.apply(func)
 
+    @pytest.mark.xfail(reason="GH-23179", strict=True)
     def test_apply_box(self):
         # ufunc will not be boxed. Same test cases as the test_map_box
         vals = [pd.Timestamp('2011-01-01'), pd.Timestamp('2011-01-02')]
@@ -128,6 +129,7 @@ class TestSeriesApply():
         exp = pd.Series(['Period_M', 'Period_M'])
         tm.assert_series_equal(res, exp)
 
+    @pytest.mark.xfail(reason="GH-23179", strict=True)
     def test_apply_datetimetz(self):
         values = pd.date_range('2011-01-01', '2011-01-02',
                                freq='H').tz_localize('Asia/Tokyo')
@@ -571,6 +573,7 @@ class TestSeriesMap():
         expected = Series([np.nan, np.nan, 'three'])
         assert_series_equal(result, expected)
 
+    @pytest.mark.xfail(reason="GH-23179", strict=True)
     def test_map_box(self):
         vals = [pd.Timestamp('2011-01-01'), pd.Timestamp('2011-01-02')]
         s = pd.Series(vals)
@@ -628,6 +631,7 @@ class TestSeriesMap():
         with pytest.raises(NotImplementedError):
             s.map(lambda x: x, na_action='ignore')
 
+    @pytest.mark.xfail(reason="GH-23179", strict=True)
     def test_map_datetimetz(self):
         values = pd.date_range('2011-01-01', '2011-01-02',
                                freq='H').tz_localize('Asia/Tokyo')

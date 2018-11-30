@@ -433,7 +433,7 @@ def _unstack_extension_series(series, level, fill_value):
                         level=level, fill_value=-1).get_result()
 
     out = []
-    values = series.values
+    values = series._values
 
     for col, indices in result.iteritems():
         out.append(Series(values.take(indices.values,

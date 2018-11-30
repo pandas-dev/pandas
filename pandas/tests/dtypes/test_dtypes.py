@@ -785,6 +785,7 @@ class TestCategoricalDtypeParametrized(object):
 @pytest.mark.parametrize('dtype', [
     CategoricalDtype,
     IntervalDtype,
+    DatetimeTZDtype,
 ])
 def test_registry(dtype):
     assert dtype in registry.dtypes
@@ -792,7 +793,6 @@ def test_registry(dtype):
 
 @pytest.mark.parametrize('dtype', [
     PeriodDtype,
-    DatetimeTZDtype,
 ])
 def test_pandas_registry(dtype):
     assert dtype not in registry.dtypes
@@ -805,6 +805,7 @@ def test_pandas_registry(dtype):
     ('interval[int64]', IntervalDtype()),
     ('interval[datetime64[ns]]', IntervalDtype('datetime64[ns]')),
     ('category', CategoricalDtype()),
+    ('datetime64[ns, US/Eastern]', DatetimeTZDtype('ns', 'US/Eastern')),
 ])
 def test_registry_find(dtype, expected):
     assert registry.find(dtype) == expected
@@ -812,7 +813,6 @@ def test_registry_find(dtype, expected):
 
 @pytest.mark.parametrize('dtype, expected', [
     ('period[D]', PeriodDtype('D')),
-    ('datetime64[ns, US/Eastern]', DatetimeTZDtype('ns', 'US/Eastern')),
 ])
 def test_pandas_registry_find(dtype, expected):
     assert _pandas_registry.find(dtype) == expected

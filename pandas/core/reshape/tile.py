@@ -390,7 +390,7 @@ def _coerce_to_type(x):
 
     if dtype is not None:
         # GH 19768: force NaT to NaN during integer conversion
-        x = np.where(x.notna(), x.view(np.int64), np.nan)
+        x = np.where(x.notna(), x.astype(np.int64, copy=False), np.nan)
 
     return x, dtype
 

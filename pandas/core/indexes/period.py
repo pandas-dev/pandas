@@ -1,6 +1,5 @@
 # pylint: disable=E1101,E1103,W0232
 from datetime import datetime, timedelta
-import operator
 import warnings
 
 import numpy as np
@@ -9,8 +8,7 @@ from pandas._libs import index as libindex
 from pandas._libs.tslibs import NaT, iNaT, resolution
 from pandas._libs.tslibs.period import (
     DIFFERENT_FREQ_INDEX, IncompatibleFrequency, Period)
-from pandas.util._decorators import (
-    Appender, Substitution, cache_readonly, deprecate_kwarg)
+from pandas.util._decorators import Appender, Substitution, cache_readonly
 
 from pandas.core.dtypes.common import (
     is_bool_dtype, is_datetime64_any_dtype, is_float, is_float_dtype,
@@ -18,7 +16,7 @@ from pandas.core.dtypes.common import (
 
 from pandas import compat
 from pandas.core import common as com
-from pandas.core.accessor import PandasDelegate, delegate_names
+from pandas.core.accessor import delegate_names
 from pandas.core.algorithms import unique1d
 import pandas.core.arrays.datetimelike as dtl
 from pandas.core.arrays.period import PeriodArray, period_array
@@ -26,7 +24,8 @@ from pandas.core.base import _shared_docs
 import pandas.core.indexes.base as ibase
 from pandas.core.indexes.base import _index_shared_docs, ensure_index
 from pandas.core.indexes.datetimelike import (
-    DatelikeOps, DatetimeIndexOpsMixin, wrap_arithmetic_op)
+    DatelikeIndexMixin, DatetimeIndexOpsMixin, DatetimelikeDelegateMixin,
+    wrap_arithmetic_op)
 from pandas.core.indexes.datetimes import DatetimeIndex, Index, Int64Index
 from pandas.core.missing import isna
 from pandas.core.ops import get_op_result_name
@@ -54,36 +53,29 @@ def _new_PeriodIndex(cls, **d):
         return cls(values, **d)
 
 
-class PeriodDelegateMixin(PandasDelegate):
+class PeriodDelegateMixin(DatetimelikeDelegateMixin):
     """
     Delegate from PeriodIndex to PeriodArray.
     """
-    def _delegate_property_get(self, name, *args, **kwargs):
-        result = getattr(self._data, name)
-        box_ops = (
-            set(PeriodArray._datetimelike_ops) - set(PeriodArray._bool_ops)
-        )
-        if name in box_ops:
-            result = Index(result, name=self.name)
-        return result
-
-    def _delegate_property_set(self, name, value, *args, **kwargs):
-        setattr(self._data, name, value)
-
-    def _delegate_method(self, name, *args, **kwargs):
-        result = operator.methodcaller(name, *args, **kwargs)(self._data)
-        return Index(result, name=self.name)
+    _delegate_class = PeriodArray
+    _delegated_properties = (
+        PeriodArray._datetimelike_ops + ['size', 'asi8', 'shape']
+    )
+    _delegated_methods = (
+        set(PeriodArray._datetimelike_methods) -
+        {'asfreq', 'to_timestamp'} | {'_addsub_int_array'}
+    )
 
 
 @delegate_names(PeriodArray,
-                PeriodArray._datetimelike_ops + ['size', 'asi8', 'shape'],
+                PeriodDelegateMixin._delegated_properties,
                 typ='property')
 @delegate_names(PeriodArray,
-                [x for x in PeriodArray._datetimelike_methods
-                 if x not in {"asfreq", "to_timestamp"}],
+                PeriodDelegateMixin._delegated_methods,
                 typ="method",
                 overwrite=True)
-class PeriodIndex(DatelikeOps, DatetimeIndexOpsMixin,
+class PeriodIndex(DatetimeIndexOpsMixin,
+                  DatelikeIndexMixin,
                   Int64Index, PeriodDelegateMixin):
     """
     Immutable ndarray holding ordinal values indicating regular periods in
@@ -268,7 +260,7 @@ class PeriodIndex(DatelikeOps, DatetimeIndexOpsMixin,
 
     @property
     def freq(self):
-        # TODO(DatetimeArray): remove
+        # TODO(DatetimeArray): remove. have to rewrite the setter
         # Can't simply use delegate_names since our base class is defining
         # freq
         return self._data.freq
@@ -448,34 +440,6 @@ class PeriodIndex(DatelikeOps, DatetimeIndexOpsMixin,
 
     # ------------------------------------------------------------------------
     # Index Methods
-
-    @deprecate_kwarg(old_arg_name='n', new_arg_name='periods')
-    def shift(self, periods):
-        """
-        Shift index by desired number of increments.
-
-        This method is for shifting the values of period indexes
-        by a specified time increment.
-
-        Parameters
-        ----------
-        periods : int, default 1
-            Number of periods (or increments) to shift by,
-            can be positive or negative.
-
-            .. versionchanged:: 0.24.0
-
-        Returns
-        -------
-        pandas.PeriodIndex
-            Shifted index.
-
-        See Also
-        --------
-        DatetimeIndex.shift : Shift values of DatetimeIndex.
-        """
-        i8values = self._data._time_shift(periods)
-        return self._simple_new(i8values, name=self.name, freq=self.freq)
 
     def _coerce_scalar_to_index(self, item):
         """
@@ -923,28 +887,9 @@ class PeriodIndex(DatelikeOps, DatetimeIndexOpsMixin,
 
         cls.__rsub__ = __rsub__
 
-    @classmethod
-    def _create_comparison_method(cls, op):
-        """
-        Create a comparison method that dispatches to ``cls.values``.
-        """
-        # TODO(DatetimeArray): move to base class.
-        def wrapper(self, other):
-            return op(self._data, other)
-
-        wrapper.__doc__ = op.__doc__
-        wrapper.__name__ = '__{}__'.format(op.__name__)
-        return wrapper
-
     def repeat(self, repeats, *args, **kwargs):
         # TODO(DatetimeArray): Just use Index.repeat
         return Index.repeat(self, repeats, *args, **kwargs)
-
-    def view(self, dtype=None, type=None):
-        # TODO(DatetimeArray): remove
-        if dtype is None or dtype is __builtins__['type'](self):
-            return self
-        return self._ndarray_values.view(dtype=dtype)
 
     @property
     def flags(self):

@@ -24,7 +24,7 @@ from pandas.core.dtypes.cast import (
     maybe_convert_platform, maybe_upcast)
 from pandas.core.dtypes.common import (
     _is_unorderable_exception, ensure_platform_int, is_bool,
-    is_categorical_dtype, is_datetime64tz_dtype, is_datetimelike, is_dict_like,
+    is_categorical_dtype, is_datetimelike, is_dict_like,
     is_extension_array_dtype, is_extension_type, is_float_dtype, is_hashable,
     is_integer, is_integer_dtype, is_iterator, is_list_like, is_object_dtype,
     is_scalar, is_string_like, is_timedelta64_dtype, pandas_dtype)
@@ -1537,16 +1537,11 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         ...                          ordered=True)).unique()
         [b, a, c]
         Categories (3, object): [a < b < c]
+
+        >>> pd.Series(pd.date_range('2000', periods=4, tz='US/Central'))
+        # TODO: repr
         """
         result = super(Series, self).unique()
-
-        if is_datetime64tz_dtype(self.dtype):
-            # we are special casing datetime64tz_dtype
-            # to return an object array of tz-aware Timestamps
-
-            # TODO: it must return DatetimeArray with tz in pandas 2.0
-            result = result.astype(object).values
-
         return result
 
     def drop_duplicates(self, keep='first', inplace=False):
@@ -4318,6 +4313,7 @@ def _sanitize_array(data, index, dtype=None, copy=False,
             if is_integer_dtype(dtype):
                 subarr = maybe_cast_to_integer_array(arr, dtype)
 
+            # XXX: restore this, or just remove?
             subarr = maybe_cast_to_datetime(arr, dtype)
             # Take care in creating object arrays (but iterators are not
             # supported):
@@ -4372,7 +4368,9 @@ def _sanitize_array(data, index, dtype=None, copy=False,
     elif isinstance(data, ExtensionArray):
         subarr = data
 
-        if dtype is not None and not data.dtype.is_dtype(dtype):
+        # Removed the is_dtype_equal check, since we may have a
+        # DatetimeArray with tz-naive, which doesn't use an ExtensionDtype.
+        if dtype is not None:
             subarr = data.astype(dtype)
 
         if copy:
@@ -4392,6 +4390,7 @@ def _sanitize_array(data, index, dtype=None, copy=False,
         else:
             subarr = maybe_convert_platform(data)
 
+        # XXX: restore / remove
         subarr = maybe_cast_to_datetime(subarr, dtype)
 
     elif isinstance(data, range):

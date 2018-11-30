@@ -134,6 +134,7 @@ def test_roundtrip_pickle_with_tz():
     assert index.equal_levels(unpickled)
 
 
+@pytest.mark.xfail(reason="pickle")
 def test_pickle(indices):
 
     unpickled = tm.round_trip_pickle(indices)

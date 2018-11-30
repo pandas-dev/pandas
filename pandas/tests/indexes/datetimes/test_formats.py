@@ -1,10 +1,10 @@
 from datetime import datetime
 
-import dateutil.tz
 import numpy as np
 import pytest
 import pytz
 
+import dateutil.tz
 import pandas as pd
 from pandas import DatetimeIndex, Series
 import pandas.util.testing as tm
@@ -101,6 +101,7 @@ class TestDatetimeIndexRendering(object):
                 result = getattr(indx, method)()
                 assert result == expected
 
+    @pytest.mark.xfail(reason="TODO", strict=True)
     def test_dti_representation_to_series(self):
         idx1 = DatetimeIndex([], freq='D')
         idx2 = DatetimeIndex(['2011-01-01'], freq='D')

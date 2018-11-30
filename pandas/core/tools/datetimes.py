@@ -171,6 +171,7 @@ def _convert_listlike_datetimes(arg, box, format, name=None, tz=None,
         - ndarray of Timestamps if box=False
     """
     from pandas import DatetimeIndex
+    from pandas.core.arrays import DatetimeArrayMixin as DatetimeArray
     from pandas.core.arrays.datetimes import maybe_convert_dtype
 
     if isinstance(arg, (list, tuple)):
@@ -178,14 +179,14 @@ def _convert_listlike_datetimes(arg, box, format, name=None, tz=None,
 
     # these are shortcutable
     if is_datetime64tz_dtype(arg):
-        if not isinstance(arg, DatetimeIndex):
+        if not isinstance(arg, (DatetimeArray, DatetimeIndex)):
             return DatetimeIndex(arg, tz=tz, name=name)
         if tz == 'utc':
             arg = arg.tz_convert(None).tz_localize(tz)
         return arg
 
     elif is_datetime64_ns_dtype(arg):
-        if box and not isinstance(arg, DatetimeIndex):
+        if box and not isinstance(arg, (DatetimeArray, DatetimeIndex)):
             try:
                 return DatetimeIndex(arg, tz=tz, name=name)
             except ValueError:
@@ -572,7 +573,7 @@ def to_datetime(arg, errors='raise', dayfirst=False, yearfirst=False,
             result = Series(values, index=arg.index, name=arg.name)
     elif isinstance(arg, (ABCDataFrame, MutableMapping)):
         result = _assemble_from_unit_mappings(arg, errors=errors)
-    elif isinstance(arg, ABCIndexClass):
+    elif isinstance(arg, ABCIndexClass):  # TODO: probably add DatetimeArray
         cache_array = _maybe_cache(arg, format, cache, convert_listlike)
         if not cache_array.empty:
             result = _convert_and_box_cache(arg, cache_array, box, errors,

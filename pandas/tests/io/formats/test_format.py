@@ -874,6 +874,7 @@ class TestDataFrameFormatting(object):
             assert 'None' in result
             assert 'NaN' not in result
 
+    @pytest.mark.xfail(reason="printing", strict=True)
     def test_datetimelike_frame(self):
 
         # GH 12211

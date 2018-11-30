@@ -102,7 +102,9 @@ def test_astype(dtype):
 def test_astype_copies():
     arr = period_array(['2000', '2001', None], freq='D')
     result = arr.astype(np.int64, copy=False)
-    assert result is arr._data
+    # Add the `.base`, since we now use `.asi8` which returns a view.
+    # We could maybe override it in PeriodArray to return ._data directly.
+    assert result.base is arr._data
 
     result = arr.astype(np.int64, copy=True)
     assert result is not arr._data

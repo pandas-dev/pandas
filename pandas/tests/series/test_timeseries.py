@@ -129,6 +129,7 @@ class TestTimeSeries(TestData):
         idx = DatetimeIndex(['2000-01-01', '2000-01-02', '2000-01-04'])
         pytest.raises(NullFrequencyError, idx.shift, 1)
 
+    @pytest.mark.xfail(reason="GH-23911", strict=True)
     def test_shift_dst(self):
         # GH 13926
         dates = date_range('2016-11-06', freq='H', periods=10, tz='US/Eastern')

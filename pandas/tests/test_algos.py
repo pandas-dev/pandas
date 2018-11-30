@@ -16,6 +16,7 @@ from pandas import compat
 from pandas._libs import (groupby as libgroupby, algos as libalgos,
                           hashtable as ht)
 from pandas.compat import lrange, range
+from pandas.core.arrays import DatetimeArrayMixin as DatetimeArray
 import pandas.core.algorithms as algos
 import pandas.core.common as com
 import pandas.util.testing as tm
@@ -458,7 +459,10 @@ class TestUnique(object):
                    Timestamp('20160101', tz='US/Eastern')])).unique()
         expected = np.array([Timestamp('2016-01-01 00:00:00-0500',
                                        tz='US/Eastern')], dtype=object)
-        tm.assert_numpy_array_equal(result, expected)
+        expected = DatetimeArray(np.array([
+            Timestamp('2016-01-01 00:00:00-0500', tz="US/Eastern")
+        ]))
+        tm.assert_extension_array_equal(result, expected)
 
         result = Index([Timestamp('20160101', tz='US/Eastern'),
                         Timestamp('20160101', tz='US/Eastern')]).unique()
@@ -469,9 +473,10 @@ class TestUnique(object):
         result = pd.unique(
             Series(Index([Timestamp('20160101', tz='US/Eastern'),
                           Timestamp('20160101', tz='US/Eastern')])))
-        expected = np.array([Timestamp('2016-01-01 00:00:00-0500',
-                                       tz='US/Eastern')], dtype=object)
-        tm.assert_numpy_array_equal(result, expected)
+        expected = DatetimeArray(np.array([
+            Timestamp('2016-01-01', tz="US/Eastern"),
+        ]))
+        tm.assert_extension_array_equal(result, expected)
 
         result = pd.unique(Index([Timestamp('20160101', tz='US/Eastern'),
                                   Timestamp('20160101', tz='US/Eastern')]))

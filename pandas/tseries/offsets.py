@@ -3,7 +3,6 @@ from datetime import date, datetime, timedelta
 import functools
 import operator
 
-from dateutil.easter import easter
 import numpy as np
 
 from pandas._libs.tslibs import (
@@ -20,6 +19,7 @@ from pandas.util._decorators import cache_readonly
 
 from pandas.core.dtypes.generic import ABCPeriod
 
+from dateutil.easter import easter
 from pandas.core.tools.datetimes import to_datetime
 
 __all__ = ['Day', 'BusinessDay', 'BDay', 'CustomBusinessDay', 'CDay',
@@ -275,6 +275,8 @@ class DateOffset(BaseOffset):
                        kwds.get('months', 0)) * self.n)
             if months:
                 shifted = liboffsets.shift_months(i.asi8, months)
+                # test out to see if master works.
+                # i = i._simple_new(shifted, freq=i.freq, tz=i.tz)
                 i = type(i)(shifted, freq=i.freq, dtype=i.dtype)
 
             weeks = (kwds.get('weeks', 0)) * self.n
@@ -933,6 +935,9 @@ class MonthOffset(SingleConstructorOffset):
     @apply_index_wraps
     def apply_index(self, i):
         shifted = liboffsets.shift_months(i.asi8, self.n, self._day_opt)
+        # TODO: seem slike this is duplicating the wrapping?
+        # TODO: verify that master works, or do we need next line
+        # return i._simple_new(shifted)
         # TODO: going through __new__ raises on call to _validate_frequency;
         #  are we passing incorrect freq?
         return type(i)._simple_new(shifted, freq=i.freq, tz=i.tz)

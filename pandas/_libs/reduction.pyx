@@ -17,6 +17,7 @@ cnp.import_array()
 
 cimport util
 from lib import maybe_convert_objects
+from tslibs.conversion import NS_DTYPE, TD_DTYPE
 
 
 cdef _get_result_array(object obj, Py_ssize_t size, Py_ssize_t cnt):
@@ -594,7 +595,14 @@ cdef class BlockSlider:
 
         # move and set the index
         self.idx_slider.move(start, end)
-        object.__setattr__(self.index, '_data', self.idx_slider.buf)
+
+        # TODO: unbreak this for other index types, if needed.
+        # I think the problem is that index.values is an ndarray,
+        # but index._data is an ExtensionArray.
+        if self.index.dtype == NS_DTYPE or self.index.dtype == TD_DTYPE:
+            object.__setattr__(self.index._data, '_data', self.idx_slider.buf)
+        else:
+            object.__setattr__(self.index, '_data', self.idx_slider.buf)
         self.index._engine.clear_mapping()
 
     cdef reset(self):

@@ -1454,8 +1454,8 @@ class _AsOfMerge(_OrderedMerge):
 
         # initial type conversion as needed
         if needs_i8_conversion(left_values):
-            left_values = left_values.view('i8')
-            right_values = right_values.view('i8')
+            left_values = left_values.astype('i8', copy=False)
+            right_values = right_values.astype('i8', copy=False)
             if tolerance is not None:
                 tolerance = tolerance.value
 
@@ -1587,8 +1587,9 @@ _join_functions = {
 
 def _factorize_keys(lk, rk, sort=True):
     if is_datetime64tz_dtype(lk) and is_datetime64tz_dtype(rk):
-        lk = lk.values
-        rk = rk.values
+        # TODO: verify if we get just arrays here, or maybe series / index
+        lk = lk._data
+        rk = rk._data
 
     # if we exactly match in categories, allow us to factorize on codes
     if (is_categorical_dtype(lk) and

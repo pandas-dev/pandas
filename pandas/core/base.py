@@ -15,7 +15,7 @@ from pandas.util._decorators import Appender, Substitution, cache_readonly
 from pandas.util._validators import validate_bool_kwarg
 
 from pandas.core.dtypes.common import (
-    is_datetime64tz_dtype, is_datetimelike, is_extension_array_dtype,
+    is_datetime64_dtype, is_datetimelike, is_extension_array_dtype,
     is_extension_type, is_list_like, is_object_dtype, is_scalar)
 from pandas.core.dtypes.generic import ABCDataFrame, ABCIndexClass, ABCSeries
 from pandas.core.dtypes.missing import isna
@@ -890,9 +890,10 @@ class IndexOpsMixin(object):
         >>> ser.to_numpy()
         array(['a', 'b', 'a'], dtype=object)
         """
-        if (is_extension_array_dtype(self.dtype) or
-                is_datetime64tz_dtype(self.dtype)):
-            # TODO(DatetimeArray): remove the second clause.
+        if is_extension_array_dtype(self.dtype):
+            return np.asarray(self._values)
+        elif is_datetime64_dtype(self.dtype):
+            # this one is messy
             return np.asarray(self._values)
         return self._values
 
@@ -907,7 +908,7 @@ class IndexOpsMixin(object):
         - categorical -> codes
         """
         if is_extension_array_dtype(self):
-            return self.values._ndarray_values
+            return self._values._ndarray_values
         return self.values
 
     @property

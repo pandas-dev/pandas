@@ -17,8 +17,9 @@ from pandas.util._decorators import Appender
 
 from pandas.core.dtypes.common import (
     _TD_DTYPE, ensure_int64, is_datetime64_dtype, is_float_dtype,
-    is_integer_dtype, is_list_like, is_object_dtype, is_string_dtype,
-    is_timedelta64_dtype)
+    is_int64_dtype, is_integer_dtype, is_list_like, is_object_dtype,
+    is_string_dtype, is_timedelta64_dtype, is_timedelta64_ns_dtype,
+    pandas_dtype)
 from pandas.core.dtypes.generic import (
     ABCDataFrame, ABCIndexClass, ABCSeries, ABCTimedeltaIndex)
 from pandas.core.dtypes.missing import isna
@@ -131,7 +132,16 @@ def _wrap_tdi_op(op):
 
 class TimedeltaArrayMixin(dtl.DatetimeLikeArrayMixin):
     _typ = "timedeltaarray"
+    _scalar_type = Timedelta
     __array_priority__ = 1000
+    # define my properties & methods for delegation
+    _other_ops = []
+    _bool_ops = []
+    _object_ops = ['freq']
+    _field_ops = ['days', 'seconds', 'microseconds', 'nanoseconds']
+    _datetimelike_ops = _field_ops + _object_ops + _bool_ops
+    _datetimelike_methods = ["to_pytimedelta", "total_seconds",
+                             "round", "floor", "ceil"]
 
     @property
     def _box_func(self):
@@ -174,6 +184,10 @@ class TimedeltaArrayMixin(dtl.DatetimeLikeArrayMixin):
         freq, freq_infer = dtl.maybe_infer_freq(freq)
 
         data, inferred_freq = sequence_to_td64ns(data, copy=copy, unit=unit)
+
+        # if freq is None and isinstance(data, cls):
+        #     freq = data.freq
+
         if inferred_freq is not None:
             if freq is not None and freq != inferred_freq:
                 raise ValueError('Inferred frequency {inferred} from passed '
@@ -183,7 +197,11 @@ class TimedeltaArrayMixin(dtl.DatetimeLikeArrayMixin):
                                          passed=freq.freqstr))
             elif freq is None:
                 freq = inferred_freq
-            freq_infer = False
+                freq_infer = False
+
+        # elif (is_timedelta64_dtype(values.dtype)
+        #       and not is_timedelta64_ns_dtype(values.dtype)):
+        #     values = values.astype("timedelta64[ns]")
 
         result = cls._simple_new(data, freq=freq)
 
@@ -233,8 +251,35 @@ class TimedeltaArrayMixin(dtl.DatetimeLikeArrayMixin):
 
         return cls._simple_new(index, freq=freq)
 
+    # -----------------------------------------------------------------
+    # DatetimeLike Interface
+    def _unbox_scalar(self, value):
+        assert isinstance(value, self._scalar_type), value
+        return value.value
+
+    def _scalar_from_string(self, value):
+        assert isinstance(value, self._scalar_type), value
+        return Timedelta(value)
+
+    def _check_compatible_with(self, other):
+        # we don't have anything to validate.
+        pass
+
     # ----------------------------------------------------------------
     # Array-Like / EA-Interface Methods
+    def _formatter(self, boxed=False):
+        from pandas.io.formats.format import _get_format_timedelta64
+        return _get_format_timedelta64(self, box=True)
+
+    def __array__(self, dtype=None):
+        # https://github.com/pandas-dev/pandas/pull/23593
+        # TODO: Check PeriodArray.__array__ and push to parent
+        if is_object_dtype(dtype):
+            return np.array(list(self), dtype=object)
+        elif is_int64_dtype(dtype):
+            return self.asi8
+
+        return self._data
 
     @Appender(dtl.DatetimeLikeArrayMixin._validate_fill_value.__doc__)
     def _validate_fill_value(self, fill_value):
@@ -544,6 +589,31 @@ class TimedeltaArrayMixin(dtl.DatetimeLikeArrayMixin):
         datetimes : ndarray
         """
         return tslibs.ints_to_pytimedelta(self.asi8)
+
+    def astype(self, dtype, copy=True):
+        # We handle
+        # --> timedelta64[ns]
+        # --> timedelta64
+        dtype = pandas_dtype(dtype)
+
+        if is_timedelta64_dtype(dtype) and not is_timedelta64_ns_dtype(dtype):
+            # essentially this is division
+            result = self._data.astype(dtype, copy=copy)
+            if self.hasnans:
+                values = self._maybe_mask_results(result,
+                                                  fill_value=None,
+                                                  convert='float64')
+                return values
+            return result.astype('i8')
+        elif is_timedelta64_ns_dtype(dtype):
+            # TODO: Figure out why this was needed.
+            if copy:
+                return self.copy()
+            return self
+        return super(TimedeltaArrayMixin, self).astype(dtype, copy=copy)
+
+    def _format_native_types(self):
+        return self.astype(object)
 
     days = _field_accessor("days", "days",
                            " Number of days for each element. ")

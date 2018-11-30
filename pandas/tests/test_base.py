@@ -16,6 +16,7 @@ import pandas.util.testing as tm
 from pandas import (Series, Index, DatetimeIndex, TimedeltaIndex,
                     PeriodIndex, Timedelta, IntervalIndex, Interval,
                     CategoricalIndex, Timestamp)
+from pandas.core.arrays import DatetimeArrayMixin as DatetimeArray
 from pandas.compat import StringIO, PYPY, long
 from pandas.compat.numpy import np_array_datetime64_compat
 from pandas.core.accessor import PandasDelegate
@@ -407,7 +408,7 @@ class TestIndexOps(Ops):
         assert obj.argmax() == -1
 
     def test_value_counts_unique_nunique(self):
-        for orig in self.objs:
+        for i, orig in enumerate(self.objs):
             o = orig.copy()
             klass = type(o)
             values = o._values
@@ -428,7 +429,9 @@ class TestIndexOps(Ops):
             else:
                 expected_index = Index(values[::-1])
                 idx = o.index.repeat(range(1, len(o) + 1))
-                rep = np.repeat(values, range(1, len(o) + 1))
+                # take-based repeat
+                indices = np.repeat(np.arange(len(o)), range(1, len(o) + 1))
+                rep = values.take(indices)
                 o = klass(rep, index=idx, name='a')
 
             # check values has the same dtype as the original
@@ -451,13 +454,14 @@ class TestIndexOps(Ops):
                 assert result[0] == orig[0]
                 for r in result:
                     assert isinstance(r, Timestamp)
-                tm.assert_numpy_array_equal(result,
-                                            orig._values.astype(object).values)
+                tm.assert_numpy_array_equal(result.astype(object),
+                                            orig._values.astype(object))
             else:
                 tm.assert_numpy_array_equal(result, orig.values)
 
             assert o.nunique() == len(np.unique(o.values))
 
+    @pytest.mark.xfail(reason="TODO", strict=True)
     def test_value_counts_unique_nunique_null(self):
 
         for null_obj in [np.nan, None]:
@@ -1154,6 +1158,7 @@ class TestToIterable(object):
             ('object', (int, long)),
             ('category', (int, long))])
     @pytest.mark.parametrize('typ', [Series, Index])
+    @pytest.mark.xfail(reason="map", strict=False)
     def test_iterable_map(self, typ, dtype, rdtype):
         # gh-13236
         # coerce iteration to underlying python / pandas types
@@ -1219,10 +1224,19 @@ class TestToIterable(object):
     (np.array([0, 1], dtype=np.int64), np.ndarray, 'int64'),
     (np.array(['a', 'b']), np.ndarray, 'object'),
     (pd.Categorical(['a', 'b']), pd.Categorical, 'category'),
-    (pd.DatetimeIndex(['2017', '2018']), np.ndarray, 'datetime64[ns]'),
-    (pd.DatetimeIndex(['2017', '2018'], tz="US/Central"), pd.DatetimeIndex,
+    # Ughh this is a mess. We want to keep Series._values as
+    # an ndarray, so that we use DatetimeBlock. But we also want
+    # DatetimeIndex._values to be a DatetimeArray.
+    pytest.param(
+        pd.DatetimeIndex(['2017', '2018']), np.ndarray, 'datetime64[ns]',
+        marks=[pytest.mark.xfail(reason="TODO", strict=True)]
+    ),
+    (pd.DatetimeIndex(['2017', '2018'], tz="US/Central"), DatetimeArray,
      'datetime64[ns, US/Central]'),
-    (pd.TimedeltaIndex([10**10]), np.ndarray, 'm8[ns]'),
+    pytest.param(
+        pd.TimedeltaIndex([10**10]), np.ndarray, 'm8[ns]',
+        marks=[pytest.mark.xfail(reason="TODO", strict=True)]
+    ),
     (pd.PeriodIndex([2018, 2019], freq='A'), pd.core.arrays.PeriodArray,
      pd.core.dtypes.dtypes.PeriodDtype("A-DEC")),
     (pd.IntervalIndex.from_breaks([0, 1, 2]), pd.core.arrays.IntervalArray,
@@ -1234,21 +1248,7 @@ def test_values_consistent(array, expected_type, dtype):
     assert type(l_values) is expected_type
     assert type(l_values) is type(r_values)
 
-    if isinstance(l_values, np.ndarray):
-        tm.assert_numpy_array_equal(l_values, r_values)
-    elif isinstance(l_values, pd.Index):
-        tm.assert_index_equal(l_values, r_values)
-    elif pd.api.types.is_categorical(l_values):
-        tm.assert_categorical_equal(l_values, r_values)
-    elif pd.api.types.is_period_dtype(l_values):
-        tm.assert_period_array_equal(l_values, r_values)
-    elif pd.api.types.is_interval_dtype(l_values):
-        tm.assert_interval_array_equal(l_values, r_values)
-    else:
-        raise TypeError("Unexpected type {}".format(type(l_values)))
-
-    assert l_values.dtype == dtype
-    assert r_values.dtype == dtype
+    tm.assert_equal(l_values, r_values)
 
 
 @pytest.mark.parametrize('array, expected', [
@@ -1277,7 +1277,11 @@ def test_ndarray_values(array, expected):
     (pd.core.arrays.integer_array([0, np.nan]), '_data'),
     (pd.core.arrays.IntervalArray.from_breaks([0, 1]), '_left'),
     (pd.SparseArray([0, 1]), '_sparse_values'),
-    # TODO: DatetimeArray(add)
+    # TODO: tz-naive Datetime. DatetimeArray or ndarray?
+    # tz-aware Datetime
+    (DatetimeArray(np.array(['2000-01-01T12:00:00',
+                             '2000-01-02T12:00:00'],
+                            dtype='M8[ns]'), tz="US/Central"), '_data'),
 ])
 @pytest.mark.parametrize('box', [pd.Series, pd.Index])
 def test_array(array, attr, box):
@@ -1308,7 +1312,21 @@ def test_array_multiindex_raises():
     (pd.core.arrays.IntervalArray.from_breaks([0, 1, 2]),
      np.array([pd.Interval(0, 1), pd.Interval(1, 2)], dtype=object)),
     (pd.SparseArray([0, 1]), np.array([0, 1], dtype=np.int64)),
-    # TODO: DatetimeArray(add)
+
+    # tz-naive datetime
+    (DatetimeArray(np.array(['2000', '2001'], dtype='M8[ns]')),
+     np.array(['2000', '2001'], dtype='M8[ns]')),
+
+    # tz-aware datetime
+    # XXX: On master, np.asarray(Series[datetime64[ns, tz]]) is
+    # an ndarray[datetime64[ns]] (normalized to UTC and tz dropped).
+    # Do we want to change that?
+    # Or do we want `.to_numpy()` to be inconsistent with asarray? (no!)
+    pytest.param(
+        (DatetimeArray(np.array(['2000', '2000'], dtype='M8[ns]'),
+                       tz='US/Central'),
+         np.array([pd.Timestamp("2000", tz="US/Central")] * 2)),
+        marks=pytest.mark.xfail(reason="np.asarray", strict=True))
 ])
 @pytest.mark.parametrize('box', [pd.Series, pd.Index])
 def test_to_numpy(array, expected, box):

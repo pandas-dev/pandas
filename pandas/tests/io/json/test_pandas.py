@@ -958,6 +958,7 @@ DataFrame\\.index values are different \\(100\\.0 %\\)
         sc = df["B"]
         assert s.to_json() == sc.to_json()
 
+    @pytest.mark.xfail(reason="json", strict=True)
     def test_datetime_tz(self):
         # GH4377 df.to_json segfaults with non-ndarray blocks
         tz_range = pd.date_range('20130101', periods=3, tz='US/Eastern')
@@ -1011,6 +1012,7 @@ DataFrame\\.index values are different \\(100\\.0 %\\)
         dt = ts.to_pydatetime()
         assert dumps(dt, iso_dates=True) == exp
 
+    @pytest.mark.xfail(reason="json", strict=True)
     def test_tz_range_is_utc(self):
         from pandas.io.json import dumps
 

@@ -12,15 +12,13 @@ from pandas._libs.tslibs.period import (
     period_asfreq_arr)
 from pandas._libs.tslibs.timedeltas import Timedelta, delta_to_nanoseconds
 import pandas.compat as compat
-from pandas.compat.numpy import function as nv
 from pandas.util._decorators import Appender, cache_readonly
 from pandas.util._validators import validate_fillna_kwargs
 
 from pandas.core.dtypes.common import (
-    _TD_DTYPE, ensure_object, is_array_like, is_categorical_dtype,
-    is_datetime64_dtype, is_datetime_or_timedelta_dtype, is_dtype_equal,
-    is_float_dtype, is_integer_dtype, is_list_like, is_object_dtype,
-    is_period_dtype, is_string_dtype, pandas_dtype)
+    _TD_DTYPE, ensure_object, is_array_like, is_datetime64_dtype,
+    is_datetime64_ns_dtype, is_datetime64tz_dtype, is_float_dtype,
+    is_list_like, is_period_dtype, pandas_dtype)
 from pandas.core.dtypes.dtypes import PeriodDtype
 from pandas.core.dtypes.generic import ABCIndexClass, ABCPeriodIndex, ABCSeries
 from pandas.core.dtypes.missing import isna, notna
@@ -140,6 +138,7 @@ class PeriodArray(dtl.DatetimeLikeArrayMixin, ExtensionArray):
     __array_priority__ = 1000
     _attributes = ["freq"]
     _typ = "periodarray"  # ABCPeriodArray
+    _scalar_type = Period
 
     # Names others delegate to us
     _other_ops = []
@@ -240,6 +239,21 @@ class PeriodArray(dtl.DatetimeLikeArrayMixin, ExtensionArray):
                              'Period range')
 
         return subarr, freq
+
+    # -----------------------------------------------------------------
+    # DatetimeLike Interface
+    def _unbox_scalar(self, value):
+        assert isinstance(value, self._scalar_type), value
+        return value.ordinal
+
+    def _scalar_from_string(self, value):
+        assert isinstance(value, self._scalar_type), value
+        return Period(value, freq=self.freq)
+
+    def _check_compatible_with(self, other):
+        if self.freqstr != other.freqstr:
+            msg = DIFFERENT_FREQ_INDEX.format(self.freqstr, other.freqstr)
+            raise IncompatibleFrequency(msg)
 
     # --------------------------------------------------------------------
     # Data / Attributes
@@ -433,46 +447,7 @@ class PeriodArray(dtl.DatetimeLikeArrayMixin, ExtensionArray):
             new_values = self.copy()
         return new_values
 
-    def value_counts(self, dropna=False):
-        from pandas import Series, PeriodIndex
-
-        if dropna:
-            values = self[~self.isna()]._data
-        else:
-            values = self._data
-
-        cls = type(self)
-
-        result = algos.value_counts(values, sort=False)
-        index = PeriodIndex(cls(result.index, freq=self.freq),
-                            name=result.index.name)
-        return Series(result.values, index=index, name=result.name)
-
     # --------------------------------------------------------------------
-
-    def shift(self, periods=1):
-        """
-        Shift values by desired number.
-
-        Newly introduced missing values are filled with
-        ``self.dtype.na_value``.
-
-        .. versionadded:: 0.24.0
-
-        Parameters
-        ----------
-        periods : int, default 1
-            The number of periods to shift. Negative values are allowed
-            for shifting backwards.
-
-        Returns
-        -------
-        shifted : PeriodArray
-        """
-        # TODO(DatetimeArray): remove
-        # The semantics for Index.shift differ from EA.shift
-        # then just call super.
-        return ExtensionArray.shift(self, periods)
 
     def _time_shift(self, n, freq=None):
         """
@@ -566,7 +541,8 @@ class PeriodArray(dtl.DatetimeLikeArrayMixin, ExtensionArray):
 
     def _format_native_types(self, na_rep=u'NaT', date_format=None, **kwargs):
         """ actually format my specific types """
-        # TODO(DatetimeArray): remove
+        # TODO: https://github.com/pandas-dev/pandas/issues/23979
+        # needs a small refactor in period_format
         values = self.astype(object)
 
         if date_format:
@@ -584,60 +560,13 @@ class PeriodArray(dtl.DatetimeLikeArrayMixin, ExtensionArray):
             values = np.array([formatter(dt) for dt in values])
         return values
 
-    # Delegation...
-    def strftime(self, date_format):
-        return self._format_native_types(date_format=date_format)
-
-    def repeat(self, repeats, *args, **kwargs):
-        """
-        Repeat elements of a PeriodArray.
-
-        See Also
-        --------
-        numpy.ndarray.repeat
-        """
-        # TODO(DatetimeArray): remove
-        nv.validate_repeat(args, kwargs)
-        values = self._data.repeat(repeats)
-        return type(self)(values, self.freq)
-
     def astype(self, dtype, copy=True):
-        # TODO: Figure out something better here...
-        # We have DatetimeLikeArrayMixin ->
-        #     super(...), which ends up being... DatetimeIndexOpsMixin?
-        # this is complicated.
-        # need a pandas_astype(arr, dtype).
-        from pandas import Categorical
-
         dtype = pandas_dtype(dtype)
 
-        if is_object_dtype(dtype):
-            return np.asarray(self, dtype=object)
-        elif is_string_dtype(dtype) and not is_categorical_dtype(dtype):
-            return self._format_native_types()
-        elif is_integer_dtype(dtype):
-            values = self._data
-
-            if values.dtype != dtype:
-                # int32 vs. int64
-                values = values.astype(dtype)
-
-            elif copy:
-                values = values.copy()
-
-            return values
-        elif (is_datetime_or_timedelta_dtype(dtype) and
-              not is_dtype_equal(self.dtype, dtype)) or is_float_dtype(dtype):
-            # disallow conversion between datetime/timedelta,
-            # and conversions for any datetimelike to float
-            msg = 'Cannot cast {name} to dtype {dtype}'
-            raise TypeError(msg.format(name=type(self).__name__, dtype=dtype))
-        elif is_categorical_dtype(dtype):
-            return Categorical(self, dtype=dtype)
-        elif is_period_dtype(dtype):
+        if is_period_dtype(dtype):
+            # TODO: check if asfreq copies
             return self.asfreq(dtype.freq)
-        else:
-            return np.asarray(self, dtype=dtype)
+        return super(PeriodArray, self).astype(dtype, copy=copy)
 
     @property
     def flags(self):
@@ -646,6 +575,9 @@ class PeriodArray(dtl.DatetimeLikeArrayMixin, ExtensionArray):
         # Ideally, we wouldn't be passing objects down there in the first
         # place.
         return self._data.flags
+
+    # ------------------------------------------------------------------
+    # DatetimeLikeMixin methods
 
     # ------------------------------------------------------------------
     # Arithmetic Methods
@@ -923,19 +855,24 @@ def dt64arr_to_periodarr(data, freq, tz=None):
         used.
 
     """
-    if data.dtype != np.dtype('M8[ns]'):
+    from pandas.core.arrays import DatetimeArrayMixin as DatetimeArray
+
+    if not (is_datetime64_ns_dtype(data.dtype) or
+            is_datetime64tz_dtype(data.dtype)):
         raise ValueError('Wrong dtype: %s' % data.dtype)
 
-    if freq is None:
-        if isinstance(data, ABCIndexClass):
-            data, freq = data._values, data.freq
-        elif isinstance(data, ABCSeries):
-            data, freq = data._values, data.dt.freq
+    if isinstance(data, ABCIndexClass):
+        if freq is None:
+            freq = data.freq
+        data = data._values
+    elif isinstance(data, ABCSeries):
+        if freq is None:
+            freq = data.dt.freq
+        data = data._values
 
     freq = Period._maybe_convert_freq(freq)
-
-    if isinstance(data, (ABCIndexClass, ABCSeries)):
-        data = data._values
+    if isinstance(data, DatetimeArray):
+        data = data.asi8
 
     base, mult = frequencies.get_freq_code(freq)
     return libperiod.dt64arr_to_periodarr(data.view('i8'), base, tz), freq

@@ -1613,6 +1613,9 @@ class TestDataFrameAnalytics():
 
     def test_isin_empty_datetimelike(self):
         # GH 15473
+        # This fails since empty.reindex(...) will produce floats.
+        # I wonder if `reindex_like` could / should pass through dtype
+        # info?
         df1_ts = DataFrame({'date':
                             pd.to_datetime(['2014-01-01', '2014-01-02'])})
         df1_td = DataFrame({'date':

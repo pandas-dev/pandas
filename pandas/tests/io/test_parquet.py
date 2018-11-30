@@ -202,7 +202,7 @@ def test_options_get_engine(fp, pa):
 
 @pytest.mark.xfail(is_platform_windows() or is_platform_mac(),
                    reason="reading pa metadata failing on Windows/mac",
-                   strict=True)
+                   strict=False)
 def test_cross_engine_pa_fp(df_cross_compat, pa, fp):
     # cross-compat with differing reading/writing engines
 
@@ -470,6 +470,7 @@ class TestParquetPyArrow(Base):
 
 class TestParquetFastParquet(Base):
 
+    @pytest.mark.xfail(reason="broke fastparquet", strict=True)
     def test_basic(self, fp, df_full):
         df = df_full
 

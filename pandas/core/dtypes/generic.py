@@ -67,6 +67,8 @@ ABCExtensionArray = create_pandas_abc_type("ABCExtensionArray", "_typ",
                                            ("extension",
                                             "categorical",
                                             "periodarray",
+                                            "datetimearray",
+                                            "timedeltaarray",
                                             ))
 
 

@@ -1340,6 +1340,13 @@ def assert_series_equal(left, right, check_dtype=True,
     elif is_interval_dtype(left) or is_interval_dtype(right):
         assert_interval_array_equal(left.values, right.values)
 
+    elif (is_extension_array_dtype(left.dtype) and
+          is_datetime64tz_dtype(left.dtype)):
+        # .values is an ndarray, but ._values is the ExtensionArray.
+        # TODO: Use .array
+        assert is_extension_array_dtype(right.dtype)
+        return assert_extension_array_equal(left._values, right._values)
+
     elif (is_extension_array_dtype(left) and not is_categorical_dtype(left) and
           is_extension_array_dtype(right) and not is_categorical_dtype(right)):
         return assert_extension_array_equal(left.values, right.values)

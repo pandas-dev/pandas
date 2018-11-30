@@ -12,8 +12,8 @@ from pandas.core.dtypes.common import (
     is_extension_array_dtype, is_interval_dtype, is_object_dtype,
     is_period_dtype, is_sparse, is_timedelta64_dtype)
 from pandas.core.dtypes.generic import (
-    ABCDatetimeIndex, ABCPeriodIndex, ABCRangeIndex, ABCSparseDataFrame,
-    ABCTimedeltaIndex)
+    ABCDatetimeIndex, ABCIndexClass, ABCPeriodIndex, ABCRangeIndex,
+    ABCSparseDataFrame, ABCTimedeltaIndex)
 
 from pandas import compat
 
@@ -428,8 +428,7 @@ def _concat_datetime(to_concat, axis=0, typs=None):
     if any(typ.startswith('datetime') for typ in typs):
 
         if 'datetime' in typs:
-            to_concat = [np.array(x, copy=False).view(np.int64)
-                         for x in to_concat]
+            to_concat = [x.astype(np.int64, copy=False) for x in to_concat]
             return _concatenate_2d(to_concat, axis=axis).view(_NS_DTYPE)
         else:
             # when to_concat has different tz, len(typs) > 1.
@@ -437,8 +436,8 @@ def _concat_datetime(to_concat, axis=0, typs=None):
             return _concat_datetimetz(to_concat)
 
     elif 'timedelta' in typs:
-        return _concatenate_2d([x.view(np.int64) for x in to_concat],
-                               axis=axis).view(_TD_DTYPE)
+        to_concat = [x.astype(np.int64, copy=False) for x in to_concat]
+        return _concatenate_2d(to_concat, axis=axis).view(_TD_DTYPE)
 
     elif any(typ.startswith('period') for typ in typs):
         assert len(typs) == 1
@@ -453,16 +452,18 @@ def _convert_datetimelike_to_object(x):
     # if dtype is of datetimetz or timezone
     if x.dtype.kind == _NS_DTYPE.kind:
         if getattr(x, 'tz', None) is not None:
-            x = x.astype(object).values
+            x = np.asarray(x.astype(object))
         else:
             shape = x.shape
-            x = tslib.ints_to_pydatetime(x.view(np.int64).ravel(),
+            x = tslib.ints_to_pydatetime(x.astype(np.int64,
+                                                  copy=False).ravel(),
                                          box="timestamp")
             x = x.reshape(shape)
 
     elif x.dtype == _TD_DTYPE:
         shape = x.shape
-        x = tslibs.ints_to_pytimedelta(x.view(np.int64).ravel(), box=True)
+        x = tslibs.ints_to_pytimedelta(x.astype(np.int64,
+                                                copy=False).ravel(), box=True)
         x = x.reshape(shape)
 
     return x
@@ -474,7 +475,16 @@ def _concat_datetimetz(to_concat, name=None):
     all inputs must be DatetimeIndex
     it is used in DatetimeIndex.append also
     """
-    return to_concat[0]._concat_same_dtype(to_concat, name=name)
+    from pandas.core.arrays import DatetimeArrayMixin as DatetimeArray
+    # Right now, internals will pass a List[DatetimeArray] here
+    # for reductions like quantile. I would like to disentangle
+    # all this before we get here.
+    sample = to_concat[0]
+
+    if isinstance(sample, ABCIndexClass):
+        return sample._concat_same_dtype(to_concat, name=name)
+    elif isinstance(sample, DatetimeArray):
+        return sample._concat_same_type(to_concat)
 
 
 def _concat_index_same_dtype(indexes, klass=None):

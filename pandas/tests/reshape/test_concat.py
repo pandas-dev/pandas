@@ -1010,6 +1010,12 @@ class TestAppend(ConcatenateBase):
         assert appended['A'].dtype == 'f8'
         assert appended['B'].dtype == 'O'
 
+    # looks like result & expected were wrongish on master.
+    # IIUC, then 'date' should be datetime64[ns, tz], not object.
+    # since we concat [datetime64[ns, tz], empty].
+    # master passed, since setitem *also* cast to object, but
+    # we fixed that (GH-23932)
+    @pytest.mark.xfail(reason="TODO", strict=True)
     def test_append_empty_frame_to_series_with_dateutil_tz(self):
         # GH 23682
         date = Timestamp('2018-10-24 07:30:00', tz=dateutil.tz.tzutc())

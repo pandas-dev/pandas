@@ -157,6 +157,10 @@ class JSONArray(ExtensionArray):
         # NumPy has issues when all the dicts are the same length.
         # np.array([UserDict(...), UserDict(...)]) fails,
         # but np.array([{...}, {...}]) works, so cast.
+        if isinstance(dtype, type(self.dtype)) and dtype == self.dtype:
+            if copy:
+                return self.copy()
+            return self
         return np.array([dict(x) for x in self], dtype=dtype, copy=copy)
 
     def unique(self):

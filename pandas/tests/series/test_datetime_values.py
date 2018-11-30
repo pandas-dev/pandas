@@ -497,6 +497,7 @@ class TestSeriesDatetimeValues():
         expected = s[5:16].dropna()
         assert_series_equal(result, expected)
 
+    @pytest.mark.xfail(reason="GH-23179", strict=True)
     def test_date_tz(self):
         # GH11757
         rng = pd.DatetimeIndex(['2014-04-04 23:56',

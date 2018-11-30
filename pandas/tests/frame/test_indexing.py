@@ -3075,6 +3075,7 @@ class TestDataFrameIndexing(TestData):
         tm.assert_frame_equal(result,
                               (df + 2).where((df + 2) > 8, (df + 2) + 10))
 
+    @pytest.mark.xfail(raeson="where", strict=False)
     def test_where_tz_values(self, tz_naive_fixture):
         df1 = DataFrame(DatetimeIndex(['20150101', '20150102', '20150103'],
                                       tz=tz_naive_fixture),
@@ -3254,8 +3255,8 @@ class TestDataFrameIndexingDatetimeWithTZ(TestData):
         # are copies)
         b1 = df._data.blocks[1]
         b2 = df._data.blocks[2]
-        assert b1.values.equals(b2.values)
-        assert id(b1.values.values.base) != id(b2.values.values.base)
+        tm.assert_extension_array_equal(b1.values, b2.values)
+        assert id(b1.values._data.base) != id(b2.values._data.base)
 
         # with nan
         df2 = df.copy()

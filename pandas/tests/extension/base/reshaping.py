@@ -231,7 +231,8 @@ class BaseReshapingTests(BaseExtensionTests):
 
         for level in combinations:
             result = ser.unstack(level=level)
-            assert all(isinstance(result[col].values, type(data))
+            # use _values for Series[datetimetz]
+            assert all(isinstance(result[col]._values, type(data))
                        for col in result.columns)
             expected = ser.astype(object).unstack(level=level)
             result = result.astype(object)

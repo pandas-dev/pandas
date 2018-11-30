@@ -469,7 +469,8 @@ class CategoricalDtype(PandasExtensionDtype, ExtensionDtype):
         return is_bool_dtype(self.categories)
 
 
-class DatetimeTZDtype(PandasExtensionDtype):
+@register_extension_dtype
+class DatetimeTZDtype(PandasExtensionDtype, ExtensionDtype):
 
     """
     A np.dtype duck-typed class, suitable for holding a custom datetime with tz
@@ -485,7 +486,9 @@ class DatetimeTZDtype(PandasExtensionDtype):
     base = np.dtype('M8[ns]')
     na_value = NaT
     _metadata = ('unit', 'tz')
-    _match = re.compile(r"(datetime64|M8)\[(?P<unit>.+), (?P<tz>.+)\]")
+    _match = re.compile(
+        r"(datetime64|M8)\[(?P<unit>\w+),?\s?(?P<tz>.+)?\]"
+    )
     _cache = {}
     # TODO: restore caching? who cares though? It seems needlessly complex.
     # np.dtype('datetime64[ns]') isn't a singleton
@@ -549,8 +552,8 @@ class DatetimeTZDtype(PandasExtensionDtype):
         -------
         type
         """
-        from pandas import DatetimeIndex
-        return DatetimeIndex
+        from pandas.core.arrays import DatetimeArrayMixin
+        return DatetimeArrayMixin
 
     @classmethod
     def construct_from_string(cls, string):
