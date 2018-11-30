@@ -978,16 +978,21 @@ def validate_tz_from_dtype(dtype, tz):
     ValueError : on tzinfo mismatch
     """
     if dtype is not None:
-        try:
-            dtype = DatetimeTZDtype.construct_from_string(dtype)
-            dtz = getattr(dtype, 'tz', None)
-            if dtz is not None:
-                if tz is not None and not timezones.tz_compare(tz, dtz):
-                    raise ValueError("cannot supply both a tz and a dtype"
-                                     " with a tz")
-                tz = dtz
-        except TypeError:
-            pass
+        if isinstance(dtype, compat.string_types):
+            try:
+                dtype = DatetimeTZDtype.construct_from_string(dtype)
+            except TypeError:
+                # Things like `datetime64[ns]`, which is OK for the
+                # constructors, but also nonsense, which should be validated
+                # but not by us. We *do* allow non-existent tz errors to
+                # go through
+                pass
+        dtz = getattr(dtype, 'tz', None)
+        if dtz is not None:
+            if tz is not None and not timezones.tz_compare(tz, dtz):
+                raise ValueError("cannot supply both a tz and a dtype"
+                                 " with a tz")
+            tz = dtz
     return tz
 
 
