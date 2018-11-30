@@ -347,7 +347,7 @@ class PeriodArray(dtl.DatetimeLikeArrayMixin, ExtensionArray):
 
     def __setitem__(
             self,
-            key,   # type: Union[int, Sequence[int], Sequence[bool]]
+            key,   # type: Union[int, Sequence[int], Sequence[bool], slice]
             value  # type: Union[NaTType, Period, Sequence[Period]]
     ):
         # type: (...) -> None
