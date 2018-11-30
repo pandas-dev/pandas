@@ -140,24 +140,13 @@ def test_aaa_group_order():
                           df[4::5])
 
 
-@pytest.mark.parametrize('func, assert_func', [
-    ('min', assert_frame_equal),
-    ('max', assert_frame_equal),
-    ('prod', assert_frame_equal),
-    ('var', assert_frame_equal),
-    ('std', assert_frame_equal),
-    ('mean', assert_frame_equal),
-    ('count', assert_frame_equal),
-    ('sum', assert_frame_equal),
-    ('size', assert_series_equal),  # GH 7453
-    ('first', assert_frame_equal),  # GH 7453
-    ('last', assert_frame_equal),  # GH 7453
-])
-def test_aggregate_normal(func, assert_func):
-    # check TimeGrouper's aggregation is identical as normal groupby
+def test_aggregate_normal(resample_method):
+    """Check TimeGrouper's aggregation is identical as normal groupby."""
 
-    n = 20
-    data = np.random.randn(n, 4)
+    if resample_method == 'ohlc':
+        pytest.xfail(reason='DataError: No numeric types to aggregate')
+
+    data = np.random.randn(20, 4)
     normal_df = DataFrame(data, columns=['A', 'B', 'C', 'D'])
     normal_df['key'] = [1, 2, 3, 4, 5] * 4
 
@@ -169,11 +158,11 @@ def test_aggregate_normal(func, assert_func):
     normal_grouped = normal_df.groupby('key')
     dt_grouped = dt_df.groupby(TimeGrouper(key='key', freq='D'))
 
-    expected = getattr(normal_grouped, func)()
-    dt_result = getattr(dt_grouped, func)()
+    expected = getattr(normal_grouped, resample_method)()
+    dt_result = getattr(dt_grouped, resample_method)()
     expected.index = date_range(start='2013-01-01', freq='D',
                                 periods=5, name='key')
-    assert_func(expected, dt_result)
+    tm.assert_equal(expected, dt_result)
 
     # if TimeGrouper is used included, 'nth' doesn't work yet
 
