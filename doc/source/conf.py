@@ -74,6 +74,7 @@ extensions = ['sphinx.ext.autodoc',
               'sphinx.ext.ifconfig',
               'sphinx.ext.linkcode',
               'nbsphinx',
+              # add `:flake8-*:` roles to `code-block` and `ipython` directives
               'flake8_rst.sphinxext.custom_roles',
               'contributors',  # custom pandas extension
               ]
