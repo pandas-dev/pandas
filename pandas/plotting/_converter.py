@@ -1,39 +1,32 @@
-import warnings
-from datetime import datetime, timedelta
 import datetime as pydt
-import numpy as np
+from datetime import datetime, timedelta
+import warnings
 
 from dateutil.relativedelta import relativedelta
-
-import matplotlib.units as units
 import matplotlib.dates as dates
-
-from matplotlib.ticker import Formatter, AutoLocator, Locator
+from matplotlib.ticker import AutoLocator, Formatter, Locator
 from matplotlib.transforms import nonsingular
+import matplotlib.units as units
+import numpy as np
 
 from pandas._libs import tslibs
 from pandas._libs.tslibs import resolution
+import pandas.compat as compat
+from pandas.compat import lrange
 
 from pandas.core.dtypes.common import (
-    is_float, is_integer,
-    is_integer_dtype,
-    is_float_dtype,
-    is_datetime64_ns_dtype,
-    is_period_arraylike,
-    is_nested_list_like
-)
+    is_datetime64_ns_dtype, is_float, is_float_dtype, is_integer,
+    is_integer_dtype, is_nested_list_like, is_period_arraylike)
 from pandas.core.dtypes.generic import ABCSeries
 
-from pandas.compat import lrange
-import pandas.compat as compat
 import pandas.core.common as com
 from pandas.core.index import Index
-
 from pandas.core.indexes.datetimes import date_range
+from pandas.core.indexes.period import Period, PeriodIndex
 import pandas.core.tools.datetimes as tools
+
 import pandas.tseries.frequencies as frequencies
 from pandas.tseries.frequencies import FreqGroup
-from pandas.core.indexes.period import Period, PeriodIndex
 
 # constants
 HOURS_PER_DAY = 24.

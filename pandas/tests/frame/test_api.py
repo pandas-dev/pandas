@@ -319,6 +319,12 @@ class SharedWithSparse(object):
         expected = float_frame.reindex(columns=['A', 'B']).values
         assert_almost_equal(arr, expected)
 
+    def test_to_numpy(self):
+        df = pd.DataFrame({"A": [1, 2], "B": [3, 4.5]})
+        expected = np.array([[1, 3], [2, 4.5]])
+        result = df.to_numpy()
+        tm.assert_numpy_array_equal(result, expected)
+
     def test_transpose(self, float_frame):
         frame = float_frame
         dft = frame.T

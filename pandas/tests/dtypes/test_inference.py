@@ -496,6 +496,13 @@ class TestTypeInference(object):
     class Dummy():
         pass
 
+    def test_inferred_dtype_fixture(self, any_skipna_inferred_dtype):
+        # see pandas/conftest.py
+        inferred_dtype, values = any_skipna_inferred_dtype
+
+        # make sure the inferred dtype of the fixture is as requested
+        assert inferred_dtype == lib.infer_dtype(values, skipna=True)
+
     def test_length_zero(self):
         result = lib.infer_dtype(np.array([], dtype='i4'))
         assert result == 'integer'
@@ -1156,7 +1163,7 @@ class TestNumberScalar(object):
         assert not is_timedelta64_ns_dtype('timedelta64')
         assert is_timedelta64_ns_dtype('timedelta64[ns]')
 
-        tdi = TimedeltaIndex([1e14, 2e14], dtype='timedelta64')
+        tdi = TimedeltaIndex([1e14, 2e14], dtype='timedelta64[ns]')
         assert is_timedelta64_dtype(tdi)
         assert is_timedelta64_ns_dtype(tdi)
         assert is_timedelta64_ns_dtype(tdi.astype('timedelta64[ns]'))
