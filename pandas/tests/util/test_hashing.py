@@ -23,6 +23,11 @@ def series(request):
     return request.param
 
 
+@pytest.fixture(params=[True, False])
+def index(request):
+    return request.param
+
+
 def _check_equal(obj, **kwargs):
     """
     Check that hashing an objects produces the same value each time.
@@ -34,12 +39,6 @@ def _check_equal(obj, **kwargs):
     kwargs : kwargs
         Keyword arguments to pass to the hashing function.
     """
-    a = hash_pandas_object(obj, **kwargs)
-    b = hash_pandas_object(obj, **kwargs)
-    tm.assert_series_equal(a, b)
-
-    kwargs.pop("index", None)
-
     a = hash_pandas_object(obj, **kwargs)
     b = hash_pandas_object(obj, **kwargs)
     tm.assert_series_equal(a, b)
@@ -203,22 +202,22 @@ def test_multiindex_objects():
                              pd.date_range("20130101", periods=2)]),
     MultiIndex.from_product([pd.CategoricalIndex(list("aabc")), range(3)])
 ])
-def test_hash_pandas_object(obj):
-    _check_equal(obj)
+def test_hash_pandas_object(obj, index):
+    _check_equal(obj, index=index)
     _check_not_equal_with_index(obj)
 
 
-def test_hash_pandas_object2(series):
-    _check_equal(series)
+def test_hash_pandas_object2(series, index):
+    _check_equal(series, index=index)
     _check_not_equal_with_index(series)
 
 
 @pytest.mark.parametrize("obj", [
     Series([], dtype="float64"), Series([], dtype="object"), Index([])])
-def test_hash_pandas_empty_object(obj):
+def test_hash_pandas_empty_object(obj, index):
     # These are by-definition the same with
     # or without the index as the data is empty.
-    _check_equal(obj)
+    _check_equal(obj, index=index)
 
 
 @pytest.mark.parametrize("s1", [
@@ -287,15 +286,15 @@ def test_invalid_key():
         hash_pandas_object(Series(list("abc")), hash_key="foo")
 
 
-def test_already_encoded():
+def test_already_encoded(index):
     # If already encoded, then ok.
     obj = Series(list("abc")).str.encode("utf8")
-    _check_equal(obj)
+    _check_equal(obj, index=index)
 
 
-def test_alternate_encoding():
+def test_alternate_encoding(index):
     obj = Series(list("abc"))
-    _check_equal(obj, encoding="ascii")
+    _check_equal(obj, index=index, encoding="ascii")
 
 
 @pytest.mark.parametrize("l_exp", range(8))
