@@ -1,7 +1,7 @@
 from __future__ import division
 
 from contextlib import contextmanager
-from datetime import datetime
+from datetime import datetime, tzinfo
 from functools import wraps
 import locale
 import os
@@ -18,6 +18,7 @@ import numpy as np
 from numpy.random import rand, randn
 
 from pandas._libs import testing as _testing
+from pandas._libs.tslibs.timezones import tz_compare
 import pandas.compat as compat
 from pandas.compat import (
     PY2, PY3, Counter, StringIO, callable, filter, httplib, lmap, lrange, lzip,
@@ -878,8 +879,13 @@ def assert_index_equal(left, right, exact='equiv', check_names=True,
             # get_level_values may change dtype
             _check_types(left.levels[level], right.levels[level], obj=obj)
 
-    # skip exact index checking when `check_categorical` is False
-    if check_exact and check_categorical:
+    if isinstance(left, DatetimeIndex):
+        # by now we know right is also a DatetimeIndex
+        assert_numpy_array_equal(left.asi8, right.asi8)
+        assert tz_compare(left.tz, right.tz)
+
+    elif check_exact and check_categorical:
+        # skip exact index checking when `check_categorical` is False
         if not left.equals(right):
             diff = np.sum((left.values != right.values)
                           .astype(int)) * 100.0 / len(left)
@@ -960,6 +966,12 @@ def assert_attr_equal(attr, left, right, obj='Attributes'):
           is_number(right_attr) and np.isnan(right_attr)):
         # np.nan
         return True
+    elif is_datetime64tz_dtype(left_attr) and is_datetime64tz_dtype(right_attr):
+        left_attr = getattr(left_attr, 'dtype', left_attr)
+        right_attr = getattr(right_attr, 'dtype', right_attr)
+        return tz_compare(left_attr.tz, right_attr.tz)
+    elif isinstance(left_attr, tzinfo) and isinstance(right_attr, tzinfo):
+        return tz_compare(left_attr, right_attr)
 
     try:
         result = left_attr == right_attr

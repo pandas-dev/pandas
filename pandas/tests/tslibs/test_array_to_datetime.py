@@ -7,6 +7,7 @@ import pytest
 import pytz
 
 from pandas._libs import iNaT, tslib
+from pandas._libs.tslibs.timezones import is_utc, tz_compare
 from pandas.compat.numpy import np_array_datetime64_compat
 
 import pandas.util.testing as tm
@@ -84,15 +85,18 @@ class TestArrayToDatetime(object):
         arr = np.array([dt_string], dtype=object)
         result, result_tz = tslib.array_to_datetime(arr)
         tm.assert_numpy_array_equal(result, expected)
-        assert result_tz is expected_tz
+
+        # in some cases result_tz ends up as a dateutil fixed offset
+        assert tz_compare(result_tz, expected_tz)
 
     def test_parsing_non_iso_timezone_offset(self):
+        # ends up parsed by dateutil, result has dateutil's tzutc() tzinfo
         dt_string = '01-01-2013T00:00:00.000000000+0000'
         arr = np.array([dt_string], dtype=object)
         result, result_tz = tslib.array_to_datetime(arr)
         expected = np.array([np.datetime64('2013-01-01 00:00:00.000000000')])
         tm.assert_numpy_array_equal(result, expected)
-        assert result_tz is pytz.FixedOffset(0)
+        assert is_utc(result_tz)
 
     def test_parsing_different_timezone_offsets(self):
         # GH 17697

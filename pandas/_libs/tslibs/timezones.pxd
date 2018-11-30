@@ -6,7 +6,7 @@ cdef bint is_tzlocal(object tz)
 cdef bint treat_tz_as_pytz(object tz)
 cdef bint treat_tz_as_dateutil(object tz)
 
-cpdef bint tz_compare(object start, object end)
+cpdef bint tz_compare(object start, object end) except? -1
 cpdef object get_timezone(object tz)
 cpdef object maybe_get_tz(object tz)
 

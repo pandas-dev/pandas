@@ -366,9 +366,11 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
                     # need to set here because we changed the index
                     if fastpath:
                         self._data.set_axis(axis, labels)
-                except (tslibs.OutOfBoundsDatetime, ValueError):
+                except (tslibs.OutOfBoundsDatetime, ValueError, TypeError):
                     # labels may exceeds datetime bounds,
                     # or not be a DatetimeIndex
+                    # GH#24006 TypeError can occur when all entries are
+                    #  datetimes but they do not have matching timezones
                     pass
 
         self._set_subtyp(is_all_dates)

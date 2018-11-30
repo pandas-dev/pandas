@@ -2,6 +2,8 @@
 
 from cython import Py_ssize_t
 
+from cpython.datetime cimport tzinfo
+
 # dateutil compat
 from dateutil.tz import (
     tzutc as _dateutil_tzutc,
@@ -156,8 +158,22 @@ cdef get_utcoffset(tzinfo, obj):
         return tzinfo.utcoffset(obj)
 
 
+cdef get_fixed_offset_total_seconds(tzinfo tz):
+    """
+    For compat between pytz.FixedOffset, dateutil.tz.tzoffset
+    """
+    if hasattr(tz, "_offset"):
+        # dateutil, pytz
+        return tz._offset.total_seconds()
+    else:
+        # TODO: Will it ever want an actual datetime?
+        return tz.utcoffset(None)
+
+
 cdef inline bint is_fixed_offset(object tz):
-    if treat_tz_as_dateutil(tz):
+    if tz is None:
+        return 0
+    elif treat_tz_as_dateutil(tz):
         if len(tz._trans_idx) == 0 and len(tz._trans_list) == 0:
             return 1
         else:
@@ -168,7 +184,9 @@ cdef inline bint is_fixed_offset(object tz):
             return 1
         else:
             return 0
-    return 1
+    if not isinstance(tz, tzinfo):
+        return 0
+    return 1  # TODO: No!
 
 
 cdef object get_utc_trans_times_from_dateutil_tz(object tz):
@@ -293,7 +311,7 @@ def infer_tzinfo(start, end):
     return tz
 
 
-cpdef bint tz_compare(object start, object end):
+cpdef bint tz_compare(object start, object end) except? -1:
     """
     Compare string representations of timezones
 
@@ -319,6 +337,10 @@ cpdef bint tz_compare(object start, object end):
 
     """
     # GH 18523
+    if is_fixed_offset(start) and is_fixed_offset(end):
+        start_seconds = get_fixed_offset_total_seconds(start)
+        end_seconds = get_fixed_offset_total_seconds(end)
+        return start_seconds == end_seconds
     return get_timezone(start) == get_timezone(end)
 
 

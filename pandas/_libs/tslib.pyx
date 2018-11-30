@@ -475,39 +475,9 @@ cdef get_key(tz):
                 return str(tz._offset.total_seconds())
             except AttributeError:
                 return str(tz)
+    if is_utc(tz):
+        return 'UTC'
     return tz_cache_key(tz)
-
-
-cdef fixed_offset_to_pytz(tz):
-    """
-    If we have a FixedOffset, ensure it is a pytz fixed offset
-    """
-    if is_fixed_offset(tz):
-        # tests expect pytz, not dateutil...
-        if tz is pytz.utc:
-            pass
-        elif hasattr(tz, '_minutes'):
-            # i.e. pytz
-            pass  # TODO: use the treat_as_pytz method?
-        elif hasattr(tz, '_offset'):
-            # i.e. dateutil  # TODO: use the treat_as_dateutil method?
-            secs = tz._offset.total_seconds()
-            assert secs % 60 == 0, secs
-            tz = pytz.FixedOffset(secs / 60)
-        else:
-            # e.g. custom FixedOffset implemented in tests
-            pass
-            # TODO: using the below breaks some tests and fixes others
-            # off = get_utcoffset(tz, Timestamp.now())
-            # secs = off.total_seconds()
-            # assert secs % 60 == 0, secs
-            # tz = pytz.FixedOffset(secs / 60)
-
-    elif is_utc(tz):
-        # if we have a dateutil UTC (or stdlib), change to pytz to make
-        #  tests happy
-        tz = pytz.utc
-    return tz
 
 
 @cython.wraparound(False)
@@ -766,7 +736,6 @@ cpdef array_to_datetime(ndarray[object] values, str errors='raise',
                                                 dayfirst, yearfirst)
             else:
                 tz_out = list(out_tzinfos.values())[0]
-                tz_out = fixed_offset_to_pytz(tz_out)
         return result, tz_out
 
     except OutOfBoundsDatetime:
