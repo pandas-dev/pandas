@@ -135,10 +135,7 @@ def any_allowed_skipna_inferred_dtype(request):
     """
     Fixture for all (inferred) dtypes allowed in StringMethods.__init__
 
-    Returns an np.ndarray that will be inferred to have the given dtype (when
-    skipping missing values).
-
-    The allowed (inferred) types are:
+    The covered (inferred) types are:
     * 'string'
     * 'unicode' (if PY2)
     * 'empty'
