@@ -6,7 +6,6 @@ from pandas._libs.tslib import iNaT
 from pandas.core.dtypes.dtypes import PeriodDtype
 
 import pandas as pd
-
 from pandas.core.arrays import PeriodArray
 from pandas.tests.extension import base
 import pandas.util.testing as tm
