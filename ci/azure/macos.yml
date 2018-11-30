@@ -12,7 +12,7 @@ jobs:
       py35_np_120:
         ENV_FILE: ci/deps/azure-macos-35.yaml
         CONDA_PY: "35"
-        TEST_ARGS: "--skip-slow --skip-network"
+        PATTERN: "not slow and not network"
 
   steps:
     - script: |
@@ -31,9 +31,7 @@ jobs:
     - script: |
         export PATH=$HOME/miniconda3/bin:$PATH
         source activate pandas-dev
-        ci/script_single.sh
-        ci/script_multi.sh
-        echo "[Test done]"
+        ci/run_tests.sh
       displayName: 'Test'
     - script: |
         export PATH=$HOME/miniconda3/bin:$PATH
