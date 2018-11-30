@@ -43,8 +43,8 @@ def cut(x, bins, right=True, labels=None, retbins=False, precision=3,
           and maximum values of `x`.
         * sequence of scalars : Defines the bin edges allowing for non-uniform
           width. No extension of the range of `x` is done.
-        * IntervalIndex : Defines the exact bins to be used. Note that IntervalIndex
-         for `bins` must be non-overlapping.
+        * IntervalIndex : Defines the exact bins to be used. Note that
+          IntervalIndex for `bins` must be non-overlapping.
 
     right : bool, default True
         Indicates whether `bins` includes the rightmost edge or not. If
