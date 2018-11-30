@@ -1,4 +1,4 @@
-numpy==1.15
+numpy>=1.15
 python-dateutil>=2.5.0
 pytz
 cython>=0.28.2
@@ -6,10 +6,10 @@ flake8
 flake8-comprehensions
 flake8-rst==0.4.2
 gitpython
-hypothesis==3.82
+hypothesis>=3.82
 isort
 moto
-pytest==4.0
+pytest>=4.0
 sphinx
 sphinxcontrib-spelling
 beautifulsoup4>=4.2.1
@@ -23,13 +23,13 @@ jinja2
 lxml
 matplotlib>=2.0.0
 nbsphinx
-numexpr==2.6.8
+numexpr>=2.6.8
 openpyxl
 pyarrow>=0.7.0
 tables>=3.4.2
 pytest-cov
 pytest-xdist
-scipy==1.1
+scipy>=1.1
 seaborn
 sqlalchemy
 statsmodels
