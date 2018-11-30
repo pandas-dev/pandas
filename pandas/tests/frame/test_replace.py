@@ -806,9 +806,8 @@ class TestDataFrameReplace(TestData):
         df = DataFrame({'A': [np.nan, 0, np.inf], 'B': [0, 2, 5],
                         'C': ['', 'asdf', 'fd']})
         filled = df.replace(to_rep, values)
-        expected = {}
-        for k, v in compat.iteritems(df):
-            expected[k] = v.replace(to_rep[k], values[k])
+        expected = {k: v.replace(to_rep[k], values[k])
+                    for k, v in compat.iteritems(df)}
         assert_frame_equal(filled, DataFrame(expected))
 
         result = df.replace([0, 2, 5], [5, 2, 0])
@@ -821,9 +820,8 @@ class TestDataFrameReplace(TestData):
         df = DataFrame({'A': [np.nan, 0, np.nan], 'B': [0, 2, 5],
                         'C': ['', 'asdf', 'fd']})
         filled = df.replace(np.nan, values)
-        expected = {}
-        for k, v in compat.iteritems(df):
-            expected[k] = v.replace(np.nan, values[k])
+        expected = {k: v.replace(np.nan, values[k])
+                    for k, v in compat.iteritems(df)}
         assert_frame_equal(filled, DataFrame(expected))
 
         # list to list
@@ -844,9 +842,8 @@ class TestDataFrameReplace(TestData):
         # dict to scalar
         to_rep = {'A': np.nan, 'B': 0, 'C': ''}
         filled = df.replace(to_rep, 0)
-        expected = {}
-        for k, v in compat.iteritems(df):
-            expected[k] = v.replace(to_rep[k], 0)
+        expected = {k: v.replace(to_rep[k], 0)
+                    for k, v in compat.iteritems(df)}
         assert_frame_equal(filled, DataFrame(expected))
 
         pytest.raises(TypeError, df.replace, to_rep, [np.nan, 0, ''])

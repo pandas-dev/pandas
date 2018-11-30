@@ -17,18 +17,16 @@ def test_rank_apply():
 
     result = df.groupby(['key1', 'key2']).value.rank()
 
-    expected = []
-    for key, piece in df.groupby(['key1', 'key2']):
-        expected.append(piece.value.rank())
+    expected = [piece.value.rank()
+                for key, piece in df.groupby(['key1', 'key2'])]
     expected = concat(expected, axis=0)
     expected = expected.reindex(result.index)
     tm.assert_series_equal(result, expected)
 
     result = df.groupby(['key1', 'key2']).value.rank(pct=True)
 
-    expected = []
-    for key, piece in df.groupby(['key1', 'key2']):
-        expected.append(piece.value.rank(pct=True))
+    expected = [piece.value.rank(pct=True)
+                for key, piece in df.groupby(['key1', 'key2'])]
     expected = concat(expected, axis=0)
     expected = expected.reindex(result.index)
     tm.assert_series_equal(result, expected)

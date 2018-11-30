@@ -586,10 +586,9 @@ class ExcelFile(object):
             usecols = _maybe_convert_usecols(usecols)
 
             for i in range(sheet.nrows):
-                row = []
-                for j, (value, typ) in enumerate(zip(sheet.row_values(i),
-                                                     sheet.row_types(i))):
-                    row.append(_parse_cell(value, typ))
+                row = [_parse_cell(value, typ)
+                       for value, typ in zip(sheet.row_values(i),
+                                             sheet.row_types(i))]
                 data.append(row)
 
             if sheet.nrows == 0:

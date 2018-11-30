@@ -840,9 +840,9 @@ def test_parse_timezone(all_parsers):
               2018-01-04 09:05:00+09:00,23400"""
     result = parser.read_csv(StringIO(data), parse_dates=["dt"])
 
-    dti = pd.DatetimeIndex(start="2018-01-04 09:01:00",
-                           end="2018-01-04 09:05:00", freq="1min",
-                           tz=pytz.FixedOffset(540))
+    dti = pd.date_range(start="2018-01-04 09:01:00",
+                        end="2018-01-04 09:05:00", freq="1min",
+                        tz=pytz.FixedOffset(540))
     expected_data = {"dt": dti, "val": [23350, 23400, 23400, 23400, 23400]}
 
     expected = DataFrame(expected_data)
