@@ -13,7 +13,7 @@ import numpy as np
 from pandas._libs import lib
 from pandas._libs.tslib import format_array_from_datetime
 from pandas._libs.tslibs import NaT, Timedelta, Timestamp, iNaT
-from pandas.compat import StringIO, lzip, map, u, zip
+from pandas.compat import StringIO, lzip, map, zip
 
 from pandas.core.dtypes.common import (
     is_categorical_dtype, is_datetime64_dtype, is_datetime64tz_dtype, is_float,
@@ -111,7 +111,7 @@ class CategoricalFormatter(object):
     def __init__(self, categorical, buf=None, length=True, na_rep='NaN',
                  footer=True):
         self.categorical = categorical
-        self.buf = buf if buf is not None else StringIO(u(""))
+        self.buf = buf if buf is not None else StringIO(u"")
         self.na_rep = na_rep
         self.length = length
         self.footer = footer
@@ -144,20 +144,20 @@ class CategoricalFormatter(object):
             if self.footer:
                 return self._get_footer()
             else:
-                return u('')
+                return u''
 
         fmt_values = self._get_formatted_values()
 
-        result = [u('{i}').format(i=i) for i in fmt_values]
+        result = [u'{i}'.format(i=i) for i in fmt_values]
         result = [i.strip() for i in result]
-        result = u(', ').join(result)
-        result = [u('[') + result + u(']')]
+        result = u', '.join(result)
+        result = [u'[' + result + u']']
         if self.footer:
             footer = self._get_footer()
             if footer:
                 result.append(footer)
 
-        return compat.text_type(u('\n').join(result))
+        return compat.text_type(u'\n'.join(result))
 
 
 class SeriesFormatter(object):
@@ -201,7 +201,7 @@ class SeriesFormatter(object):
 
     def _get_footer(self):
         name = self.series.name
-        footer = u('')
+        footer = u''
 
         if getattr(self.series.index, 'freq', None) is not None:
             footer += 'Freq: {freq}'.format(freq=self.series.index.freqstr)
@@ -290,7 +290,7 @@ class SeriesFormatter(object):
         if footer:
             result += '\n' + footer
 
-        return compat.text_type(u('').join(result))
+        return compat.text_type(u''.join(result))
 
 
 class TextAdjustment(object):
@@ -593,7 +593,7 @@ class DataFrameFormatter(TableFormatter):
         frame = self.frame
 
         if len(frame.columns) == 0 or len(frame.index) == 0:
-            info_line = (u('Empty {name}\nColumns: {col}\nIndex: {idx}')
+            info_line = (u'Empty {name}\nColumns: {col}\nIndex: {idx}'
                          .format(name=type(self.frame).__name__,
                          col=pprint_thing(frame.columns),
                          idx=pprint_thing(frame.index)))
@@ -1493,9 +1493,9 @@ class EngFormatter(object):
         mant = sign * dnum / (10**pow10)
 
         if self.accuracy is None:  # pragma: no cover
-            format_str = u("{mant: g}{prefix}")
+            format_str = u"{mant: g}{prefix}"
         else:
-            format_str = (u("{{mant: .{acc:d}f}}{{prefix}}")
+            format_str = (u"{{mant: .{acc:d}f}}{{prefix}}"
                           .format(acc=self.accuracy))
 
         formatted = format_str.format(mant=mant, prefix=prefix)

@@ -10,8 +10,7 @@ import re
 
 import pandas.compat as compat
 from pandas.compat import (
-    binary_type, iteritems, lmap, lrange, raise_with_traceback, string_types,
-    u)
+    binary_type, iteritems, lmap, lrange, raise_with_traceback, string_types)
 from pandas.errors import AbstractMethodError, EmptyDataError
 
 from pandas.core.dtypes.common import is_list_like
@@ -622,8 +621,8 @@ def _build_xpath_expr(attrs):
     if 'class_' in attrs:
         attrs['class'] = attrs.pop('class_')
 
-    s = [u("@{key}={val!r}").format(key=k, val=v) for k, v in iteritems(attrs)]
-    return u('[{expr}]').format(expr=' and '.join(s))
+    s = [u"@{key}={val!r}".format(key=k, val=v) for k, v in iteritems(attrs)]
+    return u'[{expr}]'.format(expr=' and '.join(s))
 
 
 _re_namespace = {'re': 'http://exslt.org/regular-expressions'}
@@ -664,8 +663,8 @@ class _LxmlFrameParser(_HtmlFrameParser):
 
         # 1. check all descendants for the given pattern and only search tables
         # 2. go up the tree until we find a table
-        query = '//table//*[re:test(text(), {patt!r})]/ancestor::table'
-        xpath_expr = u(query).format(patt=pattern)
+        query = u'//table//*[re:test(text(), {patt!r})]/ancestor::table'
+        xpath_expr = query.format(patt=pattern)
 
         # if any table attributes were given build an xpath expression to
         # search for them

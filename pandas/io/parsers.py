@@ -51,7 +51,7 @@ from pandas.io.date_converters import generic_parser
 # This exists at the beginning of a file to indicate endianness
 # of a file (stream). Unfortunately, this marker screws up parsing,
 # so we need to remove it if we see it.
-_BOM = u('\ufeff')
+_BOM = u'\ufeff'
 
 _doc_read_csv_and_table = r"""
 {summary}

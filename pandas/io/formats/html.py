@@ -8,7 +8,7 @@ from __future__ import print_function
 from distutils.version import LooseVersion
 from textwrap import dedent
 
-from pandas.compat import OrderedDict, lzip, map, range, u, unichr, zip
+from pandas.compat import OrderedDict, lzip, map, range, unichr, zip
 
 from pandas.core.dtypes.generic import ABCMultiIndex
 
@@ -186,7 +186,7 @@ class HTMLFormatter(TableFormatter):
         self.write('</table>', indent)
         if self.should_show_dimensions:
             by = chr(215) if compat.PY3 else unichr(215)  # ×
-            self.write(u('<p>{rows} rows {by} {cols} columns</p>')
+            self.write(u'<p>{rows} rows {by} {cols} columns</p>'
                        .format(rows=len(frame),
                                by=by,
                                cols=len(frame.columns)))
@@ -233,7 +233,7 @@ class HTMLFormatter(TableFormatter):
                             elif tag + span > ins_col:
                                 recs_new[tag] = span + 1
                                 if lnum == inner_lvl:
-                                    values = (values[:ins_col] + (u('...'),) +
+                                    values = (values[:ins_col] + (u'...',) +
                                               values[ins_col:])
                                 else:
                                     # sparse col headers do not receive a ...
@@ -246,7 +246,7 @@ class HTMLFormatter(TableFormatter):
                             # get ...
                             if tag + span == ins_col:
                                 recs_new[ins_col] = 1
-                                values = (values[:ins_col] + (u('...'),) +
+                                values = (values[:ins_col] + (u'...',) +
                                           values[ins_col:])
                         records = recs_new
                         inner_lvl = len(level_lengths) - 1
@@ -261,7 +261,7 @@ class HTMLFormatter(TableFormatter):
                                 recs_new[tag] = span
                         recs_new[ins_col] = 1
                         records = recs_new
-                        values = (values[:ins_col] + [u('...')] +
+                        values = (values[:ins_col] + [u'...'] +
                                   values[ins_col:])
 
                 name = self.columns.names[lnum]
@@ -403,12 +403,12 @@ class HTMLFormatter(TableFormatter):
                             # GH 14882 - Make sure insertion done once
                             if not inserted:
                                 dot_row = list(idx_values[ins_row - 1])
-                                dot_row[-1] = u('...')
+                                dot_row[-1] = u'...'
                                 idx_values.insert(ins_row, tuple(dot_row))
                                 inserted = True
                             else:
                                 dot_row = list(idx_values[ins_row])
-                                dot_row[inner_lvl - lnum] = u('...')
+                                dot_row[inner_lvl - lnum] = u'...'
                                 idx_values[ins_row] = tuple(dot_row)
                         else:
                             rec_new[tag] = span
@@ -418,12 +418,12 @@ class HTMLFormatter(TableFormatter):
                             rec_new[ins_row] = 1
                             if lnum == 0:
                                 idx_values.insert(ins_row, tuple(
-                                    [u('...')] * len(level_lengths)))
+                                    [u'...'] * len(level_lengths)))
 
                             # GH 14882 - Place ... in correct level
                             elif inserted:
                                 dot_row = list(idx_values[ins_row])
-                                dot_row[inner_lvl - lnum] = u('...')
+                                dot_row[inner_lvl - lnum] = u'...'
                                 idx_values[ins_row] = tuple(dot_row)
                     level_lengths[lnum] = rec_new
 
