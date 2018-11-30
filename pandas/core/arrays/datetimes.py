@@ -6,8 +6,8 @@ import numpy as np
 from pytz import utc
 
 from pandas._libs import lib, tslib
-from pandas._libs.tslib import NaT, Timestamp, iNaT
 from pandas._libs.tslibs import (
+    NaT, Timestamp, iNaT,
     ccalendar, conversion, fields, normalize_date, resolution as libresolution,
     timezones)
 import pandas.compat as compat

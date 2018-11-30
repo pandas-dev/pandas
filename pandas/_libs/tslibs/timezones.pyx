@@ -2,6 +2,8 @@
 
 from cython import Py_ssize_t
 
+from cpython.datetime cimport tzinfo
+
 # dateutil compat
 from dateutil.tz import (
     tzutc as _dateutil_tzutc,
@@ -35,12 +37,12 @@ cdef inline bint is_tzlocal(object tz):
     return isinstance(tz, _dateutil_tzlocal)
 
 
-cdef inline bint treat_tz_as_pytz(object tz):
+cdef inline bint treat_tz_as_pytz(tzinfo tz):
     return (hasattr(tz, '_utc_transition_times') and
             hasattr(tz, '_transition_info'))
 
 
-cdef inline bint treat_tz_as_dateutil(object tz):
+cdef inline bint treat_tz_as_dateutil(tzinfo tz):
     return hasattr(tz, '_trans_list') and hasattr(tz, '_trans_idx')
 
 
