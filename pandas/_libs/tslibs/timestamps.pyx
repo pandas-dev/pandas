@@ -240,12 +240,7 @@ cdef class _Timestamp(datetime):
                     return PyObject_RichCompare(np.array([self]), other, op)
                 return PyObject_RichCompare(other, self, reverse_ops[op])
             else:
-                if op == Py_EQ:
-                    return False
-                elif op == Py_NE:
-                    return True
-                raise TypeError('Cannot compare type %r with type %r' %
-                                (type(self).__name__, type(other).__name__))
+                return NotImplemented
 
         self._assert_tzawareness_compat(other)
         return cmp_scalar(self.value, ots.value, op)
