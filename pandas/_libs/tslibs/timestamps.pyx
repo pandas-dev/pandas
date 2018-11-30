@@ -377,13 +377,15 @@ cdef class _Timestamp(datetime):
             neg_other = -other
             return self + neg_other
 
+        typ = getattr(other, '_typ', None)
+
         # a Timestamp-DatetimeIndex -> yields a negative TimedeltaIndex
-        elif getattr(other, '_typ', None) == 'datetimeindex':
+        if typ in ('datetimeindex', 'datetimearray'):
             # timezone comparison is performed in DatetimeIndex._sub_datelike
             return -other.__sub__(self)
 
         # a Timestamp-TimedeltaIndex -> yields a negative TimedeltaIndex
-        elif getattr(other, '_typ', None) == 'timedeltaindex':
+        elif typ in ('timedeltaindex', 'timedeltaarray'):
             return (-other).__add__(self)
 
         elif other is NaT:

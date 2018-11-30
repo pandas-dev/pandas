@@ -11,7 +11,7 @@ from itertools import chain
 
 import warnings
 import numpy as np
-from hypothesis import given
+from hypothesis import given, settings
 from hypothesis.strategies import composite, dates, integers, sampled_from
 
 from pandas import (notna, DataFrame, Series, MultiIndex, date_range,
@@ -1157,6 +1157,7 @@ class TestDataFrameAggregate():
             df.agg(func, axis=axis)
 
     @given(index=indices(max_length=5), num_columns=integers(0, 5))
+    @settings(deadline=1000)
     def test_frequency_is_original(self, index, num_columns):
         # GH 22150
         original = index.copy()
