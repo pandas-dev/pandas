@@ -22,7 +22,6 @@ from pandas.core.algorithms import take_1d
 from pandas.core.base import NoNewAttributesMixin
 import pandas.core.common as com
 
-
 _cpython_optimized_encoders = (
     "utf-8", "utf8", "latin-1", "latin1", "iso-8859-1", "mbcs", "ascii"
 )
