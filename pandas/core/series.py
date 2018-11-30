@@ -12,7 +12,7 @@ import numpy.ma as ma
 from pandas._libs import iNaT, index as libindex, lib, tslibs
 import pandas.compat as compat
 from pandas.compat import (
-    PY36, OrderedDict, StringIO, get_range_parameters, range, u, zip)
+    PY36, OrderedDict, StringIO, get_range_parameters, range, zip)
 from pandas.compat.numpy import function as nv
 from pandas.util._decorators import Appender, Substitution, deprecate
 from pandas.util._validators import validate_bool_kwarg
@@ -1257,7 +1257,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         Invoked by unicode(df) in py2 only. Yields a Unicode String in both
         py2/py3.
         """
-        buf = StringIO(u(""))
+        buf = StringIO(u"")
         width, height = get_terminal_size()
         max_rows = (height if get_option("display.max_rows") == 0 else
                     get_option("display.max_rows"))

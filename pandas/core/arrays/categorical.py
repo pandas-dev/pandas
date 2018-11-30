@@ -7,7 +7,7 @@ import numpy as np
 
 from pandas._libs import algos as libalgos, lib
 import pandas.compat as compat
-from pandas.compat import lzip, u
+from pandas.compat import lzip
 from pandas.compat.numpy import function as nv
 from pandas.util._decorators import (
     Appender, Substitution, cache_readonly, deprecate_kwarg)
@@ -1907,10 +1907,10 @@ class Categorical(ExtensionArray, PandasObject):
         head = self[:num]._get_repr(length=False, footer=False)
         tail = self[-(max_vals - num):]._get_repr(length=False, footer=False)
 
-        result = u('{head}, ..., {tail}').format(head=head[:-1], tail=tail[1:])
+        result = u'{head}, ..., {tail}'.format(head=head[:-1], tail=tail[1:])
         if footer:
-            result = u('{result}\n{footer}').format(result=result,
-                                                    footer=self._repr_footer())
+            result = u'{result}\n{footer}'.format(result=result,
+                                                  footer=self._repr_footer())
 
         return compat.text_type(result)
 
@@ -1964,7 +1964,7 @@ class Categorical(ExtensionArray, PandasObject):
 
     def _repr_footer(self):
 
-        return u('Length: {length}\n{info}').format(
+        return u'Length: {length}\n{info}'.format(
             length=len(self), info=self._repr_categories_info())
 
     def _get_repr(self, length=True, na_rep='NaN', footer=True):

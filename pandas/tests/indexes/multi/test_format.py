@@ -6,7 +6,7 @@ import warnings
 import pandas as pd
 import pandas.util.testing as tm
 from pandas import MultiIndex, compat
-from pandas.compat import PY3, range, u
+from pandas.compat import PY3, range
 
 
 def test_dtype_str(indices):
@@ -52,7 +52,7 @@ def test_format_sparse_display():
 
 def test_repr_with_unicode_data():
     with pd.core.config.option_context("display.encoding", 'UTF-8'):
-        d = {"a": [u("\u05d0"), 2, 3], "b": [4, 5, 6], "c": [7, 8, 9]}
+        d = {"a": [u"\u05d0", 2, 3], "b": [4, 5, 6], "c": [7, 8, 9]}
         index = pd.DataFrame(d).set_index(["a", "b"]).index
         assert "\\u" not in repr(index)  # we don't want unicode-escaped
 
@@ -101,7 +101,7 @@ def test_repr_roundtrip():
 
 
 def test_unicode_string_with_unicode():
-    d = {"a": [u("\u05d0"), 2, 3], "b": [4, 5, 6], "c": [7, 8, 9]}
+    d = {"a": [u"\u05d0", 2, 3], "b": [4, 5, 6], "c": [7, 8, 9]}
     idx = pd.DataFrame(d).set_index(["a", "b"]).index
 
     if PY3:
@@ -111,7 +111,7 @@ def test_unicode_string_with_unicode():
 
 
 def test_bytestring_with_unicode():
-    d = {"a": [u("\u05d0"), 2, 3], "b": [4, 5, 6], "c": [7, 8, 9]}
+    d = {"a": [u"\u05d0", 2, 3], "b": [4, 5, 6], "c": [7, 8, 9]}
     idx = pd.DataFrame(d).set_index(["a", "b"]).index
 
     if PY3:

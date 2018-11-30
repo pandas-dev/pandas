@@ -15,7 +15,6 @@ from pandas.util.testing import assert_frame_equal
 
 from pandas import get_dummies, Categorical, Index
 import pandas.util.testing as tm
-from pandas.compat import u
 
 
 class TestGetDummies(object):
@@ -172,7 +171,7 @@ class TestGetDummies(object):
         s = [e, eacute, eacute]
         res = get_dummies(s, prefix='letter', sparse=sparse)
         exp = DataFrame({'letter_e': [1, 0, 0],
-                         u('letter_%s') % eacute: [0, 1, 1]},
+                         u'letter_%s' % eacute: [0, 1, 1]},
                         dtype=np.uint8)
         if sparse:
             tm.assert_sp_frame_equal(res, exp.to_sparse(fill_value=0,

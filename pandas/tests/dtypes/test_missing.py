@@ -8,7 +8,6 @@ from pandas.util import testing as tm
 
 import pandas as pd
 from pandas.core import config as cf
-from pandas.compat import u
 
 from pandas._libs import missing as libmissing
 from pandas._libs.tslib import iNaT
@@ -115,7 +114,7 @@ class TestIsNA(object):
         exp = np.array([False, False])
         tm.assert_numpy_array_equal(result, exp)
 
-        result = isna([u('foo'), u('bar')])
+        result = isna([u'foo', u'bar'])
         exp = np.array([False, False])
         tm.assert_numpy_array_equal(result, exp)
 

@@ -9,7 +9,6 @@ from datetime import timedelta
 import numpy as np
 from pandas import (DataFrame, Series, date_range, Timedelta, Timestamp,
                     Categorical, compat, concat, option_context)
-from pandas.compat import u
 from pandas import _np_version_under1p14
 
 from pandas.core.arrays import integer_array
@@ -363,7 +362,7 @@ class TestDataFrameDataTypes(TestData):
     @pytest.mark.parametrize("arg", ["include", "exclude"])
     def test_select_dtypes_str_raises(self, dtype, arg):
         df = DataFrame({"a": list("abc"),
-                        "g": list(u("abc")),
+                        "g": list(u"abc"),
                         "b": list(range(1, 4)),
                         "c": np.arange(3, 6).astype("u1"),
                         "d": np.arange(4.0, 7.0, dtype="float64"),
@@ -377,7 +376,7 @@ class TestDataFrameDataTypes(TestData):
 
     def test_select_dtypes_bad_arg_raises(self):
         df = DataFrame({'a': list('abc'),
-                        'g': list(u('abc')),
+                        'g': list(u'abc'),
                         'b': list(range(1, 4)),
                         'c': np.arange(3, 6).astype('u1'),
                         'd': np.arange(4.0, 7.0, dtype='float64'),

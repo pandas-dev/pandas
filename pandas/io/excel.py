@@ -17,7 +17,7 @@ import numpy as np
 import pandas._libs.json as json
 import pandas.compat as compat
 from pandas.compat import (
-    OrderedDict, add_metaclass, lrange, map, range, string_types, u, zip)
+    OrderedDict, add_metaclass, lrange, map, range, string_types, zip)
 from pandas.errors import EmptyDataError
 from pandas.util._decorators import Appender, deprecate_kwarg
 
@@ -1133,7 +1133,7 @@ class ExcelWriter(object):
         if ext.startswith('.'):
             ext = ext[1:]
         if not any(ext in extension for extension in cls.supported_extensions):
-            msg = (u("Invalid extension for engine '{engine}': '{ext}'")
+            msg = (u"Invalid extension for engine '{engine}': '{ext}'"
                    .format(engine=pprint_thing(cls.engine),
                            ext=pprint_thing(ext)))
             raise ValueError(msg)

@@ -5,7 +5,7 @@ import warnings
 import numpy as np
 
 from pandas._libs import lib
-from pandas.compat import range, set_function_name, string_types, u
+from pandas.compat import range, set_function_name, string_types
 from pandas.util._decorators import cache_readonly
 
 from pandas.core.dtypes.base import ExtensionDtype
@@ -361,10 +361,10 @@ class IntegerArray(ExtensionArray, ExtensionOpsMixin):
         attrs = format_object_attrs(self)
         space = " "
 
-        prepr = (u(",%s") %
-                 space).join(u("%s=%s") % (k, v) for k, v in attrs)
+        prepr = (u",%s" %
+                 space).join(u"%s=%s" % (k, v) for k, v in attrs)
 
-        res = u("%s(%s%s)") % (klass, data, prepr)
+        res = u"%s(%s%s)" % (klass, data, prepr)
 
         return res
 

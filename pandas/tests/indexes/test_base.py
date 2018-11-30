@@ -19,7 +19,7 @@ from pandas import (
 )
 from pandas._libs.tslib import Timestamp
 from pandas.compat import (
-    PY3, PY35, PY36, StringIO, lrange, lzip, range, text_type, u, zip
+    PY3, PY35, PY36, StringIO, lrange, lzip, range, text_type, zip
 )
 from pandas.compat.numpy import np_datetime64_compat
 from pandas.core.dtypes.common import (
@@ -1200,7 +1200,7 @@ class TestIndex(Base):
         index = Index(vals)
 
         formatted = index.format()
-        expected = [str(index[0]), str(index[1]), str(index[2]), u('NaN')]
+        expected = [str(index[0]), str(index[1]), str(index[2]), u'NaN']
 
         assert formatted == expected
         assert index[3] is nulls_fixture
@@ -2450,7 +2450,7 @@ class TestMixedIntIndex(Base):
         assert '0' in repr(result)
 
     def test_print_unicode_columns(self):
-        df = pd.DataFrame({u("\u05d0"): [1, 2, 3],
+        df = pd.DataFrame({u"\u05d0": [1, 2, 3],
                            "\u05d1": [4, 5, 6],
                            "c": [7, 8, 9]})
         repr(df.columns)  # should not raise UnicodeDecodeError

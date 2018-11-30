@@ -5,7 +5,7 @@ from functools import partial
 
 import numpy as np
 
-from pandas.compat import DeepChainMap, string_types, u
+from pandas.compat import DeepChainMap, string_types
 
 from pandas.core.dtypes.common import is_list_like
 
@@ -182,7 +182,7 @@ class BinOp(ops.BinOp):
 
         kind = _ensure_decoded(self.kind)
         meta = _ensure_decoded(self.meta)
-        if kind == u('datetime64') or kind == u('datetime'):
+        if kind == u'datetime64' or kind == u'datetime':
             if isinstance(v, (int, float)):
                 v = stringify(v)
             v = _ensure_decoded(v)
@@ -190,10 +190,10 @@ class BinOp(ops.BinOp):
             if v.tz is not None:
                 v = v.tz_convert('UTC')
             return TermValue(v, v.value, kind)
-        elif kind == u('timedelta64') or kind == u('timedelta'):
+        elif kind == u'timedelta64' or kind == u'timedelta':
             v = _coerce_scalar_to_timedelta_type(v, unit='s').value
             return TermValue(int(v), v, kind)
-        elif meta == u('category'):
+        elif meta == u'category':
             metadata = com.values_from_object(self.metadata)
             result = metadata.searchsorted(v, side='left')
 
@@ -201,24 +201,24 @@ class BinOp(ops.BinOp):
             # check that metadata contains v
             if not result and v not in metadata:
                 result = -1
-            return TermValue(result, result, u('integer'))
-        elif kind == u('integer'):
+            return TermValue(result, result, u'integer')
+        elif kind == u'integer':
             v = int(float(v))
             return TermValue(v, v, kind)
-        elif kind == u('float'):
+        elif kind == u'float':
             v = float(v)
             return TermValue(v, v, kind)
-        elif kind == u('bool'):
+        elif kind == u'bool':
             if isinstance(v, string_types):
-                v = not v.strip().lower() in [u('false'), u('f'), u('no'),
-                                              u('n'), u('none'), u('0'),
-                                              u('[]'), u('{}'), u('')]
+                v = not v.strip().lower() in [u'false', u'f', u'no',
+                                              u'n', u'none', u'0',
+                                              u'[]', u'{}', u'']
             else:
                 v = bool(v)
             return TermValue(v, v, kind)
         elif isinstance(v, string_types):
             # string quoting
-            return TermValue(v, stringify(v), u('string'))
+            return TermValue(v, stringify(v), u'string')
         else:
             raise TypeError("Cannot compare {v} of type {typ} to {kind} column"
                             .format(v=v, typ=type(v), kind=kind))

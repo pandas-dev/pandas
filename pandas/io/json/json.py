@@ -6,7 +6,7 @@ import numpy as np
 
 import pandas._libs.json as json
 from pandas._libs.tslibs import iNaT
-from pandas.compat import StringIO, long, to_str, u
+from pandas.compat import StringIO, long, to_str
 from pandas.errors import AbstractMethodError
 
 from pandas.core.dtypes.common import is_period_dtype
@@ -638,7 +638,7 @@ class Parser(object):
         bad_keys = set(decoded.keys()).difference(set(self._split_keys))
         if bad_keys:
             bad_keys = ", ".join(bad_keys)
-            raise ValueError(u("JSON data had unexpected key(s): {bad_keys}")
+            raise ValueError(u"JSON data had unexpected key(s): {bad_keys}"
                              .format(bad_keys=pprint_thing(bad_keys)))
 
     def parse(self):

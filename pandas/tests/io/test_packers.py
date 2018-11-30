@@ -8,7 +8,7 @@ import numpy as np
 from distutils.version import LooseVersion
 
 from pandas import compat
-from pandas.compat import u, PY3
+from pandas.compat import PY3
 from pandas import (Series, DataFrame, Panel, MultiIndex, bdate_range,
                     date_range, period_range, Index, Categorical,
                     Period, Interval)
@@ -274,7 +274,7 @@ class TestNumpy(TestPackers):
                 x.dtype == x_rec.dtype)
 
     def test_list_mixed(self):
-        x = [1.0, np.float32(3.5), np.complex128(4.25), u('foo'), np.bool_(1)]
+        x = [1.0, np.float32(3.5), np.complex128(4.25), u'foo', np.bool_(1)]
         x_rec = self.encode_decode(x)
         # current msgpack cannot distinguish list/tuple
         tm.assert_almost_equal(tuple(x), x_rec)
@@ -809,7 +809,7 @@ class TestEncoding(TestPackers):
     def setup_method(self, method):
         super(TestEncoding, self).setup_method(method)
         data = {
-            'A': [compat.u('\u2019')] * 1000,
+            'A': [u'\u2019'] * 1000,
             'B': np.arange(1000, dtype=np.int32),
             'C': list(100 * 'abcdefghij'),
             'D': date_range(datetime.datetime(2015, 4, 1), periods=1000),

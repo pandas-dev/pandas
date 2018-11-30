@@ -54,7 +54,7 @@ import re
 import warnings
 
 import pandas.compat as compat
-from pandas.compat import lmap, map, u
+from pandas.compat import lmap, map
 
 DeprecatedOption = namedtuple('DeprecatedOption', 'key msg rkey removal_ver')
 RegisteredOption = namedtuple('RegisteredOption',
@@ -140,7 +140,7 @@ def _describe_option(pat='', _print_desc=True):
     if len(keys) == 0:
         raise OptionError('No such keys(s)')
 
-    s = u('')
+    s = u''
     for k in keys:  # filter by pat
         s += _build_option_description(k)
 
@@ -634,7 +634,7 @@ def _build_option_description(k):
     o = _get_registered_option(k)
     d = _get_deprecated_option(k)
 
-    s = u('{k} ').format(k=k)
+    s = u'{k} '.format(k=k)
 
     if o.doc:
         s += '\n'.join(o.doc.strip().split('\n'))
@@ -642,14 +642,14 @@ def _build_option_description(k):
         s += 'No description available.'
 
     if o:
-        s += (u('\n    [default: {default}] [currently: {current}]')
+        s += (u'\n    [default: {default}] [currently: {current}]'
               .format(default=o.defval, current=_get_option(k, True)))
 
     if d:
-        s += u('\n    (Deprecated')
-        s += (u(', use `{rkey}` instead.')
+        s += u'\n    (Deprecated'
+        s += (u', use `{rkey}` instead.'
               .format(rkey=d.rkey if d.rkey else ''))
-        s += u(')')
+        s += u')'
 
     s += '\n\n'
     return s

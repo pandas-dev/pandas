@@ -379,7 +379,7 @@ class TestStata(object):
 
     def test_read_write_dta11(self):
         original = DataFrame([(1, 2, 3, 4)],
-                             columns=['good', compat.u('b\u00E4d'), '8number',
+                             columns=['good', u'b\u00E4d', '8number',
                                       'astringwithmorethan32characters______'])
         formatted = DataFrame([(1, 2, 3, 4)],
                               columns=['good', 'b_d', '_8number',

@@ -25,7 +25,7 @@ from pandas.util.testing import (assert_panel_equal,
 
 from pandas.compat import (is_platform_windows, is_platform_little_endian,
                            PY35, PY36, BytesIO, text_type,
-                           range, lrange, u)
+                           range, lrange)
 from pandas.io.formats.printing import pprint_thing
 from pandas.core.dtypes.common import is_categorical_dtype
 
@@ -2166,7 +2166,7 @@ class TestHDFStore(Base):
 
             # py3 ok for unicode
             if not compat.PY3:
-                dtypes.append(('unicode', u('\\u03c3')))
+                dtypes.append(('unicode', u'\\u03c3'))
 
             # currently not supported dtypes ####
             for n, f in dtypes:
@@ -2919,10 +2919,10 @@ class TestHDFStore(Base):
         # GH #13492
         idx = pd.Index(pd.to_datetime([datetime.date(2000, 1, 1),
                                        datetime.date(2000, 1, 2)]),
-                       name=u('cols\u05d2'))
+                       name=u'cols\u05d2')
         idx1 = pd.Index(pd.to_datetime([datetime.date(2010, 1, 1),
                                         datetime.date(2010, 1, 2)]),
-                        name=u('rows\u05d0'))
+                        name=u'rows\u05d0')
         df = pd.DataFrame(np.arange(4).reshape(2, 2), columns=idx, index=idx1)
 
         # This used to fail, returning numpy strings instead of python strings.
@@ -4670,7 +4670,7 @@ class TestHDFStore(Base):
 
     def test_unicode_index(self):
 
-        unicode_values = [u('\u03c3'), u('\u03c3\u03c3')]
+        unicode_values = [u'\u03c3', u'\u03c3\u03c3']
 
         # PerformanceWarning
         with catch_warnings(record=True):

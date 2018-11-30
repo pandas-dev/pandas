@@ -21,7 +21,7 @@ from pandas._libs import testing as _testing
 import pandas.compat as compat
 from pandas.compat import (
     PY2, PY3, Counter, StringIO, callable, filter, httplib, lmap, lrange, lzip,
-    map, raise_with_traceback, range, string_types, u, unichr, zip)
+    map, raise_with_traceback, range, string_types, unichr, zip)
 
 from pandas.core.dtypes.common import (
     is_bool, is_categorical_dtype, is_datetime64_dtype, is_datetime64tz_dtype,
@@ -95,7 +95,7 @@ def round_trip_pickle(obj, path=None):
     """
 
     if path is None:
-        path = u('__{random_bytes}__.pickle'.format(random_bytes=rands(10)))
+        path = u'__{random_bytes}__.pickle'.format(random_bytes=rands(10))
     with ensure_clean(path) as path:
         pd.to_pickle(obj, path)
         return pd.read_pickle(path)
@@ -320,7 +320,7 @@ def randbool(size=(), p=0.5):
 
 RANDS_CHARS = np.array(list(string.ascii_letters + string.digits),
                        dtype=(np.str_, 1))
-RANDU_CHARS = np.array(list(u("").join(map(unichr, lrange(1488, 1488 + 26))) +
+RANDU_CHARS = np.array(list(u"".join(map(unichr, lrange(1488, 1488 + 26))) +
                             string.digits), dtype=(np.unicode_, 1))
 
 

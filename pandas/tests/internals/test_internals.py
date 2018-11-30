@@ -21,7 +21,7 @@ import pandas as pd
 from pandas._libs.internals import BlockPlacement
 from pandas.util.testing import (assert_almost_equal, assert_frame_equal,
                                  randn, assert_series_equal)
-from pandas.compat import zip, u
+from pandas.compat import zip
 
 # in 3.6.1 a c-api slicing function changed, see src/compat_helper.h
 PY361 = LooseVersion(sys.version) >= LooseVersion('3.6.1')
@@ -782,12 +782,12 @@ class TestBlockManager(object):
                                     np.array([True, False, True]))
 
     def test_unicode_repr_doesnt_raise(self):
-        repr(create_mgr(u('b,\u05d0: object')))
+        repr(create_mgr(u'b,\u05d0: object'))
 
     def test_missing_unicode_key(self):
         df = DataFrame({"a": [1]})
         try:
-            df.loc[:, u("\u05d0")]  # should not raise UnicodeEncodeError
+            df.loc[:, u"\u05d0"]  # should not raise UnicodeEncodeError
         except KeyError:
             pass  # this is the expected exception
 

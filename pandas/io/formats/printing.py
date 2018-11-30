@@ -4,8 +4,6 @@ printing tools
 
 import sys
 
-from pandas.compat import u
-
 from pandas.core.dtypes.inference import is_sequence
 
 from pandas import compat
@@ -100,9 +98,9 @@ def _pprint_seq(seq, _nest_lvl=0, max_seq_items=None, **kwds):
     bounds length of printed sequence, depending on options
     """
     if isinstance(seq, set):
-        fmt = u("{{{body}}}")
+        fmt = u"{{{body}}}"
     else:
-        fmt = u("[{body}]") if hasattr(seq, '__setitem__') else u("({body})")
+        fmt = u"[{body}]" if hasattr(seq, '__setitem__') else u"({body})"
 
     if max_seq_items is False:
         nitems = len(seq)
@@ -129,10 +127,10 @@ def _pprint_dict(seq, _nest_lvl=0, max_seq_items=None, **kwds):
     internal. pprinter for iterables. you should probably use pprint_thing()
     rather then calling this directly.
     """
-    fmt = u("{{{things}}}")
+    fmt = u"{{{things}}}"
     pairs = []
 
-    pfmt = u("{key}: {val}")
+    pfmt = u"{key}: {val}"
 
     if max_seq_items is False:
         nitems = len(seq)
@@ -220,9 +218,9 @@ def pprint_thing(thing, _nest_lvl=0, escape_chars=None, default_escapes=False,
                              max_seq_items=max_seq_items)
     elif isinstance(thing, compat.string_types) and quote_strings:
         if compat.PY3:
-            fmt = u("'{thing}'")
+            fmt = u"'{thing}'"
         else:
-            fmt = u("u'{thing}'")
+            fmt = u"u'{thing}'"
         result = fmt.format(thing=as_escaped_unicode(thing))
     else:
         result = as_escaped_unicode(thing)

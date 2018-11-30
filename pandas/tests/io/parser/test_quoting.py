@@ -9,7 +9,7 @@ import csv
 
 import pytest
 
-from pandas.compat import PY2, StringIO, u
+from pandas.compat import PY2, StringIO
 from pandas.errors import ParserError
 
 from pandas import DataFrame
@@ -126,8 +126,8 @@ def test_double_quote(all_parsers, doublequote, exp_data):
 
 
 @pytest.mark.parametrize("quotechar", [
-    u('"'),
-    pytest.param(u('\u0001'), marks=pytest.mark.skipif(
+    u'"',
+    pytest.param(u'\u0001', marks=pytest.mark.skipif(
         PY2, reason="Python 2.x does not handle unicode well."))])
 def test_quotechar_unicode(all_parsers, quotechar):
     # see gh-14477

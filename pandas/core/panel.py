@@ -9,7 +9,7 @@ import warnings
 import numpy as np
 
 import pandas.compat as compat
-from pandas.compat import OrderedDict, map, range, u, zip
+from pandas.compat import OrderedDict, map, range, zip
 from pandas.compat.numpy import function as nv
 from pandas.util._decorators import Appender, Substitution, deprecate_kwarg
 from pandas.util._validators import validate_axis_style_args
@@ -355,18 +355,18 @@ class Panel(NDFrame):
 
         class_name = str(self.__class__)
 
-        dims = u('Dimensions: {dimensions}'.format(dimensions=' x '.join(
+        dims = u'Dimensions: {dimensions}'.format(dimensions=' x '.join(
             ["{shape} ({axis})".format(shape=shape, axis=axis) for axis, shape
-             in zip(self._AXIS_ORDERS, self.shape)])))
+             in zip(self._AXIS_ORDERS, self.shape)]))
 
         def axis_pretty(a):
             v = getattr(self, a)
             if len(v) > 0:
-                return u('{ax} axis: {x} to {y}'.format(ax=a.capitalize(),
-                                                        x=pprint_thing(v[0]),
-                                                        y=pprint_thing(v[-1])))
+                return u'{ax} axis: {x} to {y}'.format(ax=a.capitalize(),
+                                                       x=pprint_thing(v[0]),
+                                                       y=pprint_thing(v[-1]))
             else:
-                return u('{ax} axis: None'.format(ax=a.capitalize()))
+                return u'{ax} axis: None'.format(ax=a.capitalize())
 
         output = '\n'.join(
             [class_name, dims] + [axis_pretty(a) for a in self._AXIS_ORDERS])

@@ -14,7 +14,7 @@ from pandas import (Panel, DataFrame, Series, isna, Timestamp)
 
 from pandas.core.dtypes.common import is_float_dtype, is_integer_dtype
 import pandas.util.testing as tm
-from pandas.compat import (range, lrange, StringIO, lzip, u, product as
+from pandas.compat import (range, lrange, StringIO, lzip, product as
                            cart_product, zip)
 import pandas as pd
 
@@ -1304,7 +1304,7 @@ Thur,Lunch,Yes,51.51,17"""
         assert result.index.names == ('one', 'two')
 
     def test_unicode_repr_issues(self):
-        levels = [Index([u('a/\u03c3'), u('b/\u03c3'), u('c/\u03c3')]),
+        levels = [Index([u'a/\u03c3', u'b/\u03c3', u'c/\u03c3']),
                   Index([0, 1])]
         labels = [np.arange(3).repeat(2), np.tile(np.arange(2), 3)]
         index = MultiIndex(levels=levels, labels=labels)
@@ -1316,7 +1316,7 @@ Thur,Lunch,Yes,51.51,17"""
 
     def test_unicode_repr_level_names(self):
         index = MultiIndex.from_tuples([(0, 0), (1, 1)],
-                                       names=[u('\u0394'), 'i1'])
+                                       names=[u'\u0394', 'i1'])
 
         s = Series(lrange(2), index=index)
         df = DataFrame(np.random.randn(2, 4), index=index)

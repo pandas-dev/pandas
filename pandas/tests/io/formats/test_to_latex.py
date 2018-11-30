@@ -1,3 +1,4 @@
+import codecs
 from datetime import datetime
 
 import pytest
@@ -5,8 +6,6 @@ import pytest
 import pandas as pd
 from pandas import DataFrame, compat, Series
 from pandas.util import testing as tm
-from pandas.compat import u
-import codecs
 
 
 @pytest.fixture
@@ -348,10 +347,10 @@ c3 & 0 &  0 &  1 &  2 &  3 &  4 \\
         a = 'a'
         b = 'b'
 
-        test_dict = {u('co$e^x$'): {a: "a",
-                                    b: "b"},
-                     u('co^l1'): {a: "a",
-                                  b: "b"}}
+        test_dict = {u'co$e^x$': {a: "a",
+                                  b: "b"},
+                     u'co^l1': {a: "a",
+                                b: "b"}}
 
         unescaped_result = DataFrame(test_dict).to_latex(escape=False)
         escaped_result = DataFrame(test_dict).to_latex(
