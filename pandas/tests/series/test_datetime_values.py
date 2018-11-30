@@ -335,8 +335,8 @@ class TestSeriesDatetimeValues():
                 expected_days = calendar.day_name[:]
                 expected_months = calendar.month_name[1:]
 
-        s = Series(DatetimeIndex(freq='D', start=datetime(1998, 1, 1),
-                                 periods=365))
+        s = Series(date_range(freq='D', start=datetime(1998, 1, 1),
+                              periods=365))
         english_days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday',
                         'Friday', 'Saturday', 'Sunday']
         for day, name, eng_name in zip(range(4, 11),
@@ -348,7 +348,7 @@ class TestSeriesDatetimeValues():
         s = s.append(Series([pd.NaT]))
         assert np.isnan(s.dt.day_name(locale=time_locale).iloc[-1])
 
-        s = Series(DatetimeIndex(freq='M', start='2012', end='2013'))
+        s = Series(date_range(freq='M', start='2012', end='2013'))
         result = s.dt.month_name(locale=time_locale)
         expected = Series([month.capitalize() for month in expected_months])
 

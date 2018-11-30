@@ -221,7 +221,7 @@ the rows, applying our ``integrate_f_typed``, and putting this in the zeros arra
 
    You can **not pass** a ``Series`` directly as a ``ndarray`` typed parameter
    to a Cython function. Instead pass the actual ``ndarray`` using the
-   ``.values`` attribute of the ``Series``. The reason is that the Cython
+   :meth:`Series.to_numpy`. The reason is that the Cython
    definition is specific to an ndarray and not the passed ``Series``.
 
    So, do not do this:
@@ -230,11 +230,13 @@ the rows, applying our ``integrate_f_typed``, and putting this in the zeros arra
 
         apply_integrate_f(df['a'], df['b'], df['N'])
 
-   But rather, use ``.values`` to get the underlying ``ndarray``:
+   But rather, use :meth:`Series.to_numpy` to get the underlying ``ndarray``:
 
    .. code-block:: python
 
-        apply_integrate_f(df['a'].values, df['b'].values, df['N'].values)
+        apply_integrate_f(df['a'].to_numpy(),
+                          df['b'].to_numpy(),
+                          df['N'].to_numpy())
 
 .. note::
 

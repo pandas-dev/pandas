@@ -634,9 +634,7 @@ class TestDataFrameSelectReindex(TestData):
 
         left, right = self.frame.align(s, broadcast_axis=1)
         tm.assert_index_equal(left.index, self.frame.index)
-        expected = {}
-        for c in self.frame.columns:
-            expected[c] = s
+        expected = {c: s for c in self.frame.columns}
         expected = DataFrame(expected, index=self.frame.index,
                              columns=self.frame.columns)
         tm.assert_frame_equal(right, expected)
