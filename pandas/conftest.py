@@ -386,8 +386,17 @@ FLOAT_DTYPES = [float, "float32", "float64"]
 COMPLEX_DTYPES = [complex, "complex64", "complex128"]
 STRING_DTYPES = [str, 'str', 'U']
 
+DATETIME_DTYPES = ['datetime64[ns]', 'M8[ns]']
+TIMEDELTA_DTYPES = ['timedelta64[ns]', 'm8[ns]']
+
+BOOL_DTYPES = [bool, 'bool']
+BYTES_DTYPES = [bytes, 'bytes']
+OBJECT_DTYPES = [object, 'object']
+
 ALL_REAL_DTYPES = FLOAT_DTYPES + ALL_INT_DTYPES
-ALL_NUMPY_DTYPES = ALL_REAL_DTYPES + COMPLEX_DTYPES + STRING_DTYPES
+ALL_NUMPY_DTYPES = (ALL_REAL_DTYPES + COMPLEX_DTYPES + STRING_DTYPES
+                    + DATETIME_DTYPES + TIMEDELTA_DTYPES + BOOL_DTYPES
+                    + OBJECT_DTYPES + BYTES_DTYPES * PY3)  # bytes only for PY3
 
 
 @pytest.fixture(params=STRING_DTYPES)
@@ -406,8 +415,9 @@ def float_dtype(request):
     """
     Parameterized fixture for float dtypes.
 
-    * float32
-    * float64
+    * float
+    * 'float32'
+    * 'float64'
     """
 
     return request.param
@@ -418,8 +428,9 @@ def complex_dtype(request):
     """
     Parameterized fixture for complex dtypes.
 
-    * complex64
-    * complex128
+    * complex
+    * 'complex64'
+    * 'complex128'
     """
 
     return request.param
@@ -430,10 +441,11 @@ def sint_dtype(request):
     """
     Parameterized fixture for signed integer dtypes.
 
-    * int8
-    * int16
-    * int32
-    * int64
+    * int
+    * 'int8'
+    * 'int16'
+    * 'int32'
+    * 'int64'
     """
 
     return request.param
@@ -444,10 +456,10 @@ def uint_dtype(request):
     """
     Parameterized fixture for unsigned integer dtypes.
 
-    * uint8
-    * uint16
-    * uint32
-    * uint64
+    * 'uint8'
+    * 'uint16'
+    * 'uint32'
+    * 'uint64'
     """
 
     return request.param
@@ -456,16 +468,17 @@ def uint_dtype(request):
 @pytest.fixture(params=ALL_INT_DTYPES)
 def any_int_dtype(request):
     """
-    Parameterized fixture for any integer dtypes.
+    Parameterized fixture for any integer dtype.
 
-    * int8
-    * uint8
-    * int16
-    * uint16
-    * int32
-    * uint32
-    * int64
-    * uint64
+    * int
+    * 'int8'
+    * 'uint8'
+    * 'int16'
+    * 'uint16'
+    * 'int32'
+    * 'uint32'
+    * 'int64'
+    * 'uint64'
     """
 
     return request.param
@@ -474,18 +487,20 @@ def any_int_dtype(request):
 @pytest.fixture(params=ALL_REAL_DTYPES)
 def any_real_dtype(request):
     """
-    Parameterized fixture for any (purely) real numeric dtypes.
+    Parameterized fixture for any (purely) real numeric dtype.
 
-    * int8
-    * uint8
-    * int16
-    * uint16
-    * int32
-    * uint32
-    * int64
-    * uint64
-    * float32
-    * float64
+    * int
+    * 'int8'
+    * 'uint8'
+    * 'int16'
+    * 'uint16'
+    * 'int32'
+    * 'uint32'
+    * 'int64'
+    * 'uint64'
+    * float
+    * 'float32'
+    * 'float64'
     """
 
     return request.param
@@ -496,21 +511,34 @@ def any_numpy_dtype(request):
     """
     Parameterized fixture for all numpy dtypes.
 
-    * int8
-    * uint8
-    * int16
-    * uint16
-    * int32
-    * uint32
-    * int64
-    * uint64
-    * float32
-    * float64
-    * complex64
-    * complex128
+    * bool
+    * 'bool'
+    * int
+    * 'int8'
+    * 'uint8'
+    * 'int16'
+    * 'uint16'
+    * 'int32'
+    * 'uint32'
+    * 'int64'
+    * 'uint64'
+    * float
+    * 'float32'
+    * 'float64'
+    * complex
+    * 'complex64'
+    * 'complex128'
     * str
     * 'str'
     * 'U'
+    * bytes
+    * 'bytes'
+    * 'datetime64[ns]'
+    * 'M8[ns]'
+    * 'timedelta64[ns]'
+    * 'm8[ns]'
+    * object
+    * 'object'
     """
 
     return request.param

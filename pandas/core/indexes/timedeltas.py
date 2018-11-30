@@ -1,5 +1,6 @@
 """ implement the TimedeltaIndex """
 from datetime import datetime
+import warnings
 
 import numpy as np
 
@@ -16,8 +17,7 @@ from pandas.core.dtypes.missing import isna
 
 from pandas.core.arrays import datetimelike as dtl
 from pandas.core.arrays.timedeltas import (
-    TimedeltaArrayMixin as TimedeltaArray, _is_convertible_to_td, _to_m8,
-    sequence_to_td64ns)
+    TimedeltaArrayMixin as TimedeltaArray, _is_convertible_to_td, _to_m8)
 from pandas.core.base import _shared_docs
 import pandas.core.common as com
 from pandas.core.indexes.base import Index, _index_shared_docs
@@ -131,13 +131,22 @@ class TimedeltaIndex(TimedeltaArray, DatetimeIndexOpsMixin,
     # Constructors
 
     def __new__(cls, data=None, unit=None, freq=None, start=None, end=None,
-                periods=None, closed=None, dtype=None, copy=False,
-                name=None, verify_integrity=True):
+                periods=None, closed=None, dtype=_TD_DTYPE, copy=False,
+                name=None, verify_integrity=None):
 
-        freq, freq_infer = dtl.maybe_infer_freq(freq)
+        if verify_integrity is not None:
+            warnings.warn("The 'verify_integrity' argument is deprecated, "
+                          "will be removed in a future version.",
+                          FutureWarning, stacklevel=2)
+        else:
+            verify_integrity = True
 
         if data is None:
-            # TODO: Remove this block and associated kwargs; GH#20535
+            freq, freq_infer = dtl.maybe_infer_freq(freq)
+            warnings.warn("Creating a TimedeltaIndex by passing range "
+                          "endpoints is deprecated.  Use "
+                          "`pandas.timedelta_range` instead.",
+                          FutureWarning, stacklevel=2)
             result = cls._generate_range(start, end, periods, freq,
                                          closed=closed)
             result.name = name
@@ -156,29 +165,10 @@ class TimedeltaIndex(TimedeltaArray, DatetimeIndexOpsMixin,
 
         # - Cases checked above all return/raise before reaching here - #
 
-        data, inferred_freq = sequence_to_td64ns(data, copy=copy, unit=unit)
-        if inferred_freq is not None:
-            if freq is not None and freq != inferred_freq:
-                raise ValueError('Inferred frequency {inferred} from passed '
-                                 'values does not conform to passed frequency '
-                                 '{passed}'
-                                 .format(inferred=inferred_freq,
-                                         passed=freq.freqstr))
-            elif freq_infer:
-                freq = inferred_freq
-                freq_infer = False
-            verify_integrity = False
-
-        subarr = cls._simple_new(data, name=name, freq=freq)
-        # check that we are matching freqs
-        if verify_integrity and len(subarr) > 0:
-            if freq is not None and not freq_infer:
-                cls._validate_frequency(subarr, freq)
-
-        if freq_infer:
-            subarr.freq = to_offset(subarr.inferred_freq)
-
-        return subarr
+        result = cls._from_sequence(data, freq=freq, unit=unit,
+                                    dtype=dtype, copy=copy)
+        result.name = name
+        return result
 
     @classmethod
     def _simple_new(cls, values, name=None, freq=None, dtype=_TD_DTYPE):
@@ -237,11 +227,8 @@ class TimedeltaIndex(TimedeltaArray, DatetimeIndexOpsMixin,
 
     __mul__ = Index.__mul__
     __rmul__ = Index.__rmul__
-    __truediv__ = Index.__truediv__
     __floordiv__ = Index.__floordiv__
     __rfloordiv__ = Index.__rfloordiv__
-    if compat.PY2:
-        __div__ = Index.__div__
 
     days = wrap_field_accessor(TimedeltaArray.days)
     seconds = wrap_field_accessor(TimedeltaArray.seconds)
@@ -249,6 +236,31 @@ class TimedeltaIndex(TimedeltaArray, DatetimeIndexOpsMixin,
     nanoseconds = wrap_field_accessor(TimedeltaArray.nanoseconds)
 
     total_seconds = wrap_array_method(TimedeltaArray.total_seconds, True)
+
+    def __truediv__(self, other):
+        oth = other
+        if isinstance(other, Index):
+            # TimedeltaArray defers, so we need to unwrap
+            oth = other._values
+        result = TimedeltaArray.__truediv__(self, oth)
+        return wrap_arithmetic_op(self, other, result)
+
+    def __rtruediv__(self, other):
+        oth = other
+        if isinstance(other, Index):
+            # TimedeltaArray defers, so we need to unwrap
+            oth = other._values
+        result = TimedeltaArray.__rtruediv__(self, oth)
+        return wrap_arithmetic_op(self, other, result)
+
+    if compat.PY2:
+        __div__ = __truediv__
+        __rdiv__ = __rtruediv__
+
+    # Compat for frequency inference, see GH#23789
+    _is_monotonic_increasing = Index.is_monotonic_increasing
+    _is_monotonic_decreasing = Index.is_monotonic_decreasing
+    _is_unique = Index.is_unique
 
     # -------------------------------------------------------------------
 
@@ -735,5 +747,8 @@ def timedelta_range(start=None, end=None, periods=None, freq=None,
     if freq is None and com._any_none(periods, start, end):
         freq = 'D'
 
-    return TimedeltaIndex(start=start, end=end, periods=periods,
-                          freq=freq, name=name, closed=closed)
+    freq, freq_infer = dtl.maybe_infer_freq(freq)
+    result = TimedeltaIndex._generate_range(start, end, periods, freq,
+                                            closed=closed)
+    result.name = name
+    return result
