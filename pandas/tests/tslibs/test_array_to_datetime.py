@@ -13,6 +13,17 @@ from pandas.compat.numpy import np_array_datetime64_compat
 import pandas.util.testing as tm
 
 
+def tzlocal_is_utc():
+    # kludge because (apparently) when dateutil parses a UTC timezone
+    #  and tzlocal happens to be UTC, it returns tzlocal() instead of tzutc()
+    now = datetime.now()
+    from dateutil.tz import tzlocal
+    tz = tzlocal()
+    now = now.replace(tzinfo=tz)
+    offset = tz.utcoffset(now)
+    return offset.total_seconds() == 0
+
+
 class TestParseISO8601(object):
     @pytest.mark.parametrize('date_str, exp', [
         ('2011-01-02', datetime(2011, 1, 2)),
@@ -96,7 +107,8 @@ class TestArrayToDatetime(object):
         result, result_tz = tslib.array_to_datetime(arr)
         expected = np.array([np.datetime64('2013-01-01 00:00:00.000000000')])
         tm.assert_numpy_array_equal(result, expected)
-        assert is_utc(result_tz)
+        assert is_utc(result_tz) or (type(result_tz).__name__ == 'tzlocal') and
+                                     tzlocal_is_utc())
 
     def test_parsing_different_timezone_offsets(self):
         # GH 17697
