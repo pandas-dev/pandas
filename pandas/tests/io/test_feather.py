@@ -85,9 +85,9 @@ class TestFeather(object):
                            'col4': list(range(4, 7))})
         self.check_round_trip(df, columns=None)
         self.check_round_trip(df, columns=df.columns)
-        random_cols = np.random.choice(df.columns, 2)
-        self.check_round_trip(df, expected=df[random_cols],
-                              columns=random_cols)
+        cols = ['col3', 'col1']
+        self.check_round_trip(df, expected=df[cols],
+                              columns=cols)
 
     def test_unsupported_other(self):
 
