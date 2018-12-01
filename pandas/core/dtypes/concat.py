@@ -213,7 +213,7 @@ def _concat_categorical(to_concat, axis=0):
         first = to_concat[0]
         if all(first.is_dtype_equal(other) for other in to_concat[1:]):
             return (union_categoricals(categoricals) 
-                    if not is_datetime64_dtype(categoricals[0])
+                    if not is_datetime64tz_dtype(categoricals[0])
                     else _concat_compat(categoricals))
 
     return _concat_asobject(to_concat)
