@@ -342,17 +342,6 @@ class PeriodIndex(DatelikeOps, DatetimeIndexOpsMixin,
     # Dispatch and maybe box. Not done in delegate_names because we box
     # different from those (which use Index).
 
-    # def asfreq(self, freq=None, how='E'):
-    #     result = self._data.asfreq(freq=freq, how=how)
-    #     return self._simple_new(result, name=self.name)
-
-    def to_timestamp(self, freq=None, how='start'):
-        from pandas import DatetimeIndex
-        result = self._data.to_timestamp(freq=freq, how=how)
-        return DatetimeIndex._simple_new(result.asi8,
-                                         name=self.name,
-                                         freq=result.freq)
-
     def _maybe_convert_timedelta(self, other):
         """
         Convert timedelta-like input to an integer multiple of self.freq
