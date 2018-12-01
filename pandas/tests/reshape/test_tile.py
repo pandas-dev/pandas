@@ -92,9 +92,11 @@ class TestCut(object):
                                     np.array([1, 1, 2], dtype='int8'))
 
     def test_bins_not_overlapping_from_intervalindex(self):
-        # verify if issue 23980 is properly solved.
+        # see gh-23980
+        msg = "Overlapping IntervalIndex is not accepted"
         ii = IntervalIndex.from_tuples([(0, 10), (2, 12), (4, 14)])
-        with pytest.raises(ValueError):
+
+        with pytest.raises(ValueError, match=msg):
             cut([5, 6], bins=ii)
 
     def test_bins_not_monotonic(self):
