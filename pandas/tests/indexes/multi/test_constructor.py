@@ -104,9 +104,8 @@ def test_copy_in_constructor():
 # from_arrays
 # ----------------------------------------------------------------------------
 def test_from_arrays(idx):
-    arrays = []
-    for lev, lab in zip(idx.levels, idx.labels):
-        arrays.append(np.asarray(lev).take(lab))
+    arrays = [np.asarray(lev).take(lab)
+              for lev, lab in zip(idx.levels, idx.labels)]
 
     # list of arrays as input
     result = MultiIndex.from_arrays(arrays, names=idx.names)
@@ -121,9 +120,8 @@ def test_from_arrays(idx):
 
 def test_from_arrays_iterator(idx):
     # GH 18434
-    arrays = []
-    for lev, lab in zip(idx.levels, idx.labels):
-        arrays.append(np.asarray(lev).take(lab))
+    arrays = [np.asarray(lev).take(lab)
+              for lev, lab in zip(idx.levels, idx.labels)]
 
     # iterator as input
     result = MultiIndex.from_arrays(iter(arrays), names=idx.names)
