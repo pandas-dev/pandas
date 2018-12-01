@@ -61,8 +61,7 @@ class PeriodDelegateMixin(DatetimelikeDelegateMixin):
     _delegate_class = PeriodArray
     _delegated_properties = PeriodArray._datetimelike_ops
     _delegated_methods = (
-        set(PeriodArray._datetimelike_methods) -
-        {'asfreq', 'to_timestamp'} | {'_addsub_int_array'}
+        set(PeriodArray._datetimelike_methods) | {'_addsub_int_array'}
     )
     _raw_properties = {'is_leap_year'}
 
@@ -72,8 +71,7 @@ class PeriodDelegateMixin(DatetimelikeDelegateMixin):
                 typ='property')
 @delegate_names(PeriodArray,
                 PeriodDelegateMixin._delegated_methods,
-                typ="method",
-                overwrite=True)
+                typ="method")
 class PeriodIndex(DatelikeOps, DatetimeIndexOpsMixin,
                   Int64Index, PeriodDelegateMixin):
     """
@@ -344,9 +342,9 @@ class PeriodIndex(DatelikeOps, DatetimeIndexOpsMixin,
     # Dispatch and maybe box. Not done in delegate_names because we box
     # different from those (which use Index).
 
-    def asfreq(self, freq=None, how='E'):
-        result = self._data.asfreq(freq=freq, how=how)
-        return self._simple_new(result, name=self.name)
+    # def asfreq(self, freq=None, how='E'):
+    #     result = self._data.asfreq(freq=freq, how=how)
+    #     return self._simple_new(result, name=self.name)
 
     def to_timestamp(self, freq=None, how='start'):
         from pandas import DatetimeIndex
