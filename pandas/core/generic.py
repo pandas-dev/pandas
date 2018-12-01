@@ -10397,7 +10397,50 @@ True
 Series([], dtype: bool)
 """
 
-_sum_na = """
+_shared_docs['stat_func_example'] = """\
+Examples
+--------
+``MultiIndex`` series example.
+
+>>> index = pd.MultiIndex.from_arrays([
+...     ['Warm', 'Warm', 'Cold', 'Cold'],
+...     ['Dog', 'Falcon', 'Fish', 'Spider']],
+...     names=['Blooded', 'Animal'])
+>>> s = pd.Series([4, 2, 0, 8], name='Legs', index=index)
+>>> s
+Blooded  Animal
+Warm     Dog       4
+         Falcon    2
+Cold     Fish      0
+         Spider    8
+Name: Legs, dtype: int64
+
+>>> s.%(stat_func)s()
+%(default_output)s
+
+%(verb)s using level names, as well as indices.
+
+>>> s.%(stat_func)s(level='Blooded')
+Blooded
+Warm    %(level_output_0)s
+Cold    %(level_output_1)s
+Name: Legs, dtype: int64
+
+>>> s.%(stat_func)s(level=0)
+Blooded
+Warm    %(level_output_0)s
+Cold    %(level_output_1)s
+Name: Legs, dtype: int64
+"""
+
+_sum_examples = _shared_docs['stat_func_example'] % dict(
+    stat_func='sum',
+    verb='Sum',
+    default_output=14,
+    level_output_0=6,
+    level_output_1=8)
+
+_sum_examples += """
 By default, the sum of an empty or all-NA Series is ``0``.
 
 >>> pd.Series([]).sum()  # min_count=0 is the default
@@ -10419,69 +10462,19 @@ empty series identically.
 nan
 """
 
-_shared_docs['stat_func_example'] = """\
-Examples
---------
-``MultiIndex`` series example.
+_max_examples = _shared_docs['stat_func_example'] % dict(
+    stat_func='max',
+    verb='Max',
+    default_output=8,
+    level_output_0=4,
+    level_output_1=8)
 
->>> index = pd.MultiIndex.from_arrays(
-...     [['Warm', 'Warm', 'Cold', 'Cold'], ['Dog', 'Falcon', 'Fish', 'Spider']],
-...     names=['Blooded', 'Animal'])
->>> s = pd.Series([4, 2, 0, 8], name='Legs', index=index)
->>> s
-Blooded  Animal
-Warm     Dog       4
-         Falcon    2
-Cold     Fish      0
-         Spider    8
-Name: Legs, dtype: int64
-
->>> s.%(stat_func)s()
-%(default_output)s
-
-%(verb)s using level names, as well as indices.
-
->>> s.%(stat_func)s(level='Blooded')
-Blooded
-Warm    %(named_level_output_0)s
-Cold    %(named_level_output_1)s
-Name: Legs, dtype: int64
-
->>> s.%(stat_func)s(level=0)
-Blooded
-Warm    %(level_output_0)s
-Cold    %(level_output_1)s
-Name: Legs, dtype: int64"""
-
-_shared_docs['sum_multi_index'] = dict(stat_func='sum', verb='Sum',
-                                       default_output='478',
-                                       named_level_output_0='136',
-                                       named_level_output_1='342',
-                                       indexed_level_output_0='159',
-                                       indexed_level_output_1='152',
-                                       indexed_level_output_2='167',
-                                       additional=_sum_na)
-
-_shared_docs['max_multi_index'] = dict(stat_func='max', verb='Maximize',
-                                       default_output='117',
-                                       named_level_output_0=' 54',
-                                       named_level_output_1='117',
-                                       indexed_level_output_0='112',
-                                       indexed_level_output_1='117',
-                                       indexed_level_output_2='113',
-                                       additional='')
-
-_shared_docs['min_multi_index'] = dict(stat_func='min', verb='Minimize',
-                                       default_output='35',
-                                       named_level_output_0=' 35',
-                                       named_level_output_1='112',
-                                       indexed_level_output_0='47',
-                                       indexed_level_output_1='35',
-                                       indexed_level_output_2='54',
-                                       additional='')
-
-_sum_examples = _shared_docs['stat_func_example'] % \
-    _shared_docs['sum_multi_index']
+_min_examples = _shared_docs['stat_func_example'] % dict(
+    stat_func='min',
+    verb='Min',
+    default_output=0,
+    level_output_0=2,
+    level_output_1=0)
 
 _prod_examples = """\
 Examples
@@ -10505,12 +10498,6 @@ empty series identically.
 >>> pd.Series([np.nan]).prod(min_count=1)
 nan
 """
-
-_max_examples = _shared_docs['stat_func_example'] % \
-    _shared_docs['max_multi_index']
-
-_min_examples = _shared_docs['stat_func_example'] % \
-    _shared_docs['min_multi_index']
 
 _min_count_stub = """\
 min_count : int, default 0
