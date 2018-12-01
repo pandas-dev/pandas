@@ -10422,40 +10422,36 @@ nan
 _shared_docs['stat_func_example'] = """\
 Examples
 --------
-``MultiIndex`` series example of monthly rainfall
+``MultiIndex`` series example.
 
->>> index = pd.MultiIndex.from_product(
-...     [['London', 'New York'], ['Jun', 'Jul', 'Aug']],
-...     names=['city', 'month'])
->>> s = pd.Series([47, 35, 54, 112, 117, 113], index=index)
+>>> index = pd.MultiIndex.from_arrays(
+...     [['Warm', 'Warm', 'Cold', 'Cold'], ['Dog', 'Falcon', 'Fish', 'Spider']],
+...     names=['Blooded', 'Animal'])
+>>> s = pd.Series([4, 2, 0, 8], name='Legs', index=index)
 >>> s
-city      month
-London    Jun       47
-          Jul       35
-          Aug       54
-New York  Jun      112
-          Jul      117
-          Aug      113
-dtype: int64
+Blooded  Animal
+Warm     Dog       4
+         Falcon    2
+Cold     Fish      0
+         Spider    8
+Name: Legs, dtype: int64
 
 >>> s.%(stat_func)s()
 %(default_output)s
 
 %(verb)s using level names, as well as indices.
 
->>> s.%(stat_func)s(level='city')
-city
-London      %(named_level_output_0)s
-New York    %(named_level_output_1)s
-dtype: int64
+>>> s.%(stat_func)s(level='Blooded')
+Blooded
+Warm    %(named_level_output_0)s
+Cold    %(named_level_output_1)s
+Name: Legs, dtype: int64
 
->>> s.%(stat_func)s(level=1)
-month
-Jun    %(indexed_level_output_0)s
-Jul    %(indexed_level_output_1)s
-Aug    %(indexed_level_output_2)s
-dtype: int64
-%(additional)s"""
+>>> s.%(stat_func)s(level=0)
+Blooded
+Warm    %(level_output_0)s
+Cold    %(level_output_1)s
+Name: Legs, dtype: int64"""
 
 _shared_docs['sum_multi_index'] = dict(stat_func='sum', verb='Sum',
                                        default_output='478',
