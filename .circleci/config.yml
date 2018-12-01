@@ -34,5 +34,5 @@ jobs:
           command: |
             export PATH="$MINICONDA_DIR/bin:$PATH"
             source activate pandas-dev
-            echo "pytest --strict --durations=10 --color=no --junitxml=$CIRCLE_TEST_REPORTS/reports/junit.xml --skip-slow --skip-network pandas"
-            pytest       --strict --durations=10 --color=no --junitxml=$CIRCLE_TEST_REPORTS/reports/junit.xml --skip-slow --skip-network pandas
+            echo "pytest -m "not slow and not network" --strict --durations=10 --color=no --junitxml=$CIRCLE_TEST_REPORTS/reports/junit.xml pandas"
+            pytest       -m "not slow and not network" --strict --durations=10 --color=no --junitxml=$CIRCLE_TEST_REPORTS/reports/junit.xml pandas

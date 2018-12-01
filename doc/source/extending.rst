@@ -186,7 +186,7 @@ Instead, you should detect these cases and return ``NotImplemented``.
 When pandas encounters an operation like ``op(Series, ExtensionArray)``, pandas
 will
 
-1. unbox the array from the ``Series`` (roughly ``Series.values``)
+1. unbox the array from the ``Series`` (``Series.array``)
 2. call ``result = op(values, ExtensionArray)``
 3. re-box the result in a ``Series``
 
