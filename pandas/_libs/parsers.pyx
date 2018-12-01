@@ -56,8 +56,10 @@ from pandas.core.arrays import Categorical
 from pandas.core.dtypes.concat import union_categoricals
 import pandas.io.common as icom
 
-from pandas.errors import (ParserError, DtypeWarning,
-                           EmptyDataError, ParserWarning)
+from pandas.errors import (
+    ParserError, DtypeWarning,
+    EmptyDataError, ParserWarning, AbstractMethodError,
+)
 
 # Import CParserError as alias of ParserError for backwards compatibility.
 # Ultimately, we want to remove this import. See gh-12665 and gh-14479.
@@ -1232,10 +1234,16 @@ cdef class TextReader:
             if result is not None and dtype != 'int64':
                 if is_extension_array_dtype(dtype):
                     try:
-                        result = dtype.construct_array_type()._from_sequence(
-                                result, dtype=dtype)
-                    except Exception as e:
-                        raise
+                        array_type = dtype.construct_array_type()
+                    except AttributeError:
+                        dtype = pandas_dtype(dtype)
+                        array_type = dtype.construct_array_type()
+                    try:
+                        # use _from_sequence_of_strings if the class defines it
+                        return array_type._from_sequence_of_strings(result,
+                                                                    dtype=dtype) # noqa
+                    except AbstractMethodError:
+                        return array_type._from_sequence(result, dtype=dtype)
                 else:
                     result = result.astype(dtype)
 
@@ -1248,14 +1256,19 @@ cdef class TextReader:
             if result is not None and dtype != 'float64':
                 if is_extension_array_dtype(dtype):
                     try:
-                        result = dtype.construct_array_type()._from_sequence(
-                                result)
-                    except Exception as e:
-                        raise
+                        array_type = dtype.construct_array_type()
+                    except AttributeError:
+                        dtype = pandas_dtype(dtype)
+                        array_type = dtype.construct_array_type()
+                    try:
+                        # use _from_sequence_of_strings if the class defines it
+                        return array_type._from_sequence_of_strings(result,
+                                                                    dtype=dtype) # noqa
+                    except AbstractMethodError:
+                        return array_type._from_sequence(result, dtype=dtype)
                 else:
                     result = result.astype(dtype)
             return result, na_count
-
         elif is_bool_dtype(dtype):
             result, na_count = _try_bool_flex(self.parser, i, start, end,
                                               na_filter, na_hashset,
