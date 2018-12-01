@@ -2436,22 +2436,22 @@ a convert on an aware stamp.
 
 .. note::
 
-   Using the ``.values`` accessor on a ``Series``, returns an NumPy array of the data.
+   Using :meth:`Series.to_numpy` on a ``Series``, returns a NumPy array of the data.
    These values are converted to UTC, as NumPy does not currently support timezones (even though it is *printing* in the local timezone!).
 
    .. ipython:: python
 
-      s_naive.values
-      s_aware.values
+      s_naive.to_numpy()
+      s_aware.to_numpy()
 
    Further note that once converted to a NumPy array these would lose the tz tenor.
 
    .. ipython:: python
 
-      pd.Series(s_aware.values)
+      pd.Series(s_aware.to_numpy())
 
    However, these can be easily converted:
 
    .. ipython:: python
 
-      pd.Series(s_aware.values).dt.tz_localize('UTC').dt.tz_convert('US/Eastern')
+      pd.Series(s_aware.to_numpy()).dt.tz_localize('UTC').dt.tz_convert('US/Eastern')
