@@ -33,6 +33,7 @@ from tslibs.parsing import parse_datetime_string
 
 from tslibs.timedeltas cimport cast_from_unit
 from tslibs.timezones cimport is_utc, is_tzlocal, get_dst_info
+from tslibs.timezones import UTC
 from tslibs.conversion cimport (tz_convert_single, _TSObject,
                                 convert_datetime_to_tsobject,
                                 get_datetime64_nanos,
@@ -75,7 +76,8 @@ cdef inline object create_time_from_ts(
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
-def ints_to_pydatetime(int64_t[:] arr, tz=None, freq=None, box="datetime"):
+def ints_to_pydatetime(int64_t[:] arr, object tz=None, object freq=None,
+                       str box="datetime"):
     """
     Convert an i8 repr to an ndarray of datetimes, date, time or Timestamp
 
@@ -103,8 +105,9 @@ def ints_to_pydatetime(int64_t[:] arr, tz=None, freq=None, box="datetime"):
         int64_t[:] deltas
         Py_ssize_t pos
         npy_datetimestruct dts
-        object dt
-        int64_t value, delta
+        object dt, new_tz
+        str typ
+        int64_t value, delta, local_value
         ndarray[object] result = np.empty(n, dtype=object)
         object (*func_create)(int64_t, npy_datetimestruct, object, object)
 
@@ -211,7 +214,7 @@ def _test_parse_iso8601(object ts):
     check_dts_bounds(&obj.dts)
     if out_local == 1:
         obj.tzinfo = pytz.FixedOffset(out_tzoffset)
-        obj.value = tz_convert_single(obj.value, obj.tzinfo, 'UTC')
+        obj.value = tz_convert_single(obj.value, obj.tzinfo, UTC)
         return Timestamp(obj.value, tz=obj.tzinfo)
     else:
         return Timestamp(obj.value)
@@ -302,7 +305,8 @@ def format_array_from_datetime(ndarray[int64_t] values, object tz=None,
     return result
 
 
-def array_with_unit_to_datetime(ndarray values, unit, errors='coerce'):
+def array_with_unit_to_datetime(ndarray values, object unit,
+                                str errors='coerce'):
     """
     convert the ndarray according to the unit
     if errors:
@@ -457,10 +461,9 @@ def array_with_unit_to_datetime(ndarray values, unit, errors='coerce'):
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
-cpdef array_to_datetime(ndarray[object] values, errors='raise',
-                        dayfirst=False, yearfirst=False,
-                        format=None, utc=None,
-                        require_iso8601=False):
+cpdef array_to_datetime(ndarray[object] values, str errors='raise',
+                        bint dayfirst=False, bint yearfirst=False,
+                        object utc=None, bint require_iso8601=False):
     """
     Converts a 1D array of date-like values to a numpy array of either:
         1) datetime64[ns] data
@@ -484,8 +487,6 @@ cpdef array_to_datetime(ndarray[object] values, errors='raise',
          dayfirst parsing behavior when encountering datetime strings
     yearfirst : bool, default False
          yearfirst parsing behavior when encountering datetime strings
-    format : str, default None
-         format of the string to parse
     utc : bool, default None
          indicator whether the dates should be UTC
     require_iso8601 : bool, default False
@@ -509,9 +510,11 @@ cpdef array_to_datetime(ndarray[object] values, errors='raise',
         bint is_raise = errors=='raise'
         bint is_ignore = errors=='ignore'
         bint is_coerce = errors=='coerce'
+        bint is_same_offsets
         _TSObject _ts
+        int64_t value
         int out_local=0, out_tzoffset=0
-        float offset_seconds
+        float offset_seconds, tz_offset
         set out_tzoffset_vals = set()
 
     # specify error conditions
@@ -673,7 +676,7 @@ cpdef array_to_datetime(ndarray[object] values, errors='raise',
                         # dateutil.tz.tzoffset objects
                         out_tzoffset_vals.add(out_tzoffset * 60.)
                         tz = pytz.FixedOffset(out_tzoffset)
-                        value = tz_convert_single(value, tz, 'UTC')
+                        value = tz_convert_single(value, tz, UTC)
                     else:
                         # Add a marker for naive string, to track if we are
                         # parsing mixed naive and aware strings
@@ -763,7 +766,7 @@ cpdef array_to_datetime(ndarray[object] values, errors='raise',
 @cython.wraparound(False)
 @cython.boundscheck(False)
 cdef array_to_datetime_object(ndarray[object] values, bint is_raise,
-                              dayfirst=False, yearfirst=False):
+                              bint dayfirst=False, bint yearfirst=False):
     """
     Fall back function for array_to_datetime
 

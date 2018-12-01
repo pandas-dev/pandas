@@ -575,7 +575,7 @@ the `flake8 <https://pypi.org/project/flake8>`_ tool
 and report any stylistic errors in your code. Therefore, it is helpful before
 submitting code to run the check yourself on the diff::
 
-   git diff master -u -- "*.py" | flake8 --diff
+   git diff upstream/master -u -- "*.py" | flake8 --diff
 
 This command will catch any stylistic errors in your changes specifically, but
 be beware it may not catch all of them. For example, if you delete the only
@@ -584,28 +584,21 @@ unused function. However, style-checking the diff will not catch this because
 the actual import is not part of the diff. Thus, for completeness, you should
 run this command, though it will take longer::
 
-   git diff master --name-only -- "*.py" | grep "pandas/" | xargs -r flake8
+   git diff upstream/master --name-only -- "*.py" | xargs -r flake8
 
 Note that on OSX, the ``-r`` flag is not available, so you have to omit it and
 run this slightly modified command::
 
-   git diff master --name-only -- "*.py" | grep "pandas/" | xargs flake8
+   git diff upstream/master --name-only -- "*.py" | xargs flake8
 
-Note that on Windows, these commands are unfortunately not possible because
-commands like ``grep`` and ``xargs`` are not available natively. To imitate the
-behavior with the commands above, you should run::
+Windows does not support the ``xargs`` command (unless installed for example
+via the `MinGW <http://www.mingw.org/>`__ toolchain), but one can imitate the
+behaviour as follows::
 
-    git diff master --name-only -- "*.py"
+    for /f %i in ('git diff upstream/master --name-only -- "*.py"') do flake8 %i
 
-This will list all of the Python files that have been modified. The only ones
-that matter during linting are any whose directory filepath begins with "pandas."
-For each filepath, copy and paste it after the ``flake8`` command as shown below:
-
-    flake8 <python-filepath>
-
-Alternatively, you can install the ``grep`` and ``xargs`` commands via the
-`MinGW <http://www.mingw.org/>`__ toolchain, and it will allow you to run the
-commands above.
+This will get all the files being changed by the PR (and ending with ``.py``),
+and run ``flake8`` on them, one after the other.
 
 .. _contributing.import-formatting:
 
@@ -1103,7 +1096,7 @@ Information on how to write a benchmark and how to use asv can be found in the
 Documenting your code
 ---------------------
 
-Changes should be reflected in the release notes located in ``doc/source/whatsnew/vx.y.z.txt``.
+Changes should be reflected in the release notes located in ``doc/source/whatsnew/vx.y.z.rst``.
 This file contains an ongoing change log for each release.  Add an entry to this file to
 document your fix, enhancement or (unavoidable) breaking change.  Make sure to include the
 GitHub issue number when adding your entry (using ``:issue:`1234``` where ``1234`` is the

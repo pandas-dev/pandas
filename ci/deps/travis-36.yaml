@@ -1,4 +1,4 @@
-name: pandas
+name: pandas-dev
 channels:
   - defaults
   - conda-forge
@@ -9,7 +9,7 @@ dependencies:
   - fastparquet
   - flake8>=3.5
   - flake8-comprehensions
-  - flake8-rst
+  - flake8-rst=0.4.2
   - gcsfs
   - geopandas
   - html5lib

@@ -16,7 +16,7 @@ from pandas._libs.tslibs import NaT, Timedelta, Timestamp, iNaT
 from pandas.compat import StringIO, lzip, map, u, zip
 
 from pandas.core.dtypes.common import (
-    is_categorical_dtype, is_datetime64_dtype, is_datetimetz, is_float,
+    is_categorical_dtype, is_datetime64_dtype, is_datetime64tz_dtype, is_float,
     is_float_dtype, is_integer, is_integer_dtype, is_interval_dtype,
     is_list_like, is_numeric_dtype, is_period_arraylike, is_scalar,
     is_timedelta64_dtype)
@@ -88,6 +88,10 @@ common_docstring = """
             Maximum number of columns to display in the console.
         show_dimensions : bool, default False
             Display DataFrame dimensions (number of rows by number of columns).
+        decimal : str, default '.'
+            Character recognized as decimal separator, e.g. ',' in Europe.
+
+            .. versionadded:: 0.18.0
     """
 
 _VALID_JUSTIFY_PARAMETERS = ("left", "right", "center", "justify",
@@ -100,8 +104,6 @@ return_docstring = """
         str (or unicode, depending on data and options)
             String representation of the dataframe.
     """
-
-docstring_to_string = common_docstring + return_docstring
 
 
 class CategoricalFormatter(object):
@@ -608,11 +610,6 @@ class DataFrameFormatter(TableFormatter):
             else:  # max_cols == 0. Try to fit frame to terminal
                 text = self.adj.adjoin(1, *strcols).split('\n')
                 max_len = Series(text).str.len().max()
-                headers = [ele[0] for ele in strcols]
-                # Size of last col determines dot col size. See
-                # `self._to_str_columns
-                size_tr_col = len(headers[self.tr_size_col])
-                max_len += size_tr_col  # Need to make space for largest row
                 # plus truncate dot col
                 dif = max_len - self.w
                 # '+ 1' to avoid too wide repr (GH PR #17023)
@@ -733,12 +730,8 @@ class DataFrameFormatter(TableFormatter):
             .. versionadded:: 0.19.0
          """
         from pandas.io.formats.html import HTMLFormatter
-        html_renderer = HTMLFormatter(self, classes=classes,
-                                      max_rows=self.max_rows,
-                                      max_cols=self.max_cols,
-                                      notebook=notebook,
-                                      border=border,
-                                      table_id=self.table_id)
+        html_renderer = HTMLFormatter(self, classes=classes, notebook=notebook,
+                                      border=border, table_id=self.table_id)
         if hasattr(self.buf, 'write'):
             html_renderer.write_result(self.buf)
         elif isinstance(self.buf, compat.string_types):
@@ -859,7 +852,7 @@ def format_array(values, formatter, float_format=None, na_rep='NaN',
         fmt_klass = PeriodArrayFormatter
     elif is_integer_dtype(values.dtype):
         fmt_klass = IntArrayFormatter
-    elif is_datetimetz(values):
+    elif is_datetime64tz_dtype(values):
         fmt_klass = Datetime64TZFormatter
     elif is_datetime64_dtype(values.dtype):
         fmt_klass = Datetime64Formatter
@@ -963,6 +956,8 @@ class FloatArrayFormatter(GenericArrayFormatter):
         # float_format is expected to be a string
         # formatter should be used to pass a function
         if self.float_format is not None and self.formatter is None:
+            # GH21625, GH22270
+            self.fixed_width = False
             if callable(self.float_format):
                 self.formatter = self.float_format
                 self.float_format = None
@@ -1249,7 +1244,10 @@ def _format_datetime64(x, tz=None, nat_rep='NaT'):
         return nat_rep
 
     if tz is not None or not isinstance(x, Timestamp):
-        x = Timestamp(x, tz=tz)
+        if getattr(x, 'tzinfo', None) is not None:
+            x = Timestamp(x).tz_convert(tz)
+        else:
+            x = Timestamp(x).tz_localize(tz)
 
     return str(x)
 

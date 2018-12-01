@@ -25,7 +25,6 @@ from pandas.core.indexes.numeric import Int64Index
 
 
 class RangeIndex(Int64Index):
-
     """
     Immutable Index implementing a monotonic integer range.
 
@@ -49,8 +48,8 @@ class RangeIndex(Int64Index):
 
     See Also
     --------
-    Index : The base pandas Index type
-    Int64Index : Index of int64 data
+    Index : The base pandas Index type.
+    Int64Index : Index of int64 data.
 
     Attributes
     ----------
@@ -63,6 +62,9 @@ class RangeIndex(Int64Index):
 
     _typ = 'rangeindex'
     _engine_type = libindex.Int64Engine
+
+    # --------------------------------------------------------------------
+    # Constructors
 
     def __new__(cls, start=None, stop=None, step=None,
                 dtype=None, copy=False, name=None, fastpath=None):
@@ -122,7 +124,7 @@ class RangeIndex(Int64Index):
 
     @classmethod
     def from_range(cls, data, name=None, dtype=None, **kwargs):
-        """ create RangeIndex from a range (py3), or xrange (py2) object """
+        """ Create RangeIndex from a range (py3), or xrange (py2) object. """
         if not isinstance(data, range):
             raise TypeError(
                 '{0}(...) must be called with object coercible to a '
@@ -158,6 +160,8 @@ class RangeIndex(Int64Index):
         result._reset_identity()
         return result
 
+    # --------------------------------------------------------------------
+
     @staticmethod
     def _validate_dtype(dtype):
         """ require dtype to be None or int64 """
@@ -188,6 +192,9 @@ class RangeIndex(Int64Index):
         d.update(dict(self._get_data_as_items()))
         return ibase._new_Index, (self.__class__, d), None
 
+    # --------------------------------------------------------------------
+    # Rendering Methods
+
     def _format_attrs(self):
         """
         Return a list of tuples of the (attr, formatted_value)
@@ -200,6 +207,8 @@ class RangeIndex(Int64Index):
     def _format_data(self, name=None):
         # we are formatting thru the attributes
         return None
+
+    # --------------------------------------------------------------------
 
     @cache_readonly
     def nbytes(self):

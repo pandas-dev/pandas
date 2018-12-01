@@ -335,9 +335,9 @@ class TestConcatAppendCommon(ConcatenateBase):
     @pytest.mark.parametrize('tz',
                              ['UTC', 'US/Eastern', 'Asia/Tokyo', 'EST5EDT'])
     def test_concatlike_datetimetz_short(self, tz):
-        # GH 7795
-        ix1 = pd.DatetimeIndex(start='2014-07-15', end='2014-07-17',
-                               freq='D', tz=tz)
+        # GH#7795
+        ix1 = pd.date_range(start='2014-07-15', end='2014-07-17',
+                            freq='D', tz=tz)
         ix2 = pd.DatetimeIndex(['2014-07-11', '2014-07-21'], tz=tz)
         df1 = pd.DataFrame(0, index=ix1, columns=['A', 'B'])
         df2 = pd.DataFrame(0, index=ix2, columns=['A', 'B'])
@@ -1009,6 +1009,21 @@ class TestAppend(ConcatenateBase):
         appended = df1.append(df2, ignore_index=True, sort=sort)
         assert appended['A'].dtype == 'f8'
         assert appended['B'].dtype == 'O'
+
+    def test_append_empty_frame_to_series_with_dateutil_tz(self):
+        # GH 23682
+        date = Timestamp('2018-10-24 07:30:00', tz=dateutil.tz.tzutc())
+        s = Series({'date': date, 'a': 1.0, 'b': 2.0})
+        df = DataFrame(columns=['c', 'd'])
+        result = df.append(s, ignore_index=True)
+        expected = DataFrame([[np.nan, np.nan, 1., 2., date]],
+                             columns=['c', 'd', 'a', 'b', 'date'])
+        # These columns get cast to object after append
+        object_cols = ['c', 'd', 'date']
+        expected.loc[:, object_cols] = expected.loc[:, object_cols].astype(
+            object
+        )
+        assert_frame_equal(result, expected)
 
 
 class TestConcatenate(ConcatenateBase):

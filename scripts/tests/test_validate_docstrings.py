@@ -288,6 +288,34 @@ class BadGenericDocStrings(object):
         """
         pass
 
+    def two_linebreaks_between_sections(self, foo):
+        """
+        Test linebreaks message GL03.
+
+        Note 2 blank lines before parameters section.
+
+
+        Parameters
+        ----------
+        foo : str
+            Description of foo parameter.
+        """
+        pass
+
+    def linebreak_at_end_of_docstring(self, foo):
+        """
+        Test linebreaks message GL03.
+
+        Note extra blank line at end of docstring.
+
+        Parameters
+        ----------
+        foo : str
+            Description of foo parameter.
+
+        """
+        pass
+
     def plot(self, kind, **kwargs):
         """
         Generate a plot.
@@ -723,7 +751,8 @@ class TestValidator(object):
     @capture_stderr
     @pytest.mark.parametrize("func", [
         'func', 'astype', 'astype1', 'astype2', 'astype3', 'plot', 'method',
-        'private_classes'])
+        'private_classes',
+    ])
     def test_bad_generic_functions(self, func):
         errors = validate_one(self._import_path(  # noqa:F821
             klass='BadGenericDocStrings', func=func))['errors']
@@ -738,8 +767,8 @@ class TestValidator(object):
         ('BadGenericDocStrings', 'unknown_section',
          ('Found unknown section "Unknown Section".',)),
         ('BadGenericDocStrings', 'sections_in_wrong_order',
-         ('Wrong order of sections. "See Also" should be located before '
-          '"Notes"',)),
+         ('Sections are in the wrong order. Correct order is: Parameters, '
+          'See Also, Examples',)),
         ('BadSeeAlso', 'desc_no_period',
          ('Missing period at end of description for See Also "Series.iloc"',)),
         ('BadSeeAlso', 'desc_first_letter_lowercase',
@@ -761,9 +790,8 @@ class TestValidator(object):
         ('BadParameters', 'missing_params',
          ('Parameters {**kwargs} not documented',)),
         ('BadParameters', 'bad_colon_spacing',
-         ('Parameters {kind} not documented',
-          'Unknown parameters {kind: str}',
-          'Parameter "kind: str" has no type')),
+         ('Parameter "kind" requires a space before the colon '
+          'separating the parameter name and type',)),
         ('BadParameters', 'no_description_period',
          ('Parameter "kind" description should finish with "."',)),
         ('BadParameters', 'no_description_period_with_directive',
@@ -812,11 +840,33 @@ class TestValidator(object):
           'E226 missing whitespace around arithmetic operator',)),
         ('BadExamples', 'missing_whitespace_after_comma',
          ("flake8 error: E231 missing whitespace after ',' (3 times)",)),
+        ('BadGenericDocStrings', 'two_linebreaks_between_sections',
+         ('Double line break found; please use only one blank line to '
+          'separate sections or paragraphs, and do not leave blank lines '
+          'at the end of docstrings',)),
+        ('BadGenericDocStrings', 'linebreak_at_end_of_docstring',
+         ('Double line break found; please use only one blank line to '
+          'separate sections or paragraphs, and do not leave blank lines '
+          'at the end of docstrings',)),
     ])
-    def test_bad_examples(self, capsys, klass, func, msgs):
+    def test_bad_docstrings(self, capsys, klass, func, msgs):
         result = validate_one(self._import_path(klass=klass, func=func))
         for msg in msgs:
             assert msg in ' '.join(err[1] for err in result['errors'])
+
+    def test_validate_all_ignore_deprecated(self, monkeypatch):
+        monkeypatch.setattr(
+            validate_docstrings, 'validate_one', lambda func_name: {
+                'docstring': 'docstring1',
+                'errors': [('ER01', 'err desc'),
+                           ('ER02', 'err desc'),
+                           ('ER03', 'err desc')],
+                'warnings': [],
+                'examples_errors': '',
+                'deprecated': True})
+        result = validate_docstrings.validate_all(prefix=None,
+                                                  ignore_deprecated=True)
+        assert len(result) == 0
 
 
 class TestApiItems(object):
@@ -908,12 +958,14 @@ class TestMainFunction(object):
         exit_status = validate_docstrings.main(func_name='docstring1',
                                                prefix=None,
                                                errors=[],
-                                               output_format='default')
+                                               output_format='default',
+                                               ignore_deprecated=False)
         assert exit_status == 0
 
     def test_exit_status_errors_for_validate_all(self, monkeypatch):
         monkeypatch.setattr(
-            validate_docstrings, 'validate_all', lambda prefix: {
+            validate_docstrings, 'validate_all',
+            lambda prefix, ignore_deprecated=False: {
                 'docstring1': {'errors': [('ER01', 'err desc'),
                                           ('ER02', 'err desc'),
                                           ('ER03', 'err desc')],
@@ -926,25 +978,29 @@ class TestMainFunction(object):
         exit_status = validate_docstrings.main(func_name=None,
                                                prefix=None,
                                                errors=[],
-                                               output_format='default')
+                                               output_format='default',
+                                               ignore_deprecated=False)
         assert exit_status == 5
 
     def test_no_exit_status_noerrors_for_validate_all(self, monkeypatch):
         monkeypatch.setattr(
-            validate_docstrings, 'validate_all', lambda prefix: {
+            validate_docstrings, 'validate_all',
+            lambda prefix, ignore_deprecated=False: {
                 'docstring1': {'errors': [],
                                'warnings': [('WN01', 'warn desc')]},
                 'docstring2': {'errors': []}})
         exit_status = validate_docstrings.main(func_name=None,
                                                prefix=None,
                                                errors=[],
-                                               output_format='default')
+                                               output_format='default',
+                                               ignore_deprecated=False)
         assert exit_status == 0
 
     def test_exit_status_for_validate_all_json(self, monkeypatch):
         print('EXECUTED')
         monkeypatch.setattr(
-            validate_docstrings, 'validate_all', lambda prefix: {
+            validate_docstrings, 'validate_all',
+            lambda prefix, ignore_deprecated=False: {
                 'docstring1': {'errors': [('ER01', 'err desc'),
                                           ('ER02', 'err desc'),
                                           ('ER03', 'err desc')]},
@@ -953,12 +1009,14 @@ class TestMainFunction(object):
         exit_status = validate_docstrings.main(func_name=None,
                                                prefix=None,
                                                errors=[],
-                                               output_format='json')
+                                               output_format='json',
+                                               ignore_deprecated=False)
         assert exit_status == 0
 
     def test_errors_param_filters_errors(self, monkeypatch):
         monkeypatch.setattr(
-            validate_docstrings, 'validate_all', lambda prefix: {
+            validate_docstrings, 'validate_all',
+            lambda prefix, ignore_deprecated=False: {
                 'Series.foo': {'errors': [('ER01', 'err desc'),
                                           ('ER02', 'err desc'),
                                           ('ER03', 'err desc')],
@@ -974,11 +1032,13 @@ class TestMainFunction(object):
         exit_status = validate_docstrings.main(func_name=None,
                                                prefix=None,
                                                errors=['ER01'],
-                                               output_format='default')
+                                               output_format='default',
+                                               ignore_deprecated=False)
         assert exit_status == 3
 
         exit_status = validate_docstrings.main(func_name=None,
                                                prefix=None,
                                                errors=['ER03'],
-                                               output_format='default')
+                                               output_format='default',
+                                               ignore_deprecated=False)
         assert exit_status == 1

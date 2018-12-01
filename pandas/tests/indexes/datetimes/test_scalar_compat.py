@@ -184,7 +184,7 @@ class TestDatetimeIndexOps(object):
         '12H', '1D',
     ])
     def test_round_int64(self, start, index_freq, periods, round_freq):
-        dt = DatetimeIndex(start=start, freq=index_freq, periods=periods)
+        dt = date_range(start=start, freq=index_freq, periods=periods)
         unit = to_offset(round_freq).nanos
 
         # test floor
@@ -234,6 +234,12 @@ class TestDatetimeIndexOps(object):
 
         assert result.is_normalized
         assert not rng.is_normalized
+
+    def test_normalize_nat(self):
+        dti = DatetimeIndex([pd.NaT, Timestamp('2018-01-01 01:00:00')])
+        result = dti.normalize()
+        expected = DatetimeIndex([pd.NaT, Timestamp('2018-01-01')])
+        tm.assert_index_equal(result, expected)
 
 
 class TestDateTimeIndexToJulianDate(object):

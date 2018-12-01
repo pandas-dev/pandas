@@ -1,5 +1,8 @@
 # -*- coding: utf-8 -*-
 from decimal import Decimal
+from fractions import Fraction
+from numbers import Number
+
 import sys
 
 import cython
@@ -14,7 +17,6 @@ from cpython.datetime cimport (PyDateTime_Check, PyDate_Check,
                                PyTime_Check, PyDelta_Check,
                                PyDateTime_IMPORT)
 PyDateTime_IMPORT
-
 
 import numpy as np
 cimport numpy as cnp
@@ -48,8 +50,7 @@ cdef extern from "src/parse_helper.h":
     int floatify(object, float64_t *result, int *maybe_int) except -1
 
 cimport util
-from util cimport (is_nan,
-                   UINT8_MAX, UINT64_MAX, INT64_MAX, INT64_MIN)
+from util cimport is_nan, UINT64_MAX, INT64_MAX, INT64_MIN
 
 from tslib import array_to_datetime
 from tslibs.nattype cimport NPY_NAT
@@ -106,23 +107,54 @@ def is_scalar(val: object) -> bool:
     """
     Return True if given value is scalar.
 
-    This includes:
-    - numpy array scalar (e.g. np.int64)
-    - Python builtin numerics
-    - Python builtin byte arrays and strings
-    - None
-    - instances of datetime.datetime
-    - instances of datetime.timedelta
-    - Period
-    - instances of decimal.Decimal
-    - Interval
-    - DateOffset
+    Parameters
+    ----------
+    val : object
+        This includes:
 
+        - numpy array scalar (e.g. np.int64)
+        - Python builtin numerics
+        - Python builtin byte arrays and strings
+        - None
+        - datetime.datetime
+        - datetime.timedelta
+        - Period
+        - decimal.Decimal
+        - Interval
+        - DateOffset
+        - Fraction
+        - Number
+
+    Returns
+    -------
+    bool
+        Return True if given object is scalar, False otherwise
+
+    Examples
+    --------
+    >>> dt = pd.datetime.datetime(2018, 10, 3)
+    >>> pd.is_scalar(dt)
+    True
+
+    >>> pd.api.types.is_scalar([2, 3])
+    False
+
+    >>> pd.api.types.is_scalar({0: 1, 2: 3})
+    False
+
+    >>> pd.api.types.is_scalar((0, 2))
+    False
+
+    pandas supports PEP 3141 numbers:
+
+    >>> from fractions import Fraction
+    >>> pd.api.types.is_scalar(Fraction(3, 5))
+    True
     """
 
     return (cnp.PyArray_IsAnyScalar(val)
             # As of numpy-1.9, PyArray_IsAnyScalar misses bytearrays on Py3.
-            or isinstance(val, bytes)
+            or isinstance(val, (bytes, Fraction, Number))
             # We differ from numpy (as of 1.10), which claims that None is
             # not scalar in np.isscalar().
             or val is None
@@ -486,9 +518,7 @@ def astype_intsafe(ndarray[object] arr, new_dtype):
         bint is_datelike
         ndarray result
 
-    # on 32-bit, 1.6.2 numpy M8[ns] is a subdtype of integer, which is weird
-    is_datelike = new_dtype in ['M8[ns]', 'm8[ns]']
-
+    is_datelike = new_dtype == 'm8[ns]'
     result = np.empty(n, dtype=new_dtype)
     for i in range(n):
         val = arr[i]
@@ -1218,25 +1248,19 @@ def infer_dtype(value: object, skipna: bool=False) -> str:
     if util.is_datetime64_object(val):
         if is_datetime64_array(values):
             return 'datetime64'
-        elif is_timedelta_or_timedelta64_array(values):
-            return 'timedelta'
 
     elif is_timedelta(val):
         if is_timedelta_or_timedelta64_array(values):
             return 'timedelta'
 
     elif util.is_integer_object(val):
-        # a timedelta will show true here as well
-        if is_timedelta(val):
-            if is_timedelta_or_timedelta64_array(values):
-                return 'timedelta'
+        # ordering matters here; this check must come after the is_timedelta
+        #  check otherwise numpy timedelta64 objects would come through here
 
         if is_integer_array(values):
             return 'integer'
         elif is_integer_float_array(values):
             return 'mixed-integer-float'
-        elif is_timedelta_or_timedelta64_array(values):
-            return 'timedelta'
         return 'mixed-integer'
 
     elif PyDateTime_Check(val):
@@ -1642,19 +1666,21 @@ def is_datetime_with_singletz_array(values: ndarray) -> bool:
 
     if n == 0:
         return False
-
+    # Get a reference timezone to compare with the rest of the tzs in the array
     for i in range(n):
         base_val = values[i]
         if base_val is not NaT:
             base_tz = get_timezone(getattr(base_val, 'tzinfo', None))
-
-            for j in range(i, n):
-                val = values[j]
-                if val is not NaT:
-                    tz = getattr(val, 'tzinfo', None)
-                    if not tz_compare(base_tz, tz):
-                        return False
             break
+
+    for j in range(i, n):
+        # Compare val's timezone with the reference timezone
+        # NaT can coexist with tz-aware datetimes, so skip if encountered
+        val = values[j]
+        if val is not NaT:
+            tz = getattr(val, 'tzinfo', None)
+            if not tz_compare(base_tz, tz):
+                return False
 
     return True
 
@@ -1665,27 +1691,6 @@ cdef class TimedeltaValidator(TemporalValidator):
 
     cdef inline bint is_valid_null(self, object value) except -1:
         return is_null_timedelta64(value)
-
-
-# TODO: Not used outside of tests; remove?
-def is_timedelta_array(values: ndarray) -> bool:
-    cdef:
-        TimedeltaValidator validator = TimedeltaValidator(len(values),
-                                                          skipna=True)
-    return validator.validate(values)
-
-
-cdef class Timedelta64Validator(TimedeltaValidator):
-    cdef inline bint is_value_typed(self, object value) except -1:
-        return util.is_timedelta64_object(value)
-
-
-# TODO: Not used outside of tests; remove?
-def is_timedelta64_array(values: ndarray) -> bool:
-    cdef:
-        Timedelta64Validator validator = Timedelta64Validator(len(values),
-                                                              skipna=True)
-    return validator.validate(values)
 
 
 cdef class AnyTimedeltaValidator(TimedeltaValidator):
@@ -2045,7 +2050,7 @@ def maybe_convert_objects(ndarray[object] objects, bint try_float=0,
 
     # we try to coerce datetime w/tz but must all have the same tz
     if seen.datetimetz_:
-        if len({getattr(val, 'tzinfo', None) for val in objects}) == 1:
+        if is_datetime_with_singletz_array(objects):
             from pandas import DatetimeIndex
             return DatetimeIndex(objects)
         seen.object_ = 1
@@ -2272,7 +2277,7 @@ def to_object_array_tuples(rows: list):
 
     k = 0
     for i in range(n):
-        tmp = len(rows[i])
+        tmp = 1 if checknull(rows[i]) else len(rows[i])
         if tmp > k:
             k = tmp
 
@@ -2286,7 +2291,7 @@ def to_object_array_tuples(rows: list):
     except Exception:
         # upcast any subclasses to tuple
         for i in range(n):
-            row = tuple(rows[i])
+            row = (rows[i],) if checknull(rows[i]) else tuple(rows[i])
             for j in range(len(row)):
                 result[i, j] = row[j]
 

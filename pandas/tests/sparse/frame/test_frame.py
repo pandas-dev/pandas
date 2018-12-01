@@ -101,9 +101,7 @@ class TestSparseDataFrame(SharedWithSparse):
             assert isinstance(series, SparseSeries)
 
         # construct from nested dict
-        data = {}
-        for c, s in compat.iteritems(float_frame):
-            data[c] = s.to_dict()
+        data = {c: s.to_dict() for c, s in compat.iteritems(float_frame)}
 
         sdf = SparseDataFrame(data)
         tm.assert_sp_frame_equal(sdf, float_frame)
@@ -1360,3 +1358,16 @@ class TestSparseDataFrameAnalytics(object):
 
         for column in res.columns:
             assert type(res[column]) is SparseSeries
+
+    @pytest.mark.parametrize("inplace", [True, False])
+    @pytest.mark.parametrize("how", ["all", "any"])
+    def test_dropna(self, inplace, how):
+        # Tests regression #21172.
+        expected = pd.SparseDataFrame({"F2": [0, 1]})
+        input_df = pd.SparseDataFrame(
+            {"F1": [float('nan'), float('nan')], "F2": [0, 1]}
+        )
+        result_df = input_df.dropna(axis=1, inplace=inplace, how=how)
+        if inplace:
+            result_df = input_df
+        tm.assert_sp_frame_equal(expected, result_df)

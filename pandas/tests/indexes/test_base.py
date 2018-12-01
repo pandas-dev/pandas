@@ -15,20 +15,23 @@ import pandas.util.testing as tm
 from pandas import (
     CategoricalIndex, DataFrame, DatetimeIndex, Float64Index, Int64Index,
     PeriodIndex, RangeIndex, Series, TimedeltaIndex, UInt64Index, date_range,
-    isna, period_range
+    isna, period_range,
 )
 from pandas._libs.tslib import Timestamp
 from pandas.compat import (
     PY3, PY35, PY36, StringIO, lrange, lzip, range, text_type, u, zip
 )
 from pandas.compat.numpy import np_datetime64_compat
-from pandas.core.dtypes.common import is_unsigned_integer_dtype
+from pandas.core.dtypes.common import (
+    is_unsigned_integer_dtype,
+)
 from pandas.core.dtypes.generic import ABCIndex
 from pandas.core.index import _get_combined_index, ensure_index_from_sequences
 from pandas.core.indexes.api import Index, MultiIndex
 from pandas.core.indexes.datetimes import _to_m8
 from pandas.tests.indexes.common import Base
 from pandas.util.testing import assert_almost_equal
+from pandas.core.sorting import safe_sort
 
 
 class TestIndex(Base):
@@ -74,9 +77,7 @@ class TestIndex(Base):
         assert new_index.ndim == 2
         assert isinstance(new_index, np.ndarray)
 
-    def test_copy_and_deepcopy(self, indices):
-        super(TestIndex, self).test_copy_and_deepcopy(indices)
-
+    def test_copy_and_deepcopy(self):
         new_copy2 = self.intIndex.copy(dtype=int)
         assert new_copy2.dtype.kind == 'i'
 
@@ -250,25 +251,6 @@ class TestIndex(Base):
         expected = Float64Index(data)
         result = Index(data, dtype='float')
         tm.assert_index_equal(result, expected)
-
-    def test_droplevel(self, indices):
-        # GH 21115
-        if isinstance(indices, MultiIndex):
-            # Tested separately in test_multi.py
-            return
-
-        assert indices.droplevel([]).equals(indices)
-
-        for level in indices.name, [indices.name]:
-            if isinstance(indices.name, tuple) and level is indices.name:
-                # GH 21121 : droplevel with tuple name
-                continue
-            with pytest.raises(ValueError):
-                indices.droplevel(level)
-
-        for level in 'wrong', ['wrong']:
-            with pytest.raises(KeyError):
-                indices.droplevel(level)
 
     @pytest.mark.parametrize("dtype", ['int64', 'uint64'])
     def test_constructor_int_dtype_nan_raises(self, dtype):
@@ -471,23 +453,6 @@ class TestIndex(Base):
     def test_constructor_empty_special(self, empty, klass):
         assert isinstance(empty, klass)
         assert not len(empty)
-
-    def test_constructor_non_hashable_name(self, indices):
-        # GH 20527
-
-        if isinstance(indices, MultiIndex):
-            pytest.skip("multiindex handled in test_multi.py")
-
-        message = "Index.name must be a hashable type"
-        renamed = [['1']]
-
-        # With .rename()
-        with pytest.raises(TypeError, match=message):
-            indices.rename(name=renamed)
-
-        # With .set_names()
-        with pytest.raises(TypeError, match=message):
-            indices.set_names(names=renamed)
 
     def test_constructor_overflow_int64(self):
         # see gh-15832
@@ -718,13 +683,6 @@ class TestIndex(Base):
         # np.ndarray only accepts ndarray of int & bool dtypes, so should Index
         pytest.raises(IndexError, index.__getitem__, empty_farr)
 
-    @pytest.mark.parametrize("itm", [101, 'no_int'])
-    # FutureWarning from non-tuple sequence of nd indexing
-    @pytest.mark.filterwarnings("ignore::FutureWarning")
-    def test_getitem_error(self, indices, itm):
-        with pytest.raises(IndexError):
-            indices[itm]
-
     def test_intersection(self):
         first = self.strIndex[:20]
         second = self.strIndex[:10]
@@ -792,51 +750,6 @@ class TestIndex(Base):
         result = i2.intersection(i1)
 
         assert len(result) == 0
-
-    @pytest.mark.parametrize(
-        'fname, sname, expected_name',
-        [
-            ('A', 'A', 'A'),
-            ('A', 'B', None),
-            ('A', None, None),
-            (None, 'B', None),
-            (None, None, None),
-        ])
-    def test_corner_union(self, indices, fname, sname, expected_name):
-        # GH 9943 9862
-        # Test unions with various name combinations
-        # Do not test MultiIndex or repeats
-
-        if isinstance(indices, MultiIndex) or not indices.is_unique:
-            pytest.skip("Not for MultiIndex or repeated indices")
-
-        # Test copy.union(copy)
-        first = indices.copy().set_names(fname)
-        second = indices.copy().set_names(sname)
-        union = first.union(second)
-        expected = indices.copy().set_names(expected_name)
-        tm.assert_index_equal(union, expected)
-
-        # Test copy.union(empty)
-        first = indices.copy().set_names(fname)
-        second = indices.drop(indices).set_names(sname)
-        union = first.union(second)
-        expected = indices.copy().set_names(expected_name)
-        tm.assert_index_equal(union, expected)
-
-        # Test empty.union(copy)
-        first = indices.drop(indices).set_names(fname)
-        second = indices.copy().set_names(sname)
-        union = first.union(second)
-        expected = indices.copy().set_names(expected_name)
-        tm.assert_index_equal(union, expected)
-
-        # Test empty.union(empty)
-        first = indices.drop(indices).set_names(fname)
-        second = indices.drop(indices).set_names(sname)
-        union = first.union(second)
-        expected = indices.drop(indices).set_names(expected_name)
-        tm.assert_index_equal(union, expected)
 
     def test_chained_union(self):
         # Chained unions handles names correctly
@@ -1117,7 +1030,8 @@ class TestIndex(Base):
 
     @pytest.mark.parametrize("second_name,expected", [
         (None, None), ('name', 'name')])
-    def test_difference_name_preservation(self, second_name, expected):
+    @pytest.mark.parametrize("sort", [True, False])
+    def test_difference_name_preservation(self, second_name, expected, sort):
         # TODO: replace with fixturesult
         first = self.strIndex[5:20]
         second = self.strIndex[:10]
@@ -1125,7 +1039,7 @@ class TestIndex(Base):
 
         first.name = 'name'
         second.name = second_name
-        result = first.difference(second)
+        result = first.difference(second, sort)
 
         assert tm.equalContents(result, answer)
 
@@ -1134,21 +1048,36 @@ class TestIndex(Base):
         else:
             assert result.name == expected
 
-    def test_difference_empty_arg(self):
+    @pytest.mark.parametrize("sort", [True, False])
+    def test_difference_empty_arg(self, sort):
         first = self.strIndex[5:20]
         first.name == 'name'
-        result = first.difference([])
+        result = first.difference([], sort)
 
         assert tm.equalContents(result, first)
         assert result.name == first.name
 
-    def test_difference_identity(self):
+    @pytest.mark.parametrize("sort", [True, False])
+    def test_difference_identity(self, sort):
         first = self.strIndex[5:20]
         first.name == 'name'
-        result = first.difference(first)
+        result = first.difference(first, sort)
 
         assert len(result) == 0
         assert result.name == first.name
+
+    @pytest.mark.parametrize("sort", [True, False])
+    def test_difference_sort(self, sort):
+        first = self.strIndex[5:20]
+        second = self.strIndex[:10]
+
+        result = first.difference(second, sort)
+        expected = self.strIndex[10:20]
+
+        if sort:
+            expected = expected.sort_values()
+
+        tm.assert_index_equal(result, expected)
 
     def test_symmetric_difference(self):
         # smoke
@@ -1194,17 +1123,19 @@ class TestIndex(Base):
         assert tm.equalContents(result, expected)
         assert result.name == 'new_name'
 
-    def test_difference_type(self):
+    @pytest.mark.parametrize("sort", [True, False])
+    def test_difference_type(self, sort):
         # GH 20040
         # If taking difference of a set and itself, it
         # needs to preserve the type of the index
         skip_index_keys = ['repeats']
         for key, index in self.generate_index_types(skip_index_keys):
-            result = index.difference(index)
+            result = index.difference(index, sort)
             expected = index.drop(index)
             tm.assert_index_equal(result, expected)
 
-    def test_intersection_difference(self):
+    @pytest.mark.parametrize("sort", [True, False])
+    def test_intersection_difference(self, sort):
         # GH 20040
         # Test that the intersection of an index with an
         # empty index produces the same index as the difference
@@ -1212,7 +1143,7 @@ class TestIndex(Base):
         skip_index_keys = ['repeats']
         for key, index in self.generate_index_types(skip_index_keys):
             inter = index.intersection(index.drop(index))
-            diff = index.difference(index)
+            diff = index.difference(index, sort)
             tm.assert_index_equal(inter, diff)
 
     @pytest.mark.parametrize("attr,expected", [
@@ -2393,6 +2324,12 @@ class TestMixedIntIndex(Base):
 
         assert tm.equalContents(result, index)
 
+    def test_unique_na(self):
+        idx = pd.Index([2, np.nan, 2, 1], name='my_index')
+        expected = pd.Index([2, np.nan, 1], name='my_index')
+        result = idx.unique()
+        tm.assert_index_equal(result, expected)
+
     def test_intersection_base(self):
         # (same results for py2 and py3 but sortedness not tested elsewhere)
         index = self.create_index()
@@ -2414,14 +2351,17 @@ class TestMixedIntIndex(Base):
         result = first.intersection(klass(second.values))
         assert tm.equalContents(result, second)
 
-    def test_difference_base(self):
+    @pytest.mark.parametrize("sort", [True, False])
+    def test_difference_base(self, sort):
         # (same results for py2 and py3 but sortedness not tested elsewhere)
         index = self.create_index()
         first = index[:4]
         second = index[3:]
 
-        result = first.difference(second)
-        expected = Index([0, 1, 'a'])
+        result = first.difference(second, sort)
+        expected = Index([0, 'a', 1])
+        if sort:
+            expected = Index(safe_sort(expected))
         tm.assert_index_equal(result, expected)
 
     def test_symmetric_difference(self):

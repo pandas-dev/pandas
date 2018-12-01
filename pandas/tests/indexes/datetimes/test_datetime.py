@@ -100,10 +100,10 @@ class TestDatetimeIndex(object):
             hash(index)
 
     def test_stringified_slice_with_tz(self):
-        # GH2658
+        # GH#2658
         import datetime
         start = datetime.datetime.now()
-        idx = DatetimeIndex(start=start, freq="1d", periods=10)
+        idx = date_range(start=start, freq="1d", periods=10)
         df = DataFrame(lrange(10), index=idx)
         df["2013-01-14 23:44:34.437768-05:00":]  # no exception here
 
@@ -293,8 +293,8 @@ class TestDatetimeIndex(object):
         index = pd.DatetimeIndex(dt, freq=freq, name='time')
         self.assert_index_parameters(index)
 
-        new_index = pd.DatetimeIndex(start=index[0], end=index[-1],
-                                     freq=index.freq)
+        new_index = pd.date_range(start=index[0], end=index[-1],
+                                  freq=index.freq)
         self.assert_index_parameters(new_index)
 
     def test_join_with_period_index(self, join_type):
