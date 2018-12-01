@@ -10415,25 +10415,25 @@ Cold     Fish      0
          Spider    8
 Name: Legs, dtype: int64
 
->>> s.%(stat_func)s()
-%(default_output)s
+>>> s.{stat_func}()
+{default_output}
 
-%(verb)s using level names, as well as indices.
+{verb} using level names, as well as indices.
 
->>> s.%(stat_func)s(level='Blooded')
+>>> s.{stat_func}(level='Blooded')
 Blooded
-Warm    %(level_output_0)s
-Cold    %(level_output_1)s
+Warm    {level_output_0}
+Cold    {level_output_1}
 Name: Legs, dtype: int64
 
->>> s.%(stat_func)s(level=0)
+>>> s.{stat_func}(level=0)
 Blooded
-Warm    %(level_output_0)s
-Cold    %(level_output_1)s
+Warm    {level_output_0}
+Cold    {level_output_1}
 Name: Legs, dtype: int64
 """
 
-_sum_examples = _shared_docs['stat_func_example'] % dict(
+_sum_examples = _shared_docs['stat_func_example'].format(
     stat_func='sum',
     verb='Sum',
     default_output=14,
@@ -10462,14 +10462,14 @@ empty series identically.
 nan
 """
 
-_max_examples = _shared_docs['stat_func_example'] % dict(
+_max_examples = _shared_docs['stat_func_example'].format(
     stat_func='max',
     verb='Max',
     default_output=8,
     level_output_0=4,
     level_output_1=8)
 
-_min_examples = _shared_docs['stat_func_example'] % dict(
+_min_examples = _shared_docs['stat_func_example'].format(
     stat_func='min',
     verb='Min',
     default_output=0,
