@@ -520,9 +520,10 @@ cpdef array_to_datetime(ndarray[object] values, str errors='raise',
     # specify error conditions
     assert is_raise or is_ignore or is_coerce
 
+    result = np.empty(n, dtype='M8[ns]')
+    iresult = result.view('i8')
+
     try:
-        result = np.empty(n, dtype='M8[ns]')
-        iresult = result.view('i8')
         for i in range(n):
             val = values[i]
 
@@ -706,23 +707,6 @@ cpdef array_to_datetime(ndarray[object] values, str errors='raise',
                     raise TypeError("{typ} is not convertible to datetime"
                                     .format(typ=type(val)))
 
-        if seen_datetime and seen_integer:
-            # we have mixed datetimes & integers
-
-            if is_coerce:
-                # coerce all of the integers/floats to NaT, preserve
-                # the datetimes and other convertibles
-                for i in range(n):
-                    val = values[i]
-                    if is_integer_object(val) or is_float_object(val):
-                        result[i] = NPY_NAT
-            elif is_raise:
-                raise ValueError(
-                    "mixed datetimes and integers in passed array")
-            else:
-                return array_to_datetime_object(values, is_raise,
-                                                dayfirst, yearfirst)
-
     except OutOfBoundsDatetime:
         if is_raise:
             raise
@@ -731,6 +715,22 @@ cpdef array_to_datetime(ndarray[object] values, str errors='raise',
 
     except TypeError:
         return array_to_datetime_object(values, is_raise, dayfirst, yearfirst)
+
+    if seen_datetime and seen_integer:
+        # we have mixed datetimes & integers
+
+        if is_coerce:
+            # coerce all of the integers/floats to NaT, preserve
+            # the datetimes and other convertibles
+            for i in range(n):
+                val = values[i]
+                if is_integer_object(val) or is_float_object(val):
+                    result[i] = NPY_NAT
+        elif is_raise:
+            raise ValueError("mixed datetimes and integers in passed array")
+        else:
+            return array_to_datetime_object(values, is_raise,
+                                            dayfirst, yearfirst)
 
     if seen_datetime_offset and not utc_convert:
         # GH#17697
