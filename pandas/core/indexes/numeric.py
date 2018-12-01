@@ -226,9 +226,14 @@ class Int64Index(IntegerIndex):
                                 'explicitly cast')
 
     def _is_compatible_with_other(self, other):
-        return (super(Int64Index, self)._is_compatible_with_other(other)
-                or (type(self) in (Int64Index, ABCRangeIndex)
-                and type(other) in (Int64Index, ABCRangeIndex)))
+        return (
+            super(Int64Index, self)._is_compatible_with_other(other)
+            or (
+                (type(self) is Int64Index or isinstance(self, ABCRangeIndex))
+                and (type(other) is Int64Index or isinstance(other,
+                                                             ABCRangeIndex))
+            )
+        )
 
 Int64Index._add_numeric_methods()
 Int64Index._add_logical_methods()
