@@ -39,6 +39,10 @@ class TestInterface(BaseArrowTests, base.BaseInterfaceTests):
     def test_repr(self, data):
         raise pytest.skip("TODO")
 
+    def test_shift(self, data):
+        raise pytest.skip("Skipping because the implementation of"
+                          "`ArrowBoolArray` is quite buggy.")
+
 
 class TestConstructors(BaseArrowTests, base.BaseConstructorsTests):
     def test_from_dtype(self, data):
