@@ -678,8 +678,9 @@ class TestDataFrameAlterAxes():
 
         c_id = id(float_frame['C'])
         float_frame = float_frame.copy()
-        float_frame.rename(columns={'C': 'foo'}, inplace=True)
+        result = float_frame.rename(columns={'C': 'foo'}, inplace=True)
 
+        assert result is None
         assert 'C' not in float_frame
         assert 'foo' in float_frame
         assert id(float_frame['foo']) != c_id
