@@ -107,7 +107,7 @@ class TestArrayToDatetime(object):
         result, result_tz = tslib.array_to_datetime(arr)
         expected = np.array([np.datetime64('2013-01-01 00:00:00.000000000')])
         tm.assert_numpy_array_equal(result, expected)
-        assert is_utc(result_tz) or (type(result_tz).__name__ == 'tzlocal') and
+        assert is_utc(result_tz) or (type(result_tz).__name__ == 'tzlocal' and
                                      tzlocal_is_utc())
 
     def test_parsing_different_timezone_offsets(self):
