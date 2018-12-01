@@ -193,7 +193,6 @@ def _concat_categorical(to_concat, axis=0):
 
     def _concat_asobject(to_concat):
         to_concat = [x.get_values() if is_categorical_dtype(x.dtype)
-                     else np.asarray(x).ravel() if not is_datetimetz(x)
                      else np.asarray(x.astype(object)) for x in to_concat]
         res = _concat_compat(to_concat)
         if axis == 1:
@@ -213,7 +212,7 @@ def _concat_categorical(to_concat, axis=0):
         # when all categories are identical
         first = to_concat[0]
         if all(first.is_dtype_equal(other) for other in to_concat[1:]):
-            return union_categoricals(categoricals)
+            return _concat_compat(categoricals)
 
     return _concat_asobject(to_concat)
 
