@@ -722,21 +722,6 @@ cpdef array_to_datetime(ndarray[object] values, str errors='raise',
             else:
                 raise TypeError
 
-        if seen_datetime_offset and not utc_convert:
-            # GH 17697
-            # 1) If all the offsets are equal, return one offset for
-            #    the parsed dates to (maybe) pass to DatetimeIndex
-            # 2) If the offsets are different, then force the parsing down the
-            #    object path where an array of datetimes
-            #    (with individual dateutil.tzoffsets) are returned
-            is_same_offsets = len(out_tzoffset_vals) == 1
-            if not is_same_offsets:
-                return array_to_datetime_object(values, is_raise,
-                                                dayfirst, yearfirst)
-            else:
-                tz_offset = out_tzoffset_vals.pop()
-                tz_out = pytz.FixedOffset(tz_offset / 60.)
-        return result, tz_out
     except OutOfBoundsDatetime:
         if is_raise:
             raise
@@ -745,6 +730,22 @@ cpdef array_to_datetime(ndarray[object] values, str errors='raise',
 
     except TypeError:
         return array_to_datetime_object(values, is_raise, dayfirst, yearfirst)
+
+    if seen_datetime_offset and not utc_convert:
+        # GH#17697
+        # 1) If all the offsets are equal, return one offset for
+        #    the parsed dates to (maybe) pass to DatetimeIndex
+        # 2) If the offsets are different, then force the parsing down the
+        #    object path where an array of datetimes
+        #    (with individual dateutil.tzoffsets) are returned
+        is_same_offsets = len(out_tzoffset_vals) == 1
+        if not is_same_offsets:
+            return array_to_datetime_object(values, is_raise,
+                                            dayfirst, yearfirst)
+        else:
+            tz_offset = out_tzoffset_vals.pop()
+            tz_out = pytz.FixedOffset(tz_offset / 60.)
+    return result, tz_out
 
 
 cdef inline ignore_errors_out_of_bounds_fallback(ndarray[object] values):
