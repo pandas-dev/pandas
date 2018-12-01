@@ -338,10 +338,6 @@ class PeriodIndex(DatelikeOps, DatetimeIndexOpsMixin,
         freq = attribs['freq']
         return PeriodArray(values, freq=freq)
 
-    # ------------------------------------------------------------------------
-    # Dispatch and maybe box. Not done in delegate_names because we box
-    # different from those (which use Index).
-
     def _maybe_convert_timedelta(self, other):
         """
         Convert timedelta-like input to an integer multiple of self.freq
