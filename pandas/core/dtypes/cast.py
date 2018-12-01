@@ -4,6 +4,7 @@ from datetime import datetime, timedelta
 
 import numpy as np
 
+from pandas.errors import AbstractMethodError
 from pandas._libs import lib, tslib, tslibs
 from pandas._libs.tslibs import OutOfBoundsDatetime, Period, iNaT
 from pandas.compat import PY3, string_types, text_type, to_str
@@ -617,12 +618,17 @@ def astype_nansafe(arr, dtype, copy=True, skipna=False):
     if is_extension_array_dtype(dtype):
         if is_object_dtype(arr):
             try:
-                return dtype.construct_array_type()._from_sequence_of_strings(
-                    arr, dtype=dtype, copy=copy)
+                array_type = dtype.construct_array_type()
             except AttributeError:
                 dtype = pandas_dtype(dtype)
-                return dtype.construct_array_type()._from_sequence_of_strings(
-                    arr, dtype=dtype, copy=copy)
+                array_type = dtype.construct_array_type()
+            try:
+                # use _from_sequence_of_strings if the class defines it
+                return array_type._from_sequence_of_strings(arr,
+                                                            dtype=dtype,
+                                                            copy=copy)
+            except AbstractMethodError:
+                return array_type._from_sequence(arr, dtype=dtype, copy=copy)
         else:
             try:
                 return dtype.construct_array_type()._from_sequence(
