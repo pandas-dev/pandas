@@ -5,13 +5,11 @@ import numpy as np
 import pytest
 import pytz
 
-import pandas._libs.tslib as tslib
-from pandas._libs.tslib import NaT, Timestamp
-from pandas._libs.tslibs import conversion, timezones
+from pandas._libs.tslibs import (
+    conversion, timezones, NaT, Timestamp, Timedelta, OutOfBoundsDatetime)
 from pandas._libs.tslibs.frequencies import (
     INVALID_FREQ_ERR_MSG, get_freq_code, get_freq_str)
 import pandas._libs.tslibs.offsets as liboffsets
-from pandas._libs.tslibs.timedeltas import Timedelta
 import pandas.compat as compat
 from pandas.compat import range
 from pandas.compat.numpy import np_datetime64_compat
@@ -124,7 +122,7 @@ class Base(object):
             assert isinstance(result, datetime)
             assert t.tzinfo == result.tzinfo
 
-        except tslib.OutOfBoundsDatetime:
+        except OutOfBoundsDatetime:
             raise
         except (ValueError, KeyError):
             # we are creating an invalid offset
