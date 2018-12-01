@@ -149,15 +149,7 @@ class TestReshaping(BasePeriodTests, base.BaseReshapingTests):
 
 class TestSetitem(BasePeriodTests, base.BaseSetitemTests):
 
-    def test_setitem_slice_mismatch_length_raises(self, data):
-        arr = data[:5]
-        with pytest.raises(ValueError):
-            arr[:1] = arr[:2]
-
-    def test_setitem_slice_array(self, data):
-        arr = data[:5].copy()
-        arr[:5] = data[-5:]
-        tm.assert_extension_array_equal(arr, data[-5:])
+    pass
 
 
 class TestGroupby(BasePeriodTests, base.BaseGroupbyTests):
