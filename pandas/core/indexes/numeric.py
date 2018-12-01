@@ -227,8 +227,8 @@ class Int64Index(IntegerIndex):
 
     def _is_compatible_with_other(self, other):
         return (super(Int64Index, self)._is_compatible_with_other(other)
-                and isinstance(self, (Int64Index, ABCRangeIndex))
-                and isinstance(type(other), (Int64Index, ABCRangeIndex)))
+                or (type(self) in (Int64Index, ABCRangeIndex)
+                and type(other) in (Int64Index, ABCRangeIndex)))
 
 Int64Index._add_numeric_methods()
 Int64Index._add_logical_methods()
