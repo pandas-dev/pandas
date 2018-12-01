@@ -720,7 +720,8 @@ cpdef array_to_datetime(ndarray[object] values, str errors='raise',
                 raise ValueError(
                     "mixed datetimes and integers in passed array")
             else:
-                raise TypeError
+                return array_to_datetime_object(values, is_raise,
+                                                dayfirst, yearfirst)
 
     except OutOfBoundsDatetime:
         if is_raise:
