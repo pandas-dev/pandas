@@ -741,26 +741,48 @@ cpdef array_to_datetime(ndarray[object] values, str errors='raise',
         if is_raise:
             raise
 
-        oresult = np.empty(n, dtype=object)
-        for i in range(n):
-            val = values[i]
+        return ignore_errors_out_of_bounds_fallback(values), tz_out
 
-            # set as nan except if its a NaT
-            if checknull_with_nat(val):
-                if isinstance(val, float):
-                    oresult[i] = np.nan
-                else:
-                    oresult[i] = NaT
-            elif is_datetime64_object(val):
-                if get_datetime64_value(val) == NPY_NAT:
-                    oresult[i] = NaT
-                else:
-                    oresult[i] = val.item()
-            else:
-                oresult[i] = val
-        return oresult, tz_out
     except TypeError:
         return array_to_datetime_object(values, is_raise, dayfirst, yearfirst)
+
+
+cdef inline ignore_errors_out_of_bounds_fallback(ndarray[object] values):
+    """
+    Fallback for array_to_datetime if an OutOfBoundsDatetime is raised
+    and errors == "ignore"
+
+    Parameters
+    ----------
+    values : ndarray[object]
+
+    Returns
+    -------
+    ndarray[object]
+    """
+    cdef:
+        Py_ssize_t i, n = len(values)
+        object val
+
+    oresult = np.empty(n, dtype=object)
+
+    for i in range(n):
+        val = values[i]
+
+        # set as nan except if its a NaT
+        if checknull_with_nat(val):
+            if isinstance(val, float):
+                oresult[i] = np.nan
+            else:
+                oresult[i] = NaT
+        elif is_datetime64_object(val):
+            if get_datetime64_value(val) == NPY_NAT:
+                oresult[i] = NaT
+            else:
+                oresult[i] = val.item()
+        else:
+            oresult[i] = val
+    return oresult
 
 
 @cython.wraparound(False)
