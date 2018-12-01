@@ -106,7 +106,7 @@ jobs:
   - script: |
       export PATH=$HOME/miniconda3/bin:$PATH
       source activate pandas-dev
-      doc/make.py html
+      doc/make.py html --num-jobs=2
     displayName: 'Building docs'
     condition: true
 

@@ -4,7 +4,7 @@
 set -v -e
 
 echo "[building extensions]"
-python setup.py build_ext -q --inplace
+python setup.py build_ext -q --inplace -j2
 python -m pip install -e .
 
 echo
