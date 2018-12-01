@@ -8,7 +8,7 @@ from pandas._libs import tslib, tslibs
 
 from pandas.core.dtypes.common import (
     _NS_DTYPE, _TD_DTYPE, is_bool_dtype, is_categorical_dtype,
-    is_datetime64_dtype, is_datetime64tz_dtype, is_dtype_equal,
+    is_datetime64_dtype, is_datetimetz, is_datetime64tz_dtype, is_dtype_equal,
     is_extension_array_dtype, is_interval_dtype, is_object_dtype,
     is_period_dtype, is_sparse, is_timedelta64_dtype)
 from pandas.core.dtypes.generic import (
@@ -212,7 +212,9 @@ def _concat_categorical(to_concat, axis=0):
         # when all categories are identical
         first = to_concat[0]
         if all(first.is_dtype_equal(other) for other in to_concat[1:]):
-            return _concat_compat(categoricals)
+            return (union_categoricals(categoricals) 
+                    if not is_datetime64_dtype(categoricals[0])
+                    else _concat_compat(categoricals))
 
     return _concat_asobject(to_concat)
 
@@ -373,8 +375,10 @@ def union_categoricals(to_union, sort_categories=False, ignore_order=False):
         if sort_categories:
             categories = categories.sort_values()
 
-        new_codes = [_recode_for_categories(c.codes, c.categories, categories)
-                     for c in to_union]
+        new_codes = []
+        for c in to_union:
+            new_codes.append(_recode_for_categories(c.codes, c.categories,
+                                                    categories))
         new_codes = np.concatenate(new_codes)
     else:
         # ordered - to show a proper error message
