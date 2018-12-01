@@ -37,12 +37,12 @@ cdef inline bint is_tzlocal(object tz):
     return isinstance(tz, _dateutil_tzlocal)
 
 
-cdef inline bint treat_tz_as_pytz(tzinfo tz):
+cdef inline bint treat_tz_as_pytz(object tz):
     return (hasattr(tz, '_utc_transition_times') and
             hasattr(tz, '_transition_info'))
 
 
-cdef inline bint treat_tz_as_dateutil(tzinfo tz):
+cdef inline bint treat_tz_as_dateutil(object tz):
     return hasattr(tz, '_trans_list') and hasattr(tz, '_trans_idx')
 
 
