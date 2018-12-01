@@ -59,9 +59,7 @@ class PeriodDelegateMixin(DatetimelikeDelegateMixin):
     Delegate from PeriodIndex to PeriodArray.
     """
     _delegate_class = PeriodArray
-    _delegated_properties = (
-        PeriodArray._datetimelike_ops + ['size', 'asi8', 'shape']
-    )
+    _delegated_properties = PeriodArray._datetimelike_ops
     _delegated_methods = (
         set(PeriodArray._datetimelike_methods) -
         {'asfreq', 'to_timestamp'} | {'_addsub_int_array'}
