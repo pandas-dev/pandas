@@ -452,7 +452,7 @@ class ExtensionArray(object):
         If ``self`` is empty or ``periods`` is 0, a copy of ``self`` is
         returned.
 
-        If ``periods`` > ``len(self)``, then an ExtensionArray of size
+        If ``periods > len(self)``, then an array of size
         len(self) is returned, with all values filled with
         ``self.dtype.na_value``.
         """
