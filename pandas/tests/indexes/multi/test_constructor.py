@@ -516,7 +516,7 @@ def test_from_frame():
 ])
 def test_from_frame_non_frame(non_frame):
     # GH 22420
-    with tm.assert_raises_regex(TypeError, 'Input must be a DataFrame'):
+    with pytest.raises(TypeError, match='Input must be a DataFrame'):
         pd.MultiIndex.from_frame(non_frame)
 
 
@@ -546,16 +546,17 @@ def test_from_frame_dtype_fidelity():
 @pytest.mark.parametrize('names_in,names_out', [
     (None, [('L1', 'x'), ('L2', 'y')]),
     (['x', 'y'], ['x', 'y']),
-    ('bad_input', None),
+    ('bad_input', ValueError("Names should be list-like for a MultiIndex")),
+    (['a', 'b', 'c'], ValueError("Length of names must match number of "
+                                 "levels in MultiIndex."))
 ])
 def test_from_frame_names(names_in, names_out):
     # GH 22420
     df = pd.DataFrame([['a', 'a'], ['a', 'b'], ['b', 'a'], ['b', 'b']],
                       columns=pd.MultiIndex.from_tuples([('L1', 'x'),
                                                          ('L2', 'y')]))
-    if names_out is None:
-        with tm.assert_raises_regex(TypeError, "'names' must be a list / "
-                                               "sequence of column names."):
+    if isinstance(names_out, Exception):
+        with pytest.raises(type(names_out), match=names_out.args[0]):
             pd.MultiIndex.from_frame(df, names=names_in)
     else:
         mi = pd.MultiIndex.from_frame(df, names=names_in)

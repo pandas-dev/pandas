@@ -1516,18 +1516,7 @@ class MultiIndex(Index):
             raise TypeError("Input must be a DataFrame")
 
         column_names, columns = lzip(*df.iteritems())
-
-        # Get MultiIndex names
-        if names is None:
-            names = column_names
-        elif is_list_like(names):
-            if len(names) != len(df.columns):
-                    raise ValueError("'names' should have same length as "
-                                     "number of columns in df.")
-        else:
-            raise TypeError("'names' must be a list / sequence of column "
-                            "names.")
-
+        names = column_names if names is None else names
         return cls.from_arrays(columns, sortorder=sortorder, names=names)
 
     def _sort_levels_monotonic(self):

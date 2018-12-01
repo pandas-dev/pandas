@@ -657,7 +657,7 @@ Bug in :func:`DataFrame.to_dict` raises ``ValueError`` when used with
 
     df.to_dict(orient='index')
 
-.. _whatsnew_0240.api_breaking.multiindex_to_frame_ordering
+.. _whatsnew_0240.api_breaking.multiindex_to_frame_ordering:
 
 The column order of the resultant ``DataFrame`` from ``MultiIndex.to_frame()`` is now guaranteed to match the ``MultiIndex.names`` order. (:issue:`22420`)
 
