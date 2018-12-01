@@ -1,9 +1,13 @@
+import pytest
 import pandas as pd
+import numpy as np
 from pandas.compat import StringIO
 from pandas.core.arrays.integer import (
     Int8Dtype, Int16Dtype, Int32Dtype, Int64Dtype, UInt8Dtype, UInt16Dtype,
-    UInt32Dtype, UInt64Dtype)
+    UInt32Dtype, UInt64Dtype, integer_array,
+)
 from .base import BaseExtensionTests
+
 
 def make_data():
     return (list(range(1, 9)) + [np.nan] + list(range(10, 98))
@@ -19,6 +23,7 @@ def dtype(request):
 @pytest.fixture
 def data(dtype):
     return integer_array(make_data(), dtype=dtype)
+
 
 class ExtensionParsingTests(BaseExtensionTests):
     def test_EA_types(self):

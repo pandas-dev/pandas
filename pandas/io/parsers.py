@@ -1661,7 +1661,7 @@ class ParserBase(object):
             else:
                 # skip inference if specified dtype is object
                 try_num_bool = not (cast_type and (is_string_dtype(cast_type)
-                                                   or is_extension_array_dtype(cast_type)))
+                                                   or is_extension_array_dtype(cast_type))) # noqa
 
                 # general type inference and conversion
                 cvals, na_count = self._infer_types(
