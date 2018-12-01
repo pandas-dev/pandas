@@ -22,9 +22,9 @@ cdef extern from "src/headers/cmath" namespace "std":
 cimport pandas._libs.util as util
 from pandas._libs.util cimport numeric
 
-from pandas._libs.skiplist cimport (skiplist_t,
-                       skiplist_init, skiplist_destroy,
-                       skiplist_get, skiplist_insert, skiplist_remove)
+from pandas._libs.skiplist cimport (
+    skiplist_t, skiplist_init, skiplist_destroy, skiplist_get, skiplist_insert,
+    skiplist_remove)
 
 cdef float32_t MINfloat32 = np.NINF
 cdef float64_t MINfloat64 = np.NINF
