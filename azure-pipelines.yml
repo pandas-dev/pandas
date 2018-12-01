@@ -111,15 +111,11 @@ jobs:
     condition: true
 
   - script: |
-      if [ "$(Build.SourceBranch)" == "refs/heads/master" ]; then
-          az extension add --name storage-preview
-          az storage blob upload-batch --connection-string $CONNECTION_STRING \
-                                       --source $SOURCE \
-                                       --destination '$web'
-        echo "Documentation uploaded to https://pandas.blob.core.windows.net"
-      else
-        echo "Documentation is only uploaded for commits to master, and not PRs"
-      fi
+      az extension add --name storage-preview
+      az storage blob upload-batch --connection-string $CONNECTION_STRING \
+                                   --source $SOURCE \
+                                   --destination '$web'
+      echo "Documentation uploaded to https://pandas.blob.core.windows.net"
     displayName: 'Publishing docs (Azure storage)'
     condition: true
     env:
