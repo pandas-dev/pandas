@@ -697,8 +697,12 @@ class ExtensionArray(object):
         -------
         Callable[[Any], str]
             A callable that gets instances of the scalar type and
-            returns a string. By default, :func:`repr` is used.
+            returns a string. By default, :func:`repr` is used
+            when ``boxed=False`` and :func:`str` is used when
+            ``boxed=True``.
         """
+        if boxed:
+            return str
         return repr
 
     def _formatting_values(self):
