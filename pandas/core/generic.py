@@ -9495,7 +9495,7 @@ class NDFrame(PandasObject, SelectionMixin):
                       desc="Return the mean absolute deviation of the values "
                            "for the requested axis",
                       name1=name, name2=name2, axis_descr=axis_descr,
-                      min_count='', examples='')
+                      min_count='', see_also='', examples='')
         @Appender(_num_doc)
         def mad(self, axis=None, skipna=None, level=None):
             if skipna is None:
@@ -9537,7 +9537,7 @@ class NDFrame(PandasObject, SelectionMixin):
                       desc="Return the compound percentage of the values for "
                       "the requested axis", name1=name, name2=name2,
                       axis_descr=axis_descr,
-                      min_count='', examples='')
+                      min_count='', see_also='', examples='')
         @Appender(_num_doc)
         def compound(self, axis=None, skipna=None, level=None):
             if skipna is None:
@@ -9565,8 +9565,9 @@ class NDFrame(PandasObject, SelectionMixin):
 
         cls.sum = _make_min_count_stat_function(
             cls, 'sum', name, name2, axis_descr,
-            'Return the sum of the values for the requested axis',
-            nanops.nansum, _sum_examples)
+            """Return the sum of the values for the requested axis.\n
+            This is equivalent to the method ``numpy.sum``.""",
+            nanops.nansum, _sum_examples, _stat_func_see_also)
         cls.mean = _make_stat_function(
             cls, 'mean', name, name2, axis_descr,
             'Return the mean of the values for the requested axis',
@@ -9593,16 +9594,16 @@ class NDFrame(PandasObject, SelectionMixin):
             nanops.nanmedian)
         cls.max = _make_stat_function(
             cls, 'max', name, name2, axis_descr,
-            """This method returns the maximum of the values in the object.
+            """Return the maximum of the values for the requested axis.\n
             If you want the *index* of the maximum, use ``idxmax``. This is
             the equivalent of the ``numpy.ndarray`` method ``argmax``.""",
-            nanops.nanmax, _max_examples)
+            nanops.nanmax, _max_examples, _stat_func_see_also)
         cls.min = _make_stat_function(
             cls, 'min', name, name2, axis_descr,
-            """This method returns the minimum of the values in the object.
+            """Return the minimum of the values for the requested axis.\n
             If you want the *index* of the minimum, use ``idxmin``. This is
             the equivalent of the ``numpy.ndarray`` method ``argmin``.""",
-            nanops.nanmin, _min_examples)
+            nanops.nanmin, _min_examples, _stat_func_see_also)
 
     @classmethod
     def _add_series_only_operations(cls):
@@ -9893,27 +9894,30 @@ def _doc_parms(cls):
 
 
 _num_doc = """
-
 %(desc)s
 
 Parameters
 ----------
 axis : %(axis_descr)s
-skipna : boolean, default True
+    Axis for the function to be applied on.
+skipna : bool, default True
     Exclude NA/null values when computing the result.
 level : int or level name, default None
     If the axis is a MultiIndex (hierarchical), count along a
-    particular level, collapsing into a %(name1)s
-numeric_only : boolean, default None
+    particular level, collapsing into a %(name1)s.
+numeric_only : bool, default None
     Include only float, int, boolean columns. If None, will attempt to use
     everything, then use only numeric data. Not implemented for Series.
 %(min_count)s\
+**kwargs
+    Additional keyword arguments to be passed to the function.
 
 Returns
 -------
 %(outname)s : %(name1)s or %(name2)s (if level specified)
-
-%(examples)s"""
+%(see_also)s
+%(examples)s\
+"""
 
 _num_ddof_doc = """
 
@@ -10397,7 +10401,7 @@ True
 Series([], dtype: bool)
 """
 
-_shared_docs['stat_func_example'] = """\
+_shared_docs['stat_func_example'] = """
 Examples
 --------
 
@@ -10475,6 +10479,21 @@ _min_examples = _shared_docs['stat_func_example'].format(
     level_output_0=2,
     level_output_1=0)
 
+_stat_func_see_also = """\
+See Also
+--------
+Series.sum : Return the sum.
+Series.min : Return the minimum.
+Series.max : Return the maximum.
+Series.idxmin : Return the index of the minimum.
+Series.idxmax : Return the index of the maximum.
+DataFrame.min : Return the sum over the requested axis.
+DataFrame.min : Return the minimum over the requested axis.
+DataFrame.max : Return the maximum over the requested axis.
+DataFrame.idxmin : Return the index of the minimum over the requested axis.
+DataFrame.idxmax : Return the index of the maximum over the requested axis.
+"""
+
 _prod_examples = """\
 Examples
 --------
@@ -10512,10 +10531,10 @@ min_count : int, default 0
 
 
 def _make_min_count_stat_function(cls, name, name1, name2, axis_descr, desc,
-                                  f, examples):
+                                  f, see_also='', examples=''):
     @Substitution(outname=name, desc=desc, name1=name1, name2=name2,
                   axis_descr=axis_descr, min_count=_min_count_stub,
-                  examples=examples)
+                  see_also=see_also, examples=examples)
     @Appender(_num_doc)
     def stat_func(self, axis=None, skipna=None, level=None, numeric_only=None,
                   min_count=0,
@@ -10535,9 +10554,10 @@ def _make_min_count_stat_function(cls, name, name1, name2, axis_descr, desc,
 
 
 def _make_stat_function(cls, name, name1, name2, axis_descr, desc, f,
-                        examples=''):
+                        see_also='', examples=''):
     @Substitution(outname=name, desc=desc, name1=name1, name2=name2,
-                  axis_descr=axis_descr, min_count='', examples=examples)
+                  axis_descr=axis_descr, min_count='', see_also=see_also,
+                  examples=examples)
     @Appender(_num_doc)
     def stat_func(self, axis=None, skipna=None, level=None, numeric_only=None,
                   **kwargs):
@@ -10611,9 +10631,9 @@ def _make_cum_function(cls, name, name1, name2, axis_descr, desc,
 
 
 def _make_logical_function(cls, name, name1, name2, axis_descr, desc, f,
-                           examples, see_also):
+                           see_also, examples):
     @Substitution(outname=name, desc=desc, name1=name1, name2=name2,
-                  axis_descr=axis_descr, examples=examples, see_also=see_also)
+                  axis_descr=axis_descr, see_also=see_also, examples=examples)
     @Appender(_bool_doc)
     def logical_func(self, axis=0, bool_only=None, skipna=True, level=None,
                      **kwargs):
