@@ -113,13 +113,40 @@ Here is how to view the top and bottom rows of the frame:
    df.head()
    df.tail(3)
 
-Display the index, columns, and the underlying NumPy data:
+Display the index, columns:
 
 .. ipython:: python
 
    df.index
    df.columns
-   df.values
+
+:meth:`DataFrame.to_numpy` gives a NumPy representation of the underlying data.
+Note that his can be an expensive operation when your :class:`DataFrame` has
+columns with different data types, which comes down to a fundamental difference
+between pandas and NumPy: **NumPy arrays have one dtype for the entire array,
+while pandas DataFrames have one dtype per column**. When you call
+:meth:`DataFrame.to_numpy`, pandas will find the NumPy dtype that can hold *all*
+of the dtypes in the DataFrame. This may end up being ``object``, which requires
+casting every value to a Python object.
+
+For ``df``, our :class:`DataFrame` of all floating-point values,
+:meth:`DataFrame.to_numpy` is fast and doesn't require copying data.
+
+.. ipython:: python
+
+   df.to_numpy()
+
+For ``df2``, the :class:`DataFrame` with multiple dtypes,
+:meth:`DataFrame.to_numpy` is relatively expensive.
+
+.. ipython:: python
+
+   df2.to_numpy()
+
+.. note::
+
+   :meth:`DataFrame.to_numpy` does *not* include the index or column
+   labels in the output.
 
 :func:`~DataFrame.describe` shows a quick statistic summary of your data:
 
