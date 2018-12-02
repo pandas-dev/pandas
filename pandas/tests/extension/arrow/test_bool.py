@@ -39,7 +39,11 @@ class TestInterface(BaseArrowTests, base.BaseInterfaceTests):
     def test_repr(self, data):
         raise pytest.skip("TODO")
 
-    def test_shift(self, data):
+    def test_shift_non_empty_array(self, data):
+        raise pytest.skip("Skipping because the implementation of"
+                          "`ArrowBoolArray` is quite buggy.")
+
+    def test_shift_empty_array(self, data):
         raise pytest.skip("Skipping because the implementation of"
                           "`ArrowBoolArray` is quite buggy.")
 
