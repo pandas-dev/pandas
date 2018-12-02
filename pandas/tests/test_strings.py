@@ -119,7 +119,7 @@ def any_string_method(request):
 
 
 # subset of the full set from pandas/conftest.py
-_any_allowed_skipna_inferred_dtype = [
+_any_allowed_inferred_dtype = [
     ('string', ['a', np.nan, 'c']),
     ('unicode' if not PY3 else 'string', [u('a'), np.nan, u('c')]),
     ('bytes' if PY3 else 'string', [b'a', np.nan, b'c']),
@@ -127,11 +127,11 @@ _any_allowed_skipna_inferred_dtype = [
     ('empty', []),
     ('mixed-integer', ['a', np.nan, 2])
 ]
-ids, _ = zip(*_any_allowed_skipna_inferred_dtype)  # use inferred type as id
+ids, _ = zip(*_any_allowed_inferred_dtype)  # use inferred type as id
 
 
-@pytest.fixture(params=_any_allowed_skipna_inferred_dtype, ids=ids)
-def any_allowed_skipna_inferred_dtype(request):
+@pytest.fixture(params=_any_allowed_inferred_dtype, ids=ids)
+def any_allowed_inferred_dtype(request):
     """
     Fixture for all (inferred) dtypes allowed in StringMethods.__init__
 
@@ -155,10 +155,10 @@ def any_allowed_skipna_inferred_dtype(request):
     --------
     >>> import pandas._libs.lib as lib
     >>>
-    >>> def test_something(any_allowed_skipna_inferred_dtype):
-    ...     inferred_dtype, values = any_skipna_inferred_dtype
+    >>> def test_something(any_allowed_inferred_dtype):
+    ...     inferred_dtype, values = any_allowed_inferred_dtype
     ...     # will pass
-    ...     assert lib.infer_dtype(values, skipna=True) == inferred_dtype
+    ...     assert lib.infer_dtype(values) == inferred_dtype
     """
     inferred_dtype, values = request.param
     values = np.array(values, dtype=object)  # object dtype to avoid casting
@@ -177,9 +177,9 @@ class TestStringMethods(object):
 
     @pytest.mark.parametrize('dtype', [object, 'category'])
     @pytest.mark.parametrize('box', [Series, Index])
-    def test_api_per_dtype(self, box, dtype, any_skipna_inferred_dtype):
+    def test_api_per_dtype(self, box, dtype, any_inferred_dtype):
         # one instance of parametrized fixture
-        inferred_dtype, values = any_skipna_inferred_dtype
+        inferred_dtype, values = any_inferred_dtype
 
         t = box(values, dtype=dtype)  # explicit dtype to avoid casting
 
@@ -217,15 +217,14 @@ class TestStringMethods(object):
 
     @pytest.mark.parametrize('dtype', [object, 'category'])
     @pytest.mark.parametrize('box', [Series, Index])
-    def test_api_per_method(self, box, dtype,
-                            any_allowed_skipna_inferred_dtype,
+    def test_api_per_method(self, box, dtype, any_allowed_inferred_dtype,
                             any_string_method):
         # this test does not check correctness of the different methods,
         # just that the methods work on the specified (inferred) dtypes,
         # and raise on all others
 
         # one instance of each parametrized fixture
-        inferred_dtype, values = any_allowed_skipna_inferred_dtype
+        inferred_dtype, values = any_allowed_inferred_dtype
         method_name, args, kwargs = any_string_method
 
         # TODO: get rid of these xfails

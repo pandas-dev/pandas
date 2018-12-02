@@ -409,7 +409,7 @@ class Index(IndexOpsMixin, PandasObject):
                 subarr = subarr.copy()
 
             if dtype is None:
-                inferred = lib.infer_dtype(subarr)
+                inferred = lib.infer_dtype(subarr, skipna=False)
                 if inferred == 'integer':
                     try:
                         return cls._try_convert_to_int_index(

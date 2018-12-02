@@ -940,7 +940,7 @@ def maybe_infer_to_datetimelike(value, convert_dates=False):
             # e.g. '00:00:01' is a timedelta but
             # technically is also a datetime
             value = try_timedelta(v)
-            if lib.infer_dtype(value) in ['mixed']:
+            if lib.infer_dtype(value, skipna=False) in ['mixed']:
                 value = try_datetime(v)
 
     return value

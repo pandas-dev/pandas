@@ -819,27 +819,15 @@ class SQLTable(PandasObject):
             except KeyError:
                 pass  # this column not in results
 
-    def _get_notna_col_dtype(self, col):
-        """
-        Infer datatype of the Series col.  In case the dtype of col is 'object'
-        and it contains NA values, this infers the datatype of the not-NA
-        values.  Needed for inserting typed data containing NULLs, GH8778.
-        """
-        col_for_inference = col
-        if col.dtype == 'object':
-            notnadata = col[~isna(col)]
-            if len(notnadata):
-                col_for_inference = notnadata
-
-        return lib.infer_dtype(col_for_inference)
-
     def _sqlalchemy_type(self, col):
 
         dtype = self.dtype or {}
         if col.name in dtype:
             return self.dtype[col.name]
 
-        col_type = self._get_notna_col_dtype(col)
+        # Infer type of column, while ignoring missing values.
+        # Needed for inserting typed data containing NULLs, GH 8778.
+        col_type = lib.infer_dtype(col)
 
         from sqlalchemy.types import (BigInteger, Integer, Float,
                                       Text, Boolean,
@@ -1325,7 +1313,10 @@ class SQLiteTable(SQLTable):
         if col.name in dtype:
             return dtype[col.name]
 
-        col_type = self._get_notna_col_dtype(col)
+        # Infer type of column, while ignoring missing values.
+        # Needed for inserting typed data containing NULLs, GH 8778.
+        col_type = lib.infer_dtype(col)
+
         if col_type == 'timedelta64':
             warnings.warn("the 'timedelta' type is not supported, and will be "
                           "written as integer values (ns frequency) to the "
