@@ -23,7 +23,8 @@ structure.
 
 .. ipython:: python
 
-    url = 'https://raw.github.com/pandas-dev/pandas/master/pandas/tests/data/tips.csv'
+    url = ('https://raw.github.com/pandas-dev'
+           '/pandas/master/pandas/tests/data/tips.csv')
     tips = pd.read_csv(url)
     tips.head()
 
@@ -387,7 +388,7 @@ Top N rows with offset
 
 .. ipython:: python
 
-    tips.nlargest(10+5, columns='tip').tail(10)
+    tips.nlargest(10 + 5, columns='tip').tail(10)
 
 Top N rows per group
 ~~~~~~~~~~~~~~~~~~~~
@@ -411,8 +412,7 @@ Top N rows per group
                         .groupby(['day'])
                         .cumcount() + 1)
          .query('rn < 3')
-         .sort_values(['day','rn'])
-    )
+         .sort_values(['day', 'rn']))
 
 the same using `rank(method='first')` function
 
@@ -421,8 +421,7 @@ the same using `rank(method='first')` function
     (tips.assign(rnk=tips.groupby(['day'])['total_bill']
                          .rank(method='first', ascending=False))
          .query('rnk < 3')
-         .sort_values(['day','rnk'])
-    )
+         .sort_values(['day', 'rnk']))
 
 .. code-block:: sql
 
@@ -445,11 +444,10 @@ Notice that when using ``rank(method='min')`` function
 .. ipython:: python
 
     (tips[tips['tip'] < 2]
-         .assign(rnk_min=tips.groupby(['sex'])['tip']
-                             .rank(method='min'))
-         .query('rnk_min < 3')
-         .sort_values(['sex','rnk_min'])
-    )
+        .assign(rnk_min=tips.groupby(['sex'])['tip']
+                            .rank(method='min'))
+        .query('rnk_min < 3')
+        .sort_values(['sex', 'rnk_min']))
 
 
 UPDATE
