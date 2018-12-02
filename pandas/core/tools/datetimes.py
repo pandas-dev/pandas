@@ -269,7 +269,8 @@ def _convert_listlike_datetimes(arg, box, format, name=None, tz=None,
                             raise
                         result = arg
         except ValueError as e:
-            # Fallback to try to convert datetime objects
+            # Fallback to try to convert datetime objects if timezone-aware
+            #  datetime objects are found without passing `utc=True`
             try:
                 values, tz = conversion.datetime_to_datetime64(arg)
                 return DatetimeIndex._simple_new(values, name=name, tz=tz)
