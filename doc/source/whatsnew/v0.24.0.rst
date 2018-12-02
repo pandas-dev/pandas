@@ -376,6 +376,7 @@ Backwards incompatible API changes
 - :meth:`Series.str.cat` will now raise if `others` is a `set` (:issue:`23009`)
 - Passing scalar values to :class:`DatetimeIndex` or :class:`TimedeltaIndex` will now raise ``TypeError`` instead of ``ValueError`` (:issue:`23539`)
 - ``max_rows`` and ``max_cols`` parameters removed from :class:`HTMLFormatter` since truncation is handled by :class:`DataFrameFormatter` (:issue:`23818`)
+- The column order of the resultant ``DataFrame`` from ``MultiIndex.to_frame()`` is now guaranteed to match the ``MultiIndex.names`` order. (:issue:`22420`)
 
 .. _whatsnew_0240.api_breaking.deps:
 
@@ -728,10 +729,6 @@ Bug in :func:`DataFrame.to_dict` raises ``ValueError`` when used with
     df
 
     df.to_dict(orient='index')
-
-.. _whatsnew_0240.api_breaking.multiindex_to_frame_ordering:
-
-The column order of the resultant ``DataFrame`` from ``MultiIndex.to_frame()`` is now guaranteed to match the ``MultiIndex.names`` order. (:issue:`22420`)
 
 .. _whatsnew_0240.api.datetimelike.normalize:
 
