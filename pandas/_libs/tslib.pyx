@@ -554,10 +554,7 @@ cpdef array_to_datetime(ndarray[object] values, str errors='raise',
 
                 elif is_datetime64_object(val):
                     seen_datetime = 1
-                    if get_datetime64_value(val) == NPY_NAT:
-                        iresult[i] = NPY_NAT
-                    else:
-                        iresult[i] = get_datetime64_nanos(val)
+                    iresult[i] = get_datetime64_nanos(val)
 
                 elif is_integer_object(val) or is_float_object(val):
                     # these must be ns unit by-definition
