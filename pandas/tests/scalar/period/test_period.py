@@ -1025,7 +1025,7 @@ class TestComparisons(object):
             assert not left <= right
             assert not left >= right
 
-
+from pandas.tests.tseries.offsets.conftest import offset_types, tick_classes
 class TestArithmetic(object):
 
     def test_sub_delta(self):
@@ -1106,37 +1106,46 @@ class TestArithmetic(object):
         with pytest.raises(period.IncompatibleFrequency, match=msg):
             per1 - Period('2011-02', freq='M')
 
-    @pytest.mark.parametrize('kwds', [
-        {},
-        {'normalize': True},
-        {'normalize': False},
-        {'normalize': True, 'month': 4},
-        {'normalize': False, 'month': 4},
-    ])
     @pytest.mark.parametrize('n', [1, 2, 3, 4])
-    @pytest.mark.parametrize('freq,expected', [
-        (pd.offsets.Second, 18489600),
-        (pd.offsets.Minute, 308160),
-        (pd.offsets.Hour, 5136),
-        (pd.offsets.Day, 214),
-        (pd.offsets.MonthEnd, 7),
-        (pd.offsets.YearEnd, 1),
-    ])
-    def test_sub_non_standard_freq(self, freq, expected, n, kwds):
+    def test_sub_n_gt_1_ticks(self, tick_classes, n):
         # GH 23878
-        # Only kwd allowed in period compatible freqs is 'month' in `YearEnd`
-        if 'month' in kwds:
-            if freq is pd.offsets.YearEnd:
-                expected = 0
-            else:
-                return
-        # Only non-Tick frequencies can have normalize set to True
-        if pd.tseries.offsets.Tick in freq.__bases__ and kwds.get('normalize'):
-            return
+        p1 = pd.Period('19910905', freq=tick_classes(n))
+        p2 = pd.Period('19920406', freq=tick_classes(n))
 
-        p1 = pd.Period('19910905', freq=freq(n, **kwds))
-        p2 = pd.Period('19920406', freq=freq(n, **kwds))
-        assert (p2 - p1) == freq(expected, **kwds)
+        expected = (pd.Period(str(p2), freq=p2.freq.base)
+                    - pd.Period(str(p1), freq=p1.freq.base))
+
+        assert (p2 - p1) == expected
+
+    
+    @pytest.mark.parametrize('normalize', [True, False])
+    @pytest.mark.parametrize('n', [1, 2, 3, 4])
+    @pytest.mark.parametrize('offset, kwd_name', [
+        (pd.offsets.YearEnd, 'month'),
+        (pd.offsets.QuarterEnd, 'startingMonth'),
+        (pd.offsets.MonthEnd, None),
+        (pd.offsets.Week, 'weekday')
+    ])
+    def test_sub_n_gt_1_offsets(self, offset, kwd_name, n, normalize):
+        # GH 23878
+        for i in range(2):
+            if i == 0:
+                kwds = {}
+            else:
+                if kwd_name is None:
+                    return
+                else:
+                    kwds = {kwd_name: 3}
+            p1_d = '19910905'
+            p2_d = '19920406'
+            p1 = pd.Period(p1_d, freq=offset(n, normalize, **kwds))
+            p2 = pd.Period(p2_d, freq=offset(n, normalize, **kwds))
+
+            expected = (pd.Period(p2_d, freq=p2.freq.base)
+                        - pd.Period(p1_d, freq=p1.freq.base))
+
+            assert (p2 - p1) == expected
+
 
     def test_add_offset(self):
         # freq is DateOffset
