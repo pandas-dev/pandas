@@ -378,6 +378,7 @@ Backwards incompatible API changes
   "worked" purely due to limitations of dtype checking -- e.g. ``bytes``, which is now disabled except for `decode` and `len` (:issue:`23011`, :issue:`23163`)
 - Passing scalar values to :class:`DatetimeIndex` or :class:`TimedeltaIndex` will now raise ``TypeError`` instead of ``ValueError`` (:issue:`23539`)
 - ``max_rows`` and ``max_cols`` parameters removed from :class:`HTMLFormatter` since truncation is handled by :class:`DataFrameFormatter` (:issue:`23818`)
+- :meth:`read_csv` will now raise a ``ValueError`` if a column with missing values is declared as having dtype ``bool`` (:issue:`20591`)
 
 .. _whatsnew_0240.api_breaking.deps:
 
@@ -1215,6 +1216,7 @@ Performance Improvements
   The speed increase is both when indexing by label (using .loc) and position(.iloc) (:issue:`20395`)
   Slicing a monotonically increasing :class:`CategoricalIndex` itself (i.e. ``ci[1000:2000]``)
   shows similar speed improvements as above (:issue:`21659`)
+- Improved performance of :meth:`CategoricalIndex.equals` when comparing to another :class:`CategoricalIndex` (:issue:`24023`)
 - Improved performance of :func:`Series.describe` in case of numeric dtpyes (:issue:`21274`)
 - Improved performance of :func:`pandas.core.groupby.GroupBy.rank` when dealing with tied rankings (:issue:`21237`)
 - Improved performance of :func:`DataFrame.set_index` with columns consisting of :class:`Period` objects (:issue:`21582`, :issue:`21606`)
@@ -1230,7 +1232,7 @@ Performance Improvements
 - Improved performance of :func:`pd.concat` for `Series` objects (:issue:`23404`)
 - Improved performance of :meth:`DatetimeIndex.normalize` and :meth:`Timestamp.normalize` for timezone naive or UTC datetimes (:issue:`23634`)
 - Improved performance of :meth:`DatetimeIndex.tz_localize` and various ``DatetimeIndex`` attributes with dateutil UTC timezone (:issue:`23772`)
-
+- Improved performance of :class:`Categorical` constructor for `Series` objects (:issue:`23814`)
 
 .. _whatsnew_0240.docs:
 
@@ -1256,6 +1258,7 @@ Categorical
 - Bug in :meth:`Categorical.take` with a user-provided ``fill_value`` not encoding the ``fill_value``, which could result in a ``ValueError``, incorrect results, or a segmentation fault (:issue:`23296`).
 - In meth:`Series.unstack`, specifying a ``fill_value`` not present in the categories now raises a ``TypeError`` rather than ignoring the ``fill_value`` (:issue:`23284`)
 - Bug when resampling :meth:`Dataframe.resample()` and aggregating on categorical data, the categorical dtype was getting lost. (:issue:`23227`)
+- Bug in many methods of the ``.str``-accessor, which always failed on calling the ``CategoricalIndex.str`` constructor (:issue:`23555`, :issue:`23556`)
 
 Datetimelike
 ^^^^^^^^^^^^
@@ -1418,6 +1421,7 @@ MultiIndex
 I/O
 ^^^
 
+
 .. _whatsnew_0240.bug_fixes.nan_with_str_dtype:
 
 Proper handling of `np.NaN` in a string data-typed column with the Python engine
@@ -1481,6 +1485,7 @@ Notice how we now instead output ``np.nan`` itself instead of a stringified form
 - Bug in :meth:`read_excel()` in which column names were not being properly converted to string sometimes in Python 2.x (:issue:`23874`)
 - Bug in :meth:`read_excel()` in which ``index_col=None`` was not being respected and parsing index columns anyway (:issue:`18792`, :issue:`20480`)
 - Bug in :meth:`read_excel()` in which ``usecols`` was not being validated for proper column names when passed in as a string (:issue:`20480`)
+- Bug in :meth:`DataFrame.to_dict` when the resulting dict contains non-Python scalars in the case of numeric data (:issue:`23753`)
 - :func:`DataFrame.to_string()`, :func:`DataFrame.to_html()`, :func:`DataFrame.to_latex()` will correctly format output when a string is passed as the ``float_format`` argument (:issue:`21625`, :issue:`22270`)
 
 Plotting
@@ -1532,6 +1537,7 @@ Reshaping
 - Bug in :func:`pandas.melt` when passing column names that are not present in ``DataFrame`` (:issue:`23575`)
 - Bug in :meth:`DataFrame.append` with a :class:`Series` with a dateutil timezone would raise a ``TypeError`` (:issue:`23682`)
 - Bug in ``Series`` construction when passing no data and ``dtype=str`` (:issue:`22477`)
+- Bug in :func:`cut` with ``bins`` as an overlapping ``IntervalIndex`` where multiple bins were returned per item instead of raising a ``ValueError`` (:issue:`23980`)
 
 .. _whatsnew_0240.bug_fixes.sparse:
 

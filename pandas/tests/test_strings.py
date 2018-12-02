@@ -218,9 +218,6 @@ class TestStringMethods(object):
         method_name, args, kwargs = any_string_method
 
         # TODO: get rid of these xfails
-        if box == Index and dtype == 'category':
-            pytest.xfail(reason='Broken methods on CategoricalIndex; '
-                         'see GH 23556')
         if (method_name in ['partition', 'rpartition'] and box == Index
                 and inferred_dtype == 'empty'):
             pytest.xfail(reason='Method cannot deal with empty Index')
@@ -247,6 +244,7 @@ class TestStringMethods(object):
                          + ['mixed', 'mixed-integer'] * mixed_allowed)
 
         if inferred_dtype in allowed_types:
+            # xref GH 23555, GH 23556
             method(*args, **kwargs)  # works!
         else:
             # GH 23011, GH 23163
