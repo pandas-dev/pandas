@@ -62,8 +62,11 @@ cdef inline int64_t get_datetime64_nanos(object val) except? -1:
         NPY_DATETIMEUNIT unit
         npy_datetime ival
 
-    unit = get_datetime64_unit(val)
     ival = get_datetime64_value(val)
+    if ival == NPY_NAT:
+        return NPY_NAT
+
+    unit = get_datetime64_unit(val)
 
     if unit != NPY_FR_ns:
         pandas_datetime_to_datetimestruct(ival, unit, &dts)
@@ -283,10 +286,8 @@ cdef convert_to_tsobject(object ts, object tz, object unit,
     if ts is None or ts is NaT:
         obj.value = NPY_NAT
     elif is_datetime64_object(ts):
-        if ts.view('i8') == NPY_NAT:
-            obj.value = NPY_NAT
-        else:
-            obj.value = get_datetime64_nanos(ts)
+        obj.value = get_datetime64_nanos(ts)
+        if obj.value != NPY_NAT:
             dt64_to_dtstruct(obj.value, &obj.dts)
     elif is_integer_object(ts):
         if ts == NPY_NAT:
