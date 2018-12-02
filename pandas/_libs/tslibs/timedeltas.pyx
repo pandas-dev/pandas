@@ -33,8 +33,8 @@ from ccalendar import DAY_SECONDS
 from np_datetime cimport (cmp_scalar, reverse_ops, td64_to_tdstruct,
                           pandas_timedeltastruct)
 
-from nattype import nat_strings, NaT
-from nattype cimport checknull_with_nat, NPY_NAT
+from nattype import nat_strings
+from nattype cimport checknull_with_nat, NPY_NAT, c_NaT as NaT
 from offsets cimport to_offset
 
 # ----------------------------------------------------------------------

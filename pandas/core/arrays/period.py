@@ -4,8 +4,7 @@ import operator
 
 import numpy as np
 
-from pandas._libs.tslib import NaT, iNaT
-from pandas._libs.tslibs import period as libperiod
+from pandas._libs.tslibs import NaT, iNaT, period as libperiod
 from pandas._libs.tslibs.fields import isleapyear_arr
 from pandas._libs.tslibs.period import (
     DIFFERENT_FREQ_INDEX, IncompatibleFrequency, Period, get_period_field_arr,

@@ -40,8 +40,8 @@ from tslibs.conversion cimport (tz_convert_single, _TSObject,
                                 tz_convert_utc_to_tzlocal)
 
 # many modules still look for NaT and iNaT here despite them not being needed
-from tslibs.nattype import nat_strings, NaT, iNaT  # noqa:F821
-from tslibs.nattype cimport checknull_with_nat, NPY_NAT
+from tslibs.nattype import nat_strings, iNaT  # noqa:F821
+from tslibs.nattype cimport checknull_with_nat, NPY_NAT, c_NaT as NaT
 
 from tslibs.offsets cimport to_offset
 

@@ -46,8 +46,9 @@ from frequencies cimport (get_freq_code, get_base_alias,
                           get_rule_month)
 from parsing import parse_time_string
 from resolution import Resolution
-from nattype import nat_strings, NaT
-from nattype cimport _nat_scalar_rules, NPY_NAT, is_null_datetimelike
+from nattype import nat_strings
+from nattype cimport (
+    _nat_scalar_rules, NPY_NAT, is_null_datetimelike, c_NaT as NaT)
 from offsets cimport to_offset
 from offsets import _Tick
 

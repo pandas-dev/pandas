@@ -4,7 +4,7 @@ import numpy as np
 import pytest
 import pytz
 
-from pandas._libs.tslib import iNaT
+from pandas._libs.tslibs import iNaT
 
 from pandas import (
     DatetimeIndex, Index, NaT, Period, Series, Timedelta, TimedeltaIndex,
