@@ -24,7 +24,6 @@ from pandas.core.dtypes.common import (
     is_period_dtype, is_timedelta64_dtype, needs_i8_conversion, pandas_dtype)
 from pandas.core.dtypes.dtypes import DatetimeTZDtype
 from pandas.core.dtypes.generic import ABCDataFrame, ABCIndexClass, ABCSeries
-from pandas.core.dtypes.inference import is_scalar
 from pandas.core.dtypes.missing import isna
 
 from pandas.core.algorithms import checked_add_with_arr, take, unique1d
@@ -1228,7 +1227,7 @@ def _ensure_datetimelike_to_i8(other, to_utc=False):
     from pandas import Index
     from pandas.core.arrays import PeriodArray
 
-    if is_scalar(other) and isna(other):
+    if lib.is_scalar(other) and isna(other):
         return iNaT
     elif isinstance(other, (PeriodArray, ABCIndexClass)):
         # convert tz if needed
