@@ -5,24 +5,20 @@
 .. ipython:: python
    :suppress:
 
-   import pandas as pd
+   import datetime
+   import functools
+   import glob
+   import itertools
+   import os
+
    import numpy as np
+   import pandas as pd
    from pandas.compat import StringIO
 
-   import random
-   import os
-   import itertools
-   import functools
-   import datetime
 
    np.random.seed(123456)
-
-   pd.options.display.max_rows=15
-
-   import matplotlib
-   # matplotlib.style.use('default')
-
    np.set_printoptions(precision=4, suppress=True)
+   pd.options.display.max_rows = 15
 
 
 ********
@@ -56,8 +52,10 @@ These are some neat pandas ``idioms``
 
 .. ipython:: python
 
-   df = pd.DataFrame(
-        {'AAA' : [4,5,6,7], 'BBB' : [10,20,30,40],'CCC' : [100,50,-30,-50]}); df
+   df = pd.DataFrame({'AAA': [4, 5, 6, 7],
+                      'BBB': [10, 20, 30, 40],
+                      'CCC': [100, 50, -30, -50]})
+   df
 
 if-then...
 **********
@@ -66,36 +64,43 @@ An if-then on one column
 
 .. ipython:: python
 
-   df.loc[df.AAA >= 5,'BBB'] = -1; df
+   df.loc[df.AAA >= 5, 'BBB'] = -1
+   df
 
 An if-then with assignment to 2 columns:
 
 .. ipython:: python
 
-   df.loc[df.AAA >= 5,['BBB','CCC']] = 555; df
+   df.loc[df.AAA >= 5, ['BBB', 'CCC']] = 555
+   df
 
 Add another line with different logic, to do the -else
 
 .. ipython:: python
 
-   df.loc[df.AAA < 5,['BBB','CCC']] = 2000; df
+   df.loc[df.AAA < 5, ['BBB', 'CCC']] = 2000
+   df
 
 Or use pandas where after you've set up a mask
 
 .. ipython:: python
 
-   df_mask = pd.DataFrame({'AAA' : [True] * 4, 'BBB' : [False] * 4,'CCC' : [True,False] * 2})
-   df.where(df_mask,-1000)
+   df_mask = pd.DataFrame({'AAA': [True] * 4,
+                           'BBB': [False] * 4,
+                           'CCC': [True, False] * 2})
+   df.where(df_mask, -1000)
 
 `if-then-else using numpy's where()
 <https://stackoverflow.com/questions/19913659/pandas-conditional-creation-of-a-series-dataframe-column>`__
 
 .. ipython:: python
 
-   df = pd.DataFrame(
-        {'AAA' : [4,5,6,7], 'BBB' : [10,20,30,40],'CCC' : [100,50,-30,-50]}); df
-
-   df['logic'] = np.where(df['AAA'] > 5,'high','low'); df
+   df = pd.DataFrame({'AAA': [4, 5, 6, 7],
+                      'BBB': [10, 20, 30, 40],
+                      'CCC': [100, 50, -30, -50]})
+   df
+   df['logic'] = np.where(df['AAA'] > 5, 'high', 'low')
+   df
 
 Splitting
 *********
@@ -105,11 +110,13 @@ Splitting
 
 .. ipython:: python
 
-   df = pd.DataFrame(
-        {'AAA' : [4,5,6,7], 'BBB' : [10,20,30,40],'CCC' : [100,50,-30,-50]}); df
+   df = pd.DataFrame({'AAA': [4, 5, 6, 7],
+                      'BBB': [10, 20, 30, 40],
+                      'CCC': [100, 50, -30, -50]})
+   df
 
-   dflow = df[df.AAA <= 5]; dflow
-   dfhigh = df[df.AAA > 5]; dfhigh
+   df[df.AAA <= 5]
+   df[df.AAA > 5]
 
 Building Criteria
 *****************
@@ -119,45 +126,51 @@ Building Criteria
 
 .. ipython:: python
 
-   df = pd.DataFrame(
-        {'AAA' : [4,5,6,7], 'BBB' : [10,20,30,40],'CCC' : [100,50,-30,-50]}); df
+   df = pd.DataFrame({'AAA': [4, 5, 6, 7],
+                      'BBB': [10, 20, 30, 40],
+                      'CCC': [100, 50, -30, -50]})
+   df
 
 ...and (without assignment returns a Series)
 
 .. ipython:: python
 
-   newseries = df.loc[(df['BBB'] < 25) & (df['CCC'] >= -40), 'AAA']; newseries
+   df.loc[(df['BBB'] < 25) & (df['CCC'] >= -40), 'AAA']
 
 ...or (without assignment returns a Series)
 
 .. ipython:: python
 
-   newseries = df.loc[(df['BBB'] > 25) | (df['CCC'] >= -40), 'AAA']; newseries
+   df.loc[(df['BBB'] > 25) | (df['CCC'] >= -40), 'AAA']
 
 ...or (with assignment modifies the DataFrame.)
 
 .. ipython:: python
 
-   df.loc[(df['BBB'] > 25) | (df['CCC'] >= 75), 'AAA'] = 0.1; df
+   df.loc[(df['BBB'] > 25) | (df['CCC'] >= 75), 'AAA'] = 0.1
+   df
 
 `Select rows with data closest to certain value using argsort
 <https://stackoverflow.com/questions/17758023/return-rows-in-a-dataframe-closest-to-a-user-defined-number>`__
 
 .. ipython:: python
 
-   df = pd.DataFrame(
-        {'AAA' : [4,5,6,7], 'BBB' : [10,20,30,40],'CCC' : [100,50,-30,-50]}); df
-
+   df = pd.DataFrame({'AAA': [4, 5, 6, 7],
+                      'BBB': [10, 20, 30, 40],
+                      'CCC': [100, 50, -30, -50]})
+   df
    aValue = 43.0
-   df.loc[(df.CCC-aValue).abs().argsort()]
+   df.loc[(df.CCC - aValue).abs().argsort()]
 
 `Dynamically reduce a list of criteria using a binary operators
 <https://stackoverflow.com/questions/21058254/pandas-boolean-operation-in-a-python-list/21058331>`__
 
 .. ipython:: python
 
-   df = pd.DataFrame(
-        {'AAA' : [4,5,6,7], 'BBB' : [10,20,30,40],'CCC' : [100,50,-30,-50]}); df
+   df = pd.DataFrame({'AAA': [4, 5, 6, 7],
+                      'BBB': [10, 20, 30, 40],
+                      'CCC': [100, 50, -30, -50]})
+   df
 
    Crit1 = df.AAA <= 5.5
    Crit2 = df.BBB == 10.0
@@ -173,8 +186,8 @@ One could hard code:
 
 .. ipython:: python
 
-   CritList = [Crit1,Crit2,Crit3]
-   AllCrit = functools.reduce(lambda x,y: x & y, CritList)
+   CritList = [Crit1, Crit2, Crit3]
+   AllCrit = functools.reduce(lambda x, y: x & y, CritList)
 
    df[AllCrit]
 
@@ -193,18 +206,23 @@ The :ref:`indexing <indexing>` docs.
 
 .. ipython:: python
 
-   df = pd.DataFrame(
-        {'AAA' : [4,5,6,7], 'BBB' : [10,20,30,40],'CCC' : [100,50,-30,-50]}); df
+   df = pd.DataFrame({'AAA': [4, 5, 6, 7],
+                      'BBB': [10, 20, 30, 40],
+                      'CCC': [100, 50, -30, -50]})
+   df
 
-   df[(df.AAA <= 6) & (df.index.isin([0,2,4]))]
+   df[(df.AAA <= 6) & (df.index.isin([0, 2, 4]))]
 
 `Use loc for label-oriented slicing and iloc positional slicing
 <https://github.com/pandas-dev/pandas/issues/2904>`__
 
 .. ipython:: python
 
-   data = {'AAA' : [4,5,6,7], 'BBB' : [10,20,30,40],'CCC' : [100,50,-30,-50]}
-   df = pd.DataFrame(data=data,index=['foo','bar','boo','kar']); df
+  df = pd.DataFrame({'AAA': [4, 5, 6, 7],
+                     'BBB': [10, 20, 30, 40],
+                     'CCC': [100, 50, -30, -50]},
+                    index=['foo', 'bar', 'boo', 'kar'])
+
 
 There are 2 explicit slicing methods, with a third general case
 
@@ -213,9 +231,9 @@ There are 2 explicit slicing methods, with a third general case
 3. General (Either slicing style : depends on if the slice contains labels or positions)
 
 .. ipython:: python
-   df.iloc[0:3] #Positional
+   df.iloc[0:3]  # Positional
 
-   df.loc['bar':'kar'] #Label
+   df.loc['bar':'kar']  # Label
 
    # Generic
    df.iloc[0:3]
@@ -225,21 +243,24 @@ Ambiguity arises when an index consists of integers with a non-zero start or non
 
 .. ipython:: python
 
-   df2 = pd.DataFrame(data=data,index=[1,2,3,4]); #Note index starts at 1.
-
-   df2.iloc[1:3] #Position-oriented
-
-   df2.loc[1:3] #Label-oriented
+   data = {'AAA': [4, 5, 6, 7],
+           'BBB': [10, 20, 30, 40],
+           'CCC': [100, 50, -30, -50]}
+   df2 = pd.DataFrame(data=data, index=[1, 2, 3, 4])  # Note index starts at 1.
+   df2.iloc[1:3]  # Position-oriented
+   df2.loc[1:3]  # Label-oriented
 
 `Using inverse operator (~) to take the complement of a mask
 <https://stackoverflow.com/questions/14986510/picking-out-elements-based-on-complement-of-indices-in-python-pandas>`__
 
 .. ipython:: python
 
-   df = pd.DataFrame(
-        {'AAA' : [4,5,6,7], 'BBB' : [10,20,30,40], 'CCC' : [100,50,-30,-50]}); df
+   df = pd.DataFrame({'AAA': [4, 5, 6, 7],
+                      'BBB': [10, 20, 30, 40],
+                      'CCC': [100, 50, -30, -50]})
+   df
 
-   df[~((df.AAA <= 6) & (df.index.isin([0,2,4])))]
+   df[~((df.AAA <= 6) & (df.index.isin([0, 2, 4])))]
 
 Panels
 ******
@@ -249,14 +270,18 @@ Panels
 
 .. ipython:: python
 
-   rng = pd.date_range('1/1/2013',periods=100,freq='D')
+   rng = pd.date_range('1/1/2013', periods=100, freq='D')
    data = np.random.randn(100, 4)
-   cols = ['A','B','C','D']
-   df1, df2, df3 = pd.DataFrame(data, rng, cols), pd.DataFrame(data, rng, cols), pd.DataFrame(data, rng, cols)
+   cols = ['A', 'B', 'C', 'D']
+   df1 = pd.DataFrame(data, rng, cols)
+   df2 = pd.DataFrame(data, rng, cols)
+   df3 = pd.DataFrame(data, rng, cols)
 
-   pf = pd.Panel({'df1':df1,'df2':df2,'df3':df3});pf
+   pf = pd.Panel({'df1': df1, 'df2': df2, 'df3': df3})
+   pf
 
-   pf.loc[:,:,'F'] = pd.DataFrame(data, rng, cols);pf
+   pf.loc[:, :, 'F'] = pd.DataFrame(data, rng, cols)
+   pf
 
 `Mask a panel by using np.where and then reconstructing the panel with the new masked values
 <https://stackoverflow.com/questions/14650341/boolean-mask-in-pandas-panel>`__
@@ -269,22 +294,26 @@ New Columns
 
 .. ipython:: python
 
-   df = pd.DataFrame(
-        {'AAA' : [1,2,1,3], 'BBB' : [1,1,2,2], 'CCC' : [2,1,3,1]}); df
+   df = pd.DataFrame({'AAA': [1, 2, 1, 3],
+                      'BBB': [1, 1, 2, 2],
+                      'CCC': [2, 1, 3, 1]})
+   df
 
-   source_cols = df.columns # or some subset would work too.
+   source_cols = df.columns   # Or some subset would work too
    new_cols = [str(x) + "_cat" for x in source_cols]
-   categories = {1 : 'Alpha', 2 : 'Beta', 3 : 'Charlie' }
+   categories = {1: 'Alpha', 2: 'Beta', 3: 'Charlie'}
 
-   df[new_cols] = df[source_cols].applymap(categories.get);df
+   df[new_cols] = df[source_cols].applymap(categories.get)
+   df
 
 `Keep other columns when using min() with groupby
 <https://stackoverflow.com/questions/23394476/keep-other-columns-when-using-min-with-groupby>`__
 
 .. ipython:: python
 
-   df = pd.DataFrame(
-        {'AAA' : [1,1,1,2,2,2,3,3], 'BBB' : [2,1,3,4,5,1,2,3]}); df
+   df = pd.DataFrame({'AAA': [1, 1, 1, 2, 2, 2, 3, 3],
+                      'BBB': [2, 1, 3, 4, 5, 1, 2, 3]})
+   df
 
 Method 1 : idxmin() to get the index of the minimums
 
@@ -312,20 +341,26 @@ The :ref:`multindexing <advanced.hierarchical>` docs.
 
 .. ipython:: python
 
-   df = pd.DataFrame({'row' : [0,1,2],
-                      'One_X' : [1.1,1.1,1.1],
-                      'One_Y' : [1.2,1.2,1.2],
-                      'Two_X' : [1.11,1.11,1.11],
-                      'Two_Y' : [1.22,1.22,1.22]}); df
+   df = pd.DataFrame({'row': [0, 1, 2],
+                      'One_X': [1.1, 1.1, 1.1],
+                      'One_Y': [1.2, 1.2, 1.2],
+                      'Two_X': [1.11, 1.11, 1.11],
+                      'Two_Y': [1.22, 1.22, 1.22]})
+   df
 
    # As Labelled Index
-   df = df.set_index('row');df
+   df = df.set_index('row')
+   df
    # With Hierarchical Columns
-   df.columns = pd.MultiIndex.from_tuples([tuple(c.split('_')) for c in df.columns]);df
+   df.columns = pd.MultiIndex.from_tuples([tuple(c.split('_'))
+                                           for c in df.columns])
+   df
    # Now stack & Reset
-   df = df.stack(0).reset_index(1);df
+   df = df.stack(0).reset_index(1)
+   df
    # And fix the labels (Notice the label 'level_1' got added automatically)
-   df.columns = ['Sample','All_X','All_Y'];df
+   df.columns = ['Sample', 'All_X', 'All_Y']
+   df
 
 Arithmetic
 **********
@@ -335,9 +370,12 @@ Arithmetic
 
 .. ipython:: python
 
-   cols = pd.MultiIndex.from_tuples([ (x,y) for x in ['A','B','C'] for y in ['O','I']])
-   df = pd.DataFrame(np.random.randn(2,6),index=['n','m'],columns=cols); df
-   df = df.div(df['C'],level=1); df
+   cols = pd.MultiIndex.from_tuples([(x, y) for x in ['A', 'B', 'C']
+                                     for y in ['O', 'I']])
+   df = pd.DataFrame(np.random.randn(2, 6), index=['n', 'm'], columns=cols)
+   df
+   df = df.div(df['C'], level=1)
+   df
 
 Slicing
 *******
@@ -347,44 +385,45 @@ Slicing
 
 .. ipython:: python
 
-   coords = [('AA','one'),('AA','six'),('BB','one'),('BB','two'),('BB','six')]
+   coords = [('AA', 'one'), ('AA', 'six'), ('BB', 'one'), ('BB', 'two'),
+             ('BB', 'six')]
    index = pd.MultiIndex.from_tuples(coords)
-   df = pd.DataFrame([11,22,33,44,55],index,['MyData']); df
+   df = pd.DataFrame([11, 22, 33, 44, 55], index, ['MyData'])
+   df
 
 To take the cross section of the 1st level and 1st axis the index:
 
 .. ipython:: python
 
-   df.xs('BB',level=0,axis=0)  #Note : level and axis are optional, and default to zero
+   # Note : level and axis are optional, and default to zero
+   df.xs('BB', level=0, axis=0)
 
 ...and now the 2nd level of the 1st axis.
 
 .. ipython:: python
 
-   df.xs('six',level=1,axis=0)
+   df.xs('six', level=1, axis=0)
 
 `Slicing a MultiIndex with xs, method #2
 <https://stackoverflow.com/questions/14964493/multiindex-based-indexing-in-pandas>`__
 
 .. ipython:: python
 
-   index = list(itertools.product(['Ada','Quinn','Violet'],['Comp','Math','Sci']))
-   headr = list(itertools.product(['Exams','Labs'],['I','II']))
-
-   indx = pd.MultiIndex.from_tuples(index,names=['Student','Course'])
-   cols = pd.MultiIndex.from_tuples(headr) #Notice these are un-named
-
-   data = [[70+x+y+(x*y)%3 for x in range(4)] for y in range(9)]
-
-   df = pd.DataFrame(data,indx,cols); df
+   index = list(itertools.product(['Ada', 'Quinn', 'Violet'],
+                                  ['Comp', 'Math', 'Sci']))
+   headr = list(itertools.product(['Exams', 'Labs'], ['I', 'II']))
+   indx = pd.MultiIndex.from_tuples(index, names=['Student', 'Course'])
+   cols = pd.MultiIndex.from_tuples(headr)   # Notice these are un-named
+   data = [[70 + x + y + (x * y) % 3 for x in range(4)] for y in range(9)]
+   df = pd.DataFrame(data, indx, cols)
+   df
 
    All = slice(None)
-
    df.loc['Violet']
-   df.loc[(All,'Math'),All]
-   df.loc[(slice('Ada','Quinn'),'Math'),All]
-   df.loc[(All,'Math'),('Exams')]
-   df.loc[(All,'Math'),(All,'II')]
+   df.loc[(All, 'Math'), All]
+   df.loc[(slice('Ada', 'Quinn'), 'Math'), All]
+   df.loc[(All, 'Math'), ('Exams')]
+   df.loc[(All, 'Math'), (All, 'II')]
 
 `Setting portions of a MultiIndex with xs
 <https://stackoverflow.com/questions/19319432/pandas-selecting-a-lower-level-in-a-dataframe-to-do-a-ffill>`__
@@ -422,7 +461,9 @@ Fill forward a reversed timeseries
 
 .. ipython:: python
 
-   df = pd.DataFrame(np.random.randn(6,1), index=pd.date_range('2013-08-01', periods=6, freq='B'), columns=list('A'))
+   df = pd.DataFrame(np.random.randn(6, 1),
+                     index=pd.date_range('2013-08-01', periods=6, freq='B'),
+                     columns=list('A'))
    df.loc[df.index[3], 'A'] = np.nan
    df
    df.reindex(df.index[::-1]).ffill()
@@ -453,9 +494,10 @@ Unlike agg, apply's callable is passed a sub-DataFrame which gives you access to
    df = pd.DataFrame({'animal': 'cat dog cat fish dog cat cat'.split(),
                       'size': list('SSMMMLL'),
                       'weight': [8, 10, 11, 1, 20, 12, 12],
-                      'adult' : [False] * 5 + [True] * 2}); df
+                      'adult': [False] * 5 + [True] * 2})
+   df
 
-   #List the size of the animals with the highest weight.
+   # List the size of the animals with the highest weight.
    df.groupby('animal').apply(lambda subf: subf['size'][subf['weight'].idxmax()])
 
 `Using get_group
@@ -464,7 +506,6 @@ Unlike agg, apply's callable is passed a sub-DataFrame which gives you access to
 .. ipython:: python
 
    gb = df.groupby(['animal'])
-
    gb.get_group('cat')
 
 `Apply to different items in a group
@@ -473,14 +514,14 @@ Unlike agg, apply's callable is passed a sub-DataFrame which gives you access to
 .. ipython:: python
 
    def GrowUp(x):
-      avg_weight =  sum(x[x['size'] == 'S'].weight * 1.5)
-      avg_weight += sum(x[x['size'] == 'M'].weight * 1.25)
-      avg_weight += sum(x[x['size'] == 'L'].weight)
-      avg_weight /= len(x)
-      return pd.Series(['L',avg_weight,True], index=['size', 'weight', 'adult'])
+       avg_weight = sum(x[x['size'] == 'S'].weight * 1.5)
+       avg_weight += sum(x[x['size'] == 'M'].weight * 1.25)
+       avg_weight += sum(x[x['size'] == 'L'].weight)
+       avg_weight /= len(x)
+       return pd.Series(['L', avg_weight, True],
+                        index=['size', 'weight', 'adult'])
 
    expected_df = gb.apply(GrowUp)
-
    expected_df
 
 `Expanding Apply
@@ -488,15 +529,15 @@ Unlike agg, apply's callable is passed a sub-DataFrame which gives you access to
 
 .. ipython:: python
 
-   S = pd.Series([i / 100.0 for i in range(1,11)])
+   S = pd.Series([i / 100.0 for i in range(1, 11)])
 
-   def CumRet(x,y):
-      return x * (1 + y)
+   def cum_ret(x, y):
+       return x * (1 + y)
 
-   def Red(x):
-      return functools.reduce(CumRet,x,1.0)
+   def red(x):
+       return functools.reduce(cum_ret, x, 1.0)
 
-   S.expanding().apply(Red, raw=True)
+   S.expanding().apply(red, raw=True)
 
 
 `Replacing some values with mean of the rest of a group
@@ -504,7 +545,7 @@ Unlike agg, apply's callable is passed a sub-DataFrame which gives you access to
 
 .. ipython:: python
 
-   df = pd.DataFrame({'A' : [1, 1, 2, 2], 'B' : [1, -1, 1, 2]})
+   df = pd.DataFrame({'A': [1, 1, 2, 2], 'B': [1, -1, 1, 2]})
    gb = df.groupby('A')
 
    def replace(g):
@@ -535,15 +576,15 @@ Unlike agg, apply's callable is passed a sub-DataFrame which gives you access to
 
 .. ipython:: python
 
-   rng = pd.date_range(start="2014-10-07",periods=10,freq='2min')
-   ts = pd.Series(data = list(range(10)), index = rng)
+   rng = pd.date_range(start="2014-10-07", periods=10, freq='2min')
+   ts = pd.Series(data=list(range(10)), index=rng)
 
    def MyCust(x):
-      if len(x) > 2:
-         return x[1] * 1.234
-      return pd.NaT
+       if len(x) > 2:
+           return x[1] * 1.234
+       return pd.NaT
 
-   mhc = {'Mean' : np.mean, 'Max' : np.max, 'Custom' : MyCust}
+   mhc = {'Mean': np.mean, 'Max': np.max, 'Custom': MyCust}
    ts.resample("5min").apply(mhc)
    ts
 
@@ -553,7 +594,8 @@ Unlike agg, apply's callable is passed a sub-DataFrame which gives you access to
 .. ipython:: python
 
    df = pd.DataFrame({'Color': 'Red Red Red Blue'.split(),
-                      'Value': [100, 150, 50, 50]}); df
+                      'Value': [100, 150, 50, 50]})
+   df
    df['Counts'] = df.groupby(['Color']).transform(len)
    df
 
@@ -562,11 +604,12 @@ Unlike agg, apply's callable is passed a sub-DataFrame which gives you access to
 
 .. ipython:: python
 
-   df = pd.DataFrame(
-      {u'line_race': [10, 10, 8, 10, 10, 8],
-       u'beyer': [99, 102, 103, 103, 88, 100]},
-       index=[u'Last Gunfighter', u'Last Gunfighter', u'Last Gunfighter',
-              u'Paynter', u'Paynter', u'Paynter']); df
+   df = pd.DataFrame({'line_race': [10, 10, 8, 10, 10, 8],
+                      'beyer': [99, 102, 103, 103, 88, 100]},
+                     index=['Last Gunfighter', 'Last Gunfighter',
+                            'Last Gunfighter', 'Paynter', 'Paynter',
+                            'Paynter'])
+   df
    df['beyer_shifted'] = df.groupby(level=0)['beyer'].shift(1)
    df
 
@@ -575,9 +618,9 @@ Unlike agg, apply's callable is passed a sub-DataFrame which gives you access to
 
 .. ipython:: python
 
-   df = pd.DataFrame({'host':['other','other','that','this','this'],
-                      'service':['mail','web','mail','mail','web'],
-                      'no':[1, 2, 1, 2, 1]}).set_index(['host', 'service'])
+   df = pd.DataFrame({'host': ['other', 'other', 'that', 'this', 'this'],
+                      'service': ['mail', 'web', 'mail', 'mail', 'web'],
+                      'no': [1, 2, 1, 2, 1]}).set_index(['host', 'service'])
    mask = df.groupby(level=0).agg('idxmax')
    df_count = df.loc[mask['no']].reset_index()
    df_count
@@ -613,10 +656,12 @@ Create a list of dataframes, split using a delineation based on logic included i
 
 .. ipython:: python
 
-   df = pd.DataFrame(data={'Case' : ['A','A','A','B','A','A','B','A','A'],
-                           'Data' : np.random.randn(9)})
+   df = pd.DataFrame(data={'Case': ['A', 'A', 'A', 'B', 'A', 'A', 'B', 'A',
+                                    'A'],
+                           'Data': np.random.randn(9)})
 
-   dfs = list(zip(*df.groupby((1*(df['Case']=='B')).cumsum().rolling(window=3,min_periods=1).median())))[-1]
+   dfs = list(zip(*df.groupby((1 * (df['Case'] == 'B')).cumsum()
+                  .rolling(window=3, min_periods=1).median())))[-1]
 
    dfs[0]
    dfs[1]
@@ -633,10 +678,13 @@ The :ref:`Pivot <reshaping.pivot>` docs.
 
 .. ipython:: python
 
-   df = pd.DataFrame(data={'Province' : ['ON','QC','BC','AL','AL','MN','ON'],
-                            'City' : ['Toronto','Montreal','Vancouver','Calgary','Edmonton','Winnipeg','Windsor'],
-                            'Sales' : [13,6,16,8,4,3,1]})
-   table = pd.pivot_table(df,values=['Sales'],index=['Province'],columns=['City'],aggfunc=np.sum,margins=True)
+   df = pd.DataFrame(data={'Province': ['ON', 'QC', 'BC', 'AL', 'AL', 'MN', 'ON'],
+                           'City': ['Toronto', 'Montreal', 'Vancouver',
+                                    'Calgary', 'Edmonton', 'Winnipeg',
+                                    'Windsor'],
+                           'Sales': [13, 6, 16, 8, 4, 3, 1]})
+   table = pd.pivot_table(df, values=['Sales'], index=['Province'],
+                          columns=['City'], aggfunc=np.sum, margins=True)
    table.stack('City')
 
 `Frequency table like plyr in R
@@ -644,20 +692,26 @@ The :ref:`Pivot <reshaping.pivot>` docs.
 
 .. ipython:: python
 
-   grades = [48,99,75,80,42,80,72,68,36,78]
-   df = pd.DataFrame( {'ID': ["x%d" % r for r in range(10)],
-                       'Gender' : ['F', 'M', 'F', 'M', 'F', 'M', 'F', 'M', 'M', 'M'],
-                       'ExamYear': ['2007','2007','2007','2008','2008','2008','2008','2009','2009','2009'],
-                       'Class': ['algebra', 'stats', 'bio', 'algebra', 'algebra', 'stats', 'stats', 'algebra', 'bio', 'bio'],
-                       'Participated': ['yes','yes','yes','yes','no','yes','yes','yes','yes','yes'],
-                       'Passed': ['yes' if x > 50 else 'no' for x in grades],
-                       'Employed': [True,True,True,False,False,False,False,True,True,False],
-                       'Grade': grades})
+   grades = [48, 99, 75, 80, 42, 80, 72, 68, 36, 78]
+   df = pd.DataFrame({'ID': ["x%d" % r for r in range(10)],
+                      'Gender': ['F', 'M', 'F', 'M', 'F',
+                                 'M', 'F', 'M', 'M', 'M'],
+                      'ExamYear': ['2007', '2007', '2007', '2008', '2008',
+                                   '2008', '2008', '2009', '2009', '2009'],
+                      'Class': ['algebra', 'stats', 'bio', 'algebra',
+                                'algebra', 'stats', 'stats', 'algebra',
+                                'bio', 'bio'],
+                      'Participated': ['yes', 'yes', 'yes', 'yes', 'no',
+                                       'yes', 'yes', 'yes', 'yes', 'yes'],
+                      'Passed': ['yes' if x > 50 else 'no' for x in grades],
+                      'Employed': [True, True, True, False,
+                                   False, False, False, True, True, False],
+                      'Grade': grades})
 
    df.groupby('ExamYear').agg({'Participated': lambda x: x.value_counts()['yes'],
-                       'Passed': lambda x: sum(x == 'yes'),
-                       'Employed' : lambda x : sum(x),
-                       'Grade' : lambda x : sum(x) / len(x)})
+                               'Passed': lambda x: sum(x == 'yes'),
+                               'Employed': lambda x: sum(x),
+                               'Grade': lambda x: sum(x) / len(x)})
 
 `Plot pandas DataFrame with year over year data
 <http://stackoverflow.com/questions/30379789/plot-pandas-data-frame-with-year-over-year-data>`__
@@ -680,12 +734,16 @@ Apply
 
 .. ipython:: python
 
-   df = pd.DataFrame(data={'A' : [[2,4,8,16],[100,200],[10,20,30]], 'B' : [['a','b','c'],['jj','kk'],['ccc']]},index=['I','II','III'])
+   df = pd.DataFrame(data={'A': [[2, 4, 8, 16], [100, 200], [10, 20, 30]],
+                           'B': [['a', 'b', 'c'], ['jj', 'kk'], ['ccc']]},
+                     index=['I', 'II', 'III'])
 
    def SeriesFromSubList(aList):
-      return pd.Series(aList)
+       return pd.Series(aList)
 
-   df_orgz = pd.concat(dict([ (ind,row.apply(SeriesFromSubList)) for ind,row in df.iterrows() ]))
+   df_orgz = pd.concat({ind: row.apply(SeriesFromSubList)
+                        for ind, row in df.iterrows()})
+   df_orgz
 
 `Rolling Apply with a DataFrame returning a Series
 <http://stackoverflow.com/questions/19121854/using-rolling-apply-on-a-dataframe-object>`__
@@ -694,15 +752,18 @@ Rolling Apply to multiple columns where function calculates a Series before a Sc
 
 .. ipython:: python
 
-   df = pd.DataFrame(data=np.random.randn(2000,2)/10000,
-                     index=pd.date_range('2001-01-01',periods=2000),
-                     columns=['A','B']); df
+   df = pd.DataFrame(data=np.random.randn(2000, 2) / 10000,
+                     index=pd.date_range('2001-01-01', periods=2000),
+                     columns=['A', 'B'])
+   df
 
-   def gm(aDF,Const):
-      v = ((((aDF.A+aDF.B)+1).cumprod())-1)*Const
-      return (aDF.index[0],v.iloc[-1])
+   def gm(df, const):
+       v = ((((df.A + df.B) + 1).cumprod()) - 1) * const
+       return v.iloc[-1]
 
-   S = pd.Series(dict([ gm(df.iloc[i:min(i+51,len(df)-1)],5) for i in range(len(df)-50) ])); S
+   s = pd.Series({df.index[i]: gm(df.iloc[i:min(i + 51, len(df) - 1)], 5)
+                  for i in range(len(df) - 50)})
+   s
 
 `Rolling apply with a DataFrame returning a Scalar
 <http://stackoverflow.com/questions/21040766/python-pandas-rolling-apply-two-column-input-into-function/21045831#21045831>`__
@@ -711,14 +772,20 @@ Rolling Apply to multiple columns where function returns a Scalar (Volume Weight
 
 .. ipython:: python
 
-   rng = pd.date_range(start = '2014-01-01',periods = 100)
-   df = pd.DataFrame({'Open' : np.random.randn(len(rng)),
-                      'Close' : np.random.randn(len(rng)),
-                      'Volume' : np.random.randint(100,2000,len(rng))}, index=rng); df
+   rng = pd.date_range(start='2014-01-01', periods=100)
+   df = pd.DataFrame({'Open': np.random.randn(len(rng)),
+                      'Close': np.random.randn(len(rng)),
+                      'Volume': np.random.randint(100, 2000, len(rng))},
+                     index=rng)
+   df
 
-   def vwap(bars): return ((bars.Close*bars.Volume).sum()/bars.Volume.sum())
+   def vwap(bars):
+       return ((bars.Close * bars.Volume).sum() / bars.Volume.sum())
+
    window = 5
-   s = pd.concat([ (pd.Series(vwap(df.iloc[i:i+window]), index=[df.index[i+window]])) for i in range(len(df)-window) ]);
+   s = pd.concat([(pd.Series(vwap(df.iloc[i:i + window]),
+                   index=[df.index[i + window]]))
+                  for i in range(len(df) - window)])
    s.round(2)
 
 Timeseries
@@ -806,21 +873,25 @@ Depending on df construction, ``ignore_index`` may be needed
 
 .. ipython:: python
 
-   df = df1.append(df2,ignore_index=True); df
+   df = df1.append(df2, ignore_index=True)
+   df
 
 `Self Join of a DataFrame
 <https://github.com/pandas-dev/pandas/issues/2996>`__
 
 .. ipython:: python
 
-   df = pd.DataFrame(data={'Area' : ['A'] * 5 + ['C'] * 2,
-                           'Bins' : [110] * 2 + [160] * 3 + [40] * 2,
-                           'Test_0' : [0, 1, 0, 1, 2, 0, 1],
-                           'Data' : np.random.randn(7)});df
+   df = pd.DataFrame(data={'Area': ['A'] * 5 + ['C'] * 2,
+                           'Bins': [110] * 2 + [160] * 3 + [40] * 2,
+                           'Test_0': [0, 1, 0, 1, 2, 0, 1],
+                           'Data': np.random.randn(7)})
+   df
 
    df['Test_1'] = df['Test_0'] - 1
 
-   pd.merge(df, df, left_on=['Bins', 'Area','Test_0'], right_on=['Bins', 'Area','Test_1'],suffixes=('_L','_R'))
+   pd.merge(df, df, left_on=['Bins', 'Area', 'Test_0'],
+            right_on=['Bins', 'Area', 'Test_1'],
+            suffixes=('_L', '_R'))
 
 `How to set the index and join
 <http://stackoverflow.com/questions/14341805/pandas-merge-pd-merge-how-to-set-the-index-and-join>`__
@@ -871,16 +942,16 @@ The :ref:`Plotting <visualization>` docs.
 .. ipython:: python
 
    df = pd.DataFrame(
-        {u'stratifying_var': np.random.uniform(0, 100, 20),
-         u'price': np.random.normal(100, 5, 20)})
+       {'stratifying_var': np.random.uniform(0, 100, 20),
+        'price': np.random.normal(100, 5, 20)})
 
-   df[u'quartiles'] = pd.qcut(
-       df[u'stratifying_var'],
+   df['quartiles'] = pd.qcut(
+       df['stratifying_var'],
        4,
-       labels=[u'0-25%', u'25-50%', u'50-75%', u'75-100%'])
+       labels=['0-25%', '25-50%', '50-75%', '75-100%'])
 
    @savefig quartile_boxplot.png
-   df.boxplot(column=u'price', by=u'quartiles')
+   df.boxplot(column='price', by='quartiles')
 
 Data In/Out
 -----------
@@ -951,7 +1022,6 @@ You can use the same approach to read all files matching a pattern.  Here is an 
 
 .. ipython:: python
 
-    import glob
     files = glob.glob('file_*.csv')
     result = pd.concat([pd.read_csv(f) for f in files], ignore_index=True)
 
@@ -968,38 +1038,17 @@ Parsing date components in multi-columns
 
 Parsing date components in multi-columns is faster with a format
 
-.. code-block:: ipython
+.. ipython:: python
 
-    In [30]: i = pd.date_range('20000101',periods=10000)
+    i = pd.date_range('20000101', periods=10000)
+    df = pd.DataFrame({'year': i.year, 'month': i.month, 'day': i.day})
+    df.head()
+    %timeit pd.to_datetime(df.year * 10000 + df.month * 100 + df.day, format='%Y%m%d')
+    ds = df.apply(lambda x: "%04d%02d%02d" % (x['year'],
+                                              x['month'], x['day']), axis=1)
+    ds.head()
+    %timeit pd.to_datetime(ds)
 
-    In [31]: df = pd.DataFrame(dict(year = i.year, month = i.month, day = i.day))
-
-    In [32]: df.head()
-    Out[32]:
-       day  month  year
-    0    1      1  2000
-    1    2      1  2000
-    2    3      1  2000
-    3    4      1  2000
-    4    5      1  2000
-
-    In [33]: %timeit pd.to_datetime(df.year*10000+df.month*100+df.day,format='%Y%m%d')
-    100 loops, best of 3: 7.08 ms per loop
-
-    # simulate combinging into a string, then parsing
-    In [34]: ds = df.apply(lambda x: "%04d%02d%02d" % (x['year'],x['month'],x['day']),axis=1)
-
-    In [35]: ds.head()
-    Out[35]:
-    0    20000101
-    1    20000102
-    2    20000103
-    3    20000104
-    4    20000105
-    dtype: object
-
-    In [36]: %timeit pd.to_datetime(ds)
-    1 loops, best of 3: 488 ms per loop
 
 Skip row between header and data
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -1032,8 +1081,8 @@ Option 1: pass rows explicitly to skip rows
 
 .. ipython:: python
 
-    pd.read_csv(StringIO(data), sep=';', skiprows=[11,12],
-            index_col=0, parse_dates=True, header=10)
+    pd.read_csv(StringIO(data), sep=';', skiprows=[11, 12],
+                index_col=0, parse_dates=True, header=10)
 
 Option 2: read column names and then data
 """""""""""""""""""""""""""""""""""""""""
@@ -1138,12 +1187,12 @@ Storing Attributes to a group node
 
 .. ipython:: python
 
-   df = pd.DataFrame(np.random.randn(8,3))
+   df = pd.DataFrame(np.random.randn(8, 3))
    store = pd.HDFStore('test.h5')
-   store.put('df',df)
+   store.put('df', df)
 
    # you can store an arbitrary Python object via pickle
-   store.get_storer('df').attrs.my_attribute = dict(A = 10)
+   store.get_storer('df').attrs.my_attribute = {'A': 10}
    store.get_storer('df').attrs.my_attribute
 
 .. ipython:: python
@@ -1239,41 +1288,34 @@ Often it's useful to obtain the lower (or upper) triangular form of a correlatio
 
 The `method` argument within `DataFrame.corr` can accept a callable in addition to the named correlation types.  Here we compute the `distance correlation <https://en.wikipedia.org/wiki/Distance_correlation>`__ matrix for a `DataFrame` object.
 
-.. code-block:: python
+.. ipython:: python
 
-    >>> def distcorr(x, y):
-    ...     n = len(x)
-    ...     a = np.zeros(shape=(n, n))
-    ...     b = np.zeros(shape=(n, n))
-    ...
-    ...     for i in range(n):
-    ...         for j in range(i + 1, n):
-    ...             a[i, j] = abs(x[i] - x[j])
-    ...             b[i, j] = abs(y[i] - y[j])
-    ...
-    ...     a += a.T
-    ...     b += b.T
-    ...
-    ...     a_bar = np.vstack([np.nanmean(a, axis=0)] * n)
-    ...     b_bar = np.vstack([np.nanmean(b, axis=0)] * n)
-    ...
-    ...     A = a - a_bar - a_bar.T + np.full(shape=(n, n), fill_value=a_bar.mean())
-    ...     B = b - b_bar - b_bar.T + np.full(shape=(n, n), fill_value=b_bar.mean())
-    ...
-    ...     cov_ab = np.sqrt(np.nansum(A * B)) / n
-    ...     std_a = np.sqrt(np.sqrt(np.nansum(A**2)) / n)
-    ...     std_b = np.sqrt(np.sqrt(np.nansum(B**2)) / n)
-    ...
-    ...     return cov_ab / std_a / std_b
-    ...
-    ...
-    >>> df = pd.DataFrame(np.random.normal(size=(100, 3)))
-    ...
-    >>> df.corr(method=distcorr)
-              0         1         2
-    0  1.000000  0.171368  0.145302
-    1  0.171368  1.000000  0.189919
-    2  0.145302  0.189919  1.000000
+   def distcorr(x, y):
+       n = len(x)
+       a = np.zeros(shape=(n, n))
+       b = np.zeros(shape=(n, n))
+
+       for i in range(n):
+           for j in range(i + 1, n):
+               a[i, j] = abs(x[i] - x[j])
+               b[i, j] = abs(y[i] - y[j])
+
+       a += a.T
+       b += b.T
+
+       a_bar = np.vstack([np.nanmean(a, axis=0)] * n)
+       b_bar = np.vstack([np.nanmean(b, axis=0)] * n)
+
+       A = a - a_bar - a_bar.T + np.full(shape=(n, n), fill_value=a_bar.mean())
+       B = b - b_bar - b_bar.T + np.full(shape=(n, n), fill_value=b_bar.mean())
+       cov_ab = np.sqrt(np.nansum(A * B)) / n
+       std_a = np.sqrt(np.sqrt(np.nansum(A**2)) / n)
+       std_b = np.sqrt(np.sqrt(np.nansum(B**2)) / n)
+
+       return cov_ab / std_a / std_b
+
+   df = pd.DataFrame(np.random.normal(size=(100, 3)))
+   df.corr(method=distcorr)
 
 Timedeltas
 ----------
@@ -1285,17 +1327,17 @@ The :ref:`Timedeltas <timedeltas.timedeltas>` docs.
 
 .. ipython:: python
 
-   s  = pd.Series(pd.date_range('2012-1-1', periods=3, freq='D'))
+   s = pd.Series(pd.date_range('2012-1-1', periods=3, freq='D'))
 
    s - s.max()
 
    s.max() - s
 
-   s - datetime.datetime(2011,1,1,3,5)
+   s - datetime.datetime(2011, 1, 1, 3, 5)
 
    s + datetime.timedelta(minutes=5)
 
-   datetime.datetime(2011,1,1,3,5) - s
+   datetime.datetime(2011, 1, 1, 3, 5) - s
 
    datetime.timedelta(minutes=5) + s
 
@@ -1304,13 +1346,15 @@ The :ref:`Timedeltas <timedeltas.timedeltas>` docs.
 
 .. ipython:: python
 
-   deltas = pd.Series([ datetime.timedelta(days=i) for i in range(3) ])
+   deltas = pd.Series([datetime.timedelta(days=i) for i in range(3)])
 
-   df = pd.DataFrame(dict(A = s, B = deltas)); df
+   df = pd.DataFrame({'A': s, 'B': deltas})
+   df
 
-   df['New Dates'] = df['A'] + df['B'];
+   df['New Dates'] = df['A'] + df['B']
 
-   df['Delta'] = df['A'] - df['New Dates']; df
+   df['Delta'] = df['A'] - df['New Dates']
+   df
 
    df.dtypes
 
@@ -1321,9 +1365,11 @@ Values can be set to NaT using np.nan, similar to datetime
 
 .. ipython:: python
 
-   y = s - s.shift(); y
+   y = s - s.shift()
+   y
 
-   y[1] = np.nan; y
+   y[1] = np.nan
+   y
 
 Aliasing Axis Names
 -------------------
@@ -1333,23 +1379,24 @@ To globally provide aliases for axis names, one can define these 2 functions:
 .. ipython:: python
 
    def set_axis_alias(cls, axis, alias):
-      if axis not in cls._AXIS_NUMBERS:
-         raise Exception("invalid axis [%s] for alias [%s]" % (axis, alias))
-      cls._AXIS_ALIASES[alias] = axis
+       if axis not in cls._AXIS_NUMBERS:
+           raise Exception("invalid axis [%s] for alias [%s]" % (axis, alias))
+       cls._AXIS_ALIASES[alias] = axis
 
 .. ipython:: python
 
    def clear_axis_alias(cls, axis, alias):
-      if axis not in cls._AXIS_NUMBERS:
-         raise Exception("invalid axis [%s] for alias [%s]" % (axis, alias))
-      cls._AXIS_ALIASES.pop(alias,None)
+       if axis not in cls._AXIS_NUMBERS:
+           raise Exception("invalid axis [%s] for alias [%s]" % (axis, alias))
+       cls._AXIS_ALIASES.pop(alias, None)
 
 .. ipython:: python
 
-   set_axis_alias(pd.DataFrame,'columns', 'myaxis2')
-   df2 = pd.DataFrame(np.random.randn(3,2),columns=['c1','c2'],index=['i1','i2','i3'])
+   set_axis_alias(pd.DataFrame, 'columns', 'myaxis2')
+   df2 = pd.DataFrame(np.random.randn(3, 2), columns=['c1', 'c2'],
+                      index=['i1', 'i2', 'i3'])
    df2.sum(axis='myaxis2')
-   clear_axis_alias(pd.DataFrame,'columns', 'myaxis2')
+   clear_axis_alias(pd.DataFrame, 'columns', 'myaxis2')
 
 Creating Example Data
 ---------------------
@@ -1362,11 +1409,10 @@ of the data values:
 
 
    def expand_grid(data_dict):
-      rows = itertools.product(*data_dict.values())
-      return pd.DataFrame.from_records(rows, columns=data_dict.keys())
+       rows = itertools.product(*data_dict.values())
+       return pd.DataFrame.from_records(rows, columns=data_dict.keys())
 
-   df = expand_grid(
-      {'height': [60, 70],
-       'weight': [100, 140, 180],
-       'sex': ['Male', 'Female']})
+   df = expand_grid({'height': [60, 70],
+                     'weight': [100, 140, 180],
+                     'sex': ['Male', 'Female']})
    df

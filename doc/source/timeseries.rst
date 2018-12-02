@@ -66,7 +66,7 @@ Performing date and time arithmetic with absolute or relative time increments
     saturday = friday + pd.Timedelta('1 day')
     saturday.day_name()
     # Add 1 business day (Friday --> Monday)
-    monday = friday + pd.tseries.offsets.BDay()
+    monday = friday + pd.offsets.BDay()
     monday.day_name()
 
 pandas provides a relatively compact and self-contained set of tools for
@@ -107,12 +107,14 @@ However, :class:`Series` and :class:`DataFrame` can directly also support the ti
 
    pd.Series(pd.date_range('2000', freq='D', periods=3))
 
-:class:`Series` and :class:`DataFrame` have extended data type support and functionality for ``datetime`` and ``timedelta``
-data when the time data is used as data itself. The ``Period`` and ``DateOffset`` data will be stored as ``object`` data.
+:class:`Series` and :class:`DataFrame` have extended data type support and functionality for ``datetime``, ``timedelta``
+and ``Period`` data when passed into those constructors. ``DateOffset``
+data however will be stored as ``object`` data.
 
 .. ipython:: python
 
    pd.Series(pd.period_range('1/1/2011', freq='M', periods=3))
+   pd.Series([pd.DateOffset(1), pd.DateOffset(2)])
    pd.Series(pd.date_range('1/1/2011', freq='M', periods=3))
 
 Lastly, pandas represents null date times, time deltas, and time spans as ``NaT`` which
@@ -821,107 +823,103 @@ on :ref:`.dt accessors<basics.dt_accessors>`.
 DateOffset Objects
 ------------------
 
-In the preceding examples, we created ``DatetimeIndex`` objects at various
-frequencies by passing in :ref:`frequency strings <timeseries.offset_aliases>`
-like 'M', 'W', and 'BM' to the ``freq`` keyword. Under the hood, these frequency
-strings are being translated into an instance of :class:`DateOffset`,
-which represents a regular frequency increment. Specific offset logic like
-"month", "business day", or "one hour" is represented in its various subclasses.
+In the preceding examples, frequency strings (e.g. ``'D'``) were used to specify
+a frequency that defined:
+
+* how the date times in :class:`DatetimeIndex` were spaced when using :meth:`date_range`
+* the frequency of a :class:`Period` or :class:`PeriodIndex`
+
+These frequency strings map to a :class:`DateOffset` object and its subclasses. A :class:`DateOffset`
+is similar to a :class:`Timedelta` that represents a duration of time but follows specific calendar duration rules.
+For example, a :class:`Timedelta` day will always increment ``datetimes`` by 24 hours, while a :class:`DateOffset` day
+will increment ``datetimes`` to the same time the next day whether a day represents 23, 24 or 25 hours due to daylight
+savings time. However, all :class:`DateOffset` subclasses that are an hour or smaller
+(``Hour``, ``Minute``, ``Second``, ``Milli``, ``Micro``, ``Nano``) behave like
+:class:`Timedelta` and respect absolute time.
+
+The basic :class:`DateOffset` acts similar to ``dateutil.relativedelta`` (`relativedelta documentation`_)
+that shifts a date time by the corresponding calendar duration specified. The
+arithmetic operator (``+``) or the ``apply`` method can be used to perform the shift.
+
+.. ipython:: python
+
+   # This particular day contains a day light savings time transition
+   ts = pd.Timestamp('2016-10-30 00:00:00', tz='Europe/Helsinki')
+   # Respects absolute time
+   ts + pd.Timedelta(days=1)
+   # Respects calendar time
+   ts + pd.DateOffset(days=1)
+   friday = pd.Timestamp('2018-01-05')
+   friday.day_name()
+   # Add 2 business days (Friday --> Tuesday)
+   two_business_days = 2 * pd.offsets.BDay()
+   two_business_days.apply(friday)
+   friday + two_business_days
+   (friday + two_business_days).day_name()
+
+Most ``DateOffsets`` have associated frequencies strings, or offset aliases, that can be passed
+into ``freq`` keyword arguments. The available date offsets and associated frequency strings can be found below:
 
 .. csv-table::
-    :header: "Class name", "Description"
-    :widths: 15, 65
+    :header: "Date Offset", "Frequency String", "Description"
+    :widths: 15, 15, 65
 
-    DateOffset, "Generic offset class, defaults to 1 calendar day"
-    BDay, "business day (weekday)"
-    CDay, "custom business day"
-    Week, "one week, optionally anchored on a day of the week"
-    WeekOfMonth, "the x-th day of the y-th week of each month"
-    LastWeekOfMonth, "the x-th day of the last week of each month"
-    MonthEnd, "calendar month end"
-    MonthBegin, "calendar month begin"
-    BMonthEnd, "business month end"
-    BMonthBegin, "business month begin"
-    CBMonthEnd, "custom business month end"
-    CBMonthBegin, "custom business month begin"
-    SemiMonthEnd, "15th (or other day_of_month) and calendar month end"
-    SemiMonthBegin, "15th (or other day_of_month) and calendar month begin"
-    QuarterEnd, "calendar quarter end"
-    QuarterBegin, "calendar quarter begin"
-    BQuarterEnd, "business quarter end"
-    BQuarterBegin, "business quarter begin"
-    FY5253Quarter, "retail (aka 52-53 week) quarter"
-    YearEnd, "calendar year end"
-    YearBegin, "calendar year begin"
-    BYearEnd, "business year end"
-    BYearBegin, "business year begin"
-    FY5253, "retail (aka 52-53 week) year"
-    BusinessHour, "business hour"
-    CustomBusinessHour, "custom business hour"
-    Hour, "one hour"
-    Minute, "one minute"
-    Second, "one second"
-    Milli, "one millisecond"
-    Micro, "one microsecond"
-    Nano, "one nanosecond"
+    ``DateOffset``, None, "Generic offset class, defaults to 1 calendar day"
+    ``BDay`` or ``BusinessDay``, ``'B'``,"business day (weekday)"
+    ``CDay`` or ``CustomBusinessDay``, ``'C'``, "custom business day"
+    ``Week``, ``'W'``, "one week, optionally anchored on a day of the week"
+    ``WeekOfMonth``, ``'WOM'``, "the x-th day of the y-th week of each month"
+    ``LastWeekOfMonth``, ``'LWOM'``, "the x-th day of the last week of each month"
+    ``MonthEnd``, ``'M'``, "calendar month end"
+    ``MonthBegin``, ``'MS'``, "calendar month begin"
+    ``BMonthEnd`` or ``BusinessMonthEnd``, ``'BM'``, "business month end"
+    ``BMonthBegin`` or ``BusinessMonthBegin``, ``'BMS'``, "business month begin"
+    ``CBMonthEnd`` or ``CustomBusinessMonthEnd``, ``'CBM'``, "custom business month end"
+    ``CBMonthBegin`` or ``CustomBusinessMonthBegin``, ``'CBMS'``, "custom business month begin"
+    ``SemiMonthEnd``, ``'SM'``, "15th (or other day_of_month) and calendar month end"
+    ``SemiMonthBegin``, ``'SMS'``, "15th (or other day_of_month) and calendar month begin"
+    ``QuarterEnd``, ``'Q'``, "calendar quarter end"
+    ``QuarterBegin``, ``'QS'``, "calendar quarter begin"
+    ``BQuarterEnd``, ``'BQ``, "business quarter end"
+    ``BQuarterBegin``, ``'BQS'``, "business quarter begin"
+    ``FY5253Quarter``, ``'REQ'``, "retail (aka 52-53 week) quarter"
+    ``YearEnd``, ``'A'``, "calendar year end"
+    ``YearBegin``, ``'AS'`` or ``'BYS'``,"calendar year begin"
+    ``BYearEnd``, ``'BA'``, "business year end"
+    ``BYearBegin``, ``'BAS'``, "business year begin"
+    ``FY5253``, ``'RE'``, "retail (aka 52-53 week) year"
+    ``Easter``, None, "Easter holiday"
+    ``BusinessHour``, ``'BH'``, "business hour"
+    ``CustomBusinessHour``, ``'CBH'``, "custom business hour"
+    ``Day``, ``'D'``, "one absolute day"
+    ``Hour``, ``'H'``, "one hour"
+    ``Minute``, ``'T'`` or ``'min'``,"one minute"
+    ``Second``, ``'S'``, "one second"
+    ``Milli``, ``'L'`` or ``'ms'``, "one millisecond"
+    ``Micro``, ``'U'`` or ``'us'``, "one microsecond"
+    ``Nano``, ``'N'``, "one nanosecond"
 
-The basic ``DateOffset`` takes the same arguments as
-``dateutil.relativedelta``, which works as follows:
-
-.. ipython:: python
-
-   from dateutil.relativedelta import relativedelta
-
-   d = datetime.datetime(2008, 8, 18, 9, 0)
-   d + relativedelta(months=4, days=5)
-
-We could have done the same thing with ``DateOffset``:
+``DateOffsets`` additionally have :meth:`rollforward` and :meth:`rollback`
+methods for moving a date forward or backward respectively to a valid offset
+date relative to the offset. For example, business offsets will roll dates
+that land on the weekends (Saturday and Sunday) forward to Monday since
+business offsets operate on the weekdays.
 
 .. ipython:: python
 
-   d + pd.offsets.DateOffset(months=4, days=5)
+   ts = pd.Timestamp('2018-01-06 00:00:00')
+   ts.day_name()
+   # BusinessHour's valid offset dates are Monday through Friday
+   offset = pd.offsets.BusinessHour(start='09:00')
+   # Bring the date to the closest offset date (Monday)
+   offset.rollforward(ts)
+   # Date is brought to the closest offset date first and then the hour is added
+   ts + offset
 
-The key features of a ``DateOffset`` object are:
-
-* It can be added / subtracted to/from a datetime object to obtain a
-  shifted date.
-* It can be multiplied by an integer (positive or negative) so that the
-  increment will be applied multiple times.
-* It has :meth:`~pandas.DateOffset.rollforward` and
-  :meth:`~pandas.DateOffset.rollback` methods for moving a date forward or 
-  backward to the next or previous "offset date".
-
-Subclasses of ``DateOffset`` define the ``apply`` function which dictates
-custom date increment logic, such as adding business days:
-
-.. code-block:: python
-
-    class BDay(pd.DateOffset):
-        """DateOffset increments between business days"""
-        def apply(self, other):
-            ...
-
-.. ipython:: python
-
-   d - 5 * pd.offsets.BDay()
-   d + pd.offsets.BMonthEnd()
-
-The ``rollforward`` and ``rollback`` methods do exactly what you would expect:
-
-.. ipython:: python
-
-   d
-   offset = pd.offsets.BMonthEnd()
-   offset.rollforward(d)
-   offset.rollback(d)
-
-It's definitely worth exploring the ``pandas.tseries.offsets`` module and the
-various docstrings for the classes.
-
-These operations (``apply``, ``rollforward`` and ``rollback``) preserve time 
-(hour, minute, etc) information by default. To reset time, use ``normalize``
-before or after applying the operation (depending on whether you want the
-time information included in the operation.
+These operations preserve time (hour, minute, etc) information by default.
+To reset time to midnight, use :meth:`normalize` before or after applying
+the operation (depending on whether you want the time information included
+in the operation).
 
 .. ipython:: python
 
@@ -935,6 +933,8 @@ time information included in the operation.
    hour.apply(ts)
    hour.apply(ts).normalize()
    hour.apply(pd.Timestamp("2014-01-01 23:30")).normalize()
+
+.. _relativedelta documentation: https://dateutil.readthedocs.io/en/stable/relativedelta.html
 
 .. _timeseries.dayvscalendarday:
 
@@ -967,6 +967,7 @@ particular day of the week:
 
 .. ipython:: python
 
+   d = datetime.datetime(2008, 8, 18, 9, 0)
    d
    d + pd.offsets.Week()
    d + pd.offsets.Week(weekday=4)
@@ -1003,9 +1004,9 @@ apply the offset to each element.
    rng = pd.date_range('2012-01-01', '2012-01-03')
    s = pd.Series(rng)
    rng
-   rng + pd.offsets.DateOffset(months=2)
-   s + pd.offsets.DateOffset(months=2)
-   s - pd.offsets.DateOffset(months=2)
+   rng + pd.DateOffset(months=2)
+   s + pd.DateOffset(months=2)
+   s - pd.DateOffset(months=2)
 
 If the offset class maps directly to a ``Timedelta`` (``Day``, ``Hour``,
 ``Minute``, ``Second``, ``Micro``, ``Milli``, ``Nano``) it can be
@@ -1113,8 +1114,8 @@ allowing to use specific start and end times.
 
 By default, ``BusinessHour`` uses 9:00 - 17:00 as business hours.
 Adding ``BusinessHour`` will increment ``Timestamp`` by hourly frequency.
-If target ``Timestamp`` is out of business hours, move to the next business hour 
-then increment it. If the result exceeds the business hours end, the remaining 
+If target ``Timestamp`` is out of business hours, move to the next business hour
+then increment it. If the result exceeds the business hours end, the remaining
 hours are added to the next business day.
 
 .. ipython:: python
@@ -1141,9 +1142,9 @@ hours are added to the next business day.
     # Subtracting 3 business hours
     pd.Timestamp('2014-08-01 10:00') + pd.offsets.BusinessHour(-3)
 
-You can also specify ``start`` and ``end`` time by keywords. The argument must 
-be a ``str`` with an ``hour:minute`` representation or a ``datetime.time`` 
-instance. Specifying seconds, microseconds and nanoseconds as business hour 
+You can also specify ``start`` and ``end`` time by keywords. The argument must
+be a ``str`` with an ``hour:minute`` representation or a ``datetime.time``
+instance. Specifying seconds, microseconds and nanoseconds as business hour
 results in ``ValueError``.
 
 .. ipython:: python
@@ -1200,8 +1201,8 @@ under the default business hours (9:00 - 17:00), there is no gap (0 minutes) bet
     # The result is the same as rollworward because BusinessDay never overlap.
     pd.offsets.BusinessHour().apply(pd.Timestamp('2014-08-02'))
 
-``BusinessHour`` regards Saturday and Sunday as holidays. To use arbitrary 
-holidays, you can use ``CustomBusinessHour`` offset, as explained in the 
+``BusinessHour`` regards Saturday and Sunday as holidays. To use arbitrary
+holidays, you can use ``CustomBusinessHour`` offset, as explained in the
 following subsection.
 
 .. _timeseries.custombusinesshour:
@@ -1430,7 +1431,7 @@ An example of how holidays and holiday calendars are defined:
             USMemorialDay,
             Holiday('July 4th', month=7, day=4, observance=nearest_workday),
             Holiday('Columbus Day', month=10, day=1,
-                    offset=pd.offsets.DateOffset(weekday=MO(2)))]
+                    offset=pd.DateOffset(weekday=MO(2)))]
 
     cal = ExampleCalendar()
     cal.holidays(datetime.datetime(2012, 1, 1), datetime.datetime(2012, 12, 31))
@@ -1495,7 +1496,7 @@ Shifting / Lagging
 ~~~~~~~~~~~~~~~~~~
 
 One may want to *shift* or *lag* the values in a time series back and forward in
-time. The method for this is :meth:`~Series.shift`, which is available on all of 
+time. The method for this is :meth:`~Series.shift`, which is available on all of
 the pandas objects.
 
 .. ipython:: python
@@ -1505,7 +1506,7 @@ the pandas objects.
    ts.shift(1)
 
 The ``shift`` method accepts an ``freq`` argument which can accept a
-``DateOffset`` class or other ``timedelta``-like object or also an 
+``DateOffset`` class or other ``timedelta``-like object or also an
 :ref:`offset alias <timeseries.offset_aliases>`:
 
 .. ipython:: python
@@ -1514,7 +1515,7 @@ The ``shift`` method accepts an ``freq`` argument which can accept a
    ts.shift(5, freq='BM')
 
 Rather than changing the alignment of the data and the index, ``DataFrame`` and
-``Series`` objects also have a :meth:`~Series.tshift` convenience method that 
+``Series`` objects also have a :meth:`~Series.tshift` convenience method that
 changes all the dates in the index by a specified number of offsets:
 
 .. ipython:: python
@@ -1527,9 +1528,9 @@ is not being realigned.
 Frequency Conversion
 ~~~~~~~~~~~~~~~~~~~~
 
-The primary function for changing frequencies is the :meth:`~Series.asfreq` 
-method. For a ``DatetimeIndex``, this is basically just a thin, but convenient 
-wrapper around :meth:`~Series.reindex`  which generates a ``date_range`` and 
+The primary function for changing frequencies is the :meth:`~Series.asfreq`
+method. For a ``DatetimeIndex``, this is basically just a thin, but convenient
+wrapper around :meth:`~Series.reindex`  which generates a ``date_range`` and
 calls ``reindex``.
 
 .. ipython:: python
@@ -1549,13 +1550,13 @@ method for any gaps that may appear after the frequency conversion.
 Filling Forward / Backward
 ~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-Related to ``asfreq`` and ``reindex`` is :meth:`~Series.fillna`, which is 
+Related to ``asfreq`` and ``reindex`` is :meth:`~Series.fillna`, which is
 documented in the :ref:`missing data section <missing_data.fillna>`.
 
 Converting to Python Datetimes
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-``DatetimeIndex`` can be converted to an array of Python native 
+``DatetimeIndex`` can be converted to an array of Python native
 :py:class:`datetime.datetime` objects using the ``to_pydatetime`` method.
 
 .. _timeseries.resampling:
@@ -1568,13 +1569,13 @@ Resampling
    The interface to ``.resample`` has changed in 0.18.0 to be more groupby-like and hence more flexible.
    See the :ref:`whatsnew docs <whatsnew_0180.breaking.resample>` for a comparison with prior versions.
 
-Pandas has a simple, powerful, and efficient functionality for performing 
-resampling operations during frequency conversion (e.g., converting secondly 
-data into 5-minutely data). This is extremely common in, but not limited to, 
+Pandas has a simple, powerful, and efficient functionality for performing
+resampling operations during frequency conversion (e.g., converting secondly
+data into 5-minutely data). This is extremely common in, but not limited to,
 financial applications.
 
-:meth:`~Series.resample` is a time-based groupby, followed by a reduction method 
-on each of its groups. See some :ref:`cookbook examples <cookbook.resample>` for 
+:meth:`~Series.resample` is a time-based groupby, followed by a reduction method
+on each of its groups. See some :ref:`cookbook examples <cookbook.resample>` for
 some advanced strategies.
 
 Starting in version 0.18.1, the ``resample()`` function can be used directly from
@@ -1582,7 +1583,7 @@ Starting in version 0.18.1, the ``resample()`` function can be used directly fro
 
 .. note::
 
-   ``.resample()`` is similar to using a :meth:`~Series.rolling` operation with 
+   ``.resample()`` is similar to using a :meth:`~Series.rolling` operation with
    a time-based offset, see a discussion :ref:`here <stats.moments.ts-versus-resampling>`.
 
 Basics
@@ -1637,8 +1638,8 @@ labels.
 
 .. note::
 
-    The default values for ``label`` and ``closed`` is 'left' for all 
-    frequency offsets except for 'M', 'A', 'Q', 'BM', 'BA', 'BQ', and 'W' 
+    The default values for ``label`` and ``closed`` is 'left' for all
+    frequency offsets except for 'M', 'A', 'Q', 'BM', 'BA', 'BQ', and 'W'
     which all have a default of 'right'.
 
     .. ipython:: python
@@ -1685,9 +1686,9 @@ Sparse Resampling
 ~~~~~~~~~~~~~~~~~
 
 Sparse timeseries are the ones where you have a lot fewer points relative
-to the amount of time you are looking to resample. Naively upsampling a sparse 
-series can potentially generate lots of intermediate values. When you don't want 
-to use a method to fill these values, e.g. ``fill_method`` is ``None``, then 
+to the amount of time you are looking to resample. Naively upsampling a sparse
+series can potentially generate lots of intermediate values. When you don't want
+to use a method to fill these values, e.g. ``fill_method`` is ``None``, then
 intermediate values will be filled with ``NaN``.
 
 Since ``resample`` is a time-based groupby, the following is a method to efficiently
@@ -2386,7 +2387,7 @@ can be controlled by the ``nonexistent`` argument. The following options are ava
 
 .. ipython:: python
 
-    dti = pd.date_range(start='2015-03-29 01:30:00', periods=3, freq='H')
+    dti = pd.date_range(start='2015-03-29 02:30:00', periods=3, freq='H')
     # 2:30 is a nonexistent time
 
 Localization of nonexistent times will raise an error by default.
@@ -2449,22 +2450,22 @@ a convert on an aware stamp.
 
 .. note::
 
-   Using the ``.values`` accessor on a ``Series``, returns an NumPy array of the data.
+   Using :meth:`Series.to_numpy` on a ``Series``, returns a NumPy array of the data.
    These values are converted to UTC, as NumPy does not currently support timezones (even though it is *printing* in the local timezone!).
 
    .. ipython:: python
 
-      s_naive.values
-      s_aware.values
+      s_naive.to_numpy()
+      s_aware.to_numpy()
 
    Further note that once converted to a NumPy array these would lose the tz tenor.
 
    .. ipython:: python
 
-      pd.Series(s_aware.values)
+      pd.Series(s_aware.to_numpy())
 
    However, these can be easily converted:
 
    .. ipython:: python
 
-      pd.Series(s_aware.values).dt.tz_localize('UTC').dt.tz_convert('US/Eastern')
+      pd.Series(s_aware.to_numpy()).dt.tz_localize('UTC').dt.tz_convert('US/Eastern')

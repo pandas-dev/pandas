@@ -13,7 +13,7 @@ from pandas.core.dtypes.common import (
     is_scalar)
 from pandas.core.dtypes.dtypes import CategoricalDtype
 from pandas.core.dtypes.generic import ABCCategorical, ABCSeries
-from pandas.core.dtypes.missing import array_equivalent, isna
+from pandas.core.dtypes.missing import isna
 
 from pandas.core import accessor
 from pandas.core.algorithms import take_1d
@@ -93,6 +93,9 @@ class CategoricalIndex(Index, accessor.PandasDelegate):
                 }[self.codes.dtype.type]
 
     _attributes = ['name']
+
+    # --------------------------------------------------------------------
+    # Constructors
 
     def __new__(cls, data=None, categories=None, ordered=None, dtype=None,
                 copy=False, name=None, fastpath=None):
@@ -212,6 +215,8 @@ class CategoricalIndex(Index, accessor.PandasDelegate):
         result._reset_identity()
         return result
 
+    # --------------------------------------------------------------------
+
     @Appender(_index_shared_docs['_shallow_copy'])
     def _shallow_copy(self, values=None, categories=None, ordered=None,
                       dtype=None, **kwargs):
@@ -278,11 +283,16 @@ class CategoricalIndex(Index, accessor.PandasDelegate):
 
         try:
             other = self._is_dtype_compat(other)
-            return array_equivalent(self._data, other)
+            if isinstance(other, type(self)):
+                other = other._data
+            return self._data.equals(other)
         except (TypeError, ValueError):
             pass
 
         return False
+
+    # --------------------------------------------------------------------
+    # Rendering Methods
 
     @property
     def _formatter_func(self):
@@ -306,6 +316,8 @@ class CategoricalIndex(Index, accessor.PandasDelegate):
         if len(self) > max_seq_items:
             attrs.append(('length', len(self)))
         return attrs
+
+    # --------------------------------------------------------------------
 
     @property
     def inferred_type(self):
