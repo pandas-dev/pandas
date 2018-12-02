@@ -95,8 +95,17 @@ class BaseInterfaceTests(BaseExtensionTests):
         [1, [-1, 0]],
         [4, [-1, -1]]
     ])
-    def test_shift(self, data, periods, indices):
+    def test_shift_non_empty_array(self, data, periods, indices):
         subset = data[:2]
         result = subset.shift(periods)
         expected = subset.take(indices, allow_fill=True)
+        self.assert_extension_array_equal(result, expected)
+
+    @pytest.mark.parametrize('periods', [
+        -4, -1, 0, 1, 4
+    ])
+    def test_shift_empty_array(self, data, periods):
+        empty = data[:0]
+        result = empty.shift(periods)
+        expected = empty
         self.assert_extension_array_equal(result, expected)
