@@ -1065,6 +1065,36 @@ Datetimelike API Changes
 - :func:`cut` and :func:`qcut` now returns a :class:`DatetimeIndex` or :class:`TimedeltaIndex` bins when the input is datetime or timedelta dtype respectively and ``retbins=True`` (:issue:`19891`)
 - :meth:`DatetimeIndex.to_period` and :meth:`Timestamp.to_period` will issue a warning when timezone information will be lost (:issue:`21333`)
 
+.. _whatsnew_0240.api.incompatible_index_unions
+
+Incompatible Index Type Unions
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+When performing an :func:`Index.union` operation, between objects of incompatible dtypes, the result will be a base :class:`Index` of dtype `object`. 
+This behavior holds true for unions between :class:`Index` objects that previously would have been prohibited.
+The dtype of empty :class:`Index` objects will now be evaluated before performing the union as well, instead of simply returning the other :class:`Index` object.
+
+
+Previous Behavior:
+
+.. code-block:: ipython
+
+    In [1]: pd.period_range('19910905', periods=2).union(pd.Int64Index([1, 2, 3]))
+    ValueError: can only call with other PeriodIndex-ed objects
+
+    In [2]: pd.Index([]).astype(str).union(pd.Index([1, 2, 3]))
+    Out[11]: Int64Index([1, 2, 3], dtype='int64')
+
+Current Behavior:
+
+.. code-block:: ipython
+
+    In [1]: pd.period_range('19910905', periods=2).union(pd.Int64Index([1, 2, 3]))
+    Index([1991-09-05, 1991-09-06, 1, 2, 3], dtype='object')
+
+    In [2]: pd.Index([]).astype(str).union(pd.Index([1, 2, 3]))
+    Out[11]: Index([1, 2, 3], dtype='object')
+
 .. _whatsnew_0240.api.other:
 
 Other API Changes
