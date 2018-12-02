@@ -6,7 +6,7 @@ import pytest
 import pytz
 
 from pandas._libs.tslibs import (
-    conversion, timezones, NaT, Timestamp, Timedelta, OutOfBoundsDatetime)
+    NaT, OutOfBoundsDatetime, Timedelta, Timestamp, conversion, timezones)
 from pandas._libs.tslibs.frequencies import (
     INVALID_FREQ_ERR_MSG, get_freq_code, get_freq_str)
 import pandas._libs.tslibs.offsets as liboffsets
