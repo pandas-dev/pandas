@@ -3,25 +3,21 @@ Quantilization functions and related stuff
 """
 from functools import partial
 
-from pandas.core.dtypes.missing import isna
-from pandas.core.dtypes.common import (
-    is_integer,
-    is_scalar,
-    is_categorical_dtype,
-    is_datetime64_dtype,
-    is_timedelta64_dtype,
-    is_datetime64tz_dtype,
-    is_datetime_or_timedelta_dtype,
-    ensure_int64)
+import numpy as np
 
+from pandas._libs.lib import infer_dtype
+
+from pandas.core.dtypes.common import (
+    ensure_int64, is_categorical_dtype, is_datetime64_dtype,
+    is_datetime64tz_dtype, is_datetime_or_timedelta_dtype, is_integer,
+    is_scalar, is_timedelta64_dtype)
+from pandas.core.dtypes.missing import isna
+
+from pandas import (
+    Categorical, Index, Interval, IntervalIndex, Series, Timedelta, Timestamp,
+    to_datetime, to_timedelta)
 import pandas.core.algorithms as algos
 import pandas.core.nanops as nanops
-from pandas._libs.lib import infer_dtype
-from pandas import (to_timedelta, to_datetime,
-                    Categorical, Timestamp, Timedelta,
-                    Series, Index, Interval, IntervalIndex)
-
-import numpy as np
 
 
 def cut(x, bins, right=True, labels=None, retbins=False, precision=3,
@@ -47,7 +43,8 @@ def cut(x, bins, right=True, labels=None, retbins=False, precision=3,
           and maximum values of `x`.
         * sequence of scalars : Defines the bin edges allowing for non-uniform
           width. No extension of the range of `x` is done.
-        * IntervalIndex : Defines the exact bins to be used.
+        * IntervalIndex : Defines the exact bins to be used. Note that
+          IntervalIndex for `bins` must be non-overlapping.
 
     right : bool, default True
         Indicates whether `bins` includes the rightmost edge or not. If
@@ -221,7 +218,9 @@ def cut(x, bins, right=True, labels=None, retbins=False, precision=3,
                 bins[-1] += adj
 
     elif isinstance(bins, IntervalIndex):
-        pass
+        if bins.is_overlapping:
+            raise ValueError('Overlapping IntervalIndex is not accepted.')
+
     else:
         bins = np.asarray(bins)
         bins = _convert_bin_to_numeric_type(bins, dtype)
@@ -338,8 +337,7 @@ def _bins_to_cuts(x, bins, right=True, labels=None,
     ids = ensure_int64(bins.searchsorted(x, side=side))
 
     if include_lowest:
-        # Numpy 1.9 support: ensure this mask is a Numpy array
-        ids[np.asarray(x == bins[0])] = 1
+        ids[x == bins[0]] = 1
 
     na_mask = isna(x) | (ids == len(bins)) | (ids == 0)
     has_nas = na_mask.any()

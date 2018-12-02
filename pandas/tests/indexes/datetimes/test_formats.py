@@ -1,17 +1,17 @@
 from datetime import datetime
-from pandas import DatetimeIndex, Series
 
-import numpy as np
 import dateutil.tz
-import pytz
+import numpy as np
 import pytest
+import pytz
 
-import pandas.util.testing as tm
 import pandas as pd
+from pandas import DatetimeIndex, Series
+import pandas.util.testing as tm
 
 
 def test_to_native_types():
-    index = DatetimeIndex(freq='1D', periods=3, start='2017-01-01')
+    index = pd.date_range(freq='1D', periods=3, start='2017-01-01')
 
     # First, with no arguments.
     expected = np.array(['2017-01-01', '2017-01-02',

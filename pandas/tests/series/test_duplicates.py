@@ -1,10 +1,9 @@
 # coding=utf-8
 
+import numpy as np
 import pytest
 
-import numpy as np
-
-from pandas import Series, Categorical
+from pandas import Categorical, Series
 import pandas.util.testing as tm
 
 
@@ -63,9 +62,9 @@ def test_unique_data_ownership():
 def test_is_unique():
     # GH11946
     s = Series(np.random.randint(0, 10, size=1000))
-    assert not s.is_unique
+    assert s.is_unique is False
     s = Series(np.arange(1000))
-    assert s.is_unique
+    assert s.is_unique is True
 
 
 def test_is_unique_class_ne(capsys):
@@ -92,8 +91,11 @@ def test_is_unique_class_ne(capsys):
         ('last', Series([False, True, True, False, False, False, False])),
         (False, Series([False, True, True, False, True, True, False]))
     ])
-def test_drop_duplicates_non_bool(any_numpy_dtype, keep, expected):
-    tc = Series([1, 2, 3, 5, 3, 2, 4], dtype=np.dtype(any_numpy_dtype))
+def test_drop_duplicates(any_numpy_dtype, keep, expected):
+    tc = Series([1, 0, 3, 5, 3, 0, 4], dtype=np.dtype(any_numpy_dtype))
+
+    if tc.dtype == 'bool':
+        pytest.skip('tested separately in test_drop_duplicates_bool')
 
     tm.assert_series_equal(tc.duplicated(keep=keep), expected)
     tm.assert_series_equal(tc.drop_duplicates(keep=keep), tc[~expected])

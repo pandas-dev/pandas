@@ -70,7 +70,7 @@ def has_horizontally_truncated_repr(df):
     try:  # Check header row
         fst_line = np.array(repr(df).splitlines()[0].split())
         cand_col = np.where(fst_line == '...')[0][0]
-    except:
+    except IndexError:
         return False
     # Make sure each row has this ... in the same place
     r = repr(df)
@@ -305,14 +305,10 @@ class TestDataFrameFormatting(object):
             assert not has_truncated_repr(df)
             assert not has_expanded_repr(df)
 
-    def test_repr_truncates_terminal_size(self):
+    def test_repr_truncates_terminal_size(self, mock):
         # https://github.com/pandas-dev/pandas/issues/21180
         # TODO: use mock fixutre.
         # This is being backported, so doing it directly here.
-        try:
-            from unittest import mock
-        except ImportError:
-            mock = pytest.importorskip("mock")
 
         terminal_size = (118, 96)
         p1 = mock.patch('pandas.io.formats.console.get_terminal_size',
@@ -342,6 +338,17 @@ class TestDataFrameFormatting(object):
             result = repr(df2)
 
         assert df2.columns[0] in result.split('\n')[0]
+
+    def test_repr_truncates_terminal_size_full(self, mock):
+        # GH 22984 ensure entire window is filled
+        terminal_size = (80, 24)
+        df = pd.DataFrame(np.random.rand(1, 7))
+        p1 = mock.patch('pandas.io.formats.console.get_terminal_size',
+                        return_value=terminal_size)
+        p2 = mock.patch('pandas.io.formats.format.get_terminal_size',
+                        return_value=terminal_size)
+        with p1, p2:
+            assert "..." not in str(df)
 
     def test_repr_max_columns_max_rows(self):
         term_width, term_height = get_terminal_size()
@@ -452,7 +459,7 @@ class TestDataFrameFormatting(object):
         for line in rs[1:]:
             try:
                 line = line.decode(get_option("display.encoding"))
-            except:
+            except AttributeError:
                 pass
             if not line.startswith('dtype:'):
                 assert len(line) == line_len
@@ -1352,6 +1359,18 @@ class TestDataFrameFormatting(object):
                         '1  2.512000e-01')
         assert df_s == expected
 
+    def test_to_string_float_format_no_fixed_width(self):
+
+        # GH 21625
+        df = DataFrame({'x': [0.19999]})
+        expected = '      x\n0 0.200'
+        assert df.to_string(float_format='%.3f') == expected
+
+        # GH 22270
+        df = DataFrame({'x': [100.0]})
+        expected = '    x\n0 100'
+        assert df.to_string(float_format='%.0f') == expected
+
     def test_to_string_small_float_values(self):
         df = DataFrame({'a': [1.5, 1e-17, -5.5e-7]})
 
@@ -1450,6 +1469,12 @@ c  10  11  12  13  14\
                     '3  3.0  fooooo\n'
                     '4  4.0     bar')
         assert result == expected
+
+    def test_to_string_decimal(self):
+        # Issue #23614
+        df = DataFrame({'A': [6.0, 3.1, 2.2]})
+        expected = '     A\n0  6,0\n1  3,1\n2  2,2'
+        assert df.to_string(decimal=',') == expected
 
     def test_to_string_line_width(self):
         df = DataFrame(123, lrange(10, 15), lrange(30))
@@ -1720,9 +1745,11 @@ c  10  11  12  13  14\
                                  pd.Period('2011-03-01 09:00', freq='H'),
                                  pd.Period('2011-04', freq='M')],
                            'C': list('abcd')})
-        exp = ("        A                B  C\n0 2013-01          2011-01  a\n"
-               "1 2013-02       2011-02-01  b\n2 2013-03 2011-03-01 09:00  c\n"
-               "3 2013-04          2011-04  d")
+        exp = ("         A                 B  C\n"
+               "0  2013-01           2011-01  a\n"
+               "1  2013-02        2011-02-01  b\n"
+               "2  2013-03  2011-03-01 09:00  c\n"
+               "3  2013-04           2011-04  d")
         assert str(df) == exp
 
 
@@ -2110,21 +2137,31 @@ class TestSeriesFormatting(object):
         # GH 12615
         index = pd.period_range('2013-01', periods=6, freq='M')
         s = Series(np.arange(6, dtype='int64'), index=index)
-        exp = ("2013-01    0\n2013-02    1\n2013-03    2\n2013-04    3\n"
-               "2013-05    4\n2013-06    5\nFreq: M, dtype: int64")
+        exp = ("2013-01    0\n"
+               "2013-02    1\n"
+               "2013-03    2\n"
+               "2013-04    3\n"
+               "2013-05    4\n"
+               "2013-06    5\n"
+               "Freq: M, dtype: int64")
         assert str(s) == exp
 
         s = Series(index)
-        exp = ("0   2013-01\n1   2013-02\n2   2013-03\n3   2013-04\n"
-               "4   2013-05\n5   2013-06\ndtype: object")
+        exp = ("0    2013-01\n"
+               "1    2013-02\n"
+               "2    2013-03\n"
+               "3    2013-04\n"
+               "4    2013-05\n"
+               "5    2013-06\n"
+               "dtype: period[M]")
         assert str(s) == exp
 
         # periods with mixed freq
         s = Series([pd.Period('2011-01', freq='M'),
                     pd.Period('2011-02-01', freq='D'),
                     pd.Period('2011-03-01 09:00', freq='H')])
-        exp = ("0            2011-01\n1         2011-02-01\n"
-               "2   2011-03-01 09:00\ndtype: object")
+        exp = ("0             2011-01\n1          2011-02-01\n"
+               "2    2011-03-01 09:00\ndtype: object")
         assert str(s) == exp
 
     def test_max_multi_index_display(self):

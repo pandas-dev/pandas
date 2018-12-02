@@ -37,6 +37,7 @@ cdef extern from "src/datetime/np_datetime_strings.h":
                                 npy_datetimestruct *out,
                                 int *out_local, int *out_tzoffset)
 
+
 # ----------------------------------------------------------------------
 # numpy object inspection
 
@@ -135,6 +136,7 @@ cdef inline void dt64_to_dtstruct(int64_t dt64,
     with the by-far-most-common frequency NPY_FR_ns"""
     pandas_datetime_to_datetimestruct(dt64, NPY_FR_ns, out)
     return
+
 
 cdef inline void td64_to_tdstruct(int64_t td64,
                                   pandas_timedeltastruct* out) nogil:

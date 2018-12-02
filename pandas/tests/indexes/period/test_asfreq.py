@@ -1,9 +1,9 @@
+import numpy as np
 import pytest
 
-import numpy as np
 import pandas as pd
+from pandas import DataFrame, PeriodIndex, Series
 from pandas.util import testing as tm
-from pandas import PeriodIndex, Series, DataFrame
 
 
 class TestPeriodIndex(object):

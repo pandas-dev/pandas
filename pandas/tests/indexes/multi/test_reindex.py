@@ -1,7 +1,8 @@
 # -*- coding: utf-8 -*-
 
-
+import pytest
 import numpy as np
+
 import pandas as pd
 import pandas.util.testing as tm
 from pandas import Index, MultiIndex
@@ -39,13 +40,11 @@ def test_reindex_level(idx):
     exp_indexer2 = np.array([0, -1, 0, -1, 0, -1])
     tm.assert_numpy_array_equal(indexer2, exp_indexer2, check_dtype=False)
 
-    tm.assert_raises_regex(TypeError, "Fill method not supported",
-                           idx.reindex, idx,
-                           method='pad', level='second')
+    with pytest.raises(TypeError, match="Fill method not supported"):
+        idx.reindex(idx, method='pad', level='second')
 
-    tm.assert_raises_regex(TypeError, "Fill method not supported",
-                           index.reindex, index, method='bfill',
-                           level='first')
+    with pytest.raises(TypeError, match="Fill method not supported"):
+        index.reindex(index, method='bfill', level='first')
 
 
 def test_reindex_preserves_names_when_target_is_list_or_ndarray(idx):
@@ -95,7 +94,7 @@ def test_reindex_base(idx):
     actual = idx.get_indexer(idx)
     tm.assert_numpy_array_equal(expected, actual)
 
-    with tm.assert_raises_regex(ValueError, 'Invalid fill method'):
+    with pytest.raises(ValueError, match='Invalid fill method'):
         idx.get_indexer(idx, method='invalid')
 
 
@@ -103,6 +102,7 @@ def test_reindex_non_unique():
     idx = pd.MultiIndex.from_tuples([(0, 0), (1, 1), (1, 1), (2, 2)])
     a = pd.Series(np.arange(4), index=idx)
     new_idx = pd.MultiIndex.from_tuples([(0, 0), (1, 1), (2, 2)])
-    with tm.assert_raises_regex(ValueError,
-                                'cannot handle a non-unique multi-index!'):
+
+    msg = 'cannot handle a non-unique multi-index!'
+    with pytest.raises(ValueError, match=msg):
         a.reindex(new_idx)

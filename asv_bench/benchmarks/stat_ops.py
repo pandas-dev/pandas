@@ -1,8 +1,6 @@
 import numpy as np
 import pandas as pd
 
-from .pandas_vb_common import setup  # noqa
-
 
 ops = ['mean', 'sum', 'median', 'std', 'skew', 'kurt', 'mad', 'prod', 'sem',
        'var']
@@ -10,7 +8,6 @@ ops = ['mean', 'sum', 'median', 'std', 'skew', 'kurt', 'mad', 'prod', 'sem',
 
 class FrameOps(object):
 
-    goal_time = 0.2
     params = [ops, ['float', 'int'], [0, 1], [True, False]]
     param_names = ['op', 'dtype', 'axis', 'use_bottleneck']
 
@@ -29,7 +26,6 @@ class FrameOps(object):
 
 class FrameMultiIndexOps(object):
 
-    goal_time = 0.2
     params = ([0, 1, [0, 1]], ops)
     param_names = ['level', 'op']
 
@@ -48,7 +44,6 @@ class FrameMultiIndexOps(object):
 
 class SeriesOps(object):
 
-    goal_time = 0.2
     params = [ops, ['float', 'int'], [True, False]]
     param_names = ['op', 'dtype', 'use_bottleneck']
 
@@ -67,7 +62,6 @@ class SeriesOps(object):
 
 class SeriesMultiIndexOps(object):
 
-    goal_time = 0.2
     params = ([0, 1, [0, 1]], ops)
     param_names = ['level', 'op']
 
@@ -86,7 +80,6 @@ class SeriesMultiIndexOps(object):
 
 class Rank(object):
 
-    goal_time = 0.2
     params = [['DataFrame', 'Series'], [True, False]]
     param_names = ['constructor', 'pct']
 
@@ -103,12 +96,42 @@ class Rank(object):
 
 class Correlation(object):
 
-    goal_time = 0.2
-    params = ['spearman', 'kendall', 'pearson']
-    param_names = ['method']
+    params = [['spearman', 'kendall', 'pearson'], [True, False]]
+    param_names = ['method', 'use_bottleneck']
 
-    def setup(self, method):
+    def setup(self, method, use_bottleneck):
+        try:
+            pd.options.compute.use_bottleneck = use_bottleneck
+        except TypeError:
+            from pandas.core import nanops
+            nanops._USE_BOTTLENECK = use_bottleneck
         self.df = pd.DataFrame(np.random.randn(1000, 30))
+        self.s = pd.Series(np.random.randn(1000))
+        self.s2 = pd.Series(np.random.randn(1000))
 
-    def time_corr(self, method):
+    def time_corr(self, method, use_bottleneck):
         self.df.corr(method=method)
+
+    def time_corr_series(self, method, use_bottleneck):
+        self.s.corr(self.s2, method=method)
+
+
+class Covariance(object):
+
+    params = [[True, False]]
+    param_names = ['use_bottleneck']
+
+    def setup(self, use_bottleneck):
+        try:
+            pd.options.compute.use_bottleneck = use_bottleneck
+        except TypeError:
+            from pandas.core import nanops
+            nanops._USE_BOTTLENECK = use_bottleneck
+        self.s = pd.Series(np.random.randn(100000))
+        self.s2 = pd.Series(np.random.randn(100000))
+
+    def time_cov_series(self, use_bottleneck):
+        self.s.cov(self.s2)
+
+
+from .pandas_vb_common import setup  # noqa: F401

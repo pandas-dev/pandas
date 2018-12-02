@@ -6,10 +6,11 @@ import pandas as pd
 
 from pandas.core.dtypes.dtypes import (DatetimeTZDtype, PeriodDtype,
                                        CategoricalDtype, IntervalDtype)
+from pandas.core.sparse.api import SparseDtype
 
 import pandas.core.dtypes.common as com
-import pandas.util.testing as tm
 import pandas.util._test_decorators as td
+import pandas.util.testing as tm
 
 
 class TestPandasDtype(object):
@@ -18,7 +19,7 @@ class TestPandasDtype(object):
     # Per issue GH15520
     @pytest.mark.parametrize('box', [pd.Timestamp, 'pd.Timestamp', list])
     def test_invalid_dtype_error(self, box):
-        with tm.assert_raises_regex(TypeError, 'not understood'):
+        with pytest.raises(TypeError, match='not understood'):
             com.pandas_dtype(box)
 
     @pytest.mark.parametrize('dtype', [
@@ -161,20 +162,22 @@ def test_is_categorical():
 
 
 def test_is_datetimetz():
-    assert not com.is_datetimetz([1, 2, 3])
-    assert not com.is_datetimetz(pd.DatetimeIndex([1, 2, 3]))
+    with tm.assert_produces_warning(FutureWarning):
+        assert not com.is_datetimetz([1, 2, 3])
+        assert not com.is_datetimetz(pd.DatetimeIndex([1, 2, 3]))
 
-    assert com.is_datetimetz(pd.DatetimeIndex([1, 2, 3], tz="US/Eastern"))
+        assert com.is_datetimetz(pd.DatetimeIndex([1, 2, 3], tz="US/Eastern"))
 
-    dtype = DatetimeTZDtype("ns", tz="US/Eastern")
-    s = pd.Series([], dtype=dtype)
-    assert com.is_datetimetz(s)
+        dtype = DatetimeTZDtype("ns", tz="US/Eastern")
+        s = pd.Series([], dtype=dtype)
+        assert com.is_datetimetz(s)
 
 
-def test_is_period():
-    assert not com.is_period([1, 2, 3])
-    assert not com.is_period(pd.Index([1, 2, 3]))
-    assert com.is_period(pd.PeriodIndex(["2017-01-01"], freq="D"))
+def test_is_period_deprecated():
+    with tm.assert_produces_warning(FutureWarning):
+        assert not com.is_period([1, 2, 3])
+        assert not com.is_period(pd.Index([1, 2, 3]))
+        assert com.is_period(pd.PeriodIndex(["2017-01-01"], freq="D"))
 
 
 def test_is_datetime64_dtype():
@@ -328,21 +331,6 @@ def test_is_int64_dtype():
     assert com.is_int64_dtype(np.array([1, 2], dtype=np.int64))
 
 
-def test_is_int_or_datetime_dtype():
-    assert not com.is_int_or_datetime_dtype(str)
-    assert not com.is_int_or_datetime_dtype(float)
-    assert not com.is_int_or_datetime_dtype(pd.Index([1, 2.]))
-    assert not com.is_int_or_datetime_dtype(np.array(['a', 'b']))
-
-    assert com.is_int_or_datetime_dtype(int)
-    assert com.is_int_or_datetime_dtype(np.uint64)
-    assert com.is_int_or_datetime_dtype(np.datetime64)
-    assert com.is_int_or_datetime_dtype(np.timedelta64)
-    assert com.is_int_or_datetime_dtype(pd.Series([1, 2]))
-    assert com.is_int_or_datetime_dtype(np.array([], dtype=np.datetime64))
-    assert com.is_int_or_datetime_dtype(np.array([], dtype=np.timedelta64))
-
-
 def test_is_datetime64_any_dtype():
     assert not com.is_datetime64_any_dtype(int)
     assert not com.is_datetime64_any_dtype(str)
@@ -386,6 +374,8 @@ def test_is_datetime_or_timedelta_dtype():
     assert not com.is_datetime_or_timedelta_dtype(str)
     assert not com.is_datetime_or_timedelta_dtype(pd.Series([1, 2]))
     assert not com.is_datetime_or_timedelta_dtype(np.array(['a', 'b']))
+    assert not com.is_datetime_or_timedelta_dtype(
+        DatetimeTZDtype("ns", "US/Eastern"))
 
     assert com.is_datetime_or_timedelta_dtype(np.datetime64)
     assert com.is_datetime_or_timedelta_dtype(np.timedelta64)
@@ -567,8 +557,8 @@ def test_is_offsetlike():
     (pd.DatetimeIndex([1, 2]).dtype, np.dtype('=M8[ns]')),
     ('<M8[ns]', np.dtype('<M8[ns]')),
     ('datetime64[ns, Europe/London]', DatetimeTZDtype('ns', 'Europe/London')),
-    (pd.SparseSeries([1, 2], dtype='int32'), np.dtype('int32')),
-    (pd.SparseSeries([1, 2], dtype='int32').dtype, np.dtype('int32')),
+    (pd.SparseSeries([1, 2], dtype='int32'), SparseDtype('int32')),
+    (pd.SparseSeries([1, 2], dtype='int32').dtype, SparseDtype('int32')),
     (PeriodDtype(freq='D'), PeriodDtype(freq='D')),
     ('period[D]', PeriodDtype(freq='D')),
     (IntervalDtype(), IntervalDtype()),

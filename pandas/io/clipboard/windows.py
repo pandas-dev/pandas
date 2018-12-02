@@ -1,10 +1,11 @@
 """
 This module implements clipboard handling on Windows using ctypes.
 """
-import time
 import contextlib
 import ctypes
-from ctypes import c_size_t, sizeof, c_wchar_p, get_errno, c_wchar
+from ctypes import c_size_t, c_wchar, c_wchar_p, get_errno, sizeof
+import time
+
 from .exceptions import PyperclipWindowsException
 
 
