@@ -1245,7 +1245,7 @@ too few fields will have NA values filled in the trailing fields. Lines with
 too many fields will raise an error by default:
 
 .. ipython:: python
-   :okexcept:
+    :okexcept:
 
     data = ('a,b,c\n'
             '1,2,3\n'
