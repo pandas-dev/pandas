@@ -1863,7 +1863,7 @@ class StringMethods(NoNewAttributesMixin):
         # before the transformation...
         if use_codes and self._is_categorical:
             # if self._orig is a CategoricalIndex, there is no .cat-accessor
-            result = take_1d(result, Series(self._orig).cat.codes,
+            result = take_1d(result, Series(self._orig, copy=False).cat.codes,
                              fill_value=fill_value)
 
         if not hasattr(result, 'ndim') or not hasattr(result, 'dtype'):
