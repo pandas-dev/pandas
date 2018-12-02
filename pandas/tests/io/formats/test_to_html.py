@@ -499,11 +499,6 @@ class TestToHTML(object):
 
         result = df.to_html(render_links=render_links)
 
-        open_tag = not render_links and '<td>' or\
-            ('<td><a href="http://pandas.pydata.org/?q1=a&q2=b"'
-             ' target="_blank">')
-        close_tag = not render_links and '</td>' or '</a></td>'
-
         expected = """\
 <table border="1" class="dataframe">
   <thead>
@@ -528,6 +523,9 @@ class TestToHTML(object):
       <td>pydata.org</td>
     </tr>
   </tbody>
-</table>""".format(open_tag=open_tag, close_tag=close_tag)
+</table>""".format(open_tag=not render_links and '<td>' or (
+                   '<td><a href="http://pandas.pydata.org/?q1=a&q2=b"'
+                   ' target="_blank">'),
+                   close_tag=not render_links and '</td>' or '</a></td>')
 
         assert result == expected

@@ -84,15 +84,14 @@ class HTMLFormatter(TableFormatter):
 
         if self.render_links and _is_url(rs):
             rs_unescaped = pprint_thing(s, escape_chars={}).strip()
-            start_tag += '<a href="{url}" target="_blank">'\
-                .format(url=rs_unescaped)
+            start_tag += '<a href="{url}" target="_blank">'.format(
+                url=rs_unescaped)
             end_a = '</a>'
         else:
             end_a = ''
 
-        self.write(u'{start}{rs}{end_a}</{kind}>'
-                   .format(start=start_tag, rs=rs, end_a=end_a, kind=kind),
-                   indent)
+        self.write(u'{start}{rs}{end_a}</{kind}>'.format(
+            start=start_tag, rs=rs, end_a=end_a, kind=kind), indent)
 
     def write_tr(self, line, indent=0, indent_delta=0, header=False,
                  align=None, tags=None, nindex_levels=0):
