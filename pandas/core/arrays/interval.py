@@ -74,6 +74,7 @@ mid
 length
 values
 is_non_overlapping_monotonic
+%(extra_attributes)s\
 
 Methods
 -------
@@ -107,6 +108,7 @@ qcut : Bin values into equal-sized Intervals based on rank or sample quantiles.
     summary="Pandas array for interval data that are closed on the same side.",
     versionadded="0.24.0",
     name='',
+    extra_attributes='',
     extra_methods='',
     examples=textwrap.dedent("""\
     Examples

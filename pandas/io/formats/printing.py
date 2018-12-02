@@ -110,10 +110,10 @@ def _pprint_seq(seq, _nest_lvl=0, max_seq_items=None, **kwds):
         nitems = max_seq_items or get_option("max_seq_items") or len(seq)
 
     s = iter(seq)
-    r = []
-    for i in range(min(nitems, len(seq))):  # handle sets, no slicing
-        r.append(pprint_thing(
-            next(s), _nest_lvl + 1, max_seq_items=max_seq_items, **kwds))
+    # handle sets, no slicing
+    r = [pprint_thing(next(s),
+                      _nest_lvl + 1, max_seq_items=max_seq_items, **kwds)
+         for i in range(min(nitems, len(seq)))]
     body = ", ".join(r)
 
     if nitems < len(seq):
