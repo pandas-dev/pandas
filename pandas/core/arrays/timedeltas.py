@@ -133,7 +133,7 @@ def _wrap_tdi_op(op):
     return method
 
 
-class TimedeltaArrayMixin(dtl.DatetimeLikeArrayMixin):
+class TimedeltaArrayMixin(dtl.DatetimeLikeArrayMixin, dtl.TimelikeOps):
     _typ = "timedeltaarray"
     __array_priority__ = 1000
 
