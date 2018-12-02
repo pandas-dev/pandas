@@ -94,8 +94,7 @@ def read_feather(path, columns=None, use_threads=True):
     ----------
     path : string file path, or file-like object
     columns : sequence, default None
-        Only read a specific set of columns. If not provided, all columns are
-        read
+        If not provided, all columns are read
 
         .. versionadded 0.24.0
     nthreads : int, default 1

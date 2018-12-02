@@ -77,17 +77,20 @@ class TestFeather(object):
         df = pd.DataFrame(np.arange(12).reshape(4, 3)).copy()
         self.check_error_on_write(df, ValueError)
 
-    def test_read_columns(self):
+    @pytest.mark.parametrize("columns", [
+        None,
+        ['col1', 'col3'],
+        ['col1', 'col2', 'col3', 'col4']
+    ])
+    def test_read_columns(self, columns):
         # GH 24025
         df = pd.DataFrame({'col1': list('abc'),
                            'col2': list(range(1, 4)),
                            'col3': list('xyz'),
                            'col4': list(range(4, 7))})
-        self.check_round_trip(df, columns=None)
-        self.check_round_trip(df, columns=df.columns)
-        cols = ['col3', 'col1']
-        self.check_round_trip(df, expected=df[cols],
-                              columns=cols)
+        expected = df[columns] if columns else columns
+        self.check_round_trip(df, expected=expected,
+                              columns=columns)
 
     def test_unsupported_other(self):
 
