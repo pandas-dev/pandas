@@ -638,20 +638,21 @@ class TestStringMethods(object):
         # check that all NaNs in caller / target work
         s = Index(['a', 'b', 'c', 'd'])
         s = s if box == Index else Series(s, index=s)
-        t = other([np.nan] * 4, dtype='object')
+        t = other([np.nan] * 4, dtype=object)
         # add index of s for alignment
         t = t if other == Index else Series(t, index=s)
 
         # all-NA target
-        expected = Index([np.nan] * 4, dtype='object')
-        expected = expected if box == Index else Series(expected,
-                                                        index=s.index)
+        if box == Series:
+            expected = Series([np.nan] * 4, index=s.index, dtype=object)
+        else:  # box == Index
+            expected = Index([np.nan] * 4, dtype=object)
         result = s.str.cat(t, join='left')
         assert_series_or_index_equal(result, expected)
 
         # all-NA caller (only for Series)
         if other == Series:
-            expected = Series([np.nan] * 4, dtype='object', index=t.index)
+            expected = Series([np.nan] * 4, dtype=object, index=t.index)
             result = t.str.cat(s, join='left')
             tm.assert_series_equal(result, expected)
 
