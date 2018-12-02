@@ -137,6 +137,9 @@ class TimedeltaArrayMixin(dtl.DatetimeLikeArrayMixin):
     _typ = "timedeltaarray"
     __array_priority__ = 1000
 
+    # Needed so that NaT.__richcmp__(DateTimeArray) operates pointwise
+    ndim = 1
+
     @property
     def _box_func(self):
         return lambda x: Timedelta(x, unit='ns')
