@@ -62,8 +62,11 @@ cdef inline int64_t get_datetime64_nanos(object val) except? -1:
         NPY_DATETIMEUNIT unit
         npy_datetime ival
 
-    unit = get_datetime64_unit(val)
     ival = get_datetime64_value(val)
+    if ival == NPY_NAT:
+        return NPY_NAT
+
+    unit = get_datetime64_unit(val)
 
     if ival == NPY_NAT:
         return ival
@@ -234,10 +237,8 @@ cdef convert_to_tsobject(object ts, object tz, object unit,
     if ts is None or ts is NaT:
         obj.value = NPY_NAT
     elif is_datetime64_object(ts):
-        if ts.view('i8') == NPY_NAT:
-            obj.value = NPY_NAT
-        else:
-            obj.value = get_datetime64_nanos(ts)
+        obj.value = get_datetime64_nanos(ts)
+        if obj.value != NPY_NAT:
             dt64_to_dtstruct(obj.value, &obj.dts)
     elif is_integer_object(ts):
         if ts == NPY_NAT:
@@ -838,8 +839,8 @@ def tz_localize_to_utc(ndarray[int64_t] vals, object tz, object ambiguous=None,
         int64_t *tdata
         int64_t v, left, right, val, v_left, v_right, new_local, remaining_mins
         int64_t HOURS_NS = HOUR_SECONDS * 1000000000
-        ndarray[int64_t] trans, result, result_a, result_b, dst_hours
-        ndarray[int64_t] trans_idx, grp, delta, a_idx, b_idx, one_diff
+        ndarray[int64_t] trans, result, result_a, result_b, dst_hours, delta
+        ndarray trans_idx, grp, a_idx, b_idx, one_diff
         npy_datetimestruct dts
         bint infer_dst = False, is_dst = False, fill = False
         bint shift = False, fill_nonexist = False

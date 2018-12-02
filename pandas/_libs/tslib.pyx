@@ -528,7 +528,6 @@ cpdef array_to_datetime(ndarray[object] values, str errors='raise',
         bint seen_integer = 0
         bint seen_string = 0
         bint seen_datetime = 0
-        bint seen_datetime_offset = 0
         bint is_raise = errors=='raise'
         bint is_ignore = errors=='ignore'
         bint is_coerce = errors=='coerce'
@@ -634,7 +633,6 @@ cpdef array_to_datetime(ndarray[object] values, str errors='raise',
                         # to check if all arguments have the same tzinfo
                         tz = py_dt.utcoffset()
                         out_tzinfos[get_key(py_dt.tzinfo)] = py_dt.tzinfo
-
                         _ts = convert_datetime_to_tsobject(py_dt, None)
                         iresult[i] = _ts.value
                     except:
@@ -648,7 +646,6 @@ cpdef array_to_datetime(ndarray[object] values, str errors='raise',
                         # where we left off
                         value = dtstruct_to_dt64(&dts)
                         if out_local == 1:
-                            seen_datetime_offset = 1
                             # Store the out_tzoffset in seconds
                             # since we store the total_seconds of
                             # dateutil.tz.tzoffset objects
@@ -659,6 +656,7 @@ cpdef array_to_datetime(ndarray[object] values, str errors='raise',
                             # Add a marker for naive string, to track if we are
                             # parsing mixed naive and aware strings
                             out_tzinfos[None] = None
+
                         iresult[i] = value
                         check_dts_bounds(&dts)
 

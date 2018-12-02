@@ -376,6 +376,7 @@ Backwards incompatible API changes
 - :meth:`Series.str.cat` will now raise if `others` is a `set` (:issue:`23009`)
 - Passing scalar values to :class:`DatetimeIndex` or :class:`TimedeltaIndex` will now raise ``TypeError`` instead of ``ValueError`` (:issue:`23539`)
 - ``max_rows`` and ``max_cols`` parameters removed from :class:`HTMLFormatter` since truncation is handled by :class:`DataFrameFormatter` (:issue:`23818`)
+- :meth:`read_csv` will now raise a ``ValueError`` if a column with missing values is declared as having dtype ``bool`` (:issue:`20591`)
 
 .. _whatsnew_0240.api_breaking.deps:
 
@@ -1364,6 +1365,7 @@ Strings
 - Bug in :meth:`Index.str.partition` was not nan-safe (:issue:`23558`).
 - Bug in :meth:`Index.str.split` was not nan-safe (:issue:`23677`).
 - Bug :func:`Series.str.contains` not respecting the ``na`` argument for a ``Categorical`` dtype ``Series`` (:issue:`22158`)
+- Bug in :meth:`Index.str.cat` when the result contained only ``NaN`` (:issue:`24044`)
 
 Interval
 ^^^^^^^^
@@ -1415,6 +1417,7 @@ MultiIndex
 
 I/O
 ^^^
+
 
 .. _whatsnew_0240.bug_fixes.nan_with_str_dtype:
 
@@ -1479,6 +1482,7 @@ Notice how we now instead output ``np.nan`` itself instead of a stringified form
 - Bug in :meth:`read_excel()` in which column names were not being properly converted to string sometimes in Python 2.x (:issue:`23874`)
 - Bug in :meth:`read_excel()` in which ``index_col=None`` was not being respected and parsing index columns anyway (:issue:`18792`, :issue:`20480`)
 - Bug in :meth:`read_excel()` in which ``usecols`` was not being validated for proper column names when passed in as a string (:issue:`20480`)
+- Bug in :meth:`DataFrame.to_dict` when the resulting dict contains non-Python scalars in the case of numeric data (:issue:`23753`)
 - :func:`DataFrame.to_string()`, :func:`DataFrame.to_html()`, :func:`DataFrame.to_latex()` will correctly format output when a string is passed as the ``float_format`` argument (:issue:`21625`, :issue:`22270`)
 
 Plotting
