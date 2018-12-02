@@ -42,7 +42,33 @@ Bug Fixes
 **Groupby/Resample/Rolling**
 
 - Bug in :meth:`DataFrame.resample` when resampling ``NaT`` in ``TimeDeltaIndex`` (:issue:`13223`).
--
+- Bug where calling :func:`SeriesGroupBy.pct_change` or :func:`DataFrameGroupBy.pct_change` would ignore groups when calculating the percent change (:issue:`21235`)
+
+.. ipython:: python
+
+   df = pd.DataFrame({'a': [1.0, 1.1, 2.2], 'grp': ['a', 'a', 'b']})
+
+**Previous behavior**:
+
+.. code-block:: ipython
+
+   >>> df.groupby('grp').pct_change()
+        a
+   0  NaN
+   1  0.1
+   2  1.0
+
+**New behavior**:
+
+Grouping respected
+
+.. code-block:: ipython
+
+   >>> df.groupby('grp').pct_change()
+        a
+   0  NaN
+   1  0.1
+   2  NaN
 
 **Missing**
 
