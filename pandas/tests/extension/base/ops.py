@@ -1,6 +1,7 @@
 import operator
 
 import pytest
+import numpy as np
 
 import pandas as pd
 from pandas.core import ops
@@ -91,9 +92,17 @@ class BaseArithmeticOpsTests(BaseOpsUtil):
         self._check_divmod_op(s, divmod, 1, exc=self.divmod_exc)
         self._check_divmod_op(1, ops.rdivmod, s, exc=self.divmod_exc)
 
-    def test_divmod_series_array(self, data):
+    def test_divmod_series_array(self, data, ones):
+        #pytest.set_trace()
         s = pd.Series(data)
         self._check_divmod_op(s, divmod, data)
+
+        #pytest.set_trace()
+        other = ones * 2
+        self._check_divmod_op(other, ops.rdivmod, s)
+
+        other = pd.Series(other)
+        self._check_divmod_op(other, ops.rdivmod, s)
 
     def test_add_series_with_extension_array(self, data):
         s = pd.Series(data)

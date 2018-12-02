@@ -125,6 +125,9 @@ class TestArithmeticOps(BasePeriodTests, base.BaseArithmeticOpsTests):
         result = data.__sub__(other)
         assert result is NotImplemented
 
+    def test_divmod_series_array(self):
+        pass
+
 
 class TestCasting(BasePeriodTests, base.BaseCastingTests):
     pass

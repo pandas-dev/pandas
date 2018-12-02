@@ -43,6 +43,11 @@ def data(dtype):
 
 
 @pytest.fixture
+def ones(dtype):
+    return integer_array(np.ones(100), dtype=dtype)
+
+
+@pytest.fixture
 def data_missing(dtype):
     return integer_array([np.nan, 1], dtype=dtype)
 
