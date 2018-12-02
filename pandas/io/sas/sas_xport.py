@@ -353,9 +353,8 @@ class XportReader(BaseIterator):
         self.columns = [x['name'].decode() for x in self.fields]
 
         # Setup the dtype.
-        dtypel = []
-        for i, field in enumerate(self.fields):
-            dtypel.append(('s' + str(i), "S" + str(field['field_length'])))
+        dtypel = [('s' + str(i), "S" + str(field['field_length']))
+                  for i, field in enumerate(self.fields)]
         dtype = np.dtype(dtypel)
         self._dtype = dtype
 

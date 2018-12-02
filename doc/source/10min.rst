@@ -5,19 +5,19 @@
 .. ipython:: python
    :suppress:
 
-   import numpy as np
-   import pandas as pd
    import os
+   import numpy as np
+
+   import pandas as pd
+
    np.random.seed(123456)
    np.set_printoptions(precision=4, suppress=True)
-   import matplotlib
-   # matplotlib.style.use('default')
    pd.options.display.max_rows = 15
 
-   #### portions of this were borrowed from the
-   #### Pandas cheatsheet
-   #### created during the PyData Workshop-Sprint 2012
-   #### Hannah Chen, Henry Chow, Eric Cox, Robert Mauriello
+   # portions of this were borrowed from the
+   # Pandas cheatsheet
+   # created during the PyData Workshop-Sprint 2012
+   # Hannah Chen, Henry Chow, Eric Cox, Robert Mauriello
 
 
 ********************
@@ -31,9 +31,8 @@ Customarily, we import as follows:
 
 .. ipython:: python
 
-   import pandas as pd
    import numpy as np
-   import matplotlib.pyplot as plt
+   import pandas as pd
 
 Object Creation
 ---------------
@@ -55,7 +54,7 @@ and labeled columns:
 
    dates = pd.date_range('20130101', periods=6)
    dates
-   df = pd.DataFrame(np.random.randn(6,4), index=dates, columns=list('ABCD'))
+   df = pd.DataFrame(np.random.randn(6, 4), index=dates, columns=list('ABCD'))
    df
 
 Creating a ``DataFrame`` by passing a dict of objects that can be converted to series-like.
@@ -64,7 +63,7 @@ Creating a ``DataFrame`` by passing a dict of objects that can be converted to s
 
    df2 = pd.DataFrame({'A': 1.,
                        'B': pd.Timestamp('20130102'),
-                       'C': pd.Series(1, index=list(range(4)),dtype='float32'),
+                       'C': pd.Series(1, index=list(range(4)), dtype='float32'),
                        'D': np.array([3] * 4, dtype='int32'),
                        'E': pd.Categorical(["test", "train", "test", "train"]),
                        'F': 'foo'})
@@ -114,13 +113,40 @@ Here is how to view the top and bottom rows of the frame:
    df.head()
    df.tail(3)
 
-Display the index, columns, and the underlying NumPy data:
+Display the index, columns:
 
 .. ipython:: python
 
    df.index
    df.columns
-   df.values
+
+:meth:`DataFrame.to_numpy` gives a NumPy representation of the underlying data.
+Note that his can be an expensive operation when your :class:`DataFrame` has
+columns with different data types, which comes down to a fundamental difference
+between pandas and NumPy: **NumPy arrays have one dtype for the entire array,
+while pandas DataFrames have one dtype per column**. When you call
+:meth:`DataFrame.to_numpy`, pandas will find the NumPy dtype that can hold *all*
+of the dtypes in the DataFrame. This may end up being ``object``, which requires
+casting every value to a Python object.
+
+For ``df``, our :class:`DataFrame` of all floating-point values,
+:meth:`DataFrame.to_numpy` is fast and doesn't require copying data.
+
+.. ipython:: python
+
+   df.to_numpy()
+
+For ``df2``, the :class:`DataFrame` with multiple dtypes,
+:meth:`DataFrame.to_numpy` is relatively expensive.
+
+.. ipython:: python
+
+   df2.to_numpy()
+
+.. note::
+
+   :meth:`DataFrame.to_numpy` does *not* include the index or column
+   labels in the output.
 
 :func:`~DataFrame.describe` shows a quick statistic summary of your data:
 
@@ -190,31 +216,31 @@ Selecting on a multi-axis by label:
 
 .. ipython:: python
 
-   df.loc[:,['A','B']]
+   df.loc[:, ['A', 'B']]
 
 Showing label slicing, both endpoints are *included*:
 
 .. ipython:: python
 
-   df.loc['20130102':'20130104',['A','B']]
+   df.loc['20130102':'20130104', ['A', 'B']]
 
 Reduction in the dimensions of the returned object:
 
 .. ipython:: python
 
-   df.loc['20130102',['A','B']]
+   df.loc['20130102', ['A', 'B']]
 
 For getting a scalar value:
 
 .. ipython:: python
 
-   df.loc[dates[0],'A']
+   df.loc[dates[0], 'A']
 
 For getting fast access to a scalar (equivalent to the prior method):
 
 .. ipython:: python
 
-   df.at[dates[0],'A']
+   df.at[dates[0], 'A']
 
 Selection by Position
 ~~~~~~~~~~~~~~~~~~~~~
@@ -231,37 +257,37 @@ By integer slices, acting similar to numpy/python:
 
 .. ipython:: python
 
-   df.iloc[3:5,0:2]
+   df.iloc[3:5, 0:2]
 
 By lists of integer position locations, similar to the numpy/python style:
 
 .. ipython:: python
 
-   df.iloc[[1,2,4],[0,2]]
+   df.iloc[[1, 2, 4], [0, 2]]
 
 For slicing rows explicitly:
 
 .. ipython:: python
 
-   df.iloc[1:3,:]
+   df.iloc[1:3, :]
 
 For slicing columns explicitly:
 
 .. ipython:: python
 
-   df.iloc[:,1:3]
+   df.iloc[:, 1:3]
 
 For getting a value explicitly:
 
 .. ipython:: python
 
-   df.iloc[1,1]
+   df.iloc[1, 1]
 
 For getting fast access to a scalar (equivalent to the prior method):
 
 .. ipython:: python
 
-   df.iat[1,1]
+   df.iat[1, 1]
 
 Boolean Indexing
 ~~~~~~~~~~~~~~~~
@@ -303,19 +329,19 @@ Setting values by label:
 
 .. ipython:: python
 
-   df.at[dates[0],'A'] = 0
+   df.at[dates[0], 'A'] = 0
 
 Setting values by position:
 
 .. ipython:: python
 
-   df.iat[0,1] = 0
+   df.iat[0, 1] = 0
 
 Setting by assigning with a NumPy array:
 
 .. ipython:: python
 
-   df.loc[:,'D'] = np.array([5] * len(df))
+   df.loc[:, 'D'] = np.array([5] * len(df))
 
 The result of the prior setting operations.
 
@@ -345,7 +371,7 @@ returns a copy of the data.
 .. ipython:: python
 
    df1 = df.reindex(index=dates[0:4], columns=list(df.columns) + ['E'])
-   df1.loc[dates[0]:dates[1],'E'] = 1
+   df1.loc[dates[0]:dates[1], 'E'] = 1
    df1
 
 To drop any rows that have missing data.
@@ -653,7 +679,8 @@ pandas can include categorical data in a ``DataFrame``. For full docs, see the
 
 .. ipython:: python
 
-    df = pd.DataFrame({"id":[1, 2, 3, 4, 5, 6], "raw_grade":['a', 'b', 'b', 'a', 'a', 'e']})
+    df = pd.DataFrame({"id": [1, 2, 3, 4, 5, 6],
+                       "raw_grade": ['a', 'b', 'b', 'a', 'a', 'e']})
 
 Convert the raw grades to a categorical data type.
 
@@ -674,7 +701,8 @@ Reorder the categories and simultaneously add the missing categories (methods un
 
 .. ipython:: python
 
-    df["grade"] = df["grade"].cat.set_categories(["very bad", "bad", "medium", "good", "very good"])
+    df["grade"] = df["grade"].cat.set_categories(["very bad", "bad", "medium",
+                                                  "good", "very good"])
     df["grade"]
 
 Sorting is per order in the categories, not lexical order.
@@ -703,7 +731,8 @@ See the :ref:`Plotting <visualization>` docs.
 
 .. ipython:: python
 
-   ts = pd.Series(np.random.randn(1000), index=pd.date_range('1/1/2000', periods=1000))
+   ts = pd.Series(np.random.randn(1000),
+                  index=pd.date_range('1/1/2000', periods=1000))
    ts = ts.cumsum()
 
    @savefig series_plot_basic.png
@@ -718,8 +747,10 @@ of the columns with labels:
                      columns=['A', 'B', 'C', 'D'])
    df = df.cumsum()
 
+   plt.figure()
+   df.plot()
    @savefig frame_plot_basic.png
-   plt.figure(); df.plot(); plt.legend(loc='best')
+   plt.legend(loc='best')
 
 Getting Data In/Out
 -------------------

@@ -190,7 +190,6 @@ class TestDataFrameLogicalOperators(object):
         _check_bin_op(operator.or_)
         _check_bin_op(operator.xor)
 
-        # operator.neg is deprecated in numpy >= 1.9
         _check_unary_op(operator.inv)  # TODO: belongs elsewhere
 
     def test_logical_with_nas(self):
