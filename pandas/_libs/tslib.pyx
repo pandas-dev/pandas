@@ -480,6 +480,7 @@ cdef get_key(tz):
     return tz_cache_key(tz)
 
 
+
 @cython.wraparound(False)
 @cython.boundscheck(False)
 cpdef array_to_datetime(ndarray[object] values, str errors='raise',
@@ -525,7 +526,9 @@ cpdef array_to_datetime(ndarray[object] values, str errors='raise',
         npy_datetimestruct dts
         bint utc_convert = bool(utc)
         bint seen_integer = 0
+        bint seen_string = 0
         bint seen_datetime = 0
+        bint seen_datetime_offset = 0
         bint is_raise = errors=='raise'
         bint is_ignore = errors=='ignore'
         bint is_coerce = errors=='coerce'
@@ -540,228 +543,231 @@ cpdef array_to_datetime(ndarray[object] values, str errors='raise',
 
     result = np.empty(n, dtype='M8[ns]')
     iresult = result.view('i8')
+
     try:
         for i in range(n):
             val = values[i]
 
-            if checknull_with_nat(val):
-                iresult[i] = NPY_NAT
+            try:
+                if checknull_with_nat(val):
+                    iresult[i] = NPY_NAT
 
-            elif PyDateTime_Check(val):
-                seen_datetime = 1
-                out_tzinfos[get_key(val.tzinfo)] = val.tzinfo
-                try:
+                elif PyDateTime_Check(val):
+                    seen_datetime = 1
+                    out_tzinfos[get_key(val.tzinfo)] = val.tzinfo
                     _ts = convert_datetime_to_tsobject(val, None)
                     iresult[i] = _ts.value
-                except OutOfBoundsDatetime:
-                    if is_coerce:
-                        iresult[i] = NPY_NAT
-                        continue
-                    raise
 
-            elif PyDate_Check(val):
-                # Treating as either naive or UTC
-                seen_datetime = 1
-                iresult[i] = pydate_to_dt64(val, &dts)
-                try:
+                elif PyDate_Check(val):
+                    # Treating as either naive or UTC
+                    seen_datetime = 1
+                    iresult[i] = pydate_to_dt64(val, &dts)
                     check_dts_bounds(&dts)
-                except OutOfBoundsDatetime:
-                    if is_coerce:
-                        iresult[i] = NPY_NAT
-                        continue
-                    raise
 
-            elif is_datetime64_object(val):
-                # Treating as either naive or UTC
-                seen_datetime = 1
-                try:
+                elif is_datetime64_object(val):
+                    # Treating as either naive or UTC
+                    seen_datetime = 1
                     iresult[i] = get_datetime64_nanos(val)
-                except OutOfBoundsDatetime:
-                    if is_coerce:
+
+                elif is_integer_object(val) or is_float_object(val):
+                    # these must be ns unit by-definition
+                    seen_integer = 1
+
+                    if val != val or val == NPY_NAT:
                         iresult[i] = NPY_NAT
-                        continue
-                    raise
-
-            elif is_integer_object(val) or is_float_object(val):
-                # these must be ns unit by-definition
-                seen_integer = 1
-
-                if val != val or val == NPY_NAT:
-                    iresult[i] = NPY_NAT
-                elif is_raise or is_ignore:
-                    iresult[i] = val
-                else:
-                    # coerce
-                    # we now need to parse this as if unit='ns'
-                    # we can ONLY accept integers at this point
-                    # if we have previously (or in future accept
-                    # datetimes/strings, then we must coerce)
-                    try:
-                        iresult[i] = cast_from_unit(val, 'ns')
-                    except:
-                        iresult[i] = NPY_NAT
-
-            elif is_string_object(val):
-                # string
-
-                if len(val) == 0 or val in nat_strings:
-                    iresult[i] = NPY_NAT
-                    continue
-
-                if isinstance(val, unicode) and PY2:
-                    val = val.encode('utf-8')
-
-                try:
-                    _string_to_dts(val, &dts, &out_local, &out_tzoffset)
-                except ValueError:
-                    # A ValueError at this point is a _parsing_ error
-                    # specifically _not_ OutOfBoundsDatetime
-                    if _parse_today_now(val, &iresult[i]):
-                        # TODO: Do we treat this as local?
-                        #  "now" is UTC, "today" is local
-                        continue
-                    elif require_iso8601:
-                        # if requiring iso8601 strings, skip trying
-                        # other formats
-                        if is_coerce:
-                            iresult[i] = NPY_NAT
-                            continue
-                        elif is_raise:
-                            raise ValueError("time data {val} doesn't match "
-                                             "format specified"
-                                             .format(val=val))
-                        return values, tz_out
-
-                    try:
-                        py_dt = parse_datetime_string(val, dayfirst=dayfirst,
-                                                      yearfirst=yearfirst)
-                    except Exception:
-                        if is_coerce:
-                            iresult[i] = NPY_NAT
-                            continue
-                        raise TypeError("invalid string coercion to datetime")
-
-                    # If the dateutil parser returned tzinfo, capture it
-                    # to check if all arguments have the same tzinfo
-                    tz = py_dt.utcoffset()
-                    out_tzinfos[get_key(py_dt.tzinfo)] = py_dt.tzinfo
-
-                    try:
-                        _ts = convert_datetime_to_tsobject(py_dt, None)
-                        iresult[i] = _ts.value
-                    except OutOfBoundsDatetime:
-                        if is_coerce:
-                            iresult[i] = NPY_NAT
-                            continue
-                        raise
-                except:
-                    # TODO: What exception are we concerned with here?
-                    if is_coerce:
-                        iresult[i] = NPY_NAT
-                        continue
-                    raise
-                else:
-                    # No error raised by string_to_dts, pick back up
-                    # where we left off
-                    value = dtstruct_to_dt64(&dts)
-                    if out_local == 1:
-                        # Store the out_tzoffset in seconds
-                        # since we store the total_seconds of
-                        # dateutil.tz.tzoffset objects
-                        tz = pytz.FixedOffset(out_tzoffset)
-                        out_tzinfos[get_key(tz)] = tz
-                        value = tz_convert_single(value, tz, UTC)
+                    elif is_raise or is_ignore:
+                        iresult[i] = val
                     else:
-                        # Add a marker for naive string, to track if we are
-                        # parsing mixed naive and aware strings
-                        out_tzinfos[None] = None
-
-                    iresult[i] = value
-                    try:
-                        check_dts_bounds(&dts)
-                    except OutOfBoundsDatetime:
-                        # GH#19382 for just-barely-OutOfBounds falling back to
-                        # dateutil parser will return incorrect result because
-                        # it will ignore nanoseconds
-                        if is_coerce:
+                        # coerce
+                        # we now need to parse this as if unit='ns'
+                        # we can ONLY accept integers at this point
+                        # if we have previously (or in future accept
+                        # datetimes/strings, then we must coerce)
+                        try:
+                            iresult[i] = cast_from_unit(val, 'ns')
+                        except:
                             iresult[i] = NPY_NAT
+
+                elif is_string_object(val):
+                    # string
+                    seen_string = 1
+
+                    if len(val) == 0 or val in nat_strings:
+                        iresult[i] = NPY_NAT
+                        continue
+                    if isinstance(val, unicode) and PY2:
+                        val = val.encode('utf-8')
+
+                    try:
+                        _string_to_dts(val, &dts, &out_local, &out_tzoffset)
+                    except ValueError:
+                        # A ValueError at this point is a _parsing_ error
+                        # specifically _not_ OutOfBoundsDatetime
+                        if _parse_today_now(val, &iresult[i]):
+                            # TODO: Do we treat this as local?
+                            #  "now" is UTC, "today" is local
                             continue
                         elif require_iso8601:
-                            if is_raise:
+                            # if requiring iso8601 strings, skip trying
+                            # other formats
+                            if is_coerce:
+                                iresult[i] = NPY_NAT
+                                continue
+                            elif is_raise:
                                 raise ValueError("time data {val} doesn't "
                                                  "match format specified"
                                                  .format(val=val))
                             return values, tz_out
-                        raise
 
-            else:
+                        try:
+                            py_dt = parse_datetime_string(val,
+                                                          dayfirst=dayfirst,
+                                                          yearfirst=yearfirst)
+                        except Exception:
+                            if is_coerce:
+                                iresult[i] = NPY_NAT
+                                continue
+                            raise TypeError("invalid string coercion to "
+                                            "datetime")
+
+                        # If the dateutil parser returned tzinfo, capture it
+                        # to check if all arguments have the same tzinfo
+                        tz = py_dt.utcoffset()
+                        out_tzinfos[get_key(py_dt.tzinfo)] = py_dt.tzinfo
+
+                        _ts = convert_datetime_to_tsobject(py_dt, None)
+                        iresult[i] = _ts.value
+                    except:
+                        # TODO: What exception are we concerned with here?
+                        if is_coerce:
+                            iresult[i] = NPY_NAT
+                            continue
+                        raise
+                    else:
+                        # No error raised by string_to_dts, pick back up
+                        # where we left off
+                        value = dtstruct_to_dt64(&dts)
+                        if out_local == 1:
+                            seen_datetime_offset = 1
+                            # Store the out_tzoffset in seconds
+                            # since we store the total_seconds of
+                            # dateutil.tz.tzoffset objects
+                            tz = pytz.FixedOffset(out_tzoffset)
+                            out_tzinfos[get_key(tz)] = tz
+                            value = tz_convert_single(value, tz, UTC)
+                        else:
+                            # Add a marker for naive string, to track if we are
+                            # parsing mixed naive and aware strings
+                            out_tzinfos[None] = None
+                        iresult[i] = value
+                        check_dts_bounds(&dts)
+
+                else:
+                    if is_coerce:
+                        iresult[i] = NPY_NAT
+                    else:
+                        raise TypeError("{typ} is not convertible to datetime"
+                                        .format(typ=type(val)))
+
+            except OutOfBoundsDatetime:
                 if is_coerce:
                     iresult[i] = NPY_NAT
-                else:
-                    raise TypeError("{typ} is not convertible to datetime"
-                                    .format(typ=type(val)))
-
-        if seen_datetime and seen_integer:
-            # we have mixed datetimes & integers
-
-            if is_coerce:
-                # coerce all of the integers/floats to NaT, preserve
-                # the datetimes and other convertibles
-                for i in range(n):
-                    val = values[i]
-                    if is_integer_object(val) or is_float_object(val):
-                        result[i] = NPY_NAT
-            elif is_raise:
-                raise ValueError(
-                    "mixed datetimes and integers in passed array")
-            else:
-                raise TypeError
-
-        # TODO: File bug report with cython.  it raises
-        #  Closures Not Supported
-        #  error when I tried to use
-        #  `if any(key is not None for key in out_tzinfos)`
-        keys = out_tzinfos.keys()
-        nnkeys = [x for x in keys if x is not None]
-        if len(nnkeys) and not utc_convert:
-            # GH 17697
-            # 1) If all the offsets are equal, return one offset for
-            #    the parsed dates to (maybe) pass to DatetimeIndex
-            # 2) If the offsets are different, then force the parsing down the
-            #    object path where an array of datetimes
-            #    (with individual dateutil.tzoffsets) are returned
-            is_same_offsets = len(out_tzinfos) == 1
-            if not is_same_offsets:
-                return array_to_datetime_object(values, is_raise,
-                                                dayfirst, yearfirst)
-            else:
-                tz_out = list(out_tzinfos.values())[0]
-        return result, tz_out
+                    continue
+                elif require_iso8601 and is_string_object(val):
+                    # GH#19382 for just-barely-OutOfBounds falling back to
+                    # dateutil parser will return incorrect result because
+                    # it will ignore nanoseconds
+                    if is_raise:
+                        raise ValueError("time data {val} doesn't "
+                                         "match format specified"
+                                         .format(val=val))
+                    assert is_ignore
+                    return values, tz_out
+                raise
 
     except OutOfBoundsDatetime:
         if is_raise:
             raise
 
-        oresult = np.empty(n, dtype=object)
-        for i in range(n):
-            val = values[i]
+        return ignore_errors_out_of_bounds_fallback(values), tz_out
 
-            # set as nan except if its a NaT
-            if checknull_with_nat(val):
-                if isinstance(val, float):
-                    oresult[i] = np.nan
-                else:
-                    oresult[i] = NaT
-            elif is_datetime64_object(val):
-                if get_datetime64_value(val) == NPY_NAT:
-                    oresult[i] = NaT
-                else:
-                    oresult[i] = val.item()
-            else:
-                oresult[i] = val
-        return oresult, tz_out
     except TypeError:
         return array_to_datetime_object(values, is_raise, dayfirst, yearfirst)
+
+    if seen_datetime and seen_integer:
+        # we have mixed datetimes & integers
+
+        if is_coerce:
+            # coerce all of the integers/floats to NaT, preserve
+            # the datetimes and other convertibles
+            for i in range(n):
+                val = values[i]
+                if is_integer_object(val) or is_float_object(val):
+                    result[i] = NPY_NAT
+        elif is_raise:
+            raise ValueError("mixed datetimes and integers in passed array")
+        else:
+            return array_to_datetime_object(values, is_raise,
+                                            dayfirst, yearfirst)
+
+    # TODO: File bug report with cython.  it raises
+    #  Closures Not Supported
+    #  error when I tried to use
+    #  `if any(key is not None for key in out_tzinfos)`
+    keys = out_tzinfos.keys()
+    nnkeys = [x for x in keys if x is not None]
+    if len(nnkeys) and not utc_convert:
+        # GH#17697
+        # 1) If all the offsets are equal, return one offset for
+        #    the parsed dates to (maybe) pass to DatetimeIndex
+        # 2) If the offsets are different, then force the parsing down the
+        #    object path where an array of datetimes
+        #    (with individual dateutil.tzoffsets) are returned
+        is_same_offsets = len(out_tzinfos) == 1
+        if not is_same_offsets:
+            return array_to_datetime_object(values, is_raise,
+                                            dayfirst, yearfirst)
+        else:
+            tz_out = list(out_tzinfos.values())[0]
+    return result, tz_out
+
+
+cdef inline ignore_errors_out_of_bounds_fallback(ndarray[object] values):
+    """
+    Fallback for array_to_datetime if an OutOfBoundsDatetime is raised
+    and errors == "ignore"
+
+    Parameters
+    ----------
+    values : ndarray[object]
+
+    Returns
+    -------
+    ndarray[object]
+    """
+    cdef:
+        Py_ssize_t i, n = len(values)
+        object val
+
+    oresult = np.empty(n, dtype=object)
+
+    for i in range(n):
+        val = values[i]
+
+        # set as nan except if its a NaT
+        if checknull_with_nat(val):
+            if isinstance(val, float):
+                oresult[i] = np.nan
+            else:
+                oresult[i] = NaT
+        elif is_datetime64_object(val):
+            if get_datetime64_value(val) == NPY_NAT:
+                oresult[i] = NaT
+            else:
+                oresult[i] = val.item()
+        else:
+            oresult[i] = val
+    return oresult
 
 
 @cython.wraparound(False)
@@ -817,8 +823,6 @@ cdef array_to_datetime_object(ndarray[object] values, bint is_raise,
                 if is_raise:
                     raise
                 return values, None
-        elif PyDateTime_Check(val):
-            oresult[i] = val  # TODO: check_dts_bounds?
         else:
             if is_raise:
                 raise
