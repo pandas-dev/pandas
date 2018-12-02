@@ -1151,7 +1151,7 @@ Let us consider some examples:
 
 .. code-block:: python
 
-   read_csv(path, na_values=[5])
+   pd.read_csv(path, na_values=[5])                                # noqa: F821
 
 In the example above ``5`` and ``5.0`` will be recognized as ``NaN``, in
 addition to the defaults. A string will first be interpreted as a numerical
@@ -1159,19 +1159,19 @@ addition to the defaults. A string will first be interpreted as a numerical
 
 .. code-block:: python
 
-   read_csv(path, keep_default_na=False, na_values=[""])
+   pd.read_csv(path, keep_default_na=False, na_values=[""])        # noqa: F821
 
 Above, only an empty field will be recognized as ``NaN``.
 
 .. code-block:: python
 
-   read_csv(path, keep_default_na=False, na_values=["NA", "0"])
+   pd.read_csv(path, keep_default_na=False, na_values=["NA", "0"])  # noqa: F821
 
 Above, both ``NA`` and ``0`` as strings are ``NaN``.
 
 .. code-block:: python
 
-   read_csv(path, na_values=["Nope"])
+   pd.read_csv(path, na_values=["Nope"])                           # noqa: F821
 
 The default values, in addition to the string ``"Nope"`` are recognized as
 ``NaN``.
@@ -1255,9 +1255,9 @@ too many fields will raise an error by default:
 .. code-block:: ipython
 
     In [27]: data = ('a,b,c\n'
-                     '1,2,3\n'
-                     '4,5,6,7\n'
-                     '8,9,10')
+       ....:         '1,2,3\n'
+       ....:         '4,5,6,7\n'
+       ....:         '8,9,10')
 
     In [28]: pd.read_csv(StringIO(data))
     ---------------------------------------------------------------------------
@@ -2754,7 +2754,7 @@ file, and the ``sheet_name`` indicating which sheet to parse.
 .. code-block:: python
 
    # Returns a DataFrame
-   read_excel('path_to_file.xls', sheet_name='Sheet1')
+   pd.read_excel('path_to_file.xls', sheet_name='Sheet1')
 
 
 .. _io.excel.excelfile_class:
@@ -2803,14 +2803,14 @@ of sheet names can simply be passed to ``read_excel`` with no loss in performanc
     # using the ExcelFile class
     data = {}
     with pd.ExcelFile('path_to_file.xls') as xls:
-        data['Sheet1'] = read_excel(xls, 'Sheet1', index_col=None,
-                                    na_values=['NA'])
-        data['Sheet2'] = read_excel(xls, 'Sheet2', index_col=None,
-                                    na_values=['NA'])
+        data['Sheet1'] = pd.read_excel(xls, 'Sheet1',
+                                       index_col=None, na_values=['NA'])
+        data['Sheet2'] = pd.read_excel(xls, 'Sheet2',
+                                       index_col=None, na_values=['NA'])
 
     # equivalent using the read_excel function
-    data = read_excel('path_to_file.xls', ['Sheet1', 'Sheet2'],
-                      index_col=None, na_values=['NA'])
+    data = pd.read_excel('path_to_file.xls', ['Sheet1', 'Sheet2'],
+                         index_col=None, na_values=['NA'])
 
 .. _io.excel.specifying_sheets:
 
@@ -2832,35 +2832,35 @@ Specifying Sheets
 .. code-block:: python
 
    # Returns a DataFrame
-   read_excel('path_to_file.xls', 'Sheet1', index_col=None, na_values=['NA'])
+   pd.read_excel('path_to_file.xls', 'Sheet1', index_col=None, na_values=['NA'])
 
 Using the sheet index:
 
 .. code-block:: python
 
    # Returns a DataFrame
-   read_excel('path_to_file.xls', 0, index_col=None, na_values=['NA'])
+   pd.read_excel('path_to_file.xls', 0, index_col=None, na_values=['NA'])
 
 Using all default values:
 
 .. code-block:: python
 
    # Returns a DataFrame
-   read_excel('path_to_file.xls')
+   pd.read_excel('path_to_file.xls')
 
 Using None to get all sheets:
 
 .. code-block:: python
 
    # Returns a dictionary of DataFrames
-   read_excel('path_to_file.xls', sheet_name=None)
+   pd.read_excel('path_to_file.xls', sheet_name=None)
 
 Using a list to get multiple sheets:
 
 .. code-block:: python
 
    # Returns the 1st and 4th sheet, as a dictionary of DataFrames.
-   read_excel('path_to_file.xls', sheet_name=['Sheet1', 3])
+   pd.read_excel('path_to_file.xls', sheet_name=['Sheet1', 3])
 
 ``read_excel`` can read more than one sheet, by setting ``sheet_name`` to either
 a list of sheet names, a list of sheet positions, or ``None`` to read all sheets.
@@ -2932,20 +2932,20 @@ to be parsed.
 
 .. code-block:: python
 
-   read_excel('path_to_file.xls', 'Sheet1', usecols=2)
+   pd.read_excel('path_to_file.xls', 'Sheet1', usecols=2)
 
 You can also specify a comma-delimited set of Excel columns and ranges as a string:
 
 .. code-block:: python
 
-   read_excel('path_to_file.xls', 'Sheet1', usecols='A,C:E')
+   pd.read_excel('path_to_file.xls', 'Sheet1', usecols='A,C:E')
 
 If ``usecols`` is a list of integers, then it is assumed to be the file column
 indices to be parsed.
 
 .. code-block:: python
 
-   read_excel('path_to_file.xls', 'Sheet1', usecols=[0, 2, 3])
+   pd.read_excel('path_to_file.xls', 'Sheet1', usecols=[0, 2, 3])
 
 Element order is ignored, so ``usecols=[0, 1]`` is the same as ``[1, 0]``.
 
@@ -2957,7 +2957,7 @@ document header row(s). Those strings define which columns will be parsed:
 
 .. code-block:: python
 
-    read_excel('path_to_file.xls', 'Sheet1', usecols=['foo', 'bar'])
+    pd.read_excel('path_to_file.xls', 'Sheet1', usecols=['foo', 'bar'])
 
 Element order is ignored, so ``usecols=['baz', 'joe']`` is the same as ``['joe', 'baz']``.
 
@@ -2968,7 +2968,7 @@ the column names, returning names where the callable function evaluates to ``Tru
 
 .. code-block:: python
 
-    read_excel('path_to_file.xls', 'Sheet1', usecols=lambda x: x.isalpha())
+    pd.read_excel('path_to_file.xls', 'Sheet1', usecols=lambda x: x.isalpha())
 
 Parsing Dates
 +++++++++++++
@@ -2980,7 +2980,7 @@ use the ``parse_dates`` keyword to parse those strings to datetimes:
 
 .. code-block:: python
 
-   read_excel('path_to_file.xls', 'Sheet1', parse_dates=['date_strings'])
+   pd.read_excel('path_to_file.xls', 'Sheet1', parse_dates=['date_strings'])
 
 
 Cell Converters
@@ -2991,7 +2991,7 @@ option. For instance, to convert a column to boolean:
 
 .. code-block:: python
 
-   read_excel('path_to_file.xls', 'Sheet1', converters={'MyBools': bool})
+   pd.read_excel('path_to_file.xls', 'Sheet1', converters={'MyBools': bool})
 
 This options handles missing values and treats exceptions in the converters
 as missing data. Transformations are applied cell by cell rather than to the
@@ -3006,7 +3006,7 @@ missing data to recover integer dtype:
        return int(x) if x else -1
 
 
-   read_excel('path_to_file.xls', 'Sheet1', converters={'MyInts': cfun})
+   pd.read_excel('path_to_file.xls', 'Sheet1', converters={'MyInts': cfun})
 
 dtype Specifications
 ++++++++++++++++++++
@@ -3020,7 +3020,7 @@ no type inference, use the type ``str`` or ``object``.
 
 .. code-block:: python
 
-   read_excel('path_to_file.xls', dtype={'MyInts': 'int64', 'MyText': str})
+   pd.read_excel('path_to_file.xls', dtype={'MyInts': 'int64', 'MyText': str})
 
 .. _io.excel_writer:
 
@@ -5126,7 +5126,7 @@ If you have an SQLAlchemy description of your database you can express where con
                          sa.Column('Col_3', sa.Boolean),
                          )
 
-   pd.read_sql(sa.select([data_table]).where(data_table.c.Col_3 == True), engine)
+   pd.read_sql(sa.select([data_table]).where(data_table.c.Col_3 is True), engine)
 
 You can combine SQLAlchemy expressions with parameters passed to :func:`read_sql` using :func:`sqlalchemy.bindparam`
 
@@ -5155,7 +5155,7 @@ And then issue the following queries:
 
 .. code-block:: python
 
-   data.to_sql('data', cnx)
+   data.to_sql('data', con)
    pd.read_sql_query("SELECT * FROM data", con)
 
 
@@ -5374,7 +5374,7 @@ Obtain an iterator and read an XPORT file 100,000 lines at a time:
 
     rdr = pd.read_sas('sas_xport.xpt', chunk=100000)
     for chunk in rdr:
-        do_something(chunk)
+        do_something(chunk)                                        # noqa: F821
 
 The specification_ for the xport file format is available from the SAS
 web site.
