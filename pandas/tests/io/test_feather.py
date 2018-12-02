@@ -78,7 +78,7 @@ class TestFeather(object):
         self.check_error_on_write(df, ValueError)
 
     def test_read_columns(self):
-
+        # GH 24025
         df = pd.DataFrame({'col1': list('abc'),
                            'col2': list(range(1, 4)),
                            'col3': list('xyz'),
