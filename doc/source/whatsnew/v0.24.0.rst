@@ -1369,6 +1369,7 @@ Strings
 - Bug in :meth:`Index.str.split` was not nan-safe (:issue:`23677`).
 - Bug :func:`Series.str.contains` not respecting the ``na`` argument for a ``Categorical`` dtype ``Series`` (:issue:`22158`)
 - Bug in the ``__name__`` attribute of several methods of :class:`Series.str`, which were set incorrectly (:issue:`23551`)
+- Bug in :meth:`Index.str.cat` when the result contained only ``NaN`` (:issue:`24044`)
 
 Interval
 ^^^^^^^^

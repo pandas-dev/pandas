@@ -611,6 +611,32 @@ class TestStringMethods(object):
         with pytest.raises(ValueError, match=rgx):
             s.str.cat([t, z], join=join)
 
+    @pytest.mark.parametrize('box', [Series, Index])
+    @pytest.mark.parametrize('other', [Series, Index])
+    def test_str_cat_all_na(self, box, other):
+        # GH 24044
+
+        # check that all NaNs in caller / target work
+        s = Index(['a', 'b', 'c', 'd'])
+        s = s if box == Index else Series(s, index=s)
+        t = other([np.nan] * 4, dtype=object)
+        # add index of s for alignment
+        t = t if other == Index else Series(t, index=s)
+
+        # all-NA target
+        if box == Series:
+            expected = Series([np.nan] * 4, index=s.index, dtype=object)
+        else:  # box == Index
+            expected = Index([np.nan] * 4, dtype=object)
+        result = s.str.cat(t, join='left')
+        assert_series_or_index_equal(result, expected)
+
+        # all-NA caller (only for Series)
+        if other == Series:
+            expected = Series([np.nan] * 4, dtype=object, index=t.index)
+            result = t.str.cat(s, join='left')
+            tm.assert_series_equal(result, expected)
+
     def test_str_cat_special_cases(self):
         s = Series(['a', 'b', 'c', 'd'])
         t = Series(['d', 'a', 'e', 'b'], index=[3, 0, 4, 1])

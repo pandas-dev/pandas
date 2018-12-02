@@ -2328,9 +2328,11 @@ class StringMethods(NoNewAttributesMixin):
             result = cat_core(all_cols, sep)
 
         if isinstance(self._orig, Index):
-            result = Index(result, name=self._orig.name)
+            # add dtype for case that result is all-NA
+            result = Index(result, dtype=object, name=self._orig.name)
         else:  # Series
-            result = Series(result, index=data.index, name=self._orig.name)
+            result = Series(result, dtype=object, index=data.index,
+                            name=self._orig.name)
         return result
 
     _shared_docs['str_split'] = ("""
