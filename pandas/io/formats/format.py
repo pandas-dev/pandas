@@ -595,8 +595,8 @@ class DataFrameFormatter(TableFormatter):
         if len(frame.columns) == 0 or len(frame.index) == 0:
             info_line = (u'Empty {name}\nColumns: {col}\nIndex: {idx}'
                          .format(name=type(self.frame).__name__,
-                         col=pprint_thing(frame.columns),
-                         idx=pprint_thing(frame.index)))
+                                 col=pprint_thing(frame.columns),
+                                 idx=pprint_thing(frame.index)))
             text = info_line
         else:
 
