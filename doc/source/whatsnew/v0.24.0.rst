@@ -1349,6 +1349,7 @@ Indexing
 - Bug where setting a timedelta column by ``Index`` causes it to be casted to double, and therefore lose precision (:issue:`23511`)
 - Bug in :func:`Index.union` and :func:`Index.intersection` where name of the ``Index`` of the result was not computed correctly for certain cases (:issue:`9943`, :issue:`9862`)
 - Bug in :class:`Index` slicing with boolean :class:`Index` may raise ``TypeError`` (:issue:`22533`)
+- Bug in ``PeriodArray.__setitem__`` when accepting slice and list-like value (:issue:`23978`)
 
 Missing
 ^^^^^^^
