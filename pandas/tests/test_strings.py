@@ -261,7 +261,7 @@ class TestStringMethods(object):
                          + ['mixed', 'mixed-integer'] * mixed_allowed)
 
         if inferred_dtype in allowed_types:
-            # inter alia GH 23555, GH 23556
+            # xref GH 23555, GH 23556
             method(*args, **kwargs)  # works!
         else:
             # GH 23011, GH 23163
