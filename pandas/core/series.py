@@ -542,6 +542,8 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         """
         Return the *integer* indices of the elements that are non-zero.
 
+        .. deprecated:: 0.24.0
+
         This method is equivalent to calling `numpy.nonzero` on the
         series data. For compatibility with NumPy, the return value is
         the same (a tuple with an array of indices for each dimension),
@@ -571,6 +573,9 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         d    4
         dtype: int64
         """
+        msg = ("Series.nonzero() is deprecated "
+               "and will be removed in a future version.")
+        warnings.warn(msg, FutureWarning, stacklevel=2)
         return self._values.nonzero()
 
     def put(self, *args, **kwargs):
