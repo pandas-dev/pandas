@@ -1685,7 +1685,7 @@ cdef class _Period(object):
                 if other.freq != self.freq:
                     msg = _DIFFERENT_FREQ.format(self.freqstr, other.freqstr)
                     raise IncompatibleFrequency(msg)
-                # GH 23915
+                # GH 23915 - mul by base freq since __add__ is agnostic of n
                 return (self.ordinal - other.ordinal) * self.freq.base
             elif getattr(other, '_typ', None) == 'periodindex':
                 # GH#21314 PeriodIndex - Period returns an object-index
