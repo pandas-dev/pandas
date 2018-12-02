@@ -168,7 +168,6 @@ class TestTimestampComparison(object):
         assert stamp <= datetime(2700, 1, 1)
 
 
-
 def test_rich_comparison_with_unsupported_type():
     # See https://github.com/pandas-dev/pandas/issues/24011
 
