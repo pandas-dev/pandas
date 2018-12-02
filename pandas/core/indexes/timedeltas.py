@@ -22,7 +22,7 @@ from pandas.core.base import _shared_docs
 import pandas.core.common as com
 from pandas.core.indexes.base import Index, _index_shared_docs
 from pandas.core.indexes.datetimelike import (
-    DatetimeIndexOpsMixin, TimelikeOps, wrap_arithmetic_op, wrap_array_method,
+    DatetimeIndexOpsMixin, wrap_arithmetic_op, wrap_array_method,
     wrap_field_accessor)
 from pandas.core.indexes.numeric import Int64Index
 from pandas.core.ops import get_op_result_name
@@ -31,8 +31,7 @@ from pandas.core.tools.timedeltas import _coerce_scalar_to_timedelta_type
 from pandas.tseries.frequencies import to_offset
 
 
-class TimedeltaIndex(TimedeltaArray, DatetimeIndexOpsMixin,
-                     TimelikeOps, Int64Index):
+class TimedeltaIndex(TimedeltaArray, DatetimeIndexOpsMixin, Int64Index):
     """
     Immutable ndarray of timedelta64 data, represented internally as int64, and
     which can be boxed to timedelta objects
