@@ -540,6 +540,17 @@ class TestCategoricalIndex(Base):
         tm.assert_numpy_array_equal(indexer,
                                     np.array([0, 3, 2], dtype=np.intp))
 
+    def test_reindex_duplicate_target(self):
+        # See GH23963
+        c = CategoricalIndex(['a', 'b', 'c', 'a'],
+                             categories=['a', 'b', 'c', 'd'])
+        with pytest.raises(ValueError, match='non-unique indexer'):
+            c.reindex(['a', 'a', 'c'])
+
+        with pytest.raises(ValueError, match='non-unique indexer'):
+            c.reindex(CategoricalIndex(['a', 'a', 'c'],
+                                       categories=['a', 'b', 'c', 'd']))
+
     def test_reindex_empty_index(self):
         # See GH16770
         c = CategoricalIndex([])
