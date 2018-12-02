@@ -166,3 +166,43 @@ class TestTimestampComparison(object):
         assert stamp >= datetime(1600, 1, 1)
         assert stamp < datetime(2700, 1, 1)
         assert stamp <= datetime(2700, 1, 1)
+
+
+
+def test_rich_comparison_with_unsupported_type():
+    # See https://github.com/pandas-dev/pandas/issues/24011
+
+    class Inf(object):
+        def __lt__(self, o):
+            return False
+
+        def __le__(self, o):
+            return isinstance(o, Inf)
+
+        def __gt__(self, o):
+            return not isinstance(o, Inf)
+
+        def __ge__(self, o):
+            return True
+
+        def __eq__(self, o):
+            return isinstance(o, Inf)
+
+    timestamp = Timestamp('2018-11-30')
+
+    # Comparison works if compared in *that* order, because
+    # magic method is called on Inf
+    assert Inf() > timestamp
+    assert not (Inf() < timestamp)
+    assert Inf() != timestamp
+    assert not (Inf() == timestamp)
+    assert Inf() >= timestamp
+    assert not (Inf() <= timestamp)
+
+    # ... but used to not work when magic method is called on Timestamp
+    assert not (timestamp > Inf())
+    assert timestamp < Inf()
+    assert timestamp != Inf()
+    assert not (timestamp == Inf())
+    assert timestamp <= Inf()
+    assert not (timestamp >= Inf())
