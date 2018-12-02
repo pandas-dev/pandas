@@ -156,7 +156,9 @@ def _dt_array_cmp(cls, op):
     return compat.set_function_name(wrapper, opname, cls)
 
 
-class DatetimeArrayMixin(dtl.DatetimeLikeArrayMixin):
+class DatetimeArrayMixin(dtl.DatetimeLikeArrayMixin,
+                         dtl.TimelikeOps,
+                         dtl.DatelikeOps):
     """
     Assumes that subclass __new__/__init__ defines:
         tz
