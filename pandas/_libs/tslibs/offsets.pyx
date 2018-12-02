@@ -354,6 +354,10 @@ class _BaseOffset(object):
 
     @property
     def base(self):
+        """
+        Returns a copy of the calling offset object with n=1 and all other
+        attributes equal.
+        """
         return type(self)(n=1, normalize=self.normalize, **self.kwds)
 
     def __add__(self, other):
