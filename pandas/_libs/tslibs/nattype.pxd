@@ -13,7 +13,7 @@ cdef class _NaT(datetime):
         int64_t value
         object freq
 
-cdef _NaT NAT
+cdef _NaT c_NaT
 
 
 cdef bint checknull_with_nat(object val)

@@ -47,7 +47,7 @@ def _make_nan_func(func_name, doc):
 
 def _make_nat_func(func_name, doc):
     def f(*args, **kwargs):
-        return NAT
+        return c_NaT
     f.__name__ = func_name
     f.__doc__ = doc
     return f
@@ -67,10 +67,10 @@ def _make_error_func(func_name, cls):
 
 
 cdef _nat_divide_op(self, other):
-    if PyDelta_Check(other) or is_timedelta64_object(other) or other is NAT:
+    if PyDelta_Check(other) or is_timedelta64_object(other) or other is c_NaT:
         return np.nan
     if is_integer_object(other) or is_float_object(other):
-        return NAT
+        return c_NaT
     return NotImplemented
 
 
@@ -82,7 +82,7 @@ cdef _nat_rdivide_op(self, other):
 
 def __nat_unpickle(*args):
     # return constant defined in the module
-    return NAT
+    return c_NaT
 
 # ----------------------------------------------------------------------
 
@@ -116,18 +116,18 @@ cdef class _NaT(datetime):
 
     def __add__(self, other):
         if PyDateTime_Check(other):
-            return NAT
+            return c_NaT
 
         elif hasattr(other, 'delta'):
             # Timedelta, offsets.Tick, offsets.Week
-            return NAT
+            return c_NaT
         elif getattr(other, '_typ', None) in ['dateoffset', 'series',
                                               'period', 'datetimeindex',
                                               'timedeltaindex']:
             # Duplicate logic in _Timestamp.__add__ to avoid needing
             # to subclass; allows us to @final(_Timestamp.__add__)
             return NotImplemented
-        return NAT
+        return c_NaT
 
     def __sub__(self, other):
         # Duplicate some logic from _Timestamp.__sub__ to avoid needing
@@ -271,7 +271,7 @@ class NaTType(_NaT):
 
     def __rmul__(self, other):
         if is_integer_object(other) or is_float_object(other):
-            return NAT
+            return c_NaT
         return NotImplemented
 
     # ----------------------------------------------------------------------
@@ -659,15 +659,15 @@ class NaTType(_NaT):
         """)
 
 
-NAT = NaTType()  # C-visible
-NaT = NAT        # Python-visible
+c_NaT = NaTType()  # C-visible
+NaT = c_NaT        # Python-visible
 
 
 # ----------------------------------------------------------------------
 
 cdef inline bint checknull_with_nat(object val):
     """ utility to check if a value is a nat or not """
-    return val is None or util.is_nan(val) or val is NAT
+    return val is None or util.is_nan(val) or val is c_NaT
 
 
 cdef inline bint is_null_datetimelike(object val):
@@ -684,7 +684,7 @@ cdef inline bint is_null_datetimelike(object val):
     """
     if val is None or util.is_nan(val):
         return True
-    elif val is NAT:
+    elif val is c_NaT:
         return True
     elif util.is_timedelta64_object(val):
         return val.view('int64') == NPY_NAT
