@@ -10400,37 +10400,36 @@ Series([], dtype: bool)
 _shared_docs['stat_func_example'] = """\
 Examples
 --------
-``MultiIndex`` series example.
 
->>> index = pd.MultiIndex.from_arrays([
-...     ['Warm', 'Warm', 'Cold', 'Cold'],
-...     ['Dog', 'Falcon', 'Fish', 'Spider']],
-...     names=['Blooded', 'Animal'])
->>> s = pd.Series([4, 2, 0, 8], name='Legs', index=index)
+>>> idx = pd.MultiIndex.from_arrays([
+...     ['warm', 'warm', 'cold', 'cold'],
+...     ['dog', 'falcon', 'fish', 'spider']],
+...     names=['blooded', 'animal'])
+>>> s = pd.Series([4, 2, 0, 8], name='legs', index=idx)
 >>> s
-Blooded  Animal
-Warm     Dog       4
-         Falcon    2
-Cold     Fish      0
-         Spider    8
-Name: Legs, dtype: int64
+blooded  animal
+warm     dog       4
+         falcon    2
+cold     fish      0
+         spider    8
+Name: legs, dtype: int64
 
 >>> s.{stat_func}()
 {default_output}
 
 {verb} using level names, as well as indices.
 
->>> s.{stat_func}(level='Blooded')
-Blooded
-Warm    {level_output_0}
-Cold    {level_output_1}
-Name: Legs, dtype: int64
+>>> s.{stat_func}(level='blooded')
+blooded
+warm    {level_output_0}
+cold    {level_output_1}
+Name: legs, dtype: int64
 
 >>> s.{stat_func}(level=0)
-Blooded
-Warm    {level_output_0}
-Cold    {level_output_1}
-Name: Legs, dtype: int64
+blooded
+warm    {level_output_0}
+cold    {level_output_1}
+Name: legs, dtype: int64
 """
 
 _sum_examples = _shared_docs['stat_func_example'].format(
