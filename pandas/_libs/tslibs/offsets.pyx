@@ -352,6 +352,10 @@ class _BaseOffset(object):
                 if name not in ['n', 'normalize']}
         return {name: kwds[name] for name in kwds if kwds[name] is not None}
 
+    @property
+    def base(self):
+        return type(self)(n=1, normalize=self.normalize, **self.kwds)
+
     def __add__(self, other):
         if getattr(other, "_typ", None) in ["datetimeindex", "periodindex",
                                             "datetimearray", "periodarray",

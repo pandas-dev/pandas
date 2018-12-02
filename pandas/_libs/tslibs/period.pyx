@@ -1685,9 +1685,7 @@ cdef class _Period(object):
                 if other.freq != self.freq:
                     msg = _DIFFERENT_FREQ.format(self.freqstr, other.freqstr)
                     raise IncompatibleFrequency(msg)
-                base_freq = type(self.freq)(normalize=self.freq.normalize,
-                                            **self.freq.kwds)
-                return (self.ordinal - other.ordinal) * base_freq
+                return (self.ordinal - other.ordinal) * self.freq.base
             elif getattr(other, '_typ', None) == 'periodindex':
                 # GH#21314 PeriodIndex - Period returns an object-index
                 # of DateOffset objects, for which we cannot use __neg__
