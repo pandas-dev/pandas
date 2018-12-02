@@ -887,8 +887,8 @@ def tz_localize_to_utc(ndarray[int64_t] vals, object tz, object ambiguous=None,
         int64_t *tdata
         int64_t v, left, right, val, v_left, v_right, new_local, remaining_mins
         int64_t HOURS_NS = HOUR_SECONDS * 1000000000
-        ndarray[int64_t] trans, result, result_a, result_b, dst_hours
-        ndarray[int64_t] trans_idx, grp, delta, a_idx, b_idx, one_diff
+        ndarray[int64_t] trans, result, result_a, result_b, dst_hours, delta
+        ndarray trans_idx, grp, a_idx, b_idx, one_diff
         npy_datetimestruct dts
         bint infer_dst = False, is_dst = False, fill = False
         bint shift = False, fill_nonexist = False
