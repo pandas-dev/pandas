@@ -1502,18 +1502,51 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         # TODO: Add option for bins like value_counts()
         return algorithms.mode(self, dropna=dropna)
 
-    def unique(self):
+    def unique(self, return_inverse=False, raw=None):
         """
         Return unique values of Series object.
 
         Uniques are returned in order of appearance. Hash table-based unique,
         therefore does NOT sort.
 
+        Parameters
+        ----------
+        return_inverse : boolean, default False
+            Whether to return the inverse of the unique values. If True, the
+            output will be a tuple where the second component is again a Series
+            that contains the mapping between the indices of the elements in
+            the calling Series and their locations in the unique values. See
+            examples for how to reconstruct.
+
+            Using `return_inverse=True` is not compatible with `raw=True`.
+
+            .. versionadded:: 0.24.0
+
+        raw : boolean or None, default None
+            This parameter switches between different return types. If it is
+            True, the result will be `ndarray` (resp. a :class:`pd.Categorical`
+            in case of categorical data), which corresponds to the behavior
+            before v.0.24.
+
+            If False (the future default behavior, starting with v.1.0), it
+            will always return a Series of the same type as the caller.
+
+            .. versionadded:: 0.24.0
+
         Returns
         -------
-        ndarray or Categorical
-            The unique values returned as a NumPy array. In case of categorical
-            data type, returned as a Categorical.
+        uniques : Series (if `raw=False`), else ndarray or Categorical
+            If `raw=False`, this is a Series which contains the uniques in
+            order of their appearance (and with their respective indices).
+            If `raw=True`, the unique values are returned as a numpy array,
+            or as a Categorical (in case of categorical data).
+        inverse : Series (if `return_inverse=True`)
+            The inverse from the `uniques` back to the calling Series.
+
+        Raises
+        ------
+        ValueError
+            If `raw=True` and `return_inverse=True`.
 
         See Also
         --------
@@ -1522,40 +1555,157 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
         Examples
         --------
-        >>> pd.Series([2, 1, 3, 3], name='A').unique()
-        array([2, 1, 3])
+        If `raw=False`, the output is a Series:
 
-        >>> pd.Series([pd.Timestamp('2016-01-01') for _ in range(3)]).unique()
-        array(['2016-01-01T00:00:00.000000000'], dtype='datetime64[ns]')
+        >>> pd.Series([1, 1, 3, 2], name='A').unique(raw=False)
+        0    1
+        2    3
+        3    2
+        Name: A, dtype: int64
+
+        If `raw=True`, the output is an ndarray (if the data is not
+        categorical):
+
+        >>> pd.Series([1, 1, 3, 2], name='A').unique(raw=True)
+        array([1, 3, 2])
+
+        This method also deals well with timestamps,
+
+        >>> pd.Series([pd.Timestamp('2016-01-01')
+        ...            for _ in range(3)]).unique(raw=False)
+        0   2016-01-01
+        dtype: datetime64[ns]
+
+        as well as timezones:
 
         >>> pd.Series([pd.Timestamp('2016-01-01', tz='US/Eastern')
-        ...            for _ in range(3)]).unique()
-        array([Timestamp('2016-01-01 00:00:00-0500', tz='US/Eastern')],
-              dtype=object)
+        ...            for _ in range(3)]).unique(raw=False)
+        0   2016-01-01 00:00:00-05:00
+        dtype: datetime64[ns, US/Eastern]
 
         An unordered Categorical will return categories in the order of
         appearance.
 
-        >>> pd.Series(pd.Categorical(list('baabc'))).unique()
+        >>> pd.Series(pd.Categorical(list('baabc'))).unique(raw=False)
+        0    b
+        1    a
+        4    c
+        dtype: category
+        Categories (3, object): [b, a, c]
+
+        >>> pd.Series(pd.Categorical(list('baabc'))).unique(raw=True)
         [b, a, c]
         Categories (3, object): [b, a, c]
 
         An ordered Categorical preserves the category ordering.
 
         >>> pd.Series(pd.Categorical(list('baabc'), categories=list('abc'),
-        ...                          ordered=True)).unique()
-        [b, a, c]
+        ...                          ordered=True)).unique(raw=False)
+        0    b
+        1    a
+        4    c
+        dtype: category
         Categories (3, object): [a < b < c]
+
+        As an example for dealing with `return_inverse`, we consider the
+        following example (the reason we use a non-default index is only for
+        demonstration purposes, because this is also something the inverse
+        needs to reconstruct):
+
+        >>> animals = pd.Series(['lama', 'cow', 'lama', 'beetle', 'lama'],
+        ...                     index=[1, 4, 9, 16, 25])
+
+        >>> animals_unique, inverse = animals.unique(raw=False,
+        ...                                          return_inverse=True)
+        >>> animals_unique
+        1       lama
+        4        cow
+        16    beetle
+        dtype: object
+
+        >>> inverse
+        1      1
+        4      4
+        9      1
+        16    16
+        25     1
+        dtype: int64
+
+        This can be used to reconstruct the original object from its unique
+        values as follows
+
+        >>> reconstruct = animals_unique.reindex(inverse)
+        >>> reconstruct
+        1       lama
+        4        cow
+        1       lama
+        16    beetle
+        1       lama
+        dtype: object
+
+        We see that the values of `animals` get reconstructed correctly, but
+        the index does not match yet  -- consequently, the last step is to
+        correctly set the index.
+    
+        >>> reconstruct.index = inverse.index
+        >>> reconstruct
+        1       lama
+        4        cow
+        9       lama
+        16    beetle
+        25      lama
+        dtype: object
+
+        >>> reconstruct.equals(animals)
+        True
         """
-        result = super(Series, self).unique()
+        if raw is None:
+            msg = ('A future version of pandas will return a Series here. '
+                   'To keep returning an ndarray / Categorical (the behavior '
+                   'before v.0.24) and silence this warning, pass the keyword '
+                   '`raw=True`. To return a Series and silence this warning, '
+                   'pass `raw=False`. In the future, the default will switch '
+                   'to `raw=False`, and therefore, if an array is required as '
+                   'output, the recommended way is to pass `raw=False` and '
+                   'use `.array` on the result.')
+            warnings.warn(msg, FutureWarning, stacklevel=2)
+            raw = True
 
-        if is_datetime64tz_dtype(self.dtype):
-            # we are special casing datetime64tz_dtype
-            # to return an object array of tz-aware Timestamps
+        if raw not in [True, False]:
+            raise ValueError('The keyword "raw" must be either True or False')
+        if return_inverse not in [True, False]:
+            raise ValueError('The keyword "return_inverse" must be either '
+                             'True or False')
 
-            # TODO: it must return DatetimeArray with tz in pandas 2.0
-            result = result.astype(object).values
+        if raw and return_inverse:
+            raise ValueError('The keyword "return_inverse=True" is not '
+                             'supported if "raw=True"')
+        elif raw:
+            result = super(Series, self).unique()
+    
+            if is_datetime64tz_dtype(self.dtype):
+                # we are special casing datetime64tz_dtype
+                # to return an object array of tz-aware Timestamps
+    
+                # TODO: it must return DatetimeArray with tz in pandas 2.0
+                result = result.astype(object).values
+            return result
 
+        # for raw=False, we need the inverse in any case
+        result_array, inverse_array = super(Series,
+                                            self).unique(return_inverse=True)
+
+        # construct indices of first occurrences. In principle, this could be
+        # returned from the cython methods, but this is not compatible with the
+        # (shared) signature for Index.unique
+        idx = ~Series(inverse_array).duplicated(keep='first')
+
+        result = self._constructor(result_array,
+                                   index=self.index[idx]).__finalize__(self)
+
+        if return_inverse:
+            inverse = Series(result.index[inverse_array], index=self.index)
+            return result, inverse
         return result
 
     def drop_duplicates(self, keep='first', inplace=False):

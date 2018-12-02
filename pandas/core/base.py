@@ -1208,15 +1208,24 @@ class IndexOpsMixin(object):
                               normalize=normalize, bins=bins, dropna=dropna)
         return result
 
-    def unique(self):
+    def unique(self, return_inverse=False):
         values = self._values
 
-        if hasattr(values, 'unique'):
-
-            result = values.unique()
+        if is_extension_array_dtype(values):
+            if return_inverse:
+                # as long as return_inverse is not part of the EA.unique
+                # contract, test if this works
+                try:
+                    result = values.unique(return_inverse=return_inverse)
+                except TypeError:
+                    raise ValueError('extension array of dtype {dtype} does '
+                                     'not yet support unique with '
+                                     'return_inverse.')
+            else:
+                result = values.unique()
         else:
             from pandas.core.algorithms import unique1d
-            result = unique1d(values)
+            result = unique1d(values, return_inverse=return_inverse)
 
         return result
 

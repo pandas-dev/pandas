@@ -271,7 +271,7 @@ def match(to_match, values, na_sentinel=-1):
     return result
 
 
-def unique(values):
+def unique(values, return_inverse=False):
     """
     Hash table-based unique. Uniques are returned in order
     of appearance. This does NOT sort.
@@ -355,7 +355,11 @@ def unique(values):
     htable, _, values, dtype, ndtype = _get_hashtable_algo(values)
 
     table = htable(len(values))
-    uniques = table.unique(values)
+    if return_inverse:
+        uniques, inverse = table.unique(values, return_inverse=True)
+    else:
+        uniques = table.unique(values)
+
     uniques = _reconstruct_data(uniques, dtype, original)
 
     if isinstance(original, ABCSeries) and is_datetime64tz_dtype(dtype):
@@ -365,6 +369,8 @@ def unique(values):
         # TODO: it must return DatetimeArray with tz in pandas 2.0
         uniques = uniques.astype(object).values
 
+    if return_inverse:
+        return uniques, inverse
     return uniques
 
 
