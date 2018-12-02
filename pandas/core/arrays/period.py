@@ -346,7 +346,7 @@ class PeriodArray(dtl.DatetimeLikeArrayMixin, ExtensionArray):
 
     def __setitem__(
             self,
-            key,   # type: Union[int, Sequence[int], Sequence[bool]]
+            key,   # type: Union[int, Sequence[int], Sequence[bool], slice]
             value  # type: Union[NaTType, Period, Sequence[Period]]
     ):
         # type: (...) -> None
@@ -356,11 +356,14 @@ class PeriodArray(dtl.DatetimeLikeArrayMixin, ExtensionArray):
         # ndarray[datetime64ns]. I think ndarray[int] / ndarray[str] won't
         # work, since the freq can't be inferred.
         if is_list_like(value):
-            if len(key) != len(value) and not com.is_bool_indexer(key):
+            is_slice = isinstance(key, slice)
+            if (not is_slice
+                    and len(key) != len(value)
+                    and not com.is_bool_indexer(key)):
                 msg = ("shape mismatch: value array of length '{}' does not "
                        "match indexing result of length '{}'.")
                 raise ValueError(msg.format(len(key), len(value)))
-            if len(key) == 0:
+            if not is_slice and len(key) == 0:
                 return
 
             value = period_array(value)
