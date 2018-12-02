@@ -3272,12 +3272,12 @@ class NDFrame(PandasObject, SelectionMixin):
         """
         Return cross-section from the Series/DataFrame.
 
-        This methode takes a level argument to select data at a particular
-        level of a MultiIndex easier.
+        This method takes a `key` argument to select data at a particular
+        level of a MultiIndex.
 
         Parameters
         ----------
-        key : label or tuple of label, e.g. ['a', 'b', 'c']
+        key : label or tuple of label
             Label contained in the index, or partially in a MultiIndex.
         axis : {0 or 'index', 1 or 'columns'}, default 0
             Axis to retrieve cross-section on.
@@ -3289,8 +3289,9 @@ class NDFrame(PandasObject, SelectionMixin):
 
         Returns
         -------
-        Series or DataFrame of the cross-section (row(s) or column(s)) from
-        the original Series/DataFrame.
+        Series or DataFrame
+            Cross-section from the original Series or DataFrame
+            corresponding to the selected index levels.
 
         See Also
         --------
@@ -3303,8 +3304,9 @@ class NDFrame(PandasObject, SelectionMixin):
         -----
         `xs` can not be used to set values.
 
-        MultiIndex Slicers is a generic way to get/set values on any level or
-        levels.  It is a superset of `xs` functionality, see
+        MultiIndex Slicers is a generic way to get/set values on
+        any level or levels.
+        It is a superset of `xs` functionality, see
         :ref:`MultiIndex Slicers <advanced.mi_slicers>`.
 
         Examples
@@ -3323,23 +3325,40 @@ class NDFrame(PandasObject, SelectionMixin):
                dog     walks              4          0
                bat     flies              2          2
         bird   penguin walks              2          2
+
+        Get values at specified index
+
         >>> df.xs('mammal')
                            num_legs  num_wings
         animal locomotion
         cat    walks              4          0
         dog    walks              4          0
         bat    flies              2          2
-        >>> df.xs('num_wings', axis=1)
-        class   animal   locomotion
-        mammal  cat      walks         0
-                dog      walks         0
-                bat      flies         2
-        bird    penguin  walks         2
-        Name: num_wings, dtype: int64
+
+        Get values at several indexes
+
         >>> df.xs(('mammal', 'dog'))
                     num_legs  num_wings
         locomotion
         walks              4          0
+
+        Get values at specified index and level
+
+        >>> df.xs('cat', level=1)
+                           num_legs  num_wings
+        class  locomotion
+        mammal walks              4          0
+
+        Get values at several indexes and levels
+
+        >>> df.xs(('bird', 'walks'),
+        ...       level=[0, 'locomotion'])
+                 num_legs  num_wings
+        animal
+        penguin         2          2
+
+        Get values at specified column and axis
+
         >>> df.xs('num_wings', axis=1)
         class   animal   locomotion
         mammal  cat      walks         0
@@ -3347,18 +3366,6 @@ class NDFrame(PandasObject, SelectionMixin):
                 bat      flies         2
         bird    penguin  walks         2
         Name: num_wings, dtype: int64
-        >>> df.xs(('mammal', 'bat'))
-                    num_legs  num_wings
-        locomotion
-        flies              2          2
-        >>> df.xs('cat', level=1)
-                           num_legs  num_wings
-        class  locomotion
-        mammal walks              4          0
-        >>> df.xs(('bird', 'walks'), level=[0, 'locomotion'])
-                 num_legs  num_wings
-        animal
-        penguin         2          2
         """
         axis = self._get_axis_number(axis)
         labels = self._get_axis(axis)
