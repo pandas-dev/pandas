@@ -1101,7 +1101,7 @@ Deprecations
 ~~~~~~~~~~~~
 
 - :attr:`MultiIndex.labels` has been deprecated and replaced by :attr:`MultiIndex.codes`.
-  The functionality is unchanged. This new name better reflects the natures of
+  The functionality is unchanged. The new name better reflects the natures of
   these codes and makes the ``MultiIndex`` API more similar to the API for
   :class:`CategoricalIndex`(:issue:`13443`).
   As a consequence, other uses of the name ``labels`` in ``MultiIndex`` have also been deprecated and replaced with ``codes``:

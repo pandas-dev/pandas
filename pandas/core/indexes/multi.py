@@ -633,6 +633,10 @@ class MultiIndex(Index):
         Set new codes on MultiIndex. Defaults to returning
         new index.
 
+        .. versionadded:: 0.24.0
+
+           New name for deprecated method `set_labels`.
+
         Parameters
         ----------
         codes : sequence or list of sequence

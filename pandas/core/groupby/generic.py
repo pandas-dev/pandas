@@ -1191,10 +1191,10 @@ class SeriesGroupBy(GroupBy):
             out, left[-1] = out[sorter], left[-1][sorter]
 
         # build the multi-index w/ full levels
-        labels = list(map(lambda lab: np.repeat(lab[diff], nbin), labels[:-1]))
-        labels.append(left[-1])
+        codes = list(map(lambda lab: np.repeat(lab[diff], nbin), labels[:-1]))
+        codes.append(left[-1])
 
-        mi = MultiIndex(levels=levels, codes=labels, names=names,
+        mi = MultiIndex(levels=levels, codes=codes, names=names,
                         verify_integrity=False)
 
         if is_integer_dtype(out):

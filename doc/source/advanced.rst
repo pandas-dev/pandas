@@ -474,7 +474,7 @@ values across a level. For instance:
 .. ipython:: python
 
    midx = pd.MultiIndex(levels=[['zero', 'one'], ['x', 'y']],
-                        codes=[[1, 1, 0, 0],[1, 0, 1, 0]])
+                        codes=[[1, 1, 0, 0], [1, 0, 1, 0]])
    df = pd.DataFrame(np.random.randn(4, 2), index=midx)
    df
    df2 = df.mean(level=0)
