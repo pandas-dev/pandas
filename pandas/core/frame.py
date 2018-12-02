@@ -968,10 +968,9 @@ class DataFrame(NDFrame):
         Returns
         -------
         Series or DataFrame
-            Return the Series of the matrix product between the Dataframe and
-            other if other is a Series, the Dataframe of the matrix product of
-            each columns of the DataFrame/np.array and each columns of other
-            if other is a DataFrame or a numpy.ndarray.
+            If other is a Series, return the matrix product between self and
+            other as a Serie. If other is a DataFrame or a numpy.array, return
+            the matrix product of self and other in a DataFrame of a np.array.
 
         See Also
         --------
@@ -988,26 +987,37 @@ class DataFrame(NDFrame):
 
         Examples
         --------
-        >>> df = pd.DataFrame([[0, 1, -2, 3], [4, -5, 6, 7]])
-        >>> s = pd.Series([0, 1, 2, 3])
-        >>> print(df.dot(s))
-        0     6
-        1    28
+        Here we multiply a DataFrame with a Series.
+
+        >>> df = pd.DataFrame([[0, 1, -2, -1], [1, 1, 1, 1]])
+        >>> s = pd.Series([1, 1, 2, 1])
+        >>> df.dot(s)
+        0    -4
+        1     5
         dtype: int64
-        >>> other = pd.DataFrame([[0, 1], [7, 8], [-6, 0], [-1, 2]])
-        >>> print(df.dot(other))
+
+        Here we multiply a DataFrame with another DataFrame.
+
+        >>> other = pd.DataFrame([[0 ,1], [1, 2], [-1, -1], [2, 0]])
+        >>> df.dot(other)
             0   1
-        0  16  14
-        1 -78 -22
+        0   1   4
+        1   2   2
+
+        Note that the dot method give the same result as @
+
         >>> df @ other
             0   1
-        0  16  14
-        1 -78 -22
-        >>> arr = np.array([[0, 1], [-2, 3], [4, -5], [6, 7]])
-        >>> print(df.dot(arr))
+        0   1   4
+        1   2   2
+
+        The dot method works also if other is an np.array.
+
+        >>> arr = np.array([[0 ,1], [1, 2], [-1, -1], [2, 0]])
+        >>> df.dot(arr)
             0   1
-        0   8  34
-        1  76   8
+        0   1   4
+        1   2   2
         """
         if isinstance(other, (Series, DataFrame)):
             common = self.columns.union(other.index)
