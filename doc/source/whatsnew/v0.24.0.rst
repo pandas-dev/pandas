@@ -376,6 +376,7 @@ Backwards incompatible API changes
 - :meth:`Series.str.cat` will now raise if `others` is a `set` (:issue:`23009`)
 - Passing scalar values to :class:`DatetimeIndex` or :class:`TimedeltaIndex` will now raise ``TypeError`` instead of ``ValueError`` (:issue:`23539`)
 - ``max_rows`` and ``max_cols`` parameters removed from :class:`HTMLFormatter` since truncation is handled by :class:`DataFrameFormatter` (:issue:`23818`)
+- :meth:`read_csv` will now raise a ``ValueError`` if a column with missing values is declared as having dtype ``bool`` (:issue:`20591`)
 
 .. _whatsnew_0240.api_breaking.deps:
 
@@ -1213,6 +1214,7 @@ Performance Improvements
   The speed increase is both when indexing by label (using .loc) and position(.iloc) (:issue:`20395`)
   Slicing a monotonically increasing :class:`CategoricalIndex` itself (i.e. ``ci[1000:2000]``)
   shows similar speed improvements as above (:issue:`21659`)
+- Improved performance of :meth:`CategoricalIndex.equals` when comparing to another :class:`CategoricalIndex` (:issue:`24023`)
 - Improved performance of :func:`Series.describe` in case of numeric dtpyes (:issue:`21274`)
 - Improved performance of :func:`pandas.core.groupby.GroupBy.rank` when dealing with tied rankings (:issue:`21237`)
 - Improved performance of :func:`DataFrame.set_index` with columns consisting of :class:`Period` objects (:issue:`21582`, :issue:`21606`)
@@ -1228,7 +1230,7 @@ Performance Improvements
 - Improved performance of :func:`pd.concat` for `Series` objects (:issue:`23404`)
 - Improved performance of :meth:`DatetimeIndex.normalize` and :meth:`Timestamp.normalize` for timezone naive or UTC datetimes (:issue:`23634`)
 - Improved performance of :meth:`DatetimeIndex.tz_localize` and various ``DatetimeIndex`` attributes with dateutil UTC timezone (:issue:`23772`)
-
+- Improved performance of :class:`Categorical` constructor for `Series` objects (:issue:`23814`)
 
 .. _whatsnew_0240.docs:
 
@@ -1530,6 +1532,7 @@ Reshaping
 - Bug in :func:`pandas.melt` when passing column names that are not present in ``DataFrame`` (:issue:`23575`)
 - Bug in :meth:`DataFrame.append` with a :class:`Series` with a dateutil timezone would raise a ``TypeError`` (:issue:`23682`)
 - Bug in ``Series`` construction when passing no data and ``dtype=str`` (:issue:`22477`)
+- Bug in :func:`cut` with ``bins`` as an overlapping ``IntervalIndex`` where multiple bins were returned per item instead of raising a ``ValueError`` (:issue:`23980`)
 
 .. _whatsnew_0240.bug_fixes.sparse:
 
