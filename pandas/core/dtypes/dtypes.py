@@ -487,8 +487,6 @@ class DatetimeTZDtype(PandasExtensionDtype):
     _metadata = ('unit', 'tz')
     _match = re.compile(r"(datetime64|M8)\[(?P<unit>.+), (?P<tz>.+)\]")
     _cache = {}
-    # TODO: restore caching? who cares though? It seems needlessly complex.
-    # np.dtype('datetime64[ns]') isn't a singleton
 
     def __init__(self, unit="ns", tz=None):
         """
