@@ -10,11 +10,12 @@ from pandas._libs.tslibs import timezones
 from pandas._libs.tslibs.period import (
     DIFFERENT_FREQ_INDEX, IncompatibleFrequency, Period)
 from pandas._libs.tslibs.timedeltas import Timedelta, delta_to_nanoseconds
-from pandas._libs.tslibs.timestamps import maybe_integer_op_deprecated
+from pandas._libs.tslibs.timestamps import (
+    RoundTo, maybe_integer_op_deprecated, round_nsint64)
 import pandas.compat as compat
 from pandas.errors import (
     AbstractMethodError, NullFrequencyError, PerformanceWarning)
-from pandas.util._decorators import deprecate_kwarg
+from pandas.util._decorators import Appender, deprecate_kwarg
 
 from pandas.core.dtypes.common import (
     is_bool_dtype, is_datetime64_any_dtype, is_datetime64_dtype,
@@ -78,6 +79,189 @@ class AttributesMixin(object):
     def _get_attributes_dict(self):
         """return an attributes dict for my class"""
         return {k: getattr(self, k, None) for k in self._attributes}
+
+
+class DatelikeOps(object):
+    """
+    Common ops for DatetimeIndex/PeriodIndex, but not TimedeltaIndex.
+    """
+
+    def strftime(self, date_format):
+        from pandas import Index
+        return Index(self.format(date_format=date_format),
+                     dtype=compat.text_type)
+    strftime.__doc__ = """
+    Convert to Index using specified date_format.
+
+    Return an Index of formatted strings specified by date_format, which
+    supports the same string format as the python standard library. Details
+    of the string format can be found in `python string format doc <{0}>`__
+
+    Parameters
+    ----------
+    date_format : str
+        Date format string (e.g. "%Y-%m-%d").
+
+    Returns
+    -------
+    Index
+        Index of formatted strings
+
+    See Also
+    --------
+    to_datetime : Convert the given argument to datetime.
+    DatetimeIndex.normalize : Return DatetimeIndex with times to midnight.
+    DatetimeIndex.round : Round the DatetimeIndex to the specified freq.
+    DatetimeIndex.floor : Floor the DatetimeIndex to the specified freq.
+
+    Examples
+    --------
+    >>> rng = pd.date_range(pd.Timestamp("2018-03-10 09:00"),
+    ...                     periods=3, freq='s')
+    >>> rng.strftime('%B %d, %Y, %r')
+    Index(['March 10, 2018, 09:00:00 AM', 'March 10, 2018, 09:00:01 AM',
+           'March 10, 2018, 09:00:02 AM'],
+          dtype='object')
+    """.format("https://docs.python.org/3/library/datetime.html"
+               "#strftime-and-strptime-behavior")
+
+
+class TimelikeOps(object):
+    """
+    Common ops for TimedeltaIndex/DatetimeIndex, but not PeriodIndex.
+    """
+
+    _round_doc = (
+        """
+        Perform {op} operation on the data to the specified `freq`.
+
+        Parameters
+        ----------
+        freq : str or Offset
+            The frequency level to {op} the index to. Must be a fixed
+            frequency like 'S' (second) not 'ME' (month end). See
+            :ref:`frequency aliases <timeseries.offset_aliases>` for
+            a list of possible `freq` values.
+        ambiguous : 'infer', bool-ndarray, 'NaT', default 'raise'
+            Only relevant for DatetimeIndex:
+
+            - 'infer' will attempt to infer fall dst-transition hours based on
+              order
+            - bool-ndarray where True signifies a DST time, False designates
+              a non-DST time (note that this flag is only applicable for
+              ambiguous times)
+            - 'NaT' will return NaT where there are ambiguous times
+            - 'raise' will raise an AmbiguousTimeError if there are ambiguous
+              times
+
+            .. versionadded:: 0.24.0
+        nonexistent : 'shift', 'NaT', default 'raise'
+            A nonexistent time does not exist in a particular timezone
+            where clocks moved forward due to DST.
+
+            - 'shift' will shift the nonexistent time forward to the closest
+              existing time
+            - 'NaT' will return NaT where there are nonexistent times
+            - 'raise' will raise an NonExistentTimeError if there are
+              nonexistent times
+
+            .. versionadded:: 0.24.0
+
+        Returns
+        -------
+        DatetimeIndex, TimedeltaIndex, or Series
+            Index of the same type for a DatetimeIndex or TimedeltaIndex,
+            or a Series with the same index for a Series.
+
+        Raises
+        ------
+        ValueError if the `freq` cannot be converted.
+
+        Examples
+        --------
+        **DatetimeIndex**
+
+        >>> rng = pd.date_range('1/1/2018 11:59:00', periods=3, freq='min')
+        >>> rng
+        DatetimeIndex(['2018-01-01 11:59:00', '2018-01-01 12:00:00',
+                       '2018-01-01 12:01:00'],
+                      dtype='datetime64[ns]', freq='T')
+        """)
+
+    _round_example = (
+        """>>> rng.round('H')
+        DatetimeIndex(['2018-01-01 12:00:00', '2018-01-01 12:00:00',
+                       '2018-01-01 12:00:00'],
+                      dtype='datetime64[ns]', freq=None)
+
+        **Series**
+
+        >>> pd.Series(rng).dt.round("H")
+        0   2018-01-01 12:00:00
+        1   2018-01-01 12:00:00
+        2   2018-01-01 12:00:00
+        dtype: datetime64[ns]
+        """)
+
+    _floor_example = (
+        """>>> rng.floor('H')
+        DatetimeIndex(['2018-01-01 11:00:00', '2018-01-01 12:00:00',
+                       '2018-01-01 12:00:00'],
+                      dtype='datetime64[ns]', freq=None)
+
+        **Series**
+
+        >>> pd.Series(rng).dt.floor("H")
+        0   2018-01-01 11:00:00
+        1   2018-01-01 12:00:00
+        2   2018-01-01 12:00:00
+        dtype: datetime64[ns]
+        """
+    )
+
+    _ceil_example = (
+        """>>> rng.ceil('H')
+        DatetimeIndex(['2018-01-01 12:00:00', '2018-01-01 12:00:00',
+                       '2018-01-01 13:00:00'],
+                      dtype='datetime64[ns]', freq=None)
+
+        **Series**
+
+        >>> pd.Series(rng).dt.ceil("H")
+        0   2018-01-01 12:00:00
+        1   2018-01-01 12:00:00
+        2   2018-01-01 13:00:00
+        dtype: datetime64[ns]
+        """
+    )
+
+    def _round(self, freq, mode, ambiguous, nonexistent):
+        # round the local times
+        values = _ensure_datetimelike_to_i8(self)
+        result = round_nsint64(values, mode, freq)
+        result = self._maybe_mask_results(result, fill_value=NaT)
+
+        attribs = self._get_attributes_dict()
+        attribs['freq'] = None
+        if 'tz' in attribs:
+            attribs['tz'] = None
+        return self._ensure_localized(
+            self._shallow_copy(result, **attribs), ambiguous, nonexistent
+        )
+
+    @Appender((_round_doc + _round_example).format(op="round"))
+    def round(self, freq, ambiguous='raise', nonexistent='raise'):
+        return self._round(
+            freq, RoundTo.NEAREST_HALF_EVEN, ambiguous, nonexistent
+        )
+
+    @Appender((_round_doc + _floor_example).format(op="floor"))
+    def floor(self, freq, ambiguous='raise', nonexistent='raise'):
+        return self._round(freq, RoundTo.MINUS_INFTY, ambiguous, nonexistent)
+
+    @Appender((_round_doc + _ceil_example).format(op="ceil"))
+    def ceil(self, freq, ambiguous='raise', nonexistent='raise'):
+        return self._round(freq, RoundTo.PLUS_INFTY, ambiguous, nonexistent)
 
 
 class DatetimeLikeArrayMixin(ExtensionOpsMixin, AttributesMixin):
@@ -1028,3 +1212,39 @@ def validate_dtype_freq(dtype, freq):
             raise IncompatibleFrequency('specified freq and dtype '
                                         'are different')
     return freq
+
+
+def _ensure_datetimelike_to_i8(other, to_utc=False):
+    """
+    Helper for coercing an input scalar or array to i8.
+
+    Parameters
+    ----------
+    other : 1d array
+    to_utc : bool, default False
+        If True, convert the values to UTC before extracting the i8 values
+        If False, extract the i8 values directly.
+
+    Returns
+    -------
+    i8 1d array
+    """
+    from pandas import Index
+    from pandas.core.arrays import PeriodArray
+
+    if lib.is_scalar(other) and isna(other):
+        return iNaT
+    elif isinstance(other, (PeriodArray, ABCIndexClass)):
+        # convert tz if needed
+        if getattr(other, 'tz', None) is not None:
+            if to_utc:
+                other = other.tz_convert('UTC')
+            else:
+                other = other.tz_localize(None)
+    else:
+        try:
+            return np.array(other, copy=False).view('i8')
+        except TypeError:
+            # period array cannot be coerced to int
+            other = Index(other)
+    return other.asi8
