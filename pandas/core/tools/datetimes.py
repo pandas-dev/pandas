@@ -172,7 +172,8 @@ def _convert_listlike_datetimes(arg, box, format, name=None, tz=None,
     """
     from pandas import DatetimeIndex
     from pandas.core.arrays import DatetimeArrayMixin as DatetimeArray
-    from pandas.core.arrays.datetimes import maybe_convert_dtype
+    from pandas.core.arrays.datetimes import (
+        maybe_convert_dtype, objects_to_datetime64ns)
 
     if isinstance(arg, (list, tuple)):
         arg = np.array(arg, dtype='O')
@@ -234,8 +235,9 @@ def _convert_listlike_datetimes(arg, box, format, name=None, tz=None,
 
     tz_parsed = None
     result = None
-    try:
-        if format is not None:
+
+    if format is not None:
+        try:
             # shortcut formatting here
             if format == '%Y%m%d':
                 try:
@@ -267,24 +269,22 @@ def _convert_listlike_datetimes(arg, box, format, name=None, tz=None,
                         if errors == 'raise':
                             raise
                         result = arg
+        except ValueError as e:
+            # Fallback to try to convert datetime objects if timezone-aware
+            #  datetime objects are found without passing `utc=True`
+            try:
+                values, tz = conversion.datetime_to_datetime64(arg)
+                return DatetimeIndex._simple_new(values, name=name, tz=tz)
+            except (ValueError, TypeError):
+                raise e
 
-        if result is None:
-            assert format is None or infer_datetime_format
-            result, tz_parsed = tslib.array_to_datetime(
-                arg,
-                errors=errors,
-                utc=tz == 'utc',
-                dayfirst=dayfirst,
-                yearfirst=yearfirst,
-                require_iso8601=require_iso8601
-            )
-    except ValueError as e:
-        # Fallback to try to convert datetime objects
-        try:
-            values, tz = conversion.datetime_to_datetime64(arg)
-            return DatetimeIndex._simple_new(values, name=name, tz=tz)
-        except (ValueError, TypeError):
-            raise e
+    if result is None:
+        assert format is None or infer_datetime_format
+        utc = tz == 'utc'
+        result, tz_parsed = objects_to_datetime64ns(
+            arg, dayfirst=dayfirst, yearfirst=yearfirst,
+            utc=utc, errors=errors, require_iso8601=require_iso8601,
+            allow_object=True)
 
     if tz_parsed is not None:
         if box:

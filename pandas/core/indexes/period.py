@@ -58,13 +58,11 @@ class PeriodDelegateMixin(DatetimelikeDelegateMixin):
     Delegate from PeriodIndex to PeriodArray.
     """
     _delegate_class = PeriodArray
-    _delegated_properties = (
-        PeriodArray._datetimelike_ops + ['size', 'asi8', 'shape']
-    )
+    _delegated_properties = PeriodArray._datetimelike_ops
     _delegated_methods = (
-        set(PeriodArray._datetimelike_methods) -
-        {'asfreq', 'to_timestamp'} | {'_addsub_int_array'}
+        set(PeriodArray._datetimelike_methods) | {'_addsub_int_array'}
     )
+    _raw_properties = {'is_leap_year'}
 
 
 @delegate_names(PeriodArray,
@@ -340,21 +338,6 @@ class PeriodIndex(DatetimeIndexOpsMixin,
         # TODO(DatetimeArray): remove
         freq = attribs['freq']
         return PeriodArray(values, freq=freq)
-
-    # ------------------------------------------------------------------------
-    # Dispatch and maybe box. Not done in delegate_names because we box
-    # different from those (which use Index).
-
-    def asfreq(self, freq=None, how='E'):
-        result = self._data.asfreq(freq=freq, how=how)
-        return self._simple_new(result, name=self.name)
-
-    def to_timestamp(self, freq=None, how='start'):
-        from pandas import DatetimeIndex
-        result = self._data.to_timestamp(freq=freq, how=how)
-        return DatetimeIndex._simple_new(result.asi8,
-                                         name=self.name,
-                                         freq=result.freq)
 
     def _maybe_convert_timedelta(self, other):
         """

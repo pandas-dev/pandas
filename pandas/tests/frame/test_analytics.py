@@ -1808,6 +1808,21 @@ class TestDataFrameAnalytics():
             {'col1': [1., 2., 3.], 'col2': [1., 2., 3.]})
         tm.assert_frame_equal(round(df), expected_rounded)
 
+    def test_round_nonunique_categorical(self):
+        # See GH21809
+        idx = pd.CategoricalIndex(['low'] * 3 + ['hi'] * 3)
+        df = pd.DataFrame(np.random.rand(6, 3), columns=list('abc'))
+
+        expected = df.round(3)
+        expected.index = idx
+
+        df_categorical = df.copy().set_index(idx)
+        assert df_categorical.shape == (6, 3)
+        result = df_categorical.round(3)
+        assert result.shape == (6, 3)
+
+        tm.assert_frame_equal(result, expected)
+
     def test_pct_change(self):
         # GH 11150
         pnl = DataFrame([np.arange(0, 40, 10), np.arange(0, 40, 10), np.arange(

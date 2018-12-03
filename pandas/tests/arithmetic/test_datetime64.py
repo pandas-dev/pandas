@@ -1417,7 +1417,7 @@ class TestTimestampSeriesArithmetic(object):
             # Previously, _validate_for_numeric_binop in core/indexes/base.py
             # did this for us.
             with pytest.raises(TypeError,
-                               match='operate|cannot|unsupported|ufunc'):
+                               match='operate|[cC]annot|unsupported|ufunc'):
                 op(test_ser)
 
         # ## timedelta64 ###

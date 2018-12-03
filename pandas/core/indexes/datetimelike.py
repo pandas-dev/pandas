@@ -16,12 +16,12 @@ from pandas.core.dtypes.common import (
     ensure_int64, is_bool_dtype, is_dtype_equal, is_float, is_integer,
     is_list_like, is_period_dtype, is_scalar)
 from pandas.core.dtypes.generic import ABCIndex, ABCIndexClass, ABCSeries
-from pandas.core.dtypes.missing import isna
 
 from pandas.core import algorithms, ops
 from pandas.core.accessor import PandasDelegate
 from pandas.core.arrays import ExtensionOpsMixin, PeriodArray
-from pandas.core.arrays.datetimelike import DatetimeLikeArrayMixin
+from pandas.core.arrays.datetimelike import (
+    DatetimeLikeArrayMixin, _ensure_datetimelike_to_i8)
 import pandas.core.indexes.base as ibase
 from pandas.core.indexes.base import Index, _index_shared_docs
 from pandas.core.tools.timedeltas import to_timedelta
@@ -648,43 +648,15 @@ class DatetimeIndexOpsMixin(ExtensionOpsMixin):
         return self._data._has_same_tz(other)
 
 
-def _ensure_datetimelike_to_i8(other, to_utc=False):
-    """
-    Helper for coercing an input scalar or array to i8.
-
-    Parameters
-    ----------
-    other : 1d array
-    to_utc : bool, default False
-        If True, convert the values to UTC before extracting the i8 values
-        If False, extract the i8 values directly.
-
-    Returns
-    -------
-    i8 1d array
-    """
-    if is_scalar(other) and isna(other):
-        return iNaT
-    elif isinstance(other, (PeriodArray, ABCIndexClass,
-                            DatetimeLikeArrayMixin)):
-        # convert tz if needed
-        if getattr(other, 'tz', None) is not None:
-            if to_utc:
-                other = other.tz_convert('UTC')
-            else:
-                other = other.tz_localize(None)
-    else:
-        try:
-            return np.array(other, copy=False).view('i8')
-        except TypeError:
-            # period array cannot be coerced to int
-            other = Index(other)
-    return other.asi8
-
-
 def wrap_arithmetic_op(self, other, result):
     if result is NotImplemented:
         return NotImplemented
+
+    if isinstance(result, tuple):
+        # divmod, rdivmod
+        assert len(result) == 2
+        return (wrap_arithmetic_op(self, other, result[0]),
+                wrap_arithmetic_op(self, other, result[1]))
 
     if not isinstance(result, Index):
         # Index.__new__ will choose appropriate subclass for dtype
@@ -777,6 +749,8 @@ class DatetimelikeDelegateMixin(PandasDelegate):
     _raw_methods = set()
     # raw_properties : dispatch properties that shouldn't be boxed in an Index
     _raw_properties = set()
+    name = None
+    _data = None
 
     @property
     def _delegate_class(self):
@@ -784,11 +758,7 @@ class DatetimelikeDelegateMixin(PandasDelegate):
 
     def _delegate_property_get(self, name, *args, **kwargs):
         result = getattr(self._data, name)
-        box_ops = (
-            set(self._delegate_class._datetimelike_ops) -
-            set(self._delegate_class._bool_ops)
-        ) - self._raw_properties
-        if name in box_ops:
+        if name not in self._raw_properties:
             result = Index(result, name=self.name)
         return result
 
