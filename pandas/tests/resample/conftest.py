@@ -1,11 +1,7 @@
 import pytest
 
-# The various methods we support
-downsample_methods = ['min', 'max', 'first', 'last', 'sum', 'mean', 'sem',
-                      'median', 'prod', 'var', 'std', 'ohlc', 'quantile']
-upsample_methods = ['count', 'size']
-series_methods = ['nunique']
-resample_methods = downsample_methods + upsample_methods + series_methods
+from pandas.tests.resample.test_base import (
+    downsample_methods, resample_methods, upsample_methods)
 
 
 @pytest.fixture(params=downsample_methods)
