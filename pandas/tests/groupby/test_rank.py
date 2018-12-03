@@ -288,3 +288,18 @@ def test_rank_empty_group():
     result = df.groupby(column).rank(pct=True)
     expected = DataFrame({"B": [0.5, np.nan, 1.0]})
     tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize("input_key,input_value,output_value", [
+    ([1, 2], [1, 1], [1.0, 1.0]),
+    ([1, 1, 2, 2], [1, 2, 1, 2], [0.5, 1.0, 0.5, 1.0]),
+    ([1, 1, 2, 2], [1, 2, 1, np.nan], [0.5, 1.0, 1.0, np.nan]),
+    ([1, 1, 2], [1, 2, np.nan], [0.5, 1.0, np.nan])
+])
+def test_rank_zero_div(input_key, input_value, output_value):
+    # GH 23666
+    df = DataFrame({"A": input_key, "B": input_value})
+
+    result = df.groupby("A").rank(method="dense", pct=True)
+    expected = DataFrame({"B": output_value})
+    tm.assert_frame_equal(result, expected)
