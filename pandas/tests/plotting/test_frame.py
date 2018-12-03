@@ -488,8 +488,7 @@ class TestDataFramePlots(TestPlotBase):
             testdata.plot(y="text")
 
     @pytest.mark.xfail(reason='not support for period, categorical, '
-                              'datetime_mixed_tz',
-                       strict=True)
+                              'datetime_mixed_tz')
     def test_subplots_timeseries_y_axis_not_supported(self):
         """
         This test will fail for:
@@ -2557,6 +2556,7 @@ class TestDataFramePlots(TestPlotBase):
 
         tm.close()
 
+    # This XPASSES when tested with mpl == 3.0.1
     @td.xfail_if_mpl_2_2
     def test_table(self):
         df = DataFrame(np.random.rand(10, 3),
