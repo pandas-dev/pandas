@@ -2552,3 +2552,15 @@ def test_concat_series_name_npscalar_tuple(s1name, s2name):
     result = pd.concat([s1, s2])
     expected = pd.Series({'a': 1, 'b': 2, 'c': 5, 'd': 6})
     tm.assert_series_equal(result, expected)
+
+def test_concat_categorical_tz():
+    # GH-23816
+    a = pd.Series(pd.date_range('2017-01-01', periods=2, tz='US/Pacific'))
+    b = pd.Series(['a', 'b'], dtype='category')
+    result = pd.concat([a, b], ignore_index=True)
+    expected = pd.Series([
+        pd.Timestamp('2017-01-01', tz="US/Pacific"),
+        pd.Timestamp('2017-01-02', tz="US/Pacific"),
+        'a', 'b'
+    ])
+    tm.assert_series_equal(result, expected)
