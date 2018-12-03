@@ -366,6 +366,7 @@ Other Enhancements
 - :meth:`DataFrame.to_stata` and :class:` pandas.io.stata.StataWriter117` can write mixed sting columns to Stata strl format (:issue:`23633`)
 - :meth:`DataFrame.between_time` and :meth:`DataFrame.at_time` have gained the an ``axis`` parameter (:issue: `8839`)
 - :class:`IntervalIndex` has gained the :attr:`~IntervalIndex.is_overlapping` attribute to indicate if the ``IntervalIndex`` contains any overlapping intervals (:issue:`23309`)
+- :meth:`any` and :meth:`all` aggregation methods have corrected/improved docstrings for the ``skipna`` parameter (:issue:`23019`).
 
 .. _whatsnew_0240.api_breaking:
 

@@ -9862,10 +9862,10 @@ class NDFrame(PandasObject, SelectionMixin):
         axis_descr, name, name2 = _doc_parms(cls)
 
         cls.any = _make_logical_function(
-            cls, 'any', name, name2, axis_descr,
+            cls, 'any', name, name2, False, axis_descr,
             _any_desc, nanops.nanany, _any_examples, _any_see_also)
         cls.all = _make_logical_function(
-            cls, 'all', name, name2, axis_descr, _all_doc,
+            cls, 'all', name, name2, True, axis_descr, _all_doc,
             nanops.nanall, _all_examples, _all_see_also)
 
         @Substitution(outname='mad',
@@ -10188,8 +10188,10 @@ bool_only : boolean, default None
     Include only boolean columns. If None, will attempt to use everything,
     then use only boolean data. Not implemented for Series.
 skipna : boolean, default True
-    Exclude NA/null values. If an entire row/column is NA, the result
-    will be NA.
+    Exclude NA/null values. If the entire row/column is NA and skipna is
+    True, then the result will be %(empty_value)s, as for an empty row/column.
+    If skipna is False, then NA are treated as True, because these are not
+    equal to zero.
 level : int or level name, default None
     If the axis is a MultiIndex (hierarchical), count along a
     particular level, collapsing into a %(name1)s.
@@ -10219,6 +10221,10 @@ Series
 True
 >>> pd.Series([True, False]).all()
 False
+>>> pd.Series([]).all()
+True
+>>> pd.Series([np.nan]).all()
+True
 
 DataFrames
 
@@ -10576,6 +10582,13 @@ is True.
 
 >>> pd.Series([True, False]).any()
 True
+>>> pd.Series([]).any()
+False
+>>> pd.Series([np.nan]).any()
+False
+>>> pd.Series([np.nan]).any(skipna=False)
+True
+
 
 **DataFrame**
 
@@ -10860,10 +10873,11 @@ def _make_cum_function(cls, name, name1, name2, axis_descr, desc,
     return set_function_name(cum_func, name, cls)
 
 
-def _make_logical_function(cls, name, name1, name2, axis_descr, desc, f,
-                           examples, see_also):
+def _make_logical_function(cls, name, name1, name2, empty_value, axis_descr,
+                           desc, f, examples, see_also):
     @Substitution(outname=name, desc=desc, name1=name1, name2=name2,
-                  axis_descr=axis_descr, examples=examples, see_also=see_also)
+                  empty_value=empty_value, axis_descr=axis_descr,
+                  examples=examples, see_also=see_also)
     @Appender(_bool_doc)
     def logical_func(self, axis=0, bool_only=None, skipna=True, level=None,
                      **kwargs):
