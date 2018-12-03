@@ -174,6 +174,10 @@ class TestGetitem(base.BaseGetitemTests):
     pass
 
 
+class TestSetitem(base.BaseSetitemTests):
+    pass
+
+
 class TestMissing(base.BaseMissingTests):
     pass
 
