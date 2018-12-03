@@ -83,6 +83,10 @@ def _field_accessor(name, field, docstring=None):
         return result
 
     f.__name__ = name
+    if not docstring.startswith("\n"):
+        docstring = "".join(("\n", docstring))
+    if not docstring.endswith("\n"):
+        docstring = "".join((docstring, "\n"))
     f.__doc__ = docstring
     return property(f)
 
