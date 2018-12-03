@@ -39,8 +39,8 @@ from timezones cimport (is_utc, is_tzlocal, is_fixed_offset,
 from timezones import UTC
 from parsing import parse_datetime_string
 
-from nattype import nat_strings, NaT
-from nattype cimport NPY_NAT, checknull_with_nat
+from nattype import nat_strings
+from nattype cimport NPY_NAT, checknull_with_nat, c_NaT as NaT
 
 # ----------------------------------------------------------------------
 # Constants
