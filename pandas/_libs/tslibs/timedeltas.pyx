@@ -24,14 +24,13 @@ PyDateTime_IMPORT
 
 
 cimport pandas._libs.tslibs.util as util
-from pandas._libs.tslibs.util cimport (
-    is_timedelta64_object, is_datetime64_object, is_integer_object,
-    is_float_object, is_string_object)
+from .util cimport (is_timedelta64_object, is_datetime64_object,
+                    is_integer_object, is_float_object, is_string_object)
 
-from pandas._libs.tslibs.ccalendar import DAY_SECONDS
+from .ccalendar import DAY_SECONDS
 
-from pandas._libs.tslibs.np_datetime cimport (
-    cmp_scalar, reverse_ops, td64_to_tdstruct, pandas_timedeltastruct)
+from .np_datetime cimport (cmp_scalar, reverse_ops, td64_to_tdstruct,
+                           pandas_timedeltastruct)
 
 from .nattype import nat_strings
 from .nattype cimport checknull_with_nat, NPY_NAT, c_NaT as NaT

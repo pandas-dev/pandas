@@ -16,9 +16,9 @@ from cpython.datetime cimport (datetime,
                                PyDateTime_IMPORT)
 PyDateTime_IMPORT
 
-from pandas._libs.util cimport (is_datetime64_object, is_timedelta64_object,
-                                is_integer_object, is_string_object, is_array,
-                                is_offset_object)
+from .util cimport (is_datetime64_object, is_timedelta64_object,
+                    is_integer_object, is_string_object, is_array,
+                    is_offset_object)
 
 cimport pandas._libs.tslibs.ccalendar as ccalendar
 from .ccalendar import DAY_SECONDS

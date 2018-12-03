@@ -20,7 +20,7 @@ from cpython.datetime cimport (PyDateTime_Check, PyDelta_Check, PyDate_Check,
 # import datetime C API
 PyDateTime_IMPORT
 
-from pandas._libs.tslibs.np_datetime cimport (
+from .np_datetime cimport (
     npy_datetimestruct, dtstruct_to_dt64, dt64_to_dtstruct,
     pandas_datetime_to_datetimestruct, NPY_DATETIMEUNIT, NPY_FR_D)
 
