@@ -559,9 +559,6 @@ def to_datetime(arg, errors='raise', dayfirst=False, yearfirst=False,
                                dayfirst=dayfirst, yearfirst=yearfirst,
                                errors=errors, exact=exact,
                                infer_datetime_format=infer_datetime_format)
-    # print(convert_listlike)
-    # print(isinstance(arg, Timestamp))
-    print(isinstance(arg, (ABCDataFrame, MutableMapping)))
     
     if isinstance(arg, Timestamp):
         result = arg
@@ -596,11 +593,6 @@ def to_datetime(arg, errors='raise', dayfirst=False, yearfirst=False,
             result = convert_listlike(arg, box, format)
     else:
         result = convert_listlike(np.array([arg]), box, format)[0]
-<<<<<<< HEAD
-=======
-    if utc:
-        result = result.dt.tz_localize('UTC')
->>>>>>> 766db7d7d8e99dd793172fb217850cd07c425cbb
     return result
 
 
