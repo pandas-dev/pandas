@@ -1566,8 +1566,12 @@ def objects_to_datetime64ns(data, dayfirst, yearfirst,
         #  the distinction is a thin one
         return result, tz_parsed
     elif is_object_dtype(result):
+        # GH#23675 when called via `pd.to_datetime`, returning an object-dtype
+        #  array is allowed.  When called via `pd.DatetimeIndex`, we can
+        #  only accept datetime64 dtype, so raise TypeError if object-dtype
+        #  is returned, as that indicates the values can be recognized as
+        #  datetimes but they have conflicting timezones/awareness
         if allow_object:
-            # allowed by to_datetime, not by DatetimeIndex constructor
             return result, tz_parsed
         raise TypeError(result)
     else:  # pragma: no cover
