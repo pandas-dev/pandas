@@ -1,6 +1,5 @@
 # pylint: disable=E1101,E1103,W0232
 from datetime import datetime, timedelta
-import operator
 import warnings
 
 import numpy as np
@@ -18,15 +17,16 @@ from pandas.core.dtypes.common import (
 
 from pandas import compat
 from pandas.core import common as com
-from pandas.core.accessor import PandasDelegate, delegate_names
+from pandas.core.accessor import delegate_names
 from pandas.core.algorithms import unique1d
 import pandas.core.arrays.datetimelike as dtl
+from pandas.core.arrays.datetimelike import DatelikeOps
 from pandas.core.arrays.period import PeriodArray, period_array
 from pandas.core.base import _shared_docs
 import pandas.core.indexes.base as ibase
 from pandas.core.indexes.base import _index_shared_docs, ensure_index
 from pandas.core.indexes.datetimelike import (
-    DatetimeIndexOpsMixin, wrap_arithmetic_op)
+    DatetimeIndexOpsMixin, DatetimelikeDelegateMixin, wrap_arithmetic_op)
 from pandas.core.indexes.datetimes import DatetimeIndex, Index, Int64Index
 from pandas.core.missing import isna
 from pandas.core.ops import get_op_result_name
@@ -54,37 +54,26 @@ def _new_PeriodIndex(cls, **d):
         return cls(values, **d)
 
 
-class PeriodDelegateMixin(PandasDelegate):
+class PeriodDelegateMixin(DatetimelikeDelegateMixin):
     """
     Delegate from PeriodIndex to PeriodArray.
     """
-    def _delegate_property_get(self, name, *args, **kwargs):
-        result = getattr(self._data, name)
-        box_ops = (
-            set(PeriodArray._datetimelike_ops) - set(PeriodArray._bool_ops)
-        )
-        if name in box_ops:
-            result = Index(result, name=self.name)
-        return result
-
-    def _delegate_property_set(self, name, value, *args, **kwargs):
-        setattr(self._data, name, value)
-
-    def _delegate_method(self, name, *args, **kwargs):
-        result = operator.methodcaller(name, *args, **kwargs)(self._data)
-        return Index(result, name=self.name)
+    _delegate_class = PeriodArray
+    _delegated_properties = PeriodArray._datetimelike_ops
+    _delegated_methods = (
+        set(PeriodArray._datetimelike_methods) | {'_addsub_int_array'}
+    )
+    _raw_properties = {'is_leap_year'}
 
 
 @delegate_names(PeriodArray,
-                PeriodArray._datetimelike_ops + ['size', 'asi8', 'shape'],
+                PeriodDelegateMixin._delegated_properties,
                 typ='property')
 @delegate_names(PeriodArray,
-                [x for x in PeriodArray._datetimelike_methods
-                 if x not in {"asfreq", "to_timestamp"}],
-                typ="method",
-                overwrite=True)
-class PeriodIndex(DatetimeIndexOpsMixin,
-                  Int64Index, PeriodDelegateMixin):
+                PeriodDelegateMixin._delegated_methods,
+                typ="method")
+class PeriodIndex(DatelikeOps, DatetimeIndexOpsMixin, Int64Index,
+                  PeriodDelegateMixin):
     """
     Immutable ndarray holding ordinal values indicating regular periods in
     time such as particular years, quarters, months, etc.
@@ -348,21 +337,6 @@ class PeriodIndex(DatetimeIndexOpsMixin,
         # TODO(DatetimeArray): remove
         freq = attribs['freq']
         return PeriodArray(values, freq=freq)
-
-    # ------------------------------------------------------------------------
-    # Dispatch and maybe box. Not done in delegate_names because we box
-    # different from those (which use Index).
-
-    def asfreq(self, freq=None, how='E'):
-        result = self._data.asfreq(freq=freq, how=how)
-        return self._simple_new(result, name=self.name)
-
-    def to_timestamp(self, freq=None, how='start'):
-        from pandas import DatetimeIndex
-        result = self._data.to_timestamp(freq=freq, how=how)
-        return DatetimeIndex._simple_new(result.asi8,
-                                         name=self.name,
-                                         freq=result.freq)
 
     def _maybe_convert_timedelta(self, other):
         """

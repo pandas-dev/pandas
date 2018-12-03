@@ -498,7 +498,7 @@ class TestTableOrientReader(object):
         None,
         "idx",
         pytest.param("index",
-                     marks=pytest.mark.xfail(strict=True)),
+                     marks=pytest.mark.xfail),
         'level_0'])
     @pytest.mark.parametrize("vals", [
         {'ints': [1, 2, 3, 4]},
@@ -508,7 +508,7 @@ class TestTableOrientReader(object):
         {'ordered_cats': pd.Series(pd.Categorical(['a', 'b', 'c', 'c'],
                                                   ordered=True))},
         pytest.param({'floats': [1., 2., 3., 4.]},
-                     marks=pytest.mark.xfail(strict=True)),
+                     marks=pytest.mark.xfail),
         {'floats': [1.1, 2.2, 3.3, 4.4]},
         {'bools': [True, False, False, True]}])
     def test_read_json_table_orient(self, index_nm, vals, recwarn):
@@ -566,7 +566,7 @@ class TestTableOrientReader(object):
         tm.assert_frame_equal(df, result)
 
     @pytest.mark.parametrize("strict_check", [
-        pytest.param(True, marks=pytest.mark.xfail(strict=True)),
+        pytest.param(True, marks=pytest.mark.xfail),
         False
     ])
     def test_empty_frame_roundtrip(self, strict_check):
