@@ -684,16 +684,16 @@ class TimedeltaArrayMixin(dtl.DatetimeLikeArrayMixin, dtl.TimelikeOps):
         return tslibs.ints_to_pytimedelta(self.asi8)
 
     days = _field_accessor("days", "days",
-                           " Number of days for each element. ")
+                           "\nNumber of days for each element.\n")
     seconds = _field_accessor("seconds", "seconds",
-                              " Number of seconds (>= 0 and less than 1 day) "
-                              "for each element. ")
+                              "\nNumber of seconds (>= 0 and less than 1 day) "
+                              "for each element.\n")
     microseconds = _field_accessor("microseconds", "microseconds",
                                    "\nNumber of microseconds (>= 0 and less "
-                                   "than 1 second) for each\nelement. ")
+                                   "than 1 second) for each element.\n")
     nanoseconds = _field_accessor("nanoseconds", "nanoseconds",
                                   "\nNumber of nanoseconds (>= 0 and less "
-                                  "than 1 microsecond) for each\nelement.\n")
+                                  "than 1 microsecond) for each element.\n")
 
     @property
     def components(self):

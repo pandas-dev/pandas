@@ -934,7 +934,8 @@ class PeriodIndex(DatelikeOps, DatetimeIndexOpsMixin, Int64Index,
         return self.view('i8')
 
     def item(self):
-        """ return the first element of the underlying data as a python
+        """
+        return the first element of the underlying data as a python
         scalar
         """
         # TODO(DatetimeArray): remove

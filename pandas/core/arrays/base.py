@@ -22,7 +22,8 @@ _not_implemented_message = "{} does not implement {}."
 
 
 class ExtensionArray(object):
-    """Abstract base class for custom 1-D array types.
+    """
+    Abstract base class for custom 1-D array types.
 
     pandas will recognize instances of this class as proper arrays
     with a custom type and will not attempt to coerce them to objects. They
@@ -100,7 +101,8 @@ class ExtensionArray(object):
     # ------------------------------------------------------------------------
     @classmethod
     def _from_sequence(cls, scalars, dtype=None, copy=False):
-        """Construct a new ExtensionArray from a sequence of scalars.
+        """
+        Construct a new ExtensionArray from a sequence of scalars.
 
         Parameters
         ----------
@@ -121,7 +123,8 @@ class ExtensionArray(object):
 
     @classmethod
     def _from_factorized(cls, values, original):
-        """Reconstruct an ExtensionArray after factorization.
+        """
+        Reconstruct an ExtensionArray after factorization.
 
         Parameters
         ----------
@@ -143,7 +146,8 @@ class ExtensionArray(object):
 
     def __getitem__(self, item):
         # type (Any) -> Any
-        """Select a subset of self.
+        """
+        Select a subset of self.
 
         Parameters
         ----------
@@ -174,7 +178,8 @@ class ExtensionArray(object):
 
     def __setitem__(self, key, value):
         # type: (Union[int, np.ndarray], Any) -> None
-        """Set one or more values inplace.
+        """
+        Set one or more values inplace.
 
         This method is not required to satisfy the pandas extension array
         interface.
@@ -219,7 +224,8 @@ class ExtensionArray(object):
 
     def __len__(self):
         # type: () -> int
-        """Length of this array
+        """
+        Length of this array
 
         Returns
         -------
@@ -228,8 +234,8 @@ class ExtensionArray(object):
         raise AbstractMethodError(self)
 
     def __iter__(self):
-        """Iterate over elements of the array.
-
+        """
+        Iterate over elements of the array.
         """
         # This needs to be implemented so that pandas recognizes extension
         # arrays as list-like. The default implementation makes successive
@@ -243,26 +249,32 @@ class ExtensionArray(object):
     @property
     def dtype(self):
         # type: () -> ExtensionDtype
-        """An instance of 'ExtensionDtype'."""
+        """
+        An instance of 'ExtensionDtype'.
+        """
         raise AbstractMethodError(self)
 
     @property
     def shape(self):
         # type: () -> Tuple[int, ...]
-        """Return a tuple of the array dimensions."""
+        """
+        Return a tuple of the array dimensions.
+        """
         return (len(self),)
 
     @property
     def ndim(self):
         # type: () -> int
-        """Extension Arrays are only allowed to be 1-dimensional."""
+        """
+        Extension Arrays are only allowed to be 1-dimensional.
+        """
         return 1
 
     @property
     def nbytes(self):
         # type: () -> int
-        """The number of bytes needed to store this object in memory.
-
+        """
+        The number of bytes needed to store this object in memory.
         """
         # If this is expensive to compute, return an approximate lower bound
         # on the number of bytes needed.
@@ -272,7 +284,8 @@ class ExtensionArray(object):
     # Additional Methods
     # ------------------------------------------------------------------------
     def astype(self, dtype, copy=True):
-        """Cast to a NumPy array with 'dtype'.
+        """
+        Cast to a NumPy array with 'dtype'.
 
         Parameters
         ----------
@@ -315,7 +328,8 @@ class ExtensionArray(object):
 
     def _values_for_argsort(self):
         # type: () -> ndarray
-        """Return values for sorting.
+        """
+        Return values for sorting.
 
         Returns
         -------
@@ -365,7 +379,8 @@ class ExtensionArray(object):
         return result
 
     def fillna(self, value=None, method=None, limit=None):
-        """ Fill NA/NaN values using the specified method.
+        """
+        Fill NA/NaN values using the specified method.
 
         Parameters
         ----------
@@ -418,7 +433,8 @@ class ExtensionArray(object):
         return new_values
 
     def dropna(self):
-        """ Return ExtensionArray without NA values
+        """
+        Return ExtensionArray without NA values
 
         Returns
         -------
@@ -462,7 +478,8 @@ class ExtensionArray(object):
         return self._concat_same_type([a, b])
 
     def unique(self):
-        """Compute the ExtensionArray of unique values.
+        """
+        Compute the ExtensionArray of unique values.
 
         Returns
         -------
@@ -475,7 +492,8 @@ class ExtensionArray(object):
 
     def _values_for_factorize(self):
         # type: () -> Tuple[ndarray, Any]
-        """Return an array and missing value suitable for factorization.
+        """
+        Return an array and missing value suitable for factorization.
 
         Returns
         -------
@@ -499,7 +517,8 @@ class ExtensionArray(object):
 
     def factorize(self, na_sentinel=-1):
         # type: (int) -> Tuple[ndarray, ExtensionArray]
-        """Encode the extension array as an enumerated type.
+        """
+        Encode the extension array as an enumerated type.
 
         Parameters
         ----------
@@ -552,7 +571,8 @@ class ExtensionArray(object):
 
     def take(self, indices, allow_fill=False, fill_value=None):
         # type: (Sequence[int], bool, Optional[Any]) -> ExtensionArray
-        """Take elements from an array.
+        """
+        Take elements from an array.
 
         Parameters
         ----------
@@ -641,7 +661,8 @@ class ExtensionArray(object):
 
     def copy(self, deep=False):
         # type: (bool) -> ExtensionArray
-        """Return a copy of the array.
+        """
+        Return a copy of the array.
 
         Parameters
         ----------
@@ -661,13 +682,16 @@ class ExtensionArray(object):
     def _formatting_values(self):
         # type: () -> np.ndarray
         # At the moment, this has to be an array since we use result.dtype
-        """An array of values to be printed in, e.g. the Series repr"""
+        """
+        An array of values to be printed in, e.g. the Series repr
+        """
         return np.array(self)
 
     @classmethod
     def _concat_same_type(cls, to_concat):
         # type: (Sequence[ExtensionArray]) -> ExtensionArray
-        """Concatenate multiple array
+        """
+        Concatenate multiple array
 
         Parameters
         ----------
@@ -689,7 +713,8 @@ class ExtensionArray(object):
     @property
     def _ndarray_values(self):
         # type: () -> np.ndarray
-        """Internal pandas method for lossy conversion to a NumPy ndarray.
+        """
+        Internal pandas method for lossy conversion to a NumPy ndarray.
 
         This method is not part of the pandas interface.
 
