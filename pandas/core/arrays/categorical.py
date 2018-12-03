@@ -200,7 +200,8 @@ def contains(cat, key, container):
         return any(loc_ in container for loc_ in loc)
 
 
-_codes_doc = """The category codes of this categorical.
+_codes_doc = """\
+The category codes of this categorical.
 
 Level codes are an array if integer which are the positions of the real
 values in the categories array.
@@ -435,7 +436,8 @@ class Categorical(ExtensionArray, PandasObject):
 
     @property
     def categories(self):
-        """The categories of this categorical.
+        """
+        The categories of this categorical.
 
         Setting assigns new values to each category (effectively a rename of
         each individual category).
@@ -474,12 +476,16 @@ class Categorical(ExtensionArray, PandasObject):
 
     @property
     def ordered(self):
-        """Whether the categories have an ordered relationship"""
+        """
+        Whether the categories have an ordered relationship
+        """
         return self.dtype.ordered
 
     @property
     def dtype(self):
-        """The :class:`~pandas.api.types.CategoricalDtype` for this instance"""
+        """
+        The :class:`~pandas.api.types.CategoricalDtype` for this instance
+        """
         return self._dtype
 
     @property
@@ -499,7 +505,9 @@ class Categorical(ExtensionArray, PandasObject):
         return None
 
     def copy(self):
-        """ Copy constructor. """
+        """
+        Copy constructor.
+        """
         return self._constructor(values=self._codes.copy(),
                                  dtype=self.dtype,
                                  fastpath=True)
@@ -530,17 +538,23 @@ class Categorical(ExtensionArray, PandasObject):
 
     @cache_readonly
     def ndim(self):
-        """Number of dimensions of the Categorical """
+        """
+        Number of dimensions of the Categorical
+        """
         return self._codes.ndim
 
     @cache_readonly
     def size(self):
-        """ return the len of myself """
+        """
+        return the len of myself
+        """
         return len(self)
 
     @cache_readonly
     def itemsize(self):
-        """ return the size of a single category """
+        """
+        return the size of a single category
+        """
         return self.categories.itemsize
 
     def tolist(self):
@@ -555,7 +569,9 @@ class Categorical(ExtensionArray, PandasObject):
 
     @property
     def base(self):
-        """ compat, we are always our own object """
+        """
+        compat, we are always our own object
+        """
         return None
 
     @classmethod
@@ -674,7 +690,8 @@ class Categorical(ExtensionArray, PandasObject):
     _codes = None
 
     def _get_codes(self):
-        """ Get the codes.
+        """
+        Get the codes.
 
         Returns
         -------
@@ -694,7 +711,8 @@ class Categorical(ExtensionArray, PandasObject):
     codes = property(fget=_get_codes, fset=_set_codes, doc=_codes_doc)
 
     def _set_categories(self, categories, fastpath=False):
-        """ Sets new categories inplace
+        """
+        Sets new categories inplace
 
         Parameters
         ----------
@@ -727,7 +745,8 @@ class Categorical(ExtensionArray, PandasObject):
         self._dtype = new_dtype
 
     def _set_dtype(self, dtype):
-        """Internal method for directly updating the CategoricalDtype
+        """
+        Internal method for directly updating the CategoricalDtype
 
         Parameters
         ----------
@@ -789,7 +808,8 @@ class Categorical(ExtensionArray, PandasObject):
 
     def set_categories(self, new_categories, ordered=None, rename=False,
                        inplace=False):
-        """ Sets the categories to the specified new_categories.
+        """
+        Sets the categories to the specified new_categories.
 
         `new_categories` can include new categories (which will result in
         unused categories) or remove old categories (which results in values
@@ -859,7 +879,8 @@ class Categorical(ExtensionArray, PandasObject):
             return cat
 
     def rename_categories(self, new_categories, inplace=False):
-        """ Renames categories.
+        """
+        Renames categories.
 
         Raises
         ------
@@ -952,7 +973,8 @@ class Categorical(ExtensionArray, PandasObject):
             return cat
 
     def reorder_categories(self, new_categories, ordered=None, inplace=False):
-        """ Reorders categories as specified in new_categories.
+        """
+        Reorders categories as specified in new_categories.
 
         `new_categories` need to include all old categories and no new category
         items.
@@ -994,7 +1016,8 @@ class Categorical(ExtensionArray, PandasObject):
                                    inplace=inplace)
 
     def add_categories(self, new_categories, inplace=False):
-        """ Add new categories.
+        """
+        Add new categories.
 
         `new_categories` will be included at the last/highest place in the
         categories and will be unused directly after this call.
@@ -1043,7 +1066,8 @@ class Categorical(ExtensionArray, PandasObject):
             return cat
 
     def remove_categories(self, removals, inplace=False):
-        """ Removes the specified categories.
+        """
+        Removes the specified categories.
 
         `removals` must be included in the old categories. Values which were in
         the removed categories will be set to NaN
@@ -1095,7 +1119,8 @@ class Categorical(ExtensionArray, PandasObject):
                                    rename=False, inplace=inplace)
 
     def remove_unused_categories(self, inplace=False):
-        """ Removes categories which are not used.
+        """
+        Removes categories which are not used.
 
         Parameters
         ----------
@@ -1218,7 +1243,8 @@ class Categorical(ExtensionArray, PandasObject):
     # for Series/ndarray like compat
     @property
     def shape(self):
-        """ Shape of the Categorical.
+        """
+        Shape of the Categorical.
 
         For internal compatibility with numpy arrays.
 
@@ -1310,6 +1336,9 @@ class Categorical(ExtensionArray, PandasObject):
 
     @property
     def T(self):
+        """
+        Return transposed numpy array.
+        """
         return self
 
     @property
@@ -1463,7 +1492,8 @@ class Categorical(ExtensionArray, PandasObject):
         return Series(count, index=CategoricalIndex(ix), dtype='int64')
 
     def get_values(self):
-        """ Return the values.
+        """
+        Return the values.
 
         For internal compatibility with pandas formatting.
 
@@ -1492,7 +1522,8 @@ class Categorical(ExtensionArray, PandasObject):
         # TODO(PY2): use correct signature
         # We have to do *args, **kwargs to avoid a a py2-only signature
         # issue since np.argsort differs from argsort.
-        """Return the indices that would sort the Categorical.
+        """
+        Return the indices that would sort the Categorical.
 
         Parameters
         ----------
@@ -1535,7 +1566,8 @@ class Categorical(ExtensionArray, PandasObject):
         return super(Categorical, self).argsort(*args, **kwargs)
 
     def sort_values(self, inplace=False, ascending=True, na_position='last'):
-        """ Sorts the Categorical by category value returning a new
+        """
+        Sorts the Categorical by category value returning a new
         Categorical by default.
 
         While an ordering is applied to the category values, sorting in this
@@ -1653,7 +1685,8 @@ class Categorical(ExtensionArray, PandasObject):
         return values
 
     def ravel(self, order='C'):
-        """ Return a flattened (numpy) array.
+        """
+        Return a flattened (numpy) array.
 
         For internal compatibility with numpy arrays.
 
@@ -1664,7 +1697,8 @@ class Categorical(ExtensionArray, PandasObject):
         return np.array(self)
 
     def view(self):
-        """Return a view of myself.
+        """
+        Return a view of myself.
 
         For internal compatibility with numpy arrays.
 
@@ -1676,7 +1710,8 @@ class Categorical(ExtensionArray, PandasObject):
         return self
 
     def to_dense(self):
-        """Return my 'dense' representation
+        """
+        Return my 'dense' representation
 
         For internal compatibility with numpy arrays.
 
@@ -1688,7 +1723,8 @@ class Categorical(ExtensionArray, PandasObject):
 
     @deprecate_kwarg(old_arg_name='fill_value', new_arg_name='value')
     def fillna(self, value=None, method=None, limit=None):
-        """ Fill NA/NaN values using the specified method.
+        """
+        Fill NA/NaN values using the specified method.
 
         Parameters
         ----------
@@ -1871,7 +1907,8 @@ class Categorical(ExtensionArray, PandasObject):
     take = take_nd
 
     def _slice(self, slicer):
-        """ Return a slice of myself.
+        """
+        Return a slice of myself.
 
         For internal compatibility with numpy arrays.
         """
@@ -1888,15 +1925,21 @@ class Categorical(ExtensionArray, PandasObject):
         return self._constructor(values=codes, dtype=self.dtype, fastpath=True)
 
     def __len__(self):
-        """The length of this Categorical."""
+        """
+        The length of this Categorical.
+        """
         return len(self._codes)
 
     def __iter__(self):
-        """Returns an Iterator over the values of this Categorical."""
+        """
+        Returns an Iterator over the values of this Categorical.
+        """
         return iter(self.get_values().tolist())
 
     def __contains__(self, key):
-        """Returns True if `key` is in this Categorical."""
+        """
+        Returns True if `key` is in this Categorical.
+        """
         # if key is a NaN, check if any NaN is in self.
         if isna(key):
             return self.isna().any()
@@ -1919,7 +1962,9 @@ class Categorical(ExtensionArray, PandasObject):
         return compat.text_type(result)
 
     def _repr_categories(self):
-        """ return the base repr for the categories """
+        """
+        return the base repr for the categories
+        """
         max_categories = (10 if get_option("display.max_categories") == 0 else
                           get_option("display.max_categories"))
         from pandas.io.formats import format as fmt
@@ -1936,7 +1981,9 @@ class Categorical(ExtensionArray, PandasObject):
         return category_strs
 
     def _repr_categories_info(self):
-        """ Returns a string representation of the footer."""
+        """
+        Returns a string representation of the footer.
+        """
 
         category_strs = self._repr_categories()
         dtype = getattr(self.categories, 'dtype_str',
@@ -1979,7 +2026,9 @@ class Categorical(ExtensionArray, PandasObject):
         return compat.text_type(result)
 
     def __unicode__(self):
-        """ Unicode representation. """
+        """
+        Unicode representation.
+        """
         _maxlen = 10
         if len(self._codes) > _maxlen:
             result = self._tidy_repr(_maxlen)
@@ -1996,13 +2045,17 @@ class Categorical(ExtensionArray, PandasObject):
         return super(ExtensionArray, self).__repr__()
 
     def _maybe_coerce_indexer(self, indexer):
-        """ return an indexer coerced to the codes dtype """
+        """
+        return an indexer coerced to the codes dtype
+        """
         if isinstance(indexer, np.ndarray) and indexer.dtype.kind == 'i':
             indexer = indexer.astype(self._codes.dtype)
         return indexer
 
     def __getitem__(self, key):
-        """ Return an item. """
+        """
+        Return an item.
+        """
         if isinstance(key, (int, np.integer)):
             i = self._codes[key]
             if i == -1:
@@ -2014,7 +2067,8 @@ class Categorical(ExtensionArray, PandasObject):
                                      dtype=self.dtype, fastpath=True)
 
     def __setitem__(self, key, value):
-        """ Item assignment.
+        """
+        Item assignment.
 
 
         Raises
@@ -2118,7 +2172,8 @@ class Categorical(ExtensionArray, PandasObject):
         return func(**kwargs)
 
     def min(self, numeric_only=None, **kwargs):
-        """ The minimum value of the object.
+        """
+        The minimum value of the object.
 
         Only ordered `Categoricals` have a minimum!
 
@@ -2143,7 +2198,8 @@ class Categorical(ExtensionArray, PandasObject):
             return self.categories[pointer]
 
     def max(self, numeric_only=None, **kwargs):
-        """ The maximum value of the object.
+        """
+        The maximum value of the object.
 
         Only ordered `Categoricals` have a maximum!
 
@@ -2302,7 +2358,8 @@ class Categorical(ExtensionArray, PandasObject):
             return False
 
     def describe(self):
-        """ Describes this Categorical
+        """
+        Describes this Categorical
 
         Returns
         -------
@@ -2456,6 +2513,9 @@ class CategoricalAccessor(PandasDelegate, PandasObject, NoNewAttributesMixin):
 
     @property
     def codes(self):
+        """
+        Return Series of codes as well as the index.
+        """
         from pandas import Series
         return Series(self._parent.codes, index=self.index)
 

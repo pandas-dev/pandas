@@ -146,7 +146,8 @@ class _DtypeOpsMixin(object):
 
 
 class ExtensionDtype(_DtypeOpsMixin):
-    """A custom data type, to be paired with an ExtensionArray.
+    """
+    A custom data type, to be paired with an ExtensionArray.
 
     .. versionadded:: 0.23.0
 
@@ -211,7 +212,8 @@ class ExtensionDtype(_DtypeOpsMixin):
     @property
     def type(self):
         # type: () -> type
-        """The scalar type for the array, e.g. ``int``
+        """
+        The scalar type for the array, e.g. ``int``
 
         It's expected ``ExtensionArray[item]`` returns an instance
         of ``ExtensionDtype.type`` for scalar ``item``, assuming
@@ -223,7 +225,8 @@ class ExtensionDtype(_DtypeOpsMixin):
     @property
     def kind(self):
         # type () -> str
-        """A character code (one of 'biufcmMOSUV'), default 'O'
+        """
+        A character code (one of 'biufcmMOSUV'), default 'O'
 
         This should match the NumPy dtype used when the array is
         converted to an ndarray, which is probably 'O' for object if
@@ -239,7 +242,8 @@ class ExtensionDtype(_DtypeOpsMixin):
     @property
     def name(self):
         # type: () -> str
-        """A string identifying the data type.
+        """
+        A string identifying the data type.
 
         Will be used for display in, e.g. ``Series.dtype``
         """
@@ -247,7 +251,8 @@ class ExtensionDtype(_DtypeOpsMixin):
 
     @classmethod
     def construct_array_type(cls):
-        """Return the array type associated with this dtype
+        """
+        Return the array type associated with this dtype
 
         Returns
         -------
@@ -257,7 +262,8 @@ class ExtensionDtype(_DtypeOpsMixin):
 
     @classmethod
     def construct_from_string(cls, string):
-        """Attempt to construct this type from a string.
+        """
+        Attempt to construct this type from a string.
 
         Parameters
         ----------

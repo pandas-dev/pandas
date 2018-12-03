@@ -367,7 +367,8 @@ class IntegerArray(ExtensionArray, ExtensionOpsMixin):
         return cls(data, mask)
 
     def astype(self, dtype, copy=True):
-        """Cast to a NumPy array or IntegerArray with 'dtype'.
+        """
+        Cast to a NumPy array or IntegerArray with 'dtype'.
 
         Parameters
         ----------
