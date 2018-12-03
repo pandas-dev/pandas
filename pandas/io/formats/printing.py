@@ -272,8 +272,7 @@ default_pprint = lambda x, max_seq_items=None: \
 
 
 def format_object_summary(obj, formatter, is_justify=True, name=None,
-                          indent_for_name=True,
-                          trailing_comma=True):
+                          indent_for_name=True):
     """
     Return the formatted obj as a unicode string
 
@@ -290,8 +289,6 @@ def format_object_summary(obj, formatter, is_justify=True, name=None,
     indent_for_name : bool, default True
         Whether subsequent lines should be be indented to
         align with the name.
-    trailing_comma : bool, default True
-        Whether to include a comma after the closing ']'
 
     Returns
     -------
@@ -340,10 +337,7 @@ def format_object_summary(obj, formatter, is_justify=True, name=None,
         else:
             return 0
 
-    if trailing_comma:
-        close = u', '
-    else:
-        close = u''
+    close = u', '
 
     if n == 0:
         summary = u'[]{}'.format(close)
