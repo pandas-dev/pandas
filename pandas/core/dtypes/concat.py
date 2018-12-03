@@ -516,7 +516,7 @@ def _concat_sparse(to_concat, axis=0, typs=None):
     to_concat : array of arrays
     axis : axis to provide concatenation
     typs : set of to_concat dtypes
-    
+
     Returns
     -------
     a single array, preserving the combined dtypes
@@ -581,3 +581,4 @@ def _concat_rangeindex_same_dtype(indexes):
     # Here all "indexes" had 0 length, i.e. were empty.
     # In this case return an empty range index.
     return RangeIndex(0, 0)
+    
