@@ -347,6 +347,16 @@ class Categorical(ExtensionArray, PandasObject):
             # the "ordered" and "categories" arguments
             dtype = values.dtype._from_categorical_dtype(values.dtype,
                                                          categories, ordered)
+
+            # GH23814, for perf, if values._values already an instance of
+            # Categorical, set values to codes, and run fastpath
+            if (isinstance(values, (ABCSeries, ABCIndexClass)) and
+               isinstance(values._values, type(self))):
+                values = values._values.codes.copy()
+                if categories is None:
+                    categories = dtype.categories
+                fastpath = True
+
         else:
             # If dtype=None and values is not categorical, create a new dtype
             dtype = CategoricalDtype(categories, ordered)

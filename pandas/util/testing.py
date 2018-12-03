@@ -34,7 +34,7 @@ import pandas as pd
 from pandas import (
     Categorical, CategoricalIndex, DataFrame, DatetimeIndex, Index,
     IntervalIndex, MultiIndex, Panel, PeriodIndex, RangeIndex, Series,
-    TimedeltaIndex, bdate_range)
+    bdate_range)
 from pandas.core.algorithms import take_1d
 from pandas.core.arrays import (
     DatetimeArrayMixin as DatetimeArray, ExtensionArray, IntervalArray,
@@ -1938,8 +1938,8 @@ def makeDateIndex(k=10, freq='B', name=None, **kwargs):
 
 
 def makeTimedeltaIndex(k=10, freq='D', name=None, **kwargs):
-    return TimedeltaIndex(start='1 day', periods=k, freq=freq,
-                          name=name, **kwargs)
+    return pd.timedelta_range(start='1 day', periods=k, freq=freq,
+                              name=name, **kwargs)
 
 
 def makePeriodIndex(k=10, name=None, **kwargs):

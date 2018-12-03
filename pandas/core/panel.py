@@ -125,10 +125,10 @@ class Panel(NDFrame):
         axis=1
     minor_axis : Index or array-like
         axis=2
-    dtype : dtype, default None
-        Data type to force, otherwise infer
     copy : boolean, default False
         Copy data from inputs. Only affects DataFrame / 2d ndarray input
+    dtype : dtype, default None
+        Data type to force, otherwise infer
     """
 
     @property
@@ -336,9 +336,8 @@ class Panel(NDFrame):
             raise Exception('Can only compare identically-labeled '
                             'same type objects')
 
-        new_data = {}
-        for col in self._info_axis:
-            new_data[col] = func(self[col], other[col])
+        new_data = {col: func(self[col], other[col])
+                    for col in self._info_axis}
 
         d = self._construct_axes_dict(copy=False)
         return self._constructor(data=new_data, **d)
@@ -949,9 +948,8 @@ class Panel(NDFrame):
             # size = N * K
             selector = slice(None, None)
 
-        data = {}
-        for item in self.items:
-            data[item] = self[item].values.ravel()[selector]
+        data = {item: self[item].values.ravel()[selector]
+                for item in self.items}
 
         def construct_multi_parts(idx, n_repeat, n_shuffle=1):
             # Replicates and shuffles MultiIndex, returns individual attributes

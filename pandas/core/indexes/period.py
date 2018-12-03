@@ -26,7 +26,7 @@ from pandas.core.base import _shared_docs
 import pandas.core.indexes.base as ibase
 from pandas.core.indexes.base import _index_shared_docs, ensure_index
 from pandas.core.indexes.datetimelike import (
-    DatelikeOps, DatetimeIndexOpsMixin, wrap_arithmetic_op)
+    DatetimeIndexOpsMixin, wrap_arithmetic_op)
 from pandas.core.indexes.datetimes import DatetimeIndex, Index, Int64Index
 from pandas.core.missing import isna
 from pandas.core.ops import get_op_result_name
@@ -83,7 +83,7 @@ class PeriodDelegateMixin(PandasDelegate):
                  if x not in {"asfreq", "to_timestamp"}],
                 typ="method",
                 overwrite=True)
-class PeriodIndex(DatelikeOps, DatetimeIndexOpsMixin,
+class PeriodIndex(DatetimeIndexOpsMixin,
                   Int64Index, PeriodDelegateMixin):
     """
     Immutable ndarray holding ordinal values indicating regular periods in
@@ -364,12 +364,6 @@ class PeriodIndex(DatelikeOps, DatetimeIndexOpsMixin,
                                          name=self.name,
                                          freq=result.freq)
 
-    def _format_native_types(self, na_rep=u'NaT', quoting=None, **kwargs):
-        # just dispatch, return ndarray
-        return self._data._format_native_types(na_rep=na_rep,
-                                               quoting=quoting,
-                                               **kwargs)
-
     def _maybe_convert_timedelta(self, other):
         """
         Convert timedelta-like input to an integer multiple of self.freq
@@ -411,6 +405,19 @@ class PeriodIndex(DatelikeOps, DatetimeIndexOpsMixin,
         msg = "Input has different freq from {cls}(freq={freqstr})"
         raise IncompatibleFrequency(msg.format(cls=type(self).__name__,
                                                freqstr=self.freqstr))
+
+    # ------------------------------------------------------------------------
+    # Rendering Methods
+
+    def _format_native_types(self, na_rep=u'NaT', quoting=None, **kwargs):
+        # just dispatch, return ndarray
+        return self._data._format_native_types(na_rep=na_rep,
+                                               quoting=quoting,
+                                               **kwargs)
+
+    def _mpl_repr(self):
+        # how to represent ourselves to matplotlib
+        return self.astype(object).values
 
     # ------------------------------------------------------------------------
     # Indexing
@@ -594,10 +601,6 @@ class PeriodIndex(DatelikeOps, DatetimeIndexOpsMixin,
             raise ValueError('Index is not monotonic')
         values = self.asi8
         return ((values[1:] - values[:-1]) < 2).all()
-
-    def _mpl_repr(self):
-        # how to represent ourselves to matplotlib
-        return self.astype(object).values
 
     @property
     def inferred_type(self):
