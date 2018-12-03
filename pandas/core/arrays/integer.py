@@ -55,6 +55,11 @@ class _IntegerDtype(ExtensionDtype):
     def kind(self):
         return self.numpy_dtype.kind
 
+    @cache_readonly
+    def itemsize(self):
+        """ Return the number of bytes in this dtype """
+        return self.numpy_dtype.itemsize
+
     @classmethod
     def construct_array_type(cls):
         """Return the array type associated with this dtype
