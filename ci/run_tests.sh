@@ -52,8 +52,7 @@ do
 
     if [[ "$COVERAGE" && $? == 0 ]]; then
         echo "uploading coverage for $TYPE tests"
-        COVERAGE_CMD="bash <(curl -s https://codecov.io/bash) -Z -c -F $TYPE -f $COVERAGE_FNAME"
-        echo $COVERAGE_CMD
-        $COVERAGE_CMD
+        echo "bash <(curl -s https://codecov.io/bash) -Z -c -F $TYPE -f $COVERAGE_FNAME"
+              bash <(curl -s https://codecov.io/bash) -Z -c -F $TYPE -f $COVERAGE_FNAME
     fi
 done
