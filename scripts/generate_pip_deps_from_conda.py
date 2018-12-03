@@ -75,7 +75,18 @@ def main(conda_fname, pip_fname, compare=False):
     with open(conda_fname) as conda_fd:
         deps = yaml.safe_load(conda_fd)['dependencies']
 
-    pip_content = '\n'.join(filter(None, map(conda_package_to_pip, deps)))
+    pip_deps = []
+    for dep in deps:
+        if isinstance(dep, str):
+            conda_dep = conda_package_to_pip(dep)
+            if conda_dep:
+                pip_deps.append(conda_dep)
+        elif isinstance(dep, dict) and len(dep) == 1 and 'pip' in dep:
+            pip_deps += dep['pip']
+        else:
+            raise ValueError('Unexpected dependency {}'.format(dep))
+
+    pip_content = '\n'.join(pip_deps)
 
     if compare:
         with open(pip_fname) as pip_fd:
@@ -92,6 +103,9 @@ if __name__ == '__main__':
     argparser.add_argument('--compare',
                            action='store_true',
                            help='compare whether the two files are equivalent')
+    argparser.add_argument('--azure',
+                           action='store_true',
+                           help='show the output in azure-pipelines format')
     args = argparser.parse_args()
 
     repo_path = os.path.dirname(os.path.abspath(os.path.dirname(__file__)))
@@ -99,7 +113,10 @@ if __name__ == '__main__':
                os.path.join(repo_path, 'requirements-dev.txt'),
                compare=args.compare)
     if res:
-        sys.stderr.write('`requirements-dev.txt` has to be generated with '
-                         '`{}` after `environment.yml` is modified.\n'.format(
-                             sys.argv[0]))
+        msg = ('`requirements-dev.txt` has to be generated with `{}` after '
+               '`environment.yml` is modified.\n'.format(sys.argv[0]))
+        if args.azure:
+            msg = ('##vso[task.logissue type=error;'
+                   'sourcepath=requirements-dev.txt]{}'.format(msg))
+        sys.stderr.write(msg)
     sys.exit(res)

@@ -10,6 +10,7 @@ dependencies:
   - pytz
 
   # development
+  - asv
   - cython>=0.28.2
   - flake8
   - flake8-comprehensions
@@ -48,3 +49,5 @@ dependencies:
   - xlrd
   - xlsxwriter
   - xlwt
+  - pip:
+    - cpplint

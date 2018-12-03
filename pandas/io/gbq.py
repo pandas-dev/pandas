@@ -52,10 +52,6 @@ def read_gbq(query, project_id=None, index_col=None, col_order=None,
     reauth : boolean, default False
         Force Google BigQuery to re-authenticate the user. This is useful
         if multiple accounts are used.
-    private_key : str, optional
-        Service account private key in JSON format. Can be file path
-        or string contents. This is useful for remote server
-        authentication (eg. Jupyter/IPython notebook on remote host).
     auth_local_webserver : boolean, default False
         Use the `local webserver flow`_ instead of the `console flow`_
         when getting user credentials.
@@ -107,10 +103,6 @@ def read_gbq(query, project_id=None, index_col=None, col_order=None,
         *New in version 0.8.0 of pandas-gbq*.
 
         .. versionadded:: 0.24.0
-    verbose : None, deprecated
-        Deprecated in pandas-gbq version 0.4.0. Use the `logging module to
-        adjust verbosity instead
-        <https://pandas-gbq.readthedocs.io/en/latest/intro.html#logging>`__.
     private_key : str, deprecated
         Deprecated in pandas-gbq version 0.8.0. Use the ``credentials``
         parameter and
@@ -122,6 +114,10 @@ def read_gbq(query, project_id=None, index_col=None, col_order=None,
         Service account private key in JSON format. Can be file path
         or string contents. This is useful for remote server
         authentication (eg. Jupyter/IPython notebook on remote host).
+    verbose : None, deprecated
+        Deprecated in pandas-gbq version 0.4.0. Use the `logging module to
+        adjust verbosity instead
+        <https://pandas-gbq.readthedocs.io/en/latest/intro.html#logging>`__.
 
     Returns
     -------

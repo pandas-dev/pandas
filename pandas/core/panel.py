@@ -125,10 +125,10 @@ class Panel(NDFrame):
         axis=1
     minor_axis : Index or array-like
         axis=2
-    dtype : dtype, default None
-        Data type to force, otherwise infer
     copy : boolean, default False
         Copy data from inputs. Only affects DataFrame / 2d ndarray input
+    dtype : dtype, default None
+        Data type to force, otherwise infer
     """
 
     @property
