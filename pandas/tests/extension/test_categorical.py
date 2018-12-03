@@ -72,7 +72,7 @@ class TestDtype(base.BaseDtypeTests):
 
 
 class TestInterface(base.BaseInterfaceTests):
-    @pytest.mark.skip(reason="Memory usage doesn't match", strict=True)
+    @pytest.mark.skip(reason="Memory usage doesn't match")
     def test_memory_usage(self, data):
         # Is this deliberate?
         super(TestInterface, self).test_memory_usage(data)
@@ -87,9 +87,9 @@ class TestReshaping(base.BaseReshapingTests):
 
 
 class TestGetitem(base.BaseGetitemTests):
-    skip_take = pytest.mark.skip(reason="GH-20664.", strict=True)
+    skip_take = pytest.mark.skip(reason="GH-20664.")
 
-    @pytest.mark.skip(reason="Backwards compatibility", strict=True)
+    @pytest.mark.skip(reason="Backwards compatibility")
     def test_getitem_scalar(self, data):
         # CategoricalDtype.type isn't "correct" since it should
         # be a parent of the elements (object). But don't want
@@ -117,7 +117,7 @@ class TestGetitem(base.BaseGetitemTests):
     def test_take_out_of_bounds_raises(self, data, allow_fill):
         return super().test_take_out_of_bounds_raises(data, allow_fill)
 
-    @pytest.mark.skip(reason="GH-20747. Unobserved categories.", strict=True)
+    @pytest.mark.skip(reason="GH-20747. Unobserved categories.")
     def test_take_series(self, data):
         super().test_take_series(data)
 
@@ -125,12 +125,11 @@ class TestGetitem(base.BaseGetitemTests):
     def test_reindex_non_na_fill_value(self, data_missing):
         super().test_reindex_non_na_fill_value(data_missing)
 
-    @pytest.mark.skip(reason="Categorical.take buggy", strict=True)
+    @pytest.mark.skip(reason="Categorical.take buggy")
     def test_take_empty(self, data, na_value, na_cmp):
         super().test_take_empty(data, na_value, na_cmp)
 
-    @pytest.mark.skip(reason="test not written correctly for categorical",
-                      strict=True)
+    @pytest.mark.skip(reason="test not written correctly for categorical")
     def test_reindex(self, data, na_value):
         super().test_reindex(data, na_value)
 
@@ -141,11 +140,11 @@ class TestSetitem(base.BaseSetitemTests):
 
 class TestMissing(base.BaseMissingTests):
 
-    @pytest.mark.skip(reason="Not implemented", strict=True)
+    @pytest.mark.skip(reason="Not implemented")
     def test_fillna_limit_pad(self, data_missing):
         super().test_fillna_limit_pad(data_missing)
 
-    @pytest.mark.skip(reason="Not implemented", strict=True)
+    @pytest.mark.skip(reason="Not implemented")
     def test_fillna_limit_backfill(self, data_missing):
         super().test_fillna_limit_backfill(data_missing)
 
@@ -155,7 +154,7 @@ class TestReduce(base.BaseNoReduceTests):
 
 
 class TestMethods(base.BaseMethodsTests):
-    @pytest.mark.skip(reason="Unobserved categories included", strict=True)
+    @pytest.mark.skip(reason="Unobserved categories included")
     def test_value_counts(self, all_data, dropna):
         return super().test_value_counts(all_data, dropna)
 
@@ -175,7 +174,7 @@ class TestMethods(base.BaseMethodsTests):
         expected = pd.Series([a + val for a in list(orig_data1)])
         self.assert_series_equal(result, expected)
 
-    @pytest.mark.skip(reason="Not Applicable", strict=True)
+    @pytest.mark.skip(reason="Not Applicable")
     def test_fillna_length_mismatch(self, data_missing):
         super().test_fillna_length_mismatch(data_missing)
 

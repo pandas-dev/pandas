@@ -60,8 +60,7 @@ def test_apply_trivial():
 
 @pytest.mark.xfail(reason="GH#20066; function passed into apply "
                           "returns a DataFrame with the same index "
-                          "as the one to create GroupBy object.",
-                   strict=True)
+                          "as the one to create GroupBy object.")
 def test_apply_trivial_fail():
     # GH 20066
     # trivial apply fails if the constant dataframe has the same index

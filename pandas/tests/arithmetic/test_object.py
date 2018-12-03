@@ -92,7 +92,7 @@ class TestArithmetic(object):
     @pytest.mark.parametrize('box', [
         pytest.param(pd.Index,
                      marks=pytest.mark.xfail(reason="Does not mask nulls",
-                                             strict=True, raises=TypeError)),
+                                             raises=TypeError)),
         pd.Series,
         pd.DataFrame
     ], ids=lambda x: x.__name__)
@@ -109,7 +109,7 @@ class TestArithmetic(object):
     @pytest.mark.parametrize('box', [
         pytest.param(pd.Index,
                      marks=pytest.mark.xfail(reason="Does not mask nulls",
-                                             strict=True, raises=TypeError)),
+                                             raises=TypeError)),
         pd.Series,
         pd.DataFrame
     ], ids=lambda x: x.__name__)

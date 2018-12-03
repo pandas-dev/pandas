@@ -358,7 +358,7 @@ $1$,$2$
             with open(path, 'r') as f:
                 assert f.read() == expected_ascii
 
-    @pytest.mark.xfail(strict=True)
+    @pytest.mark.xfail
     def test_to_csv_string_array_utf8(self):
         # GH 10813
         str_array = [{'names': ['foo', 'bar']}, {'names': ['baz', 'qux']}]

@@ -166,8 +166,7 @@ class BaseSetitemTests(BaseExtensionTests):
         with pytest.raises(ValueError, match=xpr):
             df['B'] = data[:5]
 
-    @pytest.mark.xfail(reason="GH#20441: setitem on extension types.",
-                       strict=True)
+    @pytest.mark.xfail(reason="GH#20441: setitem on extension types.")
     def test_setitem_tuple_index(self, data):
         s = pd.Series(data[:2], index=[(0, 0), (0, 1)])
         expected = pd.Series(data.take([1, 1]), index=s.index)

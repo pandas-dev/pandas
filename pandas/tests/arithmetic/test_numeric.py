@@ -407,7 +407,7 @@ class TestMultiplicationDivision(object):
         pytest.param(pd.Index,
                      marks=pytest.mark.xfail(reason="Index.__div__ always "
                                                     "raises",
-                                             raises=TypeError, strict=True)),
+                                             raises=TypeError)),
         pd.Series,
         pd.DataFrame
     ], ids=lambda x: x.__name__)
