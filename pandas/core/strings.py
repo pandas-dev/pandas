@@ -1777,8 +1777,6 @@ def forbid_nonstring_types(forbidden, name=None):
 
     # deal with None
     forbidden = [] if forbidden is None else forbidden
-    # deal with single string instead of list
-    forbidden = [forbidden] if isinstance(forbidden, str) else forbidden
 
     allowed_types = {'string', 'unicode', 'empty',
                      'bytes', 'mixed', 'mixed-integer'} - set(forbidden)
