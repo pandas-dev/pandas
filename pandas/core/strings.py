@@ -2804,7 +2804,8 @@ class StringMethods(NoNewAttributesMixin):
         return self._wrap_result(result)
 
     def normalize(self, form):
-        """Return the Unicode normal form for the strings in the Series/Index.
+        """
+        Return the Unicode normal form for the strings in the Series/Index.
         For more information on the forms, see the
         :func:`unicodedata.normalize`.
 

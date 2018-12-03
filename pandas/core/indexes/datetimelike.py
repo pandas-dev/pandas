@@ -216,7 +216,9 @@ class TimelikeOps(object):
 
 
 class DatetimeIndexOpsMixin(DatetimeLikeArrayMixin):
-    """ common ops mixin to support a unified interface datetimelike Index """
+    """
+    common ops mixin to support a unified interface datetimelike Index
+    """
 
     # override DatetimeLikeArrayMixin method
     copy = Index.copy

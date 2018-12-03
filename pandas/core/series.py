@@ -389,6 +389,9 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
     @property
     def name(self):
+        """
+        Return name of the Series.
+        """
         return self._name
 
     @name.setter
@@ -678,6 +681,9 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
     @property
     def real(self):
+        """
+        Return the real value of vector.
+        """
         return self.values.real
 
     @real.setter
@@ -686,6 +692,9 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
     @property
     def imag(self):
+        """
+        Return imag value of vector.
+        """
         return self.values.imag
 
     @imag.setter

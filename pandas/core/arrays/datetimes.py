@@ -340,6 +340,9 @@ class DatetimeArrayMixin(dtl.DatetimeLikeArrayMixin):
 
     @property
     def tz(self):
+        """
+        Return timezone.
+        """
         # GH 18595
         return self._tz
 
@@ -358,12 +361,16 @@ class DatetimeArrayMixin(dtl.DatetimeLikeArrayMixin):
 
     @property  # NB: override with cache_readonly in immutable subclasses
     def _timezone(self):
-        """ Comparable timezone both for pytz / dateutil"""
+        """
+        Comparable timezone both for pytz / dateutil
+        """
         return timezones.get_timezone(self.tzinfo)
 
     @property
     def offset(self):
-        """get/set the frequency of the instance"""
+        """
+        get/set the frequency of the instance
+        """
         msg = ('{cls}.offset has been deprecated and will be removed '
                'in a future version; use {cls}.freq instead.'
                .format(cls=type(self).__name__))
@@ -372,7 +379,9 @@ class DatetimeArrayMixin(dtl.DatetimeLikeArrayMixin):
 
     @offset.setter
     def offset(self, value):
-        """get/set the frequency of the instance"""
+        """
+        get/set the frequency of the instance
+        """
         msg = ('{cls}.offset has been deprecated and will be removed '
                'in a future version; use {cls}.freq instead.'
                .format(cls=type(self).__name__))
@@ -1062,19 +1071,19 @@ class DatetimeArrayMixin(dtl.DatetimeLikeArrayMixin):
 
         return tslib.ints_to_pydatetime(timestamps, box="date")
 
-    year = _field_accessor('year', 'Y', "The year of the datetime")
+    year = _field_accessor('year', 'Y', "\n The year of the datetime\n")
     month = _field_accessor('month', 'M',
-                            "The month as January=1, December=12")
-    day = _field_accessor('day', 'D', "The days of the datetime")
-    hour = _field_accessor('hour', 'h', "The hours of the datetime")
-    minute = _field_accessor('minute', 'm', "The minutes of the datetime")
-    second = _field_accessor('second', 's', "The seconds of the datetime")
+                            "\n The month as January=1, December=12 \n")
+    day = _field_accessor('day', 'D', "\nThe days of the datetime\n")
+    hour = _field_accessor('hour', 'h', "\nThe hours of the datetime\n")
+    minute = _field_accessor('minute', 'm', "\nThe minutes of the datetime\n")
+    second = _field_accessor('second', 's', "\nThe seconds of the datetime\n")
     microsecond = _field_accessor('microsecond', 'us',
-                                  "The microseconds of the datetime")
+                                  "\nThe microseconds of the datetime\n")
     nanosecond = _field_accessor('nanosecond', 'ns',
-                                 "The nanoseconds of the datetime")
+                                 "\nThe nanoseconds of the datetime\n")
     weekofyear = _field_accessor('weekofyear', 'woy',
-                                 "The week ordinal of the year")
+                                 "\nThe week ordinal of the year\n")
     week = weekofyear
     _dayofweek_doc = """
     The day of the week with Monday=0, Sunday=6.
@@ -1119,12 +1128,12 @@ class DatetimeArrayMixin(dtl.DatetimeLikeArrayMixin):
         "The name of day in a week (ex: Friday)\n\n.. deprecated:: 0.23.0")
 
     dayofyear = _field_accessor('dayofyear', 'doy',
-                                "The ordinal day of the year")
-    quarter = _field_accessor('quarter', 'q', "The quarter of the date")
+                                "\nThe ordinal day of the year\n")
+    quarter = _field_accessor('quarter', 'q', "\nThe quarter of the date\n")
     days_in_month = _field_accessor(
         'days_in_month',
         'dim',
-        "The number of days in the month")
+        "\nThe number of days in the month\n")
     daysinmonth = days_in_month
     _is_month_doc = """
         Indicates whether the date is the {first_or_last} day of the month.
