@@ -51,7 +51,7 @@ def safe_remove(path):
     if path is not None:
         try:
             os.remove(path)
-        except:
+        except OSError:
             pass
 
 
@@ -59,7 +59,7 @@ def safe_close(store):
     try:
         if store is not None:
             store.close()
-    except:
+    except IOError:
         pass
 
 
@@ -117,7 +117,7 @@ def _maybe_remove(store, key):
     no content from previous tests using the same table name."""
     try:
         store.remove(key)
-    except:
+    except (ValueError, KeyError):
         pass
 
 
@@ -199,8 +199,6 @@ class TestHDFStore(Base):
     def test_long_strings(self):
 
         # GH6166
-        # unconversion of long strings was being chopped in earlier
-        # versions of numpy < 1.7.2
         df = DataFrame({'a': tm.rands_array(100, size=10)},
                        index=tm.rands_array(100, size=10))
 
@@ -1084,9 +1082,7 @@ class TestHDFStore(Base):
     def test_latin_encoding(self):
 
         if compat.PY2:
-            tm.assert_raises_regex(
-                TypeError, r'\[unicode\] is not implemented as a table column')
-            return
+            pytest.skip("[unicode] is not implemented as a table column")
 
         values = [[b'E\xc9, 17', b'', b'a', b'b', b'c'],
                   [b'E\xc9, 17', b'a', b'b', b'c'],
@@ -2598,8 +2594,8 @@ class TestHDFStore(Base):
                 for t in terms:
                     store.select('wp', t)
 
-                with tm.assert_raises_regex(
-                        TypeError, 'Only named functions are supported'):
+                with pytest.raises(TypeError,
+                                   match='Only named functions are supported'):
                     store.select(
                         'wp',
                         'major_axis == (lambda x: x)("20130101")')
@@ -2610,9 +2606,8 @@ class TestHDFStore(Base):
                 expected = Panel({-1: wpneg[-1]})
                 tm.assert_panel_equal(res, expected)
 
-                with tm.assert_raises_regex(NotImplementedError,
-                                            'Unary addition '
-                                            'not supported'):
+                msg = 'Unary addition not supported'
+                with pytest.raises(NotImplementedError, match=msg):
                     store.select('wpneg', 'items == +1')
 
     def test_term_compat(self):
@@ -4520,9 +4515,8 @@ class TestHDFStore(Base):
             pytest.raises(ClosedFileError, store.get_storer, 'df2')
             pytest.raises(ClosedFileError, store.remove, 'df2')
 
-            def f():
+            with pytest.raises(ClosedFileError, match='file is not open'):
                 store.select('df')
-            tm.assert_raises_regex(ClosedFileError, 'file is not open', f)
 
     def test_pytables_native_read(self, datapath):
         with ensure_clean_store(
@@ -4605,7 +4599,7 @@ class TestHDFStore(Base):
                     safe_close(tstore)
                     try:
                         os.close(fd)
-                    except:
+                    except (OSError, ValueError):
                         pass
                     safe_remove(new_f)
 
@@ -4760,24 +4754,26 @@ class TestHDFStore(Base):
             tm.assert_series_equal(s, result)
 
             _maybe_remove(store, 'df')
-
             df = DataFrame({"s": s, "vals": [1, 2, 3, 4, 5, 6]})
             store.append('df', df, format='table')
             result = store.select('df')
             tm.assert_frame_equal(result, df)
 
             # Dtypes
+            _maybe_remove(store, 'si')
             s = Series([1, 1, 2, 2, 3, 4, 5]).astype('category')
             store.append('si', s)
             result = store.select('si')
             tm.assert_series_equal(result, s)
 
+            _maybe_remove(store, 'si2')
             s = Series([1, 1, np.nan, 2, 3, 4, 5]).astype('category')
             store.append('si2', s)
             result = store.select('si2')
             tm.assert_series_equal(result, s)
 
             # Multiple
+            _maybe_remove(store, 'df2')
             df2 = df.copy()
             df2['s2'] = Series(list('abcdefg')).astype('category')
             store.append('df2', df2)
@@ -4791,6 +4787,7 @@ class TestHDFStore(Base):
             assert '/df2/meta/values_block_1/meta' in info
 
             # unordered
+            _maybe_remove(store, 's2')
             s = Series(Categorical(['a', 'b', 'b', 'a', 'a', 'c'], categories=[
                        'a', 'b', 'c', 'd'], ordered=False))
             store.append('s2', s, format='table')
@@ -4798,6 +4795,7 @@ class TestHDFStore(Base):
             tm.assert_series_equal(result, s)
 
             # Query
+            _maybe_remove(store, 'df3')
             store.append('df3', df, data_columns=['s'])
             expected = df[df.s.isin(['b', 'c'])]
             result = store.select('df3', where=['s in ["b","c"]'])
@@ -4971,9 +4969,8 @@ class TestHDFStore(Base):
             df = DataFrame(np.random.randn(10, 2), columns=index(2))
             with ensure_clean_path(self.path) as path:
                 with catch_warnings(record=True):
-                    with tm.assert_raises_regex(
-                        ValueError, ("cannot have non-object label "
-                                     "DataIndexableCol")):
+                    msg = "cannot have non-object label DataIndexableCol"
+                    with pytest.raises(ValueError, match=msg):
                         df.to_hdf(path, 'df', format='table',
                                   data_columns=True)
 
@@ -5155,14 +5152,14 @@ class TestHDFStore(Base):
                           pd.Timedelta(1, 's')]:
                     query = 'date {op} v'.format(op=op)
                     with pytest.raises(TypeError):
-                        result = store.select('test', where=query)
+                        store.select('test', where=query)
 
                 # strings to other columns must be convertible to type
                 v = 'a'
                 for col in ['int', 'float', 'real_date']:
                     query = '{col} {op} v'.format(op=op, col=col)
                     with pytest.raises(ValueError):
-                        result = store.select('test', where=query)
+                        store.select('test', where=query)
 
                 for v, col in zip(['1', '1.1', '2014-01-01'],
                                   ['int', 'float', 'real_date']):

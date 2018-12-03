@@ -5,10 +5,95 @@ import pytest
 
 import pandas as pd
 import pandas.util.testing as tm
-from pandas import TimedeltaIndex, timedelta_range, to_timedelta
+from pandas import TimedeltaIndex, timedelta_range, to_timedelta, Timedelta
+from pandas.core.arrays import TimedeltaArrayMixin as TimedeltaArray
 
 
 class TestTimedeltaIndex(object):
+
+    def test_verify_integrity_deprecated(self):
+        # GH#23919
+        with tm.assert_produces_warning(FutureWarning):
+            TimedeltaIndex(['1 Day'], verify_integrity=False)
+
+    def test_range_kwargs_deprecated(self):
+        # GH#23919
+        with tm.assert_produces_warning(FutureWarning):
+            TimedeltaIndex(start='1 Day', end='3 Days', freq='D')
+
+    def test_int64_nocopy(self):
+        # GH#23539 check that a copy isn't made when we pass int64 data
+        #  and copy=False
+        arr = np.arange(10, dtype=np.int64)
+        tdi = TimedeltaIndex(arr, copy=False)
+        assert tdi._data.base is arr
+
+    def test_infer_from_tdi(self):
+        # GH#23539
+        # fast-path for inferring a frequency if the passed data already
+        #  has one
+        tdi = pd.timedelta_range('1 second', periods=10**7, freq='1s')
+
+        result = pd.TimedeltaIndex(tdi, freq='infer')
+        assert result.freq == tdi.freq
+
+        # check that inferred_freq was not called by checking that the
+        #  value has not been cached
+        assert "inferred_freq" not in getattr(result, "_cache", {})
+
+    def test_infer_from_tdi_mismatch(self):
+        # GH#23539
+        # fast-path for invalidating a frequency if the passed data already
+        #  has one and it does not match the `freq` input
+        tdi = pd.timedelta_range('1 second', periods=100, freq='1s')
+
+        msg = ("Inferred frequency .* from passed values does "
+               "not conform to passed frequency")
+        with pytest.raises(ValueError, match=msg):
+            TimedeltaIndex(tdi, freq='D')
+
+        with pytest.raises(ValueError, match=msg):
+            # GH#23789
+            TimedeltaArray(tdi, freq='D')
+
+    def test_dt64_data_invalid(self):
+        # GH#23539
+        # passing tz-aware DatetimeIndex raises, naive or ndarray[datetime64]
+        #  does not yet, but will in the future
+        dti = pd.date_range('2016-01-01', periods=3)
+
+        msg = "cannot be converted to timedelta64"
+        with pytest.raises(TypeError, match=msg):
+            TimedeltaIndex(dti.tz_localize('Europe/Brussels'))
+
+        with tm.assert_produces_warning(FutureWarning):
+            TimedeltaIndex(dti)
+
+        with tm.assert_produces_warning(FutureWarning):
+            TimedeltaIndex(np.asarray(dti))
+
+    def test_float64_ns_rounded(self):
+        # GH#23539 without specifying a unit, floats are regarded as nanos,
+        #  and fractional portions are truncated
+        tdi = TimedeltaIndex([2.3, 9.7])
+        expected = TimedeltaIndex([2, 9])
+        tm.assert_index_equal(tdi, expected)
+
+        # integral floats are non-lossy
+        tdi = TimedeltaIndex([2.0, 9.0])
+        expected = TimedeltaIndex([2, 9])
+        tm.assert_index_equal(tdi, expected)
+
+        # NaNs get converted to NaT
+        tdi = TimedeltaIndex([2.0, np.nan])
+        expected = TimedeltaIndex([pd.Timedelta(nanoseconds=2), pd.NaT])
+        tm.assert_index_equal(tdi, expected)
+
+    def test_float64_unit_conversion(self):
+        # GH#23539
+        tdi = TimedeltaIndex([1.5, 2.25], unit='D')
+        expected = TimedeltaIndex([Timedelta(days=1.5), Timedelta(days=2.25)])
+        tm.assert_index_equal(tdi, expected)
 
     def test_construction_base_constructor(self):
         arr = [pd.Timedelta('1 days'), pd.NaT, pd.Timedelta('3 days')]
@@ -57,13 +142,15 @@ class TestTimedeltaIndex(object):
         tm.assert_index_equal(rng, exp)
 
         msg = 'periods must be a number, got foo'
-        with tm.assert_raises_regex(TypeError, msg):
-            TimedeltaIndex(start='1 days', periods='foo', freq='D')
+        with pytest.raises(TypeError, match=msg):
+            timedelta_range(start='1 days', periods='foo', freq='D')
 
-        pytest.raises(ValueError, TimedeltaIndex, start='1 days',
-                      end='10 days')
+        with pytest.raises(ValueError):
+            with tm.assert_produces_warning(FutureWarning):
+                TimedeltaIndex(start='1 days', end='10 days')
 
-        pytest.raises(ValueError, TimedeltaIndex, '1 days')
+        with pytest.raises(TypeError):
+            TimedeltaIndex('1 days')
 
         # generator expression
         gen = (timedelta(i) for i in range(10))
@@ -84,10 +171,10 @@ class TestTimedeltaIndex(object):
         pytest.raises(ValueError, TimedeltaIndex,
                       ['1 days', '2 days', '4 days'], freq='D')
 
-        pytest.raises(ValueError, TimedeltaIndex, periods=10, freq='D')
+        pytest.raises(ValueError, timedelta_range, periods=10, freq='D')
 
     def test_constructor_name(self):
-        idx = TimedeltaIndex(start='1 days', periods=1, freq='D', name='TEST')
+        idx = timedelta_range(start='1 days', periods=1, freq='D', name='TEST')
         assert idx.name == 'TEST'
 
         # GH10025

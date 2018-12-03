@@ -214,13 +214,13 @@ class TestIntervalIndex(Base):
 
         # invalid type
         msg = 'can only insert Interval objects and NA into an IntervalIndex'
-        with tm.assert_raises_regex(ValueError, msg):
+        with pytest.raises(ValueError, match=msg):
             data.insert(1, 'foo')
 
         # invalid closed
         msg = 'inserted item must be closed on the same side as the index'
         for closed in {'left', 'right', 'both', 'neither'} - {item.closed}:
-            with tm.assert_raises_regex(ValueError, msg):
+            with pytest.raises(ValueError, match=msg):
                 bad_item = Interval(item.left, item.right, closed=closed)
                 data.insert(1, bad_item)
 
@@ -412,9 +412,9 @@ class TestIntervalIndex(Base):
         assert idx.get_loc(0.5) == 0
         assert idx.get_loc(1) == 0
         tm.assert_numpy_array_equal(idx.get_loc(1.5),
-                                    np.array([0, 1], dtype='int64'))
+                                    np.array([0, 1], dtype='intp'))
         tm.assert_numpy_array_equal(np.sort(idx.get_loc(2)),
-                                    np.array([0, 1], dtype='int64'))
+                                    np.array([0, 1], dtype='intp'))
         assert idx.get_loc(3) == 1
         pytest.raises(KeyError, idx.get_loc, 3.5)
 
@@ -537,12 +537,12 @@ class TestIntervalIndex(Base):
 
         value = index[0].mid + Timedelta('12 hours')
         result = np.sort(index.get_loc(value))
-        expected = np.array([0, 1], dtype='int64')
+        expected = np.array([0, 1], dtype='intp')
         assert tm.assert_numpy_array_equal(result, expected)
 
         interval = Interval(index[0].left, index[1].right)
         result = np.sort(index.get_loc(interval))
-        expected = np.array([0, 1, 2], dtype='int64')
+        expected = np.array([0, 1, 2], dtype='intp')
         assert tm.assert_numpy_array_equal(result, expected)
 
     # To be removed, replaced by test_interval_new.py (see #16316, #16386)
@@ -617,7 +617,7 @@ class TestIntervalIndex(Base):
         target = IntervalIndex.from_tuples(tuples)
 
         result = index._get_reindexer(target)
-        expected = np.array([0, 3], dtype='int64')
+        expected = np.array([0, 3], dtype='intp')
         tm.assert_numpy_array_equal(result, expected)
 
     @pytest.mark.parametrize('breaks', [
@@ -652,6 +652,23 @@ class TestIntervalIndex(Base):
         # list-like of datetimelike scalars
         result = index._maybe_convert_i8(list(breaks))
         expected = Index(breaks.asi8)
+        tm.assert_index_equal(result, expected)
+
+    @pytest.mark.parametrize('breaks', [
+        date_range('2018-01-01', periods=5),
+        timedelta_range('0 days', periods=5)])
+    def test_maybe_convert_i8_nat(self, breaks):
+        # GH 20636
+        index = IntervalIndex.from_breaks(breaks)
+
+        to_convert = breaks._constructor([pd.NaT] * 3)
+        expected = pd.Float64Index([np.nan] * 3)
+        result = index._maybe_convert_i8(to_convert)
+        tm.assert_index_equal(result, expected)
+
+        to_convert = to_convert.insert(0, breaks[0])
+        expected = expected.insert(0, float(breaks[0].value))
+        result = index._maybe_convert_i8(to_convert)
         tm.assert_index_equal(result, expected)
 
     @pytest.mark.parametrize('breaks', [
@@ -690,7 +707,7 @@ class TestIntervalIndex(Base):
         msg = ('Cannot index an IntervalIndex of subtype {dtype1} with '
                'values of dtype {dtype2}')
         msg = re.escape(msg.format(dtype1=breaks1.dtype, dtype2=breaks2.dtype))
-        with tm.assert_raises_regex(ValueError, msg):
+        with pytest.raises(ValueError, match=msg):
             index._maybe_convert_i8(key)
 
     # To be removed, replaced by test_interval_new.py (see #16316, #16386)
@@ -801,19 +818,26 @@ class TestIntervalIndex(Base):
         result = index.intersection(other)
         tm.assert_index_equal(result, expected)
 
-    def test_difference(self, closed):
-        index = self.create_index(closed=closed)
-        tm.assert_index_equal(index.difference(index[:1]), index[1:])
+    @pytest.mark.parametrize("sort", [True, False])
+    def test_difference(self, closed, sort):
+        index = IntervalIndex.from_arrays([1, 0, 3, 2],
+                                          [1, 2, 3, 4],
+                                          closed=closed)
+        result = index.difference(index[:1], sort)
+        expected = index[1:]
+        if sort:
+            expected = expected.sort_values()
+        tm.assert_index_equal(result, expected)
 
         # GH 19101: empty result, same dtype
-        result = index.difference(index)
+        result = index.difference(index, sort)
         expected = IntervalIndex(np.array([], dtype='int64'), closed=closed)
         tm.assert_index_equal(result, expected)
 
         # GH 19101: empty result, different dtypes
         other = IntervalIndex.from_arrays(index.left.astype('float64'),
                                           index.right, closed=closed)
-        result = index.difference(other)
+        result = index.difference(other, sort)
         tm.assert_index_equal(result, expected)
 
     def test_symmetric_difference(self, closed):
@@ -842,7 +866,7 @@ class TestIntervalIndex(Base):
         # non-IntervalIndex
         msg = ('the other index needs to be an IntervalIndex too, but '
                'was type Int64Index')
-        with tm.assert_raises_regex(TypeError, msg):
+        with pytest.raises(TypeError, match=msg):
             set_op(Index([1, 2, 3]))
 
         # mixed closed
@@ -850,14 +874,14 @@ class TestIntervalIndex(Base):
                'that are closed on the same side')
         for other_closed in {'right', 'left', 'both', 'neither'} - {closed}:
             other = self.create_index(closed=other_closed)
-            with tm.assert_raises_regex(ValueError, msg):
+            with pytest.raises(ValueError, match=msg):
                 set_op(other)
 
         # GH 19016: incompatible dtypes
         other = interval_range(Timestamp('20180101'), periods=9, closed=closed)
         msg = ('can only do {op} between two IntervalIndex objects that have '
                'compatible dtypes').format(op=op_name)
-        with tm.assert_raises_regex(TypeError, msg):
+        with pytest.raises(TypeError, match=msg):
             set_op(other)
 
     def test_isin(self, closed):
@@ -934,9 +958,9 @@ class TestIntervalIndex(Base):
         actual = self.index == self.index.left
         tm.assert_numpy_array_equal(actual, np.array([False, False]))
 
-        with tm.assert_raises_regex(TypeError, 'unorderable types'):
+        with pytest.raises(TypeError, match='unorderable types'):
             self.index > 0
-        with tm.assert_raises_regex(TypeError, 'unorderable types'):
+        with pytest.raises(TypeError, match='unorderable types'):
             self.index <= 0
         with pytest.raises(TypeError):
             self.index > np.arange(2)
@@ -1039,7 +1063,7 @@ class TestIntervalIndex(Base):
         for other_closed in {'left', 'right', 'both', 'neither'} - {closed}:
             index_other_closed = IntervalIndex.from_arrays(
                 [0, 1], [1, 2], closed=other_closed)
-            with tm.assert_raises_regex(ValueError, msg):
+            with pytest.raises(ValueError, match=msg):
                 index1.append(index_other_closed)
 
     def test_is_non_overlapping_monotonic(self, closed):
@@ -1074,6 +1098,50 @@ class TestIntervalIndex(Base):
         else:
             idx = IntervalIndex.from_breaks(range(4), closed=closed)
             assert idx.is_non_overlapping_monotonic is True
+
+    @pytest.mark.parametrize('start, shift, na_value', [
+        (0, 1, np.nan),
+        (Timestamp('2018-01-01'), Timedelta('1 day'), pd.NaT),
+        (Timedelta('0 days'), Timedelta('1 day'), pd.NaT)])
+    def test_is_overlapping(self, start, shift, na_value, closed):
+        # GH 23309
+        # see test_interval_tree.py for extensive tests; interface tests here
+
+        # non-overlapping
+        tuples = [(start + n * shift, start + (n + 1) * shift)
+                  for n in (0, 2, 4)]
+        index = IntervalIndex.from_tuples(tuples, closed=closed)
+        assert index.is_overlapping is False
+
+        # non-overlapping with NA
+        tuples = [(na_value, na_value)] + tuples + [(na_value, na_value)]
+        index = IntervalIndex.from_tuples(tuples, closed=closed)
+        assert index.is_overlapping is False
+
+        # overlapping
+        tuples = [(start + n * shift, start + (n + 2) * shift)
+                  for n in range(3)]
+        index = IntervalIndex.from_tuples(tuples, closed=closed)
+        assert index.is_overlapping is True
+
+        # overlapping with NA
+        tuples = [(na_value, na_value)] + tuples + [(na_value, na_value)]
+        index = IntervalIndex.from_tuples(tuples, closed=closed)
+        assert index.is_overlapping is True
+
+        # common endpoints
+        tuples = [(start + n * shift, start + (n + 1) * shift)
+                  for n in range(3)]
+        index = IntervalIndex.from_tuples(tuples, closed=closed)
+        result = index.is_overlapping
+        expected = closed == 'both'
+        assert result is expected
+
+        # common endpoints with NA
+        tuples = [(na_value, na_value)] + tuples + [(na_value, na_value)]
+        index = IntervalIndex.from_tuples(tuples, closed=closed)
+        result = index.is_overlapping
+        assert result is expected
 
     @pytest.mark.parametrize('tuples', [
         lzip(range(10), range(1, 11)),
@@ -1148,5 +1216,12 @@ class TestIntervalIndex(Base):
         # GH 21670
         index = interval_range(0, 5)
         msg = "invalid option for 'closed': {closed}".format(closed=bad_closed)
-        with tm.assert_raises_regex(ValueError, msg):
+        with pytest.raises(ValueError, match=msg):
             index.set_closed(bad_closed)
+
+    def test_is_all_dates(self):
+        # GH 23576
+        year_2017 = pd.Interval(pd.Timestamp('2017-01-01 00:00:00'),
+                                pd.Timestamp('2018-01-01 00:00:00'))
+        year_2017_index = pd.IntervalIndex([year_2017])
+        assert not year_2017_index.is_all_dates

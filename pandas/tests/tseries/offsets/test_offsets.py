@@ -1,42 +1,34 @@
-from distutils.version import LooseVersion
 from datetime import date, datetime, timedelta
-
-import pytest
-import pytz
-from pandas.compat import range
-from pandas import compat
+from distutils.version import LooseVersion
 
 import numpy as np
+import pytest
+import pytz
 
+from pandas._libs.tslibs import (
+    NaT, OutOfBoundsDatetime, Timedelta, Timestamp, conversion, timezones)
+from pandas._libs.tslibs.frequencies import (
+    INVALID_FREQ_ERR_MSG, get_freq_code, get_freq_str)
+import pandas._libs.tslibs.offsets as liboffsets
+import pandas.compat as compat
+from pandas.compat import range
 from pandas.compat.numpy import np_datetime64_compat
 
-from pandas.core.series import Series
-from pandas._libs.tslibs import conversion
-from pandas._libs.tslibs.frequencies import (get_freq_code, get_freq_str,
-                                             INVALID_FREQ_ERR_MSG)
-from pandas.tseries.frequencies import _offset_map, get_offset
-from pandas.core.indexes.datetimes import _to_m8, DatetimeIndex
+from pandas.core.indexes.datetimes import DatetimeIndex, _to_m8, date_range
 from pandas.core.indexes.timedeltas import TimedeltaIndex
-import pandas._libs.tslibs.offsets as liboffsets
-from pandas.tseries.offsets import (BDay, CDay, BQuarterEnd, BMonthEnd,
-                                    BusinessHour, WeekOfMonth, CBMonthEnd,
-                                    CustomBusinessHour,
-                                    CBMonthBegin, BYearEnd, MonthEnd,
-                                    MonthBegin, SemiMonthBegin, SemiMonthEnd,
-                                    BYearBegin, QuarterBegin, BQuarterBegin,
-                                    BMonthBegin, DateOffset, Week, YearBegin,
-                                    YearEnd, Day,
-                                    QuarterEnd, FY5253,
-                                    Nano, Easter, FY5253Quarter,
-                                    LastWeekOfMonth, Tick, CalendarDay)
-import pandas.tseries.offsets as offsets
-from pandas.io.pickle import read_pickle
-from pandas._libs.tslibs import timezones
-from pandas._libs.tslib import NaT, Timestamp
-from pandas._libs.tslibs.timedeltas import Timedelta
-import pandas._libs.tslib as tslib
+from pandas.core.series import Series
 import pandas.util.testing as tm
+
+from pandas.io.pickle import read_pickle
+from pandas.tseries.frequencies import _offset_map, get_offset
 from pandas.tseries.holiday import USFederalHolidayCalendar
+import pandas.tseries.offsets as offsets
+from pandas.tseries.offsets import (
+    FY5253, BDay, BMonthBegin, BMonthEnd, BQuarterBegin, BQuarterEnd,
+    BusinessHour, BYearBegin, BYearEnd, CalendarDay, CBMonthBegin, CBMonthEnd,
+    CDay, CustomBusinessHour, DateOffset, Day, Easter, FY5253Quarter,
+    LastWeekOfMonth, MonthBegin, MonthEnd, Nano, QuarterBegin, QuarterEnd,
+    SemiMonthBegin, SemiMonthEnd, Tick, Week, WeekOfMonth, YearBegin, YearEnd)
 
 from .common import assert_offset_equal, assert_onOffset
 
@@ -130,7 +122,7 @@ class Base(object):
             assert isinstance(result, datetime)
             assert t.tzinfo == result.tzinfo
 
-        except tslib.OutOfBoundsDatetime:
+        except OutOfBoundsDatetime:
             raise
         except (ValueError, KeyError):
             # we are creating an invalid offset
@@ -186,6 +178,19 @@ class Base(object):
             return
         assert self.d + (-5 * self._offset(-10)) == self.d + self._offset(50)
         assert self.d + (-3 * self._offset(-2)) == self.d + self._offset(6)
+
+    def test_compare_str(self):
+        # GH#23524
+        # comparing to strings that cannot be cast to DateOffsets should
+        #  not raise for __eq__ or __ne__
+        if self._offset is None:
+            return
+        off = self._get_offset(self._offset)
+
+        assert not off == "infer"
+        assert off != "foo"
+        # Note: inequalities are only implemented for Tick subclasses;
+        #  tests for this are in test_ticks
 
 
 class TestCommon(Base):
@@ -1354,10 +1359,10 @@ class TestBusinessHour(Base):
                 assert_offset_equal(offset, base, expected)
 
     def test_datetimeindex(self):
-        idx1 = DatetimeIndex(start='2014-07-04 15:00', end='2014-07-08 10:00',
-                             freq='BH')
-        idx2 = DatetimeIndex(start='2014-07-04 15:00', periods=12, freq='BH')
-        idx3 = DatetimeIndex(end='2014-07-08 10:00', periods=12, freq='BH')
+        idx1 = date_range(start='2014-07-04 15:00', end='2014-07-08 10:00',
+                          freq='BH')
+        idx2 = date_range(start='2014-07-04 15:00', periods=12, freq='BH')
+        idx3 = date_range(end='2014-07-08 10:00', periods=12, freq='BH')
         expected = DatetimeIndex(['2014-07-04 15:00', '2014-07-04 16:00',
                                   '2014-07-07 09:00',
                                   '2014-07-07 10:00', '2014-07-07 11:00',
@@ -1370,10 +1375,10 @@ class TestBusinessHour(Base):
         for idx in [idx1, idx2, idx3]:
             tm.assert_index_equal(idx, expected)
 
-        idx1 = DatetimeIndex(start='2014-07-04 15:45', end='2014-07-08 10:45',
-                             freq='BH')
-        idx2 = DatetimeIndex(start='2014-07-04 15:45', periods=12, freq='BH')
-        idx3 = DatetimeIndex(end='2014-07-08 10:45', periods=12, freq='BH')
+        idx1 = date_range(start='2014-07-04 15:45', end='2014-07-08 10:45',
+                          freq='BH')
+        idx2 = date_range(start='2014-07-04 15:45', periods=12, freq='BH')
+        idx3 = date_range(end='2014-07-08 10:45', periods=12, freq='BH')
 
         expected = DatetimeIndex(['2014-07-04 15:45', '2014-07-04 16:45',
                                   '2014-07-07 09:45',
@@ -1992,8 +1997,8 @@ class TestCustomBusinessMonthEnd(CustomBusinessMonthBase, Base):
         hcal = USFederalHolidayCalendar()
         freq = CBMonthEnd(calendar=hcal)
 
-        assert (DatetimeIndex(start='20120101', end='20130101',
-                              freq=freq).tolist()[0] == datetime(2012, 1, 31))
+        assert (date_range(start='20120101', end='20130101',
+                           freq=freq).tolist()[0] == datetime(2012, 1, 31))
 
 
 class TestCustomBusinessMonthBegin(CustomBusinessMonthBase, Base):
@@ -2109,8 +2114,8 @@ class TestCustomBusinessMonthBegin(CustomBusinessMonthBase, Base):
     def test_datetimeindex(self):
         hcal = USFederalHolidayCalendar()
         cbmb = CBMonthBegin(calendar=hcal)
-        assert (DatetimeIndex(start='20120101', end='20130101',
-                              freq=cbmb).tolist()[0] == datetime(2012, 1, 3))
+        assert (date_range(start='20120101', end='20130101',
+                           freq=cbmb).tolist()[0] == datetime(2012, 1, 3))
 
 
 class TestWeek(Base):
@@ -2412,7 +2417,7 @@ class TestSemiMonthEnd(Base):
         tm.assert_index_equal(result, exp)
 
         # ensure generating a range with DatetimeIndex gives same result
-        result = DatetimeIndex(start=dates[0], end=dates[-1], freq='SM')
+        result = date_range(start=dates[0], end=dates[-1], freq='SM')
         exp = DatetimeIndex(dates)
         tm.assert_index_equal(result, exp)
 
@@ -2599,7 +2604,7 @@ class TestSemiMonthBegin(Base):
         tm.assert_index_equal(result, exp)
 
         # ensure generating a range with DatetimeIndex gives same result
-        result = DatetimeIndex(start=dates[0], end=dates[-1], freq='SMS')
+        result = date_range(start=dates[0], end=dates[-1], freq='SMS')
         exp = DatetimeIndex(dates)
         tm.assert_index_equal(result, exp)
 

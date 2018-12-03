@@ -2,30 +2,28 @@ import operator
 import warnings
 
 import numpy as np
+
 from pandas._libs import index as libindex
-
-from pandas import compat
+import pandas.compat as compat
 from pandas.compat.numpy import function as nv
-from pandas.core.dtypes.generic import ABCCategorical, ABCSeries
-from pandas.core.dtypes.dtypes import CategoricalDtype
-from pandas.core.dtypes.common import (
-    is_categorical_dtype,
-    ensure_platform_int,
-    is_list_like,
-    is_interval_dtype,
-    is_scalar)
-from pandas.core.dtypes.missing import array_equivalent, isna
-from pandas.core.algorithms import take_1d
-
-
 from pandas.util._decorators import Appender, cache_readonly
-from pandas.core.config import get_option
-from pandas.core.indexes.base import Index, _index_shared_docs
+
+from pandas.core.dtypes.common import (
+    ensure_platform_int, is_categorical_dtype, is_interval_dtype, is_list_like,
+    is_scalar)
+from pandas.core.dtypes.dtypes import CategoricalDtype
+from pandas.core.dtypes.generic import ABCCategorical, ABCSeries
+from pandas.core.dtypes.missing import isna
+
 from pandas.core import accessor
-import pandas.core.common as com
-import pandas.core.missing as missing
-import pandas.core.indexes.base as ibase
+from pandas.core.algorithms import take_1d
 from pandas.core.arrays.categorical import Categorical, contains
+import pandas.core.common as com
+from pandas.core.config import get_option
+import pandas.core.indexes.base as ibase
+from pandas.core.indexes.base import Index, _index_shared_docs
+import pandas.core.missing as missing
+from pandas.core.ops import get_op_result_name
 
 _index_doc_kwargs = dict(ibase._index_doc_kwargs)
 _index_doc_kwargs.update(dict(target_klass='CategoricalIndex'))
@@ -44,7 +42,6 @@ _index_doc_kwargs.update(dict(target_klass='CategoricalIndex'))
     typ='method', overwrite=True)
 class CategoricalIndex(Index, accessor.PandasDelegate):
     """
-
     Immutable Index implementing an ordered, sliceable set. CategoricalIndex
     represents a sparsely populated Index with an underlying Categorical.
 
@@ -96,6 +93,9 @@ class CategoricalIndex(Index, accessor.PandasDelegate):
                 }[self.codes.dtype.type]
 
     _attributes = ['name']
+
+    # --------------------------------------------------------------------
+    # Constructors
 
     def __new__(cls, data=None, categories=None, ordered=None, dtype=None,
                 copy=False, name=None, fastpath=None):
@@ -215,6 +215,8 @@ class CategoricalIndex(Index, accessor.PandasDelegate):
         result._reset_identity()
         return result
 
+    # --------------------------------------------------------------------
+
     @Appender(_index_shared_docs['_shallow_copy'])
     def _shallow_copy(self, values=None, categories=None, ordered=None,
                       dtype=None, **kwargs):
@@ -281,11 +283,16 @@ class CategoricalIndex(Index, accessor.PandasDelegate):
 
         try:
             other = self._is_dtype_compat(other)
-            return array_equivalent(self._data, other)
+            if isinstance(other, type(self)):
+                other = other._data
+            return self._data.equals(other)
         except (TypeError, ValueError):
             pass
 
         return False
+
+    # --------------------------------------------------------------------
+    # Rendering Methods
 
     @property
     def _formatter_func(self):
@@ -310,6 +317,8 @@ class CategoricalIndex(Index, accessor.PandasDelegate):
             attrs.append(('length', len(self)))
         return attrs
 
+    # --------------------------------------------------------------------
+
     @property
     def inferred_type(self):
         return 'categorical'
@@ -323,6 +332,10 @@ class CategoricalIndex(Index, accessor.PandasDelegate):
     def itemsize(self):
         # Size of the items in categories, not codes.
         return self.values.itemsize
+
+    def _wrap_setop_result(self, other, result):
+        name = get_op_result_name(self, other)
+        return self._shallow_copy(result, name=name)
 
     def get_values(self):
         """ return the underlying data as an ndarray """
@@ -521,12 +534,16 @@ class CategoricalIndex(Index, accessor.PandasDelegate):
 
         target = ibase.ensure_index(target)
 
-        if not is_categorical_dtype(target) and not target.is_unique:
-            raise ValueError("cannot reindex with a non-unique indexer")
+        if self.equals(target):
+            indexer = None
+            missing = []
+        else:
+            if not target.is_unique:
+                raise ValueError("cannot reindex with a non-unique indexer")
 
-        indexer, missing = self.get_indexer_non_unique(np.array(target))
+            indexer, missing = self.get_indexer_non_unique(np.array(target))
 
-        if len(self.codes):
+        if len(self.codes) and indexer is not None:
             new_target = self.take(indexer)
         else:
             new_target = target

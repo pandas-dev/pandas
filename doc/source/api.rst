@@ -1671,6 +1671,7 @@ IntervalIndex Components
    IntervalIndex.length
    IntervalIndex.values
    IntervalIndex.is_non_overlapping_monotonic
+   IntervalIndex.is_overlapping
    IntervalIndex.get_loc
    IntervalIndex.get_indexer
    IntervalIndex.set_closed
@@ -1724,6 +1725,7 @@ MultiIndex Components
    MultiIndex.set_levels
    MultiIndex.set_labels
    MultiIndex.to_hierarchical
+   MultiIndex.to_flat_index
    MultiIndex.to_frame
    MultiIndex.is_lexsorted
    MultiIndex.sortlevel
@@ -2481,6 +2483,7 @@ Style Application
    Styler.set_properties
    Styler.set_uuid
    Styler.clear
+   Styler.pipe
 
 Builtin Styles
 ~~~~~~~~~~~~~~

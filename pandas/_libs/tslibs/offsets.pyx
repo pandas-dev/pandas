@@ -26,6 +26,7 @@ from conversion cimport tz_convert_single, pydt_to_i8, localize_pydatetime
 from nattype cimport NPY_NAT
 from np_datetime cimport (npy_datetimestruct,
                           dtstruct_to_dt64, dt64_to_dtstruct)
+from timezones import UTC
 
 # ---------------------------------------------------------------------
 # Constants
@@ -84,6 +85,8 @@ cdef to_offset(object obj):
     Wrap pandas.tseries.frequencies.to_offset to keep centralize runtime
     imports
     """
+    if isinstance(obj, _BaseOffset):
+        return obj
     from pandas.tseries.frequencies import to_offset
     return to_offset(obj)
 
@@ -209,7 +212,7 @@ def _to_dt64(dt, dtype='datetime64'):
     # Thus astype is needed to cast datetime to datetime64[D]
     if getattr(dt, 'tzinfo', None) is not None:
         i8 = pydt_to_i8(dt)
-        dt = tz_convert_single(i8, 'UTC', dt.tzinfo)
+        dt = tz_convert_single(i8, UTC, dt.tzinfo)
         dt = np.int64(dt).astype('datetime64[ns]')
     else:
         dt = np.datetime64(dt)
@@ -306,8 +309,13 @@ class _BaseOffset(object):
 
     def __eq__(self, other):
         if is_string_object(other):
-            other = to_offset(other)
-
+            try:
+                # GH#23524 if to_offset fails, we are dealing with an
+                #  incomparable type so == is False and != is True
+                other = to_offset(other)
+            except ValueError:
+                # e.g. "infer"
+                return False
         try:
             return self._params == other._params
         except AttributeError:
@@ -346,6 +354,7 @@ class _BaseOffset(object):
 
     def __add__(self, other):
         if getattr(other, "_typ", None) in ["datetimeindex", "periodindex",
+                                            "datetimearray", "periodarray",
                                             "series", "period", "dataframe"]:
             # defer to the other class's implementation
             return other + self

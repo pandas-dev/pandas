@@ -4,21 +4,6 @@ Template for intervaltree
 WARNING: DO NOT edit .pxi FILE directly, .pxi is generated from .pxi.in
 """
 
-from numpy cimport (
-    int64_t, int32_t, float64_t, float32_t, uint64_t,
-    ndarray,
-    PyArray_ArgSort, NPY_QUICKSORT, PyArray_Take)
-import numpy as np
-
-cimport cython
-from cython cimport Py_ssize_t
-
-cimport numpy as cnp
-cnp.import_array()
-
-from hashtable cimport Int64Vector, Int64VectorData
-
-
 ctypedef fused scalar_t:
     float64_t
     float32_t
@@ -26,10 +11,9 @@ ctypedef fused scalar_t:
     int32_t
     uint64_t
 
-
-#----------------------------------------------------------------------
+# ----------------------------------------------------------------------
 # IntervalTree
-#----------------------------------------------------------------------
+# ----------------------------------------------------------------------
 
 cdef class IntervalTree(IntervalMixin):
     """A centered interval tree
@@ -42,7 +26,7 @@ cdef class IntervalTree(IntervalMixin):
     cdef:
         readonly object left, right, root, dtype
         readonly str closed
-        object _left_sorter, _right_sorter
+        object _is_overlapping, _left_sorter, _right_sorter
 
     def __init__(self, left, right, closed='right', leaf_size=100):
         """
@@ -97,6 +81,26 @@ cdef class IntervalTree(IntervalMixin):
             self._right_sorter = np.argsort(self.right)
         return self._right_sorter
 
+    @property
+    def is_overlapping(self):
+        """
+        Determine if the IntervalTree contains overlapping intervals.
+        Cached as self._is_overlapping.
+        """
+        if self._is_overlapping is not None:
+            return self._is_overlapping
+
+        # <= when both sides closed since endpoints can overlap
+        op = le if self.closed == 'both' else lt
+
+        # overlap if start of current interval < end of previous interval
+        # (current and previous in terms of sorted order by left/start side)
+        current = self.left[self.left_sorter[1:]]
+        previous = self.right[self.left_sorter[:-1]]
+        self._is_overlapping = bool(op(current, previous).any())
+
+        return self._is_overlapping
+
     def get_loc(self, scalar_t key):
         """Return all positions corresponding to intervals that overlap with
         the given scalar key
@@ -105,7 +109,7 @@ cdef class IntervalTree(IntervalMixin):
         self.root.query(result, key)
         if not result.data.n:
             raise KeyError(key)
-        return result.to_array()
+        return result.to_array().astype('intp')
 
     def _get_partial_overlap(self, key_left, key_right, side):
         """Return all positions corresponding to intervals with the given side
@@ -132,7 +136,7 @@ cdef class IntervalTree(IntervalMixin):
         enclosing = self.get_loc(0.5 * (key_left + key_right))
         combined = np.concatenate([left_overlap, right_overlap, enclosing])
         uniques = pd.unique(combined)
-        return uniques
+        return uniques.astype('intp')
 
     def get_indexer(self, scalar_t[:] target):
         """Return the positions corresponding to unique intervals that overlap
@@ -155,7 +159,7 @@ cdef class IntervalTree(IntervalMixin):
                 raise KeyError(
                     'indexer does not intersect a unique set of intervals')
             old_len = result.data.n
-        return result.to_array()
+        return result.to_array().astype('intp')
 
     def get_indexer_non_unique(self, scalar_t[:] target):
         """Return the positions corresponding to intervals that overlap with
@@ -175,7 +179,8 @@ cdef class IntervalTree(IntervalMixin):
                 result.append(-1)
                 missing.append(i)
             old_len = result.data.n
-        return result.to_array(), missing.to_array()
+        return (result.to_array().astype('intp'),
+                missing.to_array().astype('intp'))
 
     def __repr__(self):
         return ('<IntervalTree[{dtype},{closed}]: '
@@ -202,9 +207,10 @@ cdef sort_values_and_indices(all_values, all_indices, subset):
     sorted_indices = take(indices, sorter)
     return sorted_values, sorted_indices
 
-#----------------------------------------------------------------------
+
+# ----------------------------------------------------------------------
 # Nodes
-#----------------------------------------------------------------------
+# ----------------------------------------------------------------------
 
 # we need specialized nodes and leaves to optimize for different dtype and
 # closed values
