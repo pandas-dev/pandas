@@ -52,7 +52,7 @@ matrix:
           - python-gtk2
     - dist: trusty
       env:
-        - JOB="3.6, lint, coverage" ENV_FILE="ci/deps/travis-36.yaml" PATTERN="not slow and not network" PANDAS_TESTING_MODE="deprecate" COVERAGE=true LINT=true
+        - JOB="3.6, coverage" ENV_FILE="ci/deps/travis-36.yaml" PATTERN="not slow and not network" PANDAS_TESTING_MODE="deprecate" COVERAGE=true
     - dist: trusty
       env:
         - JOB="3.7, NumPy dev" ENV_FILE="ci/deps/travis-37-numpydev.yaml" PATTERN="not slow and not network" TEST_ARGS="-W error" PANDAS_TESTING_MODE="deprecate"
@@ -108,7 +108,6 @@ script:
   - source activate pandas-dev
   - ci/run_build_docs.sh
   - ci/run_tests.sh
-  - ci/code_checks.sh
 
 after_script:
   - echo "after_script start"

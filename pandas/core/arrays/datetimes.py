@@ -6,10 +6,9 @@ import numpy as np
 from pytz import utc
 
 from pandas._libs import lib, tslib
-from pandas._libs.tslib import NaT, Timestamp, iNaT
 from pandas._libs.tslibs import (
-    ccalendar, conversion, fields, normalize_date, resolution as libresolution,
-    timezones)
+    NaT, Timestamp, ccalendar, conversion, fields, iNaT, normalize_date,
+    resolution as libresolution, timezones)
 import pandas.compat as compat
 from pandas.errors import PerformanceWarning
 from pandas.util._decorators import Appender, cache_readonly
@@ -156,7 +155,9 @@ def _dt_array_cmp(cls, op):
     return compat.set_function_name(wrapper, opname, cls)
 
 
-class DatetimeArrayMixin(dtl.DatetimeLikeArrayMixin):
+class DatetimeArrayMixin(dtl.DatetimeLikeArrayMixin,
+                         dtl.TimelikeOps,
+                         dtl.DatelikeOps):
     """
     Assumes that subclass __new__/__init__ defines:
         tz
@@ -340,6 +341,9 @@ class DatetimeArrayMixin(dtl.DatetimeLikeArrayMixin):
 
     @property
     def tz(self):
+        """
+        Return timezone.
+        """
         # GH 18595
         return self._tz
 
@@ -358,12 +362,16 @@ class DatetimeArrayMixin(dtl.DatetimeLikeArrayMixin):
 
     @property  # NB: override with cache_readonly in immutable subclasses
     def _timezone(self):
-        """ Comparable timezone both for pytz / dateutil"""
+        """
+        Comparable timezone both for pytz / dateutil
+        """
         return timezones.get_timezone(self.tzinfo)
 
     @property
     def offset(self):
-        """get/set the frequency of the instance"""
+        """
+        get/set the frequency of the instance
+        """
         msg = ('{cls}.offset has been deprecated and will be removed '
                'in a future version; use {cls}.freq instead.'
                .format(cls=type(self).__name__))
@@ -372,7 +380,9 @@ class DatetimeArrayMixin(dtl.DatetimeLikeArrayMixin):
 
     @offset.setter
     def offset(self, value):
-        """get/set the frequency of the instance"""
+        """
+        get/set the frequency of the instance
+        """
         msg = ('{cls}.offset has been deprecated and will be removed '
                'in a future version; use {cls}.freq instead.'
                .format(cls=type(self).__name__))
@@ -1062,19 +1072,19 @@ class DatetimeArrayMixin(dtl.DatetimeLikeArrayMixin):
 
         return tslib.ints_to_pydatetime(timestamps, box="date")
 
-    year = _field_accessor('year', 'Y', "The year of the datetime")
+    year = _field_accessor('year', 'Y', "\n The year of the datetime\n")
     month = _field_accessor('month', 'M',
-                            "The month as January=1, December=12")
-    day = _field_accessor('day', 'D', "The days of the datetime")
-    hour = _field_accessor('hour', 'h', "The hours of the datetime")
-    minute = _field_accessor('minute', 'm', "The minutes of the datetime")
-    second = _field_accessor('second', 's', "The seconds of the datetime")
+                            "\n The month as January=1, December=12 \n")
+    day = _field_accessor('day', 'D', "\nThe days of the datetime\n")
+    hour = _field_accessor('hour', 'h', "\nThe hours of the datetime\n")
+    minute = _field_accessor('minute', 'm', "\nThe minutes of the datetime\n")
+    second = _field_accessor('second', 's', "\nThe seconds of the datetime\n")
     microsecond = _field_accessor('microsecond', 'us',
-                                  "The microseconds of the datetime")
+                                  "\nThe microseconds of the datetime\n")
     nanosecond = _field_accessor('nanosecond', 'ns',
-                                 "The nanoseconds of the datetime")
+                                 "\nThe nanoseconds of the datetime\n")
     weekofyear = _field_accessor('weekofyear', 'woy',
-                                 "The week ordinal of the year")
+                                 "\nThe week ordinal of the year\n")
     week = weekofyear
     _dayofweek_doc = """
     The day of the week with Monday=0, Sunday=6.
@@ -1119,12 +1129,12 @@ class DatetimeArrayMixin(dtl.DatetimeLikeArrayMixin):
         "The name of day in a week (ex: Friday)\n\n.. deprecated:: 0.23.0")
 
     dayofyear = _field_accessor('dayofyear', 'doy',
-                                "The ordinal day of the year")
-    quarter = _field_accessor('quarter', 'q', "The quarter of the date")
+                                "\nThe ordinal day of the year\n")
+    quarter = _field_accessor('quarter', 'q', "\nThe quarter of the date\n")
     days_in_month = _field_accessor(
         'days_in_month',
         'dim',
-        "The number of days in the month")
+        "\nThe number of days in the month\n")
     daysinmonth = days_in_month
     _is_month_doc = """
         Indicates whether the date is the {first_or_last} day of the month.
@@ -1500,6 +1510,83 @@ def maybe_convert_dtype(data, copy):
         copy = False
 
     return data, copy
+
+
+def objects_to_datetime64ns(data, dayfirst, yearfirst,
+                            utc=False, errors="raise",
+                            require_iso8601=False, allow_object=False):
+    """
+    Convert data to array of timestamps.
+
+    Parameters
+    ----------
+    data : np.ndarray[object]
+    dayfirst : bool
+    yearfirst : bool
+    utc : bool, default False
+        Whether to convert timezone-aware timestamps to UTC
+    errors : {'raise', 'ignore', 'coerce'}
+    allow_object : bool
+        Whether to return an object-dtype ndarray instead of raising if the
+        data contains more than one timezone.
+
+    Returns
+    -------
+    result : ndarray
+        np.int64 dtype if returned values represent UTC timestamps
+        np.datetime64[ns] if returned values represent wall times
+        object if mixed timezones
+    inferred_tz : tzinfo or None
+
+    Raises
+    ------
+    ValueError : if data cannot be converted to datetimes
+    """
+    assert errors in ["raise", "ignore", "coerce"]
+
+    # if str-dtype, convert
+    data = np.array(data, copy=False, dtype=np.object_)
+
+    try:
+        result, tz_parsed = tslib.array_to_datetime(
+            data,
+            errors=errors,
+            utc=utc,
+            dayfirst=dayfirst,
+            yearfirst=yearfirst,
+            require_iso8601=require_iso8601
+        )
+    except ValueError as e:
+        try:
+            values, tz_parsed = conversion.datetime_to_datetime64(data)
+            # If tzaware, these values represent unix timestamps, so we
+            #  return them as i8 to distinguish from wall times
+            return values.view('i8'), tz_parsed
+        except (ValueError, TypeError):
+            raise e
+
+    if tz_parsed is not None:
+        # We can take a shortcut since the datetime64 numpy array
+        #  is in UTC
+        # Return i8 values to denote unix timestamps
+        return result.view('i8'), tz_parsed
+    elif is_datetime64_dtype(result):
+        # returning M8[ns] denotes wall-times; since tz is None
+        #  the distinction is a thin one
+        return result, tz_parsed
+    elif is_object_dtype(result):
+        # GH#23675 when called via `pd.to_datetime`, returning an object-dtype
+        #  array is allowed.  When called via `pd.DatetimeIndex`, we can
+        #  only accept datetime64 dtype, so raise TypeError if object-dtype
+        #  is returned, as that indicates the values can be recognized as
+        #  datetimes but they have conflicting timezones/awareness
+        if allow_object:
+            return result, tz_parsed
+        raise TypeError(result)
+    else:  # pragma: no cover
+        # GH#23675 this TypeError should never be hit, whereas the TypeError
+        #  in the object-dtype branch above is reachable.
+        raise TypeError(result)
 
 
 def _generate_regular_range(cls, start, end, periods, freq):

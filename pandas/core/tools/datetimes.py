@@ -171,7 +171,8 @@ def _convert_listlike_datetimes(arg, box, format, name=None, tz=None,
         - ndarray of Timestamps if box=False
     """
     from pandas import DatetimeIndex
-    from pandas.core.arrays.datetimes import maybe_convert_dtype
+    from pandas.core.arrays.datetimes import (
+        maybe_convert_dtype, objects_to_datetime64ns)
 
     if isinstance(arg, (list, tuple)):
         arg = np.array(arg, dtype='O')
@@ -233,8 +234,9 @@ def _convert_listlike_datetimes(arg, box, format, name=None, tz=None,
 
     tz_parsed = None
     result = None
-    try:
-        if format is not None:
+
+    if format is not None:
+        try:
             # shortcut formatting here
             if format == '%Y%m%d':
                 try:
@@ -266,24 +268,22 @@ def _convert_listlike_datetimes(arg, box, format, name=None, tz=None,
                         if errors == 'raise':
                             raise
                         result = arg
+        except ValueError as e:
+            # Fallback to try to convert datetime objects if timezone-aware
+            #  datetime objects are found without passing `utc=True`
+            try:
+                values, tz = conversion.datetime_to_datetime64(arg)
+                return DatetimeIndex._simple_new(values, name=name, tz=tz)
+            except (ValueError, TypeError):
+                raise e
 
-        if result is None:
-            assert format is None or infer_datetime_format
-            result, tz_parsed = tslib.array_to_datetime(
-                arg,
-                errors=errors,
-                utc=tz == 'utc',
-                dayfirst=dayfirst,
-                yearfirst=yearfirst,
-                require_iso8601=require_iso8601
-            )
-    except ValueError as e:
-        # Fallback to try to convert datetime objects
-        try:
-            values, tz = conversion.datetime_to_datetime64(arg)
-            return DatetimeIndex._simple_new(values, name=name, tz=tz)
-        except (ValueError, TypeError):
-            raise e
+    if result is None:
+        assert format is None or infer_datetime_format
+        utc = tz == 'utc'
+        result, tz_parsed = objects_to_datetime64ns(
+            arg, dayfirst=dayfirst, yearfirst=yearfirst,
+            utc=utc, errors=errors, require_iso8601=require_iso8601,
+            allow_object=True)
 
     if tz_parsed is not None:
         if box:
@@ -580,7 +580,6 @@ def to_datetime(arg, errors='raise', dayfirst=False, yearfirst=False,
             result = _assemble_from_unit_mappings(arg, errors=errors)
         if utc:
             result = result.dt.tz_localize('UTC')
-        
     elif isinstance(arg, ABCIndexClass):
         cache_array = _maybe_cache(arg, format, cache, convert_listlike)
         if not cache_array.empty:
@@ -597,6 +596,11 @@ def to_datetime(arg, errors='raise', dayfirst=False, yearfirst=False,
             result = convert_listlike(arg, box, format)
     else:
         result = convert_listlike(np.array([arg]), box, format)[0]
+<<<<<<< HEAD
+=======
+    if utc:
+        result = result.dt.tz_localize('UTC')
+>>>>>>> 766db7d7d8e99dd793172fb217850cd07c425cbb
     return result
 
 
@@ -710,9 +714,10 @@ def _assemble_from_unit_mappings(arg, errors):
 
 
 def _attempt_YYYYMMDD(arg, errors):
-    """ try to parse the YYYYMMDD/%Y%m%d format, try to deal with NaT-like,
-        arg is a passed in as an object dtype, but could really be ints/strings
-        with nan-like/or floats (e.g. with nan)
+    """
+    try to parse the YYYYMMDD/%Y%m%d format, try to deal with NaT-like,
+    arg is a passed in as an object dtype, but could really be ints/strings
+    with nan-like/or floats (e.g. with nan)
 
     Parameters
     ----------

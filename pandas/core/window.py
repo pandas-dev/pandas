@@ -30,15 +30,14 @@ from pandas.core.groupby.base import GroupByMixin
 
 _shared_docs = dict(**_shared_docs)
 _doc_template = """
+        Returns
+        -------
+        same type as input
 
-Returns
--------
-same type as input
-
-See Also
---------
-pandas.Series.%(name)s
-pandas.DataFrame.%(name)s
+        See Also
+        --------
+        Series.%(name)s
+        DataFrame.%(name)s
 """
 
 
@@ -1340,23 +1339,25 @@ class _Rolling_and_Expanding(_Rolling):
         return self._apply(f, 'quantile', quantile=quantile,
                            **kwargs)
 
-    _shared_docs['cov'] = dedent("""
-    Calculate the %(name)s sample covariance.
+    _shared_docs['cov'] = """
+        Calculate the %(name)s sample covariance.
 
-    Parameters
-    ----------
-    other : Series, DataFrame, or ndarray, optional
-        if not supplied then will default to self and produce pairwise output
-    pairwise : bool, default None
-        If False then only matching columns between self and other will be used
-        and the output will be a DataFrame.
-        If True then all pairwise combinations will be calculated and the
-        output will be a MultiIndexed DataFrame in the case of DataFrame
-        inputs. In the case of missing elements, only complete pairwise
-        observations will be used.
-    ddof : int, default 1
-        Delta Degrees of Freedom.  The divisor used in calculations
-        is ``N - ddof``, where ``N`` represents the number of elements.""")
+        Parameters
+        ----------
+        other : Series, DataFrame, or ndarray, optional
+            If not supplied then will default to self and produce pairwise
+            output.
+        pairwise : bool, default None
+            If False then only matching columns between self and other will be
+            used and the output will be a DataFrame.
+            If True then all pairwise combinations will be calculated and the
+            output will be a MultiIndexed DataFrame in the case of DataFrame
+            inputs. In the case of missing elements, only complete pairwise
+            observations will be used.
+        ddof : int, default 1
+            Delta Degrees of Freedom.  The divisor used in calculations
+            is ``N - ddof``, where ``N`` represents the number of elements.
+    """
 
     def cov(self, other=None, pairwise=None, ddof=1, **kwargs):
         if other is None:
@@ -2054,28 +2055,27 @@ class ExpandingGroupby(_GroupByMixin, Expanding):
 
 
 _bias_template = """
-
-Parameters
-----------
-bias : bool, default False
-    Use a standard estimation bias correction
+        Parameters
+        ----------
+        bias : bool, default False
+            Use a standard estimation bias correction
 """
 
 _pairwise_template = """
-
-Parameters
-----------
-other : Series, DataFrame, or ndarray, optional
-    if not supplied then will default to self and produce pairwise output
-pairwise : bool, default None
-    If False then only matching columns between self and other will be used and
-    the output will be a DataFrame.
-    If True then all pairwise combinations will be calculated and the output
-    will be a MultiIndex DataFrame in the case of DataFrame inputs.
-    In the case of missing elements, only complete pairwise observations will
-    be used.
-bias : bool, default False
-   Use a standard estimation bias correction
+        Parameters
+        ----------
+        other : Series, DataFrame, or ndarray, optional
+            If not supplied then will default to self and produce pairwise
+            output.
+        pairwise : bool, default None
+            If False then only matching columns between self and other will be
+            used and the output will be a DataFrame.
+            If True then all pairwise combinations will be calculated and the
+            output will be a MultiIndex DataFrame in the case of DataFrame
+            inputs. In the case of missing elements, only complete pairwise
+            observations will be used.
+        bias : bool, default False
+           Use a standard estimation bias correction
 """
 
 
