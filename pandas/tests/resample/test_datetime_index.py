@@ -1286,7 +1286,7 @@ class TestDatetimeIndex(Base):
         # 5172
         dti = DatetimeIndex([datetime(2012, 11, 4, 23)], tz='US/Eastern')
         df = DataFrame([5], index=dti)
-        assert_frame_equal(df.resample(rule='CD').sum(),
+        assert_frame_equal(df.resample(rule='D').sum(),
                            DataFrame([5], index=df.index.normalize()))
         df.resample(rule='MS').sum()
         assert_frame_equal(
