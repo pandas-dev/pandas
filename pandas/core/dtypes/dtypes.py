@@ -342,7 +342,8 @@ class CategoricalDtype(PandasExtensionDtype, ExtensionDtype):
 
     @classmethod
     def construct_array_type(cls):
-        """Return the array type associated with this dtype
+        """
+        Return the array type associated with this dtype
 
         Returns
         -------
@@ -353,7 +354,8 @@ class CategoricalDtype(PandasExtensionDtype, ExtensionDtype):
 
     @classmethod
     def construct_from_string(cls, string):
-        """ attempt to construct this type from a string, raise a TypeError if
+        """
+        attempt to construct this type from a string, raise a TypeError if
         it's not possible """
         try:
             if string == 'category':
@@ -459,7 +461,9 @@ class CategoricalDtype(PandasExtensionDtype, ExtensionDtype):
 
     @property
     def ordered(self):
-        """Whether the categories have an ordered relationship"""
+        """
+        Whether the categories have an ordered relationship
+        """
         return self._ordered
 
     @property
@@ -544,7 +548,8 @@ class DatetimeTZDtype(PandasExtensionDtype, ExtensionDtype):
 
     @classmethod
     def construct_array_type(cls):
-        """Return the array type associated with this dtype
+        """
+        Return the array type associated with this dtype
 
         Returns
         -------
@@ -796,7 +801,8 @@ class IntervalDtype(PandasExtensionDtype, ExtensionDtype):
 
     @classmethod
     def construct_array_type(cls):
-        """Return the array type associated with this dtype
+        """
+        Return the array type associated with this dtype
 
         Returns
         -------

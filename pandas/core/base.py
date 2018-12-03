@@ -631,7 +631,9 @@ class SelectionMixin(object):
             return result
 
     def _shallow_copy(self, obj=None, obj_type=None, **kwargs):
-        """ return a new object with the replacement attributes """
+        """
+        return a new object with the replacement attributes
+        """
         if obj is None:
             obj = self._selected_obj.copy()
         if obj_type is None:
@@ -644,7 +646,9 @@ class SelectionMixin(object):
         return obj_type(obj, **kwargs)
 
     def _is_cython_func(self, arg):
-        """ if we define an internal function for this argument, return it """
+        """
+        if we define an internal function for this argument, return it
+        """
         return self._cython_table.get(arg)
 
     def _is_builtin_func(self, arg):
@@ -675,7 +679,8 @@ class IndexOpsMixin(object):
 
     @property
     def _is_homogeneous_type(self):
-        """Whether the object has a single dtype.
+        """
+        Whether the object has a single dtype.
 
         By definition, Series and Index are always considered homogeneous.
         A MultiIndex may or may not be homogeneous, depending on the
@@ -903,7 +908,8 @@ class IndexOpsMixin(object):
     @property
     def _ndarray_values(self):
         # type: () -> np.ndarray
-        """The data as an ndarray, possibly losing information.
+        """
+        The data as an ndarray, possibly losing information.
 
         The expectation is that this is cheap to compute, and is primarily
         used for interacting with our indexers.
@@ -1050,7 +1056,8 @@ class IndexOpsMixin(object):
         return func(**kwds)
 
     def _map_values(self, mapper, na_action=None):
-        """An internal function that maps values using the input
+        """
+        An internal function that maps values using the input
         correspondence (which can be a dict, Series, or function).
 
         Parameters
@@ -1324,7 +1331,8 @@ class IndexOpsMixin(object):
         return algorithms.factorize(self, sort=sort, na_sentinel=na_sentinel)
 
     _shared_docs['searchsorted'] = (
-        """Find indices where elements should be inserted to maintain order.
+        """
+        Find indices where elements should be inserted to maintain order.
 
         Find the indices into a sorted %(klass)s `self` such that, if the
         corresponding elements in `value` were inserted before the indices,

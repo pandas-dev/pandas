@@ -82,7 +82,9 @@ class AttributesMixin(object):
         raise AbstractMethodError(cls)
 
     def _get_attributes_dict(self):
-        """return an attributes dict for my class"""
+        """
+        return an attributes dict for my class
+        """
         return {k: getattr(self, k, None) for k in self._attributes}
 
     @property
@@ -672,12 +674,16 @@ class DatetimeLikeArrayMixin(AttributesMixin,
 
     @property  # NB: override with cache_readonly in immutable subclasses
     def _isnan(self):
-        """ return if each value is nan"""
+        """
+        return if each value is nan
+        """
         return (self.asi8 == iNaT)
 
     @property  # NB: override with cache_readonly in immutable subclasses
     def hasnans(self):
-        """ return if I have any nans; enables various perf speedups """
+        """
+        return if I have any nans; enables various perf speedups
+        """
         return bool(self._isnan.any())
 
     def _maybe_mask_results(self, result, fill_value=iNaT, convert=None):
@@ -711,7 +717,9 @@ class DatetimeLikeArrayMixin(AttributesMixin,
 
     @property
     def freq(self):
-        """Return the frequency object if it is set, otherwise None"""
+        """
+        Return the frequency object if it is set, otherwise None.
+        """
         return self._freq
 
     @freq.setter
@@ -877,7 +885,9 @@ class DatetimeLikeArrayMixin(AttributesMixin,
         return new_values.view('i8')
 
     def _add_nat(self):
-        """Add pd.NaT to self"""
+        """
+        Add pd.NaT to self
+        """
         if is_period_dtype(self):
             raise TypeError('Cannot add {cls} and {typ}'
                             .format(cls=type(self).__name__,
@@ -892,7 +902,9 @@ class DatetimeLikeArrayMixin(AttributesMixin,
         return type(self)(result, tz=self.tz, freq=None)
 
     def _sub_nat(self):
-        """Subtract pd.NaT from self"""
+        """
+        Subtract pd.NaT from self
+        """
         # GH#19124 Timedelta - datetime is not in general well-defined.
         # We make an exception for pd.NaT, which in this case quacks
         # like a timedelta.

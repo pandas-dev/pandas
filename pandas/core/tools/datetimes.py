@@ -703,9 +703,10 @@ def _assemble_from_unit_mappings(arg, errors):
 
 
 def _attempt_YYYYMMDD(arg, errors):
-    """ try to parse the YYYYMMDD/%Y%m%d format, try to deal with NaT-like,
-        arg is a passed in as an object dtype, but could really be ints/strings
-        with nan-like/or floats (e.g. with nan)
+    """
+    try to parse the YYYYMMDD/%Y%m%d format, try to deal with NaT-like,
+    arg is a passed in as an object dtype, but could really be ints/strings
+    with nan-like/or floats (e.g. with nan)
 
     Parameters
     ----------
