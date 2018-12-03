@@ -219,15 +219,6 @@ class DatetimeArrayMixin(dtl.DatetimeLikeArrayMixin,
 
         verify_integrity = True
 
-        freq, freq_infer = dtl.maybe_infer_freq(freq)
-        if freq is None and hasattr(data, "freq"):
-            # i.e. DatetimeArray/Index
-            freq = data.freq
-            verify_integrity = False
-
-        # if dtype has an embedded tz, capture it
-        tz = dtl.validate_tz_from_dtype(dtype, tz)
-
         if not hasattr(data, "dtype"):
             # e.g. list, tuple
             if np.ndim(data) == 0:
@@ -237,6 +228,15 @@ class DatetimeArrayMixin(dtl.DatetimeLikeArrayMixin,
             copy = False
         elif isinstance(data, ABCSeries):
             data = data._values
+
+        freq, freq_infer = dtl.maybe_infer_freq(freq)
+        if freq is None and hasattr(data, "freq"):
+            # i.e. DatetimeArray/Index
+            freq = data.freq
+            verify_integrity = False
+
+        # if dtype has an embedded tz, capture it
+        tz = dtl.validate_tz_from_dtype(dtype, tz)
 
         # By this point we are assured to have either a numpy array or Index
         data, copy = maybe_convert_dtype(data, copy)
