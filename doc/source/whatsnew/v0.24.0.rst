@@ -1093,6 +1093,7 @@ Other API Changes
 - :meth:`Categorical.searchsorted` now raises a ``KeyError`` rather that a ``ValueError``, if a searched for key is not found in its categories (:issue:`23466`).
 - :meth:`Index.hasnans` and :meth:`Series.hasnans` now always return a python boolean. Previously, a python or a numpy boolean could be returned, depending on circumstances (:issue:`23294`).
 - The order of the arguments of :func:`DataFrame.to_html` and :func:`DataFrame.to_string` is rearranged to be consistent with each other. (:issue:`23614`)
+- :meth:`CategoricalIndex.reindex` now raises a ``ValueError`` if the target index is non-unique and not equal to the current index. It previously only raised if the target index was not of a categorical dtype (:issue:`23963`).
 
 .. _whatsnew_0240.deprecations:
 
@@ -1361,6 +1362,7 @@ Numeric
 - Bug in :meth:`Series.rpow` with object dtype ``NaN`` for ``1 ** NA`` instead of ``1`` (:issue:`22922`).
 - :meth:`Series.agg` can now handle numpy NaN-aware methods like :func:`numpy.nansum` (:issue:`19629`)
 - Bug in :meth:`Series.rank` and :meth:`DataFrame.rank` when ``pct=True`` and more than 2:sup:`24` rows are present resulted in percentages greater than 1.0 (:issue:`18271`)
+- Calls such as :meth:`DataFrame.round` with a non-unique :meth:`CategoricalIndex` now return expected data. Previously, data would be improperly duplicated (:issue:`21809`).
 
 Strings
 ^^^^^^^
@@ -1402,6 +1404,7 @@ Indexing
 - Bug where setting a timedelta column by ``Index`` causes it to be casted to double, and therefore lose precision (:issue:`23511`)
 - Bug in :func:`Index.union` and :func:`Index.intersection` where name of the ``Index`` of the result was not computed correctly for certain cases (:issue:`9943`, :issue:`9862`)
 - Bug in :class:`Index` slicing with boolean :class:`Index` may raise ``TypeError`` (:issue:`22533`)
+- Bug in ``PeriodArray.__setitem__`` when accepting slice and list-like value (:issue:`23978`)
 
 Missing
 ^^^^^^^
@@ -1513,6 +1516,7 @@ Groupby/Resample/Rolling
 - Bug in :meth:`DataFrame.expanding` in which the ``axis`` argument was not being respected during aggregations (:issue:`23372`)
 - Bug in :meth:`pandas.core.groupby.DataFrameGroupBy.transform` which caused missing values when the input function can accept a :class:`DataFrame` but renames it (:issue:`23455`).
 - Bug in :func:`pandas.core.groupby.GroupBy.nth` where column order was not always preserved (:issue:`20760`)
+- Bug in :meth:`pandas.core.groupby.DataFrameGroupBy.rank` with ``method='dense'`` and ``pct=True`` when a group has only one member would raise a ``ZeroDivisionError`` (:issue:`23666`).
 
 Reshaping
 ^^^^^^^^^
