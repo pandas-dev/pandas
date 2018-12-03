@@ -1570,6 +1570,8 @@ def objects_to_datetime64ns(data, dayfirst, yearfirst,
             return result, tz_parsed
         raise TypeError(result)
     else:  # pragma: no cover
+        # GH#23675 this TypeError should never be hit, whereas the TypeError
+        #  in the object-dtype branch above is reachable.
         raise TypeError(result)
 
 
