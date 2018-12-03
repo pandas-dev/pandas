@@ -1552,8 +1552,7 @@ def _arith_method_SERIES(cls, op, special):
         elif is_timedelta64_dtype(left):
             result = dispatch_to_index_op(op, left, right, pd.TimedeltaIndex)
             return construct_result(left, result,
-                                    index=left.index, name=res_name,
-                                    dtype=result.dtype)
+                                    index=left.index, name=res_name)
 
         elif is_timedelta64_dtype(right):
             # We should only get here with non-scalar or timedelta64('NaT')
