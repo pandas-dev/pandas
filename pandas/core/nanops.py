@@ -1,27 +1,24 @@
+from distutils.version import LooseVersion
 import functools
 import itertools
 import operator
 import warnings
-from distutils.version import LooseVersion
 
 import numpy as np
 
-import pandas.core.common as com
-from pandas import compat
-from pandas._libs import tslibs, lib
-from pandas.core.config import get_option
+from pandas._libs import lib, tslibs
+import pandas.compat as compat
+
 from pandas.core.dtypes.cast import _int64_max, maybe_upcast_putmask
 from pandas.core.dtypes.common import (
-    _get_dtype,
-    is_float, is_scalar,
-    is_integer, is_complex, is_float_dtype,
-    is_complex_dtype, is_integer_dtype,
-    is_bool_dtype, is_object_dtype,
-    is_numeric_dtype,
-    is_datetime64_dtype, is_timedelta64_dtype,
-    is_datetime_or_timedelta_dtype,
-    is_int_or_datetime_dtype, is_any_int_dtype)
-from pandas.core.dtypes.missing import isna, notna, na_value_for_dtype
+    _get_dtype, is_any_int_dtype, is_bool_dtype, is_complex, is_complex_dtype,
+    is_datetime64_dtype, is_datetime_or_timedelta_dtype, is_float,
+    is_float_dtype, is_integer, is_integer_dtype, is_numeric_dtype,
+    is_object_dtype, is_scalar, is_timedelta64_dtype)
+from pandas.core.dtypes.missing import isna, na_value_for_dtype, notna
+
+import pandas.core.common as com
+from pandas.core.config import get_option
 
 _BOTTLENECK_INSTALLED = False
 _MIN_BOTTLENECK_VERSION = '1.0.0'
@@ -257,7 +254,9 @@ def _isfinite(values):
 
 
 def _na_ok_dtype(dtype):
-    return not is_int_or_datetime_dtype(dtype)
+    # TODO: what about datetime64tz?  PeriodDtype?
+    return not issubclass(dtype.type,
+                          (np.integer, np.timedelta64, np.datetime64))
 
 
 def _view_if_needed(values):

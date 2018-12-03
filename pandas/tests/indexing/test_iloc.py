@@ -337,7 +337,7 @@ class TestiLoc(Base):
         tm.assert_frame_equal(df, expected)
 
     def test_iloc_setitem_pandas_object(self):
-        # GH 17193, affecting old numpy (1.7 and 1.8)
+        # GH 17193
         s_orig = Series([0, 1, 2, 3])
         expected = Series([0, -1, -2, 3])
 

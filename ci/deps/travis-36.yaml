@@ -1,4 +1,4 @@
-name: pandas
+name: pandas-dev
 channels:
   - defaults
   - conda-forge
@@ -7,16 +7,9 @@ dependencies:
   - cython>=0.28.2
   - dask
   - fastparquet
-  - flake8>=3.5
-  - flake8-comprehensions
-  - flake8-rst=0.4.2
   - gcsfs
   - geopandas
   - html5lib
-  - ipython
-  - isort
-  - jinja2
-  - lxml
   - matplotlib
   - nomkl
   - numexpr
@@ -32,7 +25,6 @@ dependencies:
   - s3fs
   - scikit-learn
   - scipy
-  - seaborn
   - sqlalchemy
   - statsmodels
   - xarray
@@ -48,6 +40,5 @@ dependencies:
   - pip:
     - brotlipy
     - coverage
-    - cpplint
     - pandas-datareader
     - python-dateutil

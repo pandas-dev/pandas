@@ -26,8 +26,7 @@ from conversion import tz_localize_to_utc, normalize_i8_timestamps
 from conversion cimport (tz_convert_single, _TSObject,
                          convert_to_tsobject, convert_datetime_to_tsobject)
 from fields import get_start_end_field, get_date_name_field
-from nattype import NaT
-from nattype cimport NPY_NAT
+from nattype cimport NPY_NAT, c_NaT as NaT
 from np_datetime import OutOfBoundsDatetime
 from np_datetime cimport (reverse_ops, cmp_scalar, check_dts_bounds,
                           npy_datetimestruct, dt64_to_dtstruct)
@@ -36,6 +35,7 @@ from timedeltas import Timedelta
 from timedeltas cimport delta_to_nanoseconds
 from timezones cimport (
     get_timezone, is_utc, maybe_get_tz, treat_tz_as_pytz, tz_compare)
+from timezones import UTC
 
 # ----------------------------------------------------------------------
 # Constants
@@ -376,13 +376,15 @@ cdef class _Timestamp(datetime):
             neg_other = -other
             return self + neg_other
 
+        typ = getattr(other, '_typ', None)
+
         # a Timestamp-DatetimeIndex -> yields a negative TimedeltaIndex
-        elif getattr(other, '_typ', None) == 'datetimeindex':
+        if typ in ('datetimeindex', 'datetimearray'):
             # timezone comparison is performed in DatetimeIndex._sub_datelike
             return -other.__sub__(self)
 
         # a Timestamp-TimedeltaIndex -> yields a negative TimedeltaIndex
-        elif getattr(other, '_typ', None) == 'timedeltaindex':
+        elif typ in ('timedeltaindex', 'timedeltaarray'):
             return (-other).__add__(self)
 
         elif other is NaT:
@@ -416,7 +418,7 @@ cdef class _Timestamp(datetime):
             int64_t val
         val = self.value
         if self.tz is not None and not is_utc(self.tz):
-            val = tz_convert_single(self.value, 'UTC', self.tz)
+            val = tz_convert_single(self.value, UTC, self.tz)
         return val
 
     cpdef bint _get_start_end_field(self, str field):
@@ -633,7 +635,7 @@ class Timestamp(_Timestamp):
 
         Return a new Timestamp representing UTC day and time.
         """
-        return cls.now('UTC')
+        return cls.now(UTC)
 
     @classmethod
     def utcfromtimestamp(cls, ts):
@@ -1108,7 +1110,7 @@ class Timestamp(_Timestamp):
         else:
             if tz is None:
                 # reset tz
-                value = tz_convert_single(self.value, 'UTC', self.tz)
+                value = tz_convert_single(self.value, UTC, self.tz)
                 return Timestamp(value, tz=None)
             else:
                 raise TypeError('Cannot localize tz-aware Timestamp, use '
@@ -1178,7 +1180,7 @@ class Timestamp(_Timestamp):
         _tzinfo = self.tzinfo
         value = self.value
         if _tzinfo is not None:
-            value_tz = tz_convert_single(value, _tzinfo, 'UTC')
+            value_tz = tz_convert_single(value, _tzinfo, UTC)
             value += value - value_tz
 
         # setup components

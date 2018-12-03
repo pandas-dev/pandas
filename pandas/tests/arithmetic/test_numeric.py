@@ -597,6 +597,44 @@ class TestMultiplicationDivision(object):
         tm.assert_series_equal(ts / ts, ts / df['A'],
                                check_names=False)
 
+    # TODO: this came from tests.series.test_analytics, needs cleannup and
+    #  de-duplication with test_modulo above
+    def test_modulo2(self):
+        with np.errstate(all='ignore'):
+
+            # GH#3590, modulo as ints
+            p = pd.DataFrame({'first': [3, 4, 5, 8], 'second': [0, 0, 0, 3]})
+            result = p['first'] % p['second']
+            expected = Series(p['first'].values % p['second'].values,
+                              dtype='float64')
+            expected.iloc[0:3] = np.nan
+            tm.assert_series_equal(result, expected)
+
+            result = p['first'] % 0
+            expected = Series(np.nan, index=p.index, name='first')
+            tm.assert_series_equal(result, expected)
+
+            p = p.astype('float64')
+            result = p['first'] % p['second']
+            expected = Series(p['first'].values % p['second'].values)
+            tm.assert_series_equal(result, expected)
+
+            p = p.astype('float64')
+            result = p['first'] % p['second']
+            result2 = p['second'] % p['first']
+            assert not result.equals(result2)
+
+            # GH#9144
+            s = Series([0, 1])
+
+            result = s % 0
+            expected = Series([np.nan, np.nan])
+            tm.assert_series_equal(result, expected)
+
+            result = 0 % s
+            expected = Series([np.nan, 0.0])
+            tm.assert_series_equal(result, expected)
+
 
 class TestAdditionSubtraction(object):
     # __add__, __sub__, __radd__, __rsub__, __iadd__, __isub__

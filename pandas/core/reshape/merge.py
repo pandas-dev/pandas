@@ -18,8 +18,8 @@ from pandas.core.dtypes.common import (
     ensure_float64, ensure_int64, ensure_object, is_array_like, is_bool,
     is_bool_dtype, is_categorical_dtype, is_datetime64_dtype,
     is_datetime64tz_dtype, is_datetimelike, is_dtype_equal, is_float_dtype,
-    is_int64_dtype, is_int_or_datetime_dtype, is_integer, is_integer_dtype,
-    is_list_like, is_number, is_numeric_dtype, needs_i8_conversion)
+    is_int64_dtype, is_integer, is_integer_dtype, is_list_like, is_number,
+    is_numeric_dtype, needs_i8_conversion)
 from pandas.core.dtypes.missing import isnull, na_value_for_dtype
 
 from pandas import Categorical, DataFrame, Index, MultiIndex, Series, Timedelta
@@ -203,7 +203,6 @@ def merge_ordered(left, right, on=None,
     --------
     merge
     merge_asof
-
     """
     def _merger(x, y):
         # perform the ordered merge operation
@@ -311,7 +310,6 @@ def merge_asof(left, right, on=None,
         Whether to search for prior, subsequent, or closest matches.
 
         .. versionadded:: 0.20.0
-
 
     Returns
     -------
@@ -451,7 +449,6 @@ def merge_asof(left, right, on=None,
     --------
     merge
     merge_ordered
-
     """
     op = _AsOfMerge(left, right,
                     on=on, left_on=left_on, right_on=right_on,
@@ -1607,7 +1604,15 @@ def _factorize_keys(lk, rk, sort=True):
 
         lk = ensure_int64(lk.codes)
         rk = ensure_int64(rk)
-    elif is_int_or_datetime_dtype(lk) and is_int_or_datetime_dtype(rk):
+    elif is_integer_dtype(lk) and is_integer_dtype(rk):
+        # GH#23917 TODO: needs tests for case where lk is integer-dtype
+        #  and rk is datetime-dtype
+        klass = libhashtable.Int64Factorizer
+        lk = ensure_int64(com.values_from_object(lk))
+        rk = ensure_int64(com.values_from_object(rk))
+    elif (issubclass(lk.dtype.type, (np.timedelta64, np.datetime64)) and
+          issubclass(rk.dtype.type, (np.timedelta64, np.datetime64))):
+        # GH#23917 TODO: Needs tests for non-matching dtypes
         klass = libhashtable.Int64Factorizer
         lk = ensure_int64(com.values_from_object(lk))
         rk = ensure_int64(com.values_from_object(rk))

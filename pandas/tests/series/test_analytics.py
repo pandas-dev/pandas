@@ -338,7 +338,7 @@ class TestSeriesAnalytics(object):
     def test_describe_with_tz(self, tz_naive_fixture):
         # GH 21332
         tz = tz_naive_fixture
-        name = tz_naive_fixture
+        name = str(tz_naive_fixture)
         start = Timestamp(2018, 1, 1)
         end = Timestamp(2018, 1, 5)
         s = Series(date_range(start, end, tz=tz), name=name)
@@ -681,42 +681,6 @@ class TestSeriesAnalytics(object):
         pytest.raises(NotImplementedError, s.any, bool_only=True)
         pytest.raises(NotImplementedError, s.all, bool_only=True)
 
-    def test_modulo(self):
-        with np.errstate(all='ignore'):
-
-            # GH3590, modulo as ints
-            p = DataFrame({'first': [3, 4, 5, 8], 'second': [0, 0, 0, 3]})
-            result = p['first'] % p['second']
-            expected = Series(p['first'].values % p['second'].values,
-                              dtype='float64')
-            expected.iloc[0:3] = np.nan
-            assert_series_equal(result, expected)
-
-            result = p['first'] % 0
-            expected = Series(np.nan, index=p.index, name='first')
-            assert_series_equal(result, expected)
-
-            p = p.astype('float64')
-            result = p['first'] % p['second']
-            expected = Series(p['first'].values % p['second'].values)
-            assert_series_equal(result, expected)
-
-            p = p.astype('float64')
-            result = p['first'] % p['second']
-            result2 = p['second'] % p['first']
-            assert not result.equals(result2)
-
-            # GH 9144
-            s = Series([0, 1])
-
-            result = s % 0
-            expected = Series([nan, nan])
-            assert_series_equal(result, expected)
-
-            result = 0 % s
-            expected = Series([nan, 0.0])
-            assert_series_equal(result, expected)
-
     @td.skip_if_no_scipy
     def test_corr(self, datetime_series):
         import scipy.stats as stats
@@ -1051,12 +1015,6 @@ class TestSeriesAnalytics(object):
 
     def test_cummethods_bool(self):
         # GH 6270
-        # looks like a buggy np.maximum.accumulate for numpy 1.6.1, py 3.2
-        def cummin(x):
-            return np.minimum.accumulate(x)
-
-        def cummax(x):
-            return np.maximum.accumulate(x)
 
         a = pd.Series([False, False, False, True, True, False, False])
         b = ~a
@@ -1064,8 +1022,8 @@ class TestSeriesAnalytics(object):
         d = ~c
         methods = {'cumsum': np.cumsum,
                    'cumprod': np.cumprod,
-                   'cummin': cummin,
-                   'cummax': cummax}
+                   'cummin': np.minimum.accumulate,
+                   'cummax': np.maximum.accumulate}
         args = product((a, b, c, d), methods)
         for s, method in args:
             expected = Series(methods[method](s.values))

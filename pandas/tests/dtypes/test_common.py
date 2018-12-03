@@ -10,6 +10,7 @@ from pandas.core.sparse.api import SparseDtype
 
 import pandas.core.dtypes.common as com
 import pandas.util._test_decorators as td
+import pandas.util.testing as tm
 
 
 class TestPandasDtype(object):
@@ -161,20 +162,22 @@ def test_is_categorical():
 
 
 def test_is_datetimetz():
-    assert not com.is_datetimetz([1, 2, 3])
-    assert not com.is_datetimetz(pd.DatetimeIndex([1, 2, 3]))
+    with tm.assert_produces_warning(FutureWarning):
+        assert not com.is_datetimetz([1, 2, 3])
+        assert not com.is_datetimetz(pd.DatetimeIndex([1, 2, 3]))
 
-    assert com.is_datetimetz(pd.DatetimeIndex([1, 2, 3], tz="US/Eastern"))
+        assert com.is_datetimetz(pd.DatetimeIndex([1, 2, 3], tz="US/Eastern"))
 
-    dtype = DatetimeTZDtype("ns", tz="US/Eastern")
-    s = pd.Series([], dtype=dtype)
-    assert com.is_datetimetz(s)
+        dtype = DatetimeTZDtype("ns", tz="US/Eastern")
+        s = pd.Series([], dtype=dtype)
+        assert com.is_datetimetz(s)
 
 
-def test_is_period():
-    assert not com.is_period([1, 2, 3])
-    assert not com.is_period(pd.Index([1, 2, 3]))
-    assert com.is_period(pd.PeriodIndex(["2017-01-01"], freq="D"))
+def test_is_period_deprecated():
+    with tm.assert_produces_warning(FutureWarning):
+        assert not com.is_period([1, 2, 3])
+        assert not com.is_period(pd.Index([1, 2, 3]))
+        assert com.is_period(pd.PeriodIndex(["2017-01-01"], freq="D"))
 
 
 def test_is_datetime64_dtype():
@@ -326,21 +329,6 @@ def test_is_int64_dtype():
 
     assert com.is_int64_dtype(np.int64)
     assert com.is_int64_dtype(np.array([1, 2], dtype=np.int64))
-
-
-def test_is_int_or_datetime_dtype():
-    assert not com.is_int_or_datetime_dtype(str)
-    assert not com.is_int_or_datetime_dtype(float)
-    assert not com.is_int_or_datetime_dtype(pd.Index([1, 2.]))
-    assert not com.is_int_or_datetime_dtype(np.array(['a', 'b']))
-
-    assert com.is_int_or_datetime_dtype(int)
-    assert com.is_int_or_datetime_dtype(np.uint64)
-    assert com.is_int_or_datetime_dtype(np.datetime64)
-    assert com.is_int_or_datetime_dtype(np.timedelta64)
-    assert com.is_int_or_datetime_dtype(pd.Series([1, 2]))
-    assert com.is_int_or_datetime_dtype(np.array([], dtype=np.datetime64))
-    assert com.is_int_or_datetime_dtype(np.array([], dtype=np.timedelta64))
 
 
 def test_is_datetime64_any_dtype():

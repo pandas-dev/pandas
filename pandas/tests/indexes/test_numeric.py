@@ -398,9 +398,7 @@ class TestFloat64Index(Numeric):
 
 class NumericInt(Numeric):
 
-    def test_view(self, indices):
-        super(NumericInt, self).test_view(indices)
-
+    def test_view(self):
         i = self._holder([], name='Foo')
         i_view = i.view()
         assert i_view.name == 'Foo'
@@ -620,6 +618,12 @@ class TestInt64Index(NumericInt):
 
         with pytest.raises(OverflowError, match=msg):
             Index([-1], dtype=uint_dtype)
+
+    def test_constructor_unwraps_index(self):
+        idx = pd.Index([1, 2])
+        result = pd.Int64Index(idx)
+        expected = np.array([1, 2], dtype='int64')
+        tm.assert_numpy_array_equal(result._data, expected)
 
     def test_coerce_list(self):
         # coerce things

@@ -206,7 +206,7 @@ class TestToHTML(object):
         df.pivot_table(index=[u('clé1')], columns=[u('clé2')])._repr_html_()
 
     def test_to_html_truncate(self, datapath):
-        index = pd.DatetimeIndex(start='20010101', freq='D', periods=20)
+        index = pd.date_range(start='20010101', freq='D', periods=20)
         df = DataFrame(index=index, columns=range(20))
         result = df.to_html(max_rows=8, max_cols=4)
         expected = expected_html(datapath, 'truncate')
@@ -465,3 +465,15 @@ class TestToHTML(object):
                                                   name='myindexname'))
         result = df.to_html(index_names=False, table_id="TEST_ID")
         assert ' id="TEST_ID"' in result
+
+    def test_to_html_float_format_no_fixed_width(self, datapath):
+
+        # GH 21625
+        df = DataFrame({'x': [0.19999]})
+        expected = expected_html(datapath, 'gh21625_expected_output')
+        assert df.to_html(float_format='%.3f') == expected
+
+        # GH 22270
+        df = DataFrame({'x': [100.0]})
+        expected = expected_html(datapath, 'gh22270_expected_output')
+        assert df.to_html(float_format='%.0f') == expected
