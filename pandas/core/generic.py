@@ -9944,7 +9944,7 @@ class NDFrame(PandasObject, SelectionMixin):
             cls, 'sum', name, name2, axis_descr,
             """Return the sum of the values for the requested axis.\n
             This is equivalent to the method ``numpy.sum``.""",
-            nanops.nansum, _sum_examples, _stat_func_see_also)
+            nanops.nansum, _stat_func_see_also, _sum_examples)
         cls.mean = _make_stat_function(
             cls, 'mean', name, name2, axis_descr,
             'Return the mean of the values for the requested axis',
@@ -9963,7 +9963,7 @@ class NDFrame(PandasObject, SelectionMixin):
         cls.prod = _make_min_count_stat_function(
             cls, 'prod', name, name2, axis_descr,
             'Return the product of the values for the requested axis',
-            nanops.nanprod, _prod_examples)
+            nanops.nanprod, examples=_prod_examples)
         cls.product = cls.prod
         cls.median = _make_stat_function(
             cls, 'median', name, name2, axis_descr,
@@ -9974,13 +9974,13 @@ class NDFrame(PandasObject, SelectionMixin):
             """Return the maximum of the values for the requested axis.\n
             If you want the *index* of the maximum, use ``idxmax``. This is
             the equivalent of the ``numpy.ndarray`` method ``argmax``.""",
-            nanops.nanmax, _max_examples, _stat_func_see_also)
+            nanops.nanmax, _stat_func_see_also, _max_examples)
         cls.min = _make_stat_function(
             cls, 'min', name, name2, axis_descr,
             """Return the minimum of the values for the requested axis.\n
             If you want the *index* of the minimum, use ``idxmin``. This is
             the equivalent of the ``numpy.ndarray`` method ``argmin``.""",
-            nanops.nanmin, _min_examples, _stat_func_see_also)
+            nanops.nanmin, _stat_func_see_also, _min_examples)
 
     @classmethod
     def _add_series_only_operations(cls):
@@ -10147,7 +10147,7 @@ numeric_only : bool, default None
 
 Returns
 -------
-%(outname)s : %(name1)s or %(name2)s (if level specified)\
+%(outname)s : %(name1)s or %(name2)s (if level specified)
 %(see_also)s
 %(examples)s\
 """
@@ -10633,7 +10633,7 @@ True
 Series([], dtype: bool)
 """
 
-_shared_docs['stat_func_example'] = """
+_shared_docs['stat_func_example'] = """\
 Examples
 --------
 
