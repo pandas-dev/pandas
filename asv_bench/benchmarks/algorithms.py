@@ -1,7 +1,7 @@
 import warnings
 from importlib import import_module
 
-#import numpy as np
+import numpy as np
 import pandas as pd
 from pandas.util import testing as tm
 
