@@ -369,6 +369,9 @@ class DataFrame(NDFrame):
         from pandas.core.panel import Panel
         return Panel
 
+    # ----------------------------------------------------------------------
+    # Constructors
+
     def __init__(self, data=None, index=None, columns=None, dtype=None,
                  copy=False):
         if data is None:
@@ -575,6 +578,8 @@ class DataFrame(NDFrame):
 
         return create_block_manager_from_blocks([values], [columns, index])
 
+    # ----------------------------------------------------------------------
+
     @property
     def axes(self):
         """
@@ -642,6 +647,9 @@ class DataFrame(NDFrame):
             return len({block.dtype for block in self._data.blocks}) == 1
         else:
             return not self._data.is_mixed_type
+
+    # ----------------------------------------------------------------------
+    # Rendering Methods
 
     def _repr_fits_vertical_(self):
         """
@@ -769,6 +777,57 @@ class DataFrame(NDFrame):
                                 show_dimensions=show_dimensions, notebook=True)
         else:
             return None
+
+    @Substitution(header='Write out the column names. If a list of strings '
+                         'is given, it is assumed to be aliases for the '
+                         'column names')
+    @Substitution(shared_params=fmt.common_docstring,
+                  returns=fmt.return_docstring)
+    def to_string(self, buf=None, columns=None, col_space=None, header=True,
+                  index=True, na_rep='NaN', formatters=None, float_format=None,
+                  sparsify=None, index_names=True, justify=None,
+                  max_rows=None, max_cols=None, show_dimensions=False,
+                  decimal='.', line_width=None):
+        """
+        Render a DataFrame to a console-friendly tabular output.
+        %(shared_params)s
+        line_width : int, optional
+            Width to wrap a line in characters.
+        %(returns)s
+        See Also
+        --------
+        to_html : Convert DataFrame to HTML.
+
+        Examples
+        --------
+        >>> d = {'col1': [1, 2, 3], 'col2': [4, 5, 6]}
+        >>> df = pd.DataFrame(d)
+        >>> print(df.to_string())
+           col1  col2
+        0     1     4
+        1     2     5
+        2     3     6
+        """
+
+        formatter = fmt.DataFrameFormatter(self, buf=buf, columns=columns,
+                                           col_space=col_space, na_rep=na_rep,
+                                           formatters=formatters,
+                                           float_format=float_format,
+                                           sparsify=sparsify, justify=justify,
+                                           index_names=index_names,
+                                           header=header, index=index,
+                                           max_rows=max_rows,
+                                           max_cols=max_cols,
+                                           show_dimensions=show_dimensions,
+                                           decimal=decimal,
+                                           line_width=line_width)
+        formatter.to_string()
+
+        if buf is None:
+            result = formatter.buf.getvalue()
+            return result
+
+    # ----------------------------------------------------------------------
 
     @property
     def style(self):
@@ -1128,6 +1187,50 @@ class DataFrame(NDFrame):
 
         return cls(data, index=index, columns=columns, dtype=dtype)
 
+    def to_numpy(self):
+        """
+        Convert the DataFrame to a NumPy array.
+
+        .. versionadded:: 0.24.0
+
+        The dtype of the returned array will be the common NumPy
+        dtype of all types in the DataFrame. For example,
+        if the dtypes are ``float16`` and ``float32``, the results
+        dtype will be ``float32``. This may require copying data and
+        coercing values, which may be expensive.
+
+        Returns
+        -------
+        array : numpy.ndarray
+
+        See Also
+        --------
+        Series.to_numpy : Similar method for Series.
+
+        Examples
+        --------
+        >>> pd.DataFrame({"A": [1, 2], "B": [3, 4]}).to_numpy()
+        array([[1, 3],
+               [2, 4]])
+
+        With heterogenous data, the lowest common type will have to
+        be used.
+
+        >>> df = pd.DataFrame({"A": [1, 2], "B": [3.0, 4.5]})
+        >>> df.to_numpy()
+        array([[1. , 3. ],
+               [2. , 4.5]])
+
+        For a mix of numeric and non-numeric types, the output array will
+        have object dtype.
+
+        >>> df['C'] = pd.date_range('2000', periods=2)
+        >>> df.to_numpy()
+        array([[1, 3.0, Timestamp('2000-01-01 00:00:00')],
+               [2, 4.5, Timestamp('2000-01-02 00:00:00')]], dtype=object)
+        """
+        return self.values
+
     def to_dict(self, orient='dict', into=dict):
         """
         Convert the DataFrame to a dictionary.
@@ -1195,10 +1298,10 @@ class DataFrame(NDFrame):
 
         >>> df.to_dict('split')
         {'index': ['row1', 'row2'], 'columns': ['col1', 'col2'],
-         'data': [[1.0, 0.5], [2.0, 0.75]]}
+         'data': [[1, 0.5], [2, 0.75]]}
 
         >>> df.to_dict('records')
-        [{'col1': 1.0, 'col2': 0.5}, {'col1': 2.0, 'col2': 0.75}]
+        [{'col1': 1, 'col2': 0.5}, {'col1': 2, 'col2': 0.75}]
 
         >>> df.to_dict('index')
         {'row1': {'col1': 1, 'col2': 0.5}, 'row2': {'col1': 2, 'col2': 0.75}}
@@ -1214,8 +1317,8 @@ class DataFrame(NDFrame):
 
         >>> dd = defaultdict(list)
         >>> df.to_dict('records', into=dd)
-        [defaultdict(<class 'list'>, {'col1': 1.0, 'col2': 0.5}),
-         defaultdict(<class 'list'>, {'col1': 2.0, 'col2': 0.75})]
+        [defaultdict(<class 'list'>, {'col1': 1, 'col2': 0.5}),
+         defaultdict(<class 'list'>, {'col1': 2, 'col2': 0.75})]
         """
         if not self.columns.is_unique:
             warnings.warn("DataFrame columns are not unique, some "
@@ -1231,16 +1334,18 @@ class DataFrame(NDFrame):
         elif orient.lower().startswith('sp'):
             return into_c((('index', self.index.tolist()),
                            ('columns', self.columns.tolist()),
-                           ('data', lib.map_infer(self.values.ravel(),
-                                                  com.maybe_box_datetimelike)
-                            .reshape(self.values.shape).tolist())))
+                           ('data', [
+                               list(map(com.maybe_box_datetimelike, t))
+                               for t in self.itertuples(index=False)]
+                            )))
         elif orient.lower().startswith('s'):
             return into_c((k, com.maybe_box_datetimelike(v))
                           for k, v in compat.iteritems(self))
         elif orient.lower().startswith('r'):
-            return [into_c((k, com.maybe_box_datetimelike(v))
-                           for k, v in zip(self.columns, np.atleast_1d(row)))
-                    for row in self.values]
+            return [
+                into_c((k, com.maybe_box_datetimelike(v))
+                       for k, v in compat.iteritems(row._asdict()))
+                for row in self.itertuples(index=False)]
         elif orient.lower().startswith('i'):
             if not self.index.is_unique:
                 raise ValueError(
@@ -1287,10 +1392,6 @@ class DataFrame(NDFrame):
                 If table exists, drop it, recreate it, and insert data.
             ``'append'``
                 If table exists, insert data. Create if does not exist.
-        private_key : str, optional
-            Service account private key in JSON format. Can be file path
-            or string contents. This is useful for remote server
-            authentication (eg. Jupyter/IPython notebook on remote host).
         auth_local_webserver : bool, default False
             Use the `local webserver flow`_ instead of the `console flow`_
             when getting user credentials.
@@ -2051,55 +2152,6 @@ class DataFrame(NDFrame):
                    compression=compression, index=index,
                    partition_cols=partition_cols, **kwargs)
 
-    @Substitution(header='Write out the column names. If a list of strings '
-                         'is given, it is assumed to be aliases for the '
-                         'column names')
-    @Substitution(shared_params=fmt.common_docstring,
-                  returns=fmt.return_docstring)
-    def to_string(self, buf=None, columns=None, col_space=None, header=True,
-                  index=True, na_rep='NaN', formatters=None, float_format=None,
-                  sparsify=None, index_names=True, justify=None,
-                  max_rows=None, max_cols=None, show_dimensions=False,
-                  decimal='.', line_width=None):
-        """
-        Render a DataFrame to a console-friendly tabular output.
-        %(shared_params)s
-        line_width : int, optional
-            Width to wrap a line in characters.
-        %(returns)s
-        See Also
-        --------
-        to_html : Convert DataFrame to HTML.
-
-        Examples
-        --------
-        >>> d = {'col1': [1, 2, 3], 'col2': [4, 5, 6]}
-        >>> df = pd.DataFrame(d)
-        >>> print(df.to_string())
-           col1  col2
-        0     1     4
-        1     2     5
-        2     3     6
-        """
-
-        formatter = fmt.DataFrameFormatter(self, buf=buf, columns=columns,
-                                           col_space=col_space, na_rep=na_rep,
-                                           formatters=formatters,
-                                           float_format=float_format,
-                                           sparsify=sparsify, justify=justify,
-                                           index_names=index_names,
-                                           header=header, index=index,
-                                           max_rows=max_rows,
-                                           max_cols=max_cols,
-                                           show_dimensions=show_dimensions,
-                                           decimal=decimal,
-                                           line_width=line_width)
-        formatter.to_string()
-
-        if buf is None:
-            result = formatter.buf.getvalue()
-            return result
-
     @Substitution(header='Whether to print column labels, default True')
     @Substitution(shared_params=fmt.common_docstring,
                   returns=fmt.return_docstring)
@@ -2157,6 +2209,8 @@ class DataFrame(NDFrame):
 
         if buf is None:
             return formatter.buf.getvalue()
+
+    # ----------------------------------------------------------------------
 
     def info(self, verbose=None, buf=None, max_cols=None, memory_usage=None,
              null_counts=None):
@@ -3557,11 +3611,8 @@ class DataFrame(NDFrame):
 
     @property
     def _series(self):
-        result = {}
-        for idx, item in enumerate(self.columns):
-            result[item] = Series(self._data.iget(idx), index=self.index,
-                                  name=item)
-        return result
+        return {item: Series(self._data.iget(idx), index=self.index, name=item)
+                for idx, item in enumerate(self.columns)}
 
     def lookup(self, row_labels, col_labels):
         """
@@ -3581,9 +3632,8 @@ class DataFrame(NDFrame):
         -----
         Akin to::
 
-            result = []
-            for row, col in zip(row_labels, col_labels):
-                result.append(df.get_value(row, col))
+            result = [df.get_value(row, col)
+                      for row, col in zip(row_labels, col_labels)]
 
         Examples
         --------
@@ -4588,10 +4638,8 @@ class DataFrame(NDFrame):
         if len(by) > 1:
             from pandas.core.sorting import lexsort_indexer
 
-            keys = []
-            for x in by:
-                k = self._get_label_or_level_values(x, axis=axis)
-                keys.append(k)
+            keys = [self._get_label_or_level_values(x, axis=axis)
+                    for x in by]
             indexer = lexsort_indexer(keys, orders=ascending,
                                       na_position=na_position)
             indexer = ensure_platform_int(indexer)

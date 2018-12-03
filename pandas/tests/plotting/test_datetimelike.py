@@ -1273,7 +1273,7 @@ class TestTSPlot(TestPlotBase):
 
     @pytest.mark.slow
     def test_ax_plot(self):
-        x = DatetimeIndex(start='2012-01-02', periods=10, freq='D')
+        x = date_range(start='2012-01-02', periods=10, freq='D')
         y = lrange(len(x))
         _, ax = self.plt.subplots()
         lines = ax.plot(x, y, label='Y')
