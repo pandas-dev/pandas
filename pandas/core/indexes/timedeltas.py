@@ -722,6 +722,7 @@ class TimedeltaIndex(DatetimeIndexOpsMixin,
 
 
 TimedeltaIndex._add_comparison_ops()
+TimedeltaIndex._add_numeric_methods()
 TimedeltaIndex._add_numeric_methods_unary()
 TimedeltaIndex._add_logical_methods_disabled()
 TimedeltaIndex._add_datetimelike_methods()

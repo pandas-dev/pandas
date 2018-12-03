@@ -275,6 +275,9 @@ class TimelikeOps(object):
     )
 
     def _round(self, freq, mode, ambiguous, nonexistent):
+        from pandas.core.indexes.datetimelike import _ensure_datetimelike_to_i8
+        # import pdb; pdb.set_trace()
+
         # round the local times
         values = _ensure_datetimelike_to_i8(self)
         result = round_nsint64(values, mode, freq)
@@ -284,9 +287,8 @@ class TimelikeOps(object):
         attribs['freq'] = None
         if 'tz' in attribs:
             attribs['tz'] = None
-        return self._ensure_localized(
-            self._shallow_copy(result, **attribs), ambiguous, nonexistent
-        )
+        return self._ensure_localized(self._simple_new(result, **attribs),
+                                      ambiguous, nonexistent)
 
     @Appender((_round_doc + _round_example).format(op="round"))
     def round(self, freq, ambiguous='raise', nonexistent='raise'):
@@ -1481,7 +1483,8 @@ def _ensure_datetimelike_to_i8(other, to_utc=False):
 
     if lib.is_scalar(other) and isna(other):
         return iNaT
-    elif isinstance(other, (PeriodArray, ABCIndexClass)):
+    elif isinstance(other, (PeriodArray, ABCIndexClass,
+                            DatetimeLikeArrayMixin)):
         # convert tz if needed
         if getattr(other, 'tz', None) is not None:
             if to_utc:
