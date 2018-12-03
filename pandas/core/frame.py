@@ -1298,10 +1298,10 @@ class DataFrame(NDFrame):
 
         >>> df.to_dict('split')
         {'index': ['row1', 'row2'], 'columns': ['col1', 'col2'],
-         'data': [[1.0, 0.5], [2.0, 0.75]]}
+         'data': [[1, 0.5], [2, 0.75]]}
 
         >>> df.to_dict('records')
-        [{'col1': 1.0, 'col2': 0.5}, {'col1': 2.0, 'col2': 0.75}]
+        [{'col1': 1, 'col2': 0.5}, {'col1': 2, 'col2': 0.75}]
 
         >>> df.to_dict('index')
         {'row1': {'col1': 1, 'col2': 0.5}, 'row2': {'col1': 2, 'col2': 0.75}}
@@ -1317,8 +1317,8 @@ class DataFrame(NDFrame):
 
         >>> dd = defaultdict(list)
         >>> df.to_dict('records', into=dd)
-        [defaultdict(<class 'list'>, {'col1': 1.0, 'col2': 0.5}),
-         defaultdict(<class 'list'>, {'col1': 2.0, 'col2': 0.75})]
+        [defaultdict(<class 'list'>, {'col1': 1, 'col2': 0.5}),
+         defaultdict(<class 'list'>, {'col1': 2, 'col2': 0.75})]
         """
         if not self.columns.is_unique:
             warnings.warn("DataFrame columns are not unique, some "
@@ -1334,16 +1334,18 @@ class DataFrame(NDFrame):
         elif orient.lower().startswith('sp'):
             return into_c((('index', self.index.tolist()),
                            ('columns', self.columns.tolist()),
-                           ('data', lib.map_infer(self.values.ravel(),
-                                                  com.maybe_box_datetimelike)
-                            .reshape(self.values.shape).tolist())))
+                           ('data', [
+                               list(map(com.maybe_box_datetimelike, t))
+                               for t in self.itertuples(index=False)]
+                            )))
         elif orient.lower().startswith('s'):
             return into_c((k, com.maybe_box_datetimelike(v))
                           for k, v in compat.iteritems(self))
         elif orient.lower().startswith('r'):
-            return [into_c((k, com.maybe_box_datetimelike(v))
-                           for k, v in zip(self.columns, np.atleast_1d(row)))
-                    for row in self.values]
+            return [
+                into_c((k, com.maybe_box_datetimelike(v))
+                       for k, v in compat.iteritems(row._asdict()))
+                for row in self.itertuples(index=False)]
         elif orient.lower().startswith('i'):
             if not self.index.is_unique:
                 raise ValueError(
@@ -1390,10 +1392,6 @@ class DataFrame(NDFrame):
                 If table exists, drop it, recreate it, and insert data.
             ``'append'``
                 If table exists, insert data. Create if does not exist.
-        private_key : str, optional
-            Service account private key in JSON format. Can be file path
-            or string contents. This is useful for remote server
-            authentication (eg. Jupyter/IPython notebook on remote host).
         auth_local_webserver : bool, default False
             Use the `local webserver flow`_ instead of the `console flow`_
             when getting user credentials.
