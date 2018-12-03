@@ -255,6 +255,28 @@ class TestMethods(BaseSparseTests, base.BaseMethodsTests):
     def test_fillna_length_mismatch(self, data_missing):
         pass
 
+    def test_where_series(self, data, na_value):
+        assert data[0] != data[1]
+        cls = type(data)
+        a, b = data[:2]
+
+        ser = pd.Series(cls._from_sequence([a, a, b, b], dtype=data.dtype))
+
+        cond = np.array([True, True, False, False])
+        result = ser.where(cond)
+        # new_dtype is the only difference
+        new_dtype = SparseDtype('float64', 0.0)
+        expected = pd.Series(cls._from_sequence([a, a, na_value, na_value],
+                                                dtype=new_dtype))
+        self.assert_series_equal(result, expected)
+
+        other = cls._from_sequence([a, b, a, b])
+        cond = np.array([True, False, True, True])
+        result = ser.where(cond, other)
+        expected = pd.Series(cls._from_sequence([a, b, b, b],
+                                                dtype=data.dtype))
+        self.assert_series_equal(result, expected)
+
 
 class TestCasting(BaseSparseTests, base.BaseCastingTests):
     pass

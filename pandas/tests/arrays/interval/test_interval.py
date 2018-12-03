@@ -2,7 +2,7 @@
 import numpy as np
 import pytest
 
-from pandas import Index, IntervalIndex, date_range, timedelta_range
+from pandas import Index, Interval, IntervalIndex, date_range, timedelta_range
 from pandas.core.arrays import IntervalArray
 import pandas.util.testing as tm
 
@@ -49,6 +49,16 @@ class TestMethods(object):
         result = array.set_closed(new_closed)
         expected = IntervalArray.from_breaks(range(10), closed=new_closed)
         tm.assert_extension_array_equal(result, expected)
+
+    @pytest.mark.parametrize('other', [
+        Interval(0, 1, closed='right'),
+        IntervalArray.from_breaks([1, 2, 3, 4], closed='right'),
+    ])
+    def test_where_raises(self, other):
+        arr = IntervalArray.from_breaks([1, 2, 3, 4], closed='left')
+        match = "'other.closed' is 'right', expected 'left'."
+        with pytest.raises(ValueError, match=match):
+            arr.where([True, False, True], other=other)
 
 
 class TestSetitem(object):

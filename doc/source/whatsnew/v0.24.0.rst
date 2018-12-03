@@ -994,6 +994,7 @@ update the ``ExtensionDtype._metadata`` tuple to match the signature of your
 - :meth:`Series.astype` and :meth:`DataFrame.astype` now dispatch to :meth:`ExtensionArray.astype` (:issue:`21185:`).
 - Slicing a single row of a ``DataFrame`` with multiple ExtensionArrays of the same type now preserves the dtype, rather than coercing to object (:issue:`22784`)
 - Added :meth:`pandas.api.types.register_extension_dtype` to register an extension type with pandas (:issue:`22664`)
+- Added :meth:`pandas.api.extensions.ExtensionArray.where` (:issue:`24077`)
 - Bug when concatenating multiple ``Series`` with different extension dtypes not casting to object dtype (:issue:`22994`)
 - Series backed by an ``ExtensionArray`` now work with :func:`util.hash_pandas_object` (:issue:`23066`)
 - Updated the ``.type`` attribute for ``PeriodDtype``, ``DatetimeTZDtype``, and ``IntervalDtype`` to be instances of the dtype (``Period``, ``Timestamp``, and ``Interval`` respectively) (:issue:`22938`)
@@ -1236,6 +1237,7 @@ Performance Improvements
 - Improved performance of :meth:`DatetimeIndex.normalize` and :meth:`Timestamp.normalize` for timezone naive or UTC datetimes (:issue:`23634`)
 - Improved performance of :meth:`DatetimeIndex.tz_localize` and various ``DatetimeIndex`` attributes with dateutil UTC timezone (:issue:`23772`)
 - Improved performance of :class:`Categorical` constructor for `Series` objects (:issue:`23814`)
+- Improved performance of :meth:`~DataFrame.where` for Categorical data (:issue:`24077`)
 
 .. _whatsnew_0240.docs:
 
@@ -1262,6 +1264,7 @@ Categorical
 - In meth:`Series.unstack`, specifying a ``fill_value`` not present in the categories now raises a ``TypeError`` rather than ignoring the ``fill_value`` (:issue:`23284`)
 - Bug when resampling :meth:`Dataframe.resample()` and aggregating on categorical data, the categorical dtype was getting lost. (:issue:`23227`)
 - Bug in many methods of the ``.str``-accessor, which always failed on calling the ``CategoricalIndex.str`` constructor (:issue:`23555`, :issue:`23556`)
+- Bug in :meth:`Series.where` losing the categorical dtype for categorical data (:issue:`24077`)
 
 Datetimelike
 ^^^^^^^^^^^^

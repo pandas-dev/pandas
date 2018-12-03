@@ -1906,6 +1906,34 @@ class Categorical(ExtensionArray, PandasObject):
 
     take = take_nd
 
+    def where(self, cond, other):
+        # n.b. this now preserves the type
+        codes = self._codes
+
+        if is_scalar(other) and isna(other):
+            other = -1
+        elif is_scalar(other):
+            item = self.categories.get_indexer([other]).item()
+
+            if item == -1:
+                raise ValueError("The value '{}' is not present in "
+                                 "this Categorical's categories".format(other))
+            other = item
+
+        elif is_categorical_dtype(other):
+            if not is_dtype_equal(self, other):
+                raise TypeError("The type of 'other' does not match.")
+            other = _get_codes_for_values(other, self.categories)
+            # get the codes from other that match our categories
+            pass
+        else:
+            other = np.where(isna(other), -1, other)
+
+        new_codes = np.where(cond, codes, other)
+        return type(self).from_codes(new_codes,
+                                     categories=self.categories,
+                                     ordered=self.ordered)
+
     def _slice(self, slicer):
         """
         Return a slice of myself.

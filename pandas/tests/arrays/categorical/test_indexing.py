@@ -122,6 +122,32 @@ class TestCategoricalIndexing(object):
             tm.assert_numpy_array_equal(expected, result)
             tm.assert_numpy_array_equal(exp_miss, res_miss)
 
+    def test_where_raises(self):
+        arr = Categorical(['a', 'b', 'c'])
+        with pytest.raises(ValueError, match="The value 'd'"):
+            arr.where([True, False, True], 'd')
+
+    def test_where_unobserved_categories(self):
+        arr = Categorical(['a', 'b', 'c'], categories=['d', 'c', 'b', 'a'])
+        result = arr.where([True, True, False], other='b')
+        expected = Categorical(['a', 'b', 'b'], categories=arr.categories)
+        tm.assert_categorical_equal(result, expected)
+
+    def test_where_other_categorical(self):
+        arr = Categorical(['a', 'b', 'c'], categories=['d', 'c', 'b', 'a'])
+        other = Categorical(['b', 'c', 'a'], categories=['a', 'c', 'b', 'd'])
+        result = arr.where([True, False, True], other)
+        expected = Categorical(['a', 'c', 'c'], dtype=arr.dtype)
+        tm.assert_categorical_equal(result, expected)
+
+    def test_where_ordered_differs_rasies(self):
+        arr = Categorical(['a', 'b', 'c'], categories=['d', 'c', 'b', 'a'],
+                          ordered=True)
+        other = Categorical(['b', 'c', 'a'], categories=['a', 'c', 'b', 'd'],
+                            ordered=True)
+        with pytest.raises(TypeError, match="The type of"):
+            arr.where([True, False, True], other)
+
 
 @pytest.mark.parametrize("index", [True, False])
 def test_mask_with_boolean(index):

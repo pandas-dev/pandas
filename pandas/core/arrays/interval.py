@@ -777,6 +777,18 @@ class IntervalArray(IntervalMixin, ExtensionArray):
 
         return self._shallow_copy(left_take, right_take)
 
+    def where(self, cond, other):
+        if is_scalar(other) and isna(other):
+            lother = other
+            rother = other
+        else:
+            self._check_closed_matches(other, name='other')
+            lother = other.left
+            rother = other.right
+        left = np.where(cond, self.left, lother)
+        right = np.where(cond, self.right, rother)
+        return self._shallow_copy(left, right)
+
     def value_counts(self, dropna=True):
         """
         Returns a Series containing counts of each interval.
