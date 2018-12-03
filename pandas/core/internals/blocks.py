@@ -3026,6 +3026,25 @@ class DatetimeTZBlock(ExtensionBlock, DatetimeBlock):
         return super(DatetimeTZBlock, self).concat_same_type(to_concat,
                                                              placement)
 
+    def fillna(self, value, limit=None, inplace=False, downcast=None):
+        # We support filling a DatetimeTZ with a `value` whose timezone
+        # is different by coercing to object.
+        try:
+            # Ughhhh this is a bad workaround when `inplace=True`.
+            # We need to know ahead of time whether this will work.
+            # Or just deprecate the fallback behavior and have users
+            # worry about it.
+            return super(DatetimeTZBlock, self).fillna(
+                value, limit, inplace, downcast
+            )
+        except (ValueError, TypeError):
+            # different timezones
+            # ugh, or different anything. I really think we want to
+            # deprecate this behavior.
+            return self.astype(object).fillna(
+                value, limit=limit, inplace=inplace, downcast=downcast
+            )
+
     def setitem(self, indexer, value):
         # https://github.com/pandas-dev/pandas/issues/24020
         # Need a dedicated setitem until #24020 (type promotion in setitem
@@ -3036,6 +3055,7 @@ class DatetimeTZBlock(ExtensionBlock, DatetimeBlock):
              and not timezones.tz_compare(self.values.tz, maybe_tz)) or
             (is_scalar(value)
              and not isna(value)
+             and not value == tslib.iNaT
              and not (isinstance(value, self.values._scalar_type) and
                       timezones.tz_compare(self.values.tz, maybe_tz)))
         )

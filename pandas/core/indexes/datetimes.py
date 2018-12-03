@@ -29,7 +29,7 @@ from pandas.core.arrays.datetimes import (
     maybe_infer_tz, objects_to_datetime64ns)
 from pandas.core.base import _shared_docs
 import pandas.core.common as com
-from pandas.core.indexes.base import Index, _index_shared_docs
+from pandas.core.indexes.base import Index
 from pandas.core.indexes.datetimelike import (
     DatelikeIndexMixin, DatetimeIndexOpsMixin, DatetimelikeDelegateMixin,
     wrap_array_method, wrap_field_accessor)
@@ -738,11 +738,6 @@ class DatetimeIndex(DatelikeIndexMixin,
             return self._shallow_copy(left_chunk)
 
     # --------------------------------------------------------------------
-
-    @Appender(_index_shared_docs['astype'])
-    def astype(self, dtype, copy=True):
-        new_values = self._data.astype(dtype)
-        return Index(new_values, name=self.name, dtype=dtype, copy=copy)
 
     def _get_time_micros(self):
         values = self.asi8

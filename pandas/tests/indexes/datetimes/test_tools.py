@@ -464,7 +464,6 @@ class TestToDatetime(object):
     @pytest.mark.parametrize('date, dtype',
                              [('2013-01-01 01:00:00', 'datetime64[ns]'),
                               ('2013-01-01 01:00:00', 'datetime64[ns, UTC]')])
-    @pytest.mark.xfail(reason="TODO", strict=False)
     def test_to_datetime_utc_true_with_series_datetime_ns(self, cache, date,
                                                           dtype):
         expected = pd.Series([pd.Timestamp('2013-01-01 01:00:00', tz='UTC')])

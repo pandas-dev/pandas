@@ -755,11 +755,6 @@ class TestFillnaSeriesCoercion(CoercionBase):
         (pd.Timestamp('2012-01-01', tz='Asia/Tokyo'), np.object),
         (1, np.object),
         ('x', np.object)])
-    @pytest.mark.xfail(reason="TODO", strict=False)
-    # Need to have a discussion about DatetimeArray[tz].fillna(naive)
-    # The EA interface expects that EA.fillna(value) returns an
-    # array of the same type. We'll need to update internals somewhere
-    # I think.
     def test_fillna_datetime64tz(self, klass, fill_val, fill_dtype):
         tz = 'US/Eastern'
 

@@ -504,16 +504,13 @@ class PeriodIndex(DatetimeIndexOpsMixin,
     def astype(self, dtype, copy=True, how='start'):
         dtype = pandas_dtype(dtype)
 
-        # We have a few special-cases for `dtype`.
-        # Failing those, we fall back to astyping the values
-
         if is_datetime64_any_dtype(dtype):
             # 'how' is index-speicifc, isn't part of the EA interface.
             tz = getattr(dtype, 'tz', None)
             return self.to_timestamp(how=how).tz_localize(tz)
 
-        result = self._data.astype(dtype, copy=copy)
-        return Index(result, name=self.name, dtype=dtype, copy=False)
+        # TODO: should probably raise on `how` here, so we don't ignore it.
+        return super(PeriodIndex, self).astype(dtype, copy=copy)
 
     @Substitution(klass='PeriodIndex')
     @Appender(_shared_docs['searchsorted'])

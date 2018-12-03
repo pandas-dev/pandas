@@ -278,7 +278,6 @@ class TimelikeOps(object):
 
     def _round(self, freq, mode, ambiguous, nonexistent):
         from pandas.core.indexes.datetimelike import _ensure_datetimelike_to_i8
-        # import pdb; pdb.set_trace()
 
         # round the local times
         values = _ensure_datetimelike_to_i8(self)
@@ -664,8 +663,17 @@ class DatetimeLikeArrayMixin(AttributesMixin,
         """
         nv.validate_repeat(args, kwargs)
         values = self._data.repeat(repeats)
-        return type(self)(values, self.freq)
+        return type(self)(values, dtype=self.dtype)
 
+    def map(self, mapper):
+        # TODO: remove this hack
+        # Need to figure out if we want ExtensionArray.map first.
+        # If so, then we can refactor IndexOpsMixin._map_values to
+        # a standalone function and call from here..
+        # Else, just rewrite _map_infer_values to do the right thing.
+        from pandas import Index
+
+        return Index(self).map(mapper).array
     # ------------------------------------------------------------------
     # Null Handling
 

@@ -98,11 +98,11 @@ class TestMethods(BaseDatetimeTests, base.BaseMethodsTests):
     def test_value_counts(self, all_data, dropna):
         pass
 
-    def test_apply_simple_series(self, data):
-        if data.tz:
-            # fails without .map
-            raise pytest.xfail('GH-23179')
-        super().test_apply_simple_series(data)
+    # def test_apply_simple_series(self, data):
+    #     if data.tz:
+    #         # fails without .map
+    #         raise pytest.xfail('GH-23179')
+    #     super().test_apply_simple_series(data)
 
     def test_combine_add(self, data_repeated):
         # Timestamp.__add__(Timestamp) not defined
@@ -160,6 +160,7 @@ class TestArithmeticOps(BaseDatetimeTests, base.BaseArithmeticOpsTests):
     def test_error(self, data, all_arithmetic_operators):
         pass
 
+    # cc @jbrockmendel
     @pytest.mark.xfail(reason="Not Implemented", strict=False)
     def test_direct_arith_with_series_returns_not_implemented(self, data):
         # Right now, we have trouble with this. Returning NotImplemented
@@ -183,6 +184,7 @@ class TestComparisonOps(BaseDatetimeTests, base.BaseComparisonOpsTests):
         # with (some) integers, depending on the value.
         pass
 
+    # cc @jbrockmendel
     @pytest.mark.xfail(reason="Not Implemented", strict=False)
     def test_direct_arith_with_series_returns_not_implemented(self, data):
         return super(

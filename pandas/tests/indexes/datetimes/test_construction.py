@@ -626,10 +626,6 @@ class TestTimeSeries(object):
         rng = DatetimeIndex(['1-1-2000 00:00:01'])
         assert rng[0].second == 1
 
-    @pytest.mark.xfail(reason="TODO", strict=True)
-    # This changes in DatetimeArray.view failed this. Had to change so that
-    # things like `index.name = foo` didn't propagate to copies.
-    # Similar test in indexes/period/test_period.py
     def test_is_(self):
         dti = date_range(start='1/1/2005', end='12/1/2005', freq='M')
         assert dti.is_(dti)

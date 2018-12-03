@@ -122,6 +122,7 @@ def test_to_hierarchical():
     assert result.names == index.names
 
 
+@pytest.mark.xfail(reason="pickle", strict=True)
 def test_roundtrip_pickle_with_tz():
 
     # GH 8367
@@ -134,7 +135,7 @@ def test_roundtrip_pickle_with_tz():
     assert index.equal_levels(unpickled)
 
 
-@pytest.mark.xfail(reason="pickle")
+@pytest.mark.xfail(reason="pickle", strict=False)
 def test_pickle(indices):
 
     unpickled = tm.round_trip_pickle(indices)

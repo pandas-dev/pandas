@@ -593,8 +593,12 @@ class DatetimeIndexOpsMixin(ExtensionOpsMixin):
 
         return self
 
+    @Appender(_index_shared_docs['astype'])
     def astype(self, dtype, copy=True):
         # NB: moved from PeriodIndex
+        if is_dtype_equal(self.dtype, dtype) and copy is False:
+            # Ensure that self.astype(self.dtype) is self
+            return self
         new_values = self._values.astype(dtype, copy=copy)
         return Index(new_values, dtype=dtype, name=self.name)
 
@@ -604,7 +608,10 @@ class DatetimeIndexOpsMixin(ExtensionOpsMixin):
             # Series.copy() eventually calls this. Need to call
             # _shallow_copy here so that we don't propagate modifications
             # to attributes like .index.name
-            return self._shallow_copy()
+            result = self._shallow_copy()
+            # We repeat the same setting of ._id that Index.view does.
+            result._id = self._id
+            return result
         return self._ndarray_values.view(dtype=dtype)
 
     @deprecate_kwarg(old_arg_name='n', new_arg_name='periods')

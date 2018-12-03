@@ -461,7 +461,6 @@ class TestIndexOps(Ops):
 
             assert o.nunique() == len(np.unique(o.values))
 
-    @pytest.mark.xfail(reason="TODO", strict=True)
     def test_value_counts_unique_nunique_null(self):
 
         for null_obj in [np.nan, None]:
@@ -503,7 +502,7 @@ class TestIndexOps(Ops):
                     o = klass(values.repeat(range(1, len(o) + 1)))
                     o.name = 'a'
                 else:
-                    if is_datetime64tz_dtype(o):
+                    if isinstance(o, DatetimeIndex):
                         expected_index = orig._values._shallow_copy(values)
                     else:
                         expected_index = Index(values)
@@ -544,8 +543,7 @@ class TestIndexOps(Ops):
                                           Index(values[1:], name='a'))
                 elif is_datetime64tz_dtype(o):
                     # unable to compare NaT / nan
-                    vals = values[2:].astype(object).values
-                    tm.assert_numpy_array_equal(result[1:], vals)
+                    tm.assert_extension_array_equal(result[1:], values[2:])
                     assert result[0] is pd.NaT
                 else:
                     tm.assert_numpy_array_equal(result[1:], values[2:])
@@ -1158,7 +1156,6 @@ class TestToIterable(object):
             ('object', (int, long)),
             ('category', (int, long))])
     @pytest.mark.parametrize('typ', [Series, Index])
-    @pytest.mark.xfail(reason="map", strict=False)
     def test_iterable_map(self, typ, dtype, rdtype):
         # gh-13236
         # coerce iteration to underlying python / pandas types
