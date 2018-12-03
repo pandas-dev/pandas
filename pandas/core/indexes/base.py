@@ -3542,6 +3542,23 @@ class Index(IndexOpsMixin, PandasObject):
     @property
     def values(self):
         """
+        Return an array representing the data in the Index.
+
+        .. warning::
+
+           We recommend using :attr:`Index.array` or
+           :meth:`Index.to_numpy`, depending on whether you need
+           a reference to the underlying data or a NumPy array.
+
+        Returns
+        -------
+        array: numpy.ndarray or ExtensionArray
+
+        See Also
+        --------
+        Index.array : Reference to the underlying data.
+        Index.to_numpy : A NumPy array representing the underlying data.
+
         Return the underlying data as an ndarray.
         """
         return self._data.view(np.ndarray)
@@ -3575,7 +3592,7 @@ class Index(IndexOpsMixin, PandasObject):
         values
         _ndarray_values
         """
-        return self.values
+        return self._data
 
     def get_values(self):
         """
@@ -5014,23 +5031,22 @@ class Index(IndexOpsMixin, PandasObject):
         cls.__radd__ = _make_arithmetic_op(ops.radd, cls)
         cls.__sub__ = _make_arithmetic_op(operator.sub, cls)
         cls.__rsub__ = _make_arithmetic_op(ops.rsub, cls)
-        cls.__mul__ = _make_arithmetic_op(operator.mul, cls)
-        cls.__rmul__ = _make_arithmetic_op(ops.rmul, cls)
         cls.__rpow__ = _make_arithmetic_op(ops.rpow, cls)
         cls.__pow__ = _make_arithmetic_op(operator.pow, cls)
+
+        cls.__truediv__ = _make_arithmetic_op(operator.truediv, cls)
+        cls.__rtruediv__ = _make_arithmetic_op(ops.rtruediv, cls)
+        if not compat.PY3:
+            cls.__div__ = _make_arithmetic_op(operator.div, cls)
+            cls.__rdiv__ = _make_arithmetic_op(ops.rdiv, cls)
+
+        # TODO: rmod? rdivmod?
         cls.__mod__ = _make_arithmetic_op(operator.mod, cls)
         cls.__floordiv__ = _make_arithmetic_op(operator.floordiv, cls)
         cls.__rfloordiv__ = _make_arithmetic_op(ops.rfloordiv, cls)
-
-        if not issubclass(cls, ABCTimedeltaIndex):
-            # GH#23829 TimedeltaIndex defines these directly
-            cls.__truediv__ = _make_arithmetic_op(operator.truediv, cls)
-            cls.__rtruediv__ = _make_arithmetic_op(ops.rtruediv, cls)
-            if not compat.PY3:
-                cls.__div__ = _make_arithmetic_op(operator.div, cls)
-                cls.__rdiv__ = _make_arithmetic_op(ops.rdiv, cls)
-
         cls.__divmod__ = _make_arithmetic_op(divmod, cls)
+        cls.__mul__ = _make_arithmetic_op(operator.mul, cls)
+        cls.__rmul__ = _make_arithmetic_op(ops.rmul, cls)
 
     @classmethod
     def _add_numeric_methods_unary(cls):

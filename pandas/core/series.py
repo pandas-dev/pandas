@@ -389,6 +389,9 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
     @property
     def name(self):
+        """
+        Return name of the Series.
+        """
         return self._name
 
     @name.setter
@@ -431,9 +434,20 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         """
         Return Series as ndarray or ndarray-like depending on the dtype.
 
+        .. warning::
+
+           We recommend using :attr:`Series.array` or
+           :Series:`Index.to_numpy`, depending on whether you need
+           a reference to the underlying data or a NumPy array.
+
         Returns
         -------
         arr : numpy.ndarray or ndarray-like
+
+        See Also
+        --------
+        Series.array : Reference to the underlying data.
+        Series.to_numpy : A NumPy array representing the underlying data.
 
         Examples
         --------
@@ -678,6 +692,9 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
     @property
     def real(self):
+        """
+        Return the real value of vector.
+        """
         return self.values.real
 
     @real.setter
@@ -686,6 +703,9 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
     @property
     def imag(self):
+        """
+        Return imag value of vector.
+        """
         return self.values.imag
 
     @imag.setter

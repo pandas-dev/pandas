@@ -1,4 +1,3 @@
-
 # pylint: disable=E1101,E1103,W0232
 import datetime
 from sys import getsizeof
@@ -429,6 +428,25 @@ class MultiIndex(Index):
     @property
     def levels(self):
         return self._levels
+
+    @property
+    def _values(self):
+        # We override here, since our parent uses _data, which we dont' use.
+        return self.values
+
+    @property
+    def array(self):
+        """
+        Raises a ValueError for `MultiIndex` because there's no single
+        array backing a MultiIndex.
+
+        Raises
+        ------
+        ValueError
+        """
+        msg = ("MultiIndex has no single backing array. Use "
+               "'MultiIndex.to_numpy()' to get a NumPy array of tuples.")
+        raise ValueError(msg)
 
     @property
     def _is_homogeneous_type(self):
