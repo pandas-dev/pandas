@@ -12,15 +12,12 @@ cimport numpy as cnp
 from numpy cimport ndarray, int64_t, int32_t, int8_t
 cnp.import_array()
 
-from pandas._libs.tslibs.ccalendar import (
-    get_locale_names, MONTHS_FULL, DAYS_FULL, DAY_SECONDS)
-from pandas._libs.tslibs.ccalendar cimport (
-    get_days_in_month, is_leapyear, dayofweek, get_week_of_year,
-    get_day_of_year)
-from pandas._libs.tslibs.np_datetime cimport (
-    npy_datetimestruct, pandas_timedeltastruct, dt64_to_dtstruct,
-    td64_to_tdstruct)
-from pandas._libs.tslibs.nattype cimport NPY_NAT
+from .ccalendar import get_locale_names, MONTHS_FULL, DAYS_FULL, DAY_SECONDS
+from .ccalendar cimport (get_days_in_month, is_leapyear, dayofweek,
+                         get_week_of_year, get_day_of_year)
+from .np_datetime cimport (npy_datetimestruct, pandas_timedeltastruct,
+                           dt64_to_dtstruct, td64_to_tdstruct)
+from .nattype cimport NPY_NAT
 
 
 def get_time_micros(ndarray[int64_t] dtindex):

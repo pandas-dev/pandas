@@ -10,7 +10,7 @@ from cython import Py_ssize_t
 from numpy cimport int64_t, int32_t
 
 from locale import LC_TIME
-from pandas._libs.tslibs.strptime import LocaleTime
+from .strptime import LocaleTime
 
 # ----------------------------------------------------------------------
 # Constants

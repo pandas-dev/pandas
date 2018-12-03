@@ -5,15 +5,13 @@ from cython import Py_ssize_t
 import numpy as np
 from numpy cimport ndarray, int64_t, int32_t
 
-from pandas._libs.tslibs.util cimport is_string_object, get_nat
+from .util cimport is_string_object, get_nat
 
-from pandas._libs.tslibs.np_datetime cimport (
-    npy_datetimestruct, dt64_to_dtstruct)
-from pandas._libs.tslibs.frequencies cimport get_freq_code
-from pandas._libs.tslibs.timezones cimport (
-    is_utc, is_tzlocal, maybe_get_tz, get_dst_info)
-from pandas._libs.tslibs.conversion cimport tz_convert_utc_to_tzlocal
-from pandas._libs.tslibs.ccalendar cimport get_days_in_month
+from .np_datetime cimport npy_datetimestruct, dt64_to_dtstruct
+from .frequencies cimport get_freq_code
+from .timezones cimport is_utc, is_tzlocal, maybe_get_tz, get_dst_info
+from .conversion cimport tz_convert_utc_to_tzlocal
+from .ccalendar cimport get_days_in_month
 
 # ----------------------------------------------------------------------
 # Constants

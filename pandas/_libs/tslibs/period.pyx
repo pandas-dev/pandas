@@ -28,7 +28,7 @@ cdef extern from "src/datetime/np_datetime.h":
     int64_t npy_datetimestruct_to_datetime(NPY_DATETIMEUNIT fr,
                                            npy_datetimestruct *d) nogil
 
-cimport .util
+cimport pandas._libs.tslibs.util as util
 from .util cimport is_period_object, is_string_object
 
 from .timestamps import Timestamp, maybe_integer_op_deprecated
@@ -36,7 +36,7 @@ from .timezones cimport is_utc, is_tzlocal, get_dst_info
 from .timedeltas import Timedelta
 from .timedeltas cimport delta_to_nanoseconds
 
-cimport .ccalendar
+cimport pandas._libs.tslibs.ccalendar as ccalendar
 from .ccalendar cimport dayofweek, get_day_of_year, is_leapyear
 from .ccalendar import MONTH_NUMBERS
 from .conversion cimport tz_convert_utc_to_tzlocal
