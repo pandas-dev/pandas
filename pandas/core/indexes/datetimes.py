@@ -31,8 +31,7 @@ from pandas.core.base import _shared_docs
 import pandas.core.common as com
 from pandas.core.indexes.base import Index, _index_shared_docs
 from pandas.core.indexes.datetimelike import (
-    DatelikeOps, DatetimeIndexOpsMixin, TimelikeOps, wrap_array_method,
-    wrap_field_accessor)
+    DatetimeIndexOpsMixin, wrap_array_method, wrap_field_accessor)
 from pandas.core.indexes.numeric import Int64Index
 from pandas.core.ops import get_op_result_name
 import pandas.core.tools.datetimes as tools
@@ -50,14 +49,19 @@ def _new_DatetimeIndex(cls, d):
     # so need to localize
     tz = d.pop('tz', None)
 
-    result = cls.__new__(cls, verify_integrity=False, **d)
+    with warnings.catch_warnings():
+        # we ignore warnings from passing verify_integrity=False
+        # TODO: If we knew what was going in to **d, we might be able to
+        #  go through _simple_new instead
+        warnings.simplefilter("ignore")
+        result = cls.__new__(cls, verify_integrity=False, **d)
+
     if tz is not None:
         result = result.tz_localize('UTC').tz_convert(tz)
     return result
 
 
-class DatetimeIndex(DatetimeArray, DatelikeOps, TimelikeOps,
-                    DatetimeIndexOpsMixin, Int64Index):
+class DatetimeIndex(DatetimeArray, DatetimeIndexOpsMixin, Int64Index):
     """
     Immutable ndarray of datetime64 data, represented internally as int64, and
     which can be boxed to Timestamp objects that are subclasses of datetime and
@@ -220,10 +224,20 @@ class DatetimeIndex(DatetimeArray, DatelikeOps, TimelikeOps,
                 freq=None, start=None, end=None, periods=None, tz=None,
                 normalize=False, closed=None, ambiguous='raise',
                 dayfirst=False, yearfirst=False, dtype=None,
-                copy=False, name=None, verify_integrity=True):
+                copy=False, name=None, verify_integrity=None):
+
+        if verify_integrity is not None:
+            warnings.warn("The 'verify_integrity' argument is deprecated, "
+                          "will be removed in a future version.",
+                          FutureWarning, stacklevel=2)
+        else:
+            verify_integrity = True
 
         if data is None:
-            # TODO: Remove this block and associated kwargs; GH#20535
+            warnings.warn("Creating a DatetimeIndex by passing range "
+                          "endpoints is deprecated.  Use "
+                          "`pandas.date_range` instead.",
+                          FutureWarning, stacklevel=2)
             result = cls._generate_range(start, end, periods,
                                          freq=freq, tz=tz, normalize=normalize,
                                          closed=closed, ambiguous=ambiguous)
@@ -756,8 +770,8 @@ class DatetimeIndex(DatetimeArray, DatelikeOps, TimelikeOps,
             snapped[i] = s
 
         # we know it conforms; skip check
-        return DatetimeIndex(snapped, freq=freq, verify_integrity=False)
-        # TODO: what about self.name?  if so, use shallow_copy?
+        return DatetimeIndex._simple_new(snapped, freq=freq)
+        # TODO: what about self.name?  tz? if so, use shallow_copy?
 
     def unique(self, level=None):
         if level is not None:
@@ -1134,6 +1148,11 @@ class DatetimeIndex(DatetimeArray, DatelikeOps, TimelikeOps,
 
     # --------------------------------------------------------------------
     # Wrapping DatetimeArray
+
+    # Compat for frequency inference, see GH#23789
+    _is_monotonic_increasing = Index.is_monotonic_increasing
+    _is_monotonic_decreasing = Index.is_monotonic_decreasing
+    _is_unique = Index.is_unique
 
     _timezone = cache_readonly(DatetimeArray._timezone.fget)
     is_normalized = cache_readonly(DatetimeArray.is_normalized.fget)
@@ -1514,9 +1533,13 @@ def date_range(start=None, end=None, periods=None, freq=None, tz=None,
     if freq is None and com._any_none(periods, start, end):
         freq = 'D'
 
-    return DatetimeIndex(start=start, end=end, periods=periods,
-                         freq=freq, tz=tz, normalize=normalize, name=name,
-                         closed=closed, **kwargs)
+    result = DatetimeIndex._generate_range(
+        start=start, end=end, periods=periods,
+        freq=freq, tz=tz, normalize=normalize,
+        closed=closed, **kwargs)
+
+    result.name = name
+    return result
 
 
 def bdate_range(start=None, end=None, periods=None, freq='B', tz=None,
@@ -1602,9 +1625,9 @@ def bdate_range(start=None, end=None, periods=None, freq='B', tz=None,
                'weekmask are passed, got frequency {freq}').format(freq=freq)
         raise ValueError(msg)
 
-    return DatetimeIndex(start=start, end=end, periods=periods,
-                         freq=freq, tz=tz, normalize=normalize, name=name,
-                         closed=closed, **kwargs)
+    return date_range(start=start, end=end, periods=periods,
+                      freq=freq, tz=tz, normalize=normalize, name=name,
+                      closed=closed, **kwargs)
 
 
 def cdate_range(start=None, end=None, periods=None, freq='C', tz=None,
@@ -1661,9 +1684,10 @@ def cdate_range(start=None, end=None, periods=None, freq='C', tz=None,
         holidays = kwargs.pop('holidays', [])
         weekmask = kwargs.pop('weekmask', 'Mon Tue Wed Thu Fri')
         freq = CDay(holidays=holidays, weekmask=weekmask)
-    return DatetimeIndex(start=start, end=end, periods=periods, freq=freq,
-                         tz=tz, normalize=normalize, name=name,
-                         closed=closed, **kwargs)
+
+    return date_range(start=start, end=end, periods=periods, freq=freq,
+                      tz=tz, normalize=normalize, name=name,
+                      closed=closed, **kwargs)
 
 
 def _time_to_micros(time):
