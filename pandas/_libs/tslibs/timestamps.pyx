@@ -20,24 +20,20 @@ from pandas._libs.util cimport (is_datetime64_object, is_timedelta64_object,
                                 is_integer_object, is_string_object, is_array,
                                 is_offset_object)
 
-cimport pandas._libs.tslibs.ccalendar as ccalendar
-from pandas._libs.tslibs.ccalendar import DAY_SECONDS
-from pandas._libs.tslibs.conversion import (
-    tz_localize_to_utc, normalize_i8_timestamps)
-from pandas._libs.tslibs.conversion cimport (
-    tz_convert_single, _TSObject, convert_to_tsobject,
-    convert_datetime_to_tsobject)
-from pandas._libs.tslibs.fields import get_start_end_field, get_date_name_field
-from pandas._libs.tslibs.nattype import NaT
-from pandas._libs.tslibs.nattype cimport NPY_NAT
-from pandas._libs.tslibs.np_datetime import OutOfBoundsDatetime
-from pandas._libs.tslibs.np_datetime cimport (
-    reverse_ops, cmp_scalar, check_dts_bounds, npy_datetimestruct,
-    dt64_to_dtstruct)
-from pandas._libs.tslibs.offsets cimport to_offset
-from pandas._libs.tslibs.timedeltas import Timedelta
-from pandas._libs.tslibs.timedeltas cimport delta_to_nanoseconds
-from pandas._libs.tslibs.timezones cimport (
+cimport .ccalendar as ccalendar
+from .ccalendar import DAY_SECONDS
+from .conversion import tz_localize_to_utc, normalize_i8_timestamps
+from .conversion cimport (tz_convert_single, _TSObject,
+                          convert_to_tsobject, convert_datetime_to_tsobject)
+from .fields import get_start_end_field, get_date_name_field
+from .nattype cimport NPY_NAT, c_NaT as NaT
+from .np_datetime import OutOfBoundsDatetime
+from .np_datetime cimport (reverse_ops, cmp_scalar, check_dts_bounds,
+                           npy_datetimestruct, dt64_to_dtstruct)
+from .offsets cimport to_offset
+from .timedeltas import Timedelta
+from .timedeltas cimport delta_to_nanoseconds
+from .timezones cimport (
     get_timezone, is_utc, maybe_get_tz, treat_tz_as_pytz, tz_compare)
 from pandas._libs.tslibs.timezones import UTC
 

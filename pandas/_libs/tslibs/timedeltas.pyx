@@ -33,9 +33,9 @@ from pandas._libs.tslibs.ccalendar import DAY_SECONDS
 from pandas._libs.tslibs.np_datetime cimport (
     cmp_scalar, reverse_ops, td64_to_tdstruct, pandas_timedeltastruct)
 
-from pandas._libs.tslibs.nattype import nat_strings, NaT
-from pandas._libs.tslibs.nattype cimport checknull_with_nat, NPY_NAT
-from pandas._libs.tslibs.offsets cimport to_offset
+from .nattype import nat_strings
+from .nattype cimport checknull_with_nat, NPY_NAT, c_NaT as NaT
+from .offsets cimport to_offset
 
 # ----------------------------------------------------------------------
 # Constants

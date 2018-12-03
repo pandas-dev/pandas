@@ -1245,6 +1245,10 @@ cdef class TextReader:
             result, na_count = _try_bool_flex(self.parser, i, start, end,
                                               na_filter, na_hashset,
                                               self.true_set, self.false_set)
+            if user_dtype and na_count is not None:
+                if na_count > 0:
+                    raise ValueError("Bool column has NA values in "
+                                     "column {column}".format(column=i))
             return result, na_count
 
         elif dtype.kind == 'S':
