@@ -447,6 +447,7 @@ class TimedeltaArrayMixin(dtl.DatetimeLikeArrayMixin, dtl.TimelikeOps):
         if isinstance(other, (ABCSeries, ABCDataFrame, ABCIndexClass)):
             return NotImplemented
 
+        other = lib.item_from_zerodim(other)
         if is_scalar(other):
             if isinstance(other, (timedelta, np.timedelta64, Tick)):
                 other = Timedelta(other)
@@ -509,6 +510,7 @@ class TimedeltaArrayMixin(dtl.DatetimeLikeArrayMixin, dtl.TimelikeOps):
         if isinstance(other, (ABCSeries, ABCDataFrame, ABCIndexClass)):
             return NotImplemented
 
+        other = lib.item_from_zerodim(other)
         if is_scalar(other):
             if isinstance(other, (timedelta, np.timedelta64, Tick)):
                 other = Timedelta(other)
@@ -558,6 +560,8 @@ class TimedeltaArrayMixin(dtl.DatetimeLikeArrayMixin, dtl.TimelikeOps):
         # Note: This is a naive implementation, can likely be optimized
         if isinstance(other, (ABCSeries, ABCDataFrame, ABCIndexClass)):
             return NotImplemented
+
+        other = lib.item_from_zerodim(other)
         if isinstance(other, (timedelta, np.timedelta64, Tick)):
             other = Timedelta(other)
         return self - (self // other) * other
@@ -566,6 +570,8 @@ class TimedeltaArrayMixin(dtl.DatetimeLikeArrayMixin, dtl.TimelikeOps):
         # Note: This is a naive implementation, can likely be optimized
         if isinstance(other, (ABCSeries, ABCDataFrame, ABCIndexClass)):
             return NotImplemented
+
+        other = lib.item_from_zerodim(other)
         if isinstance(other, (timedelta, np.timedelta64, Tick)):
             other = Timedelta(other)
         return other - (other // self) * self
@@ -574,6 +580,8 @@ class TimedeltaArrayMixin(dtl.DatetimeLikeArrayMixin, dtl.TimelikeOps):
         # Note: This is a naive implementation, can likely be optimized
         if isinstance(other, (ABCSeries, ABCDataFrame, ABCIndexClass)):
             return NotImplemented
+
+        other = lib.item_from_zerodim(other)
         if isinstance(other, (timedelta, np.timedelta64, Tick)):
             other = Timedelta(other)
 
@@ -585,6 +593,8 @@ class TimedeltaArrayMixin(dtl.DatetimeLikeArrayMixin, dtl.TimelikeOps):
         # Note: This is a naive implementation, can likely be optimized
         if isinstance(other, (ABCSeries, ABCDataFrame, ABCIndexClass)):
             return NotImplemented
+
+        other = lib.item_from_zerodim(other)
         if isinstance(other, (timedelta, np.timedelta64, Tick)):
             other = Timedelta(other)
 
