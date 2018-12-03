@@ -376,6 +376,7 @@ Backwards incompatible API changes
 - :meth:`Series.str.cat` will now raise if `others` is a `set` (:issue:`23009`)
 - Passing scalar values to :class:`DatetimeIndex` or :class:`TimedeltaIndex` will now raise ``TypeError`` instead of ``ValueError`` (:issue:`23539`)
 - ``max_rows`` and ``max_cols`` parameters removed from :class:`HTMLFormatter` since truncation is handled by :class:`DataFrameFormatter` (:issue:`23818`)
+- :meth:`read_csv` will now raise a ``ValueError`` if a column with missing values is declared as having dtype ``bool`` (:issue:`20591`)
 
 .. _whatsnew_0240.api_breaking.deps:
 
@@ -1091,6 +1092,7 @@ Other API Changes
 - :meth:`Categorical.searchsorted` now raises a ``KeyError`` rather that a ``ValueError``, if a searched for key is not found in its categories (:issue:`23466`).
 - :meth:`Index.hasnans` and :meth:`Series.hasnans` now always return a python boolean. Previously, a python or a numpy boolean could be returned, depending on circumstances (:issue:`23294`).
 - The order of the arguments of :func:`DataFrame.to_html` and :func:`DataFrame.to_string` is rearranged to be consistent with each other. (:issue:`23614`)
+- :meth:`CategoricalIndex.reindex` now raises a ``ValueError`` if the target index is non-unique and not equal to the current index. It previously only raised if the target index was not of a categorical dtype (:issue:`23963`).
 
 .. _whatsnew_0240.deprecations:
 
@@ -1257,6 +1259,7 @@ Categorical
 - Bug in :meth:`Categorical.take` with a user-provided ``fill_value`` not encoding the ``fill_value``, which could result in a ``ValueError``, incorrect results, or a segmentation fault (:issue:`23296`).
 - In meth:`Series.unstack`, specifying a ``fill_value`` not present in the categories now raises a ``TypeError`` rather than ignoring the ``fill_value`` (:issue:`23284`)
 - Bug when resampling :meth:`Dataframe.resample()` and aggregating on categorical data, the categorical dtype was getting lost. (:issue:`23227`)
+- Bug in many methods of the ``.str``-accessor, which always failed on calling the ``CategoricalIndex.str`` constructor (:issue:`23555`, :issue:`23556`)
 
 Datetimelike
 ^^^^^^^^^^^^
@@ -1360,6 +1363,7 @@ Numeric
 - Bug in :meth:`Series.rpow` with object dtype ``NaN`` for ``1 ** NA`` instead of ``1`` (:issue:`22922`).
 - :meth:`Series.agg` can now handle numpy NaN-aware methods like :func:`numpy.nansum` (:issue:`19629`)
 - Bug in :meth:`Series.rank` and :meth:`DataFrame.rank` when ``pct=True`` and more than 2:sup:`24` rows are present resulted in percentages greater than 1.0 (:issue:`18271`)
+- Calls such as :meth:`DataFrame.round` with a non-unique :meth:`CategoricalIndex` now return expected data. Previously, data would be improperly duplicated (:issue:`21809`).
 
 Strings
 ^^^^^^^
@@ -1367,6 +1371,7 @@ Strings
 - Bug in :meth:`Index.str.partition` was not nan-safe (:issue:`23558`).
 - Bug in :meth:`Index.str.split` was not nan-safe (:issue:`23677`).
 - Bug :func:`Series.str.contains` not respecting the ``na`` argument for a ``Categorical`` dtype ``Series`` (:issue:`22158`)
+- Bug in :meth:`Index.str.cat` when the result contained only ``NaN`` (:issue:`24044`)
 
 Interval
 ^^^^^^^^
@@ -1399,6 +1404,7 @@ Indexing
 - Bug where setting a timedelta column by ``Index`` causes it to be casted to double, and therefore lose precision (:issue:`23511`)
 - Bug in :func:`Index.union` and :func:`Index.intersection` where name of the ``Index`` of the result was not computed correctly for certain cases (:issue:`9943`, :issue:`9862`)
 - Bug in :class:`Index` slicing with boolean :class:`Index` may raise ``TypeError`` (:issue:`22533`)
+- Bug in ``PeriodArray.__setitem__`` when accepting slice and list-like value (:issue:`23978`)
 
 Missing
 ^^^^^^^
@@ -1418,6 +1424,7 @@ MultiIndex
 
 I/O
 ^^^
+
 
 .. _whatsnew_0240.bug_fixes.nan_with_str_dtype:
 
@@ -1482,6 +1489,7 @@ Notice how we now instead output ``np.nan`` itself instead of a stringified form
 - Bug in :meth:`read_excel()` in which column names were not being properly converted to string sometimes in Python 2.x (:issue:`23874`)
 - Bug in :meth:`read_excel()` in which ``index_col=None`` was not being respected and parsing index columns anyway (:issue:`18792`, :issue:`20480`)
 - Bug in :meth:`read_excel()` in which ``usecols`` was not being validated for proper column names when passed in as a string (:issue:`20480`)
+- Bug in :meth:`DataFrame.to_dict` when the resulting dict contains non-Python scalars in the case of numeric data (:issue:`23753`)
 - :func:`DataFrame.to_string()`, :func:`DataFrame.to_html()`, :func:`DataFrame.to_latex()` will correctly format output when a string is passed as the ``float_format`` argument (:issue:`21625`, :issue:`22270`)
 
 Plotting
@@ -1508,6 +1516,7 @@ Groupby/Resample/Rolling
 - Bug in :meth:`DataFrame.expanding` in which the ``axis`` argument was not being respected during aggregations (:issue:`23372`)
 - Bug in :meth:`pandas.core.groupby.DataFrameGroupBy.transform` which caused missing values when the input function can accept a :class:`DataFrame` but renames it (:issue:`23455`).
 - Bug in :func:`pandas.core.groupby.GroupBy.nth` where column order was not always preserved (:issue:`20760`)
+- Bug in :meth:`pandas.core.groupby.DataFrameGroupBy.rank` with ``method='dense'`` and ``pct=True`` when a group has only one member would raise a ``ZeroDivisionError`` (:issue:`23666`).
 
 Reshaping
 ^^^^^^^^^

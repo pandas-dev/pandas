@@ -4,7 +4,7 @@ from datetime import timedelta
 import numpy as np
 import pytest
 
-from pandas._libs.tslib import NaT, iNaT
+from pandas._libs.tslibs import NaT, iNaT
 import pandas.compat as compat
 
 import pandas as pd
