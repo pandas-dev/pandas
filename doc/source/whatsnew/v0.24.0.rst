@@ -1117,7 +1117,7 @@ Deprecations
 - The methods :meth:`Series.str.partition` and :meth:`Series.str.rpartition` have deprecated the ``pat`` keyword in favor of ``sep`` (:issue:`22676`)
 - Deprecated the `nthreads` keyword of :func:`pandas.read_feather` in favor of
   `use_threads` to reflect the changes in pyarrow 0.11.0. (:issue:`23053`)
-- :meth:`ExtensionArray._formatting_values` is deprecated. Use `ExtensionArray._formatter` instead. (:issue:`23601`)
+- :meth:`ExtensionArray._formatting_values` is deprecated. Use :attr:`ExtensionArray._formatter` instead. (:issue:`23601`)
 - :func:`pandas.read_excel` has deprecated accepting ``usecols`` as an integer. Please pass in a list of ints from 0 to ``usecols`` inclusive instead (:issue:`23527`)
 - Constructing a :class:`TimedeltaIndex` from data with ``datetime64``-dtyped data is deprecated, will raise ``TypeError`` in a future version (:issue:`23539`)
 - Constructing a :class:`DatetimeIndex` from data with ``timedelta64``-dtyped data is deprecated, will raise ``TypeError`` in a future version (:issue:`23675`)

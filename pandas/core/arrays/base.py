@@ -670,7 +670,8 @@ class ExtensionArray(object):
         # the short repr has no trailing newline, while the truncated
         # repr does. So we include a newline in our template, and strip
         # any trailing newlines from format_object_summary
-        data = format_object_summary(self, self._formatter(), name=False,
+        data = format_object_summary(self, self._formatter(),
+                                     indent_for_name=False,
                                      trailing_comma=False).rstrip()
         class_name = u'<{}>\n'.format(self.__class__.__name__)
         return template.format(class_name=class_name, data=data,
