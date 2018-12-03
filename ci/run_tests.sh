@@ -1,5 +1,7 @@
 #!/bin/bash
 
+set -e
+
 if [ "$DOC" ]; then
     echo "We are not running pytest as this is a doc-build"
     exit 0
