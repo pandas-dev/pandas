@@ -2,6 +2,7 @@
 """
 Base and utility classes for tseries type pandas objects.
 """
+import operator
 import warnings
 
 import numpy as np
@@ -19,6 +20,7 @@ from pandas.core.dtypes.common import (
 from pandas.core.dtypes.generic import ABCIndex, ABCIndexClass, ABCSeries
 
 from pandas.core import algorithms, ops
+from pandas.core.accessor import PandasDelegate
 from pandas.core.arrays.datetimelike import (
     DatetimeLikeArrayMixin, _ensure_datetimelike_to_i8)
 import pandas.core.indexes.base as ibase
@@ -643,3 +645,48 @@ def wrap_field_accessor(prop):
     f.__name__ = fget.__name__
     f.__doc__ = fget.__doc__
     return property(f)
+
+
+class DatetimelikeDelegateMixin(PandasDelegate):
+    """
+    Delegation mechanism, specific for Datetime, Timedelta, and Period types.
+
+    Functionality is delegated from the Index class to an Array class. A
+    few things can be customized
+
+    * _delegate_class : type
+        The class being delegated to.
+    * _delegated_methods, delegated_properties : List
+        The list of property / method names being delagated.
+    * raw_methods : Set
+        The set of methods whose results should should *not* be
+        boxed in an index, after being returned from the array
+    * raw_properties : Set
+        The set of properties whose results should should *not* be
+        boxed in an index, after being returned from the array
+    """
+    # raw_methods : dispatch methods that shouldn't be boxed in an Index
+    _raw_methods = set()
+    # raw_properties : dispatch properties that shouldn't be boxed in an Index
+    _raw_properties = set()
+    name = None
+    _data = None
+
+    @property
+    def _delegate_class(self):
+        raise AbstractMethodError
+
+    def _delegate_property_get(self, name, *args, **kwargs):
+        result = getattr(self._data, name)
+        if name not in self._raw_properties:
+            result = Index(result, name=self.name)
+        return result
+
+    def _delegate_property_set(self, name, value, *args, **kwargs):
+        setattr(self._data, name, value)
+
+    def _delegate_method(self, name, *args, **kwargs):
+        result = operator.methodcaller(name, *args, **kwargs)(self._data)
+        if name not in self._raw_methods:
+            result = Index(result, name=self.name)
+        return result
