@@ -5,18 +5,12 @@ if [ "${TRAVIS_OS_NAME}" != "linux" ]; then
    exit 0
 fi
 
-cd "$TRAVIS_BUILD_DIR"
+cd "$TRAVIS_BUILD_DIR"/doc
 echo "inside $0"
 
 if [ "$DOC" ]; then
 
     echo "Will build docs"
-
-    source activate pandas
-
-    mv "$TRAVIS_BUILD_DIR"/doc /tmp
-    mv "$TRAVIS_BUILD_DIR/LICENSE" /tmp  # included in the docs.
-    cd /tmp/doc
 
     echo ###############################
     echo # Log file for the doc build  #
@@ -29,7 +23,7 @@ if [ "$DOC" ]; then
     echo # Create and send docs #
     echo ########################
 
-    cd /tmp/doc/build/html
+    cd build/html
     git config --global user.email "pandas-docs-bot@localhost.foo"
     git config --global user.name "pandas-docs-bot"
 

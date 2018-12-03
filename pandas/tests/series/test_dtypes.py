@@ -6,10 +6,9 @@ import string
 import sys
 
 import numpy as np
-from numpy import nan
 import pytest
 
-import pandas._libs.tslib as tslib
+from pandas._libs.tslibs import iNaT
 import pandas.compat as compat
 from pandas.compat import lrange, range, u
 
@@ -69,7 +68,7 @@ class TestSeriesDtypes(object):
         msg = 'Cannot convert non-finite values \\(NA or inf\\) to integer'
         s = Series([value])
 
-        with tm.assert_raises_regex(ValueError, msg):
+        with pytest.raises(ValueError, match=msg):
             s.astype(dtype)
 
     @pytest.mark.parametrize("dtype", [int, np.int8, np.int64])
@@ -85,7 +84,7 @@ class TestSeriesDtypes(object):
         tm.assert_series_equal(result, Series(np.arange(1, 5)))
 
     def test_astype_datetime(self):
-        s = Series(tslib.iNaT, dtype='M8[ns]', index=lrange(5))
+        s = Series(iNaT, dtype='M8[ns]', index=lrange(5))
 
         s = s.astype('O')
         assert s.dtype == np.object_
@@ -137,7 +136,7 @@ class TestSeriesDtypes(object):
                                                 tm.rands(1000)]),
                                         Series([string.digits * 10,
                                                 tm.rands(63),
-                                                tm.rands(64), nan, 1.0])])
+                                                tm.rands(64), np.nan, 1.0])])
     def test_astype_str_map(self, dtype, series):
         # see gh-4405
         result = series.astype(dtype)
@@ -405,7 +404,7 @@ class TestSeriesDtypes(object):
         s = Series(data)
 
         msg = "dtype has no unit. Please pass in"
-        with tm.assert_raises_regex(ValueError, msg):
+        with pytest.raises(ValueError, match=msg):
             s.astype(dtype)
 
     @pytest.mark.parametrize("dtype", np.typecodes['All'])

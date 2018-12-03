@@ -21,7 +21,7 @@ import pandas as pd
 # selection
 # --------------------------------
 
-class TestSelection():
+class TestSelection(object):
 
     def test_select_bad_cols(self):
         df = DataFrame([[1, 2]], columns=['A', 'B'])
@@ -29,7 +29,7 @@ class TestSelection():
         pytest.raises(KeyError, g.__getitem__, ['C'])  # g[['C']]
 
         pytest.raises(KeyError, g.__getitem__, ['A', 'C'])  # g[['A', 'C']]
-        with tm.assert_raises_regex(KeyError, '^[^A]+$'):
+        with pytest.raises(KeyError, match='^[^A]+$'):
             # A should not be referenced as a bad column...
             # will have to rethink regex if you change message!
             g[['A', 'C']]
@@ -506,17 +506,13 @@ class TestGrouping():
         # PR8618 and issue 8015
         frame = mframe
 
-        def j():
+        msg = "You have to supply one of 'by' and 'level'"
+        with pytest.raises(TypeError, match=msg):
             frame.groupby()
 
-        tm.assert_raises_regex(TypeError, "You have to supply one of "
-                               "'by' and 'level'", j)
-
-        def k():
+        msg = "You have to supply one of 'by' and 'level'"
+        with pytest.raises(TypeError, match=msg):
             frame.groupby(by=None, level=None)
-
-        tm.assert_raises_regex(TypeError, "You have to supply one of "
-                               "'by' and 'level'", k)
 
     @pytest.mark.parametrize('sort,labels', [
         [True, [2, 2, 2, 0, 0, 1, 1, 3, 3, 3]],
@@ -731,9 +727,7 @@ class TestIteration():
         df['k1'] = np.array(['b', 'b', 'b', 'a', 'a', 'a'])
         df['k2'] = np.array(['1', '1', '1', '2', '2', '2'])
         grouped = df.groupby(['k1', 'k2'])
-        groups = {}
-        for key, gp in grouped:
-            groups[key] = gp
+        groups = {key: gp for key, gp in grouped}
         assert len(groups) == 2
 
         # axis = 1

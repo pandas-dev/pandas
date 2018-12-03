@@ -248,14 +248,16 @@ class TestTimeSeries(TestData):
 
         s = pd.Series(['a', 'b', 'c', 'd', 'e'],
                       index=[5, 3, 2, 9, 0])
-        with tm.assert_raises_regex(ValueError,
-                                    'truncate requires a sorted index'):
+        msg = 'truncate requires a sorted index'
+
+        with pytest.raises(ValueError, match=msg):
             s.truncate(before=3, after=9)
 
         rng = pd.date_range('2011-01-01', '2012-01-01', freq='W')
         ts = pd.Series(np.random.randn(len(rng)), index=rng)
-        with tm.assert_raises_regex(ValueError,
-                                    'truncate requires a sorted index'):
+        msg = 'truncate requires a sorted index'
+
+        with pytest.raises(ValueError, match=msg):
             ts.sort_values(ascending=False).truncate(before='2011-11',
                                                      after='2011-12')
 
@@ -814,6 +816,17 @@ class TestTimeSeries(TestData):
 
         for time_string in strings:
             assert len(ts.between_time(*time_string)) == expected_length
+
+    def test_between_time_axis(self):
+        # issue 8839
+        rng = date_range('1/1/2000', periods=100, freq='10min')
+        ts = Series(np.random.randn(len(rng)), index=rng)
+        stime, etime = ('08:00:00', '09:00:00')
+        expected_length = 7
+
+        assert len(ts.between_time(stime, etime)) == expected_length
+        assert len(ts.between_time(stime, etime, axis=0)) == expected_length
+        pytest.raises(ValueError, ts.between_time, stime, etime, axis=1)
 
     def test_to_period(self):
         from pandas.core.indexes.period import period_range

@@ -148,15 +148,11 @@ class TestNumericArraylikeArithmeticWithTimedeltaLike(object):
         tm.assert_equal(commute, expected)
 
     def test_numeric_arr_rdiv_tdscalar(self, three_days, numeric_idx, box):
-        index = numeric_idx[1:3]
 
-        broken = (isinstance(three_days, np.timedelta64) and
-                  three_days.dtype != 'm8[ns]')
-        broken = broken or isinstance(three_days, pd.offsets.Tick)
-        if box is not pd.Index and broken:
-            # np.timedelta64(3, 'D') / 2 == np.timedelta64(1, 'D')
-            raise pytest.xfail("timedelta64 not converted to nanos; "
-                               "Tick division not implemented")
+        if box is not pd.Index and isinstance(three_days, pd.offsets.Tick):
+            raise pytest.xfail("Tick division not implemented")
+
+        index = numeric_idx[1:3]
 
         expected = TimedeltaIndex(['3 Days', '36 Hours'])
 
@@ -168,6 +164,26 @@ class TestNumericArraylikeArithmeticWithTimedeltaLike(object):
 
         with pytest.raises(TypeError):
             index / three_days
+
+    @pytest.mark.parametrize('other', [
+        pd.Timedelta(hours=31),
+        pd.Timedelta(hours=31).to_pytimedelta(),
+        pd.Timedelta(hours=31).to_timedelta64(),
+        pd.Timedelta(hours=31).to_timedelta64().astype('m8[h]'),
+        np.timedelta64('NaT'),
+        np.timedelta64('NaT', 'D'),
+        pd.offsets.Minute(3),
+        pd.offsets.Second(0)])
+    def test_add_sub_timedeltalike_invalid(self, numeric_idx, other, box):
+        left = tm.box_expected(numeric_idx, box)
+        with pytest.raises(TypeError):
+            left + other
+        with pytest.raises(TypeError):
+            other + left
+        with pytest.raises(TypeError):
+            left - other
+        with pytest.raises(TypeError):
+            other - left
 
 
 # ------------------------------------------------------------------
@@ -391,7 +407,7 @@ class TestMultiplicationDivision(object):
         pytest.param(pd.Index,
                      marks=pytest.mark.xfail(reason="Index.__div__ always "
                                                     "raises",
-                                             raises=TypeError, strict=True)),
+                                             raises=TypeError)),
         pd.Series,
         pd.DataFrame
     ], ids=lambda x: x.__name__)
@@ -580,6 +596,44 @@ class TestMultiplicationDivision(object):
                                check_names=False)
         tm.assert_series_equal(ts / ts, ts / df['A'],
                                check_names=False)
+
+    # TODO: this came from tests.series.test_analytics, needs cleannup and
+    #  de-duplication with test_modulo above
+    def test_modulo2(self):
+        with np.errstate(all='ignore'):
+
+            # GH#3590, modulo as ints
+            p = pd.DataFrame({'first': [3, 4, 5, 8], 'second': [0, 0, 0, 3]})
+            result = p['first'] % p['second']
+            expected = Series(p['first'].values % p['second'].values,
+                              dtype='float64')
+            expected.iloc[0:3] = np.nan
+            tm.assert_series_equal(result, expected)
+
+            result = p['first'] % 0
+            expected = Series(np.nan, index=p.index, name='first')
+            tm.assert_series_equal(result, expected)
+
+            p = p.astype('float64')
+            result = p['first'] % p['second']
+            expected = Series(p['first'].values % p['second'].values)
+            tm.assert_series_equal(result, expected)
+
+            p = p.astype('float64')
+            result = p['first'] % p['second']
+            result2 = p['second'] % p['first']
+            assert not result.equals(result2)
+
+            # GH#9144
+            s = Series([0, 1])
+
+            result = s % 0
+            expected = Series([np.nan, np.nan])
+            tm.assert_series_equal(result, expected)
+
+            result = 0 % s
+            expected = Series([np.nan, 0.0])
+            tm.assert_series_equal(result, expected)
 
 
 class TestAdditionSubtraction(object):
@@ -790,6 +844,17 @@ class TestAdditionSubtraction(object):
 
 
 class TestUFuncCompat(object):
+
+    @pytest.mark.parametrize('holder', [pd.Int64Index, pd.UInt64Index,
+                                        pd.Float64Index, pd.Series])
+    def test_ufunc_compat(self, holder):
+        box = pd.Series if holder is pd.Series else pd.Index
+
+        idx = holder(np.arange(5, dtype='int64'))
+        result = np.sin(idx)
+        expected = box(np.sin(np.arange(5, dtype='int64')))
+        tm.assert_equal(result, expected)
+
     @pytest.mark.parametrize('holder', [pd.Int64Index, pd.UInt64Index,
                                         pd.Float64Index, pd.Series])
     def test_ufunc_coercions(self, holder):

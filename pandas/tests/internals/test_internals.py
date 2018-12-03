@@ -1055,8 +1055,8 @@ class TestBlockPlacement(object):
 
     def test_unbounded_slice_raises(self):
         def assert_unbounded_slice_error(slc):
-            tm.assert_raises_regex(ValueError, "unbounded slice",
-                                   lambda: BlockPlacement(slc))
+            with pytest.raises(ValueError, match="unbounded slice"):
+                BlockPlacement(slc)
 
         assert_unbounded_slice_error(slice(None, None))
         assert_unbounded_slice_error(slice(10, None))
@@ -1243,12 +1243,11 @@ class TestCanHoldElement(object):
                    (operator.mul, '<M8[ns]'),
                    (operator.add, '<M8[ns]'),
                    (operator.pow, '<m8[ns]'),
-                   (operator.mod, '<m8[ns]'),
                    (operator.mul, '<m8[ns]')}
 
         if (op, dtype) in invalid:
             with pytest.raises(TypeError):
-                result = op(s, e.value)
+                op(s, e.value)
         else:
             # FIXME: Since dispatching to Series, this test no longer
             # asserts anything meaningful
@@ -1282,5 +1281,5 @@ def test_validate_ndim():
     placement = slice(2)
     msg = r"Wrong number of dimensions. values.ndim != ndim \[1 != 2\]"
 
-    with tm.assert_raises_regex(ValueError, msg):
+    with pytest.raises(ValueError, match=msg):
         make_block(values, placement, ndim=2)

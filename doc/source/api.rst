@@ -1671,6 +1671,7 @@ IntervalIndex Components
    IntervalIndex.length
    IntervalIndex.values
    IntervalIndex.is_non_overlapping_monotonic
+   IntervalIndex.is_overlapping
    IntervalIndex.get_loc
    IntervalIndex.get_indexer
    IntervalIndex.set_closed
@@ -1724,6 +1725,7 @@ MultiIndex Components
    MultiIndex.set_levels
    MultiIndex.set_labels
    MultiIndex.to_hierarchical
+   MultiIndex.to_flat_index
    MultiIndex.to_frame
    MultiIndex.is_lexsorted
    MultiIndex.sortlevel
@@ -2104,6 +2106,62 @@ Methods
     Timedelta.to_timedelta64
     Timedelta.total_seconds
 
+.. _api.dateoffsets:
+
+Date Offsets
+------------
+
+.. currentmodule:: pandas.tseries.offsets
+
+.. autosummary::
+   :toctree: generated/
+
+   DateOffset
+   BusinessDay
+   BusinessHour
+   CustomBusinessDay
+   CustomBusinessHour
+   MonthOffset
+   MonthEnd
+   MonthBegin
+   BusinessMonthEnd
+   BusinessMonthBegin
+   CustomBusinessMonthEnd
+   CustomBusinessMonthBegin
+   SemiMonthOffset
+   SemiMonthEnd
+   SemiMonthBegin
+   Week
+   WeekOfMonth
+   LastWeekOfMonth
+   QuarterOffset
+   BQuarterEnd
+   BQuarterBegin
+   QuarterEnd
+   QuarterBegin
+   YearOffset
+   BYearEnd
+   BYearBegin
+   YearEnd
+   YearBegin
+   FY5253
+   FY5253Quarter
+   Easter
+   Tick
+   Day
+   Hour
+   Minute
+   Second
+   Milli
+   Micro
+   Nano
+   BDay
+   BMonthEnd
+   BMonthBegin
+   CBMonthEnd
+   CBMonthBegin
+   CDay
+
 .. _api.frequencies:
 
 Frequencies
@@ -2425,6 +2483,7 @@ Style Application
    Styler.set_properties
    Styler.set_uuid
    Styler.clear
+   Styler.pipe
 
 Builtin Styles
 ~~~~~~~~~~~~~~

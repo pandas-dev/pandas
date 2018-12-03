@@ -1,57 +1,48 @@
 from __future__ import division
-# pylint: disable-msg=W0402
 
-import re
-import string
-import sys
-import tempfile
-import warnings
-import os
-import subprocess
-import locale
-import traceback
-
+from contextlib import contextmanager
 from datetime import datetime
 from functools import wraps
-from contextlib import contextmanager
+import locale
+import os
+import re
+from shutil import rmtree
+import string
+import subprocess
+import sys
+import tempfile
+import traceback
+import warnings
 
-from numpy.random import randn, rand
 import numpy as np
-
-import pandas as pd
-from pandas.core.arrays import (
-    ExtensionArray,
-    IntervalArray,
-    PeriodArray,
-)
-from pandas.core.dtypes.missing import array_equivalent
-from pandas.core.dtypes.common import (
-    is_datetimelike_v_numeric,
-    is_datetimelike_v_object,
-    is_number, is_bool,
-    needs_i8_conversion,
-    is_categorical_dtype,
-    is_interval_dtype,
-    is_sequence,
-    is_list_like,
-    is_extension_array_dtype)
-from pandas.io.formats.printing import pprint_thing
-from pandas.core.algorithms import take_1d
-import pandas.core.common as com
-
-import pandas.compat as compat
-from pandas.compat import (
-    filter, map, zip, range, unichr, lrange, lmap, lzip, u, callable, Counter,
-    raise_with_traceback, httplib, StringIO, string_types, PY3, PY2)
-
-from pandas import (bdate_range, CategoricalIndex, Categorical, IntervalIndex,
-                    DatetimeIndex, TimedeltaIndex, PeriodIndex, RangeIndex,
-                    Index, MultiIndex,
-                    Series, DataFrame, Panel)
+from numpy.random import rand, randn
 
 from pandas._libs import testing as _testing
-from pandas.io.common import urlopen
+import pandas.compat as compat
+from pandas.compat import (
+    PY2, PY3, Counter, StringIO, callable, filter, httplib, lmap, lrange, lzip,
+    map, raise_with_traceback, range, string_types, u, unichr, zip)
 
+from pandas.core.dtypes.common import (
+    is_bool, is_categorical_dtype, is_datetime64_dtype, is_datetime64tz_dtype,
+    is_datetimelike_v_numeric, is_datetimelike_v_object,
+    is_extension_array_dtype, is_interval_dtype, is_list_like, is_number,
+    is_period_dtype, is_sequence, is_timedelta64_dtype, needs_i8_conversion)
+from pandas.core.dtypes.missing import array_equivalent
+
+import pandas as pd
+from pandas import (
+    Categorical, CategoricalIndex, DataFrame, DatetimeIndex, Index,
+    IntervalIndex, MultiIndex, Panel, PeriodIndex, RangeIndex, Series,
+    bdate_range)
+from pandas.core.algorithms import take_1d
+from pandas.core.arrays import (
+    DatetimeArrayMixin as DatetimeArray, ExtensionArray, IntervalArray,
+    PeriodArray, TimedeltaArrayMixin as TimedeltaArray, period_array)
+import pandas.core.common as com
+
+from pandas.io.common import urlopen
+from pandas.io.formats.printing import pprint_thing
 
 N = 30
 K = 4
@@ -634,7 +625,7 @@ def capture_stdout(f):
     AssertionError: assert 'foo\n' == 'bar\n'
     """
 
-    @wraps(f)
+    @compat.wraps(f)
     def wrapper(*args, **kwargs):
         try:
             sys.stdout = StringIO()
@@ -770,6 +761,25 @@ def ensure_clean(filename=None, return_filelike=False):
                     os.remove(filename)
             except Exception as e:
                 print("Exception on removing file: {error}".format(error=e))
+
+
+@contextmanager
+def ensure_clean_dir():
+    """
+    Get a temporary directory path and agrees to remove on close.
+
+    Yields
+    ------
+    Temporary directory path
+    """
+    directory_name = tempfile.mkdtemp(suffix='')
+    try:
+        yield directory_name
+    finally:
+        try:
+            rmtree(directory_name)
+        except Exception:
+            pass
 
 
 # -----------------------------------------------------------------------------
@@ -1062,6 +1072,22 @@ def assert_period_array_equal(left, right, obj='PeriodArray'):
     assert_attr_equal('freq', left, right, obj=obj)
 
 
+def assert_datetime_array_equal(left, right, obj='DatetimeArray'):
+    _check_isinstance(left, right, DatetimeArray)
+
+    assert_numpy_array_equal(left._data, right._data,
+                             obj='{obj}._data'.format(obj=obj))
+    assert_attr_equal('freq', left, right, obj=obj)
+    assert_attr_equal('tz', left, right, obj=obj)
+
+
+def assert_timedelta_array_equal(left, right, obj='TimedeltaArray'):
+    _check_isinstance(left, right, TimedeltaArray)
+    assert_numpy_array_equal(left._data, right._data,
+                             obj='{obj}._data'.format(obj=obj))
+    assert_attr_equal('freq', left, right, obj=obj)
+
+
 def raise_assert_detail(obj, message, left, right, diff=None):
     __tracebackhide__ = True
 
@@ -1171,13 +1197,23 @@ def assert_numpy_array_equal(left, right, strict_nan=False,
     return True
 
 
-def assert_extension_array_equal(left, right):
+def assert_extension_array_equal(left, right, check_dtype=True,
+                                 check_less_precise=False,
+                                 check_exact=False):
     """Check that left and right ExtensionArrays are equal.
 
     Parameters
     ----------
     left, right : ExtensionArray
         The two arrays to compare
+    check_dtype : bool, default True
+        Whether to check if the ExtensionArray dtypes are identical.
+    check_less_precise : bool or int, default False
+        Specify comparison precision. Only used when check_exact is False.
+        5 digits (False) or 3 digits (True) after decimal points are compared.
+        If int, then specify the digits to compare.
+    check_exact : bool, default False
+        Whether to compare number exactly.
 
     Notes
     -----
@@ -1185,17 +1221,24 @@ def assert_extension_array_equal(left, right):
     A mask of missing values is computed for each and checked to match.
     The remaining all-valid values are cast to object dtype and checked.
     """
-    assert isinstance(left, ExtensionArray)
-    assert left.dtype == right.dtype
+    assert isinstance(left, ExtensionArray), 'left is not an ExtensionArray'
+    assert isinstance(right, ExtensionArray), 'right is not an ExtensionArray'
+    if check_dtype:
+        assert_attr_equal('dtype', left, right, obj='ExtensionArray')
+
     left_na = np.asarray(left.isna())
     right_na = np.asarray(right.isna())
-
-    assert_numpy_array_equal(left_na, right_na)
+    assert_numpy_array_equal(left_na, right_na, obj='ExtensionArray NA mask')
 
     left_valid = np.asarray(left[~left_na].astype(object))
     right_valid = np.asarray(right[~right_na].astype(object))
-
-    assert_numpy_array_equal(left_valid, right_valid)
+    if check_exact:
+        assert_numpy_array_equal(left_valid, right_valid, obj='ExtensionArray')
+    else:
+        _testing.assert_almost_equal(left_valid, right_valid,
+                                     check_dtype=check_dtype,
+                                     check_less_precise=check_less_precise,
+                                     obj='ExtensionArray')
 
 
 # This could be refactored to use the NDFrame.equals method
@@ -1224,18 +1267,18 @@ def assert_series_equal(left, right, check_dtype=True,
     check_less_precise : bool or int, default False
         Specify comparison precision. Only used when check_exact is False.
         5 digits (False) or 3 digits (True) after decimal points are compared.
-        If int, then specify the digits to compare
-    check_exact : bool, default False
-        Whether to compare number exactly.
+        If int, then specify the digits to compare.
     check_names : bool, default True
         Whether to check the Series and Index names attribute.
+    check_exact : bool, default False
+        Whether to compare number exactly.
     check_datetimelike_compat : bool, default False
         Compare datetime-like which is comparable ignoring dtype.
     check_categorical : bool, default True
         Whether to compare internal Categorical exactly.
     obj : str, default 'Series'
         Specify object name being compared, internally used to show appropriate
-        assertion message
+        assertion message.
     """
     __tracebackhide__ = True
 
@@ -1559,6 +1602,10 @@ def assert_equal(left, right, **kwargs):
         assert_interval_array_equal(left, right, **kwargs)
     elif isinstance(left, PeriodArray):
         assert_period_array_equal(left, right, **kwargs)
+    elif isinstance(left, DatetimeArray):
+        assert_datetime_array_equal(left, right, **kwargs)
+    elif isinstance(left, TimedeltaArray):
+        assert_timedelta_array_equal(left, right, **kwargs)
     elif isinstance(left, ExtensionArray):
         assert_extension_array_equal(left, right, **kwargs)
     elif isinstance(left, np.ndarray):
@@ -1567,7 +1614,7 @@ def assert_equal(left, right, **kwargs):
         raise NotImplementedError(type(left))
 
 
-def box_expected(expected, box_cls):
+def box_expected(expected, box_cls, transpose=True):
     """
     Helper function to wrap the expected output of a test in a given box_class.
 
@@ -1586,11 +1633,37 @@ def box_expected(expected, box_cls):
         expected = pd.Series(expected)
     elif box_cls is pd.DataFrame:
         expected = pd.Series(expected).to_frame()
+        if transpose:
+            # for vector operations, we we need a DataFrame to be a single-row,
+            #  not a single-column, in order to operate against non-DataFrame
+            #  vectors of the same length.
+            expected = expected.T
+    elif box_cls is PeriodArray:
+        # the PeriodArray constructor is not as flexible as period_array
+        expected = period_array(expected)
+    elif box_cls is DatetimeArray:
+        expected = DatetimeArray(expected)
+    elif box_cls is TimedeltaArray:
+        expected = TimedeltaArray(expected)
     elif box_cls is np.ndarray:
         expected = np.array(expected)
+    elif box_cls is to_array:
+        expected = to_array(expected)
     else:
         raise NotImplementedError(box_cls)
     return expected
+
+
+def to_array(obj):
+    # temporary implementation until we get pd.array in place
+    if is_period_dtype(obj):
+        return period_array(obj)
+    elif is_datetime64_dtype(obj) or is_datetime64tz_dtype(obj):
+        return DatetimeArray(obj)
+    elif is_timedelta64_dtype(obj):
+        return TimedeltaArray(obj)
+    else:
+        return np.array(obj)
 
 
 # -----------------------------------------------------------------------------
@@ -1865,8 +1938,8 @@ def makeDateIndex(k=10, freq='B', name=None, **kwargs):
 
 
 def makeTimedeltaIndex(k=10, freq='D', name=None, **kwargs):
-    return TimedeltaIndex(start='1 day', periods=k, freq=freq,
-                          name=name, **kwargs)
+    return pd.timedelta_range(start='1 day', periods=k, freq=freq,
+                              name=name, **kwargs)
 
 
 def makePeriodIndex(k=10, name=None, **kwargs):
@@ -2516,6 +2589,9 @@ def assert_raises_regex(_exception, _regexp, _callable=None,
     for use by `re.search()`. This is a port of the `assertRaisesRegexp`
     function from unittest in Python 2.7.
 
+    .. deprecated:: 0.24.0
+        Use `pytest.raises` instead.
+
     Examples
     --------
     >>> assert_raises_regex(ValueError, 'invalid literal for.*XYZ', int, 'XYZ')
@@ -2545,6 +2621,10 @@ def assert_raises_regex(_exception, _regexp, _callable=None,
     AssertionError: "banana" does not match "'str' object does not support \
 item assignment"
     """
+    warnings.warn(("assert_raises_regex has been deprecated and will "
+                   "be removed in the next release. Please use "
+                   "`pytest.raises` instead."), FutureWarning, stacklevel=2)
+
     manager = _AssertRaisesContextmanager(exception=_exception, regexp=_regexp)
     if _callable is not None:
         with manager:
@@ -2770,6 +2850,37 @@ class RNGContext(object):
     def __exit__(self, exc_type, exc_value, traceback):
 
         np.random.set_state(self.start_state)
+
+
+@contextmanager
+def with_csv_dialect(name, **kwargs):
+    """
+    Context manager to temporarily register a CSV dialect for parsing CSV.
+
+    Parameters
+    ----------
+    name : str
+        The name of the dialect.
+    kwargs : mapping
+        The parameters for the dialect.
+
+    Raises
+    ------
+    ValueError : the name of the dialect conflicts with a builtin one.
+
+    See Also
+    --------
+    csv : Python's CSV library.
+    """
+    import csv
+    _BUILTIN_DIALECTS = {"excel", "excel-tab", "unix"}
+
+    if name in _BUILTIN_DIALECTS:
+        raise ValueError("Cannot override builtin dialect.")
+
+    csv.register_dialect(name, **kwargs)
+    yield
+    csv.unregister_dialect(name)
 
 
 @contextmanager

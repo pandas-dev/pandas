@@ -47,9 +47,7 @@ class DatetimeLike(Base):
         if hasattr(idx, 'freq'):
             assert "freq='%s'" % idx.freqstr in str(idx)
 
-    def test_view(self, indices):
-        super(DatetimeLike, self).test_view(indices)
-
+    def test_view(self):
         i = self.create_index()
 
         i_view = i.view('i8')
@@ -61,9 +59,8 @@ class DatetimeLike(Base):
         tm.assert_index_equal(result, i_view)
 
     def test_map_callable(self):
-
-        expected = self.index + 1
-        result = self.index.map(lambda x: x + 1)
+        expected = self.index + self.index.freq
+        result = self.index.map(lambda x: x + x.freq)
         tm.assert_index_equal(result, expected)
 
         # map to NaT
@@ -77,7 +74,7 @@ class DatetimeLike(Base):
             lambda values, index: {i: e for e, i in zip(values, index)},
             lambda values, index: pd.Series(values, index)])
     def test_map_dictlike(self, mapper):
-        expected = self.index + 1
+        expected = self.index + self.index.freq
 
         # don't compare the freqs
         if isinstance(expected, pd.DatetimeIndex):

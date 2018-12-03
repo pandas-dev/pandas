@@ -80,7 +80,7 @@ class TestSeriesAlterAxes(object):
         s = Series(range(5))
         s.rename({}, axis=0)
         s.rename({}, axis='index')
-        with tm.assert_raises_regex(ValueError, 'No axis named 5'):
+        with pytest.raises(ValueError, match='No axis named 5'):
             s.rename({}, axis=5)
 
     def test_set_name_attribute(self):
@@ -169,7 +169,7 @@ class TestSeriesAlterAxes(object):
                                                           drop=True)
             tm.assert_frame_equal(result, df[['C']])
 
-            with tm.assert_raises_regex(KeyError, 'Level E '):
+            with pytest.raises(KeyError, match='Level E '):
                 s.reset_index(level=['A', 'E'])
 
             # With single-level Index
@@ -184,7 +184,7 @@ class TestSeriesAlterAxes(object):
             result = s.reset_index(level=levels[0], drop=True)
             tm.assert_series_equal(result, df['B'])
 
-            with tm.assert_raises_regex(IndexError, 'Too many levels'):
+            with pytest.raises(IndexError, match='Too many levels'):
                 s.reset_index(level=[0, 1, 2])
 
         # Check that .reset_index([],drop=True) doesn't fail
@@ -225,6 +225,24 @@ class TestSeriesAlterAxes(object):
                            names=['L1', 'L2', 'L0'])
         expected = Series(np.arange(6), index=e_idx)
         tm.assert_series_equal(result, expected)
+
+    def test_rename_axis_mapper(self):
+        # GH 19978
+        mi = MultiIndex.from_product([['a', 'b', 'c'], [1, 2]],
+                                     names=['ll', 'nn'])
+        s = Series([i for i in range(len(mi))], index=mi)
+
+        result = s.rename_axis(index={'ll': 'foo'})
+        assert result.index.names == ['foo', 'nn']
+
+        result = s.rename_axis(index=str.upper, axis=0)
+        assert result.index.names == ['LL', 'NN']
+
+        result = s.rename_axis(index=['foo', 'goo'])
+        assert result.index.names == ['foo', 'goo']
+
+        with pytest.raises(TypeError, match='unexpected'):
+            s.rename_axis(columns='wrong')
 
     def test_rename_axis_inplace(self, datetime_series):
         # GH 15704
@@ -271,7 +289,7 @@ class TestSeriesAlterAxes(object):
 
         # wrong values for the "axis" parameter
         for axis in [2, 'foo']:
-            with tm.assert_raises_regex(ValueError, 'No axis named'):
+            with pytest.raises(ValueError, match='No axis named'):
                 s.set_axis(list('abcd'), axis=axis, inplace=False)
 
     def test_set_axis_prior_to_deprecation_signature(self):
@@ -290,14 +308,14 @@ class TestSeriesAlterAxes(object):
 
         # KeyError raised for series index when passed level name is missing
         s = Series(range(4))
-        with tm.assert_raises_regex(KeyError, 'must be same as name'):
+        with pytest.raises(KeyError, match='must be same as name'):
             s.reset_index('wrong', drop=True)
-        with tm.assert_raises_regex(KeyError, 'must be same as name'):
+        with pytest.raises(KeyError, match='must be same as name'):
             s.reset_index('wrong')
 
         # KeyError raised for series when level to be dropped is missing
         s = Series(range(4), index=MultiIndex.from_product([[1, 2]] * 2))
-        with tm.assert_raises_regex(KeyError, 'not found'):
+        with pytest.raises(KeyError, match='not found'):
             s.reset_index('wrong', drop=True)
 
     def test_droplevel(self):

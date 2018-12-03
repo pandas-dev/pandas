@@ -1,74 +1,45 @@
 # -*- coding: utf-8 -*-
-import warnings
+from datetime import date, datetime, timedelta
+import functools
 import inspect
 import re
-from datetime import datetime, timedelta, date
+import warnings
 
 import numpy as np
 
-from pandas._libs import lib, tslib, tslibs, internals as libinternals
-from pandas._libs.tslibs import conversion, Timedelta
-
-from pandas import compat
+from pandas._libs import internals as libinternals, lib, tslib, tslibs
+from pandas._libs.tslibs import Timedelta, conversion
+import pandas.compat as compat
 from pandas.compat import range, zip
-
 from pandas.util._validators import validate_bool_kwarg
 
-from pandas.core.dtypes.dtypes import (
-    ExtensionDtype, DatetimeTZDtype,
-    PandasExtensionDtype,
-    CategoricalDtype)
-from pandas.core.dtypes.common import (
-    _TD_DTYPE, _NS_DTYPE,
-    ensure_platform_int,
-    is_integer,
-    is_dtype_equal,
-    is_timedelta64_dtype,
-    is_datetime64_dtype, is_datetimetz,
-    is_categorical, is_categorical_dtype,
-    is_integer_dtype,
-    is_datetime64tz_dtype,
-    is_bool_dtype,
-    is_object_dtype,
-    is_float_dtype,
-    is_numeric_v_string_like, is_extension_type,
-    is_extension_array_dtype,
-    is_list_like,
-    is_re,
-    is_re_compilable,
-    pandas_dtype)
 from pandas.core.dtypes.cast import (
-    maybe_downcast_to_dtype,
-    maybe_upcast,
-    maybe_promote,
-    infer_dtype_from,
-    infer_dtype_from_scalar,
-    soft_convert_objects,
-    maybe_convert_objects,
-    astype_nansafe,
-    find_common_type,
-    maybe_infer_dtype_type)
-from pandas.core.dtypes.missing import (
-    isna, notna, array_equivalent,
-    _isna_compat,
-    is_null_datelike_scalar)
+    astype_nansafe, find_common_type, infer_dtype_from,
+    infer_dtype_from_scalar, maybe_convert_objects, maybe_downcast_to_dtype,
+    maybe_infer_dtype_type, maybe_promote, maybe_upcast, soft_convert_objects)
+from pandas.core.dtypes.common import (
+    _NS_DTYPE, _TD_DTYPE, ensure_platform_int, is_bool_dtype, is_categorical,
+    is_categorical_dtype, is_datetime64_dtype, is_datetime64tz_dtype,
+    is_dtype_equal, is_extension_array_dtype, is_extension_type,
+    is_float_dtype, is_integer, is_integer_dtype, is_list_like,
+    is_numeric_v_string_like, is_object_dtype, is_re, is_re_compilable,
+    is_sparse, is_timedelta64_dtype, pandas_dtype)
 import pandas.core.dtypes.concat as _concat
+from pandas.core.dtypes.dtypes import (
+    CategoricalDtype, DatetimeTZDtype, ExtensionDtype, PandasExtensionDtype)
 from pandas.core.dtypes.generic import (
-    ABCSeries,
-    ABCDatetimeIndex,
-    ABCExtensionArray,
-    ABCIndexClass)
+    ABCDatetimeIndex, ABCExtensionArray, ABCIndexClass, ABCSeries)
+from pandas.core.dtypes.missing import (
+    _isna_compat, array_equivalent, is_null_datelike_scalar, isna, notna)
 
-import pandas.core.common as com
 import pandas.core.algorithms as algos
-import pandas.core.missing as missing
-from pandas.core.base import PandasObject
-
 from pandas.core.arrays import Categorical
-
+from pandas.core.base import PandasObject
+import pandas.core.common as com
 from pandas.core.indexes.datetimes import DatetimeIndex
 from pandas.core.indexes.timedeltas import TimedeltaIndex
 from pandas.core.indexing import check_setitem_lengths
+import pandas.core.missing as missing
 
 from pandas.io.formats.printing import pprint_thing
 
@@ -632,7 +603,10 @@ class Block(PandasObject):
             return self
 
         if klass is None:
-            if dtype == np.object_:
+            if is_sparse(self.values):
+                # special case sparse, Series[Sparse].astype(object) is sparse
+                klass = ExtensionBlock
+            elif is_object_dtype(dtype):
                 klass = ObjectBlock
             elif is_extension_array_dtype(dtype):
                 klass = ExtensionBlock
@@ -1429,7 +1403,7 @@ class Block(PandasObject):
             return False
         return array_equivalent(self.values, other.values)
 
-    def _unstack(self, unstacker_func, new_columns):
+    def _unstack(self, unstacker_func, new_columns, n_rows, fill_value):
         """Return a list of unstacked blocks of self
 
         Parameters
@@ -1438,6 +1412,10 @@ class Block(PandasObject):
             Partially applied unstacker.
         new_columns : Index
             All columns of the unstacked BlockManager.
+        n_rows : int
+            Only used in ExtensionBlock.unstack
+        fill_value : int
+            Only used in ExtensionBlock.unstack
 
         Returns
         -------
@@ -1480,11 +1458,6 @@ class Block(PandasObject):
 
         def _nanpercentile1D(values, mask, q, **kw):
             # mask is Union[ExtensionArray, ndarray]
-            # we convert to an ndarray for NumPy 1.9 compat, which didn't
-            # treat boolean-like arrays as boolean. This conversion would have
-            # been done inside ndarray.__getitem__ anyway, since values is
-            # an ndarray at this point.
-            mask = np.asarray(mask)
             values = values[~mask]
 
             if len(values) == 0:
@@ -1731,7 +1704,7 @@ class NonConsolidatableMixIn(object):
     def _try_cast_result(self, result, dtype=None):
         return result
 
-    def _unstack(self, unstacker_func, new_columns):
+    def _unstack(self, unstacker_func, new_columns, n_rows, fill_value):
         """Return a list of unstacked blocks of self
 
         Parameters
@@ -1740,6 +1713,10 @@ class NonConsolidatableMixIn(object):
             Partially applied unstacker.
         new_columns : Index
             All columns of the unstacked BlockManager.
+        n_rows : int
+            Only used in ExtensionBlock.unstack
+        fill_value : int
+            Only used in ExtensionBlock.unstack
 
         Returns
         -------
@@ -1751,17 +1728,49 @@ class NonConsolidatableMixIn(object):
         # NonConsolidatable blocks can have a single item only, so we return
         # one block per item
         unstacker = unstacker_func(self.values.T)
-        new_items = unstacker.get_new_columns()
-        new_placement = new_columns.get_indexer(new_items)
-        new_values, mask = unstacker.get_new_values()
 
-        mask = mask.any(0)
+        new_placement, new_values, mask = self._get_unstack_items(
+            unstacker, new_columns
+        )
+
         new_values = new_values.T[mask]
         new_placement = new_placement[mask]
 
         blocks = [self.make_block_same_class(vals, [place])
                   for vals, place in zip(new_values, new_placement)]
         return blocks, mask
+
+    def _get_unstack_items(self, unstacker, new_columns):
+        """
+        Get the placement, values, and mask for a Block unstack.
+
+        This is shared between ObjectBlock and ExtensionBlock. They
+        differ in that ObjectBlock passes the values, while ExtensionBlock
+        passes the dummy ndarray of positions to be used by a take
+        later.
+
+        Parameters
+        ----------
+        unstacker : pandas.core.reshape.reshape._Unstacker
+        new_columns : Index
+            All columns of the unstacked BlockManager.
+
+        Returns
+        -------
+        new_placement : ndarray[int]
+            The placement of the new columns in `new_columns`.
+        new_values : Union[ndarray, ExtensionArray]
+            The first return value from _Unstacker.get_new_values.
+        mask : ndarray[bool]
+            The second return value from _Unstacker.get_new_values.
+        """
+        # shared with ExtensionBlock
+        new_items = unstacker.get_new_columns()
+        new_placement = new_columns.get_indexer(new_items)
+        new_values, mask = unstacker.get_new_values()
+
+        mask = mask.any(0)
+        return new_placement, new_values, mask
 
 
 class ExtensionBlock(NonConsolidatableMixIn, Block):
@@ -1950,6 +1959,30 @@ class ExtensionBlock(NonConsolidatableMixIn, Block):
     def _ftype(self):
         return getattr(self.values, '_pandas_ftype', Block._ftype)
 
+    def _unstack(self, unstacker_func, new_columns, n_rows, fill_value):
+        # ExtensionArray-safe unstack.
+        # We override ObjectBlock._unstack, which unstacks directly on the
+        # values of the array. For EA-backed blocks, this would require
+        # converting to a 2-D ndarray of objects.
+        # Instead, we unstack an ndarray of integer positions, followed by
+        # a `take` on the actual values.
+        dummy_arr = np.arange(n_rows)
+        dummy_unstacker = functools.partial(unstacker_func, fill_value=-1)
+        unstacker = dummy_unstacker(dummy_arr)
+
+        new_placement, new_values, mask = self._get_unstack_items(
+            unstacker, new_columns
+        )
+
+        blocks = [
+            self.make_block_same_class(
+                self.values.take(indices, allow_fill=True,
+                                 fill_value=fill_value),
+                [place])
+            for indices, place in zip(new_values.T, new_placement)
+        ]
+        return blocks, mask
+
 
 class NumericBlock(Block):
     __slots__ = ()
@@ -2104,9 +2137,9 @@ class TimeDeltaBlock(DatetimeLikeBlockMixin, IntBlock):
     def _can_hold_element(self, element):
         tipo = maybe_infer_dtype_type(element)
         if tipo is not None:
-            return issubclass(tipo.type, np.timedelta64)
+            return issubclass(tipo.type, (np.timedelta64, np.int64))
         return is_integer(element) or isinstance(
-            element, (timedelta, np.timedelta64))
+            element, (timedelta, np.timedelta64, np.int64))
 
     def fillna(self, value, **kwargs):
 
@@ -2262,10 +2295,7 @@ class ObjectBlock(Block):
                          'convert_timedeltas']
         fn_inputs += ['copy']
 
-        fn_kwargs = {}
-        for key in fn_inputs:
-            if key in kwargs:
-                fn_kwargs[key] = kwargs[key]
+        fn_kwargs = {key: kwargs[key] for key in fn_inputs if key in kwargs}
 
         # operate column-by-column
         def f(m, v, i):
@@ -2732,7 +2762,7 @@ class DatetimeBlock(DatetimeLikeBlockMixin, Block):
 
     def should_store(self, value):
         return (issubclass(value.dtype.type, np.datetime64) and
-                not is_datetimetz(value) and
+                not is_datetime64tz_dtype(value) and
                 not is_extension_array_dtype(value))
 
     def set(self, locs, values, check=False):
@@ -2743,9 +2773,7 @@ class DatetimeBlock(DatetimeLikeBlockMixin, Block):
         -------
         None
         """
-        if values.dtype != _NS_DTYPE:
-            # Workaround for numpy 1.6 bug
-            values = conversion.ensure_datetime64ns(values)
+        values = conversion.ensure_datetime64ns(values, copy=False)
 
         self.values[locs] = values
 
@@ -2986,9 +3014,9 @@ def get_block_type(values, dtype=None):
     elif issubclass(vtype, np.complexfloating):
         cls = ComplexBlock
     elif issubclass(vtype, np.datetime64):
-        assert not is_datetimetz(values)
+        assert not is_datetime64tz_dtype(values)
         cls = DatetimeBlock
-    elif is_datetimetz(values):
+    elif is_datetime64tz_dtype(values):
         cls = DatetimeTZBlock
     elif issubclass(vtype, np.integer):
         cls = IntBlock
@@ -3009,7 +3037,7 @@ def make_block(values, placement, klass=None, ndim=None, dtype=None,
         dtype = dtype or values.dtype
         klass = get_block_type(values, dtype)
 
-    elif klass is DatetimeTZBlock and not is_datetimetz(values):
+    elif klass is DatetimeTZBlock and not is_datetime64tz_dtype(values):
         return klass(values, ndim=ndim,
                      placement=placement, dtype=dtype)
 
@@ -3064,7 +3092,7 @@ def _merge_blocks(blocks, dtype=None, _can_consolidate=True):
         # FIXME: optimization potential in case all mgrs contain slices and
         # combination of those slices is a slice, too.
         new_mgr_locs = np.concatenate([b.mgr_locs.as_array for b in blocks])
-        new_values = _vstack([b.values for b in blocks], dtype)
+        new_values = np.vstack([b.values for b in blocks])
 
         argsort = np.argsort(new_mgr_locs)
         new_values = new_values[argsort]
@@ -3074,17 +3102,6 @@ def _merge_blocks(blocks, dtype=None, _can_consolidate=True):
 
     # no merge
     return blocks
-
-
-def _vstack(to_stack, dtype):
-
-    # work around NumPy 1.6 bug
-    if dtype == _NS_DTYPE or dtype == _TD_DTYPE:
-        new_values = np.vstack([x.view('i8') for x in to_stack])
-        return new_values.view(dtype)
-
-    else:
-        return np.vstack(to_stack)
 
 
 def _block2d_to_blocknd(values, placement, shape, labels, ref_items):

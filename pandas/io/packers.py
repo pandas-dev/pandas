@@ -127,7 +127,7 @@ def to_msgpack(path_or_buf, *args, **kwargs):
     path_or_buf : string File path, buffer-like, or None
                   if None, return generated string
     args : an object or objects to serialize
-    encoding: encoding for unicode objects
+    encoding : encoding for unicode objects
     append : boolean whether to append to an existing msgpack
              (default is False)
     compress : type of compressor (zlib or blosc), default to None (no
@@ -170,14 +170,13 @@ def read_msgpack(path_or_buf, encoding='utf-8', iterator=False, **kwargs):
     Parameters
     ----------
     path_or_buf : string File path, BytesIO like or string
-    encoding: Encoding for decoding msgpack str type
+    encoding : Encoding for decoding msgpack str type
     iterator : boolean, if True, return an iterator to the unpacker
                (default is False)
 
     Returns
     -------
     obj : same type as object stored in file
-
     """
     path_or_buf, _, _, should_close = get_filepath_or_buffer(path_or_buf)
     if iterator:
@@ -251,7 +250,7 @@ c2f_dict = {'complex': np.float64,
             'complex128': np.float64,
             'complex64': np.float32}
 
-# numpy 1.6.1 compat
+# windows (32 bit) compat
 if hasattr(np, 'float128'):
     c2f_dict['complex256'] = np.float128
 
@@ -605,8 +604,8 @@ def decode(obj):
 
     elif typ == u'datetime_index':
         data = unconvert(obj[u'data'], np.int64, obj.get(u'compress'))
-        d = dict(name=obj[u'name'], freq=obj[u'freq'], verify_integrity=False)
-        result = globals()[obj[u'klass']](data, **d)
+        d = dict(name=obj[u'name'], freq=obj[u'freq'])
+        result = DatetimeIndex._simple_new(data, **d)
         tz = obj[u'tz']
 
         # reverse tz conversion

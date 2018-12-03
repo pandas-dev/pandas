@@ -8,7 +8,7 @@ from decimal import Decimal
 
 from pandas import (date_range, Timestamp,
                     Index, MultiIndex, DataFrame, Series,
-                    Panel, DatetimeIndex, read_csv)
+                    Panel, read_csv)
 from pandas.errors import PerformanceWarning
 from pandas.util.testing import (assert_frame_equal,
                                  assert_series_equal, assert_almost_equal)
@@ -348,9 +348,7 @@ def test_attr_wrapper(ts):
 
     # this is pretty cool
     result = grouped.describe()
-    expected = {}
-    for name, gp in grouped:
-        expected[name] = gp.describe()
+    expected = {name: gp.describe() for name, gp in grouped}
     expected = DataFrame(expected).T
     assert_frame_equal(result, expected)
 
@@ -629,7 +627,7 @@ def test_as_index_series_column_slice_raises(df):
     grouped = df.groupby('A', as_index=False)
     msg = r"Column\(s\) C already selected"
 
-    with tm.assert_raises_regex(IndexError, msg):
+    with pytest.raises(IndexError, match=msg):
         grouped['C'].__getitem__('D')
 
 
@@ -1312,9 +1310,7 @@ def test_skip_group_keys():
     grouped = tsf.groupby(lambda x: x.month, group_keys=False)
     result = grouped.apply(lambda x: x.sort_values(by='A')[:3])
 
-    pieces = []
-    for key, group in grouped:
-        pieces.append(group.sort_values(by='A')[:3])
+    pieces = [group.sort_values(by='A')[:3] for key, group in grouped]
 
     expected = pd.concat(pieces)
     assert_frame_equal(result, expected)
@@ -1322,9 +1318,7 @@ def test_skip_group_keys():
     grouped = tsf['A'].groupby(lambda x: x.month, group_keys=False)
     result = grouped.apply(lambda x: x.sort_values()[:3])
 
-    pieces = []
-    for key, group in grouped:
-        pieces.append(group.sort_values()[:3])
+    pieces = [group.sort_values()[:3] for key, group in grouped]
 
     expected = pd.concat(pieces)
     assert_series_equal(result, expected)
@@ -1438,7 +1432,7 @@ def test_groupby_sort_multiindex_series():
 def test_groupby_reindex_inside_function():
 
     periods = 1000
-    ind = DatetimeIndex(start='2012/1/1', freq='5min', periods=periods)
+    ind = date_range(start='2012/1/1', freq='5min', periods=periods)
     df = DataFrame({'high': np.arange(
         periods), 'low': np.arange(periods)}, index=ind)
 
@@ -1679,7 +1673,7 @@ def test_tuple_correct_keyerror():
     df = pd.DataFrame(1, index=range(3),
                       columns=pd.MultiIndex.from_product([[1, 2],
                                                           [3, 4]]))
-    with tm.assert_raises_regex(KeyError, "(7, 8)"):
+    with pytest.raises(KeyError, match="(7, 8)"):
         df.groupby((7, 8)).mean()
 
 
