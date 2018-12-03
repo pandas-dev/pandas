@@ -128,7 +128,8 @@ class TestSeriesAlterAxes(object):
         # check inplace
         s = ser.reset_index(drop=True)
         s2 = ser
-        s2.reset_index(drop=True, inplace=True)
+        with tm.assert_produces_warning(FutureWarning):
+            s2.reset_index(drop=True, inplace=True)
         tm.assert_series_equal(s, s2)
 
         # level

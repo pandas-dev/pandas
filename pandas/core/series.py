@@ -1136,7 +1136,11 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
             values. Uses ``self.name`` by default. This argument is ignored
             when `drop` is True.
         inplace : bool, default False
-            Modify the Series in place (do not create a new object).
+            Update the caller instead of returning a new object.
+
+            .. deprecated:: 0.24.0
+                Use ``s = s.reset_index()`` instead of
+                ``s.reset_index(inplace=True)``
 
         Returns
         -------
@@ -1183,17 +1187,6 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         3    4
         Name: foo, dtype: int64
 
-        To update the Series in place, without generating a new one
-        set `inplace` to True. Note that it also requires ``drop=True``.
-
-        >>> s.reset_index(inplace=True, drop=True)
-        >>> s
-        0    1
-        1    2
-        2    3
-        3    4
-        Name: foo, dtype: int64
-
         The `level` parameter is interesting for Series with a multi-level
         index.
 
@@ -1223,6 +1216,11 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         2  baz  one    2
         3  baz  two    3
         """
+        if inplace:
+            msg = ('inplace has been deprecated, and will be removed in a '
+                   'future version. Use ``s = s.reset_index()`` instead of '
+                   '``s.reset_index(inplace=True)``')
+            warnings.warn(msg, FutureWarning, stacklevel=2)
         inplace = validate_bool_kwarg(inplace, 'inplace')
         if drop:
             new_index = ibase.default_index(len(self))
