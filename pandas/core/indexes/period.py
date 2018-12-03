@@ -20,13 +20,13 @@ from pandas.core import common as com
 from pandas.core.accessor import delegate_names
 from pandas.core.algorithms import unique1d
 import pandas.core.arrays.datetimelike as dtl
+from pandas.core.arrays.datetimelike import DatelikeOps
 from pandas.core.arrays.period import PeriodArray, period_array
 from pandas.core.base import _shared_docs
 import pandas.core.indexes.base as ibase
 from pandas.core.indexes.base import _index_shared_docs, ensure_index
 from pandas.core.indexes.datetimelike import (
-    DatelikeOps, DatetimeIndexOpsMixin, DatetimelikeDelegateMixin,
-    wrap_arithmetic_op)
+    DatetimeIndexOpsMixin, DatetimelikeDelegateMixin, wrap_arithmetic_op)
 from pandas.core.indexes.datetimes import DatetimeIndex, Index, Int64Index
 from pandas.core.missing import isna
 from pandas.core.ops import get_op_result_name
@@ -72,8 +72,8 @@ class PeriodDelegateMixin(DatetimelikeDelegateMixin):
 @delegate_names(PeriodArray,
                 PeriodDelegateMixin._delegated_methods,
                 typ="method")
-class PeriodIndex(DatelikeOps, DatetimeIndexOpsMixin,
-                  Int64Index, PeriodDelegateMixin):
+class PeriodIndex(DatelikeOps, DatetimeIndexOpsMixin, Int64Index,
+                  PeriodDelegateMixin):
     """
     Immutable ndarray holding ordinal values indicating regular periods in
     time such as particular years, quarters, months, etc.
