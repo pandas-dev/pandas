@@ -82,7 +82,7 @@ def _field_accessor(name, field, docstring=None):
         return result
 
     f.__name__ = name
-    f.__doc__ = docstring
+    f.__doc__ = "\n{}\n".format(docstring)
     return property(f)
 
 
@@ -1072,19 +1072,19 @@ class DatetimeArrayMixin(dtl.DatetimeLikeArrayMixin,
 
         return tslib.ints_to_pydatetime(timestamps, box="date")
 
-    year = _field_accessor('year', 'Y', "\n The year of the datetime\n")
+    year = _field_accessor('year', 'Y', "The year of the datetime")
     month = _field_accessor('month', 'M',
-                            "\n The month as January=1, December=12 \n")
-    day = _field_accessor('day', 'D', "\nThe days of the datetime\n")
-    hour = _field_accessor('hour', 'h', "\nThe hours of the datetime\n")
-    minute = _field_accessor('minute', 'm', "\nThe minutes of the datetime\n")
-    second = _field_accessor('second', 's', "\nThe seconds of the datetime\n")
+                            "The month as January=1, December=12")
+    day = _field_accessor('day', 'D', "The days of the datetime")
+    hour = _field_accessor('hour', 'h', "The hours of the datetime")
+    minute = _field_accessor('minute', 'm', "The minutes of the datetime")
+    second = _field_accessor('second', 's', "The seconds of the datetime")
     microsecond = _field_accessor('microsecond', 'us',
-                                  "\nThe microseconds of the datetime\n")
+                                  "The microseconds of the datetime")
     nanosecond = _field_accessor('nanosecond', 'ns',
-                                 "\nThe nanoseconds of the datetime\n")
+                                 "The nanoseconds of the datetime")
     weekofyear = _field_accessor('weekofyear', 'woy',
-                                 "\nThe week ordinal of the year\n")
+                                 "The week ordinal of the year")
     week = weekofyear
     _dayofweek_doc = """
     The day of the week with Monday=0, Sunday=6.
@@ -1129,12 +1129,12 @@ class DatetimeArrayMixin(dtl.DatetimeLikeArrayMixin,
         "The name of day in a week (ex: Friday)\n\n.. deprecated:: 0.23.0")
 
     dayofyear = _field_accessor('dayofyear', 'doy',
-                                "\nThe ordinal day of the year\n")
-    quarter = _field_accessor('quarter', 'q', "\nThe quarter of the date\n")
+                                "The ordinal day of the year")
+    quarter = _field_accessor('quarter', 'q', "The quarter of the date")
     days_in_month = _field_accessor(
         'days_in_month',
         'dim',
-        "\nThe number of days in the month\n")
+        "The number of days in the month")
     daysinmonth = days_in_month
     _is_month_doc = """
         Indicates whether the date is the {first_or_last} day of the month.
