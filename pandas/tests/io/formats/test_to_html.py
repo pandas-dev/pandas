@@ -478,8 +478,12 @@ class TestToHTML(object):
         expected = expected_html(datapath, 'gh22270_expected_output')
         assert df.to_html(float_format='%.0f') == expected
 
-    @pytest.mark.parametrize("render_links", [True, False])
-    def test_to_html_render_links(self, render_links):
+    @pytest.mark.parametrize("render_links, open_tag, close_tag", [
+        (True, '<td><a href="http://pandas.pydata.org/?q1=a&q2=b"'
+            ' target="_blank">', '</a></td>'),
+        (False, '<td>', '</td>'),
+    ])
+    def test_to_html_render_links(self, render_links, open_tag, close_tag):
         # GH 2679
 
         data = [
@@ -498,7 +502,6 @@ class TestToHTML(object):
                        index=range(len(data)))
 
         result = df.to_html(render_links=render_links)
-
         expected = """\
 <table border="1" class="dataframe">
   <thead>
@@ -523,9 +526,7 @@ class TestToHTML(object):
       <td>pydata.org</td>
     </tr>
   </tbody>
-</table>""".format(open_tag=not render_links and '<td>' or (
-                   '<td><a href="http://pandas.pydata.org/?q1=a&q2=b"'
-                   ' target="_blank">'),
-                   close_tag=not render_links and '</td>' or '</a></td>')
+</table>""".format(open_tag=open_tag,
+                   close_tag=close_tag)
 
         assert result == expected
