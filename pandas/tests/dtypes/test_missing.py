@@ -322,7 +322,7 @@ def test_array_equivalent_str():
     # Datetime-like
     (np.dtype("M8[ns]"), NaT),
     (np.dtype("m8[ns]"), NaT),
-    (DatetimeTZDtype('datetime64[ns, US/Eastern]'), NaT),
+    (DatetimeTZDtype.construct_from_string('datetime64[ns, US/Eastern]'), NaT),
     (PeriodDtype("M"), NaT),
     # Integer
     ('u1', 0), ('u2', 0), ('u4', 0), ('u8', 0),

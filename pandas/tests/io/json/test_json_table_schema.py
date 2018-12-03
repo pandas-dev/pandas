@@ -150,7 +150,7 @@ class TestTableSchemaType(object):
         assert as_json_table_type(bool_dtype) == 'boolean'
 
     @pytest.mark.parametrize('date_dtype', [
-        np.datetime64, np.dtype("<M8[ns]"), PeriodDtype(),
+        np.datetime64, np.dtype("<M8[ns]"), PeriodDtype('D'),
         DatetimeTZDtype('ns', 'US/Central')])
     def test_as_json_table_type_date_dtypes(self, date_dtype):
         # TODO: datedate.date? datetime.time?

@@ -209,7 +209,7 @@ def _isna_ndarraylike(obj):
             vec = libmissing.isnaobj(values.ravel())
             result[...] = vec.reshape(shape)
 
-    elif needs_i8_conversion(obj):
+    elif needs_i8_conversion(dtype):
         # this is the NaT pattern
         result = values.view('i8') == iNaT
     else:
