@@ -6,10 +6,9 @@ import numpy as np
 from pytz import utc
 
 from pandas._libs import lib, tslib
-from pandas._libs.tslib import NaT, Timestamp, iNaT
 from pandas._libs.tslibs import (
-    ccalendar, conversion, fields, normalize_date, resolution as libresolution,
-    timezones)
+    NaT, Timestamp, ccalendar, conversion, fields, iNaT, normalize_date,
+    resolution as libresolution, timezones)
 import pandas.compat as compat
 from pandas.errors import PerformanceWarning
 from pandas.util._decorators import Appender, cache_readonly
