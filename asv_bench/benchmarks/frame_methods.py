@@ -13,8 +13,7 @@ class GetNumericData(object):
         self.df = DataFrame(np.random.randn(10000, 25))
         self.df['foo'] = 'bar'
         self.df['bar'] = 'baz'
-        with warnings.catch_warnings(record=True):
-            self.df = self.df.consolidate()
+        self.df = self.df._consolidate()
 
     def time_frame_get_numeric_data(self):
         self.df._get_numeric_data()
