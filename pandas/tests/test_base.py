@@ -10,7 +10,7 @@ import numpy as np
 import pandas as pd
 import pandas.compat as compat
 from pandas.core.dtypes.common import (
-    is_object_dtype, is_datetimetz, is_datetime64_dtype,
+    is_object_dtype, is_datetime64_dtype, is_datetime64tz_dtype,
     needs_i8_conversion)
 import pandas.util.testing as tm
 from pandas import (Series, Index, DatetimeIndex, TimedeltaIndex,
@@ -292,12 +292,11 @@ class TestIndexOps(Ops):
                 assert not result.iat[0]
                 assert not result.iat[1]
 
-                # this fails for numpy < 1.9
-                # and oddly for *some* platforms
-                # result = None != o  # noqa
-                # assert result.iat[0]
-                # assert result.iat[1]
-                if (is_datetime64_dtype(o) or is_datetimetz(o)):
+                result = None != o  # noqa
+                assert result.iat[0]
+                assert result.iat[1]
+
+                if (is_datetime64_dtype(o) or is_datetime64tz_dtype(o)):
                     # Following DatetimeIndex (and Timestamp) convention,
                     # inequality comparisons with Series[datetime64] raise
                     with pytest.raises(TypeError):
@@ -447,7 +446,7 @@ class TestIndexOps(Ops):
             if isinstance(o, Index):
                 assert isinstance(result, o.__class__)
                 tm.assert_index_equal(result, orig)
-            elif is_datetimetz(o):
+            elif is_datetime64tz_dtype(o):
                 # datetimetz Series returns array of Timestamp
                 assert result[0] == orig[0]
                 for r in result:
@@ -471,7 +470,7 @@ class TestIndexOps(Ops):
                     continue
 
                 # special assign to the numpy array
-                if is_datetimetz(o):
+                if is_datetime64tz_dtype(o):
                     if isinstance(o, DatetimeIndex):
                         v = o.asi8
                         v[0:2] = iNaT
@@ -500,7 +499,7 @@ class TestIndexOps(Ops):
                     o = klass(values.repeat(range(1, len(o) + 1)))
                     o.name = 'a'
                 else:
-                    if is_datetimetz(o):
+                    if is_datetime64tz_dtype(o):
                         expected_index = orig._values._shallow_copy(values)
                     else:
                         expected_index = Index(values)
@@ -539,7 +538,7 @@ class TestIndexOps(Ops):
                 if isinstance(o, Index):
                     tm.assert_index_equal(result,
                                           Index(values[1:], name='a'))
-                elif is_datetimetz(o):
+                elif is_datetime64tz_dtype(o):
                     # unable to compare NaT / nan
                     vals = values[2:].astype(object).values
                     tm.assert_numpy_array_equal(result[1:], vals)
@@ -1269,3 +1268,54 @@ def test_ndarray_values(array, expected):
     r_values = pd.Index(array)._ndarray_values
     tm.assert_numpy_array_equal(l_values, r_values)
     tm.assert_numpy_array_equal(l_values, expected)
+
+
+@pytest.mark.parametrize("array, attr", [
+    (np.array([1, 2], dtype=np.int64), None),
+    (pd.Categorical(['a', 'b']), '_codes'),
+    (pd.core.arrays.period_array(['2000', '2001'], freq='D'), '_data'),
+    (pd.core.arrays.integer_array([0, np.nan]), '_data'),
+    (pd.core.arrays.IntervalArray.from_breaks([0, 1]), '_left'),
+    (pd.SparseArray([0, 1]), '_sparse_values'),
+    # TODO: DatetimeArray(add)
+])
+@pytest.mark.parametrize('box', [pd.Series, pd.Index])
+def test_array(array, attr, box):
+    if array.dtype.name in ('Int64', 'Sparse[int64, 0]') and box is pd.Index:
+        pytest.skip("No index type for {}".format(array.dtype))
+    result = box(array, copy=False).array
+
+    if attr:
+        array = getattr(array, attr)
+        result = getattr(result, attr)
+
+    assert result is array
+
+
+def test_array_multiindex_raises():
+    idx = pd.MultiIndex.from_product([['A'], ['a', 'b']])
+    with pytest.raises(ValueError, match='MultiIndex'):
+        idx.array
+
+
+@pytest.mark.parametrize('array, expected', [
+    (np.array([1, 2], dtype=np.int64), np.array([1, 2], dtype=np.int64)),
+    (pd.Categorical(['a', 'b']), np.array(['a', 'b'], dtype=object)),
+    (pd.core.arrays.period_array(['2000', '2001'], freq='D'),
+     np.array([pd.Period('2000', freq="D"), pd.Period('2001', freq='D')])),
+    (pd.core.arrays.integer_array([0, np.nan]),
+     np.array([0, np.nan], dtype=object)),
+    (pd.core.arrays.IntervalArray.from_breaks([0, 1, 2]),
+     np.array([pd.Interval(0, 1), pd.Interval(1, 2)], dtype=object)),
+    (pd.SparseArray([0, 1]), np.array([0, 1], dtype=np.int64)),
+    # TODO: DatetimeArray(add)
+])
+@pytest.mark.parametrize('box', [pd.Series, pd.Index])
+def test_to_numpy(array, expected, box):
+    thing = box(array)
+
+    if array.dtype.name in ('Int64', 'Sparse[int64, 0]') and box is pd.Index:
+        pytest.skip("No index type for {}".format(array.dtype))
+
+    result = thing.to_numpy()
+    tm.assert_numpy_array_equal(result, expected)

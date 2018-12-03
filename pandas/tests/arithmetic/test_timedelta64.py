@@ -452,17 +452,13 @@ class TestTimedeltaArraylikeAddSubOps(object):
 
     def test_td64arr_add_sub_timestamp(self, box_with_array):
         # GH#11925
-        if box_with_array is tm.to_array:
-            pytest.xfail("DatetimeArray.__sub__ returns ndarray instead "
-                         "of TimedeltaArray")
-
         ts = Timestamp('2012-01-01')
         # TODO: parametrize over types of datetime scalar?
 
-        tdarr = timedelta_range('1 day', periods=3)
+        tdi = timedelta_range('1 day', periods=3)
         expected = pd.date_range('2012-01-02', periods=3)
 
-        tdarr = tm.box_expected(tdarr, box_with_array)
+        tdarr = tm.box_expected(tdi, box_with_array)
         expected = tm.box_expected(expected, box_with_array)
 
         tm.assert_equal(ts + tdarr, expected)
@@ -1105,6 +1101,7 @@ class TestTimedeltaArraylikeMulDivOps(object):
 
         tdi = TimedeltaIndex(['1 Day'] * 10)
         expected = timedelta_range('1 days', '10 days')
+        expected._freq = None
 
         tdi = tm.box_expected(tdi, box)
         expected = tm.box_expected(expected, xbox)
@@ -1115,14 +1112,33 @@ class TestTimedeltaArraylikeMulDivOps(object):
         tm.assert_equal(commute, expected)
 
     # ------------------------------------------------------------------
-    # __div__
+    # __div__, __rdiv__
 
     def test_td64arr_div_nat_invalid(self, box_with_array):
         # don't allow division by NaT (maybe could in the future)
         rng = timedelta_range('1 days', '10 days', name='foo')
         rng = tm.box_expected(rng, box_with_array)
-        with pytest.raises(TypeError):
+
+        with pytest.raises(TypeError, match='true_divide cannot use operands'):
             rng / pd.NaT
+        with pytest.raises(TypeError, match='Cannot divide NaTType by'):
+            pd.NaT / rng
+
+    def test_td64arr_div_td64nat(self, box_with_array):
+        # GH#23829
+        rng = timedelta_range('1 days', '10 days',)
+        rng = tm.box_expected(rng, box_with_array)
+
+        other = np.timedelta64('NaT')
+
+        expected = np.array([np.nan] * 10)
+        expected = tm.box_expected(expected, box_with_array)
+
+        result = rng / other
+        tm.assert_equal(result, expected)
+
+        result = other / rng
+        tm.assert_equal(result, expected)
 
     def test_td64arr_div_int(self, box_with_array):
         idx = TimedeltaIndex(np.arange(5, dtype='int64'))
@@ -1131,7 +1147,11 @@ class TestTimedeltaArraylikeMulDivOps(object):
         result = idx / 1
         tm.assert_equal(result, idx)
 
-    def test_tdi_div_tdlike_scalar(self, two_hours, box_with_array):
+        with pytest.raises(TypeError, match='Cannot divide'):
+            # GH#23829
+            1 / idx
+
+    def test_td64arr_div_tdlike_scalar(self, two_hours, box_with_array):
         # GH#20088, GH#22163 ensure DataFrame returns correct dtype
         rng = timedelta_range('1 days', '10 days', name='foo')
         expected = pd.Float64Index((np.arange(10) + 1) * 12, name='foo')
@@ -1142,7 +1162,12 @@ class TestTimedeltaArraylikeMulDivOps(object):
         result = rng / two_hours
         tm.assert_equal(result, expected)
 
-    def test_tdi_div_tdlike_scalar_with_nat(self, two_hours, box_with_array):
+        result = two_hours / rng
+        expected = 1 / expected
+        tm.assert_equal(result, expected)
+
+    def test_td64arr_div_tdlike_scalar_with_nat(self, two_hours,
+                                                box_with_array):
         rng = TimedeltaIndex(['1 days', pd.NaT, '2 days'], name='foo')
         expected = pd.Float64Index([12, np.nan, 24], name='foo')
 
@@ -1151,6 +1176,58 @@ class TestTimedeltaArraylikeMulDivOps(object):
 
         result = rng / two_hours
         tm.assert_equal(result, expected)
+
+        result = two_hours / rng
+        expected = 1 / expected
+        tm.assert_equal(result, expected)
+
+    def test_td64arr_div_td64_ndarray(self, box_with_array):
+        # GH#22631
+        rng = TimedeltaIndex(['1 days', pd.NaT, '2 days'])
+        expected = pd.Float64Index([12, np.nan, 24])
+
+        rng = tm.box_expected(rng, box_with_array)
+        expected = tm.box_expected(expected, box_with_array)
+
+        other = np.array([2, 4, 2], dtype='m8[h]')
+        result = rng / other
+        tm.assert_equal(result, expected)
+
+        result = rng / tm.box_expected(other, box_with_array)
+        tm.assert_equal(result, expected)
+
+        result = rng / other.astype(object)
+        tm.assert_equal(result, expected)
+
+        result = rng / list(other)
+        tm.assert_equal(result, expected)
+
+        # reversed op
+        expected = 1 / expected
+        result = other / rng
+        tm.assert_equal(result, expected)
+
+        result = tm.box_expected(other, box_with_array) / rng
+        tm.assert_equal(result, expected)
+
+        result = other.astype(object) / rng
+        tm.assert_equal(result, expected)
+
+        result = list(other) / rng
+        tm.assert_equal(result, expected)
+
+    def test_tdarr_div_length_mismatch(self, box_with_array):
+        rng = TimedeltaIndex(['1 days', pd.NaT, '2 days'])
+        mismatched = [1, 2, 3, 4]
+
+        rng = tm.box_expected(rng, box_with_array)
+        for obj in [mismatched, mismatched[:2]]:
+            # one shorter, one longer
+            for other in [obj, np.array(obj), pd.Index(obj)]:
+                with pytest.raises(ValueError):
+                    rng / other
+                with pytest.raises(ValueError):
+                    other / rng
 
     # ------------------------------------------------------------------
     # __floordiv__, __rfloordiv__
@@ -1203,6 +1280,11 @@ class TestTimedeltaArraylikeMulDivOps(object):
         result = idx // 1
         tm.assert_equal(result, idx)
 
+        pattern = ('floor_divide cannot use operands|'
+                   'Cannot divide int by Timedelta*')
+        with pytest.raises(TypeError, match=pattern):
+            1 // idx
+
     def test_td64arr_floordiv_tdlike_scalar(self, two_hours, box_with_array):
         tdi = timedelta_range('1 days', '10 days', name='foo')
         expected = pd.Int64Index((np.arange(10) + 1) * 12, name='foo')
@@ -1235,6 +1317,66 @@ class TestTimedeltaArraylikeMulDivOps(object):
 
         res = tdi // (scalar_td)
         tm.assert_equal(res, expected)
+
+    # ------------------------------------------------------------------
+    # mod, divmod
+    # TODO: operations with timedelta-like arrays, numeric arrays,
+    #  reversed ops
+
+    def test_td64arr_mod_tdscalar(self, box_with_array, three_days):
+        tdi = timedelta_range('1 Day', '9 days')
+        tdarr = tm.box_expected(tdi, box_with_array)
+
+        expected = TimedeltaIndex(['1 Day', '2 Days', '0 Days'] * 3)
+        expected = tm.box_expected(expected, box_with_array)
+
+        result = tdarr % three_days
+        tm.assert_equal(result, expected)
+
+        if box_with_array is pd.DataFrame:
+            pytest.xfail("DataFrame does not have __divmod__ or __rdivmod__")
+
+        result = divmod(tdarr, three_days)
+        tm.assert_equal(result[1], expected)
+        tm.assert_equal(result[0], tdarr // three_days)
+
+    def test_td64arr_mod_int(self, box_with_array):
+        tdi = timedelta_range('1 ns', '10 ns', periods=10)
+        tdarr = tm.box_expected(tdi, box_with_array)
+
+        expected = TimedeltaIndex(['1 ns', '0 ns'] * 5)
+        expected = tm.box_expected(expected, box_with_array)
+
+        result = tdarr % 2
+        tm.assert_equal(result, expected)
+
+        with pytest.raises(TypeError):
+            2 % tdarr
+
+        if box_with_array is pd.DataFrame:
+            pytest.xfail("DataFrame does not have __divmod__ or __rdivmod__")
+
+        result = divmod(tdarr, 2)
+        tm.assert_equal(result[1], expected)
+        tm.assert_equal(result[0], tdarr // 2)
+
+    def test_td64arr_rmod_tdscalar(self, box_with_array, three_days):
+        tdi = timedelta_range('1 Day', '9 days')
+        tdarr = tm.box_expected(tdi, box_with_array)
+
+        expected = ['0 Days', '1 Day', '0 Days'] + ['3 Days'] * 6
+        expected = TimedeltaIndex(expected)
+        expected = tm.box_expected(expected, box_with_array)
+
+        result = three_days % tdarr
+        tm.assert_equal(result, expected)
+
+        if box_with_array is pd.DataFrame:
+            pytest.xfail("DataFrame does not have __divmod__ or __rdivmod__")
+
+        result = divmod(three_days, tdarr)
+        tm.assert_equal(result[1], expected)
+        tm.assert_equal(result[0], three_days // tdarr)
 
     # ------------------------------------------------------------------
     # Operations with invalid others
@@ -1309,6 +1451,9 @@ class TestTimedeltaArraylikeMulDivOps(object):
         result = tdser / two
         tm.assert_equal(result, expected)
 
+        with pytest.raises(TypeError, match='Cannot divide'):
+            two / tdser
+
     @pytest.mark.parametrize('dtype', ['int64', 'int32', 'int16',
                                        'uint64', 'uint32', 'uint16', 'uint8',
                                        'float64', 'float32', 'float16'])
@@ -1358,8 +1503,27 @@ class TestTimedeltaArraylikeMulDivOps(object):
         result = tdser / vector
         tm.assert_equal(result, expected)
 
-        with pytest.raises(TypeError):
+        pattern = ('true_divide cannot use operands|'
+                   'cannot perform __div__|'
+                   'cannot perform __truediv__|'
+                   'unsupported operand|'
+                   'Cannot divide')
+        with pytest.raises(TypeError, match=pattern):
             vector / tdser
+
+        if not isinstance(vector, pd.Index):
+            # Index.__rdiv__ won't try to operate elementwise, just raises
+            result = tdser / vector.astype(object)
+            if box_with_array is pd.DataFrame:
+                expected = [tdser.iloc[0, n] / vector[n]
+                            for n in range(len(vector))]
+            else:
+                expected = [tdser[n] / vector[n] for n in range(len(tdser))]
+            expected = tm.box_expected(expected, xbox)
+            tm.assert_equal(result, expected)
+
+        with pytest.raises(TypeError, match=pattern):
+            vector.astype(object) / tdser
 
     @pytest.mark.parametrize('names', [(None, None, None),
                                        ('Egon', 'Venkman', None),
@@ -1391,20 +1555,25 @@ class TestTimedeltaArraylikeMulDivOps(object):
     @pytest.mark.parametrize('names', [(None, None, None),
                                        ('Egon', 'Venkman', None),
                                        ('NCC1701D', 'NCC1701D', 'NCC1701D')])
-    def test_float_series_rdiv_td64arr(self, box, names):
+    def test_float_series_rdiv_td64arr(self, box_with_array, names):
         # GH#19042 test for correct name attachment
         # TODO: the direct operation TimedeltaIndex / Series still
         # needs to be fixed.
+        box = box_with_array
         tdi = TimedeltaIndex(['0days', '1day', '2days', '3days', '4days'],
                              name=names[0])
         ser = Series([1.5, 3, 4.5, 6, 7.5], dtype=np.float64, name=names[1])
 
+        xname = names[2] if box is not tm.to_array else names[1]
         expected = Series([tdi[n] / ser[n] for n in range(len(ser))],
                           dtype='timedelta64[ns]',
-                          name=names[2])
+                          name=xname)
+
+        xbox = box
+        if box in [pd.Index, tm.to_array] and type(ser) is Series:
+            xbox = Series
 
         tdi = tm.box_expected(tdi, box)
-        xbox = Series if (box is pd.Index and type(ser) is Series) else box
         expected = tm.box_expected(expected, xbox)
 
         result = ser.__rdiv__(tdi)

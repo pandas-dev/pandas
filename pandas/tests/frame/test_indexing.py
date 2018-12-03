@@ -647,7 +647,7 @@ class TestDataFrameIndexing(TestData):
 
     def test_frame_setitem_timestamp(self):
         # GH#2155
-        columns = DatetimeIndex(start='1/1/2012', end='2/1/2012', freq=BDay())
+        columns = date_range(start='1/1/2012', end='2/1/2012', freq=BDay())
         index = lrange(10)
         data = DataFrame(columns=columns, index=index)
         t = datetime(2012, 11, 1)
@@ -1782,11 +1782,9 @@ class TestDataFrameIndexing(TestData):
 
     def test_lookup(self):
         def alt(df, rows, cols, dtype):
-            result = []
-            for r, c in zip(rows, cols):
-                with tm.assert_produces_warning(FutureWarning,
-                                                check_stacklevel=False):
-                    result.append(df.get_value(r, c))
+            with tm.assert_produces_warning(FutureWarning,
+                                            check_stacklevel=False):
+                result = [df.get_value(r, c) for r, c in zip(rows, cols)]
             return np.array(result, dtype=dtype)
 
         def testit(df):

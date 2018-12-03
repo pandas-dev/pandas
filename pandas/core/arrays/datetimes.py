@@ -6,17 +6,17 @@ import numpy as np
 from pytz import utc
 
 from pandas._libs import lib, tslib
-from pandas._libs.tslib import NaT, Timestamp, iNaT
 from pandas._libs.tslibs import (
-    ccalendar, conversion, fields, normalize_date, resolution as libresolution,
-    timezones)
+    NaT, Timestamp, ccalendar, conversion, fields, iNaT, normalize_date,
+    resolution as libresolution, timezones)
 import pandas.compat as compat
 from pandas.errors import PerformanceWarning
 from pandas.util._decorators import Appender, cache_readonly
 
 from pandas.core.dtypes.common import (
-    _NS_DTYPE, is_datetime64_dtype, is_datetime64tz_dtype, is_int64_dtype,
-    is_object_dtype)
+    _NS_DTYPE, is_datetime64_dtype, is_datetime64tz_dtype, is_extension_type,
+    is_float_dtype, is_int64_dtype, is_object_dtype, is_period_dtype,
+    is_timedelta64_dtype)
 from pandas.core.dtypes.dtypes import DatetimeTZDtype
 from pandas.core.dtypes.generic import ABCIndexClass, ABCSeries
 from pandas.core.dtypes.missing import isna
@@ -155,7 +155,9 @@ def _dt_array_cmp(cls, op):
     return compat.set_function_name(wrapper, opname, cls)
 
 
-class DatetimeArrayMixin(dtl.DatetimeLikeArrayMixin):
+class DatetimeArrayMixin(dtl.DatetimeLikeArrayMixin,
+                         dtl.TimelikeOps,
+                         dtl.DatelikeOps):
     """
     Assumes that subclass __new__/__init__ defines:
         tz
@@ -1419,6 +1421,163 @@ class DatetimeArrayMixin(dtl.DatetimeLikeArrayMixin):
 
 DatetimeArrayMixin._add_comparison_ops()
 DatetimeArrayMixin._add_datetimelike_methods()
+
+
+# -------------------------------------------------------------------
+# Constructor Helpers
+
+def maybe_infer_tz(tz, inferred_tz):
+    """
+    If a timezone is inferred from data, check that it is compatible with
+    the user-provided timezone, if any.
+
+    Parameters
+    ----------
+    tz : tzinfo or None
+    inferred_tz : tzinfo or None
+
+    Returns
+    -------
+    tz : tzinfo or None
+
+    Raises
+    ------
+    TypeError : if both timezones are present but do not match
+    """
+    if tz is None:
+        tz = inferred_tz
+    elif inferred_tz is None:
+        pass
+    elif not timezones.tz_compare(tz, inferred_tz):
+        raise TypeError('data is already tz-aware {inferred_tz}, unable to '
+                        'set specified tz: {tz}'
+                        .format(inferred_tz=inferred_tz, tz=tz))
+    return tz
+
+
+def maybe_convert_dtype(data, copy):
+    """
+    Convert data based on dtype conventions, issuing deprecation warnings
+    or errors where appropriate.
+
+    Parameters
+    ----------
+    data : np.ndarray or pd.Index
+    copy : bool
+
+    Returns
+    -------
+    data : np.ndarray or pd.Index
+    copy : bool
+
+    Raises
+    ------
+    TypeError : PeriodDType data is passed
+    """
+    if is_float_dtype(data):
+        # Note: we must cast to datetime64[ns] here in order to treat these
+        #  as wall-times instead of UTC timestamps.
+        data = data.astype(_NS_DTYPE)
+        copy = False
+        # TODO: deprecate this behavior to instead treat symmetrically
+        #  with integer dtypes.  See discussion in GH#23675
+
+    elif is_timedelta64_dtype(data):
+        warnings.warn("Passing timedelta64-dtype data is deprecated, will "
+                      "raise a TypeError in a future version",
+                      FutureWarning, stacklevel=3)
+        data = data.view(_NS_DTYPE)
+
+    elif is_period_dtype(data):
+        # Note: without explicitly raising here, PeriondIndex
+        #  test_setops.test_join_does_not_recur fails
+        raise TypeError("Passing PeriodDtype data is invalid.  "
+                        "Use `data.to_timestamp()` instead")
+
+    elif is_extension_type(data) and not is_datetime64tz_dtype(data):
+        # Includes categorical
+        # TODO: We have no tests for these
+        data = np.array(data, dtype=np.object_)
+        copy = False
+
+    return data, copy
+
+
+def objects_to_datetime64ns(data, dayfirst, yearfirst,
+                            utc=False, errors="raise",
+                            require_iso8601=False, allow_object=False):
+    """
+    Convert data to array of timestamps.
+
+    Parameters
+    ----------
+    data : np.ndarray[object]
+    dayfirst : bool
+    yearfirst : bool
+    utc : bool, default False
+        Whether to convert timezone-aware timestamps to UTC
+    errors : {'raise', 'ignore', 'coerce'}
+    allow_object : bool
+        Whether to return an object-dtype ndarray instead of raising if the
+        data contains more than one timezone.
+
+    Returns
+    -------
+    result : ndarray
+        np.int64 dtype if returned values represent UTC timestamps
+        np.datetime64[ns] if returned values represent wall times
+        object if mixed timezones
+    inferred_tz : tzinfo or None
+
+    Raises
+    ------
+    ValueError : if data cannot be converted to datetimes
+    """
+    assert errors in ["raise", "ignore", "coerce"]
+
+    # if str-dtype, convert
+    data = np.array(data, copy=False, dtype=np.object_)
+
+    try:
+        result, tz_parsed = tslib.array_to_datetime(
+            data,
+            errors=errors,
+            utc=utc,
+            dayfirst=dayfirst,
+            yearfirst=yearfirst,
+            require_iso8601=require_iso8601
+        )
+    except ValueError as e:
+        try:
+            values, tz_parsed = conversion.datetime_to_datetime64(data)
+            # If tzaware, these values represent unix timestamps, so we
+            #  return them as i8 to distinguish from wall times
+            return values.view('i8'), tz_parsed
+        except (ValueError, TypeError):
+            raise e
+
+    if tz_parsed is not None:
+        # We can take a shortcut since the datetime64 numpy array
+        #  is in UTC
+        # Return i8 values to denote unix timestamps
+        return result.view('i8'), tz_parsed
+    elif is_datetime64_dtype(result):
+        # returning M8[ns] denotes wall-times; since tz is None
+        #  the distinction is a thin one
+        return result, tz_parsed
+    elif is_object_dtype(result):
+        # GH#23675 when called via `pd.to_datetime`, returning an object-dtype
+        #  array is allowed.  When called via `pd.DatetimeIndex`, we can
+        #  only accept datetime64 dtype, so raise TypeError if object-dtype
+        #  is returned, as that indicates the values can be recognized as
+        #  datetimes but they have conflicting timezones/awareness
+        if allow_object:
+            return result, tz_parsed
+        raise TypeError(result)
+    else:  # pragma: no cover
+        # GH#23675 this TypeError should never be hit, whereas the TypeError
+        #  in the object-dtype branch above is reachable.
+        raise TypeError(result)
 
 
 def _generate_regular_range(cls, start, end, periods, freq):
