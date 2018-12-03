@@ -392,11 +392,11 @@ class TestDatetimeIndexTimezones(object):
     @pytest.mark.parametrize('prefix', ['', 'dateutil/'])
     def test_dti_tz_localize(self, prefix):
         tzstr = prefix + 'US/Eastern'
-        dti = DatetimeIndex(start='1/1/2005', end='1/1/2005 0:00:30.256',
+        dti = pd.date_range(start='1/1/2005', end='1/1/2005 0:00:30.256',
                             freq='L')
         dti2 = dti.tz_localize(tzstr)
 
-        dti_utc = DatetimeIndex(start='1/1/2005 05:00',
+        dti_utc = pd.date_range(start='1/1/2005 05:00',
                                 end='1/1/2005 5:00:30.256', freq='L', tz='utc')
 
         tm.assert_numpy_array_equal(dti2.values, dti_utc.values)
@@ -404,12 +404,12 @@ class TestDatetimeIndexTimezones(object):
         dti3 = dti2.tz_convert(prefix + 'US/Pacific')
         tm.assert_numpy_array_equal(dti3.values, dti_utc.values)
 
-        dti = DatetimeIndex(start='11/6/2011 1:59', end='11/6/2011 2:00',
+        dti = pd.date_range(start='11/6/2011 1:59', end='11/6/2011 2:00',
                             freq='L')
         with pytest.raises(pytz.AmbiguousTimeError):
             dti.tz_localize(tzstr)
 
-        dti = DatetimeIndex(start='3/13/2011 1:59', end='3/13/2011 2:00',
+        dti = pd.date_range(start='3/13/2011 1:59', end='3/13/2011 2:00',
                             freq='L')
         with pytest.raises(pytz.NonExistentTimeError):
             dti.tz_localize(tzstr)
@@ -721,7 +721,7 @@ class TestDatetimeIndexTimezones(object):
         arr = ['11/10/2005 08:00:00', '11/10/2005 09:00:00']
 
         idx1 = to_datetime(arr).tz_localize(tzstr)
-        idx2 = DatetimeIndex(start="2005-11-10 08:00:00", freq='H', periods=2,
+        idx2 = pd.date_range(start="2005-11-10 08:00:00", freq='H', periods=2,
                              tz=tzstr)
         idx3 = DatetimeIndex(arr, tz=tzstr)
         idx4 = DatetimeIndex(np.array(arr), tz=tzstr)

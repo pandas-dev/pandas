@@ -520,7 +520,9 @@ def test_raises_on_usecols_names_mismatch(all_parsers, usecols,
         tm.assert_frame_equal(result, expected)
 
 
-@pytest.mark.xfail(reason="see gh-16469: buggy behavior")
+@pytest.mark.xfail(
+    reason="see gh-16469: works on the C engine but not the Python engine",
+    strict=False)
 @pytest.mark.parametrize("usecols", [["A", "C"], [0, 2]])
 def test_usecols_subset_names_mismatch_orig_columns(all_parsers, usecols):
     data = "a,b,c,d\n1,2,3,4\n5,6,7,8"

@@ -678,7 +678,7 @@ Replacing more than one value is possible by passing a list.
 
 .. ipython:: python
 
-   df00 = df.values[0, 0]
+   df00 = df.iloc[0, 0]
    df.replace([1.5, df00], [np.nan, 'a'])
    df[1].dtype
 
