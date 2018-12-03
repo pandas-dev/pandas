@@ -1514,6 +1514,7 @@ Groupby/Resample/Rolling
 - Bug in :meth:`DataFrame.expanding` in which the ``axis`` argument was not being respected during aggregations (:issue:`23372`)
 - Bug in :meth:`pandas.core.groupby.DataFrameGroupBy.transform` which caused missing values when the input function can accept a :class:`DataFrame` but renames it (:issue:`23455`).
 - Bug in :func:`pandas.core.groupby.GroupBy.nth` where column order was not always preserved (:issue:`20760`)
+- Bug in :meth:`pandas.core.groupby.DataFrameGroupBy.rank` with ``method='dense'`` and ``pct=True`` when a group has only one member would raise a ``ZeroDivisionError`` (:issue:`23666`).
 
 Reshaping
 ^^^^^^^^^

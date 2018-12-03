@@ -1461,7 +1461,7 @@ class TestTimestampSeriesArithmetic(object):
             # with 'operate' (from core/ops.py) for the ops that are not
             # defined
             op = getattr(get_ser, op_str, None)
-            with pytest.raises(TypeError, match='operate|cannot'):
+            with pytest.raises(TypeError, match='operate|[cC]annot'):
                 op(test_ser)
 
         # ## timedelta64 ###

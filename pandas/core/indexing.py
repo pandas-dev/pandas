@@ -2415,7 +2415,8 @@ class _iAtIndexer(_ScalarAccessIndexer):
 
 
 def length_of_indexer(indexer, target=None):
-    """return the length of a single non-tuple indexer which could be a slice
+    """
+    return the length of a single non-tuple indexer which could be a slice
     """
     if target is not None and isinstance(indexer, slice):
         target_len = len(target)
@@ -2443,7 +2444,8 @@ def length_of_indexer(indexer, target=None):
 
 
 def convert_to_index_sliceable(obj, key):
-    """if we are index sliceable, then return my slicer, otherwise return None
+    """
+    if we are index sliceable, then return my slicer, otherwise return None
     """
     idx = obj.index
     if isinstance(key, slice):
@@ -2493,7 +2495,8 @@ def check_bool_indexer(ax, key):
 
 
 def check_setitem_lengths(indexer, value, values):
-    """Validate that value and indexer are the same length.
+    """
+    Validate that value and indexer are the same length.
 
     An special-case is allowed for when the indexer is a boolean array
     and the number of true values equals the length of ``value``. In
@@ -2536,7 +2539,8 @@ def check_setitem_lengths(indexer, value, values):
 
 
 def convert_missing_indexer(indexer):
-    """ reverse convert a missing indexer, which is a dict
+    """
+    reverse convert a missing indexer, which is a dict
     return the scalar indexer and a boolean indicating if we converted
     """
 
@@ -2553,7 +2557,9 @@ def convert_missing_indexer(indexer):
 
 
 def convert_from_missing_indexer_tuple(indexer, axes):
-    """ create a filtered indexer that doesn't have any missing indexers """
+    """
+    create a filtered indexer that doesn't have any missing indexers
+    """
 
     def get_indexer(_i, _idx):
         return (axes[_i].get_loc(_idx['key']) if isinstance(_idx, dict) else
@@ -2607,7 +2613,8 @@ def maybe_convert_indices(indices, n):
 
 
 def validate_indices(indices, n):
-    """Perform bounds-checking for an indexer.
+    """
+    Perform bounds-checking for an indexer.
 
     -1 is allowed for indicating missing values.
 
