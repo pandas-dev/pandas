@@ -23,7 +23,7 @@ GitHub. See Python Software Foundation License and BSD licenses for these.
 #include <float.h>
 #include <math.h>
 
-#include "../headers/portable.h" // for isdigit_ascii
+#include "../headers/portable.h"
 
 static void *safe_realloc(void *buffer, size_t size) {
     void *result;
