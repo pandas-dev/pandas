@@ -257,7 +257,7 @@ def union_categoricals(to_union, sort_categories=False, ignore_order=False):
 
     To learn more about categories, see `link
     <http://pandas.pydata.org/pandas-docs/stable/categorical.html#unioning>`__
-    
+
     Examples
     --------
 
@@ -581,4 +581,3 @@ def _concat_rangeindex_same_dtype(indexes):
     # Here all "indexes" had 0 length, i.e. were empty.
     # In this case return an empty range index.
     return RangeIndex(0, 0)
-    
