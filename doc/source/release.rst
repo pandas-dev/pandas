@@ -12,8 +12,7 @@
    import matplotlib.pyplot as plt
    plt.close('all')
 
-   pd.options.display.max_rows=15
-   import pandas.util.testing as tm
+   pd.options.display.max_rows = 15
 
 *************
 Release Notes
@@ -2859,7 +2858,7 @@ API Changes
    In [5]: arr / arr2
    Out[5]: array([0, 0, 1, 4])
 
-   In [6]: pd.Series(arr) / pd.Series(arr2) # no future import required
+   In [6]: pd.Series(arr) / pd.Series(arr2)  # no future import required
    Out[6]:
    0    0.200000
    1    0.666667
@@ -3670,12 +3669,12 @@ Improvements to existing features
 
   .. ipython:: python
 
-     p = pd.Panel(np.random.randn(3,4,4),items=['ItemA','ItemB','ItemC'],
-                  major_axis=pd.date_range('20010102',periods=4),
-                  minor_axis=['A','B','C','D'])
+     p = pd.Panel(np.random.randn(3, 4, 4), items=['ItemA', 'ItemB', 'ItemC'],
+                  major_axis=pd.date_range('20010102', periods=4),
+                  minor_axis=['A', 'B', 'C', 'D'])
      p
      p.reindex(items=['ItemA']).squeeze()
-     p.reindex(items=['ItemA'],minor=['B']).squeeze()
+     p.reindex(items=['ItemA'], minor=['B']).squeeze()
 
 - Improvement to Yahoo API access in ``pd.io.data.Options`` (:issue:`2758`)
 - added option `display.max_seq_items` to control the number of elements printed per sequence pprinting it. (:issue:`2979`)
@@ -3689,10 +3688,10 @@ Improvements to existing features
   .. ipython:: python
 
       idx = pd.date_range("2001-10-1", periods=5, freq='M')
-      ts = pd.Series(np.random.rand(len(idx)),index=idx)
+      ts = pd.Series(np.random.rand(len(idx)), index=idx)
       ts['2001']
 
-      df = pd.DataFrame(dict(A = ts))
+      df = pd.DataFrame({'A': ts})
       df['2001']
 
 - added option `display.mpl_style` providing a sleeker visual style for plots. Based on https://gist.github.com/huyng/816622 (:issue:`3075`).

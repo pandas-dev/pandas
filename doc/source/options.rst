@@ -5,7 +5,6 @@
 .. ipython:: python
    :suppress:
 
-   import pandas as pd
    import numpy as np
    np.random.seed(123456)
 
@@ -45,9 +44,9 @@ and so passing in a substring will work - as long as it is unambiguous:
 .. ipython:: python
 
    pd.get_option("display.max_rows")
-   pd.set_option("display.max_rows",101)
+   pd.set_option("display.max_rows", 101)
    pd.get_option("display.max_rows")
-   pd.set_option("max_r",102)
+   pd.set_option("max_r", 102)
    pd.get_option("display.max_rows")
 
 
@@ -100,7 +99,7 @@ All options also have a default value, and you can use ``reset_option`` to do ju
 .. ipython:: python
 
    pd.get_option("display.max_rows")
-   pd.set_option("display.max_rows",999)
+   pd.set_option("display.max_rows", 999)
    pd.get_option("display.max_rows")
    pd.reset_option("display.max_rows")
    pd.get_option("display.max_rows")
@@ -120,9 +119,9 @@ are restored automatically when you exit the `with` block:
 
 .. ipython:: python
 
-   with pd.option_context("display.max_rows",10,"display.max_columns", 5):
-        print(pd.get_option("display.max_rows"))
-        print(pd.get_option("display.max_columns"))
+   with pd.option_context("display.max_rows", 10, "display.max_columns", 5):
+       print(pd.get_option("display.max_rows"))
+       print(pd.get_option("display.max_columns"))
    print(pd.get_option("display.max_rows"))
    print(pd.get_option("display.max_columns"))
 
@@ -157,7 +156,7 @@ lines are replaced by an ellipsis.
 
 .. ipython:: python
 
-   df = pd.DataFrame(np.random.randn(7,2))
+   df = pd.DataFrame(np.random.randn(7, 2))
    pd.set_option('max_rows', 7)
    df
    pd.set_option('max_rows', 5)
@@ -169,7 +168,7 @@ dataframes to stretch across pages, wrapped over the full column vs row-wise.
 
 .. ipython:: python
 
-   df = pd.DataFrame(np.random.randn(5,10))
+   df = pd.DataFrame(np.random.randn(5, 10))
    pd.set_option('expand_frame_repr', True)
    df
    pd.set_option('expand_frame_repr', False)
@@ -181,7 +180,7 @@ dataframes to stretch across pages, wrapped over the full column vs row-wise.
 
 .. ipython:: python
 
-   df = pd.DataFrame(np.random.randn(10,10))
+   df = pd.DataFrame(np.random.randn(10, 10))
    pd.set_option('max_rows', 5)
    pd.set_option('large_repr', 'truncate')
    df
@@ -197,7 +196,7 @@ of this length or longer will be truncated with an ellipsis.
 
    df = pd.DataFrame(np.array([['foo', 'bar', 'bim', 'uncomfortably long string'],
                                ['horse', 'cow', 'banana', 'apple']]))
-   pd.set_option('max_colwidth',40)
+   pd.set_option('max_colwidth', 40)
    df
    pd.set_option('max_colwidth', 6)
    df
@@ -208,7 +207,7 @@ will be given.
 
 .. ipython:: python
 
-   df = pd.DataFrame(np.random.randn(10,10))
+   df = pd.DataFrame(np.random.randn(10, 10))
    pd.set_option('max_info_columns', 11)
    df.info()
    pd.set_option('max_info_columns', 5)
@@ -222,7 +221,7 @@ can specify the option ``df.info(null_counts=True)`` to override on showing a pa
 
 .. ipython:: python
 
-   df = pd.DataFrame(np.random.choice([0,1,np.nan], size=(10,10)))
+   df = pd.DataFrame(np.random.choice([0, 1, np.nan], size=(10, 10)))
    df
    pd.set_option('max_info_rows', 11)
    df.info()
@@ -235,10 +234,10 @@ This is only a suggestion.
 
 .. ipython:: python
 
-   df = pd.DataFrame(np.random.randn(5,5))
-   pd.set_option('precision',7)
+   df = pd.DataFrame(np.random.randn(5, 5))
+   pd.set_option('precision', 7)
    df
-   pd.set_option('precision',4)
+   pd.set_option('precision', 4)
    df
 
 ``display.chop_threshold`` sets at what level pandas rounds to zero when
@@ -247,7 +246,7 @@ precision at which the number is stored.
 
 .. ipython:: python
 
-   df = pd.DataFrame(np.random.randn(6,6))
+   df = pd.DataFrame(np.random.randn(6, 6))
    pd.set_option('chop_threshold', 0)
    df
    pd.set_option('chop_threshold', .5)
@@ -259,7 +258,9 @@ The options are 'right', and 'left'.
 
 .. ipython:: python
 
-   df = pd.DataFrame(np.array([np.random.randn(6), np.random.randint(1,9,6)*.1, np.zeros(6)]).T,
+   df = pd.DataFrame(np.array([np.random.randn(6),
+                               np.random.randint(1, 9, 6) * .1,
+                               np.zeros(6)]).T,
                      columns=['A', 'B', 'C'], dtype='float')
    pd.set_option('colheader_justify', 'right')
    df
@@ -461,14 +462,14 @@ For instance:
 
    pd.set_eng_float_format(accuracy=3, use_eng_prefix=True)
    s = pd.Series(np.random.randn(5), index=['a', 'b', 'c', 'd', 'e'])
-   s/1.e3
-   s/1.e6
+   s / 1.e3
+   s / 1.e6
 
 .. ipython:: python
    :suppress:
    :okwarning:
 
-   pd.reset_option('^display\.')
+   pd.reset_option(r'^display.')
 
 To round floats on a case-by-case basis, you can also use :meth:`~pandas.Series.round` and :meth:`~pandas.DataFrame.round`.
 
@@ -490,7 +491,7 @@ If a DataFrame or Series contains these characters, the default output mode may 
 .. ipython:: python
 
    df = pd.DataFrame({u'国籍': ['UK', u'日本'], u'名前': ['Alice', u'しのぶ']})
-   df;
+   df
 
 .. image:: _static/option_unicode01.png
 
@@ -501,7 +502,7 @@ times than the standard ``len`` function.
 .. ipython:: python
 
    pd.set_option('display.unicode.east_asian_width', True)
-   df;
+   df
 
 .. image:: _static/option_unicode02.png
 
@@ -513,7 +514,7 @@ By default, an "Ambiguous" character's width, such as "¡" (inverted exclamation
 .. ipython:: python
 
    df = pd.DataFrame({'a': ['xxx', u'¡¡'], 'b': ['yyy', u'¡¡']})
-   df;
+   df
 
 .. image:: _static/option_unicode03.png
 
@@ -525,7 +526,7 @@ However, setting this option incorrectly for your terminal will cause these char
 .. ipython:: python
 
    pd.set_option('display.unicode.ambiguous_as_wide', True)
-   df;
+   df
 
 .. image:: _static/option_unicode04.png
 

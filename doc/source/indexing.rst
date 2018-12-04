@@ -6,10 +6,11 @@
    :suppress:
 
    import numpy as np
+   import pandas as pd
+
    np.random.seed(123456)
    np.set_printoptions(precision=4, suppress=True)
-   import pandas as pd
-   pd.options.display.max_rows=15
+   pd.options.display.max_rows = 15
 
 ***************************
 Indexing and Selecting Data
@@ -143,9 +144,10 @@ indexing functionality:
 .. ipython:: python
 
    dates = pd.date_range('1/1/2000', periods=8)
-   df = pd.DataFrame(np.random.randn(8, 4), index=dates, columns=['A', 'B', 'C', 'D'])
+   df = pd.DataFrame(np.random.randn(8, 4),
+                     index=dates, columns=['A', 'B', 'C', 'D'])
    df
-   panel = pd.Panel({'one' : df, 'two' : df - df.mean()})
+   panel = pd.Panel({'one': df, 'two': df - df.mean()})
    panel
 
 .. note::
@@ -183,14 +185,14 @@ columns.
    .. ipython:: python
 
       df[['A', 'B']]
-      df.loc[:,['B', 'A']] = df[['A', 'B']]
+      df.loc[:, ['B', 'A']] = df[['A', 'B']]
       df[['A', 'B']]
 
    The correct way to swap column values is by using raw values:
 
    .. ipython:: python
 
-      df.loc[:,['B', 'A']] = df[['A', 'B']].to_numpy()
+      df.loc[:, ['B', 'A']] = df[['A', 'B']].to_numpy()
       df[['A', 'B']]
 
 
@@ -208,7 +210,7 @@ as an attribute:
 
 .. ipython:: python
 
-   sa = pd.Series([1,2,3],index=list('abc'))
+   sa = pd.Series([1, 2, 3], index=list('abc'))
    dfa = df.copy()
 
 .. ipython:: python
@@ -248,7 +250,7 @@ You can also assign a ``dict`` to a row of a ``DataFrame``:
 .. ipython:: python
 
    x = pd.DataFrame({'x': [1, 2, 3], 'y': [3, 4, 5]})
-   x.iloc[1] = dict(x=9, y=99)
+   x.iloc[1] = {'x': 9, 'y': 99}
    x
 
 You can use attribute access to modify an existing element of a Series or column of a DataFrame, but be careful;
@@ -257,10 +259,10 @@ new column. In 0.21.0 and later, this will raise a ``UserWarning``:
 
 .. code-block:: ipython
 
-    In[1]: df = pd.DataFrame({'one': [1., 2., 3.]})
-    In[2]: df.two = [4, 5, 6]
+    In [1]: df = pd.DataFrame({'one': [1., 2., 3.]})
+    In [2]: df.two = [4, 5, 6]
     UserWarning: Pandas doesn't allow Series to be assigned into nonexistent columns - see https://pandas.pydata.org/pandas-docs/stable/indexing.html#attribute_access
-    In[3]: df
+    In [3]: df
     Out[3]:
        one
     0  1.0
@@ -317,7 +319,9 @@ Selection By Label
 
   .. ipython:: python
 
-     dfl = pd.DataFrame(np.random.randn(5,4), columns=list('ABCD'), index=pd.date_range('20130101',periods=5))
+     dfl = pd.DataFrame(np.random.randn(5, 4),
+                        columns=list('ABCD'),
+                        index=pd.date_range('20130101', periods=5))
      dfl
 
   .. code-block:: ipython
@@ -354,7 +358,7 @@ The ``.loc`` attribute is the primary access method. The following are valid inp
 
 .. ipython:: python
 
-   s1 = pd.Series(np.random.randn(6),index=list('abcdef'))
+   s1 = pd.Series(np.random.randn(6), index=list('abcdef'))
    s1
    s1.loc['c':]
    s1.loc['b']
@@ -370,7 +374,7 @@ With a DataFrame:
 
 .. ipython:: python
 
-   df1 = pd.DataFrame(np.random.randn(6,4),
+   df1 = pd.DataFrame(np.random.randn(6, 4),
                       index=list('abcdef'),
                       columns=list('ABCD'))
    df1
@@ -413,7 +417,7 @@ are returned:
 
 .. ipython:: python
 
-   s = pd.Series(list('abcde'), index=[0,3,2,5,4])
+   s = pd.Series(list('abcde'), index=[0, 3, 2, 5, 4])
    s.loc[3:5]
 
 If at least one of the two is absent, but the index is sorted, and can be
@@ -453,7 +457,7 @@ The ``.iloc`` attribute is the primary access method. The following are valid in
 
 .. ipython:: python
 
-   s1 = pd.Series(np.random.randn(5), index=list(range(0,10,2)))
+   s1 = pd.Series(np.random.randn(5), index=list(range(0, 10, 2)))
    s1
    s1.iloc[:3]
    s1.iloc[3]
@@ -469,9 +473,9 @@ With a DataFrame:
 
 .. ipython:: python
 
-   df1 = pd.DataFrame(np.random.randn(6,4),
-                      index=list(range(0,12,2)),
-                      columns=list(range(0,8,2)))
+   df1 = pd.DataFrame(np.random.randn(6, 4),
+                      index=list(range(0, 12, 2)),
+                      columns=list(range(0, 8, 2)))
    df1
 
 Select via integer slicing:
@@ -525,7 +529,7 @@ an empty axis (e.g. an empty DataFrame being returned).
 
 .. ipython:: python
 
-   dfl = pd.DataFrame(np.random.randn(5,2), columns=list('AB'))
+   dfl = pd.DataFrame(np.random.randn(5, 2), columns=list('AB'))
    dfl
    dfl.iloc[:, 2:3]
    dfl.iloc[:, 1:3]
@@ -827,7 +831,7 @@ In the ``Series`` case this is effectively an appending operation.
 
 .. ipython:: python
 
-   se = pd.Series([1,2,3])
+   se = pd.Series([1, 2, 3])
    se
    se[5] = 5.
    se
@@ -836,10 +840,10 @@ A ``DataFrame`` can be enlarged on either axis via ``.loc``.
 
 .. ipython:: python
 
-   dfi = pd.DataFrame(np.arange(6).reshape(3,2),
-                   columns=['A','B'])
+   dfi = pd.DataFrame(np.arange(6).reshape(3, 2),
+                      columns=['A', 'B'])
    dfi
-   dfi.loc[:,'C'] = dfi.loc[:,'A']
+   dfi.loc[:, 'C'] = dfi.loc[:, 'A']
    dfi
 
 This is like an ``append`` operation on the ``DataFrame``.
@@ -879,7 +883,7 @@ You can also set using these same indexers.
 
 .. ipython:: python
 
-   df.at[dates[-1]+1, 0] = 7
+   df.at[dates[-1] + 1, 0] = 7
    df
 
 Boolean indexing
@@ -917,9 +921,9 @@ more complex criteria:
 
 .. ipython:: python
 
-   df2 = pd.DataFrame({'a' : ['one', 'one', 'two', 'three', 'two', 'one', 'six'],
-                       'b' : ['x', 'y', 'y', 'x', 'y', 'x', 'x'],
-                       'c' : np.random.randn(7)})
+   df2 = pd.DataFrame({'a': ['one', 'one', 'two', 'three', 'two', 'one', 'six'],
+                       'b': ['x', 'y', 'y', 'x', 'y', 'x', 'x'],
+                       'c': np.random.randn(7)})
 
    # only want 'two' or 'three'
    criterion = df2['a'].map(lambda x: x.startswith('t'))
@@ -937,7 +941,7 @@ and :ref:`Advanced Indexing <advanced>` you may select along more than one axis 
 
 .. ipython:: python
 
-   df2.loc[criterion & (df2['b'] == 'x'),'b':'c']
+   df2.loc[criterion & (df2['b'] == 'x'), 'b':'c']
 
 .. _indexing.basics.indexing_isin:
 
@@ -1041,7 +1045,8 @@ The code below is equivalent to ``df.where(df < 0)``.
    :suppress:
 
    dates = pd.date_range('1/1/2000', periods=8)
-   df = pd.DataFrame(np.random.randn(8, 4), index=dates, columns=['A', 'B', 'C', 'D'])
+   df = pd.DataFrame(np.random.randn(8, 4),
+                     index=dates, columns=['A', 'B', 'C', 'D'])
 
 .. ipython:: python
 
@@ -1074,7 +1079,7 @@ without creating a copy:
 .. ipython:: python
 
    df_orig = df.copy()
-   df_orig.where(df > 0, -df, inplace=True);
+   df_orig.where(df > 0, -df, inplace=True)
    df_orig
 
 .. note::
@@ -1095,7 +1100,7 @@ partial setting via ``.loc`` (but on the contents rather than the axis labels).
 .. ipython:: python
 
    df2 = df.copy()
-   df2[ df2[1:4] > 0] = 3
+   df2[df2[1:4] > 0] = 3
    df2
 
 Where can also accept ``axis`` and ``level`` parameters to align the input when
@@ -1104,14 +1109,14 @@ performing the ``where``.
 .. ipython:: python
 
    df2 = df.copy()
-   df2.where(df2>0,df2['A'],axis='index')
+   df2.where(df2 > 0, df2['A'], axis='index')
 
 This is equivalent to (but faster than) the following.
 
 .. ipython:: python
 
    df2 = df.copy()
-   df.apply(lambda x, y: x.where(x>0,y), y=df['A'])
+   df.apply(lambda x, y: x.where(x > 0, y), y=df['A'])
 
 .. versionadded:: 0.18.1
 
@@ -1175,8 +1180,8 @@ If instead you don't want to or cannot name your index, you can use the name
 .. ipython:: python
    :suppress:
 
-   old_index = index
-   del index
+   old_index = index                                               # noqa: F821
+   del index                                                       # noqa: F821
 
 .. ipython:: python
 
@@ -1200,7 +1205,7 @@ If instead you don't want to or cannot name your index, you can use the name
 
       df = pd.DataFrame({'a': np.random.randint(5, size=5)})
       df.index.name = 'a'
-      df.query('a > 2') # uses the column 'a', not the index
+      df.query('a > 2')  # uses the column 'a', not the index
 
    You can still use the index in a query expression by using the special
    identifier 'index':
@@ -1307,7 +1312,7 @@ The ``in`` and ``not in`` operators
 
    try:
        old_d = d
-       del d
+       del d                                                       # noqa: F821
    except NameError:
        pass
 
@@ -1334,7 +1339,8 @@ You can combine this with other expressions for very succinct queries:
 
 .. ipython:: python
 
-   # rows where cols a and b have overlapping values and col c's values are less than col d's
+   # rows where cols a and b have overlapping values
+   # and col c's values are less than col d's
    df.query('a in b and c < d')
 
    # pure Python
@@ -1442,7 +1448,8 @@ floating point values generated using ``numpy.random.randn()``.
 .. ipython:: python
    :suppress:
 
-   df = pd.DataFrame(np.random.randn(8, 4), index=dates, columns=['A', 'B', 'C', 'D'])
+   df = pd.DataFrame(np.random.randn(8, 4),
+                     index=dates, columns=['A', 'B', 'C', 'D'])
    df2 = df.copy()
 
 
@@ -1509,7 +1516,7 @@ default value.
 
 .. ipython:: python
 
-   s = pd.Series([1,2,3], index=['a','b','c'])
+   s = pd.Series([1, 2, 3], index=['a', 'b', 'c'])
    s.get('a')               # equivalent to s['a']
    s.get('x', default=-1)
 
@@ -1522,8 +1529,8 @@ NumPy array.  For instance:
 
 .. ipython:: python
 
-  dflookup = pd.DataFrame(np.random.rand(20,4), columns = ['A','B','C','D'])
-  dflookup.lookup(list(range(0,10,2)), ['B','C','A','B','D'])
+  dflookup = pd.DataFrame(np.random.rand(20, 4), columns = ['A', 'B', 'C', 'D'])
+  dflookup.lookup(list(range(0, 10, 2)), ['B', 'C', 'A', 'B', 'D'])
 
 .. _indexing.class:
 
@@ -1650,7 +1657,9 @@ Missing values
    idx1
    idx1.fillna(2)
 
-   idx2 = pd.DatetimeIndex([pd.Timestamp('2011-01-01'), pd.NaT, pd.Timestamp('2011-01-03')])
+   idx2 = pd.DatetimeIndex([pd.Timestamp('2011-01-01'),
+                            pd.NaT,
+                            pd.Timestamp('2011-01-03')])
    idx2
    idx2.fillna(pd.Timestamp('2011-01-02'))
 
@@ -1673,10 +1682,10 @@ To create a new, re-indexed DataFrame:
 .. ipython:: python
    :suppress:
 
-   data = pd.DataFrame({'a' : ['bar', 'bar', 'foo', 'foo'],
-                        'b' : ['one', 'two', 'one', 'two'],
-                        'c' : ['z', 'y', 'x', 'w'],
-                        'd' : [1., 2., 3, 4]})
+   data = pd.DataFrame({'a': ['bar', 'bar', 'foo', 'foo'],
+                        'b': ['one', 'two', 'one', 'two'],
+                        'c': ['z', 'y', 'x', 'w'],
+                        'd': [1., 2., 3, 4]})
 
 .. ipython:: python
 
@@ -1755,8 +1764,8 @@ When setting values in a pandas object, care must be taken to avoid what is call
                         list('efgh'),
                         list('ijkl'),
                         list('mnop')],
-                       columns=pd.MultiIndex.from_product([['one','two'],
-                                                           ['first','second']]))
+                       columns=pd.MultiIndex.from_product([['one', 'two'],
+                                                           ['first', 'second']]))
    dfmi
 
 Compare these two access methods:
@@ -1767,7 +1776,7 @@ Compare these two access methods:
 
 .. ipython:: python
 
-   dfmi.loc[:,('one','second')]
+   dfmi.loc[:, ('one', 'second')]
 
 These both yield the same results, so which should you use? It is instructive to understand the order
 of operations on these and why method 2 (``.loc``) is much preferred over method 1 (chained ``[]``).
@@ -1794,17 +1803,17 @@ interpreter executes this code:
 
 .. code-block:: python
 
-   dfmi.loc[:, ('one', 'second')] = value
+   dfmi.loc[:, ('one', 'second')] = value                          # noqa: F821
    # becomes
-   dfmi.loc.__setitem__((slice(None), ('one', 'second')), value)
+   dfmi.loc.__setitem__((slice(None), ('one', 'second')), value)   # noqa: F821
 
 But this code is handled differently:
 
 .. code-block:: python
 
-   dfmi['one']['second'] = value
+   dfmi['one']['second'] = value                                   # noqa: F821
    # becomes
-   dfmi.__getitem__('one').__setitem__('second', value)
+   dfmi.__getitem__('one').__setitem__('second', value)            # noqa: F821
 
 See that ``__getitem__`` in there? Outside of simple cases, it's very hard to
 predict whether it will return a view or a copy (it depends on the memory layout
@@ -1829,7 +1838,7 @@ that you've done this:
    def do_something(df):
        foo = df[['bar', 'baz']]  # Is foo a view? A copy? Nobody knows!
        # ... many lines here ...
-       foo['quux'] = value  # We don't know whether this will modify df or not!
+       foo['quux'] = value  # We don't know whether this will modify df or not!  # noqa: E501, F821
        return foo
 
 Yikes!
@@ -1859,9 +1868,9 @@ chained indexing expression, you can set the :ref:`option <options>`
 .. ipython:: python
    :okwarning:
 
-   dfb = pd.DataFrame({'a' : ['one', 'one', 'two',
-                              'three', 'two', 'one', 'six'],
-                       'c' : np.arange(7)})
+   dfb = pd.DataFrame({'a': ['one', 'one', 'two',
+                             'three', 'two', 'one', 'six'],
+                       'c': np.arange(7)})
 
    # This will show the SettingWithCopyWarning
    # but the frame values will be set
@@ -1889,8 +1898,8 @@ This is the correct access method:
 
 .. ipython:: python
 
-   dfc = pd.DataFrame({'A':['aaa','bbb','ccc'],'B':[1,2,3]})
-   dfc.loc[0,'A'] = 11
+   dfc = pd.DataFrame({'A': ['aaa', 'bbb', 'ccc'], 'B': [1, 2, 3]})
+   dfc.loc[0, 'A'] = 11
    dfc
 
 This *can* work at times, but it is not guaranteed to, and therefore should be avoided:
