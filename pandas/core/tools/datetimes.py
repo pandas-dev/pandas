@@ -559,7 +559,7 @@ def to_datetime(arg, errors='raise', dayfirst=False, yearfirst=False,
                                dayfirst=dayfirst, yearfirst=yearfirst,
                                errors=errors, exact=exact,
                                infer_datetime_format=infer_datetime_format)
-    
+
     if isinstance(arg, Timestamp):
         result = arg
     elif isinstance(arg, ABCSeries):

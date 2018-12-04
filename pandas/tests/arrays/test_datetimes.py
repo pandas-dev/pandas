@@ -15,14 +15,14 @@ class TestDatetimeArrayComparisons(object):
     # TODO: merge this into tests/arithmetic/test_datetime64 once it is
     #  sufficiently robust
     def test_box(self):
-        df = pd.DataFrame({'year': [2015, 2016], 'month': [2, 3], 'day': [4, 5]})
+        df = pd.DataFrame({'year': [2015, 2016], 'month': [2, 3],'day': [4, 5]})
         res = pd.to_datetime(df, box=False)
         assert isinstance(res, np.ndarray) == True
         res = pd.to_datetime(df, box=True)
         assert isinstance(res, np.ndarray) == False
 
     def test_utc(self):
-        df = pd.DataFrame({'year': [2015, 2016], 'month': [2, 3], 'day': [4, 5]})
+        df = pd.DataFrame({'year': [2015, 2016], 'month': [2, 3],'day': [4, 5]})
         res = pd.to_datetime(df, utc=True)
         assert str(res[0].tz) == 'UTC'
         res = pd.to_datetime(df, utc=False)
