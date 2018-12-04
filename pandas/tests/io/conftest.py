@@ -41,7 +41,7 @@ def s3_resource(tips_file, jsonl_file):
     try:
         pytest.importorskip("boto.plugin")
     except AttributeError:
-        raise pytest.skip(reason="moto/moto error")
+        raise pytest.skip("moto/moto error")
     moto = pytest.importorskip('moto')
 
     test_s3_files = [
