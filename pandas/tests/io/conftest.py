@@ -37,6 +37,8 @@ def s3_resource(tips_file, jsonl_file):
     """
     pytest.importorskip('s3fs')
     boto3 = pytest.importorskip('boto3')
+    # GH-24092. See if boto.plugin skips the test or fails.
+    pytest.importorskip("boto.plugin")
     moto = pytest.importorskip('moto')
 
     test_s3_files = [
