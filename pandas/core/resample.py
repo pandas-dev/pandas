@@ -1523,11 +1523,14 @@ class TimeGrouper(Grouper):
             start = start.to_timestamp()
             end = end.to_timestamp()
 
+            # get base adjusted bin edge labels
             p_start, p_end = _get_range_edges(start,
                                               end,
                                               self.freq,
                                               closed=self.closed,
                                               base=self.base)
+
+            # compensate for edge labels being  extened away from true labels
             i = None if self.freq.onOffset(start) else 1
             j = -1 if self.freq.onOffset(end) else None
         else:
@@ -1546,6 +1549,7 @@ class TimeGrouper(Grouper):
         i8_extend = expected_bins_count - (i8[-1] - i8[0])
         rng = np.arange(i8[0], i8[-1] + i8_extend, freq_mult)
         rng += freq_mult
+        # adjust bin edge indexes to account for base
         rng -= ((freq_mult - self.base) % freq_mult)
         bins = memb.searchsorted(rng, side='left')
 

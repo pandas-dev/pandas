@@ -756,7 +756,7 @@ class TestPeriodIndex(Base):
         s = pd.Series(range(100), index=pd.period_range('19910905',
                                                         periods=100,
                                                         freq=start_freq))
-        pr = (s.resample(end_freq, base=base).mean().to_timestamp()
-              .asfreq(end_freq))  # to_timestamp casts 24H -> D
-        tr = s.to_timestamp().resample(end_freq, base=base).mean()
-        assert_series_equal(pr, tr)
+        result = (s.resample(end_freq, base=base).mean().to_timestamp()
+                  .asfreq(end_freq))  # to_timestamp casts 24H -> D
+        expected = s.to_timestamp().resample(end_freq, base=base).mean()
+        assert_series_equal(result, expected)
