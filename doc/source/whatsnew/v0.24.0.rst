@@ -25,6 +25,7 @@ New features
   dataframe's indexes from the resulting Parquet file. (:issue:`20768`)
 - :meth:`DataFrame.corr` and :meth:`Series.corr` now accept a callable for generic calculation methods of correlation, e.g. histogram intersection (:issue:`22684`)
 - :func:`DataFrame.to_string` now accepts ``decimal`` as an argument, allowing the user to specify which decimal separator should be used in the output. (:issue:`23614`)
+- :func:`DataFrame.read_feather` now accepts ``columns`` as an argument, allowing the user to specify which columns should be read. (:issue:`24025`)
 
 .. _whatsnew_0240.values_api:
 
@@ -1117,7 +1118,7 @@ Deprecations
 - The methods :meth:`Series.str.partition` and :meth:`Series.str.rpartition` have deprecated the ``pat`` keyword in favor of ``sep`` (:issue:`22676`)
 - Deprecated the `nthreads` keyword of :func:`pandas.read_feather` in favor of
   `use_threads` to reflect the changes in pyarrow 0.11.0. (:issue:`23053`)
-- :meth:`ExtensionArray._formatting_values` is deprecated. Use `ExtensionArray._formatter` instead. (:issue:`23601`)
+- :meth:`ExtensionArray._formatting_values` is deprecated. Use :attr:`ExtensionArray._formatter` instead. (:issue:`23601`)
 - :func:`pandas.read_excel` has deprecated accepting ``usecols`` as an integer. Please pass in a list of ints from 0 to ``usecols`` inclusive instead (:issue:`23527`)
 - Constructing a :class:`TimedeltaIndex` from data with ``datetime64``-dtyped data is deprecated, will raise ``TypeError`` in a future version (:issue:`23539`)
 - Constructing a :class:`DatetimeIndex` from data with ``timedelta64``-dtyped data is deprecated, will raise ``TypeError`` in a future version (:issue:`23675`)
@@ -1127,6 +1128,7 @@ Deprecations
 - :func:`pandas.types.is_period` is deprecated in favor of `pandas.types.is_period_dtype` (:issue:`23917`)
 - :func:`pandas.types.is_datetimetz` is deprecated in favor of `pandas.types.is_datetime64tz` (:issue:`23917`)
 - Creating a :class:`TimedeltaIndex` or :class:`DatetimeIndex` by passing range arguments `start`, `end`, and `periods` is deprecated in favor of :func:`timedelta_range` and :func:`date_range` (:issue:`23919`)
+- Passing a string alias like ``'datetime64[ns, UTC]'`` as the `unit` parameter to :class:`DatetimeTZDtype` is deprecated. Use :class:`DatetimeTZDtype.construct_from_string` instead (:issue:`23990`).
 
 .. _whatsnew_0240.deprecations.datetimelike_int_ops:
 
@@ -1543,6 +1545,7 @@ Reshaping
 - Bug in :meth:`DataFrame.append` with a :class:`Series` with a dateutil timezone would raise a ``TypeError`` (:issue:`23682`)
 - Bug in ``Series`` construction when passing no data and ``dtype=str`` (:issue:`22477`)
 - Bug in :func:`cut` with ``bins`` as an overlapping ``IntervalIndex`` where multiple bins were returned per item instead of raising a ``ValueError`` (:issue:`23980`)
+- Bug in :meth:`DataFrame.join` when joining on partial MultiIndex would drop names (:issue:`20452`).
 
 .. _whatsnew_0240.bug_fixes.sparse:
 

@@ -1,5 +1,6 @@
 """ define extension dtypes """
 import re
+import warnings
 
 import numpy as np
 import pytz
@@ -492,8 +493,6 @@ class DatetimeTZDtype(PandasExtensionDtype, ExtensionDtype):
     _metadata = ('unit', 'tz')
     _match = re.compile(r"(datetime64|M8)\[(?P<unit>.+), (?P<tz>.+)\]")
     _cache = {}
-    # TODO: restore caching? who cares though? It seems needlessly complex.
-    # np.dtype('datetime64[ns]') isn't a singleton
 
     def __init__(self, unit="ns", tz=None):
         """
@@ -524,7 +523,20 @@ class DatetimeTZDtype(PandasExtensionDtype, ExtensionDtype):
             unit, tz = unit.unit, unit.tz
 
         if unit != 'ns':
-            raise ValueError("DatetimeTZDtype only supports ns units")
+            if isinstance(unit, compat.string_types) and tz is None:
+                # maybe a string like datetime64[ns, tz], which we support for
+                # now.
+                result = type(self).construct_from_string(unit)
+                unit = result.unit
+                tz = result.tz
+                msg = (
+                    "Passing a dtype alias like 'datetime64[ns, {tz}]' "
+                    "to DatetimeTZDtype is deprecated. Use "
+                    "'DatetimeTZDtype.construct_from_string()' instead."
+                )
+                warnings.warn(msg.format(tz=tz), FutureWarning, stacklevel=2)
+            else:
+                raise ValueError("DatetimeTZDtype only supports ns units")
 
         if tz:
             tz = timezones.maybe_get_tz(tz)
@@ -575,7 +587,7 @@ class DatetimeTZDtype(PandasExtensionDtype, ExtensionDtype):
         >>> DatetimeTZDtype.construct_from_string('datetime64[ns, UTC]')
         datetime64[ns, UTC]
         """
-        msg = "Could not construct DatetimeTZDtype from {}"
+        msg = "Could not construct DatetimeTZDtype from '{}'"
         try:
             match = cls._match.match(string)
             if match:

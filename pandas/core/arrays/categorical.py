@@ -501,7 +501,7 @@ class Categorical(ExtensionArray, PandasObject):
         return Categorical(scalars, dtype=dtype)
 
     def _formatter(self, boxed=False):
-        # backwards compat with old printing.
+        # Defer to CategoricalFormatter's formatter.
         return None
 
     def copy(self):

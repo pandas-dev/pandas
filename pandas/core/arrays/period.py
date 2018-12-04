@@ -755,6 +755,9 @@ class PeriodArray(dtl.DatetimeLikeArrayMixin,
                                     .format(cls=type(self).__name__,
                                             freqstr=self.freqstr))
 
+    def _values_for_argsort(self):
+        return self._data
+
 
 PeriodArray._add_comparison_ops()
 PeriodArray._add_datetimelike_methods()
