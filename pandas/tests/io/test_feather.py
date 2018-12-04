@@ -26,13 +26,16 @@ class TestFeather(object):
             with ensure_clean() as path:
                 to_feather(df, path)
 
-    def check_round_trip(self, df, **kwargs):
+    def check_round_trip(self, df, expected=None, **kwargs):
+
+        if expected is None:
+            expected = df
 
         with ensure_clean() as path:
             to_feather(df, path)
 
             result = read_feather(path, **kwargs)
-            assert_frame_equal(result, df)
+            assert_frame_equal(result, expected)
 
     def test_error(self):
 
@@ -73,6 +76,16 @@ class TestFeather(object):
 
         df = pd.DataFrame(np.arange(12).reshape(4, 3)).copy()
         self.check_error_on_write(df, ValueError)
+
+    def test_read_columns(self):
+        # GH 24025
+        df = pd.DataFrame({'col1': list('abc'),
+                           'col2': list(range(1, 4)),
+                           'col3': list('xyz'),
+                           'col4': list(range(4, 7))})
+        columns = ['col1', 'col3']
+        self.check_round_trip(df, expected=df[columns],
+                              columns=columns)
 
     def test_unsupported_other(self):
 
