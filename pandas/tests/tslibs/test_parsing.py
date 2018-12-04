@@ -5,6 +5,7 @@ Tests for Timestamp parsing, aimed at pandas/_libs/tslibs/parsing.pyx
 from datetime import datetime
 
 from dateutil.parser import parse
+from dateutil.tz import gettz
 import numpy as np
 import pytest
 
@@ -43,6 +44,18 @@ class TestParseQuarters(object):
 
 
 class TestDatetimeParsingWrappers(object):
+    def test_parse_with_tzinfos(self):
+        CST = gettz("US/Central")
+        tzinfos = {"CST": CST}
+
+        result = parsing.parse_datetime_string("2018-11-04 3:45 PM CST",
+                                               tzinfos=tzinfos)
+        # Note: We check similar parsing for to_datetime and
+        #  Timestamp elsewhere
+
+        # comparing using identity works for dateutil tzinfos, not pytz
+        assert result.tzinfo is CST
+
     def test_does_not_convert_mixed_integer(self):
         bad_date_strings = ('-50000', '999', '123.1234', 'm', 'T')
 
