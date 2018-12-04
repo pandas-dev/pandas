@@ -4338,16 +4338,8 @@ class NDFrame(PandasObject, SelectionMixin):
             passed MultiIndex level
         limit : int, default None
             Maximum number of consecutive elements to forward or backward fill
-        tolerance : optional
-            Maximum distance between original and new labels for inexact
-            matches. The values of the index at the matching locations most
-            satisfy the equation ``abs(index[indexer] - target) <= tolerance``.
-
-            Tolerance may be a scalar value, which applies the same tolerance
-            to all values, or list-like, which applies variable tolerance per
-            element. List-like includes list, tuple, array, Series, and must be
-            the same size as the index and its dtype must exactly match the
-            index's type.
+        fill_value : float, default NaN
+            Value used to fill in locations having no value in the previous index.
 
             .. versionadded:: 0.21.0 (list-like tolerance)
 
