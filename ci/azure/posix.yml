@@ -57,7 +57,7 @@ jobs:
     - task: PublishTestResults@2
       inputs:
         testResultsFiles: 'test-data-*.xml'
-        testRunTitle: ${{ concat(parameters.name, '-$(CONDA_PY)') }}
+        testRunTitle: ${{ format('{0}-$(CONDA_PY)', parameters.name) }}
     - powershell: |
         $junitXml = "test-data-single.xml"
         $(Get-Content $junitXml | Out-String) -match 'failures="(.*?)"'
