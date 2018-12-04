@@ -1015,12 +1015,6 @@ class TestSeriesAnalytics(object):
 
     def test_cummethods_bool(self):
         # GH 6270
-        # looks like a buggy np.maximum.accumulate for numpy 1.6.1, py 3.2
-        def cummin(x):
-            return np.minimum.accumulate(x)
-
-        def cummax(x):
-            return np.maximum.accumulate(x)
 
         a = pd.Series([False, False, False, True, True, False, False])
         b = ~a
@@ -1028,8 +1022,8 @@ class TestSeriesAnalytics(object):
         d = ~c
         methods = {'cumsum': np.cumsum,
                    'cumprod': np.cumprod,
-                   'cummin': cummin,
-                   'cummax': cummax}
+                   'cummin': np.minimum.accumulate,
+                   'cummax': np.maximum.accumulate}
         args = product((a, b, c, d), methods)
         for s, method in args:
             expected = Series(methods[method](s.values))
@@ -2104,7 +2098,7 @@ class TestCategoricalSeriesAnalytics(object):
         "dtype",
         ["int_", "uint", "float_", "unicode_", "timedelta64[h]",
          pytest.param("datetime64[D]",
-                      marks=pytest.mark.xfail(reason="GH#7996", strict=True))]
+                      marks=pytest.mark.xfail(reason="GH#7996"))]
     )
     @pytest.mark.parametrize("is_ordered", [True, False])
     def test_drop_duplicates_categorical_non_bool(self, dtype, is_ordered):

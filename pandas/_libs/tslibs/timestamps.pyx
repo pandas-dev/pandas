@@ -26,8 +26,7 @@ from conversion import tz_localize_to_utc, normalize_i8_timestamps
 from conversion cimport (tz_convert_single, _TSObject,
                          convert_to_tsobject, convert_datetime_to_tsobject)
 from fields import get_start_end_field, get_date_name_field
-from nattype import NaT
-from nattype cimport NPY_NAT
+from nattype cimport NPY_NAT, c_NaT as NaT
 from np_datetime import OutOfBoundsDatetime
 from np_datetime cimport (reverse_ops, cmp_scalar, check_dts_bounds,
                           npy_datetimestruct, dt64_to_dtstruct)
@@ -377,13 +376,15 @@ cdef class _Timestamp(datetime):
             neg_other = -other
             return self + neg_other
 
+        typ = getattr(other, '_typ', None)
+
         # a Timestamp-DatetimeIndex -> yields a negative TimedeltaIndex
-        elif getattr(other, '_typ', None) == 'datetimeindex':
+        if typ in ('datetimeindex', 'datetimearray'):
             # timezone comparison is performed in DatetimeIndex._sub_datelike
             return -other.__sub__(self)
 
         # a Timestamp-TimedeltaIndex -> yields a negative TimedeltaIndex
-        elif getattr(other, '_typ', None) == 'timedeltaindex':
+        elif typ in ('timedeltaindex', 'timedeltaarray'):
             return (-other).__add__(self)
 
         elif other is NaT:

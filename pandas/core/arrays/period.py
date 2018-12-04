@@ -4,8 +4,7 @@ import operator
 
 import numpy as np
 
-from pandas._libs.tslib import NaT, iNaT
-from pandas._libs.tslibs import period as libperiod
+from pandas._libs.tslibs import NaT, iNaT, period as libperiod
 from pandas._libs.tslibs.fields import isleapyear_arr
 from pandas._libs.tslibs.period import (
     DIFFERENT_FREQ_INDEX, IncompatibleFrequency, Period, get_period_field_arr,
@@ -205,7 +204,8 @@ class PeriodArray(dtl.DatetimeLikeArrayMixin, ExtensionArray):
 
     @classmethod
     def _from_datetime64(cls, data, freq, tz=None):
-        """Construct a PeriodArray from a datetime64 array
+        """
+        Construct a PeriodArray from a datetime64 array
 
         Parameters
         ----------
@@ -255,7 +255,9 @@ class PeriodArray(dtl.DatetimeLikeArrayMixin, ExtensionArray):
 
     @property
     def freq(self):
-        """Return the frequency object for this PeriodArray."""
+        """
+        Return the frequency object for this PeriodArray.
+        """
         return self.dtype.freq
 
     # --------------------------------------------------------------------
@@ -282,7 +284,9 @@ class PeriodArray(dtl.DatetimeLikeArrayMixin, ExtensionArray):
 
     @property
     def is_leap_year(self):
-        """ Logical indicating if the date belongs to a leap year """
+        """
+        Logical indicating if the date belongs to a leap year
+        """
         return isleapyear_arr(np.asarray(self.year))
 
     @property
@@ -347,7 +351,7 @@ class PeriodArray(dtl.DatetimeLikeArrayMixin, ExtensionArray):
 
     def __setitem__(
             self,
-            key,   # type: Union[int, Sequence[int], Sequence[bool]]
+            key,   # type: Union[int, Sequence[int], Sequence[bool], slice]
             value  # type: Union[NaTType, Period, Sequence[Period]]
     ):
         # type: (...) -> None
@@ -357,11 +361,14 @@ class PeriodArray(dtl.DatetimeLikeArrayMixin, ExtensionArray):
         # ndarray[datetime64ns]. I think ndarray[int] / ndarray[str] won't
         # work, since the freq can't be inferred.
         if is_list_like(value):
-            if len(key) != len(value) and not com.is_bool_indexer(key):
+            is_slice = isinstance(key, slice)
+            if (not is_slice
+                    and len(key) != len(value)
+                    and not com.is_bool_indexer(key)):
                 msg = ("shape mismatch: value array of length '{}' does not "
                        "match indexing result of length '{}'.")
                 raise ValueError(msg.format(len(key), len(value)))
-            if len(key) == 0:
+            if not is_slice and len(key) == 0:
                 return
 
             value = period_array(value)
@@ -568,7 +575,9 @@ class PeriodArray(dtl.DatetimeLikeArrayMixin, ExtensionArray):
     # Formatting
 
     def _format_native_types(self, na_rep=u'NaT', date_format=None, **kwargs):
-        """ actually format my specific types """
+        """
+        actually format my specific types
+        """
         # TODO(DatetimeArray): remove
         values = self.astype(object)
 
@@ -818,6 +827,9 @@ class PeriodArray(dtl.DatetimeLikeArrayMixin, ExtensionArray):
                                     "{cls}(freq={freqstr})"
                                     .format(cls=type(self).__name__,
                                             freqstr=self.freqstr))
+
+    def _values_for_argsort(self):
+        return self._data
 
 
 PeriodArray._add_comparison_ops()
