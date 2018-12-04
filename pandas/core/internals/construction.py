@@ -28,7 +28,8 @@ from pandas.core.dtypes.missing import isna
 
 from pandas.core import algorithms, common as com
 from pandas.core.arrays import Categorical, ExtensionArray, period_array
-from pandas.core.index import Index, _get_objs_combined_axis, ensure_index
+from pandas.core.index import (
+    Index, _get_objs_combined_axis, _union_indexes, ensure_index)
 from pandas.core.indexes import base as ibase
 from pandas.core.internals import (
     create_block_manager_from_arrays, create_block_manager_from_blocks)
@@ -285,8 +286,6 @@ def homogenize(data, index, dtype=None):
 
 
 def extract_index(data):
-    from pandas.core.index import _union_indexes
-
     index = None
     if len(data) == 0:
         index = Index([])
