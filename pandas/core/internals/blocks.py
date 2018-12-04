@@ -862,7 +862,7 @@ class Block(PandasObject):
 
         if (self._holder is not None and
                 issubclass(self._holder, ABCIndexClass)):
-            # avoid alterting Index objects in place
+            # avoid altering Index objects in place
             values = values.copy()
 
         # value must be storeable at this moment
