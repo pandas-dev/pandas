@@ -7,7 +7,8 @@ from collections import OrderedDict
 import numpy as np
 import numpy.ma as ma
 
-from pandas._libs import lib, tslibs
+from pandas._libs import lib
+from pandas._libs.tslibs import IncompatibleFrequency
 import pandas.compat as compat
 from pandas.compat import (
     get_range_parameters, lmap, lrange, raise_with_traceback, range)
@@ -652,7 +653,7 @@ def sanitize_array(data, index, dtype=None, copy=False,
         if inferred == 'period':
             try:
                 subarr = period_array(subarr)
-            except tslibs.period.IncompatibleFrequency:
+            except IncompatibleFrequency:
                 pass
 
     return subarr
