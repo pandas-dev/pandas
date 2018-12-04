@@ -559,7 +559,7 @@ def to_datetime(arg, errors='raise', dayfirst=False, yearfirst=False,
                                dayfirst=dayfirst, yearfirst=yearfirst,
                                errors=errors, exact=exact,
                                infer_datetime_format=infer_datetime_format)
-
+    
     if isinstance(arg, Timestamp):
         result = arg
     elif isinstance(arg, ABCSeries):
@@ -571,7 +571,12 @@ def to_datetime(arg, errors='raise', dayfirst=False, yearfirst=False,
             values = convert_listlike(arg._values, True, format)
             result = Series(values, index=arg.index, name=arg.name)
     elif isinstance(arg, (ABCDataFrame, MutableMapping)):
-        result = _assemble_from_unit_mappings(arg, errors=errors)
+        if not box:
+            result = _assemble_from_unit_mappings(arg, errors=errors).values
+        else:
+            result = _assemble_from_unit_mappings(arg, errors=errors)
+        if utc:
+            result = result.dt.tz_localize('UTC')
     elif isinstance(arg, ABCIndexClass):
         cache_array = _maybe_cache(arg, format, cache, convert_listlike)
         if not cache_array.empty:
@@ -588,7 +593,6 @@ def to_datetime(arg, errors='raise', dayfirst=False, yearfirst=False,
             result = convert_listlike(arg, box, format)
     else:
         result = convert_listlike(np.array([arg]), box, format)[0]
-
     return result
 
 
