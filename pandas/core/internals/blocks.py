@@ -860,11 +860,6 @@ class Block(PandasObject):
                     b = self.astype(dtype)
                     return b.setitem(indexer, value)
 
-        if (self._holder is not None and
-                issubclass(self._holder, ABCIndexClass)):
-            # GH#24096 avoid altering Index objects in place
-            values = values.copy()
-
         # value must be storeable at this moment
         arr_value = np.array(value)
 

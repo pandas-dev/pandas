@@ -470,6 +470,7 @@ class DataFrame(NDFrame):
         Segregate Series based on type and coerce into matrices.
         Needs to handle a lot of exceptional cases.
         """
+
         if columns is not None:
             arrays = Series(data, index=columns, dtype=object)
             data_names = arrays.index
@@ -494,6 +495,11 @@ class DataFrame(NDFrame):
                 arrays.loc[missing] = [v] * missing.sum()
 
         else:
+            for key in data:
+                if isinstance(data[key], ABCIndexClass):
+                    # GH#24096 need copy to be deep for datetime64tz case
+                    data[key] = data[key].copy(deep=True)
+
             keys = com.dict_keys_to_ordered_list(data)
             columns = data_names = Index(keys)
             arrays = [data[k] for k in keys]
@@ -556,7 +562,6 @@ class DataFrame(NDFrame):
         # by definition an array here
         # the dtypes will be coerced to a single dtype
         values = _prep_ndarray(values, copy=copy)
-
         if dtype is not None:
             if not is_dtype_equal(values.dtype, dtype):
                 try:
