@@ -1,9 +1,11 @@
-import warnings
 from importlib import import_module
 
 import numpy as np
+
 import pandas as pd
 from pandas.util import testing as tm
+
+from .pandas_vb_common import setup  # noqa: F401
 
 for imp in ['pandas.util', 'pandas.tools.hashing']:
     try:
@@ -73,10 +75,6 @@ class Match(object):
         self.uniques = tm.makeStringIndex(1000).values
         self.all = self.uniques.repeat(10)
 
-    def time_match_string(self):
-        with warnings.catch_warnings(record=True):
-            pd.match(self.all, self.uniques)
-
 
 class Hashing(object):
 
@@ -114,6 +112,3 @@ class Hashing(object):
 
     def time_series_dates(self, df):
         hashing.hash_pandas_object(df['dates'])
-
-
-from .pandas_vb_common import setup  # noqa: F401
