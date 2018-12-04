@@ -190,17 +190,17 @@ class TestSeriesLogicalOps(object):
         operator.and_,
         operator.or_,
         operator.xor,
-        # pytest.param(ops.rand_,
-        #              marks=pytest.mark.xfail(reason="GH#22092 Index "
-        #                                             "implementation returns "
-        #                                             "Index",
-        #                                      raises=AssertionError,
-        #                                      strict=True)),
-        # pytest.param(ops.ror_,
-        #              marks=pytest.mark.xfail(reason="Index.get_indexer "
-        #                                             "with non unique index",
-        #                                      raises=InvalidIndexError,
-        #                                      strict=True)),
+        pytest.param(ops.rand_,
+                     marks=pytest.mark.xfail(reason="GH#22092 Index "
+                                                    "implementation returns "
+                                                    "Index",
+                                             raises=AssertionError,
+                                             strict=True)),
+        pytest.param(ops.ror_,
+                     marks=pytest.mark.xfail(reason="Index.get_indexer "
+                                                    "with non unique index",
+                                             raises=InvalidIndexError,
+                                             strict=True)),
         # pytest.param(ops.rxor,
         #              marks=pytest.mark.xfail(reason="GH#22092 Index "
         #                                             "implementation raises",

@@ -267,7 +267,8 @@ class TestDatetimeIndexSetOps(object):
         empty = Index([])
 
         result = dti.union(empty)
-        tm.assert_index_equal(result, dti.astype('O'))
+        expected = dti.astype('O')
+        tm.assert_index_equal(result, expected)
 
         result = dti.join(empty)
         assert isinstance(result, DatetimeIndex)

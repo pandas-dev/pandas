@@ -2251,10 +2251,10 @@ class Index(IndexOpsMixin, PandasObject):
         Casts this and other index to object dtype to allow the formation
         of a union between incompatible types.
         """
-        this = self.astype('O')
+        this = self.astype(object)
         # call Index for when `other` is list-like
-        other = Index(other).astype('O')
-        return Index.union(this, other).astype('O')
+        other = Index(other).astype(object)
+        return Index.union(this, other).astype(object)
 
     def _is_compatible_with_other(self, other):
         """
@@ -2300,20 +2300,13 @@ class Index(IndexOpsMixin, PandasObject):
         Specific union logic should go here. In subclasses union behavior
         should be overwritten here rather than in `self.union`
         """
-        if len(self) == 0:
-            return other._get_reconciled_name_object(self)
-        elif len(other) == 0:
-            return self._get_reconciled_name_object(other)
-        elif self.equals(other):
-            return self._get_reconciled_name_object(other)
-
         self._assert_can_do_setop(other)
         other = ensure_index(other)
 
-        if len(other) == 0 or self.equals(other):
+        if not len(other) or self.equals(other):
             return self._get_reconciled_name_object(other)
 
-        if len(self) == 0:
+        if not len(self):
             return other._get_reconciled_name_object(self)
 
         # TODO(EA): setops-refactor, clean all this up

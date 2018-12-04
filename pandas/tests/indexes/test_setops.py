@@ -13,7 +13,7 @@ from pandas.core.dtypes.common import is_dtype_equal
 from pandas.core.dtypes.dtypes import (
     PeriodDtype, CategoricalDtype, IntervalDtype)
 
-from pandas.tests.indexes.conftest import index_factory
+from pandas.tests.indexes.conftest import indices
 
 
 COMPATIBLE_INCONSISTENT_PAIRS = {
@@ -21,25 +21,22 @@ COMPATIBLE_INCONSISTENT_PAIRS = {
 }
 
 
-def test_union_same_types(index_factory):
+def test_union_same_types(indices):
     # Union with a non-unique, non-monotonic index raises error
     # Only needed for bool index factory
-    idx1 = index_factory(10).sort_values()
-    idx2 = index_factory(20).sort_values()
+    idx1 = indices.sort_values()
+    idx2 = indices.sort_values()
     assert idx1.union(idx2).dtype == idx1.dtype
 
     # Note: catIndex reflects only left dtype, should it reflect both?
 
 
 @pytest.mark.parametrize(
-    'idxfactory1,idxfactory2',
-    list(it.combinations(index_factory._pytestfixturefunction.params, 2))
+    'idx1,idx2',
+    list(it.combinations(indices._pytestfixturefunction.params, 2))
 )
-def test_union_different_types(idxfactory1, idxfactory2):
+def test_union_different_types(idx1, idx2):
     # GH 23525
-    idx1 = idxfactory1(10)
-    idx2 = idxfactory2(20)
-
     pair = tuple(sorted([type(idx1), type(idx2)], key=lambda x: str(x)))
     if pair in COMPATIBLE_INCONSISTENT_PAIRS:
         return

@@ -20,37 +20,13 @@ import pandas.util.testing as tm
                         tm.makeFloatIndex(100),
                         Index([True, False]),
                         tm.makeCategoricalIndex(100),
+                        tm.makeIntervalIndex(100),
                         Index([]),
                         MultiIndex.from_tuples(lzip(
                             ['foo', 'bar', 'baz'], [1, 2, 3])),
                         Index([0, 0, 1, 1, 2, 2])],
                 ids=lambda x: type(x).__name__)
 def indices(request):
-    return request.param
-
-
-def _make_repeating_index(x=10):
-    # x should be > 1
-    return Index(sorted([i for i in range(x // 2 + 1)] * 2)[:x])
-
-
-@pytest.fixture(params=[tm.makeUnicodeIndex,
-                        tm.makeStringIndex,
-                        tm.makeDateIndex,
-                        tm.makePeriodIndex,
-                        tm.makeTimedeltaIndex,
-                        tm.makeIntIndex,
-                        tm.makeUIntIndex,
-                        tm.makeRangeIndex,
-                        tm.makeFloatIndex,
-                        lambda x=10: Index(np.random.choice([True, False], x)),
-                        tm.makeCategoricalIndex,
-                        lambda x=None: Index([]),
-                        tm.makeMultiIndex,
-                        _make_repeating_index,
-                        tm.makeIntervalIndex],
-                ids=lambda x: type(x).__name__)
-def index_factory(request):
     return request.param
 
 
