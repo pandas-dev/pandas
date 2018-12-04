@@ -503,7 +503,7 @@ class PeriodIndex(DatelikeOps, DatetimeIndexOpsMixin, Int64Index,
 
     @property
     def _formatter_func(self):
-        return lambda x: "'%s'" % x
+        return self.array._formatter(boxed=False)
 
     def asof_locs(self, where, mask):
         """
