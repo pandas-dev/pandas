@@ -385,7 +385,7 @@ class Categorical(ExtensionArray, PandasObject):
             values = maybe_infer_to_datetimelike(values, convert_dates=True)
             if not isinstance(values, np.ndarray):
                 values = _convert_to_list_like(values)
-                from pandas.core.series import sanitize_array
+                from pandas.core.internals.construction import sanitize_array
                 # By convention, empty lists result in object dtype:
                 if len(values) == 0:
                     sanitize_dtype = 'object'
@@ -2442,7 +2442,7 @@ class Categorical(ExtensionArray, PandasObject):
         >>> s.isin(['lama'])
         array([ True, False,  True, False,  True, False])
         """
-        from pandas.core.series import sanitize_array
+        from pandas.core.internals.construction import sanitize_array
         if not is_list_like(values):
             raise TypeError("only list-like objects are allowed to be passed"
                             " to isin(), you passed a [{values_type}]"

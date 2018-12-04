@@ -384,7 +384,7 @@ class DataFrame(NDFrame):
             mgr = self._init_mgr(data, axes=dict(index=index, columns=columns),
                                  dtype=dtype, copy=copy)
         elif isinstance(data, dict):
-            mgr = self._init_dict(data, index, columns, dtype=dtype)
+            mgr = init_dict(data, index, columns, dtype=dtype)
         elif isinstance(data, ma.MaskedArray):
             import numpy.ma.mrecords as mrecords
             # masked recarray
@@ -400,8 +400,8 @@ class DataFrame(NDFrame):
                     data[mask] = fill_value
                 else:
                     data = data.copy()
-                mgr = self._init_ndarray(data, index, columns, dtype=dtype,
-                                         copy=copy)
+                mgr = init_ndarray(data, index, columns, dtype=dtype,
+                                   copy=copy)
 
         elif isinstance(data, (np.ndarray, Series, Index)):
             if data.dtype.names:
@@ -409,13 +409,13 @@ class DataFrame(NDFrame):
                 data = {k: data[k] for k in data_columns}
                 if columns is None:
                     columns = data_columns
-                mgr = self._init_dict(data, index, columns, dtype=dtype)
+                mgr = init_dict(data, index, columns, dtype=dtype)
             elif getattr(data, 'name', None) is not None:
-                mgr = self._init_dict({data.name: data}, index, columns,
-                                      dtype=dtype)
+                mgr = init_dict({data.name: data}, index, columns,
+                                dtype=dtype)
             else:
-                mgr = self._init_ndarray(data, index, columns, dtype=dtype,
-                                         copy=copy)
+                mgr = init_ndarray(data, index, columns, dtype=dtype,
+                                   copy=copy)
 
         # For data is list-like, or Iterable (will consume into list)
         elif (isinstance(data, compat.Iterable)
@@ -441,10 +441,10 @@ class DataFrame(NDFrame):
                     mgr = arrays_to_mgr(arrays, columns, index, columns,
                                         dtype=dtype)
                 else:
-                    mgr = self._init_ndarray(data, index, columns, dtype=dtype,
-                                             copy=copy)
+                    mgr = init_ndarray(data, index, columns, dtype=dtype,
+                                       copy=copy)
             else:
-                mgr = self._init_dict({}, index, columns, dtype=dtype)
+                mgr = init_dict({}, index, columns, dtype=dtype)
         else:
             try:
                 arr = np.array(data, dtype=dtype, copy=copy)
@@ -456,8 +456,8 @@ class DataFrame(NDFrame):
             if arr.ndim == 0 and index is not None and columns is not None:
                 values = cast_scalar_to_array((len(index), len(columns)),
                                               data, dtype=dtype)
-                mgr = self._init_ndarray(values, index, columns,
-                                         dtype=values.dtype, copy=False)
+                mgr = init_ndarray(values, index, columns,
+                                   dtype=values.dtype, copy=False)
             else:
                 raise ValueError('DataFrame constructor not properly called!')
 

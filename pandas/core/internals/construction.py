@@ -37,6 +37,7 @@ from pandas.core.internals import (
 # ---------------------------------------------------------------------
 # BlockManager Interface
 
+
 def arrays_to_mgr(arrays, arr_names, index, columns, dtype=None):
     """
     Segregate Series based on type and coerce into matrices.
@@ -50,7 +51,7 @@ def arrays_to_mgr(arrays, arr_names, index, columns, dtype=None):
         index = ensure_index(index)
 
     # don't force copy because getting jammed in an ndarray anyway
-    arrays = homogenize(arrays, index, dtype)
+    arrays = _homogenize(arrays, index, dtype)
 
     # from BlockManager perspective
     axes = [ensure_index(columns), index]
@@ -116,21 +117,6 @@ def init_ndarray(values, index, columns, dtype=None, copy=False):
         if not len(values) and columns is not None and len(columns):
             values = np.empty((0, 1), dtype=object)
 
-    # helper to create the axes as indexes
-    def _get_axes(N, K, index=index, columns=columns):
-        # return axes or defaults
-
-        if index is None:
-            index = ibase.default_index(N)
-        else:
-            index = ensure_index(index)
-
-        if columns is None:
-            columns = ibase.default_index(K)
-        else:
-            columns = ensure_index(columns)
-        return index, columns
-
     # we could have a categorical type passed or coerced to 'category'
     # recast this to an arrays_to_mgr
     if (is_categorical_dtype(getattr(values, 'dtype', None)) or
@@ -142,7 +128,7 @@ def init_ndarray(values, index, columns, dtype=None, copy=False):
         elif copy:
             values = values.copy()
 
-        index, columns = _get_axes(len(values), 1)
+        index, columns = _get_axes(len(values), 1, index, columns)
         return arrays_to_mgr([values], columns, index, columns,
                              dtype=dtype)
     elif (is_datetime64tz_dtype(values) or
@@ -167,7 +153,7 @@ def init_ndarray(values, index, columns, dtype=None, copy=False):
                                                      orig=orig))
                 raise_with_traceback(e)
 
-    index, columns = _get_axes(*values.shape)
+    index, columns = _get_axes(*values.shape, index=index, columns=columns)
     values = values.T
 
     # if we don't have a dtype specified, then try to convert objects
@@ -255,7 +241,7 @@ def prep_ndarray(values, copy=True):
     return values
 
 
-def homogenize(data, index, dtype=None):
+def _homogenize(data, index, dtype=None):
     oindex = None
     homogenized = []
 
@@ -363,6 +349,22 @@ def get_names_from_index(data):
     return index
 
 
+def _get_axes(N, K, index, columns):
+    # helper to create the axes as indexes
+    # return axes or defaults
+
+    if index is None:
+        index = ibase.default_index(N)
+    else:
+        index = ensure_index(index)
+
+    if columns is None:
+        columns = ibase.default_index(K)
+    else:
+        columns = ensure_index(columns)
+    return index, columns
+
+
 # ---------------------------------------------------------------------
 # Conversion of Inputs to Arrays
 
@@ -387,15 +389,15 @@ def to_arrays(data, columns, coerce_float=False, dtype=None):
                 return [[]] * len(columns), columns
         return [], []  # columns if columns is not None else []
     if isinstance(data[0], (list, tuple)):
-        return list_to_arrays(data, columns, coerce_float=coerce_float,
-                              dtype=dtype)
+        return _list_to_arrays(data, columns, coerce_float=coerce_float,
+                               dtype=dtype)
     elif isinstance(data[0], compat.Mapping):
-        return list_of_dict_to_arrays(data, columns,
-                                      coerce_float=coerce_float, dtype=dtype)
+        return _list_of_dict_to_arrays(data, columns,
+                                       coerce_float=coerce_float, dtype=dtype)
     elif isinstance(data[0], ABCSeries):
-        return list_of_series_to_arrays(data, columns,
-                                        coerce_float=coerce_float,
-                                        dtype=dtype)
+        return _list_of_series_to_arrays(data, columns,
+                                         coerce_float=coerce_float,
+                                         dtype=dtype)
     elif isinstance(data[0], Categorical):
         if columns is None:
             columns = ibase.default_index(len(data))
@@ -409,21 +411,21 @@ def to_arrays(data, columns, coerce_float=False, dtype=None):
     else:
         # last ditch effort
         data = lmap(tuple, data)
-        return list_to_arrays(data, columns, coerce_float=coerce_float,
-                              dtype=dtype)
+        return _list_to_arrays(data, columns, coerce_float=coerce_float,
+                               dtype=dtype)
 
 
-def list_to_arrays(data, columns, coerce_float=False, dtype=None):
+def _list_to_arrays(data, columns, coerce_float=False, dtype=None):
     if len(data) > 0 and isinstance(data[0], tuple):
         content = list(lib.to_object_array_tuples(data).T)
     else:
         # list of lists
         content = list(lib.to_object_array(data).T)
-    return convert_object_array(content, columns, dtype=dtype,
-                                coerce_float=coerce_float)
+    return _convert_object_array(content, columns, dtype=dtype,
+                                 coerce_float=coerce_float)
 
 
-def list_of_series_to_arrays(data, columns, coerce_float=False, dtype=None):
+def _list_of_series_to_arrays(data, columns, coerce_float=False, dtype=None):
     if columns is None:
         columns = _get_objs_combined_axis(data, sort=False)
 
@@ -447,13 +449,13 @@ def list_of_series_to_arrays(data, columns, coerce_float=False, dtype=None):
 
     if values.dtype == np.object_:
         content = list(values.T)
-        return convert_object_array(content, columns, dtype=dtype,
-                                    coerce_float=coerce_float)
+        return _convert_object_array(content, columns, dtype=dtype,
+                                     coerce_float=coerce_float)
     else:
         return values.T, columns
 
 
-def list_of_dict_to_arrays(data, columns, coerce_float=False, dtype=None):
+def _list_of_dict_to_arrays(data, columns, coerce_float=False, dtype=None):
     if columns is None:
         gen = (list(x.keys()) for x in data)
         sort = not any(isinstance(d, OrderedDict) for d in data)
@@ -464,11 +466,11 @@ def list_of_dict_to_arrays(data, columns, coerce_float=False, dtype=None):
     data = [(type(d) is dict) and d or dict(d) for d in data]
 
     content = list(lib.dicts_to_array(data, list(columns)).T)
-    return convert_object_array(content, columns, dtype=dtype,
-                                coerce_float=coerce_float)
+    return _convert_object_array(content, columns, dtype=dtype,
+                                 coerce_float=coerce_float)
 
 
-def convert_object_array(content, columns, coerce_float=False, dtype=None):
+def _convert_object_array(content, columns, coerce_float=False, dtype=None):
     if columns is None:
         columns = ibase.default_index(len(content))
     else:
@@ -539,45 +541,6 @@ def sanitize_array(data, index, dtype=None, copy=False,
         else:
             data = data.copy()
 
-    def _try_cast(arr, take_fast_path):
-
-        # perf shortcut as this is the most common case
-        if take_fast_path:
-            if maybe_castable(arr) and not copy and dtype is None:
-                return arr
-
-        try:
-            # GH#15832: Check if we are requesting a numeric dype and
-            # that we can convert the data to the requested dtype.
-            if is_integer_dtype(dtype):
-                subarr = maybe_cast_to_integer_array(arr, dtype)
-
-            subarr = maybe_cast_to_datetime(arr, dtype)
-            # Take care in creating object arrays (but iterators are not
-            # supported):
-            if is_object_dtype(dtype) and (is_list_like(subarr) and
-                                           not (is_iterator(subarr) or
-                                           isinstance(subarr, np.ndarray))):
-                subarr = construct_1d_object_array_from_listlike(subarr)
-            elif not is_extension_type(subarr):
-                subarr = construct_1d_ndarray_preserving_na(subarr, dtype,
-                                                            copy=copy)
-        except (ValueError, TypeError):
-            if is_categorical_dtype(dtype):
-                # We *do* allow casting to categorical, since we know
-                # that Categorical is the only array type for 'category'.
-                subarr = Categorical(arr, dtype.categories,
-                                     ordered=dtype.ordered)
-            elif is_extension_array_dtype(dtype):
-                # create an extension array from its dtype
-                array_type = dtype.construct_array_type()._from_sequence
-                subarr = array_type(arr, dtype=dtype, copy=copy)
-            elif dtype is not None and raise_cast_failure:
-                raise
-            else:
-                subarr = np.array(arr, dtype=object, copy=copy)
-        return subarr
-
     # GH#846
     if isinstance(data, (np.ndarray, Index, ABCSeries)):
 
@@ -587,11 +550,12 @@ def sanitize_array(data, index, dtype=None, copy=False,
             # possibility of nan -> garbage
             if is_float_dtype(data.dtype) and is_integer_dtype(dtype):
                 if not isna(data).any():
-                    subarr = _try_cast(data, True)
+                    subarr = _try_cast(data, True, dtype, copy,
+                                       raise_cast_failure)
                 elif copy:
                     subarr = data.copy()
             else:
-                subarr = _try_cast(data, True)
+                subarr = _try_cast(data, True, dtype, copy, raise_cast_failure)
         elif isinstance(data, Index):
             # don't coerce Index types
             # e.g. indexes can have different conversions (so don't fast path
@@ -601,7 +565,7 @@ def sanitize_array(data, index, dtype=None, copy=False,
         else:
 
             # we will try to copy be-definition here
-            subarr = _try_cast(data, True)
+            subarr = _try_cast(data, True, dtype, copy, raise_cast_failure)
 
     elif isinstance(data, ExtensionArray):
         subarr = data
@@ -616,7 +580,8 @@ def sanitize_array(data, index, dtype=None, copy=False,
     elif isinstance(data, (list, tuple)) and len(data) > 0:
         if dtype is not None:
             try:
-                subarr = _try_cast(data, False)
+                subarr = _try_cast(data, False, dtype, copy,
+                                   raise_cast_failure)
             except Exception:
                 if raise_cast_failure:  # pragma: no cover
                     raise
@@ -632,9 +597,9 @@ def sanitize_array(data, index, dtype=None, copy=False,
         # GH#16804
         start, stop, step = get_range_parameters(data)
         arr = np.arange(start, stop, step, dtype='int64')
-        subarr = _try_cast(arr, False)
+        subarr = _try_cast(arr, False, dtype, copy, raise_cast_failure)
     else:
-        subarr = _try_cast(data, False)
+        subarr = _try_cast(data, False, dtype, copy, raise_cast_failure)
 
     # scalar like, GH
     if getattr(subarr, 'ndim', 0) == 0:
@@ -690,4 +655,44 @@ def sanitize_array(data, index, dtype=None, copy=False,
             except tslibs.period.IncompatibleFrequency:
                 pass
 
+    return subarr
+
+
+def _try_cast(arr, take_fast_path, dtype, copy, raise_cast_failure):
+
+    # perf shortcut as this is the most common case
+    if take_fast_path:
+        if maybe_castable(arr) and not copy and dtype is None:
+            return arr
+
+    try:
+        # GH#15832: Check if we are requesting a numeric dype and
+        # that we can convert the data to the requested dtype.
+        if is_integer_dtype(dtype):
+            subarr = maybe_cast_to_integer_array(arr, dtype)
+
+        subarr = maybe_cast_to_datetime(arr, dtype)
+        # Take care in creating object arrays (but iterators are not
+        # supported):
+        if is_object_dtype(dtype) and (is_list_like(subarr) and
+                                       not (is_iterator(subarr) or
+                                       isinstance(subarr, np.ndarray))):
+            subarr = construct_1d_object_array_from_listlike(subarr)
+        elif not is_extension_type(subarr):
+            subarr = construct_1d_ndarray_preserving_na(subarr, dtype,
+                                                        copy=copy)
+    except (ValueError, TypeError):
+        if is_categorical_dtype(dtype):
+            # We *do* allow casting to categorical, since we know
+            # that Categorical is the only array type for 'category'.
+            subarr = Categorical(arr, dtype.categories,
+                                 ordered=dtype.ordered)
+        elif is_extension_array_dtype(dtype):
+            # create an extension array from its dtype
+            array_type = dtype.construct_array_type()._from_sequence
+            subarr = array_type(arr, dtype=dtype, copy=copy)
+        elif dtype is not None and raise_cast_failure:
+            raise
+        else:
+            subarr = np.array(arr, dtype=object, copy=copy)
     return subarr
