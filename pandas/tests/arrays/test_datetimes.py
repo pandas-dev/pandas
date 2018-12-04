@@ -27,7 +27,6 @@ class TestDatetimeArrayComparisons(object):
         assert str(res[0].tz) == 'UTC'
         res = pd.to_datetime(df, utc=False)
         assert str(res[0].tz) != 'UTC'
-
     def test_cmp_dt64_arraylike_tznaive(self, all_compare_operators):
         # arbitrary tz-naive DatetimeIndex
         opname = all_compare_operators.strip('_')
