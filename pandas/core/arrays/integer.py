@@ -58,6 +58,11 @@ class _IntegerDtype(ExtensionDtype):
     def kind(self):
         return self.numpy_dtype.kind
 
+    @cache_readonly
+    def itemsize(self):
+        """ Return the number of bytes in this dtype """
+        return self.numpy_dtype.itemsize
+
     @classmethod
     def construct_array_type(cls):
         """Return the array type associated with this dtype
@@ -386,7 +391,8 @@ class IntegerArray(ExtensionArray, ExtensionOpsMixin):
         return cls(data, mask)
 
     def astype(self, dtype, copy=True):
-        """Cast to a NumPy array or IntegerArray with 'dtype'.
+        """
+        Cast to a NumPy array or IntegerArray with 'dtype'.
 
         Parameters
         ----------
