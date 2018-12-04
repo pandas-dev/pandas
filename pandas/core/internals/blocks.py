@@ -860,6 +860,11 @@ class Block(PandasObject):
                     b = self.astype(dtype)
                     return b.setitem(indexer, value)
 
+        if (self._holder is not None and
+                issubclass(self._holder, ABCIndexClass)):
+            # avoid alterting Index objects in place
+            values = values.copy()
+
         # value must be storeable at this moment
         arr_value = np.array(value)
 
@@ -2923,7 +2928,9 @@ class DatetimeTZBlock(NonConsolidatableMixIn, DatetimeBlock):
             # allow passing of > 1dim if its trivial
             if result.ndim > 1:
                 result = result.reshape(np.prod(result.shape))
-            result = self.values._shallow_copy(result)
+
+            # new values invalidates a frequency
+            result = self.values._shallow_copy(result, freq=None)
 
         return result
 

@@ -28,6 +28,37 @@ import pandas.util.testing as tm
 
 
 class TestDataFrameBlockInternals():
+    def test_setitem_invalidates_datetime_index_freq(self):
+        # altering a datetime64tz column inplace invalidates the `freq`
+        #  attribute on the underlying DatetimeIndex
+
+        df = DataFrame({'B': date_range('20130101', periods=3,
+                                        tz='US/Eastern')})
+        assert df['B']._values.freq == 'D'
+
+        df.iloc[1, 0] = pd.NaT
+        assert df['B']._values.freq is None
+
+        ser = Series(date_range('20130101', periods=3,
+                                tz='US/Eastern'))
+        ts = ser[1]
+        dti = ser._values
+        assert dti.freq == 'D'
+        ser.iloc[1] = pd.NaT
+        assert ser._values.freq is None
+
+        # check that the DatetimeIndex was not altered in place
+        assert ser._values is not dti
+        assert dti[1] == ts
+
+    def test_dt64tz_setitem_does_not_mutate_dti(self):
+        # GH#21907
+        dti = pd.date_range('2016-01-01', periods=10, tz='US/Pacific')
+        ts = dti[0]
+        ser = pd.Series(dti)
+        ser[::3] = pd.NaT
+        assert ser[0] is pd.NaT
+        assert dti[0] == ts
 
     def test_cast_internals(self, float_frame):
         casted = DataFrame(float_frame._data, dtype=int)
