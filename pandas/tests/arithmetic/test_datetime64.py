@@ -98,6 +98,11 @@ class TestDatetime64SeriesComparison(object):
     ])
     @pytest.mark.parametrize('dtype', [None, object])
     def test_nat_comparisons_scalar(self, dtype, data, box_with_array):
+        if box_with_array is tm.to_array and dtype is object:
+            # dont bother testing ndarray comparison methods as this fails
+            #  on older numpys (since they check object identity)
+            return
+
         xbox = box_with_array if box_with_array is not pd.Index else np.ndarray
 
         left = Series(data, dtype=dtype)
@@ -354,6 +359,11 @@ class TestDatetimeIndexComparisons(object):
 
     @pytest.mark.parametrize('dtype', [None, object])
     def test_dti_cmp_nat(self, dtype, box_with_array):
+        if box_with_array is tm.to_array and dtype is object:
+            # dont bother testing ndarray comparison methods as this fails
+            #  on older numpys (since they check object identity)
+            return
+
         xbox = box_with_array if box_with_array is not pd.Index else np.ndarray
 
         left = pd.DatetimeIndex([pd.Timestamp('2011-01-01'), pd.NaT,
