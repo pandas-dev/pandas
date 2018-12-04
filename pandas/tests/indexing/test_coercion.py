@@ -566,7 +566,7 @@ class TestWhereCoercion(CoercionBase):
         (pd.Timestamp('2012-01-01'), 'datetime64[ns]'),
         (pd.Timestamp('2012-01-01', tz='US/Eastern'), np.object)],
         ids=['datetime64', 'datetime64tz'])
-    @pytest.mark.xfail(reason="where", strict=False)
+    @pytest.mark.xfail(reason="TODO-where", strict=False)
     def test_where_series_datetime64(self, fill_val, exp_dtype):
         obj = pd.Series([pd.Timestamp('2011-01-01'),
                          pd.Timestamp('2011-01-02'),

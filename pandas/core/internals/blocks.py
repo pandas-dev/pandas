@@ -3087,7 +3087,10 @@ def get_block_type(values, dtype=None):
     dtype = dtype or values.dtype
     vtype = dtype.type
 
-    if is_categorical(values):
+    if is_sparse(dtype):
+        # Need this first(ish) so that Sparse[datetime] is sparse
+        cls = ExtensionBlock
+    elif is_categorical(values):
         cls = CategoricalBlock
     elif issubclass(vtype, np.datetime64):
         assert not is_datetime64tz_dtype(values)

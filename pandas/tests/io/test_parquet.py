@@ -470,6 +470,7 @@ class TestParquetPyArrow(Base):
 
 class TestParquetFastParquet(Base):
 
+    # https://github.com/dask/fastparquet/issues/388
     @pytest.mark.xfail(reason="broke fastparquet", strict=True)
     def test_basic(self, fp, df_full):
         df = df_full

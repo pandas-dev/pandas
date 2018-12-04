@@ -152,23 +152,28 @@ class DatelikeOps(object):
                      dtype=compat.text_type)
     strftime.__doc__ = """
     Convert to Index using specified date_format.
+
     Return an Index of formatted strings specified by date_format, which
     supports the same string format as the python standard library. Details
     of the string format can be found in `python string format doc <{0}>`__
+
     Parameters
     ----------
     date_format : str
         Date format string (e.g. "%Y-%m-%d").
+
     Returns
     -------
     Index
         Index of formatted strings
+
     See Also
     --------
     to_datetime : Convert the given argument to datetime.
     DatetimeIndex.normalize : Return DatetimeIndex with times to midnight.
     DatetimeIndex.round : Round the DatetimeIndex to the specified freq.
     DatetimeIndex.floor : Floor the DatetimeIndex to the specified freq.
+
     Examples
     --------
     >>> rng = pd.date_range(pd.Timestamp("2018-03-10 09:00"),
@@ -189,6 +194,7 @@ class TimelikeOps(object):
     _round_doc = (
         """
         Perform {op} operation on the data to the specified `freq`.
+
         Parameters
         ----------
         freq : str or Offset
@@ -198,6 +204,7 @@ class TimelikeOps(object):
             a list of possible `freq` values.
         ambiguous : 'infer', bool-ndarray, 'NaT', default 'raise'
             Only relevant for DatetimeIndex:
+
             - 'infer' will attempt to infer fall dst-transition hours based on
               order
             - bool-ndarray where True signifies a DST time, False designates
@@ -206,27 +213,35 @@ class TimelikeOps(object):
             - 'NaT' will return NaT where there are ambiguous times
             - 'raise' will raise an AmbiguousTimeError if there are ambiguous
               times
+
             .. versionadded:: 0.24.0
+
         nonexistent : 'shift', 'NaT', default 'raise'
             A nonexistent time does not exist in a particular timezone
             where clocks moved forward due to DST.
+
             - 'shift' will shift the nonexistent time forward to the closest
               existing time
             - 'NaT' will return NaT where there are nonexistent times
             - 'raise' will raise an NonExistentTimeError if there are
               nonexistent times
+
             .. versionadded:: 0.24.0
+
         Returns
         -------
         DatetimeIndex, TimedeltaIndex, or Series
             Index of the same type for a DatetimeIndex or TimedeltaIndex,
             or a Series with the same index for a Series.
+
         Raises
         ------
         ValueError if the `freq` cannot be converted.
+
         Examples
         --------
         **DatetimeIndex**
+
         >>> rng = pd.date_range('1/1/2018 11:59:00', periods=3, freq='min')
         >>> rng
         DatetimeIndex(['2018-01-01 11:59:00', '2018-01-01 12:00:00',
@@ -239,7 +254,9 @@ class TimelikeOps(object):
         DatetimeIndex(['2018-01-01 12:00:00', '2018-01-01 12:00:00',
                        '2018-01-01 12:00:00'],
                       dtype='datetime64[ns]', freq=None)
+
         **Series**
+
         >>> pd.Series(rng).dt.round("H")
         0   2018-01-01 12:00:00
         1   2018-01-01 12:00:00
@@ -252,7 +269,9 @@ class TimelikeOps(object):
         DatetimeIndex(['2018-01-01 11:00:00', '2018-01-01 12:00:00',
                        '2018-01-01 12:00:00'],
                       dtype='datetime64[ns]', freq=None)
+
         **Series**
+
         >>> pd.Series(rng).dt.floor("H")
         0   2018-01-01 11:00:00
         1   2018-01-01 12:00:00
@@ -266,10 +285,11 @@ class TimelikeOps(object):
         DatetimeIndex(['2018-01-01 12:00:00', '2018-01-01 12:00:00',
                        '2018-01-01 13:00:00'],
                       dtype='datetime64[ns]', freq=None)
+
         **Series**
+
         >>> pd.Series(rng).dt.ceil("H")
         0   2018-01-01 12:00:00
-
         1   2018-01-01 12:00:00
         2   2018-01-01 13:00:00
         dtype: datetime64[ns]

@@ -5547,7 +5547,7 @@ class TestTimezones(Base):
             result = store.select_column('frame', 'index')
             assert rng.tz == result.dt.tz
 
-    @pytest.mark.xfail(reason="TODO", strict=True)
+    @pytest.mark.xfail(reason="TODO-pytables", strict=True)
     def test_timezones_fixed(self):
         with ensure_clean_store(self.path) as store:
 

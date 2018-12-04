@@ -98,12 +98,6 @@ class TestMethods(BaseDatetimeTests, base.BaseMethodsTests):
     def test_value_counts(self, all_data, dropna):
         pass
 
-    # def test_apply_simple_series(self, data):
-    #     if data.tz:
-    #         # fails without .map
-    #         raise pytest.xfail('GH-23179')
-    #     super().test_apply_simple_series(data)
-
     def test_combine_add(self, data_repeated):
         # Timestamp.__add__(Timestamp) not defined
         pass
@@ -111,16 +105,12 @@ class TestMethods(BaseDatetimeTests, base.BaseMethodsTests):
 
 class TestInterface(BaseDatetimeTests, base.BaseInterfaceTests):
 
-    @pytest.mark.xfail(reason="Figure out np.array(tz_aware)", strict=False)
     def test_array_interface(self, data):
-        # override, because np.array(data)[0] != data[0]
-        # since numpy datetime64ns scalars don't compare equal
-        # to timestmap objects.
-        result = np.array(data)
-        # even this fails, since arary(data) is *not* tz aware, and
-        # we don't compare tz-aware and tz-naive.
-        # this could work if array(data) was object-dtype with timestamps.
-        assert data[0] == result[0]
+        if data.tz:
+            # np.asarray(DTA) is currently always tz-naive.
+            pytest.skip("GH-23569")
+        else:
+            super(TestInterface, self).test_array_interface(data)
 
 
 class TestArithmeticOps(BaseDatetimeTests, base.BaseArithmeticOpsTests):
@@ -160,8 +150,7 @@ class TestArithmeticOps(BaseDatetimeTests, base.BaseArithmeticOpsTests):
     def test_error(self, data, all_arithmetic_operators):
         pass
 
-    # cc @jbrockmendel
-    @pytest.mark.xfail(reason="Not Implemented", strict=False)
+    @pytest.mark.xfail(reason="TODO-ops", strict=False)
     def test_direct_arith_with_series_returns_not_implemented(self, data):
         # Right now, we have trouble with this. Returning NotImplemented
         # fails other tests like
@@ -184,8 +173,7 @@ class TestComparisonOps(BaseDatetimeTests, base.BaseComparisonOpsTests):
         # with (some) integers, depending on the value.
         pass
 
-    # cc @jbrockmendel
-    @pytest.mark.xfail(reason="Not Implemented", strict=False)
+    @pytest.mark.xfail(reason="TODO-ops", strict=False)
     def test_direct_arith_with_series_returns_not_implemented(self, data):
         return super(
             TestComparisonOps,

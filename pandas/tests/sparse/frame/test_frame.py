@@ -573,10 +573,7 @@ class TestSparseDataFrame(SharedWithSparse):
         [0, 1],
         [1, None],
         ['a', 'b'],
-        # Currently failing in internals. make_block decides we should
-        # get a DatetimeBlock, but we want a SparseBlock.
-        pytest.param([pd.Timestamp('2017'), pd.NaT],
-                     marks=[pytest.mark.xfail(reason="TODO", strict=True)]),
+        [pd.Timestamp('2017'), pd.NaT],
         [pd.Timedelta('10s'), pd.NaT],
     ])
     def test_setitem_more(self, values):

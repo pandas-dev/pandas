@@ -171,7 +171,7 @@ def test_methods():
         assert_frame_equal(result, expected)
 
 
-@pytest.mark.xfail(reason="Who knows", strict=True)
+@pytest.mark.xfail(reason="TODO-Who knows", strict=True)
 def test_apply():
 
     g = test_frame.groupby('A')

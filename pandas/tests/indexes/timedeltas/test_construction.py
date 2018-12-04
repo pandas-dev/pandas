@@ -28,7 +28,7 @@ class TestTimedeltaIndex(object):
         tdi = TimedeltaIndex(arr, copy=False)
         assert tdi._data._data.base is arr
 
-    @pytest.mark.skip(reason="hangs?")
+    # @pytest.mark.skip(reason="hangs?")
     def test_infer_from_tdi(self):
         # GH#23539
         # fast-path for inferring a frequency if the passed data already
