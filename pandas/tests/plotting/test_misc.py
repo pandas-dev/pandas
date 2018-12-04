@@ -61,6 +61,7 @@ class TestSeriesPlots(TestPlotBase):
 @td.skip_if_no_mpl
 class TestDataFramePlots(TestPlotBase):
 
+    # This XPASSES when tested with mpl == 3.0.1
     @td.xfail_if_mpl_2_2
     @td.skip_if_no_scipy
     def test_scatter_matrix_axis(self):
