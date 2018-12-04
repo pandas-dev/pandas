@@ -862,7 +862,7 @@ class Block(PandasObject):
 
         if (self._holder is not None and
                 issubclass(self._holder, ABCIndexClass)):
-            # avoid altering Index objects in place
+            # GH#24096 avoid altering Index objects in place
             values = values.copy()
 
         # value must be storeable at this moment
@@ -2929,7 +2929,7 @@ class DatetimeTZBlock(NonConsolidatableMixIn, DatetimeBlock):
             if result.ndim > 1:
                 result = result.reshape(np.prod(result.shape))
 
-            # new values invalidates a frequency
+            # GH#24096 new values invalidates a frequency
             result = self.values._shallow_copy(result, freq=None)
 
         return result

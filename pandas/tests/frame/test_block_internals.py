@@ -29,8 +29,8 @@ import pandas.util.testing as tm
 
 class TestDataFrameBlockInternals():
     def test_setitem_invalidates_datetime_index_freq(self):
-        # altering a datetime64tz column inplace invalidates the `freq`
-        #  attribute on the underlying DatetimeIndex
+        # GH#24096 altering a datetime64tz column inplace invalidates the
+        #  `freq` attribute on the underlying DatetimeIndex
 
         df = DataFrame({'B': date_range('20130101', periods=3,
                                         tz='US/Eastern')})
@@ -52,7 +52,7 @@ class TestDataFrameBlockInternals():
         assert dti[1] == ts
 
     def test_dt64tz_setitem_does_not_mutate_dti(self):
-        # GH#21907
+        # GH#21907, GH#24096
         dti = pd.date_range('2016-01-01', periods=10, tz='US/Pacific')
         ts = dti[0]
         ser = pd.Series(dti)
