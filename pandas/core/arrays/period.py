@@ -204,7 +204,8 @@ class PeriodArray(dtl.DatetimeLikeArrayMixin, ExtensionArray):
 
     @classmethod
     def _from_datetime64(cls, data, freq, tz=None):
-        """Construct a PeriodArray from a datetime64 array
+        """
+        Construct a PeriodArray from a datetime64 array
 
         Parameters
         ----------
@@ -254,7 +255,9 @@ class PeriodArray(dtl.DatetimeLikeArrayMixin, ExtensionArray):
 
     @property
     def freq(self):
-        """Return the frequency object for this PeriodArray."""
+        """
+        Return the frequency object for this PeriodArray.
+        """
         return self.dtype.freq
 
     # --------------------------------------------------------------------
@@ -281,7 +284,9 @@ class PeriodArray(dtl.DatetimeLikeArrayMixin, ExtensionArray):
 
     @property
     def is_leap_year(self):
-        """ Logical indicating if the date belongs to a leap year """
+        """
+        Logical indicating if the date belongs to a leap year
+        """
         return isleapyear_arr(np.asarray(self.year))
 
     @property
@@ -570,7 +575,9 @@ class PeriodArray(dtl.DatetimeLikeArrayMixin, ExtensionArray):
     # Formatting
 
     def _format_native_types(self, na_rep=u'NaT', date_format=None, **kwargs):
-        """ actually format my specific types """
+        """
+        actually format my specific types
+        """
         # TODO(DatetimeArray): remove
         values = self.astype(object)
 
@@ -820,6 +827,9 @@ class PeriodArray(dtl.DatetimeLikeArrayMixin, ExtensionArray):
                                     "{cls}(freq={freqstr})"
                                     .format(cls=type(self).__name__,
                                             freqstr=self.freqstr))
+
+    def _values_for_argsort(self):
+        return self._data
 
 
 PeriodArray._add_comparison_ops()
