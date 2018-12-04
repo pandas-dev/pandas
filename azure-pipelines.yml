@@ -10,16 +10,10 @@ jobs:
     name: Linux
     vmImage: ubuntu-16.04
 
-# Windows Python 2.7 needs VC 9.0 installed, and not sure
-# how to make that a conditional task, so for now these are
-# separate templates as well
+# Windows Python 2.7 needs VC 9.0 installed, handled in the template
 - template: ci/azure/windows.yml
   parameters:
     name: Windows
-    vmImage: vs2017-win2016
-- template: ci/azure/windows-py27.yml
-  parameters:
-    name: WindowsPy27
     vmImage: vs2017-win2016
 
 - job: 'Checks_and_doc'
