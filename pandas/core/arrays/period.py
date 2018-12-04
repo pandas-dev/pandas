@@ -341,13 +341,10 @@ class PeriodArray(dtl.DatetimeLikeArrayMixin, ExtensionArray):
     # --------------------------------------------------------------------
     # Array-like / EA-Interface Methods
 
-    def __repr__(self):
-        return '<{}>\n{}\nLength: {}, dtype: {}'.format(
-            self.__class__.__name__,
-            [str(s) for s in self],
-            len(self),
-            self.dtype
-        )
+    def _formatter(self, boxed=False):
+        if boxed:
+            return str
+        return "'{}'".format
 
     def __setitem__(
             self,
@@ -827,6 +824,9 @@ class PeriodArray(dtl.DatetimeLikeArrayMixin, ExtensionArray):
                                     "{cls}(freq={freqstr})"
                                     .format(cls=type(self).__name__,
                                             freqstr=self.freqstr))
+
+    def _values_for_argsort(self):
+        return self._data
 
 
 PeriodArray._add_comparison_ops()
