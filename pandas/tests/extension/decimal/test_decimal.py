@@ -188,7 +188,8 @@ class TestMethods(BaseDecimal, base.BaseMethodsTests):
 
 
 class TestCasting(BaseDecimal, base.BaseCastingTests):
-    pass
+    pytestmark = pytest.mark.skipif(compat.PY2,
+                                    reason="Unhashble dtype in Py2.")
 
 
 class TestGroupby(BaseDecimal, base.BaseGroupbyTests):
@@ -198,6 +199,11 @@ class TestGroupby(BaseDecimal, base.BaseGroupbyTests):
 
 class TestSetitem(BaseDecimal, base.BaseSetitemTests):
     pass
+
+
+class TestPrinting(BaseDecimal, base.BasePrintingTests):
+    pytestmark = pytest.mark.skipif(compat.PY2,
+                                    reason="Unhashble dtype in Py2.")
 
 
 # TODO(extension)
@@ -379,3 +385,17 @@ def test_divmod_array(reverse, expected_div, expected_mod):
 
     tm.assert_extension_array_equal(div, expected_div)
     tm.assert_extension_array_equal(mod, expected_mod)
+
+
+def test_formatting_values_deprecated():
+    class DecimalArray2(DecimalArray):
+        def _formatting_values(self):
+            return np.array(self)
+
+    ser = pd.Series(DecimalArray2([decimal.Decimal('1.0')]))
+    # different levels for 2 vs. 3
+    check_stacklevel = compat.PY3
+
+    with tm.assert_produces_warning(DeprecationWarning,
+                                    check_stacklevel=check_stacklevel):
+        repr(ser)
