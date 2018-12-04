@@ -17,28 +17,28 @@ from cpython.datetime cimport (datetime, tzinfo,
                                PyDateTime_CheckExact, PyDateTime_IMPORT)
 PyDateTime_IMPORT
 
-from .ccalendar import DAY_SECONDS, HOUR_SECONDS
+from pandas._libs.tslibs.ccalendar import DAY_SECONDS, HOUR_SECONDS
 
-from .np_datetime cimport (
+from pandas._libs.tslibs.np_datetime cimport (
     check_dts_bounds, npy_datetimestruct, pandas_datetime_to_datetimestruct,
     _string_to_dts, npy_datetime, dt64_to_dtstruct, dtstruct_to_dt64,
     get_datetime64_unit, get_datetime64_value, pydatetime_to_dt64,
     NPY_DATETIMEUNIT, NPY_FR_ns)
-from .np_datetime import OutOfBoundsDatetime
+from pandas._libs.tslibs.np_datetime import OutOfBoundsDatetime
 
-from .util cimport (is_string_object,
-                    is_datetime64_object,
-                    is_integer_object, is_float_object)
+from pandas._libs.tslibs.util cimport (
+    is_string_object, is_datetime64_object, is_integer_object, is_float_object)
 
-from .timedeltas cimport cast_from_unit
-from .timezones cimport (is_utc, is_tzlocal, is_fixed_offset,
-                        get_utcoffset, get_dst_info,
-                        get_timezone, maybe_get_tz, tz_compare)
-from .timezones import UTC
-from .parsing import parse_datetime_string
+from pandas._libs.tslibs.timedeltas cimport cast_from_unit
+from pandas._libs.tslibs.timezones cimport (
+    is_utc, is_tzlocal, is_fixed_offset, get_utcoffset, get_dst_info,
+    get_timezone, maybe_get_tz, tz_compare)
+from pandas._libs.tslibs.timezones import UTC
+from pandas._libs.tslibs.parsing import parse_datetime_string
 
-from .nattype import nat_strings
-from .nattype cimport NPY_NAT, checknull_with_nat, c_NaT as NaT
+from pandas._libs.tslibs.nattype import nat_strings
+from pandas._libs.tslibs.nattype cimport (
+    NPY_NAT, checknull_with_nat, c_NaT as NaT)
 
 # ----------------------------------------------------------------------
 # Constants
@@ -1089,7 +1089,7 @@ cdef inline Py_ssize_t bisect_right_i8(int64_t *data,
 
 cdef inline str _render_tstamp(int64_t val):
     """ Helper function to render exception messages"""
-    from .timestamps import Timestamp
+    from pandas._libs.tslibs.timestamps import Timestamp
     return str(Timestamp(val))
 
 

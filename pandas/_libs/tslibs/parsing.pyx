@@ -29,8 +29,8 @@ from dateutil.relativedelta import relativedelta
 from dateutil.parser import DEFAULTPARSER
 from dateutil.parser import parse as du_parse
 
-from .ccalendar import MONTH_NUMBERS
-from .nattype import nat_strings, NaT
+from pandas._libs.tslibs.ccalendar import MONTH_NUMBERS
+from pandas._libs.tslibs.nattype import nat_strings, NaT
 
 # ----------------------------------------------------------------------
 # Constants

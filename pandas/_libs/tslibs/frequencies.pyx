@@ -4,9 +4,9 @@ import re
 cimport numpy as cnp
 cnp.import_array()
 
-from .util cimport is_integer_object, is_string_object
+from pandas._libs.tslibs.util cimport is_integer_object, is_string_object
 
-from .ccalendar import MONTH_NUMBERS
+from pandas._libs.tslibs.ccalendar import MONTH_NUMBERS
 
 # ----------------------------------------------------------------------
 # Constants

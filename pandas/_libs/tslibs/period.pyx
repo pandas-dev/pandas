@@ -20,7 +20,7 @@ from cpython.datetime cimport (PyDateTime_Check, PyDelta_Check, PyDate_Check,
 # import datetime C API
 PyDateTime_IMPORT
 
-from .np_datetime cimport (
+from pandas._libs.tslibs.np_datetime cimport (
     npy_datetimestruct, dtstruct_to_dt64, dt64_to_dtstruct,
     pandas_datetime_to_datetimestruct, NPY_DATETIMEUNIT, NPY_FR_D)
 
@@ -29,27 +29,29 @@ cdef extern from "src/datetime/np_datetime.h":
                                            npy_datetimestruct *d) nogil
 
 cimport pandas._libs.tslibs.util as util
-from .util cimport is_period_object, is_string_object
+from pandas._libs.tslibs.util cimport is_period_object, is_string_object
 
-from .timestamps import Timestamp, maybe_integer_op_deprecated
-from .timezones cimport is_utc, is_tzlocal, get_dst_info
-from .timedeltas import Timedelta
-from .timedeltas cimport delta_to_nanoseconds
+from pandas._libs.tslibs.timestamps import (
+    Timestamp, maybe_integer_op_deprecated)
+from pandas._libs.tslibs.timezones cimport is_utc, is_tzlocal, get_dst_info
+from pandas._libs.tslibs.timedeltas import Timedelta
+from pandas._libs.tslibs.timedeltas cimport delta_to_nanoseconds
 
 cimport pandas._libs.tslibs.ccalendar as ccalendar
-from .ccalendar cimport dayofweek, get_day_of_year, is_leapyear
-from .ccalendar import MONTH_NUMBERS
-from .conversion cimport tz_convert_utc_to_tzlocal
-from .frequencies cimport (get_freq_code, get_base_alias,
-                           get_to_timestamp_base, get_freq_str,
-                           get_rule_month)
-from .parsing import parse_time_string
-from .resolution import Resolution
-from .nattype import nat_strings
-from .nattype cimport (
+from pandas._libs.tslibs.ccalendar cimport (
+    dayofweek, get_day_of_year, is_leapyear)
+from pandas._libs.tslibs.ccalendar import MONTH_NUMBERS
+from pandas._libs.tslibs.conversion cimport tz_convert_utc_to_tzlocal
+from pandas._libs.tslibs.frequencies cimport (
+    get_freq_code, get_base_alias, get_to_timestamp_base, get_freq_str,
+    get_rule_month)
+from pandas._libs.tslibs.parsing import parse_time_string
+from pandas._libs.tslibs.resolution import Resolution
+from pandas._libs.tslibs.nattype import nat_strings
+from pandas._libs.tslibs.nattype cimport (
     _nat_scalar_rules, NPY_NAT, is_null_datetimelike, c_NaT as NaT)
-from .offsets cimport to_offset
-from .offsets import _Tick
+from pandas._libs.tslibs.offsets cimport to_offset
+from pandas._libs.tslibs.offsets import _Tick
 
 cdef bint PY2 = str == bytes
 cdef enum:
