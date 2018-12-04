@@ -1536,8 +1536,8 @@ class TimeGrouper(Grouper):
             j = -1 if self.freq.onOffset(end) else None
 
             labels = binner = PeriodIndex(start=p_start, end=p_end,
-                                      freq=self.freq,
-                                      name=ax.name)[:j]
+                                          freq=self.freq,
+                                          name=ax.name)[:j]
             start_offset = (pd.Period(start, self.freq)
                             - pd.Period(p_start, self.freq))
             # remove /freq_mult once period diff scaling bug is fixed
