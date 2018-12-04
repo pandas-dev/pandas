@@ -180,5 +180,5 @@ def test_index_names_multiple_nones():
     result, _, _ = s.to_coo()
     assert isinstance(result, sparse.coo_matrix)
     result = result.toarray()
-    expected = np.ones((2, 2), dtype=int)
+    expected = np.ones((2, 2), dtype="int64")
     tm.assert_numpy_array_equal(result, expected)
