@@ -114,7 +114,7 @@ jobs:
           ASV_OUTPUT="$(asv dev)"
           if [[ $(echo "$ASV_OUTPUT" | grep "failed") ]]; then
               echo "##vso[task.logissue type=error]Benchmarks run with errors"
-              echo $ASV_OUTPUT
+              echo "$ASV_OUTPUT"
               exit 1
           else
               echo "Benchmarks run without errors"
