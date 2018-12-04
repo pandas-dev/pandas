@@ -1,5 +1,4 @@
 import string
-import warnings
 
 import numpy as np
 import pandas.util.testing as tm
