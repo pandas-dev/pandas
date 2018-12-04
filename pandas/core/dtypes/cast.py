@@ -170,11 +170,11 @@ def maybe_upcast_putmask(result, mask, other):
 
     Parameters
     ----------
-    result : ndarray or ExtensionArray
+    result : ndarray
         The destination array. This will be mutated in-place if no upcasting is
         necessary.
     mask : boolean ndarray
-    other : ndarray, ExtensionArray, or scalar
+    other : ndarray or scalar
         The source array or value
 
     Returns
