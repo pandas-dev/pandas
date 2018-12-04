@@ -10,7 +10,6 @@ from pandas import (
     date_range, period_range)
 import pandas.util.testing as tm
 
-from .pandas_vb_common import setup  # noqa: F401
 
 method_blacklist = {
     'object': {'median', 'prod', 'sem', 'cumsum', 'sum', 'cummin', 'mean',
@@ -538,3 +537,6 @@ class TransformNaN(object):
 
     def time_first(self):
         self.df_nans.groupby('key').transform('first')
+
+
+from .pandas_vb_common import setup  # noqa: F401
