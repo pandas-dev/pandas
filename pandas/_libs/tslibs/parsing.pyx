@@ -8,7 +8,7 @@ import time
 
 from cython import Py_ssize_t
 
-from cpython.datetime cimport datetime
+from cpython.datetime cimport datetime, tzinfo
 
 
 import numpy as np
@@ -35,6 +35,8 @@ from nattype import nat_strings, NaT
 # ----------------------------------------------------------------------
 # Constants
 
+_default_tzinfos = {}
+
 
 class DateParseError(ValueError):
     pass
@@ -51,7 +53,7 @@ cdef set _not_datelike_strings = {'a', 'A', 'm', 'M', 'p', 'P', 't', 'T'}
 
 
 def parse_datetime_string(date_string, freq=None, dayfirst=False,
-                          yearfirst=False, **kwargs):
+                          yearfirst=False, tzinfos=None, **kwargs):
     """parse datetime string, only returns datetime.
     Also cares special handling matching time patterns.
 
@@ -66,10 +68,13 @@ def parse_datetime_string(date_string, freq=None, dayfirst=False,
     if not _does_string_look_like_datetime(date_string):
         raise ValueError('Given date string not likely a datetime.')
 
+    if tzinfos is None:
+        tzinfos = _default_tzinfos
+
     if _TIMEPAT.match(date_string):
         # use current datetime as default, not pass _DEFAULT_DATETIME
         dt = du_parse(date_string, dayfirst=dayfirst,
-                      yearfirst=yearfirst, **kwargs)
+                      yearfirst=yearfirst, tzinfos=tzinfos, **kwargs)
         return dt
 
     try:
@@ -82,7 +87,8 @@ def parse_datetime_string(date_string, freq=None, dayfirst=False,
 
     try:
         dt = du_parse(date_string, default=_DEFAULT_DATETIME,
-                      dayfirst=dayfirst, yearfirst=yearfirst, **kwargs)
+                      dayfirst=dayfirst, yearfirst=yearfirst,
+                      tzinfos=tzinfos, **kwargs)
     except TypeError:
         # following may be raised from dateutil
         # TypeError: 'NoneType' object is not iterable
@@ -132,7 +138,7 @@ def parse_time_string(arg, freq=None, dayfirst=None, yearfirst=None):
 
 
 cdef parse_datetime_string_with_reso(date_string, freq=None, dayfirst=False,
-                                     yearfirst=False):
+                                     yearfirst=False, tzinfos=None):
     """parse datetime string, only returns datetime
 
     Returns
@@ -153,6 +159,9 @@ cdef parse_datetime_string_with_reso(date_string, freq=None, dayfirst=False,
     if not _does_string_look_like_datetime(date_string):
         raise ValueError('Given date string not likely a datetime.')
 
+    if tzinfos is None:
+        tzinfos = _default_tzinfos
+
     try:
         return _parse_dateabbr_string(date_string, _DEFAULT_DATETIME, freq)
     except DateParseError:
@@ -163,7 +172,7 @@ cdef parse_datetime_string_with_reso(date_string, freq=None, dayfirst=False,
     try:
         parsed, reso = dateutil_parse(date_string, _DEFAULT_DATETIME,
                                       dayfirst=dayfirst, yearfirst=yearfirst,
-                                      ignoretz=False, tzinfos=None)
+                                      ignoretz=False, tzinfos=tzinfos)
     except Exception as e:
         # TODO: allow raise of errors within instead
         raise DateParseError(e)
@@ -305,8 +314,12 @@ cdef dateutil_parse(object timestr, object default, ignoretz=False,
         object reso = None
         dict repl = {}
 
+    if tzinfos is None:
+        tzinfos = _default_tzinfos
+
     fobj = StringIO(str(timestr))
-    res = DEFAULTPARSER._parse(fobj, dayfirst=dayfirst, yearfirst=yearfirst)
+    res = DEFAULTPARSER._parse(fobj, dayfirst=dayfirst, yearfirst=yearfirst,
+                               tzinfos=tzinfos)
 
     # dateutil 2.2 compat
     if isinstance(res, tuple):  # PyTuple_Check
@@ -342,16 +355,18 @@ cdef dateutil_parse(object timestr, object default, ignoretz=False,
                 tzdata = tzinfos(res.tzname, res.tzoffset)
             else:
                 tzdata = tzinfos.get(res.tzname)
-            if isinstance(tzdata, datetime.tzinfo):
-                tzinfo = tzdata
+
+            if isinstance(tzdata, tzinfo):
+                tzobj = tzdata
             elif isinstance(tzdata, (str, unicode)):
-                tzinfo = _dateutil_tzstr(tzdata)
+                tzobj = _dateutil_tzstr(tzdata)
             elif isinstance(tzdata, int):
-                tzinfo = tzoffset(res.tzname, tzdata)
+                tzobj = tzoffset(res.tzname, tzdata)
             else:
                 raise ValueError("offset must be tzinfo subclass, "
                                  "tz string, or int offset")
-            ret = ret.replace(tzinfo=tzinfo)
+
+            ret = ret.replace(tzinfo=tzobj)
         elif res.tzname and res.tzname in time.tzname:
             ret = ret.replace(tzinfo=_dateutil_tzlocal())
         elif res.tzoffset == 0:

@@ -9,6 +9,10 @@ If you need to make sure options are available even before a certain
 module is imported, register them here rather then in the module.
 
 """
+from datetime import tzinfo
+
+from pandas.compat import string_types
+
 import pandas.core.config as cf
 from pandas.core.config import (
     is_bool, is_callable, is_instance_factory, is_int, is_one_of_factory,
@@ -505,3 +509,29 @@ def register_converter_cb(key):
 with cf.config_prefix("plotting.matplotlib"):
     cf.register_option("register_converters", True, register_converter_doc,
                        validator=bool, cb=register_converter_cb)
+
+# ------------
+# Date Parsing
+# ------------
+
+with cf.config_prefix("tslib"):
+    from pandas._libs.tslibs.parsing import _default_tzinfos
+
+    def tz_validator(val):
+        msg = ("value passed to set_option('tslib.tzinfos') must be a "
+               "dictionary with string keys and tzinfo values")
+        if not isinstance(val, dict):
+            raise ValueError(msg)
+
+        if not all(isinstance(key, string_types) and isinstance(value, tzinfo)
+                   for key, value in val.items()):
+            raise ValueError(msg)
+
+        # TODO: Should this be done elsewhere?
+        _default_tzinfos.clear()
+        _default_tzinfos.update(val)
+
+    cf.register_option(
+        "tzinfos", _default_tzinfos,
+        "dictionary of tzinfo objects to pass to dateutil's parse function",
+        validator=tz_validator)
