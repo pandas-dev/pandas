@@ -470,14 +470,6 @@ class DatetimeIndex(DatetimeArray, DatelikeOps, TimelikeOps,
     # --------------------------------------------------------------------
     # Set Operation Methods
 
-    def _is_compatible_with_other(self, other):
-        is_compat = super(DatetimeIndex, self)._is_compatible_with_other(other)
-        if not is_compat:
-            # Allow mismatched timezones - UTC logic will take over
-            is_compat = (hasattr(other, 'dtype')
-                         and self.dtype.base == other.dtype.base)
-        return is_compat
-
     def union(self, other):
         """
         Specialized union for DatetimeIndex objects. If combine
@@ -495,7 +487,7 @@ class DatetimeIndex(DatetimeArray, DatelikeOps, TimelikeOps,
         return super(DatetimeIndex, self).union(other)
 
     def _union(self, other):
-        if len(other) == 0 or self.equals(other) or len(self) == 0:
+        if not len(other) or self.equals(other) or not len(self):
             return super(DatetimeIndex, self)._union(other)
 
         if not isinstance(other, DatetimeIndex):
