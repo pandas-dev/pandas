@@ -21,12 +21,13 @@ from pandas.core.dtypes.missing import isna, notna
 import pandas.core.algorithms as algos
 from pandas.core.arrays.sparse import SparseArray, SparseDtype
 import pandas.core.common as com
-from pandas.core.frame import DataFrame, _prep_ndarray, extract_index
+from pandas.core.frame import DataFrame
 import pandas.core.generic as generic
 from pandas.core.index import Index, MultiIndex, ensure_index
 import pandas.core.indexes.base as ibase
 from pandas.core.internals import (
     BlockManager, create_block_manager_from_arrays)
+from pandas.core.internals.construction import extract_index, prep_ndarray
 import pandas.core.ops as ops
 from pandas.core.series import Series
 from pandas.core.sparse.series import SparseSeries
@@ -194,7 +195,7 @@ class SparseDataFrame(DataFrame):
 
     def _init_matrix(self, data, index, columns, dtype=None):
         """ Init self from ndarray or list of lists """
-        data = _prep_ndarray(data, copy=False)
+        data = prep_ndarray(data, copy=False)
         index, columns = self._prep_index(data, index, columns)
         data = {idx: data[:, i] for i, idx in enumerate(columns)}
         return self._init_dict(data, index, columns, dtype)
