@@ -211,8 +211,10 @@ class CountMultiInt(object):
 
 
 class AggFunctions(object):
+    params = [[True, False], [True, False]]
+    param_names = ['multicol', 'numeric_only']
 
-    def setup_cache(self):
+    def setup(self, multicol, numeric_only):
         N = 10**5
         fac1 = np.array(['A', 'B', 'C'], dtype='O')
         fac2 = np.array(['one', 'two'], dtype='O')
@@ -221,23 +223,37 @@ class AggFunctions(object):
                         'value1': np.random.randn(N),
                         'value2': np.random.randn(N),
                         'value3': np.random.randn(N)})
-        return df
+        self.keys = ['key1', 'key2'] if multicol else 'key1'
 
-    def time_different_str_functions(self, df):
-        df.groupby(['key1', 'key2']).agg({'value1': 'mean',
-                                          'value2': 'var',
-                                          'value3': 'sum'})
+        if numeric_only:
+            str_cols = [x for x in df.columns if 'key' in x]
+            keys = set(self.keys) if isinstance(self.keys, list) else \
+                set([self.keys])
+            drops = list(set(str_cols) - keys)
+            df = df.drop(drops, axis=1)
+        else:
+            if multicol:
+                # We only need to add a str col in the multicol case,
+                # as the singlecol case has key2
+                df['key3'] = df['key2']
 
-    def time_different_numpy_functions(self, df):
-        df.groupby(['key1', 'key2']).agg({'value1': np.mean,
-                                          'value2': np.var,
-                                          'value3': np.sum})
+        self.df = df
 
-    def time_different_python_functions_multicol(self, df):
-        df.groupby(['key1', 'key2']).agg([sum, min, max])
+    def time_different_str_functions(self, multicol, numeric_only):
+        self.df.groupby(self.keys).agg({'value1': 'mean',
+                                        'value2': 'var',
+                                        'value3': 'sum'})
 
-    def time_different_python_functions_singlecol(self, df):
-        df.groupby('key1').agg([sum, min, max])
+    def time_different_numpy_functions(self, multicol, numeric_only):
+        self.df.groupby(self.keys).agg({'value1': np.mean,
+                                        'value2': np.var,
+                                        'value3': np.sum})
+
+    def time_different_python_functions(self, multicol, numeric_only):
+        self.df.groupby(self.keys).agg([sum, min, max])
+
+    def time_single_python_function(self, multicol, numeric_only):
+        self.df.groupby(self.keys).agg(sum)
 
 
 class GroupStrings(object):
