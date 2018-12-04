@@ -1051,7 +1051,7 @@ class DataFrame(NDFrame):
         This method computes the matrix product between the DataFrame and the
         values of an other Series, DataFrame or a numpy array.
 
-        It can also be called using `self @ other` in Python >= 3.5.
+        It can also be called using ``self @ other`` in Python >= 3.5.
 
         Parameters
         ----------
@@ -1067,8 +1067,7 @@ class DataFrame(NDFrame):
 
         See Also
         --------
-        Series.dot: Compute the inner product of a Series with another Series
-            or the columns of a DataFrame or the columns of a numpy array.
+        Series.dot: Similar method for Series.
 
         Notes
         -----
@@ -1091,7 +1090,7 @@ class DataFrame(NDFrame):
 
         Here we multiply a DataFrame with another DataFrame.
 
-        >>> other = pd.DataFrame([[0 ,1], [1, 2], [-1, -1], [2, 0]])
+        >>> other = pd.DataFrame([[0, 1], [1, 2], [-1, -1], [2, 0]])
         >>> df.dot(other)
             0   1
         0   1   4
@@ -1106,7 +1105,7 @@ class DataFrame(NDFrame):
 
         The dot method works also if other is an np.array.
 
-        >>> arr = np.array([[0 ,1], [1, 2], [-1, -1], [2, 0]])
+        >>> arr = np.array([[0, 1], [1, 2], [-1, -1], [2, 0]])
         >>> df.dot(arr)
             0   1
         0   1   4
