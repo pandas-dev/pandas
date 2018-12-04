@@ -1530,16 +1530,16 @@ class TimeGrouper(Grouper):
                                               closed=self.closed,
                                               base=self.base)
 
-            # compensate for edge labels being  extened away from true labels
+            # compensate if edge labels are extened away from true labels
             i = None if self.freq.onOffset(start) else 1
             j = -1 if self.freq.onOffset(end) else None
-        else:
-            p_start, p_end = start, end
-            i = j = None
 
-        labels = binner = PeriodIndex(start=p_start, end=p_end,
+            labels = binner = PeriodIndex(start=p_start, end=p_end,
                                       freq=self.freq,
                                       name=ax.name)[slice(i, j)]
+        else:
+            labels = binner = PeriodIndex(start=start, end=end,
+                                      freq=self.freq, name=ax.name)
 
         i8 = memb.asi8
         freq_mult = self.freq.n
