@@ -23,11 +23,7 @@ class Append(object):
         self.mdf1['obj1'] = 'bar'
         self.mdf1['obj2'] = 'bar'
         self.mdf1['int1'] = 5
-        try:
-            with warnings.catch_warnings(record=True):
-                self.mdf1.consolidate(inplace=True)
-        except (AttributeError, TypeError):
-            pass
+        self.mdf1 = self.mdf1._consolidate()
         self.mdf2 = self.mdf1.copy()
         self.mdf2.index = self.df2.index
 
