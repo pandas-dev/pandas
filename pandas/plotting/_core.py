@@ -15,8 +15,8 @@ from pandas.errors import AbstractMethodError
 from pandas.util._decorators import Appender, cache_readonly
 
 from pandas.core.dtypes.common import (
-    is_hashable, is_integer, is_iterator, is_list_like, is_number,
-    is_datetimelike)
+    is_datetimelike, is_hashable, is_integer, is_iterator, is_list_like,
+    is_number)
 from pandas.core.dtypes.generic import (
     ABCDataFrame, ABCIndexClass, ABCMultiIndex, ABCPeriodIndex, ABCSeries)
 from pandas.core.dtypes.missing import isna, notna, remove_na_arraylike
