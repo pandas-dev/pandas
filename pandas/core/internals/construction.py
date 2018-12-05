@@ -1,6 +1,6 @@
 """
 Functions for preparing various inputs passed to the DataFrame or Series
-constructors before passing them to aBlockManager.
+constructors before passing them to a BlockManager.
 """
 from collections import OrderedDict
 
