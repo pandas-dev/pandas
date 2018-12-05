@@ -413,9 +413,10 @@ ipython_exec_lines = [
 ]
 
 
-# Modify numpydoc to show Attributes section like Methods section
-# PANDAS HACK: Replace attributes param_list by member_list
-def alternative_str(self, indent=0, func_role="obj"):
+def sphinxdocstring_str(self, indent=0, func_role="obj"):
+    # Pandas displays Attributes section in style like Methods section
+
+    # Function is copy of `SphinxDocString.__str__`
     ns = {
         'signature': self._str_signature(),
         'index': self._str_index(),
@@ -432,6 +433,8 @@ def alternative_str(self, indent=0, func_role="obj"):
         'notes': self._str_section('Notes'),
         'references': self._str_references(),
         'examples': self._str_examples(),
+        # Replaced `self._str_param_list('Attributes', fake_autosummary=True)`
+        # with `self._str_member_list('Attributes')`
         'attributes': self._str_member_list('Attributes'),
         'methods': self._str_member_list('Methods'),
     }
@@ -441,7 +444,7 @@ def alternative_str(self, indent=0, func_role="obj"):
     return '\n'.join(self._str_indent(rendered.split('\n'), indent))
 
 
-SphinxDocString.__str__ = alternative_str
+SphinxDocString.__str__ = sphinxdocstring_str
 
 # Add custom Documenter to handle attributes/methods of an AccessorProperty
 # eg pandas.Series.str and pandas.Series.dt (see GH9322)
