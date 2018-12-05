@@ -4350,6 +4350,8 @@ class NDFrame(PandasObject, SelectionMixin):
         Returns
         -------
         %(klass)s
+            Returns a new DataFrame object with new indices, unless the new 
+            index is equivalent to the current one and copy=False.
 
         See Also
         --------
@@ -4360,14 +4362,16 @@ class NDFrame(PandasObject, SelectionMixin):
 
         Examples
         --------
-        >>> df = pd.DataFrame(np.array(([1,2,3], [4,5,6], [7,8,9])),
-        ...                             index=['One', 'Two', 'Three'],
-        ...                             columns=['A', 'B', 'C'])
-        >>> df.reindex_axis(['B', 'C', 'D'], axis=1)
-               B  C   D
-        One    2  3 NaN
-        Two    5  6 NaN
-        Three  8  9 NaN
+        >>> df = pd.DataFrame({'num_legs': [4, 2], 'num_wings': [0, 2]},
+        ...                   index=['dog', 'hawk'])
+        >>> df
+              num_legs  num_wings
+        dog          4          0
+        hawk         2          2
+        >>> df.reindex_axis(['num_wings', 'num_legs', 'num_heads'], axis='columns')
+              num_wings  num_legs  num_heads
+        dog           0         4        NaN
+        hawk          2         2        NaN
         """)
 
     @Appender(_shared_docs['reindex_axis'] % _shared_doc_kwargs)
