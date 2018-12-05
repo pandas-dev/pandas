@@ -15,8 +15,8 @@ from pandas.util._decorators import Appender
 
 from pandas.core.dtypes.common import (
     _INT64_DTYPE, _NS_DTYPE, is_datetime64_dtype, is_datetime64tz_dtype,
-    is_extension_type, is_float_dtype, is_int64_dtype,
-    is_object_dtype, is_period_dtype, is_string_dtype, is_timedelta64_dtype)
+    is_extension_type, is_float_dtype, is_int64_dtype, is_object_dtype,
+    is_period_dtype, is_string_dtype, is_timedelta64_dtype)
 from pandas.core.dtypes.dtypes import DatetimeTZDtype
 from pandas.core.dtypes.generic import ABCIndexClass, ABCSeries
 from pandas.core.dtypes.missing import isna
