@@ -198,8 +198,10 @@ def init_dict(data, index, columns, dtype=None):
     else:
 
         for key in data:
-            if isinstance(data[key], ABCIndexClass):
+            if (isinstance(data[key], ABCDatetimeIndex) and
+                    data[key].tz is not None):
                 # GH#24096 need copy to be deep for datetime64tz case
+                # TODO: See if we can avoid these copies
                 data[key] = data[key].copy(deep=True)
 
         keys = com.dict_keys_to_ordered_list(data)

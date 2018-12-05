@@ -182,8 +182,10 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
                 else:
                     # need to copy to avoid aliasing issues
                     data = data._values.copy()
-                    if isinstance(data, ABCDatetimeIndex):
+                    if (isinstance(data, ABCDatetimeIndex) and
+                            data.tz is not None):
                         # GH#24096 need copy to be deep for datetime64tz case
+                        # TODO: See if we can avoid these copies
                         data = data._values.copy(deep=True)
                 copy = False
 
