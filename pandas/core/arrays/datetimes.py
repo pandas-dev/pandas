@@ -11,7 +11,7 @@ from pandas._libs.tslibs import (
     resolution as libresolution, timezones)
 import pandas.compat as compat
 from pandas.errors import PerformanceWarning
-from pandas.util._decorators import Appender, cache_readonly
+from pandas.util._decorators import Appender
 
 from pandas.core.dtypes.common import (
     _NS_DTYPE, is_datetime64_dtype, is_datetime64tz_dtype, is_extension_type,
@@ -342,7 +342,7 @@ class DatetimeArrayMixin(dtl.DatetimeLikeArrayMixin,
     def _box_func(self):
         return lambda x: Timestamp(x, freq=self.freq, tz=self.tz)
 
-    @cache_readonly
+    @property
     def dtype(self):
         if self.tz is None:
             return _NS_DTYPE
