@@ -4311,38 +4311,45 @@ class NDFrame(PandasObject, SelectionMixin):
     def _reindex_multi(self, axes, copy, fill_value):
         return NotImplemented
 
-    _shared_docs['reindex_axis'] = ("""Conform input object to new index
-        with optional filling logic, placing NA/NaN in locations having
-        no value in the previous index. A new object is produced unless
-        the new index is equivalent to the current one and copy=False.
+    _shared_docs['reindex_axis'] = ("""
+        Conform input object to new index.
+
+        By default, places NA/NaN in locations having no value in the
+        previous index. A new object is produced unless the new index
+        is equivalent to the current one and copy=False.
 
         Parameters
         ----------
         labels : array-like
             New labels / index to conform to. Preferably an Index object to
-            avoid duplicating data
+            avoid duplicating data.
         axis : %(axes_single_arg)s
+            Indicate whether to use rows or columns.
         method : {None, 'backfill'/'bfill', 'pad'/'ffill', 'nearest'}, optional
             Method to use for filling holes in reindexed DataFrame:
 
-            * default: don't fill gaps
+            * default: don't fill gaps.
             * pad / ffill: propagate last valid observation forward to next
-              valid
-            * backfill / bfill: use next valid observation to fill gap
-            * nearest: use nearest valid observations to fill gap
+              valid.
+            * backfill / bfill: use next valid observation to fill gap.
+            * nearest: use nearest valid observations to fill gap.
 
-        copy : boolean, default True
-            Return a new object, even if the passed indexes are the same
         level : int or name
             Broadcast across a level, matching Index values on the
-            passed MultiIndex level
+            passed MultiIndex level.
+        copy : bool, default True
+            Return a new object, even if the passed indexes are the same.
         limit : int, default None
-            Maximum number of consecutive elements to forward or backward fill
+            Maximum number of consecutive elements to forward or backward fill.
         fill_value : float, default NaN
             Value used to fill in locations having no value in the previous 
             index.
 
             .. versionadded:: 0.21.0 (list-like tolerance)
+
+        Returns
+        -------
+        %(klass)s
 
         See Also
         --------
@@ -4351,13 +4358,16 @@ class NDFrame(PandasObject, SelectionMixin):
         DataFrame.reindex : Change to new indices or expand indices.
         DataFrame.reindex_like : Change to same indices as other DataFrame.
 
-        Returns
-        -------
-        %(klass)s
-
         Examples
         --------
-        >>> df.reindex_axis(['A', 'B', 'C'], axis=1)
+        >>> df = pd.DataFrame(np.array(([1,2,3], [4,5,6], [7,8,9])),
+        ...                             index=['One', 'Two', 'Three'],
+        ...                             columns=['A', 'B', 'C'])
+        >>> df.reindex_axis(['B', 'C', 'D'], axis=1)
+               B  C   D
+        One    2  3 NaN
+        Two    5  6 NaN
+        Three  8  9 NaN
         """)
 
     @Appender(_shared_docs['reindex_axis'] % _shared_doc_kwargs)
