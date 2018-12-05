@@ -43,12 +43,16 @@ class PeriodIndexConstructor(object):
     def setup(self, freq):
         self.rng = date_range('1985', periods=1000)
         self.rng2 = date_range('1985', periods=1000).to_pydatetime()
+        self.ints = list(range(2000, 3000))
 
     def time_from_date_range(self, freq):
         PeriodIndex(self.rng, freq=freq)
 
     def time_from_pydatetime(self, freq):
         PeriodIndex(self.rng2, freq=freq)
+
+    def time_from_ints(self, freq):
+        PeriodIndex(self.ints, freq=freq)
 
 
 class DataFramePeriodColumn(object):

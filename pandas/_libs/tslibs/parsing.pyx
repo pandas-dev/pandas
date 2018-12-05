@@ -118,12 +118,12 @@ def parse_time_string(arg, freq=None, dayfirst=None, yearfirst=None):
     if getattr(freq, "_typ", None) == "dateoffset":
         freq = freq.rule_code
 
-    if dayfirst is None:
+    if dayfirst is None or yearfirst is None:
         from pandas.core.config import get_option
-        dayfirst = get_option("display.date_dayfirst")
-    if yearfirst is None:
-        from pandas.core.config import get_option
-        yearfirst = get_option("display.date_yearfirst")
+        if dayfirst is None:
+            dayfirst = get_option("display.date_dayfirst")
+        if yearfirst is None:
+            yearfirst = get_option("display.date_yearfirst")
 
     res = parse_datetime_string_with_reso(arg, freq=freq,
                                           dayfirst=dayfirst,
