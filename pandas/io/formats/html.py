@@ -5,7 +5,6 @@ Module for formatting output data in HTML.
 
 from __future__ import print_function
 
-from distutils.version import LooseVersion
 from textwrap import dedent
 
 from pandas.compat import OrderedDict, lzip, map, range, unichr, zip
@@ -161,15 +160,7 @@ class HTMLFormatter(TableFormatter):
             _classes.extend(self.classes)
 
         if self.notebook:
-            div_style = ''
-            try:
-                import IPython
-                if IPython.__version__ < LooseVersion('3.0.0'):
-                    div_style = ' style="max-width:1500px;overflow:auto;"'
-            except (ImportError, AttributeError):
-                pass
-
-            self.write('<div{style}>'.format(style=div_style))
+            self.write('<div>')
 
         self.write_style()
 
