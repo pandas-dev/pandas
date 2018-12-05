@@ -9661,7 +9661,6 @@ class NDFrame(PandasObject, SelectionMixin):
 
                 if is_datetime64_any_dtype(data):
                     tz = data.dt.tz
-                    # astype for ndarray / datetimearray compat.
                     asint = data.dropna().values.view('i8')
                     top = Timestamp(top)
                     if top.tzinfo is not None and tz is not None:

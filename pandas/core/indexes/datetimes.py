@@ -1257,6 +1257,7 @@ class DatetimeIndex(DatelikeIndexMixin,
                                        False)
     month_name = wrap_array_method(DatetimeArray.month_name, True)
     day_name = wrap_array_method(DatetimeArray.day_name, True)
+    _has_same_tz = wrap_array_method(DatetimeArray._has_same_tz, box=False)
 
     # --------------------------------------------------------------------
 

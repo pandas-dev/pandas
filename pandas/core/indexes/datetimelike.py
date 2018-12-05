@@ -101,7 +101,9 @@ class DatetimeIndexOpsMixin(ExtensionOpsMixin):
 
     @staticmethod
     def _join_i8_wrapper(joinf, dtype, with_indexers=True):
-        """Create the join wrapper methods."""
+        """
+        Create the join wrapper methods.
+        """
         from pandas.core.arrays.datetimelike import DatetimeLikeArrayMixin
 
         @staticmethod
@@ -195,7 +197,7 @@ class DatetimeIndexOpsMixin(ExtensionOpsMixin):
         else:
             sorted_values = np.sort(self._ndarray_values)
             attribs = self._get_attributes_dict()
-            freq = self.freq
+            freq = attribs['freq']
 
             if freq is not None and not is_period_dtype(self):
                 if freq.n > 0 and not ascending:
@@ -637,12 +639,6 @@ class DatetimeIndexOpsMixin(ExtensionOpsMixin):
         result.name = self.name
         return result
 
-    # -
-    # dispatch
-
-    def _has_same_tz(self, other):
-        return self._data._has_same_tz(other)
-
     @classmethod
     def _create_comparison_method(cls, op):
         """
@@ -702,6 +698,7 @@ def wrap_array_method(method, pin_name=False, box=True):
             if pin_name:
                 result.name = self.name
             return result
+        return result
 
     index_method.__name__ = method.__name__
     index_method.__doc__ = method.__doc__
