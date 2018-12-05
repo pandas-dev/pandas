@@ -662,7 +662,6 @@ class TestRolling(Base):
         tm.assert_series_equal(attribute_agg, expected)
 
 
-
 class TestExpanding(Base):
 
     def setup_method(self, method):

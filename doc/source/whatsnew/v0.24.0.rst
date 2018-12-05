@@ -1003,6 +1003,7 @@ update the ``ExtensionDtype._metadata`` tuple to match the signature of your
 - :meth:`Series.unstack` and :meth:`DataFrame.unstack` no longer convert extension arrays to object-dtype ndarrays. Each column in the output ``DataFrame`` will now have the same dtype as the input (:issue:`23077`).
 - Bug when grouping :meth:`Dataframe.groupby()` and aggregating on ``ExtensionArray`` it was not returning the actual ``ExtensionArray`` dtype (:issue:`23227`).
 - A default repr for :class:`ExtensionArray` is now provided (:issue:`23601`).
+- Added `.size()` alias for `.count` function for `Window` (:issue:`24057`).
 
 .. _whatsnew_0240.api.incompatibilities:
 
