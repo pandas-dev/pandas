@@ -1129,12 +1129,12 @@ class DatetimeArrayMixin(dtl.DatetimeLikeArrayMixin,
         "The name of day in a week (ex: Friday)\n\n.. deprecated:: 0.23.0")
 
     dayofyear = _field_accessor('dayofyear', 'doy',
-                                "The ordinal day of the year")
-    quarter = _field_accessor('quarter', 'q', "The quarter of the date")
+                                "The ordinal day of the year.")
+    quarter = _field_accessor('quarter', 'q', "The quarter of the date.")
     days_in_month = _field_accessor(
         'days_in_month',
         'dim',
-        "The number of days in the month")
+        "The number of days in the month.")
     daysinmonth = days_in_month
     _is_month_doc = """
         Indicates whether the date is the {first_or_last} day of the month.
