@@ -320,6 +320,64 @@ Example:
 See the :ref:`advanced docs on renaming<advanced.index_names>` for more details.
 
 
+.. _whatsnew_0240.enhancements.unique:
+
+Changes to the ``unique``-method
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+The three related methods :meth:`pandas.unique`, :meth:`Series.unique` and
+:meth:`Index.unique` now support the keyword ``return_inverse``, which, if passed,
+makes the output a tuple where the second component is an object that contains the
+mapping from the indices of the values to their location in the return unique values.
+
+.. ipython:: python
+
+    idx = pd.Index([1, 0, 0, 1])
+    uniques, inverse = idx.unique(return_inverse=True)
+    uniques
+    inverse
+    reconstruct = uniques[inverse]
+    reconstruct.equals(idx)
+
+For :class:`Series`, the ``unique`` method has also gained the ``raw``-keyword, which
+allows to toggle between the behavior before v.0.24 (returning an ``np.ndarray``
+or ``Categorical``), and the future behavior of returning a ``Series``.
+
+.. ipython:: python
+
+    pd.Series([1, 1, 3, 2], name='A').unique(raw=False)
+    pd.Series([1, 1, 3, 2], name='A').unique(raw=True)
+
+The ``return_inverse``-keyword is only available if ``raw=False``, since it is necessary
+to reconstruct both the values and the index of a ``Series`` for an inverse (to illustrate
+that the index is maintained, we pass a non-default index in the example below).
+
+.. ipython:: python
+
+    animals = pd.Series(['lama', 'cow', 'lama', 'beetle', 'lama'],
+                        index=[1, 4, 9, 16, 25])
+    animals_unique, inverse = animals.unique(raw=False, return_inverse=True)
+    animals_unique
+    inverse
+
+This can be used to reconstruct the original object from its unique values as follows:
+
+.. ipython:: python
+
+    reconstruct = animals_unique.reindex(inverse)
+    reconstruct
+
+We see that the values of `animals` get reconstructed correctly, but the index does
+not match yet  -- consequently, the last step is to correctly set the index.
+
+
+.. ipython:: python
+
+    reconstruct.index = inverse.index
+    reconstruct
+    reconstruct.equals(animals)
+
+
 .. _whatsnew_0240.enhancements.other:
 
 Other Enhancements
@@ -1103,6 +1161,8 @@ Deprecations
 - :meth:`DataFrame.to_stata`, :meth:`read_stata`, :class:`StataReader` and :class:`StataWriter` have deprecated the ``encoding`` argument. The encoding of a Stata dta file is determined by the file type and cannot be changed (:issue:`21244`)
 - :meth:`MultiIndex.to_hierarchical` is deprecated and will be removed in a future version (:issue:`21613`)
 - :meth:`Series.ptp` is deprecated. Use ``numpy.ptp`` instead (:issue:`21614`)
+- :meth:`Series.unique` has deprecated returning an array and will return a Series in the future. The behavior can be controlled by the ``raw``-keyword.
+  The recommended method to get an array is to pass `raw=False` and use `.array` on the result.
 - :meth:`Series.compress` is deprecated. Use ``Series[condition]`` instead (:issue:`18262`)
 - The signature of :meth:`Series.to_csv` has been uniformed to that of :meth:`DataFrame.to_csv`: the name of the first argument is now ``path_or_buf``, the order of subsequent arguments has changed, the ``header`` argument now defaults to ``True``. (:issue:`19715`)
 - :meth:`Categorical.from_codes` has deprecated providing float values for the ``codes`` argument. (:issue:`21767`)
