@@ -10,9 +10,9 @@ from pandas.tests.extension import base
 
 def make_data(fill_value):
     if np.isnan(fill_value):
-        data = np.random.uniform(size=100)
+        data = np.random.uniform(size=100).astype('float64')
     else:
-        data = np.random.randint(1, 100, size=100)
+        data = np.random.randint(1, 100, size=100, dtype='int64')
         if data[0] == data[1]:
             data[0] += 1
 
