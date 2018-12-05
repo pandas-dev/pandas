@@ -199,7 +199,6 @@ class DatetimeArrayMixin(dtl.DatetimeLikeArrayMixin,
     # Constructors
 
     _attributes = ["freq", "tz"]
-    _tz = None
     _freq = None
 
     @classmethod
@@ -222,7 +221,6 @@ class DatetimeArrayMixin(dtl.DatetimeLikeArrayMixin,
         result._freq = freq
         tz = timezones.maybe_get_tz(tz)
         if tz:
-            result._tz = timezones.tz_standardize(tz)
             result._dtype = DatetimeTZDtype('ns', tz)
         else:
             result._dtype = values.dtype  # M8[ns]
@@ -392,7 +390,7 @@ class DatetimeArrayMixin(dtl.DatetimeLikeArrayMixin,
         Return timezone.
         """
         # GH 18595
-        return self._tz
+        return getattr(self.dtype, 'tz', None)
 
     @tz.setter
     def tz(self, value):

@@ -17,7 +17,7 @@ from pandas.util._validators import validate_fillna_kwargs
 from pandas.core.dtypes.common import (
     _TD_DTYPE, ensure_object, is_array_like, is_datetime64_dtype,
     is_datetime64_ns_dtype, is_datetime64tz_dtype, is_float_dtype,
-    is_list_like, is_period_dtype, pandas_dtype)
+    is_period_dtype, pandas_dtype)
 from pandas.core.dtypes.dtypes import PeriodDtype
 from pandas.core.dtypes.generic import ABCIndexClass, ABCPeriodIndex, ABCSeries
 from pandas.core.dtypes.missing import isna, notna
@@ -361,50 +361,6 @@ class PeriodArray(dtl.DatetimeLikeArrayMixin,
         if boxed:
             return str
         return "'{}'".format
-
-    def __setitem__(
-            self,
-            key,   # type: Union[int, Sequence[int], Sequence[bool], slice]
-            value  # type: Union[NaTType, Period, Sequence[Period]]
-    ):
-        # type: (...) -> None
-        # n.b. the type on `value` is a bit too restrictive.
-        # we also accept a sequence of stuff coercible to a PeriodArray
-        # by period_array, which includes things like ndarray[object],
-        # ndarray[datetime64ns]. I think ndarray[int] / ndarray[str] won't
-        # work, since the freq can't be inferred.
-        if is_list_like(value):
-            is_slice = isinstance(key, slice)
-            if (not is_slice
-                    and len(key) != len(value)
-                    and not com.is_bool_indexer(key)):
-                msg = ("shape mismatch: value array of length '{}' does not "
-                       "match indexing result of length '{}'.")
-                raise ValueError(msg.format(len(key), len(value)))
-            if not is_slice and len(key) == 0:
-                return
-
-            value = period_array(value)
-
-            if self.freqstr != value.freqstr:
-                msg = DIFFERENT_FREQ_INDEX.format(self.freqstr, value.freqstr)
-                raise IncompatibleFrequency(msg)
-
-            value = value.asi8
-        elif isinstance(value, Period):
-
-            if self.freqstr != value.freqstr:
-                msg = DIFFERENT_FREQ_INDEX.format(self.freqstr, value.freqstr)
-                raise IncompatibleFrequency(msg)
-
-            value = value.ordinal
-        elif isna(value):
-            value = iNaT
-        else:
-            msg = ("'value' should be a 'Period', 'NaT', or array of those. "
-                   "Got '{}' instead.".format(type(value).__name__))
-            raise TypeError(msg)
-        self._data[key] = value
 
     @Appender(dtl.DatetimeLikeArrayMixin._validate_fill_value.__doc__)
     def _validate_fill_value(self, fill_value):

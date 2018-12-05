@@ -436,8 +436,8 @@ def _concat_datetime(to_concat, axis=0, typs=None):
             return _concat_datetimetz(to_concat)
 
     elif 'timedelta' in typs:
-        to_concat = [x.astype(np.int64, copy=False) for x in to_concat]
-        return _concatenate_2d(to_concat, axis=axis).view(_TD_DTYPE)
+        return _concatenate_2d([x.view(np.int64) for x in to_concat],
+                               axis=axis).view(_TD_DTYPE)
 
     elif any(typ.startswith('period') for typ in typs):
         assert len(typs) == 1
@@ -455,9 +455,7 @@ def _convert_datetimelike_to_object(x):
             x = np.asarray(x.astype(object))
         else:
             shape = x.shape
-            x = tslib.ints_to_pydatetime(x.astype(np.int64,
-                                                  copy=False).ravel(),
-                                         box="timestamp")
+            x = tslib.ints_to_pydatetime(x.view(np.int64).ravel(), box=True)
             x = x.reshape(shape)
 
     elif x.dtype == _TD_DTYPE:

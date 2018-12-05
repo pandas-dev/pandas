@@ -16,7 +16,10 @@ import pandas.util.testing as tm
 from pandas import (Series, Index, DatetimeIndex, TimedeltaIndex,
                     PeriodIndex, Timedelta, IntervalIndex, Interval,
                     CategoricalIndex, Timestamp)
-from pandas.core.arrays import DatetimeArrayMixin as DatetimeArray
+from pandas.core.arrays import (
+    DatetimeArrayMixin as DatetimeArray,
+    TimedeltaArrayMixin as TimedeltaArray,
+)
 from pandas.compat import StringIO, PYPY, long
 from pandas.compat.numpy import np_array_datetime64_compat
 from pandas.core.accessor import PandasDelegate
@@ -1314,16 +1317,17 @@ def test_array_multiindex_raises():
     (DatetimeArray(np.array(['2000', '2001'], dtype='M8[ns]')),
      np.array(['2000', '2001'], dtype='M8[ns]')),
 
-    # tz-aware datetime
-    # XXX: On master, np.asarray(Series[datetime64[ns, tz]]) is
-    # an ndarray[datetime64[ns]] (normalized to UTC and tz dropped).
-    # Do we want to change that?
-    # Or do we want `.to_numpy()` to be inconsistent with asarray? (no!)
-    pytest.param(
-        DatetimeArray(np.array(['2000', '2000'], dtype='M8[ns]'),
-                      tz='US/Central'),
-        np.array([pd.Timestamp("2000", tz="US/Central")] * 2),
-        marks=pytest.mark.xfail(reason="np.asarray", strict=True))
+    # tz-aware stays tz`-aware
+    (DatetimeArray(np.array(['2000-01-01T06:00:00',
+                             '2000-01-02T06:00:00'],
+                            dtype='M8[ns]'),
+                   tz='US/Central'),
+     np.array([pd.Timestamp('2000-01-01', tz='US/Central'),
+               pd.Timestamp('2000-01-02', tz='US/Central')])),
+
+    # Timedelta
+    (TimedeltaArray([0, 3600000000000], freq='H'),
+     np.array([0, 3600000000000], dtype='m8[ns]')),
 ])
 @pytest.mark.parametrize('box', [pd.Series, pd.Index])
 def test_to_numpy(array, expected, box):

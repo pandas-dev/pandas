@@ -9658,7 +9658,7 @@ class NDFrame(PandasObject, SelectionMixin):
                 if is_datetime64_any_dtype(data):
                     tz = data.dt.tz
                     # astype for ndarray / datetimearray compat.
-                    asint = data.dropna()._values.astype('i8', copy=False)
+                    asint = data.dropna().values.view('i8')
                     top = Timestamp(top)
                     if top.tzinfo is not None and tz is not None:
                         # Don't tz_localize(None) if key is already tz-aware

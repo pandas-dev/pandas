@@ -297,8 +297,6 @@ class TimelikeOps(object):
     )
 
     def _round(self, freq, mode, ambiguous, nonexistent):
-        from pandas.core.indexes.datetimelike import _ensure_datetimelike_to_i8
-
         # round the local times
         values = _ensure_datetimelike_to_i8(self)
         result = round_nsint64(values, mode, freq)
@@ -335,7 +333,6 @@ class DatetimeLikeArrayMixin(AttributesMixin,
     Assumes that __new__/__init__ defines:
         _data
         _freq
-        _scalar_type : {Timestamp, Timedelta, Period}
 
     and that the inheriting class has methods:
         _generate_range
@@ -476,10 +473,9 @@ class DatetimeLikeArrayMixin(AttributesMixin,
         # https://mypy.readthedocs.io/en/latest/generics.html
 
         # n.b. This is moved from PeriodArray with the following changes
-        # 1. added is_slice check (bug on master)
-        # 2. changed dedicated ctor (period_array) to _from_sequence
-        # 3. Changed freq checking to use `_check_compatible_with`
-        # 4. Handle `value=iNaT` (may be able to revert. Check internals.)
+        # 1. changed dedicated ctor (period_array) to _from_sequence
+        # 2. Changed freq checking to use `_check_compatible_with`
+        # 3. Handle `value=iNaT` (may be able to revert. Check internals.)
         if is_list_like(value):
             is_slice = isinstance(key, slice)
             if (not is_slice
