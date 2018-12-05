@@ -9,24 +9,19 @@ import numpy as np
 
 from pandas._libs import (
     Timestamp, index as libindex, join as libjoin, lib, tslib as libts)
-from pandas._libs.tslibs import (
-    ccalendar, conversion, fields, parsing, timezones)
+from pandas._libs.tslibs import ccalendar, fields, parsing, timezones
 import pandas.compat as compat
 from pandas.util._decorators import Appender, Substitution, cache_readonly
 
 from pandas.core.dtypes.common import (
-    _INT64_DTYPE, _NS_DTYPE, ensure_int64, is_datetime64_dtype,
-    is_datetime64_ns_dtype, is_datetime64tz_dtype, is_dtype_equal, is_float,
-    is_integer, is_integer_dtype, is_list_like, is_period_dtype, is_scalar,
-    is_string_like, pandas_dtype)
+    _NS_DTYPE, ensure_int64, is_datetime64_ns_dtype, is_dtype_equal, is_float,
+    is_integer, is_list_like, is_period_dtype, is_scalar, is_string_like,
+    pandas_dtype)
 import pandas.core.dtypes.concat as _concat
-from pandas.core.dtypes.generic import ABCSeries
 from pandas.core.dtypes.missing import isna
 
-from pandas.core.arrays import datetimelike as dtl
 from pandas.core.arrays.datetimes import (
-    DatetimeArrayMixin as DatetimeArray, _to_m8, maybe_convert_dtype,
-    maybe_infer_tz)
+    DatetimeArrayMixin as DatetimeArray, _to_m8)
 from pandas.core.base import _shared_docs
 import pandas.core.common as com
 from pandas.core.indexes.base import Index, _index_shared_docs
@@ -49,12 +44,17 @@ def _new_DatetimeIndex(cls, d):
     # so need to localize
     tz = d.pop('tz', None)
 
-    with warnings.catch_warnings():
-        # we ignore warnings from passing verify_integrity=False
-        # TODO: If we knew what was going in to **d, we might be able to
-        #  go through _simple_new instead
-        warnings.simplefilter("ignore")
-        result = cls.__new__(cls, verify_integrity=False, **d)
+    if "data" in d and not isinstance(d["data"], DatetimeIndex):
+        # Avoid need to verify integrity by calling simple_new directly
+        data = d.pop("data")
+        result = cls._simple_new(data, **d)
+    else:
+        with warnings.catch_warnings():
+            # we ignore warnings from passing verify_integrity=False
+            # TODO: If we knew what was going in to **d, we might be able to
+            #  go through _simple_new instead
+            warnings.simplefilter("ignore")
+            result = cls.__new__(cls, verify_integrity=False, **d)
 
     if tz is not None:
         result = result.tz_localize('UTC').tz_convert(tz)
@@ -260,72 +260,12 @@ class DatetimeIndex(DatetimeArray, DatetimeIndexOpsMixin, Int64Index):
         if name is None and hasattr(data, 'name'):
             name = data.name
 
-        freq, freq_infer = dtl.maybe_infer_freq(freq)
-        if freq is None and hasattr(data, "freq"):
-            # i.e. DatetimeArray/Index
-            freq = data.freq
-            verify_integrity = False
+        dtarr = DatetimeArray._from_sequence(
+            data, dtype=dtype, copy=copy, tz=tz, freq=freq,
+            dayfirst=dayfirst, yearfirst=yearfirst, ambiguous=ambiguous)
 
-        # if dtype has an embedded tz, capture it
-        tz = dtl.validate_tz_from_dtype(dtype, tz)
-
-        if not hasattr(data, "dtype"):
-            # e.g. list, tuple
-            if np.ndim(data) == 0:
-                # i.e. generator
-                data = list(data)
-            data = np.asarray(data)
-            copy = False
-        elif isinstance(data, ABCSeries):
-            data = data._values
-
-        # By this point we are assured to have either a numpy array or Index
-        data, copy = maybe_convert_dtype(data, copy)
-        if not (is_datetime64_dtype(data) or is_datetime64tz_dtype(data) or
-                is_integer_dtype(data) or lib.infer_dtype(data) == 'integer'):
-            data = tools.to_datetime(data, dayfirst=dayfirst,
-                                     yearfirst=yearfirst)
-
-        if is_datetime64tz_dtype(data):
-            tz = maybe_infer_tz(tz, data.tz)
-            subarr = data._data
-
-        elif is_datetime64_dtype(data):
-            # tz-naive DatetimeArray/Index or ndarray[datetime64]
-            data = getattr(data, "_data", data)
-            if data.dtype != _NS_DTYPE:
-                data = conversion.ensure_datetime64ns(data)
-
-            if tz is not None:
-                # Convert tz-naive to UTC
-                tz = timezones.maybe_get_tz(tz)
-                data = conversion.tz_localize_to_utc(data.view('i8'), tz,
-                                                     ambiguous=ambiguous)
-            subarr = data.view(_NS_DTYPE)
-
-        else:
-            # must be integer dtype otherwise
-            # assume this data are epoch timestamps
-            if data.dtype != _INT64_DTYPE:
-                data = data.astype(np.int64, copy=False)
-            subarr = data.view(_NS_DTYPE)
-
-        assert isinstance(subarr, np.ndarray), type(subarr)
-        assert subarr.dtype == 'M8[ns]', subarr.dtype
-
-        subarr = cls._simple_new(subarr, name=name, freq=freq, tz=tz)
-        if dtype is not None:
-            if not is_dtype_equal(subarr.dtype, dtype):
-                # dtype must be coerced to DatetimeTZDtype above
-                if subarr.tz is not None:
-                    raise ValueError("cannot localize from non-UTC data")
-
-        if verify_integrity and len(subarr) > 0:
-            if freq is not None and not freq_infer:
-                cls._validate_frequency(subarr, freq, ambiguous=ambiguous)
-
-        if freq_infer:
-            subarr.freq = to_offset(subarr.inferred_freq)
+        subarr = cls._simple_new(dtarr._data, name=name,
+                                 freq=dtarr.freq, tz=dtarr.tz)
 
         return subarr._deepcopy_if_needed(ref_to_data, copy)
 
