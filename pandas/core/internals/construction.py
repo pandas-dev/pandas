@@ -313,8 +313,9 @@ def extract_index(data):
 
             if have_series:
                 if lengths[0] != len(index):
-                    msg = ('array length %d does not match index length %d' %
-                           (lengths[0], len(index)))
+                    msg = ('array length {length} does not match index '
+                           'length {idx_len}'
+                           .format(length=lengths[0], idx_len=len(index)))
                     raise ValueError(msg)
             else:
                 index = ibase.default_index(lengths[0])
@@ -344,7 +345,7 @@ def get_names_from_index(data):
         if n is not None:
             index[i] = n
         else:
-            index[i] = 'Unnamed %d' % count
+            index[i] = 'Unnamed {count}'.format(count=count)
             count += 1
 
     return index
