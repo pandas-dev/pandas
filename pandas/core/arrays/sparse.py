@@ -169,7 +169,9 @@ class SparseDtype(ExtensionDtype):
 
     @property
     def kind(self):
-        """The sparse kind. Either 'integer', or 'block'."""
+        """
+        The sparse kind. Either 'integer', or 'block'.
+        """
         return self.subtype.kind
 
     @property
@@ -285,7 +287,8 @@ class SparseDtype(ExtensionDtype):
         return isinstance(dtype, np.dtype) or dtype == 'Sparse'
 
     def update_dtype(self, dtype):
-        """Convert the SparseDtype to a new dtype.
+        """
+        Convert the SparseDtype to a new dtype.
 
         This takes care of converting the ``fill_value``.
 
@@ -478,7 +481,9 @@ def _sparse_array_op(left, right, op, name):
 
 
 def _wrap_result(name, data, sparse_index, fill_value, dtype=None):
-    """ wrap op result to have correct dtype """
+    """
+    wrap op result to have correct dtype
+    """
     if name.startswith('__'):
         # e.g. __eq__ --> eq
         name = name[2:-2]
@@ -787,7 +792,8 @@ class SparseArray(PandasObject, ExtensionArray, ExtensionOpsMixin):
 
     @property
     def density(self):
-        """The percent of non- ``fill_value`` points, as decimal.
+        """
+        The percent of non- ``fill_value`` points, as decimal.
 
         Examples
         --------
@@ -800,7 +806,8 @@ class SparseArray(PandasObject, ExtensionArray, ExtensionOpsMixin):
 
     @property
     def npoints(self):
-        """The number of non- ``fill_value`` points.
+        """
+        The number of non- ``fill_value`` points.
 
         Examples
         --------
@@ -1523,12 +1530,16 @@ class SparseArray(PandasObject, ExtensionArray, ExtensionOpsMixin):
             return (sp_sum + self.fill_value * nsparse) / (ct + nsparse)
 
     def transpose(self, *axes):
-        """Returns the SparseArray."""
+        """
+        Returns the SparseArray.
+        """
         return self
 
     @property
     def T(self):
-        """Returns the SparseArray."""
+        """
+        Returns the SparseArray.
+        """
         return self
 
     # ------------------------------------------------------------------------
@@ -1735,6 +1746,11 @@ class SparseArray(PandasObject, ExtensionArray, ExtensionOpsMixin):
             fill=printing.pprint_thing(self.fill_value),
             index=printing.pprint_thing(self.sp_index))
 
+    def _formatter(self, boxed=False):
+        # Defer to the formatter from the GenericArrayFormatter calling us.
+        # This will infer the correct formatter from the dtype of the values.
+        return None
+
 
 SparseArray._add_arithmetic_ops()
 SparseArray._add_comparison_ops()
@@ -1742,14 +1758,18 @@ SparseArray._add_unary_ops()
 
 
 def _maybe_to_dense(obj):
-    """ try to convert to dense """
+    """
+    try to convert to dense
+    """
     if hasattr(obj, 'to_dense'):
         return obj.to_dense()
     return obj
 
 
 def _maybe_to_sparse(array):
-    """ array must be SparseSeries or SparseArray """
+    """
+    array must be SparseSeries or SparseArray
+    """
     if isinstance(array, ABCSparseSeries):
         array = array.values.copy()
     return array

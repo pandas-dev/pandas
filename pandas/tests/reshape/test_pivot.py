@@ -489,8 +489,7 @@ class TestPivotTable(object):
         tm.assert_frame_equal(result, expected)
 
     @pytest.mark.xfail(reason='MultiIndexed unstack with tuple names fails'
-                              'with KeyError GH#19966',
-                       strict=True)
+                              'with KeyError GH#19966')
     @pytest.mark.parametrize('method', [True, False])
     def test_pivot_with_multiindex(self, method):
         # issue #17160
@@ -616,8 +615,7 @@ class TestPivotTable(object):
         tm.assert_frame_equal(expected, result)
 
     @pytest.mark.xfail(reason='GH#17035 (len of floats is casted back to '
-                              'floats)',
-                       strict=True)
+                              'floats)')
     def test_margins_dtype_len(self):
         mi_val = list(product(['bar', 'foo'], ['one', 'two'])) + [('All', '')]
         mi = MultiIndex.from_tuples(mi_val, names=('A', 'B'))
@@ -1102,8 +1100,7 @@ class TestPivotTable(object):
         tm.assert_frame_equal(table, expected)
 
     @pytest.mark.xfail(reason='GH#17035 (np.mean of ints is casted back to '
-                              'ints)',
-                       strict=True)
+                              'ints)')
     def test_categorical_margins(self, observed):
         # GH 10989
         df = pd.DataFrame({'x': np.arange(8),
@@ -1118,8 +1115,7 @@ class TestPivotTable(object):
         tm.assert_frame_equal(table, expected)
 
     @pytest.mark.xfail(reason='GH#17035 (np.mean of ints is casted back to '
-                              'ints)',
-                       strict=True)
+                              'ints)')
     def test_categorical_margins_category(self, observed):
         df = pd.DataFrame({'x': np.arange(8),
                            'y': np.arange(8) // 4,

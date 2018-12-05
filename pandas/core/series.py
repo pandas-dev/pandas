@@ -149,6 +149,9 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
     hasnans = property(base.IndexOpsMixin.hasnans.func,
                        doc=base.IndexOpsMixin.hasnans.__doc__)
 
+    # ----------------------------------------------------------------------
+    # Constructors
+
     def __init__(self, data=None, index=None, dtype=None, name=None,
                  copy=False, fastpath=False):
 
@@ -328,6 +331,8 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         return cls(arr, index=index, name=name, dtype=dtype,
                    copy=copy, fastpath=fastpath)
 
+    # ----------------------------------------------------------------------
+
     @property
     def _constructor(self):
         return Series
@@ -384,6 +389,9 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
     @property
     def name(self):
+        """
+        Return name of the Series.
+        """
         return self._name
 
     @name.setter
@@ -426,9 +434,20 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         """
         Return Series as ndarray or ndarray-like depending on the dtype.
 
+        .. warning::
+
+           We recommend using :attr:`Series.array` or
+           :Series:`Index.to_numpy`, depending on whether you need
+           a reference to the underlying data or a NumPy array.
+
         Returns
         -------
         arr : numpy.ndarray or ndarray-like
+
+        See Also
+        --------
+        Series.array : Reference to the underlying data.
+        Series.to_numpy : A NumPy array representing the underlying data.
 
         Examples
         --------
@@ -635,6 +654,9 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         return self._constructor(self._values.view(dtype),
                                  index=self.index).__finalize__(self)
 
+    # ----------------------------------------------------------------------
+    # NDArray Compat
+
     def __array__(self, result=None):
         """
         The array interface, return my values.
@@ -665,9 +687,14 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
                                 op=context[0].__name__))
         return result
 
-    # complex
+    # ----------------------------------------------------------------------
+    # Unary Methods
+
     @property
     def real(self):
+        """
+        Return the real value of vector.
+        """
         return self.values.real
 
     @real.setter
@@ -676,6 +703,9 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
     @property
     def imag(self):
+        """
+        Return imag value of vector.
+        """
         return self.values.imag
 
     @imag.setter
@@ -686,6 +716,8 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
     __float__ = _coerce_method(float)
     __long__ = _coerce_method(int)
     __int__ = _coerce_method(int)
+
+    # ----------------------------------------------------------------------
 
     def _unpickle_series_compat(self, state):
         if isinstance(state, dict):
@@ -1224,6 +1256,9 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
             df = self.to_frame(name)
             return df.reset_index(level=level, drop=drop)
 
+    # ----------------------------------------------------------------------
+    # Rendering Methods
+
     def __unicode__(self):
         """
         Return a string representation for a particular DataFrame.
@@ -1298,6 +1333,8 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
             except AttributeError:
                 with open(buf, 'w') as f:
                     f.write(result)
+
+    # ----------------------------------------------------------------------
 
     def iteritems(self):
         """

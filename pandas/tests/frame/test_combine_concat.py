@@ -77,8 +77,7 @@ class TestDataFrameConcatCommon(TestData):
         [
             '2015-01-01',
             pytest.param(pd.NaT, marks=pytest.mark.xfail(
-                reason='GH23037 incorrect dtype when concatenating',
-                strict=True))])
+                reason='GH23037 incorrect dtype when concatenating'))])
     def test_concat_tz_NaT(self, t1):
         # GH 22796
         # Concating tz-aware multicolumn DataFrames
