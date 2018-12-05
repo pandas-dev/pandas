@@ -28,10 +28,6 @@ class TestTimedeltaIndex(DatetimeLike):
     def create_index(self):
         return pd.to_timedelta(range(5), unit='d') + pd.offsets.Hour(1)
 
-    @pytest.mark.skip(reason="TODO-where")
-    def test_where(self, klass):
-        return super().test_where(klass)
-
     def test_numeric_compat(self):
         # Dummy method to override super's version; this test is now done
         # in test_arithmetic.py

@@ -3075,7 +3075,6 @@ class TestDataFrameIndexing(TestData):
         tm.assert_frame_equal(result,
                               (df + 2).where((df + 2) > 8, (df + 2) + 10))
 
-    @pytest.mark.xfail(reason="TODO-where", strict=False)
     def test_where_tz_values(self, tz_naive_fixture):
         df1 = DataFrame(DatetimeIndex(['20150101', '20150102', '20150103'],
                                       tz=tz_naive_fixture),

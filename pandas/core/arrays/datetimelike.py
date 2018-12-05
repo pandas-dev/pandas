@@ -600,6 +600,20 @@ class DatetimeLikeArrayMixin(AttributesMixin,
 
         return type(self)(new_values, dtype=self.dtype)
 
+    def where(self, cond, other):
+        i8 = self.asi8
+        if lib.is_scalar(other):
+            if isna(other):
+                other = iNaT
+            elif isinstance(other, self._scalar_type):
+                self._check_compatible_with(other)
+                other = other.ordinal
+        elif isinstance(other, type(self)):
+            self._check_compatible_with(other)
+            other = other.asi8
+        result = np.where(cond, i8, other)
+        return type(self)._simple_new(result, dtype=self.dtype)
+
     @classmethod
     def _concat_same_type(cls, to_concat):
         dtypes = {x.dtype for x in to_concat}

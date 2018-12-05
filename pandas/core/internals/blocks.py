@@ -31,7 +31,6 @@ from pandas.core.dtypes.dtypes import (
 from pandas.core.dtypes.generic import (
     ABCDataFrame, ABCDatetimeIndex, ABCExtensionArray, ABCIndexClass,
     ABCSeries)
-from pandas.core.dtypes.inference import is_scalar
 from pandas.core.dtypes.missing import (
     _isna_compat, array_equivalent, is_null_datelike_scalar, isna, notna)
 
@@ -3089,7 +3088,7 @@ class DatetimeTZBlock(ExtensionBlock, DatetimeBlock):
         return_object = (
             (maybe_tz
              and not timezones.tz_compare(self.values.tz, maybe_tz)) or
-            (is_scalar(value)
+            (lib.is_scalar(value)
              and not isna(value)
              and not value == tslib.iNaT
              and not (isinstance(value, self.values._scalar_type) and
