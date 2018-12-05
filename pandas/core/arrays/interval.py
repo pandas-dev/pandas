@@ -779,8 +779,7 @@ class IntervalArray(IntervalMixin, ExtensionArray):
 
     def where(self, cond, other):
         if is_scalar(other) and isna(other):
-            lother = other
-            rother = other
+            lother = rother = other
         else:
             self._check_closed_matches(other, name='other')
             lother = other.left

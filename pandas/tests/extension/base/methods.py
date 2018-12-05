@@ -210,8 +210,7 @@ class BaseMethodsTests(BaseExtensionTests):
 
         if as_frame:
             ser = ser.to_frame(name='a')
-            # TODO: alignment is broken for ndarray `cond`
-            cond = pd.DataFrame({"a": cond})
+            cond = cond.reshape(-1, 1)
 
         result = ser.where(cond)
         expected = pd.Series(cls._from_sequence([a, a, na_value, na_value],
@@ -225,9 +224,7 @@ class BaseMethodsTests(BaseExtensionTests):
         cond = np.array([True, False, True, True])
         other = cls._from_sequence([a, b, a, b], dtype=data.dtype)
         if as_frame:
-            # TODO: alignment is broken for ndarray `cond`
             other = pd.DataFrame({"a": other})
-            # TODO: alignment is broken for array `other`
             cond = pd.DataFrame({"a": cond})
         result = ser.where(cond, other)
         expected = pd.Series(cls._from_sequence([a, b, b, b],
