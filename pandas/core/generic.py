@@ -4334,7 +4334,7 @@ class NDFrame(PandasObject, SelectionMixin):
             * backfill / bfill: use next valid observation to fill gap.
             * nearest: use nearest valid observations to fill gap.
 
-        level : int or name
+        level : int or str
             Broadcast across a level, matching Index values on the
             passed MultiIndex level.
         copy : bool, default True
