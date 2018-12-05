@@ -2,19 +2,19 @@
 # pylint: disable-msg=E1101,W0612
 
 from datetime import datetime, timedelta
-
 import sys
 
 import numpy as np
-import pandas as pd
 
-from pandas import (Index, Series, DataFrame, date_range, option_context,
-                    Categorical, period_range, timedelta_range)
-from pandas.core.index import MultiIndex
-from pandas.core.base import StringMixin
-
+import pandas.compat as compat
 from pandas.compat import lrange, range, u
-from pandas import compat
+
+import pandas as pd
+from pandas import (
+    Categorical, DataFrame, Index, Series, date_range, option_context,
+    period_range, timedelta_range)
+from pandas.core.base import StringMixin
+from pandas.core.index import MultiIndex
 import pandas.util.testing as tm
 
 from .common import TestData
@@ -364,11 +364,11 @@ Categories (5, datetime64[ns, US/Eastern]): [2011-01-01 09:00:00-05:00 < 2011-01
     def test_categorical_series_repr_period(self):
         idx = period_range('2011-01-01 09:00', freq='H', periods=5)
         s = Series(Categorical(idx))
-        exp = """0   2011-01-01 09:00
-1   2011-01-01 10:00
-2   2011-01-01 11:00
-3   2011-01-01 12:00
-4   2011-01-01 13:00
+        exp = """0    2011-01-01 09:00
+1    2011-01-01 10:00
+2    2011-01-01 11:00
+3    2011-01-01 12:00
+4    2011-01-01 13:00
 dtype: category
 Categories (5, period[H]): [2011-01-01 09:00, 2011-01-01 10:00, 2011-01-01 11:00, 2011-01-01 12:00,
                             2011-01-01 13:00]"""  # noqa
@@ -377,11 +377,11 @@ Categories (5, period[H]): [2011-01-01 09:00, 2011-01-01 10:00, 2011-01-01 11:00
 
         idx = period_range('2011-01', freq='M', periods=5)
         s = Series(Categorical(idx))
-        exp = """0   2011-01
-1   2011-02
-2   2011-03
-3   2011-04
-4   2011-05
+        exp = """0    2011-01
+1    2011-02
+2    2011-03
+3    2011-04
+4    2011-05
 dtype: category
 Categories (5, period[M]): [2011-01, 2011-02, 2011-03, 2011-04, 2011-05]"""
 
@@ -390,11 +390,11 @@ Categories (5, period[M]): [2011-01, 2011-02, 2011-03, 2011-04, 2011-05]"""
     def test_categorical_series_repr_period_ordered(self):
         idx = period_range('2011-01-01 09:00', freq='H', periods=5)
         s = Series(Categorical(idx, ordered=True))
-        exp = """0   2011-01-01 09:00
-1   2011-01-01 10:00
-2   2011-01-01 11:00
-3   2011-01-01 12:00
-4   2011-01-01 13:00
+        exp = """0    2011-01-01 09:00
+1    2011-01-01 10:00
+2    2011-01-01 11:00
+3    2011-01-01 12:00
+4    2011-01-01 13:00
 dtype: category
 Categories (5, period[H]): [2011-01-01 09:00 < 2011-01-01 10:00 < 2011-01-01 11:00 < 2011-01-01 12:00 <
                             2011-01-01 13:00]"""  # noqa
@@ -403,11 +403,11 @@ Categories (5, period[H]): [2011-01-01 09:00 < 2011-01-01 10:00 < 2011-01-01 11:
 
         idx = period_range('2011-01', freq='M', periods=5)
         s = Series(Categorical(idx, ordered=True))
-        exp = """0   2011-01
-1   2011-02
-2   2011-03
-3   2011-04
-4   2011-05
+        exp = """0    2011-01
+1    2011-02
+2    2011-03
+3    2011-04
+4    2011-05
 dtype: category
 Categories (5, period[M]): [2011-01 < 2011-02 < 2011-03 < 2011-04 < 2011-05]"""
 

@@ -3,9 +3,12 @@ printing tools
 """
 
 import sys
-from pandas.core.dtypes.inference import is_sequence
-from pandas import compat
+
 from pandas.compat import u
+
+from pandas.core.dtypes.inference import is_sequence
+
+from pandas import compat
 from pandas.core.config import get_option
 
 
@@ -107,10 +110,10 @@ def _pprint_seq(seq, _nest_lvl=0, max_seq_items=None, **kwds):
         nitems = max_seq_items or get_option("max_seq_items") or len(seq)
 
     s = iter(seq)
-    r = []
-    for i in range(min(nitems, len(seq))):  # handle sets, no slicing
-        r.append(pprint_thing(
-            next(s), _nest_lvl + 1, max_seq_items=max_seq_items, **kwds))
+    # handle sets, no slicing
+    r = [pprint_thing(next(s),
+                      _nest_lvl + 1, max_seq_items=max_seq_items, **kwds)
+         for i in range(min(nitems, len(seq)))]
     body = ", ".join(r)
 
     if nitems < len(seq):
@@ -268,7 +271,8 @@ default_pprint = lambda x, max_seq_items=None: \
                  max_seq_items=max_seq_items)
 
 
-def format_object_summary(obj, formatter, is_justify=True, name=None):
+def format_object_summary(obj, formatter, is_justify=True, name=None,
+                          indent_for_name=True):
     """
     Return the formatted obj as a unicode string
 
@@ -280,8 +284,11 @@ def format_object_summary(obj, formatter, is_justify=True, name=None):
         string formatter for an element
     is_justify : boolean
         should justify the display
-    name : name, optiona
+    name : name, optional
         defaults to the class name of the obj
+    indent_for_name : bool, default True
+        Whether subsequent lines should be be indented to
+        align with the name.
 
     Returns
     -------
@@ -297,8 +304,13 @@ def format_object_summary(obj, formatter, is_justify=True, name=None):
     if name is None:
         name = obj.__class__.__name__
 
-    space1 = "\n%s" % (' ' * (len(name) + 1))
-    space2 = "\n%s" % (' ' * (len(name) + 2))
+    if indent_for_name:
+        name_len = len(name)
+        space1 = "\n%s" % (' ' * (name_len + 1))
+        space2 = "\n%s" % (' ' * (name_len + 2))
+    else:
+        space1 = "\n"
+        space2 = "\n "  # space for the opening '['
 
     n = len(obj)
     sep = ','
@@ -325,15 +337,17 @@ def format_object_summary(obj, formatter, is_justify=True, name=None):
         else:
             return 0
 
+    close = u', '
+
     if n == 0:
-        summary = '[], '
+        summary = u'[]{}'.format(close)
     elif n == 1:
         first = formatter(obj[0])
-        summary = '[%s], ' % first
+        summary = u'[{}]{}'.format(first, close)
     elif n == 2:
         first = formatter(obj[0])
         last = formatter(obj[-1])
-        summary = '[%s, %s], ' % (first, last)
+        summary = u'[{}, {}]{}'.format(first, last, close)
     else:
 
         if n > max_seq_items:
@@ -378,7 +392,11 @@ def format_object_summary(obj, formatter, is_justify=True, name=None):
         summary, line = _extend_line(summary, line, tail[-1],
                                      display_width - 2, space2)
         summary += line
-        summary += '],'
+
+        # right now close is either '' or ', '
+        # Now we want to include the ']', but not the maybe space.
+        close = ']' + close.rstrip(' ')
+        summary += close
 
         if len(summary) > (display_width):
             summary += space1

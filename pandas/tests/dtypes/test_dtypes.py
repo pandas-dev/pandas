@@ -17,7 +17,9 @@ from pandas.core.dtypes.common import (
     is_dtype_equal, is_datetime64_ns_dtype,
     is_datetime64_dtype, is_interval_dtype,
     is_datetime64_any_dtype, is_string_dtype,
-    _coerce_to_dtype, is_bool_dtype)
+    is_bool_dtype,
+)
+from pandas.core.sparse.api import SparseDtype
 import pandas.util.testing as tm
 
 
@@ -92,8 +94,8 @@ class TestCategoricalDtype(Base):
             TypeError, lambda: CategoricalDtype.construct_from_string('foo'))
 
     def test_constructor_invalid(self):
-        with tm.assert_raises_regex(TypeError,
-                                    "CategoricalIndex.* must be called"):
+        msg = "CategoricalIndex.* must be called"
+        with pytest.raises(TypeError, match=msg):
             CategoricalDtype("category")
 
     def test_is_dtype(self):
@@ -144,6 +146,19 @@ class TestDatetimeTZDtype(Base):
     def create(self):
         return DatetimeTZDtype('ns', 'US/Eastern')
 
+    def test_alias_to_unit_raises(self):
+        # 23990
+        with tm.assert_produces_warning(FutureWarning):
+            DatetimeTZDtype('datetime64[ns, US/Central]')
+
+    def test_alias_to_unit_bad_alias_raises(self):
+        # 23990
+        with pytest.raises(TypeError, match=''):
+            DatetimeTZDtype('this is a bad string')
+
+        with pytest.raises(TypeError, match=''):
+            DatetimeTZDtype('datetime64[ns, US/NotATZ]')
+
     def test_hash_vs_equality(self):
         # make sure that we satisfy is semantics
         dtype = self.dtype
@@ -152,28 +167,23 @@ class TestDatetimeTZDtype(Base):
         assert dtype == dtype2
         assert dtype2 == dtype
         assert dtype3 == dtype
-        assert dtype is dtype2
-        assert dtype2 is dtype
-        assert dtype3 is dtype
         assert hash(dtype) == hash(dtype2)
         assert hash(dtype) == hash(dtype3)
+
+        dtype4 = DatetimeTZDtype("ns", "US/Central")
+        assert dtype2 != dtype4
+        assert hash(dtype2) != hash(dtype4)
 
     def test_construction(self):
         pytest.raises(ValueError,
                       lambda: DatetimeTZDtype('ms', 'US/Eastern'))
 
     def test_subclass(self):
-        a = DatetimeTZDtype('datetime64[ns, US/Eastern]')
-        b = DatetimeTZDtype('datetime64[ns, CET]')
+        a = DatetimeTZDtype.construct_from_string('datetime64[ns, US/Eastern]')
+        b = DatetimeTZDtype.construct_from_string('datetime64[ns, CET]')
 
         assert issubclass(type(a), type(a))
         assert issubclass(type(a), type(b))
-
-    def test_coerce_to_dtype(self):
-        assert (_coerce_to_dtype('datetime64[ns, US/Eastern]') ==
-                DatetimeTZDtype('ns', 'US/Eastern'))
-        assert (_coerce_to_dtype('datetime64[ns, Asia/Tokyo]') ==
-                DatetimeTZDtype('ns', 'Asia/Tokyo'))
 
     def test_compat(self):
         assert is_datetime64tz_dtype(self.dtype)
@@ -186,13 +196,15 @@ class TestDatetimeTZDtype(Base):
         assert not is_datetime64_dtype('datetime64[ns, US/Eastern]')
 
     def test_construction_from_string(self):
-        result = DatetimeTZDtype('datetime64[ns, US/Eastern]')
-        assert is_dtype_equal(self.dtype, result)
         result = DatetimeTZDtype.construct_from_string(
             'datetime64[ns, US/Eastern]')
         assert is_dtype_equal(self.dtype, result)
         pytest.raises(TypeError,
                       lambda: DatetimeTZDtype.construct_from_string('foo'))
+
+    def test_construct_from_string_raises(self):
+        with pytest.raises(TypeError, match="notatz"):
+            DatetimeTZDtype.construct_from_string('datetime64[ns, notatz]')
 
     def test_is_dtype(self):
         assert not DatetimeTZDtype.is_dtype(None)
@@ -226,20 +238,25 @@ class TestDatetimeTZDtype(Base):
         assert not is_datetime64tz_dtype(np.dtype('float64'))
         assert not is_datetime64tz_dtype(1.0)
 
-        assert is_datetimetz(s)
-        assert is_datetimetz(s.dtype)
-        assert not is_datetimetz(np.dtype('float64'))
-        assert not is_datetimetz(1.0)
+        with tm.assert_produces_warning(FutureWarning):
+            assert is_datetimetz(s)
+            assert is_datetimetz(s.dtype)
+            assert not is_datetimetz(np.dtype('float64'))
+            assert not is_datetimetz(1.0)
 
     def test_dst(self):
 
         dr1 = date_range('2013-01-01', periods=3, tz='US/Eastern')
         s1 = Series(dr1, name='A')
-        assert is_datetimetz(s1)
+        assert is_datetime64tz_dtype(s1)
+        with tm.assert_produces_warning(FutureWarning):
+            assert is_datetimetz(s1)
 
         dr2 = date_range('2013-08-01', periods=3, tz='US/Eastern')
         s2 = Series(dr2, name='A')
-        assert is_datetimetz(s2)
+        assert is_datetime64tz_dtype(s2)
+        with tm.assert_produces_warning(FutureWarning):
+            assert is_datetimetz(s2)
         assert s1.dtype == s2.dtype
 
     @pytest.mark.parametrize('tz', ['UTC', 'US/Eastern'])
@@ -247,14 +264,13 @@ class TestDatetimeTZDtype(Base):
     def test_parser(self, tz, constructor):
         # pr #11245
         dtz_str = '{con}[ns, {tz}]'.format(con=constructor, tz=tz)
-        result = DatetimeTZDtype(dtz_str)
+        result = DatetimeTZDtype.construct_from_string(dtz_str)
         expected = DatetimeTZDtype('ns', tz)
         assert result == expected
 
     def test_empty(self):
-        dt = DatetimeTZDtype()
-        with pytest.raises(AttributeError):
-            str(dt)
+        with pytest.raises(TypeError, match="A 'tz' is required."):
+            DatetimeTZDtype()
 
 
 class TestPeriodDtype(Base):
@@ -312,10 +328,6 @@ class TestPeriodDtype(Base):
 
         assert PeriodDtype('period[1S1U]') == PeriodDtype('period[1000001U]')
         assert PeriodDtype('period[1S1U]') is PeriodDtype('period[1000001U]')
-
-    def test_coerce_to_dtype(self):
-        assert _coerce_to_dtype('period[D]') == PeriodDtype('period[D]')
-        assert _coerce_to_dtype('period[3M]') == PeriodDtype('period[3M]')
 
     def test_compat(self):
         assert not is_datetime64_ns_dtype(self.dtype)
@@ -375,20 +387,22 @@ class TestPeriodDtype(Base):
 
         assert is_period_dtype(pidx.dtype)
         assert is_period_dtype(pidx)
-        assert is_period(pidx)
+        with tm.assert_produces_warning(FutureWarning):
+            assert is_period(pidx)
 
         s = Series(pidx, name='A')
-        # dtypes
-        # series results in object dtype currently,
-        # is_period checks period_arraylike
-        assert not is_period_dtype(s.dtype)
-        assert not is_period_dtype(s)
-        assert is_period(s)
+
+        assert is_period_dtype(s.dtype)
+        assert is_period_dtype(s)
+        with tm.assert_produces_warning(FutureWarning):
+            assert is_period(s)
 
         assert not is_period_dtype(np.dtype('float64'))
         assert not is_period_dtype(1.0)
-        assert not is_period(np.dtype('float64'))
-        assert not is_period(1.0)
+        with tm.assert_produces_warning(FutureWarning):
+            assert not is_period(np.dtype('float64'))
+        with tm.assert_produces_warning(FutureWarning):
+            assert not is_period(1.0)
 
     def test_empty(self):
         dt = PeriodDtype()
@@ -454,12 +468,12 @@ class TestIntervalDtype(Base):
         # GH 19016
         msg = ('category, object, and string subtypes are not supported '
                'for IntervalDtype')
-        with tm.assert_raises_regex(TypeError, msg):
+        with pytest.raises(TypeError, match=msg):
             IntervalDtype(subtype)
 
     def test_construction_errors(self):
         msg = 'could not construct IntervalDtype'
-        with tm.assert_raises_regex(TypeError, msg):
+        with pytest.raises(TypeError, match=msg):
             IntervalDtype('xx')
 
     def test_construction_from_string(self):
@@ -474,7 +488,7 @@ class TestIntervalDtype(Base):
         # these are invalid entirely
         msg = 'a string needs to be passed, got type'
 
-        with tm.assert_raises_regex(TypeError, msg):
+        with pytest.raises(TypeError, match=msg):
             IntervalDtype.construct_from_string(string)
 
     @pytest.mark.parametrize('string', [
@@ -483,7 +497,7 @@ class TestIntervalDtype(Base):
         # this is an invalid subtype
         msg = 'could not construct IntervalDtype'
 
-        with tm.assert_raises_regex(TypeError, msg):
+        with pytest.raises(TypeError, match=msg):
             IntervalDtype.construct_from_string(string)
 
     def test_subclass(self):
@@ -508,10 +522,6 @@ class TestIntervalDtype(Base):
         assert not IntervalDtype.is_dtype(np.object_)
         assert not IntervalDtype.is_dtype(np.int64)
         assert not IntervalDtype.is_dtype(np.float64)
-
-    def test_coerce_to_dtype(self):
-        assert (_coerce_to_dtype('interval[int64]') ==
-                IntervalDtype('interval[int64]'))
 
     def test_equality(self):
         assert is_dtype_equal(self.dtype, 'interval[int64]')
@@ -697,10 +707,10 @@ class TestCategoricalDtypeParametrized(object):
         assert result is expected
 
     def test_invalid_raises(self):
-        with tm.assert_raises_regex(TypeError, 'ordered'):
+        with pytest.raises(TypeError, match='ordered'):
             CategoricalDtype(['a', 'b'], ordered='foo')
 
-        with tm.assert_raises_regex(TypeError, 'collection'):
+        with pytest.raises(TypeError, match='collection'):
             CategoricalDtype('category')
 
     def test_mixed(self):
@@ -781,37 +791,79 @@ class TestCategoricalDtypeParametrized(object):
     def test_update_dtype_errors(self, bad_dtype):
         dtype = CategoricalDtype(list('abc'), False)
         msg = 'a CategoricalDtype must be passed to perform an update, '
-        with tm.assert_raises_regex(ValueError, msg):
+        with pytest.raises(ValueError, match=msg):
             dtype.update_dtype(bad_dtype)
 
 
-@pytest.mark.parametrize(
-    'dtype',
-    [CategoricalDtype, IntervalDtype])
+@pytest.mark.parametrize('dtype', [
+    CategoricalDtype,
+    IntervalDtype,
+])
 def test_registry(dtype):
     assert dtype in registry.dtypes
 
 
-@pytest.mark.parametrize('dtype', [DatetimeTZDtype, PeriodDtype])
+@pytest.mark.parametrize('dtype', [
+    PeriodDtype,
+    DatetimeTZDtype,
+])
 def test_pandas_registry(dtype):
     assert dtype not in registry.dtypes
     assert dtype in _pandas_registry.dtypes
 
 
-@pytest.mark.parametrize(
-    'dtype, expected',
-    [('int64', None),
-     ('interval', IntervalDtype()),
-     ('interval[int64]', IntervalDtype()),
-     ('interval[datetime64[ns]]', IntervalDtype('datetime64[ns]')),
-     ('category', CategoricalDtype())])
+@pytest.mark.parametrize('dtype, expected', [
+    ('int64', None),
+    ('interval', IntervalDtype()),
+    ('interval[int64]', IntervalDtype()),
+    ('interval[datetime64[ns]]', IntervalDtype('datetime64[ns]')),
+    ('category', CategoricalDtype()),
+])
 def test_registry_find(dtype, expected):
     assert registry.find(dtype) == expected
 
 
-@pytest.mark.parametrize(
-    'dtype, expected',
-    [('period[D]', PeriodDtype('D')),
-     ('datetime64[ns, US/Eastern]', DatetimeTZDtype('ns', 'US/Eastern'))])
+@pytest.mark.parametrize('dtype, expected', [
+    ('period[D]', PeriodDtype('D')),
+    ('datetime64[ns, US/Eastern]', DatetimeTZDtype('ns', 'US/Eastern')),
+])
 def test_pandas_registry_find(dtype, expected):
     assert _pandas_registry.find(dtype) == expected
+
+
+@pytest.mark.parametrize('dtype, expected', [
+    (str, False),
+    (int, False),
+    (bool, True),
+    (np.bool, True),
+    (np.array(['a', 'b']), False),
+    (pd.Series([1, 2]), False),
+    (np.array([True, False]), True),
+    (pd.Series([True, False]), True),
+    (pd.SparseSeries([True, False]), True),
+    (pd.SparseArray([True, False]), True),
+    (SparseDtype(bool), True)
+])
+def test_is_bool_dtype(dtype, expected):
+    result = is_bool_dtype(dtype)
+    assert result is expected
+
+
+@pytest.mark.parametrize("check", [
+    is_categorical_dtype,
+    is_datetime64tz_dtype,
+    is_period_dtype,
+    is_datetime64_ns_dtype,
+    is_datetime64_dtype,
+    is_interval_dtype,
+    is_datetime64_any_dtype,
+    is_string_dtype,
+    is_bool_dtype,
+])
+def test_is_dtype_no_warning(check):
+    data = pd.DataFrame({"A": [1, 2]})
+    with tm.assert_produces_warning(None):
+        check(data)
+
+    with tm.assert_produces_warning(None):
+        check(data["A"])

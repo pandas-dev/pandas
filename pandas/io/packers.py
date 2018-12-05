@@ -38,39 +38,36 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 """
 
-from datetime import datetime, date, timedelta
-from dateutil.parser import parse
+from datetime import date, datetime, timedelta
 import os
 from textwrap import dedent
 import warnings
 
+from dateutil.parser import parse
 import numpy as np
-from pandas import compat
+
+import pandas.compat as compat
 from pandas.compat import u, u_safe
+from pandas.errors import PerformanceWarning
+from pandas.util._move import (
+    BadMove as _BadMove, move_into_mutable_buffer as _move_into_mutable_buffer)
 
 from pandas.core.dtypes.common import (
-    is_categorical_dtype, is_object_dtype,
-    needs_i8_conversion, pandas_dtype)
+    is_categorical_dtype, is_object_dtype, needs_i8_conversion, pandas_dtype)
 
-from pandas import (Timestamp, Period, Series, DataFrame,  # noqa
-                    Index, MultiIndex, Float64Index, Int64Index,
-                    Panel, RangeIndex, PeriodIndex, DatetimeIndex, NaT,
-                    Categorical, CategoricalIndex, IntervalIndex, Interval,
-                    TimedeltaIndex)
-from pandas.core.arrays import IntervalArray
-from pandas.core.sparse.api import SparseSeries, SparseDataFrame
-from pandas.core.sparse.array import BlockIndex, IntIndex
+from pandas import (  # noqa:F401
+    Categorical, CategoricalIndex, DataFrame, DatetimeIndex, Float64Index,
+    Index, Int64Index, Interval, IntervalIndex, MultiIndex, NaT, Panel, Period,
+    PeriodIndex, RangeIndex, Series, TimedeltaIndex, Timestamp)
+from pandas.core import internals
+from pandas.core.arrays import IntervalArray, PeriodArray
+from pandas.core.arrays.sparse import BlockIndex, IntIndex
 from pandas.core.generic import NDFrame
-from pandas.errors import PerformanceWarning
-from pandas.io.common import get_filepath_or_buffer, _stringify_path
-from pandas.core.internals import BlockManager, make_block, _safe_reshape
-import pandas.core.internals as internals
+from pandas.core.internals import BlockManager, _safe_reshape, make_block
+from pandas.core.sparse.api import SparseDataFrame, SparseSeries
 
-from pandas.io.msgpack import Unpacker as _Unpacker, Packer as _Packer, ExtType
-from pandas.util._move import (
-    BadMove as _BadMove,
-    move_into_mutable_buffer as _move_into_mutable_buffer,
-)
+from pandas.io.common import _stringify_path, get_filepath_or_buffer
+from pandas.io.msgpack import ExtType, Packer as _Packer, Unpacker as _Unpacker
 
 # check which compression libs we have installed
 try:
@@ -130,7 +127,7 @@ def to_msgpack(path_or_buf, *args, **kwargs):
     path_or_buf : string File path, buffer-like, or None
                   if None, return generated string
     args : an object or objects to serialize
-    encoding: encoding for unicode objects
+    encoding : encoding for unicode objects
     append : boolean whether to append to an existing msgpack
              (default is False)
     compress : type of compressor (zlib or blosc), default to None (no
@@ -173,30 +170,29 @@ def read_msgpack(path_or_buf, encoding='utf-8', iterator=False, **kwargs):
     Parameters
     ----------
     path_or_buf : string File path, BytesIO like or string
-    encoding: Encoding for decoding msgpack str type
+    encoding : Encoding for decoding msgpack str type
     iterator : boolean, if True, return an iterator to the unpacker
                (default is False)
 
     Returns
     -------
     obj : same type as object stored in file
-
     """
     path_or_buf, _, _, should_close = get_filepath_or_buffer(path_or_buf)
     if iterator:
         return Iterator(path_or_buf)
 
     def read(fh):
-        l = list(unpack(fh, encoding=encoding, **kwargs))
-        if len(l) == 1:
-            return l[0]
+        unpacked_obj = list(unpack(fh, encoding=encoding, **kwargs))
+        if len(unpacked_obj) == 1:
+            return unpacked_obj[0]
 
         if should_close:
             try:
                 path_or_buf.close()
-            except:  # noqa: flake8
+            except IOError:
                 pass
-        return l
+        return unpacked_obj
 
     # see if we have an actual file
     if isinstance(path_or_buf, compat.string_types):
@@ -254,7 +250,7 @@ c2f_dict = {'complex': np.float64,
             'complex128': np.float64,
             'complex64': np.float32}
 
-# numpy 1.6.1 compat
+# windows (32 bit) compat
 if hasattr(np, 'float128'):
     c2f_dict['complex256'] = np.float128
 
@@ -603,11 +599,13 @@ def decode(obj):
     elif typ == u'period_index':
         data = unconvert(obj[u'data'], np.int64, obj.get(u'compress'))
         d = dict(name=obj[u'name'], freq=obj[u'freq'])
-        return globals()[obj[u'klass']]._from_ordinals(data, **d)
+        freq = d.pop('freq', None)
+        return globals()[obj[u'klass']](PeriodArray(data, freq), **d)
+
     elif typ == u'datetime_index':
         data = unconvert(obj[u'data'], np.int64, obj.get(u'compress'))
-        d = dict(name=obj[u'name'], freq=obj[u'freq'], verify_integrity=False)
-        result = globals()[obj[u'klass']](data, **d)
+        d = dict(name=obj[u'name'], freq=obj[u'freq'])
+        result = DatetimeIndex._simple_new(data, **d)
         tz = obj[u'tz']
 
         # reverse tz conversion
@@ -703,7 +701,7 @@ def decode(obj):
             dtype = dtype_for(obj[u'dtype'])
             try:
                 return dtype(obj[u'data'])
-            except:
+            except (ValueError, TypeError):
                 return dtype.type(obj[u'data'])
     elif typ == u'np_complex':
         return complex(obj[u'real'] + u'+' + obj[u'imag'] + u'j')

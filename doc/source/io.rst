@@ -5,24 +5,22 @@
 .. ipython:: python
    :suppress:
 
-   import os
    import csv
-   from pandas.compat import StringIO, BytesIO
-   import pandas as pd
-   ExcelWriter = pd.ExcelWriter
-
-   import numpy as np
-   np.random.seed(123456)
-   randn = np.random.randn
-   np.set_printoptions(precision=4, suppress=True)
+   import os
 
    import matplotlib.pyplot as plt
-   plt.close('all')
+   import numpy as np
+   import pandas as pd
+   from pandas.compat import StringIO, BytesIO
 
-   import pandas.util.testing as tm
+
+   randn = np.random.randn
+   np.set_printoptions(precision=4, suppress=True)
+   plt.close('all')
    pd.options.display.max_rows = 15
    clipdf = pd.DataFrame({'A': [1, 2, 3], 'B': [4, 5, 6], 'C': ['p', 'q', 'r']},
                          index=['x', 'y', 'z'])
+
 
 ===============================
 IO Tools (Text, CSV, HDF5, ...)
@@ -40,14 +38,14 @@ The pandas I/O API is a set of top level ``reader`` functions accessed like
     :delim: ;
 
     text;`CSV <https://en.wikipedia.org/wiki/Comma-separated_values>`__;:ref:`read_csv<io.read_csv_table>`;:ref:`to_csv<io.store_in_csv>`
-    text;`JSON <http://www.json.org/>`__;:ref:`read_json<io.json_reader>`;:ref:`to_json<io.json_writer>`
+    text;`JSON <https://www.json.org/>`__;:ref:`read_json<io.json_reader>`;:ref:`to_json<io.json_writer>`
     text;`HTML <https://en.wikipedia.org/wiki/HTML>`__;:ref:`read_html<io.read_html>`;:ref:`to_html<io.html>`
     text; Local clipboard;:ref:`read_clipboard<io.clipboard>`;:ref:`to_clipboard<io.clipboard>`
     binary;`MS Excel <https://en.wikipedia.org/wiki/Microsoft_Excel>`__;:ref:`read_excel<io.excel_reader>`;:ref:`to_excel<io.excel_writer>`
     binary;`HDF5 Format <https://support.hdfgroup.org/HDF5/whatishdf5.html>`__;:ref:`read_hdf<io.hdf5>`;:ref:`to_hdf<io.hdf5>`
     binary;`Feather Format <https://github.com/wesm/feather>`__;:ref:`read_feather<io.feather>`;:ref:`to_feather<io.feather>`
     binary;`Parquet Format <https://parquet.apache.org/>`__;:ref:`read_parquet<io.parquet>`;:ref:`to_parquet<io.parquet>`
-    binary;`Msgpack <http://msgpack.org/index.html>`__;:ref:`read_msgpack<io.msgpack>`;:ref:`to_msgpack<io.msgpack>`
+    binary;`Msgpack <https://msgpack.org/index.html>`__;:ref:`read_msgpack<io.msgpack>`;:ref:`to_msgpack<io.msgpack>`
     binary;`Stata <https://en.wikipedia.org/wiki/Stata>`__;:ref:`read_stata<io.stata_reader>`;:ref:`to_stata<io.stata_writer>`
     binary;`SAS <https://en.wikipedia.org/wiki/SAS_(software)>`__;:ref:`read_sas<io.sas_reader>`;
     binary;`Python Pickle Format <https://docs.python.org/3/library/pickle.html>`__;:ref:`read_pickle<io.pickle>`;:ref:`to_pickle<io.pickle>`
@@ -146,7 +144,10 @@ usecols : list-like or callable, default ``None``
 
   .. ipython:: python
 
-     data = 'col1,col2,col3\na,b,1\na,b,2\nc,d,3'
+     data = ('col1,col2,col3\n'
+             'a,b,1\n'
+             'a,b,2\n'
+             'c,d,3')
      pd.read_csv(StringIO(data))
      pd.read_csv(StringIO(data), usecols=lambda x: x.upper() in ['COL1', 'COL3'])
 
@@ -192,7 +193,10 @@ skiprows : list-like or integer, default ``None``
 
   .. ipython:: python
 
-     data = 'col1,col2,col3\na,b,1\na,b,2\nc,d,3'
+     data = ('col1,col2,col3\n'
+             'a,b,1\n'
+             'a,b,2\n'
+             'c,d,3')
      pd.read_csv(StringIO(data))
      pd.read_csv(StringIO(data), skiprows=lambda x: x % 2 != 0)
 
@@ -367,7 +371,10 @@ columns:
 
 .. ipython:: python
 
-    data = 'a,b,c\n1,2,3\n4,5,6\n7,8,9'
+    data = ('a,b,c\n'
+            '1,2,3\n'
+            '4,5,6\n'
+            '7,8,9')
     print(data)
 
     df = pd.read_csv(StringIO(data), dtype=object)
@@ -388,7 +395,11 @@ of :func:`~pandas.read_csv`:
 
 .. ipython:: python
 
-    data = "col_1\n1\n2\n'A'\n4.22"
+    data = ("col_1\n"
+            "1\n"
+            "2\n"
+            "'A'\n"
+            "4.22")
     df = pd.read_csv(StringIO(data), converters={'col_1': str})
     df
     df['col_1'].apply(type).value_counts()
@@ -427,7 +438,8 @@ worth trying.
    .. ipython:: python
         :okwarning:
 
-        df = pd.DataFrame({'col_1': list(range(500000)) + ['a', 'b'] + list(range(500000))})
+        col_1 = list(range(500000)) + ['a', 'b'] + list(range(500000))
+        df = pd.DataFrame({'col_1': col_1})
         df.to_csv('foo.csv')
         mixed_df = pd.read_csv('foo.csv')
         mixed_df['col_1'].apply(type).value_counts()
@@ -455,7 +467,10 @@ Specifying Categorical dtype
 
 .. ipython:: python
 
-   data = 'col1,col2,col3\na,b,1\na,b,2\nc,d,3'
+   data = ('col1,col2,col3\n'
+           'a,b,1\n'
+           'a,b,2\n'
+           'c,d,3')
 
    pd.read_csv(StringIO(data))
    pd.read_csv(StringIO(data)).dtypes
@@ -479,7 +494,6 @@ that column's ``dtype``.
 .. ipython:: python
 
    from pandas.api.types import CategoricalDtype
-
    dtype = CategoricalDtype(['d', 'c', 'b', 'a'], ordered=True)
    pd.read_csv(StringIO(data), dtype={'col1': dtype}).dtypes
 
@@ -525,7 +539,10 @@ used as the column names:
 
 .. ipython:: python
 
-    data = 'a,b,c\n1,2,3\n4,5,6\n7,8,9'
+    data = ('a,b,c\n'
+            '1,2,3\n'
+            '4,5,6\n'
+            '7,8,9')
     print(data)
     pd.read_csv(StringIO(data))
 
@@ -544,7 +561,11 @@ If the header is in a row other than the first, pass the row number to
 
 .. ipython:: python
 
-    data = 'skip this skip it\na,b,c\n1,2,3\n4,5,6\n7,8,9'
+    data = ('skip this skip it\n'
+            'a,b,c\n'
+            '1,2,3\n'
+            '4,5,6\n'
+            '7,8,9')
     pd.read_csv(StringIO(data), header=1)
 
 .. note::
@@ -565,7 +586,9 @@ distinguish between them so as to prevent overwriting data:
 
 .. ipython :: python
 
-   data = 'a,b,a\n0,1,2\n3,4,5'
+   data = ('a,b,a\n'
+           '0,1,2\n'
+           '3,4,5')
    pd.read_csv(StringIO(data))
 
 There is no more duplicate data because ``mangle_dupe_cols=True`` by default,
@@ -633,7 +656,13 @@ be ignored. By default, completely blank lines will be ignored as well.
 
 .. ipython:: python
 
-   data = '\na,b,c\n  \n# commented line\n1,2,3\n\n4,5,6'
+   data = ('\n'
+           'a,b,c\n'
+           '  \n'
+           '# commented line\n'
+           '1,2,3\n'
+           '\n'
+           '4,5,6')
    print(data)
    pd.read_csv(StringIO(data), comment='#')
 
@@ -641,7 +670,12 @@ If ``skip_blank_lines=False``, then ``read_csv`` will not ignore blank lines:
 
 .. ipython:: python
 
-   data = 'a,b,c\n\n1,2,3\n\n\n4,5,6'
+   data = ('a,b,c\n'
+           '\n'
+           '1,2,3\n'
+           '\n'
+           '\n'
+           '4,5,6')
    pd.read_csv(StringIO(data), skip_blank_lines=False)
 
 .. warning::
@@ -652,20 +686,32 @@ If ``skip_blank_lines=False``, then ``read_csv`` will not ignore blank lines:
 
    .. ipython:: python
 
-      data = '#comment\na,b,c\nA,B,C\n1,2,3'
+      data = ('#comment\n'
+              'a,b,c\n'
+              'A,B,C\n'
+              '1,2,3')
       pd.read_csv(StringIO(data), comment='#', header=1)
-      data = 'A,B,C\n#comment\na,b,c\n1,2,3'
+      data = ('A,B,C\n'
+              '#comment\n'
+              'a,b,c\n'
+              '1,2,3')
       pd.read_csv(StringIO(data), comment='#', skiprows=2)
 
    If both ``header`` and ``skiprows`` are specified, ``header`` will be
    relative to the end of ``skiprows``. For example:
 
-   .. ipython:: python
+.. ipython:: python
 
-      data = '# empty\n# second empty line\n# third empty' \
-                'line\nX,Y,Z\n1,2,3\nA,B,C\n1,2.,4.\n5.,NaN,10.0'
-      print(data)
-      pd.read_csv(StringIO(data), comment='#', skiprows=4, header=1)
+   data = ('# empty\n'
+           '# second empty line\n'
+           '# third emptyline\n'
+           'X,Y,Z\n'
+           '1,2,3\n'
+           'A,B,C\n'
+           '1,2.,4.\n'
+           '5.,NaN,10.0\n')
+   print(data)
+   pd.read_csv(StringIO(data), comment='#', skiprows=4, header=1)
 
 .. _io.comments:
 
@@ -677,10 +723,10 @@ Sometimes comments or meta data may be included in a file:
 .. ipython:: python
    :suppress:
 
-   data =  ("ID,level,category\n"
-            "Patient1,123000,x # really unpleasant\n"
-            "Patient2,23000,y # wouldn't take his medicine\n"
-            "Patient3,1234018,z # awesome")
+   data = ("ID,level,category\n"
+           "Patient1,123000,x # really unpleasant\n"
+           "Patient2,23000,y # wouldn't take his medicine\n"
+           "Patient3,1234018,z # awesome")
 
    with open('tmp.csv', 'w') as fh:
        fh.write(data)
@@ -718,7 +764,10 @@ result in byte strings being decoded to unicode in the result:
 
 .. ipython:: python
 
-   data = b'word,length\nTr\xc3\xa4umen,7\nGr\xc3\xbc\xc3\x9fe,5'.decode('utf8').encode('latin-1')
+   data = (b'word,length\n'
+           b'Tr\xc3\xa4umen,7\n'
+           b'Gr\xc3\xbc\xc3\x9fe,5')
+   data = data.decode('utf8').encode('latin-1')
    df = pd.read_csv(BytesIO(data), encoding='latin-1')
    df
    df['word'][1]
@@ -738,12 +787,16 @@ first column will be used as the ``DataFrame``'s row names:
 
 .. ipython:: python
 
-    data = 'a,b,c\n4,apple,bat,5.7\n8,orange,cow,10'
+    data = ('a,b,c\n'
+            '4,apple,bat,5.7\n'
+            '8,orange,cow,10')
     pd.read_csv(StringIO(data))
 
 .. ipython:: python
 
-    data = 'index,a,b,c\n4,apple,bat,5.7\n8,orange,cow,10'
+    data = ('index,a,b,c\n'
+            '4,apple,bat,5.7\n'
+            '8,orange,cow,10')
     pd.read_csv(StringIO(data), index_col=0)
 
 Ordinarily, you can achieve this behavior using the ``index_col`` option.
@@ -754,7 +807,9 @@ index column inference and discard the last column, pass ``index_col=False``:
 
 .. ipython:: python
 
-    data = 'a,b,c\n4,apple,bat,\n8,orange,cow,'
+    data = ('a,b,c\n'
+            '4,apple,bat,\n'
+            '8,orange,cow,')
     print(data)
     pd.read_csv(StringIO(data))
     pd.read_csv(StringIO(data), index_col=False)
@@ -764,7 +819,9 @@ If a subset of data is being parsed using the ``usecols`` option, the
 
 .. ipython:: python
 
-    data = 'a,b,c\n4,apple,bat,\n8,orange,cow,'
+    data = ('a,b,c\n'
+            '4,apple,bat,\n'
+            '8,orange,cow,')
     print(data)
     pd.read_csv(StringIO(data), usecols=['b', 'c'])
     pd.read_csv(StringIO(data), usecols=['b', 'c'], index_col=0)
@@ -812,12 +869,12 @@ column names:
 .. ipython:: python
    :suppress:
 
-   data =  ("KORD,19990127, 19:00:00, 18:56:00, 0.8100\n"
-            "KORD,19990127, 20:00:00, 19:56:00, 0.0100\n"
-            "KORD,19990127, 21:00:00, 20:56:00, -0.5900\n"
-            "KORD,19990127, 21:00:00, 21:18:00, -0.9900\n"
-            "KORD,19990127, 22:00:00, 21:56:00, -0.5900\n"
-            "KORD,19990127, 23:00:00, 22:56:00, -0.5900")
+   data = ("KORD,19990127, 19:00:00, 18:56:00, 0.8100\n"
+           "KORD,19990127, 20:00:00, 19:56:00, 0.0100\n"
+           "KORD,19990127, 21:00:00, 20:56:00, -0.5900\n"
+           "KORD,19990127, 21:00:00, 21:18:00, -0.9900\n"
+           "KORD,19990127, 22:00:00, 21:56:00, -0.5900\n"
+           "KORD,19990127, 23:00:00, 22:56:00, -0.5900")
 
    with open('tmp.csv', 'w') as fh:
        fh.write(data)
@@ -895,9 +952,8 @@ take full advantage of the flexibility of the date parsing API:
 
 .. ipython:: python
 
-   import pandas.io.date_converters as conv
    df = pd.read_csv('tmp.csv', header=None, parse_dates=date_spec,
-                    date_parser=conv.parse_date_time)
+                    date_parser=pd.io.date_converters.parse_date_time)
    df
 
 Pandas will try to call the ``date_parser`` function in three different ways. If
@@ -990,9 +1046,12 @@ DD/MM/YYYY instead. For convenience, a ``dayfirst`` keyword is provided:
 .. ipython:: python
    :suppress:
 
-   data = "date,value,cat\n1/6/2000,5,a\n2/6/2000,10,b\n3/6/2000,15,c"
+   data = ("date,value,cat\n"
+           "1/6/2000,5,a\n"
+           "2/6/2000,10,b\n"
+           "3/6/2000,15,c")
    with open('tmp.csv', 'w') as fh:
-        fh.write(data)
+       fh.write(data)
 
 .. ipython:: python
 
@@ -1016,9 +1075,12 @@ writing to a file). For example:
 
    val = '0.3066101993807095471566981359501369297504425048828125'
    data = 'a,b,c\n1,2,{0}'.format(val)
-   abs(pd.read_csv(StringIO(data), engine='c', float_precision=None)['c'][0] - float(val))
-   abs(pd.read_csv(StringIO(data), engine='c', float_precision='high')['c'][0] - float(val))
-   abs(pd.read_csv(StringIO(data), engine='c', float_precision='round_trip')['c'][0] - float(val))
+   abs(pd.read_csv(StringIO(data), engine='c',
+                   float_precision=None)['c'][0] - float(val))
+   abs(pd.read_csv(StringIO(data), engine='c',
+                   float_precision='high')['c'][0] - float(val))
+   abs(pd.read_csv(StringIO(data), engine='c',
+                   float_precision='round_trip')['c'][0] - float(val))
 
 
 .. _io.thousands:
@@ -1033,10 +1095,10 @@ correctly:
 .. ipython:: python
    :suppress:
 
-   data =  ("ID|level|category\n"
-            "Patient1|123,000|x\n"
-            "Patient2|23,000|y\n"
-            "Patient3|1,234,018|z")
+   data = ("ID|level|category\n"
+           "Patient1|123,000|x\n"
+           "Patient2|23,000|y\n"
+           "Patient3|1,234,018|z")
 
    with open('tmp.csv', 'w') as fh:
        fh.write(data)
@@ -1089,7 +1151,7 @@ Let us consider some examples:
 
 .. code-block:: python
 
-   read_csv(path, na_values=[5])
+   pd.read_csv('path_to_file.csv', na_values=[5])
 
 In the example above ``5`` and ``5.0`` will be recognized as ``NaN``, in
 addition to the defaults. A string will first be interpreted as a numerical
@@ -1097,19 +1159,19 @@ addition to the defaults. A string will first be interpreted as a numerical
 
 .. code-block:: python
 
-   read_csv(path, keep_default_na=False, na_values=[""])
+   pd.read_csv('path_to_file.csv', keep_default_na=False, na_values=[""])
 
 Above, only an empty field will be recognized as ``NaN``.
 
 .. code-block:: python
 
-   read_csv(path, keep_default_na=False, na_values=["NA", "0"])
+   pd.read_csv('path_to_file.csv', keep_default_na=False, na_values=["NA", "0"])
 
 Above, both ``NA`` and ``0`` as strings are ``NaN``.
 
 .. code-block:: python
 
-   read_csv(path, na_values=["Nope"])
+   pd.read_csv('path_to_file.csv', na_values=["Nope"])
 
 The default values, in addition to the string ``"Nope"`` are recognized as
 ``NaN``.
@@ -1132,10 +1194,10 @@ as a ``Series``:
 .. ipython:: python
    :suppress:
 
-   data =  ("level\n"
-            "Patient1,123000\n"
-            "Patient2,23000\n"
-            "Patient3,1234018")
+   data = ("level\n"
+           "Patient1,123000\n"
+           "Patient2,23000\n"
+           "Patient3,1234018")
 
    with open('tmp.csv', 'w') as fh:
        fh.write(data)
@@ -1144,7 +1206,7 @@ as a ``Series``:
 
    print(open('tmp.csv').read())
 
-   output =  pd.read_csv('tmp.csv', squeeze=True)
+   output = pd.read_csv('tmp.csv', squeeze=True)
    output
 
    type(output)
@@ -1166,7 +1228,9 @@ options as follows:
 
 .. ipython:: python
 
-    data= 'a,b,c\n1,Yes,2\n3,No,4'
+    data = ('a,b,c\n'
+            '1,Yes,2\n'
+            '3,No,4')
     print(data)
     pd.read_csv(StringIO(data))
     pd.read_csv(StringIO(data), true_values=['Yes'], false_values=['No'])
@@ -1181,18 +1245,13 @@ too few fields will have NA values filled in the trailing fields. Lines with
 too many fields will raise an error by default:
 
 .. ipython:: python
-   :suppress:
+    :okexcept:
 
-    data = 'a,b,c\n1,2,3\n4,5,6,7\n8,9,10'
-
-.. code-block:: ipython
-
-    In [27]: data = 'a,b,c\n1,2,3\n4,5,6,7\n8,9,10'
-
-    In [28]: pd.read_csv(StringIO(data))
-    ---------------------------------------------------------------------------
-    ParserError                              Traceback (most recent call last)
-    ParserError: Error tokenizing data. C error: Expected 3 fields in line 3, saw 4
+    data = ('a,b,c\n'
+            '1,2,3\n'
+            '4,5,6,7\n'
+            '8,9,10')
+    pd.read_csv(StringIO(data))
 
 You can elect to skip bad lines:
 
@@ -1437,7 +1496,7 @@ returned object:
 
 .. ipython:: python
 
-   df = pd.read_csv("data/mindex_ex.csv", index_col=[0,1])
+   df = pd.read_csv("data/mindex_ex.csv", index_col=[0, 1])
    df
    df.loc[1978]
 
@@ -1480,7 +1539,6 @@ with ``df.to_csv(..., index=False)``, then any ``names`` on the columns index wi
 .. ipython:: python
    :suppress:
 
-   import os
    os.remove('mi.csv')
    os.remove('mi2.csv')
 
@@ -1580,11 +1638,18 @@ You can pass in a URL to a CSV file:
    df = pd.read_csv('https://download.bls.gov/pub/time.series/cu/cu.item',
                     sep='\t')
 
-S3 URLs are handled as well:
+S3 URLs are handled as well but require installing the `S3Fs
+<https://pypi.org/project/s3fs/>`_ library:
 
 .. code-block:: python
 
    df = pd.read_csv('s3://pandas-test/tips.csv')
+
+If your S3 bucket requires cedentials you will need to set them as environment
+variables or in the ``~/.aws/credentials`` config file, refer to the `S3Fs
+documentation on credentials
+<https://s3fs.readthedocs.io/en/latest/#credentials>`_.
+
 
 
 Writing out Data
@@ -1603,7 +1668,7 @@ function takes a number of arguments. Only the first is required.
 * ``sep`` : Field delimiter for the output file (default ",")
 * ``na_rep``: A string representation of a missing value (default '')
 * ``float_format``: Format string for floating point numbers
-* ``cols``: Columns to write (default None)
+* ``columns``: Columns to write (default None)
 * ``header``: Whether to write out the column names (default True)
 * ``index``: whether to write row (index) names (default True)
 * ``index_label``: Column label(s) for index column(s) if desired. If None
@@ -1834,8 +1899,7 @@ For example:
 
 .. code-block:: python
 
-  DataFrame([1.0, 2.0, complex(1.0, 2.0)]).to_json()  # raises
-
+  >>> DataFrame([1.0, 2.0, complex(1.0, 2.0)]).to_json()  # raises
   RuntimeError: Unhandled numpy dtype 15
 
 can be dealt with by specifying a simple ``default_handler``:
@@ -1960,9 +2024,8 @@ Preserve string indices:
 
 .. ipython:: python
 
-   si = pd.DataFrame(np.zeros((4, 4)),
-            columns=list(range(4)),
-            index=[str(i) for i in range(4)])
+   si = pd.DataFrame(np.zeros((4, 4)), columns=list(range(4)),
+                     index=[str(i) for i in range(4)])
    si
    si.index
    si.columns
@@ -2014,11 +2077,11 @@ data:
 
 .. ipython:: python
 
-   timeit pd.read_json(jsonfloats)
+   %timeit pd.read_json(jsonfloats)
 
 .. ipython:: python
 
-   timeit pd.read_json(jsonfloats, numpy=True)
+   %timeit pd.read_json(jsonfloats, numpy=True)
 
 The speedup is less noticeable for smaller datasets:
 
@@ -2028,11 +2091,11 @@ The speedup is less noticeable for smaller datasets:
 
 .. ipython:: python
 
-   timeit pd.read_json(jsonfloats)
+   %timeit pd.read_json(jsonfloats)
 
 .. ipython:: python
 
-   timeit pd.read_json(jsonfloats, numpy=True)
+   %timeit pd.read_json(jsonfloats, numpy=True)
 
 .. warning::
 
@@ -2053,7 +2116,6 @@ The speedup is less noticeable for smaller datasets:
 .. ipython:: python
    :suppress:
 
-   import os
    os.remove('test.json')
 
 .. _io.json_normalize:
@@ -2075,20 +2137,16 @@ into a flat table.
 .. ipython:: python
 
    data = [{'state': 'Florida',
-             'shortname': 'FL',
-             'info': {
-                  'governor': 'Rick Scott'
-             },
-             'counties': [{'name': 'Dade', 'population': 12345},
+            'shortname': 'FL',
+            'info': {'governor': 'Rick Scott'},
+            'counties': [{'name': 'Dade', 'population': 12345},
                          {'name': 'Broward', 'population': 40000},
                          {'name': 'Palm Beach', 'population': 60000}]},
-            {'state': 'Ohio',
-             'shortname': 'OH',
-             'info': {
-                  'governor': 'John Kasich'
-             },
-             'counties': [{'name': 'Summit', 'population': 1234},
-                          {'name': 'Cuyahoga', 'population': 1337}]}]
+           {'state': 'Ohio',
+            'shortname': 'OH',
+            'info': {'governor': 'John Kasich'},
+            'counties': [{'name': 'Summit', 'population': 1234},
+                         {'name': 'Cuyahoga', 'population': 1337}]}]
 
    json_normalize(data, 'counties', ['state', 'shortname', ['info', 'governor']])
 
@@ -2136,11 +2194,10 @@ a JSON string with two fields, ``schema`` and ``data``.
 
 .. ipython:: python
 
-   df = pd.DataFrame(
-       {'A': [1, 2, 3],
-        'B': ['a', 'b', 'c'],
-        'C': pd.date_range('2016-01-01', freq='d', periods=3),
-       }, index=pd.Index(range(3), name='idx'))
+   df = pd.DataFrame({'A': [1, 2, 3],
+                      'B': ['a', 'b', 'c'],
+                      'C': pd.date_range('2016-01-01', freq='d', periods=3)},
+                     index=pd.Index(range(3), name='idx'))
    df
    df.to_json(orient='table', date_format="iso")
 
@@ -2273,7 +2330,7 @@ indicate missing values and the subsequent read cannot distinguish the intent.
    new_df = pd.read_json('test.json', orient='table')
    print(new_df.index.name)
 
-.. _Table Schema: http://specs.frictionlessdata.io/json-table-schema/
+.. _Table Schema: https://specs.frictionlessdata.io/json-table-schema/
 
 HTML
 ----
@@ -2301,7 +2358,7 @@ Read a URL with no options:
 
 .. ipython:: python
 
-   url = 'http://www.fdic.gov/bank/individual/failed/banklist.html'
+   url = 'https://www.fdic.gov/bank/individual/failed/banklist.html'
    dfs = pd.read_html(url)
    dfs
 
@@ -2316,7 +2373,6 @@ as a string:
 .. ipython:: python
    :suppress:
 
-   import os
    file_path = os.path.abspath(os.path.join('source', '_static', 'banklist.html'))
 
 .. ipython:: python
@@ -2341,7 +2397,7 @@ You can even pass in an instance of ``StringIO`` if you so desire:
    that having so many network-accessing functions slows down the documentation
    build. If you spot an error or an example that doesn't run, please do not
    hesitate to report it over on `pandas GitHub issues page
-   <http://www.github.com/pandas-dev/pandas/issues>`__.
+   <https://www.github.com/pandas-dev/pandas/issues>`__.
 
 
 Read a URL and match a table that contains specific text:
@@ -2411,8 +2467,8 @@ columns to strings.
 .. code-block:: python
 
    url_mcc = 'https://en.wikipedia.org/wiki/Mobile_country_code'
-   dfs = pd.read_html(url_mcc, match='Telekom Albania', header=0, converters={'MNC':
-   str})
+   dfs = pd.read_html(url_mcc, match='Telekom Albania', header=0,
+                      converters={'MNC': str})
 
 .. versionadded:: 0.19
 
@@ -2650,16 +2706,16 @@ parse HTML tables in the top-level pandas io function ``read_html``.
 
 
 .. |svm| replace:: **strictly valid markup**
-.. _svm: http://validator.w3.org/docs/help.html#validation_basics
+.. _svm: https://validator.w3.org/docs/help.html#validation_basics
 
 .. |html5lib| replace:: **html5lib**
 .. _html5lib: https://github.com/html5lib/html5lib-python
 
 .. |BeautifulSoup4| replace:: **BeautifulSoup4**
-.. _BeautifulSoup4: http://www.crummy.com/software/BeautifulSoup
+.. _BeautifulSoup4: https://www.crummy.com/software/BeautifulSoup
 
 .. |lxml| replace:: **lxml**
-.. _lxml: http://lxml.de
+.. _lxml: https://lxml.de
 
 
 
@@ -2687,7 +2743,7 @@ file, and the ``sheet_name`` indicating which sheet to parse.
 .. code-block:: python
 
    # Returns a DataFrame
-   read_excel('path_to_file.xls', sheet_name='Sheet1')
+   pd.read_excel('path_to_file.xls', sheet_name='Sheet1')
 
 
 .. _io.excel.excelfile_class:
@@ -2724,7 +2780,8 @@ different parameters:
     data = {}
     # For when Sheet1's format differs from Sheet2
     with pd.ExcelFile('path_to_file.xls') as xls:
-        data['Sheet1'] = pd.read_excel(xls, 'Sheet1', index_col=None, na_values=['NA'])
+        data['Sheet1'] = pd.read_excel(xls, 'Sheet1', index_col=None,
+                                       na_values=['NA'])
         data['Sheet2'] = pd.read_excel(xls, 'Sheet2', index_col=1)
 
 Note that if the same parsing parameters are used for all sheets, a list
@@ -2735,11 +2792,14 @@ of sheet names can simply be passed to ``read_excel`` with no loss in performanc
     # using the ExcelFile class
     data = {}
     with pd.ExcelFile('path_to_file.xls') as xls:
-        data['Sheet1'] = read_excel(xls, 'Sheet1', index_col=None, na_values=['NA'])
-        data['Sheet2'] = read_excel(xls, 'Sheet2', index_col=None, na_values=['NA'])
+        data['Sheet1'] = pd.read_excel(xls, 'Sheet1', index_col=None,
+                                       na_values=['NA'])
+        data['Sheet2'] = pd.read_excel(xls, 'Sheet2', index_col=None,
+                                       na_values=['NA'])
 
     # equivalent using the read_excel function
-    data = read_excel('path_to_file.xls', ['Sheet1', 'Sheet2'], index_col=None, na_values=['NA'])
+    data = pd.read_excel('path_to_file.xls', ['Sheet1', 'Sheet2'],
+                         index_col=None, na_values=['NA'])
 
 .. _io.excel.specifying_sheets:
 
@@ -2761,35 +2821,35 @@ Specifying Sheets
 .. code-block:: python
 
    # Returns a DataFrame
-   read_excel('path_to_file.xls', 'Sheet1', index_col=None, na_values=['NA'])
+   pd.read_excel('path_to_file.xls', 'Sheet1', index_col=None, na_values=['NA'])
 
 Using the sheet index:
 
 .. code-block:: python
 
    # Returns a DataFrame
-   read_excel('path_to_file.xls', 0, index_col=None, na_values=['NA'])
+   pd.read_excel('path_to_file.xls', 0, index_col=None, na_values=['NA'])
 
 Using all default values:
 
 .. code-block:: python
 
    # Returns a DataFrame
-   read_excel('path_to_file.xls')
+   pd.read_excel('path_to_file.xls')
 
 Using None to get all sheets:
 
 .. code-block:: python
 
    # Returns a dictionary of DataFrames
-   read_excel('path_to_file.xls', sheet_name=None)
+   pd.read_excel('path_to_file.xls', sheet_name=None)
 
 Using a list to get multiple sheets:
 
 .. code-block:: python
 
    # Returns the 1st and 4th sheet, as a dictionary of DataFrames.
-   read_excel('path_to_file.xls', sheet_name=['Sheet1', 3])
+   pd.read_excel('path_to_file.xls', sheet_name=['Sheet1', 3])
 
 ``read_excel`` can read more than one sheet, by setting ``sheet_name`` to either
 a list of sheet names, a list of sheet positions, or ``None`` to read all sheets.
@@ -2810,8 +2870,8 @@ For example, to read in a ``MultiIndex`` index without names:
 
 .. ipython:: python
 
-   df = pd.DataFrame({'a':[1, 2, 3, 4], 'b':[5, 6, 7, 8]},
-                     index=pd.MultiIndex.from_product([['a', 'b'],['c', 'd']]))
+   df = pd.DataFrame({'a': [1, 2, 3, 4], 'b': [5, 6, 7, 8]},
+                     index=pd.MultiIndex.from_product([['a', 'b'], ['c', 'd']]))
    df.to_excel('path_to_file.xlsx')
    df = pd.read_excel('path_to_file.xlsx', index_col=[0, 1])
    df
@@ -2832,7 +2892,8 @@ should be passed to ``index_col`` and ``header``:
 
 .. ipython:: python
 
-   df.columns = pd.MultiIndex.from_product([['a'], ['b', 'd']], names=['c1', 'c2'])
+   df.columns = pd.MultiIndex.from_product([['a'], ['b', 'd']],
+                                           names=['c1', 'c2'])
    df.to_excel('path_to_file.xlsx')
    df = pd.read_excel('path_to_file.xlsx', index_col=[0, 1], header=[0, 1])
    df
@@ -2840,7 +2901,6 @@ should be passed to ``index_col`` and ``header``:
 .. ipython:: python
    :suppress:
 
-   import os
    os.remove('path_to_file.xlsx')
 
 
@@ -2851,21 +2911,53 @@ It is often the case that users will insert columns to do temporary computations
 in Excel and you may not want to read in those columns. ``read_excel`` takes
 a ``usecols`` keyword to allow you to specify a subset of columns to parse.
 
+.. deprecated:: 0.24.0
+
+Passing in an integer for ``usecols`` has been deprecated. Please pass in a list
+of ints from 0 to ``usecols`` inclusive instead.
+
 If ``usecols`` is an integer, then it is assumed to indicate the last column
 to be parsed.
 
 .. code-block:: python
 
-   read_excel('path_to_file.xls', 'Sheet1', usecols=2)
+   pd.read_excel('path_to_file.xls', 'Sheet1', usecols=2)
 
-If `usecols` is a list of integers, then it is assumed to be the file column
+You can also specify a comma-delimited set of Excel columns and ranges as a string:
+
+.. code-block:: python
+
+   pd.read_excel('path_to_file.xls', 'Sheet1', usecols='A,C:E')
+
+If ``usecols`` is a list of integers, then it is assumed to be the file column
 indices to be parsed.
 
 .. code-block:: python
 
-   read_excel('path_to_file.xls', 'Sheet1', usecols=[0, 2, 3])
+   pd.read_excel('path_to_file.xls', 'Sheet1', usecols=[0, 2, 3])
 
 Element order is ignored, so ``usecols=[0, 1]`` is the same as ``[1, 0]``.
+
+.. versionadded:: 0.24
+
+If ``usecols`` is a list of strings, it is assumed that each string corresponds
+to a column name provided either by the user in ``names`` or inferred from the
+document header row(s). Those strings define which columns will be parsed:
+
+.. code-block:: python
+
+    pd.read_excel('path_to_file.xls', 'Sheet1', usecols=['foo', 'bar'])
+
+Element order is ignored, so ``usecols=['baz', 'joe']`` is the same as ``['joe', 'baz']``.
+
+.. versionadded:: 0.24
+
+If ``usecols`` is callable, the callable function will be evaluated against
+the column names, returning names where the callable function evaluates to ``True``.
+
+.. code-block:: python
+
+    pd.read_excel('path_to_file.xls', 'Sheet1', usecols=lambda x: x.isalpha())
 
 Parsing Dates
 +++++++++++++
@@ -2877,7 +2969,7 @@ use the ``parse_dates`` keyword to parse those strings to datetimes:
 
 .. code-block:: python
 
-   read_excel('path_to_file.xls', 'Sheet1', parse_dates=['date_strings'])
+   pd.read_excel('path_to_file.xls', 'Sheet1', parse_dates=['date_strings'])
 
 
 Cell Converters
@@ -2888,7 +2980,7 @@ option. For instance, to convert a column to boolean:
 
 .. code-block:: python
 
-   read_excel('path_to_file.xls', 'Sheet1', converters={'MyBools': bool})
+   pd.read_excel('path_to_file.xls', 'Sheet1', converters={'MyBools': bool})
 
 This options handles missing values and treats exceptions in the converters
 as missing data. Transformations are applied cell by cell rather than to the
@@ -2899,8 +2991,11 @@ missing data to recover integer dtype:
 
 .. code-block:: python
 
-   cfun = lambda x: int(x) if x else -1
-   read_excel('path_to_file.xls', 'Sheet1', converters={'MyInts': cfun})
+   def cfun(x):
+       return int(x) if x else -1
+
+
+   pd.read_excel('path_to_file.xls', 'Sheet1', converters={'MyInts': cfun})
 
 dtype Specifications
 ++++++++++++++++++++
@@ -2914,7 +3009,7 @@ no type inference, use the type ``str`` or ``object``.
 
 .. code-block:: python
 
-   read_excel('path_to_file.xls', dtype={'MyInts': 'int64', 'MyText': str})
+   pd.read_excel('path_to_file.xls', dtype={'MyInts': 'int64', 'MyText': str})
 
 .. _io.excel_writer:
 
@@ -2952,7 +3047,7 @@ one can pass an :class:`~pandas.io.excel.ExcelWriter`.
 
 .. code-block:: python
 
-   with ExcelWriter('path_to_file.xlsx') as writer:
+   with pd.ExcelWriter('path_to_file.xlsx') as writer:
        df1.to_excel(writer, sheet_name='Sheet1')
        df2.to_excel(writer, sheet_name='Sheet2')
 
@@ -2984,7 +3079,7 @@ Pandas supports writing Excel files to buffer-like objects such as ``StringIO`` 
    bio = BytesIO()
 
    # By setting the 'engine' in the ExcelWriter constructor.
-   writer = ExcelWriter(bio, engine='xlsxwriter')
+   writer = pd.ExcelWriter(bio, engine='xlsxwriter')
    df.to_excel(writer, sheet_name='Sheet1')
 
    # Save the workbook
@@ -3037,10 +3132,10 @@ argument to ``to_excel`` and to ``ExcelWriter``. The built-in engines are:
    df.to_excel('path_to_file.xlsx', sheet_name='Sheet1', engine='xlsxwriter')
 
    # By setting the 'engine' in the ExcelWriter constructor.
-   writer = ExcelWriter('path_to_file.xlsx', engine='xlsxwriter')
+   writer = pd.ExcelWriter('path_to_file.xlsx', engine='xlsxwriter')
 
    # Or via pandas configuration.
-   from pandas import options
+   from pandas import options                                     # noqa: E402
    options.io.excel.xlsx.writer = 'xlsxwriter'
 
    df.to_excel('path_to_file.xlsx', sheet_name='Sheet1')
@@ -3067,7 +3162,7 @@ which takes the contents of the clipboard buffer and passes them to the
 ``read_csv`` method. For instance, you can copy the following text to the
 clipboard (CTRL-C on many operating systems):
 
-.. code-block:: python
+.. code-block:: console
 
      A B C
    x 1 4 p
@@ -3127,7 +3222,6 @@ any pickled pandas object (or any other pickled object) from file:
 .. ipython:: python
    :suppress:
 
-   import os
    os.remove('foo.pkl')
 
 .. warning::
@@ -3143,10 +3237,10 @@ any pickled pandas object (or any other pickled object) from file:
    for such cases, pickled ``DataFrames``, ``Series`` etc, must be read with
    ``pd.read_pickle``, rather than ``pickle.load``.
 
-   See `here <http://pandas.pydata.org/pandas-docs/stable/whatsnew.html#whatsnew-0130-refactoring>`__
-   and `here <http://pandas.pydata.org/pandas-docs/stable/whatsnew.html#whatsnew-0150-refactoring>`__
+   See `here <https://pandas.pydata.org/pandas-docs/stable/whatsnew.html#whatsnew-0130-refactoring>`__
+   and `here <https://pandas.pydata.org/pandas-docs/stable/whatsnew.html#whatsnew-0150-refactoring>`__
    for some examples of compatibility-breaking changes. See
-   `this question <http://stackoverflow.com/questions/20444593/pandas-compiled-from-source-default-pickle-behavior-changed>`__
+   `this question <https://stackoverflow.com/questions/20444593/pandas-compiled-from-source-default-pickle-behavior-changed>`__
    for a detailed explanation.
 
 .. _io.pickle.compression:
@@ -3204,7 +3298,6 @@ The default is to 'infer':
 .. ipython:: python
    :suppress:
 
-   import os
    os.remove("data.pkl.compress")
    os.remove("data.pkl.xz")
    os.remove("data.pkl.gz")
@@ -3261,7 +3354,7 @@ pandas objects.
 
 .. ipython:: python
 
-   pd.to_msgpack('foo2.msg', {'dict': [{ 'df': df }, {'string': 'foo'},
+   pd.to_msgpack('foo2.msg', {'dict': [{'df': df}, {'string': 'foo'},
                                        {'scalar': 1.}, {'s': s}]})
    pd.read_msgpack('foo2.msg')
 
@@ -3294,7 +3387,7 @@ HDF5 (PyTables)
 
 ``HDFStore`` is a dict-like object which reads and writes pandas using
 the high performance HDF5 format using the excellent `PyTables
-<http://www.pytables.org/>`__ library. See the :ref:`cookbook <cookbook.hdf>`
+<https://www.pytables.org/>`__ library. See the :ref:`cookbook <cookbook.hdf>`
 for some advanced strategies
 
 .. warning::
@@ -3320,7 +3413,6 @@ dict:
 
 .. ipython:: python
 
-   np.random.seed(1234)
    index = pd.date_range('1/1/2000', periods=8)
    s = pd.Series(randn(5), index=['a', 'b', 'c', 'd', 'e'])
    df = pd.DataFrame(randn(8, 3), index=index,
@@ -3376,7 +3468,6 @@ Closing a Store and using a context manager:
    :suppress:
 
    store.close()
-   import os
    os.remove('store.h5')
 
 
@@ -3389,8 +3480,8 @@ similar to how ``read_csv`` and ``to_csv`` work.
 
 .. ipython:: python
 
-   df_tl = pd.DataFrame(dict(A=list(range(5)), B=list(range(5))))
-   df_tl.to_hdf('store_tl.h5','table', append=True)
+   df_tl = pd.DataFrame({'A': list(range(5)), 'B': list(range(5))})
+   df_tl.to_hdf('store_tl.h5', 'table', append=True)
    pd.read_hdf('store_tl.h5', 'table', where=['index>2'])
 
 .. ipython:: python
@@ -3402,10 +3493,6 @@ similar to how ``read_csv`` and ``to_csv`` work.
 
 HDFStore will by default not drop rows that are all missing. This behavior can be changed by setting ``dropna=True``.
 
-.. ipython:: python
-   :suppress:
-
-   import os
 
 .. ipython:: python
 
@@ -3414,12 +3501,12 @@ HDFStore will by default not drop rows that are all missing. This behavior can b
    df_with_missing
 
    df_with_missing.to_hdf('file.h5', 'df_with_missing',
-                           format='table', mode='w')
+                          format='table', mode='w')
 
    pd.read_hdf('file.h5', 'df_with_missing')
 
    df_with_missing.to_hdf('file.h5', 'df_with_missing',
-                           format='table', mode='w', dropna=True)
+                          format='table', mode='w', dropna=True)
    pd.read_hdf('file.h5', 'df_with_missing')
 
 
@@ -3433,13 +3520,13 @@ This is also true for the major axis of a ``Panel``:
 .. ipython:: python
 
    matrix = [[[np.nan, np.nan, np.nan], [1, np.nan, np.nan]],
-            [[np.nan, np.nan, np.nan], [np.nan, 5, 6]],
-            [[np.nan, np.nan, np.nan], [np.nan, 3, np.nan]]]
+             [[np.nan, np.nan, np.nan], [np.nan, 5, 6]],
+             [[np.nan, np.nan, np.nan], [np.nan, 3, np.nan]]]
 
-   panel_with_major_axis_all_missing=pd.Panel(matrix,
-           items=['Item1', 'Item2', 'Item3'],
-           major_axis=[1, 2],
-           minor_axis=['A', 'B', 'C'])
+   panel_with_major_axis_all_missing = pd.Panel(matrix,
+                                                items=['Item1', 'Item2', 'Item3'],
+                                                major_axis=[1, 2],
+                                                minor_axis=['A', 'B', 'C'])
 
    panel_with_major_axis_all_missing
 
@@ -3476,9 +3563,8 @@ This format is specified by default when using ``put`` or ``to_hdf`` or by ``for
 
    .. code-block:: python
 
-       pd.DataFrame(randn(10, 2)).to_hdf('test_fixed.h5', 'df')
-
-       pd.read_hdf('test_fixed.h5', 'df', where='index>5')
+       >>> pd.DataFrame(randn(10, 2)).to_hdf('test_fixed.h5', 'df')
+       >>> pd.read_hdf('test_fixed.h5', 'df', where='index>5')
        TypeError: cannot pass a where specification when reading a fixed format.
                   this store must be selected in its entirety
 
@@ -3541,7 +3627,7 @@ everything in the sub-store and **below**, so be *careful*.
 
    store.put('foo/bar/bah', df)
    store.append('food/orange', df)
-   store.append('food/apple',  df)
+   store.append('food/apple', df)
    store
 
    # a list of keys are returned
@@ -3574,7 +3660,7 @@ will yield a tuple for each group key along with the relative keys of its conten
 
     Hierarchical keys cannot be retrieved as dotted (attribute) access as described above for items stored under the root node.
 
-    .. code-block:: python
+    .. code-block:: ipython
 
        In [8]: store.foo.bar.bah
        AttributeError: 'HDFStore' object has no attribute 'foo'
@@ -3616,14 +3702,15 @@ defaults to `nan`.
     df_mixed = pd.DataFrame({'A': randn(8),
                              'B': randn(8),
                              'C': np.array(randn(8), dtype='float32'),
-                             'string':'string',
+                             'string': 'string',
                              'int': 1,
                              'bool': True,
                              'datetime64': pd.Timestamp('20010102')},
                             index=list(range(8)))
-    df_mixed.loc[df_mixed.index[3:5], ['A', 'B', 'string', 'datetime64']] = np.nan
+    df_mixed.loc[df_mixed.index[3:5],
+                 ['A', 'B', 'string', 'datetime64']] = np.nan
 
-    store.append('df_mixed', df_mixed, min_itemsize = {'values': 50})
+    store.append('df_mixed', df_mixed, min_itemsize={'values': 50})
     df_mixed1 = store.select('df_mixed')
     df_mixed1
     df_mixed1.get_dtype_counts()
@@ -3732,10 +3819,10 @@ The right-hand side of the sub-expression (after a comparison operator) can be:
 
    instead of this
 
-   .. code-block:: python
+   .. code-block:: ipython
 
       string = "HolyMoly'"
-      store.select('df',  'index == %s' % string)
+      store.select('df', 'index == %s' % string)
 
    The latter will **not** work and will raise a ``SyntaxError``.Note that
    there's a single quote followed by a double quote in the ``string``
@@ -3776,7 +3863,8 @@ Works with a Panel as well.
 
    store.append('wp', wp)
    store
-   store.select('wp', "major_axis>pd.Timestamp('20000102') & minor_axis=['A', 'B']")
+   store.select('wp',
+                "major_axis>pd.Timestamp('20000102') & minor_axis=['A', 'B']")
 
 The ``columns`` keyword can be supplied to select a list of columns to be
 returned, this is equivalent to passing a
@@ -3819,7 +3907,10 @@ specified in the format: ``<float>(<unit>)``, where float may be signed (and fra
 .. ipython:: python
 
    from datetime import timedelta
-   dftd = pd.DataFrame(dict(A = pd.Timestamp('20130101'), B = [ pd.Timestamp('20130101') + timedelta(days=i, seconds=10) for i in range(10) ]))
+   dftd = pd.DataFrame({'A': pd.Timestamp('20130101'),
+                        'B': [pd.Timestamp('20130101') + timedelta(days=i,
+                                                                   seconds=10)
+                              for i in range(10)]})
    dftd['C'] = dftd['A'] - dftd['B']
    dftd
    store.append('dftd', dftd, data_columns=True)
@@ -3878,7 +3969,7 @@ Then create the index when finished appending.
 
    os.remove('appends.h5')
 
-See `here <http://stackoverflow.com/questions/17893370/ptrepack-sortby-needs-full-index>`__ for how to create a completely-sorted-index (CSI) on an existing store.
+See `here <https://stackoverflow.com/questions/17893370/ptrepack-sortby-needs-full-index>`__ for how to create a completely-sorted-index (CSI) on an existing store.
 
 .. _io.hdf5-query-data-columns:
 
@@ -3896,14 +3987,14 @@ be ``data_columns``.
 
    df_dc = df.copy()
    df_dc['string'] = 'foo'
-   df_dc.loc[df_dc.index[4: 6], 'string'] = np.nan
-   df_dc.loc[df_dc.index[7: 9], 'string'] = 'bar'
+   df_dc.loc[df_dc.index[4:6], 'string'] = np.nan
+   df_dc.loc[df_dc.index[7:9], 'string'] = 'bar'
    df_dc['string2'] = 'cool'
-   df_dc.loc[df_dc.index[1: 3], ['B', 'C']] = 1.0
+   df_dc.loc[df_dc.index[1:3], ['B', 'C']] = 1.0
    df_dc
 
    # on-disk operations
-   store.append('df_dc', df_dc, data_columns = ['B', 'C', 'string', 'string2'])
+   store.append('df_dc', df_dc, data_columns=['B', 'C', 'string', 'string2'])
    store.select('df_dc', where='B > 0')
 
    # getting creative
@@ -3932,7 +4023,7 @@ The default is 50,000 rows returned in a chunk.
 .. ipython:: python
 
    for df in store.select('df', chunksize=3):
-      print(df)
+       print(df)
 
 .. note::
 
@@ -3941,7 +4032,7 @@ The default is 50,000 rows returned in a chunk.
 
    .. code-block:: python
 
-      for df in pd.read_hdf('store.h5','df', chunksize=3):
+      for df in pd.read_hdf('store.h5', 'df', chunksize=3):
           print(df)
 
 Note, that the chunksize keyword applies to the **source** rows. So if you
@@ -3959,12 +4050,12 @@ chunks.
    store.append('dfeq', dfeq, data_columns=['number'])
 
    def chunks(l, n):
-        return [l[i: i+n] for i in range(0, len(l), n)]
+       return [l[i:i + n] for i in range(0, len(l), n)]
 
    evens = [2, 4, 6, 8, 10]
    coordinates = store.select_as_coordinates('dfeq', 'number=evens')
    for c in chunks(coordinates, 2):
-        print(store.select('dfeq', where=c))
+       print(store.select('dfeq', where=c))
 
 Advanced Queries
 ++++++++++++++++
@@ -4061,13 +4152,13 @@ results.
 .. ipython:: python
 
    df_mt = pd.DataFrame(randn(8, 6), index=pd.date_range('1/1/2000', periods=8),
-                                     columns=['A', 'B', 'C', 'D', 'E', 'F'])
+                        columns=['A', 'B', 'C', 'D', 'E', 'F'])
    df_mt['foo'] = 'bar'
    df_mt.loc[df_mt.index[1], ('A', 'B')] = np.nan
 
    # you can also create the tables individually
-   store.append_to_multiple({'df1_mt': ['A', 'B'], 'df2_mt': None },
-                             df_mt, selector='df1_mt')
+   store.append_to_multiple({'df1_mt': ['A', 'B'], 'df2_mt': None},
+                            df_mt, selector='df1_mt')
    store
 
    # individual tables were created
@@ -4076,7 +4167,7 @@ results.
 
    # as a multiple
    store.select_as_multiple(['df1_mt', 'df2_mt'], where=['A>0', 'B>0'],
-                             selector = 'df1_mt')
+                            selector='df1_mt')
 
 
 Delete from a Table
@@ -4115,7 +4206,7 @@ the table using a ``where`` that selects all but the missing data.
 .. ipython:: python
 
    # returns the number of rows deleted
-   store.remove('wp', 'major_axis > 20000102' )
+   store.remove('wp', 'major_axis > 20000102')
    store.select('wp')
 
 .. warning::
@@ -4151,8 +4242,8 @@ control compression: ``complevel`` and ``complib``.
             compression to choose depends on your specific needs and
             data. The list of supported compression libraries:
 
-             - `zlib <http://zlib.net/>`_: The default compression library. A classic in terms of compression, achieves good compression rates but is somewhat slow.
-             - `lzo <http://www.oberhumer.com/opensource/lzo/>`_: Fast compression and decompression.
+             - `zlib <https://zlib.net/>`_: The default compression library. A classic in terms of compression, achieves good compression rates but is somewhat slow.
+             - `lzo <https://www.oberhumer.com/opensource/lzo/>`_: Fast compression and decompression.
              - `bzip2 <http://bzip.org/>`_: Good compression rates.
              - `blosc <http://www.blosc.org/>`_: Fast compression and decompression.
 
@@ -4171,7 +4262,7 @@ control compression: ``complevel`` and ``complib``.
                   compression ratios at the expense of speed.
                 - `blosc:snappy <https://google.github.io/snappy/>`_:
                   A popular compressor used in many places.
-                - `blosc:zlib <http://zlib.net/>`_: A classic;
+                - `blosc:zlib <https://zlib.net/>`_: A classic;
                   somewhat slower than the previous ones, but
                   achieving better compression ratios.
                 - `blosc:zstd <https://facebook.github.io/zstd/>`_: An
@@ -4288,7 +4379,7 @@ stored in a more efficient manner.
 .. ipython:: python
 
    dfcat = pd.DataFrame({'A': pd.Series(list('aabbcdba')).astype('category'),
-                         'B': np.random.randn(8) })
+                         'B': np.random.randn(8)})
    dfcat
    dfcat.dtypes
    cstore = pd.HDFStore('cats.h5', mode='w')
@@ -4302,7 +4393,6 @@ stored in a more efficient manner.
    :okexcept:
 
    cstore.close()
-   import os
    os.remove('cats.h5')
 
 
@@ -4330,7 +4420,7 @@ Passing a ``min_itemsize`` dict will cause all passed columns to be created as *
 
 .. ipython:: python
 
-   dfs = pd.DataFrame(dict(A='foo', B='bar'), index=list(range(5)))
+   dfs = pd.DataFrame({'A': 'foo', 'B': 'bar'}, index=list(range(5)))
    dfs
 
    # A and B have a size of 30
@@ -4349,7 +4439,7 @@ You could inadvertently turn an actual ``nan`` value into a missing value.
 
 .. ipython:: python
 
-   dfss = pd.DataFrame(dict(A=['foo', 'bar', 'nan']))
+   dfss = pd.DataFrame({'A': ['foo', 'bar', 'nan']})
    dfss
 
    store.append('dfss', dfss)
@@ -4372,15 +4462,14 @@ tables.
 It is possible to write an ``HDFStore`` object that can easily be imported into ``R`` using the
 ``rhdf5`` library (`Package website`_). Create a table format store like this:
 
-.. _package website: http://www.bioconductor.org/packages/release/bioc/html/rhdf5.html
+.. _package website: https://www.bioconductor.org/packages/release/bioc/html/rhdf5.html
 
 .. ipython:: python
 
-   np.random.seed(1)
    df_for_r = pd.DataFrame({"first": np.random.rand(100),
                             "second": np.random.rand(100),
                             "class": np.random.randint(0, 2, (100, ))},
-                            index=range(100))
+                           index=range(100))
    df_for_r.head()
 
    store_export = pd.HDFStore('export.h5')
@@ -4391,7 +4480,6 @@ It is possible to write an ``HDFStore`` object that can easily be imported into 
    :suppress:
 
    store_export.close()
-   import os
    os.remove('export.h5')
 
 In R this file can be read into a ``data.frame`` object using the ``rhdf5``
@@ -4471,7 +4559,7 @@ Performance
 * A ``PerformanceWarning`` will be raised if you are attempting to
   store types that will be pickled by PyTables (rather than stored as
   endemic types). See
-  `Here <http://stackoverflow.com/questions/14355151/how-to-make-pandas-hdfstore-put-operation-faster/14370190#14370190>`__
+  `Here <https://stackoverflow.com/questions/14355151/how-to-make-pandas-hdfstore-put-operation-faster/14370190#14370190>`__
   for more information and some solutions.
 
 
@@ -4479,7 +4567,6 @@ Performance
    :suppress:
 
    store.close()
-   import os
    os.remove('store.h5')
 
 
@@ -4545,7 +4632,6 @@ Read from a feather file.
 .. ipython:: python
    :suppress:
 
-   import os
    os.remove('example.feather')
 
 
@@ -4579,7 +4665,7 @@ You can specify an ``engine`` to direct the serialization. This can be one of ``
 If the engine is NOT specified, then the ``pd.options.io.parquet.engine`` option is checked; if this is also ``auto``,
 then ``pyarrow`` is tried, and falling back to ``fastparquet``.
 
-See the documentation for `pyarrow <http://arrow.apache.org/docs/python/>`__ and `fastparquet <https://fastparquet.readthedocs.io/en/latest/>`__.
+See the documentation for `pyarrow <https://arrow.apache.org/docs/python/>`__ and `fastparquet <https://fastparquet.readthedocs.io/en/latest/>`__.
 
 .. note::
 
@@ -4629,7 +4715,6 @@ Read only certain columns of a parquet file.
 .. ipython:: python
    :suppress:
 
-   import os
    os.remove('example_pa.parquet')
    os.remove('example_fp.parquet')
 
@@ -4668,6 +4753,44 @@ Passing ``index=True`` will *always* write the index, even if that's not the
 underlying engine's default behavior.
 
 
+Partitioning Parquet files
+''''''''''''''''''''''''''
+
+.. versionadded:: 0.24.0
+
+Parquet supports partitioning of data based on the values of one or more columns.
+
+.. ipython:: python
+
+    df = pd.DataFrame({'a': [0, 0, 1, 1], 'b': [0, 1, 0, 1]})
+    df.to_parquet(fname='test', engine='pyarrow',
+                  partition_cols=['a'], compression=None)
+
+The `fname` specifies the parent directory to which data will be saved.
+The `partition_cols` are the column names by which the dataset will be partitioned.
+Columns are partitioned in the order they are given. The partition splits are
+determined by the unique values in the partition columns.
+The above example creates a partitioned dataset that may look like:
+
+.. code-block:: text
+
+    test
+    ├── a=0
+    │   ├── 0bac803e32dc42ae83fddfd029cbdebc.parquet
+    │   └──  ...
+    └── a=1
+        ├── e6ab24a4f45147b49b54a662f0c412a3.parquet
+        └── ...
+
+.. ipython:: python
+   :suppress:
+
+   from shutil import rmtree
+   try:
+       rmtree('test')
+   except Exception:
+       pass
+
 .. _io.sql:
 
 SQL Queries
@@ -4681,13 +4804,13 @@ for PostgreSQL or `pymysql <https://github.com/PyMySQL/PyMySQL>`__ for MySQL.
 For `SQLite <https://docs.python.org/3/library/sqlite3.html>`__ this is
 included in Python's standard library by default.
 You can find an overview of supported drivers for each SQL dialect in the
-`SQLAlchemy docs <http://docs.sqlalchemy.org/en/latest/dialects/index.html>`__.
+`SQLAlchemy docs <https://docs.sqlalchemy.org/en/latest/dialects/index.html>`__.
 
 If SQLAlchemy is not installed, a fallback is only provided for sqlite (and
 for mysql for backwards compatibility, but this is deprecated and will be
 removed in a future version).
 This mode requires a Python database adapter which respect the `Python
-DB-API <http://www.python.org/dev/peps/pep-0249/>`__.
+DB-API <https://www.python.org/dev/peps/pep-0249/>`__.
 
 See also some :ref:`cookbook examples <cookbook.sql>` for some advanced strategies.
 
@@ -4709,7 +4832,7 @@ The key functions are:
     the provided input (database table name or sql query).
     Table names do not need to be quoted if they have special characters.
 
-In the following example, we use the `SQlite <http://www.sqlite.org/>`__ SQL database
+In the following example, we use the `SQlite <https://www.sqlite.org/>`__ SQL database
 engine. You can use a temporary SQLite database where data are stored in
 "memory".
 
@@ -4717,7 +4840,7 @@ To connect with SQLAlchemy you use the :func:`create_engine` function to create 
 object from database URI. You only need to create the engine once per database you are
 connecting to.
 For more information on :func:`create_engine` and the URI formatting, see the examples
-below and the SQLAlchemy `documentation <http://docs.sqlalchemy.org/en/latest/core/engines.html>`__
+below and the SQLAlchemy `documentation <https://docs.sqlalchemy.org/en/latest/core/engines.html>`__
 
 .. ipython:: python
 
@@ -4754,14 +4877,15 @@ the database using :func:`~pandas.DataFrame.to_sql`.
 
    import datetime
    c = ['id', 'Date', 'Col_1', 'Col_2', 'Col_3']
-   d = [(26, datetime.datetime(2010,10,18), 'X', 27.5, True),
-   (42, datetime.datetime(2010,10,19), 'Y', -12.5, False),
-   (63, datetime.datetime(2010,10,20), 'Z', 5.73, True)]
+   d = [(26, datetime.datetime(2010, 10, 18), 'X', 27.5, True),
+        (42, datetime.datetime(2010, 10, 19), 'Y', -12.5, False),
+        (63, datetime.datetime(2010, 10, 20), 'Z', 5.73, True)]
 
-   data  = pd.DataFrame(d, columns=c)
+   data = pd.DataFrame(d, columns=c)
 
 .. ipython:: python
 
+    data
     data.to_sql('data', engine)
 
 With some databases, writing large DataFrames can result in errors due to
@@ -4806,6 +4930,36 @@ default ``Text`` type for string columns:
     Because of this, reading the database table back in does **not** generate
     a categorical.
 
+.. _io.sql_datetime_data:
+
+Datetime data types
+'''''''''''''''''''
+
+Using SQLAlchemy, :func:`~pandas.DataFrame.to_sql` is capable of writing
+datetime data that is timezone naive or timezone aware. However, the resulting
+data stored in the database ultimately depends on the supported data type
+for datetime data of the database system being used.
+
+The following table lists supported data types for datetime data for some
+common databases. Other database dialects may have different data types for
+datetime data.
+
+===========   =============================================  ===================
+Database      SQL Datetime Types                             Timezone Support
+===========   =============================================  ===================
+SQLite        ``TEXT``                                       No
+MySQL         ``TIMESTAMP`` or ``DATETIME``                  No
+PostgreSQL    ``TIMESTAMP`` or ``TIMESTAMP WITH TIME ZONE``  Yes
+===========   =============================================  ===================
+
+When writing timezone aware data to databases that do not support timezones,
+the data will be written as timezone naive timestamps that are in local time
+with respect to the timezone.
+
+:func:`~pandas.read_sql_table` is also capable of reading datetime data that is
+timezone aware or naive. When reading ``TIMESTAMP WITH TIME ZONE`` types, pandas
+will convert the data to UTC.
+
 Reading Tables
 ''''''''''''''
 
@@ -4841,7 +4995,8 @@ to pass to :func:`pandas.to_datetime`:
 .. code-block:: python
 
    pd.read_sql_table('data', engine, parse_dates={'Date': '%Y-%m-%d'})
-   pd.read_sql_table('data', engine, parse_dates={'Date': {'format': '%Y-%m-%d %H:%M:%S'}})
+   pd.read_sql_table('data', engine,
+                     parse_dates={'Date': {'format': '%Y-%m-%d %H:%M:%S'}})
 
 
 You can check if a table exists using :func:`~pandas.io.sql.has_table`
@@ -4887,7 +5042,8 @@ Specifying this will return an iterator through chunks of the query result:
 
 .. ipython:: python
 
-    for chunk in pd.read_sql_query("SELECT * FROM data_chunks", engine, chunksize=5):
+    for chunk in pd.read_sql_query("SELECT * FROM data_chunks",
+                                   engine, chunksize=5):
         print(chunk)
 
 You can also run a plain query without creating a ``DataFrame`` with
@@ -4930,7 +5086,7 @@ connecting to.
    # or absolute, starting with a slash:
    engine = create_engine('sqlite:////absolute/path/to/foo.db')
 
-For more information see the examples the SQLAlchemy `documentation <http://docs.sqlalchemy.org/en/latest/core/engines.html>`__
+For more information see the examples the SQLAlchemy `documentation <https://docs.sqlalchemy.org/en/latest/core/engines.html>`__
 
 
 Advanced SQLAlchemy queries
@@ -4952,14 +5108,14 @@ If you have an SQLAlchemy description of your database you can express where con
 
    metadata = sa.MetaData()
    data_table = sa.Table('data', metadata,
-       sa.Column('index', sa.Integer),
-       sa.Column('Date', sa.DateTime),
-       sa.Column('Col_1', sa.String),
-       sa.Column('Col_2', sa.Float),
-       sa.Column('Col_3', sa.Boolean),
-   )
+                         sa.Column('index', sa.Integer),
+                         sa.Column('Date', sa.DateTime),
+                         sa.Column('Col_1', sa.String),
+                         sa.Column('Col_2', sa.Float),
+                         sa.Column('Col_3', sa.Boolean),
+                         )
 
-   pd.read_sql(sa.select([data_table]).where(data_table.c.Col_3 == True), engine)
+   pd.read_sql(sa.select([data_table]).where(data_table.c.Col_3 is True), engine)
 
 You can combine SQLAlchemy expressions with parameters passed to :func:`read_sql` using :func:`sqlalchemy.bindparam`
 
@@ -4975,7 +5131,7 @@ Sqlite fallback
 
 The use of sqlite is supported without using SQLAlchemy.
 This mode requires a Python database adapter which respect the `Python
-DB-API <http://www.python.org/dev/peps/pep-0249/>`__.
+DB-API <https://www.python.org/dev/peps/pep-0249/>`__.
 
 You can create connections like so:
 
@@ -4988,7 +5144,7 @@ And then issue the following queries:
 
 .. code-block:: python
 
-   data.to_sql('data', cnx)
+   data.to_sql('data', con)
    pd.read_sql_query("SELECT * FROM data", con)
 
 
@@ -5127,7 +5283,6 @@ values will have ``object`` data type.
 .. ipython:: python
    :suppress:
 
-   import os
    os.remove('stata.dta')
 
 .. _io.stata-categorical:
@@ -5206,6 +5361,9 @@ Obtain an iterator and read an XPORT file 100,000 lines at a time:
 
 .. code-block:: python
 
+    def do_something(chunk):
+        pass
+
     rdr = pd.read_sas('sas_xport.xpt', chunk=100000)
     for chunk in rdr:
         do_something(chunk)
@@ -5233,7 +5391,7 @@ xarray_ provides data structures inspired by the pandas ``DataFrame`` for workin
 with multi-dimensional datasets, with a focus on the netCDF file format and
 easy conversion to and from pandas.
 
-.. _xarray: http://xarray.pydata.org/
+.. _xarray: https://xarray.pydata.org/
 
 .. _io.perf:
 
@@ -5257,6 +5415,94 @@ ignored.
    B    1000000 non-null int64
    dtypes: float64(1), int64(1)
    memory usage: 15.3 MB
+
+Given the next test set:
+
+.. code-block:: python
+
+   from numpy.random import randn
+
+   sz = 1000000
+   df = pd.DataFrame({'A': randn(sz), 'B': [1] * sz})
+
+
+   def test_sql_write(df):
+       if os.path.exists('test.sql'):
+           os.remove('test.sql')
+       sql_db = sqlite3.connect('test.sql')
+       df.to_sql(name='test_table', con=sql_db)
+       sql_db.close()
+
+
+   def test_sql_read():
+       sql_db = sqlite3.connect('test.sql')
+       pd.read_sql_query("select * from test_table", sql_db)
+       sql_db.close()
+
+
+   def test_hdf_fixed_write(df):
+       df.to_hdf('test_fixed.hdf', 'test', mode='w')
+
+
+   def test_hdf_fixed_read():
+       pd.read_hdf('test_fixed.hdf', 'test')
+
+
+   def test_hdf_fixed_write_compress(df):
+       df.to_hdf('test_fixed_compress.hdf', 'test', mode='w', complib='blosc')
+
+
+   def test_hdf_fixed_read_compress():
+       pd.read_hdf('test_fixed_compress.hdf', 'test')
+
+
+   def test_hdf_table_write(df):
+       df.to_hdf('test_table.hdf', 'test', mode='w', format='table')
+
+
+   def test_hdf_table_read():
+       pd.read_hdf('test_table.hdf', 'test')
+
+
+   def test_hdf_table_write_compress(df):
+       df.to_hdf('test_table_compress.hdf', 'test', mode='w',
+                 complib='blosc', format='table')
+
+
+   def test_hdf_table_read_compress():
+       pd.read_hdf('test_table_compress.hdf', 'test')
+
+
+   def test_csv_write(df):
+       df.to_csv('test.csv', mode='w')
+
+
+   def test_csv_read():
+       pd.read_csv('test.csv', index_col=0)
+
+
+   def test_feather_write(df):
+       df.to_feather('test.feather')
+
+
+   def test_feather_read():
+       pd.read_feather('test.feather')
+
+
+   def test_pickle_write(df):
+       df.to_pickle('test.pkl')
+
+
+   def test_pickle_read():
+       pd.read_pickle('test.pkl')
+
+
+   def test_pickle_write_compress(df):
+       df.to_pickle('test.pkl.compress', compression='xz')
+
+
+   def test_pickle_read_compress():
+       pd.read_pickle('test.pkl.compress', compression='xz')
 
 When writing, the top-three functions in terms of speed are are
 ``test_pickle_write``, ``test_feather_write`` and ``test_hdf_fixed_write_compress``.
@@ -5335,76 +5581,3 @@ Space on disk (in bytes)
     16000248 Aug 21 18:00 test.feather
     16000848 Aug 21 18:00 test.pkl
      7554108 Aug 21 18:00 test.pkl.compress
-
-And here's the code:
-
-.. code-block:: python
-
-   import os
-   import pandas as pd
-   import sqlite3
-   from numpy.random import randn
-   from pandas.io import sql
-
-   sz = 1000000
-   df = pd.DataFrame({'A': randn(sz), 'B': [1] * sz})
-
-   def test_sql_write(df):
-       if os.path.exists('test.sql'):
-           os.remove('test.sql')
-       sql_db = sqlite3.connect('test.sql')
-       df.to_sql(name='test_table', con=sql_db)
-       sql_db.close()
-
-   def test_sql_read():
-       sql_db = sqlite3.connect('test.sql')
-       pd.read_sql_query("select * from test_table", sql_db)
-       sql_db.close()
-
-   def test_hdf_fixed_write(df):
-       df.to_hdf('test_fixed.hdf', 'test', mode='w')
-
-   def test_hdf_fixed_read():
-       pd.read_hdf('test_fixed.hdf', 'test')
-
-   def test_hdf_fixed_write_compress(df):
-       df.to_hdf('test_fixed_compress.hdf', 'test', mode='w', complib='blosc')
-
-   def test_hdf_fixed_read_compress():
-       pd.read_hdf('test_fixed_compress.hdf', 'test')
-
-   def test_hdf_table_write(df):
-       df.to_hdf('test_table.hdf', 'test', mode='w', format='table')
-
-   def test_hdf_table_read():
-       pd.read_hdf('test_table.hdf', 'test')
-
-   def test_hdf_table_write_compress(df):
-       df.to_hdf('test_table_compress.hdf', 'test', mode='w', complib='blosc', format='table')
-
-   def test_hdf_table_read_compress():
-       pd.read_hdf('test_table_compress.hdf', 'test')
-
-   def test_csv_write(df):
-       df.to_csv('test.csv', mode='w')
-
-   def test_csv_read():
-       pd.read_csv('test.csv', index_col=0)
-
-   def test_feather_write(df):
-       df.to_feather('test.feather')
-
-   def test_feather_read():
-       pd.read_feather('test.feather')
-
-   def test_pickle_write(df):
-       df.to_pickle('test.pkl')
-
-   def test_pickle_read():
-       pd.read_pickle('test.pkl')
-
-   def test_pickle_write_compress(df):
-       df.to_pickle('test.pkl.compress', compression='xz')
-
-   def test_pickle_read_compress():
-       pd.read_pickle('test.pkl.compress', compression='xz')

@@ -5,45 +5,37 @@ and latex files. This module also applies to display formatting.
 """
 
 from __future__ import print_function
-# pylint: disable=W0141
 
 from functools import partial
 
 import numpy as np
 
 from pandas._libs import lib
-from pandas._libs.tslibs import NaT, iNaT, Timestamp, Timedelta
 from pandas._libs.tslib import format_array_from_datetime
+from pandas._libs.tslibs import NaT, Timedelta, Timestamp, iNaT
+from pandas.compat import StringIO, lzip, map, u, zip
+
+from pandas.core.dtypes.common import (
+    is_categorical_dtype, is_datetime64_dtype, is_datetime64tz_dtype,
+    is_extension_array_dtype, is_float, is_float_dtype, is_integer,
+    is_integer_dtype, is_list_like, is_numeric_dtype, is_scalar,
+    is_timedelta64_dtype)
+from pandas.core.dtypes.generic import (
+    ABCIndexClass, ABCMultiIndex, ABCSeries, ABCSparseArray)
+from pandas.core.dtypes.missing import isna, notna
 
 from pandas import compat
-from pandas.compat import StringIO, lzip, map, zip, u
-
-from pandas.core.dtypes.missing import isna, notna
-from pandas.core.dtypes.common import (
-    is_categorical_dtype,
-    is_float_dtype,
-    is_period_arraylike,
-    is_integer_dtype,
-    is_interval_dtype,
-    is_datetimetz,
-    is_integer,
-    is_float,
-    is_scalar,
-    is_numeric_dtype,
-    is_datetime64_dtype,
-    is_timedelta64_dtype,
-    is_list_like)
-from pandas.core.dtypes.generic import ABCSparseArray, ABCMultiIndex
 from pandas.core.base import PandasObject
 import pandas.core.common as com
-from pandas.core.index import Index, ensure_index
 from pandas.core.config import get_option, set_option
+from pandas.core.index import Index, ensure_index
 from pandas.core.indexes.datetimes import DatetimeIndex
-from pandas.core.indexes.period import PeriodIndex
 
-from pandas.io.formats.terminal import get_terminal_size
 from pandas.io.common import _expand_user, _stringify_path
 from pandas.io.formats.printing import adjoin, justify, pprint_thing
+from pandas.io.formats.terminal import get_terminal_size
+
+# pylint: disable=W0141
 
 
 common_docstring = """
@@ -96,6 +88,10 @@ common_docstring = """
             Maximum number of columns to display in the console.
         show_dimensions : bool, default False
             Display DataFrame dimensions (number of rows by number of columns).
+        decimal : str, default '.'
+            Character recognized as decimal separator, e.g. ',' in Europe.
+
+            .. versionadded:: 0.18.0
     """
 
 _VALID_JUSTIFY_PARAMETERS = ("left", "right", "center", "justify",
@@ -108,8 +104,6 @@ return_docstring = """
         str (or unicode, depending on data and options)
             String representation of the dataframe.
     """
-
-docstring_to_string = common_docstring + return_docstring
 
 
 class CategoricalFormatter(object):
@@ -616,11 +610,6 @@ class DataFrameFormatter(TableFormatter):
             else:  # max_cols == 0. Try to fit frame to terminal
                 text = self.adj.adjoin(1, *strcols).split('\n')
                 max_len = Series(text).str.len().max()
-                headers = [ele[0] for ele in strcols]
-                # Size of last col determines dot col size. See
-                # `self._to_str_columns
-                size_tr_col = len(headers[self.tr_size_col])
-                max_len += size_tr_col  # Need to make space for largest row
                 # plus truncate dot col
                 dif = max_len - self.w
                 # '+ 1' to avoid too wide repr (GH PR #17023)
@@ -741,12 +730,8 @@ class DataFrameFormatter(TableFormatter):
             .. versionadded:: 0.19.0
          """
         from pandas.io.formats.html import HTMLFormatter
-        html_renderer = HTMLFormatter(self, classes=classes,
-                                      max_rows=self.max_rows,
-                                      max_cols=self.max_cols,
-                                      notebook=notebook,
-                                      border=border,
-                                      table_id=self.table_id)
+        html_renderer = HTMLFormatter(self, classes=classes, notebook=notebook,
+                                      border=border, table_id=self.table_id)
         if hasattr(self.buf, 'write'):
             html_renderer.write_result(self.buf)
         elif isinstance(self.buf, compat.string_types):
@@ -857,22 +842,18 @@ class DataFrameFormatter(TableFormatter):
 def format_array(values, formatter, float_format=None, na_rep='NaN',
                  digits=None, space=None, justify='right', decimal='.'):
 
-    if is_categorical_dtype(values):
-        fmt_klass = CategoricalArrayFormatter
-    elif is_interval_dtype(values):
-        fmt_klass = IntervalArrayFormatter
-    elif is_float_dtype(values.dtype):
-        fmt_klass = FloatArrayFormatter
-    elif is_period_arraylike(values):
-        fmt_klass = PeriodArrayFormatter
-    elif is_integer_dtype(values.dtype):
-        fmt_klass = IntArrayFormatter
-    elif is_datetimetz(values):
-        fmt_klass = Datetime64TZFormatter
-    elif is_datetime64_dtype(values.dtype):
+    if is_datetime64_dtype(values.dtype):
         fmt_klass = Datetime64Formatter
     elif is_timedelta64_dtype(values.dtype):
         fmt_klass = Timedelta64Formatter
+    elif is_extension_array_dtype(values.dtype):
+        fmt_klass = ExtensionArrayFormatter
+    elif is_float_dtype(values.dtype):
+        fmt_klass = FloatArrayFormatter
+    elif is_integer_dtype(values.dtype):
+        fmt_klass = IntArrayFormatter
+    elif is_datetime64tz_dtype(values):
+        fmt_klass = Datetime64TZFormatter
     else:
         fmt_klass = GenericArrayFormatter
 
@@ -971,6 +952,8 @@ class FloatArrayFormatter(GenericArrayFormatter):
         # float_format is expected to be a string
         # formatter should be used to pass a function
         if self.float_format is not None and self.formatter is None:
+            # GH21625, GH22270
+            self.fixed_width = False
             if callable(self.float_format):
                 self.formatter = self.float_format
                 self.float_format = None
@@ -1134,39 +1117,22 @@ class Datetime64Formatter(GenericArrayFormatter):
         return fmt_values.tolist()
 
 
-class IntervalArrayFormatter(GenericArrayFormatter):
-
-    def __init__(self, values, *args, **kwargs):
-        GenericArrayFormatter.__init__(self, values, *args, **kwargs)
-
+class ExtensionArrayFormatter(GenericArrayFormatter):
     def _format_strings(self):
-        formatter = self.formatter or str
-        fmt_values = np.array([formatter(x) for x in self.values])
-        return fmt_values
+        values = self.values
+        if isinstance(values, (ABCIndexClass, ABCSeries)):
+            values = values._values
 
+        formatter = values._formatter(boxed=True)
 
-class PeriodArrayFormatter(IntArrayFormatter):
+        if is_categorical_dtype(values.dtype):
+            # Categorical is special for now, so that we can preserve tzinfo
+            array = values.get_values()
+        else:
+            array = np.asarray(values)
 
-    def _format_strings(self):
-        from pandas.core.indexes.period import IncompatibleFrequency
-        try:
-            values = PeriodIndex(self.values).to_native_types()
-        except IncompatibleFrequency:
-            # periods may contains different freq
-            values = Index(self.values, dtype='object').to_native_types()
-
-        formatter = self.formatter or (lambda x: '{x}'.format(x=x))
-        fmt_values = [formatter(x) for x in values]
-        return fmt_values
-
-
-class CategoricalArrayFormatter(GenericArrayFormatter):
-
-    def __init__(self, values, *args, **kwargs):
-        GenericArrayFormatter.__init__(self, values, *args, **kwargs)
-
-    def _format_strings(self):
-        fmt_values = format_array(self.values.get_values(), self.formatter,
+        fmt_values = format_array(array,
+                                  formatter,
                                   float_format=self.float_format,
                                   na_rep=self.na_rep, digits=self.digits,
                                   space=self.space, justify=self.justify)
@@ -1257,7 +1223,10 @@ def _format_datetime64(x, tz=None, nat_rep='NaT'):
         return nat_rep
 
     if tz is not None or not isinstance(x, Timestamp):
-        x = Timestamp(x, tz=tz)
+        if getattr(x, 'tzinfo', None) is not None:
+            x = Timestamp(x).tz_convert(tz)
+        else:
+            x = Timestamp(x).tz_localize(tz)
 
     return str(x)
 

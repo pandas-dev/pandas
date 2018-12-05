@@ -6,10 +6,10 @@ from datetime import datetime
 
 import pytest
 
-from pandas import Timestamp
-
 import pandas._libs.tslibs.offsets as liboffsets
 from pandas._libs.tslibs.offsets import roll_qtrday
+
+from pandas import Timestamp
 
 
 def test_get_lastbday():

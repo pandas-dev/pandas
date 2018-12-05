@@ -1,17 +1,16 @@
+from datetime import date
 import sys
 
+import dateutil
+import numpy as np
 import pytest
 
-import numpy as np
-from datetime import date
-
-import dateutil
-import pandas as pd
-import pandas.util.testing as tm
 from pandas.compat import lrange
-from pandas import (DatetimeIndex, Index, date_range, DataFrame,
-                    Timestamp, offsets)
 
+import pandas as pd
+from pandas import (
+    DataFrame, DatetimeIndex, Index, Timestamp, date_range, offsets)
+import pandas.util.testing as tm
 from pandas.util.testing import assert_almost_equal
 
 randn = np.random.randn
@@ -96,15 +95,15 @@ class TestDatetimeIndex(object):
 
     def test_hash_error(self):
         index = date_range('20010101', periods=10)
-        with tm.assert_raises_regex(TypeError, "unhashable type: %r" %
-                                    type(index).__name__):
+        with pytest.raises(TypeError, match=("unhashable type: %r" %
+                                             type(index).__name__)):
             hash(index)
 
     def test_stringified_slice_with_tz(self):
-        # GH2658
+        # GH#2658
         import datetime
         start = datetime.datetime.now()
-        idx = DatetimeIndex(start=start, freq="1d", periods=10)
+        idx = date_range(start=start, freq="1d", periods=10)
         df = DataFrame(lrange(10), index=idx)
         df["2013-01-14 23:44:34.437768-05:00":]  # no exception here
 
@@ -294,8 +293,8 @@ class TestDatetimeIndex(object):
         index = pd.DatetimeIndex(dt, freq=freq, name='time')
         self.assert_index_parameters(index)
 
-        new_index = pd.DatetimeIndex(start=index[0], end=index[-1],
-                                     freq=index.freq)
+        new_index = pd.date_range(start=index[0], end=index[-1],
+                                  freq=index.freq)
         self.assert_index_parameters(new_index)
 
     def test_join_with_period_index(self, join_type):
@@ -304,9 +303,8 @@ class TestDatetimeIndex(object):
             c_idx_type='p', r_idx_type='dt')
         s = df.iloc[:5, 0]
 
-        with tm.assert_raises_regex(ValueError,
-                                    'can only call with other '
-                                    'PeriodIndex-ed objects'):
+        msg = 'can only call with other PeriodIndex-ed objects'
+        with pytest.raises(ValueError, match=msg):
             df.columns.join(s.index, how=join_type)
 
     def test_factorize(self):

@@ -13,18 +13,22 @@ hack around pandas by using UserDicts.
 import collections
 import itertools
 import numbers
+import random
+import string
 import sys
 
 import numpy as np
 
-from pandas import compat
 from pandas.core.dtypes.base import ExtensionDtype
+
+from pandas import compat
 from pandas.core.arrays import ExtensionArray
 
 
 class JSONDtype(ExtensionDtype):
     type = compat.Mapping
     name = 'json'
+
     try:
         na_value = collections.UserDict()
     except AttributeError:
@@ -52,6 +56,7 @@ class JSONDtype(ExtensionDtype):
 
 class JSONArray(ExtensionArray):
     dtype = JSONDtype()
+    __array_priority__ = 1000
 
     def __init__(self, values, dtype=None, copy=False):
         for val in values:
@@ -109,9 +114,6 @@ class JSONArray(ExtensionArray):
 
     def __len__(self):
         return len(self.data)
-
-    def __repr__(self):
-        return 'JSONArary({!r})'.format(self.data)
 
     @property
     def nbytes(self):
@@ -179,3 +181,10 @@ class JSONArray(ExtensionArray):
         # cast them to an (N, P) array, instead of an (N,) array of tuples.
         frozen = [()] + [tuple(x.items()) for x in self]
         return np.array(frozen, dtype=object)[1:]
+
+
+def make_data():
+    # TODO: Use a regular dict. See _NDFrameIndexer._setitem_with_indexer
+    return [collections.UserDict([
+        (random.choice(string.ascii_letters), random.randint(0, 100))
+        for _ in range(random.randint(0, 10))]) for _ in range(100)]

@@ -91,6 +91,14 @@ class TestCut(object):
         tm.assert_numpy_array_equal(result.codes,
                                     np.array([1, 1, 2], dtype='int8'))
 
+    def test_bins_not_overlapping_from_intervalindex(self):
+        # see gh-23980
+        msg = "Overlapping IntervalIndex is not accepted"
+        ii = IntervalIndex.from_tuples([(0, 10), (2, 12), (4, 14)])
+
+        with pytest.raises(ValueError, match=msg):
+            cut([5, 6], bins=ii)
+
     def test_bins_not_monotonic(self):
         data = [.2, 1.4, 2.5, 6.2, 9.7, 2.1]
         pytest.raises(ValueError, cut, data, [0.1, 1.5, 1, 10])
@@ -205,8 +213,8 @@ class TestCut(object):
         tm.assert_categorical_equal(factor, expected)
 
     def test_qcut_all_bins_same(self):
-        tm.assert_raises_regex(ValueError, "edges.*unique", qcut,
-                               [0, 0, 0, 0, 0, 0, 0, 0, 0, 0], 3)
+        with pytest.raises(ValueError, match="edges.*unique"):
+            qcut([0, 0, 0, 0, 0, 0, 0, 0, 0, 0], 3)
 
     def test_cut_out_of_bounds(self):
         arr = np.random.randn(100)
