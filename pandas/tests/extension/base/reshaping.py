@@ -173,7 +173,8 @@ class BaseReshapingTests(BaseExtensionTests):
                  dtype=data.dtype)})
         self.assert_frame_equal(res, exp[['ext', 'int1', 'key', 'int2']])
 
-    @pytest.mark.parametrize("dtypes", ["Int64"])
+    @pytest.mark.parametrize("dtypes", ["Int8", "Int16", "Int32", "Int64",
+                                        "UInt8", "UInt16", "UInt32", "UInt64"])
     def test_merge_on_int_array(self, data, dtypes):
         # GH  23020
         df1 = pd.DataFrame({'ext': data[:3],

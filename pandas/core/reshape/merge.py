@@ -1618,8 +1618,8 @@ def _factorize_keys(lk, rk, sort=True):
           is_extension_array_dtype(rk) and
           lk.dtype == rk.dtype):
         klass = libhashtable.Factorizer
-        lk = ensure_object(lk)
-        rk = ensure_object(rk)
+        lk, _ = lk._values_for_factorize()
+        rk, _ = rk._values_for_factorize()
     elif is_integer_dtype(lk) and is_integer_dtype(rk):
         # GH#23917 TODO: needs tests for case where lk is integer-dtype
         #  and rk is datetime-dtype
@@ -1629,8 +1629,9 @@ def _factorize_keys(lk, rk, sort=True):
     elif (issubclass(lk.dtype.type, (np.timedelta64, np.datetime64)) and
           issubclass(rk.dtype.type, (np.timedelta64, np.datetime64))):
         # GH#23917 TODO: Needs tests for non-matching dtypes
-        lk, _ = lk._values_for_factorize()
-        rk, _ = rk._values_for_factorize()
+        klass = libhashtable.Int64Factorizer
+        lk = ensure_int64(com.values_from_object(lk))
+        rk = ensure_int64(com.values_from_object(rk))
     else:
         klass = libhashtable.Factorizer
         lk = ensure_object(lk)
