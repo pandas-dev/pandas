@@ -1,4 +1,7 @@
+import os
+
 import pytest
+
 from pandas.io.parsers import read_csv
 
 
@@ -37,6 +40,12 @@ def s3_resource(tips_file, jsonl_file):
     """
     pytest.importorskip('s3fs')
     boto3 = pytest.importorskip('boto3')
+
+    # temporary workaround as moto fails for botocore >= 1.11 otherwise
+    # see https://github.com/spulec/moto/issues/1924 & 1952
+    os.environ.setdefault("AWS_ACCESS_KEY_ID", "foobar_key")
+    os.environ.setdefault("AWS_SECRET_ACCESS_KEY", "foobar_secret")
+
     # GH-24092. See if boto.plugin skips the test or fails.
     try:
         pytest.importorskip("boto.plugin")
@@ -59,7 +68,6 @@ def s3_resource(tips_file, jsonl_file):
                     Body=f)
 
     try:
-
         s3 = moto.mock_s3()
         s3.start()
 
@@ -73,7 +81,5 @@ def s3_resource(tips_file, jsonl_file):
         conn.create_bucket(Bucket='cant_get_it', ACL='private')
         add_tips_files('cant_get_it')
         yield conn
-    except:  # noqa: flake8
-        pytest.skip("failure to use s3 resource")
     finally:
         s3.stop()

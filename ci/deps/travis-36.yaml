@@ -4,6 +4,7 @@ channels:
   - conda-forge
 dependencies:
   - beautifulsoup4
+  - botocore>=1.11
   - cython>=0.28.2
   - dask
   - fastparquet
