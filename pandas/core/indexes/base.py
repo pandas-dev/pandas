@@ -1985,9 +1985,21 @@ class Index(IndexOpsMixin, PandasObject):
 
             .. versionadded:: 0.23.0
 
+        return_inverse : boolean, default False
+            Whether to return the inverse of the unique values. If True, the
+            output will be a tuple where the second component is again an
+            np.ndarray that contains the mapping between the indices of the
+            elements in the calling Categorical and their locations in the
+            unique values. See examples for how to reconstruct.
+
+            .. versionadded:: 0.24.0
+
         Returns
         -------
-        Index without duplicates
+        uniques : Index
+            The ``Index`` without duplicates
+        inverse : np.ndarray (if `return_inverse=True`)
+            The inverse from the `uniques` back to the calling ``Index``.
 
         See Also
         --------
@@ -1996,9 +2008,14 @@ class Index(IndexOpsMixin, PandasObject):
         """)
 
     @Appender(_index_shared_docs['index_unique'] % _index_doc_kwargs)
-    def unique(self, level=None):
+    def unique(self, level=None, return_inverse=False):
         if level is not None:
             self._validate_index_level(level)
+
+        if return_inverse:
+            result, inverse = super(Index, self).unique(return_inverse=True)
+            return self._shallow_copy(result), inverse
+
         result = super(Index, self).unique()
         return self._shallow_copy(result)
 
