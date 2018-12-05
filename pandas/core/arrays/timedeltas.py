@@ -60,7 +60,7 @@ def _field_accessor(name, alias, docstring=None):
         return result
 
     f.__name__ = name
-    f.__doc__ = docstring
+    f.__doc__ = "\n{}\n".format(docstring)
     return property(f)
 
 
@@ -692,16 +692,16 @@ class TimedeltaArrayMixin(dtl.DatetimeLikeArrayMixin, dtl.TimelikeOps):
         return tslibs.ints_to_pytimedelta(self.asi8)
 
     days = _field_accessor("days", "days",
-                           "\nNumber of days for each element.\n")
+                           "Number of days for each element.")
     seconds = _field_accessor("seconds", "seconds",
-                              "\nNumber of seconds (>= 0 and less than 1 day) "
-                              "for each element.\n")
+                              "Number of seconds (>= 0 and less than 1 day) "
+                              "for each element.")
     microseconds = _field_accessor("microseconds", "microseconds",
-                                   "\nNumber of microseconds (>= 0 and less "
-                                   "than 1 second) for each element.\n")
+                                   "Number of microseconds (>= 0 and less "
+                                   "than 1 second) for each element.")
     nanoseconds = _field_accessor("nanoseconds", "nanoseconds",
-                                  "\nNumber of nanoseconds (>= 0 and less "
-                                  "than 1 microsecond) for each element.\n")
+                                  "Number of nanoseconds (>= 0 and less "
+                                  "than 1 microsecond) for each element.")
 
     @property
     def components(self):

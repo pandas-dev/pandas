@@ -82,7 +82,7 @@ def _field_accessor(name, field, docstring=None):
         return result
 
     f.__name__ = name
-    f.__doc__ = docstring
+    f.__doc__ = "\n{}\n".format(docstring)
     return property(f)
 
 
@@ -1138,12 +1138,12 @@ class DatetimeArrayMixin(dtl.DatetimeLikeArrayMixin,
         "The name of day in a week (ex: Friday)\n\n.. deprecated:: 0.23.0")
 
     dayofyear = _field_accessor('dayofyear', 'doy',
-                                "\nThe ordinal day of the year\n")
-    quarter = _field_accessor('quarter', 'q', "\nThe quarter of the date\n")
+                                "The ordinal day of the year.")
+    quarter = _field_accessor('quarter', 'q', "The quarter of the date.")
     days_in_month = _field_accessor(
         'days_in_month',
         'dim',
-        "\nThe number of days in the month\n")
+        "The number of days in the month.")
     daysinmonth = days_in_month
     _is_month_doc = """
         Indicates whether the date is the {first_or_last} day of the month.
