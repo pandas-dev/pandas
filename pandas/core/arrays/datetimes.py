@@ -220,8 +220,7 @@ class DatetimeArrayMixin(dtl.DatetimeLikeArrayMixin,
         freq, freq_infer = dtl.maybe_infer_freq(freq)
 
         subarr, tz, inferred_freq = sequence_to_dt64ns(
-            data, dtype=dtype, copy=copy,
-            tz=tz, freq=freq,
+            data, dtype=dtype, copy=copy, tz=tz,
             dayfirst=dayfirst, yearfirst=yearfirst, ambiguous=ambiguous)
 
         freq, freq_infer = dtl.validate_inferred_freq(freq, inferred_freq,
@@ -1504,8 +1503,33 @@ def maybe_convert_dtype(data, copy):
 
 
 def sequence_to_dt64ns(data, dtype=None, copy=False,
-                       tz=None, freq=None,
+                       tz=None,
                        dayfirst=False, yearfirst=False, ambiguous='raise'):
+    """
+    Parameters
+    ----------
+    data : list-like
+    dtype : dtype, str, or None, default None
+    copy : bool, default False
+    tz : tzinfo, str, or None, default None
+    dayfirst : bool, default False
+    yearfirst : bool, default False
+    ambiguous : str, bool, or arraylike, default 'raise'
+        See pandas._libs.tslibs.conversion.tz_localize_to_utc
+
+    Returns
+    -------
+    result : numpy.ndarray
+        The sequence converted to a numpy array with dtype ``datetime64[ns]``.
+    tz : tzinfo or None
+        Either the user-provided tzinfo or one inferred from the data.
+    inferred_freq : Tick or None
+        The inferred frequency of the sequence.
+
+    Raises
+    ------
+    TypeError : PeriodDType data is passed
+    """
 
     inferred_freq = None
 
@@ -1544,7 +1568,7 @@ def sequence_to_dt64ns(data, dtype=None, copy=False,
 
     if is_datetime64tz_dtype(data):
         tz = maybe_infer_tz(tz, data.tz)
-        subarr = data._data
+        result = data._data
 
     elif is_datetime64_dtype(data):
         # tz-naive DatetimeArray/Index or ndarray[datetime64]
@@ -1560,26 +1584,26 @@ def sequence_to_dt64ns(data, dtype=None, copy=False,
             data = data.view(_NS_DTYPE)
 
         assert data.dtype == _NS_DTYPE, data.dtype
-        subarr = data
+        result = data
 
     else:
         # must be integer dtype otherwise
         # assume this data are epoch timestamps
         if data.dtype != _INT64_DTYPE:
             data = data.astype(np.int64, copy=False)
-        subarr = data.view(_NS_DTYPE)
+        result = data.view(_NS_DTYPE)
 
     if copy:
         # TODO: should this be deepcopy?
-        subarr = subarr.copy()
+        result = result.copy()
 
-    assert isinstance(subarr, np.ndarray), type(subarr)
-    assert subarr.dtype == 'M8[ns]', subarr.dtype
+    assert isinstance(result, np.ndarray), type(result)
+    assert result.dtype == 'M8[ns]', result.dtype
 
     # We have to call this again after possibly inferring a tz above
     validate_tz_from_dtype(dtype, tz)
 
-    return subarr, tz, inferred_freq
+    return result, tz, inferred_freq
 
 
 def objects_to_datetime64ns(data, dayfirst, yearfirst,
