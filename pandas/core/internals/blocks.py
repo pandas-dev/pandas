@@ -2671,6 +2671,17 @@ class CategoricalBlock(ExtensionBlock):
             values, placement=placement or slice(0, len(values), 1),
             ndim=self.ndim)
 
+    def where(self, other, cond, align=True, errors='raise',
+              try_cast=False, axis=0, transpose=False):
+        result = super(CategoricalBlock, self).where(
+            other, cond, align, errors, try_cast, axis, transpose
+        )
+        if result.values.dtype != self.values.dtype:
+            # For backwards compatability, we allow upcasting to object.
+            # This fallback will be removed in the future.
+            result = result.astype(object)
+        return result
+
 
 class DatetimeBlock(DatetimeLikeBlockMixin, Block):
     __slots__ = ()

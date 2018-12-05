@@ -1,5 +1,6 @@
 # pylint: disable=E1101,W0232
 
+import reprlib
 import textwrap
 from warnings import warn
 
@@ -1909,6 +1910,15 @@ class Categorical(ExtensionArray, PandasObject):
     def where(self, cond, other):
         # n.b. this now preserves the type
         codes = self._codes
+        object_msg = (
+            "Implicitly converting categorical to object-dtype ndarray. "
+            "The values `{}' are not present in this categorical's "
+            "categories. A future version of pandas will raise a ValueError "
+            "when 'other' contains different categories.\n\n"
+            "To preserve the current behavior, add the new categories to "
+            "the categorical before calling 'where', or convert the "
+            "categorical to a different dtype."
+        )
 
         if is_scalar(other) and isna(other):
             other = -1
@@ -1916,13 +1926,18 @@ class Categorical(ExtensionArray, PandasObject):
             item = self.categories.get_indexer([other]).item()
 
             if item == -1:
-                raise ValueError("The value '{}' is not present in "
-                                 "this Categorical's categories".format(other))
+                # note: when removing this, also remove CategoricalBlock.where
+                warn(object_msg.format(other), FutureWarning, stacklevel=2)
+                return np.where(cond, self, other)
+
             other = item
 
         elif is_categorical_dtype(other):
             if not is_dtype_equal(self, other):
-                raise TypeError("The type of 'other' does not match.")
+                extra = list(other.categories.difference(self.categories))
+                warn(object_msg.format(reprlib.repr(extra)), FutureWarning,
+                     stacklevel=2)
+                return np.where(cond, self, other)
             other = _get_codes_for_values(other, self.categories)
             # get the codes from other that match our categories
             pass
