@@ -1063,6 +1063,20 @@ class SparseArray(PandasObject, ExtensionArray, ExtensionOpsMixin):
         return type(self)(result, fill_value=self.fill_value, kind=self.kind,
                           **kwargs)
 
+    def where(self, cond, other):
+        if is_scalar(other):
+            result_dtype = np.result_type(self.dtype.subtype, other)
+        elif isinstance(other, type(self)):
+            result_dtype = np.result_type(self.dtype.subtype,
+                                          other.dtype.subtype)
+        else:
+            result_dtype = np.result_type(self.dtype.subtype, other.dtype)
+
+        dtype = self.dtype.update_dtype(result_dtype)
+        # TODO: avoid converting to dense.
+        values = np.where(cond, self, other)
+        return type(self)(values, dtype=dtype)
+
     def _take_with_fill(self, indices, fill_value=None):
         if fill_value is None:
             fill_value = self.dtype.na_value

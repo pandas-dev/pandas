@@ -64,6 +64,7 @@ class ExtensionArray(object):
     * unique
     * factorize / _values_for_factorize
     * argsort / _values_for_argsort
+    * where
 
     The remaining methods implemented on this class should be performant,
     as they only compose abstract methods. Still, a more efficient
@@ -660,6 +661,40 @@ class ExtensionArray(object):
         # the user-facing type to the storage type, before using
         # pandas.api.extensions.take
         raise AbstractMethodError(self)
+
+    def where(self, cond, other):
+        """
+        Replace values where the condition is False.
+
+        Parameters
+        ----------
+        cond : ndarray or ExtensionArray
+            The mask indicating which values should be kept (True)
+            or replaced from `other` (False).
+
+        other : ndarray, ExtensionArray, or scalar
+            Entries where `cond` is False are replaced with
+            corresponding value from `other`.
+
+        Notes
+        -----
+        Note that `cond` and `other` *cannot* be a Series, Index, or callable.
+        When used from, e.g., :meth:`Series.where`, pandas will unbox
+        Series and Indexes, and will apply callables before they arrive here.
+
+        Returns
+        -------
+        ExtensionArray
+            Same dtype as the original.
+
+        See Also
+        --------
+        Series.where : Similar method for Series.
+        DataFrame.where : Similar method for DataFrame.
+        """
+        return type(self)._from_sequence(np.where(cond, self, other),
+                                         dtype=self.dtype,
+                                         copy=False)
 
     def copy(self, deep=False):
         # type: (bool) -> ExtensionArray

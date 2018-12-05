@@ -4,6 +4,7 @@ import operator
 
 import numpy as np
 
+from pandas._libs import lib
 from pandas._libs.tslibs import NaT, iNaT, period as libperiod
 from pandas._libs.tslibs.fields import isleapyear_arr
 from pandas._libs.tslibs.period import (
@@ -242,16 +243,6 @@ class PeriodArray(dtl.DatetimeLikeArrayMixin,
 
         return subarr, freq
 
-    # -----------------------------------------------------------------
-    # DatetimeLike Interface
-    def _unbox_scalar(self, value):
-        assert isinstance(value, self._scalar_type), value
-        return value.ordinal
-
-    def _scalar_from_string(self, value):
-        assert isinstance(value, self._scalar_type), value
-        return Period(value, freq=self.freq)
-
     def _check_compatible_with(self, other):
         if self.freqstr != other.freqstr:
             msg = DIFFERENT_FREQ_INDEX.format(self.freqstr, other.freqstr)
@@ -356,6 +347,22 @@ class PeriodArray(dtl.DatetimeLikeArrayMixin,
 
     # --------------------------------------------------------------------
     # Array-like / EA-Interface Methods
+
+    def where(self, cond, other):
+        # TODO(DatetimeArray): move to DatetimeLikeArrayMixin
+        # n.b. _ndarray_values candidate.
+        i8 = self.asi8
+        if lib.is_scalar(other):
+            if isna(other):
+                other = iNaT
+            elif isinstance(other, Period):
+                self._check_compatible_with(other)
+                other = other.ordinal
+        elif isinstance(other, type(self)):
+            self._check_compatible_with(other)
+            other = other.asi8
+        result = np.where(cond, i8, other)
+        return type(self)._simple_new(result, dtype=self.dtype)
 
     def _formatter(self, boxed=False):
         if boxed:

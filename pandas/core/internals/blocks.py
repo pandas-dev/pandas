@@ -29,7 +29,8 @@ import pandas.core.dtypes.concat as _concat
 from pandas.core.dtypes.dtypes import (
     CategoricalDtype, DatetimeTZDtype, ExtensionDtype, PandasExtensionDtype)
 from pandas.core.dtypes.generic import (
-    ABCDatetimeIndex, ABCExtensionArray, ABCIndexClass, ABCSeries)
+    ABCDataFrame, ABCDatetimeIndex, ABCExtensionArray, ABCIndexClass,
+    ABCSeries)
 from pandas.core.dtypes.inference import is_scalar
 from pandas.core.dtypes.missing import (
     _isna_compat, array_equivalent, is_null_datelike_scalar, isna, notna)
@@ -1970,6 +1971,30 @@ class ExtensionBlock(NonConsolidatableMixIn, Block):
                                            placement=self.mgr_locs,
                                            ndim=self.ndim)]
 
+    def where(self, other, cond, align=True, errors='raise',
+              try_cast=False, axis=0, transpose=False):
+        if isinstance(other, (ABCIndexClass, ABCSeries)):
+            other = other.array
+
+        if isinstance(cond, ABCDataFrame):
+            assert cond.shape[1] == 1
+            cond = cond.iloc[:, 0].array
+
+        if isinstance(other, ABCDataFrame):
+            assert other.shape[1] == 1
+            other = other.iloc[:, 0].array
+
+        if isinstance(cond, (ABCIndexClass, ABCSeries)):
+            cond = cond.array
+
+        if lib.is_scalar(other) and isna(other):
+            # The default `other` for Series / Frame is np.nan
+            # we want to replace that with the correct NA value
+            # for the type
+            other = self.dtype.na_value
+        result = self.values.where(cond, other)
+        return self.make_block_same_class(result, placement=self.mgr_locs)
+
     @property
     def _ftype(self):
         return getattr(self.values, '_pandas_ftype', Block._ftype)
@@ -2674,6 +2699,17 @@ class CategoricalBlock(ExtensionBlock):
         return make_block(
             values, placement=placement or slice(0, len(values), 1),
             ndim=self.ndim)
+
+    def where(self, other, cond, align=True, errors='raise',
+              try_cast=False, axis=0, transpose=False):
+        result = super(CategoricalBlock, self).where(
+            other, cond, align, errors, try_cast, axis, transpose
+        )
+        if result.values.dtype != self.values.dtype:
+            # For backwards compatability, we allow upcasting to object.
+            # This fallback will be removed in the future.
+            result = result.astype(object)
+        return result
 
 
 class DatetimeBlock(DatetimeLikeBlockMixin, Block):
