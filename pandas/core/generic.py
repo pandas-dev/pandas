@@ -4339,7 +4339,7 @@ class NDFrame(PandasObject, SelectionMixin):
             passed MultiIndex level.
         copy : bool, default True
             Return a new object, even if the passed indexes are the same.
-        limit : int, default None
+        limit : int, optional
             Maximum number of consecutive elements to forward or backward fill.
         fill_value : float, default NaN
             Value used to fill in locations having no value in the previous 
