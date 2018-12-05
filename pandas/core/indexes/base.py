@@ -2253,8 +2253,8 @@ class Index(IndexOpsMixin, PandasObject):
         """
         this = self.astype(object)
         # cast to Index for when `other` is list-like
-        other = Index(other, dtype=object, copy=False)
-        return Index._union(this, other).astype(object)
+        other = Index(other).astype(object)
+        return Index.union(this, other).astype(object)
 
     def _is_compatible_with_other(self, other):
         """
