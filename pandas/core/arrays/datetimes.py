@@ -205,9 +205,7 @@ class DatetimeArrayMixin(dtl.DatetimeLikeArrayMixin,
     _freq = None
 
     @classmethod
-    def _simple_new(cls, values, freq=None, tz=None, dtype=None):
-        # TODO: can we make this signature just
-        # values, dtype, freq?
+    def _simple_new(cls, values, freq=None, tz=None):
         """
         we require the we have a dtype compat for the values
         if we are passed a non-dtype compat, then coerce using the constructor
@@ -220,8 +218,6 @@ class DatetimeArrayMixin(dtl.DatetimeLikeArrayMixin,
             values = values.view('M8[ns]')
 
         assert values.dtype == 'M8[ns]', values.dtype
-        if tz is None and dtype:
-            tz = getattr(dtype, 'tz')
 
         result = object.__new__(cls)
         result._data = values

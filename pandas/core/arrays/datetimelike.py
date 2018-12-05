@@ -612,7 +612,7 @@ class DatetimeLikeArrayMixin(AttributesMixin,
             self._check_compatible_with(other)
             other = other.asi8
         result = np.where(cond, i8, other)
-        return type(self)._simple_new(result, dtype=self.dtype)
+        return type(self)(result, dtype=self.dtype)
 
     @classmethod
     def _concat_same_type(cls, to_concat):
