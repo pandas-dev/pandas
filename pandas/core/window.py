@@ -759,6 +759,10 @@ class Window(_Window):
         nv.validate_window_func('mean', args, kwargs)
         return self._apply_window(mean=True, **kwargs)
 
+    @Substitution(name='window')
+    def size(self, args, kwargs):
+        self.apply(np.size)
+
 
 class _GroupByMixin(GroupByMixin):
     """
@@ -942,6 +946,8 @@ class _Rolling_and_Expanding(_Rolling):
             results.append(result)
 
         return self._wrap_results(results, blocks, obj)
+
+    size = count
 
     _shared_docs['apply'] = dedent(r"""
     %(name)s function apply.
@@ -1664,6 +1670,8 @@ class Rolling(_Rolling_and_Expanding):
             return self._apply('roll_count', 'count')
 
         return super(Rolling, self).count()
+
+    size = count
 
     @Substitution(name='rolling')
     @Appender(_doc_template)

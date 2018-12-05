@@ -646,6 +646,22 @@ class TestRolling(Base):
         result = df.rolling(3, axis=axis_frame).sum()
         tm.assert_frame_equal(result, expected)
 
+    def test_size(self):
+        # gh-24057
+        ser = Series(
+            np.random.rand(20),
+            index=pd.date_range('2012-1-1', periods=20)
+        )
+        window = ser.rolling('5D')
+
+        expected = window.agg(np.size)
+        keyword_agg = window.agg('size')
+        tm.assert_series_equal(keyword_agg, expected)
+
+        attribute_agg = window.size()
+        tm.assert_series_equal(attribute_agg, expected)
+
+
 
 class TestExpanding(Base):
 
