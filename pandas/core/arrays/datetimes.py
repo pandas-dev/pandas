@@ -1428,83 +1428,6 @@ DatetimeArrayMixin._add_datetimelike_methods()
 # -------------------------------------------------------------------
 # Constructor Helpers
 
-def maybe_infer_tz(tz, inferred_tz):
-    """
-    If a timezone is inferred from data, check that it is compatible with
-    the user-provided timezone, if any.
-
-    Parameters
-    ----------
-    tz : tzinfo or None
-    inferred_tz : tzinfo or None
-
-    Returns
-    -------
-    tz : tzinfo or None
-
-    Raises
-    ------
-    TypeError : if both timezones are present but do not match
-    """
-    if tz is None:
-        tz = inferred_tz
-    elif inferred_tz is None:
-        pass
-    elif not timezones.tz_compare(tz, inferred_tz):
-        raise TypeError('data is already tz-aware {inferred_tz}, unable to '
-                        'set specified tz: {tz}'
-                        .format(inferred_tz=inferred_tz, tz=tz))
-    return tz
-
-
-def maybe_convert_dtype(data, copy):
-    """
-    Convert data based on dtype conventions, issuing deprecation warnings
-    or errors where appropriate.
-
-    Parameters
-    ----------
-    data : np.ndarray or pd.Index
-    copy : bool
-
-    Returns
-    -------
-    data : np.ndarray or pd.Index
-    copy : bool
-
-    Raises
-    ------
-    TypeError : PeriodDType data is passed
-    """
-    if is_float_dtype(data):
-        # Note: we must cast to datetime64[ns] here in order to treat these
-        #  as wall-times instead of UTC timestamps.
-        data = data.astype(_NS_DTYPE)
-        copy = False
-        # TODO: deprecate this behavior to instead treat symmetrically
-        #  with integer dtypes.  See discussion in GH#23675
-
-    elif is_timedelta64_dtype(data):
-        warnings.warn("Passing timedelta64-dtype data is deprecated, will "
-                      "raise a TypeError in a future version",
-                      FutureWarning, stacklevel=5)
-        data = data.view(_NS_DTYPE)
-
-    elif is_period_dtype(data):
-        # Note: without explicitly raising here, PeriondIndex
-        #  test_setops.test_join_does_not_recur fails
-        raise TypeError("Passing PeriodDtype data is invalid.  "
-                        "Use `data.to_timestamp()` instead")
-
-    elif is_extension_type(data) and not is_datetime64tz_dtype(data):
-        # Includes categorical
-        # TODO: We have no tests for these
-        data = np.array(data, dtype=np.object_)
-        copy = False
-
-    return data, copy
-
-
 def sequence_to_dt64ns(data, dtype=None, copy=False,
                        tz=None,
                        dayfirst=False, yearfirst=False, ambiguous='raise'):
@@ -1686,6 +1609,54 @@ def objects_to_datetime64ns(data, dayfirst, yearfirst,
         raise TypeError(result)
 
 
+def maybe_convert_dtype(data, copy):
+    """
+    Convert data based on dtype conventions, issuing deprecation warnings
+    or errors where appropriate.
+
+    Parameters
+    ----------
+    data : np.ndarray or pd.Index
+    copy : bool
+
+    Returns
+    -------
+    data : np.ndarray or pd.Index
+    copy : bool
+
+    Raises
+    ------
+    TypeError : PeriodDType data is passed
+    """
+    if is_float_dtype(data):
+        # Note: we must cast to datetime64[ns] here in order to treat these
+        #  as wall-times instead of UTC timestamps.
+        data = data.astype(_NS_DTYPE)
+        copy = False
+        # TODO: deprecate this behavior to instead treat symmetrically
+        #  with integer dtypes.  See discussion in GH#23675
+
+    elif is_timedelta64_dtype(data):
+        warnings.warn("Passing timedelta64-dtype data is deprecated, will "
+                      "raise a TypeError in a future version",
+                      FutureWarning, stacklevel=5)
+        data = data.view(_NS_DTYPE)
+
+    elif is_period_dtype(data):
+        # Note: without explicitly raising here, PeriondIndex
+        #  test_setops.test_join_does_not_recur fails
+        raise TypeError("Passing PeriodDtype data is invalid.  "
+                        "Use `data.to_timestamp()` instead")
+
+    elif is_extension_type(data) and not is_datetime64tz_dtype(data):
+        # Includes categorical
+        # TODO: We have no tests for these
+        data = np.array(data, dtype=np.object_)
+        copy = False
+
+    return data, copy
+
+
 def _generate_regular_range(cls, start, end, periods, freq):
     """
     Generate a range of dates with the spans between dates described by
@@ -1787,6 +1758,84 @@ def _generate_range_overflow_safe(endpoint, periods, stride, side='start'):
     return other_end
 
 
+# -------------------------------------------------------------------
+# Validation and Inference
+
+def maybe_infer_tz(tz, inferred_tz):
+    """
+    If a timezone is inferred from data, check that it is compatible with
+    the user-provided timezone, if any.
+
+    Parameters
+    ----------
+    tz : tzinfo or None
+    inferred_tz : tzinfo or None
+
+    Returns
+    -------
+    tz : tzinfo or None
+
+    Raises
+    ------
+    TypeError : if both timezones are present but do not match
+    """
+    if tz is None:
+        tz = inferred_tz
+    elif inferred_tz is None:
+        pass
+    elif not timezones.tz_compare(tz, inferred_tz):
+        raise TypeError('data is already tz-aware {inferred_tz}, unable to '
+                        'set specified tz: {tz}'
+                        .format(inferred_tz=inferred_tz, tz=tz))
+    return tz
+
+
+def validate_tz_from_dtype(dtype, tz):
+    """
+    If the given dtype is a DatetimeTZDtype, extract the implied
+    tzinfo object from it and check that it does not conflict with the given
+    tz.
+
+    Parameters
+    ----------
+    dtype : dtype, str
+    tz : None, tzinfo
+
+    Returns
+    -------
+    tz : consensus tzinfo
+
+    Raises
+    ------
+    ValueError : on tzinfo mismatch
+    """
+    if dtype is not None:
+        if isinstance(dtype, compat.string_types):
+            try:
+                dtype = DatetimeTZDtype.construct_from_string(dtype)
+            except TypeError:
+                # Things like `datetime64[ns]`, which is OK for the
+                # constructors, but also nonsense, which should be validated
+                # but not by us. We *do* allow non-existent tz errors to
+                # go through
+                pass
+        dtz = getattr(dtype, 'tz', None)
+        if dtz is not None:
+            if tz is not None and not timezones.tz_compare(tz, dtz):
+                raise ValueError("cannot supply both a tz and a dtype"
+                                 " with a tz")
+            tz = dtz
+
+        if tz is not None and is_datetime64_dtype(dtype):
+            # We also need to check for the case where the user passed a
+            #  tz-naive dtype (i.e. datetime64[ns])
+            if tz is not None and not timezones.tz_compare(tz, dtz):
+                raise ValueError("cannot supply both a tz and a "
+                                 "timezone-naive dtype (i.e. datetime64[ns]")
+
+    return tz
+
+
 def _infer_tz_from_endpoints(start, end, tz):
     """
     If a timezone is not explicitly given via `tz`, see if one can
@@ -1875,52 +1924,3 @@ def _maybe_localize_point(ts, is_none, is_not_none, freq, tz):
     if is_none is None and is_not_none is not None:
         ts = ts.tz_localize(**localize_args)
     return ts
-
-
-# -------------------------------------------------------------------
-# Validation and Inference
-
-def validate_tz_from_dtype(dtype, tz):
-    """
-    If the given dtype is a DatetimeTZDtype, extract the implied
-    tzinfo object from it and check that it does not conflict with the given
-    tz.
-
-    Parameters
-    ----------
-    dtype : dtype, str
-    tz : None, tzinfo
-
-    Returns
-    -------
-    tz : consensus tzinfo
-
-    Raises
-    ------
-    ValueError : on tzinfo mismatch
-    """
-    if dtype is not None:
-        if isinstance(dtype, compat.string_types):
-            try:
-                dtype = DatetimeTZDtype.construct_from_string(dtype)
-            except TypeError:
-                # Things like `datetime64[ns]`, which is OK for the
-                # constructors, but also nonsense, which should be validated
-                # but not by us. We *do* allow non-existent tz errors to
-                # go through
-                pass
-        dtz = getattr(dtype, 'tz', None)
-        if dtz is not None:
-            if tz is not None and not timezones.tz_compare(tz, dtz):
-                raise ValueError("cannot supply both a tz and a dtype"
-                                 " with a tz")
-            tz = dtz
-
-        if tz is not None and is_datetime64_dtype(dtype):
-            # We also need to check for the case where the user passed a
-            #  tz-naive dtype (i.e. datetime64[ns])
-            if tz is not None and not timezones.tz_compare(tz, dtz):
-                raise ValueError("cannot supply both a tz and a "
-                                 "timezone-naive dtype (i.e. datetime64[ns]")
-
-    return tz

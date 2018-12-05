@@ -20,7 +20,7 @@ from pandas.core.dtypes.common import (
     is_bool_dtype, is_datetime64_any_dtype, is_datetime64_dtype,
     is_datetime64tz_dtype, is_extension_array_dtype, is_float_dtype,
     is_integer_dtype, is_list_like, is_object_dtype, is_offsetlike,
-    is_period_dtype, is_timedelta64_dtype, needs_i8_conversion, pandas_dtype)
+    is_period_dtype, is_timedelta64_dtype, needs_i8_conversion)
 from pandas.core.dtypes.generic import ABCDataFrame, ABCIndexClass, ABCSeries
 from pandas.core.dtypes.missing import isna
 
@@ -1185,40 +1185,6 @@ def maybe_infer_freq(freq):
             freq_infer = True
             freq = None
     return freq, freq_infer
-
-
-def validate_dtype_freq(dtype, freq):
-    """
-    If both a dtype and a freq are available, ensure they match.  If only
-    dtype is available, extract the implied freq.
-
-    Parameters
-    ----------
-    dtype : dtype
-    freq : DateOffset or None
-
-    Returns
-    -------
-    freq : DateOffset
-
-    Raises
-    ------
-    ValueError : non-period dtype
-    IncompatibleFrequency : mismatch between dtype and freq
-    """
-    if freq is not None:
-        freq = frequencies.to_offset(freq)
-
-    if dtype is not None:
-        dtype = pandas_dtype(dtype)
-        if not is_period_dtype(dtype):
-            raise ValueError('dtype must be PeriodDtype')
-        if freq is None:
-            freq = dtype.freq
-        elif freq != dtype.freq:
-            raise IncompatibleFrequency('specified freq and dtype '
-                                        'are different')
-    return freq
 
 
 def _ensure_datetimelike_to_i8(other, to_utc=False):
