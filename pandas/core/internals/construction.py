@@ -1,6 +1,6 @@
 """
 Functions for preparing various inputs passed to the DataFrame or Series
-constructors before passing them to aBlockManager.
+constructors before passing them to a BlockManager.
 """
 from collections import OrderedDict
 
@@ -191,9 +191,9 @@ def init_dict(data, index, columns, dtype=None):
                 nan_dtype = object
             else:
                 nan_dtype = dtype
-            v = construct_1d_arraylike_from_scalar(np.nan, len(index),
-                                                   nan_dtype)
-            arrays.loc[missing] = [v] * missing.sum()
+            val = construct_1d_arraylike_from_scalar(np.nan, len(index),
+                                                     nan_dtype)
+            arrays.loc[missing] = [val] * missing.sum()
 
     else:
 
@@ -254,28 +254,28 @@ def _homogenize(data, index, dtype=None):
     oindex = None
     homogenized = []
 
-    for v in data:
-        if isinstance(v, ABCSeries):
+    for val in data:
+        if isinstance(val, ABCSeries):
             if dtype is not None:
-                v = v.astype(dtype)
-            if v.index is not index:
+                val = val.astype(dtype)
+            if val.index is not index:
                 # Forces alignment. No need to copy data since we
                 # are putting it into an ndarray later
-                v = v.reindex(index, copy=False)
+                val = val.reindex(index, copy=False)
         else:
-            if isinstance(v, dict):
+            if isinstance(val, dict):
                 if oindex is None:
                     oindex = index.astype('O')
 
                 if isinstance(index, (ABCDatetimeIndex, ABCTimedeltaIndex)):
-                    v = com.dict_compat(v)
+                    val = com.dict_compat(val)
                 else:
-                    v = dict(v)
-                v = lib.fast_multiget(v, oindex.values, default=np.nan)
-            v = sanitize_array(v, index, dtype=dtype, copy=False,
-                               raise_cast_failure=False)
+                    val = dict(val)
+                val = lib.fast_multiget(val, oindex.values, default=np.nan)
+            val = sanitize_array(val, index, dtype=dtype, copy=False,
+                                 raise_cast_failure=False)
 
-        homogenized.append(v)
+        homogenized.append(val)
 
     return homogenized
 
@@ -292,16 +292,16 @@ def extract_index(data):
         have_series = False
         have_dicts = False
 
-        for v in data:
-            if isinstance(v, ABCSeries):
+        for val in data:
+            if isinstance(val, ABCSeries):
                 have_series = True
-                indexes.append(v.index)
-            elif isinstance(v, dict):
+                indexes.append(val.index)
+            elif isinstance(val, dict):
                 have_dicts = True
-                indexes.append(list(v.keys()))
-            elif is_list_like(v) and getattr(v, 'ndim', 1) == 1:
+                indexes.append(list(val.keys()))
+            elif is_list_like(val) and getattr(val, 'ndim', 1) == 1:
                 have_raw_arrays = True
-                raw_lengths.append(len(v))
+                raw_lengths.append(len(val))
 
         if not indexes and not raw_lengths:
             raise ValueError('If using all scalar values, you must pass'
@@ -321,8 +321,9 @@ def extract_index(data):
 
             if have_series:
                 if lengths[0] != len(index):
-                    msg = ('array length %d does not match index length %d' %
-                           (lengths[0], len(index)))
+                    msg = ('array length {length} does not match index '
+                           'length {idx_len}'
+                           .format(length=lengths[0], idx_len=len(index)))
                     raise ValueError(msg)
             else:
                 index = ibase.default_index(lengths[0])
@@ -352,7 +353,7 @@ def get_names_from_index(data):
         if n is not None:
             index[i] = n
         else:
-            index[i] = 'Unnamed %d' % count
+            index[i] = 'Unnamed {count}'.format(count=count)
             count += 1
 
     return index
@@ -514,7 +515,7 @@ def sanitize_index(data, index, copy=False):
         return data
 
     if len(data) != len(index):
-        raise ValueError('Length of values does not match length of ' 'index')
+        raise ValueError('Length of values does not match length of index')
 
     if isinstance(data, ABCIndexClass) and not copy:
         pass

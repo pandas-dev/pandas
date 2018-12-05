@@ -734,7 +734,6 @@ class TimedeltaArrayMixin(dtl.DatetimeLikeArrayMixin, dtl.TimelikeOps):
 
 
 TimedeltaArrayMixin._add_comparison_ops()
-TimedeltaArrayMixin._add_datetimelike_methods()
 
 
 # ---------------------------------------------------------------------

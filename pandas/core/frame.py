@@ -463,19 +463,6 @@ class DataFrame(NDFrame):
 
         NDFrame.__init__(self, mgr, fastpath=True)
 
-    def _init_dict(self, data, index, columns, dtype=None):
-        """
-        Segregate Series based on type and coerce into matrices.
-        Needs to handle a lot of exceptional cases.
-        """
-        return init_dict(data, index, columns, dtype=dtype)
-        # TODO: Can we get rid of this as a method?
-
-    def _init_ndarray(self, values, index, columns, dtype=None, copy=False):
-        # input must be a ndarray, list, Series, index
-        return init_ndarray(values, index, columns, dtype=dtype, copy=copy)
-        # TODO: can we just get rid of this as a method?
-
     # ----------------------------------------------------------------------
 
     @property
