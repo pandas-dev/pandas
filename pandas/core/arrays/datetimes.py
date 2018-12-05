@@ -174,6 +174,9 @@ class DatetimeArrayMixin(dtl.DatetimeLikeArrayMixin,
     # by returning NotImplemented
     timetuple = None
 
+    # Needed so that Timestamp.__richcmp__(DateTimeArray) operates pointwise
+    ndim = 1
+
     # ensure that operations with numpy arrays defer to our implementation
     __array_priority__ = 1000
 
@@ -216,6 +219,12 @@ class DatetimeArrayMixin(dtl.DatetimeLikeArrayMixin,
 
         # if dtype has an embedded tz, capture it
         tz = dtl.validate_tz_from_dtype(dtype, tz)
+
+        if not hasattr(values, "dtype"):
+            if np.ndim(values) == 0:
+                # i.e. iterator
+                values = list(values)
+            values = np.array(values)
 
         if is_object_dtype(values):
             # kludge; dispatch until the DatetimeArray constructor is complete
