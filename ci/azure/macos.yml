@@ -38,26 +38,14 @@ jobs:
         source activate pandas-dev && pushd /tmp && python -c "import pandas; pandas.show_versions();" && popd
     - task: PublishTestResults@2
       inputs:
-        testResultsFiles: 'test-data-*.xml'
+        testResultsFiles: 'test-data.xml'
         testRunTitle: 'MacOS-35'
     - powershell: |
-        $junitXml = "test-data-single.xml"
+        $junitXml = "test-data.xml"
         $(Get-Content $junitXml | Out-String) -match 'failures="(.*?)"'
         if ($matches[1] -eq 0)
         {
-          Write-Host "No test failures in test-data-single"
-        }
-        else
-        {
-          # note that this will produce $LASTEXITCODE=1
-          Write-Error "$($matches[1]) tests failed"
-        }
-
-        $junitXmlMulti = "test-data-multiple.xml"
-        $(Get-Content $junitXmlMulti | Out-String) -match 'failures="(.*?)"'
-        if ($matches[1] -eq 0)
-        {
-          Write-Host "No test failures in test-data-multi"
+          Write-Host "No test failures in test-data"
         }
         else
         {
