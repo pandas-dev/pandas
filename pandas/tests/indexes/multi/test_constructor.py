@@ -544,18 +544,25 @@ def test_from_frame_dtype_fidelity():
 @pytest.mark.parametrize('names_in,names_out', [
     (None, [('L1', 'x'), ('L2', 'y')]),
     (['x', 'y'], ['x', 'y']),
-    ('bad_input', ValueError("Names should be list-like for a MultiIndex")),
-    (['a', 'b', 'c'], ValueError("Length of names must match number of "
-                                 "levels in MultiIndex."))
 ])
-def test_from_frame_names(names_in, names_out):
+def test_from_frame_valid_names(names_in, names_out):
     # GH 22420
     df = pd.DataFrame([['a', 'a'], ['a', 'b'], ['b', 'a'], ['b', 'b']],
                       columns=pd.MultiIndex.from_tuples([('L1', 'x'),
                                                          ('L2', 'y')]))
-    if isinstance(names_out, Exception):
-        with pytest.raises(type(names_out), match=names_out.args[0]):
-            pd.MultiIndex.from_frame(df, names=names_in)
-    else:
-        mi = pd.MultiIndex.from_frame(df, names=names_in)
-        assert mi.names == names_out
+    mi = pd.MultiIndex.from_frame(df, names=names_in)
+    assert mi.names == names_out
+
+
+@pytest.mark.parametrize('names_in,names_out', [
+    ('bad_input', ValueError("Names should be list-like for a MultiIndex")),
+    (['a', 'b', 'c'], ValueError("Length of names must match number of "
+                                 "levels in MultiIndex."))
+])
+def test_from_frame_invalid_names(names_in, names_out):
+    # GH 22420
+    df = pd.DataFrame([['a', 'a'], ['a', 'b'], ['b', 'a'], ['b', 'b']],
+                      columns=pd.MultiIndex.from_tuples([('L1', 'x'),
+                                                         ('L2', 'y')]))
+    with pytest.raises(type(names_out), match=names_out.args[0]):
+        pd.MultiIndex.from_frame(df, names=names_in)
