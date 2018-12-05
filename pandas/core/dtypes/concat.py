@@ -207,7 +207,7 @@ def _concat_categorical(to_concat, axis=0):
 
     # extract the categoricals & coerce to object if needed
     to_concat = [x.get_values() if is_categorical_dtype(x.dtype)
-                 else np.asarray(x).ravel() if not is_datetime64tz_dtype(x) 
+                 else np.asarray(x).ravel() if not is_datetime64tz_dtype(x)
                  else np.asarray(x.astype(object)) for x in to_concat]
     result = _concat_compat(to_concat)
     if axis == 1:
