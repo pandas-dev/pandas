@@ -1,11 +1,13 @@
-import warnings
-from string import ascii_letters
-from itertools import product
 from functools import partial
+from itertools import product
+from string import ascii_letters
+import warnings
 
 import numpy as np
-from pandas import (DataFrame, Series, MultiIndex, date_range, period_range,
-                    TimeGrouper, Categorical, Timestamp)
+
+from pandas import (
+    Categorical, DataFrame, MultiIndex, Series, TimeGrouper, Timestamp,
+    date_range, period_range)
 import pandas.util.testing as tm
 
 
@@ -210,7 +212,7 @@ class CountMultiInt(object):
 
 class AggFunctions(object):
 
-    def setup_cache():
+    def setup_cache(self):
         N = 10**5
         fac1 = np.array(['A', 'B', 'C'], dtype='O')
         fac2 = np.array(['one', 'two'], dtype='O')
