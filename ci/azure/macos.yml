@@ -31,7 +31,7 @@ jobs:
     - script: |
         export PATH=$HOME/miniconda3/bin:$PATH
         source activate pandas-dev
-        ci/run_tests.sh
+        python ci/run_tests.py
       displayName: 'Test'
     - script: |
         export PATH=$HOME/miniconda3/bin:$PATH

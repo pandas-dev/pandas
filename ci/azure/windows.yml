@@ -12,6 +12,7 @@ jobs:
       py36_np14:
         ENV_FILE: ci/deps/azure-windows-36.yaml
         CONDA_PY: "36"
+        PATTERN: "not slow and not network"
 
   steps:
     - task: CondaEnvironment@1
@@ -28,7 +29,7 @@ jobs:
       displayName: 'Build'
     - script: |
         call activate pandas-dev
-        pytest -m "not slow and not network" --junitxml=test-data.xml pandas %*
+        python ci\\run_tests.py
       displayName: 'Test'
     - task: PublishTestResults@2
       inputs:
