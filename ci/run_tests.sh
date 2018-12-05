@@ -26,7 +26,7 @@ if [[ "not network" == *"$PATTERN"* ]]; then
     export http_proxy=http://1.2.3.4 https_proxy=http://1.2.3.4;
 fi
 
-PYTEST="pytest -m \"$PATTERN\" --dist=loadscope -n auto -s --strict --durations=10 --junitxml=test-data.xml $TEST_ARGS"
+PYTEST="pytest -m \"$PATTERN\" --junitxml=test-data.xml $TEST_ARGS"
 if [ "$COVERAGE" ]; then
     COVERAGE_FNAME="/tmp/coverage.xml"
     $PYTEST --cov=pandas --cov-report=xml:$COVERAGE_FNAME pandas
