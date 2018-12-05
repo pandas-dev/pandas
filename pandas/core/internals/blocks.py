@@ -2923,7 +2923,9 @@ class DatetimeTZBlock(NonConsolidatableMixIn, DatetimeBlock):
             # allow passing of > 1dim if its trivial
             if result.ndim > 1:
                 result = result.reshape(np.prod(result.shape))
-            result = self.values._shallow_copy(result)
+
+            # GH#24096 new values invalidates a frequency
+            result = self.values._shallow_copy(result, freq=None)
 
         return result
 
