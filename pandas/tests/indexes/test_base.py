@@ -448,7 +448,7 @@ class TestIndex(Base):
         (PeriodIndex((x for x in []), freq='B'), PeriodIndex),
         (RangeIndex(step=1), pd.RangeIndex),
         (MultiIndex(levels=[[1, 2], ['blue', 'red']],
-                    labels=[[], []]), MultiIndex)
+                    codes=[[], []]), MultiIndex)
     ])
     def test_constructor_empty_special(self, empty, klass):
         assert isinstance(empty, klass)

@@ -71,9 +71,9 @@ class LevelAlign(object):
     def setup(self):
         self.index = MultiIndex(
             levels=[np.arange(10), np.arange(100), np.arange(100)],
-            labels=[np.arange(10).repeat(10000),
-                    np.tile(np.arange(100).repeat(100), 10),
-                    np.tile(np.tile(np.arange(100), 100), 10)])
+            codes=[np.arange(10).repeat(10000),
+                   np.tile(np.arange(100).repeat(100), 10),
+                   np.tile(np.tile(np.arange(100), 100), 10)])
         self.df = DataFrame(np.random.randn(len(self.index), 4),
                             index=self.index)
         self.df_level = DataFrame(np.random.randn(100, 4),

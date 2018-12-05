@@ -133,8 +133,8 @@ class TestSeriesAlterAxes(object):
 
         # level
         index = MultiIndex(levels=[['bar'], ['one', 'two', 'three'], [0, 1]],
-                           labels=[[0, 0, 0, 0, 0, 0], [0, 1, 2, 0, 1, 2],
-                                   [0, 1, 0, 1, 0, 1]])
+                           codes=[[0, 0, 0, 0, 0, 0], [0, 1, 2, 0, 1, 2],
+                                  [0, 1, 0, 1, 0, 1]])
         s = Series(np.random.randn(6), index=index)
         rs = s.reset_index(level=1)
         assert len(rs.columns) == 2
@@ -204,8 +204,8 @@ class TestSeriesAlterAxes(object):
 
     def test_reorder_levels(self):
         index = MultiIndex(levels=[['bar'], ['one', 'two', 'three'], [0, 1]],
-                           labels=[[0, 0, 0, 0, 0, 0], [0, 1, 2, 0, 1, 2],
-                                   [0, 1, 0, 1, 0, 1]],
+                           codes=[[0, 0, 0, 0, 0, 0], [0, 1, 2, 0, 1, 2],
+                                  [0, 1, 0, 1, 0, 1]],
                            names=['L0', 'L1', 'L2'])
         s = Series(np.arange(6), index=index)
 
@@ -220,8 +220,8 @@ class TestSeriesAlterAxes(object):
         # rotate, position
         result = s.reorder_levels([1, 2, 0])
         e_idx = MultiIndex(levels=[['one', 'two', 'three'], [0, 1], ['bar']],
-                           labels=[[0, 1, 2, 0, 1, 2], [0, 1, 0, 1, 0, 1],
-                                   [0, 0, 0, 0, 0, 0]],
+                           codes=[[0, 1, 2, 0, 1, 2], [0, 1, 0, 1, 0, 1],
+                                  [0, 0, 0, 0, 0, 0]],
                            names=['L1', 'L2', 'L0'])
         expected = Series(np.arange(6), index=e_idx)
         tm.assert_series_equal(result, expected)

@@ -1521,19 +1521,19 @@ class Index(IndexOpsMixin, PandasObject):
         # The two checks above guarantee that here self is a MultiIndex
 
         new_levels = list(self.levels)
-        new_labels = list(self.labels)
+        new_codes = list(self.codes)
         new_names = list(self.names)
 
         for i in levnums:
             new_levels.pop(i)
-            new_labels.pop(i)
+            new_codes.pop(i)
             new_names.pop(i)
 
         if len(new_levels) == 1:
 
             # set nan if needed
-            mask = new_labels[0] == -1
-            result = new_levels[0].take(new_labels[0])
+            mask = new_codes[0] == -1
+            result = new_levels[0].take(new_codes[0])
             if mask.any():
                 result = result.putmask(mask, np.nan)
 
@@ -1541,7 +1541,7 @@ class Index(IndexOpsMixin, PandasObject):
             return result
         else:
             from .multi import MultiIndex
-            return MultiIndex(levels=new_levels, labels=new_labels,
+            return MultiIndex(levels=new_levels, codes=new_codes,
                               names=new_names, verify_integrity=False)
 
     _index_shared_docs['_get_grouper_for_level'] = """
@@ -3299,14 +3299,14 @@ class Index(IndexOpsMixin, PandasObject):
             # common levels, ldrop_names, rdrop_names
             dropped_names = ldrop_names + rdrop_names
 
-            levels, labels, names = (
+            levels, codes, names = (
                 _restore_dropped_levels_multijoin(self, other,
                                                   dropped_names,
                                                   join_idx,
                                                   lidx, ridx))
 
             # Re-create the multi-index
-            multi_join_idx = MultiIndex(levels=levels, labels=labels,
+            multi_join_idx = MultiIndex(levels=levels, codes=codes,
                                         names=names, verify_integrity=False)
 
             multi_join_idx = multi_join_idx.remove_unused_levels()
@@ -3417,7 +3417,7 @@ class Index(IndexOpsMixin, PandasObject):
                 left_indexer = None
                 join_index = left
             else:  # sort the leaves
-                left_indexer = _get_leaf_sorter(left.labels[:level + 1])
+                left_indexer = _get_leaf_sorter(left.codes[:level + 1])
                 join_index = left[left_indexer]
 
         else:
@@ -3425,55 +3425,55 @@ class Index(IndexOpsMixin, PandasObject):
             rev_indexer = lib.get_reverse_indexer(left_lev_indexer,
                                                   len(old_level))
 
-            new_lev_labels = algos.take_nd(rev_indexer, left.labels[level],
-                                           allow_fill=False)
+            new_lev_codes = algos.take_nd(rev_indexer, left.codes[level],
+                                          allow_fill=False)
 
-            new_labels = list(left.labels)
-            new_labels[level] = new_lev_labels
+            new_codes = list(left.codes)
+            new_codes[level] = new_lev_codes
 
             new_levels = list(left.levels)
             new_levels[level] = new_level
 
             if keep_order:  # just drop missing values. o.w. keep order
                 left_indexer = np.arange(len(left), dtype=np.intp)
-                mask = new_lev_labels != -1
+                mask = new_lev_codes != -1
                 if not mask.all():
-                    new_labels = [lab[mask] for lab in new_labels]
+                    new_codes = [lab[mask] for lab in new_codes]
                     left_indexer = left_indexer[mask]
 
             else:  # tie out the order with other
                 if level == 0:  # outer most level, take the fast route
-                    ngroups = 1 + new_lev_labels.max()
+                    ngroups = 1 + new_lev_codes.max()
                     left_indexer, counts = libalgos.groupsort_indexer(
-                        new_lev_labels, ngroups)
+                        new_lev_codes, ngroups)
 
                     # missing values are placed first; drop them!
                     left_indexer = left_indexer[counts[0]:]
-                    new_labels = [lab[left_indexer] for lab in new_labels]
+                    new_codes = [lab[left_indexer] for lab in new_codes]
 
                 else:  # sort the leaves
-                    mask = new_lev_labels != -1
+                    mask = new_lev_codes != -1
                     mask_all = mask.all()
                     if not mask_all:
-                        new_labels = [lab[mask] for lab in new_labels]
+                        new_codes = [lab[mask] for lab in new_codes]
 
-                    left_indexer = _get_leaf_sorter(new_labels[:level + 1])
-                    new_labels = [lab[left_indexer] for lab in new_labels]
+                    left_indexer = _get_leaf_sorter(new_codes[:level + 1])
+                    new_codes = [lab[left_indexer] for lab in new_codes]
 
                     # left_indexers are w.r.t masked frame.
                     # reverse to original frame!
                     if not mask_all:
                         left_indexer = mask.nonzero()[0][left_indexer]
 
-            join_index = MultiIndex(levels=new_levels, labels=new_labels,
+            join_index = MultiIndex(levels=new_levels, codes=new_codes,
                                     names=left.names, verify_integrity=False)
 
         if right_lev_indexer is not None:
             right_indexer = algos.take_nd(right_lev_indexer,
-                                          join_index.labels[level],
+                                          join_index.codes[level],
                                           allow_fill=False)
         else:
-            right_indexer = join_index.labels[level]
+            right_indexer = join_index.codes[level]
 
         if flip_order:
             left_indexer, right_indexer = right_indexer, left_indexer

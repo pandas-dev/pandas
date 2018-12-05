@@ -70,7 +70,7 @@ def test_slice_locs_with_type_mismatch():
 
 def test_slice_locs_not_sorted():
     index = MultiIndex(levels=[Index(lrange(4)), Index(lrange(4)), Index(
-        lrange(4))], labels=[np.array([0, 0, 1, 2, 2, 2, 3, 3]), np.array(
+        lrange(4))], codes=[np.array([0, 0, 1, 2, 2, 2, 3, 3]), np.array(
             [0, 1, 0, 0, 0, 1, 0, 1]), np.array([1, 0, 1, 1, 0, 0, 1, 0])])
 
     msg = "[Kk]ey length.*greater than MultiIndex lexsort depth"
@@ -87,8 +87,8 @@ def test_slice_locs_not_contained():
     # some searchsorted action
 
     index = MultiIndex(levels=[[0, 2, 4, 6], [0, 2, 4]],
-                       labels=[[0, 0, 0, 1, 1, 2, 3, 3, 3],
-                               [0, 1, 2, 1, 2, 2, 0, 1, 2]], sortorder=0)
+                       codes=[[0, 0, 0, 1, 1, 2, 3, 3, 3],
+                              [0, 1, 2, 1, 2, 2, 0, 1, 2]], sortorder=0)
 
     result = index.slice_locs((1, 0), (5, 2))
     assert result == (3, 6)
@@ -126,11 +126,11 @@ def test_get_indexer():
     major_axis = Index(lrange(4))
     minor_axis = Index(lrange(2))
 
-    major_labels = np.array([0, 0, 1, 2, 2, 3, 3], dtype=np.intp)
-    minor_labels = np.array([0, 1, 0, 0, 1, 0, 1], dtype=np.intp)
+    major_codes = np.array([0, 0, 1, 2, 2, 3, 3], dtype=np.intp)
+    minor_codes = np.array([0, 1, 0, 0, 1, 0, 1], dtype=np.intp)
 
     index = MultiIndex(levels=[major_axis, minor_axis],
-                       labels=[major_labels, minor_labels])
+                       codes=[major_codes, minor_codes])
     idx1 = index[:5]
     idx2 = index[[1, 3, 5]]
 
@@ -247,7 +247,7 @@ def test_getitem_bool_index_single(ind1, ind2):
 
     expected = pd.MultiIndex(levels=[np.array([], dtype=np.int64),
                                      np.array([], dtype=np.int64)],
-                             labels=[[], []])
+                             codes=[[], []])
     tm.assert_index_equal(idx[ind2], expected)
 
 
@@ -262,7 +262,7 @@ def test_get_loc(idx):
 
     # 3 levels
     index = MultiIndex(levels=[Index(lrange(4)), Index(lrange(4)), Index(
-        lrange(4))], labels=[np.array([0, 0, 1, 2, 2, 2, 3, 3]), np.array(
+        lrange(4))], codes=[np.array([0, 0, 1, 2, 2, 2, 3, 3]), np.array(
             [0, 1, 0, 0, 0, 1, 0, 1]), np.array([1, 0, 1, 1, 0, 0, 1, 0])])
     pytest.raises(KeyError, index.get_loc, (1, 1))
     assert index.get_loc((2, 0)) == slice(3, 5)
@@ -283,7 +283,7 @@ def test_get_loc_duplicates():
 
 def test_get_loc_level():
     index = MultiIndex(levels=[Index(lrange(4)), Index(lrange(4)), Index(
-        lrange(4))], labels=[np.array([0, 0, 1, 2, 2, 2, 3, 3]), np.array(
+        lrange(4))], codes=[np.array([0, 0, 1, 2, 2, 2, 3, 3]), np.array(
             [0, 1, 0, 0, 0, 1, 0, 1]), np.array([1, 0, 1, 1, 0, 0, 1, 0])])
 
     loc, new_index = index.get_loc_level((0, 1))
@@ -303,7 +303,7 @@ def test_get_loc_level():
     # Unused label on unsorted level:
     pytest.raises(KeyError, index.drop(1, level=2).get_loc_level, 2, 2)
 
-    index = MultiIndex(levels=[[2000], lrange(4)], labels=[np.array(
+    index = MultiIndex(levels=[[2000], lrange(4)], codes=[np.array(
         [0, 0, 0, 0]), np.array([0, 1, 2, 3])])
     result, new_index = index.get_loc_level((2000, slice(None, None)))
     expected = slice(None, None)

@@ -236,7 +236,7 @@ def test_header_multi_index_common_format_malformed1(all_parsers):
         columns=MultiIndex(levels=[[u("a"), u("b"), u("c")],
                                    [u("r"), u("s"), u("t"),
                                     u("u"), u("v")]],
-                           labels=[[0, 0, 1, 2, 2], [0, 1, 2, 3, 4]],
+                           codes=[[0, 0, 1, 2, 2], [0, 1, 2, 3, 4]],
                            names=[u("a"), u("q")]))
     data = """a,a,a,b,c,c
 q,r,s,t,u,v
@@ -255,7 +255,7 @@ def test_header_multi_index_common_format_malformed2(all_parsers):
         columns=MultiIndex(levels=[[u("a"), u("b"), u("c")],
                                    [u("r"), u("s"), u("t"),
                                     u("u"), u("v")]],
-                           labels=[[0, 0, 1, 2, 2], [0, 1, 2, 3, 4]],
+                           codes=[[0, 0, 1, 2, 2], [0, 1, 2, 3, 4]],
                            names=[None, u("q")]))
 
     data = """,a,a,b,c,c
@@ -272,10 +272,10 @@ def test_header_multi_index_common_format_malformed3(all_parsers):
     expected = DataFrame(np.array(
         [[3, 4, 5, 6], [9, 10, 11, 12]], dtype="int64"),
         index=MultiIndex(levels=[[1, 7], [2, 8]],
-                         labels=[[0, 1], [0, 1]]),
+                         codes=[[0, 1], [0, 1]]),
         columns=MultiIndex(levels=[[u("a"), u("b"), u("c")],
                                    [u("s"), u("t"), u("u"), u("v")]],
-                           labels=[[0, 1, 2, 2], [0, 1, 2, 3]],
+                           codes=[[0, 1, 2, 2], [0, 1, 2, 3]],
                            names=[None, u("q")]))
     data = """,a,a,b,c,c
 q,r,s,t,u,v

@@ -11,7 +11,7 @@ from pandas.util import testing as tm
 def single_level_multiindex():
     """single level MultiIndex"""
     return MultiIndex(levels=[['foo', 'bar', 'baz', 'qux']],
-                      labels=[[0, 1, 2, 3]], names=['first'])
+                      codes=[[0, 1, 2, 3]], names=['first'])
 
 
 @pytest.mark.filterwarnings("ignore:\\n.ix:DeprecationWarning")
@@ -40,7 +40,7 @@ class TestMultiIndexLoc(object):
 
         empty = Series(data=[], dtype=np.float64)
         expected = Series([], index=MultiIndex(
-            levels=index.levels, labels=[[], []], dtype=np.float64))
+            levels=index.levels, codes=[[], []], dtype=np.float64))
         result = x.loc[empty]
         tm.assert_series_equal(result, expected)
 
@@ -60,7 +60,7 @@ class TestMultiIndexLoc(object):
         # empty array:
         empty = np.array([])
         expected = Series([], index=MultiIndex(
-            levels=index.levels, labels=[[], []], dtype=np.float64))
+            levels=index.levels, codes=[[], []], dtype=np.float64))
         result = x.loc[empty]
         tm.assert_series_equal(result, expected)
 

@@ -52,9 +52,9 @@ class TestMultiIndexPartial(object):
 
         # ex from #1796
         index = MultiIndex(levels=[['foo', 'bar'], ['one', 'two'], [-1, 1]],
-                           labels=[[0, 0, 0, 0, 1, 1, 1, 1],
-                                   [0, 0, 1, 1, 0, 0, 1, 1], [0, 1, 0, 1, 0, 1,
-                                                              0, 1]])
+                           codes=[[0, 0, 0, 0, 1, 1, 1, 1],
+                                  [0, 0, 1, 1, 0, 0, 1, 1], [0, 1, 0, 1, 0, 1,
+                                                             0, 1]])
         df = DataFrame(np.random.randn(8, 4), index=index,
                        columns=list('abcd'))
 
@@ -68,7 +68,7 @@ class TestMultiIndexPartial(object):
         ymd = ymd.T
         result = ymd[2000, 2]
 
-        expected = ymd.reindex(columns=ymd.columns[ymd.columns.labels[1] == 1])
+        expected = ymd.reindex(columns=ymd.columns[ymd.columns.codes[1] == 1])
         expected.columns = expected.columns.droplevel(0).droplevel(0)
         tm.assert_frame_equal(result, expected)
 
@@ -82,12 +82,12 @@ class TestMultiIndexPartial(object):
 
         ymd = multiindex_year_month_day_dataframe_random_data
         result = ymd.loc[(2000, 2):(2000, 4)]
-        lev = ymd.index.labels[1]
+        lev = ymd.index.codes[1]
         expected = ymd[(lev >= 1) & (lev <= 3)]
         tm.assert_frame_equal(result, expected)
 
     def test_getitem_partial_column_select(self):
-        idx = MultiIndex(labels=[[0, 0, 0], [0, 1, 1], [1, 0, 1]],
+        idx = MultiIndex(codes=[[0, 0, 0], [0, 1, 1], [1, 0, 1]],
                          levels=[['a', 'b'], ['x', 'y'], ['p', 'q']])
         df = DataFrame(np.random.rand(3, 2), index=idx)
 

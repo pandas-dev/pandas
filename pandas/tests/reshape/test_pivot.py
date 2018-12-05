@@ -451,7 +451,7 @@ class TestPivotTable(object):
                 [4, 5, 6, 'q', 'w', 't']]
         index = Index(data=['one', 'two'], name='foo')
         columns = MultiIndex(levels=[['baz', 'zoo'], ['A', 'B', 'C']],
-                             labels=[[0, 0, 0, 1, 1, 1], [0, 1, 2, 0, 1, 2]],
+                             codes=[[0, 0, 0, 1, 1, 1], [0, 1, 2, 0, 1, 2]],
                              names=[None, 'bar'])
         expected = DataFrame(data=data, index=index,
                              columns=columns, dtype='object')
@@ -482,7 +482,7 @@ class TestPivotTable(object):
                 ['C', np.nan, 3, np.nan]]
         index = Index(data=['q', 't', 'w', 'x', 'y', 'z'], name='zoo')
         columns = MultiIndex(levels=[['bar', 'baz'], ['one', 'two']],
-                             labels=[[0, 0, 1, 1], [0, 1, 0, 1]],
+                             codes=[[0, 0, 1, 1], [0, 1, 0, 1]],
                              names=[None, 'foo'])
         expected = DataFrame(data=data, index=index,
                              columns=columns, dtype='object')
@@ -501,7 +501,7 @@ class TestPivotTable(object):
                 ['two', 'B', 5, 'w'],
                 ['two', 'C', 6, 't']]
         columns = MultiIndex(levels=[['bar', 'baz'], ['first', 'second']],
-                             labels=[[0, 0, 1, 1], [0, 1, 0, 1]])
+                             codes=[[0, 0, 1, 1], [0, 1, 0, 1]])
         df = DataFrame(data=data, index=index, columns=columns, dtype='object')
         if method:
             result = df.pivot(index=('bar', 'first'),
@@ -1238,7 +1238,7 @@ class TestPivotTable(object):
 
         result = pivot_table(data, index='A', columns='B', aggfunc='sum')
         mi = MultiIndex(levels=[['C'], ['one', 'two']],
-                        labels=[[0, 0], [0, 1]], names=[None, 'B'])
+                        codes=[[0, 0], [0, 1]], names=[None, 'B'])
         expected = DataFrame({('C', 'one'): {'bar': 15, 'foo': 13},
                               ('C', 'two'): {'bar': 7, 'foo': 20}},
                              columns=mi).rename_axis('A')
@@ -1247,7 +1247,7 @@ class TestPivotTable(object):
         result = pivot_table(data, index='A', columns='B',
                              aggfunc=['sum', 'mean'])
         mi = MultiIndex(levels=[['sum', 'mean'], ['C'], ['one', 'two']],
-                        labels=[[0, 0, 1, 1], [0, 0, 0, 0], [0, 1, 0, 1]],
+                        codes=[[0, 0, 1, 1], [0, 0, 0, 0], [0, 1, 0, 1]],
                         names=[None, None, 'B'])
         expected = DataFrame({('mean', 'C', 'one'): {'bar': 5.0, 'foo': 3.25},
                               ('mean', 'C', 'two'): {'bar': 7.0,
@@ -1724,8 +1724,8 @@ class TestCrosstab(object):
                              values=df['D'])
         expected_index = pd.MultiIndex(levels=[['All', 'one', 'three', 'two'],
                                                ['', 'A', 'B', 'C']],
-                                       labels=[[1, 1, 1, 2, 2, 2, 3, 3, 3, 0],
-                                               [1, 2, 3, 1, 2, 3, 1, 2, 3, 0]],
+                                       codes=[[1, 1, 1, 2, 2, 2, 3, 3, 3, 0],
+                                              [1, 2, 3, 1, 2, 3, 1, 2, 3, 0]],
                                        names=['A', 'B'])
         expected_column = pd.Index(['bar', 'foo', 'All'],
                                    dtype='object',

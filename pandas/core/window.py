@@ -2462,7 +2462,7 @@ def _flex_binary_moment(arg1, arg2, f, pairwise=False):
                     # empty result
                     result = DataFrame(
                         index=MultiIndex(levels=[arg1.index, arg2.columns],
-                                         labels=[[], []]),
+                                         codes=[[], []]),
                         columns=arg2.columns,
                         dtype='float64')
 

@@ -277,8 +277,8 @@ class TestMultiIndexSetItem(object):
 
     def test_frame_getitem_setitem_multislice(self):
         levels = [['t1', 't2'], ['a', 'b', 'c']]
-        labels = [[0, 0, 0, 1, 1], [0, 1, 2, 0, 1]]
-        midx = MultiIndex(labels=labels, levels=levels, names=[None, 'id'])
+        codes = [[0, 0, 0, 1, 1], [0, 1, 2, 0, 1]]
+        midx = MultiIndex(codes=codes, levels=levels, names=[None, 'id'])
         df = DataFrame({'value': [1, 2, 3, 7, 8]}, index=midx)
 
         result = df.loc[:, 'value']
@@ -350,7 +350,7 @@ class TestMultiIndexSetItem(object):
 
     def test_getitem_setitem_slice_integers(self):
         index = MultiIndex(levels=[[0, 1, 2], [0, 2]],
-                           labels=[[0, 0, 1, 1, 2, 2], [0, 1, 0, 1, 0, 1]])
+                           codes=[[0, 0, 1, 1, 2, 2], [0, 1, 0, 1, 0, 1]])
 
         frame = DataFrame(np.random.randn(len(index), 4), index=index,
                           columns=['a', 'b', 'c', 'd'])

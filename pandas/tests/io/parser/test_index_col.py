@@ -148,5 +148,5 @@ def test_multi_index_naming_not_all_at_beginning(all_parsers):
     expected = DataFrame({"Unnamed: 2": ["c", "d", "c", "d"]},
                          index=MultiIndex(
                              levels=[['a', 'b'], [1, 2, 3, 4]],
-                             labels=[[0, 0, 1, 1], [0, 1, 2, 3]]))
+                             codes=[[0, 0, 1, 1], [0, 1, 2, 3]]))
     tm.assert_frame_equal(result, expected)

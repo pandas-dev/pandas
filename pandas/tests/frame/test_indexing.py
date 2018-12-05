@@ -3191,7 +3191,7 @@ class TestDataFrameIndexing(TestData):
 
         index = Index(range(2), name='i')
         columns = MultiIndex(levels=[['x', 'y'], [0, 1]],
-                             labels=[[0, 1], [0, 0]],
+                             codes=[[0, 1], [0, 0]],
                              names=[None, 'c'])
         expected = DataFrame([[1, 2], [3, 4]], columns=columns, index=index)
 
