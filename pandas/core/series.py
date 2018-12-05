@@ -1646,7 +1646,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         We see that the values of `animals` get reconstructed correctly, but
         the index does not match yet  -- consequently, the last step is to
         correctly set the index.
-    
+
         >>> reconstruct.index = inverse.index
         >>> reconstruct
         1       lama
@@ -1682,11 +1682,11 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
                              'supported if "raw=True"')
         elif raw:
             result = super(Series, self).unique()
-    
+
             if is_datetime64tz_dtype(self.dtype):
                 # we are special casing datetime64tz_dtype
                 # to return an object array of tz-aware Timestamps
-    
+
                 # TODO: it must return DatetimeArray with tz in pandas 2.0
                 result = result.astype(object).values
             return result

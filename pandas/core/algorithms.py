@@ -347,7 +347,10 @@ def unique(values, return_inverse=False):
 
     values = _ensure_arraylike(values)
 
-    if is_extension_array_dtype(values):
+    if isinstance(values, ABCSeries):
+        # this calls through Series, need raw=True to not raise warning
+        return values.unique(raw=True)
+    elif is_extension_array_dtype(values):
         # Dispatch to extension dtype's unique.
         return values.unique()
 

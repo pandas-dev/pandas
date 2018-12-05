@@ -1244,7 +1244,10 @@ class IndexOpsMixin(object):
         -------
         nunique : int
         """
-        uniqs = self.unique()
+        if isinstance(self, ABCSeries):
+            uniqs = self.unique(raw=True)
+        else:
+            uniqs = self.unique()
         n = len(uniqs)
         if dropna and isna(uniqs).any():
             n -= 1
