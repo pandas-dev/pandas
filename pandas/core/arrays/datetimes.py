@@ -1438,7 +1438,6 @@ class DatetimeArrayMixin(dtl.DatetimeLikeArrayMixin,
 
 
 DatetimeArrayMixin._add_comparison_ops()
-DatetimeArrayMixin._add_datetimelike_methods()
 
 
 # -------------------------------------------------------------------

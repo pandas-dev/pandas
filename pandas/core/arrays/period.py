@@ -830,7 +830,6 @@ class PeriodArray(dtl.DatetimeLikeArrayMixin, ExtensionArray):
 
 
 PeriodArray._add_comparison_ops()
-PeriodArray._add_datetimelike_methods()
 
 
 # -------------------------------------------------------------------
