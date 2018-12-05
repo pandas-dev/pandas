@@ -1073,6 +1073,7 @@ def assert_period_array_equal(left, right, obj='PeriodArray'):
 
 
 def assert_datetime_array_equal(left, right, obj='DatetimeArray'):
+    __tracebackhide__ = True
     _check_isinstance(left, right, DatetimeArray)
 
     assert_numpy_array_equal(left._data, right._data,
@@ -1082,6 +1083,7 @@ def assert_datetime_array_equal(left, right, obj='DatetimeArray'):
 
 
 def assert_timedelta_array_equal(left, right, obj='TimedeltaArray'):
+    __tracebackhide__ = True
     _check_isinstance(left, right, TimedeltaArray)
     assert_numpy_array_equal(left._data, right._data,
                              obj='{obj}._data'.format(obj=obj))
