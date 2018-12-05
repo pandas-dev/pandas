@@ -4314,7 +4314,7 @@ class NDFrame(PandasObject, SelectionMixin):
     _shared_docs['reindex_axis'] = ("""
         Conform input object to new index.
 
-        By default, places NA/NaN in locations having no value in the
+        By default, places NaN in locations having no value in the
         previous index. A new object is produced unless the new index
         is equivalent to the current one and copy=False.
 
