@@ -458,7 +458,7 @@ class ExtensionArray(object):
         """
         # Note: this implementation assumes that `self.dtype.na_value` can be
         # stored in an instance of your ExtensionArray with `self.dtype`.
-        if len(self) == 0 or periods == 0:
+        if not len(self) or periods == 0:
             return self.copy()
         empty = self._from_sequence(
             [self.dtype.na_value] * min(abs(periods), len(self)),

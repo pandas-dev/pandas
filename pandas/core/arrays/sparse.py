@@ -882,7 +882,7 @@ class SparseArray(PandasObject, ExtensionArray, ExtensionOpsMixin):
 
     def shift(self, periods=1):
 
-        if len(self) == 0 or periods == 0:
+        if not len(self) or periods == 0:
             return self.copy()
 
         subtype = np.result_type(np.nan, self.dtype.subtype)
