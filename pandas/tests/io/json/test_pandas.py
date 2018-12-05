@@ -846,7 +846,7 @@ DataFrame\\.index values are different \\(100\\.0 %\\)
         assert_frame_equal(result, expected)
 
     @network
-    @pytest.mark.single
+    @pytest.mark.serial
     def test_round_trip_exception_(self):
         # GH 3867
         csv = 'https://raw.github.com/hayd/lahman2012/master/csvs/Teams.csv'
@@ -857,7 +857,7 @@ DataFrame\\.index values are different \\(100\\.0 %\\)
             index=df.index, columns=df.columns), df)
 
     @network
-    @pytest.mark.single
+    @pytest.mark.serial
     def test_url(self):
         url = 'https://api.github.com/repos/pandas-dev/pandas/issues?per_page=5'  # noqa
         result = read_json(url, convert_dates=True)

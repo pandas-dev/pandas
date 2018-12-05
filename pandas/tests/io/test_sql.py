@@ -863,7 +863,7 @@ class _TestSQLApi(PandasSQLTest):
         tm.assert_frame_equal(res, df)
 
 
-@pytest.mark.single
+@pytest.mark.serial
 class TestSQLApi(SQLAlchemyMixIn, _TestSQLApi):
     """
     Test the public API as it would be used directly
@@ -1054,12 +1054,12 @@ class _EngineToConnMixin(object):
         # super(_EngineToConnMixin, self).teardown_method(method)
 
 
-@pytest.mark.single
+@pytest.mark.serial
 class TestSQLApiConn(_EngineToConnMixin, TestSQLApi):
     pass
 
 
-@pytest.mark.single
+@pytest.mark.serial
 class TestSQLiteFallbackApi(SQLiteMixIn, _TestSQLApi):
     """
     Test the public sqlite connection fallback API
@@ -1931,32 +1931,32 @@ class _TestPostgreSQLAlchemy(object):
             tm.assert_frame_equal(res1, res2)
 
 
-@pytest.mark.single
+@pytest.mark.serial
 class TestMySQLAlchemy(_TestMySQLAlchemy, _TestSQLAlchemy):
     pass
 
 
-@pytest.mark.single
+@pytest.mark.serial
 class TestMySQLAlchemyConn(_TestMySQLAlchemy, _TestSQLAlchemyConn):
     pass
 
 
-@pytest.mark.single
+@pytest.mark.serial
 class TestPostgreSQLAlchemy(_TestPostgreSQLAlchemy, _TestSQLAlchemy):
     pass
 
 
-@pytest.mark.single
+@pytest.mark.serial
 class TestPostgreSQLAlchemyConn(_TestPostgreSQLAlchemy, _TestSQLAlchemyConn):
     pass
 
 
-@pytest.mark.single
+@pytest.mark.serial
 class TestSQLiteAlchemy(_TestSQLiteAlchemy, _TestSQLAlchemy):
     pass
 
 
-@pytest.mark.single
+@pytest.mark.serial
 class TestSQLiteAlchemyConn(_TestSQLiteAlchemy, _TestSQLAlchemyConn):
     pass
 
@@ -1964,7 +1964,7 @@ class TestSQLiteAlchemyConn(_TestSQLiteAlchemy, _TestSQLAlchemyConn):
 # -----------------------------------------------------------------------------
 # -- Test Sqlite / MySQL fallback
 
-@pytest.mark.single
+@pytest.mark.serial
 class TestSQLiteFallback(SQLiteMixIn, PandasSQLTest):
     """
     Test the fallback mode against an in-memory sqlite database.
@@ -2196,7 +2196,7 @@ def _skip_if_no_pymysql():
         pytest.skip('pymysql not installed, skipping')
 
 
-@pytest.mark.single
+@pytest.mark.serial
 class TestXSQLite(SQLiteMixIn):
 
     @pytest.fixture(autouse=True)
@@ -2403,7 +2403,7 @@ class TestXSQLite(SQLiteMixIn):
         clean_up(table_name)
 
 
-@pytest.mark.single
+@pytest.mark.serial
 @pytest.mark.skip(reason="gh-13611: there is no support for MySQL "
                   "if SQLAlchemy is not installed")
 class TestXMySQL(MySQLMixIn):

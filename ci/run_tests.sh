@@ -26,33 +26,11 @@ if [[ "not network" == *"$PATTERN"* ]]; then
     export http_proxy=http://1.2.3.4 https_proxy=http://1.2.3.4;
 fi
 
-
-if [ -n "$PATTERN" ]; then
-    PATTERN=" and $PATTERN"
+PYTEST="pytest -m \"$PATTERN\" --dist=loadscope -n auto -s --strict --durations=10 --junitxml=test-data.xml $TEST_ARGS"
+if [ "$COVERAGE" ]; then
+    COVERAGE_FNAME="/tmp/coverage.xml"
+    $PYTEST --cov=pandas --cov-report=xml:$COVERAGE_FNAME pandas
+    bash <(curl -s https://codecov.io/bash) -Z -c -f $COVERAGE_FNAME
+else
+    $PYTEST pandas
 fi
-
-for TYPE in single multiple
-do
-    if [ "$COVERAGE" ]; then
-        COVERAGE_FNAME="/tmp/coc-$TYPE.xml"
-        COVERAGE="-s --cov=pandas --cov-report=xml:$COVERAGE_FNAME"
-    fi
-
-    TYPE_PATTERN=$TYPE
-    NUM_JOBS=1
-    if [[ "$TYPE_PATTERN" == "multiple" ]]; then
-        TYPE_PATTERN="not single"
-        NUM_JOBS=2
-    fi
-
-    PYTEST_CMD="pytest -m \"$TYPE_PATTERN$PATTERN\" -n $NUM_JOBS -s --strict --durations=10 --junitxml=test-data-$TYPE.xml $TEST_ARGS $COVERAGE pandas"
-    echo $PYTEST_CMD
-    # if no tests are found (the case of "single and slow"), pytest exits with code 5, and would make the script fail, if not for the below code
-    sh -c "$PYTEST_CMD; ret=\$?; [ \$ret = 5 ] && exit 0 || exit \$ret"
-
-    if [[ "$COVERAGE" && $? == 0 ]]; then
-        echo "uploading coverage for $TYPE tests"
-        echo "bash <(curl -s https://codecov.io/bash) -Z -c -F $TYPE -f $COVERAGE_FNAME"
-              bash <(curl -s https://codecov.io/bash) -Z -c -F $TYPE -f $COVERAGE_FNAME
-    fi
-done

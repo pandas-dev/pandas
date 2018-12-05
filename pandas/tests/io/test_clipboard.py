@@ -115,7 +115,7 @@ def test_mock_clipboard(mock_clipboard):
     assert result == "abc"
 
 
-@pytest.mark.single
+@pytest.mark.serial
 @pytest.mark.clipboard
 @pytest.mark.skipif(not _DEPS_INSTALLED,
                     reason="clipboard primitives not installed")

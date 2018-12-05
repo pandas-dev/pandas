@@ -15,7 +15,7 @@ from pandas.io.feather_format import to_feather, read_feather  # noqa:E402
 pyarrow_version = LooseVersion(pyarrow.__version__)
 
 
-@pytest.mark.single
+@pytest.mark.serial
 class TestFeather(object):
 
     def check_error_on_write(self, df, exc):

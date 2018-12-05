@@ -310,7 +310,7 @@ class TestRank(TestData):
         expected = DataFrame(exp)
         tm.assert_frame_equal(result, expected)
 
-    @pytest.mark.single
+    @pytest.mark.serial
     def test_pct_max_many_rows(self):
         # GH 18271
         df = DataFrame({'A': np.arange(2**24 + 1),

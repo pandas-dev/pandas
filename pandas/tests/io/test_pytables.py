@@ -142,7 +142,7 @@ class Base(object):
         pass
 
 
-@pytest.mark.single
+@pytest.mark.serial
 @pytest.mark.filterwarnings("ignore:\\nPanel:FutureWarning")
 class TestHDFStore(Base):
 
