@@ -21,7 +21,7 @@ from pandas.core.dtypes.common import (
     is_extension_array_dtype, is_extension_type, is_hashable, is_integer,
     is_iterator, is_list_like, is_scalar, is_string_like, is_timedelta64_dtype)
 from pandas.core.dtypes.generic import (
-    ABCDataFrame, ABCSeries, ABCSparseArray, ABCSparseSeries)
+    ABCDataFrame, ABCDatetimeIndex, ABCSeries, ABCSparseArray, ABCSparseSeries)
 from pandas.core.dtypes.missing import (
     isna, na_value_for_dtype, notna, remove_na_arraylike)
 
@@ -182,6 +182,11 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
                 else:
                     # need to copy to avoid aliasing issues
                     data = data._values.copy()
+                    if (isinstance(data, ABCDatetimeIndex) and
+                            data.tz is not None):
+                        # GH#24096 need copy to be deep for datetime64tz case
+                        # TODO: See if we can avoid these copies
+                        data = data._values.copy(deep=True)
                 copy = False
 
             elif isinstance(data, np.ndarray):
