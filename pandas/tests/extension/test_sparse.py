@@ -267,7 +267,7 @@ class TestMethods(BaseSparseTests, base.BaseMethodsTests):
         cond = np.array([True, True, False, False])
         result = ser.where(cond)
         # new_dtype is the only difference
-        new_dtype = SparseDtype('float64', 0.0)
+        new_dtype = SparseDtype('float', 0.0)
         expected = pd.Series(cls._from_sequence([a, a, na_value, na_value],
                                                 dtype=new_dtype))
         self.assert_series_equal(result, expected)
