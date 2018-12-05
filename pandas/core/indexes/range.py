@@ -425,20 +425,6 @@ class RangeIndex(Int64Index):
             old_t, t = t, old_t - quotient * t
         return old_r, old_s, old_t
 
-    def union(self, other):
-        """
-        Form the union of two Index objects and sorts if possible
-
-        Parameters
-        ----------
-        other : Index or array-like
-
-        Returns
-        -------
-        union : Index
-        """
-        return super(RangeIndex, self).union(other)
-
     def _union(self, other):
         if not len(other) or self.equals(other) or not len(self):
             return super(RangeIndex, self)._union(other)

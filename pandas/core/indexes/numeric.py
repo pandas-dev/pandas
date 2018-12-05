@@ -14,7 +14,7 @@ from pandas.core.dtypes.missing import isna
 
 from pandas.core import algorithms
 import pandas.core.common as com
-from pandas.core.dtypes.generic import ABCRangeIndex
+from pandas.core.dtypes.generic import ABCRangeIndex, ABCInt64Index
 import pandas.core.indexes.base as ibase
 from pandas.core.indexes.base import (
     Index, InvalidIndexError, _index_shared_docs)
@@ -228,11 +228,7 @@ class Int64Index(IntegerIndex):
     def _is_compatible_with_other(self, other):
         return (
             super(Int64Index, self)._is_compatible_with_other(other)
-            or (
-                (type(self) is Int64Index or isinstance(self, ABCRangeIndex))
-                and (type(other) is Int64Index or isinstance(other,
-                                                             ABCRangeIndex))
-            )
+            or all([isinstance(type(obj), (ABCInt64Index, ABCRangeIndex)) for obj in [self, other]])
         )
 
 Int64Index._add_numeric_methods()

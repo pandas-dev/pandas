@@ -1099,7 +1099,7 @@ class IntervalIndex(IntervalMixin, Index):
             # only catch Non-Interval index mismatches.
             except TypeError:
                 result = getattr(self.astype(object), op_name)(other)
-                if op_name in ('difference'):
+                if op_name in ('difference',):
                     result = result.astype(self.dtype)
                 return result
 

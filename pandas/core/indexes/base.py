@@ -2252,9 +2252,9 @@ class Index(IndexOpsMixin, PandasObject):
         of a union between incompatible types.
         """
         this = self.astype(object)
-        # call Index for when `other` is list-like
-        other = Index(other).astype(object)
-        return Index.union(this, other).astype(object)
+        # cast to Index for when `other` is list-like
+        other = Index(other, dtype=object, copy=False)
+        return Index._union(this, other).astype(object)
 
     def _is_compatible_with_other(self, other):
         """
@@ -2268,6 +2268,9 @@ class Index(IndexOpsMixin, PandasObject):
     def union(self, other):
         """
         Form the union of two Index objects and sorts if possible.
+
+        If the Index objects are incompatible, both Index objects will be
+        cast to dtype('O') first.
 
         Parameters
         ----------
@@ -2284,6 +2287,11 @@ class Index(IndexOpsMixin, PandasObject):
         >>> idx2 = pd.Index([3, 4, 5, 6])
         >>> idx1.union(idx2)
         Int64Index([1, 2, 3, 4, 5, 6], dtype='int64')
+
+        >>> idx1 = pd.Index(['a', 'b', 'c', 'd'])
+        >>> idx2 = pd.Index([1, 2, 3, 4])
+        >>> idx1.union(idx2)
+        Index(['a', 'b', 'c', 'd', 1, 2, 3, 4], dtype='object')
         """
         self._assert_can_do_setop(other)
 
