@@ -500,6 +500,10 @@ class Categorical(ExtensionArray, PandasObject):
     def _from_sequence(cls, scalars, dtype=None, copy=False):
         return Categorical(scalars, dtype=dtype)
 
+    def _formatter(self, boxed=False):
+        # Defer to CategoricalFormatter's formatter.
+        return None
+
     def copy(self):
         """
         Copy constructor.
@@ -2036,6 +2040,10 @@ class Categorical(ExtensionArray, PandasObject):
 
         return result
 
+    def __repr__(self):
+        # We want PandasObject.__repr__, which dispatches to __unicode__
+        return super(ExtensionArray, self).__repr__()
+
     def _maybe_coerce_indexer(self, indexer):
         """
         return an indexer coerced to the codes dtype
@@ -2391,9 +2399,6 @@ class Categorical(ExtensionArray, PandasObject):
         from pandas.core.dtypes.concat import _concat_categorical
 
         return _concat_categorical(to_concat)
-
-    def _formatting_values(self):
-        return self
 
     def isin(self, values):
         """
