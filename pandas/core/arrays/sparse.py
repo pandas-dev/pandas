@@ -631,8 +631,8 @@ class SparseArray(PandasObject, ExtensionArray, ExtensionOpsMixin):
         if not is_array_like(data):
             try:
                 # probably shared code in sanitize_series
-                from pandas.core.series import _sanitize_array
-                data = _sanitize_array(data, index=None)
+                from pandas.core.internals.construction import sanitize_array
+                data = sanitize_array(data, index=None)
             except ValueError:
                 # NumPy may raise a ValueError on data like [1, []]
                 # we retry with object dtype here.

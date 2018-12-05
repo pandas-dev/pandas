@@ -42,21 +42,31 @@ class TestTimedelta64ArrayComparisons(object):
         expected = pd.Series([False, True])
         tm.assert_series_equal(actual, expected)
 
-    def test_tdi_cmp_str_invalid(self):
+    def test_tdi_cmp_str_invalid(self, box_with_array):
         # GH#13624
+        xbox = box_with_array if box_with_array is not pd.Index else np.ndarray
         tdi = TimedeltaIndex(['1 day', '2 days'])
+        tdarr = tm.box_expected(tdi, box_with_array)
 
-        for left, right in [(tdi, 'a'), ('a', tdi)]:
+        for left, right in [(tdarr, 'a'), ('a', tdarr)]:
             with pytest.raises(TypeError):
                 left > right
-
             with pytest.raises(TypeError):
-                # FIXME: Shouldn't this return all-False?
-                left == right
-
+                left >= right
             with pytest.raises(TypeError):
-                # FIXME: Shouldn't this return all-True?
-                left != right
+                left < right
+            with pytest.raises(TypeError):
+                left <= right
+
+            result = left == right
+            expected = np.array([False, False], dtype=bool)
+            expected = tm.box_expected(expected, xbox)
+            tm.assert_equal(result, expected)
+
+            result = left != right
+            expected = np.array([True, True], dtype=bool)
+            expected = tm.box_expected(expected, xbox)
+            tm.assert_equal(result, expected)
 
     @pytest.mark.parametrize('dtype', [None, object])
     def test_comp_nat(self, dtype):

@@ -25,6 +25,17 @@ from pandas import (
     DatetimeIndex, TimedeltaIndex)
 
 
+def assert_all(obj):
+    """
+    Test helper to call call obj.all() the appropriate number of times on
+    a Series or DataFrame.
+    """
+    if isinstance(obj, pd.DataFrame):
+        assert obj.all().all()
+    else:
+        assert obj.all()
+
+
 # ------------------------------------------------------------------
 # Comparisons
 
@@ -86,11 +97,16 @@ class TestDatetime64SeriesComparison(object):
         [Period('2011-01', freq='M'), NaT, Period('2011-03', freq='M')]
     ])
     @pytest.mark.parametrize('dtype', [None, object])
-    def test_nat_comparisons_scalar(self, dtype, data, box):
-        xbox = box if box is not pd.Index else np.ndarray
+    def test_nat_comparisons_scalar(self, dtype, data, box_with_array):
+        if box_with_array is tm.to_array and dtype is object:
+            # dont bother testing ndarray comparison methods as this fails
+            #  on older numpys (since they check object identity)
+            return
+
+        xbox = box_with_array if box_with_array is not pd.Index else np.ndarray
 
         left = Series(data, dtype=dtype)
-        left = tm.box_expected(left, box)
+        left = tm.box_expected(left, box_with_array)
 
         expected = [False, False, False]
         expected = tm.box_expected(expected, xbox)
@@ -290,23 +306,24 @@ class TestDatetimeIndexComparisons(object):
         expected = np.array([True, False])
         tm.assert_numpy_array_equal(result, expected)
 
-    def dti_cmp_non_datetime(self, tz_naive_fixture):
+    def dt64arr_cmp_non_datetime(self, tz_naive_fixture, box_with_array):
         # GH#19301 by convention datetime.date is not considered comparable
         # to Timestamp or DatetimeIndex.  This may change in the future.
         tz = tz_naive_fixture
         dti = pd.date_range('2016-01-01', periods=2, tz=tz)
+        dtarr = tm.box_expected(dti, box_with_array)
 
         other = datetime(2016, 1, 1).date()
-        assert not (dti == other).any()
-        assert (dti != other).all()
+        assert not (dtarr == other).any()
+        assert (dtarr != other).all()
         with pytest.raises(TypeError):
-            dti < other
+            dtarr < other
         with pytest.raises(TypeError):
-            dti <= other
+            dtarr <= other
         with pytest.raises(TypeError):
-            dti > other
+            dtarr > other
         with pytest.raises(TypeError):
-            dti >= other
+            dtarr >= other
 
     @pytest.mark.parametrize('other', [None, np.nan, pd.NaT])
     def test_dti_eq_null_scalar(self, other, tz_naive_fixture):
@@ -323,25 +340,38 @@ class TestDatetimeIndexComparisons(object):
         assert (dti != other).all()
 
     @pytest.mark.parametrize('other', [None, np.nan])
-    def test_dti_cmp_null_scalar_inequality(self, tz_naive_fixture, other):
+    def test_dti_cmp_null_scalar_inequality(self, tz_naive_fixture, other,
+                                            box_with_array):
         # GH#19301
         tz = tz_naive_fixture
         dti = pd.date_range('2016-01-01', periods=2, tz=tz)
+        # FIXME: ValueError with transpose
+        dtarr = tm.box_expected(dti, box_with_array, transpose=False)
 
         with pytest.raises(TypeError):
-            dti < other
+            dtarr < other
         with pytest.raises(TypeError):
-            dti <= other
+            dtarr <= other
         with pytest.raises(TypeError):
-            dti > other
+            dtarr > other
         with pytest.raises(TypeError):
-            dti >= other
+            dtarr >= other
 
     @pytest.mark.parametrize('dtype', [None, object])
-    def test_dti_cmp_nat(self, dtype):
+    def test_dti_cmp_nat(self, dtype, box_with_array):
+        if box_with_array is tm.to_array and dtype is object:
+            # dont bother testing ndarray comparison methods as this fails
+            #  on older numpys (since they check object identity)
+            return
+
+        xbox = box_with_array if box_with_array is not pd.Index else np.ndarray
+
         left = pd.DatetimeIndex([pd.Timestamp('2011-01-01'), pd.NaT,
                                  pd.Timestamp('2011-01-03')])
         right = pd.DatetimeIndex([pd.NaT, pd.NaT, pd.Timestamp('2011-01-03')])
+
+        left = tm.box_expected(left, box_with_array)
+        right = tm.box_expected(right, box_with_array)
 
         lhs, rhs = left, right
         if dtype is object:
@@ -349,23 +379,28 @@ class TestDatetimeIndexComparisons(object):
 
         result = rhs == lhs
         expected = np.array([False, False, True])
-        tm.assert_numpy_array_equal(result, expected)
+        expected = tm.box_expected(expected, xbox)
+        tm.assert_equal(result, expected)
 
         result = lhs != rhs
         expected = np.array([True, True, False])
-        tm.assert_numpy_array_equal(result, expected)
+        expected = tm.box_expected(expected, xbox)
+        tm.assert_equal(result, expected)
 
         expected = np.array([False, False, False])
-        tm.assert_numpy_array_equal(lhs == pd.NaT, expected)
-        tm.assert_numpy_array_equal(pd.NaT == rhs, expected)
+        expected = tm.box_expected(expected, xbox)
+        tm.assert_equal(lhs == pd.NaT, expected)
+        tm.assert_equal(pd.NaT == rhs, expected)
 
         expected = np.array([True, True, True])
-        tm.assert_numpy_array_equal(lhs != pd.NaT, expected)
-        tm.assert_numpy_array_equal(pd.NaT != lhs, expected)
+        expected = tm.box_expected(expected, xbox)
+        tm.assert_equal(lhs != pd.NaT, expected)
+        tm.assert_equal(pd.NaT != lhs, expected)
 
         expected = np.array([False, False, False])
-        tm.assert_numpy_array_equal(lhs < pd.NaT, expected)
-        tm.assert_numpy_array_equal(pd.NaT > lhs, expected)
+        expected = tm.box_expected(expected, xbox)
+        tm.assert_equal(lhs < pd.NaT, expected)
+        tm.assert_equal(pd.NaT > lhs, expected)
 
     def test_dti_cmp_nat_behaves_like_float_cmp_nan(self):
         fidx1 = pd.Index([1.0, np.nan, 3.0, np.nan, 5.0, 7.0])
@@ -459,36 +494,47 @@ class TestDatetimeIndexComparisons(object):
     @pytest.mark.parametrize('op', [operator.eq, operator.ne,
                                     operator.gt, operator.ge,
                                     operator.lt, operator.le])
-    def test_comparison_tzawareness_compat(self, op):
+    def test_comparison_tzawareness_compat(self, op, box_with_array):
         # GH#18162
         dr = pd.date_range('2016-01-01', periods=6)
         dz = dr.tz_localize('US/Pacific')
 
+        # FIXME: ValueError with transpose
+        dr = tm.box_expected(dr, box_with_array, transpose=False)
+        dz = tm.box_expected(dz, box_with_array, transpose=False)
+
         with pytest.raises(TypeError):
             op(dr, dz)
-        with pytest.raises(TypeError):
-            op(dr, list(dz))
+        if box_with_array is not pd.DataFrame:
+            # DataFrame op is invalid until transpose bug is fixed
+            with pytest.raises(TypeError):
+                op(dr, list(dz))
         with pytest.raises(TypeError):
             op(dz, dr)
-        with pytest.raises(TypeError):
-            op(dz, list(dr))
+        if box_with_array is not pd.DataFrame:
+            # DataFrame op is invalid until transpose bug is fixed
+            with pytest.raises(TypeError):
+                op(dz, list(dr))
 
         # Check that there isn't a problem aware-aware and naive-naive do not
         # raise
-        assert (dr == dr).all()
-        assert (dr == list(dr)).all()
-        assert (dz == dz).all()
-        assert (dz == list(dz)).all()
+        assert_all(dr == dr)
+        assert_all(dz == dz)
+        if box_with_array is not pd.DataFrame:
+            # DataFrame doesn't align the lists correctly unless we transpose,
+            #  which we cannot do at the moment
+            assert (dr == list(dr)).all()
+            assert (dz == list(dz)).all()
 
         # Check comparisons against scalar Timestamps
         ts = pd.Timestamp('2000-03-14 01:59')
         ts_tz = pd.Timestamp('2000-03-14 01:59', tz='Europe/Amsterdam')
 
-        assert (dr > ts).all()
+        assert_all(dr > ts)
         with pytest.raises(TypeError):
             op(dr, ts_tz)
 
-        assert (dz > ts_tz).all()
+        assert_all(dz > ts_tz)
         with pytest.raises(TypeError):
             op(dz, ts)
 
@@ -502,13 +548,18 @@ class TestDatetimeIndexComparisons(object):
     @pytest.mark.parametrize('other', [datetime(2016, 1, 1),
                                        Timestamp('2016-01-01'),
                                        np.datetime64('2016-01-01')])
-    def test_scalar_comparison_tzawareness(self, op, other, tz_aware_fixture):
+    def test_scalar_comparison_tzawareness(self, op, other, tz_aware_fixture,
+                                           box_with_array):
         tz = tz_aware_fixture
         dti = pd.date_range('2016-01-01', periods=2, tz=tz)
+
+        # FIXME: ValueError with transpose
+        dtarr = tm.box_expected(dti, box_with_array, transpose=False)
+
         with pytest.raises(TypeError):
-            op(dti, other)
+            op(dtarr, other)
         with pytest.raises(TypeError):
-            op(other, dti)
+            op(other, dtarr)
 
     @pytest.mark.parametrize('op', [operator.eq, operator.ne,
                                     operator.gt, operator.ge,
@@ -558,18 +609,25 @@ class TestDatetimeIndexComparisons(object):
 
     @pytest.mark.parametrize('other', ['foo', 99, 4.0,
                                        object(), timedelta(days=2)])
-    def test_dti_cmp_scalar_invalid(self, other, tz_naive_fixture):
+    def test_dt64arr_cmp_scalar_invalid(self, other, tz_naive_fixture,
+                                        box_with_array):
         # GH#22074
         tz = tz_naive_fixture
+        xbox = box_with_array if box_with_array is not pd.Index else np.ndarray
+
         rng = date_range('1/1/2000', periods=10, tz=tz)
+        # FIXME: ValueError with transpose
+        rng = tm.box_expected(rng, box_with_array, transpose=False)
 
         result = rng == other
         expected = np.array([False] * 10)
-        tm.assert_numpy_array_equal(result, expected)
+        expected = tm.box_expected(expected, xbox, transpose=False)
+        tm.assert_equal(result, expected)
 
         result = rng != other
         expected = np.array([True] * 10)
-        tm.assert_numpy_array_equal(result, expected)
+        expected = tm.box_expected(expected, xbox, transpose=False)
+        tm.assert_equal(result, expected)
 
         with pytest.raises(TypeError):
             rng < other

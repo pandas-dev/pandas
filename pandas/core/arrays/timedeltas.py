@@ -23,6 +23,7 @@ from pandas.core.dtypes.generic import (
     ABCDataFrame, ABCIndexClass, ABCSeries, ABCTimedeltaIndex)
 from pandas.core.dtypes.missing import isna
 
+from pandas.core import ops
 from pandas.core.algorithms import checked_add_with_arr, unique1d
 import pandas.core.common as com
 
@@ -60,7 +61,7 @@ def _field_accessor(name, alias, docstring=None):
         return result
 
     f.__name__ = name
-    f.__doc__ = docstring
+    f.__doc__ = "\n{}\n".format(docstring)
     return property(f)
 
 
@@ -71,25 +72,29 @@ def _td_array_cmp(cls, op):
     opname = '__{name}__'.format(name=op.__name__)
     nat_result = True if opname == '__ne__' else False
 
+    meth = getattr(dtl.DatetimeLikeArrayMixin, opname)
+
     def wrapper(self, other):
-        msg = "cannot compare a {cls} with type {typ}"
-        meth = getattr(dtl.DatetimeLikeArrayMixin, opname)
         if _is_convertible_to_td(other) or other is NaT:
             try:
                 other = _to_m8(other)
             except ValueError:
                 # failed to parse as timedelta
-                raise TypeError(msg.format(cls=type(self).__name__,
-                                           typ=type(other).__name__))
+                return ops.invalid_comparison(self, other, op)
+
             result = meth(self, other)
             if isna(other):
                 result.fill(nat_result)
 
         elif not is_list_like(other):
-            raise TypeError(msg.format(cls=type(self).__name__,
-                                       typ=type(other).__name__))
+            return ops.invalid_comparison(self, other, op)
+
         else:
-            other = type(self)(other)._data
+            try:
+                other = type(self)(other)._data
+            except (ValueError, TypeError):
+                return ops.invalid_comparison(self, other, op)
+
             result = meth(self, other)
             result = com.values_from_object(result)
 
@@ -117,6 +122,9 @@ class TimedeltaArrayMixin(dtl.DatetimeLikeArrayMixin, dtl.TimelikeOps):
     _datetimelike_ops = _field_ops + _object_ops + _bool_ops
     _datetimelike_methods = ["to_pytimedelta", "total_seconds",
                              "round", "floor", "ceil"]
+
+    # Needed so that NaT.__richcmp__(DateTimeArray) operates pointwise
+    ndim = 1
 
     @property
     def _box_func(self):
@@ -747,16 +755,16 @@ class TimedeltaArrayMixin(dtl.DatetimeLikeArrayMixin, dtl.TimelikeOps):
         return self.astype(object)
 
     days = _field_accessor("days", "days",
-                           "\nNumber of days for each element.\n")
+                           "Number of days for each element.")
     seconds = _field_accessor("seconds", "seconds",
-                              "\nNumber of seconds (>= 0 and less than 1 day) "
-                              "for each element.\n")
+                              "Number of seconds (>= 0 and less than 1 day) "
+                              "for each element.")
     microseconds = _field_accessor("microseconds", "microseconds",
-                                   "\nNumber of microseconds (>= 0 and less "
-                                   "than 1 second) for each element.\n")
+                                   "Number of microseconds (>= 0 and less "
+                                   "than 1 second) for each element.")
     nanoseconds = _field_accessor("nanoseconds", "nanoseconds",
-                                  "\nNumber of nanoseconds (>= 0 and less "
-                                  "than 1 microsecond) for each element.\n")
+                                  "Number of nanoseconds (>= 0 and less "
+                                  "than 1 microsecond) for each element.")
 
     @property
     def components(self):

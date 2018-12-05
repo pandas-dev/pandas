@@ -83,7 +83,7 @@ def _field_accessor(name, field, docstring=None):
         return result
 
     f.__name__ = name
-    f.__doc__ = docstring
+    f.__doc__ = "\n{}\n".format(docstring)
     return property(f)
 
 
@@ -192,6 +192,9 @@ class DatetimeArrayMixin(dtl.DatetimeLikeArrayMixin,
     # by returning NotImplemented
     timetuple = None
 
+    # Needed so that Timestamp.__richcmp__(DateTimeArray) operates pointwise
+    ndim = 1
+
     # ensure that operations with numpy arrays defer to our implementation
     __array_priority__ = 1000
 
@@ -245,6 +248,12 @@ class DatetimeArrayMixin(dtl.DatetimeLikeArrayMixin,
 
         # if dtype has an embedded tz, capture it
         tz = dtl.validate_tz_from_dtype(dtype, tz)
+
+        if not hasattr(values, "dtype"):
+            if np.ndim(values) == 0:
+                # i.e. iterator
+                values = list(values)
+            values = np.array(values)
 
         if is_object_dtype(values):
             # kludge; dispatch until the DatetimeArray constructor is complete
@@ -1227,12 +1236,12 @@ class DatetimeArrayMixin(dtl.DatetimeLikeArrayMixin,
         "The name of day in a week (ex: Friday)\n\n.. deprecated:: 0.23.0")
 
     dayofyear = _field_accessor('dayofyear', 'doy',
-                                "\nThe ordinal day of the year\n")
-    quarter = _field_accessor('quarter', 'q', "\nThe quarter of the date\n")
+                                "The ordinal day of the year.")
+    quarter = _field_accessor('quarter', 'q', "The quarter of the date.")
     days_in_month = _field_accessor(
         'days_in_month',
         'dim',
-        "\nThe number of days in the month\n")
+        "The number of days in the month.")
     daysinmonth = days_in_month
     _is_month_doc = """
         Indicates whether the date is the {first_or_last} day of the month.
