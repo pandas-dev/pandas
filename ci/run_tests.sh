@@ -29,8 +29,11 @@ fi
 PYTEST="pytest -m \"$PATTERN\" --junitxml=test-data.xml $TEST_ARGS"
 if [ "$COVERAGE" ]; then
     COVERAGE_FNAME="/tmp/coverage.xml"
-    $PYTEST --cov=pandas --cov-report=xml:$COVERAGE_FNAME pandas
+    PYTEST="$PYTEST --cov=pandas --cov-report=xml:$COVERAGE_FNAME"
+    echo "$PYTEST pandas"
+    $PYTEST pandas
     bash <(curl -s https://codecov.io/bash) -Z -c -f $COVERAGE_FNAME
 else
+    echo "$PYTEST pandas"
     $PYTEST pandas
 fi
