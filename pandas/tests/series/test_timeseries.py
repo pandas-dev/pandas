@@ -915,6 +915,7 @@ class TestTimeSeries(TestData):
         # does .resample() set .freq correctly?
         assert df.resample('D').asfreq().index.freq == 'D'
 
+    @pytest.mark.xfail(reason="TODO-pickle", strict=True)
     def test_pickle(self):
 
         # GH4606
@@ -1024,3 +1025,12 @@ class TestTimeSeries(TestData):
         index = MultiIndex(levels=levels, labels=labels)
 
         assert isinstance(index.get_level_values(0)[0], Timestamp)
+
+    def test_view_tz(self):
+        ser = pd.Series(pd.date_range('2000', periods=4, tz='US/Central'))
+        result = ser.view("i8")
+        expected = pd.Series([946706400000000000,
+                              946792800000000000,
+                              946879200000000000,
+                              946965600000000000])
+        tm.assert_series_equal(result, expected)

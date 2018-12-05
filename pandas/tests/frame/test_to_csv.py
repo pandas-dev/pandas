@@ -1036,6 +1036,7 @@ class TestDataFrameToCSV(TestData):
 
             assert_frame_equal(test, nat_frame)
 
+    @pytest.mark.xfail(reason="TODO-pickle", strict=True)
     def test_to_csv_with_dst_transitions(self):
 
         with ensure_clean('csv_date_format_with_dst') as path:

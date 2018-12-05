@@ -72,19 +72,6 @@ class DatetimeIndexOpsMixin(ExtensionOpsMixin):
         warnings.warn(msg, FutureWarning, stacklevel=2)
         self.freq = value
 
-    @classmethod
-    def _create_comparison_method(cls, op):
-        """
-        Create a comparison method that dispatches to ``cls.values``.
-        """
-        # TODO(DatetimeArray): move to base class.
-        def wrapper(self, other):
-            return op(self._data, other)
-
-        wrapper.__doc__ = op.__doc__
-        wrapper.__name__ = '__{}__'.format(op.__name__)
-        return wrapper
-
     def equals(self, other):
         """
         Determines if two Index objects contain the same elements.
@@ -655,6 +642,18 @@ class DatetimeIndexOpsMixin(ExtensionOpsMixin):
 
     def _has_same_tz(self, other):
         return self._data._has_same_tz(other)
+
+    @classmethod
+    def _create_comparison_method(cls, op):
+        """
+        Create a comparison method that dispatches to ``cls._data``.
+        """
+        def wrapper(self, other):
+            return op(self._data, other)
+
+        wrapper.__doc__ = op.__doc__
+        wrapper.__name__ = '__{}__'.format(op.__name__)
+        return wrapper
 
 
 def wrap_arithmetic_op(self, other, result):

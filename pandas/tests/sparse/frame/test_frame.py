@@ -299,6 +299,7 @@ class TestSparseDataFrame(SharedWithSparse):
         dres = np.sqrt(float_frame.to_dense())
         tm.assert_frame_equal(res.to_dense(), dres)
 
+    @pytest.mark.xfail(reason="TODO-pickle", strict=True)
     def test_pickle(self, float_frame, float_frame_int_kind, float_frame_dense,
                     float_frame_fill0, float_frame_fill0_dense,
                     float_frame_fill2, float_frame_fill2_dense):

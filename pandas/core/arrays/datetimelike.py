@@ -511,6 +511,11 @@ class DatetimeLikeArrayMixin(AttributesMixin,
                                        typ=type(value).__name__))
         self._data[key] = value
 
+    def view(self, dtype=None):
+        # TODO: figure out what the plan is here
+        # Series.view uses this directly.
+        return self._data.view(dtype=dtype)
+
     def astype(self, dtype, copy=True):
         # Some notes on cases we don't have to handle:
         #   1. PeriodArray.astype handles period -> period
