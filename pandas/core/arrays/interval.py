@@ -690,9 +690,6 @@ class IntervalArray(IntervalMixin, ExtensionArray):
         # TODO: Could skip verify_integrity here.
         return type(self).from_arrays(left, right, closed=closed)
 
-    def _formatting_values(self):
-        return np.asarray(self)
-
     def isna(self):
         return isna(self.left)
 

@@ -283,3 +283,7 @@ class TestArithmeticOps(BaseJSON, base.BaseArithmeticOpsTests):
 
 class TestComparisonOps(BaseJSON, base.BaseComparisonOpsTests):
     pass
+
+
+class TestPrinting(BaseJSON, base.BasePrintingTests):
+    pass
