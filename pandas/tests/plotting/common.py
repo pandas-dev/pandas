@@ -156,7 +156,7 @@ class TestPlotBase(object):
             assert patch.get_visible() == visible
 
     def _get_colors_mapped(self, series, colors):
-        unique = series.unique()
+        unique = series.unique(raw=True)
         # unique and colors length can be differed
         # depending on slice value
         mapped = dict(zip(unique, colors))

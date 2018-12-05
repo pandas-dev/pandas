@@ -434,7 +434,7 @@ class TestUnique(object):
 
         # Series of categorical dtype
         s = Series(Categorical(list('baabc')), name='foo')
-        result = s.unique()
+        result = s.unique(raw=True)
         tm.assert_categorical_equal(result, expected)
 
         result = pd.unique(s)
@@ -455,7 +455,7 @@ class TestUnique(object):
 
         result = Series(
             Index([Timestamp('20160101', tz='US/Eastern'),
-                   Timestamp('20160101', tz='US/Eastern')])).unique()
+                   Timestamp('20160101', tz='US/Eastern')])).unique(raw=True)
         expected = np.array([Timestamp('2016-01-01 00:00:00-0500',
                                        tz='US/Eastern')], dtype=object)
         tm.assert_numpy_array_equal(result, expected)
@@ -1293,7 +1293,7 @@ class TestHashTable(object):
     def test_get_unique(self):
         s = Series([1, 2, 2**63, 2**63], dtype=np.uint64)
         exp = np.array([1, 2, 2**63], dtype=np.uint64)
-        tm.assert_numpy_array_equal(s.unique(), exp)
+        tm.assert_numpy_array_equal(s.unique(raw=True), exp)
 
     @pytest.mark.parametrize('nvals', [0, 10])  # resizing to 0 is special case
     @pytest.mark.parametrize('htable, uniques, dtype, safely_resizes', [

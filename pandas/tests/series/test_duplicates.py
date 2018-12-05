@@ -26,37 +26,38 @@ def test_unique():
     # GH714 also, dtype=float
     s = Series([1.2345] * 100)
     s[::2] = np.nan
-    result = s.unique()
+    result = s.unique(raw=True)
     assert len(result) == 2
 
     s = Series([1.2345] * 100, dtype='f4')
     s[::2] = np.nan
-    result = s.unique()
+    result = s.unique(raw=True)
     assert len(result) == 2
 
     # NAs in object arrays #714
     s = Series(['foo'] * 100, dtype='O')
     s[::2] = np.nan
-    result = s.unique()
+    result = s.unique(raw=True)
     assert len(result) == 2
 
     # decision about None
     s = Series([1, 2, 3, None, None, None], dtype=object)
-    result = s.unique()
+    result = s.unique(raw=True)
     expected = np.array([1, 2, 3, None], dtype=object)
     tm.assert_numpy_array_equal(result, expected)
 
     # GH 18051
     s = Series(Categorical([]))
-    tm.assert_categorical_equal(s.unique(), Categorical([]), check_dtype=False)
+    tm.assert_categorical_equal(s.unique(raw=True), Categorical([]),
+                                check_dtype=False)
     s = Series(Categorical([np.nan]))
-    tm.assert_categorical_equal(s.unique(), Categorical([np.nan]),
+    tm.assert_categorical_equal(s.unique(raw=True), Categorical([np.nan]),
                                 check_dtype=False)
 
 
 def test_unique_data_ownership():
     # it works! #1807
-    Series(Series(["a", "c", "b"]).unique()).sort_values()
+    Series(Series(["a", "c", "b"]).unique(raw=True)).sort_values()
 
 
 def test_is_unique():

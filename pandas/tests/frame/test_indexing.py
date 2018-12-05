@@ -2226,7 +2226,7 @@ class TestDataFrameIndexing(TestData):
                             for x in [2, 3, 3, 2, 3, 2, 3, 2]]),
                         'joline': np.random.randn(20).round(3) * 10})
 
-        for idx in permutations(df['jim'].unique()):
+        for idx in permutations(df['jim'].unique(raw=True)):
             for i in range(3):
                 verify_first_level(df, 'jim', idx[:i + 1])
 

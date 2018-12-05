@@ -433,7 +433,7 @@ class TestMerge(object):
                       datetime(2010, 2, 3),
                       datetime(2012, 2, 3)]}
         df = DataFrame.from_dict(d)
-        var3 = df.var3.unique()
+        var3 = df.var3.unique(raw=True)
         var3.sort()
         new = DataFrame.from_dict({"var3": var3,
                                    "var8": np.random.random(7)})
@@ -442,7 +442,7 @@ class TestMerge(object):
         exp = merge(df, new, on='var3', sort=False)
         assert_frame_equal(result, exp)
 
-        assert (df.var3.unique() == result.var3.unique()).all()
+        assert (df.var3.unique(raw=True) == result.var3.unique(raw=True)).all()
 
     def test_merge_nan_right(self):
         df1 = DataFrame({"i1": [0, 1], "i2": [0, 1]})

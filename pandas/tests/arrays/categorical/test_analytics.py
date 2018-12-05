@@ -183,13 +183,13 @@ class TestCategoricalAnalytics(object):
         tm.assert_categorical_equal(c.unique(), exp)
 
         tm.assert_index_equal(Index(c).unique(), Index(exp))
-        tm.assert_categorical_equal(Series(c).unique(), exp)
+        tm.assert_categorical_equal(Series(c).unique(raw=True), exp)
 
         c = Categorical([1, 1, 2, 2], categories=[3, 2, 1])
         exp = Categorical([1, 2], categories=[1, 2])
         tm.assert_categorical_equal(c.unique(), exp)
         tm.assert_index_equal(Index(c).unique(), Index(exp))
-        tm.assert_categorical_equal(Series(c).unique(), exp)
+        tm.assert_categorical_equal(Series(c).unique(raw=True), exp)
 
         c = Categorical([3, 1, 2, 2, 1], categories=[3, 2, 1], ordered=True)
         # Categorical.unique keeps categories order if ordered=True
@@ -197,7 +197,7 @@ class TestCategoricalAnalytics(object):
         tm.assert_categorical_equal(c.unique(), exp)
 
         tm.assert_index_equal(Index(c).unique(), Index(exp))
-        tm.assert_categorical_equal(Series(c).unique(), exp)
+        tm.assert_categorical_equal(Series(c).unique(raw=True), exp)
 
     def test_shift(self):
         # GH 9416

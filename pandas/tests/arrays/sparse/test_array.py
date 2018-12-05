@@ -1150,7 +1150,7 @@ def test_first_fill_value_loc(arr, loc):
 ])
 def test_unique_na_fill(arr, fill_value):
     a = pd.SparseArray(arr, fill_value=fill_value).unique()
-    b = pd.Series(arr).unique()
+    b = pd.Series(arr).unique(raw=True)
     assert isinstance(a, SparseArray)
     a = np.asarray(a)
     tm.assert_numpy_array_equal(a, b)

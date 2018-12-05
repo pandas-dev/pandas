@@ -1,6 +1,8 @@
 import numpy as np
 import pytest
 
+from pandas.core.dtypes.generic import ABCSeries
+
 import pandas as pd
 import pandas.util.testing as tm
 
@@ -75,11 +77,15 @@ class BaseMethodsTests(BaseExtensionTests):
         self.assert_frame_equal(result, expected)
 
     @pytest.mark.parametrize('box', [pd.Series, lambda x: x])
-    @pytest.mark.parametrize('method', [lambda x: x.unique(), pd.unique])
+    @pytest.mark.parametrize('method', [lambda x, **kwargs: x.unique(**kwargs),
+                                        pd.unique])
     def test_unique(self, data, box, method):
         duplicated = box(data._from_sequence([data[0], data[0]]))
 
-        result = method(duplicated)
+        if isinstance(duplicated, ABCSeries) and method != pd.unique:
+            result = method(duplicated, raw=True)
+        else:
+            result = method(duplicated)
 
         assert len(result) == 1
         assert isinstance(result, type(data))
