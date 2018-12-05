@@ -138,27 +138,19 @@ class TimedeltaArrayMixin(dtl.DatetimeLikeArrayMixin, dtl.TimelikeOps):
         return result
 
     def __new__(cls, values, freq=None, dtype=_TD_DTYPE, copy=False):
-        return cls._from_sequence(values, freq=freq, dtype=dtype, copy=copy)
+        return cls._from_sequence(values, dtype=dtype, copy=copy, freq=freq)
 
     @classmethod
-    def _from_sequence(cls, data, freq=None, unit=None,
-                       dtype=_TD_DTYPE, copy=False):
+    def _from_sequence(cls, data, dtype=_TD_DTYPE, copy=False,
+                       freq=None, unit=None):
         if dtype != _TD_DTYPE:
             raise ValueError("Only timedelta64[ns] dtype is valid.")
 
         freq, freq_infer = dtl.maybe_infer_freq(freq)
 
         data, inferred_freq = sequence_to_td64ns(data, copy=copy, unit=unit)
-        if inferred_freq is not None:
-            if freq is not None and freq != inferred_freq:
-                raise ValueError('Inferred frequency {inferred} from passed '
-                                 'values does not conform to passed frequency '
-                                 '{passed}'
-                                 .format(inferred=inferred_freq,
-                                         passed=freq.freqstr))
-            elif freq is None:
-                freq = inferred_freq
-            freq_infer = False
+        freq, freq_infer = dtl.validate_inferred_freq(freq, inferred_freq,
+                                                      freq_infer)
 
         result = cls._simple_new(data, freq=freq)
 

@@ -6,7 +6,6 @@ import warnings
 import numpy as np
 
 from pandas._libs import NaT, iNaT, lib
-from pandas._libs.tslibs import timezones
 from pandas._libs.tslibs.period import (
     DIFFERENT_FREQ_INDEX, IncompatibleFrequency, Period)
 from pandas._libs.tslibs.timedeltas import Timedelta, delta_to_nanoseconds
@@ -22,7 +21,6 @@ from pandas.core.dtypes.common import (
     is_datetime64tz_dtype, is_extension_array_dtype, is_float_dtype,
     is_integer_dtype, is_list_like, is_object_dtype, is_offsetlike,
     is_period_dtype, is_timedelta64_dtype, needs_i8_conversion, pandas_dtype)
-from pandas.core.dtypes.dtypes import DatetimeTZDtype
 from pandas.core.dtypes.generic import ABCDataFrame, ABCIndexClass, ABCSeries
 from pandas.core.dtypes.missing import isna
 
@@ -1127,6 +1125,41 @@ def validate_endpoints(closed):
     return left_closed, right_closed
 
 
+def validate_inferred_freq(freq, inferred_freq, freq_infer):
+    """
+    If the user passes a freq and another freq is inferred from passed data,
+    require that they match.
+
+    Parameters
+    ----------
+    freq : DateOffset or None
+    inferred_freq : DateOffset or None
+    freq_infer : bool
+
+    Returns
+    -------
+    freq : DateOffset or None
+    freq_infer : bool
+
+    Notes
+    -----
+    We assume at this point that `maybe_infer_freq` has been called, so
+    `freq` is either a DateOffset object or None.
+    """
+    if inferred_freq is not None:
+        if freq is not None and freq != inferred_freq:
+            raise ValueError('Inferred frequency {inferred} from passed '
+                             'values does not conform to passed frequency '
+                             '{passed}'
+                             .format(inferred=inferred_freq,
+                                     passed=freq.freqstr))
+        elif freq is None:
+            freq = inferred_freq
+        freq_infer = False
+
+    return freq, freq_infer
+
+
 def maybe_infer_freq(freq):
     """
     Comparing a DateOffset to the string "infer" raises, so we need to
@@ -1152,44 +1185,6 @@ def maybe_infer_freq(freq):
             freq_infer = True
             freq = None
     return freq, freq_infer
-
-
-def validate_tz_from_dtype(dtype, tz):
-    """
-    If the given dtype is a DatetimeTZDtype, extract the implied
-    tzinfo object from it and check that it does not conflict with the given
-    tz.
-
-    Parameters
-    ----------
-    dtype : dtype, str
-    tz : None, tzinfo
-
-    Returns
-    -------
-    tz : consensus tzinfo
-
-    Raises
-    ------
-    ValueError : on tzinfo mismatch
-    """
-    if dtype is not None:
-        if isinstance(dtype, compat.string_types):
-            try:
-                dtype = DatetimeTZDtype.construct_from_string(dtype)
-            except TypeError:
-                # Things like `datetime64[ns]`, which is OK for the
-                # constructors, but also nonsense, which should be validated
-                # but not by us. We *do* allow non-existent tz errors to
-                # go through
-                pass
-        dtz = getattr(dtype, 'tz', None)
-        if dtz is not None:
-            if tz is not None and not timezones.tz_compare(tz, dtz):
-                raise ValueError("cannot supply both a tz and a dtype"
-                                 " with a tz")
-            tz = dtz
-    return tz
 
 
 def validate_dtype_freq(dtype, freq):
