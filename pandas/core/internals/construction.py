@@ -291,7 +291,7 @@ def extract_index(data):
             elif isinstance(val, dict):
                 have_dicts = True
                 indexes.append(list(val.keys()))
-            elif is_list_like(v) and getattr(val, 'ndim', 1) == 1:
+            elif is_list_like(val) and getattr(val, 'ndim', 1) == 1:
                 have_raw_arrays = True
                 raw_lengths.append(len(val))
 
