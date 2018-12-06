@@ -4,6 +4,7 @@ from fractions import Fraction
 from numbers import Number
 
 import sys
+import warnings
 
 import cython
 from cython import Py_ssize_t
@@ -1078,7 +1079,7 @@ cdef _try_infer_map(v):
     return None
 
 
-def infer_dtype(value: object, skipna: bool=True) -> str:
+def infer_dtype(value: object, skipna: object=None) -> str:
     """
     Efficiently infer the type of a passed val, or list-like
     array of values. Return a string describing the type.
@@ -1086,12 +1087,10 @@ def infer_dtype(value: object, skipna: bool=True) -> str:
     Parameters
     ----------
     value : scalar, list, ndarray, or pandas type
-    skipna : bool, default True
+    skipna : bool, default None
         Ignore NaN values when inferring the type.
 
         .. versionadded:: 0.21.0
-        .. versionchanged:: 0.24.0
-            Switched default of ``skipna`` to ``True``
 
     Returns
     -------
@@ -1185,6 +1184,12 @@ def infer_dtype(value: object, skipna: bool=True) -> str:
         ndarray values
         bint seen_pdnat = False
         bint seen_val = False
+
+    if skipna is None:
+        msg = ('A future version of pandas will default to `skipna=True`. To '
+               'silence this warning, pass `skipna=True|False` explicitly.')
+        warnings.warn(msg, FutureWarning, stacklevel=2)
+        skipna = False
 
     if util.is_array(value):
         values = value

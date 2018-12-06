@@ -1136,6 +1136,7 @@ Deprecations
 - :func:`pandas.types.is_datetimetz` is deprecated in favor of `pandas.types.is_datetime64tz` (:issue:`23917`)
 - Creating a :class:`TimedeltaIndex` or :class:`DatetimeIndex` by passing range arguments `start`, `end`, and `periods` is deprecated in favor of :func:`timedelta_range` and :func:`date_range` (:issue:`23919`)
 - Passing a string alias like ``'datetime64[ns, UTC]'`` as the `unit` parameter to :class:`DatetimeTZDtype` is deprecated. Use :class:`DatetimeTZDtype.construct_from_string` instead (:issue:`23990`).
+- The ``skipna`` parameter of :meth:`~pandas.api.types.infer_dtype` will switch to ``True`` by default in a future version of pandas (:issue:`17066`, :issue:`24050`)
 
 .. _whatsnew_0240.deprecations.datetimelike_int_ops:
 

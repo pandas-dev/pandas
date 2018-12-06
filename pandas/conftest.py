@@ -545,7 +545,7 @@ def any_numpy_dtype(request):
 
 
 # categoricals are handled separately
-_any_inferred_dtype = [
+_any_skipna_inferred_dtype = [
     ('string', ['a', np.nan, 'c']),
     ('unicode' if not PY3 else 'string', [u('a'), np.nan, u('c')]),
     ('bytes' if PY3 else 'string', [b'a', np.nan, b'c']),
@@ -570,11 +570,11 @@ _any_inferred_dtype = [
     ('time', [time(1), np.nan, time(2)]),
     ('period', [pd.Period(2013), pd.NaT, pd.Period(2018)]),
     ('interval', [pd.Interval(0, 1), np.nan, pd.Interval(0, 2)])]
-ids, _ = zip(*_any_inferred_dtype)  # use inferred type as fixture-id
+ids, _ = zip(*_any_skipna_inferred_dtype)  # use inferred type as fixture-id
 
 
-@pytest.fixture(params=_any_inferred_dtype, ids=ids)
-def any_inferred_dtype(request):
+@pytest.fixture(params=_any_skipna_inferred_dtype, ids=ids)
+def any_skipna_inferred_dtype(request):
     """
     Fixture for all inferred dtypes from _libs.lib.infer_dtype
 
@@ -610,10 +610,10 @@ def any_inferred_dtype(request):
     --------
     >>> import pandas._libs.lib as lib
     >>>
-    >>> def test_something(any_inferred_dtype):
-    ...     inferred_dtype, values = any_inferred_dtype
+    >>> def test_something(any_skipna_inferred_dtype):
+    ...     inferred_dtype, values = any_skipna_inferred_dtype
     ...     # will pass
-    ...     assert lib.infer_dtype(values) == inferred_dtype
+    ...     assert lib.infer_dtype(values, skipna=True) == inferred_dtype
     """
     inferred_dtype, values = request.param
     values = np.array(values, dtype=object)  # object dtype to avoid casting

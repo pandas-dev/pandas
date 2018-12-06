@@ -492,7 +492,7 @@ class TimedeltaArrayMixin(dtl.DatetimeLikeArrayMixin, dtl.TimelikeOps):
         elif is_object_dtype(other):
             result = [self[n] // other[n] for n in range(len(self))]
             result = np.array(result)
-            if lib.infer_dtype(result) == 'timedelta':
+            if lib.infer_dtype(result, skipna=True) == 'timedelta':
                 result, _ = sequence_to_td64ns(result)
                 return type(self)(result)
             return result

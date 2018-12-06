@@ -2233,7 +2233,8 @@ class MultiIndex(Index):
             section = labs[start:end]
 
             if lab not in lev:
-                if not lev.is_type_compatible(lib.infer_dtype([lab])):
+                if not lev.is_type_compatible(lib.infer_dtype([lab],
+                                                              skipna=True)):
                     raise TypeError('Level type mismatch: %s' % lab)
 
                 # short circuit

@@ -165,7 +165,7 @@ def _ensure_arraylike(values):
     ensure that we are arraylike if not already
     """
     if not is_array_like(values):
-        inferred = lib.infer_dtype(values)
+        inferred = lib.infer_dtype(values, skipna=True)
         if inferred in ['mixed', 'string', 'unicode']:
             if isinstance(values, tuple):
                 values = list(values)

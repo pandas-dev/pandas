@@ -1299,7 +1299,7 @@ def _validate_usecols_arg(usecols):
         elif not is_list_like(usecols):
             raise ValueError(msg)
         else:
-            usecols_dtype = lib.infer_dtype(usecols)
+            usecols_dtype = lib.infer_dtype(usecols, skipna=True)
             if usecols_dtype not in ('empty', 'integer',
                                      'string', 'unicode'):
                 raise ValueError(msg)

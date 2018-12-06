@@ -470,7 +470,7 @@ def _infer_fill_value(val):
     if is_datetimelike(val):
         return np.array('NaT', dtype=val.dtype)
     elif is_object_dtype(val.dtype):
-        dtype = lib.infer_dtype(ensure_object(val))
+        dtype = lib.infer_dtype(ensure_object(val), skipna=True)
         if dtype in ['datetime', 'datetime64']:
             return np.array('NaT', dtype=_NS_DTYPE)
         elif dtype in ['timedelta', 'timedelta64']:

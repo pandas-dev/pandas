@@ -394,7 +394,7 @@ def _datetime_to_stata_elapsed_vec(dates, fmt):
                         to_datetime(d['year'], format='%Y').astype(np.int64))
                 d['days'] = days // NS_PER_DAY
 
-        elif infer_dtype(dates) == 'datetime':
+        elif infer_dtype(dates, skipna=True) == 'datetime':
             if delta:
                 delta = dates.values - stata_epoch
                 f = lambda x: \
@@ -1865,7 +1865,7 @@ def _dtype_to_default_stata_fmt(dtype, column, dta_version=114,
         if force_strl:
             return '%9s'
     if dtype.type == np.object_:
-        inferred_dtype = infer_dtype(column)
+        inferred_dtype = infer_dtype(column, skipna=True)
         if not (inferred_dtype in ('string', 'unicode') or
                 len(column) == 0):
             raise ValueError('Column `{col}` cannot be exported.\n\nOnly '

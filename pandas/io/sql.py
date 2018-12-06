@@ -827,7 +827,7 @@ class SQLTable(PandasObject):
 
         # Infer type of column, while ignoring missing values.
         # Needed for inserting typed data containing NULLs, GH 8778.
-        col_type = lib.infer_dtype(col)
+        col_type = lib.infer_dtype(col, skipna=True)
 
         from sqlalchemy.types import (BigInteger, Integer, Float,
                                       Text, Boolean,
@@ -1315,7 +1315,7 @@ class SQLiteTable(SQLTable):
 
         # Infer type of column, while ignoring missing values.
         # Needed for inserting typed data containing NULLs, GH 8778.
-        col_type = lib.infer_dtype(col)
+        col_type = lib.infer_dtype(col, skipna=True)
 
         if col_type == 'timedelta64':
             warnings.warn("the 'timedelta' type is not supported, and will be "

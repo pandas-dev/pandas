@@ -1482,7 +1482,7 @@ def sequence_to_dt64ns(data, dtype=None, copy=False,
         # TODO: We do not have tests specific to string-dtypes,
         #  also complex or categorical or other extension
         copy = False
-        if lib.infer_dtype(data) == 'integer':
+        if lib.infer_dtype(data, skipna=True) == 'integer':
             data = data.astype(np.int64)
         else:
             # data comes back here as either i8 to denote UTC timestamps

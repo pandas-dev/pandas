@@ -869,7 +869,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         if isinstance(key, Index):
             key_type = key.inferred_type
         else:
-            key_type = lib.infer_dtype(key)
+            key_type = lib.infer_dtype(key, skipna=True)
 
         if key_type == 'integer':
             if self.index.is_integer() or self.index.is_floating():
@@ -1006,7 +1006,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
             if isinstance(key, Index):
                 key_type = key.inferred_type
             else:
-                key_type = lib.infer_dtype(key)
+                key_type = lib.infer_dtype(key, skipna=True)
 
             if key_type == 'integer':
                 if self.index.inferred_type == 'integer':

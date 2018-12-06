@@ -1948,7 +1948,7 @@ class DataCol(IndexCol):
             return self.set_atom_complex(block)
 
         dtype = block.dtype.name
-        inferred_type = lib.infer_dtype(block.values)
+        inferred_type = lib.infer_dtype(block.values, skipna=True)
 
         if inferred_type == 'date':
             raise TypeError(
@@ -1994,7 +1994,7 @@ class DataCol(IndexCol):
         data = block.values
 
         # see if we have a valid string type
-        inferred_type = lib.infer_dtype(data.ravel())
+        inferred_type = lib.infer_dtype(data.ravel(), skipna=True)
         if inferred_type != 'string':
 
             # we cannot serialize this data, so report an exception on a column
@@ -2002,7 +2002,7 @@ class DataCol(IndexCol):
             for i, item in enumerate(block_items):
 
                 col = block.iget(i)
-                inferred_type = lib.infer_dtype(col.ravel())
+                inferred_type = lib.infer_dtype(col.ravel(), skipna=True)
                 if inferred_type != 'string':
                     raise TypeError(
                         "Cannot serialize the column [%s] because\n"
@@ -2739,7 +2739,7 @@ class GenericFixed(Fixed):
 
             # infer the type, warn if we have a non-string type here (for
             # performance)
-            inferred_type = lib.infer_dtype(value.ravel())
+            inferred_type = lib.infer_dtype(value.ravel(), skipna=True)
             if empty_array:
                 pass
             elif inferred_type == 'string':
@@ -4506,7 +4506,7 @@ def _convert_index(index, encoding=None, errors='strict', format_type=None):
     if isinstance(index, MultiIndex):
         raise TypeError('MultiIndex not supported here!')
 
-    inferred_type = lib.infer_dtype(index)
+    inferred_type = lib.infer_dtype(index, skipna=True)
 
     values = np.asarray(index)
 
@@ -4739,7 +4739,7 @@ class Selection(object):
 
             # see if we have a passed coordinate like
             try:
-                inferred = lib.infer_dtype(where)
+                inferred = lib.infer_dtype(where, skipna=True)
                 if inferred == 'integer' or inferred == 'boolean':
                     where = np.asarray(where)
                     if where.dtype == np.bool_:

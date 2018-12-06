@@ -73,7 +73,8 @@ def maybe_downcast_to_dtype(result, dtype):
 
     if isinstance(dtype, string_types):
         if dtype == 'infer':
-            inferred_type = lib.infer_dtype(ensure_object(result.ravel()))
+            inferred_type = lib.infer_dtype(ensure_object(result.ravel()),
+                                            skipna=True)
             if inferred_type == 'boolean':
                 dtype = 'bool'
             elif inferred_type == 'integer':
@@ -458,7 +459,7 @@ def infer_dtype_from_array(arr, pandas_dtype=False):
         return arr.dtype, np.asarray(arr)
 
     # don't force numpy coerce with nan's
-    inferred = lib.infer_dtype(arr)
+    inferred = lib.infer_dtype(arr, skipna=True)
     if inferred in ['string', 'bytes', 'unicode',
                     'mixed', 'mixed-integer']:
         return (np.object_, arr)

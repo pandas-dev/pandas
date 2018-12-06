@@ -454,7 +454,7 @@ def safe_sort(values, labels=None, na_sentinel=-1, assume_unique=False):
         return np.concatenate([nums, np.asarray(strs, dtype=object)])
 
     sorter = None
-    if PY3 and lib.infer_dtype(values) == 'mixed-integer':
+    if PY3 and lib.infer_dtype(values, skipna=True) == 'mixed-integer':
         # unorderable in py3 if mixed str/int
         ordered = sort_mixed(values)
     else:
