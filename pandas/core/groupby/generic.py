@@ -1020,7 +1020,9 @@ class SeriesGroupBy(GroupBy):
         return filtered
 
     def nunique(self, dropna=True):
-        """ Returns number of unique elements in the group """
+        """
+        Returns number of unique elements in the group
+        """
         ids, _, _ = self.grouper.group_info
 
         val = self.obj.get_values()
@@ -1083,7 +1085,14 @@ class SeriesGroupBy(GroupBy):
 
     def value_counts(self, normalize=False, sort=True, ascending=False,
                      bins=None, dropna=True):
-
+        """
+        :param normalize:
+        :param sort:
+        :param ascending:
+        :param bins:
+        :param dropna:
+        :return:
+        """
         from pandas.core.reshape.tile import cut
         from pandas.core.reshape.merge import _get_join_indexers
 
@@ -1490,7 +1499,9 @@ class DataFrameGroupBy(NDFrameGroupBy):
         return concat((self._wrap_transformed_output(output), res), axis=1)
 
     def count(self):
-        """ Compute count of group, excluding missing values """
+        """
+        Compute count of group, excluding missing values
+        """
         from pandas.core.dtypes.missing import _isna_ndarraylike as _isna
 
         data, _ = self._get_data_to_aggregate()

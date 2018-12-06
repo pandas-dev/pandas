@@ -167,7 +167,7 @@ _apply_docs = dict(
     dtype: int64
     """)
 
-_pipe_template = """\
+_pipe_template = """
 Apply a function `func` with arguments to this %(klass)s object and return
 the function's result.
 
@@ -716,6 +716,12 @@ b  2""")
         yield self._selection_name, self._selected_obj
 
     def transform(self, func, *args, **kwargs):
+        """
+        :param func:
+        :param args:
+        :param kwargs:
+        :return:
+        """
         raise AbstractMethodError(self)
 
     def _cumcount_array(self, ascending=True):
@@ -1306,6 +1312,25 @@ class GroupBy(_GroupBy):
                                      numeric_only=False)
         cls.last = groupby_function('last', 'last', last_compat,
                                     numeric_only=False)
+        cls.sum.__doc__ = """
+        sum 
+        """
+        cls.prod.__doc__ = """
+        prod
+        """
+        cls.min.__doc__ = """
+        min
+        """
+        cls.max.__doc__ = """
+        max
+        """
+        cls.first.__doc__= """
+        first
+        """
+        cls.last.__doc__="""
+        last
+        """
+
 
     @Substitution(name='groupby')
     @Appender(_doc_template)

@@ -1503,8 +1503,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         return algorithms.mode(self, dropna=dropna)
 
     def unique(self):
-        """
-        Return unique values of Series object.
+        """Return unique values of Series object.
 
         Uniques are returned in order of appearance. Hash table-based unique,
         therefore does NOT sort.
@@ -1545,8 +1544,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         >>> pd.Series(pd.Categorical(list('baabc'), categories=list('abc'),
         ...                          ordered=True)).unique()
         [b, a, c]
-        Categories (3, object): [a < b < c]
-        """
+        Categories (3, object): [a < b < c]"""
         result = super(Series, self).unique()
 
         if is_datetime64tz_dtype(self.dtype):
@@ -2903,8 +2901,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
                 dtype='int64').__finalize__(self)
 
     def nlargest(self, n=5, keep='first'):
-        """
-        Return the largest `n` elements.
+        """Return the largest `n` elements.
 
         Parameters
         ----------
@@ -2994,13 +2991,11 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         Malta         434000
         Maldives      434000
         Brunei        434000
-        dtype: int64
-        """
+        dtype: int64"""
         return algorithms.SelectNSeries(self, n=n, keep=keep).nlargest()
 
     def nsmallest(self, n=5, keep='first'):
-        """
-        Return the smallest `n` elements.
+        """Return the smallest `n` elements.
 
         Parameters
         ----------
@@ -3089,8 +3084,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         Nauru       11300
         Tuvalu      11300
         Anguilla    11300
-        dtype: int64
-        """
+        dtype: int64"""
         return algorithms.SelectNSeries(self, n=n, keep=keep).nsmallest()
 
     def swaplevel(self, i=-2, j=-1, copy=True):

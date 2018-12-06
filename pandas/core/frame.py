@@ -6030,8 +6030,7 @@ class DataFrame(NDFrame):
     # Time series-related
 
     def diff(self, periods=1, axis=0):
-        """
-        First discrete difference of element.
+        """First discrete difference of element.
 
         Calculates the difference of a DataFrame element compared with another
         element in the DataFrame (default is the element in the same column
@@ -6114,8 +6113,7 @@ class DataFrame(NDFrame):
         2 -1.0 -1.0  -7.0
         3 -1.0 -2.0  -9.0
         4 -1.0 -3.0 -11.0
-        5  NaN  NaN   NaN
-        """
+        5  NaN  NaN   NaN"""
         bm_axis = self._get_block_manager_axis(axis)
         new_data = self._data.diff(n=periods, axis=bm_axis)
         return self._constructor(new_data)
@@ -6880,8 +6878,7 @@ class DataFrame(NDFrame):
     # Statistical methods, etc.
 
     def corr(self, method='pearson', min_periods=1):
-        """
-        Compute pairwise correlation of columns, excluding NA/null values.
+        """Compute pairwise correlation of columns, excluding NA/null values.
 
         Parameters
         ----------
@@ -6911,8 +6908,7 @@ class DataFrame(NDFrame):
         >>> df.corr(method=histogram_intersection)
               dogs cats
         dogs   1.0  0.3
-        cats   0.3  1.0
-        """
+        cats   0.3  1.0"""
         numeric_df = self._get_numeric_data()
         cols = numeric_df.columns
         idx = cols.copy()
@@ -6955,8 +6951,7 @@ class DataFrame(NDFrame):
         return self._constructor(correl, index=idx, columns=cols)
 
     def cov(self, min_periods=None):
-        """
-        Compute pairwise covariance of columns, excluding NA/null values.
+        """Compute pairwise covariance of columns, excluding NA/null values.
 
         Compute the pairwise covariance among the series of a DataFrame.
         The returned data frame is the `covariance matrix
@@ -7045,8 +7040,7 @@ class DataFrame(NDFrame):
                   a         b         c
         a  0.316741       NaN -0.150812
         b       NaN  1.248003  0.191417
-        c -0.150812  0.191417  0.895202
-        """
+        c -0.150812  0.191417  0.895202"""
         numeric_df = self._get_numeric_data()
         cols = numeric_df.columns
         idx = cols.copy()
@@ -7066,8 +7060,7 @@ class DataFrame(NDFrame):
         return self._constructor(baseCov, index=idx, columns=cols)
 
     def corrwith(self, other, axis=0, drop=False):
-        """
-        Compute pairwise correlation between rows or columns of two DataFrame
+        """Compute pairwise correlation between rows or columns of two DataFrame
         objects.
 
         Parameters
@@ -7080,8 +7073,7 @@ class DataFrame(NDFrame):
 
         Returns
         -------
-        correls : Series
-        """
+        correls : Series"""
         axis = self._get_axis_number(axis)
         this = self._get_numeric_data()
 
@@ -7404,8 +7396,7 @@ class DataFrame(NDFrame):
         return self.apply(Series.nunique, axis=axis, dropna=dropna)
 
     def idxmin(self, axis=0, skipna=True):
-        """
-        Return index of first occurrence of minimum over requested axis.
+        """Return index of first occurrence of minimum over requested axis.
         NA/null values are excluded.
 
         Parameters
@@ -7431,8 +7422,7 @@ class DataFrame(NDFrame):
 
         See Also
         --------
-        Series.idxmin
-        """
+        Series.idxmin"""
         axis = self._get_axis_number(axis)
         indices = nanops.nanargmin(self.values, axis=axis, skipna=skipna)
         index = self._get_axis(axis)
@@ -7440,8 +7430,7 @@ class DataFrame(NDFrame):
         return Series(result, index=self._get_agg_axis(axis))
 
     def idxmax(self, axis=0, skipna=True):
-        """
-        Return index of first occurrence of maximum over requested axis.
+        """Return index of first occurrence of maximum over requested axis.
         NA/null values are excluded.
 
         Parameters
@@ -7467,8 +7456,7 @@ class DataFrame(NDFrame):
 
         See Also
         --------
-        Series.idxmax
-        """
+        Series.idxmax"""
         axis = self._get_axis_number(axis)
         indices = nanops.nanargmax(self.values, axis=axis, skipna=skipna)
         index = self._get_axis(axis)
@@ -7574,8 +7562,7 @@ class DataFrame(NDFrame):
 
     def quantile(self, q=0.5, axis=0, numeric_only=True,
                  interpolation='linear'):
-        """
-        Return values at the given quantile over requested axis.
+        """Return values at the given quantile over requested axis.
 
         Parameters
         ----------
@@ -7640,8 +7627,7 @@ class DataFrame(NDFrame):
         See Also
         --------
         pandas.core.window.Rolling.quantile
-        numpy.percentile
-        """
+        numpy.percentile"""
         self._check_percentile(q)
 
         data = self._get_numeric_data() if numeric_only else self

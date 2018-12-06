@@ -2301,8 +2301,7 @@ def scatter_plot(data, x, y, by=None, ax=None, figsize=None, grid=False,
 def hist_frame(data, column=None, by=None, grid=True, xlabelsize=None,
                xrot=None, ylabelsize=None, yrot=None, ax=None, sharex=False,
                sharey=False, figsize=None, layout=None, bins=10, **kwds):
-    """
-    Make a histogram of the DataFrame's.
+    """Make a histogram of the DataFrame's.
 
     A `histogram`_ is a representation of the distribution of data.
     This function calls :meth:`matplotlib.pyplot.hist`, on each series in
@@ -2376,8 +2375,7 @@ def hist_frame(data, column=None, by=None, grid=True, xlabelsize=None,
         ...     'length': [1.5, 0.5, 1.2, 0.9, 3],
         ...     'width': [0.7, 0.2, 0.15, 0.2, 1.1]
         ...     }, index= ['pig', 'rabbit', 'duck', 'chicken', 'horse'])
-        >>> hist = df.hist(bins=3)
-    """
+        >>> hist = df.hist(bins=3)"""
     _raise_if_no_mpl()
     _converter._WARN = False
     if by is not None:

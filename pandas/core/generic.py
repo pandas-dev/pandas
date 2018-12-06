@@ -3338,8 +3338,7 @@ class NDFrame(PandasObject, SelectionMixin):
         return result
 
     def take(self, indices, axis=0, convert=None, is_copy=True, **kwargs):
-        """
-        Return the elements in the given *positional* indices along an axis.
+        """Return the elements in the given *positional* indices along an axis.
 
         This means that we are not indexing according to actual values in
         the index attribute of the object. We are indexing according to the
@@ -3419,8 +3418,7 @@ class NDFrame(PandasObject, SelectionMixin):
         >>> df.take([-1, -2])
              name   class  max_speed
         1  monkey  mammal        NaN
-        3    lion  mammal       80.5
-        """
+        3    lion  mammal       80.5"""
         if convert is not None:
             msg = ("The 'convert' parameter is deprecated "
                    "and will be removed in a future version.")
@@ -5903,8 +5901,7 @@ class NDFrame(PandasObject, SelectionMixin):
 
     def fillna(self, value=None, method=None, axis=None, inplace=False,
                limit=None, downcast=None):
-        """
-        Fill NA/NaN values using the specified method
+        """Fill NA/NaN values using the specified method
 
         Parameters
         ----------
@@ -5994,8 +5991,7 @@ class NDFrame(PandasObject, SelectionMixin):
         0   0.0 2.0 2.0 0
         1   3.0 4.0 NaN 1
         2   NaN 1.0 NaN 5
-        3   NaN 3.0 NaN 4
-        """
+        3   NaN 3.0 NaN 4"""
         inplace = validate_bool_kwarg(inplace, 'inplace')
         value, method = validate_fillna_kwargs(value, method)
 
@@ -8913,8 +8909,7 @@ class NDFrame(PandasObject, SelectionMixin):
         return new_obj.__finalize__(self)
 
     def tshift(self, periods=1, freq=None, axis=0):
-        """
-        Shift the time index, using the index's frequency if available.
+        """Shift the time index, using the index's frequency if available.
 
         Parameters
         ----------
@@ -8933,8 +8928,7 @@ class NDFrame(PandasObject, SelectionMixin):
 
         Returns
         -------
-        shifted : NDFrame
-        """
+        shifted : NDFrame"""
 
         index = self._get_axis(axis)
         if freq is None:

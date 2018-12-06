@@ -291,6 +291,12 @@ class SelectionMixin(object):
         raise AbstractMethodError(self)
 
     def aggregate(self, func, *args, **kwargs):
+        """
+        :param func:
+        :param args:
+        :param kwargs:
+        :return:
+        """
         raise AbstractMethodError(self)
 
     agg = aggregate
@@ -1254,16 +1260,14 @@ class IndexOpsMixin(object):
 
     @property
     def is_monotonic(self):
-        """
-        Return boolean if values in the object are
+        """Return boolean if values in the object are
         monotonic_increasing
 
         .. versionadded:: 0.19.0
 
         Returns
         -------
-        is_monotonic : boolean
-        """
+        is_monotonic : boolean"""
         from pandas import Index
         return Index(self).is_monotonic
 
@@ -1271,16 +1275,14 @@ class IndexOpsMixin(object):
 
     @property
     def is_monotonic_decreasing(self):
-        """
-        Return boolean if values in the object are
+        """Return boolean if values in the object are
         monotonic_decreasing
 
         .. versionadded:: 0.19.0
 
         Returns
         -------
-        is_monotonic_decreasing : boolean
-        """
+        is_monotonic_decreasing : boolean"""
         from pandas import Index
         return Index(self).is_monotonic_decreasing
 
