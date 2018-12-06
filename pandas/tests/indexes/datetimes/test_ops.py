@@ -451,7 +451,6 @@ class TestBusinessDatetimeIndex(object):
         assert comp[11]
         assert not comp[9]
 
-    @pytest.mark.xfail(reason="TODO-pickle", strict=True)
     def test_pickle_unpickle(self):
         unpickled = tm.round_trip_pickle(self.rng)
         assert unpickled.freq is not None
@@ -461,7 +460,6 @@ class TestBusinessDatetimeIndex(object):
         repr(cp)
         tm.assert_index_equal(cp, self.rng)
 
-    @pytest.mark.xfail(reason="TODO-constructor")
     def test_shift(self):
         shifted = self.rng.shift(5)
         assert shifted[0] == self.rng[5]
@@ -516,7 +514,6 @@ class TestCustomDatetimeIndex(object):
         repr(cp)
         tm.assert_index_equal(cp, self.rng)
 
-    @pytest.mark.xfail(reason="TODO-constructor")
     def test_shift(self):
 
         shifted = self.rng.shift(5)
@@ -546,7 +543,6 @@ class TestCustomDatetimeIndex(object):
                                         check_stacklevel=True):
             tm.assert_index_equal(idx.shift(n=0), idx)
 
-    @pytest.mark.xfail(reason="TODO-pickle", strict=True)
     def test_pickle_unpickle(self):
         unpickled = tm.round_trip_pickle(self.rng)
         assert unpickled.freq is not None

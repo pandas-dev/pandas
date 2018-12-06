@@ -350,7 +350,7 @@ class PeriodArray(dtl.DatetimeLikeArrayMixin,
         new_data = self.asfreq(freq, how=how)
 
         new_data = libperiod.periodarr_to_dt64arr(new_data.asi8, base)
-        return DatetimeArrayMixin(new_data, freq='infer')
+        return DatetimeArrayMixin._from_sequence(new_data, freq='infer')
 
     # --------------------------------------------------------------------
     # Array-like / EA-Interface Methods

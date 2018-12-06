@@ -64,12 +64,19 @@ def _new_DatetimeIndex(cls, d):
 
 class DatetimeDelegateMixin(DatetimelikeDelegateMixin):
     _extra_methods = [
+        'normalize',
+    ]
+    _extra_raw_methods = [
         'to_pydatetime',
         '_box_func',
-        '_box_values',
         '_local_timestamps',
     ]
-    _delegated_properties = DatetimeArray._datetimelike_ops
+    _extra_raw_properties = [
+        '_box_func',
+    ]
+    _delegated_properties = (
+        DatetimeArray._datetimelike_ops + _extra_raw_properties
+    )
     _delegated_methods = (
         DatetimeArray._datetimelike_methods + _extra_methods
     )
@@ -77,8 +84,9 @@ class DatetimeDelegateMixin(DatetimelikeDelegateMixin):
         'date',
         'time',
         'timetz',
+        '_box_func',
     }
-    _raw_methods = set(_extra_methods)
+    _raw_methods = set(_extra_raw_methods)
     _delegate_class = DatetimeArray
 
 
@@ -1160,12 +1168,15 @@ class DatetimeIndex(DatelikeIndexMixin,
     is_year_end = wrap_field_accessor(DatetimeArray.is_year_end)
     is_leap_year = wrap_field_accessor(DatetimeArray.is_leap_year)
 
+    _local_timestamps = wrap_array_method(DatetimeArray._local_timestamps,
+                                          box=False)
     tz_localize = wrap_array_method(DatetimeArray.tz_localize, True)
     tz_convert = wrap_array_method(DatetimeArray.tz_convert, True)
     to_perioddelta = wrap_array_method(DatetimeArray.to_perioddelta,
                                        False)
+    to_pydatetime = wrap_array_method(DatetimeArray.to_pydatetime,
+                                      box=False)
     to_period = wrap_array_method(DatetimeArray.to_period, True)
-    normalize = wrap_array_method(DatetimeArray.normalize, True)
     to_julian_date = wrap_array_method(DatetimeArray.to_julian_date,
                                        False)
     month_name = wrap_array_method(DatetimeArray.month_name, True)

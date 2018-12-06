@@ -15,10 +15,11 @@ import pandas.compat as compat
 from pandas.util._decorators import Appender
 
 from pandas.core.dtypes.common import (
-    _TD_DTYPE, ensure_int64, is_datetime64_dtype, is_float_dtype,
+    _NS_DTYPE, _TD_DTYPE, ensure_int64, is_datetime64_dtype, is_float_dtype,
     is_int64_dtype, is_integer_dtype, is_list_like, is_object_dtype, is_scalar,
     is_string_dtype, is_timedelta64_dtype, is_timedelta64_ns_dtype,
     pandas_dtype)
+from pandas.core.dtypes.dtypes import DatetimeTZDtype
 from pandas.core.dtypes.generic import (
     ABCDataFrame, ABCIndexClass, ABCSeries, ABCTimedeltaIndex)
 from pandas.core.dtypes.missing import isna
@@ -317,7 +318,8 @@ class TimedeltaArrayMixin(dtl.DatetimeLikeArrayMixin, dtl.TimelikeOps):
         result = checked_add_with_arr(i8, other.value,
                                       arr_mask=self._isnan)
         result = self._maybe_mask_results(result)
-        return DatetimeArrayMixin(result, tz=other.tz, freq=self.freq)
+        dtype = DatetimeTZDtype(tz=other.tz) if other.tz else _NS_DTYPE
+        return DatetimeArrayMixin(result, dtype=dtype, freq=self.freq)
 
     def _addsub_offset_array(self, other, op):
         # Add or subtract Array-like of DateOffset objects

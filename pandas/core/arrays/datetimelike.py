@@ -23,6 +23,7 @@ from pandas.core.dtypes.common import (
     is_dtype_equal, is_extension_array_dtype, is_float_dtype, is_integer_dtype,
     is_list_like, is_object_dtype, is_offsetlike, is_period_dtype,
     is_string_dtype, is_timedelta64_dtype, needs_i8_conversion, pandas_dtype)
+from pandas.core.dtypes.dtypes import DatetimeTZDtype
 from pandas.core.dtypes.generic import ABCDataFrame, ABCIndexClass, ABCSeries
 from pandas.core.dtypes.missing import isna
 
@@ -938,7 +939,7 @@ class DatetimeLikeArrayMixin(AttributesMixin,
         result.fill(iNaT)
         if is_timedelta64_dtype(self):
             return type(self)(result, freq=None)
-        return type(self)(result, tz=self.tz, freq=None)
+        return type(self)(result, dtype=self.dtype, freq=None)
 
     def _sub_nat(self):
         """
@@ -1074,8 +1075,8 @@ class DatetimeLikeArrayMixin(AttributesMixin,
                 freq = frequencies.to_offset(freq)
             offset = periods * freq
             result = self + offset
-            if hasattr(self, 'tz'):
-                result._tz = self.tz
+            if getattr(self, 'tz'):
+                result._dtype = DatetimeTZDtype(tz=self.tz)
             return result
 
         if periods == 0:

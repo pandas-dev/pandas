@@ -9,6 +9,7 @@ import numpy as np
 
 import pandas as pd
 import pandas.compat as compat
+from pandas.core.dtypes.dtypes import DatetimeTZDtype
 from pandas.core.dtypes.common import (
     is_object_dtype, is_datetime64_dtype, is_datetime64tz_dtype,
     needs_i8_conversion)
@@ -1281,7 +1282,9 @@ def test_ndarray_values(array, expected):
     # tz-aware Datetime
     (DatetimeArray(np.array(['2000-01-01T12:00:00',
                              '2000-01-02T12:00:00'],
-                            dtype='M8[ns]'), tz="US/Central"), '_data'),
+                            dtype='M8[ns]'),
+                   dtype=DatetimeTZDtype(tz="US/Central")),
+     '_data'),
 ])
 @pytest.mark.parametrize('box', [pd.Series, pd.Index])
 def test_array(array, attr, box):
@@ -1321,7 +1324,7 @@ def test_array_multiindex_raises():
     (DatetimeArray(np.array(['2000-01-01T06:00:00',
                              '2000-01-02T06:00:00'],
                             dtype='M8[ns]'),
-                   tz='US/Central'),
+                   dtype=DatetimeTZDtype(tz='US/Central')),
      np.array([pd.Timestamp('2000-01-01', tz='US/Central'),
                pd.Timestamp('2000-01-02', tz='US/Central')])),
 

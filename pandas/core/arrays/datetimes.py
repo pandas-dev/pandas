@@ -159,6 +159,15 @@ def _dt_array_cmp(cls, op):
     return compat.set_function_name(wrapper, opname, cls)
 
 
+def validate_values_freq(values, freq):
+    # type: (Union[DatetimeArrayMixin, TimedeltaArrayMixin], Freq) -> Freq
+    if freq:
+        freq = to_offset(freq)
+        if values.freq != freq:
+            raise ValueError("'freq' does not match.")
+    return values.freq
+
+
 class DatetimeArrayMixin(dtl.DatetimeLikeArrayMixin,
                          dtl.TimelikeOps,
                          dtl.DatelikeOps):
@@ -204,23 +213,21 @@ class DatetimeArrayMixin(dtl.DatetimeLikeArrayMixin,
     _attributes = ["freq", "tz"]
     _freq = None
 
-    @classmethod
-    def _simple_new(cls, values, freq=None, tz=None):
-        """
-        we require the we have a dtype compat for the values
-        if we are passed a non-dtype compat, then coerce using the constructor
-        """
-        if isinstance(values, cls):
-            # todo: validate
-            if freq and values.freq:
-                assert freq == values.freq
-            freq = freq or values.freq
+    def __init__(self, values, dtype=_NS_DTYPE, freq=None, copy=False):
+        if isinstance(values, (ABCSeries, ABCIndexClass)):
+            values = values._values
 
-            if tz and values.tz:
-                assert timezones.tz_compare(tz, values.tz)
-
-            tz = tz or values.tz
+        if isinstance(values, type(self)):
+            # validation
+            if getattr(dtype, 'tz', None) and values.tz is None:
+                dtype = DatetimeTZDtype(tz=dtype.tz)
+            elif values.tz:
+                dtype = values.dtype
+            # freq = validate_values_freq(values, freq)
+            if freq is None:
+                freq = values.freq
             values = values._data
+
         assert isinstance(values, np.ndarray), type(values)
         if values.dtype == 'i8':
             # for compat with datetime/timedelta/period shared methods,
@@ -229,22 +236,26 @@ class DatetimeArrayMixin(dtl.DatetimeLikeArrayMixin,
             values = values.view('M8[ns]')
 
         assert values.dtype == 'M8[ns]', values.dtype
+        assert isinstance(dtype, (np.dtype, DatetimeTZDtype)), dtype
+        assert freq != "infer"
+        if copy:
+            values = values.copy()
+        if freq:
+            freq = to_offset(freq)
 
-        result = object.__new__(cls)
-        result._data = values
-        result._freq = freq
-        tz = timezones.maybe_get_tz(tz)
-        if tz:
-            result._dtype = DatetimeTZDtype('ns', tz)
-        else:
-            result._dtype = values.dtype  # M8[ns]
-        return result
+        self._data = values
+        self._dtype = dtype
+        self._freq = freq
 
-    def __new__(cls, values, freq=None, tz=None, dtype=None, copy=False,
-                dayfirst=False, yearfirst=False, ambiguous='raise'):
-        return cls._from_sequence(
-            values, freq=freq, tz=tz, dtype=dtype, copy=copy,
-            dayfirst=dayfirst, yearfirst=yearfirst, ambiguous=ambiguous)
+    @classmethod
+    def _simple_new(cls, values, freq=None, tz=None):
+        """
+        we require the we have a dtype compat for the values
+        if we are passed a non-dtype compat, then coerce using the constructor
+        """
+        dtype = DatetimeTZDtype(tz=tz) if tz else _NS_DTYPE
+
+        return cls(values, freq=freq, dtype=dtype)
 
     @classmethod
     def _from_sequence(cls, data, dtype=None, copy=False,
@@ -476,11 +487,8 @@ class DatetimeArrayMixin(dtl.DatetimeLikeArrayMixin,
                 yield v
 
     def copy(self, deep=False):
-        # have to use simple_new, else we raise a freq validation error?
-        # Can't use simple_new in the parent, since the function signature
-        # doesn't match.
         values = self.asi8.copy()
-        return type(self)._simple_new(values, tz=self.tz, freq=self.freq)
+        return type(self)(values, dtype=self.dtype, freq=self.freq)
 
     # ----------------------------------------------------------------
     # ExtensionArray Interface
@@ -591,7 +599,7 @@ class DatetimeArrayMixin(dtl.DatetimeLikeArrayMixin,
                           "or DatetimeIndex", PerformanceWarning)
             result = self.astype('O') + offset
 
-        return type(self)(result, freq='infer')
+        return type(self)._from_sequence(result, freq='infer')
 
     def _sub_datetimelike_scalar(self, other):
         # subtract a datetime from myself, yielding a ndarray[timedelta64[ns]]
@@ -627,7 +635,9 @@ class DatetimeArrayMixin(dtl.DatetimeLikeArrayMixin,
         result : DatetimeArray
         """
         new_values = dtl.DatetimeLikeArrayMixin._add_delta(self, delta)
-        return type(self)(new_values, tz=self.tz, freq='infer')
+        return type(self)._from_sequence(new_values,
+                                         dtype=self.dtype,
+                                         freq="infer")
 
     # -----------------------------------------------------------------
     # Timezone Conversion and Localization Methods
@@ -930,14 +940,15 @@ class DatetimeArrayMixin(dtl.DatetimeLikeArrayMixin,
                        dtype='datetime64[ns, Asia/Calcutta]', freq=None)
         """
         if self.tz is None or timezones.is_utc(self.tz):
-            not_null = self.notna()
+            not_null = ~self.isna()
             DAY_NS = ccalendar.DAY_SECONDS * 1000000000
             new_values = self.asi8.copy()
             adjustment = (new_values[not_null] % DAY_NS)
             new_values[not_null] = new_values[not_null] - adjustment
         else:
             new_values = conversion.normalize_i8_timestamps(self.asi8, self.tz)
-        return type(self)(new_values, freq='infer').tz_localize(self.tz)
+        return type(self)._from_sequence(new_values,
+                                         freq='infer').tz_localize(self.tz)
 
     def to_period(self, freq=None):
         """

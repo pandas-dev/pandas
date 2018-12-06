@@ -25,9 +25,8 @@ from pandas.core.dtypes.common import (
     is_signed_integer_dtype, is_timedelta64_dtype, is_unsigned_integer_dtype)
 import pandas.core.dtypes.concat as _concat
 from pandas.core.dtypes.generic import (
-    ABCDataFrame, ABCDateOffset, ABCDatetimeIndex, ABCIndexClass,
-    ABCMultiIndex, ABCPeriodIndex, ABCSeries, ABCTimedeltaArray,
-    ABCTimedeltaIndex)
+    ABCDataFrame, ABCDateOffset, ABCIndexClass, ABCMultiIndex, ABCPeriodIndex,
+    ABCSeries, ABCTimedeltaArray, ABCTimedeltaIndex)
 from pandas.core.dtypes.missing import array_equivalent, isna
 
 from pandas.core import ops
@@ -549,6 +548,8 @@ class Index(IndexOpsMixin, PandasObject):
 
     @Appender(_index_shared_docs['_shallow_copy'])
     def _shallow_copy(self, values=None, **kwargs):
+        from pandas.core.arrays import DatetimeArrayMixin
+
         if values is None:
             values = self.values
         attributes = self._get_attributes_dict()
@@ -557,8 +558,8 @@ class Index(IndexOpsMixin, PandasObject):
             attributes['dtype'] = self.dtype
 
         # _simple_new expects an ndarray
-        values = getattr(values, 'values', values)
-        if isinstance(values, ABCDatetimeIndex):
+        values = getattr(values, '_values', values)
+        if isinstance(values, DatetimeArrayMixin):
             # `self.values` returns `self` for tz-aware, so we need to unwrap
             #  more specifically
             values = values.asi8

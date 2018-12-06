@@ -37,7 +37,6 @@ class DatetimeIndexOpsMixin(ExtensionOpsMixin):
     """
 
     # override DatetimeLikeArrayMixin method
-    copy = Index.copy
     unique = Index.unique
     take = Index.take
 
