@@ -1,6 +1,5 @@
 # pylint: disable=E1101,W0232
 
-import reprlib
 import textwrap
 from warnings import warn
 
@@ -1935,7 +1934,8 @@ class Categorical(ExtensionArray, PandasObject):
         elif is_categorical_dtype(other):
             if not is_dtype_equal(self, other):
                 extra = list(other.categories.difference(self.categories))
-                warn(object_msg.format(reprlib.repr(extra)), FutureWarning,
+                warn(object_msg.format(compat.reprlib.repr(extra)),
+                     FutureWarning,
                      stacklevel=2)
                 return np.where(cond, self, other)
             other = _get_codes_for_values(other, self.categories)
