@@ -8868,15 +8868,15 @@ class NDFrame(PandasObject, SelectionMixin):
     """)
 
     @Appender(_shared_docs['shift'] % _shared_doc_kwargs)
-    def shift(self, periods=1, freq=None, axis=0):
+    def shift(self, periods=1, freq=None, axis=0, fill_value=np.nan):
         if periods == 0:
             return self.copy()
 
         block_axis = self._get_block_manager_axis(axis)
         if freq is None:
-            new_data = self._data.shift(periods=periods, axis=block_axis)
+            new_data = self._data.shift(periods=periods, axis=block_axis, fill_value=fill_value)
         else:
-            return self.tshift(periods, freq)
+            return self.tshift(periods, freq, fill_value=fill_value)
 
         return self._constructor(new_data).__finalize__(self)
 
@@ -8916,7 +8916,7 @@ class NDFrame(PandasObject, SelectionMixin):
 
         return new_obj.__finalize__(self)
 
-    def tshift(self, periods=1, freq=None, axis=0):
+    def tshift(self, periods=1, freq=None, axis=0, fill_value=np.nan):
         """
         Shift the time index, using the index's frequency if available.
 

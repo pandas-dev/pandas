@@ -780,7 +780,7 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin, AttributesMixin):
         return self._from_sequence(res_values)
 
     @deprecate_kwarg(old_arg_name='n', new_arg_name='periods')
-    def shift(self, periods, freq=None):
+    def shift(self, periods, freq=None, fill_value=np.nan):
         """
         Shift index by desired number of time frequency increments.
 
@@ -810,9 +810,9 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin, AttributesMixin):
         Index.shift : Shift values of Index.
         PeriodIndex.shift : Shift values of PeriodIndex.
         """
-        return self._time_shift(periods=periods, freq=freq)
+        return self._time_shift(periods=periods, freq=freq, fill_value=np.nan)
 
-    def _time_shift(self, periods, freq=None):
+    def _time_shift(self, periods, freq=None, fill_value=np.nan):
         """
         Shift each value by `periods`.
 

@@ -129,6 +129,37 @@ class TestTimeSeries(TestData):
         idx = DatetimeIndex(['2000-01-01', '2000-01-02', '2000-01-04'])
         pytest.raises(NullFrequencyError, idx.shift, 1)
 
+    def test_shift_fill_value(self):
+        ts = Series(np.random.randn(5),
+                    index=date_range('1/1/2000', periods=5, freq='H'))
+
+        # fill_value should have no effect on shift with freq
+        result = ts.shift(1, freq='5T', fill_value=0)
+        exp_index = ts.index.shift(1, freq='5T')
+        tm.assert_index_equal(result.index, exp_index)
+        tm.assert_equal(result.iloc[0].value, ts.iloc[0].value)
+
+        # check that fill value works
+        result = ts.shift(1, fill_value=0.0)
+        tm.assert_equal(result.iloc[0].value, 0.0)
+        tm.assert_equal(result.iloc[1].value, ts.iloc[0].value)
+
+        result = ts.shift(2, fill_value=0.0)
+        tm.assert_equal(result.iloc[0].value, 0.0)
+        tm.assert_equal(result.iloc[1].value, 0.0)
+        tm.assert_equal(result.iloc[2].value, ts.iloc[0].value)
+
+        df = DataFrame(np.random.randn(5), index=date_range('1/1/2000', periods=5, freq='H'))
+
+        result = df.shift(1, fill_value=0.0)
+        tm.assert_equal(result.iloc[0, 0].value, 0.0)
+        tm.assert_equal(result.iloc[1, 0].value, df.iloc[0, 0].value)
+
+        result = df.shift(2, fill_value=0.0)
+        tm.assert_equal(result.iloc[0, 0].value, 0.0)
+        tm.assert_equal(result.iloc[1, 0].value, 0.0)
+        tm.assert_equal(result.iloc[2, 0].value, df.iloc[0, 0].value)
+
     def test_shift_dst(self):
         # GH 13926
         dates = date_range('2016-11-06', freq='H', periods=10, tz='US/Eastern')
