@@ -1767,7 +1767,7 @@ class TestPanel(PanelTests, CheckIndexing, SafeForLongAndSparse,
 
     def test_to_frame_multi_major_minor(self):
         cols = MultiIndex(levels=[['C_A', 'C_B'], ['C_1', 'C_2']],
-                          labels=[[0, 0, 1, 1], [0, 1, 0, 1]])
+                          codes=[[0, 0, 1, 1], [0, 1, 0, 1]])
         idx = MultiIndex.from_tuples([(1, 'one'), (1, 'two'), (2, 'one'), (
             2, 'two'), (3, 'three'), (4, 'four')])
         df = DataFrame([[1, 2, 11, 12], [3, 4, 13, 14],
@@ -2493,10 +2493,10 @@ class TestPanelFrame(object):
             return (arr[1:] > arr[:-1]).any()
 
         sorted_minor = self.panel.sort_index(level=1)
-        assert is_sorted(sorted_minor.index.labels[1])
+        assert is_sorted(sorted_minor.index.codes[1])
 
         sorted_major = sorted_minor.sort_index(level=0)
-        assert is_sorted(sorted_major.index.labels[0])
+        assert is_sorted(sorted_major.index.codes[0])
 
     def test_to_string(self):
         buf = StringIO()
@@ -2568,7 +2568,7 @@ class TestPanelFrame(object):
     def test_get_dummies(self):
         from pandas.core.reshape.reshape import get_dummies, make_axis_dummies
 
-        self.panel['Label'] = self.panel.index.labels[1]
+        self.panel['Label'] = self.panel.index.codes[1]
         minor_dummies = make_axis_dummies(self.panel, 'minor').astype(np.uint8)
         dummies = get_dummies(self.panel['Label'])
         tm.assert_numpy_array_equal(dummies.values, minor_dummies.values)
@@ -2591,14 +2591,14 @@ class TestPanelFrame(object):
         index = self.panel.index
 
         major_count = self.panel.count(level=0)['ItemA']
-        labels = index.labels[0]
+        level_codes = index.codes[0]
         for i, idx in enumerate(index.levels[0]):
-            assert major_count[i] == (labels == i).sum()
+            assert major_count[i] == (level_codes == i).sum()
 
         minor_count = self.panel.count(level=1)['ItemA']
-        labels = index.labels[1]
+        level_codes = index.codes[1]
         for i, idx in enumerate(index.levels[1]):
-            assert minor_count[i] == (labels == i).sum()
+            assert minor_count[i] == (level_codes == i).sum()
 
     def test_join(self):
         lp1 = self.panel.filter(['ItemA', 'ItemB'])

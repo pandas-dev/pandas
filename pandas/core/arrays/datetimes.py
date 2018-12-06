@@ -14,10 +14,10 @@ from pandas.errors import IncompatibleTimeZoneError, PerformanceWarning
 from pandas.util._decorators import Appender
 
 from pandas.core.dtypes.common import (
-    _NS_DTYPE, is_datetime64_dtype, is_datetime64_ns_dtype,
+    _INT64_DTYPE, _NS_DTYPE, is_datetime64_dtype, is_datetime64_ns_dtype,
     is_datetime64tz_dtype, is_dtype_equal, is_extension_type, is_float_dtype,
-    is_int64_dtype, is_object_dtype, is_period_dtype, is_timedelta64_dtype,
-    pandas_dtype)
+    is_int64_dtype, is_object_dtype, is_period_dtype, is_string_dtype,
+    is_timedelta64_dtype, pandas_dtype)
 from pandas.core.dtypes.dtypes import DatetimeTZDtype
 from pandas.core.dtypes.generic import ABCIndexClass, ABCSeries
 from pandas.core.dtypes.missing import isna
@@ -210,6 +210,17 @@ class DatetimeArrayMixin(dtl.DatetimeLikeArrayMixin,
         we require the we have a dtype compat for the values
         if we are passed a non-dtype compat, then coerce using the constructor
         """
+        if isinstance(values, cls):
+            # todo: validate
+            if freq and values.freq:
+                assert freq == values.freq
+            freq = freq or values.freq
+
+            if tz and values.tz:
+                assert timezones.tz_compare(tz, values.tz)
+
+            tz = tz or values.tz
+            values = values._data
         assert isinstance(values, np.ndarray), type(values)
         if values.dtype == 'i8':
             # for compat with datetime/timedelta/period shared methods,
@@ -229,60 +240,35 @@ class DatetimeArrayMixin(dtl.DatetimeLikeArrayMixin,
             result._dtype = values.dtype  # M8[ns]
         return result
 
-    def __new__(cls, values, freq=None, tz=None, dtype=None):
-        if values is None:
-            # pickle compat.
-            values = np.array([], dtype='M8[ns]')
-        if isinstance(values, (ABCSeries, ABCIndexClass)):
-            values = values._values
+    def __new__(cls, values, freq=None, tz=None, dtype=None, copy=False,
+                dayfirst=False, yearfirst=False, ambiguous='raise'):
+        return cls._from_sequence(
+            values, freq=freq, tz=tz, dtype=dtype, copy=copy,
+            dayfirst=dayfirst, yearfirst=yearfirst, ambiguous=ambiguous)
 
-        if tz is None and hasattr(values, 'tz'):
-            # e.g. DatetimeIndex
-            tz = values.tz
-
-        if freq is None and hasattr(values, "freq"):
-            # i.e. DatetimeArray, DatetimeIndex
-            freq = values.freq
+    @classmethod
+    def _from_sequence(cls, data, dtype=None, copy=False,
+                       tz=None, freq=None,
+                       dayfirst=False, yearfirst=False, ambiguous='raise'):
 
         freq, freq_infer = dtl.maybe_infer_freq(freq)
 
-        # if dtype has an embedded tz, capture it
-        tz = dtl.validate_tz_from_dtype(dtype, tz)
+        subarr, tz, inferred_freq = sequence_to_dt64ns(
+            data, dtype=dtype, copy=copy, tz=tz,
+            dayfirst=dayfirst, yearfirst=yearfirst, ambiguous=ambiguous)
 
-        if not hasattr(values, "dtype"):
-            if np.ndim(values) == 0:
-                # i.e. iterator
-                values = list(values)
-            values = np.array(values)
+        freq, freq_infer = dtl.validate_inferred_freq(freq, inferred_freq,
+                                                      freq_infer)
 
-        if is_object_dtype(values):
-            # kludge; dispatch until the DatetimeArray constructor is complete
-            from pandas import DatetimeIndex
-            values = DatetimeIndex(values, freq=freq, tz=tz)._values
+        result = cls._simple_new(subarr, freq=freq, tz=tz)
 
-        if isinstance(values, ABCSeries):
-            # extract to ndarray or DatetimeIndex
-            values = values._values
+        if inferred_freq is None and freq is not None:
+            # this condition precludes `freq_infer`
+            cls._validate_frequency(result, freq, ambiguous=ambiguous)
 
-        if isinstance(values, DatetimeArrayMixin):
-            # extract nanosecond unix timestamps
-            if tz is None:
-                tz = values.tz
-            values = values.asi8
-
-        if values.dtype == 'i8':
-            values = values.view('M8[ns]')
-
-        assert isinstance(values, np.ndarray), type(values)
-        assert is_datetime64_dtype(values)  # not yet assured nanosecond
-        values = conversion.ensure_datetime64ns(values, copy=False)
-
-        result = cls._simple_new(values, freq=freq, tz=tz)
-        if freq_infer:
+        elif freq_infer:
             result.freq = to_offset(result.inferred_freq)
 
-        # NB: Among other things not yet ported from the DatetimeIndex
-        # constructor, this does not call _deepcopy_if_needed
         return result
 
     @classmethod
@@ -489,17 +475,15 @@ class DatetimeArrayMixin(dtl.DatetimeLikeArrayMixin,
             for v in converted:
                 yield v
 
+    def copy(self, deep=False):
+        # have to use simple_new, else we raise a freq validation error?
+        # Can't use simple_new in the parent, since the function signature
+        # doesn't match.
+        values = self.asi8.copy()
+        return type(self)._simple_new(values, tz=self.tz, freq=self.freq)
+
     # ----------------------------------------------------------------
     # ExtensionArray Interface
-
-    @classmethod
-    def _from_sequence(cls, scalars, dtype=None, copy=False):
-        from pandas import to_datetime
-        data = to_datetime(scalars)
-        if copy:
-            data = data.copy()
-
-        return cls(data, dtype=dtype)
 
     @property
     def _ndarray_values(self):
@@ -1536,94 +1520,128 @@ class DatetimeArrayMixin(dtl.DatetimeLikeArrayMixin,
 
 
 DatetimeArrayMixin._add_comparison_ops()
-DatetimeArrayMixin._add_datetimelike_methods()
 
 
 # -------------------------------------------------------------------
 # Constructor Helpers
 
-def maybe_infer_tz(tz, inferred_tz):
+def sequence_to_dt64ns(data, dtype=None, copy=False,
+                       tz=None,
+                       dayfirst=False, yearfirst=False, ambiguous='raise'):
     """
-    If a timezone is inferred from data, check that it is compatible with
-    the user-provided timezone, if any.
-
     Parameters
     ----------
-    tz : tzinfo or None
-    inferred_tz : tzinfo or None
+    data : list-like
+    dtype : dtype, str, or None, default None
+    copy : bool, default False
+    tz : tzinfo, str, or None, default None
+    dayfirst : bool, default False
+    yearfirst : bool, default False
+    ambiguous : str, bool, or arraylike, default 'raise'
+        See pandas._libs.tslibs.conversion.tz_localize_to_utc
 
     Returns
     -------
+    result : numpy.ndarray
+        The sequence converted to a numpy array with dtype ``datetime64[ns]``.
     tz : tzinfo or None
-
-    Raises
-    ------
-    TypeError : if both timezones are present but do not match
-    """
-    if tz is None:
-        tz = inferred_tz
-    elif inferred_tz is None:
-        pass
-    elif not timezones.tz_compare(timezones.maybe_get_tz(tz), inferred_tz):
-        # TODO: figure out if / who should be normalizing user-provided tz
-        raise TypeError('data is already tz-aware {inferred_tz}, unable to '
-                        'set specified tz: {tz}'
-                        .format(inferred_tz=inferred_tz, tz=tz))
-    return tz
-
-
-def maybe_convert_dtype(data, copy):
-    """
-    Convert data based on dtype conventions, issuing deprecation warnings
-    or errors where appropriate.
-
-    Parameters
-    ----------
-    data : np.ndarray or pd.Index
-    copy : bool
-
-    Returns
-    -------
-    data : np.ndarray or pd.Index
-    copy : bool
+        Either the user-provided tzinfo or one inferred from the data.
+    inferred_freq : Tick or None
+        The inferred frequency of the sequence.
 
     Raises
     ------
     TypeError : PeriodDType data is passed
     """
-    if is_float_dtype(data):
-        # Note: we must cast to datetime64[ns] here in order to treat these
-        #  as wall-times instead of UTC timestamps.
-        data = data.astype(_NS_DTYPE)
+    inferred_freq = None
+
+    if not hasattr(data, "dtype"):
+        # e.g. list, tuple
+        if np.ndim(data) == 0:
+            # i.e. generator
+            data = list(data)
+        data = np.asarray(data)
         copy = False
-        # TODO: deprecate this behavior to instead treat symmetrically
-        #  with integer dtypes.  See discussion in GH#23675
+    elif isinstance(data, ABCSeries):
+        data = data._values
 
-    elif is_timedelta64_dtype(data):
-        from pandas.core.arrays import TimedeltaArrayMixin
+    if hasattr(data, "freq"):
+        # i.e. DatetimeArray/Index
+        inferred_freq = data.freq
 
-        if isinstance(data, TimedeltaArrayMixin):
-            # no TimedeltaArray.view
-            data = data.asi8
+    # if dtype has an embedded tz, capture it
+    tz = validate_tz_from_dtype(dtype, tz)
 
-        data = data.view(_NS_DTYPE)
-        warnings.warn("Passing timedelta64-dtype data is deprecated, will "
-                      "raise a TypeError in a future version",
-                      FutureWarning, stacklevel=3)
+    if isinstance(data, (ABCSeries, ABCIndexClass)):
+        data = data._data
 
-    elif is_period_dtype(data):
-        # Note: without explicitly raising here, PeriondIndex
-        #  test_setops.test_join_does_not_recur fails
-        raise TypeError("Passing PeriodDtype data is invalid.  "
-                        "Use `data.to_timestamp()` instead")
+    if isinstance(data, DatetimeArrayMixin):
+        if inferred_freq and data.freq:
+            assert inferred_freq == data.freq
+        inferred_freq = inferred_freq or data.freq
 
-    elif is_extension_type(data) and not is_datetime64tz_dtype(data):
-        # Includes categorical
-        # TODO: We have no tests for these
-        data = np.array(data, dtype=np.object_)
+        if tz and data.tz:
+            if not timezones.tz_compare(tz, data.tz):
+                raise TypeError("TODO")
+        tz = data.tz
+        tz = validate_tz_from_dtype(dtype, tz)
+
+        return data, tz, None
+
+    # By this point we are assured to have either a numpy array or Index
+    data, copy = maybe_convert_dtype(data, copy)
+
+    if is_object_dtype(data) or is_string_dtype(data):
+        # TODO: We do not have tests specific to string-dtypes,
+        #  also complex or categorical or other extension
         copy = False
+        if lib.infer_dtype(data) == 'integer':
+            data = data.astype(np.int64)
+        else:
+            # data comes back here as either i8 to denote UTC timestamps
+            #  or M8[ns] to denote wall times
+            data, inferred_tz = objects_to_datetime64ns(
+                data, dayfirst=dayfirst, yearfirst=yearfirst)
+            tz = maybe_infer_tz(tz, inferred_tz)
 
-    return data, copy
+    if is_datetime64tz_dtype(data):
+        tz = maybe_infer_tz(tz, data.tz)
+        result = data._data
+
+    elif is_datetime64_dtype(data):
+        # tz-naive DatetimeArray/Index or ndarray[datetime64]
+        data = getattr(data, "_data", data)
+        if data.dtype != _NS_DTYPE:
+            data = conversion.ensure_datetime64ns(data)
+
+        if tz is not None:
+            # Convert tz-naive to UTC
+            tz = timezones.maybe_get_tz(tz)
+            data = conversion.tz_localize_to_utc(data.view('i8'), tz,
+                                                 ambiguous=ambiguous)
+            data = data.view(_NS_DTYPE)
+
+        assert data.dtype == _NS_DTYPE, data.dtype
+        result = data
+
+    else:
+        # must be integer dtype otherwise
+        # assume this data are epoch timestamps
+        if data.dtype != _INT64_DTYPE:
+            data = data.astype(np.int64, copy=False)
+        result = data.view(_NS_DTYPE)
+
+    if copy:
+        # TODO: should this be deepcopy?
+        result = result.copy()
+
+    assert isinstance(result, np.ndarray), type(result)
+    assert result.dtype == 'M8[ns]', result.dtype
+
+    # We have to call this again after possibly inferring a tz above
+    validate_tz_from_dtype(dtype, tz)
+
+    return result, tz, inferred_freq
 
 
 def objects_to_datetime64ns(data, dayfirst, yearfirst,
@@ -1701,6 +1719,54 @@ def objects_to_datetime64ns(data, dayfirst, yearfirst,
         # GH#23675 this TypeError should never be hit, whereas the TypeError
         #  in the object-dtype branch above is reachable.
         raise TypeError(result)
+
+
+def maybe_convert_dtype(data, copy):
+    """
+    Convert data based on dtype conventions, issuing deprecation warnings
+    or errors where appropriate.
+
+    Parameters
+    ----------
+    data : np.ndarray or pd.Index
+    copy : bool
+
+    Returns
+    -------
+    data : np.ndarray or pd.Index
+    copy : bool
+
+    Raises
+    ------
+    TypeError : PeriodDType data is passed
+    """
+    if is_float_dtype(data):
+        # Note: we must cast to datetime64[ns] here in order to treat these
+        #  as wall-times instead of UTC timestamps.
+        data = data.astype(_NS_DTYPE)
+        copy = False
+        # TODO: deprecate this behavior to instead treat symmetrically
+        #  with integer dtypes.  See discussion in GH#23675
+
+    elif is_timedelta64_dtype(data):
+        warnings.warn("Passing timedelta64-dtype data is deprecated, will "
+                      "raise a TypeError in a future version",
+                      FutureWarning, stacklevel=5)
+        data = data.view(_NS_DTYPE)
+
+    elif is_period_dtype(data):
+        # Note: without explicitly raising here, PeriondIndex
+        #  test_setops.test_join_does_not_recur fails
+        raise TypeError("Passing PeriodDtype data is invalid.  "
+                        "Use `data.to_timestamp()` instead")
+
+    elif is_extension_type(data) and not is_datetime64tz_dtype(data):
+        # Includes categorical
+        # TODO: We have no tests for these
+        data = np.array(data, dtype=np.object_)
+        copy = False
+
+    return data, copy
 
 
 def _generate_regular_range(cls, start, end, periods, freq):
@@ -1802,6 +1868,84 @@ def _generate_range_overflow_safe(endpoint, periods, stride, side='start'):
                                         .format(side=side, endpoint=endpoint,
                                                 periods=periods))
     return other_end
+
+
+# -------------------------------------------------------------------
+# Validation and Inference
+
+def maybe_infer_tz(tz, inferred_tz):
+    """
+    If a timezone is inferred from data, check that it is compatible with
+    the user-provided timezone, if any.
+
+    Parameters
+    ----------
+    tz : tzinfo or None
+    inferred_tz : tzinfo or None
+
+    Returns
+    -------
+    tz : tzinfo or None
+
+    Raises
+    ------
+    TypeError : if both timezones are present but do not match
+    """
+    if tz is None:
+        tz = inferred_tz
+    elif inferred_tz is None:
+        pass
+    elif not timezones.tz_compare(tz, inferred_tz):
+        raise TypeError('data is already tz-aware {inferred_tz}, unable to '
+                        'set specified tz: {tz}'
+                        .format(inferred_tz=inferred_tz, tz=tz))
+    return tz
+
+
+def validate_tz_from_dtype(dtype, tz):
+    """
+    If the given dtype is a DatetimeTZDtype, extract the implied
+    tzinfo object from it and check that it does not conflict with the given
+    tz.
+
+    Parameters
+    ----------
+    dtype : dtype, str
+    tz : None, tzinfo
+
+    Returns
+    -------
+    tz : consensus tzinfo
+
+    Raises
+    ------
+    ValueError : on tzinfo mismatch
+    """
+    if dtype is not None:
+        if isinstance(dtype, compat.string_types):
+            try:
+                dtype = DatetimeTZDtype.construct_from_string(dtype)
+            except TypeError:
+                # Things like `datetime64[ns]`, which is OK for the
+                # constructors, but also nonsense, which should be validated
+                # but not by us. We *do* allow non-existent tz errors to
+                # go through
+                pass
+        dtz = getattr(dtype, 'tz', None)
+        if dtz is not None:
+            if tz is not None and not timezones.tz_compare(tz, dtz):
+                raise ValueError("cannot supply both a tz and a dtype"
+                                 " with a tz")
+            tz = dtz
+
+        if tz is not None and is_datetime64_dtype(dtype):
+            # We also need to check for the case where the user passed a
+            #  tz-naive dtype (i.e. datetime64[ns])
+            if tz is not None and not timezones.tz_compare(tz, dtz):
+                raise ValueError("cannot supply both a tz and a "
+                                 "timezone-naive dtype (i.e. datetime64[ns]")
+
+    return tz
 
 
 def _infer_tz_from_endpoints(start, end, tz):

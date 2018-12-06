@@ -1101,6 +1101,13 @@ Other API Changes
 Deprecations
 ~~~~~~~~~~~~
 
+- :attr:`MultiIndex.labels` has been deprecated and replaced by :attr:`MultiIndex.codes`.
+  The functionality is unchanged. The new name better reflects the natures of
+  these codes and makes the ``MultiIndex`` API more similar to the API for :class:`CategoricalIndex`(:issue:`13443`).
+  As a consequence, other uses of the name ``labels`` in ``MultiIndex`` have also been deprecated and replaced with ``codes``:
+  - You should initialize a ``MultiIndex`` instance using a parameter named ``codes`` rather than ``labels``.
+  - ``MultiIndex.set_labels`` has been deprecated in favor of :meth:`MultiIndex.set_codes`.
+  - For method :meth:`MultiIndex.copy`, the ``labels`` parameter has been deprecated and replaced by a ``codes`` parameter.
 - :meth:`DataFrame.to_stata`, :meth:`read_stata`, :class:`StataReader` and :class:`StataWriter` have deprecated the ``encoding`` argument. The encoding of a Stata dta file is determined by the file type and cannot be changed (:issue:`21244`)
 - :meth:`MultiIndex.to_hierarchical` is deprecated and will be removed in a future version (:issue:`21613`)
 - :meth:`Series.ptp` is deprecated. Use ``numpy.ptp`` instead (:issue:`21614`)
@@ -1236,6 +1243,7 @@ Performance Improvements
 - Improved performance of :func:`pd.concat` for `Series` objects (:issue:`23404`)
 - Improved performance of :meth:`DatetimeIndex.normalize` and :meth:`Timestamp.normalize` for timezone naive or UTC datetimes (:issue:`23634`)
 - Improved performance of :meth:`DatetimeIndex.tz_localize` and various ``DatetimeIndex`` attributes with dateutil UTC timezone (:issue:`23772`)
+- Fixed a performance regression on Windows with Python 3.7 of :func:`pd.read_csv` (:issue:`23516`)
 - Improved performance of :class:`Categorical` constructor for `Series` objects (:issue:`23814`)
 - Improved performance of :meth:`~DataFrame.where` for Categorical data (:issue:`24077`)
 
@@ -1549,6 +1557,7 @@ Reshaping
 - Bug in :meth:`DataFrame.append` with a :class:`Series` with a dateutil timezone would raise a ``TypeError`` (:issue:`23682`)
 - Bug in ``Series`` construction when passing no data and ``dtype=str`` (:issue:`22477`)
 - Bug in :func:`cut` with ``bins`` as an overlapping ``IntervalIndex`` where multiple bins were returned per item instead of raising a ``ValueError`` (:issue:`23980`)
+- Bug in :func:`pandas.concat` when joining ``Series`` datetimetz with ``Series`` category would lose timezone (:issue:`23816`)
 - Bug in :meth:`DataFrame.join` when joining on partial MultiIndex would drop names (:issue:`20452`).
 
 .. _whatsnew_0240.bug_fixes.sparse:

@@ -18,8 +18,8 @@ from pandas import compat
 from pandas.core import common as com
 from pandas.core.accessor import delegate_names
 from pandas.core.algorithms import unique1d
-import pandas.core.arrays.datetimelike as dtl
-from pandas.core.arrays.period import PeriodArray, period_array
+from pandas.core.arrays.period import (
+    PeriodArray, period_array, validate_dtype_freq)
 from pandas.core.base import _shared_docs
 import pandas.core.indexes.base as ibase
 from pandas.core.indexes.base import _index_shared_docs, ensure_index
@@ -186,7 +186,7 @@ class PeriodIndex(DatetimeIndexOpsMixin,
                                                      freq, fields)
             data = PeriodArray(data, freq=freq)
         else:
-            freq = dtl.validate_dtype_freq(dtype, freq)
+            freq = validate_dtype_freq(dtype, freq)
 
             # PeriodIndex allow PeriodIndex(period_index, freq=different)
             # Let's not encourage that kind of behavior in PeriodArray.

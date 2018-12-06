@@ -6,7 +6,7 @@ import warnings
 
 import numpy as np
 
-from pandas._libs import algos, lib, tslibs
+from pandas._libs import lib, tslibs
 from pandas._libs.tslibs import NaT, Timedelta, Timestamp, iNaT
 from pandas._libs.tslibs.fields import get_timedelta_field
 from pandas._libs.tslibs.timedeltas import (
@@ -24,7 +24,7 @@ from pandas.core.dtypes.generic import (
 from pandas.core.dtypes.missing import isna
 
 from pandas.core import ops
-from pandas.core.algorithms import checked_add_with_arr, unique1d
+from pandas.core.algorithms import checked_add_with_arr
 import pandas.core.common as com
 
 from pandas.tseries.frequencies import to_offset
@@ -156,28 +156,21 @@ class TimedeltaArrayMixin(dtl.DatetimeLikeArrayMixin, dtl.TimelikeOps):
         return result
 
     def __new__(cls, values, freq=None, dtype=_TD_DTYPE, copy=False):
-        return cls._from_sequence(values, freq=freq, dtype=dtype, copy=copy)
+        return cls._from_sequence(values, dtype=dtype, copy=copy, freq=freq)
 
     @classmethod
-    def _from_sequence(cls, data, freq=None, unit=None,
-                       dtype=_TD_DTYPE, copy=False):
+    def _from_sequence(cls, data, dtype=_TD_DTYPE, copy=False,
+                       freq=None, unit=None):
         if dtype != _TD_DTYPE:
             raise ValueError("Only timedelta64[ns] dtype is valid.")
 
         freq, freq_infer = dtl.maybe_infer_freq(freq)
 
         data, inferred_freq = sequence_to_td64ns(data, copy=copy, unit=unit)
+        # TODO: maybe inside an ``if inferred_freq is not None:
 
-        if inferred_freq is not None:
-            if freq is not None and freq != inferred_freq:
-                raise ValueError('Inferred frequency {inferred} from passed '
-                                 'values does not conform to passed frequency '
-                                 '{passed}'
-                                 .format(inferred=inferred_freq,
-                                         passed=freq.freqstr))
-            elif freq is None:
-                freq = inferred_freq
-                freq_infer = False
+        freq, freq_infer = dtl.validate_inferred_freq(freq, inferred_freq,
+                                                      freq_infer)
 
         result = cls._simple_new(data, freq=freq)
 
@@ -267,21 +260,6 @@ class TimedeltaArrayMixin(dtl.DatetimeLikeArrayMixin, dtl.TimelikeOps):
             raise ValueError("'fill_value' should be a Timedelta. "
                              "Got '{got}'.".format(got=fill_value))
         return fill_value
-
-    # monotonicity/uniqueness properties are called via frequencies.infer_freq,
-    #  see GH#23789
-
-    @property
-    def _is_monotonic_increasing(self):
-        return algos.is_monotonic(self.asi8, timelike=True)[0]
-
-    @property
-    def _is_monotonic_decreasing(self):
-        return algos.is_monotonic(self.asi8, timelike=True)[1]
-
-    @property
-    def _is_unique(self):
-        return len(unique1d(self.asi8)) == len(self)
 
     # ----------------------------------------------------------------
     # Arithmetic Methods
@@ -797,7 +775,6 @@ class TimedeltaArrayMixin(dtl.DatetimeLikeArrayMixin, dtl.TimelikeOps):
 
 
 TimedeltaArrayMixin._add_comparison_ops()
-TimedeltaArrayMixin._add_datetimelike_methods()
 
 
 # ---------------------------------------------------------------------

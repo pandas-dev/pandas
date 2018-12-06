@@ -241,6 +241,7 @@ def infer_freq(index, warn=True):
         ValueError if there are less than three values.
     """
     import pandas as pd
+    from pandas.core.arrays import DatetimeArrayMixin, TimedeltaArrayMixin
 
     if isinstance(index, ABCSeries):
         values = index._values
@@ -265,7 +266,8 @@ def infer_freq(index, warn=True):
                             "type {type}".format(type=type(index)))
         index = index.values
 
-    if not isinstance(index, pd.DatetimeIndex):
+    if not isinstance(index, (DatetimeArrayMixin, TimedeltaArrayMixin,
+                              pd.DatetimeIndex)):
         try:
             index = pd.DatetimeIndex(index)
         except AmbiguousTimeError:

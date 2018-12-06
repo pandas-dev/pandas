@@ -1008,9 +1008,9 @@ class TestDataFrameAnalytics():
         assert_stat_op_api('kurt', float_frame, float_string_frame)
 
         index = MultiIndex(levels=[['bar'], ['one', 'two', 'three'], [0, 1]],
-                           labels=[[0, 0, 0, 0, 0, 0],
-                                   [0, 1, 2, 0, 1, 2],
-                                   [0, 1, 0, 1, 0, 1]])
+                           codes=[[0, 0, 0, 0, 0, 0],
+                                  [0, 1, 2, 0, 1, 2],
+                                  [0, 1, 0, 1, 0, 1]])
         df = DataFrame(np.random.randn(6, 3), index=index)
 
         kurt = df.kurt()

@@ -3010,7 +3010,9 @@ class DatetimeTZBlock(ExtensionBlock, DatetimeBlock):
             # allow passing of > 1dim if its trivial
             if result.ndim > 1:
                 result = result.reshape(np.prod(result.shape))
-            result = self._holder._simple_new(result, tz=self.values.tz)
+            # GH#24096 new values invalidates a frequency
+            result = self._holder._simple_new(result, freq=None,
+                                              tz=self.values.tz)
 
         return result
 

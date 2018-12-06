@@ -1774,8 +1774,8 @@ class TestHDFStore(Base):
     def test_append_hierarchical(self):
         index = MultiIndex(levels=[['foo', 'bar', 'baz', 'qux'],
                                    ['one', 'two', 'three']],
-                           labels=[[0, 0, 0, 1, 1, 2, 2, 3, 3, 3],
-                                   [0, 1, 2, 0, 1, 1, 2, 0, 1, 2]],
+                           codes=[[0, 0, 0, 1, 1, 2, 2, 3, 3, 3],
+                                  [0, 1, 2, 0, 1, 1, 2, 0, 1, 2]],
                            names=['foo', 'bar'])
         df = DataFrame(np.random.randn(10, 3), index=index,
                        columns=['A', 'B', 'C'])
@@ -1908,8 +1908,8 @@ class TestHDFStore(Base):
         # in the `where` argument
         index = MultiIndex(levels=[['foo', 'bar', 'baz', 'qux'],
                                    ['one', 'two', 'three']],
-                           labels=[[0, 0, 0, 1, 1, 2, 2, 3, 3, 3],
-                                   [0, 1, 2, 0, 1, 1, 2, 0, 1, 2]],
+                           codes=[[0, 0, 0, 1, 1, 2, 2, 3, 3, 3],
+                                  [0, 1, 2, 0, 1, 1, 2, 0, 1, 2]],
                            names=['foo_name', 'bar_name'])
 
         # With a DataFrame
@@ -2877,8 +2877,8 @@ class TestHDFStore(Base):
     def test_store_hierarchical(self):
         index = MultiIndex(levels=[['foo', 'bar', 'baz', 'qux'],
                                    ['one', 'two', 'three']],
-                           labels=[[0, 0, 0, 1, 1, 2, 2, 3, 3, 3],
-                                   [0, 1, 2, 0, 1, 1, 2, 0, 1, 2]],
+                           codes=[[0, 0, 0, 1, 1, 2, 2, 3, 3, 3],
+                                  [0, 1, 2, 0, 1, 1, 2, 0, 1, 2]],
                            names=['foo', 'bar'])
         frame = DataFrame(np.random.randn(10, 3), index=index,
                           columns=['A', 'B', 'C'])

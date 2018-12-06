@@ -191,7 +191,6 @@ class TestReshaping(BaseDatetimeTests, base.BaseReshapingTests):
     def test_concat(self, data, in_frame):
         pass
 
-    @pytest.mark.xfail(reason="GH-23816", strict=True)
     def test_concat_mixed_dtypes(self, data):
         # concat(Series[datetimetz], Series[category]) uses a
         # plain np.array(values) on the DatetimeArray, which
