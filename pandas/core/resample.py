@@ -1540,20 +1540,45 @@ class TimeGrouper(Grouper):
                 data=[], freq=self.freq, name=ax.name)
             return binner, [], labels
 
+        freq_mult = self.freq.n
+
         start = ax.min().asfreq(self.freq, how=self.convention)
         end = ax.max().asfreq(self.freq, how='end')
+        if self.base:
+            start = start.to_timestamp()
+            end = end.to_timestamp()
 
-        labels = binner = PeriodIndex(start=start, end=end,
-                                      freq=self.freq, name=ax.name)
+            # get base adjusted bin edge labels
+            p_start, p_end = _get_range_edges(start,
+                                              end,
+                                              self.freq,
+                                              closed=self.closed,
+                                              base=self.base)
+
+            # compensate if edge labels are extened away from true labels
+            j = -1 if self.freq.onOffset(end) else None
+
+            labels = binner = PeriodIndex(start=p_start, end=p_end,
+                                          freq=self.freq,
+                                          name=ax.name)[:j]
+            start_offset = (pd.Period(start, self.freq)
+                            - pd.Period(p_start, self.freq))
+            # remove /freq_mult once period diff scaling bug is fixed
+            offset = int(start_offset.n / freq_mult) % freq_mult
+        else:
+            labels = binner = PeriodIndex(start=start, end=end,
+                                          freq=self.freq, name=ax.name)
+            offset = 0
 
         i8 = memb.asi8
-        freq_mult = self.freq.n
 
         # when upsampling to subperiods, we need to generate enough bins
         expected_bins_count = len(binner) * freq_mult
         i8_extend = expected_bins_count - (i8[-1] - i8[0])
         rng = np.arange(i8[0], i8[-1] + i8_extend, freq_mult)
         rng += freq_mult
+        # adjust bin edge indexes to account for base
+        rng -= offset
         bins = memb.searchsorted(rng, side='left')
 
         if nat_count > 0:
