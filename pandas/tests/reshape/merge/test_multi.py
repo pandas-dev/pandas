@@ -32,8 +32,8 @@ def right():
     """right dataframe (multi-indexed) for multi-index join tests"""
     index = MultiIndex(levels=[['foo', 'bar', 'baz', 'qux'],
                                ['one', 'two', 'three']],
-                       labels=[[0, 0, 0, 1, 1, 2, 2, 3, 3, 3],
-                               [0, 1, 2, 0, 1, 1, 2, 0, 1, 2]],
+                       codes=[[0, 0, 0, 1, 1, 2, 2, 3, 3, 3],
+                              [0, 1, 2, 0, 1, 1, 2, 0, 1, 2]],
                        names=['key1', 'key2'])
 
     return DataFrame(np.random.randn(10, 3), index=index,
@@ -83,8 +83,8 @@ class TestMergeMulti(object):
     def setup_method(self):
         self.index = MultiIndex(levels=[['foo', 'bar', 'baz', 'qux'],
                                         ['one', 'two', 'three']],
-                                labels=[[0, 0, 0, 1, 1, 2, 2, 3, 3, 3],
-                                        [0, 1, 2, 0, 1, 1, 2, 0, 1, 2]],
+                                codes=[[0, 0, 0, 1, 1, 2, 2, 3, 3, 3],
+                                       [0, 1, 2, 0, 1, 1, 2, 0, 1, 2]],
                                 names=['first', 'second'])
         self.to_join = DataFrame(np.random.randn(10, 3), index=self.index,
                                  columns=['j_one', 'j_two', 'j_three'])

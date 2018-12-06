@@ -380,12 +380,12 @@ class Categorical(ExtensionArray, PandasObject):
                 dtype = CategoricalDtype(values.categories, dtype.ordered)
 
         elif not isinstance(values, (ABCIndexClass, ABCSeries)):
-            # _sanitize_array coerces np.nan to a string under certain versions
+            # sanitize_array coerces np.nan to a string under certain versions
             # of numpy
             values = maybe_infer_to_datetimelike(values, convert_dates=True)
             if not isinstance(values, np.ndarray):
                 values = _convert_to_list_like(values)
-                from pandas.core.series import _sanitize_array
+                from pandas.core.internals.construction import sanitize_array
                 # By convention, empty lists result in object dtype:
                 if len(values) == 0:
                     sanitize_dtype = 'object'
@@ -394,7 +394,7 @@ class Categorical(ExtensionArray, PandasObject):
                 null_mask = isna(values)
                 if null_mask.any():
                     values = [values[idx] for idx in np.where(~null_mask)[0]]
-                values = _sanitize_array(values, None, dtype=sanitize_dtype)
+                values = sanitize_array(values, None, dtype=sanitize_dtype)
 
         if dtype.categories is None:
             try:
@@ -499,6 +499,10 @@ class Categorical(ExtensionArray, PandasObject):
     @classmethod
     def _from_sequence(cls, scalars, dtype=None, copy=False):
         return Categorical(scalars, dtype=dtype)
+
+    def _formatter(self, boxed=False):
+        # Defer to CategoricalFormatter's formatter.
+        return None
 
     def copy(self):
         """
@@ -2036,6 +2040,10 @@ class Categorical(ExtensionArray, PandasObject):
 
         return result
 
+    def __repr__(self):
+        # We want PandasObject.__repr__, which dispatches to __unicode__
+        return super(ExtensionArray, self).__repr__()
+
     def _maybe_coerce_indexer(self, indexer):
         """
         return an indexer coerced to the codes dtype
@@ -2392,9 +2400,6 @@ class Categorical(ExtensionArray, PandasObject):
 
         return _concat_categorical(to_concat)
 
-    def _formatting_values(self):
-        return self
-
     def isin(self, values):
         """
         Check whether `values` are contained in Categorical.
@@ -2437,12 +2442,12 @@ class Categorical(ExtensionArray, PandasObject):
         >>> s.isin(['lama'])
         array([ True, False,  True, False,  True, False])
         """
-        from pandas.core.series import _sanitize_array
+        from pandas.core.internals.construction import sanitize_array
         if not is_list_like(values):
             raise TypeError("only list-like objects are allowed to be passed"
                             " to isin(), you passed a [{values_type}]"
                             .format(values_type=type(values).__name__))
-        values = _sanitize_array(values, None, None)
+        values = sanitize_array(values, None, None)
         null_mask = np.asarray(isna(values))
         code_values = self.categories.get_indexer(values)
         code_values = code_values[null_mask | (code_values >= 0)]
