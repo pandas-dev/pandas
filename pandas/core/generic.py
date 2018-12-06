@@ -8829,7 +8829,10 @@ class NDFrame(PandasObject, SelectionMixin):
             data is not realigned. That is, use `freq` if you would like to
             extend the index when shifting and preserve the original data.
         axis : {0 or 'index', 1 or 'columns', None}, default None
-            Shift direction.
+            Shift direction.        
+        fill_value : None or value, default None (NaN).
+            Filling the empty space after shift with value provided by 
+            the user instead of NaN
 
         Returns
         -------
@@ -8865,6 +8868,14 @@ class NDFrame(PandasObject, SelectionMixin):
         2   NaN  15.0  18.0
         3   NaN  30.0  33.0
         4   NaN  45.0  48.0
+        
+        >>> df.shift(periods=3, fill_value=0.0)
+           Col1  Col2  Col3
+        0   0.0   0.0   0.0
+        1   0.0   0.0   0.0
+        2   0.0   0.0   0.0
+        3  10.0  13.0  17.0
+        4  20.0  23.0  27.0
     """)
 
     @Appender(_shared_docs['shift'] % _shared_doc_kwargs)
