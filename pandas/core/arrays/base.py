@@ -666,6 +666,8 @@ class ExtensionArray(object):
         """
         Replace values where the condition is False.
 
+        .. versionadded :: 0.24.0
+
         Parameters
         ----------
         cond : ndarray or ExtensionArray
