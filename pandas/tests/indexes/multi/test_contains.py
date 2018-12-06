@@ -20,7 +20,7 @@ def test_contains_with_nat():
     # MI with a NaT
     mi = MultiIndex(levels=[['C'],
                             pd.date_range('2012-01-01', periods=5)],
-                    labels=[[0, 0, 0, 0, 0, 0], [-1, 0, 1, 2, 3, 4]],
+                    codes=[[0, 0, 0, 0, 0, 0], [-1, 0, 1, 2, 3, 4]],
                     names=[None, 'B'])
     assert ('C', pd.Timestamp('2012-01-01')) in mi
     for val in mi.values:

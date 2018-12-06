@@ -60,7 +60,7 @@ def _field_accessor(name, alias, docstring=None):
         return result
 
     f.__name__ = name
-    f.__doc__ = docstring
+    f.__doc__ = "\n{}\n".format(docstring)
     return property(f)
 
 
@@ -146,27 +146,19 @@ class TimedeltaArrayMixin(dtl.DatetimeLikeArrayMixin, dtl.TimelikeOps):
         return result
 
     def __new__(cls, values, freq=None, dtype=_TD_DTYPE, copy=False):
-        return cls._from_sequence(values, freq=freq, dtype=dtype, copy=copy)
+        return cls._from_sequence(values, dtype=dtype, copy=copy, freq=freq)
 
     @classmethod
-    def _from_sequence(cls, data, freq=None, unit=None,
-                       dtype=_TD_DTYPE, copy=False):
+    def _from_sequence(cls, data, dtype=_TD_DTYPE, copy=False,
+                       freq=None, unit=None):
         if dtype != _TD_DTYPE:
             raise ValueError("Only timedelta64[ns] dtype is valid.")
 
         freq, freq_infer = dtl.maybe_infer_freq(freq)
 
         data, inferred_freq = sequence_to_td64ns(data, copy=copy, unit=unit)
-        if inferred_freq is not None:
-            if freq is not None and freq != inferred_freq:
-                raise ValueError('Inferred frequency {inferred} from passed '
-                                 'values does not conform to passed frequency '
-                                 '{passed}'
-                                 .format(inferred=inferred_freq,
-                                         passed=freq.freqstr))
-            elif freq is None:
-                freq = inferred_freq
-            freq_infer = False
+        freq, freq_infer = dtl.validate_inferred_freq(freq, inferred_freq,
+                                                      freq_infer)
 
         result = cls._simple_new(data, freq=freq)
 
@@ -692,16 +684,16 @@ class TimedeltaArrayMixin(dtl.DatetimeLikeArrayMixin, dtl.TimelikeOps):
         return tslibs.ints_to_pytimedelta(self.asi8)
 
     days = _field_accessor("days", "days",
-                           "\nNumber of days for each element.\n")
+                           "Number of days for each element.")
     seconds = _field_accessor("seconds", "seconds",
-                              "\nNumber of seconds (>= 0 and less than 1 day) "
-                              "for each element.\n")
+                              "Number of seconds (>= 0 and less than 1 day) "
+                              "for each element.")
     microseconds = _field_accessor("microseconds", "microseconds",
-                                   "\nNumber of microseconds (>= 0 and less "
-                                   "than 1 second) for each element.\n")
+                                   "Number of microseconds (>= 0 and less "
+                                   "than 1 second) for each element.")
     nanoseconds = _field_accessor("nanoseconds", "nanoseconds",
-                                  "\nNumber of nanoseconds (>= 0 and less "
-                                  "than 1 microsecond) for each element.\n")
+                                  "Number of nanoseconds (>= 0 and less "
+                                  "than 1 microsecond) for each element.")
 
     @property
     def components(self):
@@ -734,7 +726,6 @@ class TimedeltaArrayMixin(dtl.DatetimeLikeArrayMixin, dtl.TimelikeOps):
 
 
 TimedeltaArrayMixin._add_comparison_ops()
-TimedeltaArrayMixin._add_datetimelike_methods()
 
 
 # ---------------------------------------------------------------------

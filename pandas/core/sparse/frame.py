@@ -967,7 +967,7 @@ def stack_sparse_frame(frame):
     nobs = sum(lengths)
 
     # this is pretty fast
-    minor_labels = np.repeat(np.arange(len(frame.columns)), lengths)
+    minor_codes = np.repeat(np.arange(len(frame.columns)), lengths)
 
     inds_to_concat = []
     vals_to_concat = []
@@ -982,10 +982,10 @@ def stack_sparse_frame(frame):
         inds_to_concat.append(int_index.indices)
         vals_to_concat.append(series.sp_values)
 
-    major_labels = np.concatenate(inds_to_concat)
+    major_codes = np.concatenate(inds_to_concat)
     stacked_values = np.concatenate(vals_to_concat)
     index = MultiIndex(levels=[frame.index, frame.columns],
-                       labels=[major_labels, minor_labels],
+                       codes=[major_codes, minor_codes],
                        verify_integrity=False)
 
     lp = DataFrame(stacked_values.reshape((nobs, 1)), index=index,

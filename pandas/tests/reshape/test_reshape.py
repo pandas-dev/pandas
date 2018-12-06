@@ -613,7 +613,7 @@ class TestMakeAxisDummies(object):
         for ordered in [False, True]:
             cidx = pd.CategoricalIndex(list("xyz"), ordered=ordered)
             midx = pd.MultiIndex(levels=[['a'], cidx],
-                                 labels=[[0, 0], [0, 1]])
+                                 codes=[[0, 0], [0, 1]])
             df = DataFrame([[10, 11]], index=midx)
 
             expected = DataFrame([[1.0, 0.0, 0.0], [0.0, 1.0, 0.0]],
