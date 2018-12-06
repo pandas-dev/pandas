@@ -218,14 +218,14 @@ def read_sql_table(table_name, con, schema=None, index_col=None,
     -------
     DataFrame
 
-    Notes
-    -----
-    Any datetime values with time zone information will be converted to UTC.
-
     See Also
     --------
     read_sql_query : Read SQL query into a DataFrame.
     read_sql
+
+    Notes
+    -----
+    Any datetime values with time zone information will be converted to UTC.
     """
 
     con = _engine_builder(con)
@@ -296,15 +296,15 @@ def read_sql_query(sql, con, index_col=None, coerce_float=True, params=None,
     -------
     DataFrame
 
-    Notes
-    -----
-    Any datetime values with time zone information parsed via the `parse_dates`
-    parameter will be converted to UTC.
-
     See Also
     --------
     read_sql_table : Read SQL database table into a DataFrame.
     read_sql
+    
+    Notes
+    -----
+    Any datetime values with time zone information parsed via the `parse_dates`
+    parameter will be converted to UTC.
     """
     pandas_sql = pandasSQL_builder(con)
     return pandas_sql.read_query(

@@ -212,6 +212,10 @@ class TimedeltaProperties(Properties):
         a : numpy.ndarray
             1D array containing data with `datetime.timedelta` type.
 
+        See Also
+        --------
+        datetime.timedelta
+        
         Examples
         --------
         >>> s = pd.Series(pd.to_timedelta(np.arange(5), unit='d'))
@@ -227,10 +231,6 @@ class TimedeltaProperties(Properties):
         array([datetime.timedelta(0), datetime.timedelta(1),
                datetime.timedelta(2), datetime.timedelta(3),
                datetime.timedelta(4)], dtype=object)
-
-        See Also
-        --------
-        datetime.timedelta
         """
         return self._get_values().to_pytimedelta()
 

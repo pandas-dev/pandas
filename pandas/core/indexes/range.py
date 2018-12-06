@@ -46,11 +46,6 @@ class RangeIndex(Int64Index):
     copy : bool, default False
         Unused, accepted for homogeneity with other index types.
 
-    See Also
-    --------
-    Index : The base pandas Index type.
-    Int64Index : Index of int64 data.
-
     Attributes
     ----------
     None
@@ -58,6 +53,11 @@ class RangeIndex(Int64Index):
     Methods
     -------
     from_range
+    
+    See Also
+    --------
+    Index : The base pandas Index type.
+    Int64Index : Index of int64 data.
     """
 
     _typ = 'rangeindex'

@@ -1012,6 +1012,10 @@ class Panel(NDFrame):
             axes
         Additional keyword arguments will be passed as keywords to the function
 
+        Returns
+        -------
+        result : Panel, DataFrame, or Series
+        
         Examples
         --------
 
@@ -1032,10 +1036,6 @@ class Panel(NDFrame):
         items x major), as a Series
 
         >>> p.apply(lambda x: x.shape, axis=(0,1))  # doctest: +SKIP
-
-        Returns
-        -------
-        result : Panel, DataFrame, or Series
         """
 
         if kwargs and not isinstance(func, np.ufunc):

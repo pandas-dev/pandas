@@ -1041,6 +1041,10 @@ def read_html(io, match='.+', flavor=None, header=None, index_col=None,
     -------
     dfs : list of DataFrames
 
+    See Also
+    --------
+    pandas.read_csv
+    
     Notes
     -----
     Before using this function you should read the :ref:`gotchas about the
@@ -1072,10 +1076,6 @@ def read_html(io, match='.+', flavor=None, header=None, index_col=None,
     --------
     See the :ref:`read_html documentation in the IO section of the docs
     <io.read_html>` for some examples of reading in HTML tables.
-
-    See Also
-    --------
-    pandas.read_csv
     """
     _importers()
 

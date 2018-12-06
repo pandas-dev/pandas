@@ -478,6 +478,40 @@ class Window(_Window):
     -------
     a Window or Rolling sub-classed for the particular operation
 
+    See Also
+    --------
+    expanding : Provides expanding transformations.
+    ewm : Provides exponential weighted functions.
+
+    Notes
+    -----
+    By default, the result is set to the right edge of the window. This can be
+    changed to the center of the window by setting ``center=True``.
+
+    To learn more about the offsets & frequency strings, please see `this link
+    <http://pandas.pydata.org/pandas-docs/stable/timeseries.html#offset-aliases>`__.
+
+    The recognized win_types are:
+
+    * ``boxcar``
+    * ``triang``
+    * ``blackman``
+    * ``hamming``
+    * ``bartlett``
+    * ``parzen``
+    * ``bohman``
+    * ``blackmanharris``
+    * ``nuttall``
+    * ``barthann``
+    * ``kaiser`` (needs beta)
+    * ``gaussian`` (needs std)
+    * ``general_gaussian`` (needs power, width)
+    * ``slepian`` (needs width).
+
+    If ``win_type=None`` all points are evenly weighted. To learn more about
+    different window types see `scipy.signal window functions
+    <https://docs.scipy.org/doc/scipy/reference/signal.html#window-functions>`__.
+    
     Examples
     --------
 
@@ -550,40 +584,6 @@ class Window(_Window):
     2013-01-01 09:00:03  3.0
     2013-01-01 09:00:05  NaN
     2013-01-01 09:00:06  4.0
-
-    Notes
-    -----
-    By default, the result is set to the right edge of the window. This can be
-    changed to the center of the window by setting ``center=True``.
-
-    To learn more about the offsets & frequency strings, please see `this link
-    <http://pandas.pydata.org/pandas-docs/stable/timeseries.html#offset-aliases>`__.
-
-    The recognized win_types are:
-
-    * ``boxcar``
-    * ``triang``
-    * ``blackman``
-    * ``hamming``
-    * ``bartlett``
-    * ``parzen``
-    * ``bohman``
-    * ``blackmanharris``
-    * ``nuttall``
-    * ``barthann``
-    * ``kaiser`` (needs beta)
-    * ``gaussian`` (needs std)
-    * ``general_gaussian`` (needs power, width)
-    * ``slepian`` (needs width).
-
-    If ``win_type=None`` all points are evenly weighted. To learn more about
-    different window types see `scipy.signal window functions
-    <https://docs.scipy.org/doc/scipy/reference/signal.html#window-functions>`__.
-
-    See Also
-    --------
-    expanding : Provides expanding transformations.
-    ewm : Provides exponential weighted functions.
     """
 
     def validate(self):
@@ -1596,6 +1596,11 @@ class Rolling(_Rolling_and_Expanding):
                              "index".format(self.window))
 
     _agg_doc = dedent("""
+    See Also
+    --------
+    pandas.Series.rolling
+    pandas.DataFrame.rolling
+
     Examples
     --------
 
@@ -1638,11 +1643,6 @@ class Rolling(_Rolling_and_Expanding):
     7  2.718061 -1.647453
     8 -0.289082 -1.647453
     9  0.212668 -1.647453
-
-    See Also
-    --------
-    pandas.Series.rolling
-    pandas.DataFrame.rolling
     """)
 
     @Appender(_agg_doc)
@@ -1821,6 +1821,16 @@ class Expanding(_Rolling_and_Expanding):
     -------
     a Window sub-classed for the particular operation
 
+    See Also
+    --------
+    rolling : Provides rolling window calculations.
+    ewm : Provides exponential weighted functions.
+    
+    Notes
+    -----
+    By default, the result is set to the right edge of the window. This can be
+    changed to the center of the window by setting ``center=True``.
+
     Examples
     --------
 
@@ -1839,16 +1849,6 @@ class Expanding(_Rolling_and_Expanding):
     2  3.0
     3  3.0
     4  7.0
-
-    Notes
-    -----
-    By default, the result is set to the right edge of the window. This can be
-    changed to the center of the window by setting ``center=True``.
-
-    See Also
-    --------
-    rolling : Provides rolling window calculations.
-    ewm : Provides exponential weighted functions.
     """
 
     _attributes = ['min_periods', 'center', 'axis']
@@ -2116,25 +2116,11 @@ class EWM(_Rolling):
     -------
     a Window sub-classed for the particular operation
 
-    Examples
+    See Also
     --------
-
-    >>> df = pd.DataFrame({'B': [0, 1, 2, np.nan, 4]})
-         B
-    0  0.0
-    1  1.0
-    2  2.0
-    3  NaN
-    4  4.0
-
-    >>> df.ewm(com=0.5).mean()
-              B
-    0  0.000000
-    1  0.750000
-    2  1.615385
-    3  1.615385
-    4  3.670213
-
+    rolling : Provides rolling window calculations.
+    expanding : Provides expanding transformations.
+    
     Notes
     -----
     Exactly one of center of mass, span, half-life, and alpha must be provided.
@@ -2162,10 +2148,24 @@ class EWM(_Rolling):
     More details can be found at
     http://pandas.pydata.org/pandas-docs/stable/computation.html#exponentially-weighted-windows
 
-    See Also
+    Examples
     --------
-    rolling : Provides rolling window calculations.
-    expanding : Provides expanding transformations.
+
+    >>> df = pd.DataFrame({'B': [0, 1, 2, np.nan, 4]})
+         B
+    0  0.0
+    1  1.0
+    2  2.0
+    3  NaN
+    4  4.0
+
+    >>> df.ewm(com=0.5).mean()
+              B
+    0  0.000000
+    1  0.750000
+    2  1.615385
+    3  1.615385
+    4  3.670213
     """
     _attributes = ['com', 'min_periods', 'adjust', 'ignore_na', 'axis']
 
