@@ -438,7 +438,7 @@ def sphinxdocstring_str(self, indent=0, func_role="obj"):
         'attributes': self._str_member_list('Attributes'),
         'methods': self._str_member_list('Methods'),
     }
-    ns = dict((k, '\n'.join(v)) for k, v in ns.items())
+    ns = {k: '\n'.join(v) for k, v in ns.items()}
 
     rendered = self.template.render(**ns)
     return '\n'.join(self._str_indent(rendered.split('\n'), indent))
