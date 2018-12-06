@@ -149,7 +149,6 @@ class TestTimeSeries(TestData):
         tm.assert_equal(result.iloc[1].value, 0.0)
         tm.assert_equal(result.iloc[2].value, ts.iloc[0].value)
 
-
     def test_shift_dst(self):
         # GH 13926
         dates = date_range('2016-11-06', freq='H', periods=10, tz='US/Eastern')
