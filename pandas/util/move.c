@@ -20,7 +20,7 @@
 #define Py_TPFLAGS_HAVE_NEWBUFFER 0
 #endif
 
-PyObject *badmove;  /* bad move exception class */
+static PyObject *badmove;  /* bad move exception class */
 
 typedef struct {
     PyObject_HEAD
@@ -28,7 +28,7 @@ typedef struct {
     PyObject *invalid_bytes;
 } stolenbufobject;
 
-PyTypeObject stolenbuf_type;  /* forward declare type */
+static PyTypeObject stolenbuf_type;  /* forward declare type */
 
 static void
 stolenbuf_dealloc(stolenbufobject *self)
@@ -71,7 +71,7 @@ stolenbuf_getsegcount(stolenbufobject *self, Py_ssize_t *len)
     return 1;
 }
 
-PyBufferProcs stolenbuf_as_buffer = {
+static PyBufferProcs stolenbuf_as_buffer = {
     (readbufferproc) stolenbuf_getreadwritebuf,
     (writebufferproc) stolenbuf_getreadwritebuf,
     (segcountproc) stolenbuf_getsegcount,
@@ -81,7 +81,7 @@ PyBufferProcs stolenbuf_as_buffer = {
 
 #else  /* Python 3 */
 
-PyBufferProcs stolenbuf_as_buffer = {
+static PyBufferProcs stolenbuf_as_buffer = {
     (getbufferproc) stolenbuf_getbuffer,
     NULL,
 };
@@ -91,7 +91,7 @@ PyBufferProcs stolenbuf_as_buffer = {
 PyDoc_STRVAR(stolenbuf_doc,
              "A buffer that is wrapping a stolen bytes object's buffer.");
 
-PyTypeObject stolenbuf_type = {
+static PyTypeObject stolenbuf_type = {
     PyVarObject_HEAD_INIT(NULL, 0)
     "pandas.util._move.stolenbuf",              /* tp_name */
     sizeof(stolenbufobject),                    /* tp_basicsize */
@@ -185,7 +185,7 @@ move_into_mutable_buffer(PyObject *self, PyObject *bytes_rvalue)
     return (PyObject*) ret;
 }
 
-PyMethodDef methods[] = {
+static PyMethodDef methods[] = {
     {"move_into_mutable_buffer",
      (PyCFunction) move_into_mutable_buffer,
      METH_O,
@@ -196,7 +196,7 @@ PyMethodDef methods[] = {
 #define MODULE_NAME "pandas.util._move"
 
 #if !COMPILING_IN_PY2
-PyModuleDef _move_module = {
+static PyModuleDef move_module = {
     PyModuleDef_HEAD_INIT,
     MODULE_NAME,
     NULL,
@@ -242,7 +242,7 @@ init_move(void)
     }
 
 #if !COMPILING_IN_PY2
-    if (!(m = PyModule_Create(&_move_module)))
+    if (!(m = PyModule_Create(&move_module)))
 #else
     if (!(m = Py_InitModule(MODULE_NAME, methods)))
 #endif  /* !COMPILING_IN_PY2 */
