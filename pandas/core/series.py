@@ -3715,7 +3715,8 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
     @Appender(generic._shared_docs['shift'] % _shared_doc_kwargs)
     def shift(self, periods=1, freq=None, axis=0, fill_value=np.nan):
-        return super(Series, self).shift(periods=periods, freq=freq, axis=axis, fill_value=fill_value)
+        return super(Series, self).shift(periods=periods, freq=freq, axis=axis,
+                                         fill_value=fill_value)
 
     def reindex_axis(self, labels, axis=0, **kwargs):
         """
