@@ -2708,10 +2708,11 @@ class GenericFixed(Fixed):
             raise NotImplementedError('Cannot store a category dtype in '
                                       'a HDF5 dataset that uses format='
                                       '"fixed". Use format="table".')
-
         if not empty_array:
-            value = value.T
-            transposed = True
+            if hasattr(value, 'T'):
+                # ExtensionArrays (1d) may not have transpose.
+                value = value.T
+                transposed = True
 
         if self._filters is not None:
             atom = None
