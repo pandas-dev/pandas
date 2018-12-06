@@ -100,7 +100,7 @@ class _Unstacker(object):
         self.level = self.index._get_level_number(level)
 
         # when index includes `nan`, need to lift levels/strides by 1
-        self.lift = 1 if -1 in self.index.labels[self.level] else 0
+        self.lift = 1 if -1 in self.index.codes[self.level] else 0
 
         self.new_index_levels = list(self.index.levels)
         self.new_index_names = list(self.index.names)
@@ -115,9 +115,9 @@ class _Unstacker(object):
     def _make_sorted_values_labels(self):
         v = self.level
 
-        labs = list(self.index.labels)
+        codes = list(self.index.codes)
         levs = list(self.index.levels)
-        to_sort = labs[:v] + labs[v + 1:] + [labs[v]]
+        to_sort = codes[:v] + codes[v + 1:] + [codes[v]]
         sizes = [len(x) for x in levs[:v] + levs[v + 1:] + [levs[v]]]
 
         comp_index, obs_ids = get_compressed_ids(to_sort, sizes)
@@ -243,16 +243,16 @@ class _Unstacker(object):
             new_levels = self.value_columns.levels + (self.removed_level_full,)
             new_names = self.value_columns.names + (self.removed_name,)
 
-            new_labels = [lab.take(propagator)
-                          for lab in self.value_columns.labels]
+            new_codes = [lab.take(propagator)
+                         for lab in self.value_columns.codes]
         else:
             new_levels = [self.value_columns, self.removed_level_full]
             new_names = [self.value_columns.name, self.removed_name]
-            new_labels = [propagator]
+            new_codes = [propagator]
 
         # The two indices differ only if the unstacked level had unused items:
         if len(self.removed_level_full) != len(self.removed_level):
-            # In this case, we remap the new labels to the original level:
+            # In this case, we remap the new codes to the original level:
             repeater = self.removed_level_full.get_indexer(self.removed_level)
             if self.lift:
                 repeater = np.insert(repeater, 0, -1)
@@ -261,22 +261,22 @@ class _Unstacker(object):
             repeater = np.arange(stride) - self.lift
 
         # The entire level is then just a repetition of the single chunk:
-        new_labels.append(np.tile(repeater, width))
-        return MultiIndex(levels=new_levels, labels=new_labels,
+        new_codes.append(np.tile(repeater, width))
+        return MultiIndex(levels=new_levels, codes=new_codes,
                           names=new_names, verify_integrity=False)
 
     def get_new_index(self):
-        result_labels = [lab.take(self.compressor)
-                         for lab in self.sorted_labels[:-1]]
+        result_codes = [lab.take(self.compressor)
+                        for lab in self.sorted_labels[:-1]]
 
         # construct the new index
         if len(self.new_index_levels) == 1:
-            lev, lab = self.new_index_levels[0], result_labels[0]
+            lev, lab = self.new_index_levels[0], result_codes[0]
             if (lab == -1).any():
                 lev = lev.insert(len(lev), lev._na_value)
             return lev.take(lab)
 
-        return MultiIndex(levels=self.new_index_levels, labels=result_labels,
+        return MultiIndex(levels=self.new_index_levels, codes=result_codes,
                           names=self.new_index_names, verify_integrity=False)
 
 
@@ -293,25 +293,25 @@ def _unstack_multiple(data, clocs, fill_value=None):
     rlocs = [i for i in range(index.nlevels) if i not in clocs]
 
     clevels = [index.levels[i] for i in clocs]
-    clabels = [index.labels[i] for i in clocs]
+    ccodes = [index.codes[i] for i in clocs]
     cnames = [index.names[i] for i in clocs]
     rlevels = [index.levels[i] for i in rlocs]
-    rlabels = [index.labels[i] for i in rlocs]
+    rcodes = [index.codes[i] for i in rlocs]
     rnames = [index.names[i] for i in rlocs]
 
     shape = [len(x) for x in clevels]
-    group_index = get_group_index(clabels, shape, sort=False, xnull=False)
+    group_index = get_group_index(ccodes, shape, sort=False, xnull=False)
 
     comp_ids, obs_ids = compress_group_index(group_index, sort=False)
-    recons_labels = decons_obs_group_ids(comp_ids, obs_ids, shape, clabels,
-                                         xnull=False)
+    recons_codes = decons_obs_group_ids(comp_ids, obs_ids, shape, ccodes,
+                                        xnull=False)
 
     if rlocs == []:
         # Everything is in clocs, so the dummy df has a regular index
         dummy_index = Index(obs_ids, name='__placeholder__')
     else:
         dummy_index = MultiIndex(levels=rlevels + [obs_ids],
-                                 labels=rlabels + [comp_ids],
+                                 codes=rcodes + [comp_ids],
                                  names=rnames + ['__placeholder__'],
                                  verify_integrity=False)
 
@@ -322,7 +322,7 @@ def _unstack_multiple(data, clocs, fill_value=None):
         unstacked = dummy.unstack('__placeholder__', fill_value=fill_value)
         new_levels = clevels
         new_names = cnames
-        new_labels = recons_labels
+        new_codes = recons_codes
     else:
         if isinstance(data.columns, MultiIndex):
             result = data
@@ -344,11 +344,11 @@ def _unstack_multiple(data, clocs, fill_value=None):
         new_levels = [unstcols.levels[0]] + clevels
         new_names = [data.columns.name] + cnames
 
-        new_labels = [unstcols.labels[0]]
-        for rec in recons_labels:
-            new_labels.append(rec.take(unstcols.labels[-1]))
+        new_codes = [unstcols.codes[0]]
+        for rec in recons_codes:
+            new_codes.append(rec.take(unstcols.codes[-1]))
 
-    new_columns = MultiIndex(levels=new_levels, labels=new_labels,
+    new_columns = MultiIndex(levels=new_levels, codes=new_codes,
                              names=new_names, verify_integrity=False)
 
     if isinstance(unstacked, Series):
@@ -467,21 +467,21 @@ def stack(frame, level=-1, dropna=True):
         return _stack_multi_columns(frame, level_num=level_num, dropna=dropna)
     elif isinstance(frame.index, MultiIndex):
         new_levels = list(frame.index.levels)
-        new_labels = [lab.repeat(K) for lab in frame.index.labels]
+        new_codes = [lab.repeat(K) for lab in frame.index.codes]
 
         clev, clab = factorize(frame.columns)
         new_levels.append(clev)
-        new_labels.append(np.tile(clab, N).ravel())
+        new_codes.append(np.tile(clab, N).ravel())
 
         new_names = list(frame.index.names)
         new_names.append(frame.columns.name)
-        new_index = MultiIndex(levels=new_levels, labels=new_labels,
+        new_index = MultiIndex(levels=new_levels, codes=new_codes,
                                names=new_names, verify_integrity=False)
     else:
         levels, (ilab, clab) = zip(*map(factorize, (frame.index,
                                                     frame.columns)))
-        labels = ilab.repeat(K), np.tile(clab, N).ravel()
-        new_index = MultiIndex(levels=levels, labels=labels,
+        codes = ilab.repeat(K), np.tile(clab, N).ravel()
+        new_index = MultiIndex(levels=levels, codes=codes,
                                names=[frame.index.name, frame.columns.name],
                                verify_integrity=False)
 
@@ -592,9 +592,9 @@ def _stack_multi_columns(frame, level_num=-1, dropna=True):
 
     # tuple list excluding level for grouping columns
     if len(frame.columns.levels) > 2:
-        tuples = list(zip(*[lev.take(lab)
-                            for lev, lab in zip(this.columns.levels[:-1],
-                                                this.columns.labels[:-1])]))
+        tuples = list(zip(*[lev.take(level_codes) for lev, level_codes
+                            in zip(this.columns.levels[:-1],
+                                   this.columns.codes[:-1])]))
         unique_groups = [key for key, _ in itertools.groupby(tuples)]
         new_names = this.columns.names[:-1]
         new_columns = MultiIndex.from_tuples(unique_groups, names=new_names)
@@ -604,9 +604,9 @@ def _stack_multi_columns(frame, level_num=-1, dropna=True):
     # time to ravel the values
     new_data = {}
     level_vals = this.columns.levels[-1]
-    level_labels = sorted(set(this.columns.labels[-1]))
-    level_vals_used = level_vals[level_labels]
-    levsize = len(level_labels)
+    level_codes = sorted(set(this.columns.codes[-1]))
+    level_vals_used = level_vals[level_codes]
+    levsize = len(level_codes)
     drop_cols = []
     for key in unique_groups:
         try:
@@ -625,8 +625,8 @@ def _stack_multi_columns(frame, level_num=-1, dropna=True):
             slice_len = loc.stop - loc.start
 
         if slice_len != levsize:
-            chunk = this[this.columns[loc]]
-            chunk.columns = level_vals.take(chunk.columns.labels[-1])
+            chunk = this.loc[:, this.columns[loc]]
+            chunk.columns = level_vals.take(chunk.columns.codes[-1])
             value_slice = chunk.reindex(columns=level_vals_used).values
         else:
             if (frame._is_homogeneous_type and
@@ -660,17 +660,17 @@ def _stack_multi_columns(frame, level_num=-1, dropna=True):
     if isinstance(this.index, MultiIndex):
         new_levels = list(this.index.levels)
         new_names = list(this.index.names)
-        new_labels = [lab.repeat(levsize) for lab in this.index.labels]
+        new_codes = [lab.repeat(levsize) for lab in this.index.codes]
     else:
         new_levels = [this.index]
-        new_labels = [np.arange(N).repeat(levsize)]
+        new_codes = [np.arange(N).repeat(levsize)]
         new_names = [this.index.name]  # something better?
 
     new_levels.append(level_vals)
-    new_labels.append(np.tile(level_labels, N))
+    new_codes.append(np.tile(level_codes, N))
     new_names.append(frame.columns.names[level_num])
 
-    new_index = MultiIndex(levels=new_levels, labels=new_labels,
+    new_index = MultiIndex(levels=new_levels, codes=new_codes,
                            names=new_names, verify_integrity=False)
 
     result = frame._constructor(new_data, index=new_index, columns=new_columns)
@@ -979,13 +979,13 @@ def make_axis_dummies(frame, axis='minor', transform=None):
     num = numbers.get(axis, axis)
 
     items = frame.index.levels[num]
-    labels = frame.index.labels[num]
+    codes = frame.index.codes[num]
     if transform is not None:
         mapped_items = items.map(transform)
-        labels, items = _factorize_from_iterable(mapped_items.take(labels))
+        codes, items = _factorize_from_iterable(mapped_items.take(codes))
 
     values = np.eye(len(items), dtype=float)
-    values = values.take(labels, axis=0)
+    values = values.take(codes, axis=0)
 
     return DataFrame(values, columns=items, index=frame.index)
 

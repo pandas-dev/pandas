@@ -172,7 +172,7 @@ def test_reconstruct_sort():
 
     # cannot convert to lexsorted
     mi = MultiIndex(levels=[['b', 'd', 'a'], [1, 2, 3]],
-                    labels=[[0, 1, 0, 2], [2, 0, 0, 1]],
+                    codes=[[0, 1, 0, 2], [2, 0, 0, 1]],
                     names=['col1', 'col2'])
     assert not mi.is_lexsorted()
     assert not mi.is_monotonic
@@ -197,14 +197,14 @@ def test_reconstruct_remove_unused():
     # removed levels are there
     expected = MultiIndex(levels=[['deleteMe', 'keepMe', 'keepMeToo'],
                                   [1, 2, 3]],
-                          labels=[[1, 2], [1, 2]],
+                          codes=[[1, 2], [1, 2]],
                           names=['first', 'second'])
     result = df2.index
     tm.assert_index_equal(result, expected)
 
     expected = MultiIndex(levels=[['keepMe', 'keepMeToo'],
                                   [2, 3]],
-                          labels=[[0, 1], [0, 1]],
+                          codes=[[0, 1], [0, 1]],
                           names=['first', 'second'])
     result = df2.index.remove_unused_levels()
     tm.assert_index_equal(result, expected)
@@ -251,7 +251,7 @@ def test_remove_unused_levels_large(first_type, second_type):
 def test_remove_unused_nan(level0, level1):
     # GH 18417
     mi = pd.MultiIndex(levels=[level0, level1],
-                       labels=[[0, 2, -1, 1, -1], [0, 1, 2, 3, 2]])
+                       codes=[[0, 2, -1, 1, -1], [0, 1, 2, 3, 2]])
 
     result = mi.remove_unused_levels()
     tm.assert_index_equal(result, mi)

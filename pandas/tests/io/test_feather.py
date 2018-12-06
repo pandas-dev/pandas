@@ -100,15 +100,19 @@ class TestFeather(object):
             "the 'nthreads' keyword is deprecated, "
             "use 'use_threads' instead"
         )
-        with tm.assert_produces_warning(FutureWarning) as w:
+        # TODO: make the warning work with check_stacklevel=True
+        with tm.assert_produces_warning(
+                FutureWarning, check_stacklevel=False) as w:
             self.check_round_trip(df, nthreads=2)
-        assert len(w) == 1
-        assert expected_warning in str(w[0])
+        # we have an extra FutureWarning because of #GH23752
+        assert any(expected_warning in str(x) for x in w)
 
-        with tm.assert_produces_warning(FutureWarning) as w:
+        # TODO: make the warning work with check_stacklevel=True
+        with tm.assert_produces_warning(
+                FutureWarning, check_stacklevel=False) as w:
             self.check_round_trip(df, nthreads=1)
-        assert len(w) == 1
-        assert expected_warning in str(w[0])
+        # we have an extra FutureWarnings because of #GH23752
+        assert any(expected_warning in str(x) for x in w)
 
     def test_rw_use_threads(self):
         df = pd.DataFrame({'A': np.arange(100000)})
