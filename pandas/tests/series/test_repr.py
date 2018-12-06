@@ -25,8 +25,8 @@ class TestSeriesRepr(TestData):
     def test_multilevel_name_print(self):
         index = MultiIndex(levels=[['foo', 'bar', 'baz', 'qux'], ['one', 'two',
                                                                   'three']],
-                           labels=[[0, 0, 0, 1, 1, 2, 2, 3, 3, 3],
-                                   [0, 1, 2, 0, 1, 1, 2, 0, 1, 2]],
+                           codes=[[0, 0, 0, 1, 1, 2, 2, 3, 3, 3],
+                                  [0, 1, 2, 0, 1, 1, 2, 0, 1, 2]],
                            names=['first', 'second'])
         s = Series(lrange(0, len(index)), index=index, name='sth')
         expected = ["first  second", "foo    one       0",

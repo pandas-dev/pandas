@@ -155,7 +155,7 @@ class PeriodArray(dtl.DatetimeLikeArrayMixin, ExtensionArray):
     # Constructors
 
     def __init__(self, values, freq=None, dtype=None, copy=False):
-        freq = dtl.validate_dtype_freq(dtype, freq)
+        freq = validate_dtype_freq(dtype, freq)
 
         if freq is not None:
             freq = Period._maybe_convert_freq(freq)
@@ -830,7 +830,6 @@ class PeriodArray(dtl.DatetimeLikeArrayMixin, ExtensionArray):
 
 
 PeriodArray._add_comparison_ops()
-PeriodArray._add_datetimelike_methods()
 
 
 # -------------------------------------------------------------------
@@ -913,6 +912,40 @@ def period_array(data, freq=None, copy=False):
     data = ensure_object(data)
 
     return PeriodArray._from_sequence(data, dtype=dtype)
+
+
+def validate_dtype_freq(dtype, freq):
+    """
+    If both a dtype and a freq are available, ensure they match.  If only
+    dtype is available, extract the implied freq.
+
+    Parameters
+    ----------
+    dtype : dtype
+    freq : DateOffset or None
+
+    Returns
+    -------
+    freq : DateOffset
+
+    Raises
+    ------
+    ValueError : non-period dtype
+    IncompatibleFrequency : mismatch between dtype and freq
+    """
+    if freq is not None:
+        freq = frequencies.to_offset(freq)
+
+    if dtype is not None:
+        dtype = pandas_dtype(dtype)
+        if not is_period_dtype(dtype):
+            raise ValueError('dtype must be PeriodDtype')
+        if freq is None:
+            freq = dtype.freq
+        elif freq != dtype.freq:
+            raise IncompatibleFrequency('specified freq and dtype '
+                                        'are different')
+    return freq
 
 
 def dt64arr_to_periodarr(data, freq, tz=None):
