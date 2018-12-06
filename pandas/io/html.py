@@ -1044,7 +1044,7 @@ def read_html(io, match='.+', flavor=None, header=None, index_col=None,
     See Also
     --------
     pandas.read_csv
-    
+
     Notes
     -----
     Before using this function you should read the :ref:`gotchas about the

@@ -215,7 +215,7 @@ class TimedeltaProperties(Properties):
         See Also
         --------
         datetime.timedelta
-        
+
         Examples
         --------
         >>> s = pd.Series(pd.to_timedelta(np.arange(5), unit='d'))

@@ -189,7 +189,7 @@ class CategoricalDtype(PandasExtensionDtype, ExtensionDtype):
     See Also
     --------
     pandas.Categorical
-    
+
     Notes
     -----
     This class is useful for specifying the type of a ``Categorical``

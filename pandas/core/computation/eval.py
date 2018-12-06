@@ -250,7 +250,7 @@ def eval(expr, parser='pandas', engine=None, truediv=True,
     --------
     pandas.DataFrame.query
     pandas.DataFrame.eval
-    
+
     Notes
     -----
     The ``dtype`` of any objects involved in an arithmetic ``%`` operation are

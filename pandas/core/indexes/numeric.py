@@ -150,7 +150,7 @@ _num_index_shared_docs['class_descr'] = """
     See Also
     --------
     Index : The base pandas Index type.
-    
+
     Notes
     -----
     An Index instance can **only** contain hashable objects.

@@ -637,7 +637,7 @@ class NDFrameGroupBy(GroupBy):
         Returns
         -------
         filtered : DataFrame
-        
+
         Notes
         -----
         Each subframe is endowed the attribute 'name' in case you need to know

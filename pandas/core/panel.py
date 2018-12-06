@@ -1015,7 +1015,7 @@ class Panel(NDFrame):
         Returns
         -------
         result : Panel, DataFrame, or Series
-        
+
         Examples
         --------
 

@@ -1301,7 +1301,7 @@ class IndexOpsMixin(object):
         See Also
         --------
         numpy.ndarray.nbytes
-        
+
         Notes
         -----
         Memory usage does not include memory consumed by elements that

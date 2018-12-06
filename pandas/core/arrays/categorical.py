@@ -277,7 +277,7 @@ class Categorical(ExtensionArray, PandasObject):
     --------
     pandas.api.types.CategoricalDtype : Type for categorical data.
     CategoricalIndex : An Index with an underlying ``Categorical``.
-    
+
     Notes
     -----
     See the `user guide

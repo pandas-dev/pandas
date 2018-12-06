@@ -104,7 +104,7 @@ class TimedeltaIndex(TimedeltaArray, DatetimeIndexOpsMixin,
     Timedelta : Represents a duration between two dates or times.
     DatetimeIndex : Index of datetime64 data.
     PeriodIndex : Index of Period data.
-    
+
     Notes
     -----
 

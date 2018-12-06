@@ -315,7 +315,7 @@ class DataFrame(NDFrame):
     DataFrame.from_dict : From dicts of Series, arrays, or dicts.
     DataFrame.from_items : From sequence of (key, value) pairs
         pandas.read_csv, pandas.read_table, pandas.read_clipboard.
-        
+
     Examples
     --------
     Constructing DataFrame from a dictionary.

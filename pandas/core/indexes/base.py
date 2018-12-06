@@ -4771,7 +4771,7 @@ class Index(IndexOpsMixin, PandasObject):
         See Also
         --------
         Index.get_loc : Get location for a single label.
-        
+
         Notes
         -----
         This method only works if the index is monotonic or unique.

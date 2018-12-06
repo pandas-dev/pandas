@@ -641,7 +641,7 @@ class NDFrame(PandasObject, SelectionMixin):
         Returns
         -------
         y : same as input
-        
+
         Examples
         --------
         >>> p.transpose(2, 0, 1)
@@ -5184,7 +5184,7 @@ class NDFrame(PandasObject, SelectionMixin):
         See Also
         --------
         DataFrame.values
-        
+
         Notes
         -----
         Return is NOT a Numpy-matrix, rather, a Numpy-array.

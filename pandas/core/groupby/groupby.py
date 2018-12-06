@@ -1707,7 +1707,7 @@ class GroupBy(_GroupBy):
         See Also
         --------
         .cumcount : Number the rows in each group.
-        
+
         Examples
         --------
 

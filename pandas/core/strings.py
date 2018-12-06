@@ -981,7 +981,7 @@ def str_get_dummies(arr, sep='|'):
     See Also
     --------
     get_dummies
-    
+
     Examples
     --------
     >>> pd.Series(['a|b', 'a', 'a|c']).str.get_dummies()

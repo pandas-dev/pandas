@@ -511,7 +511,7 @@ class Window(_Window):
     If ``win_type=None`` all points are evenly weighted. To learn more about
     different window types see `scipy.signal window functions
     <https://docs.scipy.org/doc/scipy/reference/signal.html#window-functions>`__.
-    
+
     Examples
     --------
 
@@ -1825,7 +1825,7 @@ class Expanding(_Rolling_and_Expanding):
     --------
     rolling : Provides rolling window calculations.
     ewm : Provides exponential weighted functions.
-    
+
     Notes
     -----
     By default, the result is set to the right edge of the window. This can be
@@ -2120,7 +2120,7 @@ class EWM(_Rolling):
     --------
     rolling : Provides rolling window calculations.
     expanding : Provides expanding transformations.
-    
+
     Notes
     -----
     Exactly one of center of mass, span, half-life, and alpha must be provided.

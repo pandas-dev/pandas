@@ -210,7 +210,7 @@ def build_table_schema(data, index=True, primary_key=None, version=True):
     Categoricals are converted to the `any` dtype, and use the `enum` field
     constraint to list the allowed values. The `ordered` attribute is included
     in an `ordered` field.
-    
+
     Examples
     --------
     >>> df = pd.DataFrame(

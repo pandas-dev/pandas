@@ -53,7 +53,7 @@ class RangeIndex(Int64Index):
     Methods
     -------
     from_range
-    
+
     See Also
     --------
     Index : The base pandas Index type.

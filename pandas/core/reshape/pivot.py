@@ -436,7 +436,7 @@ def crosstab(index, columns, values=None, rownames=None, colnames=None,
     Returns
     -------
     crosstab : DataFrame
-    
+
     Notes
     -----
     Any Series passed will have their name attributes used unless row or column

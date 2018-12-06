@@ -293,7 +293,7 @@ def unique(values):
     --------
     pandas.Index.unique
     pandas.Series.unique
-    
+
     Examples
     --------
     >>> pd.unique(pd.Series([2, 1, 3, 3]))

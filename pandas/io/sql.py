@@ -300,7 +300,7 @@ def read_sql_query(sql, con, index_col=None, coerce_float=True, params=None,
     --------
     read_sql_table : Read SQL database table into a DataFrame.
     read_sql
-    
+
     Notes
     -----
     Any datetime values with time zone information parsed via the `parse_dates`

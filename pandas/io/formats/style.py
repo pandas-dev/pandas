@@ -910,7 +910,7 @@ class Styler(object):
         ------
         ValueError
             If ``text_color_threshold`` is not a value from 0 to 1.
-            
+
         Notes
         -----
         Set ``text_color_threshold`` or tune ``low`` and ``high`` to keep the

@@ -1053,7 +1053,7 @@ class IntervalArray(IntervalMixin, ExtensionArray):
         See Also
         --------
         Interval.overlaps : Check whether two Interval objects overlap.
-        
+
         Examples
         --------
         >>> intervals = %(constructor)s.from_tuples([(0, 1), (1, 3), (2, 4)])

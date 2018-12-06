@@ -491,7 +491,7 @@ class IntervalIndex(IntervalMixin, Index):
         Interval.overlaps : Check whether two Interval objects overlap.
         IntervalIndex.overlaps : Check an IntervalIndex elementwise for
             overlaps.
-            
+
         Examples
         --------
         >>> index = pd.IntervalIndex.from_tuples([(0, 2), (1, 3), (4, 5)])

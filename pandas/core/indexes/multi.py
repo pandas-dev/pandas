@@ -408,7 +408,7 @@ class MultiIndex(Index):
         --------
         MultiIndex.from_arrays : Convert list of arrays to MultiIndex.
         MultiIndex.from_tuples : Convert list of tuples to MultiIndex.
-        
+
         Examples
         --------
         >>> numbers = [0, 1, 2]

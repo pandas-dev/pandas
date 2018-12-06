@@ -217,7 +217,7 @@ class Resampler(_GroupBy):
     pandas.DataFrame.groupby.aggregate
     pandas.DataFrame.resample.transform
     pandas.DataFrame.aggregate
-    
+
     Examples
     --------
     >>> s = pd.Series([1,2,3,4,5],

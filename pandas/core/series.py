@@ -3994,7 +3994,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         Returns
         -------
         y : Series
-        
+
         See Also
         --------
         read_csv
