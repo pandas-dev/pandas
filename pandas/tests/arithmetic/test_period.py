@@ -397,13 +397,15 @@ class TestPeriodIndexArithmetic(object):
         kwds = {kwd_name: 3} if kwd_name is not None else {}
         p1_d = '19910905'
         p2_d = '19920406'
-        p1 = pd.PeriodIndex([p1_d], freq=offset(n, normalize, **kwds))
-        p2 = pd.PeriodIndex([p2_d], freq=offset(n, normalize, **kwds))
+        freq = offset(n, normalize, **kwds)
+        p1 = pd.PeriodIndex([p1_d], freq=freq)
+        p2 = pd.PeriodIndex([p2_d], freq=freq)
 
-        expected = (pd.PeriodIndex([p2_d], freq=p2.freq.base)
-                    - pd.PeriodIndex([p1_d], freq=p1.freq.base))
+        result = p2 - p1
+        expected = (pd.PeriodIndex([p2_d], freq=freq.base)
+                    - pd.PeriodIndex([p1_d], freq=freq.base))
 
-        tm.assert_index_equal((p2 - p1), expected)
+        tm.assert_index_equal(result, expected)
 
     # -------------------------------------------------------------
     # Invalid Operations
