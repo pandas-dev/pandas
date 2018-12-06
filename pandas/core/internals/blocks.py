@@ -20,7 +20,7 @@ from pandas.core.dtypes.cast import (
 from pandas.core.dtypes.common import (
     _NS_DTYPE, _TD_DTYPE, ensure_platform_int, is_bool_dtype, is_categorical,
     is_categorical_dtype, is_datetime64_dtype, is_datetime64tz_dtype,
-    is_datetimetz, is_dtype_equal, is_extension_array_dtype, is_extension_type,
+    is_dtype_equal, is_extension_array_dtype, is_extension_type,
     is_float_dtype, is_integer, is_integer_dtype, is_list_like,
     is_numeric_v_string_like, is_object_dtype, is_re, is_re_compilable,
     is_sparse, is_timedelta64_dtype, pandas_dtype)
@@ -33,7 +33,7 @@ from pandas.core.dtypes.missing import (
     _isna_compat, array_equivalent, is_null_datelike_scalar, isna, notna)
 
 import pandas.core.algorithms as algos
-from pandas.core.arrays import Categorical
+from pandas.core.arrays import Categorical, ExtensionArray
 from pandas.core.base import PandasObject
 import pandas.core.common as com
 from pandas.core.indexes.datetimes import DatetimeIndex
@@ -1458,11 +1458,6 @@ class Block(PandasObject):
 
         def _nanpercentile1D(values, mask, q, **kw):
             # mask is Union[ExtensionArray, ndarray]
-            # we convert to an ndarray for NumPy 1.9 compat, which didn't
-            # treat boolean-like arrays as boolean. This conversion would have
-            # been done inside ndarray.__getitem__ anyway, since values is
-            # an ndarray at this point.
-            mask = np.asarray(mask)
             values = values[~mask]
 
             if len(values) == 0:
@@ -1920,7 +1915,19 @@ class ExtensionBlock(NonConsolidatableMixIn, Block):
         return self.values[slicer]
 
     def formatting_values(self):
-        return self.values._formatting_values()
+        # Deprecating the ability to override _formatting_values.
+        # Do the warning here, it's only user in pandas, since we
+        # have to check if the subclass overrode it.
+        fv = getattr(type(self.values), '_formatting_values', None)
+        if fv and fv != ExtensionArray._formatting_values:
+            msg = (
+                "'ExtensionArray._formatting_values' is deprecated. "
+                "Specify 'ExtensionArray._formatter' instead."
+            )
+            warnings.warn(msg, DeprecationWarning, stacklevel=10)
+            return self.values._formatting_values()
+
+        return self.values
 
     def concat_same_type(self, to_concat, placement=None):
         """
@@ -2300,10 +2307,7 @@ class ObjectBlock(Block):
                          'convert_timedeltas']
         fn_inputs += ['copy']
 
-        fn_kwargs = {}
-        for key in fn_inputs:
-            if key in kwargs:
-                fn_kwargs[key] = kwargs[key]
+        fn_kwargs = {key: kwargs[key] for key in fn_inputs if key in kwargs}
 
         # operate column-by-column
         def f(m, v, i):
@@ -2677,11 +2681,10 @@ class DatetimeBlock(DatetimeLikeBlockMixin, Block):
         these automatically copy, so copy=True has no effect
         raise on an except if raise == True
         """
+        dtype = pandas_dtype(dtype)
 
         # if we are passed a datetime64[ns, tz]
         if is_datetime64tz_dtype(dtype):
-            dtype = DatetimeTZDtype(dtype)
-
             values = self.values
             if getattr(values, 'tz', None) is None:
                 values = DatetimeIndex(values).tz_localize('UTC')
@@ -2770,7 +2773,7 @@ class DatetimeBlock(DatetimeLikeBlockMixin, Block):
 
     def should_store(self, value):
         return (issubclass(value.dtype.type, np.datetime64) and
-                not is_datetimetz(value) and
+                not is_datetime64tz_dtype(value) and
                 not is_extension_array_dtype(value))
 
     def set(self, locs, values, check=False):
@@ -2781,9 +2784,7 @@ class DatetimeBlock(DatetimeLikeBlockMixin, Block):
         -------
         None
         """
-        if values.dtype != _NS_DTYPE:
-            # Workaround for numpy 1.6 bug
-            values = conversion.ensure_datetime64ns(values)
+        values = conversion.ensure_datetime64ns(values, copy=False)
 
         self.values[locs] = values
 
@@ -2922,7 +2923,9 @@ class DatetimeTZBlock(NonConsolidatableMixIn, DatetimeBlock):
             # allow passing of > 1dim if its trivial
             if result.ndim > 1:
                 result = result.reshape(np.prod(result.shape))
-            result = self.values._shallow_copy(result)
+
+            # GH#24096 new values invalidates a frequency
+            result = self.values._shallow_copy(result, freq=None)
 
         return result
 
@@ -3024,9 +3027,9 @@ def get_block_type(values, dtype=None):
     elif issubclass(vtype, np.complexfloating):
         cls = ComplexBlock
     elif issubclass(vtype, np.datetime64):
-        assert not is_datetimetz(values)
+        assert not is_datetime64tz_dtype(values)
         cls = DatetimeBlock
-    elif is_datetimetz(values):
+    elif is_datetime64tz_dtype(values):
         cls = DatetimeTZBlock
     elif issubclass(vtype, np.integer):
         cls = IntBlock
@@ -3047,7 +3050,7 @@ def make_block(values, placement, klass=None, ndim=None, dtype=None,
         dtype = dtype or values.dtype
         klass = get_block_type(values, dtype)
 
-    elif klass is DatetimeTZBlock and not is_datetimetz(values):
+    elif klass is DatetimeTZBlock and not is_datetime64tz_dtype(values):
         return klass(values, ndim=ndim,
                      placement=placement, dtype=dtype)
 
@@ -3102,7 +3105,7 @@ def _merge_blocks(blocks, dtype=None, _can_consolidate=True):
         # FIXME: optimization potential in case all mgrs contain slices and
         # combination of those slices is a slice, too.
         new_mgr_locs = np.concatenate([b.mgr_locs.as_array for b in blocks])
-        new_values = _vstack([b.values for b in blocks], dtype)
+        new_values = np.vstack([b.values for b in blocks])
 
         argsort = np.argsort(new_mgr_locs)
         new_values = new_values[argsort]
@@ -3112,17 +3115,6 @@ def _merge_blocks(blocks, dtype=None, _can_consolidate=True):
 
     # no merge
     return blocks
-
-
-def _vstack(to_stack, dtype):
-
-    # work around NumPy 1.6 bug
-    if dtype == _NS_DTYPE or dtype == _TD_DTYPE:
-        new_values = np.vstack([x.view('i8') for x in to_stack])
-        return new_values.view(dtype)
-
-    else:
-        return np.vstack(to_stack)
 
 
 def _block2d_to_blocknd(values, placement, shape, labels, ref_items):

@@ -190,7 +190,7 @@ columns.
 
    .. ipython:: python
 
-      df.loc[:,['B', 'A']] = df[['A', 'B']].values
+      df.loc[:,['B', 'A']] = df[['A', 'B']].to_numpy()
       df[['A', 'B']]
 
 
@@ -1571,9 +1571,9 @@ Setting metadata
 
 Indexes are "mostly immutable", but it is possible to set and change their
 metadata, like the index ``name`` (or, for ``MultiIndex``, ``levels`` and
-``labels``).
+``codes``).
 
-You can use the ``rename``, ``set_names``, ``set_levels``, and ``set_labels``
+You can use the ``rename``, ``set_names``, ``set_levels``, and ``set_codes``
 to set these attributes directly. They default to returning a copy; however,
 you can specify ``inplace=True`` to have the data change in place.
 
@@ -1588,7 +1588,7 @@ See :ref:`Advanced Indexing <advanced>` for usage of MultiIndexes.
   ind.name = "bob"
   ind
 
-``set_names``, ``set_levels``, and ``set_labels`` also take an optional
+``set_names``, ``set_levels``, and ``set_codes`` also take an optional
 `level`` argument
 
 .. ipython:: python

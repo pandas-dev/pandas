@@ -27,9 +27,9 @@ from pandas.util._decorators import Appender
 
 from pandas.core.dtypes.cast import astype_nansafe
 from pandas.core.dtypes.common import (
-    ensure_object, is_categorical_dtype, is_dtype_equal, is_float, is_integer,
-    is_integer_dtype, is_list_like, is_object_dtype, is_scalar,
-    is_string_dtype)
+    ensure_object, is_bool_dtype, is_categorical_dtype, is_dtype_equal,
+    is_float, is_integer, is_integer_dtype, is_list_like, is_object_dtype,
+    is_scalar, is_string_dtype)
 from pandas.core.dtypes.dtypes import CategoricalDtype
 from pandas.core.dtypes.missing import isna
 
@@ -1669,6 +1669,16 @@ class ParserBase(object):
 
                 # type specified in dtype param
                 if cast_type and not is_dtype_equal(cvals, cast_type):
+                    try:
+                        if (is_bool_dtype(cast_type) and
+                                not is_categorical_dtype(cast_type)
+                                and na_count > 0):
+                            raise ValueError("Bool column has NA values in "
+                                             "column {column}"
+                                             .format(column=c))
+                    except (AttributeError, TypeError):
+                        # invalid input to is_bool_dtype
+                        pass
                     cvals = self._cast_types(cvals, cast_type, c)
 
             result[c] = cvals
@@ -1752,8 +1762,8 @@ class ParserBase(object):
 
             cats = Index(values).unique().dropna()
             values = Categorical._from_inferred_categories(
-                cats, cats.get_indexer(values), cast_type
-            )
+                cats, cats.get_indexer(values), cast_type,
+                true_values=self.true_values)
 
         else:
             try:
