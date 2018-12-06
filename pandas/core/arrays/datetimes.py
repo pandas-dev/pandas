@@ -1566,6 +1566,10 @@ class DatetimeArrayMixin(dtl.DatetimeLikeArrayMixin,
                  self.nanosecond / 3600.0 / 1e+9
                  ) / 24.0)
 
+    def _to_json_values(self):
+        from pandas import DatetimeIndex
+        return DatetimeIndex(self)
+
 
 DatetimeArrayMixin._add_comparison_ops()
 

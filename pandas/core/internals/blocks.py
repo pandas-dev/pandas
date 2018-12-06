@@ -3010,6 +3010,10 @@ class DatetimeTZBlock(ExtensionBlock, DatetimeBlock):
                     .reshape(self.values.shape))
         return self.values
 
+    def _to_json_values(self):
+        from pandas import DatetimeIndex
+        return DatetimeIndex(self.values)
+
     def _slice(self, slicer):
         """ return a slice of my values """
         if isinstance(slicer, tuple):

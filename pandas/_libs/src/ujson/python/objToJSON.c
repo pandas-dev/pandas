@@ -225,7 +225,14 @@ static TypeContext *createTypeContext(void) {
 
 static PyObject *get_values(PyObject *obj) {
     PyObject *values = PyObject_GetAttrString(obj, "values");
+
     PRINTMARK();
+
+    if (PyObject_HasAttrString(obj, "_to_json_values")) {
+        PyObject *subvals = PyObject_CallMethod(obj, "_to_json_values", NULL);
+        Py_DECREF(values);
+        values = subvals;
+    }
 
     if (values && !PyArray_CheckExact(values)) {
         if (PyObject_HasAttrString(values, "values")) {
@@ -260,6 +267,7 @@ static PyObject *get_values(PyObject *obj) {
     if (!values && PyObject_HasAttrString(obj, "get_values")) {
         PRINTMARK();
         values = PyObject_CallMethod(obj, "get_values", NULL);
+
         if (values && !PyArray_CheckExact(values)) {
             PRINTMARK();
             Py_DECREF(values);
@@ -279,8 +287,8 @@ static PyObject *get_values(PyObject *obj) {
             repr = PyString_FromString("<unknown dtype>");
         }
 
-        PyErr_Format(PyExc_ValueError, "%s or %s are not JSON serializable yet",
-                     PyString_AS_STRING(repr), PyString_AS_STRING(typeRepr));
+        PyErr_Format(PyExc_ValueError, "%R or %R are not JSON serializable yet",
+                     repr, typeRepr);
         Py_DECREF(repr);
         Py_DECREF(typeRepr);
 
@@ -988,6 +996,7 @@ void PdBlock_iterBegin(JSOBJ _obj, JSONTypeContext *tc) {
     GET_TC(tc)->transpose = 1;
 
     for (i = 0; i < PyObject_Length(blocks); i++) {
+
         block = get_item(blocks, i);
         if (!block) {
             GET_TC(tc)->iterNext = NpyArr_iterNextNone;
