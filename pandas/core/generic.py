@@ -4318,6 +4318,9 @@ class NDFrame(PandasObject, SelectionMixin):
         previous index. A new object is produced unless the new index
         is equivalent to the current one and copy=False.
 
+        .. deprecated:: 0.21.0
+            Use `reindex` instead.
+
         Parameters
         ----------
         labels : array-like
