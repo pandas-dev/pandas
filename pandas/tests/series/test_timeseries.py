@@ -130,6 +130,7 @@ class TestTimeSeries(TestData):
         pytest.raises(NullFrequencyError, idx.shift, 1)
 
     def test_shift_fill_value(self):
+        # GH #24128
         ts = Series(np.random.randn(5),
                     index=date_range('1/1/2000', periods=5, freq='H'))
 

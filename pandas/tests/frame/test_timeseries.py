@@ -321,6 +321,7 @@ class TestDataFrameTimeSeriesMethods(TestData):
         assert_frame_equal(rs, xp)
 
     def test_shift_fill_value(self):
+        # GH #24128
         df = DataFrame(np.random.randnint(5), index=date_range('1/1/2000',
                                                             periods=5,
                                                             freq='H'))
