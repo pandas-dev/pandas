@@ -806,12 +806,12 @@ class TestSeriesConstructors():
         s = Series([pd.Timestamp('2013-01-01 13:00:00-0800', tz='US/Pacific'),
                     pd.Timestamp('2013-01-02 14:00:00-0800', tz='US/Pacific')])
         assert s.dtype == 'datetime64[ns, US/Pacific]'
-        assert lib.infer_dtype(s) == 'datetime64'
+        assert lib.infer_dtype(s, skipna=True) == 'datetime64'
 
         s = Series([pd.Timestamp('2013-01-01 13:00:00-0800', tz='US/Pacific'),
                     pd.Timestamp('2013-01-02 14:00:00-0800', tz='US/Eastern')])
         assert s.dtype == 'object'
-        assert lib.infer_dtype(s) == 'datetime'
+        assert lib.infer_dtype(s, skipna=True) == 'datetime'
 
         # with all NaT
         s = Series(pd.NaT, index=[0, 1], dtype='datetime64[ns, US/Eastern]')
