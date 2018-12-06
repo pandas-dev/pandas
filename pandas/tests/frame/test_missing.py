@@ -330,8 +330,8 @@ class TestDataFrameMissingData(TestData):
         res = df.fillna(value={"cats": 3, "vals": "b"})
         tm.assert_frame_equal(res, df_exp_fill)
 
-        with tm.assert_raises_regex(ValueError, "fill value must be "
-                                                "in categories"):
+        with pytest.raises(ValueError, match=("fill value must "
+                                              "be in categories")):
             df.fillna(value={"cats": 4, "vals": "c"})
 
         res = df.fillna(method='pad')
@@ -555,8 +555,7 @@ class TestDataFrameMissingData(TestData):
         assert_frame_equal(result, expected)
 
         # disable this for now
-        with tm.assert_raises_regex(NotImplementedError,
-                                    'column by column'):
+        with pytest.raises(NotImplementedError, match='column by column'):
             df.fillna(df.max(1), axis=1)
 
     def test_fillna_dataframe(self):
@@ -596,7 +595,7 @@ class TestDataFrameMissingData(TestData):
         assert_frame_equal(result, expected)
 
     def test_fillna_invalid_method(self):
-        with tm.assert_raises_regex(ValueError, 'ffil'):
+        with pytest.raises(ValueError, match='ffil'):
             self.frame.fillna(method='ffil')
 
     def test_fillna_invalid_value(self):
@@ -813,6 +812,18 @@ class TestDataFrameInterpolate(TestData):
                         'E': [1, 2, 3, 4]})
         with pytest.raises(TypeError):
             df.interpolate(axis=1)
+
+    def test_interp_raise_on_all_object_dtype(self):
+        # GH 22985
+        df = DataFrame({
+            'A': [1, 2, 3],
+            'B': [4, 5, 6]},
+            dtype='object')
+        msg = ("Cannot interpolate with all object-dtype columns "
+               "in the DataFrame. Try setting at least one "
+               "column to a numeric dtype.")
+        with pytest.raises(TypeError, match=msg):
+            df.interpolate()
 
     def test_interp_inplace(self):
         df = DataFrame({'a': [1., 2., np.nan, 4.]})

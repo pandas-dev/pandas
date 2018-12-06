@@ -3,9 +3,10 @@ Interaction with scipy.sparse matrices.
 
 Currently only includes SparseSeries.to_coo helpers.
 """
-from pandas.core.index import MultiIndex, Index
-from pandas.core.series import Series
 from pandas.compat import OrderedDict, lmap
+
+from pandas.core.index import Index, MultiIndex
+from pandas.core.series import Series
 
 
 def _check_is_partition(parts, whole):
@@ -57,15 +58,7 @@ def _to_ijv(ss, row_levels=(0, ), column_levels=(1, ), sort_labels=False):
             return (d)
 
         def _get_index_subset_to_coord_dict(index, subset, sort_labels=False):
-            def robust_get_level_values(i):
-                # if index has labels (that are not None) use those,
-                # else use the level location
-                try:
-                    return index.get_level_values(index.names[i])
-                except KeyError:
-                    return index.get_level_values(i)
-
-            ilabels = list(zip(*[robust_get_level_values(i) for i in subset]))
+            ilabels = list(zip(*[index._get_level_values(i) for i in subset]))
             labels_to_i = _get_label_to_i_dict(ilabels,
                                                sort_labels=sort_labels)
             labels_to_i = Series(labels_to_i)

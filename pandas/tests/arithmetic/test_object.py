@@ -92,7 +92,7 @@ class TestArithmetic(object):
     @pytest.mark.parametrize('box', [
         pytest.param(pd.Index,
                      marks=pytest.mark.xfail(reason="Does not mask nulls",
-                                             strict=True, raises=TypeError)),
+                                             raises=TypeError)),
         pd.Series,
         pd.DataFrame
     ], ids=lambda x: x.__name__)
@@ -109,7 +109,7 @@ class TestArithmetic(object):
     @pytest.mark.parametrize('box', [
         pytest.param(pd.Index,
                      marks=pytest.mark.xfail(reason="Does not mask nulls",
-                                             strict=True, raises=TypeError)),
+                                             raises=TypeError)),
         pd.Series,
         pd.DataFrame
     ], ids=lambda x: x.__name__)
@@ -140,9 +140,6 @@ class TestArithmetic(object):
                                     operator.sub, ops.rsub])
     def test_objarr_add_invalid(self, op, box):
         # invalid ops
-        if box is pd.DataFrame and op is ops.radd:
-            pytest.xfail(reason="DataFrame op incorrectly casts the np.array"
-                                "case to M8[ns]")
 
         obj_ser = tm.makeObjectSeries()
         obj_ser.name = 'objects'

@@ -135,6 +135,12 @@ There are two approaches for providing operator support for your ExtensionArray:
 2. Use an operator implementation from pandas that depends on operators that are already defined
    on the underlying elements (scalars) of the ExtensionArray.
 
+.. note::
+
+   Regardless of the approach, you may want to set ``__array_priority__``
+   if you want your implementation to be called when involved in binary operations
+   with NumPy arrays.
+
 For the first approach, you define selected operators, e.g., ``__add__``, ``__le__``, etc. that
 you want your ``ExtensionArray`` subclass to support.
 
@@ -157,6 +163,7 @@ your ``MyExtensionArray`` class, as follows:
     class MyExtensionArray(ExtensionArray, ExtensionScalarOpsMixin):
         pass
 
+
     MyExtensionArray._add_arithmetic_ops()
     MyExtensionArray._add_comparison_ops()
 
@@ -173,6 +180,16 @@ or not that succeeds depends on whether the operation returns a result
 that's valid for the ``ExtensionArray``. If an ``ExtensionArray`` cannot
 be reconstructed, an ndarray containing the scalars returned instead.
 
+For ease of implementation and consistency with operations between pandas
+and NumPy ndarrays, we recommend *not* handling Series and Indexes in your binary ops.
+Instead, you should detect these cases and return ``NotImplemented``.
+When pandas encounters an operation like ``op(Series, ExtensionArray)``, pandas
+will
+
+1. unbox the array from the ``Series`` (``Series.array``)
+2. call ``result = op(values, ExtensionArray)``
+3. re-box the result in a ``Series``
+
 .. _extending.extension.testing:
 
 Testing Extension Arrays
@@ -188,6 +205,7 @@ To use a test, subclass it:
 .. code-block:: python
 
    from pandas.tests.extension import base
+
 
    class TestConstructors(base.BaseConstructorsTests):
        pass
@@ -261,6 +279,7 @@ Below example shows how to define ``SubclassedSeries`` and ``SubclassedDataFrame
        def _constructor_expanddim(self):
            return SubclassedDataFrame
 
+
    class SubclassedDataFrame(DataFrame):
 
        @property
@@ -281,7 +300,7 @@ Below example shows how to define ``SubclassedSeries`` and ``SubclassedDataFrame
    >>> type(to_framed)
    <class '__main__.SubclassedDataFrame'>
 
-   >>> df = SubclassedDataFrame({'A', [1, 2, 3], 'B': [4, 5, 6], 'C': [7, 8, 9]})
+   >>> df = SubclassedDataFrame({'A': [1, 2, 3], 'B': [4, 5, 6], 'C': [7, 8, 9]})
    >>> df
       A  B  C
    0  1  4  7
@@ -297,6 +316,7 @@ Below example shows how to define ``SubclassedSeries`` and ``SubclassedDataFrame
    0  1  4
    1  2  5
    2  3  6
+
    >>> type(sliced1)
    <class '__main__.SubclassedDataFrame'>
 
@@ -306,6 +326,7 @@ Below example shows how to define ``SubclassedSeries`` and ``SubclassedDataFrame
    1    2
    2    3
    Name: A, dtype: int64
+
    >>> type(sliced2)
    <class '__main__.SubclassedSeries'>
 

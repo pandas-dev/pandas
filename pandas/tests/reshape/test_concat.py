@@ -1,6 +1,7 @@
 from warnings import catch_warnings, simplefilter
 from itertools import combinations
 from collections import deque
+from decimal import Decimal
 
 import datetime as dt
 import dateutil
@@ -8,17 +9,17 @@ import numpy as np
 from numpy.random import randn
 
 from datetime import datetime
-from pandas.compat import StringIO, iteritems, PY2
+from pandas.compat import Iterable, StringIO, iteritems, PY2
 import pandas as pd
 from pandas import (DataFrame, concat,
                     read_csv, isna, Series, date_range,
                     Index, Panel, MultiIndex, Timestamp,
                     DatetimeIndex, Categorical)
-from pandas.compat import Iterable
 from pandas.core.dtypes.dtypes import CategoricalDtype
 from pandas.util import testing as tm
 from pandas.util.testing import (assert_frame_equal,
                                  makeCustomDataframe as mkdf)
+from pandas.tests.extension.decimal import to_decimal
 
 import pytest
 
@@ -92,7 +93,7 @@ class TestConcatAppendCommon(ConcatenateBase):
                 assert obj.dtype == label
         elif isinstance(obj, pd.Series):
             if label.startswith('period'):
-                assert obj.dtype == 'object'
+                assert obj.dtype == 'Period[M]'
             else:
                 assert obj.dtype == label
         else:
@@ -146,12 +147,10 @@ class TestConcatAppendCommon(ConcatenateBase):
             tm.assert_index_equal(res, exp)
 
             # cannot append non-index
-            with tm.assert_raises_regex(TypeError,
-                                        'all inputs must be Index'):
+            with pytest.raises(TypeError, match='all inputs must be Index'):
                 pd.Index(vals1).append(vals2)
 
-            with tm.assert_raises_regex(TypeError,
-                                        'all inputs must be Index'):
+            with pytest.raises(TypeError, match='all inputs must be Index'):
                 pd.Index(vals1).append([pd.Index(vals2), vals3])
 
             # ----- Series ----- #
@@ -201,16 +200,16 @@ class TestConcatAppendCommon(ConcatenateBase):
             msg = (r'cannot concatenate object of type \"(.+?)\";'
                    ' only pd.Series, pd.DataFrame, and pd.Panel'
                    r' \(deprecated\) objs are valid')
-            with tm.assert_raises_regex(TypeError, msg):
+            with pytest.raises(TypeError, match=msg):
                 pd.Series(vals1).append(vals2)
 
-            with tm.assert_raises_regex(TypeError, msg):
+            with pytest.raises(TypeError, match=msg):
                 pd.Series(vals1).append([pd.Series(vals2), vals3])
 
-            with tm.assert_raises_regex(TypeError, msg):
+            with pytest.raises(TypeError, match=msg):
                 pd.concat([pd.Series(vals1), vals2])
 
-            with tm.assert_raises_regex(TypeError, msg):
+            with pytest.raises(TypeError, match=msg):
                 pd.concat([pd.Series(vals1), pd.Series(vals2), vals3])
 
     def test_concatlike_dtypes_coercion(self):
@@ -336,9 +335,9 @@ class TestConcatAppendCommon(ConcatenateBase):
     @pytest.mark.parametrize('tz',
                              ['UTC', 'US/Eastern', 'Asia/Tokyo', 'EST5EDT'])
     def test_concatlike_datetimetz_short(self, tz):
-        # GH 7795
-        ix1 = pd.DatetimeIndex(start='2014-07-15', end='2014-07-17',
-                               freq='D', tz=tz)
+        # GH#7795
+        ix1 = pd.date_range(start='2014-07-15', end='2014-07-17',
+                            freq='D', tz=tz)
         ix2 = pd.DatetimeIndex(['2014-07-11', '2014-07-21'], tz=tz)
         df1 = pd.DataFrame(0, index=ix1, columns=['A', 'B'])
         df2 = pd.DataFrame(0, index=ix2, columns=['A', 'B'])
@@ -1011,6 +1010,21 @@ class TestAppend(ConcatenateBase):
         assert appended['A'].dtype == 'f8'
         assert appended['B'].dtype == 'O'
 
+    def test_append_empty_frame_to_series_with_dateutil_tz(self):
+        # GH 23682
+        date = Timestamp('2018-10-24 07:30:00', tz=dateutil.tz.tzutc())
+        s = Series({'date': date, 'a': 1.0, 'b': 2.0})
+        df = DataFrame(columns=['c', 'd'])
+        result = df.append(s, ignore_index=True)
+        expected = DataFrame([[np.nan, np.nan, 1., 2., date]],
+                             columns=['c', 'd', 'a', 'b', 'date'])
+        # These columns get cast to object after append
+        object_cols = ['c', 'd', 'date']
+        expected.loc[:, object_cols] = expected.loc[:, object_cols].astype(
+            object
+        )
+        assert_frame_equal(result, expected)
+
 
 class TestConcatenate(ConcatenateBase):
 
@@ -1174,8 +1188,8 @@ class TestConcatenate(ConcatenateBase):
     def test_concat_multiindex_with_keys(self):
         index = MultiIndex(levels=[['foo', 'bar', 'baz', 'qux'],
                                    ['one', 'two', 'three']],
-                           labels=[[0, 0, 0, 1, 1, 2, 2, 3, 3, 3],
-                                   [0, 1, 2, 0, 1, 1, 2, 0, 1, 2]],
+                           codes=[[0, 0, 0, 1, 1, 2, 2, 3, 3, 3],
+                                  [0, 1, 2, 0, 1, 1, 2, 0, 1, 2]],
                            names=['first', 'second'])
         frame = DataFrame(np.random.randn(10, 3), index=index,
                           columns=Index(['A', 'B', 'C'], name='exp'))
@@ -1244,8 +1258,8 @@ class TestConcatenate(ConcatenateBase):
                         names=names)
         expected = concat([df, df2, df, df2])
         exp_index = MultiIndex(levels=levels + [[0]],
-                               labels=[[0, 0, 1, 1], [0, 1, 0, 1],
-                                       [0, 0, 0, 0]],
+                               codes=[[0, 0, 1, 1], [0, 1, 0, 1],
+                                      [0, 0, 0, 0]],
                                names=names + [None])
         expected.index = exp_index
 
@@ -1552,12 +1566,11 @@ class TestConcatenate(ConcatenateBase):
         panel1 = make_panel()
         panel2 = make_panel()
 
-        panel2 = panel2.rename_axis({x: "%s_1" % x
-                                     for x in panel2.major_axis},
-                                    axis=1)
+        panel2 = panel2.rename(major_axis={x: "%s_1" % x
+                                           for x in panel2.major_axis})
 
-        panel3 = panel2.rename_axis(lambda x: '%s_1' % x, axis=1)
-        panel3 = panel3.rename_axis(lambda x: '%s_1' % x, axis=2)
+        panel3 = panel2.rename(major_axis=lambda x: '%s_1' % x)
+        panel3 = panel3.rename(minor_axis=lambda x: '%s_1' % x)
 
         # it works!
         concat([panel1, panel3], axis=1, verify_integrity=True, sort=sort)
@@ -1578,10 +1591,10 @@ class TestConcatenate(ConcatenateBase):
 
         ts.index = DatetimeIndex(np.array(ts.index.values, dtype='M8[ns]'))
 
-        exp_labels = [np.repeat([0, 1, 2], [len(x) for x in pieces]),
-                      np.arange(len(ts))]
+        exp_codes = [np.repeat([0, 1, 2], [len(x) for x in pieces]),
+                     np.arange(len(ts))]
         exp_index = MultiIndex(levels=[[0, 1, 2], ts.index],
-                               labels=exp_labels)
+                               codes=exp_codes)
         expected.index = exp_index
         tm.assert_series_equal(result, expected)
 
@@ -1616,6 +1629,23 @@ class TestConcatenate(ConcatenateBase):
         s2 = Series(randn(4), index=['d', 'a', 'b', 'c'], name='B')
         result = concat([s, s2], axis=1, sort=sort)
         expected = DataFrame({'A': s, 'B': s2})
+        assert_frame_equal(result, expected)
+
+    def test_concat_series_axis1_names_applied(self):
+        # ensure names argument is not ignored on axis=1, #23490
+        s = Series([1, 2, 3])
+        s2 = Series([4, 5, 6])
+        result = concat([s, s2], axis=1, keys=['a', 'b'], names=['A'])
+        expected = DataFrame([[1, 4], [2, 5], [3, 6]],
+                             columns=pd.Index(['a', 'b'], name='A'))
+        assert_frame_equal(result, expected)
+
+        result = concat([s, s2], axis=1, keys=[('a', 1), ('b', 2)],
+                        names=['A', 'B'])
+        expected = DataFrame([[1, 4], [2, 5], [3, 6]],
+                             columns=MultiIndex.from_tuples([('a', 1),
+                                                             ('b', 2)],
+                                                            names=['A', 'B']))
         assert_frame_equal(result, expected)
 
     def test_concat_single_with_key(self):
@@ -1994,12 +2024,11 @@ bar2,12,13,14,15
     def test_concat_period_series(self):
         x = Series(pd.PeriodIndex(['2015-11-01', '2015-12-01'], freq='D'))
         y = Series(pd.PeriodIndex(['2015-10-01', '2016-01-01'], freq='D'))
-        expected = Series([x[0], x[1], y[0], y[1]], dtype='object')
+        expected = Series([x[0], x[1], y[0], y[1]], dtype='Period[D]')
         result = concat([x, y], ignore_index=True)
         tm.assert_series_equal(result, expected)
-        assert result.dtype == 'object'
 
-        # different freq
+    def test_concat_period_multiple_freq_series(self):
         x = Series(pd.PeriodIndex(['2015-11-01', '2015-12-01'], freq='D'))
         y = Series(pd.PeriodIndex(['2015-10-01', '2016-01-01'], freq='M'))
         expected = Series([x[0], x[1], y[0], y[1]], dtype='object')
@@ -2007,6 +2036,7 @@ bar2,12,13,14,15
         tm.assert_series_equal(result, expected)
         assert result.dtype == 'object'
 
+    def test_concat_period_other_series(self):
         x = Series(pd.PeriodIndex(['2015-11-01', '2015-12-01'], freq='D'))
         y = Series(pd.PeriodIndex(['2015-11-01', '2015-12-01'], freq='M'))
         expected = Series([x[0], x[1], y[0], y[1]], dtype='object')
@@ -2111,8 +2141,8 @@ bar2,12,13,14,15
 
         df = DataFrame(np.random.randn(9, 2))
         df.index = MultiIndex(levels=[pd.RangeIndex(3), pd.RangeIndex(3)],
-                              labels=[np.repeat(np.arange(3), 3),
-                                      np.tile(np.arange(3), 3)])
+                              codes=[np.repeat(np.arange(3), 3),
+                                     np.tile(np.arange(3), 3)])
 
         res = concat([df.iloc[[2, 3, 4], :], df.iloc[[5], :]])
         exp = df.iloc[[2, 3, 4, 5], :]
@@ -2131,7 +2161,7 @@ bar2,12,13,14,15
         expected_index = pd.MultiIndex(levels=[['s1', 's2'],
                                                ['a'],
                                                ['b', 'c']],
-                                       labels=[[0, 1], [0, 0], [0, 1]],
+                                       codes=[[0, 1], [0, 0], [0, 1]],
                                        names=['testname', None, None])
         expected = pd.DataFrame([[0], [1]], index=expected_index)
         result_copy = pd.concat(deepcopy(example_dict), names=['testname'])
@@ -2290,10 +2320,10 @@ bar2,12,13,14,15
 
         result = pd.concat([a, b, c], axis=1)
 
-        exp_idx = pd.CategoricalIndex([0, 1, 2, 9])
-        exp = pd.DataFrame({0: [1, np.nan, np.nan, 1],
-                            1: [2, 2, np.nan, np.nan],
-                            2: [np.nan, 3, 3, np.nan]},
+        exp_idx = pd.CategoricalIndex([9, 0, 1, 2], categories=categories)
+        exp = pd.DataFrame({0: [1, 1, np.nan, np.nan],
+                            1: [np.nan, 2, 2, np.nan],
+                            2: [np.nan, np.nan, 3, 3]},
                            columns=[0, 1, 2],
                            index=exp_idx)
         tm.assert_frame_equal(result, exp)
@@ -2360,6 +2390,18 @@ bar2,12,13,14,15
                                  'b': [np.nan] * 3 + [1, 2, 3]},
                                 index=idx1.append(idx1))
         tm.assert_frame_equal(result, expected)
+
+    @pytest.mark.skipif(PY2, reason="Unhashable Decimal dtype")
+    def test_concat_different_extension_dtypes_upcasts(self):
+        a = pd.Series(pd.core.arrays.integer_array([1, 2]))
+        b = pd.Series(to_decimal([1, 2]))
+
+        result = pd.concat([a, b], ignore_index=True)
+        expected = pd.Series([
+            1, 2,
+            Decimal(1), Decimal(2)
+        ], dtype=object)
+        tm.assert_series_equal(result, expected)
 
 
 @pytest.mark.parametrize('pdt', [pd.Series, pd.DataFrame, pd.Panel])
@@ -2509,4 +2551,17 @@ def test_concat_series_name_npscalar_tuple(s1name, s2name):
     s2 = pd.Series({'c': 5, 'd': 6}, name=s2name)
     result = pd.concat([s1, s2])
     expected = pd.Series({'a': 1, 'b': 2, 'c': 5, 'd': 6})
+    tm.assert_series_equal(result, expected)
+
+
+def test_concat_categorical_tz():
+    # GH-23816
+    a = pd.Series(pd.date_range('2017-01-01', periods=2, tz='US/Pacific'))
+    b = pd.Series(['a', 'b'], dtype='category')
+    result = pd.concat([a, b], ignore_index=True)
+    expected = pd.Series([
+        pd.Timestamp('2017-01-01', tz="US/Pacific"),
+        pd.Timestamp('2017-01-02', tz="US/Pacific"),
+        'a', 'b'
+    ])
     tm.assert_series_equal(result, expected)

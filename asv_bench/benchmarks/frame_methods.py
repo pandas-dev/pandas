@@ -1,32 +1,25 @@
 import string
-import warnings
 
 import numpy as np
-import pandas.util.testing as tm
-from pandas import (DataFrame, Series, MultiIndex, date_range, period_range,
-                    isnull, NaT)
 
-from .pandas_vb_common import setup  # noqa
+from pandas import (
+    DataFrame, MultiIndex, NaT, Series, date_range, isnull, period_range)
+import pandas.util.testing as tm
 
 
 class GetNumericData(object):
-
-    goal_time = 0.2
 
     def setup(self):
         self.df = DataFrame(np.random.randn(10000, 25))
         self.df['foo'] = 'bar'
         self.df['bar'] = 'baz'
-        with warnings.catch_warnings(record=True):
-            self.df = self.df.consolidate()
+        self.df = self.df._consolidate()
 
     def time_frame_get_numeric_data(self):
         self.df._get_numeric_data()
 
 
 class Lookup(object):
-
-    goal_time = 0.2
 
     def setup(self):
         self.df = DataFrame(np.random.randn(10000, 8),
@@ -48,8 +41,6 @@ class Lookup(object):
 
 class Reindex(object):
 
-    goal_time = 0.2
-
     def setup(self):
         N = 10**3
         self.df = DataFrame(np.random.randn(N * 10, N))
@@ -70,16 +61,41 @@ class Reindex(object):
     def time_reindex_both_axes(self):
         self.df.reindex(index=self.idx, columns=self.idx)
 
-    def time_reindex_both_axes_ix(self):
-        self.df.ix[self.idx, self.idx]
-
     def time_reindex_upcast(self):
         self.df2.reindex(np.random.permutation(range(1200)))
 
 
-class Iteration(object):
+class Rename(object):
 
-    goal_time = 0.2
+    def setup(self):
+        N = 10**3
+        self.df = DataFrame(np.random.randn(N * 10, N))
+        self.idx = np.arange(4 * N, 7 * N)
+        self.dict_idx = {k: k for k in self.idx}
+        self.df2 = DataFrame(
+            {c: {0: np.random.randint(0, 2, N).astype(np.bool_),
+                 1: np.random.randint(0, N, N).astype(np.int16),
+                 2: np.random.randint(0, N, N).astype(np.int32),
+                 3: np.random.randint(0, N, N).astype(np.int64)}
+                [np.random.randint(0, 4)] for c in range(N)})
+
+    def time_rename_single(self):
+        self.df.rename({0: 0})
+
+    def time_rename_axis0(self):
+        self.df.rename(self.dict_idx)
+
+    def time_rename_axis1(self):
+        self.df.rename(columns=self.dict_idx)
+
+    def time_rename_both_axes(self):
+        self.df.rename(index=self.dict_idx, columns=self.dict_idx)
+
+    def time_dict_rename_both_axes(self):
+        self.df.rename(index=self.dict_idx, columns=self.dict_idx)
+
+
+class Iteration(object):
 
     def setup(self):
         N = 1000
@@ -114,8 +130,6 @@ class Iteration(object):
 
 class ToString(object):
 
-    goal_time = 0.2
-
     def setup(self):
         self.df = DataFrame(np.random.randn(100, 10))
 
@@ -124,8 +138,6 @@ class ToString(object):
 
 
 class ToHTML(object):
-
-    goal_time = 0.2
 
     def setup(self):
         nrows = 500
@@ -138,8 +150,6 @@ class ToHTML(object):
 
 
 class Repr(object):
-
-    goal_time = 0.2
 
     def setup(self):
         nrows = 10000
@@ -166,8 +176,6 @@ class Repr(object):
 
 class MaskBool(object):
 
-    goal_time = 0.2
-
     def setup(self):
         data = np.random.randn(1000, 500)
         df = DataFrame(data)
@@ -183,8 +191,6 @@ class MaskBool(object):
 
 
 class Isnull(object):
-
-    goal_time = 0.2
 
     def setup(self):
         N = 10**3
@@ -218,7 +224,6 @@ class Isnull(object):
 
 class Fillna(object):
 
-    goal_time = 0.2
     params = ([True, False], ['pad', 'bfill'])
     param_names = ['inplace', 'method']
 
@@ -233,7 +238,6 @@ class Fillna(object):
 
 class Dropna(object):
 
-    goal_time = 0.2
     params = (['all', 'any'], [0, 1])
     param_names = ['how', 'axis']
 
@@ -253,8 +257,6 @@ class Dropna(object):
 
 
 class Count(object):
-
-    goal_time = 0.2
 
     params = [0, 1]
     param_names = ['axis']
@@ -284,8 +286,6 @@ class Count(object):
 
 class Apply(object):
 
-    goal_time = 0.2
-
     def setup(self):
         self.df = DataFrame(np.random.randn(1000, 100))
 
@@ -314,8 +314,6 @@ class Apply(object):
 
 class Dtypes(object):
 
-    goal_time = 0.2
-
     def setup(self):
         self.df = DataFrame(np.random.randn(1000, 1000))
 
@@ -324,8 +322,6 @@ class Dtypes(object):
 
 
 class Equals(object):
-
-    goal_time = 0.2
 
     def setup(self):
         N = 10**3
@@ -363,7 +359,6 @@ class Equals(object):
 
 class Interpolate(object):
 
-    goal_time = 0.2
     params = [None, 'infer']
     param_names = ['downcast']
 
@@ -389,7 +384,6 @@ class Interpolate(object):
 
 class Shift(object):
     # frame shift speedup issue-5609
-    goal_time = 0.2
     params = [0, 1]
     param_names = ['axis']
 
@@ -411,8 +405,6 @@ class Nunique(object):
 
 class Duplicated(object):
 
-    goal_time = 0.2
-
     def setup(self):
         n = (1 << 20)
         t = date_range('2015-01-01', freq='S', periods=(n // 64))
@@ -431,7 +423,6 @@ class Duplicated(object):
 
 class XS(object):
 
-    goal_time = 0.2
     params = [0, 1]
     param_names = ['axis']
 
@@ -445,7 +436,6 @@ class XS(object):
 
 class SortValues(object):
 
-    goal_time = 0.2
     params = [True, False]
     param_names = ['ascending']
 
@@ -457,8 +447,6 @@ class SortValues(object):
 
 
 class SortIndexByColumns(object):
-
-    goal_time = 0.2
 
     def setup(self):
         N = 10000
@@ -473,7 +461,6 @@ class SortIndexByColumns(object):
 
 class Quantile(object):
 
-    goal_time = 0.2
     params = [0, 1]
     param_names = ['axis']
 
@@ -486,8 +473,6 @@ class Quantile(object):
 
 class GetDtypeCounts(object):
     # 2807
-    goal_time = 0.2
-
     def setup(self):
         self.df = DataFrame(np.random.randn(10, 10000))
 
@@ -500,7 +485,6 @@ class GetDtypeCounts(object):
 
 class NSort(object):
 
-    goal_time = 0.2
     params = ['first', 'last', 'all']
     param_names = ['keep']
 
@@ -523,8 +507,6 @@ class NSort(object):
 
 class Describe(object):
 
-    goal_time = 0.2
-
     def setup(self):
         self.df = DataFrame({
             'a': np.random.randint(0, 100, int(1e6)),
@@ -537,3 +519,6 @@ class Describe(object):
 
     def time_dataframe_describe(self):
         self.df.describe()
+
+
+from .pandas_vb_common import setup  # noqa: F401

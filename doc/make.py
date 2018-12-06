@@ -126,7 +126,12 @@ class DocBuilder:
             self.single_doc = 'api'
         elif os.path.exists(os.path.join(SOURCE_PATH, single_doc)):
             self.single_doc_type = 'rst'
-            self.single_doc = os.path.splitext(os.path.basename(single_doc))[0]
+
+            if 'whatsnew' in single_doc:
+                basename = single_doc
+            else:
+                basename = os.path.basename(single_doc)
+            self.single_doc = os.path.splitext(basename)[0]
         elif os.path.exists(
                 os.path.join(SOURCE_PATH, '{}.rst'.format(single_doc))):
             self.single_doc_type = 'rst'

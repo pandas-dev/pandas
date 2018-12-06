@@ -107,14 +107,17 @@ class SharedWithSparse(object):
         assert f._get_axis(0) is f.index
         assert f._get_axis(1) is f.columns
 
-        tm.assert_raises_regex(
-            ValueError, 'No axis named', f._get_axis_number, 2)
-        tm.assert_raises_regex(
-            ValueError, 'No axis.*foo', f._get_axis_name, 'foo')
-        tm.assert_raises_regex(
-            ValueError, 'No axis.*None', f._get_axis_name, None)
-        tm.assert_raises_regex(ValueError, 'No axis named',
-                               f._get_axis_number, None)
+        with pytest.raises(ValueError, match='No axis named'):
+            f._get_axis_number(2)
+
+        with pytest.raises(ValueError, match='No axis.*foo'):
+            f._get_axis_name('foo')
+
+        with pytest.raises(ValueError, match='No axis.*None'):
+            f._get_axis_name(None)
+
+        with pytest.raises(ValueError, match='No axis named'):
+            f._get_axis_number(None)
 
     def test_keys(self, float_frame):
         getkeys = float_frame.keys
@@ -316,6 +319,12 @@ class SharedWithSparse(object):
         expected = float_frame.reindex(columns=['A', 'B']).values
         assert_almost_equal(arr, expected)
 
+    def test_to_numpy(self):
+        df = pd.DataFrame({"A": [1, 2], "B": [3, 4.5]})
+        expected = np.array([[1, 3], [2, 4.5]])
+        result = df.to_numpy()
+        tm.assert_numpy_array_equal(result, expected)
+
     def test_transpose(self, float_frame):
         frame = float_frame
         dft = frame.T
@@ -402,7 +411,10 @@ class SharedWithSparse(object):
         t = df.T
 
         result = t.get_dtype_counts()
-        expected = Series({'object': 10})
+        if self.klass is DataFrame:
+            expected = Series({'object': 10})
+        else:
+            expected = Series({'Sparse[object, nan]': 10})
         tm.assert_series_equal(result, expected)
 
 

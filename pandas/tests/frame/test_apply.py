@@ -11,7 +11,7 @@ from itertools import chain
 
 import warnings
 import numpy as np
-from hypothesis import given
+from hypothesis import given, settings
 from hypothesis.strategies import composite, dates, integers, sampled_from
 
 from pandas import (notna, DataFrame, Series, MultiIndex, date_range,
@@ -823,6 +823,20 @@ def zip_frames(frames, axis=1):
         return pd.DataFrame(zipped)
 
 
+@composite
+def indices(draw, max_length=5):
+    date = draw(
+        dates(
+            min_value=Timestamp.min.ceil("D").to_pydatetime().date(),
+            max_value=Timestamp.max.floor("D").to_pydatetime().date(),
+        ).map(Timestamp)
+    )
+    periods = draw(integers(0, max_length))
+    freq = draw(sampled_from(list("BDHTS")))
+    dr = date_range(date, periods=periods, freq=freq)
+    return pd.DatetimeIndex(list(dr))
+
+
 class TestDataFrameAggregate():
 
     def test_agg_transform(self, axis, float_frame):
@@ -1142,20 +1156,8 @@ class TestDataFrameAggregate():
         with pytest.raises(expected):
             df.agg(func, axis=axis)
 
-    @composite
-    def indices(draw, max_length=5):
-        date = draw(
-            dates(
-                min_value=Timestamp.min.ceil("D").to_pydatetime().date(),
-                max_value=Timestamp.max.floor("D").to_pydatetime().date(),
-            ).map(Timestamp)
-        )
-        periods = draw(integers(0, max_length))
-        freq = draw(sampled_from(list("BDHTS")))
-        dr = date_range(date, periods=periods, freq=freq)
-        return pd.DatetimeIndex(list(dr))
-
-    @given(index=indices(5), num_columns=integers(0, 5))
+    @given(index=indices(max_length=5), num_columns=integers(0, 5))
+    @settings(deadline=1000)
     def test_frequency_is_original(self, index, num_columns):
         # GH 22150
         original = index.copy()
