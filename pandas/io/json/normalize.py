@@ -217,17 +217,13 @@ def json_normalize(data, record_path=None, meta=None,
     meta = [m if isinstance(m, list) else [m] for m in meta]
 
     # Disastrously inefficient for now
-    records = []
-    lengths = []
-
-    meta_vals = defaultdict(list)
     if not isinstance(sep, compat.string_types):
         sep = str(sep)
     meta_keys = [sep.join(val) for val in meta]
 
     def _extract(obj, field, seen_meta, level):
         """
-        Extract field from obj and update `records`, `lengths`, `meta_vals`.
+        Extract a field from obj.
 
         Parameters
         ----------
@@ -239,11 +235,14 @@ def json_normalize(data, record_path=None, meta=None,
             The dict of meta values that have been visited
         level: int
             The current level
+
+        Returns
+        -------
+        tuple of (list, dict)
+            The extracted records and the dictionary of meta values
         """
         recs = _pull_field(obj, field)
-
-        # For repeating the metadata later
-        lengths.append(len(recs))
+        meta_vals = defaultdict(list)
 
         for val, key in zip(meta, meta_keys):
             if level >= len(val):
@@ -261,25 +260,36 @@ def json_normalize(data, record_path=None, meta=None,
                                        .format(err=e))
             meta_vals[key].append(meta_val)
 
-        records.extend(recs)
+        return (recs, meta_vals)
 
     def _recursive_extract(data, path, seen_meta, level=0):
+        records = []
+        meta_vals = defaultdict(list)
         if len(path) > 1:
             for obj in data:
                 for val, key in zip(meta, meta_keys):
                     if level + 1 == len(val):
                         seen_meta[key] = _pull_field(obj, val[-1])
 
-                _recursive_extract(obj[path[0]], path[1:],
-                                   seen_meta, level=level + 1)
+                (recs, vals) = _recursive_extract(
+                    obj[path[0]], path[1:], seen_meta, level=level + 1)
+                records.extend(recs)
+                meta_vals = meta_vals.update(vals)
+
         elif isinstance(data, list):
             for obj in data:
-                _extract(obj, path[0], seen_meta, level)
+                (recs, vals) = _extract(obj, path[0], seen_meta, level)
+                records.extend(recs)
+                meta_vals = meta_vals.update(vals)
+
         else:
-            _extract(data, path[0], seen_meta, level)
+            (recs, vals) = _extract(data, path[0], seen_meta, level)
+            records = [recs]
+            meta_vals = vals
 
-    _recursive_extract(data, record_path, {}, level=0)
+        return (records, meta_vals)
 
+    (records, meta_vals) = _recursive_extract(data, record_path, {}, level=0)
     result = DataFrame(records)
 
     if record_prefix is not None:
@@ -287,6 +297,7 @@ def json_normalize(data, record_path=None, meta=None,
             columns=lambda x: "{p}{c}".format(p=record_prefix, c=x))
 
     # Data types, a problem
+    lengths = [len(recs) for recs in records]
     for k, v in compat.iteritems(meta_vals):
         if meta_prefix is not None:
             k = meta_prefix + k
