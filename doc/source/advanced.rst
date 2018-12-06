@@ -94,6 +94,8 @@ You can also construct a ``MultiIndex`` from a ``DataFrame`` directly, using
 the method :meth:`MultiIndex.from_frame`. This is a complementary method to
 :meth:`MultiIndex.to_frame`.
 
+.. versionadded:: 0.24.0
+
 .. ipython:: python
 
    df = pd.DataFrame([['bar', 'one'], ['bar', 'two'],

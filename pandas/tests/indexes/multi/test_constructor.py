@@ -521,7 +521,7 @@ def test_from_frame():
     np.array([[1, 2], [3, 4], [5, 6]]),
     27
 ])
-def test_from_frame_non_frame(non_frame):
+def test_from_frame_error(non_frame):
     # GH 22420
     with pytest.raises(TypeError, match='Input must be a DataFrame'):
         pd.MultiIndex.from_frame(non_frame)

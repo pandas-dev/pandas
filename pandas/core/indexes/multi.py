@@ -463,37 +463,29 @@ class MultiIndex(Index):
 
         Examples
         --------
-        >>> df = pd.DataFrame([[0, 'happy'], [0, 'jolly'], [1, 'happy'],
-        ...                    [1, 'jolly'], [2, 'joy'], [2, 'joy']],
-        ...                   columns=['will_be', 'used'])
+        >>> df = pd.DataFrame([['ahc', 'happy'], ['ahc', 'jolly'],
+        ...                    ['boh', 'happy'], ['boh', 'jolly'],
+        ...                    ['oil', 'joy'], ['oil', 'joy']],
+        ...                   columns=['a', 'b'])
         >>> df
-           will_be   used
-        0        0  happy
-        1        0  jolly
-        2        1  happy
-        3        1  jolly
-        4        2    joy
-        5        2    joy
-        >>> pd.MultiIndex.from_frame(df)
-        MultiIndex(levels=[[0, 1, 2], ['happy', 'jolly', 'joy']],
-                   labels=[[0, 0, 1, 1, 2, 2], [0, 1, 0, 1, 2, 2]],
-                   names=['will_be', 'used'])
+             a      b
+        0  ahc  happy
+        1  ahc  jolly
+        2  boh  happy
+        3  boh  jolly
+        4  oil    joy
+        5  oil    joy
 
-        >>> df = pd.DataFrame([['ahc', 'iam'], ['ahc', 'wim'], ['boh', 'amg'],
-        ...                    ['boh', 'iam'], ['oil', 'wim'], ['oil', 'amg']],
-        ...                   columns=['will_be', 'overriden'])
-        >>> df
-           will_be   overriden
-        0      ahc         iam
-        1      ahc         wim
-        2      boh         amg
-        3      boh         iam
-        4      oil         wim
-        5      oil         amg
-        >>> pd.MultiIndex.from_frame(df, names=['sure', 'will'])
-        MultiIndex(levels=[['ahc', 'boh', 'oil'], ['amg', 'iam', 'wim']],
-                   labels=[[0, 0, 1, 1, 2, 2], [1, 2, 0, 1, 2, 0]],
-                   names=['sure', 'will'])
+        >>> pd.MultiIndex.from_frame(df)
+        MultiIndex(levels=[['ahc', 'boh', 'oil'], ['happy', 'jolly', 'joy']],
+                   labels=[[0, 0, 1, 1, 2, 2], [0, 1, 0, 1, 2, 2]],
+                   names=['a', 'b'])
+
+        # Use explicit names, instead of column names
+        >>> pd.MultiIndex.from_frame(df, names=['X', 'Y'])
+        MultiIndex(levels=[['ahc', 'boh', 'oil'], ['happy', 'jolly', 'joy']],
+                   labels=[[0, 0, 1, 1, 2, 2], [0, 1, 0, 1, 2, 2]],
+                   names=['X', 'Y'])
 
         See Also
         --------

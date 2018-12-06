@@ -378,7 +378,7 @@ Backwards incompatible API changes
 - Passing scalar values to :class:`DatetimeIndex` or :class:`TimedeltaIndex` will now raise ``TypeError`` instead of ``ValueError`` (:issue:`23539`)
 - ``max_rows`` and ``max_cols`` parameters removed from :class:`HTMLFormatter` since truncation is handled by :class:`DataFrameFormatter` (:issue:`23818`)
 - :meth:`read_csv` will now raise a ``ValueError`` if a column with missing values is declared as having dtype ``bool`` (:issue:`20591`)
-- The column order of the resultant ``DataFrame`` from ``MultiIndex.to_frame()`` is now guaranteed to match the ``MultiIndex.names`` order. (:issue:`22420`)
+- The column order of the resultant :class:`DataFrame` from :meth:`MultiIndex.to_frame` is now guaranteed to match the :attr:`MultiIndex.names` order. (:issue:`22420`)
 
 .. _whatsnew_0240.api_breaking.deps:
 
