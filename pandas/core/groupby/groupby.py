@@ -1993,7 +1993,7 @@ class GroupBy(_GroupBy):
 
     @Substitution(name='groupby')
     @Appender(_doc_template)
-    def shift(self, periods=1, freq=None, axis=0, fill_value=np.nan):
+    def shift(self, periods=1, freq=None, axis=0, fill_value=None):
         """
         Shift each group by periods observations.
 

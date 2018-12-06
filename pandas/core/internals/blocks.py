@@ -1260,7 +1260,7 @@ class Block(PandasObject):
         new_values = algos.diff(self.values, n, axis=axis)
         return [self.make_block(values=new_values)]
 
-    def shift(self, periods, axis=0, fill_value=np.nan):
+    def shift(self, periods, axis=0, fill_value=None):
         """ shift the block by periods, possibly upcast """
 
         # convert integer to float if necessary. need to do a lot more than
