@@ -1466,7 +1466,6 @@ class MultiIndex(Index):
             copy=False
         )
 
-
         if index:
             result.index = self
         return result
