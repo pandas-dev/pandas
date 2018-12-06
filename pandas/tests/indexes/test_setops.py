@@ -10,8 +10,6 @@ import pandas as pd
 import pandas.util.testing as tm
 from pandas import Int64Index, RangeIndex
 from pandas.core.dtypes.common import is_dtype_equal
-from pandas.core.dtypes.dtypes import (
-    PeriodDtype, CategoricalDtype, IntervalDtype)
 
 from pandas.tests.indexes.conftest import indices
 

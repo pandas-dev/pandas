@@ -228,9 +228,10 @@ class Int64Index(IntegerIndex):
     def _is_compatible_with_other(self, other):
         return (
             super(Int64Index, self)._is_compatible_with_other(other)
-            or all([isinstance(type(obj), (ABCInt64Index, ABCRangeIndex))
-                   for obj in [self, other]])
+            or all(isinstance(type(obj), (ABCInt64Index, ABCRangeIndex))
+                   for obj in [self, other])
         )
+
 
 Int64Index._add_numeric_methods()
 Int64Index._add_logical_methods()
