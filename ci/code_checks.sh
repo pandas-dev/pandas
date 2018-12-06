@@ -153,8 +153,8 @@ fi
 ### CODE ###
 if [[ -z "$CHECK" || "$CHECK" == "code" ]]; then
 
-    MSG='Check for modules that pandas should not import' ; echo $MSG
-    python -c "
+    MSG='Check import. No warnings, and blacklist some optional dependencies' ; echo $MSG
+    python -W error -c "
 import sys
 import pandas
 

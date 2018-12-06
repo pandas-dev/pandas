@@ -1,10 +1,10 @@
 import string
-import warnings
 
 import numpy as np
+
+from pandas import (
+    DataFrame, MultiIndex, NaT, Series, date_range, isnull, period_range)
 import pandas.util.testing as tm
-from pandas import (DataFrame, Series, MultiIndex, date_range, period_range,
-                    isnull, NaT)
 
 
 class GetNumericData(object):
@@ -60,9 +60,6 @@ class Reindex(object):
 
     def time_reindex_both_axes(self):
         self.df.reindex(index=self.idx, columns=self.idx)
-
-    def time_reindex_both_axes_ix(self):
-        self.df.ix[self.idx, self.idx]
 
     def time_reindex_upcast(self):
         self.df2.reindex(np.random.permutation(range(1200)))
