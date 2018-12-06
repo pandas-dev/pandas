@@ -149,16 +149,6 @@ class TestTimeSeries(TestData):
         tm.assert_equal(result.iloc[1].value, 0.0)
         tm.assert_equal(result.iloc[2].value, ts.iloc[0].value)
 
-        df = DataFrame(np.random.randn(5), index=date_range('1/1/2000', periods=5, freq='H'))
-
-        result = df.shift(1, fill_value=0.0)
-        tm.assert_equal(result.iloc[0, 0].value, 0.0)
-        tm.assert_equal(result.iloc[1, 0].value, df.iloc[0, 0].value)
-
-        result = df.shift(2, fill_value=0.0)
-        tm.assert_equal(result.iloc[0, 0].value, 0.0)
-        tm.assert_equal(result.iloc[1, 0].value, 0.0)
-        tm.assert_equal(result.iloc[2, 0].value, df.iloc[0, 0].value)
 
     def test_shift_dst(self):
         # GH 13926
