@@ -31,6 +31,30 @@ class TestDatetimeIndex(object):
             DatetimeIndex([pd.NaT, pd.Timestamp('2011-01-01').value],
                           freq='D')
 
+    def test_categorical_preserves_tz(self):
+        # GH#18664 retain tz when going DTI-->Categorical-->DTI
+
+        dti = pd.DatetimeIndex(
+            [pd.NaT, '2015-01-01', '1999-04-06 15:14:13', '2015-01-01'],
+            tz='US/Eastern')
+        ci = pd.CategoricalIndex(dti)
+        carr = pd.Categorical(dti)
+        cser = pd.Series(ci)
+
+        for obj in [ci, carr, cser]:
+            result = pd.DatetimeIndex(obj)
+            tm.assert_index_equal(result, dti)
+
+        # no-NaT case has a fastpath
+        dti2 = dti[1:]
+        ci2 = pd.CategoricalIndex(dti2)
+        carr2 = pd.Categorical(dti2)
+        cser2 = pd.Series(ci2)
+
+        for obj in [ci2, carr2, cser2]:
+            result = pd.DatetimeIndex(obj)
+            tm.assert_index_equal(result, dti2)
+
     def test_dti_with_period_data_raises(self):
         # GH#23675
         data = pd.PeriodIndex(['2016Q1', '2016Q2'], freq='Q')
