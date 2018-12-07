@@ -887,7 +887,7 @@ class SparseArray(PandasObject, ExtensionArray, ExtensionOpsMixin):
 
         return self._simple_new(new_values, self._sparse_index, new_dtype)
 
-    def shift(self, periods=1):
+    def shift(self, periods=1, fill_value=None):
 
         if periods == 0:
             return self.copy()
@@ -900,7 +900,9 @@ class SparseArray(PandasObject, ExtensionArray, ExtensionOpsMixin):
         else:
             arr = self
 
-        empty = self._from_sequence([self.dtype.na_value] * abs(periods),
+        if fill_value is None:
+            fill_value = self.dtype.na_value
+        empty = self._from_sequence([fill_value] * abs(periods),
                                     dtype=arr.dtype)
         if periods > 0:
             a = empty

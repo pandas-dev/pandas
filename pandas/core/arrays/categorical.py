@@ -1255,7 +1255,7 @@ class Categorical(ExtensionArray, PandasObject):
 
         return tuple([len(self._codes)])
 
-    def shift(self, periods):
+    def shift(self, periods, fill_value=None):
         """
         Shift Categorical by desired number of periods.
 
@@ -1275,10 +1275,12 @@ class Categorical(ExtensionArray, PandasObject):
             raise NotImplementedError("Categorical with ndim > 1.")
         if np.prod(codes.shape) and (periods != 0):
             codes = np.roll(codes, ensure_platform_int(periods), axis=0)
+            if fill_value is None:
+                fill_value = -1
             if periods > 0:
-                codes[:periods] = -1
+                codes[:periods] = fill_value
             else:
-                codes[periods:] = -1
+                codes[periods:] = fill_value
 
         return self.from_codes(codes, categories=self.categories,
                                ordered=self.ordered)

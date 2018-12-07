@@ -457,7 +457,7 @@ class PeriodArray(dtl.DatetimeLikeArrayMixin, ExtensionArray):
 
     # --------------------------------------------------------------------
 
-    def shift(self, periods=1):
+    def shift(self, periods=1, fill_value=None):
         """
         Shift values by desired number.
 
@@ -479,7 +479,7 @@ class PeriodArray(dtl.DatetimeLikeArrayMixin, ExtensionArray):
         # TODO(DatetimeArray): remove
         # The semantics for Index.shift differ from EA.shift
         # then just call super.
-        return ExtensionArray.shift(self, periods)
+        return ExtensionArray.shift(self, periods, fill_value=fill_value)
 
     def _time_shift(self, n, freq=None):
         """

@@ -445,7 +445,7 @@ class ExtensionArray(object):
 
         return self[~self.isna()]
 
-    def shift(self, periods=1):
+    def shift(self, periods=1, fill_value=None):
         # type: (int) -> ExtensionArray
         """
         Shift values by desired number.
@@ -461,6 +461,8 @@ class ExtensionArray(object):
             The number of periods to shift. Negative values are allowed
             for shifting backwards.
 
+        .. versionadded:: 0.24.0
+            fill_value : None or value, default None (NaN)
         Returns
         -------
         shifted : ExtensionArray
@@ -469,7 +471,10 @@ class ExtensionArray(object):
         # stored in an instance of your ExtensionArray with `self.dtype`.
         if periods == 0:
             return self.copy()
-        empty = self._from_sequence([self.dtype.na_value] * abs(periods),
+        if fill_value is None:
+            fill_value = self.dtype.na_value
+
+        empty = self._from_sequence([fill_value] * abs(periods),
                                     dtype=self.dtype)
         if periods > 0:
             a = empty

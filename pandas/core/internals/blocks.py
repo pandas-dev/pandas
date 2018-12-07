@@ -1955,7 +1955,7 @@ class ExtensionBlock(NonConsolidatableMixIn, Block):
                                  limit=limit),
             placement=self.mgr_locs)
 
-    def shift(self, periods, axis=0):
+    def shift(self, periods, axis=0, fill_value=None):
         """
         Shift the block by `periods`.
 
@@ -1963,7 +1963,7 @@ class ExtensionBlock(NonConsolidatableMixIn, Block):
         ExtensionBlock.
         """
         # type: (int, Optional[BlockPlacement]) -> List[ExtensionBlock]
-        return [self.make_block_same_class(self.values.shift(periods=periods),
+        return [self.make_block_same_class(self.values.shift(periods=periods, fill_value=fill_value),
                                            placement=self.mgr_locs,
                                            ndim=self.ndim)]
 
@@ -2933,7 +2933,7 @@ class DatetimeTZBlock(NonConsolidatableMixIn, DatetimeBlock):
     def _box_func(self):
         return lambda x: tslibs.Timestamp(x, tz=self.dtype.tz)
 
-    def shift(self, periods, axis=0):
+    def shift(self, periods, axis=0, fill_value=None):
         """ shift the block by periods """
 
         # think about moving this to the DatetimeIndex. This is a non-freq
@@ -2948,10 +2948,12 @@ class DatetimeTZBlock(NonConsolidatableMixIn, DatetimeBlock):
 
         new_values = self.values.asi8.take(indexer)
 
+        if fill_value is None:
+            fill_value = tslibs.iNaT
         if periods > 0:
-            new_values[:periods] = tslibs.iNaT
+            new_values[:periods] = fill_value
         else:
-            new_values[periods:] = tslibs.iNaT
+            new_values[periods:] = fill_value
 
         new_values = self.values._shallow_copy(new_values)
         return [self.make_block_same_class(new_values,
