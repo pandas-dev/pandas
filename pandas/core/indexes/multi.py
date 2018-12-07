@@ -1,6 +1,6 @@
 # pylint: disable=E1101,E1103,W0232
-import datetime
 from collections import OrderedDict
+import datetime
 from sys import getsizeof
 import warnings
 
