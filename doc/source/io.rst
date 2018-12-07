@@ -5,6 +5,7 @@
 .. ipython:: python
    :suppress:
 
+   randn = np.random.randn
    clipdf = pd.DataFrame({'A': [1, 2, 3], 'B': [4, 5, 6], 'C': ['p', 'q', 'r']},
                          index=['x', 'y', 'z'])
 
@@ -442,7 +443,7 @@ worth trying.
    :suppress:
 
    import os
-   
+
    os.remove('foo.csv')
 
 .. _io.categorical:

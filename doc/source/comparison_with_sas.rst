@@ -1,5 +1,6 @@
-.. currentmodule:: pandas
 .. _compare_with_sas:
+
+{{ header }}
 
 Comparison with SAS
 ********************
@@ -14,8 +15,8 @@ As is customary, we import pandas and NumPy as follows:
 
 .. ipython:: python
 
-    import pandas as pd    # noqa: F811
-    import numpy as np     # noqa: F811
+    import pandas as pd
+    import numpy as np
 
 
 .. note::

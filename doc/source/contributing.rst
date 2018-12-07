@@ -1,5 +1,7 @@
 .. _contributing:
 
+{{ header }}
+
 **********************
 Contributing to pandas
 **********************
@@ -816,8 +818,8 @@ We would name this file ``test_cool_feature.py`` and put in an appropriate place
 .. code-block:: python
 
    import pytest
-   import numpy as np        # noqa: F811
-   import pandas as pd       # noqa: F811
+   import numpy as np
+   import pandas as pd
 
 
    @pytest.mark.parametrize('dtype', ['int8', 'int16', 'int32', 'int64'])
