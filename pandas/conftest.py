@@ -635,6 +635,7 @@ def mock():
     else:
         return pytest.importorskip("mock")
 
+
 @pytest.fixture(params=[getattr(pd.offsets, o) for o in pd.offsets.__all__ if
                         issubclass(getattr(pd.offsets, o), pd.offsets.Tick)])
 def tick_classes(request):
