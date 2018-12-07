@@ -482,7 +482,7 @@ These operations are supported by :func:`pandas.eval`:
 * Simple variable evaluation, e.g., ``pd.eval('df')`` (this is not very useful)
 * Math functions: `sin`, `cos`, `exp`, `log`, `expm1`, `log1p`,
   `sqrt`, `sinh`, `cosh`, `tanh`, `arcsin`, `arccos`, `arctan`, `arccosh`,
-  `arcsinh`, `arctanh`, `abs` and `arctan2`.
+  `arcsinh`, `arctanh`, `abs`, `arctan2` and `log10`.
 
 This Python syntax is **not** allowed:
 
