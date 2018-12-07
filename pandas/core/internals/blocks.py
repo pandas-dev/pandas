@@ -34,7 +34,7 @@ from pandas.core.dtypes.missing import (
     _isna_compat, array_equivalent, is_null_datelike_scalar, isna, notna)
 
 import pandas.core.algorithms as algos
-from pandas.core.arrays import Categorical, ExtensionArray
+from pandas.core.arrays import Categorical, ExtensionArray, SparseArray
 from pandas.core.base import PandasObject
 import pandas.core.common as com
 from pandas.core.indexes.datetimes import DatetimeIndex
@@ -2004,7 +2004,8 @@ class ExtensionBlock(NonConsolidatableMixIn, Block):
             dtype = self.dtype
 
         # rough heuristic to see if the other array implements setitem
-        if self._holder.__setitem__ is ExtensionArray.__setitem__:
+        if (self._holder.__setitem__ is ExtensionArray.__setitem__
+                or self._holder.__setitem__ is SparseArray.__setitem__):
             result = self._holder._from_sequence(
                 np.where(cond, self.values, other),
                 dtype=dtype,
@@ -2710,31 +2711,13 @@ class CategoricalBlock(ExtensionBlock):
             "the categorical before calling 'where', or convert the "
             "categorical to a different dtype."
         )
-
-        scalar_other = lib.is_scalar(other)
-        categorical_other = is_categorical_dtype(other)
-        if isinstance(other, ABCDataFrame):
-            # should be 1d
-            assert other.shape[1] == 1
-            other = other.iloc[:, 0]
-
-        if isinstance(other, (ABCSeries, ABCIndexClass)):
-            other = other._values
-
-        do_as_object = (
-            # Two categoricals with different dtype (ignoring order)
-            (categorical_other and not is_dtype_equal(self.values, other)) or
-            # a not-na scalar not present in our categories
-            (scalar_other and (other not in self.values.categories
-                               and notna(other))) or
-            # an array not present in our categories
-            (not scalar_other and
-             (self.values.categories.get_indexer(
-                 other[notna(other)]) < 0).any())
-        )
-
-        if do_as_object:
-            if scalar_other:
+        try:
+            # Attempt to do preserve categorical dtype.
+            result = super(CategoricalBlock, self).where(
+                other, cond, align, errors, try_cast, axis, transpose
+            )
+        except (TypeError, ValueError):
+            if lib.is_scalar(other):
                 msg = object_msg.format(other)
             else:
                 msg = compat.reprlib.repr(other)
@@ -2744,10 +2727,6 @@ class CategoricalBlock(ExtensionBlock):
                                                errors=errors,
                                                try_cast=try_cast,
                                                axis=axis, transpose=transpose)
-        else:
-            result = super(CategoricalBlock, self).where(
-                other, cond, align, errors, try_cast, axis, transpose
-            )
         return result
 
 
