@@ -704,11 +704,6 @@ class SparseArray(PandasObject, ExtensionArray, ExtensionOpsMixin):
         out[self.sp_index.to_int_index().indices] = self.sp_values
         return out
 
-    def __setitem__(self, key, value):
-        # I suppose we could allow setting of non-fill_value elements.
-        msg = "SparseArray does not support item assignment via setitem"
-        raise TypeError(msg)
-
     @classmethod
     def _from_sequence(cls, scalars, dtype=None, copy=False):
         return cls(scalars, dtype=dtype)
@@ -1062,20 +1057,6 @@ class SparseArray(PandasObject, ExtensionArray, ExtensionOpsMixin):
 
         return type(self)(result, fill_value=self.fill_value, kind=self.kind,
                           **kwargs)
-
-    def where(self, cond, other):
-        if is_scalar(other):
-            result_dtype = np.result_type(self.dtype.subtype, other)
-        elif isinstance(other, type(self)):
-            result_dtype = np.result_type(self.dtype.subtype,
-                                          other.dtype.subtype)
-        else:
-            result_dtype = np.result_type(self.dtype.subtype, other.dtype)
-
-        dtype = self.dtype.update_dtype(result_dtype)
-        # TODO: avoid converting to dense.
-        values = np.where(cond, self, other)
-        return type(self)(values, dtype=dtype)
 
     def _take_with_fill(self, indices, fill_value=None):
         if fill_value is None:

@@ -1906,49 +1906,6 @@ class Categorical(ExtensionArray, PandasObject):
 
     take = take_nd
 
-    def where(self, cond, other):
-        # n.b. this now preserves the type
-        codes = self._codes
-        object_msg = (
-            "Implicitly converting categorical to object-dtype ndarray. "
-            "The values `{}' are not present in this categorical's "
-            "categories. A future version of pandas will raise a ValueError "
-            "when 'other' contains different categories.\n\n"
-            "To preserve the current behavior, add the new categories to "
-            "the categorical before calling 'where', or convert the "
-            "categorical to a different dtype."
-        )
-
-        if is_scalar(other) and isna(other):
-            other = -1
-        elif is_scalar(other):
-            item = self.categories.get_indexer([other]).item()
-
-            if item == -1:
-                # note: when removing this, also remove CategoricalBlock.where
-                warn(object_msg.format(other), FutureWarning, stacklevel=2)
-                return np.where(cond, self, other)
-
-            other = item
-
-        elif is_categorical_dtype(other):
-            if not is_dtype_equal(self, other):
-                extra = list(other.categories.difference(self.categories))
-                warn(object_msg.format(compat.reprlib.repr(extra)),
-                     FutureWarning,
-                     stacklevel=2)
-                return np.where(cond, self, other)
-            other = _get_codes_for_values(other, self.categories)
-            # get the codes from other that match our categories
-            pass
-        else:
-            other = np.where(isna(other), -1, other)
-
-        new_codes = np.where(cond, codes, other)
-        return type(self).from_codes(new_codes,
-                                     categories=self.categories,
-                                     ordered=self.ordered)
-
     def _slice(self, slicer):
         """
         Return a slice of myself.
@@ -2121,11 +2078,21 @@ class Categorical(ExtensionArray, PandasObject):
             `Categorical` does not have the same categories
         """
 
+        if isinstance(value, (ABCIndexClass, ABCSeries)):
+            value = value.array
+
         # require identical categories set
         if isinstance(value, Categorical):
-            if not value.categories.equals(self.categories):
+            if not is_dtype_equal(self, value):
                 raise ValueError("Cannot set a Categorical with another, "
                                  "without identical categories")
+            if not self.categories.equals(value.categories):
+                new_codes = _recode_for_categories(
+                    value.codes, value.categories, self.categories
+                )
+                value = Categorical.from_codes(new_codes,
+                                               categories=self.categories,
+                                               ordered=self.ordered)
 
         rvalue = value if is_list_like(value) else [value]
 

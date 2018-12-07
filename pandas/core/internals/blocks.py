@@ -1970,6 +1970,7 @@ class ExtensionBlock(NonConsolidatableMixIn, Block):
 
     def where(self, other, cond, align=True, errors='raise',
               try_cast=False, axis=0, transpose=False):
+        # rough attempt to see if
         if isinstance(other, (ABCIndexClass, ABCSeries)):
             other = other.array
 
@@ -1989,7 +1990,33 @@ class ExtensionBlock(NonConsolidatableMixIn, Block):
             # we want to replace that with the correct NA value
             # for the type
             other = self.dtype.na_value
-        result = self.values.where(cond, other)
+
+        if is_sparse(self.values):
+            # ugly workaround for ensure that the dtype is OK
+            # after we insert NaNs.
+            if is_sparse(other):
+                otype = other.dtype.subtype
+            else:
+                otype = other
+            dtype = self.dtype.update_dtype(
+                np.result_type(self.values.dtype.subtype, otype)
+            )
+        else:
+            dtype = self.dtype
+
+        if self._holder.__setitem__ is ExtensionArray.__setitem__:
+            # the array doesn't implement setitem, so convert to ndarray
+            result = self._holder._from_sequence(
+                np.where(cond, self.values, other),
+                dtype=dtype,
+            )
+        else:
+            result = self.values.copy()
+            icond = ~cond
+            if lib.is_scalar(other):
+                result[icond] = other
+            else:
+                result[icond] = other[icond]
         return self.make_block_same_class(result, placement=self.mgr_locs)
 
     @property
@@ -2673,13 +2700,55 @@ class CategoricalBlock(ExtensionBlock):
 
     def where(self, other, cond, align=True, errors='raise',
               try_cast=False, axis=0, transpose=False):
-        result = super(CategoricalBlock, self).where(
-            other, cond, align, errors, try_cast, axis, transpose
+        # This can all be deleted in favor of ExtensionBlock.where once
+        # we enforce the deprecation.
+        object_msg = (
+            "Implicitly converting categorical to object-dtype ndarray. "
+            "The values `{}' are not present in this categorical's "
+            "categories. A future version of pandas will raise a ValueError "
+            "when 'other' contains different categories.\n\n"
+            "To preserve the current behavior, add the new categories to "
+            "the categorical before calling 'where', or convert the "
+            "categorical to a different dtype."
         )
-        if result.values.dtype != self.values.dtype:
-            # For backwards compatability, we allow upcasting to object.
-            # This fallback will be removed in the future.
-            result = result.astype(object)
+
+        scalar_other = lib.is_scalar(other)
+        categorical_other = is_categorical_dtype(other)
+        if isinstance(other, ABCDataFrame):
+            # should be 1d
+            assert other.shape[1] == 1
+            other = other.iloc[:, 0]
+
+        if isinstance(other, (ABCSeries, ABCIndexClass)):
+            other = other._values
+
+        do_as_object = (
+            # Two categoricals with different dtype (ignoring order)
+            (categorical_other and not is_dtype_equal(self.values, other)) or
+            # a not-na scalar not present in our categories
+            (scalar_other and (other not in self.values.categories
+                               and notna(other))) or
+            # an array not present in our categories
+            (not scalar_other and
+             (self.values.categories.get_indexer(
+                 other[notna(other)]) < 0).any())
+        )
+
+        if do_as_object:
+            if scalar_other:
+                msg = object_msg.format(other)
+            else:
+                msg = compat.reprlib.repr(other)
+
+            warnings.warn(msg, FutureWarning, stacklevel=6)
+            result = self.astype(object).where(other, cond, align=align,
+                                               errors=errors,
+                                               try_cast=try_cast,
+                                               axis=axis, transpose=transpose)
+        else:
+            result = super(CategoricalBlock, self).where(
+                other, cond, align, errors, try_cast, axis, transpose
+            )
         return result
 
 
