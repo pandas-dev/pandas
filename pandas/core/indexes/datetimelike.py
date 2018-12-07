@@ -109,14 +109,12 @@ class DatetimeIndexOpsMixin(ExtensionOpsMixin):
 
         @staticmethod
         def wrapper(left, right):
-            if isinstance(left, (np.ndarray, ABCIndex, ABCSeries)):
+            if isinstance(left, (np.ndarray, ABCIndex, ABCSeries,
+                                 DatetimeLikeArrayMixin)):
                 left = left.view('i8')
-            elif isinstance(left, DatetimeLikeArrayMixin):
-                left = left.asi8
-            if isinstance(right, (np.ndarray, ABCIndex, ABCSeries)):
+            if isinstance(right, (np.ndarray, ABCIndex, ABCSeries,
+                                  DatetimeLikeArrayMixin)):
                 right = right.view('i8')
-            elif isinstance(right, DatetimeLikeArrayMixin):
-                right = right.asi8
             results = joinf(left, right)
             if with_indexers:
                 join_index, left_indexer, right_indexer = results

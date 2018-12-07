@@ -93,6 +93,7 @@ class TestDataFramePlots(TestPlotBase):
     def test_boxplot_return_type_legacy(self):
         # API change in https://github.com/pandas-dev/pandas/pull/7096
         import matplotlib as mpl  # noqa
+
         df = DataFrame(np.random.randn(6, 4),
                        index=list(string.ascii_letters[:6]),
                        columns=['one', 'two', 'three', 'four'])

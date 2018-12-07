@@ -119,10 +119,9 @@ class TestDatetimeIndex(object):
         tm.assert_index_equal(result, idx)
         assert result is not idx
 
-        # TODO: determine if this is part of the API and we want to maintain
-        # result = idx.astype('datetime64[ns]', copy=False)
-        # tm.assert_index_equal(result, idx)
-        # assert result is idx
+        result = idx.astype('datetime64[ns]', copy=False)
+        tm.assert_index_equal(result, idx)
+        assert result is idx
 
         idx_tz = DatetimeIndex(['2016-05-16', 'NaT', NaT, np.NaN], tz='EST')
         result = idx_tz.astype('datetime64[ns]')

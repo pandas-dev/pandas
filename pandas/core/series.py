@@ -1544,9 +1544,6 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         ...                          ordered=True)).unique()
         [b, a, c]
         Categories (3, object): [a < b < c]
-
-        >>> pd.Series(pd.date_range('2000', periods=4, tz='US/Central'))
-        # TODO: repr
         """
         result = super(Series, self).unique()
         return result

@@ -150,6 +150,8 @@ def _dt_array_cmp(cls, op):
                 if (is_datetime64_dtype(other) and
                         not is_datetime64_ns_dtype(other) or
                         not hasattr(other, 'asi8')):
+                    # e.g. other.dtype == 'datetime64[s]'
+                    # or an object-dtype ndarray
                     other = type(self)._from_sequence(other)
 
                 result = meth(self, other)
@@ -171,23 +173,25 @@ def _dt_array_cmp(cls, op):
     return compat.set_function_name(wrapper, opname, cls)
 
 
-def validate_values_freq(values, freq):
-    # type: (Union[DatetimeArrayMixin, TimedeltaArrayMixin], Freq) -> Freq
-    if freq:
-        freq = to_offset(freq)
-        if values.freq != freq:
-            raise ValueError("'freq' does not match.")
-    return values.freq
-
-
 class DatetimeArrayMixin(dtl.DatetimeLikeArrayMixin,
                          dtl.TimelikeOps,
                          dtl.DatelikeOps):
     """
-    Assumes that subclass __new__/__init__ defines:
-        tz
-        _freq
-        _data
+    Pandas ExtensionArray for tz-naive or tz-aware datetime data.
+
+    Parameters
+    ----------
+    values : Series, Index, DatetimeArray, ndarray
+        The datetime data.
+
+        For DatetimeArray `values` (or a Series or Index boxing one),
+        `dtype` and `freq` will be extracted from `values`, with
+        precedence given to
+
+    dtype : numpy.dtype or DatetimeTZDtype
+        Note that the only NumPy dtype allowed is 'datetime64[ns]'.
+    freq : str or Offset, optional
+    copy : bool, default False
     """
     _typ = "datetimearray"
     _scalar_type = Timestamp
@@ -231,8 +235,16 @@ class DatetimeArrayMixin(dtl.DatetimeLikeArrayMixin,
 
         if isinstance(values, type(self)):
             # validation
-            if getattr(dtype, 'tz', None) and values.tz is None:
+            dtz = getattr(dtype, 'tz', None)
+            if dtz and values.tz is None:
                 dtype = DatetimeTZDtype(tz=dtype.tz)
+            elif dtz and values.tz:
+                if not timezones.tz_compare(dtz, values.tz):
+                    # todo standard error message.
+                    msg = (
+                        "Timezones do not match. {} != {}."
+                    )
+                    raise ValueError(msg.format(dtz, values.tz))
             elif values.tz:
                 dtype = values.dtype
             # freq = validate_values_freq(values, freq)
@@ -478,6 +490,8 @@ class DatetimeArrayMixin(dtl.DatetimeLikeArrayMixin,
 
     def __array__(self, dtype=None):
         # TODO: Check PeriodArray.__array__ and push to parent
+        # This may need to wait for the deprecation of np.array
+        # on datetimetz data.
         if is_object_dtype(dtype):
             return np.array(list(self), dtype=object)
         elif is_int64_dtype(dtype):
@@ -507,10 +521,6 @@ class DatetimeArrayMixin(dtl.DatetimeLikeArrayMixin,
                                                  box="timestamp")
             for v in converted:
                 yield v
-
-    def copy(self, deep=False):
-        values = self.asi8.copy()
-        return type(self)(values, dtype=self.dtype, freq=self.freq)
 
     # ----------------------------------------------------------------
     # ExtensionArray Interface
@@ -1586,6 +1596,7 @@ def sequence_to_dt64ns(data, dtype=None, copy=False,
     ------
     TypeError : PeriodDType data is passed
     """
+
     inferred_freq = None
 
     if not hasattr(data, "dtype"):
@@ -1603,16 +1614,15 @@ def sequence_to_dt64ns(data, dtype=None, copy=False,
         inferred_freq = data.freq
 
     # if dtype has an embedded tz, capture it
-    # breakpoint()
     tz = validate_tz_from_dtype(dtype, tz)
 
     if isinstance(data, (ABCSeries, ABCIndexClass)):
         data = data._data
 
     if isinstance(data, DatetimeArrayMixin):
+        # TODO: verify this changes. This was done in haste.
         if inferred_freq and data.freq:
             assert inferred_freq == data.freq
-        inferred_freq = inferred_freq or data.freq
 
         if tz and data.tz:
             if not timezones.tz_compare(tz, data.tz):

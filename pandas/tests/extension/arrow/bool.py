@@ -77,6 +77,7 @@ class ArrowBoolArray(ExtensionArray):
         return len(self._data)
 
     def astype(self, dtype, copy=True):
+        # needed to fix this astype for the Series constructor.
         if isinstance(dtype, type(self.dtype)) and dtype == self.dtype:
             if copy:
                 return self.copy()

@@ -5172,8 +5172,6 @@ class DataFrame(NDFrame):
                 arr = arr._values
 
             if needs_i8_conversion(arr):
-                # Need an ndarray & EA compat way of doing
-                # this if we want to remove this if.
                 if is_extension_array_dtype(arr.dtype):
                     arr = arr.asi8
                 else:

@@ -210,9 +210,8 @@ def _isna_ndarraylike(obj):
             result[...] = vec.reshape(shape)
 
     elif needs_i8_conversion(dtype):
-        values = values.astype("i8", copy=False)
         # this is the NaT pattern
-        result = values == iNaT
+        result = values.view('i8') == iNaT
     else:
         result = np.isnan(values)
 

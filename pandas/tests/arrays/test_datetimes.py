@@ -5,10 +5,22 @@ Tests for DatetimeArray
 import operator
 
 import numpy as np
+import pytest
+
+from pandas.core.dtypes.dtypes import DatetimeTZDtype
 
 import pandas as pd
 from pandas.core.arrays import DatetimeArrayMixin as DatetimeArray
 import pandas.util.testing as tm
+
+
+class TestDatetimeArrayConstructor(object):
+    def test_mismatched_timezone_raises(self):
+        a = DatetimeArray(np.array(['2000-01-01T06:00:00'], dtype='M8[ns]'),
+                          dtype=DatetimeTZDtype(tz='US/Central'))
+        dtype = DatetimeTZDtype(tz='US/Eastern')
+        with pytest.raises(ValueError, match='Timezones'):
+            DatetimeArray(a, dtype=dtype)
 
 
 class TestDatetimeArrayComparisons(object):

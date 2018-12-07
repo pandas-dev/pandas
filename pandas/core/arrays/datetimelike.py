@@ -645,6 +645,7 @@ class DatetimeLikeArrayMixin(AttributesMixin,
     # pandas currently assumes they're there.
 
     def value_counts(self, dropna=False):
+        # n.b. moved from PeriodArray.value_counts
         from pandas import Series, Index
 
         if dropna:
@@ -684,6 +685,7 @@ class DatetimeLikeArrayMixin(AttributesMixin,
         --------
         numpy.ndarray.repeat
         """
+        # n.b. moved from PeriodArray.repeat
         nv.validate_repeat(args, kwargs)
         values = self._data.repeat(repeats)
         return type(self)(values, dtype=self.dtype)
@@ -823,6 +825,7 @@ class DatetimeLikeArrayMixin(AttributesMixin,
 
     # monotonicity/uniqueness properties are called via frequencies.infer_freq,
     #  see GH#23789
+    # n.b. moved from TimedeltaArray
 
     @property
     def _is_monotonic_increasing(self):

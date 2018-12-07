@@ -199,9 +199,8 @@ class TestSeriesCombine(object):
                 assert result.kind == expected
 
     @pytest.mark.xfail(resson="TODO-where-internals", strict=False)
-    # Something strange with internals shapes.
-    # After reindexing in combine_first, our tz-block mananger is
-    # (maybe?) in a bad state.
+    # https://github.com/pandas-dev/pandas/issues/24147
+    # After reindexing an EA-backed Series, our internal shape is wonky.
     def test_combine_first_dt_tz_values(self, tz_naive_fixture):
         ser1 = pd.Series(pd.DatetimeIndex(['20150101', '20150102', '20150103'],
                                           tz=tz_naive_fixture),

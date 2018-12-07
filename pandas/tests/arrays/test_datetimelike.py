@@ -297,7 +297,6 @@ class TestDatetimeArray(SharedTests):
         tm.assert_datetime_array_equal(result, expected)
 
 
-@pytest.mark.skip(reason="TODO")
 class TestTimedeltaArray(SharedTests):
     index_cls = pd.TimedeltaIndex
     array_cls = TimedeltaArray

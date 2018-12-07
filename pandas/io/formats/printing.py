@@ -290,11 +290,6 @@ def format_object_summary(obj, formatter, is_justify=True, name=None,
         Whether subsequent lines should be be indented to
         align with the name.
 
-        Pass ``False`` to indicate that subsequent lines should
-        not be indented to align with the name.
-    trailing_comma : bool, default True
-        Whether to include a comma after the closing ']'
-
     Returns
     -------
     summary string

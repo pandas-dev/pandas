@@ -168,8 +168,6 @@ class TimedeltaArrayMixin(dtl.DatetimeLikeArrayMixin, dtl.TimelikeOps):
         freq, freq_infer = dtl.maybe_infer_freq(freq)
 
         data, inferred_freq = sequence_to_td64ns(data, copy=copy, unit=unit)
-        # TODO: maybe inside an ``if inferred_freq is not None:
-
         freq, freq_infer = dtl.validate_inferred_freq(freq, inferred_freq,
                                                       freq_infer)
 
