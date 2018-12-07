@@ -2420,6 +2420,12 @@ class ObjectBlock(Block):
     def _try_coerce_args(self, values, other):
         """ provide coercion to our input arguments """
 
+        if isinstance(other, DatetimeArray):
+            # hit in pandas/tests/indexing/test_coercion.py
+            # ::TestWhereCoercion::test_where_series_datetime64[datetime64tz]
+            # when falling back to ObjectBlock.where
+            other = other.astype(object)
+
         if isinstance(other, ABCDatetimeIndex):
             # to store DatetimeTZBlock as object
             other = other.astype(object).values
