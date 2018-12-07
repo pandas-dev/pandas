@@ -11,8 +11,7 @@ import pytest
 from pandas import Timedelta, Timestamp
 
 from pandas.tseries import offsets
-from pandas.tseries.offsets import (
-    Hour, Micro, Milli, Minute, Nano, Second)
+from pandas.tseries.offsets import Hour, Micro, Milli, Minute, Nano, Second
 
 from .common import assert_offset_equal
 

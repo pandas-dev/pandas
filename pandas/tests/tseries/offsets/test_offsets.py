@@ -24,11 +24,12 @@ from pandas.tseries.frequencies import _offset_map, get_offset
 from pandas.tseries.holiday import USFederalHolidayCalendar
 import pandas.tseries.offsets as offsets
 from pandas.tseries.offsets import (
-    _Day, FY5253, BDay, BMonthBegin, BMonthEnd, BQuarterBegin, BQuarterEnd,
-    BusinessHour, BYearBegin, BYearEnd, CBMonthBegin, CBMonthEnd,
-    CDay, CustomBusinessHour, DateOffset, Day, Easter, FY5253Quarter,
+    FY5253, BDay, BMonthBegin, BMonthEnd, BQuarterBegin, BQuarterEnd,
+    BusinessHour, BYearBegin, BYearEnd, CBMonthBegin, CBMonthEnd, CDay,
+    CustomBusinessHour, DateOffset, Day, Easter, FY5253Quarter,
     LastWeekOfMonth, MonthBegin, MonthEnd, Nano, QuarterBegin, QuarterEnd,
-    SemiMonthBegin, SemiMonthEnd, Tick, Week, WeekOfMonth, YearBegin, YearEnd)
+    SemiMonthBegin, SemiMonthEnd, Tick, Week, WeekOfMonth, YearBegin, YearEnd,
+    _Day)
 
 from .common import assert_offset_equal, assert_onOffset
 
