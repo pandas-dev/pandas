@@ -2260,6 +2260,7 @@ class Index(IndexOpsMixin, PandasObject):
 
         Examples
         --------
+
         >>> idx1 = pd.Index([1, 2, 3, 4])
         >>> idx2 = pd.Index([3, 4, 5, 6])
         >>> idx1.union(idx2)
@@ -3811,26 +3812,6 @@ class Index(IndexOpsMixin, PandasObject):
     def is_type_compatible(self, kind):
         return kind == self.inferred_type
 
-    _index_shared_docs['__contains__'] = """
-        Return a boolean if this key is IN the index.
-
-        Parameters
-        ----------
-        key : object
-
-        Returns
-        -------
-        boolean
-        """
-
-    @Appender(_index_shared_docs['__contains__'] % _index_doc_kwargs)
-    def __contains__(self, key):
-        hash(key)
-        try:
-            return key in self._engine
-        except (OverflowError, TypeError, ValueError):
-            return False
-
     _index_shared_docs['contains'] = """
         Return a boolean indicating whether this key is in the index.
 
@@ -3852,16 +3833,30 @@ class Index(IndexOpsMixin, PandasObject):
 
         Examples
         --------
-        >>> idx = pd.Index([1, 2, (3, 4), 5])
+        >>> idx = pd.Index([1, 2, 3, 4])
         >>> idx
-        Index([1, 2, (3, 4), 5], dtype='object')
-        >>> idx.contains(1)
+        Int64Index([1, 2, 3, 4], dtype='int64')
+
+        >>> idx.contains(2)
         True
         >>> idx.contains(6)
         False
-        >>> idx.contains((3, 4))
+
+        This is equivalent to:
+
+        >>> 2 in idx
         True
+        >>> 6 in idx
+        False
         """
+
+    @Appender(_index_shared_docs['contains'] % _index_doc_kwargs)
+    def __contains__(self, key):
+        hash(key)
+        try:
+            return key in self._engine
+        except (OverflowError, TypeError, ValueError):
+            return False
 
     @Appender(_index_shared_docs['contains'] % _index_doc_kwargs)
     def contains(self, key):
