@@ -3,16 +3,16 @@ The tests in this package are to ensure the proper resultant dtypes of
 set operations.
 '''
 import itertools as it
+
 import numpy as np
 import pytest
 
-import pandas as pd
-import pandas.util.testing as tm
-from pandas import Int64Index, RangeIndex
 from pandas.core.dtypes.common import is_dtype_equal
 
+import pandas as pd
+from pandas import Int64Index, RangeIndex
 from pandas.tests.indexes.conftest import indices
-
+import pandas.util.testing as tm
 
 COMPATIBLE_INCONSISTENT_PAIRS = {
     (Int64Index, RangeIndex): (tm.makeIntIndex, tm.makeRangeIndex)

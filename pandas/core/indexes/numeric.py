@@ -10,11 +10,11 @@ from pandas.core.dtypes.common import (
     is_bool, is_bool_dtype, is_dtype_equal, is_float, is_integer_dtype,
     is_scalar, needs_i8_conversion, pandas_dtype)
 import pandas.core.dtypes.concat as _concat
+from pandas.core.dtypes.generic import ABCInt64Index, ABCRangeIndex
 from pandas.core.dtypes.missing import isna
 
 from pandas.core import algorithms
 import pandas.core.common as com
-from pandas.core.dtypes.generic import ABCRangeIndex, ABCInt64Index
 import pandas.core.indexes.base as ibase
 from pandas.core.indexes.base import (
     Index, InvalidIndexError, _index_shared_docs)
