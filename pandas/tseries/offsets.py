@@ -2,6 +2,7 @@
 from datetime import date, datetime, timedelta
 import functools
 import operator
+import warnings
 
 from dateutil.easter import easter
 import numpy as np
@@ -2487,6 +2488,9 @@ def generate_range(start=None, end=None, periods=None,
 
     """
     if time_rule is not None:
+        warnings.warn("`time_rule` is deprecated and will be removed in a "
+                      "future version.  Use `offset` instead.",
+                      FutureWarning)
         from pandas.tseries.frequencies import get_offset
 
         offset = get_offset(time_rule)
