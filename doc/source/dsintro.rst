@@ -1,20 +1,6 @@
-.. currentmodule:: pandas
-
-.. ipython:: python
-   :suppress:
-
-   import numpy as np
-   np.set_printoptions(precision=4, suppress=True)
-   import pandas as pd
-   pd.set_option('display.precision', 4, 'display.max_columns', 8)
-   pd.options.display.max_rows = 15
-
-   import matplotlib
-   # matplotlib.style.use('default')
-   import matplotlib.pyplot as plt
-   plt.close('all')
-
 .. _dsintro:
+
+{{ header }}
 
 ************************
 Intro to Data Structures

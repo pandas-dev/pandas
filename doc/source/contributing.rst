@@ -672,6 +672,7 @@ Otherwise, you need to do it manually:
 
     import warnings
 
+
     def old_func():
         """Summary of the function.
 
@@ -680,6 +681,7 @@ Otherwise, you need to do it manually:
         """
         warnings.warn('Use new_func instead.', FutureWarning, stacklevel=2)
         new_func()
+
 
     def new_func():
         pass
@@ -814,9 +816,8 @@ We would name this file ``test_cool_feature.py`` and put in an appropriate place
 .. code-block:: python
 
    import pytest
-   import numpy as np
-   import pandas as pd
-   from pandas.util import testing as tm
+   import numpy as np        # noqa: F811
+   import pandas as pd       # noqa: F811
 
 
    @pytest.mark.parametrize('dtype', ['int8', 'int16', 'int32', 'int64'])
@@ -938,8 +939,10 @@ If your change involves checking that a warning is actually emitted, use
 
 .. code-block:: python
 
-   df = pd.DataFrame()
+   import pandas.util.testing as tm
 
+
+   df = pd.DataFrame()
    with tm.assert_produces_warning(FutureWarning):
        df.some_operation()
 

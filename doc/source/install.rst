@@ -207,7 +207,7 @@ installed), make sure you have `pytest
 
 ::
 
-    >>> import pandas as pd
+    >>> import pandas as pd  # noqa: F811
     >>> pd.test()
     running: pytest --skip-slow --skip-network C:\Users\TP\Anaconda3\envs\py36\lib\site-packages\pandas
     ============================= test session starts =============================

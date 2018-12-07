@@ -8,7 +8,13 @@ What's New in 0.24.0 (Month XX, 2018)
    Starting January 1, 2019, pandas feature releases will support Python 3 only.
    See :ref:`install.dropping-27` for more.
 
-{{ common_imports }}
+{{ header }}
+
+.. ipython:: python
+   :suppress:
+
+   from pandas import * # noqa F401, F403
+
 
 These are the changes in pandas 0.24.0. See :ref:`release` for a full changelog
 including other versions of pandas.
