@@ -41,7 +41,6 @@ def make_test_panel():
 class PanelTests(object):
     panel = None
 
-    @pytest.mark.xfail(reason="TODO-pickle", strict=True)
     def test_pickle(self):
         unpickled = tm.round_trip_pickle(self.panel)
         assert_frame_equal(unpickled['ItemA'], self.panel['ItemA'])

@@ -457,9 +457,7 @@ class TestUnique(object):
         result = Series(
             Index([Timestamp('20160101', tz='US/Eastern'),
                    Timestamp('20160101', tz='US/Eastern')])).unique()
-        expected = np.array([Timestamp('2016-01-01 00:00:00-0500',
-                                       tz='US/Eastern')], dtype=object)
-        expected = DatetimeArray(np.array([
+        expected = DatetimeArray._from_sequence(np.array([
             Timestamp('2016-01-01 00:00:00-0500', tz="US/Eastern")
         ]))
         tm.assert_extension_array_equal(result, expected)
@@ -473,7 +471,7 @@ class TestUnique(object):
         result = pd.unique(
             Series(Index([Timestamp('20160101', tz='US/Eastern'),
                           Timestamp('20160101', tz='US/Eastern')])))
-        expected = DatetimeArray(np.array([
+        expected = DatetimeArray._from_sequence(np.array([
             Timestamp('2016-01-01', tz="US/Eastern"),
         ]))
         tm.assert_extension_array_equal(result, expected)

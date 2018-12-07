@@ -915,7 +915,6 @@ class TestTimeSeries(TestData):
         # does .resample() set .freq correctly?
         assert df.resample('D').asfreq().index.freq == 'D'
 
-    @pytest.mark.xfail(reason="TODO-pickle", strict=True)
     def test_pickle(self):
 
         # GH4606

@@ -355,7 +355,6 @@ class TestBlockManager(object):
         assert 'a' in mgr
         assert 'baz' not in mgr
 
-    @pytest.mark.xfail(reason="TODO-pickle", strict=True)
     def test_pickle(self, mgr):
 
         mgr2 = tm.round_trip_pickle(mgr)

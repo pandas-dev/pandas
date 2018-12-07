@@ -2983,7 +2983,7 @@ class DatetimeTZBlock(ExtensionBlock, DatetimeBlock):
         if dtype is not None:
             if isinstance(dtype, compat.string_types):
                 dtype = DatetimeTZDtype.construct_from_string(dtype)
-            values = type(values)(values, tz=dtype.tz)
+            values = type(values)(values, dtype=dtype)
 
         if values.tz is None:
             raise ValueError("cannot create a DatetimeTZBlock without a tz")

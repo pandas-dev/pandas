@@ -16,14 +16,14 @@ class TestSeriesBlockInternals(object):
         ts = dti[1]
         ser = pd.Series(dti)
         assert ser._values is not dti
-        assert ser._values._data.base is not dti._data.base
+        assert ser._values._data.base is not dti._data._data.base
         assert dti.freq == 'D'
         ser.iloc[1] = pd.NaT
         assert ser._values.freq is None
 
         # check that the DatetimeIndex was not altered in place
         assert ser._values is not dti
-        assert ser._values._data.base is not dti._data.base
+        assert ser._values._data.base is not dti._data._data.base
         assert dti[1] == ts
         assert dti.freq == 'D'
 
@@ -33,9 +33,10 @@ class TestSeriesBlockInternals(object):
         ts = dti[0]
         ser = pd.Series(dti)
         assert ser._values is not dti
-        assert ser._values._data.base is not dti._data.base
+        assert ser._values._data.base is not dti._data._data.base
         assert ser._data.blocks[0].values is not dti
-        assert ser._data.blocks[0].values._data.base is not dti._data.base
+        assert (ser._data.blocks[0].values._data.base
+                is not dti._data._data.base)
 
         ser[::3] = pd.NaT
         assert ser[0] is pd.NaT

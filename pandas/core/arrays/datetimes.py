@@ -129,7 +129,14 @@ def _dt_array_cmp(cls, op):
                 return ops.invalid_comparison(self, other, op)
 
             if is_object_dtype(other):
-                result = op(self.astype('O'), np.array(other))
+                # messy... Previously, DatetimeArray.astype(object) -> Index
+                # now it's an ndarray. op[ndarray, ndarray] doesn't
+                # doesn't raise when comparing tz and non-tz (just returns
+                # False.
+                with np.errstate(all='ignore'):
+                    result = ops._comp_method_OBJECT_ARRAY(op,
+                                                           self.astype(object),
+                                                           other)
                 o_mask = isna(other)
             elif not (is_datetime64_dtype(other) or
                       is_datetime64tz_dtype(other)):
@@ -137,9 +144,14 @@ def _dt_array_cmp(cls, op):
                 return ops.invalid_comparison(self, other, op)
             else:
                 self._assert_tzawareness_compat(other)
-                if not hasattr(other, 'asi8'):
-                    # ndarray, Series
-                    other = type(self)(other)
+                if isinstance(other, (ABCIndexClass, ABCSeries)):
+                    other = other.array
+
+                if (is_datetime64_dtype(other) and
+                        not is_datetime64_ns_dtype(other) or
+                        not hasattr(other, 'asi8')):
+                    other = type(self)._from_sequence(other)
+
                 result = meth(self, other)
                 o_mask = other._isnan
 
@@ -242,6 +254,13 @@ class DatetimeArrayMixin(dtl.DatetimeLikeArrayMixin,
             values = values.copy()
         if freq:
             freq = to_offset(freq)
+        if getattr(dtype, 'tz', None):
+            # https://github.com/pandas-dev/pandas/issues/18595
+            # Ensure that we have a standard timezone for pytz objects.
+            # Without this, thins like adding an array of timedeltas and
+            # a  tz-aware Timestamp (with a tz specific to its datetime) will
+            # be incorrect(ish?) for the array as a whole
+            dtype = DatetimeTZDtype(tz=timezones.tz_standardize(dtype.tz))
 
         self._data = values
         self._dtype = dtype
@@ -378,6 +397,9 @@ class DatetimeArrayMixin(dtl.DatetimeLikeArrayMixin,
             raise IncompatibleTimeZoneError(
                 "Timezone's don't match. '{} != {}'".format(self.tz, other.tz)
             )
+
+    def _maybe_clear_freq(self):
+        self._freq = None
 
     # -----------------------------------------------------------------
     # Descriptive Properties
@@ -1581,6 +1603,7 @@ def sequence_to_dt64ns(data, dtype=None, copy=False,
         inferred_freq = data.freq
 
     # if dtype has an embedded tz, capture it
+    # breakpoint()
     tz = validate_tz_from_dtype(dtype, tz)
 
     if isinstance(data, (ABCSeries, ABCIndexClass)):

@@ -505,6 +505,12 @@ class DatetimeLikeArrayMixin(AttributesMixin,
             raise TypeError(msg.format(scalar=self._scalar_type.__name__,
                                        typ=type(value).__name__))
         self._data[key] = value
+        self._maybe_clear_freq()
+
+    def _maybe_clear_freq(self):
+        # inplace operations like __setitem__ may invalidate the freq of
+        # DatetimeArray and TimedeltaArray
+        pass
 
     def view(self, dtype=None):
         # TODO: figure out what the plan is here
@@ -1051,9 +1057,10 @@ class DatetimeLikeArrayMixin(AttributesMixin,
         left = lib.values_from_object(self.astype('O'))
 
         res_values = op(left, np.array(other))
+        kwargs = {}
         if not is_period_dtype(self):
-            return type(self)(res_values, freq='infer')
-        return self._from_sequence(res_values)
+            kwargs['freq'] = 'infer'
+        return self._from_sequence(res_values, **kwargs)
 
     def _time_shift(self, periods, freq=None):
         """
@@ -1075,7 +1082,7 @@ class DatetimeLikeArrayMixin(AttributesMixin,
                 freq = frequencies.to_offset(freq)
             offset = periods * freq
             result = self + offset
-            if getattr(self, 'tz'):
+            if getattr(self, 'tz', None):
                 result._dtype = DatetimeTZDtype(tz=self.tz)
             return result
 
