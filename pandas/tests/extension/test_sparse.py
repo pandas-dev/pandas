@@ -279,6 +279,13 @@ class TestMethods(BaseSparseTests, base.BaseMethodsTests):
                                                 dtype=data.dtype))
         self.assert_series_equal(result, expected)
 
+    def test_combine_first(self, data):
+        if data.dtype.subtype == 'int':
+            # Right now this is upcasted to float, just like combine_first
+            # for Series[int]
+            pytest.skip("TODO(SparseArray.__setitem__ will preserve dtype.")
+        super(TestMethods, self).test_combine_first(data)
+
 
 class TestCasting(BaseSparseTests, base.BaseCastingTests):
     pass

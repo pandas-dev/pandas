@@ -1887,7 +1887,6 @@ class ExtensionBlock(NonConsolidatableMixIn, Block):
         new_values = self.values.take(indexer, fill_value=fill_value,
                                       allow_fill=True)
 
-        # if we are a 1-dim object, then always place at 0
         if self.ndim == 1 and new_mgr_locs is None:
             new_mgr_locs = [0]
         else:
@@ -1973,15 +1972,15 @@ class ExtensionBlock(NonConsolidatableMixIn, Block):
         if isinstance(other, (ABCIndexClass, ABCSeries)):
             other = other.array
 
+        elif isinstance(other, ABCDataFrame):
+            assert other.shape[1] == 1
+            other = other.iloc[:, 0].array
+
         if isinstance(cond, ABCDataFrame):
             assert cond.shape[1] == 1
             cond = cond.iloc[:, 0].array
 
-        if isinstance(other, ABCDataFrame):
-            assert other.shape[1] == 1
-            other = other.iloc[:, 0].array
-
-        if isinstance(cond, (ABCIndexClass, ABCSeries)):
+        elif isinstance(cond, (ABCIndexClass, ABCSeries)):
             cond = cond.array
 
         if lib.is_scalar(other) and isna(other):

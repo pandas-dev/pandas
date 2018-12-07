@@ -217,6 +217,10 @@ class TestMethods(BaseJSON, base.BaseMethodsTests):
     def test_combine_add(self, data_repeated):
         pass
 
+    @pytest.mark.skip(reason="combine for JSONArray not supported")
+    def test_combine_first(self, data):
+        pass
+
     @unhashable
     def test_hash_pandas_object_works(self, data, kind):
         super().test_hash_pandas_object_works(data, kind)
