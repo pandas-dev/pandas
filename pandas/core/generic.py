@@ -111,6 +111,10 @@ class NDFrame(PandasObject, SelectionMixin):
     _metadata = []
     _is_copy = None
 
+    # dummy attribute so that datetime.__eq__(Series/DataFrame) defers
+    # by returning NotImplemented
+    timetuple = None
+
     # ----------------------------------------------------------------------
     # Constructors
 
@@ -152,6 +156,9 @@ class NDFrame(PandasObject, SelectionMixin):
 
     @property
     def is_copy(self):
+        """
+        Return the copy.
+        """
         warnings.warn("Attribute 'is_copy' is deprecated and will be removed "
                       "in a future version.", FutureWarning, stacklevel=2)
         return self._is_copy
@@ -415,12 +422,16 @@ class NDFrame(PandasObject, SelectionMixin):
 
     @property
     def shape(self):
-        """Return a tuple of axis dimensions"""
+        """
+        Return a tuple of axis dimensions
+        """
         return tuple(len(self._get_axis(a)) for a in self._AXIS_ORDERS)
 
     @property
     def axes(self):
-        """Return index label(s) of the internal NDFrame"""
+        """
+        Return index label(s) of the internal NDFrame
+        """
         # we do it this way because if we have reversed axes, then
         # the block manager shows then reversed
         return [self._get_axis(a) for a in self._AXIS_ORDERS]
@@ -685,7 +696,8 @@ class NDFrame(PandasObject, SelectionMixin):
         return self._constructor(new_values, *new_axes).__finalize__(self)
 
     def droplevel(self, level, axis=0):
-        """Return DataFrame with requested index / column level(s) removed.
+        """
+        Return DataFrame with requested index / column level(s) removed.
 
         .. versionadded:: 0.24.0
 
@@ -1457,7 +1469,8 @@ class NDFrame(PandasObject, SelectionMixin):
     __bool__ = __nonzero__
 
     def bool(self):
-        """Return the bool of a single element PandasObject.
+        """
+        Return the bool of a single element PandasObject.
 
         This must be a boolean scalar value, either True or False.  Raise a
         ValueError if the PandasObject does not have exactly 1 element, or that
@@ -1893,7 +1906,9 @@ class NDFrame(PandasObject, SelectionMixin):
     #    return dict(typestr=values.dtype.str,shape=values.shape,data=values)
 
     def to_dense(self):
-        """Return dense representation of NDFrame (as opposed to sparse)"""
+        """
+        Return dense representation of NDFrame (as opposed to sparse)
+        """
         # compat
         return self
 
@@ -3581,7 +3596,8 @@ class NDFrame(PandasObject, SelectionMixin):
     _xs = xs
 
     def select(self, crit, axis=0):
-        """Return data corresponding to axis labels matching criteria
+        """
+        Return data corresponding to axis labels matching criteria
 
         .. deprecated:: 0.21.0
             Use df.loc[df.index.map(crit)] to select via labels
@@ -4342,7 +4358,8 @@ class NDFrame(PandasObject, SelectionMixin):
     def _reindex_multi(self, axes, copy, fill_value):
         return NotImplemented
 
-    _shared_docs['reindex_axis'] = ("""Conform input object to new index
+    _shared_docs['reindex_axis'] = ("""
+        Conform input object to new index
         with optional filling logic, placing NA/NaN in locations having
         no value in the previous index. A new object is produced unless
         the new index is equivalent to the current one and copy=False.
@@ -5147,7 +5164,8 @@ class NDFrame(PandasObject, SelectionMixin):
     # Internal Interface Methods
 
     def as_matrix(self, columns=None):
-        """Convert the frame to its Numpy-array representation.
+        """
+        Convert the frame to its Numpy-array representation.
 
         .. deprecated:: 0.23.0
             Use :meth:`DataFrame.values` instead.
@@ -5793,7 +5811,8 @@ class NDFrame(PandasObject, SelectionMixin):
 
     def convert_objects(self, convert_dates=True, convert_numeric=False,
                         convert_timedeltas=True, copy=True):
-        """Attempt to infer better dtype for object columns.
+        """
+        Attempt to infer better dtype for object columns.
 
         .. deprecated:: 0.21.0
 
@@ -9698,7 +9717,9 @@ class NDFrame(PandasObject, SelectionMixin):
         return d
 
     def _check_percentile(self, q):
-        """Validate percentiles (used by describe and quantile)."""
+        """
+        Validate percentiles (used by describe and quantile).
+        """
 
         msg = ("percentiles should all be in the interval [0, 1]. "
                "Try {0} instead.")
@@ -9857,7 +9878,9 @@ class NDFrame(PandasObject, SelectionMixin):
 
     @classmethod
     def _add_numeric_operations(cls):
-        """Add the operations to the cls; evaluate the doc strings again"""
+        """
+        Add the operations to the cls; evaluate the doc strings again
+        """
 
         axis_descr, name, name2 = _doc_parms(cls)
 
@@ -9983,7 +10006,8 @@ class NDFrame(PandasObject, SelectionMixin):
 
     @classmethod
     def _add_series_only_operations(cls):
-        """Add the series only operations to the cls; evaluate the doc
+        """
+        Add the series only operations to the cls; evaluate the doc
         strings again.
         """
 
@@ -10009,7 +10033,8 @@ class NDFrame(PandasObject, SelectionMixin):
 
     @classmethod
     def _add_series_or_dataframe_operations(cls):
-        """Add the series or dataframe only operations to the cls; evaluate
+        """
+        Add the series or dataframe only operations to the cls; evaluate
         the doc strings again.
         """
 
@@ -10071,7 +10096,8 @@ class NDFrame(PandasObject, SelectionMixin):
         """
 
     def _find_valid_index(self, how):
-        """Retrieves the index of the first valid value.
+        """
+        Retrieves the index of the first valid value.
 
         Parameters
         ----------

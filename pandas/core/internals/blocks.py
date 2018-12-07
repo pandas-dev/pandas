@@ -33,7 +33,7 @@ from pandas.core.dtypes.missing import (
     _isna_compat, array_equivalent, is_null_datelike_scalar, isna, notna)
 
 import pandas.core.algorithms as algos
-from pandas.core.arrays import Categorical
+from pandas.core.arrays import Categorical, ExtensionArray
 from pandas.core.base import PandasObject
 import pandas.core.common as com
 from pandas.core.indexes.datetimes import DatetimeIndex
@@ -1915,7 +1915,19 @@ class ExtensionBlock(NonConsolidatableMixIn, Block):
         return self.values[slicer]
 
     def formatting_values(self):
-        return self.values._formatting_values()
+        # Deprecating the ability to override _formatting_values.
+        # Do the warning here, it's only user in pandas, since we
+        # have to check if the subclass overrode it.
+        fv = getattr(type(self.values), '_formatting_values', None)
+        if fv and fv != ExtensionArray._formatting_values:
+            msg = (
+                "'ExtensionArray._formatting_values' is deprecated. "
+                "Specify 'ExtensionArray._formatter' instead."
+            )
+            warnings.warn(msg, DeprecationWarning, stacklevel=10)
+            return self.values._formatting_values()
+
+        return self.values
 
     def concat_same_type(self, to_concat, placement=None):
         """
@@ -2669,11 +2681,10 @@ class DatetimeBlock(DatetimeLikeBlockMixin, Block):
         these automatically copy, so copy=True has no effect
         raise on an except if raise == True
         """
+        dtype = pandas_dtype(dtype)
 
         # if we are passed a datetime64[ns, tz]
         if is_datetime64tz_dtype(dtype):
-            dtype = DatetimeTZDtype(dtype)
-
             values = self.values
             if getattr(values, 'tz', None) is None:
                 values = DatetimeIndex(values).tz_localize('UTC')
@@ -2912,7 +2923,9 @@ class DatetimeTZBlock(NonConsolidatableMixIn, DatetimeBlock):
             # allow passing of > 1dim if its trivial
             if result.ndim > 1:
                 result = result.reshape(np.prod(result.shape))
-            result = self.values._shallow_copy(result)
+
+            # GH#24096 new values invalidates a frequency
+            result = self.values._shallow_copy(result, freq=None)
 
         return result
 
