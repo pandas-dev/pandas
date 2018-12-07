@@ -1555,15 +1555,14 @@ class TimeGrouper(Grouper):
                                               end,
                                               self.freq,
                                               closed=self.closed,
-                                              base=self.base)
-
-            # compensate if edge labels are extened away from true labels
-            i = None if self.freq.onOffset(start) else 1
-            j = -1 if self.freq.onOffset(end) else None
+                                              base=self.base,
+                                              compensate_edges=True)
 
             labels = binner = PeriodIndex(start=p_start, end=p_end,
                                           freq=self.freq,
-                                          name=ax.name)[i:j]
+                                          name=ax.name)
+
+            # Get offset for bin edge (not label edge) adjustment
             start_offset = (pd.Period(start, self.freq)
                             - pd.Period(p_start, self.freq))
             # remove /freq_mult once period diff scaling bug is fixed
@@ -1609,26 +1608,56 @@ def _take_new_index(obj, indexer, new_index, axis=0):
         raise ValueError("'obj' should be either a Series or a DataFrame")
 
 
-def _get_range_edges(first, last, offset, closed='left', base=0):
+def _get_range_edges(first, last, offset, closed='left', base=0,
+                     compensate_edges=False):
+    first_ = first
+    last_ = last
+
+    additional_adjust = True
     if isinstance(offset, Tick):
         is_day = isinstance(offset, Day)
         day_nanos = delta_to_nanoseconds(timedelta(1))
 
         # #1165
         if (is_day and day_nanos % offset.nanos == 0) or not is_day:
-            return _adjust_dates_anchored(first, last, offset,
-                                          closed=closed, base=base)
+            additional_adjust = False
+            # Don't return immediately because might need to compensate edges
+            first, last = _adjust_dates_anchored(first, last, offset,
+                                                 closed=closed, base=base)
 
     else:
         first = first.normalize()
         last = last.normalize()
 
-    if closed == 'left':
-        first = Timestamp(offset.rollback(first))
-    else:
-        first = Timestamp(first - offset)
+    if additional_adjust:
+        if closed == 'left':
+            first = Timestamp(offset.rollback(first))
+        else:
+            first = Timestamp(first - offset)
 
-    last = Timestamp(last + offset)
+        last = Timestamp(last + offset)
+
+    if compensate_edges:
+        first, last = _compensate_edges(first, last, first_, last_, offset)
+
+    return first, last
+
+
+def _compensate_edges(adj_first, adj_last, orig_first, orig_last, offset):
+    # Implement this function in expanded form, instead of the shorter form
+    # to ensure that all these cases are covered in code coverage reports
+
+    # first = adj_first + offset * (not offset.onOffset(orig_first))
+    if not offset.onOffset(orig_first):
+        first = adj_first + offset
+    else:
+        first = adj_first
+
+    # last = adj_last - offset * offset.onOffset(orig_last)
+    if offset.onOffset(orig_last):
+        last = adj_last - offset
+    else:
+        last = adj_last
 
     return first, last
 
