@@ -325,13 +325,13 @@ class TestDataFrameTimeSeriesMethods(TestData):
         df = DataFrame(np.random.randint(5, size=5),
                        index=date_range('1/1/2000', periods=5, freq='H'))
         result = df.shift(1, fill_value=0)
-        tm.assert_equal(result.iloc[0, 0], 0)
-        tm.assert_equal(result.iloc[1, 0], df.iloc[0, 0])
+        np.testing.assert_equal(result.iloc[0, 0], 0)
+        np.testing.assert_equal(result.iloc[1, 0], df.iloc[0, 0])
 
         result = df.shift(2, fill_value=0)
-        tm.assert_equal(result.iloc[0, 0], 0)
-        tm.assert_equal(result.iloc[1, 0], 0)
-        tm.assert_equal(result.iloc[2, 0], df.iloc[0, 0])
+        np.testing.assert_equal(result.iloc[0, 0], 0)
+        np.testing.assert_equal(result.iloc[1, 0], 0)
+        np.testing.assert_equal(result.iloc[2, 0], df.iloc[0, 0])
 
     def test_shift_empty(self):
         # Regression test for #8019
