@@ -104,19 +104,6 @@ class TimedeltaIndex(DatetimeIndexOpsMixin,
     name : object
         Name to be stored in the index
 
-    Notes
-    -----
-
-    To learn more about the frequency strings, please see `this link
-    <http://pandas.pydata.org/pandas-docs/stable/timeseries.html#offset-aliases>`__.
-
-    See Also
-    ---------
-    Index : The base pandas Index type.
-    Timedelta : Represents a duration between two dates or times.
-    DatetimeIndex : Index of datetime64 data.
-    PeriodIndex : Index of Period data.
-
     Attributes
     ----------
     days
@@ -134,6 +121,19 @@ class TimedeltaIndex(DatetimeIndexOpsMixin,
     floor
     ceil
     to_frame
+
+    See Also
+    ---------
+    Index : The base pandas Index type.
+    Timedelta : Represents a duration between two dates or times.
+    DatetimeIndex : Index of datetime64 data.
+    PeriodIndex : Index of Period data.
+
+    Notes
+    -----
+
+    To learn more about the frequency strings, please see `this link
+    <http://pandas.pydata.org/pandas-docs/stable/timeseries.html#offset-aliases>`__.
     """
 
     _typ = 'timedeltaindex'

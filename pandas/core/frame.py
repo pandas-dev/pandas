@@ -214,17 +214,17 @@ Returns
 DataFrame
     A DataFrame of the two merged objects.
 
-Notes
------
-Support for specifying index levels as the `on`, `left_on`, and
-`right_on` parameters was added in version 0.23.0
-Support for merging named Series objects was added in version 0.24.0
-
 See Also
 --------
 merge_ordered : Merge with optional filling/interpolation.
 merge_asof : Merge on nearest keys.
 DataFrame.join : Similar method using indices.
+
+Notes
+-----
+Support for specifying index levels as the `on`, `left_on`, and
+`right_on` parameters was added in version 0.23.0
+Support for merging named Series objects was added in version 0.24.0
 
 Examples
 --------
@@ -312,6 +312,13 @@ class DataFrame(NDFrame):
     copy : boolean, default False
         Copy data from inputs. Only affects DataFrame / 2d ndarray input
 
+    See Also
+    --------
+    DataFrame.from_records : Constructor from tuples, also record arrays.
+    DataFrame.from_dict : From dicts of Series, arrays, or dicts.
+    DataFrame.from_items : From sequence of (key, value) pairs
+        pandas.read_csv, pandas.read_table, pandas.read_clipboard.
+
     Examples
     --------
     Constructing DataFrame from a dictionary.
@@ -347,13 +354,6 @@ class DataFrame(NDFrame):
     0  1  2  3
     1  4  5  6
     2  7  8  9
-
-    See Also
-    --------
-    DataFrame.from_records : Constructor from tuples, also record arrays.
-    DataFrame.from_dict : From dicts of Series, arrays, or dicts.
-    DataFrame.from_items : From sequence of (key, value) pairs
-        pandas.read_csv, pandas.read_table, pandas.read_clipboard.
     """
 
     @property
@@ -789,6 +789,21 @@ class DataFrame(NDFrame):
         """
         Iterate over DataFrame rows as (index, Series) pairs.
 
+        Yields
+        ------
+        index : label or tuple of label
+            The index of the row. A tuple for a `MultiIndex`.
+        data : Series
+            The data of the row as a Series.
+
+        it : generator
+            A generator that iterates over the rows of the frame.
+
+        See Also
+        --------
+        itertuples : Iterate over DataFrame rows as namedtuples of the values.
+        iteritems : Iterate over (column name, Series) pairs.
+
         Notes
         -----
 
@@ -815,21 +830,6 @@ class DataFrame(NDFrame):
            This is not guaranteed to work in all cases. Depending on the
            data types, the iterator returns a copy and not a view, and writing
            to it will have no effect.
-
-        Yields
-        ------
-        index : label or tuple of label
-            The index of the row. A tuple for a `MultiIndex`.
-        data : Series
-            The data of the row as a Series.
-
-        it : generator
-            A generator that iterates over the rows of the frame.
-
-        See Also
-        --------
-        itertuples : Iterate over DataFrame rows as namedtuples of the values.
-        iteritems : Iterate over (column name, Series) pairs.
         """
         columns = self.columns
         klass = self._constructor_sliced
@@ -856,17 +856,17 @@ class DataFrame(NDFrame):
             field possibly being the index and following fields being the
             column values.
 
-        Notes
-        -----
-        The column names will be renamed to positional names if they are
-        invalid Python identifiers, repeated, or start with an underscore.
-        With a large number of columns (>255), regular tuples are returned.
-
         See Also
         --------
         DataFrame.iterrows : Iterate over DataFrame rows as (index, Series)
             pairs.
         DataFrame.iteritems : Iterate over (column name, Series) pairs.
+
+        Notes
+        -----
+        The column names will be renamed to positional names if they are
+        invalid Python identifiers, repeated, or start with an underscore.
+        With a large number of columns (>255), regular tuples are returned.
 
         Examples
         --------
@@ -1717,13 +1717,13 @@ class DataFrame(NDFrame):
             datetime format based on the first datetime string. If the format
             can be inferred, there often will be a large parsing speed-up.
 
-        See Also
-        --------
-        pandas.read_csv
-
         Returns
         -------
         y : DataFrame
+
+        See Also
+        --------
+        pandas.read_csv
         """
 
         warnings.warn("from_csv is deprecated. Please use read_csv(...) "
@@ -2861,6 +2861,11 @@ class DataFrame(NDFrame):
         -------
         q : DataFrame
 
+        See Also
+        --------
+        pandas.eval
+        DataFrame.eval
+
         Notes
         -----
         The result of the evaluation of this expression is first passed to
@@ -2895,11 +2900,6 @@ class DataFrame(NDFrame):
 
         For further details and examples see the ``query`` documentation in
         :ref:`indexing <indexing.query>`.
-
-        See Also
-        --------
-        pandas.eval
-        DataFrame.eval
 
         Examples
         --------
@@ -3040,18 +3040,18 @@ class DataFrame(NDFrame):
             A selection of dtypes or strings to be included/excluded. At least
             one of these parameters must be supplied.
 
+        Returns
+        -------
+        subset : DataFrame
+            The subset of the frame including the dtypes in ``include`` and
+            excluding the dtypes in ``exclude``.
+
         Raises
         ------
         ValueError
             * If both of ``include`` and ``exclude`` are empty
             * If ``include`` and ``exclude`` have overlapping elements
             * If any kind of string dtype is passed in.
-
-        Returns
-        -------
-        subset : DataFrame
-            The subset of the frame including the dtypes in ``include`` and
-            excluding the dtypes in ``exclude``.
 
         Notes
         -----
@@ -3678,6 +3678,11 @@ class DataFrame(NDFrame):
         -------
         dropped : pandas.DataFrame
 
+        Raises
+        ------
+        KeyError
+            If none of the labels are found in the selected axis
+
         See Also
         --------
         DataFrame.loc : Label-location based indexer for selection by label.
@@ -3686,11 +3691,6 @@ class DataFrame(NDFrame):
         DataFrame.drop_duplicates : Return DataFrame with duplicate rows
             removed, optionally only considering certain columns.
         Series.drop : Return Series with specified index labels removed.
-
-        Raises
-        ------
-        KeyError
-            If none of the labels are found in the selected axis
 
         Examples
         --------
@@ -4978,6 +4978,11 @@ class DataFrame(NDFrame):
         -------
         result : DataFrame
 
+        See Also
+        --------
+        DataFrame.combine_first : Combine two DataFrame objects and default to
+            non-null values in frame calling the method.
+
         Examples
         --------
         Combine using a simple function that chooses the smaller column.
@@ -5050,11 +5055,6 @@ class DataFrame(NDFrame):
         0  0.0  NaN NaN
         1  0.0  3.0 1.0
         2  NaN  3.0 1.0
-
-        See Also
-        --------
-        DataFrame.combine_first : Combine two DataFrame objects and default to
-            non-null values in frame calling the method.
         """
         other_idxlen = len(other.index)  # save for compare
 
@@ -5136,6 +5136,11 @@ class DataFrame(NDFrame):
         -------
         combined : DataFrame
 
+        See Also
+        --------
+        DataFrame.combine : Perform series-wise operation on two DataFrames
+            using a given function.
+
         Examples
         --------
 
@@ -5156,11 +5161,6 @@ class DataFrame(NDFrame):
         0  NaN  4.0  NaN
         1  0.0  3.0  1.0
         2  NaN  3.0  1.0
-
-        See Also
-        --------
-        DataFrame.combine : Perform series-wise operation on two DataFrames
-            using a given function.
         """
         import pandas.core.computation.expressions as expressions
 
@@ -5495,6 +5495,15 @@ class DataFrame(NDFrame):
             Name of the row / column that will contain the totals
             when margins is True.
 
+        Returns
+        -------
+        table : DataFrame
+
+        See Also
+        --------
+        DataFrame.pivot : Pivot without aggregation that can handle
+            non-numeric data.
+
         Examples
         --------
         >>> df = pd.DataFrame({"A": ["foo", "foo", "foo", "foo", "foo",
@@ -5570,15 +5579,6 @@ class DataFrame(NDFrame):
             small  5.500000  9   8.500000   8
         foo large  2.000000  5   4.500000   4
             small  2.333333  6   4.333333   2
-
-        Returns
-        -------
-        table : DataFrame
-
-        See Also
-        --------
-        DataFrame.pivot : Pivot without aggregation that can handle
-            non-numeric data.
         """
 
     @Substitution('')
@@ -5782,6 +5782,10 @@ class DataFrame(NDFrame):
 
             .. versionadded:: 0.18.0
 
+        Returns
+        -------
+        unstacked : DataFrame or Series
+
         See Also
         --------
         DataFrame.pivot : Pivot a table based on column values.
@@ -5817,10 +5821,6 @@ class DataFrame(NDFrame):
         two  a  3.0
              b  4.0
         dtype: float64
-
-        Returns
-        -------
-        unstacked : DataFrame or Series
         """
         from pandas.core.reshape.reshape import unstack
         return unstack(self, level, fill_value)
@@ -5914,7 +5914,6 @@ class DataFrame(NDFrame):
     0      a          B          E      1
     1      b          B          E      3
     2      c          B          E      5
-
     """)
 
     @Appender(_shared_docs['melt'] %
@@ -6218,6 +6217,16 @@ class DataFrame(NDFrame):
             Additional keyword arguments to pass as keywords arguments to
             `func`.
 
+        Returns
+        -------
+        applied : Series or DataFrame
+
+        See Also
+        --------
+        DataFrame.applymap: For elementwise operations.
+        DataFrame.aggregate: Only perform aggregating type operations.
+        DataFrame.transform: Only perform transforming type operations.
+
         Notes
         -----
         In the current implementation apply calls `func` twice on the
@@ -6225,12 +6234,6 @@ class DataFrame(NDFrame):
         code path. This can lead to unexpected behavior if `func` has
         side-effects, as they will take effect twice for the first
         column/row.
-
-        See Also
-        --------
-        DataFrame.applymap: For elementwise operations.
-        DataFrame.aggregate: Only perform aggregating type operations.
-        DataFrame.transform: Only perform transforming type operations.
 
         Examples
         --------
@@ -6301,10 +6304,6 @@ class DataFrame(NDFrame):
         0  1  2
         1  1  2
         2  1  2
-
-        Returns
-        -------
-        applied : Series or DataFrame
         """
         from pandas.core.apply import frame_apply
         op = frame_apply(self,
@@ -6407,6 +6406,11 @@ class DataFrame(NDFrame):
         -------
         appended : DataFrame
 
+        See Also
+        --------
+        pandas.concat : General function to concatenate DataFrame, Series
+            or Panel objects.
+
         Notes
         -----
         If a list of dict/series is passed and the keys are all contained in
@@ -6417,11 +6421,6 @@ class DataFrame(NDFrame):
         intensive than a single concatenate. A better solution is to append
         those rows to a list and then concatenate the list with the original
         DataFrame all at once.
-
-        See Also
-        --------
-        pandas.concat : General function to concatenate DataFrame, Series
-            or Panel objects.
 
         Examples
         --------
@@ -6560,6 +6559,10 @@ class DataFrame(NDFrame):
         DataFrame
             A dataframe containing columns from both the caller and `other`.
 
+        See Also
+        --------
+        DataFrame.merge : For column(s)-on-columns(s) operations.
+
         Notes
         -----
         Parameters `on`, `lsuffix`, and `rsuffix` are not supported when
@@ -6567,10 +6570,6 @@ class DataFrame(NDFrame):
 
         Support for specifying index levels as the `on` parameter was added
         in version 0.23.0.
-
-        See Also
-        --------
-        DataFrame.merge : For column(s)-on-columns(s) operations.
 
         Examples
         --------
@@ -7319,22 +7318,22 @@ class DataFrame(NDFrame):
             Exclude NA/null values. If an entire row/column is NA, the result
             will be NA.
 
+        Returns
+        -------
+        idxmin : Series
+
         Raises
         ------
         ValueError
             * If the row/column is empty
 
-        Returns
-        -------
-        idxmin : Series
+        See Also
+        --------
+        Series.idxmin
 
         Notes
         -----
         This method is the DataFrame version of ``ndarray.argmin``.
-
-        See Also
-        --------
-        Series.idxmin
         """
         axis = self._get_axis_number(axis)
         indices = nanops.nanargmin(self.values, axis=axis, skipna=skipna)
@@ -7355,22 +7354,22 @@ class DataFrame(NDFrame):
             Exclude NA/null values. If an entire row/column is NA, the result
             will be NA.
 
+        Returns
+        -------
+        idxmax : Series
+
         Raises
         ------
         ValueError
             * If the row/column is empty
 
-        Returns
-        -------
-        idxmax : Series
+        See Also
+        --------
+        Series.idxmax
 
         Notes
         -----
         This method is the DataFrame version of ``ndarray.argmax``.
-
-        See Also
-        --------
-        Series.idxmax
         """
         axis = self._get_axis_number(axis)
         indices = nanops.nanargmax(self.values, axis=axis, skipna=skipna)
@@ -7512,6 +7511,11 @@ class DataFrame(NDFrame):
             - If ``q`` is a float, a Series will be returned where the
               index is the columns of self and the values are the quantiles.
 
+        See Also
+        --------
+        pandas.core.window.Rolling.quantile
+        numpy.percentile
+
         Examples
         --------
 
@@ -7539,11 +7543,6 @@ class DataFrame(NDFrame):
         B    2010-07-02 12:00:00
         C        1 days 12:00:00
         Name: 0.5, dtype: object
-
-        See Also
-        --------
-        pandas.core.window.Rolling.quantile
-        numpy.percentile
         """
         self._check_percentile(q)
 
