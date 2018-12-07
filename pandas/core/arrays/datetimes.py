@@ -264,6 +264,8 @@ class DatetimeArrayMixin(dtl.DatetimeLikeArrayMixin,
             if closed is not None:
                 raise ValueError("Closed has to be None if not both of start"
                                  "and end are defined")
+        if start is NaT or end is NaT:
+            raise ValueError("Neither `start` nor `end` can be NaT")
 
         left_closed, right_closed = dtl.validate_endpoints(closed)
 
