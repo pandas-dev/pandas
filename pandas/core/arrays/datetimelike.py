@@ -327,6 +327,10 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin, AttributesMixin):
                              "numpy.newaxis (`None`) and integer or boolean "
                              "arrays are valid indices")
 
+        if key is Ellipsis:
+            # GH#21282
+            return self.copy()
+
         getitem = self._data.__getitem__
         if is_int:
             val = getitem(key)
