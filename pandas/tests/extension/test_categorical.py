@@ -25,12 +25,7 @@ from pandas.tests.extension import base
 
 
 def make_data():
-    while True:
-        values = np.random.choice(list(string.ascii_letters), size=100)
-        # ensure we meet the requirement
-        if values[0] != values[1]:
-            break
-    return values
+    return np.random.choice(list(string.ascii_letters), size=100)
 
 
 @pytest.fixture

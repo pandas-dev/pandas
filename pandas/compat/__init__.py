@@ -116,7 +116,6 @@ if PY3:
     reduce = functools.reduce
     long = int
     unichr = chr
-    import reprlib
 
     # This was introduced in Python 3.3, but we don't support
     # Python 3.x < 3.5, so checking PY3 is safe.
@@ -272,7 +271,6 @@ if PY3:
     class_types = type,
     text_type = str
     binary_type = bytes
-    import reprlib
 
     def u(s):
         return s
@@ -325,7 +323,6 @@ else:
     class_types = (type, types.ClassType)
     text_type = unicode
     binary_type = str
-    import repr as reprlib
 
     def u(s):
         return unicode(s, "unicode_escape")

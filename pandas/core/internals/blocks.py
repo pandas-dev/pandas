@@ -29,8 +29,7 @@ import pandas.core.dtypes.concat as _concat
 from pandas.core.dtypes.dtypes import (
     CategoricalDtype, DatetimeTZDtype, ExtensionDtype, PandasExtensionDtype)
 from pandas.core.dtypes.generic import (
-    ABCDataFrame, ABCDatetimeIndex, ABCExtensionArray, ABCIndexClass,
-    ABCSeries)
+    ABCDatetimeIndex, ABCExtensionArray, ABCIndexClass, ABCSeries)
 from pandas.core.dtypes.missing import (
     _isna_compat, array_equivalent, is_null_datelike_scalar, isna, notna)
 
@@ -1970,56 +1969,6 @@ class ExtensionBlock(NonConsolidatableMixIn, Block):
                                            placement=self.mgr_locs,
                                            ndim=self.ndim)]
 
-    def where(self, other, cond, align=True, errors='raise',
-              try_cast=False, axis=0, transpose=False):
-        if isinstance(other, (ABCIndexClass, ABCSeries)):
-            other = other.array
-
-        if isinstance(cond, ABCDataFrame):
-            assert cond.shape[1] == 1
-            cond = cond.iloc[:, 0].array
-
-        if isinstance(other, ABCDataFrame):
-            assert other.shape[1] == 1
-            other = other.iloc[:, 0].array
-
-        if isinstance(cond, (ABCIndexClass, ABCSeries)):
-            cond = cond.array
-
-        if lib.is_scalar(other) and isna(other):
-            # The default `other` for Series / Frame is np.nan
-            # we want to replace that with the correct NA value
-            # for the type
-            other = self.dtype.na_value
-
-        if is_sparse(self.values):
-            # ugly workaround for ensure that the dtype is OK
-            # after we insert NaNs.
-            if is_sparse(other):
-                otype = other.dtype.subtype
-            else:
-                otype = other
-            dtype = self.dtype.update_dtype(
-                np.result_type(self.values.dtype.subtype, otype)
-            )
-        else:
-            dtype = self.dtype
-
-        # rough heuristic to see if the other array implements setitem
-        if self._holder.__setitem__ is ExtensionArray.__setitem__:
-            result = self._holder._from_sequence(
-                np.where(cond, self.values, other),
-                dtype=dtype,
-            )
-        else:
-            result = self.values.copy()
-            icond = ~cond
-            if lib.is_scalar(other):
-                result[icond] = other
-            else:
-                result[icond] = other[icond]
-        return self.make_block_same_class(result, placement=self.mgr_locs)
-
     @property
     def _ftype(self):
         return getattr(self.values, '_pandas_ftype', Block._ftype)
@@ -2724,59 +2673,6 @@ class CategoricalBlock(ExtensionBlock):
         return make_block(
             values, placement=placement or slice(0, len(values), 1),
             ndim=self.ndim)
-
-    def where(self, other, cond, align=True, errors='raise',
-              try_cast=False, axis=0, transpose=False):
-        # This can all be deleted in favor of ExtensionBlock.where once
-        # we enforce the deprecation.
-        object_msg = (
-            "Implicitly converting categorical to object-dtype ndarray. "
-            "The values `{}' are not present in this categorical's "
-            "categories. A future version of pandas will raise a ValueError "
-            "when 'other' contains different categories.\n\n"
-            "To preserve the current behavior, add the new categories to "
-            "the categorical before calling 'where', or convert the "
-            "categorical to a different dtype."
-        )
-
-        scalar_other = lib.is_scalar(other)
-        categorical_other = is_categorical_dtype(other)
-        if isinstance(other, ABCDataFrame):
-            # should be 1d
-            assert other.shape[1] == 1
-            other = other.iloc[:, 0]
-
-        if isinstance(other, (ABCSeries, ABCIndexClass)):
-            other = other._values
-
-        do_as_object = (
-            # Two categoricals with different dtype (ignoring order)
-            (categorical_other and not is_dtype_equal(self.values, other)) or
-            # a not-na scalar not present in our categories
-            (scalar_other and (other not in self.values.categories
-                               and notna(other))) or
-            # an array not present in our categories
-            (not scalar_other and
-             (self.values.categories.get_indexer(
-                 other[notna(other)]) < 0).any())
-        )
-
-        if do_as_object:
-            if scalar_other:
-                msg = object_msg.format(other)
-            else:
-                msg = compat.reprlib.repr(other)
-
-            warnings.warn(msg, FutureWarning, stacklevel=6)
-            result = self.astype(object).where(other, cond, align=align,
-                                               errors=errors,
-                                               try_cast=try_cast,
-                                               axis=axis, transpose=transpose)
-        else:
-            result = super(CategoricalBlock, self).where(
-                other, cond, align, errors, try_cast, axis, transpose
-            )
-        return result
 
 
 class DatetimeBlock(DatetimeLikeBlockMixin, Block):
