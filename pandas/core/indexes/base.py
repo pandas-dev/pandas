@@ -181,6 +181,15 @@ class Index(IndexOpsMixin, PandasObject):
     tupleize_cols : bool (default: True)
         When True, attempt to create a MultiIndex if possible
 
+    See Also
+    ---------
+    RangeIndex : Index implementing a monotonic integer range.
+    CategoricalIndex : Index of :class:`Categorical` s.
+    MultiIndex : A multi-level, or hierarchical, Index.
+    IntervalIndex : An Index of :class:`Interval` s.
+    DatetimeIndex, TimedeltaIndex, PeriodIndex
+    Int64Index, UInt64Index,  Float64Index
+
     Notes
     -----
     An Index instance can **only** contain hashable objects
@@ -192,15 +201,6 @@ class Index(IndexOpsMixin, PandasObject):
 
     >>> pd.Index(list('abc'))
     Index(['a', 'b', 'c'], dtype='object')
-
-    See Also
-    ---------
-    RangeIndex : Index implementing a monotonic integer range.
-    CategoricalIndex : Index of :class:`Categorical` s.
-    MultiIndex : A multi-level, or hierarchical, Index.
-    IntervalIndex : An Index of :class:`Interval` s.
-    DatetimeIndex, TimedeltaIndex, PeriodIndex
-    Int64Index, UInt64Index,  Float64Index
     """
     # To hand over control to subclasses
     _join_precedence = 1
@@ -2069,6 +2069,16 @@ class Index(IndexOpsMixin, PandasObject):
               occurrence.
             - ``False`` : Mark all duplicates as ``True``.
 
+        Returns
+        -------
+        numpy.ndarray
+
+        See Also
+        --------
+        pandas.Series.duplicated : Equivalent method on pandas.Series.
+        pandas.DataFrame.duplicated : Equivalent method on pandas.DataFrame.
+        pandas.Index.drop_duplicates : Remove duplicate values from Index.
+
         Examples
         --------
         By default, for each set of duplicated values, the first occurrence is
@@ -2093,16 +2103,6 @@ class Index(IndexOpsMixin, PandasObject):
 
         >>> idx.duplicated(keep=False)
         array([ True, False,  True, False,  True])
-
-        Returns
-        -------
-        numpy.ndarray
-
-        See Also
-        --------
-        pandas.Series.duplicated : Equivalent method on pandas.Series.
-        pandas.DataFrame.duplicated : Equivalent method on pandas.DataFrame.
-        pandas.Index.drop_duplicates : Remove duplicate values from Index.
         """
         return super(Index, self).duplicated(keep=keep)
 
@@ -4187,6 +4187,11 @@ class Index(IndexOpsMixin, PandasObject):
         --------
         Series.shift : Shift values of Series.
 
+        Notes
+        -----
+        This method is only implemented for datetime-like index classes,
+        i.e., DatetimeIndex, PeriodIndex and TimedeltaIndex.
+
         Examples
         --------
         Put the first 5 month starts of 2011 into an index.
@@ -4211,11 +4216,6 @@ class Index(IndexOpsMixin, PandasObject):
         DatetimeIndex(['2011-11-01', '2011-12-01', '2012-01-01', '2012-02-01',
                        '2012-03-01'],
                       dtype='datetime64[ns]', freq='MS')
-
-        Notes
-        -----
-        This method is only implemented for datetime-like index classes,
-        i.e., DatetimeIndex, PeriodIndex and TimedeltaIndex.
         """
         raise NotImplementedError("Not supported for type %s" %
                                   type(self).__name__)
@@ -4768,6 +4768,10 @@ class Index(IndexOpsMixin, PandasObject):
         -------
         start, end : int
 
+        See Also
+        --------
+        Index.get_loc : Get location for a single label.
+
         Notes
         -----
         This method only works if the index is monotonic or unique.
@@ -4777,10 +4781,6 @@ class Index(IndexOpsMixin, PandasObject):
         >>> idx = pd.Index(list('abcd'))
         >>> idx.slice_locs(start='b', end='c')
         (1, 3)
-
-        See Also
-        --------
-        Index.get_loc : Get location for a single label.
         """
         inc = (step is None or step >= 0)
 
