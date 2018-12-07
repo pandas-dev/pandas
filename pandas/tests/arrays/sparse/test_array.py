@@ -357,10 +357,10 @@ class TestSparseArray(object):
         def setslice():
             self.arr[1:5] = 2
 
-        with pytest.raises(TypeError, match="item assignment"):
+        with pytest.raises(TypeError, match="does not implement"):
             setitem()
 
-        with pytest.raises(TypeError, match="item assignment"):
+        with pytest.raises(TypeError, match="does not implement"):
             setslice()
 
     def test_constructor_from_too_large_array(self):
