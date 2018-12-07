@@ -1970,7 +1970,6 @@ class ExtensionBlock(NonConsolidatableMixIn, Block):
 
     def where(self, other, cond, align=True, errors='raise',
               try_cast=False, axis=0, transpose=False):
-        # rough attempt to see if
         if isinstance(other, (ABCIndexClass, ABCSeries)):
             other = other.array
 
@@ -2004,8 +2003,8 @@ class ExtensionBlock(NonConsolidatableMixIn, Block):
         else:
             dtype = self.dtype
 
+        # rough heuristic to see if the other array implements setitem
         if self._holder.__setitem__ is ExtensionArray.__setitem__:
-            # the array doesn't implement setitem, so convert to ndarray
             result = self._holder._from_sequence(
                 np.where(cond, self.values, other),
                 dtype=dtype,

@@ -64,7 +64,6 @@ class ExtensionArray(object):
     * unique
     * factorize / _values_for_factorize
     * argsort / _values_for_argsort
-    * where
 
     The remaining methods implemented on this class should be performant,
     as they only compose abstract methods. Still, a more efficient
@@ -221,6 +220,8 @@ class ExtensionArray(object):
         #   example, a string like '2018-01-01' is coerced to a datetime
         #   when setting on a datetime64ns array. In general, if the
         #   __init__ method coerces that value, then so should __setitem__
+        # Note, also, that Series/DataFrame.where internally use __setitem__
+        # on a copy of the data.
         raise NotImplementedError(_not_implemented_message.format(
             type(self), '__setitem__')
         )

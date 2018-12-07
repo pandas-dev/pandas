@@ -241,11 +241,6 @@ class PeriodArray(dtl.DatetimeLikeArrayMixin, ExtensionArray):
 
         return subarr, freq
 
-    def _check_compatible_with(self, other):
-        if self.freqstr != other.freqstr:
-            msg = DIFFERENT_FREQ_INDEX.format(self.freqstr, other.freqstr)
-            raise IncompatibleFrequency(msg)
-
     # --------------------------------------------------------------------
     # Data / Attributes
 

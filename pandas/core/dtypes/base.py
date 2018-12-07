@@ -26,11 +26,6 @@ class _DtypeOpsMixin(object):
     na_value = np.nan
     _metadata = ()
 
-    @property
-    def _ndarray_na_value(self):
-        """Private method internal to pandas"""
-        raise AbstractMethodError(self)
-
     def __eq__(self, other):
         """Check whether 'other' is equal to self.
 
