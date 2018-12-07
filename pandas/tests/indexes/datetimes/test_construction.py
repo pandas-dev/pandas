@@ -20,6 +20,17 @@ import pandas.util.testing as tm
 
 class TestDatetimeIndex(object):
 
+    def test_freq_validation_with_nat(self):
+        # GH#11587 make sure we get a useful error message when generate_range
+        #  raises
+        msg = ("Inferred frequency None from passed values does not conform "
+               "to passed frequency D")
+        with pytest.raises(ValueError, match=msg):
+            DatetimeIndex([pd.NaT, pd.Timestamp('2011-01-01')], freq='D')
+        with pytest.raises(ValueError, match=msg):
+            DatetimeIndex([pd.NaT, pd.Timestamp('2011-01-01').value],
+                          freq='D')
+
     def test_dti_with_period_data_raises(self):
         # GH#23675
         data = pd.PeriodIndex(['2016Q1', '2016Q2'], freq='Q')

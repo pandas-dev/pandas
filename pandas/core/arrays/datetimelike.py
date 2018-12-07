@@ -551,9 +551,13 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin, AttributesMixin):
         if index.size == 0 or inferred == freq.freqstr:
             return None
 
-        on_freq = cls._generate_range(start=index[0], end=None,
-                                      periods=len(index), freq=freq, **kwargs)
-        if not np.array_equal(index.asi8, on_freq.asi8):
+        try:
+            on_freq = cls._generate_range(start=index[0], end=None,
+                                          periods=len(index), freq=freq,
+                                          **kwargs)
+            assert np.array_equal(index.asi8, on_freq.asi8)
+        except (ValueError, AssertionError):
+            # GH#11587 if index[0] is NaT _generate_range will raise ValueError
             raise ValueError('Inferred frequency {infer} from passed values '
                              'does not conform to passed frequency {passed}'
                              .format(infer=inferred, passed=freq.freqstr))
