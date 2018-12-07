@@ -4,7 +4,7 @@ frozen (immutable) data structures to support MultiIndexing
 These are used for:
 
 - .names (FrozenList)
-- .levels & .labels (FrozenNDArray)
+- .levels & .codes (FrozenNDArray)
 
 """
 
