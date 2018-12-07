@@ -5,15 +5,16 @@
 from decimal import Decimal
 import operator
 
-import numpy as np
 import pytest
-
-from pandas.compat import PY3, Iterable
+import numpy as np
 
 import pandas as pd
-from pandas import Index, Series, Timedelta, TimedeltaIndex
-from pandas.core import ops
 import pandas.util.testing as tm
+
+from pandas.compat import PY3, Iterable
+from pandas.core import ops
+from pandas import Timedelta, Series, Index, TimedeltaIndex
+
 
 # ------------------------------------------------------------------
 # Comparisons

@@ -1,12 +1,9 @@
 # -*- coding: utf-8 -*-
 
 from warnings import catch_warnings, simplefilter
-
 import numpy as np
-
-from pandas.core.dtypes import generic as gt
-
 import pandas as pd
+from pandas.core.dtypes import generic as gt
 from pandas.util import testing as tm
 
 

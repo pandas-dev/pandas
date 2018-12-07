@@ -5,24 +5,30 @@ These test the private routines in types/cast.py
 
 """
 
-from datetime import date, datetime, timedelta
-
-import numpy as np
 import pytest
-
-from pandas.core.dtypes.cast import (
-    cast_scalar_to_array, construct_1d_arraylike_from_scalar,
-    construct_1d_ndarray_preserving_na,
-    construct_1d_object_array_from_listlike, find_common_type,
-    infer_dtype_from_array, infer_dtype_from_scalar, maybe_convert_objects,
-    maybe_downcast_to_dtype)
-from pandas.core.dtypes.common import is_dtype_equal
-from pandas.core.dtypes.dtypes import (
-    CategoricalDtype, DatetimeTZDtype, PeriodDtype)
+from datetime import datetime, timedelta, date
+import numpy as np
 
 import pandas as pd
-from pandas import (
-    DataFrame, DatetimeIndex, NaT, Period, Series, Timedelta, Timestamp)
+from pandas import (Timedelta, Timestamp, DatetimeIndex,
+                    DataFrame, NaT, Period, Series)
+
+from pandas.core.dtypes.cast import (
+    maybe_downcast_to_dtype,
+    maybe_convert_objects,
+    cast_scalar_to_array,
+    infer_dtype_from_scalar,
+    infer_dtype_from_array,
+    find_common_type,
+    construct_1d_object_array_from_listlike,
+    construct_1d_ndarray_preserving_na,
+    construct_1d_arraylike_from_scalar)
+from pandas.core.dtypes.dtypes import (
+    CategoricalDtype,
+    DatetimeTZDtype,
+    PeriodDtype)
+from pandas.core.dtypes.common import (
+    is_dtype_equal)
 from pandas.util import testing as tm
 
 

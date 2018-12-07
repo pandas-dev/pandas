@@ -3,16 +3,17 @@
 # behave identically.
 from datetime import datetime, timedelta
 
-import numpy as np
 import pytest
-
-from pandas.errors import NullFrequencyError, PerformanceWarning
+import numpy as np
 
 import pandas as pd
-from pandas import (
-    DataFrame, DatetimeIndex, NaT, Series, Timedelta, TimedeltaIndex,
-    Timestamp, timedelta_range)
 import pandas.util.testing as tm
+
+from pandas.errors import NullFrequencyError, PerformanceWarning
+from pandas import (
+    timedelta_range,
+    Timedelta, Timestamp, NaT, Series, TimedeltaIndex, DatetimeIndex,
+    DataFrame)
 
 
 def get_upcast_box(box, vector):

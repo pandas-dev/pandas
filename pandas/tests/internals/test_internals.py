@@ -1,28 +1,27 @@
 # -*- coding: utf-8 -*-
 # pylint: disable=W0102
 
-from datetime import date, datetime
+from datetime import datetime, date
+import operator
+import sys
+import pytest
+import numpy as np
+
+import re
 from distutils.version import LooseVersion
 import itertools
-import operator
-import re
-import sys
-
-import numpy as np
-import pytest
-
-from pandas._libs.internals import BlockPlacement
-from pandas.compat import OrderedDict, lrange, u, zip
-
-import pandas as pd
-from pandas import (
-    Categorical, DataFrame, DatetimeIndex, Index, MultiIndex, Series,
-    SparseArray, TimedeltaIndex)
+from pandas import (Index, MultiIndex, DataFrame, DatetimeIndex,
+                    Series, Categorical, TimedeltaIndex, SparseArray)
+from pandas.compat import OrderedDict, lrange
+from pandas.core.internals import (SingleBlockManager,
+                                   make_block, BlockManager)
 import pandas.core.algorithms as algos
-from pandas.core.internals import BlockManager, SingleBlockManager, make_block
 import pandas.util.testing as tm
-from pandas.util.testing import (
-    assert_almost_equal, assert_frame_equal, assert_series_equal, randn)
+import pandas as pd
+from pandas._libs.internals import BlockPlacement
+from pandas.util.testing import (assert_almost_equal, assert_frame_equal,
+                                 randn, assert_series_equal)
+from pandas.compat import zip, u
 
 # in 3.6.1 a c-api slicing function changed, see src/compat_helper.h
 PY361 = LooseVersion(sys.version) >= LooseVersion('3.6.1')

@@ -1,21 +1,24 @@
 # -*- coding: utf-8 -*-
 import re
-
-import numpy as np
 import pytest
 
-from pandas.core.dtypes.common import (
-    is_bool_dtype, is_categorical, is_categorical_dtype,
-    is_datetime64_any_dtype, is_datetime64_dtype, is_datetime64_ns_dtype,
-    is_datetime64tz_dtype, is_datetimetz, is_dtype_equal, is_interval_dtype,
-    is_period, is_period_dtype, is_string_dtype)
-from pandas.core.dtypes.dtypes import (
-    CategoricalDtype, DatetimeTZDtype, IntervalDtype, PeriodDtype,
-    _pandas_registry, registry)
-
+import numpy as np
 import pandas as pd
 from pandas import (
-    Categorical, CategoricalIndex, IntervalIndex, Series, date_range)
+    Series, Categorical, CategoricalIndex, IntervalIndex, date_range)
+
+from pandas.core.dtypes.dtypes import (
+    DatetimeTZDtype, PeriodDtype,
+    IntervalDtype, CategoricalDtype, registry, _pandas_registry)
+from pandas.core.dtypes.common import (
+    is_categorical_dtype, is_categorical,
+    is_datetime64tz_dtype, is_datetimetz,
+    is_period_dtype, is_period,
+    is_dtype_equal, is_datetime64_ns_dtype,
+    is_datetime64_dtype, is_interval_dtype,
+    is_datetime64_any_dtype, is_string_dtype,
+    is_bool_dtype,
+)
 from pandas.core.sparse.api import SparseDtype
 import pandas.util.testing as tm
 

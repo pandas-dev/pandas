@@ -1,11 +1,9 @@
 # -*- coding: utf-8 -*-
 
 import pytest
-
 import pandas.core.dtypes.concat as _concat
-
 from pandas import (
-    DatetimeIndex, Index, Period, PeriodIndex, Series, TimedeltaIndex)
+    Index, DatetimeIndex, PeriodIndex, TimedeltaIndex, Series, Period)
 
 
 @pytest.mark.parametrize('to_concat, expected', [
