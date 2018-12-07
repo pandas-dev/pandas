@@ -22,7 +22,7 @@ from pandas.core.base import _shared_docs
 import pandas.core.common as com
 from pandas.core.indexes.base import Index, _index_shared_docs
 from pandas.core.indexes.datetimelike import (
-    DatetimeIndexOpsMixin, TimelikeOps, wrap_arithmetic_op, wrap_array_method,
+    DatetimeIndexOpsMixin, wrap_arithmetic_op, wrap_array_method,
     wrap_field_accessor)
 from pandas.core.indexes.numeric import Int64Index
 from pandas.core.ops import get_op_result_name
@@ -31,8 +31,24 @@ from pandas.core.tools.timedeltas import _coerce_scalar_to_timedelta_type
 from pandas.tseries.frequencies import to_offset
 
 
+def _make_wrapped_arith_op(opname):
+
+    meth = getattr(TimedeltaArray, opname)
+
+    def method(self, other):
+        oth = other
+        if isinstance(other, Index):
+            oth = other._data
+
+        result = meth(self, oth)
+        return wrap_arithmetic_op(self, other, result)
+
+    method.__name__ = opname
+    return method
+
+
 class TimedeltaIndex(TimedeltaArray, DatetimeIndexOpsMixin,
-                     TimelikeOps, Int64Index):
+                     dtl.TimelikeOps, Int64Index):
     """
     Immutable ndarray of timedelta64 data, represented internally as int64, and
     which can be boxed to timedelta objects
@@ -64,19 +80,6 @@ class TimedeltaIndex(TimedeltaArray, DatetimeIndexOpsMixin,
     name : object
         Name to be stored in the index
 
-    Notes
-    -----
-
-    To learn more about the frequency strings, please see `this link
-    <http://pandas.pydata.org/pandas-docs/stable/timeseries.html#offset-aliases>`__.
-
-    See Also
-    ---------
-    Index : The base pandas Index type.
-    Timedelta : Represents a duration between two dates or times.
-    DatetimeIndex : Index of datetime64 data.
-    PeriodIndex : Index of Period data.
-
     Attributes
     ----------
     days
@@ -94,6 +97,19 @@ class TimedeltaIndex(TimedeltaArray, DatetimeIndexOpsMixin,
     floor
     ceil
     to_frame
+
+    See Also
+    ---------
+    Index : The base pandas Index type.
+    Timedelta : Represents a duration between two dates or times.
+    DatetimeIndex : Index of datetime64 data.
+    PeriodIndex : Index of Period data.
+
+    Notes
+    -----
+
+    To learn more about the frequency strings, please see `this link
+    <http://pandas.pydata.org/pandas-docs/stable/timeseries.html#offset-aliases>`__.
     """
 
     _typ = 'timedeltaindex'
@@ -204,10 +220,6 @@ class TimedeltaIndex(TimedeltaArray, DatetimeIndexOpsMixin,
             attrs['freq'] = 'infer'
         return attrs
 
-    def _evaluate_with_timedelta_like(self, other, op):
-        result = TimedeltaArray._evaluate_with_timedelta_like(self, other, op)
-        return wrap_arithmetic_op(self, other, result)
-
     # -------------------------------------------------------------------
     # Rendering Methods
 
@@ -225,10 +237,14 @@ class TimedeltaIndex(TimedeltaArray, DatetimeIndexOpsMixin,
     # -------------------------------------------------------------------
     # Wrapping TimedeltaArray
 
-    __mul__ = Index.__mul__
-    __rmul__ = Index.__rmul__
-    __floordiv__ = Index.__floordiv__
-    __rfloordiv__ = Index.__rfloordiv__
+    __mul__ = _make_wrapped_arith_op("__mul__")
+    __rmul__ = _make_wrapped_arith_op("__rmul__")
+    __floordiv__ = _make_wrapped_arith_op("__floordiv__")
+    __rfloordiv__ = _make_wrapped_arith_op("__rfloordiv__")
+    __mod__ = _make_wrapped_arith_op("__mod__")
+    __rmod__ = _make_wrapped_arith_op("__rmod__")
+    __divmod__ = _make_wrapped_arith_op("__divmod__")
+    __rdivmod__ = _make_wrapped_arith_op("__rdivmod__")
 
     days = wrap_field_accessor(TimedeltaArray.days)
     seconds = wrap_field_accessor(TimedeltaArray.seconds)
@@ -659,7 +675,7 @@ class TimedeltaIndex(TimedeltaArray, DatetimeIndexOpsMixin,
 
 
 TimedeltaIndex._add_comparison_ops()
-TimedeltaIndex._add_numeric_methods()
+TimedeltaIndex._add_numeric_methods_unary()
 TimedeltaIndex._add_logical_methods_disabled()
 TimedeltaIndex._add_datetimelike_methods()
 
