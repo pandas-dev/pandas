@@ -5,10 +5,10 @@ import sys
 
 import numpy as np
 
-import pandas as pd
-from pandas.core.arrays import (ExtensionArray,
-                                ExtensionScalarOpsMixin)
 from pandas.core.dtypes.base import ExtensionDtype
+
+import pandas as pd
+from pandas.core.arrays import ExtensionArray, ExtensionScalarOpsMixin
 
 
 class DecimalDtype(ExtensionDtype):
@@ -102,7 +102,7 @@ class DecimalArray(ExtensionArray, ExtensionScalarOpsMixin):
     def astype(self, dtype, copy=True):
         if isinstance(dtype, type(self.dtype)):
             return type(self)(self._data, context=dtype.context)
-        return super(DecimalArray, self).astype(dtype, copy)
+        return np.asarray(self, dtype=dtype)
 
     def __setitem__(self, key, value):
         if pd.api.types.is_list_like(value):
@@ -113,9 +113,6 @@ class DecimalArray(ExtensionArray, ExtensionScalarOpsMixin):
 
     def __len__(self):
         return len(self._data)
-
-    def __repr__(self):
-        return 'DecimalArray({!r})'.format(self._data)
 
     @property
     def nbytes(self):

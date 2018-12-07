@@ -10,31 +10,33 @@ You can find more information on http://presbrey.mit.edu/PyDTA and
 http://www.statsmodels.org/devel/
 """
 
+from collections import OrderedDict
 import datetime
 import struct
 import sys
-from collections import OrderedDict
 import warnings
 
-import numpy as np
 from dateutil.relativedelta import relativedelta
+import numpy as np
 
 from pandas._libs.lib import infer_dtype
 from pandas._libs.tslibs import NaT, Timestamp
 from pandas._libs.writers import max_len_string_array
+from pandas.compat import (
+    BytesIO, lmap, lrange, lzip, range, string_types, text_type, zip)
+from pandas.util._decorators import Appender, deprecate_kwarg
 
-from pandas import compat, to_timedelta, to_datetime, isna, DatetimeIndex
-from pandas.compat import (lrange, lmap, lzip, text_type, string_types, range,
-                           zip, BytesIO)
+from pandas.core.dtypes.common import (
+    ensure_object, is_categorical_dtype, is_datetime64_dtype)
+
+from pandas import DatetimeIndex, compat, isna, to_datetime, to_timedelta
 from pandas.core.arrays import Categorical
 from pandas.core.base import StringMixin
-from pandas.core.dtypes.common import (is_categorical_dtype, ensure_object,
-                                       is_datetime64_dtype)
 from pandas.core.frame import DataFrame
 from pandas.core.series import Series
-from pandas.io.common import (get_filepath_or_buffer, BaseIterator,
-                              _stringify_path)
-from pandas.util._decorators import Appender, deprecate_kwarg
+
+from pandas.io.common import (
+    BaseIterator, _stringify_path, get_filepath_or_buffer)
 
 _version_error = ("Version of given Stata file is not 104, 105, 108, "
                   "111 (Stata 7SE), 113 (Stata 8/9), 114 (Stata 10/11), "
@@ -96,8 +98,8 @@ DataFrame or StataReader
 
 See Also
 --------
-pandas.io.stata.StataReader : low-level reader for Stata data files
-pandas.DataFrame.to_stata: export Stata data files
+pandas.io.stata.StataReader : Low-level reader for Stata data files.
+pandas.DataFrame.to_stata: Export Stata data files.
 
 Examples
 --------
@@ -459,7 +461,8 @@ def _datetime_to_stata_elapsed_vec(dates, fmt):
 
 excessive_string_length_error = """
 Fixed width strings in Stata .dta files are limited to 244 (or fewer)
-characters.  Column '%s' does not satisfy this restriction.
+characters.  Column '%s' does not satisfy this restriction. Use the
+'version=117' parameter to write the newer (Stata 13 and later) format.
 """
 
 
@@ -1865,7 +1868,14 @@ def _dtype_to_default_stata_fmt(dtype, column, dta_version=114,
         inferred_dtype = infer_dtype(column.dropna())
         if not (inferred_dtype in ('string', 'unicode') or
                 len(column) == 0):
-            raise ValueError('Writing general object arrays is not supported')
+            raise ValueError('Column `{col}` cannot be exported.\n\nOnly '
+                             'string-like object arrays containing all '
+                             'strings or a mix of strings and None can be '
+                             'exported. Object arrays containing only null '
+                             'values are prohibited. Other object types'
+                             'cannot be exported and must first be converted '
+                             'to one of the supported '
+                             'types.'.format(col=column.name))
         itemsize = max_len_string_array(ensure_object(column.values))
         if itemsize > max_str_len:
             if dta_version >= 117:
@@ -2555,6 +2565,8 @@ class StataStrLWriter(object):
         for o, (idx, row) in enumerate(selected.iterrows()):
             for j, (col, v) in enumerate(col_index):
                 val = row[col]
+                # Allow columns with mixed str and None (GH 23633)
+                val = '' if val is None else val
                 key = gso_table.get(val, None)
                 if key is None:
                     # Stata prefers human numbers
@@ -2935,10 +2947,10 @@ class StataWriter117(StataWriter):
     def _convert_strls(self, data):
         """Convert columns to StrLs if either very large or in the
         convert_strl variable"""
-        convert_cols = []
-        for i, col in enumerate(data):
-            if self.typlist[i] == 32768 or col in self._convert_strl:
-                convert_cols.append(col)
+        convert_cols = [
+            col for i, col in enumerate(data)
+            if self.typlist[i] == 32768 or col in self._convert_strl]
+
         if convert_cols:
             ssw = StataStrLWriter(data, convert_cols)
             tab, new_data = ssw.generate_table()

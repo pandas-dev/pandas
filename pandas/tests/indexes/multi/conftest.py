@@ -2,6 +2,7 @@
 
 import numpy as np
 import pytest
+
 from pandas import Index, MultiIndex
 
 
@@ -12,11 +13,11 @@ def idx():
     major_axis = Index(['foo', 'bar', 'baz', 'qux'])
     minor_axis = Index(['one', 'two'])
 
-    major_labels = np.array([0, 0, 1, 2, 3, 3])
-    minor_labels = np.array([0, 1, 0, 1, 0, 1])
+    major_codes = np.array([0, 0, 1, 2, 3, 3])
+    minor_codes = np.array([0, 1, 0, 1, 0, 1])
     index_names = ['first', 'second']
     mi = MultiIndex(levels=[major_axis, minor_axis],
-                    labels=[major_labels, minor_labels],
+                    codes=[major_codes, minor_codes],
                     names=index_names, verify_integrity=False)
     return mi
 
@@ -27,11 +28,11 @@ def idx_dup():
     major_axis = Index(['foo', 'bar', 'baz', 'qux'])
     minor_axis = Index(['one', 'two'])
 
-    major_labels = np.array([0, 0, 1, 0, 1, 1])
-    minor_labels = np.array([0, 1, 0, 1, 0, 1])
+    major_codes = np.array([0, 0, 1, 0, 1, 1])
+    minor_codes = np.array([0, 1, 0, 1, 0, 1])
     index_names = ['first', 'second']
     mi = MultiIndex(levels=[major_axis, minor_axis],
-                    labels=[major_labels, minor_labels],
+                    codes=[major_codes, minor_codes],
                     names=index_names, verify_integrity=False)
     return mi
 

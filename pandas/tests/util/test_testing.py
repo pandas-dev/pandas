@@ -1,18 +1,22 @@
 # -*- coding: utf-8 -*-
-import textwrap
 import os
-import pandas as pd
-import pytest
-import numpy as np
 import sys
-from pandas import Series, DataFrame
-import pandas.util.testing as tm
+import textwrap
+
+import numpy as np
+import pytest
+
+from pandas.compat import raise_with_traceback
 import pandas.util._test_decorators as td
-from pandas.util.testing import (assert_almost_equal, raise_with_traceback,
-                                 assert_index_equal, assert_series_equal,
-                                 assert_frame_equal, assert_numpy_array_equal,
-                                 RNGContext)
-from pandas import compat
+
+import pandas as pd
+from pandas import DataFrame, Series, compat
+from pandas.core.arrays.sparse import SparseArray
+import pandas.util.testing as tm
+from pandas.util.testing import (
+    RNGContext, assert_almost_equal, assert_extension_array_equal,
+    assert_frame_equal, assert_index_equal, assert_numpy_array_equal,
+    assert_series_equal)
 
 
 class TestAssertAlmostEqual(object):
@@ -151,13 +155,13 @@ class TestAssertAlmostEqual(object):
 class TestUtilTesting(object):
 
     def test_raise_with_traceback(self):
-        with tm.assert_raises_regex(LookupError, "error_text"):
+        with pytest.raises(LookupError, match="error_text"):
             try:
                 raise ValueError("THIS IS AN ERROR")
             except ValueError as e:
                 e = LookupError("error_text")
                 raise_with_traceback(e)
-        with tm.assert_raises_regex(LookupError, "error_text"):
+        with pytest.raises(LookupError, match="error_text"):
             try:
                 raise ValueError("This is another error")
             except ValueError:
@@ -188,18 +192,18 @@ numpy array shapes are different
 \\[left\\]:  \\(2,\\)
 \\[right\\]: \\(3,\\)"""
 
-        with tm.assert_raises_regex(AssertionError, expected):
+        with pytest.raises(AssertionError, match=expected):
             assert_numpy_array_equal(np.array([1, 2]), np.array([3, 4, 5]))
 
-        with tm.assert_raises_regex(AssertionError, expected):
+        with pytest.raises(AssertionError, match=expected):
             assert_almost_equal(np.array([1, 2]), np.array([3, 4, 5]))
 
         # scalar comparison
         expected = """Expected type """
-        with tm.assert_raises_regex(AssertionError, expected):
+        with pytest.raises(AssertionError, match=expected):
             assert_numpy_array_equal(1, 2)
         expected = """expected 2\\.00000 but got 1\\.00000, with decimal 5"""
-        with tm.assert_raises_regex(AssertionError, expected):
+        with pytest.raises(AssertionError, match=expected):
             assert_almost_equal(1, 2)
 
         # array / scalar array comparison
@@ -209,10 +213,10 @@ numpy array classes are different
 \\[left\\]:  ndarray
 \\[right\\]: int"""
 
-        with tm.assert_raises_regex(AssertionError, expected):
+        with pytest.raises(AssertionError, match=expected):
             # numpy_array_equal only accepts np.ndarray
             assert_numpy_array_equal(np.array([1]), 1)
-        with tm.assert_raises_regex(AssertionError, expected):
+        with pytest.raises(AssertionError, match=expected):
             assert_almost_equal(np.array([1]), 1)
 
         # scalar / array comparison
@@ -222,9 +226,9 @@ numpy array classes are different
 \\[left\\]:  int
 \\[right\\]: ndarray"""
 
-        with tm.assert_raises_regex(AssertionError, expected):
+        with pytest.raises(AssertionError, match=expected):
             assert_numpy_array_equal(1, np.array([1]))
-        with tm.assert_raises_regex(AssertionError, expected):
+        with pytest.raises(AssertionError, match=expected):
             assert_almost_equal(1, np.array([1]))
 
         expected = """numpy array are different
@@ -233,10 +237,10 @@ numpy array values are different \\(66\\.66667 %\\)
 \\[left\\]:  \\[nan, 2\\.0, 3\\.0\\]
 \\[right\\]: \\[1\\.0, nan, 3\\.0\\]"""
 
-        with tm.assert_raises_regex(AssertionError, expected):
+        with pytest.raises(AssertionError, match=expected):
             assert_numpy_array_equal(np.array([np.nan, 2, 3]),
                                      np.array([1, np.nan, 3]))
-        with tm.assert_raises_regex(AssertionError, expected):
+        with pytest.raises(AssertionError, match=expected):
             assert_almost_equal(np.array([np.nan, 2, 3]),
                                 np.array([1, np.nan, 3]))
 
@@ -246,9 +250,9 @@ numpy array values are different \\(50\\.0 %\\)
 \\[left\\]:  \\[1, 2\\]
 \\[right\\]: \\[1, 3\\]"""
 
-        with tm.assert_raises_regex(AssertionError, expected):
+        with pytest.raises(AssertionError, match=expected):
             assert_numpy_array_equal(np.array([1, 2]), np.array([1, 3]))
-        with tm.assert_raises_regex(AssertionError, expected):
+        with pytest.raises(AssertionError, match=expected):
             assert_almost_equal(np.array([1, 2]), np.array([1, 3]))
 
         expected = """numpy array are different
@@ -257,7 +261,7 @@ numpy array values are different \\(50\\.0 %\\)
 \\[left\\]:  \\[1\\.1, 2\\.000001\\]
 \\[right\\]: \\[1\\.1, 2.0\\]"""
 
-        with tm.assert_raises_regex(AssertionError, expected):
+        with pytest.raises(AssertionError, match=expected):
             assert_numpy_array_equal(
                 np.array([1.1, 2.000001]), np.array([1.1, 2.0]))
 
@@ -270,10 +274,10 @@ numpy array values are different \\(16\\.66667 %\\)
 \\[left\\]:  \\[\\[1, 2\\], \\[3, 4\\], \\[5, 6\\]\\]
 \\[right\\]: \\[\\[1, 3\\], \\[3, 4\\], \\[5, 6\\]\\]"""
 
-        with tm.assert_raises_regex(AssertionError, expected):
+        with pytest.raises(AssertionError, match=expected):
             assert_numpy_array_equal(np.array([[1, 2], [3, 4], [5, 6]]),
                                      np.array([[1, 3], [3, 4], [5, 6]]))
-        with tm.assert_raises_regex(AssertionError, expected):
+        with pytest.raises(AssertionError, match=expected):
             assert_almost_equal(np.array([[1, 2], [3, 4], [5, 6]]),
                                 np.array([[1, 3], [3, 4], [5, 6]]))
 
@@ -283,10 +287,10 @@ numpy array values are different \\(25\\.0 %\\)
 \\[left\\]:  \\[\\[1, 2\\], \\[3, 4\\]\\]
 \\[right\\]: \\[\\[1, 3\\], \\[3, 4\\]\\]"""
 
-        with tm.assert_raises_regex(AssertionError, expected):
+        with pytest.raises(AssertionError, match=expected):
             assert_numpy_array_equal(np.array([[1, 2], [3, 4]]),
                                      np.array([[1, 3], [3, 4]]))
-        with tm.assert_raises_regex(AssertionError, expected):
+        with pytest.raises(AssertionError, match=expected):
             assert_almost_equal(np.array([[1, 2], [3, 4]]),
                                 np.array([[1, 3], [3, 4]]))
 
@@ -297,10 +301,10 @@ Index shapes are different
 \\[left\\]:  \\(2,\\)
 \\[right\\]: \\(3,\\)"""
 
-        with tm.assert_raises_regex(AssertionError, expected):
+        with pytest.raises(AssertionError, match=expected):
             assert_numpy_array_equal(np.array([1, 2]), np.array([3, 4, 5]),
                                      obj='Index')
-        with tm.assert_raises_regex(AssertionError, expected):
+        with pytest.raises(AssertionError, match=expected):
             assert_almost_equal(np.array([1, 2]), np.array([3, 4, 5]),
                                 obj='Index')
 
@@ -315,10 +319,10 @@ numpy array values are different \\(33\\.33333 %\\)
 \\[left\\]:  \\[á, à, ä\\]
 \\[right\\]: \\[á, à, å\\]"""
 
-        with tm.assert_raises_regex(AssertionError, expected):
+        with pytest.raises(AssertionError, match=expected):
             assert_numpy_array_equal(np.array([u'á', u'à', u'ä']),
                                      np.array([u'á', u'à', u'å']))
-        with tm.assert_raises_regex(AssertionError, expected):
+        with pytest.raises(AssertionError, match=expected):
             assert_almost_equal(np.array([u'á', u'à', u'ä']),
                                 np.array([u'á', u'à', u'å']))
 
@@ -334,9 +338,9 @@ numpy array values are different \\(50\\.0 %\\)
 \\[left\\]:  \\[2011-01-01 00:00:00, 2011-01-01 00:00:00\\]
 \\[right\\]: \\[2011-01-01 00:00:00, 2011-01-02 00:00:00\\]"""
 
-        with tm.assert_raises_regex(AssertionError, expected):
+        with pytest.raises(AssertionError, match=expected):
             assert_numpy_array_equal(a, b)
-        with tm.assert_raises_regex(AssertionError, expected):
+        with pytest.raises(AssertionError, match=expected):
             assert_almost_equal(a, b)
 
     def test_numpy_array_equal_copy_flag(self):
@@ -344,10 +348,10 @@ numpy array values are different \\(50\\.0 %\\)
         b = a.copy()
         c = a.view()
         expected = r'array\(\[1, 2, 3\]\) is not array\(\[1, 2, 3\]\)'
-        with tm.assert_raises_regex(AssertionError, expected):
+        with pytest.raises(AssertionError, match=expected):
             assert_numpy_array_equal(a, b, check_same='same')
         expected = r'array\(\[1, 2, 3\]\) is array\(\[1, 2, 3\]\)'
-        with tm.assert_raises_regex(AssertionError, expected):
+        with pytest.raises(AssertionError, match=expected):
             assert_numpy_array_equal(a, c, check_same='copy')
 
     def test_assert_almost_equal_iterable_message(self):
@@ -358,7 +362,7 @@ Iterable length are different
 \\[left\\]:  2
 \\[right\\]: 3"""
 
-        with tm.assert_raises_regex(AssertionError, expected):
+        with pytest.raises(AssertionError, match=expected):
             assert_almost_equal([1, 2], [3, 4, 5])
 
         expected = """Iterable are different
@@ -367,7 +371,7 @@ Iterable values are different \\(50\\.0 %\\)
 \\[left\\]:  \\[1, 2\\]
 \\[right\\]: \\[1, 3\\]"""
 
-        with tm.assert_raises_regex(AssertionError, expected):
+        with pytest.raises(AssertionError, match=expected):
             assert_almost_equal([1, 2], [1, 3])
 
 
@@ -385,7 +389,7 @@ Index levels are different
         idx1 = pd.Index([1, 2, 3])
         idx2 = pd.MultiIndex.from_tuples([('A', 1), ('A', 2),
                                           ('B', 3), ('B', 4)])
-        with tm.assert_raises_regex(AssertionError, expected):
+        with pytest.raises(AssertionError, match=expected):
             assert_index_equal(idx1, idx2, exact=False)
 
         expected = """MultiIndex level \\[1\\] are different
@@ -398,9 +402,9 @@ MultiIndex level \\[1\\] values are different \\(25\\.0 %\\)
                                           ('B', 3), ('B', 4)])
         idx2 = pd.MultiIndex.from_tuples([('A', 1), ('A', 2),
                                           ('B', 3), ('B', 4)])
-        with tm.assert_raises_regex(AssertionError, expected):
+        with pytest.raises(AssertionError, match=expected):
             assert_index_equal(idx1, idx2)
-        with tm.assert_raises_regex(AssertionError, expected):
+        with pytest.raises(AssertionError, match=expected):
             assert_index_equal(idx1, idx2, check_exact=False)
 
         expected = """Index are different
@@ -411,9 +415,9 @@ Index length are different
 
         idx1 = pd.Index([1, 2, 3])
         idx2 = pd.Index([1, 2, 3, 4])
-        with tm.assert_raises_regex(AssertionError, expected):
+        with pytest.raises(AssertionError, match=expected):
             assert_index_equal(idx1, idx2)
-        with tm.assert_raises_regex(AssertionError, expected):
+        with pytest.raises(AssertionError, match=expected):
             assert_index_equal(idx1, idx2, check_exact=False)
 
         expected = """Index are different
@@ -424,9 +428,9 @@ Index classes are different
 
         idx1 = pd.Index([1, 2, 3])
         idx2 = pd.Index([1, 2, 3.0])
-        with tm.assert_raises_regex(AssertionError, expected):
+        with pytest.raises(AssertionError, match=expected):
             assert_index_equal(idx1, idx2, exact=True)
-        with tm.assert_raises_regex(AssertionError, expected):
+        with pytest.raises(AssertionError, match=expected):
             assert_index_equal(idx1, idx2, exact=True, check_exact=False)
 
         expected = """Index are different
@@ -437,7 +441,7 @@ Index values are different \\(33\\.33333 %\\)
 
         idx1 = pd.Index([1, 2, 3.])
         idx2 = pd.Index([1, 2, 3.0000000001])
-        with tm.assert_raises_regex(AssertionError, expected):
+        with pytest.raises(AssertionError, match=expected):
             assert_index_equal(idx1, idx2)
 
         # must success
@@ -451,9 +455,9 @@ Index values are different \\(33\\.33333 %\\)
 
         idx1 = pd.Index([1, 2, 3.])
         idx2 = pd.Index([1, 2, 3.0001])
-        with tm.assert_raises_regex(AssertionError, expected):
+        with pytest.raises(AssertionError, match=expected):
             assert_index_equal(idx1, idx2)
-        with tm.assert_raises_regex(AssertionError, expected):
+        with pytest.raises(AssertionError, match=expected):
             assert_index_equal(idx1, idx2, check_exact=False)
         # must success
         assert_index_equal(idx1, idx2, check_exact=False,
@@ -467,9 +471,9 @@ Index values are different \\(33\\.33333 %\\)
 
         idx1 = pd.Index([1, 2, 3])
         idx2 = pd.Index([1, 2, 4])
-        with tm.assert_raises_regex(AssertionError, expected):
+        with pytest.raises(AssertionError, match=expected):
             assert_index_equal(idx1, idx2)
-        with tm.assert_raises_regex(AssertionError, expected):
+        with pytest.raises(AssertionError, match=expected):
             assert_index_equal(idx1, idx2, check_less_precise=True)
 
         expected = """MultiIndex level \\[1\\] are different
@@ -482,9 +486,9 @@ MultiIndex level \\[1\\] values are different \\(25\\.0 %\\)
                                           ('B', 3), ('B', 4)])
         idx2 = pd.MultiIndex.from_tuples([('A', 1), ('A', 2),
                                           ('B', 3), ('B', 4)])
-        with tm.assert_raises_regex(AssertionError, expected):
+        with pytest.raises(AssertionError, match=expected):
             assert_index_equal(idx1, idx2)
-        with tm.assert_raises_regex(AssertionError, expected):
+        with pytest.raises(AssertionError, match=expected):
             assert_index_equal(idx1, idx2, check_exact=False)
 
     def test_index_equal_metadata_message(self):
@@ -497,7 +501,7 @@ Attribute "names" are different
 
         idx1 = pd.Index([1, 2, 3])
         idx2 = pd.Index([1, 2, 3], name='x')
-        with tm.assert_raises_regex(AssertionError, expected):
+        with pytest.raises(AssertionError, match=expected):
             assert_index_equal(idx1, idx2)
 
         # same name, should pass
@@ -514,7 +518,7 @@ Attribute "names" are different
 
         idx1 = pd.Index([1, 2, 3], name=np.nan)
         idx2 = pd.Index([1, 2, 3], name=pd.NaT)
-        with tm.assert_raises_regex(AssertionError, expected):
+        with pytest.raises(AssertionError, match=expected):
             assert_index_equal(idx1, idx2)
 
     def test_categorical_index_equality(self):
@@ -525,7 +529,7 @@ Attribute "dtype" are different
 \\[right\\]: CategoricalDtype\\(categories=\\[u?'a', u?'b', u?'c'\\], \
 ordered=False\\)"""
 
-        with tm.assert_raises_regex(AssertionError, expected):
+        with pytest.raises(AssertionError, match=expected):
             assert_index_equal(pd.Index(pd.Categorical(['a', 'b'])),
                                pd.Index(pd.Categorical(['a', 'b'],
                                         categories=['a', 'b', 'c'])))
@@ -618,7 +622,7 @@ Series length are different
 \\[left\\]:  3, RangeIndex\\(start=0, stop=3, step=1\\)
 \\[right\\]: 4, RangeIndex\\(start=0, stop=4, step=1\\)"""
 
-        with tm.assert_raises_regex(AssertionError, expected):
+        with pytest.raises(AssertionError, match=expected):
             assert_series_equal(pd.Series([1, 2, 3]), pd.Series([1, 2, 3, 4]))
 
         expected = """Series are different
@@ -627,9 +631,9 @@ Series values are different \\(33\\.33333 %\\)
 \\[left\\]:  \\[1, 2, 3\\]
 \\[right\\]: \\[1, 2, 4\\]"""
 
-        with tm.assert_raises_regex(AssertionError, expected):
+        with pytest.raises(AssertionError, match=expected):
             assert_series_equal(pd.Series([1, 2, 3]), pd.Series([1, 2, 4]))
-        with tm.assert_raises_regex(AssertionError, expected):
+        with pytest.raises(AssertionError, match=expected):
             assert_series_equal(pd.Series([1, 2, 3]), pd.Series([1, 2, 4]),
                                 check_less_precise=True)
 
@@ -641,7 +645,7 @@ Attribute "dtype" are different
 \\[right\\]: CategoricalDtype\\(categories=\\[u?'a', u?'b', u?'c'\\], \
 ordered=False\\)"""
 
-        with tm.assert_raises_regex(AssertionError, expected):
+        with pytest.raises(AssertionError, match=expected):
             assert_series_equal(pd.Series(pd.Categorical(['a', 'b'])),
                                 pd.Series(pd.Categorical(['a', 'b'],
                                           categories=['a', 'b', 'c'])))
@@ -708,7 +712,7 @@ DataFrame shape mismatch
 \\[left\\]:  \\(3, 2\\)
 \\[right\\]: \\(3, 1\\)"""
 
-        with tm.assert_raises_regex(AssertionError, expected):
+        with pytest.raises(AssertionError, match=expected):
             assert_frame_equal(pd.DataFrame({'A': [1, 2, 3], 'B': [4, 5, 6]}),
                                pd.DataFrame({'A': [1, 2, 3]}))
 
@@ -718,7 +722,7 @@ DataFrame\\.index values are different \\(33\\.33333 %\\)
 \\[left\\]:  Index\\(\\[u?'a', u?'b', u?'c'\\], dtype='object'\\)
 \\[right\\]: Index\\(\\[u?'a', u?'b', u?'d'\\], dtype='object'\\)"""
 
-        with tm.assert_raises_regex(AssertionError, expected):
+        with pytest.raises(AssertionError, match=expected):
             assert_frame_equal(pd.DataFrame({'A': [1, 2, 3], 'B': [4, 5, 6]},
                                             index=['a', 'b', 'c']),
                                pd.DataFrame({'A': [1, 2, 3], 'B': [4, 5, 6]},
@@ -730,7 +734,7 @@ DataFrame\\.columns values are different \\(50\\.0 %\\)
 \\[left\\]:  Index\\(\\[u?'A', u?'B'\\], dtype='object'\\)
 \\[right\\]: Index\\(\\[u?'A', u?'b'\\], dtype='object'\\)"""
 
-        with tm.assert_raises_regex(AssertionError, expected):
+        with pytest.raises(AssertionError, match=expected):
             assert_frame_equal(pd.DataFrame({'A': [1, 2, 3], 'B': [4, 5, 6]},
                                             index=['a', 'b', 'c']),
                                pd.DataFrame({'A': [1, 2, 3], 'b': [4, 5, 6]},
@@ -742,11 +746,11 @@ DataFrame\\.iloc\\[:, 1\\] values are different \\(33\\.33333 %\\)
 \\[left\\]:  \\[4, 5, 6\\]
 \\[right\\]: \\[4, 5, 7\\]"""
 
-        with tm.assert_raises_regex(AssertionError, expected):
+        with pytest.raises(AssertionError, match=expected):
             assert_frame_equal(pd.DataFrame({'A': [1, 2, 3], 'B': [4, 5, 6]}),
                                pd.DataFrame({'A': [1, 2, 3], 'B': [4, 5, 7]}))
 
-        with tm.assert_raises_regex(AssertionError, expected):
+        with pytest.raises(AssertionError, match=expected):
             assert_frame_equal(pd.DataFrame({'A': [1, 2, 3], 'B': [4, 5, 6]}),
                                pd.DataFrame({'A': [1, 2, 3], 'B': [4, 5, 7]}),
                                by_blocks=True)
@@ -762,13 +766,13 @@ DataFrame\\.iloc\\[:, 1\\] values are different \\(33\\.33333 %\\)
 \\[left\\]:  \\[é, è, ë\\]
 \\[right\\]: \\[é, è, e̊\\]"""
 
-        with tm.assert_raises_regex(AssertionError, expected):
+        with pytest.raises(AssertionError, match=expected):
             assert_frame_equal(pd.DataFrame({'A': [u'á', u'à', u'ä'],
                                              'E': [u'é', u'è', u'ë']}),
                                pd.DataFrame({'A': [u'á', u'à', u'ä'],
                                              'E': [u'é', u'è', u'e̊']}))
 
-        with tm.assert_raises_regex(AssertionError, expected):
+        with pytest.raises(AssertionError, match=expected):
             assert_frame_equal(pd.DataFrame({'A': [u'á', u'à', u'ä'],
                                              'E': [u'é', u'è', u'ë']}),
                                pd.DataFrame({'A': [u'á', u'à', u'ä'],
@@ -781,13 +785,13 @@ DataFrame\\.iloc\\[:, 0\\] values are different \\(100\\.0 %\\)
 \\[left\\]:  \\[á, à, ä\\]
 \\[right\\]: \\[a, a, a\\]"""
 
-        with tm.assert_raises_regex(AssertionError, expected):
+        with pytest.raises(AssertionError, match=expected):
             assert_frame_equal(pd.DataFrame({'A': [u'á', u'à', u'ä'],
                                              'E': [u'é', u'è', u'ë']}),
                                pd.DataFrame({'A': ['a', 'a', 'a'],
                                              'E': ['e', 'e', 'e']}))
 
-        with tm.assert_raises_regex(AssertionError, expected):
+        with pytest.raises(AssertionError, match=expected):
             assert_frame_equal(pd.DataFrame({'A': [u'á', u'à', u'ä'],
                                              'E': [u'é', u'è', u'ë']}),
                                pd.DataFrame({'A': ['a', 'a', 'a'],
@@ -807,7 +811,7 @@ Categorical\\.categories values are different \\(25\\.0 %\\)
 
         a = pd.Categorical([1, 2, 3, 4])
         b = pd.Categorical([1, 2, 3, 5])
-        with tm.assert_raises_regex(AssertionError, expected):
+        with pytest.raises(AssertionError, match=expected):
             tm.assert_categorical_equal(a, b)
 
         expected = """Categorical\\.codes are different
@@ -818,7 +822,7 @@ Categorical\\.codes values are different \\(50\\.0 %\\)
 
         a = pd.Categorical([1, 2, 4, 3], categories=[1, 2, 3, 4])
         b = pd.Categorical([1, 2, 3, 4], categories=[1, 2, 3, 4])
-        with tm.assert_raises_regex(AssertionError, expected):
+        with pytest.raises(AssertionError, match=expected):
             tm.assert_categorical_equal(a, b)
 
         expected = """Categorical are different
@@ -829,7 +833,7 @@ Attribute "ordered" are different
 
         a = pd.Categorical([1, 2, 3, 4], ordered=False)
         b = pd.Categorical([1, 2, 3, 4], ordered=True)
-        with tm.assert_raises_regex(AssertionError, expected):
+        with pytest.raises(AssertionError, match=expected):
             tm.assert_categorical_equal(a, b)
 
 
@@ -844,8 +848,94 @@ class TestAssertIntervalArrayEqual(object):
             IntervalArray.left values are different \\(100.0 %\\)
             \\[left\\]:  Int64Index\\(\\[0, 1, 2, 3\\], dtype='int64'\\)
             \\[right\\]: Int64Index\\(\\[1, 2, 3, 4\\], dtype='int64'\\)""")
-        with tm.assert_raises_regex(AssertionError, msg):
+        with pytest.raises(AssertionError, match=msg):
             tm.assert_interval_array_equal(a, b)
+
+
+class TestAssertExtensionArrayEqual(object):
+
+    def test_check_exact(self):
+        # GH 23709
+        left = SparseArray([-0.17387645482451206, 0.3414148016424936])
+        right = SparseArray([-0.17387645482451206, 0.3414148016424937])
+
+        # passes with check_exact=False (should be default)
+        assert_extension_array_equal(left, right)
+        assert_extension_array_equal(left, right, check_exact=False)
+
+        # raises with check_exact=True
+        msg = textwrap.dedent("""\
+            ExtensionArray are different
+
+            ExtensionArray values are different \\(50\\.0 %\\)
+            \\[left\\]:  \\[-0\\.17387645482.*, 0\\.341414801642.*\\]
+            \\[right\\]: \\[-0\\.17387645482.*, 0\\.341414801642.*\\]""")
+        with pytest.raises(AssertionError, match=msg):
+            assert_extension_array_equal(left, right, check_exact=True)
+
+    @pytest.mark.parametrize('check_less_precise', [True, 0, 1, 2, 3, 4])
+    def test_check_less_precise_passes(self, check_less_precise):
+        left = SparseArray([0.5, 0.123456])
+        right = SparseArray([0.5, 0.123457])
+        assert_extension_array_equal(
+            left, right, check_less_precise=check_less_precise)
+
+    @pytest.mark.parametrize('check_less_precise', [False, 5, 6, 7, 8, 9])
+    def test_check_less_precise_fails(self, check_less_precise):
+        left = SparseArray([0.5, 0.123456])
+        right = SparseArray([0.5, 0.123457])
+
+        msg = textwrap.dedent("""\
+            ExtensionArray are different
+
+            ExtensionArray values are different \\(50\\.0 %\\)
+            \\[left\\]:  \\[0\\.5, 0\\.123456\\]
+            \\[right\\]: \\[0\\.5, 0\\.123457\\]""")
+        with pytest.raises(AssertionError, match=msg):
+            assert_extension_array_equal(
+                left, right, check_less_precise=check_less_precise)
+
+    def test_check_dtype(self):
+        left = SparseArray(np.arange(5, dtype='int64'))
+        right = SparseArray(np.arange(5, dtype='int32'))
+
+        # passes with check_dtype=False
+        assert_extension_array_equal(left, right, check_dtype=False)
+
+        # raises with check_dtype=True
+        msg = textwrap.dedent("""\
+            ExtensionArray are different
+
+            Attribute "dtype" are different
+            \\[left\\]:  Sparse\\[int64, 0\\]
+            \\[right\\]: Sparse\\[int32, 0\\]""")
+        with pytest.raises(AssertionError, match=msg):
+            assert_extension_array_equal(left, right, check_dtype=True)
+
+    def test_missing_values(self):
+        left = SparseArray([np.nan, 1, 2, np.nan])
+        right = SparseArray([np.nan, 1, 2, 3])
+
+        msg = textwrap.dedent("""\
+            ExtensionArray NA mask are different
+
+            ExtensionArray NA mask values are different \\(25\\.0 %\\)
+            \\[left\\]:  \\[True, False, False, True\\]
+            \\[right\\]: \\[True, False, False, False\\]""")
+        with pytest.raises(AssertionError, match=msg):
+            assert_extension_array_equal(left, right)
+
+    def test_non_extension_array(self):
+        numpy_array = np.arange(5)
+        extension_array = SparseArray(np.arange(5))
+
+        msg = 'left is not an ExtensionArray'
+        with pytest.raises(AssertionError, match=msg):
+            assert_extension_array_equal(numpy_array, extension_array)
+
+        msg = 'right is not an ExtensionArray'
+        with pytest.raises(AssertionError, match=msg):
+            assert_extension_array_equal(extension_array, numpy_array)
 
 
 class TestRNGContext(object):
@@ -875,3 +965,20 @@ def test_datapath_missing(datapath, request):
     )
 
     assert result == expected
+
+
+def test_create_temp_directory():
+    with tm.ensure_clean_dir() as path:
+        assert os.path.exists(path)
+        assert os.path.isdir(path)
+    assert not os.path.exists(path)
+
+
+def test_assert_raises_regex_deprecated():
+    # see gh-23592
+
+    with tm.assert_produces_warning(FutureWarning):
+        msg = "Not equal!"
+
+        with tm.assert_raises_regex(AssertionError, msg):
+            assert 1 == 2, msg

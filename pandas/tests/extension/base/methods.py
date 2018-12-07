@@ -1,5 +1,5 @@
-import pytest
 import numpy as np
+import pytest
 
 import pandas as pd
 import pandas.util.testing as tm
@@ -104,6 +104,30 @@ class BaseMethodsTests(BaseExtensionTests):
 
         tm.assert_numpy_array_equal(l1, l2)
         self.assert_extension_array_equal(u1, u2)
+
+    def test_fillna_copy_frame(self, data_missing):
+        arr = data_missing.take([1, 1])
+        df = pd.DataFrame({"A": arr})
+
+        filled_val = df.iloc[0, 0]
+        result = df.fillna(filled_val)
+
+        assert df.A.values is not result.A.values
+
+    def test_fillna_copy_series(self, data_missing):
+        arr = data_missing.take([1, 1])
+        ser = pd.Series(arr)
+
+        filled_val = ser[0]
+        result = ser.fillna(filled_val)
+
+        assert ser._values is not result._values
+        assert ser._values is arr
+
+    def test_fillna_length_mismatch(self, data_missing):
+        msg = "Length of 'value' does not match."
+        with pytest.raises(ValueError, match=msg):
+            data_missing.fillna(data_missing.take([1]))
 
     def test_combine_le(self, data_repeated):
         # GH 20825

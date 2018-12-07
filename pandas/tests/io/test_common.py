@@ -135,9 +135,7 @@ bar2,12,13,14,15
         (pd.read_csv, 'os', FileNotFoundError, 'csv'),
         (pd.read_fwf, 'os', FileNotFoundError, 'txt'),
         (pd.read_excel, 'xlrd', FileNotFoundError, 'xlsx'),
-        pytest.param(
-            pd.read_feather, 'feather', Exception, 'feather',
-            marks=pytest.mark.xfail(reason="failing for pyarrow < 0.11.0")),
+        (pd.read_feather, 'feather', Exception, 'feather'),
         (pd.read_hdf, 'tables', FileNotFoundError, 'h5'),
         (pd.read_stata, 'os', FileNotFoundError, 'dta'),
         (pd.read_sas, 'os', FileNotFoundError, 'sas7bdat'),
@@ -162,10 +160,7 @@ bar2,12,13,14,15
         (pd.read_csv, 'os', ('io', 'data', 'iris.csv')),
         (pd.read_fwf, 'os', ('io', 'data', 'fixed_width_format.txt')),
         (pd.read_excel, 'xlrd', ('io', 'data', 'test1.xlsx')),
-        pytest.param(
-            pd.read_feather, 'feather',
-            ('io', 'data', 'feather-0_3_1.feather'),
-            marks=pytest.mark.xfail(reason="failing for pyarrow < 0.11.0")),
+        (pd.read_feather, 'feather', ('io', 'data', 'feather-0_3_1.feather')),
         (pd.read_hdf, 'tables', ('io', 'data', 'legacy_hdf',
                                  'datetimetz_object.h5')),
         (pd.read_stata, 'os', ('io', 'data', 'stata10_115.dta')),
@@ -274,14 +269,15 @@ class TestMMapWrapper(object):
             msg = "[Errno 22]"
             err = mmap.error
 
-        tm.assert_raises_regex(err, msg, icom.MMapWrapper, non_file)
+        with pytest.raises(err, match=msg):
+            icom.MMapWrapper(non_file)
 
         target = open(mmap_file, 'r')
         target.close()
 
         msg = "I/O operation on closed file"
-        tm.assert_raises_regex(
-            ValueError, msg, icom.MMapWrapper, target)
+        with pytest.raises(ValueError, match=msg):
+            icom.MMapWrapper(target)
 
     def test_get_attr(self, mmap_file):
         with open(mmap_file, 'r') as target:
@@ -312,5 +308,5 @@ class TestMMapWrapper(object):
         with tm.ensure_clean() as path:
             df = tm.makeDataFrame()
             df.to_csv(path)
-            with tm.assert_raises_regex(ValueError, 'Unknown engine'):
+            with pytest.raises(ValueError, match='Unknown engine'):
                 pd.read_csv(path, engine='pyt')

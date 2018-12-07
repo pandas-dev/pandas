@@ -1,18 +1,18 @@
-import pytest
-import pandas as pd
 import numpy as np
+import pytest
 
+import pandas as pd
+import pandas.util.testing as tm
 from pandas import SparseArray, SparseDtype
 from pandas.errors import PerformanceWarning
 from pandas.tests.extension import base
-import pandas.util.testing as tm
 
 
 def make_data(fill_value):
     if np.isnan(fill_value):
         data = np.random.uniform(size=100)
     else:
-        data = np.random.randint(0, 100, size=100)
+        data = np.random.randint(1, 100, size=100)
 
     data[2::3] = fill_value
     return data
@@ -231,6 +231,30 @@ class TestMethods(BaseSparseTests, base.BaseMethodsTests):
         ], fill_value=False))
         self.assert_series_equal(result, expected)
 
+    def test_fillna_copy_frame(self, data_missing):
+        arr = data_missing.take([1, 1])
+        df = pd.DataFrame({"A": arr})
+
+        filled_val = df.iloc[0, 0]
+        result = df.fillna(filled_val)
+
+        assert df.values.base is not result.values.base
+        assert df.A._values.to_dense() is arr.to_dense()
+
+    def test_fillna_copy_series(self, data_missing):
+        arr = data_missing.take([1, 1])
+        ser = pd.Series(arr)
+
+        filled_val = ser[0]
+        result = ser.fillna(filled_val)
+
+        assert ser._values is not result._values
+        assert ser._values.to_dense() is arr.to_dense()
+
+    @pytest.mark.skip(reason="Not Applicable")
+    def test_fillna_length_mismatch(self, data_missing):
+        pass
+
 
 class TestCasting(BaseSparseTests, base.BaseCastingTests):
     pass
@@ -292,3 +316,9 @@ class TestComparisonOps(BaseSparseTests, base.BaseComparisonOpsTests):
         s = pd.Series(data)
         result = op(s, other)
         tm.assert_series_equal(result, expected)
+
+
+class TestPrinting(BaseSparseTests, base.BasePrintingTests):
+    @pytest.mark.xfail(reason='Different repr', strict=True)
+    def test_array_repr(self, data, size):
+        super(TestPrinting, self).test_array_repr(data, size)

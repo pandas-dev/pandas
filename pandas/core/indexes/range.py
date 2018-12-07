@@ -1,29 +1,30 @@
-import operator
-import warnings
 from datetime import timedelta
+import operator
 from sys import getsizeof
+import warnings
 
 import numpy as np
 
-import pandas.core.common as com
-import pandas.core.indexes.base as ibase
-from pandas import compat
-from pandas._libs import index as libindex
+from pandas._libs import index as libindex, lib
+import pandas.compat as compat
 from pandas.compat import get_range_parameters, lrange, range
 from pandas.compat.numpy import function as nv
-from pandas.core import ops
+from pandas.util._decorators import Appender, cache_readonly
+
 from pandas.core.dtypes import concat as _concat
 from pandas.core.dtypes.common import (
-    is_int64_dtype, is_integer, is_scalar, is_timedelta64_dtype
-)
-from pandas.core.dtypes.generic import ABCSeries, ABCTimedeltaIndex
+    is_int64_dtype, is_integer, is_scalar, is_timedelta64_dtype)
+from pandas.core.dtypes.generic import (
+    ABCDataFrame, ABCSeries, ABCTimedeltaIndex)
+
+from pandas.core import ops
+import pandas.core.common as com
+import pandas.core.indexes.base as ibase
 from pandas.core.indexes.base import Index, _index_shared_docs
 from pandas.core.indexes.numeric import Int64Index
-from pandas.util._decorators import Appender, cache_readonly
 
 
 class RangeIndex(Int64Index):
-
     """
     Immutable Index implementing a monotonic integer range.
 
@@ -36,7 +37,7 @@ class RangeIndex(Int64Index):
 
     Parameters
     ----------
-    start : int (default: 0), or other RangeIndex instance.
+    start : int (default: 0), or other RangeIndex instance
         If int and "stop" is not given, interpreted as "stop" instead.
     stop : int (default: 0)
     step : int (default: 1)
@@ -47,8 +48,8 @@ class RangeIndex(Int64Index):
 
     See Also
     --------
-    Index : The base pandas Index type
-    Int64Index : Index of int64 data
+    Index : The base pandas Index type.
+    Int64Index : Index of int64 data.
 
     Attributes
     ----------
@@ -61,6 +62,9 @@ class RangeIndex(Int64Index):
 
     _typ = 'rangeindex'
     _engine_type = libindex.Int64Engine
+
+    # --------------------------------------------------------------------
+    # Constructors
 
     def __new__(cls, start=None, stop=None, step=None,
                 dtype=None, copy=False, name=None, fastpath=None):
@@ -120,7 +124,7 @@ class RangeIndex(Int64Index):
 
     @classmethod
     def from_range(cls, data, name=None, dtype=None, **kwargs):
-        """ create RangeIndex from a range (py3), or xrange (py2) object """
+        """ Create RangeIndex from a range (py3), or xrange (py2) object. """
         if not isinstance(data, range):
             raise TypeError(
                 '{0}(...) must be called with object coercible to a '
@@ -156,6 +160,8 @@ class RangeIndex(Int64Index):
         result._reset_identity()
         return result
 
+    # --------------------------------------------------------------------
+
     @staticmethod
     def _validate_dtype(dtype):
         """ require dtype to be None or int64 """
@@ -186,6 +192,9 @@ class RangeIndex(Int64Index):
         d.update(dict(self._get_data_as_items()))
         return ibase._new_Index, (self.__class__, d), None
 
+    # --------------------------------------------------------------------
+    # Rendering Methods
+
     def _format_attrs(self):
         """
         Return a list of tuples of the (attr, formatted_value)
@@ -198,6 +207,8 @@ class RangeIndex(Int64Index):
     def _format_data(self, name=None):
         # we are formatting thru the attributes
         return None
+
+    # --------------------------------------------------------------------
 
     @cache_readonly
     def nbytes(self):
@@ -261,8 +272,9 @@ class RangeIndex(Int64Index):
     @Appender(_index_shared_docs['_shallow_copy'])
     def _shallow_copy(self, values=None, **kwargs):
         if values is None:
+            name = kwargs.get("name", self.name)
             return RangeIndex._simple_new(
-                name=self.name, **dict(self._get_data_as_items()))
+                name=name, **dict(self._get_data_as_items()))
         else:
             kwargs.setdefault('name', self.name)
             return self._int64index._shallow_copy(values, **kwargs)
@@ -302,7 +314,7 @@ class RangeIndex(Int64Index):
         -------
         argsorted : numpy array
 
-        See also
+        See Also
         --------
         numpy.ndarray.argsort
         """
@@ -342,6 +354,10 @@ class RangeIndex(Int64Index):
         -------
         intersection : Index
         """
+
+        if self.equals(other):
+            return self._get_reconciled_name_object(other)
+
         if not isinstance(other, RangeIndex):
             return super(RangeIndex, self).intersection(other)
 
@@ -422,10 +438,9 @@ class RangeIndex(Int64Index):
         union : Index
         """
         self._assert_can_do_setop(other)
-        if len(other) == 0 or self.equals(other):
-            return self
-        if len(self) == 0:
-            return other
+        if len(other) == 0 or self.equals(other) or len(self) == 0:
+            return super(RangeIndex, self).union(other)
+
         if isinstance(other, RangeIndex):
             start_s, step_s = self._start, self._step
             end_s = self._start + self._step * (len(self) - 1)
@@ -496,7 +511,12 @@ class RangeIndex(Int64Index):
         super_getitem = super(RangeIndex, self).__getitem__
 
         if is_scalar(key):
-            n = int(key)
+            if not lib.is_integer(key):
+                raise IndexError("only integers, slices (`:`), "
+                                 "ellipsis (`...`), numpy.newaxis (`None`) "
+                                 "and integer or boolean "
+                                 "arrays are valid indices")
+            n = com.cast_scalar_indexer(key)
             if n != key:
                 return super_getitem(key)
             if n < 0:
@@ -557,6 +577,9 @@ class RangeIndex(Int64Index):
         return super_getitem(key)
 
     def __floordiv__(self, other):
+        if isinstance(other, (ABCSeries, ABCDataFrame)):
+            return NotImplemented
+
         if is_integer(other) and other != 0:
             if (len(self) == 0 or
                     self._start % other == 0 and
@@ -588,7 +611,7 @@ class RangeIndex(Int64Index):
             """
 
             def _evaluate_numeric_binop(self, other):
-                if isinstance(other, ABCSeries):
+                if isinstance(other, (ABCSeries, ABCDataFrame)):
                     return NotImplemented
                 elif isinstance(other, ABCTimedeltaIndex):
                     # Defer to TimedeltaIndex implementation
@@ -644,7 +667,8 @@ class RangeIndex(Int64Index):
                     return op(self._int64index, other)
                     # TODO: Do attrs get handled reliably?
 
-            return _evaluate_numeric_binop
+            name = '__{name}__'.format(name=op.__name__)
+            return compat.set_function_name(_evaluate_numeric_binop, name, cls)
 
         cls.__add__ = _make_evaluate_binop(operator.add)
         cls.__radd__ = _make_evaluate_binop(ops.radd)

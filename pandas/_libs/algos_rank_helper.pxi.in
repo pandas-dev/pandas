@@ -4,9 +4,9 @@ Template for each `dtype` helper function for rank
 WARNING: DO NOT edit .pxi FILE directly, .pxi is generated from .pxi.in
 """
 
-#----------------------------------------------------------------------
+# ----------------------------------------------------------------------
 # rank_1d, rank_2d
-#----------------------------------------------------------------------
+# ----------------------------------------------------------------------
 
 {{py:
 
@@ -53,7 +53,7 @@ def rank_1d_{{dtype}}(object in_arr, ties_method='average',
         int tiebreak = 0
         bint keep_na = 0
         bint isnan
-        float count = 0.0
+        float64_t count = 0.0
     tiebreak = tiebreakers[ties_method]
 
     {{if dtype == 'float64'}}
@@ -74,9 +74,9 @@ def rank_1d_{{dtype}}(object in_arr, ties_method='average',
     {{elif dtype == 'float64'}}
     mask = np.isnan(values)
     {{elif dtype == 'int64'}}
-    mask = values == iNaT
+    mask = values == NPY_NAT
 
-    # create copy in case of iNaT
+    # create copy in case of NPY_NAT
     # values are mutated inplace
     if mask.any():
         values = values.copy()
@@ -102,15 +102,7 @@ def rank_1d_{{dtype}}(object in_arr, ties_method='average',
     ranks = np.empty(n, dtype='f8')
 
     {{if dtype == 'object'}}
-
-    try:
-        _as = np.lexsort(keys=order)
-    except TypeError:
-        # lexsort on object array will raise TypeError for numpy version
-        # earlier than 1.11.0. Use argsort with order argument instead.
-        _dt = [('values', 'O'), ('mask', '?')]
-        _values = np.asarray(list(zip(order[0], order[1])), dtype=_dt)
-        _as = np.argsort(_values, kind='mergesort', order=('mask', 'values'))
+    _as = np.lexsort(keys=order)
     {{else}}
     if tiebreak == TIEBREAK_FIRST:
         # need to use a stable sort here
@@ -126,7 +118,7 @@ def rank_1d_{{dtype}}(object in_arr, ties_method='average',
 
     sorted_data = values.take(_as)
     sorted_mask = mask.take(_as)
-    _indices = np.diff(sorted_mask).nonzero()[0]
+    _indices = np.diff(sorted_mask.astype(int)).nonzero()[0]
     non_na_idx = _indices[0] if len(_indices) > 0 else -1
     argsorted = _as.astype('i8')
 
@@ -149,7 +141,7 @@ def rank_1d_{{dtype}}(object in_arr, ties_method='average',
             {{if dtype != 'uint64'}}
             isnan = sorted_mask[i]
             if isnan and keep_na:
-                ranks[argsorted[i]] = nan
+                ranks[argsorted[i]] = NaN
                 continue
             {{endif}}
 
@@ -228,7 +220,7 @@ def rank_2d_{{dtype}}(object in_arr, axis=0, ties_method='average',
         float64_t sum_ranks = 0
         int tiebreak = 0
         bint keep_na = 0
-        float count = 0.0
+        float64_t count = 0.0
 
     tiebreak = tiebreakers[ties_method]
 
@@ -257,13 +249,13 @@ def rank_2d_{{dtype}}(object in_arr, axis=0, ties_method='average',
     {{elif dtype == 'float64'}}
     mask = np.isnan(values)
     {{elif dtype == 'int64'}}
-    mask = values == iNaT
+    mask = values == NPY_NAT
     {{endif}}
 
     np.putmask(values, mask, nan_value)
     {{endif}}
 
-    n, k = (<object> values).shape
+    n, k = (<object>values).shape
     ranks = np.empty((n, k), dtype='f8')
 
     {{if dtype == 'object'}}
@@ -317,7 +309,7 @@ def rank_2d_{{dtype}}(object in_arr, axis=0, ties_method='average',
             {{else}}
             if (val == nan_value) and keep_na:
             {{endif}}
-                ranks[i, argsorted[i, j]] = nan
+                ranks[i, argsorted[i, j]] = NaN
 
                 {{if dtype == 'object'}}
                 infs += 1

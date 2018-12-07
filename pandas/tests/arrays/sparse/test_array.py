@@ -1,19 +1,18 @@
-from pandas.compat import range
-
-import re
 import operator
-import pytest
+import re
 import warnings
 
-from numpy import nan
 import numpy as np
-import pandas as pd
+import pytest
 
-from pandas.core.sparse.api import SparseArray, SparseSeries, SparseDtype
 from pandas._libs.sparse import IntIndex
-from pandas.util.testing import assert_almost_equal
-import pandas.util.testing as tm
+from pandas.compat import range
 import pandas.util._test_decorators as td
+
+import pandas as pd
+from pandas.core.sparse.api import SparseArray, SparseDtype, SparseSeries
+import pandas.util.testing as tm
+from pandas.util.testing import assert_almost_equal
 
 
 @pytest.fixture(params=["integer", "block"])
@@ -24,7 +23,8 @@ def kind(request):
 class TestSparseArray(object):
 
     def setup_method(self, method):
-        self.arr_data = np.array([nan, nan, 1, 2, 3, nan, 4, 5, nan, 6])
+        self.arr_data = np.array([np.nan, np.nan, 1, 2, 3,
+                                  np.nan, 4, 5, np.nan, 6])
         self.arr = SparseArray(self.arr_data)
         self.zarr = SparseArray([0, 0, 1, 2, 3, 0, 4, 5, 0, 6], fill_value=0)
 
@@ -97,7 +97,7 @@ class TestSparseArray(object):
 
     @pytest.mark.parametrize("dtype", [SparseDtype(int, 0), int])
     def test_constructor_na_dtype(self, dtype):
-        with tm.assert_raises_regex(ValueError, "Cannot convert"):
+        with pytest.raises(ValueError, match="Cannot convert"):
             SparseArray([0, 1, np.nan], dtype=dtype)
 
     def test_constructor_spindex_dtype(self):
@@ -224,13 +224,18 @@ class TestSparseArray(object):
         assert self.zarr[7] == 5
 
         errmsg = re.compile("bounds")
-        tm.assert_raises_regex(IndexError, errmsg, lambda: self.arr[11])
-        tm.assert_raises_regex(IndexError, errmsg, lambda: self.arr[-11])
+
+        with pytest.raises(IndexError, match=errmsg):
+            self.arr[11]
+
+        with pytest.raises(IndexError, match=errmsg):
+            self.arr[-11]
+
         assert self.arr[-1] == self.arr[len(self.arr) - 1]
 
     def test_take_scalar_raises(self):
         msg = "'indices' must be an array, not a scalar '2'."
-        with tm.assert_raises_regex(ValueError, msg):
+        with pytest.raises(ValueError, match=msg):
             self.arr.take(2)
 
     def test_take(self):
@@ -258,8 +263,8 @@ class TestSparseArray(object):
         tm.assert_sp_array_equal(self.arr.take([-4, -3, -2]), exp)
 
     def test_bad_take(self):
-        tm.assert_raises_regex(
-            IndexError, "bounds", lambda: self.arr.take([11]))
+        with pytest.raises(IndexError, match="bounds"):
+            self.arr.take([11])
 
     def test_take_filling(self):
         # similar tests as GH 12631
@@ -279,10 +284,11 @@ class TestSparseArray(object):
         expected = SparseArray([np.nan, np.nan, 4])
         tm.assert_sp_array_equal(result, expected)
 
-        msg = ("Invalid value in 'indices'")
-        with tm.assert_raises_regex(ValueError, msg):
+        msg = "Invalid value in 'indices'"
+        with pytest.raises(ValueError, match=msg):
             sparse.take(np.array([1, 0, -2]), allow_fill=True)
-        with tm.assert_raises_regex(ValueError, msg):
+
+        with pytest.raises(ValueError, match=msg):
             sparse.take(np.array([1, 0, -5]), allow_fill=True)
 
         with pytest.raises(IndexError):
@@ -314,9 +320,9 @@ class TestSparseArray(object):
         tm.assert_sp_array_equal(result, expected)
 
         msg = ("Invalid value in 'indices'.")
-        with tm.assert_raises_regex(ValueError, msg):
+        with pytest.raises(ValueError, match=msg):
             sparse.take(np.array([1, 0, -2]), allow_fill=True)
-        with tm.assert_raises_regex(ValueError, msg):
+        with pytest.raises(ValueError, match=msg):
             sparse.take(np.array([1, 0, -5]), allow_fill=True)
 
         with pytest.raises(IndexError):
@@ -351,12 +357,15 @@ class TestSparseArray(object):
         def setslice():
             self.arr[1:5] = 2
 
-        tm.assert_raises_regex(TypeError, "item assignment", setitem)
-        tm.assert_raises_regex(TypeError, "item assignment", setslice)
+        with pytest.raises(TypeError, match="item assignment"):
+            setitem()
+
+        with pytest.raises(TypeError, match="item assignment"):
+            setslice()
 
     def test_constructor_from_too_large_array(self):
-        tm.assert_raises_regex(TypeError, "expected dimension <= 1 data",
-                               SparseArray, np.arange(10).reshape((2, 5)))
+        with pytest.raises(TypeError, match="expected dimension <= 1 data"):
+            SparseArray(np.arange(10).reshape((2, 5)))
 
     def test_constructor_from_sparse(self):
         res = SparseArray(self.zarr)
@@ -441,7 +450,7 @@ class TestSparseArray(object):
         tm.assert_sp_array_equal(result, expected)
 
         arr = SparseArray([0, np.nan, 0, 1], fill_value=0)
-        with tm.assert_raises_regex(ValueError, 'NA'):
+        with pytest.raises(ValueError, match='NA'):
             arr.astype('Sparse[i8]')
 
     def test_astype_bool(self):
@@ -468,6 +477,34 @@ class TestSparseArray(object):
         tm.assert_numpy_array_equal(np.asarray(res.values),
                                     vals.astype(typ))
 
+    @pytest.mark.parametrize('array, dtype, expected', [
+        (SparseArray([0, 1]), 'float',
+         SparseArray([0., 1.], dtype=SparseDtype(float, 0.0))),
+        (SparseArray([0, 1]), bool, SparseArray([False, True])),
+        (SparseArray([0, 1], fill_value=1), bool,
+         SparseArray([False, True], dtype=SparseDtype(bool, True))),
+        pytest.param(
+            SparseArray([0, 1]), 'datetime64[ns]',
+            SparseArray(np.array([0, 1], dtype='datetime64[ns]'),
+                        dtype=SparseDtype('datetime64[ns]',
+                                          pd.Timestamp('1970'))),
+            marks=[pytest.mark.xfail(reason="NumPy-7619")],
+        ),
+        (SparseArray([0, 1, 10]), str,
+         SparseArray(['0', '1', '10'], dtype=SparseDtype(str, '0'))),
+        (SparseArray(['10', '20']), float, SparseArray([10.0, 20.0])),
+        (SparseArray([0, 1, 0]), object,
+         SparseArray([0, 1, 0], dtype=SparseDtype(object, 0))),
+    ])
+    def test_astype_more(self, array, dtype, expected):
+        result = array.astype(dtype)
+        tm.assert_sp_array_equal(result, expected)
+
+    def test_astype_nan_raises(self):
+        arr = SparseArray([1.0, np.nan])
+        with pytest.raises(ValueError, match='Cannot convert non-finite'):
+            arr.astype(int)
+
     def test_set_fill_value(self):
         arr = SparseArray([1., np.nan, 2.], fill_value=np.nan)
         arr.fill_value = 2
@@ -481,12 +518,12 @@ class TestSparseArray(object):
         # sparsearray with NaN fill value, why not update one?
         # coerces to int
         # msg = "unable to set fill_value 3\\.1 to int64 dtype"
-        # with tm.assert_raises_regex(ValueError, msg):
+        # with pytest.raises(ValueError, match=msg):
         arr.fill_value = 3.1
         assert arr.fill_value == 3.1
 
         # msg = "unable to set fill_value nan to int64 dtype"
-        # with tm.assert_raises_regex(ValueError, msg):
+        # with pytest.raises(ValueError, match=msg):
         arr.fill_value = np.nan
         assert np.isnan(arr.fill_value)
 
@@ -496,12 +533,12 @@ class TestSparseArray(object):
 
         # coerces to bool
         # msg = "unable to set fill_value 0 to bool dtype"
-        # with tm.assert_raises_regex(ValueError, msg):
+        # with pytest.raises(ValueError, match=msg):
         arr.fill_value = 0
         assert arr.fill_value == 0
 
         # msg = "unable to set fill_value nan to bool dtype"
-        # with tm.assert_raises_regex(ValueError, msg):
+        # with pytest.raises(ValueError, match=msg):
         arr.fill_value = np.nan
         assert np.isnan(arr.fill_value)
 
@@ -510,7 +547,7 @@ class TestSparseArray(object):
         arr = SparseArray([True, False, True], fill_value=False, dtype=np.bool)
         msg = "fill_value must be a scalar"
 
-        with tm.assert_raises_regex(ValueError, msg):
+        with pytest.raises(ValueError, match=msg):
             arr.fill_value = val
 
     def test_copy_shallow(self):
@@ -747,6 +784,23 @@ class TestSparseArray(object):
         exp = SparseArray([1, 3, 3, 3, 3], fill_value=0, dtype=np.float64)
         tm.assert_sp_array_equal(res, exp)
 
+    def test_nonzero(self):
+        # Tests regression #21172.
+        sa = pd.SparseArray([
+            float('nan'),
+            float('nan'),
+            1, 0, 0,
+            2, 0, 0, 0,
+            3, 0, 0
+        ])
+        expected = np.array([2, 5, 9], dtype=np.int32)
+        result, = sa.nonzero()
+        tm.assert_numpy_array_equal(expected, result)
+
+        sa = pd.SparseArray([0, 0, 1, 0, 0, 2, 0, 0, 0, 3, 0, 0])
+        result, = sa.nonzero()
+        tm.assert_numpy_array_equal(expected, result)
+
 
 class TestSparseArrayAnalytics(object):
 
@@ -793,8 +847,8 @@ class TestSparseArrayAnalytics(object):
 
         # raises with a different message on py2.
         msg = "the \'out\' parameter is not supported"
-        tm.assert_raises_regex(ValueError, msg, np.all,
-                               SparseArray(data), out=np.array([]))
+        with pytest.raises(ValueError, match=msg):
+            np.all(SparseArray(data), out=np.array([]))
 
     @pytest.mark.parametrize('data,pos,neg', [
         ([False, True, False], True, False),
@@ -838,8 +892,8 @@ class TestSparseArrayAnalytics(object):
         assert not out
 
         msg = "the \'out\' parameter is not supported"
-        tm.assert_raises_regex(ValueError, msg, np.any,
-                               SparseArray(data), out=out)
+        with pytest.raises(ValueError, match=msg):
+            np.any(SparseArray(data), out=out)
 
     def test_sum(self):
         data = np.arange(10).astype(float)
@@ -866,12 +920,12 @@ class TestSparseArrayAnalytics(object):
         assert out == 40.0
 
         msg = "the 'dtype' parameter is not supported"
-        tm.assert_raises_regex(ValueError, msg, np.sum,
-                               SparseArray(data), dtype=np.int64)
+        with pytest.raises(ValueError, match=msg):
+            np.sum(SparseArray(data), dtype=np.int64)
 
         msg = "the 'out' parameter is not supported"
-        tm.assert_raises_regex(ValueError, msg, np.sum,
-                               SparseArray(data), out=out)
+        with pytest.raises(ValueError, match=msg):
+            np.sum(SparseArray(data), out=out)
 
     @pytest.mark.parametrize("data,expected", [
         (np.array([1, 2, 3, 4, 5], dtype=float),  # non-null data
@@ -894,16 +948,16 @@ class TestSparseArrayAnalytics(object):
 
         if numpy:  # numpy compatibility checks.
             msg = "the 'dtype' parameter is not supported"
-            tm.assert_raises_regex(ValueError, msg, np.cumsum,
-                                   SparseArray(data), dtype=np.int64)
+            with pytest.raises(ValueError, match=msg):
+                np.cumsum(SparseArray(data), dtype=np.int64)
 
             msg = "the 'out' parameter is not supported"
-            tm.assert_raises_regex(ValueError, msg, np.cumsum,
-                                   SparseArray(data), out=out)
+            with pytest.raises(ValueError, match=msg):
+                np.cumsum(SparseArray(data), out=out)
         else:
             axis = 1  # SparseArray currently 1-D, so only axis = 0 is valid.
             msg = "axis\\(={axis}\\) out of bounds".format(axis=axis)
-            with tm.assert_raises_regex(ValueError, msg):
+            with pytest.raises(ValueError, match=msg):
                 SparseArray(data).cumsum(axis=axis)
 
     def test_mean(self):
@@ -925,12 +979,12 @@ class TestSparseArrayAnalytics(object):
         assert out == 40.0 / 9
 
         msg = "the 'dtype' parameter is not supported"
-        tm.assert_raises_regex(ValueError, msg, np.mean,
-                               SparseArray(data), dtype=np.int64)
+        with pytest.raises(ValueError, match=msg):
+            np.mean(SparseArray(data), dtype=np.int64)
 
         msg = "the 'out' parameter is not supported"
-        tm.assert_raises_regex(ValueError, msg, np.mean,
-                               SparseArray(data), out=out)
+        with pytest.raises(ValueError, match=msg):
+            np.mean(SparseArray(data), out=out)
 
     def test_ufunc(self):
         # GH 13853 make sure ufunc is applied to fill_value
@@ -995,6 +1049,55 @@ class TestSparseArrayAnalytics(object):
             pd.to_datetime(['2012', None, None, '2013'])
         )
         np.asarray(s)
+
+    def test_density(self):
+        arr = SparseArray([0, 1])
+        assert arr.density == 0.5
+
+    def test_npoints(self):
+        arr = SparseArray([0, 1])
+        assert arr.npoints == 1
+
+
+class TestAccessor(object):
+
+    @pytest.mark.parametrize('attr', [
+        'npoints', 'density', 'fill_value', 'sp_values',
+    ])
+    def test_get_attributes(self, attr):
+        arr = SparseArray([0, 1])
+        ser = pd.Series(arr)
+
+        result = getattr(ser.sparse, attr)
+        expected = getattr(arr, attr)
+        assert result == expected
+
+    def test_from_coo(self):
+        sparse = pytest.importorskip("scipy.sparse")
+
+        row = [0, 3, 1, 0]
+        col = [0, 3, 1, 2]
+        data = [4, 5, 7, 9]
+        sp_array = sparse.coo_matrix(data, (row, col))
+        result = pd.Series.sparse.from_coo(sp_array)
+
+        index = pd.MultiIndex.from_product([[0], [0, 1, 2, 3]])
+        expected = pd.Series(data, index=index, dtype='Sparse[int]')
+        tm.assert_series_equal(result, expected)
+
+    def test_to_coo(self):
+        sparse = pytest.importorskip("scipy.sparse")
+        ser = pd.Series([1, 2, 3],
+                        index=pd.MultiIndex.from_product([[0], [1, 2, 3]],
+                                                         names=['a', 'b']),
+                        dtype='Sparse[int]')
+        A, _, _ = ser.sparse.to_coo()
+        assert isinstance(A, sparse.coo.coo_matrix)
+
+    def test_non_sparse_raises(self):
+        ser = pd.Series([1, 2, 3])
+        with pytest.raises(AttributeError, match='.sparse'):
+            ser.sparse.density
 
 
 def test_setting_fill_value_fillna_still_works():

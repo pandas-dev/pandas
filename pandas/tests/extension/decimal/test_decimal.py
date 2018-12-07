@@ -1,15 +1,16 @@
-import operator
 import decimal
+import math
+import operator
 
 import numpy as np
-import pandas as pd
-from pandas import compat
-import pandas.util.testing as tm
 import pytest
 
+import pandas as pd
+from pandas import compat
 from pandas.tests.extension import base
+import pandas.util.testing as tm
 
-from .array import DecimalDtype, DecimalArray, make_data, to_decimal
+from .array import DecimalArray, DecimalDtype, make_data, to_decimal
 
 
 @pytest.fixture
@@ -63,9 +64,23 @@ def data_for_grouping():
 class BaseDecimal(object):
 
     def assert_series_equal(self, left, right, *args, **kwargs):
+        def convert(x):
+            # need to convert array([Decimal(NaN)], dtype='object') to np.NaN
+            # because Series[object].isnan doesn't recognize decimal(NaN) as
+            # NA.
+            try:
+                return math.isnan(x)
+            except TypeError:
+                return False
 
-        left_na = left.isna()
-        right_na = right.isna()
+        if left.dtype == 'object':
+            left_na = left.apply(convert)
+        else:
+            left_na = left.isna()
+        if right.dtype == 'object':
+            right_na = right.apply(convert)
+        else:
+            right_na = right.isna()
 
         tm.assert_series_equal(left_na, right_na)
         return tm.assert_series_equal(left[~left_na],
@@ -173,7 +188,8 @@ class TestMethods(BaseDecimal, base.BaseMethodsTests):
 
 
 class TestCasting(BaseDecimal, base.BaseCastingTests):
-    pass
+    pytestmark = pytest.mark.skipif(compat.PY2,
+                                    reason="Unhashble dtype in Py2.")
 
 
 class TestGroupby(BaseDecimal, base.BaseGroupbyTests):
@@ -185,6 +201,11 @@ class TestSetitem(BaseDecimal, base.BaseSetitemTests):
     pass
 
 
+class TestPrinting(BaseDecimal, base.BasePrintingTests):
+    pytestmark = pytest.mark.skipif(compat.PY2,
+                                    reason="Unhashble dtype in Py2.")
+
+
 # TODO(extension)
 @pytest.mark.xfail(reason=(
     "raising AssertionError as this is not implemented, "
@@ -192,7 +213,7 @@ class TestSetitem(BaseDecimal, base.BaseSetitemTests):
 def test_series_constructor_coerce_data_to_extension_dtype_raises():
     xpr = ("Cannot cast data to extension dtype 'decimal'. Pass the "
            "extension array directly.")
-    with tm.assert_raises_regex(ValueError, xpr):
+    with pytest.raises(ValueError, match=xpr):
         pd.Series([0, 1, 2], dtype=DecimalDtype())
 
 
@@ -364,3 +385,17 @@ def test_divmod_array(reverse, expected_div, expected_mod):
 
     tm.assert_extension_array_equal(div, expected_div)
     tm.assert_extension_array_equal(mod, expected_mod)
+
+
+def test_formatting_values_deprecated():
+    class DecimalArray2(DecimalArray):
+        def _formatting_values(self):
+            return np.array(self)
+
+    ser = pd.Series(DecimalArray2([decimal.Decimal('1.0')]))
+    # different levels for 2 vs. 3
+    check_stacklevel = compat.PY3
+
+    with tm.assert_produces_warning(DeprecationWarning,
+                                    check_stacklevel=check_stacklevel):
+        repr(ser)

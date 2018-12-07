@@ -1,15 +1,14 @@
 import numpy as np
-import pandas as pd
-from pandas.core.dtypes.common import (
-    is_scalar,
-    is_numeric_dtype,
-    is_decimal,
-    is_datetime_or_timedelta_dtype,
-    is_number,
-    ensure_object)
-from pandas.core.dtypes.generic import ABCSeries, ABCIndexClass
-from pandas.core.dtypes.cast import maybe_downcast_to_dtype
+
 from pandas._libs import lib
+
+from pandas.core.dtypes.cast import maybe_downcast_to_dtype
+from pandas.core.dtypes.common import (
+    ensure_object, is_datetime_or_timedelta_dtype, is_decimal, is_number,
+    is_numeric_dtype, is_scalar)
+from pandas.core.dtypes.generic import ABCIndexClass, ABCSeries
+
+import pandas as pd
 
 
 def to_numeric(arg, errors='raise', downcast=None):
@@ -88,7 +87,7 @@ def to_numeric(arg, errors='raise', downcast=None):
     3   -3.0
     dtype: float64
 
-    See also
+    See Also
     --------
     pandas.DataFrame.astype : Cast argument to a specified dtype.
     pandas.to_datetime : Convert argument to datetime.

@@ -1109,7 +1109,7 @@ class TestDuplicated(object):
     def test_unique_index(self):
         cases = [Index([1, 2, 3]), pd.RangeIndex(0, 3)]
         for case in cases:
-            assert case.is_unique
+            assert case.is_unique is True
             tm.assert_numpy_array_equal(case.duplicated(),
                                         np.array([False, False, False]))
 
@@ -1328,7 +1328,7 @@ class TestHashTable(object):
         if safely_resizes:
             htable.get_labels(vals, uniques, 0, -1)
         else:
-            with tm.assert_raises_regex(ValueError, 'external reference.*'):
+            with pytest.raises(ValueError, match='external reference.*'):
                 htable.get_labels(vals, uniques, 0, -1)
 
         uniques.to_array()   # should not raise here
@@ -1361,6 +1361,14 @@ class TestHashTable(object):
         result_unique = htable().unique(s_duplicated.values)
         tm.assert_numpy_array_equal(result_unique, expected_unique)
 
+        # test return_inverse=True
+        # reconstruction can only succeed if the inverse is correct
+        result_unique, result_inverse = htable().unique(s_duplicated.values,
+                                                        return_inverse=True)
+        tm.assert_numpy_array_equal(result_unique, expected_unique)
+        reconstr = result_unique[result_inverse]
+        tm.assert_numpy_array_equal(reconstr, s_duplicated.values)
+
     @pytest.mark.parametrize('htable, tm_dtype', [
         (ht.PyObjectHashTable, 'String'),
         (ht.StringHashTable, 'String'),
@@ -1383,7 +1391,7 @@ class TestHashTable(object):
         s_duplicated.values.setflags(write=writable)
         na_mask = s_duplicated.isna().values
 
-        result_inverse, result_unique = htable().factorize(s_duplicated.values)
+        result_unique, result_inverse = htable().factorize(s_duplicated.values)
 
         # drop_duplicates has own cython code (hash_table_func_helper.pxi)
         # and is tested separately; keeps first occurrence like ht.factorize()
@@ -1459,8 +1467,18 @@ class TestRank(object):
         arr = np.array([[[1, 2, 3], [4, 5, 6], [7, 8, 9]]])
         msg = "Array with ndim > 2 are not supported"
 
-        with tm.assert_raises_regex(TypeError, msg):
+        with pytest.raises(TypeError, match=msg):
             algos.rank(arr)
+
+    @pytest.mark.single
+    @pytest.mark.parametrize('values', [
+        np.arange(2**24 + 1),
+        np.arange(2**25 + 2).reshape(2**24 + 1, 2)],
+        ids=['1d', '2d'])
+    def test_pct_max_many_rows(self, values):
+        # GH 18271
+        result = algos.rank(values, pct=True).max()
+        assert result == 1
 
 
 def test_pad_backfill_object_segfault():
@@ -1664,27 +1682,27 @@ def test_int64_add_overflow():
     m = np.iinfo(np.int64).max
     n = np.iinfo(np.int64).min
 
-    with tm.assert_raises_regex(OverflowError, msg):
+    with pytest.raises(OverflowError, match=msg):
         algos.checked_add_with_arr(np.array([m, m]), m)
-    with tm.assert_raises_regex(OverflowError, msg):
+    with pytest.raises(OverflowError, match=msg):
         algos.checked_add_with_arr(np.array([m, m]), np.array([m, m]))
-    with tm.assert_raises_regex(OverflowError, msg):
+    with pytest.raises(OverflowError, match=msg):
         algos.checked_add_with_arr(np.array([n, n]), n)
-    with tm.assert_raises_regex(OverflowError, msg):
+    with pytest.raises(OverflowError, match=msg):
         algos.checked_add_with_arr(np.array([n, n]), np.array([n, n]))
-    with tm.assert_raises_regex(OverflowError, msg):
+    with pytest.raises(OverflowError, match=msg):
         algos.checked_add_with_arr(np.array([m, n]), np.array([n, n]))
-    with tm.assert_raises_regex(OverflowError, msg):
+    with pytest.raises(OverflowError, match=msg):
         algos.checked_add_with_arr(np.array([m, m]), np.array([m, m]),
                                    arr_mask=np.array([False, True]))
-    with tm.assert_raises_regex(OverflowError, msg):
+    with pytest.raises(OverflowError, match=msg):
         algos.checked_add_with_arr(np.array([m, m]), np.array([m, m]),
                                    b_mask=np.array([False, True]))
-    with tm.assert_raises_regex(OverflowError, msg):
+    with pytest.raises(OverflowError, match=msg):
         algos.checked_add_with_arr(np.array([m, m]), np.array([m, m]),
                                    arr_mask=np.array([False, True]),
                                    b_mask=np.array([False, True]))
-    with tm.assert_raises_regex(OverflowError, msg):
+    with pytest.raises(OverflowError, match=msg):
         with tm.assert_produces_warning(RuntimeWarning):
             algos.checked_add_with_arr(np.array([m, m]),
                                        np.array([np.nan, m]))
@@ -1692,19 +1710,13 @@ def test_int64_add_overflow():
     # Check that the nan boolean arrays override whether or not
     # the addition overflows. We don't check the result but just
     # the fact that an OverflowError is not raised.
-    with pytest.raises(AssertionError):
-        with tm.assert_raises_regex(OverflowError, msg):
-            algos.checked_add_with_arr(np.array([m, m]), np.array([m, m]),
-                                       arr_mask=np.array([True, True]))
-    with pytest.raises(AssertionError):
-        with tm.assert_raises_regex(OverflowError, msg):
-            algos.checked_add_with_arr(np.array([m, m]), np.array([m, m]),
-                                       b_mask=np.array([True, True]))
-    with pytest.raises(AssertionError):
-        with tm.assert_raises_regex(OverflowError, msg):
-            algos.checked_add_with_arr(np.array([m, m]), np.array([m, m]),
-                                       arr_mask=np.array([True, False]),
-                                       b_mask=np.array([False, True]))
+    algos.checked_add_with_arr(np.array([m, m]), np.array([m, m]),
+                               arr_mask=np.array([True, True]))
+    algos.checked_add_with_arr(np.array([m, m]), np.array([m, m]),
+                               b_mask=np.array([True, True]))
+    algos.checked_add_with_arr(np.array([m, m]), np.array([m, m]),
+                               arr_mask=np.array([True, False]),
+                               b_mask=np.array([False, True]))
 
 
 class TestMode(object):

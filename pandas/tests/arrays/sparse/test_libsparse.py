@@ -1,13 +1,14 @@
-from pandas import Series
-
-import pytest
-import numpy as np
 import operator
-import pandas.util.testing as tm
+
+import numpy as np
+import pytest
+
+import pandas._libs.sparse as splib
 import pandas.util._test_decorators as td
 
-from pandas.core.arrays.sparse import IntIndex, BlockIndex, _make_index
-import pandas._libs.sparse as splib
+from pandas import Series
+from pandas.core.arrays.sparse import BlockIndex, IntIndex, _make_index
+import pandas.util.testing as tm
 
 TEST_LENGTH = 20
 
@@ -477,37 +478,37 @@ class TestIntIndex(object):
         # Too many indices than specified in self.length
         msg = "Too many indices"
 
-        with tm.assert_raises_regex(ValueError, msg):
+        with pytest.raises(ValueError, match=msg):
             IntIndex(length=1, indices=[1, 2, 3])
 
         # No index can be negative.
         msg = "No index can be less than zero"
 
-        with tm.assert_raises_regex(ValueError, msg):
+        with pytest.raises(ValueError, match=msg):
             IntIndex(length=5, indices=[1, -2, 3])
 
         # No index can be negative.
         msg = "No index can be less than zero"
 
-        with tm.assert_raises_regex(ValueError, msg):
+        with pytest.raises(ValueError, match=msg):
             IntIndex(length=5, indices=[1, -2, 3])
 
         # All indices must be less than the length.
         msg = "All indices must be less than the length"
 
-        with tm.assert_raises_regex(ValueError, msg):
+        with pytest.raises(ValueError, match=msg):
             IntIndex(length=5, indices=[1, 2, 5])
 
-        with tm.assert_raises_regex(ValueError, msg):
+        with pytest.raises(ValueError, match=msg):
             IntIndex(length=5, indices=[1, 2, 6])
 
         # Indices must be strictly ascending.
         msg = "Indices must be strictly increasing"
 
-        with tm.assert_raises_regex(ValueError, msg):
+        with pytest.raises(ValueError, match=msg):
             IntIndex(length=5, indices=[1, 3, 2])
 
-        with tm.assert_raises_regex(ValueError, msg):
+        with pytest.raises(ValueError, match=msg):
             IntIndex(length=5, indices=[1, 3, 3])
 
     def test_int_internal(self):

@@ -11,7 +11,7 @@ from pandas.util._decorators import Appender
 
 
 class DirNamesMixin(object):
-    _accessors = frozenset([])
+    _accessors = frozenset()
     _deprecations = frozenset(
         ['asobject', 'base', 'data', 'flags', 'itemsize', 'strides'])
 
@@ -41,7 +41,9 @@ class DirNamesMixin(object):
 
 
 class PandasDelegate(object):
-    """ an abstract base class for delegating methods/properties """
+    """
+    an abstract base class for delegating methods/properties
+    """
 
     def _delegate_property_get(self, name, *args, **kwargs):
         raise TypeError("You cannot access the "
@@ -113,15 +115,18 @@ def delegate_names(delegate, accessors, typ, overwrite=False):
 
     Parameters
     ----------
-    delegate : the class to get methods/properties & doc-strings
-    acccessors : string list of accessors to add
-    typ : 'property' or 'method'
+    delegate : object
+        the class to get methods/properties & doc-strings
+    acccessors : Sequence[str]
+        List of accessor to add
+    typ : {'property', 'method'}
     overwrite : boolean, default False
        overwrite the method/property in the target class if it exists
 
     Returns
     -------
-    decorator
+    callable
+        A class decorator.
 
     Examples
     --------
@@ -143,7 +148,8 @@ def delegate_names(delegate, accessors, typ, overwrite=False):
 # 2. We use a UserWarning instead of a custom Warning
 
 class CachedAccessor(object):
-    """Custom property-like object (descriptor) for caching accessors.
+    """
+    Custom property-like object (descriptor) for caching accessors.
 
     Parameters
     ----------
@@ -186,7 +192,8 @@ def _register_accessor(name, cls):
     return decorator
 
 
-_doc = """Register a custom accessor on %(klass)s objects.
+_doc = """\
+Register a custom accessor on %(klass)s objects.
 
 Parameters
 ----------
@@ -201,7 +208,8 @@ the user is interacting with. So the signature must be
 
 .. code-block:: python
 
-    def __init__(self, pandas_object):
+    def __init__(self, pandas_object):  # noqa: E999
+        ...
 
 For consistency with pandas methods, you should raise an ``AttributeError``
 if the data passed to your accessor has an incorrect dtype.
@@ -243,7 +251,7 @@ Back in an interactive IPython session:
     >>> ds.geo.plot()
     # plots data on a map
 
-See also
+See Also
 --------
 %(others)s
 """

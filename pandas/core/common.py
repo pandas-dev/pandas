@@ -4,25 +4,23 @@ Misc tools for implementing data structures
 Note: pandas.core.common is *not* part of the public API.
 """
 
+import collections
 from datetime import datetime, timedelta
 from functools import partial
 import inspect
-import collections
 
 import numpy as np
-from pandas._libs import lib, tslibs
 
-from pandas import compat
-from pandas.compat import iteritems, PY36, OrderedDict
-from pandas.core.dtypes.generic import (
-    ABCSeries, ABCIndex, ABCIndexClass
-)
+from pandas._libs import lib, tslibs
+import pandas.compat as compat
+from pandas.compat import PY36, OrderedDict, iteritems
+
+from pandas.core.dtypes.cast import construct_1d_object_array_from_listlike
 from pandas.core.dtypes.common import (
-    is_integer, is_bool_dtype, is_extension_array_dtype, is_array_like
-)
+    is_array_like, is_bool_dtype, is_extension_array_dtype, is_integer)
+from pandas.core.dtypes.generic import ABCIndex, ABCIndexClass, ABCSeries
 from pandas.core.dtypes.inference import _iterable_not_string
 from pandas.core.dtypes.missing import isna, isnull, notnull  # noqa
-from pandas.core.dtypes.cast import construct_1d_object_array_from_listlike
 
 
 class SettingWithCopyError(ValueError):
@@ -454,3 +452,21 @@ def _pipe(obj, func, *args, **kwargs):
         return func(*args, **kwargs)
     else:
         return func(obj, *args, **kwargs)
+
+
+def _get_rename_function(mapper):
+    """
+    Returns a function that will map names/labels, dependent if mapper
+    is a dict, Series or just a function.
+    """
+    if isinstance(mapper, (compat.Mapping, ABCSeries)):
+
+        def f(x):
+            if x in mapper:
+                return mapper[x]
+            else:
+                return x
+    else:
+        f = mapper
+
+    return f

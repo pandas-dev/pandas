@@ -1,13 +1,12 @@
 # -*- coding: utf-8 -*-
 
+import numpy as np
 import pytest
 
 import pandas as pd
-import numpy as np
-
-import pandas.util.testing as tm
-from pandas import Categorical, Series, DataFrame, date_range
+from pandas import Categorical, DataFrame, Series, date_range
 from pandas.tests.arrays.categorical.common import TestCategorical
+import pandas.util.testing as tm
 
 
 class TestCategoricalOpsWithFactor(TestCategorical):
@@ -239,15 +238,17 @@ class TestCategoricalOps(object):
     def test_unordered_different_categories_raises(self):
         c1 = Categorical(['a', 'b'], categories=['a', 'b'], ordered=False)
         c2 = Categorical(['a', 'c'], categories=['c', 'a'], ordered=False)
-        with tm.assert_raises_regex(TypeError,
-                                    "Categoricals can only be compared"):
+
+        with pytest.raises(TypeError, match=("Categoricals can "
+                                             "only be compared")):
             c1 == c2
 
     def test_compare_different_lengths(self):
         c1 = Categorical([], categories=['a', 'b'])
         c2 = Categorical([], categories=['a'])
+
         msg = "Categories are different lengths"
-        with tm.assert_raises_regex(TypeError, msg):
+        with pytest.raises(TypeError, match=msg):
             c1 == c2
 
     def test_compare_unordered_different_order(self):

@@ -2,23 +2,25 @@
 
 import numpy as np
 import pytest
+from pytz import UTC
 
-import pandas.util.testing as tm
-from pandas import date_range
 from pandas._libs.tslib import iNaT
 from pandas._libs.tslibs import conversion, timezones
 
+from pandas import date_range
+import pandas.util.testing as tm
+
 
 def compare_utc_to_local(tz_didx, utc_didx):
-    f = lambda x: conversion.tz_convert_single(x, 'UTC', tz_didx.tz)
-    result = conversion.tz_convert(tz_didx.asi8, 'UTC', tz_didx.tz)
+    f = lambda x: conversion.tz_convert_single(x, UTC, tz_didx.tz)
+    result = conversion.tz_convert(tz_didx.asi8, UTC, tz_didx.tz)
     result_single = np.vectorize(f)(tz_didx.asi8)
     tm.assert_numpy_array_equal(result, result_single)
 
 
 def compare_local_to_utc(tz_didx, utc_didx):
-    f = lambda x: conversion.tz_convert_single(x, tz_didx.tz, 'UTC')
-    result = conversion.tz_convert(utc_didx.asi8, tz_didx.tz, 'UTC')
+    f = lambda x: conversion.tz_convert_single(x, tz_didx.tz, UTC)
+    result = conversion.tz_convert(utc_didx.asi8, tz_didx.tz, UTC)
     result_single = np.vectorize(f)(utc_didx.asi8)
     tm.assert_numpy_array_equal(result, result_single)
 
@@ -55,3 +57,15 @@ class TestTZConvert(object):
                                        timezones.maybe_get_tz('US/Eastern'),
                                        timezones.maybe_get_tz('Asia/Tokyo'))
         tm.assert_numpy_array_equal(result, arr)
+
+
+class TestEnsureDatetime64NS(object):
+    @pytest.mark.parametrize('copy', [True, False])
+    @pytest.mark.parametrize('dtype', ['M8[ns]', 'M8[s]'])
+    def test_length_zero_copy(self, dtype, copy):
+        arr = np.array([], dtype=dtype)
+        result = conversion.ensure_datetime64ns(arr, copy=copy)
+        if copy:
+            assert result.base is None
+        else:
+            assert result.base is arr

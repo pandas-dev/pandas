@@ -3,25 +3,19 @@ Utility functions related to concat
 """
 
 import numpy as np
+
 from pandas._libs import tslib, tslibs
-from pandas import compat
+
 from pandas.core.dtypes.common import (
-    is_categorical_dtype,
-    is_sparse,
-    is_extension_array_dtype,
-    is_datetimetz,
-    is_datetime64_dtype,
-    is_timedelta64_dtype,
-    is_period_dtype,
-    is_object_dtype,
-    is_bool_dtype,
-    is_interval_dtype,
-    is_dtype_equal,
-    _NS_DTYPE,
-    _TD_DTYPE)
+    _NS_DTYPE, _TD_DTYPE, is_bool_dtype, is_categorical_dtype,
+    is_datetime64_dtype, is_datetime64tz_dtype, is_dtype_equal,
+    is_extension_array_dtype, is_interval_dtype, is_object_dtype,
+    is_period_dtype, is_sparse, is_timedelta64_dtype)
 from pandas.core.dtypes.generic import (
-    ABCDatetimeIndex, ABCTimedeltaIndex,
-    ABCPeriodIndex, ABCRangeIndex, ABCSparseDataFrame)
+    ABCDatetimeIndex, ABCPeriodIndex, ABCRangeIndex, ABCSparseDataFrame,
+    ABCTimedeltaIndex)
+
+from pandas import compat
 
 
 def get_dtype_kinds(l):
@@ -45,7 +39,7 @@ def get_dtype_kinds(l):
             typ = 'sparse'
         elif isinstance(arr, ABCRangeIndex):
             typ = 'range'
-        elif is_datetimetz(arr):
+        elif is_datetime64tz_dtype(arr):
             # if to_concat contains different tz,
             # the result must be object dtype
             typ = str(arr.dtype)
@@ -105,27 +99,6 @@ def _get_frame_result_type(result, objs):
     else:
         return next(obj for obj in objs if not isinstance(obj,
                                                           ABCSparseDataFrame))
-
-
-def _get_sliced_frame_result_type(data, obj):
-    """
-    return appropriate class of Series. When data is sparse
-    it will return a SparseSeries, otherwise it will return
-    the Series.
-
-    Parameters
-    ----------
-    data : array-like
-    obj : DataFrame
-
-    Returns
-    -------
-    Series or SparseSeries
-    """
-    if is_sparse(data):
-        from pandas.core.sparse.api import SparseSeries
-        return SparseSeries
-    return obj._constructor_sliced
 
 
 def _concat_compat(to_concat, axis=0):
@@ -218,15 +191,6 @@ def _concat_categorical(to_concat, axis=0):
         A single array, preserving the combined dtypes
     """
 
-    def _concat_asobject(to_concat):
-        to_concat = [x.get_values() if is_categorical_dtype(x.dtype)
-                     else np.asarray(x).ravel() for x in to_concat]
-        res = _concat_compat(to_concat)
-        if axis == 1:
-            return res.reshape(1, len(res))
-        else:
-            return res
-
     # we could have object blocks and categoricals here
     # if we only have a single categoricals then combine everything
     # else its a non-compat categorical
@@ -241,7 +205,14 @@ def _concat_categorical(to_concat, axis=0):
         if all(first.is_dtype_equal(other) for other in to_concat[1:]):
             return union_categoricals(categoricals)
 
-    return _concat_asobject(to_concat)
+    # extract the categoricals & coerce to object if needed
+    to_concat = [x.get_values() if is_categorical_dtype(x.dtype)
+                 else np.asarray(x).ravel() if not is_datetime64tz_dtype(x)
+                 else np.asarray(x.astype(object)) for x in to_concat]
+    result = _concat_compat(to_concat)
+    if axis == 1:
+        result = result.reshape(1, len(result))
+    return result
 
 
 def union_categoricals(to_union, sort_categories=False, ignore_order=False):
@@ -258,7 +229,7 @@ def union_categoricals(to_union, sort_categories=False, ignore_order=False):
     sort_categories : boolean, default False
         If true, resulting categories will be lexsorted, otherwise
         they will be ordered as they appear in the data.
-    ignore_order: boolean, default False
+    ignore_order : boolean, default False
         If true, the ordered attribute of the Categoricals will be ignored.
         Results in an unordered categorical.
 
@@ -400,10 +371,8 @@ def union_categoricals(to_union, sort_categories=False, ignore_order=False):
         if sort_categories:
             categories = categories.sort_values()
 
-        new_codes = []
-        for c in to_union:
-            new_codes.append(_recode_for_categories(c.codes, c.categories,
-                                                    categories))
+        new_codes = [_recode_for_categories(c.codes, c.categories, categories)
+                     for c in to_union]
         new_codes = np.concatenate(new_codes)
     else:
         # ordered - to show a proper error message
@@ -470,10 +439,10 @@ def _concat_datetime(to_concat, axis=0, typs=None):
                                axis=axis).view(_TD_DTYPE)
 
     elif any(typ.startswith('period') for typ in typs):
-        # PeriodIndex must be handled by PeriodIndex,
-        # Thus can't meet this condition ATM
-        # Must be changed when we adding PeriodDtype
-        raise NotImplementedError("unable to concat PeriodDtype")
+        assert len(typs) == 1
+        cls = to_concat[0]
+        new_values = cls._concat_same_type(to_concat)
+        return new_values
 
 
 def _convert_datetimelike_to_object(x):
@@ -503,13 +472,7 @@ def _concat_datetimetz(to_concat, name=None):
     all inputs must be DatetimeIndex
     it is used in DatetimeIndex.append also
     """
-    # do not pass tz to set because tzlocal cannot be hashed
-    if len({str(x.dtype) for x in to_concat}) != 1:
-        raise ValueError('to_concat must have the same tz')
-    tz = to_concat[0].tz
-    # no need to localize because internal repr will not be changed
-    new_values = np.concatenate([x.asi8 for x in to_concat])
-    return to_concat[0]._simple_new(new_values, tz=tz, name=name)
+    return to_concat[0]._concat_same_dtype(to_concat, name=name)
 
 
 def _concat_index_same_dtype(indexes, klass=None):

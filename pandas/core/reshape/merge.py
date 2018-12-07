@@ -3,49 +3,34 @@ SQL-style merge routines
 """
 
 import copy
-import warnings
 import string
+import warnings
 
 import numpy as np
-from pandas.compat import range, lzip, zip, map, filter
-import pandas.compat as compat
 
-from pandas import (Categorical, DataFrame,
-                    Index, MultiIndex, Timedelta, Series)
-from pandas.core.arrays.categorical import _recode_for_categories
-from pandas.core.frame import _merge_doc
-from pandas.core.dtypes.common import (
-    is_datetime64tz_dtype,
-    is_datetime64_dtype,
-    needs_i8_conversion,
-    is_int64_dtype,
-    is_array_like,
-    is_categorical_dtype,
-    is_integer_dtype,
-    is_float_dtype,
-    is_number,
-    is_numeric_dtype,
-    is_integer,
-    is_int_or_datetime_dtype,
-    is_dtype_equal,
-    is_bool,
-    is_bool_dtype,
-    is_list_like,
-    is_datetimelike,
-    ensure_int64,
-    ensure_float64,
-    ensure_object)
-from pandas.core.dtypes.missing import na_value_for_dtype, isnull
-from pandas.core.internals import (items_overlap_with_suffix,
-                                   concatenate_block_managers)
+from pandas._libs import hashtable as libhashtable, join as libjoin, lib
+import pandas.compat as compat
+from pandas.compat import filter, lzip, map, range, zip
+from pandas.errors import MergeError
 from pandas.util._decorators import Appender, Substitution
 
-from pandas.core.sorting import is_int64_overflow_possible
+from pandas.core.dtypes.common import (
+    ensure_float64, ensure_int64, ensure_object, is_array_like, is_bool,
+    is_bool_dtype, is_categorical_dtype, is_datetime64_dtype,
+    is_datetime64tz_dtype, is_datetimelike, is_dtype_equal, is_float_dtype,
+    is_int64_dtype, is_integer, is_integer_dtype, is_list_like, is_number,
+    is_numeric_dtype, needs_i8_conversion)
+from pandas.core.dtypes.missing import isnull, na_value_for_dtype
+
+from pandas import Categorical, DataFrame, Index, MultiIndex, Series, Timedelta
 import pandas.core.algorithms as algos
-import pandas.core.sorting as sorting
+from pandas.core.arrays.categorical import _recode_for_categories
 import pandas.core.common as com
-from pandas._libs import hashtable as libhashtable, join as libjoin, lib
-from pandas.errors import MergeError
+from pandas.core.frame import _merge_doc
+from pandas.core.internals import (
+    concatenate_block_managers, items_overlap_with_suffix)
+import pandas.core.sorting as sorting
+from pandas.core.sorting import is_int64_overflow_possible
 
 
 @Substitution('\nleft : DataFrame')
@@ -214,11 +199,10 @@ def merge_ordered(left, right, on=None,
         The output type will the be same as 'left', if it is a subclass
         of DataFrame.
 
-    See also
+    See Also
     --------
     merge
     merge_asof
-
     """
     def _merger(x, y):
         # perform the ordered merge operation
@@ -326,7 +310,6 @@ def merge_asof(left, right, on=None,
         Whether to search for prior, subsequent, or closest matches.
 
         .. versionadded:: 0.20.0
-
 
     Returns
     -------
@@ -462,11 +445,10 @@ def merge_asof(left, right, on=None,
     3 2016-05-25 13:30:00.048   GOOG  720.92       100     NaN     NaN
     4 2016-05-25 13:30:00.048   AAPL   98.00       100     NaN     NaN
 
-    See also
+    See Also
     --------
     merge
     merge_ordered
-
     """
     op = _AsOfMerge(left, right,
                     on=on, left_on=left_on, right_on=right_on,
@@ -733,6 +715,7 @@ class _MergeOperation(object):
                     result[name] = key_col
                 elif result._is_level_reference(name):
                     if isinstance(result.index, MultiIndex):
+                        key_col.name = name
                         idx_list = [result.index.get_level_values(level_name)
                                     if level_name != name else key_col
                                     for level_name in result.index.names]
@@ -874,9 +857,9 @@ class _MergeOperation(object):
                     left_keys.append(left._get_label_or_level_values(k))
                     join_names.append(k)
             if isinstance(self.right.index, MultiIndex):
-                right_keys = [lev._values.take(lab)
-                              for lev, lab in zip(self.right.index.levels,
-                                                  self.right.index.labels)]
+                right_keys = [lev._values.take(lev_codes) for lev, lev_codes
+                              in zip(self.right.index.levels,
+                                     self.right.index.codes)]
             else:
                 right_keys = [self.right.index.values]
         elif _any(self.right_on):
@@ -888,9 +871,9 @@ class _MergeOperation(object):
                     right_keys.append(right._get_label_or_level_values(k))
                     join_names.append(k)
             if isinstance(self.left.index, MultiIndex):
-                left_keys = [lev._values.take(lab)
-                             for lev, lab in zip(self.left.index.levels,
-                                                 self.left.index.labels)]
+                left_keys = [lev._values.take(lev_codes) for lev, lev_codes
+                             in zip(self.left.index.levels,
+                                    self.left.index.codes)]
             else:
                 left_keys = [self.left.index.values]
 
@@ -1135,6 +1118,95 @@ def _get_join_indexers(left_keys, right_keys, sort=False, how='inner',
     join_func = _join_functions[how]
 
     return join_func(lkey, rkey, count, **kwargs)
+
+
+def _restore_dropped_levels_multijoin(left, right, dropped_level_names,
+                                      join_index, lindexer, rindexer):
+    """
+    *this is an internal non-public method*
+
+    Returns the levels, labels and names of a multi-index to multi-index join.
+    Depending on the type of join, this method restores the appropriate
+    dropped levels of the joined multi-index.
+    The method relies on lidx, rindexer which hold the index positions of
+    left and right, where a join was feasible
+
+    Parameters
+    ----------
+    left : MultiIndex
+        left index
+    right : MultiIndex
+        right index
+    dropped_level_names : str array
+        list of non-common level names
+    join_index : MultiIndex
+        the index of the join between the
+        common levels of left and right
+    lindexer : intp array
+        left indexer
+    rindexer : intp array
+        right indexer
+
+    Returns
+    -------
+    levels : list of Index
+        levels of combined multiindexes
+    labels : intp array
+        labels of combined multiindexes
+    names : str array
+        names of combined multiindexes
+
+    """
+
+    def _convert_to_mulitindex(index):
+        if isinstance(index, MultiIndex):
+            return index
+        else:
+            return MultiIndex.from_arrays([index.values],
+                                          names=[index.name])
+
+    # For multi-multi joins with one overlapping level,
+    # the returned index if of type Index
+    # Assure that join_index is of type MultiIndex
+    # so that dropped levels can be appended
+    join_index = _convert_to_mulitindex(join_index)
+
+    join_levels = join_index.levels
+    join_codes = join_index.codes
+    join_names = join_index.names
+
+    # lindexer and rindexer hold the indexes where the join occurred
+    # for left and right respectively. If left/right is None then
+    # the join occurred on all indices of left/right
+    if lindexer is None:
+        lindexer = range(left.size)
+
+    if rindexer is None:
+        rindexer = range(right.size)
+
+    # Iterate through the levels that must be restored
+    for dropped_level_name in dropped_level_names:
+        if dropped_level_name in left.names:
+            idx = left
+            indexer = lindexer
+        else:
+            idx = right
+            indexer = rindexer
+
+        # The index of the level name to be restored
+        name_idx = idx.names.index(dropped_level_name)
+
+        restore_levels = idx.levels[name_idx]
+        # Inject -1 in the codes list where a join was not possible
+        # IOW indexer[i]=-1
+        codes = idx.codes[name_idx]
+        restore_codes = algos.take_nd(codes, indexer, fill_value=-1)
+
+        join_levels = join_levels + [restore_levels]
+        join_codes = join_codes + [restore_codes]
+        join_names = join_names + [dropped_level_name]
+
+    return join_levels, join_codes, join_names
 
 
 class _OrderedMerge(_MergeOperation):
@@ -1436,27 +1508,29 @@ def _get_multiindex_indexer(join_keys, index, sort):
     fkeys = partial(_factorize_keys, sort=sort)
 
     # left & right join labels and num. of levels at each location
-    rlab, llab, shape = map(list, zip(* map(fkeys, index.levels, join_keys)))
+    rcodes, lcodes, shape = map(list, zip(* map(fkeys,
+                                                index.levels,
+                                                join_keys)))
     if sort:
-        rlab = list(map(np.take, rlab, index.labels))
+        rcodes = list(map(np.take, rcodes, index.codes))
     else:
         i8copy = lambda a: a.astype('i8', subok=False, copy=True)
-        rlab = list(map(i8copy, index.labels))
+        rcodes = list(map(i8copy, index.codes))
 
     # fix right labels if there were any nulls
     for i in range(len(join_keys)):
-        mask = index.labels[i] == -1
+        mask = index.codes[i] == -1
         if mask.any():
             # check if there already was any nulls at this location
             # if there was, it is factorized to `shape[i] - 1`
-            a = join_keys[i][llab[i] == shape[i] - 1]
+            a = join_keys[i][lcodes[i] == shape[i] - 1]
             if a.size == 0 or not a[0] != a[0]:
                 shape[i] += 1
 
-            rlab[i][mask] = shape[i] - 1
+            rcodes[i][mask] = shape[i] - 1
 
     # get flat i8 join keys
-    lkey, rkey = _get_join_keys(llab, rlab, shape, sort)
+    lkey, rkey = _get_join_keys(lcodes, rcodes, shape, sort)
 
     # factorize keys to a dense i8 space
     lkey, rkey, count = fkeys(lkey, rkey)
@@ -1533,7 +1607,15 @@ def _factorize_keys(lk, rk, sort=True):
 
         lk = ensure_int64(lk.codes)
         rk = ensure_int64(rk)
-    elif is_int_or_datetime_dtype(lk) and is_int_or_datetime_dtype(rk):
+    elif is_integer_dtype(lk) and is_integer_dtype(rk):
+        # GH#23917 TODO: needs tests for case where lk is integer-dtype
+        #  and rk is datetime-dtype
+        klass = libhashtable.Int64Factorizer
+        lk = ensure_int64(com.values_from_object(lk))
+        rk = ensure_int64(com.values_from_object(rk))
+    elif (issubclass(lk.dtype.type, (np.timedelta64, np.datetime64)) and
+          issubclass(rk.dtype.type, (np.timedelta64, np.datetime64))):
+        # GH#23917 TODO: Needs tests for non-matching dtypes
         klass = libhashtable.Int64Factorizer
         lk = ensure_int64(com.values_from_object(lk))
         rk = ensure_int64(com.values_from_object(rk))
