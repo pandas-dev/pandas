@@ -207,11 +207,11 @@ def test_sub_period():
     period_array(['2000', '2001', '2000'], freq='H')
 ])
 def test_where_different_freq_raises(other):
-    arr = period_array(['2000', '2001', '2002'], freq='D')
+    ser = pd.Series(period_array(['2000', '2001', '2002'], freq='D'))
     cond = np.array([True, False, True])
     with pytest.raises(IncompatibleFrequency,
                        match="Input has different freq=H"):
-        arr.where(cond, other)
+        ser.where(cond, other)
 
 
 # ----------------------------------------------------------------------------

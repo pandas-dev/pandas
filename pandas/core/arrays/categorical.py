@@ -2121,11 +2121,21 @@ class Categorical(ExtensionArray, PandasObject):
             `Categorical` does not have the same categories
         """
 
+        if isinstance(value, (ABCIndexClass, ABCSeries)):
+            value = value.array
+
         # require identical categories set
         if isinstance(value, Categorical):
-            if not value.categories.equals(self.categories):
+            if not is_dtype_equal(self, value):
                 raise ValueError("Cannot set a Categorical with another, "
                                  "without identical categories")
+            if not self.categories.equals(value.categories):
+                new_codes = _recode_for_categories(
+                    value.codes, value.categories, self.categories
+                )
+                value = Categorical.from_codes(new_codes,
+                                               categories=self.categories,
+                                               ordered=self.ordered)
 
         rvalue = value if is_list_like(value) else [value]
 
