@@ -759,10 +759,6 @@ class Window(_Window):
         nv.validate_window_func('mean', args, kwargs)
         return self._apply_window(mean=True, **kwargs)
 
-    @Substitution(name='window')
-    def size(self, args, kwargs):
-        self.apply(np.size)
-
 
 class _GroupByMixin(GroupByMixin):
     """
@@ -947,7 +943,20 @@ class _Rolling_and_Expanding(_Rolling):
 
         return self._wrap_results(results, blocks, obj)
 
-    size = count
+    def size(self):
+        blocks, obj, index = self._create_blocks()
+        # Validate the index
+        self._get_index(index=index)
+
+        # window = self._get_window()
+        # window = min(window, len(obj)) if not self.center else window
+
+        results = []
+        for b in blocks:
+            results.append(b.size())
+
+        return self._wrap_results(results, blocks, obj)
+
 
     _shared_docs['apply'] = dedent(r"""
     %(name)s function apply.
@@ -1671,7 +1680,10 @@ class Rolling(_Rolling_and_Expanding):
 
         return super(Rolling, self).count()
 
-    size = count
+    def size(self):
+        if self.is_freq_type:
+            return self._apply('roll_size', 'size')
+        return super(Rolling, self).size()
 
     @Substitution(name='rolling')
     @Appender(_doc_template)

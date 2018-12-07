@@ -652,6 +652,9 @@ class TestRolling(Base):
             np.random.rand(20),
             index=pd.date_range('2012-1-1', periods=20)
         )
+        ser.iloc[[5, -1]] = np.nan
+        ser.drop([pd.Timestamp('2012-1-10')], inplace=True) # drop element in the middle
+
         window = ser.rolling('5D')
 
         expected = window.agg(np.size)

@@ -353,11 +353,26 @@ def get_window_indexer(values, win, minp, index, closed,
                                      right_closed, index, floor)
     return indexer.get_data()
 
+# Rolling size
+def roll_size(ndarray[float64_t] values, int64_t win, int64_t minp,
+               object index, object closed):
+    cdef:
+        int64_t N
+        ndarray[int64_t] start, end
+        ndarray[float64_t] output
+
+    start, end, N, _, _, _ = get_window_indexer(values, win,
+                                                     minp, index, closed)
+    output = np.empty(N, dtype=float)
+
+    output = (end - start).astype(float)
+
+    return output
+
 
 # ----------------------------------------------------------------------
 # Rolling count
 # this is only an impl for index not None, IOW, freq aware
-
 
 def roll_count(ndarray[float64_t] values, int64_t win, int64_t minp,
                object index, object closed):
@@ -407,7 +422,6 @@ def roll_count(ndarray[float64_t] values, int64_t win, int64_t minp,
                 output[i] = NaN
 
     return output
-
 
 # ----------------------------------------------------------------------
 # Rolling sum
