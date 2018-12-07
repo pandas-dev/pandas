@@ -344,6 +344,10 @@ def read_json(path_or_buf=None, orient=None, typ='frame', dtype=True,
     -------
     result : Series or DataFrame, depending on the value of `typ`.
 
+    See Also
+    --------
+    DataFrame.to_json
+
     Notes
     -----
     Specific to ``orient='table'``, if a :class:`DataFrame` with a literal
@@ -354,10 +358,6 @@ def read_json(path_or_buf=None, orient=None, typ='frame', dtype=True,
     :func:`read_json` operation cannot distinguish between the two. The same
     limitation is encountered with a :class:`MultiIndex` and any names
     beginning with ``'level_'``.
-
-    See Also
-    --------
-    DataFrame.to_json
 
     Examples
     --------

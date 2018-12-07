@@ -1559,6 +1559,11 @@ class _LocIndexer(_LocationIndexer):
 
     See more at :ref:`Selection by Label <indexing.label>`
 
+    Raises
+    ------
+    KeyError:
+        when any items are not found
+
     See Also
     --------
     DataFrame.at : Access a single value for a row/column label pair.
@@ -1765,11 +1770,6 @@ class _LocIndexer(_LocationIndexer):
     sidewinder mark i          10      20
                mark ii          1       4
     viper      mark ii          7       1
-
-    Raises
-    ------
-    KeyError:
-        when any items are not found
     """
 
     _valid_types = ("labels (MUST BE IN THE INDEX), slices of labels (BOTH "
@@ -2291,6 +2291,11 @@ class _AtIndexer(_ScalarAccessIndexer):
     ``at`` if you only need to get or set a single value in a DataFrame
     or Series.
 
+    Raises
+    ------
+    KeyError
+        When label does not exist in DataFrame
+
     See Also
     --------
     DataFrame.iat : Access a single value for a row/column pair by integer
@@ -2323,11 +2328,6 @@ class _AtIndexer(_ScalarAccessIndexer):
 
     >>> df.loc[5].at['B']
     4
-
-    Raises
-    ------
-    KeyError
-        When label does not exist in DataFrame
     """
 
     _takeable = False
@@ -2362,6 +2362,11 @@ class _iAtIndexer(_ScalarAccessIndexer):
     ``iat`` if you only need to get or set a single value in a DataFrame
     or Series.
 
+    Raises
+    ------
+    IndexError
+        When integer position is out of bounds
+
     See Also
     --------
     DataFrame.at : Access a single value for a row/column label pair.
@@ -2393,11 +2398,6 @@ class _iAtIndexer(_ScalarAccessIndexer):
 
     >>> df.loc[0].iat[1]
     2
-
-    Raises
-    ------
-    IndexError
-        When integer position is out of bounds
     """
 
     _takeable = True

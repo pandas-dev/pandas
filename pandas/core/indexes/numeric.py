@@ -147,13 +147,13 @@ _num_index_shared_docs['class_descr'] = """
     -------
     None
 
-    Notes
-    -----
-    An Index instance can **only** contain hashable objects.
-
     See Also
     --------
     Index : The base pandas Index type.
+
+    Notes
+    -----
+    An Index instance can **only** contain hashable objects.
 """
 
 _int64_descr_args = dict(

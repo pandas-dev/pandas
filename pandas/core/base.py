@@ -1298,14 +1298,14 @@ class IndexOpsMixin(object):
         -------
         bytes used
 
+        See Also
+        --------
+        numpy.ndarray.nbytes
+
         Notes
         -----
         Memory usage does not include memory consumed by elements that
         are not components of the array if deep=False or if used on PyPy
-
-        See Also
-        --------
-        numpy.ndarray.nbytes
         """
         if hasattr(self.values, 'memory_usage'):
             return self.values.memory_usage(deep=deep)

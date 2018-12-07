@@ -989,6 +989,10 @@ def period_range(start=None, end=None, periods=None, freq='D', name=None):
     name : string, default None
         Name of the resulting PeriodIndex
 
+    Returns
+    -------
+    prng : PeriodIndex
+
     Notes
     -----
     Of the three parameters: ``start``, ``end``, and ``periods``, exactly two
@@ -996,10 +1000,6 @@ def period_range(start=None, end=None, periods=None, freq='D', name=None):
 
     To learn more about the frequency strings, please see `this link
     <http://pandas.pydata.org/pandas-docs/stable/timeseries.html#offset-aliases>`__.
-
-    Returns
-    -------
-    prng : PeriodIndex
 
     Examples
     --------

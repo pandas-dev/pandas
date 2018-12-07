@@ -212,6 +212,12 @@ class Resampler(_GroupBy):
         return super(Resampler, self).pipe(func, *args, **kwargs)
 
     _agg_doc = dedent("""
+    See Also
+    --------
+    pandas.DataFrame.groupby.aggregate
+    pandas.DataFrame.resample.transform
+    pandas.DataFrame.aggregate
+
     Examples
     --------
     >>> s = pd.Series([1,2,3,4,5],
@@ -245,12 +251,6 @@ class Resampler(_GroupBy):
     2013-01-01 00:00:00      3  2.121320
     2013-01-01 00:00:02      7  4.949747
     2013-01-01 00:00:04      5       NaN
-
-    See Also
-    --------
-    pandas.DataFrame.groupby.aggregate
-    pandas.DataFrame.resample.transform
-    pandas.DataFrame.aggregate
     """)
 
     @Appender(_agg_doc)
@@ -286,13 +286,13 @@ class Resampler(_GroupBy):
         func : function
             To apply to each group. Should return a Series with the same index
 
-        Examples
-        --------
-        >>> resampled.transform(lambda x: (x - x.mean()) / x.std())
-
         Returns
         -------
         transformed : Series
+
+        Examples
+        --------
+        >>> resampled.transform(lambda x: (x - x.mean()) / x.std())
         """
         return self._selected_obj.groupby(self.groupby).transform(
             arg, *args, **kwargs)
@@ -635,6 +635,10 @@ class Resampler(_GroupBy):
         pandas.DataFrame.fillna : Fill NaN values in the DataFrame using the
             specified method, which can be 'bfill' and 'ffill'.
 
+        References
+        ----------
+        .. [1] https://en.wikipedia.org/wiki/Imputation_(statistics)
+
         Examples
         --------
         Resampling a Series:
@@ -746,10 +750,6 @@ class Resampler(_GroupBy):
         2018-01-01 01:00:00  NaN  3
         2018-01-01 01:30:00  6.0  5
         2018-01-01 02:00:00  6.0  5
-
-        References
-        ----------
-        .. [1] https://en.wikipedia.org/wiki/Imputation_(statistics)
         """
         return self._upsample(method, limit=limit)
 

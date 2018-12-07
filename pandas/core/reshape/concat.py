@@ -87,6 +87,13 @@ def concat(objs, axis=0, join='outer', join_axes=None, ignore_index=False,
         ``DataFrame``, a ``DataFrame`` is returned. When concatenating along
         the columns (axis=1), a ``DataFrame`` is returned.
 
+    See Also
+    --------
+    Series.append
+    DataFrame.append
+    DataFrame.join
+    DataFrame.merge
+
     Notes
     -----
     The keys, levels, and names arguments are all optional.
@@ -94,13 +101,6 @@ def concat(objs, axis=0, join='outer', join_axes=None, ignore_index=False,
     A walkthrough of how this method fits in with other tools for combining
     pandas objects can be found `here
     <http://pandas.pydata.org/pandas-docs/stable/merging.html>`__.
-
-    See Also
-    --------
-    Series.append
-    DataFrame.append
-    DataFrame.join
-    DataFrame.merge
 
     Examples
     --------

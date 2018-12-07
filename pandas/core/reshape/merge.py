@@ -169,6 +169,17 @@ def merge_ordered(left, right, on=None,
 
         .. versionadded:: 0.19.0
 
+    Returns
+    -------
+    merged : DataFrame
+        The output type will the be same as 'left', if it is a subclass
+        of DataFrame.
+
+    See Also
+    --------
+    merge
+    merge_asof
+
     Examples
     --------
     >>> A                      >>> B
@@ -192,17 +203,6 @@ def merge_ordered(left, right, on=None,
     7     b   c       2     2.0
     8     b   d       2     3.0
     9     b   e       3     3.0
-
-    Returns
-    -------
-    merged : DataFrame
-        The output type will the be same as 'left', if it is a subclass
-        of DataFrame.
-
-    See Also
-    --------
-    merge
-    merge_asof
     """
     def _merger(x, y):
         # perform the ordered merge operation
@@ -314,6 +314,11 @@ def merge_asof(left, right, on=None,
     Returns
     -------
     merged : DataFrame
+
+    See Also
+    --------
+    merge
+    merge_ordered
 
     Examples
     --------
@@ -444,11 +449,6 @@ def merge_asof(left, right, on=None,
     2 2016-05-25 13:30:00.048   GOOG  720.77       100     NaN     NaN
     3 2016-05-25 13:30:00.048   GOOG  720.92       100     NaN     NaN
     4 2016-05-25 13:30:00.048   AAPL   98.00       100     NaN     NaN
-
-    See Also
-    --------
-    merge
-    merge_ordered
     """
     op = _AsOfMerge(left, right,
                     on=on, left_on=left_on, right_on=right_on,
