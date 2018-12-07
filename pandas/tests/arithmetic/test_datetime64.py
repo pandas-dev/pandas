@@ -2,27 +2,25 @@
 # Arithmetic tests for DataFrame/Series/Index/Array classes that should
 # behave identically.
 # Specifically for datetime64 and datetime64tz dtypes
-import operator
 from datetime import datetime, timedelta
-import warnings
 from itertools import product, starmap
+import operator
+import warnings
 
 import numpy as np
 import pytest
 import pytz
 
-import pandas as pd
-import pandas.util.testing as tm
-
-from pandas.compat.numpy import np_datetime64_compat
-from pandas.errors import PerformanceWarning, NullFrequencyError
-
 from pandas._libs.tslibs.conversion import localize_pydatetime
 from pandas._libs.tslibs.offsets import shift_months
+from pandas.compat.numpy import np_datetime64_compat
+from pandas.errors import NullFrequencyError, PerformanceWarning
 
+import pandas as pd
 from pandas import (
-    Timestamp, Timedelta, Period, Series, date_range, NaT,
-    DatetimeIndex, TimedeltaIndex)
+    DatetimeIndex, NaT, Period, Series, Timedelta, TimedeltaIndex, Timestamp,
+    date_range)
+import pandas.util.testing as tm
 
 
 def assert_all(obj):

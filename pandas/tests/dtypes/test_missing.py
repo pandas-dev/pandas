@@ -1,25 +1,26 @@
 # -*- coding: utf-8 -*-
 
-import pytest
-from warnings import catch_warnings, simplefilter
-import numpy as np
 from datetime import datetime
-from pandas.util import testing as tm
+from warnings import catch_warnings, simplefilter
 
-import pandas as pd
-from pandas.core import config as cf
-from pandas.compat import u
+import numpy as np
+import pytest
 
 from pandas._libs import missing as libmissing
 from pandas._libs.tslib import iNaT
-from pandas import (NaT, Float64Index, Series,
-                    DatetimeIndex, TimedeltaIndex, date_range)
+from pandas.compat import u
+
 from pandas.core.dtypes.common import is_scalar
 from pandas.core.dtypes.dtypes import (
-    DatetimeTZDtype, PeriodDtype, IntervalDtype)
+    DatetimeTZDtype, IntervalDtype, PeriodDtype)
 from pandas.core.dtypes.missing import (
-    array_equivalent, isna, notna, isnull, notnull,
-    na_value_for_dtype)
+    array_equivalent, isna, isnull, na_value_for_dtype, notna, notnull)
+
+import pandas as pd
+from pandas import (
+    DatetimeIndex, Float64Index, NaT, Series, TimedeltaIndex, date_range)
+from pandas.core import config as cf
+from pandas.util import testing as tm
 
 
 @pytest.mark.parametrize('notna_f', [notna, notnull])
