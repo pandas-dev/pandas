@@ -3813,18 +3813,17 @@ class Index(IndexOpsMixin, PandasObject):
         return kind == self.inferred_type
 
     _index_shared_docs['contains'] = """
-        Return a boolean indicating whether this key is in the index.
+        Return a boolean indicating whether the provided key is in the index.
 
         Parameters
         ----------
         key : label
-            The key can be of the same type as the label of :class:`Index`,
-            hence immutable-like and 1-dimensional if it is a tuple.
+            The key to check if it is present in the index.
 
         Returns
         -------
         bool
-            Result indicating whether the key search is in the index.
+            Whether the key search is in the index.
 
         See Also
         --------
