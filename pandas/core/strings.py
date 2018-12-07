@@ -123,16 +123,16 @@ def str_count(arr, pat, flags=0):
     counts : Series or Index
         Same type as the calling object containing the integer counts.
 
+    See Also
+    --------
+    re : Standard library module for regular expressions.
+    str.count : Standard library version, without regular expression support.
+
     Notes
     -----
     Some characters need to be escaped when passing in `pat`.
     eg. ``'$'`` has a special meaning in regex and must be escaped when
     finding this literal character.
-
-    See Also
-    --------
-    re : Standard library module for regular expressions.
-    str.count : Standard library version, without regular expression support.
 
     Examples
     --------
@@ -978,6 +978,10 @@ def str_get_dummies(arr, sep='|'):
     -------
     dummies : DataFrame
 
+    See Also
+    --------
+    get_dummies
+
     Examples
     --------
     >>> pd.Series(['a|b', 'a', 'a|c']).str.get_dummies()
@@ -991,10 +995,6 @@ def str_get_dummies(arr, sep='|'):
     0  1  1  0
     1  0  0  0
     2  1  0  1
-
-    See Also
-    --------
-    get_dummies
     """
     arr = arr.fillna('')
     try:
@@ -1039,15 +1039,15 @@ def str_join(arr, sep):
     AttributeError
         If the supplied Series contains neither strings nor lists.
 
-    Notes
-    -----
-    If any of the list items is not a string object, the result of the join
-    will be `NaN`.
-
     See Also
     --------
     str.join : Standard library version of this method.
     Series.str.split : Split strings around given separator/delimiter.
+
+    Notes
+    -----
+    If any of the list items is not a string object, the result of the join
+    will be `NaN`.
 
     Examples
     --------
