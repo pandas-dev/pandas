@@ -401,7 +401,7 @@ class PeriodIndex(DatetimeIndexOpsMixin,
     def _engine(self):
         return self._engine_type(lambda: self, len(self))
 
-    @Appender(_index_shared_docs['__contains__'])
+    @Appender(_index_shared_docs['contains'])
     def __contains__(self, key):
         if isinstance(key, Period):
             if key.freq != self.freq:
