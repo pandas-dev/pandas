@@ -11,7 +11,6 @@ from pandas._libs.tslibs.parsing import DateParseError
 from pandas._libs.tslibs.timezones import dateutil_gettz, maybe_get_tz
 from pandas.compat import iteritems, text_type
 from pandas.compat.numpy import np_datetime64_compat
-from pandas.tests.tseries.offsets.conftest import tick_classes
 
 import pandas as pd
 from pandas import NaT, Period, Timedelta, Timestamp, offsets

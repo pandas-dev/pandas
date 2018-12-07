@@ -16,7 +16,6 @@ from pandas.errors import PerformanceWarning
 from pandas.core import ops
 from pandas import Period, PeriodIndex, period_range, Series
 from pandas.tseries.frequencies import to_offset
-from pandas.tests.tseries.offsets.conftest import tick_classes
 
 
 # ------------------------------------------------------------------

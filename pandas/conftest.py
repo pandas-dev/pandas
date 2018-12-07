@@ -635,6 +635,13 @@ def mock():
     else:
         return pytest.importorskip("mock")
 
+@pytest.fixture(params=[getattr(pd.offsets, o) for o in pd.offsets.__all__ if
+                        issubclass(getattr(pd.offsets, o), pd.offsets.Tick)])
+def tick_classes(request):
+    """
+    Fixture for Tick based datetime offsets available for a time series.
+    """
+    return request.param
 
 # ----------------------------------------------------------------
 # Global setup for tests using Hypothesis
