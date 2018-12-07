@@ -899,8 +899,8 @@ doesn't behave as desired.
 
    df = pd.DataFrame(
            {'value': [1, 2, 3, 4]},
-            index=pd.MultiIndex(levels=[['a', 'b'], ['bb', 'aa']],
-                                labels=[[0, 0, 1, 1], [0, 1, 0, 1]]))
+            index=pd.MultiIndex([['a', 'b'], ['bb', 'aa']],
+                                [[0, 0, 1, 1], [0, 1, 0, 1]]))
    df
 
 Previous Behavior:
