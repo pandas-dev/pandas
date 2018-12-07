@@ -164,6 +164,15 @@ class BaseMethodsTests(BaseExtensionTests):
             orig_data1._from_sequence([a + val for a in list(orig_data1)]))
         self.assert_series_equal(result, expected)
 
+    @pytest.mark.xfail(reason="GH-24147", strict=True)
+    def test_combine_first(self, data):
+        # https://github.com/pandas-dev/pandas/issues/24147
+        a = pd.Series(data[:3])
+        b = pd.Series(data[2:5], index=[2, 3, 4])
+        result = a.combine_first(b)
+        expected = pd.Series(data[:5])
+        self.assert_series_equal(result, expected)
+
     @pytest.mark.parametrize('frame', [True, False])
     @pytest.mark.parametrize('periods, indices', [
         (-2, [2, 3, 4, -1, -1]),

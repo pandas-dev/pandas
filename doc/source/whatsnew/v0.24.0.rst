@@ -1298,6 +1298,7 @@ Datetimelike
 - Bug in the :class:`Series` repr with period-dtype data missing a space before the data (:issue:`23601`)
 - Bug in :func:`date_range` when decrementing a start date to a past end date by a negative frequency (:issue:`23270`)
 - Bug in :meth:`Series.min` which would return ``NaN`` instead of ``NaT`` when called on a series of ``NaT`` (:issue:`23282`)
+- Bug in :meth:`Series.combine_first` not properly aligning categoricals, so that missing values in ``self`` where not filled by valid values from ``other`` (:issue:`24147`)
 - Bug in :func:`DataFrame.combine` with datetimelike values raising a TypeError (:issue:`23079`)
 - Bug in :func:`date_range` with frequency of ``Day`` or higher where dates sufficiently far in the future could wrap around to the past instead of raising ``OutOfBoundsDatetime`` (:issue:`14187`)
 - Bug in :class:`PeriodIndex` with attribute ``freq.n`` greater than 1 where adding a :class:`DateOffset` object would return incorrect results (:issue:`23215`)
