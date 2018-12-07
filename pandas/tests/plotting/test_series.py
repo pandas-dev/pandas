@@ -771,6 +771,7 @@ class TestSeriesPlots(TestPlotBase):
         with pytest.raises((TypeError, ValueError)):
             s.plot(yerr=s_err)
 
+    # This XPASSES when tested with mpl == 3.0.1
     @td.xfail_if_mpl_2_2
     def test_table(self):
         _check_plot_works(self.series.plot, table=True)
