@@ -322,17 +322,17 @@ class TestDataFrameTimeSeriesMethods(TestData):
 
     def test_shift_fill_value(self):
         # GH #24128
-        df = DataFrame(np.random.randnint(5), index=date_range('1/1/2000',
+        df = DataFrame(np.random.randint(5), index=date_range('1/1/2000',
                                                             periods=5,
                                                             freq='H'))
         result = df.shift(1, fill_value=0)
-        tm.assert_equal(result.iloc[0, 0].value, 0)
-        tm.assert_equal(result.iloc[1, 0].value, df.iloc[0, 0].value)
+        tm.assert_equal(result.iloc[0, 0], 0)
+        tm.assert_equal(result.iloc[1, 0], df.iloc[0, 0])
 
         result = df.shift(2, fill_value=0)
-        tm.assert_equal(result.iloc[0, 0].value, 0)
-        tm.assert_equal(result.iloc[1, 0].value, 0)
-        tm.assert_equal(result.iloc[2, 0].value, df.iloc[0, 0].value)
+        tm.assert_equal(result.iloc[0, 0], 0)
+        tm.assert_equal(result.iloc[1, 0], 0)
+        tm.assert_equal(result.iloc[2, 0], df.iloc[0, 0])
 
     def test_shift_empty(self):
         # Regression test for #8019
