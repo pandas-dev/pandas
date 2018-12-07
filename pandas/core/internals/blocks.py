@@ -2004,8 +2004,8 @@ class ExtensionBlock(NonConsolidatableMixIn, Block):
             dtype = self.dtype
 
         # rough heuristic to see if the other array implements setitem
-        if (self._holder.__setitem__ is ExtensionArray.__setitem__
-                or self._holder.__setitem__ is SparseArray.__setitem__):
+        if (self._holder.__setitem__ == ExtensionArray.__setitem__
+                or self._holder.__setitem__ == SparseArray.__setitem__):
             result = self._holder._from_sequence(
                 np.where(cond, self.values, other),
                 dtype=dtype,
