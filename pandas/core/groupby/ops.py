@@ -107,7 +107,6 @@ class BaseGrouper(object):
         the indexer created by Grouper
         some groupers (TimeGrouper) will sort its axis and its
         group_info is also sorted, so need the indexer to reorder
-
     """
 
     def __init__(self, axis, groupings, sort=True, group_keys=True,
@@ -196,7 +195,9 @@ class BaseGrouper(object):
 
     @cache_readonly
     def indices(self):
-        """ dict {group name -> group indices} """
+        """
+        dict {group name -> group indices}
+        """
         if len(self.groupings) == 1:
             return self.groupings[0].indices
         else:
@@ -220,7 +221,6 @@ class BaseGrouper(object):
     def size(self):
         """
         Compute group sizes
-
         """
         ids, _, ngroup = self.group_info
         ids = ensure_platform_int(ids)
@@ -234,7 +234,9 @@ class BaseGrouper(object):
 
     @cache_readonly
     def groups(self):
-        """ dict {group name -> group labels} """
+        """
+        dict {group name -> group labels}
+        """
         if len(self.groupings) == 1:
             return self.groupings[0].groups
         else:
@@ -661,7 +663,6 @@ class BinGrouper(BaseGrouper):
     means that, the grouped axis has 10 items, can be grouped into 5
     labels, the first and second items belong to the first label, the
     third and forth items belong to the second label, and so on
-
     """
 
     def __init__(self, bins, binlabels, filter_empty=False, mutated=False,
@@ -674,7 +675,9 @@ class BinGrouper(BaseGrouper):
 
     @cache_readonly
     def groups(self):
-        """ dict {group name -> group labels} """
+        """
+        dict {group name -> group labels}
+        """
 
         # this is mainly for compat
         # GH 3881

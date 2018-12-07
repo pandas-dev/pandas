@@ -763,7 +763,6 @@ b  2""")
 
         If numeric_only is True, then only try to cast numerics
         and not datetimelikes.
-
         """
         if obj.ndim > 1:
             dtype = obj.values.dtype

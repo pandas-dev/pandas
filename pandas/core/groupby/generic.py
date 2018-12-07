@@ -846,7 +846,9 @@ class SeriesGroupBy(GroupBy):
         return DataFrame(results, columns=columns)
 
     def _wrap_output(self, output, index, names=None):
-        """ common agg/transform wrapping logic """
+        """
+        common agg/transform wrapping logic
+        """
         output = output[self._selection_name]
 
         if names is not None:
@@ -1211,7 +1213,9 @@ class SeriesGroupBy(GroupBy):
         return Series(out, index=mi, name=self._selection_name)
 
     def count(self):
-        """ Compute count of group, excluding missing values """
+        """
+        Compute count of group, excluding missing values
+        """
         ids, _, ngroups = self.grouper.group_info
         val = self.obj.get_values()
 
@@ -1226,11 +1230,15 @@ class SeriesGroupBy(GroupBy):
                       dtype='int64')
 
     def _apply_to_column_groupbys(self, func):
-        """ return a pass thru """
+        """
+        return a pass thru
+        """
         return func(self)
 
     def pct_change(self, periods=1, fill_method='pad', limit=None, freq=None):
-        """Calculate percent change of each value to previous entry in group"""
+        """
+        Calculate percent change of each value to previous entry in group
+        """
         filled = getattr(self, fill_method)(limit=limit)
         shifted = filled.shift(periods=periods, freq=freq)
 
@@ -1490,7 +1498,9 @@ class DataFrameGroupBy(NDFrameGroupBy):
             keys=self._selected_obj.columns, axis=1)
 
     def _fill(self, direction, limit=None):
-        """Overridden method to join grouped columns in output"""
+        """
+        Overridden method to join grouped columns in output
+        """
         res = super(DataFrameGroupBy, self)._fill(direction, limit=limit)
         output = collections.OrderedDict(
             (grp.name, grp.grouper) for grp in self.grouper.groupings)

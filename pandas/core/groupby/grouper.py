@@ -421,7 +421,6 @@ def _get_grouper(obj, key=None, axis=0, level=None, sort=True,
     values
 
     If validate, then check for key/level overlaps
-
     """
     group_axis = obj._get_axis(axis)
 
