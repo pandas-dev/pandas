@@ -1,3 +1,4 @@
+from distutils.version import LooseVersion
 import os
 
 import pytest
@@ -40,17 +41,18 @@ def s3_resource(tips_file, jsonl_file):
     """
     pytest.importorskip('s3fs')
     boto3 = pytest.importorskip('boto3')
+    botocore = pytest.importorskip('botocore')
+
+    if LooseVersion(botocore.__version__) < LooseVersion("1.11.0"):
+        # botocore leaks an uncatchable ResourceWarning before 1.11.0;
+        # see GH 23731 and https://github.com/boto/botocore/issues/1464
+        pytest.skip("botocore is leaking resources before 1.11.0")
 
     # temporary workaround as moto fails for botocore >= 1.11 otherwise
     # see https://github.com/spulec/moto/issues/1924 & 1952
     os.environ.setdefault("AWS_ACCESS_KEY_ID", "foobar_key")
     os.environ.setdefault("AWS_SECRET_ACCESS_KEY", "foobar_secret")
 
-    # GH-24092. See if boto.plugin skips the test or fails.
-    try:
-        pytest.importorskip("boto.plugin")
-    except AttributeError:
-        raise pytest.skip("moto/moto error")
     moto = pytest.importorskip('moto')
 
     test_s3_files = [
@@ -83,3 +85,5 @@ def s3_resource(tips_file, jsonl_file):
         yield conn
     finally:
         s3.stop()
+        os.environ.setdefault("AWS_ACCESS_KEY_ID", None)
+        os.environ.setdefault("AWS_SECRET_ACCESS_KEY", None)
