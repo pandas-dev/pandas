@@ -138,17 +138,17 @@ class TestTimeSeries(TestData):
         result = ts.shift(1, freq='5T', fill_value=0)
         exp_index = ts.index.shift(1, freq='5T')
         tm.assert_index_equal(result.index, exp_index)
-        tm.assert_equal(result.iloc[0].value, ts.iloc[0].value)
+        tm.assert_equal(result.iloc[0], ts.iloc[0])
 
         # check that fill value works
         result = ts.shift(1, fill_value=0.0)
-        tm.assert_equal(result.iloc[0].value, 0.0)
-        tm.assert_equal(result.iloc[1].value, ts.iloc[0].value)
+        tm.assert_equal(result.iloc[0], 0.0)
+        tm.assert_equal(result.iloc[1], ts.iloc[0])
 
         result = ts.shift(2, fill_value=0.0)
-        tm.assert_equal(result.iloc[0].value, 0.0)
-        tm.assert_equal(result.iloc[1].value, 0.0)
-        tm.assert_equal(result.iloc[2].value, ts.iloc[0].value)
+        tm.assert_equal(result.iloc[0], 0.0)
+        tm.assert_equal(result.iloc[1], 0.0)
+        tm.assert_equal(result.iloc[2], ts.iloc[0])
 
     def test_shift_dst(self):
         # GH 13926
