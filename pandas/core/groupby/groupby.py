@@ -78,18 +78,6 @@ _apply_docs = dict(
     -------
     applied : Series or DataFrame
 
-    Notes
-    -----
-    In the current implementation `apply` calls `func` twice on the
-    first group to decide whether it can take a fast or slow code
-    path. This can lead to unexpected behavior if `func` has
-    side-effects, as they will take effect twice for the first
-    group.
-
-    Examples
-    --------
-    {examples}
-
     See Also
     --------
     pipe : Apply function to the full GroupBy object instead of to each
@@ -165,6 +153,18 @@ _apply_docs = dict(
     a    1
     b    0
     dtype: int64
+
+    Notes
+    -----
+    In the current implementation `apply` calls `func` twice on the
+    first group to decide whether it can take a fast or slow code
+    path. This can lead to unexpected behavior if `func` has
+    side-effects, as they will take effect twice for the first
+    group.
+
+    Examples
+    --------
+    {examples}
     """)
 
 _pipe_template = """\
@@ -204,6 +204,13 @@ Returns
 -------
 object : the return type of `func`.
 
+See Also
+--------
+pandas.Series.pipe : Apply a function with arguments to a series.
+pandas.DataFrame.pipe: Apply a function with arguments to a dataframe.
+apply : Apply function to each group instead of to the
+    full %(klass)s object.
+
 Notes
 -----
 See more `here
@@ -212,13 +219,6 @@ See more `here
 Examples
 --------
 %(examples)s
-
-See Also
---------
-pandas.Series.pipe : Apply a function with arguments to a series.
-pandas.DataFrame.pipe: Apply a function with arguments to a dataframe.
-apply : Apply function to each group instead of to the
-    full %(klass)s object.
 """
 
 _transform_template = """
@@ -230,6 +230,14 @@ Parameters
 ----------
 f : function
     Function to apply to each group
+
+Returns
+-------
+%(klass)s
+
+See Also
+--------
+aggregate, transform
 
 Notes
 -----
@@ -247,14 +255,6 @@ The current implementation imposes three requirements on f:
   then a fast path is used starting from the second chunk.
 * f must not mutate groups. Mutation is not supported and may
   produce unexpected results.
-
-Returns
--------
-%(klass)s
-
-See Also
---------
-aggregate, transform
 
 Examples
 --------
@@ -285,7 +285,6 @@ Examples
 3  3  8.0
 4  4  6.0
 5  3  8.0
-
 """
 
 
@@ -1705,6 +1704,10 @@ class GroupBy(_GroupBy):
         ascending : bool, default True
             If False, number in reverse, from number of group - 1 to 0.
 
+        See Also
+        --------
+        .cumcount : Number the rows in each group.
+
         Examples
         --------
 
@@ -1741,10 +1744,6 @@ class GroupBy(_GroupBy):
         4    2
         5    0
         dtype: int64
-
-        See Also
-        --------
-        .cumcount : Number the rows in each group.
         """
 
         with _group_selection_context(self):
@@ -1767,6 +1766,10 @@ class GroupBy(_GroupBy):
         ----------
         ascending : bool, default True
             If False, number in reverse, from length of group - 1 to 0.
+
+        See Also
+        --------
+        .ngroup : Number the groups themselves.
 
         Examples
         --------
@@ -1797,10 +1800,6 @@ class GroupBy(_GroupBy):
         4    0
         5    0
         dtype: int64
-
-        See Also
-        --------
-        .ngroup : Number the groups themselves.
         """
 
         with _group_selection_context(self):
