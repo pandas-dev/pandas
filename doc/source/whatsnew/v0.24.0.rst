@@ -1146,7 +1146,9 @@ from :class:`Period`, :class:`PeriodIndex`, and in some cases
 :class:`Timestamp`, :class:`DatetimeIndex` and :class:`TimedeltaIndex`.
 
 This usage is now deprecated.  Instead add or subtract integer multiples of
-the object's ``freq`` attribute (:issue:`21939`, :issue:`23878`)
+the object's ``freq`` attribute (:issue:`21939`). The result of subtraction 
+of :class:`Period` objects will be agnostic of the multiplier of the objects'
+``freq`` attribute (:issue:`23878`).
 
 Previous Behavior:
 
