@@ -753,6 +753,7 @@ class TestPeriodIndex(Base):
         ('19910905 12:00', '19910909 12:00', 'H', '24H', 34),
         ('19910905 12:00', '19910909 12:00', 'H', '17H', 10),
         ('19910905 12:00', '19910909 12:00', 'H', '17H', 3),
+        ('19910905 12:00', '19910909 1:00', 'H', 'M', 3),
         ('19910905', '19910913 06:00', '2H', '24H', 10),
         ('19910905', '19910905 01:39', 'Min', '5Min', 3),
         ('19910905', '19910905 03:18', '2Min', '5Min', 3),
@@ -762,7 +763,9 @@ class TestPeriodIndex(Base):
         # GH 23882
         s = pd.Series(0, index=pd.period_range(start, end, freq=start_freq))
         s = s + np.arange(len(s))
-        result = (s.resample(end_freq, base=base).mean().to_timestamp()
-                  .asfreq(end_freq))  # to_timestamp casts 24H -> D
+        result = s.resample(end_freq, base=base).mean()
+        result = result.to_timestamp(end_freq)
+        # to_timestamp casts 24H -> D
+        result = result.asfreq(end_freq) if end_freq == '24H' else result
         expected = s.to_timestamp().resample(end_freq, base=base).mean()
         assert_series_equal(result, expected)

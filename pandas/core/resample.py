@@ -1544,6 +1544,8 @@ class TimeGrouper(Grouper):
 
         start = ax.min().asfreq(self.freq, how=self.convention)
         end = ax.max().asfreq(self.freq, how='end')
+        offset = 0
+
         if self.base:
             start = start.to_timestamp()
             end = end.to_timestamp()
@@ -1556,11 +1558,12 @@ class TimeGrouper(Grouper):
                                               base=self.base)
 
             # compensate if edge labels are extened away from true labels
+            i = None if self.freq.onOffset(start) else 1
             j = -1 if self.freq.onOffset(end) else None
 
             labels = binner = PeriodIndex(start=p_start, end=p_end,
                                           freq=self.freq,
-                                          name=ax.name)[:j]
+                                          name=ax.name)[i:j]
             start_offset = (pd.Period(start, self.freq)
                             - pd.Period(p_start, self.freq))
             # remove /freq_mult once period diff scaling bug is fixed
@@ -1568,7 +1571,6 @@ class TimeGrouper(Grouper):
         else:
             labels = binner = PeriodIndex(start=start, end=end,
                                           freq=self.freq, name=ax.name)
-            offset = 0
 
         i8 = memb.asi8
 
