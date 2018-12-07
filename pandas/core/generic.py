@@ -638,14 +638,14 @@ class NDFrame(PandasObject, SelectionMixin):
             Make a copy of the underlying data. Mixed-dtype data will
             always result in a copy
 
+        Returns
+        -------
+        y : same as input
+
         Examples
         --------
         >>> p.transpose(2, 0, 1)
         >>> p.transpose(2, 0, 1, copy=True)
-
-        Returns
-        -------
-        y : same as input
         """
 
         # construct the args
@@ -1847,6 +1847,11 @@ class NDFrame(PandasObject, SelectionMixin):
         bool
             If DataFrame is empty, return True, if not return False.
 
+        See Also
+        --------
+        pandas.Series.dropna
+        pandas.DataFrame.dropna
+
         Notes
         -----
         If DataFrame contains only NaNs, it is still not considered empty. See
@@ -1875,11 +1880,6 @@ class NDFrame(PandasObject, SelectionMixin):
         False
         >>> df.dropna().empty
         True
-
-        See Also
-        --------
-        pandas.Series.dropna
-        pandas.DataFrame.dropna
         """
         return any(len(self._get_axis(a)) == 0 for a in self._AXIS_ORDERS)
 
@@ -2051,6 +2051,11 @@ class NDFrame(PandasObject, SelectionMixin):
 
         .. versionadded:: 0.20.0.
 
+    See Also
+    --------
+    read_excel
+    ExcelWriter
+
     Notes
     -----
     For compatibility with :meth:`~DataFrame.to_csv`,
@@ -2058,11 +2063,6 @@ class NDFrame(PandasObject, SelectionMixin):
 
     Once a workbook has been saved it is not possible write further data
     without rewriting the whole workbook.
-
-    See Also
-    --------
-    read_excel
-    ExcelWriter
 
     Examples
     --------
@@ -2640,6 +2640,10 @@ class NDFrame(PandasObject, SelectionMixin):
         DataFrame.to_hdf : Write DataFrame to an HDF5 file.
         DataFrame.to_parquet : Write a DataFrame to the binary parquet format.
 
+        Notes
+        -----
+        See the `xarray docs <http://xarray.pydata.org/en/stable/>`__
+
         Examples
         --------
         >>> df = pd.DataFrame([('falcon', 'bird',  389.0, 2),
@@ -2695,10 +2699,6 @@ class NDFrame(PandasObject, SelectionMixin):
           * animal   (animal) object 'falcon' 'parrot'
         Data variables:
             speed    (date, animal) int64 350 18 361 15
-
-        Notes
-        -----
-        See the `xarray docs <http://xarray.pydata.org/en/stable/>`__
         """
 
         try:
@@ -4133,6 +4133,10 @@ class NDFrame(PandasObject, SelectionMixin):
 
             .. versionadded:: 0.21.0 (list-like tolerance)
 
+        Returns
+        -------
+        %(klass)s with changed index.
+
         See Also
         --------
         DataFrame.set_index : Set row labels.
@@ -4283,10 +4287,6 @@ class NDFrame(PandasObject, SelectionMixin):
         in the original dataframe, use the ``fillna()`` method.
 
         See the :ref:`user guide <basics.reindexing>` for more.
-
-        Returns
-        -------
-        %(klass)s with changed index.
         """
         # TODO: Decide if we care about having different examples for different
         # kinds
@@ -4399,16 +4399,16 @@ class NDFrame(PandasObject, SelectionMixin):
 
             .. versionadded:: 0.21.0 (list-like tolerance)
 
+        Returns
+        -------
+        %(klass)s
+
         See Also
         --------
         DataFrame.set_index : Set row labels.
         DataFrame.reset_index : Remove row labels or move them to new columns.
         DataFrame.reindex : Change to new indices or expand indices.
         DataFrame.reindex_like : Change to same indices as other DataFrame.
-
-        Returns
-        -------
-        %(klass)s
 
         Examples
         --------
@@ -4483,6 +4483,18 @@ class NDFrame(PandasObject, SelectionMixin):
         -------
         same type as input object
 
+        See Also
+        --------
+        DataFrame.loc
+
+        Notes
+        -----
+        The ``items``, ``like``, and ``regex`` parameters are
+        enforced to be mutually exclusive.
+
+        ``axis`` defaults to the info axis that is used when indexing
+        with ``[]``.
+
         Examples
         --------
         >>> df = pd.DataFrame(np.array(([1,2,3], [4,5,6])),
@@ -4505,18 +4517,6 @@ class NDFrame(PandasObject, SelectionMixin):
         >>> df.filter(like='bbi', axis=0)
                  one  two  three
         rabbit    4    5      6
-
-        See Also
-        --------
-        DataFrame.loc
-
-        Notes
-        -----
-        The ``items``, ``like``, and ``regex`` parameters are
-        enforced to be mutually exclusive.
-
-        ``axis`` defaults to the info axis that is used when indexing
-        with ``[]``.
         """
         import re
 
@@ -4850,6 +4850,12 @@ class NDFrame(PandasObject, SelectionMixin):
         -------
         object : the return type of ``func``.
 
+        See Also
+        --------
+        DataFrame.apply
+        DataFrame.applymap
+        Series.map
+
         Notes
         -----
 
@@ -4873,12 +4879,6 @@ class NDFrame(PandasObject, SelectionMixin):
         ...    .pipe(g, arg1=a)
         ...    .pipe((f, 'arg2'), arg1=a, arg3=c)
         ...  )
-
-        See Also
-        --------
-        DataFrame.apply
-        DataFrame.applymap
-        Series.map
     """)
 
     @Appender(_shared_docs['pipe'] % _shared_doc_kwargs)
@@ -5181,6 +5181,10 @@ class NDFrame(PandasObject, SelectionMixin):
             If the caller is heterogeneous and contains booleans or objects,
             the result will be of dtype=object. See Notes.
 
+        See Also
+        --------
+        DataFrame.values
+
         Notes
         -----
         Return is NOT a Numpy-matrix, rather, a Numpy-array.
@@ -5197,10 +5201,6 @@ class NDFrame(PandasObject, SelectionMixin):
 
         This method is provided for backwards compatibility. Generally,
         it is recommended to use '.values'.
-
-        See Also
-        --------
-        DataFrame.values
         """
         warnings.warn("Method .as_matrix will be removed in a future version. "
                       "Use .values instead.", FutureWarning, stacklevel=2)
@@ -5224,6 +5224,24 @@ class NDFrame(PandasObject, SelectionMixin):
         -------
         numpy.ndarray
             The values of the DataFrame.
+
+        See Also
+        --------
+        DataFrame.to_numpy : Recommended alternative to this method.
+        pandas.DataFrame.index : Retrieve the index labels.
+        pandas.DataFrame.columns : Retrieving the column names.
+
+        Notes
+        -----
+        The dtype will be a lower-common-denominator dtype (implicit
+        upcasting); that is to say if the dtypes (even of numeric types)
+        are mixed, the one that accommodates all will be chosen. Use this
+        with care if you are not dealing with the blocks.
+
+        e.g. If the dtypes are float16 and float32, dtype will be upcast to
+        float32.  If dtypes are int32 and uint8, dtype will be upcast to
+        int32. By :func:`numpy.find_common_type` convention, mixing int64
+        and uint64 will result in a float64 dtype.
 
         Examples
         --------
@@ -5263,24 +5281,6 @@ class NDFrame(PandasObject, SelectionMixin):
         array([['parrot', 24.0, 'second'],
                ['lion', 80.5, 1],
                ['monkey', nan, None]], dtype=object)
-
-        Notes
-        -----
-        The dtype will be a lower-common-denominator dtype (implicit
-        upcasting); that is to say if the dtypes (even of numeric types)
-        are mixed, the one that accommodates all will be chosen. Use this
-        with care if you are not dealing with the blocks.
-
-        e.g. If the dtypes are float16 and float32, dtype will be upcast to
-        float32.  If dtypes are int32 and uint8, dtype will be upcast to
-        int32. By :func:`numpy.find_common_type` convention, mixing int64
-        and uint64 will result in a float64 dtype.
-
-        See Also
-        --------
-        DataFrame.to_numpy : Recommended alternative to this method.
-        pandas.DataFrame.index : Retrieve the index labels.
-        pandas.DataFrame.columns : Retrieving the column names.
         """
         self._consolidate_inplace()
         return self._data.as_array(transpose=self._AXIS_REVERSED)
@@ -5568,6 +5568,13 @@ class NDFrame(PandasObject, SelectionMixin):
         -------
         casted : same type as caller
 
+        See Also
+        --------
+        to_datetime : Convert argument to datetime.
+        to_timedelta : Convert argument to timedelta.
+        to_numeric : Convert argument to a numeric type.
+        numpy.ndarray.astype : Cast a numpy array to a specified type.
+
         Examples
         --------
         >>> ser = pd.Series([1, 2], dtype='int32')
@@ -5608,13 +5615,6 @@ class NDFrame(PandasObject, SelectionMixin):
         0    10
         1     2
         dtype: int64
-
-        See Also
-        --------
-        to_datetime : Convert argument to datetime.
-        to_timedelta : Convert argument to timedelta.
-        to_numeric : Convert argument to a numeric type.
-        numpy.ndarray.astype : Cast a numpy array to a specified type.
         """
         if is_dict_like(dtype):
             if self.ndim == 1:  # i.e. Series
@@ -5832,15 +5832,15 @@ class NDFrame(PandasObject, SelectionMixin):
             conversion was done). Note: This is meant for internal use, and
             should not be confused with inplace.
 
+        Returns
+        -------
+        converted : same as input object
+
         See Also
         --------
         to_datetime : Convert argument to datetime.
         to_timedelta : Convert argument to timedelta.
         to_numeric : Convert argument to numeric type.
-
-        Returns
-        -------
-        converted : same as input object
         """
         msg = ("convert_objects is deprecated.  To re-infer data dtypes for "
                "object columns, use {klass}.infer_objects()\nFor all "
@@ -5866,15 +5866,15 @@ class NDFrame(PandasObject, SelectionMixin):
 
         .. versionadded:: 0.21.0
 
+        Returns
+        -------
+        converted : same type as input object
+
         See Also
         --------
         to_datetime : Convert argument to datetime.
         to_timedelta : Convert argument to timedelta.
         to_numeric : Convert argument to numeric type.
-
-        Returns
-        -------
-        converted : same type as input object
 
         Examples
         --------
@@ -5939,14 +5939,14 @@ class NDFrame(PandasObject, SelectionMixin):
             or the string 'infer' which will try to downcast to an appropriate
             equal type (e.g. float64 to int64 if possible)
 
+        Returns
+        -------
+        filled : %(klass)s
+
         See Also
         --------
         interpolate : Fill NaN values using interpolation.
         reindex, asfreq
-
-        Returns
-        -------
-        filled : %(klass)s
 
         Examples
         --------
@@ -6829,10 +6829,6 @@ class NDFrame(PandasObject, SelectionMixin):
             For DataFrame, if not `None`, only use these columns to
             check for NaNs.
 
-        Notes
-        -----
-        Dates are assumed to be sorted. Raises if this is not the case.
-
         Returns
         -------
         scalar, Series, or DataFrame
@@ -6846,6 +6842,10 @@ class NDFrame(PandasObject, SelectionMixin):
         See Also
         --------
         merge_asof : Perform an asof merge. Similar to left join.
+
+        Notes
+        -----
+        Dates are assumed to be sorted. Raises if this is not the case.
 
         Examples
         --------
@@ -7188,16 +7188,16 @@ class NDFrame(PandasObject, SelectionMixin):
             Additional keywords have no effect but might be accepted
             for compatibility with numpy.
 
-        See Also
-        --------
-        clip_lower : Clip values below specified threshold(s).
-        clip_upper : Clip values above specified threshold(s).
-
         Returns
         -------
         Series or DataFrame
             Same type as calling object with the values outside the
             clip boundaries replaced
+
+        See Also
+        --------
+        clip_lower : Clip values below specified threshold(s).
+        clip_upper : Clip values above specified threshold(s).
 
         Examples
         --------
@@ -7624,6 +7624,15 @@ class NDFrame(PandasObject, SelectionMixin):
         -------
         converted : same type as caller
 
+        See Also
+        --------
+        reindex
+
+        Notes
+        -----
+        To learn more about the frequency strings, please see `this link
+        <http://pandas.pydata.org/pandas-docs/stable/timeseries.html#offset-aliases>`__.
+
         Examples
         --------
 
@@ -7674,15 +7683,6 @@ class NDFrame(PandasObject, SelectionMixin):
         2000-01-01 00:02:00    2.0
         2000-01-01 00:02:30    3.0
         2000-01-01 00:03:00    3.0
-
-        See Also
-        --------
-        reindex
-
-        Notes
-        -----
-        To learn more about the frequency strings, please see `this link
-        <http://pandas.pydata.org/pandas-docs/stable/timeseries.html#offset-aliases>`__.
         """
         from pandas.core.resample import asfreq
         return asfreq(self, freq, method=method, how=how, normalize=normalize,
@@ -7692,11 +7692,6 @@ class NDFrame(PandasObject, SelectionMixin):
         """
         Select values at particular time of day (e.g. 9:30AM).
 
-        Raises
-        ------
-        TypeError
-            If the index is not  a :class:`DatetimeIndex`
-
         Parameters
         ----------
         time : datetime.time or string
@@ -7704,10 +7699,22 @@ class NDFrame(PandasObject, SelectionMixin):
 
             .. versionadded:: 0.24.0
 
-
         Returns
         -------
         values_at_time : same type as caller
+
+        Raises
+        ------
+        TypeError
+            If the index is not  a :class:`DatetimeIndex`
+
+        See Also
+        --------
+        between_time : Select values between particular times of the day.
+        first : Select initial periods of time series based on a date offset.
+        last : Select final periods of time series based on a date offset.
+        DatetimeIndex.indexer_at_time : Get just the index locations for
+            values at particular time of the day.
 
         Examples
         --------
@@ -7724,14 +7731,6 @@ class NDFrame(PandasObject, SelectionMixin):
                              A
         2018-04-09 12:00:00  2
         2018-04-10 12:00:00  4
-
-        See Also
-        --------
-        between_time : Select values between particular times of the day.
-        first : Select initial periods of time series based on a date offset.
-        last : Select final periods of time series based on a date offset.
-        DatetimeIndex.indexer_at_time : Get just the index locations for
-            values at particular time of the day.
         """
         if axis is None:
             axis = self._stat_axis_number
@@ -7753,11 +7752,6 @@ class NDFrame(PandasObject, SelectionMixin):
         By setting ``start_time`` to be later than ``end_time``,
         you can get the times that are *not* between the two times.
 
-        Raises
-        ------
-        TypeError
-            If the index is not  a :class:`DatetimeIndex`
-
         Parameters
         ----------
         start_time : datetime.time or string
@@ -7771,6 +7765,19 @@ class NDFrame(PandasObject, SelectionMixin):
         Returns
         -------
         values_between_time : same type as caller
+
+        Raises
+        ------
+        TypeError
+            If the index is not  a :class:`DatetimeIndex`
+
+        See Also
+        --------
+        at_time : Select values at a particular time of the day.
+        first : Select initial periods of time series based on a date offset.
+        last : Select final periods of time series based on a date offset.
+        DatetimeIndex.indexer_between_time : Get just the index locations for
+            values between particular times of the day.
 
         Examples
         --------
@@ -7795,14 +7802,6 @@ class NDFrame(PandasObject, SelectionMixin):
                              A
         2018-04-09 00:00:00  1
         2018-04-12 01:00:00  4
-
-        See Also
-        --------
-        at_time : Select values at a particular time of the day.
-        first : Select initial periods of time series based on a date offset.
-        last : Select final periods of time series based on a date offset.
-        DatetimeIndex.indexer_between_time : Get just the index locations for
-            values between particular times of the day.
         """
         if axis is None:
             axis = self._stat_axis_number
@@ -7890,6 +7889,12 @@ class NDFrame(PandasObject, SelectionMixin):
         -------
         Resampler object
 
+        See Also
+        --------
+        groupby : Group by mapping, function, label, or list of labels.
+        Series.resample : Resample a Series.
+        DataFrame.resample: Resample a DataFrame.
+
         Notes
         -----
         See the `user guide
@@ -7898,12 +7903,6 @@ class NDFrame(PandasObject, SelectionMixin):
 
         To learn more about the offset strings, please see `this link
         <http://pandas.pydata.org/pandas-docs/stable/timeseries.html#offset-aliases>`__.
-
-        See Also
-        --------
-        groupby : Group by mapping, function, label, or list of labels.
-        Series.resample : Resample a Series.
-        DataFrame.resample: Resample a DataFrame.
 
         Examples
         --------
@@ -8122,14 +8121,24 @@ class NDFrame(PandasObject, SelectionMixin):
         Convenience method for subsetting initial periods of time series data
         based on a date offset.
 
+        Parameters
+        ----------
+        offset : string, DateOffset, dateutil.relativedelta
+
+        Returns
+        -------
+        subset : same type as caller
+
         Raises
         ------
         TypeError
             If the index is not  a :class:`DatetimeIndex`
 
-        Parameters
-        ----------
-        offset : string, DateOffset, dateutil.relativedelta
+        See Also
+        --------
+        last : Select final periods of time series based on a date offset.
+        at_time : Select values at a particular time of the day.
+        between_time : Select values between particular times of the day.
 
         Examples
         --------
@@ -8152,16 +8161,6 @@ class NDFrame(PandasObject, SelectionMixin):
         Notice the data for 3 first calender days were returned, not the first
         3 days observed in the dataset, and therefore data for 2018-04-13 was
         not returned.
-
-        Returns
-        -------
-        subset : same type as caller
-
-        See Also
-        --------
-        last : Select final periods of time series based on a date offset.
-        at_time : Select values at a particular time of the day.
-        between_time : Select values between particular times of the day.
         """
         if not isinstance(self.index, DatetimeIndex):
             raise TypeError("'first' only supports a DatetimeIndex index")
@@ -8185,14 +8184,24 @@ class NDFrame(PandasObject, SelectionMixin):
         Convenience method for subsetting final periods of time series data
         based on a date offset.
 
+        Parameters
+        ----------
+        offset : string, DateOffset, dateutil.relativedelta
+
+        Returns
+        -------
+        subset : same type as caller
+
         Raises
         ------
         TypeError
             If the index is not  a :class:`DatetimeIndex`
 
-        Parameters
-        ----------
-        offset : string, DateOffset, dateutil.relativedelta
+        See Also
+        --------
+        first : Select initial periods of time series based on a date offset.
+        at_time : Select values at a particular time of the day.
+        between_time : Select values between particular times of the day.
 
         Examples
         --------
@@ -8215,16 +8224,6 @@ class NDFrame(PandasObject, SelectionMixin):
         Notice the data for 3 last calender days were returned, not the last
         3 observed days in the dataset, and therefore data for 2018-04-11 was
         not returned.
-
-        Returns
-        -------
-        subset : same type as caller
-
-        See Also
-        --------
-        first : Select initial periods of time series based on a date offset.
-        at_time : Select values at a particular time of the day.
-        between_time : Select values between particular times of the day.
         """
         if not isinstance(self.index, DatetimeIndex):
             raise TypeError("'last' only supports a DatetimeIndex index")
@@ -8691,6 +8690,11 @@ class NDFrame(PandasObject, SelectionMixin):
         -------
         wh : same type as caller
 
+        See Also
+        --------
+        :func:`DataFrame.%(name_other)s` : Return an object of same shape as
+            self.
+
         Notes
         -----
         The %(name)s method is an application of the if-then idiom. For each
@@ -8704,11 +8708,6 @@ class NDFrame(PandasObject, SelectionMixin):
 
         For further details and examples see the ``%(name)s`` documentation in
         :ref:`indexing <indexing.where_mask>`.
-
-        See Also
-        --------
-        :func:`DataFrame.%(name_other)s` : Return an object of same shape as
-            self.
 
         Examples
         --------
@@ -8891,14 +8890,14 @@ class NDFrame(PandasObject, SelectionMixin):
         periods : int
             Number of periods to move, can be positive or negative
 
+        Returns
+        -------
+        shifted : same type as caller
+
         Notes
         -----
         While the `slice_shift` is faster than `shift`, you may pay for it
         later during alignment.
-
-        Returns
-        -------
-        shifted : same type as caller
         """
         if periods == 0:
             return self
@@ -8929,15 +8928,15 @@ class NDFrame(PandasObject, SelectionMixin):
         axis : int or basestring
             Corresponds to the axis that contains the Index
 
+        Returns
+        -------
+        shifted : NDFrame
+
         Notes
         -----
         If freq is not specified then tries to use the freq or inferred_freq
         attributes of the index. If neither of those attributes exist, a
         ValueError is thrown
-
-        Returns
-        -------
-        shifted : NDFrame
         """
 
         index = self._get_axis(axis)
@@ -9325,6 +9324,10 @@ class NDFrame(PandasObject, SelectionMixin):
         abs
             Series/DataFrame containing the absolute value of each element.
 
+        See Also
+        --------
+        numpy.absolute : Calculate the absolute value element-wise.
+
         Notes
         -----
         For ``complex`` inputs, ``1.2 + 1j``, the absolute value is
@@ -9376,10 +9379,6 @@ class NDFrame(PandasObject, SelectionMixin):
         0    4   10  100
         2    6   30  -30
         3    7   40  -50
-
-        See Also
-        --------
-        numpy.absolute : Calculate the absolute value element-wise.
         """
         return np.abs(self)
 
@@ -10085,14 +10084,14 @@ class NDFrame(PandasObject, SelectionMixin):
     _shared_docs['valid_index'] = """
         Return index for %(position)s non-NA/null value.
 
+        Returns
+        --------
+        scalar : type of index
+
         Notes
         --------
         If all elements are non-NA/null, returns None.
         Also returns None for empty %(klass)s.
-
-        Returns
-        --------
-        scalar : type of index
         """
 
     def _find_valid_index(self, how):
@@ -10303,7 +10302,6 @@ skipna : boolean, default True
 Returns
 -------
 %(outname)s : %(name1)s or %(name2)s\n
-%(examples)s
 See Also
 --------
 core.window.Expanding.%(accum_func_name)s : Similar functionality
@@ -10314,6 +10312,8 @@ core.window.Expanding.%(accum_func_name)s : Similar functionality
 %(name2)s.cummin : Return cumulative minimum over %(name2)s axis.
 %(name2)s.cumsum : Return cumulative sum over %(name2)s axis.
 %(name2)s.cumprod : Return cumulative product over %(name2)s axis.
+
+%(examples)s
 """
 
 _cummin_examples = """\
