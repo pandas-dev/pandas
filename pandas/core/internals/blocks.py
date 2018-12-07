@@ -1887,7 +1887,7 @@ class ExtensionBlock(NonConsolidatableMixIn, Block):
                                       allow_fill=True)
 
         # if we are a 1-dim object, then always place at 0
-        if self.ndim == 1:
+        if self.ndim == 1 and new_mgr_locs is None:
             new_mgr_locs = [0]
         else:
             if new_mgr_locs is None:
