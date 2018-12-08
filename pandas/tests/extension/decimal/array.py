@@ -116,9 +116,6 @@ class DecimalArray(ExtensionArray, ExtensionScalarOpsMixin):
     def __len__(self):
         return len(self._data)
 
-    def __repr__(self):
-        return 'DecimalArray({!r})'.format(self._data)
-
     @property
     def nbytes(self):
         n = len(self)

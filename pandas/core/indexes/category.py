@@ -13,7 +13,7 @@ from pandas.core.dtypes.common import (
     is_scalar)
 from pandas.core.dtypes.dtypes import CategoricalDtype
 from pandas.core.dtypes.generic import ABCCategorical, ABCSeries
-from pandas.core.dtypes.missing import array_equivalent, isna
+from pandas.core.dtypes.missing import isna
 
 from pandas.core import accessor
 from pandas.core.algorithms import take_1d
@@ -283,7 +283,9 @@ class CategoricalIndex(Index, accessor.PandasDelegate):
 
         try:
             other = self._is_dtype_compat(other)
-            return array_equivalent(self._data, other)
+            if isinstance(other, type(self)):
+                other = other._data
+            return self._data.equals(other)
         except (TypeError, ValueError):
             pass
 
@@ -357,7 +359,7 @@ class CategoricalIndex(Index, accessor.PandasDelegate):
     def _reverse_indexer(self):
         return self._data._reverse_indexer()
 
-    @Appender(_index_shared_docs['__contains__'] % _index_doc_kwargs)
+    @Appender(_index_shared_docs['contains'] % _index_doc_kwargs)
     def __contains__(self, key):
         # if key is a NaN, check if any NaN is in self.
         if isna(key):
@@ -532,12 +534,16 @@ class CategoricalIndex(Index, accessor.PandasDelegate):
 
         target = ibase.ensure_index(target)
 
-        if not is_categorical_dtype(target) and not target.is_unique:
-            raise ValueError("cannot reindex with a non-unique indexer")
+        if self.equals(target):
+            indexer = None
+            missing = []
+        else:
+            if not target.is_unique:
+                raise ValueError("cannot reindex with a non-unique indexer")
 
-        indexer, missing = self.get_indexer_non_unique(np.array(target))
+            indexer, missing = self.get_indexer_non_unique(np.array(target))
 
-        if len(self.codes):
+        if len(self.codes) and indexer is not None:
             new_target = self.take(indexer)
         else:
             new_target = target

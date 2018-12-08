@@ -43,8 +43,8 @@ class TestPandasDtype(object):
         'datetime64[ns, Asia/Tokyo]',
         'datetime64[ns, UTC]'])
     def test_datetimetz_dtype(self, dtype):
-        assert com.pandas_dtype(dtype) is DatetimeTZDtype(dtype)
-        assert com.pandas_dtype(dtype) == DatetimeTZDtype(dtype)
+        assert (com.pandas_dtype(dtype) ==
+                DatetimeTZDtype.construct_from_string(dtype))
         assert com.pandas_dtype(dtype) == dtype
 
     def test_categorical_dtype(self):

@@ -17,7 +17,6 @@ from pandas.core.dtypes.common import (
     is_dtype_equal, is_datetime64_ns_dtype,
     is_datetime64_dtype, is_interval_dtype,
     is_datetime64_any_dtype, is_string_dtype,
-    _coerce_to_dtype,
     is_bool_dtype,
 )
 from pandas.core.sparse.api import SparseDtype
@@ -147,6 +146,19 @@ class TestDatetimeTZDtype(Base):
     def create(self):
         return DatetimeTZDtype('ns', 'US/Eastern')
 
+    def test_alias_to_unit_raises(self):
+        # 23990
+        with tm.assert_produces_warning(FutureWarning):
+            DatetimeTZDtype('datetime64[ns, US/Central]')
+
+    def test_alias_to_unit_bad_alias_raises(self):
+        # 23990
+        with pytest.raises(TypeError, match=''):
+            DatetimeTZDtype('this is a bad string')
+
+        with pytest.raises(TypeError, match=''):
+            DatetimeTZDtype('datetime64[ns, US/NotATZ]')
+
     def test_hash_vs_equality(self):
         # make sure that we satisfy is semantics
         dtype = self.dtype
@@ -155,28 +167,23 @@ class TestDatetimeTZDtype(Base):
         assert dtype == dtype2
         assert dtype2 == dtype
         assert dtype3 == dtype
-        assert dtype is dtype2
-        assert dtype2 is dtype
-        assert dtype3 is dtype
         assert hash(dtype) == hash(dtype2)
         assert hash(dtype) == hash(dtype3)
+
+        dtype4 = DatetimeTZDtype("ns", "US/Central")
+        assert dtype2 != dtype4
+        assert hash(dtype2) != hash(dtype4)
 
     def test_construction(self):
         pytest.raises(ValueError,
                       lambda: DatetimeTZDtype('ms', 'US/Eastern'))
 
     def test_subclass(self):
-        a = DatetimeTZDtype('datetime64[ns, US/Eastern]')
-        b = DatetimeTZDtype('datetime64[ns, CET]')
+        a = DatetimeTZDtype.construct_from_string('datetime64[ns, US/Eastern]')
+        b = DatetimeTZDtype.construct_from_string('datetime64[ns, CET]')
 
         assert issubclass(type(a), type(a))
         assert issubclass(type(a), type(b))
-
-    def test_coerce_to_dtype(self):
-        assert (_coerce_to_dtype('datetime64[ns, US/Eastern]') ==
-                DatetimeTZDtype('ns', 'US/Eastern'))
-        assert (_coerce_to_dtype('datetime64[ns, Asia/Tokyo]') ==
-                DatetimeTZDtype('ns', 'Asia/Tokyo'))
 
     def test_compat(self):
         assert is_datetime64tz_dtype(self.dtype)
@@ -189,13 +196,15 @@ class TestDatetimeTZDtype(Base):
         assert not is_datetime64_dtype('datetime64[ns, US/Eastern]')
 
     def test_construction_from_string(self):
-        result = DatetimeTZDtype('datetime64[ns, US/Eastern]')
-        assert is_dtype_equal(self.dtype, result)
         result = DatetimeTZDtype.construct_from_string(
             'datetime64[ns, US/Eastern]')
         assert is_dtype_equal(self.dtype, result)
         pytest.raises(TypeError,
                       lambda: DatetimeTZDtype.construct_from_string('foo'))
+
+    def test_construct_from_string_raises(self):
+        with pytest.raises(TypeError, match="notatz"):
+            DatetimeTZDtype.construct_from_string('datetime64[ns, notatz]')
 
     def test_is_dtype(self):
         assert not DatetimeTZDtype.is_dtype(None)
@@ -255,14 +264,13 @@ class TestDatetimeTZDtype(Base):
     def test_parser(self, tz, constructor):
         # pr #11245
         dtz_str = '{con}[ns, {tz}]'.format(con=constructor, tz=tz)
-        result = DatetimeTZDtype(dtz_str)
+        result = DatetimeTZDtype.construct_from_string(dtz_str)
         expected = DatetimeTZDtype('ns', tz)
         assert result == expected
 
     def test_empty(self):
-        dt = DatetimeTZDtype()
-        with pytest.raises(AttributeError):
-            str(dt)
+        with pytest.raises(TypeError, match="A 'tz' is required."):
+            DatetimeTZDtype()
 
 
 class TestPeriodDtype(Base):
@@ -320,10 +328,6 @@ class TestPeriodDtype(Base):
 
         assert PeriodDtype('period[1S1U]') == PeriodDtype('period[1000001U]')
         assert PeriodDtype('period[1S1U]') is PeriodDtype('period[1000001U]')
-
-    def test_coerce_to_dtype(self):
-        assert _coerce_to_dtype('period[D]') == PeriodDtype('period[D]')
-        assert _coerce_to_dtype('period[3M]') == PeriodDtype('period[3M]')
 
     def test_compat(self):
         assert not is_datetime64_ns_dtype(self.dtype)
@@ -518,10 +522,6 @@ class TestIntervalDtype(Base):
         assert not IntervalDtype.is_dtype(np.object_)
         assert not IntervalDtype.is_dtype(np.int64)
         assert not IntervalDtype.is_dtype(np.float64)
-
-    def test_coerce_to_dtype(self):
-        assert (_coerce_to_dtype('interval[int64]') ==
-                IntervalDtype('interval[int64]'))
 
     def test_equality(self):
         assert is_dtype_equal(self.dtype, 'interval[int64]')
@@ -795,34 +795,38 @@ class TestCategoricalDtypeParametrized(object):
             dtype.update_dtype(bad_dtype)
 
 
-@pytest.mark.parametrize(
-    'dtype',
-    [CategoricalDtype, IntervalDtype, PeriodDtype])
+@pytest.mark.parametrize('dtype', [
+    CategoricalDtype,
+    IntervalDtype,
+    PeriodDtype,
+])
 def test_registry(dtype):
     assert dtype in registry.dtypes
 
 
-@pytest.mark.parametrize('dtype', [DatetimeTZDtype])
+@pytest.mark.parametrize('dtype', [
+    DatetimeTZDtype,
+])
 def test_pandas_registry(dtype):
     assert dtype not in registry.dtypes
     assert dtype in _pandas_registry.dtypes
 
 
-@pytest.mark.parametrize(
-    'dtype, expected',
-    [('int64', None),
-     ('interval', IntervalDtype()),
-     ('interval[int64]', IntervalDtype()),
-     ('interval[datetime64[ns]]', IntervalDtype('datetime64[ns]')),
-     ('period[D]', PeriodDtype('D')),
-     ('category', CategoricalDtype())])
+@pytest.mark.parametrize('dtype, expected', [
+    ('int64', None),
+    ('interval', IntervalDtype()),
+    ('interval[int64]', IntervalDtype()),
+    ('interval[datetime64[ns]]', IntervalDtype('datetime64[ns]')),
+    ('period[D]', PeriodDtype('D')),
+    ('category', CategoricalDtype()),
+])
 def test_registry_find(dtype, expected):
     assert registry.find(dtype) == expected
 
 
-@pytest.mark.parametrize(
-    'dtype, expected',
-    [('datetime64[ns, US/Eastern]', DatetimeTZDtype('ns', 'US/Eastern'))])
+@pytest.mark.parametrize('dtype, expected', [
+    ('datetime64[ns, US/Eastern]', DatetimeTZDtype('ns', 'US/Eastern')),
+])
 def test_pandas_registry_find(dtype, expected):
     assert _pandas_registry.find(dtype) == expected
 
