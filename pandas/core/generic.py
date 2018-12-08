@@ -4345,7 +4345,7 @@ class NDFrame(PandasObject, SelectionMixin):
         limit : int, optional
             Maximum number of consecutive elements to forward or backward fill.
         fill_value : float, default NaN
-            Value used to fill in locations having no value in the previous 
+            Value used to fill in locations having no value in the previous
             index.
 
             .. versionadded:: 0.21.0 (list-like tolerance)
@@ -4353,7 +4353,7 @@ class NDFrame(PandasObject, SelectionMixin):
         Returns
         -------
         %(klass)s
-            Returns a new DataFrame object with new indices, unless the new 
+            Returns a new DataFrame object with new indices, unless the new
             index is equivalent to the current one and copy=False.
 
         See Also
@@ -4371,7 +4371,8 @@ class NDFrame(PandasObject, SelectionMixin):
               num_legs  num_wings
         dog          4          0
         hawk         2          2
-        >>> df.reindex_axis(['num_wings', 'num_legs', 'num_heads'], axis='columns')
+        >>> df.reindex_axis(['num_wings', 'num_legs', 'num_heads'],
+        ...                 axis='columns')
               num_wings  num_legs  num_heads
         dog           0         4        NaN
         hawk          2         2        NaN
