@@ -1481,6 +1481,6 @@ class TestDatetimeIndex(Base):
                                                  freq=freq1))
             s = s + range(len(s))
 
-            result1 = s.resample(str(n1_)+freq1).mean()
-            result2 = s.resample(str(n2_)+freq2).mean()
+            result1 = s.resample(str(n1_) + freq1).mean()
+            result2 = s.resample(str(n2_) + freq2).mean()
             assert_series_equal(result1, result2)
