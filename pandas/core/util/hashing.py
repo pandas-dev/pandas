@@ -293,7 +293,7 @@ def hash_array(vals, encoding='utf8', hash_key=None, categorize=True):
             vals = hashing.hash_object_array(vals, hash_key, encoding)
         except TypeError:
             # we have mixed types
-            # Workaround for array of objects with __getitem__ when coercing 
+            # Workaround for array of objects with __getitem__ when coercing
             # to str. See https://github.com/numpy/numpy/issues/9441
             vals = np.array([str(val) for val in vals])
             vals = hashing.hash_object_array(vals.astype(object),
