@@ -293,7 +293,10 @@ def hash_array(vals, encoding='utf8', hash_key=None, categorize=True):
             vals = hashing.hash_object_array(vals, hash_key, encoding)
         except TypeError:
             # we have mixed types
-            vals = hashing.hash_object_array(vals.astype(str).astype(object),
+            # Workaround for array of objects with __getitem__ when coercing 
+            # to str. See https://github.com/numpy/numpy/issues/9441
+            vals = np.array([str(val) for val in vals])
+            vals = hashing.hash_object_array(vals.astype(object),
                                              hash_key, encoding)
 
     # Then, redistribute these 64-bit ints within the space of 64-bit ints
