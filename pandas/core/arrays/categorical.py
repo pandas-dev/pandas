@@ -1282,6 +1282,10 @@ class Categorical(ExtensionArray, PandasObject):
             codes = np.roll(codes, ensure_platform_int(periods), axis=0)
             if fill_value is None:
                 fill_value = -1
+            elif fill_value in self.categories:
+                fill_value = self.categories.get_loc(fill_value)
+            else:
+                raise ValueError("'fill_value={}' is not present in this Categorical's categories".format(fill_value))
             if periods > 0:
                 codes[:periods] = fill_value
             else:
