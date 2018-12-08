@@ -316,3 +316,9 @@ class TestComparisonOps(BaseSparseTests, base.BaseComparisonOpsTests):
         s = pd.Series(data)
         result = op(s, other)
         tm.assert_series_equal(result, expected)
+
+
+class TestPrinting(BaseSparseTests, base.BasePrintingTests):
+    @pytest.mark.xfail(reason='Different repr', strict=True)
+    def test_array_repr(self, data, size):
+        super(TestPrinting, self).test_array_repr(data, size)

@@ -55,7 +55,8 @@ def get_pairs():
 
 
 def register(explicit=True):
-    """Register Pandas Formatters and Converters with matplotlib
+    """
+    Register Pandas Formatters and Converters with matplotlib
 
     This function modifies the global ``matplotlib.units.registry``
     dictionary. Pandas adds custom converters for
@@ -87,7 +88,8 @@ def register(explicit=True):
 
 
 def deregister():
-    """Remove pandas' formatters and converters
+    """
+    Remove pandas' formatters and converters
 
     Removes the custom converters added by :func:`register`. This
     attempts to set the state of the registry back to the state before
