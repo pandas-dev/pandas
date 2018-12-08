@@ -488,7 +488,7 @@ class TestSparseArray(object):
             SparseArray(np.array([0, 1], dtype='datetime64[ns]'),
                         dtype=SparseDtype('datetime64[ns]',
                                           pd.Timestamp('1970'))),
-            marks=[pytest.mark.xfail(reason="NumPy-7619", strict=True)],
+            marks=[pytest.mark.xfail(reason="NumPy-7619")],
         ),
         (SparseArray([0, 1, 10]), str,
          SparseArray(['0', '1', '10'], dtype=SparseDtype(str, '0'))),

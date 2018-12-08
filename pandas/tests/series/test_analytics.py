@@ -296,8 +296,8 @@ class TestSeriesAnalytics(object):
         self._check_stat_op('kurt', alt, string_series)
 
         index = MultiIndex(levels=[['bar'], ['one', 'two', 'three'], [0, 1]],
-                           labels=[[0, 0, 0, 0, 0, 0], [0, 1, 2, 0, 1, 2],
-                                   [0, 1, 0, 1, 0, 1]])
+                           codes=[[0, 0, 0, 0, 0, 0], [0, 1, 2, 0, 1, 2],
+                                  [0, 1, 0, 1, 0, 1]])
         s = Series(np.random.randn(6), index=index)
         tm.assert_almost_equal(s.kurt(), s.kurt(level=0)['bar'])
 
@@ -1015,12 +1015,6 @@ class TestSeriesAnalytics(object):
 
     def test_cummethods_bool(self):
         # GH 6270
-        # looks like a buggy np.maximum.accumulate for numpy 1.6.1, py 3.2
-        def cummin(x):
-            return np.minimum.accumulate(x)
-
-        def cummax(x):
-            return np.maximum.accumulate(x)
 
         a = pd.Series([False, False, False, True, True, False, False])
         b = ~a
@@ -1028,8 +1022,8 @@ class TestSeriesAnalytics(object):
         d = ~c
         methods = {'cumsum': np.cumsum,
                    'cumprod': np.cumprod,
-                   'cummin': cummin,
-                   'cummax': cummax}
+                   'cummin': np.minimum.accumulate,
+                   'cummax': np.maximum.accumulate}
         args = product((a, b, c, d), methods)
         for s, method in args:
             expected = Series(methods[method](s.values))
@@ -1487,7 +1481,7 @@ class TestSeriesAnalytics(object):
         from numpy import nan
 
         index = MultiIndex(levels=[['bar', 'foo'], ['one', 'three', 'two']],
-                           labels=[[1, 1, 0, 0], [0, 1, 0, 2]])
+                           codes=[[1, 1, 0, 0], [0, 1, 0, 2]])
 
         s = Series(np.arange(4.), index=index)
         unstacked = s.unstack()
@@ -1502,11 +1496,11 @@ class TestSeriesAnalytics(object):
         assert_frame_equal(unstacked, expected.T)
 
         index = MultiIndex(levels=[['bar'], ['one', 'two', 'three'], [0, 1]],
-                           labels=[[0, 0, 0, 0, 0, 0], [0, 1, 2, 0, 1, 2],
-                                   [0, 1, 0, 1, 0, 1]])
+                           codes=[[0, 0, 0, 0, 0, 0], [0, 1, 2, 0, 1, 2],
+                                  [0, 1, 0, 1, 0, 1]])
         s = Series(np.random.randn(6), index=index)
         exp_index = MultiIndex(levels=[['one', 'two', 'three'], [0, 1]],
-                               labels=[[0, 1, 2, 0, 1, 2], [0, 1, 0, 1, 0, 1]])
+                               codes=[[0, 1, 2, 0, 1, 2], [0, 1, 0, 1, 0, 1]])
         expected = DataFrame({'bar': s.values},
                              index=exp_index).sort_index(level=0)
         unstacked = s.unstack(0).sort_index()
@@ -2104,7 +2098,7 @@ class TestCategoricalSeriesAnalytics(object):
         "dtype",
         ["int_", "uint", "float_", "unicode_", "timedelta64[h]",
          pytest.param("datetime64[D]",
-                      marks=pytest.mark.xfail(reason="GH#7996", strict=True))]
+                      marks=pytest.mark.xfail(reason="GH#7996"))]
     )
     @pytest.mark.parametrize("is_ordered", [True, False])
     def test_drop_duplicates_categorical_non_bool(self, dtype, is_ordered):

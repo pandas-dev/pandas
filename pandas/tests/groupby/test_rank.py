@@ -17,18 +17,16 @@ def test_rank_apply():
 
     result = df.groupby(['key1', 'key2']).value.rank()
 
-    expected = []
-    for key, piece in df.groupby(['key1', 'key2']):
-        expected.append(piece.value.rank())
+    expected = [piece.value.rank()
+                for key, piece in df.groupby(['key1', 'key2'])]
     expected = concat(expected, axis=0)
     expected = expected.reindex(result.index)
     tm.assert_series_equal(result, expected)
 
     result = df.groupby(['key1', 'key2']).value.rank(pct=True)
 
-    expected = []
-    for key, piece in df.groupby(['key1', 'key2']):
-        expected.append(piece.value.rank(pct=True))
+    expected = [piece.value.rank(pct=True)
+                for key, piece in df.groupby(['key1', 'key2'])]
     expected = concat(expected, axis=0)
     expected = expected.reindex(result.index)
     tm.assert_series_equal(result, expected)
@@ -289,4 +287,19 @@ def test_rank_empty_group():
 
     result = df.groupby(column).rank(pct=True)
     expected = DataFrame({"B": [0.5, np.nan, 1.0]})
+    tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize("input_key,input_value,output_value", [
+    ([1, 2], [1, 1], [1.0, 1.0]),
+    ([1, 1, 2, 2], [1, 2, 1, 2], [0.5, 1.0, 0.5, 1.0]),
+    ([1, 1, 2, 2], [1, 2, 1, np.nan], [0.5, 1.0, 1.0, np.nan]),
+    ([1, 1, 2], [1, 2, np.nan], [0.5, 1.0, np.nan])
+])
+def test_rank_zero_div(input_key, input_value, output_value):
+    # GH 23666
+    df = DataFrame({"A": input_key, "B": input_value})
+
+    result = df.groupby("A").rank(method="dense", pct=True)
+    expected = DataFrame({"B": output_value})
     tm.assert_frame_equal(result, expected)

@@ -53,8 +53,7 @@ def _mpl(func):
 
 class Styler(object):
     """
-    Helps style a DataFrame or Series according to the
-    data with HTML and CSS.
+    Helps style a DataFrame or Series according to the data with HTML and CSS.
 
     Parameters
     ----------
@@ -78,6 +77,10 @@ class Styler(object):
     env : Jinja2 Environment
     template : Jinja2 Template
     loader : Jinja2 Loader
+
+    See Also
+    --------
+    pandas.DataFrame.style
 
     Notes
     -----
@@ -107,10 +110,6 @@ class Styler(object):
 
     * Blank cells include ``blank``
     * Data cells include ``data``
-
-    See Also
-    --------
-    pandas.DataFrame.style
     """
     loader = PackageLoader("pandas", "io/formats/templates")
     env = Environment(
@@ -157,7 +156,9 @@ class Styler(object):
         self._display_funcs = defaultdict(lambda: default_display_func)
 
     def _repr_html_(self):
-        """Hooks into Jupyter notebook rich display system."""
+        """
+        Hooks into Jupyter notebook rich display system.
+        """
         return self.render()
 
     @Appender(_shared_docs['to_excel'] % dict(
@@ -187,7 +188,7 @@ class Styler(object):
     def _translate(self):
         """
         Convert the DataFrame in `self.data` and the attrs from `_build_styles`
-        into a dictionary of {head, body, uuid, cellstyle}
+        into a dictionary of {head, body, uuid, cellstyle}.
         """
         table_styles = self.table_styles or []
         caption = self.caption
@@ -417,7 +418,8 @@ class Styler(object):
         return self
 
     def render(self, **kwargs):
-        """Render the built up styles to HTML
+        """
+        Render the built up styles to HTML.
 
         Parameters
         ----------
@@ -467,8 +469,9 @@ class Styler(object):
 
     def _update_ctx(self, attrs):
         """
-        update the state of the Styler. Collects a mapping
-        of {index_label: ['<property>: <value>']}
+        Update the state of the Styler.
+
+        Collects a mapping of {index_label: ['<property>: <value>']}.
 
         attrs : Series or DataFrame
         should contain strings of '<property>: <value>;<prop2>: <val2>'
@@ -504,7 +507,8 @@ class Styler(object):
         return self._copy(deepcopy=True)
 
     def clear(self):
-        """"Reset" the styler, removing any previously applied styles.
+        """
+        Reset the styler, removing any previously applied styles.
         Returns None.
         """
         self.ctx.clear()
@@ -696,9 +700,10 @@ class Styler(object):
 
     def set_table_attributes(self, attributes):
         """
-        Set the table attributes. These are the items
-        that show up in the opening ``<table>`` tag in addition
-        to to automatic (by default) id.
+        Set the table attributes.
+
+        These are the items that show up in the opening ``<table>`` tag
+        in addition to to automatic (by default) id.
 
         Parameters
         ----------
@@ -720,6 +725,7 @@ class Styler(object):
     def export(self):
         """
         Export the styles to applied to the current Styler.
+
         Can be applied to a second style with ``Styler.use``.
 
         Returns
@@ -785,8 +791,9 @@ class Styler(object):
 
     def set_table_styles(self, table_styles):
         """
-        Set the table styles on a Styler. These are placed in a
-        ``<style>`` tag before the generated HTML table.
+        Set the table styles on a Styler.
+
+        These are placed in a ``<style>`` tag before the generated HTML table.
 
         Parameters
         ----------
@@ -875,6 +882,7 @@ class Styler(object):
         """
         Color the background in a gradient according to
         the data in each column (optionally row).
+
         Requires matplotlib.
 
         Parameters
@@ -898,17 +906,17 @@ class Styler(object):
         -------
         self : Styler
 
+        Raises
+        ------
+        ValueError
+            If ``text_color_threshold`` is not a value from 0 to 1.
+
         Notes
         -----
         Set ``text_color_threshold`` or tune ``low`` and ``high`` to keep the
         text legible by not using the entire range of the color map. The range
         of the data is extended by ``low * (x.max() - x.min())`` and ``high *
         (x.max() - x.min())`` before normalizing.
-
-        Raises
-        ------
-        ValueError
-            If ``text_color_threshold`` is not a value from 0 to 1.
         """
         subset = _maybe_numeric_slice(self.data, subset)
         subset = _non_reducing_slice(subset)
@@ -920,7 +928,9 @@ class Styler(object):
     @staticmethod
     def _background_gradient(s, cmap='PuBu', low=0, high=0,
                              text_color_threshold=0.408):
-        """Color background in a range according to the data."""
+        """
+        Color background in a range according to the data.
+        """
         if (not isinstance(text_color_threshold, (float, int)) or
                 not 0 <= text_color_threshold <= 1):
             msg = "`text_color_threshold` must be a value from 0 to 1."
@@ -1002,8 +1012,9 @@ class Styler(object):
 
     @staticmethod
     def _bar(s, align, colors, width=100, vmin=None, vmax=None):
-        """Draw bar chart in dataframe cells"""
-
+        """
+        Draw bar chart in dataframe cells.
+        """
         # Get input value range.
         smin = s.min() if vmin is None else vmin
         if isinstance(smin, ABCSeries):
@@ -1023,7 +1034,9 @@ class Styler(object):
         zero = -width * smin / (smax - smin + 1e-12)
 
         def css_bar(start, end, color):
-            """Generate CSS code to draw a bar from start to end."""
+            """
+            Generate CSS code to draw a bar from start to end.
+            """
             css = 'width: 10em; height: 80%;'
             if end > start:
                 css += 'background: linear-gradient(90deg,'
@@ -1128,7 +1141,7 @@ class Styler(object):
 
     def highlight_max(self, subset=None, color='yellow', axis=0):
         """
-        Highlight the maximum by shading the background
+        Highlight the maximum by shading the background.
 
         Parameters
         ----------
@@ -1148,7 +1161,7 @@ class Styler(object):
 
     def highlight_min(self, subset=None, color='yellow', axis=0):
         """
-        Highlight the minimum by shading the background
+        Highlight the minimum by shading the background.
 
         Parameters
         ----------
@@ -1175,7 +1188,9 @@ class Styler(object):
 
     @staticmethod
     def _highlight_extrema(data, color='yellow', max_=True):
-        """Highlight the min or max in a Series or DataFrame"""
+        """
+        Highlight the min or max in a Series or DataFrame.
+        """
         attr = 'background-color: {0}'.format(color)
         if data.ndim == 1:  # Series from .apply
             if max_:
@@ -1220,10 +1235,79 @@ class Styler(object):
 
         return MyStyler
 
+    def pipe(self, func, *args, **kwargs):
+        """
+        Apply ``func(self, *args, **kwargs)``, and return the result.
+
+        .. versionadded:: 0.24.0
+
+        Parameters
+        ----------
+        func : function
+            Function to apply to the Styler.  Alternatively, a
+            ``(callable, keyword)`` tuple where ``keyword`` is a string
+            indicating the keyword of ``callable`` that expects the Styler.
+        *args, **kwargs :
+            Arguments passed to `func`.
+
+        Returns
+        -------
+        object :
+            The value returned by ``func``.
+
+        See Also
+        --------
+        DataFrame.pipe : Analogous method for DataFrame.
+        Styler.apply : Apply a function row-wise, column-wise, or table-wise to
+            modify the dataframe's styling.
+
+        Notes
+        -----
+        Like :meth:`DataFrame.pipe`, this method can simplify the
+        application of several user-defined functions to a styler.  Instead
+        of writing:
+
+        .. code-block:: python
+
+            f(g(df.style.set_precision(3), arg1=a), arg2=b, arg3=c)
+
+        users can write:
+
+        .. code-block:: python
+
+            (df.style.set_precision(3)
+               .pipe(g, arg1=a)
+               .pipe(f, arg2=b, arg3=c))
+
+        In particular, this allows users to define functions that take a
+        styler object, along with other parameters, and return the styler after
+        making styling changes (such as calling :meth:`Styler.apply` or
+        :meth:`Styler.set_properties`).  Using ``.pipe``, these user-defined
+        style "transformations" can be interleaved with calls to the built-in
+        Styler interface.
+
+        Examples
+        --------
+        >>> def format_conversion(styler):
+        ...     return (styler.set_properties(**{'text-align': 'right'})
+        ...                   .format({'conversion': '{:.1%}'}))
+
+        The user-defined ``format_conversion`` function above can be called
+        within a sequence of other style modifications:
+
+        >>> df = pd.DataFrame({'trial': list(range(5)),
+        ...                    'conversion': [0.75, 0.85, np.nan, 0.7, 0.72]})
+        >>> (df.style
+        ...    .highlight_min(subset=['conversion'], color='yellow')
+        ...    .pipe(format_conversion)
+        ...    .set_caption("Results with minimum conversion highlighted."))
+        """
+        return com._pipe(self, func, *args, **kwargs)
+
 
 def _is_visible(idx_row, idx_col, lengths):
     """
-    Index -> {(idx_row, idx_col): bool})
+    Index -> {(idx_row, idx_col): bool}).
     """
     return (idx_col, idx_row) in lengths
 
@@ -1231,6 +1315,7 @@ def _is_visible(idx_row, idx_col, lengths):
 def _get_level_lengths(index, hidden_elements=None):
     """
     Given an index, find the level length for each element.
+
     Optional argument is a list of index positions which
     should not be visible.
 
@@ -1264,10 +1349,8 @@ def _get_level_lengths(index, hidden_elements=None):
             elif(j not in hidden_elements):
                 lengths[(i, last_label)] += 1
 
-    non_zero_lengths = {}
-    for element, length in lengths.items():
-        if(length >= 1):
-            non_zero_lengths[element] = length
+    non_zero_lengths = {
+        element: length for element, length in lengths.items() if length >= 1}
 
     return non_zero_lengths
 

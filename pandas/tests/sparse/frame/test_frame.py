@@ -101,9 +101,7 @@ class TestSparseDataFrame(SharedWithSparse):
             assert isinstance(series, SparseSeries)
 
         # construct from nested dict
-        data = {}
-        for c, s in compat.iteritems(float_frame):
-            data[c] = s.to_dict()
+        data = {c: s.to_dict() for c, s in compat.iteritems(float_frame)}
 
         sdf = SparseDataFrame(data)
         tm.assert_sp_frame_equal(sdf, float_frame)
@@ -1142,7 +1140,7 @@ class TestSparseDataFrame(SharedWithSparse):
 
         tm.assert_sp_frame_equal(result, expected)
 
-    @pytest.mark.xfail(reason="No longer supported.", strict=True)
+    @pytest.mark.xfail(reason="No longer supported.")
     def test_combine_first_with_dense(self):
         # We could support this if we allow
         # pd.core.dtypes.cast.find_common_type to special case SparseDtype
@@ -1198,8 +1196,7 @@ class TestSparseDataFrame(SharedWithSparse):
         tm.assert_frame_equal(df_blocks['Sparse[float64, nan]'], df)
 
     @pytest.mark.xfail(reason='nan column names in _init_dict problematic '
-                              '(GH#16894)',
-                       strict=True)
+                              '(GH#16894)')
     def test_nan_columnname(self):
         # GH 8822
         nan_colname = DataFrame(Series(1.0, index=[0]), columns=[nan])
@@ -1316,8 +1313,7 @@ class TestSparseDataFrameAnalytics(object):
         for func in funcs:
             getattr(np, func)(float_frame)
 
-    @pytest.mark.xfail(reason='Wrong SparseBlock initialization (GH 17386)',
-                       strict=True)
+    @pytest.mark.xfail(reason='Wrong SparseBlock initialization (GH 17386)')
     def test_quantile(self):
         # GH 17386
         data = [[1, 1], [2, 10], [3, 100], [nan, nan]]
@@ -1333,8 +1329,7 @@ class TestSparseDataFrameAnalytics(object):
         tm.assert_series_equal(result, dense_expected)
         tm.assert_sp_series_equal(result, sparse_expected)
 
-    @pytest.mark.xfail(reason='Wrong SparseBlock initialization (GH 17386)',
-                       strict=True)
+    @pytest.mark.xfail(reason='Wrong SparseBlock initialization (GH 17386)')
     def test_quantile_multi(self):
         # GH 17386
         data = [[1, 1], [2, 10], [3, 100], [nan, nan]]
