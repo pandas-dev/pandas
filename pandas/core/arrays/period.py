@@ -155,7 +155,7 @@ class PeriodArray(dtl.DatetimeLikeArrayMixin, ExtensionArray):
     # Constructors
 
     def __init__(self, values, freq=None, dtype=None, copy=False):
-        freq = dtl.validate_dtype_freq(dtype, freq)
+        freq = validate_dtype_freq(dtype, freq)
 
         if freq is not None:
             freq = Period._maybe_convert_freq(freq)
@@ -204,7 +204,8 @@ class PeriodArray(dtl.DatetimeLikeArrayMixin, ExtensionArray):
 
     @classmethod
     def _from_datetime64(cls, data, freq, tz=None):
-        """Construct a PeriodArray from a datetime64 array
+        """
+        Construct a PeriodArray from a datetime64 array
 
         Parameters
         ----------
@@ -254,7 +255,9 @@ class PeriodArray(dtl.DatetimeLikeArrayMixin, ExtensionArray):
 
     @property
     def freq(self):
-        """Return the frequency object for this PeriodArray."""
+        """
+        Return the frequency object for this PeriodArray.
+        """
         return self.dtype.freq
 
     # --------------------------------------------------------------------
@@ -281,7 +284,9 @@ class PeriodArray(dtl.DatetimeLikeArrayMixin, ExtensionArray):
 
     @property
     def is_leap_year(self):
-        """ Logical indicating if the date belongs to a leap year """
+        """
+        Logical indicating if the date belongs to a leap year
+        """
         return isleapyear_arr(np.asarray(self.year))
 
     @property
@@ -336,13 +341,10 @@ class PeriodArray(dtl.DatetimeLikeArrayMixin, ExtensionArray):
     # --------------------------------------------------------------------
     # Array-like / EA-Interface Methods
 
-    def __repr__(self):
-        return '<{}>\n{}\nLength: {}, dtype: {}'.format(
-            self.__class__.__name__,
-            [str(s) for s in self],
-            len(self),
-            self.dtype
-        )
+    def _formatter(self, boxed=False):
+        if boxed:
+            return str
+        return "'{}'".format
 
     def __setitem__(
             self,
@@ -570,7 +572,9 @@ class PeriodArray(dtl.DatetimeLikeArrayMixin, ExtensionArray):
     # Formatting
 
     def _format_native_types(self, na_rep=u'NaT', date_format=None, **kwargs):
-        """ actually format my specific types """
+        """
+        actually format my specific types
+        """
         # TODO(DatetimeArray): remove
         values = self.astype(object)
 
@@ -821,9 +825,11 @@ class PeriodArray(dtl.DatetimeLikeArrayMixin, ExtensionArray):
                                     .format(cls=type(self).__name__,
                                             freqstr=self.freqstr))
 
+    def _values_for_argsort(self):
+        return self._data
+
 
 PeriodArray._add_comparison_ops()
-PeriodArray._add_datetimelike_methods()
 
 
 # -------------------------------------------------------------------
@@ -906,6 +912,40 @@ def period_array(data, freq=None, copy=False):
     data = ensure_object(data)
 
     return PeriodArray._from_sequence(data, dtype=dtype)
+
+
+def validate_dtype_freq(dtype, freq):
+    """
+    If both a dtype and a freq are available, ensure they match.  If only
+    dtype is available, extract the implied freq.
+
+    Parameters
+    ----------
+    dtype : dtype
+    freq : DateOffset or None
+
+    Returns
+    -------
+    freq : DateOffset
+
+    Raises
+    ------
+    ValueError : non-period dtype
+    IncompatibleFrequency : mismatch between dtype and freq
+    """
+    if freq is not None:
+        freq = frequencies.to_offset(freq)
+
+    if dtype is not None:
+        dtype = pandas_dtype(dtype)
+        if not is_period_dtype(dtype):
+            raise ValueError('dtype must be PeriodDtype')
+        if freq is None:
+            freq = dtype.freq
+        elif freq != dtype.freq:
+            raise IncompatibleFrequency('specified freq and dtype '
+                                        'are different')
+    return freq
 
 
 def dt64arr_to_periodarr(data, freq, tz=None):
