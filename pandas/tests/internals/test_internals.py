@@ -1288,3 +1288,12 @@ def test_validate_ndim():
 
     with pytest.raises(ValueError, match=msg):
         make_block(values, placement, ndim=2)
+
+
+def test_block_shape():
+    idx = pd.Index([0, 1, 2, 3, 4])
+    a = pd.Series([1, 2, 3]).reindex(idx)
+    b = pd.Series(pd.Categorical([1, 2, 3])).reindex(idx)
+
+    assert (a._data.blocks[0].mgr_locs.indexer ==
+            b._data.blocks[0].mgr_locs.indexer)
