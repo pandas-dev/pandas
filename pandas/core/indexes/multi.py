@@ -145,34 +145,6 @@ class MultiIndex(Index):
     verify_integrity : boolean, default True
         Check that the levels/codes are consistent and valid
 
-    Examples
-    ---------
-    A new ``MultiIndex`` is typically constructed using one of the helper
-    methods :meth:`MultiIndex.from_arrays`, :meth:`MultiIndex.from_product`
-    and :meth:`MultiIndex.from_tuples`. For example (using ``.from_arrays``):
-
-    >>> arrays = [[1, 1, 2, 2], ['red', 'blue', 'red', 'blue']]
-    >>> pd.MultiIndex.from_arrays(arrays, names=('number', 'color'))
-    MultiIndex(levels=[[1, 2], ['blue', 'red']],
-           labels=[[0, 0, 1, 1], [1, 0, 1, 0]],
-           names=['number', 'color'])
-
-    See further examples for how to construct a MultiIndex in the doc strings
-    of the mentioned helper methods.
-
-    Notes
-    -----
-    See the `user guide
-    <http://pandas.pydata.org/pandas-docs/stable/advanced.html>`_ for more.
-
-    See Also
-    --------
-    MultiIndex.from_arrays  : Convert list of arrays to MultiIndex.
-    MultiIndex.from_product : Create a MultiIndex from the cartesian product
-                              of iterables.
-    MultiIndex.from_tuples  : Convert list of tuples to a MultiIndex.
-    Index : The base pandas Index type.
-
     Attributes
     ----------
     names
@@ -196,6 +168,34 @@ class MultiIndex(Index):
     swaplevel
     reorder_levels
     remove_unused_levels
+
+    See Also
+    --------
+    MultiIndex.from_arrays  : Convert list of arrays to MultiIndex.
+    MultiIndex.from_product : Create a MultiIndex from the cartesian product
+                              of iterables.
+    MultiIndex.from_tuples  : Convert list of tuples to a MultiIndex.
+    Index : The base pandas Index type.
+
+    Notes
+    -----
+    See the `user guide
+    <http://pandas.pydata.org/pandas-docs/stable/advanced.html>`_ for more.
+
+    Examples
+    ---------
+    A new ``MultiIndex`` is typically constructed using one of the helper
+    methods :meth:`MultiIndex.from_arrays`, :meth:`MultiIndex.from_product`
+    and :meth:`MultiIndex.from_tuples`. For example (using ``.from_arrays``):
+
+    >>> arrays = [[1, 1, 2, 2], ['red', 'blue', 'red', 'blue']]
+    >>> pd.MultiIndex.from_arrays(arrays, names=('number', 'color'))
+    MultiIndex(levels=[[1, 2], ['blue', 'red']],
+           labels=[[0, 0, 1, 1], [1, 0, 1, 0]],
+           names=['number', 'color'])
+
+    See further examples for how to construct a MultiIndex in the doc strings
+    of the mentioned helper methods.
     """
 
     # initialize to zero-length tuples to make everything work
@@ -303,16 +303,16 @@ class MultiIndex(Index):
         -------
         index : MultiIndex
 
-        Examples
-        --------
-        >>> arrays = [[1, 1, 2, 2], ['red', 'blue', 'red', 'blue']]
-        >>> pd.MultiIndex.from_arrays(arrays, names=('number', 'color'))
-
         See Also
         --------
         MultiIndex.from_tuples : Convert list of tuples to MultiIndex.
         MultiIndex.from_product : Make a MultiIndex from cartesian product
                                   of iterables.
+
+        Examples
+        --------
+        >>> arrays = [[1, 1, 2, 2], ['red', 'blue', 'red', 'blue']]
+        >>> pd.MultiIndex.from_arrays(arrays, names=('number', 'color'))
         """
         if not is_list_like(arrays):
             raise TypeError("Input must be a list / sequence of array-likes.")
@@ -351,17 +351,17 @@ class MultiIndex(Index):
         -------
         index : MultiIndex
 
-        Examples
-        --------
-        >>> tuples = [(1, u'red'), (1, u'blue'),
-                      (2, u'red'), (2, u'blue')]
-        >>> pd.MultiIndex.from_tuples(tuples, names=('number', 'color'))
-
         See Also
         --------
         MultiIndex.from_arrays : Convert list of arrays to MultiIndex
         MultiIndex.from_product : Make a MultiIndex from cartesian product
                                   of iterables
+
+        Examples
+        --------
+        >>> tuples = [(1, u'red'), (1, u'blue'),
+                      (2, u'red'), (2, u'blue')]
+        >>> pd.MultiIndex.from_tuples(tuples, names=('number', 'color'))
         """
         if not is_list_like(tuples):
             raise TypeError('Input must be a list / sequence of tuple-likes.')
@@ -404,6 +404,11 @@ class MultiIndex(Index):
         -------
         index : MultiIndex
 
+        See Also
+        --------
+        MultiIndex.from_arrays : Convert list of arrays to MultiIndex.
+        MultiIndex.from_tuples : Convert list of tuples to MultiIndex.
+
         Examples
         --------
         >>> numbers = [0, 1, 2]
@@ -413,11 +418,6 @@ class MultiIndex(Index):
         MultiIndex(levels=[[0, 1, 2], [u'green', u'purple']],
                    labels=[[0, 0, 1, 1, 2, 2], [0, 1, 0, 1, 0, 1]],
                    names=[u'number', u'color'])
-
-        See Also
-        --------
-        MultiIndex.from_arrays : Convert list of arrays to MultiIndex.
-        MultiIndex.from_tuples : Convert list of tuples to MultiIndex.
         """
         from pandas.core.arrays.categorical import _factorize_from_iterables
         from pandas.core.reshape.util import cartesian_product
@@ -755,7 +755,7 @@ class MultiIndex(Index):
                               **kwargs)
         return self._shallow_copy(values, **kwargs)
 
-    @Appender(_index_shared_docs['__contains__'] % _index_doc_kwargs)
+    @Appender(_index_shared_docs['contains'] % _index_doc_kwargs)
     def __contains__(self, key):
         hash(key)
         try:

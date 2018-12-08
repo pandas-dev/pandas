@@ -1511,6 +1511,10 @@ def bdate_range(start=None, end=None, periods=None, freq='B', tz=None,
     **kwargs
         For compatibility. Has no effect on the result.
 
+    Returns
+    -------
+    DatetimeIndex
+
     Notes
     -----
     Of the four parameters: ``start``, ``end``, ``periods``, and ``freq``,
@@ -1520,10 +1524,6 @@ def bdate_range(start=None, end=None, periods=None, freq='B', tz=None,
 
     To learn more about the frequency strings, please see `this link
     <http://pandas.pydata.org/pandas-docs/stable/timeseries.html#offset-aliases>`__.
-
-    Returns
-    -------
-    DatetimeIndex
 
     Examples
     --------

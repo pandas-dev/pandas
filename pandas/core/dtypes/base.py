@@ -151,6 +151,11 @@ class ExtensionDtype(_DtypeOpsMixin):
 
     .. versionadded:: 0.23.0
 
+    See Also
+    --------
+    pandas.api.extensions.register_extension_dtype
+    pandas.api.extensions.ExtensionArray
+
     Notes
     -----
     The interface includes the following abstract methods that must
@@ -199,11 +204,6 @@ class ExtensionDtype(_DtypeOpsMixin):
     Methods and properties required by the interface raise
     ``pandas.errors.AbstractMethodError`` and no ``register`` method is
     provided for registering virtual subclasses.
-
-    See Also
-    --------
-    pandas.api.extensions.register_extension_dtype
-    pandas.api.extensions.ExtensionArray
     """
 
     def __str__(self):

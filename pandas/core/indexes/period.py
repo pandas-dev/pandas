@@ -400,7 +400,7 @@ class PeriodIndex(DatelikeOps, DatetimeIndexOpsMixin, Int64Index,
     def _engine(self):
         return self._engine_type(lambda: self, len(self))
 
-    @Appender(_index_shared_docs['__contains__'])
+    @Appender(_index_shared_docs['contains'])
     def __contains__(self, key):
         if isinstance(key, Period):
             if key.freq != self.freq:
@@ -993,6 +993,10 @@ def period_range(start=None, end=None, periods=None, freq='D', name=None):
     name : string, default None
         Name of the resulting PeriodIndex
 
+    Returns
+    -------
+    prng : PeriodIndex
+
     Notes
     -----
     Of the three parameters: ``start``, ``end``, and ``periods``, exactly two
@@ -1000,10 +1004,6 @@ def period_range(start=None, end=None, periods=None, freq='D', name=None):
 
     To learn more about the frequency strings, please see `this link
     <http://pandas.pydata.org/pandas-docs/stable/timeseries.html#offset-aliases>`__.
-
-    Returns
-    -------
-    prng : PeriodIndex
 
     Examples
     --------
