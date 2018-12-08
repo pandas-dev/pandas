@@ -1963,9 +1963,11 @@ class ExtensionBlock(NonConsolidatableMixIn, Block):
         ExtensionBlock.
         """
         # type: (int, Optional[BlockPlacement]) -> List[ExtensionBlock]
-        return [self.make_block_same_class(self.values.shift(periods=periods, fill_value=fill_value),
-                                           placement=self.mgr_locs,
-                                           ndim=self.ndim)]
+        return [
+            self.make_block_same_class(self.values.shift(periods=periods,
+                                                         fill_value=fill_value),
+                                       placement=self.mgr_locs, ndim=self.ndim)
+        ]
 
     @property
     def _ftype(self):

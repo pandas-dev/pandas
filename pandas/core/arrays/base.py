@@ -461,8 +461,9 @@ class ExtensionArray(object):
             The number of periods to shift. Negative values are allowed
             for shifting backwards.
 
-        .. versionadded:: 0.24.0
-            fill_value : None or value, default None (NaN)
+        fill_value : None or value, default None (NaN)
+            .. versionadded:: 0.24.0
+
         Returns
         -------
         shifted : ExtensionArray

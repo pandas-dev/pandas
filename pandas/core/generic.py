@@ -8830,12 +8830,12 @@ class NDFrame(PandasObject, SelectionMixin):
             extend the index when shifting and preserve the original data.
         axis : {0 or 'index', 1 or 'columns', None}, default None
             Shift direction.
+        fill_value : object, optional
+            the scalar value to use for newly introduced missing values.
+            the default depends on the dtype of `self`. for numeric data,
+            ``np.nan`` is used. for datelike, ``pandas.nat`` is used.    
             
-        .. versionchanged:: 0.24.0
-                
-            fill_value : None or value, default None (NaN).
-                Filling the empty space after shift with value provided by 
-                the user instead of NaN
+            .. versionchanged:: 0.24.0
 
         Returns
         -------
@@ -8872,15 +8872,14 @@ class NDFrame(PandasObject, SelectionMixin):
         3   NaN  30.0  33.0
         4   NaN  45.0  48.0
         
-        .. versionchanged:: 0.24.0
-                
-            >>> df.shift(periods=3, fill_value=0.0)
-               Col1  Col2  Col3
-            0   0.0   0.0   0.0
-            1   0.0   0.0   0.0
-            2   0.0   0.0   0.0
-            3  10.0  13.0  17.0
-            4  20.0  23.0  27.0
+        >>> df.shift(periods=3, fill_value=0.0)
+           Col1  Col2  Col3
+        0   0.0   0.0   0.0
+        1   0.0   0.0   0.0
+        2   0.0   0.0   0.0
+        3  10.0  13.0  17.0
+        4  20.0  23.0  27.0
+
     """)
 
     @Appender(_shared_docs['shift'] % _shared_doc_kwargs)
