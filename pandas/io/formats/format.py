@@ -840,7 +840,8 @@ class DataFrameFormatter(TableFormatter):
 
 
 def format_array(values, formatter, float_format=None, na_rep='NaN',
-                 digits=None, space=None, justify='right', decimal='.'):
+                 digits=None, space=None, justify='right', decimal='.',
+                 leading_space=None):
 
     if is_datetime64_dtype(values.dtype):
         fmt_klass = Datetime64Formatter
@@ -868,7 +869,8 @@ def format_array(values, formatter, float_format=None, na_rep='NaN',
 
     fmt_obj = fmt_klass(values, digits=digits, na_rep=na_rep,
                         float_format=float_format, formatter=formatter,
-                        space=space, justify=justify, decimal=decimal)
+                        space=space, justify=justify, decimal=decimal,
+                        leading_space=leading_space)
 
     return fmt_obj.get_result()
 
@@ -877,7 +879,7 @@ class GenericArrayFormatter(object):
 
     def __init__(self, values, digits=7, formatter=None, na_rep='NaN',
                  space=12, float_format=None, justify='right', decimal='.',
-                 quoting=None, fixed_width=True):
+                 quoting=None, fixed_width=True, leading_space=None):
         self.values = values
         self.digits = digits
         self.na_rep = na_rep
@@ -888,6 +890,7 @@ class GenericArrayFormatter(object):
         self.decimal = decimal
         self.quoting = quoting
         self.fixed_width = fixed_width
+        self.leading_space = leading_space
 
     def get_result(self):
         fmt_values = self._format_strings()
@@ -927,7 +930,9 @@ class GenericArrayFormatter(object):
             vals = vals.values
 
         is_float_type = lib.map_infer(vals, is_float) & notna(vals)
-        leading_space = is_float_type.any()
+        leading_space = self.leading_space
+        if leading_space is None:
+            leading_space = is_float_type.any()
 
         fmt_values = []
         for i, v in enumerate(vals):
@@ -936,7 +941,13 @@ class GenericArrayFormatter(object):
             elif is_float_type[i]:
                 fmt_values.append(float_format(v))
             else:
-                fmt_values.append(u' {v}'.format(v=_format(v)))
+                if leading_space is False:
+                    # False specifically, so that the default is
+                    # to include a space if we get here.
+                    tpl = u'{v}'
+                else:
+                    tpl = u' {v}'
+                fmt_values.append(tpl.format(v=_format(v)))
 
         return fmt_values
 
@@ -1135,7 +1146,8 @@ class ExtensionArrayFormatter(GenericArrayFormatter):
                                   formatter,
                                   float_format=self.float_format,
                                   na_rep=self.na_rep, digits=self.digits,
-                                  space=self.space, justify=self.justify)
+                                  space=self.space, justify=self.justify,
+                                  leading_space=self.leading_space)
         return fmt_values
 
 
