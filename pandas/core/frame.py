@@ -7422,7 +7422,8 @@ class DataFrame(NDFrame):
 
         See Also
         --------
-        Series.idxmin"""
+        Series.idxmin
+        """
         axis = self._get_axis_number(axis)
         indices = nanops.nanargmin(self.values, axis=axis, skipna=skipna)
         index = self._get_axis(axis)
@@ -7456,7 +7457,8 @@ class DataFrame(NDFrame):
 
         See Also
         --------
-        Series.idxmax"""
+        Series.idxmax
+        """
         axis = self._get_axis_number(axis)
         indices = nanops.nanargmax(self.values, axis=axis, skipna=skipna)
         index = self._get_axis(axis)
