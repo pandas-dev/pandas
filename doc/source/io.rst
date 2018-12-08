@@ -4150,7 +4150,8 @@ results.
 
 .. ipython:: python
 
-   df_mt = pd.DataFrame(np.random.randn(8, 6), index=pd.date_range('1/1/2000', periods=8),
+   df_mt = pd.DataFrame(np.random.randn(8, 6),
+                        index=pd.date_range('1/1/2000', periods=8),
                         columns=['A', 'B', 'C', 'D', 'E', 'F'])
    df_mt['foo'] = 'bar'
    df_mt.loc[df_mt.index[1], ('A', 'B')] = np.nan
