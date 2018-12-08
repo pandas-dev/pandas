@@ -598,7 +598,7 @@ cpdef array_to_datetime(ndarray[object] values, str errors='raise',
                             # other formats
                             if is_coerce:
                                 iresult[i] = NPY_NAT
-                                continue  
+                                continue
                             elif is_raise:
                                 raise
                             return values, tz_out
@@ -659,7 +659,7 @@ cpdef array_to_datetime(ndarray[object] values, str errors='raise',
                         iresult[i] = NPY_NAT
                     else:
                         raise TypeError("{typ} is not convertible to datetime"
-                                        .format(typ=type(val)))               
+                                        .format(typ=type(val)))
                         
             except OutOfBoundsDatetime:
                 if is_coerce:
@@ -670,7 +670,7 @@ cpdef array_to_datetime(ndarray[object] values, str errors='raise',
                     # dateutil parser will return incorrect result because
                     # it will ignore nanoseconds
                     if is_raise:
-                        raise                        
+                        raise
                     assert is_ignore
                     return values, tz_out
                 raise
