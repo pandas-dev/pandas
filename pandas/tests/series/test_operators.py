@@ -18,7 +18,8 @@ from pandas.core.indexes.base import InvalidIndexError
 import pandas.core.nanops as nanops
 import pandas.util.testing as tm
 from pandas.util.testing import (
-    assert_almost_equal, assert_frame_equal, assert_series_equal)
+    assert_almost_equal, assert_frame_equal, assert_index_equal,
+    assert_series_equal)
 
 from .common import TestData
 
@@ -190,21 +191,6 @@ class TestSeriesLogicalOps(object):
         operator.and_,
         operator.or_,
         operator.xor,
-        pytest.param(ops.rand_,
-                     marks=pytest.mark.xfail(reason="GH#22092 Index "
-                                                    "implementation returns "
-                                                    "Index",
-                                             raises=AssertionError,
-                                             strict=True)),
-        pytest.param(ops.ror_,
-                     marks=pytest.mark.xfail(reason="Index.get_indexer "
-                                                    "with non unique index",
-                                             raises=InvalidIndexError,
-                                             strict=True)),
-        # pytest.param(ops.rxor,
-        #              marks=pytest.mark.xfail(reason="GH#22092 Index "
-        #                                             "implementation raises",
-        #                                      raises=TypeError, strict=True))
     ])
     def test_logical_ops_with_index(self, op):
         # GH#22092, GH#19792
@@ -222,6 +208,37 @@ class TestSeriesLogicalOps(object):
 
         result = op(ser, idx2)
         assert_series_equal(result, expected)
+
+    @pytest.mark.parametrize('op', [
+        pytest.param(ops.rand_,
+                     marks=pytest.mark.xfail(reason="GH#22092 Index "
+                                                    "implementation returns "
+                                                    "Index",
+                                             raises=AssertionError,
+                                             strict=True)),
+        pytest.param(ops.ror_,
+                     marks=pytest.mark.xfail(reason="Index.get_indexer "
+                                                    "with non unique index",
+                                             raises=InvalidIndexError,
+                                             strict=True)),
+        ops.rxor,
+    ])
+    def test_reversed_logical_ops_with_index(self, op):
+        # GH#22092, GH#19792
+        ser = Series([True, True, False, False])
+        idx1 = Index([True, False, True, False])
+        idx2 = Index([1, 0, 1, 0])
+
+        # symmetric_difference is only for rxor, but other 2 should fail
+        expected = idx1.symmetric_difference(ser)
+
+        result = op(ser, idx1)
+        assert_index_equal(result, expected)
+
+        expected = idx2.symmetric_difference(ser)
+
+        result = op(ser, idx2)
+        assert_index_equal(result, expected)
 
     @pytest.mark.parametrize("op, expected", [
         (ops.rand_, pd.Index([False, True])),

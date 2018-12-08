@@ -408,22 +408,6 @@ class DatetimeIndex(DatetimeArray, DatetimeIndexOpsMixin, Int64Index):
     # --------------------------------------------------------------------
     # Set Operation Methods
 
-    def union(self, other):
-        """
-        Specialized union for DatetimeIndex objects. If combine
-        overlapping ranges with the same DateOffset, will be much
-        faster than Index.union
-
-        Parameters
-        ----------
-        other : DatetimeIndex or array-like
-
-        Returns
-        -------
-        y : Index or DatetimeIndex
-        """
-        return super(DatetimeIndex, self).union(other)
-
     def _union(self, other):
         if not len(other) or self.equals(other) or not len(self):
             return super(DatetimeIndex, self)._union(other)

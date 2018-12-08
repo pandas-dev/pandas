@@ -293,22 +293,6 @@ class TimedeltaIndex(TimedeltaArray, DatetimeIndexOpsMixin,
             return Index(result.astype('i8'), name=self.name)
         return super(TimedeltaIndex, self).astype(dtype, copy=copy)
 
-    def union(self, other):
-        """
-        Specialized union for TimedeltaIndex objects. If combine
-        overlapping ranges with the same DateOffset, will be much
-        faster than Index.union
-
-        Parameters
-        ----------
-        other : TimedeltaIndex or array-like
-
-        Returns
-        -------
-        y : Index or TimedeltaIndex
-        """
-        return super(TimedeltaIndex, self).union(other)
-
     def _union(self, other):
         if len(other) == 0 or self.equals(other) or len(self) == 0:
             return super(TimedeltaIndex, self)._union(other)
