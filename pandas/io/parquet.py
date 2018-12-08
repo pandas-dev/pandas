@@ -4,9 +4,9 @@ from distutils.version import LooseVersion
 from warnings import catch_warnings
 
 from pandas.compat import string_types
+from pandas.errors import AbstractMethodError
 
 from pandas import DataFrame, get_option
-import pandas.core.common as com
 
 from pandas.io.common import get_filepath_or_buffer, is_s3_url
 
@@ -67,10 +67,10 @@ class BaseImpl(object):
             raise ValueError("Index level names must be strings")
 
     def write(self, df, path, compression, **kwargs):
-        raise com.AbstractMethodError(self)
+        raise AbstractMethodError(self)
 
     def read(self, path, columns=None, **kwargs):
-        raise com.AbstractMethodError(self)
+        raise AbstractMethodError(self)
 
 
 class PyArrowImpl(BaseImpl):
@@ -262,7 +262,7 @@ def read_parquet(path, engine='auto', columns=None, **kwargs):
     ----------
     path : string
         File path
-    columns: list, default=None
+    columns : list, default=None
         If not None, only these columns will be read from the file.
 
         .. versionadded 0.21.1
@@ -276,7 +276,6 @@ def read_parquet(path, engine='auto', columns=None, **kwargs):
     Returns
     -------
     DataFrame
-
     """
 
     impl = get_engine(engine)

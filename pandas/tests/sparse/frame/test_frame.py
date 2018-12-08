@@ -101,9 +101,7 @@ class TestSparseDataFrame(SharedWithSparse):
             assert isinstance(series, SparseSeries)
 
         # construct from nested dict
-        data = {}
-        for c, s in compat.iteritems(float_frame):
-            data[c] = s.to_dict()
+        data = {c: s.to_dict() for c, s in compat.iteritems(float_frame)}
 
         sdf = SparseDataFrame(data)
         tm.assert_sp_frame_equal(sdf, float_frame)
@@ -152,10 +150,10 @@ class TestSparseDataFrame(SharedWithSparse):
                       level=1)
 
         # wrong length index / columns
-        with tm.assert_raises_regex(ValueError, "^Index length"):
+        with pytest.raises(ValueError, match="^Index length"):
             SparseDataFrame(float_frame.values, index=float_frame.index[:-1])
 
-        with tm.assert_raises_regex(ValueError, "^Column length"):
+        with pytest.raises(ValueError, match="^Column length"):
             SparseDataFrame(float_frame.values,
                             columns=float_frame.columns[:-1])
 
@@ -638,7 +636,7 @@ class TestSparseDataFrame(SharedWithSparse):
 
     def test_ctor_reindex(self):
         idx = pd.Index([0, 1, 2, 3])
-        with tm.assert_raises_regex(ValueError, ''):
+        with pytest.raises(ValueError, match=''):
             pd.SparseDataFrame({"A": [1, 2]}, index=idx)
 
     def test_append(self, float_frame):
@@ -870,8 +868,7 @@ class TestSparseDataFrame(SharedWithSparse):
         right = float_frame.loc[:, ['B', 'D']]
         pytest.raises(Exception, left.join, right)
 
-        with tm.assert_raises_regex(ValueError,
-                                    'Other Series must have a name'):
+        with pytest.raises(ValueError, match='Other Series must have a name'):
             float_frame.join(Series(
                 np.random.randn(len(float_frame)), index=float_frame.index))
 
@@ -1130,7 +1127,8 @@ class TestSparseDataFrame(SharedWithSparse):
         tm.assert_sp_frame_equal(result, sdf)
 
         msg = "the 'axes' parameter is not supported"
-        tm.assert_raises_regex(ValueError, msg, np.transpose, sdf, axes=1)
+        with pytest.raises(ValueError, match=msg):
+            np.transpose(sdf, axes=1)
 
     def test_combine_first(self, float_frame):
         df = float_frame
@@ -1142,7 +1140,7 @@ class TestSparseDataFrame(SharedWithSparse):
 
         tm.assert_sp_frame_equal(result, expected)
 
-    @pytest.mark.xfail(reason="No longer supported.", strict=True)
+    @pytest.mark.xfail(reason="No longer supported.")
     def test_combine_first_with_dense(self):
         # We could support this if we allow
         # pd.core.dtypes.cast.find_common_type to special case SparseDtype
@@ -1198,8 +1196,7 @@ class TestSparseDataFrame(SharedWithSparse):
         tm.assert_frame_equal(df_blocks['Sparse[float64, nan]'], df)
 
     @pytest.mark.xfail(reason='nan column names in _init_dict problematic '
-                              '(GH#16894)',
-                       strict=True)
+                              '(GH#16894)')
     def test_nan_columnname(self):
         # GH 8822
         nan_colname = DataFrame(Series(1.0, index=[0]), columns=[nan])
@@ -1300,12 +1297,12 @@ class TestSparseDataFrameAnalytics(object):
         tm.assert_sp_frame_equal(result, expected)
 
         msg = "the 'dtype' parameter is not supported"
-        tm.assert_raises_regex(ValueError, msg, np.cumsum,
-                               float_frame, dtype=np.int64)
+        with pytest.raises(ValueError, match=msg):
+            np.cumsum(float_frame, dtype=np.int64)
 
         msg = "the 'out' parameter is not supported"
-        tm.assert_raises_regex(ValueError, msg, np.cumsum,
-                               float_frame, out=result)
+        with pytest.raises(ValueError, match=msg):
+            np.cumsum(float_frame, out=result)
 
     def test_numpy_func_call(self, float_frame):
         # no exception should be raised even though
@@ -1316,8 +1313,7 @@ class TestSparseDataFrameAnalytics(object):
         for func in funcs:
             getattr(np, func)(float_frame)
 
-    @pytest.mark.xfail(reason='Wrong SparseBlock initialization (GH 17386)',
-                       strict=True)
+    @pytest.mark.xfail(reason='Wrong SparseBlock initialization (GH 17386)')
     def test_quantile(self):
         # GH 17386
         data = [[1, 1], [2, 10], [3, 100], [nan, nan]]
@@ -1333,8 +1329,7 @@ class TestSparseDataFrameAnalytics(object):
         tm.assert_series_equal(result, dense_expected)
         tm.assert_sp_series_equal(result, sparse_expected)
 
-    @pytest.mark.xfail(reason='Wrong SparseBlock initialization (GH 17386)',
-                       strict=True)
+    @pytest.mark.xfail(reason='Wrong SparseBlock initialization (GH 17386)')
     def test_quantile_multi(self):
         # GH 17386
         data = [[1, 1], [2, 10], [3, 100], [nan, nan]]
@@ -1360,3 +1355,16 @@ class TestSparseDataFrameAnalytics(object):
 
         for column in res.columns:
             assert type(res[column]) is SparseSeries
+
+    @pytest.mark.parametrize("inplace", [True, False])
+    @pytest.mark.parametrize("how", ["all", "any"])
+    def test_dropna(self, inplace, how):
+        # Tests regression #21172.
+        expected = pd.SparseDataFrame({"F2": [0, 1]})
+        input_df = pd.SparseDataFrame(
+            {"F1": [float('nan'), float('nan')], "F2": [0, 1]}
+        )
+        result_df = input_df.dropna(axis=1, inplace=inplace, how=how)
+        if inplace:
+            result_df = input_df
+        tm.assert_sp_frame_equal(expected, result_df)

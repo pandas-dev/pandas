@@ -3,32 +3,37 @@ Data structures for sparse float data. Life is made simpler by dealing only
 with float64 data
 """
 from __future__ import division
-# pylint: disable=E1101,E1103,W0231,E0202
 
 import warnings
-from pandas.compat import lmap
-from pandas import compat
+
 import numpy as np
 
-from pandas.core.dtypes.missing import isna, notna
-from pandas.core.dtypes.cast import maybe_upcast, find_common_type
-from pandas.core.dtypes.common import ensure_platform_int, is_scipy_sparse
-
-from pandas.compat.numpy import function as nv
-from pandas.core.index import Index, MultiIndex, ensure_index
-from pandas.core.series import Series
-from pandas.core.frame import DataFrame, extract_index, _prep_ndarray
-import pandas.core.algorithms as algos
-from pandas.core.internals import (BlockManager,
-                                   create_block_manager_from_arrays)
-import pandas.core.generic as generic
-from pandas.core.arrays.sparse import SparseArray, SparseDtype
-from pandas.core.sparse.series import SparseSeries
 from pandas._libs.sparse import BlockIndex, get_blocks
+import pandas.compat as compat
+from pandas.compat import lmap
+from pandas.compat.numpy import function as nv
 from pandas.util._decorators import Appender
-import pandas.core.ops as ops
+
+from pandas.core.dtypes.cast import find_common_type, maybe_upcast
+from pandas.core.dtypes.common import ensure_platform_int, is_scipy_sparse
+from pandas.core.dtypes.missing import isna, notna
+
+import pandas.core.algorithms as algos
+from pandas.core.arrays.sparse import SparseArray, SparseDtype
 import pandas.core.common as com
+from pandas.core.frame import DataFrame
+import pandas.core.generic as generic
+from pandas.core.index import Index, MultiIndex, ensure_index
 import pandas.core.indexes.base as ibase
+from pandas.core.internals import (
+    BlockManager, create_block_manager_from_arrays)
+from pandas.core.internals.construction import extract_index, prep_ndarray
+import pandas.core.ops as ops
+from pandas.core.series import Series
+from pandas.core.sparse.series import SparseSeries
+
+# pylint: disable=E1101,E1103,W0231,E0202
+
 
 _shared_doc_kwargs = dict(klass='SparseDataFrame')
 
@@ -190,7 +195,7 @@ class SparseDataFrame(DataFrame):
 
     def _init_matrix(self, data, index, columns, dtype=None):
         """ Init self from ndarray or list of lists """
-        data = _prep_ndarray(data, copy=False)
+        data = prep_ndarray(data, copy=False)
         index, columns = self._prep_index(data, index, columns)
         data = {idx: data[:, i] for i, idx in enumerate(columns)}
         return self._init_dict(data, index, columns, dtype)
@@ -335,9 +340,8 @@ class SparseDataFrame(DataFrame):
     def _apply_columns(self, func):
         """ get new SparseDataFrame applying func to each columns """
 
-        new_data = {}
-        for col, series in compat.iteritems(self):
-            new_data[col] = func(series)
+        new_data = {col: func(series)
+                    for col, series in compat.iteritems(self)}
 
         return self._constructor(
             data=new_data, index=self.index, columns=self.columns,
@@ -963,7 +967,7 @@ def stack_sparse_frame(frame):
     nobs = sum(lengths)
 
     # this is pretty fast
-    minor_labels = np.repeat(np.arange(len(frame.columns)), lengths)
+    minor_codes = np.repeat(np.arange(len(frame.columns)), lengths)
 
     inds_to_concat = []
     vals_to_concat = []
@@ -978,10 +982,10 @@ def stack_sparse_frame(frame):
         inds_to_concat.append(int_index.indices)
         vals_to_concat.append(series.sp_values)
 
-    major_labels = np.concatenate(inds_to_concat)
+    major_codes = np.concatenate(inds_to_concat)
     stacked_values = np.concatenate(vals_to_concat)
     index = MultiIndex(levels=[frame.index, frame.columns],
-                       labels=[major_labels, minor_labels],
+                       codes=[major_codes, minor_codes],
                        verify_integrity=False)
 
     lp = DataFrame(stacked_values.reshape((nobs, 1)), index=index,

@@ -2,6 +2,8 @@
 
 from cython import Py_ssize_t
 
+from cpython.datetime cimport tzinfo
+
 # dateutil compat
 from dateutil.tz import (
     tzutc as _dateutil_tzutc,
@@ -27,7 +29,7 @@ cdef int64_t NPY_NAT = get_nat()
 
 # ----------------------------------------------------------------------
 
-cdef inline bint is_utc(object tz):
+cpdef inline bint is_utc(object tz):
     return tz is UTC or isinstance(tz, _dateutil_tzutc)
 
 
@@ -58,7 +60,7 @@ cpdef inline object get_timezone(object tz):
     UJSON/pytables. maybe_get_tz (below) is the inverse of this process.
     """
     if is_utc(tz):
-        return 'UTC'
+        return tz
     else:
         if treat_tz_as_dateutil(tz):
             if '.tar.gz' in tz._filename:

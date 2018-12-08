@@ -216,7 +216,7 @@ class TestSeriesDatetimeValues():
 
         # no setting allowed
         s = Series(date_range('20130101', periods=5, freq='D'), name='xxx')
-        with tm.assert_raises_regex(ValueError, "modifications"):
+        with pytest.raises(ValueError, match="modifications"):
             s.dt.hour = 5
 
         # trying to set a copy
@@ -314,8 +314,8 @@ class TestSeriesDatetimeValues():
     def test_dt_accessor_no_new_attributes(self):
         # https://github.com/pandas-dev/pandas/issues/10673
         s = Series(date_range('20130101', periods=5, freq='D'))
-        with tm.assert_raises_regex(AttributeError,
-                                    "You cannot add any new attribute"):
+        with pytest.raises(AttributeError,
+                           match="You cannot add any new attribute"):
             s.dt.xlabel = "a"
 
     @pytest.mark.parametrize('time_locale', [
@@ -335,8 +335,8 @@ class TestSeriesDatetimeValues():
                 expected_days = calendar.day_name[:]
                 expected_months = calendar.month_name[1:]
 
-        s = Series(DatetimeIndex(freq='D', start=datetime(1998, 1, 1),
-                                 periods=365))
+        s = Series(date_range(freq='D', start=datetime(1998, 1, 1),
+                              periods=365))
         english_days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday',
                         'Friday', 'Saturday', 'Sunday']
         for day, name, eng_name in zip(range(4, 11),
@@ -348,7 +348,7 @@ class TestSeriesDatetimeValues():
         s = s.append(Series([pd.NaT]))
         assert np.isnan(s.dt.day_name(locale=time_locale).iloc[-1])
 
-        s = Series(DatetimeIndex(freq='M', start='2012', end='2013'))
+        s = Series(date_range(freq='M', start='2012', end='2013'))
         result = s.dt.month_name(locale=time_locale)
         expected = Series([month.capitalize() for month in expected_months])
 
@@ -481,7 +481,7 @@ class TestSeriesDatetimeValues():
                                      Series(np.random.randn(5))])
     def test_dt_accessor_invalid(self, ser):
         # GH#9322 check that series with incorrect dtypes don't have attr
-        with tm.assert_raises_regex(AttributeError, "only use .dt accessor"):
+        with pytest.raises(AttributeError, match="only use .dt accessor"):
             ser.dt
         assert not hasattr(ser, 'dt')
 

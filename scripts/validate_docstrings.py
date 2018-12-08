@@ -56,6 +56,9 @@ from pandas.io.formats.printing import pprint_thing
 
 PRIVATE_CLASSES = ['NDFrame', 'IndexOpsMixin']
 DIRECTIVES = ['versionadded', 'versionchanged', 'deprecated']
+ALLOWED_SECTIONS = ['Parameters', 'Attributes', 'Methods', 'Returns', 'Yields',
+                    'Other Parameters', 'Raises', 'Warns', 'See Also', 'Notes',
+                    'References', 'Examples']
 ERROR_MSGS = {
     'GL01': 'Docstring text (summary) should start in the line immediately '
             'after the opening quotes (not in the same line, or leaving a '
@@ -64,11 +67,18 @@ ERROR_MSGS = {
             'in the docstring (do not close the quotes in the same line as '
             'the text, or leave a blank line between the last text and the '
             'quotes)',
-    'GL03': 'Use only one blank line to separate sections or paragraphs',
+    'GL03': 'Double line break found; please use only one blank line to '
+            'separate sections or paragraphs, and do not leave blank lines '
+            'at the end of docstrings',
     'GL04': 'Private classes ({mentioned_private_classes}) should not be '
             'mentioned in public docstrings',
     'GL05': 'Tabs found at the start of line "{line_with_tabs}", please use '
             'whitespace only',
+    'GL06': 'Found unknown section "{section}". Allowed sections are: '
+            '{allowed_sections}',
+    'GL07': 'Sections are in the wrong order. Correct order is: '
+            '{correct_sections}',
+    'GL08': 'The object does not have a docstring',
     'SS01': 'No summary found (a short summary in a single line should be '
             'present at the beginning of the docstring)',
     'SS02': 'Summary does not start with a capital letter',
@@ -90,6 +100,8 @@ ERROR_MSGS = {
     'PR08': 'Parameter "{param_name}" description should start with a '
             'capital letter',
     'PR09': 'Parameter "{param_name}" description should finish with "."',
+    'PR10': 'Parameter "{param_name}" requires a space before the colon '
+            'separating the parameter name and type',
     'RT01': 'No Returns section found',
     'YD01': 'No Yields section found',
     'SA01': 'See Also section not found',
@@ -354,6 +366,18 @@ class Docstring(object):
         return False
 
     @property
+    def section_titles(self):
+        sections = []
+        self.doc._doc.reset()
+        while not self.doc._doc.eof():
+            content = self.doc._read_to_next_section()
+            if (len(content) > 1
+                    and len(content[0]) == len(content[1])
+                    and set(content[1]) == {'-'}):
+                sections.append(content[0])
+        return sections
+
+    @property
     def summary(self):
         return ' '.join(self.doc['Summary'])
 
@@ -522,20 +546,24 @@ class Docstring(object):
         yield from application.guide.stats.statistics_for('')
 
 
-def validate_one(func_name):
+def get_validation_data(doc):
     """
-    Validate the docstring for the given func_name
+    Validate the docstring.
 
     Parameters
     ----------
-    func_name : function
-        Function whose docstring will be evaluated (e.g. pandas.read_csv).
+    doc : Docstring
+        A Docstring object with the given function name.
 
     Returns
     -------
-    dict
-        A dictionary containing all the information obtained from validating
-        the docstring.
+    tuple
+        errors : list of tuple
+            Errors occurred during validation.
+        warnings : list of tuple
+            Warnings occurred during validation.
+        examples_errs : str
+            Examples usage displayed along the error, otherwise empty string.
 
     Notes
     -----
@@ -562,10 +590,13 @@ def validate_one(func_name):
     they are validated, are not documented more than in the source code of this
     function.
     """
-    doc = Docstring(func_name)
 
     errs = []
     wrns = []
+    if not doc.raw_doc:
+        errs.append(error('GL08'))
+        return errs, wrns, ''
+
     if doc.start_blank_lines != 1:
         errs.append(error('GL01'))
     if doc.end_blank_lines != 1:
@@ -579,6 +610,19 @@ def validate_one(func_name):
     for line in doc.raw_doc.splitlines():
         if re.match("^ *\t", line):
             errs.append(error('GL05', line_with_tabs=line.lstrip()))
+
+    unexpected_sections = [section for section in doc.section_titles
+                           if section not in ALLOWED_SECTIONS]
+    for section in unexpected_sections:
+        errs.append(error('GL06',
+                          section=section,
+                          allowed_sections=', '.join(ALLOWED_SECTIONS)))
+
+    correct_order = [section for section in ALLOWED_SECTIONS
+                     if section in doc.section_titles]
+    if correct_order != doc.section_titles:
+        errs.append(error('GL07',
+                          correct_sections=', '.join(correct_order)))
 
     if not doc.summary:
         errs.append(error('SS01'))
@@ -606,7 +650,11 @@ def validate_one(func_name):
     for param in doc.doc_parameters:
         if not param.startswith("*"):  # Check can ignore var / kwargs
             if not doc.parameter_type(param):
-                errs.append(error('PR04', param_name=param))
+                if ':' in param:
+                    errs.append(error('PR10',
+                                      param_name=param.split(':')[0]))
+                else:
+                    errs.append(error('PR04', param_name=param))
             else:
                 if doc.parameter_type(param)[-1] == '.':
                     errs.append(error('PR05', param_name=param))
@@ -666,7 +714,26 @@ def validate_one(func_name):
         for wrong_import in ('numpy', 'pandas'):
             if 'import {}'.format(wrong_import) in examples_source_code:
                 errs.append(error('EX04', imported_library=wrong_import))
+    return errs, wrns, examples_errs
 
+
+def validate_one(func_name):
+    """
+    Validate the docstring for the given func_name
+
+    Parameters
+    ----------
+    func_name : function
+        Function whose docstring will be evaluated (e.g. pandas.read_csv).
+
+    Returns
+    -------
+    dict
+        A dictionary containing all the information obtained from validating
+        the docstring.
+    """
+    doc = Docstring(func_name)
+    errs, wrns, examples_errs = get_validation_data(doc)
     return {'type': doc.type,
             'docstring': doc.clean_doc,
             'deprecated': doc.deprecated,
@@ -678,7 +745,7 @@ def validate_one(func_name):
             'examples_errors': examples_errs}
 
 
-def validate_all(prefix):
+def validate_all(prefix, ignore_deprecated=False):
     """
     Execute the validation of all docstrings, and return a dict with the
     results.
@@ -688,6 +755,8 @@ def validate_all(prefix):
     prefix : str or None
         If provided, only the docstrings that start with this pattern will be
         validated. If None, all docstrings will be validated.
+    ignore_deprecated: bool, default False
+        If True, deprecated objects are ignored when validating docstrings.
 
     Returns
     -------
@@ -706,6 +775,8 @@ def validate_all(prefix):
         if prefix and not func_name.startswith(prefix):
             continue
         doc_info = validate_one(func_name)
+        if ignore_deprecated and doc_info['deprecated']:
+            continue
         result[func_name] = doc_info
 
         shared_code_key = doc_info['file'], doc_info['file_line']
@@ -727,13 +798,15 @@ def validate_all(prefix):
                 if prefix and not func_name.startswith(prefix):
                     continue
                 doc_info = validate_one(func_name)
+                if ignore_deprecated and doc_info['deprecated']:
+                    continue
                 result[func_name] = doc_info
                 result[func_name]['in_api'] = False
 
     return result
 
 
-def main(func_name, prefix, errors, output_format):
+def main(func_name, prefix, errors, output_format, ignore_deprecated):
     def header(title, width=80, char='#'):
         full_line = char * width
         side_len = (width - len(title) - 2) // 2
@@ -747,7 +820,7 @@ def main(func_name, prefix, errors, output_format):
 
     exit_status = 0
     if func_name is None:
-        result = validate_all(prefix)
+        result = validate_all(prefix, ignore_deprecated)
 
         if output_format == 'json':
             output = json.dumps(result)
@@ -838,8 +911,13 @@ if __name__ == '__main__':
                            'list of error codes to validate. By default it '
                            'validates all errors (ignored when validating '
                            'a single docstring)')
+    argparser.add_argument('--ignore_deprecated', default=False,
+                           action='store_true', help='if this flag is set, '
+                           'deprecated objects are ignored when validating '
+                           'all docstrings')
 
     args = argparser.parse_args()
     sys.exit(main(args.function, args.prefix,
                   args.errors.split(',') if args.errors else None,
-                  args.format))
+                  args.format,
+                  args.ignore_deprecated))

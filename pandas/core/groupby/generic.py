@@ -18,6 +18,7 @@ from pandas._libs import Timestamp, lib
 import pandas.compat as compat
 from pandas.compat import lzip, map
 from pandas.compat.numpy import _np_version_under1p13
+from pandas.errors import AbstractMethodError
 from pandas.util._decorators import Appender, Substitution
 
 from pandas.core.dtypes.cast import maybe_downcast_to_dtype
@@ -240,7 +241,7 @@ class NDFrameGroupBy(GroupBy):
         return self._wrap_generic_output(result, obj)
 
     def _wrap_aggregated_output(self, output, names=None):
-        raise com.AbstractMethodError(self)
+        raise AbstractMethodError(self)
 
     def _aggregate_item_by_item(self, func, *args, **kwargs):
         # only for axis==0
@@ -633,6 +634,10 @@ class NDFrameGroupBy(GroupBy):
         dropna : Drop groups that do not pass the filter. True by default;
             if False, groups that evaluate False are filled with NaNs.
 
+        Returns
+        -------
+        filtered : DataFrame
+
         Notes
         -----
         Each subframe is endowed the attribute 'name' in case you need to know
@@ -650,10 +655,6 @@ class NDFrameGroupBy(GroupBy):
         1  bar  2  5.0
         3  bar  4  1.0
         5  bar  6  9.0
-
-        Returns
-        -------
-        filtered : DataFrame
         """
 
         indices = []
@@ -733,7 +734,7 @@ class SeriesGroupBy(GroupBy):
     1    1    2
     2    3    4
 
-    See also
+    See Also
     --------
     pandas.Series.groupby.apply
     pandas.Series.groupby.transform
@@ -825,8 +826,9 @@ class SeriesGroupBy(GroupBy):
         for name, func in arg:
             obj = self
             if name in results:
-                raise SpecificationError('Function names must be unique, '
-                                         'found multiple named %s' % name)
+                raise SpecificationError(
+                    'Function names must be unique, found multiple named '
+                    '{}'.format(name))
 
             # reset the cache so that we
             # only include the named selection
@@ -1026,8 +1028,7 @@ class SeriesGroupBy(GroupBy):
         try:
             sorter = np.lexsort((val, ids))
         except TypeError:  # catches object dtypes
-            msg = ('val.dtype must be object, got {dtype}'
-                   .format(dtype=val.dtype))
+            msg = 'val.dtype must be object, got {}'.format(val.dtype)
             assert val.dtype == object, msg
             val, _ = algorithms.factorize(val, sort=False)
             sorter = np.lexsort((val, ids))
@@ -1111,7 +1112,7 @@ class SeriesGroupBy(GroupBy):
             lab = cut(Series(val), bins, include_lowest=True)
             lev = lab.cat.categories
             lab = lev.take(lab.cat.codes)
-            llab = lambda lab, inc: lab[inc]._multiindex.labels[-1]
+            llab = lambda lab, inc: lab[inc]._multiindex.codes[-1]
 
         if is_interval_dtype(lab):
             # TODO: should we do this inside II?
@@ -1162,7 +1163,7 @@ class SeriesGroupBy(GroupBy):
             out, labels[-1] = out[sorter], labels[-1][sorter]
 
         if bins is None:
-            mi = MultiIndex(levels=levels, labels=labels, names=names,
+            mi = MultiIndex(levels=levels, codes=labels, names=names,
                             verify_integrity=False)
 
             if is_integer_dtype(out):
@@ -1190,10 +1191,10 @@ class SeriesGroupBy(GroupBy):
             out, left[-1] = out[sorter], left[-1][sorter]
 
         # build the multi-index w/ full levels
-        labels = list(map(lambda lab: np.repeat(lab[diff], nbin), labels[:-1]))
-        labels.append(left[-1])
+        codes = list(map(lambda lab: np.repeat(lab[diff], nbin), labels[:-1]))
+        codes.append(left[-1])
 
-        mi = MultiIndex(levels=levels, labels=labels, names=names,
+        mi = MultiIndex(levels=levels, codes=codes, names=names,
                         verify_integrity=False)
 
         if is_integer_dtype(out):
@@ -1288,12 +1289,11 @@ class DataFrameGroupBy(NDFrameGroupBy):
     1   1   2  0.590716
     2   3   4  0.704907
 
-    See also
+    See Also
     --------
     pandas.DataFrame.groupby.apply
     pandas.DataFrame.groupby.transform
     pandas.DataFrame.aggregate
-
     """)
 
     @Appender(_agg_doc)
@@ -1659,4 +1659,4 @@ class PanelGroupBy(NDFrameGroupBy):
             raise ValueError("axis value must be greater than 0")
 
     def _wrap_aggregated_output(self, output, names=None):
-        raise com.AbstractMethodError(self)
+        raise AbstractMethodError(self)

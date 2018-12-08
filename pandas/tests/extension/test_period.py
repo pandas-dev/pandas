@@ -8,7 +8,6 @@ from pandas.core.dtypes.dtypes import PeriodDtype
 import pandas as pd
 from pandas.core.arrays import PeriodArray
 from pandas.tests.extension import base
-import pandas.util.testing as tm
 
 
 @pytest.fixture
@@ -114,7 +113,7 @@ class TestArithmeticOps(BasePeriodTests, base.BaseArithmeticOpsTests):
         s = pd.Series(data)
         msg = (r"unsupported operand type\(s\) for \+: "
                r"\'PeriodArray\' and \'PeriodArray\'")
-        with tm.assert_raises_regex(TypeError, msg):
+        with pytest.raises(TypeError, match=msg):
             s + data
 
     def test_error(self):
@@ -152,4 +151,8 @@ class TestSetitem(BasePeriodTests, base.BaseSetitemTests):
 
 
 class TestGroupby(BasePeriodTests, base.BaseGroupbyTests):
+    pass
+
+
+class TestPrinting(BasePeriodTests, base.BasePrintingTests):
     pass

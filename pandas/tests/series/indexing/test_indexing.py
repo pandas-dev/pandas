@@ -394,9 +394,9 @@ def test_setslice(test_data):
 @pytest.mark.filterwarnings("ignore:Using a non-tuple:FutureWarning")
 def test_basic_getitem_setitem_corner(test_data):
     # invalid tuples, e.g. td.ts[:, None] vs. td.ts[:, 2]
-    with tm.assert_raises_regex(ValueError, 'tuple-index'):
+    with pytest.raises(ValueError, match='tuple-index'):
         test_data.ts[:, 2]
-    with tm.assert_raises_regex(ValueError, 'tuple-index'):
+    with pytest.raises(ValueError, match='tuple-index'):
         test_data.ts[:, 2] = 2
 
     # weird lists. [slice(0, 5)] will work but not two slices
@@ -711,8 +711,8 @@ def test_type_promote_putmask():
 def test_multilevel_preserve_name():
     index = MultiIndex(levels=[['foo', 'bar', 'baz', 'qux'], ['one', 'two',
                                                               'three']],
-                       labels=[[0, 0, 0, 1, 1, 2, 2, 3, 3, 3],
-                               [0, 1, 2, 0, 1, 1, 2, 0, 1, 2]],
+                       codes=[[0, 0, 0, 1, 1, 2, 2, 3, 3, 3],
+                              [0, 1, 2, 0, 1, 1, 2, 0, 1, 2]],
                        names=['first', 'second'])
     s = Series(np.random.randn(len(index)), index=index, name='sth')
 

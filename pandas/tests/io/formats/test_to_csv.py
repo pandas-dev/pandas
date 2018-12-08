@@ -54,7 +54,7 @@ class TestToCSV(object):
             # Python 3 is uft-8.
             if pd.compat.PY2:
                 # the encoding argument parameter should be utf-8
-                with tm.assert_raises_regex(UnicodeEncodeError, 'ascii'):
+                with pytest.raises(UnicodeEncodeError, match='ascii'):
                     df.to_csv(path)
             else:
                 df.to_csv(path)
@@ -85,7 +85,7 @@ $1$,$2$
                 assert f.read() == expected
 
         with tm.ensure_clean('test.csv') as path:
-            with tm.assert_raises_regex(TypeError, 'quotechar'):
+            with pytest.raises(TypeError, match='quotechar'):
                 df.to_csv(path, quoting=1, quotechar=None)
 
     def test_to_csv_doublequote(self):
@@ -103,7 +103,7 @@ $1$,$2$
 
         from _csv import Error
         with tm.ensure_clean('test.csv') as path:
-            with tm.assert_raises_regex(Error, 'escapechar'):
+            with pytest.raises(Error, match='escapechar'):
                 df.to_csv(path, doublequote=False)  # no escapechar set
 
     def test_to_csv_escapechar(self):
@@ -327,11 +327,11 @@ $1$,$2$
 
     @pytest.mark.parametrize("ind,expected", [
         (pd.MultiIndex(levels=[[1.0]],
-                       labels=[[0]],
+                       codes=[[0]],
                        names=["x"]),
          "x,data\n1.0,1\n"),
         (pd.MultiIndex(levels=[[1.], [2.]],
-                       labels=[[0], [0]],
+                       codes=[[0], [0]],
                        names=["x", "y"]),
          "x,y,data\n1.0,2.0,1\n")
     ])
@@ -358,7 +358,7 @@ $1$,$2$
             with open(path, 'r') as f:
                 assert f.read() == expected_ascii
 
-    @pytest.mark.xfail(strict=True)
+    @pytest.mark.xfail
     def test_to_csv_string_array_utf8(self):
         # GH 10813
         str_array = [{'names': ['foo', 'bar']}, {'names': ['baz', 'qux']}]

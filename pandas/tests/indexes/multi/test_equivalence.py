@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
-
 import numpy as np
+import pytest
 
 from pandas.compat import lrange, lzip, range
 
@@ -35,7 +35,7 @@ def test_equals_op(idx):
     index_b = index_a[0:-1]
     index_c = index_a[0:-1].append(index_a[-2:-1])
     index_d = index_a[0:1]
-    with tm.assert_raises_regex(ValueError, "Lengths must match"):
+    with pytest.raises(ValueError, match="Lengths must match"):
         index_a == index_b
     expected1 = np.array([True] * n)
     expected2 = np.array([True] * (n - 1) + [False])
@@ -47,7 +47,7 @@ def test_equals_op(idx):
     array_b = np.array(index_a[0:-1])
     array_c = np.array(index_a[0:-1].append(index_a[-2:-1]))
     array_d = np.array(index_a[0:1])
-    with tm.assert_raises_regex(ValueError, "Lengths must match"):
+    with pytest.raises(ValueError, match="Lengths must match"):
         index_a == array_b
     tm.assert_numpy_array_equal(index_a == array_a, expected1)
     tm.assert_numpy_array_equal(index_a == array_c, expected2)
@@ -57,23 +57,23 @@ def test_equals_op(idx):
     series_b = Series(array_b)
     series_c = Series(array_c)
     series_d = Series(array_d)
-    with tm.assert_raises_regex(ValueError, "Lengths must match"):
+    with pytest.raises(ValueError, match="Lengths must match"):
         index_a == series_b
 
     tm.assert_numpy_array_equal(index_a == series_a, expected1)
     tm.assert_numpy_array_equal(index_a == series_c, expected2)
 
     # cases where length is 1 for one of them
-    with tm.assert_raises_regex(ValueError, "Lengths must match"):
+    with pytest.raises(ValueError, match="Lengths must match"):
         index_a == index_d
-    with tm.assert_raises_regex(ValueError, "Lengths must match"):
+    with pytest.raises(ValueError, match="Lengths must match"):
         index_a == series_d
-    with tm.assert_raises_regex(ValueError, "Lengths must match"):
+    with pytest.raises(ValueError, match="Lengths must match"):
         index_a == array_d
     msg = "Can only compare identically-labeled Series objects"
-    with tm.assert_raises_regex(ValueError, msg):
+    with pytest.raises(ValueError, match=msg):
         series_a == series_d
-    with tm.assert_raises_regex(ValueError, "Lengths must match"):
+    with pytest.raises(ValueError, match="Lengths must match"):
         series_a == array_d
 
     # comparing with a scalar should broadcast; note that we are excluding
@@ -99,10 +99,10 @@ def test_equals_multi(idx):
 
     # different number of levels
     index = MultiIndex(levels=[Index(lrange(4)), Index(lrange(4)), Index(
-        lrange(4))], labels=[np.array([0, 0, 1, 2, 2, 2, 3, 3]), np.array(
+        lrange(4))], codes=[np.array([0, 0, 1, 2, 2, 2, 3, 3]), np.array(
             [0, 1, 0, 0, 0, 1, 0, 1]), np.array([1, 0, 1, 1, 0, 0, 1, 0])])
 
-    index2 = MultiIndex(levels=index.levels[:-1], labels=index.labels[:-1])
+    index2 = MultiIndex(levels=index.levels[:-1], codes=index.codes[:-1])
     assert not index.equals(index2)
     assert not index.equal_levels(index2)
 
@@ -110,11 +110,11 @@ def test_equals_multi(idx):
     major_axis = Index(lrange(4))
     minor_axis = Index(lrange(2))
 
-    major_labels = np.array([0, 0, 1, 2, 2, 3])
-    minor_labels = np.array([0, 1, 0, 0, 1, 0])
+    major_codes = np.array([0, 0, 1, 2, 2, 3])
+    minor_codes = np.array([0, 1, 0, 0, 1, 0])
 
     index = MultiIndex(levels=[major_axis, minor_axis],
-                       labels=[major_labels, minor_labels])
+                       codes=[major_codes, minor_codes])
     assert not idx.equals(index)
     assert not idx.equal_levels(index)
 
@@ -122,11 +122,11 @@ def test_equals_multi(idx):
     major_axis = Index(['foo', 'bar', 'baz', 'qux'])
     minor_axis = Index(['one', 'two'])
 
-    major_labels = np.array([0, 0, 2, 2, 3, 3])
-    minor_labels = np.array([0, 1, 0, 1, 0, 1])
+    major_codes = np.array([0, 0, 2, 2, 3, 3])
+    minor_codes = np.array([0, 1, 0, 1, 0, 1])
 
     index = MultiIndex(levels=[major_axis, minor_axis],
-                       labels=[major_labels, minor_labels])
+                       codes=[major_codes, minor_codes])
     assert not idx.equals(index)
 
 

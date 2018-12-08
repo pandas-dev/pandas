@@ -28,6 +28,22 @@ import pandas.util.testing as tm
 
 
 class TestDataFrameBlockInternals():
+    def test_setitem_invalidates_datetime_index_freq(self):
+        # GH#24096 altering a datetime64tz column inplace invalidates the
+        #  `freq` attribute on the underlying DatetimeIndex
+
+        dti = date_range('20130101', periods=3, tz='US/Eastern')
+        ts = dti[1]
+
+        df = DataFrame({'B': dti})
+        assert df['B']._values.freq == 'D'
+
+        df.iloc[1, 0] = pd.NaT
+        assert df['B']._values.freq is None
+
+        # check that the DatetimeIndex was not altered in place
+        assert dti.freq == 'D'
+        assert dti[1] == ts
 
     def test_cast_internals(self, float_frame):
         casted = DataFrame(float_frame._data, dtype=int)
@@ -474,7 +490,7 @@ starting,ending,measure
 
         # via astype, but errors
         converted = float_string_frame.copy()
-        with tm.assert_raises_regex(ValueError, 'invalid literal'):
+        with pytest.raises(ValueError, match='invalid literal'):
             converted['H'].astype('int32')
 
         # mixed in a single column

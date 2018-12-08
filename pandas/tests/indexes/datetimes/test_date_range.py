@@ -167,7 +167,7 @@ class TestDateRanges(TestData):
 
         msg = ('Of the four parameters: start, end, periods, and '
                'freq, exactly three must be specified')
-        with tm.assert_raises_regex(ValueError, msg):
+        with pytest.raises(ValueError, match=msg):
             date_range(start, end, periods=10, freq='s')
 
     def test_date_range_convenience_periods(self):
@@ -245,25 +245,25 @@ class TestDateRanges(TestData):
         msg = ('Of the four parameters: start, end, periods, and '
                'freq, exactly three must be specified')
 
-        with tm.assert_raises_regex(ValueError, msg):
+        with pytest.raises(ValueError, match=msg):
             date_range(start='1/1/2000')
 
-        with tm.assert_raises_regex(ValueError, msg):
+        with pytest.raises(ValueError, match=msg):
             date_range(end='1/1/2000')
 
-        with tm.assert_raises_regex(ValueError, msg):
+        with pytest.raises(ValueError, match=msg):
             date_range(periods=10)
 
-        with tm.assert_raises_regex(ValueError, msg):
+        with pytest.raises(ValueError, match=msg):
             date_range(start='1/1/2000', freq='H')
 
-        with tm.assert_raises_regex(ValueError, msg):
+        with pytest.raises(ValueError, match=msg):
             date_range(end='1/1/2000', freq='H')
 
-        with tm.assert_raises_regex(ValueError, msg):
+        with pytest.raises(ValueError, match=msg):
             date_range(periods=10, freq='H')
 
-        with tm.assert_raises_regex(ValueError, msg):
+        with pytest.raises(ValueError, match=msg):
             date_range()
 
     @pytest.mark.parametrize('f', [compat.long, int])
@@ -311,7 +311,7 @@ class TestDateRanges(TestData):
 
     def test_error_with_zero_monthends(self):
         msg = r'Offset <0 \* MonthEnds> did not increment date'
-        with tm.assert_raises_regex(ValueError, msg):
+        with pytest.raises(ValueError, match=msg):
             date_range('1/1/2000', '1/1/2001', freq=MonthEnd(0))
 
     def test_range_bug(self):
@@ -515,7 +515,7 @@ class TestDateRanges(TestData):
     def test_timezone_comparaison_assert(self):
         start = Timestamp('20130220 10:00', tz='US/Eastern')
         msg = 'Inferred time zone not equal to passed time zone'
-        with tm.assert_raises_regex(AssertionError, msg):
+        with pytest.raises(AssertionError, match=msg):
             date_range(start, periods=2, tz='Europe/Berlin')
 
     def test_negative_non_tick_frequency_descending_dates(self,
@@ -561,10 +561,10 @@ class TestGenRangeGeneration(object):
         assert rng == expected
 
     def test_precision_finer_than_offset(self):
-        # GH 9907
-        result1 = DatetimeIndex(start='2015-04-15 00:00:03',
+        # GH#9907
+        result1 = pd.date_range(start='2015-04-15 00:00:03',
                                 end='2016-04-22 00:00:00', freq='Q')
-        result2 = DatetimeIndex(start='2015-04-15 00:00:03',
+        result2 = pd.date_range(start='2015-04-15 00:00:03',
                                 end='2015-06-22 00:00:04', freq='W')
         expected1_list = ['2015-06-30 00:00:03', '2015-09-30 00:00:03',
                           '2015-12-31 00:00:03', '2016-03-31 00:00:03']
@@ -594,7 +594,7 @@ class TestGenRangeGeneration(object):
         with pytest.raises(TypeError):
             pd.date_range(start, end)
         with pytest.raises(TypeError):
-            pd.DatetimeIndex(start, end, freq=BDay())
+            pd.date_range(start, end, freq=BDay())
 
     def test_CalendarDay_range_with_dst_crossing(self):
         # GH 20596
@@ -613,14 +613,14 @@ class TestBusinessDateRange(object):
         bdate_range(end=START, periods=20, freq=BDay())
 
         msg = 'periods must be a number, got B'
-        with tm.assert_raises_regex(TypeError, msg):
+        with pytest.raises(TypeError, match=msg):
             date_range('2011-1-1', '2012-1-1', 'B')
 
-        with tm.assert_raises_regex(TypeError, msg):
+        with pytest.raises(TypeError, match=msg):
             bdate_range('2011-1-1', '2012-1-1', 'B')
 
         msg = 'freq must be specified for bdate_range; use date_range instead'
-        with tm.assert_raises_regex(TypeError, msg):
+        with pytest.raises(TypeError, match=msg):
             bdate_range(START, END, periods=10, freq=None)
 
     def test_naive_aware_conflicts(self):
@@ -628,10 +628,10 @@ class TestBusinessDateRange(object):
         aware = bdate_range(START, END, freq=BDay(), tz="Asia/Hong_Kong")
 
         msg = 'tz-naive.*tz-aware'
-        with tm.assert_raises_regex(TypeError, msg):
+        with pytest.raises(TypeError, match=msg):
             naive.join(aware)
 
-        with tm.assert_raises_regex(TypeError, msg):
+        with pytest.raises(TypeError, match=msg):
             aware.join(naive)
 
     def test_misc(self):
@@ -688,10 +688,10 @@ class TestCustomDateRange(object):
         bdate_range(end=START, periods=20, freq=CDay())
 
         msg = 'periods must be a number, got C'
-        with tm.assert_raises_regex(TypeError, msg):
+        with pytest.raises(TypeError, match=msg):
             date_range('2011-1-1', '2012-1-1', 'C')
 
-        with tm.assert_raises_regex(TypeError, msg):
+        with pytest.raises(TypeError, match=msg):
             bdate_range('2011-1-1', '2012-1-1', 'C')
 
     def test_misc(self):
@@ -726,7 +726,7 @@ class TestCustomDateRange(object):
         # raise with non-custom freq
         msg = ('a custom frequency string is required when holidays or '
                'weekmask are passed, got frequency B')
-        with tm.assert_raises_regex(ValueError, msg):
+        with pytest.raises(ValueError, match=msg):
             bdate_range('2013-05-01', periods=3,
                         weekmask='Sun Mon Tue Wed Thu')
 
@@ -739,7 +739,7 @@ class TestCustomDateRange(object):
         # raise with non-custom freq
         msg = ('a custom frequency string is required when holidays or '
                'weekmask are passed, got frequency B')
-        with tm.assert_raises_regex(ValueError, msg):
+        with pytest.raises(ValueError, match=msg):
             bdate_range('2013-05-01', periods=3, holidays=['2013-05-01'])
 
     def test_cdaterange_weekmask_and_holidays(self):
@@ -752,7 +752,7 @@ class TestCustomDateRange(object):
         # raise with non-custom freq
         msg = ('a custom frequency string is required when holidays or '
                'weekmask are passed, got frequency B')
-        with tm.assert_raises_regex(ValueError, msg):
+        with pytest.raises(ValueError, match=msg):
             bdate_range('2013-05-01', periods=3,
                         weekmask='Sun Mon Tue Wed Thu',
                         holidays=['2013-05-01'])
@@ -767,5 +767,5 @@ class TestCustomDateRange(object):
 
         bad_freq = freq + 'FOO'
         msg = 'invalid custom frequency string: {freq}'
-        with tm.assert_raises_regex(ValueError, msg.format(freq=bad_freq)):
+        with pytest.raises(ValueError, match=msg.format(freq=bad_freq)):
             bdate_range(START, END, freq=bad_freq)

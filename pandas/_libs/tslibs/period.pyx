@@ -46,8 +46,9 @@ from frequencies cimport (get_freq_code, get_base_alias,
                           get_rule_month)
 from parsing import parse_time_string
 from resolution import Resolution
-from nattype import nat_strings, NaT
-from nattype cimport _nat_scalar_rules, NPY_NAT, is_null_datetimelike
+from nattype import nat_strings
+from nattype cimport (
+    _nat_scalar_rules, NPY_NAT, is_null_datetimelike, c_NaT as NaT)
 from offsets cimport to_offset
 from offsets import _Tick
 
@@ -1739,7 +1740,7 @@ cdef class _Period(object):
         -------
         Timestamp
 
-        See also
+        See Also
         --------
         Period.end_time : Return the end Timestamp.
         Period.dayofyear : Return the day of year.
@@ -1777,7 +1778,7 @@ cdef class _Period(object):
         freq : string or DateOffset
             Target frequency. Default is 'D' if self.freq is week or
             longer and 'S' otherwise
-        how: str, default 'S' (start)
+        how : str, default 'S' (start)
             'S', 'E'. Can be aliased as case insensitive
             'Start', 'Finish', 'Begin', 'End'
 

@@ -269,7 +269,7 @@ Optional Dependencies
 * `matplotlib <http://matplotlib.org/>`__: for plotting, Version 2.0.0 or higher.
 * For Excel I/O:
 
-    * `xlrd/xlwt <http://www.python-excel.org/>`__: Excel reading (xlrd) and writing (xlwt)
+    * `xlrd/xlwt <http://www.python-excel.org/>`__: Excel reading (xlrd), version 1.0.0 or higher required, and writing (xlwt)
     * `openpyxl <https://openpyxl.readthedocs.io/en/stable/>`__: openpyxl version 2.4.0
       for writing .xlsx files (xlrd >= 0.9.0)
     * `XlsxWriter <https://pypi.org/project/XlsxWriter>`__: Alternative Excel writer
@@ -286,7 +286,9 @@ Optional Dependencies
   `xsel <http://www.vergenet.net/~conrad/software/xsel/>`__, or
   `xclip <https://github.com/astrand/xclip/>`__: necessary to use
   :func:`~pandas.read_clipboard`. Most package managers on Linux distributions will have ``xclip`` and/or ``xsel`` immediately available for installation.
-* `pandas-gbq <https://pandas-gbq.readthedocs.io/en/latest/install.html#dependencies>`__: for Google BigQuery I/O.
+* `pandas-gbq
+  <https://pandas-gbq.readthedocs.io/en/latest/install.html#dependencies>`__:
+  for Google BigQuery I/O. (pandas-gbq >= 0.8.0)
 
 
 * `Backports.lzma <https://pypi.org/project/backports.lzma/>`__: Only for Python 2, for writing to and/or reading from an xz compressed DataFrame in CSV; Python 3 support is built into the standard library.

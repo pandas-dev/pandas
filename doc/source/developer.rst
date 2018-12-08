@@ -2,15 +2,6 @@
 
 .. currentmodule:: pandas
 
-.. ipython:: python
-   :suppress:
-
-   import numpy as np
-   np.random.seed(123456)
-   np.set_printoptions(precision=4, suppress=True)
-   import pandas as pd
-   pd.options.display.max_rows = 15
-
 *********
 Developer
 *********
@@ -50,14 +41,36 @@ So that a ``pandas.DataFrame`` can be faithfully reconstructed, we store a
     'pandas_version': $VERSION}
 
 Here, ``<c0>``/``<ci0>`` and so forth are dictionaries containing the metadata
-for each column. This has JSON form:
+for each column, *including the index columns*. This has JSON form:
 
 .. code-block:: text
 
    {'name': column_name,
+    'field_name': parquet_column_name,
     'pandas_type': pandas_type,
     'numpy_type': numpy_type,
     'metadata': metadata}
+
+.. note::
+
+   Every index column is stored with a name matching the pattern
+   ``__index_level_\d+__`` and its corresponding column information is can be
+   found with the following code snippet.
+
+   Following this naming convention isn't strictly necessary, but strongly
+   suggested for compatibility with Arrow.
+
+   Here's an example of how the index metadata is structured in pyarrow:
+
+    .. code-block:: python
+
+       # assuming there's at least 3 levels in the index
+       index_columns = metadata['index_columns']
+       columns = metadata['columns']
+       ith_index = 2
+       assert index_columns[ith_index] == '__index_level_2__'
+       ith_index_info = columns[-len(index_columns):][ith_index]
+       ith_index_level_name = ith_index_info['name']
 
 ``pandas_type`` is the logical type of the column, and is one of:
 
@@ -109,32 +122,39 @@ As an example of fully-formed metadata:
    {'index_columns': ['__index_level_0__'],
     'column_indexes': [
         {'name': None,
-         'pandas_type': 'string',
+         'field_name': 'None',
+         'pandas_type': 'unicode',
          'numpy_type': 'object',
-         'metadata': None}
+         'metadata': {'encoding': 'UTF-8'}}
     ],
     'columns': [
         {'name': 'c0',
+         'field_name': 'c0',
          'pandas_type': 'int8',
          'numpy_type': 'int8',
          'metadata': None},
         {'name': 'c1',
+         'field_name': 'c1',
          'pandas_type': 'bytes',
          'numpy_type': 'object',
          'metadata': None},
         {'name': 'c2',
+         'field_name': 'c2',
          'pandas_type': 'categorical',
          'numpy_type': 'int16',
          'metadata': {'num_categories': 1000, 'ordered': False}},
         {'name': 'c3',
+         'field_name': 'c3',
          'pandas_type': 'datetimetz',
          'numpy_type': 'datetime64[ns]',
          'metadata': {'timezone': 'America/Los_Angeles'}},
         {'name': 'c4',
+         'field_name': 'c4',
          'pandas_type': 'object',
          'numpy_type': 'object',
          'metadata': {'encoding': 'pickle'}},
-        {'name': '__index_level_0__',
+        {'name': None,
+         'field_name': '__index_level_0__',
          'pandas_type': 'int64',
          'numpy_type': 'int64',
          'metadata': None}

@@ -9,11 +9,11 @@ from libc.stdlib cimport malloc, free
 
 import numpy as np
 cimport numpy as cnp
-from numpy cimport ndarray, uint8_t, uint32_t
+from numpy cimport ndarray, uint8_t, uint32_t, float64_t
 cnp.import_array()
 
 cdef extern from "numpy/npy_math.h":
-    double NAN "NPY_NAN"
+    float64_t NAN "NPY_NAN"
 
 
 from khash cimport (
@@ -42,9 +42,7 @@ cimport util
 from missing cimport checknull
 
 
-nan = np.nan
-
-cdef int64_t iNaT = util.get_nat()
+cdef int64_t NPY_NAT = util.get_nat()
 _SIZE_HINT_LIMIT = (1 << 20) + 7
 
 

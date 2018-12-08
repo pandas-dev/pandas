@@ -148,7 +148,7 @@ class TestReshaping(BaseJSON, base.BaseReshapingTests):
         rows since we consider `{}` NA, but `.astype(object)` doesn't.
         """
 
-    @pytest.mark.xfail(reason="dict for NA", strict=True)
+    @pytest.mark.xfail(reason="dict for NA")
     def test_unstack(self, data, index):
         # The base test has NaN for the expected NA value.
         # this matches otherwise
@@ -272,7 +272,7 @@ class TestArithmeticOps(BaseJSON, base.BaseArithmeticOpsTests):
 
     def test_add_series_with_extension_array(self, data):
         ser = pd.Series(data)
-        with tm.assert_raises_regex(TypeError, "unsupported"):
+        with pytest.raises(TypeError, match="unsupported"):
             ser + data
 
     def _check_divmod_op(self, s, op, other, exc=NotImplementedError):
@@ -282,4 +282,8 @@ class TestArithmeticOps(BaseJSON, base.BaseArithmeticOpsTests):
 
 
 class TestComparisonOps(BaseJSON, base.BaseComparisonOpsTests):
+    pass
+
+
+class TestPrinting(BaseJSON, base.BasePrintingTests):
     pass

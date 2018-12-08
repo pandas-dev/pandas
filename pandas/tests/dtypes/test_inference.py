@@ -10,10 +10,11 @@ import collections
 import re
 from datetime import datetime, date, timedelta, time
 from decimal import Decimal
+from numbers import Number
+from fractions import Fraction
 import numpy as np
 import pytz
 import pytest
-
 import pandas as pd
 from pandas._libs import lib, iNaT, missing as libmissing
 from pandas import (Series, Index, DataFrame, Timedelta,
@@ -59,7 +60,7 @@ ll_params = [
     ({'a', 1},                  'set', 'set'),                  # noqa: E241
     (set(),                     'set', 'set-empty'),            # noqa: E241
     (frozenset({'a', 1}),       'set', 'frozenset'),            # noqa: E241
-    (frozenset([]),             'set', 'frozenset-empty'),      # noqa: E241
+    (frozenset(),               'set', 'frozenset-empty'),      # noqa: E241
     (iter([1, 2]),              True,  'iterator'),             # noqa: E241
     (iter([]),                  True,  'iterator-empty'),       # noqa: E241
     ((x for x in [1, 2]),       True,  'generator'),            # noqa: E241
@@ -371,7 +372,7 @@ class TestInference(object):
                 tm.assert_numpy_array_equal(out, pos)
 
                 # too many characters
-                with tm.assert_raises_regex(ValueError, msg):
+                with pytest.raises(ValueError, match=msg):
                     lib.maybe_convert_numeric(
                         np.array(['foo_' + infinity], dtype=object),
                         na_values, maybe_int)
@@ -494,6 +495,13 @@ class TestTypeInference(object):
     # Dummy class used for testing with Python objects
     class Dummy():
         pass
+
+    def test_inferred_dtype_fixture(self, any_skipna_inferred_dtype):
+        # see pandas/conftest.py
+        inferred_dtype, values = any_skipna_inferred_dtype
+
+        # make sure the inferred dtype of the fixture is as requested
+        assert inferred_dtype == lib.infer_dtype(values, skipna=True)
 
     def test_length_zero(self):
         result = lib.infer_dtype(np.array([], dtype='i4'))
@@ -874,37 +882,27 @@ class TestTypeInference(object):
         arr = np.array([np.nan, pd.NaT, np.datetime64('nat')])
         assert lib.is_datetime_array(arr)
         assert lib.is_datetime64_array(arr)
-        assert not lib.is_timedelta_array(arr)
-        assert not lib.is_timedelta64_array(arr)
         assert not lib.is_timedelta_or_timedelta64_array(arr)
 
         arr = np.array([np.nan, pd.NaT, np.timedelta64('nat')])
         assert not lib.is_datetime_array(arr)
         assert not lib.is_datetime64_array(arr)
-        assert lib.is_timedelta_array(arr)
-        assert lib.is_timedelta64_array(arr)
         assert lib.is_timedelta_or_timedelta64_array(arr)
 
         arr = np.array([np.nan, pd.NaT, np.datetime64('nat'),
                         np.timedelta64('nat')])
         assert not lib.is_datetime_array(arr)
         assert not lib.is_datetime64_array(arr)
-        assert not lib.is_timedelta_array(arr)
-        assert not lib.is_timedelta64_array(arr)
         assert not lib.is_timedelta_or_timedelta64_array(arr)
 
         arr = np.array([np.nan, pd.NaT])
         assert lib.is_datetime_array(arr)
         assert lib.is_datetime64_array(arr)
-        assert lib.is_timedelta_array(arr)
-        assert lib.is_timedelta64_array(arr)
         assert lib.is_timedelta_or_timedelta64_array(arr)
 
         arr = np.array([np.nan, np.nan], dtype=object)
         assert not lib.is_datetime_array(arr)
         assert not lib.is_datetime64_array(arr)
-        assert not lib.is_timedelta_array(arr)
-        assert not lib.is_timedelta64_array(arr)
         assert not lib.is_timedelta_or_timedelta64_array(arr)
 
         assert lib.is_datetime_with_singletz_array(
@@ -922,8 +920,6 @@ class TestTypeInference(object):
             'is_datetime_array',
             'is_datetime64_array',
             'is_bool_array',
-            'is_timedelta_array',
-            'is_timedelta64_array',
             'is_timedelta_or_timedelta64_array',
             'is_date_array',
             'is_time_array',
@@ -1167,7 +1163,7 @@ class TestNumberScalar(object):
         assert not is_timedelta64_ns_dtype('timedelta64')
         assert is_timedelta64_ns_dtype('timedelta64[ns]')
 
-        tdi = TimedeltaIndex([1e14, 2e14], dtype='timedelta64')
+        tdi = TimedeltaIndex([1e14, 2e14], dtype='timedelta64[ns]')
         assert is_timedelta64_dtype(tdi)
         assert is_timedelta64_ns_dtype(tdi)
         assert is_timedelta64_ns_dtype(tdi.astype('timedelta64[ns]'))
@@ -1183,6 +1179,8 @@ class TestIsScalar(object):
         assert is_scalar(None)
         assert is_scalar(True)
         assert is_scalar(False)
+        assert is_scalar(Number())
+        assert is_scalar(Fraction())
         assert is_scalar(0.)
         assert is_scalar(np.nan)
         assert is_scalar('foobar')
@@ -1269,10 +1267,7 @@ def test_nan_to_nat_conversions():
     s._data = s._data.setitem(indexer=tuple([slice(8, 9)]), value=np.nan)
     assert (isna(s[8]))
 
-    # numpy < 1.7.0 is wrong
-    from distutils.version import LooseVersion
-    if LooseVersion(np.__version__) >= LooseVersion('1.7.0'):
-        assert (s[8].value == np.datetime64('NaT').astype(np.int64))
+    assert (s[8].value == np.datetime64('NaT').astype(np.int64))
 
 
 @td.skip_if_no_scipy

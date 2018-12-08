@@ -15,20 +15,23 @@ import pandas.util.testing as tm
 from pandas import (
     CategoricalIndex, DataFrame, DatetimeIndex, Float64Index, Int64Index,
     PeriodIndex, RangeIndex, Series, TimedeltaIndex, UInt64Index, date_range,
-    isna, period_range
+    isna, period_range,
 )
 from pandas._libs.tslib import Timestamp
 from pandas.compat import (
     PY3, PY35, PY36, StringIO, lrange, lzip, range, text_type, u, zip
 )
 from pandas.compat.numpy import np_datetime64_compat
-from pandas.core.dtypes.common import is_unsigned_integer_dtype
+from pandas.core.dtypes.common import (
+    is_unsigned_integer_dtype,
+)
 from pandas.core.dtypes.generic import ABCIndex
 from pandas.core.index import _get_combined_index, ensure_index_from_sequences
 from pandas.core.indexes.api import Index, MultiIndex
 from pandas.core.indexes.datetimes import _to_m8
 from pandas.tests.indexes.common import Base
 from pandas.util.testing import assert_almost_equal
+from pandas.core.sorting import safe_sort
 
 
 class TestIndex(Base):
@@ -74,9 +77,7 @@ class TestIndex(Base):
         assert new_index.ndim == 2
         assert isinstance(new_index, np.ndarray)
 
-    def test_copy_and_deepcopy(self, indices):
-        super(TestIndex, self).test_copy_and_deepcopy(indices)
-
+    def test_copy_and_deepcopy(self):
         new_copy2 = self.intIndex.copy(dtype=int)
         assert new_copy2.dtype.kind == 'i'
 
@@ -132,7 +133,7 @@ class TestIndex(Base):
     @pytest.mark.parametrize("cast_as_obj", [True, False])
     @pytest.mark.parametrize("index", [
         pd.date_range('2015-01-01 10:00', freq='D', periods=3,
-                      tz='US/Eastern'),  # DTI with tz
+                      tz='US/Eastern', name='Green Eggs & Ham'),  # DTI with tz
         pd.date_range('2015-01-01 10:00', freq='D', periods=3),  # DTI no tz
         pd.timedelta_range('1 days', freq='D', periods=3),  # td
         pd.period_range('2015-01-01', freq='D', periods=3)  # period
@@ -145,8 +146,16 @@ class TestIndex(Base):
 
         tm.assert_index_equal(result, index)
 
-        if isinstance(index, pd.DatetimeIndex) and hasattr(index, 'tz'):
+        if isinstance(index, pd.DatetimeIndex):
             assert result.tz == index.tz
+            if cast_as_obj:
+                # GH#23524 check that Index(dti, dtype=object) does not
+                #  incorrectly raise ValueError, and that nanoseconds are not
+                #  dropped
+                index += pd.Timedelta(nanoseconds=50)
+                result = pd.Index(index, dtype=object)
+                assert result.dtype == np.object_
+                assert list(result) == list(index)
 
     @pytest.mark.parametrize("index,has_tz", [
         (pd.date_range('2015-01-01 10:00', freq='D', periods=3,
@@ -243,31 +252,12 @@ class TestIndex(Base):
         result = Index(data, dtype='float')
         tm.assert_index_equal(result, expected)
 
-    def test_droplevel(self, indices):
-        # GH 21115
-        if isinstance(indices, MultiIndex):
-            # Tested separately in test_multi.py
-            return
-
-        assert indices.droplevel([]).equals(indices)
-
-        for level in indices.name, [indices.name]:
-            if isinstance(indices.name, tuple) and level is indices.name:
-                # GH 21121 : droplevel with tuple name
-                continue
-            with pytest.raises(ValueError):
-                indices.droplevel(level)
-
-        for level in 'wrong', ['wrong']:
-            with pytest.raises(KeyError):
-                indices.droplevel(level)
-
     @pytest.mark.parametrize("dtype", ['int64', 'uint64'])
     def test_constructor_int_dtype_nan_raises(self, dtype):
         # see gh-15187
         data = [np.nan]
         msg = "cannot convert"
-        with tm.assert_raises_regex(ValueError, msg):
+        with pytest.raises(ValueError, match=msg):
             Index(data, dtype=dtype)
 
     @pytest.mark.parametrize("klass,dtype,na_val", [
@@ -458,43 +448,24 @@ class TestIndex(Base):
         (PeriodIndex((x for x in []), freq='B'), PeriodIndex),
         (RangeIndex(step=1), pd.RangeIndex),
         (MultiIndex(levels=[[1, 2], ['blue', 'red']],
-                    labels=[[], []]), MultiIndex)
+                    codes=[[], []]), MultiIndex)
     ])
     def test_constructor_empty_special(self, empty, klass):
         assert isinstance(empty, klass)
         assert not len(empty)
 
-    def test_constructor_nonhashable_name(self, indices):
-        # GH 20527
-
-        if isinstance(indices, MultiIndex):
-            pytest.skip("multiindex handled in test_multi.py")
-
-        name = ['0']
-        message = "Index.name must be a hashable type"
-        tm.assert_raises_regex(TypeError, message, name=name)
-
-        # With .rename()
-        renamed = [['1']]
-        tm.assert_raises_regex(TypeError, message,
-                               indices.rename, name=renamed)
-        # With .set_names()
-        tm.assert_raises_regex(TypeError, message,
-                               indices.set_names, names=renamed)
-
     def test_constructor_overflow_int64(self):
         # see gh-15832
         msg = ("The elements provided in the data cannot "
                "all be casted to the dtype int64")
-        with tm.assert_raises_regex(OverflowError, msg):
+        with pytest.raises(OverflowError, match=msg):
             Index([np.iinfo(np.uint64).max - 1], dtype="int64")
 
     @pytest.mark.xfail(reason="see GH#21311: Index "
-                              "doesn't enforce dtype argument",
-                       strict=True)
+                              "doesn't enforce dtype argument")
     def test_constructor_cast(self):
         msg = "could not convert string to float"
-        with tm.assert_raises_regex(ValueError, msg):
+        with pytest.raises(ValueError, match=msg):
             Index(["a", "b", "c"], dtype=float)
 
     def test_view_with_args(self):
@@ -711,13 +682,6 @@ class TestIndex(Base):
         # np.ndarray only accepts ndarray of int & bool dtypes, so should Index
         pytest.raises(IndexError, index.__getitem__, empty_farr)
 
-    @pytest.mark.parametrize("itm", [101, 'no_int'])
-    # FutureWarning from non-tuple sequence of nd indexing
-    @pytest.mark.filterwarnings("ignore::FutureWarning")
-    def test_getitem_error(self, indices, itm):
-        with pytest.raises(IndexError):
-            indices[itm]
-
     def test_intersection(self):
         first = self.strIndex[:20]
         second = self.strIndex[:10]
@@ -785,51 +749,6 @@ class TestIndex(Base):
         result = i2.intersection(i1)
 
         assert len(result) == 0
-
-    @pytest.mark.parametrize(
-        'fname, sname, expected_name',
-        [
-            ('A', 'A', 'A'),
-            ('A', 'B', None),
-            ('A', None, None),
-            (None, 'B', None),
-            (None, None, None),
-        ])
-    def test_corner_union(self, indices, fname, sname, expected_name):
-        # GH 9943 9862
-        # Test unions with various name combinations
-        # Do not test MultiIndex or repeats
-
-        if isinstance(indices, MultiIndex) or not indices.is_unique:
-            pytest.skip("Not for MultiIndex or repeated indices")
-
-        # Test copy.union(copy)
-        first = indices.copy().set_names(fname)
-        second = indices.copy().set_names(sname)
-        union = first.union(second)
-        expected = indices.copy().set_names(expected_name)
-        tm.assert_index_equal(union, expected)
-
-        # Test copy.union(empty)
-        first = indices.copy().set_names(fname)
-        second = indices.drop(indices).set_names(sname)
-        union = first.union(second)
-        expected = indices.copy().set_names(expected_name)
-        tm.assert_index_equal(union, expected)
-
-        # Test empty.union(copy)
-        first = indices.drop(indices).set_names(fname)
-        second = indices.copy().set_names(sname)
-        union = first.union(second)
-        expected = indices.copy().set_names(expected_name)
-        tm.assert_index_equal(union, expected)
-
-        # Test empty.union(empty)
-        first = indices.drop(indices).set_names(fname)
-        second = indices.drop(indices).set_names(sname)
-        union = first.union(second)
-        expected = indices.drop(indices).set_names(expected_name)
-        tm.assert_index_equal(union, expected)
 
     def test_chained_union(self):
         # Chained unions handles names correctly
@@ -1105,7 +1024,8 @@ class TestIndex(Base):
 
     @pytest.mark.parametrize("second_name,expected", [
         (None, None), ('name', 'name')])
-    def test_difference_name_preservation(self, second_name, expected):
+    @pytest.mark.parametrize("sort", [True, False])
+    def test_difference_name_preservation(self, second_name, expected, sort):
         # TODO: replace with fixturesult
         first = self.strIndex[5:20]
         second = self.strIndex[:10]
@@ -1113,7 +1033,7 @@ class TestIndex(Base):
 
         first.name = 'name'
         second.name = second_name
-        result = first.difference(second)
+        result = first.difference(second, sort)
 
         assert tm.equalContents(result, answer)
 
@@ -1122,21 +1042,36 @@ class TestIndex(Base):
         else:
             assert result.name == expected
 
-    def test_difference_empty_arg(self):
+    @pytest.mark.parametrize("sort", [True, False])
+    def test_difference_empty_arg(self, sort):
         first = self.strIndex[5:20]
         first.name == 'name'
-        result = first.difference([])
+        result = first.difference([], sort)
 
         assert tm.equalContents(result, first)
         assert result.name == first.name
 
-    def test_difference_identity(self):
+    @pytest.mark.parametrize("sort", [True, False])
+    def test_difference_identity(self, sort):
         first = self.strIndex[5:20]
         first.name == 'name'
-        result = first.difference(first)
+        result = first.difference(first, sort)
 
         assert len(result) == 0
         assert result.name == first.name
+
+    @pytest.mark.parametrize("sort", [True, False])
+    def test_difference_sort(self, sort):
+        first = self.strIndex[5:20]
+        second = self.strIndex[:10]
+
+        result = first.difference(second, sort)
+        expected = self.strIndex[10:20]
+
+        if sort:
+            expected = expected.sort_values()
+
+        tm.assert_index_equal(result, expected)
 
     def test_symmetric_difference(self):
         # smoke
@@ -1182,17 +1117,19 @@ class TestIndex(Base):
         assert tm.equalContents(result, expected)
         assert result.name == 'new_name'
 
-    def test_difference_type(self):
+    @pytest.mark.parametrize("sort", [True, False])
+    def test_difference_type(self, sort):
         # GH 20040
         # If taking difference of a set and itself, it
         # needs to preserve the type of the index
         skip_index_keys = ['repeats']
         for key, index in self.generate_index_types(skip_index_keys):
-            result = index.difference(index)
+            result = index.difference(index, sort)
             expected = index.drop(index)
             tm.assert_index_equal(result, expected)
 
-    def test_intersection_difference(self):
+    @pytest.mark.parametrize("sort", [True, False])
+    def test_intersection_difference(self, sort):
         # GH 20040
         # Test that the intersection of an index with an
         # empty index produces the same index as the difference
@@ -1200,7 +1137,7 @@ class TestIndex(Base):
         skip_index_keys = ['repeats']
         for key, index in self.generate_index_types(skip_index_keys):
             inter = index.intersection(index.drop(index))
-            diff = index.difference(index)
+            diff = index.difference(index, sort)
             tm.assert_index_equal(inter, diff)
 
     @pytest.mark.parametrize("attr,expected", [
@@ -1327,10 +1264,10 @@ class TestIndex(Base):
         # GH10411
         index = Index(np.arange(10))
 
-        with tm.assert_raises_regex(ValueError, 'tolerance argument'):
+        with pytest.raises(ValueError, match='tolerance argument'):
             index.get_indexer([1, 0], tolerance=1)
 
-        with tm.assert_raises_regex(ValueError, 'limit argument'):
+        with pytest.raises(ValueError, match='limit argument'):
             index.get_indexer([1, 0], limit=1)
 
     @pytest.mark.parametrize(
@@ -1378,7 +1315,7 @@ class TestIndex(Base):
 
     def test_get_indexer_nearest_error(self):
         index = Index(np.arange(10))
-        with tm.assert_raises_regex(ValueError, 'limit argument'):
+        with pytest.raises(ValueError, match='limit argument'):
             index.get_indexer([1, 0], method='nearest', limit=1)
 
         with pytest.raises(ValueError, match='tolerance size must match'):
@@ -1465,7 +1402,7 @@ class TestIndex(Base):
         else:
             msg = 'invalid key'
 
-        with tm.assert_raises_regex(TypeError, msg):
+        with pytest.raises(TypeError, match=msg):
             index.get_loc([1, 2], method=method)
 
     @pytest.mark.parametrize("method,loc", [
@@ -1478,32 +1415,32 @@ class TestIndex(Base):
     @pytest.mark.parametrize("method", ['pad', 'backfill', 'nearest'])
     def test_get_loc_outside_tolerance_raises(self, method):
         index = pd.Index([0, 1, 2])
-        with tm.assert_raises_regex(KeyError, '1.1'):
+        with pytest.raises(KeyError, match='1.1'):
             index.get_loc(1.1, method, tolerance=0.05)
 
     def test_get_loc_bad_tolerance_raises(self):
         index = pd.Index([0, 1, 2])
-        with tm.assert_raises_regex(ValueError, 'must be numeric'):
+        with pytest.raises(ValueError, match='must be numeric'):
             index.get_loc(1.1, 'nearest', tolerance='invalid')
 
     def test_get_loc_tolerance_no_method_raises(self):
         index = pd.Index([0, 1, 2])
-        with tm.assert_raises_regex(ValueError, 'tolerance .* valid if'):
+        with pytest.raises(ValueError, match='tolerance .* valid if'):
             index.get_loc(1.1, tolerance=1)
 
     def test_get_loc_raises_missized_tolerance(self):
         index = pd.Index([0, 1, 2])
-        with tm.assert_raises_regex(ValueError, 'tolerance size must match'):
+        with pytest.raises(ValueError, match='tolerance size must match'):
             index.get_loc(1.1, 'nearest', tolerance=[1, 1])
 
     def test_get_loc_raises_object_nearest(self):
         index = pd.Index(['a', 'c'])
-        with tm.assert_raises_regex(TypeError, 'unsupported operand type'):
+        with pytest.raises(TypeError, match='unsupported operand type'):
             index.get_loc('a', method='nearest')
 
     def test_get_loc_raises_object_tolerance(self):
         index = pd.Index(['a', 'c'])
-        with tm.assert_raises_regex(TypeError, 'unsupported operand type'):
+        with pytest.raises(TypeError, match='unsupported operand type'):
             index.get_loc('a', method='pad', tolerance='invalid')
 
     @pytest.mark.parametrize("dtype", [int, float])
@@ -1533,8 +1470,7 @@ class TestIndex(Base):
         assert index2.slice_locs(8.5, 1.5) == (2, 6)
         assert index2.slice_locs(10.5, -1) == (0, n)
 
-    @pytest.mark.xfail(reason="Assertions were not correct - see GH#20915",
-                       strict=True)
+    @pytest.mark.xfail(reason="Assertions were not correct - see GH#20915")
     def test_slice_ints_with_floats_raises(self):
         # int slicing with floats
         # GH 4892, these are all TypeErrors
@@ -1585,10 +1521,10 @@ class TestIndex(Base):
 
     def test_slice_locs_na_raises(self):
         index = Index([np.nan, 1, 2])
-        with tm.assert_raises_regex(KeyError, ''):
+        with pytest.raises(KeyError, match=''):
             index.slice_locs(start=1.5)
 
-        with tm.assert_raises_regex(KeyError, ''):
+        with pytest.raises(KeyError, match=''):
             index.slice_locs(end=1.5)
 
     @pytest.mark.parametrize("in_slice,expected", [
@@ -1627,7 +1563,7 @@ class TestIndex(Base):
 
     @pytest.mark.parametrize("keys", [['foo', 'bar'], ['1', 'bar']])
     def test_drop_by_str_label_raises_missing_keys(self, keys):
-        with tm.assert_raises_regex(KeyError, ''):
+        with pytest.raises(KeyError, match=''):
             self.strIndex.drop(keys)
 
     def test_drop_by_str_label_errors_ignore(self):
@@ -1656,7 +1592,7 @@ class TestIndex(Base):
 
     def test_drop_by_numeric_label_raises_missing_keys(self):
         index = Index([1, 2, 3])
-        with tm.assert_raises_regex(KeyError, ''):
+        with pytest.raises(KeyError, match=''):
             index.drop([3, 4])
 
     @pytest.mark.parametrize("key,expected", [
@@ -1789,7 +1725,7 @@ class TestIndex(Base):
         # Float64Index overrides isin, so must be checked separately
         Float64Index([1.0, 2.0, 3.0, 4.0])])
     def test_isin_level_kwarg_raises_bad_index(self, level, index):
-        with tm.assert_raises_regex(IndexError, 'Too many levels'):
+        with pytest.raises(IndexError, match='Too many levels'):
             index.isin([], level=level)
 
     @pytest.mark.parametrize("level", [1.0, 'foobar', 'xyzzy', np.nan])
@@ -1797,7 +1733,7 @@ class TestIndex(Base):
         Index(['qux', 'baz', 'foo', 'bar']),
         Float64Index([1.0, 2.0, 3.0, 4.0])])
     def test_isin_level_kwarg_raises_key(self, level, index):
-        with tm.assert_raises_regex(KeyError, 'must be same as name'):
+        with pytest.raises(KeyError, match='must be same as name'):
             index.isin([], level=level)
 
     @pytest.mark.parametrize("empty", [[], Series(), np.array([])])
@@ -1860,7 +1796,7 @@ class TestIndex(Base):
         MultiIndex.from_tuples([('foo', '1'), ('bar', '3')]),
         PeriodIndex(start='2000', end='2010', freq='A')])
     def test_str_attribute_raises(self, index):
-        with tm.assert_raises_regex(AttributeError, 'only use .str accessor'):
+        with pytest.raises(AttributeError, match='only use .str accessor'):
             index.str.repeat(2)
 
     @pytest.mark.parametrize("expand,expected", [
@@ -1951,14 +1887,14 @@ class TestIndex(Base):
         msg = ('When allow_fill=True and fill_value is not None, '
                'all indices must be >= -1')
 
-        with tm.assert_raises_regex(ValueError, msg):
+        with pytest.raises(ValueError, match=msg):
             index.take(np.array([1, 0, -2]), fill_value=True)
-        with tm.assert_raises_regex(ValueError, msg):
+        with pytest.raises(ValueError, match=msg):
             index.take(np.array([1, 0, -5]), fill_value=True)
 
     def test_take_bad_bounds_raises(self):
         index = pd.Index(list('ABC'), name='xxx')
-        with tm.assert_raises_regex(IndexError, 'out of bounds'):
+        with pytest.raises(IndexError, match='out of bounds'):
             index.take(np.array([1, -5]))
 
     @pytest.mark.parametrize("name", [None, 'foobar'])
@@ -2032,7 +1968,7 @@ class TestIndex(Base):
     def test_equals_op_mismatched_multiindex_raises(self, index):
         df = pd.read_csv(StringIO('a,b,c\n1,2,3\n4,5,6'), index_col=[0, 1])
 
-        with tm.assert_raises_regex(ValueError, "Lengths must match"):
+        with pytest.raises(ValueError, match="Lengths must match"):
             df.index == index
 
     def test_equals_op_index_vs_mi_same_length(self):
@@ -2240,7 +2176,7 @@ Index([u'a', u'bb', u'ccc', u'a', u'bb', u'ccc', u'a', u'bb', u'ccc', u'a',
 
     def test_cached_properties_not_settable(self):
         index = pd.Index([1, 2, 3])
-        with tm.assert_raises_regex(AttributeError, "Can't set attribute"):
+        with pytest.raises(AttributeError, match="Can't set attribute"):
             index.is_unique = False
 
     def test_get_duplicates_deprecated(self):
@@ -2277,10 +2213,10 @@ class TestMixedIntIndex(Base):
     def test_argsort(self):
         index = self.create_index()
         if PY36:
-            with tm.assert_raises_regex(TypeError, "'>|<' not supported"):
+            with pytest.raises(TypeError, match="'>|<' not supported"):
                 result = index.argsort()
         elif PY3:
-            with tm.assert_raises_regex(TypeError, "unorderable types"):
+            with pytest.raises(TypeError, match="unorderable types"):
                 result = index.argsort()
         else:
             result = index.argsort()
@@ -2290,10 +2226,10 @@ class TestMixedIntIndex(Base):
     def test_numpy_argsort(self):
         index = self.create_index()
         if PY36:
-            with tm.assert_raises_regex(TypeError, "'>|<' not supported"):
+            with pytest.raises(TypeError, match="'>|<' not supported"):
                 result = np.argsort(index)
         elif PY3:
-            with tm.assert_raises_regex(TypeError, "unorderable types"):
+            with pytest.raises(TypeError, match="unorderable types"):
                 result = np.argsort(index)
         else:
             result = np.argsort(index)
@@ -2381,6 +2317,12 @@ class TestMixedIntIndex(Base):
 
         assert tm.equalContents(result, index)
 
+    def test_unique_na(self):
+        idx = pd.Index([2, np.nan, 2, 1], name='my_index')
+        expected = pd.Index([2, np.nan, 1], name='my_index')
+        result = idx.unique()
+        tm.assert_index_equal(result, expected)
+
     def test_intersection_base(self):
         # (same results for py2 and py3 but sortedness not tested elsewhere)
         index = self.create_index()
@@ -2402,14 +2344,17 @@ class TestMixedIntIndex(Base):
         result = first.intersection(klass(second.values))
         assert tm.equalContents(result, second)
 
-    def test_difference_base(self):
+    @pytest.mark.parametrize("sort", [True, False])
+    def test_difference_base(self, sort):
         # (same results for py2 and py3 but sortedness not tested elsewhere)
         index = self.create_index()
         first = index[:4]
         second = index[3:]
 
-        result = first.difference(second)
-        expected = Index([0, 1, 'a'])
+        result = first.difference(second, sort)
+        expected = Index([0, 'a', 1])
+        if sort:
+            expected = Index(safe_sort(expected))
         tm.assert_index_equal(result, expected)
 
     def test_symmetric_difference(self):
@@ -2462,7 +2407,7 @@ class TestMixedIntIndex(Base):
 
     def test_dropna_invalid_how_raises(self):
         msg = "invalid how option: xxx"
-        with tm.assert_raises_regex(ValueError, msg):
+        with pytest.raises(ValueError, match=msg):
             pd.Index([1, 2, 3]).dropna(how='xxx')
 
     def test_get_combined_index(self):
@@ -2586,7 +2531,7 @@ def test_generated_op_names(opname, indices):
 @pytest.mark.parametrize('index_maker', tm.index_subclass_makers_generator())
 def test_index_subclass_constructor_wrong_kwargs(index_maker):
     # GH #19348
-    with tm.assert_raises_regex(TypeError, 'unexpected keyword argument'):
+    with pytest.raises(TypeError, match='unexpected keyword argument'):
         index_maker(foo='bar')
 
 

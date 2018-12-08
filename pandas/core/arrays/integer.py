@@ -1,31 +1,24 @@
+import copy
 import sys
 import warnings
-import copy
+
 import numpy as np
 
-
 from pandas._libs import lib
+from pandas.compat import range, set_function_name, string_types
 from pandas.util._decorators import cache_readonly
-from pandas.compat import u, range, string_types
-from pandas.compat import set_function_name
 
-from pandas.core import nanops
-from pandas.core.dtypes.cast import astype_nansafe
-from pandas.core.dtypes.generic import ABCSeries, ABCIndexClass
-from pandas.core.dtypes.common import (
-    is_integer, is_scalar, is_float,
-    is_bool_dtype,
-    is_float_dtype,
-    is_integer_dtype,
-    is_object_dtype,
-    is_list_like)
-from pandas.core.arrays import ExtensionArray, ExtensionOpsMixin
 from pandas.core.dtypes.base import ExtensionDtype
+from pandas.core.dtypes.cast import astype_nansafe
+from pandas.core.dtypes.common import (
+    is_bool_dtype, is_float, is_float_dtype, is_integer, is_integer_dtype,
+    is_list_like, is_object_dtype, is_scalar)
 from pandas.core.dtypes.dtypes import register_extension_dtype
+from pandas.core.dtypes.generic import ABCIndexClass, ABCSeries
 from pandas.core.dtypes.missing import isna, notna
 
-from pandas.io.formats.printing import (
-    format_object_summary, format_object_attrs, default_pprint)
+from pandas.core import nanops
+from pandas.core.arrays import ExtensionArray, ExtensionOpsMixin
 
 
 class _IntegerDtype(ExtensionDtype):
@@ -61,6 +54,11 @@ class _IntegerDtype(ExtensionDtype):
     @cache_readonly
     def kind(self):
         return self.numpy_dtype.kind
+
+    @cache_readonly
+    def itemsize(self):
+        """ Return the number of bytes in this dtype """
+        return self.numpy_dtype.itemsize
 
     @classmethod
     def construct_array_type(cls):
@@ -267,6 +265,13 @@ class IntegerArray(ExtensionArray, ExtensionOpsMixin):
     def _from_factorized(cls, values, original):
         return integer_array(values, dtype=original.dtype)
 
+    def _formatter(self, boxed=False):
+        def fmt(x):
+            if isna(x):
+                return 'NaN'
+            return str(x)
+        return fmt
+
     def __getitem__(self, item):
         if is_integer(item):
             if self._mask[item]:
@@ -299,10 +304,6 @@ class IntegerArray(ExtensionArray, ExtensionOpsMixin):
                 yield self.dtype.na_value
             else:
                 yield self._data[i]
-
-    def _formatting_values(self):
-        # type: () -> np.ndarray
-        return self._coerce_to_ndarray()
 
     def take(self, indexer, allow_fill=False, fill_value=None):
         from pandas.api.extensions import take
@@ -353,25 +354,6 @@ class IntegerArray(ExtensionArray, ExtensionOpsMixin):
     def __len__(self):
         return len(self._data)
 
-    def __repr__(self):
-        """
-        Return a string representation for this object.
-
-        Invoked by unicode(df) in py2 only. Yields a Unicode String in both
-        py2/py3.
-        """
-        klass = self.__class__.__name__
-        data = format_object_summary(self, default_pprint, False)
-        attrs = format_object_attrs(self)
-        space = " "
-
-        prepr = (u(",%s") %
-                 space).join(u("%s=%s") % (k, v) for k, v in attrs)
-
-        res = u("%s(%s%s)") % (klass, data, prepr)
-
-        return res
-
     @property
     def nbytes(self):
         return self._data.nbytes + self._mask.nbytes
@@ -390,7 +372,8 @@ class IntegerArray(ExtensionArray, ExtensionOpsMixin):
         return cls(data, mask)
 
     def astype(self, dtype, copy=True):
-        """Cast to a NumPy array or IntegerArray with 'dtype'.
+        """
+        Cast to a NumPy array or IntegerArray with 'dtype'.
 
         Parameters
         ----------

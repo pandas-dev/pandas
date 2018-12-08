@@ -125,8 +125,8 @@ class BaseMethodsTests(BaseExtensionTests):
         assert ser._values is arr
 
     def test_fillna_length_mismatch(self, data_missing):
-        with (tm.assert_raises_regex(ValueError,
-              "Length of 'value' does not match.")):
+        msg = "Length of 'value' does not match."
+        with pytest.raises(ValueError, match=msg):
             data_missing.fillna(data_missing.take([1]))
 
     def test_combine_le(self, data_repeated):
@@ -162,6 +162,15 @@ class BaseMethodsTests(BaseExtensionTests):
         result = s1.combine(val, lambda x1, x2: x1 + x2)
         expected = pd.Series(
             orig_data1._from_sequence([a + val for a in list(orig_data1)]))
+        self.assert_series_equal(result, expected)
+
+    @pytest.mark.xfail(reason="GH-24147", strict=True)
+    def test_combine_first(self, data):
+        # https://github.com/pandas-dev/pandas/issues/24147
+        a = pd.Series(data[:3])
+        b = pd.Series(data[2:5], index=[2, 3, 4])
+        result = a.combine_first(b)
+        expected = pd.Series(data[:5])
         self.assert_series_equal(result, expected)
 
     @pytest.mark.parametrize('frame', [True, False])

@@ -137,7 +137,43 @@ However, operations such as slicing will also slice the index.
     s[[4, 3, 1]]
     np.exp(s)
 
-We will address array-based indexing in a separate :ref:`section <indexing>`.
+.. note::
+
+   We will address array-based indexing like ``s[[4, 3, 1]]``
+   in :ref:`section <indexing>`.
+
+Like a NumPy array, a pandas Series has a :attr:`~Series.dtype`.
+
+.. ipython:: python
+
+   s.dtype
+
+This is often a NumPy dtype. However, pandas and 3rd-party libraries
+extend NumPy's type system in a few places, in which case the dtype would
+be a :class:`~pandas.api.extensions.ExtensionDtype`. Some examples within
+pandas are :ref:`categorical` and :ref:`integer_na`. See :ref:`basics.dtypes`
+for more.
+
+If you need the actual array backing a ``Series``, use :attr:`Series.array`.
+
+.. ipython:: python
+
+   s.array
+
+Again, this is often a NumPy array, but may instead be a
+:class:`~pandas.api.extensions.ExtensionArray`. See :ref:`basics.dtypes` for more.
+Accessing the array can be useful when you need to do some operation without the
+index (to disable :ref:`automatic alignment <dsintro.alignment>`, for example).
+
+While Series is ndarray-like, if you need an *actual* ndarray, then use
+:meth:`Series.to_numpy`.
+
+.. ipython:: python
+
+   s.to_numpy()
+
+Even if the Series is backed by a :class:`~pandas.api.extensions.ExtensionArray`,
+:meth:`Series.to_numpy` will return a NumPy ndarray.
 
 Series is dict-like
 ~~~~~~~~~~~~~~~~~~~
@@ -617,6 +653,8 @@ slicing, see the :ref:`section on indexing <indexing>`. We will address the
 fundamentals of reindexing / conforming to new sets of labels in the
 :ref:`section on reindexing <basics.reindexing>`.
 
+.. _dsintro.alignment:
+
 Data alignment and arithmetic
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -923,7 +961,7 @@ From DataFrame using ``to_panel`` method
 .. ipython:: python
    :okwarning:
 
-   midx = pd.MultiIndex(levels=[['one', 'two'], ['x','y']], labels=[[1,1,0,0],[1,0,1,0]])
+   midx = pd.MultiIndex(levels=[['one', 'two'], ['x','y']], codes=[[1,1,0,0],[1,0,1,0]])
    df = pd.DataFrame({'A' : [1, 2, 3, 4], 'B': [5, 6, 7, 8]}, index=midx)
    df.to_panel()
 
@@ -1028,6 +1066,7 @@ support the multi-dimensional analysis that is one of ``Panel`` s main use cases
 .. ipython:: python
    :okwarning:
 
+   import pandas.util.testing as tm
    p = tm.makePanel()
    p
 
