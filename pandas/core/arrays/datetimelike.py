@@ -551,17 +551,16 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin, AttributesMixin):
         if index.size == 0 or inferred == freq.freqstr:
             return None
 
-        if is_timedelta64_dtype(cls):
-            # if a non-fixed frequency is passed, accessing `freq.nanos`
-            #  will raise ValueError
-            freq.nanos
-
         try:
             on_freq = cls._generate_range(start=index[0], end=None,
                                           periods=len(index), freq=freq,
                                           **kwargs)
             assert np.array_equal(index.asi8, on_freq.asi8)
-        except (ValueError, AssertionError):
+        except (ValueError, AssertionError) as e:
+            if "non-fixed" in str(e):
+                # non-fixed frequencies are not meaningful for timedelta64;
+                #  we retain that error message
+                raise e
             # GH#11587 if index[0] is NaT _generate_range will raise ValueError
             raise ValueError('Inferred frequency {infer} from passed values '
                              'does not conform to passed frequency {passed}'
