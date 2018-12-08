@@ -17,19 +17,20 @@ Nullable Integer Data Type
 In :ref:`missing_data`, we saw that pandas primarily uses ``NaN`` to represent
 missing data. Because ``NaN`` is a float, this forces an array of integers with
 any missing values to become floating point. In some cases, this may not matter
-much. But if your integer column is, say, and identifier, casting to float can
-be problematic.
+much. But if your integer column is, say, an identifier, casting to float can
+be problematic. Some integers cannot even be represented as floating point
+numbers.
 
-Pandas can represent integer data with missing values with the
-:class:`arrays.IntegerArray` array. This is an :ref:`extension types <extending.extension-types>`
+Pandas can represent integer data with possibly missing values using
+:class:`arrays.IntegerArray`. This is an :ref:`extension types <extending.extension-types>`
 implemented within pandas. It is not the default dtype for integers, and will not be inferred;
-you must explicitly pass the dtype into the :meth:`array` or :class:`Series` method:
+you must explicitly pass the dtype into :meth:`array` or :class:`Series`:
 
 .. ipython:: python
 
    pd.array([1, 2, np.nan], dtype=pd.Int64Dtype())
 
-Or the string alias "Int64" (note the capital ``"I"``, to differentiate from
+Or the string alias ``"Int64"`` (note the capital ``"I"``, to differentiate from
 NumPy's ``'int64'`` dtype:
 
 .. ipython:: python

@@ -234,6 +234,17 @@ the ``"Int"`` dtypes provided by pandas
 * :class:`Int32Dtype`
 * :class:`Int64Dtype`
 
+.. ipython:: python
+
+   s_int = pd.Series([1, 2, 3, 4, 5], index=list('abcde'),
+                     dtype=pd.Int64())
+   s_int
+   s_int.dtype
+
+   s2_int = s_int.reindex(['a', 'b', 'c', 'f', 'u'])
+   s2_int
+   s2_int.dtype
+
 See :ref:`integer_na` for more.
 
 ``NA`` type promotions
