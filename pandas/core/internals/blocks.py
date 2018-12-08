@@ -3045,7 +3045,7 @@ class DatetimeTZBlock(ExtensionBlock, DatetimeBlock):
         # only handles cases where all the tzs are the same.
         # Instead of placing the condition here, it could also go into the
         # is_uniform_join_units check, but I'm not sure what is better.
-        if len(set(x.dtype for x in to_concat)) > 1:
+        if len({x.dtype for x in to_concat}) > 1:
             values = _concat._concat_datetime([x.values for x in to_concat])
             placement = placement or slice(0, len(values), 1)
 
