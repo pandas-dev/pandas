@@ -551,6 +551,11 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin, AttributesMixin):
         if index.size == 0 or inferred == freq.freqstr:
             return None
 
+        if is_timedelta64_dtype(cls):
+            # if a non-fixed frequency is passed, accessing `freq.nanos`
+            #  will raise ValueError
+            freq.nanos
+
         try:
             on_freq = cls._generate_range(start=index[0], end=None,
                                           periods=len(index), freq=freq,
