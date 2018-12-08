@@ -1588,7 +1588,7 @@ def _get_range_edges(first, last, offset, closed='left', base=0):
         day_nanos = delta_to_nanoseconds(timedelta(1))
 
         # #1165
-        if (is_day and day_nanos % offset.nanos == 0) or not is_day:
+        if (is_day and not offset.nanos % day_nanos) or not is_day:
             return _adjust_dates_anchored(first, last, offset,
                                           closed=closed, base=base)
 
