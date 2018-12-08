@@ -2251,10 +2251,10 @@ class Index(IndexOpsMixin, PandasObject):
         Casts this and other index to object dtype to allow the formation
         of a union between incompatible types.
         """
-        this = self.astype(object)
+        this = self.astype(object, copy=False)
         # cast to Index for when `other` is list-like
-        other = Index(other).astype(object)
-        return Index.union(this, other).astype(object)
+        other = Index(other).astype(object, copy=False)
+        return Index.union(this, other).astype(object, copy=False)
 
     def _is_compatible_with_other(self, other):
         """

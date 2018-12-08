@@ -736,9 +736,11 @@ Bug in :func:`DataFrame.to_dict` raises ``ValueError`` when used with
 Incompatible Index Type Unions
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-When performing an :func:`Index.union` operation, between objects of incompatible dtypes, the result will be a base :class:`Index` of dtype `object`. 
-This behavior holds true for unions between :class:`Index` objects that previously would have been prohibited.
-The dtype of empty :class:`Index` objects will now be evaluated before performing the union as well, instead of simply returning the other :class:`Index` object.
+When performing an :func:`Index.union` operation, between objects of incompatible dtypes,
+the result will be a base :class:`Index` of dtype `object`. This behavior holds true for
+unions between :class:`Index` objects that previously would have been prohibited. The dtype
+of empty :class:`Index` objects will now be evaluated before performing union operations
+rather than simply returning the other :class:`Index` object (:issue:`23525`).
 
 
 Previous Behavior:
