@@ -330,7 +330,10 @@ class DatetimeIndex(DatetimeArray, DatetimeIndexOpsMixin, Int64Index):
         # TODO: Remove this when we have a DatetimeTZArray
         # Necessary to avoid recursion error since DTI._values is a DTI
         # for TZ-aware
-        return self._ndarray_values.nbytes
+        result = self._ndarray_values.nbytes
+        # include our engine hashtable
+        result += self._engine.sizeof(deep=deep)
+        return result
 
     @cache_readonly
     def _is_dates_only(self):
