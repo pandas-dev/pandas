@@ -1650,6 +1650,8 @@ def maybe_convert_dtype(data, copy):
                         "Use `data.to_timestamp()` instead")
 
     elif is_categorical_dtype(data):
+        # TODO: cases where we need to do another pass through this func,
+        #  e.g. the categories are timedelta64s
         if isna(data).any():
             # slow-path
             data = list(data)
