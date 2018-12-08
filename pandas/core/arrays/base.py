@@ -460,6 +460,7 @@ class ExtensionArray(object):
         # stored in an instance of your ExtensionArray with `self.dtype`.
         if not len(self) or periods == 0:
             return self.copy()
+
         empty = self._from_sequence(
             [self.dtype.na_value] * min(abs(periods), len(self)),
             dtype=self.dtype
