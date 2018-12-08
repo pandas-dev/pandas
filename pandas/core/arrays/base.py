@@ -461,7 +461,10 @@ class ExtensionArray(object):
             The number of periods to shift. Negative values are allowed
             for shifting backwards.
 
-        fill_value : None or value, default None (NaN)
+        fill_value : object, optional
+            The scalar value to use for newly introduced missing values.
+            The default is ``self.dtype.na_value``.
+
             .. versionadded:: 0.24.0
 
         Returns

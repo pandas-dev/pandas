@@ -1263,7 +1263,10 @@ class Categorical(ExtensionArray, PandasObject):
         ----------
         periods : int
             Number of periods to move, can be positive or negative
-        fill_value : None or value, default None (NaN)
+        fill_value : object, optional
+            The scalar value to use for newly introduced missing values.
+            The default is ``-1``.
+
             .. versionadded:: 0.24.0
 
         Returns
