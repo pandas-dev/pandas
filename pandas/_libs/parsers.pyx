@@ -1240,10 +1240,10 @@ cdef class TextReader:
                         array_type = dtype.construct_array_type()
                     try:
                         # use _from_sequence_of_strings if the class defines it
-                        return array_type._from_sequence_of_strings(result,
+                        result = array_type._from_sequence_of_strings(result,
                                                                     dtype=dtype) # noqa
                     except AbstractMethodError:
-                        return array_type._from_sequence(result, dtype=dtype)
+                        result = array_type._from_sequence(result, dtype=dtype)
                 else:
                     result = result.astype(dtype)
 
@@ -1262,10 +1262,10 @@ cdef class TextReader:
                         array_type = dtype.construct_array_type()
                     try:
                         # use _from_sequence_of_strings if the class defines it
-                        return array_type._from_sequence_of_strings(result,
+                        result = array_type._from_sequence_of_strings(result,
                                                                     dtype=dtype) # noqa
                     except AbstractMethodError:
-                        return array_type._from_sequence(result, dtype=dtype)
+                        result = array_type._from_sequence(result, dtype=dtype)
                 else:
                     result = result.astype(dtype)
             return result, na_count
