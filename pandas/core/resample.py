@@ -1635,7 +1635,7 @@ def _get_period_range_edges(first, last, offset, closed='left', base=0):
     if not all(isinstance(obj, pd.Period) for obj in [first, last]):
         raise TypeError("'first' and 'last' must be instances of type Period")
 
-    #GH 23882
+    # GH 23882
     first = first.to_timestamp()
     last = last.to_timestamp()
     adjust_first = not offset.onOffset(first)
@@ -1647,6 +1647,7 @@ def _get_period_range_edges(first, last, offset, closed='left', base=0):
     first = (first + adjust_first * offset).to_period(offset)
     last = (last - adjust_last * offset).to_period(offset)
     return first, last
+
 
 def _adjust_dates_anchored(first, last, offset, closed='right', base=0):
     # First and last offsets should be calculated from the start day to fix an
