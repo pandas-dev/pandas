@@ -9862,11 +9862,11 @@ class NDFrame(PandasObject, SelectionMixin):
         axis_descr, name, name2 = _doc_parms(cls)
 
         cls.any = _make_logical_function(
-            cls, 'any', name, name2, False, axis_descr,
-            _any_desc, nanops.nanany, _any_examples, _any_see_also)
+            cls, 'any', name, name2, axis_descr, _any_desc, nanops.nanany,
+            _any_examples, _any_see_also, empty_value=False)
         cls.all = _make_logical_function(
-            cls, 'all', name, name2, True, axis_descr, _all_doc,
-            nanops.nanall, _all_examples, _all_see_also)
+            cls, 'all', name, name2, axis_descr, _all_doc, nanops.nanall,
+            _all_examples, _all_see_also, empty_value=True)
 
         @Substitution(outname='mad',
                       desc="Return the mean absolute deviation of the values "
@@ -10873,8 +10873,8 @@ def _make_cum_function(cls, name, name1, name2, axis_descr, desc,
     return set_function_name(cum_func, name, cls)
 
 
-def _make_logical_function(cls, name, name1, name2, empty_value, axis_descr,
-                           desc, f, examples, see_also):
+def _make_logical_function(cls, name, name1, name2, axis_descr,
+                           desc, f, examples, see_also, empty_value):
     @Substitution(outname=name, desc=desc, name1=name1, name2=name2,
                   empty_value=empty_value, axis_descr=axis_descr,
                   examples=examples, see_also=see_also)
