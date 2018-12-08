@@ -1389,9 +1389,10 @@ class TimeGrouper(Grouper):
                 data=[], freq=self.freq, name=ax.name)
             return binner, [], labels
 
-        first, last = _get_range_edges(ax.min(), ax.max(), self.freq,
-                                       closed=self.closed,
-                                       base=self.base)
+        first, last = _get_timestamp_range_edges(ax.min(), ax.max(),
+                                                 self.freq,
+                                                 closed=self.closed,
+                                                 base=self.base)
         tz = ax.tz
         # GH #12037
         # use first/last directly instead of call replace() on them
@@ -1549,11 +1550,11 @@ class TimeGrouper(Grouper):
         # GH 23882
         if self.base:
             # get base adjusted bin edge labels
-            p_start, end = _get_range_edges(start,
-                                            end,
-                                            self.freq,
-                                            closed=self.closed,
-                                            base=self.base)
+            p_start, end = _get_period_range_edges(start,
+                                                   end,
+                                                   self.freq,
+                                                   closed=self.closed,
+                                                   base=self.base)
 
             # Get offset for bin edge (not label edge) adjustment
             start_offset = (pd.Period(start, self.freq)
@@ -1602,50 +1603,50 @@ def _take_new_index(obj, indexer, new_index, axis=0):
         raise ValueError("'obj' should be either a Series or a DataFrame")
 
 
-def _get_range_edges(first, last, offset, closed='left', base=0):
-    if type(first) != type(last):
-        raise TypeError("'first' and 'last' must be same type")
+def _get_timestamp_range_edges(first, last, offset, closed='left', base=0):
+    if not all(isinstance(obj, pd.Timestamp) for obj in [first, last]):
+        raise TypeError("'first' and 'last' must be instances of type "
+                        "Timestamp")
 
-    # make proper adjustments for Periods #GH 23882
-    is_period = False
-    adjust_first = adjust_last = False
-    if isinstance(first, pd.Period):
-        is_period = True
-        first = first.to_timestamp()
-        last = last.to_timestamp()
-        adjust_first = not offset.onOffset(first)
-        adjust_last = offset.onOffset(last)
-
-    additional_adjust = True
     if isinstance(offset, Tick):
         is_day = isinstance(offset, Day)
         day_nanos = delta_to_nanoseconds(timedelta(1))
 
         # #1165
         if (is_day and day_nanos % offset.nanos == 0) or not is_day:
-            additional_adjust = False
-            # Don't return immediately because might need to compensate edges
-            first, last = _adjust_dates_anchored(first, last, offset,
-                                                 closed=closed, base=base)
+            return _adjust_dates_anchored(first, last, offset,
+                                          closed=closed, base=base)
 
     else:
         first = first.normalize()
         last = last.normalize()
 
-    if additional_adjust:
-        if closed == 'left':
-            first = Timestamp(offset.rollback(first))
-        else:
-            first = Timestamp(first - offset)
+    if closed == 'left':
+        first = Timestamp(offset.rollback(first))
+    else:
+        first = Timestamp(first - offset)
 
-        last = Timestamp(last + offset)
-
-    if is_period:
-        first = (first + adjust_first * offset).to_period(offset)
-        last = (last - adjust_last * offset).to_period(offset)
+    last = Timestamp(last + offset)
 
     return first, last
 
+
+def _get_period_range_edges(first, last, offset, closed='left', base=0):
+    if not all(isinstance(obj, pd.Period) for obj in [first, last]):
+        raise TypeError("'first' and 'last' must be instances of type Period")
+
+    #GH 23882
+    first = first.to_timestamp()
+    last = last.to_timestamp()
+    adjust_first = not offset.onOffset(first)
+    adjust_last = offset.onOffset(last)
+
+    first, last = _get_timestamp_range_edges(first, last, offset,
+                                             closed=closed, base=base)
+
+    first = (first + adjust_first * offset).to_period(offset)
+    last = (last - adjust_last * offset).to_period(offset)
+    return first, last
 
 def _adjust_dates_anchored(first, last, offset, closed='right', base=0):
     # First and last offsets should be calculated from the start day to fix an
