@@ -3,7 +3,13 @@
 v0.10.1 (January 22, 2013)
 ---------------------------
 
-{{ common_imports }}
+{{ header }}
+
+.. ipython:: python
+   :suppress:
+
+   from pandas import * # noqa F401, F403
+
 
 This is a minor release from 0.10.0 and includes new features, enhancements,
 and bug fixes. In particular, there is substantial new HDFStore functionality

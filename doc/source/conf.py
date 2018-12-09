@@ -301,25 +301,25 @@ html_additional_pages = {
 }
 
 
-common_imports = """\
+header = """\
 .. currentmodule:: pandas
 
 .. ipython:: python
    :suppress:
 
    import numpy as np
-   from pandas import *
    import pandas as pd
+
    randn = np.random.randn
+   np.random.seed(123456)
    np.set_printoptions(precision=4, suppress=True)
-   options.display.max_rows = 15
-   from pandas.compat import StringIO
+   pd.options.display.max_rows = 15
 """
 
 
 html_context = {
     'redirects': {old: new for old, new in moved_api_pages},
-    'common_imports': common_imports,
+    'header': header
 }
 
 # If false, no module index is generated.

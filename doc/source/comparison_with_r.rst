@@ -1,12 +1,6 @@
-.. currentmodule:: pandas
 .. _compare_with_r:
 
-.. ipython:: python
-   :suppress:
-
-   import pandas as pd
-   import numpy as np
-   pd.options.display.max_rows = 15
+{{ header }}
 
 Comparison with R / R libraries
 *******************************

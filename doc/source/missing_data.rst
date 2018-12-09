@@ -1,16 +1,6 @@
-.. currentmodule:: pandas
-
-.. ipython:: python
-   :suppress:
-
-   import numpy as np
-   import pandas as pd
-   pd.options.display.max_rows=15
-   import matplotlib
-   # matplotlib.style.use('default')
-   import matplotlib.pyplot as plt
-
 .. _missing_data:
+
+{{ header }}
 
 *************************
 Working with missing data

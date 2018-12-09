@@ -3,7 +3,13 @@
 v0.8.0 (June 29, 2012)
 ------------------------
 
-{{ common_imports }}
+{{ header }}
+
+.. ipython:: python
+   :suppress:
+
+   from pandas import * # noqa F401, F403
+
 
 This is a major release from 0.7.3 and includes extensive work on the time
 series handling and processing infrastructure as well as a great deal of new

@@ -3,7 +3,13 @@
 v0.12.0 (July 24, 2013)
 ------------------------
 
-{{ common_imports }}
+{{ header }}
+
+.. ipython:: python
+   :suppress:
+
+   from pandas import * # noqa F401, F403
+
 
 This is a major release from 0.11.0 and includes several new features and
 enhancements along with a large number of bug fixes.

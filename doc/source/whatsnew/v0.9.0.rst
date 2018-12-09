@@ -1,6 +1,12 @@
 .. _whatsnew_0900:
 
-{{ common_imports }}
+{{ header }}
+
+.. ipython:: python
+   :suppress:
+
+   from pandas import * # noqa F401, F403
+
 
 v0.9.0 (October 7, 2012)
 ------------------------

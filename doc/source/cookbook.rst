@@ -1,25 +1,6 @@
 .. _cookbook:
 
-.. currentmodule:: pandas
-
-.. ipython:: python
-   :suppress:
-
-   import datetime
-   import functools
-   import glob
-   import itertools
-   import os
-
-   import numpy as np
-   import pandas as pd
-   from pandas.compat import StringIO
-
-
-   np.random.seed(123456)
-   np.set_printoptions(precision=4, suppress=True)
-   pd.options.display.max_rows = 15
-
+{{ header }}
 
 ********
 Cookbook
@@ -185,6 +166,8 @@ One could hard code:
 ...Or it can be done with a list of dynamically built criteria
 
 .. ipython:: python
+
+   import functools
 
    CritList = [Crit1, Crit2, Crit3]
    AllCrit = functools.reduce(lambda x, y: x & y, CritList)
@@ -408,6 +391,8 @@ To take the cross section of the 1st level and 1st axis the index:
 <https://stackoverflow.com/questions/14964493/multiindex-based-indexing-in-pandas>`__
 
 .. ipython:: python
+
+   import itertools
 
    index = list(itertools.product(['Ada', 'Quinn', 'Violet'],
                                   ['Comp', 'Math', 'Sci']))
@@ -1022,6 +1007,9 @@ You can use the same approach to read all files matching a pattern.  Here is an 
 
 .. ipython:: python
 
+    import glob
+    import os
+
     files = glob.glob('file_*.csv')
     result = pd.concat([pd.read_csv(f) for f in files], ignore_index=True)
 
@@ -1080,6 +1068,8 @@ Option 1: pass rows explicitly to skip rows
 """""""""""""""""""""""""""""""""""""""""""
 
 .. ipython:: python
+
+    from pandas.compat import StringIO
 
     pd.read_csv(StringIO(data), sep=';', skiprows=[11, 12],
                 index_col=0, parse_dates=True, header=10)
@@ -1326,6 +1316,8 @@ The :ref:`Timedeltas <timedeltas.timedeltas>` docs.
 <http://github.com/pandas-dev/pandas/pull/2899>`__
 
 .. ipython:: python
+
+   import datetime
 
    s = pd.Series(pd.date_range('2012-1-1', periods=3, freq='D'))
 

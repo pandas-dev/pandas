@@ -1,5 +1,6 @@
-.. currentmodule:: pandas
 .. _compare_with_stata:
+
+{{ header }}
 
 Comparison with Stata
 *********************
@@ -675,5 +676,3 @@ If out of core processing is needed, one possibility is the
 `dask.dataframe <http://dask.pydata.org/en/latest/dataframe.html>`_
 library, which provides a subset of pandas functionality for an
 on-disk ``DataFrame``.
-
-

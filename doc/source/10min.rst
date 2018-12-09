@@ -1,24 +1,6 @@
 .. _10min:
 
-.. currentmodule:: pandas
-
-.. ipython:: python
-   :suppress:
-
-   import os
-   import numpy as np
-
-   import pandas as pd
-
-   np.random.seed(123456)
-   np.set_printoptions(precision=4, suppress=True)
-   pd.options.display.max_rows = 15
-
-   # portions of this were borrowed from the
-   # Pandas cheatsheet
-   # created during the PyData Workshop-Sprint 2012
-   # Hannah Chen, Henry Chow, Eric Cox, Robert Mauriello
-
+{{ header }}
 
 ********************
 10 Minutes to pandas
@@ -773,6 +755,7 @@ CSV
 .. ipython:: python
    :suppress:
 
+   import os
    os.remove('foo.csv')
 
 HDF5
