@@ -8830,8 +8830,8 @@ class NDFrame(PandasObject, SelectionMixin):
         fill_value : object, optional
             the scalar value to use for newly introduced missing values.
             the default depends on the dtype of `self`. for numeric data,
-            ``np.nan`` is used. for datelike, ``pandas.nat`` is used.    
-            
+            ``np.nan`` is used. for datelike, ``pandas.nat`` is used.
+
             .. versionchanged:: 0.24.0
 
         Returns
