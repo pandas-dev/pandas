@@ -14,7 +14,6 @@
    from pandas.compat import StringIO, BytesIO
 
 
-   randn = np.random.randn
    np.set_printoptions(precision=4, suppress=True)
    plt.close('all')
    pd.options.display.max_rows = 15
@@ -1767,7 +1766,7 @@ Note ``NaN``'s, ``NaT``'s and ``None`` will be converted to ``null`` and ``datet
 
 .. ipython:: python
 
-   dfj = pd.DataFrame(randn(5, 2), columns=list('AB'))
+   dfj = pd.DataFrame(np.random.randn(5, 2), columns=list('AB'))
    json = dfj.to_json()
    json
 
@@ -1842,7 +1841,7 @@ Writing in ISO date format:
 
 .. ipython:: python
 
-   dfd = pd.DataFrame(randn(5, 2), columns=list('AB'))
+   dfd = pd.DataFrame(np.random.randn(5, 2), columns=list('AB'))
    dfd['date'] = pd.Timestamp('20130101')
    dfd = dfd.sort_index(1, ascending=False)
    json = dfd.to_json(date_format='iso')
@@ -2482,7 +2481,7 @@ Read in pandas ``to_html`` output (with some loss of floating point precision):
 
 .. code-block:: python
 
-   df = pd.DataFrame(randn(2, 2))
+   df = pd.DataFrame(np.random.randn(2, 2))
    s = df.to_html(float_format='{0:.40g}'.format)
    dfin = pd.read_html(s, index_col=0)
 
@@ -2535,7 +2534,7 @@ in the method ``to_string`` described above.
 
 .. ipython:: python
 
-   df = pd.DataFrame(randn(2, 2))
+   df = pd.DataFrame(np.random.randn(2, 2))
    df
    print(df.to_html())  # raw html
 
@@ -2611,7 +2610,7 @@ Finally, the ``escape`` argument allows you to control whether the
 
 .. ipython:: python
 
-   df = pd.DataFrame({'a': list('&<>'), 'b': randn(3)})
+   df = pd.DataFrame({'a': list('&<>'), 'b': np.random.randn(3)})
 
 
 .. ipython:: python
@@ -3187,7 +3186,7 @@ applications (CTRL-V on many operating systems). Here we illustrate writing a
 
 .. ipython:: python
 
-    df = pd.DataFrame(randn(5, 3))
+    df = pd.DataFrame(np.random.randn(5, 3))
     df
     df.to_clipboard()
     pd.read_clipboard()
@@ -3414,10 +3413,10 @@ dict:
 .. ipython:: python
 
    index = pd.date_range('1/1/2000', periods=8)
-   s = pd.Series(randn(5), index=['a', 'b', 'c', 'd', 'e'])
-   df = pd.DataFrame(randn(8, 3), index=index,
+   s = pd.Series(np.random.randn(5), index=['a', 'b', 'c', 'd', 'e'])
+   df = pd.DataFrame(np.random.randn(8, 3), index=index,
                      columns=['A', 'B', 'C'])
-   wp = pd.Panel(randn(2, 5, 4), items=['Item1', 'Item2'],
+   wp = pd.Panel(np.random.randn(2, 5, 4), items=['Item1', 'Item2'],
                  major_axis=pd.date_range('1/1/2000', periods=5),
                  minor_axis=['A', 'B', 'C', 'D'])
 
@@ -3563,7 +3562,7 @@ This format is specified by default when using ``put`` or ``to_hdf`` or by ``for
 
    .. code-block:: python
 
-       >>> pd.DataFrame(randn(10, 2)).to_hdf('test_fixed.h5', 'df')
+       >>> pd.DataFrame(np.random.randn(10, 2)).to_hdf('test_fixed.h5', 'df')
        >>> pd.read_hdf('test_fixed.h5', 'df', where='index>5')
        TypeError: cannot pass a where specification when reading a fixed format.
                   this store must be selected in its entirety
@@ -3699,9 +3698,9 @@ defaults to `nan`.
 
 .. ipython:: python
 
-    df_mixed = pd.DataFrame({'A': randn(8),
-                             'B': randn(8),
-                             'C': np.array(randn(8), dtype='float32'),
+    df_mixed = pd.DataFrame({'A': np.random.randn(8),
+                             'B': np.random.randn(8),
+                             'C': np.array(np.random.randn(8), dtype='float32'),
                              'string': 'string',
                              'int': 1,
                              'bool': True,
@@ -3841,7 +3840,7 @@ Here are some examples:
 
 .. ipython:: python
 
-    dfq = pd.DataFrame(randn(10, 4), columns=list('ABCD'),
+    dfq = pd.DataFrame(np.random.randn(10, 4), columns=list('ABCD'),
                        index=pd.date_range('20130101', periods=10))
     store.append('dfq', dfq, format='table', data_columns=True)
 
@@ -3946,8 +3945,8 @@ Oftentimes when appending large amounts of data to a store, it is useful to turn
 
 .. ipython:: python
 
-   df_1 = pd.DataFrame(randn(10, 2), columns=list('AB'))
-   df_2 = pd.DataFrame(randn(10, 2), columns=list('AB'))
+   df_1 = pd.DataFrame(np.random.randn(10, 2), columns=list('AB'))
+   df_2 = pd.DataFrame(np.random.randn(10, 2), columns=list('AB'))
 
    st = pd.HDFStore('appends.h5', mode='w')
    st.append('df', df_1, data_columns=['B'], index=False)
@@ -4151,7 +4150,8 @@ results.
 
 .. ipython:: python
 
-   df_mt = pd.DataFrame(randn(8, 6), index=pd.date_range('1/1/2000', periods=8),
+   df_mt = pd.DataFrame(np.random.randn(8, 6),
+                        index=pd.date_range('1/1/2000', periods=8),
                         columns=['A', 'B', 'C', 'D', 'E', 'F'])
    df_mt['foo'] = 'bar'
    df_mt.loc[df_mt.index[1], ('A', 'B')] = np.nan
@@ -5181,7 +5181,7 @@ into a .dta file. The format version of this file is always 115 (Stata 12).
 
 .. ipython:: python
 
-   df = pd.DataFrame(randn(10, 2), columns=list('AB'))
+   df = pd.DataFrame(np.random.randn(10, 2), columns=list('AB'))
    df.to_stata('stata.dta')
 
 *Stata* data files have limited data type support; only strings with
@@ -5405,7 +5405,7 @@ ignored.
 .. code-block:: ipython
 
    In [1]: sz = 1000000
-   In [2]: df = pd.DataFrame({'A': randn(sz), 'B': [1] * sz})
+   In [2]: df = pd.DataFrame({'A': np.random.randn(sz), 'B': [1] * sz})
 
    In [3]: df.info()
    <class 'pandas.core.frame.DataFrame'>
