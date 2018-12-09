@@ -1,18 +1,10 @@
-.. currentmodule:: pandas
 .. _merging:
+
+{{ header }}
 
 .. ipython:: python
    :suppress:
 
-   import numpy as np
-   np.random.seed(123456)
-   import pandas as pd
-   pd.options.display.max_rows=15
-   randn = np.random.randn
-   np.set_printoptions(precision=4, suppress=True)
-
-   import matplotlib.pyplot as plt
-   plt.close('all')
    import pandas.util._doctools as doctools
    p = doctools.TablePlotter()
 
