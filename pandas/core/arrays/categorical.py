@@ -5,16 +5,13 @@ from warnings import warn
 
 import numpy as np
 
-import pandas.compat as compat
-import pandas.core.algorithms as algorithms
-import pandas.core.common as com
 from pandas._libs import algos as libalgos, lib
+import pandas.compat as compat
 from pandas.compat import lzip, u
 from pandas.compat.numpy import function as nv
-from pandas.core.accessor import PandasDelegate, delegate_names
-from pandas.core.algorithms import factorize, take, take_1d, unique1d
-from pandas.core.base import NoNewAttributesMixin, PandasObject, _shared_docs
-from pandas.core.config import get_option
+from pandas.util._decorators import (
+    Appender, Substitution, cache_readonly, deprecate_kwarg)
+from pandas.util._validators import validate_bool_kwarg, validate_fillna_kwargs
 from pandas.core.dtypes.cast import (
     coerce_indexer_dtype, maybe_infer_to_datetimelike)
 from pandas.core.dtypes.common import (
@@ -28,13 +25,17 @@ from pandas.core.dtypes.generic import (
     ABCCategoricalIndex, ABCIndexClass, ABCSeries)
 from pandas.core.dtypes.inference import is_hashable
 from pandas.core.dtypes.missing import isna, notna
+
+from pandas.core.accessor import PandasDelegate, delegate_names
+import pandas.core.algorithms as algorithms
+from pandas.core.algorithms import factorize, take, take_1d, unique1d
+from pandas.core.base import NoNewAttributesMixin, PandasObject, _shared_docs
+import pandas.core.common as com
+from pandas.core.config import get_option
 from pandas.core.missing import interpolate_2d
 from pandas.core.sorting import nargsort
 from pandas.io.formats import console
 from pandas.io.formats.terminal import get_terminal_size
-from pandas.util._decorators import (
-    Appender, Substitution, cache_readonly, deprecate_kwarg)
-from pandas.util._validators import validate_bool_kwarg, validate_fillna_kwargs
 from .base import ExtensionArray
 
 _take_msg = textwrap.dedent("""\
