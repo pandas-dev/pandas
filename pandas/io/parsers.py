@@ -1669,8 +1669,8 @@ class ParserBase(object):
                     try_num_bool)
 
                 # type specified in dtype param
-                if cast_type and not is_dtype_equal(cvals, cast_type):
-                        # or is_extension_array_dtype(cast_type)):
+                if cast_type and (not is_dtype_equal(cvals, cast_type)
+                                  or is_extension_array_dtype(cast_type)):
                     try:
                         if (is_bool_dtype(cast_type) and
                                 not is_categorical_dtype(cast_type)

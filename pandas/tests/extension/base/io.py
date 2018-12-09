@@ -26,15 +26,19 @@ def data(dtype):
 
 
 class ExtensionParsingTests(BaseExtensionTests):
-    def test_EA_types(self):
+
+    @pytest.mark.parametrize('engine', ['c', 'python'])
+    def test_EA_types(self, engine):
         df = pd.DataFrame({'Int': pd.Series([1, 2, 3], dtype='Int64'),
                            'A': [1, 2, 1]})
         data = df.to_csv(index=False)
-        result = pd.read_csv(StringIO(data), dtype={'Int': Int64Dtype})
+        result = pd.read_csv(StringIO(data), dtype={'Int': Int64Dtype},
+                             engine=engine)
         assert result is not None
 
         df = pd.DataFrame({'Int': pd.Series([1, 2, 3], dtype='Int8'),
                            'A': [1, 2, 1]})
         data = df.to_csv(index=False)
-        result = pd.read_csv(StringIO(data), dtype={'Int': 'Int8'})
+        result = pd.read_csv(StringIO(data), dtype={'Int': 'Int8'},
+                             engine=engine)
         assert result is not None

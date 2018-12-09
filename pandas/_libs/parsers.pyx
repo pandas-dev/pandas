@@ -986,7 +986,6 @@ cdef class TextReader:
                                             footer=footer,
                                             upcast_na=True)
         self._end_clock('Type conversion')
-
         self._start_clock()
         if len(columns) > 0:
             rows_read = len(list(columns.values())[0])
@@ -1241,7 +1240,7 @@ cdef class TextReader:
                     try:
                         # use _from_sequence_of_strings if the class defines it
                         result = array_type._from_sequence_of_strings(result,
-                                                                    dtype=dtype) # noqa
+                                                                      dtype=dtype) # noqa
                     except AbstractMethodError:
                         result = array_type._from_sequence(result, dtype=dtype)
                 else:
@@ -2201,7 +2200,11 @@ def _concatenate_chunks(list chunks):
             result[name] = union_categoricals(arrs,
                                               sort_categories=sort_categories)
         else:
-            result[name] = np.concatenate(arrs)
+            if is_extension_array_dtype(dtype):
+                result[name] = dtype \
+                    .construct_array_type()._concat_same_type(arrs)
+            else:
+                result[name] = np.concatenate(arrs)
 
     if warning_columns:
         warning_names = ','.join(warning_columns)

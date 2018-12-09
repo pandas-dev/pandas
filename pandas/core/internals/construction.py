@@ -559,7 +559,7 @@ def sanitize_array(data, index, dtype=None, copy=False,
 
             # possibility of nan -> garbage
             if is_float_dtype(data.dtype) and is_integer_dtype(dtype) \
-                and not is_extension_array_dtype(dtype):
+                    and not is_extension_array_dtype(dtype):
                 if not isna(data).any():
                     subarr = _try_cast(data, True, dtype, copy,
                                        raise_cast_failure)
