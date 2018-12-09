@@ -2005,7 +2005,8 @@ class GroupBy(_GroupBy):
         """
 
         if freq is not None or axis != 0:
-            return self.apply(lambda x: x.shift(periods, freq, axis, fill_value))
+            return self.apply(lambda x: x.shift(periods, freq,
+                                                axis, fill_value))
 
         return self._get_cythonized_result('group_shift_indexer',
                                            self.grouper, cython_dtype=np.int64,
