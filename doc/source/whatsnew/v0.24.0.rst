@@ -378,20 +378,18 @@ Backwards incompatible API changes
 - Passing scalar values to :class:`DatetimeIndex` or :class:`TimedeltaIndex` will now raise ``TypeError`` instead of ``ValueError`` (:issue:`23539`)
 - ``max_rows`` and ``max_cols`` parameters removed from :class:`HTMLFormatter` since truncation is handled by :class:`DataFrameFormatter` (:issue:`23818`)
 - :meth:`read_csv` will now raise a ``ValueError`` if a column with missing values is declared as having dtype ``bool`` (:issue:`20591`)
-- Bug where calling :func:`SeriesGroupBy.pct_change` or :func:`DataFrameGroupBy.pct_change` would ignore groups when calculating the percent change (:issue:`21235`)
 
-**New behavior**:
+Percentage change called on groupby now returns correct values
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Fixed a bug where calling :func:`SeriesGroupBy.pct_change` or :func:`DataFrameGroupBy.pct_change` would ignore groups when calculating the percent change (:issue:`21235`).
 
 .. ipython:: python
 
-   import pandas as pd
    df = pd.DataFrame({'grp': ['a', 'a', 'b'], 'foo': [1.0, 1.1, 2.2]})
    df
 
-   df.groupby('grp').pct_change()
-
-
-**Previous behavior**:
+Previous behavior:
 
 .. code-block:: ipython
 
@@ -401,6 +399,12 @@ Backwards incompatible API changes
    0  NaN
    1  0.1
    2  1.0
+
+New behavior:
+
+.. ipython:: python
+
+   df.groupby('grp').pct_change()
 
 .. _whatsnew_0240.api_breaking.deps:
 
