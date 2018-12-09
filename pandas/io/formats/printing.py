@@ -468,7 +468,7 @@ def _justify(head, tail):
     return head, tail
 
 
-def format_object_attrs(obj):
+def format_object_attrs(obj, include_dtype=True):
     """
     Return a list of tuples of the (attr, formatted_value)
     for common attrs, including dtype, name, length
@@ -477,6 +477,8 @@ def format_object_attrs(obj):
     ----------
     obj : object
         must be iterable
+    include_dtype : bool
+        If False, dtype won't be in the returned list
 
     Returns
     -------
@@ -484,7 +486,7 @@ def format_object_attrs(obj):
 
     """
     attrs = []
-    if hasattr(obj, 'dtype'):
+    if hasattr(obj, 'dtype') and include_dtype:
         attrs.append(('dtype', "'{}'".format(obj.dtype)))
     if getattr(obj, 'name', None) is not None:
         attrs.append(('name', default_pprint(obj.name)))

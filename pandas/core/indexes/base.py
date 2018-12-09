@@ -1326,20 +1326,20 @@ class Index(IndexOpsMixin, PandasObject):
                     ('python', 2019),
                     ( 'cobra', 2018),
                     ( 'cobra', 2019)],
-                   dtype='object')
+                   )
         >>> idx.set_names(['kind', 'year'], inplace=True)
         >>> idx
         MultiIndex([('python', 2018),
                     ('python', 2019),
                     ( 'cobra', 2018),
                     ( 'cobra', 2019)],
-                   dtype='object', names=['kind', 'year'])
+                   names=['kind', 'year'])
         >>> idx.set_names('species', level=0)
         MultiIndex([('python', 2018),
                     ('python', 2019),
                     ( 'cobra', 2018),
                     ( 'cobra', 2019)],
-                   dtype='object', names=['species', 'year'])
+                   names=['species', 'year'])
         """
 
         if level is not None and not isinstance(self, ABCMultiIndex):
@@ -1404,13 +1404,13 @@ class Index(IndexOpsMixin, PandasObject):
                     ('python', 2019),
                     ( 'cobra', 2018),
                     ( 'cobra', 2019)],
-                   dtype='object', names=['kind', 'year'])
+                   names=['kind', 'year'])
         >>> idx.rename(['species', 'year'])
         MultiIndex([('python', 2018),
                     ('python', 2019),
                     ( 'cobra', 2018),
                     ( 'cobra', 2019)],
-                   dtype='object', names=['species', 'year'])
+                   names=['species', 'year'])
         >>> idx.rename('species')
         Traceback (most recent call last):
         TypeError: Must pass list-like as `names`.
@@ -5433,7 +5433,7 @@ def ensure_index_from_sequences(sequences, names=None):
                                     names=['L1', 'L2'])
     MultiIndex([('a', 'a'),
                 ('a', 'b')],
-               dtype='object', names=['L1', 'L2'])
+               names=['L1', 'L2'])
 
     See Also
     --------
@@ -5475,6 +5475,7 @@ def ensure_index(index_like, copy=False):
     MultiIndex([('a', 'b'),
                 ('a', 'c')],
                dtype='object')
+               )
 
     See Also
     --------

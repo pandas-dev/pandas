@@ -2,16 +2,30 @@ import numpy as np
 import pytest
 
 from pandas import Categorical, Index, MultiIndex, NaT
-from pandas.util.testing import assert_index_equal
+from pandas.util.testing import PY3, assert_index_equal
 
 
 def test_index_equal_levels_mismatch():
-    msg = """Index are different
+    if PY3:
+        msg = """Index are different
 
 Index levels are different
 \\[left\\]:  1, Int64Index\\(\\[1, 2, 3\\], dtype='int64'\\)
-\\[right\\]: 2, MultiIndex\\(levels=\\[\\['A', 'B'\\], \\[1, 2, 3, 4\\]\\],
-           codes=\\[\\[0, 0, 1, 1\\], \\[0, 1, 2, 3\\]\\]\\)"""
+\\[right\\]: 2, MultiIndex\\(\\[\\('A', 1\\),
+            \\('A', 2\\),
+            \\('B', 3\\),
+            \\('B', 4\\)\\],
+           \\)"""
+    else:
+        msg = """Index are different
+
+Index levels are different
+\\[left\\]:  1, Int64Index\\(\\[1, 2, 3\\], dtype='int64'\\)
+\\[right\\]: 2, MultiIndex\\(\\[\\(u'A', 1\\),
+            \\(u'A', 2\\),
+            \\(u'B', 3\\),
+            \\(u'B', 4\\)\\],
+           \\)"""
 
     idx1 = Index([1, 2, 3])
     idx2 = MultiIndex.from_tuples([("A", 1), ("A", 2),
