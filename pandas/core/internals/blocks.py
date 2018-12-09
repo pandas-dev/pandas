@@ -1,45 +1,44 @@
 # -*- coding: utf-8 -*-
+from datetime import date, datetime, timedelta
 import functools
 import inspect
 import re
 import warnings
-from datetime import date, datetime, timedelta
 
-import numpy as np
+ import numpy as np
 
-import pandas.compat as compat
-import pandas.core.algorithms as algos
-import pandas.core.common as com
-import pandas.core.dtypes.concat as _concat
-import pandas.core.missing as missing
 from pandas._libs import internals as libinternals, lib, tslib, tslibs
 from pandas._libs.tslibs import Timedelta, conversion
+import pandas.compat as compat
 from pandas.compat import range, zip
-from pandas.core.arrays import Categorical, ExtensionArray
-from pandas.core.base import PandasObject
+from pandas.util._validators import validate_bool_kwarg
 from pandas.core.dtypes.cast import (
     astype_nansafe, find_common_type, infer_dtype_from,
     infer_dtype_from_scalar, maybe_convert_objects, maybe_downcast_to_dtype,
-    maybe_infer_dtype_type, maybe_promote, maybe_upcast, soft_convert_objects)
+     maybe_infer_dtype_type, maybe_promote, maybe_upcast, soft_convert_objects)
 from pandas.core.dtypes.common import (
-    _NS_DTYPE, _TD_DTYPE, ensure_platform_int, is_bool_dtype, is_categorical,
-    is_categorical_dtype, is_datetime64_dtype, is_datetime64tz_dtype,
-    is_dtype_equal, is_extension_array_dtype, is_extension_type,
-    is_float_dtype, is_integer, is_integer_dtype, is_interval_dtype,
-    is_list_like, is_numeric_v_string_like, is_object_dtype, is_period_dtype,
-    is_re, is_re_compilable, is_sparse, is_timedelta64_dtype, pandas_dtype)
+     _NS_DTYPE, _TD_DTYPE, ensure_platform_int, is_bool_dtype, is_categorical,
+     is_categorical_dtype, is_datetime64_dtype, is_datetime64tz_dtype,
+     is_dtype_equal, is_extension_array_dtype, is_extension_type,
+     is_float_dtype, is_integer, is_integer_dtype, is_interval_dtype,
+     is_list_like, is_numeric_v_string_like, is_object_dtype, is_period_dtype,
+     is_re, is_re_compilable, is_sparse, is_timedelta64_dtype, pandas_dtype)
 import pandas.core.dtypes.concat as _concat
 from pandas.core.dtypes.dtypes import (
-    CategoricalDtype, DatetimeTZDtype, ExtensionDtype, PandasExtensionDtype)
+     CategoricalDtype, DatetimeTZDtype, ExtensionDtype, PandasExtensionDtype)
 from pandas.core.dtypes.generic import (
     ABCDatetimeIndex, ABCExtensionArray, ABCIndexClass, ABCSeries)
 from pandas.core.dtypes.missing import (
     _isna_compat, array_equivalent, is_null_datelike_scalar, isna, notna)
+import pandas.core.algorithms as algos
+from pandas.core.arrays import Categorical, ExtensionArray
+from pandas.core.base import PandasObject
+import pandas.core.common as com
 from pandas.core.indexes.datetimes import DatetimeIndex
 from pandas.core.indexes.timedeltas import TimedeltaIndex
 from pandas.core.indexing import check_setitem_lengths
+import pandas.core.missing as missing
 from pandas.io.formats.printing import pprint_thing
-from pandas.util._validators import validate_bool_kwarg
 
 
 class Block(PandasObject):
