@@ -9894,10 +9894,10 @@ class NDFrame(PandasObject, SelectionMixin):
         axis_descr, name, name2 = _doc_parms(cls)
 
         cls.any = _make_logical_function(
-            cls, 'any', name, name2, axis_descr, _any_doc, nanops.nanany,
+            cls, 'any', name, name2, axis_descr, _any_desc, nanops.nanany,
             _any_examples, _any_see_also, empty_value=False)
         cls.all = _make_logical_function(
-            cls, 'all', name, name2, axis_descr, _all_doc, nanops.nanall,
+            cls, 'all', name, name2, axis_descr, _all_desc, nanops.nanall,
             _all_examples, _all_see_also, empty_value=True)
 
         @Substitution(outname='mad',
@@ -10243,7 +10243,7 @@ Returns
 %(see_also)s
 %(examples)s"""
 
-_all_doc = """\
+_all_desc = """\
 Return whether all elements are True, potentially over an axis.
 
 Returns True unless there at least one element within a series or
@@ -10607,7 +10607,7 @@ DataFrame.any : Return whether any element is True over requested axis.
 DataFrame.all : Return whether all elements are True over requested axis.
 """
 
-_any_doc = """\
+_any_desc = """\
 Return whether any element is True, potentially over an axis.
 
 Returns False unless there at least one element within a series or
