@@ -775,7 +775,7 @@ R package):
    :okwarning:
 
    # restore GlobalPrintConfig
-   pd.reset_option('^display\.')  # noqa: W605
+   pd.reset_option(r'^display\.')
 
 However, using ``to_string`` will return a string representation of the
 DataFrame in tabular form, though it won't always fit the console width:
