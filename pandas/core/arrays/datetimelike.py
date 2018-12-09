@@ -328,7 +328,7 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin, AttributesMixin):
                              "arrays are valid indices")
 
         if key is Ellipsis:
-            # GH#21282
+            # GH#21282 avoid losing `freq` attribute
             return self.copy()
 
         getitem = self._data.__getitem__
@@ -561,7 +561,8 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin, AttributesMixin):
                 # non-fixed frequencies are not meaningful for timedelta64;
                 #  we retain that error message
                 raise e
-            # GH#11587 if index[0] is NaT _generate_range will raise ValueError
+            # GH#11587 if index[0] is NaT _generate_range will raise
+            #  ValueError, which we re-raise with a targeted error message
             raise ValueError('Inferred frequency {infer} from passed values '
                              'does not conform to passed frequency {passed}'
                              .format(infer=inferred, passed=freq.freqstr))
