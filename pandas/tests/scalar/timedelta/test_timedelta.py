@@ -4,7 +4,7 @@ from datetime import timedelta
 import numpy as np
 import pytest
 
-from pandas._libs.tslib import NaT, iNaT
+from pandas._libs.tslibs import NaT, iNaT
 import pandas.compat as compat
 
 import pandas as pd
@@ -550,7 +550,7 @@ class TestTimedeltas(object):
 
         # mean
         result = (s - s.min()).mean()
-        expected = pd.Timedelta((pd.DatetimeIndex((s - s.min())).asi8 / len(s)
+        expected = pd.Timedelta((pd.TimedeltaIndex((s - s.min())).asi8 / len(s)
                                  ).sum())
 
         # the computation is converted to float so

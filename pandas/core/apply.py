@@ -132,7 +132,7 @@ class FrameApply(object):
         # ufunc
         elif isinstance(self.f, np.ufunc):
             with np.errstate(all='ignore'):
-                results = self.f(self.values)
+                results = self.obj._data.apply('apply', func=self.f)
             return self.obj._constructor(data=results, index=self.index,
                                          columns=self.columns, copy=False)
 
