@@ -30,8 +30,9 @@ from pandas.core.indexing import maybe_convert_indices
 from pandas.io.formats.printing import pprint_thing
 
 from .blocks import (
-    Block, CategoricalBlock, DatetimeTZBlock, ExtensionBlock, _extend_blocks,
-    _merge_blocks, _safe_reshape, get_block_type, make_block)
+    Block, CategoricalBlock, DatetimeTZBlock, ExtensionBlock,
+    ObjectValuesExtensionBlock, _extend_blocks, _merge_blocks, _safe_reshape,
+    get_block_type, make_block)
 from .concat import (  # all for concatenate_block_managers
     combine_concat_plans, concatenate_join_units, get_mgr_concatenation_plan,
     is_uniform_join_units)
@@ -1753,6 +1754,14 @@ def form_blocks(arrays, names, axes):
         external_blocks = [
             make_block(array, klass=ExtensionBlock, placement=[i])
             for i, _, array in items_dict['ExtensionBlock']
+        ]
+
+        blocks.extend(external_blocks)
+
+    if len(items_dict['ObjectValuesExtensionBlock']):
+        external_blocks = [
+            make_block(array, klass=ObjectValuesExtensionBlock, placement=[i])
+            for i, _, array in items_dict['ObjectValuesExtensionBlock']
         ]
 
         blocks.extend(external_blocks)

@@ -22,9 +22,9 @@ from pandas.core.dtypes.common import (
     _NS_DTYPE, _TD_DTYPE, ensure_platform_int, is_bool_dtype, is_categorical,
     is_categorical_dtype, is_datetime64_dtype, is_datetime64tz_dtype,
     is_dtype_equal, is_extension_array_dtype, is_extension_type,
-    is_float_dtype, is_integer, is_integer_dtype, is_list_like,
-    is_numeric_v_string_like, is_object_dtype, is_re, is_re_compilable,
-    is_sparse, is_timedelta64_dtype, pandas_dtype)
+    is_float_dtype, is_integer, is_integer_dtype, is_interval_dtype,
+    is_list_like, is_numeric_v_string_like, is_object_dtype, is_period_dtype,
+    is_re, is_re_compilable, is_sparse, is_timedelta64_dtype, pandas_dtype)
 import pandas.core.dtypes.concat as _concat
 from pandas.core.dtypes.dtypes import (
     CategoricalDtype, DatetimeTZDtype, ExtensionDtype, PandasExtensionDtype)
@@ -2017,6 +2017,18 @@ class ExtensionBlock(NonConsolidatableMixIn, Block):
         return blocks, mask
 
 
+class ObjectValuesExtensionBlock(ExtensionBlock):
+    """
+    Block providing backwards-compatibility for `.values`.
+
+    Used by PeriodArray and IntervalArray to ensure that
+    Series[T].values is an ndarray of objects.
+    """
+
+    def external_values(self, dtype=None):
+        return self.values.astype(object)
+
+
 class NumericBlock(Block):
     __slots__ = ()
     is_numeric = True
@@ -3126,6 +3138,8 @@ def get_block_type(values, dtype=None):
         cls = DatetimeBlock
     elif is_datetime64tz_dtype(values):
         cls = DatetimeTZBlock
+    elif is_interval_dtype(dtype) or is_period_dtype(dtype):
+        cls = ObjectValuesExtensionBlock
     elif is_extension_array_dtype(values):
         cls = ExtensionBlock
     elif issubclass(vtype, np.floating):
