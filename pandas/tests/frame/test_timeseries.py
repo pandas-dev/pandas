@@ -9,7 +9,6 @@ import pytest
 from numpy.random import randn
 import numpy as np
 
-
 from pandas import (DataFrame, Series, Index,
                     Timestamp, DatetimeIndex, MultiIndex,
                     to_datetime, date_range, period_range)
