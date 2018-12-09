@@ -16,6 +16,7 @@ import pandas as pd
 from pandas import (
     Categorical, CategoricalIndex, DataFrame, Series, bdate_range, compat,
     date_range, isna, notna)
+from pandas.api.types import is_scalar
 from pandas.core.index import MultiIndex
 from pandas.core.indexes.datetimes import Timestamp
 from pandas.core.indexes.timedeltas import Timedelta
@@ -1365,17 +1366,17 @@ class TestSeriesAnalytics(object):
         s = Series([1, 2, 3])
 
         result = s.searchsorted(1, side='left')
-        assert tm.is_scalar(result)
+        assert is_scalar(result)
         assert result == 0
 
         result = s.searchsorted(1, side='right')
-        assert tm.is_scalar(result)
+        assert is_scalar(result)
         assert result == 1
 
     def test_searchsorted_numeric_dtypes_scalar(self):
         s = Series([1, 2, 90, 1000, 3e9])
         r = s.searchsorted(30)
-        assert tm.is_scalar(r)
+        assert is_scalar(r)
         assert r == 2
 
         r = s.searchsorted([30])
@@ -1392,7 +1393,7 @@ class TestSeriesAnalytics(object):
         s = Series(pd.date_range('20120101', periods=10, freq='2D'))
         v = pd.Timestamp('20120102')
         r = s.searchsorted(v)
-        assert tm.is_scalar(r)
+        assert is_scalar(r)
         assert r == 1
 
     def test_search_sorted_datetime64_list(self):

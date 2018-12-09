@@ -8,6 +8,7 @@ import pytest
 from pandas.compat import PYPY
 
 from pandas import Categorical, Index, Series
+from pandas.api.types import is_scalar
 import pandas.util.testing as tm
 
 
@@ -86,11 +87,11 @@ class TestCategoricalAnalytics(object):
         # Searching for single item argument, side='left' (default)
         res_cat = c1.searchsorted('apple')
         assert res_cat == 2
-        assert tm.is_scalar(res_cat)
+        assert is_scalar(res_cat)
 
         res_ser = s1.searchsorted('apple')
         assert res_ser == 2
-        assert tm.is_scalar(res_ser)
+        assert is_scalar(res_ser)
 
         # Searching for single item array, side='left' (default)
         res_cat = c1.searchsorted(['bread'])

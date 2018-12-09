@@ -28,7 +28,6 @@ from pandas.core.dtypes.common import (
     is_datetimelike_v_numeric, is_datetimelike_v_object,
     is_extension_array_dtype, is_interval_dtype, is_list_like, is_number,
     is_period_dtype, is_sequence, is_timedelta64_dtype, needs_i8_conversion)
-from pandas.core.dtypes.common import is_scalar  # noqa: F401
 from pandas.core.dtypes.missing import array_equivalent
 
 import pandas as pd
