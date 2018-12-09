@@ -9,17 +9,18 @@ import weakref
 
 import numpy as np
 
-from pandas._libs import Timestamp, iNaT, properties
+import pandas as pd
 import pandas.compat as compat
+import pandas.core.algorithms as algos
+import pandas.core.common as com
+import pandas.core.indexing as indexing
+from pandas._libs import Timestamp, iNaT, properties
 from pandas.compat import (
     cPickle as pkl, isidentifier, lrange, lzip, map, set_function_name,
     string_types, to_str, zip)
 from pandas.compat.numpy import function as nv
-from pandas.errors import AbstractMethodError
-from pandas.util._decorators import (
-    Appender, Substitution, rewrite_axis_style_signature)
-from pandas.util._validators import validate_bool_kwarg, validate_fillna_kwargs
-
+from pandas.core import config, missing, nanops
+from pandas.core.base import PandasObject, SelectionMixin
 from pandas.core.dtypes.cast import maybe_promote, maybe_upcast_putmask
 from pandas.core.dtypes.common import (
     ensure_int64, ensure_object, is_bool, is_bool_dtype,
@@ -30,23 +31,19 @@ from pandas.core.dtypes.common import (
 from pandas.core.dtypes.generic import ABCDataFrame, ABCPanel, ABCSeries
 from pandas.core.dtypes.inference import is_hashable
 from pandas.core.dtypes.missing import isna, notna
-
-import pandas as pd
-from pandas.core import config, missing, nanops
-import pandas.core.algorithms as algos
-from pandas.core.base import PandasObject, SelectionMixin
-import pandas.core.common as com
 from pandas.core.index import (
     Index, InvalidIndexError, MultiIndex, RangeIndex, ensure_index)
 from pandas.core.indexes.datetimes import DatetimeIndex
 from pandas.core.indexes.period import Period, PeriodIndex
-import pandas.core.indexing as indexing
 from pandas.core.internals import BlockManager
 from pandas.core.ops import _align_method_FRAME
-
+from pandas.errors import AbstractMethodError
 from pandas.io.formats.format import DataFrameFormatter, format_percentiles
 from pandas.io.formats.printing import pprint_thing
 from pandas.tseries.frequencies import to_offset
+from pandas.util._decorators import (
+    Appender, Substitution, rewrite_axis_style_signature)
+from pandas.util._validators import validate_bool_kwarg, validate_fillna_kwargs
 
 # goal is to be able to define the docs close to function, while still being
 # able to share
@@ -8879,7 +8876,6 @@ class NDFrame(PandasObject, SelectionMixin):
         2   0.0   0.0   0.0
         3  10.0  13.0  17.0
         4  20.0  23.0  27.0
-
     """)
 
     @Appender(_shared_docs['shift'] % _shared_doc_kwargs)
