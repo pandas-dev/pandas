@@ -65,8 +65,8 @@ for each column, *including the index columns*. This has JSON form:
     .. code-block:: python
 
        # assuming there's at least 3 levels in the index
-       index_columns = metadata['index_columns']
-       columns = metadata['columns']
+       index_columns = metadata['index_columns']  # noqa: F821
+       columns = metadata['columns']  # noqa: F821
        ith_index = 2
        assert index_columns[ith_index] == '__index_level_2__'
        ith_index_info = columns[-len(index_columns):][ith_index]
