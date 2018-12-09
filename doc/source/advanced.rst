@@ -563,7 +563,8 @@ they need to be sorted. As with any index, you can use :meth:`~DataFrame.sort_in
 
 .. ipython:: python
 
-   import random; random.shuffle(tuples)
+   import random
+   random.shuffle(tuples)
    s = pd.Series(np.random.randn(8), index=pd.MultiIndex.from_tuples(tuples))
    s
    s.sort_index()
