@@ -39,19 +39,19 @@ a simple example:
                        'B': ['B0', 'B1', 'B2', 'B3'],
                        'C': ['C0', 'C1', 'C2', 'C3'],
                        'D': ['D0', 'D1', 'D2', 'D3']},
-                       index=[0, 1, 2, 3])
+                      index=[0, 1, 2, 3])
 
    df2 = pd.DataFrame({'A': ['A4', 'A5', 'A6', 'A7'],
                        'B': ['B4', 'B5', 'B6', 'B7'],
                        'C': ['C4', 'C5', 'C6', 'C7'],
                        'D': ['D4', 'D5', 'D6', 'D7']},
-                        index=[4, 5, 6, 7])
+                      index=[4, 5, 6, 7])
 
    df3 = pd.DataFrame({'A': ['A8', 'A9', 'A10', 'A11'],
                        'B': ['B8', 'B9', 'B10', 'B11'],
                        'C': ['C8', 'C9', 'C10', 'C11'],
                        'D': ['D8', 'D9', 'D10', 'D11']},
-                       index=[8, 9, 10, 11])
+                      index=[8, 9, 10, 11])
 
    frames = [df1, df2, df3]
    result = pd.concat(frames)
@@ -380,7 +380,7 @@ Through the ``keys`` argument we can override the existing column names.
 
 .. ipython:: python
 
-   pd.concat([s3, s4, s5], axis=1, keys=['red','blue','yellow'])
+   pd.concat([s3, s4, s5], axis=1, keys=['red', 'blue', 'yellow'])
 
 Let's consider a variation of the very first example presented:
 
@@ -437,8 +437,8 @@ do so using the ``levels`` argument:
 .. ipython:: python
 
    result = pd.concat(pieces, keys=['x', 'y', 'z'],
-                   levels=[['z', 'y', 'x', 'w']],
-                   names=['group_key'])
+                      levels=[['z', 'y', 'x', 'w']],
+                      names=['group_key'])
 
 .. ipython:: python
    :suppress:
@@ -726,9 +726,9 @@ Here is another example with duplicate join keys in DataFrames:
 
 .. ipython:: python
 
-   left = pd.DataFrame({'A' : [1,2], 'B' : [2, 2]})
+   left = pd.DataFrame({'A': [1, 2], 'B': [2, 2]})
 
-   right = pd.DataFrame({'A' : [4,5,6], 'B': [2,2,2]})
+   right = pd.DataFrame({'A': [4, 5, 6], 'B': [2, 2, 2]})
 
    result = pd.merge(left, right, on='B', how='outer')
 
@@ -801,8 +801,8 @@ that takes on values:
 
 .. ipython:: python
 
-   df1 = pd.DataFrame({'col1': [0, 1], 'col_left':['a', 'b']})
-   df2 = pd.DataFrame({'col1': [1, 2, 2],'col_right':[2, 2, 2]})
+   df1 = pd.DataFrame({'col1': [0, 1], 'col_left': ['a', 'b']})
+   df2 = pd.DataFrame({'col1': [1, 2, 2], 'col_right': [2, 2, 2]})
    pd.merge(df1, df2, on='col1', how='outer', indicator=True)
 
 The ``indicator`` argument will also accept string arguments, in which case the indicator function will use the value of the passed string as the name for the indicator column.
@@ -857,7 +857,8 @@ The left frame.
    X = X.astype(CategoricalDtype(categories=['foo', 'bar']))
 
    left = pd.DataFrame({'X': X,
-                        'Y': np.random.choice(['one', 'two', 'three'], size=(10,))})
+                        'Y': np.random.choice(['one', 'two', 'three'],
+                                              size=(10,))})
    left
    left.dtypes
 
@@ -865,11 +866,9 @@ The right frame.
 
 .. ipython:: python
 
-   right = pd.DataFrame({
-        'X': pd.Series(['foo', 'bar'],
-                       dtype=CategoricalDtype(['foo', 'bar'])),
-        'Z': [1, 2]
-   })
+   right = pd.DataFrame({'X': pd.Series(['foo', 'bar'],
+                        dtype=CategoricalDtype(['foo', 'bar'])),
+                        'Z': [1, 2]})
    right
    right.dtypes
 
@@ -903,11 +902,11 @@ potentially differently-indexed ``DataFrames`` into a single result
 
    left = pd.DataFrame({'A': ['A0', 'A1', 'A2'],
                         'B': ['B0', 'B1', 'B2']},
-                        index=['K0', 'K1', 'K2'])
+                       index=['K0', 'K1', 'K2'])
 
    right = pd.DataFrame({'C': ['C0', 'C2', 'C3'],
                          'D': ['D0', 'D2', 'D3']},
-                         index=['K0', 'K2', 'K3'])
+                        index=['K0', 'K2', 'K3'])
 
    result = left.join(right)
 
@@ -999,7 +998,7 @@ join key), using ``join`` may be more convenient. Here is a simple example:
 
    right = pd.DataFrame({'C': ['C0', 'C1'],
                          'D': ['D0', 'D1']},
-                         index=['K0', 'K1'])
+                        index=['K0', 'K1'])
 
    result = left.join(right, on='key')
 
@@ -1038,8 +1037,8 @@ To join on multiple keys, the passed DataFrame must have a ``MultiIndex``:
    index = pd.MultiIndex.from_tuples([('K0', 'K0'), ('K1', 'K0'),
                                      ('K2', 'K0'), ('K2', 'K1')])
    right = pd.DataFrame({'C': ['C0', 'C1', 'C2', 'C3'],
-                      'D': ['D0', 'D1', 'D2', 'D3']},
-                     index=index)
+                         'D': ['D0', 'D1', 'D2', 'D3']},
+                        index=index)
 
 Now this can be joined by passing the two key column names:
 
@@ -1134,12 +1133,12 @@ the left argument, as in this example:
 
    leftindex = pd.MultiIndex.from_product([list('abc'), list('xy'), [1, 2]],
                                           names=['abc', 'xy', 'num'])
-   left = pd.DataFrame({'v1' : range(12)}, index=leftindex)
+   left = pd.DataFrame({'v1': range(12)}, index=leftindex)
    left
 
    rightindex = pd.MultiIndex.from_product([list('abc'), list('xy')],
                                            names=['abc', 'xy'])
-   right = pd.DataFrame({'v2': [100*i for i in range(1, 7)]}, index=rightindex)
+   right = pd.DataFrame({'v2': [100 * i for i in range(1, 7)]}, index=rightindex)
    right
 
    left.join(right, on=['abc', 'xy'], how='inner')
@@ -1154,17 +1153,17 @@ done using the following code.
                                          names=['key', 'X'])
    left = pd.DataFrame({'A': ['A0', 'A1', 'A2'],
                         'B': ['B0', 'B1', 'B2']},
-                        index=leftindex)
+                       index=leftindex)
 
    rightindex = pd.MultiIndex.from_tuples([('K0', 'Y0'), ('K1', 'Y1'),
                                            ('K2', 'Y2'), ('K2', 'Y3')],
                                           names=['key', 'Y'])
    right = pd.DataFrame({'C': ['C0', 'C1', 'C2', 'C3'],
                          'D': ['D0', 'D1', 'D2', 'D3']},
-                         index=rightindex)
+                        index=rightindex)
 
    result = pd.merge(left.reset_index(), right.reset_index(),
-                     on=['key'], how='inner').set_index(['key','X','Y'])
+                     on=['key'], how='inner').set_index(['key', 'X', 'Y'])
 
 .. ipython:: python
    :suppress:
