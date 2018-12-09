@@ -131,24 +131,25 @@ class TestTimeSeries(TestData):
 
     def test_shift_fill_value(self):
         # GH #24128
-        ts = Series(np.random.randn(5),
+        ts = Series([1.0, 2.0, 3.0, 4.0, 5.0],
                     index=date_range('1/1/2000', periods=5, freq='H'))
 
         # fill_value should have no effect on shift with freq
         result = ts.shift(1, freq='5T', fill_value=0)
         exp_index = ts.index.shift(1, freq='5T')
         tm.assert_index_equal(result.index, exp_index)
-        np.testing.assert_equal(result.iloc[0], ts.iloc[0])
+        tm.assert_numpy_array_equal(result.values, ts.values)
 
+        expected = Series([0.0, 1.0, 2.0, 3.0, 4.0],
+                    index=date_range('1/1/2000', periods=5, freq='H'))
         # check that fill value works
         result = ts.shift(1, fill_value=0.0)
-        np.testing.assert_equal(result.iloc[0], 0.0)
-        np.testing.assert_equal(result.iloc[1], ts.iloc[0])
+        tm.assert_series_equal(result, expected)
 
+        expected = Series([0.0, 0.0, 1.0, 2.0, 3.0],
+                    index=date_range('1/1/2000', periods=5, freq='H'))
         result = ts.shift(2, fill_value=0.0)
-        np.testing.assert_equal(result.iloc[0], 0.0)
-        np.testing.assert_equal(result.iloc[1], 0.0)
-        np.testing.assert_equal(result.iloc[2], ts.iloc[0])
+        tm.assert_series_equal(result, expected)
 
     def test_shift_dst(self):
         # GH 13926
