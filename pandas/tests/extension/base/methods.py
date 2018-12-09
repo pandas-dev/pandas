@@ -197,6 +197,30 @@ class BaseMethodsTests(BaseExtensionTests):
 
         compare(result, expected)
 
+    @pytest.mark.parametrize('periods, indices', [
+        [-4, [-1, -1]],
+        [-1, [1, -1]],
+        [0, [0, 1]],
+        [1, [-1, 0]],
+        [4, [-1, -1]]
+    ])
+    def test_shift_non_empty_array(self, data, periods, indices):
+        # https://github.com/pandas-dev/pandas/issues/23911
+        subset = data[:2]
+        result = subset.shift(periods)
+        expected = subset.take(indices, allow_fill=True)
+        self.assert_extension_array_equal(result, expected)
+
+    @pytest.mark.parametrize('periods', [
+        -4, -1, 0, 1, 4
+    ])
+    def test_shift_empty_array(self, data, periods):
+        # https://github.com/pandas-dev/pandas/issues/23911
+        empty = data[:0]
+        result = empty.shift(periods)
+        expected = empty
+        self.assert_extension_array_equal(result, expected)
+
     @pytest.mark.parametrize("as_frame", [True, False])
     def test_hash_pandas_object_works(self, data, as_frame):
         # https://github.com/pandas-dev/pandas/issues/23066
