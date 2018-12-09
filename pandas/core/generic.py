@@ -4359,49 +4359,49 @@ class NDFrame(PandasObject, SelectionMixin):
         return NotImplemented
 
     _shared_docs['reindex_axis'] = ("""
-        Conform input object to new index
-        with optional filling logic, placing NA/NaN in locations having
-        no value in the previous index. A new object is produced unless
-        the new index is equivalent to the current one and copy=False.
+        Conform input object to new index.
+
+        .. deprecated:: 0.21.0
+            Use `reindex` instead.
+
+        By default, places NaN in locations having no value in the
+        previous index. A new object is produced unless the new index
+        is equivalent to the current one and copy=False.
 
         Parameters
         ----------
         labels : array-like
             New labels / index to conform to. Preferably an Index object to
-            avoid duplicating data
+            avoid duplicating data.
         axis : %(axes_single_arg)s
+            Indicate whether to use rows or columns.
         method : {None, 'backfill'/'bfill', 'pad'/'ffill', 'nearest'}, optional
             Method to use for filling holes in reindexed DataFrame:
 
-            * default: don't fill gaps
+            * default: don't fill gaps.
             * pad / ffill: propagate last valid observation forward to next
-              valid
-            * backfill / bfill: use next valid observation to fill gap
-            * nearest: use nearest valid observations to fill gap
+              valid.
+            * backfill / bfill: use next valid observation to fill gap.
+            * nearest: use nearest valid observations to fill gap.
 
-        copy : boolean, default True
-            Return a new object, even if the passed indexes are the same
-        level : int or name
+        level : int or str
             Broadcast across a level, matching Index values on the
-            passed MultiIndex level
-        limit : int, default None
-            Maximum number of consecutive elements to forward or backward fill
-        tolerance : optional
-            Maximum distance between original and new labels for inexact
-            matches. The values of the index at the matching locations most
-            satisfy the equation ``abs(index[indexer] - target) <= tolerance``.
-
-            Tolerance may be a scalar value, which applies the same tolerance
-            to all values, or list-like, which applies variable tolerance per
-            element. List-like includes list, tuple, array, Series, and must be
-            the same size as the index and its dtype must exactly match the
-            index's type.
+            passed MultiIndex level.
+        copy : bool, default True
+            Return a new object, even if the passed indexes are the same.
+        limit : int, optional
+            Maximum number of consecutive elements to forward or backward fill.
+        fill_value : float, default NaN
+            Value used to fill in locations having no value in the previous
+            index.
 
             .. versionadded:: 0.21.0 (list-like tolerance)
 
         Returns
         -------
         %(klass)s
+            Returns a new DataFrame object with new indices, unless the new
+            index is equivalent to the current one and copy=False.
 
         See Also
         --------
@@ -4412,7 +4412,17 @@ class NDFrame(PandasObject, SelectionMixin):
 
         Examples
         --------
-        >>> df.reindex_axis(['A', 'B', 'C'], axis=1)
+        >>> df = pd.DataFrame({'num_legs': [4, 2], 'num_wings': [0, 2]},
+        ...                   index=['dog', 'hawk'])
+        >>> df
+              num_legs  num_wings
+        dog          4          0
+        hawk         2          2
+        >>> df.reindex_axis(['num_wings', 'num_legs', 'num_heads'],
+        ...                 axis='columns')
+              num_wings  num_legs  num_heads
+        dog           0         4        NaN
+        hawk          2         2        NaN
         """)
 
     @Appender(_shared_docs['reindex_axis'] % _shared_doc_kwargs)
