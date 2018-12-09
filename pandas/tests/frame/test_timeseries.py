@@ -11,11 +11,13 @@ from numpy.random import randn
 import pandas as pd
 import pandas.tseries.offsets as offsets
 import pandas.util.testing as tm
-from pandas import (DataFrame, DatetimeIndex, Index, MultiIndex, Series, Timestamp, date_range, period_range,
+from pandas import (DataFrame, DatetimeIndex, Index, MultiIndex, Series,
+                    Timestamp, date_range, period_range,
                     to_datetime)
 from pandas.compat import product
 from pandas.tests.frame.common import TestData
-from pandas.util.testing import (assert_frame_equal, assert_index_equal, assert_series_equal)
+from pandas.util.testing import (assert_frame_equal, assert_index_equal,
+                                 assert_series_equal)
 
 
 @pytest.fixture(params=product([True, False], [True, False]))
