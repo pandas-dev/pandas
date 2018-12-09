@@ -103,22 +103,58 @@ columns, this is equivalent to passing a
 
 ``HDFStore`` now serializes MultiIndex dataframes when appending tables.
 
-.. ipython:: python
+.. code-block:: ipython
 
-   index = MultiIndex(levels=[['foo', 'bar', 'baz', 'qux'],
-                              ['one', 'two', 'three']],
-                      labels=[[0, 0, 0, 1, 1, 2, 2, 3, 3, 3],
-                              [0, 1, 2, 0, 1, 1, 2, 0, 1, 2]],
-                      names=['foo', 'bar'])
-   df = DataFrame(np.random.randn(10, 3), index=index,
-                  columns=['A', 'B', 'C'])
-   df
+    In [19]: index = MultiIndex(levels=[['foo', 'bar', 'baz', 'qux'],
+       ....:                            ['one', 'two', 'three']],
+       ....:                    labels=[[0, 0, 0, 1, 1, 2, 2, 3, 3, 3],
+       ....:                            [0, 1, 2, 0, 1, 1, 2, 0, 1, 2]],
+       ....:                    names=['foo', 'bar'])
+       ....:
 
-   store.append('mi',df)
-   store.select('mi')
+    In [20]: df = DataFrame(np.random.randn(10, 3), index=index,
+       ....:                columns=['A', 'B', 'C'])
+       ....:
 
-   # the levels are automatically included as data columns
-   store.select('mi', "foo='bar'")
+    In [21]: df
+    Out[21]:
+                      A         B         C
+    foo bar
+    foo one   -0.116619  0.295575 -1.047704
+        two    1.640556  1.905836  2.772115
+        three  0.088787 -1.144197 -0.633372
+    bar one    0.925372 -0.006438 -0.820408
+        two   -0.600874 -1.039266  0.824758
+    baz two   -0.824095 -0.337730 -0.927764
+        three -0.840123  0.248505 -0.109250
+    qux one    0.431977 -0.460710  0.336505
+        two   -3.207595 -1.535854  0.409769
+        three -0.673145 -0.741113 -0.110891
+
+    In [22]: store.append('mi',df)
+
+    In [23]: store.select('mi')
+    Out[23]:
+                      A         B         C
+    foo bar
+    foo one   -0.116619  0.295575 -1.047704
+        two    1.640556  1.905836  2.772115
+        three  0.088787 -1.144197 -0.633372
+    bar one    0.925372 -0.006438 -0.820408
+        two   -0.600874 -1.039266  0.824758
+    baz two   -0.824095 -0.337730 -0.927764
+        three -0.840123  0.248505 -0.109250
+    qux one    0.431977 -0.460710  0.336505
+        two   -3.207595 -1.535854  0.409769
+        three -0.673145 -0.741113 -0.110891
+
+    # the levels are automatically included as data columns
+    In [24]: store.select('mi', "foo='bar'")
+    Out[24]:
+                    A         B         C
+    foo bar
+    bar one  0.925372 -0.006438 -0.820408
+        two -0.600874 -1.039266  0.824758
 
 Multi-table creation via ``append_to_multiple`` and selection via
 ``select_as_multiple`` can create/select from multiple tables and return a
