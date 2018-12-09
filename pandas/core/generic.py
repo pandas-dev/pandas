@@ -8868,7 +8868,7 @@ class NDFrame(PandasObject, SelectionMixin):
         2   NaN  15.0  18.0
         3   NaN  30.0  33.0
         4   NaN  45.0  48.0
-        
+
         >>> df.shift(periods=3, fill_value=0.0)
            Col1  Col2  Col3
         0   0.0   0.0   0.0
