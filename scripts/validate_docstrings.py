@@ -862,7 +862,6 @@ def main(func_name, prefix, errors, output_format, ignore_deprecated):
 
     else:
         result = validate_one(func_name)
-
         sys.stderr.write(header('Docstring ({})'.format(func_name)))
         sys.stderr.write('{}\n'.format(result['docstring']))
         sys.stderr.write(header('Validation'))
