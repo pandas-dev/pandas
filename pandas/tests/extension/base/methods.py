@@ -164,6 +164,15 @@ class BaseMethodsTests(BaseExtensionTests):
             orig_data1._from_sequence([a + val for a in list(orig_data1)]))
         self.assert_series_equal(result, expected)
 
+    @pytest.mark.xfail(reason="GH-24147", strict=True)
+    def test_combine_first(self, data):
+        # https://github.com/pandas-dev/pandas/issues/24147
+        a = pd.Series(data[:3])
+        b = pd.Series(data[2:5], index=[2, 3, 4])
+        result = a.combine_first(b)
+        expected = pd.Series(data[:5])
+        self.assert_series_equal(result, expected)
+
     @pytest.mark.parametrize('frame', [True, False])
     @pytest.mark.parametrize('periods, indices', [
         (-2, [2, 3, 4, -1, -1]),
@@ -188,6 +197,30 @@ class BaseMethodsTests(BaseExtensionTests):
             compare = self.assert_series_equal
 
         compare(result, expected)
+
+    @pytest.mark.parametrize('periods, indices', [
+        [-4, [-1, -1]],
+        [-1, [1, -1]],
+        [0, [0, 1]],
+        [1, [-1, 0]],
+        [4, [-1, -1]]
+    ])
+    def test_shift_non_empty_array(self, data, periods, indices):
+        # https://github.com/pandas-dev/pandas/issues/23911
+        subset = data[:2]
+        result = subset.shift(periods)
+        expected = subset.take(indices, allow_fill=True)
+        self.assert_extension_array_equal(result, expected)
+
+    @pytest.mark.parametrize('periods', [
+        -4, -1, 0, 1, 4
+    ])
+    def test_shift_empty_array(self, data, periods):
+        # https://github.com/pandas-dev/pandas/issues/23911
+        empty = data[:0]
+        result = empty.shift(periods)
+        expected = empty
+        self.assert_extension_array_equal(result, expected)
 
     @pytest.mark.parametrize("as_frame", [True, False])
     def test_hash_pandas_object_works(self, data, as_frame):

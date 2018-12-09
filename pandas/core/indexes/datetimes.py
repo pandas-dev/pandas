@@ -326,6 +326,15 @@ class DatetimeIndex(DatetimeArray, DatetimeIndexOpsMixin, Int64Index):
         # for TZ-aware
         return self._ndarray_values.nbytes
 
+    def memory_usage(self, deep=False):
+        # TODO: Remove this when we have a DatetimeTZArray
+        # Necessary to avoid recursion error since DTI._values is a DTI
+        # for TZ-aware
+        result = self._ndarray_values.nbytes
+        # include our engine hashtable
+        result += self._engine.sizeof(deep=deep)
+        return result
+
     @cache_readonly
     def _is_dates_only(self):
         """Return a boolean if we are only dates (and don't have a timezone)"""
@@ -1526,6 +1535,10 @@ def bdate_range(start=None, end=None, periods=None, freq='B', tz=None,
     **kwargs
         For compatibility. Has no effect on the result.
 
+    Returns
+    -------
+    DatetimeIndex
+
     Notes
     -----
     Of the four parameters: ``start``, ``end``, ``periods``, and ``freq``,
@@ -1535,10 +1548,6 @@ def bdate_range(start=None, end=None, periods=None, freq='B', tz=None,
 
     To learn more about the frequency strings, please see `this link
     <http://pandas.pydata.org/pandas-docs/stable/timeseries.html#offset-aliases>`__.
-
-    Returns
-    -------
-    DatetimeIndex
 
     Examples
     --------
