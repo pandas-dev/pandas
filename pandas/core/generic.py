@@ -9884,7 +9884,7 @@ class NDFrame(PandasObject, SelectionMixin):
         axis_descr, name, name2 = _doc_parms(cls)
 
         cls.any = _make_logical_function(
-            cls, 'any', name, name2, axis_descr, _any_desc, nanops.nanany,
+            cls, 'any', name, name2, axis_descr, _any_doc, nanops.nanany,
             _any_examples, _any_see_also, empty_value=False)
         cls.all = _make_logical_function(
             cls, 'all', name, name2, axis_descr, _all_doc, nanops.nanall,
@@ -10234,8 +10234,9 @@ Returns
 _all_doc = """\
 Return whether all elements are True, potentially over an axis.
 
-Returns True if all elements within a series or along a Dataframe
-axis are non-zero, not-empty or not-False."""
+Returns True unless there at least one element within a series or
+along a Dataframe axis that is False or equivalent (e.g. zero or
+empty)."""
 
 _all_examples = """\
 Examples
@@ -10594,11 +10595,12 @@ DataFrame.any : Return whether any element is True over requested axis.
 DataFrame.all : Return whether all elements are True over requested axis.
 """
 
-_any_desc = """\
-Return whether any element is True over requested axis.
+_any_doc = """\
+Return whether any element is True, potentially over an axis.
 
-Unlike :meth:`DataFrame.all`, this performs an *or* operation. If any of the
-values along the specified axis is True, this will return True."""
+Returns False unless there at least one element within a series or
+along a Dataframe axis that is True or equivalent (e.g. non-zero or
+non-empty)."""
 
 _any_examples = """\
 Examples
