@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 
+from collections import OrderedDict
 import re
 
 import numpy as np
@@ -108,6 +109,9 @@ def test_copy_in_constructor():
     assert mi.levels[0][0] == val
 
 
+# ----------------------------------------------------------------------------
+# from_arrays
+# ----------------------------------------------------------------------------
 def test_from_arrays(idx):
     arrays = [np.asarray(lev).take(level_codes)
               for lev, level_codes in zip(idx.levels, idx.codes)]
@@ -278,6 +282,9 @@ def test_from_arrays_different_lengths(idx1, idx2):
         MultiIndex.from_arrays([idx1, idx2])
 
 
+# ----------------------------------------------------------------------------
+# from_tuples
+# ----------------------------------------------------------------------------
 def test_from_tuples():
     msg = 'Cannot infer number of levels from empty list'
     with pytest.raises(TypeError, match=msg):
@@ -321,6 +328,28 @@ def test_from_tuples_index_values(idx):
     assert (result.values == idx.values).all()
 
 
+def test_tuples_with_name_string():
+    # GH 15110 and GH 14848
+
+    li = [(0, 0, 1), (0, 1, 0), (1, 0, 0)]
+    with pytest.raises(ValueError):
+        pd.Index(li, name='abc')
+    with pytest.raises(ValueError):
+        pd.Index(li, name='a')
+
+
+def test_from_tuples_with_tuple_label():
+    # GH 15457
+    expected = pd.DataFrame([[2, 1, 2], [4, (1, 2), 3]],
+                            columns=['a', 'b', 'c']).set_index(['a', 'b'])
+    idx = pd.MultiIndex.from_tuples([(2, 1), (4, (1, 2))], names=('a', 'b'))
+    result = pd.DataFrame([2, 3], columns=['c'], index=idx)
+    tm.assert_frame_equal(expected, result)
+
+
+# ----------------------------------------------------------------------------
+# from_product
+# ----------------------------------------------------------------------------
 def test_from_product_empty_zero_levels():
     # 0 levels
     msg = "Must pass non-zero number of levels/codes"
@@ -470,20 +499,79 @@ def test_create_index_existing_name(idx):
     tm.assert_index_equal(result, expected)
 
 
-def test_tuples_with_name_string():
-    # GH 15110 and GH 14848
+# ----------------------------------------------------------------------------
+# from_frame
+# ----------------------------------------------------------------------------
+def test_from_frame():
+    # GH 22420
+    df = pd.DataFrame([['a', 'a'], ['a', 'b'], ['b', 'a'], ['b', 'b']],
+                      columns=['L1', 'L2'])
+    expected = pd.MultiIndex.from_tuples([('a', 'a'), ('a', 'b'),
+                                          ('b', 'a'), ('b', 'b')],
+                                         names=['L1', 'L2'])
+    result = pd.MultiIndex.from_frame(df)
+    tm.assert_index_equal(expected, result)
 
-    li = [(0, 0, 1), (0, 1, 0), (1, 0, 0)]
-    with pytest.raises(ValueError):
-        pd.Index(li, name='abc')
-    with pytest.raises(ValueError):
-        pd.Index(li, name='a')
+
+@pytest.mark.parametrize('non_frame', [
+    pd.Series([1, 2, 3, 4]),
+    [1, 2, 3, 4],
+    [[1, 2], [3, 4], [5, 6]],
+    pd.Index([1, 2, 3, 4]),
+    np.array([[1, 2], [3, 4], [5, 6]]),
+    27
+])
+def test_from_frame_error(non_frame):
+    # GH 22420
+    with pytest.raises(TypeError, match='Input must be a DataFrame'):
+        pd.MultiIndex.from_frame(non_frame)
 
 
-def test_from_tuples_with_tuple_label():
-    # GH 15457
-    expected = pd.DataFrame([[2, 1, 2], [4, (1, 2), 3]],
-                            columns=['a', 'b', 'c']).set_index(['a', 'b'])
-    idx = pd.MultiIndex.from_tuples([(2, 1), (4, (1, 2))], names=('a', 'b'))
-    result = pd.DataFrame([2, 3], columns=['c'], index=idx)
-    tm.assert_frame_equal(expected, result)
+def test_from_frame_dtype_fidelity():
+    # GH 22420
+    df = pd.DataFrame(OrderedDict([
+        ('dates', pd.date_range('19910905', periods=6, tz='US/Eastern')),
+        ('a', [1, 1, 1, 2, 2, 2]),
+        ('b', pd.Categorical(['a', 'a', 'b', 'b', 'c', 'c'], ordered=True)),
+        ('c', ['x', 'x', 'y', 'z', 'x', 'y'])
+    ]))
+    original_dtypes = df.dtypes.to_dict()
+
+    expected_mi = pd.MultiIndex.from_arrays([
+        pd.date_range('19910905', periods=6, tz='US/Eastern'),
+        [1, 1, 1, 2, 2, 2],
+        pd.Categorical(['a', 'a', 'b', 'b', 'c', 'c'], ordered=True),
+        ['x', 'x', 'y', 'z', 'x', 'y']
+    ], names=['dates', 'a', 'b', 'c'])
+    mi = pd.MultiIndex.from_frame(df)
+    mi_dtypes = {name: mi.levels[i].dtype for i, name in enumerate(mi.names)}
+
+    tm.assert_index_equal(expected_mi, mi)
+    assert original_dtypes == mi_dtypes
+
+
+@pytest.mark.parametrize('names_in,names_out', [
+    (None, [('L1', 'x'), ('L2', 'y')]),
+    (['x', 'y'], ['x', 'y']),
+])
+def test_from_frame_valid_names(names_in, names_out):
+    # GH 22420
+    df = pd.DataFrame([['a', 'a'], ['a', 'b'], ['b', 'a'], ['b', 'b']],
+                      columns=pd.MultiIndex.from_tuples([('L1', 'x'),
+                                                         ('L2', 'y')]))
+    mi = pd.MultiIndex.from_frame(df, names=names_in)
+    assert mi.names == names_out
+
+
+@pytest.mark.parametrize('names_in,names_out', [
+    ('bad_input', ValueError("Names should be list-like for a MultiIndex")),
+    (['a', 'b', 'c'], ValueError("Length of names must match number of "
+                                 "levels in MultiIndex."))
+])
+def test_from_frame_invalid_names(names_in, names_out):
+    # GH 22420
+    df = pd.DataFrame([['a', 'a'], ['a', 'b'], ['b', 'a'], ['b', 'b']],
+                      columns=pd.MultiIndex.from_tuples([('L1', 'x'),
+                                                         ('L2', 'y')]))
+    with pytest.raises(type(names_out), match=names_out.args[0]):
+        pd.MultiIndex.from_frame(df, names=names_in)

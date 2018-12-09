@@ -722,7 +722,7 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin, AttributesMixin):
                                           arr_mask=self._isnan,
                                           b_mask=other._isnan)
 
-        new_values = np.array([self.freq * x for x in new_values])
+        new_values = np.array([self.freq.base * x for x in new_values])
         if self.hasnans or other.hasnans:
             mask = (self._isnan) | (other._isnan)
             new_values[mask] = NaT
