@@ -41,6 +41,12 @@ class HTMLFormatter(TableFormatter):
             border = get_option('display.html.border')
         self.border = border
         self.table_id = table_id
+        # see gh-22579
+        # Column misalignment also occurs for
+        # a standard index when the columns index is named.
+        # Determine if ANY column names need to be displayed
+        # since if the row index is not displayed a column of
+        # blank cells need to be included before the DataFrame values.
         self.show_col_idx_names = all((self.fmt.has_column_names,
                                       self.fmt.show_index_names,
                                       self.fmt.header))
@@ -201,6 +207,17 @@ class HTMLFormatter(TableFormatter):
 
     def _write_header(self, indent):
         truncate_h = self.fmt.truncate_h
+        # see gh-22579
+        # Column Offset Bug with to_html(index=False) with
+        # MultiIndex Columns and Index.
+        # Column misalignment also occurs for
+        # a standard index when the columns index is named.
+        # If the row index is not displayed a column of
+        # blank cells need to be included before the DataFrame values.
+        # However, in this code block only the placement of the truncation
+        # indicators within the header is affected by this.
+        # TODO: refactor to class property as row_levels also used in
+        # _write_regular_rows and _write_hierarchical_rows
         if self.fmt.index:
             row_levels = self.frame.index.nlevels
         else:
@@ -271,8 +288,21 @@ class HTMLFormatter(TableFormatter):
                         values = (values[:ins_col] + [u('...')] +
                                   values[ins_col:])
 
+                # see gh-22579
+                # Column Offset Bug with to_html(index=False) with
+                # MultiIndex Columns and Index.
+                # Initially fill row with blank cells before column names.
+                # TODO: Refactor to remove code duplication with code
+                # block below for standard columns index.
                 row = [''] * (row_levels - 1)
                 if self.fmt.index or self.show_col_idx_names:
+                    # see gh-22747
+                    # If to_html(index_names=False) do not show columns
+                    # index names.
+                    # TODO: Refactor to use _get_column_name_list from
+                    # DataFrameFormatter class and create a
+                    # _get_formatted_column_labels function for code
+                    # parity with DataFrameFormatter class.
                     if self.fmt.show_index_names:
                         name = self.columns.names[lnum]
                         row.append(pprint_thing(name or ''))
@@ -292,8 +322,19 @@ class HTMLFormatter(TableFormatter):
                 self.write_tr(row, indent, self.indent_delta, tags=tags,
                               header=True)
         else:
+            # see gh-22579
+            # Column misalignment also occurs for
+            # a standard index when the columns index is named.
+            # Initially fill row with blank cells before column names.
+            # TODO: Refactor to remove code duplication with code block
+            # above for columns MultiIndex.
             row = [''] * (row_levels - 1)
             if self.fmt.index or self.show_col_idx_names:
+                # see gh-22747
+                # If to_html(index_names=False) do not show columns
+                # index names.
+                # TODO: Refactor to use _get_column_name_list from
+                # DataFrameFormatter class.
                 if self.fmt.show_index_names:
                     row.append(self.columns.name or '')
                 else:
@@ -352,6 +393,13 @@ class HTMLFormatter(TableFormatter):
                 index_values = self.fmt.tr_frame.index.format()
             row_levels = 1
         else:
+            # see gh-22579
+            # Column misalignment also occurs for
+            # a standard index when the columns index is named.
+            # row_levels is used for the number of <th> cells and
+            # the placement of the truncation indicators.
+            # TODO: refactor to class property as row_levels also used in
+            # _write_header and _write_hierarchical_rows
             row_levels = 1 if self.show_col_idx_names else 0
 
         row = []
@@ -365,6 +413,10 @@ class HTMLFormatter(TableFormatter):
             row = []
             if self.fmt.index:
                 row.append(index_values[i])
+            # see gh-22579
+            # Column misalignment also occurs for
+            # a standard index when the columns index is named.
+            # Add blank cell before data cells.
             elif self.show_col_idx_names:
                 row.append('')
             row.extend(fmt_values[j][i] for j in range(self.ncols))
