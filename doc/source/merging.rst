@@ -5,6 +5,7 @@
 .. ipython:: python
    :suppress:
 
+   from matplotlib import pyplot as plt
    import pandas.util._doctools as doctools
    p = doctools.TablePlotter()
 

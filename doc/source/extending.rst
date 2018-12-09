@@ -160,6 +160,8 @@ your ``MyExtensionArray`` class, as follows:
 
 .. code-block:: python
 
+    from pandas.core.arrays import ExtensionArray, ExtensionScalarOpsMixin
+
     class MyExtensionArray(ExtensionArray, ExtensionScalarOpsMixin):
         pass
 
@@ -269,7 +271,7 @@ Below example shows how to define ``SubclassedSeries`` and ``SubclassedDataFrame
 
 .. code-block:: python
 
-   class SubclassedSeries(Series):
+   class SubclassedSeries(pd.Series):
 
        @property
        def _constructor(self):
@@ -280,7 +282,7 @@ Below example shows how to define ``SubclassedSeries`` and ``SubclassedDataFrame
            return SubclassedDataFrame
 
 
-   class SubclassedDataFrame(DataFrame):
+   class SubclassedDataFrame(pd.DataFrame):
 
        @property
        def _constructor(self):
@@ -342,7 +344,7 @@ Below is an example to define two original properties, "internal_cache" as a tem
 
 .. code-block:: python
 
-   class SubclassedDataFrame2(DataFrame):
+   class SubclassedDataFrame2(pd.DataFrame):
 
        # temporary properties
        _internal_names = pd.DataFrame._internal_names + ['internal_cache']

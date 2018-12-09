@@ -782,7 +782,7 @@ Setting values by assigning categorical data will also check that the `categorie
     df
     try:
         df.loc["j":"k", "cats"] = pd.Categorical(["b", "b"],
-                                                  categories=["a", "b", "c"])
+                                                 categories=["a", "b", "c"])
     except ValueError as e:
         print("ValueError:", str(e))
 
