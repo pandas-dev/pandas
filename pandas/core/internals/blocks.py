@@ -1341,6 +1341,8 @@ class Block(PandasObject):
                 return values
 
             values, other = self._try_coerce_args(values, other)
+            if isinstance(values, ExtensionArray):
+                values = values.get_values().reshape(-1, 1)  # GH 16983
 
             try:
                 return self._try_coerce_result(expressions.where(

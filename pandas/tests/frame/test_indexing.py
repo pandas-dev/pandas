@@ -3089,6 +3089,15 @@ class TestDataFrameIndexing(TestData):
         result = df1.where(mask, df2)
         assert_frame_equal(exp, result)
 
+    def test_where_extension_dtypes_with_na(self):
+        from pandas.core.sparse.api import SparseDataFrame
+        sdf = DataFrame(SparseDataFrame([1, None]))
+        cdf = DataFrame([1, None]).astype('category')
+        df = DataFrame([1, None])
+
+        assert_frame_equal(df.where(df.isna()), sdf.where(sdf.isna()))
+        assert_frame_equal(df.where(df.isna()), cdf.where(cdf.isna()))
+
     def test_mask(self):
         df = DataFrame(np.random.randn(5, 3))
         cond = df > 0
