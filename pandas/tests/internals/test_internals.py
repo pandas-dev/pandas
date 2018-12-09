@@ -711,8 +711,8 @@ class TestBlockManager(object):
 
         index = MultiIndex(levels=[['foo', 'bar', 'baz', 'qux'], ['one', 'two',
                                                                   'three']],
-                           labels=[[0, 0, 0, 1, 1, 2, 2, 3, 3, 3],
-                                   [0, 1, 2, 0, 1, 1, 2, 0, 1, 2]],
+                           codes=[[0, 0, 0, 1, 1, 2, 2, 3, 3, 3],
+                                  [0, 1, 2, 0, 1, 1, 2, 0, 1, 2]],
                            names=['first', 'second'])
 
         mgr.set_axis(1, index)
@@ -1283,3 +1283,12 @@ def test_validate_ndim():
 
     with pytest.raises(ValueError, match=msg):
         make_block(values, placement, ndim=2)
+
+
+def test_block_shape():
+    idx = pd.Index([0, 1, 2, 3, 4])
+    a = pd.Series([1, 2, 3]).reindex(idx)
+    b = pd.Series(pd.Categorical([1, 2, 3])).reindex(idx)
+
+    assert (a._data.blocks[0].mgr_locs.indexer ==
+            b._data.blocks[0].mgr_locs.indexer)

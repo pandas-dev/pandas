@@ -1,16 +1,6 @@
 .. _categorical:
 
-.. currentmodule:: pandas
-
-.. ipython:: python
-   :suppress:
-
-   import numpy as np
-   import pandas as pd
-   np.random.seed(123456)
-   np.set_printoptions(precision=4, suppress=True)
-   pd.options.display.max_rows = 15
-
+{{ header }}
 
 ****************
 Categorical Data
@@ -792,7 +782,7 @@ Setting values by assigning categorical data will also check that the `categorie
     df
     try:
         df.loc["j":"k", "cats"] = pd.Categorical(["b", "b"],
-                                                  categories=["a", "b", "c"])
+                                                 categories=["a", "b", "c"])
     except ValueError as e:
         print("ValueError:", str(e))
 

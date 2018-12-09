@@ -23,11 +23,7 @@ class Append(object):
         self.mdf1['obj1'] = 'bar'
         self.mdf1['obj2'] = 'bar'
         self.mdf1['int1'] = 5
-        try:
-            with warnings.catch_warnings(record=True):
-                self.mdf1.consolidate(inplace=True)
-        except (AttributeError, TypeError):
-            pass
+        self.mdf1 = self.mdf1._consolidate()
         self.mdf2 = self.mdf1.copy()
         self.mdf2.index = self.df2.index
 
@@ -119,16 +115,16 @@ class Join(object):
     def setup(self, sort):
         level1 = tm.makeStringIndex(10).values
         level2 = tm.makeStringIndex(1000).values
-        label1 = np.arange(10).repeat(1000)
-        label2 = np.tile(np.arange(1000), 10)
+        codes1 = np.arange(10).repeat(1000)
+        codes2 = np.tile(np.arange(1000), 10)
         index2 = MultiIndex(levels=[level1, level2],
-                            labels=[label1, label2])
+                            codes=[codes1, codes2])
         self.df_multi = DataFrame(np.random.randn(len(index2), 4),
                                   index=index2,
                                   columns=['A', 'B', 'C', 'D'])
 
-        self.key1 = np.tile(level1.take(label1), 10)
-        self.key2 = np.tile(level2.take(label2), 10)
+        self.key1 = np.tile(level1.take(codes1), 10)
+        self.key2 = np.tile(level2.take(codes2), 10)
         self.df = DataFrame({'data1': np.random.randn(100000),
                              'data2': np.random.randn(100000),
                              'key1': self.key1,

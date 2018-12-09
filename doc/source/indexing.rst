@@ -1,15 +1,6 @@
 .. _indexing:
 
-.. currentmodule:: pandas
-
-.. ipython:: python
-   :suppress:
-
-   import numpy as np
-   np.random.seed(123456)
-   np.set_printoptions(precision=4, suppress=True)
-   import pandas as pd
-   pd.options.display.max_rows=15
+{{ header }}
 
 ***************************
 Indexing and Selecting Data
@@ -1571,9 +1562,9 @@ Setting metadata
 
 Indexes are "mostly immutable", but it is possible to set and change their
 metadata, like the index ``name`` (or, for ``MultiIndex``, ``levels`` and
-``labels``).
+``codes``).
 
-You can use the ``rename``, ``set_names``, ``set_levels``, and ``set_labels``
+You can use the ``rename``, ``set_names``, ``set_levels``, and ``set_codes``
 to set these attributes directly. They default to returning a copy; however,
 you can specify ``inplace=True`` to have the data change in place.
 
@@ -1588,7 +1579,7 @@ See :ref:`Advanced Indexing <advanced>` for usage of MultiIndexes.
   ind.name = "bob"
   ind
 
-``set_names``, ``set_levels``, and ``set_labels`` also take an optional
+``set_names``, ``set_levels``, and ``set_codes`` also take an optional
 `level`` argument
 
 .. ipython:: python

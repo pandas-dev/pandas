@@ -403,10 +403,10 @@ class TestToHTML(object):
     def test_to_html_multiindex_max_cols(self, datapath):
         # GH 6131
         index = MultiIndex(levels=[['ba', 'bb', 'bc'], ['ca', 'cb', 'cc']],
-                           labels=[[0, 1, 2], [0, 1, 2]],
+                           codes=[[0, 1, 2], [0, 1, 2]],
                            names=['b', 'c'])
         columns = MultiIndex(levels=[['d'], ['aa', 'ab', 'ac']],
-                             labels=[[0, 0, 0], [0, 1, 2]],
+                             codes=[[0, 0, 0], [0, 1, 2]],
                              names=[None, 'a'])
         data = np.array(
             [[1., np.nan, np.nan], [np.nan, 2., np.nan], [np.nan, np.nan, 3.]])

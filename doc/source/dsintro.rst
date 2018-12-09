@@ -1,20 +1,6 @@
-.. currentmodule:: pandas
-
-.. ipython:: python
-   :suppress:
-
-   import numpy as np
-   np.set_printoptions(precision=4, suppress=True)
-   import pandas as pd
-   pd.set_option('display.precision', 4, 'display.max_columns', 8)
-   pd.options.display.max_rows = 15
-
-   import matplotlib
-   # matplotlib.style.use('default')
-   import matplotlib.pyplot as plt
-   plt.close('all')
-
 .. _dsintro:
+
+{{ header }}
 
 ************************
 Intro to Data Structures
@@ -961,7 +947,7 @@ From DataFrame using ``to_panel`` method
 .. ipython:: python
    :okwarning:
 
-   midx = pd.MultiIndex(levels=[['one', 'two'], ['x','y']], labels=[[1,1,0,0],[1,0,1,0]])
+   midx = pd.MultiIndex(levels=[['one', 'two'], ['x','y']], codes=[[1,1,0,0],[1,0,1,0]])
    df = pd.DataFrame({'A' : [1, 2, 3, 4], 'B': [5, 6, 7, 8]}, index=midx)
    df.to_panel()
 

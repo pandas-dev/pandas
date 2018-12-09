@@ -19,9 +19,9 @@ from pandas import compat
 from pandas.core import common as com
 from pandas.core.accessor import delegate_names
 from pandas.core.algorithms import unique1d
-import pandas.core.arrays.datetimelike as dtl
 from pandas.core.arrays.datetimelike import DatelikeOps
-from pandas.core.arrays.period import PeriodArray, period_array
+from pandas.core.arrays.period import (
+    PeriodArray, period_array, validate_dtype_freq)
 from pandas.core.base import _shared_docs
 import pandas.core.indexes.base as ibase
 from pandas.core.indexes.base import _index_shared_docs, ensure_index
@@ -185,7 +185,7 @@ class PeriodIndex(DatelikeOps, DatetimeIndexOpsMixin, Int64Index,
                                                      freq, fields)
             data = PeriodArray(data, freq=freq)
         else:
-            freq = dtl.validate_dtype_freq(dtype, freq)
+            freq = validate_dtype_freq(dtype, freq)
 
             # PeriodIndex allow PeriodIndex(period_index, freq=different)
             # Let's not encourage that kind of behavior in PeriodArray.
@@ -400,7 +400,7 @@ class PeriodIndex(DatelikeOps, DatetimeIndexOpsMixin, Int64Index,
     def _engine(self):
         return self._engine_type(lambda: self, len(self))
 
-    @Appender(_index_shared_docs['__contains__'])
+    @Appender(_index_shared_docs['contains'])
     def __contains__(self, key):
         if isinstance(key, Period):
             if key.freq != self.freq:
@@ -503,7 +503,7 @@ class PeriodIndex(DatelikeOps, DatetimeIndexOpsMixin, Int64Index,
 
     @property
     def _formatter_func(self):
-        return lambda x: "'%s'" % x
+        return self.array._formatter(boxed=False)
 
     def asof_locs(self, where, mask):
         """
@@ -989,6 +989,10 @@ def period_range(start=None, end=None, periods=None, freq='D', name=None):
     name : string, default None
         Name of the resulting PeriodIndex
 
+    Returns
+    -------
+    prng : PeriodIndex
+
     Notes
     -----
     Of the three parameters: ``start``, ``end``, and ``periods``, exactly two
@@ -996,10 +1000,6 @@ def period_range(start=None, end=None, periods=None, freq='D', name=None):
 
     To learn more about the frequency strings, please see `this link
     <http://pandas.pydata.org/pandas-docs/stable/timeseries.html#offset-aliases>`__.
-
-    Returns
-    -------
-    prng : PeriodIndex
 
     Examples
     --------

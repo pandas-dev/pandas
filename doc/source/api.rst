@@ -1703,6 +1703,7 @@ MultiIndex Constructors
    MultiIndex.from_arrays
    MultiIndex.from_tuples
    MultiIndex.from_product
+   MultiIndex.from_frame
 
 MultiIndex Attributes
 ~~~~~~~~~~~~~~~~~~~~~
@@ -1712,7 +1713,7 @@ MultiIndex Attributes
 
    MultiIndex.names
    MultiIndex.levels
-   MultiIndex.labels
+   MultiIndex.codes
    MultiIndex.nlevels
    MultiIndex.levshape
 
@@ -1723,7 +1724,7 @@ MultiIndex Components
    :toctree: generated/
 
    MultiIndex.set_levels
-   MultiIndex.set_labels
+   MultiIndex.set_codes
    MultiIndex.to_hierarchical
    MultiIndex.to_flat_index
    MultiIndex.to_frame
