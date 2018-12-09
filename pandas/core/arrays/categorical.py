@@ -1280,7 +1280,7 @@ class Categorical(ExtensionArray, PandasObject):
             raise NotImplementedError("Categorical with ndim > 1.")
         if np.prod(codes.shape) and (periods != 0):
             codes = np.roll(codes, ensure_platform_int(periods), axis=0)
-            if fill_value is None:
+            if isna(fill_value):
                 fill_value = -1
             elif fill_value in self.categories:
                 fill_value = self.categories.get_loc(fill_value)
