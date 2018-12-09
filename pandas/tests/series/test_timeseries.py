@@ -6,23 +6,21 @@ from datetime import datetime, time, timedelta
 import numpy as np
 import pytest
 
-from pandas._libs.tslib import iNaT
-from pandas.compat import StringIO, lrange, product
-from pandas.errors import NullFrequencyError
-import pandas.util._test_decorators as td
-
 import pandas as pd
+import pandas.util._test_decorators as td
+import pandas.util.testing as tm
 from pandas import (
     DataFrame, Index, NaT, Series, Timestamp, concat, date_range, offsets,
     timedelta_range, to_datetime)
+from pandas._libs.tslib import iNaT
+from pandas.compat import StringIO, lrange, product
 from pandas.core.indexes.datetimes import DatetimeIndex
 from pandas.core.indexes.timedeltas import TimedeltaIndex
+from pandas.errors import NullFrequencyError
 from pandas.tests.series.common import TestData
-import pandas.util.testing as tm
+from pandas.tseries.offsets import BDay, BMonthEnd
 from pandas.util.testing import (
     assert_almost_equal, assert_frame_equal, assert_series_equal)
-
-from pandas.tseries.offsets import BDay, BMonthEnd
 
 
 def _simple_ts(start, end, freq='D'):
@@ -140,16 +138,16 @@ class TestTimeSeries(TestData):
         tm.assert_index_equal(result.index, exp_index)
         tm.assert_numpy_array_equal(result.values, ts.values)
 
-        expected = Series([0.0, 1.0, 2.0, 3.0, 4.0],
-                    index=date_range('1/1/2000', periods=5, freq='H'))
+        exp = Series([0.0, 1.0, 2.0, 3.0, 4.0],
+                     index=date_range('1/1/2000', periods=5, freq='H'))
         # check that fill value works
         result = ts.shift(1, fill_value=0.0)
-        tm.assert_series_equal(result, expected)
+        tm.assert_series_equal(result, exp)
 
-        expected = Series([0.0, 0.0, 1.0, 2.0, 3.0],
-                    index=date_range('1/1/2000', periods=5, freq='H'))
+        exp = Series([0.0, 0.0, 1.0, 2.0, 3.0],
+                     index=date_range('1/1/2000', periods=5, freq='H'))
         result = ts.shift(2, fill_value=0.0)
-        tm.assert_series_equal(result, expected)
+        tm.assert_series_equal(result, exp)
 
     def test_shift_dst(self):
         # GH 13926
