@@ -1375,7 +1375,7 @@ Numeric
 - :meth:`Series.agg` can now handle numpy NaN-aware methods like :func:`numpy.nansum` (:issue:`19629`)
 - Bug in :meth:`Series.rank` and :meth:`DataFrame.rank` when ``pct=True`` and more than 2:sup:`24` rows are present resulted in percentages greater than 1.0 (:issue:`18271`)
 - Calls such as :meth:`DataFrame.round` with a non-unique :meth:`CategoricalIndex` now return expected data. Previously, data would be improperly duplicated (:issue:`21809`).
-- Added log10 to the list of supported functions in ``df.eval`` (:issue:`24139`)
+- Added ``log10`` to the list of supported functions in :meth:`DataFrame.eval` (:issue:`24139`)
 
 Strings
 ^^^^^^^
