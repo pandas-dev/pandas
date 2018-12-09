@@ -37,8 +37,8 @@ same type as input
 
 See Also
 --------
-Series.%(name)s : Series %(name)s. 
-DataFrame.%(name)s : DataFrame %(name)s. 
+Series.%(name)s : Series %(name)s.
+DataFrame.%(name)s : DataFrame %(name)s.
 """
 
 
