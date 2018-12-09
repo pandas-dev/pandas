@@ -42,33 +42,6 @@ Bug Fixes
 **Groupby/Resample/Rolling**
 
 - Bug in :meth:`DataFrame.resample` when resampling ``NaT`` in ``TimeDeltaIndex`` (:issue:`13223`).
-- Bug where calling :func:`SeriesGroupBy.pct_change` or :func:`DataFrameGroupBy.pct_change` would ignore groups when calculating the percent change (:issue:`21235`)
-
-.. ipython:: python
-
-   df = pd.DataFrame({'a': [1.0, 1.1, 2.2], 'grp': ['a', 'a', 'b']})
-
-**Previous behavior**:
-
-.. code-block:: ipython
-
-   >>> df.groupby('grp').pct_change()
-        a
-   0  NaN
-   1  0.1
-   2  1.0
-
-**New behavior**:
-
-Grouping respected
-
-.. code-block:: ipython
-
-   >>> df.groupby('grp').pct_change()
-        a
-   0  NaN
-   1  0.1
-   2  NaN
 
 **Missing**
 
@@ -78,3 +51,33 @@ Grouping respected
 **I/O**
 
 - Bug in :func:`read_csv` that caused it to raise ``OverflowError`` when trying to use 'inf' as ``na_value`` with integer index column (:issue:`17128`)
+
+Backwards incompatible API changes
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+- Bug where calling :func:`SeriesGroupBy.pct_change` or :func:`DataFrameGroupBy.pct_change` would ignore groups when calculating the percent change (:issue:`21235`)
+
+**New behavior**:
+
+.. ipython:: python
+
+   import pandas as pd
+   df = pd.DataFrame({'grp': ['a', 'a', 'b'], 'foo': [1.0, 1.1, 2.2]})
+   df
+
+   df.groupby('grp').pct_change()
+
+
+**Previous behavior**:
+
+.. code-block:: ipython
+
+   In [1]: df.groupby('grp').pct_change()
+   Out[1]:
+      foo
+   0  NaN
+   1  0.1
+   2  1.0
+
+
+
