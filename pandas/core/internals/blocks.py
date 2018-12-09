@@ -34,7 +34,7 @@ from pandas.core.dtypes.missing import (
     _isna_compat, array_equivalent, is_null_datelike_scalar, isna, notna)
 
 import pandas.core.algorithms as algos
-from pandas.core.arrays import Categorical, ExtensionArray, SparseArray
+from pandas.core.arrays import Categorical, ExtensionArray
 from pandas.core.base import PandasObject
 import pandas.core.common as com
 from pandas.core.indexes.datetimes import DatetimeIndex
@@ -1969,10 +1969,13 @@ class ExtensionBlock(NonConsolidatableMixIn, Block):
 
     def where(self, other, cond, align=True, errors='raise',
               try_cast=False, axis=0, transpose=False):
+        # Extract the underlying arrays.
         if isinstance(other, (ABCIndexClass, ABCSeries)):
             other = other.array
 
         elif isinstance(other, ABCDataFrame):
+            # ExtensionArrays are 1-D, so if we get here then
+            # `other` should be a DataFrame with a single column.
             assert other.shape[1] == 1
             other = other.iloc[:, 0].array
 
@@ -1990,32 +1993,28 @@ class ExtensionBlock(NonConsolidatableMixIn, Block):
             other = self.dtype.na_value
 
         if is_sparse(self.values):
-            # ugly workaround for ensure that the dtype is OK
-            # after we insert NaNs.
-            if is_sparse(other):
-                otype = other.dtype.subtype
-            else:
-                otype = other
-            dtype = self.dtype.update_dtype(
-                np.result_type(self.values.dtype.subtype, otype)
-            )
+            # We need to re-infer the type of the data after doing the
+            # where, for cases where the subtypes don't match
+            dtype = None
         else:
             dtype = self.dtype
 
-        # rough heuristic to see if the other array implements setitem
-        if (self._holder.__setitem__ == ExtensionArray.__setitem__
-                or self._holder.__setitem__ == SparseArray.__setitem__):
-            result = self._holder._from_sequence(
-                np.where(cond, self.values, other),
-                dtype=dtype,
-            )
-        else:
+        try:
             result = self.values.copy()
             icond = ~cond
             if lib.is_scalar(other):
                 result[icond] = other
             else:
                 result[icond] = other[icond]
+        except (NotImplementedError, TypeError):
+            # NotImplementedError for class not implementing `__setitem__`
+            # TypeError for SparseArray, which implements just to raise
+            # a TypeError
+            result = self._holder._from_sequence(
+                np.where(cond, self.values, other),
+                dtype=dtype,
+            )
+
         return self.make_block_same_class(result, placement=self.mgr_locs)
 
     @property
