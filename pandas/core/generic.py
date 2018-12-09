@@ -19,16 +19,18 @@ from pandas.errors import AbstractMethodError
 from pandas.util._decorators import (
     Appender, Substitution, rewrite_axis_style_signature)
 from pandas.util._validators import validate_bool_kwarg, validate_fillna_kwargs
+
 from pandas.core.dtypes.cast import maybe_promote, maybe_upcast_putmask
 from pandas.core.dtypes.common import (
     ensure_int64, ensure_object, is_bool, is_bool_dtype,
-     is_datetime64_any_dtype, is_datetime64tz_dtype, is_dict_like,
-     is_extension_array_dtype, is_integer, is_list_like, is_number,
-     is_numeric_dtype, is_object_dtype, is_period_arraylike, is_re_compilable,
-     is_scalar, is_timedelta64_dtype, pandas_dtype)
+    is_datetime64_any_dtype, is_datetime64tz_dtype, is_dict_like,
+    is_extension_array_dtype, is_integer, is_list_like, is_number,
+    is_numeric_dtype, is_object_dtype, is_period_arraylike, is_re_compilable,
+    is_scalar, is_timedelta64_dtype, pandas_dtype)
 from pandas.core.dtypes.generic import ABCDataFrame, ABCPanel, ABCSeries
 from pandas.core.dtypes.inference import is_hashable
 from pandas.core.dtypes.missing import isna, notna
+
 import pandas as pd
 from pandas.core import config, missing, nanops
 import pandas.core.algorithms as algos
@@ -41,6 +43,7 @@ from pandas.core.indexes.period import Period, PeriodIndex
 import pandas.core.indexing as indexing
 from pandas.core.internals import BlockManager
 from pandas.core.ops import _align_method_FRAME
+
 from pandas.io.formats.format import DataFrameFormatter, format_percentiles
 from pandas.io.formats.printing import pprint_thing
 from pandas.tseries.frequencies import to_offset
