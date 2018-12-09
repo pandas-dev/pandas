@@ -1,5 +1,6 @@
-.. currentmodule:: pandas
 .. _compare_with_sas:
+
+{{ header }}
 
 Comparison with SAS
 ********************
