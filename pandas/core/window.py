@@ -965,7 +965,8 @@ class _Rolling_and_Expanding(_Rolling):
 
         .. versionadded:: 0.23.0
     *args, **kwargs :
-        Passed to the function for compatibility with other %(name)s methods.""")
+        Passed to the function for compatibility with other %(name)s
+		methods.""")
 
     def apply(self, func, raw=None, args=(), kwargs={}):
         from pandas import Series
