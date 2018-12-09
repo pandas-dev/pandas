@@ -867,7 +867,7 @@ The right frame.
 .. ipython:: python
 
    right = pd.DataFrame({'X': pd.Series(['foo', 'bar'],
-                        dtype=CategoricalDtype(['foo', 'bar'])),
+                                        dtype=CategoricalDtype(['foo', 'bar'])),
                         'Z': [1, 2]})
    right
    right.dtypes
