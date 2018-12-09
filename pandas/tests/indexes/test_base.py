@@ -448,7 +448,7 @@ class TestIndex(Base):
         (PeriodIndex((x for x in []), freq='B'), PeriodIndex),
         (RangeIndex(step=1), pd.RangeIndex),
         (MultiIndex(levels=[[1, 2], ['blue', 'red']],
-                    labels=[[], []]), MultiIndex)
+                    codes=[[], []]), MultiIndex)
     ])
     def test_constructor_empty_special(self, empty, klass):
         assert isinstance(empty, klass)
@@ -462,8 +462,7 @@ class TestIndex(Base):
             Index([np.iinfo(np.uint64).max - 1], dtype="int64")
 
     @pytest.mark.xfail(reason="see GH#21311: Index "
-                              "doesn't enforce dtype argument",
-                       strict=True)
+                              "doesn't enforce dtype argument")
     def test_constructor_cast(self):
         msg = "could not convert string to float"
         with pytest.raises(ValueError, match=msg):
@@ -1471,8 +1470,7 @@ class TestIndex(Base):
         assert index2.slice_locs(8.5, 1.5) == (2, 6)
         assert index2.slice_locs(10.5, -1) == (0, n)
 
-    @pytest.mark.xfail(reason="Assertions were not correct - see GH#20915",
-                       strict=True)
+    @pytest.mark.xfail(reason="Assertions were not correct - see GH#20915")
     def test_slice_ints_with_floats_raises(self):
         # int slicing with floats
         # GH 4892, these are all TypeErrors

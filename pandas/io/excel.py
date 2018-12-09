@@ -930,6 +930,14 @@ class ExcelWriter(object):
 
     .. versionadded:: 0.24.0
 
+    Attributes
+    ----------
+    None
+
+    Methods
+    -------
+    None
+
     Notes
     -----
     None of the methods and properties are considered public.
@@ -961,14 +969,6 @@ class ExcelWriter(object):
 
     >>> with ExcelWriter('path_to_file.xlsx', mode='a') as writer:
     ...     df.to_excel(writer, sheet_name='Sheet3')
-
-    Attributes
-    ----------
-    None
-
-    Methods
-    -------
-    None
     """
     # Defining an ExcelWriter implementation (see abstract methods for more...)
 

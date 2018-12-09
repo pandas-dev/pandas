@@ -839,7 +839,7 @@ def assert_index_equal(left, right, exact='equiv', check_names=True,
     def _get_ilevel_values(index, level):
         # accept level number only
         unique = index.levels[level]
-        labels = index.labels[level]
+        labels = index.codes[level]
         filled = take_1d(unique.values, labels, fill_value=unique._na_value)
         values = unique._shallow_copy(filled, name=index.names[level])
         return values
@@ -1085,6 +1085,7 @@ def assert_period_array_equal(left, right, obj='PeriodArray'):
 
 
 def assert_datetime_array_equal(left, right, obj='DatetimeArray'):
+    __tracebackhide__ = True
     _check_isinstance(left, right, DatetimeArray)
 
     assert_numpy_array_equal(left._data, right._data,
@@ -1094,6 +1095,7 @@ def assert_datetime_array_equal(left, right, obj='DatetimeArray'):
 
 
 def assert_timedelta_array_equal(left, right, obj='TimedeltaArray'):
+    __tracebackhide__ = True
     _check_isinstance(left, right, TimedeltaArray)
     assert_numpy_array_equal(left._data, right._data,
                              obj='{obj}._data'.format(obj=obj))
