@@ -307,7 +307,12 @@ class DatetimeArrayMixin(dtl.DatetimeLikeArrayMixin,
                     end = end.tz_localize(tz).asm8
         else:
             # Create a linearly spaced date_range in local time
-            arr = np.linspace(start.value, end.value, periods)
+            # Nanosecond-granularity timestamps aren't always correctly
+            # representable with doubles, so we limit the range that we
+            # pass to np.linspace as much as possible
+            arr = np.linspace(
+                0, end.value - start.value,
+                periods, dtype='int64') + start.value
             index = cls._simple_new(
                 arr.astype('M8[ns]', copy=False), freq=None, tz=tz
             )
