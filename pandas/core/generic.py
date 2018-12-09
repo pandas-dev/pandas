@@ -10236,7 +10236,7 @@ level : int or level name, default None
 
 Returns
 -------
-%(outname)s : %(name1)s or %(name2)s
+%(name1)s or %(name2)s
     If level is specified, then, %(name2)s is returned; otherwise, %(name1)s
     is returned.
 
