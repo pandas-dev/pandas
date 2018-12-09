@@ -18,8 +18,10 @@ import pandas.tseries.offsets as offsets
 from pandas.util.testing import (assert_series_equal,
                                  assert_frame_equal,
                                  assert_index_equal)
+
 import pandas.util.testing as tm
 from pandas.compat import product
+
 from pandas.tests.frame.common import TestData
 
 
