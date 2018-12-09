@@ -485,19 +485,10 @@ class TestToHTML(object):
     def test_to_html_render_links(self, render_links, file_name, datapath):
         # GH 2679
         data = [
-            {
-                'foo': 0,
-                'bar': 'http://pandas.pydata.org/?q1=a&q2=b',
-                None: 'pydata.org',
-            },
-            {
-                'foo': 0,
-                'bar': 'www.pydata.org',
-                None: 'pydata.org',
-            },
+            [0, 'http://pandas.pydata.org/?q1=a&q2=b', 'pydata.org'],
+            [0, 'www.pydata.org', 'pydata.org']
         ]
-        df = DataFrame(data, columns=['foo', 'bar', None],
-                       index=range(len(data)))
+        df = DataFrame(data, columns=['foo', 'bar', None])
 
         result = df.to_html(render_links=render_links)
         expected = expected_html(datapath, file_name)
