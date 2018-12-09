@@ -1650,17 +1650,11 @@ def maybe_convert_dtype(data, copy):
                         "Use `data.to_timestamp()` instead")
 
     elif is_categorical_dtype(data):
+        # GH#18664 preserve tz in going DTI->Categorical->DTI
         # TODO: cases where we need to do another pass through this func,
         #  e.g. the categories are timedelta64s
-        if isna(data).any():
-            # slow-path
-            data = list(data)
-            data = np.array(data, dtype=np.object_)
-            copy = False
-        else:
-            # TODO: does this always make a copy?  If so, set copy=False
-            # GH#18664 preserve tz in going DTI->Categorical->DTI
-            data = data.categories[data.codes]
+        data = data.categories.take(data.codes, fill_value=NaT)
+        # TODO: does this always make a copy?  If so, set copy=False
 
     elif is_extension_type(data) and not is_datetime64tz_dtype(data):
         # Includes categorical
