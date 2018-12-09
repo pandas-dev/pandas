@@ -10240,7 +10240,7 @@ axis are non-zero, not-empty or not-False."""
 _all_examples = """\
 Examples
 --------
-Series
+**Series**
 
 >>> pd.Series([True, True]).all()
 True
@@ -10250,8 +10250,10 @@ False
 True
 >>> pd.Series([np.nan]).all()
 True
+>>> pd.Series([np.nan]).all(skipna=False)
+True
 
-DataFrames
+**DataFrames**
 
 Create a dataframe from a dictionary.
 
@@ -10606,6 +10608,8 @@ Examples
 For Series input, the output is a scalar indicating whether any element
 is True.
 
+>>> pd.Series([False, False]).any()
+False
 >>> pd.Series([True, False]).any()
 True
 >>> pd.Series([]).any()
@@ -10614,7 +10618,6 @@ False
 False
 >>> pd.Series([np.nan]).any(skipna=False)
 True
-
 
 **DataFrame**
 
