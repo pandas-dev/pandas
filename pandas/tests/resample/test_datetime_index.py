@@ -1464,6 +1464,7 @@ class TestDatetimeIndex(Base):
         expected = df.groupby("A").resample('D').mean().multiply(multiplier)
         assert_frame_equal(result, expected)
 
+    @pytest.mark.parametrize('k', [1, 2, 3])
     @pytest.mark.parametrize('n1, freq1, n2, freq2', [
         (60, 'Min', 1, 'H'),
         (1440, 'Min', 1, 'D'),
@@ -1472,15 +1473,15 @@ class TestDatetimeIndex(Base):
         (3600, 'S', 1, 'H'),
         (86400, 'S', 1, 'D')
     ])
-    def test_resample_equivalent_offsets(self, n1, freq1, n2, freq2):
-        for i in range(1, 2):
-            n1_ = n1 * i
-            n2_ = n2 * i
-            s = pd.Series(0, index=pd.date_range('19910905 13:00',
-                                                 '19911005 07:00',
-                                                 freq=freq1))
-            s = s + range(len(s))
+    def test_resample_equivalent_offsets(self, n1, freq1, n2, freq2, k):
+        # GH 24127
+        n1_ = n1 * k
+        n2_ = n2 * k
+        s = pd.Series(0, index=pd.date_range('19910905 13:00',
+                                             '19911005 07:00',
+                                             freq=freq1))
+        s = s + range(len(s))
 
-            result1 = s.resample(str(n1_) + freq1).mean()
-            result2 = s.resample(str(n2_) + freq2).mean()
-            assert_series_equal(result1, result2)
+        result1 = s.resample(str(n1_) + freq1).mean()
+        result2 = s.resample(str(n2_) + freq2).mean()
+        assert_series_equal(result1, result2)
