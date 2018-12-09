@@ -79,6 +79,7 @@ ERROR_MSGS = {
     'GL07': 'Sections are in the wrong order. Correct order is: '
             '{correct_sections}',
     'GL08': 'The object does not have a docstring',
+    'GL09': 'Deprecation warning should precede extended summary',
     'SS01': 'No summary found (a short summary in a single line should be '
             'present at the beginning of the docstring)',
     'SS02': 'Summary does not start with a capital letter',
@@ -624,6 +625,10 @@ def get_validation_data(doc):
         errs.append(error('GL07',
                           correct_sections=', '.join(correct_order)))
 
+    if (doc.deprecated and not doc.name.startswith('pandas.Panel')
+            and not doc.extended_summary.startswith('.. deprecated:: ')):
+        errs.append(error('GL09'))
+
     if not doc.summary:
         errs.append(error('SS01'))
     else:
@@ -857,6 +862,7 @@ def main(func_name, prefix, errors, output_format, ignore_deprecated):
 
     else:
         result = validate_one(func_name)
+
         sys.stderr.write(header('Docstring ({})'.format(func_name)))
         sys.stderr.write('{}\n'.format(result['docstring']))
         sys.stderr.write(header('Validation'))
