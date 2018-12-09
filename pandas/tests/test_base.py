@@ -1225,23 +1225,32 @@ class TestToIterable(object):
     (np.array([0, 1], dtype=np.int64), np.ndarray, 'int64'),
     (np.array(['a', 'b']), np.ndarray, 'object'),
     (pd.Categorical(['a', 'b']), pd.Categorical, 'category'),
-    # Ughh this is a mess. We want to keep Series._values as
-    # an ndarray, so that we use DatetimeBlock. But we also want
-    # DatetimeIndex._values to be a DatetimeArray.
-    pytest.param(
-        pd.DatetimeIndex(['2017', '2018']), np.ndarray, 'datetime64[ns]',
-        marks=[pytest.mark.xfail(reason="TODO", strict=True)]
-    ),
     (pd.DatetimeIndex(['2017', '2018'], tz="US/Central"), DatetimeArray,
      'datetime64[ns, US/Central]'),
-    pytest.param(
-        pd.TimedeltaIndex([10**10]), np.ndarray, 'm8[ns]',
-        marks=[pytest.mark.xfail(reason="TODO", strict=True)]
-    ),
+
     (pd.PeriodIndex([2018, 2019], freq='A'), pd.core.arrays.PeriodArray,
      pd.core.dtypes.dtypes.PeriodDtype("A-DEC")),
     (pd.IntervalIndex.from_breaks([0, 1, 2]), pd.core.arrays.IntervalArray,
      'interval'),
+
+    # This test is currently failing for datetime64[ns] and timedelta64[ns].
+    # The NumPy type system is sufficient for representing these types, so
+    # we just use NumPy for Series / DataFrame columns of these types (so
+    # we get consolidation and so on).
+    # However, DatetimeIndex and TimedeltaIndex use the DateLikeArray
+    # abstraction to for code reuse.
+    # At the moment, we've judged that allowing this test to fail is more
+    # practical that overriding Series._values to special case
+    # Series[M8[ns]] and Series[m8[ns]] to return a DateLikeArray.
+    pytest.param(
+        pd.DatetimeIndex(['2017', '2018']), np.ndarray, 'datetime64[ns]',
+        marks=[pytest.mark.xfail(reason="TODO", strict=True)]
+    ),
+    pytest.param(
+        pd.TimedeltaIndex([10**10]), np.ndarray, 'm8[ns]',
+        marks=[pytest.mark.xfail(reason="TODO", strict=True)]
+    ),
+
 ])
 def test_values_consistent(array, expected_type, dtype):
     l_values = pd.Series(array)._values
