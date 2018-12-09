@@ -163,7 +163,7 @@ For labeled, non-time series data, you may wish to produce a bar plot:
    plt.figure();
 
    @savefig bar_plot_ex.png
-   df.iloc[5].plot.bar();
+   df.iloc[5].plot.bar()
    plt.axhline(0, color='k');
 
 Calling a DataFrame's :meth:`plot.bar() <DataFrame.plot.bar>` method produces a multiple
