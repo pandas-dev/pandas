@@ -56,10 +56,8 @@ from pandas.core.arrays import Categorical
 from pandas.core.dtypes.concat import union_categoricals
 import pandas.io.common as icom
 
-from pandas.errors import (
-    ParserError, DtypeWarning,
-    EmptyDataError, ParserWarning, AbstractMethodError,
-)
+from pandas.errors import ( ParserError, DtypeWarning,
+                            EmptyDataError, ParserWarning )
 
 # Import CParserError as alias of ParserError for backwards compatibility.
 # Ultimately, we want to remove this import. See gh-12665 and gh-14479.
@@ -1217,6 +1215,18 @@ cdef class TextReader:
                 cats, codes, dtype, true_values=true_values)
             return cat, na_count
 
+        elif is_extension_array_dtype(dtype):
+            result, na_count = self._string_convert(i, start, end, na_filter,
+                                                    na_hashset)
+            try:
+                # use _from_sequence_of_strings if the class defines it
+                result = dtype.construct_array_type() \
+                              ._from_sequence_of_strings(result, dtype=dtype)
+            except NotImplementedError:
+                result = dtype.construct_array_type() \
+                              ._from_sequence(result, dtype=dtype)
+            return result, na_count
+
         elif is_integer_dtype(dtype):
             try:
                 result, na_count = _try_int64(self.parser, i, start,
@@ -1231,20 +1241,7 @@ cdef class TextReader:
                 na_count = 0
 
             if result is not None and dtype != 'int64':
-                if is_extension_array_dtype(dtype):
-                    try:
-                        array_type = dtype.construct_array_type()
-                    except AttributeError:
-                        dtype = pandas_dtype(dtype)
-                        array_type = dtype.construct_array_type()
-                    try:
-                        # use _from_sequence_of_strings if the class defines it
-                        result = array_type._from_sequence_of_strings(result,
-                                                                      dtype=dtype) # noqa
-                    except AbstractMethodError:
-                        result = array_type._from_sequence(result, dtype=dtype)
-                else:
-                    result = result.astype(dtype)
+                result = result.astype(dtype)
 
             return result, na_count
 
@@ -1253,20 +1250,7 @@ cdef class TextReader:
                                            na_filter, na_hashset, na_flist)
 
             if result is not None and dtype != 'float64':
-                if is_extension_array_dtype(dtype):
-                    try:
-                        array_type = dtype.construct_array_type()
-                    except AttributeError:
-                        dtype = pandas_dtype(dtype)
-                        array_type = dtype.construct_array_type()
-                    try:
-                        # use _from_sequence_of_strings if the class defines it
-                        result = array_type._from_sequence_of_strings(result,
-                                                                    dtype=dtype) # noqa
-                    except AbstractMethodError:
-                        result = array_type._from_sequence(result, dtype=dtype)
-                else:
-                    result = result.astype(dtype)
+                result = result.astype(dtype)
             return result, na_count
         elif is_bool_dtype(dtype):
             result, na_count = _try_bool_flex(self.parser, i, start, end,

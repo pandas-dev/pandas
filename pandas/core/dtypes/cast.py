@@ -616,27 +616,18 @@ def astype_nansafe(arr, dtype, copy=True, skipna=False):
 
     # dispatch on extension dtype if needed
     if is_extension_array_dtype(dtype):
-        if is_object_dtype(arr):
-            try:
-                array_type = dtype.construct_array_type()
-            except AttributeError:
-                dtype = pandas_dtype(dtype)
-                array_type = dtype.construct_array_type()
-            try:
-                # use _from_sequence_of_strings if the class defines it
-                return array_type._from_sequence_of_strings(arr,
-                                                            dtype=dtype,
-                                                            copy=copy)
-            except AbstractMethodError:
-                return array_type._from_sequence(arr, dtype=dtype, copy=copy)
-        else:
-            try:
-                return dtype.construct_array_type()._from_sequence(
-                    arr, dtype=dtype, copy=copy)
-            except AttributeError:
-                dtype = pandas_dtype(dtype)
-                return dtype.construct_array_type()._from_sequence(
-                    arr, dtype=dtype, copy=copy)
+        try:
+            array_type = dtype.construct_array_type()
+        except AttributeError:
+            dtype = pandas_dtype(dtype)
+            array_type = dtype.construct_array_type()
+        try:
+            # use _from_sequence_of_strings if the class defines it
+            return array_type._from_sequence_of_strings(arr,
+                                                        dtype=dtype,
+                                                        copy=copy)
+        except NotImplementedError:
+            return array_type._from_sequence(arr, dtype=dtype, copy=copy)
 
     if not isinstance(dtype, np.dtype):
         dtype = pandas_dtype(dtype)

@@ -132,6 +132,8 @@ class ExtensionArray(object):
     def _from_sequence_of_strings(cls, strings, dtype=None, copy=False):
         """Construct a new ExtensionArray from a sequence of scalars.
 
+        .. versionadded:: 0.24.0
+
         Parameters
         ----------
         strings : Sequence
@@ -146,6 +148,7 @@ class ExtensionArray(object):
         Returns
         -------
         ExtensionArray
+
         """
         raise AbstractMethodError(cls)
 

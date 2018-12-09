@@ -19,6 +19,7 @@ from pandas.core.dtypes.missing import isna, notna
 
 from pandas.core import nanops
 from pandas.core.arrays import ExtensionArray, ExtensionOpsMixin
+from pandas.core.tools.numeric import to_numeric
 
 
 class _IntegerDtype(ExtensionDtype):
@@ -157,7 +158,7 @@ def coerce_to_array(values, dtype, mask=None, copy=False):
                 try:
                     dtype = _dtypes[str(np.dtype(dtype.name.lower()))]
                 except AttributeError:
-                    dtype = _dtypes[str(np.dtype(dtype.lower()))]
+                    dtype = _dtypes[str(np.dtype(dtype))]
             except KeyError:
                 raise ValueError("invalid dtype specified {}".format(dtype))
 
@@ -266,7 +267,8 @@ class IntegerArray(ExtensionArray, ExtensionOpsMixin):
 
     @classmethod
     def _from_sequence_of_strings(cls, strings, dtype=None, copy=False):
-        return cls._from_sequence([int(x) for x in strings], dtype, copy)
+        scalars = to_numeric(strings, errors='raise')
+        return cls._from_sequence(scalars, dtype, copy)
 
     @classmethod
     def _from_factorized(cls, values, original):
