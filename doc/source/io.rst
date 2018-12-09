@@ -2607,6 +2607,8 @@ table CSS classes. Note that these classes are *appended* to the existing
 The ``render_links`` argument provides the ability to add hyperlinks to cells
 that contain URLs.
 
+.. versionadded:: 0.24
+
 .. ipython:: python
 
    url_df = pd.DataFrame({
