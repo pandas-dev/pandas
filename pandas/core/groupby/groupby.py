@@ -2002,7 +2002,8 @@ class GroupBy(_GroupBy):
             number of periods to shift
         freq : frequency string
         axis : axis to shift, default 0
-        fill_value : None or value, default None (NaN)
+        fill_value : optional
+            .. versionadded:: 0.24.0
         """
 
         if freq is not None or axis != 0:
