@@ -1,5 +1,7 @@
 # -*- coding: utf-8 -*-
 
+from collections import OrderedDict
+
 import pytest
 import numpy as np
 
@@ -81,6 +83,39 @@ def test_to_frame():
     result = index.to_frame(name=['first', 'second'])
     expected.index = index
     tm.assert_frame_equal(result, expected)
+
+
+def test_to_frame_dtype_fidelity():
+    # GH 22420
+    mi = pd.MultiIndex.from_arrays([
+        pd.date_range('19910905', periods=6, tz='US/Eastern'),
+        [1, 1, 1, 2, 2, 2],
+        pd.Categorical(['a', 'a', 'b', 'b', 'c', 'c'], ordered=True),
+        ['x', 'x', 'y', 'z', 'x', 'y']
+    ], names=['dates', 'a', 'b', 'c'])
+    original_dtypes = {name: mi.levels[i].dtype
+                       for i, name in enumerate(mi.names)}
+
+    expected_df = pd.DataFrame(OrderedDict([
+        ('dates', pd.date_range('19910905', periods=6, tz='US/Eastern')),
+        ('a', [1, 1, 1, 2, 2, 2]),
+        ('b', pd.Categorical(['a', 'a', 'b', 'b', 'c', 'c'], ordered=True)),
+        ('c', ['x', 'x', 'y', 'z', 'x', 'y'])
+    ]))
+    df = mi.to_frame(index=False)
+    df_dtypes = df.dtypes.to_dict()
+
+    tm.assert_frame_equal(df, expected_df)
+    assert original_dtypes == df_dtypes
+
+
+def test_to_frame_resulting_column_order():
+    # GH 22420
+    expected = ['z', 0, 'a']
+    mi = pd.MultiIndex.from_arrays([['a', 'b', 'c'], ['x', 'y', 'z'],
+                                   ['q', 'w', 'e']], names=expected)
+    result = mi.to_frame().columns.tolist()
+    assert result == expected
 
 
 def test_to_hierarchical():

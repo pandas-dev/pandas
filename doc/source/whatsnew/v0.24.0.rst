@@ -382,6 +382,7 @@ Backwards incompatible API changes
 - Passing scalar values to :class:`DatetimeIndex` or :class:`TimedeltaIndex` will now raise ``TypeError`` instead of ``ValueError`` (:issue:`23539`)
 - ``max_rows`` and ``max_cols`` parameters removed from :class:`HTMLFormatter` since truncation is handled by :class:`DataFrameFormatter` (:issue:`23818`)
 - :meth:`read_csv` will now raise a ``ValueError`` if a column with missing values is declared as having dtype ``bool`` (:issue:`20591`)
+- The column order of the resultant :class:`DataFrame` from :meth:`MultiIndex.to_frame` is now guaranteed to match the :attr:`MultiIndex.names` order. (:issue:`22420`)
 
 .. _whatsnew_0240.api_breaking.deps:
 
@@ -1404,6 +1405,7 @@ MultiIndex
 
 - Removed compatibility for :class:`MultiIndex` pickles prior to version 0.8.0; compatibility with :class:`MultiIndex` pickles from version 0.13 forward is maintained (:issue:`21654`)
 - :meth:`MultiIndex.get_loc_level` (and as a consequence, ``.loc`` on a ``Series`` or ``DataFrame`` with a :class:`MultiIndex` index) will now raise a ``KeyError``, rather than returning an empty ``slice``, if asked a label which is present in the ``levels`` but is unused (:issue:`22221`)
+- :cls:`MultiIndex` has gained the :meth:`MultiIndex.from_frame`, it allows constructing a :cls:`MultiIndex` object from a :cls:`DataFrame` (:issue:`22420`)
 - Fix ``TypeError`` in Python 3 when creating :class:`MultiIndex` in which some levels have mixed types, e.g. when some labels are tuples (:issue:`15457`)
 
 I/O
