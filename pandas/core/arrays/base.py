@@ -462,7 +462,7 @@ class ExtensionArray(object):
 
         fill_value : object, optional
             The scalar value to use for newly introduced missing values.
-            The default is ``self.dtype.na_value``.
+            The default is ``self.dtype.na_value``
 
             .. versionadded:: 0.24.0
 
