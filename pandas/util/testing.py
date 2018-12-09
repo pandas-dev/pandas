@@ -1340,11 +1340,11 @@ def assert_series_equal(left, right, check_dtype=True,
             assert_numpy_array_equal(left.get_values(), right.get_values(),
                                      check_dtype=check_dtype)
     elif is_interval_dtype(left) or is_interval_dtype(right):
-        assert_interval_array_equal(left.values, right.values)
+        assert_interval_array_equal(left.array, right.array)
 
     elif (is_extension_array_dtype(left) and not is_categorical_dtype(left) and
           is_extension_array_dtype(right) and not is_categorical_dtype(right)):
-        return assert_extension_array_equal(left.values, right.values)
+        return assert_extension_array_equal(left.array, right.array)
 
     else:
         _testing.assert_almost_equal(left.get_values(), right.get_values(),

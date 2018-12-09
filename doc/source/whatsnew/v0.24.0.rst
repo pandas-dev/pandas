@@ -219,17 +219,21 @@ Previously, these would be cast to a NumPy array with object dtype. In general,
 this should result in better performance when storing an array of intervals or periods
 in a :class:`Series` or column of a :class:`DataFrame`.
 
-Note that the ``.values`` of a ``Series`` containing one of these types is no longer a NumPy
-array, but rather an ``ExtensionArray``:
+Use :attr:`Series.array` to extract the underlying array of intervals or periods
+from the ``Series``::
 
 .. ipython:: python
 
-   ser.values
-   pser.values
+   ser.array
+   pser.array
 
-This is the same behavior as ``Series.values`` for categorical data. See
-:ref:`whatsnew_0240.api_breaking.interval_values` for more.
+.. warning::
 
+   For backwards compatibility, :attr:`Series.values` continues to return
+   a NumPy array of objects for Interval and Period data. We recommend
+   using :attr:`Series.array` when you need the array of data stored in the
+   ``Series``, and :meth:`Series.to_numpy` when you know you need a NumPy array.
+   See :ref:`basics.dtypes` and :ref:`dsintro.attrs` for more.
 
 .. _whatsnew_0240.enhancements.styler_pipe:
 
@@ -506,44 +510,6 @@ New Behavior on Windows:
     In [3]: with open("test2.csv", mode='rb') as f:
     ...:     print(f.read())
     b'string_with_lf,string_with_crlf\r\n"a\nbc","a\r\nbc"\r\n'
-
-.. _whatsnew_0240.api_breaking.interval_values:
-
-``IntervalIndex.values`` is now an ``IntervalArray``
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-The :attr:`~Interval.values` attribute of an :class:`IntervalIndex` now returns an
-``IntervalArray``, rather than a NumPy array of :class:`Interval` objects (:issue:`19453`).
-
-Previous Behavior:
-
-.. code-block:: ipython
-
-   In [1]: idx = pd.interval_range(0, 4)
-
-   In [2]: idx.values
-   Out[2]:
-   array([Interval(0, 1, closed='right'), Interval(1, 2, closed='right'),
-          Interval(2, 3, closed='right'), Interval(3, 4, closed='right')],
-         dtype=object)
-
-New Behavior:
-
-.. ipython:: python
-
-   idx = pd.interval_range(0, 4)
-   idx.values
-
-This mirrors ``CategoricalIndex.values``, which returns a ``Categorical``.
-
-For situations where you need an ``ndarray`` of ``Interval`` objects, use
-:meth:`numpy.asarray`.
-
-.. ipython:: python
-
-   np.asarray(idx)
-   idx.values.astype(object)
-
 
 .. _whatsnew_0240.api.timezone_offset_parsing:
 
