@@ -953,9 +953,9 @@ class _Rolling_and_Expanding(_Rolling):
         Must produce a single value from an ndarray input if ``raw=True``
         or a Series if ``raw=False``.
     raw : bool, default None
-        If * ``False`` : passes each row or column as a Series to the
+        If ``False`` : passes each row or column as a Series to the
           function.
-        If * ``True`` or ``None`` : the passed function will receive ndarray
+        If ``True`` or ``None`` : the passed function will receive ndarray
           objects instead.
           If you are just applying a NumPy reduction function this will
           achieve much better performance.
