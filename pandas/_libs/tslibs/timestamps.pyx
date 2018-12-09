@@ -1,5 +1,4 @@
 # -*- coding: utf-8 -*-
-import enum
 import warnings
 
 from cpython cimport (PyObject_RichCompareBool, PyObject_RichCompare,
@@ -71,8 +70,7 @@ cdef inline object create_timestamp_from_ts(int64_t value,
     return ts_base
 
 
-@enum.unique
-class RoundTo(enum.Enum):
+class RoundTo:
     """
     enumeration defining the available rounding modes
 
@@ -105,11 +103,25 @@ class RoundTo(enum.Enum):
     .. [6] "Round half to even"
            https://en.wikipedia.org/wiki/Rounding#Round_half_to_even
     """
-    MINUS_INFTY = 0
-    PLUS_INFTY = 1
-    NEAREST_HALF_EVEN = 2
-    NEAREST_HALF_PLUS_INFTY = 3
-    NEAREST_HALF_MINUS_INFTY = 4
+    @property
+    def MINUS_INFTY(self):
+        return 0
+
+    @property
+    def PLUS_INFTY(self):
+        return 1
+
+    @property
+    def NEAREST_HALF_EVEN(self):
+        return 2
+
+    @property
+    def NEAREST_HALF_PLUS_INFTY(self):
+        return 3
+
+    @property
+    def NEAREST_HALF_MINUS_INFTY(self):
+        return 4
 
 
 cdef inline _npdivmod(x1, x2):
@@ -152,20 +164,17 @@ def round_nsint64(values, mode, freq):
     :obj:`ndarray`
     """
 
-    if not isinstance(mode, RoundTo):
-        raise ValueError('mode should be a RoundTo member')
-
     unit = to_offset(freq).nanos
 
-    if mode is RoundTo.MINUS_INFTY:
+    if mode == RoundTo.MINUS_INFTY:
         return _floor_int64(values, unit)
-    elif mode is RoundTo.PLUS_INFTY:
+    elif mode == RoundTo.PLUS_INFTY:
         return _ceil_int64(values, unit)
-    elif mode is RoundTo.NEAREST_HALF_MINUS_INFTY:
+    elif mode == RoundTo.NEAREST_HALF_MINUS_INFTY:
         return _rounddown_int64(values, unit)
-    elif mode is RoundTo.NEAREST_HALF_PLUS_INFTY:
+    elif mode == RoundTo.NEAREST_HALF_PLUS_INFTY:
         return _roundup_int64(values, unit)
-    elif mode is RoundTo.NEAREST_HALF_EVEN:
+    elif mode == RoundTo.NEAREST_HALF_EVEN:
         # for odd unit there is no need of a tie break
         if unit % 2:
             return _rounddown_int64(values, unit)
