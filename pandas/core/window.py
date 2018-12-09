@@ -30,14 +30,15 @@ from pandas.core.groupby.base import GroupByMixin
 
 _shared_docs = dict(**_shared_docs)
 _doc_template = """
-        Returns
-        -------
-        same type as input
 
-        See Also
-        --------
-        Series.%(name)s
-        DataFrame.%(name)s
+Returns
+-------
+same type as input
+
+See Also
+--------
+Series.%(name)s : Series %(name)s. 
+DataFrame.%(name)s : DataFrame %(name)s. 
 """
 
 
@@ -944,17 +945,17 @@ class _Rolling_and_Expanding(_Rolling):
         return self._wrap_results(results, blocks, obj)
 
     _shared_docs['apply'] = dedent(r"""
-    %(name)s function apply.
+    The %(name)s function apply.
 
     Parameters
     ----------
     func : function
         Must produce a single value from an ndarray input if ``raw=True``
-        or a Series if ``raw=False``
+        or a Series if ``raw=False``.
     raw : bool, default None
-        * ``False`` : passes each row or column as a Series to the
+        If * ``False`` : passes each row or column as a Series to the
           function.
-        * ``True`` or ``None`` : the passed function will receive ndarray
+        If * ``True`` or ``None`` : the passed function will receive ndarray
           objects instead.
           If you are just applying a NumPy reduction function this will
           achieve much better performance.
@@ -963,8 +964,8 @@ class _Rolling_and_Expanding(_Rolling):
         not passed. In the future `raw` will default to False.
 
         .. versionadded:: 0.23.0
-
-    \*args and \*\*kwargs are passed to the function""")
+    *args, **kwargs :
+        Passed to the function for compatibility with other %(name)s methods.""")
 
     def apply(self, func, raw=None, args=(), kwargs={}):
         from pandas import Series
