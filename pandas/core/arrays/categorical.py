@@ -12,6 +12,7 @@ from pandas.compat.numpy import function as nv
 from pandas.util._decorators import (
     Appender, Substitution, cache_readonly, deprecate_kwarg)
 from pandas.util._validators import validate_bool_kwarg, validate_fillna_kwargs
+
 from pandas.core.dtypes.cast import (
     coerce_indexer_dtype, maybe_infer_to_datetimelike)
 from pandas.core.dtypes.common import (
@@ -34,8 +35,10 @@ import pandas.core.common as com
 from pandas.core.config import get_option
 from pandas.core.missing import interpolate_2d
 from pandas.core.sorting import nargsort
+
 from pandas.io.formats import console
 from pandas.io.formats.terminal import get_terminal_size
+
 from .base import ExtensionArray
 
 _take_msg = textwrap.dedent("""\
