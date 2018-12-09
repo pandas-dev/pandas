@@ -8,7 +8,7 @@ from pandas._libs import tslib, tslibs
 
 from pandas.core.dtypes.common import (
     _NS_DTYPE, _TD_DTYPE, is_bool_dtype, is_categorical_dtype,
-    is_datetime64_dtype, is_datetimetz, is_dtype_equal,
+    is_datetime64_dtype, is_datetime64tz_dtype, is_dtype_equal,
     is_extension_array_dtype, is_interval_dtype, is_object_dtype,
     is_period_dtype, is_sparse, is_timedelta64_dtype)
 from pandas.core.dtypes.generic import (
@@ -39,7 +39,7 @@ def get_dtype_kinds(l):
             typ = 'sparse'
         elif isinstance(arr, ABCRangeIndex):
             typ = 'range'
-        elif is_datetimetz(arr):
+        elif is_datetime64tz_dtype(arr):
             # if to_concat contains different tz,
             # the result must be object dtype
             typ = str(arr.dtype)
@@ -191,15 +191,6 @@ def _concat_categorical(to_concat, axis=0):
         A single array, preserving the combined dtypes
     """
 
-    def _concat_asobject(to_concat):
-        to_concat = [x.get_values() if is_categorical_dtype(x.dtype)
-                     else np.asarray(x).ravel() for x in to_concat]
-        res = _concat_compat(to_concat)
-        if axis == 1:
-            return res.reshape(1, len(res))
-        else:
-            return res
-
     # we could have object blocks and categoricals here
     # if we only have a single categoricals then combine everything
     # else its a non-compat categorical
@@ -214,7 +205,14 @@ def _concat_categorical(to_concat, axis=0):
         if all(first.is_dtype_equal(other) for other in to_concat[1:]):
             return union_categoricals(categoricals)
 
-    return _concat_asobject(to_concat)
+    # extract the categoricals & coerce to object if needed
+    to_concat = [x.get_values() if is_categorical_dtype(x.dtype)
+                 else np.asarray(x).ravel() if not is_datetime64tz_dtype(x)
+                 else np.asarray(x.astype(object)) for x in to_concat]
+    result = _concat_compat(to_concat)
+    if axis == 1:
+        result = result.reshape(1, len(result))
+    return result
 
 
 def union_categoricals(to_union, sort_categories=False, ignore_order=False):
@@ -373,10 +371,8 @@ def union_categoricals(to_union, sort_categories=False, ignore_order=False):
         if sort_categories:
             categories = categories.sort_values()
 
-        new_codes = []
-        for c in to_union:
-            new_codes.append(_recode_for_categories(c.codes, c.categories,
-                                                    categories))
+        new_codes = [_recode_for_categories(c.codes, c.categories, categories)
+                     for c in to_union]
         new_codes = np.concatenate(new_codes)
     else:
         # ordered - to show a proper error message

@@ -43,7 +43,8 @@ def cut(x, bins, right=True, labels=None, retbins=False, precision=3,
           and maximum values of `x`.
         * sequence of scalars : Defines the bin edges allowing for non-uniform
           width. No extension of the range of `x` is done.
-        * IntervalIndex : Defines the exact bins to be used.
+        * IntervalIndex : Defines the exact bins to be used. Note that
+          IntervalIndex for `bins` must be non-overlapping.
 
     right : bool, default True
         Indicates whether `bins` includes the rightmost edge or not. If
@@ -217,7 +218,9 @@ def cut(x, bins, right=True, labels=None, retbins=False, precision=3,
                 bins[-1] += adj
 
     elif isinstance(bins, IntervalIndex):
-        pass
+        if bins.is_overlapping:
+            raise ValueError('Overlapping IntervalIndex is not accepted.')
+
     else:
         bins = np.asarray(bins)
         bins = _convert_bin_to_numeric_type(bins, dtype)
@@ -334,8 +337,7 @@ def _bins_to_cuts(x, bins, right=True, labels=None,
     ids = ensure_int64(bins.searchsorted(x, side=side))
 
     if include_lowest:
-        # Numpy 1.9 support: ensure this mask is a Numpy array
-        ids[np.asarray(x == bins[0])] = 1
+        ids[x == bins[0]] = 1
 
     na_mask = isna(x) | (ids == len(bins)) | (ids == 0)
     has_nas = na_mask.any()

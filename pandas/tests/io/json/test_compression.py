@@ -33,24 +33,19 @@ def test_read_zipped_json(datapath):
 
 
 @td.skip_if_not_us_locale
-def test_with_s3_url(compression):
-    boto3 = pytest.importorskip('boto3')
-    pytest.importorskip('s3fs')
-    moto = pytest.importorskip('moto')
+def test_with_s3_url(compression, s3_resource):
+    # Bucket "pandas-test" created in tests/io/conftest.py
 
     df = pd.read_json('{"a": [1, 2, 3], "b": [4, 5, 6]}')
-    with moto.mock_s3():
-        conn = boto3.resource("s3", region_name="us-east-1")
-        bucket = conn.create_bucket(Bucket="pandas-test")
 
-        with tm.ensure_clean() as path:
-            df.to_json(path, compression=compression)
-            with open(path, 'rb') as f:
-                bucket.put_object(Key='test-1', Body=f)
+    with tm.ensure_clean() as path:
+        df.to_json(path, compression=compression)
+        with open(path, 'rb') as f:
+            s3_resource.Bucket("pandas-test").put_object(Key='test-1', Body=f)
 
-        roundtripped_df = pd.read_json('s3://pandas-test/test-1',
-                                       compression=compression)
-        assert_frame_equal(df, roundtripped_df)
+    roundtripped_df = pd.read_json('s3://pandas-test/test-1',
+                                   compression=compression)
+    assert_frame_equal(df, roundtripped_df)
 
 
 def test_lines_with_compression(compression):
