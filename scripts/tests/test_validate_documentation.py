@@ -11,6 +11,7 @@ DocumentChecker = validate_documentation.DocumentChecker
 def doctree():
     return docutils.utils.new_document('test.rst')
 
+
 @pytest.mark.parametrize('raw_doc,errs', [
     ('   Indented Line\n', {}),
     ('\n', {}),

@@ -271,7 +271,8 @@ class DocBuilder:
                 os.remove(zip_fname)
 
         if self.single_doc is not None:
-            validate_documentation.main(self.single_doc, None, 'default')
+            report = validate_documentation.validate_one(self.single_doc)
+            validate_documentation.report({self.single_doc: report})
             self._open_browser()
             shutil.rmtree(os.path.join(SOURCE_PATH, 'generated_single'),
                           ignore_errors=True)
