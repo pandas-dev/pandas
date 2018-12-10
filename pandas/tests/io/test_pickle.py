@@ -206,7 +206,6 @@ def test_pickles(current_pickle_data, legacy_pickle):
         compare(current_pickle_data, legacy_pickle, version)
 
 
-@pytest.mark.xfail(reason='TODO-pickle', strict=False)
 def test_round_trip_current(current_pickle_data):
 
     try:

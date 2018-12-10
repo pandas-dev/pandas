@@ -257,9 +257,9 @@ class DatetimeArrayMixin(dtl.DatetimeLikeArrayMixin,
             # for compat with datetime/timedelta/period shared methods,
             #  we can sometimes get here with int64 values.  These represent
             #  nanosecond UTC (or tz-naive) unix timestamps
-            values = values.view('M8[ns]')
+            values = values.view(_NS_DTYPE)
 
-        assert values.dtype == 'M8[ns]', values.dtype
+        assert values.dtype == _NS_DTYPE, values.dtype
         assert isinstance(dtype, (np.dtype, DatetimeTZDtype)), dtype
         assert freq != "infer"
         if copy:

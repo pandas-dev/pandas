@@ -296,7 +296,6 @@ class TestCommon(object):
             with pytest.raises(ValueError):
                 indices._searchsorted_monotonic(value, side='left')
 
-    @pytest.mark.xfail(reason="TODO-pickle", strict=False)
     def test_pickle(self, indices):
         original_name, indices.name = indices.name, 'foo'
         unpickled = tm.round_trip_pickle(indices)

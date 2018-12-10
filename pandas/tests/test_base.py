@@ -1338,7 +1338,7 @@ def test_array_multiindex_raises():
                pd.Timestamp('2000-01-02', tz='US/Central')])),
 
     # Timedelta
-    (TimedeltaArray([0, 3600000000000], freq='H'),
+    (TimedeltaArray(np.array([0, 3600000000000], dtype='i8'), freq='H'),
      np.array([0, 3600000000000], dtype='m8[ns]')),
 ])
 @pytest.mark.parametrize('box', [pd.Series, pd.Index])

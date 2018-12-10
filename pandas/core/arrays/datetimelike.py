@@ -1281,7 +1281,8 @@ class DatetimeLikeArrayMixin(AttributesMixin,
             elif lib.is_scalar(lib.item_from_zerodim(other)):
                 # ndarray scalar
                 other = [other.item()]
-            other = type(self)(other)
+            # TODO: pass dtype? Only matters for datetimetz.
+            other = type(self)._from_sequence(other)
 
         # compare
         result = op(self.asi8, other.asi8)

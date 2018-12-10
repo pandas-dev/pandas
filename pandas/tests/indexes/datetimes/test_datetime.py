@@ -18,7 +18,6 @@ randn = np.random.randn
 
 class TestDatetimeIndex(object):
 
-    @pytest.mark.xfail(reason="TODO-pickle", strict=True)
     def test_roundtrip_pickle_with_tz(self):
 
         # GH 8367

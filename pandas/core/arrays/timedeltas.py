@@ -139,25 +139,42 @@ class TimedeltaArrayMixin(dtl.DatetimeLikeArrayMixin, dtl.TimelikeOps):
     # Constructors
     _attributes = ["freq"]
 
-    @classmethod
-    def _simple_new(cls, values, freq=None, dtype=_TD_DTYPE):
-        # `dtype` is passed by _shallow_copy in corner cases, should always
-        #  be timedelta64[ns] if present
-        assert dtype == _TD_DTYPE
+    def __init__(self, values, dtype=_TD_DTYPE, freq=None, copy=False):
+        if isinstance(values, (ABCSeries, ABCIndexClass)):
+            values = values._values
+
+        if isinstance(values, type(self)):
+            if freq is None:
+                freq = values.freq
+            elif freq and values.freq:
+                freq = to_offset(freq)
+                freq = dtl.validate_inferred_freq(freq, values.freq,
+                                                  freq_infer=False)
+            values = values._data
+
         assert isinstance(values, np.ndarray), type(values)
 
         if values.dtype == 'i8':
-            values = values.view('m8[ns]')
+            # for compat with datetime/timedelta/period shared methods,
+            #  we can sometimes get here with int64 values.  These represent
+            #  nanosecond UTC (or tz-naive) unix timestamps
+            values = values.view(_TD_DTYPE)
 
-        assert values.dtype == 'm8[ns]'
+        assert values.dtype == _TD_DTYPE
+        assert freq != "infer"
 
-        result = object.__new__(cls)
-        result._data = values
-        result._freq = freq
-        return result
+        if copy:
+            values = values.copy()
+        if freq:
+            freq = to_offset(freq)
 
-    def __new__(cls, values, freq=None, dtype=_TD_DTYPE, copy=False):
-        return cls._from_sequence(values, dtype=dtype, copy=copy, freq=freq)
+        self._data = values
+        self._dtype = dtype
+        self._freq = freq
+
+    @classmethod
+    def _simple_new(cls, values, freq=None, dtype=_TD_DTYPE):
+        return cls(values, dtype=dtype, freq=freq)
 
     @classmethod
     def _from_sequence(cls, data, dtype=_TD_DTYPE, copy=False,
@@ -289,7 +306,7 @@ class TimedeltaArrayMixin(dtl.DatetimeLikeArrayMixin, dtl.TimelikeOps):
         result : TimedeltaArray
         """
         new_values = dtl.DatetimeLikeArrayMixin._add_delta(self, delta)
-        return type(self)(new_values, freq='infer')
+        return type(self)._from_sequence(new_values, freq='infer')
 
     def _add_datetime_arraylike(self, other):
         """
