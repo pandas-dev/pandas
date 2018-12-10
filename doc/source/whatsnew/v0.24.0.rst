@@ -1071,7 +1071,6 @@ Other API Changes
 - :meth:`Index.hasnans` and :meth:`Series.hasnans` now always return a python boolean. Previously, a python or a numpy boolean could be returned, depending on circumstances (:issue:`23294`).
 - The order of the arguments of :func:`DataFrame.to_html` and :func:`DataFrame.to_string` is rearranged to be consistent with each other. (:issue:`23614`)
 - :meth:`CategoricalIndex.reindex` now raises a ``ValueError`` if the target index is non-unique and not equal to the current index. It previously only raised if the target index was not of a categorical dtype (:issue:`23963`).
-- ``Series.tolist()`` and ``Index.tolist()`` now have an alias ``to_list`` (:issue:`8826`)
 - :func:`Series.tolist` and :func:`Index.tolist()` now have an alias ``to_list`` (:issue:`8826`)
 
 .. _whatsnew_0240.deprecations:
