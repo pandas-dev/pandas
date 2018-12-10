@@ -9,31 +9,25 @@ import pandas.core.common as com
 from pandas.util import testing as tm
 
 
-def test_series_getitem_multiindex():
+@pytest.mark.parametrize('access_method', [lambda s, x: s[:, x],
+                                           lambda s, x: s.loc[:, x],
+                                           lambda s, x: s.xs(x, level=1)])
+@pytest.mark.parametrize('level1_value, expected', [
+    (0, Series([1], index=[0])),
+    (1, Series([2, 3], index=[1, 2]))
+])
+def test_series_getitem_multiindex(access_method, level1_value, expected):
 
     # GH 6018
     # series regression getitem with a multi-index
 
     s = Series([1, 2, 3])
     s.index = MultiIndex.from_tuples([(0, 0), (1, 1), (2, 1)])
-
-    result = s[:, 0]
-    expected = Series([1], index=[0])
+    result = access_method(s, level1_value)
     tm.assert_series_equal(result, expected)
 
-    result = s.loc[:, 1]
-    expected = Series([2, 3], index=[1, 2])
-    tm.assert_series_equal(result, expected)
 
-    # xs
-    result = s.xs(0, level=0)
-    expected = Series([1], index=[0])
-    tm.assert_series_equal(result, expected)
-
-    result = s.xs(1, level=1)
-    expected = Series([2, 3], index=[1, 2])
-    tm.assert_series_equal(result, expected)
-
+def test_series_getitem_multiindex_xs():
     # GH6258
     dt = list(date_range('20130903', periods=3))
     idx = MultiIndex.from_product([list('AB'), dt])
@@ -43,6 +37,8 @@ def test_series_getitem_multiindex():
     expected = Series([1, 1], index=list('AB'))
     tm.assert_series_equal(result, expected)
 
+
+def test_series_getitem_multiindex_xs_by_label():
     # GH5684
     idx = MultiIndex.from_tuples([('a', 'one'), ('a', 'two'), ('b', 'one'),
                                   ('b', 'two')])
