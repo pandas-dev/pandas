@@ -3,7 +3,13 @@
 v0.19.0 (October 2, 2016)
 -------------------------
 
-{{ common_imports }}
+{{ header }}
+
+.. ipython:: python
+   :suppress:
+
+   from pandas import * # noqa F401, F403
+
 
 This is a major release from 0.18.1 and includes number of API changes, several new features,
 enhancements, and performance improvements along with a large number of bug fixes. We recommend that all
