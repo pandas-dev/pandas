@@ -1070,19 +1070,19 @@ class DatetimeArrayMixin(dtl.DatetimeLikeArrayMixin,
 
         return tslib.ints_to_pydatetime(timestamps, box="date")
 
-    year = _field_accessor('year', 'Y', "\n The year of the datetime\n")
+    year = _field_accessor('year', 'Y', "\n The year of the datetime.\n")
     month = _field_accessor('month', 'M',
-                            "\n The month as January=1, December=12 \n")
-    day = _field_accessor('day', 'D', "\nThe days of the datetime\n")
-    hour = _field_accessor('hour', 'h', "\nThe hours of the datetime\n")
-    minute = _field_accessor('minute', 'm', "\nThe minutes of the datetime\n")
-    second = _field_accessor('second', 's', "\nThe seconds of the datetime\n")
+                            "\n The month as January=1, December=12. \n")
+    day = _field_accessor('day', 'D', "\nThe days of the datetime.\n")
+    hour = _field_accessor('hour', 'h', "\nThe hours of the datetime.\n")
+    minute = _field_accessor('minute', 'm', "\nThe minutes of the datetime.\n")
+    second = _field_accessor('second', 's', "\nThe seconds of the datetime.\n")
     microsecond = _field_accessor('microsecond', 'us',
-                                  "\nThe microseconds of the datetime\n")
+                                  "\nThe microseconds of the datetime.\n")
     nanosecond = _field_accessor('nanosecond', 'ns',
-                                 "\nThe nanoseconds of the datetime\n")
+                                 "\nThe nanoseconds of the datetime.\n")
     weekofyear = _field_accessor('weekofyear', 'woy',
-                                 "\nThe week ordinal of the year\n")
+                                 "\nThe week ordinal of the year.\n")
     week = weekofyear
     _dayofweek_doc = """
     The day of the week with Monday=0, Sunday=6.

@@ -477,7 +477,7 @@ class Categorical(ExtensionArray, PandasObject):
     @property
     def ordered(self):
         """
-        Whether the categories have an ordered relationship
+        Whether the categories have an ordered relationship.
         """
         return self.dtype.ordered
 
@@ -782,7 +782,7 @@ class Categorical(ExtensionArray, PandasObject):
 
     def as_ordered(self, inplace=False):
         """
-        Sets the Categorical to be ordered
+        Sets the Categorical to be ordered.
 
         Parameters
         ----------
@@ -795,7 +795,7 @@ class Categorical(ExtensionArray, PandasObject):
 
     def as_unordered(self, inplace=False):
         """
-        Sets the Categorical to be unordered
+        Sets the Categorical to be unordered.
 
         Parameters
         ----------
