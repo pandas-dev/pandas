@@ -145,3 +145,15 @@ def test_mask_with_boolean_raises(index):
 
     with pytest.raises(ValueError, match='NA / NaN'):
         s[idx]
+
+
+class NonCoercaibleCategorical(Categorical):
+    def __array__(self, dtype=None):
+        raise ValueError("I cannot be converted.")
+
+
+def test_series_at():
+    arr = NonCoercaibleCategorical(['a', 'b', 'c'])
+    ser = Series(arr)
+    result = ser.at[0]
+    assert result == 'a'
