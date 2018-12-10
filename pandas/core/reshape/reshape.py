@@ -433,7 +433,7 @@ def _unstack_extension_series(series, level, fill_value):
                         level=level, fill_value=-1).get_result()
 
     out = []
-    values = series.values
+    values = series.array
 
     for col, indices in result.iteritems():
         out.append(Series(values.take(indices.values,
@@ -724,6 +724,10 @@ def get_dummies(data, prefix=None, prefix_sep='_', dummy_na=False,
     -------
     dummies : DataFrame or SparseDataFrame
 
+    See Also
+    --------
+    Series.str.get_dummies
+
     Examples
     --------
     >>> s = pd.Series(list('abca'))
@@ -779,10 +783,6 @@ def get_dummies(data, prefix=None, prefix_sep='_', dummy_na=False,
     0  1.0  0.0  0.0
     1  0.0  1.0  0.0
     2  0.0  0.0  1.0
-
-    See Also
-    --------
-    Series.str.get_dummies
     """
     from pandas.core.reshape.concat import concat
     from itertools import cycle

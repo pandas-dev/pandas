@@ -307,7 +307,12 @@ class DatetimeArrayMixin(dtl.DatetimeLikeArrayMixin,
                     end = end.tz_localize(tz).asm8
         else:
             # Create a linearly spaced date_range in local time
-            arr = np.linspace(start.value, end.value, periods)
+            # Nanosecond-granularity timestamps aren't always correctly
+            # representable with doubles, so we limit the range that we
+            # pass to np.linspace as much as possible
+            arr = np.linspace(
+                0, end.value - start.value,
+                periods, dtype='int64') + start.value
             index = cls._simple_new(
                 arr.astype('M8[ns]', copy=False), freq=None, tz=tz
             )
@@ -892,6 +897,11 @@ class DatetimeArrayMixin(dtl.DatetimeLikeArrayMixin,
             When converting a DatetimeArray/Index with non-regular values,
             so that a frequency cannot be inferred.
 
+        See Also
+        --------
+        PeriodIndex: Immutable ndarray holding ordinal values.
+        DatetimeIndex.to_pydatetime: Return DatetimeIndex as object.
+
         Examples
         --------
         >>> df = pd.DataFrame({"y": [1,2,3]},
@@ -908,11 +918,6 @@ class DatetimeArrayMixin(dtl.DatetimeLikeArrayMixin,
         >>> idx.to_period()
         PeriodIndex(['2017-01-01', '2017-01-02'],
                     dtype='period[D]', freq='D')
-
-        See Also
-        --------
-        PeriodIndex: Immutable ndarray holding ordinal values.
-        DatetimeIndex.to_pydatetime: Return DatetimeIndex as object.
         """
         from pandas.core.arrays import PeriodArray
 
@@ -1087,16 +1092,16 @@ class DatetimeArrayMixin(dtl.DatetimeLikeArrayMixin,
     by 6. This method is available on both Series with datetime
     values (using the `dt` accessor) or DatetimeIndex.
 
+    Returns
+    -------
+    Series or Index
+        Containing integers indicating the day number.
+
     See Also
     --------
     Series.dt.dayofweek : Alias.
     Series.dt.weekday : Alias.
     Series.dt.day_name : Returns the name of the day of the week.
-
-    Returns
-    -------
-    Series or Index
-        Containing integers indicating the day number.
 
     Examples
     --------
