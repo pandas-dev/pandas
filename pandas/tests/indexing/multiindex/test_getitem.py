@@ -83,7 +83,7 @@ def test_getitem_duplicates_multiindex(level0_value):
     ([], False, None),  # empty ok
     (['A'], False, None),
     (['A', 'D'], False, None),
-    (['D'], False, "\['D'\] not in index"),  # not any values found
+    (['D'], False, r"\['D'\] not in index"),  # not any values found
     (pd.IndexSlice[:, ['foo']], True, None),
     (pd.IndexSlice[:, ['foo', 'bah']], True, None)
 ])
@@ -150,7 +150,7 @@ def test_getitem_simple(multiindex_dataframe_random_data):
 
     col = df['foo', 'one']
     tm.assert_almost_equal(col.values, df.values[:, 0])
-    msg = "\('foo', 'four'\)"
+    msg = r"\('foo', 'four'\)"
     with pytest.raises(KeyError, match=msg):
         df[('foo', 'four')]
     msg = "'foobar'"
