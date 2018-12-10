@@ -1,6 +1,6 @@
 from functools import wraps
 import inspect
-from textwrap import dedent, wrap
+from textwrap import dedent
 import warnings
 
 from pandas._libs.properties import cache_readonly  # noqa
