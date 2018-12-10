@@ -35,10 +35,8 @@ class DatetimeIndexOpsMixin(ExtensionOpsMixin):
     """
     common ops mixin to support a unified interface datetimelike Index
     """
-
-    # override DatetimeLikeArrayMixin method
-    unique = Index.unique
-    take = Index.take
+    # The underlying Array (DatetimeArray, PeriodArray, TimedeltaArray)
+    _data = None  # type: ExtensionArray
 
     # DatetimeLikeArrayMixin assumes subclasses are mutable, so these are
     # properties there.  They can be made into cache_readonly for Index
@@ -53,6 +51,20 @@ class DatetimeIndexOpsMixin(ExtensionOpsMixin):
 
     # A few methods that are shared
     _maybe_mask_results = DatetimeLikeArrayMixin._maybe_mask_results
+
+    # ------------------------------------------------------------------------
+    # Abstract data attributes
+
+    @property
+    def _values(self):
+        return self._data
+
+    @property
+    def values(self):
+        # type: () -> np.ndarray
+        # Note: PeriodArray overrides this to return an ndarray of objects.
+        return self._data._data
+    # ------------------------------------------------------------------------
 
     # Note: moved from DatetimeLikeArrayMixin
     @property

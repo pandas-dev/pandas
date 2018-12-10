@@ -1455,8 +1455,8 @@ class _AsOfMerge(_OrderedMerge):
 
         # initial type conversion as needed
         if needs_i8_conversion(left_values):
-            left_values = left_values.view("i8")
-            right_values = right_values.view("i8")
+            left_values = left_values.view('i8')
+            right_values = right_values.view('i8')
             if tolerance is not None:
                 tolerance = tolerance.value
 

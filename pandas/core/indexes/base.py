@@ -563,7 +563,7 @@ class Index(IndexOpsMixin, PandasObject):
         if not len(values) and 'dtype' not in kwargs:
             attributes['dtype'] = self.dtype
 
-        # _simple_new expects an ndarray
+        # _simple_new expects an the type of self._data
         values = getattr(values, '_values', values)
         if isinstance(values, DatetimeArrayMixin):
             # `self.values` returns `self` for tz-aware, so we need to unwrap

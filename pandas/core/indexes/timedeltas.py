@@ -161,7 +161,6 @@ class TimedeltaIndex(DatetimeIndexOpsMixin,
     # TODO: Deduplicate with DatetimeIndex by doing these as props on base
     _box_func = TimedeltaArray._box_func
     _box_values = TimedeltaArray._box_values
-    _validate_frequency = TimedeltaArray._validate_frequency
     _bool_ops = TimedeltaArray._bool_ops
     _object_ops = TimedeltaArray._object_ops
     _field_ops = TimedeltaArray._field_ops
@@ -239,15 +238,6 @@ class TimedeltaIndex(DatetimeIndexOpsMixin,
             TimedeltaArray._generate_range(start, end, periods, freq,
                                            closed=closed)
         )
-
-    @property
-    def values(self):
-        return self._data._data
-
-    @property
-    def _values(self):
-        # TODO: Check period and move to Parent
-        return self._data
 
     # -------------------------------------------------------------------
 

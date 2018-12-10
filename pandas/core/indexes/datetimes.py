@@ -245,10 +245,6 @@ class DatetimeIndex(DatelikeIndexMixin,
     _field_ops = DatetimeArray._field_ops
     _datetimelike_ops = DatetimeArray._datetimelike_ops
 
-    # DatetimeArray._validate_frequency is a classmethod, and cannot be
-    # dispatched by the normal means.
-    _validate_frequency = DatetimeArray._validate_frequency
-
     # --------------------------------------------------------------------
     # Constructors
 
@@ -328,16 +324,7 @@ class DatetimeIndex(DatelikeIndexMixin,
             )
         )
 
-    @property
-    def values(self):
-        return self._data._data
     # --------------------------------------------------------------------
-
-    @property
-    def _values(self):
-        # TODO: This could be moved to a parent mixin, but that confuses
-        # static linters since theres no `_data`.
-        return self._data
 
     @property
     def tz(self):

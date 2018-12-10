@@ -935,7 +935,7 @@ class MonthOffset(SingleConstructorOffset):
     @apply_index_wraps
     def apply_index(self, i):
         shifted = liboffsets.shift_months(i.asi8, self.n, self._day_opt)
-        # TODO: seem slike this is duplicating the wrapping?
+        # TODO: seems like this is duplicating the wrapping?
         # TODO: verify that master works, or do we need next line
         # return i._simple_new(shifted)
         # TODO: going through __new__ raises on call to _validate_frequency;

@@ -254,10 +254,6 @@ class PeriodIndex(DatetimeIndexOpsMixin,
         return np.asarray(self)
 
     @property
-    def _values(self):
-        return self._data
-
-    @property
     def freq(self):
         # TODO(DatetimeArray): remove. have to rewrite the setter
         # Can't simply use delegate_names since our base class is defining
