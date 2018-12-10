@@ -17,6 +17,7 @@ from pandas.core.dtypes.common import (
     _NS_DTYPE, ensure_int64, is_float, is_integer, is_list_like, is_scalar,
     is_string_like)
 import pandas.core.dtypes.concat as _concat
+from pandas.core.dtypes.dtypes import DatetimeTZDtype
 from pandas.core.dtypes.missing import isna
 
 from pandas.core.accessor import delegate_names
@@ -402,14 +403,20 @@ class DatetimeIndex(DatelikeIndexMixin,
                 np.ndarray.__setstate__(data, nd_state)
 
                 self.name = own_state[0]
-                self._freq = own_state[1]
-                self._tz = timezones.tz_standardize(own_state[2])
+                freq = own_state[1]
+                tz = timezones.tz_standardize(own_state[2])
+                if tz:
+                    dtype = DatetimeTZDtype(tz=tz)
+                else:
+                    dtype = _NS_DTYPE
 
             else:  # pragma: no cover
-                data = np.empty(state)
+                data = np.empty(state)  # TODO: dtype=_NS_DTYPE?
                 np.ndarray.__setstate__(data, state)
+                dtype = _NS_DTYPE
+                freq = None
 
-            self._data = data
+            self._data = DatetimeArray(data, dtype=dtype, freq=freq)
             self._reset_identity()
 
         else:

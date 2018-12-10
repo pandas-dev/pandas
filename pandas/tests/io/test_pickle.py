@@ -196,7 +196,6 @@ def legacy_pickle(request, datapath):
 # ---------------------
 # tests
 # ---------------------
-@pytest.mark.xfail(reason='TODO-pickle', strict=False)
 def test_pickles(current_pickle_data, legacy_pickle):
     if not is_platform_little_endian():
         pytest.skip("known failure on non-little endian")
