@@ -26,8 +26,7 @@ from pandas.core.base import _shared_docs
 import pandas.core.common as com
 from pandas.core.indexes.base import Index
 from pandas.core.indexes.datetimelike import (
-    DatelikeIndexMixin, DatetimeIndexOpsMixin, DatetimelikeDelegateMixin,
-    wrap_array_method, wrap_field_accessor)
+    DatelikeIndexMixin, DatetimeIndexOpsMixin, DatetimelikeDelegateMixin)
 from pandas.core.indexes.numeric import Int64Index
 from pandas.core.ops import get_op_result_name
 import pandas.core.tools.datetimes as tools
@@ -64,12 +63,14 @@ def _new_DatetimeIndex(cls, d):
 
 class DatetimeDelegateMixin(DatetimelikeDelegateMixin):
     _extra_methods = [
-        'normalize',
+        'to_perioddelta',
+        'to_julian_date',
     ]
     _extra_raw_methods = [
         'to_pydatetime',
         '_box_func',
         '_local_timestamps',
+        '_has_same_tz',
     ]
     _extra_raw_properties = [
         '_box_func',
@@ -78,14 +79,15 @@ class DatetimeDelegateMixin(DatetimelikeDelegateMixin):
         DatetimeArray._datetimelike_ops + _extra_raw_properties
     )
     _delegated_methods = (
-        DatetimeArray._datetimelike_methods + _extra_methods
+        DatetimeArray._datetimelike_methods + _extra_methods +
+        _extra_raw_methods
     )
     _raw_properties = {
         'date',
         'time',
         'timetz',
         '_box_func',
-    }
+    } | set(DatetimeArray._bool_ops)
     _raw_methods = set(_extra_raw_methods)
     _delegate_class = DatetimeArray
 
@@ -1138,47 +1140,17 @@ class DatetimeIndex(DatelikeIndexMixin,
     is_normalized = cache_readonly(DatetimeArray.is_normalized.fget)
     _resolution = cache_readonly(DatetimeArray._resolution.fget)
 
-    year = wrap_field_accessor(DatetimeArray.year)
-    month = wrap_field_accessor(DatetimeArray.month)
-    day = wrap_field_accessor(DatetimeArray.day)
-    hour = wrap_field_accessor(DatetimeArray.hour)
-    minute = wrap_field_accessor(DatetimeArray.minute)
-    second = wrap_field_accessor(DatetimeArray.second)
-    microsecond = wrap_field_accessor(DatetimeArray.microsecond)
-    nanosecond = wrap_field_accessor(DatetimeArray.nanosecond)
-    weekofyear = wrap_field_accessor(DatetimeArray.weekofyear)
-    week = weekofyear
-    dayofweek = wrap_field_accessor(DatetimeArray.dayofweek)
-    weekday = dayofweek
+    @property
+    def week(self):
+        return self.weekofyear
 
-    weekday_name = wrap_field_accessor(DatetimeArray.weekday_name)
+    @property
+    def weekday(self):
+        return self.dayofweek
 
-    dayofyear = wrap_field_accessor(DatetimeArray.dayofyear)
-    quarter = wrap_field_accessor(DatetimeArray.quarter)
-    days_in_month = wrap_field_accessor(DatetimeArray.days_in_month)
-    daysinmonth = days_in_month
-    is_month_start = wrap_field_accessor(DatetimeArray.is_month_start)
-    is_month_end = wrap_field_accessor(DatetimeArray.is_month_end)
-    is_quarter_start = wrap_field_accessor(DatetimeArray.is_quarter_start)
-    is_quarter_end = wrap_field_accessor(DatetimeArray.is_quarter_end)
-    is_year_start = wrap_field_accessor(DatetimeArray.is_year_start)
-    is_year_end = wrap_field_accessor(DatetimeArray.is_year_end)
-    is_leap_year = wrap_field_accessor(DatetimeArray.is_leap_year)
-
-    _local_timestamps = wrap_array_method(DatetimeArray._local_timestamps,
-                                          box=False)
-    tz_localize = wrap_array_method(DatetimeArray.tz_localize, True)
-    tz_convert = wrap_array_method(DatetimeArray.tz_convert, True)
-    to_perioddelta = wrap_array_method(DatetimeArray.to_perioddelta,
-                                       False)
-    to_pydatetime = wrap_array_method(DatetimeArray.to_pydatetime,
-                                      box=False)
-    to_period = wrap_array_method(DatetimeArray.to_period, True)
-    to_julian_date = wrap_array_method(DatetimeArray.to_julian_date,
-                                       False)
-    month_name = wrap_array_method(DatetimeArray.month_name, True)
-    day_name = wrap_array_method(DatetimeArray.day_name, True)
-    _has_same_tz = wrap_array_method(DatetimeArray._has_same_tz, box=False)
+    @property
+    def daysinmonth(self):
+        return self.days_in_month
 
     # --------------------------------------------------------------------
 

@@ -24,7 +24,7 @@ import pandas.core.common as com
 from pandas.core.indexes.base import Index, _index_shared_docs
 from pandas.core.indexes.datetimelike import (
     DatelikeIndexMixin, DatetimeIndexOpsMixin, DatetimelikeDelegateMixin,
-    wrap_arithmetic_op, wrap_array_method, wrap_field_accessor)
+    wrap_arithmetic_op)
 from pandas.core.indexes.numeric import Int64Index
 from pandas.core.ops import get_op_result_name
 from pandas.core.tools.timedeltas import _coerce_scalar_to_timedelta_type
@@ -282,13 +282,6 @@ class TimedeltaIndex(DatetimeIndexOpsMixin,
     __rmod__ = _make_wrapped_arith_op("__rmod__")
     __divmod__ = _make_wrapped_arith_op("__divmod__")
     __rdivmod__ = _make_wrapped_arith_op("__rdivmod__")
-
-    days = wrap_field_accessor(TimedeltaArray.days)
-    seconds = wrap_field_accessor(TimedeltaArray.seconds)
-    microseconds = wrap_field_accessor(TimedeltaArray.microseconds)
-    nanoseconds = wrap_field_accessor(TimedeltaArray.nanoseconds)
-
-    total_seconds = wrap_array_method(TimedeltaArray.total_seconds, True)
 
     def __truediv__(self, other):
         oth = other
