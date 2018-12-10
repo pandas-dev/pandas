@@ -671,7 +671,7 @@ class NDFrame(PandasObject, SelectionMixin):
 
     def swapaxes(self, axis1, axis2, copy=True):
         """
-        Interchange axes and swap values axes appropriately
+        Interchange axes and swap values axes appropriately.
 
         Returns
         -------
@@ -1907,7 +1907,7 @@ class NDFrame(PandasObject, SelectionMixin):
 
     def to_dense(self):
         """
-        Return dense representation of NDFrame (as opposed to sparse)
+        Return dense representation of NDFrame (as opposed to sparse).
         """
         # compat
         return self
@@ -3597,7 +3597,7 @@ class NDFrame(PandasObject, SelectionMixin):
 
     def select(self, crit, axis=0):
         """
-        Return data corresponding to axis labels matching criteria
+        Return data corresponding to axis labels matching criteria.
 
         .. deprecated:: 0.21.0
             Use df.loc[df.index.map(crit)] to select via labels
@@ -4841,7 +4841,7 @@ class NDFrame(PandasObject, SelectionMixin):
         return self.take(locs, axis=axis, is_copy=False)
 
     _shared_docs['pipe'] = (r"""
-        Apply func(self, \*args, \*\*kwargs)
+        Apply func(self, \*args, \*\*kwargs).
 
         Parameters
         ----------
@@ -5533,7 +5533,7 @@ class NDFrame(PandasObject, SelectionMixin):
     @property
     def blocks(self):
         """
-        Internal property, property synonym for as_blocks()
+        Internal property, property synonym for as_blocks().
 
         .. deprecated:: 0.21.0
         """
@@ -5918,7 +5918,7 @@ class NDFrame(PandasObject, SelectionMixin):
     def fillna(self, value=None, method=None, axis=None, inplace=False,
                limit=None, downcast=None):
         """
-        Fill NA/NaN values using the specified method
+        Fill NA/NaN values using the specified method.
 
         Parameters
         ----------
@@ -6103,14 +6103,14 @@ class NDFrame(PandasObject, SelectionMixin):
 
     def ffill(self, axis=None, inplace=False, limit=None, downcast=None):
         """
-        Synonym for :meth:`DataFrame.fillna(method='ffill') <DataFrame.fillna>`
+        Synonym for :meth:`DataFrame.fillna(method='ffill') <DataFrame.fillna>`.
         """
         return self.fillna(method='ffill', axis=axis, inplace=inplace,
                            limit=limit, downcast=downcast)
 
     def bfill(self, axis=None, inplace=False, limit=None, downcast=None):
         """
-        Synonym for :meth:`DataFrame.fillna(method='bfill') <DataFrame.fillna>`
+        Synonym for :meth:`DataFrame.fillna(method='bfill') <DataFrame.fillna>`.
         """
         return self.fillna(method='bfill', axis=axis, inplace=inplace,
                            limit=limit, downcast=downcast)
@@ -8251,7 +8251,7 @@ class NDFrame(PandasObject, SelectionMixin):
              na_option='keep', ascending=True, pct=False):
         """
         Compute numerical data ranks (1 through n) along axis. Equal values are
-        assigned a rank that is the average of the ranks of those values
+        assigned a rank that is the average of the ranks of those values.
 
         Parameters
         ----------
@@ -8313,7 +8313,7 @@ class NDFrame(PandasObject, SelectionMixin):
 
     _shared_docs['align'] = ("""
         Align two objects on their axes with the
-        specified join method for each axis Index
+        specified join method for each axis Index.
 
         Parameters
         ----------
@@ -9902,7 +9902,7 @@ class NDFrame(PandasObject, SelectionMixin):
 
         @Substitution(outname='mad',
                       desc="Return the mean absolute deviation of the values "
-                           "for the requested axis",
+                           "for the requested axis.",
                       name1=name, name2=name2, axis_descr=axis_descr,
                       min_count='', examples='')
         @Appender(_num_doc)
@@ -9944,7 +9944,7 @@ class NDFrame(PandasObject, SelectionMixin):
 
         @Substitution(outname='compounded',
                       desc="Return the compound percentage of the values for "
-                      "the requested axis", name1=name, name2=name2,
+                      "the requested axis.", name1=name, name2=name2,
                       axis_descr=axis_descr,
                       min_count='', examples='')
         @Appender(_num_doc)
@@ -9974,31 +9974,31 @@ class NDFrame(PandasObject, SelectionMixin):
 
         cls.sum = _make_min_count_stat_function(
             cls, 'sum', name, name2, axis_descr,
-            'Return the sum of the values for the requested axis',
+            'Return the sum of the values for the requested axis.',
             nanops.nansum, _sum_examples)
         cls.mean = _make_stat_function(
             cls, 'mean', name, name2, axis_descr,
-            'Return the mean of the values for the requested axis',
+            'Return the mean of the values for the requested axis.',
             nanops.nanmean)
         cls.skew = _make_stat_function(
             cls, 'skew', name, name2, axis_descr,
-            'Return unbiased skew over requested axis\nNormalized by N-1',
+            'Return unbiased skew over requested axis\nNormalized by N-1.',
             nanops.nanskew)
         cls.kurt = _make_stat_function(
             cls, 'kurt', name, name2, axis_descr,
             "Return unbiased kurtosis over requested axis using Fisher's "
             "definition of\nkurtosis (kurtosis of normal == 0.0). Normalized "
-            "by N-1",
+            "by N-1.",
             nanops.nankurt)
         cls.kurtosis = cls.kurt
         cls.prod = _make_min_count_stat_function(
             cls, 'prod', name, name2, axis_descr,
-            'Return the product of the values for the requested axis',
+            'Return the product of the values for the requested axis.',
             nanops.nanprod, _prod_examples)
         cls.product = cls.prod
         cls.median = _make_stat_function(
             cls, 'median', name, name2, axis_descr,
-            'Return the median of the values for the requested axis',
+            'Return the median of the values for the requested axis.',
             nanops.nanmedian)
         cls.max = _make_stat_function(
             cls, 'max', name, name2, axis_descr,

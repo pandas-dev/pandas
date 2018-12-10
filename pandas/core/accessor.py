@@ -59,7 +59,7 @@ class PandasDelegate(object):
     def _add_delegate_accessors(cls, delegate, accessors, typ,
                                 overwrite=False):
         """
-        add accessors to cls from the delegate class
+        add accessors to cls from the delegate class.
 
         Parameters
         ----------
