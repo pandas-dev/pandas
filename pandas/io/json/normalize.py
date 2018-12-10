@@ -226,7 +226,7 @@ def json_normalize(data, record_path=None, meta=None,
 
     def _extract(obj, field, seen_meta, level):
         """
-        Extract a field from obj.
+        Extract a field from obj
 
         Parameters
         ----------
@@ -277,13 +277,15 @@ def json_normalize(data, record_path=None, meta=None,
                 (recs, vals) = _recursive_extract(
                     obj[path[0]], path[1:], seen_meta, level=level + 1)
                 records.extend(recs)
-                meta_vals = meta_vals.update(vals)
+                for k, v in vals.items():
+                    meta_vals[k] = v
 
         elif isinstance(data, list):
             for obj in data:
                 (recs, vals) = _extract(obj, path[0], seen_meta, level)
                 records.extend(recs)
-                meta_vals = meta_vals.update(vals)
+                for k, v in vals.items():
+                    meta_vals[k] = v
 
         else:
             (recs, vals) = _extract(data, path[0], seen_meta, level)
