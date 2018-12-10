@@ -18,12 +18,12 @@ Reshaping by pivoting DataFrame objects
    tm.N = 3
 
    def unpivot(frame):
-      N, K = frame.shape
-      data = {'value': frame.to_numpy().ravel('F'),
-              'variable': np.asarray(frame.columns).repeat(N),
-              'date': np.tile(np.asarray(frame.index), K)}
-      columns = ['date', 'variable', 'value']
-      return pd.DataFrame(data, columns=columns)
+       N, K = frame.shape
+       data = {'value': frame.to_numpy().ravel('F'),
+               'variable': np.asarray(frame.columns).repeat(N),
+               'date': np.tile(np.asarray(frame.index), K)}
+       columns = ['date', 'variable', 'value']
+       return pd.DataFrame(data, columns=columns)
 
    df = unpivot(tm.makeTimeDataFrame())
 
@@ -371,8 +371,8 @@ Consider a data set like this:
                       'C': ['foo', 'foo', 'foo', 'bar', 'bar', 'bar'] * 4,
                       'D': np.random.randn(24),
                       'E': np.random.randn(24),
-                      'F': [datetime.datetime(2013, i, 1) for i in range(1, 13)] +
-                           [datetime.datetime(2013, i, 15) for i in range(1, 13)]})
+                      'F': [datetime.datetime(2013, i, 1) for i in range(1, 13)]
+                      + [datetime.datetime(2013, i, 15) for i in range(1, 13)]})
    df
 
 We can produce pivot tables from this data very easily:
@@ -397,7 +397,8 @@ Also, you can use ``Grouper`` for ``index`` and ``columns`` keywords. For detail
 
 .. ipython:: python
 
-   pd.pivot_table(df, values='D', index=pd.Grouper(freq='M', key='F'), columns='C')
+   pd.pivot_table(df, values='D', index=pd.Grouper(freq='M', key='F'),
+                  columns='C')
 
 You can render a nice output of the table omitting the missing values by
 calling ``to_string`` if you wish:
@@ -693,6 +694,7 @@ handling of NaN:
 
 .. code-block:: ipython
 
+    In [1]: x = pd.Series(['A', 'A', np.nan, 'B', 3.14, np.inf])
     In [2]: pd.factorize(x, sort=True)
     Out[2]:
     (array([ 2,  2, -1,  3,  0,  1]),
@@ -721,7 +723,8 @@ DataFrame will be pivoted in the answers below.
    n = 20
 
    cols = np.array(['key', 'row', 'item', 'col'])
-   df = cols + pd.DataFrame((np.random.randint(5, size=(n, 4)) // [2, 1, 2, 1]).astype(str))
+   df = cols + pd.DataFrame((np.random.randint(5, size=(n, 4))
+                            // [2, 1, 2, 1]).astype(str))
    df.columns = cols
    df = df.join(pd.DataFrame(np.random.rand(n, 2).round(2)).add_prefix('val'))
 
@@ -734,7 +737,7 @@ Suppose we wanted to pivot ``df`` such that the ``col`` values are columns,
 ``row`` values are the index, and the mean of ``val0`` are the values? In
 particular, the resulting DataFrame should look like:
 
-.. code-block:: ipython
+.. note::
 
    col   col0   col1   col2   col3  col4
    row
