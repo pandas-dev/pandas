@@ -70,15 +70,13 @@ def test_getitem_duplicates_multiindex():
         [26, 37, 57], name='day'))
     tm.assert_series_equal(result, expected)
 
-    def f():
+    msg = "'A'"
+    with pytest.raises(KeyError, match=msg):
         df.val['A']
 
-    pytest.raises(KeyError, f)
-
-    def f():
+    msg = "'X'"
+    with pytest.raises(KeyError, match=msg):
         df.val['X']
-
-    pytest.raises(KeyError, f)
 
     # A is treated as a special Timestamp
     index = MultiIndex(levels=[['A', 'B', 'C'],
@@ -92,10 +90,9 @@ def test_getitem_duplicates_multiindex():
         [26, 37, 57], name='day'))
     tm.assert_series_equal(result, expected)
 
-    def f():
+    msg = "'X'"
+    with pytest.raises(KeyError, match=msg):
         df.val['X']
-
-    pytest.raises(KeyError, f)
 
     # GH 7866
     # multi-index slicing with missing indexers
@@ -115,7 +112,9 @@ def test_getitem_duplicates_multiindex():
     tm.assert_series_equal(result, expected)
 
     # not any values found
-    pytest.raises(KeyError, lambda: s.loc[['D']])
+    msg = "\['D'\] not in index"
+    with pytest.raises(KeyError, match=msg):
+        s.loc[['D']]
 
     # empty ok
     result = s.loc[[]]
@@ -160,9 +159,11 @@ def test_getitem_simple(multiindex_dataframe_random_data):
 
     col = df['foo', 'one']
     tm.assert_almost_equal(col.values, df.values[:, 0])
-    with pytest.raises(KeyError):
+    msg = "\('foo', 'four'\)"
+    with pytest.raises(KeyError, match=msg):
         df[('foo', 'four')]
-    with pytest.raises(KeyError):
+    msg = "'foobar'"
+    with pytest.raises(KeyError, match=msg):
         df['foobar']
 
 
@@ -193,7 +194,9 @@ def test_series_getitem(multiindex_year_month_day_dataframe_random_data):
     tm.assert_series_equal(result, expected)
 
     # key error
-    pytest.raises(KeyError, s.__getitem__, (2000, 3, 4))
+    msg = "356"
+    with pytest.raises(KeyError, match=msg):
+        s.__getitem__((2000, 3, 4))
 
 
 def test_series_getitem_corner(
@@ -203,7 +206,9 @@ def test_series_getitem_corner(
 
     # don't segfault, GH #495
     # out of bounds access
-    pytest.raises(IndexError, s.__getitem__, len(ymd))
+    msg = "index out of bounds"
+    with pytest.raises(IndexError, match=msg):
+        s.__getitem__(len(ymd))
 
     # generator
     result = s[(x > 0 for x in s)]
@@ -273,7 +278,9 @@ def test_getitem_int(multiindex_dataframe_random_data):
     tm.assert_frame_equal(result, expected)
 
     # raises exception
-    pytest.raises(KeyError, frame.loc.__getitem__, 3)
+    msg = "3"
+    with pytest.raises(KeyError, match=msg):
+        frame.loc.__getitem__(3)
 
     # however this will work
     frame = multiindex_dataframe_random_data
@@ -300,7 +307,9 @@ def test_frame_getitem_view(multiindex_dataframe_random_data):
         df['foo']['one'] = 2
         return df
 
-    pytest.raises(com.SettingWithCopyError, f)
+    msg = "A value is trying to be set on a copy of a slice from a DataFrame"
+    with pytest.raises(com.SettingWithCopyError, match=msg):
+        df['foo']['one'] = 2
 
     try:
         df = f()
@@ -311,7 +320,9 @@ def test_frame_getitem_view(multiindex_dataframe_random_data):
 
 def test_getitem_lowerdim_corner(multiindex_dataframe_random_data):
     frame = multiindex_dataframe_random_data
-    pytest.raises(KeyError, frame.loc.__getitem__, (('bar', 'three'), 'B'))
+    msg = "11"
+    with pytest.raises(KeyError, match=msg):
+        frame.loc.__getitem__((('bar', 'three'), 'B'))
 
     # in theory should be inserting in a sorted space????
     frame.loc[('bar', 'three'), 'B'] = 0
