@@ -10919,7 +10919,7 @@ def _make_cum_function(cls, name, name1, name2, axis_descr, desc,
 def _make_logical_function(cls, name, name1, name2, axis_descr, desc, f,
                            examples, see_also, empty_value):
     @Substitution(outname=name, desc=desc, name1=name1, name2=name2,
-                  axis_descr=axis_descr, examples=examples, see_also=see_also, 
+                  axis_descr=axis_descr, examples=examples, see_also=see_also,
                   empty_value=empty_value)
     @Appender(_bool_doc)
     def logical_func(self, axis=0, bool_only=None, skipna=True, level=None,
