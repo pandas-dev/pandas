@@ -1,15 +1,6 @@
-.. currentmodule:: pandas
-
-.. ipython:: python
-   :suppress:
-
-   import numpy as np
-   import pandas as pd
-
-   np.set_printoptions(precision=4, suppress=True)
-   pd.options.display.max_rows = 15
-
 .. _basics:
+
+{{ header }}
 
 ==============================
  Essential Basic Functionality

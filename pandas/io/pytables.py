@@ -458,6 +458,10 @@ class HDFStore(StringMixin):
 
     def __init__(self, path, mode=None, complevel=None, complib=None,
                  fletcher32=False, **kwargs):
+
+        if 'format' in kwargs:
+            raise ValueError('format is not a defined argument for HDFStore')
+
         try:
             import tables  # noqa
         except ImportError as ex:  # pragma: no cover
