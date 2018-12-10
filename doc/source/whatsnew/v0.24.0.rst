@@ -1115,6 +1115,7 @@ Deprecations
 - Creating a :class:`TimedeltaIndex` or :class:`DatetimeIndex` by passing range arguments `start`, `end`, and `periods` is deprecated in favor of :func:`timedelta_range` and :func:`date_range` (:issue:`23919`)
 - Passing a string alias like ``'datetime64[ns, UTC]'`` as the `unit` parameter to :class:`DatetimeTZDtype` is deprecated. Use :class:`DatetimeTZDtype.construct_from_string` instead (:issue:`23990`).
 - In :meth:`Series.where` with Categorical data, providing an ``other`` that is not present in the categories is deprecated. Convert the categorical to a different dtype or add the ``other`` to the categories first (:issue:`24077`).
+- :meth:`Series.clip_lower`, :meth:`Series.clip_upper`, :meth:`DataFrame.clip_lower` and :meth:`DataFrame.clip_upper` are deprecated and will be removed in a future version. Use ``Series.clip(lower=threshold)``, ``Series.clip(upper=threshold)`` and the equivalent ``DataFrame`` methods (:issue:`24203`)
 
 
 .. _whatsnew_0240.deprecations.datetimelike_int_ops:
@@ -1212,6 +1213,7 @@ Performance Improvements
 - Improved performance of :func:`Series.describe` in case of numeric dtpyes (:issue:`21274`)
 - Improved performance of :func:`pandas.core.groupby.GroupBy.rank` when dealing with tied rankings (:issue:`21237`)
 - Improved performance of :func:`DataFrame.set_index` with columns consisting of :class:`Period` objects (:issue:`21582`, :issue:`21606`)
+- Improved performance of :meth:`Series.at` and :meth:`Index.get_value` for Extension Arrays values (e.g. :class:`Categorical`) (:issue:`24204`)
 - Improved performance of membership checks in :class:`Categorical` and :class:`CategoricalIndex`
   (i.e. ``x in cat``-style checks are much faster). :meth:`CategoricalIndex.contains`
   is likewise much faster (:issue:`21369`, :issue:`21508`)

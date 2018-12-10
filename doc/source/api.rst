@@ -1,5 +1,6 @@
-.. currentmodule:: pandas
 .. _api:
+
+{{ header }}
 
 *************
 API Reference
