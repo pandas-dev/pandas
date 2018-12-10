@@ -278,8 +278,10 @@ class MergeOrdered(object):
 
 
 class MergeAsof(object):
+    params = [['backward', 'forward', 'nearest']]
+    param_names = ['direction']
 
-    def setup(self):
+    def setup(self, direction):
         one_count = 200000
         two_count = 1000000
 
@@ -311,20 +313,23 @@ class MergeAsof(object):
         self.df1e = df1[['time', 'key', 'key2', 'value1']]
         self.df2e = df2[['time', 'key', 'key2', 'value2']]
 
-    def time_on_int(self):
-        merge_asof(self.df1a, self.df2a, on='time')
+    def time_on_int(self, direction):
+        merge_asof(self.df1a, self.df2a, on='time', direction=direction)
 
-    def time_on_int32(self):
-        merge_asof(self.df1d, self.df2d, on='time32')
+    def time_on_int32(self, direction):
+        merge_asof(self.df1d, self.df2d, on='time32', direction=direction)
 
-    def time_by_object(self):
-        merge_asof(self.df1b, self.df2b, on='time', by='key')
+    def time_by_object(self, direction):
+        merge_asof(self.df1b, self.df2b, on='time', by='key',
+                   direction=direction)
 
-    def time_by_int(self):
-        merge_asof(self.df1c, self.df2c, on='time', by='key2')
+    def time_by_int(self, direction):
+        merge_asof(self.df1c, self.df2c, on='time', by='key2',
+                   direction=direction)
 
-    def time_multiby(self):
-        merge_asof(self.df1e, self.df2e, on='time', by=['key', 'key2'])
+    def time_multiby(self, direction):
+        merge_asof(self.df1e, self.df2e, on='time', by=['key', 'key2'],
+                   direction=direction)
 
 
 class Align(object):
