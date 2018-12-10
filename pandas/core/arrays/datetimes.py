@@ -1119,7 +1119,7 @@ class DatetimeArrayMixin(dtl.DatetimeLikeArrayMixin,
     weekday_name = _field_accessor(
         'weekday_name',
         'weekday_name',
-        "The name of day in a week (ex: Friday).. deprecated:: 0.23.0")
+        "The name of day in a week (ex: Friday)\n\n.. deprecated:: 0.23.0")
 
     dayofyear = _field_accessor('dayofyear', 'doy',
                                 "The ordinal day of the year.")
