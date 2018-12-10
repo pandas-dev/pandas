@@ -1,15 +1,6 @@
 .. _indexing:
 
-.. currentmodule:: pandas
-
-.. ipython:: python
-   :suppress:
-
-   import numpy as np
-   np.random.seed(123456)
-   np.set_printoptions(precision=4, suppress=True)
-   import pandas as pd
-   pd.options.display.max_rows=15
+{{ header }}
 
 ***************************
 Indexing and Selecting Data
