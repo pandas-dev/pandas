@@ -1067,7 +1067,7 @@ class DatetimeArrayMixin(dtl.DatetimeLikeArrayMixin,
 
     year = _field_accessor('year', 'Y', "The year of the datetime.")
     month = _field_accessor('month', 'M',
-                            " The month as January=1, December=12. ")
+                            "The month as January=1, December=12. ")
     day = _field_accessor('day', 'D', "The days of the datetime.")
     hour = _field_accessor('hour', 'h', "The hours of the datetime.")
     minute = _field_accessor('minute', 'm', "The minutes of the datetime.")
