@@ -4281,7 +4281,8 @@ class Index(IndexOpsMixin, PandasObject):
 
         # if we have something that is Index-like, then
         # use this, e.g. DatetimeIndex
-        s = getattr(series, '_values', None)
+        # Things like `Series._get_value` (via .at) pass the EA directly here.
+        s = getattr(series, '_values', series)
         if isinstance(s, (ExtensionArray, Index)) and is_scalar(key):
             # GH 20882, 21257
             # Unify Index and ExtensionArray treatment
