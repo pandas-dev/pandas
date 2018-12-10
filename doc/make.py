@@ -21,6 +21,14 @@ from contextlib import contextmanager
 import webbrowser
 import jinja2
 
+sys.path.insert(0, os.path.abspath('../scripts'))
+sys.path.extend([
+
+    # numpy standard doc extensions
+    os.path.join(os.path.dirname(__file__), '..', 'scripts')
+
+])
+import validate_documentation
 
 DOC_PATH = os.path.dirname(os.path.abspath(__file__))
 SOURCE_PATH = os.path.join(DOC_PATH, 'source')
@@ -263,6 +271,7 @@ class DocBuilder:
                 os.remove(zip_fname)
 
         if self.single_doc is not None:
+            validate_documentation.main(self.single_doc, None, 'default')
             self._open_browser()
             shutil.rmtree(os.path.join(SOURCE_PATH, 'generated_single'),
                           ignore_errors=True)
