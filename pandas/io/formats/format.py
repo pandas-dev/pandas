@@ -842,6 +842,32 @@ class DataFrameFormatter(TableFormatter):
 def format_array(values, formatter, float_format=None, na_rep='NaN',
                  digits=None, space=None, justify='right', decimal='.',
                  leading_space=None):
+    """
+    Format an array for printing.
+
+    Parameters
+    ----------
+    values
+    formatter
+    float_format
+    na_rep
+    digits
+    space
+    justify
+    decimal
+    leading_space : bool, optional
+        Whether the array should be formatted with a leading space.
+        When an array as a column of a Series or DataFrame, we do want
+        the leading space to pad between columns.
+
+        When formatting an Index subclass
+        (e.g. IntervalIndex._format_native_types), we don't want the
+        leading space since it should be left-aligned.
+
+    Returns
+    -------
+    List[str]
+    """
 
     if is_datetime64_dtype(values.dtype):
         fmt_klass = Datetime64Formatter
