@@ -24,6 +24,10 @@ def is_platform_windows():
     return sys.platform == 'win32' or sys.platform == 'cygwin'
 
 
+def is_platform_mac():
+    return sys.platform == 'darwin'
+
+
 min_numpy_ver = '1.12.0'
 setuptools_kwargs = {
     'install_requires': [
@@ -432,6 +436,20 @@ if is_platform_windows():
 else:
     # args to ignore warnings
     extra_compile_args = ['-Wno-unused-function']
+
+
+# For mac, ensure extensions are built for macos 10.9 when compiling on a 10.9 system or above,
+# overriding distuitls behaviour which is to target the version that python was built for.
+# This may be overridden by setting MACOSX_DEPLOYMENT_TARGET before calling setup.py
+if is_platform_mac():
+    import _osx_support
+    import distutils.sysconfig
+    if not 'MACOSX_DEPLOYMENT_TARGET' in os.environ:
+        current_system = list(map(int, _osx_support._get_system_version().split('.')))
+        python_osx_target_str = distutils.sysconfig.get_config_var('MACOSX_DEPLOYMENT_TARGET')
+        python_osx_target = list(map(int, python_osx_target_str.split('.')))
+        if python_osx_target < [10, 9] and current_system >= [10, 9]:
+            os.environ['MACOSX_DEPLOYMENT_TARGET'] = '10.9'
 
 
 # enable coverage by building cython files by setting the environment variable
