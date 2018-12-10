@@ -759,9 +759,7 @@ class DatetimeIndex(DatelikeIndexMixin,
         if level is not None:
             self._validate_index_level(level)
 
-        # TODO(DatetimeArray): change dispatch once inheritance is removed
-        # call DatetimeArray method
-        result = DatetimeArray.unique(self)
+        result = self._data.unique()
         return self._shallow_copy(result._data)
 
     def join(self, other, how='left', level=None, return_indexers=False,
