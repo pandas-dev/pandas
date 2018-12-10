@@ -1320,29 +1320,12 @@ class Block(PandasObject):
 
         values = self.values
         orig_other = other
-        if not self._can_consolidate:
-            transpose = False
 
         if transpose:
             values = values.T
 
-        if not self._can_consolidate:
-            if isinstance(cond, ABCDataFrame):
-                cond = cond.values
-
-            if cond.ndim == 2:
-                assert cond.shape[1] == 1
-                cond = cond.ravel()
-                if isinstance(other, ABCDataFrame):
-                    assert other.shape[1] == 1
-                    other = other.iloc[:, 0]
-
-            if isinstance(other, (ABCSeries, ABCIndexClass)):
-                other = other.array
-
-        else:
-            other = getattr(other, '_values', getattr(other, 'values', other))
-            cond = getattr(cond, 'values', cond)
+        other = getattr(other, '_values', getattr(other, 'values', other))
+        cond = getattr(cond, 'values', cond)
 
         # If the default broadcasting would go in the wrong direction, then
         # explicitly reshape other instead
@@ -3072,9 +3055,7 @@ class DatetimeTZBlock(ExtensionBlock, DatetimeBlock):
             if tz is None or str(tz) != str(self.values.tz):
                 raise ValueError("incompatible or non tz-aware value")
             other = other.value
-        # elif is_list_like(other):
-        #     # Things like DataFrame.where may
-        #     other = self._holder._from_sequence(other).asi8
+
         else:
             raise TypeError
 
