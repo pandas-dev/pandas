@@ -236,4 +236,31 @@ class CategoricalSlicing(object):
         self.data[self.data == self.cat_scalar]
 
 
+class Indexing(object):
+
+    def setup(self):
+        N = 10**5
+        self.index = pd.CategoricalIndex(range(N), range(N))
+        self.series = pd.Series(range(N), index=self.index).sort_index()
+        self.category = self.index[500]
+
+    def time_get_loc(self):
+        self.index.get_loc(self.category)
+
+    def time_shape(self):
+        self.index.shape
+
+    def time_shallow_copy(self):
+        self.index._shallow_copy()
+
+    def time_align(self):
+        pd.DataFrame({'a': self.series, 'b': self.series[:500]})
+
+    def time_intersection(self):
+        self.index[:750].intersection(self.index[250:])
+
+    def time_unique(self):
+        self.index.unique()
+
+
 from .pandas_vb_common import setup  # noqa: F401
