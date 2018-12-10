@@ -10219,10 +10219,10 @@ axis : {0 or 'index', 1 or 'columns', None}, default 0
       original index.
     * None : reduce all axes, return a scalar.
 
-bool_only : boolean, default None
+bool_only : bool, default None
     Include only boolean columns. If None, will attempt to use everything,
     then use only boolean data. Not implemented for Series.
-skipna : boolean, default True
+skipna : bool, default True
     Exclude NA/null values. If the entire row/column is NA and skipna is
     True, then the result will be %(empty_value)s, as for an empty row/column.
     If skipna is False, then NA are treated as True, because these are not
