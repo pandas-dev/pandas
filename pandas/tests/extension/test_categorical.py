@@ -25,7 +25,14 @@ from pandas.tests.extension import base
 
 
 def make_data():
-    return np.random.choice(list(string.ascii_letters), size=100)
+    while True:
+        values = np.random.choice(list(string.ascii_letters), size=100)
+        # ensure we meet the requirements
+        # 1. first two not null
+        # 2. first and second are different
+        if values[0] != values[1]:
+            break
+    return values
 
 
 @pytest.fixture
@@ -35,7 +42,11 @@ def dtype():
 
 @pytest.fixture
 def data():
-    """Length-100 PeriodArray for semantics test."""
+    """Length-100 array for this type.
+
+    * data[0] and data[1] should both be non missing
+    * data[0] and data[1] should not gbe equal
+    """
     return Categorical(make_data())
 
 
