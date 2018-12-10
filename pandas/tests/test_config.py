@@ -62,6 +62,10 @@ class TestConfig(object):
         pytest.raises(KeyError, self.cf.register_option, 'a.b.c.d2', 1,
                       'doc')
 
+        # can't register a reserved key option
+        pytest.raises(KeyError, self.cf.register_option, 'all', 1,
+                      'doc')
+
         # no python keywords
         pytest.raises(ValueError, self.cf.register_option, 'for', 0)
         pytest.raises(ValueError, self.cf.register_option, 'a.for.b', 0)
