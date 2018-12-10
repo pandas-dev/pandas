@@ -41,7 +41,7 @@ def _make_wrapped_arith_op(opname):
         if isinstance(other, Index):
             oth = other._data
 
-        result = meth(self, oth)
+        result = meth(self._values, oth)
         return wrap_arithmetic_op(self, other, result)
 
     method.__name__ = opname
@@ -53,7 +53,9 @@ class TimedeltaDelegateMixin(DatetimelikeDelegateMixin):
     _delegated_properties = (TimedeltaArray._datetimelike_ops + [
         'components',
     ])
-    _delegated_methods = TimedeltaArray._datetimelike_methods
+    _delegated_methods = TimedeltaArray._datetimelike_methods + [
+        '_box_values',
+    ]
     _raw_properties = {
         'components',
     }
@@ -160,7 +162,6 @@ class TimedeltaIndex(DatetimeIndexOpsMixin,
 
     # TODO: Deduplicate with DatetimeIndex by doing these as props on base
     _box_func = TimedeltaArray._box_func
-    _box_values = TimedeltaArray._box_values
     _bool_ops = TimedeltaArray._bool_ops
     _object_ops = TimedeltaArray._object_ops
     _field_ops = TimedeltaArray._field_ops
@@ -288,7 +289,7 @@ class TimedeltaIndex(DatetimeIndexOpsMixin,
         if isinstance(other, Index):
             # TimedeltaArray defers, so we need to unwrap
             oth = other._values
-        result = TimedeltaArray.__truediv__(self, oth)
+        result = self._data.__truediv__(oth)
         return wrap_arithmetic_op(self, other, result)
 
     def __rtruediv__(self, other):
@@ -296,7 +297,7 @@ class TimedeltaIndex(DatetimeIndexOpsMixin,
         if isinstance(other, Index):
             # TimedeltaArray defers, so we need to unwrap
             oth = other._values
-        result = TimedeltaArray.__rtruediv__(self, oth)
+        result = self._data(oth)
         return wrap_arithmetic_op(self, other, result)
 
     if compat.PY2:

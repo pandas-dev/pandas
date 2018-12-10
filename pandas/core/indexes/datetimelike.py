@@ -47,8 +47,6 @@ class DatetimeIndexOpsMixin(ExtensionOpsMixin):
     _resolution = cache_readonly(DatetimeLikeArrayMixin._resolution.fget)
     resolution = cache_readonly(DatetimeLikeArrayMixin.resolution.fget)
 
-    _box_values = DatetimeLikeArrayMixin._box_values
-
     # A few methods that are shared
     _maybe_mask_results = DatetimeLikeArrayMixin._maybe_mask_results
 
@@ -167,6 +165,9 @@ class DatetimeIndexOpsMixin(ExtensionOpsMixin):
         # define _box_values AFAICT
         from pandas.core.index import Index
         return Index(self._box_values(self.asi8), name=self.name, dtype=object)
+
+    def _box_values(self, values):
+        return self._data._box_values(values)
 
     @Appender(_index_shared_docs['contains'] % _index_doc_kwargs)
     def __contains__(self, key):
