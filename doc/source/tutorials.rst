@@ -1,5 +1,7 @@
 .. _tutorials:
 
+{{ header }}
+
 *********
 Tutorials
 *********

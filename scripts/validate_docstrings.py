@@ -174,6 +174,7 @@ def get_api_items(api_doc_fd):
         The name of the subsection in the API page where the object item is
         located.
     """
+    current_module = 'pandas'
     previous_line = current_section = current_subsection = ''
     position = None
     for line in api_doc_fd:

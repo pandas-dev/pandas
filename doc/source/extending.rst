@@ -1,5 +1,7 @@
 .. _extending:
 
+{{ header }}
+
 ****************
 Extending Pandas
 ****************

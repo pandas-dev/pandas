@@ -1,5 +1,7 @@
 .. _ecosystem:
 
+{{ header }}
+
 ****************
 pandas Ecosystem
 ****************
