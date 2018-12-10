@@ -1065,7 +1065,7 @@ class DatetimeArrayMixin(dtl.DatetimeLikeArrayMixin,
 
         return tslib.ints_to_pydatetime(timestamps, box="date")
 
-    year = _field_accessor('year', 'Y', " The year of the datetime.")
+    year = _field_accessor('year', 'Y', "The year of the datetime.")
     month = _field_accessor('month', 'M',
                             " The month as January=1, December=12. ")
     day = _field_accessor('day', 'D', "The days of the datetime.")
