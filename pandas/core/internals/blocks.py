@@ -1993,6 +1993,7 @@ class ExtensionBlock(NonConsolidatableMixIn, Block):
             other = self.dtype.na_value
 
         if is_sparse(self.values):
+            # TODO(SparseArray.__setitem__): remove this if condition
             # We need to re-infer the type of the data after doing the
             # where, for cases where the subtypes don't match
             dtype = None
@@ -2710,6 +2711,7 @@ class CategoricalBlock(ExtensionBlock):
 
     def where(self, other, cond, align=True, errors='raise',
               try_cast=False, axis=0, transpose=False):
+        # TODO(CategoricalBlock.where):
         # This can all be deleted in favor of ExtensionBlock.where once
         # we enforce the deprecation.
         object_msg = (
