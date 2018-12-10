@@ -1,23 +1,10 @@
 .. _io:
 
-.. currentmodule:: pandas
+{{ header }}
 
 .. ipython:: python
    :suppress:
 
-   import csv
-   import os
-
-   import matplotlib.pyplot as plt
-   import numpy as np
-   import pandas as pd
-   from pandas.compat import StringIO, BytesIO
-
-
-   randn = np.random.randn
-   np.set_printoptions(precision=4, suppress=True)
-   plt.close('all')
-   pd.options.display.max_rows = 15
    clipdf = pd.DataFrame({'A': [1, 2, 3], 'B': [4, 5, 6], 'C': ['p', 'q', 'r']},
                          index=['x', 'y', 'z'])
 
@@ -144,6 +131,7 @@ usecols : list-like or callable, default ``None``
 
   .. ipython:: python
 
+     from pandas.compat import StringIO, BytesIO
      data = ('col1,col2,col3\n'
              'a,b,1\n'
              'a,b,2\n'
@@ -452,6 +440,8 @@ worth trying.
 
 .. ipython:: python
    :suppress:
+
+   import os
 
    os.remove('foo.csv')
 
@@ -1151,7 +1141,7 @@ Let us consider some examples:
 
 .. code-block:: python
 
-   read_csv(path, na_values=[5])
+   pd.read_csv('path_to_file.csv', na_values=[5])
 
 In the example above ``5`` and ``5.0`` will be recognized as ``NaN``, in
 addition to the defaults. A string will first be interpreted as a numerical
@@ -1159,19 +1149,19 @@ addition to the defaults. A string will first be interpreted as a numerical
 
 .. code-block:: python
 
-   read_csv(path, keep_default_na=False, na_values=[""])
+   pd.read_csv('path_to_file.csv', keep_default_na=False, na_values=[""])
 
 Above, only an empty field will be recognized as ``NaN``.
 
 .. code-block:: python
 
-   read_csv(path, keep_default_na=False, na_values=["NA", "0"])
+   pd.read_csv('path_to_file.csv', keep_default_na=False, na_values=["NA", "0"])
 
 Above, both ``NA`` and ``0`` as strings are ``NaN``.
 
 .. code-block:: python
 
-   read_csv(path, na_values=["Nope"])
+   pd.read_csv('path_to_file.csv', na_values=["Nope"])
 
 The default values, in addition to the string ``"Nope"`` are recognized as
 ``NaN``.
@@ -1245,24 +1235,13 @@ too few fields will have NA values filled in the trailing fields. Lines with
 too many fields will raise an error by default:
 
 .. ipython:: python
-   :suppress:
+    :okexcept:
 
     data = ('a,b,c\n'
             '1,2,3\n'
             '4,5,6,7\n'
             '8,9,10')
-
-.. code-block:: ipython
-
-    In [27]: data = ('a,b,c\n'
-                     '1,2,3\n'
-                     '4,5,6,7\n'
-                     '8,9,10')
-
-    In [28]: pd.read_csv(StringIO(data))
-    ---------------------------------------------------------------------------
-    ParserError                              Traceback (most recent call last)
-    ParserError: Error tokenizing data. C error: Expected 3 fields in line 3, saw 4
+    pd.read_csv(StringIO(data))
 
 You can elect to skip bad lines:
 
@@ -1320,6 +1299,7 @@ We can get around this using ``dialect``:
 .. ipython:: python
    :okwarning:
 
+   import csv
    dia = csv.excel()
    dia.quoting = csv.QUOTE_NONE
    pd.read_csv(StringIO(data), dialect=dia)
@@ -1778,7 +1758,7 @@ Note ``NaN``'s, ``NaT``'s and ``None`` will be converted to ``null`` and ``datet
 
 .. ipython:: python
 
-   dfj = pd.DataFrame(randn(5, 2), columns=list('AB'))
+   dfj = pd.DataFrame(np.random.randn(5, 2), columns=list('AB'))
    json = dfj.to_json()
    json
 
@@ -1853,7 +1833,7 @@ Writing in ISO date format:
 
 .. ipython:: python
 
-   dfd = pd.DataFrame(randn(5, 2), columns=list('AB'))
+   dfd = pd.DataFrame(np.random.randn(5, 2), columns=list('AB'))
    dfd['date'] = pd.Timestamp('20130101')
    dfd = dfd.sort_index(1, ascending=False)
    json = dfd.to_json(date_format='iso')
@@ -2493,7 +2473,7 @@ Read in pandas ``to_html`` output (with some loss of floating point precision):
 
 .. code-block:: python
 
-   df = pd.DataFrame(randn(2, 2))
+   df = pd.DataFrame(np.random.randn(2, 2))
    s = df.to_html(float_format='{0:.40g}'.format)
    dfin = pd.read_html(s, index_col=0)
 
@@ -2546,7 +2526,7 @@ in the method ``to_string`` described above.
 
 .. ipython:: python
 
-   df = pd.DataFrame(randn(2, 2))
+   df = pd.DataFrame(np.random.randn(2, 2))
    df
    print(df.to_html())  # raw html
 
@@ -2622,7 +2602,7 @@ Finally, the ``escape`` argument allows you to control whether the
 
 .. ipython:: python
 
-   df = pd.DataFrame({'a': list('&<>'), 'b': randn(3)})
+   df = pd.DataFrame({'a': list('&<>'), 'b': np.random.randn(3)})
 
 
 .. ipython:: python
@@ -2754,7 +2734,7 @@ file, and the ``sheet_name`` indicating which sheet to parse.
 .. code-block:: python
 
    # Returns a DataFrame
-   read_excel('path_to_file.xls', sheet_name='Sheet1')
+   pd.read_excel('path_to_file.xls', sheet_name='Sheet1')
 
 
 .. _io.excel.excelfile_class:
@@ -2803,14 +2783,14 @@ of sheet names can simply be passed to ``read_excel`` with no loss in performanc
     # using the ExcelFile class
     data = {}
     with pd.ExcelFile('path_to_file.xls') as xls:
-        data['Sheet1'] = read_excel(xls, 'Sheet1', index_col=None,
-                                    na_values=['NA'])
-        data['Sheet2'] = read_excel(xls, 'Sheet2', index_col=None,
-                                    na_values=['NA'])
+        data['Sheet1'] = pd.read_excel(xls, 'Sheet1', index_col=None,
+                                       na_values=['NA'])
+        data['Sheet2'] = pd.read_excel(xls, 'Sheet2', index_col=None,
+                                       na_values=['NA'])
 
     # equivalent using the read_excel function
-    data = read_excel('path_to_file.xls', ['Sheet1', 'Sheet2'],
-                      index_col=None, na_values=['NA'])
+    data = pd.read_excel('path_to_file.xls', ['Sheet1', 'Sheet2'],
+                         index_col=None, na_values=['NA'])
 
 .. _io.excel.specifying_sheets:
 
@@ -2832,35 +2812,35 @@ Specifying Sheets
 .. code-block:: python
 
    # Returns a DataFrame
-   read_excel('path_to_file.xls', 'Sheet1', index_col=None, na_values=['NA'])
+   pd.read_excel('path_to_file.xls', 'Sheet1', index_col=None, na_values=['NA'])
 
 Using the sheet index:
 
 .. code-block:: python
 
    # Returns a DataFrame
-   read_excel('path_to_file.xls', 0, index_col=None, na_values=['NA'])
+   pd.read_excel('path_to_file.xls', 0, index_col=None, na_values=['NA'])
 
 Using all default values:
 
 .. code-block:: python
 
    # Returns a DataFrame
-   read_excel('path_to_file.xls')
+   pd.read_excel('path_to_file.xls')
 
 Using None to get all sheets:
 
 .. code-block:: python
 
    # Returns a dictionary of DataFrames
-   read_excel('path_to_file.xls', sheet_name=None)
+   pd.read_excel('path_to_file.xls', sheet_name=None)
 
 Using a list to get multiple sheets:
 
 .. code-block:: python
 
    # Returns the 1st and 4th sheet, as a dictionary of DataFrames.
-   read_excel('path_to_file.xls', sheet_name=['Sheet1', 3])
+   pd.read_excel('path_to_file.xls', sheet_name=['Sheet1', 3])
 
 ``read_excel`` can read more than one sheet, by setting ``sheet_name`` to either
 a list of sheet names, a list of sheet positions, or ``None`` to read all sheets.
@@ -2932,20 +2912,20 @@ to be parsed.
 
 .. code-block:: python
 
-   read_excel('path_to_file.xls', 'Sheet1', usecols=2)
+   pd.read_excel('path_to_file.xls', 'Sheet1', usecols=2)
 
 You can also specify a comma-delimited set of Excel columns and ranges as a string:
 
 .. code-block:: python
 
-   read_excel('path_to_file.xls', 'Sheet1', usecols='A,C:E')
+   pd.read_excel('path_to_file.xls', 'Sheet1', usecols='A,C:E')
 
 If ``usecols`` is a list of integers, then it is assumed to be the file column
 indices to be parsed.
 
 .. code-block:: python
 
-   read_excel('path_to_file.xls', 'Sheet1', usecols=[0, 2, 3])
+   pd.read_excel('path_to_file.xls', 'Sheet1', usecols=[0, 2, 3])
 
 Element order is ignored, so ``usecols=[0, 1]`` is the same as ``[1, 0]``.
 
@@ -2957,7 +2937,7 @@ document header row(s). Those strings define which columns will be parsed:
 
 .. code-block:: python
 
-    read_excel('path_to_file.xls', 'Sheet1', usecols=['foo', 'bar'])
+    pd.read_excel('path_to_file.xls', 'Sheet1', usecols=['foo', 'bar'])
 
 Element order is ignored, so ``usecols=['baz', 'joe']`` is the same as ``['joe', 'baz']``.
 
@@ -2968,7 +2948,7 @@ the column names, returning names where the callable function evaluates to ``Tru
 
 .. code-block:: python
 
-    read_excel('path_to_file.xls', 'Sheet1', usecols=lambda x: x.isalpha())
+    pd.read_excel('path_to_file.xls', 'Sheet1', usecols=lambda x: x.isalpha())
 
 Parsing Dates
 +++++++++++++
@@ -2980,7 +2960,7 @@ use the ``parse_dates`` keyword to parse those strings to datetimes:
 
 .. code-block:: python
 
-   read_excel('path_to_file.xls', 'Sheet1', parse_dates=['date_strings'])
+   pd.read_excel('path_to_file.xls', 'Sheet1', parse_dates=['date_strings'])
 
 
 Cell Converters
@@ -2991,7 +2971,7 @@ option. For instance, to convert a column to boolean:
 
 .. code-block:: python
 
-   read_excel('path_to_file.xls', 'Sheet1', converters={'MyBools': bool})
+   pd.read_excel('path_to_file.xls', 'Sheet1', converters={'MyBools': bool})
 
 This options handles missing values and treats exceptions in the converters
 as missing data. Transformations are applied cell by cell rather than to the
@@ -3006,7 +2986,7 @@ missing data to recover integer dtype:
        return int(x) if x else -1
 
 
-   read_excel('path_to_file.xls', 'Sheet1', converters={'MyInts': cfun})
+   pd.read_excel('path_to_file.xls', 'Sheet1', converters={'MyInts': cfun})
 
 dtype Specifications
 ++++++++++++++++++++
@@ -3020,7 +3000,7 @@ no type inference, use the type ``str`` or ``object``.
 
 .. code-block:: python
 
-   read_excel('path_to_file.xls', dtype={'MyInts': 'int64', 'MyText': str})
+   pd.read_excel('path_to_file.xls', dtype={'MyInts': 'int64', 'MyText': str})
 
 .. _io.excel_writer:
 
@@ -3198,7 +3178,7 @@ applications (CTRL-V on many operating systems). Here we illustrate writing a
 
 .. ipython:: python
 
-    df = pd.DataFrame(randn(5, 3))
+    df = pd.DataFrame(np.random.randn(5, 3))
     df
     df.to_clipboard()
     pd.read_clipboard()
@@ -3425,10 +3405,10 @@ dict:
 .. ipython:: python
 
    index = pd.date_range('1/1/2000', periods=8)
-   s = pd.Series(randn(5), index=['a', 'b', 'c', 'd', 'e'])
-   df = pd.DataFrame(randn(8, 3), index=index,
+   s = pd.Series(np.random.randn(5), index=['a', 'b', 'c', 'd', 'e'])
+   df = pd.DataFrame(np.random.randn(8, 3), index=index,
                      columns=['A', 'B', 'C'])
-   wp = pd.Panel(randn(2, 5, 4), items=['Item1', 'Item2'],
+   wp = pd.Panel(np.random.randn(2, 5, 4), items=['Item1', 'Item2'],
                  major_axis=pd.date_range('1/1/2000', periods=5),
                  minor_axis=['A', 'B', 'C', 'D'])
 
@@ -3574,7 +3554,7 @@ This format is specified by default when using ``put`` or ``to_hdf`` or by ``for
 
    .. code-block:: python
 
-       >>> pd.DataFrame(randn(10, 2)).to_hdf('test_fixed.h5', 'df')
+       >>> pd.DataFrame(np.random.randn(10, 2)).to_hdf('test_fixed.h5', 'df')
        >>> pd.read_hdf('test_fixed.h5', 'df', where='index>5')
        TypeError: cannot pass a where specification when reading a fixed format.
                   this store must be selected in its entirety
@@ -3710,9 +3690,9 @@ defaults to `nan`.
 
 .. ipython:: python
 
-    df_mixed = pd.DataFrame({'A': randn(8),
-                             'B': randn(8),
-                             'C': np.array(randn(8), dtype='float32'),
+    df_mixed = pd.DataFrame({'A': np.random.randn(8),
+                             'B': np.random.randn(8),
+                             'C': np.array(np.random.randn(8), dtype='float32'),
                              'string': 'string',
                              'int': 1,
                              'bool': True,
@@ -3739,8 +3719,8 @@ storing/selecting from homogeneous index ``DataFrames``.
 
         index = pd.MultiIndex(levels=[['foo', 'bar', 'baz', 'qux'],
                                       ['one', 'two', 'three']],
-                              labels=[[0, 0, 0, 1, 1, 2, 2, 3, 3, 3],
-                                      [0, 1, 2, 0, 1, 1, 2, 0, 1, 2]],
+                              codes=[[0, 0, 0, 1, 1, 2, 2, 3, 3, 3],
+                                     [0, 1, 2, 0, 1, 1, 2, 0, 1, 2]],
                               names=['foo', 'bar'])
         df_mi = pd.DataFrame(np.random.randn(10, 3), index=index,
                              columns=['A', 'B', 'C'])
@@ -3852,7 +3832,7 @@ Here are some examples:
 
 .. ipython:: python
 
-    dfq = pd.DataFrame(randn(10, 4), columns=list('ABCD'),
+    dfq = pd.DataFrame(np.random.randn(10, 4), columns=list('ABCD'),
                        index=pd.date_range('20130101', periods=10))
     store.append('dfq', dfq, format='table', data_columns=True)
 
@@ -3957,8 +3937,8 @@ Oftentimes when appending large amounts of data to a store, it is useful to turn
 
 .. ipython:: python
 
-   df_1 = pd.DataFrame(randn(10, 2), columns=list('AB'))
-   df_2 = pd.DataFrame(randn(10, 2), columns=list('AB'))
+   df_1 = pd.DataFrame(np.random.randn(10, 2), columns=list('AB'))
+   df_2 = pd.DataFrame(np.random.randn(10, 2), columns=list('AB'))
 
    st = pd.HDFStore('appends.h5', mode='w')
    st.append('df', df_1, data_columns=['B'], index=False)
@@ -4162,7 +4142,8 @@ results.
 
 .. ipython:: python
 
-   df_mt = pd.DataFrame(randn(8, 6), index=pd.date_range('1/1/2000', periods=8),
+   df_mt = pd.DataFrame(np.random.randn(8, 6),
+                        index=pd.date_range('1/1/2000', periods=8),
                         columns=['A', 'B', 'C', 'D', 'E', 'F'])
    df_mt['foo'] = 'bar'
    df_mt.loc[df_mt.index[1], ('A', 'B')] = np.nan
@@ -5126,7 +5107,7 @@ If you have an SQLAlchemy description of your database you can express where con
                          sa.Column('Col_3', sa.Boolean),
                          )
 
-   pd.read_sql(sa.select([data_table]).where(data_table.c.Col_3 == True), engine)
+   pd.read_sql(sa.select([data_table]).where(data_table.c.Col_3 is True), engine)
 
 You can combine SQLAlchemy expressions with parameters passed to :func:`read_sql` using :func:`sqlalchemy.bindparam`
 
@@ -5155,7 +5136,7 @@ And then issue the following queries:
 
 .. code-block:: python
 
-   data.to_sql('data', cnx)
+   data.to_sql('data', con)
    pd.read_sql_query("SELECT * FROM data", con)
 
 
@@ -5192,7 +5173,7 @@ into a .dta file. The format version of this file is always 115 (Stata 12).
 
 .. ipython:: python
 
-   df = pd.DataFrame(randn(10, 2), columns=list('AB'))
+   df = pd.DataFrame(np.random.randn(10, 2), columns=list('AB'))
    df.to_stata('stata.dta')
 
 *Stata* data files have limited data type support; only strings with
@@ -5372,6 +5353,9 @@ Obtain an iterator and read an XPORT file 100,000 lines at a time:
 
 .. code-block:: python
 
+    def do_something(chunk):
+        pass
+
     rdr = pd.read_sas('sas_xport.xpt', chunk=100000)
     for chunk in rdr:
         do_something(chunk)
@@ -5413,7 +5397,7 @@ ignored.
 .. code-block:: ipython
 
    In [1]: sz = 1000000
-   In [2]: df = pd.DataFrame({'A': randn(sz), 'B': [1] * sz})
+   In [2]: df = pd.DataFrame({'A': np.random.randn(sz), 'B': [1] * sz})
 
    In [3]: df.info()
    <class 'pandas.core.frame.DataFrame'>
@@ -5424,85 +5408,7 @@ ignored.
    dtypes: float64(1), int64(1)
    memory usage: 15.3 MB
 
-When writing, the top-three functions in terms of speed are are
-``test_pickle_write``, ``test_feather_write`` and ``test_hdf_fixed_write_compress``.
-
-.. code-block:: ipython
-
-   In [14]: %timeit test_sql_write(df)
-   2.37 s ± 36.6 ms per loop (mean ± std. dev. of 7 runs, 1 loop each)
-
-   In [15]: %timeit test_hdf_fixed_write(df)
-   194 ms ± 65.9 ms per loop (mean ± std. dev. of 7 runs, 10 loops each)
-
-   In [26]: %timeit test_hdf_fixed_write_compress(df)
-   119 ms ± 2.15 ms per loop (mean ± std. dev. of 7 runs, 10 loops each)
-
-   In [16]: %timeit test_hdf_table_write(df)
-   623 ms ± 125 ms per loop (mean ± std. dev. of 7 runs, 1 loop each)
-
-   In [27]: %timeit test_hdf_table_write_compress(df)
-   563 ms ± 23.7 ms per loop (mean ± std. dev. of 7 runs, 1 loop each)
-
-   In [17]: %timeit test_csv_write(df)
-   3.13 s ± 49.9 ms per loop (mean ± std. dev. of 7 runs, 1 loop each)
-
-   In [30]: %timeit test_feather_write(df)
-   103 ms ± 5.88 ms per loop (mean ± std. dev. of 7 runs, 10 loops each)
-
-   In [31]: %timeit test_pickle_write(df)
-   109 ms ± 3.72 ms per loop (mean ± std. dev. of 7 runs, 10 loops each)
-
-   In [32]: %timeit test_pickle_write_compress(df)
-   3.33 s ± 55.2 ms per loop (mean ± std. dev. of 7 runs, 1 loop each)
-
-When reading, the top three are ``test_feather_read``, ``test_pickle_read`` and
-``test_hdf_fixed_read``.
-
-.. code-block:: ipython
-
-   In [18]: %timeit test_sql_read()
-   1.35 s ± 14.7 ms per loop (mean ± std. dev. of 7 runs, 1 loop each)
-
-   In [19]: %timeit test_hdf_fixed_read()
-   14.3 ms ± 438 µs per loop (mean ± std. dev. of 7 runs, 100 loops each)
-
-   In [28]: %timeit test_hdf_fixed_read_compress()
-   23.5 ms ± 672 µs per loop (mean ± std. dev. of 7 runs, 10 loops each)
-
-   In [20]: %timeit test_hdf_table_read()
-   35.4 ms ± 314 µs per loop (mean ± std. dev. of 7 runs, 10 loops each)
-
-   In [29]: %timeit test_hdf_table_read_compress()
-   42.6 ms ± 2.1 ms per loop (mean ± std. dev. of 7 runs, 10 loops each)
-
-   In [22]: %timeit test_csv_read()
-   516 ms ± 27.1 ms per loop (mean ± std. dev. of 7 runs, 1 loop each)
-
-   In [33]: %timeit test_feather_read()
-   4.06 ms ± 115 µs per loop (mean ± std. dev. of 7 runs, 100 loops each)
-
-   In [34]: %timeit test_pickle_read()
-   6.5 ms ± 172 µs per loop (mean ± std. dev. of 7 runs, 100 loops each)
-
-   In [35]: %timeit test_pickle_read_compress()
-   588 ms ± 3.57 ms per loop (mean ± std. dev. of 7 runs, 1 loop each)
-
-Space on disk (in bytes)
-
-.. code-block:: none
-
-    34816000 Aug 21 18:00 test.sql
-    24009240 Aug 21 18:00 test_fixed.hdf
-     7919610 Aug 21 18:00 test_fixed_compress.hdf
-    24458892 Aug 21 18:00 test_table.hdf
-     8657116 Aug 21 18:00 test_table_compress.hdf
-    28520770 Aug 21 18:00 test.csv
-    16000248 Aug 21 18:00 test.feather
-    16000848 Aug 21 18:00 test.pkl
-     7554108 Aug 21 18:00 test.pkl.compress
-
-And here's the code:
+Given the next test set:
 
 .. code-block:: python
 
@@ -5589,3 +5495,81 @@ And here's the code:
 
    def test_pickle_read_compress():
        pd.read_pickle('test.pkl.compress', compression='xz')
+
+When writing, the top-three functions in terms of speed are are
+``test_pickle_write``, ``test_feather_write`` and ``test_hdf_fixed_write_compress``.
+
+.. code-block:: ipython
+
+   In [14]: %timeit test_sql_write(df)
+   2.37 s ± 36.6 ms per loop (mean ± std. dev. of 7 runs, 1 loop each)
+
+   In [15]: %timeit test_hdf_fixed_write(df)
+   194 ms ± 65.9 ms per loop (mean ± std. dev. of 7 runs, 10 loops each)
+
+   In [26]: %timeit test_hdf_fixed_write_compress(df)
+   119 ms ± 2.15 ms per loop (mean ± std. dev. of 7 runs, 10 loops each)
+
+   In [16]: %timeit test_hdf_table_write(df)
+   623 ms ± 125 ms per loop (mean ± std. dev. of 7 runs, 1 loop each)
+
+   In [27]: %timeit test_hdf_table_write_compress(df)
+   563 ms ± 23.7 ms per loop (mean ± std. dev. of 7 runs, 1 loop each)
+
+   In [17]: %timeit test_csv_write(df)
+   3.13 s ± 49.9 ms per loop (mean ± std. dev. of 7 runs, 1 loop each)
+
+   In [30]: %timeit test_feather_write(df)
+   103 ms ± 5.88 ms per loop (mean ± std. dev. of 7 runs, 10 loops each)
+
+   In [31]: %timeit test_pickle_write(df)
+   109 ms ± 3.72 ms per loop (mean ± std. dev. of 7 runs, 10 loops each)
+
+   In [32]: %timeit test_pickle_write_compress(df)
+   3.33 s ± 55.2 ms per loop (mean ± std. dev. of 7 runs, 1 loop each)
+
+When reading, the top three are ``test_feather_read``, ``test_pickle_read`` and
+``test_hdf_fixed_read``.
+
+.. code-block:: ipython
+
+   In [18]: %timeit test_sql_read()
+   1.35 s ± 14.7 ms per loop (mean ± std. dev. of 7 runs, 1 loop each)
+
+   In [19]: %timeit test_hdf_fixed_read()
+   14.3 ms ± 438 µs per loop (mean ± std. dev. of 7 runs, 100 loops each)
+
+   In [28]: %timeit test_hdf_fixed_read_compress()
+   23.5 ms ± 672 µs per loop (mean ± std. dev. of 7 runs, 10 loops each)
+
+   In [20]: %timeit test_hdf_table_read()
+   35.4 ms ± 314 µs per loop (mean ± std. dev. of 7 runs, 10 loops each)
+
+   In [29]: %timeit test_hdf_table_read_compress()
+   42.6 ms ± 2.1 ms per loop (mean ± std. dev. of 7 runs, 10 loops each)
+
+   In [22]: %timeit test_csv_read()
+   516 ms ± 27.1 ms per loop (mean ± std. dev. of 7 runs, 1 loop each)
+
+   In [33]: %timeit test_feather_read()
+   4.06 ms ± 115 µs per loop (mean ± std. dev. of 7 runs, 100 loops each)
+
+   In [34]: %timeit test_pickle_read()
+   6.5 ms ± 172 µs per loop (mean ± std. dev. of 7 runs, 100 loops each)
+
+   In [35]: %timeit test_pickle_read_compress()
+   588 ms ± 3.57 ms per loop (mean ± std. dev. of 7 runs, 1 loop each)
+
+Space on disk (in bytes)
+
+.. code-block:: none
+
+    34816000 Aug 21 18:00 test.sql
+    24009240 Aug 21 18:00 test_fixed.hdf
+     7919610 Aug 21 18:00 test_fixed_compress.hdf
+    24458892 Aug 21 18:00 test_table.hdf
+     8657116 Aug 21 18:00 test_table_compress.hdf
+    28520770 Aug 21 18:00 test.csv
+    16000248 Aug 21 18:00 test.feather
+    16000848 Aug 21 18:00 test.pkl
+     7554108 Aug 21 18:00 test.pkl.compress

@@ -458,6 +458,10 @@ class HDFStore(StringMixin):
 
     def __init__(self, path, mode=None, complevel=None, complib=None,
                  fletcher32=False, **kwargs):
+
+        if 'format' in kwargs:
+            raise ValueError('format is not a defined argument for HDFStore')
+
         try:
             import tables  # noqa
         except ImportError as ex:  # pragma: no cover
@@ -2605,9 +2609,9 @@ class GenericFixed(Fixed):
     def write_multi_index(self, key, index):
         setattr(self.attrs, '%s_nlevels' % key, index.nlevels)
 
-        for i, (lev, lab, name) in enumerate(zip(index.levels,
-                                                 index.labels,
-                                                 index.names)):
+        for i, (lev, level_codes, name) in enumerate(zip(index.levels,
+                                                         index.codes,
+                                                         index.names)):
             # write the level
             level_key = '%s_level%d' % (key, i)
             conv_level = _convert_index(lev, self.encoding, self.errors,
@@ -2622,13 +2626,13 @@ class GenericFixed(Fixed):
 
             # write the labels
             label_key = '%s_label%d' % (key, i)
-            self.write_array(label_key, lab)
+            self.write_array(label_key, level_codes)
 
     def read_multi_index(self, key, **kwargs):
         nlevels = getattr(self.attrs, '%s_nlevels' % key)
 
         levels = []
-        labels = []
+        codes = []
         names = []
         for i in range(nlevels):
             level_key = '%s_level%d' % (key, i)
@@ -2638,10 +2642,10 @@ class GenericFixed(Fixed):
             names.append(name)
 
             label_key = '%s_label%d' % (key, i)
-            lab = self.read_array(label_key, **kwargs)
-            labels.append(lab)
+            level_codes = self.read_array(label_key, **kwargs)
+            codes.append(level_codes)
 
-        return MultiIndex(levels=levels, labels=labels, names=names,
+        return MultiIndex(levels=levels, codes=codes, names=names,
                           verify_integrity=True)
 
     def read_index_node(self, node, start=None, stop=None):

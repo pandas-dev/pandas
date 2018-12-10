@@ -174,6 +174,10 @@ class TestGetitem(base.BaseGetitemTests):
     pass
 
 
+class TestSetitem(base.BaseSetitemTests):
+    pass
+
+
 class TestMissing(base.BaseMissingTests):
     pass
 
@@ -209,4 +213,8 @@ class TestNumericReduce(base.BaseNumericReduceTests):
 
 
 class TestBooleanReduce(base.BaseBooleanReduceTests):
+    pass
+
+
+class TestPrinting(base.BasePrintingTests):
     pass

@@ -3,7 +3,13 @@
 v0.15.2 (December 12, 2014)
 ---------------------------
 
-{{ common_imports }}
+{{ header }}
+
+.. ipython:: python
+   :suppress:
+
+   from pandas import * # noqa F401, F403
+
 
 This is a minor release from 0.15.1 and includes a large number of bug fixes
 along with several new features, enhancements, and performance improvements.

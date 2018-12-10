@@ -60,8 +60,8 @@ def test_getitem_duplicates_multiindex():
 
     index = MultiIndex(levels=[['D', 'B', 'C'],
                                [0, 26, 27, 37, 57, 67, 75, 82]],
-                       labels=[[0, 0, 0, 1, 2, 2, 2, 2, 2, 2],
-                               [1, 3, 4, 6, 0, 2, 2, 3, 5, 7]],
+                       codes=[[0, 0, 0, 1, 2, 2, 2, 2, 2, 2],
+                              [1, 3, 4, 6, 0, 2, 2, 3, 5, 7]],
                        names=['tag', 'day'])
     arr = np.random.randn(len(index), 1)
     df = DataFrame(arr, index=index, columns=['val'])
@@ -83,8 +83,8 @@ def test_getitem_duplicates_multiindex():
     # A is treated as a special Timestamp
     index = MultiIndex(levels=[['A', 'B', 'C'],
                                [0, 26, 27, 37, 57, 67, 75, 82]],
-                       labels=[[0, 0, 0, 1, 2, 2, 2, 2, 2, 2],
-                               [1, 3, 4, 6, 0, 2, 2, 3, 5, 7]],
+                       codes=[[0, 0, 0, 1, 2, 2, 2, 2, 2, 2],
+                              [1, 3, 4, 6, 0, 2, 2, 3, 5, 7]],
                        names=['tag', 'day'])
     df = DataFrame(arr, index=index, columns=['val'])
     result = df.val['A']
@@ -262,8 +262,8 @@ def test_getitem_toplevel(multiindex_dataframe_random_data):
 
 def test_getitem_int(multiindex_dataframe_random_data):
     levels = [[0, 1], [0, 1, 2]]
-    labels = [[0, 0, 0, 1, 1, 1], [0, 1, 2, 0, 1, 2]]
-    index = MultiIndex(levels=levels, labels=labels)
+    codes = [[0, 0, 0, 1, 1, 1], [0, 1, 2, 0, 1, 2]]
+    index = MultiIndex(levels=levels, codes=codes)
 
     frame = DataFrame(np.random.randn(6, 2), index=index)
 
