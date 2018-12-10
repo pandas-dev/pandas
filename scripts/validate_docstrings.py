@@ -493,11 +493,13 @@ class Docstring(object):
             return self.doc.split('\n')[0][-1] == '.'
 
     @property
+    def deprecated_with_directive(self):
+        return ('.. deprecated:: ' in (self.summary + self.extended_summary))
+
+    @property
     def deprecated(self):
-        pattern = re.compile('.. deprecated:: ')
         return (self.name.startswith('pandas.Panel')
-                or bool(pattern.search(self.summary))
-                or bool(pattern.search(self.extended_summary)))
+                or self.deprecated_with_directive)
 
     @property
     def mentioned_private_classes(self):
@@ -625,11 +627,9 @@ def get_validation_data(doc):
         errs.append(error('GL07',
                           correct_sections=', '.join(correct_order)))
 
-    pattern = re.compile('.. deprecated:: ')
-    if (bool(pattern.search(doc.summary))
-            or bool(pattern.search(doc.extended_summary))):
-        if not doc.extended_summary.startswith('.. deprecated:: '):
-            errs.append(error('GL09'))
+    if (doc.deprecated_with_directive
+            and not doc.extended_summary.startswith('.. deprecated:: ')):
+        errs.append(error('GL09'))
 
     if not doc.summary:
         errs.append(error('SS01'))
