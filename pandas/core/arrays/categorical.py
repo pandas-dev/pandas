@@ -782,7 +782,7 @@ class Categorical(ExtensionArray, PandasObject):
 
     def as_ordered(self, inplace=False):
         """
-        Sets the Categorical to be ordered.
+        Set the Categorical to be ordered.
 
         Parameters
         ----------
@@ -795,7 +795,7 @@ class Categorical(ExtensionArray, PandasObject):
 
     def as_unordered(self, inplace=False):
         """
-        Sets the Categorical to be unordered.
+        Set the Categorical to be unordered.
 
         Parameters
         ----------
