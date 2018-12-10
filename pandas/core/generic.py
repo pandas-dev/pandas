@@ -7204,11 +7204,6 @@ class NDFrame(PandasObject, SelectionMixin):
             Same type as calling object with the values outside the
             clip boundaries replaced
 
-        See Also
-        --------
-        clip_lower : Clip values below specified threshold(s).
-        clip_upper : Clip values above specified threshold(s).
-
         Examples
         --------
         >>> data = {'col_0': [9, -3, 0, -1, 5], 'col_1': [-2, -7, 6, 8, -5]}
@@ -7281,17 +7276,22 @@ class NDFrame(PandasObject, SelectionMixin):
 
         result = self
         if lower is not None:
-            result = result.clip_lower(lower, axis, inplace=inplace)
+            result = result._clip_with_one_bound(lower, method=self.ge,
+                                                 axis=axis, inplace=inplace)
         if upper is not None:
             if inplace:
                 result = self
-            result = result.clip_upper(upper, axis, inplace=inplace)
+            result = result._clip_with_one_bound(upper, method=self.le,
+                                                 axis=axis, inplace=inplace)
 
         return result
 
     def clip_upper(self, threshold, axis=None, inplace=False):
         """
         Trim values above a given threshold.
+
+        .. deprecated:: 0.24.0
+            Use clip(upper=threshold) instead.
 
         Elements above the `threshold` will be changed to match the
         `threshold` value(s). Threshold can be a single value or an array,
@@ -7319,18 +7319,15 @@ class NDFrame(PandasObject, SelectionMixin):
 
         Returns
         -------
-        clipped
+        Series or DataFrame
             Original data with values trimmed.
 
         See Also
         --------
-        DataFrame.clip : General purpose method to trim DataFrame values to
-            given threshold(s).
-        DataFrame.clip_lower : Trim DataFrame values below given
-            threshold(s).
         Series.clip : General purpose method to trim Series values to given
             threshold(s).
-        Series.clip_lower : Trim Series values below given threshold(s).
+        DataFrame.clip : General purpose method to trim DataFrame values to
+            given threshold(s).
 
         Examples
         --------
@@ -7363,12 +7360,18 @@ class NDFrame(PandasObject, SelectionMixin):
         4    1
         dtype: int64
         """
+        warnings.warn('clip_upper(threshold) is deprecated, '
+                      'use clip(upper=threshold) instead',
+                      FutureWarning, stacklevel=2)
         return self._clip_with_one_bound(threshold, method=self.le,
                                          axis=axis, inplace=inplace)
 
     def clip_lower(self, threshold, axis=None, inplace=False):
         """
         Trim values below a given threshold.
+
+        .. deprecated:: 0.24.0
+            Use clip(lower=threshold) instead.
 
         Elements below the `threshold` will be changed to match the
         `threshold` value(s). Threshold can be a single value or an array,
@@ -7397,18 +7400,15 @@ class NDFrame(PandasObject, SelectionMixin):
 
         Returns
         -------
-        clipped
+        Series or DataFrame
             Original data with values trimmed.
 
         See Also
         --------
-        DataFrame.clip : General purpose method to trim DataFrame values to
-            given threshold(s).
-        DataFrame.clip_upper : Trim DataFrame values above given
-            threshold(s).
         Series.clip : General purpose method to trim Series values to given
             threshold(s).
-        Series.clip_upper : Trim Series values above given threshold(s).
+        DataFrame.clip : General purpose method to trim DataFrame values to
+            given threshold(s).
 
         Examples
         --------
@@ -7476,6 +7476,9 @@ class NDFrame(PandasObject, SelectionMixin):
         1  4  5
         2  5  6
         """
+        warnings.warn('clip_lower(threshold) is deprecated, '
+                      'use clip(lower=threshold) instead',
+                      FutureWarning, stacklevel=2)
         return self._clip_with_one_bound(threshold, method=self.ge,
                                          axis=axis, inplace=inplace)
 
