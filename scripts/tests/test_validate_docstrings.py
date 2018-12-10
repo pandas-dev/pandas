@@ -409,12 +409,10 @@ class BadGenericDocStrings(object):
 
     def deprecation_in_wrong_order(self):
         """
-        This is what old method does.
+        This docstring has the deprecation warning in the wrong order.
 
-        This is an extended summary with more details about
-        what `some_old_method` does.
-
-        The extended summary can contain multiple paragraphs.
+        This is the extended summary. The correct order should be
+        summary, deprecation warning, extended summary.
 
         .. deprecated:: 1.0
             This should generate an error as it needs to go before

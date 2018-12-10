@@ -625,9 +625,11 @@ def get_validation_data(doc):
         errs.append(error('GL07',
                           correct_sections=', '.join(correct_order)))
 
-    if (doc.deprecated and not doc.name.startswith('pandas.Panel')
-            and not doc.extended_summary.startswith('.. deprecated:: ')):
-        errs.append(error('GL09'))
+    pattern = re.compile('.. deprecated:: ')
+    if (bool(pattern.search(doc.summary))
+            or bool(pattern.search(doc.extended_summary))):
+        if not doc.extended_summary.startswith('.. deprecated:: '):
+            errs.append(error('GL09'))
 
     if not doc.summary:
         errs.append(error('SS01'))
