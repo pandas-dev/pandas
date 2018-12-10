@@ -130,8 +130,8 @@ def validate_one(page):
         Returns
         -------
         dict
-            A dictionary containing all the information obtained from validating
-            the page.
+            A dictionary containing all the information obtained from
+            validating the page.
 
         Notes
         -----
