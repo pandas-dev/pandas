@@ -38,7 +38,7 @@ To summarize, here's the behavior in 0.22.0, 0.23.0, 0.23.1:
 .. code-block:: python
 
    # 0.22.0... Silently coerce the datetime.date
-   >>> import datetime as datetime
+   >>> import datetime
    >>> pd.Series(pd.date_range('2017', periods=2)) == datetime.date(2017, 1, 1)
    0     True
    1    False
