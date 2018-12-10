@@ -169,3 +169,9 @@ def test_array_not_registered(registry_without_decimal):
     result = pd.array(data, dtype=DecimalDtype)
     expected = DecimalArray._from_sequence(data)
     tm.assert_equal(result, expected)
+
+
+def test_scalar_raises():
+    with pytest.raises(ValueError,
+                       match="Cannot pass scalar '1'"):
+        pd.array(1)

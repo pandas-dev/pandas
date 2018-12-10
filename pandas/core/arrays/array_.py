@@ -147,6 +147,12 @@ def array(data,         # type: Sequence[object]
         period_array, ExtensionArray, IntervalArray
     )
 
+    if lib.is_scalar(data):
+        msg = (
+            "Cannot pass scalar '{}' to 'pandas.array'."
+        )
+        raise ValueError(msg.format(data))
+
     if isinstance(data, (ABCSeries, ABCIndexClass)):
         data = data._values
 
