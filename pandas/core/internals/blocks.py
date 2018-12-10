@@ -2714,9 +2714,9 @@ class CategoricalBlock(ExtensionBlock):
         # we enforce the deprecation.
         object_msg = (
             "Implicitly converting categorical to object-dtype ndarray. "
-            "The values `{}' are not present in this categorical's "
-            "categories. A future version of pandas will raise a ValueError "
-            "when 'other' contains different categories.\n\n"
+            "One or more of the values in 'other' are not present in this "
+            "categorical's categories. A future version of pandas will raise "
+            "a ValueError when 'other' contains different categories.\n\n"
             "To preserve the current behavior, add the new categories to "
             "the categorical before calling 'where', or convert the "
             "categorical to a different dtype."
@@ -2727,12 +2727,7 @@ class CategoricalBlock(ExtensionBlock):
                 other, cond, align, errors, try_cast, axis, transpose
             )
         except (TypeError, ValueError):
-            if lib.is_scalar(other):
-                msg = object_msg.format(other)
-            else:
-                msg = compat.reprlib.repr(other)
-
-            warnings.warn(msg, FutureWarning, stacklevel=6)
+            warnings.warn(object_msg, FutureWarning, stacklevel=6)
             result = self.astype(object).where(other, cond, align=align,
                                                errors=errors,
                                                try_cast=try_cast,
