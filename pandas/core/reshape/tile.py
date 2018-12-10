@@ -43,14 +43,13 @@ def cut(x, bins, right=True, labels=None, retbins=False, precision=3,
         * int : Defines the number of equal-width bins in the range of `x`. The
           range of `x` is extended by .1% on each side to include the minimum
           and maximum values of `x`.
+        * sequence of scalars : Defines the bin edges allowing for non-uniform
+          width. No extension of the range of `x` is done.
+        * IntervalIndex : Defines the exact bins to be used.
         * str : Bin calculaton dispatched to `np.histogram_bin_edges`. See that
           documentation for details. 
         
           .. versionadded:: 0.24.0
-        
-        * sequence of scalars : Defines the bin edges allowing for non-uniform
-          width. No extension of the range of `x` is done.
-        * IntervalIndex : Defines the exact bins to be used.
 
     right : bool, default True
         Indicates whether `bins` includes the rightmost edge or not. If
