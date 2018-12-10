@@ -30,15 +30,14 @@ from pandas.core.groupby.base import GroupByMixin
 
 _shared_docs = dict(**_shared_docs)
 _doc_template = """
+        Returns
+        -------
+        same type as input
 
-Returns
--------
-same type as input
-
-See Also
---------
-Series.%(name)s : Series %(name)s.
-DataFrame.%(name)s : DataFrame %(name)s.
+        See Also
+        --------
+        Series.%(name)s
+        DataFrame.%(name)s
 """
 
 
@@ -965,7 +964,17 @@ class _Rolling_and_Expanding(_Rolling):
 
         .. versionadded:: 0.23.0
     *args, **kwargs :
-        Arguments and keyword arguments to be passed into func.""")
+        Arguments and keyword arguments to be passed into func.
+
+    Returns
+    -------
+    Same type as input
+
+    See Also
+    --------
+    Series.%(name)s : Series %(name)s.
+    DataFrame.%(name)s : DataFrame %(name)s.
+    """)
 
     def apply(self, func, raw=None, args=(), kwargs={}):
         from pandas import Series
@@ -1667,7 +1676,6 @@ class Rolling(_Rolling_and_Expanding):
         return super(Rolling, self).count()
 
     @Substitution(name='rolling')
-    @Appender(_doc_template)
     @Appender(_shared_docs['apply'])
     def apply(self, func, raw=None, args=(), kwargs={}):
         return super(Rolling, self).apply(
@@ -1938,7 +1946,6 @@ class Expanding(_Rolling_and_Expanding):
         return super(Expanding, self).count(**kwargs)
 
     @Substitution(name='expanding')
-    @Appender(_doc_template)
     @Appender(_shared_docs['apply'])
     def apply(self, func, raw=None, args=(), kwargs={}):
         return super(Expanding, self).apply(
