@@ -17,7 +17,8 @@ from pandas import (
 from pandas.core.indexes.datetimes import date_range
 from pandas.core.indexes.period import Period, period_range
 from pandas.core.indexes.timedeltas import timedelta_range
-from pandas.core.resample import DatetimeIndex, TimeGrouper
+from pandas.core.resample import (
+    DatetimeIndex, TimeGrouper, _get_timestamp_range_edges)
 from pandas.tests.resample.test_base import (
     Base, business_day_offset, downsample_methods, simple_date_range_series,
     simple_period_range_series)
@@ -1463,3 +1464,27 @@ class TestDatetimeIndex(Base):
         result = df.groupby("A").resample("D").agg(f, multiplier)
         expected = df.groupby("A").resample('D').mean().multiply(multiplier)
         assert_frame_equal(result, expected)
+
+    @pytest.mark.parametrize('first,last,offset,exp_first,exp_last', [
+        ('19910905', '19920406', 'D', '19910905', '19920407'),
+        ('19910905 00:00', '19920406 06:00', 'D', '19910905', '19920407'),
+        ('19910905 06:00', '19920406 06:00', 'H', '19910905 06:00',
+         '19920406 07:00'),
+        ('19910906', '19920406', 'M', '19910831', '19920430'),
+        ('19910831', '19920430', 'M', '19910831', '19920531'),
+        ('1991-08', '1992-04', 'M', '19910831', '19920531'),
+    ])
+    def test_get_timestamp_range_edges(self, first, last, offset,
+                                       exp_first, exp_last):
+        first = pd.Period(first)
+        first = first.to_timestamp(first.freq)
+        last = pd.Period(last)
+        last = last.to_timestamp(last.freq)
+
+        exp_first = pd.Timestamp(exp_first, freq=offset)
+        exp_last = pd.Timestamp(exp_last, freq=offset)
+
+        offset = pd.tseries.frequencies.to_offset(offset)
+        result = _get_timestamp_range_edges(first, last, offset)
+        expected = (exp_first, exp_last)
+        assert result == expected
