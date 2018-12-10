@@ -507,7 +507,9 @@ class CategoricalIndex(Index, accessor.PandasDelegate):
         # 3. Rebuild CategoricalIndex.
         if other is None:
             other = self._na_value
-        cat = CategoricalIndex(self.values.where(cond, other),
+        copied_cat = Categorical(self.values, dtype=self.dtype)
+        copied_cat[cond] = other
+        cat = CategoricalIndex(copied_cat,
                                dtype=self.dtype)
         return self._shallow_copy(cat, **self._get_attributes_dict())
 
