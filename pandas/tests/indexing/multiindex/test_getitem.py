@@ -50,46 +50,45 @@ def test_series_getitem_multiindex_xs_by_label():
     tm.assert_series_equal(result, expected)
 
 
-def test_getitem_duplicates_multiindex():
+@pytest.mark.parametrize('level0_value', ['D', 'A'])
+def test_getitem_duplicates_multiindex(level0_value):
     # GH 5725 the 'A' happens to be a valid Timestamp so the doesn't raise
     # the appropriate error, only in PY3 of course!
 
-    index = MultiIndex(levels=[['D', 'B', 'C'],
+    index = MultiIndex(levels=[[level0_value, 'B', 'C'],
                                [0, 26, 27, 37, 57, 67, 75, 82]],
                        codes=[[0, 0, 0, 1, 2, 2, 2, 2, 2, 2],
                               [1, 3, 4, 6, 0, 2, 2, 3, 5, 7]],
                        names=['tag', 'day'])
     arr = np.random.randn(len(index), 1)
     df = DataFrame(arr, index=index, columns=['val'])
-    result = df.val['D']
-    expected = Series(arr.ravel()[0:3], name='val', index=Index(
-        [26, 37, 57], name='day'))
-    tm.assert_series_equal(result, expected)
 
-    msg = "'A'"
-    with pytest.raises(KeyError, match=msg):
-        df.val['A']
+    # confirm indexing on missing value raises KeyError
+    if level0_value != 'A':
+        msg = "'A'"
+        with pytest.raises(KeyError, match=msg):
+            df.val['A']
 
     msg = "'X'"
     with pytest.raises(KeyError, match=msg):
         df.val['X']
 
-    # A is treated as a special Timestamp
-    index = MultiIndex(levels=[['A', 'B', 'C'],
-                               [0, 26, 27, 37, 57, 67, 75, 82]],
-                       codes=[[0, 0, 0, 1, 2, 2, 2, 2, 2, 2],
-                              [1, 3, 4, 6, 0, 2, 2, 3, 5, 7]],
-                       names=['tag', 'day'])
-    df = DataFrame(arr, index=index, columns=['val'])
-    result = df.val['A']
+    result = df.val[level0_value]
     expected = Series(arr.ravel()[0:3], name='val', index=Index(
         [26, 37, 57], name='day'))
     tm.assert_series_equal(result, expected)
 
-    msg = "'X'"
-    with pytest.raises(KeyError, match=msg):
-        df.val['X']
 
+@pytest.mark.parametrize('indexer, is_level1, expected_error', [
+    ([], False, None),  # empty ok
+    (['A'], False, None),
+    (['A', 'D'], False, None),
+    (['D'], False, "\['D'\] not in index"),  # not any values found
+    (pd.IndexSlice[:, ['foo']], True, None),
+    (pd.IndexSlice[:, ['foo', 'bah']], True, None)
+])
+def test_getitem_duplicates_multiindex_missing_indexers(indexer, is_level1,
+                                                        expected_error):
     # GH 7866
     # multi-index slicing with missing indexers
     idx = MultiIndex.from_product([['A', 'B', 'C'],
@@ -97,35 +96,30 @@ def test_getitem_duplicates_multiindex():
                                   names=['one', 'two'])
     s = Series(np.arange(9, dtype='int64'), index=idx).sort_index()
 
-    exp_idx = MultiIndex.from_product([['A'], ['foo', 'bar', 'baz']],
-                                      names=['one', 'two'])
-    expected = Series(np.arange(3, dtype='int64'),
-                      index=exp_idx).sort_index()
+    if indexer == []:
+        expected = s.iloc[[]]
+    elif is_level1:
+        expected = Series([0, 3, 6], index=MultiIndex.from_product(
+            [['A', 'B', 'C'], ['foo']], names=['one', 'two'])).sort_index()
+    else:
+        exp_idx = MultiIndex.from_product([['A'], ['foo', 'bar', 'baz']],
+                                          names=['one', 'two'])
+        expected = Series(np.arange(3, dtype='int64'),
+                          index=exp_idx).sort_index()
 
-    result = s.loc[['A']]
-    tm.assert_series_equal(result, expected)
-    result = s.loc[['A', 'D']]
-    tm.assert_series_equal(result, expected)
+    if expected_error is not None:
+        with pytest.raises(KeyError, match=expected_error):
+            s.loc[indexer]
+    else:
+        result = s.loc[indexer]
+        tm.assert_series_equal(result, expected)
 
-    # not any values found
-    msg = "\['D'\] not in index"
-    with pytest.raises(KeyError, match=msg):
-        s.loc[['D']]
 
-    # empty ok
-    result = s.loc[[]]
-    expected = s.iloc[[]]
-    tm.assert_series_equal(result, expected)
-
-    idx = pd.IndexSlice
-    expected = Series([0, 3, 6], index=MultiIndex.from_product(
-        [['A', 'B', 'C'], ['foo']], names=['one', 'two'])).sort_index()
-
-    result = s.loc[idx[:, ['foo']]]
-    tm.assert_series_equal(result, expected)
-    result = s.loc[idx[:, ['foo', 'bah']]]
-    tm.assert_series_equal(result, expected)
-
+@pytest.mark.parametrize('columns_indexer', [
+    ([], slice(None)),
+    (['foo'], [])
+])
+def test_getitem_duplicates_multiindex_empty_indexer(columns_indexer):
     # GH 8737
     # empty indexer
     multi_index = MultiIndex.from_product((['foo', 'bar', 'baz'],
@@ -134,11 +128,11 @@ def test_getitem_duplicates_multiindex():
     df = df.sort_index(level=0, axis=1)
 
     expected = DataFrame(index=range(5), columns=multi_index.reindex([])[0])
-    result1 = df.loc[:, ([], slice(None))]
-    result2 = df.loc[:, (['foo'], [])]
-    tm.assert_frame_equal(result1, expected)
-    tm.assert_frame_equal(result2, expected)
+    result = df.loc[:, columns_indexer]
+    tm.assert_frame_equal(result, expected)
 
+
+def test_getitem_duplicates_multiindex_non_scalar_type_object():
     # regression from < 0.14.0
     # GH 7914
     df = DataFrame([[np.mean, np.median], ['mean', 'median']],
@@ -146,7 +140,8 @@ def test_getitem_duplicates_multiindex():
                                                    ('functs', 'median')]),
                    index=['function', 'name'])
     result = df.loc['function', ('functs', 'mean')]
-    assert result == np.mean
+    expected = np.mean
+    assert result == expected
 
 
 def test_getitem_simple(multiindex_dataframe_random_data):
