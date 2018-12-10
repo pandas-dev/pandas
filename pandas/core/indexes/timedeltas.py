@@ -229,6 +229,7 @@ class TimedeltaIndex(DatetimeIndexOpsMixin,
 
         result = super(TimedeltaIndex, cls)._simple_new(values, freq)
         result.name = name
+        result._index_data = values._data
         result._reset_identity()
         return result
 

@@ -234,6 +234,7 @@ class PeriodIndex(DatetimeIndexOpsMixin,
             raise TypeError("PeriodIndex._simple_new only accepts PeriodArray")
         result = object.__new__(cls)
         result._data = values
+        result._index_data = values._data
         result.name = name
         result._reset_identity()
         return result

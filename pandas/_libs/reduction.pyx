@@ -266,7 +266,7 @@ cdef class SeriesBinGrouper:
                     cached_typ = self.typ(vslider.buf, index=cached_ityp,
                                           name=name)
                 else:
-                    object.__setattr__(cached_ityp, '_data', islider.buf)
+                    object.__setattr__(cached_ityp, '_index_data', islider.buf)
                     cached_ityp._engine.clear_mapping()
                     object.__setattr__(
                         cached_typ._data._block, 'values', vslider.buf)
@@ -571,7 +571,7 @@ cdef class BlockSlider:
 
         self.nblocks = len(self.blocks)
         self.idx_slider = Slider(
-            self.frame.index.values, self.dummy.index.values)
+            self.frame.index._index_data, self.dummy.index._index_data)
 
         self.base_ptrs = <char**>malloc(sizeof(char*) * len(self.blocks))
         for i, block in enumerate(self.blocks):
@@ -596,13 +596,7 @@ cdef class BlockSlider:
         # move and set the index
         self.idx_slider.move(start, end)
 
-        # TODO: unbreak this for other index types, if needed.
-        # I think the problem is that index.values is an ndarray,
-        # but index._data is an ExtensionArray.
-        if self.index.dtype == NS_DTYPE or self.index.dtype == TD_DTYPE:
-            object.__setattr__(self.index._data, '_data', self.idx_slider.buf)
-        else:
-            object.__setattr__(self.index, '_data', self.idx_slider.buf)
+        object.__setattr__(self.index, '_index_data', self.idx_slider.buf)
         self.index._engine.clear_mapping()
 
     cdef reset(self):

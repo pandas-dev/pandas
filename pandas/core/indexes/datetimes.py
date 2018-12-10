@@ -312,6 +312,7 @@ class DatetimeIndex(DatelikeIndexMixin,
 
         result = super(DatetimeIndex, cls)._simple_new(values, freq, tz)
         result.name = name
+        result._index_data = values._data
         result._reset_identity()
         return result
 
