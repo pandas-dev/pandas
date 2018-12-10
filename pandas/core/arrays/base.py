@@ -220,6 +220,8 @@ class ExtensionArray(object):
         #   example, a string like '2018-01-01' is coerced to a datetime
         #   when setting on a datetime64ns array. In general, if the
         #   __init__ method coerces that value, then so should __setitem__
+        # Note, also, that Series/DataFrame.where internally use __setitem__
+        # on a copy of the data.
         raise NotImplementedError(_not_implemented_message.format(
             type(self), '__setitem__')
         )
@@ -442,7 +444,6 @@ class ExtensionArray(object):
         -------
         valid : ExtensionArray
         """
-
         return self[~self.isna()]
 
     def shift(self, periods=1):
@@ -464,13 +465,25 @@ class ExtensionArray(object):
         Returns
         -------
         shifted : ExtensionArray
+
+        Notes
+        -----
+        If ``self`` is empty or ``periods`` is 0, a copy of ``self`` is
+        returned.
+
+        If ``periods > len(self)``, then an array of size
+        len(self) is returned, with all values filled with
+        ``self.dtype.na_value``.
         """
         # Note: this implementation assumes that `self.dtype.na_value` can be
         # stored in an instance of your ExtensionArray with `self.dtype`.
-        if periods == 0:
+        if not len(self) or periods == 0:
             return self.copy()
-        empty = self._from_sequence([self.dtype.na_value] * abs(periods),
-                                    dtype=self.dtype)
+
+        empty = self._from_sequence(
+            [self.dtype.na_value] * min(abs(periods), len(self)),
+            dtype=self.dtype
+        )
         if periods > 0:
             a = empty
             b = self[:-periods]

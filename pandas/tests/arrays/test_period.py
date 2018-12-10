@@ -206,6 +206,21 @@ def test_sub_period():
 
 
 # ----------------------------------------------------------------------------
+# Methods
+
+@pytest.mark.parametrize('other', [
+    pd.Period('2000', freq='H'),
+    period_array(['2000', '2001', '2000'], freq='H')
+])
+def test_where_different_freq_raises(other):
+    ser = pd.Series(period_array(['2000', '2001', '2002'], freq='D'))
+    cond = np.array([True, False, True])
+    with pytest.raises(IncompatibleFrequency,
+                       match="Input has different freq=H"):
+        ser.where(cond, other)
+
+
+# ----------------------------------------------------------------------------
 # Printing
 
 def test_repr_small():
