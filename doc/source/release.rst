@@ -2,11 +2,6 @@
 
 {{ header }}
 
-.. ipython:: python
-   :suppress:
-
-   import pandas.util.testing as tm
-
 *************
 Release Notes
 *************

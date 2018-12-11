@@ -463,7 +463,7 @@ For instance:
    :suppress:
    :okwarning:
 
-   pd.reset_option(r'^display.')
+   pd.reset_option("^display")
 
 To round floats on a case-by-case basis, you can also use :meth:`~pandas.Series.round` and :meth:`~pandas.DataFrame.round`.
 

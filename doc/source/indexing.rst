@@ -1384,15 +1384,6 @@ Of course, expressions can be arbitrarily complex too:
 
    shorter == longer
 
-.. ipython:: python
-   :suppress:
-
-   try:
-       d = old_d
-       del old_d
-   except NameError:
-       pass
-
 
 Performance of :meth:`~pandas.DataFrame.query`
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -1769,19 +1760,24 @@ But it turns out that assigning to the product of chained indexing has
 inherently unpredictable results. To see this, think about how the Python
 interpreter executes this code:
 
+.. ipython:: python
+    :suppress:
+
+    value = None
+
 .. code-block:: python
 
-   dfmi.loc[:, ('one', 'second')] = value                          # noqa: F821
+   dfmi.loc[:, ('one', 'second')] = value
    # becomes
-   dfmi.loc.__setitem__((slice(None), ('one', 'second')), value)   # noqa: F821
+   dfmi.loc.__setitem__((slice(None), ('one', 'second')), value)
 
 But this code is handled differently:
 
 .. code-block:: python
 
-   dfmi['one']['second'] = value                                   # noqa: F821
+   dfmi['one']['second'] = value
    # becomes
-   dfmi.__getitem__('one').__setitem__('second', value)            # noqa: F821
+   dfmi.__getitem__('one').__setitem__('second', value)
 
 See that ``__getitem__`` in there? Outside of simple cases, it's very hard to
 predict whether it will return a view or a copy (it depends on the memory layout
@@ -1807,7 +1803,7 @@ that you've done this:
        foo = df[['bar', 'baz']]  # Is foo a view? A copy? Nobody knows!
        # ... many lines here ...
        # We don't know whether this will modify df or not!
-       foo['quux'] = value                                         # noqa: F821
+       foo['quux'] = value
        return foo
 
 Yikes!
