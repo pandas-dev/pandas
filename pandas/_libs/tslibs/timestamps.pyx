@@ -70,7 +70,7 @@ cdef inline object create_timestamp_from_ts(int64_t value,
     return ts_base
 
 
-class RoundTo:
+class RoundTo(object):
     """
     enumeration defining the available rounding modes
 
@@ -188,8 +188,8 @@ def round_nsint64(values, mode, freq):
 
     # if/elif above should catch all rounding modes defined in enum 'RoundTo':
     # if flow of control arrives here, it is a bug
-    raise AssertionError("round_nsint64 called with an unrecognized "
-                         "rounding mode")
+    raise ValueError("round_nsint64 called with an unrecognized "
+                     "rounding mode")
 
 
 # This is PITA. Because we inherit from datetime, which has very specific
