@@ -1,4 +1,6 @@
-""" implement the TimedeltaIndex """
+""" 
+implement the TimedeltaIndex 
+"""
 from datetime import datetime
 import warnings
 
