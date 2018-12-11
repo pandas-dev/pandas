@@ -49,23 +49,27 @@ def deprecate(name, alternative, version, alt_name=None,
     doc_error_msg = ('deprecate needs a correctly formatted docstring in '
                      'the target function (should have a one liner short '
                      'summary, and opening quotes should be in their own '
-                     'line)')
+                     'line). Found:\n{}'.format(alternative.__doc__))
 
-    if not alternative.__doc__ or alternative.__doc__.count('\n') < 3:
-        raise ValueError(doc_error_msg)
-    empty1, summary, empty2, doc = alternative.__doc__.split('\n', 3)
-    if empty1 or empty2 and not summary:
-        raise ValueError(doc_error_msg)
-    wrapper.__doc__ = dedent("""
-    {summary}
+    # when python is running in optimized mode (i.e. `-OO`), docstrings are
+    # removed, so we check that a docstring with correct formatting is used
+    # but we allow empty docstrings
+    if alternative.__doc__:
+        if alternative.__doc__.count('\n') < 3:
+            raise AssertionError(doc_error_msg)
+        empty1, summary, empty2, doc = alternative.__doc__.split('\n', 3)
+        if empty1 or empty2 and not summary:
+            raise AssertionError(doc_error_msg)
+        wrapper.__doc__ = dedent("""
+        {summary}
 
-    .. deprecated:: {depr_version}
-        {depr_msg}
+        .. deprecated:: {depr_version}
+            {depr_msg}
 
-    {rest_of_docstring}""").format(summary=summary.strip(),
-                                   depr_version=version,
-                                   depr_msg=msg,
-                                   rest_of_docstring=dedent(doc))
+        {rest_of_docstring}""").format(summary=summary.strip(),
+                                       depr_version=version,
+                                       depr_msg=msg,
+                                       rest_of_docstring=dedent(doc))
 
     return wrapper
 
