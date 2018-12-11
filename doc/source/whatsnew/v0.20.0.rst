@@ -1079,29 +1079,29 @@ joins, :meth:`DataFrame.join` and :func:`merge`, and the ``.align`` method.
 
 - ``Index.intersection``
 
-.. ipython:: python
+  .. ipython:: python
 
    left = pd.Index([2, 1, 0])
    left
    right = pd.Index([1, 2, 3])
    right
 
-Previous Behavior:
+  Previous Behavior:
 
   .. code-block:: ipython
 
    In [4]: left.intersection(right)
    Out[4]: Int64Index([1, 2], dtype='int64')
 
-New Behavior:
+  New Behavior:
 
-.. ipython:: python
+  .. ipython:: python
 
    left.intersection(right)
 
 - ``DataFrame.join`` and ``pd.merge``
 
-.. ipython:: python
+  .. ipython:: python
 
    left = pd.DataFrame({'a': [20, 10, 0]}, index=[2, 1, 0])
    left
@@ -1110,7 +1110,7 @@ New Behavior:
 
   Previous Behavior:
 
-.. code-block:: ipython
+  .. code-block:: ipython
 
    In [4]: left.join(right, how='inner')
    Out[4]:
@@ -1118,9 +1118,9 @@ New Behavior:
    1  10  100
    2  20  200
 
-New Behavior:
+  New Behavior:
 
-.. ipython:: python
+  .. ipython:: python
 
    left.join(right, how='inner')
 
