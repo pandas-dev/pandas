@@ -573,7 +573,7 @@ class DatetimeLikeArrayMixin(AttributesMixin,
 
                 new_values = func(self._data, limit=limit,
                                   mask=mask)
-                new_values = type(self)(new_values, freq=self.freq)
+                new_values = type(self)(new_values, dtype=self.dtype)
             else:
                 # fill with value
                 new_values = self.copy()

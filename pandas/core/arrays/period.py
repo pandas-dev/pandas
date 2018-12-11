@@ -60,7 +60,7 @@ def _period_array_cmp(cls, op):
             self._check_compatible_with(other)
             result = op(other.ordinal)
         elif isinstance(other, cls):
-            self._check_compatiable_with(other)
+            self._check_compatible_with(other)
 
             if not_implemented:
                 return NotImplemented
