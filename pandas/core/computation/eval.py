@@ -155,7 +155,7 @@ def _check_for_locals(expr, stack_level, parser):
 
 def eval(expr, parser='pandas', engine=None, truediv=True,
          local_dict=None, global_dict=None, resolvers=(), level=0,
-         target=None, inplace=False, as_dataframe=True, str_as_bytes=False):
+         target=None, inplace=False, align_result=True, str_as_bytes=False):
     """Evaluate a Python expression as a string using various backends.
 
     The following arithmetic operations are supported: ``+``, ``-``, ``*``,
@@ -221,6 +221,12 @@ def eval(expr, parser='pandas', engine=None, truediv=True,
         If `target` is provided, and the expression mutates `target`, whether
         to modify `target` inplace. Otherwise, return a copy of `target` with
         the mutation.
+    align_result : bool, default True
+        If none of the terms are Dataframes or Series, whether to infer the
+        result type and align the result. This only works if all terms are
+        numeric.
+        If any term is a Dataframe or Series, alignment is already done
+        automatically.
 
     Returns
     -------
@@ -296,7 +302,7 @@ def eval(expr, parser='pandas', engine=None, truediv=True,
         # construct the engine and evaluate the parsed expression
         eng = _engines[engine]
         eng_inst = eng(parsed_expr)
-        ret = eng_inst.evaluate(as_dataframe=as_dataframe)
+        ret = eng_inst.evaluate(align_result=align_result)
 
         if parsed_expr.assigner is None:
             if multi_line:

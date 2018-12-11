@@ -58,7 +58,7 @@ class AbstractEngine(object):
         """
         return printing.pprint_thing(self.expr)
 
-    def evaluate(self, as_dataframe=True):
+    def evaluate(self, align_result=True):
         """Run the engine on the expression
 
         This method performs alignment which is necessary no matter what engine
@@ -69,12 +69,12 @@ class AbstractEngine(object):
         obj : object
             The result of the passed expression.
         """
-        if as_dataframe and not self._is_aligned:
+        if align_result and not self._is_aligned:
             self.result_type, self.aligned_axes = _align(self.expr.terms)
 
         # make sure no names in resolvers and locals/globals clash
         res = self._evaluate()
-        if not as_dataframe:
+        if not align_result:
             return res
         return _reconstruct_object(self.result_type, res, self.aligned_axes,
                                    self.expr.terms.return_type)
@@ -143,7 +143,7 @@ class PythonEngine(AbstractEngine):
     def __init__(self, expr):
         super(PythonEngine, self).__init__(expr)
 
-    def evaluate(self, as_dataframe=True):
+    def evaluate(self, align_result=True):
         return self.expr()
 
     def _evaluate(self):
