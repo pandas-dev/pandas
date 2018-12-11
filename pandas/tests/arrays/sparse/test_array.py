@@ -262,6 +262,12 @@ class TestSparseArray(object):
         exp = SparseArray(np.take(self.arr_data, [-4, -3, -2]))
         tm.assert_sp_array_equal(self.arr.take([-4, -3, -2]), exp)
 
+    def test_shift_fill_value(self):
+        sparse = SparseArray(np.array([1, 0, 0, 3, 0]))
+        res = sparse.shift(1, fill_value=0)
+        exp = SparseArray(np.array([0, 1, 0, 0, 3]))
+        tm.assert_sp_array_equal(res, exp)
+
     def test_bad_take(self):
         with pytest.raises(IndexError, match="bounds"):
             self.arr.take([11])
