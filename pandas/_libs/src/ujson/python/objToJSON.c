@@ -225,7 +225,6 @@ static TypeContext *createTypeContext(void) {
 
 static PyObject *get_values(PyObject *obj) {
     PyObject *values = PyObject_GetAttrString(obj, "values");
-
     PRINTMARK();
 
     if (PyObject_HasAttrString(obj, "_to_json_values")) {
@@ -267,7 +266,6 @@ static PyObject *get_values(PyObject *obj) {
     if (!values && PyObject_HasAttrString(obj, "get_values")) {
         PRINTMARK();
         values = PyObject_CallMethod(obj, "get_values", NULL);
-
         if (values && !PyArray_CheckExact(values)) {
             PRINTMARK();
             Py_DECREF(values);
@@ -996,7 +994,6 @@ void PdBlock_iterBegin(JSOBJ _obj, JSONTypeContext *tc) {
     GET_TC(tc)->transpose = 1;
 
     for (i = 0; i < PyObject_Length(blocks); i++) {
-
         block = get_item(blocks, i);
         if (!block) {
             GET_TC(tc)->iterNext = NpyArr_iterNextNone;

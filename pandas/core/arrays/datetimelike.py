@@ -16,6 +16,7 @@ from pandas.compat.numpy import function as nv
 from pandas.errors import (
     AbstractMethodError, NullFrequencyError, PerformanceWarning)
 from pandas.util._decorators import Appender
+from pandas.util._validators import validate_fillna_kwargs
 
 from pandas.core.dtypes.common import (
     is_bool_dtype, is_categorical_dtype, is_datetime64_any_dtype,
@@ -25,8 +26,10 @@ from pandas.core.dtypes.common import (
     is_string_dtype, is_timedelta64_dtype, needs_i8_conversion, pandas_dtype)
 from pandas.core.dtypes.dtypes import DatetimeTZDtype
 from pandas.core.dtypes.generic import ABCDataFrame, ABCIndexClass, ABCSeries
+from pandas.core.dtypes.inference import is_array_like
 from pandas.core.dtypes.missing import isna
 
+from pandas.core import missing
 from pandas.core.algorithms import (
     checked_add_with_arr, take, unique1d, value_counts)
 import pandas.core.common as com
@@ -118,7 +121,6 @@ class AttributesMixin(object):
         >>> self._unbox_scalar(Timedelta('10s'))  # DOCTEST: +SKIP
         10000000000
         """
-        # TODO: handle NAT?
         raise AbstractMethodError(self)
 
     def _check_compatible_with(self, other):
@@ -392,6 +394,25 @@ class DatetimeLikeArrayMixin(AttributesMixin,
         # do not cache or you'll create a memory leak
         return self._data.view('i8')
 
+    # ------------------------------------------------------------------
+    # Formatting
+
+    def _format_native_types(self):
+        """
+        Helper method for astype when converting to strings.
+
+        Returns
+        -------
+        ndarray[str]
+        """
+        raise AbstractMethodError(self)
+
+    def _formatter(self, boxed=False):
+        return "'{}'".format
+
+    def strftime(self, date_format):
+        return self._format_native_types(date_format=date_format)
+
     # ----------------------------------------------------------------
     # Array-Like / EA-Interface Methods
 
@@ -512,10 +533,54 @@ class DatetimeLikeArrayMixin(AttributesMixin,
         # DatetimeArray and TimedeltaArray
         pass
 
-    def view(self, dtype=None):
-        # TODO: figure out what the plan is here
-        # Series.view uses this directly.
-        return self._data.view(dtype=dtype)
+    def isna(self):
+        return self._isnan
+
+    @property  # NB: override with cache_readonly in immutable subclasses
+    def _isnan(self):
+        """
+        return if each value is nan
+        """
+        return (self.asi8 == iNaT)
+
+    @property  # NB: override with cache_readonly in immutable subclasses
+    def hasnans(self):
+        """
+        return if I have any nans; enables various perf speedups
+        """
+        return bool(self._isnan.any())
+
+    def fillna(self, value=None, method=None, limit=None):
+        if isinstance(value, ABCSeries):
+            value = value.array
+
+        value, method = validate_fillna_kwargs(value, method)
+
+        mask = self.isna()
+
+        if is_array_like(value):
+            if len(value) != len(self):
+                raise ValueError("Length of 'value' does not match. Got ({}) "
+                                 " expected {}".format(len(value), len(self)))
+            value = value[mask]
+
+        if mask.any():
+            if method is not None:
+                if method == 'pad':
+                    func = missing.pad_1d
+                else:
+                    func = missing.backfill_1d
+
+                new_values = func(self._data, limit=limit,
+                                  mask=mask)
+                new_values = type(self)(new_values, freq=self.freq)
+            else:
+                # fill with value
+                new_values = self.copy()
+                new_values[mask] = value
+        else:
+            new_values = self.copy()
+        return new_values
 
     def astype(self, dtype, copy=True):
         # Some notes on cases we don't have to handle:
@@ -548,28 +613,6 @@ class DatetimeLikeArrayMixin(AttributesMixin,
             return Categorical(self, dtype=dtype)
         else:
             return np.asarray(self, dtype=dtype)
-
-    def _format_native_types(self):
-        """
-        Helper method for astype when converting to strings.
-
-        Returns
-        -------
-        ndarray[str]
-        """
-        raise AbstractMethodError(self)
-
-    def _formatter(self, boxed=False):
-        return "'{}'".format
-
-    def strftime(self, date_format):
-        return self._format_native_types(date_format=date_format)
-
-    # ------------------------------------------------------------------
-    # ExtensionArray Interface
-    # TODO:
-    #   * argsort / _values_for_argsort
-    #   * _reduce
 
     def unique(self):
         result = unique1d(self.asi8)
@@ -639,10 +682,16 @@ class DatetimeLikeArrayMixin(AttributesMixin,
     def _from_factorized(cls, values, original):
         return cls(values, dtype=original.dtype)
 
+    def _values_for_argsort(self):
+        return self._data
+
     # ------------------------------------------------------------------
     # Additional array methods
     # These are not part of the EA API, but we implement them because
     # pandas currently assumes they're there.
+
+    def view(self, dtype=None):
+        return self._data.view(dtype=dtype)
 
     def value_counts(self, dropna=False):
         # n.b. moved from PeriodArray.value_counts
@@ -701,23 +750,6 @@ class DatetimeLikeArrayMixin(AttributesMixin,
         return Index(self).map(mapper).array
     # ------------------------------------------------------------------
     # Null Handling
-
-    def isna(self):
-        return self._isnan
-
-    @property  # NB: override with cache_readonly in immutable subclasses
-    def _isnan(self):
-        """
-        return if each value is nan
-        """
-        return (self.asi8 == iNaT)
-
-    @property  # NB: override with cache_readonly in immutable subclasses
-    def hasnans(self):
-        """
-        return if I have any nans; enables various perf speedups
-        """
-        return bool(self._isnan.any())
 
     def _maybe_mask_results(self, result, fill_value=iNaT, convert=None):
         """
@@ -1281,7 +1313,6 @@ class DatetimeLikeArrayMixin(AttributesMixin,
             elif lib.is_scalar(lib.item_from_zerodim(other)):
                 # ndarray scalar
                 other = [other.item()]
-            # TODO: pass dtype? Only matters for datetimetz.
             other = type(self)._from_sequence(other)
 
         # compare

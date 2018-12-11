@@ -7,6 +7,8 @@ import operator
 import numpy as np
 import pytest
 
+from pandas.errors import IncompatibleTimeZoneError
+
 from pandas.core.dtypes.dtypes import DatetimeTZDtype
 
 import pandas as pd
@@ -38,6 +40,26 @@ class TestDatetimeArrayConstructor(object):
     def test_freq_infer_raises(self):
         with pytest.raises(ValueError, match='Frequency inference'):
             DatetimeArray(np.array([1, 2, 3]), freq="infer")
+
+    def test_copy(self):
+        data = np.array([1, 2, 3], dtype='M8[ns]')
+        arr = DatetimeArray(data, copy=False)
+        assert arr._data is data
+
+        arr = DatetimeArray(data, copy=True)
+        assert arr._data is not data
+
+
+class TestSetitem(object):
+    def test_set_different_tz_raises(self):
+        data = np.array([1, 2, 3], dtype='M8[ns]')
+        arr = DatetimeArray(data, copy=False,
+                            dtype=DatetimeTZDtype(tz="US/Central"))
+        with pytest.raises(IncompatibleTimeZoneError, match="None"):
+            arr[0] = pd.Timestamp('2000')
+
+        with pytest.raises(IncompatibleTimeZoneError, match="US/Central"):
+            arr[0] = pd.Timestamp('2000', tz="US/Eastern")
 
 
 class TestDatetimeArrayComparisons(object):

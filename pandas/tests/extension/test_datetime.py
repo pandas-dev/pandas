@@ -150,7 +150,7 @@ class TestArithmeticOps(BaseDatetimeTests, base.BaseArithmeticOpsTests):
     def test_error(self, data, all_arithmetic_operators):
         pass
 
-    @pytest.mark.xfail(reason="TODO-ops", strict=False)
+    @pytest.mark.xfail(reason="different implementation", strict=False)
     def test_direct_arith_with_series_returns_not_implemented(self, data):
         # Right now, we have trouble with this. Returning NotImplemented
         # fails other tests like
@@ -173,7 +173,7 @@ class TestComparisonOps(BaseDatetimeTests, base.BaseComparisonOpsTests):
         # with (some) integers, depending on the value.
         pass
 
-    @pytest.mark.xfail(reason="TODO-ops", strict=False)
+    @pytest.mark.xfail(reason="different implementation", strict=False)
     def test_direct_arith_with_series_returns_not_implemented(self, data):
         return super(
             TestComparisonOps,

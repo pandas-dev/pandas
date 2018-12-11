@@ -114,6 +114,21 @@ class SharedTests(object):
 
         tm.assert_index_equal(self.index_cls(result), expected)
 
+    def test_unbox_scalar(self):
+        data = np.arange(10, dtype='i8')
+        arr = self.array_cls(data, freq='D')
+        result = arr._unbox_scalar(arr[0])
+        assert isinstance(result, int)
+
+        result = arr._unbox_scalar(pd.NaT)
+        assert isinstance(result, int)
+
+    def test_scalar_from_string(self):
+        data = np.arange(10, dtype='i8')
+        arr = self.array_cls(data, freq='D')
+        result = arr._scalar_from_string(str(arr[0]))
+        assert result == arr[0]
+
 
 class TestDatetimeArray(SharedTests):
     index_cls = pd.DatetimeIndex

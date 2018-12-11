@@ -12,12 +12,10 @@ from pandas._libs.tslibs.period import (
 from pandas._libs.tslibs.timedeltas import Timedelta, delta_to_nanoseconds
 import pandas.compat as compat
 from pandas.util._decorators import Appender, cache_readonly
-from pandas.util._validators import validate_fillna_kwargs
 
 from pandas.core.dtypes.common import (
-    _TD_DTYPE, ensure_object, is_array_like, is_datetime64_dtype,
-    is_datetime64_ns_dtype, is_datetime64tz_dtype, is_float_dtype,
-    is_period_dtype, pandas_dtype)
+    _TD_DTYPE, ensure_object, is_datetime64_dtype, is_datetime64_ns_dtype,
+    is_datetime64tz_dtype, is_float_dtype, is_period_dtype, pandas_dtype)
 from pandas.core.dtypes.dtypes import PeriodDtype
 from pandas.core.dtypes.generic import ABCIndexClass, ABCPeriodIndex, ABCSeries
 from pandas.core.dtypes.missing import isna, notna
@@ -25,7 +23,6 @@ from pandas.core.dtypes.missing import isna, notna
 import pandas.core.algorithms as algos
 from pandas.core.arrays import ExtensionArray, datetimelike as dtl
 import pandas.core.common as com
-from pandas.core.missing import backfill_1d, pad_1d
 
 from pandas.tseries import frequencies
 from pandas.tseries.offsets import Tick
@@ -60,15 +57,10 @@ def _period_array_cmp(cls, op):
             other = other._values
 
         if isinstance(other, Period):
-            if other.freq != self.freq:
-                msg = DIFFERENT_FREQ_INDEX.format(self.freqstr, other.freqstr)
-                raise IncompatibleFrequency(msg)
-
+            self._check_compatible_with(other)
             result = op(other.ordinal)
         elif isinstance(other, cls):
-            if other.freq != self.freq:
-                msg = DIFFERENT_FREQ_INDEX.format(self.freqstr, other.freqstr)
-                raise IncompatibleFrequency(msg)
+            self._check_compatiable_with(other)
 
             if not_implemented:
                 return NotImplemented
@@ -184,8 +176,7 @@ class PeriodArray(dtl.DatetimeLikeArrayMixin,
 
     @classmethod
     def _simple_new(cls, values, freq=None, **kwargs):
-        # TODO(DatetimeArray): remove once all constructors are aligned.
-        # alias from PeriodArray.__init__
+        # alias for PeriodArray.__init__
         return cls(values, freq=freq, **kwargs)
 
     @classmethod
@@ -243,12 +234,17 @@ class PeriodArray(dtl.DatetimeLikeArrayMixin,
         return subarr, freq
 
     def _unbox_scalar(self, value):
-        # type: (Period) -> int
-        return value.ordinal
+        # type: (Union[Period, NaTType]) -> int
+        if value is NaT:
+            return value.value
+        elif isinstance(value, self._scalar_type):
+            return value.ordinal
+        else:
+            raise ValueError("'value' should be a Period")
 
     def _scalar_from_string(self, value):
         # type: (str) -> Period
-        return Period(value)
+        return Period(value, freq=self.freq)
 
     def _check_compatible_with(self, other):
         if self.freqstr != other.freqstr:
@@ -365,50 +361,12 @@ class PeriodArray(dtl.DatetimeLikeArrayMixin,
         if isna(fill_value):
             fill_value = iNaT
         elif isinstance(fill_value, Period):
-            if fill_value.freq != self.freq:
-                msg = DIFFERENT_FREQ_INDEX.format(self.freq.freqstr,
-                                                  fill_value.freqstr)
-                raise IncompatibleFrequency(msg)
+            self._check_compatible_with(fill_value)
             fill_value = fill_value.ordinal
         else:
             raise ValueError("'fill_value' should be a Period. "
                              "Got '{got}'.".format(got=fill_value))
         return fill_value
-
-    def fillna(self, value=None, method=None, limit=None):
-        # TODO(#20300)
-        # To avoid converting to object, we re-implement here with the changes
-        # 1. Passing `_data` to func instead of self.astype(object)
-        # 2. Re-boxing output of 1.
-        # #20300 should let us do this kind of logic on ExtensionArray.fillna
-        # and we can use it.
-
-        if isinstance(value, ABCSeries):
-            value = value._values
-
-        value, method = validate_fillna_kwargs(value, method)
-
-        mask = self.isna()
-
-        if is_array_like(value):
-            if len(value) != len(self):
-                raise ValueError("Length of 'value' does not match. Got ({}) "
-                                 " expected {}".format(len(value), len(self)))
-            value = value[mask]
-
-        if mask.any():
-            if method is not None:
-                func = pad_1d if method == 'pad' else backfill_1d
-                new_values = func(self._data, limit=limit,
-                                  mask=mask)
-                new_values = type(self)(new_values, freq=self.freq)
-            else:
-                # fill with value
-                new_values = self.copy()
-                new_values[mask] = value
-        else:
-            new_values = self.copy()
-        return new_values
 
     # --------------------------------------------------------------------
 
@@ -551,9 +509,7 @@ class PeriodArray(dtl.DatetimeLikeArrayMixin,
     def _sub_period(self, other):
         # If the operation is well-defined, we return an object-Index
         # of DateOffsets.  Null entries are filled with pd.NaT
-        if self.freq != other.freq:
-            msg = DIFFERENT_FREQ_INDEX.format(self.freqstr, other.freqstr)
-            raise IncompatibleFrequency(msg)
+        self._check_compatible_with(other)
 
         asi8 = self.asi8
         new_data = asi8 - other.ordinal

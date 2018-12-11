@@ -63,7 +63,6 @@ class DatetimeDelegateMixin(DatetimelikeDelegateMixin):
     ]
     _extra_raw_methods = [
         'to_pydatetime',
-        '_box_func',
         '_local_timestamps',
         '_has_same_tz',
     ]
@@ -81,8 +80,7 @@ class DatetimeDelegateMixin(DatetimelikeDelegateMixin):
         'date',
         'time',
         'timetz',
-        '_box_func',
-    } | set(DatetimeArray._bool_ops)
+    } | set(DatetimeArray._bool_ops) | set(_extra_raw_properties)
     _raw_methods = set(_extra_raw_methods)
     _delegate_class = DatetimeArray
 
