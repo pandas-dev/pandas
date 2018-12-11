@@ -252,16 +252,41 @@ class DatetimeArrayMixin(dtl.DatetimeLikeArrayMixin,
                 freq = values.freq
             values = values._data
 
-        assert isinstance(values, np.ndarray), type(values)
+        if not isinstance(values, np.ndarray):
+            msg = (
+                "Unexpected type '{}'. 'values' must be a DatetimeArray "
+                "ndarray, or Series or Index containing one of those."
+            )
+            raise ValueError(msg.format(type(values).__name__))
+
         if values.dtype == 'i8':
             # for compat with datetime/timedelta/period shared methods,
             #  we can sometimes get here with int64 values.  These represent
             #  nanosecond UTC (or tz-naive) unix timestamps
             values = values.view(_NS_DTYPE)
 
-        assert values.dtype == _NS_DTYPE, values.dtype
-        assert isinstance(dtype, (np.dtype, DatetimeTZDtype)), dtype
-        assert freq != "infer"
+        if values.dtype != _NS_DTYPE:
+            msg = (
+                "The dtype of 'values' is incorrect. Must be 'datetime64[ns]'."
+            )
+            raise ValueError(msg.format(values.dtype))
+
+        dtype = pandas_dtype(dtype)  # TODO: profile
+        if (isinstance(dtype, np.dtype) and dtype != _NS_DTYPE
+                or not isinstance(dtype, (np.dtype, DatetimeTZDtype))):
+            msg = (
+                "Unexpected value for 'dtype': '{}'. "
+                "Must be 'datetime64[ns]' or DatetimeTZDtype'."
+            )
+            raise ValueError(msg.format(dtype))
+
+        if freq == "infer":
+            msg = (
+                "Frequency inference not allowed in DatetimeArray.__init__. "
+                "Use 'pd.array()' instead."
+            )
+            raise ValueError(msg)
+
         if copy:
             values = values.copy()
         if freq:

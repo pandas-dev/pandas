@@ -8,6 +8,29 @@ from pandas.core.arrays import TimedeltaArrayMixin as TimedeltaArray
 import pandas.util.testing as tm
 
 
+class TestTimedeltaArrayConstructor(object):
+    def test_non_array_raises(self):
+        with pytest.raises(ValueError, match='list'):
+            TimedeltaArray([1, 2, 3])
+
+    def test_other_type_raises(self):
+        with pytest.raises(ValueError,
+                           match="The dtype of 'values' is incorrect"):
+            TimedeltaArray(np.array([1, 2, 3], dtype='bool'))
+
+    def test_incorrect_dtype_raises(self):
+        with pytest.raises(ValueError, match=".dtype. must be .timedelta64."):
+            TimedeltaArray(np.array([1, 2, 3], dtype='i8'), dtype='category')
+
+        with pytest.raises(ValueError, match=".dtype. must be .timedelta64."):
+            TimedeltaArray(np.array([1, 2, 3], dtype='i8'),
+                           dtype=np.dtype(int))
+
+    def test_freq_infer_raises(self):
+        with pytest.raises(ValueError, match='Frequency inference'):
+            TimedeltaArray(np.array([1, 2, 3]), freq="infer")
+
+
 class TestTimedeltaArray(object):
     def test_from_sequence_dtype(self):
         msg = r"Only timedelta64\[ns\] dtype is valid"

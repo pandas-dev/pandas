@@ -22,6 +22,23 @@ class TestDatetimeArrayConstructor(object):
         with pytest.raises(ValueError, match='Timezones'):
             DatetimeArray(a, dtype=dtype)
 
+    def test_non_array_raises(self):
+        with pytest.raises(ValueError, match='list'):
+            DatetimeArray([1, 2, 3])
+
+    def test_other_type_raises(self):
+        with pytest.raises(ValueError,
+                           match="The dtype of 'values' is incorrect"):
+            DatetimeArray(np.array([1, 2, 3], dtype='bool'))
+
+    def test_incorrect_dtype_raises(self):
+        with pytest.raises(ValueError, match="Unexpected value for 'dtype'."):
+            DatetimeArray(np.array([1, 2, 3], dtype='i8'), dtype='category')
+
+    def test_freq_infer_raises(self):
+        with pytest.raises(ValueError, match='Frequency inference'):
+            DatetimeArray(np.array([1, 2, 3]), freq="infer")
+
 
 class TestDatetimeArrayComparisons(object):
     # TODO: merge this into tests/arithmetic/test_datetime64 once it is
