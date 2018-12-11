@@ -3,6 +3,7 @@ from textwrap import dedent
 import pytest
 
 from pandas.util._decorators import deprecate
+
 import pandas.util.testing as tm
 
 
