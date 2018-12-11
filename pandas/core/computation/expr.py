@@ -297,12 +297,14 @@ class BaseExprVisitor(ast.NodeVisitor):
         ast.NotIn: ast.NotIn
     }
 
-    def __init__(self, env, engine, parser, preparser=_preparse):
+    def __init__(self, env, engine, parser, preparser=_preparse,
+                 str_as_bytes=False):
         self.env = env
         self.engine = engine
         self.parser = parser
         self.preparser = preparser
         self.assigner = None
+        self.str_as_bytes = str_as_bytes
 
     def visit(self, node, **kwargs):
         if isinstance(node, string_types):
@@ -445,7 +447,10 @@ class BaseExprVisitor(ast.NodeVisitor):
         return self.const_type(node.n, self.env)
 
     def visit_Str(self, node, **kwargs):
-        name = self.env.add_tmp(node.s)
+        value = node.s
+        if self.str_as_bytes:
+            value = value.encode()
+        name = self.env.add_tmp(value)
         return self.term_type(name, self.env)
 
     def visit_List(self, node, **kwargs):
@@ -702,16 +707,20 @@ class PandasExprVisitor(BaseExprVisitor):
 
     def __init__(self, env, engine, parser,
                  preparser=partial(_preparse, f=compose(_replace_locals,
-                                                        _replace_booleans))):
-        super(PandasExprVisitor, self).__init__(env, engine, parser, preparser)
+                                                        _replace_booleans)),
+                 str_as_bytes=False):
+        super(PandasExprVisitor, self).__init__(env, engine, parser, preparser,
+                                                str_as_bytes=str_as_bytes)
 
 
 @disallow(_unsupported_nodes | _python_not_supported | frozenset(['Not']))
 class PythonExprVisitor(BaseExprVisitor):
 
-    def __init__(self, env, engine, parser, preparser=lambda x: x):
+    def __init__(self, env, engine, parser, preparser=lambda x: x,
+                 str_as_bytes=False):
         super(PythonExprVisitor, self).__init__(env, engine, parser,
-                                                preparser=preparser)
+                                                preparser=preparser,
+                                                str_as_bytes=str_as_bytes)
 
 
 class Expr(StringMixin):
@@ -726,16 +735,18 @@ class Expr(StringMixin):
     env : Scope, optional, default None
     truediv : bool, optional, default True
     level : int, optional, default 2
+    str_as_bytes: bool, optional, default False
     """
 
     def __init__(self, expr, engine='numexpr', parser='pandas', env=None,
-                 truediv=True, level=0):
+                 truediv=True, level=0, str_as_bytes=False):
         self.expr = expr
         self.env = env or Scope(level=level + 1)
         self.engine = engine
         self.parser = parser
         self.env.scope['truediv'] = truediv
-        self._visitor = _parsers[parser](self.env, self.engine, self.parser)
+        self._visitor = _parsers[parser](self.env, self.engine, self.parser,
+                                         str_as_bytes=str_as_bytes)
         self.terms = self.parse()
 
     @property

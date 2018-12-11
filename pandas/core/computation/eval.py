@@ -155,7 +155,7 @@ def _check_for_locals(expr, stack_level, parser):
 
 def eval(expr, parser='pandas', engine=None, truediv=True,
          local_dict=None, global_dict=None, resolvers=(), level=0,
-         target=None, inplace=False, as_dataframe=True):
+         target=None, inplace=False, as_dataframe=True, str_as_bytes=False):
     """Evaluate a Python expression as a string using various backends.
 
     The following arithmetic operations are supported: ``+``, ``-``, ``*``,
@@ -291,7 +291,7 @@ def eval(expr, parser='pandas', engine=None, truediv=True,
                             target=target)
 
         parsed_expr = Expr(expr, engine=engine, parser=parser, env=env,
-                           truediv=truediv)
+                           truediv=truediv, str_as_bytes=str_as_bytes)
 
         # construct the engine and evaluate the parsed expression
         eng = _engines[engine]
