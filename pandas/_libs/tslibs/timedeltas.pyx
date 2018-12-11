@@ -253,8 +253,10 @@ def array_to_timedelta64(object[:] values, unit='ns', errors='raise'):
 
 
 cdef inline int64_t cast_from_unit(object ts, object unit) except? -1:
-    """ return a casting of the unit represented to nanoseconds
-        round the fractional part of a float to our precision, p """
+    """
+	return a casting of the unit represented to nanoseconds
+        round the fractional part of a float to our precision, p
+	"""
     cdef:
         int64_t m
         int p
@@ -482,7 +484,6 @@ cdef inline parse_timedelta_string(object ts):
 
 cdef inline int64_t timedelta_as_neg(int64_t value, bint neg):
     """
-
     Parameters
     ----------
     value : int64_t of the timedelta value
@@ -495,7 +496,6 @@ cdef inline int64_t timedelta_as_neg(int64_t value, bint neg):
 
 cdef inline timedelta_from_spec(object number, object frac, object unit):
     """
-
     Parameters
     ----------
     number : a list of number digits
@@ -813,7 +813,9 @@ cdef class _Timedelta(timedelta):
         return timedelta(microseconds=int(self.value) / 1000)
 
     def to_timedelta64(self):
-        """ Returns a numpy.timedelta64 object with 'ns' precision """
+        """
+		Returns a numpy.timedelta64 object with 'ns' precision
+		"""
         return np.timedelta64(self.value, 'ns')
 
     def total_seconds(self):
@@ -823,12 +825,16 @@ cdef class _Timedelta(timedelta):
         return self.value / 1e9
 
     def view(self, dtype):
-        """ array view compat """
+        """
+		array view compat
+		"""
         return np.timedelta64(self.value).view(dtype)
 
     @property
     def components(self):
-        """ Return a Components NamedTuple-like """
+        """
+		Return a Components NamedTuple-like
+		"""
         self._ensure_components()
         # return the named tuple
         return Components(self._d, self._h, self._m, self._s,
@@ -993,7 +999,6 @@ cdef class _Timedelta(timedelta):
 
     def _repr_base(self, format=None):
         """
-
         Parameters
         ----------
         format : None|all|sub_day|long
@@ -1001,7 +1006,6 @@ cdef class _Timedelta(timedelta):
         Returns
         -------
         converted : string of a Timedelta
-
         """
         cdef object sign, seconds_pretty, subs, fmt, comp_dict
 
@@ -1127,7 +1131,6 @@ class Timedelta(_Timedelta):
     Notes
     -----
     The ``.value`` attribute is always in ns.
-
     """
     def __new__(cls, object value=_no_input, unit=None, **kwargs):
         cdef _Timedelta td_base
@@ -1473,7 +1476,8 @@ cdef _rfloordiv(int64_t value, right):
 cdef _broadcast_floordiv_td64(int64_t value, object other,
                               object (*operation)(int64_t value,
                                                   object right)):
-    """Boilerplate code shared by Timedelta.__floordiv__ and
+    """
+	Boilerplate code shared by Timedelta.__floordiv__ and
     Timedelta.__rfloordiv__ because np.timedelta64 does not implement these.
 
     Parameters
