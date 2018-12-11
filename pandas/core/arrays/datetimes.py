@@ -82,7 +82,7 @@ def _field_accessor(name, field, docstring=None):
         return result
 
     f.__name__ = name
-    f.__doc__ = "{}".format(docstring)
+    f.__doc__ = "\n{}\n".format(docstring)
     return property(f)
 
 
@@ -1124,7 +1124,7 @@ class DatetimeArrayMixin(dtl.DatetimeLikeArrayMixin,
     weekday_name = _field_accessor(
         'weekday_name',
         'weekday_name',
-        "The name of day in a week (ex: Friday).. deprecated:: 0.23.0")
+        "The name of day in a week (ex: Friday)\n\n.. deprecated:: 0.23.0")
 
     dayofyear = _field_accessor('dayofyear', 'doy',
                                 "The ordinal day of the year.")
