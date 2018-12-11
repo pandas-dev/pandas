@@ -274,7 +274,7 @@ convenient way to apply users' predefined styling functions, and can help reduce
 
 .. ipython:: python
 
-    df = pandas.DataFrame({'N': [1250, 1500, 1750], 'X': [0.25, 0.35, 0.50]})
+    df = pd.DataFrame({'N': [1250, 1500, 1750], 'X': [0.25, 0.35, 0.50]})
 
     def format_and_align(styler):
         return (styler.format({'N': '{:,}', 'X': '{:.1%}'})
@@ -304,8 +304,7 @@ See the :ref:`Merge, join, and concatenate
 
 
    left = pd.DataFrame({'A': ['A0', 'A1', 'A2'],
-                        'B': ['B0', 'B1', 'B2']},
-                         index=index_left)
+                        'B': ['B0', 'B1', 'B2']}, index=index_left)
 
 
    index_right = pd.MultiIndex.from_tuples([('K0', 'Y0'), ('K1', 'Y1'),
@@ -314,11 +313,9 @@ See the :ref:`Merge, join, and concatenate
 
 
    right = pd.DataFrame({'C': ['C0', 'C1', 'C2', 'C3'],
-                         'D': ['D0', 'D1', 'D2', 'D3']},
-                        index=index_right)
+                         'D': ['D0', 'D1', 'D2', 'D3']}, index=index_right)
 
-
-    left.join(right)
+   left.join(right)
 
 For earlier versions this can be done using the following.
 
@@ -463,26 +460,26 @@ Previous Behavior on Windows:
 
 .. code-block:: ipython
 
-    In [1]: data = pd.DataFrame({
-    ...:     "string_with_lf": ["a\nbc"],
-    ...:     "string_with_crlf": ["a\r\nbc"]
-    ...: })
+    In [1]: data = pd.DataFrame({"string_with_lf": ["a\nbc"],
+       ...:                      "string_with_crlf": ["a\r\nbc"]})
 
-    In [2]: # When passing file PATH to to_csv, line_terminator does not work, and csv is saved with '\r\n'.
-    ...: # Also, this converts all '\n's in the data to '\r\n'.
-    ...: data.to_csv("test.csv", index=False, line_terminator='\n')
+    In [2]: # When passing file PATH to to_csv,
+       ...: # line_terminator does not work, and csv is saved with '\r\n'.
+       ...: # Also, this converts all '\n's in the data to '\r\n'.
+       ...: data.to_csv("test.csv", index=False, line_terminator='\n')
 
     In [3]: with open("test.csv", mode='rb') as f:
-    ...:     print(f.read())
-    b'string_with_lf,string_with_crlf\r\n"a\r\nbc","a\r\r\nbc"\r\n'
+       ...:     print(f.read())
+    Out[3]: b'string_with_lf,string_with_crlf\r\n"a\r\nbc","a\r\r\nbc"\r\n'
 
-    In [4]: # When passing file OBJECT with newline option to to_csv, line_terminator works.
-    ...: with open("test2.csv", mode='w', newline='\n') as f:
-    ...:     data.to_csv(f, index=False, line_terminator='\n')
+    In [4]: # When passing file OBJECT with newline option to
+       ...: # to_csv, line_terminator works.
+       ...: with open("test2.csv", mode='w', newline='\n') as f:
+       ...:     data.to_csv(f, index=False, line_terminator='\n')
 
     In [5]: with open("test2.csv", mode='rb') as f:
-    ...:     print(f.read())
-    b'string_with_lf,string_with_crlf\n"a\nbc","a\r\nbc"\n'
+       ...:     print(f.read())
+    Out[5]: b'string_with_lf,string_with_crlf\n"a\nbc","a\r\nbc"\n'
 
 
 New Behavior on Windows:
@@ -493,16 +490,14 @@ New Behavior on Windows:
 
   .. code-block:: ipython
 
-    In [1]: data = pd.DataFrame({
-    ...:     "string_with_lf": ["a\nbc"],
-    ...:     "string_with_crlf": ["a\r\nbc"]
-    ...: })
+    In [1]: data = pd.DataFrame({"string_with_lf": ["a\nbc"],
+       ...:                      "string_with_crlf": ["a\r\nbc"]})
 
     In [2]: data.to_csv("test.csv", index=False, line_terminator='\n')
 
     In [3]: with open("test.csv", mode='rb') as f:
-    ...:     print(f.read())
-    b'string_with_lf,string_with_crlf\n"a\nbc","a\r\nbc"\n'
+       ...:     print(f.read())
+    Out[3]: b'string_with_lf,string_with_crlf\n"a\nbc","a\r\nbc"\n'
 
 
 - On Windows, the value of ``os.linesep`` is ``'\r\n'``,
@@ -511,16 +506,14 @@ New Behavior on Windows:
 
   .. code-block:: ipython
 
-    In [1]: data = pd.DataFrame({
-    ...: "string_with_lf": ["a\nbc"],
-    ...: "string_with_crlf": ["a\r\nbc"]
-    ...: })
+    In [1]: data = pd.DataFrame({"string_with_lf": ["a\nbc"],
+       ...:                      "string_with_crlf": ["a\r\nbc"]})
 
     In [2]: data.to_csv("test.csv", index=False)
 
     In [3]: with open("test.csv", mode='rb') as f:
-    ...:     print(f.read())
-    b'string_with_lf,string_with_crlf\r\n"a\nbc","a\r\nbc"\r\n'
+       ...:     print(f.read())
+    Out[3]: b'string_with_lf,string_with_crlf\r\n"a\nbc","a\r\nbc"\r\n'
 
 
 - For files objects, specifying ``newline`` is not sufficient to set the line terminator.
@@ -528,17 +521,15 @@ New Behavior on Windows:
 
   .. code-block:: ipython
 
-    In [1]: data = pd.DataFrame({
-    ...: "string_with_lf": ["a\nbc"],
-    ...: "string_with_crlf": ["a\r\nbc"]
-    ...: })
+    In [1]: data = pd.DataFrame({"string_with_lf": ["a\nbc"],
+       ...:                      "string_with_crlf": ["a\r\nbc"]})
 
     In [2]: with open("test2.csv", mode='w', newline='\n') as f:
-    ...:     data.to_csv(f, index=False)
+       ...:     data.to_csv(f, index=False)
 
     In [3]: with open("test2.csv", mode='rb') as f:
-    ...:     print(f.read())
-    b'string_with_lf,string_with_crlf\r\n"a\nbc","a\r\nbc"\r\n'
+       ...:     print(f.read())
+    Out[3]: b'string_with_lf,string_with_crlf\r\n"a\nbc","a\r\nbc"\r\n'
 
 .. _whatsnew_0240.api.timezone_offset_parsing:
 
@@ -585,7 +576,8 @@ Parsing datetime strings with different UTC offsets will now create an Index of
 
 .. ipython:: python
 
-    idx = pd.to_datetime(["2015-11-18 15:30:00+05:30", "2015-11-18 16:30:00+06:30"])
+    idx = pd.to_datetime(["2015-11-18 15:30:00+05:30",
+                          "2015-11-18 16:30:00+06:30"])
     idx
     idx[0]
     idx[1]
@@ -595,7 +587,8 @@ that the dates have been converted to UTC
 
 .. ipython:: python
 
-    pd.to_datetime(["2015-11-18 15:30:00+05:30", "2015-11-18 16:30:00+06:30"], utc=True)
+    pd.to_datetime(["2015-11-18 15:30:00+05:30",
+                    "2015-11-18 16:30:00+06:30"], utc=True)
 
 .. _whatsnew_0240.api_breaking.calendarday:
 
@@ -867,7 +860,7 @@ Previous Behavior:
    In [4]: df = pd.DataFrame(arr)
 
    In [5]: df == arr[[0], :]
-      ...: # comparison previously broadcast where arithmetic would raise
+       ...: # comparison previously broadcast where arithmetic would raise
    Out[5]:
           0      1
    0   True   True
@@ -878,8 +871,8 @@ Previous Behavior:
    ValueError: Unable to coerce to DataFrame, shape must be (3, 2): given (1, 2)
 
    In [7]: df == (1, 2)
-      ...: # length matches number of columns;
-      ...: # comparison previously raised where arithmetic would broadcast
+       ...: # length matches number of columns;
+       ...: # comparison previously raised where arithmetic would broadcast
    ...
    ValueError: Invalid broadcasting comparison [(1, 2)] with block values
    In [8]: df + (1, 2)
@@ -890,8 +883,8 @@ Previous Behavior:
    2  5  7
 
    In [9]: df == (1, 2, 3)
-      ...: # length matches number of rows
-      ...: # comparison previously broadcast where arithmetic would raise
+       ...:  # length matches number of rows
+       ...:  # comparison previously broadcast where arithmetic would raise
    Out[9]:
           0      1
    0  False   True
@@ -1054,7 +1047,8 @@ Current Behavior:
 
 .. code-block:: ipython
 
-    In [3]: df = pd.DataFrame({'a': [1, 2, 2, 2, 2], 'b': [3, 3, 4, 4, 4],
+    In [3]: df = pd.DataFrame({'a': [1, 2, 2, 2, 2],
+       ...:                    'b': [3, 3, 4, 4, 4],
        ...:                    'c': [1, 1, np.nan, 1, 1]})
     In [4]: pd.crosstab(df.a, df.b, normalize='columns')
 
