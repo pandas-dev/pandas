@@ -969,8 +969,7 @@ class _Rolling_and_Expanding(_Rolling):
     Returns
     -------
     Series or DataFrame
-        Returned object type is determined by the caller of the
-        %(name)s apply.
+        Return type is determined by the caller.
 
     See Also
     --------
