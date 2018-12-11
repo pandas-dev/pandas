@@ -1466,12 +1466,16 @@ class TestDatetimeIndex(Base):
 
     @pytest.mark.parametrize('k', [1, 2, 3])
     @pytest.mark.parametrize('n1, freq1, n2, freq2', [
-        (60, 'Min', 1, 'H'),
-        (1440, 'Min', 1, 'D'),
-        (24, 'H', 1, 'D'),
+        (30, 'S', 0.5, 'Min'),
         (60, 'S', 1, 'Min'),
         (3600, 'S', 1, 'H'),
-        (86400, 'S', 1, 'D')
+        (60, 'Min', 1, 'H'),
+        (21600, 'S', 0.25, 'D'),
+        (86400, 'S', 1, 'D'),
+        (43200, 'S', 0.5, 'D'),
+        (1440, 'Min', 1, 'D'),
+        (12, 'H', 0.5, 'D'),
+        (24, 'H', 1, 'D'),
     ])
     def test_resample_equivalent_offsets(self, n1, freq1, n2, freq2, k):
         # GH 24127
