@@ -903,6 +903,7 @@ cdef class _Timedelta(timedelta):
         >>> td.asm8
         numpy.timedelta64(42,'ns')
         """
+		
         return np.int64(self.value).view('m8[ns]')
 
     @property
