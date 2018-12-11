@@ -59,7 +59,9 @@ def maybe_integer_op_deprecated(obj):
 cdef inline object create_timestamp_from_ts(int64_t value,
                                             npy_datetimestruct dts,
                                             object tz, object freq):
-    """ convenience routine to construct a Timestamp from its parts """
+    """ 
+	onvenience routine to construct a Timestamp from its parts
+	"""
     cdef _Timestamp ts_base
     ts_base = _Timestamp.__new__(Timestamp, dts.year, dts.month,
                                  dts.day, dts.hour, dts.min,
@@ -500,7 +502,9 @@ cdef class _Timestamp(datetime):
         return Timedelta(nanoseconds=1)
 
     def timestamp(self):
-        """Return POSIX timestamp as float."""
+        """
+		Return POSIX timestamp as float.
+		"""
         # py27 compat, see GH#17329
         return round(self.value / 1e9, 6)
 
@@ -512,7 +516,8 @@ cdef class _Timestamp(datetime):
 
 
 class Timestamp(_Timestamp):
-    """Pandas replacement for datetime.datetime
+    """
+	Pandas replacement for datetime.datetime
 
     Timestamp is the pandas equivalent of python's Datetime
     and is interchangeable with it in most cases. It's the type used
@@ -1189,7 +1194,9 @@ class Timestamp(_Timestamp):
 
         # replace
         def validate(k, v):
-            """ validate integers """
+            """
+			validate integers
+			"""
             if not is_integer_object(v):
                 raise ValueError("value must be an integer, received "
                                  "{v} for {k}".format(v=type(v), k=k))
