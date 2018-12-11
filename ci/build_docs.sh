@@ -26,7 +26,7 @@ if [ "$DOC" ]; then
     echo ###############################
 
     MSG='Validate documentation' ; echo $MSG
-    $TRAVIS_BUILD_DIR/scripts/validate_docstrings.py io
+    $TRAVIS_BUILD_DIR/scripts/validate_documentation.py
     RET=$(($RET + $?)) ; echo $MSG "DONE"
 
     echo ########################
