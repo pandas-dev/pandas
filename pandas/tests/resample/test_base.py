@@ -19,13 +19,6 @@ from pandas.util.testing import (
     assert_almost_equal, assert_frame_equal, assert_index_equal,
     assert_series_equal)
 
-# The various methods we support
-downsample_methods = ['min', 'max', 'first', 'last', 'sum', 'mean', 'sem',
-                      'median', 'prod', 'var', 'std', 'ohlc', 'quantile']
-upsample_methods = ['count', 'size']
-series_methods = ['nunique']
-resample_methods = downsample_methods + upsample_methods + series_methods
-
 
 class Base(object):
     """
@@ -116,64 +109,59 @@ class Base(object):
         xp = DataFrame()
         pytest.raises(TypeError, lambda: xp.resample('A').mean())
 
-    def test_resample_empty_series(self):
+    @pytest.mark.parametrize('freq', ['M', 'D', 'H'])
+    def test_resample_empty_series(self, freq, resample_method):
         # GH12771 & GH12868
 
+        if resample_method == 'ohlc':
+            pytest.skip('need to test for ohlc from GH13083')
+
         s = self.create_series()[:0]
+        result = getattr(s.resample(freq), resample_method)()
 
-        for freq in ['M', 'D', 'H']:
-            # need to test for ohlc from GH13083
-            methods = [method for method in resample_methods
-                       if method != 'ohlc']
-            for method in methods:
-                result = getattr(s.resample(freq), method)()
+        expected = s.copy()
+        expected.index = s.index._shallow_copy(freq=freq)
+        assert_index_equal(result.index, expected.index)
+        assert result.index.freq == expected.index.freq
+        assert_series_equal(result, expected, check_dtype=False)
 
-                expected = s.copy()
-                expected.index = s.index._shallow_copy(freq=freq)
-                assert_index_equal(result.index, expected.index)
-                assert result.index.freq == expected.index.freq
-                assert_series_equal(result, expected, check_dtype=False)
-
-    def test_resample_empty_dataframe(self):
+    @pytest.mark.parametrize('freq', ['M', 'D', 'H'])
+    def test_resample_empty_dataframe(self, freq, resample_method):
         # GH13212
         index = self.create_series().index[:0]
         f = DataFrame(index=index)
 
-        for freq in ['M', 'D', 'H']:
-            # count retains dimensions too
-            methods = downsample_methods + upsample_methods
-            for method in methods:
-                result = getattr(f.resample(freq), method)()
-                if method != 'size':
-                    expected = f.copy()
-                else:
-                    # GH14962
-                    expected = Series([])
+        # count retains dimensions too
+        result = getattr(f.resample(freq), resample_method)()
+        if resample_method != 'size':
+            expected = f.copy()
+        else:
+            # GH14962
+            expected = Series([])
 
-                expected.index = f.index._shallow_copy(freq=freq)
-                assert_index_equal(result.index, expected.index)
-                assert result.index.freq == expected.index.freq
-                assert_almost_equal(result, expected, check_dtype=False)
+        expected.index = f.index._shallow_copy(freq=freq)
+        assert_index_equal(result.index, expected.index)
+        assert result.index.freq == expected.index.freq
+        assert_almost_equal(result, expected, check_dtype=False)
 
-            # test size for GH13212 (currently stays as df)
+        # test size for GH13212 (currently stays as df)
 
     @pytest.mark.parametrize("index", tm.all_timeseries_index_generator(0))
     @pytest.mark.parametrize(
         "dtype",
         [np.float, np.int, np.object, 'datetime64[ns]'])
-    def test_resample_empty_dtypes(self, index, dtype):
+    def test_resample_empty_dtypes(self, index, dtype, resample_method):
 
         # Empty series were sometimes causing a segfault (for the functions
         # with Cython bounds-checking disabled) or an IndexError.  We just run
         # them to ensure they no longer do.  (GH #10228)
-        for how in downsample_methods + upsample_methods:
-            empty_series = Series([], index, dtype)
-            try:
-                getattr(empty_series.resample('d'), how)()
-            except DataError:
-                # Ignore these since some combinations are invalid
-                # (ex: doing mean with dtype of np.object)
-                pass
+        empty_series = Series([], index, dtype)
+        try:
+            getattr(empty_series.resample('d'), resample_method)()
+        except DataError:
+            # Ignore these since some combinations are invalid
+            # (ex: doing mean with dtype of np.object)
+            pass
 
     def test_resample_loffset_arg_type(self):
         # GH 13218, 15002
