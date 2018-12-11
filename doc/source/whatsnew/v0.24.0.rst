@@ -275,15 +275,12 @@ See the :ref:`Merge, join, and concatenate
                                           ('K1', 'X2')],
                                           names=['key', 'X'])
 
-
    left = pd.DataFrame({'A': ['A0', 'A1', 'A2'],
                         'B': ['B0', 'B1', 'B2']}, index=index_left)
-
 
    index_right = pd.MultiIndex.from_tuples([('K0', 'Y0'), ('K1', 'Y1'),
                                            ('K2', 'Y2'), ('K2', 'Y3')],
                                            names=['key', 'Y'])
-
 
    right = pd.DataFrame({'C': ['C0', 'C1', 'C2', 'C3'],
                          'D': ['D0', 'D1', 'D2', 'D3']}, index=index_right)
