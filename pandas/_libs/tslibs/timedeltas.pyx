@@ -816,6 +816,7 @@ cdef class _Timedelta(timedelta):
         """
 		Returns a numpy.timedelta64 object with 'ns' precision
 		"""
+		
         return np.timedelta64(self.value, 'ns')
 
     def total_seconds(self):
