@@ -1,4 +1,5 @@
 #!/bin/env python
+import math
 import os
 import subprocess
 import sys
@@ -6,6 +7,7 @@ import random
 import tempfile
 import time
 import warnings
+import xml.etree.ElementTree
 try:
     from urllib.request import urlretrieve
 except ImportError:  # py2
@@ -37,11 +39,23 @@ def set_environ(pattern, locale):
         os.environ['http_proxy'] = os.environ['https_proxy'] = 'http://1.2.3.4'
 
 
-def pytest_command(pattern, coverage_file):
+def skipped_tests(fname):
+    """
+    Yield the list of skipped tests, including a header to be printed.
+    """
+    root = xml.etree.ElementTree.parse(fname).getroot()
+    for item in root.findall('testcase'):
+        for skipped in item.findall('skipped'):
+            yield (item.attrib['classname'],
+                   item.attrib['name'],
+                   skipped.attrib['message'])
+
+
+def pytest_command(pattern, junit_xml, coverage_file):
     """
     Build and return the pytest command to run.
     """
-    cmd = ['pytest', '--junitxml=test-data.xml']
+    cmd = ['pytest', '--junitxml={}'.format(junit_xml)]
 
     if pattern:
         cmd += ['-m', pattern]
@@ -94,12 +108,21 @@ def run_tests(pattern, locale=None, coverage_file=False):
     if os.environ.get('DOC'):
         sys.stdout.write('We are not running pytest as this is a doc-build\n')
         return
+    junit_xml = 'test-data.xml'
     set_environ(pattern, locale)
-    pytest_cmd = pytest_command(pattern, coverage_file)
+    pytest_cmd = pytest_command(pattern, junit_xml, coverage_file)
     sys.stderr.write('{}\n'.format(' '.join(pytest_cmd)))
     start = time.time()
     subprocess.check_call(pytest_cmd)
     tests_run_in_seconds = int(time.time() - start)
+
+    prev_class = None
+    for i, (class_, name, msg) in enumerate(skipped_tests(junit_xml)):
+        if prev_class is not None and class_ != prev_class:
+            sys.stdout.write('{}\n'.format('-' * 100))
+        sys.stdout.write('#{} {}.{}: {}\n'.format(i + 1, class_, name, msg))
+        prev_class = class_
+
     sys.stdout.write('Tests run in {} seconds\n'.format(tests_run_in_seconds))
 
     if coverage_file:
