@@ -39,7 +39,7 @@ class TestDatetimeArrayConstructor(object):
 
     def test_freq_infer_raises(self):
         with pytest.raises(ValueError, match='Frequency inference'):
-            DatetimeArray(np.array([1, 2, 3]), freq="infer")
+            DatetimeArray(np.array([1, 2, 3], dtype='i8'), freq="infer")
 
     def test_copy(self):
         data = np.array([1, 2, 3], dtype='M8[ns]')

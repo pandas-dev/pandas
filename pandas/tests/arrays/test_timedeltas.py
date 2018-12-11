@@ -28,7 +28,7 @@ class TestTimedeltaArrayConstructor(object):
 
     def test_freq_infer_raises(self):
         with pytest.raises(ValueError, match='Frequency inference'):
-            TimedeltaArray(np.array([1, 2, 3]), freq="infer")
+            TimedeltaArray(np.array([1, 2, 3], dtype='i8'), freq="infer")
 
     def test_copy(self):
         data = np.array([1, 2, 3], dtype='m8[ns]')
