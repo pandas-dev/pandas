@@ -130,7 +130,7 @@ class DatetimeProperties(Properties):
 
     def to_pydatetime(self):
         """
-        Return the data as an array of native Python datetime objects
+        Return the data as an array of native Python datetime objects.
 
         Timezone information is retained if present.
 

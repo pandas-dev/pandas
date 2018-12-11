@@ -463,7 +463,7 @@ class CategoricalDtype(PandasExtensionDtype, ExtensionDtype):
     @property
     def ordered(self):
         """
-        Whether the categories have an ordered relationship
+        Whether the categories have an ordered relationship.
         """
         return self._ordered
 
