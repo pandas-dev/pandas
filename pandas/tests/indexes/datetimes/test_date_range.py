@@ -779,3 +779,14 @@ class TestCustomDateRange(object):
         msg = 'invalid custom frequency string: {freq}'
         with pytest.raises(ValueError, match=msg.format(freq=bad_freq)):
             bdate_range(START, END, freq=bad_freq)
+
+    @pytest.mark.parametrize('start_end', [
+        ('2018-01-01T00:00:01.000Z', '2018-01-03T00:00:01.000Z'),
+        ('2018-01-01T00:00:00.010Z', '2018-01-03T00:00:00.010Z'),
+        ('2001-01-01T00:00:00.010Z', '2001-01-03T00:00:00.010Z')])
+    def test_range_with_millisecond_resolution(self, start_end):
+        # https://github.com/pandas-dev/pandas/issues/24110
+        start, end = start_end
+        result = pd.date_range(start=start, end=end, periods=2, closed='left')
+        expected = DatetimeIndex([start])
+        tm.assert_index_equal(result, expected)

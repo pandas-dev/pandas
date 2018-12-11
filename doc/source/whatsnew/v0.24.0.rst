@@ -8,7 +8,8 @@ What's New in 0.24.0 (Month XX, 2018)
    Starting January 1, 2019, pandas feature releases will support Python 3 only.
    See :ref:`install.dropping-27` for more.
 
-{{ common_imports }}
+{{ header }}
+
 
 These are the changes in pandas 0.24.0. See :ref:`release` for a full changelog
 including other versions of pandas.
@@ -246,7 +247,7 @@ convenient way to apply users' predefined styling functions, and can help reduce
 
 .. ipython:: python
 
-    df = pandas.DataFrame({'N': [1250, 1500, 1750], 'X': [0.25, 0.35, 0.50]})
+    df = pd.DataFrame({'N': [1250, 1500, 1750], 'X': [0.25, 0.35, 0.50]})
 
     def format_and_align(styler):
         return (styler.format({'N': '{:,}', 'X': '{:.1%}'})
@@ -276,8 +277,7 @@ See the :ref:`Merge, join, and concatenate
 
 
    left = pd.DataFrame({'A': ['A0', 'A1', 'A2'],
-                        'B': ['B0', 'B1', 'B2']},
-                         index=index_left)
+                        'B': ['B0', 'B1', 'B2']}, index=index_left)
 
 
    index_right = pd.MultiIndex.from_tuples([('K0', 'Y0'), ('K1', 'Y1'),
@@ -286,11 +286,9 @@ See the :ref:`Merge, join, and concatenate
 
 
    right = pd.DataFrame({'C': ['C0', 'C1', 'C2', 'C3'],
-                         'D': ['D0', 'D1', 'D2', 'D3']},
-                        index=index_right)
+                         'D': ['D0', 'D1', 'D2', 'D3']}, index=index_right)
 
-
-    left.join(right)
+   left.join(right)
 
 For earlier versions this can be done using the following.
 
@@ -435,26 +433,26 @@ Previous Behavior on Windows:
 
 .. code-block:: ipython
 
-    In [1]: data = pd.DataFrame({
-    ...:     "string_with_lf": ["a\nbc"],
-    ...:     "string_with_crlf": ["a\r\nbc"]
-    ...: })
+    In [1]: data = pd.DataFrame({"string_with_lf": ["a\nbc"],
+       ...:                      "string_with_crlf": ["a\r\nbc"]})
 
-    In [2]: # When passing file PATH to to_csv, line_terminator does not work, and csv is saved with '\r\n'.
-    ...: # Also, this converts all '\n's in the data to '\r\n'.
-    ...: data.to_csv("test.csv", index=False, line_terminator='\n')
+    In [2]: # When passing file PATH to to_csv,
+       ...: # line_terminator does not work, and csv is saved with '\r\n'.
+       ...: # Also, this converts all '\n's in the data to '\r\n'.
+       ...: data.to_csv("test.csv", index=False, line_terminator='\n')
 
     In [3]: with open("test.csv", mode='rb') as f:
-    ...:     print(f.read())
-    b'string_with_lf,string_with_crlf\r\n"a\r\nbc","a\r\r\nbc"\r\n'
+       ...:     print(f.read())
+    Out[3]: b'string_with_lf,string_with_crlf\r\n"a\r\nbc","a\r\r\nbc"\r\n'
 
-    In [4]: # When passing file OBJECT with newline option to to_csv, line_terminator works.
-    ...: with open("test2.csv", mode='w', newline='\n') as f:
-    ...:     data.to_csv(f, index=False, line_terminator='\n')
+    In [4]: # When passing file OBJECT with newline option to
+       ...: # to_csv, line_terminator works.
+       ...: with open("test2.csv", mode='w', newline='\n') as f:
+       ...:     data.to_csv(f, index=False, line_terminator='\n')
 
     In [5]: with open("test2.csv", mode='rb') as f:
-    ...:     print(f.read())
-    b'string_with_lf,string_with_crlf\n"a\nbc","a\r\nbc"\n'
+       ...:     print(f.read())
+    Out[5]: b'string_with_lf,string_with_crlf\n"a\nbc","a\r\nbc"\n'
 
 
 New Behavior on Windows:
@@ -465,16 +463,14 @@ New Behavior on Windows:
 
   .. code-block:: ipython
 
-    In [1]: data = pd.DataFrame({
-    ...:     "string_with_lf": ["a\nbc"],
-    ...:     "string_with_crlf": ["a\r\nbc"]
-    ...: })
+    In [1]: data = pd.DataFrame({"string_with_lf": ["a\nbc"],
+       ...:                      "string_with_crlf": ["a\r\nbc"]})
 
     In [2]: data.to_csv("test.csv", index=False, line_terminator='\n')
 
     In [3]: with open("test.csv", mode='rb') as f:
-    ...:     print(f.read())
-    b'string_with_lf,string_with_crlf\n"a\nbc","a\r\nbc"\n'
+       ...:     print(f.read())
+    Out[3]: b'string_with_lf,string_with_crlf\n"a\nbc","a\r\nbc"\n'
 
 
 - On Windows, the value of ``os.linesep`` is ``'\r\n'``,
@@ -483,16 +479,14 @@ New Behavior on Windows:
 
   .. code-block:: ipython
 
-    In [1]: data = pd.DataFrame({
-    ...: "string_with_lf": ["a\nbc"],
-    ...: "string_with_crlf": ["a\r\nbc"]
-    ...: })
+    In [1]: data = pd.DataFrame({"string_with_lf": ["a\nbc"],
+       ...:                      "string_with_crlf": ["a\r\nbc"]})
 
     In [2]: data.to_csv("test.csv", index=False)
 
     In [3]: with open("test.csv", mode='rb') as f:
-    ...:     print(f.read())
-    b'string_with_lf,string_with_crlf\r\n"a\nbc","a\r\nbc"\r\n'
+       ...:     print(f.read())
+    Out[3]: b'string_with_lf,string_with_crlf\r\n"a\nbc","a\r\nbc"\r\n'
 
 
 - For files objects, specifying ``newline`` is not sufficient to set the line terminator.
@@ -500,17 +494,15 @@ New Behavior on Windows:
 
   .. code-block:: ipython
 
-    In [1]: data = pd.DataFrame({
-    ...: "string_with_lf": ["a\nbc"],
-    ...: "string_with_crlf": ["a\r\nbc"]
-    ...: })
+    In [1]: data = pd.DataFrame({"string_with_lf": ["a\nbc"],
+       ...:                      "string_with_crlf": ["a\r\nbc"]})
 
     In [2]: with open("test2.csv", mode='w', newline='\n') as f:
-    ...:     data.to_csv(f, index=False)
+       ...:     data.to_csv(f, index=False)
 
     In [3]: with open("test2.csv", mode='rb') as f:
-    ...:     print(f.read())
-    b'string_with_lf,string_with_crlf\r\n"a\nbc","a\r\nbc"\r\n'
+       ...:     print(f.read())
+    Out[3]: b'string_with_lf,string_with_crlf\r\n"a\nbc","a\r\nbc"\r\n'
 
 .. _whatsnew_0240.api.timezone_offset_parsing:
 
@@ -557,7 +549,8 @@ Parsing datetime strings with different UTC offsets will now create an Index of
 
 .. ipython:: python
 
-    idx = pd.to_datetime(["2015-11-18 15:30:00+05:30", "2015-11-18 16:30:00+06:30"])
+    idx = pd.to_datetime(["2015-11-18 15:30:00+05:30",
+                          "2015-11-18 16:30:00+06:30"])
     idx
     idx[0]
     idx[1]
@@ -567,7 +560,8 @@ that the dates have been converted to UTC
 
 .. ipython:: python
 
-    pd.to_datetime(["2015-11-18 15:30:00+05:30", "2015-11-18 16:30:00+06:30"], utc=True)
+    pd.to_datetime(["2015-11-18 15:30:00+05:30",
+                    "2015-11-18 16:30:00+06:30"], utc=True)
 
 .. _whatsnew_0240.api_breaking.calendarday:
 
@@ -669,6 +663,7 @@ changes were made:
 - ``SparseDataFrame.combine`` and ``DataFrame.combine_first`` no longer supports combining a sparse column with a dense column while preserving the sparse subtype. The result will be an object-dtype SparseArray.
 - Setting :attr:`SparseArray.fill_value` to a fill value with a different dtype is now allowed.
 - ``DataFrame[column]`` is now a :class:`Series` with sparse values, rather than a :class:`SparseSeries`, when slicing a single column with sparse values (:issue:`23559`).
+- The result of :meth:`Series.where` is now a ``Series`` with sparse values, like with other extension arrays (:issue:`24077`)
 
 Some new warnings are issued for operations that require or are likely to materialize a large dense array:
 
@@ -838,7 +833,7 @@ Previous Behavior:
    In [4]: df = pd.DataFrame(arr)
 
    In [5]: df == arr[[0], :]
-      ...: # comparison previously broadcast where arithmetic would raise
+       ...: # comparison previously broadcast where arithmetic would raise
    Out[5]:
           0      1
    0   True   True
@@ -849,8 +844,8 @@ Previous Behavior:
    ValueError: Unable to coerce to DataFrame, shape must be (3, 2): given (1, 2)
 
    In [7]: df == (1, 2)
-      ...: # length matches number of columns;
-      ...: # comparison previously raised where arithmetic would broadcast
+       ...: # length matches number of columns;
+       ...: # comparison previously raised where arithmetic would broadcast
    ...
    ValueError: Invalid broadcasting comparison [(1, 2)] with block values
    In [8]: df + (1, 2)
@@ -861,8 +856,8 @@ Previous Behavior:
    2  5  7
 
    In [9]: df == (1, 2, 3)
-      ...: # length matches number of rows
-      ...: # comparison previously broadcast where arithmetic would raise
+       ...:  # length matches number of rows
+       ...:  # comparison previously broadcast where arithmetic would raise
    Out[9]:
           0      1
    0  False   True
@@ -1025,7 +1020,8 @@ Current Behavior:
 
 .. code-block:: ipython
 
-    In [3]: df = pd.DataFrame({'a': [1, 2, 2, 2, 2], 'b': [3, 3, 4, 4, 4],
+    In [3]: df = pd.DataFrame({'a': [1, 2, 2, 2, 2],
+       ...:                    'b': [3, 3, 4, 4, 4],
        ...:                    'c': [1, 1, np.nan, 1, 1]})
     In [4]: pd.crosstab(df.a, df.b, normalize='columns')
 
@@ -1107,6 +1103,8 @@ Deprecations
 - :func:`pandas.types.is_datetimetz` is deprecated in favor of `pandas.types.is_datetime64tz` (:issue:`23917`)
 - Creating a :class:`TimedeltaIndex` or :class:`DatetimeIndex` by passing range arguments `start`, `end`, and `periods` is deprecated in favor of :func:`timedelta_range` and :func:`date_range` (:issue:`23919`)
 - Passing a string alias like ``'datetime64[ns, UTC]'`` as the `unit` parameter to :class:`DatetimeTZDtype` is deprecated. Use :class:`DatetimeTZDtype.construct_from_string` instead (:issue:`23990`).
+- In :meth:`Series.where` with Categorical data, providing an ``other`` that is not present in the categories is deprecated. Convert the categorical to a different dtype or add the ``other`` to the categories first (:issue:`24077`).
+- :meth:`Series.clip_lower`, :meth:`Series.clip_upper`, :meth:`DataFrame.clip_lower` and :meth:`DataFrame.clip_upper` are deprecated and will be removed in a future version. Use ``Series.clip(lower=threshold)``, ``Series.clip(upper=threshold)`` and the equivalent ``DataFrame`` methods (:issue:`24203`)
 - Passing a `time_rule` to `pandas.tseries.offsets.generate_range` is deprecated and will raise a ``TypeError`` in a future version.  Pass an ``offset`` instead (:issue:`24157`)
 
 .. _whatsnew_0240.deprecations.datetimelike_int_ops:
@@ -1204,6 +1202,7 @@ Performance Improvements
 - Improved performance of :func:`Series.describe` in case of numeric dtpyes (:issue:`21274`)
 - Improved performance of :func:`pandas.core.groupby.GroupBy.rank` when dealing with tied rankings (:issue:`21237`)
 - Improved performance of :func:`DataFrame.set_index` with columns consisting of :class:`Period` objects (:issue:`21582`, :issue:`21606`)
+- Improved performance of :meth:`Series.at` and :meth:`Index.get_value` for Extension Arrays values (e.g. :class:`Categorical`) (:issue:`24204`)
 - Improved performance of membership checks in :class:`Categorical` and :class:`CategoricalIndex`
   (i.e. ``x in cat``-style checks are much faster). :meth:`CategoricalIndex.contains`
   is likewise much faster (:issue:`21369`, :issue:`21508`)
@@ -1218,6 +1217,7 @@ Performance Improvements
 - Improved performance of :meth:`DatetimeIndex.tz_localize` and various ``DatetimeIndex`` attributes with dateutil UTC timezone (:issue:`23772`)
 - Fixed a performance regression on Windows with Python 3.7 of :func:`pd.read_csv` (:issue:`23516`)
 - Improved performance of :class:`Categorical` constructor for `Series` objects (:issue:`23814`)
+- Improved performance of :meth:`~DataFrame.where` for Categorical data (:issue:`24077`)
 
 .. _whatsnew_0240.docs:
 
@@ -1244,6 +1244,7 @@ Categorical
 - In meth:`Series.unstack`, specifying a ``fill_value`` not present in the categories now raises a ``TypeError`` rather than ignoring the ``fill_value`` (:issue:`23284`)
 - Bug when resampling :meth:`Dataframe.resample()` and aggregating on categorical data, the categorical dtype was getting lost. (:issue:`23227`)
 - Bug in many methods of the ``.str``-accessor, which always failed on calling the ``CategoricalIndex.str`` constructor (:issue:`23555`, :issue:`23556`)
+- Bug in :meth:`Series.where` losing the categorical dtype for categorical data (:issue:`24077`)
 
 Datetimelike
 ^^^^^^^^^^^^
@@ -1280,6 +1281,8 @@ Datetimelike
 - Bug in :class:`DatetimeIndex` where calling ``np.array(dtindex, dtype=object)`` would incorrectly return an array of ``long`` objects (:issue:`23524`)
 - Bug in :class:`Index` where passing a timezone-aware :class:`DatetimeIndex` and `dtype=object` would incorrectly raise a ``ValueError`` (:issue:`23524`)
 - Bug in :class:`Index` where calling ``np.array(dtindex, dtype=object)`` on a timezone-naive :class:`DatetimeIndex` would return an array of ``datetime`` objects instead of :class:`Timestamp` objects, potentially losing nanosecond portions of the timestamps (:issue:`23524`)
+- Bug in :class:`Categorical.__setitem__` not allowing setting with another ``Categorical`` when both are undordered and have the same categories, but in a different order (:issue:`24142`)
+- Bug in :func:`date_range` where using dates with millisecond resolution or higher could return incorrect values or the wrong number of values in the index (:issue:`24110`)
 
 Timedelta
 ^^^^^^^^^
@@ -1350,6 +1353,7 @@ Numeric
 - :meth:`Series.agg` can now handle numpy NaN-aware methods like :func:`numpy.nansum` (:issue:`19629`)
 - Bug in :meth:`Series.rank` and :meth:`DataFrame.rank` when ``pct=True`` and more than 2:sup:`24` rows are present resulted in percentages greater than 1.0 (:issue:`18271`)
 - Calls such as :meth:`DataFrame.round` with a non-unique :meth:`CategoricalIndex` now return expected data. Previously, data would be improperly duplicated (:issue:`21809`).
+- Added ``log10`` to the list of supported functions in :meth:`DataFrame.eval` (:issue:`24139`)
 
 Strings
 ^^^^^^^
@@ -1467,6 +1471,7 @@ Notice how we now instead output ``np.nan`` itself instead of a stringified form
 - Bug in :func:`DataFrame.to_string()` that broke column alignment when ``index=False`` and width of first column's values is greater than the width of first column's header (:issue:`16839`, :issue:`13032`)
 - Bug in :func:`DataFrame.to_string()` that caused representations of :class:`DataFrame` to not take up the whole window (:issue:`22984`)
 - Bug in :func:`DataFrame.to_csv` where a single level MultiIndex incorrectly wrote a tuple. Now just the value of the index is written (:issue:`19589`).
+- :func:`HDFStore` will raise ``ValueError`` when the ``format`` kwarg is passed to the constructor (:issue:`13291`)
 - Bug in :meth:`HDFStore.append` when appending a :class:`DataFrame` with an empty string column and ``min_itemsize`` < 8 (:issue:`12242`)
 - Bug in :func:`read_csv()` in which memory leaks occurred in the C engine when parsing ``NaN`` values due to insufficient cleanup on completion or error (:issue:`21353`)
 - Bug in :func:`read_csv()` in which incorrect error messages were being raised when ``skipfooter`` was passed in along with ``nrows``, ``iterator``, or ``chunksize`` (:issue:`23711`)
