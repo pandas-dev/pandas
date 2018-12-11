@@ -677,65 +677,65 @@ data-types would yield different return types. These are now made consistent. (:
 
 - Datetime tz-aware
 
-Previous behaviour:
+  Previous behaviour:
 
-.. code-block:: ipython
+  .. code-block:: ipython
 
-   # Series
-   In [5]: pd.Series([pd.Timestamp('20160101', tz='US/Eastern'),
-      ...:            pd.Timestamp('20160101', tz='US/Eastern')]).unique()
-   Out[5]: array([Timestamp('2016-01-01 00:00:00-0500', tz='US/Eastern')], dtype=object)
+     # Series
+     In [5]: pd.Series([pd.Timestamp('20160101', tz='US/Eastern'),
+        ...:            pd.Timestamp('20160101', tz='US/Eastern')]).unique()
+     Out[5]: array([Timestamp('2016-01-01 00:00:00-0500', tz='US/Eastern')], dtype=object)
 
-   In [6]: pd.unique(pd.Series([pd.Timestamp('20160101', tz='US/Eastern'),
-      ...:                      pd.Timestamp('20160101', tz='US/Eastern')]))
-   Out[6]: array(['2016-01-01T05:00:00.000000000'], dtype='datetime64[ns]')
+     In [6]: pd.unique(pd.Series([pd.Timestamp('20160101', tz='US/Eastern'),
+        ...:                      pd.Timestamp('20160101', tz='US/Eastern')]))
+     Out[6]: array(['2016-01-01T05:00:00.000000000'], dtype='datetime64[ns]')
 
-   # Index
-   In [7]: pd.Index([pd.Timestamp('20160101', tz='US/Eastern'),
-      ...:           pd.Timestamp('20160101', tz='US/Eastern')]).unique()
-   Out[7]: DatetimeIndex(['2016-01-01 00:00:00-05:00'], dtype='datetime64[ns, US/Eastern]', freq=None)
+     # Index
+     In [7]: pd.Index([pd.Timestamp('20160101', tz='US/Eastern'),
+        ...:           pd.Timestamp('20160101', tz='US/Eastern')]).unique()
+     Out[7]: DatetimeIndex(['2016-01-01 00:00:00-05:00'], dtype='datetime64[ns, US/Eastern]', freq=None)
 
-   In [8]: pd.unique([pd.Timestamp('20160101', tz='US/Eastern'),
-      ...:            pd.Timestamp('20160101', tz='US/Eastern')])
-   Out[8]: array(['2016-01-01T05:00:00.000000000'], dtype='datetime64[ns]')
+     In [8]: pd.unique([pd.Timestamp('20160101', tz='US/Eastern'),
+        ...:            pd.Timestamp('20160101', tz='US/Eastern')])
+     Out[8]: array(['2016-01-01T05:00:00.000000000'], dtype='datetime64[ns]')
 
-New Behavior:
+  New Behavior:
 
-.. ipython:: python
+  .. ipython:: python
 
-   # Series, returns an array of Timestamp tz-aware
-   pd.Series([pd.Timestamp(r'20160101', tz=r'US/Eastern'),
-              pd.Timestamp(r'20160101', tz=r'US/Eastern')]).unique()
-   pd.unique(pd.Series([pd.Timestamp('20160101', tz='US/Eastern'),
-             pd.Timestamp('20160101', tz='US/Eastern')]))
+     # Series, returns an array of Timestamp tz-aware
+     pd.Series([pd.Timestamp(r'20160101', tz=r'US/Eastern'),
+                pd.Timestamp(r'20160101', tz=r'US/Eastern')]).unique()
+     pd.unique(pd.Series([pd.Timestamp('20160101', tz='US/Eastern'),
+               pd.Timestamp('20160101', tz='US/Eastern')]))
 
-   # Index, returns a DatetimeIndex
-   pd.Index([pd.Timestamp('20160101', tz='US/Eastern'),
-             pd.Timestamp('20160101', tz='US/Eastern')]).unique()
-   pd.unique(pd.Index([pd.Timestamp('20160101', tz='US/Eastern'),
-                       pd.Timestamp('20160101', tz='US/Eastern')]))
+     # Index, returns a DatetimeIndex
+     pd.Index([pd.Timestamp('20160101', tz='US/Eastern'),
+               pd.Timestamp('20160101', tz='US/Eastern')]).unique()
+     pd.unique(pd.Index([pd.Timestamp('20160101', tz='US/Eastern'),
+                         pd.Timestamp('20160101', tz='US/Eastern')]))
 
 - Categoricals
 
-Previous behaviour:
+  Previous behaviour:
 
-.. code-block:: ipython
+  .. code-block:: ipython
 
-   In [1]: pd.Series(list('baabc'), dtype='category').unique()
-   Out[1]:
-   [b, a, c]
-   Categories (3, object): [b, a, c]
+     In [1]: pd.Series(list('baabc'), dtype='category').unique()
+     Out[1]:
+     [b, a, c]
+     Categories (3, object): [b, a, c]
 
-   In [2]: pd.unique(pd.Series(list('baabc'), dtype='category'))
-   Out[2]: array(['b', 'a', 'c'], dtype=object)
+     In [2]: pd.unique(pd.Series(list('baabc'), dtype='category'))
+     Out[2]: array(['b', 'a', 'c'], dtype=object)
 
-New Behavior:
+  New Behavior:
 
-.. ipython:: python
+  .. ipython:: python
 
-   # returns a Categorical
-   pd.Series(list('baabc'), dtype='category').unique()
-   pd.unique(pd.Series(list('baabc'), dtype='category'))
+     # returns a Categorical
+     pd.Series(list('baabc'), dtype='category').unique()
+     pd.unique(pd.Series(list('baabc'), dtype='category'))
 
 .. _whatsnew_0200.api_breaking.s3:
 
@@ -1081,48 +1081,48 @@ joins, :meth:`DataFrame.join` and :func:`merge`, and the ``.align`` method.
 
   .. ipython:: python
 
-   left = pd.Index([2, 1, 0])
-   left
-   right = pd.Index([1, 2, 3])
-   right
+     left = pd.Index([2, 1, 0])
+     left
+     right = pd.Index([1, 2, 3])
+     right
 
   Previous Behavior:
 
   .. code-block:: ipython
 
-   In [4]: left.intersection(right)
-   Out[4]: Int64Index([1, 2], dtype='int64')
+     In [4]: left.intersection(right)
+     Out[4]: Int64Index([1, 2], dtype='int64')
 
   New Behavior:
 
   .. ipython:: python
 
-   left.intersection(right)
+     left.intersection(right)
 
 - ``DataFrame.join`` and ``pd.merge``
 
   .. ipython:: python
 
-   left = pd.DataFrame({'a': [20, 10, 0]}, index=[2, 1, 0])
-   left
-   right = pd.DataFrame({'b': [100, 200, 300]}, index=[1, 2, 3])
-   right
+     left = pd.DataFrame({'a': [20, 10, 0]}, index=[2, 1, 0])
+     left
+     right = pd.DataFrame({'b': [100, 200, 300]}, index=[1, 2, 3])
+     right
 
   Previous Behavior:
 
   .. code-block:: ipython
 
-   In [4]: left.join(right, how='inner')
-   Out[4]:
-      a    b
-   1  10  100
-   2  20  200
+     In [4]: left.join(right, how='inner')
+     Out[4]:
+        a    b
+     1  10  100
+     2  20  200
 
   New Behavior:
 
   .. ipython:: python
 
-   left.join(right, how='inner')
+     left.join(right, how='inner')
 
 .. _whatsnew_0200.api_breaking.pivot_table:
 
