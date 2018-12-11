@@ -1,3 +1,5 @@
+.. currentmodule:: pandas
+
 .. _api:
 
 {{ header }}
