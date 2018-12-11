@@ -32,11 +32,6 @@ matrix:
       - python: 3.5
 
     include:
-    # TODO remove, this is repeated just to see how faster is using multiple processes in travis
-    - dist: trusty
-      env:
-        - JOB="3.7" ENV_FILE="ci/deps/travis-37.yaml" PATTERN="not slow and not network" TESTS_JOBS="auto"
-
     - dist: trusty
       env:
         - JOB="3.7" ENV_FILE="ci/deps/travis-37.yaml" PATTERN="not slow and not network"

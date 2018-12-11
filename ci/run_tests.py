@@ -49,9 +49,9 @@ def pytest_command(pattern, coverage_file):
     if coverage_file:
         cmd += ['--cov=pandas', '--cov-report=xml:{}'.format(coverage_file)]
 
-    test_jobs = os.environ.get('TESTS_JOBS', 0)
-    if test_jobs:
-        cmd += ['-n', str(test_jobs), '--dist', 'loadfile']
+    test_jobs = os.environ.get('TESTS_JOBS', 'auto')
+    if test_jobs != '0':
+        cmd += ['-n', test_jobs, '--dist', 'loadfile']
 
     if os.environ.get('WARNINGS_ARE_ERRORS'):
         cmd += ['-W', 'error']
