@@ -19,10 +19,6 @@ from pandas.util.testing import (
     assert_almost_equal, assert_frame_equal, assert_index_equal,
     assert_series_equal)
 
-from pandas.tseries.offsets import BDay
-
-business_day_offset = BDay()
-
 # The various methods we support
 downsample_methods = ['min', 'max', 'first', 'last', 'sum', 'mean', 'sem',
                       'median', 'prod', 'var', 'std', 'ohlc', 'quantile']

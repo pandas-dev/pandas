@@ -18,14 +18,13 @@ from pandas.core.indexes.datetimes import date_range
 from pandas.core.indexes.period import Period, period_range
 from pandas.core.indexes.timedeltas import timedelta_range
 from pandas.core.resample import DatetimeIndex, TimeGrouper
-from pandas.tests.resample.test_base import (
-    Base, business_day_offset, downsample_methods)
+from pandas.tests.resample.test_base import Base, downsample_methods
 import pandas.util.testing as tm
 from pandas.util.testing import (
     assert_almost_equal, assert_frame_equal, assert_series_equal)
 
 import pandas.tseries.offsets as offsets
-from pandas.tseries.offsets import Minute
+from pandas.tseries.offsets import BDay, Minute
 
 
 class TestDatetimeIndex(Base):
@@ -431,6 +430,7 @@ class TestDatetimeIndex(Base):
 
         # to weekly
         result = ser.resample('w-sun').last()
+        business_day_offset = BDay()
         expected = ser.resample('w-sun', loffset=-business_day_offset).last()
         assert result.index[0] - business_day_offset == expected.index[0]
 
