@@ -563,3 +563,23 @@ z
             result = pd.read_csv(path, index_col=0,
                                  compression=read_compression)
             tm.assert_frame_equal(result, df)
+
+
+
+def test_csv_formatter_line_terminator_default(monkeypatch):
+    # see GH #23608
+    # ensure default line_terminator used is os.linesep
+    df = tm.makeDataFrame()
+
+    with monkeypatch.context() as m:
+        # fake default os.linesep to look like windows
+        m.setattr(os, 'linesep', '\r\n')
+        assert os.linesep == '\r\n'
+        # import within this context so it uses the patched os.linesep
+        from pandas.io.formats.csvs import CSVFormatter
+
+        formatter_with_argument = CSVFormatter(df, line_terminator='\r')
+        assert formatter_with_argument.line_terminator == '\r'
+
+        formatter_with_default = CSVFormatter(df)
+        assert formatter_with_default.line_terminator == os.linesep
