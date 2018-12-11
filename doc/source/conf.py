@@ -446,6 +446,7 @@ def sphinxdocstring_str(self, indent=0, func_role="obj"):
 
 SphinxDocString.__str__ = sphinxdocstring_str
 
+
 # Fix "WARNING: Inline strong start-string without end-string."
 # PR #155 "Escape the * in *args and **kwargs" from numpydoc
 # Can be removed after PR merges in v0.9.0
