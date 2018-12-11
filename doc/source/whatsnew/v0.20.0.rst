@@ -71,7 +71,7 @@ Here is a sample
 .. ipython:: python
 
    df = pd.DataFrame(np.random.randn(10, 3), columns=['A', 'B', 'C'],
-                    index=pd.date_range('1/1/2000', periods=10))
+                     index=pd.date_range('1/1/2000', periods=10))
    df.iloc[3:7] = np.nan
    df
 
@@ -95,7 +95,7 @@ per unique function. Those functions applied to a particular column will be ``Na
 
 .. ipython:: python
 
-   df.agg({'A' : ['sum', 'min'], 'B' : ['min', 'max']})
+   df.agg({'A': ['sum', 'min'], 'B': ['min', 'max']})
 
 The API also supports a ``.transform()`` function for broadcasting results.
 
@@ -136,7 +136,7 @@ fixed-width text files and :func:`read_excel` for parsing Excel files, now accep
 
    data = "a  b\n1  2\n3  4"
    pd.read_fwf(StringIO(data)).dtypes
-   pd.read_fwf(StringIO(data), dtype={'a':'float64', 'b':'object'}).dtypes
+   pd.read_fwf(StringIO(data), dtype={'a': 'float64', 'b': 'object'}).dtypes
 
 .. _whatsnew_0120.enhancements.datetime_origin:
 
@@ -194,13 +194,12 @@ Previously, only ``gzip`` compression was supported. By default, compression of
 URLs and paths are now inferred using their file extensions. Additionally,
 support for bz2 compression in the python 2 C-engine improved (:issue:`14874`).
 
-.. code-block:: python
+.. ipython:: python
 
-   url = 'https://github.com/{repo}/raw/{branch}/{path}'.format(
-       repo = 'pandas-dev/pandas',
-       branch = 'master',
-       path = 'pandas/tests/io/parser/data/salaries.csv.bz2',
-   )
+   url = (r'https://github.com/{repo}/raw/{branch}/{path}'
+          .format(repo='pandas-dev/pandas',
+                  branch='master',
+                  path='pandas/tests/io/parser/data/salaries.csv.bz2'))
    df = pd.read_table(url, compression='infer')  # default, infer compression
    df = pd.read_table(url, compression='bz2')  # explicitly specify compression
    df.head(2)
@@ -217,10 +216,9 @@ See :ref:`the docs here. <io.pickle.compression>`
 
 .. ipython:: python
 
-   df = pd.DataFrame({
-       'A': np.random.randn(1000),
-       'B': 'foo',
-       'C': pd.date_range('20130101', periods=1000, freq='s')})
+   df = pd.DataFrame({'A': np.random.randn(1000),
+                      'B': 'foo',
+                      'C': pd.date_range('20130101', periods=1000, freq='s')})
 
 Using an explicit compression type
 
@@ -319,8 +317,8 @@ the data.
    df = pd.DataFrame(
        {'A': [1, 2, 3],
         'B': ['a', 'b', 'c'],
-        'C': pd.date_range('2016-01-01', freq='d', periods=3),
-       }, index=pd.Index(range(3), name='idx'))
+        'C': pd.date_range('2016-01-01', freq='d', periods=3)},
+       index=pd.Index(range(3), name='idx'))
    df
    df.to_json(orient='table')
 
@@ -384,9 +382,9 @@ For example, after running the following, ``styled.xlsx`` renders as below:
                   axis=1)
    df.iloc[0, 2] = np.nan
    df
-   styled = df.style.\
-       applymap(lambda val: 'color: %s' % 'red' if val < 0 else 'black').\
-       highlight_max()
+   styled = (df.style
+             .applymap(lambda val: 'color: %s' % 'red' if val < 0 else 'black')
+             .highlight_max())
    styled.to_excel('styled.xlsx', engine='openpyxl')
 
 .. image:: ../_static/style-excel.png
@@ -449,8 +447,8 @@ An ``IntervalIndex`` can also be used in ``Series`` and ``DataFrame`` as the ind
 .. ipython:: python
 
    df = pd.DataFrame({'A': range(4),
-                      'B': pd.cut([0, 3, 1, 1], bins=c.categories)}
-                    ).set_index('B')
+                      'B': pd.cut([0, 3, 1, 1], bins=c.categories)
+                      }).set_index('B')
    df
 
 Selecting via a specific interval:
@@ -551,7 +549,7 @@ then write them out again after applying the procedure below.
 
 .. code-block:: ipython
 
-   In [2]: s = pd.TimeSeries([1,2,3], index=pd.date_range('20130101', periods=3))
+   In [2]: s = pd.TimeSeries([1, 2, 3], index=pd.date_range('20130101', periods=3))
 
    In [3]: s
    Out[3]:
@@ -585,9 +583,9 @@ Map on Index types now return other Index types
 
 .. ipython:: python
 
-   idx = Index([1, 2])
+   idx = pd.Index([1, 2])
    idx
-   mi = MultiIndex.from_tuples([(1, 2), (2, 4)])
+   mi = pd.MultiIndex.from_tuples([(1, 2), (2, 4)])
    mi
 
 Previous Behavior:
@@ -622,7 +620,8 @@ New Behavior:
 
 .. ipython:: python
 
-   s = Series(date_range('2011-01-02T00:00', '2011-01-02T02:00', freq='H').tz_localize('Asia/Tokyo'))
+   s = pd.Series(pd.date_range('2011-01-02T00:00', '2011-01-02T02:00', freq='H')
+                 .tz_localize('Asia/Tokyo'))
    s
 
 Previous Behavior:
@@ -684,65 +683,65 @@ data-types would yield different return types. These are now made consistent. (:
 
 - Datetime tz-aware
 
-  Previous behaviour:
+Previous behaviour:
 
   .. code-block:: ipython
 
-     # Series
-     In [5]: pd.Series([pd.Timestamp('20160101', tz='US/Eastern'),
-                        pd.Timestamp('20160101', tz='US/Eastern')]).unique()
-     Out[5]: array([Timestamp('2016-01-01 00:00:00-0500', tz='US/Eastern')], dtype=object)
+   # Series
+   In [5]: pd.Series([pd.Timestamp('20160101', tz='US/Eastern'),
+                     pd.Timestamp('20160101', tz='US/Eastern')]).unique()
+   Out[5]: array([Timestamp('2016-01-01 00:00:00-0500', tz='US/Eastern')], dtype=object)
 
-     In [6]: pd.unique(pd.Series([pd.Timestamp('20160101', tz='US/Eastern'),
-                                  pd.Timestamp('20160101', tz='US/Eastern')]))
-     Out[6]: array(['2016-01-01T05:00:00.000000000'], dtype='datetime64[ns]')
+   In [6]: pd.unique(pd.Series([pd.Timestamp('20160101', tz='US/Eastern'),
+                                 pd.Timestamp('20160101', tz='US/Eastern')]))
+   Out[6]: array(['2016-01-01T05:00:00.000000000'], dtype='datetime64[ns]')
 
-     # Index
-     In [7]: pd.Index([pd.Timestamp('20160101', tz='US/Eastern'),
-                       pd.Timestamp('20160101', tz='US/Eastern')]).unique()
-     Out[7]: DatetimeIndex(['2016-01-01 00:00:00-05:00'], dtype='datetime64[ns, US/Eastern]', freq=None)
+   # Index
+   In [7]: pd.Index([pd.Timestamp('20160101', tz='US/Eastern'),
+                     pd.Timestamp('20160101', tz='US/Eastern')]).unique()
+   Out[7]: DatetimeIndex(['2016-01-01 00:00:00-05:00'], dtype='datetime64[ns, US/Eastern]', freq=None)
 
-     In [8]: pd.unique([pd.Timestamp('20160101', tz='US/Eastern'),
-                        pd.Timestamp('20160101', tz='US/Eastern')])
-     Out[8]: array(['2016-01-01T05:00:00.000000000'], dtype='datetime64[ns]')
+   In [8]: pd.unique([pd.Timestamp('20160101', tz='US/Eastern'),
+                     pd.Timestamp('20160101', tz='US/Eastern')])
+   Out[8]: array(['2016-01-01T05:00:00.000000000'], dtype='datetime64[ns]')
 
-  New Behavior:
+New Behavior:
 
-  .. ipython:: python
+.. ipython:: python
 
-     # Series, returns an array of Timestamp tz-aware
-     pd.Series([pd.Timestamp('20160101', tz='US/Eastern'),
-               pd.Timestamp('20160101', tz='US/Eastern')]).unique()
-     pd.unique(pd.Series([pd.Timestamp('20160101', tz='US/Eastern'),
-                          pd.Timestamp('20160101', tz='US/Eastern')]))
+   # Series, returns an array of Timestamp tz-aware
+   pd.Series([pd.Timestamp(r'20160101', tz=r'US/Eastern'),
+              pd.Timestamp(r'20160101', tz=r'US/Eastern')]).unique()
+   pd.unique(pd.Series([pd.Timestamp('20160101', tz='US/Eastern'),
+             pd.Timestamp('20160101', tz='US/Eastern')]))
 
-     # Index, returns a DatetimeIndex
-     pd.Index([pd.Timestamp('20160101', tz='US/Eastern'),
-               pd.Timestamp('20160101', tz='US/Eastern')]).unique()
-     pd.unique(pd.Index([pd.Timestamp('20160101', tz='US/Eastern'),
-                         pd.Timestamp('20160101', tz='US/Eastern')]))
+   # Index, returns a DatetimeIndex
+   pd.Index([pd.Timestamp('20160101', tz='US/Eastern'),
+             pd.Timestamp('20160101', tz='US/Eastern')]).unique()
+   pd.unique(pd.Index([pd.Timestamp('20160101', tz='US/Eastern'),
+                       pd.Timestamp('20160101', tz='US/Eastern')]))
 
 - Categoricals
 
-  Previous behaviour:
+Previous behaviour:
 
   .. code-block:: ipython
 
-     In [1]: pd.Series(list('baabc'), dtype='category').unique()
-     Out[1]:
-     [b, a, c]
-     Categories (3, object): [b, a, c]
+   In [1]: pd.Series(list('baabc'), dtype='category').unique()
+   Out[1]:
+   [b, a, c]
+   Categories (3, object): [b, a, c]
 
-     In [2]: pd.unique(pd.Series(list('baabc'), dtype='category'))
-     Out[2]: array(['b', 'a', 'c'], dtype=object)
+   In [2]: pd.unique(pd.Series(list('baabc'), dtype='category'))
+   Out[2]: array(['b', 'a', 'c'], dtype=object)
 
-  New Behavior:
+New Behavior:
 
-  .. ipython:: python
+.. ipython:: python
 
-     # returns a Categorical
-     pd.Series(list('baabc'), dtype='category').unique()
-     pd.unique(pd.Series(list('baabc'), dtype='category'))
+   # returns a Categorical
+   pd.Series(list('baabc'), dtype='category').unique()
+   pd.unique(pd.Series(list('baabc'), dtype='category'))
 
 .. _whatsnew_0200.api_breaking.s3:
 
@@ -762,33 +761,33 @@ Partial String Indexing Changes
 
 .. ipython:: python
 
-  df = DataFrame({'a': [1, 2, 3]}, DatetimeIndex(['2011-12-31 23:59:59',
-                                                  '2012-01-01 00:00:00',
-                                                  '2012-01-01 00:00:01']))
+   df = pd.DataFrame({'a': [1, 2, 3]}, pd.DatetimeIndex(['2011-12-31 23:59:59',
+                                                         '2012-01-01 00:00:00',
+                                                         '2012-01-01 00:00:01']))
 Previous Behavior:
 
-.. code-block:: ipython
+  .. code-block:: ipython
 
-  In [4]: df['2011-12-31 23:59:59']
-  Out[4]:
-                         a
-  2011-12-31 23:59:59  1
+   In [4]: df['2011-12-31 23:59:59']
+   Out[4]:
+                          a
+   2011-12-31 23:59:59  1
 
-  In [5]: df['a']['2011-12-31 23:59:59']
-  Out[5]:
-  2011-12-31 23:59:59    1
-  Name: a, dtype: int64
+   In [5]: df['a']['2011-12-31 23:59:59']
+   Out[5]:
+   2011-12-31 23:59:59    1
+   Name: a, dtype: int64
 
 
 New Behavior:
 
-.. code-block:: ipython
+  .. code-block:: ipython
 
-  In [4]: df['2011-12-31 23:59:59']
-  KeyError: '2011-12-31 23:59:59'
+   In [4]: df['2011-12-31 23:59:59']
+   KeyError: '2011-12-31 23:59:59'
 
-  In [5]: df['a']['2011-12-31 23:59:59']
-  Out[5]: 1
+   In [5]: df['a']['2011-12-31 23:59:59']
+   Out[5]: 1
 
 .. _whatsnew_0200.api_breaking.concat_dtypes:
 
@@ -808,7 +807,7 @@ Now the smallest acceptable dtype will be used (:issue:`13247`)
 
 Previous Behavior:
 
-.. code-block:: ipython
+  .. code-block:: ipython
 
    In [7]: pd.concat([df1, df2]).dtypes
    Out[7]:
@@ -839,7 +838,7 @@ In previous versions, showing ``.memory_usage()`` on a pandas structure that has
 
 Previous Behavior:
 
-.. code-block:: ipython
+  .. code-block:: ipython
 
    In [8]: index = Index(['foo', 'bar', 'baz'])
 
@@ -854,7 +853,7 @@ Previous Behavior:
 
 New Behavior:
 
-.. code-block:: ipython
+  .. code-block:: ipython
 
    In [8]: index = Index(['foo', 'bar', 'baz'])
 
@@ -879,39 +878,39 @@ This is *unchanged* from prior versions, but shown for illustration purposes:
 
 .. ipython:: python
 
-    df = DataFrame(np.arange(6), columns=['value'], index=MultiIndex.from_product([list('BA'), range(3)]))
-    df
+   df = pd.DataFrame(np.arange(6), columns=['value'],
+                     index=pd.MultiIndex.from_product([list('BA'), range(3)]))
+   df
 
 .. ipython:: python
 
-    df.index.is_lexsorted()
-    df.index.is_monotonic
+   df.index.is_lexsorted()
+   df.index.is_monotonic
 
 Sorting works as expected
 
 .. ipython:: python
 
-    df.sort_index()
+   df.sort_index()
 
 .. ipython:: python
 
-    df.sort_index().index.is_lexsorted()
-    df.sort_index().index.is_monotonic
+   df.sort_index().index.is_lexsorted()
+   df.sort_index().index.is_monotonic
 
 However, this example, which has a non-monotonic 2nd level,
 doesn't behave as desired.
 
 .. ipython:: python
 
-   df = pd.DataFrame(
-           {'value': [1, 2, 3, 4]},
-            index=pd.MultiIndex([['a', 'b'], ['bb', 'aa']],
-                                [[0, 0, 1, 1], [0, 1, 0, 1]]))
+   df = pd.DataFrame({'value': [1, 2, 3, 4]},
+                     index=pd.MultiIndex([['a', 'b'], ['bb', 'aa']],
+                                         [[0, 0, 1, 1], [0, 1, 0, 1]]))
    df
 
 Previous Behavior:
 
-.. code-block:: python
+  .. code-block:: python
 
    In [11]: df.sort_index()
    Out[11]:
@@ -946,7 +945,7 @@ This format is consistent with ``groupby.agg()`` when applying multiple function
 
 Previous Behavior:
 
-.. code-block:: ipython
+  .. code-block:: ipython
 
    In [1]: df = pd.DataFrame({'A': [1, 1, 2, 2], 'B': [1, 2, 3, 4]})
 
@@ -1011,7 +1010,7 @@ See the section on :ref:`Windowed Binary Operations <stats.moments.binary>` for 
 
 Previous Behavior:
 
-.. code-block:: ipython
+  .. code-block:: ipython
 
    In [2]: df.rolling(12).corr()
    Out[2]:
@@ -1034,7 +1033,7 @@ Retrieving a correlation matrix for a cross-section
 
    df.rolling(12).corr().loc['2016-04-07']
 
-.. _whatsnew_0200.api_breaking.hdfstore_where:
+  .. _whatsnew_0200.api_breaking.hdfstore_where:
 
 HDFStore where string comparison
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -1051,7 +1050,7 @@ usually resulting in an invalid comparison, returning an empty result frame. The
 
 Previous Behavior:
 
-.. code-block:: ipython
+  .. code-block:: ipython
 
    In [4]: pd.read_hdf('store.h5', 'key', where='unparsed_date > ts')
    File "<string>", line 1
@@ -1061,7 +1060,7 @@ Previous Behavior:
 
 New Behavior:
 
-.. code-block:: ipython
+  .. code-block:: ipython
 
    In [18]: ts = pd.Timestamp('2014-01-01')
 
@@ -1086,50 +1085,50 @@ joins, :meth:`DataFrame.join` and :func:`merge`, and the ``.align`` method.
 
 - ``Index.intersection``
 
-  .. ipython:: python
+.. ipython:: python
 
-     left = pd.Index([2, 1, 0])
-     left
-     right = pd.Index([1, 2, 3])
-     right
+   left = pd.Index([2, 1, 0])
+   left
+   right = pd.Index([1, 2, 3])
+   right
 
-  Previous Behavior:
+Previous Behavior:
 
   .. code-block:: ipython
 
-     In [4]: left.intersection(right)
-     Out[4]: Int64Index([1, 2], dtype='int64')
+   In [4]: left.intersection(right)
+   Out[4]: Int64Index([1, 2], dtype='int64')
 
-  New Behavior:
+New Behavior:
 
-  .. ipython:: python
+.. ipython:: python
 
-     left.intersection(right)
+   left.intersection(right)
 
 - ``DataFrame.join`` and ``pd.merge``
 
-  .. ipython:: python
+.. ipython:: python
 
-     left = pd.DataFrame({'a': [20, 10, 0]}, index=[2, 1, 0])
-     left
-     right = pd.DataFrame({'b': [100, 200, 300]}, index=[1, 2, 3])
-     right
+   left = pd.DataFrame({'a': [20, 10, 0]}, index=[2, 1, 0])
+   left
+   right = pd.DataFrame({'b': [100, 200, 300]}, index=[1, 2, 3])
+   right
 
   Previous Behavior:
 
   .. code-block:: ipython
 
-     In [4]: left.join(right, how='inner')
-     Out[4]:
-         a    b
-     1  10  100
-     2  20  200
+   In [4]: left.join(right, how='inner')
+   Out[4]:
+      a    b
+   1  10  100
+   2  20  200
 
-  New Behavior:
+New Behavior:
 
-  .. ipython:: python
+.. ipython:: python
 
-     left.join(right, how='inner')
+   left.join(right, how='inner')
 
 .. _whatsnew_0200.api_breaking.pivot_table:
 
@@ -1141,14 +1140,14 @@ is fixed that allowed this to return a ``Series`` under certain circumstance. (:
 
 .. ipython:: python
 
-   df = DataFrame({'col1': [3, 4, 5],
-                   'col2': ['C', 'D', 'E'],
-                   'col3': [1, 3, 9]})
+   df = pd.DataFrame({'col1': [3, 4, 5],
+                      'col2': ['C', 'D', 'E'],
+                      'col3': [1, 3, 9]})
    df
 
 Previous Behavior:
 
-.. code-block:: ipython
+  .. code-block:: ipython
 
    In [2]: df.pivot_table('col1', index=['col3', 'col2'], aggfunc=np.sum)
    Out[2]:
@@ -1264,7 +1263,7 @@ will be removed from the ``*.common`` locations in a future release. (:issue:`15
 
 The following are now part of this API:
 
-.. code-block:: python
+  .. code-block:: python
 
    ['DtypeWarning',
     'EmptyDataError',
@@ -1338,25 +1337,25 @@ Using ``.ix`` will now show a ``DeprecationWarning`` with a link to some example
 
 Previous Behavior, where you wish to get the 0th and the 2nd elements from the index in the 'A' column.
 
-.. code-block:: ipython
+  .. code-block:: ipython
 
-  In [3]: df.ix[[0, 2], 'A']
-  Out[3]:
-  a    1
-  c    3
-  Name: A, dtype: int64
+   In [3]: df.ix[[0, 2], 'A']
+   Out[3]:
+   a    1
+   c    3
+   Name: A, dtype: int64
 
 Using ``.loc``. Here we will select the appropriate indexes from the index, then use *label* indexing.
 
 .. ipython:: python
 
-  df.loc[df.index[[0, 2]], 'A']
+   df.loc[df.index[[0, 2]], 'A']
 
 Using ``.iloc``. Here we will get the location of the 'A' column, then use *positional* indexing to select things.
 
 .. ipython:: python
 
-  df.iloc[[0, 2], df.columns.get_loc('A')]
+   df.iloc[[0, 2], df.columns.get_loc('A')]
 
 
 .. _whatsnew_0200.api_breaking.deprecate_panel:
@@ -1408,10 +1407,10 @@ This is an illustrative example:
 
 .. ipython:: python
 
-    df = pd.DataFrame({'A': [1, 1, 1, 2, 2],
-                       'B': range(5),
-                       'C': range(5)})
-    df
+   df = pd.DataFrame({'A': [1, 1, 1, 2, 2],
+                      'B': range(5),
+                      'C': range(5)})
+   df
 
 Here is a typical useful syntax for computing different aggregations for different columns. This
 is a natural, and useful syntax. We aggregate from the dict-to-list by taking the specified
@@ -1424,7 +1423,7 @@ columns and applying the list of functions. This returns a ``MultiIndex`` for th
 Here's an example of the first deprecation, passing a dict to a grouped ``Series``. This
 is a combination aggregation & renaming:
 
-.. code-block:: ipython
+  .. code-block:: ipython
 
    In [6]: df.groupby('A').B.agg({'foo': 'count'})
    FutureWarning: using a dict on a Series for aggregation
@@ -1445,7 +1444,7 @@ You can accomplish the same operation, more idiomatically by:
 
 Here's an example of the second deprecation, passing a dict-of-dict to a grouped ``DataFrame``:
 
-.. code-block:: python
+  .. code-block:: python
 
    In [23]: (df.groupby('A')
                .agg({'B': {'foo': 'sum'}, 'C': {'bar': 'min'}})
@@ -1468,7 +1467,7 @@ You can accomplish nearly the same by:
    (df.groupby('A')
       .agg({'B': 'sum', 'C': 'min'})
       .rename(columns={'B': 'foo', 'C': 'bar'})
-   )
+    )
 
 
 
@@ -1485,16 +1484,16 @@ Users can import these from ``pandas.plotting`` as well.
 
 Previous script:
 
-.. code-block:: python
+  .. code-block:: python
 
    pd.tools.plotting.scatter_matrix(df)
    pd.scatter_matrix(df)
 
 Should be changed to:
 
-.. code-block:: python
+  .. code-block:: python
 
-    pd.plotting.scatter_matrix(df)
+   pd.plotting.scatter_matrix(df)
 
 
 

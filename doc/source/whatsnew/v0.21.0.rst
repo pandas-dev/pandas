@@ -97,14 +97,14 @@ attribute on the ``DataFrame``:
 
 .. code-block:: ipython
 
-   In[1]: df = pd.DataFrame({'one': [1., 2., 3.]})
-   In[2]: df.two = [4, 5, 6]
+   In [1]: df = pd.DataFrame({'one': [1., 2., 3.]})
+   In [2]: df.two = [4, 5, 6]
 
 This does not raise any obvious exceptions, but also does not create a new column:
 
 .. code-block:: ipython
 
-   In[3]: df
+   In [3]: df
    Out[3]:
        one
    0  1.0
@@ -126,7 +126,7 @@ For example:
 
 .. ipython:: python
 
-    df = pd.DataFrame(np.arange(8).reshape(2,4),
+    df = pd.DataFrame(np.arange(8).reshape(2, 4),
                       columns=['A', 'B', 'C', 'D'])
     df
     df.drop(['B', 'C'], axis=1)
@@ -244,8 +244,9 @@ First we set the data:
    import numpy as np
    n = 1000
    df = pd.DataFrame({'Store': np.random.choice(['Store_1', 'Store_2'], n),
-                      'Product': np.random.choice(['Product_1', 'Product_2', 'Product_3'], n),
-                      'Revenue': (np.random.random(n)*50+10).round(2),
+                      'Product': np.random.choice(['Product_1',
+                                                   'Product_2', 'Product_3'], n),
+                      'Revenue': (np.random.random(n) * 50 + 10).round(2),
                       'Quantity': np.random.randint(1, 10, size=n)})
    df.head(2)
 
@@ -254,7 +255,7 @@ Now, to find prices per store/product, we can simply do:
 .. ipython:: python
 
    (df.groupby(['Store', 'Product'])
-      .pipe(lambda grp: grp.Revenue.sum()/grp.Quantity.sum())
+      .pipe(lambda grp: grp.Revenue.sum() / grp.Quantity.sum())
       .unstack().round(2))
 
 See the :ref:`documentation <groupby.pipe>` for more.
@@ -393,7 +394,7 @@ Calling ``sum`` or ``prod`` on an empty or all-``NaN`` ``Series``, or columns of
 
 .. ipython:: python
 
-   s = Series([np.nan])
+   s = pd.Series([np.nan])
 
 Previously WITHOUT ``bottleneck`` installed:
 
@@ -531,7 +532,7 @@ Furthermore this will now correctly box the results of iteration for :func:`Data
 
 .. ipython:: python
 
-   d = {'a':[1], 'b':['b']}
+   d = {'a': [1], 'b': ['b']}
    df = pd.DataFrame(d)
 
 Previously:
@@ -589,7 +590,7 @@ Previously Behavior:
 
 .. ipython:: python
 
-    s = pd.Series([1,2,3], index=['a', 'b', 'c'])
+    s = pd.Series([1, 2, 3], index=['a', 'b', 'c'])
     s
 
 .. code-block:: ipython
@@ -736,7 +737,7 @@ Previously assignments, ``.where()`` and ``.fillna()`` with a ``bool`` assignmen
 
 .. ipython:: python
 
-   s = Series([1, 2, 3])
+   s = pd.Series([1, 2, 3])
 
 .. code-block:: python
 
@@ -819,7 +820,7 @@ Previous Behavior
 
 .. ipython:: python
 
-   s = Series(['20130101 00:00:00'] * 3)
+   s = pd.Series(['20130101 00:00:00'] * 3)
 
 .. code-block:: ipython
 
@@ -966,7 +967,7 @@ The :meth:`Series.select` and :meth:`DataFrame.select` methods are deprecated in
 
 .. ipython:: python
 
-   df = DataFrame({'A': [1, 2, 3]}, index=['foo', 'bar', 'baz'])
+   df = pd.DataFrame({'A': [1, 2, 3]}, index=['foo', 'bar', 'baz'])
 
 .. code-block:: ipython
 
