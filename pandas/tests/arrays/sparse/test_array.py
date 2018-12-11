@@ -263,6 +263,7 @@ class TestSparseArray(object):
         tm.assert_sp_array_equal(self.arr.take([-4, -3, -2]), exp)
 
     def test_shift_fill_value(self):
+        # GH #24128
         sparse = SparseArray(np.array([1, 0, 0, 3, 0]))
         res = sparse.shift(1, fill_value=0)
         exp = SparseArray(np.array([0, 1, 0, 0, 3]))
