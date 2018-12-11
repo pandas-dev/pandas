@@ -109,7 +109,7 @@ def test_read_gbq_without_dialect_warns_future_change(monkeypatch):
         pd.read_gbq("SELECT 1")
 
 
-@pytest.mark.single
+@pytest.mark.serial
 class TestToGBQIntegrationWithServiceAccountKeyPath(object):
 
     @classmethod
