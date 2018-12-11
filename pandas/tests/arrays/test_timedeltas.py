@@ -13,8 +13,6 @@ class TestTimedeltaArray(object):
         msg = r"Only timedelta64\[ns\] dtype is valid"
         with pytest.raises(ValueError, match=msg):
             TimedeltaArray._from_sequence([], dtype=object)
-        with pytest.raises(ValueError, match=msg):
-            TimedeltaArray([], dtype=object)
 
     def test_abs(self):
         vals = np.array([-3600 * 10**9, 'NaT', 7200 * 10**9], dtype='m8[ns]')

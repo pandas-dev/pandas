@@ -92,7 +92,7 @@ def _td_array_cmp(cls, op):
 
         else:
             try:
-                other = type(self)(other)._data
+                other = type(self)._from_sequence(other)._data
             except (ValueError, TypeError):
                 return ops.invalid_comparison(self, other, op)
 
@@ -148,8 +148,10 @@ class TimedeltaArrayMixin(dtl.DatetimeLikeArrayMixin, dtl.TimelikeOps):
                 freq = values.freq
             elif freq and values.freq:
                 freq = to_offset(freq)
-                freq = dtl.validate_inferred_freq(freq, values.freq,
-                                                  freq_infer=False)
+                freq, freq_infer = dtl.validate_inferred_freq(
+                    freq, values.freq,
+                    freq_infer=False
+                )
             values = values._data
 
         assert isinstance(values, np.ndarray), type(values)
