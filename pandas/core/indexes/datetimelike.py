@@ -150,7 +150,7 @@ class DatetimeIndexOpsMixin(DatetimeLikeArrayMixin):
         from pandas.core.index import Index
         return Index(self._box_values(self.asi8), name=self.name, dtype=object)
 
-    @Appender(_index_shared_docs['__contains__'] % _index_doc_kwargs)
+    @Appender(_index_shared_docs['contains'] % _index_doc_kwargs)
     def __contains__(self, key):
         try:
             res = self.get_loc(key)

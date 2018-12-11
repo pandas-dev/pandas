@@ -3,7 +3,13 @@
 v.0.6.0 (November 25, 2011)
 ---------------------------
 
-{{ common_imports }}
+{{ header }}
+
+.. ipython:: python
+   :suppress:
+
+   from pandas import * # noqa F401, F403
+
 
 New Features
 ~~~~~~~~~~~~

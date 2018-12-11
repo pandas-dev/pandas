@@ -1,12 +1,6 @@
 .. _options:
 
-.. currentmodule:: pandas
-
-.. ipython:: python
-   :suppress:
-
-   import numpy as np
-   np.random.seed(123456)
+{{ header }}
 
 ********************
 Options and Settings

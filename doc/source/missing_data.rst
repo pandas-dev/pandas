@@ -1,13 +1,6 @@
-.. currentmodule:: pandas
-
-.. ipython:: python
-   :suppress:
-
-   import numpy as np
-   import pandas as pd
-   pd.options.display.max_rows = 15
-
 .. _missing_data:
+
+{{ header }}
 
 *************************
 Working with missing data

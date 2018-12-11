@@ -1,18 +1,11 @@
 .. _release:
 
-.. currentmodule:: pandas
+{{ header }}
 
 .. ipython:: python
    :suppress:
 
-   import pandas as pd
-   import numpy as np
-   np.random.seed(123456)
-   np.set_printoptions(precision=4, suppress=True)
-   import matplotlib.pyplot as plt
-   plt.close('all')
-
-   pd.options.display.max_rows = 15
+   import pandas.util.testing as tm
 
 *************
 Release Notes
