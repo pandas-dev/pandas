@@ -82,7 +82,7 @@ def _field_accessor(name, field, docstring=None):
         return result
 
     f.__name__ = name
-    f.__doc__ = "{}".format(docstring)
+    f.__doc__ = "\n{}\n".format(docstring)
     return property(f)
 
 
