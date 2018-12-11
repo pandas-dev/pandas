@@ -207,7 +207,9 @@ class TimedeltaIndex(TimedeltaArray, DatetimeIndexOpsMixin,
     # -------------------------------------------------------------------
 
     def __setstate__(self, state):
-        """Necessary for making this object picklable"""
+        """
+		Necessary for making this object picklable
+		"""
         if isinstance(state, dict):
             super(TimedeltaIndex, self).__setstate__(state)
         else:
@@ -215,7 +217,9 @@ class TimedeltaIndex(TimedeltaArray, DatetimeIndexOpsMixin,
     _unpickle_compat = __setstate__
 
     def _maybe_update_attributes(self, attrs):
-        """ Update Index attributes (e.g. freq) depending on op """
+        """
+		Update Index attributes (e.g. freq) depending on op
+		"""
         freq = attrs.get('freq', None)
         if freq is not None:
             # no need to infer if freq is None
@@ -543,7 +547,6 @@ class TimedeltaIndex(TimedeltaArray, DatetimeIndexOpsMixin,
         Returns
         -------
         label :  object
-
         """
         assert kind in ['ix', 'loc', 'getitem', None]
 

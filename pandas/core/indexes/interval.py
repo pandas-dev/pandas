@@ -1,4 +1,6 @@
-""" define the IntervalIndex """
+"""
+define the IntervalIndex
+"""
 import textwrap
 import warnings
 
@@ -225,7 +227,9 @@ class IntervalIndex(IntervalMixin, Index):
 
     @cache_readonly
     def _isnan(self):
-        """Return a mask indicating if each value is NA"""
+        """
+		Return a mask indicating if each value is NA
+		"""
         if self._mask is None:
             self._mask = isna(self.left)
         return self._mask
@@ -381,7 +385,9 @@ class IntervalIndex(IntervalMixin, Index):
         return np.array(self._data)
 
     def __array__(self, result=None):
-        """ the array interface, return my values """
+        """
+		the array interface, return my values
+		"""
         return self._ndarray_values
 
     def __array_wrap__(self, result, context=None):
@@ -413,12 +419,16 @@ class IntervalIndex(IntervalMixin, Index):
 
     @cache_readonly
     def dtype(self):
-        """Return the dtype object of the underlying data"""
+        """
+		Return the dtype object of the underlying data
+		"""
         return self._data.dtype
 
     @property
     def inferred_type(self):
-        """Return a string of the type inferred from the values"""
+        """
+		Return a string of the type inferred from the values
+		"""
         return 'interval'
 
     @Appender(Index.memory_usage.__doc__)
@@ -718,7 +728,8 @@ class IntervalIndex(IntervalMixin, Index):
         return start, stop
 
     def get_loc(self, key, method=None):
-        """Get integer location, slice or boolean mask for requested label.
+        """
+		Get integer location, slice or boolean mask for requested label.
 
         Parameters
         ----------
@@ -1014,7 +1025,9 @@ class IntervalIndex(IntervalMixin, Index):
         return header + list(self._format_native_types(**kwargs))
 
     def _format_native_types(self, na_rep='', quoting=None, **kwargs):
-        """ actually format my specific types """
+        """
+		actually format my specific types
+		"""
         from pandas.io.formats.format import IntervalArrayFormatter
         return IntervalArrayFormatter(values=self,
                                       na_rep=na_rep,
@@ -1140,7 +1153,9 @@ IntervalIndex._add_logical_methods_disabled()
 
 
 def _is_valid_endpoint(endpoint):
-    """helper for interval_range to check if start/end are valid types"""
+    """
+	helper for interval_range to check if start/end are valid types
+	"""
     return any([is_number(endpoint),
                 isinstance(endpoint, Timestamp),
                 isinstance(endpoint, Timedelta),
@@ -1148,7 +1163,9 @@ def _is_valid_endpoint(endpoint):
 
 
 def _is_type_compatible(a, b):
-    """helper for interval_range to check type compat of start/end/freq"""
+    """
+	helper for interval_range to check type compat of start/end/freq
+	"""
     is_ts_compat = lambda x: isinstance(x, (Timestamp, DateOffset))
     is_td_compat = lambda x: isinstance(x, (Timedelta, DateOffset))
     return ((is_number(a) and is_number(b)) or
