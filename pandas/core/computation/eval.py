@@ -227,6 +227,9 @@ def eval(expr, parser='pandas', engine=None, truediv=True,
         numeric.
         If any term is a Dataframe or Series, alignment is already done
         automatically.
+    str_as_bytes : bool, default False
+        Whether to interpret string literals in `expr` as bytes.
+        
 
     Returns
     -------
