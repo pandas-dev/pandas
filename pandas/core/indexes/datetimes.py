@@ -42,8 +42,10 @@ from pandas.tseries.offsets import CDay, prefix_mapping
 
 
 def _new_DatetimeIndex(cls, d):
-    """ This is called upon unpickling, rather than the default which doesn't
-    have arguments and breaks __new__ """
+    """
+	This is called upon unpickling, rather than the default which doesn't
+    have arguments and breaks __new__
+	"""
 
     # data are already in UTC
     # so need to localize
@@ -397,7 +399,9 @@ class DatetimeIndex(DatetimeArray, DatetimeIndexOpsMixin, Int64Index):
 
     @cache_readonly
     def _is_dates_only(self):
-        """Return a boolean if we are only dates (and don't have a timezone)"""
+        """
+		Return a boolean if we are only dates (and don't have a timezone)
+		"""
         from pandas.io.formats.format import _is_dates_only
         return _is_dates_only(self.values) and self.tz is None
 
@@ -411,7 +415,9 @@ class DatetimeIndex(DatetimeArray, DatetimeIndexOpsMixin, Int64Index):
         return _new_DatetimeIndex, (self.__class__, d), None
 
     def __setstate__(self, state):
-        """Necessary for making this object picklable"""
+        """
+		Necessary for making this object picklable
+		"""
         if isinstance(state, dict):
             super(DatetimeIndex, self).__setstate__(state)
 
@@ -439,13 +445,17 @@ class DatetimeIndex(DatetimeArray, DatetimeIndexOpsMixin, Int64Index):
     _unpickle_compat = __setstate__
 
     def _convert_for_op(self, value):
-        """ Convert value to be insertable to ndarray """
+        """
+		Convert value to be insertable to ndarray
+		"""
         if self._has_same_tz(value):
             return _to_m8(value)
         raise ValueError('Passed item and index have different timezone')
 
     def _maybe_update_attributes(self, attrs):
-        """ Update Index attributes (e.g. freq) depending on op """
+        """
+		Update Index attributes (e.g. freq) depending on op
+		"""
         freq = attrs.get('freq', None)
         if freq is not None:
             # no need to infer if freq is None
