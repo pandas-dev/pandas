@@ -565,7 +565,6 @@ z
             tm.assert_frame_equal(result, df)
 
 
-
 def test_csv_formatter_line_terminator_default(monkeypatch):
     # see GH #23608
     # ensure default line_terminator used is os.linesep
