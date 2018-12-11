@@ -484,28 +484,6 @@ class DatetimeArrayMixin(dtl.DatetimeLikeArrayMixin,
         """
         return timezones.get_timezone(self.tzinfo)
 
-    @property
-    def offset(self):
-        """
-        get/set the frequency of the instance
-        """
-        msg = ('{cls}.offset has been deprecated and will be removed '
-               'in a future version; use {cls}.freq instead.'
-               .format(cls=type(self).__name__))
-        warnings.warn(msg, FutureWarning, stacklevel=2)
-        return self.freq
-
-    @offset.setter
-    def offset(self, value):
-        """
-        get/set the frequency of the instance
-        """
-        msg = ('{cls}.offset has been deprecated and will be removed '
-               'in a future version; use {cls}.freq instead.'
-               .format(cls=type(self).__name__))
-        warnings.warn(msg, FutureWarning, stacklevel=2)
-        self.freq = value
-
     @property  # NB: override with cache_readonly in immutable subclasses
     def is_normalized(self):
         """
