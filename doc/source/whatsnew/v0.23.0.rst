@@ -337,7 +337,7 @@ outside the existing valid values while preserving those inside.  (:issue:`16284
 .. ipython:: python
 
    ser = pd.Series([np.nan, np.nan, 5, np.nan, np.nan,
-                   np.nan, 13, np.nan, np.nan])
+                    np.nan, 13, np.nan, np.nan])
    ser
 
 Fill one consecutive inside value in both directions
