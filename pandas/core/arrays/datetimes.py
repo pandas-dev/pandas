@@ -179,6 +179,8 @@ class DatetimeArrayMixin(dtl.DatetimeLikeArrayMixin,
     """
     Pandas ExtensionArray for tz-naive or tz-aware datetime data.
 
+    .. versionadded:: 0.24.0
+
     Parameters
     ----------
     values : Series, Index, DatetimeArray, ndarray
