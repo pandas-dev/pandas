@@ -297,7 +297,7 @@ class TimedeltaIndex(DatetimeIndexOpsMixin,
         if isinstance(other, Index):
             # TimedeltaArray defers, so we need to unwrap
             oth = other._values
-        result = self._data(oth)
+        result = self._data.__rtruediv__(oth)
         return wrap_arithmetic_op(self, other, result)
 
     if compat.PY2:
@@ -706,7 +706,6 @@ class TimedeltaIndex(DatetimeIndexOpsMixin,
 
 
 TimedeltaIndex._add_comparison_ops()
-TimedeltaIndex._add_numeric_methods()
 TimedeltaIndex._add_numeric_methods_unary()
 TimedeltaIndex._add_logical_methods_disabled()
 TimedeltaIndex._add_datetimelike_methods()

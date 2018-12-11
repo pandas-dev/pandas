@@ -1611,10 +1611,6 @@ class TestTimestampSeriesArithmetic(object):
     @pytest.mark.parametrize('op', ['__add__', '__radd__',
                                     '__sub__', '__rsub__'])
     @pytest.mark.parametrize('tz', [None, 'Asia/Tokyo'])
-    # TODO: What do we want here? We've deprecated adding integers to
-    # DatetimeIndex. ATM, my branch is has the same behavior for
-    # DatetimeArray. But Series expects us to raise. Messy, messy.
-    @pytest.mark.xfail(reason="TODO-ops", strict=False)
     def test_dt64_series_add_intlike(self, tz, op):
         # GH#19123
         dti = pd.DatetimeIndex(['2016-01-02', '2016-02-03', 'NaT'], tz=tz)

@@ -1124,7 +1124,6 @@ class TestTimedeltaArraylikeMulDivOps(object):
     # ------------------------------------------------------------------
     # __div__, __rdiv__
 
-    @pytest.mark.xfail(reason="TODO-ops", strict=False)
     def test_td64arr_div_nat_invalid(self, box_with_array):
         # don't allow division by NaT (maybe could in the future)
         rng = timedelta_range('1 days', '10 days', name='foo')
@@ -1135,7 +1134,6 @@ class TestTimedeltaArraylikeMulDivOps(object):
         with pytest.raises(TypeError, match='Cannot divide NaTType by'):
             pd.NaT / rng
 
-    @pytest.mark.xfail(reason="TODO-ops", strict=False)
     def test_td64arr_div_td64nat(self, box_with_array):
         # GH#23829
         rng = timedelta_range('1 days', '10 days',)
@@ -1152,7 +1150,6 @@ class TestTimedeltaArraylikeMulDivOps(object):
         result = other / rng
         tm.assert_equal(result, expected)
 
-    @pytest.mark.xfail(reason="TODO-ops", strict=False)
     def test_td64arr_div_int(self, box_with_array):
         idx = TimedeltaIndex(np.arange(5, dtype='int64'))
         idx = tm.box_expected(idx, box_with_array)
@@ -1194,7 +1191,6 @@ class TestTimedeltaArraylikeMulDivOps(object):
         expected = 1 / expected
         tm.assert_equal(result, expected)
 
-    @pytest.mark.xfail(reason="TODO-ops", strict=False)
     def test_td64arr_div_td64_ndarray(self, box_with_array):
         # GH#22631
         rng = TimedeltaIndex(['1 days', pd.NaT, '2 days'])
@@ -1230,7 +1226,6 @@ class TestTimedeltaArraylikeMulDivOps(object):
         result = list(other) / rng
         tm.assert_equal(result, expected)
 
-    @pytest.mark.xfail(reason="TODO-ops", strict=False)
     def test_tdarr_div_length_mismatch(self, box_with_array):
         rng = TimedeltaIndex(['1 days', pd.NaT, '2 days'])
         mismatched = [1, 2, 3, 4]
@@ -1355,7 +1350,6 @@ class TestTimedeltaArraylikeMulDivOps(object):
         tm.assert_equal(result[1], expected)
         tm.assert_equal(result[0], tdarr // three_days)
 
-    @pytest.mark.xfail(reason="TODO-ops", strict=False)
     def test_td64arr_mod_int(self, box_with_array):
         tdi = timedelta_range('1 ns', '10 ns', periods=10)
         tdarr = tm.box_expected(tdi, box_with_array)
@@ -1455,7 +1449,6 @@ class TestTimedeltaArraylikeMulDivOps(object):
         tm.assert_equal(result, expected)
 
     @pytest.mark.parametrize('two', [2, 2.0, np.array(2), np.array(2.0)])
-    @pytest.mark.xfail(reason="TODO-ops", strict=False)
     def test_td64arr_div_numeric_scalar(self, box_with_array, two):
         # GH#4521
         # divide/multiply by integers
@@ -1505,7 +1498,6 @@ class TestTimedeltaArraylikeMulDivOps(object):
                                         pd.Index([20, 30, 40]),
                                         Series([20, 30, 40])],
                              ids=lambda x: type(x).__name__)
-    @pytest.mark.xfail(reason="TODO-ops", strict=False)
     def test_td64arr_div_numeric_array(self, box_with_array, vector, dtype):
         # GH#4521
         # divide/multiply by integers
