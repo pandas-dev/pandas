@@ -15,14 +15,13 @@ Usage::
 """
 
 import argparse
+import docutils.nodes
 from fnmatch import fnmatch
 import json
 import os
 import pickle
 import re
 import sys
-
-import docutils.nodes
 
 BASE_DIR = os.path.join(os.path.dirname(__file__), '..', 'doc')
 DOCUMENTATION_SOURCE = os.path.join(BASE_DIR, 'build', 'doctrees', '')
@@ -69,7 +68,6 @@ class DocumentChecker(object):
         self.doctree = doctree
         self.raw_lines = raw_lines
         self.raw_doc = ''.join(raw_lines)
-
         self.errs = None
 
     def error(self, code, line=None, **kwargs):
