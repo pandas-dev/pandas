@@ -5,12 +5,6 @@ v0.20.1 (May 5, 2017)
 
 {{ header }}
 
-.. ipython:: python
-   :suppress:
-
-   from pandas import * # noqa F401, F403
-
-
 This is a major release from 0.19.2 and includes a number of API changes, deprecations, new features,
 enhancements, and performance improvements along with a large number of bug fixes. We recommend that all
 users upgrade to this version.
@@ -685,24 +679,24 @@ data-types would yield different return types. These are now made consistent. (:
 
 Previous behaviour:
 
-  .. code-block:: ipython
+.. code-block:: ipython
 
    # Series
    In [5]: pd.Series([pd.Timestamp('20160101', tz='US/Eastern'),
-                     pd.Timestamp('20160101', tz='US/Eastern')]).unique()
+      ...:            pd.Timestamp('20160101', tz='US/Eastern')]).unique()
    Out[5]: array([Timestamp('2016-01-01 00:00:00-0500', tz='US/Eastern')], dtype=object)
 
    In [6]: pd.unique(pd.Series([pd.Timestamp('20160101', tz='US/Eastern'),
-                                 pd.Timestamp('20160101', tz='US/Eastern')]))
+      ...:                      pd.Timestamp('20160101', tz='US/Eastern')]))
    Out[6]: array(['2016-01-01T05:00:00.000000000'], dtype='datetime64[ns]')
 
    # Index
    In [7]: pd.Index([pd.Timestamp('20160101', tz='US/Eastern'),
-                     pd.Timestamp('20160101', tz='US/Eastern')]).unique()
+      ...:           pd.Timestamp('20160101', tz='US/Eastern')]).unique()
    Out[7]: DatetimeIndex(['2016-01-01 00:00:00-05:00'], dtype='datetime64[ns, US/Eastern]', freq=None)
 
    In [8]: pd.unique([pd.Timestamp('20160101', tz='US/Eastern'),
-                     pd.Timestamp('20160101', tz='US/Eastern')])
+      ...:            pd.Timestamp('20160101', tz='US/Eastern')])
    Out[8]: array(['2016-01-01T05:00:00.000000000'], dtype='datetime64[ns]')
 
 New Behavior:
@@ -725,7 +719,7 @@ New Behavior:
 
 Previous behaviour:
 
-  .. code-block:: ipython
+.. code-block:: ipython
 
    In [1]: pd.Series(list('baabc'), dtype='category').unique()
    Out[1]:
@@ -766,7 +760,7 @@ Partial String Indexing Changes
                                                          '2012-01-01 00:00:01']))
 Previous Behavior:
 
-  .. code-block:: ipython
+.. code-block:: ipython
 
    In [4]: df['2011-12-31 23:59:59']
    Out[4]:
@@ -781,7 +775,7 @@ Previous Behavior:
 
 New Behavior:
 
-  .. code-block:: ipython
+.. code-block:: ipython
 
    In [4]: df['2011-12-31 23:59:59']
    KeyError: '2011-12-31 23:59:59'
@@ -807,7 +801,7 @@ Now the smallest acceptable dtype will be used (:issue:`13247`)
 
 Previous Behavior:
 
-  .. code-block:: ipython
+.. code-block:: ipython
 
    In [7]: pd.concat([df1, df2]).dtypes
    Out[7]:
@@ -838,9 +832,9 @@ In previous versions, showing ``.memory_usage()`` on a pandas structure that has
 
 Previous Behavior:
 
-  .. code-block:: ipython
+.. code-block:: ipython
 
-   In [8]: index = Index(['foo', 'bar', 'baz'])
+   In [8]: index = pd.Index(['foo', 'bar', 'baz'])
 
    In [9]: index.memory_usage(deep=True)
    Out[9]: 180
@@ -853,9 +847,9 @@ Previous Behavior:
 
 New Behavior:
 
-  .. code-block:: ipython
+.. code-block:: ipython
 
-   In [8]: index = Index(['foo', 'bar', 'baz'])
+   In [8]: index = pd.Index(['foo', 'bar', 'baz'])
 
    In [9]: index.memory_usage(deep=True)
    Out[9]: 180
@@ -910,7 +904,7 @@ doesn't behave as desired.
 
 Previous Behavior:
 
-  .. code-block:: python
+.. code-block:: python
 
    In [11]: df.sort_index()
    Out[11]:
@@ -945,7 +939,7 @@ This format is consistent with ``groupby.agg()`` when applying multiple function
 
 Previous Behavior:
 
-  .. code-block:: ipython
+.. code-block:: ipython
 
    In [1]: df = pd.DataFrame({'A': [1, 1, 2, 2], 'B': [1, 2, 3, 4]})
 
@@ -1010,7 +1004,7 @@ See the section on :ref:`Windowed Binary Operations <stats.moments.binary>` for 
 
 Previous Behavior:
 
-  .. code-block:: ipython
+.. code-block:: ipython
 
    In [2]: df.rolling(12).corr()
    Out[2]:
@@ -1050,7 +1044,7 @@ usually resulting in an invalid comparison, returning an empty result frame. The
 
 Previous Behavior:
 
-  .. code-block:: ipython
+.. code-block:: ipython
 
    In [4]: pd.read_hdf('store.h5', 'key', where='unparsed_date > ts')
    File "<string>", line 1
@@ -1060,7 +1054,7 @@ Previous Behavior:
 
 New Behavior:
 
-  .. code-block:: ipython
+.. code-block:: ipython
 
    In [18]: ts = pd.Timestamp('2014-01-01')
 
@@ -1116,7 +1110,7 @@ New Behavior:
 
   Previous Behavior:
 
-  .. code-block:: ipython
+.. code-block:: ipython
 
    In [4]: left.join(right, how='inner')
    Out[4]:
@@ -1147,7 +1141,7 @@ is fixed that allowed this to return a ``Series`` under certain circumstance. (:
 
 Previous Behavior:
 
-  .. code-block:: ipython
+.. code-block:: ipython
 
    In [2]: df.pivot_table('col1', index=['col3', 'col2'], aggfunc=np.sum)
    Out[2]:
@@ -1263,7 +1257,7 @@ will be removed from the ``*.common`` locations in a future release. (:issue:`15
 
 The following are now part of this API:
 
-  .. code-block:: python
+.. code-block:: python
 
    ['DtypeWarning',
     'EmptyDataError',
@@ -1337,7 +1331,7 @@ Using ``.ix`` will now show a ``DeprecationWarning`` with a link to some example
 
 Previous Behavior, where you wish to get the 0th and the 2nd elements from the index in the 'A' column.
 
-  .. code-block:: ipython
+.. code-block:: ipython
 
    In [3]: df.ix[[0, 2], 'A']
    Out[3]:
@@ -1423,7 +1417,7 @@ columns and applying the list of functions. This returns a ``MultiIndex`` for th
 Here's an example of the first deprecation, passing a dict to a grouped ``Series``. This
 is a combination aggregation & renaming:
 
-  .. code-block:: ipython
+.. code-block:: ipython
 
    In [6]: df.groupby('A').B.agg({'foo': 'count'})
    FutureWarning: using a dict on a Series for aggregation
@@ -1444,11 +1438,11 @@ You can accomplish the same operation, more idiomatically by:
 
 Here's an example of the second deprecation, passing a dict-of-dict to a grouped ``DataFrame``:
 
-  .. code-block:: python
+.. code-block:: python
 
    In [23]: (df.groupby('A')
-               .agg({'B': {'foo': 'sum'}, 'C': {'bar': 'min'}})
-            )
+       ...:    .agg({'B': {'foo': 'sum'}, 'C': {'bar': 'min'}})
+       ...:  )
    FutureWarning: using a dict with renaming is deprecated and
    will be removed in a future version
 
@@ -1484,14 +1478,14 @@ Users can import these from ``pandas.plotting`` as well.
 
 Previous script:
 
-  .. code-block:: python
+.. code-block:: python
 
    pd.tools.plotting.scatter_matrix(df)
    pd.scatter_matrix(df)
 
 Should be changed to:
 
-  .. code-block:: python
+.. code-block:: python
 
    pd.plotting.scatter_matrix(df)
 
