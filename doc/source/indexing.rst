@@ -1168,23 +1168,10 @@ If instead you don't want to or cannot name your index, you can use the name
 ``index`` in your query expression:
 
 .. ipython:: python
-   :suppress:
-
-   old_index = index                                               # noqa: F821
-   del index                                                       # noqa: F821
-
-.. ipython:: python
 
    df = pd.DataFrame(np.random.randint(n, size=(n, 2)), columns=list('bc'))
    df
    df.query('index < b < c')
-
-.. ipython:: python
-   :suppress:
-
-   index = old_index
-   del old_index
-
 
 .. note::
 
@@ -1296,15 +1283,6 @@ The ``in`` and ``not in`` operators
 :meth:`~pandas.DataFrame.query` also supports special use of Python's ``in`` and
 ``not in`` comparison operators, providing a succinct syntax for calling the
 ``isin`` method of a ``Series`` or ``DataFrame``.
-
-.. ipython:: python
-   :suppress:
-
-   try:
-       old_d = d
-       del d                                                       # noqa: F821
-   except NameError:
-       pass
 
 .. ipython:: python
 
@@ -1507,7 +1485,7 @@ default value.
 .. ipython:: python
 
    s = pd.Series([1, 2, 3], index=['a', 'b', 'c'])
-   s.get('a')               # equivalent to s['a']
+   s.get('a')  # equivalent to s['a']
    s.get('x', default=-1)
 
 The :meth:`~pandas.DataFrame.lookup` Method
@@ -1828,7 +1806,8 @@ that you've done this:
    def do_something(df):
        foo = df[['bar', 'baz']]  # Is foo a view? A copy? Nobody knows!
        # ... many lines here ...
-       foo['quux'] = value  # We don't know whether this will modify df or not!  # noqa: E501, F821
+       # We don't know whether this will modify df or not!
+       foo['quux'] = value                                         # noqa: F821
        return foo
 
 Yikes!
