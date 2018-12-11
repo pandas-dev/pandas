@@ -1,3 +1,4 @@
+#!/usr/bin/env python
 """
 Analyze documentation to detect errors.
 
@@ -155,7 +156,7 @@ class DocumentChecker(object):
             output = json.dumps(self.errs)
         else:
             if output_format == 'default':
-                output_format = '{path}:{row}:: {code} {text}\n{source}\n'
+                output_format = '{path}:{row}:: {code} {text}\n'
             elif output_format == 'azure':
                 output_format = ('##vso[task.logissue type=error;'
                                  'sourcepath={path};'
@@ -180,7 +181,7 @@ class DocumentChecker(object):
                     output += output_format.format(
                         name=self.page,
                         path='doc/source/{}.rst'.format(self.page),
-                        row=row_start + 1,
+                        row=row_start + 1 if line else '?',
                         code=err_code,
                         source=''.join(self.raw_lines[row_start:row_end]),
                         text=ERROR_MSGS[err_code].format(kwargs))
