@@ -283,18 +283,18 @@ Categorical Concatenation
      s1 = pd.Series(['a', 'b'], dtype='category')
      s2 = pd.Series(['b', 'c'], dtype='category')
 
-  **Previous behavior**:
+**Previous behavior**:
 
 .. code-block:: ipython
 
-     In [1]: pd.concat([s1, s2])
-     ValueError: incompatible categories in categorical concat
+    In [1]: pd.concat([s1, s2])
+    ValueError: incompatible categories in categorical concat
 
-  **New behavior**:
+**New behavior**:
 
-  .. ipython:: python
+.. ipython:: python
 
-     pd.concat([s1, s2])
+    pd.concat([s1, s2])
 
 .. _whatsnew_0190.enhancements.semi_month_offsets:
 
