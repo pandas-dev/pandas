@@ -229,7 +229,7 @@ def eval(expr, parser='pandas', engine=None, truediv=True,
         automatically.
     str_as_bytes : bool, default False
         Whether to interpret string literals in `expr` as bytes.
-        
+
 
     Returns
     -------
