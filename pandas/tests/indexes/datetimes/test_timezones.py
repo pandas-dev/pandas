@@ -23,7 +23,9 @@ import pandas.util.testing as tm
 
 
 class FixedOffset(tzinfo):
-    """Fixed offset in minutes east from UTC."""
+    """
+    Fixed offset in minutes east from UTC.
+    """
 
     def __init__(self, offset, name):
         self.__offset = timedelta(minutes=offset)
@@ -1052,7 +1054,9 @@ class TestDatetimeIndexTimezones(object):
 
 
 class TestDateRange(object):
-    """Tests for date_range with timezones"""
+    """
+    Tests for date_range with timezones
+    """
     def test_hongkong_tz_convert(self):
         # GH#1673 smoke test
         dr = date_range('2012-01-01', '2012-01-10', freq='D', tz='Hongkong')
@@ -1105,7 +1109,9 @@ class TestDateRange(object):
 
 
 class TestToDatetime(object):
-    """Tests for the to_datetime constructor with timezones"""
+    """
+    Tests for the to_datetime constructor with timezones
+    """
     def test_to_datetime_utc(self):
         arr = np.array([dateutil.parser.parse('2012-06-13T01:39:00Z')],
                        dtype=object)

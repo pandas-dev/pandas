@@ -739,9 +739,18 @@ cdef _to_py_int_float(v):
 # heavy lifting.
 cdef class _Timedelta(timedelta):
     cdef readonly:
-        int64_t value      # nanoseconds
-        object freq        # frequency reference
-        bint is_populated  # are my components populated
+        int64_t value
+        """
+        nanoseconds
+        """
+        object freq
+        """
+        frequency reference
+        """
+        bint is_populated
+        """
+        are my components populated
+        """
         int64_t _d, _h, _m, _s, _ms, _us, _ns
 
     # higher than np.ndarray and np.matrix
@@ -826,15 +835,15 @@ cdef class _Timedelta(timedelta):
 
     def view(self, dtype):
         """
-		array view compat
-		"""
+	array view compat
+	"""
         return np.timedelta64(self.value).view(dtype)
 
     @property
     def components(self):
         """
-		Return a Components NamedTuple-like
-		"""
+	Return a Components NamedTuple-like
+	"""
         self._ensure_components()
         # return the named tuple
         return Components(self._d, self._h, self._m, self._s,
