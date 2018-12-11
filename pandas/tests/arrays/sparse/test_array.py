@@ -266,7 +266,7 @@ class TestSparseArray(object):
         # GH #24128
         sparse = SparseArray(np.array([1, 0, 0, 3, 0]))
         res = sparse.shift(1, fill_value=0)
-        exp = SparseArray(np.array([0, 1, 0, 0, 3]))
+        exp = SparseArray(np.array([0, 1.0, 0, 0, 3.0]))
         tm.assert_sp_array_equal(res, exp)
 
     def test_bad_take(self):
