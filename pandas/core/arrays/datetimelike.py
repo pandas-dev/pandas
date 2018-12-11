@@ -191,8 +191,7 @@ class TimelikeOps(object):
         """)
 
     _round_example = (
-        """
-		>>> rng.round('H')
+        """>>> rng.round('H')
         DatetimeIndex(['2018-01-01 12:00:00', '2018-01-01 12:00:00',
                        '2018-01-01 12:00:00'],
                       dtype='datetime64[ns]', freq=None)
@@ -207,8 +206,7 @@ class TimelikeOps(object):
         """)
 
     _floor_example = (
-        """
-		>>> rng.floor('H')
+        """>>> rng.floor('H')
         DatetimeIndex(['2018-01-01 11:00:00', '2018-01-01 12:00:00',
                        '2018-01-01 12:00:00'],
                       dtype='datetime64[ns]', freq=None)
@@ -224,8 +222,7 @@ class TimelikeOps(object):
     )
 
     _ceil_example = (
-        """
-		>>> rng.ceil('H')
+        """>>> rng.ceil('H')
         DatetimeIndex(['2018-01-01 12:00:00', '2018-01-01 12:00:00',
                        '2018-01-01 13:00:00'],
                       dtype='datetime64[ns]', freq=None)
