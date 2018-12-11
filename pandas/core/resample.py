@@ -1559,8 +1559,7 @@ class TimeGrouper(Grouper):
             # Get offset for bin edge (not label edge) adjustment
             start_offset = (pd.Period(start, self.freq)
                             - pd.Period(p_start, self.freq))
-            # remove /freq_mult once period diff scaling bug is fixed
-            offset = int(start_offset.n / freq_mult) % freq_mult
+            offset = start_offset.n % freq_mult
             start = p_start
 
         labels = binner = PeriodIndex(start=start, end=end,
