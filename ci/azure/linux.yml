@@ -9,6 +9,19 @@ jobs:
   strategy:
     maxParallel: 11
     matrix:
+      # TODO remove, just comparing the speed travis/azure, single/multi-core
+      py37_single_core:
+        ENV_FILE: ci/deps/travis-37.yaml
+        CONDA_PY: "37"
+        PATTERN: "not slow and not network"
+
+      # TODO remove, just comparing the speed travis/azure, single/multi-core
+      py37_multi_core:
+        ENV_FILE: ci/deps/travis-37.yaml
+        CONDA_PY: "37"
+        PATTERN: "not slow and not network"
+        TESTS_JOBS: "auto"
+
       py27_np_120:
         ENV_FILE: ci/deps/azure-27-compat.yaml
         CONDA_PY: "27"

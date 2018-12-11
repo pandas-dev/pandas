@@ -1,9 +1,15 @@
 #!/bin/env python
 import os
+import subprocess
 import sys
 import random
 import tempfile
+import time
 import warnings
+try:
+    from urllib.request import urlretrieve
+except ImportError:  # py2
+    from urllib import urlretrieve
 
 
 def set_environ(pattern, locale):
@@ -35,15 +41,41 @@ def pytest_command(pattern, coverage_file):
     """
     Build and return the pytest command to run.
     """
-    cmd = 'pytest --junitxml=test-data.xml'
+    cmd = ['pytest', '--junitxml=test-data.xml']
 
     if pattern:
-        cmd += ' -m "{}"'.format(pattern)
+        cmd += ['-m', pattern]
 
     if coverage_file:
-        cmd += ' --cov=pandas --cov-report=xml:{}'.format(coverage_file)
+        cmd += ['--cov=pandas', '--cov-report=xml:{}'.format(coverage_file)]
 
-    return cmd
+    test_jobs = os.environ.get('TESTS_JOBS', 0)
+    if test_jobs:
+        cmd += ['-n', str(test_jobs), '--dist', 'loadfile']
+
+    if os.environ.get('WARNINGS_ARE_ERRORS'):
+        cmd += ['-W', 'error']
+
+    return cmd + ['pandas']
+
+
+def upload_coverage(coverage_file):
+    """
+    Download codecov.io script and run it to upload coverage for coverage_file.
+    """
+    script_fname = os.path.join(os.path.dirname(coverage_file),
+                                'codecov_script.sh')
+    urlretrieve('https://codecov.io/bash', script_fname)
+    upload_coverage_cmd = ['bash',
+                           script_fname,
+                           '-Z',
+                           '-c',
+                           '-f',
+                           coverage_file]
+    sys.stderr.write('{}\n'.format(' '.join(upload_coverage_cmd)))
+    subprocess.check_call(upload_coverage_cmd.split())
+    os.remove(script_fname)
+    os.remove(coverage_file)
 
 
 def run_tests(pattern, locale=None, coverage_file=False):
@@ -61,15 +93,14 @@ def run_tests(pattern, locale=None, coverage_file=False):
     """
     set_environ(pattern, locale)
     pytest_cmd = pytest_command(pattern, coverage_file)
-    sys.stderr.write('{}\n'.format(pytest_cmd))
-    os.system(pytest_cmd)
+    sys.stderr.write('{}\n'.format(' '.join(pytest_cmd)))
+    start = time.time()
+    subprocess.check_call(pytest_cmd)
+    tests_run_in_seconds = int(time.time() - start)
+    sys.stdout.write('Tests run in {} seconds\n'.format(tests_run_in_seconds))
 
     if coverage_file:
-        upload_coverage_cmd = ('bash <(curl -s https://codecov.io/bash) '
-                               '-Z -c -f {}'.format(coverage_file))
-        sys.stderr.write('{}\n'.format(upload_coverage_cmd))
-        os.system(upload_coverage_cmd)
-        os.remove(coverage_file)
+        upload_coverage(coverage_file)
 
 
 if __name__ == '__main__':

@@ -32,6 +32,11 @@ matrix:
       - python: 3.5
 
     include:
+    # TODO remove, this is repeated just to see how faster is using multiple processes in travis
+    - dist: trusty
+      env:
+        - JOB="3.7" ENV_FILE="ci/deps/travis-37.yaml" PATTERN="not slow and not network" TESTS_JOBS="auto"
+
     - dist: trusty
       env:
         - JOB="3.7" ENV_FILE="ci/deps/travis-37.yaml" PATTERN="not slow and not network"
@@ -55,7 +60,7 @@ matrix:
         - JOB="3.6, coverage" ENV_FILE="ci/deps/travis-36.yaml" PATTERN="not slow and not network" PANDAS_TESTING_MODE="deprecate" COVERAGE=true
     - dist: trusty
       env:
-        - JOB="3.7, NumPy dev" ENV_FILE="ci/deps/travis-37-numpydev.yaml" PATTERN="not slow and not network" TEST_ARGS="-W error" PANDAS_TESTING_MODE="deprecate"
+        - JOB="3.7, NumPy dev" ENV_FILE="ci/deps/travis-37-numpydev.yaml" PATTERN="not slow and not network" WARNINGS_ARE_ERRORS="true" PANDAS_TESTING_MODE="deprecate"
       addons:
         apt:
           packages:
