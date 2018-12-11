@@ -82,7 +82,7 @@ def _field_accessor(name, field, docstring=None):
         return result
 
     f.__name__ = name
-    f.__doc__ = "{}".format(docstring)
+    f.__doc__ = "\n{}\n".format(docstring)
     return property(f)
 
 
@@ -307,7 +307,12 @@ class DatetimeArrayMixin(dtl.DatetimeLikeArrayMixin,
                     end = end.tz_localize(tz).asm8
         else:
             # Create a linearly spaced date_range in local time
-            arr = np.linspace(start.value, end.value, periods)
+            # Nanosecond-granularity timestamps aren't always correctly
+            # representable with doubles, so we limit the range that we
+            # pass to np.linspace as much as possible
+            arr = np.linspace(
+                0, end.value - start.value,
+                periods, dtype='int64') + start.value
             index = cls._simple_new(
                 arr.astype('M8[ns]', copy=False), freq=None, tz=tz
             )
@@ -1065,9 +1070,9 @@ class DatetimeArrayMixin(dtl.DatetimeLikeArrayMixin,
 
         return tslib.ints_to_pydatetime(timestamps, box="date")
 
-    year = _field_accessor('year', 'Y', " The year of the datetime.")
+    year = _field_accessor('year', 'Y', "The year of the datetime.")
     month = _field_accessor('month', 'M',
-                            " The month as January=1, December=12. ")
+                            "The month as January=1, December=12. ")
     day = _field_accessor('day', 'D', "The days of the datetime.")
     hour = _field_accessor('hour', 'h', "The hours of the datetime.")
     minute = _field_accessor('minute', 'm', "The minutes of the datetime.")

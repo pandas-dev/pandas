@@ -7206,11 +7206,6 @@ class NDFrame(PandasObject, SelectionMixin):
             Same type as calling object with the values outside the
             clip boundaries replaced
 
-        See Also
-        --------
-        clip_lower : Clip values below specified threshold(s).
-        clip_upper : Clip values above specified threshold(s).
-
         Examples
         --------
         >>> data = {'col_0': [9, -3, 0, -1, 5], 'col_1': [-2, -7, 6, 8, -5]}
@@ -7283,17 +7278,22 @@ class NDFrame(PandasObject, SelectionMixin):
 
         result = self
         if lower is not None:
-            result = result.clip_lower(lower, axis, inplace=inplace)
+            result = result._clip_with_one_bound(lower, method=self.ge,
+                                                 axis=axis, inplace=inplace)
         if upper is not None:
             if inplace:
                 result = self
-            result = result.clip_upper(upper, axis, inplace=inplace)
+            result = result._clip_with_one_bound(upper, method=self.le,
+                                                 axis=axis, inplace=inplace)
 
         return result
 
     def clip_upper(self, threshold, axis=None, inplace=False):
         """
         Trim values above a given threshold.
+
+        .. deprecated:: 0.24.0
+            Use clip(upper=threshold) instead.
 
         Elements above the `threshold` will be changed to match the
         `threshold` value(s). Threshold can be a single value or an array,
@@ -7321,18 +7321,15 @@ class NDFrame(PandasObject, SelectionMixin):
 
         Returns
         -------
-        clipped
+        Series or DataFrame
             Original data with values trimmed.
 
         See Also
         --------
-        DataFrame.clip : General purpose method to trim DataFrame values to
-            given threshold(s).
-        DataFrame.clip_lower : Trim DataFrame values below given
-            threshold(s).
         Series.clip : General purpose method to trim Series values to given
             threshold(s).
-        Series.clip_lower : Trim Series values below given threshold(s).
+        DataFrame.clip : General purpose method to trim DataFrame values to
+            given threshold(s).
 
         Examples
         --------
@@ -7365,12 +7362,18 @@ class NDFrame(PandasObject, SelectionMixin):
         4    1
         dtype: int64
         """
+        warnings.warn('clip_upper(threshold) is deprecated, '
+                      'use clip(upper=threshold) instead',
+                      FutureWarning, stacklevel=2)
         return self._clip_with_one_bound(threshold, method=self.le,
                                          axis=axis, inplace=inplace)
 
     def clip_lower(self, threshold, axis=None, inplace=False):
         """
         Trim values below a given threshold.
+
+        .. deprecated:: 0.24.0
+            Use clip(lower=threshold) instead.
 
         Elements below the `threshold` will be changed to match the
         `threshold` value(s). Threshold can be a single value or an array,
@@ -7399,18 +7402,15 @@ class NDFrame(PandasObject, SelectionMixin):
 
         Returns
         -------
-        clipped
+        Series or DataFrame
             Original data with values trimmed.
 
         See Also
         --------
-        DataFrame.clip : General purpose method to trim DataFrame values to
-            given threshold(s).
-        DataFrame.clip_upper : Trim DataFrame values above given
-            threshold(s).
         Series.clip : General purpose method to trim Series values to given
             threshold(s).
-        Series.clip_upper : Trim Series values above given threshold(s).
+        DataFrame.clip : General purpose method to trim DataFrame values to
+            given threshold(s).
 
         Examples
         --------
@@ -7478,6 +7478,9 @@ class NDFrame(PandasObject, SelectionMixin):
         1  4  5
         2  5  6
         """
+        warnings.warn('clip_lower(threshold) is deprecated, '
+                      'use clip(lower=threshold) instead',
+                      FutureWarning, stacklevel=2)
         return self._clip_with_one_bound(threshold, method=self.ge,
                                          axis=axis, inplace=inplace)
 
@@ -9896,11 +9899,11 @@ class NDFrame(PandasObject, SelectionMixin):
         axis_descr, name, name2 = _doc_parms(cls)
 
         cls.any = _make_logical_function(
-            cls, 'any', name, name2, axis_descr,
-            _any_desc, nanops.nanany, _any_examples, _any_see_also)
+            cls, 'any', name, name2, axis_descr, _any_desc, nanops.nanany,
+            _any_examples, _any_see_also, empty_value=False)
         cls.all = _make_logical_function(
-            cls, 'all', name, name2, axis_descr, _all_doc,
-            nanops.nanall, _all_examples, _all_see_also)
+            cls, 'all', name, name2, axis_descr, _all_desc, nanops.nanall,
+            _all_examples, _all_see_also, empty_value=True)
 
         @Substitution(outname='mad',
                       desc="Return the mean absolute deviation of the values "
@@ -10221,12 +10224,14 @@ axis : {0 or 'index', 1 or 'columns', None}, default 0
       original index.
     * None : reduce all axes, return a scalar.
 
-bool_only : boolean, default None
+bool_only : bool, default None
     Include only boolean columns. If None, will attempt to use everything,
     then use only boolean data. Not implemented for Series.
-skipna : boolean, default True
-    Exclude NA/null values. If an entire row/column is NA, the result
-    will be NA.
+skipna : bool, default True
+    Exclude NA/null values. If the entire row/column is NA and skipna is
+    True, then the result will be %(empty_value)s, as for an empty row/column.
+    If skipna is False, then NA are treated as True, because these are not
+    equal to zero.
 level : int or level name, default None
     If the axis is a MultiIndex (hierarchical), count along a
     particular level, collapsing into a %(name1)s.
@@ -10236,28 +10241,37 @@ level : int or level name, default None
 
 Returns
 -------
-%(outname)s : %(name1)s or %(name2)s (if level specified)
+%(name1)s or %(name2)s
+    If level is specified, then, %(name2)s is returned; otherwise, %(name1)s
+    is returned.
 
 %(see_also)s
 %(examples)s"""
 
-_all_doc = """\
+_all_desc = """\
 Return whether all elements are True, potentially over an axis.
 
-Returns True if all elements within a series or along a Dataframe
-axis are non-zero, not-empty or not-False."""
+Returns True unless there at least one element within a series or
+along a Dataframe axis that is False or equivalent (e.g. zero or
+empty)."""
 
 _all_examples = """\
 Examples
 --------
-Series
+**Series**
 
 >>> pd.Series([True, True]).all()
 True
 >>> pd.Series([True, False]).all()
 False
+>>> pd.Series([]).all()
+True
+>>> pd.Series([np.nan]).all()
+True
+>>> pd.Series([np.nan]).all(skipna=False)
+True
 
-DataFrames
+**DataFrames**
 
 Create a dataframe from a dictionary.
 
@@ -10599,10 +10613,11 @@ DataFrame.all : Return whether all elements are True over requested axis.
 """
 
 _any_desc = """\
-Return whether any element is True over requested axis.
+Return whether any element is True, potentially over an axis.
 
-Unlike :meth:`DataFrame.all`, this performs an *or* operation. If any of the
-values along the specified axis is True, this will return True."""
+Returns False unless there at least one element within a series or
+along a Dataframe axis that is True or equivalent (e.g. non-zero or
+non-empty)."""
 
 _any_examples = """\
 Examples
@@ -10612,7 +10627,15 @@ Examples
 For Series input, the output is a scalar indicating whether any element
 is True.
 
+>>> pd.Series([False, False]).any()
+False
 >>> pd.Series([True, False]).any()
+True
+>>> pd.Series([]).any()
+False
+>>> pd.Series([np.nan]).any()
+False
+>>> pd.Series([np.nan]).any(skipna=False)
 True
 
 **DataFrame**
@@ -10899,9 +10922,10 @@ def _make_cum_function(cls, name, name1, name2, axis_descr, desc,
 
 
 def _make_logical_function(cls, name, name1, name2, axis_descr, desc, f,
-                           examples, see_also):
+                           examples, see_also, empty_value):
     @Substitution(outname=name, desc=desc, name1=name1, name2=name2,
-                  axis_descr=axis_descr, examples=examples, see_also=see_also)
+                  axis_descr=axis_descr, examples=examples, see_also=see_also,
+                  empty_value=empty_value)
     @Appender(_bool_doc)
     def logical_func(self, axis=0, bool_only=None, skipna=True, level=None,
                      **kwargs):
