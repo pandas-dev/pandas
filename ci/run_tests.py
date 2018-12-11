@@ -91,6 +91,9 @@ def run_tests(pattern, locale=None, coverage_file=False):
     coverage_file : str, optional
         If provided, the file path where to save the coverage.
     """
+    if os.environ.get('DOC'):
+        sys.stdout.write('We are not running pytest as this is a doc-build\n')
+        return
     set_environ(pattern, locale)
     pytest_cmd = pytest_command(pattern, coverage_file)
     sys.stderr.write('{}\n'.format(' '.join(pytest_cmd)))
