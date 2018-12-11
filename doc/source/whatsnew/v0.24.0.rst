@@ -160,7 +160,7 @@ Reduction and groupby operations such as 'sum' work.
 
 .. _whatsnew_0240.enhancements.array:
 
-A new top-level method :func:`array` has been added for creating arrays (:issue:`22860`).
+A new top-level method :func:`array` has been added for creating 1-dimensional arrays (:issue:`22860`).
 This can be used to create any :ref:`extension array <extending.extension-types>`, including
 extension arrays registered by :ref:`3rd party libraries <ecosystem.extensions>`, or to
 create NumPy arrays.

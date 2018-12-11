@@ -23,7 +23,8 @@ def array(data,         # type: Sequence[object]
     ----------
     data : Sequence of objects
         The scalars inside `data` should be instances of the
-        scalar type for `dtype`.
+        scalar type for `dtype`. It's expected that `data`
+        represents a 1-dimensional array of data.
 
         When `data` is an Index or Series, the underlying array
         will be extracted from `data`.
@@ -81,6 +82,11 @@ def array(data,         # type: Sequence[object]
     -------
     array : Union[numpy.ndarray, ExtensionArray]
 
+    Raises
+    ------
+    ValueError
+        When `data` is not 1-dimensional.
+
     See Also
     --------
     numpy.array : Construct a NumPy array.
@@ -134,7 +140,9 @@ def array(data,         # type: Sequence[object]
     the dtype:
 
     >>> pd.array([1, 2, np.nan], dtype='Int64')
-    IntegerArray([1, 2, nan], dtype='Int64')
+    <IntegerArray>
+    [1, 2, NaN]
+    Length: 3, dtype: Int64
 
     Pandas will infer an ExtensionArray for some types of data:
 
@@ -142,6 +150,13 @@ def array(data,         # type: Sequence[object]
     <PeriodArray>
     ['2000-01-01', '2000-01-01']
     Length: 2, dtype: period[D]
+
+    A ValueError is raised when the input has the wrong dimensionality.
+
+    >>> pd.array(1)
+    Traceback (most recent call last):
+      ...
+    ValueError: Cannot pass scalar '1' to 'pandas.array'.
     """
     from pandas.core.arrays import (
         period_array, ExtensionArray, IntervalArray
