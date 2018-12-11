@@ -1627,7 +1627,7 @@ def test_group_shift_with_fill_value():
 
     expected = DataFrame([0] + [(i + 12 if i % 3 and i < n_rows - 12
                            else np.nan)
-                          for i in range(n_rows)], dtype=float,
+                          for i in range(n_rows-1)], dtype=float,
                          columns=["Z"], index=None)
     result = g.shift(1, fill_value=0.0)
 
