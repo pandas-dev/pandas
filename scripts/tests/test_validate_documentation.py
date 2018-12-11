@@ -13,18 +13,18 @@ def doctree():
 
 
 @pytest.mark.parametrize('raw_doc,errs', [
-    ('   Indented Line\n', {}),
-    ('\n', {}),
-    ('\tIndented Line\n', {'WS01': [(1, '\tIndented Line\n')]}),
-    ('Line   \n', {'WS02': [(1, 'Line   \n')]}),
-    ('\t\n', {'WS01': [(1, '\t\n')], 'WS02': [(1, '\t\n')]}),
-    (' \n', {'WS02': [(1, ' \n')]}),
+    (['   Indented Line\n'], {}),
+    (['\n'], {}),
+    (['\tIndented Line\n'], {'WS01': [((0, 1), {})]}),
+    (['Line   \n'], {'WS02': [((0, 1), {})]}),
+    (['\t\n'], {'WS03': [((0, 1), {})]}),
+    ([' \n'], {'WS03': [((0, 1), {})]}),
 ])
 def test_line_checkers(doctree, raw_doc, errs):
-    checker = DocumentChecker(raw_doc, doctree)
-    result = checker.validate()
+    checker = DocumentChecker('', raw_doc, doctree)
+    checker.validate()
 
-    assert result == errs
+    assert checker.errs == errs
 
 
 def test_doctree_with_list_in_block_quote(doctree):
@@ -32,10 +32,10 @@ def test_doctree_with_list_in_block_quote(doctree):
     block_quote = docutils.nodes.block_quote('BlockQuote', bullet_list)
     doctree.append(block_quote)
 
-    checker = DocumentChecker('', doctree)
-    result = checker.validate()
+    checker = DocumentChecker('', [''], doctree)
+    checker.validate()
 
-    assert result == {'DT01': [None]}
+    assert checker.errs == {'DT01': [(None, {})]}
 
 
 def test_doctree_with_block_quote_in_list(doctree):
@@ -44,7 +44,7 @@ def test_doctree_with_block_quote_in_list(doctree):
     top_list = docutils.nodes.bullet_list('', block_quote)
     doctree.append(top_list)
 
-    checker = DocumentChecker('', doctree)
+    checker = DocumentChecker('', [''], doctree)
     result = checker.validate()
 
-    assert result == {'DT01': [None]}
+    assert result == {'DT01': [(None, {})]}

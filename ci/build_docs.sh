@@ -8,6 +8,8 @@ fi
 cd "$TRAVIS_BUILD_DIR"/doc
 echo "inside $0"
 
+RET=0
+
 if [ "$DOC" ]; then
 
     echo "Will build docs"
@@ -18,6 +20,14 @@ if [ "$DOC" ]; then
 
     echo ./make.py
     ./make.py
+
+    echo ###############################
+    echo #     Lint documentation      #
+    echo ###############################
+
+    MSG='Validate documentation' ; echo $MSG
+    $TRAVIS_BUILD_DIR/scripts/validate_docstrings.py io
+    RET=$(($RET + $?)) ; echo $MSG "DONE"
 
     echo ########################
     echo # Create and send docs #
@@ -47,4 +57,4 @@ if [ "$DOC" ]; then
     git push origin gh-pages -f
 fi
 
-exit 0
+exit $RET
