@@ -15,7 +15,7 @@ import pandas as pd
 from pandas import DataFrame, Series, Timestamp
 from pandas.core.indexes.datetimes import date_range
 from pandas.core.indexes.period import Period, PeriodIndex, period_range
-from pandas.tests.resample.test_base import Base, resample_methods
+from pandas.tests.resample.test_base import Base
 import pandas.util.testing as tm
 from pandas.util.testing import (
     assert_almost_equal, assert_frame_equal, assert_series_equal)
@@ -206,16 +206,15 @@ class TestPeriodIndex(Base):
         expected = Series(expected_vals, index=expected_index)
         assert_series_equal(result, expected)
 
-    def test_resample_same_freq(self):
+    def test_resample_same_freq(self, resample_method):
 
         # GH12770
         series = Series(range(3), index=pd.period_range(
             start='2000', periods=3, freq='M'))
         expected = series
 
-        for method in resample_methods:
-            result = getattr(series.resample('M'), method)()
-            assert_series_equal(result, expected)
+        result = getattr(series.resample('M'), resample_method)()
+        assert_series_equal(result, expected)
 
     def test_resample_incompat_freq(self):
 

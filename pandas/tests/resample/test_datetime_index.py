@@ -18,7 +18,7 @@ from pandas.core.indexes.datetimes import date_range
 from pandas.core.indexes.period import Period, period_range
 from pandas.core.indexes.timedeltas import timedelta_range
 from pandas.core.resample import DatetimeIndex, TimeGrouper
-from pandas.tests.resample.test_base import Base, downsample_methods
+from pandas.tests.resample.test_base import Base
 import pandas.util.testing as tm
 from pandas.util.testing import (
     assert_almost_equal, assert_frame_equal, assert_series_equal)
@@ -129,7 +129,7 @@ class TestDatetimeIndex(Base):
         with pytest.raises(ValueError):
             s.resample('5min', convention='starttt').mean()
 
-    def test_resample_how(self):
+    def test_resample_how(self, downsample_method):
         rng = date_range('1/1/2000 00:00:00', '1/1/2000 00:13:00', freq='min',
                          name='index')
         s = Series(np.random.randn(14), index=rng)
@@ -138,7 +138,7 @@ class TestDatetimeIndex(Base):
         grouplist[1:6] = 1
         grouplist[6:11] = 2
         grouplist[11:] = 3
-        args = downsample_methods
+        arg = downsample_method
 
         def _ohlc(group):
             if isna(group).all():
@@ -147,29 +147,28 @@ class TestDatetimeIndex(Base):
 
         inds = date_range('1/1/2000', periods=4, freq='5min', name='index')
 
-        for arg in args:
+        if arg == 'ohlc':
+            func = _ohlc
+        else:
+            func = arg
+        try:
+            result = getattr(s.resample(
+                '5min', closed='right', label='right'), arg)()
+
+            expected = s.groupby(grouplist).agg(func)
+            assert result.index.name == 'index'
             if arg == 'ohlc':
-                func = _ohlc
+                expected = DataFrame(expected.values.tolist())
+                expected.columns = ['open', 'high', 'low', 'close']
+                expected.index = Index(inds, name='index')
+                assert_frame_equal(result, expected)
             else:
-                func = arg
-            try:
-                result = getattr(s.resample(
-                    '5min', closed='right', label='right'), arg)()
+                expected.index = inds
+                assert_series_equal(result, expected)
+        except BaseException as exc:
 
-                expected = s.groupby(grouplist).agg(func)
-                assert result.index.name == 'index'
-                if arg == 'ohlc':
-                    expected = DataFrame(expected.values.tolist())
-                    expected.columns = ['open', 'high', 'low', 'close']
-                    expected.index = Index(inds, name='index')
-                    assert_frame_equal(result, expected)
-                else:
-                    expected.index = inds
-                    assert_series_equal(result, expected)
-            except BaseException as exc:
-
-                exc.args += ('how=%s' % arg,)
-                raise
+            exc.args += ('how=%s' % arg,)
+            raise
 
     def test_numpy_compat(self):
         # see gh-12811
