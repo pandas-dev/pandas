@@ -11,8 +11,7 @@ from pandas.errors import AbstractMethodError
 import pandas as pd
 from pandas import DataFrame, Series
 from pandas.core.groupby.groupby import DataError
-from pandas.core.indexes.datetimes import date_range
-from pandas.core.indexes.period import PeriodIndex, period_range
+from pandas.core.indexes.period import PeriodIndex
 from pandas.core.indexes.timedeltas import TimedeltaIndex
 from pandas.core.resample import TimeGrouper
 import pandas.util.testing as tm
@@ -30,22 +29,6 @@ downsample_methods = ['min', 'max', 'first', 'last', 'sum', 'mean', 'sem',
 upsample_methods = ['count', 'size']
 series_methods = ['nunique']
 resample_methods = downsample_methods + upsample_methods + series_methods
-
-
-def simple_date_range_series(start, end, freq='D'):
-    """
-    Series with date range index and random data for test purposes.
-    """
-    rng = date_range(start, end, freq=freq)
-    return Series(np.random.randn(len(rng)), index=rng)
-
-
-def simple_period_range_series(start, end, freq='D'):
-    """
-    Series with period range index and random data for test purposes.
-    """
-    rng = period_range(start, end, freq=freq)
-    return Series(np.random.randn(len(rng)), index=rng)
 
 
 class Base(object):

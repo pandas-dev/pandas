@@ -19,8 +19,7 @@ from pandas.core.indexes.period import Period, period_range
 from pandas.core.indexes.timedeltas import timedelta_range
 from pandas.core.resample import DatetimeIndex, TimeGrouper
 from pandas.tests.resample.test_base import (
-    Base, business_day_offset, downsample_methods, simple_date_range_series,
-    simple_period_range_series)
+    Base, business_day_offset, downsample_methods)
 import pandas.util.testing as tm
 from pandas.util.testing import (
     assert_almost_equal, assert_frame_equal, assert_series_equal)
@@ -628,7 +627,7 @@ class TestDatetimeIndex(Base):
         assert isinstance(result.index.freq, offsets.DateOffset)
         assert result.index.freq == offsets.Hour(8)
 
-    def test_resample_timestamp_to_period(self):
+    def test_resample_timestamp_to_period(self, simple_date_range_series):
         ts = simple_date_range_series('1/1/1990', '1/1/2000')
 
         result = ts.resample('A-DEC', kind='period').mean()
@@ -945,7 +944,7 @@ class TestDatetimeIndex(Base):
 
         assert_series_equal(result, exp)
 
-    def test_resample_anchored_intraday(self):
+    def test_resample_anchored_intraday(self, simple_date_range_series):
         # #1471, #1458
 
         rng = date_range('1/1/2012', '4/1/2012', freq='100min')
@@ -985,7 +984,7 @@ class TestDatetimeIndex(Base):
         resampled = ts.resample('M').mean()
         assert len(resampled) == 1
 
-    def test_resample_anchored_monthstart(self):
+    def test_resample_anchored_monthstart(self, simple_date_range_series):
         ts = simple_date_range_series('1/1/2000', '12/31/2002')
 
         freqs = ['MS', 'BMS', 'QS-MAR', 'AS-DEC', 'AS-JUN']
@@ -1015,7 +1014,8 @@ class TestDatetimeIndex(Base):
         result = s.resample('2200L', label='right').mean()
         assert result.index[-1] == Timestamp('2014-10-15 23:00:04.200')
 
-    def test_corner_cases(self):
+    def test_corner_cases(self, simple_period_range_series,
+                          simple_date_range_series):
         # miscellaneous test coverage
 
         rng = date_range('1/1/2000', periods=12, freq='t')
@@ -1078,7 +1078,7 @@ class TestDatetimeIndex(Base):
             exp = df.asfreq('T')
             tm.assert_frame_equal(result, exp)
 
-    def test_how_lambda_functions(self):
+    def test_how_lambda_functions(self, simple_date_range_series):
 
         ts = simple_date_range_series('1/1/2000', '4/1/2000')
 
