@@ -310,15 +310,15 @@ class PeriodIndex(DatelikeOps, DatetimeIndexOpsMixin, Int64Index,
 
     def _shallow_copy_with_infer(self, values=None, **kwargs):
         """
-		we always want to return a PeriodIndex
-		"""
+        we always want to return a PeriodIndex
+        """
         return self._shallow_copy(values=values, **kwargs)
 
     @property
     def _box_func(self):
         """
-		Maybe box an ordinal or Period
-		"""
+        Maybe box an ordinal or Period
+        """
         # TODO(DatetimeArray): Avoid double-boxing
         # PeriodArray takes care of boxing already, so we need to check
         # whether we're given an ordinal or a Period. It seems like some
@@ -333,7 +333,7 @@ class PeriodIndex(DatelikeOps, DatetimeIndexOpsMixin, Int64Index,
 
     def _maybe_box_as_values(self, values, **attribs):
         """
-		Box an array of ordinals to a PeriodArray
+        Box an array of ordinals to a PeriodArray
 
         This is purely for compatibility between PeriodIndex
         and Datetime/TimedeltaIndex. Once these are all backed by
@@ -839,8 +839,8 @@ class PeriodIndex(DatelikeOps, DatetimeIndexOpsMixin, Int64Index,
 
     def __setstate__(self, state):
         """
-		Necessary for making this object picklable
-		"""
+        Necessary for making this object picklable
+        """
 
         if isinstance(state, dict):
             super(PeriodIndex, self).__setstate__(state)
@@ -928,8 +928,8 @@ class PeriodIndex(DatelikeOps, DatetimeIndexOpsMixin, Int64Index,
     @property
     def flags(self):
         """
-		return the ndarray.flags for the underlying data
-		"""
+        return the ndarray.flags for the underlying data
+        """
         warnings.warn("{obj}.flags is deprecated and will be removed "
                       "in a future version".format(obj=type(self).__name__),
                       FutureWarning, stacklevel=2)
@@ -956,8 +956,8 @@ class PeriodIndex(DatelikeOps, DatetimeIndexOpsMixin, Int64Index,
     @property
     def data(self):
         """
-		return the data pointer of the underlying data
-		"""
+        return the data pointer of the underlying data
+        """
         warnings.warn("{obj}.data is deprecated and will be removed "
                       "in a future version".format(obj=type(self).__name__),
                       FutureWarning, stacklevel=2)
@@ -966,7 +966,7 @@ class PeriodIndex(DatelikeOps, DatetimeIndexOpsMixin, Int64Index,
     @property
     def base(self):
         """
-		return the base object if the memory of the underlying data is
+        return the base object if the memory of the underlying data is
         shared
         """
         warnings.warn("{obj}.base is deprecated and will be removed "

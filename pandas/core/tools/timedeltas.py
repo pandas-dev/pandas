@@ -118,8 +118,8 @@ def to_timedelta(arg, unit='ns', box=True, errors='raise'):
 
 def _coerce_scalar_to_timedelta_type(r, unit='ns', box=True, errors='raise'):
     """
-	Convert string 'r' to a timedelta object.
-	"""
+    Convert string 'r' to a timedelta object.
+    """
 
     try:
         result = convert_to_timedelta64(r, unit)
@@ -139,8 +139,8 @@ def _coerce_scalar_to_timedelta_type(r, unit='ns', box=True, errors='raise'):
 
 def _convert_listlike(arg, unit='ns', box=True, errors='raise', name=None):
     """
-	Convert a list of objects to a timedelta index object.
-	"""
+    Convert a list of objects to a timedelta index object.
+    """
 
     if isinstance(arg, (list, tuple)) or not hasattr(arg, 'dtype'):
         # This is needed only to ensure that in the case where we end up
