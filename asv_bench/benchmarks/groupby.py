@@ -473,8 +473,8 @@ class Transform(object):
         n1 = 400
         n2 = 250
         index = MultiIndex(levels=[np.arange(n1), tm.makeStringIndex(n2)],
-                           labels=[np.repeat(range(n1), n2).tolist(),
-                                   list(range(n2)) * n1],
+                           codes=[np.repeat(range(n1), n2).tolist(),
+                                  list(range(n2)) * n1],
                            names=['lev1', 'lev2'])
         arr = np.random.randn(n1 * n2, 3)
         arr[::10000, 0] = np.nan

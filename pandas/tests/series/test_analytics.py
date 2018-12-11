@@ -296,8 +296,8 @@ class TestSeriesAnalytics(object):
         self._check_stat_op('kurt', alt, string_series)
 
         index = MultiIndex(levels=[['bar'], ['one', 'two', 'three'], [0, 1]],
-                           labels=[[0, 0, 0, 0, 0, 0], [0, 1, 2, 0, 1, 2],
-                                   [0, 1, 0, 1, 0, 1]])
+                           codes=[[0, 0, 0, 0, 0, 0], [0, 1, 2, 0, 1, 2],
+                                  [0, 1, 0, 1, 0, 1]])
         s = Series(np.random.randn(6), index=index)
         tm.assert_almost_equal(s.kurt(), s.kurt(level=0)['bar'])
 
@@ -924,8 +924,10 @@ class TestSeriesAnalytics(object):
     def test_clip(self, datetime_series):
         val = datetime_series.median()
 
-        assert datetime_series.clip_lower(val).min() == val
-        assert datetime_series.clip_upper(val).max() == val
+        with tm.assert_produces_warning(FutureWarning):
+            assert datetime_series.clip_lower(val).min() == val
+        with tm.assert_produces_warning(FutureWarning):
+            assert datetime_series.clip_upper(val).max() == val
 
         assert datetime_series.clip(lower=val).min() == val
         assert datetime_series.clip(upper=val).max() == val
@@ -943,8 +945,10 @@ class TestSeriesAnalytics(object):
 
         for s in sers:
             thresh = s[2]
-            lower = s.clip_lower(thresh)
-            upper = s.clip_upper(thresh)
+            with tm.assert_produces_warning(FutureWarning):
+                lower = s.clip_lower(thresh)
+            with tm.assert_produces_warning(FutureWarning):
+                upper = s.clip_upper(thresh)
             assert lower[notna(lower)].min() == thresh
             assert upper[notna(upper)].max() == thresh
             assert list(isna(s)) == list(isna(lower))
@@ -971,8 +975,12 @@ class TestSeriesAnalytics(object):
         s = Series([1.0, 1.0, 4.0])
         threshold = Series([1.0, 2.0, 3.0])
 
-        assert_series_equal(s.clip_lower(threshold), Series([1.0, 2.0, 4.0]))
-        assert_series_equal(s.clip_upper(threshold), Series([1.0, 1.0, 3.0]))
+        with tm.assert_produces_warning(FutureWarning):
+            assert_series_equal(s.clip_lower(threshold),
+                                Series([1.0, 2.0, 4.0]))
+        with tm.assert_produces_warning(FutureWarning):
+            assert_series_equal(s.clip_upper(threshold),
+                                Series([1.0, 1.0, 3.0]))
 
         lower = Series([1.0, 2.0, 3.0])
         upper = Series([1.5, 2.5, 3.5])
@@ -1481,7 +1489,7 @@ class TestSeriesAnalytics(object):
         from numpy import nan
 
         index = MultiIndex(levels=[['bar', 'foo'], ['one', 'three', 'two']],
-                           labels=[[1, 1, 0, 0], [0, 1, 0, 2]])
+                           codes=[[1, 1, 0, 0], [0, 1, 0, 2]])
 
         s = Series(np.arange(4.), index=index)
         unstacked = s.unstack()
@@ -1496,11 +1504,11 @@ class TestSeriesAnalytics(object):
         assert_frame_equal(unstacked, expected.T)
 
         index = MultiIndex(levels=[['bar'], ['one', 'two', 'three'], [0, 1]],
-                           labels=[[0, 0, 0, 0, 0, 0], [0, 1, 2, 0, 1, 2],
-                                   [0, 1, 0, 1, 0, 1]])
+                           codes=[[0, 0, 0, 0, 0, 0], [0, 1, 2, 0, 1, 2],
+                                  [0, 1, 0, 1, 0, 1]])
         s = Series(np.random.randn(6), index=index)
         exp_index = MultiIndex(levels=[['one', 'two', 'three'], [0, 1]],
-                               labels=[[0, 1, 2, 0, 1, 2], [0, 1, 0, 1, 0, 1]])
+                               codes=[[0, 1, 2, 0, 1, 2], [0, 1, 0, 1, 0, 1]])
         expected = DataFrame({'bar': s.values},
                              index=exp_index).sort_index(level=0)
         unstacked = s.unstack(0).sort_index()

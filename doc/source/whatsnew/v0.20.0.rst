@@ -3,7 +3,13 @@
 v0.20.1 (May 5, 2017)
 ---------------------
 
-{{ common_imports }}
+{{ header }}
+
+.. ipython:: python
+   :suppress:
+
+   from pandas import * # noqa F401, F403
+
 
 This is a major release from 0.19.2 and includes a number of API changes, deprecations, new features,
 enhancements, and performance improvements along with a large number of bug fixes. We recommend that all
@@ -899,8 +905,8 @@ doesn't behave as desired.
 
    df = pd.DataFrame(
            {'value': [1, 2, 3, 4]},
-            index=pd.MultiIndex(levels=[['a', 'b'], ['bb', 'aa']],
-                                labels=[[0, 0, 1, 1], [0, 1, 0, 1]]))
+            index=pd.MultiIndex([['a', 'b'], ['bb', 'aa']],
+                                [[0, 0, 1, 1], [0, 1, 0, 1]]))
    df
 
 Previous Behavior:

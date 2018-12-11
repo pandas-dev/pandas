@@ -1,15 +1,6 @@
 .. _advanced:
 
-.. currentmodule:: pandas
-
-.. ipython:: python
-   :suppress:
-
-   import numpy as np
-   import pandas as pd
-   np.random.seed(123456)
-   np.set_printoptions(precision=4, suppress=True)
-   pd.options.display.max_rows = 15
+{{ header }}
 
 ******************************
 MultiIndex / Advanced Indexing
@@ -49,6 +40,11 @@ analysis.
 
 See the :ref:`cookbook<cookbook.multi_index>` for some advanced strategies.
 
+.. versionchanged:: 0.24.0
+
+   :attr:`MultiIndex.labels` has been renamed to :attr:`MultiIndex.codes`
+   and :attr:`MultiIndex.set_labels` to :attr:`MultiIndex.set_codes`.
+
 Creating a MultiIndex (hierarchical index) object
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -57,8 +53,9 @@ The :class:`MultiIndex` object is the hierarchical analogue of the standard
 can think of ``MultiIndex`` as an array of tuples where each tuple is unique. A
 ``MultiIndex`` can be created from a list of arrays (using
 :meth:`MultiIndex.from_arrays`), an array of tuples (using
-:meth:`MultiIndex.from_tuples`), or a crossed set of iterables (using
-:meth:`MultiIndex.from_product`).  The ``Index`` constructor will attempt to return
+:meth:`MultiIndex.from_tuples`), a crossed set of iterables (using
+:meth:`MultiIndex.from_product`), or a :class:`DataFrame` (using 
+:meth:`MultiIndex.from_frame`).  The ``Index`` constructor will attempt to return
 a ``MultiIndex`` when it is passed a list of tuples.  The following examples
 demonstrate different ways to initialize MultiIndexes.
 
@@ -83,6 +80,19 @@ to use the :meth:`MultiIndex.from_product` method:
 
    iterables = [['bar', 'baz', 'foo', 'qux'], ['one', 'two']]
    pd.MultiIndex.from_product(iterables, names=['first', 'second'])
+
+You can also construct a ``MultiIndex`` from a ``DataFrame`` directly, using 
+the method :meth:`MultiIndex.from_frame`. This is a complementary method to
+:meth:`MultiIndex.to_frame`.
+
+.. versionadded:: 0.24.0
+
+.. ipython:: python
+
+   df = pd.DataFrame([['bar', 'one'], ['bar', 'two'],
+                      ['foo', 'one'], ['foo', 'two']],
+                     columns=['first', 'second'])
+   pd.MultiIndex.from_frame(df)
 
 As a convenience, you can pass a list of arrays directly into ``Series`` or
 ``DataFrame`` to construct a ``MultiIndex`` automatically:
@@ -469,7 +479,7 @@ values across a level. For instance:
 .. ipython:: python
 
    midx = pd.MultiIndex(levels=[['zero', 'one'], ['x', 'y']],
-                        labels=[[1, 1, 0, 0], [1, 0, 1, 0]])
+                        codes=[[1, 1, 0, 0], [1, 0, 1, 0]])
    df = pd.DataFrame(np.random.randn(4, 2), index=midx)
    df
    df2 = df.mean(level=0)
@@ -553,7 +563,8 @@ they need to be sorted. As with any index, you can use :meth:`~DataFrame.sort_in
 
 .. ipython:: python
 
-   import random; random.shuffle(tuples)
+   import random
+   random.shuffle(tuples)
    s = pd.Series(np.random.randn(8), index=pd.MultiIndex.from_tuples(tuples))
    s
    s.sort_index()
