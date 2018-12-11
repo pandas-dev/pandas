@@ -31,7 +31,7 @@ from pandas.core.dtypes.generic import (
 from pandas.core.dtypes.missing import array_equivalent, isna
 
 from pandas.core import ops
-from pandas.core.accessor import CachedAccessor
+from pandas.core.accessor import CachedAccessor, DirNamesMixin
 import pandas.core.algorithms as algos
 from pandas.core.arrays import ExtensionArray
 from pandas.core.base import IndexOpsMixin, PandasObject
@@ -41,7 +41,6 @@ import pandas.core.missing as missing
 from pandas.core.ops import get_op_result_name, make_invalid_op
 import pandas.core.sorting as sorting
 from pandas.core.strings import StringMethods
-from pandas.core.accessor import DirNamesMixin
 
 from pandas.io.formats.printing import (
     default_pprint, format_object_attrs, format_object_summary, pprint_thing)
