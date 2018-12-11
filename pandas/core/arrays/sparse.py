@@ -892,7 +892,12 @@ class SparseArray(PandasObject, ExtensionArray, ExtensionOpsMixin):
         if not len(self) or periods == 0:
             return self.copy()
 
-        subtype = np.result_type(np.nan, self.dtype.subtype)
+        if fill_value is None:
+            res_type = np.nan
+        else:
+            res_type = fill_value
+
+        subtype = np.result_type(res_type, self.dtype.subtype)
 
         if subtype != self.dtype.subtype:
             # just coerce up front
