@@ -3812,37 +3812,50 @@ class Index(IndexOpsMixin, PandasObject):
     def is_type_compatible(self, kind):
         return kind == self.inferred_type
 
-    _index_shared_docs['__contains__'] = """
-        Return a boolean if this key is IN the index.
+    _index_shared_docs['contains'] = """
+        Return a boolean indicating whether the provided key is in the index.
 
         Parameters
         ----------
-        key : object
+        key : label
+            The key to check if it is present in the index.
 
         Returns
         -------
-        boolean
+        bool
+            Whether the key search is in the index.
+
+        See Also
+        --------
+        Index.isin : Returns an ndarray of boolean dtype indicating whether the
+            list-like key is in the index.
+
+        Examples
+        --------
+        >>> idx = pd.Index([1, 2, 3, 4])
+        >>> idx
+        Int64Index([1, 2, 3, 4], dtype='int64')
+
+        >>> idx.contains(2)
+        True
+        >>> idx.contains(6)
+        False
+
+        This is equivalent to:
+
+        >>> 2 in idx
+        True
+        >>> 6 in idx
+        False
         """
 
-    @Appender(_index_shared_docs['__contains__'] % _index_doc_kwargs)
+    @Appender(_index_shared_docs['contains'] % _index_doc_kwargs)
     def __contains__(self, key):
         hash(key)
         try:
             return key in self._engine
         except (OverflowError, TypeError, ValueError):
             return False
-
-    _index_shared_docs['contains'] = """
-        Return a boolean if this key is IN the index.
-
-        Parameters
-        ----------
-        key : object
-
-        Returns
-        -------
-        boolean
-        """
 
     @Appender(_index_shared_docs['contains'] % _index_doc_kwargs)
     def contains(self, key):
@@ -4268,7 +4281,8 @@ class Index(IndexOpsMixin, PandasObject):
 
         # if we have something that is Index-like, then
         # use this, e.g. DatetimeIndex
-        s = getattr(series, '_values', None)
+        # Things like `Series._get_value` (via .at) pass the EA directly here.
+        s = getattr(series, '_values', series)
         if isinstance(s, (ExtensionArray, Index)) and is_scalar(key):
             # GH 20882, 21257
             # Unify Index and ExtensionArray treatment
