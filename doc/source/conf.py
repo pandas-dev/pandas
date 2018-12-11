@@ -446,6 +446,28 @@ def sphinxdocstring_str(self, indent=0, func_role="obj"):
 
 SphinxDocString.__str__ = sphinxdocstring_str
 
+# Fix "WARNING: Inline strong start-string without end-string."
+# PR #155 "Escape the * in *args and **kwargs" from numpydoc
+# Can be removed after PR merges in v0.9.0
+def decorate_process_param(func):
+    def _escape_args_and_kwargs(name):
+        if name[:2] == '**':
+            return r'\*\*' + name[2:]
+        elif name[:1] == '*':
+            return r'\*' + name[1:]
+        else:
+            return name
+
+    def func_wrapper(self, param, desc, fake_autosummary):
+        param = _escape_args_and_kwargs(param.strip())
+        return func(self, param, desc, fake_autosummary)
+
+    return func_wrapper
+
+
+func = SphinxDocString._process_param
+SphinxDocString._process_param = decorate_process_param(func)
+
 # Add custom Documenter to handle attributes/methods of an AccessorProperty
 # eg pandas.Series.str and pandas.Series.dt (see GH9322)
 
