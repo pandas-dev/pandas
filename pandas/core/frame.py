@@ -2068,7 +2068,7 @@ class DataFrame(NDFrame):
 
             .. versionadded:: 0.23.0
 
-        render_links : boolean, default False
+        render_links : bool, default False
             Convert URLs to HTML links.
 
             .. versionadded:: 0.24.0
