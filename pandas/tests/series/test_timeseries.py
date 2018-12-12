@@ -151,6 +151,15 @@ class TestTimeSeries(TestData):
         result = ts.shift(2, fill_value=0.0)
         tm.assert_series_equal(result, exp)
 
+    def test_categorical_shift_fill_value(self):
+        ts = pd.Series(['a', 'b', 'c', 'd'], dtype="category")
+        res = ts.shift(1, fill_value='a')
+        exp = pd.Series(['a', 'a', 'b', 'c'], dtype="category")
+        tm.assert_series_equal(res, exp)
+
+        with pytest.raises(ValueError):
+            ts.shift(1, fill_value='f')
+
     def test_shift_dst(self):
         # GH 13926
         dates = date_range('2016-11-06', freq='H', periods=10, tz='US/Eastern')
