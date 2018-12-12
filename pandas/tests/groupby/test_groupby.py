@@ -1619,7 +1619,7 @@ def test_group_shift_with_null_key():
 
 def test_group_shift_with_fill_value():
     # GH #24128
-    n_rows = 1200
+    n_rows = 24
     df = DataFrame([(i % 12, i % 3, i)
                     for i in range(n_rows)], dtype=float,
                    columns=["A", "B", "Z"], index=None)
