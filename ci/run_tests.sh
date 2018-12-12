@@ -3,8 +3,14 @@
 set -e
 
 if [ "$DOC" ]; then
-    echo "We are not running pytest as this is a doc-build"
-    exit 0
+    echo ###############################
+    echo #     Lint documentation      #
+    echo ###############################
+
+    MSG='Validate documentation' ; echo $MSG
+    $TRAVIS_BUILD_DIR/scripts/validate_documentation.py
+    RET=$? ; echo $MSG "DONE"
+    exit $RET
 fi
 
 # Workaround for pytest-xdist flaky collection order
