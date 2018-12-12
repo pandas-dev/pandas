@@ -445,7 +445,7 @@ class ExtensionArray(object):
         return self[~self.isna()]
 
     def shift(self, periods=1, fill_value=None):
-        # type: (int) -> ExtensionArray
+        # type: (int, object) -> ExtensionArray
         """
         Shift values by desired number.
 
