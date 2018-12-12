@@ -224,8 +224,6 @@ class DatetimeIndex(DatelikeIndexMixin,
     _tz = None
     _freq = None
     _comparables = ['name', 'freqstr', 'tz']
-    # TODO: decide whether freq is an attribute.
-    # Keeping it in attributes breaks things like Index.__getitem__
     _attributes = ['name', 'tz', 'freq']
 
     # dummy attribute so that datetime.__eq__(DatetimeArray) defers

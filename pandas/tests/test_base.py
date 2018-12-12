@@ -1244,11 +1244,11 @@ class TestToIterable(object):
     # Series[M8[ns]] and Series[m8[ns]] to return a DateLikeArray.
     pytest.param(
         pd.DatetimeIndex(['2017', '2018']), np.ndarray, 'datetime64[ns]',
-        marks=[pytest.mark.xfail(reason="TODO", strict=True)]
+        marks=[pytest.mark.xfail(reason="datetime _values", strict=True)]
     ),
     pytest.param(
         pd.TimedeltaIndex([10**10]), np.ndarray, 'm8[ns]',
-        marks=[pytest.mark.xfail(reason="TODO", strict=True)]
+        marks=[pytest.mark.xfail(reason="timedelta _values", strict=True)]
     ),
 
 ])

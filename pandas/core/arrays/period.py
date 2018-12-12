@@ -259,11 +259,6 @@ class PeriodArray(dtl.DatetimeLikeArrayMixin,
         return self._dtype
 
     @property
-    def _ndarray_values(self):
-        # Ordinals
-        return self._data
-
-    @property
     def freq(self):
         """
         Return the frequency object for this PeriodArray.

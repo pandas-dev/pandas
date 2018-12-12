@@ -4200,7 +4200,8 @@ class DataFrame(NDFrame):
                 else:
                     values = values.take(labels)
 
-                    # TODO: Push this into maybe_upcast_putmask?
+                    # TODO(https://github.com/pandas-dev/pandas/issues/24206)
+                    # Push this into maybe_upcast_putmask?
                     # We can't pass EAs there right now. Looks a bit
                     # complicated.
                     # So we unbox the ndarray_values, op, re-box.

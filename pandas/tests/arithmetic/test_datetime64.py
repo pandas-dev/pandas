@@ -1471,7 +1471,6 @@ class TestTimestampSeriesArithmetic(object):
             # with 'operate' (from core/ops.py) for the ops that are not
             # defined
             op = getattr(get_ser, op_str, None)
-            # TODO: error message changed. Do we care?
             # Previously, _validate_for_numeric_binop in core/indexes/base.py
             # did this for us.
             with pytest.raises(TypeError,

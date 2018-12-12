@@ -394,6 +394,10 @@ class DatetimeLikeArrayMixin(AttributesMixin,
         # do not cache or you'll create a memory leak
         return self._data.view('i8')
 
+    @property
+    def _ndarray_values(self):
+        return self._data
+
     # ------------------------------------------------------------------
     # Formatting
 
@@ -514,9 +518,6 @@ class DatetimeLikeArrayMixin(AttributesMixin,
             self._check_compatible_with(value)
             value = self._unbox_scalar(value)
         elif isna(value) or value == iNaT:
-            # TODO: Right now DatetimeTZBlock.fill_value is iNaT.
-            # There's some confuction about whether Block.fill_value should
-            # be the NA value or the storage value.
             value = iNaT
         else:
             msg = (
@@ -589,7 +590,6 @@ class DatetimeLikeArrayMixin(AttributesMixin,
         #   3. DatetimeArray.astype handles datetime -> period
         from pandas import Categorical
         dtype = pandas_dtype(dtype)
-        # TODO: handle PeriodDtype, perhaps other EAs.
 
         if is_object_dtype(dtype):
             return self._box_values(self.asi8)
@@ -739,7 +739,7 @@ class DatetimeLikeArrayMixin(AttributesMixin,
         return type(self)(values, dtype=self.dtype)
 
     def map(self, mapper):
-        # TODO: remove this hack
+        # TODO(GH-23179): Add ExtensionArray.map
         # Need to figure out if we want ExtensionArray.map first.
         # If so, then we can refactor IndexOpsMixin._map_values to
         # a standalone function and call from here..
@@ -1339,16 +1339,12 @@ class DatetimeLikeArrayMixin(AttributesMixin,
     # Reductions
 
     def any(self, skipna=True):
-        if skipna:
-            values = self[~self.isnan]
-        else:
-            values = self
-
-        # TODO: Should any period be considered Falsey?
+        values = self._values_for_reduction(skipna=skipna)
         return len(values)
 
     def all(self, skipna=True):
-        return not self.all(skipna=skipna)
+        values = self._values_for_reduction(skipna=skipna)
+        return len(values)
 
     def _values_for_reduction(self, skipna=True):
         if skipna:

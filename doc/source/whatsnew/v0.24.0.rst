@@ -678,7 +678,7 @@ Previous Behavior:
 .. code-block:: ipython
 
    In [2]: ser = pd.Series([pd.Timestamp('2000', tz='UTC'),
-                             pd.Timestamp('2000', tz='UTC')])
+      ...:                  pd.Timestamp('2000', tz='UTC')])
    In [3]: ser.unique()
    Out[3]: array([Timestamp('2000-01-01 00:00:00+0000', tz='UTC')], dtype=object)
 
@@ -1329,6 +1329,7 @@ Datetimelike
 - Bug in :func:`date_range` with frequency of ``Day`` or higher where dates sufficiently far in the future could wrap around to the past instead of raising ``OutOfBoundsDatetime`` (:issue:`14187`)
 - Bug in :class:`PeriodIndex` with attribute ``freq.n`` greater than 1 where adding a :class:`DateOffset` object would return incorrect results (:issue:`23215`)
 - Bug in :class:`Series` that interpreted string indices as lists of characters when setting datetimelike values (:issue:`23451`)
+- Bug in :class:`DataFrame` when creating a new column from an ndarray of :class:`Timestamp` objects with timezones converting creating an object-dtype column, rather than datetime with timezone (:issue:`23932`)
 - Bug in :class:`Timestamp` constructor which would drop the frequency of an input :class:`Timestamp` (:issue:`22311`)
 - Bug in :class:`DatetimeIndex` where calling ``np.array(dtindex, dtype=object)`` would incorrectly return an array of ``long`` objects (:issue:`23524`)
 - Bug in :class:`Index` where passing a timezone-aware :class:`DatetimeIndex` and `dtype=object` would incorrectly raise a ``ValueError`` (:issue:`23524`)

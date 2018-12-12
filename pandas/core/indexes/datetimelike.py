@@ -574,7 +574,6 @@ class DatetimeIndexOpsMixin(ExtensionOpsMixin):
         return values
 
     def _deepcopy_if_needed(self, orig, copy=False):
-        # TODO: is this the right class?
         # Override Index._deepcopy_if_needed, since _data is not an ndarray.
         # what is orig here? ndarray or DatetimeArray, DatetimeIndex?
         if copy:
@@ -801,7 +800,6 @@ class DatelikeIndexMixin(object):
 
     @property
     def freq(self):
-        # TODO(DatetimeArray): remove
         # Can't simply use delegate_names since our base class is defining
         # freq
         return self._data.freq

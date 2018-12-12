@@ -1590,7 +1590,6 @@ _join_functions = {
 
 def _factorize_keys(lk, rk, sort=True):
     if is_datetime64tz_dtype(lk) and is_datetime64tz_dtype(rk):
-        # TODO: verify if we get just arrays here, or maybe series / index
         lk = lk._data
         rk = rk._data
 

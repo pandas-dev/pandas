@@ -160,7 +160,6 @@ class TimedeltaIndex(DatetimeIndexOpsMixin,
 
     _freq = None
 
-    # TODO: Deduplicate with DatetimeIndex by doing these as props on base
     _box_func = TimedeltaArray._box_func
     _bool_ops = TimedeltaArray._bool_ops
     _object_ops = TimedeltaArray._object_ops
@@ -220,7 +219,6 @@ class TimedeltaIndex(DatetimeIndexOpsMixin,
         # `dtype` is passed by _shallow_copy in corner cases, should always
         #  be timedelta64[ns] if present
         if not isinstance(values, TimedeltaArray):
-            # TODO: make TimedeltaArray._simple_new idempotent?
             values = TimedeltaArray._simple_new(values, dtype=dtype,
                                                 freq=freq)
         assert isinstance(values, TimedeltaArray), type(values)

@@ -13,6 +13,7 @@ from pandas.core.dtypes.dtypes import DatetimeTZDtype
 
 import pandas as pd
 from pandas.core.arrays import DatetimeArrayMixin as DatetimeArray
+from pandas.core.arrays.datetimes import sequence_to_dt64ns
 import pandas.util.testing as tm
 
 
@@ -21,7 +22,7 @@ class TestDatetimeArrayConstructor(object):
         a = DatetimeArray(np.array(['2000-01-01T06:00:00'], dtype='M8[ns]'),
                           dtype=DatetimeTZDtype(tz='US/Central'))
         dtype = DatetimeTZDtype(tz='US/Eastern')
-        with pytest.raises(ValueError, match='Timezones'):
+        with pytest.raises(TypeError, match='do not match'):
             DatetimeArray(a, dtype=dtype)
 
     def test_non_array_raises(self):
@@ -105,3 +106,17 @@ class TestDatetimeArray(object):
         arr = DatetimeArray._from_sequence(['2000'], tz='US/Central')
         with pytest.raises(AttributeError, match='tz_localize'):
             arr.tz = 'UTC'
+
+
+class TestSequenceToDT64NS(object):
+
+    def test_tz_dtype_mismatch_raises(self):
+        arr = DatetimeArray._from_sequence(['2000'], tz='US/Central')
+        with pytest.raises(TypeError, match='do not match'):
+            sequence_to_dt64ns(arr, dtype=DatetimeTZDtype(tz="UTC"))
+
+    def test_tz_dtype_matches(self):
+        arr = DatetimeArray._from_sequence(['2000'], tz='US/Central')
+        result, _, _ = sequence_to_dt64ns(
+            arr, dtype=DatetimeTZDtype(tz="US/Central"))
+        tm.assert_extension_array_equal(arr, result)

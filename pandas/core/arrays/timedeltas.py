@@ -285,8 +285,8 @@ class TimedeltaArrayMixin(dtl.DatetimeLikeArrayMixin, dtl.TimelikeOps):
         return _get_format_timedelta64(self, box=True)
 
     def __array__(self, dtype=None):
-        # https://github.com/pandas-dev/pandas/pull/23593
-        # TODO: Check PeriodArray.__array__ and push to parent
+        # TODO(https://github.com/pandas-dev/pandas/pull/23593)
+        # Maybe push to parent once datetimetz __array__ is figured out.
         if is_object_dtype(dtype):
             return np.array(list(self), dtype=object)
         elif is_int64_dtype(dtype):
@@ -768,7 +768,6 @@ class TimedeltaArrayMixin(dtl.DatetimeLikeArrayMixin, dtl.TimelikeOps):
                 return values
             return result.astype('i8')
         elif is_timedelta64_ns_dtype(dtype):
-            # TODO: Figure out why this was needed.
             if copy:
                 return self.copy()
             return self

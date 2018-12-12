@@ -8,7 +8,6 @@ from pandas.core.arrays import DatetimeArrayMixin as DatetimeArray
 from pandas.tests.extension import base
 
 
-# TODO: figure out a way to test non-TZ
 @pytest.fixture(params=["US/Central"])
 def dtype(request):
     return DatetimeTZDtype(unit="ns", tz=request.param)
@@ -117,8 +116,6 @@ class TestArithmeticOps(BaseDatetimeTests, base.BaseArithmeticOpsTests):
     implements = {'__sub__', '__rsub__'}
 
     def test_arith_series_with_scalar(self, data, all_arithmetic_operators):
-        # TODO: move this to the base class?
-        # It's duplicated between Period and Datetime now
         if all_arithmetic_operators in self.implements:
             s = pd.Series(data)
             self.check_opname(s, all_arithmetic_operators, s.iloc[0],

@@ -242,11 +242,11 @@ class DatetimeArrayMixin(dtl.DatetimeLikeArrayMixin,
                 dtype = DatetimeTZDtype(tz=dtype.tz)
             elif dtz and values.tz:
                 if not timezones.tz_compare(dtz, values.tz):
-                    # todo standard error message.
                     msg = (
-                        "Timezones do not match. {} != {}."
+                        "Timezone of the array and 'dtype' do not match. "
+                        "'{}' != '{}'"
                     )
-                    raise ValueError(msg.format(dtz, values.tz))
+                    raise TypeError(msg.format(dtz, values.tz))
             elif values.tz:
                 dtype = values.dtype
             # freq = validate_values_freq(values, freq)
@@ -273,7 +273,13 @@ class DatetimeArrayMixin(dtl.DatetimeLikeArrayMixin,
             )
             raise ValueError(msg.format(values.dtype))
 
-        dtype = pandas_dtype(dtype)  # TODO: profile
+        # Performance note:
+        # for a length 10,000 ndarray[datetime64[ns]], pandas_dtype() takes
+        # ~15% of the runtime of __init__. It's only useful for converting
+        # string aliases like 'M8[ns]' or 'datetime64[ns, tz]'.
+        # We should consider requiring an actual dtype.
+
+        dtype = pandas_dtype(dtype)
         if (isinstance(dtype, np.dtype) and dtype != _NS_DTYPE
                 or not isinstance(dtype, (np.dtype, DatetimeTZDtype))):
             msg = (
@@ -436,7 +442,6 @@ class DatetimeArrayMixin(dtl.DatetimeLikeArrayMixin,
         return Timestamp(value, tz=self.tz)
 
     def _check_compatible_with(self, other):
-        # TODO: verify this.
         if not timezones.tz_compare(self.tz, other.tz):
             raise IncompatibleTimeZoneError(
                 "Timezone's don't match. '{} != {}'".format(self.tz, other.tz)
@@ -499,9 +504,9 @@ class DatetimeArrayMixin(dtl.DatetimeLikeArrayMixin,
     # Array-Like / EA-Interface Methods
 
     def __array__(self, dtype=None):
-        # TODO: Check PeriodArray.__array__ and push to parent
-        # This may need to wait for the deprecation of np.array
-        # on datetimetz data.
+        # TODO(datetime-tz __array__): push to parent
+        # If deprecating behavior for datetime-tz, we'll need to handle that
+        # specially.
         if is_object_dtype(dtype):
             return np.array(list(self), dtype=object)
         elif is_int64_dtype(dtype):
@@ -535,16 +540,8 @@ class DatetimeArrayMixin(dtl.DatetimeLikeArrayMixin,
     # ----------------------------------------------------------------
     # ExtensionArray Interface
 
-    @property
-    def _ndarray_values(self):
-        # TODO: Move to parent
-        return self._data
-
     @Appender(dtl.DatetimeLikeArrayMixin._validate_fill_value.__doc__)
     def _validate_fill_value(self, fill_value):
-        # TODO: Right now DatetimeTZBlock.fill_value is iNaT.
-        # There's some confuction about whether Block.fill_value should
-        # be the NA value or the storage value.
         if isna(fill_value) or fill_value == iNaT:
             fill_value = iNaT
         elif isinstance(fill_value, (datetime, np.datetime64)):
@@ -1094,7 +1091,6 @@ class DatetimeArrayMixin(dtl.DatetimeLikeArrayMixin,
                 result = result._data
             return result
         elif is_datetime64tz_dtype(self.dtype) and self.dtype == dtype:
-            # TODO: add specific tests for each of these cases to arrays.
             if copy:
                 return self.copy()
             return self
@@ -1634,13 +1630,13 @@ def sequence_to_dt64ns(data, dtype=None, copy=False,
         data = data._data
 
     if isinstance(data, DatetimeArrayMixin):
-        # TODO: verify this changes. This was done in haste.
-        if inferred_freq and data.freq:
-            assert inferred_freq == data.freq
-
         if tz and data.tz:
             if not timezones.tz_compare(tz, data.tz):
-                raise TypeError("TODO")
+                msg = (
+                    "Timezone of the array and 'dtype' do not match. "
+                    "'{}' != '{}'"
+                )
+                raise TypeError(msg.format(tz, data.tz))
         tz = data.tz
         tz = validate_tz_from_dtype(dtype, tz)
 
