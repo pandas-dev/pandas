@@ -1,5 +1,12 @@
+.. The currentmodule is needed here because the autosummary generation of files
+.. happens before reading the files / substituting the header.
+.. See https://github.com/pandas-dev/pandas/pull/24232
+
 .. currentmodule:: pandas
+
 .. _api:
+
+{{ header }}
 
 *************
 API Reference
@@ -244,6 +251,15 @@ Top-level evaluation
    :toctree: generated/
 
    eval
+
+Hashing
+~~~~~~~
+
+.. autosummary::
+   :toctree: generated/
+
+   util.hash_array
+   util.hash_pandas_object
 
 Testing
 ~~~~~~~
@@ -506,7 +522,6 @@ Reshaping, sorting
    Series.repeat
    Series.squeeze
    Series.view
-   Series.sortlevel
 
 
 Combining / joining / merging
@@ -842,6 +857,22 @@ Sparse
    SparseSeries.to_coo
    SparseSeries.from_coo
 
+.. autosummary::
+   :toctree: generated/
+   :template: autosummary/accessor_attribute.rst
+
+   Series.sparse.npoints
+   Series.sparse.density
+   Series.sparse.fill_value
+   Series.sparse.sp_values
+
+
+.. autosummary::
+   :toctree: generated/
+
+   Series.sparse.from_coo
+   Series.sparse.to_coo
+
 .. _api.dataframe:
 
 DataFrame
@@ -905,7 +936,6 @@ Indexing, iteration
    DataFrame.iat
    DataFrame.loc
    DataFrame.iloc
-   DataFrame.insert
    DataFrame.insert
    DataFrame.__iter__
    DataFrame.items
@@ -1648,9 +1678,11 @@ IntervalIndex Components
    IntervalIndex.length
    IntervalIndex.values
    IntervalIndex.is_non_overlapping_monotonic
+   IntervalIndex.is_overlapping
    IntervalIndex.get_loc
    IntervalIndex.get_indexer
    IntervalIndex.set_closed
+   IntervalIndex.overlaps
 
 
 .. _api.multiindex:
@@ -1678,6 +1710,7 @@ MultiIndex Constructors
    MultiIndex.from_arrays
    MultiIndex.from_tuples
    MultiIndex.from_product
+   MultiIndex.from_frame
 
 MultiIndex Attributes
 ~~~~~~~~~~~~~~~~~~~~~
@@ -1687,7 +1720,7 @@ MultiIndex Attributes
 
    MultiIndex.names
    MultiIndex.levels
-   MultiIndex.labels
+   MultiIndex.codes
    MultiIndex.nlevels
    MultiIndex.levshape
 
@@ -1698,8 +1731,9 @@ MultiIndex Components
    :toctree: generated/
 
    MultiIndex.set_levels
-   MultiIndex.set_labels
+   MultiIndex.set_codes
    MultiIndex.to_hierarchical
+   MultiIndex.to_flat_index
    MultiIndex.to_frame
    MultiIndex.is_lexsorted
    MultiIndex.sortlevel
@@ -2037,6 +2071,7 @@ Properties
     Interval.mid
     Interval.open_left
     Interval.open_right
+    Interval.overlaps
     Interval.right
 
 Timedelta
@@ -2078,6 +2113,62 @@ Methods
     Timedelta.to_pytimedelta
     Timedelta.to_timedelta64
     Timedelta.total_seconds
+
+.. _api.dateoffsets:
+
+Date Offsets
+------------
+
+.. currentmodule:: pandas.tseries.offsets
+
+.. autosummary::
+   :toctree: generated/
+
+   DateOffset
+   BusinessDay
+   BusinessHour
+   CustomBusinessDay
+   CustomBusinessHour
+   MonthOffset
+   MonthEnd
+   MonthBegin
+   BusinessMonthEnd
+   BusinessMonthBegin
+   CustomBusinessMonthEnd
+   CustomBusinessMonthBegin
+   SemiMonthOffset
+   SemiMonthEnd
+   SemiMonthBegin
+   Week
+   WeekOfMonth
+   LastWeekOfMonth
+   QuarterOffset
+   BQuarterEnd
+   BQuarterBegin
+   QuarterEnd
+   QuarterBegin
+   YearOffset
+   BYearEnd
+   BYearBegin
+   YearEnd
+   YearBegin
+   FY5253
+   FY5253Quarter
+   Easter
+   Tick
+   Day
+   Hour
+   Minute
+   Second
+   Milli
+   Micro
+   Nano
+   BDay
+   BMonthEnd
+   BMonthBegin
+   CBMonthEnd
+   CBMonthBegin
+   CDay
 
 .. _api.frequencies:
 
@@ -2400,6 +2491,7 @@ Style Application
    Styler.set_properties
    Styler.set_uuid
    Styler.clear
+   Styler.pipe
 
 Builtin Styles
 ~~~~~~~~~~~~~~
@@ -2603,3 +2695,12 @@ objects.
    generated/pandas.Series.ix
    generated/pandas.Series.imag
    generated/pandas.Series.real
+
+
+.. Can't convince sphinx to generate toctree for this class attribute.
+.. So we do it manually to avoid a warning
+
+.. toctree::
+   :hidden:
+
+   generated/pandas.api.extensions.ExtensionDtype.na_value

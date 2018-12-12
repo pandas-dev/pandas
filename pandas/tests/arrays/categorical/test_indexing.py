@@ -1,13 +1,13 @@
 # -*- coding: utf-8 -*-
 
+import numpy as np
 import pytest
 
-import numpy as np
-
-import pandas.util.testing as tm
-from pandas import Categorical, Index, CategoricalIndex, PeriodIndex, Series
+import pandas as pd
+from pandas import Categorical, CategoricalIndex, Index, PeriodIndex, Series
 import pandas.core.common as com
 from pandas.tests.arrays.categorical.common import TestCategorical
+import pandas.util.testing as tm
 
 
 class TestCategoricalIndexingWithFactor(TestCategorical):
@@ -43,6 +43,45 @@ class TestCategoricalIndexingWithFactor(TestCategorical):
                                ordered=True)
 
         tm.assert_categorical_equal(c, expected)
+
+    @pytest.mark.parametrize('other', [
+        pd.Categorical(['b', 'a']),
+        pd.Categorical(['b', 'a'], categories=['b', 'a']),
+    ])
+    def test_setitem_same_but_unordered(self, other):
+        # GH-24142
+        target = pd.Categorical(['a', 'b'], categories=['a', 'b'])
+        mask = np.array([True, False])
+        target[mask] = other[mask]
+        expected = pd.Categorical(['b', 'b'], categories=['a', 'b'])
+        tm.assert_categorical_equal(target, expected)
+
+    @pytest.mark.parametrize('other', [
+        pd.Categorical(['b', 'a'], categories=['b', 'a', 'c']),
+        pd.Categorical(['b', 'a'], categories=['a', 'b', 'c']),
+        pd.Categorical(['a', 'a'], categories=['a']),
+        pd.Categorical(['b', 'b'], categories=['b']),
+    ])
+    def test_setitem_different_unordered_raises(self, other):
+        # GH-24142
+        target = pd.Categorical(['a', 'b'], categories=['a', 'b'])
+        mask = np.array([True, False])
+        with pytest.raises(ValueError):
+            target[mask] = other[mask]
+
+    @pytest.mark.parametrize('other', [
+        pd.Categorical(['b', 'a']),
+        pd.Categorical(['b', 'a'], categories=['b', 'a'], ordered=True),
+        pd.Categorical(['b', 'a'], categories=['a', 'b', 'c'], ordered=True),
+    ])
+    def test_setitem_same_ordered_rasies(self, other):
+        # Gh-24142
+        target = pd.Categorical(['a', 'b'], categories=['a', 'b'],
+                                ordered=True)
+        mask = np.array([True, False])
+
+        with pytest.raises(ValueError):
+            target[mask] = other[mask]
 
 
 class TestCategoricalIndexing(object):
@@ -123,6 +162,60 @@ class TestCategoricalIndexing(object):
             tm.assert_numpy_array_equal(expected, result)
             tm.assert_numpy_array_equal(exp_miss, res_miss)
 
+    def test_where_unobserved_nan(self):
+        ser = pd.Series(pd.Categorical(['a', 'b']))
+        result = ser.where([True, False])
+        expected = pd.Series(pd.Categorical(['a', None],
+                                            categories=['a', 'b']))
+        tm.assert_series_equal(result, expected)
+
+        # all NA
+        ser = pd.Series(pd.Categorical(['a', 'b']))
+        result = ser.where([False, False])
+        expected = pd.Series(pd.Categorical([None, None],
+                                            categories=['a', 'b']))
+        tm.assert_series_equal(result, expected)
+
+    def test_where_unobserved_categories(self):
+        ser = pd.Series(
+            Categorical(['a', 'b', 'c'], categories=['d', 'c', 'b', 'a'])
+        )
+        result = ser.where([True, True, False], other='b')
+        expected = pd.Series(
+            Categorical(['a', 'b', 'b'], categories=ser.cat.categories)
+        )
+        tm.assert_series_equal(result, expected)
+
+    def test_where_other_categorical(self):
+        ser = pd.Series(
+            Categorical(['a', 'b', 'c'], categories=['d', 'c', 'b', 'a'])
+        )
+        other = Categorical(['b', 'c', 'a'], categories=['a', 'c', 'b', 'd'])
+        result = ser.where([True, False, True], other)
+        expected = pd.Series(Categorical(['a', 'c', 'c'], dtype=ser.dtype))
+        tm.assert_series_equal(result, expected)
+
+    def test_where_warns(self):
+        ser = pd.Series(Categorical(['a', 'b', 'c']))
+        with tm.assert_produces_warning(FutureWarning):
+            result = ser.where([True, False, True], 'd')
+
+        expected = pd.Series(np.array(['a', 'd', 'c'], dtype='object'))
+        tm.assert_series_equal(result, expected)
+
+    def test_where_ordered_differs_rasies(self):
+        ser = pd.Series(
+            Categorical(['a', 'b', 'c'], categories=['d', 'c', 'b', 'a'],
+                        ordered=True)
+        )
+        other = Categorical(['b', 'c', 'a'], categories=['a', 'c', 'b', 'd'],
+                            ordered=True)
+        with tm.assert_produces_warning(FutureWarning):
+            result = ser.where([True, False, True], other)
+
+        expected = pd.Series(np.array(['a', 'c', 'c'], dtype=object))
+        tm.assert_series_equal(result, expected)
+
 
 @pytest.mark.parametrize("index", [True, False])
 def test_mask_with_boolean(index):
@@ -144,5 +237,32 @@ def test_mask_with_boolean_raises(index):
     if index:
         idx = CategoricalIndex(idx)
 
-    with tm.assert_raises_regex(ValueError, 'NA / NaN'):
+    with pytest.raises(ValueError, match='NA / NaN'):
         s[idx]
+
+
+@pytest.fixture
+def non_coercible_categorical(monkeypatch):
+    """
+    Monkeypatch Categorical.__array__ to ensure no implicit conversion.
+
+    Raises
+    ------
+    ValueError
+        When Categorical.__array__ is called.
+    """
+    # TODO(Categorical): identify other places where this may be
+    # useful and move to a conftest.py
+    def array(self, dtype=None):
+        raise ValueError("I cannot be converted.")
+
+    with monkeypatch.context() as m:
+        m.setattr(Categorical, "__array__", array)
+        yield
+
+
+def test_series_at(non_coercible_categorical):
+    arr = Categorical(['a', 'b', 'c'])
+    ser = Series(arr)
+    result = ser.at[0]
+    assert result == 'a'

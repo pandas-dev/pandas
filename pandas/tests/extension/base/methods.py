@@ -1,5 +1,5 @@
-import pytest
 import numpy as np
+import pytest
 
 import pandas as pd
 import pandas.util.testing as tm
@@ -105,6 +105,30 @@ class BaseMethodsTests(BaseExtensionTests):
         tm.assert_numpy_array_equal(l1, l2)
         self.assert_extension_array_equal(u1, u2)
 
+    def test_fillna_copy_frame(self, data_missing):
+        arr = data_missing.take([1, 1])
+        df = pd.DataFrame({"A": arr})
+
+        filled_val = df.iloc[0, 0]
+        result = df.fillna(filled_val)
+
+        assert df.A.values is not result.A.values
+
+    def test_fillna_copy_series(self, data_missing):
+        arr = data_missing.take([1, 1])
+        ser = pd.Series(arr)
+
+        filled_val = ser[0]
+        result = ser.fillna(filled_val)
+
+        assert ser._values is not result._values
+        assert ser._values is arr
+
+    def test_fillna_length_mismatch(self, data_missing):
+        msg = "Length of 'value' does not match."
+        with pytest.raises(ValueError, match=msg):
+            data_missing.fillna(data_missing.take([1]))
+
     def test_combine_le(self, data_repeated):
         # GH 20825
         # Test that combine works when doing a <= (le) comparison
@@ -140,6 +164,14 @@ class BaseMethodsTests(BaseExtensionTests):
             orig_data1._from_sequence([a + val for a in list(orig_data1)]))
         self.assert_series_equal(result, expected)
 
+    def test_combine_first(self, data):
+        # https://github.com/pandas-dev/pandas/issues/24147
+        a = pd.Series(data[:3])
+        b = pd.Series(data[2:5], index=[2, 3, 4])
+        result = a.combine_first(b)
+        expected = pd.Series(data[:5])
+        self.assert_series_equal(result, expected)
+
     @pytest.mark.parametrize('frame', [True, False])
     @pytest.mark.parametrize('periods, indices', [
         (-2, [2, 3, 4, -1, -1]),
@@ -164,3 +196,71 @@ class BaseMethodsTests(BaseExtensionTests):
             compare = self.assert_series_equal
 
         compare(result, expected)
+
+    @pytest.mark.parametrize('periods, indices', [
+        [-4, [-1, -1]],
+        [-1, [1, -1]],
+        [0, [0, 1]],
+        [1, [-1, 0]],
+        [4, [-1, -1]]
+    ])
+    def test_shift_non_empty_array(self, data, periods, indices):
+        # https://github.com/pandas-dev/pandas/issues/23911
+        subset = data[:2]
+        result = subset.shift(periods)
+        expected = subset.take(indices, allow_fill=True)
+        self.assert_extension_array_equal(result, expected)
+
+    @pytest.mark.parametrize('periods', [
+        -4, -1, 0, 1, 4
+    ])
+    def test_shift_empty_array(self, data, periods):
+        # https://github.com/pandas-dev/pandas/issues/23911
+        empty = data[:0]
+        result = empty.shift(periods)
+        expected = empty
+        self.assert_extension_array_equal(result, expected)
+
+    @pytest.mark.parametrize("as_frame", [True, False])
+    def test_hash_pandas_object_works(self, data, as_frame):
+        # https://github.com/pandas-dev/pandas/issues/23066
+        data = pd.Series(data)
+        if as_frame:
+            data = data.to_frame()
+        a = pd.util.hash_pandas_object(data)
+        b = pd.util.hash_pandas_object(data)
+        self.assert_equal(a, b)
+
+    @pytest.mark.parametrize("as_frame", [True, False])
+    def test_where_series(self, data, na_value, as_frame):
+        assert data[0] != data[1]
+        cls = type(data)
+        a, b = data[:2]
+
+        ser = pd.Series(cls._from_sequence([a, a, b, b], dtype=data.dtype))
+        cond = np.array([True, True, False, False])
+
+        if as_frame:
+            ser = ser.to_frame(name='a')
+            cond = cond.reshape(-1, 1)
+
+        result = ser.where(cond)
+        expected = pd.Series(cls._from_sequence([a, a, na_value, na_value],
+                                                dtype=data.dtype))
+
+        if as_frame:
+            expected = expected.to_frame(name='a')
+        self.assert_equal(result, expected)
+
+        # array other
+        cond = np.array([True, False, True, True])
+        other = cls._from_sequence([a, b, a, b], dtype=data.dtype)
+        if as_frame:
+            other = pd.DataFrame({"a": other})
+            cond = pd.DataFrame({"a": cond})
+        result = ser.where(cond, other)
+        expected = pd.Series(cls._from_sequence([a, b, b, b],
+                                                dtype=data.dtype))
+        if as_frame:
+            expected = expected.to_frame(name='a')
+        self.assert_equal(result, expected)

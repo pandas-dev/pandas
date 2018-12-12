@@ -56,8 +56,8 @@
 <tr>
   <td></td>
   <td>
-    <a href="https://ci.appveyor.com/project/pandas-dev/pandas">
-    <img src="https://ci.appveyor.com/api/projects/status/86vn83mxgnl4xf1s/branch/master?svg=true" alt="appveyor build status" />
+    <a href="https://dev.azure.com/pandas-dev/pandas/_build/latest?definitionId=1&branch=master">
+      <img src="https://dev.azure.com/pandas-dev/pandas/_apis/build/status/pandas-dev.pandas?branch=master" alt="Azure Pipelines build status" />
     </a>
   </td>
 </tr>
@@ -97,7 +97,7 @@ easy and intuitive. It aims to be the fundamental high-level building block for
 doing practical, **real world** data analysis in Python. Additionally, it has
 the broader goal of becoming **the most powerful and flexible open source data
 analysis / manipulation tool available in any language**. It is already well on
-its way toward this goal.
+its way towards this goal.
 
 ## Main Features
 Here are just a few of the things that pandas does well:
@@ -171,7 +171,7 @@ pip install pandas
 ```
 
 ## Dependencies
-- [NumPy](https://www.numpy.org): 1.9.0 or higher
+- [NumPy](https://www.numpy.org): 1.12.0 or higher
 - [python-dateutil](https://labix.org/python-dateutil): 2.5.0 or higher
 - [pytz](https://pythonhosted.org/pytz): 2011k or higher
 

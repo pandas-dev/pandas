@@ -17,9 +17,6 @@ import numpy as np
 
 from pandas.util.testing import (assert_series_equal,
                                  assert_frame_equal)
-
-import pandas.util.testing as tm
-
 from pandas.tests.frame.common import TestData
 
 
@@ -612,9 +609,9 @@ class TestDataFrameReplace(TestData):
         assert_frame_equal(result, expected)
 
         # GH 19266
-        with tm.assert_raises_regex(ValueError, "cannot assign mismatch"):
+        with pytest.raises(ValueError, match="cannot assign mismatch"):
             df.replace({np.nan: []})
-        with tm.assert_raises_regex(ValueError, "cannot assign mismatch"):
+        with pytest.raises(ValueError, match="cannot assign mismatch"):
             df.replace({np.nan: ['dummy', 'alt']})
 
     def test_replace_series_dict(self):
@@ -809,9 +806,8 @@ class TestDataFrameReplace(TestData):
         df = DataFrame({'A': [np.nan, 0, np.inf], 'B': [0, 2, 5],
                         'C': ['', 'asdf', 'fd']})
         filled = df.replace(to_rep, values)
-        expected = {}
-        for k, v in compat.iteritems(df):
-            expected[k] = v.replace(to_rep[k], values[k])
+        expected = {k: v.replace(to_rep[k], values[k])
+                    for k, v in compat.iteritems(df)}
         assert_frame_equal(filled, DataFrame(expected))
 
         result = df.replace([0, 2, 5], [5, 2, 0])
@@ -824,9 +820,8 @@ class TestDataFrameReplace(TestData):
         df = DataFrame({'A': [np.nan, 0, np.nan], 'B': [0, 2, 5],
                         'C': ['', 'asdf', 'fd']})
         filled = df.replace(np.nan, values)
-        expected = {}
-        for k, v in compat.iteritems(df):
-            expected[k] = v.replace(np.nan, values[k])
+        expected = {k: v.replace(np.nan, values[k])
+                    for k, v in compat.iteritems(df)}
         assert_frame_equal(filled, DataFrame(expected))
 
         # list to list
@@ -847,9 +842,8 @@ class TestDataFrameReplace(TestData):
         # dict to scalar
         to_rep = {'A': np.nan, 'B': 0, 'C': ''}
         filled = df.replace(to_rep, 0)
-        expected = {}
-        for k, v in compat.iteritems(df):
-            expected[k] = v.replace(to_rep[k], 0)
+        expected = {k: v.replace(to_rep[k], 0)
+                    for k, v in compat.iteritems(df)}
         assert_frame_equal(filled, DataFrame(expected))
 
         pytest.raises(TypeError, df.replace, to_rep, [np.nan, 0, ''])
@@ -923,7 +917,7 @@ class TestDataFrameReplace(TestData):
 
     def test_replace_with_dict_with_bool_keys(self):
         df = DataFrame({0: [True, False], 1: [False, True]})
-        with tm.assert_raises_regex(TypeError, 'Cannot compare types .+'):
+        with pytest.raises(TypeError, match='Cannot compare types .+'):
             df.replace({'asdf': 'asdb', True: 'yes'})
 
     def test_replace_truthy(self):
@@ -934,8 +928,7 @@ class TestDataFrameReplace(TestData):
 
     def test_replace_int_to_int_chain(self):
         df = DataFrame({'a': lrange(1, 5)})
-        with tm.assert_raises_regex(ValueError,
-                                    "Replacement not allowed .+"):
+        with pytest.raises(ValueError, match="Replacement not allowed .+"):
             df.replace({'a': dict(zip(range(1, 5), range(2, 6)))})
 
     def test_replace_str_to_str_chain(self):
@@ -943,8 +936,7 @@ class TestDataFrameReplace(TestData):
         astr = a.astype(str)
         bstr = np.arange(2, 6).astype(str)
         df = DataFrame({'a': astr})
-        with tm.assert_raises_regex(ValueError,
-                                    "Replacement not allowed .+"):
+        with pytest.raises(ValueError, match="Replacement not allowed .+"):
             df.replace({'a': dict(zip(astr, bstr))})
 
     def test_replace_swapping_bug(self):
@@ -984,8 +976,11 @@ class TestDataFrameReplace(TestData):
                            'out_augmented_AUG_2011.json',
                            'out_augmented_JAN_2011.json'], columns=['fname'])
         assert set(df.fname.values) == set(d['fname'].keys())
+        # We don't support converting object -> specialized EA in
+        # replace yet.
         expected = DataFrame({'fname': [d['fname'][k]
-                                        for k in df.fname.values]})
+                                        for k in df.fname.values]},
+                             dtype=object)
         result = df.replace(d)
         assert_frame_equal(result, expected)
 

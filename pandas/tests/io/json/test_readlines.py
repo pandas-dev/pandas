@@ -81,7 +81,7 @@ def test_readjson_chunks(lines_json_df, chunksize):
 
 def test_readjson_chunksize_requires_lines(lines_json_df):
     msg = "chunksize can only be passed if lines=True"
-    with tm.assert_raises_regex(ValueError, msg):
+    with pytest.raises(ValueError, match=msg):
         pd.read_json(StringIO(lines_json_df), lines=False, chunksize=2)
 
 
@@ -138,7 +138,7 @@ def test_readjson_chunks_closes(chunksize):
 def test_readjson_invalid_chunksize(lines_json_df, chunksize):
     msg = r"'chunksize' must be an integer >=1"
 
-    with tm.assert_raises_regex(ValueError, msg):
+    with pytest.raises(ValueError, match=msg):
         pd.read_json(StringIO(lines_json_df), lines=True,
                      chunksize=chunksize)
 

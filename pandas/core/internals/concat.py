@@ -1,22 +1,20 @@
 # -*- coding: utf-8 -*-
 # TODO: Needs a better name; too many modules are already called "concat"
-import copy
 from collections import defaultdict
+import copy
 
 import numpy as np
 
-from pandas._libs import tslibs, internals as libinternals
+from pandas._libs import internals as libinternals, tslibs
 from pandas.util._decorators import cache_readonly
 
-from pandas.core.dtypes.missing import isna
-from pandas.core.dtypes.common import (
-    is_timedelta64_dtype,
-    is_datetime64_dtype, is_datetimetz,
-    is_categorical_dtype,
-    is_float_dtype, is_numeric_dtype,
-    _get_dtype)
 from pandas.core.dtypes.cast import maybe_promote
+from pandas.core.dtypes.common import (
+    _get_dtype, is_categorical_dtype, is_datetime64_dtype,
+    is_datetime64tz_dtype, is_float_dtype, is_numeric_dtype, is_sparse,
+    is_timedelta64_dtype)
 import pandas.core.dtypes.concat as _concat
+from pandas.core.dtypes.missing import isna
 
 import pandas.core.algorithms as algos
 
@@ -150,11 +148,8 @@ class JoinUnit(object):
         values = self.block.values
         if self.block.is_categorical:
             values_flat = values.categories
-        elif self.block.is_sparse:
-            # fill_value is not NaN and have holes
-            if not values._null_fill_value and values.sp_index.ngaps > 0:
-                return False
-            values_flat = values.ravel(order='K')
+        elif is_sparse(self.block.values.dtype):
+            return False
         elif self.block.is_extension:
             values_flat = values
         else:
@@ -184,8 +179,12 @@ class JoinUnit(object):
                     if len(values) and values[0] is None:
                         fill_value = None
 
-                if getattr(self.block, 'is_datetimetz', False) or \
-                        is_datetimetz(empty_dtype):
+                if (getattr(self.block, 'is_datetimetz', False) or
+                        is_datetime64tz_dtype(empty_dtype)):
+                    if self.block is None:
+                        array = empty_dtype.construct_array_type()
+                        missing_arr = array([fill_value], dtype=empty_dtype)
+                        return missing_arr.repeat(self.shape[1])
                     pass
                 elif getattr(self.block, 'is_categorical', False):
                     pass
@@ -268,7 +267,6 @@ def get_empty_dtype_and_na(join_units):
     dtype
     na
     """
-
     if len(join_units) == 1:
         blk = join_units[0].block
         if blk is None:
@@ -296,7 +294,7 @@ def get_empty_dtype_and_na(join_units):
 
         if is_categorical_dtype(dtype):
             upcast_cls = 'category'
-        elif is_datetimetz(dtype):
+        elif is_datetime64tz_dtype(dtype):
             upcast_cls = 'datetimetz'
         elif issubclass(dtype.type, np.bool_):
             upcast_cls = 'bool'
@@ -306,6 +304,8 @@ def get_empty_dtype_and_na(join_units):
             upcast_cls = 'datetime'
         elif is_timedelta64_dtype(dtype):
             upcast_cls = 'timedelta'
+        elif is_sparse(dtype):
+            upcast_cls = dtype.subtype.name
         elif is_float_dtype(dtype) or is_numeric_dtype(dtype):
             upcast_cls = dtype.name
         else:
@@ -340,14 +340,19 @@ def get_empty_dtype_and_na(join_units):
     elif 'timedelta' in upcast_classes:
         return np.dtype('m8[ns]'), tslibs.iNaT
     else:  # pragma
-        g = np.find_common_type(upcast_classes, [])
-        if is_float_dtype(g):
-            return g, g.type(np.nan)
-        elif is_numeric_dtype(g):
-            if has_none_blocks:
-                return np.float64, np.nan
-            else:
-                return g, None
+        try:
+            g = np.find_common_type(upcast_classes, [])
+        except TypeError:
+            # At least one is an ExtensionArray
+            return np.dtype(np.object_), np.nan
+        else:
+            if is_float_dtype(g):
+                return g, g.type(np.nan)
+            elif is_numeric_dtype(g):
+                if has_none_blocks:
+                    return np.float64, np.nan
+                else:
+                    return g, None
 
     msg = "invalid dtype determination in get_concat_dtype"
     raise AssertionError(msg)

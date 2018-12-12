@@ -1,3 +1,4 @@
+from collections import OrderedDict
 from itertools import product
 import pytest
 import warnings
@@ -6,7 +7,6 @@ from warnings import catch_warnings
 from datetime import datetime, timedelta
 from numpy.random import randn
 import numpy as np
-from pandas import _np_version_under1p12
 
 import pandas as pd
 from pandas import (Series, DataFrame, bdate_range,
@@ -90,7 +90,7 @@ class TestApi(Base):
         pytest.raises(KeyError, g.__getitem__, ['C'])  # g[['C']]
 
         pytest.raises(KeyError, g.__getitem__, ['A', 'C'])  # g[['A', 'C']]
-        with tm.assert_raises_regex(KeyError, '^[^A]+$'):
+        with pytest.raises(KeyError, match='^[^A]+$'):
             # A should not be referenced as a bad column...
             # will have to rethink regex if you change message!
             g[['A', 'C']]
@@ -116,7 +116,7 @@ class TestApi(Base):
         df = DataFrame({'A': range(5), 'B': range(5, 10), 'C': 'foo'})
         r = df.rolling(window=3)
 
-        with tm.assert_raises_regex(TypeError, 'cannot handle this type'):
+        with pytest.raises(TypeError, match='cannot handle this type'):
             r.sum()
 
     def test_agg(self):
@@ -314,6 +314,53 @@ class TestApi(Base):
         assert s2.name == 'foo'
         assert s3.name == 'foo'
 
+    @pytest.mark.parametrize("func,window_size,expected_vals", [
+        ('rolling', 2, [[np.nan, np.nan, np.nan, np.nan],
+                        [15., 20., 25., 20.],
+                        [25., 30., 35., 30.],
+                        [np.nan, np.nan, np.nan, np.nan],
+                        [20., 30., 35., 30.],
+                        [35., 40., 60., 40.],
+                        [60., 80., 85., 80]]),
+        ('expanding', None, [[10., 10., 20., 20.],
+                             [15., 20., 25., 20.],
+                             [20., 30., 30., 20.],
+                             [10., 10., 30., 30.],
+                             [20., 30., 35., 30.],
+                             [26.666667, 40., 50., 30.],
+                             [40., 80., 60., 30.]])])
+    def test_multiple_agg_funcs(self, func, window_size, expected_vals):
+        # GH 15072
+        df = pd.DataFrame([
+            ['A', 10, 20],
+            ['A', 20, 30],
+            ['A', 30, 40],
+            ['B', 10, 30],
+            ['B', 30, 40],
+            ['B', 40, 80],
+            ['B', 80, 90]], columns=['stock', 'low', 'high'])
+
+        f = getattr(df.groupby('stock'), func)
+        if window_size:
+            window = f(window_size)
+        else:
+            window = f()
+
+        index = pd.MultiIndex.from_tuples([
+            ('A', 0), ('A', 1), ('A', 2),
+            ('B', 3), ('B', 4), ('B', 5), ('B', 6)], names=['stock', None])
+        columns = pd.MultiIndex.from_tuples([
+            ('low', 'mean'), ('low', 'max'), ('high', 'mean'),
+            ('high', 'min')])
+        expected = pd.DataFrame(expected_vals, index=index, columns=columns)
+
+        result = window.agg(OrderedDict((
+            ('low', ['mean', 'max']),
+            ('high', ['mean', 'min']),
+        )))
+
+        tm.assert_frame_equal(result, expected)
+
 
 @pytest.mark.filterwarnings("ignore:can't resolve package:ImportWarning")
 class TestWindow(Base):
@@ -363,10 +410,10 @@ class TestWindow(Base):
 
         msg = "numpy operations are not valid with window objects"
 
-        tm.assert_raises_regex(UnsupportedFunctionCall, msg,
-                               getattr(w, method), 1, 2, 3)
-        tm.assert_raises_regex(UnsupportedFunctionCall, msg,
-                               getattr(w, method), dtype=np.float64)
+        with pytest.raises(UnsupportedFunctionCall, match=msg):
+            getattr(w, method)(1, 2, 3)
+        with pytest.raises(UnsupportedFunctionCall, match=msg):
+            getattr(w, method)(dtype=np.float64)
 
 
 class TestRolling(Base):
@@ -460,10 +507,10 @@ class TestRolling(Base):
 
         msg = "numpy operations are not valid with window objects"
 
-        tm.assert_raises_regex(UnsupportedFunctionCall, msg,
-                               getattr(r, method), 1, 2, 3)
-        tm.assert_raises_regex(UnsupportedFunctionCall, msg,
-                               getattr(r, method), dtype=np.float64)
+        with pytest.raises(UnsupportedFunctionCall, match=msg):
+            getattr(r, method)(1, 2, 3)
+        with pytest.raises(UnsupportedFunctionCall, match=msg):
+            getattr(r, method)(dtype=np.float64)
 
     def test_closed(self):
         df = DataFrame({'A': [0, 1, 2, 3, 4]})
@@ -580,6 +627,25 @@ class TestRolling(Base):
         with pytest.raises(NotImplementedError):
             iter(obj.rolling(2))
 
+    def test_rolling_axis(self, axis_frame):
+        # see gh-23372.
+        df = DataFrame(np.ones((10, 20)))
+        axis = df._get_axis_number(axis_frame)
+
+        if axis == 0:
+            expected = DataFrame({
+                i: [np.nan] * 2 + [3.0] * 8
+                for i in range(20)
+            })
+        else:
+            # axis == 1
+            expected = DataFrame([
+                [np.nan] * 2 + [3.0] * 18
+            ] * 10)
+
+        result = df.rolling(3, axis=axis_frame).sum()
+        tm.assert_frame_equal(result, expected)
+
 
 class TestExpanding(Base):
 
@@ -620,17 +686,16 @@ class TestExpanding(Base):
 
         msg = "numpy operations are not valid with window objects"
 
-        tm.assert_raises_regex(UnsupportedFunctionCall, msg,
-                               getattr(e, method), 1, 2, 3)
-        tm.assert_raises_regex(UnsupportedFunctionCall, msg,
-                               getattr(e, method), dtype=np.float64)
+        with pytest.raises(UnsupportedFunctionCall, match=msg):
+            getattr(e, method)(1, 2, 3)
+        with pytest.raises(UnsupportedFunctionCall, match=msg):
+            getattr(e, method)(dtype=np.float64)
 
     @pytest.mark.parametrize(
         'expander',
         [1, pytest.param('ls', marks=pytest.mark.xfail(
                          reason='GH#16425 expanding with '
-                                'offset not supported',
-                         strict=True))])
+                                'offset not supported'))])
     def test_empty_df_expanding(self, expander):
         # GH 15819 Verifies that datetime and integer expanding windows can be
         # applied to empty DataFrames
@@ -666,6 +731,25 @@ class TestExpanding(Base):
         obj = klass([1, 2, 3, 4])
         with pytest.raises(NotImplementedError):
             iter(obj.expanding(2))
+
+    def test_expanding_axis(self, axis_frame):
+        # see gh-23372.
+        df = DataFrame(np.ones((10, 20)))
+        axis = df._get_axis_number(axis_frame)
+
+        if axis == 0:
+            expected = DataFrame({
+                i: [np.nan] * 2 + [float(j) for j in range(3, 11)]
+                for i in range(20)
+            })
+        else:
+            # axis == 1
+            expected = DataFrame([
+                [np.nan] * 2 + [float(i) for i in range(3, 21)]
+            ] * 10)
+
+        result = df.expanding(3, axis=axis_frame).sum()
+        tm.assert_frame_equal(result, expected)
 
 
 class TestEWM(Base):
@@ -727,10 +811,10 @@ class TestEWM(Base):
 
         msg = "numpy operations are not valid with window objects"
 
-        tm.assert_raises_regex(UnsupportedFunctionCall, msg,
-                               getattr(e, method), 1, 2, 3)
-        tm.assert_raises_regex(UnsupportedFunctionCall, msg,
-                               getattr(e, method), dtype=np.float64)
+        with pytest.raises(UnsupportedFunctionCall, match=msg):
+            getattr(e, method)(1, 2, 3)
+        with pytest.raises(UnsupportedFunctionCall, match=msg):
+            getattr(e, method)(dtype=np.float64)
 
 
 # gh-12373 : rolling functions error on float32 data
@@ -1244,8 +1328,6 @@ class TestMoments(Base):
 
         tm.assert_almost_equal(df_quantile.values, np.array(np_percentile))
 
-    @pytest.mark.skipif(_np_version_under1p12,
-                        reason='numpy midpoint interpolation is broken')
     @pytest.mark.parametrize('quantile', [0.0, 0.1, 0.45, 0.5, 1])
     @pytest.mark.parametrize('interpolation', ['linear', 'lower', 'higher',
                                                'nearest', 'midpoint'])
@@ -1916,12 +1998,12 @@ class TestPairwise(object):
                 tm.assert_index_equal(result.index, expected_index)
                 tm.assert_index_equal(result.columns, expected_columns)
             else:
-                tm.assert_raises_regex(
-                    ValueError, "'arg1' columns are not unique", f, df,
-                    self.df2)
-                tm.assert_raises_regex(
-                    ValueError, "'arg2' columns are not unique", f,
-                    self.df2, df)
+                with pytest.raises(ValueError,
+                                   match="'arg1' columns are not unique"):
+                    f(df, self.df2)
+                with pytest.raises(ValueError,
+                                   match="'arg2' columns are not unique"):
+                    f(self.df2, df)
 
     @pytest.mark.parametrize(
         'f', [lambda x, y: x.expanding().cov(y),
