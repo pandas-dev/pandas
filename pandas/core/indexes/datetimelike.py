@@ -14,7 +14,7 @@ from pandas.util._decorators import Appender, cache_readonly, deprecate_kwarg
 
 from pandas.core.dtypes.common import (
     ensure_int64, is_bool_dtype, is_dtype_equal, is_float, is_integer,
-    is_list_like, is_period_dtype, is_scalar)
+    is_integer_dtype, is_list_like, is_period_dtype, is_scalar, pandas_dtype)
 from pandas.core.dtypes.generic import ABCIndex, ABCIndexClass, ABCSeries
 
 from pandas.core import algorithms, ops
@@ -600,6 +600,15 @@ class DatetimeIndexOpsMixin(ExtensionOpsMixin):
             # Ensure that self.astype(self.dtype) is self
             return self
         new_values = self._values.astype(dtype, copy=copy)
+
+        # we pass `dtype` to the Index constructor, for cases like
+        # dtype=object to disable inference. But, DTA.astype ignores
+        # integer sign and size, so we need to detect that case and
+        # just choose int64.
+        dtype = pandas_dtype(dtype)
+        if is_integer_dtype(dtype):
+            dtype = np.dtype("int64")
+
         return Index(new_values, dtype=dtype, name=self.name)
 
     def view(self, dtype=None, type=None):
