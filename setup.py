@@ -10,6 +10,8 @@ import os
 from os.path import join as pjoin
 
 import pkg_resources
+import platform
+import distutils.sysconfig
 import sys
 import shutil
 from distutils.version import LooseVersion
@@ -443,11 +445,9 @@ else:
 # the version that python was built for. This may be overridden by setting
 # MACOSX_DEPLOYMENT_TARGET before calling setup.py
 if is_platform_mac():
-    import _osx_support
-    import distutils.sysconfig
     if 'MACOSX_DEPLOYMENT_TARGET' not in os.environ:
         current_system = \
-            list(map(int, _osx_support._get_system_version().split('.')))
+            list(map(int, platform.mac_ver()[0].split('.')[:2]))
         python_osx_target_str = \
             distutils.sysconfig.get_config_var('MACOSX_DEPLOYMENT_TARGET')
         python_osx_target = list(map(int, python_osx_target_str.split('.')))
