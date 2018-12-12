@@ -76,14 +76,6 @@ def index(_index_factory, _index_start, _index_end, _index_freq):
 
 
 @pytest.fixture
-def create_index(_index_factory):
-    def _create_index(*args, **kwargs):
-        """ return the _index_factory created using the args, kwargs """
-        return _index_factory(*args, **kwargs)
-    return _create_index
-
-
-@pytest.fixture
 def _static_values(index):
     return np.arange(len(index))
 

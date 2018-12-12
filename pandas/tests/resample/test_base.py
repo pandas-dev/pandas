@@ -20,6 +20,14 @@ from pandas.util.testing import (
     assert_series_equal)
 
 
+@pytest.fixture
+def create_index(_index_factory):
+    def _create_index(*args, **kwargs):
+        """ return the _index_factory created using the args, kwargs """
+        return _index_factory(*args, **kwargs)
+    return _create_index
+
+
 class Base(object):
     """
     base class for resampling testing, calling
