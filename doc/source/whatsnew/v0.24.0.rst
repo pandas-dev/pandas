@@ -675,12 +675,12 @@ from an :class:`ndarray` of :class:`Timestamp` objects to a :class:`arrays.Datet
 
 Previous Behavior:
 
-.. code-block:: python
+.. code-block:: ipython
 
-    In [2]: ser = pd.Series([pd.Timestamp('2000', tz='UTC'),
+   In [2]: ser = pd.Series([pd.Timestamp('2000', tz='UTC'),
                              pd.Timestamp('2000', tz='UTC')])
-    In [3]: ser.unique()
-    Out[3]: array([Timestamp('2000-01-01 00:00:00+0000', tz='UTC')], dtype=object)
+   In [3]: ser.unique()
+   Out[3]: array([Timestamp('2000-01-01 00:00:00+0000', tz='UTC')], dtype=object)
 
 
 Current Behavior:
@@ -690,7 +690,6 @@ Current Behavior:
    ser = pd.Series([pd.Timestamp('2000', tz='UTC'),
                     pd.Timestamp('2000', tz='UTC')])
    ser.unique()
-
 
 
 .. _whatsnew_0240.api_breaking.sparse_values:
