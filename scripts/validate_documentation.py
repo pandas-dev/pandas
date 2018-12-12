@@ -214,12 +214,14 @@ def validate_one(page):
        * WS: Issues with whitespace characters
     - Last two characters: Numeric error code
     """
+    try:
+        with open(DOCTREE_PATH.format(page), 'r+b') as file:
+            doctree = pickle.load(file)
 
-    with open(DOCTREE_PATH.format(page), 'r+b') as file:
-        doctree = pickle.load(file)
-
-    with open(RST_PATH.format(page), 'r') as file:
-        raw_doc = file.readlines()
+        with open(RST_PATH.format(page), 'r') as file:
+            raw_doc = file.readlines()
+    except FileNotFoundError:
+        return None
 
     checker = DocumentChecker(page, raw_doc, doctree)
     checker.validate()
@@ -244,7 +246,7 @@ def validate_all(exclude_patterns):
         all the validation information.
     """
 
-    result = {}
+    checkers = {}
     for root, dirs, files in os.walk(DOCUMENTATION_SOURCE):
         _, base_dir = root.split(DOCUMENTATION_SOURCE)
         for file in files:
@@ -257,8 +259,10 @@ def validate_all(exclude_patterns):
                     if fnmatch(page, pattern):
                         continue
 
-            result[page] = validate_one(page)
-    return result
+            checker = validate_one(page)
+            if checker:
+                checkers[page] = checker
+    return checkers
 
 
 def main(page, errors, output_format, exclude_patterns=None):
