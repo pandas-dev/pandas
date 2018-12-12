@@ -32,12 +32,13 @@ _shared_docs = dict(**_shared_docs)
 _doc_template = """
         Returns
         -------
-        same type as input
+        Series or DataFrame
+            Return type is determined by the caller.
 
         See Also
         --------
-        Series.%(name)s
-        DataFrame.%(name)s
+        Series.%(name)s : Series %(name)s.
+        DataFrame.%(name)s : DataFrame %(name)s.
 """
 
 
