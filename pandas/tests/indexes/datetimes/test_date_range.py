@@ -81,6 +81,7 @@ class TestTimestampEquivDateRange(object):
 
 class TestDateRanges(TestData):
     def test_date_range_multiplication_overflow(self):
+        # GH#24255
         # check that overflows in calculating `addend = periods * stride`
         #  are caught
         with tm.assert_produces_warning(None):
@@ -95,6 +96,7 @@ class TestDateRanges(TestData):
             date_range('1969-05-04', periods=200000000, freq='30000D')
 
     def test_date_range_unsigned_overflow_handling(self):
+        # GH#24255
         # case where `addend = periods * stride` overflows int64 bounds
         #  but not uint64 bounds
         dti = date_range(start='1677-09-22', end='2262-04-11', freq='D')
