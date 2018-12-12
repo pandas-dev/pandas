@@ -765,7 +765,10 @@ def test_pad_stable_sorting(fill_method):
 
 
 @pytest.mark.parametrize("test_series", [True, False])
-@pytest.mark.parametrize("freq", [None, 'D'])
+@pytest.mark.parametrize("freq", [
+    None,
+    pytest.param('D', marks=pytest.mark.xfail(
+        reason='GH#23918 before method uses freq in vectorized approach'))])
 @pytest.mark.parametrize("periods,fill_method,limit", [
     (1, 'ffill', None), (1, 'ffill', 1),
     (1, 'bfill', None), (1, 'bfill', 1),
@@ -774,10 +777,6 @@ def test_pad_stable_sorting(fill_method):
 ])
 def test_pct_change(test_series, freq, periods, fill_method, limit):
     # GH  21200, 21621
-    if freq == 'D':
-        pytest.xfail("'freq' test not necessary until #23918 completed and"
-                     "freq is used in the vectorized approach")
-
     vals = [3, np.nan, np.nan, np.nan, 1, 2, 4, 10, np.nan, 4]
     keys = ['a', 'b']
     key_v = np.repeat(keys, len(vals))
