@@ -3,6 +3,7 @@ import numpy as np
 import pytest
 
 import pandas as pd
+from pandas import compat
 from pandas.core.arrays import (
     DatetimeArrayMixin as DatetimeArray, PeriodArray,
     TimedeltaArrayMixin as TimedeltaArray)
@@ -118,10 +119,10 @@ class SharedTests(object):
         data = np.arange(10, dtype='i8')
         arr = self.array_cls(data, freq='D')
         result = arr._unbox_scalar(arr[0])
-        assert isinstance(result, int)
+        assert isinstance(result, compat.long)
 
         result = arr._unbox_scalar(pd.NaT)
-        assert isinstance(result, int)
+        assert isinstance(result, compat.long)
 
     def test_scalar_from_string(self):
         data = np.arange(10, dtype='i8')
