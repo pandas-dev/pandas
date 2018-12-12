@@ -273,29 +273,29 @@ In previous versions, ``.groupby(..., sort=False)`` would fail with a ``ValueErr
 
 .. ipython:: python
 
-  chromosomes = np.r_[np.arange(1, 23).astype(str), ['X', 'Y']]
-  df = pd.DataFrame({
-      'A': np.random.randint(100),
-      'B': np.random.randint(100),
-      'C': np.random.randint(100),
-      'chromosomes': pd.Categorical(np.random.choice(chromosomes, 100),
-                                    categories=chromosomes,
-                                    ordered=True)})
-  df
+   chromosomes = np.r_[np.arange(1, 23).astype(str), ['X', 'Y']]
+   df = pd.DataFrame({
+       'A': np.random.randint(100),
+       'B': np.random.randint(100),
+       'C': np.random.randint(100),
+       'chromosomes': pd.Categorical(np.random.choice(chromosomes, 100),
+                                     categories=chromosomes,
+                                     ordered=True)})
+   df
 
 **Previous Behavior**:
 
 .. code-block:: ipython
 
-  In [3]: df[df.chromosomes != '1'].groupby('chromosomes', sort=False).sum()
-  ---------------------------------------------------------------------------
-  ValueError: items in new_categories are not the same as in old categories
+   In [3]: df[df.chromosomes != '1'].groupby('chromosomes', sort=False).sum()
+   ---------------------------------------------------------------------------
+   ValueError: items in new_categories are not the same as in old categories
 
 **New Behavior**:
 
 .. ipython:: python
 
-  df[df.chromosomes != '1'].groupby('chromosomes', sort=False).sum()
+   df[df.chromosomes != '1'].groupby('chromosomes', sort=False).sum()
 
 .. _whatsnew_0200.enhancements.table_schema:
 
@@ -650,17 +650,17 @@ Previous behaviour:
 
 .. code-block:: ipython
 
-    In [1]: idx = pd.date_range("2015-01-01", periods=5, freq='10H')
+   In [1]: idx = pd.date_range("2015-01-01", periods=5, freq='10H')
 
-    In [2]: idx.hour
-    Out[2]: array([ 0, 10, 20,  6, 16], dtype=int32)
+   In [2]: idx.hour
+   Out[2]: array([ 0, 10, 20,  6, 16], dtype=int32)
 
 New Behavior:
 
 .. ipython:: python
 
-    idx = pd.date_range("2015-01-01", periods=5, freq='10H')
-    idx.hour
+   idx = pd.date_range("2015-01-01", periods=5, freq='10H')
+   idx.hour
 
 This has the advantage that specific ``Index`` methods are still available on the
 result. On the other hand, this might have backward incompatibilities: e.g.
@@ -1323,11 +1323,11 @@ Using ``.ix`` will now show a ``DeprecationWarning`` with a link to some example
 
 .. ipython:: python
 
-  df = pd.DataFrame({'A': [1, 2, 3],
-                     'B': [4, 5, 6]},
-                    index=list('abc'))
+   df = pd.DataFrame({'A': [1, 2, 3],
+                      'B': [4, 5, 6]},
+                     index=list('abc'))
 
-  df
+   df
 
 Previous Behavior, where you wish to get the 0th and the 2nd elements from the index in the 'A' column.
 

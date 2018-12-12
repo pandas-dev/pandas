@@ -481,7 +481,7 @@ The idiomatic way to achieve selecting potentially not-found elements is via ``.
 
 .. ipython:: python
 
-  s.reindex([1, 2, 3])
+   s.reindex([1, 2, 3])
 
 Selection with all keys found is unchanged.
 
@@ -592,13 +592,13 @@ Previously Behavior:
 
 .. ipython:: python
 
-    s = pd.Series([1, 2, 3], index=['a', 'b', 'c'])
-    s
+   s = pd.Series([1, 2, 3], index=['a', 'b', 'c'])
+   s
 
 .. code-block:: ipython
 
-    In [39]: s.loc[pd.Index([True, False, True])]
-    KeyError: "None of [Index([True, False, True], dtype='object')] are in the [index]"
+   In [39]: s.loc[pd.Index([True, False, True])]
+   KeyError: "None of [Index([True, False, True], dtype='object')] are in the [index]"
 
 Current Behavior
 
@@ -699,10 +699,10 @@ Previously, if you attempted the following expression, you would get a not very 
 
 .. code-block:: ipython
 
-  In [3]: pd.eval("a = 1 + 2", target=arr, inplace=True)
-  ...
-  IndexError: only integers, slices (`:`), ellipsis (`...`), numpy.newaxis (`None`)
-  and integer or boolean arrays are valid indices
+   In [3]: pd.eval("a = 1 + 2", target=arr, inplace=True)
+   ...
+   IndexError: only integers, slices (`:`), ellipsis (`...`), numpy.newaxis (`None`)
+   and integer or boolean arrays are valid indices
 
 This is a very long way of saying numpy arrays don't support string-item indexing. With this
 change, the error message is now this:
@@ -717,8 +717,8 @@ It also used to be possible to evaluate expressions inplace, even if there was n
 
 .. code-block:: ipython
 
-  In [4]: pd.eval("1 + 2", target=arr, inplace=True)
-  Out[4]: 3
+   In [4]: pd.eval("1 + 2", target=arr, inplace=True)
+   Out[4]: 3
 
 However, this input does not make much sense because the output is not being assigned to
 the target. Now, a ``ValueError`` will be raised when such an input is passed in:
