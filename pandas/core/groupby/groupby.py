@@ -2025,11 +2025,10 @@ class GroupBy(_GroupBy):
                                                      fill_method=fill_method,
                                                      limit=limit, freq=freq,
                                                      axis=axis))
-
-        filled = getattr(self, fill_method)(limit=limit).drop(
-            self.grouper.names, axis=1)
-        shifted = filled.shift(periods=periods, freq=freq)
-
+        filled = getattr(self, fill_method)(limit=limit)
+        filled = filled.drop(self.grouper.names, axis=1)
+        fill_grp = filled.groupby(self.grouper.labels)
+        shifted = fill_grp.shift(periods=periods, freq=freq)
         return (filled / shifted) - 1
 
     @Substitution(name='groupby')

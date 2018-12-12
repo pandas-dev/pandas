@@ -765,36 +765,36 @@ def test_pad_stable_sorting(fill_method):
 
 
 @pytest.mark.parametrize("test_series", [True, False])
+@pytest.mark.parametrize("freq", [
+    None,
+    pytest.param('D', marks=pytest.mark.xfail(
+        reason='GH#23918 before method uses freq in vectorized approach'))])
 @pytest.mark.parametrize("periods,fill_method,limit", [
     (1, 'ffill', None), (1, 'ffill', 1),
     (1, 'bfill', None), (1, 'bfill', 1),
     (-1, 'ffill', None), (-1, 'ffill', 1),
-    (-1, 'bfill', None), (-1, 'bfill', 1)])
-def test_pct_change(test_series, periods, fill_method, limit):
-    vals = [np.nan, np.nan, 1, 2, 4, 10, np.nan, np.nan]
-    exp_vals = Series(vals).pct_change(periods=periods,
-                                       fill_method=fill_method,
-                                       limit=limit).tolist()
+    (-1, 'bfill', None), (-1, 'bfill', 1),
+])
+def test_pct_change(test_series, freq, periods, fill_method, limit):
+    # GH  21200, 21621
+    vals = [3, np.nan, np.nan, np.nan, 1, 2, 4, 10, np.nan, 4]
+    keys = ['a', 'b']
+    key_v = np.repeat(keys, len(vals))
+    df = DataFrame({'key': key_v, 'vals': vals * 2})
 
-    df = DataFrame({'key': ['a'] * len(vals) + ['b'] * len(vals),
-                    'vals': vals * 2})
-    grp = df.groupby('key')
+    df_g = getattr(df.groupby('key'), fill_method)(limit=limit)
+    grp = df_g.groupby('key')
 
-    def get_result(grp_obj):
-        return grp_obj.pct_change(periods=periods,
-                                  fill_method=fill_method,
-                                  limit=limit)
+    expected = grp['vals'].obj / grp['vals'].shift(periods) - 1
 
     if test_series:
-        exp = pd.Series(exp_vals * 2)
-        exp.name = 'vals'
-        grp = grp['vals']
-        result = get_result(grp)
-        tm.assert_series_equal(result, exp)
+        result = df.groupby('key')['vals'].pct_change(
+            periods=periods, fill_method=fill_method, limit=limit, freq=freq)
+        tm.assert_series_equal(result, expected)
     else:
-        exp = DataFrame({'vals': exp_vals * 2})
-        result = get_result(grp)
-        tm.assert_frame_equal(result, exp)
+        result = df.groupby('key').pct_change(
+            periods=periods, fill_method=fill_method, limit=limit, freq=freq)
+        tm.assert_frame_equal(result, expected.to_frame('vals'))
 
 
 @pytest.mark.parametrize("func", [np.any, np.all])
