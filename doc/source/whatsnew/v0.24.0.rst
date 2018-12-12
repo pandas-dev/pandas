@@ -382,10 +382,10 @@ Backwards incompatible API changes
 - :meth:`read_csv` will now raise a ``ValueError`` if a column with missing values is declared as having dtype ``bool`` (:issue:`20591`)
 - The column order of the resultant :class:`DataFrame` from :meth:`MultiIndex.to_frame` is now guaranteed to match the :attr:`MultiIndex.names` order. (:issue:`22420`)
 
-Percentage change called on groupby now returns correct values
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Percentage change on groupby changes
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Fixed a bug where calling :func:`SeriesGroupBy.pct_change` or :func:`DataFrameGroupBy.pct_change` would ignore groups when calculating the percent change (:issue:`21235`).
+Fixed a bug where calling :func:`SeriesGroupBy.pct_change` or :func:`DataFrameGroupBy.pct_change` would previously work across groups when calculating the percent change, where it now correctly works per group (:issue:`21200`, :issue:`21235`).
 
 .. ipython:: python
 
