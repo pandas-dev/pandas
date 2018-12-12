@@ -3006,9 +3006,11 @@ class DatetimeTZBlock(ExtensionBlock, DatetimeBlock):
         # We added an asarray to BlockManager.as_array to work around this.
         values = self.values
         if is_object_dtype(dtype):
-            return (values._box_values(values._data)
-                    .reshape(self.values.shape))
-        return self.values
+            values = values._box_values(values._data)
+
+        if self.ndim == 2:
+            # Ensure that our shape is correct for DataFrame.
+            return values.reshape(1, -1)
 
     def _to_json_values(self):
         from pandas import DatetimeIndex

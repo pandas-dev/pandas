@@ -1013,7 +1013,6 @@ DataFrame\\.index values are different \\(100\\.0 %\\)
         dt = ts.to_pydatetime()
         assert dumps(dt, iso_dates=True) == exp
 
-    @pytest.mark.xfail(reason="TODO-json")
     def test_tz_range_is_utc(self):
         from pandas.io.json import dumps
 
