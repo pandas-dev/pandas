@@ -381,6 +381,7 @@ Backwards incompatible API changes
 - ``max_rows`` and ``max_cols`` parameters removed from :class:`HTMLFormatter` since truncation is handled by :class:`DataFrameFormatter` (:issue:`23818`)
 - :meth:`read_csv` will now raise a ``ValueError`` if a column with missing values is declared as having dtype ``bool`` (:issue:`20591`)
 - The column order of the resultant :class:`DataFrame` from :meth:`MultiIndex.to_frame` is now guaranteed to match the :attr:`MultiIndex.names` order. (:issue:`22420`)
+- Incorrectly passing a :class:`DatetimeIndex` to :meth:`MultiIndex.from_tuples`, rather than a sequence of tuples, now raises a ``TypeError`` rather than a ``ValueError`` (:issue:`24024`)
 
 Percentage change on groupby changes
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -666,6 +667,31 @@ is the case with :attr:`Period.end_time`, for example
    pd.Series(pi).dt.end_time[0]
 
    p.end_time
+
+.. _whatsnew_0240.api_breaking.datetime_unique:
+
+The return type of :meth:`Series.unique` for datetime with timezone values has changed
+from an :class:`ndarray` of :class:`Timestamp` objects to a :class:`arrays.DatetimeArray` (:issue:`24024`).
+
+Previous Behavior:
+
+.. code-block:: python
+
+    In [2]: ser = pd.Series([pd.Timestamp('2000', tz='UTC'),
+                             pd.Timestamp('2000', tz='UTC')])
+    In [3]: ser.unique()
+    Out[3]: array([Timestamp('2000-01-01 00:00:00+0000', tz='UTC')], dtype=object)
+
+
+Current Behavior:
+
+.. ipython:: python
+
+   ser = pd.Series([pd.Timestamp('2000', tz='UTC'),
+                    pd.Timestamp('2000', tz='UTC')])
+   ser.unique()
+
+
 
 .. _whatsnew_0240.api_breaking.sparse_values:
 
