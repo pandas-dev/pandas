@@ -119,10 +119,10 @@ class SharedTests(object):
         data = np.arange(10, dtype='i8')
         arr = self.array_cls(data, freq='D')
         result = arr._unbox_scalar(arr[0])
-        assert isinstance(result, compat.long)
+        assert isinstance(result, (int, compat.long))
 
         result = arr._unbox_scalar(pd.NaT)
-        assert isinstance(result, compat.long)
+        assert isinstance(result, (int, compat.long))
 
     def test_scalar_from_string(self):
         data = np.arange(10, dtype='i8')
