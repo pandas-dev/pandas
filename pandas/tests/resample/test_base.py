@@ -6,13 +6,12 @@ import numpy as np
 import pytest
 
 from pandas.compat import range, zip
-from pandas.errors import AbstractMethodError
 
 import pandas as pd
 from pandas import DataFrame, Series
 from pandas.core.groupby.groupby import DataError
 from pandas.core.indexes.datetimes import date_range
-from pandas.core.indexes.period import PeriodIndex
+from pandas.core.indexes.period import PeriodIndex, period_range
 from pandas.core.indexes.timedeltas import TimedeltaIndex, timedelta_range
 from pandas.core.resample import TimeGrouper
 import pandas.util.testing as tm
@@ -27,74 +26,30 @@ class Base(object):
     .create_series() generates a series of each index type
     """
 
-    def create_index(self, *args, **kwargs):
-        """ return the _index_factory created using the args, kwargs """
-        factory = self._index_factory()
-        return factory(*args, **kwargs)
-
-    @pytest.fixture
-    def _index_start(self):
-        return datetime(2005, 1, 1)
-
-    @pytest.fixture
-    def _index_end(self):
-        return datetime(2005, 1, 10)
-
-    @pytest.fixture
-    def _index_freq(self):
-        return 'D'
-
-    @pytest.fixture
-    def index(self, _index_start, _index_end, _index_freq):
-        return self.create_index(_index_start, _index_end, freq=_index_freq)
-
-    @pytest.fixture
-    def _series_name(self):
-        raise AbstractMethodError(self)
-
-    @pytest.fixture
-    def _static_values(self, index):
-        return np.arange(len(index))
-
-    @pytest.fixture
-    def series(self, index, _series_name, _static_values):
-        return Series(_static_values, index=index, name=_series_name)
-
-    @pytest.fixture
-    def frame(self, index, _static_values):
-        return DataFrame({'value': _static_values}, index=index)
-
-    @pytest.fixture(params=[Series, DataFrame])
-    def series_and_frame(self, request, index, _series_name, _static_values):
-        if request.param == Series:
-            return Series(_static_values, index=index, name=_series_name)
-        if request.param == DataFrame:
-            return DataFrame({'value': _static_values}, index=index)
-
     @pytest.mark.parametrize('freq', ['2D', '1H'])
-    def test_asfreq(self, series_and_frame, freq):
+    def test_asfreq(self, series_and_frame, freq, create_index):
         obj = series_and_frame
 
         result = obj.resample(freq).asfreq()
-        new_index = self.create_index(obj.index[0], obj.index[-1], freq=freq)
+        new_index = create_index(obj.index[0], obj.index[-1], freq=freq)
         expected = obj.reindex(new_index)
         assert_almost_equal(result, expected)
 
-    def test_asfreq_fill_value(self):
+    def test_asfreq_fill_value(self, create_index):
         # test for fill value during resampling, issue 3715
 
         s = self.create_series()
 
         result = s.resample('1H').asfreq()
-        new_index = self.create_index(s.index[0], s.index[-1], freq='1H')
+        new_index = create_index(s.index[0], s.index[-1], freq='1H')
         expected = s.reindex(new_index)
         assert_series_equal(result, expected)
 
         frame = s.to_frame('value')
         frame.iloc[1] = None
         result = frame.resample('1H').asfreq(fill_value=4.0)
-        new_index = self.create_index(frame.index[0],
-                                      frame.index[-1], freq='1H')
+        new_index = create_index(frame.index[0],
+                                 frame.index[-1], freq='1H')
         expected = frame.reindex(new_index, fill_value=4.0)
         assert_frame_equal(result, expected)
 
@@ -164,14 +119,14 @@ class Base(object):
             # (ex: doing mean with dtype of np.object)
             pass
 
-    def test_resample_loffset_arg_type(self):
+    def test_resample_loffset_arg_type(self, create_index):
         # GH 13218, 15002
         df = self.create_series().to_frame('value')
         expected_means = [df.values[i:i + 2].mean()
                           for i in range(0, len(df.values), 2)]
-        expected_index = self.create_index(df.index[0],
-                                           periods=len(df.index) / 2,
-                                           freq='2D')
+        expected_index = create_index(df.index[0],
+                                      periods=len(df.index) / 2,
+                                      freq='2D')
 
         # loffset coerces PeriodIndex to DateTimeIndex
         if isinstance(expected_index, PeriodIndex):
@@ -233,7 +188,9 @@ class Base(object):
 
 
 class TestDatetimeIndex(Base):
-    _index_factory = lambda x: date_range
+    @pytest.fixture
+    def _index_factory(self):
+        return date_range
 
     @pytest.fixture
     def _series_name(self):
@@ -246,8 +203,36 @@ class TestDatetimeIndex(Base):
         return Series(np.arange(len(i)), index=i, name='dti')
 
 
+class TestPeriodIndex(Base):
+    @pytest.fixture
+    def _index_factory(self):
+        return period_range
+
+    @pytest.fixture
+    def _series_name(self):
+        return 'pi'
+
+    def create_series(self):
+        # TODO: replace calls to .create_series() by injecting the series
+        # fixture
+        i = period_range(datetime(2005, 1, 1),
+                         datetime(2005, 1, 10), freq='D')
+
+        return Series(np.arange(len(i)), index=i, name='pi')
+
+    @pytest.mark.skip()
+    def test_asfreq(self):
+        pass
+
+    @pytest.mark.skip()
+    def test_asfreq_fill_value(self):
+        pass
+
+
 class TestTimedeltaIndex(Base):
-    _index_factory = lambda x: timedelta_range
+    @pytest.fixture
+    def _index_factory(self):
+        return timedelta_range
 
     @pytest.fixture
     def _index_start(self):

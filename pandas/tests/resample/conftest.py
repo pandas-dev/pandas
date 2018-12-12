@@ -1,7 +1,9 @@
+from datetime import datetime
+
 import numpy as np
 import pytest
 
-from pandas import Series
+from pandas import DataFrame, Series
 from pandas.core.indexes.datetimes import date_range
 from pandas.core.indexes.period import period_range
 
@@ -31,7 +33,7 @@ def resample_method(request):
     return request.param
 
 
-@pytest.fixture()
+@pytest.fixture
 def simple_date_range_series():
     """
     Series with date range index and random data for test purposes.
@@ -42,7 +44,7 @@ def simple_date_range_series():
     return _simple_date_range_series
 
 
-@pytest.fixture()
+@pytest.fixture
 def simple_period_range_series():
     """
     Series with period range index and random data for test purposes.
@@ -51,3 +53,54 @@ def simple_period_range_series():
         rng = period_range(start, end, freq=freq)
         return Series(np.random.randn(len(rng)), index=rng)
     return _simple_period_range_series
+
+
+@pytest.fixture
+def _index_start():
+    return datetime(2005, 1, 1)
+
+
+@pytest.fixture
+def _index_end():
+    return datetime(2005, 1, 10)
+
+
+@pytest.fixture
+def _index_freq():
+    return 'D'
+
+
+@pytest.fixture
+def index(_index_factory, _index_start, _index_end, _index_freq):
+    return _index_factory(_index_start, _index_end, freq=_index_freq)
+
+
+@pytest.fixture
+def create_index(_index_factory):
+    def _create_index(*args, **kwargs):
+        """ return the _index_factory created using the args, kwargs """
+        return _index_factory(*args, **kwargs)
+    return _create_index
+
+
+@pytest.fixture
+def _static_values(index):
+    return np.arange(len(index))
+
+
+@pytest.fixture
+def series(index, _series_name, _static_values):
+    return Series(_static_values, index=index, name=_series_name)
+
+
+@pytest.fixture
+def frame(index, _static_values):
+    return DataFrame({'value': _static_values}, index=index)
+
+
+@pytest.fixture(params=[Series, DataFrame])
+def series_and_frame(request, series, frame):
+    if request.param == Series:
+        return series
+    if request.param == DataFrame:
+        return frame

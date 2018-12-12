@@ -1,5 +1,3 @@
-# pylint: disable=E1101
-
 from datetime import datetime, timedelta
 
 import dateutil
@@ -15,7 +13,6 @@ import pandas as pd
 from pandas import DataFrame, Series, Timestamp
 from pandas.core.indexes.datetimes import date_range
 from pandas.core.indexes.period import Period, PeriodIndex, period_range
-from pandas.tests.resample.test_base import Base
 import pandas.util.testing as tm
 from pandas.util.testing import (
     assert_almost_equal, assert_frame_equal, assert_series_equal)
@@ -23,20 +20,17 @@ from pandas.util.testing import (
 import pandas.tseries.offsets as offsets
 
 
-class TestPeriodIndex(Base):
-    _index_factory = lambda x: period_range
+@pytest.fixture()
+def _index_factory():
+    return period_range
 
-    @pytest.fixture
-    def _series_name(self):
-        return 'pi'
 
-    def create_series(self):
-        # TODO: replace calls to .create_series() by injecting the series
-        # fixture
-        i = period_range(datetime(2005, 1, 1),
-                         datetime(2005, 1, 10), freq='D')
+@pytest.fixture
+def _series_name():
+    return 'pi'
 
-        return Series(np.arange(len(i)), index=i, name='pi')
+
+class TestPeriodIndex(object):
 
     @pytest.mark.parametrize('freq', ['2D', '1H', '2H'])
     @pytest.mark.parametrize('kind', ['period', None, 'timestamp'])
@@ -56,10 +50,10 @@ class TestPeriodIndex(Base):
         result = obj.resample(freq, kind=kind).asfreq()
         assert_almost_equal(result, expected)
 
-    def test_asfreq_fill_value(self):
+    def test_asfreq_fill_value(self, series):
         # test for fill value during resampling, issue 3715
 
-        s = self.create_series()
+        s = series
         new_index = date_range(s.index[0].to_timestamp(how='start'),
                                (s.index[-1]).to_timestamp(how='start'),
                                freq='1H')
@@ -643,9 +637,8 @@ class TestPeriodIndex(Base):
         df = frame
         expected_means = [df.values[i:i + 2].mean()
                           for i in range(0, len(df.values), 2)]
-        expected_index = self.create_index(df.index[0],
-                                           periods=len(df.index) / 2,
-                                           freq='2D')
+        expected_index = period_range(
+            df.index[0], periods=len(df.index) / 2, freq='2D')
 
         # loffset coerces PeriodIndex to DateTimeIndex
         expected_index = expected_index.to_timestamp()
