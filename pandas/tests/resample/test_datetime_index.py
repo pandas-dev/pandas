@@ -136,24 +136,20 @@ class TestDatetimeIndex(object):
             func = _ohlc
         else:
             func = arg
-        try:
-            result = getattr(s.resample(
-                '5min', closed='right', label='right'), arg)()
 
-            expected = s.groupby(grouplist).agg(func)
-            assert result.index.name == 'index'
-            if arg == 'ohlc':
-                expected = DataFrame(expected.values.tolist())
-                expected.columns = ['open', 'high', 'low', 'close']
-                expected.index = Index(inds, name='index')
-                assert_frame_equal(result, expected)
-            else:
-                expected.index = inds
-                assert_series_equal(result, expected)
-        except BaseException as exc:
+        result = getattr(s.resample(
+            '5min', closed='right', label='right'), arg)()
 
-            exc.args += ('how=%s' % arg,)
-            raise
+        expected = s.groupby(grouplist).agg(func)
+        assert result.index.name == 'index'
+        if arg == 'ohlc':
+            expected = DataFrame(expected.values.tolist())
+            expected.columns = ['open', 'high', 'low', 'close']
+            expected.index = Index(inds, name='index')
+            assert_frame_equal(result, expected)
+        else:
+            expected.index = inds
+            assert_series_equal(result, expected)
 
     def test_numpy_compat(self):
         # see gh-12811
