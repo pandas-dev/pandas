@@ -597,10 +597,9 @@ class DatetimeLikeArrayMixin(AttributesMixin,
             return self._format_native_types()
             # return Index(self.format(), name=self.name, dtype=object)
         elif is_integer_dtype(dtype):
+            # we deliberately ignore int32 vs. int64 here.
             values = self.asi8
-            if values.dtype != dtype:
-                values = values.astype(dtype)
-            elif copy:
+            if copy:
                 values = values.copy()
             return values
         elif (is_datetime_or_timedelta_dtype(dtype) and

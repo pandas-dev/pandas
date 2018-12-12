@@ -596,7 +596,6 @@ class DatetimeIndexOpsMixin(ExtensionOpsMixin):
 
     @Appender(_index_shared_docs['astype'])
     def astype(self, dtype, copy=True):
-        # NB: moved from PeriodIndex
         if is_dtype_equal(self.dtype, dtype) and copy is False:
             # Ensure that self.astype(self.dtype) is self
             return self
