@@ -643,25 +643,24 @@ class DatetimeIndexOpsMixin(DatetimeLikeArrayMixin):
             return other
 
         if (not index_offsets_equal(self, other) or
-           not other.freq.isAnchored() or  # Fixes period intersections when freq is set
+           not other.freq.isAnchored() or  # for period intersections with freq
            (not self._is_strictly_monotonic or
                 not other._is_strictly_monotonic)):
             result = Index.intersection(self, other)
             if result.empty:
                 result = result.astype(self.dtype)
+            freq = self.freq or other.freq
             result = self._shallow_copy(result._values, name=result.name,
-                                        freq=None
-                                        )
+                                        freq=freq)
             if result.freq is None:
-                result.offset = frequencies.to_offset(result.inferred_freq)
-                # attempt a naive guess at the freq.
-                result.freq = self.freq or other.freq
+                result.freq = frequencies.to_offset(result.inferred_freq)
             return result
 
         # Conditions met!
         intersected_slice = self._fast_intersection(other)
         name = ops.get_op_result_name(self, other)
         return self._shallow_copy(intersected_slice, name=name)
+
 
 def wrap_arithmetic_op(self, other, result):
     if result is NotImplemented:

@@ -4116,6 +4116,7 @@ class TestHDFStore(Base):
         df2 = tm.makeTimeDataFrame().rename(columns=lambda x: "%s_2" % x)
         df1.iloc[1, df1.columns.get_indexer(['A', 'B'])] = np.nan
         df = concat([df1, df2], axis=1)
+        print(df)
 
         with ensure_clean_store(self.path) as store:
 
