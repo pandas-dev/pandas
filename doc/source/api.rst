@@ -1,5 +1,12 @@
+.. The currentmodule is needed here because the autosummary generation of files
+.. happens before reading the files / substituting the header.
+.. See https://github.com/pandas-dev/pandas/pull/24232
+
 .. currentmodule:: pandas
+
 .. _api:
+
+{{ header }}
 
 *************
 API Reference
@@ -1703,6 +1710,7 @@ MultiIndex Constructors
    MultiIndex.from_arrays
    MultiIndex.from_tuples
    MultiIndex.from_product
+   MultiIndex.from_frame
 
 MultiIndex Attributes
 ~~~~~~~~~~~~~~~~~~~~~
