@@ -854,11 +854,11 @@ Previous Behavior:
 
 .. code-block:: ipython
 
-  In [2]: pd.interval_range(start=0, end=4, periods=6)
-  Out[2]:
-  IntervalIndex([(0, 1], (1, 2], (2, 3]]
-                closed='right',
-                dtype='interval[int64]')
+   In [2]: pd.interval_range(start=0, end=4, periods=6)
+   Out[2]:
+   IntervalIndex([(0, 1], (1, 2], (2, 3]]
+                 closed='right',
+                 dtype='interval[int64]')
 
   In [3]: pd.period_range(start='2017Q1', end='2017Q4', periods=6, freq='Q')
   Out[3]: PeriodIndex(['2017Q1', '2017Q2', '2017Q3', '2017Q4', '2018Q1', '2018Q2'], dtype='period[Q-DEC]', freq='Q-DEC')
@@ -881,11 +881,11 @@ Previous Behavior:
 
 .. code-block:: ipython
 
-  In [4]: pd.interval_range(start=0, end=4)
-  Out[4]:
-  IntervalIndex([(0, 1], (1, 2], (2, 3]]
-                closed='right',
-                dtype='interval[int64]')
+   In [4]: pd.interval_range(start=0, end=4)
+   Out[4]:
+   IntervalIndex([(0, 1], (1, 2], (2, 3]]
+                 closed='right',
+                 dtype='interval[int64]')
 
 
 New Behavior:
