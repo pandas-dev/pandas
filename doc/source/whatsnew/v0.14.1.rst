@@ -56,13 +56,13 @@ API changes
 
   .. code-block:: ipython
 
-     In [6]: from pandas.tseries import offsets
+    In [6]: from pandas.tseries import offsets
 
-     In [7]: d = pd.Timestamp('2014-01-01 09:00')
+    In [7]: d = pd.Timestamp('2014-01-01 09:00')
 
-     # old behaviour < 0.14.1
-     In [8]: d + offsets.MonthEnd()
-     Out[8]: Timestamp('2014-01-31 00:00:00')
+    # old behaviour < 0.14.1
+    In [8]: d + offsets.MonthEnd()
+    Out[8]: Timestamp('2014-01-31 00:00:00')
 
   Starting from 0.14.1 all offsets preserve time by default. The old
   behaviour can be obtained with ``normalize=True``
