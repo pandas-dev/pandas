@@ -115,6 +115,29 @@ class TestDatetimeIndex(object):
             s.resample('5min', convention='starttt').mean()
 
     def test_resample_how(self, downsample_method):
+        if downsample_method == 'ohlc':
+            pytest.skip('covered by test_resample_how_ohlc')
+
+        rng = date_range('1/1/2000 00:00:00', '1/1/2000 00:13:00', freq='min',
+                         name='index')
+        s = Series(np.random.randn(14), index=rng)
+
+        grouplist = np.ones_like(s)
+        grouplist[0] = 0
+        grouplist[1:6] = 1
+        grouplist[6:11] = 2
+        grouplist[11:] = 3
+        expected = s.groupby(grouplist).agg(downsample_method)
+        expected.index = date_range(
+            '1/1/2000', periods=4, freq='5min', name='index')
+
+        result = getattr(s.resample(
+            '5min', closed='right', label='right'), downsample_method)()
+
+        assert result.index.name == 'index'  # redundant assert?
+        assert_series_equal(result, expected)
+
+    def test_resample_how_ohlc(self):
         rng = date_range('1/1/2000 00:00:00', '1/1/2000 00:13:00', freq='min',
                          name='index')
         s = Series(np.random.randn(14), index=rng)
@@ -123,7 +146,6 @@ class TestDatetimeIndex(object):
         grouplist[1:6] = 1
         grouplist[6:11] = 2
         grouplist[11:] = 3
-        arg = downsample_method
 
         def _ohlc(group):
             if isna(group).all():
@@ -131,25 +153,15 @@ class TestDatetimeIndex(object):
             return [group[0], group.max(), group.min(), group[-1]]
 
         inds = date_range('1/1/2000', periods=4, freq='5min', name='index')
+        expected = s.groupby(grouplist).agg(_ohlc)
+        expected = DataFrame(expected.values.tolist(),
+                             index=Index(inds, name='index'),
+                             columns=['open', 'high', 'low', 'close'])
 
-        if arg == 'ohlc':
-            func = _ohlc
-        else:
-            func = arg
+        result = s.resample('5min', closed='right', label='right').ohlc()
 
-        result = getattr(s.resample(
-            '5min', closed='right', label='right'), arg)()
-
-        expected = s.groupby(grouplist).agg(func)
-        assert result.index.name == 'index'
-        if arg == 'ohlc':
-            expected = DataFrame(expected.values.tolist())
-            expected.columns = ['open', 'high', 'low', 'close']
-            expected.index = Index(inds, name='index')
-            assert_frame_equal(result, expected)
-        else:
-            expected.index = inds
-            assert_series_equal(result, expected)
+        assert result.index.name == 'index'  # redundant assert?
+        assert_frame_equal(result, expected)
 
     def test_numpy_compat(self):
         # see gh-12811
