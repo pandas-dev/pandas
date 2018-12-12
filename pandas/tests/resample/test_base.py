@@ -11,6 +11,7 @@ from pandas.errors import AbstractMethodError
 import pandas as pd
 from pandas import DataFrame, Series
 from pandas.core.groupby.groupby import DataError
+from pandas.core.indexes.datetimes import date_range
 from pandas.core.indexes.period import PeriodIndex
 from pandas.core.indexes.timedeltas import TimedeltaIndex, timedelta_range
 from pandas.core.resample import TimeGrouper
@@ -229,6 +230,20 @@ class Base(object):
         result = s.resample(freq).quantile(q)
         expected = s.resample(freq).agg(lambda x: x.quantile(q))
         tm.assert_series_equal(result, expected)
+
+
+class TestDatetimeIndex(Base):
+    _index_factory = lambda x: date_range
+
+    @pytest.fixture
+    def _series_name(self):
+        return 'dti'
+
+    def create_series(self):
+        i = date_range(datetime(2005, 1, 1),
+                       datetime(2005, 1, 10), freq='D')
+
+        return Series(np.arange(len(i)), index=i, name='dti')
 
 
 class TestTimedeltaIndex(Base):

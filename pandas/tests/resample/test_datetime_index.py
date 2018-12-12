@@ -1,5 +1,3 @@
-# pylint: disable=E1101
-
 from datetime import datetime, timedelta
 from functools import partial
 from warnings import catch_warnings, simplefilter
@@ -18,7 +16,6 @@ from pandas.core.indexes.datetimes import date_range
 from pandas.core.indexes.period import Period, period_range
 from pandas.core.indexes.timedeltas import timedelta_range
 from pandas.core.resample import DatetimeIndex, TimeGrouper
-from pandas.tests.resample.test_base import Base
 import pandas.util.testing as tm
 from pandas.util.testing import (
     assert_almost_equal, assert_frame_equal, assert_series_equal)
@@ -27,24 +24,12 @@ import pandas.tseries.offsets as offsets
 from pandas.tseries.offsets import BDay, Minute
 
 
-class TestDatetimeIndex(Base):
-    _index_factory = lambda x: date_range
-
-    @pytest.fixture
-    def _series_name(self):
-        return 'dti'
-
+class TestDatetimeIndex(object):
     def setup_method(self, method):
         dti = date_range(start=datetime(2005, 1, 1),
                          end=datetime(2005, 1, 10), freq='Min')
 
         self.series = Series(np.random.rand(len(dti)), dti)
-
-    def create_series(self):
-        i = date_range(datetime(2005, 1, 1),
-                       datetime(2005, 1, 10), freq='D')
-
-        return Series(np.arange(len(i)), index=i, name='dti')
 
     def test_custom_grouper(self):
 
