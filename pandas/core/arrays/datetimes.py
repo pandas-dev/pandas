@@ -1724,7 +1724,8 @@ def _generate_regular_range(cls, start, end, periods, freq):
     return data
 
 
-def _generate_range_overflow_safe(endpoint, periods, stride, side='start'):
+def _generate_range_overflow_safe(endpoint, periods, stride,
+                                  side='start'):
     """
     Calculate the second endpoint for passing to np.arange, checking
     to avoid an integer overflow.  Catch OverflowError and re-raise
@@ -1747,12 +1748,78 @@ def _generate_range_overflow_safe(endpoint, periods, stride, side='start'):
     """
     # GH#14187 raise instead of incorrectly wrapping around
     assert side in ['start', 'end']
+
+    i64max = np.iinfo(np.int64).max
+    msg = ('Cannot generate range with {side}={endpoint} and '
+           'periods={periods}'
+           .format(side=side, endpoint=endpoint, periods=periods))
+
+    with np.errstate(over="raise"):
+        # if periods * strides cannot be multiplied within the *uint64* bounds,
+        #  we cannot salvage the operation by recursing, so raise
+        try:
+            addend = np.uint64(periods) * np.uint64(np.abs(stride))
+        except FloatingPointError:
+            raise tslib.OutOfBoundsDatetime(msg)
+
+    if np.abs(addend) <= i64max:
+        # relatively easy case without casting concerns
+        return _generate_range_overflow_safe_signed(
+            endpoint, periods, stride, side)
+
+    elif ((endpoint > 0 and side == 'start') or
+          (endpoint < 0 and side == 'end')):
+        # no chance of not-overflowing
+        raise tslib.OutOfBoundsDatetime(msg)
+
+    elif (side == 'end' and endpoint > i64max and endpoint - stride <= i64max):
+        # in _generate_regular_range we added `stride` thereby overflowing
+        #  the bounds.  Adjust to fix this.
+        return _generate_range_overflow_safe(endpoint - stride,
+                                             periods - 1, stride, side)
+
+    # split into smaller pieces
+    return _generate_range_recurse(endpoint, periods, stride, side)
+
+
+def _generate_range_overflow_safe_signed(endpoint, periods, stride, side):
+    """
+    A special case for _generate_range_overflow_safe where `periods * stride`
+    can be calculated without overflowing int64 bounds.
+    """
+    assert side in ['start', 'end']
     if side == 'end':
         stride *= -1
 
+    with np.errstate(over="raise"):
+        addend = np.int64(periods) * np.int64(stride)
+        try:
+            # easy case with no overflows
+            return np.int64(endpoint) + addend
+        except (FloatingPointError, OverflowError):
+            # with endpoint negative and addend positive we risk
+            #  FloatingPointError; with reversed signed we risk OverflowError
+            pass
+
+        if stride > 0:
+            # watch out for very special case in which we just slightly
+            #  exceed implementation bounds, but when passing the result to
+            #  np.arange will get a result slightly within the bounds
+            if endpoint >= 0:
+                result = np.uint64(endpoint) + np.uint64(addend)
+                i64max = np.uint64(np.iinfo(np.int64).max)
+                if result <= i64max + np.uint64(stride):
+                    return result
+            else:
+                return _generate_range_recurse(endpoint, periods,
+                                               np.abs(stride), side)
+        elif stride < 0 and endpoint > 0:
+            return _generate_range_recurse(np.uint64(endpoint), periods,
+                                           np.abs(stride), side)
+
     try:
         other_end = checked_add_with_arr(np.int64(endpoint),
-                                         np.int64(periods) * stride)
+                                         addend)
     except OverflowError:
         raise tslib.OutOfBoundsDatetime('Cannot generate range with '
                                         '{side}={endpoint} and '
@@ -1760,6 +1827,33 @@ def _generate_range_overflow_safe(endpoint, periods, stride, side='start'):
                                         .format(side=side, endpoint=endpoint,
                                                 periods=periods))
     return other_end
+
+
+def _generate_range_recurse(endpoint, periods, stride, side):
+    """
+    Avoid problems in int64/uint64 mismatch by splitting range generation into
+    smaller pieces.
+
+    Parameters
+    ----------
+    endpoint : int
+    periods : int
+    stride : int
+    side : {'start', 'end'}
+
+    Returns
+    -------
+    other_end : int
+    """
+    # split into smaller pieces
+    mid_periods = periods // 2
+    remaining = periods - mid_periods
+    assert 0 < remaining < periods, (remaining, periods, endpoint, stride)
+    print(periods, mid_periods, endpoint, stride, side)
+
+    midpoint = _generate_range_overflow_safe(endpoint, mid_periods,
+                                             stride, side)
+    return _generate_range_overflow_safe(midpoint, remaining, stride, side)
 
 
 # -------------------------------------------------------------------

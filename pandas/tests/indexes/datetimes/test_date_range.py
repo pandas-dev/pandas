@@ -80,6 +80,31 @@ class TestTimestampEquivDateRange(object):
 
 
 class TestDateRanges(TestData):
+    def test_date_range_multiplication_overflow(self):
+        # check that overflows in calculating `addend = periods * stride`
+        #  are caught
+        with tm.assert_produces_warning(None):
+            # we should _not_ be seeing a overflow RuntimeWarning
+            dti = date_range(start='1677-09-22', periods=213503, freq='D')
+
+        assert dti[0] == Timestamp('1677-09-22')
+        assert len(dti) == 213503
+
+        msg = "Cannot generate range with"
+        with pytest.raises(OutOfBoundsDatetime, match=msg):
+            date_range('1969-05-04', periods=200000000, freq='30000D')
+
+    def test_date_range_unsigned_overflow_handling(self):
+        # case where `addend = periods * stride` overflows int64 bounds
+        #  but not uint64 bounds
+        dti = date_range(start='1677-09-22', end='2262-04-11', freq='D')
+
+        dti2 = date_range(start=dti[0], periods=len(dti), freq='D')
+        assert dti2.equals(dti)
+
+        dti3 = date_range(end=dti[-1], periods=len(dti), freq='D')
+        assert dti3.equals(dti)
+
     def test_date_range_out_of_bounds(self):
         # GH#14187
         with pytest.raises(OutOfBoundsDatetime):
