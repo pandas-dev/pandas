@@ -1539,6 +1539,7 @@ Groupby/Resample/Rolling
 - Bug in :meth:`pandas.core.groupby.DataFrameGroupBy.rank` with ``method='dense'`` and ``pct=True`` when a group has only one member would raise a ``ZeroDivisionError`` (:issue:`23666`).
 - Calling :meth:`DataFrameGroupBy.rank` and :meth:`SeriesGroupBy.rank` with empty groups and ``pct=True`` was raising a ``ZeroDivisionError`` due to `c1068d9 <https://github.com/pandas-dev/pandas/commit/c1068d9d242c22cb2199156f6fb82eb5759178ae>`_ (:issue:`22519`)
 - Bug in :meth:`DataFrame.resample` when resampling ``NaT`` in ``TimeDeltaIndex`` (:issue:`13223`).
+- Bug preventing hash table creation with very large number (2^32) of rows (:issue:`22805`)
 
 Reshaping
 ^^^^^^^^^
