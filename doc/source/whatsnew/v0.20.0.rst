@@ -190,7 +190,7 @@ support for bz2 compression in the python 2 C-engine improved (:issue:`14874`).
 
 .. ipython:: python
 
-   url = (r'https://github.com/{repo}/raw/{branch}/{path}'
+   url = ('https://github.com/{repo}/raw/{branch}/{path}'
           .format(repo='pandas-dev/pandas',
                   branch='master',
                   path='pandas/tests/io/parser/data/salaries.csv.bz2'))
