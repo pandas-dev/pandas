@@ -1629,7 +1629,7 @@ def test_group_shift_with_fill_value():
                            else 0)
                           for i in range(n_rows)], dtype=float,
                          columns=["Z"], index=None)
-    result = g.shift(-1, fill_value=0)
+    result = g.shift(-1, fill_value=0)["Z"]
 
     assert_frame_equal(result, expected)
 
