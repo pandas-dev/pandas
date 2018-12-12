@@ -5,11 +5,6 @@ v0.14.0 (May 31 , 2014)
 
 {{ header }}
 
-.. ipython:: python
-   :suppress:
-
-   from pandas import * # noqa F401, F403
-
 
 This is a major release from 0.13.1 and includes a small number of API changes, several new features,
 enhancements, and performance improvements along with a large number of bug fixes. We recommend that all
@@ -64,21 +59,22 @@ API changes
 
   .. ipython:: python
 
-     dfl = DataFrame(np.random.randn(5,2),columns=list('AB'))
-     dfl
-     dfl.iloc[:,2:3]
-     dfl.iloc[:,1:3]
-     dfl.iloc[4:6]
+    dfl = DataFrame(np.random.randn(5, 2), columns=list('AB'))
+    dfl
+    dfl.iloc[:, 2:3]
+    dfl.iloc[:, 1:3]
+    dfl.iloc[4:6]
 
   These are out-of-bounds selections
 
   .. code-block:: python
 
-     dfl.iloc[[4,5,6]]
-     IndexError: positional indexers are out-of-bounds
+    dfl.iloc[[4, 5, 6]]
+    IndexError: positional indexers are out-of-bounds
 
-     dfl.iloc[:,4]
-     IndexError: single positional indexer is out-of-bounds
+  .. code-block:: python
+    dfl.iloc[:,4 ]
+    IndexError: single positional indexer is out-of-bounds
 
 - Slicing with negative start, stop & step values handles corner cases better (:issue:`6531`):
 
@@ -120,8 +116,8 @@ API changes
 
   .. ipython:: python
 
-     i = pd.Index([1, 2, 3, 'a' , 'b', 'c'])
-     i[[0,1,2]]
+     i = pd.Index([1, 2, 3, 'a', 'b', 'c'])
+     i[[0, 1, 2]]
      i.drop(['a', 'b', 'c'])
 
   Previously, the above operation would return ``Int64Index``.  If you'd like
@@ -129,7 +125,7 @@ API changes
 
   .. ipython:: python
 
-     i[[0,1,2]].astype(np.int_)
+     i[[0, 1, 2]].astype(np.int_)
 
 - ``set_index`` no longer converts MultiIndexes to an Index of tuples. For example,
   the old behavior returned an Index in this case (:issue:`6459`):
@@ -137,23 +133,23 @@ API changes
   .. ipython:: python
      :suppress:
 
-     np.random.seed(1234)
-     from itertools import product
-     tuples = list(product(('a', 'b'), ('c', 'd')))
-     mi = MultiIndex.from_tuples(tuples)
-     df_multi = DataFrame(np.random.randn(4, 2), index=mi)
-     tuple_ind = pd.Index(tuples,tupleize_cols=False)
-     df_multi.index
+    np.random.seed(1234)
+    from itertools import product
+    tuples = list(product(('a', 'b'), ('c', 'd')))
+    mi = MultiIndex.from_tuples(tuples)
+    df_multi = DataFrame(np.random.randn(4, 2), index=mi)
+    tuple_ind = pd.Index(tuples, tupleize_cols=False)
+    df_multi.index
 
   .. ipython:: python
 
-     # Old behavior, casted MultiIndex to an Index
-     tuple_ind
-     df_multi.set_index(tuple_ind)
+    # Old behavior, casted MultiIndex to an Index
+    tuple_ind
+    df_multi.set_index(tuple_ind)
 
-     # New behavior
-     mi
-     df_multi.set_index(mi)
+    # New behavior
+    mi
+    df_multi.set_index(mi)
 
   This also applies when passing multiple indices to ``set_index``:
 
@@ -180,16 +176,19 @@ API changes
 
   .. code-block:: ipython
 
-     In [1]: df = DataFrame(np.random.randn(10,4),columns=list('ABCD'))
+    In [1]: df = DataFrame(np.random.randn(10, 4), columns=list('ABCD'))
 
-     In [4]: covs = pd.rolling_cov(df[['A','B','C']], df[['B','C','D']], 5, pairwise=True)
+    In [4]: covs = pd.rolling_cov(df[['A', 'B', 'C']],
+                                  df[['B', 'C', 'D']],
+                                  5,
+                                  pairwise=True)
 
-     In [5]: covs[df.index[-1]]
-     Out[5]:
-               B         C         D
-     A  0.035310  0.326593 -0.505430
-     B  0.137748 -0.006888 -0.005383
-     C -0.006888  0.861040  0.020762
+    In [5]: covs[df.index[-1]]
+    Out[5]:
+              B         C         D
+    A  0.035310  0.326593 -0.505430
+    B  0.137748 -0.006888 -0.005383
+    C -0.006888  0.861040  0.020762
 
 - ``Series.iteritems()`` is now lazy (returns an iterator rather than a list). This was the documented behavior prior to 0.14. (:issue:`6760`)
 
@@ -214,12 +213,12 @@ API changes
 
   .. code-block:: python
 
-     x = pd.Series(np.random.rand(10) > 0.5)
-     y = True
-     x + y  # warning generated: should do x | y instead
-     x / y  # this raises because it doesn't make sense
+    x = pd.Series(np.random.rand(10) > 0.5)
+    y = True
+    x + y  # warning generated: should do x | y instead
+    x / y  # this raises because it doesn't make sense
 
-     NotImplementedError: operator '/' not implemented for bool dtypes
+   NotImplementedError: operator '/' not implemented for bool dtypes
 
 - In ``HDFStore``, ``select_as_multiple`` will always raise a ``KeyError``, when a key or the selector is not found (:issue:`6177`)
 - ``df['col'] = value`` and ``df.loc[:,'col'] = value`` are now completely equivalent;
@@ -274,7 +273,9 @@ Display Changes
 
   .. ipython:: python
 
-     dfd = pd.DataFrame(np.arange(25).reshape(-1,5), index=[0,1,2,3,4], columns=[0,1,2,3,4])
+    dfd = pd.DataFrame(np.arange(25).reshape(-1,5),
+                       index=[0, 1, 2, 3, 4],
+                       columns=[0, 1, 2, 3, 4])
 
      # show dimensions since this is truncated
      with pd.option_context('display.max_rows', 2, 'display.max_columns', 2,
@@ -328,17 +329,17 @@ More consistent behaviour for some groupby methods:
 
   .. ipython:: python
 
-     df = pd.DataFrame([[1, 2], [1, 4], [5, 6]], columns=['A', 'B'])
-     g = df.groupby('A')
-     g.head(1)  # filters DataFrame
+    df = pd.DataFrame([[1, 2], [1, 4], [5, 6]], columns=['A', 'B'])
+    g = df.groupby('A')
+    g.head(1)  # filters DataFrame
 
-     g.apply(lambda x: x.head(1))  # used to simply fall-through
+    g.apply(lambda x: x.head(1))  # used to simply fall-through
 
 - groupby head and tail respect column selection:
 
   .. ipython:: python
 
-     g[['B']].head(1)
+    g[['B']].head(1)
 
 - groupby ``nth`` now reduces by default; filtering can be achieved by passing ``as_index=False``. With an optional ``dropna`` argument to ignore
   NaN. See :ref:`the docs <groupby.nth>`.
@@ -347,42 +348,42 @@ More consistent behaviour for some groupby methods:
 
   .. ipython:: python
 
-     df = DataFrame([[1, np.nan], [1, 4], [5, 6]], columns=['A', 'B'])
-     g = df.groupby('A')
-     g.nth(0)
+    df = DataFrame([[1, np.nan], [1, 4], [5, 6]], columns=['A', 'B'])
+    g = df.groupby('A')
+    g.nth(0)
 
-     # this is equivalent to g.first()
-     g.nth(0, dropna='any')
+    # this is equivalent to g.first()
+    g.nth(0, dropna='any')
 
-     # this is equivalent to g.last()
-     g.nth(-1, dropna='any')
+    # this is equivalent to g.last()
+    g.nth(-1, dropna='any')
 
   Filtering
 
   .. ipython:: python
 
-     gf = df.groupby('A',as_index=False)
-     gf.nth(0)
-     gf.nth(0, dropna='any')
+    gf = df.groupby('A',as_index=False)
+    gf.nth(0)
+    gf.nth(0, dropna='any')
 
 - groupby will now not return the grouped column for non-cython functions (:issue:`5610`, :issue:`5614`, :issue:`6732`),
   as its already the index
 
   .. ipython:: python
 
-     df = DataFrame([[1, np.nan], [1, 4], [5, 6], [5, 8]], columns=['A', 'B'])
-     g = df.groupby('A')
-     g.count()
-     g.describe()
+    df = DataFrame([[1, np.nan], [1, 4], [5, 6], [5, 8]], columns=['A', 'B'])
+    g = df.groupby('A')
+    g.count()
+    g.describe()
 
 - passing ``as_index`` will leave the grouped column in-place (this is not change in 0.14.0)
 
   .. ipython:: python
 
-     df = DataFrame([[1, np.nan], [1, 4], [5, 6], [5, 8]], columns=['A', 'B'])
-     g = df.groupby('A',as_index=False)
-     g.count()
-     g.describe()
+    df = DataFrame([[1, np.nan], [1, 4], [5, 6], [5, 8]], columns=['A', 'B'])
+    g = df.groupby('A',as_index=False)
+    g.count()
+    g.describe()
 
 - Allow specification of a more complex groupby via ``pd.Grouper``, such as grouping
   by a Time and a string field simultaneously. See :ref:`the docs <groupby.specify>`. (:issue:`3794`)
@@ -424,28 +425,28 @@ To connect with SQLAlchemy you use the :func:`create_engine` function to create 
 object from database URI. You only need to create the engine once per database you are
 connecting to. For an in-memory sqlite database:
 
-.. ipython:: python
+  .. ipython:: python
 
-   from sqlalchemy import create_engine
-   # Create your connection.
-   engine = create_engine('sqlite:///:memory:')
+    from sqlalchemy import create_engine
+    # Create your connection.
+    engine = create_engine('sqlite:///:memory:')
 
 This ``engine`` can then be used to write or read data to/from this database:
 
-.. ipython:: python
+  .. ipython:: python
 
     df = pd.DataFrame({'A': [1,2,3], 'B': ['a', 'b', 'c']})
     df.to_sql('db_table', engine, index=False)
 
 You can read data from a database by specifying the table name:
 
-.. ipython:: python
+  .. ipython:: python
 
    pd.read_sql_table('db_table', engine)
 
 or by specifying a sql query:
 
-.. ipython:: python
+  .. ipython:: python
 
    pd.read_sql_query('SELECT * FROM db_table', engine)
 
@@ -496,21 +497,21 @@ See also issues (:issue:`6134`, :issue:`4036`, :issue:`3057`, :issue:`2598`, :is
 
    You should do this:
 
-   .. code-block:: python
+  .. code-block:: python
 
-      df.loc[(slice('A1','A3'),.....),:]
+    df.loc[(slice('A1','A3'),.....),:]
 
    rather than this:
 
-   .. code-block:: python
+  .. code-block:: python
 
-      df.loc[(slice('A1','A3'),.....)]
+    df.loc[(slice('A1','A3'),.....)]
 
-.. warning::
+  .. warning::
 
    You will need to make sure that the selection axes are fully lexsorted!
 
-.. ipython:: python
+  .. ipython:: python
 
    def mklbl(prefix,n):
        return ["%s%s" % (prefix,i)  for i in range(n)]
@@ -529,54 +530,54 @@ See also issues (:issue:`6134`, :issue:`4036`, :issue:`3057`, :issue:`2598`, :is
 
 Basic MultiIndex slicing using slices, lists, and labels.
 
-.. ipython:: python
+  .. ipython:: python
 
-   df.loc[(slice('A1','A3'),slice(None), ['C1','C3']),:]
+    df.loc[(slice('A1','A3'),slice(None), ['C1','C3']),:]
 
 You can use a ``pd.IndexSlice`` to shortcut the creation of these slices
 
-.. ipython:: python
+  .. ipython:: python
 
-   idx = pd.IndexSlice
-   df.loc[idx[:,:,['C1','C3']],idx[:,'foo']]
+    idx = pd.IndexSlice
+    df.loc[idx[:,:,['C1','C3']],idx[:,'foo']]
 
 It is possible to perform quite complicated selections using this method on multiple
 axes at the same time.
 
-.. ipython:: python
+  .. ipython:: python
 
-   df.loc['A1',(slice(None),'foo')]
-   df.loc[idx[:,:,['C1','C3']],idx[:,'foo']]
+    df.loc['A1',(slice(None),'foo')]
+    df.loc[idx[:,:,['C1','C3']],idx[:,'foo']]
 
 Using a boolean indexer you can provide selection related to the *values*.
 
-.. ipython:: python
+  .. ipython:: python
 
-   mask = df[('a','foo')]>200
-   df.loc[idx[mask,:,['C1','C3']],idx[:,'foo']]
+    mask = df[('a','foo')]>200
+    df.loc[idx[mask,:,['C1','C3']],idx[:,'foo']]
 
 You can also specify the ``axis`` argument to ``.loc`` to interpret the passed
 slicers on a single axis.
 
-.. ipython:: python
+  .. ipython:: python
 
-   df.loc(axis=0)[:,:,['C1','C3']]
+    df.loc(axis=0)[:,:,['C1','C3']]
 
 Furthermore you can *set* the values using these methods
 
-.. ipython:: python
+  .. ipython:: python
 
-   df2 = df.copy()
-   df2.loc(axis=0)[:,:,['C1','C3']] = -10
-   df2
+    df2 = df.copy()
+    df2.loc(axis=0)[:,:,['C1','C3']] = -10
+    df2
 
 You can use a right-hand-side of an alignable object as well.
 
-.. ipython:: python
+  .. ipython:: python
 
-   df2 = df.copy()
-   df2.loc[idx[:,:,['C1','C3']],:] = df2*1000
-   df2
+    df2 = df.copy()
+    df2.loc[idx[:,:,['C1','C3']],:] = df2*1000
+    df2
 
 .. _whatsnew_0140.plotting:
 
@@ -671,27 +672,27 @@ Deprecations
 
   .. code-block:: ipython
 
-     # non-floating point indexes can only be indexed by integers / labels
-     In [1]: Series(1,np.arange(5))[3.0]
-             pandas/core/index.py:469: FutureWarning: scalar indexers for index type Int64Index should be integers and not floating point
-     Out[1]: 1
+    # non-floating point indexes can only be indexed by integers / labels
+    In [1]: Series(1,np.arange(5))[3.0]
+            pandas/core/index.py:469: FutureWarning: scalar indexers for index type Int64Index should be integers and not floating point
+    Out[1]: 1
 
-     In [2]: Series(1,np.arange(5)).iloc[3.0]
-             pandas/core/index.py:469: FutureWarning: scalar indexers for index type Int64Index should be integers and not floating point
-     Out[2]: 1
+    In [2]: Series(1,np.arange(5)).iloc[3.0]
+            pandas/core/index.py:469: FutureWarning: scalar indexers for index type Int64Index should be integers and not floating point
+    Out[2]: 1
 
-     In [3]: Series(1,np.arange(5)).iloc[3.0:4]
-             pandas/core/index.py:527: FutureWarning: slice indexers when using iloc should be integers and not floating point
-     Out[3]:
-             3    1
-             dtype: int64
+    In [3]: Series(1,np.arange(5)).iloc[3.0:4]
+            pandas/core/index.py:527: FutureWarning: slice indexers when using iloc should be integers and not floating point
+    Out[3]:
+            3    1
+            dtype: int64
 
-     # these are Float64Indexes, so integer or floating point is acceptable
-     In [4]: Series(1,np.arange(5.))[3]
-     Out[4]: 1
+    # these are Float64Indexes, so integer or floating point is acceptable
+    In [4]: Series(1,np.arange(5.))[3]
+    Out[4]: 1
 
-     In [5]: Series(1,np.arange(5.))[3.0]
-     Out[6]: 1
+    In [5]: Series(1,np.arange(5.))[3.0]
+    Out[6]: 1
 
 - Numpy 1.9 compat w.r.t. deprecation warnings (:issue:`6960`)
 
@@ -743,13 +744,13 @@ Enhancements
 
   .. ipython:: python
 
-     Series({('a', 'b'): 1, ('a', 'a'): 0,
-             ('a', 'c'): 2, ('b', 'a'): 3, ('b', 'b'): 4})
-     DataFrame({('a', 'b'): {('A', 'B'): 1, ('A', 'C'): 2},
-                ('a', 'a'): {('A', 'C'): 3, ('A', 'B'): 4},
-                ('a', 'c'): {('A', 'B'): 5, ('A', 'C'): 6},
-                ('b', 'a'): {('A', 'C'): 7, ('A', 'B'): 8},
-                ('b', 'b'): {('A', 'D'): 9, ('A', 'B'): 10}})
+    Series({('a', 'b'): 1, ('a', 'a'): 0,
+            ('a', 'c'): 2, ('b', 'a'): 3, ('b', 'b'): 4})
+    DataFrame({('a', 'b'): {('A', 'B'): 1, ('A', 'C'): 2},
+               ('a', 'a'): {('A', 'C'): 3, ('A', 'B'): 4},
+               ('a', 'c'): {('A', 'B'): 5, ('A', 'C'): 6},
+               ('b', 'a'): {('A', 'C'): 7, ('A', 'B'): 8},
+               ('b', 'b'): {('A', 'D'): 9, ('A', 'B'): 10}})
 
 - Added the ``sym_diff`` method to ``Index`` (:issue:`5543`)
 - ``DataFrame.to_latex`` now takes a longtable keyword, which if True will return a table in a longtable environment. (:issue:`6617`)
@@ -762,23 +763,23 @@ Enhancements
 
   .. ipython:: python
 
-     household = DataFrame(dict(household_id = [1,2,3],
-                                male = [0,1,0],
-                                wealth = [196087.3,316478.7,294750]),
-                           columns = ['household_id','male','wealth']
-                          ).set_index('household_id')
-     household
-     portfolio = DataFrame(dict(household_id = [1,2,2,3,3,3,4],
-                                asset_id = ["nl0000301109","nl0000289783","gb00b03mlx29",
-                                            "gb00b03mlx29","lu0197800237","nl0000289965",np.nan],
-                                name = ["ABN Amro","Robeco","Royal Dutch Shell","Royal Dutch Shell",
-                                        "AAB Eastern Europe Equity Fund","Postbank BioTech Fonds",np.nan],
-                                share = [1.0,0.4,0.6,0.15,0.6,0.25,1.0]),
-                           columns = ['household_id','asset_id','name','share']
-                          ).set_index(['household_id','asset_id'])
-     portfolio
+    household = DataFrame(dict(household_id = [1,2,3],
+                               male = [0,1,0],
+                               wealth = [196087.3,316478.7,294750]),
+                          columns = ['household_id','male','wealth']
+                         ).set_index('household_id')
+    household
+    portfolio = DataFrame(dict(household_id = [1,2,2,3,3,3,4],
+                               asset_id = ["nl0000301109","nl0000289783","gb00b03mlx29",
+                                           "gb00b03mlx29","lu0197800237","nl0000289965",np.nan],
+                               name = ["ABN Amro","Robeco","Royal Dutch Shell","Royal Dutch Shell",
+                                       "AAB Eastern Europe Equity Fund","Postbank BioTech Fonds",np.nan],
+                               share = [1.0,0.4,0.6,0.15,0.6,0.25,1.0]),
+                          columns = ['household_id','asset_id','name','share']
+                         ).set_index(['household_id','asset_id'])
+    portfolio
 
-     household.join(portfolio, how='inner')
+    household.join(portfolio, how='inner')
 
 - ``quotechar``, ``doublequote``, and ``escapechar`` can now be specified when
   using ``DataFrame.to_csv`` (:issue:`5414`, :issue:`4528`)
@@ -833,10 +834,10 @@ Enhancements
 
   .. ipython:: python
 
-     prng = period_range('2013-01-01 09:00', periods=100, freq='H')
-     ps = Series(np.random.randn(len(prng)), index=prng)
-     ps
-     ps['2013-01-02']
+    prng = period_range('2013-01-01 09:00', periods=100, freq='H')
+    ps = Series(np.random.randn(len(prng)), index=prng)
+    ps
+    ps['2013-01-02']
 
 - ``read_excel`` can now read milliseconds in Excel dates and times with xlrd >= 0.9.3. (:issue:`5945`)
 - ``pd.stats.moments.rolling_var`` now uses Welford's method for increased numerical stability (:issue:`6817`)

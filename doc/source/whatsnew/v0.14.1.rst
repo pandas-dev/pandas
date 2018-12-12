@@ -8,8 +8,6 @@ v0.14.1 (July 11, 2014)
 .. ipython:: python
    :suppress:
 
-   from pandas import * # noqa F401, F403
-
 
 This is a minor release from 0.14.0 and includes a small number of API changes, several new features,
 enhancements, and performance improvements along with a large number of bug fixes. We recommend that all
@@ -103,6 +101,7 @@ Enhancements
   .. code-block:: python
 
      import pandas.tseries.offsets as offsets
+     import pandas.Timestamp as Timestamp
 
      day = offsets.Day()
      day.apply(Timestamp('2014-01-01 09:00'))
@@ -127,9 +126,10 @@ Enhancements
   pytz timezones across pandas. (:issue:`4688`)
 
   .. ipython:: python
+     import pandas.date_range
 
-     rng = date_range('3/6/2012 00:00', periods=10, freq='D',
-                      tz='dateutil/Europe/London')
+     rng = pandas.date_range('3/6/2012 00:00', periods=10, freq='D',
+                             tz='dateutil/Europe/London')
      rng.tz
 
   See :ref:`the docs <timeseries.timezone>`.
