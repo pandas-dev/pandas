@@ -1509,9 +1509,17 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
         Returns
         -------
-        ndarray or Categorical
-            The unique values returned as a NumPy array. In case of categorical
-            data type, returned as a Categorical.
+        ndarray or ExtensionArray
+            The unique values returned as a NumPy array. In case of an
+            extension-array backed Series, a new
+            :class:`~api.extensions.ExtensionArray` of that type with just
+            the unique values is returned. This includes
+
+            * Categorical
+            * Period
+            * Datetime with Timezone
+            * Interval
+            * Sparse
 
         See Also
         --------
@@ -1528,8 +1536,9 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
         >>> pd.Series([pd.Timestamp('2016-01-01', tz='US/Eastern')
         ...            for _ in range(3)]).unique()
-        array([Timestamp('2016-01-01 00:00:00-0500', tz='US/Eastern')],
-              dtype=object)
+        <DatetimeArrayMixin>
+        ['2016-01-01 00:00:00-05:00']
+        Length: 1, dtype: datetime64[ns, US/Eastern]
 
         An unordered Categorical will return categories in the order of
         appearance.
