@@ -412,7 +412,7 @@ class TestIndexOps(Ops):
         assert obj.argmax() == -1
 
     def test_value_counts_unique_nunique(self):
-        for i, orig in enumerate(self.objs):
+        for orig in self.objs:
             o = orig.copy()
             klass = type(o)
             values = o._values

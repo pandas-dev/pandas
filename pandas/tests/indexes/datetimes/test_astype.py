@@ -168,7 +168,7 @@ class TestDatetimeIndex(object):
     def test_astype_raises(self, dtype):
         # GH 13149, GH 13209
         idx = DatetimeIndex(['2016-05-16', 'NaT', NaT, np.NaN])
-        msg = 'Cannot cast Datetime(Index|Array.*?) to dtype'
+        msg = 'Cannot cast DatetimeArray(Mixin)? to dtype'
         with pytest.raises(TypeError, match=msg):
             idx.astype(dtype)
 
