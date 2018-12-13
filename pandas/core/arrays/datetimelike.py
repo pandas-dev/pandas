@@ -554,8 +554,9 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin, AttributesMixin):
             on_freq = cls._generate_range(start=index[0], end=None,
                                           periods=len(index), freq=freq,
                                           **kwargs)
-            assert np.array_equal(index.asi8, on_freq.asi8)
-        except (ValueError, AssertionError) as e:
+            if not np.array_equal(index.asi8, on_freq.asi8):
+                raise ValueError
+        except ValueError as e:
             if "non-fixed" in str(e):
                 # non-fixed frequencies are not meaningful for timedelta64;
                 #  we retain that error message
