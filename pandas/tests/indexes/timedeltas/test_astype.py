@@ -4,6 +4,7 @@ import numpy as np
 import pytest
 
 import pandas.util.testing as tm
+import pandas as pd
 from pandas import (
     Float64Index, Index, Int64Index, NaT, Timedelta, TimedeltaIndex,
     timedelta_range
@@ -77,3 +78,24 @@ class TestTimedeltaIndex(object):
         msg = 'Cannot cast TimedeltaArray(Mixin)? to dtype'
         with pytest.raises(TypeError, match=msg):
             idx.astype(dtype)
+
+    def test_astype_category(self):
+        obj = pd.timedelta_range("1H", periods=2, freq='H')
+        result = obj.astype('category')
+        expected = pd.CategoricalIndex([pd.Timedelta('1H'),
+                                        pd.Timedelta('2H')])
+        tm.assert_index_equal(result, expected)
+
+        result = obj._data.astype('category')
+        expected = expected.values
+        tm.assert_categorical_equal(result, expected)
+
+    def test_astype_array_fallback(self):
+        obj = pd.timedelta_range("1H", periods=2)
+        result = obj.astype(bool)
+        expected = pd.Index(np.array([True, True]))
+        tm.assert_index_equal(result, expected)
+
+        result = obj._data.astype(bool)
+        expected = np.array([True, True])
+        tm.assert_numpy_array_equal(result, expected)

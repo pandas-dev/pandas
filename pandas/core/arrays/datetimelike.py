@@ -10,7 +10,7 @@ from pandas._libs.tslibs.period import (
     DIFFERENT_FREQ_INDEX, IncompatibleFrequency, Period)
 from pandas._libs.tslibs.timedeltas import Timedelta, delta_to_nanoseconds
 from pandas._libs.tslibs.timestamps import (
-    RoundTo, Timestamp, maybe_integer_op_deprecated, round_nsint64)
+    RoundTo, maybe_integer_op_deprecated, round_nsint64)
 import pandas.compat as compat
 from pandas.compat.numpy import function as nv
 from pandas.errors import (
@@ -29,7 +29,7 @@ from pandas.core.dtypes.generic import ABCDataFrame, ABCIndexClass, ABCSeries
 from pandas.core.dtypes.inference import is_array_like
 from pandas.core.dtypes.missing import isna
 
-from pandas.core import missing
+from pandas.core import missing, nanops
 from pandas.core.algorithms import (
     checked_add_with_arr, take, unique1d, value_counts)
 import pandas.core.common as com
@@ -71,8 +71,6 @@ def _make_comparison_op(cls, op):
 
 
 class AttributesMixin(object):
-
-    _scalar_types = (Period, Timestamp, Timedelta)
 
     @property
     def _attributes(self):
@@ -1098,7 +1096,7 @@ class DatetimeLikeArrayMixin(AttributesMixin,
                 freq = frequencies.to_offset(freq)
             offset = periods * freq
             result = self + offset
-            if getattr(self, 'tz', None):
+            if hasattr(self, 'tz'):
                 result._dtype = DatetimeTZDtype(tz=self.tz)
             return result
 
@@ -1310,38 +1308,32 @@ class DatetimeLikeArrayMixin(AttributesMixin,
         result[mask] = filler
         return result
 
+    # --------------------------------------------------------------
+    # Reductions
+
     def _reduce(self, name, skipna=True, **kwargs):
         op = getattr(self, name, None)
         if op:
             return op(skipna=skipna)
         else:
-            return super()._reduce(name, skipna, **kwargs)
-
-    # --------------------------------------------------------------
-    # Reductions
-
-    def _values_for_reduction(self, skipna=True):
-        if skipna:
-            values = self[~self._isnan]
-        else:
-            values = self
-        return values.asi8
+            return super(DatetimeLikeArrayMixin, self)._reduce(
+                name, skipna, **kwargs
+            )
 
     def min(self, skipna=True):
-        # TODO: Deduplicate with Datetimelike.
-        # they get to take some shortcuts based on monotonicity.
-        i8 = self._values_for_reduction(skipna=skipna)
-        if len(i8):
-            return self._box_func(i8.min())
-        else:
+        result = nanops.nanmin(self.asi8, skipna=skipna, mask=self.isna())
+        if isna(result):
+            # Period._from_ordinal does not handle np.nan gracefully
             return NaT
+        return self._box_func(result)
 
     def max(self, skipna=True):
-        i8 = self._values_for_reduction(skipna=skipna)
-        if len(i8):
-            return self._box_func(i8.max())
-        else:
+        # TODO: skipna is broken with max.
+        result = nanops.nanmax(self.asi8, skipna=skipna, mask=self.isna())
+        if isna(result):
+            # Period._from_ordinal does not handle np.nan gracefully
             return NaT
+        return self._box_func(result)
 
 
 DatetimeLikeArrayMixin._add_comparison_ops()

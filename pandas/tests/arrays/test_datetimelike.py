@@ -130,6 +130,13 @@ class SharedTests(object):
         result = arr._scalar_from_string(str(arr[0]))
         assert result == arr[0]
 
+    def test_reduce_invalid(self):
+        data = np.arange(10, dtype='i8')
+        arr = self.array_cls(data, freq='D')
+
+        with pytest.raises(TypeError, match='cannot perform'):
+            arr._reduce("not a method")
+
 
 class TestDatetimeArray(SharedTests):
     index_cls = pd.DatetimeIndex
