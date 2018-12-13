@@ -1603,6 +1603,10 @@ def _take_new_index(obj, indexer, new_index, axis=0):
 
 
 def _get_timestamp_range_edges(first, last, offset, closed='left', base=0):
+    """
+    Adjust the provided Timestamp range edge values to the appropriate edge
+    values for the given offset parameters.
+    """
     if not all(isinstance(obj, pd.Timestamp) for obj in [first, last]):
         raise TypeError("'first' and 'last' must be instances of type "
                         "Timestamp")
@@ -1631,6 +1635,10 @@ def _get_timestamp_range_edges(first, last, offset, closed='left', base=0):
 
 
 def _get_period_range_edges(first, last, offset, closed='left', base=0):
+    """
+    Adjust the provided Period range edge values to the appropriate edge
+    values for the given offset parameters.
+    """
     if not all(isinstance(obj, pd.Period) for obj in [first, last]):
         raise TypeError("'first' and 'last' must be instances of type Period")
 
