@@ -1,5 +1,3 @@
-from warnings import catch_warnings
-
 import numpy as np
 import pytest
 
@@ -7,123 +5,93 @@ from pandas import DataFrame, MultiIndex, Series
 from pandas.util import testing as tm
 
 
-@pytest.mark.filterwarnings("ignore:\\n.ix:DeprecationWarning")
-class TestMultiIndexIloc(object):
+@pytest.mark.parametrize('indexer, expected', [
+    (lambda df: df.iloc[0],
+     lambda arr, df: Series(arr[0], index=df.columns, name=(4, 8))),
+    (lambda df: df.iloc[2],
+     lambda arr, df: Series(arr[2], index=df.columns, name=(8, 12))),
+    (lambda df: df.iloc[:, 2],
+     lambda arr, df: Series(arr[:, 2], index=df.index, name=(4, 10))),
+    (lambda df: df.iloc[2, 2],
+     lambda arr, df: arr[2, 2]),
+    (lambda df: df.iloc[[0, 1]],
+     lambda arr, df: df.xs(4, drop_level=False))
+])
+def test_iloc_getitem(indexer, expected):
+    arr = np.random.randn(3, 3)
+    df = DataFrame(arr, columns=[[2, 2, 4], [6, 8, 10]],
+                   index=[[4, 4, 8], [8, 10, 12]])
 
-    def test_iloc_getitem_multiindex2(self):
-        # TODO(wesm): fix this
-        pytest.skip('this test was being suppressed, '
-                    'needs to be fixed')
+    result = indexer(df)
+    expected = expected(arr, df)
 
-        arr = np.random.randn(3, 3)
-        df = DataFrame(arr, columns=[[2, 2, 4], [6, 8, 10]],
-                       index=[[4, 4, 8], [8, 10, 12]])
+    try:
+        tm.assert_equal(result, expected)
+    except NotImplementedError:
+        assert result == expected
 
-        rs = df.iloc[2]
-        xp = Series(arr[2], index=df.columns)
-        tm.assert_series_equal(rs, xp)
 
-        rs = df.iloc[:, 2]
-        xp = Series(arr[:, 2], index=df.index)
-        tm.assert_series_equal(rs, xp)
+def test_iloc_getitem_multiple_items():
+    # GH 5528
+    tup = zip(*[['a', 'a', 'b', 'b'], ['x', 'y', 'x', 'y']])
+    index = MultiIndex.from_tuples(tup)
+    df = DataFrame(np.random.randn(4, 4), index=index)
+    result = df.iloc[[2, 3]]
+    expected = df.xs('b', drop_level=False)
+    tm.assert_frame_equal(result, expected)
 
-        rs = df.iloc[2, 2]
-        xp = df.values[2, 2]
-        assert rs == xp
 
-        # for multiple items
-        # GH 5528
-        rs = df.iloc[[0, 1]]
-        xp = df.xs(4, drop_level=False)
-        tm.assert_frame_equal(rs, xp)
+def test_iloc_getitem_labels():
+    # this is basically regular indexing
+    arr = np.random.randn(4, 3)
+    df = DataFrame(arr,
+                   columns=[['i', 'i', 'j'], ['A', 'A', 'B']],
+                   index=[['i', 'i', 'j', 'k'], ['X', 'X', 'Y', 'Y']])
+    result = df.iloc[2, 2]
+    expected = arr[2, 2]
+    assert result == expected
 
-        tup = zip(*[['a', 'a', 'b', 'b'], ['x', 'y', 'x', 'y']])
-        index = MultiIndex.from_tuples(tup)
-        df = DataFrame(np.random.randn(4, 4), index=index)
-        rs = df.iloc[[2, 3]]
-        xp = df.xs('b', drop_level=False)
-        tm.assert_frame_equal(rs, xp)
 
-    def test_iloc_getitem_multiindex(self):
-        mi_labels = DataFrame(np.random.randn(4, 3),
-                              columns=[['i', 'i', 'j'], ['A', 'A', 'B']],
-                              index=[['i', 'i', 'j', 'k'],
-                                     ['X', 'X', 'Y', 'Y']])
+def test_frame_getitem_slice(multiindex_dataframe_random_data):
+    frame = multiindex_dataframe_random_data
+    result = frame.iloc[:4]
+    expected = frame[:4]
+    tm.assert_frame_equal(result, expected)
 
-        mi_int = DataFrame(np.random.randn(3, 3),
-                           columns=[[2, 2, 4], [6, 8, 10]],
-                           index=[[4, 4, 8], [8, 10, 12]])
 
-        # the first row
-        rs = mi_int.iloc[0]
-        with catch_warnings(record=True):
-            xp = mi_int.ix[4].ix[8]
-        tm.assert_series_equal(rs, xp, check_names=False)
-        assert rs.name == (4, 8)
-        assert xp.name == 8
+def test_frame_setitem_slice(multiindex_dataframe_random_data):
+    df = multiindex_dataframe_random_data
+    df.iloc[:4] = 0
 
-        # 2nd (last) columns
-        rs = mi_int.iloc[:, 2]
-        with catch_warnings(record=True):
-            xp = mi_int.ix[:, 2]
-        tm.assert_series_equal(rs, xp)
+    assert (df.values[:4] == 0).all()
+    assert (df.values[4:] != 0).all()
 
-        # corner column
-        rs = mi_int.iloc[2, 2]
-        with catch_warnings(record=True):
-            # First level is int - so use .loc rather than .ix (GH 21593)
-            xp = mi_int.loc[(8, 12), (4, 10)]
-        assert rs == xp
 
-        # this is basically regular indexing
-        rs = mi_labels.iloc[2, 2]
-        with catch_warnings(record=True):
-            xp = mi_labels.ix['j'].ix[:, 'j'].ix[0, 0]
-        assert rs == xp
+def test_indexing_ambiguity_bug_1678():
+    columns = MultiIndex.from_tuples(
+        [('Ohio', 'Green'), ('Ohio', 'Red'), ('Colorado', 'Green')])
+    index = MultiIndex.from_tuples([('a', 1), ('a', 2), ('b', 1), ('b', 2)])
 
-    def test_frame_getitem_setitem_slice(
-            self, multiindex_dataframe_random_data):
-        frame = multiindex_dataframe_random_data
-        # getitem
-        result = frame.iloc[:4]
-        expected = frame[:4]
-        tm.assert_frame_equal(result, expected)
+    df = DataFrame(np.arange(12).reshape((4, 3)), index=index, columns=columns)
 
-        # setitem
-        cp = frame.copy()
-        cp.iloc[:4] = 0
+    result = df.iloc[:, 1]
+    expected = df.loc[:, ('Ohio', 'Red')]
+    tm.assert_series_equal(result, expected)
 
-        assert (cp.values[:4] == 0).all()
-        assert (cp.values[4:] != 0).all()
 
-    def test_indexing_ambiguity_bug_1678(self):
-        columns = MultiIndex.from_tuples([('Ohio', 'Green'), ('Ohio', 'Red'), (
-            'Colorado', 'Green')])
-        index = MultiIndex.from_tuples([('a', 1), ('a', 2), ('b', 1), ('b', 2)
-                                        ])
+def test_iloc_mi():
+    # GH 13797
+    # Test if iloc can handle integer locations in MultiIndexed DataFrame
 
-        frame = DataFrame(np.arange(12).reshape((4, 3)), index=index,
-                          columns=columns)
+    data = [['str00', 'str01'], ['str10', 'str11'], ['str20', 'srt21'],
+            ['str30', 'str31'], ['str40', 'str41']]
 
-        result = frame.iloc[:, 1]
-        exp = frame.loc[:, ('Ohio', 'Red')]
-        assert isinstance(result, Series)
-        tm.assert_series_equal(result, exp)
+    index = MultiIndex.from_tuples(
+        [('CC', 'A'), ('CC', 'B'), ('CC', 'B'), ('BB', 'a'), ('BB', 'b')])
 
-    def test_iloc_mi(self):
-        # GH 13797
-        # Test if iloc can handle integer locations in MultiIndexed DataFrame
+    expected = DataFrame(data)
+    df = DataFrame(data, index=index)
 
-        data = [['str00', 'str01'], ['str10', 'str11'], ['str20', 'srt21'],
-                ['str30', 'str31'], ['str40', 'str41']]
+    result = DataFrame([[df.iloc[r, c] for c in range(2)] for r in range(5)])
 
-        mi = MultiIndex.from_tuples(
-            [('CC', 'A'), ('CC', 'B'), ('CC', 'B'), ('BB', 'a'), ('BB', 'b')])
-
-        expected = DataFrame(data)
-        df_mi = DataFrame(data, index=mi)
-
-        result = DataFrame([[df_mi.iloc[r, c] for c in range(2)]
-                            for r in range(5)])
-
-        tm.assert_frame_equal(result, expected)
+    tm.assert_frame_equal(result, expected)
