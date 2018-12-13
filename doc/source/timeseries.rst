@@ -2338,7 +2338,7 @@ Infer the ambiguous times
 .. ipython:: python
 
    rng_hourly_eastern = rng_hourly.tz_localize('US/Eastern', ambiguous='infer')
-   rng_hourly_eastern.tolist()
+   rng_hourly_eastern.to_list()
 
 In addition to 'infer', there are several other arguments supported.  Passing
 an array-like of bools or 0s/1s where True represents a DST hour and False a
@@ -2351,8 +2351,8 @@ constructor as well as ``tz_localize``.
 .. ipython:: python
 
    rng_hourly_dst = np.array([1, 1, 0, 0, 0])
-   rng_hourly.tz_localize('US/Eastern', ambiguous=rng_hourly_dst).tolist()
-   rng_hourly.tz_localize('US/Eastern', ambiguous='NaT').tolist()
+   rng_hourly.tz_localize('US/Eastern', ambiguous=rng_hourly_dst).to_list()
+   rng_hourly.tz_localize('US/Eastern', ambiguous='NaT').to_list()
 
    didx = pd.DatetimeIndex(start='2014-08-01 09:00', freq='H',
                            periods=10, tz='US/Eastern')

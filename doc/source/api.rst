@@ -330,7 +330,7 @@ Conversion
    Series.bool
    Series.to_period
    Series.to_timestamp
-   Series.tolist
+   Series.to_list
    Series.get_values
 
 
@@ -1541,7 +1541,7 @@ Conversion
    Index.item
    Index.map
    Index.ravel
-   Index.tolist
+   Index.to_list
    Index.to_native_types
    Index.to_series
    Index.to_frame
