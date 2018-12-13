@@ -122,7 +122,10 @@ def run_tests(pattern, locale=None, coverage_file=False):
             sys.stdout.write('{}\n'.format('-' * 100))
         sys.stdout.write('#{} {}.{}: {}\n'.format(i + 1, class_, name, msg))
         prev_class = class_
-
+    sys.stdout.write('{}\n'.format('=' * 100))
+    import pandas
+    pandas.show_versions()
+    sys.stdout.write('{}\n'.format('=' * 100))
     sys.stdout.write('Tests run in {} seconds\n'.format(tests_run_in_seconds))
 
     if coverage_file:
