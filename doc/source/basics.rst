@@ -1,14 +1,6 @@
-.. currentmodule:: pandas
-
-.. ipython:: python
-   :suppress:
-
-   import numpy as np
-   import pandas as pd
-   np.set_printoptions(precision=4, suppress=True)
-   pd.options.display.max_rows = 15
-
 .. _basics:
+
+{{ header }}
 
 ==============================
  Essential Basic Functionality
@@ -45,8 +37,8 @@ of elements to display is five, but you may pass a custom number.
 
 .. _basics.attrs:
 
-Attributes and the raw ndarray(s)
----------------------------------
+Attributes and Underlying Data
+------------------------------
 
 pandas objects have a number of attributes enabling you to access the metadata
 
@@ -64,14 +56,43 @@ Note, **these attributes can be safely assigned to**!
    df.columns = [x.lower() for x in df.columns]
    df
 
-To get the actual data inside a data structure, one need only access the
-**values** property:
+Pandas objects (:class:`Index`, :class:`Series`, :class:`DataFrame`) can be
+thought of as containers for arrays, which hold the actual data and do the
+actual computation. For many types, the underlying array is a
+:class:`numpy.ndarray`. However, pandas and 3rd party libraries may *extend*
+NumPy's type system to add support for custom arrays
+(see :ref:`basics.dtypes`).
+
+To get the actual data inside a :class:`Index` or :class:`Series`, use
+the **array** property
 
 .. ipython:: python
 
-    s.values
-    df.values
-    wp.values
+   s.array
+   s.index.array
+
+Depending on the data type (see :ref:`basics.dtypes`), :attr:`~Series.array`
+be either a NumPy array or an :ref:`ExtensionArray <extending.extension-type>`.
+If you know you need a NumPy array, use :meth:`~Series.to_numpy`
+or :meth:`numpy.asarray`.
+
+.. ipython:: python
+
+   s.to_numpy()
+   np.asarray(s)
+
+For Series and Indexes backed by NumPy arrays (like we have here), this will
+be the same as :attr:`~Series.array`. When the Series or Index is backed by
+a :class:`~pandas.api.extension.ExtensionArray`, :meth:`~Series.to_numpy`
+may involve copying data and coercing values.
+
+Getting the "raw data" inside a :class:`DataFrame` is possibly a bit more
+complex. When your ``DataFrame`` only has a single data type for all the
+columns, :atr:`DataFrame.to_numpy` will return the underlying data:
+
+.. ipython:: python
+
+   df.to_numpy()
 
 If a DataFrame or Panel contains homogeneously-typed data, the ndarray can
 actually be modified in-place, and the changes will be reflected in the data
@@ -85,6 +106,21 @@ unlike the axis labels, cannot be assigned to.
     will be chosen to accommodate all of the data involved. For example, if
     strings are involved, the result will be of object dtype. If there are only
     floats and integers, the resulting array will be of float dtype.
+
+In the past, pandas recommended :attr:`Series.values` or :attr:`DataFrame.values`
+for extracting the data from a Series or DataFrame. You'll still find references
+to these in old code bases and online. Going forward, we recommend avoiding
+``.values`` and using ``.array`` or ``.to_numpy()``. ``.values`` has the following
+drawbacks:
+
+1. When your Series contains an :ref:`extension type <extending.extension-type>`, it's
+   unclear whether :attr:`Series.values` returns a NumPy array or the extension array.
+   :attr:`Series.array` will always return the actual array backing the Series,
+   while :meth:`Series.to_numpy` will always return a NumPy array.
+2. When your DataFrame contains a mixture of data types, :attr:`DataFrame.values` may
+   involve copying data and coercing values to a common dtype, a relatively expensive
+   operation. :meth:`DataFrame.to_numpy`, being a method, makes it clearer that the
+   returned NumPy array may not be a view on the same data in the DataFrame.
 
 .. _basics.accelerate:
 
@@ -173,8 +209,9 @@ Furthermore you can align a level of a MultiIndexed DataFrame with a Series.
 .. ipython:: python
 
    dfmi = df.copy()
-   dfmi.index = pd.MultiIndex.from_tuples([
-       (1, 'a'), (1, 'b'), (1, 'c'), (2, 'a')], names=['first', 'second'])
+   dfmi.index = pd.MultiIndex.from_tuples([(1, 'a'), (1, 'b'),
+                                           (1, 'c'), (2, 'a')],
+                                          names=['first', 'second'])
    dfmi.sub(column, axis=0, level='second')
 
 With Panel, describing the matching behavior is a bit more difficult, so
@@ -539,7 +576,7 @@ will exclude NAs on Series input by default:
 .. ipython:: python
 
    np.mean(df['one'])
-   np.mean(df['one'].values)
+   np.mean(df['one'].to_numpy())
 
 :meth:`Series.nunique` will return the number of unique non-NA values in a
 Series:
@@ -565,8 +602,8 @@ course):
     series = pd.Series(np.random.randn(1000))
     series[::2] = np.nan
     series.describe()
-    frame = pd.DataFrame(
-        np.random.randn(1000, 5), columns=['a', 'b', 'c', 'd', 'e'])
+    frame = pd.DataFrame(np.random.randn(1000, 5),
+                         columns=['a', 'b', 'c', 'd', 'e'])
     frame.iloc[::2] = np.nan
     frame.describe()
 
@@ -837,7 +874,7 @@ Series operation on each column or row:
 
    tsdf = pd.DataFrame(np.random.randn(10, 3), columns=['A', 'B', 'C'],
                        index=pd.date_range('1/1/2000', periods=10))
-   tsdf.values[3:7] = np.nan
+   tsdf.iloc[3:7] = np.nan
 
 .. ipython:: python
 
@@ -1088,8 +1125,10 @@ a single value and returning a single value. For example:
 .. ipython:: python
 
    df4
+
    def f(x):
-       len(str(x))
+       return len(str(x))
+
    df4['one'].map(f)
    df4.applymap(f)
 
@@ -1433,10 +1472,8 @@ Thus, for example, iterating over a DataFrame gives you the column names:
 
 .. ipython:: python
 
-   df = pd.DataFrame({
-       'col1': np.random.randn(3),
-       'col2': np.random.randn(3)},
-       index=['a', 'b', 'c'])
+   df = pd.DataFrame({'col1': np.random.randn(3),
+                      'col2': np.random.randn(3)}, index=['a', 'b', 'c'])
 
    for col in df:
        print(col)
@@ -1556,7 +1593,7 @@ For instance, a contrived way to transpose the DataFrame would be:
    print(df2)
    print(df2.T)
 
-   df2_t = pd.DataFrame(dict((idx, values) for idx, values in df2.iterrows()))
+   df2_t = pd.DataFrame({idx: values for idx, values in df2.iterrows()})
    print(df2_t)
 
 itertuples
@@ -1732,8 +1769,9 @@ to use to determine the sorted order.
 
 .. ipython:: python
 
-   df1 = pd.DataFrame({
-       'one': [2, 1, 1, 1], 'two': [1, 3, 2, 4], 'three': [5, 4, 3, 2]})
+   df1 = pd.DataFrame({'one': [2, 1, 1, 1],
+                       'two': [1, 3, 2, 4],
+                       'three': [5, 4, 3, 2]})
    df1.sort_values(by='two')
 
 The ``by`` parameter can take a list of column names, e.g.:
@@ -1843,8 +1881,9 @@ all levels to ``by``.
 
 .. ipython:: python
 
-   df1.columns = pd.MultiIndex.from_tuples([
-       ('a', 'one'), ('a', 'two'), ('b', 'three')])
+   df1.columns = pd.MultiIndex.from_tuples([('a', 'one'),
+                                            ('a', 'two'),
+                                            ('b', 'three')])
    df1.sort_values(by=('a', 'two'))
 
 
@@ -1871,17 +1910,29 @@ dtypes
 ------
 
 For the most part, pandas uses NumPy arrays and dtypes for Series or individual
-columns of a DataFrame. The main types allowed in pandas objects are ``float``,
-``int``, ``bool``, and ``datetime64[ns]`` (note that NumPy does not support
-timezone-aware datetimes).
+columns of a DataFrame. NumPy provides support for ``float``,
+``int``, ``bool``, ``timedelta64[ns]`` and ``datetime64[ns]`` (note that NumPy
+does not support timezone-aware datetimes).
 
-In addition to NumPy's types, pandas :ref:`extends <extending.extension-types>`
-NumPy's type-system for a few cases.
+Pandas and third-party libraries *extend* NumPy's type system in a few places.
+This section describes the extensions pandas has made internally.
+See :ref:`extending.extension-types` for how to write your own extension that
+works with pandas. See :ref:`ecosystem.extensions` for a list of third-party
+libraries that have implemented an extension.
 
-* :ref:`Categorical <categorical>`
-* :ref:`Datetime with Timezone <timeseries.timezone_series>`
-* :ref:`Period <timeseries.periods>`
-* :ref:`Interval <indexing.intervallindex>`
+The following table lists all of pandas extension types. See the respective
+documentation sections for more on each type.
+
+=================== ========================= ================== ============================= =============================
+Kind of Data        Data Type                 Scalar             Array                         Documentation
+=================== ========================= ================== ============================= =============================
+tz-aware datetime   :class:`DatetimeArray`    :class:`Timestamp` :class:`arrays.DatetimeArray` :ref:`timeseries.timezone`
+Categorical         :class:`CategoricalDtype` (none)             :class:`Categorical`          :ref:`categorical`
+period (time spans) :class:`PeriodDtype`      :class:`Period`    :class:`arrays.PeriodArray`   :ref:`timeseries.periods`
+sparse              :class:`SparseDtype`      (none)             :class:`arrays.SparseArray`   :ref:`sparse`
+intervals           :class:`IntervalDtype`    :class:`Interval`  :class:`arrays.IntervalArray` :ref:`advanced.intervalindex`
+nullable integer    :clsas:`Int64Dtype`, ...  (none)             :class:`arrays.IntegerArray`  :ref:`integer_na`
+=================== ========================= ================== ============================= =============================
 
 Pandas uses the ``object`` dtype for storing strings.
 
@@ -1894,13 +1945,13 @@ with the data type of each column.
 
 .. ipython:: python
 
-   dft = pd.DataFrame(dict(A=np.random.rand(3),
-                           B=1,
-                           C='foo',
-                           D=pd.Timestamp('20010102'),
-                           E=pd.Series([1.0] * 3).astype('float32'),
-                           F=False,
-                           G=pd.Series([1] * 3, dtype='int8')))
+   dft = pd.DataFrame({'A': np.random.rand(3),
+                       'B': 1,
+                       'C': 'foo',
+                       'D': pd.Timestamp('20010102'),
+                       'E': pd.Series([1.0] * 3).astype('float32'),
+                       'F': False,
+                       'G': pd.Series([1] * 3, dtype='int8')})
    dft
    dft.dtypes
 
@@ -1939,10 +1990,10 @@ different numeric dtypes will **NOT** be combined. The following example will gi
    df1 = pd.DataFrame(np.random.randn(8, 1), columns=['A'], dtype='float32')
    df1
    df1.dtypes
-   df2 = pd.DataFrame(dict(A=pd.Series(np.random.randn(8), dtype='float16'),
-                           B=pd.Series(np.random.randn(8)),
-                           C=pd.Series(np.array(np.random.randn(8),
-                                                dtype='uint8'))))
+   df2 = pd.DataFrame({'A': pd.Series(np.random.randn(8), dtype='float16'),
+                       'B': pd.Series(np.random.randn(8)),
+                       'C': pd.Series(np.array(np.random.randn(8),
+                                               dtype='uint8'))})
    df2
    df2.dtypes
 
@@ -1979,13 +2030,13 @@ from the current type (e.g. ``int`` to ``float``).
    df3
    df3.dtypes
 
-The ``values`` attribute on a DataFrame return the *lower-common-denominator* of the dtypes, meaning
+:meth:`DataFrame.to_numpy` will return the *lower-common-denominator* of the dtypes, meaning
 the dtype that can accommodate **ALL** of the types in the resulting homogeneous dtyped NumPy array. This can
 force some *upcasting*.
 
 .. ipython:: python
 
-   df3.values.dtype
+   df3.to_numpy().dtype
 
 astype
 ~~~~~~
@@ -2057,7 +2108,7 @@ to the correct type.
      df = pd.DataFrame([[1, 2],
                         ['a', 'b'],
                         [datetime.datetime(2016, 3, 2),
-                        datetime.datetime(2016, 3, 2)]])
+                         datetime.datetime(2016, 3, 2)]])
      df = df.T
      df
      df.dtypes
@@ -2207,11 +2258,11 @@ dtypes:
                       'float64': np.arange(4.0, 7.0),
                       'bool1': [True, False, True],
                       'bool2': [False, True, False],
-                      'dates': pd.date_range('now', periods=3).values,
+                      'dates': pd.date_range('now', periods=3),
                       'category': pd.Series(list("ABC")).astype('category')})
    df['tdeltas'] = df.dates.diff()
    df['uint64'] = np.arange(3, 6).astype('u8')
-   df['other_dates'] = pd.date_range('20130101', periods=3).values
+   df['other_dates'] = pd.date_range('20130101', periods=3)
    df['tz_aware_dates'] = pd.date_range('20130101', periods=3, tz='US/Eastern')
    df
 

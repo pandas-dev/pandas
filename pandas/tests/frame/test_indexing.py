@@ -132,6 +132,18 @@ class TestDataFrameIndexing(TestData):
         with pytest.raises(KeyError, match='not in index'):
             frame[idx]
 
+    @pytest.mark.parametrize("val,expected", [
+        (2**63 - 1, Series([1])),
+        (2**63, Series([2])),
+    ])
+    def test_loc_uint64(self, val, expected):
+        # see gh-19399
+        df = DataFrame([1, 2], index=[2**63 - 1, 2**63])
+        result = df.loc[val]
+
+        expected.name = val
+        tm.assert_series_equal(result, expected)
+
     def test_getitem_callable(self):
         # GH 12533
         result = self.frame[lambda x: 'A']
@@ -635,7 +647,7 @@ class TestDataFrameIndexing(TestData):
 
     def test_frame_setitem_timestamp(self):
         # GH#2155
-        columns = DatetimeIndex(start='1/1/2012', end='2/1/2012', freq=BDay())
+        columns = date_range(start='1/1/2012', end='2/1/2012', freq=BDay())
         index = lrange(10)
         data = DataFrame(columns=columns, index=index)
         t = datetime(2012, 11, 1)
@@ -1770,11 +1782,9 @@ class TestDataFrameIndexing(TestData):
 
     def test_lookup(self):
         def alt(df, rows, cols, dtype):
-            result = []
-            for r, c in zip(rows, cols):
-                with tm.assert_produces_warning(FutureWarning,
-                                                check_stacklevel=False):
-                    result.append(df.get_value(r, c))
+            with tm.assert_produces_warning(FutureWarning,
+                                            check_stacklevel=False):
+                result = [df.get_value(r, c) for r, c in zip(rows, cols)]
             return np.array(result, dtype=dtype)
 
         def testit(df):
@@ -3181,7 +3191,7 @@ class TestDataFrameIndexing(TestData):
 
         index = Index(range(2), name='i')
         columns = MultiIndex(levels=[['x', 'y'], [0, 1]],
-                             labels=[[0, 1], [0, 0]],
+                             codes=[[0, 1], [0, 0]],
                              names=[None, 'c'])
         expected = DataFrame([[1, 2], [3, 4]], columns=columns, index=index)
 

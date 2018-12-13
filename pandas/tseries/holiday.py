@@ -7,7 +7,7 @@ import numpy as np
 from pandas.compat import add_metaclass
 from pandas.errors import PerformanceWarning
 
-from pandas import DateOffset, DatetimeIndex, Series, Timestamp
+from pandas import DateOffset, Series, Timestamp, date_range
 
 from pandas.tseries.offsets import Day, Easter
 
@@ -254,9 +254,9 @@ class Holiday(object):
         reference_end_date = Timestamp(
             datetime(end_date.year + 1, self.month, self.day))
         # Don't process unnecessary holidays
-        dates = DatetimeIndex(start=reference_start_date,
-                              end=reference_end_date,
-                              freq=year_offset, tz=start_date.tz)
+        dates = date_range(start=reference_start_date,
+                           end=reference_end_date,
+                           freq=year_offset, tz=start_date.tz)
 
         return dates
 

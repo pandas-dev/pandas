@@ -1,16 +1,6 @@
 .. _categorical:
 
-.. currentmodule:: pandas
-
-.. ipython:: python
-   :suppress:
-
-   import numpy as np
-   import pandas as pd
-   np.random.seed(123456)
-   np.set_printoptions(precision=4, suppress=True)
-   pd.options.display.max_rows = 15
-
+{{ header }}
 
 ****************
 Categorical Data
@@ -178,7 +168,7 @@ are consistent among all columns.
 
     To perform table-wise conversion, where all labels in the entire ``DataFrame`` are used as
     categories for each column, the ``categories`` parameter can be determined programmatically by
-    ``categories = pd.unique(df.values.ravel())``.
+    ``categories = pd.unique(df.to_numpy().ravel())``.
 
 If you already have ``codes`` and ``categories``, you can use the 
 :func:`~pandas.Categorical.from_codes` constructor to save the factorize step 
@@ -792,7 +782,7 @@ Setting values by assigning categorical data will also check that the `categorie
     df
     try:
         df.loc["j":"k", "cats"] = pd.Categorical(["b", "b"],
-                                                  categories=["a", "b", "c"])
+                                                 categories=["a", "b", "c"])
     except ValueError as e:
         print("ValueError:", str(e))
 
@@ -955,7 +945,7 @@ Use ``.astype`` or ``union_categoricals`` to get ``category`` result.
    pd.concat([s1, s3])
 
    pd.concat([s1, s3]).astype('category')
-   union_categoricals([s1.values, s3.values])
+   union_categoricals([s1.array, s3.array])
 
 
 Following table summarizes the results of ``Categoricals`` related concatenations.

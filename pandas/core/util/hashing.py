@@ -69,7 +69,6 @@ def hash_pandas_object(obj, index=True, encoding='utf8', hash_key=None,
     Returns
     -------
     Series of uint64, same length as the object
-
     """
     from pandas import Series
     if hash_key is None:
@@ -147,7 +146,7 @@ def hash_tuples(vals, encoding='utf8', hash_key=None):
         vals = MultiIndex.from_tuples(vals)
 
     # create a list-of-Categoricals
-    vals = [Categorical(vals.labels[level],
+    vals = [Categorical(vals.codes[level],
                         vals.levels[level],
                         ordered=False,
                         fastpath=True)
@@ -248,7 +247,6 @@ def hash_array(vals, encoding='utf8', hash_key=None, categorize=True):
     Returns
     -------
     1d uint64 numpy array of hash values, same length as the vals
-
     """
 
     if not hasattr(vals, 'dtype'):

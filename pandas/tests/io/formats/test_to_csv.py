@@ -327,11 +327,11 @@ $1$,$2$
 
     @pytest.mark.parametrize("ind,expected", [
         (pd.MultiIndex(levels=[[1.0]],
-                       labels=[[0]],
+                       codes=[[0]],
                        names=["x"]),
          "x,data\n1.0,1\n"),
         (pd.MultiIndex(levels=[[1.], [2.]],
-                       labels=[[0], [0]],
+                       codes=[[0], [0]],
                        names=["x", "y"]),
          "x,y,data\n1.0,2.0,1\n")
     ])
@@ -358,7 +358,7 @@ $1$,$2$
             with open(path, 'r') as f:
                 assert f.read() == expected_ascii
 
-    @pytest.mark.xfail(strict=True)
+    @pytest.mark.xfail
     def test_to_csv_string_array_utf8(self):
         # GH 10813
         str_array = [{'names': ['foo', 'bar']}, {'names': ['baz', 'qux']}]

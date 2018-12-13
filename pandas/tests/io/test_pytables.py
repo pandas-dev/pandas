@@ -146,6 +146,11 @@ class Base(object):
 @pytest.mark.filterwarnings("ignore:\\nPanel:FutureWarning")
 class TestHDFStore(Base):
 
+    def test_format_kwarg_in_constructor(self):
+        # GH 13291
+        with ensure_clean_path(self.path) as path:
+            pytest.raises(ValueError, HDFStore, path, format='table')
+
     def test_context(self):
         path = create_tempfile(self.path)
         try:
@@ -199,8 +204,6 @@ class TestHDFStore(Base):
     def test_long_strings(self):
 
         # GH6166
-        # unconversion of long strings was being chopped in earlier
-        # versions of numpy < 1.7.2
         df = DataFrame({'a': tm.rands_array(100, size=10)},
                        index=tm.rands_array(100, size=10))
 
@@ -1776,8 +1779,8 @@ class TestHDFStore(Base):
     def test_append_hierarchical(self):
         index = MultiIndex(levels=[['foo', 'bar', 'baz', 'qux'],
                                    ['one', 'two', 'three']],
-                           labels=[[0, 0, 0, 1, 1, 2, 2, 3, 3, 3],
-                                   [0, 1, 2, 0, 1, 1, 2, 0, 1, 2]],
+                           codes=[[0, 0, 0, 1, 1, 2, 2, 3, 3, 3],
+                                  [0, 1, 2, 0, 1, 1, 2, 0, 1, 2]],
                            names=['foo', 'bar'])
         df = DataFrame(np.random.randn(10, 3), index=index,
                        columns=['A', 'B', 'C'])
@@ -1910,8 +1913,8 @@ class TestHDFStore(Base):
         # in the `where` argument
         index = MultiIndex(levels=[['foo', 'bar', 'baz', 'qux'],
                                    ['one', 'two', 'three']],
-                           labels=[[0, 0, 0, 1, 1, 2, 2, 3, 3, 3],
-                                   [0, 1, 2, 0, 1, 1, 2, 0, 1, 2]],
+                           codes=[[0, 0, 0, 1, 1, 2, 2, 3, 3, 3],
+                                  [0, 1, 2, 0, 1, 1, 2, 0, 1, 2]],
                            names=['foo_name', 'bar_name'])
 
         # With a DataFrame
@@ -2879,8 +2882,8 @@ class TestHDFStore(Base):
     def test_store_hierarchical(self):
         index = MultiIndex(levels=[['foo', 'bar', 'baz', 'qux'],
                                    ['one', 'two', 'three']],
-                           labels=[[0, 0, 0, 1, 1, 2, 2, 3, 3, 3],
-                                   [0, 1, 2, 0, 1, 1, 2, 0, 1, 2]],
+                           codes=[[0, 0, 0, 1, 1, 2, 2, 3, 3, 3],
+                                  [0, 1, 2, 0, 1, 1, 2, 0, 1, 2]],
                            names=['foo', 'bar'])
         frame = DataFrame(np.random.randn(10, 3), index=index,
                           columns=['A', 'B', 'C'])

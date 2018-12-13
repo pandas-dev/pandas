@@ -1,5 +1,12 @@
+.. The currentmodule is needed here because the autosummary generation of files
+.. happens before reading the files / substituting the header.
+.. See https://github.com/pandas-dev/pandas/pull/24232
+
 .. currentmodule:: pandas
+
 .. _api:
+
+{{ header }}
 
 *************
 API Reference
@@ -323,7 +330,7 @@ Conversion
    Series.bool
    Series.to_period
    Series.to_timestamp
-   Series.tolist
+   Series.to_list
    Series.get_values
 
 
@@ -1534,7 +1541,7 @@ Conversion
    Index.item
    Index.map
    Index.ravel
-   Index.tolist
+   Index.to_list
    Index.to_native_types
    Index.to_series
    Index.to_frame
@@ -1671,6 +1678,7 @@ IntervalIndex Components
    IntervalIndex.length
    IntervalIndex.values
    IntervalIndex.is_non_overlapping_monotonic
+   IntervalIndex.is_overlapping
    IntervalIndex.get_loc
    IntervalIndex.get_indexer
    IntervalIndex.set_closed
@@ -1702,6 +1710,7 @@ MultiIndex Constructors
    MultiIndex.from_arrays
    MultiIndex.from_tuples
    MultiIndex.from_product
+   MultiIndex.from_frame
 
 MultiIndex Attributes
 ~~~~~~~~~~~~~~~~~~~~~
@@ -1711,7 +1720,7 @@ MultiIndex Attributes
 
    MultiIndex.names
    MultiIndex.levels
-   MultiIndex.labels
+   MultiIndex.codes
    MultiIndex.nlevels
    MultiIndex.levshape
 
@@ -1722,7 +1731,7 @@ MultiIndex Components
    :toctree: generated/
 
    MultiIndex.set_levels
-   MultiIndex.set_labels
+   MultiIndex.set_codes
    MultiIndex.to_hierarchical
    MultiIndex.to_flat_index
    MultiIndex.to_frame
@@ -2482,6 +2491,7 @@ Style Application
    Styler.set_properties
    Styler.set_uuid
    Styler.clear
+   Styler.pipe
 
 Builtin Styles
 ~~~~~~~~~~~~~~

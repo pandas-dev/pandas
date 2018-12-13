@@ -7,13 +7,30 @@ jobs:
   pool:
     vmImage: ${{ parameters.vmImage }}
   strategy:
-    maxParallel: 11
     matrix:
-      py35_np_120:
-        ENV_FILE: ci/deps/azure-macos-35.yaml
-        CONDA_PY: "35"
-        CONDA_ENV: pandas
-        TEST_ARGS: "--skip-slow --skip-network"
+      ${{ if eq(parameters.name, 'macOS') }}:
+        py35_np_120:
+          ENV_FILE: ci/deps/azure-macos-35.yaml
+          CONDA_PY: "35"
+          PATTERN: "not slow and not network"
+
+      ${{ if eq(parameters.name, 'Linux') }}:
+        py27_np_120:
+          ENV_FILE: ci/deps/azure-27-compat.yaml
+          CONDA_PY: "27"
+          PATTERN: "not slow and not network"
+
+        py37_locale:
+          ENV_FILE: ci/deps/azure-37-locale.yaml
+          CONDA_PY: "37"
+          PATTERN: "not slow and not network"
+          LOCALE_OVERRIDE: "zh_CN.UTF-8"
+
+        py36_locale_slow:
+          ENV_FILE: ci/deps/azure-36-locale_slow.yaml
+          CONDA_PY: "36"
+          PATTERN: "not slow and not network"
+          LOCALE_OVERRIDE: "it_IT.UTF-8"
 
   steps:
     - script: |
@@ -26,21 +43,21 @@ jobs:
       displayName: 'Before Install'
     - script: |
         export PATH=$HOME/miniconda3/bin:$PATH
+        source activate pandas-dev
         ci/incremental/build.sh
       displayName: 'Build'
     - script: |
         export PATH=$HOME/miniconda3/bin:$PATH
-        ci/script_single.sh
-        ci/script_multi.sh
-        echo "[Test done]"
+        source activate pandas-dev
+        ci/run_tests.sh
       displayName: 'Test'
     - script: |
         export PATH=$HOME/miniconda3/bin:$PATH
-        source activate pandas && pushd /tmp && python -c "import pandas; pandas.show_versions();" && popd
+        source activate pandas-dev && pushd /tmp && python -c "import pandas; pandas.show_versions();" && popd
     - task: PublishTestResults@2
       inputs:
         testResultsFiles: 'test-data-*.xml'
-        testRunTitle: 'MacOS-35'
+        testRunTitle: ${{ format('{0}-$(CONDA_PY)', parameters.name) }}
     - powershell: |
         $junitXml = "test-data-single.xml"
         $(Get-Content $junitXml | Out-String) -match 'failures="(.*?)"'

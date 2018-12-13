@@ -3,7 +3,13 @@
 What's new in 0.23.0 (May 15, 2018)
 -----------------------------------
 
-{{ common_imports }}
+{{ header }}
+
+.. ipython:: python
+   :suppress:
+
+   from pandas import * # noqa F401, F403
+
 
 This is a major release from 0.22.0 and includes a number of API changes,
 deprecations, new features, enhancements, and performance improvements along
@@ -47,10 +53,10 @@ A ``DataFrame`` can now be written to and subsequently read back via JSON while 
 .. ipython:: python
 
    df = pd.DataFrame({'foo': [1, 2, 3, 4],
-		      'bar': ['a', 'b', 'c', 'd'],
-		      'baz': pd.date_range('2018-01-01', freq='d', periods=4),
-		      'qux': pd.Categorical(['a', 'b', 'c', 'c'])
-		      }, index=pd.Index(range(4), name='idx'))
+                      'bar': ['a', 'b', 'c', 'd'],
+                      'baz': pd.date_range('2018-01-01', freq='d', periods=4),
+                      'qux': pd.Categorical(['a', 'b', 'c', 'c'])},
+                     index=pd.Index(range(4), name='idx'))
    df
    df.dtypes
    df.to_json('test.json', orient='table')
@@ -91,7 +97,7 @@ The :func:`DataFrame.assign` now accepts dependent keyword arguments for python 
 
     df = pd.DataFrame({'A': [1, 2, 3]})
     df
-    df.assign(B=df.A, C=lambda x:x['A']+ x['B'])
+    df.assign(B=df.A, C=lambda x: x['A'] + x['B'])
 
 .. warning::
 
@@ -116,7 +122,7 @@ The :func:`DataFrame.assign` now accepts dependent keyword arguments for python 
 
   .. ipython:: python
 
-      df.assign(A=df.A+1, C= lambda df: df.A* -1)
+      df.assign(A=df.A + 1, C=lambda df: df.A * -1)
 
 
 
@@ -278,7 +284,7 @@ For pivotting operations, this behavior is *already* controlled by the ``dropna`
                          categories=["a", "b", "z"], ordered=True)
    cat2 = pd.Categorical(["c", "d", "c", "d"],
                          categories=["c", "d", "y"], ordered=True)
-   df = DataFrame({"A": cat1, "B": cat2, "values": [1, 2, 3, 4]})
+   df = pd.DataFrame({"A": cat1, "B": cat2, "values": [1, 2, 3, 4]})
    df
 
 .. ipython:: python
@@ -330,7 +336,8 @@ outside the existing valid values while preserving those inside.  (:issue:`16284
 
 .. ipython:: python
 
-   ser = pd.Series([np.nan, np.nan, 5, np.nan, np.nan, np.nan, 13, np.nan, np.nan])
+   ser = pd.Series([np.nan, np.nan, 5, np.nan, np.nan,
+                    np.nan, 13, np.nan, np.nan])
    ser
 
 Fill one consecutive inside value in both directions
@@ -594,15 +601,16 @@ Previous Behavior (and current behavior if on Python < 3.6):
 
 .. code-block:: ipython
 
-   pd.Series({'Income': 2000,
-              'Expenses': -1500,
-              'Taxes': -200,
-              'Net result': 300})
-   Expenses     -1500
-   Income        2000
-   Net result     300
-   Taxes         -200
-   dtype: int64
+    In [16]: pd.Series({'Income': 2000,
+       ....:            'Expenses': -1500,
+       ....:            'Taxes': -200,
+       ....:            'Net result': 300})
+    Out[16]:
+    Expenses     -1500
+    Income        2000
+    Net result     300
+    Taxes         -200
+    dtype: int64
 
 Note the Series above is ordered alphabetically by the index values.
 
@@ -690,7 +698,8 @@ where a list-like (e.g. ``tuple`` or ``list`` is returned) (:issue:`16353`, :iss
 
 .. ipython:: python
 
-    df = pd.DataFrame(np.tile(np.arange(3), 6).reshape(6, -1) + 1, columns=['A', 'B', 'C'])
+    df = pd.DataFrame(np.tile(np.arange(3), 6).reshape(6, -1) + 1,
+                      columns=['A', 'B', 'C'])
     df
 
 Previous Behavior: if the returned shape happened to match the length of original columns, this would return a ``DataFrame``.
@@ -744,7 +753,7 @@ Returning a ``Series`` allows one to control the exact return structure and colu
 
 .. ipython:: python
 
-    df.apply(lambda x: Series([1, 2, 3], index=['D', 'E', 'F']), axis=1)
+    df.apply(lambda x: pd.Series([1, 2, 3], index=['D', 'E', 'F']), axis=1)
 
 .. _whatsnew_0230.api_breaking.concat:
 
@@ -819,10 +828,12 @@ Current Behavior:
 .. ipython:: python
 
     index = pd.Int64Index([-1, 0, 1])
-    # division by zero gives -infinity where negative, +infinity where positive, and NaN for 0 / 0
+    # division by zero gives -infinity where negative,
+    # +infinity where positive, and NaN for 0 / 0
     index / 0
 
-    # The result of division by zero should not depend on whether the zero is int or float
+    # The result of division by zero should not depend on
+    # whether the zero is int or float
     index / 0.0
 
     index = pd.UInt64Index([0, 1])
@@ -847,7 +858,7 @@ Previous Behavior:
 
     In [1]: s = pd.Series(['number 10', '12 eggs'])
 
-    In [2]: extracted = s.str.extract('.*(\d\d).*')
+    In [2]: extracted = s.str.extract(r'.*(\d\d).*')
 
     In [3]: extracted
     Out [3]:
@@ -864,7 +875,7 @@ New Behavior:
 .. ipython:: python
 
     s = pd.Series(['number 10', '12 eggs'])
-    extracted = s.str.extract('.*(\d\d).*')
+    extracted = s.str.extract(r'.*(\d\d).*')
     extracted
     type(extracted)
 
@@ -873,7 +884,7 @@ To restore previous behavior, simply set ``expand`` to ``False``:
 .. ipython:: python
 
     s = pd.Series(['number 10', '12 eggs'])
-    extracted = s.str.extract('.*(\d\d).*', expand=False)
+    extracted = s.str.extract(r'.*(\d\d).*', expand=False)
     extracted
     type(extracted)
 

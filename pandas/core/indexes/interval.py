@@ -104,6 +104,7 @@ def _new_IntervalIndex(cls, d):
     summary="Immutable index of intervals that are closed on the same side.",
     name=_index_doc_kwargs['name'],
     versionadded="0.20.0",
+    extra_attributes="is_overlapping\n",
     extra_methods="contains\n",
     examples=textwrap.dedent("""\
     Examples
@@ -137,6 +138,9 @@ class IntervalIndex(IntervalMixin, Index):
     # Immutable, so we are able to cache computations like isna in '_mask'
     _mask = None
 
+    # --------------------------------------------------------------------
+    # Constructors
+
     def __new__(cls, data, closed=None, dtype=None, copy=False,
                 name=None, verify_integrity=True):
 
@@ -167,6 +171,50 @@ class IntervalIndex(IntervalMixin, Index):
         result.name = name
         result._reset_identity()
         return result
+
+    @classmethod
+    @Appender(_interval_shared_docs['from_breaks'] % _index_doc_kwargs)
+    def from_breaks(cls, breaks, closed='right', name=None, copy=False,
+                    dtype=None):
+        with rewrite_exception("IntervalArray", cls.__name__):
+            array = IntervalArray.from_breaks(breaks, closed=closed, copy=copy,
+                                              dtype=dtype)
+        return cls._simple_new(array, name=name)
+
+    @classmethod
+    @Appender(_interval_shared_docs['from_arrays'] % _index_doc_kwargs)
+    def from_arrays(cls, left, right, closed='right', name=None, copy=False,
+                    dtype=None):
+        with rewrite_exception("IntervalArray", cls.__name__):
+            array = IntervalArray.from_arrays(left, right, closed, copy=copy,
+                                              dtype=dtype)
+        return cls._simple_new(array, name=name)
+
+    @classmethod
+    @Appender(_interval_shared_docs['from_intervals'] % _index_doc_kwargs)
+    def from_intervals(cls, data, closed=None, name=None, copy=False,
+                       dtype=None):
+        msg = ('IntervalIndex.from_intervals is deprecated and will be '
+               'removed in a future version; Use IntervalIndex(...) instead')
+        warnings.warn(msg, FutureWarning, stacklevel=2)
+        with rewrite_exception("IntervalArray", cls.__name__):
+            array = IntervalArray(data, closed=closed, copy=copy, dtype=dtype)
+
+        if name is None and isinstance(data, cls):
+            name = data.name
+
+        return cls._simple_new(array, name=name)
+
+    @classmethod
+    @Appender(_interval_shared_docs['from_tuples'] % _index_doc_kwargs)
+    def from_tuples(cls, data, closed='right', name=None, copy=False,
+                    dtype=None):
+        with rewrite_exception("IntervalArray", cls.__name__):
+            arr = IntervalArray.from_tuples(data, closed=closed, copy=copy,
+                                            dtype=dtype)
+        return cls._simple_new(arr, name=name)
+
+    # --------------------------------------------------------------------
 
     @Appender(_index_shared_docs['_shallow_copy'])
     def _shallow_copy(self, left=None, right=None, **kwargs):
@@ -230,48 +278,6 @@ class IntervalIndex(IntervalMixin, Index):
             return True
         except KeyError:
             return False
-
-    @classmethod
-    @Appender(_interval_shared_docs['from_breaks'] % _index_doc_kwargs)
-    def from_breaks(cls, breaks, closed='right', name=None, copy=False,
-                    dtype=None):
-        with rewrite_exception("IntervalArray", cls.__name__):
-            array = IntervalArray.from_breaks(breaks, closed=closed, copy=copy,
-                                              dtype=dtype)
-        return cls._simple_new(array, name=name)
-
-    @classmethod
-    @Appender(_interval_shared_docs['from_arrays'] % _index_doc_kwargs)
-    def from_arrays(cls, left, right, closed='right', name=None, copy=False,
-                    dtype=None):
-        with rewrite_exception("IntervalArray", cls.__name__):
-            array = IntervalArray.from_arrays(left, right, closed, copy=copy,
-                                              dtype=dtype)
-        return cls._simple_new(array, name=name)
-
-    @classmethod
-    @Appender(_interval_shared_docs['from_intervals'] % _index_doc_kwargs)
-    def from_intervals(cls, data, closed=None, name=None, copy=False,
-                       dtype=None):
-        msg = ('IntervalIndex.from_intervals is deprecated and will be '
-               'removed in a future version; Use IntervalIndex(...) instead')
-        warnings.warn(msg, FutureWarning, stacklevel=2)
-        with rewrite_exception("IntervalArray", cls.__name__):
-            array = IntervalArray(data, closed=closed, copy=copy, dtype=dtype)
-
-        if name is None and isinstance(data, cls):
-            name = data.name
-
-        return cls._simple_new(array, name=name)
-
-    @classmethod
-    @Appender(_interval_shared_docs['from_tuples'] % _index_doc_kwargs)
-    def from_tuples(cls, data, closed='right', name=None, copy=False,
-                    dtype=None):
-        with rewrite_exception("IntervalArray", cls.__name__):
-            arr = IntervalArray.from_tuples(data, closed=closed, copy=copy,
-                                            dtype=dtype)
-        return cls._simple_new(arr, name=name)
 
     @Appender(_interval_shared_docs['to_tuples'] % dict(
         return_type="Index",
@@ -464,6 +470,61 @@ class IntervalIndex(IntervalMixin, Index):
     def is_non_overlapping_monotonic(self):
         return self._data.is_non_overlapping_monotonic
 
+    @property
+    def is_overlapping(self):
+        """
+        Return True if the IntervalIndex has overlapping intervals, else False.
+
+        Two intervals overlap if they share a common point, including closed
+        endpoints. Intervals that only have an open endpoint in common do not
+        overlap.
+
+        .. versionadded:: 0.24.0
+
+        Returns
+        -------
+        bool
+            Boolean indicating if the IntervalIndex has overlapping intervals.
+
+        See Also
+        --------
+        Interval.overlaps : Check whether two Interval objects overlap.
+        IntervalIndex.overlaps : Check an IntervalIndex elementwise for
+            overlaps.
+
+        Examples
+        --------
+        >>> index = pd.IntervalIndex.from_tuples([(0, 2), (1, 3), (4, 5)])
+        >>> index
+        IntervalIndex([(0, 2], (1, 3], (4, 5]],
+              closed='right',
+              dtype='interval[int64]')
+        >>> index.is_overlapping
+        True
+
+        Intervals that share closed endpoints overlap:
+
+        >>> index = pd.interval_range(0, 3, closed='both')
+        >>> index
+        IntervalIndex([[0, 1], [1, 2], [2, 3]],
+              closed='both',
+              dtype='interval[int64]')
+        >>> index.is_overlapping
+        True
+
+        Intervals that only have an open endpoint in common do not overlap:
+
+        >>> index = pd.interval_range(0, 3, closed='left')
+        >>> index
+        IntervalIndex([[0, 1), [1, 2), [2, 3)],
+              closed='left',
+              dtype='interval[int64]')
+        >>> index.is_overlapping
+        False
+        """
+        # GH 23309
+        return self._engine.is_overlapping
+
     @Appender(_index_shared_docs['_convert_scalar_indexer'])
     def _convert_scalar_indexer(self, key, kind=None):
         if kind == 'iloc':
@@ -570,6 +631,10 @@ class IntervalIndex(IntervalMixin, Index):
         else:
             # DatetimeIndex/TimedeltaIndex
             key_dtype, key_i8 = key.dtype, Index(key.asi8)
+            if key.hasnans:
+                # convert NaT from it's i8 value to np.nan so it's not viewed
+                # as a valid value, maybe causing errors (e.g. is_overlapping)
+                key_i8 = key_i8.where(~key._isnan)
 
         # ensure consistency with IntervalIndex subtype
         subtype = self.dtype.subtype
@@ -941,6 +1006,8 @@ class IntervalIndex(IntervalMixin, Index):
             # scalar
             return result
 
+    # --------------------------------------------------------------------
+    # Rendering Methods
     # __repr__ associated methods are based on MultiIndex
 
     def _format_with_header(self, header, **kwargs):
@@ -948,10 +1015,11 @@ class IntervalIndex(IntervalMixin, Index):
 
     def _format_native_types(self, na_rep='', quoting=None, **kwargs):
         """ actually format my specific types """
-        from pandas.io.formats.format import IntervalArrayFormatter
-        return IntervalArrayFormatter(values=self,
-                                      na_rep=na_rep,
-                                      justify='all').get_result()
+        from pandas.io.formats.format import ExtensionArrayFormatter
+        return ExtensionArrayFormatter(values=self,
+                                       na_rep=na_rep,
+                                       justify='all',
+                                       leading_space=False).get_result()
 
     def _format_data(self, name=None):
 
@@ -996,6 +1064,8 @@ class IntervalIndex(IntervalMixin, Index):
     def _format_space(self):
         space = ' ' * (len(self.__class__.__name__) + 1)
         return "\n{space}".format(space=space)
+
+    # --------------------------------------------------------------------
 
     def argsort(self, *args, **kwargs):
         return np.lexsort((self.right, self.left))
@@ -1111,6 +1181,14 @@ def interval_range(start=None, end=None, periods=None, freq=None,
         Whether the intervals are closed on the left-side, right-side, both
         or neither.
 
+    Returns
+    -------
+    rng : IntervalIndex
+
+    See Also
+    --------
+    IntervalIndex : An Index of intervals that are all closed on the same side.
+
     Notes
     -----
     Of the four parameters ``start``, ``end``, ``periods``, and ``freq``,
@@ -1120,10 +1198,6 @@ def interval_range(start=None, end=None, periods=None, freq=None,
 
     To learn more about datetime-like frequency strings, please see `this link
     <http://pandas.pydata.org/pandas-docs/stable/timeseries.html#offset-aliases>`__.
-
-    Returns
-    -------
-    rng : IntervalIndex
 
     Examples
     --------
@@ -1172,10 +1246,6 @@ def interval_range(start=None, end=None, periods=None, freq=None,
     >>> pd.interval_range(end=5, periods=4, closed='both')
     IntervalIndex([[1, 2], [2, 3], [3, 4], [4, 5]]
                   closed='both', dtype='interval[int64]')
-
-    See Also
-    --------
-    IntervalIndex : An Index of intervals that are all closed on the same side.
     """
     start = com.maybe_box_datetimelike(start)
     end = com.maybe_box_datetimelike(end)

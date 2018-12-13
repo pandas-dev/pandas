@@ -32,11 +32,11 @@ def test_truncate():
     major_axis = Index(lrange(4))
     minor_axis = Index(lrange(2))
 
-    major_labels = np.array([0, 0, 1, 2, 3, 3])
-    minor_labels = np.array([0, 1, 0, 1, 0, 1])
+    major_codes = np.array([0, 0, 1, 2, 3, 3])
+    minor_codes = np.array([0, 1, 0, 1, 0, 1])
 
     index = MultiIndex(levels=[major_axis, minor_axis],
-                       labels=[major_labels, minor_labels])
+                       codes=[major_codes, minor_codes])
 
     result = index.truncate(before=1)
     assert 'foo' not in result.levels[0]
@@ -275,23 +275,20 @@ def test_map_dictlike(idx, mapper):
     np.rad2deg
 ])
 def test_numpy_ufuncs(func):
-    # test ufuncs of numpy 1.9.2. see:
+    # test ufuncs of numpy. see:
     # http://docs.scipy.org/doc/numpy/reference/ufuncs.html
-
-    # some functions are skipped because it may return different result
-    # for unicode input depending on numpy version
 
     # copy and paste from idx fixture as pytest doesn't support
     # parameters and fixtures at the same time.
     major_axis = Index(['foo', 'bar', 'baz', 'qux'])
     minor_axis = Index(['one', 'two'])
-    major_labels = np.array([0, 0, 1, 2, 3, 3])
-    minor_labels = np.array([0, 1, 0, 1, 0, 1])
+    major_codes = np.array([0, 0, 1, 2, 3, 3])
+    minor_codes = np.array([0, 1, 0, 1, 0, 1])
     index_names = ['first', 'second']
 
     idx = MultiIndex(
         levels=[major_axis, minor_axis],
-        labels=[major_labels, minor_labels],
+        codes=[major_codes, minor_codes],
         names=index_names,
         verify_integrity=False
     )
@@ -310,13 +307,13 @@ def test_numpy_type_funcs(func):
     # parameters and fixtures at the same time.
     major_axis = Index(['foo', 'bar', 'baz', 'qux'])
     minor_axis = Index(['one', 'two'])
-    major_labels = np.array([0, 0, 1, 2, 3, 3])
-    minor_labels = np.array([0, 1, 0, 1, 0, 1])
+    major_codes = np.array([0, 0, 1, 2, 3, 3])
+    minor_codes = np.array([0, 1, 0, 1, 0, 1])
     index_names = ['first', 'second']
 
     idx = MultiIndex(
         levels=[major_axis, minor_axis],
-        labels=[major_labels, minor_labels],
+        codes=[major_codes, minor_codes],
         names=index_names,
         verify_integrity=False
     )
