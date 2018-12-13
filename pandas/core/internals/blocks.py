@@ -2997,20 +2997,36 @@ class DatetimeTZBlock(ExtensionBlock, DatetimeBlock):
         return self.make_block_same_class(values)
 
     def get_values(self, dtype=None):
-        # TODO: We really need to pin down this type
-        # Previously it was Union[ndarray, DatetimeIndex]
-        # but now it's Union[ndarray, DatetimeArray]
-        # I suspect we really want ndarray, so we need to
-        # check with the callers....
-        # return object dtype as Timestamps with the zones
-        # We added an asarray to BlockManager.as_array to work around this.
+        """
+        Returns an ndarray of values.
+
+        Parameters
+        ----------
+        dtype : np.dtype
+            Only `object`-like dtypes are respected here (not sure
+            why).
+
+        Returns
+        -------
+        values : ndarray
+            When ``dtype=object``, then and object-dtype ndarray of
+            boxed values is returned. Otherwise, an M8[ns] ndarray
+            is returned.
+
+            DatetimeArray is always 1-d. ``get_values`` will reshape
+            the return value to be the same dimensionality as the
+            block.
+        """
         values = self.values
         if is_object_dtype(dtype):
             values = values._box_values(values._data)
 
+        values = np.asarray(values)
+
         if self.ndim == 2:
             # Ensure that our shape is correct for DataFrame.
-            return values.reshape(1, -1)
+            values = values.reshape(1, -1)
+        return values
 
     def _to_json_values(self):
         # Patch to get JSON serialization working again.
@@ -3041,13 +3057,17 @@ class DatetimeTZBlock(ExtensionBlock, DatetimeBlock):
         base-type values, base-type other
         """
         # asi8 is a view, needs copy
-        values = _block_shape(values.asi8, ndim=self.ndim)
+        values = _block_shape(values.view("i8"), ndim=self.ndim)
 
         if isinstance(other, ABCSeries):
             other = self._holder(other)
 
         if isinstance(other, bool):
             raise TypeError
+        elif is_datetime64_dtype(other):
+            # add the dz back
+            other = self._holder(other, dtype=self.dtype)
+
         elif (is_null_datelike_scalar(other) or
               (lib.is_scalar(other) and isna(other))):
             other = tslibs.iNaT
@@ -3158,7 +3178,7 @@ class DatetimeTZBlock(ExtensionBlock, DatetimeBlock):
         # for extension arrays) is designed and implemented.
         try:
             return super(DatetimeTZBlock, self).setitem(indexer, value)
-        except ValueError:
+        except (ValueError, TypeError):
             newb = make_block(self.values.astype(object),
                               placement=self.mgr_locs,
                               klass=ObjectBlock,)
