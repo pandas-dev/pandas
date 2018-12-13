@@ -57,8 +57,6 @@ API changes
 
   .. code-block:: ipython
 
-    In [5]: import pandas as pd
-
     In [6]: from pandas.tseries import offsets
 
     In [7]: d = pd.Timestamp('2014-01-01 09:00')
