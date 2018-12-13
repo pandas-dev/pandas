@@ -1010,25 +1010,23 @@ class TestAppend(ConcatenateBase):
         assert appended['A'].dtype == 'f8'
         assert appended['B'].dtype == 'O'
 
-    # looks like result & expected were wrongish on master.
-    # IIUC, then 'date' should be datetime64[ns, tz], not object.
-    # since we concat [datetime64[ns, tz], empty].
-    # master passed, since setitem *also* cast to object, but
-    # we fixed that (GH-23932)
-    @pytest.mark.xfail(reason="TODO", strict=True)
     def test_append_empty_frame_to_series_with_dateutil_tz(self):
         # GH 23682
         date = Timestamp('2018-10-24 07:30:00', tz=dateutil.tz.tzutc())
         s = Series({'date': date, 'a': 1.0, 'b': 2.0})
         df = DataFrame(columns=['c', 'd'])
         result = df.append(s, ignore_index=True)
+        # n.b. it's not clear to me that expected is correct here.
+        # It's possible that the `date` column should have
+        # datetime64[ns, tz] dtype for both result and expected.
+        # that would be more consistent with new columns having
+        # their own dtype (float for a and b, datetime64ns, tz for date.
         expected = DataFrame([[np.nan, np.nan, 1., 2., date]],
-                             columns=['c', 'd', 'a', 'b', 'date'])
+                             columns=['c', 'd', 'a', 'b', 'date'],
+                             dtype=object)
         # These columns get cast to object after append
-        object_cols = ['c', 'd', 'date']
-        expected.loc[:, object_cols] = expected.loc[:, object_cols].astype(
-            object
-        )
+        expected['a'] = expected['a'].astype(float)
+        expected['b'] = expected['b'].astype(float)
         assert_frame_equal(result, expected)
 
 
