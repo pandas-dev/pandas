@@ -21,7 +21,7 @@ New features
 .. code-block:: python
 
    from pandas.tools.plotting import scatter_matrix
-   scatter_matrix(df, alpha=0.2)
+   scatter_matrix(df, alpha=0.2)        # noqa F821
 
 .. image:: ../savefig/scatter_matrix_kde.png
    :width: 5in
@@ -38,7 +38,7 @@ New features
 
 .. code-block:: python
 
-   df.plot(kind='barh', stacked=True)    # noqa F821
+   df.plot(kind='barh', stacked=True)   # noqa F821
 
 .. image:: ../savefig/barh_plot_stacked_ex.png
    :width: 4in
