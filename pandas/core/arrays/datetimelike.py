@@ -149,8 +149,7 @@ class DatelikeOps(object):
 
     def strftime(self, date_format):
         from pandas import Index
-        return Index(self.format(date_format=date_format),
-                     dtype=compat.text_type)
+        return Index(self._format_native_types(date_format=date_format))
     strftime.__doc__ = """
     Convert to Index using specified date_format.
 
@@ -401,7 +400,7 @@ class DatetimeLikeArrayMixin(AttributesMixin,
     # ------------------------------------------------------------------
     # Formatting
 
-    def _format_native_types(self):
+    def _format_native_types(self, na_rep=u'NaT', date_format=None):
         """
         Helper method for astype when converting to strings.
 
@@ -413,9 +412,6 @@ class DatetimeLikeArrayMixin(AttributesMixin,
 
     def _formatter(self, boxed=False):
         return "'{}'".format
-
-    def strftime(self, date_format):
-        return self._format_native_types(date_format=date_format)
 
     # ----------------------------------------------------------------
     # Array-Like / EA-Interface Methods
@@ -646,20 +642,6 @@ class DatetimeLikeArrayMixin(AttributesMixin,
                           fill_value=fill_value)
 
         return type(self)(new_values, dtype=self.dtype)
-
-    def where(self, cond, other):
-        i8 = self.asi8
-        if lib.is_scalar(other):
-            if isna(other):
-                other = iNaT
-            elif isinstance(other, self._scalar_type):
-                self._check_compatible_with(other)
-                other = other.ordinal
-        elif isinstance(other, type(self)):
-            self._check_compatible_with(other)
-            other = other.asi8
-        result = np.where(cond, i8, other)
-        return type(self)(result, dtype=self.dtype)
 
     @classmethod
     def _concat_same_type(cls, to_concat):
@@ -1337,14 +1319,6 @@ class DatetimeLikeArrayMixin(AttributesMixin,
 
     # --------------------------------------------------------------
     # Reductions
-
-    def any(self, skipna=True):
-        values = self._values_for_reduction(skipna=skipna)
-        return len(values)
-
-    def all(self, skipna=True):
-        values = self._values_for_reduction(skipna=skipna)
-        return len(values)
 
     def _values_for_reduction(self, skipna=True):
         if skipna:
