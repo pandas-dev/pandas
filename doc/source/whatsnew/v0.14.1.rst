@@ -5,10 +5,6 @@ v0.14.1 (July 11, 2014)
 
 {{ header }}
 
-.. ipython:: python
-   :suppress:
-
-
 This is a minor release from 0.14.0 and includes a small number of API changes, several new features,
 enhancements, and performance improvements along with a large number of bug fixes. We recommend that all
 users upgrade to this version.
@@ -56,13 +52,15 @@ API changes
 
   .. code-block:: ipython
 
+    In [5]: import pandas as pd
+
     In [6]: from pandas.tseries import offsets
 
     In [7]: d = pd.Timestamp('2014-01-01 09:00')
 
     # old behaviour < 0.14.1
     In [8]: d + offsets.MonthEnd()
-    Out[8]: Timestamp('2014-01-31 00:00:00')
+    Out[8]: pd.Timestamp('2014-01-31 00:00:00')
 
   Starting from 0.14.1 all offsets preserve time by default. The old
   behaviour can be obtained with ``normalize=True``
@@ -100,14 +98,15 @@ Enhancements
 
   .. code-block:: python
 
+     import pandas as pd
      import pandas.tseries.offsets as offsets
-     import pandas.Timestamp as Timestamp
+
 
      day = offsets.Day()
-     day.apply(Timestamp('2014-01-01 09:00'))
+     day.apply(pd.Timestamp('2014-01-01 09:00'))
 
      day = offsets.Day(normalize=True)
-     day.apply(Timestamp('2014-01-01 09:00'))
+     day.apply(pd.Timestamp('2014-01-01 09:00'))
 
 - ``PeriodIndex`` is represented as the same format as ``DatetimeIndex`` (:issue:`7601`)
 - ``StringMethods`` now work on empty Series (:issue:`7242`)
@@ -126,10 +125,8 @@ Enhancements
   pytz timezones across pandas. (:issue:`4688`)
 
   .. ipython:: python
-     import pandas.date_range
-
-     rng = pandas.date_range('3/6/2012 00:00', periods=10, freq='D',
-                             tz='dateutil/Europe/London')
+     rng = pd.date_range('3/6/2012 00:00', periods=10, freq='D',
+                         tz='dateutil/Europe/London')
      rng.tz
 
   See :ref:`the docs <timeseries.timezone>`.
