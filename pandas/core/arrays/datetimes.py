@@ -1659,7 +1659,7 @@ def maybe_convert_dtype(data, copy):
         # TODO: cases where we need to do another pass through this func,
         #  e.g. the categories are timedelta64s
         data = data.categories.take(data.codes, fill_value=NaT)
-        # TODO: does this always make a copy?  If so, set copy=False
+        copy = False
 
     elif is_extension_type(data) and not is_datetime64tz_dtype(data):
         # Includes categorical
