@@ -570,6 +570,9 @@ cdef class BlockSlider:
             util.set_array_not_contiguous(x)
 
         self.nblocks = len(self.blocks)
+        # See the comment in indexes/base.py about _index_data.
+        # We need this for EA-backed indexes that have a reference to a 1-d
+        # ndarray like datetime / timedelta / period.
         self.idx_slider = Slider(
             self.frame.index._index_data, self.dummy.index._index_data)
 

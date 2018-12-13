@@ -137,9 +137,9 @@ class AttributesMixin(object):
         """
         Verify that `self` and `other` are compatible.
 
-        Used in
-
-        * __setitem__
+        * DatetimeArray verifies that the timezones (if any) match
+        * PeriodArray verifies that the freq matches
+        * Timedelta has no verification
 
         Parameters
         ----------

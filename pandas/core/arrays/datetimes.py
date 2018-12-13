@@ -1632,6 +1632,8 @@ def sequence_to_dt64ns(data, dtype=None, copy=False,
         data = data._data
 
     if isinstance(data, DatetimeArrayMixin):
+        # series / index have been unboxed. If we're here, we just
+        # need to validate against user-provided parameters and exit early.
         if tz and data.tz:
             if not timezones.tz_compare(tz, data.tz):
                 msg = (
