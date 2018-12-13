@@ -1488,13 +1488,3 @@ class TestDatetimeIndex(Base):
         result = _get_timestamp_range_edges(first, last, offset)
         expected = (exp_first, exp_last)
         assert result == expected
-
-    @pytest.mark.parametrize('first,last', [
-        (pd.Period('1991-09-05'), pd.Timestamp('1992-04-06')),
-        (pd.Timestamp('1991-09-05'), pd.Period('1992-04-06')),
-        (pd.Period('1991-09-05'), pd.Period('1992-04-06')),
-        (pd.Timestamp('1991-09-05'), '1992-04-06'),
-    ])
-    def test_get_period_range_edges_bad_input(self, first, last):
-        with pytest.raises(TypeError, match='instances of type Timestamp'):
-            _get_timestamp_range_edges(first, last, pd.offsets.Day())
