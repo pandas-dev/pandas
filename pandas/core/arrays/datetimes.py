@@ -459,6 +459,19 @@ class DatetimeArrayMixin(dtl.DatetimeLikeArrayMixin,
 
     @property
     def dtype(self):
+        # type: () -> Union[np.dtype, DatetimeTZDtype]
+        """
+        The dtype for the DatetimeArray.
+
+        Returns
+        -------
+        np.dtype or DatetimeTZDtype
+            If the values are tz-naive, then ``np.dtype('datetime64[ns]')``
+            is returned.
+
+            If the values are tz-aware, then the ``DatetimeTZDtype``
+            is returned.
+        """
         return self._dtype
 
     @property
