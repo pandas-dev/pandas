@@ -2,7 +2,6 @@
 from datetime import date, datetime, timedelta
 import functools
 import operator
-import warnings
 
 from dateutil.easter import easter
 import numpy as np
