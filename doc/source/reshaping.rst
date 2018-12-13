@@ -1,14 +1,6 @@
-.. currentmodule:: pandas
 .. _reshaping:
 
-.. ipython:: python
-   :suppress:
-
-   import numpy as np
-   np.random.seed(123456)
-   import pandas as pd
-   pd.options.display.max_rows=15
-   np.set_printoptions(precision=4, suppress=True)
+{{ header }}
 
 **************************
 Reshaping and Pivot Tables
@@ -19,21 +11,21 @@ Reshaping by pivoting DataFrame objects
 
 .. image:: _static/reshaping_pivot.png
 
-.. ipython::
+.. ipython:: python
    :suppress:
 
-   In [1]: import pandas.util.testing as tm; tm.N = 3
+   import pandas.util.testing as tm
+   tm.N = 3
 
-   In [2]: def unpivot(frame):
-      ...:         N, K = frame.shape
-      ...:         data = {'value' : frame.values.ravel('F'),
-      ...:                 'variable' : np.asarray(frame.columns).repeat(N),
-      ...:                 'date' : np.tile(np.asarray(frame.index), K)}
-      ...:         columns = ['date', 'variable', 'value']
-      ...:         return pd.DataFrame(data, columns=columns)
-      ...:
+   def unpivot(frame):
+       N, K = frame.shape
+       data = {'value': frame.to_numpy().ravel('F'),
+               'variable': np.asarray(frame.columns).repeat(N),
+               'date': np.tile(np.asarray(frame.index), K)}
+       columns = ['date', 'variable', 'value']
+       return pd.DataFrame(data, columns=columns)
 
-   In [3]: df = unpivot(tm.makeTimeDataFrame())
+   df = unpivot(tm.makeTimeDataFrame())
 
 Data is often stored in so-called "stacked" or "record" format:
 
@@ -53,7 +45,7 @@ For the curious here is how the above ``DataFrame`` was created:
 
    def unpivot(frame):
        N, K = frame.shape
-       data = {'value': frame.values.ravel('F'),
+       data = {'value': frame.to_numpy().ravel('F'),
                'variable': np.asarray(frame.columns).repeat(N),
                'date': np.tile(np.asarray(frame.index), K)}
        return pd.DataFrame(data, columns=['date', 'variable', 'value'])
@@ -184,7 +176,7 @@ will result in a **sorted** copy of the original ``DataFrame`` or ``Series``:
 
 .. ipython:: python
 
-   index = pd.MultiIndex.from_product([[2,1], ['a', 'b']])
+   index = pd.MultiIndex.from_product([[2, 1], ['a', 'b']])
    df = pd.DataFrame(np.random.randn(4), index=index, columns=['A'])
    df
    all(df.unstack().stack() == df.sort_index())
@@ -204,9 +196,8 @@ processed individually.
 .. ipython:: python
 
     columns = pd.MultiIndex.from_tuples([
-            ('A', 'cat', 'long'), ('B', 'cat', 'long'),
-            ('A', 'dog', 'short'), ('B', 'dog', 'short')
-        ],
+        ('A', 'cat', 'long'), ('B', 'cat', 'long'),
+        ('A', 'dog', 'short'), ('B', 'dog', 'short')],
         names=['exp', 'animal', 'hair_length']
     )
     df = pd.DataFrame(np.random.randn(4, 4), columns=columns)
@@ -301,10 +292,10 @@ For instance,
 
 .. ipython:: python
 
-   cheese = pd.DataFrame({'first' : ['John', 'Mary'],
-                          'last' : ['Doe', 'Bo'],
-                          'height' : [5.5, 6.0],
-                          'weight' : [130, 150]})
+   cheese = pd.DataFrame({'first': ['John', 'Mary'],
+                          'last': ['Doe', 'Bo'],
+                          'height': [5.5, 6.0],
+                          'weight': [130, 150]})
    cheese
    cheese.melt(id_vars=['first', 'last'])
    cheese.melt(id_vars=['first', 'last'], var_name='quantity')
@@ -315,11 +306,11 @@ user-friendly.
 
 .. ipython:: python
 
-  dft = pd.DataFrame({"A1970" : {0 : "a", 1 : "b", 2 : "c"},
-                      "A1980" : {0 : "d", 1 : "e", 2 : "f"},
-                      "B1970" : {0 : 2.5, 1 : 1.2, 2 : .7},
-                      "B1980" : {0 : 3.2, 1 : 1.3, 2 : .1},
-                      "X"     : dict(zip(range(3), np.random.randn(3)))
+  dft = pd.DataFrame({"A1970": {0: "a", 1: "b", 2: "c"},
+                      "A1980": {0: "d", 1: "e", 2: "f"},
+                      "B1970": {0: 2.5, 1: 1.2, 2: .7},
+                      "B1980": {0: 3.2, 1: 1.3, 2: .1},
+                      "X": dict(zip(range(3), np.random.randn(3)))
                      })
   dft["id"] = dft.index
   dft
@@ -380,8 +371,8 @@ Consider a data set like this:
                       'C': ['foo', 'foo', 'foo', 'bar', 'bar', 'bar'] * 4,
                       'D': np.random.randn(24),
                       'E': np.random.randn(24),
-                      'F': [datetime.datetime(2013, i, 1) for i in range(1, 13)] +
-                           [datetime.datetime(2013, i, 15) for i in range(1, 13)]})
+                      'F': [datetime.datetime(2013, i, 1) for i in range(1, 13)]
+                      + [datetime.datetime(2013, i, 15) for i in range(1, 13)]})
    df
 
 We can produce pivot tables from this data very easily:
@@ -390,7 +381,8 @@ We can produce pivot tables from this data very easily:
 
    pd.pivot_table(df, values='D', index=['A', 'B'], columns=['C'])
    pd.pivot_table(df, values='D', index=['B'], columns=['A', 'C'], aggfunc=np.sum)
-   pd.pivot_table(df, values=['D','E'], index=['B'], columns=['A', 'C'], aggfunc=np.sum)
+   pd.pivot_table(df, values=['D', 'E'], index=['B'], columns=['A', 'C'],
+                  aggfunc=np.sum)
 
 The result object is a ``DataFrame`` having potentially hierarchical indexes on the
 rows and columns. If the ``values`` column name is not given, the pivot table
@@ -405,7 +397,8 @@ Also, you can use ``Grouper`` for ``index`` and ``columns`` keywords. For detail
 
 .. ipython:: python
 
-   pd.pivot_table(df, values='D', index=pd.Grouper(freq='M', key='F'), columns='C')
+   pd.pivot_table(df, values='D', index=pd.Grouper(freq='M', key='F'),
+                  columns='C')
 
 You can render a nice output of the table omitting the missing values by
 calling ``to_string`` if you wish:
@@ -658,7 +651,7 @@ When a column contains only one level, it will be omitted in the result.
 
 .. ipython:: python
 
-    df = pd.DataFrame({'A':list('aaaaa'),'B':list('ababc')})
+    df = pd.DataFrame({'A': list('aaaaa'), 'B': list('ababc')})
 
     pd.get_dummies(df)
 
@@ -701,6 +694,7 @@ handling of NaN:
 
 .. code-block:: ipython
 
+    In [1]: x = pd.Series(['A', 'A', np.nan, 'B', 3.14, np.inf])
     In [2]: pd.factorize(x, sort=True)
     Out[2]:
     (array([ 2,  2, -1,  3,  0,  1]),
@@ -729,7 +723,8 @@ DataFrame will be pivoted in the answers below.
    n = 20
 
    cols = np.array(['key', 'row', 'item', 'col'])
-   df = cols + pd.DataFrame((np.random.randint(5, size=(n, 4)) // [2, 1, 2, 1]).astype(str))
+   df = cols + pd.DataFrame((np.random.randint(5, size=(n, 4))
+                            // [2, 1, 2, 1]).astype(str))
    df.columns = cols
    df = df.join(pd.DataFrame(np.random.rand(n, 2).round(2)).add_prefix('val'))
 
@@ -742,7 +737,7 @@ Suppose we wanted to pivot ``df`` such that the ``col`` values are columns,
 ``row`` values are the index, and the mean of ``val0`` are the values? In
 particular, the resulting DataFrame should look like:
 
-.. code-block:: ipython
+.. note::
 
    col   col0   col1   col2   col3  col4
    row

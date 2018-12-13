@@ -78,6 +78,7 @@ ERROR_MSGS = {
             '{allowed_sections}',
     'GL07': 'Sections are in the wrong order. Correct order is: '
             '{correct_sections}',
+    'GL08': 'The object does not have a docstring',
     'SS01': 'No summary found (a short summary in a single line should be '
             'present at the beginning of the docstring)',
     'SS02': 'Summary does not start with a capital letter',
@@ -173,6 +174,7 @@ def get_api_items(api_doc_fd):
         The name of the subsection in the API page where the object item is
         located.
     """
+    current_module = 'pandas'
     previous_line = current_section = current_subsection = ''
     position = None
     for line in api_doc_fd:
@@ -545,20 +547,24 @@ class Docstring(object):
         yield from application.guide.stats.statistics_for('')
 
 
-def validate_one(func_name):
+def get_validation_data(doc):
     """
-    Validate the docstring for the given func_name
+    Validate the docstring.
 
     Parameters
     ----------
-    func_name : function
-        Function whose docstring will be evaluated (e.g. pandas.read_csv).
+    doc : Docstring
+        A Docstring object with the given function name.
 
     Returns
     -------
-    dict
-        A dictionary containing all the information obtained from validating
-        the docstring.
+    tuple
+        errors : list of tuple
+            Errors occurred during validation.
+        warnings : list of tuple
+            Warnings occurred during validation.
+        examples_errs : str
+            Examples usage displayed along the error, otherwise empty string.
 
     Notes
     -----
@@ -585,10 +591,13 @@ def validate_one(func_name):
     they are validated, are not documented more than in the source code of this
     function.
     """
-    doc = Docstring(func_name)
 
     errs = []
     wrns = []
+    if not doc.raw_doc:
+        errs.append(error('GL08'))
+        return errs, wrns, ''
+
     if doc.start_blank_lines != 1:
         errs.append(error('GL01'))
     if doc.end_blank_lines != 1:
@@ -706,7 +715,26 @@ def validate_one(func_name):
         for wrong_import in ('numpy', 'pandas'):
             if 'import {}'.format(wrong_import) in examples_source_code:
                 errs.append(error('EX04', imported_library=wrong_import))
+    return errs, wrns, examples_errs
 
+
+def validate_one(func_name):
+    """
+    Validate the docstring for the given func_name
+
+    Parameters
+    ----------
+    func_name : function
+        Function whose docstring will be evaluated (e.g. pandas.read_csv).
+
+    Returns
+    -------
+    dict
+        A dictionary containing all the information obtained from validating
+        the docstring.
+    """
+    doc = Docstring(func_name)
+    errs, wrns, examples_errs = get_validation_data(doc)
     return {'type': doc.type,
             'docstring': doc.clean_doc,
             'deprecated': doc.deprecated,

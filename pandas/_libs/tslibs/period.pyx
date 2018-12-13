@@ -46,8 +46,9 @@ from frequencies cimport (get_freq_code, get_base_alias,
                           get_rule_month)
 from parsing import parse_time_string
 from resolution import Resolution
-from nattype import nat_strings, NaT
-from nattype cimport _nat_scalar_rules, NPY_NAT, is_null_datetimelike
+from nattype import nat_strings
+from nattype cimport (
+    _nat_scalar_rules, NPY_NAT, is_null_datetimelike, c_NaT as NaT)
 from offsets cimport to_offset
 from offsets import _Tick
 
@@ -1685,7 +1686,8 @@ cdef class _Period(object):
                 if other.freq != self.freq:
                     msg = _DIFFERENT_FREQ.format(self.freqstr, other.freqstr)
                     raise IncompatibleFrequency(msg)
-                return (self.ordinal - other.ordinal) * self.freq
+                # GH 23915 - mul by base freq since __add__ is agnostic of n
+                return (self.ordinal - other.ordinal) * self.freq.base
             elif getattr(other, '_typ', None) == 'periodindex':
                 # GH#21314 PeriodIndex - Period returns an object-index
                 # of DateOffset objects, for which we cannot use __neg__

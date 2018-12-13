@@ -2,42 +2,35 @@
 # pylint: disable=E1101
 from __future__ import division
 
-import warnings
-import re
 from collections import namedtuple
 from distutils.version import LooseVersion
+import re
+import warnings
 
 import numpy as np
 
-from pandas.util._decorators import cache_readonly, Appender
-from pandas.compat import range, lrange, map, zip, string_types
 import pandas.compat as compat
+from pandas.compat import lrange, map, range, string_types, zip
 from pandas.errors import AbstractMethodError
+from pandas.util._decorators import Appender, cache_readonly
 
-import pandas.core.common as com
-from pandas.core.base import PandasObject
-from pandas.core.config import get_option
-from pandas.core.generic import _shared_docs, _shared_doc_kwargs
-
-from pandas.core.dtypes.missing import isna, notna, remove_na_arraylike
 from pandas.core.dtypes.common import (
-    is_list_like,
-    is_integer,
-    is_number,
-    is_hashable,
-    is_iterator)
+    is_hashable, is_integer, is_iterator, is_list_like, is_number)
 from pandas.core.dtypes.generic import (
-    ABCSeries, ABCDataFrame, ABCPeriodIndex, ABCMultiIndex, ABCIndexClass)
+    ABCDataFrame, ABCIndexClass, ABCMultiIndex, ABCPeriodIndex, ABCSeries)
+from pandas.core.dtypes.missing import isna, notna, remove_na_arraylike
+
+from pandas.core.base import PandasObject
+import pandas.core.common as com
+from pandas.core.config import get_option
+from pandas.core.generic import _shared_doc_kwargs, _shared_docs
 
 from pandas.io.formats.printing import pprint_thing
-
 from pandas.plotting._compat import _mpl_ge_3_0_0
-from pandas.plotting._style import (plot_params,
-                                    _get_standard_colors)
-from pandas.plotting._tools import (_subplots, _flatten, table,
-                                    _handle_shared_axes, _get_all_lines,
-                                    _get_xlim, _set_ticks_props,
-                                    format_date_labels)
+from pandas.plotting._style import _get_standard_colors, plot_params
+from pandas.plotting._tools import (
+    _flatten, _get_all_lines, _get_xlim, _handle_shared_axes, _set_ticks_props,
+    _subplots, format_date_labels, table)
 from pandas.plotting import _misc as misc
 
 try:
@@ -165,9 +158,8 @@ class MPLPlot(object):
         # parse errorbar input if given
         xerr = kwds.pop('xerr', None)
         yerr = kwds.pop('yerr', None)
-        self.errors = {}
-        for kw, err in zip(['xerr', 'yerr'], [xerr, yerr]):
-            self.errors[kw] = self._parse_errorbars(kw, err)
+        self.errors = {kw: self._parse_errorbars(kw, err)
+                       for kw, err in zip(['xerr', 'yerr'], [xerr, yerr])}
 
         if not isinstance(secondary_y, (bool, tuple, list,
                                         np.ndarray, ABCIndexClass)):
@@ -686,12 +678,12 @@ class MPLPlot(object):
         or return the error DataFrame/dict
 
         Error bars can be specified in several ways:
-            Series : the user provides a pandas.Series object of the same
+            Series: the user provides a pandas.Series object of the same
                     length as the data
-            ndarray : provides a np.ndarray of the same length as the data
-            DataFrame/dict : error values are paired with keys matching the
+            ndarray: provides a np.ndarray of the same length as the data
+            DataFrame/dict: error values are paired with keys matching the
                     key in the plotted DataFrame
-            str : the name of the column within the plotted DataFrame
+            str: the name of the column within the plotted DataFrame
         """
 
         if err is None:
@@ -1729,9 +1721,7 @@ _all_kinds = _common_kinds + _dataframe_kinds + _series_kinds
 _klasses = [LinePlot, BarPlot, BarhPlot, KdePlot, HistPlot, BoxPlot,
             ScatterPlot, HexBinPlot, AreaPlot, PiePlot]
 
-_plot_klass = {}
-for klass in _klasses:
-    _plot_klass[klass._kind] = klass
+_plot_klass = {klass._kind: klass for klass in _klasses}
 
 
 def _plot(data, x=None, y=None, subplots=False,
@@ -1956,7 +1946,6 @@ _shared_docs['plot'] = """
       for bar plot layout by `position` keyword.
       From 0 (left/bottom-end) to 1 (right/top-end). Default is 0.5 (center)
     %(klass_note)s
-
     """
 
 
@@ -2429,7 +2418,7 @@ def hist_series(self, by=None, ax=None, grid=True, xlabelsize=None,
                 xrot=None, ylabelsize=None, yrot=None, figsize=None,
                 bins=10, **kwds):
     """
-    Draw histogram of the input series using matplotlib
+    Draw histogram of the input series using matplotlib.
 
     Parameters
     ----------
@@ -2717,7 +2706,8 @@ class BasePlotMethods(PandasObject):
 
 
 class SeriesPlotMethods(BasePlotMethods):
-    """Series plotting accessor and method
+    """
+    Series plotting accessor and method.
 
     Examples
     --------
@@ -2750,7 +2740,7 @@ class SeriesPlotMethods(BasePlotMethods):
 
     def line(self, **kwds):
         """
-        Line plot
+        Line plot.
 
         Parameters
         ----------
@@ -2775,7 +2765,7 @@ class SeriesPlotMethods(BasePlotMethods):
 
     def bar(self, **kwds):
         """
-        Vertical bar plot
+        Vertical bar plot.
 
         Parameters
         ----------
@@ -2791,7 +2781,7 @@ class SeriesPlotMethods(BasePlotMethods):
 
     def barh(self, **kwds):
         """
-        Horizontal bar plot
+        Horizontal bar plot.
 
         Parameters
         ----------
@@ -2807,7 +2797,7 @@ class SeriesPlotMethods(BasePlotMethods):
 
     def box(self, **kwds):
         """
-        Boxplot
+        Boxplot.
 
         Parameters
         ----------
@@ -2823,7 +2813,7 @@ class SeriesPlotMethods(BasePlotMethods):
 
     def hist(self, bins=10, **kwds):
         """
-        Histogram
+        Histogram.
 
         Parameters
         ----------
@@ -2884,7 +2874,7 @@ class SeriesPlotMethods(BasePlotMethods):
 
     def area(self, **kwds):
         """
-        Area plot
+        Area plot.
 
         Parameters
         ----------
@@ -2900,7 +2890,7 @@ class SeriesPlotMethods(BasePlotMethods):
 
     def pie(self, **kwds):
         """
-        Pie chart
+        Pie chart.
 
         Parameters
         ----------
@@ -3446,7 +3436,6 @@ class FramePlotMethods(BasePlotMethods):
             :context: close-figs
 
             >>> plot = df.plot.pie(subplots=True, figsize=(6, 3))
-
         """
         return self(kind='pie', y=y, **kwds)
 

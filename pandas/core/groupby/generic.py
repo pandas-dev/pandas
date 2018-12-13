@@ -634,6 +634,10 @@ class NDFrameGroupBy(GroupBy):
         dropna : Drop groups that do not pass the filter. True by default;
             if False, groups that evaluate False are filled with NaNs.
 
+        Returns
+        -------
+        filtered : DataFrame
+
         Notes
         -----
         Each subframe is endowed the attribute 'name' in case you need to know
@@ -651,10 +655,6 @@ class NDFrameGroupBy(GroupBy):
         1  bar  2  5.0
         3  bar  4  1.0
         5  bar  6  9.0
-
-        Returns
-        -------
-        filtered : DataFrame
         """
 
         indices = []
@@ -826,8 +826,9 @@ class SeriesGroupBy(GroupBy):
         for name, func in arg:
             obj = self
             if name in results:
-                raise SpecificationError('Function names must be unique, '
-                                         'found multiple named %s' % name)
+                raise SpecificationError(
+                    'Function names must be unique, found multiple named '
+                    '{}'.format(name))
 
             # reset the cache so that we
             # only include the named selection
@@ -1027,8 +1028,7 @@ class SeriesGroupBy(GroupBy):
         try:
             sorter = np.lexsort((val, ids))
         except TypeError:  # catches object dtypes
-            msg = ('val.dtype must be object, got {dtype}'
-                   .format(dtype=val.dtype))
+            msg = 'val.dtype must be object, got {}'.format(val.dtype)
             assert val.dtype == object, msg
             val, _ = algorithms.factorize(val, sort=False)
             sorter = np.lexsort((val, ids))
@@ -1112,7 +1112,7 @@ class SeriesGroupBy(GroupBy):
             lab = cut(Series(val), bins, include_lowest=True)
             lev = lab.cat.categories
             lab = lev.take(lab.cat.codes)
-            llab = lambda lab, inc: lab[inc]._multiindex.labels[-1]
+            llab = lambda lab, inc: lab[inc]._multiindex.codes[-1]
 
         if is_interval_dtype(lab):
             # TODO: should we do this inside II?
@@ -1163,7 +1163,7 @@ class SeriesGroupBy(GroupBy):
             out, labels[-1] = out[sorter], labels[-1][sorter]
 
         if bins is None:
-            mi = MultiIndex(levels=levels, labels=labels, names=names,
+            mi = MultiIndex(levels=levels, codes=labels, names=names,
                             verify_integrity=False)
 
             if is_integer_dtype(out):
@@ -1191,10 +1191,10 @@ class SeriesGroupBy(GroupBy):
             out, left[-1] = out[sorter], left[-1][sorter]
 
         # build the multi-index w/ full levels
-        labels = list(map(lambda lab: np.repeat(lab[diff], nbin), labels[:-1]))
-        labels.append(left[-1])
+        codes = list(map(lambda lab: np.repeat(lab[diff], nbin), labels[:-1]))
+        codes.append(left[-1])
 
-        mi = MultiIndex(levels=levels, labels=labels, names=names,
+        mi = MultiIndex(levels=levels, codes=codes, names=names,
                         verify_integrity=False)
 
         if is_integer_dtype(out):
@@ -1221,9 +1221,15 @@ class SeriesGroupBy(GroupBy):
         return func(self)
 
     def pct_change(self, periods=1, fill_method='pad', limit=None, freq=None):
-        """Calculate percent change of each value to previous entry in group"""
+        """Calcuate pct_change of each value to previous entry in group"""
+        # TODO: Remove this conditional when #23918 is fixed
+        if freq:
+            return self.apply(lambda x: x.pct_change(periods=periods,
+                                                     fill_method=fill_method,
+                                                     limit=limit, freq=freq))
         filled = getattr(self, fill_method)(limit=limit)
-        shifted = filled.shift(periods=periods, freq=freq)
+        fill_grp = filled.groupby(self.grouper.labels)
+        shifted = fill_grp.shift(periods=periods, freq=freq)
 
         return (filled / shifted) - 1
 
@@ -1294,7 +1300,6 @@ class DataFrameGroupBy(NDFrameGroupBy):
     pandas.DataFrame.groupby.apply
     pandas.DataFrame.groupby.transform
     pandas.DataFrame.aggregate
-
     """)
 
     @Appender(_agg_doc)

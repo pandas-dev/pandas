@@ -561,10 +561,10 @@ class TestGenRangeGeneration(object):
         assert rng == expected
 
     def test_precision_finer_than_offset(self):
-        # GH 9907
-        result1 = DatetimeIndex(start='2015-04-15 00:00:03',
+        # GH#9907
+        result1 = pd.date_range(start='2015-04-15 00:00:03',
                                 end='2016-04-22 00:00:00', freq='Q')
-        result2 = DatetimeIndex(start='2015-04-15 00:00:03',
+        result2 = pd.date_range(start='2015-04-15 00:00:03',
                                 end='2015-06-22 00:00:04', freq='W')
         expected1_list = ['2015-06-30 00:00:03', '2015-09-30 00:00:03',
                           '2015-12-31 00:00:03', '2016-03-31 00:00:03']
@@ -594,7 +594,7 @@ class TestGenRangeGeneration(object):
         with pytest.raises(TypeError):
             pd.date_range(start, end)
         with pytest.raises(TypeError):
-            pd.DatetimeIndex(start, end, freq=BDay())
+            pd.date_range(start, end, freq=BDay())
 
     def test_CalendarDay_range_with_dst_crossing(self):
         # GH 20596
@@ -769,3 +769,14 @@ class TestCustomDateRange(object):
         msg = 'invalid custom frequency string: {freq}'
         with pytest.raises(ValueError, match=msg.format(freq=bad_freq)):
             bdate_range(START, END, freq=bad_freq)
+
+    @pytest.mark.parametrize('start_end', [
+        ('2018-01-01T00:00:01.000Z', '2018-01-03T00:00:01.000Z'),
+        ('2018-01-01T00:00:00.010Z', '2018-01-03T00:00:00.010Z'),
+        ('2001-01-01T00:00:00.010Z', '2001-01-03T00:00:00.010Z')])
+    def test_range_with_millisecond_resolution(self, start_end):
+        # https://github.com/pandas-dev/pandas/issues/24110
+        start, end = start_end
+        result = pd.date_range(start=start, end=end, periods=2, closed='left')
+        expected = DatetimeIndex([start])
+        tm.assert_index_equal(result, expected)

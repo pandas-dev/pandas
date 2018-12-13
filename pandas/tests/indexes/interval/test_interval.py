@@ -377,7 +377,21 @@ class TestIntervalIndex(Base):
     def test_repr_roundtrip(self):
         super(TestIntervalIndex, self).test_repr_roundtrip()
 
-    # TODO: check this behavior is consistent with test_interval_new.py
+    def test_frame_repr(self):
+        # https://github.com/pandas-dev/pandas/pull/24134/files
+        df = pd.DataFrame({'A': [1, 2, 3, 4]},
+                          index=pd.IntervalIndex.from_breaks([0, 1, 2, 3, 4]))
+        result = repr(df)
+        expected = (
+            '        A\n'
+            '(0, 1]  1\n'
+            '(1, 2]  2\n'
+            '(2, 3]  3\n'
+            '(3, 4]  4'
+        )
+        assert result == expected
+
+        # TODO: check this behavior is consistent with test_interval_new.py
     def test_get_item(self, closed):
         i = IntervalIndex.from_arrays((0, 1, np.nan), (1, 2, np.nan),
                                       closed=closed)
@@ -652,6 +666,23 @@ class TestIntervalIndex(Base):
         # list-like of datetimelike scalars
         result = index._maybe_convert_i8(list(breaks))
         expected = Index(breaks.asi8)
+        tm.assert_index_equal(result, expected)
+
+    @pytest.mark.parametrize('breaks', [
+        date_range('2018-01-01', periods=5),
+        timedelta_range('0 days', periods=5)])
+    def test_maybe_convert_i8_nat(self, breaks):
+        # GH 20636
+        index = IntervalIndex.from_breaks(breaks)
+
+        to_convert = breaks._constructor([pd.NaT] * 3)
+        expected = pd.Float64Index([np.nan] * 3)
+        result = index._maybe_convert_i8(to_convert)
+        tm.assert_index_equal(result, expected)
+
+        to_convert = to_convert.insert(0, breaks[0])
+        expected = expected.insert(0, float(breaks[0].value))
+        result = index._maybe_convert_i8(to_convert)
         tm.assert_index_equal(result, expected)
 
     @pytest.mark.parametrize('breaks', [
@@ -1081,6 +1112,50 @@ class TestIntervalIndex(Base):
         else:
             idx = IntervalIndex.from_breaks(range(4), closed=closed)
             assert idx.is_non_overlapping_monotonic is True
+
+    @pytest.mark.parametrize('start, shift, na_value', [
+        (0, 1, np.nan),
+        (Timestamp('2018-01-01'), Timedelta('1 day'), pd.NaT),
+        (Timedelta('0 days'), Timedelta('1 day'), pd.NaT)])
+    def test_is_overlapping(self, start, shift, na_value, closed):
+        # GH 23309
+        # see test_interval_tree.py for extensive tests; interface tests here
+
+        # non-overlapping
+        tuples = [(start + n * shift, start + (n + 1) * shift)
+                  for n in (0, 2, 4)]
+        index = IntervalIndex.from_tuples(tuples, closed=closed)
+        assert index.is_overlapping is False
+
+        # non-overlapping with NA
+        tuples = [(na_value, na_value)] + tuples + [(na_value, na_value)]
+        index = IntervalIndex.from_tuples(tuples, closed=closed)
+        assert index.is_overlapping is False
+
+        # overlapping
+        tuples = [(start + n * shift, start + (n + 2) * shift)
+                  for n in range(3)]
+        index = IntervalIndex.from_tuples(tuples, closed=closed)
+        assert index.is_overlapping is True
+
+        # overlapping with NA
+        tuples = [(na_value, na_value)] + tuples + [(na_value, na_value)]
+        index = IntervalIndex.from_tuples(tuples, closed=closed)
+        assert index.is_overlapping is True
+
+        # common endpoints
+        tuples = [(start + n * shift, start + (n + 1) * shift)
+                  for n in range(3)]
+        index = IntervalIndex.from_tuples(tuples, closed=closed)
+        result = index.is_overlapping
+        expected = closed == 'both'
+        assert result is expected
+
+        # common endpoints with NA
+        tuples = [(na_value, na_value)] + tuples + [(na_value, na_value)]
+        index = IntervalIndex.from_tuples(tuples, closed=closed)
+        result = index.is_overlapping
+        assert result is expected
 
     @pytest.mark.parametrize('tuples', [
         lzip(range(10), range(1, 11)),

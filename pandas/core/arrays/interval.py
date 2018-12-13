@@ -74,6 +74,7 @@ mid
 length
 values
 is_non_overlapping_monotonic
+%(extra_attributes)s\
 
 Methods
 -------
@@ -83,14 +84,6 @@ from_breaks
 set_closed
 %(extra_methods)s\
 
-%(examples)s\
-
-Notes
-------
-See the `user guide
-<http://pandas.pydata.org/pandas-docs/stable/advanced.html#intervalindex>`_
-for more.
-
 See Also
 --------
 Index : The base pandas Index type.
@@ -98,6 +91,14 @@ Interval : A bounded slice-like interval; the elements of an %(klass)s.
 interval_range : Function to create a fixed frequency IntervalIndex.
 cut : Bin values into discrete Intervals.
 qcut : Bin values into equal-sized Intervals based on rank or sample quantiles.
+
+Notes
+------
+See the `user guide
+<http://pandas.pydata.org/pandas-docs/stable/advanced.html#intervalindex>`_
+for more.
+
+%(examples)s\
 """
 
 
@@ -107,6 +108,7 @@ qcut : Bin values into equal-sized Intervals based on rank or sample quantiles.
     summary="Pandas array for interval data that are closed on the same side.",
     versionadded="0.24.0",
     name='',
+    extra_attributes='',
     extra_methods='',
     examples=textwrap.dedent("""\
     Examples
@@ -234,18 +236,18 @@ class IntervalArray(IntervalMixin, ExtensionArray):
 
         .. versionadded:: 0.23.0
 
+    See Also
+    --------
+    interval_range : Function to create a fixed frequency IntervalIndex.
+    %(klass)s.from_arrays : Construct from a left and right array.
+    %(klass)s.from_tuples : Construct from a sequence of tuples.
+
     Examples
     --------
     >>> pd.%(klass)s.from_breaks([0, 1, 2, 3])
     %(klass)s([(0, 1], (1, 2], (2, 3]]
                   closed='right',
                   dtype='interval[int64]')
-
-    See Also
-    --------
-    interval_range : Function to create a fixed frequency IntervalIndex.
-    %(klass)s.from_arrays : Construct from a left and right array.
-    %(klass)s.from_tuples : Construct from a sequence of tuples.
     """
 
     @classmethod
@@ -279,14 +281,6 @@ class IntervalArray(IntervalMixin, ExtensionArray):
         -------
         %(klass)s
 
-        Notes
-        -----
-        Each element of `left` must be less than or equal to the `right`
-        element at the same position. If an element is missing, it must be
-        missing in both `left` and `right`. A TypeError is raised when
-        using an unsupported type for `left` or `right`. At the moment,
-        'category', 'object', and 'string' subtypes are not supported.
-
         Raises
         ------
         ValueError
@@ -302,6 +296,13 @@ class IntervalArray(IntervalMixin, ExtensionArray):
         %(klass)s.from_tuples : Construct an %(klass)s from an
             array-like of tuples.
 
+        Notes
+        -----
+        Each element of `left` must be less than or equal to the `right`
+        element at the same position. If an element is missing, it must be
+        missing in both `left` and `right`. A TypeError is raised when
+        using an unsupported type for `left` or `right`. At the moment,
+        'category', 'object', and 'string' subtypes are not supported.
 
         Examples
         --------
@@ -337,6 +338,16 @@ class IntervalArray(IntervalMixin, ExtensionArray):
 
         ..versionadded:: 0.23.0
 
+    See Also
+    --------
+    interval_range : Function to create a fixed frequency IntervalIndex.
+    %(klass)s.from_arrays : Construct an %(klass)s from a left and
+                                right array.
+    %(klass)s.from_breaks : Construct an %(klass)s from an array of
+                                splits.
+    %(klass)s.from_tuples : Construct an %(klass)s from an
+                                array-like of tuples.
+
     Examples
     --------
     >>> pd.%(klass)s.from_intervals([pd.Interval(0, 1),
@@ -350,16 +361,6 @@ class IntervalArray(IntervalMixin, ExtensionArray):
     >>> pd.Index([pd.Interval(0, 1), pd.Interval(1, 2)])
     %(klass)s([(0, 1], (1, 2]]
                   closed='right', dtype='interval[int64]')
-
-    See Also
-    --------
-    interval_range : Function to create a fixed frequency IntervalIndex.
-    %(klass)s.from_arrays : Construct an %(klass)s from a left and
-                                right array.
-    %(klass)s.from_breaks : Construct an %(klass)s from an array of
-                                splits.
-    %(klass)s.from_tuples : Construct an %(klass)s from an
-                                array-like of tuples.
     """
 
     _interval_shared_docs['from_tuples'] = """
@@ -379,13 +380,6 @@ class IntervalArray(IntervalMixin, ExtensionArray):
 
         ..versionadded:: 0.23.0
 
-
-    Examples
-    --------
-    >>>  pd.%(klass)s.from_tuples([(0, 1), (1, 2)])
-    %(klass)s([(0, 1], (1, 2]],
-                closed='right', dtype='interval[int64]')
-
     See Also
     --------
     interval_range : Function to create a fixed frequency IntervalIndex.
@@ -393,6 +387,12 @@ class IntervalArray(IntervalMixin, ExtensionArray):
                                 right array.
     %(klass)s.from_breaks : Construct an %(klass)s from an array of
                                 splits.
+
+    Examples
+    --------
+    >>>  pd.%(klass)s.from_tuples([(0, 1), (1, 2)])
+    %(klass)s([(0, 1], (1, 2]],
+                closed='right', dtype='interval[int64]')
     """
 
     @classmethod
@@ -687,9 +687,6 @@ class IntervalArray(IntervalMixin, ExtensionArray):
         closed = self.closed
         # TODO: Could skip verify_integrity here.
         return type(self).from_arrays(left, right, closed=closed)
-
-    def _formatting_values(self):
-        return np.asarray(self)
 
     def isna(self):
         return isna(self.left)
@@ -1053,6 +1050,10 @@ class IntervalArray(IntervalMixin, ExtensionArray):
         ndarray
             Boolean array positionally indicating where an overlap occurs.
 
+        See Also
+        --------
+        Interval.overlaps : Check whether two Interval objects overlap.
+
         Examples
         --------
         >>> intervals = %(constructor)s.from_tuples([(0, 1), (1, 3), (2, 4)])
@@ -1072,10 +1073,6 @@ class IntervalArray(IntervalMixin, ExtensionArray):
 
         >>> intervals.overlaps(pd.Interval(1, 2, closed='right'))
         array([False,  True, False])
-
-        See Also
-        --------
-        Interval.overlaps : Check whether two Interval objects overlap.
     """
 
     @Appender(_interval_shared_docs['overlaps'] % _shared_docs_kwargs)

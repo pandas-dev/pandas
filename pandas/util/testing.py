@@ -34,7 +34,7 @@ import pandas as pd
 from pandas import (
     Categorical, CategoricalIndex, DataFrame, DatetimeIndex, Index,
     IntervalIndex, MultiIndex, Panel, PeriodIndex, RangeIndex, Series,
-    TimedeltaIndex, bdate_range)
+    bdate_range)
 from pandas.core.algorithms import take_1d
 from pandas.core.arrays import (
     DatetimeArrayMixin as DatetimeArray, ExtensionArray, IntervalArray,
@@ -625,7 +625,7 @@ def capture_stdout(f):
     AssertionError: assert 'foo\n' == 'bar\n'
     """
 
-    @wraps(f)
+    @compat.wraps(f)
     def wrapper(*args, **kwargs):
         try:
             sys.stdout = StringIO()
@@ -838,7 +838,7 @@ def assert_index_equal(left, right, exact='equiv', check_names=True,
     def _get_ilevel_values(index, level):
         # accept level number only
         unique = index.levels[level]
-        labels = index.labels[level]
+        labels = index.codes[level]
         filled = take_1d(unique.values, labels, fill_value=unique._na_value)
         values = unique._shallow_copy(filled, name=index.names[level])
         return values
@@ -1073,6 +1073,7 @@ def assert_period_array_equal(left, right, obj='PeriodArray'):
 
 
 def assert_datetime_array_equal(left, right, obj='DatetimeArray'):
+    __tracebackhide__ = True
     _check_isinstance(left, right, DatetimeArray)
 
     assert_numpy_array_equal(left._data, right._data,
@@ -1082,6 +1083,7 @@ def assert_datetime_array_equal(left, right, obj='DatetimeArray'):
 
 
 def assert_timedelta_array_equal(left, right, obj='TimedeltaArray'):
+    __tracebackhide__ = True
     _check_isinstance(left, right, TimedeltaArray)
     assert_numpy_array_equal(left._data, right._data,
                              obj='{obj}._data'.format(obj=obj))
@@ -1197,13 +1199,23 @@ def assert_numpy_array_equal(left, right, strict_nan=False,
     return True
 
 
-def assert_extension_array_equal(left, right):
+def assert_extension_array_equal(left, right, check_dtype=True,
+                                 check_less_precise=False,
+                                 check_exact=False):
     """Check that left and right ExtensionArrays are equal.
 
     Parameters
     ----------
     left, right : ExtensionArray
         The two arrays to compare
+    check_dtype : bool, default True
+        Whether to check if the ExtensionArray dtypes are identical.
+    check_less_precise : bool or int, default False
+        Specify comparison precision. Only used when check_exact is False.
+        5 digits (False) or 3 digits (True) after decimal points are compared.
+        If int, then specify the digits to compare.
+    check_exact : bool, default False
+        Whether to compare number exactly.
 
     Notes
     -----
@@ -1211,17 +1223,24 @@ def assert_extension_array_equal(left, right):
     A mask of missing values is computed for each and checked to match.
     The remaining all-valid values are cast to object dtype and checked.
     """
-    assert isinstance(left, ExtensionArray)
-    assert left.dtype == right.dtype
+    assert isinstance(left, ExtensionArray), 'left is not an ExtensionArray'
+    assert isinstance(right, ExtensionArray), 'right is not an ExtensionArray'
+    if check_dtype:
+        assert_attr_equal('dtype', left, right, obj='ExtensionArray')
+
     left_na = np.asarray(left.isna())
     right_na = np.asarray(right.isna())
-
-    assert_numpy_array_equal(left_na, right_na)
+    assert_numpy_array_equal(left_na, right_na, obj='ExtensionArray NA mask')
 
     left_valid = np.asarray(left[~left_na].astype(object))
     right_valid = np.asarray(right[~right_na].astype(object))
-
-    assert_numpy_array_equal(left_valid, right_valid)
+    if check_exact:
+        assert_numpy_array_equal(left_valid, right_valid, obj='ExtensionArray')
+    else:
+        _testing.assert_almost_equal(left_valid, right_valid,
+                                     check_dtype=check_dtype,
+                                     check_less_precise=check_less_precise,
+                                     obj='ExtensionArray')
 
 
 # This could be refactored to use the NDFrame.equals method
@@ -1321,11 +1340,11 @@ def assert_series_equal(left, right, check_dtype=True,
             assert_numpy_array_equal(left.get_values(), right.get_values(),
                                      check_dtype=check_dtype)
     elif is_interval_dtype(left) or is_interval_dtype(right):
-        assert_interval_array_equal(left.values, right.values)
+        assert_interval_array_equal(left.array, right.array)
 
     elif (is_extension_array_dtype(left) and not is_categorical_dtype(left) and
           is_extension_array_dtype(right) and not is_categorical_dtype(right)):
-        return assert_extension_array_equal(left.values, right.values)
+        return assert_extension_array_equal(left.array, right.array)
 
     else:
         _testing.assert_almost_equal(left.get_values(), right.get_values(),
@@ -1921,8 +1940,8 @@ def makeDateIndex(k=10, freq='B', name=None, **kwargs):
 
 
 def makeTimedeltaIndex(k=10, freq='D', name=None, **kwargs):
-    return TimedeltaIndex(start='1 day', periods=k, freq=freq,
-                          name=name, **kwargs)
+    return pd.timedelta_range(start='1 day', periods=k, freq=freq,
+                              name=name, **kwargs)
 
 
 def makePeriodIndex(k=10, name=None, **kwargs):
