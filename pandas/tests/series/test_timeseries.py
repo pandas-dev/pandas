@@ -157,6 +157,7 @@ class TestTimeSeries(TestData):
         tm.assert_equal(np.array(list(res.values)),
                         np.array([ts.values[0]] + list(ts.values[:-1])))
 
+        # check for incorrect fill_value
         with pytest.raises(ValueError):
             ts.shift(1, fill_value='f')
 
