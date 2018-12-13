@@ -719,7 +719,7 @@ class DatetimeLikeArrayMixin(AttributesMixin,
 
     def repeat(self, repeats, *args, **kwargs):
         """
-        Repeat elements of a PeriodArray.
+        Repeat elements of an array.
 
         See Also
         --------
@@ -969,8 +969,6 @@ class DatetimeLikeArrayMixin(AttributesMixin,
         # and datetime dtypes
         result = np.zeros(len(self), dtype=np.int64)
         result.fill(iNaT)
-        if is_timedelta64_dtype(self):
-            return type(self)(result, freq=None)
         return type(self)(result, dtype=self.dtype, freq=None)
 
     def _sub_nat(self):

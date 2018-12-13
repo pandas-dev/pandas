@@ -286,7 +286,7 @@ class DatetimeIndex(DatelikeIndexMixin,
             data, dtype=dtype, copy=copy, tz=tz, freq=freq,
             dayfirst=dayfirst, yearfirst=yearfirst, ambiguous=ambiguous)
 
-        subarr = cls._simple_new(dtarr._data, name=name,
+        subarr = cls._simple_new(dtarr, name=name,
                                  freq=dtarr.freq, tz=dtarr.tz)
 
         return subarr._deepcopy_if_needed(ref_to_data, copy)
