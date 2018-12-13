@@ -1273,6 +1273,7 @@ Categorical
 - Bug when resampling :meth:`Dataframe.resample()` and aggregating on categorical data, the categorical dtype was getting lost. (:issue:`23227`)
 - Bug in many methods of the ``.str``-accessor, which always failed on calling the ``CategoricalIndex.str`` constructor (:issue:`23555`, :issue:`23556`)
 - Bug in :meth:`Series.where` losing the categorical dtype for categorical data (:issue:`24077`)
+- Bug in :meth:`Categorical.apply` where the given function would not be applied to ``NaN`` values (:issue:`24241`)
 
 Datetimelike
 ^^^^^^^^^^^^

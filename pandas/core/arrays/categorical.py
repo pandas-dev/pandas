@@ -1229,11 +1229,26 @@ class Categorical(ExtensionArray, PandasObject):
         Index(['first', 'second', nan], dtype='object')
         """
         new_categories = self.categories.map(mapper)
+
         try:
-            return self.from_codes(self._codes.copy(),
-                                   categories=new_categories,
-                                   ordered=self.ordered)
+            if isinstance(mapper, (dict, ABCSeries)):
+                new_value = mapper[np.nan]
+            else:
+                new_value = mapper(np.nan)
+        except (AttributeError, KeyError, TypeError, ValueError):
+            new_value = np.nan
+
+        try:
+            ret = self.from_codes(self._codes.copy(),
+                                  categories=new_categories,
+                                  ordered=self.ordered)
+            if new_value not in ret.categories and any(self._codes == -1):
+                ret.add_categories(new_value, inplace=True)
+                ret = ret.fillna(new_value)
+            return ret
         except ValueError:
+            new_categories = new_categories.insert(len(new_categories),
+                                                   new_value)
             return np.take(new_categories, self._codes)
 
     __eq__ = _cat_compare_op('__eq__')
