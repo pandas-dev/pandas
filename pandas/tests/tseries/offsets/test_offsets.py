@@ -3217,3 +3217,8 @@ class TestDay(object):
         # (absolute time)
         with pytest.raises(TypeError):
             _Day(1) + arg
+
+    def test_day_tick_arithmetic_deprecation(self):
+        with tm.assert_produces_warning(DeprecationWarning):
+            Day(1) + Tick(24)
+            Tick(24) + Day(1)

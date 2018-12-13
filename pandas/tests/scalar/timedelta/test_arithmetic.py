@@ -44,7 +44,7 @@ class TestTimedeltaAdditionSubtraction(object):
         Timedelta('1 days, 00:00:10'),
         timedelta(days=1, seconds=10),
         np.timedelta64(1, 'D') + np.timedelta64(10, 's'),
-        pd.offsets.Day() + pd.offsets.Second(10)])
+        pd.offsets.Hour(24) + pd.offsets.Second(10)])
     def test_td_add_sub_one_day_ten_seconds(self, one_day_ten_secs):
         # GH#6808
         base = Timestamp('20130102 09:01:12.123456')
