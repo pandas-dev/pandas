@@ -5,30 +5,51 @@ from pandas import DataFrame, MultiIndex, Series
 from pandas.util import testing as tm
 
 
+@pytest.fixture
+def simple_multiindex_dataframe():
+    """
+    Factory function to create simple 3 x 3 dataframe with
+    both columns and row MultiIndex using supplied data or
+    random data by default.
+    """
+    def _simple_multiindex_dataframe(data=None):
+        if data is None:
+            data = np.random.randn(3, 3)
+        return DataFrame(data, columns=[[2, 2, 4], [6, 8, 10]],
+                         index=[[4, 4, 8], [8, 10, 12]])
+    return _simple_multiindex_dataframe
+
+
 @pytest.mark.parametrize('indexer, expected', [
     (lambda df: df.iloc[0],
-     lambda arr, df: Series(arr[0], index=df.columns, name=(4, 8))),
+     lambda arr: Series(arr[0], index=[[2, 2, 4], [6, 8, 10]], name=(4, 8))),
     (lambda df: df.iloc[2],
-     lambda arr, df: Series(arr[2], index=df.columns, name=(8, 12))),
+     lambda arr: Series(arr[2], index=[[2, 2, 4], [6, 8, 10]], name=(8, 12))),
     (lambda df: df.iloc[:, 2],
-     lambda arr, df: Series(arr[:, 2], index=df.index, name=(4, 10))),
-    (lambda df: df.iloc[2, 2],
-     lambda arr, df: arr[2, 2]),
-    (lambda df: df.iloc[[0, 1]],
-     lambda arr, df: df.xs(4, drop_level=False))
+     lambda arr: Series(
+         arr[:, 2], index=[[4, 4, 8], [8, 10, 12]], name=(4, 10)))
 ])
-def test_iloc_getitem(indexer, expected):
+def test_iloc_returns_series(indexer, expected, simple_multiindex_dataframe):
     arr = np.random.randn(3, 3)
-    df = DataFrame(arr, columns=[[2, 2, 4], [6, 8, 10]],
-                   index=[[4, 4, 8], [8, 10, 12]])
-
+    df = simple_multiindex_dataframe(arr)
     result = indexer(df)
-    expected = expected(arr, df)
+    expected = expected(arr)
+    tm.assert_series_equal(result, expected)
 
-    try:
-        tm.assert_equal(result, expected)
-    except NotImplementedError:
-        assert result == expected
+
+def test_iloc_returns_dataframe(simple_multiindex_dataframe):
+    df = simple_multiindex_dataframe()
+    result = df.iloc[[0, 1]]
+    expected = df.xs(4, drop_level=False)
+    tm.assert_frame_equal(result, expected)
+
+
+def test_iloc_returns_scalar(simple_multiindex_dataframe):
+    arr = np.random.randn(3, 3)
+    df = simple_multiindex_dataframe(arr)
+    result = df.iloc[2, 2]
+    expected = arr[2, 2]
+    assert result == expected
 
 
 def test_iloc_getitem_multiple_items():
@@ -53,9 +74,9 @@ def test_iloc_getitem_labels():
 
 
 def test_frame_getitem_slice(multiindex_dataframe_random_data):
-    frame = multiindex_dataframe_random_data
-    result = frame.iloc[:4]
-    expected = frame[:4]
+    df = multiindex_dataframe_random_data
+    result = df.iloc[:4]
+    expected = df[:4]
     tm.assert_frame_equal(result, expected)
 
 
@@ -68,6 +89,7 @@ def test_frame_setitem_slice(multiindex_dataframe_random_data):
 
 
 def test_indexing_ambiguity_bug_1678():
+    # GH 1678
     columns = MultiIndex.from_tuples(
         [('Ohio', 'Green'), ('Ohio', 'Red'), ('Colorado', 'Green')])
     index = MultiIndex.from_tuples([('a', 1), ('a', 2), ('b', 1), ('b', 2)])
@@ -79,10 +101,8 @@ def test_indexing_ambiguity_bug_1678():
     tm.assert_series_equal(result, expected)
 
 
-def test_iloc_mi():
+def test_iloc_integer_locations():
     # GH 13797
-    # Test if iloc can handle integer locations in MultiIndexed DataFrame
-
     data = [['str00', 'str01'], ['str10', 'str11'], ['str20', 'srt21'],
             ['str30', 'str31'], ['str40', 'str41']]
 
