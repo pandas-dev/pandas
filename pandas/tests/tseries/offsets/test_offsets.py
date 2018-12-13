@@ -49,16 +49,6 @@ class WeekDay(object):
 ####
 
 
-def test_time_rule_deprecated():
-    start = datetime(2007, 10, 1)
-    end = datetime(2012, 4, 9)
-
-    with tm.assert_produces_warning(FutureWarning):
-        # Note: generate_range returns a generator, and the warning is not
-        #  issued until the first __next__ call
-        list(offsets.generate_range(start=start, end=end, time_rule="W"))
-
-
 def test_to_m8():
     valb = datetime(2007, 10, 1)
     valu = _to_m8(valb)
