@@ -2,6 +2,7 @@
 from datetime import date, datetime, timedelta
 import functools
 import operator
+import warnings
 
 from dateutil.easter import easter
 import numpy as np
@@ -2306,6 +2307,9 @@ class Tick(liboffsets._Tick, SingleConstructorOffset):
 
     def __add__(self, other):
         if isinstance(other, Tick):
+            if self._prefix == 'D' or other._prefix == 'D':
+                warnings.warn("Arithmetic with Day is deprecated.",
+                              DeprecationWarning, stacklevel=2)
             if type(self) == type(other):
                 return type(self)(self.n + other.n)
             else:
