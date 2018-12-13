@@ -134,12 +134,6 @@ class TestTimeSeries(TestData):
         ts = Series([1.0, 2.0, 3.0, 4.0, 5.0],
                     index=date_range('1/1/2000', periods=5, freq='H'))
 
-        # fill_value should have no effect on shift with freq
-        result = ts.shift(1, freq='5T', fill_value=0)
-        exp_index = ts.index.shift(1, freq='5T')
-        tm.assert_index_equal(result.index, exp_index)
-        tm.assert_numpy_array_equal(result.values, ts.values)
-
         exp = Series([0.0, 1.0, 2.0, 3.0, 4.0],
                      index=date_range('1/1/2000', periods=5, freq='H'))
         # check that fill value works
