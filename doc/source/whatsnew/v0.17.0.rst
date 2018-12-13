@@ -627,8 +627,6 @@ New Behavior:
    In [3]: pd.to_datetime(['2009-07-31', 'asd'])
    ValueError: Unknown string format
 
-.. ipython:: python
-
 Of course you can coerce this as well.
 
 .. ipython:: python

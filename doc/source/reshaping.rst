@@ -575,7 +575,6 @@ with the original ``DataFrame``:
    dummies = pd.get_dummies(df['key'], prefix='key')
    dummies
 
-
    df[['data1']].join(dummies)
 
 This function is often used along with discretization functions like ``cut``:
@@ -585,9 +584,7 @@ This function is often used along with discretization functions like ``cut``:
    values = np.random.randn(10)
    values
 
-
    bins = [0, 0.2, 0.4, 0.6, 0.8, 1]
-
 
    pd.get_dummies(pd.cut(values, bins))
 
