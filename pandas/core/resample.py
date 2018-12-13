@@ -1609,6 +1609,23 @@ def _get_timestamp_range_edges(first, last, offset, closed='left', base=0):
     Timestamp that resides on the provided offset. Input Timestamps that
     already reside on the offset will be adjusted depeding on the type of
     offset and the `closed` parameter.
+
+    Parameters
+    ----------
+    first : pd.Timestamp
+        The beginning Timestamp of the range to be adjusted.
+    last : pd.Timestamp
+        The ending Timestamp of the range to be adjusted.
+    offset : pd.DateOffset
+        The dateoffset to which the Timestamps will be adjusted.
+    closed : {'right', 'left'}, default None
+        Which side of bin interval is closed.
+    base : int, default 0
+        The "origin" of the adjusted Timestamps.
+
+    Returns
+    -------
+    A tuple of length 2, containing the adjusted pd.Timestamp objects.
     """
     if not all(isinstance(obj, pd.Timestamp) for obj in [first, last]):
         raise TypeError("'first' and 'last' must be instances of type "
@@ -1641,6 +1658,23 @@ def _get_period_range_edges(first, last, offset, closed='left', base=0):
     """
     Adjust the provided `first` and `last` Periods to the respective Period of
     the given offset that encompasses them.
+
+    Parameters
+    ----------
+    first : pd.Period
+        The beginning Period of the range to be adjusted.
+    last : pd.Period
+        The ending Period of the range to be adjusted.
+    offset : pd.DateOffset
+        The dateoffset to which the Periods will be adjusted.
+    closed : {'right', 'left'}, default None
+        Which side of bin interval is closed.
+    base : int, default 0
+        The "origin" of the adjusted Periods.
+
+    Returns
+    -------
+    A tuple of length 2, containing the adjusted pd.Period objects.
     """
     if not all(isinstance(obj, pd.Period) for obj in [first, last]):
         raise TypeError("'first' and 'last' must be instances of type Period")
