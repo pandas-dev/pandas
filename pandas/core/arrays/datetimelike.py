@@ -562,8 +562,11 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin, AttributesMixin):
                 # non-fixed frequencies are not meaningful for timedelta64;
                 #  we retain that error message
                 raise e
-            # GH#11587 if index[0] is NaT _generate_range will raise
-            #  ValueError, which we re-raise with a targeted error message
+            # GH#11587 the main way this is reached is if the `np.array_equal`
+            #  check above is False.  This can also be reached if index[0]
+            #  is `NaT`, in which case the call to `cls._generate_range` will
+            #  raise a ValueError, which we re-raise with a more targeted
+            #  message.
             raise ValueError('Inferred frequency {infer} from passed values '
                              'does not conform to passed frequency {passed}'
                              .format(infer=inferred, passed=freq.freqstr))
