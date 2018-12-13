@@ -686,7 +686,7 @@ class DatetimeArrayMixin(dtl.DatetimeLikeArrayMixin,
         -------
         result : DatetimeArray
         """
-        new_values = dtl.DatetimeLikeArrayMixin._add_delta(self, delta)
+        new_values = super(DatetimeArrayMixin, self)._add_delta(delta)
         return type(self)._from_sequence(new_values,
                                          dtype=self.dtype,
                                          freq="infer")
