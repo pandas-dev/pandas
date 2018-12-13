@@ -10,11 +10,6 @@ What's New in 0.24.0 (Month XX, 2018)
 
 {{ header }}
 
-.. ipython:: python
-   :suppress:
-
-   from pandas import * # noqa F401, F403
-
 
 These are the changes in pandas 0.24.0. See :ref:`release` for a full changelog
 including other versions of pandas.
@@ -32,6 +27,8 @@ New features
 - :meth:`DataFrame.corr` and :meth:`Series.corr` now accept a callable for generic calculation methods of correlation, e.g. histogram intersection (:issue:`22684`)
 - :func:`DataFrame.to_string` now accepts ``decimal`` as an argument, allowing the user to specify which decimal separator should be used in the output. (:issue:`23614`)
 - :func:`DataFrame.read_feather` now accepts ``columns`` as an argument, allowing the user to specify which columns should be read. (:issue:`24025`)
+- :func:`DataFrame.to_html` now accepts ``render_links`` as an argument, allowing the user to generate HTML with links to any URLs that appear in the DataFrame.
+  See the :ref:`section on writing HTML <io.html>` in the IO docs for example usage. (:issue:`2679`)
 
 .. _whatsnew_0240.values_api:
 
@@ -386,6 +383,33 @@ Backwards incompatible API changes
 - ``max_rows`` and ``max_cols`` parameters removed from :class:`HTMLFormatter` since truncation is handled by :class:`DataFrameFormatter` (:issue:`23818`)
 - :meth:`read_csv` will now raise a ``ValueError`` if a column with missing values is declared as having dtype ``bool`` (:issue:`20591`)
 - The column order of the resultant :class:`DataFrame` from :meth:`MultiIndex.to_frame` is now guaranteed to match the :attr:`MultiIndex.names` order. (:issue:`22420`)
+
+Percentage change on groupby changes
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Fixed a bug where calling :func:`SeriesGroupBy.pct_change` or :func:`DataFrameGroupBy.pct_change` would previously work across groups when calculating the percent change, where it now correctly works per group (:issue:`21200`, :issue:`21235`).
+
+.. ipython:: python
+
+   df = pd.DataFrame({'grp': ['a', 'a', 'b'], 'foo': [1.0, 1.1, 2.2]})
+   df
+
+Previous behavior:
+
+.. code-block:: ipython
+
+   In [1]: df.groupby('grp').pct_change()
+   Out[1]:
+      foo
+   0  NaN
+   1  0.1
+   2  1.0
+
+New behavior:
+
+.. ipython:: python
+
+   df.groupby('grp').pct_change()
 
 .. _whatsnew_0240.api_breaking.deps:
 
@@ -1065,6 +1089,7 @@ Other API Changes
 - :meth:`Index.hasnans` and :meth:`Series.hasnans` now always return a python boolean. Previously, a python or a numpy boolean could be returned, depending on circumstances (:issue:`23294`).
 - The order of the arguments of :func:`DataFrame.to_html` and :func:`DataFrame.to_string` is rearranged to be consistent with each other. (:issue:`23614`)
 - :meth:`CategoricalIndex.reindex` now raises a ``ValueError`` if the target index is non-unique and not equal to the current index. It previously only raised if the target index was not of a categorical dtype (:issue:`23963`).
+- :func:`Series.to_list` and :func:`Index.to_list` are now aliases of ``Series.tolist`` respectively ``Index.tolist`` (:issue:`8826`)
 
 .. _whatsnew_0240.deprecations:
 
@@ -1501,6 +1526,7 @@ Groupby/Resample/Rolling
 
 - Bug in :func:`pandas.core.groupby.GroupBy.first` and :func:`pandas.core.groupby.GroupBy.last` with ``as_index=False`` leading to the loss of timezone information (:issue:`15884`)
 - Bug in :meth:`DatetimeIndex.resample` when downsampling across a DST boundary (:issue:`8531`)
+- Bug in date anchoring for :meth:`DatetimeIndex.resample` with offset :class:`Day` when n > 1 (:issue:`24127`)
 - Bug where ``ValueError`` is wrongly raised when calling :func:`~pandas.core.groupby.SeriesGroupBy.count` method of a
   ``SeriesGroupBy`` when the grouping variable only contains NaNs and numpy version < 1.13 (:issue:`21956`).
 - Multiple bugs in :func:`pandas.core.Rolling.min` with ``closed='left'`` and a
