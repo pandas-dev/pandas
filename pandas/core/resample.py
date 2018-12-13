@@ -1545,7 +1545,7 @@ class TimeGrouper(Grouper):
 
         start = ax.min().asfreq(self.freq, how=self.convention)
         end = ax.max().asfreq(self.freq, how='end')
-        offset = 0
+        bin_shift = 0
 
         # GH 23882
         if self.base:
@@ -1559,7 +1559,7 @@ class TimeGrouper(Grouper):
             # Get offset for bin edge (not label edge) adjustment
             start_offset = (pd.Period(start, self.freq)
                             - pd.Period(p_start, self.freq))
-            offset = start_offset.n % freq_mult
+            bin_shift = start_offset.n % freq_mult
             start = p_start
 
         labels = binner = PeriodIndex(start=start, end=end,
@@ -1573,7 +1573,7 @@ class TimeGrouper(Grouper):
         rng = np.arange(i8[0], i8[-1] + i8_extend, freq_mult)
         rng += freq_mult
         # adjust bin edge indexes to account for base
-        rng -= offset
+        rng -= bin_shift
         bins = memb.searchsorted(rng, side='left')
 
         if nat_count > 0:
