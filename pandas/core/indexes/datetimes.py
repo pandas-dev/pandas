@@ -68,6 +68,7 @@ class DatetimeDelegateMixin(DatetimelikeDelegateMixin):
     ]
     _extra_raw_properties = [
         '_box_func',
+        'tz', 'tzinfo',
     ]
     _delegated_properties = (
         DatetimeArray._datetimelike_ops + _extra_raw_properties
@@ -318,21 +319,6 @@ class DatetimeIndex(DatelikeIndexMixin,
         )
 
     # --------------------------------------------------------------------
-
-    @property
-    def tz(self):
-        # GH 18595
-        return self._data.tz
-
-    @tz.setter
-    def tz(self, value):
-        # GH 3746: Prevent localizing or converting the index by setting tz
-        raise AttributeError("Cannot directly set timezone. Use tz_localize() "
-                             "or tz_convert() as appropriate")
-
-    @property
-    def tzinfo(self):
-        return self._data.tzinfo
 
     @property
     def size(self):
