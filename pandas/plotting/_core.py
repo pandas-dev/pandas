@@ -26,12 +26,12 @@ from pandas.core.config import get_option
 from pandas.core.generic import _shared_doc_kwargs, _shared_docs
 
 from pandas.io.formats.printing import pprint_thing
+from pandas.plotting import _misc as misc
 from pandas.plotting._compat import _mpl_ge_3_0_0
 from pandas.plotting._style import _get_standard_colors, plot_params
 from pandas.plotting._tools import (
     _flatten, _get_all_lines, _get_xlim, _handle_shared_axes, _set_ticks_props,
     _subplots, format_date_labels, table)
-from pandas.plotting import _misc as misc
 
 try:
     from pandas.plotting import _converter
