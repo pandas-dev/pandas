@@ -683,12 +683,17 @@ Previous Behavior:
    Out[3]: array([Timestamp('2000-01-01 00:00:00+0000', tz='UTC')], dtype=object)
 
 
+
+.. ipython:: python
+   :suppress:
+
+   ser = pd.Series([pd.Timestamp('2000', tz='UTC'),
+                    pd.Timestamp('2000', tz='UTC')])
+
 Current Behavior:
 
 .. ipython:: python
 
-   ser = pd.Series([pd.Timestamp('2000', tz='UTC'),
-                    pd.Timestamp('2000', tz='UTC')])
    ser.unique()
 
 
