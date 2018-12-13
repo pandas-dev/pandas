@@ -154,8 +154,10 @@ class TestTimeSeries(TestData):
     def test_categorical_shift_fill_value(self):
         ts = pd.Series(['a', 'b', 'c', 'd'], dtype="category")
         res = ts.shift(1, fill_value='a')
-        tm.assert_equal(np.array(list(res.values)),
-                        np.array([ts.values[0]] + list(ts.values[:-1])))
+        expected = pd.Series(pd.Categorical(['a', 'a', 'b', 'c'],
+                                            categories=['a', 'b', 'c', 'd'],
+                                            ordered=False))
+        tm.assert_equal(res, expected)
 
         # check for incorrect fill_value
         with pytest.raises(ValueError):
