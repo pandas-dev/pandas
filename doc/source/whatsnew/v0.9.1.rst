@@ -97,9 +97,7 @@ New features
 
     .. ipython:: python
 
-        from pandas import ExcelFile
-
-        xl = ExcelFile('data/test.xls')
+        xl = pd.ExcelFile('data/test.xls')
         xl.parse('Sheet1', index_col=0, parse_dates=True,
                  parse_cols='A:D')
 
