@@ -3031,8 +3031,7 @@ class DatetimeTZBlock(ExtensionBlock, DatetimeBlock):
     def _to_json_values(self):
         # Patch to get JSON serialization working again.
         # Not part of the public API.
-        from pandas import DatetimeIndex
-        return DatetimeIndex(self.values)
+        return self.values._to_json_values()
 
     def _slice(self, slicer):
         """ return a slice of my values """
@@ -3165,9 +3164,7 @@ class DatetimeTZBlock(ExtensionBlock, DatetimeBlock):
                 value, limit, inplace, downcast
             )
         except (ValueError, TypeError):
-            # different timezones
-            # ugh, or different anything. I really think we want to
-            # deprecate this behavior.
+            # different timezones, or a non-tz
             return self.astype(object).fillna(
                 value, limit=limit, inplace=inplace, downcast=downcast
             )
