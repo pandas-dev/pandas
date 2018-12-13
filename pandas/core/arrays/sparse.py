@@ -894,6 +894,7 @@ class SparseArray(PandasObject, ExtensionArray, ExtensionOpsMixin):
 
         if fill_value is None:
             res_type = np.nan
+            fill_value = self.dtype.na_value
         else:
             res_type = fill_value
 
@@ -904,9 +905,6 @@ class SparseArray(PandasObject, ExtensionArray, ExtensionOpsMixin):
             arr = self.astype(SparseDtype(subtype, self.fill_value))
         else:
             arr = self
-
-        if fill_value is None:
-            fill_value = self.dtype.na_value
 
         empty = self._from_sequence(
             [fill_value] * min(abs(periods), len(self)),
