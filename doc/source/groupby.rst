@@ -1301,11 +1301,15 @@ Piping can also be expressive when you want to deliver a grouped object to some
 arbitrary function, for example:
 
 .. code-block:: python
+   def mean(groupby):
+       return(groupby.mean())
 
-   df.groupby(['Store', 'Product']).pipe(report_func)
+   df.groupby(['Store', 'Product']).pipe(mean)
 
-where ``report_func`` takes a GroupBy object and creates a report
-from that.
+where ``mean`` takes a GroupBy object and finds the mean of the Revenue and Quantity
+columns repectively for each Store-Product combination. The ``mean`` function can
+be any function that takes in a GroupBy object; the ``.pipe`` will pass the GroupBy
+object as a parameter into the function you specify.
 
 Examples
 --------
