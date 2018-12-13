@@ -27,6 +27,8 @@ New features
 - :meth:`DataFrame.corr` and :meth:`Series.corr` now accept a callable for generic calculation methods of correlation, e.g. histogram intersection (:issue:`22684`)
 - :func:`DataFrame.to_string` now accepts ``decimal`` as an argument, allowing the user to specify which decimal separator should be used in the output. (:issue:`23614`)
 - :func:`DataFrame.read_feather` now accepts ``columns`` as an argument, allowing the user to specify which columns should be read. (:issue:`24025`)
+- :func:`DataFrame.to_html` now accepts ``render_links`` as an argument, allowing the user to generate HTML with links to any URLs that appear in the DataFrame.
+  See the :ref:`section on writing HTML <io.html>` in the IO docs for example usage. (:issue:`2679`)
 
 .. _whatsnew_0240.values_api:
 
@@ -275,15 +277,12 @@ See the :ref:`Merge, join, and concatenate
                                           ('K1', 'X2')],
                                           names=['key', 'X'])
 
-
    left = pd.DataFrame({'A': ['A0', 'A1', 'A2'],
                         'B': ['B0', 'B1', 'B2']}, index=index_left)
-
 
    index_right = pd.MultiIndex.from_tuples([('K0', 'Y0'), ('K1', 'Y1'),
                                            ('K2', 'Y2'), ('K2', 'Y3')],
                                            names=['key', 'Y'])
-
 
    right = pd.DataFrame({'C': ['C0', 'C1', 'C2', 'C3'],
                          'D': ['D0', 'D1', 'D2', 'D3']}, index=index_right)
