@@ -352,7 +352,8 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin, AttributesMixin):
                 else:
                     freq = self.freq
             elif key is Ellipsis:
-                # GH#21282 avoid losing `freq` attribute
+                # GH#21282 indexing with Ellipsis is similar to a full slice,
+                #  should preserve `freq` attribute
                 freq = self.freq
 
         attribs['freq'] = freq
