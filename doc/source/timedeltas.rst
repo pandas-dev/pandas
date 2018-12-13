@@ -1,15 +1,6 @@
-.. currentmodule:: pandas
 .. _timedeltas:
 
-.. ipython:: python
-   :suppress:
-
-   import numpy as np
-   import pandas as pd
-
-   np.random.seed(123456)
-   np.set_printoptions(precision=4, suppress=True)
-   pd.options.display.max_rows = 15
+{{ header }}
 
 .. _timedeltas.timedeltas:
 
@@ -445,11 +436,11 @@ Finally, the combination of ``TimedeltaIndex`` with ``DatetimeIndex`` allow cert
 .. ipython:: python
 
    tdi = pd.TimedeltaIndex(['1 days', pd.NaT, '2 days'])
-   tdi.tolist()
+   tdi.to_list()
    dti = pd.date_range('20130101', periods=3)
-   dti.tolist()
-   (dti + tdi).tolist()
-   (dti - tdi).tolist()
+   dti.to_list()
+   (dti + tdi).to_list()
+   (dti - tdi).to_list()
 
 Conversions
 ~~~~~~~~~~~
@@ -470,7 +461,7 @@ Scalars type ops work as well. These can potentially return a *different* type o
 
    # subtraction of a date and a timedelta -> datelike
    # note that trying to subtract a date from a Timedelta will raise an exception
-   (pd.Timestamp('20130101') - tdi).tolist()
+   (pd.Timestamp('20130101') - tdi).to_list()
 
    # timedelta + timedelta -> timedelta
    tdi + pd.Timedelta('10 days')

@@ -913,7 +913,7 @@ class IndexOpsMixin(object):
         - categorical -> codes
         """
         if is_extension_array_dtype(self):
-            return self.values._ndarray_values
+            return self.array._ndarray_values
         return self.values
 
     @property
@@ -1024,6 +1024,8 @@ class IndexOpsMixin(object):
             return list(self._values)
         else:
             return self._values.tolist()
+
+    to_list = tolist
 
     def __iter__(self):
         """
@@ -1244,7 +1246,7 @@ class IndexOpsMixin(object):
     @property
     def is_unique(self):
         """
-        Return boolean if values in the object are unique
+        Return boolean if values in the object are unique.
 
         Returns
         -------
@@ -1256,7 +1258,7 @@ class IndexOpsMixin(object):
     def is_monotonic(self):
         """
         Return boolean if values in the object are
-        monotonic_increasing
+        monotonic_increasing.
 
         .. versionadded:: 0.19.0
 
@@ -1273,7 +1275,7 @@ class IndexOpsMixin(object):
     def is_monotonic_decreasing(self):
         """
         Return boolean if values in the object are
-        monotonic_decreasing
+        monotonic_decreasing.
 
         .. versionadded:: 0.19.0
 
@@ -1307,12 +1309,12 @@ class IndexOpsMixin(object):
         Memory usage does not include memory consumed by elements that
         are not components of the array if deep=False or if used on PyPy
         """
-        if hasattr(self.values, 'memory_usage'):
-            return self.values.memory_usage(deep=deep)
+        if hasattr(self.array, 'memory_usage'):
+            return self.array.memory_usage(deep=deep)
 
-        v = self.values.nbytes
+        v = self.array.nbytes
         if deep and is_object_dtype(self) and not PYPY:
-            v += lib.memory_usage_of_objects(self.values)
+            v += lib.memory_usage_of_objects(self.array)
         return v
 
     @Substitution(
