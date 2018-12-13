@@ -327,10 +327,6 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin, AttributesMixin):
                              "numpy.newaxis (`None`) and integer or boolean "
                              "arrays are valid indices")
 
-        if key is Ellipsis:
-            # GH#21282 avoid losing `freq` attribute
-            return self.copy()
-
         getitem = self._data.__getitem__
         if is_int:
             val = getitem(key)
@@ -355,6 +351,9 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin, AttributesMixin):
                     freq = key.step * self.freq
                 else:
                     freq = self.freq
+            elif key is Ellipsis:
+                # GH#21282 avoid losing `freq` attribute
+                freq = self.freq
 
         attribs['freq'] = freq
 
