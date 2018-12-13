@@ -2596,6 +2596,28 @@ table CSS classes. Note that these classes are *appended* to the existing
 
    print(df.to_html(classes=['awesome_table_class', 'even_more_awesome_class']))
 
+The ``render_links`` argument provides the ability to add hyperlinks to cells
+that contain URLs.
+
+.. versionadded:: 0.24
+
+.. ipython:: python
+
+   url_df = pd.DataFrame({
+       'name': ['Python', 'Pandas'],
+       'url': ['https://www.python.org/', 'http://pandas.pydata.org']})
+   print(url_df.to_html(render_links=True))
+
+.. ipython:: python
+   :suppress:
+
+   write_html(url_df, 'render_links', render_links=True)
+
+HTML:
+
+.. raw:: html
+   :file: _static/render_links.html
+
 Finally, the ``escape`` argument allows you to control whether the
 "<", ">" and "&" characters escaped in the resulting HTML (by default it is
 ``True``). So to get the HTML without escaped characters pass ``escape=False``
