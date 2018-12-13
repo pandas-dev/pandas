@@ -1310,6 +1310,8 @@ Datetimelike
 - Bug in :class:`Index` where calling ``np.array(dtindex, dtype=object)`` on a timezone-naive :class:`DatetimeIndex` would return an array of ``datetime`` objects instead of :class:`Timestamp` objects, potentially losing nanosecond portions of the timestamps (:issue:`23524`)
 - Bug in :class:`Categorical.__setitem__` not allowing setting with another ``Categorical`` when both are undordered and have the same categories, but in a different order (:issue:`24142`)
 - Bug in :func:`date_range` where using dates with millisecond resolution or higher could return incorrect values or the wrong number of values in the index (:issue:`24110`)
+- Bug in :class:`DatetimeIndex` where constructing a :class:`DatetimeIndex` from a :class:`Categorical` or :class:`CategoricalIndex` would incorrectly drop timezone information (:issue:`18664`)
+- Bug in :class:`DatetimeIndex` and :class:`TimedeltaIndex` where indexing with ``Ellipsis`` would incorrectly lose the index's ``freq`` attribute (:issue:`21282`)
 
 Timedelta
 ^^^^^^^^^
