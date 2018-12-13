@@ -1341,10 +1341,21 @@ class DatetimeLikeArrayMixin(AttributesMixin,
 
     def max(self, skipna=True):
         # TODO: skipna is broken with max.
-        result = nanops.nanmax(self.asi8, skipna=skipna, mask=self.isna())
-        if isna(result):
-            # Period._from_ordinal does not handle np.nan gracefully
+        # See https://github.com/pandas-dev/pandas/issues/24265
+        mask = self.isna()
+        if skipna:
+            values = self[~mask].asi8
+        elif mask.any():
             return NaT
+        else:
+            values = self.asi8
+
+        if not len(values):
+            # short-circut for empty max / min
+            return NaT
+        # Do not pass mask, since it's maybe not the right shape.
+        result = nanops.nanmax(values, skipna=skipna)
+        # Don't have to worry about NA `result`, since no NA went in.
         return self._box_func(result)
 
 
