@@ -309,7 +309,8 @@ class Categorical(ExtensionArray, PandasObject):
     # ops, which raise
     __array_priority__ = 1000
     _dtype = CategoricalDtype(ordered=False)
-    _deprecations = frozenset(['labels'])
+    # tolist is not actually deprecated, just suppressed in the __dir__
+    _deprecations = frozenset(['labels', 'tolist'])
     _typ = 'categorical'
 
     def __init__(self, values, categories=None, ordered=None, dtype=None,
@@ -566,6 +567,8 @@ class Categorical(ExtensionArray, PandasObject):
         (for Timestamp/Timedelta/Interval/Period)
         """
         return list(self)
+
+    to_list = tolist
 
     @property
     def base(self):
