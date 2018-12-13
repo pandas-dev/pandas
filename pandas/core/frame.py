@@ -2047,8 +2047,8 @@ class DataFrame(NDFrame):
                 index=True, na_rep='NaN', formatters=None, float_format=None,
                 sparsify=None, index_names=True, justify=None, max_rows=None,
                 max_cols=None, show_dimensions=False, decimal='.',
-                bold_rows=True, classes=None, escape=True,
-                notebook=False, border=None, table_id=None):
+                bold_rows=True, classes=None, escape=True, notebook=False,
+                border=None, table_id=None, render_links=False):
         """
         Render a DataFrame as an HTML table.
         %(shared_params)s
@@ -2070,6 +2070,12 @@ class DataFrame(NDFrame):
             A css id is included in the opening `<table>` tag if specified.
 
             .. versionadded:: 0.23.0
+
+        render_links : bool, default False
+            Convert URLs to HTML links.
+
+            .. versionadded:: 0.24.0
+
         %(returns)s
         See Also
         --------
@@ -2091,7 +2097,8 @@ class DataFrame(NDFrame):
                                            max_rows=max_rows,
                                            max_cols=max_cols,
                                            show_dimensions=show_dimensions,
-                                           decimal=decimal, table_id=table_id)
+                                           decimal=decimal, table_id=table_id,
+                                           render_links=render_links)
         # TODO: a generic formatter wld b in DataFrameFormatter
         formatter.to_html(classes=classes, notebook=notebook, border=border)
 

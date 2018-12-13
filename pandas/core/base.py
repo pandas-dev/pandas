@@ -1024,6 +1024,8 @@ class IndexOpsMixin(object):
         else:
             return self._values.tolist()
 
+    to_list = tolist
+
     def __iter__(self):
         """
         Return an iterator of the values.
