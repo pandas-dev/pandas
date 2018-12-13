@@ -8,7 +8,6 @@ v0.14.0 (May 31 , 2014)
 .. ipython:: python
    :suppress:
 
-   import pandas as pd
 
 This is a major release from 0.13.1 and includes a small number of API changes, several new features,
 enhancements, and performance improvements along with a large number of bug fixes. We recommend that all
@@ -73,12 +72,11 @@ API changes
 
   .. code-block:: python
 
-     dfl.iloc[[4, 5, 6]]
-  IndexError: positional indexers are out-of-bounds
+     >>> dfl.iloc[[4, 5, 6]]
+     IndexError: positional indexers are out-of-bounds
 
-  .. code-block:: python
-     dfl.iloc[:, 4]
-  IndexError: single positional indexer is out-of-bounds
+     >>> dfl.iloc[:, 4]
+     IndexError: single positional indexer is out-of-bounds
 
 - Slicing with negative start, stop & step values handles corner cases better (:issue:`6531`):
 
@@ -218,12 +216,12 @@ API changes
 
   .. code-block:: python
 
-     x = pd.Series(np.random.rand(10) > 0.5)
-     y = True
-     x + y  # warning generated: should do x | y instead
-     x / y  # this raises because it doesn't make sense
+     >>> x = pd.Series(np.random.rand(10) > 0.5)
+     >>> y = True
+     >>> x + y  # warning generated: should do x | y instead
+     >>> x / y  # this raises because it doesn't make sense
 
-  NotImplementedError: operator '/' not implemented for bool dtypes
+     NotImplementedError: operator '/' not implemented for bool dtypes
 
 - In ``HDFStore``, ``select_as_multiple`` will always raise a ``KeyError``, when a key or the selector is not found (:issue:`6177`)
 - ``df['col'] = value`` and ``df.loc[:,'col'] = value`` are now completely equivalent;
@@ -504,13 +502,13 @@ See also issues (:issue:`6134`, :issue:`4036`, :issue:`3057`, :issue:`2598`, :is
 
   .. code-block:: python
 
-    df.loc[(slice('A1', 'A3'), .....), :]
+     >>> df.loc[(slice('A1', 'A3'), ...), :]  # noqa: E901
 
    rather than this:
 
   .. code-block:: python
 
-    df.loc[(slice('A1', 'A3'), .....)]
+     >>> df.loc[(slice('A1', 'A3'), ...)]  # noqa: E901
 
 .. warning::
 
@@ -769,32 +767,30 @@ Enhancements
 
   .. ipython:: python
 
-     household = pd.DataFrame({
-                              'household_id': [1, 2, 3],
-                              'male': [0, 1, 0],
-                              'wealth': [196087.3, 316478.7, 294750]
-                              },
+     household = pd.DataFrame({'household_id': [1, 2, 3],
+                               'male': [0, 1, 0],
+                               'wealth': [196087.3, 316478.7, 294750]
+                               },
                               columns=['household_id', 'male', 'wealth']
                               ).set_index('household_id')
      household
-     portfolio = pd.DataFrame({
-                              'household_id': [1, 2, 2, 3, 3, 3, 4],
-                              'asset_id': ["nl0000301109",
-                                           "nl0000289783",
-                                           "gb00b03mlx29",
-                                           "gb00b03mlx29",
-                                           "lu0197800237",
-                                           "nl0000289965",
-                                           np.nan],
-                              'name': ["ABN Amro",
-                                       "Robeco",
-                                       "Royal Dutch Shell",
-                                       "Royal Dutch Shell",
-                                       "AAB Eastern Europe Equity Fund",
-                                       "Postbank BioTech Fonds",
-                                       np.nan],
-                              'share': [1.0, 0.4, 0.6, 0.15, 0.6, 0.25, 1.0]
-                              },
+     portfolio = pd.DataFrame({'household_id': [1, 2, 2, 3, 3, 3, 4],
+                               'asset_id': ["nl0000301109",
+                                            "nl0000289783",
+                                            "gb00b03mlx29",
+                                            "gb00b03mlx29",
+                                            "lu0197800237",
+                                            "nl0000289965",
+                                            np.nan],
+                               'name': ["ABN Amro",
+                                        "Robeco",
+                                        "Royal Dutch Shell",
+                                        "Royal Dutch Shell",
+                                        "AAB Eastern Europe Equity Fund",
+                                        "Postbank BioTech Fonds",
+                                        np.nan],
+                               'share': [1.0, 0.4, 0.6, 0.15, 0.6, 0.25, 1.0]
+                               },
                               columns=['household_id', 'asset_id', 'name', 'share']
                               ).set_index(['household_id', 'asset_id'])
      portfolio
