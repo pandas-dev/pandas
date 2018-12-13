@@ -360,6 +360,9 @@ cdef class _Timestamp(datetime):
 
         elif PyDelta_Check(other) or hasattr(other, 'delta'):
             # delta --> offsets.Tick
+            if self.tz is not None and getattr(other, '_prefix') == 'D':
+                warnings.warn("Day arithmetic will respect calendar day in a"
+                              "future release", DeprecationWarning)
             nanos = delta_to_nanoseconds(other)
             result = Timestamp(self.value + nanos,
                                tz=self.tzinfo, freq=self.freq)

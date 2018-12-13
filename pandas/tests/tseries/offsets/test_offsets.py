@@ -3222,3 +3222,8 @@ class TestDay(object):
         with tm.assert_produces_warning(DeprecationWarning):
             Day(1) + Tick(24)
             Tick(24) + Day(1)
+
+    def test_day_timestamptz_arithmetic_deprecation(self):
+        with tm.assert_produces_warning(DeprecationWarning):
+            Timestamp("2012-10-28", tz='Europe/Brussels') + Day()
+            Day() + Timestamp("2012-10-28", tz='Europe/Brussels')

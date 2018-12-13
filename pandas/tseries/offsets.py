@@ -2308,7 +2308,8 @@ class Tick(liboffsets._Tick, SingleConstructorOffset):
     def __add__(self, other):
         if isinstance(other, Tick):
             if self._prefix == 'D' or other._prefix == 'D':
-                warnings.warn("Arithmetic with Day is deprecated.",
+                warnings.warn("Arithmetic with Day is deprecated. Day will "
+                              "become a non-fixed offset.",
                               DeprecationWarning, stacklevel=2)
             if type(self) == type(other):
                 return type(self)(self.n + other.n)
@@ -2382,6 +2383,10 @@ class Tick(liboffsets._Tick, SingleConstructorOffset):
             result = other.__add__(self)
             if result == NotImplemented:
                 raise OverflowError
+            if other.tz is not None and self._prefix == 'D':
+                warnings.warn("Day arithmetic will respect calendar day in a "
+                              "future release", DeprecationWarning,
+                              stacklevel=3)
             return result
         elif isinstance(other, (datetime, np.datetime64, date)):
             return as_timestamp(other) + self
