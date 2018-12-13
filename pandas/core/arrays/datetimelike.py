@@ -400,6 +400,15 @@ class DatetimeLikeArrayMixin(AttributesMixin,
 
     @property
     def asi8(self):
+        # type: () -> ndarray
+        """
+        Integer representation of the values.
+
+        Returns
+        -------
+        ndarray
+            An ndarray with int64 dtype.
+        """
         # do not cache or you'll create a memory leak
         return self._data.view('i8')
 
@@ -421,6 +430,7 @@ class DatetimeLikeArrayMixin(AttributesMixin,
         raise AbstractMethodError(self)
 
     def _formatter(self, boxed=False):
+        # TODO: Remove Datetime & DatetimeTZ formatters.
         return "'{}'".format
 
     # ----------------------------------------------------------------
@@ -436,6 +446,8 @@ class DatetimeLikeArrayMixin(AttributesMixin,
 
     @property
     def size(self):
+        # type: () -> int
+        """The number of elements in this array."""
         return np.prod(self.shape)
 
     def __len__(self):
@@ -682,9 +694,33 @@ class DatetimeLikeArrayMixin(AttributesMixin,
     # pandas currently assumes they're there.
 
     def view(self, dtype=None):
+        """
+        New view on this array with the same data.
+
+        Parameters
+        ----------
+        dtype : numpy dtype, optional
+
+        Returns
+        -------
+        ndarray
+            With the specified `dtype`.
+        """
         return self._data.view(dtype=dtype)
 
     def value_counts(self, dropna=False):
+        """
+        Return a Series containing counts of unique values.
+
+        Parameters
+        ----------
+        dropna : boolean, default True
+            Don't include counts of NaT values.
+
+        Returns
+        -------
+        Series
+        """
         # n.b. moved from PeriodArray.value_counts
         from pandas import Series, Index
 
@@ -701,6 +737,30 @@ class DatetimeLikeArrayMixin(AttributesMixin,
         return Series(result.values, index=index, name=result.name)
 
     def searchsorted(self, value, side='left', sorter=None):
+        """
+        Find indices where elements should be inserted to maintain order.
+
+        Find the indices into a sorted array `self` such that, if the
+        corresponding elements in `value` were inserted before the indices,
+        the order of `self` would be preserved.
+
+        Parameters
+        ----------
+        value : array_like
+            Values to insert into `self`.
+        side : {'left', 'right'}, optional
+            If 'left', the index of the first suitable location found is given.
+            If 'right', return the last such index.  If there is no suitable
+            index, return either 0 or N (where N is the length of `self`).
+        sorter : 1-D array_like, optional
+            Optional array of integer indices that sort `self` into ascending
+            order. They are typically the result of ``np.argsort``.
+
+        Returns
+        -------
+        indices : array of ints
+            Array of insertion points with the same shape as `value`.
+        """
         if isinstance(value, compat.string_types):
             value = self._scalar_from_string(value)
 

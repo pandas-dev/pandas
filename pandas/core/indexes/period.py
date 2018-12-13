@@ -876,11 +876,6 @@ class PeriodIndex(DatetimeIndexOpsMixin,
                       FutureWarning, stacklevel=2)
         return self._ndarray_values.flags
 
-    @property
-    def asi8(self):
-        # TODO(DatetimeArray): remove
-        return self.view('i8')
-
     def item(self):
         """
         return the first element of the underlying data as a python

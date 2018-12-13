@@ -62,6 +62,12 @@ class DatetimeIndexOpsMixin(ExtensionOpsMixin):
         # type: () -> np.ndarray
         # Note: PeriodArray overrides this to return an ndarray of objects.
         return self._data._data
+
+    @property
+    @Appender(DatetimeLikeArrayMixin.asi8.__doc__)
+    def asi8(self):
+        return self._data.asi8
+
     # ------------------------------------------------------------------------
 
     # Note: moved from DatetimeLikeArrayMixin
