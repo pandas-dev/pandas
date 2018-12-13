@@ -1568,6 +1568,8 @@ class DatetimeArrayMixin(dtl.DatetimeLikeArrayMixin,
                  ) / 24.0)
 
     def _to_json_values(self):
+        # Patch to get JSON serialization working again.
+        # Not part of the public API.
         from pandas import DatetimeIndex
         return DatetimeIndex(self)
 

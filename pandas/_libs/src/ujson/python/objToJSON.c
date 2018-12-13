@@ -227,6 +227,8 @@ static PyObject *get_values(PyObject *obj) {
     PyObject *values = PyObject_GetAttrString(obj, "values");
     PRINTMARK();
 
+    // Not part of the EA-interface. Just a temporary fix to get
+    // things working for DatetimeArray.
     if (PyObject_HasAttrString(obj, "_to_json_values")) {
         PyObject *subvals = PyObject_CallMethod(obj, "_to_json_values", NULL);
         Py_DECREF(values);

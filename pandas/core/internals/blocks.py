@@ -3013,6 +3013,8 @@ class DatetimeTZBlock(ExtensionBlock, DatetimeBlock):
             return values.reshape(1, -1)
 
     def _to_json_values(self):
+        # Patch to get JSON serialization working again.
+        # Not part of the public API.
         from pandas import DatetimeIndex
         return DatetimeIndex(self.values)
 
