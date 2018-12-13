@@ -10,11 +10,6 @@ What's New in 0.24.0 (Month XX, 2018)
 
 {{ header }}
 
-.. ipython:: python
-   :suppress:
-
-   from pandas import * # noqa F401, F403
-
 
 These are the changes in pandas 0.24.0. See :ref:`release` for a full changelog
 including other versions of pandas.
@@ -252,7 +247,7 @@ convenient way to apply users' predefined styling functions, and can help reduce
 
 .. ipython:: python
 
-    df = pandas.DataFrame({'N': [1250, 1500, 1750], 'X': [0.25, 0.35, 0.50]})
+    df = pd.DataFrame({'N': [1250, 1500, 1750], 'X': [0.25, 0.35, 0.50]})
 
     def format_and_align(styler):
         return (styler.format({'N': '{:,}', 'X': '{:.1%}'})
@@ -282,8 +277,7 @@ See the :ref:`Merge, join, and concatenate
 
 
    left = pd.DataFrame({'A': ['A0', 'A1', 'A2'],
-                        'B': ['B0', 'B1', 'B2']},
-                         index=index_left)
+                        'B': ['B0', 'B1', 'B2']}, index=index_left)
 
 
    index_right = pd.MultiIndex.from_tuples([('K0', 'Y0'), ('K1', 'Y1'),
@@ -292,11 +286,9 @@ See the :ref:`Merge, join, and concatenate
 
 
    right = pd.DataFrame({'C': ['C0', 'C1', 'C2', 'C3'],
-                         'D': ['D0', 'D1', 'D2', 'D3']},
-                        index=index_right)
+                         'D': ['D0', 'D1', 'D2', 'D3']}, index=index_right)
 
-
-    left.join(right)
+   left.join(right)
 
 For earlier versions this can be done using the following.
 
@@ -391,6 +383,33 @@ Backwards incompatible API changes
 - :meth:`read_csv` will now raise a ``ValueError`` if a column with missing values is declared as having dtype ``bool`` (:issue:`20591`)
 - The column order of the resultant :class:`DataFrame` from :meth:`MultiIndex.to_frame` is now guaranteed to match the :attr:`MultiIndex.names` order. (:issue:`22420`)
 
+Percentage change on groupby changes
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Fixed a bug where calling :func:`SeriesGroupBy.pct_change` or :func:`DataFrameGroupBy.pct_change` would previously work across groups when calculating the percent change, where it now correctly works per group (:issue:`21200`, :issue:`21235`).
+
+.. ipython:: python
+
+   df = pd.DataFrame({'grp': ['a', 'a', 'b'], 'foo': [1.0, 1.1, 2.2]})
+   df
+
+Previous behavior:
+
+.. code-block:: ipython
+
+   In [1]: df.groupby('grp').pct_change()
+   Out[1]:
+      foo
+   0  NaN
+   1  0.1
+   2  1.0
+
+New behavior:
+
+.. ipython:: python
+
+   df.groupby('grp').pct_change()
+
 .. _whatsnew_0240.api_breaking.deps:
 
 Dependencies have increased minimum versions
@@ -442,26 +461,26 @@ Previous Behavior on Windows:
 
 .. code-block:: ipython
 
-    In [1]: data = pd.DataFrame({
-    ...:     "string_with_lf": ["a\nbc"],
-    ...:     "string_with_crlf": ["a\r\nbc"]
-    ...: })
+    In [1]: data = pd.DataFrame({"string_with_lf": ["a\nbc"],
+       ...:                      "string_with_crlf": ["a\r\nbc"]})
 
-    In [2]: # When passing file PATH to to_csv, line_terminator does not work, and csv is saved with '\r\n'.
-    ...: # Also, this converts all '\n's in the data to '\r\n'.
-    ...: data.to_csv("test.csv", index=False, line_terminator='\n')
+    In [2]: # When passing file PATH to to_csv,
+       ...: # line_terminator does not work, and csv is saved with '\r\n'.
+       ...: # Also, this converts all '\n's in the data to '\r\n'.
+       ...: data.to_csv("test.csv", index=False, line_terminator='\n')
 
     In [3]: with open("test.csv", mode='rb') as f:
-    ...:     print(f.read())
-    b'string_with_lf,string_with_crlf\r\n"a\r\nbc","a\r\r\nbc"\r\n'
+       ...:     print(f.read())
+    Out[3]: b'string_with_lf,string_with_crlf\r\n"a\r\nbc","a\r\r\nbc"\r\n'
 
-    In [4]: # When passing file OBJECT with newline option to to_csv, line_terminator works.
-    ...: with open("test2.csv", mode='w', newline='\n') as f:
-    ...:     data.to_csv(f, index=False, line_terminator='\n')
+    In [4]: # When passing file OBJECT with newline option to
+       ...: # to_csv, line_terminator works.
+       ...: with open("test2.csv", mode='w', newline='\n') as f:
+       ...:     data.to_csv(f, index=False, line_terminator='\n')
 
     In [5]: with open("test2.csv", mode='rb') as f:
-    ...:     print(f.read())
-    b'string_with_lf,string_with_crlf\n"a\nbc","a\r\nbc"\n'
+       ...:     print(f.read())
+    Out[5]: b'string_with_lf,string_with_crlf\n"a\nbc","a\r\nbc"\n'
 
 
 New Behavior on Windows:
@@ -472,16 +491,14 @@ New Behavior on Windows:
 
   .. code-block:: ipython
 
-    In [1]: data = pd.DataFrame({
-    ...:     "string_with_lf": ["a\nbc"],
-    ...:     "string_with_crlf": ["a\r\nbc"]
-    ...: })
+    In [1]: data = pd.DataFrame({"string_with_lf": ["a\nbc"],
+       ...:                      "string_with_crlf": ["a\r\nbc"]})
 
     In [2]: data.to_csv("test.csv", index=False, line_terminator='\n')
 
     In [3]: with open("test.csv", mode='rb') as f:
-    ...:     print(f.read())
-    b'string_with_lf,string_with_crlf\n"a\nbc","a\r\nbc"\n'
+       ...:     print(f.read())
+    Out[3]: b'string_with_lf,string_with_crlf\n"a\nbc","a\r\nbc"\n'
 
 
 - On Windows, the value of ``os.linesep`` is ``'\r\n'``,
@@ -490,16 +507,14 @@ New Behavior on Windows:
 
   .. code-block:: ipython
 
-    In [1]: data = pd.DataFrame({
-    ...: "string_with_lf": ["a\nbc"],
-    ...: "string_with_crlf": ["a\r\nbc"]
-    ...: })
+    In [1]: data = pd.DataFrame({"string_with_lf": ["a\nbc"],
+       ...:                      "string_with_crlf": ["a\r\nbc"]})
 
     In [2]: data.to_csv("test.csv", index=False)
 
     In [3]: with open("test.csv", mode='rb') as f:
-    ...:     print(f.read())
-    b'string_with_lf,string_with_crlf\r\n"a\nbc","a\r\nbc"\r\n'
+       ...:     print(f.read())
+    Out[3]: b'string_with_lf,string_with_crlf\r\n"a\nbc","a\r\nbc"\r\n'
 
 
 - For files objects, specifying ``newline`` is not sufficient to set the line terminator.
@@ -507,17 +522,15 @@ New Behavior on Windows:
 
   .. code-block:: ipython
 
-    In [1]: data = pd.DataFrame({
-    ...: "string_with_lf": ["a\nbc"],
-    ...: "string_with_crlf": ["a\r\nbc"]
-    ...: })
+    In [1]: data = pd.DataFrame({"string_with_lf": ["a\nbc"],
+       ...:                      "string_with_crlf": ["a\r\nbc"]})
 
     In [2]: with open("test2.csv", mode='w', newline='\n') as f:
-    ...:     data.to_csv(f, index=False)
+       ...:     data.to_csv(f, index=False)
 
     In [3]: with open("test2.csv", mode='rb') as f:
-    ...:     print(f.read())
-    b'string_with_lf,string_with_crlf\r\n"a\nbc","a\r\nbc"\r\n'
+       ...:     print(f.read())
+    Out[3]: b'string_with_lf,string_with_crlf\r\n"a\nbc","a\r\nbc"\r\n'
 
 .. _whatsnew_0240.api.timezone_offset_parsing:
 
@@ -564,7 +577,8 @@ Parsing datetime strings with different UTC offsets will now create an Index of
 
 .. ipython:: python
 
-    idx = pd.to_datetime(["2015-11-18 15:30:00+05:30", "2015-11-18 16:30:00+06:30"])
+    idx = pd.to_datetime(["2015-11-18 15:30:00+05:30",
+                          "2015-11-18 16:30:00+06:30"])
     idx
     idx[0]
     idx[1]
@@ -574,7 +588,8 @@ that the dates have been converted to UTC
 
 .. ipython:: python
 
-    pd.to_datetime(["2015-11-18 15:30:00+05:30", "2015-11-18 16:30:00+06:30"], utc=True)
+    pd.to_datetime(["2015-11-18 15:30:00+05:30",
+                    "2015-11-18 16:30:00+06:30"], utc=True)
 
 .. _whatsnew_0240.api_breaking.calendarday:
 
@@ -846,7 +861,7 @@ Previous Behavior:
    In [4]: df = pd.DataFrame(arr)
 
    In [5]: df == arr[[0], :]
-      ...: # comparison previously broadcast where arithmetic would raise
+       ...: # comparison previously broadcast where arithmetic would raise
    Out[5]:
           0      1
    0   True   True
@@ -857,8 +872,8 @@ Previous Behavior:
    ValueError: Unable to coerce to DataFrame, shape must be (3, 2): given (1, 2)
 
    In [7]: df == (1, 2)
-      ...: # length matches number of columns;
-      ...: # comparison previously raised where arithmetic would broadcast
+       ...: # length matches number of columns;
+       ...: # comparison previously raised where arithmetic would broadcast
    ...
    ValueError: Invalid broadcasting comparison [(1, 2)] with block values
    In [8]: df + (1, 2)
@@ -869,8 +884,8 @@ Previous Behavior:
    2  5  7
 
    In [9]: df == (1, 2, 3)
-      ...: # length matches number of rows
-      ...: # comparison previously broadcast where arithmetic would raise
+       ...:  # length matches number of rows
+       ...:  # comparison previously broadcast where arithmetic would raise
    Out[9]:
           0      1
    0  False   True
@@ -1033,7 +1048,8 @@ Current Behavior:
 
 .. code-block:: ipython
 
-    In [3]: df = pd.DataFrame({'a': [1, 2, 2, 2, 2], 'b': [3, 3, 4, 4, 4],
+    In [3]: df = pd.DataFrame({'a': [1, 2, 2, 2, 2],
+       ...:                    'b': [3, 3, 4, 4, 4],
        ...:                    'c': [1, 1, np.nan, 1, 1]})
     In [4]: pd.crosstab(df.a, df.b, normalize='columns')
 
@@ -1072,6 +1088,7 @@ Other API Changes
 - :meth:`Index.hasnans` and :meth:`Series.hasnans` now always return a python boolean. Previously, a python or a numpy boolean could be returned, depending on circumstances (:issue:`23294`).
 - The order of the arguments of :func:`DataFrame.to_html` and :func:`DataFrame.to_string` is rearranged to be consistent with each other. (:issue:`23614`)
 - :meth:`CategoricalIndex.reindex` now raises a ``ValueError`` if the target index is non-unique and not equal to the current index. It previously only raised if the target index was not of a categorical dtype (:issue:`23963`).
+- :func:`Series.to_list` and :func:`Index.to_list` are now aliases of ``Series.tolist`` respectively ``Index.tolist`` (:issue:`8826`)
 
 .. _whatsnew_0240.deprecations:
 
@@ -1508,6 +1525,7 @@ Groupby/Resample/Rolling
 
 - Bug in :func:`pandas.core.groupby.GroupBy.first` and :func:`pandas.core.groupby.GroupBy.last` with ``as_index=False`` leading to the loss of timezone information (:issue:`15884`)
 - Bug in :meth:`DatetimeIndex.resample` when downsampling across a DST boundary (:issue:`8531`)
+- Bug in date anchoring for :meth:`DatetimeIndex.resample` with offset :class:`Day` when n > 1 (:issue:`24127`)
 - Bug where ``ValueError`` is wrongly raised when calling :func:`~pandas.core.groupby.SeriesGroupBy.count` method of a
   ``SeriesGroupBy`` when the grouping variable only contains NaNs and numpy version < 1.13 (:issue:`21956`).
 - Multiple bugs in :func:`pandas.core.Rolling.min` with ``closed='left'`` and a

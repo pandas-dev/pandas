@@ -1618,8 +1618,8 @@ def _get_timestamp_range_edges(first, last, offset, closed='left', base=0):
         is_day = isinstance(offset, Day)
         day_nanos = delta_to_nanoseconds(timedelta(1))
 
-        # #1165
-        if (is_day and day_nanos % offset.nanos == 0) or not is_day:
+        # #1165 and #24127
+        if (is_day and not offset.nanos % day_nanos) or not is_day:
             return _adjust_dates_anchored(first, last, offset,
                                           closed=closed, base=base)
 
