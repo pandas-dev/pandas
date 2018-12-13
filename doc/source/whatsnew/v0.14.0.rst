@@ -5,6 +5,11 @@ v0.14.0 (May 31 , 2014)
 
 {{ header }}
 
+.. ipython:: python
+   :suppress:
+
+   import pandas as pd
+
 This is a major release from 0.13.1 and includes a small number of API changes, several new features,
 enhancements, and performance improvements along with a large number of bug fixes. We recommend that all
 users upgrade to this version.
@@ -57,8 +62,6 @@ API changes
   ``IndexError`` (:issue:`6296`, :issue:`6299`). This could result in an empty axis (e.g. an empty DataFrame being returned)
 
   .. ipython:: python
-
-     import pandas as pd
 
      dfl = pd.DataFrame(np.random.randn(5, 2), columns=list('AB'))
      dfl
