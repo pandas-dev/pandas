@@ -183,5 +183,14 @@ class AbstractMethodError(NotImplementedError):
         return (msg.format(methodtype=self.methodtype, name=name))
 
 
-class IncompatibleTimeZoneError(ValueError):
+class IncompatibleTimezoneError(ValueError):
+    """
+    Raised when mismatched timezones are detected.
+
+    .. versionadded :: 0.24.0
+
+    This exception is raised when performing operations between
+    timezone-aware and timezone-naive data, or between two
+    timezone-aware values with different timezones.
+    """
     pass

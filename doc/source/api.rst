@@ -2571,6 +2571,7 @@ Exceptions and warnings
 
    errors.DtypeWarning
    errors.EmptyDataError
+   errors.IncompatibleTimezoneError
    errors.OutOfBoundsDatetime
    errors.ParserError
    errors.ParserWarning
