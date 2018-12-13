@@ -134,7 +134,26 @@ class TestDatetimeArray(SharedTests):
         result = np.array(dti, dtype=object)
         tm.assert_numpy_array_equal(result, expected)
 
-    def test_array(self, tz_naive_fixture):
+    def test_array(self, datetime_index):
+        arr = DatetimeArray(datetime_index)
+
+        result = np.asarray(arr)
+        expected = arr._data
+        assert result is expected
+        tm.assert_numpy_array_equal(result, expected)
+
+        result = np.asarray(arr, dtype=object)
+        expected = np.array(list(arr), dtype=object)
+        tm.assert_numpy_array_equal(result, expected)
+
+        # to other dtype always copies
+        result = np.asarray(arr, dtype='int64')
+        assert result is not arr.asi8
+        assert not np.may_share_memory(arr, result)
+        expected = arr.asi8.copy()
+        tm.assert_numpy_array_equal(result, expected)
+
+    def test_array_tz(self, tz_naive_fixture):
         # GH#23524
         tz = tz_naive_fixture
         dti = pd.date_range('2016-01-01', periods=3, tz=tz)
@@ -148,24 +167,6 @@ class TestDatetimeArray(SharedTests):
         result = np.array(arr, copy=False)
         assert result.base is expected.base
         assert result.base is not None
-
-    def test_array2(self, datetime_index):
-        arr = DatetimeArray(datetime_index)
-
-        result = np.asarray(arr)
-        expected = arr._data
-        assert result is expected
-        tm.assert_numpy_array_equal(result, expected)
-
-        result = np.asarray(arr, dtype=object)
-        expected = np.array(list(arr), dtype=object)
-        tm.assert_numpy_array_equal(result, expected)
-
-        result = np.asarray(arr, dtype='int64')
-        assert result is not arr.asi8
-        assert not np.may_share_memory(arr, result)
-        expected = arr.asi8.copy()
-        tm.assert_numpy_array_equal(result, expected)
 
     def test_array_i8_dtype(self, tz_naive_fixture):
         tz = tz_naive_fixture
@@ -370,10 +371,12 @@ class TestTimedeltaArray(SharedTests):
         assert result is expected
         tm.assert_numpy_array_equal(result, expected)
 
+        # to object dtype
         result = np.asarray(arr, dtype=object)
         expected = np.array(list(arr), dtype=object)
         tm.assert_numpy_array_equal(result, expected)
 
+        # to other dtype always copies
         result = np.asarray(arr, dtype='int64')
         assert result is not arr.asi8
         assert not np.may_share_memory(arr, result)
