@@ -8,7 +8,7 @@ import warnings
 import numpy as np
 
 from pandas._libs import internals as libinternals, lib, tslib, tslibs
-from pandas._libs.tslibs import Timedelta, conversion, timezones
+from pandas._libs.tslibs import Timedelta, conversion
 import pandas.compat as compat
 from pandas.compat import range, zip
 from pandas.errors import AbstractMethodError
@@ -3156,23 +3156,13 @@ class DatetimeTZBlock(ExtensionBlock, DatetimeBlock):
         # https://github.com/pandas-dev/pandas/issues/24020
         # Need a dedicated setitem until #24020 (type promotion in setitem
         # for extension arrays) is designed and implemented.
-        maybe_tz = getattr(value, 'tz', None)
-        return_object = (
-            (maybe_tz
-             and not timezones.tz_compare(self.values.tz, maybe_tz)) or
-            (lib.is_scalar(value)
-             and not isna(value)
-             and not value == tslib.iNaT
-             and not (isinstance(value, self.values._scalar_type) and
-                      timezones.tz_compare(self.values.tz, maybe_tz)))
-        )
-
-        if return_object:
+        try:
+            return super(DatetimeTZBlock, self).setitem(indexer, value)
+        except ValueError:
             newb = make_block(self.values.astype(object),
                               placement=self.mgr_locs,
                               klass=ObjectBlock,)
             return newb.setitem(indexer, value)
-        return super(DatetimeTZBlock, self).setitem(indexer, value)
 
 
 # -----------------------------------------------------------------

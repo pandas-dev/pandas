@@ -146,9 +146,6 @@ class DatetimeIndexOpsMixin(ExtensionOpsMixin):
 
     def _ensure_localized(self, arg, ambiguous='raise', nonexistent='raise',
                           from_utc=False):
-        # This is a strange one. It seems like for for non-datetimetz
-        # we just pass arg (an ndarray) through, while for datetimetz
-        # we want to return a DatetimeIndex?
         result = self._values._ensure_localized(arg,
                                                 ambiguous=ambiguous,
                                                 nonexistent=nonexistent,

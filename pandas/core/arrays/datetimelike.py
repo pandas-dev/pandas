@@ -99,7 +99,19 @@ class AttributesMixin(object):
         raise AbstractMethodError(self)
 
     def _scalar_from_string(self, value):
-        # type: (str) -> Union[Period, Timestamp, Timedelta]
+        # type: (str) -> Union[Period, Timestamp, Timedelta, NaT]
+        """
+        Construct a scalar type from a string.
+
+        Parameters
+        ----------
+        value : str
+
+        Returns
+        -------
+        Period, Timestamp, or Timedelt, or NaT
+            Whatever the type of ``self._scalar_type`` is.
+        """
         raise AbstractMethodError(self)
 
     def _unbox_scalar(self, value):
@@ -1096,7 +1108,7 @@ class DatetimeLikeArrayMixin(AttributesMixin,
                 freq = frequencies.to_offset(freq)
             offset = periods * freq
             result = self + offset
-            if hasattr(self, 'tz'):
+            if getattr(self, 'tz', None):
                 result._dtype = DatetimeTZDtype(tz=self.tz)
             return result
 

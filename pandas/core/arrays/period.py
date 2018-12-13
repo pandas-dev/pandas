@@ -240,7 +240,10 @@ class PeriodArray(dtl.DatetimeLikeArrayMixin,
         elif isinstance(value, self._scalar_type):
             return value.ordinal
         else:
-            raise ValueError("'value' should be a Period")
+            msg = (
+                "'value' should be a Period. Got '{}' instead."
+            )
+            raise ValueError(msg.format(value))
 
     def _scalar_from_string(self, value):
         # type: (str) -> Period

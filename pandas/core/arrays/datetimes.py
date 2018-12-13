@@ -302,7 +302,7 @@ class DatetimeArrayMixin(dtl.DatetimeLikeArrayMixin,
         if getattr(dtype, 'tz', None):
             # https://github.com/pandas-dev/pandas/issues/18595
             # Ensure that we have a standard timezone for pytz objects.
-            # Without this, thins like adding an array of timedeltas and
+            # Without this, things like adding an array of timedeltas and
             # a  tz-aware Timestamp (with a tz specific to its datetime) will
             # be incorrect(ish?) for the array as a whole
             dtype = DatetimeTZDtype(tz=timezones.tz_standardize(dtype.tz))
