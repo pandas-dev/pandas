@@ -1135,18 +1135,6 @@ class DatetimeIndex(DatelikeIndexMixin,
     is_normalized = cache_readonly(DatetimeArray.is_normalized.fget)
     _resolution = cache_readonly(DatetimeArray._resolution.fget)
 
-    @property
-    def week(self):
-        return self.weekofyear
-
-    @property
-    def weekday(self):
-        return self.dayofweek
-
-    @property
-    def daysinmonth(self):
-        return self.days_in_month
-
     # --------------------------------------------------------------------
 
     @Substitution(klass='DatetimeIndex')
