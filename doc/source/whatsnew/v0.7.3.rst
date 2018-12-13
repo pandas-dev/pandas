@@ -3,13 +3,6 @@
 v.0.7.3 (April 12, 2012)
 ------------------------
 
-{{ header }}
-
-.. ipython:: python
-   :suppress:
-
-   from pandas import * # noqa F401, F403
-
 
 This is a minor release from 0.7.2 and fixes many minor bugs and adds a number
 of nice new features. There are also a couple of API changes to note; these
