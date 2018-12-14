@@ -53,6 +53,7 @@ class ExtensionArray(object):
 
     * __repr__ : A default repr for the ExtensionArray.
     * _formatter : Print scalars inside a Series or DataFrame.
+    * _repr_extra : Extra information to be included in the default repr.
 
     Some methods require casting the ExtensionArray to an ndarray of Python
     objects with ``self.astype(object)``, which may be expensive. When
@@ -699,7 +700,7 @@ class ExtensionArray(object):
         template = (
             u'{class_name}'
             u'{data}\n'
-            u'Length: {length}, dtype: {dtype}'
+            u'Length: {length}, dtype: {dtype}{extra}'
         )
         # the short repr has no trailing newline, while the truncated
         # repr does. So we include a newline in our template, and strip
@@ -707,9 +708,13 @@ class ExtensionArray(object):
         data = format_object_summary(self, self._formatter(),
                                      indent_for_name=False).rstrip(', \n')
         class_name = u'<{}>\n'.format(self.__class__.__name__)
+        extra = self._repr_extra()
+        if extra:
+            extra = ', {}'.format(extra)
         return template.format(class_name=class_name, data=data,
                                length=len(self),
-                               dtype=self.dtype)
+                               dtype=self.dtype,
+                               extra=extra)
 
     def _formatter(self, boxed=False):
         # type: (bool) -> Callable[[Any], Optional[str]]
@@ -738,6 +743,20 @@ class ExtensionArray(object):
         if boxed:
             return str
         return repr
+
+    def _repr_extra(self):
+        """
+        Additional text to be placed into the default repr.
+
+        This text is placed after the ``dtype: <dtype>``, section
+        of the repr, and is separated by a comma and a space.
+
+        Returns
+        -------
+        str:
+            The additional text to be included in the repr.
+        """
+        return ''
 
     def _formatting_values(self):
         # type: () -> np.ndarray

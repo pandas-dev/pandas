@@ -399,3 +399,14 @@ def test_formatting_values_deprecated():
     with tm.assert_produces_warning(DeprecationWarning,
                                     check_stacklevel=check_stacklevel):
         repr(ser)
+
+
+def test_repr():
+    arr = to_decimal(([1, 2, 3]))
+    result = repr(arr)
+    expected = (
+        "<DecimalArray>\n"
+        "[Decimal('1'), Decimal('2'), Decimal('3')]\n"
+        "Length: 3, dtype: decimal, prec: 28"
+    )
+    assert result == expected

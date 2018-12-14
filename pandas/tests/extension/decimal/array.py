@@ -144,6 +144,9 @@ class DecimalArray(ExtensionArray, ExtensionScalarOpsMixin):
                                       "the {} operation".format(name))
         return op(axis=0)
 
+    def _repr_extra(self):
+        return 'prec: {}'.format(self.dtype.context.prec)
+
 
 def to_decimal(values, context=None):
     return DecimalArray([decimal.Decimal(x) for x in values], context=context)
