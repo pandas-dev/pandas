@@ -240,8 +240,7 @@ class PeriodArray(dtl.DatetimeLikeArrayMixin, ExtensionArray):
 
     def _check_compatible_with(self, other):
         if self.freqstr != other.freqstr:
-            msg = DIFFERENT_FREQ_INDEX.format(self.freqstr, other.freqstr)
-            raise IncompatibleFrequency(msg)
+            _raise_on_incompatible(self, other)
 
     # --------------------------------------------------------------------
     # Data / Attributes
@@ -373,19 +372,13 @@ class PeriodArray(dtl.DatetimeLikeArrayMixin, ExtensionArray):
             value = period_array(value)
 
             if self.freqstr != value.freqstr:
-                msg = DIFFERENT_FREQ.format(cls=type(self).__name__,
-                                            own_freq=self.freqstr,
-                                            other_freq=value.freqstr)
-                raise IncompatibleFrequency(msg)
+                _raise_on_incompatible(self, value)
 
             value = value.asi8
         elif isinstance(value, Period):
 
             if self.freqstr != value.freqstr:
-                msg = DIFFERENT_FREQ.format(cls=type(self).__name__,
-                                            own_freq=self.freqstr,
-                                            other_freq=value.freqstr)
-                raise IncompatibleFrequency(msg)
+                _raise_on_incompatible(self, value)
 
             value = value.ordinal
         elif isna(value):
@@ -701,10 +694,7 @@ class PeriodArray(dtl.DatetimeLikeArrayMixin, ExtensionArray):
         assert not isinstance(other, Tick)
         base = frequencies.get_base_alias(other.rule_code)
         if base != self.freq.rule_code:
-            msg = DIFFERENT_FREQ.format(cls=type(self).__name__,
-                                        own_freq=self.freqstr,
-                                        other_freq=other.freqstr)
-            raise IncompatibleFrequency(msg)
+            _raise_on_incompatible(self, other)
 
         # Note: when calling parent class's _add_timedeltalike_scalar,
         #  it will call delta_to_nanoseconds(delta).  Because delta here
@@ -767,15 +757,7 @@ class PeriodArray(dtl.DatetimeLikeArrayMixin, ExtensionArray):
         """
         if not isinstance(self.freq, Tick):
             # We cannot add timedelta-like to non-tick PeriodArray
-            if np.ndim(other) > 0:
-                # FIXME: What should this be rendered as?
-                other_freq = "FIXME"
-            else:
-                other_freq = _delta_to_tick(Timedelta(other)).freqstr
-            msg = DIFFERENT_FREQ.format(cls=type(self).__name__,
-                                        own_freq=self.freqstr,
-                                        other_freq=other_freq)
-            raise IncompatibleFrequency(msg)
+            _raise_on_incompatible(self, other)
 
         new_ordinals = super(PeriodArray, self)._add_delta(other)
         return type(self)(new_ordinals, freq=self.freq)
@@ -827,22 +809,41 @@ class PeriodArray(dtl.DatetimeLikeArrayMixin, ExtensionArray):
             # by which will be added to self.
             return delta
 
-        # error message format depends on whether other is scalar
-        if isinstance(other, np.ndarray):
-            # FIXME: What should this be rendered as?
-            other_freq = "FIXME"
-        else:
-            other_freq = _delta_to_tick(Timedelta(other)).freqstr
-        msg = DIFFERENT_FREQ.format(cls=type(self).__name__,
-                                   own_freq=self.freqstr,
-                                   other_freq=other_freq)
-        raise IncompatibleFrequency(msg)
+        _raise_on_incompatible(self, other)
 
     def _values_for_argsort(self):
         return self._data
 
 
 PeriodArray._add_comparison_ops()
+
+
+def _raise_on_incompatible(left, right):
+    """
+    Helper function to render a consistent error message when raising
+    IncompatibleFrequency.
+
+    Parameters
+    ----------
+    left : PeriodArray
+    right : DateOffset, Period, ndarray, or timedelta-like
+
+    Raises
+    ------
+    IncompatibleFrequency
+    """
+    # GH#24283 error message format depends on whether right is scalar
+    if isinstance(right, np.ndarray):
+        other_freq = None
+    elif isinstance(right, (Period, DateOffset)):
+        other_freq = right.freqstr
+    else:
+        other_freq = _delta_to_tick(Timedelta(right)).freqstr
+
+    msg = DIFFERENT_FREQ.format(cls=type(left).__name__,
+                                own_freq=left.freqstr,
+                                other_freq=other_freq)
+    raise IncompatibleFrequency(msg)
 
 
 # -------------------------------------------------------------------
