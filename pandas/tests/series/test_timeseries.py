@@ -1025,6 +1025,7 @@ class TestTimeSeries(TestData):
         assert isinstance(index.get_level_values(0)[0], Timestamp)
 
     def test_view_tz(self):
+        # GH#24024
         ser = pd.Series(pd.date_range('2000', periods=4, tz='US/Central'))
         result = ser.view("i8")
         expected = pd.Series([946706400000000000,

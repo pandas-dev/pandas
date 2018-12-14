@@ -316,8 +316,9 @@ class TimelikeOps(object):
         attribs['freq'] = None
         if 'tz' in attribs:
             attribs['tz'] = None
-        return self._ensure_localized(self._simple_new(result, **attribs),
-                                      ambiguous, nonexistent)
+        return self._ensure_localized(
+            self._simple_new(result, **attribs), ambiguous, nonexistent
+        )
 
     @Appender((_round_doc + _round_example).format(op="round"))
     def round(self, freq, ambiguous='raise', nonexistent='raise'):
@@ -908,7 +909,6 @@ class DatetimeLikeArrayMixin(AttributesMixin,
 
     # monotonicity/uniqueness properties are called via frequencies.infer_freq,
     #  see GH#23789
-    # n.b. moved from TimedeltaArray
 
     @property
     def _is_monotonic_increasing(self):

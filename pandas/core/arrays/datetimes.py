@@ -687,9 +687,7 @@ class DatetimeArrayMixin(dtl.DatetimeLikeArrayMixin,
         result : DatetimeArray
         """
         new_values = super(DatetimeArrayMixin, self)._add_delta(delta)
-        return type(self)._from_sequence(new_values,
-                                         dtype=self.dtype,
-                                         freq="infer")
+        return type(self)._from_sequence(new_values, tz=self.tz, freq='infer')
 
     # -----------------------------------------------------------------
     # Timezone Conversion and Localization Methods

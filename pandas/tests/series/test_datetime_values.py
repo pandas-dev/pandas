@@ -557,6 +557,7 @@ class TestSeriesDatetimeValues():
         assert x['Date'] == date.today()
 
     def test_setitem_with_different_tz(self):
+        # GH#24024
         ser = pd.Series(pd.date_range('2000', periods=2, tz="US/Central"))
         ser[0] = pd.Timestamp("2000", tz='US/Eastern')
         expected = pd.Series([

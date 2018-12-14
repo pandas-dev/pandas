@@ -230,6 +230,7 @@ class DatetimeIndex(DatelikeIndexMixin,
     # dummy attribute so that datetime.__eq__(DatetimeArray) defers
     # by returning NotImplemented
     timetuple = None
+
     _is_numeric_dtype = False
     _infer_as_myclass = True
 
