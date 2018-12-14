@@ -15,9 +15,10 @@ import pandas.compat as compat
 from pandas.util._decorators import Appender
 
 from pandas.core.dtypes.common import (
-    _TD_DTYPE, ensure_int64, is_datetime64_dtype, is_float_dtype,
+    _NS_DTYPE, _TD_DTYPE, ensure_int64, is_datetime64_dtype, is_float_dtype,
     is_integer_dtype, is_list_like, is_object_dtype, is_scalar,
     is_string_dtype, is_timedelta64_dtype)
+from pandas.core.dtypes.dtypes import DatetimeTZDtype
 from pandas.core.dtypes.generic import (
     ABCDataFrame, ABCIndexClass, ABCSeries, ABCTimedeltaIndex)
 from pandas.core.dtypes.missing import isna
@@ -90,7 +91,7 @@ def _td_array_cmp(cls, op):
 
         else:
             try:
-                other = type(self)(other)._data
+                other = type(self)._from_sequence(other)._data
             except (ValueError, TypeError):
                 return ops.invalid_comparison(self, other, op)
 
@@ -112,6 +113,14 @@ def _td_array_cmp(cls, op):
 class TimedeltaArrayMixin(dtl.DatetimeLikeArrayMixin, dtl.TimelikeOps):
     _typ = "timedeltaarray"
     __array_priority__ = 1000
+    # define my properties & methods for delegation
+    _other_ops = []
+    _bool_ops = []
+    _object_ops = ['freq']
+    _field_ops = ['days', 'seconds', 'microseconds', 'nanoseconds']
+    _datetimelike_ops = _field_ops + _object_ops + _bool_ops
+    _datetimelike_methods = ["to_pytimedelta", "total_seconds",
+                             "round", "floor", "ceil"]
 
     # Needed so that NaT.__richcmp__(DateTimeArray) operates pointwise
     ndim = 1
@@ -262,8 +271,8 @@ class TimedeltaArrayMixin(dtl.DatetimeLikeArrayMixin, dtl.TimelikeOps):
         -------
         result : TimedeltaArray
         """
-        new_values = dtl.DatetimeLikeArrayMixin._add_delta(self, delta)
-        return type(self)(new_values, freq='infer')
+        new_values = super(TimedeltaArrayMixin, self)._add_delta(delta)
+        return type(self)._from_sequence(new_values, freq='infer')
 
     def _add_datetime_arraylike(self, other):
         """
@@ -293,7 +302,8 @@ class TimedeltaArrayMixin(dtl.DatetimeLikeArrayMixin, dtl.TimelikeOps):
         result = checked_add_with_arr(i8, other.value,
                                       arr_mask=self._isnan)
         result = self._maybe_mask_results(result)
-        return DatetimeArrayMixin(result, tz=other.tz, freq=self.freq)
+        dtype = DatetimeTZDtype(tz=other.tz) if other.tz else _NS_DTYPE
+        return DatetimeArrayMixin(result, dtype=dtype, freq=self.freq)
 
     def _addsub_offset_array(self, other, op):
         # Add or subtract Array-like of DateOffset objects
