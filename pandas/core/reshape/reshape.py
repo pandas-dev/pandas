@@ -705,9 +705,8 @@ def get_dummies(data, prefix=None, prefix_sep='_', dummy_na=False,
         If `columns` is None then all the columns with
         `object` or `category` dtype will be converted.
     sparse : bool, default False
-        Whether the dummy columns should be sparse or not.  Returns
-        SparseDataFrame if `data` is a Series or if all columns are included.
-        Otherwise returns a DataFrame with some SparseBlocks.
+        Whether the dummy-encoded columns should be be backed by
+        a :class:`SparseArray` (True) or a regular NumPy array (False).
     drop_first : bool, default False
         Whether to get k-1 dummies out of k categorical levels by removing the
         first level.
@@ -721,7 +720,7 @@ def get_dummies(data, prefix=None, prefix_sep='_', dummy_na=False,
 
     Returns
     -------
-    dummies : DataFrame or SparseDataFrame
+    dummies : DataFrame
 
     See Also
     --------
