@@ -134,9 +134,10 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
     """
     _metadata = ['name']
     _accessors = {'dt', 'cat', 'str', 'sparse'}
+    # tolist is not actually deprecated, just suppressed in the __dir__
     _deprecations = generic.NDFrame._deprecations | frozenset(
         ['asobject', 'reshape', 'get_value', 'set_value',
-         'from_csv', 'valid'])
+         'from_csv', 'valid', 'tolist'])
 
     # Override cache_readonly bc Series is mutable
     hasnans = property(base.IndexOpsMixin.hasnans.func,

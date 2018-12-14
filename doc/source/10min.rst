@@ -1,24 +1,6 @@
 .. _10min:
 
-.. currentmodule:: pandas
-
-.. ipython:: python
-   :suppress:
-
-   import os
-   import numpy as np
-
-   import pandas as pd
-
-   np.random.seed(123456)
-   np.set_printoptions(precision=4, suppress=True)
-   pd.options.display.max_rows = 15
-
-   # portions of this were borrowed from the
-   # Pandas cheatsheet
-   # created during the PyData Workshop-Sprint 2012
-   # Hannah Chen, Henry Chow, Eric Cox, Robert Mauriello
-
+{{ header }}
 
 ********************
 10 Minutes to pandas
@@ -69,7 +51,7 @@ Creating a ``DataFrame`` by passing a dict of objects that can be converted to s
                        'F': 'foo'})
    df2
 
-The columns of the resulting ``DataFrame`` have different 
+The columns of the resulting ``DataFrame`` have different
 :ref:`dtypes <basics.dtypes>`.
 
 .. ipython:: python
@@ -83,7 +65,7 @@ will be completed:
 .. ipython::
 
    @verbatim
-   In [1]: df2.<TAB>
+   In [1]: df2.<TAB>  # noqa: E225, E999
    df2.A                  df2.bool
    df2.abs                df2.boxplot
    df2.add                df2.C
@@ -513,7 +495,7 @@ Another example that can be given is:
 Append
 ~~~~~~
 
-Append rows to a dataframe. See the :ref:`Appending <merging.concatenation>` 
+Append rows to a dataframe. See the :ref:`Appending <merging.concatenation>`
 section.
 
 .. ipython:: python
@@ -546,14 +528,14 @@ See the :ref:`Grouping section <groupby>`.
                       'D': np.random.randn(8)})
    df
 
-Grouping and then applying the :meth:`~DataFrame.sum` function to the resulting 
+Grouping and then applying the :meth:`~DataFrame.sum` function to the resulting
 groups.
 
 .. ipython:: python
 
    df.groupby('A').sum()
 
-Grouping by multiple columns forms a hierarchical index, and again we can 
+Grouping by multiple columns forms a hierarchical index, and again we can
 apply the ``sum`` function.
 
 .. ipython:: python
@@ -689,7 +671,7 @@ Convert the raw grades to a categorical data type.
     df["grade"] = df["raw_grade"].astype("category")
     df["grade"]
 
-Rename the categories to more meaningful names (assigning to 
+Rename the categories to more meaningful names (assigning to
 ``Series.cat.categories`` is inplace!).
 
 .. ipython:: python
@@ -738,7 +720,7 @@ See the :ref:`Plotting <visualization>` docs.
    @savefig series_plot_basic.png
    ts.plot()
 
-On a DataFrame, the :meth:`~DataFrame.plot` method is a convenience to plot all 
+On a DataFrame, the :meth:`~DataFrame.plot` method is a convenience to plot all
 of the columns with labels:
 
 .. ipython:: python
@@ -773,6 +755,7 @@ CSV
 .. ipython:: python
    :suppress:
 
+   import os
    os.remove('foo.csv')
 
 HDF5

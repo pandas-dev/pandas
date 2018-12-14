@@ -1,22 +1,10 @@
 .. _io:
 
-.. currentmodule:: pandas
+{{ header }}
 
 .. ipython:: python
    :suppress:
 
-   import csv
-   import os
-
-   import matplotlib.pyplot as plt
-   import numpy as np
-   import pandas as pd
-   from pandas.compat import StringIO, BytesIO
-
-
-   np.set_printoptions(precision=4, suppress=True)
-   plt.close('all')
-   pd.options.display.max_rows = 15
    clipdf = pd.DataFrame({'A': [1, 2, 3], 'B': [4, 5, 6], 'C': ['p', 'q', 'r']},
                          index=['x', 'y', 'z'])
 
@@ -143,6 +131,7 @@ usecols : list-like or callable, default ``None``
 
   .. ipython:: python
 
+     from pandas.compat import StringIO, BytesIO
      data = ('col1,col2,col3\n'
              'a,b,1\n'
              'a,b,2\n'
@@ -451,6 +440,8 @@ worth trying.
 
 .. ipython:: python
    :suppress:
+
+   import os
 
    os.remove('foo.csv')
 
@@ -1308,6 +1299,7 @@ We can get around this using ``dialect``:
 .. ipython:: python
    :okwarning:
 
+   import csv
    dia = csv.excel()
    dia.quoting = csv.QUOTE_NONE
    pd.read_csv(StringIO(data), dialect=dia)
@@ -2603,6 +2595,28 @@ table CSS classes. Note that these classes are *appended* to the existing
 .. ipython:: python
 
    print(df.to_html(classes=['awesome_table_class', 'even_more_awesome_class']))
+
+The ``render_links`` argument provides the ability to add hyperlinks to cells
+that contain URLs.
+
+.. versionadded:: 0.24
+
+.. ipython:: python
+
+   url_df = pd.DataFrame({
+       'name': ['Python', 'Pandas'],
+       'url': ['https://www.python.org/', 'http://pandas.pydata.org']})
+   print(url_df.to_html(render_links=True))
+
+.. ipython:: python
+   :suppress:
+
+   write_html(url_df, 'render_links', render_links=True)
+
+HTML:
+
+.. raw:: html
+   :file: _static/render_links.html
 
 Finally, the ``escape`` argument allows you to control whether the
 "<", ">" and "&" characters escaped in the resulting HTML (by default it is

@@ -1,6 +1,6 @@
 .. _overview:
 
-.. currentmodule:: pandas
+{{ header }}
 
 ****************
 Package overview

@@ -3,7 +3,13 @@
 v0.20.2 (June 4, 2017)
 ----------------------
 
-{{ common_imports }}
+{{ header }}
+
+.. ipython:: python
+   :suppress:
+
+   from pandas import * # noqa F401, F403
+
 
 This is a minor bug-fix release in the 0.20.x series and includes some small regression fixes,
 bug fixes and performance improvements.

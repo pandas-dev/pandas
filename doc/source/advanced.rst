@@ -1,15 +1,6 @@
 .. _advanced:
 
-.. currentmodule:: pandas
-
-.. ipython:: python
-   :suppress:
-
-   import numpy as np
-   import pandas as pd
-   np.random.seed(123456)
-   np.set_printoptions(precision=4, suppress=True)
-   pd.options.display.max_rows = 15
+{{ header }}
 
 ******************************
 MultiIndex / Advanced Indexing
@@ -572,7 +563,8 @@ they need to be sorted. As with any index, you can use :meth:`~DataFrame.sort_in
 
 .. ipython:: python
 
-   import random; random.shuffle(tuples)
+   import random
+   random.shuffle(tuples)
    s = pd.Series(np.random.randn(8), index=pd.MultiIndex.from_tuples(tuples))
    s
    s.sort_index()
@@ -702,7 +694,7 @@ Finally, as a small note on performance, because the ``take`` method handles
 a narrower range of inputs, it can offer performance that is a good deal
 faster than fancy indexing.
 
-.. ipython::
+.. ipython:: python
 
    arr = np.random.randn(10000, 5)
    indexer = np.arange(10000)
