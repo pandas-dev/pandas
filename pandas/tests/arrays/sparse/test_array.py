@@ -264,7 +264,7 @@ class TestSparseArray(object):
 
     def test_shift_fill_value(self):
         # GH #24128
-        fill_values = [0, None, np.nan]
+        fill_values = [0, np.nan]
         for fill_value in fill_values:
             sparse = SparseArray(np.array([1, 0, 0, 3, 0]))
             res = sparse.shift(1, fill_value=fill_value)
