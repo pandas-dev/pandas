@@ -1,20 +1,6 @@
-.. currentmodule:: pandas
-
-.. ipython:: python
-   :suppress:
-
-   import numpy as np
-   import matplotlib.pyplot as plt
-
-   import pandas as pd
-
-   np.random.seed(123456)
-   np.set_printoptions(precision=4, suppress=True)
-   pd.options.display.max_rows = 15
-
-   plt.close('all')
-
 .. _computation:
+
+{{ header }}
 
 Computational tools
 ===================
@@ -27,9 +13,9 @@ Statistical Functions
 Percent Change
 ~~~~~~~~~~~~~~
 
-``Series``, ``DataFrame``, and ``Panel`` all have a method 
-:meth:`~DataFrame.pct_change` to compute the percent change over a given number 
-of periods (using ``fill_method`` to fill NA/null values *before* computing 
+``Series``, ``DataFrame``, and ``Panel`` all have a method
+:meth:`~DataFrame.pct_change` to compute the percent change over a given number
+of periods (using ``fill_method`` to fill NA/null values *before* computing
 the percent change).
 
 .. ipython:: python
@@ -49,7 +35,7 @@ the percent change).
 Covariance
 ~~~~~~~~~~
 
-:meth:`Series.cov` can be used to compute covariance between series 
+:meth:`Series.cov` can be used to compute covariance between series
 (excluding missing values).
 
 .. ipython:: python
@@ -58,7 +44,7 @@ Covariance
    s2 = pd.Series(np.random.randn(1000))
    s1.cov(s2)
 
-Analogously, :meth:`DataFrame.cov` to compute pairwise covariances among the 
+Analogously, :meth:`DataFrame.cov` to compute pairwise covariances among the
 series in the DataFrame, also excluding NA/null values.
 
 .. _computation.covariance.caveats:
@@ -101,7 +87,7 @@ Correlation
 ~~~~~~~~~~~
 
 Correlation may be computed using the :meth:`~DataFrame.corr` method.
-Using the ``method`` parameter, several methods for computing correlations are 
+Using the ``method`` parameter, several methods for computing correlations are
 provided:
 
 .. csv-table::
@@ -172,8 +158,8 @@ compute the correlation based on histogram intersection:
 
    frame.corr(method=histogram_intersection)
 
-A related method :meth:`~DataFrame.corrwith` is implemented on DataFrame to 
-compute the correlation between like-labeled Series contained in different 
+A related method :meth:`~DataFrame.corrwith` is implemented on DataFrame to
+compute the correlation between like-labeled Series contained in different
 DataFrame objects.
 
 .. ipython:: python
@@ -190,7 +176,7 @@ DataFrame objects.
 Data ranking
 ~~~~~~~~~~~~
 
-The :meth:`~Series.rank` method produces a data ranking with ties being 
+The :meth:`~Series.rank` method produces a data ranking with ties being
 assigned the mean of the ranks (by default) for the group:
 
 .. ipython:: python
@@ -199,8 +185,8 @@ assigned the mean of the ranks (by default) for the group:
    s['d'] = s['b']  # so there's a tie
    s.rank()
 
-:meth:`~DataFrame.rank` is also a DataFrame method and can rank either the rows 
-(``axis=0``) or the columns (``axis=1``). ``NaN`` values are excluded from the 
+:meth:`~DataFrame.rank` is also a DataFrame method and can rank either the rows
+(``axis=0``) or the columns (``axis=1``). ``NaN`` values are excluded from the
 ranking.
 
 .. ipython:: python
@@ -651,7 +637,7 @@ perform multiple computations on the data. These operations are similar to the :
    r = dfa.rolling(window=60, min_periods=1)
    r
 
-We can aggregate by passing a function to the entire DataFrame, or select a 
+We can aggregate by passing a function to the entire DataFrame, or select a
 Series (or multiple Series) via standard ``__getitem__``.
 
 .. ipython:: python

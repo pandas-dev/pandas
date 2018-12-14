@@ -634,6 +634,10 @@ class NDFrameGroupBy(GroupBy):
         dropna : Drop groups that do not pass the filter. True by default;
             if False, groups that evaluate False are filled with NaNs.
 
+        Returns
+        -------
+        filtered : DataFrame
+
         Notes
         -----
         Each subframe is endowed the attribute 'name' in case you need to know
@@ -651,10 +655,6 @@ class NDFrameGroupBy(GroupBy):
         1  bar  2  5.0
         3  bar  4  1.0
         5  bar  6  9.0
-
-        Returns
-        -------
-        filtered : DataFrame
         """
 
         indices = []
@@ -1221,9 +1221,15 @@ class SeriesGroupBy(GroupBy):
         return func(self)
 
     def pct_change(self, periods=1, fill_method='pad', limit=None, freq=None):
-        """Calculate percent change of each value to previous entry in group"""
+        """Calcuate pct_change of each value to previous entry in group"""
+        # TODO: Remove this conditional when #23918 is fixed
+        if freq:
+            return self.apply(lambda x: x.pct_change(periods=periods,
+                                                     fill_method=fill_method,
+                                                     limit=limit, freq=freq))
         filled = getattr(self, fill_method)(limit=limit)
-        shifted = filled.shift(periods=periods, freq=freq)
+        fill_grp = filled.groupby(self.grouper.labels)
+        shifted = fill_grp.shift(periods=periods, freq=freq)
 
         return (filled / shifted) - 1
 

@@ -148,6 +148,9 @@ if [[ -z "$CHECK" || "$CHECK" == "patterns" ]]; then
     invgrep -R --exclude=*.pyc --exclude=testing.py --exclude=test_testing.py assert_raises_regex pandas
     RET=$(($RET + $?)) ; echo $MSG "DONE"
 
+    MSG='Check that no file in the repo contains tailing whitespaces' ; echo $MSG
+    invgrep --exclude="*.svg" -RI "\s$" *
+    RET=$(($RET + $?)) ; echo $MSG "DONE"
 fi
 
 ### CODE ###
@@ -175,7 +178,7 @@ if [[ -z "$CHECK" || "$CHECK" == "doctests" ]]; then
 
     MSG='Doctests frame.py' ; echo $MSG
     pytest -q --doctest-modules pandas/core/frame.py \
-        -k"-axes -combine -itertuples -join -pivot_table -quantile -query -reindex -reindex_axis -round"
+        -k"-axes -combine -itertuples -join -pivot_table -query -reindex -reindex_axis -round"
     RET=$(($RET + $?)) ; echo $MSG "DONE"
 
     MSG='Doctests series.py' ; echo $MSG

@@ -1,12 +1,12 @@
 .. _overview:
 
-.. currentmodule:: pandas
+{{ header }}
 
 ****************
 Package overview
 ****************
 
-:mod:`pandas` is an open source, BSD-licensed library providing high-performance, 
+:mod:`pandas` is an open source, BSD-licensed library providing high-performance,
 easy-to-use data structures and data analysis tools for the `Python <https://www.python.org/>`__
 programming language.
 
@@ -87,8 +87,8 @@ pandas community experts can answer through `Stack Overflow
 Community
 ---------
 
-pandas is actively supported today by a community of like-minded individuals around 
-the world who contribute their valuable time and energy to help make open source 
+pandas is actively supported today by a community of like-minded individuals around
+the world who contribute their valuable time and energy to help make open source
 pandas possible. Thanks to `all of our contributors <https://github.com/pandas-dev/pandas/graphs/contributors>`__.
 
 If you're interested in contributing, please
@@ -110,7 +110,7 @@ Development Team
 -----------------
 
 The list of the Core Team members and more detailed information can be found on the `people’s page <https://github.com/pandas-dev/pandas-governance/blob/master/people.md>`__ of the governance repo.
- 
+
 
 Institutional Partners
 ----------------------
