@@ -264,11 +264,16 @@ class TestSparseArray(object):
 
     def test_shift_fill_value(self):
         # GH #24128
-        fill_values = [0, np.nan]
+        fill_values = [0, None, np.nan]
         for fill_value in fill_values:
-            sparse = SparseArray(np.array([1, 0, 0, 3, 0]))
+            print(fill_value)
+            sparse = SparseArray(np.array([1, 0, 0, 3, 0]),
+                                 fill_value=8.0)
             res = sparse.shift(1, fill_value=fill_value)
-            exp = SparseArray(np.array([fill_value, 1, 0, 0, 3]))
+            if fill_value is None:
+                fill_value = res.dtype.na_value
+            exp = SparseArray(np.array([fill_value, 1, 0, 0, 3]),
+                              fill_value=8.0)
             tm.assert_sp_array_equal(res, exp)
 
     def test_bad_take(self):
