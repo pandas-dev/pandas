@@ -5,9 +5,6 @@ v0.14.1 (July 11, 2014)
 
 {{ header }}
 
-.. ipython:: python
-   :suppress:
-
 
 This is a minor release from 0.14.0 and includes a small number of API changes, several new features,
 enhancements, and performance improvements along with a large number of bug fixes. We recommend that all

@@ -5,9 +5,6 @@ v0.14.0 (May 31 , 2014)
 
 {{ header }}
 
-.. ipython:: python
-   :suppress:
-
 
 This is a major release from 0.13.1 and includes a small number of API changes, several new features,
 enhancements, and performance improvements along with a large number of bug fixes. We recommend that all
@@ -219,8 +216,9 @@ API changes
      >>> x = pd.Series(np.random.rand(10) > 0.5)
      >>> y = True
      >>> x + y  # warning generated: should do x | y instead
+     UserWarning: evaluating in Python space because the '+' operator is not
+     supported by numexpr for the bool dtype, use '|' instead
      >>> x / y  # this raises because it doesn't make sense
-
      NotImplementedError: operator '/' not implemented for bool dtypes
 
 - In ``HDFStore``, ``select_as_multiple`` will always raise a ``KeyError``, when a key or the selector is not found (:issue:`6177`)
