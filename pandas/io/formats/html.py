@@ -42,15 +42,20 @@ class HTMLFormatter(TableFormatter):
         self.border = border
         self.table_id = table_id
         self.render_links = render_links
+
+    @property
+    def show_col_idx_names(self):
         # see gh-22579
         # Column misalignment also occurs for
         # a standard index when the columns index is named.
         # Determine if ANY column names need to be displayed
         # since if the row index is not displayed a column of
         # blank cells need to be included before the DataFrame values.
-        self.show_col_idx_names = all((self.fmt.has_column_names,
-                                      self.fmt.show_index_names,
-                                      self.fmt.header))
+        # TODO: refactor to add show_col_idx_names property to
+        # DataFrameFormatter
+        return all((self.fmt.has_column_names,
+                    self.fmt.show_index_names,
+                    self.fmt.header))
 
     @property
     def is_truncated(self):
