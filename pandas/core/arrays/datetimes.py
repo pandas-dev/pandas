@@ -1678,10 +1678,12 @@ def sequence_to_dt64ns(data, dtype=None, copy=False,
 
     if is_datetime64tz_dtype(data):
         tz = maybe_infer_tz(tz, data.tz)
+        if isinstance(data, ABCIndexClass):
+            data = data._data
         result = data._data
 
     elif is_datetime64_dtype(data):
-        # tz-naive DatetimeArray/Index or ndarray[datetime64]
+        # tz-naive DatetimeArray or ndarray[datetime64]
         data = getattr(data, "_data", data)
         if data.dtype != _NS_DTYPE:
             data = conversion.ensure_datetime64ns(data)
