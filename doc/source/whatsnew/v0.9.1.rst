@@ -149,10 +149,12 @@ API changes
 
     .. ipython:: python
 
-        from io import StringIO
+        import io
 
-        data = 'A,B,C\n00001,001,5\n00002,002,6'
-        pd.read_csv(StringIO(data), converters={'A': lambda x: x.strip()})
+        data = ('A,B,C\n'
+                '00001,001,5\n'
+                '00002,002,6')
+        pd.read_csv(io.StringIO(data), converters={'A': lambda x: x.strip()})
 
 
 See the :ref:`full release notes
