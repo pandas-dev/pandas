@@ -13,6 +13,14 @@ from pandas.util import testing as tm
 
 
 class TestGetItem(object):
+    def test_ellipsis(self):
+        # GH#21282
+        idx = period_range('2011-01-01', '2011-01-31', freq='D',
+                           name='idx')
+
+        result = idx[...]
+        assert result.equals(idx)
+        assert result is not idx
 
     def test_getitem(self):
         idx1 = pd.period_range('2011-01-01', '2011-01-31', freq='D',

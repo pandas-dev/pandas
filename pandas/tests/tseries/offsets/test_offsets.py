@@ -53,17 +53,11 @@ def test_to_m8():
     valb = datetime(2007, 10, 1)
     valu = _to_m8(valb)
     assert isinstance(valu, np.datetime64)
-    # assert valu == np.datetime64(datetime(2007,10,1))
 
-    # def test_datetime64_box():
-    #    valu = np.datetime64(datetime(2007,10,1))
-    #    valb = _dt_box(valu)
-    #    assert type(valb) == datetime
-    #    assert valb == datetime(2007,10,1)
 
-    #####
-    # DateOffset Tests
-    #####
+#####
+# DateOffset Tests
+#####
 
 
 class Base(object):
