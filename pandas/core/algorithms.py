@@ -202,7 +202,9 @@ def _get_hashtable_algo(values):
 
     if ndtype == 'object':
 
-        # its cheaper to use a String Hash Table than Object
+        # it's cheaper to use a String Hash Table than Object; we infer
+        # including nulls because that is the only difference between
+        # StringHashTable and ObjectHashtable
         if lib.infer_dtype(values, skipna=False) in ['string']:
             ndtype = 'string'
         else:
@@ -220,7 +222,9 @@ def _get_data_algo(values, func_map):
     values, dtype, ndtype = _ensure_data(values)
     if ndtype == 'object':
 
-        # its cheaper to use a String Hash Table than Object
+        # it's cheaper to use a String Hash Table than Object; we infer
+        # including nulls because that is the only difference between
+        # StringHashTable and ObjectHashtable
         if lib.infer_dtype(values, skipna=False) in ['string']:
             ndtype = 'string'
 

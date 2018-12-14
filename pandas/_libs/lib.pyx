@@ -1087,7 +1087,7 @@ def infer_dtype(value: object, skipna: object=None) -> str:
     Parameters
     ----------
     value : scalar, list, ndarray, or pandas type
-    skipna : bool, default None
+    skipna : bool, default False
         Ignore NaN values when inferring the type.
 
         .. versionadded:: 0.21.0
