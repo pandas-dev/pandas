@@ -495,7 +495,7 @@ class Docstring(object):
 
     @property
     def deprecated_with_directive(self):
-        return ('.. deprecated:: ' in (self.summary + self.extended_summary))
+        return '.. deprecated:: ' in (self.summary + self.extended_summary)
 
     @property
     def deprecated(self):
