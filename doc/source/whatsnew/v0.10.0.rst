@@ -5,11 +5,6 @@ v0.10.0 (December 17, 2012)
 
 {{ header }}
 
-.. ipython:: python
-   :suppress:
-
-   from pandas import * # noqa F401, F403
-
 
 This is a major release from 0.9.1 and includes many new features and
 enhancements along with a large number of bug fixes. There are also a number of
@@ -60,7 +55,7 @@ talking about:
    # deprecated now
    df - df[0]
    # Change your code to
-   df.sub(df[0], axis=0) # align on axis 0 (rows)
+   df.sub(df[0], axis=0)  # align on axis 0 (rows)
 
 You will get a deprecation warning in the 0.10.x series, and the deprecated
 functionality will be removed in 0.11 or later.
@@ -77,7 +72,7 @@ labeled the aggregated group with the end of the interval: the next day).
 
    In [1]: dates = pd.date_range('1/1/2000', '1/5/2000', freq='4h')
 
-   In [2]: series = Series(np.arange(len(dates)), index=dates)
+   In [2]: series = pd.Series(np.arange(len(dates)), index=dates)
 
    In [3]: series
    Out[3]:
@@ -187,10 +182,14 @@ labeled the aggregated group with the end of the interval: the next day).
 
 .. ipython:: python
 
-    data= 'a,b,c\n1,Yes,2\n3,No,4'
+    import io
+
+    data = ('a,b,c\n'
+            '1,Yes,2\n'
+            '3,No,4')
     print(data)
-    pd.read_csv(StringIO(data), header=None)
-    pd.read_csv(StringIO(data), header=None, prefix='X')
+    pd.read_csv(io.StringIO(data), header=None)
+    pd.read_csv(io.StringIO(data), header=None, prefix='X')
 
 - Values like ``'Yes'`` and ``'No'`` are not interpreted as boolean by default,
   though this can be controlled by new ``true_values`` and ``false_values``
@@ -199,8 +198,8 @@ labeled the aggregated group with the end of the interval: the next day).
 .. ipython:: python
 
     print(data)
-    pd.read_csv(StringIO(data))
-    pd.read_csv(StringIO(data), true_values=['Yes'], false_values=['No'])
+    pd.read_csv(io.StringIO(data))
+    pd.read_csv(io.StringIO(data), true_values=['Yes'], false_values=['No'])
 
 - The file parsers will not recognize non-string values arising from a
   converter function as NA if passed in the ``na_values`` argument. It's better
@@ -211,7 +210,7 @@ labeled the aggregated group with the end of the interval: the next day).
 
 .. ipython:: python
 
-   s = Series([np.nan, 1., 2., np.nan, 4])
+   s = pd.Series([np.nan, 1., 2., np.nan, 4])
    s
    s.fillna(0)
    s.fillna(method='pad')
@@ -230,9 +229,9 @@ Convenience methods ``ffill`` and  ``bfill`` have been added:
   .. ipython:: python
 
       def f(x):
-          return Series([ x, x**2 ], index = ['x', 'x^2'])
+          return pd.Series([x, x**2], index=['x', 'x^2'])
 
-      s = Series(np.random.rand(5))
+      s = pd.Series(np.random.rand(5))
       s
       s.apply(f)
 
@@ -249,7 +248,7 @@ Convenience methods ``ffill`` and  ``bfill`` have been added:
 
   .. ipython:: python
 
-     get_option("display.max_rows")
+     pd.get_option("display.max_rows")
 
 - to_string() methods now always return unicode strings  (:issue:`2224`).
 
@@ -264,7 +263,7 @@ representation across multiple rows by default:
 
 .. ipython:: python
 
-   wide_frame = DataFrame(randn(5, 16))
+   wide_frame = pd.DataFrame(np.random.randn(5, 16))
 
    wide_frame
 
@@ -300,13 +299,16 @@ Updated PyTables Support
    :suppress:
    :okexcept:
 
+   import os
+
    os.remove('store.h5')
 
 .. ipython:: python
 
-   store = HDFStore('store.h5')
-   df = DataFrame(randn(8, 3), index=date_range('1/1/2000', periods=8),
-              columns=['A', 'B', 'C'])
+   store = pd.HDFStore('store.h5')
+   df = pd.DataFrame(np.random.randn(8, 3),
+                     index=pd.date_range('1/1/2000', periods=8),
+                     columns=['A', 'B', 'C'])
    df
 
    # appending data frames
@@ -322,13 +324,13 @@ Updated PyTables Support
 .. ipython:: python
    :okwarning:
 
-   wp = Panel(randn(2, 5, 4), items=['Item1', 'Item2'],
-          major_axis=date_range('1/1/2000', periods=5),
-          minor_axis=['A', 'B', 'C', 'D'])
+   wp = pd.Panel(np.random.randn(2, 5, 4), items=['Item1', 'Item2'],
+                 major_axis=pd.date_range('1/1/2000', periods=5),
+                 minor_axis=['A', 'B', 'C', 'D'])
    wp
 
    # storing a panel
-   store.append('wp',wp)
+   store.append('wp', wp)
 
    # selecting via A QUERY
    store.select('wp', "major_axis>20000102 and minor_axis=['A','B']")
@@ -361,8 +363,8 @@ Updated PyTables Support
    .. ipython:: python
 
       df['string'] = 'string'
-      df['int']    = 1
-      store.append('df',df)
+      df['int'] = 1
+      store.append('df', df)
       df1 = store.select('df')
       df1
       df1.get_dtype_counts()
