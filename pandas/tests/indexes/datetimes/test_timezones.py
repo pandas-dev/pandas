@@ -436,7 +436,7 @@ class TestDatetimeIndexTimezones(object):
 
     @pytest.mark.parametrize('idx', [
         date_range(start='2014-01-01', end='2014-12-31', freq='M'),
-        date_range(start='2014-01-01', end='2014-12-31', freq='CD'),
+        date_range(start='2014-01-01', end='2014-12-31', freq='D'),
         date_range(start='2014-01-01', end='2014-03-01', freq='H'),
         date_range(start='2014-08-01', end='2014-10-31', freq='T')
     ])
