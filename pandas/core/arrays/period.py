@@ -51,6 +51,7 @@ def _period_array_cmp(cls, op):
     opname = '__{name}__'.format(name=op.__name__)
     nat_result = True if opname == '__ne__' else False
 
+    # @ops.unwrap_and_defer
     def wrapper(self, other):
         op = getattr(self.asi8, opname)
         # We want to eventually defer to the Series or PeriodIndex (which will

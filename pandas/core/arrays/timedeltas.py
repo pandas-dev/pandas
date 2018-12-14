@@ -73,6 +73,7 @@ def _td_array_cmp(cls, op):
 
     meth = getattr(dtl.DatetimeLikeArrayMixin, opname)
 
+    # @ops.unpack_and_defer
     def wrapper(self, other):
         if _is_convertible_to_td(other) or other is NaT:
             try:
@@ -317,10 +318,6 @@ class TimedeltaArrayMixin(dtl.DatetimeLikeArrayMixin, dtl.TimelikeOps):
             if self.freq is not None and not isna(other):
                 freq = self.freq * other
             return type(self)(result, freq=freq)
-
-        if not hasattr(other, "dtype"):
-            # list, tuple
-            other = np.array(other)
 
         if is_object_dtype(other):
             # this multiplication will succeed only if all elements of other

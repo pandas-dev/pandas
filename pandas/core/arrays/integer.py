@@ -483,6 +483,8 @@ class IntegerArray(ExtensionArray, ExtensionOpsMixin):
 
     @classmethod
     def _create_comparison_method(cls, op):
+
+        # @ops.unwrap_and_defer
         def cmp_method(self, other):
 
             op_name = op.__name__
@@ -573,6 +575,8 @@ class IntegerArray(ExtensionArray, ExtensionOpsMixin):
 
     @classmethod
     def _create_arithmetic_method(cls, op):
+
+        # @ops.unwrap_and_defer
         def integer_arithmetic_method(self, other):
 
             op_name = op.__name__

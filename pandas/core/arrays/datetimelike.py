@@ -36,6 +36,8 @@ from .base import ExtensionOpsMixin
 def _make_comparison_op(cls, op):
     # TODO: share code with indexes.base version?  Main difference is that
     # the block for MultiIndex was removed here.
+
+    # @ops.unpack_and_defer
     def cmp_method(self, other):
         if isinstance(other, ABCDataFrame):
             return NotImplemented
@@ -852,6 +854,7 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin, AttributesMixin):
         return self._generate_range(start=start, end=end, periods=None,
                                     freq=self.freq)
 
+    # @ops.unpack_and_defer
     def __add__(self, other):
         other = lib.item_from_zerodim(other)
         if isinstance(other, (ABCSeries, ABCDataFrame)):
@@ -913,6 +916,7 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin, AttributesMixin):
         # alias for __add__
         return self.__add__(other)
 
+    # @ops.unpack_and_defer
     def __sub__(self, other):
         other = lib.item_from_zerodim(other)
         if isinstance(other, (ABCSeries, ABCDataFrame)):

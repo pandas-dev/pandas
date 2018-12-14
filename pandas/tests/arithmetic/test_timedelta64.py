@@ -1409,10 +1409,16 @@ class TestTimedeltaArraylikeMulDivOps(object):
     def test_td64arr_mul_too_short_raises(self, box_with_array):
         idx = TimedeltaIndex(np.arange(5, dtype='int64'))
         idx = tm.box_expected(idx, box_with_array)
-        with pytest.raises(ValueError):
-            # length check occurs before type check, otherwise this would be
-            #  a TypeError
+
+        # For TimedeltaArray and TimedeltaIndex, the length check occurs
+        #  before a TypeError can occur.  For Series and DataFrame,
+        #  idx[:3] gets reindexed to match idx, so a TypeError is raised
+        err = ValueError
+        if box_with_array in [pd.Series, pd.DataFrame]:
+            err = TypeError
+        with pytest.raises(err):
             idx * idx[:3]
+
         with pytest.raises(ValueError):
             idx * np.array([1, 2])
 

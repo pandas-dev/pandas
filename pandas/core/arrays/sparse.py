@@ -31,12 +31,12 @@ from pandas.core.dtypes.generic import (
     ABCIndexClass, ABCSeries, ABCSparseSeries)
 from pandas.core.dtypes.missing import isna, na_value_for_dtype, notna
 
+from pandas.core import ops
 from pandas.core.accessor import PandasDelegate, delegate_names
 import pandas.core.algorithms as algos
 from pandas.core.arrays import ExtensionArray, ExtensionOpsMixin
 from pandas.core.base import PandasObject
 import pandas.core.common as com
-from pandas.core import ops
 from pandas.core.missing import interpolate_2d
 
 import pandas.io.formats.printing as printing

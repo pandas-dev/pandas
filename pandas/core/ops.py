@@ -171,8 +171,8 @@ def unpack_and_defer(func):
                 other = np.array(other)
 
             if not hasattr(self, 'index') and len(other) != len(self):
-                # Series and DataFrame may perform alignment, so this check
-                #  is only relevant for Index and ExtensionArray
+                # Series and DataFrame may have alignment calls after this,
+                #  so we cannot do a length check yet
                 raise ValueError("Lengths must match")
 
         return func(self, other)
