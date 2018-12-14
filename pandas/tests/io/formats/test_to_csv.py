@@ -572,12 +572,11 @@ def test_csv_formatter_line_terminator_default(monkeypatch):
     df = DataFrame()
 
     with monkeypatch.context() as m:
-        # fake default os.linesep to look like windows
-        m.setattr(os, 'linesep', '\r\n')
-        assert os.linesep == '\r\n'
+        m.setattr(os, 'linesep', 'foo')
+        assert os.linesep == 'foo'
 
-        formatter_with_default = CSVFormatter(DataFrame())
+        formatter_with_default = CSVFormatter(df)
         assert formatter_with_default.line_terminator == os.linesep
 
-        formatter_with_argument = CSVFormatter(df, line_terminator='\r')
-        assert formatter_with_argument.line_terminator == '\r'
+        formatter_with_argument = CSVFormatter(df, line_terminator='bar')
+        assert formatter_with_argument.line_terminator == 'bar'
