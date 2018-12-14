@@ -170,7 +170,7 @@ class TimedeltaArrayMixin(dtl.DatetimeLikeArrayMixin, dtl.TimelikeOps):
         if values.dtype != _TD_DTYPE:
             msg = (
                 "The dtype of 'values' is incorrect. Must be "
-                "'timedelta64[ns]'."
+                "'timedelta64[ns]'. Got '{}' instead."
             )
             raise ValueError(msg.format(values.dtype))
 

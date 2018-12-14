@@ -270,6 +270,7 @@ class DatetimeArrayMixin(dtl.DatetimeLikeArrayMixin,
         if values.dtype != _NS_DTYPE:
             msg = (
                 "The dtype of 'values' is incorrect. Must be 'datetime64[ns]'."
+                " Got {} instead."
             )
             raise ValueError(msg.format(values.dtype))
 
