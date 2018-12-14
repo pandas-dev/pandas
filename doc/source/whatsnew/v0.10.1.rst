@@ -3,6 +3,8 @@
 v0.10.1 (January 22, 2013)
 ---------------------------
 
+{{ header }}
+
 
 This is a minor release from 0.10.0 and includes new features, enhancements,
 and bug fixes. In particular, there is substantial new HDFStore functionality
@@ -40,6 +42,7 @@ You may need to upgrade your existing data files. Please visit the
 .. ipython:: python
    :suppress:
    :okexcept:
+
    import os
 
    os.remove('store.h5')

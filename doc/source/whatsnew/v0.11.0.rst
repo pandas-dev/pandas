@@ -3,6 +3,8 @@
 v0.11.0 (April 22, 2013)
 ------------------------
 
+{{ header }}
+
 
 This is a major release from 0.10.1 and includes many new features and
 enhancements along with a large number of bug fixes. The methods of Selecting
