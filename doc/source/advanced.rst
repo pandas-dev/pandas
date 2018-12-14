@@ -694,7 +694,7 @@ Finally, as a small note on performance, because the ``take`` method handles
 a narrower range of inputs, it can offer performance that is a good deal
 faster than fancy indexing.
 
-.. ipython::
+.. ipython:: python
 
    arr = np.random.randn(10000, 5)
    indexer = np.arange(10000)

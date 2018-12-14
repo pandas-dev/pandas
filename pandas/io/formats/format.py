@@ -383,7 +383,7 @@ class DataFrameFormatter(TableFormatter):
                  justify=None, float_format=None, sparsify=None,
                  index_names=True, line_width=None, max_rows=None,
                  max_cols=None, show_dimensions=False, decimal='.',
-                 table_id=None, **kwds):
+                 table_id=None, render_links=False, **kwds):
         self.frame = frame
         if buf is not None:
             self.buf = _expand_user(_stringify_path(buf))
@@ -410,6 +410,7 @@ class DataFrameFormatter(TableFormatter):
                                       len(self.frame))
         self.show_dimensions = show_dimensions
         self.table_id = table_id
+        self.render_links = render_links
 
         if justify is None:
             self.justify = get_option("display.colheader_justify")
@@ -731,7 +732,8 @@ class DataFrameFormatter(TableFormatter):
          """
         from pandas.io.formats.html import HTMLFormatter
         html_renderer = HTMLFormatter(self, classes=classes, notebook=notebook,
-                                      border=border, table_id=self.table_id)
+                                      border=border, table_id=self.table_id,
+                                      render_links=self.render_links)
         if hasattr(self.buf, 'write'):
             html_renderer.write_result(self.buf)
         elif isinstance(self.buf, compat.string_types):
@@ -871,6 +873,8 @@ def format_array(values, formatter, float_format=None, na_rep='NaN',
 
     if is_datetime64_dtype(values.dtype):
         fmt_klass = Datetime64Formatter
+    elif is_datetime64tz_dtype(values):
+        fmt_klass = Datetime64TZFormatter
     elif is_timedelta64_dtype(values.dtype):
         fmt_klass = Timedelta64Formatter
     elif is_extension_array_dtype(values.dtype):
@@ -879,8 +883,6 @@ def format_array(values, formatter, float_format=None, na_rep='NaN',
         fmt_klass = FloatArrayFormatter
     elif is_integer_dtype(values.dtype):
         fmt_klass = IntArrayFormatter
-    elif is_datetime64tz_dtype(values):
-        fmt_klass = Datetime64TZFormatter
     else:
         fmt_klass = GenericArrayFormatter
 
