@@ -81,7 +81,7 @@ Series and DataFrame objects:
 
    .. ipython:: python
 
-      None == None
+      None == None                                                 # noqa: E711
       np.nan == np.nan
 
    So as compared to above, a scalar equality comparison versus a ``None/np.nan`` doesn't provide useful information.
@@ -102,7 +102,7 @@ pandas objects provide compatibility between ``NaT`` and ``NaN``.
    df2 = df.copy()
    df2['timestamp'] = pd.Timestamp('20120101')
    df2
-   df2.loc[['a','c','h'],['one','timestamp']] = np.nan
+   df2.loc[['a', 'c', 'h'], ['one', 'timestamp']] = np.nan
    df2
    df2.get_dtype_counts()
 
@@ -187,7 +187,7 @@ The sum of an empty or all-NA Series or column of a DataFrame is 0.
 .. ipython:: python
 
    pd.Series([np.nan]).sum()
-   
+
    pd.Series([]).sum()
 
 The product of an empty or all-NA Series or column of a DataFrame is 1.
@@ -195,7 +195,7 @@ The product of an empty or all-NA Series or column of a DataFrame is 1.
 .. ipython:: python
 
    pd.Series([np.nan]).prod()
-   
+
    pd.Series([]).prod()
 
 
@@ -287,10 +287,10 @@ use case of this is to fill a DataFrame with the mean of that column.
 
 .. ipython:: python
 
-        dff = pd.DataFrame(np.random.randn(10,3), columns=list('ABC'))
-        dff.iloc[3:5,0] = np.nan
-        dff.iloc[4:6,1] = np.nan
-        dff.iloc[5:8,2] = np.nan
+        dff = pd.DataFrame(np.random.randn(10, 3), columns=list('ABC'))
+        dff.iloc[3:5, 0] = np.nan
+        dff.iloc[4:6, 1] = np.nan
+        dff.iloc[5:8, 2] = np.nan
         dff
 
         dff.fillna(dff.mean())
@@ -473,7 +473,8 @@ filled since the last valid observation:
 
 .. ipython:: python
 
-   ser = pd.Series([np.nan, np.nan, 5, np.nan, np.nan, np.nan, 13, np.nan, np.nan])
+   ser = pd.Series([np.nan, np.nan, 5, np.nan, np.nan,
+                    np.nan, 13, np.nan, np.nan])
 
    # fill all consecutive values in a forward direction
    ser.interpolate()

@@ -1099,9 +1099,10 @@ class TestToIterable(object):
         'method',
         [
             lambda x: x.tolist(),
+            lambda x: x.to_list(),
             lambda x: list(x),
             lambda x: list(x.__iter__()),
-        ], ids=['tolist', 'list', 'iter'])
+        ], ids=['tolist', 'to_list', 'list', 'iter'])
     @pytest.mark.parametrize('typ', [Series, Index])
     def test_iterable(self, typ, method, dtype, rdtype):
         # gh-10904
@@ -1122,9 +1123,10 @@ class TestToIterable(object):
         'method',
         [
             lambda x: x.tolist(),
+            lambda x: x.to_list(),
             lambda x: list(x),
             lambda x: list(x.__iter__()),
-        ], ids=['tolist', 'list', 'iter'])
+        ], ids=['tolist', 'to_list', 'list', 'iter'])
     @pytest.mark.parametrize('typ', [Series, Index])
     def test_iterable_object_and_category(self, typ, method,
                                           dtype, rdtype, obj):
@@ -1167,9 +1169,10 @@ class TestToIterable(object):
         'method',
         [
             lambda x: x.tolist(),
+            lambda x: x.to_list(),
             lambda x: list(x),
             lambda x: list(x.__iter__()),
-        ], ids=['tolist', 'list', 'iter'])
+        ], ids=['tolist', 'to_list', 'list', 'iter'])
     def test_categorial_datetimelike(self, method):
         i = CategoricalIndex([Timestamp('1999-12-31'),
                               Timestamp('2000-12-31')])
@@ -1234,21 +1237,7 @@ def test_values_consistent(array, expected_type, dtype):
     assert type(l_values) is expected_type
     assert type(l_values) is type(r_values)
 
-    if isinstance(l_values, np.ndarray):
-        tm.assert_numpy_array_equal(l_values, r_values)
-    elif isinstance(l_values, pd.Index):
-        tm.assert_index_equal(l_values, r_values)
-    elif pd.api.types.is_categorical(l_values):
-        tm.assert_categorical_equal(l_values, r_values)
-    elif pd.api.types.is_period_dtype(l_values):
-        tm.assert_period_array_equal(l_values, r_values)
-    elif pd.api.types.is_interval_dtype(l_values):
-        tm.assert_interval_array_equal(l_values, r_values)
-    else:
-        raise TypeError("Unexpected type {}".format(type(l_values)))
-
-    assert l_values.dtype == dtype
-    assert r_values.dtype == dtype
+    tm.assert_equal(l_values, r_values)
 
 
 @pytest.mark.parametrize('array, expected', [
