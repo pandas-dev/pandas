@@ -28,7 +28,7 @@ give you some concrete examples for getting started with pandas. These
 are examples with real-world data, and all the bugs and weirdness that
 entails.
 For the table of contents, see the `pandas-cookbook GitHub
-repository <http://github.com/jvns/pandas-cookbook>`_. 
+repository <http://github.com/jvns/pandas-cookbook>`_.
 
 Learn Pandas by Hernan Rojas
 ----------------------------
@@ -56,7 +56,7 @@ For more resources, please visit the main `repository <https://github.com/guipsa
 Modern pandas
 -------------
 
-Tutorial series written in 2016 by 
+Tutorial series written in 2016 by
 `Tom Augspurger <https://github.com/TomAugspurger>`_.
 The source may be found in the GitHub repository
 `TomAugspurger/effective-pandas <https://github.com/TomAugspurger/effective-pandas>`_.
