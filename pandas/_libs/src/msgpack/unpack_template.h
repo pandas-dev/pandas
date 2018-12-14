@@ -210,7 +210,7 @@ static inline int unpack_execute(unpack_context* ctx, const char* data, size_t l
                 case 0xd5:  // fixext 2
                 case 0xd6:  // fixext 4
                 case 0xd7:  // fixext 8
-                    again_fixed_trail_if_zero(ACS_EXT_VALUE, 
+                    again_fixed_trail_if_zero(ACS_EXT_VALUE,
                                               (1 << (((unsigned int)*p) & 0x03))+1,
                                               _ext_zero);
                 case 0xd8:  // fixext 16
