@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+import operator
 
 import numpy as np
 import pytest
@@ -119,8 +120,33 @@ class TestCategoricalOpsWithFactor(TestCategorical):
         res = cat_rev > "b"
         tm.assert_numpy_array_equal(res, exp)
 
+        # check that zero-dim array gets unboxed
+        res = cat_rev > np.array("b")
+        tm.assert_numpy_array_equal(res, exp)
+
 
 class TestCategoricalOps(object):
+
+    def test_compare_frame(self):
+        # GH#24282 check that Categorical.__cmp__(DataFrame) defers to frame
+        data = ["a", "b", 2, "a"]
+        cat = Categorical(data)
+
+        df = DataFrame(cat)
+
+        for op in [operator.eq, operator.ne, operator.ge,
+                   operator.gt, operator.le, operator.lt]:
+            with pytest.raises(ValueError):
+                # alignment raises unless we transpose
+                op(cat, df)
+
+        result = cat == df.T
+        expected = DataFrame([[True, True, True, True]])
+        tm.assert_frame_equal(result, expected)
+
+        result = cat[::-1] != df.T
+        expected = DataFrame([[False, True, True, False]])
+        tm.assert_frame_equal(result, expected)
 
     def test_datetime_categorical_comparison(self):
         dt_cat = Categorical(date_range('2014-01-01', periods=3), ordered=True)

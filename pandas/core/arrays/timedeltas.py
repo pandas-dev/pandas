@@ -509,10 +509,6 @@ class TimedeltaArrayMixin(dtl.DatetimeLikeArrayMixin, dtl.TimelikeOps):
         # Note: This is a naive implementation, can likely be optimized
         if isinstance(other, (timedelta, np.timedelta64, Tick)):
             other = Timedelta(other)
-            if other is NaT:
-                # convert back to something that floordiv will recognize
-                #  as timedelta-like
-                other = np.timedelta64('NaT', 'ns')
         return self - (self // other) * other
 
     @ops.unpack_and_defer
@@ -520,10 +516,6 @@ class TimedeltaArrayMixin(dtl.DatetimeLikeArrayMixin, dtl.TimelikeOps):
         # Note: This is a naive implementation, can likely be optimized
         if isinstance(other, (timedelta, np.timedelta64, Tick)):
             other = Timedelta(other)
-            if other is NaT:
-                # convert back to something that floordiv will recognize
-                #  as timedelta-like
-                other = np.timedelta64('NaT', 'ns')
         return other - (other // self) * self
 
     @ops.unpack_and_defer
@@ -531,10 +523,6 @@ class TimedeltaArrayMixin(dtl.DatetimeLikeArrayMixin, dtl.TimelikeOps):
         # Note: This is a naive implementation, can likely be optimized
         if isinstance(other, (timedelta, np.timedelta64, Tick)):
             other = Timedelta(other)
-            if other is NaT:
-                # convert back to something that floordiv will recognize
-                #  as timedelta-like
-                other = np.timedelta64('NaT', 'ns')
 
         res1 = self // other
         res2 = self - res1 * other
@@ -545,10 +533,6 @@ class TimedeltaArrayMixin(dtl.DatetimeLikeArrayMixin, dtl.TimelikeOps):
         # Note: This is a naive implementation, can likely be optimized
         if isinstance(other, (timedelta, np.timedelta64, Tick)):
             other = Timedelta(other)
-            if other is NaT:
-                # convert back to something that floordiv will recognize
-                #  as timedelta-like
-                other = np.timedelta64('NaT', 'ns')
 
         res1 = other // self
         res2 = other - res1 * self

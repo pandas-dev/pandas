@@ -34,6 +34,7 @@ from pandas.core.base import NoNewAttributesMixin, PandasObject, _shared_docs
 import pandas.core.common as com
 from pandas.core.config import get_option
 from pandas.core.missing import interpolate_2d
+from pandas.core import ops
 from pandas.core.sorting import nargsort
 
 from pandas.io.formats import console
@@ -54,18 +55,13 @@ _take_msg = textwrap.dedent("""\
 
 def _cat_compare_op(op):
 
-    # Note: using unpack_and_defer here doesn't break any tests, but the
-    #  behavior here is idiosyncratic enough that I'm not confident enough
-    #  to change it.
-    # @ops.unpack_and_defer
+    @ops.unpack_and_defer
     def f(self, other):
         # On python2, you can usually compare any type to any type, and
         # Categoricals can be seen as a custom type, but having different
         # results depending whether categories are the same or not is kind of
         # insane, so be a bit stricter here and use the python3 idea of
         # comparing only things of equal type.
-        if isinstance(other, ABCSeries):
-            return NotImplemented
 
         if not self.ordered:
             if op in ['__lt__', '__gt__', '__le__', '__ge__']:
