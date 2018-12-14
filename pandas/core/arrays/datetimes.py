@@ -14,10 +14,10 @@ from pandas.errors import IncompatibleTimezoneError, PerformanceWarning
 from pandas.util._decorators import Appender
 
 from pandas.core.dtypes.common import (
-    _INT64_DTYPE, _NS_DTYPE, is_datetime64_dtype, is_datetime64_ns_dtype,
-    is_datetime64tz_dtype, is_dtype_equal, is_extension_type, is_float_dtype,
-    is_int64_dtype, is_object_dtype, is_period_dtype, is_string_dtype,
-    is_timedelta64_dtype, pandas_dtype)
+    _INT64_DTYPE, _NS_DTYPE, is_categorical_dtype, is_datetime64_dtype,
+    is_datetime64_ns_dtype, is_datetime64tz_dtype, is_dtype_equal,
+    is_extension_type, is_float_dtype, is_int64_dtype, is_object_dtype,
+    is_period_dtype, is_string_dtype, is_timedelta64_dtype, pandas_dtype)
 from pandas.core.dtypes.dtypes import DatetimeTZDtype
 from pandas.core.dtypes.generic import ABCIndexClass, ABCSeries
 from pandas.core.dtypes.missing import isna
@@ -370,6 +370,8 @@ class DatetimeArrayMixin(dtl.DatetimeLikeArrayMixin,
             if closed is not None:
                 raise ValueError("Closed has to be None if not both of start"
                                  "and end are defined")
+        if start is NaT or end is NaT:
+            raise ValueError("Neither `start` nor `end` can be NaT")
 
         left_closed, right_closed = dtl.validate_endpoints(closed)
 
@@ -1828,6 +1830,13 @@ def maybe_convert_dtype(data, copy):
         #  test_setops.test_join_does_not_recur fails
         raise TypeError("Passing PeriodDtype data is invalid.  "
                         "Use `data.to_timestamp()` instead")
+
+    elif is_categorical_dtype(data):
+        # GH#18664 preserve tz in going DTI->Categorical->DTI
+        # TODO: cases where we need to do another pass through this func,
+        #  e.g. the categories are timedelta64s
+        data = data.categories.take(data.codes, fill_value=NaT)
+        copy = False
 
     elif is_extension_type(data) and not is_datetime64tz_dtype(data):
         # Includes categorical
