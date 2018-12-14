@@ -25,7 +25,6 @@ from pandas.core.series import Series
 from pandas.core.sorting import (
     compress_group_index, decons_obs_group_ids, get_compressed_ids,
     get_group_index)
-from pandas.core.sparse.api import SparseDataFrame, SparseSeries
 
 
 class _Unstacker(object):
@@ -865,19 +864,16 @@ def _get_dummies_1d(data, prefix, prefix_sep='_', dummy_na=False,
     if is_object_dtype(dtype):
         raise ValueError("dtype=object is not a valid dtype for get_dummies")
 
-    def get_empty_Frame(data, sparse):
+    def get_empty_Frame(data):
         if isinstance(data, Series):
             index = data.index
         else:
             index = np.arange(len(data))
-        if not sparse:
-            return DataFrame(index=index)
-        else:
-            return SparseDataFrame(index=index, default_fill_value=0)
+        return DataFrame(index=index)
 
     # if all NaN
     if not dummy_na and len(levels) == 0:
-        return get_empty_Frame(data, sparse)
+        return get_empty_Frame(data)
 
     codes = codes.copy()
     if dummy_na:
@@ -886,7 +882,7 @@ def _get_dummies_1d(data, prefix, prefix_sep='_', dummy_na=False,
 
     # if dummy_na, we just fake a nan level. drop_first will drop it again
     if drop_first and len(levels) == 1:
-        return get_empty_Frame(data, sparse)
+        return get_empty_Frame(data)
 
     number_of_cols = len(levels)
 
@@ -933,11 +929,10 @@ def _get_dummies_1d(data, prefix, prefix_sep='_', dummy_na=False,
             sarr = SparseArray(np.ones(len(ixs), dtype=dtype),
                                sparse_index=IntIndex(N, ixs), fill_value=0,
                                dtype=dtype)
-            sparse_series[col] = SparseSeries(data=sarr, index=index)
+            sparse_series[col] = Series(data=sarr, index=index)
 
-        out = SparseDataFrame(sparse_series, index=index, columns=dummy_cols,
-                              default_fill_value=0,
-                              dtype=dtype)
+        out = DataFrame(sparse_series, index=index, columns=dummy_cols,
+                        dtype=dtype)
         return out
 
     else:
