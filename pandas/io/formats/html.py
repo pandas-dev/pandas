@@ -58,6 +58,21 @@ class HTMLFormatter(TableFormatter):
                     self.fmt.header))
 
     @property
+    def row_levels(self):
+        if self.fmt.index:
+            # showing (row) index
+            return self.frame.index.nlevels
+        elif self.show_col_idx_names:
+            # see gh-22579
+            # Column misalignment also occurs for
+            # a standard index when the columns index is named.
+            # If the row index is not displayed a column of
+            # blank cells need to be included before the DataFrame values.
+            return 1
+        # not showing (row) index
+        return 0
+
+    @property
     def is_truncated(self):
         return self.fmt.is_truncated
 
@@ -215,21 +230,6 @@ class HTMLFormatter(TableFormatter):
 
     def _write_header(self, indent):
         truncate_h = self.fmt.truncate_h
-        # see gh-22579
-        # Column Offset Bug with to_html(index=False) with
-        # MultiIndex Columns and Index.
-        # Column misalignment also occurs for
-        # a standard index when the columns index is named.
-        # If the row index is not displayed a column of
-        # blank cells need to be included before the DataFrame values.
-        # However, in this code block only the placement of the truncation
-        # indicators within the header is affected by this.
-        # TODO: refactor to class property as row_levels also used in
-        # _write_regular_rows and _write_hierarchical_rows
-        if self.fmt.index:
-            row_levels = self.frame.index.nlevels
-        else:
-            row_levels = 1 if self.show_col_idx_names else 0
 
         if not self.fmt.header:
             # write nothing
@@ -302,7 +302,7 @@ class HTMLFormatter(TableFormatter):
                 # Initially fill row with blank cells before column names.
                 # TODO: Refactor to remove code duplication with code
                 # block below for standard columns index.
-                row = [''] * (row_levels - 1)
+                row = [''] * (self.row_levels - 1)
                 if self.fmt.index or self.show_col_idx_names:
                     # see gh-22747
                     # If to_html(index_names=False) do not show columns
@@ -336,7 +336,7 @@ class HTMLFormatter(TableFormatter):
             # Initially fill row with blank cells before column names.
             # TODO: Refactor to remove code duplication with code block
             # above for columns MultiIndex.
-            row = [''] * (row_levels - 1)
+            row = [''] * (self.row_levels - 1)
             if self.fmt.index or self.show_col_idx_names:
                 # see gh-22747
                 # If to_html(index_names=False) do not show columns
@@ -351,7 +351,7 @@ class HTMLFormatter(TableFormatter):
             align = self.fmt.justify
 
             if truncate_h:
-                ins_col = row_levels + self.fmt.tr_col_num
+                ins_col = self.row_levels + self.fmt.tr_col_num
                 row.insert(ins_col, '...')
 
             self.write_tr(row, indent, self.indent_delta, header=True,
@@ -399,16 +399,6 @@ class HTMLFormatter(TableFormatter):
                 index_values = self.fmt.tr_frame.index.map(fmt)
             else:
                 index_values = self.fmt.tr_frame.index.format()
-            row_levels = 1
-        else:
-            # see gh-22579
-            # Column misalignment also occurs for
-            # a standard index when the columns index is named.
-            # row_levels is used for the number of <th> cells and
-            # the placement of the truncation indicators.
-            # TODO: refactor to class property as row_levels also used in
-            # _write_header and _write_hierarchical_rows
-            row_levels = 1 if self.show_col_idx_names else 0
 
         row = []
         for i in range(nrows):
@@ -416,7 +406,7 @@ class HTMLFormatter(TableFormatter):
             if truncate_v and i == (self.fmt.tr_row_num):
                 str_sep_row = ['...'] * len(row)
                 self.write_tr(str_sep_row, indent, self.indent_delta,
-                              tags=None, nindex_levels=row_levels)
+                              tags=None, nindex_levels=self.row_levels)
 
             row = []
             if self.fmt.index:
@@ -430,10 +420,10 @@ class HTMLFormatter(TableFormatter):
             row.extend(fmt_values[j][i] for j in range(self.ncols))
 
             if truncate_h:
-                dot_col_ix = self.fmt.tr_col_num + row_levels
+                dot_col_ix = self.fmt.tr_col_num + self.row_levels
                 row.insert(dot_col_ix, '...')
             self.write_tr(row, indent, self.indent_delta, tags=None,
-                          nindex_levels=row_levels)
+                          nindex_levels=self.row_levels)
 
     def _write_hierarchical_rows(self, fmt_values, indent):
         template = 'rowspan="{span}" valign="top"'
@@ -442,6 +432,8 @@ class HTMLFormatter(TableFormatter):
         truncate_v = self.fmt.truncate_v
         frame = self.fmt.tr_frame
         nrows = len(frame)
+        # TODO: after gh-22887 fixed, refactor to use class property
+        # in place of row_levels
         row_levels = self.frame.index.nlevels
 
         idx_values = frame.index.format(sparsify=False, adjoin=False,
