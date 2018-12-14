@@ -186,6 +186,10 @@ class CategoricalDtype(PandasExtensionDtype, ExtensionDtype):
     -------
     None
 
+    See Also
+    --------
+    pandas.Categorical
+
     Notes
     -----
     This class is useful for specifying the type of a ``Categorical``
@@ -202,10 +206,6 @@ class CategoricalDtype(PandasExtensionDtype, ExtensionDtype):
     3    NaN
     dtype: category
     Categories (2, object): [b < a]
-
-    See Also
-    --------
-    pandas.Categorical
     """
     # TODO: Document public vs. private API
     name = 'category'
@@ -463,7 +463,7 @@ class CategoricalDtype(PandasExtensionDtype, ExtensionDtype):
     @property
     def ordered(self):
         """
-        Whether the categories have an ordered relationship
+        Whether the categories have an ordered relationship.
         """
         return self._ordered
 

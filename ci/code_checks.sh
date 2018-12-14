@@ -153,8 +153,8 @@ fi
 ### CODE ###
 if [[ -z "$CHECK" || "$CHECK" == "code" ]]; then
 
-    MSG='Check for modules that pandas should not import' ; echo $MSG
-    python -c "
+    MSG='Check import. No warnings, and blacklist some optional dependencies' ; echo $MSG
+    python -W error -c "
 import sys
 import pandas
 
@@ -175,7 +175,7 @@ if [[ -z "$CHECK" || "$CHECK" == "doctests" ]]; then
 
     MSG='Doctests frame.py' ; echo $MSG
     pytest -q --doctest-modules pandas/core/frame.py \
-        -k"-axes -combine -itertuples -join -pivot_table -quantile -query -reindex -reindex_axis -round"
+        -k"-axes -combine -itertuples -join -pivot_table -query -reindex -reindex_axis -round"
     RET=$(($RET + $?)) ; echo $MSG "DONE"
 
     MSG='Doctests series.py' ; echo $MSG

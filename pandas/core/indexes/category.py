@@ -359,7 +359,7 @@ class CategoricalIndex(Index, accessor.PandasDelegate):
     def _reverse_indexer(self):
         return self._data._reverse_indexer()
 
-    @Appender(_index_shared_docs['__contains__'] % _index_doc_kwargs)
+    @Appender(_index_shared_docs['contains'] % _index_doc_kwargs)
     def __contains__(self, key):
         # if key is a NaN, check if any NaN is in self.
         if isna(key):
@@ -501,10 +501,13 @@ class CategoricalIndex(Index, accessor.PandasDelegate):
 
     @Appender(_index_shared_docs['where'])
     def where(self, cond, other=None):
+        # TODO: Investigate an alternative implementation with
+        # 1. copy the underyling Categorical
+        # 2. setitem with `cond` and `other`
+        # 3. Rebuild CategoricalIndex.
         if other is None:
             other = self._na_value
         values = np.where(cond, self.values, other)
-
         cat = Categorical(values, dtype=self.dtype)
         return self._shallow_copy(cat, **self._get_attributes_dict())
 

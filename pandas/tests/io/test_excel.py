@@ -260,7 +260,7 @@ class ReadingTestsBase(SharedItems):
                                   index_col=["A", "B", "C"])
         expected = DataFrame(columns=["D", "E", "F"],
                              index=MultiIndex(levels=[[]] * 3,
-                                              labels=[[]] * 3,
+                                              codes=[[]] * 3,
                                               names=["A", "B", "C"]))
         tm.assert_frame_equal(result, expected)
 
@@ -1014,7 +1014,7 @@ class TestXlrdReader(ReadingTestsBase):
                                  "R_l0_g2", "R_l0_g3", "R_l0_g4"],
                                 ["R1", "R_l1_g0", "R_l1_g1",
                                  "R_l1_g2", "R_l1_g3", "R_l1_g4"]],
-                        labels=[[0, 1, 2, 3, 4, 5], [0, 1, 2, 3, 4, 5]],
+                        codes=[[0, 1, 2, 3, 4, 5], [0, 1, 2, 3, 4, 5]],
                         names=[None, None])
         si = Index(["R0", "R_l0_g0", "R_l0_g1", "R_l0_g2",
                     "R_l0_g3", "R_l0_g4"], name=None)
@@ -1041,7 +1041,7 @@ class TestXlrdReader(ReadingTestsBase):
                                  "R_l0_g3", "R_l0_g4"],
                                 ["R_l1_g0", "R_l1_g1", "R_l1_g2",
                                  "R_l1_g3", "R_l1_g4"]],
-                        labels=[[0, 1, 2, 3, 4], [0, 1, 2, 3, 4]],
+                        codes=[[0, 1, 2, 3, 4], [0, 1, 2, 3, 4]],
                         names=[None, None])
         si = Index(["R_l0_g0", "R_l0_g1", "R_l0_g2",
                     "R_l0_g3", "R_l0_g4"], name=None)

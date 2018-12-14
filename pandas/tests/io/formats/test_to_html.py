@@ -403,10 +403,10 @@ class TestToHTML(object):
     def test_to_html_multiindex_max_cols(self, datapath):
         # GH 6131
         index = MultiIndex(levels=[['ba', 'bb', 'bc'], ['ca', 'cb', 'cc']],
-                           labels=[[0, 1, 2], [0, 1, 2]],
+                           codes=[[0, 1, 2], [0, 1, 2]],
                            names=['b', 'c'])
         columns = MultiIndex(levels=[['d'], ['aa', 'ab', 'ac']],
-                             labels=[[0, 0, 0], [0, 1, 2]],
+                             codes=[[0, 0, 0], [0, 1, 2]],
                              names=[None, 'a'])
         data = np.array(
             [[1., np.nan, np.nan], [np.nan, 2., np.nan], [np.nan, np.nan, 3.]])
@@ -477,3 +477,19 @@ class TestToHTML(object):
         df = DataFrame({'x': [100.0]})
         expected = expected_html(datapath, 'gh22270_expected_output')
         assert df.to_html(float_format='%.0f') == expected
+
+    @pytest.mark.parametrize("render_links, file_name", [
+        (True, 'render_links_true'),
+        (False, 'render_links_false'),
+    ])
+    def test_to_html_render_links(self, render_links, file_name, datapath):
+        # GH 2679
+        data = [
+            [0, 'http://pandas.pydata.org/?q1=a&q2=b', 'pydata.org'],
+            [0, 'www.pydata.org', 'pydata.org']
+        ]
+        df = DataFrame(data, columns=['foo', 'bar', None])
+
+        result = df.to_html(render_links=render_links)
+        expected = expected_html(datapath, file_name)
+        assert result == expected

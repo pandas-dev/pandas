@@ -798,7 +798,7 @@ class TestReadHtml(object):
         """)[0]
 
         columns = MultiIndex(levels=[['A', 'B'], ['a', 'b']],
-                             labels=[[0, 1], [0, 1]])
+                             codes=[[0, 1], [0, 1]])
         expected = DataFrame(data=[[1, 2]], columns=columns)
 
         tm.assert_frame_equal(result, expected)
@@ -995,7 +995,7 @@ class TestReadHtml(object):
         """)[0]
 
         columns = MultiIndex(levels=[['A', 'B'], ['a', 'b']],
-                             labels=[[0, 1], [0, 1]])
+                             codes=[[0, 1], [0, 1]])
         expected = DataFrame(data=[[1, 2]], columns=columns)
 
         tm.assert_frame_equal(result, expected)

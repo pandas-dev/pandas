@@ -468,6 +468,10 @@ Returns
 -------
 result : Series
 
+See Also
+--------
+Series.{reverse}
+
 Examples
 --------
 >>> a = pd.Series([1, 1, 1, np.nan], index=['a', 'b', 'c', 'd'])
@@ -491,10 +495,6 @@ c    1.0
 d    1.0
 e    NaN
 dtype: float64
-
-See Also
---------
-Series.{reverse}
 """
 
 _arith_doc_FRAME = """
@@ -515,13 +515,13 @@ level : int or name
     Broadcast across a level, matching Index values on the
     passed MultiIndex level
 
-Notes
------
-Mismatched indices will be unioned together
-
 Returns
 -------
 result : DataFrame
+
+Notes
+-----
+Mismatched indices will be unioned together
 """
 
 _flex_doc_FRAME = """
@@ -549,10 +549,6 @@ fill_value : float or None, default None
     If data in both corresponding DataFrame locations is missing
     the result will be missing.
 
-Notes
------
-Mismatched indices will be unioned together.
-
 Returns
 -------
 DataFrame
@@ -568,6 +564,10 @@ DataFrame.truediv : Divide DataFrames (float division).
 DataFrame.floordiv : Divide DataFrames (integer division).
 DataFrame.mod : Calculate modulo (remainder after division).
 DataFrame.pow : Calculate exponential power.
+
+Notes
+-----
+Mismatched indices will be unioned together.
 
 Examples
 --------
@@ -1115,7 +1115,7 @@ def dispatch_to_series(left, right, func, str_rep=None, axis=None):
     import pandas.core.computation.expressions as expressions
 
     right = lib.item_from_zerodim(right)
-    if lib.is_scalar(right):
+    if lib.is_scalar(right) or np.ndim(right) == 0:
 
         def column_op(a, b):
             return {i: func(a.iloc[:, i], b)

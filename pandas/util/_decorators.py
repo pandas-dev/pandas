@@ -1,6 +1,6 @@
-from functools import WRAPPER_ASSIGNMENTS, update_wrapper, wraps
+from functools import wraps
 import inspect
-from textwrap import dedent, wrap
+from textwrap import dedent
 import warnings
 
 from pandas._libs.properties import cache_readonly  # noqa
@@ -39,26 +39,37 @@ def deprecate(name, alternative, version, alt_name=None,
     warning_msg = msg or '{} is deprecated, use {} instead'.format(name,
                                                                    alt_name)
 
-    # adding deprecated directive to the docstring
-    msg = msg or 'Use `{alt_name}` instead.'.format(alt_name=alt_name)
-    msg = '\n    '.join(wrap(msg, 70))
-
-    @Substitution(version=version, msg=msg)
-    @Appender(alternative.__doc__)
+    @wraps(alternative)
     def wrapper(*args, **kwargs):
-        """
-        .. deprecated:: %(version)s
-
-           %(msg)s
-
-        """
         warnings.warn(warning_msg, klass, stacklevel=stacklevel)
         return alternative(*args, **kwargs)
 
-    # Since we are using Substitution to create the required docstring,
-    # remove that from the attributes that should be assigned to the wrapper
-    assignments = tuple(x for x in WRAPPER_ASSIGNMENTS if x != '__doc__')
-    update_wrapper(wrapper, alternative, assigned=assignments)
+    # adding deprecated directive to the docstring
+    msg = msg or 'Use `{alt_name}` instead.'.format(alt_name=alt_name)
+    doc_error_msg = ('deprecate needs a correctly formatted docstring in '
+                     'the target function (should have a one liner short '
+                     'summary, and opening quotes should be in their own '
+                     'line). Found:\n{}'.format(alternative.__doc__))
+
+    # when python is running in optimized mode (i.e. `-OO`), docstrings are
+    # removed, so we check that a docstring with correct formatting is used
+    # but we allow empty docstrings
+    if alternative.__doc__:
+        if alternative.__doc__.count('\n') < 3:
+            raise AssertionError(doc_error_msg)
+        empty1, summary, empty2, doc = alternative.__doc__.split('\n', 3)
+        if empty1 or empty2 and not summary:
+            raise AssertionError(doc_error_msg)
+        wrapper.__doc__ = dedent("""
+        {summary}
+
+        .. deprecated:: {depr_version}
+            {depr_msg}
+
+        {rest_of_docstring}""").format(summary=summary.strip(),
+                                       depr_version=version,
+                                       depr_msg=msg,
+                                       rest_of_docstring=dedent(doc))
 
     return wrapper
 
