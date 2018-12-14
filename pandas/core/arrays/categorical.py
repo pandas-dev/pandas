@@ -54,6 +54,9 @@ _take_msg = textwrap.dedent("""\
 
 def _cat_compare_op(op):
 
+    # Note: using unpack_and_defer here doesn't break any tests, but the
+    #  behavior here is idiosyncratic enough that I'm not confident enough
+    #  to change it.
     # @ops.unpack_and_defer
     def f(self, other):
         # On python2, you can usually compare any type to any type, and

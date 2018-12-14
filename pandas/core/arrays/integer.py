@@ -17,7 +17,7 @@ from pandas.core.dtypes.dtypes import register_extension_dtype
 from pandas.core.dtypes.generic import ABCIndexClass, ABCSeries
 from pandas.core.dtypes.missing import isna, notna
 
-from pandas.core import nanops
+from pandas.core import nanops, ops
 from pandas.core.arrays import ExtensionArray, ExtensionOpsMixin
 
 
@@ -484,25 +484,14 @@ class IntegerArray(ExtensionArray, ExtensionOpsMixin):
     @classmethod
     def _create_comparison_method(cls, op):
 
-        # @ops.unwrap_and_defer
+        @ops.unpack_and_defer
         def cmp_method(self, other):
 
             op_name = op.__name__
             mask = None
 
-            if isinstance(other, (ABCSeries, ABCIndexClass)):
-                # Rely on pandas to unbox and dispatch to us.
-                return NotImplemented
-
             if isinstance(other, IntegerArray):
                 other, mask = other._data, other._mask
-
-            elif is_list_like(other):
-                other = np.asarray(other)
-                if other.ndim > 0 and len(self) != len(other):
-                    raise ValueError('Lengths must match to compare')
-
-            other = lib.item_from_zerodim(other)
 
             # numpy will show a DeprecationWarning on invalid elementwise
             # comparisons, this will raise in the future
@@ -576,7 +565,7 @@ class IntegerArray(ExtensionArray, ExtensionOpsMixin):
     @classmethod
     def _create_arithmetic_method(cls, op):
 
-        # @ops.unwrap_and_defer
+        # @ops.unpack_and_defer
         def integer_arithmetic_method(self, other):
 
             op_name = op.__name__
