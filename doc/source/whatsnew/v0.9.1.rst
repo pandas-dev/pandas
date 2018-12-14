@@ -149,7 +149,7 @@ API changes
 
     .. ipython:: python
 
-        from pandas.compat import StringIO
+        from io import StringIO
 
         data = 'A,B,C\n00001,001,5\n00002,002,6'
         pd.read_csv(StringIO(data), converters={'A': lambda x: x.strip()})
