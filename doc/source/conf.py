@@ -13,7 +13,6 @@
 
 import sys
 import os
-import re
 import inspect
 import importlib
 import logging
@@ -100,14 +99,17 @@ else:
         exclude_patterns.append('**/*.ipynb')
 
 # sphinx_pattern can be '-api' to exclude the API pages,
-# or the path to a file (e.g. '10min.rst' or 'generated/pandas.DataFrame.head.rst')
+# or the path to a file
+# (e.g. '10min.rst' or 'generated/pandas.DataFrame.head.rst')
 source_path = os.path.dirname(os.path.abspath(__file__))
 pattern = os.environ.get('SPHINX_PATTERN')
+autosummary_generate = pattern != '-api'
 if pattern:
     for dirname, dirs, fnames in os.walk(source_path):
         for fname in fnames:
             if os.path.splitext(fname)[-1] in ('.rst', '.ipynb'):
-                fname = os.path.relpath(os.path.join(dirname, fname), source_path)
+                fname = os.path.relpath(os.path.join(dirname, fname),
+                                        source_path)
 
                 if (fname == 'index.rst'
                         and os.path.abspath(dirname) == source_path):
@@ -118,32 +120,17 @@ if pattern:
                 elif fname != pattern:
                     exclude_patterns.append(fname)
 
-print(exclude_patterns)
-
 with open(os.path.join(source_path, 'index.rst.template')) as f:
     t = jinja2.Template(f.read())
-
 with open(os.path.join(source_path, 'index.rst'), 'w') as f:
     f.write(t.render(include_api=pattern is None,
-                     single_doc=os.path.splitext(pattern)[0]
-                                if pattern is not None and pattern != '-api'
-                                else None))
+                     single_doc=(os.path.splitext(pattern)[0]
+                                 if pattern is not None and pattern != '-api'
+                                 else None)))
 
 
 spelling_word_list_filename = ['spelling_wordlist.txt', 'names_wordlist.txt']
 spelling_ignore_pypi_package_names = True
-
-with open("index.rst") as f:
-    index_rst_lines = f.readlines()
-
-# only include the slow autosummary feature if we're building the API section
-# of the docs
-
-# JP: added from sphinxdocs
-autosummary_generate = False
-
-if any(re.match(r"\s*api\s*", l) for l in index_rst_lines):
-    autosummary_generate = True
 
 # numpydoc
 # for now use old parameter listing (styling + **kwargs problem)
