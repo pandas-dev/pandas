@@ -28,6 +28,7 @@ import pandas.core.algorithms as algos
 from pandas.core.arrays import ExtensionArray, datetimelike as dtl
 import pandas.core.common as com
 from pandas.core.missing import backfill_1d, pad_1d
+from pandas.core import ops
 
 from pandas.tseries import frequencies
 from pandas.tseries.offsets import Tick
@@ -51,16 +52,9 @@ def _period_array_cmp(cls, op):
     opname = '__{name}__'.format(name=op.__name__)
     nat_result = True if opname == '__ne__' else False
 
-    # @ops.unwrap_and_defer
+    @ops.unpack_and_defer
     def wrapper(self, other):
         op = getattr(self.asi8, opname)
-        # We want to eventually defer to the Series or PeriodIndex (which will
-        # return here with an unboxed PeriodArray). But before we do that,
-        # we do a bit of validation on type (Period) and freq, so that our
-        # error messages are sensible
-        not_implemented = isinstance(other, (ABCSeries, ABCIndexClass))
-        if not_implemented:
-            other = other._values
 
         if isinstance(other, Period):
             self._check_compatible_with(other)
@@ -69,8 +63,6 @@ def _period_array_cmp(cls, op):
         elif isinstance(other, cls):
             self._check_compatible_with(other)
 
-            if not_implemented:
-                return NotImplemented
             result = op(other.asi8)
 
             mask = self._isnan | other._isnan
