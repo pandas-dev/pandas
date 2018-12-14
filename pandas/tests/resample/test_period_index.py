@@ -13,6 +13,7 @@ import pandas as pd
 from pandas import DataFrame, Series, Timestamp
 from pandas.core.indexes.datetimes import date_range
 from pandas.core.indexes.period import Period, PeriodIndex, period_range
+from pandas.core.resample import _get_period_range_edges
 import pandas.util.testing as tm
 from pandas.util.testing import (
     assert_almost_equal, assert_frame_equal, assert_series_equal)
@@ -701,3 +702,55 @@ class TestPeriodIndex(object):
         expected = DataFrame([], index=expected_index)
         result = frame.resample('1s').mean()
         assert_frame_equal(result, expected)
+
+    @pytest.mark.parametrize('start,end,start_freq,end_freq,base', [
+        ('19910905', '19910909 03:00', 'H', '24H', 10),
+        ('19910905', '19910909 12:00', 'H', '24H', 10),
+        ('19910905', '19910909 23:00', 'H', '24H', 10),
+        ('19910905 10:00', '19910909', 'H', '24H', 10),
+        ('19910905 10:00', '19910909 10:00', 'H', '24H', 10),
+        ('19910905', '19910909 10:00', 'H', '24H', 10),
+        ('19910905 12:00', '19910909', 'H', '24H', 10),
+        ('19910905 12:00', '19910909 03:00', 'H', '24H', 10),
+        ('19910905 12:00', '19910909 12:00', 'H', '24H', 10),
+        ('19910905 12:00', '19910909 12:00', 'H', '24H', 34),
+        ('19910905 12:00', '19910909 12:00', 'H', '17H', 10),
+        ('19910905 12:00', '19910909 12:00', 'H', '17H', 3),
+        ('19910905 12:00', '19910909 1:00', 'H', 'M', 3),
+        ('19910905', '19910913 06:00', '2H', '24H', 10),
+        ('19910905', '19910905 01:39', 'Min', '5Min', 3),
+        ('19910905', '19910905 03:18', '2Min', '5Min', 3),
+    ])
+    def test_resample_with_non_zero_base(self, start, end, start_freq,
+                                         end_freq, base):
+        # GH 23882
+        s = pd.Series(0, index=pd.period_range(start, end, freq=start_freq))
+        s = s + np.arange(len(s))
+        result = s.resample(end_freq, base=base).mean()
+        result = result.to_timestamp(end_freq)
+        # to_timestamp casts 24H -> D
+        result = result.asfreq(end_freq) if end_freq == '24H' else result
+        expected = s.to_timestamp().resample(end_freq, base=base).mean()
+        assert_series_equal(result, expected)
+
+    @pytest.mark.parametrize('first,last,offset,exp_first,exp_last', [
+        ('19910905', '19920406', 'D', '19910905', '19920406'),
+        ('19910905 00:00', '19920406 06:00', 'D', '19910905', '19920406'),
+        ('19910905 06:00', '19920406 06:00', 'H', '19910905 06:00',
+         '19920406 06:00'),
+        ('19910906', '19920406', 'M', '1991-09', '1992-04'),
+        ('19910831', '19920430', 'M', '1991-08', '1992-04'),
+        ('1991-08', '1992-04', 'M', '1991-08', '1992-04'),
+    ])
+    def test_get_period_range_edges(self, first, last, offset,
+                                    exp_first, exp_last):
+        first = pd.Period(first)
+        last = pd.Period(last)
+
+        exp_first = pd.Period(exp_first, freq=offset)
+        exp_last = pd.Period(exp_last, freq=offset)
+
+        offset = pd.tseries.frequencies.to_offset(offset)
+        result = _get_period_range_edges(first, last, offset)
+        expected = (exp_first, exp_last)
+        assert result == expected
