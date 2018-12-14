@@ -106,9 +106,9 @@ Some other notes
 See the package overview for more detail about what's in the library.
 
 
-{% if single_doc_type == 'docstring' -%}
+{% if single_doc and single_doc.startswith('generated') -%}
 .. autosummary::
-    :toctree: generated_single/
+    :toctree: generated/
 {% else -%}
 .. toctree::
     :maxdepth: 4

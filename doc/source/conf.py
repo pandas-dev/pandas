@@ -18,6 +18,7 @@ import inspect
 import importlib
 import logging
 import warnings
+import jinja2
 from sphinx.ext.autosummary import _import_by_name
 
 logger = logging.getLogger(__name__)
@@ -86,6 +87,48 @@ else:
     extensions.append('sphinxcontrib.spelling')
 
 exclude_patterns = ['**.ipynb_checkpoints']
+try:
+    import nbconvert
+except ImportError:
+    logger.warn('nbconvert not installed. Skipping notebooks.')
+    exclude_patterns.append('**/*.ipynb')
+else:
+    try:
+        nbconvert.utils.pandoc.get_pandoc_version()
+    except nbconvert.utils.pandoc.PandocMissing:
+        logger.warn('Pandoc not installed. Skipping notebooks.')
+        exclude_patterns.append('**/*.ipynb')
+
+# sphinx_pattern can be '-api' to exclude the API pages,
+# or the path to a file (e.g. '10min.rst' or 'generated/pandas.DataFrame.head.rst')
+source_path = os.path.dirname(os.path.abspath(__file__))
+pattern = os.environ.get('SPHINX_PATTERN')
+if pattern:
+    for dirname, dirs, fnames in os.walk(source_path):
+        for fname in fnames:
+            if os.path.splitext(fname)[-1] in ('.rst', '.ipynb'):
+                fname = os.path.relpath(os.path.join(dirname, fname), source_path)
+
+                if (fname == 'index.rst'
+                        and os.path.abspath(dirname) == source_path):
+                    continue
+                elif (pattern == '-api'
+                        and (fname == 'api.rst' or dirname == 'generated')):
+                    exclude_patterns.append(fname)
+                elif fname != pattern:
+                    exclude_patterns.append(fname)
+
+print(exclude_patterns)
+
+with open(os.path.join(source_path, 'index.rst.template')) as f:
+    t = jinja2.Template(f.read())
+
+with open(os.path.join(source_path, 'index.rst'), 'w') as f:
+    f.write(t.render(include_api=pattern is None,
+                     single_doc=os.path.splitext(pattern)[0]
+                                if pattern is not None and pattern != '-api'
+                                else None))
+
 
 spelling_word_list_filename = ['spelling_wordlist.txt', 'names_wordlist.txt']
 spelling_ignore_pypi_package_names = True
@@ -295,10 +338,11 @@ for old, new in moved_classes:
              "{new}.{method}".format(new=new, method=method))
         )
 
-html_additional_pages = {
-    'generated/' + page[0]: 'api_redirect.html'
-    for page in moved_api_pages
-}
+if pattern is None:
+    html_additional_pages = {
+        'generated/' + page[0]: 'api_redirect.html'
+        for page in moved_api_pages
+    }
 
 
 header = """\
