@@ -1252,7 +1252,7 @@ class DataFrameGroupBy(NDFrameGroupBy):
     pandas.DataFrame.groupby.apply
     pandas.DataFrame.groupby.transform
     pandas.DataFrame.aggregate
-    
+
     Examples
     --------
 

@@ -1293,7 +1293,7 @@ class _Rolling_and_Expanding(_Rolling):
     Series or DataFrame
         Returned object type is determined by the caller of the %(name)s
         calculation.
-        
+
     See Also
     --------
     pandas.Series.quantile : Computes value at the given quantile over all data
@@ -1889,7 +1889,7 @@ class Expanding(_Rolling_and_Expanding):
     pandas.DataFrame.expanding.aggregate
     pandas.DataFrame.rolling.aggregate
     pandas.DataFrame.aggregate
-    
+
     Examples
     --------
 
