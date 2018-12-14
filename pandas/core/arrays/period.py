@@ -30,7 +30,7 @@ import pandas.core.common as com
 from pandas.core.missing import backfill_1d, pad_1d
 
 from pandas.tseries import frequencies
-from pandas.tseries.offsets import Tick, _delta_to_tick
+from pandas.tseries.offsets import DateOffset, Tick, _delta_to_tick
 
 
 def _field_accessor(name, alias, docstring=None):
