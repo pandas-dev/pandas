@@ -148,6 +148,9 @@ if [[ -z "$CHECK" || "$CHECK" == "patterns" ]]; then
     invgrep -R --exclude=*.pyc --exclude=testing.py --exclude=test_testing.py assert_raises_regex pandas
     RET=$(($RET + $?)) ; echo $MSG "DONE"
 
+    MSG='Check that no file in the repo contains tailing whitespaces' ; echo $MSG
+    invgrep --exclude="*.svg" -RI "\s$" *
+    RET=$(($RET + $?)) ; echo $MSG "DONE"
 fi
 
 ### CODE ###
