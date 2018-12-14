@@ -576,10 +576,8 @@ class RangeIndex(Int64Index):
         # fall back to Int64Index
         return super_getitem(key)
 
+    @ops.unpack_and_defer
     def __floordiv__(self, other):
-        if isinstance(other, (ABCSeries, ABCDataFrame)):
-            return NotImplemented
-
         if is_integer(other) and other != 0:
             if (len(self) == 0 or
                     self._start % other == 0 and
@@ -610,10 +608,9 @@ class RangeIndex(Int64Index):
                 if False, use the existing step
             """
 
+            @ops.unpack_and_defer
             def _evaluate_numeric_binop(self, other):
-                if isinstance(other, (ABCSeries, ABCDataFrame)):
-                    return NotImplemented
-                elif isinstance(other, ABCTimedeltaIndex):
+                if isinstance(other, ABCTimedeltaIndex):
                     # Defer to TimedeltaIndex implementation
                     return NotImplemented
                 elif isinstance(other, (timedelta, np.timedelta64)):

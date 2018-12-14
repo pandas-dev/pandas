@@ -7,6 +7,7 @@ This is not a public API.
 from __future__ import division
 
 import datetime
+from functools import wraps
 import operator
 import textwrap
 import warnings
@@ -134,6 +135,49 @@ def maybe_upcast_for_op(obj):
         # timedelta64 when operating with timedelta64
         return pd.TimedeltaIndex(obj)
     return obj
+
+
+def unpack_and_defer(func):
+    """
+    Decorate a binary method to return NotImplemented where appropriate,
+    unpack arguments, and validate argument shapes.
+
+    Parameters
+    ----------
+    func : binary method
+
+    Returns
+    -------
+    decorated : binary method
+    """
+
+    @wraps(func)
+    def method(self, other):
+        other = lib.item_from_zerodim(other)
+        # TODO: maybe_upcast_for_op?
+
+        for abc_cls in [ABCDataFrame, ABCSeries, ABCIndexClass]:
+            if isinstance(self, abc_cls):
+                break
+            elif isinstance(other, abc_cls):
+                return NotImplemented
+
+        if is_list_like(other):
+            if not hasattr(other, 'dtype'):
+                # list, tuple...
+                if np.ndim(other) == 0:
+                    # i.e. generator
+                    other = list(other)
+                other = np.array(other)
+
+            if not hasattr(self, 'index') and len(other) != len(self):
+                # Series and DataFrame may perform alignment, so this check
+                #  is only relevant for Index and ExtensionArray
+                raise ValueError("Lengths must match")
+
+        return func(self, other)
+
+    return method
 
 
 # -----------------------------------------------------------------------------
@@ -1526,6 +1570,7 @@ def _arith_method_SERIES(cls, op, special):
                                               lambda x: op(x, rvalues))
             raise
 
+    # @unpack_and_defer
     def wrapper(left, right):
         if isinstance(right, ABCDataFrame):
             return NotImplemented
@@ -1574,6 +1619,7 @@ def _arith_method_SERIES(cls, op, special):
         return construct_result(left, result,
                                 index=left.index, name=res_name, dtype=None)
 
+    wrapper.__name__ = op_name
     return wrapper
 
 
@@ -1646,6 +1692,7 @@ def _comp_method_SERIES(cls, op, special):
 
         return result
 
+    # @unpack_and_defer
     def wrapper(self, other, axis=None):
         # Validate the axis parameter
         if axis is not None:
@@ -1802,6 +1849,7 @@ def _bool_method_SERIES(cls, op, special):
     fill_int = lambda x: x.fillna(0)
     fill_bool = lambda x: x.fillna(False).astype(bool)
 
+    # @unpack_and_defer
     def wrapper(self, other):
         is_self_int_dtype = is_integer_dtype(self.dtype)
 
@@ -2232,10 +2280,9 @@ def _arith_method_SPARSE_SERIES(cls, op, special):
     """
     op_name = _get_op_name(op, special)
 
+    @unpack_and_defer
     def wrapper(self, other):
-        if isinstance(other, ABCDataFrame):
-            return NotImplemented
-        elif isinstance(other, ABCSeries):
+        if isinstance(other, ABCSeries):
             if not isinstance(other, ABCSparseSeries):
                 other = other.to_sparse(fill_value=self.fill_value)
             return _sparse_series_op(self, other, op, op_name)
@@ -2271,13 +2318,11 @@ def _arith_method_SPARSE_ARRAY(cls, op, special):
     """
     op_name = _get_op_name(op, special)
 
+    @unpack_and_defer
     def wrapper(self, other):
         from pandas.core.arrays.sparse.array import (
             SparseArray, _sparse_array_op, _wrap_result, _get_fill)
         if isinstance(other, np.ndarray):
-            if len(self) != len(other):
-                raise AssertionError("length mismatch: {self} vs. {other}"
-                                     .format(self=len(self), other=len(other)))
             if not isinstance(other, SparseArray):
                 dtype = getattr(other, 'dtype', None)
                 other = SparseArray(other, fill_value=self.fill_value,

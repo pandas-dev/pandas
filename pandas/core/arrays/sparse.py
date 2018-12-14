@@ -36,6 +36,7 @@ import pandas.core.algorithms as algos
 from pandas.core.arrays import ExtensionArray, ExtensionOpsMixin
 from pandas.core.base import PandasObject
 import pandas.core.common as com
+from pandas.core import ops
 from pandas.core.missing import interpolate_2d
 
 import pandas.io.formats.printing as printing
@@ -1650,12 +1651,10 @@ class SparseArray(PandasObject, ExtensionArray, ExtensionOpsMixin):
 
     @classmethod
     def _create_arithmetic_method(cls, op):
+
+        @ops.unpack_and_defer
         def sparse_arithmetic_method(self, other):
             op_name = op.__name__
-
-            if isinstance(other, (ABCSeries, ABCIndexClass)):
-                # Rely on pandas to dispatch to us.
-                return NotImplemented
 
             if isinstance(other, SparseArray):
                 return _sparse_array_op(self, other, op, op_name)
@@ -1678,10 +1677,6 @@ class SparseArray(PandasObject, ExtensionArray, ExtensionOpsMixin):
                 with np.errstate(all='ignore'):
                     # TODO: delete sparse stuff in core/ops.py
                     # TODO: look into _wrap_result
-                    if len(self) != len(other):
-                        raise AssertionError(
-                            ("length mismatch: {self} vs. {other}".format(
-                                self=len(self), other=len(other))))
                     if not isinstance(other, SparseArray):
                         dtype = getattr(other, 'dtype', None)
                         other = SparseArray(other, fill_value=self.fill_value,
@@ -1693,15 +1688,13 @@ class SparseArray(PandasObject, ExtensionArray, ExtensionOpsMixin):
 
     @classmethod
     def _create_comparison_method(cls, op):
+
+        @ops.unpack_and_defer
         def cmp_method(self, other):
             op_name = op.__name__
 
             if op_name in {'and_', 'or_'}:
                 op_name = op_name[:-1]
-
-            if isinstance(other, (ABCSeries, ABCIndexClass)):
-                # Rely on pandas to unbox and dispatch to us.
-                return NotImplemented
 
             if not is_scalar(other) and not isinstance(other, type(self)):
                 # convert list-like to ndarray
@@ -1709,10 +1702,6 @@ class SparseArray(PandasObject, ExtensionArray, ExtensionOpsMixin):
 
             if isinstance(other, np.ndarray):
                 # TODO: make this more flexible than just ndarray...
-                if len(self) != len(other):
-                    raise AssertionError("length mismatch: {self} vs. {other}"
-                                         .format(self=len(self),
-                                                 other=len(other)))
                 other = SparseArray(other, fill_value=self.fill_value)
 
             if isinstance(other, SparseArray):

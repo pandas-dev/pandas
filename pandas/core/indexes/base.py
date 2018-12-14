@@ -63,6 +63,8 @@ def _try_get_item(x):
 
 
 def _make_comparison_op(op, cls):
+
+    # @ops.unpack_and_defer
     def cmp_method(self, other):
         if isinstance(other, (np.ndarray, Index, ABCSeries)):
             if other.ndim > 0 and len(self) != len(other):
@@ -98,10 +100,9 @@ def _make_comparison_op(op, cls):
 
 
 def _make_arithmetic_op(op, cls):
+    @ops.unpack_and_defer
     def index_arithmetic_method(self, other):
-        if isinstance(other, (ABCSeries, ABCDataFrame)):
-            return NotImplemented
-        elif isinstance(other, ABCTimedeltaIndex):
+        if isinstance(other, ABCTimedeltaIndex):
             # Defer to subclass implementation
             return NotImplemented
         elif (isinstance(other, (np.ndarray, ABCTimedeltaArray)) and
@@ -2201,6 +2202,7 @@ class Index(IndexOpsMixin, PandasObject):
     # --------------------------------------------------------------------
     # Arithmetic & Logical Methods
 
+    # @ops.unpack_and_defer
     def __add__(self, other):
         if isinstance(other, (ABCSeries, ABCDataFrame)):
             return NotImplemented

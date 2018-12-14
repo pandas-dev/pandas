@@ -307,11 +307,8 @@ class TimedeltaArrayMixin(dtl.DatetimeLikeArrayMixin, dtl.TimelikeOps):
             raise TypeError("Cannot add/subtract non-tick DateOffset to {cls}"
                             .format(cls=type(self).__name__))
 
+    @ops.unpack_and_defer
     def __mul__(self, other):
-        other = lib.item_from_zerodim(other)
-
-        if isinstance(other, (ABCDataFrame, ABCSeries, ABCIndexClass)):
-            return NotImplemented
 
         if is_scalar(other):
             # numpy will accept float and int, raise TypeError for others
@@ -324,10 +321,6 @@ class TimedeltaArrayMixin(dtl.DatetimeLikeArrayMixin, dtl.TimelikeOps):
         if not hasattr(other, "dtype"):
             # list, tuple
             other = np.array(other)
-        if len(other) != len(self) and not is_timedelta64_dtype(other):
-            # Exclude timedelta64 here so we correctly raise TypeError
-            #  for that instead of ValueError
-            raise ValueError("Cannot multiply with unequal lengths")
 
         if is_object_dtype(other):
             # this multiplication will succeed only if all elements of other
@@ -343,12 +336,9 @@ class TimedeltaArrayMixin(dtl.DatetimeLikeArrayMixin, dtl.TimelikeOps):
 
     __rmul__ = __mul__
 
+    @ops.unpack_and_defer
     def __truediv__(self, other):
         # timedelta / X is well-defined for timedelta-like or numeric X
-        other = lib.item_from_zerodim(other)
-
-        if isinstance(other, (ABCSeries, ABCDataFrame, ABCIndexClass)):
-            return NotImplemented
 
         if isinstance(other, (timedelta, np.timedelta64, Tick)):
             other = Timedelta(other)
@@ -370,14 +360,7 @@ class TimedeltaArrayMixin(dtl.DatetimeLikeArrayMixin, dtl.TimelikeOps):
                 freq = self.freq.delta / other
             return type(self)(result, freq=freq)
 
-        if not hasattr(other, "dtype"):
-            # e.g. list, tuple
-            other = np.array(other)
-
-        if len(other) != len(self):
-            raise ValueError("Cannot divide vectors with unequal lengths")
-
-        elif is_timedelta64_dtype(other):
+        if is_timedelta64_dtype(other):
             # let numpy handle it
             return self._data / other
 
@@ -393,12 +376,9 @@ class TimedeltaArrayMixin(dtl.DatetimeLikeArrayMixin, dtl.TimelikeOps):
             result = self._data / other
             return type(self)(result)
 
+    @ops.unpack_and_defer
     def __rtruediv__(self, other):
         # X / timedelta is defined only for timedelta-like X
-        other = lib.item_from_zerodim(other)
-
-        if isinstance(other, (ABCSeries, ABCDataFrame, ABCIndexClass)):
-            return NotImplemented
 
         if isinstance(other, (timedelta, np.timedelta64, Tick)):
             other = Timedelta(other)
@@ -416,14 +396,7 @@ class TimedeltaArrayMixin(dtl.DatetimeLikeArrayMixin, dtl.TimelikeOps):
                             .format(typ=type(other).__name__,
                                     cls=type(self).__name__))
 
-        if not hasattr(other, "dtype"):
-            # e.g. list, tuple
-            other = np.array(other)
-
-        if len(other) != len(self):
-            raise ValueError("Cannot divide vectors with unequal lengths")
-
-        elif is_timedelta64_dtype(other):
+        if is_timedelta64_dtype(other):
             # let numpy handle it
             return other / self._data
 
@@ -443,11 +416,9 @@ class TimedeltaArrayMixin(dtl.DatetimeLikeArrayMixin, dtl.TimelikeOps):
         __div__ = __truediv__
         __rdiv__ = __rtruediv__
 
+    @ops.unpack_and_defer
     def __floordiv__(self, other):
-        if isinstance(other, (ABCSeries, ABCDataFrame, ABCIndexClass)):
-            return NotImplemented
 
-        other = lib.item_from_zerodim(other)
         if is_scalar(other):
             if isinstance(other, (timedelta, np.timedelta64, Tick)):
                 other = Timedelta(other)
@@ -471,13 +442,7 @@ class TimedeltaArrayMixin(dtl.DatetimeLikeArrayMixin, dtl.TimelikeOps):
                 freq = self.freq / other
             return type(self)(result.view('m8[ns]'), freq=freq)
 
-        if not hasattr(other, "dtype"):
-            # list, tuple
-            other = np.array(other)
-        if len(other) != len(self):
-            raise ValueError("Cannot divide with unequal lengths")
-
-        elif is_timedelta64_dtype(other):
+        if is_timedelta64_dtype(other):
             other = type(self)(other)
 
             # numpy timedelta64 does not natively support floordiv, so operate
@@ -506,11 +471,9 @@ class TimedeltaArrayMixin(dtl.DatetimeLikeArrayMixin, dtl.TimelikeOps):
             raise TypeError("Cannot divide {typ} by {cls}"
                             .format(typ=dtype, cls=type(self).__name__))
 
+    @ops.unpack_and_defer
     def __rfloordiv__(self, other):
-        if isinstance(other, (ABCSeries, ABCDataFrame, ABCIndexClass)):
-            return NotImplemented
 
-        other = lib.item_from_zerodim(other)
         if is_scalar(other):
             if isinstance(other, (timedelta, np.timedelta64, Tick)):
                 other = Timedelta(other)
@@ -528,13 +491,7 @@ class TimedeltaArrayMixin(dtl.DatetimeLikeArrayMixin, dtl.TimelikeOps):
                             .format(typ=type(other).__name__,
                                     cls=type(self).__name__))
 
-        if not hasattr(other, "dtype"):
-            # list, tuple
-            other = np.array(other)
-        if len(other) != len(self):
-            raise ValueError("Cannot divide with unequal lengths")
-
-        elif is_timedelta64_dtype(other):
+        if is_timedelta64_dtype(other):
             other = type(self)(other)
 
             # numpy timedelta64 does not natively support floordiv, so operate
@@ -556,47 +513,51 @@ class TimedeltaArrayMixin(dtl.DatetimeLikeArrayMixin, dtl.TimelikeOps):
             raise TypeError("Cannot divide {typ} by {cls}"
                             .format(typ=dtype, cls=type(self).__name__))
 
+    @ops.unpack_and_defer
     def __mod__(self, other):
         # Note: This is a naive implementation, can likely be optimized
-        if isinstance(other, (ABCSeries, ABCDataFrame, ABCIndexClass)):
-            return NotImplemented
-
-        other = lib.item_from_zerodim(other)
         if isinstance(other, (timedelta, np.timedelta64, Tick)):
             other = Timedelta(other)
+            if other is NaT:
+                # convert back to something that floordiv will recognize
+                #  as timedelta-like
+                other = np.timedelta64('NaT', 'ns')
         return self - (self // other) * other
 
+    @ops.unpack_and_defer
     def __rmod__(self, other):
         # Note: This is a naive implementation, can likely be optimized
-        if isinstance(other, (ABCSeries, ABCDataFrame, ABCIndexClass)):
-            return NotImplemented
-
-        other = lib.item_from_zerodim(other)
         if isinstance(other, (timedelta, np.timedelta64, Tick)):
             other = Timedelta(other)
+            if other is NaT:
+                # convert back to something that floordiv will recognize
+                #  as timedelta-like
+                other = np.timedelta64('NaT', 'ns')
         return other - (other // self) * self
 
+    @ops.unpack_and_defer
     def __divmod__(self, other):
         # Note: This is a naive implementation, can likely be optimized
-        if isinstance(other, (ABCSeries, ABCDataFrame, ABCIndexClass)):
-            return NotImplemented
-
-        other = lib.item_from_zerodim(other)
         if isinstance(other, (timedelta, np.timedelta64, Tick)):
             other = Timedelta(other)
+            if other is NaT:
+                # convert back to something that floordiv will recognize
+                #  as timedelta-like
+                other = np.timedelta64('NaT', 'ns')
 
         res1 = self // other
         res2 = self - res1 * other
         return res1, res2
 
+    @ops.unpack_and_defer
     def __rdivmod__(self, other):
         # Note: This is a naive implementation, can likely be optimized
-        if isinstance(other, (ABCSeries, ABCDataFrame, ABCIndexClass)):
-            return NotImplemented
-
-        other = lib.item_from_zerodim(other)
         if isinstance(other, (timedelta, np.timedelta64, Tick)):
             other = Timedelta(other)
+            if other is NaT:
+                # convert back to something that floordiv will recognize
+                #  as timedelta-like
+                other = np.timedelta64('NaT', 'ns')
 
         res1 = other // self
         res2 = other - res1 * self
