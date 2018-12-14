@@ -15,6 +15,8 @@ sphinx
 sphinxcontrib-spelling
 beautifulsoup4>=4.2.1
 blosc
+botocore>=1.11
+boto3
 bottleneck>=1.2.0
 fastparquet>=0.1.2
 html5lib
@@ -30,6 +32,7 @@ pyarrow>=0.7.0
 tables>=3.4.2
 pytest-cov
 pytest-xdist
+s3fs
 scipy>=1.1
 seaborn
 sqlalchemy
