@@ -14,8 +14,7 @@ from pandas.util._decorators import Appender, cache_readonly
 from pandas.core.dtypes import concat as _concat
 from pandas.core.dtypes.common import (
     is_int64_dtype, is_integer, is_scalar, is_timedelta64_dtype)
-from pandas.core.dtypes.generic import (
-    ABCDataFrame, ABCSeries, ABCTimedeltaIndex)
+from pandas.core.dtypes.generic import ABCTimedeltaIndex
 
 from pandas.core import ops
 import pandas.core.common as com
