@@ -167,19 +167,6 @@ cdef class Interval(IntervalMixin):
     qcut : Convert continuous data into bins (Categorical of Interval objects)
         based on quantiles.
     Period : Represents a period of time.
-    """
-    _typ = "interval"
-
-    cdef readonly object left
-    """Left bound for the interval"""
-
-    cdef readonly object right
-    """Right bound for the interval"""
-
-    cdef readonly str closed
-    """
-    Whether the interval is closed on the left-side, right-side, both or
-    neither
 
     Notes
     -----
@@ -249,6 +236,19 @@ cdef class Interval(IntervalMixin):
     >>> volume_1 = pd.Interval('Ant', 'Dog', closed='both')
     >>> 'Bee' in volume_1
     True
+    """
+    _typ = "interval"
+
+    cdef readonly object left
+    """Left bound for the interval"""
+
+    cdef readonly object right
+    """Right bound for the interval"""
+
+    cdef readonly str closed
+    """
+    Whether the interval is closed on the left-side, right-side, both or
+    neither
     """
 
     def __init__(self, left, right, str closed='right'):
