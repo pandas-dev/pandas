@@ -1698,13 +1698,9 @@ def _generate_regular_range(cls, start, end, periods, freq):
             e = _generate_range_overflow_safe(b, periods, stride, side='start')
             tz = start.tz
         elif end is not None:
-            e = Timestamp(end).value
+            e = Timestamp(end).value + stride
             b = _generate_range_overflow_safe(e, periods, stride, side='end')
             tz = end.tz
-
-            # add an additional step to `e` because np.arange(b, e) will
-            #  not include `e`
-            e += stride
         else:
             raise ValueError("at least 'start' or 'end' should be specified "
                              "if a 'period' is given.")
@@ -1753,10 +1749,10 @@ def _generate_range_overflow_safe(endpoint, periods, stride,
     # GH#14187 raise instead of incorrectly wrapping around
     assert side in ['start', 'end']
 
-    i64max = np.iinfo(np.int64).max
+    i64max = np.uint64(np.iinfo(np.int64).max)
     msg = ('Cannot generate range with {side}={endpoint} and '
            'periods={periods}'
-           .format(side=side, endpoint=Timestamp(endpoint), periods=periods))
+           .format(side=side, endpoint=endpoint, periods=periods))
 
     with np.errstate(over="raise"):
         # if periods * strides cannot be multiplied within the *uint64* bounds,
@@ -1775,6 +1771,12 @@ def _generate_range_overflow_safe(endpoint, periods, stride,
           (endpoint < 0 and side == 'end')):
         # no chance of not-overflowing
         raise tslib.OutOfBoundsDatetime(msg)
+
+    elif (side == 'end' and endpoint > i64max and endpoint - stride <= i64max):
+        # in _generate_regular_range we added `stride` thereby overflowing
+        #  the bounds.  Adjust to fix this.
+        return _generate_range_overflow_safe(endpoint - stride,
+                                             periods - 1, stride, side)
 
     # split into smaller pieces
     return _generate_range_recurse(endpoint, periods, stride, side)
