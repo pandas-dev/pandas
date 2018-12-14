@@ -6046,6 +6046,17 @@ class DataFrame(NDFrame):
     axis=0)``.
 
     `agg` is an alias for `aggregate`. Use the alias.
+    
+    See Also
+    --------
+    DataFrame.apply : Perform any type of operations.
+    DataFrame.transform : Perform transformation type operations.
+    pandas.core.groupby.GroupBy : Perform operations over groups.
+    pandas.core.resample.Resampler : Perform operations over resampled bins.
+    pandas.core.window.Rolling : Perform operations over rolling window.
+    pandas.core.window.Expanding : Perform operations over expanding window.
+    pandas.core.window.EWM : Perform operation over exponential weighted
+        window.
 
     Examples
     --------
@@ -6078,23 +6089,12 @@ class DataFrame(NDFrame):
     2    8.0
     3    NaN
     dtype: float64
-
-    See Also
-    --------
-    DataFrame.apply : Perform any type of operations.
-    DataFrame.transform : Perform transformation type operations.
-    pandas.core.groupby.GroupBy : Perform operations over groups.
-    pandas.core.resample.Resampler : Perform operations over resampled bins.
-    pandas.core.window.Rolling : Perform operations over rolling window.
-    pandas.core.window.Expanding : Perform operations over expanding window.
-    pandas.core.window.EWM : Perform operation over exponential weighted
-        window.
     """)
 
-    @Appender(_agg_doc)
     @Appender(_shared_docs['aggregate'] % dict(
         versionadded='.. versionadded:: 0.20.0',
         **_shared_doc_kwargs))
+    @Appender(_agg_doc)
     def aggregate(self, func, axis=0, *args, **kwargs):
         axis = self._get_axis_number(axis)
 

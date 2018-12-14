@@ -158,6 +158,29 @@ cdef class Interval(IntervalMixin):
         Whether the interval is closed on the left-side, right-side, both or
         neither. See the Notes for more detailed explanation.
 
+    See Also
+    --------
+    IntervalIndex : An Index of Interval objects that are all closed on the
+        same side.
+    cut : Convert continuous data into discrete bins (Categorical
+        of Interval objects).
+    qcut : Convert continuous data into bins (Categorical of Interval objects)
+        based on quantiles.
+    Period : Represents a period of time.
+    """
+    _typ = "interval"
+
+    cdef readonly object left
+    """Left bound for the interval"""
+
+    cdef readonly object right
+    """Right bound for the interval"""
+
+    cdef readonly str closed
+    """
+    Whether the interval is closed on the left-side, right-side, both or
+    neither
+
     Notes
     -----
     The parameters `left` and `right` must be from the same type, you must be
@@ -226,29 +249,6 @@ cdef class Interval(IntervalMixin):
     >>> volume_1 = pd.Interval('Ant', 'Dog', closed='both')
     >>> 'Bee' in volume_1
     True
-
-    See Also
-    --------
-    IntervalIndex : An Index of Interval objects that are all closed on the
-        same side.
-    cut : Convert continuous data into discrete bins (Categorical
-        of Interval objects).
-    qcut : Convert continuous data into bins (Categorical of Interval objects)
-        based on quantiles.
-    Period : Represents a period of time.
-    """
-    _typ = "interval"
-
-    cdef readonly object left
-    """Left bound for the interval"""
-
-    cdef readonly object right
-    """Right bound for the interval"""
-
-    cdef readonly str closed
-    """
-    Whether the interval is closed on the left-side, right-side, both or
-    neither
     """
 
     def __init__(self, left, right, str closed='right'):
@@ -387,6 +387,11 @@ cdef class Interval(IntervalMixin):
         bool
             ``True`` if the two intervals overlap, else ``False``.
 
+        See Also
+        --------
+        IntervalArray.overlaps : The corresponding method for IntervalArray
+        IntervalIndex.overlaps : The corresponding method for IntervalIndex
+
         Examples
         --------
         >>> i1 = pd.Interval(0, 2)
@@ -409,11 +414,6 @@ cdef class Interval(IntervalMixin):
         >>> i6 = pd.Interval(1, 2, closed='neither')
         >>> i4.overlaps(i6)
         False
-
-        See Also
-        --------
-        IntervalArray.overlaps : The corresponding method for IntervalArray
-        IntervalIndex.overlaps : The corresponding method for IntervalIndex
         """
         if not isinstance(other, Interval):
             msg = '`other` must be an Interval, got {other}'

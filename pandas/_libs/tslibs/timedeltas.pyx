@@ -1059,6 +1059,10 @@ cdef class _Timedelta(timedelta):
         -------
         formatted : str
 
+        See Also
+        --------
+        Timestamp.isoformat
+
         Notes
         -----
         The longest component is days, whose value may be larger than
@@ -1081,10 +1085,6 @@ cdef class _Timedelta(timedelta):
         'P0DT0H0M10S'
         >>> pd.Timedelta(days=500.5).isoformat()
         'P500DT12H0MS'
-
-        See Also
-        --------
-        Timestamp.isoformat
         """
         components = self.components
         seconds = '{}.{:0>3}{:0>3}{:0>3}'.format(components.seconds,
@@ -1210,13 +1210,13 @@ class Timedelta(_Timedelta):
         """
         Round the Timedelta to the specified resolution
 
-        Returns
-        -------
-        a new Timedelta rounded to the given resolution of `freq`
-
         Parameters
         ----------
         freq : a freq string indicating the rounding resolution
+
+        Returns
+        -------
+        a new Timedelta rounded to the given resolution of `freq`
 
         Raises
         ------

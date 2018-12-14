@@ -1293,6 +1293,13 @@ class _Rolling_and_Expanding(_Rolling):
     Series or DataFrame
         Returned object type is determined by the caller of the %(name)s
         calculation.
+        
+    See Also
+    --------
+    pandas.Series.quantile : Computes value at the given quantile over all data
+        in Series.
+    pandas.DataFrame.quantile : Computes values at the given quantile over
+        requested axis in DataFrame.
 
     Examples
     --------
@@ -1310,13 +1317,6 @@ class _Rolling_and_Expanding(_Rolling):
     2    2.5
     3    3.5
     dtype: float64
-
-    See Also
-    --------
-    pandas.Series.quantile : Computes value at the given quantile over all data
-        in Series.
-    pandas.DataFrame.quantile : Computes values at the given quantile over
-        requested axis in DataFrame.
     """)
 
     def quantile(self, quantile, interpolation='linear', **kwargs):
@@ -1645,11 +1645,11 @@ class Rolling(_Rolling_and_Expanding):
     9  0.212668 -1.647453
     """)
 
-    @Appender(_agg_doc)
     @Appender(_shared_docs['aggregate'] % dict(
         versionadded='',
         klass='Series/DataFrame',
         axis=''))
+    @Appender(_agg_doc)
     def aggregate(self, arg, *args, **kwargs):
         return super(Rolling, self).aggregate(arg, *args, **kwargs)
 
@@ -1884,6 +1884,12 @@ class Expanding(_Rolling_and_Expanding):
         return max(length, other)
 
     _agg_doc = dedent("""
+    See Also
+    --------
+    pandas.DataFrame.expanding.aggregate
+    pandas.DataFrame.rolling.aggregate
+    pandas.DataFrame.aggregate
+    
     Examples
     --------
 
@@ -1913,19 +1919,13 @@ class Expanding(_Rolling_and_Expanding):
     7  0.680292  0.132049  0.548693
     8  0.067236  0.948257  0.163353
     9 -0.286980  0.618493 -0.694496
-
-    See Also
-    --------
-    pandas.DataFrame.expanding.aggregate
-    pandas.DataFrame.rolling.aggregate
-    pandas.DataFrame.aggregate
     """)
 
-    @Appender(_agg_doc)
     @Appender(_shared_docs['aggregate'] % dict(
         versionadded='',
         klass='Series/DataFrame',
         axis=''))
+    @Appender(_agg_doc)
     def aggregate(self, arg, *args, **kwargs):
         return super(Expanding, self).aggregate(arg, *args, **kwargs)
 

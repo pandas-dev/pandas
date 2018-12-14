@@ -1080,7 +1080,6 @@ class GroupBy(_GroupBy):
         raise NotImplementedError
 
     @Substitution(name='groupby')
-    @Appender(_doc_template)
     def mean(self, *args, **kwargs):
         """
         Compute mean of groups, excluding missing values.
@@ -1088,6 +1087,12 @@ class GroupBy(_GroupBy):
         Returns
         -------
         pandas.Series or pandas.DataFrame
+
+        See Also
+        --------
+        pandas.Series.%(name)s
+        pandas.DataFrame.%(name)s
+        pandas.Panel.%(name)s
 
         Examples
         --------
@@ -1528,7 +1533,6 @@ class GroupBy(_GroupBy):
     bfill = backfill
 
     @Substitution(name='groupby')
-    @Appender(_doc_template)
     def nth(self, n, dropna=None):
         """
         Take the nth row from each group if n is an int, or a subset of rows
@@ -1546,6 +1550,12 @@ class GroupBy(_GroupBy):
         dropna : None or str, optional
             apply the specified dropna operation before counting which row is
             the nth row. Needs to be None, 'any' or 'all'
+
+        See Also
+        --------
+        pandas.Series.%(name)s
+        pandas.DataFrame.%(name)s
+        pandas.Panel.%(name)s
 
         Examples
         --------
@@ -2032,13 +2042,18 @@ class GroupBy(_GroupBy):
         return (filled / shifted) - 1
 
     @Substitution(name='groupby')
-    @Appender(_doc_template)
     def head(self, n=5):
         """
         Returns first n rows of each group.
 
         Essentially equivalent to ``.apply(lambda x: x.head(n))``,
         except ignores as_index flag.
+
+        See Also
+        --------
+        pandas.Series.%(name)s
+        pandas.DataFrame.%(name)s
+        pandas.Panel.%(name)s
 
         Examples
         --------
@@ -2059,13 +2074,18 @@ class GroupBy(_GroupBy):
         return self._selected_obj[mask]
 
     @Substitution(name='groupby')
-    @Appender(_doc_template)
     def tail(self, n=5):
         """
         Returns last n rows of each group.
 
         Essentially equivalent to ``.apply(lambda x: x.tail(n))``,
         except ignores as_index flag.
+
+        See Also
+        --------
+        pandas.Series.%(name)s
+        pandas.DataFrame.%(name)s
+        pandas.Panel.%(name)s
 
         Examples
         --------
