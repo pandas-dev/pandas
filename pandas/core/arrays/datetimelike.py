@@ -5,7 +5,7 @@ import warnings
 
 import numpy as np
 
-from pandas._libs import NaT, iNaT, lib
+from pandas._libs import NaT, algos, iNaT, lib
 from pandas._libs.tslibs.period import (
     DIFFERENT_FREQ_INDEX, IncompatibleFrequency, Period)
 from pandas._libs.tslibs.timedeltas import Timedelta, delta_to_nanoseconds
@@ -155,6 +155,7 @@ class TimelikeOps(object):
               times
 
             .. versionadded:: 0.24.0
+
         nonexistent : 'shift', 'NaT', default 'raise'
             A nonexistent time does not exist in a particular timezone
             where clocks moved forward due to DST.
@@ -246,7 +247,7 @@ class TimelikeOps(object):
         if 'tz' in attribs:
             attribs['tz'] = None
         return self._ensure_localized(
-            self._shallow_copy(result, **attribs), ambiguous, nonexistent
+            self._simple_new(result, **attribs), ambiguous, nonexistent
         )
 
     @Appender((_round_doc + _round_example).format(op="round"))
@@ -310,6 +311,8 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin, AttributesMixin):
 
     @property
     def size(self):
+        # type: () -> int
+        """The number of elements in this array."""
         return np.prod(self.shape)
 
     def __len__(self):
@@ -554,6 +557,21 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin, AttributesMixin):
                              'does not conform to passed frequency {passed}'
                              .format(infer=inferred, passed=freq.freqstr))
 
+    # monotonicity/uniqueness properties are called via frequencies.infer_freq,
+    #  see GH#23789
+
+    @property
+    def _is_monotonic_increasing(self):
+        return algos.is_monotonic(self.asi8, timelike=True)[0]
+
+    @property
+    def _is_monotonic_decreasing(self):
+        return algos.is_monotonic(self.asi8, timelike=True)[1]
+
+    @property
+    def _is_unique(self):
+        return len(unique1d(self.asi8)) == len(self)
+
     # ------------------------------------------------------------------
     # Arithmetic Methods
 
@@ -661,9 +679,7 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin, AttributesMixin):
         # and datetime dtypes
         result = np.zeros(len(self), dtype=np.int64)
         result.fill(iNaT)
-        if is_timedelta64_dtype(self):
-            return type(self)(result, freq=None)
-        return type(self)(result, tz=self.tz, freq=None)
+        return type(self)(result, dtype=self.dtype, freq=None)
 
     def _sub_nat(self):
         """

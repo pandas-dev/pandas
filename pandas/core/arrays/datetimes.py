@@ -165,10 +165,23 @@ class DatetimeArrayMixin(dtl.DatetimeLikeArrayMixin,
         _data
     """
     _typ = "datetimearray"
+
+    # define my properties & methods for delegation
     _bool_ops = ['is_month_start', 'is_month_end',
                  'is_quarter_start', 'is_quarter_end', 'is_year_start',
                  'is_year_end', 'is_leap_year']
     _object_ops = ['weekday_name', 'freq', 'tz']
+    _field_ops = ['year', 'month', 'day', 'hour', 'minute', 'second',
+                  'weekofyear', 'week', 'weekday', 'dayofweek',
+                  'dayofyear', 'quarter', 'days_in_month',
+                  'daysinmonth', 'microsecond',
+                  'nanosecond']
+    _other_ops = ['date', 'time', 'timetz']
+    _datetimelike_ops = _field_ops + _object_ops + _bool_ops + _other_ops
+    _datetimelike_methods = ['to_period', 'tz_localize',
+                             'tz_convert',
+                             'normalize', 'strftime', 'round', 'floor',
+                             'ceil', 'month_name', 'day_name']
 
     # dummy attribute so that datetime.__eq__(DatetimeArray) defers
     # by returning NotImplemented
@@ -527,7 +540,7 @@ class DatetimeArrayMixin(dtl.DatetimeLikeArrayMixin,
                           "or DatetimeIndex", PerformanceWarning)
             result = self.astype('O') + offset
 
-        return type(self)(result, freq='infer')
+        return type(self)._from_sequence(result, freq='infer')
 
     def _sub_datetimelike_scalar(self, other):
         # subtract a datetime from myself, yielding a ndarray[timedelta64[ns]]
@@ -562,8 +575,8 @@ class DatetimeArrayMixin(dtl.DatetimeLikeArrayMixin,
         -------
         result : DatetimeArray
         """
-        new_values = dtl.DatetimeLikeArrayMixin._add_delta(self, delta)
-        return type(self)(new_values, tz=self.tz, freq='infer')
+        new_values = super(DatetimeArrayMixin, self)._add_delta(delta)
+        return type(self)._from_sequence(new_values, tz=self.tz, freq='infer')
 
     # -----------------------------------------------------------------
     # Timezone Conversion and Localization Methods
@@ -866,14 +879,15 @@ class DatetimeArrayMixin(dtl.DatetimeLikeArrayMixin,
                        dtype='datetime64[ns, Asia/Calcutta]', freq=None)
         """
         if self.tz is None or timezones.is_utc(self.tz):
-            not_null = self.notna()
+            not_null = ~self.isna()
             DAY_NS = ccalendar.DAY_SECONDS * 1000000000
             new_values = self.asi8.copy()
             adjustment = (new_values[not_null] % DAY_NS)
             new_values[not_null] = new_values[not_null] - adjustment
         else:
             new_values = conversion.normalize_i8_timestamps(self.asi8, self.tz)
-        return type(self)(new_values, freq='infer').tz_localize(self.tz)
+        return type(self)._from_sequence(new_values,
+                                         freq='infer').tz_localize(self.tz)
 
     def to_period(self, freq=None):
         """
