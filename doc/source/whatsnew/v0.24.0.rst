@@ -380,6 +380,7 @@ Backwards incompatible API changes
 - ``max_rows`` and ``max_cols`` parameters removed from :class:`HTMLFormatter` since truncation is handled by :class:`DataFrameFormatter` (:issue:`23818`)
 - :meth:`read_csv` will now raise a ``ValueError`` if a column with missing values is declared as having dtype ``bool`` (:issue:`20591`)
 - The column order of the resultant :class:`DataFrame` from :meth:`MultiIndex.to_frame` is now guaranteed to match the :attr:`MultiIndex.names` order. (:issue:`22420`)
+- :func:`pd.offsets.generate_range` argument ``time_rule`` has been removed; use ``offset`` instead (:issue:`24157`)
 
 Percentage change on groupby changes
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -1133,7 +1134,6 @@ Deprecations
 - In :meth:`Series.where` with Categorical data, providing an ``other`` that is not present in the categories is deprecated. Convert the categorical to a different dtype or add the ``other`` to the categories first (:issue:`24077`).
 - :meth:`Series.clip_lower`, :meth:`Series.clip_upper`, :meth:`DataFrame.clip_lower` and :meth:`DataFrame.clip_upper` are deprecated and will be removed in a future version. Use ``Series.clip(lower=threshold)``, ``Series.clip(upper=threshold)`` and the equivalent ``DataFrame`` methods (:issue:`24203`)
 
-
 .. _whatsnew_0240.deprecations.datetimelike_int_ops:
 
 Integer Addition/Subtraction with Datetime-like Classes Is Deprecated
@@ -1310,6 +1310,9 @@ Datetimelike
 - Bug in :class:`Index` where calling ``np.array(dtindex, dtype=object)`` on a timezone-naive :class:`DatetimeIndex` would return an array of ``datetime`` objects instead of :class:`Timestamp` objects, potentially losing nanosecond portions of the timestamps (:issue:`23524`)
 - Bug in :class:`Categorical.__setitem__` not allowing setting with another ``Categorical`` when both are undordered and have the same categories, but in a different order (:issue:`24142`)
 - Bug in :func:`date_range` where using dates with millisecond resolution or higher could return incorrect values or the wrong number of values in the index (:issue:`24110`)
+- Bug in :class:`DatetimeIndex` where constructing a :class:`DatetimeIndex` from a :class:`Categorical` or :class:`CategoricalIndex` would incorrectly drop timezone information (:issue:`18664`)
+- Bug in :class:`DatetimeIndex` and :class:`TimedeltaIndex` where indexing with ``Ellipsis`` would incorrectly lose the index's ``freq`` attribute (:issue:`21282`)
+- Clarified error message produced when passing an incorrect ``freq`` argument to :class:`DatetimeIndex` with ``NaT`` as the first entry in the passed data (:issue:`11587`)
 
 Timedelta
 ^^^^^^^^^
@@ -1422,6 +1425,7 @@ Indexing
 - Bug in :func:`Index.union` and :func:`Index.intersection` where name of the ``Index`` of the result was not computed correctly for certain cases (:issue:`9943`, :issue:`9862`)
 - Bug in :class:`Index` slicing with boolean :class:`Index` may raise ``TypeError`` (:issue:`22533`)
 - Bug in ``PeriodArray.__setitem__`` when accepting slice and list-like value (:issue:`23978`)
+- Bug in :class:`DatetimeIndex`, :class:`TimedeltaIndex` where indexing with ``Ellipsis`` would lose their ``freq`` attribute (:issue:`21282`)
 
 Missing
 ^^^^^^^
