@@ -41,6 +41,7 @@ class DatetimeIndexOpsMixin(DatetimeLikeArrayMixin):
     copy = Index.copy
     unique = Index.unique
     take = Index.take
+    view = Index.view
 
     # DatetimeLikeArrayMixin assumes subclasses are mutable, so these are
     # properties there.  They can be made into cache_readonly for Index

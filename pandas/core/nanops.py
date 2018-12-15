@@ -266,11 +266,7 @@ def _na_ok_dtype(dtype):
 
 def _view_if_needed(values):
     if is_datetime_or_timedelta_dtype(values):
-        try:
-            return values.view(np.int64)
-        except AttributeError:
-            # TODO: once DatetimeArray has `view`, get rid of this
-            return values.asi8
+        return values.view(np.int64)
     return values
 
 
