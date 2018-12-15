@@ -1231,7 +1231,7 @@ class Categorical(ExtensionArray, PandasObject):
         new_categories = self.categories.map(mapper)
 
         try:
-            if isinstance(mapper, (dict, ABCSeries)):
+            if is_dict_like(mapper):
                 new_value = mapper[np.nan]
             else:
                 new_value = mapper(np.nan)

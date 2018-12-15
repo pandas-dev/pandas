@@ -311,14 +311,18 @@ class TestCategoricalIndex(Base):
         exp = pd.Index(["odd", "even", "odd", np.nan])
         tm.assert_index_equal(a.map(c), exp)
 
-    @pytest.mark.parametrize('data, f', [[[1, 1, np.nan], pd.isna],
-                                         [[1, 2, np.nan], pd.isna],
-                                         [[1, 1, np.nan], {1: False,
-                                                           np.nan: True}],
-                                         [[1, 2, np.nan], {1: False,
-                                                           2: False,
-                                                           np.nan: True}]])
-    def test_map_fill_nan(self, data, f):
+    @pytest.mark.parametrize(
+        (
+            'data',
+            'f'
+        ),
+        (
+            ([1, 1, np.nan], pd.isna),
+            ([1, 2, np.nan], pd.isna),
+            ([1, 1, np.nan], {1: False, np.nan: True}),
+            ([1, 2, np.nan], {1: False, 2: False, np.nan: True})
+        ))
+    def test_map_fill_nan(self, data, f):  # GH 24241
         values = pd.Categorical(data)
         result = values.map(f)
         if data[1] == 1:
@@ -328,15 +332,18 @@ class TestCategoricalIndex(Base):
             expected = pd.Index([False, False, True])
             tm.assert_index_equal(result, expected)
 
-    @pytest.mark.parametrize('data, f', [[[1, 1, np.nan], {1: False}],
-                                         [[1, 2, np.nan], {1: False,
-                                                           2: False}],
-                                         [[1, 1, np.nan], pd.Series([False,
-                                                                     False])],
-                                         [[1, 2, np.nan], pd.Series([False,
-                                                                     False,
-                                                                     False])]])
-    def test_map_dont_fill_nan(self, data, f):
+    @pytest.mark.parametrize(
+        (
+            'data',
+            'f'
+        ),
+        (
+            ([1, 1, np.nan], {1: False}),
+            ([1, 2, np.nan], {1: False, 2: False}),
+            ([1, 1, np.nan], pd.Series([False, False])),
+            ([1, 2, np.nan], pd.Series([False, False, False]))
+        ))
+    def test_map_dont_fill_nan(self, data, f):  # GH 24241
         values = pd.Categorical(data)
         result = values.map(f)
         expected = pd.Index([False, False, np.nan])
