@@ -21,6 +21,7 @@ dependencies:
   - notebook
   - numexpr
   - numpy=1.13*
+  - numpydoc
   - openpyxl
   - pandoc
   - pyarrow

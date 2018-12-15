@@ -277,15 +277,12 @@ See the :ref:`Merge, join, and concatenate
                                           ('K1', 'X2')],
                                           names=['key', 'X'])
 
-
    left = pd.DataFrame({'A': ['A0', 'A1', 'A2'],
                         'B': ['B0', 'B1', 'B2']}, index=index_left)
-
 
    index_right = pd.MultiIndex.from_tuples([('K0', 'Y0'), ('K1', 'Y1'),
                                            ('K2', 'Y2'), ('K2', 'Y3')],
                                            names=['key', 'Y'])
-
 
    right = pd.DataFrame({'C': ['C0', 'C1', 'C2', 'C3'],
                          'D': ['D0', 'D1', 'D2', 'D3']}, index=index_right)
@@ -356,6 +353,7 @@ Other Enhancements
 - :meth:`round`, :meth:`ceil`, and meth:`floor` for :class:`DatetimeIndex` and :class:`Timestamp` now support a ``nonexistent`` argument for handling datetimes that are rounded to nonexistent times. See :ref:`timeseries.timezone_nonexistent` (:issue:`22647`)
 - :class:`Resampler` now is iterable like :class:`GroupBy` (:issue:`15314`).
 - :meth:`Series.resample` and :meth:`DataFrame.resample` have gained the :meth:`Resampler.quantile` (:issue:`15023`).
+- :meth:`DataFrame.resample` and :meth:`Series.resample` with a :class:`PeriodIndex` will now respect the ``base`` argument in the same fashion as with a :class:`DatetimeIndex`. (:issue:`23882`)
 - :meth:`pandas.core.dtypes.is_list_like` has gained a keyword ``allow_sets`` which is ``True`` by default; if ``False``,
   all instances of ``set`` will not be considered "list-like" anymore (:issue:`23061`)
 - :meth:`Index.to_frame` now supports overriding column name(s) (:issue:`22580`).
@@ -383,6 +381,7 @@ Backwards incompatible API changes
 - ``max_rows`` and ``max_cols`` parameters removed from :class:`HTMLFormatter` since truncation is handled by :class:`DataFrameFormatter` (:issue:`23818`)
 - :meth:`read_csv` will now raise a ``ValueError`` if a column with missing values is declared as having dtype ``bool`` (:issue:`20591`)
 - The column order of the resultant :class:`DataFrame` from :meth:`MultiIndex.to_frame` is now guaranteed to match the :attr:`MultiIndex.names` order. (:issue:`22420`)
+- :func:`pd.offsets.generate_range` argument ``time_rule`` has been removed; use ``offset`` instead (:issue:`24157`)
 
 Percentage change on groupby changes
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -1128,7 +1127,6 @@ Other API Changes
   has an improved ``KeyError`` message, and will not fail on duplicate column names with ``drop=True``. (:issue:`22484`)
 - Slicing a single row of a DataFrame with multiple ExtensionArrays of the same type now preserves the dtype, rather than coercing to object (:issue:`22784`)
 - :class:`DateOffset` attribute `_cacheable` and method `_should_cache` have been removed (:issue:`23118`)
-- Comparing :class:`Timedelta` to be less or greater than unknown types now raises a ``TypeError`` instead of returning ``False`` (:issue:`20829`)
 - :meth:`Categorical.searchsorted`, when supplied a scalar value to search for, now returns a scalar instead of an array (:issue:`23466`).
 - :meth:`Categorical.searchsorted` now raises a ``KeyError`` rather that a ``ValueError``, if a searched for key is not found in its categories (:issue:`23466`).
 - :meth:`Index.hasnans` and :meth:`Series.hasnans` now always return a python boolean. Previously, a python or a numpy boolean could be returned, depending on circumstances (:issue:`23294`).
@@ -1180,7 +1178,6 @@ Deprecations
 - Passing a string alias like ``'datetime64[ns, UTC]'`` as the `unit` parameter to :class:`DatetimeTZDtype` is deprecated. Use :class:`DatetimeTZDtype.construct_from_string` instead (:issue:`23990`).
 - In :meth:`Series.where` with Categorical data, providing an ``other`` that is not present in the categories is deprecated. Convert the categorical to a different dtype or add the ``other`` to the categories first (:issue:`24077`).
 - :meth:`Series.clip_lower`, :meth:`Series.clip_upper`, :meth:`DataFrame.clip_lower` and :meth:`DataFrame.clip_upper` are deprecated and will be removed in a future version. Use ``Series.clip(lower=threshold)``, ``Series.clip(upper=threshold)`` and the equivalent ``DataFrame`` methods (:issue:`24203`)
-
 
 .. _whatsnew_0240.deprecations.datetimelike_int_ops:
 
@@ -1358,6 +1355,9 @@ Datetimelike
 - Bug in :class:`Index` where calling ``np.array(dtindex, dtype=object)`` on a timezone-naive :class:`DatetimeIndex` would return an array of ``datetime`` objects instead of :class:`Timestamp` objects, potentially losing nanosecond portions of the timestamps (:issue:`23524`)
 - Bug in :class:`Categorical.__setitem__` not allowing setting with another ``Categorical`` when both are undordered and have the same categories, but in a different order (:issue:`24142`)
 - Bug in :func:`date_range` where using dates with millisecond resolution or higher could return incorrect values or the wrong number of values in the index (:issue:`24110`)
+- Bug in :class:`DatetimeIndex` where constructing a :class:`DatetimeIndex` from a :class:`Categorical` or :class:`CategoricalIndex` would incorrectly drop timezone information (:issue:`18664`)
+- Bug in :class:`DatetimeIndex` and :class:`TimedeltaIndex` where indexing with ``Ellipsis`` would incorrectly lose the index's ``freq`` attribute (:issue:`21282`)
+- Clarified error message produced when passing an incorrect ``freq`` argument to :class:`DatetimeIndex` with ``NaT`` as the first entry in the passed data (:issue:`11587`)
 
 Timedelta
 ^^^^^^^^^
@@ -1470,6 +1470,7 @@ Indexing
 - Bug in :func:`Index.union` and :func:`Index.intersection` where name of the ``Index`` of the result was not computed correctly for certain cases (:issue:`9943`, :issue:`9862`)
 - Bug in :class:`Index` slicing with boolean :class:`Index` may raise ``TypeError`` (:issue:`22533`)
 - Bug in ``PeriodArray.__setitem__`` when accepting slice and list-like value (:issue:`23978`)
+- Bug in :class:`DatetimeIndex`, :class:`TimedeltaIndex` where indexing with ``Ellipsis`` would lose their ``freq`` attribute (:issue:`21282`)
 
 Missing
 ^^^^^^^
@@ -1559,6 +1560,7 @@ Notice how we now instead output ``np.nan`` itself instead of a stringified form
 - Bug in :meth:`DataFrame.to_dict` when the resulting dict contains non-Python scalars in the case of numeric data (:issue:`23753`)
 - :func:`DataFrame.to_string()`, :func:`DataFrame.to_html()`, :func:`DataFrame.to_latex()` will correctly format output when a string is passed as the ``float_format`` argument (:issue:`21625`, :issue:`22270`)
 - Bug in :func:`read_csv` that caused it to raise ``OverflowError`` when trying to use 'inf' as ``na_value`` with integer index column (:issue:`17128`)
+- Bug in :func:`json_normalize` that caused it to raise ``TypeError`` when two consecutive elements of ``record_path`` are dicts (:issue:`22706`)
 
 Plotting
 ^^^^^^^^

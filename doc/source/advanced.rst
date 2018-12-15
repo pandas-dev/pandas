@@ -54,7 +54,7 @@ can think of ``MultiIndex`` as an array of tuples where each tuple is unique. A
 ``MultiIndex`` can be created from a list of arrays (using
 :meth:`MultiIndex.from_arrays`), an array of tuples (using
 :meth:`MultiIndex.from_tuples`), a crossed set of iterables (using
-:meth:`MultiIndex.from_product`), or a :class:`DataFrame` (using 
+:meth:`MultiIndex.from_product`), or a :class:`DataFrame` (using
 :meth:`MultiIndex.from_frame`).  The ``Index`` constructor will attempt to return
 a ``MultiIndex`` when it is passed a list of tuples.  The following examples
 demonstrate different ways to initialize MultiIndexes.
@@ -81,7 +81,7 @@ to use the :meth:`MultiIndex.from_product` method:
    iterables = [['bar', 'baz', 'foo', 'qux'], ['one', 'two']]
    pd.MultiIndex.from_product(iterables, names=['first', 'second'])
 
-You can also construct a ``MultiIndex`` from a ``DataFrame`` directly, using 
+You can also construct a ``MultiIndex`` from a ``DataFrame`` directly, using
 the method :meth:`MultiIndex.from_frame`. This is a complementary method to
 :meth:`MultiIndex.to_frame`.
 
@@ -694,7 +694,7 @@ Finally, as a small note on performance, because the ``take`` method handles
 a narrower range of inputs, it can offer performance that is a good deal
 faster than fancy indexing.
 
-.. ipython::
+.. ipython:: python
 
    arr = np.random.randn(10000, 5)
    indexer = np.arange(10000)
