@@ -835,7 +835,7 @@ def _raise_on_incompatible(left, right):
     # GH#24283 error message format depends on whether right is scalar
     if isinstance(right, np.ndarray):
         other_freq = None
-    elif isinstance(right, (Period, DateOffset)):
+    elif isinstance(right, (ABCPeriodIndex, PeriodArray, Period, DateOffset)):
         other_freq = right.freqstr
     else:
         other_freq = _delta_to_tick(Timedelta(right)).freqstr
