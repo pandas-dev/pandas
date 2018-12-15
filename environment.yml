@@ -22,6 +22,7 @@ dependencies:
   - pytest>=4.0
   - sphinx
   - sphinxcontrib-spelling
+  - numpydoc
 
   # optional
   - beautifulsoup4>=4.2.1
