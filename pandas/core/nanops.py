@@ -278,6 +278,9 @@ def _wrap_results(result, dtype, fill_value=None):
     """ wrap our results if needed """
 
     if is_datetime64_dtype(dtype) or is_datetime64tz_dtype(dtype):
+        if fill_value is None:
+            # GH#24293
+            fill_value = iNaT
         if not isinstance(result, np.ndarray):
             tz = getattr(dtype, 'tz', None)
             assert not isna(fill_value), "Expected non-null fill_value"
@@ -485,11 +488,7 @@ def nanmean(values, axis=None, skipna=True, mask=None):
     else:
         the_mean = the_sum / count if count > 0 else np.nan
 
-    fill_value = None
-    if is_datetime64_dtype(dtype) or is_datetime64tz_dtype(dtype):
-        fill_value = iNaT
-
-    return _wrap_results(the_mean, dtype, fill_value=fill_value)
+    return _wrap_results(the_mean, dtype)
 
 
 @disallow('M8')
