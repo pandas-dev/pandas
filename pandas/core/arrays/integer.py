@@ -484,6 +484,7 @@ class IntegerArray(ExtensionArray, ExtensionOpsMixin):
     @classmethod
     def _create_comparison_method(cls, op):
 
+        # TODO: needs tests for deferring to DataFrame
         @ops.unpack_and_defer
         def cmp_method(self, other):
 

@@ -1652,6 +1652,7 @@ class SparseArray(PandasObject, ExtensionArray, ExtensionOpsMixin):
     @classmethod
     def _create_arithmetic_method(cls, op):
 
+        # TODO: needs test for deferring to DataFrame, op with 0-dim
         @ops.unpack_and_defer
         def sparse_arithmetic_method(self, other):
             op_name = op.__name__
@@ -1689,6 +1690,7 @@ class SparseArray(PandasObject, ExtensionArray, ExtensionOpsMixin):
     @classmethod
     def _create_comparison_method(cls, op):
 
+        # TODO: needs test for deferring to DataFrame, op with 0-dim
         @ops.unpack_and_defer
         def cmp_method(self, other):
             op_name = op.__name__

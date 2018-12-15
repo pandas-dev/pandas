@@ -134,11 +134,7 @@ class TestPeriodIndexComparisons(object):
                            freq=freq)
         base = tm.box_expected(base, box_with_array)
 
-        # which freq is freq1 vs freq2 depends on box_with_array
-        base_msg = (r"Input has different freq={freq1} from "
-                    r"Period(|Index|Array)\(freq={freq2}\)")
-
-        msg = base_msg.format(freq1="A-DEC", freq2=freq)
+        msg = "Input has different freq=A-DEC from "
         with pytest.raises(IncompatibleFrequency, match=msg):
             base <= Period('2011', freq='A')
 
@@ -147,16 +143,11 @@ class TestPeriodIndexComparisons(object):
 
         # TODO: Could parametrize over boxes for idx?
         idx = PeriodIndex(['2011', '2012', '2013', '2014'], freq='A')
-
-        msg = base_msg.format(freq1=freq, freq2=idx.freqstr)
-        if box_with_array in [pd.Series, pd.DataFrame]:
-            msg = base_msg.format(freq1=idx.freqstr, freq2=freq)
-
         with pytest.raises(IncompatibleFrequency, match=msg):
             base <= idx
 
         # Different frequency
-        msg = base_msg.format(freq1="4M", freq2=freq)
+        msg = "Input has different freq=4M from "
         with pytest.raises(IncompatibleFrequency, match=msg):
             base <= Period('2011', freq='4M')
 
@@ -164,11 +155,6 @@ class TestPeriodIndexComparisons(object):
             Period('2011', freq='4M') >= base
 
         idx = PeriodIndex(['2011', '2012', '2013', '2014'], freq='4M')
-
-        msg = base_msg.format(freq1=freq, freq2=idx.freqstr)
-        if box_with_array in [pd.Series, pd.DataFrame]:
-            msg = base_msg.format(freq1=idx.freqstr, freq2=freq)
-
         with pytest.raises(IncompatibleFrequency, match=msg):
             base <= idx
 
@@ -220,9 +206,7 @@ class TestPeriodIndexComparisons(object):
         idx1 = PeriodIndex(['2011-01', '2011-02', 'NaT', '2011-05'], freq=freq)
 
         diff = PeriodIndex(['2011-02', '2011-01', '2011-04', 'NaT'], freq='4M')
-        msg = (r"Input has different freq={freq} from "
-               r"Period(Index|Array)\(freq=4M\)"
-               .format(freq=freq))
+        msg = "Input has different freq=4M from PeriodIndex"
         with pytest.raises(IncompatibleFrequency, match=msg):
             idx1 > diff
 
