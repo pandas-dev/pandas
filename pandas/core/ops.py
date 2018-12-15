@@ -531,7 +531,7 @@ Equivalent to ``{equiv}``, but with support to substitute a fill_value
 for missing data in one of the inputs. With reverse version, `{reverse}`.
 
 Among flexible wrappers (`add`, `sub`, `mul`, `div`, `mod`, `pow`) to
-arithmetic operators: `+`, `-`, `*`, `/`, `//`, `%`, `**.
+arithmetic operators: `+`, `-`, `*`, `/`, `//`, `%`, `**`.
 
 Parameters
 ----------
