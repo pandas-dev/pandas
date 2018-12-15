@@ -519,7 +519,8 @@ class TestSeriesAnalytics(object):
             # idxmax, idxmin, min, and max are valid for dates
             if name not in ['max', 'min', 'mean']:
                 ds = Series(date_range('1/1/2001', periods=10))
-                pytest.raises(TypeError, f, ds)
+                with pytest.raises(TypeError):
+                    f(ds)
 
             # skipna or no
             assert notna(f(string_series_))

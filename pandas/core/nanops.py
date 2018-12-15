@@ -267,17 +267,16 @@ def _na_ok_dtype(dtype):
 def _view_if_needed(values):
     if is_datetime_or_timedelta_dtype(values):
         try:
+            return values.view(np.int64)
+        except AttributeError:
             # TODO: once DatetimeArray has `view`, get rid of this
             return values.asi8
-        except AttributeError:
-            return values.view(np.int64)
     return values
 
 
 def _wrap_results(result, dtype, fill_value=None):
     """ wrap our results if needed """
 
-    # TODO: datetime64tz_dtype
     if is_datetime64_dtype(dtype) or is_datetime64tz_dtype(dtype):
         if not isinstance(result, np.ndarray):
             tz = getattr(dtype, 'tz', None)
@@ -477,7 +476,9 @@ def nanmean(values, axis=None, skipna=True, mask=None):
     the_sum = _ensure_numeric(values.sum(axis, dtype=dtype_sum))
 
     if axis is not None and getattr(the_sum, 'ndim', False):
-        the_mean = the_sum / count
+        with np.errstate(all="ignore"):
+            # suppress division by zero warnings
+            the_mean = the_sum / count
         ct_mask = count == 0
         if ct_mask.any():
             the_mean[ct_mask] = np.nan
