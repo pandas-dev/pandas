@@ -113,6 +113,7 @@ HDFStore: PyTables (HDF5)
    HDFStore.select
    HDFStore.info
    HDFStore.keys
+   HDFStore.groups
    HDFStore.walk
 
 Feather
@@ -610,6 +611,16 @@ These can be accessed like ``Series.dt.<property>``.
    Series.dt.ceil
    Series.dt.month_name
    Series.dt.day_name
+
+**Period Properties**
+
+.. autosummary::
+   :toctree: generated/
+   :template: autosummary/accessor_attribute.rst
+
+   Series.dt.qyear
+   Series.dt.start_time
+   Series.dt.end_time
 
 **Timedelta Properties**
 
@@ -1648,7 +1659,14 @@ Categorical Components
    CategoricalIndex.set_categories
    CategoricalIndex.as_ordered
    CategoricalIndex.as_unordered
+
+Modifying and Computations
+~~~~~~~~~~~~~~~~~~~~~~~~~~
+.. autosummary::
+   :toctree: generated/
+
    CategoricalIndex.map
+   CategoricalIndex.equals
 
 .. _api.intervalindex:
 
@@ -1741,6 +1759,7 @@ MultiIndex Components
    MultiIndex.swaplevel
    MultiIndex.reorder_levels
    MultiIndex.remove_unused_levels
+   MultiIndex.reindex
    MultiIndex.unique
 
 MultiIndex Selecting
@@ -1750,10 +1769,23 @@ MultiIndex Selecting
    :toctree: generated/
 
    MultiIndex.get_loc
+   MultiIndex.get_loc_level
    MultiIndex.get_indexer
    MultiIndex.get_level_values
 
-.. _api.datetimeindex:
+Modifying and Computations
+~~~~~~~~~~~~~~~~~~~~~~~~~~
+.. autosummary::
+   :toctree: generated/
+
+   MultiIndex.copy
+   MultiIndex.drop_duplicates
+   MultiIndex.duplicated
+   MultiIndex.equals
+   MultiIndex.repeat
+   MultiIndex.where
+
+   .. _api.datetimeindex:
 
 DatetimeIndex
 -------------
@@ -1834,6 +1866,16 @@ Conversion
    DatetimeIndex.to_pydatetime
    DatetimeIndex.to_series
    DatetimeIndex.to_frame
+   DatetimeIndex.shift
+
+Sorting
+~~~~~~~
+.. autosummary::
+   :toctree: generated/
+
+   DatetimeIndex.argsort
+   DatetimeIndex.searchsorted
+   DatetimeIndex.sort_values
 
 TimedeltaIndex
 --------------
@@ -1868,6 +1910,15 @@ Conversion
    TimedeltaIndex.floor
    TimedeltaIndex.ceil
    TimedeltaIndex.to_frame
+
+Sorting
+~~~~~~~
+.. autosummary::
+   :toctree: generated/
+
+   TimedeltaIndex.argsort
+   TimedeltaIndex.searchsorted
+   TimedeltaIndex.sort_values
 
 .. currentmodule:: pandas
 
@@ -1914,6 +1965,17 @@ Methods
     PeriodIndex.asfreq
     PeriodIndex.strftime
     PeriodIndex.to_timestamp
+    PeriodIndex.shift
+    PeriodIndex.unique
+
+Sorting
+~~~~~~~
+.. autosummary::
+   :toctree: generated/
+
+   PeriodIndex.argsort
+   PeriodIndex.searchsorted
+   PeriodIndex.sort_values
 
 Scalars
 -------
@@ -2292,6 +2354,7 @@ Function application
    :toctree: generated/
 
    GroupBy.apply
+   GroupBy.agg
    GroupBy.aggregate
    GroupBy.transform
    GroupBy.pipe
@@ -2336,7 +2399,6 @@ application to columns of a specific data type.
 .. autosummary::
    :toctree: generated/
 
-   DataFrameGroupBy.agg
    DataFrameGroupBy.all
    DataFrameGroupBy.any
    DataFrameGroupBy.bfill
