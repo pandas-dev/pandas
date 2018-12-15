@@ -1611,6 +1611,7 @@ Other
 - Bug in :meth:`DataFrame.combine_first` in which column types were unexpectedly converted to float (:issue:`20699`)
 - Bug where C variables were declared with external linkage causing import errors if certain other C libraries were imported before Pandas. (:issue:`24113`)
 - Constructing a DataFrame with an index argument that wasn't already an instance of :class:`~pandas.core.Index` was broken in `4efb39f <https://github.com/pandas-dev/pandas/commit/4efb39f01f5880122fa38d91e12d217ef70fad9e>`_ (:issue:`22227`).
+- :meth:`~pandas._libs.tslibs.parsing.parse_time_string` now raises a type error if the passed argument is not a string, (:issue:`24091`)
 
 .. _whatsnew_0.24.0.contributors:
 

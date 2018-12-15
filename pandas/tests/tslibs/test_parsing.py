@@ -8,7 +8,7 @@ from dateutil.parser import parse
 import numpy as np
 import pytest
 
-from pandas._libs.tslibs import parsing
+from pandas._libs.tslibs import parsing, Period
 from pandas._libs.tslibs.parsing import parse_time_string
 import pandas.compat as compat
 import pandas.util._test_decorators as td
@@ -24,6 +24,8 @@ class TestParseQuarters(object):
         assert date == date_lower
         assert parsed == parsed_lower
         assert reso == reso_lower
+
+        pytest.raises(TypeError, parse_time_string, Period('2018-11-01', 'B'))
 
     def test_parse_time_quarter_w_dash(self):
         # https://github.com/pandas-dev/pandas/issue/9688

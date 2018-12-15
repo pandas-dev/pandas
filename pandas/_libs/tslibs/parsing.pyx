@@ -113,7 +113,7 @@ def parse_time_string(arg, freq=None, dayfirst=None, yearfirst=None):
     if not isinstance(arg, (str, unicode)):
         # Note: cython recognizes `unicode` in both py2/py3, optimizes
         # this check into a C call.
-        return arg
+        raise TypeError("arg must be str/unicode")
 
     if getattr(freq, "_typ", None) == "dateoffset":
         freq = freq.rule_code
