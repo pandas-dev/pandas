@@ -11,7 +11,7 @@ from os.path import join as pjoin
 
 import pkg_resources
 import platform
-import distutils.sysconfig
+from distutils.sysconfig import get_config_var
 import sys
 import shutil
 from distutils.version import LooseVersion
@@ -446,12 +446,10 @@ else:
 # MACOSX_DEPLOYMENT_TARGET before calling setup.py
 if is_platform_mac():
     if 'MACOSX_DEPLOYMENT_TARGET' not in os.environ:
-        current_system = \
-            list(map(int, platform.mac_ver()[0].split('.')[:2]))
-        python_osx_target_str = \
-            distutils.sysconfig.get_config_var('MACOSX_DEPLOYMENT_TARGET')
-        python_osx_target = list(map(int, python_osx_target_str.split('.')))
-        if python_osx_target < [10, 9] and current_system >= [10, 9]:
+        current_system = LooseVersion(platform.mac_ver()[0])
+        python_target = LooseVersion(
+            get_config_var('MACOSX_DEPLOYMENT_TARGET'))
+        if python_target < '10.9' and current_system >= '10.9':
             os.environ['MACOSX_DEPLOYMENT_TARGET'] = '10.9'
 
 
