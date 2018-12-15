@@ -6,14 +6,14 @@ import warnings
 
 import numpy as np
 
-from pandas._libs import lib, tslibs
+from pandas._libs import iNaT, lib, tslibs
 import pandas.compat as compat
 
 from pandas.core.dtypes.cast import _int64_max, maybe_upcast_putmask
 from pandas.core.dtypes.common import (
     _get_dtype, is_any_int_dtype, is_bool_dtype, is_complex, is_complex_dtype,
-    is_datetime64_dtype, is_datetime_or_timedelta_dtype, is_float,
-    is_float_dtype, is_integer, is_integer_dtype, is_numeric_dtype,
+    is_datetime64_dtype, is_datetime64tz_dtype, is_datetime_or_timedelta_dtype,
+    is_float, is_float_dtype, is_integer, is_integer_dtype, is_numeric_dtype,
     is_object_dtype, is_scalar, is_timedelta64_dtype)
 from pandas.core.dtypes.missing import isna, na_value_for_dtype, notna
 
@@ -203,6 +203,7 @@ def _get_values(values, skipna, fill_value=None, fill_value_typ=None,
     if necessary copy and mask using the specified fill_value
     copy = True will force the copy
     """
+    orig_values = values
     values = com.values_from_object(values)
 
     if mask is None:
@@ -212,6 +213,10 @@ def _get_values(values, skipna, fill_value=None, fill_value_typ=None,
             mask = isna(values)
 
     dtype = values.dtype
+    if is_datetime64tz_dtype(orig_values):
+        dtype = orig_values.dtype
+
+    values = getattr(values, 'asi8', values)
     dtype_ok = _na_ok_dtype(dtype)
 
     # get our fill value (in case we need to provide an alternative
@@ -261,19 +266,25 @@ def _na_ok_dtype(dtype):
 
 def _view_if_needed(values):
     if is_datetime_or_timedelta_dtype(values):
-        return values.view(np.int64)
+        try:
+            # TODO: once DatetimeArray has `view`, get rid of this
+            return values.asi8
+        except AttributeError:
+            return values.view(np.int64)
     return values
 
 
 def _wrap_results(result, dtype, fill_value=None):
     """ wrap our results if needed """
 
-    if is_datetime64_dtype(dtype):
+    # TODO: datetime64tz_dtype
+    if is_datetime64_dtype(dtype) or is_datetime64tz_dtype(dtype):
         if not isinstance(result, np.ndarray):
+            tz = getattr(dtype, 'tz', None)
             assert not isna(fill_value), "Expected non-null fill_value"
             if result == fill_value:
                 result = np.nan
-            result = tslibs.Timestamp(result)
+            result = tslibs.Timestamp(result, tz=tz)
         else:
             result = result.view(dtype)
     elif is_timedelta64_dtype(dtype):
@@ -426,7 +437,6 @@ def nansum(values, axis=None, skipna=True, min_count=0, mask=None):
     return _wrap_results(the_sum, dtype)
 
 
-@disallow('M8')
 @bottleneck_switch()
 def nanmean(values, axis=None, skipna=True, mask=None):
     """
@@ -457,7 +467,8 @@ def nanmean(values, axis=None, skipna=True, mask=None):
         values, skipna, 0, mask=mask)
     dtype_sum = dtype_max
     dtype_count = np.float64
-    if is_integer_dtype(dtype) or is_timedelta64_dtype(dtype):
+    if (is_integer_dtype(dtype) or is_timedelta64_dtype(dtype) or
+            is_datetime64_dtype(dtype) or is_datetime64tz_dtype(dtype)):
         dtype_sum = np.float64
     elif is_float_dtype(dtype):
         dtype_sum = dtype
@@ -473,7 +484,11 @@ def nanmean(values, axis=None, skipna=True, mask=None):
     else:
         the_mean = the_sum / count if count > 0 else np.nan
 
-    return _wrap_results(the_mean, dtype)
+    fill_value = None
+    if is_datetime64_dtype(dtype) or is_datetime64tz_dtype(dtype):
+        fill_value = iNaT
+
+    return _wrap_results(the_mean, dtype, fill_value=fill_value)
 
 
 @disallow('M8')

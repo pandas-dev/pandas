@@ -920,9 +920,15 @@ class IndexOpsMixin(object):
     def empty(self):
         return not self.size
 
-    def max(self):
+    def max(self, axis=None, skipna=True):
         """
         Return the maximum value of the Index.
+
+        Parameters
+        ----------
+        axis : {None}
+            Dummy argument for consistency with Series
+        skipna : bool, default True
 
         Returns
         -------
@@ -951,21 +957,35 @@ class IndexOpsMixin(object):
         >>> idx.max()
         ('b', 2)
         """
+        nv.validate_minmax_axis(axis)
         return nanops.nanmax(self.values)
 
-    def argmax(self, axis=None):
+    def argmax(self, axis=None, skipna=True):
         """
         Return a ndarray of the maximum argument indexer.
+
+        Parameters
+        ----------
+        axis : {None}
+            Dummy argument for consistency with Series
+        skipna : bool, default True
 
         See Also
         --------
         numpy.ndarray.argmax
         """
+        nv.validate_minmax_axis(axis)
         return nanops.nanargmax(self.values)
 
-    def min(self):
+    def min(self, axis=None, skipna=True):
         """
         Return the minimum value of the Index.
+
+        Parameters
+        ----------
+        axis : {None}
+            Dummy argument for consistency with Series
+        skipna : bool, default True
 
         Returns
         -------
@@ -994,16 +1014,24 @@ class IndexOpsMixin(object):
         >>> idx.min()
         ('a', 1)
         """
+        nv.validate_minmax_axis(axis)
         return nanops.nanmin(self.values)
 
-    def argmin(self, axis=None):
+    def argmin(self, axis=None, skipna=True):
         """
         Return a ndarray of the minimum argument indexer.
+
+        Parameters
+        ----------
+        axis : {None}
+            Dummy argument for consistency with Series
+        skipna : bool, default True
 
         See Also
         --------
         numpy.ndarray.argmin
         """
+        nv.validate_minmax_axis(axis)
         return nanops.nanargmin(self.values)
 
     def tolist(self):
