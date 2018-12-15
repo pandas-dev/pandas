@@ -945,7 +945,7 @@ class _Rolling_and_Expanding(_Rolling):
         return self._wrap_results(results, blocks, obj)
 
     _shared_docs['apply'] = dedent(r"""
-    The %(name)s function apply.
+    The %(name)s function's apply function.
 
     Parameters
     ----------
