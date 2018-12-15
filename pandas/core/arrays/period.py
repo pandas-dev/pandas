@@ -62,15 +62,11 @@ def _period_array_cmp(cls, op):
             other = other._values
 
         if isinstance(other, Period):
-            if other.freq != self.freq:
-                msg = DIFFERENT_FREQ_INDEX.format(self.freqstr, other.freqstr)
-                raise IncompatibleFrequency(msg)
+            self._check_compatible_with(other)
 
             result = op(other.ordinal)
         elif isinstance(other, cls):
-            if other.freq != self.freq:
-                msg = DIFFERENT_FREQ_INDEX.format(self.freqstr, other.freqstr)
-                raise IncompatibleFrequency(msg)
+            self._check_compatible_with(other)
 
             if not_implemented:
                 return NotImplemented
@@ -241,6 +237,11 @@ class PeriodArray(dtl.DatetimeLikeArrayMixin, ExtensionArray):
 
         return subarr, freq
 
+    def _check_compatible_with(self, other):
+        if self.freqstr != other.freqstr:
+            msg = DIFFERENT_FREQ_INDEX.format(self.freqstr, other.freqstr)
+            raise IncompatibleFrequency(msg)
+
     # --------------------------------------------------------------------
     # Data / Attributes
 
@@ -395,10 +396,7 @@ class PeriodArray(dtl.DatetimeLikeArrayMixin, ExtensionArray):
         if isna(fill_value):
             fill_value = iNaT
         elif isinstance(fill_value, Period):
-            if fill_value.freq != self.freq:
-                msg = DIFFERENT_FREQ_INDEX.format(self.freq.freqstr,
-                                                  fill_value.freqstr)
-                raise IncompatibleFrequency(msg)
+            self._check_compatible_with(fill_value)
             fill_value = fill_value.ordinal
         else:
             raise ValueError("'fill_value' should be a Period. "
@@ -667,10 +665,7 @@ class PeriodArray(dtl.DatetimeLikeArrayMixin, ExtensionArray):
     def _sub_period(self, other):
         # If the operation is well-defined, we return an object-Index
         # of DateOffsets.  Null entries are filled with pd.NaT
-        if self.freq != other.freq:
-            msg = DIFFERENT_FREQ_INDEX.format(self.freqstr, other.freqstr)
-            raise IncompatibleFrequency(msg)
-
+        self._check_compatible_with(other)
         asi8 = self.asi8
         new_data = asi8 - other.ordinal
         new_data = np.array([self.freq * x for x in new_data])
