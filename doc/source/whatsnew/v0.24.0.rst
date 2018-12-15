@@ -714,7 +714,7 @@ Finally, a ``Series.sparse`` accessor was added to provide sparse-specific metho
 
 Previously, when ``sparse=True`` was passed to :func:`get_dummies`, the return value could be either
 a :class:`DataFrame` or a :class:`SparseDataFrame`, depending on whether all or a just a subset
-of the columns were dummy-encoded. Now, a :class:`DataFrame` is always returned.
+of the columns were dummy-encoded. Now, a :class:`DataFrame` is always returned (:issue:`24284`).
 
 *Previous Behavior*
 
