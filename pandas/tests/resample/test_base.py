@@ -1,6 +1,6 @@
 # pylint: disable=E1101
 
-from datetime import datetime, timedelta
+from datetime import timedelta
 
 import numpy as np
 import pytest
@@ -29,10 +29,7 @@ def create_index(_index_factory):
 
 
 class Base(object):
-    """
-    base class for resampling testing, calling
-    .create_series() generates a series of each index type
-    """
+    """base class for resampling testing"""
 
     @pytest.mark.parametrize('freq', ['2D', '1H'])
     def test_asfreq(self, series_and_frame, freq, create_index):
@@ -43,10 +40,10 @@ class Base(object):
         expected = obj.reindex(new_index)
         assert_almost_equal(result, expected)
 
-    def test_asfreq_fill_value(self, create_index):
+    def test_asfreq_fill_value(self, create_index, series):
         # test for fill value during resampling, issue 3715
 
-        s = self.create_series()
+        s = series
 
         result = s.resample('1H').asfreq()
         new_index = create_index(s.index[0], s.index[-1], freq='1H')
@@ -61,9 +58,9 @@ class Base(object):
         expected = frame.reindex(new_index, fill_value=4.0)
         assert_frame_equal(result, expected)
 
-    def test_resample_interpolate(self):
+    def test_resample_interpolate(self, series):
         # # 12925
-        df = self.create_series().to_frame('value')
+        df = series.to_frame('value')
         assert_frame_equal(
             df.resample('1T').asfreq().interpolate(),
             df.resample('1T').interpolate())
@@ -74,13 +71,13 @@ class Base(object):
         pytest.raises(TypeError, lambda: xp.resample('A').mean())
 
     @pytest.mark.parametrize('freq', ['M', 'D', 'H'])
-    def test_resample_empty_series(self, freq, resample_method):
+    def test_resample_empty_series(self, freq, resample_method, series):
         # GH12771 & GH12868
 
         if resample_method == 'ohlc':
             pytest.skip('need to test for ohlc from GH13083')
 
-        s = self.create_series()[:0]
+        s = series[:0]
         result = getattr(s.resample(freq), resample_method)()
 
         expected = s.copy()
@@ -90,9 +87,9 @@ class Base(object):
         assert_series_equal(result, expected, check_dtype=False)
 
     @pytest.mark.parametrize('freq', ['M', 'D', 'H'])
-    def test_resample_empty_dataframe(self, freq, resample_method):
+    def test_resample_empty_dataframe(self, freq, resample_method, series):
         # GH13212
-        index = self.create_series().index[:0]
+        index = series.index[:0]
         f = DataFrame(index=index)
 
         # count retains dimensions too
@@ -127,9 +124,9 @@ class Base(object):
             # (ex: doing mean with dtype of np.object)
             pass
 
-    def test_resample_loffset_arg_type(self, create_index):
+    def test_resample_loffset_arg_type(self, create_index, series):
         # GH 13218, 15002
-        df = self.create_series().to_frame('value')
+        df = series.to_frame('value')
         expected_means = [df.values[i:i + 2].mean()
                           for i in range(0, len(df.values), 2)]
         expected_index = create_index(df.index[0],
@@ -164,9 +161,9 @@ class Base(object):
                 assert_frame_equal(result_agg, expected)
                 assert_frame_equal(result_how, expected)
 
-    def test_apply_to_empty_series(self):
+    def test_apply_to_empty_series(self, series):
         # GH 14313
-        series = self.create_series()[:0]
+        series = series[:0]
 
         for freq in ['M', 'D', 'H']:
             result = series.resample(freq).apply(lambda x: 1)
@@ -174,9 +171,8 @@ class Base(object):
 
             assert_series_equal(result, expected, check_dtype=False)
 
-    def test_resampler_is_iterable(self):
+    def test_resampler_is_iterable(self, series):
         # GH 15314
-        series = self.create_series()
         freq = 'H'
         tg = TimeGrouper(freq, convention='start')
         grouped = series.groupby(tg)
@@ -185,9 +181,9 @@ class Base(object):
             assert rk == gk
             assert_series_equal(rv, gv)
 
-    def test_resample_quantile(self):
+    def test_resample_quantile(self, series):
         # GH 15023
-        s = self.create_series()
+        s = series
         q = 0.75
         freq = 'H'
         result = s.resample(freq).quantile(q)
@@ -204,12 +200,6 @@ class TestDatetimeIndex(Base):
     def _series_name(self):
         return 'dti'
 
-    def create_series(self):
-        i = date_range(datetime(2005, 1, 1),
-                       datetime(2005, 1, 10), freq='D')
-
-        return Series(np.arange(len(i)), index=i, name='dti')
-
 
 class TestPeriodIndex(Base):
     @pytest.fixture
@@ -219,14 +209,6 @@ class TestPeriodIndex(Base):
     @pytest.fixture
     def _series_name(self):
         return 'pi'
-
-    def create_series(self):
-        # TODO: replace calls to .create_series() by injecting the series
-        # fixture
-        i = period_range(datetime(2005, 1, 1),
-                         datetime(2005, 1, 10), freq='D')
-
-        return Series(np.arange(len(i)), index=i, name='pi')
 
     @pytest.mark.skip()
     def test_asfreq(self):
@@ -253,9 +235,3 @@ class TestTimedeltaIndex(Base):
     @pytest.fixture
     def _series_name(self):
         return 'tdi'
-
-    def create_series(self):
-        i = timedelta_range('1 day',
-                            '10 day', freq='D')
-
-        return Series(np.arange(len(i)), index=i, name='tdi')
