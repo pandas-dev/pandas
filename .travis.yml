@@ -90,6 +90,12 @@ before_install:
   - uname -a
   - git --version
   - git tag
+  # Because travis runs on Google Cloud and has a /etc/boto.cfg,
+  # it breaks moto import, see:
+  # https://github.com/spulec/moto/issues/1771
+  # https://github.com/boto/boto/issues/3741
+  # This overrides travis and tells it to look nowhere.
+  - export BOTO_CONFIG=/dev/null
 
 install:
   - echo "install start"
