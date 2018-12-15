@@ -200,7 +200,7 @@ class TestPartialSetting(object):
         # list-like must conform
         df = DataFrame(columns=['A', 'B'])
 
-        with pytest.raises(IndexError):
+        with pytest.raises(ValueError):
             df.loc[0] = [1, 2, 3]
 
         # TODO: #15657, these are left as object and not coerced

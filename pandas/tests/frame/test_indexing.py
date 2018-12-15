@@ -3468,7 +3468,6 @@ class TestDataFrameIndexingCategorical(object):
 
         #   - assign a complete row (mixed values) not in categories set
         with pytest.raises(ValueError):
-            np.log(s)
             df = orig.copy()
             df.iloc[2, :] = ["c", 2]
 
