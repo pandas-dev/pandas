@@ -438,13 +438,11 @@ def test_agg_misc():
     # errors
     # invalid names in the agg specification
     for t in cases:
-        def f():
+        with pytest.raises(KeyError):
             with tm.assert_produces_warning(FutureWarning,
                                             check_stacklevel=False):
                 t[['A']].agg({'A': ['sum', 'std'],
                               'B': ['mean', 'std']})
-
-        pytest.raises(KeyError, f)
 
 
 def test_agg_nested_dicts():
@@ -470,7 +468,7 @@ def test_agg_nested_dicts():
         def f():
             t.aggregate({'r1': {'A': ['mean', 'sum']},
                          'r2': {'B': ['mean', 'sum']}})
-            pytest.raises(ValueError, f)
+        pytest.raises(ValueError, f)
 
     for t in cases:
         expected = pd.concat([t['A'].mean(), t['A'].std(), t['B'].mean(),
