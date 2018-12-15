@@ -814,6 +814,9 @@ class PeriodArray(dtl.DatetimeLikeArrayMixin, ExtensionArray):
     def _values_for_argsort(self):
         return self._data
 
+    def _values_for_factorize(self):
+        return np.asarray(self), np.nan
+
 
 PeriodArray._add_comparison_ops()
 
