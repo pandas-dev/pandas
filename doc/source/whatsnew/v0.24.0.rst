@@ -722,7 +722,7 @@ The first :func:`get_dummies` returns a :class:`DataFrame` because the column ``
 is not dummy encoded. When just ``["B", "C"]`` are passed to ``get_dummies``,
 then all the columns are dummy-encoded, and a :class:`SparseDataFrame` was returned.
 
-.. ipython:: python
+.. code-block:: ipython
 
    In [2]: df = pd.DataFrame({"A": [1, 2], "B": ['a', 'b'], "C": ['a', 'a']})
 

@@ -863,7 +863,7 @@ def _get_dummies_1d(data, prefix, prefix_sep='_', dummy_na=False,
     if is_object_dtype(dtype):
         raise ValueError("dtype=object is not a valid dtype for get_dummies")
 
-    def get_empty_Frame(data):
+    def get_empty_frame(data):
         if isinstance(data, Series):
             index = data.index
         else:
@@ -872,7 +872,7 @@ def _get_dummies_1d(data, prefix, prefix_sep='_', dummy_na=False,
 
     # if all NaN
     if not dummy_na and len(levels) == 0:
-        return get_empty_Frame(data)
+        return get_empty_frame(data)
 
     codes = codes.copy()
     if dummy_na:
@@ -881,7 +881,7 @@ def _get_dummies_1d(data, prefix, prefix_sep='_', dummy_na=False,
 
     # if dummy_na, we just fake a nan level. drop_first will drop it again
     if drop_first and len(levels) == 1:
-        return get_empty_Frame(data)
+        return get_empty_frame(data)
 
     number_of_cols = len(levels)
 
