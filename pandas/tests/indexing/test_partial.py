@@ -48,15 +48,11 @@ class TestPartialSetting(object):
         # iloc/iat raise
         s = s_orig.copy()
 
-        def f():
+        with pytest.raises(IndexError):
             s.iloc[3] = 5.
 
-        pytest.raises(IndexError, f)
-
-        def f():
+        with pytest.raises(IndexError):
             s.iat[3] = 5.
-
-        pytest.raises(IndexError, f)
 
         # ## frame ##
 
@@ -66,15 +62,11 @@ class TestPartialSetting(object):
         # iloc/iat raise
         df = df_orig.copy()
 
-        def f():
+        with pytest.raises(IndexError):
             df.iloc[4, 2] = 5.
 
-        pytest.raises(IndexError, f)
-
-        def f():
+        with pytest.raises(IndexError):
             df.iat[4, 2] = 5.
-
-        pytest.raises(IndexError, f)
 
         # row setting where it exists
         expected = DataFrame(dict({'A': [0, 4, 4], 'B': [1, 5, 5]}))
@@ -208,10 +200,8 @@ class TestPartialSetting(object):
         # list-like must conform
         df = DataFrame(columns=['A', 'B'])
 
-        def f():
+        with pytest.raises(IndexError):
             df.loc[0] = [1, 2, 3]
-
-        pytest.raises(ValueError, f)
 
         # TODO: #15657, these are left as object and not coerced
         df = DataFrame(columns=['A', 'B'])
@@ -417,29 +407,21 @@ class TestPartialSetting(object):
         df = orig.copy()
 
         # don't allow not string inserts
-        def f():
+        with pytest.raises(TypeError):
             with catch_warnings(record=True):
                 df.loc[100.0, :] = df.ix[0]
 
-        pytest.raises(TypeError, f)
-
-        def f():
+        with pytest.raises(TypeError):
             with catch_warnings(record=True):
                 df.loc[100, :] = df.ix[0]
 
-        pytest.raises(TypeError, f)
-
-        def f():
+        with pytest.raises(TypeError):
             with catch_warnings(record=True):
                 df.ix[100.0, :] = df.ix[0]
 
-        pytest.raises(TypeError, f)
-
-        def f():
+        with pytest.raises(ValueError):
             with catch_warnings(record=True):
                 df.ix[100, :] = df.ix[0]
-
-        pytest.raises(ValueError, f)
 
         # allow object conversion here
         df = orig.copy()
@@ -481,20 +463,14 @@ class TestPartialSetting(object):
         # frame
         df = DataFrame()
 
-        def f():
+        with pytest.raises(ValueError):
             df.loc[1] = 1
 
-        pytest.raises(ValueError, f)
-
-        def f():
+        with pytest.raises(ValueError):
             df.loc[1] = Series([1], index=['foo'])
 
-        pytest.raises(ValueError, f)
-
-        def f():
+        with pytest.raises(ValueError):
             df.loc[:, 1] = 1
-
-        pytest.raises(ValueError, f)
 
         # these work as they don't really change
         # anything but the index
