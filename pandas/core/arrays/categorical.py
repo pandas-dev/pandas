@@ -27,6 +27,7 @@ from pandas.core.dtypes.generic import (
 from pandas.core.dtypes.inference import is_hashable
 from pandas.core.dtypes.missing import isna, notna
 
+from pandas.core import ops
 from pandas.core.accessor import PandasDelegate, delegate_names
 import pandas.core.algorithms as algorithms
 from pandas.core.algorithms import factorize, take, take_1d, unique1d
@@ -34,7 +35,6 @@ from pandas.core.base import NoNewAttributesMixin, PandasObject, _shared_docs
 import pandas.core.common as com
 from pandas.core.config import get_option
 from pandas.core.missing import interpolate_2d
-from pandas.core import ops
 from pandas.core.sorting import nargsort
 
 from pandas.io.formats import console
