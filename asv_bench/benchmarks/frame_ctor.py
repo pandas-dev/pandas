@@ -91,4 +91,17 @@ class FromNDArray(object):
         self.df = DataFrame(self.data)
 
 
+class FromLists(object):
+
+    goal_time = 0.2
+
+    def setup(self):
+        N = 1000
+        M = 100
+        self.data = [[j for j in range(M)] for i in range(N)]
+
+    def time_frame_from_lists(self):
+        self.df = DataFrame(self.data)
+
+
 from .pandas_vb_common import setup  # noqa: F401

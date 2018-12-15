@@ -2208,7 +2208,7 @@ def map_infer(ndarray arr, object f, bint convert=1):
     return result
 
 
-def to_object_array(rows: list, min_width: int=0):
+def to_object_array(rows: object, int min_width=0):
     """
     Convert a list of lists into an object array.
 
@@ -2229,20 +2229,22 @@ def to_object_array(rows: list, min_width: int=0):
     cdef:
         Py_ssize_t i, j, n, k, tmp
         ndarray[object, ndim=2] result
+        list input_rows
         list row
 
-    n = len(rows)
+    input_rows = <list>rows
+    n = len(input_rows)
 
     k = min_width
     for i in range(n):
-        tmp = len(rows[i])
+        tmp = len(input_rows[i])
         if tmp > k:
             k = tmp
 
     result = np.empty((n, k), dtype=object)
 
     for i in range(n):
-        row = rows[i]
+        row = <list>input_rows[i]
 
         for j in range(len(row)):
             result[i, j] = row[j]
