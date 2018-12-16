@@ -55,7 +55,8 @@ class TestDataFrameApply():
         # invalid axis
         df = DataFrame(
             [[1, 2, 3], [4, 5, 6], [7, 8, 9]], index=['a', 'a', 'c'])
-        pytest.raises(ValueError, df.apply, lambda x: x, 2)
+        with pytest.raises(ValueError):
+            df.apply(lambda x: x, 2)
 
         # GH 9573
         df = DataFrame({'c0': ['A', 'A', 'B', 'B'],
@@ -874,19 +875,16 @@ class TestDataFrameAggregate():
 
     def test_transform_and_agg_err(self, axis, float_frame):
         # cannot both transform and agg
-        def f():
+        with pytest.raises(ValueError):
             float_frame.transform(['max', 'min'], axis=axis)
-        pytest.raises(ValueError, f)
 
-        def f():
+        with pytest.raises(ValueError):
             with np.errstate(all='ignore'):
                 float_frame.agg(['max', 'sqrt'], axis=axis)
-        pytest.raises(ValueError, f)
 
-        def f():
+        with pytest.raises(ValueError):
             with np.errstate(all='ignore'):
                 float_frame.transform(['max', 'sqrt'], axis=axis)
-        pytest.raises(ValueError, f)
 
         df = pd.DataFrame({'A': range(5), 'B': 5})
 
