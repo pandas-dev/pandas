@@ -12,7 +12,6 @@ isort
 moto
 pytest>=4.0
 sphinx
-sphinxcontrib-spelling
 numpydoc
 beautifulsoup4>=4.2.1
 blosc

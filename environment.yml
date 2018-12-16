@@ -21,7 +21,6 @@ dependencies:
   - moto
   - pytest>=4.0
   - sphinx
-  - sphinxcontrib-spelling
   - numpydoc
 
   # optional
