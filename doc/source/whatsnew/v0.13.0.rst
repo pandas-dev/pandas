@@ -5,10 +5,6 @@ v0.13.0 (January 3, 2014)
 
 {{ header }}
 
-.. ipython:: python
-   :suppress:
-
-   from pandas import * # noqa F401, F403
 
 
 This is a major release from 0.12.0 and includes a number of API changes, several new features and
@@ -68,18 +64,18 @@ API changes
 
   .. code-block:: python
 
-      # previously, you would have set levels or labels directly
-      index.levels = [[1, 2, 3, 4], [1, 2, 4, 4]]
+     # previously, you would have set levels or labels directly
+     >>> index.levels = [[1, 2, 3, 4], [1, 2, 4, 4]]
 
-      # now, you use the set_levels or set_labels methods
-      index = index.set_levels([[1, 2, 3, 4], [1, 2, 4, 4]])
+     # now, you use the set_levels or set_labels methods
+     >>> index = index.set_levels([[1, 2, 3, 4], [1, 2, 4, 4]])
 
-      # similarly, for names, you can rename the object
-      # but setting names is not deprecated
-      index = index.set_names(["bob", "cranberry"])
+     # similarly, for names, you can rename the object
+     # but setting names is not deprecated
+     >>> index = index.set_names(["bob", "cranberry"])
 
-      # and all methods take an inplace kwarg - but return None
-      index.set_names(["bob", "cranberry"], inplace=True)
+     # and all methods take an inplace kwarg - but return None
+     >>> index.set_names(["bob", "cranberry"], inplace=True)
 
 - **All** division with ``NDFrame`` objects is now *truedivision*, regardless
   of the future import. This means that operating on pandas objects will by default
@@ -109,7 +105,7 @@ API changes
 
   .. code-block:: ipython
 
-      In [7]: pd.Series(arr) / pd.Series(arr2) # no future import required
+      In [7]: pd.Series(arr) / pd.Series(arr2)  # no future import required
       Out[7]:
       0    0.200000
       1    0.666667
@@ -125,10 +121,18 @@ API changes
 
   .. code-block:: python
 
-      if df:
-         ....
-      df1 and df2
-      s1 and s2
+      >>> if df:  # noqa: E999, E225
+              ...
+      ValueError: The truth value of a DataFrame is ambiguous.  Use a.empty,
+      a.bool(), a.item(), a.any() or a.all().
+
+      >>> df1 and df2  # noqa: E225
+      ValueError: The truth value of a DataFrame is ambiguous.  Use a.empty,
+      a.bool(), a.item(), a.any() or a.all().
+
+      >>> s1 and s2  # noqa: E225
+      ValueError: The truth value of a DataFrame is ambiguous.  Use a.empty,
+      a.bool(), a.item(), a.any() or a.all().
 
   Added the ``.bool()`` method to ``NDFrame`` objects to facilitate evaluating of single-element boolean Series:
 
@@ -151,8 +155,8 @@ API changes
 
   .. ipython:: python
 
-     dfc = DataFrame({'A':['aaa','bbb','ccc'],'B':[1,2,3]})
-     pd.set_option('chained_assignment','warn')
+     dfc = DataFrame({'A': ['aaa', 'bbb', 'ccc'], 'B': [1, 2, 3]})
+     pd.set_option('chained_assignment', 'warn')
 
   The following warning / exception will show if this is attempted.
 
@@ -173,7 +177,7 @@ API changes
 
   .. ipython:: python
 
-     dfc.loc[0,'A'] = 11
+     dfc.loc[0, 'A'] = 11
      dfc
 
 - ``Panel.reindex`` has the following call signature ``Panel.reindex(items=None, major_axis=None, minor_axis=None, **kwargs)``
@@ -223,22 +227,22 @@ In the ``Series`` case this is effectively an appending operation
 
 .. ipython:: python
 
-   s = Series([1,2,3])
+   s = Series([1, 2, 3])
    s
    s[5] = 5.
    s
 
 .. ipython:: python
 
-   dfi = DataFrame(np.arange(6).reshape(3,2),
-                   columns=['A','B'])
+   dfi = DataFrame(np.arange(6).reshape(3, 2),
+                   columns=['A', 'B'])
    dfi
 
 This would previously ``KeyError``
 
 .. ipython:: python
 
-   dfi.loc[:,'C'] = dfi.loc[:,'A']
+   dfi.loc[:, 'C'] = dfi.loc[:, 'A']
    dfi
 
 This is like an ``append`` operation.
@@ -252,14 +256,14 @@ A Panel setting operation on an arbitrary axis aligns the input to the Panel
 
 .. ipython:: python
 
-   p = pd.Panel(np.arange(16).reshape(2,4,2),
-               items=['Item1','Item2'],
-               major_axis=pd.date_range('2001/1/12',periods=4),
-               minor_axis=['A','B'],dtype='float64')
+   p = pd.Panel(np.arange(16).reshape(2, 4, 2),
+                items=['Item1', 'Item2'],
+                major_axis=pd.date_range('2001/1/12', periods=4),
+                minor_axis=['A', 'B'], dtype='float64')
    p
-   p.loc[:,:,'C'] = Series([30,32],index=p.items)
+   p.loc[:, :, 'C'] = Series([30, 32], index=p.items)
    p
-   p.loc[:,:,'C']
+   p.loc[:, :, 'C']
 
 Float64Index API Change
 ~~~~~~~~~~~~~~~~~~~~~~~
@@ -274,7 +278,7 @@ Float64Index API Change
 
      index = Index([1.5, 2, 3, 4.5, 5])
      index
-     s = Series(range(5),index=index)
+     s = Series(range(5), index=index)
      s
 
   Scalar selection for ``[],.ix,.loc`` will always be label based. An integer will match an equal float index (e.g. ``3`` is equivalent to ``3.0``)
@@ -333,24 +337,24 @@ HDFStore API Changes
   .. ipython:: python
 
      path = 'test.h5'
-     dfq = DataFrame(randn(10,4),
-              columns=list('ABCD'),
-              index=date_range('20130101',periods=10))
-     dfq.to_hdf(path,'dfq',format='table',data_columns=True)
+     dfq = DataFrame(randn(10, 4),
+                     columns=list('ABCD'),
+                     index=date_range('20130101', periods=10))
+     dfq.to_hdf(path, 'dfq', format='table', data_columns=True)
 
   Use boolean expressions, with in-line function evaluation.
 
   .. ipython:: python
 
-     read_hdf(path,'dfq',
-         where="index>Timestamp('20130104') & columns=['A', 'B']")
+     read_hdf(path, 'dfq',
+              where="index>Timestamp('20130104') & columns=['A', 'B']")
 
   Use an inline column reference
 
   .. ipython:: python
 
-     read_hdf(path,'dfq',
-         where="A>0 or C>0")
+     read_hdf(path, 'dfq',
+              where="A>0 or C>0")
 
   .. ipython:: python
      :suppress:
@@ -365,12 +369,12 @@ HDFStore API Changes
   .. ipython:: python
 
      path = 'test.h5'
-     df = pd.DataFrame(np.random.randn(10,2))
-     df.to_hdf(path,'df_table',format='table')
-     df.to_hdf(path,'df_table2',append=True)
-     df.to_hdf(path,'df_fixed')
+     df = pd.DataFrame(np.random.randn(10, 2))
+     df.to_hdf(path, 'df_table', format='table')
+     df.to_hdf(path, 'df_table2', append=True)
+     df.to_hdf(path, 'df_fixed')
      with pd.HDFStore(path) as store:
-        print(store)
+         print(store)
 
   .. ipython:: python
      :suppress:
@@ -394,11 +398,11 @@ HDFStore API Changes
   .. ipython:: python
 
      path = 'test.h5'
-     df = DataFrame(randn(10,2))
+     df = DataFrame(randn(10, 2))
      store1 = HDFStore(path)
      store2 = HDFStore(path)
-     store1.append('df',df)
-     store2.append('df2',df)
+     store1.append('df', df)
+     store2.append('df2', df)
 
      store1
      store2
@@ -479,9 +483,9 @@ Enhancements
 
      to_timedelta('1 days 06:05:01.00003')
      to_timedelta('15.5us')
-     to_timedelta(['1 days 06:05:01.00003','15.5us','nan'])
-     to_timedelta(np.arange(5),unit='s')
-     to_timedelta(np.arange(5),unit='d')
+     to_timedelta(['1 days 06:05:01.00003', '15.5us', 'nan'])
+     to_timedelta(np.arange(5), unit='s')
+     to_timedelta(np.arange(5), unit='d')
 
   A Series of dtype ``timedelta64[ns]`` can now be divided by another
   ``timedelta64[ns]`` object, or astyped to yield a ``float64`` dtyped Series. This
@@ -490,17 +494,18 @@ Enhancements
   .. ipython:: python
 
      from datetime import timedelta
-     td = Series(date_range('20130101',periods=4))-Series(date_range('20121201',periods=4))
-     td[2] += np.timedelta64(timedelta(minutes=5,seconds=3))
+     td = Series(date_range('20130101', periods=4)) - Series(
+         date_range('20121201', periods=4))
+     td[2] += np.timedelta64(timedelta(minutes=5, seconds=3))
      td[3] = np.nan
      td
 
      # to days
-     td / np.timedelta64(1,'D')
+     td / np.timedelta64(1, 'D')
      td.astype('timedelta64[D]')
 
      # to seconds
-     td / np.timedelta64(1,'s')
+     td / np.timedelta64(1, 's')
      td.astype('timedelta64[s]')
 
   Dividing or multiplying a ``timedelta64[ns]`` Series by an integer or integer Series
@@ -508,7 +513,7 @@ Enhancements
   .. ipython:: python
 
      td * -1
-     td * Series([1,2,3,4])
+     td * Series([1, 2, 3, 4])
 
   Absolute ``DateOffset`` objects can act equivalently to ``timedeltas``
 
@@ -522,7 +527,7 @@ Enhancements
   .. ipython:: python
 
      td.fillna(0)
-     td.fillna(timedelta(days=1,seconds=5))
+     td.fillna(timedelta(days=1, seconds=5))
 
   You can do numeric reduction operations on timedeltas.
 
@@ -544,7 +549,7 @@ Enhancements
   .. ipython:: python
      :okwarning:
 
-     Series(['a1', 'b2', 'c3']).str.extract('[ab](\d)')
+     Series(['a1', 'b2', 'c3']).str.extract('[ab](\\d)')
 
   Elements that do not match return ``NaN``. Extracting a regular expression
   with more than one group returns a DataFrame with one column per group.
@@ -553,7 +558,7 @@ Enhancements
   .. ipython:: python
      :okwarning:
 
-     Series(['a1', 'b2', 'c3']).str.extract('([ab])(\d)')
+     Series(['a1', 'b2', 'c3']).str.extract('([ab])(\\d)')
 
   Elements that do not match return a row of ``NaN``.
   Thus, a Series of messy strings can be *converted* into a
@@ -566,7 +571,7 @@ Enhancements
      :okwarning:
 
      Series(['a1', 'b2', 'c3']).str.extract(
-             '(?P<letter>[ab])(?P<digit>\d)')
+         '(?P<letter>[ab])(?P<digit>\\d)')
 
   and optional groups can also be used.
 
@@ -574,7 +579,7 @@ Enhancements
      :okwarning:
 
       Series(['a1', 'b2', '3']).str.extract(
-              '(?P<letter>[ab])?(?P<digit>\d)')
+          '(?P<letter>[ab])?(?P<digit>\\d)')
 
 - ``read_stata`` now accepts Stata 13 format (:issue:`4291`)
 
@@ -731,14 +736,14 @@ Experimental
      :suppress:
 
      try:
-        del a
+         del a
      except NameError:
-        pass
+         pass
 
      try:
-        del b
+         del b
      except NameError:
-        pass
+         pass
 
   .. ipython:: python
 
@@ -753,19 +758,19 @@ Experimental
      :suppress:
 
      try:
-        del a
+         del a
      except NameError:
-        pass
+         pass
 
      try:
-        del b
+         del b
      except NameError:
-        pass
+         pass
 
      try:
-        del c
+         del c
      except NameError:
-        pass
+         pass
 
   .. ipython:: python
 
@@ -785,11 +790,11 @@ Experimental
 
   .. ipython:: python
 
-     df = DataFrame(np.random.rand(5,2),columns=list('AB'))
+     df = DataFrame(np.random.rand(5, 2), columns=list('AB'))
      df.to_msgpack('foo.msg')
      pd.read_msgpack('foo.msg')
 
-     s = Series(np.random.rand(5),index=date_range('20130101',periods=5))
+     s = Series(np.random.rand(5), index=date_range('20130101', periods=5))
      pd.to_msgpack('foo.msg', df, s)
      pd.read_msgpack('foo.msg')
 
@@ -797,8 +802,8 @@ Experimental
 
   .. ipython:: python
 
-     for o in pd.read_msgpack('foo.msg',iterator=True):
-        print(o)
+     for o in pd.read_msgpack('foo.msg', iterator=True):
+         print(o)
 
   .. ipython:: python
      :suppress:
@@ -834,13 +839,13 @@ Experimental
      # https://console.developers.google.com/iam-admin/projects?authuser=0
      projectid = xxxxxxxxx;
 
-     df = gbq.read_gbq(query, project_id = projectid)
+     df = gbq.read_gbq(query, project_id=projectid)
 
      # Use pandas to process and reshape the dataset
 
      df2 = df.pivot(index='STATION', columns='MONTH', values='MEAN_TEMP')
      df3 = pandas.concat([df2.min(), df2.mean(), df2.max()],
-                         axis=1,keys=["Min Tem", "Mean Temp", "Max Temp"])
+                         axis=1, keys=["Min Tem", "Mean Temp", "Max Temp"])
 
   The resulting DataFrame is::
 
@@ -889,7 +894,7 @@ to unify methods and behaviors. Series formerly subclassed directly from
 
      .. ipython:: python
 
-        s = Series([1,2,3,4])
+        s = Series([1, 2, 3, 4])
 
      Numpy Usage
 
@@ -897,15 +902,15 @@ to unify methods and behaviors. Series formerly subclassed directly from
 
         np.ones_like(s)
         np.diff(s)
-        np.where(s>1,s,np.nan)
+        np.where(s > 1, s, np.nan)
 
      Pandonic Usage
 
      .. ipython:: python
 
-        Series(1,index=s.index)
+        Series(1, index=s.index)
         s.diff()
-        s.where(s>1)
+        s.where(s > 1)
 
    - Passing a ``Series`` directly to a cython function expecting an ``ndarray`` type will no
      long work directly, you must pass ``Series.values``, See :ref:`Enhancing Performance<enhancingperf.ndarray>`
@@ -979,7 +984,7 @@ to unify methods and behaviors. Series formerly subclassed directly from
 
   .. ipython:: python
 
-     s = Series([1,2,3],index=list('abc'))
+     s = Series([1, 2, 3], index=list('abc'))
      s.b
      s.a = 5
      s
