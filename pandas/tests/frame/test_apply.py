@@ -823,20 +823,6 @@ def zip_frames(frames, axis=1):
         return pd.DataFrame(zipped)
 
 
-@composite
-def indices(draw, max_length=5):
-    date = draw(
-        dates(
-            min_value=Timestamp.min.ceil("D").to_pydatetime().date(),
-            max_value=Timestamp.max.floor("D").to_pydatetime().date(),
-        ).map(Timestamp)
-    )
-    periods = draw(integers(0, max_length))
-    freq = draw(sampled_from(list("BDHTS")))
-    dr = date_range(date, periods=periods, freq=freq)
-    return pd.DatetimeIndex(list(dr))
-
-
 class TestDataFrameAggregate():
 
     def test_agg_transform(self, axis, float_frame):
@@ -1156,11 +1142,10 @@ class TestDataFrameAggregate():
         with pytest.raises(expected):
             df.agg(func, axis=axis)
 
-    @given(index=indices(max_length=5), num_columns=integers(0, 5))
-    @settings(deadline=1000)
-    def test_frequency_is_original(self, index, num_columns):
-        # GH 22150
+    @pytest.mark.parametrize("num_cols", [2, 3, 5])
+    def test_frequency_is_original(self, num_cols):
+        index = pd.DatetimeIndex(["1950-06-30", "1952-10-24", "1953-05-29"])
         original = index.copy()
-        df = DataFrame(True, index=index, columns=range(num_columns))
+        df = DataFrame(1, index=index, columns=range(num_cols))
         df.apply(lambda x: x)
         assert index.freq == original.freq
