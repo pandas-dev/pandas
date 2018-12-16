@@ -8,19 +8,14 @@ ops = ['mean', 'sum', 'median', 'std', 'skew', 'kurt', 'mad', 'prod', 'sem',
 
 class FrameOps(object):
 
-    params = [ops, ['float', 'int'], [0, 1], [True, False]]
-    param_names = ['op', 'dtype', 'axis', 'use_bottleneck']
+    params = [ops, ['float', 'int'], [0, 1]]
+    param_names = ['op', 'dtype', 'axis']
 
-    def setup(self, op, dtype, axis, use_bottleneck):
+    def setup(self, op, dtype, axis):
         df = pd.DataFrame(np.random.randn(100000, 4)).astype(dtype)
-        try:
-            pd.options.compute.use_bottleneck = use_bottleneck
-        except TypeError:
-            from pandas.core import nanops
-            nanops._USE_BOTTLENECK = use_bottleneck
         self.df_func = getattr(df, op)
 
-    def time_op(self, op, dtype, axis, use_bottleneck):
+    def time_op(self, op, dtype, axis):
         self.df_func(axis=axis)
 
 
@@ -44,19 +39,14 @@ class FrameMultiIndexOps(object):
 
 class SeriesOps(object):
 
-    params = [ops, ['float', 'int'], [True, False]]
-    param_names = ['op', 'dtype', 'use_bottleneck']
+    params = [ops, ['float', 'int']]
+    param_names = ['op', 'dtype']
 
-    def setup(self, op, dtype, use_bottleneck):
+    def setup(self, op, dtype):
         s = pd.Series(np.random.randn(100000)).astype(dtype)
-        try:
-            pd.options.compute.use_bottleneck = use_bottleneck
-        except TypeError:
-            from pandas.core import nanops
-            nanops._USE_BOTTLENECK = use_bottleneck
         self.s_func = getattr(s, op)
 
-    def time_op(self, op, dtype, use_bottleneck):
+    def time_op(self, op, dtype):
         self.s_func()
 
 
@@ -96,41 +86,28 @@ class Rank(object):
 
 class Correlation(object):
 
-    params = [['spearman', 'kendall', 'pearson'], [True, False]]
-    param_names = ['method', 'use_bottleneck']
+    params = [['spearman', 'kendall', 'pearson']]
+    param_names = ['method']
 
-    def setup(self, method, use_bottleneck):
-        try:
-            pd.options.compute.use_bottleneck = use_bottleneck
-        except TypeError:
-            from pandas.core import nanops
-            nanops._USE_BOTTLENECK = use_bottleneck
+    def setup(self, method):
         self.df = pd.DataFrame(np.random.randn(1000, 30))
         self.s = pd.Series(np.random.randn(1000))
         self.s2 = pd.Series(np.random.randn(1000))
 
-    def time_corr(self, method, use_bottleneck):
+    def time_corr(self, method):
         self.df.corr(method=method)
 
-    def time_corr_series(self, method, use_bottleneck):
+    def time_corr_series(self, method):
         self.s.corr(self.s2, method=method)
 
 
 class Covariance(object):
 
-    params = [[True, False]]
-    param_names = ['use_bottleneck']
-
-    def setup(self, use_bottleneck):
-        try:
-            pd.options.compute.use_bottleneck = use_bottleneck
-        except TypeError:
-            from pandas.core import nanops
-            nanops._USE_BOTTLENECK = use_bottleneck
+    def setup(self):
         self.s = pd.Series(np.random.randn(100000))
         self.s2 = pd.Series(np.random.randn(100000))
 
-    def time_cov_series(self, use_bottleneck):
+    def time_cov_series(self):
         self.s.cov(self.s2)
 
 

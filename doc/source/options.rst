@@ -427,8 +427,6 @@ mode.use_inf_as_na                      False        True means treat None, NaN,
                                                      INF as NA (old way), False means
                                                      None and NaN are null, but INF, -INF
                                                      are not NA (new way).
-compute.use_bottleneck                  True         Use the bottleneck library to accelerate
-                                                     computation if it is installed.
 compute.use_numexpr                     True         Use the numexpr library to accelerate
                                                      computation if it is installed.
 plotting.matplotlib.register_converters True         Register custom converters with

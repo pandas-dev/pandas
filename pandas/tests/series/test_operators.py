@@ -14,7 +14,6 @@ import pandas as pd
 from pandas import (
     Categorical, DataFrame, Index, NaT, Series, bdate_range, date_range, isna)
 from pandas.core import ops
-import pandas.core.nanops as nanops
 import pandas.util.testing as tm
 from pandas.util.testing import (
     assert_almost_equal, assert_frame_equal, assert_series_equal)
@@ -379,17 +378,6 @@ class TestSeriesLogicalOps(object):
 
 class TestSeriesComparisons(object):
     def test_comparisons(self):
-        left = np.random.randn(10)
-        right = np.random.randn(10)
-        left[:3] = np.nan
-
-        result = nanops.nangt(left, right)
-        with np.errstate(invalid='ignore'):
-            expected = (left > right).astype('O')
-        expected[:3] = np.nan
-
-        assert_almost_equal(result, expected)
-
         s = Series(['a', 'b', 'c'])
         s2 = Series([False, True, False])
 

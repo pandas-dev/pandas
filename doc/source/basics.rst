@@ -146,16 +146,15 @@ Here is a sample (using 100 column x 100,000 row ``DataFrames``):
     ``df1 * df2``; 21.71;  36.63;  0.5928
     ``df1 + df2``; 22.04;  36.50;  0.6039
 
-You are highly encouraged to install both libraries. See the section
+You are highly encouraged to install numexpr. See the section
 :ref:`Recommended Dependencies <install.recommended_dependencies>` for more installation info.
 
-These are both enabled to be used by default, you can control this by setting the options:
+numexpr is enabled to be used by default, you can control this by setting the option:
 
 .. versionadded:: 0.20.0
 
 .. code-block:: python
 
-   pd.set_option('compute.use_bottleneck', False)
    pd.set_option('compute.use_numexpr', False)
 
 .. _basics.binop:

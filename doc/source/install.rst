@@ -227,6 +227,7 @@ Dependencies
 * `NumPy <http://www.numpy.org>`__: 1.12.0 or higher
 * `python-dateutil <https://dateutil.readthedocs.io/en/stable/>`__: 2.5.0 or higher
 * `pytz <http://pytz.sourceforge.net/>`__
+* `bottleneck <https://github.com/kwgoodman/bottleneck>`__: 1.2.0 or higher
 
 .. _install.recommended_dependencies:
 
@@ -237,13 +238,9 @@ Recommended Dependencies
   ``numexpr`` uses multiple cores as well as smart chunking and caching to achieve large speedups.
   If installed, must be Version 2.6.1 or higher.
 
-* `bottleneck <https://github.com/kwgoodman/bottleneck>`__: for accelerating certain types of ``nan``
-  evaluations. ``bottleneck`` uses specialized cython routines to achieve large speedups. If installed,
-  must be Version 1.2.0 or higher.
-
 .. note::
 
-   You are highly encouraged to install these libraries, as they provide speed improvements, especially
+   You are highly encouraged to install this library, as they provide speed improvements, especially
    when working with large data sets.
 
 

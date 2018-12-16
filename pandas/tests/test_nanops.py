@@ -15,14 +15,11 @@ from pandas import Series, isna
 from pandas.compat.numpy import _np_version_under1p13
 from pandas.core.dtypes.common import is_integer_dtype
 
-use_bn = nanops._USE_BOTTLENECK
-
 
 class TestnanopsDataFrame(object):
 
     def setup_method(self, method):
         np.random.seed(11235)
-        nanops._USE_BOTTLENECK = False
 
         self.arr_shape = (11, 7, 5)
 
@@ -119,9 +116,6 @@ class TestnanopsDataFrame(object):
         self.arr_nan_inf_1d = self.arr_nan_inf[:, 0, 0]
         self.arr_float_nan_inf_1d = self.arr_float_nan_inf[:, 0, 0]
         self.arr_nan_nan_inf_1d = self.arr_nan_nan_inf[:, 0, 0]
-
-    def teardown_method(self, method):
-        nanops._USE_BOTTLENECK = use_bn
 
     def check_results(self, targ, res, axis, check_dtype=True):
         res = getattr(res, 'asm8', res)
@@ -626,30 +620,6 @@ class TestnanopsDataFrame(object):
             except ValueError:
                 break
 
-    def test_nangt(self):
-        targ0 = self.arr_float > self.arr_float1
-        self.check_nancomp(nanops.nangt, targ0)
-
-    def test_nange(self):
-        targ0 = self.arr_float >= self.arr_float1
-        self.check_nancomp(nanops.nange, targ0)
-
-    def test_nanlt(self):
-        targ0 = self.arr_float < self.arr_float1
-        self.check_nancomp(nanops.nanlt, targ0)
-
-    def test_nanle(self):
-        targ0 = self.arr_float <= self.arr_float1
-        self.check_nancomp(nanops.nanle, targ0)
-
-    def test_naneq(self):
-        targ0 = self.arr_float == self.arr_float1
-        self.check_nancomp(nanops.naneq, targ0)
-
-    def test_nanne(self):
-        targ0 = self.arr_float != self.arr_float1
-        self.check_nancomp(nanops.nanne, targ0)
-
     def check_bool(self, func, value, correct, *args, **kwargs):
         while getattr(value, 'ndim', True):
             try:
@@ -996,19 +966,6 @@ class TestNankurtFixedValues(object):
     @property
     def prng(self):
         return np.random.RandomState(1234)
-
-
-def test_use_bottleneck():
-
-    if nanops._BOTTLENECK_INSTALLED:
-
-        pd.set_option('use_bottleneck', True)
-        assert pd.get_option('use_bottleneck')
-
-        pd.set_option('use_bottleneck', False)
-        assert not pd.get_option('use_bottleneck')
-
-        pd.set_option('use_bottleneck', use_bn)
 
 
 @pytest.mark.parametrize("numpy_op, expected", [

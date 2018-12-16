@@ -28,100 +28,98 @@ from pandas.util.testing import (
 
 class TestSeriesAnalytics(object):
 
-    @pytest.mark.parametrize("use_bottleneck", [True, False])
     @pytest.mark.parametrize("method, unit", [
         ("sum", 0.0),
         ("prod", 1.0)
     ])
-    def test_empty(self, method, unit, use_bottleneck):
-        with pd.option_context("use_bottleneck", use_bottleneck):
-            # GH 9422 / 18921
-            # Entirely empty
-            s = Series([])
-            # NA by default
-            result = getattr(s, method)()
-            assert result == unit
+    def test_empty(self, method, unit):
+        # GH#9422, GH#18921
+        # Entirely empty
+        s = Series([])
+        # NA by default
+        result = getattr(s, method)()
+        assert result == unit
 
-            # Explicit
-            result = getattr(s, method)(min_count=0)
-            assert result == unit
+        # Explicit
+        result = getattr(s, method)(min_count=0)
+        assert result == unit
 
-            result = getattr(s, method)(min_count=1)
-            assert isna(result)
+        result = getattr(s, method)(min_count=1)
+        assert isna(result)
 
-            # Skipna, default
-            result = getattr(s, method)(skipna=True)
-            result == unit
+        # Skipna, default
+        result = getattr(s, method)(skipna=True)
+        result == unit
 
-            # Skipna, explicit
-            result = getattr(s, method)(skipna=True, min_count=0)
-            assert result == unit
+        # Skipna, explicit
+        result = getattr(s, method)(skipna=True, min_count=0)
+        assert result == unit
 
-            result = getattr(s, method)(skipna=True, min_count=1)
-            assert isna(result)
+        result = getattr(s, method)(skipna=True, min_count=1)
+        assert isna(result)
 
-            # All-NA
-            s = Series([np.nan])
-            # NA by default
-            result = getattr(s, method)()
-            assert result == unit
+        # All-NA
+        s = Series([np.nan])
+        # NA by default
+        result = getattr(s, method)()
+        assert result == unit
 
-            # Explicit
-            result = getattr(s, method)(min_count=0)
-            assert result == unit
+        # Explicit
+        result = getattr(s, method)(min_count=0)
+        assert result == unit
 
-            result = getattr(s, method)(min_count=1)
-            assert isna(result)
+        result = getattr(s, method)(min_count=1)
+        assert isna(result)
 
-            # Skipna, default
-            result = getattr(s, method)(skipna=True)
-            result == unit
+        # Skipna, default
+        result = getattr(s, method)(skipna=True)
+        result == unit
 
-            # skipna, explicit
-            result = getattr(s, method)(skipna=True, min_count=0)
-            assert result == unit
+        # skipna, explicit
+        result = getattr(s, method)(skipna=True, min_count=0)
+        assert result == unit
 
-            result = getattr(s, method)(skipna=True, min_count=1)
-            assert isna(result)
+        result = getattr(s, method)(skipna=True, min_count=1)
+        assert isna(result)
 
-            # Mix of valid, empty
-            s = Series([np.nan, 1])
-            # Default
-            result = getattr(s, method)()
-            assert result == 1.0
+        # Mix of valid, empty
+        s = Series([np.nan, 1])
+        # Default
+        result = getattr(s, method)()
+        assert result == 1.0
 
-            # Explicit
-            result = getattr(s, method)(min_count=0)
-            assert result == 1.0
+        # Explicit
+        result = getattr(s, method)(min_count=0)
+        assert result == 1.0
 
-            result = getattr(s, method)(min_count=1)
-            assert result == 1.0
+        result = getattr(s, method)(min_count=1)
+        assert result == 1.0
 
-            # Skipna
-            result = getattr(s, method)(skipna=True)
-            assert result == 1.0
+        # Skipna
+        result = getattr(s, method)(skipna=True)
+        assert result == 1.0
 
-            result = getattr(s, method)(skipna=True, min_count=0)
-            assert result == 1.0
+        result = getattr(s, method)(skipna=True, min_count=0)
+        assert result == 1.0
 
-            result = getattr(s, method)(skipna=True, min_count=1)
-            assert result == 1.0
+        result = getattr(s, method)(skipna=True, min_count=1)
+        assert result == 1.0
 
-            # GH #844 (changed in 9422)
-            df = DataFrame(np.empty((10, 0)))
-            assert (getattr(df, method)(1) == unit).all()
+        # GH #844 (changed in 9422)
+        df = DataFrame(np.empty((10, 0)))
+        assert (getattr(df, method)(1) == unit).all()
 
-            s = pd.Series([1])
-            result = getattr(s, method)(min_count=2)
-            assert isna(result)
+        s = pd.Series([1])
+        result = getattr(s, method)(min_count=2)
+        assert isna(result)
 
-            s = pd.Series([np.nan])
-            result = getattr(s, method)(min_count=2)
-            assert isna(result)
+        s = pd.Series([np.nan])
+        result = getattr(s, method)(min_count=2)
+        assert isna(result)
 
-            s = pd.Series([np.nan, 1])
-            result = getattr(s, method)(min_count=2)
-            assert isna(result)
+        s = pd.Series([np.nan, 1])
+        result = getattr(s, method)(min_count=2)
+        assert isna(result)
 
     @pytest.mark.parametrize('method, unit', [
         ('sum', 0.0),
@@ -165,36 +163,30 @@ class TestSeriesAnalytics(object):
         result = np.nansum(s)
         assert_almost_equal(result, 1)
 
-    @pytest.mark.parametrize("use_bottleneck", [True, False])
-    def test_sum_overflow(self, use_bottleneck):
+    def test_sum_overflow(self):
+        # GH#6915
+        # overflowing on the smaller int dtypes
+        for dtype in ['int32', 'int64']:
+            v = np.arange(5000000, dtype=dtype)
+            s = Series(v)
 
-        with pd.option_context('use_bottleneck', use_bottleneck):
-            # GH 6915
-            # overflowing on the smaller int dtypes
-            for dtype in ['int32', 'int64']:
-                v = np.arange(5000000, dtype=dtype)
-                s = Series(v)
+            result = s.sum(skipna=False)
+            assert int(result) == v.sum(dtype='int64')
+            result = s.min(skipna=False)
+            assert int(result) == 0
+            result = s.max(skipna=False)
+            assert int(result) == v[-1]
 
-                result = s.sum(skipna=False)
-                assert int(result) == v.sum(dtype='int64')
-                result = s.min(skipna=False)
-                assert int(result) == 0
-                result = s.max(skipna=False)
-                assert int(result) == v[-1]
+        for dtype in ['float32', 'float64']:
+            v = np.arange(5000000, dtype=dtype)
+            s = Series(v)
 
-            for dtype in ['float32', 'float64']:
-                v = np.arange(5000000, dtype=dtype)
-                s = Series(v)
-
-                result = s.sum(skipna=False)
-                assert result == v.sum(dtype=dtype)
-                result = s.min(skipna=False)
-                assert np.allclose(float(result), 0.0)
-                result = s.max(skipna=False)
-                assert np.allclose(float(result), v[-1])
-
-    def test_sum(self, string_series):
-        self._check_stat_op('sum', np.sum, string_series, check_allna=False)
+            result = s.sum(skipna=False)
+            assert result == v.sum(dtype=dtype)
+            result = s.min(skipna=False)
+            assert np.allclose(float(result), 0.0)
+            result = s.max(skipna=False)
+            assert np.allclose(float(result), v[-1])
 
     def test_sum_inf(self):
         s = Series(np.random.randn(10))
@@ -214,31 +206,16 @@ class TestSeriesAnalytics(object):
         res = nanops.nansum(arr, axis=1)
         assert np.isinf(res).all()
 
-    def test_mean(self, string_series):
-        self._check_stat_op('mean', np.mean, string_series)
-
     def test_median(self, string_series):
-        self._check_stat_op('median', np.median, string_series)
 
         # test with integers, test failure
         int_ts = Series(np.ones(10, dtype=int), index=lrange(10))
         tm.assert_almost_equal(np.median(int_ts), int_ts.median())
 
-    def test_prod(self, string_series):
-        self._check_stat_op('prod', np.prod, string_series)
-
-    def test_min(self, string_series):
-        self._check_stat_op('min', np.min, string_series, check_objects=True)
-
-    def test_max(self, string_series):
-        self._check_stat_op('max', np.max, string_series, check_objects=True)
-
     def test_var_std(self, datetime_series, string_series):
         alt = lambda x: np.std(x, ddof=1)
-        self._check_stat_op('std', alt, string_series)
 
         alt = lambda x: np.var(x, ddof=1)
-        self._check_stat_op('var', alt, string_series)
 
         result = datetime_series.std(ddof=4)
         expected = np.std(datetime_series.values, ddof=4)
@@ -258,7 +235,6 @@ class TestSeriesAnalytics(object):
 
     def test_sem(self, datetime_series, string_series):
         alt = lambda x: np.std(x, ddof=1) / np.sqrt(len(x))
-        self._check_stat_op('sem', alt, string_series)
 
         result = datetime_series.sem(ddof=4)
         expected = np.std(datetime_series.values,
@@ -274,7 +250,6 @@ class TestSeriesAnalytics(object):
     def test_skew(self, string_series):
         from scipy.stats import skew
         alt = lambda x: skew(x, bias=False)
-        self._check_stat_op('skew', alt, string_series)
 
         # test corner cases, skew() returns NaN unless there's at least 3
         # values
@@ -293,7 +268,6 @@ class TestSeriesAnalytics(object):
     def test_kurt(self, string_series):
         from scipy.stats import kurtosis
         alt = lambda x: kurtosis(x, bias=False)
-        self._check_stat_op('kurt', alt, string_series)
 
         index = MultiIndex(levels=[['bar'], ['one', 'two', 'three'], [0, 1]],
                            codes=[[0, 0, 0, 0, 0, 0], [0, 1, 2, 0, 1, 2],
@@ -506,63 +480,6 @@ class TestSeriesAnalytics(object):
 
         r = np.diff(s)
         assert_series_equal(Series([nan, 0, 0, 0, nan]), r)
-
-    def _check_stat_op(self, name, alternate, string_series_,
-                       check_objects=False, check_allna=False):
-
-        with pd.option_context('use_bottleneck', False):
-            f = getattr(Series, name)
-
-            # add some NaNs
-            string_series_[5:15] = np.NaN
-
-            # idxmax, idxmin, min, and max are valid for dates
-            if name not in ['max', 'min']:
-                ds = Series(date_range('1/1/2001', periods=10))
-                pytest.raises(TypeError, f, ds)
-
-            # skipna or no
-            assert notna(f(string_series_))
-            assert isna(f(string_series_, skipna=False))
-
-            # check the result is correct
-            nona = string_series_.dropna()
-            assert_almost_equal(f(nona), alternate(nona.values))
-            assert_almost_equal(f(string_series_), alternate(nona.values))
-
-            allna = string_series_ * nan
-
-            if check_allna:
-                assert np.isnan(f(allna))
-
-            # dtype=object with None, it works!
-            s = Series([1, 2, 3, None, 5])
-            f(s)
-
-            # 2888
-            items = [0]
-            items.extend(lrange(2 ** 40, 2 ** 40 + 1000))
-            s = Series(items, dtype='int64')
-            assert_almost_equal(float(f(s)), float(alternate(s.values)))
-
-            # check date range
-            if check_objects:
-                s = Series(bdate_range('1/1/2000', periods=10))
-                res = f(s)
-                exp = alternate(s)
-                assert res == exp
-
-            # check on string data
-            if name not in ['sum', 'min', 'max']:
-                pytest.raises(TypeError, f, Series(list('abc')))
-
-            # Invalid axis.
-            pytest.raises(ValueError, f, string_series_, axis=1)
-
-            # Unimplemented numeric_only parameter.
-            if 'numeric_only' in compat.signature(f).args:
-                with pytest.raises(NotImplementedError, match=name):
-                    f(string_series_, numeric_only=True)
 
     def _check_accum_op(self, name, datetime_series_, check_dtype=True):
         func = getattr(np, name)

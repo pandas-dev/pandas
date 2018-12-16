@@ -1,9 +1,9 @@
 from distutils.version import LooseVersion
 import functools
 import itertools
-import operator
 import warnings
 
+import bottleneck as bn
 import numpy as np
 
 from pandas._libs import lib, tslibs
@@ -18,39 +18,6 @@ from pandas.core.dtypes.common import (
 from pandas.core.dtypes.missing import isna, na_value_for_dtype, notna
 
 import pandas.core.common as com
-from pandas.core.config import get_option
-
-_BOTTLENECK_INSTALLED = False
-_MIN_BOTTLENECK_VERSION = '1.0.0'
-
-try:
-    import bottleneck as bn
-    ver = bn.__version__
-    _BOTTLENECK_INSTALLED = (LooseVersion(ver) >=
-                             LooseVersion(_MIN_BOTTLENECK_VERSION))
-
-    if not _BOTTLENECK_INSTALLED:
-        warnings.warn(
-            "The installed version of bottleneck {ver} is not supported "
-            "in pandas and will be not be used\nThe minimum supported "
-            "version is {min_ver}\n".format(
-                ver=ver, min_ver=_MIN_BOTTLENECK_VERSION), UserWarning)
-
-except ImportError:  # pragma: no cover
-    pass
-
-
-_USE_BOTTLENECK = False
-
-
-def set_use_bottleneck(v=True):
-    # set/unset to use bottleneck
-    global _USE_BOTTLENECK
-    if _BOTTLENECK_INSTALLED:
-        _USE_BOTTLENECK = v
-
-
-set_use_bottleneck(get_option('compute.use_bottleneck'))
 
 
 class disallow(object):
@@ -114,14 +81,19 @@ class bottleneck_switch(object):
                     # It *may* just be `var`
                     return _na_for_min_count(values, axis)
 
-                if (_USE_BOTTLENECK and skipna and
-                        _bn_ok_dtype(values.dtype, bn_name)):
+                if skipna and _bn_ok_dtype(values.dtype, bn_name):
                     result = bn_func(values, axis=axis, **kwds)
 
                     # prefer to treat inf/-inf as NA, but must compute the func
                     # twice :(
                     if _has_infs(result):
                         result = alt(values, axis=axis, skipna=skipna, **kwds)
+
+                    if bn_name in ["nanmean", "nanstd", "nanvar"]:
+                        if (isinstance(result, float) and
+                                not hasattr(result, 'dtype')):
+                            # FIXME: kludge
+                            result = values.dtype(result)
                 else:
                     result = alt(values, axis=axis, skipna=skipna, **kwds)
             except Exception:
@@ -1154,32 +1126,3 @@ def _ensure_numeric(x):
                 raise TypeError('Could not convert {value!s} to numeric'
                                 .format(value=x))
     return x
-
-# NA-friendly array comparisons
-
-
-def make_nancomp(op):
-    def f(x, y):
-        xmask = isna(x)
-        ymask = isna(y)
-        mask = xmask | ymask
-
-        with np.errstate(all='ignore'):
-            result = op(x, y)
-
-        if mask.any():
-            if is_bool_dtype(result):
-                result = result.astype('O')
-            np.putmask(result, mask, np.nan)
-
-        return result
-
-    return f
-
-
-nangt = make_nancomp(operator.gt)
-nange = make_nancomp(operator.ge)
-nanlt = make_nancomp(operator.lt)
-nanle = make_nancomp(operator.le)
-naneq = make_nancomp(operator.eq)
-nanne = make_nancomp(operator.ne)

@@ -423,7 +423,7 @@ If installed, we now require:
 +=================+=================+==========+
 | numpy           | 1.12.0          |    X     |
 +-----------------+-----------------+----------+
-| bottleneck      | 1.2.0           |          |
+| bottleneck      | 1.2.0           |    X     |
 +-----------------+-----------------+----------+
 | fastparquet     | 0.1.2           |          |
 +-----------------+-----------------+----------+
@@ -446,6 +446,8 @@ If installed, we now require:
 
 Additionally we no longer depend on `feather-format` for feather based storage
 and replaced it with references to `pyarrow` (:issue:`21639` and :issue:`23053`).
+
+``bottleneck`` is now a required dependency (:issue:`12149`)
 
 .. _whatsnew_0240.api_breaking.csv_line_terminator:
 

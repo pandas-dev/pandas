@@ -867,10 +867,6 @@ class TestDataFrameAnalytics():
         result = nanops.nanvar(arr, axis=0)
         assert not (result < 0).any()
 
-        with pd.option_context('use_bottleneck', False):
-            result = nanops.nanvar(arr, axis=0)
-            assert not (result < 0).any()
-
     @pytest.mark.parametrize(
         "meth", ['sem', 'var', 'std'])
     def test_numeric_only_flag(self, meth):
@@ -907,10 +903,6 @@ class TestDataFrameAnalytics():
 
         result = getattr(df, op)()
         assert len(result) == 2
-
-        with pd.option_context('use_bottleneck', False):
-            result = getattr(df, op)()
-            assert len(result) == 2
 
     def test_cumsum(self, datetime_frame):
         datetime_frame.loc[5:10, 0] = nan
@@ -978,10 +970,6 @@ class TestDataFrameAnalytics():
         arr = np.repeat(np.random.random((1, 1000)), 1000, 0)
         result = nanops.nansem(arr, axis=0)
         assert not (result < 0).any()
-
-        with pd.option_context('use_bottleneck', False):
-            result = nanops.nansem(arr, axis=0)
-            assert not (result < 0).any()
 
     @td.skip_if_no_scipy
     def test_skew(self, float_frame_with_na, float_frame, float_string_frame):

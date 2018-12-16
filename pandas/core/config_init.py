@@ -19,18 +19,6 @@ from pandas.io.formats.terminal import is_terminal
 
 # compute
 
-use_bottleneck_doc = """
-: bool
-    Use the bottleneck library to accelerate if it is installed,
-    the default is True
-    Valid values: False,True
-"""
-
-
-def use_bottleneck_cb(key):
-    from pandas.core import nanops
-    nanops.set_use_bottleneck(cf.get_option(key))
-
 
 use_numexpr_doc = """
 : bool
@@ -46,8 +34,6 @@ def use_numexpr_cb(key):
 
 
 with cf.config_prefix('compute'):
-    cf.register_option('use_bottleneck', True, use_bottleneck_doc,
-                       validator=is_bool, cb=use_bottleneck_cb)
     cf.register_option('use_numexpr', True, use_numexpr_doc,
                        validator=is_bool, cb=use_numexpr_cb)
 #
