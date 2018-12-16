@@ -214,7 +214,10 @@ class DocBuilder:
         # TODO check_call should be more safe, but it fails with
         # exclude patterns, needs investigation
         # subprocess.check_call(args, stderr=subprocess.STDOUT)
-        os.system(' '.join(args))
+        exit_status = os.system(' '.join(args))
+        if exit_status:
+            msg = 'Command "{}" finished with exit code {}'
+            raise RuntimeError(msg.format(' '.join(args), exit_status))
 
     def _sphinx_build(self, kind):
         """Call sphinx to build documentation.

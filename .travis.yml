@@ -112,7 +112,7 @@ before_script:
 script:
   - echo "script start"
   - source activate pandas-dev
-  - ci/run_build_docs.sh
+  - ci/build_docs.sh
   - ci/run_tests.sh
 
 after_script:
