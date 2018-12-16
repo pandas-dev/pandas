@@ -817,6 +817,16 @@ class PeriodArray(dtl.DatetimeLikeArrayMixin, ExtensionArray):
     def _values_for_factorize(self):
         return np.asarray(self), np.nan
 
+    def factorize(self, na_sentinel=-1):
+        from pandas.core.algorithms import factorize
+
+        arr, na_value = self._values_for_factorize()
+
+        labels, uniques = factorize(arr, na_sentinel=na_sentinel)
+
+        uniques = period_array(uniques)
+        return labels, uniques
+
 
 PeriodArray._add_comparison_ops()
 
