@@ -5,6 +5,7 @@ dependencies:
   - python=3.7*
   - pytz
   - Cython>=0.28.2
+  - bottleneck>=1.2.0
   # universal
   - pytest
   - pytest-xdist

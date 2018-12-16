@@ -6,6 +6,7 @@ dependencies:
   - beautifulsoup4
   - botocore>=1.11
   - cython>=0.28.2
+  - bottleneck>=1.2.0
   - dask
   - fastparquet
   - gcsfs

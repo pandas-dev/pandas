@@ -30,6 +30,7 @@ setuptools_kwargs = {
         'python-dateutil >= 2.5.0',
         'pytz >= 2011k',
         'numpy >= {numpy_ver}'.format(numpy_ver=min_numpy_ver),
+        'bottleneck >= 1.2.0',
     ],
     'setup_requires': ['numpy >= {numpy_ver}'.format(numpy_ver=min_numpy_ver)],
     'zip_safe': False,
