@@ -1484,10 +1484,10 @@ class MultiIndex(Index):
         Return a MultiIndex reshaped to conform to the
         shapes given by n_repeat and n_shuffle.
 
+        .. deprecated:: 0.24.0
+
         Useful to replicate and rearrange a MultiIndex for combination
         with another Index with n_repeat items.
-
-        .. deprecated:: 0.24.0
 
         Parameters
         ----------
