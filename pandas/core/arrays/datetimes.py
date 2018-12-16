@@ -1104,7 +1104,8 @@ class DatetimeArrayMixin(dtl.DatetimeLikeArrayMixin,
                 # ndarray, but we could maybe work around it there.
                 result = result._data
             return result
-        elif is_datetime64tz_dtype(self.dtype) and self.dtype == dtype:
+        elif is_datetime64tz_dtype(self.dtype) and is_dtype_equal(self.dtype,
+                                                                  dtype):
             if copy:
                 return self.copy()
             return self
@@ -1580,12 +1581,6 @@ class DatetimeArrayMixin(dtl.DatetimeLikeArrayMixin,
                  self.microsecond / 3600.0 / 1e+6 +
                  self.nanosecond / 3600.0 / 1e+9
                  ) / 24.0)
-
-    def _to_json_values(self):
-        # Patch to get JSON serialization working again.
-        # Not part of the public API.
-        from pandas import DatetimeIndex
-        return DatetimeIndex(self)
 
 
 DatetimeArrayMixin._add_comparison_ops()

@@ -3028,11 +3028,6 @@ class DatetimeTZBlock(ExtensionBlock, DatetimeBlock):
             values = values.reshape(1, -1)
         return values
 
-    def _to_json_values(self):
-        # Patch to get JSON serialization working again.
-        # Not part of the public API.
-        return self.values._to_json_values()
-
     def _slice(self, slicer):
         """ return a slice of my values """
         if isinstance(slicer, tuple):

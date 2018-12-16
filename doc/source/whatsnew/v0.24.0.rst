@@ -674,7 +674,7 @@ is the case with :attr:`Period.end_time`, for example
 The return type of :meth:`Series.unique` for datetime with timezone values has changed
 from an :class:`ndarray` of :class:`Timestamp` objects to a :class:`arrays.DatetimeArray` (:issue:`24024`).
 
-Previous Behavior:
+*Previous Behavior*:
 
 .. code-block:: ipython
 
@@ -691,7 +691,7 @@ Previous Behavior:
    ser = pd.Series([pd.Timestamp('2000', tz='UTC'),
                     pd.Timestamp('2000', tz='UTC')])
 
-Current Behavior:
+*New Behavior*:
 
 .. ipython:: python
 

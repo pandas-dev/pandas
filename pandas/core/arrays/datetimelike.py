@@ -109,7 +109,7 @@ class AttributesMixin(object):
 
         Returns
         -------
-        Period, Timestamp, or Timedelt, or NaT
+        Period, Timestamp, or Timedelta, or NaT
             Whatever the type of ``self._scalar_type`` is.
         """
         raise AbstractMethodError(self)

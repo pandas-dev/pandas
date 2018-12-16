@@ -266,6 +266,9 @@ cdef class SeriesBinGrouper:
                     cached_typ = self.typ(vslider.buf, index=cached_ityp,
                                           name=name)
                 else:
+                    # See the comment in indexes/base.py about _index_data.
+                    # We need this for EA-backed indexes that have a reference
+                    # to a 1-d ndarray like datetime / timedelta / period.
                     object.__setattr__(cached_ityp, '_index_data', islider.buf)
                     cached_ityp._engine.clear_mapping()
                     object.__setattr__(
