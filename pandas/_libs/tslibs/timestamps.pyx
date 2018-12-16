@@ -776,10 +776,6 @@ class Timestamp(_Timestamp):
         """
         Round the Timestamp to the specified resolution
 
-        Returns
-        -------
-        a new Timestamp rounded to the given resolution of `freq`
-
         Parameters
         ----------
         freq : a freq string indicating the rounding resolution
@@ -801,6 +797,10 @@ class Timestamp(_Timestamp):
               nonexistent times
 
             .. versionadded:: 0.24.0
+
+        Returns
+        -------
+        a new Timestamp rounded to the given resolution of `freq`
 
         Raises
         ------

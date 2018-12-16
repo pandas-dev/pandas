@@ -1294,6 +1294,13 @@ class _Rolling_and_Expanding(_Rolling):
         Returned object type is determined by the caller of the %(name)s
         calculation.
 
+    See Also
+    --------
+    pandas.Series.quantile : Computes value at the given quantile over all data
+        in Series.
+    pandas.DataFrame.quantile : Computes values at the given quantile over
+        requested axis in DataFrame.
+
     Examples
     --------
     >>> s = pd.Series([1, 2, 3, 4])
@@ -1310,13 +1317,6 @@ class _Rolling_and_Expanding(_Rolling):
     2    2.5
     3    3.5
     dtype: float64
-
-    See Also
-    --------
-    pandas.Series.quantile : Computes value at the given quantile over all data
-        in Series.
-    pandas.DataFrame.quantile : Computes values at the given quantile over
-        requested axis in DataFrame.
     """)
 
     def quantile(self, quantile, interpolation='linear', **kwargs):

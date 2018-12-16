@@ -51,13 +51,13 @@ class Resampler(_GroupBy):
     kind : str or None
         'period', 'timestamp' to override default index treatement
 
-    Notes
-    -----
-    After resampling, see aggregate, apply, and transform functions.
-
     Returns
     -------
     a Resampler of the appropriate type
+
+    Notes
+    -----
+    After resampling, see aggregate, apply, and transform functions.
     """
 
     # to the groupby descriptor
