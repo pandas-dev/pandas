@@ -11,8 +11,6 @@ from itertools import chain
 
 import warnings
 import numpy as np
-from hypothesis import given, settings
-from hypothesis.strategies import composite, dates, integers, sampled_from
 
 from pandas import (notna, DataFrame, Series, MultiIndex, date_range,
                     Timestamp, compat)
