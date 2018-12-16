@@ -709,6 +709,51 @@ Finally, a ``Series.sparse`` accessor was added to provide sparse-specific metho
    s = pd.Series([0, 0, 1, 1, 1], dtype='Sparse[int]')
    s.sparse.density
 
+.. _whatsnew_0240.api_breaking.get_dummies:
+
+:meth:`get_dummies` always returns a DataFrame
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Previously, when ``sparse=True`` was passed to :func:`get_dummies`, the return value could be either
+a :class:`DataFrame` or a :class:`SparseDataFrame`, depending on whether all or a just a subset
+of the columns were dummy-encoded. Now, a :class:`DataFrame` is always returned (:issue:`24284`).
+
+*Previous Behavior*
+
+The first :func:`get_dummies` returns a :class:`DataFrame` because the column ``A``
+is not dummy encoded. When just ``["B", "C"]`` are passed to ``get_dummies``,
+then all the columns are dummy-encoded, and a :class:`SparseDataFrame` was returned.
+
+.. code-block:: ipython
+
+   In [2]: df = pd.DataFrame({"A": [1, 2], "B": ['a', 'b'], "C": ['a', 'a']})
+
+   In [3]: type(pd.get_dummies(df, sparse=True))
+   Out[3]: pandas.core.frame.DataFrame
+
+   In [4]: type(pd.get_dummies(df[['B', 'C']], sparse=True))
+   Out[4]: pandas.core.sparse.frame.SparseDataFrame
+
+.. ipython:: python
+   :suppress:
+
+   df = pd.DataFrame({"A": [1, 2], "B": ['a', 'b'], "C": ['a', 'a']})
+
+*New Behavior*
+
+Now, the return type is consistently a :class:`DataFrame`.
+
+.. ipython:: python
+
+   type(pd.get_dummies(df, sparse=True))
+   type(pd.get_dummies(df[['B', 'C']], sparse=True))
+
+.. note::
+
+   There's no difference in memory usage between a :class:`SparseDataFrame`
+   and a :class:`DataFrame` with sparse values. The memory usage will
+   be the same as in the previous version of pandas.
+
 .. _whatsnew_0240.api_breaking.frame_to_dict_index_orient:
 
 Raise ValueError in ``DataFrame.to_dict(orient='index')``
@@ -1612,6 +1657,7 @@ Other
 - Bug in :meth:`DataFrame.combine_first` in which column types were unexpectedly converted to float (:issue:`20699`)
 - Bug where C variables were declared with external linkage causing import errors if certain other C libraries were imported before Pandas. (:issue:`24113`)
 - Constructing a DataFrame with an index argument that wasn't already an instance of :class:`~pandas.core.Index` was broken in `4efb39f <https://github.com/pandas-dev/pandas/commit/4efb39f01f5880122fa38d91e12d217ef70fad9e>`_ (:issue:`22227`).
+- Bug in :func:`to_object_array` prevented list subclasses to be used to create :class:`DataFrame` (:issue:`21226`)
 
 .. _whatsnew_0.24.0.contributors:
 
