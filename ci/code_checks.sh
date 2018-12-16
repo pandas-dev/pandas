@@ -148,6 +148,9 @@ if [[ -z "$CHECK" || "$CHECK" == "patterns" ]]; then
     invgrep -R --exclude=*.pyc --exclude=testing.py --exclude=test_testing.py assert_raises_regex pandas
     RET=$(($RET + $?)) ; echo $MSG "DONE"
 
+    MSG='Check that no file in the repo contains tailing whitespaces' ; echo $MSG
+    invgrep --exclude="*.svg" -RI "\s$" *
+    RET=$(($RET + $?)) ; echo $MSG "DONE"
 fi
 
 ### CODE ###
@@ -209,8 +212,8 @@ fi
 ### DOCSTRINGS ###
 if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
 
-    MSG='Validate docstrings (GL06, SS04, PR03, PR05, EX04)' ; echo $MSG
-    $BASE_DIR/scripts/validate_docstrings.py --format=azure --errors=GL06,SS04,PR03,PR05,EX04
+    MSG='Validate docstrings (GL09, GL06, SS04, PR03, PR05, EX04)' ; echo $MSG
+    $BASE_DIR/scripts/validate_docstrings.py --format=azure --errors=GL09,GL06,SS04,PR03,PR05,EX04
     RET=$(($RET + $?)) ; echo $MSG "DONE"
 
 fi

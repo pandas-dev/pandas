@@ -353,6 +353,7 @@ Other Enhancements
 - :meth:`round`, :meth:`ceil`, and meth:`floor` for :class:`DatetimeIndex` and :class:`Timestamp` now support a ``nonexistent`` argument for handling datetimes that are rounded to nonexistent times. See :ref:`timeseries.timezone_nonexistent` (:issue:`22647`)
 - :class:`Resampler` now is iterable like :class:`GroupBy` (:issue:`15314`).
 - :meth:`Series.resample` and :meth:`DataFrame.resample` have gained the :meth:`Resampler.quantile` (:issue:`15023`).
+- :meth:`DataFrame.resample` and :meth:`Series.resample` with a :class:`PeriodIndex` will now respect the ``base`` argument in the same fashion as with a :class:`DatetimeIndex`. (:issue:`23882`)
 - :meth:`pandas.core.dtypes.is_list_like` has gained a keyword ``allow_sets`` which is ``True`` by default; if ``False``,
   all instances of ``set`` will not be considered "list-like" anymore (:issue:`23061`)
 - :meth:`Index.to_frame` now supports overriding column name(s) (:issue:`22580`).
@@ -380,6 +381,7 @@ Backwards incompatible API changes
 - ``max_rows`` and ``max_cols`` parameters removed from :class:`HTMLFormatter` since truncation is handled by :class:`DataFrameFormatter` (:issue:`23818`)
 - :meth:`read_csv` will now raise a ``ValueError`` if a column with missing values is declared as having dtype ``bool`` (:issue:`20591`)
 - The column order of the resultant :class:`DataFrame` from :meth:`MultiIndex.to_frame` is now guaranteed to match the :attr:`MultiIndex.names` order. (:issue:`22420`)
+- :func:`pd.offsets.generate_range` argument ``time_rule`` has been removed; use ``offset`` instead (:issue:`24157`)
 
 Percentage change on groupby changes
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -664,6 +666,51 @@ Finally, a ``Series.sparse`` accessor was added to provide sparse-specific metho
 
    s = pd.Series([0, 0, 1, 1, 1], dtype='Sparse[int]')
    s.sparse.density
+
+.. _whatsnew_0240.api_breaking.get_dummies:
+
+:meth:`get_dummies` always returns a DataFrame
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Previously, when ``sparse=True`` was passed to :func:`get_dummies`, the return value could be either
+a :class:`DataFrame` or a :class:`SparseDataFrame`, depending on whether all or a just a subset
+of the columns were dummy-encoded. Now, a :class:`DataFrame` is always returned (:issue:`24284`).
+
+*Previous Behavior*
+
+The first :func:`get_dummies` returns a :class:`DataFrame` because the column ``A``
+is not dummy encoded. When just ``["B", "C"]`` are passed to ``get_dummies``,
+then all the columns are dummy-encoded, and a :class:`SparseDataFrame` was returned.
+
+.. code-block:: ipython
+
+   In [2]: df = pd.DataFrame({"A": [1, 2], "B": ['a', 'b'], "C": ['a', 'a']})
+
+   In [3]: type(pd.get_dummies(df, sparse=True))
+   Out[3]: pandas.core.frame.DataFrame
+
+   In [4]: type(pd.get_dummies(df[['B', 'C']], sparse=True))
+   Out[4]: pandas.core.sparse.frame.SparseDataFrame
+
+.. ipython:: python
+   :suppress:
+
+   df = pd.DataFrame({"A": [1, 2], "B": ['a', 'b'], "C": ['a', 'a']})
+
+*New Behavior*
+
+Now, the return type is consistently a :class:`DataFrame`.
+
+.. ipython:: python
+
+   type(pd.get_dummies(df, sparse=True))
+   type(pd.get_dummies(df[['B', 'C']], sparse=True))
+
+.. note::
+
+   There's no difference in memory usage between a :class:`SparseDataFrame`
+   and a :class:`DataFrame` with sparse values. The memory usage will
+   be the same as in the previous version of pandas.
 
 .. _whatsnew_0240.api_breaking.frame_to_dict_index_orient:
 
@@ -1040,7 +1087,6 @@ Other API Changes
   has an improved ``KeyError`` message, and will not fail on duplicate column names with ``drop=True``. (:issue:`22484`)
 - Slicing a single row of a DataFrame with multiple ExtensionArrays of the same type now preserves the dtype, rather than coercing to object (:issue:`22784`)
 - :class:`DateOffset` attribute `_cacheable` and method `_should_cache` have been removed (:issue:`23118`)
-- Comparing :class:`Timedelta` to be less or greater than unknown types now raises a ``TypeError`` instead of returning ``False`` (:issue:`20829`)
 - :meth:`Categorical.searchsorted`, when supplied a scalar value to search for, now returns a scalar instead of an array (:issue:`23466`).
 - :meth:`Categorical.searchsorted` now raises a ``KeyError`` rather that a ``ValueError``, if a searched for key is not found in its categories (:issue:`23466`).
 - :meth:`Index.hasnans` and :meth:`Series.hasnans` now always return a python boolean. Previously, a python or a numpy boolean could be returned, depending on circumstances (:issue:`23294`).
@@ -1092,7 +1138,6 @@ Deprecations
 - Passing a string alias like ``'datetime64[ns, UTC]'`` as the `unit` parameter to :class:`DatetimeTZDtype` is deprecated. Use :class:`DatetimeTZDtype.construct_from_string` instead (:issue:`23990`).
 - In :meth:`Series.where` with Categorical data, providing an ``other`` that is not present in the categories is deprecated. Convert the categorical to a different dtype or add the ``other`` to the categories first (:issue:`24077`).
 - :meth:`Series.clip_lower`, :meth:`Series.clip_upper`, :meth:`DataFrame.clip_lower` and :meth:`DataFrame.clip_upper` are deprecated and will be removed in a future version. Use ``Series.clip(lower=threshold)``, ``Series.clip(upper=threshold)`` and the equivalent ``DataFrame`` methods (:issue:`24203`)
-
 
 .. _whatsnew_0240.deprecations.datetimelike_int_ops:
 
@@ -1270,6 +1315,9 @@ Datetimelike
 - Bug in :class:`Index` where calling ``np.array(dtindex, dtype=object)`` on a timezone-naive :class:`DatetimeIndex` would return an array of ``datetime`` objects instead of :class:`Timestamp` objects, potentially losing nanosecond portions of the timestamps (:issue:`23524`)
 - Bug in :class:`Categorical.__setitem__` not allowing setting with another ``Categorical`` when both are undordered and have the same categories, but in a different order (:issue:`24142`)
 - Bug in :func:`date_range` where using dates with millisecond resolution or higher could return incorrect values or the wrong number of values in the index (:issue:`24110`)
+- Bug in :class:`DatetimeIndex` where constructing a :class:`DatetimeIndex` from a :class:`Categorical` or :class:`CategoricalIndex` would incorrectly drop timezone information (:issue:`18664`)
+- Bug in :class:`DatetimeIndex` and :class:`TimedeltaIndex` where indexing with ``Ellipsis`` would incorrectly lose the index's ``freq`` attribute (:issue:`21282`)
+- Clarified error message produced when passing an incorrect ``freq`` argument to :class:`DatetimeIndex` with ``NaT`` as the first entry in the passed data (:issue:`11587`)
 
 Timedelta
 ^^^^^^^^^
@@ -1382,6 +1430,7 @@ Indexing
 - Bug in :func:`Index.union` and :func:`Index.intersection` where name of the ``Index`` of the result was not computed correctly for certain cases (:issue:`9943`, :issue:`9862`)
 - Bug in :class:`Index` slicing with boolean :class:`Index` may raise ``TypeError`` (:issue:`22533`)
 - Bug in ``PeriodArray.__setitem__`` when accepting slice and list-like value (:issue:`23978`)
+- Bug in :class:`DatetimeIndex`, :class:`TimedeltaIndex` where indexing with ``Ellipsis`` would lose their ``freq`` attribute (:issue:`21282`)
 
 Missing
 ^^^^^^^
@@ -1566,6 +1615,7 @@ Other
 - Bug in :meth:`DataFrame.combine_first` in which column types were unexpectedly converted to float (:issue:`20699`)
 - Bug where C variables were declared with external linkage causing import errors if certain other C libraries were imported before Pandas. (:issue:`24113`)
 - Constructing a DataFrame with an index argument that wasn't already an instance of :class:`~pandas.core.Index` was broken in `4efb39f <https://github.com/pandas-dev/pandas/commit/4efb39f01f5880122fa38d91e12d217ef70fad9e>`_ (:issue:`22227`).
+- Bug in :func:`to_object_array` prevented list subclasses to be used to create :class:`DataFrame` (:issue:`21226`)
 
 .. _whatsnew_0.24.0.contributors:
 

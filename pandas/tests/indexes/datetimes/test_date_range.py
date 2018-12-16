@@ -80,6 +80,14 @@ class TestTimestampEquivDateRange(object):
 
 
 class TestDateRanges(TestData):
+    def test_date_range_nat(self):
+        # GH#11587
+        msg = "Neither `start` nor `end` can be NaT"
+        with pytest.raises(ValueError, match=msg):
+            date_range(start='2016-01-01', end=pd.NaT, freq='D')
+        with pytest.raises(ValueError, match=msg):
+            date_range(start=pd.NaT, end='2016-01-01', freq='D')
+
     def test_date_range_out_of_bounds(self):
         # GH#14187
         with pytest.raises(OutOfBoundsDatetime):
@@ -533,12 +541,12 @@ class TestGenRangeGeneration(object):
 
     def test_generate(self):
         rng1 = list(generate_range(START, END, offset=BDay()))
-        rng2 = list(generate_range(START, END, time_rule='B'))
+        rng2 = list(generate_range(START, END, offset='B'))
         assert rng1 == rng2
 
     def test_generate_cday(self):
         rng1 = list(generate_range(START, END, offset=CDay()))
-        rng2 = list(generate_range(START, END, time_rule='C'))
+        rng2 = list(generate_range(START, END, offset='C'))
         assert rng1 == rng2
 
     def test_1(self):
