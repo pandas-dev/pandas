@@ -194,7 +194,7 @@ I/O Enhancements
     .. ipython :: python
        :okwarning:
 
-        df = DataFrame({'a': range(3), 'b': list('abc')})
+        df = pd.DataFrame({'a': range(3), 'b': list('abc')})
         print(df)
         html = df.to_html()
         alist = pd.read_html(html, index_col=0)
@@ -298,7 +298,7 @@ Other Enhancements
 
     .. ipython :: python
 
-        df = DataFrame({'a': list('ab..'), 'b': [1, 2, 3, 4]})
+        df = pd.DataFrame({'a': list('ab..'), 'b': [1, 2, 3, 4]})
         df.replace(regex=r'\s*\.\s*', value=np.nan)
 
     to replace all occurrences of the string ``'.'`` with zero or more
@@ -398,8 +398,8 @@ Experimental Features
       bday_egypt = CustomBusinessDay(holidays=holidays, weekmask=weekmask_egypt)
       dt = datetime(2013, 4, 30)
       print(dt + 2 * bday_egypt)
-      dts = date_range(dt, periods=5, freq=bday_egypt)
-      print(Series(dts.weekday, dts).map(Series('Mon Tue Wed Thu Fri Sat Sun'.split())))
+      dts = pd.date_range(dt, periods=5, freq=bday_egypt)
+      print(pd.Series(dts.weekday, dts).map(pd.Series('Mon Tue Wed Thu Fri Sat Sun'.split())))
 
 Bug Fixes
 ~~~~~~~~~
