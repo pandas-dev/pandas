@@ -1645,11 +1645,11 @@ class Rolling(_Rolling_and_Expanding):
     9  0.212668 -1.647453
     """)
 
+    @Appender(_agg_doc)
     @Appender(_shared_docs['aggregate'] % dict(
         versionadded='',
         klass='Series/DataFrame',
         axis=''))
-    @Appender(_agg_doc)
     def aggregate(self, arg, *args, **kwargs):
         return super(Rolling, self).aggregate(arg, *args, **kwargs)
 
@@ -1921,11 +1921,11 @@ class Expanding(_Rolling_and_Expanding):
     9 -0.286980  0.618493 -0.694496
     """)
 
+    @Appender(_agg_doc)
     @Appender(_shared_docs['aggregate'] % dict(
         versionadded='',
         klass='Series/DataFrame',
         axis=''))
-    @Appender(_agg_doc)
     def aggregate(self, arg, *args, **kwargs):
         return super(Expanding, self).aggregate(arg, *args, **kwargs)
 

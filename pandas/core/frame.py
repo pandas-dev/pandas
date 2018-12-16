@@ -6091,10 +6091,10 @@ class DataFrame(NDFrame):
     dtype: float64
     """)
 
+    @Appender(_agg_doc)
     @Appender(_shared_docs['aggregate'] % dict(
         versionadded='.. versionadded:: 0.20.0',
         **_shared_doc_kwargs))
-    @Appender(_agg_doc)
     def aggregate(self, func, axis=0, *args, **kwargs):
         axis = self._get_axis_number(axis)
 

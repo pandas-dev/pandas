@@ -253,11 +253,11 @@ class Resampler(_GroupBy):
     2013-01-01 00:00:04      5       NaN
     """)
 
+    @Appender(_agg_doc)
     @Appender(_shared_docs['aggregate'] % dict(
         klass='DataFrame',
         versionadded='',
         axis=''))
-    @Appender(_agg_doc)
     def aggregate(self, func, *args, **kwargs):
 
         self._set_binner()
