@@ -1260,7 +1260,7 @@ Removal of prior version deprecations/changes
 - ``pandas.pnow``, ``pandas.match``, ``pandas.groupby``, ``pd.get_store``, ``pd.Expr``, and ``pd.Term`` have been removed (:issue:`15538`, :issue:`15940`)
 - :meth:`Categorical.searchsorted` and :meth:`Series.searchsorted` have renamed the ``v`` argument to ``value`` (:issue:`14645`)
 - ``pandas.parser``, ``pandas.lib``, and ``pandas.tslib`` have been removed (:issue:`15537`)
-- :meth:`TimedeltaIndex.searchsorted`, :meth:`DatetimeIndex.searchsorted`, and :meth:`PeriodIndex.searchsorted` have renamed the ``key`` argument to ``value`` (:issue:`14645`)
+- :meth:`Index.searchsorted` have renamed the ``key`` argument to ``value`` (:issue:`14645`)
 - ``DataFrame.consolidate`` and ``Series.consolidate`` have been removed (:issue:`15501`)
 - Removal of the previously deprecated module ``pandas.json`` (:issue:`19944`)
 - The module ``pandas.tools`` has been removed (:issue:`15358`, :issue:`16005`)
@@ -1386,7 +1386,7 @@ Timedelta
 Timezones
 ^^^^^^^^^
 
-- Bug in :meth:`DatetimeIndex.shift` where an ``AssertionError`` would raise when shifting across DST (:issue:`8616`)
+- Bug in :meth:`Index.shift` where an ``AssertionError`` would raise when shifting across DST (:issue:`8616`)
 - Bug in :class:`Timestamp` constructor where passing an invalid timezone offset designator (``Z``) would not raise a ``ValueError`` (:issue:`8910`)
 - Bug in :meth:`Timestamp.replace` where replacing at a DST boundary would retain an incorrect offset (:issue:`7825`)
 - Bug in :meth:`Series.replace` with ``datetime64[ns, tz]`` data when replacing ``NaT`` (:issue:`11792`)
@@ -1402,7 +1402,7 @@ Timezones
 - Bug in :func:`DataFrame.asof` that raised a ``TypeError`` when attempting to compare tz-naive and tz-aware timestamps (:issue:`21194`)
 - Bug when constructing a :class:`DatetimeIndex` with :class:`Timestamp` constructed with the ``replace`` method across DST (:issue:`18785`)
 - Bug when setting a new value with :meth:`DataFrame.loc` with a :class:`DatetimeIndex` with a DST transition (:issue:`18308`, :issue:`20724`)
-- Bug in :meth:`DatetimeIndex.unique` that did not re-localize tz-aware dates correctly (:issue:`21737`)
+- Bug in :meth:`Index.unique` that did not re-localize tz-aware dates correctly (:issue:`21737`)
 - Bug when indexing a :class:`Series` with a DST transition (:issue:`21846`)
 - Bug in :meth:`DataFrame.resample` and :meth:`Series.resample` where an ``AmbiguousTimeError`` or ``NonExistentTimeError`` would raise if a timezone aware timeseries ended on a DST transition (:issue:`19375`, :issue:`10117`)
 - Bug in :meth:`DataFrame.drop` and :meth:`Series.drop` when specifying a tz-aware Timestamp key to drop from a :class:`DatetimeIndex` with a DST transition (:issue:`21761`)
@@ -1468,7 +1468,7 @@ Indexing
 - The traceback from a ``KeyError`` when asking ``.loc`` for a single missing label is now shorter and more clear (:issue:`21557`)
 - :class:`PeriodIndex` now emits a ``KeyError`` when a malformed string is looked up, which is consistent with the behavior of :class:`DatetimeIndex` (:issue:`22803`)
 - When ``.ix`` is asked for a missing integer label in a :class:`MultiIndex` with a first level of integer type, it now raises a ``KeyError``, consistently with the case of a flat :class:`Int64Index`, rather than falling back to positional indexing (:issue:`21593`)
-- Bug in :meth:`DatetimeIndex.reindex` when reindexing a tz-naive and tz-aware :class:`DatetimeIndex` (:issue:`8306`)
+- Bug in :meth:`Index.reindex` when reindexing a tz-naive and tz-aware :class:`DatetimeIndex` (:issue:`8306`)
 - Bug in :meth:`Series.reindex` when reindexing an empty series with a ``datetime64[ns, tz]`` dtype (:issue:`20869`)
 - Bug in :class:`DataFrame` when setting values with ``.loc`` and a timezone aware :class:`DatetimeIndex` (:issue:`11365`)
 - ``DataFrame.__getitem__`` now accepts dictionaries and dictionary keys as list-likes of labels, consistently with ``Series.__getitem__`` (:issue:`21294`)
