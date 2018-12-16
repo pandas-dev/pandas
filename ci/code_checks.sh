@@ -213,7 +213,7 @@ fi
 if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
 
     MSG='Validate docstrings (GL09, GL06, SS04, PR03, PR05, EX04)' ; echo $MSG
-    $BASE_DIR/scripts/validate_docstrings.py --format=azure --errors=GL09,GL06,SS04,PR03,PR05,EX04
+    $BASE_DIR/scripts/validate_docstrings.py --format=azure --errors=GL09,GL06,GL07,SS04,PR03,PR05,EX04
     RET=$(($RET + $?)) ; echo $MSG "DONE"
 
 fi
