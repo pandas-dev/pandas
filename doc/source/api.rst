@@ -1785,7 +1785,7 @@ Modifying and Computations
    MultiIndex.repeat
    MultiIndex.where
 
-   .. _api.datetimeindex:
+.. _api.datetimeindex:
 
 DatetimeIndex
 -------------
