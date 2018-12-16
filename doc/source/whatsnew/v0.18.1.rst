@@ -479,7 +479,7 @@ Changes in ``read_csv`` exceptions
 .. ipython:: python
    :suppress:
 
-   from pandas.compat import StringIO
+   from io import StringIO
 
 In order to standardize the ``read_csv`` API for both the ``c`` and ``python`` engines, both will now raise an
 ``EmptyDataError``, a subclass of ``ValueError``, in response to empty columns or header (:issue:`12493`, :issue:`12506`)
