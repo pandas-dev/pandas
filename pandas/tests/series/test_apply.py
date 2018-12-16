@@ -216,24 +216,20 @@ class TestSeriesAggregate():
 
     def test_transform_and_agg_error(self, string_series):
         # we are trying to transform with an aggregator
-        def f():
+        with pytest.raises(ValueError):
             string_series.transform(['min', 'max'])
-        pytest.raises(ValueError, f)
 
-        def f():
+        with pytest.raises(ValueError):
             with np.errstate(all='ignore'):
                 string_series.agg(['sqrt', 'max'])
-        pytest.raises(ValueError, f)
 
-        def f():
+        with pytest.raises(ValueError):
             with np.errstate(all='ignore'):
                 string_series.transform(['sqrt', 'max'])
-        pytest.raises(ValueError, f)
 
-        def f():
+        with pytest.raises(ValueError):
             with np.errstate(all='ignore'):
                 string_series.agg({'foo': np.sqrt, 'bar': 'sum'})
-        pytest.raises(ValueError, f)
 
     def test_demo(self):
         # demonstration tests

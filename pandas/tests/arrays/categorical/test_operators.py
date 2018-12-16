@@ -76,27 +76,21 @@ class TestCategoricalOpsWithFactor(TestCategorical):
         tm.assert_numpy_array_equal(res, exp)
 
         # Only categories with same categories can be compared
-        def f():
+        with pytest.raises(TypeError):
             cat > cat_rev
-
-        pytest.raises(TypeError, f)
 
         cat_rev_base2 = Categorical(
             ["b", "b", "b"], categories=["c", "b", "a", "d"])
 
-        def f():
+        with pytest.raises(TypeError):
             cat_rev > cat_rev_base2
-
-        pytest.raises(TypeError, f)
 
         # Only categories with same ordering information can be compared
         cat_unorderd = cat.set_ordered(False)
         assert not (cat > cat).any()
 
-        def f():
+        with pytest.raises(TypeError):
             cat > cat_unorderd
-
-        pytest.raises(TypeError, f)
 
         # comparison (in both directions) with Series will raise
         s = Series(["b", "b", "b"])
@@ -194,10 +188,8 @@ class TestCategoricalOps(object):
         tm.assert_numpy_array_equal(res_rev.values, exp_rev2)
 
         # Only categories with same categories can be compared
-        def f():
+        with pytest.raises(TypeError):
             cat > cat_rev
-
-        pytest.raises(TypeError, f)
 
         # categorical cannot be compared to Series or numpy array, and also
         # not the other way around
@@ -284,14 +276,16 @@ class TestCategoricalOps(object):
 
         # numpy ops
         s = Series(Categorical([1, 2, 3, 4]))
-        pytest.raises(TypeError, lambda: np.sum(s))
+        with pytest.raises(TypeError):
+            np.sum(s)
 
         # numeric ops on a Series
         for op in ['__add__', '__sub__', '__mul__', '__truediv__']:
             pytest.raises(TypeError, lambda: getattr(s, op)(2))
 
         # invalid ufunc
-        pytest.raises(TypeError, lambda: np.log(s))
+        with pytest.raises(TypeError):
+            np.log(s)
 
     def test_contains(self):
         # GH21508

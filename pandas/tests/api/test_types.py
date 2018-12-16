@@ -42,9 +42,11 @@ class TestTypes(Base):
                 expected = fnew('foo')
                 assert result == expected
             except TypeError:
-                pytest.raises(TypeError, lambda: fnew('foo'))
+                with pytest.raises(TypeError):
+                    fnew('foo')
             except AttributeError:
-                pytest.raises(AttributeError, lambda: fnew('foo'))
+                with pytest.raises(AttributeError):
+                    fnew('foo')
 
     def test_deprecated_from_api_types(self):
 

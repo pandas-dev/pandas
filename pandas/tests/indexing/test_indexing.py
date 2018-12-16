@@ -37,11 +37,9 @@ class TestFancy(Base):
         df['bar'] = np.zeros(10, dtype=np.complex)
 
         # invalid
-        def f():
+        with pytest.raises(ValueError):
             df.loc[df.index[2:5], 'bar'] = np.array([2.33j, 1.23 + 0.1j,
                                                      2.2, 1.0])
-
-        pytest.raises(ValueError, f)
 
         # valid
         df.loc[df.index[2:6], 'bar'] = np.array([2.33j, 1.23 + 0.1j,
@@ -57,10 +55,8 @@ class TestFancy(Base):
         df['foo'] = np.zeros(10, dtype=np.float64)
         df['bar'] = np.zeros(10, dtype=np.complex)
 
-        def f():
+        with pytest.raises(ValueError):
             df[2:5] = np.arange(1, 4) * 1j
-
-        pytest.raises(ValueError, f)
 
     def test_inf_upcast(self):
         # GH 16957

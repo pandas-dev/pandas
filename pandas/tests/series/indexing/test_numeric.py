@@ -96,10 +96,8 @@ def test_delitem():
     # empty
     s = Series()
 
-    def f():
+    with pytest.raises(KeyError):
         del s[0]
-
-    pytest.raises(KeyError, f)
 
     # only 1 left, del, add, del
     s = Series(1)
@@ -207,10 +205,8 @@ def test_setitem_float_labels():
 def test_slice_float_get_set(test_data):
     pytest.raises(TypeError, lambda: test_data.ts[4.0:10.0])
 
-    def f():
+    with pytest.raises(TypeError):
         test_data.ts[4.0:10.0] = 0
-
-    pytest.raises(TypeError, f)
 
     pytest.raises(TypeError, test_data.ts.__getitem__, slice(4.5, 10.0))
     pytest.raises(TypeError, test_data.ts.__setitem__, slice(4.5, 10.0), 0)

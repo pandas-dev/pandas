@@ -286,7 +286,8 @@ class TestToPeriod(object):
 
     def test_to_period_nofreq(self):
         idx = DatetimeIndex(['2000-01-01', '2000-01-02', '2000-01-04'])
-        pytest.raises(ValueError, idx.to_period)
+        with pytest.raises(ValueError):
+            idx.to_period()
 
         idx = DatetimeIndex(['2000-01-01', '2000-01-02', '2000-01-03'],
                             freq='infer')

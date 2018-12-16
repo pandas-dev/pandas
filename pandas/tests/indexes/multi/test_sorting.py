@@ -63,7 +63,8 @@ def test_sortlevel_deterministic():
 
 
 def test_sort(indices):
-    pytest.raises(TypeError, indices.sort)
+    with pytest.raises(TypeError):
+        indices.sort()
 
 
 def test_numpy_argsort(idx):
