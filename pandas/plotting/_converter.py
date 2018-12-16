@@ -3,6 +3,10 @@ from datetime import datetime, timedelta
 import warnings
 
 from dateutil.relativedelta import relativedelta
+import matplotlib.dates as dates
+from matplotlib.ticker import AutoLocator, Formatter, Locator
+from matplotlib.transforms import nonsingular
+import matplotlib.units as units
 import numpy as np
 
 from pandas._libs import lib, tslibs
@@ -15,10 +19,6 @@ from pandas.core.dtypes.common import (
     is_integer_dtype, is_nested_list_like, is_period_arraylike)
 from pandas.core.dtypes.generic import ABCSeries
 
-import matplotlib.dates as dates
-from matplotlib.ticker import AutoLocator, Formatter, Locator
-from matplotlib.transforms import nonsingular
-import matplotlib.units as units
 import pandas.core.common as com
 from pandas.core.index import Index
 from pandas.core.indexes.datetimes import date_range
