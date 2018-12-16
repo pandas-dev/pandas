@@ -115,6 +115,40 @@ class TestDateRanges(TestData):
         dti3 = date_range(end=dti[-1], periods=len(dti), freq='D')
         assert dti3.equals(dti)
 
+    def test_date_range_int64_overflow_non_recoverable(self):
+        # GH#24255
+        # case with start later than 1970-01-01, overflow int64 but not uint64
+        msg = "Cannot generate range with"
+        with pytest.raises(OutOfBoundsDatetime, match=msg):
+            date_range(start='1970-02-01', periods=106752 * 24, freq='H')
+
+        # case with end before 1970-01-01, overflow int64 but not uint64
+        with pytest.raises(OutOfBoundsDatetime, match=msg):
+            date_range(end='1969-11-14', periods=106752 * 24, freq='H')
+
+    def test_date_range_int64_overflow_stride_endpoint_different_signs(self):
+        # cases where stride * periods overflow int64 and stride/endpoint
+        #  have different signs
+        start = Timestamp('2262-02-23')
+        end = Timestamp('1969-11-14')
+
+        expected = date_range(start=start, end=end, freq='-1H')
+        assert expected[0] == start
+        assert expected[-1] == end
+
+        dti = date_range(end=end, periods=len(expected), freq='-1H')
+        tm.assert_index_equal(dti, expected)
+
+        start2 = Timestamp('1970-02-01')
+        end2 = Timestamp('1677-10-22')
+
+        expected2 = date_range(start=start2, end=end2, freq='-1H')
+        assert expected2[0] == start2
+        assert expected2[-1] == end2
+
+        dti2 = date_range(start=start2, periods=len(expected2), freq='-1H')
+        tm.assert_index_equal(dti2, expected2)
+
     def test_date_range_out_of_bounds(self):
         # GH#14187
         with pytest.raises(OutOfBoundsDatetime):

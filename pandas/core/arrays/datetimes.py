@@ -1728,7 +1728,14 @@ def _generate_regular_range(cls, start, end, periods, freq):
             raise ValueError("at least 'start' or 'end' should be specified "
                              "if a 'period' is given.")
 
-        values = np.arange(b, e, stride, dtype=np.int64)
+        with np.errstate(over="raise"):
+            try:
+                values = np.arange(b, e, stride, dtype=np.int64)
+            except FloatingPointError:
+                xdr = [b]
+                while xdr[-1] != e:
+                    xdr.append(xdr[-1] + stride)
+                values = np.array(xdr[:-1], dtype=np.int64)
 
     else:
         tz = None
@@ -1757,9 +1764,13 @@ def _generate_range_overflow_safe(endpoint, periods, stride,
     Parameters
     ----------
     endpoint : int
+        nanosecond timestamp of the known endpoint of the desired range
     periods : int
+        number of periods in the desired range
     stride : int
+        nanoseconds between periods in the desired range
     side : {'start', 'end'}
+        which end of the range `endpoint` refers to
 
     Returns
     -------
@@ -1790,8 +1801,8 @@ def _generate_range_overflow_safe(endpoint, periods, stride,
         return _generate_range_overflow_safe_signed(
             endpoint, periods, stride, side)
 
-    elif ((endpoint > 0 and side == 'start') or
-          (endpoint < 0 and side == 'end')):
+    elif ((endpoint > 0 and side == 'start' and stride > 0) or
+          (endpoint < 0 and side == 'end' and stride > 0)):
         # no chance of not-overflowing
         raise tslib.OutOfBoundsDatetime(msg)
 
@@ -1802,7 +1813,13 @@ def _generate_range_overflow_safe(endpoint, periods, stride,
                                              periods - 1, stride, side)
 
     # split into smaller pieces
-    return _generate_range_recurse(endpoint, periods, stride, side)
+    mid_periods = periods // 2
+    remaining = periods - mid_periods
+    assert 0 < remaining < periods, (remaining, periods, endpoint, stride)
+
+    midpoint = _generate_range_overflow_safe(endpoint, mid_periods,
+                                             stride, side)
+    return _generate_range_overflow_safe(midpoint, remaining, stride, side)
 
 
 def _generate_range_overflow_safe_signed(endpoint, periods, stride, side):
@@ -1824,58 +1841,26 @@ def _generate_range_overflow_safe_signed(endpoint, periods, stride, side):
             #  FloatingPointError; with reversed signed we risk OverflowError
             pass
 
+        # if stride and endpoint had opposite signs, then endpoint + addend
+        #  should never overflow.  so they must have the same signs
+        assert (stride > 0 and endpoint >= 0) or (stride < 0 and endpoint <= 0)
+
         if stride > 0:
             # watch out for very special case in which we just slightly
             #  exceed implementation bounds, but when passing the result to
             #  np.arange will get a result slightly within the bounds
-            if endpoint >= 0:
-                result = np.uint64(endpoint) + np.uint64(addend)
-                i64max = np.uint64(np.iinfo(np.int64).max)
-                if result <= i64max + np.uint64(stride):
-                    return result
-            else:
-                return _generate_range_recurse(endpoint, periods,
-                                               np.abs(stride), side)
-        elif stride < 0 and endpoint > 0:
-            return _generate_range_recurse(np.uint64(endpoint), periods,
-                                           np.abs(stride), side)
+            assert endpoint >= 0
+            result = np.uint64(endpoint) + np.uint64(addend)
+            i64max = np.uint64(np.iinfo(np.int64).max)
+            assert result > i64max
+            if result <= i64max + np.uint64(stride):
+                return result
 
-    try:
-        other_end = checked_add_with_arr(np.int64(endpoint),
-                                         addend)
-    except OverflowError:
-        raise tslib.OutOfBoundsDatetime('Cannot generate range with '
-                                        '{side}={endpoint} and '
-                                        'periods={periods}'
-                                        .format(side=side, endpoint=endpoint,
-                                                periods=periods))
-    return other_end
-
-
-def _generate_range_recurse(endpoint, periods, stride, side):
-    """
-    Avoid problems in int64/uint64 mismatch by splitting range generation into
-    smaller pieces.
-
-    Parameters
-    ----------
-    endpoint : int
-    periods : int
-    stride : int
-    side : {'start', 'end'}
-
-    Returns
-    -------
-    other_end : int
-    """
-    # split into smaller pieces
-    mid_periods = periods // 2
-    remaining = periods - mid_periods
-    assert 0 < remaining < periods, (remaining, periods, endpoint, stride)
-
-    midpoint = _generate_range_overflow_safe(endpoint, mid_periods,
-                                             stride, side)
-    return _generate_range_overflow_safe(midpoint, remaining, stride, side)
+    raise tslib.OutOfBoundsDatetime('Cannot generate range with '
+                                    '{side}={endpoint} and '
+                                    'periods={periods}'
+                                    .format(side=side, endpoint=endpoint,
+                                            periods=periods))
 
 
 # -------------------------------------------------------------------
