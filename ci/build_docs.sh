@@ -1,5 +1,7 @@
 #!/bin/bash
 
+set -e
+
 if [ "${TRAVIS_OS_NAME}" != "linux" ]; then
    echo "not doing build_docs on non-linux"
    exit 0
