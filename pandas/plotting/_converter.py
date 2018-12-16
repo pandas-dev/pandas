@@ -3,13 +3,9 @@ from datetime import datetime, timedelta
 import warnings
 
 from dateutil.relativedelta import relativedelta
-import matplotlib.dates as dates
-from matplotlib.ticker import AutoLocator, Formatter, Locator
-from matplotlib.transforms import nonsingular
-import matplotlib.units as units
 import numpy as np
 
-from pandas._libs import tslibs
+from pandas._libs import lib, tslibs
 from pandas._libs.tslibs import resolution
 import pandas.compat as compat
 from pandas.compat import lrange
@@ -19,6 +15,10 @@ from pandas.core.dtypes.common import (
     is_integer_dtype, is_nested_list_like, is_period_arraylike)
 from pandas.core.dtypes.generic import ABCSeries
 
+import matplotlib.dates as dates
+from matplotlib.ticker import AutoLocator, Formatter, Locator
+from matplotlib.transforms import nonsingular
+import matplotlib.units as units
 import pandas.core.common as com
 from pandas.core.index import Index
 from pandas.core.indexes.datetimes import date_range
@@ -247,6 +247,14 @@ class PeriodConverter(dates.DateConverter):
         if isinstance(values, Index):
             return values.map(lambda x: get_datevalue(x, axis.freq))
         if is_period_arraylike(values):
+            # TODO: I don't understand what case is_period_arryalike
+            # is supposed to be handling. PeriodIndex has already
+            # been taken care of. I suspect it only handles Series[period]
+            # but that's likely not passed by matplotlib
+            return PeriodIndex(values, freq=axis.freq)._ndarray_values
+        elif lib.infer_dtype(values) == 'period':
+            # https://github.com/pandas-dev/pandas/issues/24304
+            # convert ndarray[period] -> PeriodIndex
             return PeriodIndex(values, freq=axis.freq)._ndarray_values
         if isinstance(values, (list, tuple, np.ndarray, Index)):
             return [get_datevalue(x, axis.freq) for x in values]
