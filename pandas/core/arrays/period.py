@@ -7,7 +7,7 @@ import numpy as np
 from pandas._libs.tslibs import NaT, iNaT, period as libperiod
 from pandas._libs.tslibs.fields import isleapyear_arr
 from pandas._libs.tslibs.period import (
-    DIFFERENT_FREQ_INDEX, IncompatibleFrequency, Period, get_period_field_arr,
+    DIFFERENT_FREQ, IncompatibleFrequency, Period, get_period_field_arr,
     period_asfreq_arr)
 from pandas._libs.tslibs.timedeltas import Timedelta, delta_to_nanoseconds
 import pandas.compat as compat
@@ -25,7 +25,7 @@ from pandas.core.arrays import ExtensionArray, datetimelike as dtl
 import pandas.core.common as com
 
 from pandas.tseries import frequencies
-from pandas.tseries.offsets import Tick
+from pandas.tseries.offsets import DateOffset, Tick, _delta_to_tick
 
 
 def _field_accessor(name, alias, docstring=None):
@@ -164,8 +164,9 @@ class PeriodArray(dtl.DatetimeLikeArrayMixin,
 
         if isinstance(values, type(self)):
             if freq is not None and freq != values.freq:
-                msg = DIFFERENT_FREQ_INDEX.format(values.freq.freqstr,
-                                                  freq.freqstr)
+                msg = DIFFERENT_FREQ.format(cls=type(self).__name__,
+                                            own_freq=values.freq.freqstr,
+                                            other_freq=freq.freqstr)
                 raise IncompatibleFrequency(msg)
             values, freq = values._data, values.freq
 
@@ -252,8 +253,7 @@ class PeriodArray(dtl.DatetimeLikeArrayMixin,
 
     def _check_compatible_with(self, other):
         if self.freqstr != other.freqstr:
-            msg = DIFFERENT_FREQ_INDEX.format(self.freqstr, other.freqstr)
-            raise IncompatibleFrequency(msg)
+            _raise_on_incompatible(self, other)
 
     # --------------------------------------------------------------------
     # Data / Attributes
@@ -539,8 +539,7 @@ class PeriodArray(dtl.DatetimeLikeArrayMixin,
         assert not isinstance(other, Tick)
         base = frequencies.get_base_alias(other.rule_code)
         if base != self.freq.rule_code:
-            msg = DIFFERENT_FREQ_INDEX.format(self.freqstr, other.freqstr)
-            raise IncompatibleFrequency(msg)
+            _raise_on_incompatible(self, other)
 
         # Note: when calling parent class's _add_timedeltalike_scalar,
         #  it will call delta_to_nanoseconds(delta).  Because delta here
@@ -603,10 +602,7 @@ class PeriodArray(dtl.DatetimeLikeArrayMixin,
         """
         if not isinstance(self.freq, Tick):
             # We cannot add timedelta-like to non-tick PeriodArray
-            raise IncompatibleFrequency("Input has different freq from "
-                                        "{cls}(freq={freqstr})"
-                                        .format(cls=type(self).__name__,
-                                                freqstr=self.freqstr))
+            _raise_on_incompatible(self, other)
 
         new_ordinals = super(PeriodArray, self)._add_delta(other)
         return type(self)(new_ordinals, freq=self.freq)
@@ -658,16 +654,41 @@ class PeriodArray(dtl.DatetimeLikeArrayMixin,
             # by which will be added to self.
             return delta
 
-        raise IncompatibleFrequency("Input has different freq from "
-                                    "{cls}(freq={freqstr})"
-                                    .format(cls=type(self).__name__,
-                                            freqstr=self.freqstr))
+        _raise_on_incompatible(self, other)
 
     def _values_for_argsort(self):
         return self._data
 
 
 PeriodArray._add_comparison_ops()
+
+
+def _raise_on_incompatible(left, right):
+    """
+    Helper function to render a consistent error message when raising
+    IncompatibleFrequency.
+
+    Parameters
+    ----------
+    left : PeriodArray
+    right : DateOffset, Period, ndarray, or timedelta-like
+
+    Raises
+    ------
+    IncompatibleFrequency
+    """
+    # GH#24283 error message format depends on whether right is scalar
+    if isinstance(right, np.ndarray):
+        other_freq = None
+    elif isinstance(right, (ABCPeriodIndex, PeriodArray, Period, DateOffset)):
+        other_freq = right.freqstr
+    else:
+        other_freq = _delta_to_tick(Timedelta(right)).freqstr
+
+    msg = DIFFERENT_FREQ.format(cls=type(left).__name__,
+                                own_freq=left.freqstr,
+                                other_freq=other_freq)
+    raise IncompatibleFrequency(msg)
 
 
 # -------------------------------------------------------------------

@@ -7,7 +7,7 @@ import numpy as np
 from pandas._libs import index as libindex
 from pandas._libs.tslibs import NaT, iNaT, resolution
 from pandas._libs.tslibs.period import (
-    DIFFERENT_FREQ_INDEX, IncompatibleFrequency, Period)
+    DIFFERENT_FREQ, IncompatibleFrequency, Period)
 from pandas.util._decorators import Appender, Substitution, cache_readonly
 
 from pandas.core.dtypes.common import (
@@ -365,7 +365,10 @@ class PeriodIndex(DatetimeIndexOpsMixin,
             base = frequencies.get_base_alias(freqstr)
             if base == self.freq.rule_code:
                 return other.n
-            msg = DIFFERENT_FREQ_INDEX.format(self.freqstr, other.freqstr)
+
+            msg = DIFFERENT_FREQ.format(cls=type(self).__name__,
+                                        own_freq=self.freqstr,
+                                        other_freq=other.freqstr)
             raise IncompatibleFrequency(msg)
         elif is_integer(other):
             # integer is passed to .shift via
@@ -374,9 +377,10 @@ class PeriodIndex(DatetimeIndexOpsMixin,
             return other
 
         # raise when input doesn't have freq
-        msg = "Input has different freq from {cls}(freq={freqstr})"
-        raise IncompatibleFrequency(msg.format(cls=type(self).__name__,
-                                               freqstr=self.freqstr))
+        msg = DIFFERENT_FREQ.format(cls=type(self).__name__,
+                                    own_freq=self.freqstr,
+                                    other_freq=None)
+        raise IncompatibleFrequency(msg)
 
     # ------------------------------------------------------------------------
     # Rendering Methods
@@ -514,7 +518,9 @@ class PeriodIndex(DatetimeIndexOpsMixin,
     def searchsorted(self, value, side='left', sorter=None):
         if isinstance(value, Period):
             if value.freq != self.freq:
-                msg = DIFFERENT_FREQ_INDEX.format(self.freqstr, value.freqstr)
+                msg = DIFFERENT_FREQ.format(cls=type(self).__name__,
+                                            own_freq=self.freqstr,
+                                            other_freq=value.freqstr)
                 raise IncompatibleFrequency(msg)
             value = value.ordinal
         elif isinstance(value, compat.string_types):
@@ -598,7 +604,9 @@ class PeriodIndex(DatetimeIndexOpsMixin,
         target = ensure_index(target)
 
         if hasattr(target, 'freq') and target.freq != self.freq:
-            msg = DIFFERENT_FREQ_INDEX.format(self.freqstr, target.freqstr)
+            msg = DIFFERENT_FREQ.format(cls=type(self).__name__,
+                                        own_freq=self.freqstr,
+                                        other_freq=target.freqstr)
             raise IncompatibleFrequency(msg)
 
         if isinstance(target, PeriodIndex):
@@ -786,7 +794,9 @@ class PeriodIndex(DatetimeIndexOpsMixin,
             raise ValueError('can only call with other PeriodIndex-ed objects')
 
         if self.freq != other.freq:
-            msg = DIFFERENT_FREQ_INDEX.format(self.freqstr, other.freqstr)
+            msg = DIFFERENT_FREQ.format(cls=type(self).__name__,
+                                        own_freq=self.freqstr,
+                                        other_freq=other.freqstr)
             raise IncompatibleFrequency(msg)
 
     def _wrap_setop_result(self, other, result):
