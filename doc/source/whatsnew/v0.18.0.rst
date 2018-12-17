@@ -5,11 +5,6 @@ v0.18.0 (March 13, 2016)
 
 {{ header }}
 
-.. ipython:: python
-   :suppress:
-
-   from pandas import * # noqa F401, F403
-
 
 This is a major release from 0.17.1 and includes a small number of API changes, several new features,
 enhancements, and performance improvements along with a large number of bug fixes. We recommend that all
@@ -102,7 +97,7 @@ with tab-completion of available methods and properties.
 
 .. code-block:: ipython
 
-   In [9]: r.<TAB>
+   In [9]: r.<TAB>  # noqa E225, E999
    r.A           r.agg         r.apply       r.count       r.exclusions  r.max         r.median      r.name        r.skew        r.sum
    r.B           r.aggregate   r.corr        r.cov         r.kurt        r.mean        r.min         r.quantile    r.std         r.var
 
@@ -1138,7 +1133,7 @@ and setting
 
 Positional setting with ``.ix`` and a float indexer will ADD this value to the index, rather than previously setting the value by position.
 
-.. code-block:: python
+.. code-block:: ipython
 
    In [3]: s2.ix[1.0] = 10
    In [4]: s2

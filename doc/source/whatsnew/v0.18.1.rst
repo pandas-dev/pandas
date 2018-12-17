@@ -53,8 +53,8 @@ Friday before MLK Day
 
 .. ipython:: python
 
-    from datetime import datetime
-    dt = datetime(2014, 1, 17, 15)
+    import datetime
+    dt = datetime.datetime(2014, 1, 17, 15)
 
     dt + bhour_us
 
@@ -183,13 +183,13 @@ Partial string indexing now matches on ``DateTimeIndex`` when part of a ``MultiI
 
 .. ipython:: python
 
-   dft2 = pd.DataFrame(np.random.randn(20, 1),
-                       columns=['A'],
-                       index=pd.MultiIndex.
-                       from_product([pd.date_range('20130101',
-                                                   periods=10,
-                                                   freq='12H'),
-                                     ['a', 'b']]))
+   dft2 = pd.DataFrame(
+       np.random.randn(20, 1),
+       columns=['A'],
+       index=pd.MultiIndex.from_product([pd.date_range('20130101',
+                                                       periods=10,
+                                                       freq='12H'),
+                                         ['a', 'b']]))
    dft2
    dft2.loc['2013-01-05']
 
@@ -451,7 +451,7 @@ Previous behavior:
 
 New Behavior:
 
-.. code-block:: python
+.. code-block:: ipython
 
     # Output is a Series
     In [55]: df.groupby(pd.TimeGrouper(key='date',
@@ -479,7 +479,7 @@ Changes in ``read_csv`` exceptions
 .. ipython:: python
    :suppress:
 
-   from io import StringIO
+   import io
 
 In order to standardize the ``read_csv`` API for both the ``c`` and ``python`` engines, both will now raise an
 ``EmptyDataError``, a subclass of ``ValueError``, in response to empty columns or header (:issue:`12493`, :issue:`12506`)
@@ -488,11 +488,11 @@ Previous behaviour:
 
 .. code-block:: ipython
 
-   In [1]: df = pd.read_csv(StringIO(''), engine='c')
+   In [1]: df = pd.read_csv(io.StringIO(''), engine='c')
    ...
    ValueError: No columns to parse from file
 
-   In [2]: df = pd.read_csv(StringIO(''), engine='python')
+   In [2]: df = pd.read_csv(io.StringIO(''), engine='python')
    ...
    StopIteration
 
@@ -500,11 +500,11 @@ New behaviour:
 
 .. code-block:: ipython
 
-   In [1]: df = pd.read_csv(StringIO(''), engine='c')
+   In [1]: df = pd.read_csv(io.StringIO(''), engine='c')
    ...
    pandas.io.common.EmptyDataError: No columns to parse from file
 
-   In [2]: df = pd.read_csv(StringIO(''), engine='python')
+   In [2]: df = pd.read_csv(io.StringIO(''), engine='python')
    ...
    pandas.io.common.EmptyDataError: No columns to parse from file
 
