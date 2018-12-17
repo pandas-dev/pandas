@@ -145,6 +145,10 @@ class TestTimeSeries(TestData):
         result = ts.shift(2, fill_value=0.0)
         tm.assert_series_equal(result, exp)
 
+        ts = pd.Series([1, 2, 3])
+        res = ts.shift(2, fill_value=0)
+        assert res.dtype == ts.dtype
+
     def test_categorical_shift_fill_value(self):
         ts = pd.Series(['a', 'b', 'c', 'd'], dtype="category")
         res = ts.shift(1, fill_value='a')
