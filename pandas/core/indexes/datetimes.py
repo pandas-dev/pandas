@@ -273,13 +273,6 @@ class DatetimeIndex(DatelikeIndexMixin,
                             .format(cls=cls.__name__, data=repr(data)))
 
         # - Cases checked above all return/raise before reaching here - #
-
-        # This allows to later ensure that the 'copy' parameter is honored:
-        if isinstance(data, Index):
-            ref_to_data = data._data
-        else:
-            ref_to_data = data
-
         if name is None and hasattr(data, 'name'):
             name = data.name
 
@@ -289,8 +282,7 @@ class DatetimeIndex(DatelikeIndexMixin,
 
         subarr = cls._simple_new(dtarr, name=name,
                                  freq=dtarr.freq, tz=dtarr.tz)
-
-        return subarr._deepcopy_if_needed(ref_to_data, copy)
+        return subarr
 
     @classmethod
     def _simple_new(cls, values, name=None, freq=None, tz=None, dtype=None):
