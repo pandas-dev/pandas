@@ -73,6 +73,25 @@ as ``.values``).
    ser.array
    ser.to_numpy()
 
+:meth:`~Series.to_numpy` gives some control over the ``dtype`` of the resulting :class:`ndarray`,
+which :attr:`~Series.values` couldn't provide. For example, consider datetimes with timezones.
+NumPy doesn't have a dtype to represent datetimes with timezones, so there are two possibly
+useful representations:
+
+1. An object-dtype :class:`ndarray` with :class:`Timestamp` objects, each with the correct ``tz``
+2. A ``datetime64[ns]`` -dtype :class:`ndarray`, where the values have been converted to UTC and the timezone discarded
+
+Timezones may be preserved with ``dtype=object``
+
+.. ipython:: python
+
+   ser = pd.Series(pd.date_range('2000', periods=2, tz="CET"))
+   ser.to_numpy(dtype=object)
+
+Or thrown away with ``dtype='datetime64[ns]'``
+
+   ser.to_numpy(dtype="datetime64[ns]")
+
 We haven't removed or deprecated :attr:`Series.values` or :attr:`DataFrame.values`, but we
 recommend and using ``.array`` or ``.to_numpy()`` instead.
 
