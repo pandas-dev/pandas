@@ -16,7 +16,7 @@ from pandas.compat import lrange
 
 from pandas.core.dtypes.common import (
     is_datetime64_ns_dtype, is_float, is_float_dtype, is_integer,
-    is_integer_dtype, is_nested_list_like, is_period_arraylike)
+    is_integer_dtype, is_nested_list_like)
 from pandas.core.dtypes.generic import ABCSeries
 
 import pandas.core.common as com
@@ -246,13 +246,7 @@ class PeriodConverter(dates.DateConverter):
             return values.asfreq(axis.freq)._ndarray_values
         if isinstance(values, Index):
             return values.map(lambda x: get_datevalue(x, axis.freq))
-        if is_period_arraylike(values):
-            # TODO: I don't understand what case is_period_arryalike
-            # is supposed to be handling. PeriodIndex has already
-            # been taken care of. I suspect it only handles Series[period]
-            # but that's likely not passed by matplotlib
-            return PeriodIndex(values, freq=axis.freq)._ndarray_values
-        elif lib.infer_dtype(values) == 'period':
+        if lib.infer_dtype(values) == 'period':
             # https://github.com/pandas-dev/pandas/issues/24304
             # convert ndarray[period] -> PeriodIndex
             return PeriodIndex(values, freq=axis.freq)._ndarray_values
