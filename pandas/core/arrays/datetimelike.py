@@ -519,10 +519,6 @@ class DatetimeLikeArrayMixin(AttributesMixin,
         # I don't know if mypy can do that, possibly with Generics.
         # https://mypy.readthedocs.io/en/latest/generics.html
 
-        # n.b. This is moved from PeriodArray with the following changes
-        # 1. changed dedicated ctor (period_array) to _from_sequence
-        # 2. Changed freq checking to use `_check_compatible_with`
-        # 3. Handle `value=iNaT` (may be able to revert. Check internals.)
         if is_list_like(value):
             is_slice = isinstance(key, slice)
             if (not is_slice
@@ -1430,7 +1426,7 @@ class DatetimeLikeArrayMixin(AttributesMixin,
         if not len(values):
             # short-circut for empty max / min
             return NaT
-        # Do not pass mask, since it's maybe not the right shape.
+
         result = nanops.nanmax(values, skipna=skipna)
         # Don't have to worry about NA `result`, since no NA went in.
         return self._box_func(result)

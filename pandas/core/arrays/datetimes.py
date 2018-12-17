@@ -129,10 +129,8 @@ def _dt_array_cmp(cls, op):
                 return ops.invalid_comparison(self, other, op)
 
             if is_object_dtype(other):
-                # messy... Previously, DatetimeArray.astype(object) -> Index
-                # now it's an ndarray. op[ndarray, ndarray] doesn't
-                # doesn't raise when comparing tz and non-tz (just returns
-                # False.
+                # We use ops._comp_method_OBJECT_ARRAY to ensure that
+                # we raise when comparing tz and non-tz arrays
                 with np.errstate(all='ignore'):
                     result = ops._comp_method_OBJECT_ARRAY(op,
                                                            self.astype(object),
@@ -194,6 +192,7 @@ class DatetimeArrayMixin(dtl.DatetimeLikeArrayMixin,
         Note that the only NumPy dtype allowed is 'datetime64[ns]'.
     freq : str or Offset, optional
     copy : bool, default False
+        Whether to copy the underlying array of values.
     """
     _typ = "datetimearray"
     _scalar_type = Timestamp
@@ -520,9 +519,6 @@ class DatetimeArrayMixin(dtl.DatetimeLikeArrayMixin,
     # Array-Like / EA-Interface Methods
 
     def __array__(self, dtype=None):
-        # TODO(datetime-tz __array__): push to parent
-        # If deprecating behavior for datetime-tz, we'll need to handle that
-        # specially.
         if is_object_dtype(dtype):
             return np.array(list(self), dtype=object)
         elif is_int64_dtype(dtype):
