@@ -16,9 +16,12 @@ conda update -q conda
 # add the pandas channel to take priority
 # to add extra packages
 echo "[add channels]"
+conda config --add channels conda-canary
 conda config --add channels pandas || exit 1
 conda config --remove channels defaults || exit 1
 conda config --add channels defaults || exit 1
+conda update conda
+
 
 # Useful for debugging any issues with conda
 conda info -a || exit 1

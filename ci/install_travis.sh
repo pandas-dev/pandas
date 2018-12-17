@@ -48,7 +48,8 @@ echo
 echo "[update conda]"
 conda config --set ssl_verify false || exit 1
 conda config --set quiet true --set always_yes true --set changeps1 false || exit 1
-conda update -q conda
+conda config --add channels conda-canary
+conda update conda
 
 # Useful for debugging any issues with conda
 conda info -a || exit 1
