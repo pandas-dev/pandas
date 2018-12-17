@@ -706,6 +706,8 @@ class SparseArray(PandasObject, ExtensionArray, ExtensionOpsMixin):
 
     def __setitem__(self, key, value):
         # I suppose we could allow setting of non-fill_value elements.
+        # TODO(SparseArray.__setitem__): remove special cases in
+        # ExtensionBlock.where
         msg = "SparseArray does not support item assignment via setitem"
         raise TypeError(msg)
 
@@ -889,7 +891,7 @@ class SparseArray(PandasObject, ExtensionArray, ExtensionOpsMixin):
 
     def shift(self, periods=1):
 
-        if periods == 0:
+        if not len(self) or periods == 0:
             return self.copy()
 
         subtype = np.result_type(np.nan, self.dtype.subtype)
@@ -900,8 +902,11 @@ class SparseArray(PandasObject, ExtensionArray, ExtensionOpsMixin):
         else:
             arr = self
 
-        empty = self._from_sequence([self.dtype.na_value] * abs(periods),
-                                    dtype=arr.dtype)
+        empty = self._from_sequence(
+            [self.dtype.na_value] * min(abs(periods), len(self)),
+            dtype=arr.dtype
+        )
+
         if periods > 0:
             a = empty
             b = arr[:-periods]

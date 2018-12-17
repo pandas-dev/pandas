@@ -782,6 +782,22 @@ def ensure_clean_dir():
             pass
 
 
+@contextmanager
+def ensure_safe_environment_variables():
+    """
+    Get a context manager to safely set environment variables
+
+    All changes will be undone on close, hence environment variables set
+    within this contextmanager will neither persist nor change global state.
+    """
+    saved_environ = dict(os.environ)
+    try:
+        yield
+    finally:
+        os.environ.clear()
+        os.environ.update(saved_environ)
+
+
 # -----------------------------------------------------------------------------
 # Comparators
 
@@ -1340,11 +1356,11 @@ def assert_series_equal(left, right, check_dtype=True,
             assert_numpy_array_equal(left.get_values(), right.get_values(),
                                      check_dtype=check_dtype)
     elif is_interval_dtype(left) or is_interval_dtype(right):
-        assert_interval_array_equal(left.values, right.values)
+        assert_interval_array_equal(left.array, right.array)
 
     elif (is_extension_array_dtype(left) and not is_categorical_dtype(left) and
           is_extension_array_dtype(right) and not is_categorical_dtype(right)):
-        return assert_extension_array_equal(left.values, right.values)
+        return assert_extension_array_equal(left.array, right.array)
 
     else:
         _testing.assert_almost_equal(left.get_values(), right.get_values(),
@@ -1661,9 +1677,9 @@ def to_array(obj):
     if is_period_dtype(obj):
         return period_array(obj)
     elif is_datetime64_dtype(obj) or is_datetime64tz_dtype(obj):
-        return DatetimeArray(obj)
+        return DatetimeArray._from_sequence(obj)
     elif is_timedelta64_dtype(obj):
-        return TimedeltaArray(obj)
+        return TimedeltaArray._from_sequence(obj)
     else:
         return np.array(obj)
 

@@ -273,6 +273,16 @@ class Categorical(ExtensionArray, PandasObject):
         If an explicit ``ordered=True`` is given but no `categories` and the
         `values` are not sortable.
 
+    See Also
+    --------
+    pandas.api.types.CategoricalDtype : Type for categorical data.
+    CategoricalIndex : An Index with an underlying ``Categorical``.
+
+    Notes
+    -----
+    See the `user guide
+    <http://pandas.pydata.org/pandas-docs/stable/categorical.html>`_ for more.
+
     Examples
     --------
     >>> pd.Categorical([1, 2, 3, 1, 2, 3])
@@ -293,23 +303,14 @@ class Categorical(ExtensionArray, PandasObject):
     Categories (3, object): [c < b < a]
     >>> c.min()
     'c'
-
-    Notes
-    -----
-    See the `user guide
-    <http://pandas.pydata.org/pandas-docs/stable/categorical.html>`_ for more.
-
-    See Also
-    --------
-    pandas.api.types.CategoricalDtype : Type for categorical data.
-    CategoricalIndex : An Index with an underlying ``Categorical``.
     """
 
     # For comparisons, so that numpy uses our implementation if the compare
     # ops, which raise
     __array_priority__ = 1000
     _dtype = CategoricalDtype(ordered=False)
-    _deprecations = frozenset(['labels'])
+    # tolist is not actually deprecated, just suppressed in the __dir__
+    _deprecations = frozenset(['labels', 'tolist'])
     _typ = 'categorical'
 
     def __init__(self, values, categories=None, ordered=None, dtype=None,
@@ -477,7 +478,7 @@ class Categorical(ExtensionArray, PandasObject):
     @property
     def ordered(self):
         """
-        Whether the categories have an ordered relationship
+        Whether the categories have an ordered relationship.
         """
         return self.dtype.ordered
 
@@ -566,6 +567,8 @@ class Categorical(ExtensionArray, PandasObject):
         (for Timestamp/Timedelta/Interval/Period)
         """
         return list(self)
+
+    to_list = tolist
 
     @property
     def base(self):
@@ -782,7 +785,7 @@ class Categorical(ExtensionArray, PandasObject):
 
     def as_ordered(self, inplace=False):
         """
-        Sets the Categorical to be ordered
+        Set the Categorical to be ordered.
 
         Parameters
         ----------
@@ -795,7 +798,7 @@ class Categorical(ExtensionArray, PandasObject):
 
     def as_unordered(self, inplace=False):
         """
-        Sets the Categorical to be unordered
+        Set the Categorical to be unordered.
 
         Parameters
         ----------
@@ -827,11 +830,6 @@ class Categorical(ExtensionArray, PandasObject):
         dtypes on python3, which does not considers a S1 string equal to a
         single char python string.
 
-        Raises
-        ------
-        ValueError
-            If new_categories does not validate as categories
-
         Parameters
         ----------
         new_categories : Index-like
@@ -849,6 +847,11 @@ class Categorical(ExtensionArray, PandasObject):
         Returns
         -------
         cat : Categorical with reordered categories or None if inplace.
+
+        Raises
+        ------
+        ValueError
+            If new_categories does not validate as categories
 
         See Also
         --------
@@ -881,12 +884,6 @@ class Categorical(ExtensionArray, PandasObject):
     def rename_categories(self, new_categories, inplace=False):
         """
         Renames categories.
-
-        Raises
-        ------
-        ValueError
-            If new categories are list-like and do not have the same number of
-            items than the current categories or do not validate as categories
 
         Parameters
         ----------
@@ -921,6 +918,12 @@ class Categorical(ExtensionArray, PandasObject):
         cat : Categorical or None
            With ``inplace=False``, the new categorical is returned.
            With ``inplace=True``, there is no return value.
+
+        Raises
+        ------
+        ValueError
+            If new categories are list-like and do not have the same number of
+            items than the current categories or do not validate as categories
 
         See Also
         --------
@@ -979,12 +982,6 @@ class Categorical(ExtensionArray, PandasObject):
         `new_categories` need to include all old categories and no new category
         items.
 
-        Raises
-        ------
-        ValueError
-            If the new categories do not contain all old category items or any
-            new ones
-
         Parameters
         ----------
         new_categories : Index-like
@@ -999,6 +996,12 @@ class Categorical(ExtensionArray, PandasObject):
         Returns
         -------
         cat : Categorical with reordered categories or None if inplace.
+
+        Raises
+        ------
+        ValueError
+            If the new categories do not contain all old category items or any
+            new ones
 
         See Also
         --------
@@ -1022,12 +1025,6 @@ class Categorical(ExtensionArray, PandasObject):
         `new_categories` will be included at the last/highest place in the
         categories and will be unused directly after this call.
 
-        Raises
-        ------
-        ValueError
-            If the new categories include old categories or do not validate as
-            categories
-
         Parameters
         ----------
         new_categories : category or list-like of category
@@ -1039,6 +1036,12 @@ class Categorical(ExtensionArray, PandasObject):
         Returns
         -------
         cat : Categorical with new categories added or None if inplace.
+
+        Raises
+        ------
+        ValueError
+            If the new categories include old categories or do not validate as
+            categories
 
         See Also
         --------
@@ -1072,11 +1075,6 @@ class Categorical(ExtensionArray, PandasObject):
         `removals` must be included in the old categories. Values which were in
         the removed categories will be set to NaN
 
-        Raises
-        ------
-        ValueError
-            If the removals are not contained in the categories
-
         Parameters
         ----------
         removals : category or list of categories
@@ -1088,6 +1086,11 @@ class Categorical(ExtensionArray, PandasObject):
         Returns
         -------
         cat : Categorical with removed categories or None if inplace.
+
+        Raises
+        ------
+        ValueError
+            If the removals are not contained in the categories
 
         See Also
         --------
@@ -2078,11 +2081,21 @@ class Categorical(ExtensionArray, PandasObject):
             `Categorical` does not have the same categories
         """
 
+        if isinstance(value, (ABCIndexClass, ABCSeries)):
+            value = value.array
+
         # require identical categories set
         if isinstance(value, Categorical):
-            if not value.categories.equals(self.categories):
+            if not is_dtype_equal(self, value):
                 raise ValueError("Cannot set a Categorical with another, "
                                  "without identical categories")
+            if not self.categories.equals(value.categories):
+                new_codes = _recode_for_categories(
+                    value.codes, value.categories, self.categories
+                )
+                value = Categorical.from_codes(new_codes,
+                                               categories=self.categories,
+                                               ordered=self.ordered)
 
         rvalue = value if is_list_like(value) else [value]
 

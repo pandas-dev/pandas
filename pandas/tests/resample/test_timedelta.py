@@ -1,37 +1,13 @@
-# pylint: disable=E1101
-
 import numpy as np
-import pytest
 
 import pandas as pd
-from pandas import DataFrame, Series
+from pandas import DataFrame
 from pandas.core.indexes.timedeltas import timedelta_range
-from pandas.tests.resample.test_base import Base
 import pandas.util.testing as tm
 from pandas.util.testing import assert_frame_equal
 
 
-class TestTimedeltaIndex(Base):
-    _index_factory = lambda x: timedelta_range
-
-    @pytest.fixture
-    def _index_start(self):
-        return '1 day'
-
-    @pytest.fixture
-    def _index_end(self):
-        return '10 day'
-
-    @pytest.fixture
-    def _series_name(self):
-        return 'tdi'
-
-    def create_series(self):
-        i = timedelta_range('1 day',
-                            '10 day', freq='D')
-
-        return Series(np.arange(len(i)), index=i, name='tdi')
-
+class TestTimedeltaIndex(object):
     def test_asfreq_bug(self):
         import datetime as dt
         df = DataFrame(data=[1, 3],

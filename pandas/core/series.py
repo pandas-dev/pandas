@@ -134,9 +134,10 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
     """
     _metadata = ['name']
     _accessors = {'dt', 'cat', 'str', 'sparse'}
+    # tolist is not actually deprecated, just suppressed in the __dir__
     _deprecations = generic.NDFrame._deprecations | frozenset(
         ['asobject', 'reshape', 'get_value', 'set_value',
-         'from_csv', 'valid'])
+         'from_csv', 'valid', 'tolist'])
 
     # Override cache_readonly bc Series is mutable
     hasnans = property(base.IndexOpsMixin.hasnans.func,
@@ -542,6 +543,10 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         but it will always be a one-item tuple because series only have
         one dimension.
 
+        See Also
+        --------
+        numpy.nonzero
+
         Examples
         --------
         >>> s = pd.Series([0, 3, 0, 4])
@@ -560,10 +565,6 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         b    3
         d    4
         dtype: int64
-
-        See Also
-        --------
-        numpy.nonzero
         """
         return self._values.nonzero()
 
@@ -1082,11 +1083,11 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         """
         Quickly set single value at passed label.
 
-        If label is not contained, a new object is created with the label
-        placed at the end of the result index.
-
         .. deprecated:: 0.21.0
             Please use .at[] or .iat[] accessors.
+
+        If label is not contained, a new object is created with the label
+        placed at the end of the result index.
 
         Parameters
         ----------
@@ -1646,6 +1647,16 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
               occurrence.
             - ``False`` : Mark all duplicates as ``True``.
 
+        Returns
+        -------
+        pandas.core.series.Series
+
+        See Also
+        --------
+        Index.duplicated : Equivalent method on pandas.Index.
+        DataFrame.duplicated : Equivalent method on pandas.DataFrame.
+        Series.drop_duplicates : Remove duplicate values from Series.
+
         Examples
         --------
         By default, for each set of duplicated values, the first occurrence is
@@ -1690,16 +1701,6 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         3    False
         4     True
         dtype: bool
-
-        Returns
-        -------
-        pandas.core.series.Series
-
-        See Also
-        --------
-        Index.duplicated : Equivalent method on pandas.Index.
-        DataFrame.duplicated : Equivalent method on pandas.DataFrame.
-        Series.drop_duplicates : Remove duplicate values from Series.
         """
         return super(Series, self).duplicated(keep=keep)
 
@@ -1731,12 +1732,6 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         ValueError
             If the Series is empty.
 
-        Notes
-        -----
-        This method is the Series version of ``ndarray.argmin``. This method
-        returns the label of the minimum, while ``ndarray.argmin`` returns
-        the position. To get the position, use ``series.values.argmin()``.
-
         See Also
         --------
         numpy.argmin : Return indices of the minimum values
@@ -1745,6 +1740,12 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
             over requested axis.
         Series.idxmax : Return index *label* of the first occurrence
             of maximum of values.
+
+        Notes
+        -----
+        This method is the Series version of ``ndarray.argmin``. This method
+        returns the label of the minimum, while ``ndarray.argmin`` returns
+        the position. To get the position, use ``series.values.argmin()``.
 
         Examples
         --------
@@ -1800,12 +1801,6 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         ValueError
             If the Series is empty.
 
-        Notes
-        -----
-        This method is the Series version of ``ndarray.argmax``. This method
-        returns the label of the maximum, while ``ndarray.argmax`` returns
-        the position. To get the position, use ``series.values.argmax()``.
-
         See Also
         --------
         numpy.argmax : Return indices of the maximum values
@@ -1814,6 +1809,12 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
             over requested axis.
         Series.idxmin : Return index *label* of the first occurrence
             of minimum of values.
+
+        Notes
+        -----
+        This method is the Series version of ``ndarray.argmax``. This method
+        returns the label of the maximum, while ``ndarray.argmax`` returns
+        the position. To get the position, use ``series.values.argmax()``.
 
         Examples
         --------
@@ -1917,6 +1918,11 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
             if ``q`` is an array, a Series will be returned where the
             index is ``q`` and the values are the quantiles.
 
+        See Also
+        --------
+        core.window.Rolling.quantile
+        numpy.percentile
+
         Examples
         --------
         >>> s = pd.Series([1, 2, 3, 4])
@@ -1927,11 +1933,6 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         0.50    2.50
         0.75    3.25
         dtype: float64
-
-        See Also
-        --------
-        core.window.Rolling.quantile
-        numpy.percentile
         """
 
         self._check_percentile(q)
@@ -2235,21 +2236,21 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         verify_integrity : boolean, default False
             If True, raise Exception on creating index with duplicates
 
-        Notes
-        -----
-        Iteratively appending to a Series can be more computationally intensive
-        than a single concatenate. A better solution is to append values to a
-        list and then concatenate the list with the original Series all at
-        once.
+        Returns
+        -------
+        appended : Series
 
         See Also
         --------
         concat : General function to concatenate DataFrame, Series
             or Panel objects.
 
-        Returns
-        -------
-        appended : Series
+        Notes
+        -----
+        Iteratively appending to a Series can be more computationally intensive
+        than a single concatenate. A better solution is to append values to a
+        list and then concatenate the list with the original Series all at
+        once.
 
         Examples
         --------
@@ -2922,16 +2923,16 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         Series
             The `n` largest values in the Series, sorted in decreasing order.
 
-        Notes
-        -----
-        Faster than ``.sort_values(ascending=False).head(n)`` for small `n`
-        relative to the size of the ``Series`` object.
-
         See Also
         --------
         Series.nsmallest: Get the `n` smallest elements.
         Series.sort_values: Sort Series by values.
         Series.head: Return the first `n` rows.
+
+        Notes
+        -----
+        Faster than ``.sort_values(ascending=False).head(n)`` for small `n`
+        relative to the size of the ``Series`` object.
 
         Examples
         --------
@@ -3018,16 +3019,16 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         Series
             The `n` smallest values in the Series, sorted in increasing order.
 
-        Notes
-        -----
-        Faster than ``.sort_values().head(n)`` for small `n` relative to
-        the size of the ``Series`` object.
-
         See Also
         --------
         Series.nlargest: Get the `n` largest elements.
         Series.sort_values: Sort Series by values.
         Series.head: Return the first `n` rows.
+
+        Notes
+        -----
+        Faster than ``.sort_values().head(n)`` for small `n` relative to
+        the size of the ``Series`` object.
 
         Examples
         --------
@@ -3149,6 +3150,10 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
             .. versionadded:: 0.18.0
 
+        Returns
+        -------
+        unstacked : DataFrame
+
         Examples
         --------
         >>> s = pd.Series([1, 2, 3, 4],
@@ -3169,10 +3174,6 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
            one  two
         a    1    3
         b    2    4
-
-        Returns
-        -------
-        unstacked : DataFrame
         """
         from pandas.core.reshape.reshape import unstack
         return unstack(self, level, fill_value)
@@ -3275,6 +3276,12 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         return self
 
     _agg_doc = dedent("""
+    See Also
+    --------
+    Series.apply : Invoke function on a Series.
+    Series.transform : Transform function producing
+        a Series with like indexes.
+
     Examples
     --------
 
@@ -3293,12 +3300,6 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
     min   1
     max   4
     dtype: int64
-
-    See Also
-    --------
-    Series.apply : Invoke function on a Series.
-    Series.transform : Transform function producing
-        a Series with like indexes.
     """)
 
     @Appender(_agg_doc)
@@ -3637,17 +3638,17 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         -------
         dropped : pandas.Series
 
+        Raises
+        ------
+        KeyError
+            If none of the labels are found in the index.
+
         See Also
         --------
         Series.reindex : Return only specified index labels of Series.
         Series.dropna : Return series without null values.
         Series.drop_duplicates : Return Series with duplicate values removed.
         DataFrame.drop : Drop specified labels from rows or columns.
-
-        Raises
-        ------
-        KeyError
-            If none of the labels are found in the index.
 
         Examples
         --------
@@ -3893,14 +3894,14 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         Series
             Each element will be a boolean.
 
-        Notes
-        -----
-        This function is equivalent to ``(left <= ser) & (ser <= right)``
-
         See Also
         --------
         Series.gt : Greater than of series and other.
         Series.lt : Less than of series and other.
+
+        Notes
+        -----
+        This function is equivalent to ``(left <= ser) & (ser <= right)``
 
         Examples
         --------
@@ -3991,13 +3992,13 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
             datetime format based on the first datetime string. If the format
             can be inferred, there often will be a large parsing speed-up.
 
-        See Also
-        --------
-        read_csv
-
         Returns
         -------
         y : Series
+
+        See Also
+        --------
+        read_csv
         """
 
         # We're calling `DataFrame.from_csv` in the implementation,
