@@ -113,6 +113,7 @@ HDFStore: PyTables (HDF5)
    HDFStore.select
    HDFStore.info
    HDFStore.keys
+   HDFStore.groups
    HDFStore.walk
 
 Feather
@@ -610,6 +611,16 @@ These can be accessed like ``Series.dt.<property>``.
    Series.dt.ceil
    Series.dt.month_name
    Series.dt.day_name
+
+**Period Properties**
+
+.. autosummary::
+   :toctree: generated/
+   :template: autosummary/accessor_attribute.rst
+
+   Series.dt.qyear
+   Series.dt.start_time
+   Series.dt.end_time
 
 **Timedelta Properties**
 
@@ -1648,7 +1659,14 @@ Categorical Components
    CategoricalIndex.set_categories
    CategoricalIndex.as_ordered
    CategoricalIndex.as_unordered
+
+Modifying and Computations
+~~~~~~~~~~~~~~~~~~~~~~~~~~
+.. autosummary::
+   :toctree: generated/
+
    CategoricalIndex.map
+   CategoricalIndex.equals
 
 .. _api.intervalindex:
 
@@ -1741,7 +1759,6 @@ MultiIndex Components
    MultiIndex.swaplevel
    MultiIndex.reorder_levels
    MultiIndex.remove_unused_levels
-   MultiIndex.unique
 
 MultiIndex Selecting
 ~~~~~~~~~~~~~~~~~~~~
@@ -1750,6 +1767,7 @@ MultiIndex Selecting
    :toctree: generated/
 
    MultiIndex.get_loc
+   MultiIndex.get_loc_level
    MultiIndex.get_indexer
    MultiIndex.get_level_values
 
@@ -2292,6 +2310,7 @@ Function application
    :toctree: generated/
 
    GroupBy.apply
+   GroupBy.agg
    GroupBy.aggregate
    GroupBy.transform
    GroupBy.pipe
@@ -2336,7 +2355,6 @@ application to columns of a specific data type.
 .. autosummary::
    :toctree: generated/
 
-   DataFrameGroupBy.agg
    DataFrameGroupBy.all
    DataFrameGroupBy.any
    DataFrameGroupBy.bfill
