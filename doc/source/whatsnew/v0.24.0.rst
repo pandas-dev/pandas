@@ -352,8 +352,8 @@ Other Enhancements
 - :func:`to_timedelta` now supports iso-formated timedelta strings (:issue:`21877`)
 - :class:`Series` and :class:`DataFrame` now support :class:`Iterable` in constructor (:issue:`2193`)
 - :class:`DatetimeIndex` has gained the :attr:`DatetimeIndex.timetz` attribute. This returns the local time with timezone information. (:issue:`21358`)
-- :meth:`Timestamp.round`, :meth:`Timestamp.ceil`, and meth:`Timestamp.floor` for :class:`DatetimeIndex` and :class:`Timestamp` now support an ``ambiguous`` argument for handling datetimes that are rounded to ambiguous times (:issue:`18946`)
-- :meth:`Timestamp.round`, :meth:`Timestamp.ceil`, and meth:`Timestamp.floor` for :class:`DatetimeIndex` and :class:`Timestamp` now support a ``nonexistent`` argument for handling datetimes that are rounded to nonexistent times. See :ref:`timeseries.timezone_nonexistent` (:issue:`22647`)
+- :meth:`Timestamp.round`, :meth:`Timestamp.ceil`, and :meth:`Timestamp.floor` for :class:`DatetimeIndex` and :class:`Timestamp` now support an ``ambiguous`` argument for handling datetimes that are rounded to ambiguous times (:issue:`18946`)
+- :meth:`Timestamp.round`, :meth:`Timestamp.ceil`, and :meth:`Timestamp.floor` for :class:`DatetimeIndex` and :class:`Timestamp` now support a ``nonexistent`` argument for handling datetimes that are rounded to nonexistent times. See :ref:`timeseries.timezone_nonexistent` (:issue:`22647`)
 - :class:`pandas.core.resample.Resampler` now is iterable like :class:`pandas.core.groupby.GroupBy` (:issue:`15314`).
 - :meth:`Series.resample` and :meth:`DataFrame.resample` have gained the :meth:`pandas.core.resample.Resampler.quantile` (:issue:`15023`).
 - :meth:`DataFrame.resample` and :meth:`Series.resample` with a :class:`PeriodIndex` will now respect the ``base`` argument in the same fashion as with a :class:`DatetimeIndex`. (:issue:`23882`)
@@ -1603,7 +1603,7 @@ Groupby/Resample/Rolling
 - Bug in :meth:`pandas.core.groupby.GroupBy.transform` which caused missing values when the input function can accept a :class:`DataFrame` but renames it (:issue:`23455`).
 - Bug in :func:`pandas.core.groupby.GroupBy.nth` where column order was not always preserved (:issue:`20760`)
 - Bug in :meth:`pandas.core.groupby.GroupBy.rank` with ``method='dense'`` and ``pct=True`` when a group has only one member would raise a ``ZeroDivisionError`` (:issue:`23666`).
-- Calling :meth:`pancas.core.groupby.GroupBy.rank` with empty groups and ``pct=True`` was raising a ``ZeroDivisionError`` (:issue:`22519`)
+- Calling :meth:`pandas.core.groupby.GroupBy.rank` with empty groups and ``pct=True`` was raising a ``ZeroDivisionError`` (:issue:`22519`)
 - Bug in :meth:`DataFrame.resample` when resampling ``NaT`` in ``TimeDeltaIndex`` (:issue:`13223`).
 
 Reshaping
