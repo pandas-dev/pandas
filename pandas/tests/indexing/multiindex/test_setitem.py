@@ -132,10 +132,8 @@ class TestMultiIndexSetItem(object):
         tm.assert_frame_equal(df.loc[['bar']], expected)
 
         # raise because these have differing levels
-        def f():
+        with pytest.raises(TypeError):
             df.loc['bar'] *= 2
-
-        pytest.raises(TypeError, f)
 
         # from SO
         # http://stackoverflow.com/questions/24572040/pandas-access-the-level-of-multiindex-for-inplace-operation
@@ -195,17 +193,13 @@ class TestMultiIndexSetItem(object):
             tm.assert_series_equal(df.ix[4, 'c'], exp)
 
         # invalid assignments
-        def f():
+        with pytest.raises(ValueError):
             with catch_warnings(record=True):
                 df.ix[4, 'c'] = [0, 1, 2, 3]
 
-        pytest.raises(ValueError, f)
-
-        def f():
+        with pytest.raises(ValueError):
             with catch_warnings(record=True):
                 df.ix[4, 'c'] = [0]
-
-        pytest.raises(ValueError, f)
 
         # groupby example
         NUM_ROWS = 100
