@@ -242,15 +242,15 @@ class PeriodConverter(dates.DateConverter):
         if (isinstance(values, valid_types) or is_integer(values) or
                 is_float(values)):
             return get_datevalue(values, axis.freq)
-        if isinstance(values, PeriodIndex):
+        elif isinstance(values, PeriodIndex):
             return values.asfreq(axis.freq)._ndarray_values
-        if isinstance(values, Index):
+        elif isinstance(values, Index):
             return values.map(lambda x: get_datevalue(x, axis.freq))
-        if lib.infer_dtype(values) == 'period':
+        elif lib.infer_dtype(values) == 'period':
             # https://github.com/pandas-dev/pandas/issues/24304
             # convert ndarray[period] -> PeriodIndex
             return PeriodIndex(values, freq=axis.freq)._ndarray_values
-        if isinstance(values, (list, tuple, np.ndarray, Index)):
+        elif isinstance(values, (list, tuple, np.ndarray, Index)):
             return [get_datevalue(x, axis.freq) for x in values]
         return values
 
