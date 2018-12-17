@@ -1246,13 +1246,15 @@ class DataFrameGroupBy(NDFrameGroupBy):
 
     _block_agg_axis = 1
 
-    _agg_doc = dedent("""
+    _agg_see_also_doc = dedent("""
     See Also
     --------
     pandas.DataFrame.groupby.apply
     pandas.DataFrame.groupby.transform
     pandas.DataFrame.aggregate
+    """)
 
+    _agg_examples_doc = dedent("""
     Examples
     --------
 
@@ -1302,8 +1304,10 @@ class DataFrameGroupBy(NDFrameGroupBy):
     2   3   4  0.704907
     """)
 
-    @Appender(_agg_doc)
-    @Appender(_shared_docs['aggregate'] % dict(
+    @Appender(_shared_docs['aggregate'].format(
+        see_also=_agg_see_also_doc,
+        examples=_agg_examples_doc
+    ) % dict(
         klass='DataFrame',
         versionadded='',
         axis=''))

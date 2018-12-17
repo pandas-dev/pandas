@@ -6037,7 +6037,7 @@ class DataFrame(NDFrame):
         # TODO: _shallow_copy(subset)?
         return subset[key]
 
-    _agg_doc = dedent("""
+    _agg_see_also_doc = dedent("""
     The aggregation operations are always performed over an axis, either the
     index (default) or the column axis. This behavior is different from
     `numpy` aggregation functions (`mean`, `median`, `prod`, `sum`, `std`,
@@ -6057,7 +6057,9 @@ class DataFrame(NDFrame):
     pandas.core.window.Expanding : Perform operations over expanding window.
     pandas.core.window.EWM : Perform operation over exponential weighted
         window.
+    """)
 
+    _agg_examples_doc = dedent("""
     Examples
     --------
     >>> df = pd.DataFrame([[1, 2, 3],
@@ -6091,10 +6093,10 @@ class DataFrame(NDFrame):
     dtype: float64
     """)
 
-    @Appender(_agg_doc)
-    @Appender(_shared_docs['aggregate'] % dict(
-        versionadded='.. versionadded:: 0.20.0',
-        **_shared_doc_kwargs))
+    @Appender(_shared_docs['aggregate'].format(
+        see_also=_agg_see_also_doc,
+        examples=_agg_examples_doc
+    ) % dict(versionadded='.. versionadded:: 0.20.0', **_shared_doc_kwargs))
     def aggregate(self, func, axis=0, *args, **kwargs):
         axis = self._get_axis_number(axis)
 

@@ -1595,12 +1595,14 @@ class Rolling(_Rolling_and_Expanding):
                              "compatible with a datetimelike "
                              "index".format(self.window))
 
-    _agg_doc = dedent("""
+    _agg_see_also_doc = dedent("""
     See Also
     --------
     pandas.Series.rolling
     pandas.DataFrame.rolling
+    """)
 
+    _agg_examples_doc = dedent("""
     Examples
     --------
 
@@ -1645,8 +1647,10 @@ class Rolling(_Rolling_and_Expanding):
     9  0.212668 -1.647453
     """)
 
-    @Appender(_agg_doc)
-    @Appender(_shared_docs['aggregate'] % dict(
+    @Appender(_shared_docs['aggregate'].format(
+        see_also=_agg_see_also_doc,
+        examples=_agg_examples_doc
+    ) % dict(
         versionadded='',
         klass='Series/DataFrame',
         axis=''))
@@ -1883,13 +1887,15 @@ class Expanding(_Rolling_and_Expanding):
         other = self.min_periods or -1
         return max(length, other)
 
-    _agg_doc = dedent("""
+    _agg_see_also_doc = dedent("""
     See Also
     --------
     pandas.DataFrame.expanding.aggregate
     pandas.DataFrame.rolling.aggregate
     pandas.DataFrame.aggregate
+    """)
 
+    _agg_examples_doc = dedent("""
     Examples
     --------
 
@@ -1921,8 +1927,10 @@ class Expanding(_Rolling_and_Expanding):
     9 -0.286980  0.618493 -0.694496
     """)
 
-    @Appender(_agg_doc)
-    @Appender(_shared_docs['aggregate'] % dict(
+    @Appender(_shared_docs['aggregate'].format(
+        see_also=_agg_see_also_doc,
+        examples=_agg_examples_doc
+    ) % dict(
         versionadded='',
         klass='Series/DataFrame',
         axis=''))
