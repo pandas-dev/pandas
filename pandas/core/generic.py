@@ -8841,8 +8841,8 @@ class NDFrame(PandasObject, SelectionMixin):
             Shift direction.
         fill_value : object, optional
             The scalar value to use for newly introduced missing values.
-            the default depends on the dtype of `self`. For numeric data,
-            ``np.nan`` is used. 
+            the default depends on the dtype of `self`. 
+            For numeric data, ``np.nan`` is used. 
             For datetime, timedelta, or period data, etc. :attr:`NaT` is used.
             For extension dtypes, self.dtype.na_value is used.
 
