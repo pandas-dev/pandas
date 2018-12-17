@@ -262,19 +262,19 @@ class TestSparseArray(object):
         exp = SparseArray(np.take(self.arr_data, [-4, -3, -2]))
         tm.assert_sp_array_equal(self.arr.take([-4, -3, -2]), exp)
 
-    def test_shift_fill_value(self):
+    @pytest.mark.parametrize('fill_value', [
+        [0, None, np.nan]
+    ])
+    def test_shift_fill_value(self, fill_value):
         # GH #24128
-        fill_values = [0, None, np.nan]
-        for fill_value in fill_values:
-            print(fill_value)
-            sparse = SparseArray(np.array([1, 0, 0, 3, 0]),
-                                 fill_value=8.0)
-            res = sparse.shift(1, fill_value=fill_value)
-            if fill_value is None:
-                fill_value = res.dtype.na_value
-            exp = SparseArray(np.array([fill_value, 1, 0, 0, 3]),
-                              fill_value=8.0)
-            tm.assert_sp_array_equal(res, exp)
+        sparse = SparseArray(np.array([1, 0, 0, 3, 0]),
+                             fill_value=8.0)
+        res = sparse.shift(1, fill_value=fill_value)
+        if fill_value is None:
+            fill_value = res.dtype.na_value
+        exp = SparseArray(np.array([fill_value, 1, 0, 0, 3]),
+                          fill_value=8.0)
+        tm.assert_sp_array_equal(res, exp)
 
     def test_bad_take(self):
         with pytest.raises(IndexError, match="bounds"):
