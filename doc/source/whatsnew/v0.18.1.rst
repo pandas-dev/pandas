@@ -471,10 +471,6 @@ New Behavior:
 Changes in ``read_csv`` exceptions
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-.. ipython:: python
-   :suppress:
-
-   import io
 
 In order to standardize the ``read_csv`` API for both the ``c`` and ``python`` engines, both will now raise an
 ``EmptyDataError``, a subclass of ``ValueError``, in response to empty columns or header (:issue:`12493`, :issue:`12506`)
@@ -482,12 +478,13 @@ In order to standardize the ``read_csv`` API for both the ``c`` and ``python`` e
 Previous behaviour:
 
 .. code-block:: ipython
+   In [1]: import io
 
-   In [1]: df = pd.read_csv(io.StringIO(''), engine='c')
+   In [2]: df = pd.read_csv(io.StringIO(''), engine='c')
    ...
    ValueError: No columns to parse from file
 
-   In [2]: df = pd.read_csv(io.StringIO(''), engine='python')
+   In [3]: df = pd.read_csv(io.StringIO(''), engine='python')
    ...
    StopIteration
 
