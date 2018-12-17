@@ -20,41 +20,52 @@ from pandas.util.testing import (
     assert_series_equal)
 
 
-@pytest.fixture
-def create_index(_index_factory):
-    def _create_index(*args, **kwargs):
-        """ return the _index_factory created using the args, kwargs """
-        return _index_factory(*args, **kwargs)
-    return _create_index
+@pytest.fixture(params=[date_range, period_range, timedelta_range])
+def resample_fixture(request, date_range_fixture, period_range_fixture,
+                     timedelta_range_fixture):
+    if request.param == date_range:
+        return date_range_fixture
+    if request.param == period_range:
+        return period_range_fixture
+    if request.param == timedelta_range:
+        return timedelta_range_fixture
 
 
-class Base(object):
+class TestBase(object):
     """base class for resampling testing"""
 
+    @pytest.mark.parametrize('obj_type', ['series', 'frame'])
     @pytest.mark.parametrize('freq', ['2D', '1H'])
-    def test_asfreq(self, series_and_frame, freq, create_index):
-        obj = series_and_frame
+    def test_asfreq(self, freq, obj_type, resample_fixture):
+        if resample_fixture._index_factory == period_range:
+            pytest.skip('test overridden in test_period_index.py')
 
+        obj = getattr(resample_fixture, obj_type)
         result = obj.resample(freq).asfreq()
-        new_index = create_index(obj.index[0], obj.index[-1], freq=freq)
+        new_index = resample_fixture.create_index(
+            obj.index[0], obj.index[-1], freq=freq)
         expected = obj.reindex(new_index)
         assert_almost_equal(result, expected)
 
-    def test_asfreq_fill_value(self, create_index, series):
+    def test_asfreq_fill_value(self, resample_fixture):
         # test for fill value during resampling, issue 3715
 
-        s = series
+        if resample_fixture._index_factory == period_range:
+            pytest.skip('test overridden in test_period_index.py')
+
+        s = resample_fixture.series
 
         result = s.resample('1H').asfreq()
-        new_index = create_index(s.index[0], s.index[-1], freq='1H')
+        new_index = resample_fixture.create_index(
+            s.index[0], s.index[-1], freq='1H')
         expected = s.reindex(new_index)
         assert_series_equal(result, expected)
 
         frame = s.to_frame('value')
         frame.iloc[1] = None
         result = frame.resample('1H').asfreq(fill_value=4.0)
-        new_index = create_index(frame.index[0],
-                                 frame.index[-1], freq='1H')
+        new_index = resample_fixture.create_index(frame.index[0],
+                                                  frame.index[-1], freq='1H')
         expected = frame.reindex(new_index, fill_value=4.0)
         assert_frame_equal(result, expected)
 
@@ -107,16 +118,16 @@ class Base(object):
 
         # test size for GH13212 (currently stays as df)
 
-    @pytest.mark.parametrize("index", tm.all_timeseries_index_generator(0))
+    @pytest.mark.parametrize("tm_index", tm.all_timeseries_index_generator(0))
     @pytest.mark.parametrize(
         "dtype",
         [np.float, np.int, np.object, 'datetime64[ns]'])
-    def test_resample_empty_dtypes(self, index, dtype, resample_method):
+    def test_resample_empty_dtypes(self, tm_index, dtype, resample_method):
 
         # Empty series were sometimes causing a segfault (for the functions
         # with Cython bounds-checking disabled) or an IndexError.  We just run
         # them to ensure they no longer do.  (GH #10228)
-        empty_series = Series([], index, dtype)
+        empty_series = Series([], tm_index, dtype)
         try:
             getattr(empty_series.resample('d'), resample_method)()
         except DataError:
@@ -124,14 +135,13 @@ class Base(object):
             # (ex: doing mean with dtype of np.object)
             pass
 
-    def test_resample_loffset_arg_type(self, create_index, series):
+    def test_resample_loffset_arg_type(self, resample_fixture):
         # GH 13218, 15002
-        df = series.to_frame('value')
+        df = resample_fixture.series.to_frame('value')
         expected_means = [df.values[i:i + 2].mean()
                           for i in range(0, len(df.values), 2)]
-        expected_index = create_index(df.index[0],
-                                      periods=len(df.index) / 2,
-                                      freq='2D')
+        expected_index = resample_fixture.create_index(
+            df.index[0], periods=len(df.index) / 2, freq='2D')
 
         # loffset coerces PeriodIndex to DateTimeIndex
         if isinstance(expected_index, PeriodIndex):
@@ -189,49 +199,3 @@ class Base(object):
         result = s.resample(freq).quantile(q)
         expected = s.resample(freq).agg(lambda x: x.quantile(q))
         tm.assert_series_equal(result, expected)
-
-
-class TestDatetimeIndex(Base):
-    @pytest.fixture
-    def _index_factory(self):
-        return date_range
-
-    @pytest.fixture
-    def _series_name(self):
-        return 'dti'
-
-
-class TestPeriodIndex(Base):
-    @pytest.fixture
-    def _index_factory(self):
-        return period_range
-
-    @pytest.fixture
-    def _series_name(self):
-        return 'pi'
-
-    @pytest.mark.skip()
-    def test_asfreq(self):
-        pass
-
-    @pytest.mark.skip()
-    def test_asfreq_fill_value(self):
-        pass
-
-
-class TestTimedeltaIndex(Base):
-    @pytest.fixture
-    def _index_factory(self):
-        return timedelta_range
-
-    @pytest.fixture
-    def _index_start(self):
-        return '1 day'
-
-    @pytest.fixture
-    def _index_end(self):
-        return '10 day'
-
-    @pytest.fixture
-    def _series_name(self):
-        return 'tdi'

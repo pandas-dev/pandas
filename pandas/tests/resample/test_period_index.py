@@ -21,14 +21,9 @@ from pandas.util.testing import (
 import pandas.tseries.offsets as offsets
 
 
-@pytest.fixture()
-def _index_factory():
-    return period_range
-
-
 @pytest.fixture
-def _series_name():
-    return 'pi'
+def resample_fixture(period_range_fixture):
+    return period_range_fixture
 
 
 class TestPeriodIndex(object):

@@ -6,6 +6,7 @@ import pytest
 from pandas import DataFrame, Series
 from pandas.core.indexes.datetimes import date_range
 from pandas.core.indexes.period import period_range
+from pandas.core.indexes.timedeltas import timedelta_range
 
 # The various methods we support
 downsample_methods = ['min', 'max', 'first', 'last', 'sum', 'mean', 'sem',
@@ -55,44 +56,68 @@ def simple_period_range_series():
     return _simple_period_range_series
 
 
-@pytest.fixture
-def _index_start():
-    return datetime(2005, 1, 1)
+class ResampleFixture(object):
+    def __init__(self, _index_factory, _series_name, _index_start=None,
+                 _index_end=None, _index_freq=None):
+        self._index_factory = _index_factory
+        self._series_name = _series_name
+        self._index_start = _index_start or datetime(2005, 1, 1)
+        self._index_end = _index_end or datetime(2005, 1, 10)
+        self._index_freq = _index_freq or 'D'
+
+    @property
+    def index(self):
+        return self._index_factory(
+            self._index_start, self._index_end, freq=self._index_freq)
+
+    @property
+    def _static_values(self):
+        return np.arange(len(self.index))
+
+    @property
+    def series(self):
+        return Series(
+            self._static_values, index=self.index, name=self._series_name)
+
+    @property
+    def frame(self):
+        return DataFrame({'value': self._static_values}, index=self.index)
+
+    def create_index(self, *args, **kwargs):
+        """ return the _index_factory created using the args, kwargs """
+        return self._index_factory(*args, **kwargs)
 
 
 @pytest.fixture
-def _index_end():
-    return datetime(2005, 1, 10)
+def date_range_fixture():
+    return ResampleFixture(date_range, 'dti')
 
 
 @pytest.fixture
-def _index_freq():
-    return 'D'
+def period_range_fixture():
+    return ResampleFixture(period_range, 'pi')
 
 
 @pytest.fixture
-def index(_index_factory, _index_start, _index_end, _index_freq):
-    return _index_factory(_index_start, _index_end, freq=_index_freq)
+def timedelta_range_fixture():
+    return ResampleFixture(timedelta_range, 'tdi', '1 day', '10 day')
 
 
 @pytest.fixture
-def _static_values(index):
-    return np.arange(len(index))
+def index(resample_fixture):
+    return resample_fixture.index
 
 
 @pytest.fixture
-def series(index, _series_name, _static_values):
-    return Series(_static_values, index=index, name=_series_name)
+def series(resample_fixture):
+    return resample_fixture.series
 
 
 @pytest.fixture
-def frame(index, _static_values):
-    return DataFrame({'value': _static_values}, index=index)
+def frame(resample_fixture):
+    return resample_fixture.frame
 
 
-@pytest.fixture(params=[Series, DataFrame])
-def series_and_frame(request, series, frame):
-    if request.param == Series:
-        return series
-    if request.param == DataFrame:
-        return frame
+@pytest.fixture(params=['series', 'frame'])
+def series_and_frame(request, resample_fixture):
+    return getattr(resample_fixture, request.param)
