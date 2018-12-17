@@ -86,20 +86,20 @@ API changes
 
   .. code-block:: ipython
 
-      In [3]: arr = np.array([1, 2, 3, 4])
+     In [3]: arr = np.array([1, 2, 3, 4])
 
-      In [4]: arr2 = np.array([5, 3, 2, 1])
+     In [4]: arr2 = np.array([5, 3, 2, 1])
 
-      In [5]: arr / arr2
-      Out[5]: array([0, 0, 1, 4])
+     In [5]: arr / arr2
+     Out[5]: array([0, 0, 1, 4])
 
-      In [6]: pd.Series(arr) // pd.Series(arr2)
-      Out[6]:
-      0    0
-      1    0
-      2    1
-      3    4
-      dtype: int64
+     In [6]: pd.Series(arr) // pd.Series(arr2)
+     Out[6]:
+     0    0
+     1    0
+     2    1
+     3    4
+     dtype: int64
 
   True Division
 
