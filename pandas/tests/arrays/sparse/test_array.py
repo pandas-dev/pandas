@@ -262,9 +262,7 @@ class TestSparseArray(object):
         exp = SparseArray(np.take(self.arr_data, [-4, -3, -2]))
         tm.assert_sp_array_equal(self.arr.take([-4, -3, -2]), exp)
 
-    @pytest.mark.parametrize('fill_value', [
-        [0, None, np.nan]
-    ])
+    @pytest.mark.parametrize('fill_value', [0, None, np.nan])
     def test_shift_fill_value(self, fill_value):
         # GH #24128
         sparse = SparseArray(np.array([1, 0, 0, 3, 0]),
