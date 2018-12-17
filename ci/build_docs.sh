@@ -25,7 +25,10 @@ if [ "$DOC" ]; then
     echo # Create and send docs #
     echo ########################
 
-    if ["${TRAVIS_PULL_REQUEST}" != "false"]; then
+    echo "Only uploading docs when TRAVIS_PULL_REQUEST is 'false'"
+    echo "TRAVIS_PULL_REQUEST: ${TRAVIS_PULL_REQUEST}"
+
+    if [ "${TRAVIS_PULL_REQUEST}" == "false" ]; then
         cd build/html
         git config --global user.email "pandas-docs-bot@localhost.foo"
         git config --global user.name "pandas-docs-bot"
