@@ -20,7 +20,7 @@ conda config --add channels conda-canary
 conda config --add channels pandas || exit 1
 conda config --remove channels defaults || exit 1
 conda config --add channels defaults || exit 1
-conda install conda=4.5
+conda install conda=4.5.12
 
 
 # Useful for debugging any issues with conda
