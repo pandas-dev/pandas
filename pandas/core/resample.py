@@ -1607,7 +1607,7 @@ def _get_timestamp_range_edges(first, last, offset, closed='left', base=0):
     Adjust the `first` Timestamp to the preceeding Timestamp that resides on
     the provided offset. Adjust the `last` Timestamp to the following
     Timestamp that resides on the provided offset. Input Timestamps that
-    already reside on the offset will be adjusted depeding on the type of
+    already reside on the offset will be adjusted depending on the type of
     offset and the `closed` parameter.
 
     Parameters
@@ -1627,18 +1627,21 @@ def _get_timestamp_range_edges(first, last, offset, closed='left', base=0):
     -------
     A tuple of length 2, containing the adjusted pd.Timestamp objects.
     """
-    if not all(isinstance(obj, pd.Timestamp) for obj in [first, last]):
-        raise TypeError("'first' and 'last' must be instances of type "
-                        "Timestamp")
-
     if isinstance(offset, Tick):
         is_day = isinstance(offset, Day)
         day_nanos = delta_to_nanoseconds(timedelta(1))
 
         # #1165 and #24127
         if (is_day and not offset.nanos % day_nanos) or not is_day:
-            return _adjust_dates_anchored(first, last, offset,
-                                          closed=closed, base=base)
+            first, last = _adjust_dates_anchored(first, last, offset,
+                                                 closed=closed, base=base)
+            if is_day and first.tz is not None:
+                # _adjust_dates_anchored assumes 'D' means 24H, but first/last
+                # might contain a DST transition (23H, 24H, or 25H).
+                # Ensure first/last snap to midnight.
+                first = first.normalize()
+                last = last.normalize()
+            return first, last
 
     else:
         first = first.normalize()

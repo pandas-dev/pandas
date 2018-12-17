@@ -1072,7 +1072,7 @@ class TestDateRange(object):
 
         dr = date_range('2012-11-02', periods=10, tz=tzstr)
         result = dr.hour
-        expected = Index([0, 0, 0, 23, 23, 23, 23, 23, 23, 23])
+        expected = Index([0] * 10)
         tm.assert_index_equal(result, expected)
 
     @pytest.mark.parametrize('tzstr', ['US/Eastern', 'dateutil/US/Eastern'])

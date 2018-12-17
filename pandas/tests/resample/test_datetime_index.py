@@ -1333,7 +1333,7 @@ class TestDatetimeIndex(object):
 
         df_daily = df['10/26/2013':'10/29/2013']
         assert_frame_equal(
-            df_daily.resample("CD").agg({"a": "min", "b": "max", "c": "count"})
+            df_daily.resample("D").agg({"a": "min", "b": "max", "c": "count"})
             [["a", "b", "c"]],
             DataFrame({"a": [1248, 1296, 1346, 1394],
                        "b": [1295, 1345, 1393, 1441],

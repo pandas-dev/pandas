@@ -27,7 +27,7 @@ from pandas.core.arrays import datetimelike as dtl
 import pandas.core.common as com
 
 from pandas.tseries.frequencies import get_period_alias, to_offset
-from pandas.tseries.offsets import Tick, generate_range
+from pandas.tseries.offsets import Day, Tick, generate_range
 
 _midnight = time(0, 0)
 
@@ -285,7 +285,7 @@ class DatetimeArrayMixin(dtl.DatetimeLikeArrayMixin,
         start, end, _normalized = _maybe_normalize_endpoints(start, end,
                                                              normalize)
 
-        tz, _ = _infer_tz_from_endpoints(start, end, tz)
+        tz = _infer_tz_from_endpoints(start, end, tz)
 
         if tz is not None:
             # Localize the start and end arguments
@@ -295,15 +295,12 @@ class DatetimeArrayMixin(dtl.DatetimeLikeArrayMixin,
             end = _maybe_localize_point(
                 end, getattr(end, 'tz', None), end, freq, tz
             )
-        if start and end:
-            # Make sure start and end have the same tz
-            start = _maybe_localize_point(
-                start, start.tz, end.tz, freq, tz
-            )
-            end = _maybe_localize_point(
-                end, end.tz, start.tz, freq, tz
-            )
         if freq is not None:
+            if isinstance(freq, Day):
+                if start is not None:
+                    start = start.tz_localize(None)
+                if end is not None:
+                    end = end.tz_localize(None)
             # TODO: consider re-implementing _cached_range; GH#17914
             index = _generate_regular_range(cls, start, end, periods, freq)
 
@@ -1709,19 +1706,19 @@ def _generate_regular_range(cls, start, end, periods, freq):
     if isinstance(freq, Tick):
         stride = freq.nanos
         if periods is None:
-            b = Timestamp(start).value
+            b = start.value
             # cannot just use e = Timestamp(end) + 1 because arange breaks when
             # stride is too large, see GH10887
-            e = (b + (Timestamp(end).value - b) // stride * stride +
+            e = (b + (end.value - b) // stride * stride +
                  stride // 2 + 1)
             # end.tz == start.tz by this point due to _generate implementation
             tz = start.tz
         elif start is not None:
-            b = Timestamp(start).value
+            b = start.value
             e = _generate_range_overflow_safe(b, periods, stride, side='start')
             tz = start.tz
         elif end is not None:
-            e = Timestamp(end).value + stride
+            e = end.value + stride
             b = _generate_range_overflow_safe(e, periods, stride, side='end')
             tz = end.tz
         else:
@@ -1878,7 +1875,6 @@ def _infer_tz_from_endpoints(start, end, tz):
     Returns
     -------
     tz : tzinfo or None
-    inferred_tz : tzinfo or None
 
     Raises
     ------
@@ -1901,7 +1897,7 @@ def _infer_tz_from_endpoints(start, end, tz):
     elif inferred_tz is not None:
         tz = inferred_tz
 
-    return tz, inferred_tz
+    return tz
 
 
 def _maybe_normalize_endpoints(start, end, normalize):
