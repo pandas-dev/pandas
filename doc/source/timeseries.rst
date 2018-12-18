@@ -1084,7 +1084,7 @@ in the usual way.
     dt + bmth_us
 
     # Define date index with custom offset
-    pd.DatetimeIndex(start='20100101', end='20120101', freq=bmth_us)
+    pd.date_range(start='20100101', end='20120101', freq=bmth_us)
 
 .. note::
 
@@ -1438,8 +1438,8 @@ or ``Timestamp`` objects.
 
 .. ipython:: python
 
-    pd.DatetimeIndex(start='7/1/2012', end='7/10/2012',
-                     freq=pd.offsets.CDay(calendar=cal)).to_pydatetime()
+    pd.date_range(start='7/1/2012', end='7/10/2012',
+                  freq=pd.offsets.CDay(calendar=cal)).to_pydatetime()
     offset = pd.offsets.CustomBusinessDay(calendar=cal)
     datetime.datetime(2012, 5, 25) + offset
     datetime.datetime(2012, 7, 3) + offset
@@ -2300,8 +2300,8 @@ To remove timezone from tz-aware ``DatetimeIndex``, use ``tz_localize(None)`` or
 
 .. ipython:: python
 
-   didx = pd.DatetimeIndex(start='2014-08-01 09:00', freq='H',
-                           periods=10, tz='US/Eastern')
+   didx = pd.date_range(start='2014-08-01 09:00', freq='H',
+                        periods=10, tz='US/Eastern')
    didx
    didx.tz_localize(None)
    didx.tz_convert(None)
@@ -2354,8 +2354,8 @@ constructor as well as ``tz_localize``.
    rng_hourly.tz_localize('US/Eastern', ambiguous=rng_hourly_dst).to_list()
    rng_hourly.tz_localize('US/Eastern', ambiguous='NaT').to_list()
 
-   didx = pd.DatetimeIndex(start='2014-08-01 09:00', freq='H',
-                           periods=10, tz='US/Eastern')
+   didx = pd.date_range(start='2014-08-01 09:00', freq='H',
+                        periods=10, tz='US/Eastern')
    didx
    didx.tz_localize(None)
    didx.tz_convert(None)
