@@ -893,12 +893,9 @@ class SparseArray(PandasObject, ExtensionArray, ExtensionOpsMixin):
             return self.copy()
 
         if fill_value is None:
-            res_type = np.nan
             fill_value = self.dtype.na_value
-        else:
-            res_type = fill_value
 
-        subtype = np.result_type(res_type, self.dtype.subtype)
+        subtype = np.result_type(fill_value, self.dtype.subtype)
 
         if subtype != self.dtype.subtype:
             # just coerce up front
