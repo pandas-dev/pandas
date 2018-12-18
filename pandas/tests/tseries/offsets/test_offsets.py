@@ -23,8 +23,8 @@ from pandas.tseries.holiday import USFederalHolidayCalendar
 import pandas.tseries.offsets as offsets
 from pandas.tseries.offsets import (
     FY5253, BDay, BMonthBegin, BMonthEnd, BQuarterBegin, BQuarterEnd,
-    BusinessHour, BYearBegin, BYearEnd, CBMonthBegin, CBMonthEnd,
-    CDay, CustomBusinessHour, DateOffset, Day, Easter, FY5253Quarter,
+    BusinessHour, BYearBegin, BYearEnd, CBMonthBegin, CBMonthEnd, CDay,
+    CustomBusinessHour, DateOffset, Day, Easter, FY5253Quarter,
     LastWeekOfMonth, MonthBegin, MonthEnd, Nano, QuarterBegin, QuarterEnd,
     SemiMonthBegin, SemiMonthEnd, Tick, Week, WeekOfMonth, YearBegin, YearEnd)
 
