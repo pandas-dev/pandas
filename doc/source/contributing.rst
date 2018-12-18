@@ -138,10 +138,11 @@ platform you're using. Follow the `CPython contributing guide
 compiler installed. You don't need to do any of the ``./configure`` or ``make``
 steps; you only need to install the compiler.
 
-For Windows developers, the following links may be helpful.
+For Windows developers, when using Python 3.5 and later, it is sufficient to
+install `Visual Studio 2017 <https://visualstudio.com/>`_ with the
+**Python development workload** and the **Python native development tools**
+option. Otherwise, the following links may be helpful.
 
-* **TL;DR** (Python 3.5+) install `Visual Studio 2017 <https://visualstudio.com/>`_, select
-  the **Python development workload** and the **Python native development tools** option
 * https://blogs.msdn.microsoft.com/pythonengineering/2017/03/07/python-support-in-vs2017/
 * https://blogs.msdn.microsoft.com/pythonengineering/2016/04/11/unable-to-find-vcvarsall-bat/
 * https://github.com/conda/conda-recipes/wiki/Building-from-Source-on-Windows-32-bit-and-64-bit
