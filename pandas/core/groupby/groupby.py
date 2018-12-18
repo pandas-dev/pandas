@@ -976,6 +976,14 @@ class GroupBy(_GroupBy):
     name : string
         Most users should ignore this
 
+    Returns
+    -------
+    **Attributes**
+    groups : dict
+        {group name -> group labels}
+    len(grouped) : int
+        Number of groups
+
     Notes
     -----
     After grouping, see aggregate, apply, and transform functions. Here are
@@ -1009,14 +1017,6 @@ class GroupBy(_GroupBy):
 
     See the online documentation for full exposition on these topics and much
     more
-
-    Returns
-    -------
-    **Attributes**
-    groups : dict
-        {group name -> group labels}
-    len(grouped) : int
-        Number of groups
     """
     def _bool_agg(self, val_test, skipna):
         """
@@ -2025,11 +2025,10 @@ class GroupBy(_GroupBy):
                                                      fill_method=fill_method,
                                                      limit=limit, freq=freq,
                                                      axis=axis))
-
-        filled = getattr(self, fill_method)(limit=limit).drop(
-            self.grouper.names, axis=1)
-        shifted = filled.shift(periods=periods, freq=freq)
-
+        filled = getattr(self, fill_method)(limit=limit)
+        filled = filled.drop(self.grouper.names, axis=1)
+        fill_grp = filled.groupby(self.grouper.labels)
+        shifted = fill_grp.shift(periods=periods, freq=freq)
         return (filled / shifted) - 1
 
     @Substitution(name='groupby')

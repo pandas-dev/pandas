@@ -1863,7 +1863,9 @@ Writing to a file, with a date index and a date column:
    dfj2['bools'] = True
    dfj2.index = pd.date_range('20130101', periods=5)
    dfj2.to_json('test.json')
-   open('test.json').read()
+
+   with open('test.json') as fh:
+       print(fh.read())
 
 Fallback Behavior
 +++++++++++++++++
@@ -2321,6 +2323,11 @@ indicate missing values and the subsequent read cannot distinguish the intent.
    new_df = pd.read_json('test.json', orient='table')
    print(new_df.index.name)
 
+.. ipython:: python
+   :suppress:
+
+   os.remove('test.json')
+
 .. _Table Schema: https://specs.frictionlessdata.io/json-table-schema/
 
 HTML
@@ -2595,6 +2602,28 @@ table CSS classes. Note that these classes are *appended* to the existing
 .. ipython:: python
 
    print(df.to_html(classes=['awesome_table_class', 'even_more_awesome_class']))
+
+The ``render_links`` argument provides the ability to add hyperlinks to cells
+that contain URLs.
+
+.. versionadded:: 0.24
+
+.. ipython:: python
+
+   url_df = pd.DataFrame({
+       'name': ['Python', 'Pandas'],
+       'url': ['https://www.python.org/', 'http://pandas.pydata.org']})
+   print(url_df.to_html(render_links=True))
+
+.. ipython:: python
+   :suppress:
+
+   write_html(url_df, 'render_links', render_links=True)
+
+HTML:
+
+.. raw:: html
+   :file: _static/render_links.html
 
 Finally, the ``escape`` argument allows you to control whether the
 "<", ">" and "&" characters escaped in the resulting HTML (by default it is
@@ -4743,6 +4772,11 @@ this file into a ``DataFrame``.
 
 Passing ``index=True`` will *always* write the index, even if that's not the
 underlying engine's default behavior.
+
+.. ipython:: python
+   :suppress:
+
+   os.remove('test.parquet')
 
 
 Partitioning Parquet files

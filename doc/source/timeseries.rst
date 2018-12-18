@@ -147,7 +147,7 @@ For example:
 
    pd.Period('2012-05', freq='D')
 
-:class:`Timestamp` and :class:`Period` can serve as an index. Lists of 
+:class:`Timestamp` and :class:`Period` can serve as an index. Lists of
 ``Timestamp`` and ``Period`` are automatically coerced to :class:`DatetimeIndex`
 and :class:`PeriodIndex` respectively.
 
@@ -212,7 +212,7 @@ you can pass the ``dayfirst`` flag:
    can't be parsed with the day being first it will be parsed as if
    ``dayfirst`` were False.
 
-If you pass a single string to ``to_datetime``, it returns a single ``Timestamp``. 
+If you pass a single string to ``to_datetime``, it returns a single ``Timestamp``.
 ``Timestamp`` can also accept string input, but it doesn't accept string parsing
 options like ``dayfirst`` or ``format``, so use ``to_datetime`` if these are required.
 
@@ -247,7 +247,7 @@ This could also potentially speed up the conversion considerably.
 
     pd.to_datetime('12-11-2010 00:00', format='%d-%m-%Y %H:%M')
 
-For more information on the choices available when specifying the ``format`` 
+For more information on the choices available when specifying the ``format``
 option, see the Python `datetime documentation`_.
 
 .. _datetime documentation: https://docs.python.org/3/library/datetime.html#strftime-and-strptime-behavior
@@ -467,7 +467,7 @@ Custom Frequency Ranges
    This functionality was originally exclusive to ``cdate_range``, which is
    deprecated as of version 0.21.0 in favor of ``bdate_range``.  Note that
    ``cdate_range`` only utilizes the ``weekmask`` and ``holidays`` parameters
-   when custom business day, 'C', is passed as the frequency string. Support has 
+   when custom business day, 'C', is passed as the frequency string. Support has
    been expanded with ``bdate_range`` to work with any custom frequency string.
 
 .. versionadded:: 0.21.0
@@ -582,7 +582,7 @@ would include matching times on an included date:
    dft
    dft['2013']
 
-This starts on the very first time in the month, and includes the last date and 
+This starts on the very first time in the month, and includes the last date and
 time for the month:
 
 .. ipython:: python
@@ -656,7 +656,7 @@ A timestamp string with minute resolution (or more accurate), gives a scalar ins
     series_minute['2011-12-31 23:59']
     series_minute['2011-12-31 23:59:00']
 
-If index resolution is second, then the minute-accurate timestamp gives a 
+If index resolution is second, then the minute-accurate timestamp gives a
 ``Series``.
 
 .. ipython:: python
@@ -719,9 +719,9 @@ With no defaults.
 Truncating & Fancy Indexing
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-A :meth:`~DataFrame.truncate` convenience function is provided that is similar 
-to slicing. Note that ``truncate`` assumes a 0 value for any unspecified date 
-component in a ``DatetimeIndex`` in contrast to slicing which returns any 
+A :meth:`~DataFrame.truncate` convenience function is provided that is similar
+to slicing. Note that ``truncate`` assumes a 0 value for any unspecified date
+component in a ``DatetimeIndex`` in contrast to slicing which returns any
 partially matching dates:
 
 .. ipython:: python
@@ -805,7 +805,7 @@ There are several time/date properties that one can access from ``Timestamp`` or
     is_year_end,"Logical indicating if last day of year (defined by frequency)"
     is_leap_year,"Logical indicating if the date belongs to a leap year"
 
-Furthermore, if you have a ``Series`` with datetimelike values, then you can 
+Furthermore, if you have a ``Series`` with datetimelike values, then you can
 access these properties via the ``.dt`` accessor, as detailed in the section
 on :ref:`.dt accessors<basics.dt_accessors>`.
 
@@ -2338,7 +2338,7 @@ Infer the ambiguous times
 .. ipython:: python
 
    rng_hourly_eastern = rng_hourly.tz_localize('US/Eastern', ambiguous='infer')
-   rng_hourly_eastern.tolist()
+   rng_hourly_eastern.to_list()
 
 In addition to 'infer', there are several other arguments supported.  Passing
 an array-like of bools or 0s/1s where True represents a DST hour and False a
@@ -2351,8 +2351,8 @@ constructor as well as ``tz_localize``.
 .. ipython:: python
 
    rng_hourly_dst = np.array([1, 1, 0, 0, 0])
-   rng_hourly.tz_localize('US/Eastern', ambiguous=rng_hourly_dst).tolist()
-   rng_hourly.tz_localize('US/Eastern', ambiguous='NaT').tolist()
+   rng_hourly.tz_localize('US/Eastern', ambiguous=rng_hourly_dst).to_list()
+   rng_hourly.tz_localize('US/Eastern', ambiguous='NaT').to_list()
 
    didx = pd.DatetimeIndex(start='2014-08-01 09:00', freq='H',
                            periods=10, tz='US/Eastern')
