@@ -8844,7 +8844,7 @@ class NDFrame(PandasObject, SelectionMixin):
             the default depends on the dtype of `self`.
             For numeric data, ``np.nan`` is used.
             For datetime, timedelta, or period data, etc. :attr:`NaT` is used.
-            For extension dtypes, self.dtype.na_value is used.
+            For extension dtypes, ``self.dtype.na_value`` is used.
 
             .. versionchanged:: 0.24.0
 
