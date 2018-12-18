@@ -227,6 +227,7 @@ class PeriodIndex(DatelikeOps, DatetimeIndexOpsMixin, Int64Index,
             values = np.asarray(values)
         if is_float_dtype(values):
             raise TypeError("PeriodIndex._simple_new does not accept floats.")
+        assert isinstance(freq, Tick), type(freq)
         values = PeriodArray(values, freq=freq)
 
         if not isinstance(values, PeriodArray):
