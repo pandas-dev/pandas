@@ -527,9 +527,8 @@ def test_bins_unequal_len():
     bins = pd.cut(series.dropna().values, 4)
 
     # len(bins) != len(series) here
-    def f():
+    with pytest.raises(ValueError):
         series.groupby(bins).mean()
-    pytest.raises(ValueError, f)
 
 
 def test_as_index():

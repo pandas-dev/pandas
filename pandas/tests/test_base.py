@@ -132,20 +132,14 @@ class TestPandasDelegate(object):
 
         delegate = self.Delegate(self.Delegator())
 
-        def f():
+        with pytest.raises(TypeError):
             delegate.foo
 
-        pytest.raises(TypeError, f)
-
-        def f():
+        with pytest.raises(TypeError):
             delegate.foo = 5
 
-        pytest.raises(TypeError, f)
-
-        def f():
+        with pytest.raises(TypeError):
             delegate.foo()
-
-        pytest.raises(TypeError, f)
 
     @pytest.mark.skipif(PYPY, reason="not relevant for PyPy")
     def test_memory_usage(self):
@@ -1067,10 +1061,9 @@ class TestNoNewAttributesMixin(object):
         assert "__frozen" in dir(t)
         assert getattr(t, "__frozen")
 
-        def f():
+        with pytest.raises(AttributeError):
             t.b = "test"
 
-        pytest.raises(AttributeError, f)
         assert not hasattr(t, "b")
 
 
@@ -1237,21 +1230,7 @@ def test_values_consistent(array, expected_type, dtype):
     assert type(l_values) is expected_type
     assert type(l_values) is type(r_values)
 
-    if isinstance(l_values, np.ndarray):
-        tm.assert_numpy_array_equal(l_values, r_values)
-    elif isinstance(l_values, pd.Index):
-        tm.assert_index_equal(l_values, r_values)
-    elif pd.api.types.is_categorical(l_values):
-        tm.assert_categorical_equal(l_values, r_values)
-    elif pd.api.types.is_period_dtype(l_values):
-        tm.assert_period_array_equal(l_values, r_values)
-    elif pd.api.types.is_interval_dtype(l_values):
-        tm.assert_interval_array_equal(l_values, r_values)
-    else:
-        raise TypeError("Unexpected type {}".format(type(l_values)))
-
-    assert l_values.dtype == dtype
-    assert r_values.dtype == dtype
+    tm.assert_equal(l_values, r_values)
 
 
 @pytest.mark.parametrize('array, expected', [

@@ -51,13 +51,13 @@ class Resampler(_GroupBy):
     kind : str or None
         'period', 'timestamp' to override default index treatement
 
-    Notes
-    -----
-    After resampling, see aggregate, apply, and transform functions.
-
     Returns
     -------
     a Resampler of the appropriate type
+
+    Notes
+    -----
+    After resampling, see aggregate, apply, and transform functions.
     """
 
     # to the groupby descriptor
@@ -1389,9 +1389,10 @@ class TimeGrouper(Grouper):
                 data=[], freq=self.freq, name=ax.name)
             return binner, [], labels
 
-        first, last = _get_range_edges(ax.min(), ax.max(), self.freq,
-                                       closed=self.closed,
-                                       base=self.base)
+        first, last = _get_timestamp_range_edges(ax.min(), ax.max(),
+                                                 self.freq,
+                                                 closed=self.closed,
+                                                 base=self.base)
         tz = ax.tz
         # GH #12037
         # use first/last directly instead of call replace() on them
@@ -1540,20 +1541,39 @@ class TimeGrouper(Grouper):
                 data=[], freq=self.freq, name=ax.name)
             return binner, [], labels
 
+        freq_mult = self.freq.n
+
         start = ax.min().asfreq(self.freq, how=self.convention)
         end = ax.max().asfreq(self.freq, how='end')
+        bin_shift = 0
+
+        # GH 23882
+        if self.base:
+            # get base adjusted bin edge labels
+            p_start, end = _get_period_range_edges(start,
+                                                   end,
+                                                   self.freq,
+                                                   closed=self.closed,
+                                                   base=self.base)
+
+            # Get offset for bin edge (not label edge) adjustment
+            start_offset = (pd.Period(start, self.freq)
+                            - pd.Period(p_start, self.freq))
+            bin_shift = start_offset.n % freq_mult
+            start = p_start
 
         labels = binner = PeriodIndex(start=start, end=end,
                                       freq=self.freq, name=ax.name)
 
         i8 = memb.asi8
-        freq_mult = self.freq.n
 
         # when upsampling to subperiods, we need to generate enough bins
         expected_bins_count = len(binner) * freq_mult
         i8_extend = expected_bins_count - (i8[-1] - i8[0])
         rng = np.arange(i8[0], i8[-1] + i8_extend, freq_mult)
         rng += freq_mult
+        # adjust bin edge indexes to account for base
+        rng -= bin_shift
         bins = memb.searchsorted(rng, side='left')
 
         if nat_count > 0:
@@ -1582,7 +1602,35 @@ def _take_new_index(obj, indexer, new_index, axis=0):
         raise ValueError("'obj' should be either a Series or a DataFrame")
 
 
-def _get_range_edges(first, last, offset, closed='left', base=0):
+def _get_timestamp_range_edges(first, last, offset, closed='left', base=0):
+    """
+    Adjust the `first` Timestamp to the preceeding Timestamp that resides on
+    the provided offset. Adjust the `last` Timestamp to the following
+    Timestamp that resides on the provided offset. Input Timestamps that
+    already reside on the offset will be adjusted depeding on the type of
+    offset and the `closed` parameter.
+
+    Parameters
+    ----------
+    first : pd.Timestamp
+        The beginning Timestamp of the range to be adjusted.
+    last : pd.Timestamp
+        The ending Timestamp of the range to be adjusted.
+    offset : pd.DateOffset
+        The dateoffset to which the Timestamps will be adjusted.
+    closed : {'right', 'left'}, default None
+        Which side of bin interval is closed.
+    base : int, default 0
+        The "origin" of the adjusted Timestamps.
+
+    Returns
+    -------
+    A tuple of length 2, containing the adjusted pd.Timestamp objects.
+    """
+    if not all(isinstance(obj, pd.Timestamp) for obj in [first, last]):
+        raise TypeError("'first' and 'last' must be instances of type "
+                        "Timestamp")
+
     if isinstance(offset, Tick):
         is_day = isinstance(offset, Day)
         day_nanos = delta_to_nanoseconds(timedelta(1))
@@ -1603,6 +1651,45 @@ def _get_range_edges(first, last, offset, closed='left', base=0):
 
     last = Timestamp(last + offset)
 
+    return first, last
+
+
+def _get_period_range_edges(first, last, offset, closed='left', base=0):
+    """
+    Adjust the provided `first` and `last` Periods to the respective Period of
+    the given offset that encompasses them.
+
+    Parameters
+    ----------
+    first : pd.Period
+        The beginning Period of the range to be adjusted.
+    last : pd.Period
+        The ending Period of the range to be adjusted.
+    offset : pd.DateOffset
+        The dateoffset to which the Periods will be adjusted.
+    closed : {'right', 'left'}, default None
+        Which side of bin interval is closed.
+    base : int, default 0
+        The "origin" of the adjusted Periods.
+
+    Returns
+    -------
+    A tuple of length 2, containing the adjusted pd.Period objects.
+    """
+    if not all(isinstance(obj, pd.Period) for obj in [first, last]):
+        raise TypeError("'first' and 'last' must be instances of type Period")
+
+    # GH 23882
+    first = first.to_timestamp()
+    last = last.to_timestamp()
+    adjust_first = not offset.onOffset(first)
+    adjust_last = offset.onOffset(last)
+
+    first, last = _get_timestamp_range_edges(first, last, offset,
+                                             closed=closed, base=base)
+
+    first = (first + adjust_first * offset).to_period(offset)
+    last = (last - adjust_last * offset).to_period(offset)
     return first, last
 
 

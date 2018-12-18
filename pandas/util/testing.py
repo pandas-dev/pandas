@@ -782,6 +782,22 @@ def ensure_clean_dir():
             pass
 
 
+@contextmanager
+def ensure_safe_environment_variables():
+    """
+    Get a context manager to safely set environment variables
+
+    All changes will be undone on close, hence environment variables set
+    within this contextmanager will neither persist nor change global state.
+    """
+    saved_environ = dict(os.environ)
+    try:
+        yield
+    finally:
+        os.environ.clear()
+        os.environ.update(saved_environ)
+
+
 # -----------------------------------------------------------------------------
 # Comparators
 
@@ -1661,9 +1677,9 @@ def to_array(obj):
     if is_period_dtype(obj):
         return period_array(obj)
     elif is_datetime64_dtype(obj) or is_datetime64tz_dtype(obj):
-        return DatetimeArray(obj)
+        return DatetimeArray._from_sequence(obj)
     elif is_timedelta64_dtype(obj):
-        return TimedeltaArray(obj)
+        return TimedeltaArray._from_sequence(obj)
     else:
         return np.array(obj)
 
