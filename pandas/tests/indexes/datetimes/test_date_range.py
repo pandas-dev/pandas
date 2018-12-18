@@ -359,18 +359,18 @@ class TestDateRanges(TestData):
          Timestamp(datetime(2013, 11, 6), tz='US/Eastern')]
     ])
     def test_range_tz_dst_straddle_pytz(self, start, end):
-        dr = date_range(start, end, freq='CD')
+        dr = date_range(start, end, freq='D')
         assert dr[0] == start
         assert dr[-1] == end
         assert np.all(dr.hour == 0)
 
-        dr = date_range(start, end, freq='CD', tz='US/Eastern')
+        dr = date_range(start, end, freq='D', tz='US/Eastern')
         assert dr[0] == start
         assert dr[-1] == end
         assert np.all(dr.hour == 0)
 
         dr = date_range(start.replace(tzinfo=None), end.replace(
-            tzinfo=None), freq='CD', tz='US/Eastern')
+            tzinfo=None), freq='D', tz='US/Eastern')
         assert dr[0] == start
         assert dr[-1] == end
         assert np.all(dr.hour == 0)
@@ -604,14 +604,6 @@ class TestGenRangeGeneration(object):
         with pytest.raises(TypeError):
             pd.date_range(start, end, freq=BDay())
 
-    def test_CalendarDay_range_with_dst_crossing(self):
-        # GH 20596
-        result = date_range('2018-10-23', '2018-11-06', freq='7CD',
-                            tz='Europe/Paris')
-        expected = date_range('2018-10-23', '2018-11-06',
-                              freq=pd.DateOffset(days=7), tz='Europe/Paris')
-        tm.assert_index_equal(result, expected)
-
 
 class TestBusinessDateRange(object):
 
@@ -766,8 +758,7 @@ class TestCustomDateRange(object):
                         holidays=['2013-05-01'])
 
     @pytest.mark.parametrize('freq', [freq for freq in prefix_mapping
-                                      if freq.startswith('C')
-                                      and freq != 'CD'])  # CalendarDay
+                                      if freq.startswith('C')])
     def test_all_custom_freq(self, freq):
         # should not raise
         bdate_range(START, END, freq=freq, weekmask='Mon Wed Fri',
