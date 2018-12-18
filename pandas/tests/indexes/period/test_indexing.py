@@ -13,6 +13,14 @@ from pandas.util import testing as tm
 
 
 class TestGetItem(object):
+    def test_ellipsis(self):
+        # GH#21282
+        idx = period_range('2011-01-01', '2011-01-31', freq='D',
+                           name='idx')
+
+        result = idx[...]
+        assert result.equals(idx)
+        assert result is not idx
 
     def test_getitem(self):
         idx1 = pd.period_range('2011-01-01', '2011-01-31', freq='D',
@@ -569,7 +577,7 @@ class TestIndexing(object):
         with pytest.raises(ValueError, match=msg):
             idx.get_loc('2000-01-10', method='nearest', tolerance='foo')
 
-        msg = 'Input has different freq from PeriodArray\\(freq=D\\)'
+        msg = 'Input has different freq=None from PeriodArray\\(freq=D\\)'
         with pytest.raises(ValueError, match=msg):
             idx.get_loc('2000-01-10', method='nearest', tolerance='1 hour')
         with pytest.raises(KeyError):
@@ -599,7 +607,7 @@ class TestIndexing(object):
                                                     tolerance='1 hour'),
                                     np.array([0, -1, 1], dtype=np.intp))
 
-        msg = 'Input has different freq from PeriodArray\\(freq=H\\)'
+        msg = 'Input has different freq=None from PeriodArray\\(freq=H\\)'
         with pytest.raises(ValueError, match=msg):
             idx.get_indexer(target, 'nearest', tolerance='1 minute')
 
@@ -618,7 +626,7 @@ class TestIndexing(object):
                    np.timedelta64(1, 'M'), ]
         with pytest.raises(
                 libperiod.IncompatibleFrequency,
-                match='Input has different freq from'):
+                match='Input has different freq=None from'):
             idx.get_indexer(target, 'nearest', tolerance=tol_bad)
 
     def test_indexing(self):
