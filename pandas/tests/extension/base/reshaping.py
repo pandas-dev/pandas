@@ -175,18 +175,35 @@ class BaseReshapingTests(BaseExtensionTests):
 
     def test_merge_on_extension_array(self, data):
         # GH 23020
-        df1 = pd.DataFrame({'ext': [1, 2, 3],
-                            'key': data[:3]})
+        a, b = data[:2]
+        key = type(data)._from_sequence([a, b], dtype=data.dtype)
 
-        res = pd.merge(df1, df1, on='key')
+        df = pd.DataFrame({"key": key, "val": [1, 2]})
+        result = pd.merge(df, df, on='key')
+        expected = pd.DataFrame({"key": key,
+                                 "val_x": [1, 2],
+                                 "val_y": [1, 2]})
+        self.assert_frame_equal(result, expected)
 
-        exp = pd.DataFrame(
-            {'key': data[:3],
-             'ext_x': [1, 2, 3],
-             'ext_y': [1, 2, 3]})
+        # order
+        result = pd.merge(df.iloc[[1, 0]], df, on='key')
+        expected = expected.iloc[[1, 0]].reset_index(drop=True)
+        self.assert_frame_equal(result, expected)
 
-        self.assert_frame_equal(res, exp[['ext_x', 'key', 'ext_y']],
-                                check_dtype=True)
+    def test_merge_on_extension_array_duplicates(self, data):
+        # GH 23020
+        a, b = data[:2]
+        key = type(data)._from_sequence([a, b, a], dtype=data.dtype)
+        df1 = pd.DataFrame({"key": key, "val": [1, 2, 3]})
+        df2 = pd.DataFrame({"key": key, "val": [1, 2, 3]})
+
+        result = pd.merge(df1, df2, on='key')
+        expected = pd.DataFrame({
+            "key": key.take([0, 0, 0, 0, 1]),
+            "val_x": [1, 1, 3, 3, 2],
+            "val_y": [1, 3, 1, 3, 2],
+        })
+        self.assert_frame_equal(result, expected)
 
     @pytest.mark.parametrize("columns", [
         ["A", "B"],
