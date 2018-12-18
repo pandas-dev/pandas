@@ -119,6 +119,12 @@ class BaseArithmeticOpsTests(BaseOpsUtil):
                 "{} does not implement add".format(data.__class__.__name__)
             )
 
+    def test_arith_diff_lengths(self, data, all_arithmetic_operators):
+        op = self.get_op_from_name(all_arithmetic_operators)
+        other = data[:3]
+        with pytest.raises(ValueError):
+            op(data, other)
+
 
 class BaseComparisonOpsTests(BaseOpsUtil):
     """Various Series and DataFrame comparison ops methods."""
@@ -164,3 +170,9 @@ class BaseComparisonOpsTests(BaseOpsUtil):
             raise pytest.skip(
                 "{} does not implement __eq__".format(data.__class__.__name__)
             )
+
+    def test_compare_diff_lengths(self, data, all_compare_operators):
+        op = self.get_op_from_name(all_compare_operators)
+        other = data[:3]
+        with pytest.raises(ValueError):
+            op(data, other)

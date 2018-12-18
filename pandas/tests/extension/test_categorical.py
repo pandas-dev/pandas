@@ -215,6 +215,9 @@ class TestArithmeticOps(base.BaseArithmeticOpsTests):
             s, op, other, exc=TypeError
         )
 
+    def test_arith_diff_lengths(self):
+        pass
+
 
 class TestComparisonOps(base.BaseComparisonOpsTests):
 
@@ -233,3 +236,11 @@ class TestComparisonOps(base.BaseComparisonOpsTests):
         else:
             with pytest.raises(TypeError):
                 op(data, other)
+
+    @pytest.mark.parametrize('op_name',
+                             ['__eq__', '__ne__'])
+    def test_compare_diff_lengths(self, data, op_name):
+        op = self.get_op_from_name(op_name)
+        other = data[:3]
+        with pytest.raises(ValueError):
+            op(data, other)

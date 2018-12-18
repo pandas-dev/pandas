@@ -321,6 +321,17 @@ class TestArithmeticOps(BaseSparseTests, base.BaseArithmeticOpsTests):
             all_arithmetic_operators
         )
 
+    def test_arith_diff_lengths(self, data, all_arithmetic_operators):
+        from pandas.core.dtypes.common import is_float_dtype
+
+        if is_float_dtype(data):
+            op = self.get_op_from_name(all_arithmetic_operators)
+            other = data[:3]
+            with pytest.raises(ValueError):
+                op(data, other)
+        else:
+            pass
+
 
 class TestComparisonOps(BaseSparseTests, base.BaseComparisonOpsTests):
 
@@ -347,6 +358,17 @@ class TestComparisonOps(BaseSparseTests, base.BaseComparisonOpsTests):
         s = pd.Series(data)
         result = op(s, other)
         tm.assert_series_equal(result, expected)
+
+    def test_compare_diff_lengths(self, data, all_compare_operators):
+        from pandas.core.dtypes.common import is_float_dtype
+
+        if is_float_dtype(data):
+            op = self.get_op_from_name(all_compare_operators)
+            other = data[:3]
+            with pytest.raises(ValueError):
+                op(data, other)
+        else:
+            pass
 
 
 class TestPrinting(BaseSparseTests, base.BasePrintingTests):

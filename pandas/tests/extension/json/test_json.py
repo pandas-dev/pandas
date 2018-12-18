@@ -291,9 +291,13 @@ class TestArithmeticOps(BaseJSON, base.BaseArithmeticOpsTests):
             s, op, other, exc=TypeError
         )
 
+    def test_arith_diff_lengths(self):
+        pass
+
 
 class TestComparisonOps(BaseJSON, base.BaseComparisonOpsTests):
-    pass
+    def test_compare_diff_lengths(self):
+        pass
 
 
 class TestPrinting(BaseJSON, base.BasePrintingTests):

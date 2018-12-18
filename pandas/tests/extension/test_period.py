@@ -119,6 +119,12 @@ class TestArithmeticOps(BasePeriodTests, base.BaseArithmeticOpsTests):
     def test_error(self):
         pass
 
+    def test_arith_diff_lengths(self, data):
+        op = self.get_op_from_name('__sub__')
+        other = data[:3]
+        with pytest.raises(ValueError):
+            op(data, other)
+
     def test_direct_arith_with_series_returns_not_implemented(self, data):
         # Override to use __sub__ instead of __add__
         other = pd.Series(data)
