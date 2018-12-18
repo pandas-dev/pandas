@@ -1334,7 +1334,7 @@ class TestMergeCategorical(object):
         expected = pd.DataFrame({'A': pd.Series([1, 2, np.nan], dtype='Int64'),
                                  'B_x': 1,
                                  'B_y': 1})
-        assert_frame_equal(result, expected, check_dtype=True)
+        assert_frame_equal(result, expected)
 
 
 @pytest.fixture

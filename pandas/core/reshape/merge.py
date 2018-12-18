@@ -1590,26 +1590,16 @@ _join_functions = {
 
 
 def _factorize_keys(lk, rk, sort=True):
+    # Some pre-processing for non-ndarray lk / rk
     if is_datetime64tz_dtype(lk) and is_datetime64tz_dtype(rk):
         lk = lk.values
         rk = rk.values
 
-    elif (is_extension_array_dtype(lk.dtype) and
-          is_extension_array_dtype(rk.dtype) and
-          lk.dtype == rk.dtype and
-          not is_categorical_dtype(lk)):
-        # Categorical handled separately, since unordered categories can
-        # may need to be recoded.
-        lk, _ = lk._values_for_factorize()
-        rk, _ = rk._values_for_factorize()
-
-    # if we exactly match in categories, allow us to factorize on codes
-    if (is_categorical_dtype(lk) and
+    elif (is_categorical_dtype(lk) and
             is_categorical_dtype(rk) and
             lk.is_dtype_equal(rk)):
-        klass = libhashtable.Int64Factorizer
-
         if lk.categories.equals(rk.categories):
+            # if we exactly match in categories, allow us to factorize on codes
             rk = rk.codes
         else:
             # Same categories in different orders -> recode
@@ -1617,7 +1607,14 @@ def _factorize_keys(lk, rk, sort=True):
 
         lk = ensure_int64(lk.codes)
         rk = ensure_int64(rk)
-    elif is_integer_dtype(lk) and is_integer_dtype(rk):
+
+    elif (is_extension_array_dtype(lk.dtype) and
+          is_extension_array_dtype(rk.dtype) and
+          lk.dtype == rk.dtype):
+        lk, _ = lk._values_for_factorize()
+        rk, _ = rk._values_for_factorize()
+
+    if is_integer_dtype(lk) and is_integer_dtype(rk):
         # GH#23917 TODO: needs tests for case where lk is integer-dtype
         #  and rk is datetime-dtype
         klass = libhashtable.Int64Factorizer
