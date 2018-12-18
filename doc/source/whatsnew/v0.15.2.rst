@@ -79,7 +79,7 @@ API changes
 
   .. ipython:: python
 
-     data = pd.DataFrame({'x':[1, 2, 3]})
+     data = pd.DataFrame({'x': [1, 2, 3]})
      data.y = 2
      data['y'] = [2, 4, 6]
      data

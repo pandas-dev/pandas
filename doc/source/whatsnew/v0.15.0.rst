@@ -7,8 +7,9 @@ v0.15.0 (October 18, 2014)
 
 .. ipython:: python
    :suppress:
-
+   
    from pandas import * # noqa F401, F403
+
 
 
 This is a major release from 0.14.1 and includes a small number of API changes, several new features,
@@ -77,7 +78,7 @@ For full docs, see the :ref:`categorical introduction <categorical>` and the
 .. ipython:: python
     :okwarning:
 
-    df = DataFrame({"id":[1,2,3,4,5,6], "raw_grade":['a', 'b', 'b', 'a', 'a', 'e']})
+    df = DataFrame({"id": [1, 2, 3, 4, 5, 6], "raw_grade": ['a', 'b', 'b', 'a', 'a', 'e']})
 
     df["grade"] = df["raw_grade"].astype("category")
     df["grade"]
@@ -181,22 +182,22 @@ Construct a ``TimedeltaIndex``
 
 .. ipython:: python
 
-   TimedeltaIndex(['1 days','1 days, 00:00:05',
-                   np.timedelta64(2,'D'),timedelta(days=2,seconds=2)])
+   TimedeltaIndex(['1 days', '1 days, 00:00:05',
+                   np.timedelta64(2, 'D'), timedelta(days=2, seconds=2)])
 
 Constructing a ``TimedeltaIndex`` with a regular range
 
 .. ipython:: python
 
-   timedelta_range('1 days',periods=5,freq='D')
-   timedelta_range(start='1 days',end='2 days',freq='30T')
+   timedelta_range('1 days', periods=5, freq='D')
+   timedelta_range(start='1 days', end='2 days', freq='30T')
 
 You can now use a ``TimedeltaIndex`` as the index of a pandas object
 
 .. ipython:: python
 
    s = Series(np.arange(5),
-              index=timedelta_range('1 days',periods=5,freq='s'))
+              index=timedelta_range('1 days', periods=5, freq='s'))
    s
 
 You can select with partial string selections
@@ -210,9 +211,9 @@ Finally, the combination of ``TimedeltaIndex`` with ``DatetimeIndex`` allow cert
 
 .. ipython:: python
 
-   tdi = TimedeltaIndex(['1 days',pd.NaT,'2 days'])
+   tdi = TimedeltaIndex(['1 days', pd.NaT, '2 days'])
    tdi.tolist()
-   dti = date_range('20130101',periods=3)
+   dti = date_range('20130101', periods=3)
    dti.tolist()
 
    (dti + tdi).tolist()
@@ -235,7 +236,7 @@ A new display option ``display.memory_usage`` (see :ref:`options`) sets the defa
     dtypes = ['int64', 'float64', 'datetime64[ns]', 'timedelta64[ns]',
               'complex128', 'object', 'bool']
     n = 5000
-    data = dict([ (t, np.random.randint(100, size=n).astype(t))
+    data = dict([(t, np.random.randint(100, size=n).astype(t))
                     for t in dtypes])
     df = DataFrame(data)
     df['categorical'] = df['object'].astype('category')
@@ -260,7 +261,7 @@ This will return a Series, indexed like the existing Series. See the :ref:`docs 
 .. ipython:: python
 
    # datetime
-   s = Series(date_range('20130101 09:10:12',periods=4))
+   s = Series(date_range('20130101 09:10:12', periods=4))
    s
    s.dt.hour
    s.dt.second
@@ -292,7 +293,7 @@ The ``.dt`` accessor works for period and timedelta dtypes.
 .. ipython:: python
 
    # period
-   s = Series(period_range('20130101',periods=4,freq='D'))
+   s = Series(period_range('20130101', periods=4, freq='D'))
    s
    s.dt.year
    s.dt.day
@@ -300,7 +301,7 @@ The ``.dt`` accessor works for period and timedelta dtypes.
 .. ipython:: python
 
    # timedelta
-   s = Series(timedelta_range('1 day 00:00:05',periods=4,freq='s'))
+   s = Series(timedelta_range('1 day 00:00:05', periods=4, freq='s'))
    s
    s.dt.days
    s.dt.seconds
@@ -667,7 +668,7 @@ Other notable API changes:
 
   .. ipython:: python
 
-     df = DataFrame([['a'],['b']],index=[1,2])
+     df = DataFrame([['a'], ['b']], index=[1, 2])
      df
 
   In prior versions there was a difference in these two constructs:
@@ -686,13 +687,13 @@ Other notable API changes:
 
   .. code-block:: ipython
 
-     In [3]: df.loc[[1,3]]
+     In [3]: df.loc[[1, 3]]
      Out[3]:
           0
      1    a
      3  NaN
 
-     In [4]: df.loc[[1,3],:]
+     In [4]: df.loc[[1, 3], :]
      Out[4]:
           0
      1    a
@@ -702,10 +703,10 @@ Other notable API changes:
 
   .. ipython:: python
 
-     p = Panel(np.arange(2*3*4).reshape(2,3,4),
-               items=['ItemA','ItemB'],
-               major_axis=[1,2,3],
-               minor_axis=['A','B','C','D'])
+     p = Panel(np.arange(2 * 3 * 4).reshape(2, 3, 4),
+               items=['ItemA', 'ItemB'],
+               major_axis=[1, 2, 3],
+               minor_axis=['A', 'B', 'C', 'D'])
      p
 
   The following would raise ``KeyError`` prior to 0.15.0:
@@ -724,15 +725,15 @@ Other notable API changes:
   .. ipython:: python
      :okexcept:
 
-     s = Series(np.arange(3,dtype='int64'),
-                index=MultiIndex.from_product([['A'],['foo','bar','baz']],
-                                              names=['one','two'])
-               ).sort_index()
+     s = Series(np.arange(3, dtype='int64'),
+                index=MultiIndex.from_product([['A'], ['foo', 'bar', 'baz']],
+                                              names=['one', 'two'])
+                ).sort_index()
      s
      try:
-        s.loc[['D']]
+         s.loc[['D']]
      except KeyError as e:
-        print("KeyError: " + str(e))
+         print("KeyError: " + str(e))
 
 - Assigning values to ``None`` now considers the dtype when choosing an 'empty' value (:issue:`7941`).
 
@@ -815,9 +816,9 @@ Other notable API changes:
 
   .. ipython:: python
 
-        i = date_range('1/1/2011', periods=3, freq='10s', tz = 'US/Eastern')
+        i = date_range('1/1/2011', periods=3, freq='10s', tz='US/Eastern')
         i
-        df = DataFrame( {'a' : i } )
+        df = DataFrame({'a': i})
         df
         df.dtypes
 
@@ -836,7 +837,7 @@ Other notable API changes:
 
   .. code-block:: python
 
-     In [1]: df = DataFrame(np.arange(0,9), columns=['count'])
+     In [1]: df = DataFrame(np.arange(0, 9), columns=['count'])
 
      In [2]: df['group'] = 'b'
 
@@ -854,8 +855,8 @@ Other notable API changes:
 
   .. ipython:: python
 
-     df = DataFrame([[True, 1],[False, 2]],
-                    columns=["female","fitness"])
+     df = DataFrame([[True, 1], [False, 2]],
+                    columns=["female", "fitness"])
      df
      df.dtypes
 
@@ -915,18 +916,18 @@ Deprecations
   .. code-block:: python
 
      # +
-     Index(['a','b','c']) + Index(['b','c','d'])
+     Index(['a', 'b', 'c']) + Index(['b', 'c', 'd'])
 
      # should be replaced by
-     Index(['a','b','c']).union(Index(['b','c','d']))
+     Index(['a', 'b', 'c']).union(Index(['b', 'c', 'd']))
 
   .. code-block:: python
 
      # -
-     Index(['a','b','c']) - Index(['b','c','d'])
+     Index(['a', 'b', 'c']) - Index(['b', 'c', 'd'])
 
      # should be replaced by
-     Index(['a','b','c']).difference(Index(['b','c','d']))
+     Index(['a', 'b', 'c']).difference(Index(['b', 'c', 'd']))
 
 - The ``infer_types`` argument to :func:`~pandas.read_html` now has no
   effect and is deprecated (:issue:`7762`, :issue:`7032`).
@@ -1050,11 +1051,12 @@ Other:
 
   .. ipython:: python
 
-      idx = MultiIndex.from_product([['a'], range(3), list("pqr")], names=['foo', 'bar', 'baz'])
+      idx = MultiIndex.from_product(
+            [['a'], range(3), list("pqr")], names=['foo', 'bar', 'baz'])
       idx.set_names('qux', level=0)
-      idx.set_names(['qux','corge'], level=[0,1])
-      idx.set_levels(['a','b','c'], level='bar')
-      idx.set_levels([['a','b','c'],[1,2,3]], level=[1,2])
+      idx.set_names(['qux', 'corge'], level=[0, 1])
+      idx.set_levels(['a', 'b', 'c'], level='bar')
+      idx.set_levels([['a', 'b', 'c'], [1, 2, 3]], level=[1, 2])
 
 - ``Index.isin`` now supports a ``level`` argument to specify which index level
   to use for membership tests (:issue:`7892`, :issue:`7890`)
