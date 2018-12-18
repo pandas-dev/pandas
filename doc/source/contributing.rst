@@ -125,7 +125,7 @@ requires a C compiler and Python environment. If you're making documentation
 changes, you can skip to :ref:`contributing.documentation` but you won't be able
 to build the documentation locally before pushing your changes.
 
-.. _contributiong.dev_c:
+.. _contributing.dev_c:
 
 Installing a C Compiler
 ~~~~~~~~~~~~~~~~~~~~~~~
@@ -133,13 +133,16 @@ Installing a C Compiler
 Pandas uses C extensions (mostly written using Cython) to speed up certain
 operations. To install pandas from source, you need to compile these C
 extensions, which means you need a C compiler. This process depends on which
-platform you're using. Follow the `CPython contributing guidelines
-<https://docs.python.org/devguide/setup.html#build-dependencies>`_ for getting a
+platform you're using. Follow the `CPython contributing guide
+<https://devguide.python.org/setup/#compile-and-build>`_ for getting a
 compiler installed. You don't need to do any of the ``./configure`` or ``make``
 steps; you only need to install the compiler.
 
 For Windows developers, the following links may be helpful.
 
+* **TL;DR** (Python 3.5+) install `Visual Studio 2017 <https://visualstudio.com/>`_, select
+  the **Python development workload** and the **Python native development tools** option
+* https://blogs.msdn.microsoft.com/pythonengineering/2017/03/07/python-support-in-vs2017/
 * https://blogs.msdn.microsoft.com/pythonengineering/2016/04/11/unable-to-find-vcvarsall-bat/
 * https://github.com/conda/conda-recipes/wiki/Building-from-Source-on-Windows-32-bit-and-64-bit
 * https://cowboyprogrammer.org/building-python-wheels-for-windows/
@@ -149,7 +152,7 @@ For Windows developers, the following links may be helpful.
 Let us know if you have any difficulties by opening an issue or reaching out on
 `Gitter`_.
 
-.. _contributiong.dev_python:
+.. _contributing.dev_python:
 
 Creating a Python Environment
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
