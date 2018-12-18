@@ -478,6 +478,7 @@ In order to standardize the ``read_csv`` API for both the ``c`` and ``python`` e
 Previous behaviour:
 
 .. code-block:: ipython
+
    In [1]: import io
 
    In [2]: df = pd.read_csv(io.StringIO(''), engine='c')
