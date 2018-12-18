@@ -125,6 +125,7 @@ API changes
      ...                    'B': np.random.randn(10),
      ...                    'C': pd.date_range('20130101', periods=10)
      ...                    })
+     ...
      >>> if df:
      ...     pass
      ...
@@ -140,7 +141,7 @@ API changes
          ...
      ValueError: The truth value of a DataFrame is ambiguous.  Use a.empty,
      a.bool(), a.item(), a.any() or a.all().
-     
+
      >>> d = [1, 2, 3]
      >>> s1 = pd.Series(d)
      >>> s2 = pd.Series(d)
