@@ -67,8 +67,7 @@ def _period_array_cmp(cls, op):
         elif isinstance(other, cls):
             self._check_compatible_with(other)
 
-            if other.ndim > 0 and len(self) != len(other):
-                raise ValueError('Lengths must match to compare')
+            self._validate_shape(other)
 
             if not_implemented:
                 return NotImplemented

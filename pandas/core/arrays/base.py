@@ -917,6 +917,10 @@ class ExtensionOpsMixin(object):
         cls.__le__ = cls._create_comparison_method(operator.le)
         cls.__ge__ = cls._create_comparison_method(operator.ge)
 
+    def _validate_shape(self, other):
+        if len(self) != len(other):
+            raise ValueError('Lengths must match to compare')
+
 
 class ExtensionScalarOpsMixin(ExtensionOpsMixin):
     """
