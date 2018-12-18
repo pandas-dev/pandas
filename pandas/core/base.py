@@ -929,6 +929,7 @@ class IndexOpsMixin(object):
         if (is_extension_array_dtype(self.dtype) or
                 is_datetime64tz_dtype(self.dtype)):
             # TODO(DatetimeArray): remove the second clause.
+            # TODO(GH-24345): Avoid potential double copy
             result = np.asarray(self._values, dtype=dtype)
         else:
             result = self._values
