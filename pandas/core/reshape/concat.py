@@ -3,16 +3,19 @@ concat routines
 """
 
 import numpy as np
-from pandas import compat, DataFrame, Series, Index, MultiIndex
-from pandas.core.index import (_get_objs_combined_axis,
-                               _ensure_index, _get_consensus_names,
-                               _all_indexes_same)
-from pandas.core.arrays.categorical import (_factorize_from_iterable,
-                                            _factorize_from_iterables)
-from pandas.core.internals import concatenate_block_managers
-from pandas.core import common as com
-from pandas.core.generic import NDFrame
+
 import pandas.core.dtypes.concat as _concat
+
+from pandas import DataFrame, Index, MultiIndex, Series, compat
+from pandas.core import common as com
+from pandas.core.arrays.categorical import (
+    _factorize_from_iterable, _factorize_from_iterables)
+from pandas.core.generic import NDFrame
+from pandas.core.index import (
+    _all_indexes_same, _get_consensus_names, _get_objs_combined_axis,
+    ensure_index)
+import pandas.core.indexes.base as ibase
+from pandas.core.internals import concatenate_block_managers
 
 # ---------------------------------------------------------------------
 # Concatenate DataFrame objects
@@ -84,6 +87,13 @@ def concat(objs, axis=0, join='outer', join_axes=None, ignore_index=False,
         ``DataFrame``, a ``DataFrame`` is returned. When concatenating along
         the columns (axis=1), a ``DataFrame`` is returned.
 
+    See Also
+    --------
+    Series.append
+    DataFrame.append
+    DataFrame.join
+    DataFrame.merge
+
     Notes
     -----
     The keys, levels, and names arguments are all optional.
@@ -91,13 +101,6 @@ def concat(objs, axis=0, join='outer', join_axes=None, ignore_index=False,
     A walkthrough of how this method fits in with other tools for combining
     pandas objects can be found `here
     <http://pandas.pydata.org/pandas-docs/stable/merging.html>`__.
-
-    See Also
-    --------
-    Series.append
-    DataFrame.append
-    DataFrame.join
-    DataFrame.merge
 
     Examples
     --------
@@ -174,12 +177,12 @@ def concat(objs, axis=0, join='outer', join_axes=None, ignore_index=False,
       letter  number animal
     0      c       3    cat
     1      d       4    dog
-    >>> pd.concat([df1, df3])
-      animal letter  number
-    0    NaN      a       1
-    1    NaN      b       2
-    0    cat      c       3
-    1    dog      d       4
+    >>> pd.concat([df1, df3], sort=False)
+      letter  number animal
+    0      a       1    NaN
+    1      b       2    NaN
+    0      c       3    cat
+    1      d       4    dog
 
     Combine ``DataFrame`` objects with overlapping columns
     and return only those that are shared by passing ``inner`` to
@@ -319,7 +322,7 @@ class _Concatenator(object):
 
         # Standardize axis parameter to int
         if isinstance(sample, Series):
-            axis = DataFrame()._get_axis_number(axis)
+            axis = DataFrame._get_axis_number(axis)
         else:
             axis = sample._get_axis_number(axis)
 
@@ -384,7 +387,7 @@ class _Concatenator(object):
 
             # stack blocks
             if self.axis == 0:
-                name = com._consensus_name_attr(self.objs)
+                name = com.consensus_name_attr(self.objs)
 
                 mgr = self.objs[0]._data.concat([x._data for x in self.objs],
                                                 self.new_axes)
@@ -445,7 +448,7 @@ class _Concatenator(object):
                 new_axes[i] = self._get_comb_axis(i)
         else:
             if len(self.join_axes) != ndim - 1:
-                raise AssertionError("length of join_axes must not be equal "
+                raise AssertionError("length of join_axes must be equal "
                                      "to {length}".format(length=ndim - 1))
 
             # ufff...
@@ -477,7 +480,7 @@ class _Concatenator(object):
             if self.axis == 0:
                 indexes = [x.index for x in self.objs]
             elif self.ignore_index:
-                idx = com._default_index(len(self.objs))
+                idx = ibase.default_index(len(self.objs))
                 return idx
             elif self.keys is None:
                 names = [None] * len(self.objs)
@@ -497,14 +500,14 @@ class _Concatenator(object):
                 if has_names:
                     return Index(names)
                 else:
-                    return com._default_index(len(self.objs))
+                    return ibase.default_index(len(self.objs))
             else:
-                return _ensure_index(self.keys)
+                return ensure_index(self.keys).set_names(self.names)
         else:
             indexes = [x._data.axes[self.axis] for x in self.objs]
 
         if self.ignore_index:
-            idx = com._default_index(sum(len(i) for i in indexes))
+            idx = ibase.default_index(sum(len(i) for i in indexes))
             return idx
 
         if self.keys is None:
@@ -540,21 +543,21 @@ def _make_concat_multiindex(indexes, keys, levels=None, names=None):
         if levels is None:
             _, levels = _factorize_from_iterables(zipped)
         else:
-            levels = [_ensure_index(x) for x in levels]
+            levels = [ensure_index(x) for x in levels]
     else:
         zipped = [keys]
         if names is None:
             names = [None]
 
         if levels is None:
-            levels = [_ensure_index(keys)]
+            levels = [ensure_index(keys)]
         else:
-            levels = [_ensure_index(x) for x in levels]
+            levels = [ensure_index(x) for x in levels]
 
     if not _all_indexes_same(indexes):
-        label_list = []
+        codes_list = []
 
-        # things are potentially different sizes, so compute the exact labels
+        # things are potentially different sizes, so compute the exact codes
         # for each level and pass those to MultiIndex.from_arrays
 
         for hlevel, level in zip(zipped, levels):
@@ -567,18 +570,18 @@ def _make_concat_multiindex(indexes, keys, levels=None, names=None):
                                      .format(key=key, level=level))
 
                 to_concat.append(np.repeat(i, len(index)))
-            label_list.append(np.concatenate(to_concat))
+            codes_list.append(np.concatenate(to_concat))
 
         concat_index = _concat_indexes(indexes)
 
         # these go at the end
         if isinstance(concat_index, MultiIndex):
             levels.extend(concat_index.levels)
-            label_list.extend(concat_index.labels)
+            codes_list.extend(concat_index.codes)
         else:
             codes, categories = _factorize_from_iterable(concat_index)
             levels.append(categories)
-            label_list.append(codes)
+            codes_list.append(codes)
 
         if len(names) == len(levels):
             names = list(names)
@@ -591,7 +594,7 @@ def _make_concat_multiindex(indexes, keys, levels=None, names=None):
             # also copies
             names = names + _get_consensus_names(indexes)
 
-        return MultiIndex(levels=levels, labels=label_list, names=names,
+        return MultiIndex(levels=levels, codes=codes_list, names=names,
                           verify_integrity=False)
 
     new_index = indexes[0]
@@ -602,13 +605,13 @@ def _make_concat_multiindex(indexes, keys, levels=None, names=None):
     new_names = list(names)
     new_levels = list(levels)
 
-    # construct labels
-    new_labels = []
+    # construct codes
+    new_codes = []
 
     # do something a bit more speedy
 
     for hlevel, level in zip(zipped, levels):
-        hlevel = _ensure_index(hlevel)
+        hlevel = ensure_index(hlevel)
         mapped = level.get_indexer(hlevel)
 
         mask = mapped == -1
@@ -616,17 +619,17 @@ def _make_concat_multiindex(indexes, keys, levels=None, names=None):
             raise ValueError('Values not found in passed level: {hlevel!s}'
                              .format(hlevel=hlevel[mask]))
 
-        new_labels.append(np.repeat(mapped, n))
+        new_codes.append(np.repeat(mapped, n))
 
     if isinstance(new_index, MultiIndex):
         new_levels.extend(new_index.levels)
-        new_labels.extend([np.tile(lab, kpieces) for lab in new_index.labels])
+        new_codes.extend([np.tile(lab, kpieces) for lab in new_index.codes])
     else:
         new_levels.append(new_index)
-        new_labels.append(np.tile(np.arange(n), kpieces))
+        new_codes.append(np.tile(np.arange(n), kpieces))
 
     if len(new_names) < len(new_levels):
         new_names.extend(new_index.names)
 
-    return MultiIndex(levels=new_levels, labels=new_labels, names=new_names,
+    return MultiIndex(levels=new_levels, codes=new_codes, names=new_names,
                       verify_integrity=False)

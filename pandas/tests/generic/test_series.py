@@ -1,21 +1,20 @@
 # -*- coding: utf-8 -*-
 # pylint: disable-msg=E1101,W0612
 
+from distutils.version import LooseVersion
 from operator import methodcaller
 
-import pytest
 import numpy as np
-import pandas as pd
-
-from distutils.version import LooseVersion
-from pandas import Series, date_range, MultiIndex
+import pytest
 
 from pandas.compat import range
-from pandas.util.testing import (assert_series_equal,
-                                 assert_almost_equal)
-
-import pandas.util.testing as tm
 import pandas.util._test_decorators as td
+
+import pandas as pd
+from pandas import MultiIndex, Series, date_range
+import pandas.util.testing as tm
+from pandas.util.testing import assert_almost_equal, assert_series_equal
+
 from .test_generic import Generic
 
 try:
@@ -227,3 +226,22 @@ class TestSeries(Generic):
         # GH18800
         with tm.assert_produces_warning(FutureWarning):
             pd.Series([]).valid()
+
+    @pytest.mark.parametrize("s", [
+        Series([np.arange(5)]),
+        pd.date_range('1/1/2011', periods=24, freq='H'),
+        pd.Series(range(5), index=pd.date_range("2017", periods=5))
+    ])
+    @pytest.mark.parametrize("shift_size", [0, 1, 2])
+    def test_shift_always_copy(self, s, shift_size):
+        # GH22397
+        assert s.shift(shift_size) is not s
+
+    @pytest.mark.parametrize("move_by_freq", [
+        pd.Timedelta('1D'),
+        pd.Timedelta('1M'),
+    ])
+    def test_datetime_shift_always_copy(self, move_by_freq):
+        # GH22397
+        s = pd.Series(range(5), index=pd.date_range("2017", periods=5))
+        assert s.shift(freq=move_by_freq) is not s

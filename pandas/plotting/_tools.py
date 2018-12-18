@@ -2,15 +2,15 @@
 # pylint: disable=E1101
 from __future__ import division
 
-import warnings
 from math import ceil
+import warnings
 
 import numpy as np
 
-from pandas.core.dtypes.common import is_list_like
-from pandas.core.dtypes.generic import ABCSeries
-from pandas.core.index import Index
 from pandas.compat import range
+
+from pandas.core.dtypes.common import is_list_like
+from pandas.core.dtypes.generic import ABCDataFrame, ABCIndexClass, ABCSeries
 
 
 def format_date_labels(ax, rot):
@@ -31,10 +31,10 @@ def table(ax, data, rowLabels=None, colLabels=None, **kwargs):
 
     Parameters
     ----------
-    `ax`: Matplotlib axes object
-    `data`: DataFrame or Series
+    ax : Matplotlib axes object
+    data : DataFrame or Series
         data for table contents
-    `kwargs`: keywords, optional
+    kwargs : keywords, optional
         keyword arguments which passed to matplotlib.table.table.
         If `rowLabels` or `colLabels` is not specified, data index or column
         name will be used.
@@ -43,10 +43,9 @@ def table(ax, data, rowLabels=None, colLabels=None, **kwargs):
     -------
     matplotlib table object
     """
-    from pandas import DataFrame
     if isinstance(data, ABCSeries):
-        data = DataFrame(data, columns=[data.name])
-    elif isinstance(data, DataFrame):
+        data = data.to_frame()
+    elif isinstance(data, ABCDataFrame):
         pass
     else:
         raise ValueError('Input data must be DataFrame or Series')
@@ -341,7 +340,7 @@ def _handle_shared_axes(axarr, nplots, naxes, nrows, ncols, sharex, sharey):
 def _flatten(axes):
     if not is_list_like(axes):
         return np.array([axes])
-    elif isinstance(axes, (np.ndarray, Index)):
+    elif isinstance(axes, (np.ndarray, ABCIndexClass)):
         return axes.ravel()
     return np.array(axes)
 

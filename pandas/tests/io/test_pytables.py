@@ -2,7 +2,7 @@ import pytest
 import os
 import tempfile
 from contextlib import contextmanager
-from warnings import catch_warnings
+from warnings import catch_warnings, simplefilter
 from distutils.version import LooseVersion
 
 import datetime
@@ -32,13 +32,17 @@ from pandas.core.dtypes.common import is_categorical_dtype
 tables = pytest.importorskip('tables')
 from pandas.io import pytables as pytables  # noqa:E402
 from pandas.io.pytables import (TableIterator,  # noqa:E402
-                                HDFStore, get_store, Term, read_hdf,
+                                HDFStore, Term, read_hdf,
                                 PossibleDataLossError, ClosedFileError)
 
 
 _default_compressor = ('blosc' if LooseVersion(tables.__version__) >=
                        LooseVersion('2.2') else 'zlib')
 
+
+ignore_natural_naming_warning = pytest.mark.filterwarnings(
+    "ignore:object name:tables.exceptions.NaturalNameWarning"
+)
 
 # contextmanager to ensure the file cleanup
 
@@ -47,7 +51,7 @@ def safe_remove(path):
     if path is not None:
         try:
             os.remove(path)
-        except:
+        except OSError:
             pass
 
 
@@ -55,7 +59,7 @@ def safe_close(store):
     try:
         if store is not None:
             store.close()
-    except:
+    except IOError:
         pass
 
 
@@ -113,7 +117,7 @@ def _maybe_remove(store, key):
     no content from previous tests using the same table name."""
     try:
         store.remove(key)
-    except:
+    except (ValueError, KeyError):
         pass
 
 
@@ -139,30 +143,13 @@ class Base(object):
 
 
 @pytest.mark.single
+@pytest.mark.filterwarnings("ignore:\\nPanel:FutureWarning")
 class TestHDFStore(Base):
 
-    def test_factory_fun(self):
-        path = create_tempfile(self.path)
-        try:
-            with catch_warnings(record=True):
-                with get_store(path) as tbl:
-                    raise ValueError('blah')
-        except ValueError:
-            pass
-        finally:
-            safe_remove(path)
-
-        try:
-            with catch_warnings(record=True):
-                with get_store(path) as tbl:
-                    tbl['a'] = tm.makeDataFrame()
-
-            with catch_warnings(record=True):
-                with get_store(path) as tbl:
-                    assert len(tbl) == 1
-                    assert type(tbl['a']) == DataFrame
-        finally:
-            safe_remove(self.path)
+    def test_format_kwarg_in_constructor(self):
+        # GH 13291
+        with ensure_clean_path(self.path) as path:
+            pytest.raises(ValueError, HDFStore, path, format='table')
 
     def test_context(self):
         path = create_tempfile(self.path)
@@ -217,8 +204,6 @@ class TestHDFStore(Base):
     def test_long_strings(self):
 
         # GH6166
-        # unconversion of long strings was being chopped in earlier
-        # versions of numpy < 1.7.2
         df = DataFrame({'a': tm.rands_array(100, size=10)},
                        index=tm.rands_array(100, size=10))
 
@@ -369,7 +354,7 @@ class TestHDFStore(Base):
                 store['d'] = tm.makePanel()
                 store['foo/bar'] = tm.makePanel()
             assert len(store) == 5
-            expected = set(['/a', '/b', '/c', '/d', '/foo/bar'])
+            expected = {'/a', '/b', '/c', '/d', '/foo/bar'}
             assert set(store.keys()) == expected
             assert set(store) == expected
 
@@ -425,8 +410,8 @@ class TestHDFStore(Base):
             df.loc[3:6, ['obj1']] = np.nan
             df = df._consolidate()._convert(datetime=True)
 
-            # PerformanceWarning
             with catch_warnings(record=True):
+                simplefilter("ignore", pd.errors.PerformanceWarning)
                 store['df'] = df
 
             # make a random group in hdf space
@@ -446,6 +431,7 @@ class TestHDFStore(Base):
             repr(s)
             str(s)
 
+    @ignore_natural_naming_warning
     def test_contains(self):
 
         with ensure_clean_store(self.path) as store:
@@ -912,11 +898,15 @@ class TestHDFStore(Base):
 
             # PerformanceWarning
             with catch_warnings(record=True):
+                simplefilter("ignore", pd.errors.PerformanceWarning)
                 store.put('df', df)
 
             expected = store.get('df')
             tm.assert_frame_equal(expected, df)
 
+    @pytest.mark.filterwarnings(
+        "ignore:object name:tables.exceptions.NaturalNameWarning"
+    )
     def test_append(self):
 
         with ensure_clean_store(self.path) as store:
@@ -1075,6 +1065,7 @@ class TestHDFStore(Base):
 
                 # PerformanceWarning
                 with catch_warnings(record=True):
+                    simplefilter("ignore", pd.errors.PerformanceWarning)
                     check('fixed', index)
 
     @pytest.mark.skipif(not is_platform_little_endian(),
@@ -1096,9 +1087,7 @@ class TestHDFStore(Base):
     def test_latin_encoding(self):
 
         if compat.PY2:
-            tm.assert_raises_regex(
-                TypeError, r'\[unicode\] is not implemented as a table column')
-            return
+            pytest.skip("[unicode] is not implemented as a table column")
 
         values = [[b'E\xc9, 17', b'', b'a', b'b', b'c'],
                   [b'E\xc9, 17', b'a', b'b', b'c'],
@@ -1355,9 +1344,10 @@ class TestHDFStore(Base):
 
         with ensure_clean_store(self.path) as store:
             with catch_warnings(record=True):
+                simplefilter("ignore", FutureWarning)
                 wp = tm.makePanel()
-                wp2 = wp.rename_axis(
-                    {x: "%s_extra" % x for x in wp.minor_axis}, axis=2)
+                wp2 = wp.rename(
+                    minor_axis={x: "%s_extra" % x for x in wp.minor_axis})
 
                 def check_col(key, name, size):
                     assert getattr(store.get_storer(key)
@@ -1492,6 +1482,16 @@ class TestHDFStore(Base):
             _maybe_remove(store, 'df')
             pytest.raises(ValueError, store.append, 'df',
                           df, min_itemsize={'foo': 20, 'foobar': 20})
+
+    def test_append_with_empty_string(self):
+
+        with ensure_clean_store(self.path) as store:
+
+            # with all empty strings (GH 12242)
+            df = DataFrame({'x': ['a', 'b', 'c', 'd', 'e', 'f', '']})
+            store.append('df', df[:-1], min_itemsize={'x': 1})
+            store.append('df', df[-1:], min_itemsize={'x': 1})
+            tm.assert_frame_equal(store.select('df'), df)
 
     def test_to_hdf_with_min_itemsize(self):
 
@@ -1779,8 +1779,8 @@ class TestHDFStore(Base):
     def test_append_hierarchical(self):
         index = MultiIndex(levels=[['foo', 'bar', 'baz', 'qux'],
                                    ['one', 'two', 'three']],
-                           labels=[[0, 0, 0, 1, 1, 2, 2, 3, 3, 3],
-                                   [0, 1, 2, 0, 1, 1, 2, 0, 1, 2]],
+                           codes=[[0, 0, 0, 1, 1, 2, 2, 3, 3, 3],
+                                  [0, 1, 2, 0, 1, 1, 2, 0, 1, 2]],
                            names=['foo', 'bar'])
         df = DataFrame(np.random.randn(10, 3), index=index,
                        columns=['A', 'B', 'C'])
@@ -1913,8 +1913,8 @@ class TestHDFStore(Base):
         # in the `where` argument
         index = MultiIndex(levels=[['foo', 'bar', 'baz', 'qux'],
                                    ['one', 'two', 'three']],
-                           labels=[[0, 0, 0, 1, 1, 2, 2, 3, 3, 3],
-                                   [0, 1, 2, 0, 1, 1, 2, 0, 1, 2]],
+                           codes=[[0, 0, 0, 1, 1, 2, 2, 3, 3, 3],
+                                  [0, 1, 2, 0, 1, 1, 2, 0, 1, 2]],
                            names=['foo_name', 'bar_name'])
 
         # With a DataFrame
@@ -2104,9 +2104,9 @@ class TestHDFStore(Base):
             assert df1.dtypes[0] == 'float32'
 
             # check with mixed dtypes
-            df1 = DataFrame(dict((c, Series(np.random.randint(5), dtype=c))
-                                 for c in ['float32', 'float64', 'int32',
-                                           'int64', 'int16', 'int8']))
+            df1 = DataFrame({c: Series(np.random.randint(5), dtype=c)
+                             for c in ['float32', 'float64', 'int32',
+                                       'int64', 'int16', 'int8']})
             df1['string'] = 'foo'
             df1['float322'] = 1.
             df1['float322'] = df1['float322'].astype('float32')
@@ -2167,14 +2167,14 @@ class TestHDFStore(Base):
 
         with ensure_clean_store(self.path) as store:
 
-            l = [('date', datetime.date(2001, 1, 2))]
+            dtypes = [('date', datetime.date(2001, 1, 2))]
 
             # py3 ok for unicode
             if not compat.PY3:
-                l.append(('unicode', u('\\u03c3')))
+                dtypes.append(('unicode', u('\\u03c3')))
 
             # currently not supported dtypes ####
-            for n, f in l:
+            for n, f in dtypes:
                 df = tm.makeDataFrame()
                 df[n] = f
                 pytest.raises(
@@ -2191,6 +2191,10 @@ class TestHDFStore(Base):
             # this fails because we have a date in the object block......
             pytest.raises(TypeError, store.append, 'df_unimplemented', df)
 
+    @pytest.mark.skipif(
+        LooseVersion(np.__version__) == LooseVersion('1.15.0'),
+        reason=("Skipping  pytables test when numpy version is "
+                "exactly equal to 1.15.0: gh-22098"))
     def test_calendar_roundtrip_issue(self):
 
         # 8591
@@ -2549,6 +2553,7 @@ class TestHDFStore(Base):
         with ensure_clean_store(self.path) as store:
 
             with catch_warnings(record=True):
+                simplefilter("ignore", FutureWarning)
 
                 wp = tm.makePanel()
                 wpneg = Panel.fromDict({-1: tm.makeDataFrame(),
@@ -2594,8 +2599,8 @@ class TestHDFStore(Base):
                 for t in terms:
                     store.select('wp', t)
 
-                with tm.assert_raises_regex(
-                        TypeError, 'Only named functions are supported'):
+                with pytest.raises(TypeError,
+                                   match='Only named functions are supported'):
                     store.select(
                         'wp',
                         'major_axis == (lambda x: x)("20130101")')
@@ -2606,9 +2611,8 @@ class TestHDFStore(Base):
                 expected = Panel({-1: wpneg[-1]})
                 tm.assert_panel_equal(res, expected)
 
-                with tm.assert_raises_regex(NotImplementedError,
-                                            'Unary addition '
-                                            'not supported'):
+                msg = 'Unary addition not supported'
+                with pytest.raises(NotImplementedError, match=msg):
                     store.select('wpneg', 'items == +1')
 
     def test_term_compat(self):
@@ -2754,8 +2758,10 @@ class TestHDFStore(Base):
         DF = DataFrame(data, index=idx, columns=col)
 
         with catch_warnings(record=True):
+            simplefilter("ignore", pd.errors.PerformanceWarning)
             self._check_roundtrip(DF, tm.assert_frame_equal)
 
+    @pytest.mark.filterwarnings("ignore::pandas.errors.PerformanceWarning")
     def test_index_types(self):
 
         with catch_warnings(record=True):
@@ -2876,8 +2882,8 @@ class TestHDFStore(Base):
     def test_store_hierarchical(self):
         index = MultiIndex(levels=[['foo', 'bar', 'baz', 'qux'],
                                    ['one', 'two', 'three']],
-                           labels=[[0, 0, 0, 1, 1, 2, 2, 3, 3, 3],
-                                   [0, 1, 2, 0, 1, 1, 2, 0, 1, 2]],
+                           codes=[[0, 0, 0, 1, 1, 2, 2, 3, 3, 3],
+                                  [0, 1, 2, 0, 1, 1, 2, 0, 1, 2]],
                            names=['foo', 'bar'])
         frame = DataFrame(np.random.randn(10, 3), index=index,
                           columns=['A', 'B', 'C'])
@@ -2984,6 +2990,9 @@ class TestHDFStore(Base):
             wp = tm.makePanel()
             self._check_roundtrip(wp, assert_panel_equal)
 
+    @pytest.mark.filterwarnings(
+        "ignore:\\nduplicate:pandas.io.pytables.DuplicateWarning"
+    )
     def test_select_with_dups(self):
 
         # single dtypes
@@ -3043,6 +3052,9 @@ class TestHDFStore(Base):
             result = store.select('df', columns=['B', 'A'])
             assert_frame_equal(result, expected, by_blocks=True)
 
+    @pytest.mark.filterwarnings(
+        "ignore:\\nduplicate:pandas.io.pytables.DuplicateWarning"
+    )
     def test_wide_table_dups(self):
         with ensure_clean_store(self.path) as store:
             with catch_warnings(record=True):
@@ -3585,6 +3597,9 @@ class TestHDFStore(Base):
             # should be []
             assert len(results) == 0
 
+    @pytest.mark.filterwarnings(
+        "ignore:\\nthe :pandas.io.pytables.AttributeConflictWarning"
+    )
     def test_retain_index_attributes(self):
 
         # GH 3499, losing frequency info on index recreation
@@ -3627,6 +3642,9 @@ class TestHDFStore(Base):
                                           freq='D'))))
             store.append('df2', df3)
 
+    @pytest.mark.filterwarnings(
+        "ignore:\\nthe :pandas.io.pytables.AttributeConflictWarning"
+    )
     def test_retain_index_attributes2(self):
         with ensure_clean_path(self.path) as path:
 
@@ -4502,9 +4520,8 @@ class TestHDFStore(Base):
             pytest.raises(ClosedFileError, store.get_storer, 'df2')
             pytest.raises(ClosedFileError, store.remove, 'df2')
 
-            def f():
+            with pytest.raises(ClosedFileError, match='file is not open'):
                 store.select('df')
-            tm.assert_raises_regex(ClosedFileError, 'file is not open', f)
 
     def test_pytables_native_read(self, datapath):
         with ensure_clean_store(
@@ -4529,7 +4546,8 @@ class TestHDFStore(Base):
                 datapath('io', 'data', 'legacy_hdf', 'legacy_table.h5'),
                 mode='r') as store:
 
-            with catch_warnings(record=True):
+            with catch_warnings():
+                simplefilter("ignore", pd.io.pytables.IncompatibilityWarning)
                 store.select('df1')
                 store.select('df2')
                 store.select('wp1')
@@ -4586,7 +4604,7 @@ class TestHDFStore(Base):
                     safe_close(tstore)
                     try:
                         os.close(fd)
-                    except:
+                    except (OSError, ValueError):
                         pass
                     safe_remove(new_f)
 
@@ -4661,6 +4679,7 @@ class TestHDFStore(Base):
 
         # PerformanceWarning
         with catch_warnings(record=True):
+            simplefilter("ignore", pd.errors.PerformanceWarning)
             s = Series(np.random.randn(len(unicode_values)), unicode_values)
             self._check_roundtrip(s, tm.assert_series_equal)
 
@@ -4740,24 +4759,26 @@ class TestHDFStore(Base):
             tm.assert_series_equal(s, result)
 
             _maybe_remove(store, 'df')
-
             df = DataFrame({"s": s, "vals": [1, 2, 3, 4, 5, 6]})
             store.append('df', df, format='table')
             result = store.select('df')
             tm.assert_frame_equal(result, df)
 
             # Dtypes
+            _maybe_remove(store, 'si')
             s = Series([1, 1, 2, 2, 3, 4, 5]).astype('category')
             store.append('si', s)
             result = store.select('si')
             tm.assert_series_equal(result, s)
 
+            _maybe_remove(store, 'si2')
             s = Series([1, 1, np.nan, 2, 3, 4, 5]).astype('category')
             store.append('si2', s)
             result = store.select('si2')
             tm.assert_series_equal(result, s)
 
             # Multiple
+            _maybe_remove(store, 'df2')
             df2 = df.copy()
             df2['s2'] = Series(list('abcdefg')).astype('category')
             store.append('df2', df2)
@@ -4771,6 +4792,7 @@ class TestHDFStore(Base):
             assert '/df2/meta/values_block_1/meta' in info
 
             # unordered
+            _maybe_remove(store, 's2')
             s = Series(Categorical(['a', 'b', 'b', 'a', 'a', 'c'], categories=[
                        'a', 'b', 'c', 'd'], ordered=False))
             store.append('s2', s, format='table')
@@ -4778,6 +4800,7 @@ class TestHDFStore(Base):
             tm.assert_series_equal(result, s)
 
             # Query
+            _maybe_remove(store, 'df3')
             store.append('df3', df, data_columns=['s'])
             expected = df[df.s.isin(['b', 'c'])]
             result = store.select('df3', where=['s in ["b","c"]'])
@@ -4929,6 +4952,7 @@ class TestHDFStore(Base):
             df_loaded = read_hdf(path, 'df', columns=cols2load)  # noqa
             assert cols2load_original == cols2load
 
+    @ignore_natural_naming_warning
     def test_to_hdf_with_object_column_names(self):
         # GH9057
         # Writing HDF5 table format should only work for string-like
@@ -4950,9 +4974,8 @@ class TestHDFStore(Base):
             df = DataFrame(np.random.randn(10, 2), columns=index(2))
             with ensure_clean_path(self.path) as path:
                 with catch_warnings(record=True):
-                    with tm.assert_raises_regex(
-                        ValueError, ("cannot have non-object label "
-                                     "DataIndexableCol")):
+                    msg = "cannot have non-object label DataIndexableCol"
+                    with pytest.raises(ValueError, match=msg):
                         df.to_hdf(path, 'df', format='table',
                                   data_columns=True)
 
@@ -5134,14 +5157,14 @@ class TestHDFStore(Base):
                           pd.Timedelta(1, 's')]:
                     query = 'date {op} v'.format(op=op)
                     with pytest.raises(TypeError):
-                        result = store.select('test', where=query)
+                        store.select('test', where=query)
 
                 # strings to other columns must be convertible to type
                 v = 'a'
                 for col in ['int', 'float', 'real_date']:
                     query = '{col} {op} v'.format(op=op, col=col)
                     with pytest.raises(ValueError):
-                        result = store.select('test', where=query)
+                        store.select('test', where=query)
 
                 for v, col in zip(['1', '1.1', '2014-01-01'],
                                   ['int', 'float', 'real_date']):
@@ -5273,6 +5296,7 @@ class TestHDFComplexValues(Base):
             reread = read_hdf(path, 'df')
             assert_frame_equal(df, reread)
 
+    @pytest.mark.filterwarnings("ignore:\\nPanel:FutureWarning")
     def test_complex_across_dimensions_fixed(self):
         with catch_warnings(record=True):
             complex128 = np.array(
@@ -5290,6 +5314,7 @@ class TestHDFComplexValues(Base):
                     reread = read_hdf(path, 'obj')
                     comp(obj, reread)
 
+    @pytest.mark.filterwarnings("ignore:\\nPanel:FutureWarning")
     def test_complex_across_dimensions(self):
         complex128 = np.array([1.0 + 1.0j, 1.0 + 1.0j, 1.0 + 1.0j, 1.0 + 1.0j])
         s = Series(complex128, index=list('abcd'))

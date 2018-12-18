@@ -9,7 +9,8 @@ from numpy import nan
 
 import pandas as pd
 from pandas import (DataFrame, date_range, Index,
-                    Series, MultiIndex, Timestamp, DatetimeIndex)
+                    Series, MultiIndex, Timestamp)
+from pandas.core.groupby.ops import BinGrouper
 from pandas.compat import StringIO
 from pandas.util import testing as tm
 from pandas.util.testing import assert_frame_equal, assert_series_equal
@@ -42,8 +43,8 @@ class TestGroupBy(object):
 
             expected = DataFrame(
                 {'Quantity': 0},
-                index=date_range('20130901 13:00:00',
-                                 '20131205 13:00:00', freq='5D',
+                index=date_range('20130901',
+                                 '20131205', freq='5D',
                                  name='Date', closed='left'))
             expected.iloc[[0, 6, 18], 0] = np.array([24, 6, 9], dtype='int64')
 
@@ -83,8 +84,7 @@ class TestGroupBy(object):
         g = df.groupby(pd.Grouper(freq='6M'))
         assert g.group_keys
 
-        import pandas.core.groupby.groupby
-        assert isinstance(g.grouper, pandas.core.groupby.groupby.BinGrouper)
+        assert isinstance(g.grouper, BinGrouper)
         groups = g.groups
         assert isinstance(groups, dict)
         assert len(groups) == 3
@@ -374,9 +374,9 @@ class TestGroupBy(object):
                             expected.reset_index(drop=True))
 
     def test_groupby_groups_datetimeindex(self):
-        # #1430
+        # GH#1430
         periods = 1000
-        ind = DatetimeIndex(start='2012/1/1', freq='5min', periods=periods)
+        ind = pd.date_range(start='2012/1/1', freq='5min', periods=periods)
         df = DataFrame({'high': np.arange(periods),
                         'low': np.arange(periods)}, index=ind)
         grouped = df.groupby(lambda x: datetime(x.year, x.month, x.day))
@@ -385,7 +385,7 @@ class TestGroupBy(object):
         groups = grouped.groups
         assert isinstance(list(groups.keys())[0], datetime)
 
-        # GH 11442
+        # GH#11442
         index = pd.date_range('2015/01/01', periods=5, name='date')
         df = pd.DataFrame({'A': [5, 6, 7, 8, 9],
                            'B': [1, 2, 3, 4, 5]}, index=index)

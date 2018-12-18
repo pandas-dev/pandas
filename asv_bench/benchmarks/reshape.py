@@ -1,14 +1,12 @@
+import string
 from itertools import product
 
 import numpy as np
 from pandas import DataFrame, MultiIndex, date_range, melt, wide_to_long
-
-from .pandas_vb_common import setup  # noqa
+import pandas as pd
 
 
 class Melt(object):
-
-    goal_time = 0.2
 
     def setup(self):
         self.df = DataFrame(np.random.randn(10000, 3), columns=['A', 'B', 'C'])
@@ -20,8 +18,6 @@ class Melt(object):
 
 
 class Pivot(object):
-
-    goal_time = 0.2
 
     def setup(self):
         N = 10000
@@ -36,8 +32,6 @@ class Pivot(object):
 
 
 class SimpleReshape(object):
-
-    goal_time = 0.2
 
     def setup(self):
         arrays = [np.arange(100).repeat(100),
@@ -55,29 +49,37 @@ class SimpleReshape(object):
 
 class Unstack(object):
 
-    goal_time = 0.2
+    params = ['int', 'category']
 
-    def setup(self):
+    def setup(self, dtype):
         m = 100
         n = 1000
 
         levels = np.arange(m)
         index = MultiIndex.from_product([levels] * 2)
         columns = np.arange(n)
-        values = np.arange(m * m * n).reshape(m * m, n)
+        if dtype == 'int':
+            values = np.arange(m * m * n).reshape(m * m, n)
+        else:
+            # the category branch is ~20x slower than int. So we
+            # cut down the size a bit. Now it's only ~3x slower.
+            n = 50
+            columns = columns[:n]
+            indices = np.random.randint(0, 52, size=(m * m, n))
+            values = np.take(list(string.ascii_letters), indices)
+            values = [pd.Categorical(v) for v in values.T]
+
         self.df = DataFrame(values, index, columns)
         self.df2 = self.df.iloc[:-1]
 
-    def time_full_product(self):
+    def time_full_product(self, dtype):
         self.df.unstack()
 
-    def time_without_last_row(self):
+    def time_without_last_row(self, dtype):
         self.df2.unstack()
 
 
 class SparseIndex(object):
-
-    goal_time = 0.2
 
     def setup(self):
         NUM_ROWS = 1000
@@ -94,8 +96,6 @@ class SparseIndex(object):
 
 
 class WideToLong(object):
-
-    goal_time = 0.2
 
     def setup(self):
         nyrs = 20
@@ -115,8 +115,6 @@ class WideToLong(object):
 
 class PivotTable(object):
 
-    goal_time = 0.2
-
     def setup(self):
         N = 100000
         fac1 = np.array(['A', 'B', 'C'], dtype='O')
@@ -132,3 +130,58 @@ class PivotTable(object):
 
     def time_pivot_table(self):
         self.df.pivot_table(index='key1', columns=['key2', 'key3'])
+
+
+class GetDummies(object):
+    def setup(self):
+        categories = list(string.ascii_letters[:12])
+        s = pd.Series(np.random.choice(categories, size=1000000),
+                      dtype=pd.api.types.CategoricalDtype(categories))
+        self.s = s
+
+    def time_get_dummies_1d(self):
+        pd.get_dummies(self.s, sparse=False)
+
+    def time_get_dummies_1d_sparse(self):
+        pd.get_dummies(self.s, sparse=True)
+
+
+class Cut(object):
+    params = [[4, 10, 1000]]
+    param_names = ['bins']
+
+    def setup(self, bins):
+        N = 10**5
+        self.int_series = pd.Series(np.arange(N).repeat(5))
+        self.float_series = pd.Series(np.random.randn(N).repeat(5))
+        self.timedelta_series = pd.Series(np.random.randint(N, size=N),
+                                          dtype='timedelta64[ns]')
+        self.datetime_series = pd.Series(np.random.randint(N, size=N),
+                                         dtype='datetime64[ns]')
+
+    def time_cut_int(self, bins):
+        pd.cut(self.int_series, bins)
+
+    def time_cut_float(self, bins):
+        pd.cut(self.float_series, bins)
+
+    def time_cut_timedelta(self, bins):
+        pd.cut(self.timedelta_series, bins)
+
+    def time_cut_datetime(self, bins):
+        pd.cut(self.datetime_series, bins)
+
+    def time_qcut_int(self, bins):
+        pd.qcut(self.int_series, bins)
+
+    def time_qcut_float(self, bins):
+        pd.qcut(self.float_series, bins)
+
+    def time_qcut_timedelta(self, bins):
+        pd.qcut(self.timedelta_series, bins)
+
+    def time_qcut_datetime(self, bins):
+        pd.qcut(self.datetime_series, bins)
+
+
+from .pandas_vb_common import setup  # noqa: F401

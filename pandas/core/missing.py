@@ -1,26 +1,19 @@
 """
 Routines for filling missing data
 """
+from distutils.version import LooseVersion
 import operator
 
 import numpy as np
-from distutils.version import LooseVersion
 
 from pandas._libs import algos, lib
-
 from pandas.compat import range, string_types
-from pandas.core.dtypes.common import (
-    is_numeric_v_string_like,
-    is_float_dtype,
-    is_datetime64_dtype,
-    is_datetime64tz_dtype,
-    is_integer_dtype,
-    is_scalar,
-    is_integer,
-    needs_i8_conversion,
-    _ensure_float64)
 
 from pandas.core.dtypes.cast import infer_dtype_from_array
+from pandas.core.dtypes.common import (
+    ensure_float64, is_datetime64_dtype, is_datetime64tz_dtype, is_float_dtype,
+    is_integer, is_integer_dtype, is_numeric_v_string_like, is_scalar,
+    needs_i8_conversion)
 from pandas.core.dtypes.missing import isna
 
 
@@ -67,6 +60,10 @@ def mask_missing(arr, values_to_mask):
             mask = isna(arr)
         else:
             mask |= isna(arr)
+
+    # GH 21977
+    if mask is None:
+        mask = np.zeros(arr.shape, dtype=bool)
 
     return mask
 
@@ -480,7 +477,7 @@ def pad_1d(values, limit=None, mask=None, dtype=None):
     elif is_datetime64_dtype(dtype) or is_datetime64tz_dtype(dtype):
         _method = _pad_1d_datetime
     elif is_integer_dtype(values):
-        values = _ensure_float64(values)
+        values = ensure_float64(values)
         _method = algos.pad_inplace_float64
     elif values.dtype == np.object_:
         _method = algos.pad_inplace_object
@@ -506,7 +503,7 @@ def backfill_1d(values, limit=None, mask=None, dtype=None):
     elif is_datetime64_dtype(dtype) or is_datetime64tz_dtype(dtype):
         _method = _backfill_1d_datetime
     elif is_integer_dtype(values):
-        values = _ensure_float64(values)
+        values = ensure_float64(values)
         _method = algos.backfill_inplace_float64
     elif values.dtype == np.object_:
         _method = algos.backfill_inplace_object
@@ -533,7 +530,7 @@ def pad_2d(values, limit=None, mask=None, dtype=None):
     elif is_datetime64_dtype(dtype) or is_datetime64tz_dtype(dtype):
         _method = _pad_2d_datetime
     elif is_integer_dtype(values):
-        values = _ensure_float64(values)
+        values = ensure_float64(values)
         _method = algos.pad_2d_inplace_float64
     elif values.dtype == np.object_:
         _method = algos.pad_2d_inplace_object
@@ -564,7 +561,7 @@ def backfill_2d(values, limit=None, mask=None, dtype=None):
     elif is_datetime64_dtype(dtype) or is_datetime64tz_dtype(dtype):
         _method = _backfill_2d_datetime
     elif is_integer_dtype(values):
-        values = _ensure_float64(values)
+        values = ensure_float64(values)
         _method = algos.backfill_2d_inplace_float64
     elif values.dtype == np.object_:
         _method = algos.backfill_2d_inplace_object
@@ -638,7 +635,8 @@ def fill_zeros(result, x, y, name, fill):
             # if we have a fill of inf, then sign it correctly
             # (GH 6178 and PR 9308)
             if np.isinf(fill):
-                signs = np.sign(y if name.startswith(('r', '__r')) else x)
+                signs = y if name.startswith(('r', '__r')) else x
+                signs = np.sign(signs.astype('float', copy=False))
                 negative_inf_mask = (signs.ravel() < 0) & mask
                 np.putmask(result, negative_inf_mask, -fill)
 
@@ -755,9 +753,10 @@ def _interp_limit(invalid, fw_limit, bw_limit):
 
     .. code-block:: python
 
-       for x in np.where(invalid)[0]:
-           if invalid[max(0, x - fw_limit):x + bw_limit + 1].all():
-               yield x
+        def _interp_limit(invalid, fw_limit, bw_limit):
+            for x in np.where(invalid)[0]:
+                if invalid[max(0, x - fw_limit):x + bw_limit + 1].all():
+                    yield x
     """
     # handle forward first; the backward direction is the same except
     # 1. operate on the reversed array

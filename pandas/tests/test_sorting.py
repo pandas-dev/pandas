@@ -7,8 +7,7 @@ from datetime import datetime
 import numpy as np
 from numpy import nan
 from pandas.core import common as com
-from pandas import (DataFrame, MultiIndex, merge, concat, Series, compat,
-                    _np_version_under1p10)
+from pandas import DataFrame, MultiIndex, merge, concat, Series, compat
 from pandas.util import testing as tm
 from pandas.util.testing import assert_frame_equal, assert_series_equal
 from pandas.core.sorting import (is_int64_overflow_possible,
@@ -50,7 +49,7 @@ class TestSorting(object):
 
         tups = list(map(tuple, df[['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H'
                                    ]].values))
-        tups = com._asarray_tuplesafe(tups)
+        tups = com.asarray_tuplesafe(tups)
 
         expected = df.groupby(tups).sum()['values']
 
@@ -127,13 +126,6 @@ class TestSorting(object):
         items = [nan] * 5 + list(range(100)) + [nan] * 5
         # np.argsort(items2) may not place NaNs first
         items2 = np.array(items, dtype='O')
-
-        try:
-            # GH 2785; due to a regression in NumPy1.6.2
-            np.argsort(np.array([[1, 2], [1, 3], [1, 2]], dtype='i'))
-            np.argsort(items2, kind='mergesort')
-        except TypeError:
-            pytest.skip('requested sort not available for type')
 
         # mergesort is the most difficult to get right because we want it to be
         # stable.
@@ -416,7 +408,7 @@ class TestSafeSort(object):
     def test_unsortable(self):
         # GH 13714
         arr = np.array([1, 2, datetime.now(), 0, 3], dtype=object)
-        if compat.PY2 and not _np_version_under1p10:
+        if compat.PY2:
             # RuntimeWarning: tp_compare didn't return -1 or -2 for exception
             with warnings.catch_warnings():
                 pytest.raises(TypeError, safe_sort, arr)
@@ -424,14 +416,14 @@ class TestSafeSort(object):
             pytest.raises(TypeError, safe_sort, arr)
 
     def test_exceptions(self):
-        with tm.assert_raises_regex(TypeError,
-                                    "Only list-like objects are allowed"):
+        with pytest.raises(TypeError,
+                           match="Only list-like objects are allowed"):
             safe_sort(values=1)
 
-        with tm.assert_raises_regex(TypeError,
-                                    "Only list-like objects or None"):
+        with pytest.raises(TypeError,
+                           match="Only list-like objects or None"):
             safe_sort(values=[0, 1, 2], labels=1)
 
-        with tm.assert_raises_regex(ValueError,
-                                    "values should be unique"):
+        with pytest.raises(ValueError,
+                           match="values should be unique"):
             safe_sort(values=[0, 1, 2, 1], labels=[0, 1])

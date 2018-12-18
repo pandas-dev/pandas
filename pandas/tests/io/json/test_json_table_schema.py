@@ -150,7 +150,7 @@ class TestTableSchemaType(object):
         assert as_json_table_type(bool_dtype) == 'boolean'
 
     @pytest.mark.parametrize('date_dtype', [
-        np.datetime64, np.dtype("<M8[ns]"), PeriodDtype(),
+        np.datetime64, np.dtype("<M8[ns]"), PeriodDtype('D'),
         DatetimeTZDtype('ns', 'US/Central')])
     def test_as_json_table_type_date_dtypes(self, date_dtype):
         # TODO: datedate.date? datetime.time?
@@ -409,8 +409,8 @@ class TestTableOrient(object):
     @pytest.mark.parametrize("inp", ["geopoint", "geojson", "fake_type"])
     def test_convert_json_field_to_pandas_type_raises(self, inp):
         field = {'type': inp}
-        with tm.assert_raises_regex(ValueError, "Unsupported or invalid field "
-                                    "type: {}".format(inp)):
+        with pytest.raises(ValueError, match=("Unsupported or invalid field "
+                                              "type: {}".format(inp))):
             convert_json_field_to_pandas_type(field)
 
     def test_categorical(self):
@@ -480,7 +480,7 @@ class TestTableOrient(object):
             ['a'], [1]], names=["A", "a"]))
     ])
     def test_overlapping_names(self, case):
-        with tm.assert_raises_regex(ValueError, 'Overlapping'):
+        with pytest.raises(ValueError, match='Overlapping'):
             case.to_json(orient='table')
 
     def test_mi_falsey_name(self):
@@ -495,7 +495,10 @@ class TestTableOrient(object):
 class TestTableOrientReader(object):
 
     @pytest.mark.parametrize("index_nm", [
-        None, "idx", pytest.param("index", marks=pytest.mark.xfail),
+        None,
+        "idx",
+        pytest.param("index",
+                     marks=pytest.mark.xfail),
         'level_0'])
     @pytest.mark.parametrize("vals", [
         {'ints': [1, 2, 3, 4]},
@@ -504,7 +507,8 @@ class TestTableOrientReader(object):
         {'categoricals': pd.Series(pd.Categorical(['a', 'b', 'c', 'c']))},
         {'ordered_cats': pd.Series(pd.Categorical(['a', 'b', 'c', 'c'],
                                                   ordered=True))},
-        pytest.param({'floats': [1., 2., 3., 4.]}, marks=pytest.mark.xfail),
+        pytest.param({'floats': [1., 2., 3., 4.]},
+                     marks=pytest.mark.xfail),
         {'floats': [1.1, 2.2, 3.3, 4.4]},
         {'bools': [True, False, False, True]}])
     def test_read_json_table_orient(self, index_nm, vals, recwarn):
@@ -522,7 +526,7 @@ class TestTableOrientReader(object):
     def test_read_json_table_orient_raises(self, index_nm, vals, recwarn):
         df = DataFrame(vals, index=pd.Index(range(4), name=index_nm))
         out = df.to_json(orient="table")
-        with tm.assert_raises_regex(NotImplementedError, 'can not yet read '):
+        with pytest.raises(NotImplementedError, match='can not yet read '):
             pd.read_json(out, orient="table")
 
     def test_comprehensive(self):
@@ -562,7 +566,9 @@ class TestTableOrientReader(object):
         tm.assert_frame_equal(df, result)
 
     @pytest.mark.parametrize("strict_check", [
-        pytest.param(True, marks=pytest.mark.xfail), False])
+        pytest.param(True, marks=pytest.mark.xfail),
+        False
+    ])
     def test_empty_frame_roundtrip(self, strict_check):
         # GH 21287
         df = pd.DataFrame([], columns=['a', 'b', 'c'])

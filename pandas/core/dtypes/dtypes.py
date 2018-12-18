@@ -1,11 +1,93 @@
 """ define extension dtypes """
-
 import re
+import warnings
+
 import numpy as np
+import pytz
+
+from pandas._libs.interval import Interval
+from pandas._libs.tslibs import NaT, Period, Timestamp, timezones
+
+from pandas.core.dtypes.generic import ABCCategoricalIndex, ABCIndexClass
+
 from pandas import compat
-from pandas.core.dtypes.generic import ABCIndexClass, ABCCategoricalIndex
 
 from .base import ExtensionDtype, _DtypeOpsMixin
+
+
+def register_extension_dtype(cls):
+    """Class decorator to register an ExtensionType with pandas.
+
+    .. versionadded:: 0.24.0
+
+    This enables operations like ``.astype(name)`` for the name
+    of the ExtensionDtype.
+
+    Examples
+    --------
+    >>> from pandas.api.extensions import register_extension_dtype
+    >>> from pandas.api.extensions import ExtensionDtype
+    >>> @register_extension_dtype
+    ... class MyExtensionDtype(ExtensionDtype):
+    ...     pass
+    """
+    registry.register(cls)
+    return cls
+
+
+class Registry(object):
+    """
+    Registry for dtype inference
+
+    The registry allows one to map a string repr of a extension
+    dtype to an extenstion dtype.
+
+    Multiple extension types can be registered.
+    These are tried in order.
+    """
+    def __init__(self):
+        self.dtypes = []
+
+    def register(self, dtype):
+        """
+        Parameters
+        ----------
+        dtype : ExtensionDtype
+        """
+        if not issubclass(dtype, (PandasExtensionDtype, ExtensionDtype)):
+            raise ValueError("can only register pandas extension dtypes")
+
+        self.dtypes.append(dtype)
+
+    def find(self, dtype):
+        """
+        Parameters
+        ----------
+        dtype : PandasExtensionDtype or string
+
+        Returns
+        -------
+        return the first matching dtype, otherwise return None
+        """
+        if not isinstance(dtype, compat.string_types):
+            dtype_type = dtype
+            if not isinstance(dtype, type):
+                dtype_type = type(dtype)
+            if issubclass(dtype_type, ExtensionDtype):
+                return dtype
+
+            return None
+
+        for dtype_type in self.dtypes:
+            try:
+                return dtype_type.construct_from_string(dtype)
+            except TypeError:
+                pass
+
+        return None
+
+
+registry = Registry()
 
 
 class PandasExtensionDtype(_DtypeOpsMixin):
@@ -24,7 +106,6 @@ class PandasExtensionDtype(_DtypeOpsMixin):
     base = None
     isbuiltin = 0
     isnative = 0
-    _metadata = []
     _cache = {}
 
     def __unicode__(self):
@@ -83,6 +164,7 @@ class CategoricalDtypeType(type):
     pass
 
 
+@register_extension_dtype
 class CategoricalDtype(PandasExtensionDtype, ExtensionDtype):
     """
     Type for categorical data with the categories and orderedness
@@ -104,6 +186,10 @@ class CategoricalDtype(PandasExtensionDtype, ExtensionDtype):
     -------
     None
 
+    See Also
+    --------
+    pandas.Categorical
+
     Notes
     -----
     This class is useful for specifying the type of a ``Categorical``
@@ -112,7 +198,7 @@ class CategoricalDtype(PandasExtensionDtype, ExtensionDtype):
 
     Examples
     --------
-    >>> t = CategoricalDtype(categories=['b', 'a'], ordered=True)
+    >>> t = pd.CategoricalDtype(categories=['b', 'a'], ordered=True)
     >>> pd.Series(['a', 'b', 'a', 'c'], dtype=t)
     0      a
     1      b
@@ -120,10 +206,6 @@ class CategoricalDtype(PandasExtensionDtype, ExtensionDtype):
     3    NaN
     dtype: category
     Categories (2, object): [b < a]
-
-    See Also
-    --------
-    pandas.Categorical
     """
     # TODO: Document public vs. private API
     name = 'category'
@@ -131,7 +213,7 @@ class CategoricalDtype(PandasExtensionDtype, ExtensionDtype):
     kind = 'O'
     str = '|O08'
     base = np.dtype('O')
-    _metadata = ['categories', 'ordered']
+    _metadata = ('categories', 'ordered')
     _cache = {}
 
     def __init__(self, categories=None, ordered=None):
@@ -246,7 +328,6 @@ class CategoricalDtype(PandasExtensionDtype, ExtensionDtype):
                     # everything to a str first, which means we treat
                     # {'1', '2'} the same as {'1', 2}
                     # find a better solution
-                    cat_array = np.array([hash(x) for x in categories])
                     hashed = hash((tuple(categories), ordered))
                     return hashed
             cat_array = hash_array(np.asarray(categories), categorize=False)
@@ -258,24 +339,32 @@ class CategoricalDtype(PandasExtensionDtype, ExtensionDtype):
             cat_array = [cat_array]
         hashed = _combine_hash_arrays(iter(cat_array),
                                       num_items=len(cat_array))
-        if len(hashed) == 0:
-            # bug in Numpy<1.12 for length 0 arrays. Just return the correct
-            # value of 0
-            return 0
-        else:
-            return np.bitwise_xor.reduce(hashed)
+        return np.bitwise_xor.reduce(hashed)
+
+    @classmethod
+    def construct_array_type(cls):
+        """
+        Return the array type associated with this dtype
+
+        Returns
+        -------
+        type
+        """
+        from pandas import Categorical
+        return Categorical
 
     @classmethod
     def construct_from_string(cls, string):
-        """ attempt to construct this type from a string, raise a TypeError if
+        """
+        attempt to construct this type from a string, raise a TypeError if
         it's not possible """
         try:
             if string == 'category':
                 return cls()
-        except:
+            else:
+                raise TypeError("cannot construct a CategoricalDtype")
+        except AttributeError:
             pass
-
-        raise TypeError("cannot construct a CategoricalDtype")
 
     @staticmethod
     def validate_ordered(ordered):
@@ -373,15 +462,16 @@ class CategoricalDtype(PandasExtensionDtype, ExtensionDtype):
 
     @property
     def ordered(self):
-        """Whether the categories have an ordered relationship"""
+        """
+        Whether the categories have an ordered relationship.
+        """
         return self._ordered
 
+    @property
+    def _is_boolean(self):
+        from pandas.core.dtypes.common import is_bool_dtype
 
-class DatetimeTZDtypeType(type):
-    """
-    the type of DatetimeTZDtype, this metaclass determines subclass ability
-    """
-    pass
+        return is_bool_dtype(self.categories)
 
 
 class DatetimeTZDtype(PandasExtensionDtype):
@@ -393,93 +483,130 @@ class DatetimeTZDtype(PandasExtensionDtype):
     THIS IS NOT A REAL NUMPY DTYPE, but essentially a sub-class of
     np.datetime64[ns]
     """
-    type = DatetimeTZDtypeType
+    type = Timestamp
     kind = 'M'
     str = '|M8[ns]'
     num = 101
     base = np.dtype('M8[ns]')
-    _metadata = ['unit', 'tz']
+    _metadata = ('unit', 'tz')
     _match = re.compile(r"(datetime64|M8)\[(?P<unit>.+), (?P<tz>.+)\]")
     _cache = {}
 
-    def __new__(cls, unit=None, tz=None):
-        """ Create a new unit if needed, otherwise return from the cache
+    def __init__(self, unit="ns", tz=None):
+        """
+        An ExtensionDtype for timezone-aware datetime data.
 
         Parameters
         ----------
-        unit : string unit that this represents, currently must be 'ns'
-        tz : string tz that this represents
-        """
+        unit : str, default "ns"
+            The precision of the datetime data. Currently limited
+            to ``"ns"``.
+        tz : str, int, or datetime.tzinfo
+            The timezone.
 
+        Raises
+        ------
+        pytz.UnknownTimeZoneError
+            When the requested timezone cannot be found.
+
+        Examples
+        --------
+        >>> pd.core.dtypes.dtypes.DatetimeTZDtype(tz='UTC')
+        datetime64[ns, UTC]
+
+        >>> pd.core.dtypes.dtypes.DatetimeTZDtype(tz='dateutil/US/Central')
+        datetime64[ns, tzfile('/usr/share/zoneinfo/US/Central')]
+        """
         if isinstance(unit, DatetimeTZDtype):
             unit, tz = unit.unit, unit.tz
 
-        elif unit is None:
-            # we are called as an empty constructor
-            # generally for pickle compat
-            return object.__new__(cls)
-
-        elif tz is None:
-
-            # we were passed a string that we can construct
-            try:
-                m = cls._match.search(unit)
-                if m is not None:
-                    unit = m.groupdict()['unit']
-                    tz = m.groupdict()['tz']
-            except:
-                raise ValueError("could not construct DatetimeTZDtype")
-
-        elif isinstance(unit, compat.string_types):
-
-            if unit != 'ns':
+        if unit != 'ns':
+            if isinstance(unit, compat.string_types) and tz is None:
+                # maybe a string like datetime64[ns, tz], which we support for
+                # now.
+                result = type(self).construct_from_string(unit)
+                unit = result.unit
+                tz = result.tz
+                msg = (
+                    "Passing a dtype alias like 'datetime64[ns, {tz}]' "
+                    "to DatetimeTZDtype is deprecated. Use "
+                    "'DatetimeTZDtype.construct_from_string()' instead."
+                )
+                warnings.warn(msg.format(tz=tz), FutureWarning, stacklevel=2)
+            else:
                 raise ValueError("DatetimeTZDtype only supports ns units")
 
-            unit = unit
-            tz = tz
+        if tz:
+            tz = timezones.maybe_get_tz(tz)
+        elif tz is not None:
+            raise pytz.UnknownTimeZoneError(tz)
+        elif tz is None:
+            raise TypeError("A 'tz' is required.")
 
-        if tz is None:
-            raise ValueError("DatetimeTZDtype constructor must have a tz "
-                             "supplied")
+        self._unit = unit
+        self._tz = tz
 
-        # hash with the actual tz if we can
-        # some cannot be hashed, so stringfy
-        try:
-            key = (unit, tz)
-            hash(key)
-        except TypeError:
-            key = (unit, str(tz))
+    @property
+    def unit(self):
+        """The precision of the datetime data."""
+        return self._unit
 
-        # set/retrieve from cache
-        try:
-            return cls._cache[key]
-        except KeyError:
-            u = object.__new__(cls)
-            u.unit = unit
-            u.tz = tz
-            cls._cache[key] = u
-            return u
+    @property
+    def tz(self):
+        """The timezone."""
+        return self._tz
+
+    @classmethod
+    def construct_array_type(cls):
+        """
+        Return the array type associated with this dtype
+
+        Returns
+        -------
+        type
+        """
+        from pandas import DatetimeIndex
+        return DatetimeIndex
 
     @classmethod
     def construct_from_string(cls, string):
-        """ attempt to construct this type from a string, raise a TypeError if
-        it's not possible
         """
+        Construct a DatetimeTZDtype from a string.
+
+        Parameters
+        ----------
+        string : str
+            The string alias for this DatetimeTZDtype.
+            Should be formatted like ``datetime64[ns, <tz>]``,
+            where ``<tz>`` is the timezone name.
+
+        Examples
+        --------
+        >>> DatetimeTZDtype.construct_from_string('datetime64[ns, UTC]')
+        datetime64[ns, UTC]
+        """
+        msg = "Could not construct DatetimeTZDtype from '{}'"
         try:
-            return cls(unit=string)
-        except ValueError:
-            raise TypeError("could not construct DatetimeTZDtype")
+            match = cls._match.match(string)
+            if match:
+                d = match.groupdict()
+                return cls(unit=d['unit'], tz=d['tz'])
+        except Exception:
+            # TODO(py3): Change this pass to `raise TypeError(msg) from e`
+            pass
+        raise TypeError(msg.format(string))
 
     def __unicode__(self):
-        # format the tz
         return "datetime64[{unit}, {tz}]".format(unit=self.unit, tz=self.tz)
 
     @property
     def name(self):
+        """A string representation of the dtype."""
         return str(self)
 
     def __hash__(self):
         # make myself hashable
+        # TODO: update this.
         return hash(str(self))
 
     def __eq__(self, other):
@@ -490,26 +617,24 @@ class DatetimeTZDtype(PandasExtensionDtype):
                 self.unit == other.unit and
                 str(self.tz) == str(other.tz))
 
-
-class PeriodDtypeType(type):
-    """
-    the type of PeriodDtype, this metaclass determines subclass ability
-    """
-    pass
+    def __setstate__(self, state):
+        # for pickle compat.
+        self._tz = state['tz']
+        self._unit = state['unit']
 
 
-class PeriodDtype(PandasExtensionDtype):
+class PeriodDtype(ExtensionDtype, PandasExtensionDtype):
     """
     A Period duck-typed class, suitable for holding a period with freq dtype.
 
     THIS IS NOT A REAL NUMPY DTYPE, but essentially a sub-class of np.int64.
     """
-    type = PeriodDtypeType
+    type = Period
     kind = 'O'
     str = '|O08'
     base = np.dtype('O')
     num = 102
-    _metadata = ['freq']
+    _metadata = ('freq',)
     _match = re.compile(r"(P|p)eriod\[(?P<freq>.+)\]")
     _cache = {}
 
@@ -556,11 +681,16 @@ class PeriodDtype(PandasExtensionDtype):
     @classmethod
     def construct_from_string(cls, string):
         """
-        attempt to construct this type from a string, raise a TypeError
-        if its not possible
+        Strict construction from a string, raise a TypeError if not
+        possible
         """
         from pandas.tseries.offsets import DateOffset
-        if isinstance(string, (compat.string_types, DateOffset)):
+
+        if (isinstance(string, compat.string_types) and
+            (string.startswith('period[') or
+             string.startswith('Period[')) or
+                isinstance(string, DateOffset)):
+            # do not parse string like U as period[U]
             # avoid tuple to be regarded as freq
             try:
                 return cls(freq=string)
@@ -569,11 +699,15 @@ class PeriodDtype(PandasExtensionDtype):
         raise TypeError("could not construct PeriodDtype")
 
     def __unicode__(self):
-        return "period[{freq}]".format(freq=self.freq.freqstr)
+        return compat.text_type(self.name)
 
     @property
     def name(self):
-        return str(self)
+        return str("period[{freq}]".format(freq=self.freq.freqstr))
+
+    @property
+    def na_value(self):
+        return NaT
 
     def __hash__(self):
         # make myself hashable
@@ -607,27 +741,26 @@ class PeriodDtype(PandasExtensionDtype):
                 return False
         return super(PeriodDtype, cls).is_dtype(dtype)
 
+    @classmethod
+    def construct_array_type(cls):
+        from pandas.core.arrays import PeriodArray
 
-class IntervalDtypeType(type):
-    """
-    the type of IntervalDtype, this metaclass determines subclass ability
-    """
-    pass
+        return PeriodArray
 
 
-class IntervalDtype(PandasExtensionDtype):
+@register_extension_dtype
+class IntervalDtype(PandasExtensionDtype, ExtensionDtype):
     """
     A Interval duck-typed class, suitable for holding an interval
 
     THIS IS NOT A REAL NUMPY DTYPE
     """
     name = 'interval'
-    type = IntervalDtypeType
     kind = None
     str = '|O08'
     base = np.dtype('O')
     num = 103
-    _metadata = ['subtype']
+    _metadata = ('subtype',)
     _match = re.compile(r"(I|i)nterval\[(?P<subtype>.+)\]")
     _cache = {}
 
@@ -660,7 +793,7 @@ class IntervalDtype(PandasExtensionDtype):
             try:
                 subtype = pandas_dtype(subtype)
             except TypeError:
-                raise ValueError("could not construct IntervalDtype")
+                raise TypeError("could not construct IntervalDtype")
 
         if is_categorical_dtype(subtype) or is_string_dtype(subtype):
             # GH 19016
@@ -677,15 +810,34 @@ class IntervalDtype(PandasExtensionDtype):
             return u
 
     @classmethod
+    def construct_array_type(cls):
+        """
+        Return the array type associated with this dtype
+
+        Returns
+        -------
+        type
+        """
+        from pandas.core.arrays import IntervalArray
+        return IntervalArray
+
+    @classmethod
     def construct_from_string(cls, string):
         """
         attempt to construct this type from a string, raise a TypeError
         if its not possible
         """
-        if isinstance(string, compat.string_types):
+        if (isinstance(string, compat.string_types) and
+            (string.startswith('interval') or
+             string.startswith('Interval'))):
             return cls(string)
+
         msg = "a string needs to be passed, got type {typ}"
         raise TypeError(msg.format(typ=type(string)))
+
+    @property
+    def type(self):
+        return Interval
 
     def __unicode__(self):
         if self.subtype is None:
@@ -727,3 +879,11 @@ class IntervalDtype(PandasExtensionDtype):
             else:
                 return False
         return super(IntervalDtype, cls).is_dtype(dtype)
+
+
+# TODO(Extension): remove the second registry once all internal extension
+# dtypes are real extension dtypes.
+_pandas_registry = Registry()
+
+_pandas_registry.register(DatetimeTZDtype)
+_pandas_registry.register(PeriodDtype)

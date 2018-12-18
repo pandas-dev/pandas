@@ -1,19 +1,6 @@
-.. currentmodule:: pandas
 .. _groupby:
 
-.. ipython:: python
-   :suppress:
-
-   import numpy as np
-   np.random.seed(123456)
-   np.set_printoptions(precision=4, suppress=True)
-   import pandas as pd
-   pd.options.display.max_rows = 15
-   import matplotlib
-   # matplotlib.style.use('default')
-   import matplotlib.pyplot as plt
-   plt.close('all')
-   from collections import OrderedDict
+{{ header }}
 
 *****************************
 Group By: split-apply-combine
@@ -79,7 +66,7 @@ pandas objects can be split on any of their axes. The abstract definition of
 grouping is to provide a mapping of labels to group names. To create a GroupBy
 object (more on what the GroupBy object is later), you may do the following:
 
-.. code-block:: ipython
+.. code-block:: python
 
    # default is axis=0
    >>> grouped = obj.groupby(key)
@@ -103,21 +90,18 @@ consider the following ``DataFrame``:
 
 .. note::
 
-   .. versionadded:: 0.20
-
    A string passed to ``groupby`` may refer to either a column or an index level.
-   If a string matches both a column name and an index level name then a warning is
-   issued and the column takes precedence. This will result in an ambiguity error
-   in a future version.
+   If a string matches both a column name and an index level name, a
+   ``ValueError`` will be raised.
 
 .. ipython:: python
 
-   df = pd.DataFrame({'A' : ['foo', 'bar', 'foo', 'bar',
-                             'foo', 'bar', 'foo', 'foo'],
-                      'B' : ['one', 'one', 'two', 'three',
-                             'two', 'two', 'one', 'three'],
-                      'C' : np.random.randn(8),
-                      'D' : np.random.randn(8)})
+   df = pd.DataFrame({'A': ['foo', 'bar', 'foo', 'bar',
+                            'foo', 'bar', 'foo', 'foo'],
+                      'B': ['one', 'one', 'two', 'three',
+                            'two', 'two', 'one', 'three'],
+                      'C': np.random.randn(8),
+                      'D': np.random.randn(8)})
    df
 
 On a DataFrame, we obtain a GroupBy object by calling :meth:`~DataFrame.groupby`.
@@ -127,6 +111,17 @@ We could naturally group by either the ``A`` or ``B`` columns, or both:
 
    grouped = df.groupby('A')
    grouped = df.groupby(['A', 'B'])
+
+.. versionadded:: 0.24
+
+If we also have a MultiIndex on columns ``A`` and ``B``, we can group by all
+but the specified columns
+
+.. ipython:: python
+
+   df2 = df.set_index(['A', 'B'])
+   grouped = df2.groupby(level=df2.index.names.difference(['B']))
+   grouped.sum()
 
 These will split the DataFrame on its index (rows). We could also split by the
 columns:
@@ -179,7 +174,7 @@ By default the group keys are sorted during the ``groupby`` operation. You may h
 
 .. ipython:: python
 
-   df2 = pd.DataFrame({'X' : ['B', 'B', 'A', 'A'], 'Y' : [1, 2, 3, 4]})
+   df2 = pd.DataFrame({'X': ['B', 'B', 'A', 'A'], 'Y': [1, 2, 3, 4]})
    df2.groupby(['X']).sum()
    df2.groupby(['X'], sort=False).sum()
 
@@ -189,7 +184,7 @@ For example, the groups created by ``groupby()`` below are in the order they app
 
 .. ipython:: python
 
-   df3 = pd.DataFrame({'X' : ['A', 'B', 'A', 'B'], 'Y' : [1, 4, 3, 2]})
+   df3 = pd.DataFrame({'X': ['A', 'B', 'A', 'B'], 'Y': [1, 4, 3, 2]})
    df3.groupby(['X']).get_group('A')
 
    df3.groupby(['X']).get_group('B')
@@ -367,12 +362,12 @@ getting a column from a DataFrame, you can do:
 .. ipython:: python
    :suppress:
 
-   df = pd.DataFrame({'A' : ['foo', 'bar', 'foo', 'bar',
-                             'foo', 'bar', 'foo', 'foo'],
-                      'B' : ['one', 'one', 'two', 'three',
-                             'two', 'two', 'one', 'three'],
-                      'C' : np.random.randn(8),
-                      'D' : np.random.randn(8)})
+   df = pd.DataFrame({'A': ['foo', 'bar', 'foo', 'bar',
+                            'foo', 'bar', 'foo', 'foo'],
+                      'B': ['one', 'one', 'two', 'three',
+                            'two', 'two', 'one', 'three'],
+                      'C': np.random.randn(8),
+                      'D': np.random.randn(8)})
 
 .. ipython:: python
 
@@ -389,7 +384,7 @@ This is mainly syntactic sugar for the alternative and much more verbose:
 Additionally this method avoids recomputing the internal grouping information
 derived from the passed key.
 
-.. _groupby.iterating:
+.. _groupby.iterating-label:
 
 Iterating through groups
 ------------------------
@@ -402,8 +397,8 @@ natural and functions similarly to :py:func:`itertools.groupby`:
    In [4]: grouped = df.groupby('A')
 
    In [5]: for name, group in grouped:
-      ...:        print(name)
-      ...:        print(group)
+      ...:     print(name)
+      ...:     print(group)
       ...:
 
 In the case of grouping by multiple keys, the group name will be a tuple:
@@ -411,12 +406,11 @@ In the case of grouping by multiple keys, the group name will be a tuple:
 .. ipython::
 
    In [5]: for name, group in df.groupby(['A', 'B']):
-      ...:        print(name)
-      ...:        print(group)
+      ...:     print(name)
+      ...:     print(group)
       ...:
 
-It's standard Python-fu but remember you can unpack the tuple in the for loop
-statement if you wish: ``for (k1, k2), group in grouped:``.
+See :ref:`timeseries.iterating-label`.
 
 Selecting a group
 -----------------
@@ -554,8 +548,7 @@ need to rename, then you can add in a chained operation for a ``Series`` like th
    (grouped['C'].agg([np.sum, np.mean, np.std])
                 .rename(columns={'sum': 'foo',
                                  'mean': 'bar',
-                                 'std': 'baz'})
-   )
+                                 'std': 'baz'}))
 
 For a grouped ``DataFrame``, you can rename in a similar manner:
 
@@ -564,8 +557,7 @@ For a grouped ``DataFrame``, you can rename in a similar manner:
    (grouped.agg([np.sum, np.mean, np.std])
            .rename(columns={'sum': 'foo',
                             'mean': 'bar',
-                            'std': 'baz'})
-    )
+                            'std': 'baz'}))
 
 
 Applying different functions to DataFrame columns
@@ -576,8 +568,8 @@ columns of a DataFrame:
 
 .. ipython:: python
 
-   grouped.agg({'C' : np.sum,
-                'D' : lambda x: np.std(x, ddof=1)})
+   grouped.agg({'C': np.sum,
+                'D': lambda x: np.std(x, ddof=1)})
 
 The function names can also be strings. In order for a string to be valid it
 must be either implemented on GroupBy or available via :ref:`dispatching
@@ -585,7 +577,7 @@ must be either implemented on GroupBy or available via :ref:`dispatching
 
 .. ipython:: python
 
-   grouped.agg({'C' : 'sum', 'D' : 'std'})
+   grouped.agg({'C': 'sum', 'D': 'std'})
 
 .. note::
 
@@ -594,6 +586,8 @@ must be either implemented on GroupBy or available via :ref:`dispatching
     order, you can use an ``OrderedDict``.  Compare the output of the following two commands:
 
 .. ipython:: python
+
+   from collections import OrderedDict
 
    grouped.agg({'D': 'std', 'C': 'mean'})
    grouped.agg(OrderedDict([('D', 'std'), ('C', 'mean')]))
@@ -640,13 +634,13 @@ For example, suppose we wished to standardize the data within each group:
 
    index = pd.date_range('10/1/1999', periods=1100)
    ts = pd.Series(np.random.normal(0.5, 2, 1100), index)
-   ts = ts.rolling(window=100,min_periods=100).mean().dropna()
+   ts = ts.rolling(window=100, min_periods=100).mean().dropna()
 
    ts.head()
    ts.tail()
-   key = lambda x: x.year
-   zscore = lambda x: (x - x.mean()) / x.std()
-   transformed = ts.groupby(key).transform(zscore)
+
+   transformed = (ts.groupby(lambda x: x.year)
+                    .transform(lambda x: (x - x.mean()) / x.std()))
 
 We would expect the result to now have mean 0 and standard deviation 1 within
 each group, which we can easily check:
@@ -654,12 +648,12 @@ each group, which we can easily check:
 .. ipython:: python
 
    # Original Data
-   grouped = ts.groupby(key)
+   grouped = ts.groupby(lambda x: x.year)
    grouped.mean()
    grouped.std()
 
    # Transformed Data
-   grouped_trans = transformed.groupby(key)
+   grouped_trans = transformed.groupby(lambda x: x.year)
    grouped_trans.mean()
    grouped_trans.std()
 
@@ -677,14 +671,16 @@ match the shape of the input array.
 
 .. ipython:: python
 
-   data_range = lambda x: x.max() - x.min()
-   ts.groupby(key).transform(data_range)
+   ts.groupby(lambda x: x.year).transform(lambda x: x.max() - x.min())
 
 Alternatively, the built-in methods could be used to produce the same outputs.
 
 .. ipython:: python
 
-   ts.groupby(key).transform('max') - ts.groupby(key).transform('min')
+   max = ts.groupby(lambda x: x.year).transform('max')
+   min = ts.groupby(lambda x: x.year).transform('min')
+
+   max - min
 
 Another common data transform is to replace missing data with the group mean.
 
@@ -710,9 +706,7 @@ Another common data transform is to replace missing data with the group mean.
    # Non-NA count in each group
    grouped.count()
 
-   f = lambda x: x.fillna(x.mean())
-
-   transformed = grouped.transform(f)
+   transformed = grouped.transform(lambda x: x.fillna(x.mean()))
 
 We can verify that the group means have not changed in the transformed data
 and that the transformed data contains no NAs.
@@ -721,12 +715,12 @@ and that the transformed data contains no NAs.
 
    grouped_trans = transformed.groupby(key)
 
-   grouped.mean() # original group means
-   grouped_trans.mean() # transformation did not change group means
+   grouped.mean()  # original group means
+   grouped_trans.mean()  # transformation did not change group means
 
-   grouped.count() # original has some missing data points
-   grouped_trans.count() # counts after transformation
-   grouped_trans.size() # Verify non-NA count equals group size
+   grouped.count()  # original has some missing data points
+   grouped_trans.count()  # counts after transformation
+   grouped_trans.size()  # Verify non-NA count equals group size
 
 .. note::
 
@@ -779,11 +773,10 @@ missing values with the ``ffill()`` method.
 
 .. ipython:: python
 
-   df_re = pd.DataFrame({'date': pd.date_range(start='2016-01-01',
-                                 periods=4,
-                         freq='W'),
-                        'group': [1, 1, 2, 2],
-                        'val': [5, 6, 7, 8]}).set_index('date')
+   df_re = pd.DataFrame({'date': pd.date_range(start='2016-01-01', periods=4,
+                                               freq='W'),
+                         'group': [1, 1, 2, 2],
+                         'val': [5, 6, 7, 8]}).set_index('date')
    df_re
 
    df_re.groupby('group').resample('1D').ffill()
@@ -919,8 +912,8 @@ The dimension of the returned result can also change:
     In [8]: grouped = df.groupby('A')['C']
 
     In [10]: def f(group):
-       ....:     return pd.DataFrame({'original' : group,
-       ....:                          'demeaned' : group - group.mean()})
+       ....:     return pd.DataFrame({'original': group,
+       ....:                          'demeaned': group - group.mean()})
        ....:
 
     In [11]: grouped.apply(f)
@@ -931,7 +924,8 @@ that is itself a series, and possibly upcast the result to a DataFrame:
 .. ipython:: python
 
     def f(x):
-      return pd.Series([ x, x**2 ], index = ['x', 'x^2'])
+        return pd.Series([x, x ** 2], index=['x', 'x^2'])
+
     s = pd.Series(np.random.rand(5))
     s
     s.apply(f)
@@ -953,7 +947,7 @@ that is itself a series, and possibly upcast the result to a DataFrame:
 
     .. ipython:: python
 
-        d = pd.DataFrame({"a":["x", "y"], "b":[1,2]})
+        d = pd.DataFrame({"a": ["x", "y"], "b": [1, 2]})
         def identity(df):
             print(df)
             return df
@@ -988,6 +982,35 @@ Note that ``df.groupby('A').colname.std().`` is more efficient than
 is only interesting over one column (here ``colname``), it may be filtered
 *before* applying the aggregation function.
 
+.. note::
+   Any object column, also if it contains numerical values such as ``Decimal``
+   objects, is considered as a "nuisance" columns. They are excluded from
+   aggregate functions automatically in groupby.
+
+   If you do wish to include decimal or object columns in an aggregation with
+   other non-nuisance data types, you must do so explicitly.
+
+.. ipython:: python
+
+    from decimal import Decimal
+    df_dec = pd.DataFrame(
+        {'id': [1, 2, 1, 2],
+         'int_column': [1, 2, 3, 4],
+         'dec_column': [Decimal('0.50'), Decimal('0.15'),
+                        Decimal('0.25'), Decimal('0.40')]
+         }
+    )
+
+    # Decimal columns can be sum'd explicitly by themselves...
+    df_dec.groupby(['id'])[['dec_column']].sum()
+
+    # ...but cannot be combined with standard data types or they will be excluded
+    df_dec.groupby(['id'])[['int_column', 'dec_column']].sum()
+
+    # Use .agg function to aggregate over standard and "nuisance" data types
+    # at the same time
+    df_dec.groupby(['id']).agg({'int_column': 'sum', 'dec_column': 'sum'})
+
 .. _groupby.observed:
 
 Handling of (un)observed Categorical values
@@ -1001,19 +1024,25 @@ Show all values:
 
 .. ipython:: python
 
-   pd.Series([1, 1, 1]).groupby(pd.Categorical(['a', 'a', 'a'], categories=['a', 'b']), observed=False).count()
+   pd.Series([1, 1, 1]).groupby(pd.Categorical(['a', 'a', 'a'],
+                                               categories=['a', 'b']),
+                                observed=False).count()
 
 Show only the observed values:
 
 .. ipython:: python
 
-   pd.Series([1, 1, 1]).groupby(pd.Categorical(['a', 'a', 'a'], categories=['a', 'b']), observed=True).count()
+   pd.Series([1, 1, 1]).groupby(pd.Categorical(['a', 'a', 'a'],
+                                               categories=['a', 'b']),
+                                observed=True).count()
 
 The returned dtype of the grouped will *always* include *all* of the categories that were grouped.
 
 .. ipython:: python
 
-   s = pd.Series([1, 1, 1]).groupby(pd.Categorical(['a', 'a', 'a'], categories=['a', 'b']), observed=False).count()
+   s = pd.Series([1, 1, 1]).groupby(pd.Categorical(['a', 'a', 'a'],
+                                                   categories=['a', 'b']),
+                                    observed=False).count()
    s.index.dtype
 
 .. _groupby.missing:
@@ -1053,21 +1082,19 @@ use the ``pd.Grouper`` to provide this local control.
 
    import datetime
 
-   df = pd.DataFrame({
-            'Branch' : 'A A A A A A A B'.split(),
-            'Buyer': 'Carl Mark Carl Carl Joe Joe Joe Carl'.split(),
-            'Quantity': [1,3,5,1,8,1,9,3],
-            'Date' : [
-                datetime.datetime(2013,1,1,13,0),
-                datetime.datetime(2013,1,1,13,5),
-                datetime.datetime(2013,10,1,20,0),
-                datetime.datetime(2013,10,2,10,0),
-                datetime.datetime(2013,10,1,20,0),
-                datetime.datetime(2013,10,2,10,0),
-                datetime.datetime(2013,12,2,12,0),
-                datetime.datetime(2013,12,2,14,0),
-                ]
-            })
+   df = pd.DataFrame({'Branch': 'A A A A A A A B'.split(),
+                      'Buyer': 'Carl Mark Carl Carl Joe Joe Joe Carl'.split(),
+                      'Quantity': [1, 3, 5, 1, 8, 1, 9, 3],
+                      'Date': [
+                          datetime.datetime(2013, 1, 1, 13, 0),
+                          datetime.datetime(2013, 1, 1, 13, 5),
+                          datetime.datetime(2013, 10, 1, 20, 0),
+                          datetime.datetime(2013, 10, 2, 10, 0),
+                          datetime.datetime(2013, 10, 1, 20, 0),
+                          datetime.datetime(2013, 10, 2, 10, 0),
+                          datetime.datetime(2013, 12, 2, 12, 0),
+                          datetime.datetime(2013, 12, 2, 14, 0)]
+                      })
 
    df
 
@@ -1075,7 +1102,7 @@ Groupby a specific column with the desired frequency. This is like resampling.
 
 .. ipython:: python
 
-   df.groupby([pd.Grouper(freq='1M',key='Date'),'Buyer']).sum()
+   df.groupby([pd.Grouper(freq='1M', key='Date'), 'Buyer']).sum()
 
 You have an ambiguous specification in that you have a named index and a column
 that could be potential groupers.
@@ -1084,9 +1111,9 @@ that could be potential groupers.
 
    df = df.set_index('Date')
    df['Date'] = df.index + pd.offsets.MonthEnd(2)
-   df.groupby([pd.Grouper(freq='6M',key='Date'),'Buyer']).sum()
+   df.groupby([pd.Grouper(freq='6M', key='Date'), 'Buyer']).sum()
 
-   df.groupby([pd.Grouper(freq='6M',level='Date'),'Buyer']).sum()
+   df.groupby([pd.Grouper(freq='6M', level='Date'), 'Buyer']).sum()
 
 
 Taking the first rows of each group
@@ -1143,7 +1170,7 @@ As with other methods, passing ``as_index=False``, will achieve a filtration, wh
 .. ipython:: python
 
    df = pd.DataFrame([[1, np.nan], [1, 4], [5, 6]], columns=['A', 'B'])
-   g = df.groupby('A',as_index=False)
+   g = df.groupby('A', as_index=False)
 
    g.nth(0)
    g.nth(-1)
@@ -1254,12 +1281,11 @@ code more readable. First we set the data:
 
 .. ipython:: python
 
-   import numpy as np
    n = 1000
    df = pd.DataFrame({'Store': np.random.choice(['Store_1', 'Store_2'], n),
                       'Product': np.random.choice(['Product_1',
                                                    'Product_2'], n),
-                      'Revenue': (np.random.random(n)*50+10).round(2),
+                      'Revenue': (np.random.random(n) * 50 + 10).round(2),
                       'Quantity': np.random.randint(1, 10, size=n)})
    df.head(2)
 
@@ -1268,7 +1294,7 @@ Now, to find prices per store/product, we can simply do:
 .. ipython:: python
 
    (df.groupby(['Store', 'Product'])
-      .pipe(lambda grp: grp.Revenue.sum()/grp.Quantity.sum())
+      .pipe(lambda grp: grp.Revenue.sum() / grp.Quantity.sum())
       .unstack().round(2))
 
 Piping can also be expressive when you want to deliver a grouped object to some
@@ -1276,7 +1302,7 @@ arbitrary function, for example:
 
 .. code-block:: python
 
-   (df.groupby(['Store', 'Product']).pipe(report_func)
+   df.groupby(['Store', 'Product']).pipe(report_func)
 
 where ``report_func`` takes a GroupBy object and creates a report
 from that.
@@ -1291,7 +1317,8 @@ Regroup columns of a DataFrame according to their sum, and sum the aggregated on
 
 .. ipython:: python
 
-   df = pd.DataFrame({'a':[1,0,0], 'b':[0,1,0], 'c':[1,0,0], 'd':[2,3,4]})
+   df = pd.DataFrame({'a': [1, 0, 0], 'b': [0, 1, 0],
+                      'c': [1, 0, 0], 'd': [2, 3, 4]})
    df
    df.groupby(df.sum(), axis=1).sum()
 
@@ -1335,7 +1362,7 @@ In the following examples, **df.index // 5** returns a binary array which is use
 
 .. ipython:: python
 
-   df = pd.DataFrame(np.random.randn(10,2))
+   df = pd.DataFrame(np.random.randn(10, 2))
    df
    df.index // 5
    df.groupby(df.index // 5).std()
@@ -1350,12 +1377,10 @@ column index name will be used as the name of the inserted column:
 
 .. ipython:: python
 
-   df = pd.DataFrame({
-            'a':  [0, 0, 0, 0, 1, 1, 1, 1, 2, 2, 2, 2],
-            'b':  [0, 0, 1, 1, 0, 0, 1, 1, 0, 0, 1, 1],
-            'c':  [1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0],
-            'd':  [0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1],
-            })
+   df = pd.DataFrame({'a': [0, 0, 0, 0, 1, 1, 1, 1, 2, 2, 2, 2],
+                      'b': [0, 0, 1, 1, 0, 0, 1, 1, 0, 0, 1, 1],
+                      'c': [1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0],
+                      'd': [0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1]})
 
    def compute_metrics(x):
        result = {'b_sum': x['b'].sum(), 'c_mean': x['c'].mean()}

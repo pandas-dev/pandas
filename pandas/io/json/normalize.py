@@ -1,16 +1,20 @@
 # ---------------------------------------------------------------------
 # JSON normalization routines
 
-import copy
 from collections import defaultdict
+import copy
+
 import numpy as np
 
 from pandas._libs.writers import convert_json_to_lines
-from pandas import compat, DataFrame
+
+from pandas import DataFrame, compat
 
 
 def _convert_to_line_delimits(s):
-    """Helper function that converts json lists to line delimited json."""
+    """
+    Helper function that converts JSON lists to line delimited JSON.
+    """
 
     # Determine we have a JSON list to turn to lines otherwise just return the
     # json object, only lists can
@@ -22,9 +26,10 @@ def _convert_to_line_delimits(s):
 
 
 def nested_to_record(ds, prefix="", sep=".", level=0):
-    """a simplified json_normalize
+    """
+    A simplified json_normalize.
 
-    converts a nested dict into a flat dict ("record"), unlike json_normalize,
+    Converts a nested dict into a flat dict ("record"), unlike json_normalize,
     it does not attempt to extract a subset of the data.
 
     Parameters
@@ -97,7 +102,7 @@ def json_normalize(data, record_path=None, meta=None,
                    errors='raise',
                    sep='.'):
     """
-    "Normalize" semi-structured JSON data into a flat table
+    Normalize semi-structured JSON data into a flat table.
 
     Parameters
     ----------
@@ -108,10 +113,10 @@ def json_normalize(data, record_path=None, meta=None,
         assumed to be an array of records
     meta : list of paths (string or list of strings), default None
         Fields to use as metadata for each record in resulting table
+    meta_prefix : string, default None
     record_prefix : string, default None
         If True, prefix records with dotted (?) path, e.g. foo.bar.field if
         path to records is ['foo', 'bar']
-    meta_prefix : string, default None
     errors : {'raise', 'ignore'}, default 'raise'
 
         * 'ignore' : will ignore KeyError if keys listed in meta are not
@@ -126,7 +131,6 @@ def json_normalize(data, record_path=None, meta=None,
         e.g., for sep='.', { 'foo' : { 'bar' : 0 } } -> foo.bar
 
         .. versionadded:: 0.20.0
-
 
     Returns
     -------
@@ -194,8 +198,8 @@ def json_normalize(data, record_path=None, meta=None,
         data = [data]
 
     if record_path is None:
-        if any([[isinstance(x, dict)
-                for x in compat.itervalues(y)] for y in data]):
+        if any([isinstance(x, dict)
+                for x in compat.itervalues(y)] for y in data):
             # naive normalization, this is idempotent for flat records
             # and potentially will inflate the data considerably for
             # deeply nested structures:
@@ -225,6 +229,8 @@ def json_normalize(data, record_path=None, meta=None,
     meta_keys = [sep.join(val) for val in meta]
 
     def _recursive_extract(data, path, seen_meta, level=0):
+        if isinstance(data, dict):
+            data = [data]
         if len(path) > 1:
             for obj in data:
                 for val, key in zip(meta, meta_keys):
@@ -250,11 +256,10 @@ def json_normalize(data, record_path=None, meta=None,
                             if errors == 'ignore':
                                 meta_val = np.nan
                             else:
-                                raise \
-                                    KeyError("Try running with "
-                                             "errors='ignore' as key "
-                                             "{err} is not always present"
-                                             .format(err=e))
+                                raise KeyError("Try running with "
+                                               "errors='ignore' as key "
+                                               "{err} is not always present"
+                                               .format(err=e))
                     meta_vals[key].append(meta_val)
 
                 records.extend(recs)

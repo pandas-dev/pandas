@@ -141,10 +141,10 @@ class TestDataFrameEval(TestData):
         df = pd.DataFrame({'A': [1, 2, 3], 'B': ['a', 'b', 'b']})
 
         msg = "expr must be a string to be evaluated"
-        with tm.assert_raises_regex(ValueError, msg):
+        with pytest.raises(ValueError, match=msg):
             df.query(lambda x: x.B == "b")
 
-        with tm.assert_raises_regex(ValueError, msg):
+        with pytest.raises(ValueError, match=msg):
             df.query(111)
 
     def test_query_empty_string(self):
@@ -152,7 +152,7 @@ class TestDataFrameEval(TestData):
         df = pd.DataFrame({'A': [1, 2, 3]})
 
         msg = "expr cannot be an empty string"
-        with tm.assert_raises_regex(ValueError, msg):
+        with pytest.raises(ValueError, match=msg):
             df.query('')
 
     def test_eval_resolvers_as_list(self):
@@ -360,6 +360,7 @@ class TestDataFrameQueryWithMultiIndex(object):
             else:
                 raise AssertionError("object must be a Series or Index")
 
+    @pytest.mark.filterwarnings("ignore::FutureWarning")
     def test_raise_on_panel_with_multiindex(self, parser, engine):
         p = tm.makePanel(7)
         p.items = tm.makeCustomIndex(len(p.items), nlevels=2)
@@ -463,9 +464,13 @@ class TestDataFrameQueryNumExprPandas(object):
         df = DataFrame({'dates': date_range('1/1/2012', periods=n),
                         'nondate': np.arange(n)})
 
-        ops = '==', '!=', '<', '>', '<=', '>='
+        result = df.query('dates == nondate', parser=parser, engine=engine)
+        assert len(result) == 0
 
-        for op in ops:
+        result = df.query('dates != nondate', parser=parser, engine=engine)
+        assert_frame_equal(result, df)
+
+        for op in ['<', '>', '<=', '>=']:
             with pytest.raises(TypeError):
                 df.query('dates %s nondate' % op, parser=parser, engine=engine)
 
@@ -519,8 +524,8 @@ class TestDataFrameQueryNumExprPandas(object):
         df = DataFrame(np.random.randint(m, size=(n, 3)), columns=list('abc'))
 
         df.index.name = 'sin'
-        with tm.assert_raises_regex(NumExprClobberingError,
-                                    'Variables in expression.+'):
+        msg = 'Variables in expression.+'
+        with pytest.raises(NumExprClobberingError, match=msg):
             df.query('sin > 5', engine=engine, parser=parser)
 
     def test_query(self):
@@ -652,9 +657,11 @@ class TestDataFrameQueryNumExprPandas(object):
         from pandas.core.computation.ops import UndefinedVariableError
         engine, parser = self.engine, self.parser
         skip_if_no_pandas_parser(parser)
+
         df = DataFrame(np.random.rand(10, 2), columns=list('ab'))
-        with tm.assert_raises_regex(UndefinedVariableError,
-                                    "local variable 'c' is not defined"):
+        msg = "local variable 'c' is not defined"
+
+        with pytest.raises(UndefinedVariableError, match=msg):
             df.query('a == @c', engine=engine, parser=parser)
 
     def test_index_resolvers_come_after_columns_with_the_same_name(self):
@@ -1029,11 +1036,10 @@ class TestDataFrameEvalWithFrame(object):
         expect = self.frame.a[self.frame.a < 1] + self.frame.b
         assert_series_equal(res, expect)
 
-    def test_invalid_type_for_operator_raises(self, parser, engine):
+    @pytest.mark.parametrize('op', ['+', '-', '*', '/'])
+    def test_invalid_type_for_operator_raises(self, parser, engine, op):
         df = DataFrame({'a': [1, 2], 'b': ['c', 'd']})
-        ops = '+', '-', '*', '/'
-        for op in ops:
-            with tm.assert_raises_regex(TypeError,
-                                        r"unsupported operand type\(s\) "
-                                        "for .+: '.+' and '.+'"):
-                df.eval('a {0} b'.format(op), engine=engine, parser=parser)
+        msg = r"unsupported operand type\(s\) for .+: '.+' and '.+'"
+
+        with pytest.raises(TypeError, match=msg):
+            df.eval('a {0} b'.format(op), engine=engine, parser=parser)

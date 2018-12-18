@@ -1,15 +1,14 @@
 import numpy as np
-import pandas as pd
-from pandas.core.dtypes.common import (
-    is_scalar,
-    is_numeric_dtype,
-    is_decimal,
-    is_datetime_or_timedelta_dtype,
-    is_number,
-    _ensure_object)
-from pandas.core.dtypes.generic import ABCSeries, ABCIndexClass
-from pandas.core.dtypes.cast import maybe_downcast_to_dtype
+
 from pandas._libs import lib
+
+from pandas.core.dtypes.cast import maybe_downcast_to_dtype
+from pandas.core.dtypes.common import (
+    ensure_object, is_datetime_or_timedelta_dtype, is_decimal, is_number,
+    is_numeric_dtype, is_scalar)
+from pandas.core.dtypes.generic import ABCIndexClass, ABCSeries
+
+import pandas as pd
 
 
 def to_numeric(arg, errors='raise', downcast=None):
@@ -54,11 +53,17 @@ def to_numeric(arg, errors='raise', downcast=None):
     ret : numeric if parsing succeeded.
         Return type depends on input.  Series if Series, otherwise ndarray
 
+    See Also
+    --------
+    pandas.DataFrame.astype : Cast argument to a specified dtype.
+    pandas.to_datetime : Convert argument to datetime.
+    pandas.to_timedelta : Convert argument to timedelta.
+    numpy.ndarray.astype : Cast a numpy array to a specified type.
+
     Examples
     --------
     Take separate series and convert to numeric, coercing when told to
 
-    >>> import pandas as pd
     >>> s = pd.Series(['1.0', '2', -3])
     >>> pd.to_numeric(s)
     0    1.0
@@ -88,13 +93,6 @@ def to_numeric(arg, errors='raise', downcast=None):
     2    2.0
     3   -3.0
     dtype: float64
-
-    See also
-    --------
-    pandas.DataFrame.astype : Cast argument to a specified dtype.
-    pandas.to_datetime : Convert argument to datetime.
-    pandas.to_timedelta : Convert argument to timedelta.
-    numpy.ndarray.astype : Cast a numpy array to a specified type.
     """
     if downcast not in (None, 'integer', 'signed', 'unsigned', 'float'):
         raise ValueError('invalid downcasting method provided')
@@ -131,7 +129,7 @@ def to_numeric(arg, errors='raise', downcast=None):
         elif is_datetime_or_timedelta_dtype(values):
             values = values.astype(np.int64)
         else:
-            values = _ensure_object(values)
+            values = ensure_object(values)
             coerce_numeric = False if errors in ('ignore', 'raise') else True
             values = lib.maybe_convert_numeric(values, set(),
                                                coerce_numeric=coerce_numeric)

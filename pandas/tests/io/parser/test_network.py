@@ -6,14 +6,16 @@ and hence require a network connection to be read.
 """
 import logging
 
-import pytest
 import numpy as np
+import pytest
 
-import pandas.util.testing as tm
-import pandas.util._test_decorators as td
-from pandas import DataFrame
-from pandas.io.parsers import read_csv, read_table
 from pandas.compat import BytesIO, StringIO
+import pandas.util._test_decorators as td
+
+from pandas import DataFrame
+import pandas.util.testing as tm
+
+from pandas.io.parsers import read_csv
 
 
 @pytest.mark.network
@@ -44,7 +46,7 @@ def check_compressed_urls(salaries_table, compression, extension, mode,
     if mode != 'explicit':
         compression = mode
 
-    url_table = read_table(url, compression=compression, engine=engine)
+    url_table = read_csv(url, sep='\t', compression=compression, engine=engine)
     tm.assert_frame_equal(url_table, salaries_table)
 
 
@@ -55,10 +57,12 @@ def tips_df(datapath):
 
 
 @pytest.mark.usefixtures("s3_resource")
+@td.skip_if_not_us_locale()
 class TestS3(object):
 
     def test_parse_public_s3_bucket(self, tips_df):
         pytest.importorskip('s3fs')
+
         # more of an integration test due to the not-public contents portion
         # can probably mock this though.
         for ext, comp in [('', None), ('.gz', 'gzip'), ('.bz2', 'bz2')]:
@@ -197,4 +201,4 @@ class TestS3(object):
         with caplog.at_level(logging.DEBUG, logger='s3fs.core'):
             read_csv("s3://pandas-test/large-file.csv", nrows=5)
             # log of fetch_range (start, stop)
-            assert ((0, 5505024) in set(x.args[-2:] for x in caplog.records))
+            assert ((0, 5505024) in {x.args[-2:] for x in caplog.records})

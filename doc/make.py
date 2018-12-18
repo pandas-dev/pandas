@@ -126,7 +126,12 @@ class DocBuilder:
             self.single_doc = 'api'
         elif os.path.exists(os.path.join(SOURCE_PATH, single_doc)):
             self.single_doc_type = 'rst'
-            self.single_doc = os.path.splitext(os.path.basename(single_doc))[0]
+
+            if 'whatsnew' in single_doc:
+                basename = single_doc
+            else:
+                basename = os.path.basename(single_doc)
+            self.single_doc = os.path.splitext(basename)[0]
         elif os.path.exists(
                 os.path.join(SOURCE_PATH, '{}.rst'.format(single_doc))):
             self.single_doc_type = 'rst'
@@ -209,7 +214,10 @@ class DocBuilder:
         # TODO check_call should be more safe, but it fails with
         # exclude patterns, needs investigation
         # subprocess.check_call(args, stderr=subprocess.STDOUT)
-        os.system(' '.join(args))
+        exit_status = os.system(' '.join(args))
+        if exit_status:
+            msg = 'Command "{}" finished with exit code {}'
+            raise RuntimeError(msg.format(' '.join(args), exit_status))
 
     def _sphinx_build(self, kind):
         """Call sphinx to build documentation.
@@ -224,19 +232,19 @@ class DocBuilder:
         --------
         >>> DocBuilder(num_jobs=4)._sphinx_build('html')
         """
-        if kind not in ('html', 'latex', 'spelling'):
-            raise ValueError('kind must be html, latex or '
-                             'spelling, not {}'.format(kind))
+        if kind not in ('html', 'latex'):
+            raise ValueError('kind must be html or latex, '
+                             'not {}'.format(kind))
 
         self._run_os('sphinx-build',
                      '-j{}'.format(self.num_jobs),
                      '-b{}'.format(kind),
                      '-{}'.format(
                          'v' * self.verbosity) if self.verbosity else '',
-                     '-d{}'.format(os.path.join(BUILD_PATH, 'doctrees')),
+                     '-d"{}"'.format(os.path.join(BUILD_PATH, 'doctrees')),
                      '-Dexclude_patterns={}'.format(self.exclude_patterns),
-                     SOURCE_PATH,
-                     os.path.join(BUILD_PATH, kind))
+                     '"{}"'.format(SOURCE_PATH),
+                     '"{}"'.format(os.path.join(BUILD_PATH, kind)))
 
     def _open_browser(self):
         base_url = os.path.join('file://', DOC_PATH, 'build', 'html')
@@ -305,18 +313,6 @@ class DocBuilder:
                      '-q',
                      *fnames)
 
-    def spellcheck(self):
-        """Spell check the documentation."""
-        self._sphinx_build('spelling')
-        output_location = os.path.join('build', 'spelling', 'output.txt')
-        with open(output_location) as output:
-            lines = output.readlines()
-            if lines:
-                raise SyntaxError(
-                    'Found misspelled words.'
-                    ' Check pandas/doc/build/spelling/output.txt'
-                    ' for more details.')
-
 
 def main():
     cmds = [method for method in dir(DocBuilder) if not method.startswith('_')]
@@ -362,6 +358,10 @@ def main():
     os.environ['PYTHONPATH'] = args.python_path
     sys.path.append(args.python_path)
     globals()['pandas'] = importlib.import_module('pandas')
+
+    # Set the matplotlib backend to the non-interactive Agg backend for all
+    # child processes.
+    os.environ['MPLBACKEND'] = 'module://matplotlib.backends.backend_agg'
 
     builder = DocBuilder(args.num_jobs, not args.no_api, args.single,
                          args.verbosity)

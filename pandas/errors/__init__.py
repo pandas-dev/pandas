@@ -4,7 +4,7 @@
 Expose public exceptions & warnings
 """
 
-from pandas._libs.tslib import OutOfBoundsDatetime
+from pandas._libs.tslibs import OutOfBoundsDatetime
 
 
 class PerformanceWarning(Warning):
@@ -26,7 +26,6 @@ class UnsortedIndexError(KeyError):
     and the index has not been lexsorted. Subclass of `KeyError`.
 
     .. versionadded:: 0.20.0
-
     """
 
 
@@ -133,7 +132,7 @@ class ParserWarning(Warning):
     >>> csv = u'''a;b;c
     ...           1;1,8
     ...           1;2,1'''
-    >>> df = pd.read_csv(io.StringIO(csv), sep='[;,]')
+    >>> df = pd.read_csv(io.StringIO(csv), sep='[;,]')  # doctest: +SKIP
     ... # ParserWarning: Falling back to the 'python' engine...
 
     Adding `engine='python'` to `pd.read_csv` removes the Warning:

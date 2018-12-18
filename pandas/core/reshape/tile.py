@@ -3,24 +3,21 @@ Quantilization functions and related stuff
 """
 from functools import partial
 
-from pandas.core.dtypes.missing import isna
-from pandas.core.dtypes.common import (
-    is_integer,
-    is_scalar,
-    is_categorical_dtype,
-    is_datetime64_dtype,
-    is_timedelta64_dtype,
-    is_datetime64tz_dtype,
-    _ensure_int64)
+import numpy as np
 
+from pandas._libs.lib import infer_dtype
+
+from pandas.core.dtypes.common import (
+    ensure_int64, is_categorical_dtype, is_datetime64_dtype,
+    is_datetime64tz_dtype, is_datetime_or_timedelta_dtype, is_integer,
+    is_scalar, is_timedelta64_dtype)
+from pandas.core.dtypes.missing import isna
+
+from pandas import (
+    Categorical, Index, Interval, IntervalIndex, Series, Timedelta, Timestamp,
+    to_datetime, to_timedelta)
 import pandas.core.algorithms as algos
 import pandas.core.nanops as nanops
-from pandas._libs.lib import infer_dtype
-from pandas import (to_timedelta, to_datetime,
-                    Categorical, Timestamp, Timedelta,
-                    Series, Interval, IntervalIndex)
-
-import numpy as np
 
 
 def cut(x, bins, right=True, labels=None, retbins=False, precision=3,
@@ -46,7 +43,8 @@ def cut(x, bins, right=True, labels=None, retbins=False, precision=3,
           and maximum values of `x`.
         * sequence of scalars : Defines the bin edges allowing for non-uniform
           width. No extension of the range of `x` is done.
-        * IntervalIndex : Defines the exact bins to be used.
+        * IntervalIndex : Defines the exact bins to be used. Note that
+          IntervalIndex for `bins` must be non-overlapping.
 
     right : bool, default True
         Indicates whether `bins` includes the rightmost edge or not. If
@@ -207,7 +205,11 @@ def cut(x, bins, right=True, labels=None, retbins=False, precision=3,
         rng = (nanops.nanmin(x), nanops.nanmax(x))
         mn, mx = [mi + 0.0 for mi in rng]
 
-        if mn == mx:  # adjust end points before binning
+        if np.isinf(mn) or np.isinf(mx):
+            # GH 24314
+            raise ValueError('cannot specify integer `bins` when input data '
+                             'contains infinity')
+        elif mn == mx:  # adjust end points before binning
             mn -= .001 * abs(mn) if mn != 0 else .001
             mx += .001 * abs(mx) if mx != 0 else .001
             bins = np.linspace(mn, mx, bins + 1, endpoint=True)
@@ -220,7 +222,9 @@ def cut(x, bins, right=True, labels=None, retbins=False, precision=3,
                 bins[-1] += adj
 
     elif isinstance(bins, IntervalIndex):
-        pass
+        if bins.is_overlapping:
+            raise ValueError('Overlapping IntervalIndex is not accepted.')
+
     else:
         bins = np.asarray(bins)
         bins = _convert_bin_to_numeric_type(bins, dtype)
@@ -234,7 +238,7 @@ def cut(x, bins, right=True, labels=None, retbins=False, precision=3,
                               duplicates=duplicates)
 
     return _postprocess_for_cut(fac, bins, retbins, x_is_series,
-                                series_index, name)
+                                series_index, name, dtype)
 
 
 def qcut(x, q, labels=None, retbins=False, precision=3, duplicates='raise'):
@@ -306,7 +310,7 @@ def qcut(x, q, labels=None, retbins=False, precision=3, duplicates='raise'):
                               dtype=dtype, duplicates=duplicates)
 
     return _postprocess_for_cut(fac, bins, retbins, x_is_series,
-                                series_index, name)
+                                series_index, name, dtype)
 
 
 def _bins_to_cuts(x, bins, right=True, labels=None,
@@ -334,11 +338,10 @@ def _bins_to_cuts(x, bins, right=True, labels=None,
             bins = unique_bins
 
     side = 'left' if right else 'right'
-    ids = _ensure_int64(bins.searchsorted(x, side=side))
+    ids = ensure_int64(bins.searchsorted(x, side=side))
 
     if include_lowest:
-        # Numpy 1.9 support: ensure this mask is a Numpy array
-        ids[np.asarray(x == bins[0])] = 1
+        ids[x == bins[0]] = 1
 
     na_mask = isna(x) | (ids == len(bins)) | (ids == 0)
     has_nas = na_mask.any()
@@ -428,6 +431,26 @@ def _convert_bin_to_numeric_type(bins, dtype):
     return bins
 
 
+def _convert_bin_to_datelike_type(bins, dtype):
+    """
+    Convert bins to a DatetimeIndex or TimedeltaIndex if the orginal dtype is
+    datelike
+
+    Parameters
+    ----------
+    bins : list-like of bins
+    dtype : dtype of data
+
+    Returns
+    -------
+    bins : Array-like of bins, DatetimeIndex or TimedeltaIndex if dtype is
+           datelike
+    """
+    if is_datetime64tz_dtype(dtype) or is_datetime_or_timedelta_dtype(dtype):
+        bins = Index(bins.astype(np.int64), dtype=dtype)
+    return bins
+
+
 def _format_labels(bins, precision, right=True,
                    include_lowest=False, dtype=None):
     """ based on the dtype, return our labels """
@@ -488,7 +511,7 @@ def _preprocess_for_cut(x):
 
 
 def _postprocess_for_cut(fac, bins, retbins, x_is_series,
-                         series_index, name):
+                         series_index, name, dtype):
     """
     handles post processing for the cut method where
     we combine the index information if the originally passed
@@ -499,6 +522,8 @@ def _postprocess_for_cut(fac, bins, retbins, x_is_series,
 
     if not retbins:
         return fac
+
+    bins = _convert_bin_to_datelike_type(bins, dtype)
 
     return fac, bins
 

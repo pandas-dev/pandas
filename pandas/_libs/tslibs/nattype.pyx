@@ -1,8 +1,6 @@
 # -*- coding: utf-8 -*-
-# cython: profile=False
 
 from cpython cimport (
-    PyFloat_Check, PyComplex_Check,
     PyObject_RichCompare,
     Py_GT, Py_GE, Py_EQ, Py_NE, Py_LT, Py_LE)
 
@@ -16,13 +14,14 @@ cimport numpy as cnp
 from numpy cimport int64_t
 cnp.import_array()
 
+cimport util
 from util cimport (get_nat,
                    is_integer_object, is_float_object,
                    is_datetime64_object, is_timedelta64_object)
 
 # ----------------------------------------------------------------------
 # Constants
-nat_strings = set(['NaT', 'nat', 'NAT', 'nan', 'NaN', 'NAN'])
+nat_strings = {'NaT', 'nat', 'NAT', 'nan', 'NaN', 'NAN'}
 
 cdef int64_t NPY_NAT = get_nat()
 iNaT = NPY_NAT  # python-visible constant
@@ -48,7 +47,7 @@ def _make_nan_func(func_name, doc):
 
 def _make_nat_func(func_name, doc):
     def f(*args, **kwargs):
-        return NaT
+        return c_NaT
     f.__name__ = func_name
     f.__doc__ = doc
     return f
@@ -68,10 +67,10 @@ def _make_error_func(func_name, cls):
 
 
 cdef _nat_divide_op(self, other):
-    if PyDelta_Check(other) or is_timedelta64_object(other) or other is NaT:
+    if PyDelta_Check(other) or is_timedelta64_object(other) or other is c_NaT:
         return np.nan
     if is_integer_object(other) or is_float_object(other):
-        return NaT
+        return c_NaT
     return NotImplemented
 
 
@@ -83,22 +82,23 @@ cdef _nat_rdivide_op(self, other):
 
 def __nat_unpickle(*args):
     # return constant defined in the module
-    return NaT
+    return c_NaT
 
 # ----------------------------------------------------------------------
 
 
 cdef class _NaT(datetime):
-    cdef readonly:
-        int64_t value
-        object freq
+    # cdef readonly:
+    #    int64_t value
+    #    object freq
 
     def __hash__(_NaT self):
         # py3k needs this defined here
         return hash(self.value)
 
     def __richcmp__(_NaT self, object other, int op):
-        cdef int ndim = getattr(other, 'ndim', -1)
+        cdef:
+            int ndim = getattr(other, 'ndim', -1)
 
         if ndim == -1:
             return _nat_scalar_rules[op]
@@ -116,18 +116,18 @@ cdef class _NaT(datetime):
 
     def __add__(self, other):
         if PyDateTime_Check(other):
-            return NaT
+            return c_NaT
 
         elif hasattr(other, 'delta'):
             # Timedelta, offsets.Tick, offsets.Week
-            return NaT
+            return c_NaT
         elif getattr(other, '_typ', None) in ['dateoffset', 'series',
                                               'period', 'datetimeindex',
                                               'timedeltaindex']:
             # Duplicate logic in _Timestamp.__add__ to avoid needing
             # to subclass; allows us to @final(_Timestamp.__add__)
             return NotImplemented
-        return NaT
+        return c_NaT
 
     def __sub__(self, other):
         # Duplicate some logic from _Timestamp.__sub__ to avoid needing
@@ -182,20 +182,7 @@ cdef class _NaT(datetime):
 
     def to_datetime64(self):
         """ Returns a numpy.datetime64 object with 'ns' precision """
-        return np.datetime64('NaT')
-
-
-class NaTType(_NaT):
-    """(N)ot-(A)-(T)ime, the time equivalent of NaN"""
-
-    def __new__(cls):
-        cdef _NaT base
-
-        base = _NaT.__new__(cls, 1, 1, 1)
-        base.value = NPY_NAT
-        base.freq = None
-
-        return base
+        return np.datetime64('NaT', 'ns')
 
     def __repr__(self):
         return 'NaT'
@@ -216,20 +203,11 @@ class NaTType(_NaT):
     def __long__(self):
         return NPY_NAT
 
-    def __reduce_ex__(self, protocol):
-        # python 3.6 compat
-        # http://bugs.python.org/issue28730
-        # now __reduce_ex__ is defined and higher priority than __reduce__
-        return self.__reduce__()
-
-    def __reduce__(self):
-        return (__nat_unpickle, (None, ))
-
     def total_seconds(self):
         """
         Total duration of timedelta in seconds (to ns precision)
         """
-        # GH 10939
+        # GH#10939
         return np.nan
 
     @property
@@ -260,6 +238,28 @@ class NaTType(_NaT):
     def is_year_end(self):
         return False
 
+
+class NaTType(_NaT):
+    """(N)ot-(A)-(T)ime, the time equivalent of NaN"""
+
+    def __new__(cls):
+        cdef _NaT base
+
+        base = _NaT.__new__(cls, 1, 1, 1)
+        base.value = NPY_NAT
+        base.freq = None
+
+        return base
+
+    def __reduce_ex__(self, protocol):
+        # python 3.6 compat
+        # http://bugs.python.org/issue28730
+        # now __reduce_ex__ is defined and higher priority than __reduce__
+        return self.__reduce__()
+
+    def __reduce__(self):
+        return (__nat_unpickle, (None, ))
+
     def __rdiv__(self, other):
         return _nat_rdivide_op(self, other)
 
@@ -271,7 +271,7 @@ class NaTType(_NaT):
 
     def __rmul__(self, other):
         if is_integer_object(other) or is_float_object(other):
-            return NaT
+            return c_NaT
         return NotImplemented
 
     # ----------------------------------------------------------------------
@@ -471,13 +471,31 @@ class NaTType(_NaT):
         """
         Round the Timestamp to the specified resolution
 
-        Returns
-        -------
-        a new Timestamp rounded to the given resolution of `freq`
-
         Parameters
         ----------
         freq : a freq string indicating the rounding resolution
+        ambiguous : bool, 'NaT', default 'raise'
+            - bool contains flags to determine if time is dst or not (note
+              that this flag is only applicable for ambiguous fall dst dates)
+            - 'NaT' will return NaT for an ambiguous time
+            - 'raise' will raise an AmbiguousTimeError for an ambiguous time
+
+            .. versionadded:: 0.24.0
+        nonexistent : 'shift', 'NaT', default 'raise'
+            A nonexistent time does not exist in a particular timezone
+            where clocks moved forward due to DST.
+
+            - 'shift' will shift the nonexistent time forward to the closest
+              existing time
+            - 'NaT' will return NaT where there are nonexistent times
+            - 'raise' will raise an NonExistentTimeError if there are
+              nonexistent times
+
+            .. versionadded:: 0.24.0
+
+        Returns
+        -------
+        a new Timestamp rounded to the given resolution of `freq`
 
         Raises
         ------
@@ -490,6 +508,28 @@ class NaTType(_NaT):
         Parameters
         ----------
         freq : a freq string indicating the flooring resolution
+        ambiguous : bool, 'NaT', default 'raise'
+            - bool contains flags to determine if time is dst or not (note
+              that this flag is only applicable for ambiguous fall dst dates)
+            - 'NaT' will return NaT for an ambiguous time
+            - 'raise' will raise an AmbiguousTimeError for an ambiguous time
+
+            .. versionadded:: 0.24.0
+        nonexistent : 'shift', 'NaT', default 'raise'
+            A nonexistent time does not exist in a particular timezone
+            where clocks moved forward due to DST.
+
+            - 'shift' will shift the nonexistent time forward to the closest
+              existing time
+            - 'NaT' will return NaT where there are nonexistent times
+            - 'raise' will raise an NonExistentTimeError if there are
+              nonexistent times
+
+            .. versionadded:: 0.24.0
+
+        Raises
+        ------
+        ValueError if the freq cannot be converted
         """)
     ceil = _make_nat_func('ceil',  # noqa:E128
         """
@@ -498,6 +538,28 @@ class NaTType(_NaT):
         Parameters
         ----------
         freq : a freq string indicating the ceiling resolution
+        ambiguous : bool, 'NaT', default 'raise'
+            - bool contains flags to determine if time is dst or not (note
+              that this flag is only applicable for ambiguous fall dst dates)
+            - 'NaT' will return NaT for an ambiguous time
+            - 'raise' will raise an AmbiguousTimeError for an ambiguous time
+
+            .. versionadded:: 0.24.0
+        nonexistent : 'shift', 'NaT', default 'raise'
+            A nonexistent time does not exist in a particular timezone
+            where clocks moved forward due to DST.
+
+            - 'shift' will shift the nonexistent time forward to the closest
+              existing time
+            - 'NaT' will return NaT where there are nonexistent times
+            - 'raise' will raise an NonExistentTimeError if there are
+              nonexistent times
+
+            .. versionadded:: 0.24.0
+
+        Raises
+        ------
+        ValueError if the freq cannot be converted
         """)
 
     tz_convert = _make_nat_func('tz_convert',  # noqa:E128
@@ -531,19 +593,38 @@ class NaTType(_NaT):
             None will remove timezone holding local time.
 
         ambiguous : bool, 'NaT', default 'raise'
+            When clocks moved backward due to DST, ambiguous times may arise.
+            For example in Central European Time (UTC+01), when going from
+            03:00 DST to 02:00 non-DST, 02:30:00 local time occurs both at
+            00:30:00 UTC and at 01:30:00 UTC. In such a situation, the
+            `ambiguous` parameter dictates how ambiguous times should be
+            handled.
+
             - bool contains flags to determine if time is dst or not (note
               that this flag is only applicable for ambiguous fall dst dates)
             - 'NaT' will return NaT for an ambiguous time
             - 'raise' will raise an AmbiguousTimeError for an ambiguous time
 
-        errors : 'raise', 'coerce', default 'raise'
+        nonexistent : 'shift', 'NaT', default 'raise'
+            A nonexistent time does not exist in a particular timezone
+            where clocks moved forward due to DST.
+
+            - 'shift' will shift the nonexistent time forward to the closest
+              existing time
+            - 'NaT' will return NaT where there are nonexistent times
+            - 'raise' will raise an NonExistentTimeError if there are
+              nonexistent times
+
+            .. versionadded:: 0.24.0
+
+        errors : 'raise', 'coerce', default None
             - 'raise' will raise a NonExistentTimeError if a timestamp is not
                valid in the specified timezone (e.g. due to a transition from
-               or to DST time)
+               or to DST time). Use ``nonexistent='raise'`` instead.
             - 'coerce' will return NaT if the timestamp can not be converted
-              into the specified timezone
+              into the specified timezone. Use ``nonexistent='NaT'`` instead.
 
-              .. versionadded:: 0.19.0
+              .. deprecated:: 0.24.0
 
         Returns
         -------
@@ -567,7 +648,7 @@ class NaTType(_NaT):
         minute : int, optional
         second : int, optional
         microsecond : int, optional
-        nanosecond: int, optional
+        nanosecond : int, optional
         tzinfo : tz-convertible, optional
         fold : int, optional, default is 0
             added in 3.6, NotImplemented
@@ -578,12 +659,37 @@ class NaTType(_NaT):
         """)
 
 
-NaT = NaTType()
+c_NaT = NaTType()  # C-visible
+NaT = c_NaT        # Python-visible
 
 
 # ----------------------------------------------------------------------
 
 cdef inline bint checknull_with_nat(object val):
     """ utility to check if a value is a nat or not """
-    return val is None or (
-        PyFloat_Check(val) and val != val) or val is NaT
+    return val is None or util.is_nan(val) or val is c_NaT
+
+
+cdef inline bint is_null_datetimelike(object val):
+    """
+    Determine if we have a null for a timedelta/datetime (or integer versions)
+
+    Parameters
+    ----------
+    val : object
+
+    Returns
+    -------
+    null_datetimelike : bool
+    """
+    if val is None or util.is_nan(val):
+        return True
+    elif val is c_NaT:
+        return True
+    elif util.is_timedelta64_object(val):
+        return val.view('int64') == NPY_NAT
+    elif util.is_datetime64_object(val):
+        return val.view('int64') == NPY_NAT
+    elif util.is_integer_object(val):
+        return val == NPY_NAT
+    return False

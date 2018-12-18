@@ -1,21 +1,21 @@
 """Common IO api utilities"""
 
-import os
-import csv
 import codecs
+from contextlib import closing, contextmanager
+import csv
 import mmap
-from contextlib import contextmanager, closing
+import os
 import zipfile
 
-from pandas.compat import StringIO, BytesIO, string_types, text_type
-from pandas import compat
-from pandas.io.formats.printing import pprint_thing
-import pandas.core.common as com
-from pandas.core.dtypes.common import is_number, is_file_like
+import pandas.compat as compat
+from pandas.compat import BytesIO, StringIO, string_types, text_type
+from pandas.errors import (  # noqa
+    AbstractMethodError, DtypeWarning, EmptyDataError, ParserError,
+    ParserWarning)
 
-# compat
-from pandas.errors import (ParserError, DtypeWarning,  # noqa
-                           EmptyDataError, ParserWarning)
+from pandas.core.dtypes.common import is_file_like, is_number
+
+from pandas.io.formats.printing import pprint_thing
 
 # gh-12665: Alias for now and remove later.
 CParserError = ParserError
@@ -23,10 +23,9 @@ CParserError = ParserError
 # common NA values
 # no longer excluding inf representations
 # '1.#INF','-1.#INF', '1.#INF000000',
-_NA_VALUES = set([
-    '-1.#IND', '1.#QNAN', '1.#IND', '-1.#QNAN', '#N/A N/A', '#N/A',
-    'N/A', 'n/a', 'NA', '#NA', 'NULL', 'null', 'NaN', '-NaN', 'nan', '-nan', ''
-])
+_NA_VALUES = {'-1.#IND', '1.#QNAN', '1.#IND', '-1.#QNAN', '#N/A N/A', '#N/A',
+              'N/A', 'n/a', 'NA', '#NA', 'NULL', 'null', 'NaN', '-NaN', 'nan',
+              '-nan', ''}
 
 
 if compat.PY3:
@@ -67,7 +66,7 @@ class BaseIterator(object):
         return self
 
     def __next__(self):
-        raise com.AbstractMethodError(self)
+        raise AbstractMethodError(self)
 
 
 if not compat.PY3:
@@ -267,10 +266,12 @@ def _infer_compression(filepath_or_buffer, compression):
 
     Parameters
     ----------
-    filepath_or_buf :
+    filepath_or_buffer :
         a path (str) or buffer
-    compression : str or None
-        the compression method including None for no compression and 'infer'
+    compression : {'infer', 'gzip', 'bz2', 'zip', 'xz', None}
+        If 'infer' and `filepath_or_buffer` is path-like, then detect
+        compression from the following extensions: '.gz', '.bz2', '.zip',
+        or '.xz' (otherwise no compression).
 
     Returns
     -------
@@ -322,8 +323,10 @@ def _get_handle(path_or_buf, mode, encoding=None, compression=None,
     mode : str
         mode to open path_or_buf with
     encoding : str or None
-    compression : str or None
-        Supported compression protocols are gzip, bz2, zip, and xz
+    compression : {'infer', 'gzip', 'bz2', 'zip', 'xz', None}, default None
+        If 'infer' and `filepath_or_buffer` is path-like, then detect
+        compression from the following extensions: '.gz', '.bz2', '.zip',
+        or '.xz' (otherwise no compression).
     memory_map : boolean, default False
         See parsers._parser_params for more information.
     is_text : boolean, default True
@@ -349,6 +352,9 @@ def _get_handle(path_or_buf, mode, encoding=None, compression=None,
     # Convert pathlib.Path/py.path.local or string
     path_or_buf = _stringify_path(path_or_buf)
     is_path = isinstance(path_or_buf, compat.string_types)
+
+    if is_path:
+        compression = _infer_compression(path_or_buf, compression)
 
     if compression:
 
@@ -380,6 +386,8 @@ def _get_handle(path_or_buf, mode, encoding=None, compression=None,
         # ZIP Compression
         elif compression == 'zip':
             zf = BytesZipFile(path_or_buf, mode)
+            # Ensure the container is closed as well.
+            handles.append(zf)
             if zf.mode == 'w':
                 f = zf
             elif zf.mode == 'r':
@@ -409,21 +417,22 @@ def _get_handle(path_or_buf, mode, encoding=None, compression=None,
     elif is_path:
         if compat.PY2:
             # Python 2
+            mode = "wb" if mode == "w" else mode
             f = open(path_or_buf, mode)
         elif encoding:
             # Python 3 and encoding
-            f = open(path_or_buf, mode, encoding=encoding)
+            f = open(path_or_buf, mode, encoding=encoding, newline="")
         elif is_text:
             # Python 3 and no explicit encoding
-            f = open(path_or_buf, mode, errors='replace')
+            f = open(path_or_buf, mode, errors='replace', newline="")
         else:
             # Python 3 and binary mode
             f = open(path_or_buf, mode)
         handles.append(f)
 
     # in Python 3, convert BytesIO or fileobjects passed with an encoding
-    if compat.PY3 and is_text and\
-            (compression or isinstance(f, need_text_wrapping)):
+    if (compat.PY3 and is_text and
+            (compression or isinstance(f, need_text_wrapping))):
         from io import TextIOWrapper
         f = TextIOWrapper(f, encoding=encoding)
         handles.append(f)

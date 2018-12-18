@@ -2,29 +2,26 @@
 # pylint: disable-msg=E1101,W0612
 
 from copy import copy, deepcopy
-from warnings import catch_warnings
+from warnings import catch_warnings, simplefilter
 
-import pytest
 import numpy as np
-import pandas as pd
+import pytest
+
+from pandas.compat import PY3, range, zip
 
 from pandas.core.dtypes.common import is_scalar
-from pandas import (Series, DataFrame, Panel,
-                    date_range, MultiIndex)
+
+import pandas as pd
+from pandas import DataFrame, MultiIndex, Panel, Series, date_range
+import pandas.util.testing as tm
+from pandas.util.testing import (
+    assert_frame_equal, assert_panel_equal, assert_series_equal)
 
 import pandas.io.formats.printing as printing
 
-from pandas.compat import range, zip, PY3
-from pandas.util.testing import (assert_raises_regex,
-                                 assert_series_equal,
-                                 assert_panel_equal,
-                                 assert_frame_equal)
-
-import pandas.util.testing as tm
-
-
 # ----------------------------------------------------------------------
 # Generic types test cases
+
 
 class Generic(object):
 
@@ -95,9 +92,8 @@ class Generic(object):
     def test_get_numeric_data(self):
 
         n = 4
-        kwargs = {}
-        for i in range(self._ndim):
-            kwargs[self._typ._AXIS_NAMES[i]] = list(range(n))
+        kwargs = {self._typ._AXIS_NAMES[i]: list(range(n))
+                  for i in range(self._ndim)}
 
         # get the numeric data
         o = self._construct(n, **kwargs)
@@ -476,16 +472,16 @@ class Generic(object):
         ts = df['joe'].copy()
         ts[2] = np.nan
 
-        with assert_raises_regex(TypeError, 'unexpected keyword'):
+        with pytest.raises(TypeError, match='unexpected keyword'):
             df.drop('joe', axis=1, in_place=True)
 
-        with assert_raises_regex(TypeError, 'unexpected keyword'):
+        with pytest.raises(TypeError, match='unexpected keyword'):
             df.reindex([1, 0], inplace=True)
 
-        with assert_raises_regex(TypeError, 'unexpected keyword'):
+        with pytest.raises(TypeError, match='unexpected keyword'):
             ca.fillna(0, inplace=True)
 
-        with assert_raises_regex(TypeError, 'unexpected keyword'):
+        with pytest.raises(TypeError, match='unexpected keyword'):
             ts.fillna(0, in_place=True)
 
     # See gh-12301
@@ -494,13 +490,13 @@ class Generic(object):
         starwars = 'Star Wars'
         errmsg = 'unexpected keyword'
 
-        with assert_raises_regex(TypeError, errmsg):
+        with pytest.raises(TypeError, match=errmsg):
             obj.max(epic=starwars)  # stat_function
-        with assert_raises_regex(TypeError, errmsg):
+        with pytest.raises(TypeError, match=errmsg):
             obj.var(epic=starwars)  # stat_function_ddof
-        with assert_raises_regex(TypeError, errmsg):
+        with pytest.raises(TypeError, match=errmsg):
             obj.sum(epic=starwars)  # cum_function
-        with assert_raises_regex(TypeError, errmsg):
+        with pytest.raises(TypeError, match=errmsg):
             obj.any(epic=starwars)  # logical_function
 
     def test_api_compat(self):
@@ -520,13 +516,13 @@ class Generic(object):
         out = np.array([0])
         errmsg = "the 'out' parameter is not supported"
 
-        with assert_raises_regex(ValueError, errmsg):
+        with pytest.raises(ValueError, match=errmsg):
             obj.max(out=out)  # stat_function
-        with assert_raises_regex(ValueError, errmsg):
+        with pytest.raises(ValueError, match=errmsg):
             obj.var(out=out)  # stat_function_ddof
-        with assert_raises_regex(ValueError, errmsg):
+        with pytest.raises(ValueError, match=errmsg):
             obj.sum(out=out)  # cum_function
-        with assert_raises_regex(ValueError, errmsg):
+        with pytest.raises(ValueError, match=errmsg):
             obj.any(out=out)  # logical_function
 
     def test_truncate_out_of_bounds(self):
@@ -638,6 +634,7 @@ class TestNDFrame(object):
             s.sample(n=3, weights='weight_column')
 
         with catch_warnings(record=True):
+            simplefilter("ignore", FutureWarning)
             panel = Panel(items=[0, 1, 2], major_axis=[2, 3, 4],
                           minor_axis=[3, 4, 5])
             with pytest.raises(ValueError):
@@ -705,6 +702,7 @@ class TestNDFrame(object):
 
         # Test default axes
         with catch_warnings(record=True):
+            simplefilter("ignore", FutureWarning)
             p = Panel(items=['a', 'b', 'c'], major_axis=[2, 4, 6],
                       minor_axis=[1, 3, 5])
             assert_panel_equal(
@@ -743,6 +741,7 @@ class TestNDFrame(object):
         for df in [tm.makeTimeDataFrame()]:
             tm.assert_frame_equal(df.squeeze(), df)
         with catch_warnings(record=True):
+            simplefilter("ignore", FutureWarning)
             for p in [tm.makePanel()]:
                 tm.assert_panel_equal(p.squeeze(), p)
 
@@ -751,6 +750,7 @@ class TestNDFrame(object):
         tm.assert_series_equal(df.squeeze(), df['A'])
 
         with catch_warnings(record=True):
+            simplefilter("ignore", FutureWarning)
             p = tm.makePanel().reindex(items=['ItemA'])
             tm.assert_frame_equal(p.squeeze(), p['ItemA'])
 
@@ -761,6 +761,7 @@ class TestNDFrame(object):
         empty_series = Series([], name='five')
         empty_frame = DataFrame([empty_series])
         with catch_warnings(record=True):
+            simplefilter("ignore", FutureWarning)
             empty_panel = Panel({'six': empty_frame})
 
         [tm.assert_series_equal(empty_series, higher_dim.squeeze())
@@ -798,28 +799,30 @@ class TestNDFrame(object):
             tm.assert_frame_equal(df.transpose().transpose(), df)
 
         with catch_warnings(record=True):
+            simplefilter("ignore", FutureWarning)
             for p in [tm.makePanel()]:
                 tm.assert_panel_equal(p.transpose(2, 0, 1)
                                       .transpose(1, 2, 0), p)
-                tm.assert_raises_regex(TypeError, msg, p.transpose,
-                                       2, 0, 1, axes=(2, 0, 1))
+                with pytest.raises(TypeError, match=msg):
+                    p.transpose(2, 0, 1, axes=(2, 0, 1))
 
     def test_numpy_transpose(self):
         msg = "the 'axes' parameter is not supported"
 
         s = tm.makeFloatSeries()
-        tm.assert_series_equal(
-            np.transpose(s), s)
-        tm.assert_raises_regex(ValueError, msg,
-                               np.transpose, s, axes=1)
+        tm.assert_series_equal(np.transpose(s), s)
+
+        with pytest.raises(ValueError, match=msg):
+            np.transpose(s, axes=1)
 
         df = tm.makeTimeDataFrame()
-        tm.assert_frame_equal(np.transpose(
-            np.transpose(df)), df)
-        tm.assert_raises_regex(ValueError, msg,
-                               np.transpose, df, axes=1)
+        tm.assert_frame_equal(np.transpose(np.transpose(df)), df)
+
+        with pytest.raises(ValueError, match=msg):
+            np.transpose(df, axes=1)
 
         with catch_warnings(record=True):
+            simplefilter("ignore", FutureWarning)
             p = tm.makePanel()
             tm.assert_panel_equal(np.transpose(
                 np.transpose(p, axes=(2, 0, 1)),
@@ -842,6 +845,7 @@ class TestNDFrame(object):
 
         indices = [-3, 2, 0, 1]
         with catch_warnings(record=True):
+            simplefilter("ignore", FutureWarning)
             for p in [tm.makePanel()]:
                 out = p.take(indices)
                 expected = Panel(data=p.values.take(indices, axis=0),
@@ -856,20 +860,21 @@ class TestNDFrame(object):
         df = tm.makeTimeDataFrame()
 
         with catch_warnings(record=True):
+            simplefilter("ignore", FutureWarning)
             p = tm.makePanel()
 
         for obj in (s, df, p):
             msg = r"take\(\) got an unexpected keyword argument 'foo'"
-            tm.assert_raises_regex(TypeError, msg, obj.take,
-                                   indices, foo=2)
+            with pytest.raises(TypeError, match=msg):
+                obj.take(indices, foo=2)
 
             msg = "the 'out' parameter is not supported"
-            tm.assert_raises_regex(ValueError, msg, obj.take,
-                                   indices, out=indices)
+            with pytest.raises(ValueError, match=msg):
+                obj.take(indices, out=indices)
 
             msg = "the 'mode' parameter is not supported"
-            tm.assert_raises_regex(ValueError, msg, obj.take,
-                                   indices, mode='clip')
+            with pytest.raises(ValueError, match=msg):
+                obj.take(indices, mode='clip')
 
     def test_equals(self):
         s1 = pd.Series([1, 2, 3], index=[0, 2, 1])
@@ -963,6 +968,7 @@ class TestNDFrame(object):
 
     def test_describe_raises(self):
         with catch_warnings(record=True):
+            simplefilter("ignore", FutureWarning)
             with pytest.raises(NotImplementedError):
                 tm.makePanel().describe()
 
@@ -996,6 +1002,7 @@ class TestNDFrame(object):
 
     def test_pipe_panel(self):
         with catch_warnings(record=True):
+            simplefilter("ignore", FutureWarning)
             wp = Panel({'r1': DataFrame({"A": [1, 2, 3]})})
             f = lambda x, y: x + y
             result = wp.pipe(f, 2)
@@ -1007,4 +1014,16 @@ class TestNDFrame(object):
             assert_panel_equal(result, expected)
 
             with pytest.raises(ValueError):
-                result = wp.pipe((f, 'y'), x=1, y=1)
+                wp.pipe((f, 'y'), x=1, y=1)
+
+    @pytest.mark.parametrize('box', [pd.Series, pd.DataFrame])
+    def test_axis_classmethods(self, box):
+        obj = box()
+        values = (list(box._AXIS_NAMES.keys()) +
+                  list(box._AXIS_NUMBERS.keys()) +
+                  list(box._AXIS_ALIASES.keys()))
+        for v in values:
+            assert obj._get_axis_number(v) == box._get_axis_number(v)
+            assert obj._get_axis_name(v) == box._get_axis_name(v)
+            assert obj._get_block_manager_axis(v) == \
+                box._get_block_manager_axis(v)

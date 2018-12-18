@@ -1,12 +1,14 @@
 import warnings
+
 import numpy as np
-from pandas import compat
+
 from pandas._libs import reduction
-from pandas.core.dtypes.generic import ABCSeries
-from pandas.core.dtypes.common import (
-    is_extension_type,
-    is_sequence)
+import pandas.compat as compat
 from pandas.util._decorators import cache_readonly
+
+from pandas.core.dtypes.common import (
+    is_dict_like, is_extension_type, is_list_like, is_sequence)
+from pandas.core.dtypes.generic import ABCSeries
 
 from pandas.io.formats.printing import pprint_thing
 
@@ -69,7 +71,9 @@ class FrameApply(object):
         self.result_type = result_type
 
         # curry if needed
-        if kwds or args and not isinstance(func, np.ufunc):
+        if ((kwds or args) and
+                not isinstance(func, (np.ufunc, compat.string_types))):
+
             def f(x):
                 return func(x, *args, **kwds)
         else:
@@ -105,6 +109,11 @@ class FrameApply(object):
     def get_result(self):
         """ compute the results """
 
+        # dispatch to agg
+        if is_list_like(self.f) or is_dict_like(self.f):
+            return self.obj.aggregate(self.f, axis=self.axis,
+                                      *self.args, **self.kwds)
+
         # all empty
         if len(self.columns) == 0 and len(self.index) == 0:
             return self.apply_empty_result()
@@ -123,7 +132,7 @@ class FrameApply(object):
         # ufunc
         elif isinstance(self.f, np.ufunc):
             with np.errstate(all='ignore'):
-                results = self.f(self.values)
+                results = self.obj._data.apply('apply', func=self.f)
             return self.obj._constructor(data=results, index=self.index,
                                          columns=self.columns, copy=False)
 
@@ -307,15 +316,6 @@ class FrameApply(object):
 
 class FrameRowApply(FrameApply):
     axis = 0
-
-    def get_result(self):
-
-        # dispatch to agg
-        if isinstance(self.f, (list, dict)):
-            return self.obj.aggregate(self.f, axis=self.axis,
-                                      *self.args, **self.kwds)
-
-        return super(FrameRowApply, self).get_result()
 
     def apply_broadcast(self):
         return super(FrameRowApply, self).apply_broadcast(self.obj)

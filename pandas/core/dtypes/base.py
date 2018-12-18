@@ -1,8 +1,11 @@
 """Extend pandas with custom array types"""
 import numpy as np
 
-from pandas import compat
 from pandas.errors import AbstractMethodError
+
+from pandas.core.dtypes.generic import ABCDataFrame, ABCIndexClass, ABCSeries
+
+from pandas import compat
 
 
 class _DtypeOpsMixin(object):
@@ -21,14 +24,17 @@ class _DtypeOpsMixin(object):
     # of the NA value, not the physical NA vaalue for storage.
     # e.g. for JSONArray, this is an empty dictionary.
     na_value = np.nan
+    _metadata = ()
 
     def __eq__(self, other):
         """Check whether 'other' is equal to self.
 
-        By default, 'other' is considered equal if
+        By default, 'other' is considered equal if either
 
         * it's a string matching 'self.name'.
-        * it's an instance of this type.
+        * it's an instance of this type and all of the
+          the attributes in ``self._metadata`` are equal between
+          `self` and `other`.
 
         Parameters
         ----------
@@ -39,11 +45,19 @@ class _DtypeOpsMixin(object):
         bool
         """
         if isinstance(other, compat.string_types):
-            return other == self.name
-        elif isinstance(other, type(self)):
-            return True
-        else:
-            return False
+            try:
+                other = self.construct_from_string(other)
+            except TypeError:
+                return False
+        if isinstance(other, type(self)):
+            return all(
+                getattr(self, attr) == getattr(other, attr)
+                for attr in self._metadata
+            )
+        return False
+
+    def __hash__(self):
+        return hash(tuple(getattr(self, attr) for attr in self._metadata))
 
     def __ne__(self, other):
         return not self.__eq__(other)
@@ -83,7 +97,12 @@ class _DtypeOpsMixin(object):
         """
         dtype = getattr(dtype, 'dtype', dtype)
 
-        if isinstance(dtype, np.dtype):
+        if isinstance(dtype, (ABCSeries, ABCIndexClass,
+                              ABCDataFrame, np.dtype)):
+            # https://github.com/pandas-dev/pandas/issues/22960
+            # avoid passing data to `construct_from_string`. This could
+            # cause a FutureWarning from numpy about failing elementwise
+            # comparison from, e.g., comparing DataFrame == 'category'.
             return False
         elif dtype is None:
             return False
@@ -94,11 +113,48 @@ class _DtypeOpsMixin(object):
         except TypeError:
             return False
 
+    @property
+    def _is_numeric(self):
+        # type: () -> bool
+        """
+        Whether columns with this dtype should be considered numeric.
+
+        By default ExtensionDtypes are assumed to be non-numeric.
+        They'll be excluded from operations that exclude non-numeric
+        columns, like (groupby) reductions, plotting, etc.
+        """
+        return False
+
+    @property
+    def _is_boolean(self):
+        # type: () -> bool
+        """
+        Whether this dtype should be considered boolean.
+
+        By default, ExtensionDtypes are assumed to be non-numeric.
+        Setting this to True will affect the behavior of several places,
+        e.g.
+
+        * is_bool
+        * boolean indexing
+
+        Returns
+        -------
+        bool
+        """
+        return False
+
 
 class ExtensionDtype(_DtypeOpsMixin):
-    """A custom data type, to be paired with an ExtensionArray.
+    """
+    A custom data type, to be paired with an ExtensionArray.
 
     .. versionadded:: 0.23.0
+
+    See Also
+    --------
+    pandas.api.extensions.register_extension_dtype
+    pandas.api.extensions.ExtensionArray
 
     Notes
     -----
@@ -109,8 +165,40 @@ class ExtensionDtype(_DtypeOpsMixin):
     * name
     * construct_from_string
 
+    The following attributes influence the behavior of the dtype in
+    pandas operations
+
+    * _is_numeric
+    * _is_boolean
+
+    Optionally one can override construct_array_type for construction
+    with the name of this dtype via the Registry. See
+    :meth:`pandas.api.extensions.register_extension_dtype`.
+
+    * construct_array_type
+
     The `na_value` class attribute can be used to set the default NA value
     for this type. :attr:`numpy.nan` is used by default.
+
+    ExtensionDtypes are required to be hashable. The base class provides
+    a default implementation, which relies on the ``_metadata`` class
+    attribute. ``_metadata`` should be a tuple containing the strings
+    that define your data type. For example, with ``PeriodDtype`` that's
+    the ``freq`` attribute.
+
+    **If you have a parametrized dtype you should set the ``_metadata``
+    class property**.
+
+    Ideally, the attributes in ``_metadata`` will match the
+    parameters to your ``ExtensionDtype.__init__`` (if any). If any of
+    the attributes in ``_metadata`` don't implement the standard
+    ``__eq__`` or ``__hash__``, the default implementations here will not
+    work.
+
+    .. versionchanged:: 0.24.0
+
+       Added ``_metadata``, ``__hash__``, and changed the default definition
+       of ``__eq__``.
 
     This class does not inherit from 'abc.ABCMeta' for performance reasons.
     Methods and properties required by the interface raise
@@ -124,17 +212,21 @@ class ExtensionDtype(_DtypeOpsMixin):
     @property
     def type(self):
         # type: () -> type
-        """The scalar type for the array, e.g. ``int``
+        """
+        The scalar type for the array, e.g. ``int``
 
         It's expected ``ExtensionArray[item]`` returns an instance
-        of ``ExtensionDtype.type`` for scalar ``item``.
+        of ``ExtensionDtype.type`` for scalar ``item``, assuming
+        that value is valid (not NA). NA values do not need to be
+        instances of `type`.
         """
         raise AbstractMethodError(self)
 
     @property
     def kind(self):
         # type () -> str
-        """A character code (one of 'biufcmMOSUV'), default 'O'
+        """
+        A character code (one of 'biufcmMOSUV'), default 'O'
 
         This should match the NumPy dtype used when the array is
         converted to an ndarray, which is probably 'O' for object if
@@ -150,15 +242,28 @@ class ExtensionDtype(_DtypeOpsMixin):
     @property
     def name(self):
         # type: () -> str
-        """A string identifying the data type.
+        """
+        A string identifying the data type.
 
         Will be used for display in, e.g. ``Series.dtype``
         """
         raise AbstractMethodError(self)
 
     @classmethod
+    def construct_array_type(cls):
+        """
+        Return the array type associated with this dtype
+
+        Returns
+        -------
+        type
+        """
+        raise NotImplementedError
+
+    @classmethod
     def construct_from_string(cls, string):
-        """Attempt to construct this type from a string.
+        """
+        Attempt to construct this type from a string.
 
         Parameters
         ----------

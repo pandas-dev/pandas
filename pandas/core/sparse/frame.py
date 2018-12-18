@@ -3,30 +3,37 @@ Data structures for sparse float data. Life is made simpler by dealing only
 with float64 data
 """
 from __future__ import division
-# pylint: disable=E1101,E1103,W0231,E0202
 
 import warnings
-from pandas.compat import lmap
-from pandas import compat
+
 import numpy as np
 
-from pandas.core.dtypes.missing import isna, notna
-from pandas.core.dtypes.cast import maybe_upcast, find_common_type
-from pandas.core.dtypes.common import _ensure_platform_int, is_scipy_sparse
-
-from pandas.compat.numpy import function as nv
-from pandas.core.index import Index, MultiIndex, _ensure_index
-from pandas.core.series import Series
-from pandas.core.frame import DataFrame, extract_index, _prep_ndarray
-import pandas.core.algorithms as algos
-from pandas.core.internals import (BlockManager,
-                                   create_block_manager_from_arrays)
-import pandas.core.generic as generic
-from pandas.core.sparse.series import SparseSeries, SparseArray
 from pandas._libs.sparse import BlockIndex, get_blocks
+import pandas.compat as compat
+from pandas.compat import lmap
+from pandas.compat.numpy import function as nv
 from pandas.util._decorators import Appender
-import pandas.core.ops as ops
+
+from pandas.core.dtypes.cast import find_common_type, maybe_upcast
+from pandas.core.dtypes.common import ensure_platform_int, is_scipy_sparse
+from pandas.core.dtypes.missing import isna, notna
+
+import pandas.core.algorithms as algos
+from pandas.core.arrays.sparse import SparseArray, SparseDtype
 import pandas.core.common as com
+from pandas.core.frame import DataFrame
+import pandas.core.generic as generic
+from pandas.core.index import Index, MultiIndex, ensure_index
+import pandas.core.indexes.base as ibase
+from pandas.core.internals import (
+    BlockManager, create_block_manager_from_arrays)
+from pandas.core.internals.construction import extract_index, prep_ndarray
+import pandas.core.ops as ops
+from pandas.core.series import Series
+from pandas.core.sparse.series import SparseSeries
+
+# pylint: disable=E1101,E1103,W0231,E0202
+
 
 _shared_doc_kwargs = dict(klass='SparseDataFrame')
 
@@ -111,7 +118,7 @@ class SparseDataFrame(DataFrame):
             if index is None:
                 index = Index([])
             else:
-                index = _ensure_index(index)
+                index = ensure_index(index)
 
             if columns is None:
                 columns = Index([])
@@ -139,18 +146,19 @@ class SparseDataFrame(DataFrame):
     def _init_dict(self, data, index, columns, dtype=None):
         # pre-filter out columns if we passed it
         if columns is not None:
-            columns = _ensure_index(columns)
+            columns = ensure_index(columns)
             data = {k: v for k, v in compat.iteritems(data) if k in columns}
         else:
-            keys = com._dict_keys_to_ordered_list(data)
+            keys = com.dict_keys_to_ordered_list(data)
             columns = Index(keys)
 
         if index is None:
             index = extract_index(list(data.values()))
 
-        sp_maker = lambda x: SparseArray(x, kind=self._default_kind,
-                                         fill_value=self._default_fill_value,
-                                         copy=True, dtype=dtype)
+        def sp_maker(x):
+            return SparseArray(x, kind=self._default_kind,
+                               fill_value=self._default_fill_value,
+                               copy=True, dtype=dtype)
         sdict = {}
         for k, v in compat.iteritems(data):
             if isinstance(v, Series):
@@ -167,20 +175,27 @@ class SparseDataFrame(DataFrame):
                     v = [v.get(i, np.nan) for i in index]
 
                 v = sp_maker(v)
+
+            if index is not None and len(v) != len(index):
+                msg = "Length of passed values is {}, index implies {}"
+                raise ValueError(msg.format(len(v), len(index)))
             sdict[k] = v
 
-        # TODO: figure out how to handle this case, all nan's?
-        # add in any other columns we want to have (completeness)
-        nan_arr = np.empty(len(index), dtype='float64')
-        nan_arr.fill(np.nan)
-        nan_arr = sp_maker(nan_arr)
-        sdict.update((c, nan_arr) for c in columns if c not in sdict)
+        if len(columns.difference(sdict)):
+            # TODO: figure out how to handle this case, all nan's?
+            # add in any other columns we want to have (completeness)
+            nan_arr = np.empty(len(index), dtype='float64')
+            nan_arr.fill(np.nan)
+            nan_arr = SparseArray(nan_arr, kind=self._default_kind,
+                                  fill_value=self._default_fill_value,
+                                  copy=False)
+            sdict.update((c, nan_arr) for c in columns if c not in sdict)
 
         return to_manager(sdict, columns, index)
 
     def _init_matrix(self, data, index, columns, dtype=None):
         """ Init self from ndarray or list of lists """
-        data = _prep_ndarray(data, copy=False)
+        data = prep_ndarray(data, copy=False)
         index, columns = self._prep_index(data, index, columns)
         data = {idx: data[:, i] for i, idx in enumerate(columns)}
         return self._init_dict(data, index, columns, dtype)
@@ -218,9 +233,9 @@ class SparseDataFrame(DataFrame):
     def _prep_index(self, data, index, columns):
         N, K = data.shape
         if index is None:
-            index = com._default_index(N)
+            index = ibase.default_index(N)
         if columns is None:
-            columns = com._default_index(K)
+            columns = ibase.default_index(K)
 
         if len(columns) != K:
             raise ValueError('Column length mismatch: {columns} vs. {K}'
@@ -258,6 +273,9 @@ class SparseDataFrame(DataFrame):
             raise ImportError('Scipy is not installed')
 
         dtype = find_common_type(self.dtypes)
+        if isinstance(dtype, SparseDtype):
+            dtype = dtype.subtype
+
         cols, rows, datas = [], [], []
         for col, name in enumerate(self):
             s = self[name]
@@ -322,9 +340,8 @@ class SparseDataFrame(DataFrame):
     def _apply_columns(self, func):
         """ get new SparseDataFrame applying func to each columns """
 
-        new_data = {}
-        for col, series in compat.iteritems(self):
-            new_data[col] = func(series)
+        new_data = {col: func(series)
+                    for col, series in compat.iteritems(self)}
 
         return self._constructor(
             data=new_data, index=self.index, columns=self.columns,
@@ -397,9 +414,10 @@ class SparseDataFrame(DataFrame):
         sanitized_column : SparseArray
 
         """
-        sp_maker = lambda x, index=None: SparseArray(
-            x, index=index, fill_value=self._default_fill_value,
-            kind=self._default_kind)
+        def sp_maker(x, index=None):
+            return SparseArray(x, index=index,
+                               fill_value=self._default_fill_value,
+                               kind=self._default_kind)
         if isinstance(value, SparseSeries):
             clean = value.reindex(self.index).as_sparse_array(
                 fill_value=self._default_fill_value, kind=self._default_kind)
@@ -427,18 +445,6 @@ class SparseDataFrame(DataFrame):
 
         # always return a SparseArray!
         return clean
-
-    def __getitem__(self, key):
-        """
-        Retrieve column or slice from DataFrame
-        """
-        if isinstance(key, slice):
-            date_rng = self.index[key]
-            return self.reindex(date_rng)
-        elif isinstance(key, (np.ndarray, list, Series)):
-            return self._getitem_array(key)
-        else:
-            return self._get_item_cache(key)
 
     def get_value(self, index, col, takeable=False):
         """
@@ -546,11 +552,11 @@ class SparseDataFrame(DataFrame):
     # Arithmetic-related methods
 
     def _combine_frame(self, other, func, fill_value=None, level=None):
-        this, other = self.align(other, join='outer', level=level, copy=False)
-        new_index, new_columns = this.index, this.columns
-
         if level is not None:
             raise NotImplementedError("'level' argument is not supported")
+
+        this, other = self.align(other, join='outer', level=level, copy=False)
+        new_index, new_columns = this.index, this.columns
 
         if self.empty and other.empty:
             return self._constructor(index=new_index).__finalize__(self)
@@ -571,17 +577,7 @@ class SparseDataFrame(DataFrame):
                 if col in this and col in other:
                     new_data[col] = func(this[col], other[col])
 
-        # if the fill values are the same use them? or use a valid one
-        new_fill_value = None
-        other_fill_value = getattr(other, 'default_fill_value', np.nan)
-        if self.default_fill_value == other_fill_value:
-            new_fill_value = self.default_fill_value
-        elif np.isnan(self.default_fill_value) and not np.isnan(
-                other_fill_value):
-            new_fill_value = other_fill_value
-        elif not np.isnan(self.default_fill_value) and np.isnan(
-                other_fill_value):
-            new_fill_value = self.default_fill_value
+        new_fill_value = self._get_op_result_fill_value(other, func)
 
         return self._constructor(data=new_data, index=new_index,
                                  columns=new_columns,
@@ -594,30 +590,19 @@ class SparseDataFrame(DataFrame):
         if level is not None:
             raise NotImplementedError("'level' argument is not supported")
 
-        new_index = self.index.union(other.index)
-        this = self
-        if self.index is not new_index:
-            this = self.reindex(new_index)
-
-        if other.index is not new_index:
-            other = other.reindex(new_index)
+        this, other = self.align(other, join='outer', axis=0, level=level,
+                                 copy=False)
 
         for col, series in compat.iteritems(this):
             new_data[col] = func(series.values, other.values)
 
-        # fill_value is a function of our operator
-        fill_value = None
-        if isna(other.fill_value) or isna(self.default_fill_value):
-            fill_value = np.nan
-        else:
-            fill_value = func(np.float64(self.default_fill_value),
-                              np.float64(other.fill_value))
+        fill_value = self._get_op_result_fill_value(other, func)
 
         return self._constructor(
-            new_data, index=new_index, columns=self.columns,
+            new_data, index=this.index, columns=self.columns,
             default_fill_value=fill_value).__finalize__(self)
 
-    def _combine_match_columns(self, other, func, level=None, try_cast=True):
+    def _combine_match_columns(self, other, func, level=None):
         # patched version of DataFrame._combine_match_columns to account for
         # NumPy circumventing __rsub__ with float64 types, e.g.: 3.0 - series,
         # where 3.0 is numpy.float64 and series is a SparseSeries. Still
@@ -626,23 +611,55 @@ class SparseDataFrame(DataFrame):
         if level is not None:
             raise NotImplementedError("'level' argument is not supported")
 
+        left, right = self.align(other, join='outer', axis=1, level=level,
+                                 copy=False)
+        assert left.columns.equals(right.index)
+
         new_data = {}
 
-        union = intersection = self.columns
-
-        if not union.equals(other.index):
-            union = other.index.union(self.columns)
-            intersection = other.index.intersection(self.columns)
-
-        for col in intersection:
-            new_data[col] = func(self[col], float(other[col]))
+        for col in left.columns:
+            new_data[col] = func(left[col], float(right[col]))
 
         return self._constructor(
-            new_data, index=self.index, columns=union,
+            new_data, index=left.index, columns=left.columns,
             default_fill_value=self.default_fill_value).__finalize__(self)
 
-    def _combine_const(self, other, func, errors='raise', try_cast=True):
+    def _combine_const(self, other, func):
         return self._apply_columns(lambda x: func(x, other))
+
+    def _get_op_result_fill_value(self, other, func):
+        own_default = self.default_fill_value
+
+        if isinstance(other, DataFrame):
+            # i.e. called from _combine_frame
+
+            other_default = getattr(other, 'default_fill_value', np.nan)
+
+            # if the fill values are the same use them? or use a valid one
+            if own_default == other_default:
+                # TOOD: won't this evaluate as False if both are np.nan?
+                fill_value = own_default
+            elif np.isnan(own_default) and not np.isnan(other_default):
+                fill_value = other_default
+            elif not np.isnan(own_default) and np.isnan(other_default):
+                fill_value = own_default
+            else:
+                fill_value = None
+
+        elif isinstance(other, SparseSeries):
+            # i.e. called from _combine_match_index
+
+            # fill_value is a function of our operator
+            if isna(other.fill_value) or isna(own_default):
+                fill_value = np.nan
+            else:
+                fill_value = func(np.float64(own_default),
+                                  np.float64(other.fill_value))
+
+        else:
+            raise NotImplementedError(type(other))
+
+        return fill_value
 
     def _reindex_index(self, index, method, copy, level, fill_value=np.nan,
                        limit=None, takeable=False):
@@ -660,7 +677,7 @@ class SparseDataFrame(DataFrame):
                 index=index, columns=self.columns).__finalize__(self)
 
         indexer = self.index.get_indexer(index, method, limit=limit)
-        indexer = _ensure_platform_int(indexer)
+        indexer = ensure_platform_int(indexer)
         mask = indexer == -1
         need_mask = mask.any()
 
@@ -936,7 +953,7 @@ def to_manager(sdf, columns, index):
     """
 
     # from BlockManager perspective
-    axes = [_ensure_index(columns), _ensure_index(index)]
+    axes = [ensure_index(columns), ensure_index(index)]
 
     return create_block_manager_from_arrays(
         [sdf[c] for c in columns], columns, axes)
@@ -950,7 +967,7 @@ def stack_sparse_frame(frame):
     nobs = sum(lengths)
 
     # this is pretty fast
-    minor_labels = np.repeat(np.arange(len(frame.columns)), lengths)
+    minor_codes = np.repeat(np.arange(len(frame.columns)), lengths)
 
     inds_to_concat = []
     vals_to_concat = []
@@ -965,10 +982,10 @@ def stack_sparse_frame(frame):
         inds_to_concat.append(int_index.indices)
         vals_to_concat.append(series.sp_values)
 
-    major_labels = np.concatenate(inds_to_concat)
+    major_codes = np.concatenate(inds_to_concat)
     stacked_values = np.concatenate(vals_to_concat)
     index = MultiIndex(levels=[frame.index, frame.columns],
-                       labels=[major_labels, minor_labels],
+                       codes=[major_codes, minor_codes],
                        verify_integrity=False)
 
     lp = DataFrame(stacked_values.reshape((nobs, 1)), index=index,

@@ -1,5 +1,7 @@
 .. _extending:
 
+{{ header }}
+
 ****************
 Extending Pandas
 ****************
@@ -80,7 +82,7 @@ on :ref:`ecosystem.extensions`.
 The interface consists of two classes.
 
 :class:`~pandas.api.extensions.ExtensionDtype`
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 A :class:`pandas.api.extensions.ExtensionDtype` is similar to a ``numpy.dtype`` object. It describes the
 data type. Implementors are responsible for a few unique items like the name.
@@ -91,8 +93,16 @@ extension array for IP Address data, this might be ``ipaddress.IPv4Address``.
 
 See the `extension dtype source`_ for interface definition.
 
+.. versionadded:: 0.24.0
+
+:class:`pandas.api.extension.ExtensionDtype` can be registered to pandas to allow creation via a string dtype name.
+This allows one to instantiate ``Series`` and ``.astype()`` with a registered string name, for
+example ``'category'`` is a registered string accessor for the ``CategoricalDtype``.
+
+See the `extension dtype dtypes`_ for more on how to register dtypes.
+
 :class:`~pandas.api.extensions.ExtensionArray`
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 This class provides all the array-like functionality. ExtensionArrays are
 limited to 1 dimension. An ExtensionArray is linked to an ExtensionDtype via the
@@ -116,7 +126,7 @@ and comments contain guidance for properly implementing the interface.
 .. _extending.extension.operator:
 
 :class:`~pandas.api.extensions.ExtensionArray` Operator Support
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 .. versionadded:: 0.24.0
 
@@ -126,6 +136,12 @@ There are two approaches for providing operator support for your ExtensionArray:
 1. Define each of the operators on your ``ExtensionArray`` subclass.
 2. Use an operator implementation from pandas that depends on operators that are already defined
    on the underlying elements (scalars) of the ExtensionArray.
+
+.. note::
+
+   Regardless of the approach, you may want to set ``__array_priority__``
+   if you want your implementation to be called when involved in binary operations
+   with NumPy arrays.
 
 For the first approach, you define selected operators, e.g., ``__add__``, ``__le__``, etc. that
 you want your ``ExtensionArray`` subclass to support.
@@ -146,15 +162,37 @@ your ``MyExtensionArray`` class, as follows:
 
 .. code-block:: python
 
+    from pandas.core.arrays import ExtensionArray, ExtensionScalarOpsMixin
+
     class MyExtensionArray(ExtensionArray, ExtensionScalarOpsMixin):
         pass
+
 
     MyExtensionArray._add_arithmetic_ops()
     MyExtensionArray._add_comparison_ops()
 
-Note that since ``pandas`` automatically calls the underlying operator on each
-element one-by-one, this might not be as performant as implementing your own
-version of the associated operators directly on the ``ExtensionArray``.
+
+.. note::
+
+   Since ``pandas`` automatically calls the underlying operator on each
+   element one-by-one, this might not be as performant as implementing your own
+   version of the associated operators directly on the ``ExtensionArray``.
+
+For arithmetic operations, this implementation will try to reconstruct a new
+``ExtensionArray`` with the result of the element-wise operation. Whether
+or not that succeeds depends on whether the operation returns a result
+that's valid for the ``ExtensionArray``. If an ``ExtensionArray`` cannot
+be reconstructed, an ndarray containing the scalars returned instead.
+
+For ease of implementation and consistency with operations between pandas
+and NumPy ndarrays, we recommend *not* handling Series and Indexes in your binary ops.
+Instead, you should detect these cases and return ``NotImplemented``.
+When pandas encounters an operation like ``op(Series, ExtensionArray)``, pandas
+will
+
+1. unbox the array from the ``Series`` (``Series.array``)
+2. call ``result = op(values, ExtensionArray)``
+3. re-box the result in a ``Series``
 
 .. _extending.extension.testing:
 
@@ -172,6 +210,7 @@ To use a test, subclass it:
 
    from pandas.tests.extension import base
 
+
    class TestConstructors(base.BaseConstructorsTests):
        pass
 
@@ -179,6 +218,7 @@ To use a test, subclass it:
 See https://github.com/pandas-dev/pandas/blob/master/pandas/tests/extension/base/__init__.py
 for a list of all the tests available.
 
+.. _extension dtype dtypes: https://github.com/pandas-dev/pandas/blob/master/pandas/core/dtypes/dtypes.py
 .. _extension dtype source: https://github.com/pandas-dev/pandas/blob/master/pandas/core/dtypes/base.py
 .. _extension array source: https://github.com/pandas-dev/pandas/blob/master/pandas/core/arrays/base.py
 
@@ -233,7 +273,7 @@ Below example shows how to define ``SubclassedSeries`` and ``SubclassedDataFrame
 
 .. code-block:: python
 
-   class SubclassedSeries(Series):
+   class SubclassedSeries(pd.Series):
 
        @property
        def _constructor(self):
@@ -243,7 +283,8 @@ Below example shows how to define ``SubclassedSeries`` and ``SubclassedDataFrame
        def _constructor_expanddim(self):
            return SubclassedDataFrame
 
-   class SubclassedDataFrame(DataFrame):
+
+   class SubclassedDataFrame(pd.DataFrame):
 
        @property
        def _constructor(self):
@@ -263,7 +304,7 @@ Below example shows how to define ``SubclassedSeries`` and ``SubclassedDataFrame
    >>> type(to_framed)
    <class '__main__.SubclassedDataFrame'>
 
-   >>> df = SubclassedDataFrame({'A', [1, 2, 3], 'B': [4, 5, 6], 'C': [7, 8, 9]})
+   >>> df = SubclassedDataFrame({'A': [1, 2, 3], 'B': [4, 5, 6], 'C': [7, 8, 9]})
    >>> df
       A  B  C
    0  1  4  7
@@ -279,6 +320,7 @@ Below example shows how to define ``SubclassedSeries`` and ``SubclassedDataFrame
    0  1  4
    1  2  5
    2  3  6
+
    >>> type(sliced1)
    <class '__main__.SubclassedDataFrame'>
 
@@ -288,6 +330,7 @@ Below example shows how to define ``SubclassedSeries`` and ``SubclassedDataFrame
    1    2
    2    3
    Name: A, dtype: int64
+
    >>> type(sliced2)
    <class '__main__.SubclassedSeries'>
 
@@ -303,7 +346,7 @@ Below is an example to define two original properties, "internal_cache" as a tem
 
 .. code-block:: python
 
-   class SubclassedDataFrame2(DataFrame):
+   class SubclassedDataFrame2(pd.DataFrame):
 
        # temporary properties
        _internal_names = pd.DataFrame._internal_names + ['internal_cache']

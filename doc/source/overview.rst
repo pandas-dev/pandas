@@ -1,12 +1,12 @@
 .. _overview:
 
-.. currentmodule:: pandas
+{{ header }}
 
 ****************
 Package overview
 ****************
 
-:mod:`pandas` is an open source, BSD-licensed library providing high-performance, 
+:mod:`pandas` is an open source, BSD-licensed library providing high-performance,
 easy-to-use data structures and data analysis tools for the `Python <https://www.python.org/>`__
 programming language.
 
@@ -82,17 +82,16 @@ Getting Support
 The first stop for pandas issues and ideas is the `Github Issue Tracker
 <https://github.com/pandas-dev/pandas/issues>`__. If you have a general question,
 pandas community experts can answer through `Stack Overflow
-<http://stackoverflow.com/questions/tagged/pandas>`__.
+<https://stackoverflow.com/questions/tagged/pandas>`__.
 
 Community
 ---------
 
-pandas is actively supported today by a community of like-minded individuals around 
-the world who contribute their valuable time and energy to help make open source 
+pandas is actively supported today by a community of like-minded individuals around
+the world who contribute their valuable time and energy to help make open source
 pandas possible. Thanks to `all of our contributors <https://github.com/pandas-dev/pandas/graphs/contributors>`__.
 
-If you're interested in contributing, please
-visit `Contributing to pandas webpage <http://pandas.pydata.org/pandas-docs/stable/contributing.html>`__.
+If you're interested in contributing, please visit the :ref:`contributing guide <contributing>`.
 
 pandas is a `NumFOCUS <https://www.numfocus.org/open-source-projects/>`__ sponsored project.
 This will help ensure the success of development of pandas as a world-class open-source
@@ -110,7 +109,7 @@ Development Team
 -----------------
 
 The list of the Core Team members and more detailed information can be found on the `people’s page <https://github.com/pandas-dev/pandas-governance/blob/master/people.md>`__ of the governance repo.
- 
+
 
 Institutional Partners
 ----------------------

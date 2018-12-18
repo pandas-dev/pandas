@@ -10,30 +10,33 @@ You can find more information on http://presbrey.mit.edu/PyDTA and
 http://www.statsmodels.org/devel/
 """
 
+from collections import OrderedDict
 import datetime
 import struct
 import sys
-from collections import OrderedDict
+import warnings
 
-import numpy as np
 from dateutil.relativedelta import relativedelta
-from pandas._libs.lib import infer_dtype
-from pandas._libs.tslib import NaT, Timestamp
-from pandas._libs.writers import max_len_string_array
+import numpy as np
 
-import pandas as pd
-from pandas import compat, to_timedelta, to_datetime, isna, DatetimeIndex
-from pandas.compat import (lrange, lmap, lzip, text_type, string_types, range,
-                           zip, BytesIO)
+from pandas._libs.lib import infer_dtype
+from pandas._libs.tslibs import NaT, Timestamp
+from pandas._libs.writers import max_len_string_array
+from pandas.compat import (
+    BytesIO, lmap, lrange, lzip, range, string_types, text_type, zip)
+from pandas.util._decorators import Appender, deprecate_kwarg
+
+from pandas.core.dtypes.common import (
+    ensure_object, is_categorical_dtype, is_datetime64_dtype)
+
+from pandas import DatetimeIndex, compat, isna, to_datetime, to_timedelta
 from pandas.core.arrays import Categorical
 from pandas.core.base import StringMixin
-from pandas.core.dtypes.common import (is_categorical_dtype, _ensure_object,
-                                       is_datetime64_dtype)
 from pandas.core.frame import DataFrame
 from pandas.core.series import Series
-from pandas.io.common import (get_filepath_or_buffer, BaseIterator,
-                              _stringify_path)
-from pandas.util._decorators import Appender, deprecate_kwarg
+
+from pandas.io.common import (
+    BaseIterator, _stringify_path, get_filepath_or_buffer)
 
 _version_error = ("Version of given Stata file is not 104, 105, 108, "
                   "111 (Stata 7SE), 113 (Stata 8/9), 114 (Stata 10/11), "
@@ -95,14 +98,13 @@ DataFrame or StataReader
 
 See Also
 --------
-pandas.io.stata.StataReader : low-level reader for Stata data files
-pandas.DataFrame.to_stata: export Stata data files
+pandas.io.stata.StataReader : Low-level reader for Stata data files.
+pandas.DataFrame.to_stata: Export Stata data files.
 
 Examples
 --------
 Read a Stata dta file:
 
->>> import pandas as pd
 >>> df = pd.read_stata('filename.dta')
 
 Read a Stata dta file in 10,000 line chunks:
@@ -117,8 +119,8 @@ Read a Stata dta file in 10,000 line chunks:
 _data_method_doc = """\
 Reads observations from Stata file, converting them into a dataframe
 
-    .. deprecated::
-       This is a legacy method.  Use `read` in new code.
+.. deprecated::
+    This is a legacy method.  Use `read` in new code.
 
 Parameters
 ----------
@@ -216,7 +218,6 @@ def _stata_elapsed_date_to_datetime_vec(dates, fmt):
 
     Examples
     --------
-    >>> import pandas as pd
     >>> dates = pd.Series([52])
     >>> _stata_elapsed_date_to_datetime_vec(dates , "%tw")
     0   1961-01-01
@@ -319,12 +320,12 @@ def _stata_elapsed_date_to_datetime_vec(dates, fmt):
         ms = dates
         conv_dates = convert_delta_safe(base, ms, 'ms')
     elif fmt.startswith(("%tC", "tC")):
-        from warnings import warn
 
-        warn("Encountered %tC format. Leaving in Stata Internal Format.")
+        warnings.warn("Encountered %tC format. Leaving in Stata "
+                      "Internal Format.")
         conv_dates = Series(dates, dtype=np.object)
         if has_bad_values:
-            conv_dates[bad_locs] = pd.NaT
+            conv_dates[bad_locs] = NaT
         return conv_dates
     # Delta days relative to base
     elif fmt.startswith(("%td", "td", "%d", "d")):
@@ -427,8 +428,7 @@ def _datetime_to_stata_elapsed_vec(dates, fmt):
         d = parse_dates_safe(dates, delta=True)
         conv_dates = d.delta / 1000
     elif fmt in ["%tC", "tC"]:
-        from warnings import warn
-        warn("Stata Internal Format tC not supported.")
+        warnings.warn("Stata Internal Format tC not supported.")
         conv_dates = dates
     elif fmt in ["%td", "td"]:
         d = parse_dates_safe(dates, delta=True)
@@ -444,8 +444,8 @@ def _datetime_to_stata_elapsed_vec(dates, fmt):
         conv_dates = 4 * (d.year - stata_epoch.year) + (d.month - 1) // 3
     elif fmt in ["%th", "th"]:
         d = parse_dates_safe(dates, year=True)
-        conv_dates = 2 * (d.year - stata_epoch.year) + \
-                         (d.month > 6).astype(np.int)
+        conv_dates = (2 * (d.year - stata_epoch.year) +
+                      (d.month > 6).astype(np.int))
     elif fmt in ["%ty", "ty"]:
         d = parse_dates_safe(dates, year=True)
         conv_dates = d.year
@@ -461,7 +461,8 @@ def _datetime_to_stata_elapsed_vec(dates, fmt):
 
 excessive_string_length_error = """
 Fixed width strings in Stata .dta files are limited to 244 (or fewer)
-characters.  Column '%s' does not satisfy this restriction.
+characters.  Column '%s' does not satisfy this restriction. Use the
+'version=117' parameter to write the newer (Stata 13 and later) format.
 """
 
 
@@ -570,20 +571,20 @@ def _cast_to_stata_types(data):
         elif dtype in (np.float32, np.float64):
             value = data[col].max()
             if np.isinf(value):
-                msg = 'Column {0} has a maximum value of infinity which is ' \
-                      'outside the range supported by Stata.'
-                raise ValueError(msg.format(col))
+                raise ValueError('Column {col} has a maximum value of '
+                                 'infinity which is outside the range '
+                                 'supported by Stata.'.format(col=col))
             if dtype == np.float32 and value > float32_max:
                 data[col] = data[col].astype(np.float64)
             elif dtype == np.float64:
                 if value > float64_max:
-                    msg = 'Column {0} has a maximum value ({1}) outside the ' \
-                          'range supported by Stata ({1})'
-                    raise ValueError(msg.format(col, value, float64_max))
+                    raise ValueError('Column {col} has a maximum value '
+                                     '({val}) outside the range supported by '
+                                     'Stata ({float64_max})'
+                                     .format(col=col, val=value,
+                                             float64_max=float64_max))
 
     if ws:
-        import warnings
-
         warnings.warn(ws, PossiblePrecisionLoss)
 
     return data
@@ -629,7 +630,6 @@ class StataValueLabel(object):
             category = vl[1]
             if not isinstance(category, string_types):
                 category = str(category)
-                import warnings
                 warnings.warn(value_label_mismatch_doc.format(catarray.name),
                               ValueLabelTypeMismatch)
 
@@ -1257,12 +1257,12 @@ class StataReader(StataParser, BaseIterator):
 
         try:
             self.typlist = [self.TYPE_MAP[typ] for typ in typlist]
-        except:
+        except ValueError:
             raise ValueError("cannot convert stata types [{0}]"
                              .format(','.join(str(x) for x in typlist)))
         try:
             self.dtyplist = [self.DTYPE_MAP[typ] for typ in typlist]
-        except:
+        except ValueError:
             raise ValueError("cannot convert stata dtypes [{0}]"
                              .format(','.join(str(x) for x in typlist)))
 
@@ -1427,7 +1427,6 @@ class StataReader(StataParser, BaseIterator):
     @Appender(_data_method_doc)
     def data(self, **kwargs):
 
-        import warnings
         warnings.warn("'data' is deprecated, use 'read' instead")
 
         if self._data_read:
@@ -1710,9 +1709,10 @@ class StataReader(StataParser, BaseIterator):
                     vc = Series(categories).value_counts()
                     repeats = list(vc.index[vc > 1])
                     repeats = '\n' + '-' * 80 + '\n'.join(repeats)
-                    msg = 'Value labels for column {0} are not unique. The ' \
-                          'repeated labels are:\n{1}'.format(col, repeats)
-                    raise ValueError(msg)
+                    raise ValueError('Value labels for column {col} are not '
+                                     'unique. The repeated labels are:\n'
+                                     '{repeats}'
+                                     .format(col=col, repeats=repeats))
                 # TODO: is the next line needed above in the data(...) method?
                 cat_data = Series(cat_data, index=data.index)
                 cat_converted_data.append((col, cat_data))
@@ -1824,7 +1824,7 @@ def _dtype_to_stata_type(dtype, column):
     if dtype.type == np.object_:  # try to coerce it to the biggest string
         # not memory efficient, what else could we
         # do?
-        itemsize = max_len_string_array(_ensure_object(column.values))
+        itemsize = max_len_string_array(ensure_object(column.values))
         return max(itemsize, 1)
     elif dtype == np.float64:
         return 255
@@ -1868,8 +1868,15 @@ def _dtype_to_default_stata_fmt(dtype, column, dta_version=114,
         inferred_dtype = infer_dtype(column.dropna())
         if not (inferred_dtype in ('string', 'unicode') or
                 len(column) == 0):
-            raise ValueError('Writing general object arrays is not supported')
-        itemsize = max_len_string_array(_ensure_object(column.values))
+            raise ValueError('Column `{col}` cannot be exported.\n\nOnly '
+                             'string-like object arrays containing all '
+                             'strings or a mix of strings and None can be '
+                             'exported. Object arrays containing only null '
+                             'values are prohibited. Other object types'
+                             'cannot be exported and must first be converted '
+                             'to one of the supported '
+                             'types.'.format(col=column.name))
+        itemsize = max_len_string_array(ensure_object(column.values))
         if itemsize > max_str_len:
             if dta_version >= 117:
                 return '%9s'
@@ -1946,7 +1953,6 @@ class StataWriter(StataParser):
 
     Examples
     --------
-    >>> import pandas as pd
     >>> data = pd.DataFrame([[1.0, 1]], columns=['a', 'b'])
     >>> writer = StataWriter('./data_file.dta', data)
     >>> writer.write_file()
@@ -2073,8 +2079,8 @@ class StataWriter(StataParser):
                 name = text_type(name)
 
             for c in name:
-                if (c < 'A' or c > 'Z') and (c < 'a' or c > 'z') and \
-                        (c < '0' or c > '9') and c != '_':
+                if ((c < 'A' or c > 'Z') and (c < 'a' or c > 'z') and
+                        (c < '0' or c > '9') and c != '_'):
                     name = name.replace(c, '_')
 
             # Variable name must not be a reserved word
@@ -2108,7 +2114,6 @@ class StataWriter(StataParser):
                     del self._convert_dates[o]
 
         if converted_names:
-            import warnings
             conversion_warning = []
             for orig_name, name in converted_names.items():
                 # need to possibly encode the orig name if its unicode
@@ -2426,7 +2431,7 @@ def _dtype_to_stata_type_117(dtype, column, force_strl):
     if dtype.type == np.object_:  # try to coerce it to the biggest string
         # not memory efficient, what else could we
         # do?
-        itemsize = max_len_string_array(_ensure_object(column.values))
+        itemsize = max_len_string_array(ensure_object(column.values))
         itemsize = max(itemsize, 1)
         if itemsize <= 2045:
             return itemsize
@@ -2560,6 +2565,8 @@ class StataStrLWriter(object):
         for o, (idx, row) in enumerate(selected.iterrows()):
             for j, (col, v) in enumerate(col_index):
                 val = row[col]
+                # Allow columns with mixed str and None (GH 23633)
+                val = '' if val is None else val
                 key = gso_table.get(val, None)
                 if key is None:
                     # Stata prefers human numbers
@@ -2636,12 +2643,11 @@ class StataStrLWriter(object):
             bio.write(gso_type)
 
             # llll
-            encoded = self._encode(strl)
-            bio.write(struct.pack(len_type, len(encoded) + 1))
+            utf8_string = _bytes(strl, 'utf-8')
+            bio.write(struct.pack(len_type, len(utf8_string) + 1))
 
             # xxx...xxx
-            s = _bytes(strl, 'utf-8')
-            bio.write(s)
+            bio.write(utf8_string)
             bio.write(null)
 
         bio.seek(0)
@@ -2709,7 +2715,6 @@ class StataWriter117(StataWriter):
 
     Examples
     --------
-    >>> import pandas as pd
     >>> from pandas.io.stata import StataWriter117
     >>> data = pd.DataFrame([[1.0, 1, 'a']], columns=['a', 'b', 'c'])
     >>> writer = StataWriter117('./data_file.dta', data)
@@ -2941,10 +2946,10 @@ class StataWriter117(StataWriter):
     def _convert_strls(self, data):
         """Convert columns to StrLs if either very large or in the
         convert_strl variable"""
-        convert_cols = []
-        for i, col in enumerate(data):
-            if self.typlist[i] == 32768 or col in self._convert_strl:
-                convert_cols.append(col)
+        convert_cols = [
+            col for i, col in enumerate(data)
+            if self.typlist[i] == 32768 or col in self._convert_strl]
+
         if convert_cols:
             ssw = StataStrLWriter(data, convert_cols)
             tab, new_data = ssw.generate_table()

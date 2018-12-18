@@ -1,24 +1,20 @@
 """
 datetimelike delegation
 """
-
 import numpy as np
 
-from pandas.core.dtypes.generic import ABCSeries
 from pandas.core.dtypes.common import (
-    is_period_arraylike,
-    is_datetime_arraylike, is_integer_dtype,
-    is_datetime64_dtype, is_datetime64tz_dtype,
-    is_timedelta64_dtype, is_categorical_dtype,
-    is_list_like)
+    is_categorical_dtype, is_datetime64_dtype, is_datetime64tz_dtype,
+    is_datetime_arraylike, is_integer_dtype, is_list_like, is_period_arraylike,
+    is_timedelta64_dtype)
+from pandas.core.dtypes.generic import ABCSeries
 
-from pandas.core.accessor import PandasDelegate
+from pandas.core.accessor import PandasDelegate, delegate_names
+from pandas.core.algorithms import take_1d
 from pandas.core.base import NoNewAttributesMixin, PandasObject
 from pandas.core.indexes.datetimes import DatetimeIndex
-from pandas._libs.tslibs.period import IncompatibleFrequency  # noqa
-from pandas.core.indexes.period import PeriodIndex
+from pandas.core.indexes.period import PeriodArray
 from pandas.core.indexes.timedeltas import TimedeltaIndex
-from pandas.core.algorithms import take_1d
 
 
 class Properties(PandasDelegate, PandasObject, NoNewAttributesMixin):
@@ -28,14 +24,14 @@ class Properties(PandasDelegate, PandasObject, NoNewAttributesMixin):
             raise TypeError("cannot convert an object of type {0} to a "
                             "datetimelike index".format(type(data)))
 
-        self.values = data
+        self._parent = data
         self.orig = orig
         self.name = getattr(data, 'name', None)
         self.index = getattr(data, 'index', None)
         self._freeze()
 
     def _get_values(self):
-        data = self.values
+        data = self._parent
         if is_datetime64_dtype(data.dtype):
             return DatetimeIndex(data, copy=False, name=self.name)
 
@@ -47,7 +43,8 @@ class Properties(PandasDelegate, PandasObject, NoNewAttributesMixin):
 
         else:
             if is_period_arraylike(data):
-                return PeriodIndex(data, copy=False, name=self.name)
+                # TODO: use to_period_array
+                return PeriodArray(data, copy=False)
             if is_datetime_arraylike(data):
                 return DatetimeIndex(data, copy=False, name=self.name)
 
@@ -111,6 +108,12 @@ class Properties(PandasDelegate, PandasObject, NoNewAttributesMixin):
         return result
 
 
+@delegate_names(delegate=DatetimeIndex,
+                accessors=DatetimeIndex._datetimelike_ops,
+                typ="property")
+@delegate_names(delegate=DatetimeIndex,
+                accessors=DatetimeIndex._datetimelike_methods,
+                typ="method")
 class DatetimeProperties(Properties):
     """
     Accessor object for datetimelike properties of the Series values.
@@ -127,7 +130,7 @@ class DatetimeProperties(Properties):
 
     def to_pydatetime(self):
         """
-        Return the data as an array of native Python datetime objects
+        Return the data as an array of native Python datetime objects.
 
         Timezone information is retained if present.
 
@@ -176,16 +179,12 @@ class DatetimeProperties(Properties):
         return self._get_values().inferred_freq
 
 
-DatetimeProperties._add_delegate_accessors(
-    delegate=DatetimeIndex,
-    accessors=DatetimeIndex._datetimelike_ops,
-    typ='property')
-DatetimeProperties._add_delegate_accessors(
-    delegate=DatetimeIndex,
-    accessors=DatetimeIndex._datetimelike_methods,
-    typ='method')
-
-
+@delegate_names(delegate=TimedeltaIndex,
+                accessors=TimedeltaIndex._datetimelike_ops,
+                typ="property")
+@delegate_names(delegate=TimedeltaIndex,
+                accessors=TimedeltaIndex._datetimelike_methods,
+                typ="method")
 class TimedeltaProperties(Properties):
     """
     Accessor object for datetimelike properties of the Series values.
@@ -213,6 +212,10 @@ class TimedeltaProperties(Properties):
         a : numpy.ndarray
             1D array containing data with `datetime.timedelta` type.
 
+        See Also
+        --------
+        datetime.timedelta
+
         Examples
         --------
         >>> s = pd.Series(pd.to_timedelta(np.arange(5), unit='d'))
@@ -228,24 +231,36 @@ class TimedeltaProperties(Properties):
         array([datetime.timedelta(0), datetime.timedelta(1),
                datetime.timedelta(2), datetime.timedelta(3),
                datetime.timedelta(4)], dtype=object)
-
-        See Also
-        --------
-        datetime.timedelta
         """
         return self._get_values().to_pytimedelta()
 
     @property
     def components(self):
         """
-        Return a dataframe of the components (days, hours, minutes,
-        seconds, milliseconds, microseconds, nanoseconds) of the Timedeltas.
+        Return a Dataframe of the components of the Timedeltas.
 
         Returns
         -------
-        a DataFrame
+        DataFrame
 
-        """
+        Examples
+        --------
+        >>> s = pd.Series(pd.to_timedelta(np.arange(5), unit='s'))
+        >>> s
+        0   00:00:00
+        1   00:00:01
+        2   00:00:02
+        3   00:00:03
+        4   00:00:04
+        dtype: timedelta64[ns]
+        >>> s.dt.components
+           days  hours  minutes  seconds  milliseconds  microseconds  nanoseconds
+        0     0      0        0        0             0             0            0
+        1     0      0        0        1             0             0            0
+        2     0      0        0        2             0             0            0
+        3     0      0        0        3             0             0            0
+        4     0      0        0        4             0             0            0
+        """  # noqa: E501
         return self._get_values().components.set_index(self.index)
 
     @property
@@ -253,16 +268,12 @@ class TimedeltaProperties(Properties):
         return self._get_values().inferred_freq
 
 
-TimedeltaProperties._add_delegate_accessors(
-    delegate=TimedeltaIndex,
-    accessors=TimedeltaIndex._datetimelike_ops,
-    typ='property')
-TimedeltaProperties._add_delegate_accessors(
-    delegate=TimedeltaIndex,
-    accessors=TimedeltaIndex._datetimelike_methods,
-    typ='method')
-
-
+@delegate_names(delegate=PeriodArray,
+                accessors=PeriodArray._datetimelike_ops,
+                typ="property")
+@delegate_names(delegate=PeriodArray,
+                accessors=PeriodArray._datetimelike_methods,
+                typ="method")
 class PeriodProperties(Properties):
     """
     Accessor object for datetimelike properties of the Series values.
@@ -278,17 +289,8 @@ class PeriodProperties(Properties):
     """
 
 
-PeriodProperties._add_delegate_accessors(
-    delegate=PeriodIndex,
-    accessors=PeriodIndex._datetimelike_ops,
-    typ='property')
-PeriodProperties._add_delegate_accessors(
-    delegate=PeriodIndex,
-    accessors=PeriodIndex._datetimelike_methods,
-    typ='method')
-
-
-class CombinedDatetimelikeProperties(DatetimeProperties, TimedeltaProperties):
+class CombinedDatetimelikeProperties(DatetimeProperties,
+                                     TimedeltaProperties, PeriodProperties):
 
     def __new__(cls, data):
         # CombinedDatetimelikeProperties isn't really instantiated. Instead
@@ -314,11 +316,10 @@ class CombinedDatetimelikeProperties(DatetimeProperties, TimedeltaProperties):
                 return DatetimeProperties(data, orig)
             elif is_timedelta64_dtype(data.dtype):
                 return TimedeltaProperties(data, orig)
-            else:
-                if is_period_arraylike(data):
-                    return PeriodProperties(data, orig)
-                if is_datetime_arraylike(data):
-                    return DatetimeProperties(data, orig)
+            elif is_period_arraylike(data):
+                return PeriodProperties(data, orig)
+            elif is_datetime_arraylike(data):
+                return DatetimeProperties(data, orig)
         except Exception:
             pass  # we raise an attribute error anyway
 

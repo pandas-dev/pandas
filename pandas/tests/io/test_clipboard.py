@@ -13,7 +13,6 @@ from pandas.compat import PY2
 from pandas.util import testing as tm
 from pandas.util.testing import makeCustomDataframe as mkdf
 from pandas.io.clipboard.exceptions import PyperclipException
-from pandas.io.clipboard import clipboard_set, clipboard_get
 
 
 try:
@@ -76,10 +75,53 @@ def df(request):
         raise ValueError
 
 
+@pytest.fixture
+def mock_clipboard(mock, request):
+    """Fixture mocking clipboard IO.
+
+    This mocks pandas.io.clipboard.clipboard_get and
+    pandas.io.clipboard.clipboard_set.
+
+    This uses a local dict for storing data. The dictionary
+    key used is the test ID, available with ``request.node.name``.
+
+    This returns the local dictionary, for direct manipulation by
+    tests.
+    """
+
+    # our local clipboard for tests
+    _mock_data = {}
+
+    def _mock_set(data):
+        _mock_data[request.node.name] = data
+
+    def _mock_get():
+        return _mock_data[request.node.name]
+
+    mock_set = mock.patch("pandas.io.clipboard.clipboard_set",
+                          side_effect=_mock_set)
+    mock_get = mock.patch("pandas.io.clipboard.clipboard_get",
+                          side_effect=_mock_get)
+    with mock_get, mock_set:
+        yield _mock_data
+
+
+@pytest.mark.clipboard
+def test_mock_clipboard(mock_clipboard):
+    import pandas.io.clipboard
+    pandas.io.clipboard.clipboard_set("abc")
+    assert "abc" in set(mock_clipboard.values())
+    result = pandas.io.clipboard.clipboard_get()
+    assert result == "abc"
+
+
 @pytest.mark.single
+@pytest.mark.clipboard
 @pytest.mark.skipif(not _DEPS_INSTALLED,
                     reason="clipboard primitives not installed")
+@pytest.mark.usefixtures("mock_clipboard")
 class TestClipboard(object):
+
     def check_round_trip_frame(self, data, excel=None, sep=None,
                                encoding=None):
         data.to_clipboard(excel=excel, sep=sep, encoding=encoding)
@@ -88,8 +130,6 @@ class TestClipboard(object):
         tm.assert_frame_equal(data, result, check_dtype=False)
 
     # Test that default arguments copy as tab delimited
-    @pytest.mark.xfail(reason='to_clipboard defaults to space delim. '
-                       'Issue in #21104, Fixed in #21111')
     def test_round_trip_frame(self, df):
         self.check_round_trip_frame(df)
 
@@ -99,10 +139,6 @@ class TestClipboard(object):
         self.check_round_trip_frame(df, sep=sep)
 
     # Test white space separator
-    @pytest.mark.xfail(reason="Fails on 'delims' df because quote escapes "
-                       "aren't handled correctly in default c engine. Fixed "
-                       "in #21111 by defaulting to python engine for "
-                       "whitespace separator")
     def test_round_trip_frame_string(self, df):
         df.to_clipboard(excel=False, sep=None)
         result = read_clipboard()
@@ -111,38 +147,33 @@ class TestClipboard(object):
 
     # Two character separator is not supported in to_clipboard
     # Test that multi-character separators are not silently passed
-    @pytest.mark.xfail(reason="Not yet implemented.  Fixed in #21111")
     def test_excel_sep_warning(self, df):
         with tm.assert_produces_warning():
             df.to_clipboard(excel=True, sep=r'\t')
 
     # Separator is ignored when excel=False and should produce a warning
-    @pytest.mark.xfail(reason="Not yet implemented.  Fixed in #21111")
     def test_copy_delim_warning(self, df):
         with tm.assert_produces_warning():
             df.to_clipboard(excel=False, sep='\t')
 
     # Tests that the default behavior of to_clipboard is tab
     # delimited and excel="True"
-    @pytest.mark.xfail(reason="to_clipboard defaults to space delim. Issue in "
-                       "#21104, Fixed in #21111")
     @pytest.mark.parametrize('sep', ['\t', None, 'default'])
     @pytest.mark.parametrize('excel', [True, None, 'default'])
-    def test_clipboard_copy_tabs_default(self, sep, excel, df):
+    def test_clipboard_copy_tabs_default(self, sep, excel, df, request,
+                                         mock_clipboard):
         kwargs = build_kwargs(sep, excel)
         df.to_clipboard(**kwargs)
         if PY2:
             # to_clipboard copies unicode, to_csv produces bytes. This is
             # expected behavior
-            assert clipboard_get().encode('utf-8') == df.to_csv(sep='\t')
+            result = mock_clipboard[request.node.name].encode('utf-8')
+            expected = df.to_csv(sep='\t')
+            assert result == expected
         else:
-            assert clipboard_get() == df.to_csv(sep='\t')
+            assert mock_clipboard[request.node.name] == df.to_csv(sep='\t')
 
     # Tests reading of white space separated tables
-    @pytest.mark.xfail(reason="Fails on 'delims' df because quote escapes "
-                       "aren't handled correctly. in default c engine. Fixed "
-                       "in #21111 by defaulting to python engine for "
-                       "whitespace separator")
     @pytest.mark.parametrize('sep', [None, 'default'])
     @pytest.mark.parametrize('excel', [False])
     def test_clipboard_copy_strings(self, sep, excel, df):
@@ -152,7 +183,8 @@ class TestClipboard(object):
         assert result.to_string() == df.to_string()
         assert df.shape == result.shape
 
-    def test_read_clipboard_infer_excel(self):
+    def test_read_clipboard_infer_excel(self, request,
+                                        mock_clipboard):
         # gh-19010: avoid warnings
         clip_kwargs = dict(engine="python")
 
@@ -161,7 +193,7 @@ class TestClipboard(object):
             1	2
             4	Harry Carney
             """.strip())
-        clipboard_set(text)
+        mock_clipboard[request.node.name] = text
         df = pd.read_clipboard(**clip_kwargs)
 
         # excel data is parsed correctly
@@ -173,7 +205,7 @@ class TestClipboard(object):
             1  2
             3  4
             """.strip())
-        clipboard_set(text)
+        mock_clipboard[request.node.name] = text
         res = pd.read_clipboard(**clip_kwargs)
 
         text = dedent("""
@@ -181,7 +213,7 @@ class TestClipboard(object):
             1  2
             3  4
             """.strip())
-        clipboard_set(text)
+        mock_clipboard[request.node.name] = text
         exp = pd.read_clipboard(**clip_kwargs)
 
         tm.assert_frame_equal(res, exp)
@@ -193,8 +225,6 @@ class TestClipboard(object):
         with pytest.raises(NotImplementedError):
             pd.read_clipboard(encoding='ascii')
 
-    @pytest.mark.xfail(reason='to_clipboard defaults to space delim. '
-                       'Issue in #21104, Fixed in #21111')
     @pytest.mark.parametrize('enc', ['UTF-8', 'utf-8', 'utf8'])
     def test_round_trip_valid_encodings(self, enc, df):
         self.check_round_trip_frame(df, encoding=enc)
