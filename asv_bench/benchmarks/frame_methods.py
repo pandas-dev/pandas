@@ -119,6 +119,12 @@ class Iteration(object):
         for col in self.df3:
             self.df3[col]
 
+    def time_itertuples_start(self):
+        self.df2.itertuples()
+
+    def time_itertuples_read_first(self):
+        next(self.df2.itertuples())
+
     def time_itertuples(self):
         for row in self.df2.itertuples():
             pass
@@ -126,11 +132,55 @@ class Iteration(object):
     def time_itertuples_to_list(self):
         list(self.df2.itertuples())
 
+    def mem_itertuples_start(self):
+        return self.df2.itertuples()
+
+    def peakmem_itertuples_start(self):
+        self.df2.itertuples()
+
+    def mem_itertuples_read_first(self):
+        return next(self.df2.itertuples())
+
+    def peakmem_itertuples(self):
+        for row in self.df2.itertuples():
+            pass
+
+    def mem_itertuples_to_list(self):
+        return list(self.df2.itertuples())
+
+    def peakmem_itertuples_to_list(self):
+        list(self.df2.itertuples())
+
+    def time_itertuples_raw_start(self):
+        self.df2.itertuples(index=False, name=None)
+
+    def time_itertuples_raw_read_first(self):
+        next(self.df2.itertuples(index=False, name=None))
+
     def time_itertuples_raw_tuples(self):
         for row in self.df2.itertuples(index=False, name=None):
             pass
 
     def time_itertuples_raw_tuples_to_list(self):
+        list(self.df2.itertuples(index=False, name=None))
+
+    def mem_itertuples_raw_start(self):
+        return self.df2.itertuples(index=False, name=None)
+
+    def peakmem_itertuples_raw_start(self):
+        self.df2.itertuples(index=False, name=None)
+
+    def mem_itertuples_raw_read_first(self):
+        return next(self.df2.itertuples(index=False, name=None))
+
+    def peakmem_itertuples_raw(self):
+        for row in self.df2.itertuples(index=False, name=None):
+            pass
+
+    def mem_itertuples_raw_to_list(self):
+        return list(self.df2.itertuples(index=False, name=None))
+
+    def peakmem_itertuples_raw_to_list(self):
         list(self.df2.itertuples(index=False, name=None))
 
     def time_iterrows(self):
