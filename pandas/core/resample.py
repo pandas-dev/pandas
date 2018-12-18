@@ -1403,7 +1403,9 @@ class TimeGrouper(Grouper):
                                      start=first,
                                      end=last,
                                      tz=tz,
-                                     name=ax.name)
+                                     name=ax.name,
+                                     ambiguous='infer',
+                                     nonexistent='shift')
 
         # GH 15549
         # In edge case of tz-aware resapmling binner last index can be

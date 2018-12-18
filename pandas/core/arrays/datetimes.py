@@ -255,7 +255,8 @@ class DatetimeArrayMixin(dtl.DatetimeLikeArrayMixin,
 
     @classmethod
     def _generate_range(cls, start, end, periods, freq, tz=None,
-                        normalize=False, ambiguous='raise', closed=None):
+                        normalize=False, ambiguous='raise',
+                        nonexistent='raise', closed=None):
 
         periods = dtl.validate_periods(periods)
         if freq is None and any(x is None for x in [periods, start, end]):
@@ -307,7 +308,7 @@ class DatetimeArrayMixin(dtl.DatetimeLikeArrayMixin,
             if tz is not None and index.tz is None:
                 arr = conversion.tz_localize_to_utc(
                     index.asi8,
-                    tz, ambiguous=ambiguous)
+                    tz, ambiguous=ambiguous, nonexistent=nonexistent)
 
                 index = cls(arr)
 
@@ -1706,19 +1707,19 @@ def _generate_regular_range(cls, start, end, periods, freq):
     if isinstance(freq, Tick):
         stride = freq.nanos
         if periods is None:
-            b = start.value
+            b = Timestamp(start).value
             # cannot just use e = Timestamp(end) + 1 because arange breaks when
             # stride is too large, see GH10887
-            e = (b + (end.value - b) // stride * stride +
+            e = (b + (Timestamp(end).value - b) // stride * stride +
                  stride // 2 + 1)
             # end.tz == start.tz by this point due to _generate implementation
             tz = start.tz
         elif start is not None:
-            b = start.value
+            b = Timestamp(start).value
             e = _generate_range_overflow_safe(b, periods, stride, side='start')
             tz = start.tz
         elif end is not None:
-            e = end.value + stride
+            e = Timestamp(end).value + stride
             b = _generate_range_overflow_safe(e, periods, stride, side='end')
             tz = end.tz
         else:
