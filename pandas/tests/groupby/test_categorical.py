@@ -9,7 +9,8 @@ import pandas as pd
 from pandas.compat import PY37
 from pandas import (Index, MultiIndex, CategoricalIndex,
                     DataFrame, Categorical, Series, qcut)
-from pandas.util.testing import assert_frame_equal, assert_series_equal
+from pandas.util.testing import (assert_equal,
+                                 assert_frame_equal, assert_series_equal)
 import pandas.util.testing as tm
 
 
@@ -861,3 +862,16 @@ def test_groupby_multiindex_categorical_datetime():
     expected = pd.DataFrame(
         {'values': [0, 4, 8, 3, 4, 5, 6, np.nan, 2]}, index=idx)
     assert_frame_equal(result, expected)
+
+
+def test_shift():
+    ct = pd.Categorical(['a', 'b', 'c', 'd'],
+                        categories=['a', 'b', 'c', 'd'], ordered=False)
+    expected = pd.Categorical([None, 'a', 'b', 'c'],
+                              categories=['a', 'b', 'c', 'd'], ordered=False)
+    res = ct.shift(1)
+    assert_equal(res, expected)
+    res = ct.shift(1, fill_value=None)
+    assert_equal(res, expected)
+    res = ct.shift(1, fill_value=np.nan)
+    assert_equal(res, expected)
