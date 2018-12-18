@@ -132,20 +132,14 @@ class TestPandasDelegate(object):
 
         delegate = self.Delegate(self.Delegator())
 
-        def f():
+        with pytest.raises(TypeError):
             delegate.foo
 
-        pytest.raises(TypeError, f)
-
-        def f():
+        with pytest.raises(TypeError):
             delegate.foo = 5
 
-        pytest.raises(TypeError, f)
-
-        def f():
+        with pytest.raises(TypeError):
             delegate.foo()
-
-        pytest.raises(TypeError, f)
 
     @pytest.mark.skipif(PYPY, reason="not relevant for PyPy")
     def test_memory_usage(self):
@@ -1067,10 +1061,9 @@ class TestNoNewAttributesMixin(object):
         assert "__frozen" in dir(t)
         assert getattr(t, "__frozen")
 
-        def f():
+        with pytest.raises(AttributeError):
             t.b = "test"
 
-        pytest.raises(AttributeError, f)
         assert not hasattr(t, "b")
 
 

@@ -72,9 +72,8 @@ class TestDataFrameQuantile(TestData):
         assert_series_equal(result, expected)
 
         # must raise
-        def f():
+        with pytest.raises(TypeError):
             df.quantile(.5, axis=1, numeric_only=False)
-        pytest.raises(TypeError, f)
 
     def test_quantile_axis_parameter(self):
         # GH 9543/9544
