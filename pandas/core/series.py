@@ -3302,10 +3302,11 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
     dtype: int64
     """)
 
-    @Appender(generic._shared_docs['aggregate'].format(
-        see_also=_agg_see_also_doc,
-        examples=_agg_examples_doc
-    ) % dict(versionadded='.. versionadded:: 0.20.0', **_shared_doc_kwargs))
+    @Substitution(see_also=_agg_see_also_doc,
+                  examples=_agg_examples_doc,
+                  versionadded='.. versionadded:: 0.20.0',
+                  **_shared_doc_kwargs)
+    @Appender(generic._shared_docs['aggregate'])
     def aggregate(self, func, axis=0, *args, **kwargs):
         # Validate the axis parameter
         self._get_axis_number(axis)

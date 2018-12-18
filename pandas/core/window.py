@@ -693,7 +693,7 @@ class Window(_Window):
 
         return self._wrap_results(results, blocks, obj)
 
-    _agg_doc = dedent("""
+    _agg_examples_doc = dedent("""
     Examples
     --------
 
@@ -723,19 +723,21 @@ class Window(_Window):
     7  0.906020  1.283573  0.085482
     8 -0.096361  0.818139  0.472290
     9  0.070889  0.134399 -0.031308
+    """)
 
+    _agg_see_also_doc = dedent("""
     See Also
     --------
     pandas.DataFrame.rolling.aggregate
     pandas.DataFrame.aggregate
-
     """)
 
-    @Appender(_agg_doc)
-    @Appender(_shared_docs['aggregate'] % dict(
-        versionadded='',
-        klass='Series/DataFrame',
-        axis=''))
+    @Substitution(see_also=_agg_see_also_doc,
+                  examples=_agg_examples_doc,
+                  versionadded='',
+                  klass='Series/DataFrame',
+                  axis='')
+    @Appender(_shared_docs['aggregate'])
     def aggregate(self, arg, *args, **kwargs):
         result, how = self._aggregate(arg, *args, **kwargs)
         if result is None:
@@ -1647,13 +1649,12 @@ class Rolling(_Rolling_and_Expanding):
     9  0.212668 -1.647453
     """)
 
-    @Appender(_shared_docs['aggregate'].format(
-        see_also=_agg_see_also_doc,
-        examples=_agg_examples_doc
-    ) % dict(
-        versionadded='',
-        klass='Series/DataFrame',
-        axis=''))
+    @Substitution(see_also=_agg_see_also_doc,
+                  examples=_agg_examples_doc,
+                  versionadded='',
+                  klass='Series/Dataframe',
+                  axis='')
+    @Appender(_shared_docs['aggregate'])
     def aggregate(self, arg, *args, **kwargs):
         return super(Rolling, self).aggregate(arg, *args, **kwargs)
 
@@ -1927,13 +1928,12 @@ class Expanding(_Rolling_and_Expanding):
     9 -0.286980  0.618493 -0.694496
     """)
 
-    @Appender(_shared_docs['aggregate'].format(
-        see_also=_agg_see_also_doc,
-        examples=_agg_examples_doc
-    ) % dict(
-        versionadded='',
-        klass='Series/DataFrame',
-        axis=''))
+    @Substitution(see_also=_agg_see_also_doc,
+                  examples=_agg_examples_doc,
+                  versionadded='',
+                  klass='Series/Dataframe',
+                  axis='')
+    @Appender(_shared_docs['aggregate'])
     def aggregate(self, arg, *args, **kwargs):
         return super(Expanding, self).aggregate(arg, *args, **kwargs)
 
@@ -2192,7 +2192,7 @@ class EWM(_Rolling):
     def _constructor(self):
         return EWM
 
-    _agg_doc = dedent("""
+    _agg_examples_doc = dedent("""
     Examples
     --------
 
@@ -2222,17 +2222,20 @@ class EWM(_Rolling):
     7  0.680292  0.132049  0.548693
     8  0.067236  0.948257  0.163353
     9 -0.286980  0.618493 -0.694496
+    """)
 
+    _agg_see_also_doc = dedent("""
     See Also
     --------
     pandas.DataFrame.rolling.aggregate
     """)
 
-    @Appender(_agg_doc)
-    @Appender(_shared_docs['aggregate'] % dict(
-        versionadded='',
-        klass='Series/DataFrame',
-        axis=''))
+    @Substitution(see_also=_agg_see_also_doc,
+                  examples=_agg_examples_doc,
+                  versionadded='',
+                  klass='Series/Dataframe',
+                  axis='')
+    @Appender(_shared_docs['aggregate'])
     def aggregate(self, arg, *args, **kwargs):
         return super(EWM, self).aggregate(arg, *args, **kwargs)
 

@@ -4927,7 +4927,7 @@ class NDFrame(PandasObject, SelectionMixin):
         if Series.agg is called with single function, returns a scalar
         if Series.agg is called with several functions, returns a Series
 
-    {see_also}
+    %(see_also)s
 
     Notes
     -----
@@ -4935,7 +4935,7 @@ class NDFrame(PandasObject, SelectionMixin):
 
     A passed user-defined-function will be passed a Series for evaluation.
 
-    {examples}
+    %(examples)s
     """)
 
     _shared_docs['transform'] = ("""

@@ -706,10 +706,9 @@ class SeriesGroupBy(GroupBy):
         else:
             return self._selection
 
-    _agg_doc = dedent("""
+    _agg_examples_doc = dedent("""
     Examples
     --------
-
     >>> s = pd.Series([1, 2, 3, 4])
 
     >>> s
@@ -733,13 +732,14 @@ class SeriesGroupBy(GroupBy):
        min  max
     1    1    2
     2    3    4
+    """)
 
+    _agg_see_also_doc = dedent("""
     See Also
     --------
     pandas.Series.groupby.apply
     pandas.Series.groupby.transform
     pandas.Series.aggregate
-
     """)
 
     @Appender(_apply_docs['template']
@@ -748,11 +748,12 @@ class SeriesGroupBy(GroupBy):
     def apply(self, func, *args, **kwargs):
         return super(SeriesGroupBy, self).apply(func, *args, **kwargs)
 
-    @Appender(_agg_doc)
-    @Appender(_shared_docs['aggregate'] % dict(
-        klass='Series',
-        versionadded='',
-        axis=''))
+    @Substitution(see_also=_agg_see_also_doc,
+                  examples=_agg_examples_doc,
+                  versionadded='',
+                  klass='Series',
+                  axis='')
+    @Appender(_shared_docs['aggregate'])
     def aggregate(self, func_or_funcs, *args, **kwargs):
         _level = kwargs.pop('_level', None)
         if isinstance(func_or_funcs, compat.string_types):
@@ -1304,13 +1305,12 @@ class DataFrameGroupBy(NDFrameGroupBy):
     2   3   4  0.704907
     """)
 
-    @Appender(_shared_docs['aggregate'].format(
-        see_also=_agg_see_also_doc,
-        examples=_agg_examples_doc
-    ) % dict(
-        klass='DataFrame',
-        versionadded='',
-        axis=''))
+    @Substitution(see_also=_agg_see_also_doc,
+                  examples=_agg_examples_doc,
+                  versionadded='',
+                  klass='DataFrame',
+                  axis='')
+    @Appender(_shared_docs['aggregate'])
     def aggregate(self, arg, *args, **kwargs):
         return super(DataFrameGroupBy, self).aggregate(arg, *args, **kwargs)
 
