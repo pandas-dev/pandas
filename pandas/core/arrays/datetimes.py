@@ -163,7 +163,7 @@ def _dt_array_cmp(cls, op):
             if o_mask.any():
                 result[o_mask] = nat_result
 
-        if self.hasnans:
+        if self._hasnans:
             result[self._isnan] = nat_result
 
         return result
@@ -467,7 +467,7 @@ class DatetimeArrayMixin(dtl.DatetimeLikeArrayMixin,
 
         Returns
         -------
-        np.dtype or DatetimeTZDtype
+        numpy.dtype or DatetimeTZDtype
             If the values are tz-naive, then ``np.dtype('datetime64[ns]')``
             is returned.
 
@@ -479,7 +479,12 @@ class DatetimeArrayMixin(dtl.DatetimeLikeArrayMixin,
     @property
     def tz(self):
         """
-        Return timezone.
+        Return timezone, if any.
+
+        Returns
+        -------
+        datetime.tzinfo, pytz.tzinfo.BaseTZInfo, dateutil.tz.tz.tzfile, or None
+            Returns None when the array is tz-naive.
         """
         # GH 18595
         return getattr(self.dtype, 'tz', None)
@@ -629,7 +634,7 @@ class DatetimeArrayMixin(dtl.DatetimeLikeArrayMixin,
         other_i8 = other.asi8
         new_values = checked_add_with_arr(self_i8, -other_i8,
                                           arr_mask=self._isnan)
-        if self.hasnans or other.hasnans:
+        if self._hasnans or other._hasnans:
             mask = (self._isnan) | (other._isnan)
             new_values[mask] = iNaT
         return new_values.view('timedelta64[ns]')

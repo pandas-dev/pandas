@@ -564,13 +564,16 @@ class DatetimeLikeArrayMixin(AttributesMixin,
         return (self.asi8 == iNaT)
 
     @property  # NB: override with cache_readonly in immutable subclasses
-    def hasnans(self):
+    def _hasnans(self):
         """
         return if I have any nans; enables various perf speedups
         """
         return bool(self._isnan.any())
 
     def fillna(self, value=None, method=None, limit=None):
+        # TODO(GH-20300): remove this
+        # Just overriding to ensure that we avoid an astype(object).
+        # Either 20300 or a `_values_for_fillna` would avoid this duplication.
         if isinstance(value, ABCSeries):
             value = value.array
 
@@ -821,7 +824,7 @@ class DatetimeLikeArrayMixin(AttributesMixin,
         This is an internal routine
         """
 
-        if self.hasnans:
+        if self._hasnans:
             if convert:
                 result = result.astype(convert)
             if fill_value is None:
@@ -1024,7 +1027,7 @@ class DatetimeLikeArrayMixin(AttributesMixin,
         new_values = checked_add_with_arr(self_i8, other_i8,
                                           arr_mask=self._isnan,
                                           b_mask=other._isnan)
-        if self.hasnans or other.hasnans:
+        if self._hasnans or other._hasnans:
             mask = (self._isnan) | (other._isnan)
             new_values[mask] = iNaT
         return new_values.view('i8')
@@ -1092,7 +1095,7 @@ class DatetimeLikeArrayMixin(AttributesMixin,
                                           b_mask=other._isnan)
 
         new_values = np.array([self.freq.base * x for x in new_values])
-        if self.hasnans or other.hasnans:
+        if self._hasnans or other._hasnans:
             mask = (self._isnan) | (other._isnan)
             new_values[mask] = NaT
         return new_values
