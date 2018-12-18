@@ -182,10 +182,6 @@ class JoinUnit(object):
                 if (getattr(self.block, 'is_datetimetz', False) or
                         is_datetime64tz_dtype(empty_dtype)):
                     if self.block is None:
-                        # hit in, e.g.
-                        # pandas/tests/frame/test_combine_concat.py
-                        # ::TestDataFrameConcatCommon
-                        # ::test_concat_tz_NaT[2015-01-01]
                         array = empty_dtype.construct_array_type()
                         return array(np.full(self.shape[1], fill_value),
                                      dtype=empty_dtype)

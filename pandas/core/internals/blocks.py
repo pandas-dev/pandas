@@ -2465,15 +2465,15 @@ class ObjectBlock(Block):
     def _try_coerce_args(self, values, other):
         """ provide coercion to our input arguments """
 
+        if isinstance(other, ABCDatetimeIndex):
+            # May get a DateimtimeIndex here. Unbox it.
+            other = other.array
+
         if isinstance(other, DatetimeArray):
             # hit in pandas/tests/indexing/test_coercion.py
             # ::TestWhereCoercion::test_where_series_datetime64[datetime64tz]
             # when falling back to ObjectBlock.where
             other = other.astype(object)
-
-        if isinstance(other, ABCDatetimeIndex):
-            # to store DatetimeTZBlock as object
-            other = other.astype(object).values
 
         return values, other
 
@@ -3151,10 +3151,6 @@ class DatetimeTZBlock(ExtensionBlock, DatetimeBlock):
         # We support filling a DatetimeTZ with a `value` whose timezone
         # is different by coercing to object.
         try:
-            # Ughhhh this is a bad workaround when `inplace=True`.
-            # We need to know ahead of time whether this will work.
-            # Or just deprecate the fallback behavior and have users
-            # worry about it.
             return super(DatetimeTZBlock, self).fillna(
                 value, limit, inplace, downcast
             )

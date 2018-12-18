@@ -581,8 +581,6 @@ def sanitize_array(data, index, dtype=None, copy=False,
         subarr = data
 
         if dtype is not None:
-            # Removed the is_dtype_equal check, since we may have a
-            # DatetimeArray with tz-naive, which doesn't use an ExtensionDtype.
             subarr = data.astype(dtype)
 
         if copy:

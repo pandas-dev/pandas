@@ -1020,7 +1020,7 @@ class TestAppend(ConcatenateBase):
         # It's possible that the `date` column should have
         # datetime64[ns, tz] dtype for both result and expected.
         # that would be more consistent with new columns having
-        # their own dtype (float for a and b, datetime64ns, tz for date.
+        # their own dtype (float for a and b, datetime64ns, tz for date).
         expected = DataFrame([[np.nan, np.nan, 1., 2., date]],
                              columns=['c', 'd', 'a', 'b', 'date'],
                              dtype=object)
