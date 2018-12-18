@@ -119,11 +119,11 @@ API changes
 
   This prevents doing boolean comparison on *entire* pandas objects, which is inherently ambiguous. These all will raise a ``ValueError``.
 
-  .. code-block:: python
-     :flake8-group: Ignore  # Documentation says this is necessary for mandatory E999 (if df:)
+  .. code-block:: text
 
      >>> if df:
-             ...
+             pass
+
      ValueError: The truth value of a DataFrame is ambiguous.  Use a.empty,
      a.bool(), a.item(), a.any() or a.all().
 
@@ -494,10 +494,10 @@ Enhancements
 
   .. ipython:: python
 
-     from datetime import timedelta
+     import datetime
      td = pd.Series(pd.date_range('20130101', periods=4)) - pd.Series(
          pd.date_range('20121201', periods=4))
-     td[2] += np.timedelta64(timedelta(minutes=5, seconds=3))
+     td[2] += np.timedelta64(datetime.timedelta(minutes=5, seconds=3))
      td[3] = np.nan
      td
 
@@ -528,7 +528,7 @@ Enhancements
   .. ipython:: python
 
      td.fillna(0)
-     td.fillna(timedelta(days=1, seconds=5))
+     td.fillna(datetime.timedelta(days=1, seconds=5))
 
   You can do numeric reduction operations on timedeltas.
 
@@ -838,7 +838,7 @@ Experimental
      # Your Google BigQuery Project ID
      # To find this, see your dashboard:
      # https://console.developers.google.com/iam-admin/projects?authuser=0
-     projectid = xxxxxxxxx;  # noqa F821
+     projectid = 'xxxxxxxxx'
      df = gbq.read_gbq(query, project_id=projectid)
 
      # Use pandas to process and reshape the dataset
