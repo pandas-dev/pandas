@@ -3,10 +3,9 @@ from distutils.version import LooseVersion
 
 import numpy as np
 import pytest
-import pytz
 
 from pandas._libs.tslibs import (
-    NaT, OutOfBoundsDatetime, Timedelta, Timestamp, conversion, timezones)
+    NaT, OutOfBoundsDatetime, Timestamp, conversion, timezones)
 from pandas._libs.tslibs.frequencies import (
     INVALID_FREQ_ERR_MSG, get_freq_code, get_freq_str)
 import pandas._libs.tslibs.offsets as liboffsets
@@ -15,7 +14,6 @@ from pandas.compat import range
 from pandas.compat.numpy import np_datetime64_compat
 
 from pandas.core.indexes.datetimes import DatetimeIndex, _to_m8, date_range
-from pandas.core.indexes.timedeltas import TimedeltaIndex
 from pandas.core.series import Series
 import pandas.util.testing as tm
 
