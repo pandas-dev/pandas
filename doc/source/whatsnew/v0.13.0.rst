@@ -121,20 +121,32 @@ API changes
 
   .. code-block:: python
 
-     >>> if df:  # noqa: F821
+     >>> df = pd.DataFrame({'A': np.random.randn(10),
+     ...                    'B': np.random.randn(10),
+     ...                    'C': pd.date_range('20130101', periods=10)
+     ...                    })
+     >>> if df:
      ...     pass
      ...
-
-     ValueError: The truth value of a DataFrame is ambiguous.  Use a.empty,
-     a.bool(), a.item(), a.any() or a.all().
-
-     >>> df1 and df2  # noqa: F821
      Traceback (most recent call last):
          ...
      ValueError: The truth value of a DataFrame is ambiguous.  Use a.empty,
      a.bool(), a.item(), a.any() or a.all().
 
-     >>> s1 and s2  # noqa: F821
+     >>> df1 = df
+     >>> df2 = df
+     >>> df1 and df2
+     Traceback (most recent call last):
+         ...
+     ValueError: The truth value of a DataFrame is ambiguous.  Use a.empty,
+     a.bool(), a.item(), a.any() or a.all().
+     
+     >>> d = [1, 2, 3]
+     >>> s1 = pd.Series(d)
+     >>> s2 = pd.Series(d)
+     >>> s1 and s2
+     Traceback (most recent call last):
+         ...
      ValueError: The truth value of a DataFrame is ambiguous.  Use a.empty,
      a.bool(), a.item(), a.any() or a.all().
 
