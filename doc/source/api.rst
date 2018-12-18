@@ -1221,6 +1221,7 @@ Serialization / IO / Conversion
    DataFrame.to_msgpack
    DataFrame.to_gbq
    DataFrame.to_records
+   DataFrame.to_frame
    DataFrame.to_sparse
    DataFrame.to_dense
    DataFrame.to_string

@@ -1735,6 +1735,16 @@ class DataFrame(NDFrame):
                         encoding=encoding, tupleize_cols=tupleize_cols,
                         infer_datetime_format=infer_datetime_format)
 
+    def to_frame(self):
+        """
+        Returns self.
+
+        Returns
+        -------
+        data_frame : DataFrame
+        """
+        return self
+
     def to_sparse(self, fill_value=None, kind='block'):
         """
         Convert to SparseDataFrame.

@@ -1169,6 +1169,9 @@ class TestSparseDataFrame(SharedWithSparse):
         rs = sparse_df[sparse_df.flag.isin([1.])]
         tm.assert_frame_equal(xp, rs)
 
+    def test_to_frame(self, float_frame):
+        tm.assert_frame_equal(float_frame, float_frame.to_frame())
+
     def test_sparse_pow_issue(self):
         # 2220
         df = SparseDataFrame({'A': [1.1, 3.3], 'B': [2.5, -3.9]})
