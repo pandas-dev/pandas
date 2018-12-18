@@ -133,8 +133,7 @@ class CategoricalIndex(Index, accessor.PandasDelegate):
 
         return cls._simple_new(data, name=name)
 
-    def _create_from_codes(self, codes, categories=None, ordered=None,
-                           name=None):
+    def _create_from_codes(self, codes, dtype=None, name=None):
         """
         *this is an internal non-public method*
 
@@ -143,8 +142,7 @@ class CategoricalIndex(Index, accessor.PandasDelegate):
         Parameters
         ----------
         codes : new codes
-        categories : optional categories, defaults to existing
-        ordered : optional ordered attribute, defaults to existing
+        dtype: CategoricalDtype, defaults to existing
         name : optional name attribute, defaults to existing
 
         Returns
@@ -152,14 +150,12 @@ class CategoricalIndex(Index, accessor.PandasDelegate):
         CategoricalIndex
         """
 
-        if categories is None:
-            categories = self.categories
-        if ordered is None:
-            ordered = self.ordered
+        if dtype is None:
+            dtype = self.dtype
         if name is None:
             name = self.name
-        cat = Categorical.from_codes(codes, categories=categories,
-                                     ordered=ordered)
+        cat = Categorical.from_codes(codes, categories=dtype.categories,
+                                     ordered=dtype.ordered)
         return CategoricalIndex(cat, name=name)
 
     @classmethod
@@ -201,12 +197,10 @@ class CategoricalIndex(Index, accessor.PandasDelegate):
         return data
 
     @classmethod
-    def _simple_new(cls, values, name=None, categories=None, ordered=None,
-                    dtype=None, **kwargs):
+    def _simple_new(cls, values, name=None, dtype=None, **kwargs):
         result = object.__new__(cls)
 
-        values = cls._create_categorical(values, categories, ordered,
-                                         dtype=dtype)
+        values = cls._create_categorical(values, dtype=dtype)
         result._data = values
         result.name = name
         for k, v in compat.iteritems(kwargs):
@@ -218,29 +212,11 @@ class CategoricalIndex(Index, accessor.PandasDelegate):
     # --------------------------------------------------------------------
 
     @Appender(_index_shared_docs['_shallow_copy'])
-    def _shallow_copy(self, values=None, categories=None, ordered=None,
-                      dtype=None, **kwargs):
-        # categories and ordered can't be part of attributes,
-        # as these are properties
-        # we want to reuse self.dtype if possible, i.e. neither are
-        # overridden.
-        if dtype is not None and (categories is not None or
-                                  ordered is not None):
-            raise TypeError("Cannot specify both `dtype` and `categories` "
-                            "or `ordered`")
-
-        if categories is None and ordered is None:
-            dtype = self.dtype if dtype is None else dtype
-            return super(CategoricalIndex, self)._shallow_copy(
-                values=values, dtype=dtype, **kwargs)
-        if categories is None:
-            categories = self.categories
-        if ordered is None:
-            ordered = self.ordered
-
+    def _shallow_copy(self, values=None, dtype=None, **kwargs):
+        if dtype is None:
+            dtype = self.dtype
         return super(CategoricalIndex, self)._shallow_copy(
-            values=values, categories=categories,
-            ordered=ordered, **kwargs)
+            values=values, dtype=dtype, **kwargs)
 
     def _is_dtype_compat(self, other):
         """
@@ -425,10 +401,9 @@ class CategoricalIndex(Index, accessor.PandasDelegate):
         if level is not None:
             self._validate_index_level(level)
         result = self.values.unique()
-        # CategoricalIndex._shallow_copy keeps original categories
-        # and ordered if not otherwise specified
-        return self._shallow_copy(result, categories=result.categories,
-                                  ordered=result.ordered)
+        # CategoricalIndex._shallow_copy keeps original dtype
+        # if not otherwise specified
+        return self._shallow_copy(result, dtype=result.dtype)
 
     @Appender(Index.duplicated.__doc__)
     def duplicated(self, keep='first'):
