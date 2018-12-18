@@ -577,42 +577,6 @@ class DatetimeIndexOpsMixin(ExtensionOpsMixin):
         # - sort_values
         return values
 
-    def _deepcopy_if_needed(self, orig, copy=False):
-        """
-        Make a copy of self if data coincides (in memory) with orig.
-        Subclasses should override this if self._base is not an ndarray.
-
-        .. versionadded:: 0.19.0
-
-        Parameters
-        ----------
-        orig : ndarray
-            other ndarray to compare self._data against
-        copy : boolean, default False
-            when False, do not run any check, just return self
-
-        Returns
-        -------
-        A copy of self if needed, otherwise self : Index
-        """
-        # Override Index._deepcopy_if_needed, since _data is not an ndarray.
-        if copy:
-            if not isinstance(orig, np.ndarray):
-                # orig is a DatetimeIndex
-                orig = orig._data
-            orig = orig if orig.base is None else orig.base
-            own_data = self._data
-
-            if own_data._data.base is None:
-                new = own_data._data
-            else:
-                new = own_data._data.base
-
-            if orig is new:
-                return self.copy(deep=True)
-
-        return self
-
     @Appender(_index_shared_docs['astype'])
     def astype(self, dtype, copy=True):
         if is_dtype_equal(self.dtype, dtype) and copy is False:
