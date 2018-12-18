@@ -119,19 +119,22 @@ API changes
 
   This prevents doing boolean comparison on *entire* pandas objects, which is inherently ambiguous. These all will raise a ``ValueError``.
 
-  .. code-block:: text
+  .. code-block:: python
 
-     >>> if df:
-             pass
+     >>> if df:  # noqa: F821
+     ...     pass
+     ...
 
      ValueError: The truth value of a DataFrame is ambiguous.  Use a.empty,
      a.bool(), a.item(), a.any() or a.all().
 
-     >>> df1 and df2
+     >>> df1 and df2  # noqa: F821
+     Traceback (most recent call last):
+         ...
      ValueError: The truth value of a DataFrame is ambiguous.  Use a.empty,
      a.bool(), a.item(), a.any() or a.all().
 
-     >>> s1 and s2
+     >>> s1 and s2  # noqa: F821
      ValueError: The truth value of a DataFrame is ambiguous.  Use a.empty,
      a.bool(), a.item(), a.any() or a.all().
 
