@@ -4,9 +4,9 @@ import functools
 import gc
 import json
 import operator
+from textwrap import dedent
 import warnings
 import weakref
-from textwrap import dedent
 
 import numpy as np
 
