@@ -2643,12 +2643,11 @@ class StataStrLWriter(object):
             bio.write(gso_type)
 
             # llll
-            encoded = self._encode(strl)
-            bio.write(struct.pack(len_type, len(encoded) + 1))
+            utf8_string = _bytes(strl, 'utf-8')
+            bio.write(struct.pack(len_type, len(utf8_string) + 1))
 
             # xxx...xxx
-            s = _bytes(strl, 'utf-8')
-            bio.write(s)
+            bio.write(utf8_string)
             bio.write(null)
 
         bio.seek(0)

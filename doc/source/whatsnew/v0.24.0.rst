@@ -1576,6 +1576,7 @@ Notice how we now instead output ``np.nan`` itself instead of a stringified form
 - :func:`DataFrame.to_string()`, :func:`DataFrame.to_html()`, :func:`DataFrame.to_latex()` will correctly format output when a string is passed as the ``float_format`` argument (:issue:`21625`, :issue:`22270`)
 - Bug in :func:`read_csv` that caused it to raise ``OverflowError`` when trying to use 'inf' as ``na_value`` with integer index column (:issue:`17128`)
 - Bug in :func:`pandas.io.json.json_normalize` that caused it to raise ``TypeError`` when two consecutive elements of ``record_path`` are dicts (:issue:`22706`)
+- Bug in :meth:`DataFrame.to_stata` and :class:`pandas.io.stata.StataWriter117` that produced invalid files when using strLs with non-ASCII characters (:issue:`23573`)
 
 Plotting
 ^^^^^^^^
