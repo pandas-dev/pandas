@@ -560,11 +560,6 @@ class DatetimeIndex(DatelikeIndexMixin,
 
     def _wrap_setop_result(self, other, result):
         name = get_op_result_name(self, other)
-        if isinstance(result, list):
-            # this feels like the wrong place
-            result = type(self)(result, copy=False, name=name, tz=self.tz)
-        if not timezones.tz_compare(self.tz, other.tz):
-            raise ValueError('Passed item and index have different timezone')
         return self._shallow_copy(result, name=name, freq=None, tz=self.tz)
 
     def intersection(self, other):
