@@ -297,6 +297,9 @@ class DatetimeArrayMixin(dtl.DatetimeLikeArrayMixin,
                 end, getattr(end, 'tz', None), end, freq, tz
             )
         if freq is not None:
+            # We break Day arithmetic (fixed 24 hour) here and opt for
+            # Day to mean calendar day (23/24/25 hour). Therefore, strip
+            # tz info from start and day to avoid DST arithmetic
             if isinstance(freq, Day):
                 if start is not None:
                     start = start.tz_localize(None)
