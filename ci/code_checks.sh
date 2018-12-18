@@ -151,6 +151,14 @@ if [[ -z "$CHECK" || "$CHECK" == "patterns" ]]; then
     MSG='Check that no file in the repo contains tailing whitespaces' ; echo $MSG
     invgrep --exclude="*.svg" -RI "\s$" *
     RET=$(($RET + $?)) ; echo $MSG "DONE"
+
+    # Check that we use pytest.raises only as a context manager
+    #
+    # For any flake8-compliant code, the only way this regex gets
+    # matched is if there is no "with" statement preceding "pytest.raises"
+    MSG='Check for pytest.raises as context manager' ; echo $MSG
+    invgrep -R --include '*.py' -E '[[:space:]] pytest.raises' pandas/tests
+    RET=$(($RET + $?)) ; echo $MSG "DONE"
 fi
 
 ### CODE ###
