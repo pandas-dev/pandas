@@ -1641,6 +1641,37 @@ class TestSeriesAnalytics(object):
         tm.assert_series_equal(s.value_counts(normalize=True), exp)
         tm.assert_series_equal(idx.value_counts(normalize=True), exp)
 
+    @pytest.mark.parametrize("func", [np.any, np.all])
+    @pytest.mark.parametrize("kwargs", [
+        dict(keepdims=True),
+        dict(out=object()),
+    ])
+    def test_validate_any_all_out_keepdims_raises(self, kwargs, func):
+        s = pd.Series([1, 2])
+        param = list(kwargs)[0]
+        name = func.__name__
+
+        msg = "the '{}' parameter .* {}".format(param, name)
+        with pytest.raises(ValueError, match=msg):
+            func(s, **kwargs)
+
+    def test_validate_sum_initial(self):
+        s = pd.Series([1, 2])
+        with pytest.raises(ValueError, match="the 'initial' .* sum"):
+            np.sum(s, initial=10)
+
+    def test_validate_median_initial(self):
+        s = pd.Series([1, 2])
+        with pytest.raises(ValueError,
+                           match="the 'overwrite_input' .* median"):
+            np.median(s, overwrite_input=True)
+
+    def test_validate_stat_keepdims(self):
+        s = pd.Series([1, 2])
+        with pytest.raises(ValueError,
+                           match="the 'keepdims'"):
+            np.sum(s, keepdims=True)
+
 
 main_dtypes = [
     'datetime',

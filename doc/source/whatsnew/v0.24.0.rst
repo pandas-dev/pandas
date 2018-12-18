@@ -1397,6 +1397,7 @@ Numeric
 - Added ``log10`` to the list of supported functions in :meth:`DataFrame.eval` (:issue:`24139`)
 - Logical operations ``&, |, ^`` between :class:`Series` and :class:`Index` will no longer raise ``ValueError`` (:issue:`22092`)
 - Checking PEP 3141 numbers in :func:`~pandas.api.types.is_scalar` function returns ``True`` (:issue:`22903`)
+- Reduction methods like :meth:`Series.sum` now accept the default value of ``keepdims=False`` when called from a NumPy ufunc, rather than raising a ``TypeError``. Full support for ``keepdims`` has not been implemented (:issue:``).
 
  Conversion
 ^^^^^^^^^^
