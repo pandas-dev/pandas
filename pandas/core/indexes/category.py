@@ -208,7 +208,6 @@ class CategoricalIndex(Index, accessor.PandasDelegate):
         values = cls._create_categorical(values, categories, ordered,
                                          dtype=dtype)
         result._data = values
-        result._index_data = values.codes
         result.name = name
         for k, v in compat.iteritems(kwargs):
             setattr(result, k, v)
