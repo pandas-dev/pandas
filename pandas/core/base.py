@@ -1338,8 +1338,8 @@ class IndexOpsMixin(object):
 
         Parameters
         ----------
-        value : scalar or array_like
-            Value(s) to insert into `self`.t
+        value : array_like
+            Values to insert into `self`.
         side : {'left', 'right'}, optional
             If 'left', the index of the first suitable location found is given.
             If 'right', return the last such index.  If there is no suitable
@@ -1350,7 +1350,7 @@ class IndexOpsMixin(object):
 
         Returns
         -------
-        int or array of ints
+        int or array of int
             A scalar or array of insertion points with the
             same shape as `value`.
 
