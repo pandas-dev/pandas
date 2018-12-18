@@ -693,6 +693,13 @@ class Window(_Window):
 
         return self._wrap_results(results, blocks, obj)
 
+    _agg_see_also_doc = dedent("""
+    See Also
+    --------
+    pandas.DataFrame.rolling.aggregate
+    pandas.DataFrame.aggregate
+    """)
+
     _agg_examples_doc = dedent("""
     Examples
     --------
@@ -723,13 +730,6 @@ class Window(_Window):
     7  0.906020  1.283573  0.085482
     8 -0.096361  0.818139  0.472290
     9  0.070889  0.134399 -0.031308
-    """)
-
-    _agg_see_also_doc = dedent("""
-    See Also
-    --------
-    pandas.DataFrame.rolling.aggregate
-    pandas.DataFrame.aggregate
     """)
 
     @Substitution(see_also=_agg_see_also_doc,
@@ -2192,6 +2192,12 @@ class EWM(_Rolling):
     def _constructor(self):
         return EWM
 
+    _agg_see_also_doc = dedent("""
+    See Also
+    --------
+    pandas.DataFrame.rolling.aggregate
+    """)
+
     _agg_examples_doc = dedent("""
     Examples
     --------
@@ -2222,12 +2228,6 @@ class EWM(_Rolling):
     7  0.680292  0.132049  0.548693
     8  0.067236  0.948257  0.163353
     9 -0.286980  0.618493 -0.694496
-    """)
-
-    _agg_see_also_doc = dedent("""
-    See Also
-    --------
-    pandas.DataFrame.rolling.aggregate
     """)
 
     @Substitution(see_also=_agg_see_also_doc,

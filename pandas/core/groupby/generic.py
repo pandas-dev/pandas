@@ -706,6 +706,14 @@ class SeriesGroupBy(GroupBy):
         else:
             return self._selection
 
+    _agg_see_also_doc = dedent("""
+    See Also
+    --------
+    pandas.Series.groupby.apply
+    pandas.Series.groupby.transform
+    pandas.Series.aggregate
+    """)
+
     _agg_examples_doc = dedent("""
     Examples
     --------
@@ -732,14 +740,6 @@ class SeriesGroupBy(GroupBy):
        min  max
     1    1    2
     2    3    4
-    """)
-
-    _agg_see_also_doc = dedent("""
-    See Also
-    --------
-    pandas.Series.groupby.apply
-    pandas.Series.groupby.transform
-    pandas.Series.aggregate
     """)
 
     @Appender(_apply_docs['template']
