@@ -6037,7 +6037,7 @@ class DataFrame(NDFrame):
         # TODO: _shallow_copy(subset)?
         return subset[key]
 
-    _agg_see_also_doc = dedent("""
+    _agg_summary_and_see_also_doc = dedent("""
     The aggregation operations are always performed over an axis, either the
     index (default) or the column axis. This behavior is different from
     `numpy` aggregation functions (`mean`, `median`, `prod`, `sum`, `std`,
@@ -6093,7 +6093,7 @@ class DataFrame(NDFrame):
     dtype: float64
     """)
 
-    @Substitution(see_also=_agg_see_also_doc,
+    @Substitution(see_also=_agg_summary_and_see_also_doc,
                   examples=_agg_examples_doc,
                   versionadded='.. versionadded:: 0.20.0',
                   **_shared_doc_kwargs)
