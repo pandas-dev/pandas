@@ -824,22 +824,29 @@ Enhancements
 
   .. ipython:: python
 
-    import datetime
-    df = pd.DataFrame({
-      'Branch' : 'A A A A A B'.split(),
-      'Buyer': 'Carl Mark Carl Carl Joe Joe'.split(),
-      'Quantity': [1, 3, 5, 1, 8, 1],
-      'Date' : [datetime.datetime(2013,11,1,13,0), datetime.datetime(2013,9,1,13,5),
-                datetime.datetime(2013,10,1,20,0), datetime.datetime(2013,10,2,10,0),
-                datetime.datetime(2013,11,1,20,0), datetime.datetime(2013,10,2,10,0)],
-      'PayDay' : [datetime.datetime(2013,10,4,0,0), datetime.datetime(2013,10,15,13,5),
-                  datetime.datetime(2013,9,5,20,0), datetime.datetime(2013,11,2,10,0),
-                  datetime.datetime(2013,10,7,20,0), datetime.datetime(2013,9,5,10,0)]})
-    df
+     import datetime
+     df = pd.DataFrame({
+         'Branch': 'A A A A A B'.split(),
+         'Buyer': 'Carl Mark Carl Carl Joe Joe'.split(),
+         'Quantity': [1, 3, 5, 1, 8, 1],
+         'Date': [datetime.datetime(2013, 11, 1, 13, 0),
+                  datetime.datetime(2013, 9, 1, 13, 5),
+                  datetime.datetime(2013, 10, 1, 20, 0),
+                  datetime.datetime(2013, 10, 2, 10, 0),
+                  datetime.datetime(2013, 11, 1, 20, 0),
+                  datetime.datetime(2013, 10, 2, 10, 0)],
+         'PayDay': [datetime.datetime(2013, 10, 4, 0, 0),
+                    datetime.datetime(2013, 10, 15, 13, 5),
+                    datetime.datetime(2013, 9, 5, 20, 0),
+                    datetime.datetime(2013, 11, 2, 10, 0),
+                    datetime.datetime(2013, 10, 7, 20, 0),
+                    datetime.datetime(2013, 9, 5, 10, 0)]})
+     df
 
-    pivot_table(df, index=Grouper(freq='M', key='Date'),
-                columns=Grouper(freq='M', key='PayDay'),
-                values='Quantity', aggfunc=np.sum)
+     df.pivot_table(values='Quantity',
+                    index=pd.Grouper(freq='M', key='Date'),
+                    columns=pd.Grouper(freq='M', key='PayDay'),
+                    aggfunc=np.sum)
 
 - Arrays of strings can be wrapped to a specified width (``str.wrap``) (:issue:`6999`)
 - Add :meth:`~Series.nsmallest` and :meth:`Series.nlargest` methods to Series, See :ref:`the docs <basics.nsorted>` (:issue:`3960`)
