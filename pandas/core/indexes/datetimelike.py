@@ -595,7 +595,6 @@ class DatetimeIndexOpsMixin(ExtensionOpsMixin):
         return Index(new_values, dtype=dtype, name=self.name)
 
     def view(self, dtype=None, type=None):
-        # NB: moved from PeriodIndex
         if dtype is None or dtype is __builtins__['type'](self):
             # Series.copy() eventually calls this. Need to call
             # _shallow_copy here so that we don't propagate modifications
@@ -608,7 +607,6 @@ class DatetimeIndexOpsMixin(ExtensionOpsMixin):
 
     @deprecate_kwarg(old_arg_name='n', new_arg_name='periods')
     def shift(self, periods, freq=None):
-        # NB: moved from PeriodIndex
         """
         Shift index by desired number of increments.
 
