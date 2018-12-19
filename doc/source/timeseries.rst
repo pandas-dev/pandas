@@ -408,7 +408,7 @@ In practice this becomes very cumbersome because we often need a very long
 index with a large number of timestamps. If we need timestamps on a regular
 frequency, we can use the :func:`date_range` and :func:`bdate_range` functions
 to create a ``DatetimeIndex``. The default frequency for ``date_range`` is a
-**day** while the default for ``bdate_range`` is a **business day**:
+**calendar day** while the default for ``bdate_range`` is a **business day**:
 
 .. ipython:: python
 
@@ -927,26 +927,6 @@ in the operation).
 
 .. _relativedelta documentation: https://dateutil.readthedocs.io/en/stable/relativedelta.html
 
-.. _timeseries.dayvscalendarday:
-
-Day vs. CalendarDay
-~~~~~~~~~~~~~~~~~~~
-
-:class:`Day` (``'D'``) is a timedelta-like offset that respects absolute time
-arithmetic and is an alias for 24 :class:`Hour`. This offset is the default
-argument to many pandas time related function like :func:`date_range` and :func:`timedelta_range`.
-
-:class:`CalendarDay` (``'CD'``) is a relativedelta-like offset that respects
-calendar time arithmetic. :class:`CalendarDay` is useful preserving calendar day
-semantics with date times with have day light savings transitions, i.e. :class:`CalendarDay`
-will preserve the hour before the day light savings transition.
-
-.. ipython:: python
-
-   ts = pd.Timestamp('2016-10-30 00:00:00', tz='Europe/Helsinki')
-   ts + pd.offsets.Day(1)
-   ts + pd.offsets.CalendarDay(1)
-
 
 Parametric Offsets
 ~~~~~~~~~~~~~~~~~~
@@ -1084,7 +1064,7 @@ in the usual way.
     dt + bmth_us
 
     # Define date index with custom offset
-    pd.DatetimeIndex(start='20100101', end='20120101', freq=bmth_us)
+    pd.date_range(start='20100101', end='20120101', freq=bmth_us)
 
 .. note::
 
@@ -1243,8 +1223,7 @@ frequencies. We will refer to these aliases as *offset aliases*.
 
     "B", "business day frequency"
     "C", "custom business day frequency"
-    "D", "day frequency"
-    "CD", "calendar day frequency"
+    "D", "calendar day frequency"
     "W", "weekly frequency"
     "M", "month end frequency"
     "SM", "semi-month end frequency (15th and end of month)"
@@ -1438,8 +1417,8 @@ or ``Timestamp`` objects.
 
 .. ipython:: python
 
-    pd.DatetimeIndex(start='7/1/2012', end='7/10/2012',
-                     freq=pd.offsets.CDay(calendar=cal)).to_pydatetime()
+    pd.date_range(start='7/1/2012', end='7/10/2012',
+                  freq=pd.offsets.CDay(calendar=cal)).to_pydatetime()
     offset = pd.offsets.CustomBusinessDay(calendar=cal)
     datetime.datetime(2012, 5, 25) + offset
     datetime.datetime(2012, 7, 3) + offset
@@ -2300,8 +2279,8 @@ To remove timezone from tz-aware ``DatetimeIndex``, use ``tz_localize(None)`` or
 
 .. ipython:: python
 
-   didx = pd.DatetimeIndex(start='2014-08-01 09:00', freq='H',
-                           periods=10, tz='US/Eastern')
+   didx = pd.date_range(start='2014-08-01 09:00', freq='H',
+                        periods=10, tz='US/Eastern')
    didx
    didx.tz_localize(None)
    didx.tz_convert(None)
@@ -2354,8 +2333,8 @@ constructor as well as ``tz_localize``.
    rng_hourly.tz_localize('US/Eastern', ambiguous=rng_hourly_dst).to_list()
    rng_hourly.tz_localize('US/Eastern', ambiguous='NaT').to_list()
 
-   didx = pd.DatetimeIndex(start='2014-08-01 09:00', freq='H',
-                           periods=10, tz='US/Eastern')
+   didx = pd.date_range(start='2014-08-01 09:00', freq='H',
+                        periods=10, tz='US/Eastern')
    didx
    didx.tz_localize(None)
    didx.tz_convert(None)

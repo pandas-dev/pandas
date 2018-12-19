@@ -7,7 +7,7 @@ import numpy as np
 
 from pandas._libs import NaT, algos, iNaT, lib
 from pandas._libs.tslibs.period import (
-    DIFFERENT_FREQ_INDEX, IncompatibleFrequency, Period)
+    DIFFERENT_FREQ, IncompatibleFrequency, Period)
 from pandas._libs.tslibs.timedeltas import Timedelta, delta_to_nanoseconds
 from pandas._libs.tslibs.timestamps import (
     RoundTo, maybe_integer_op_deprecated, round_nsint64)
@@ -756,7 +756,9 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin, AttributesMixin):
             raise ValueError("cannot subtract arrays/indices of "
                              "unequal length")
         if self.freq != other.freq:
-            msg = DIFFERENT_FREQ_INDEX.format(self.freqstr, other.freqstr)
+            msg = DIFFERENT_FREQ.format(cls=type(self).__name__,
+                                        own_freq=self.freqstr,
+                                        other_freq=other.freqstr)
             raise IncompatibleFrequency(msg)
 
         new_values = checked_add_with_arr(self.asi8, -other.asi8,
