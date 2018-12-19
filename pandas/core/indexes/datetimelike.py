@@ -153,10 +153,10 @@ class DatetimeIndexOpsMixin(ExtensionOpsMixin):
 
     def _ensure_localized(self, arg, ambiguous='raise', nonexistent='raise',
                           from_utc=False):
-        result = self._values._ensure_localized(arg,
-                                                ambiguous=ambiguous,
-                                                nonexistent=nonexistent,
-                                                from_utc=from_utc)
+        result = self._data._ensure_localized(arg,
+                                              ambiguous=ambiguous,
+                                              nonexistent=nonexistent,
+                                              from_utc=from_utc)
         if getattr(self, 'tz', None):
             return type(self)._simple_new(result, name=self.name)
         return arg
