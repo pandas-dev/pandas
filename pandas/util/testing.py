@@ -33,8 +33,7 @@ from pandas.core.dtypes.missing import array_equivalent
 import pandas as pd
 from pandas import (
     Categorical, CategoricalIndex, DataFrame, DatetimeIndex, Index,
-    IntervalIndex, MultiIndex, Panel, PeriodIndex, RangeIndex, Series,
-    bdate_range)
+    IntervalIndex, MultiIndex, Panel, RangeIndex, Series, bdate_range)
 from pandas.core.algorithms import take_1d
 from pandas.core.arrays import (
     DatetimeArrayMixin as DatetimeArray, ExtensionArray, IntervalArray,
@@ -1962,7 +1961,7 @@ def makeTimedeltaIndex(k=10, freq='D', name=None, **kwargs):
 
 def makePeriodIndex(k=10, name=None, **kwargs):
     dt = datetime(2000, 1, 1)
-    dr = PeriodIndex(start=dt, periods=k, freq='B', name=name, **kwargs)
+    dr = pd.period_range(start=dt, periods=k, freq='B', name=name, **kwargs)
     return dr
 
 

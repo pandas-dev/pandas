@@ -92,12 +92,21 @@ class PeriodIndex(DatelikeOps, DatetimeIndexOpsMixin, Int64Index,
     start : starting value, period-like, optional
         If data is None, used as the start point in generating regular
         period data.
+
+        .. deprecated:: 0.24.0
+
     periods : int, optional, > 0
         Number of periods to generate, if generating index. Takes precedence
         over end argument
+
+        .. deprecated:: 0.24.0
+
     end : end value, period-like, optional
         If periods is none, generated index will extend to first conforming
         period on or just past end argument
+
+        .. deprecated:: 0.24.0
+
     year : int, array, or Series, default None
     month : int, array, or Series, default None
     quarter : int, array, or Series, default None
@@ -138,11 +147,14 @@ class PeriodIndex(DatelikeOps, DatetimeIndexOpsMixin, Int64Index,
     strftime
     to_timestamp
 
+    Notes
+    -----
+    Creating a PeriodIndex based on `start`, `periods`, and `end` has
+    been deprecated in favor of :func:`period_range`.
+
     Examples
     --------
     >>> idx = pd.PeriodIndex(year=year_arr, quarter=q_arr)
-
-    >>> idx2 = pd.PeriodIndex(start='2000', end='2010', freq='A')
 
     See Also
     ---------
@@ -150,6 +162,7 @@ class PeriodIndex(DatelikeOps, DatetimeIndexOpsMixin, Int64Index,
     Period : Represents a period of time.
     DatetimeIndex : Index with datetime64 data.
     TimedeltaIndex : Index of timedelta64 data.
+    period_range : Create a fixed-frequency PeriodIndex.
     """
     _typ = 'periodindex'
     _attributes = ['name', 'freq']
@@ -183,6 +196,14 @@ class PeriodIndex(DatelikeOps, DatetimeIndexOpsMixin, Int64Index,
             # range-based.
             data, freq = PeriodArray._generate_range(start, end, periods,
                                                      freq, fields)
+            # PeriodArray._generate range does validate that fields is
+            # empty when really using the range-based constructor.
+            if not fields:
+                warnings.warn("Creating a PeriodIndex by passing range "
+                              "endpoints is deprecated.  Use "
+                              "`pandas.period_range` instead.",
+                              FutureWarning, stacklevel=2)
+
             data = PeriodArray(data, freq=freq)
         else:
             freq = validate_dtype_freq(dtype, freq)
@@ -983,7 +1004,7 @@ PeriodIndex._add_logical_methods_disabled()
 PeriodIndex._add_datetimelike_methods()
 
 
-def period_range(start=None, end=None, periods=None, freq='D', name=None):
+def period_range(start=None, end=None, periods=None, freq=None, name=None):
     """
     Return a fixed frequency PeriodIndex, with day (calendar) as the default
     frequency
@@ -996,8 +1017,11 @@ def period_range(start=None, end=None, periods=None, freq='D', name=None):
         Right bound for generating periods
     periods : integer, default None
         Number of periods to generate
-    freq : string or DateOffset, default 'D'
-        Frequency alias
+    freq : string or DateOffset, optional
+        Frequency alias. By default the freq is taken from `start` or `end`
+        if those are Period objects. Otherwise, the default is ``"D"`` for
+        daily frequency.
+
     name : string, default None
         Name of the resulting PeriodIndex
 
@@ -1035,5 +1059,7 @@ def period_range(start=None, end=None, periods=None, freq='D', name=None):
         raise ValueError('Of the three parameters: start, end, and periods, '
                          'exactly two must be specified')
 
-    return PeriodIndex(start=start, end=end, periods=periods,
-                       freq=freq, name=name)
+    data, freq = PeriodArray._generate_range(start, end, periods, freq,
+                                             fields={})
+    data = PeriodArray(data, freq=freq)
+    return PeriodIndex(data, name=name)

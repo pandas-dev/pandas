@@ -1142,7 +1142,7 @@ Deprecations
 - Timezone converting a tz-aware ``datetime.datetime`` or :class:`Timestamp` with :class:`Timestamp` and the ``tz`` argument is now deprecated. Instead, use :meth:`Timestamp.tz_convert` (:issue:`23579`)
 - :func:`pandas.api.types.is_period` is deprecated in favor of `pandas.api.types.is_period_dtype` (:issue:`23917`)
 - :func:`pandas.api.types.is_datetimetz` is deprecated in favor of `pandas.api.types.is_datetime64tz` (:issue:`23917`)
-- Creating a :class:`TimedeltaIndex` or :class:`DatetimeIndex` by passing range arguments `start`, `end`, and `periods` is deprecated in favor of :func:`timedelta_range` and :func:`date_range` (:issue:`23919`)
+- Creating a :class:`TimedeltaIndex`, :class:`DatetimeIndex`, or :class:`PeriodIndex` by passing range arguments `start`, `end`, and `periods` is deprecated in favor of :func:`timedelta_range`, :func:`date_range`, or :func:`period_range` (:issue:`23919`)
 - Passing a string alias like ``'datetime64[ns, UTC]'`` as the ``unit`` parameter to :class:`DatetimeTZDtype` is deprecated. Use :class:`DatetimeTZDtype.construct_from_string` instead (:issue:`23990`).
 - In :meth:`Series.where` with Categorical data, providing an ``other`` that is not present in the categories is deprecated. Convert the categorical to a different dtype or add the ``other`` to the categories first (:issue:`24077`).
 - :meth:`Series.clip_lower`, :meth:`Series.clip_upper`, :meth:`DataFrame.clip_lower` and :meth:`DataFrame.clip_upper` are deprecated and will be removed in a future version. Use ``Series.clip(lower=threshold)``, ``Series.clip(upper=threshold)`` and the equivalent ``DataFrame`` methods (:issue:`24203`)
@@ -1313,6 +1313,7 @@ Datetimelike
 - Bug in :meth:`Series.combine_first` not properly aligning categoricals, so that missing values in ``self`` where not filled by valid values from ``other`` (:issue:`24147`)
 - Bug in :func:`DataFrame.combine` with datetimelike values raising a TypeError (:issue:`23079`)
 - Bug in :func:`date_range` with frequency of ``Day`` or higher where dates sufficiently far in the future could wrap around to the past instead of raising ``OutOfBoundsDatetime`` (:issue:`14187`)
+- Bug in :func:`period_range` ignoring the frequency of ``start`` and ``end`` when those are provided as :class:`Period` objects (:issue:`20535`).
 - Bug in :class:`PeriodIndex` with attribute ``freq.n`` greater than 1 where adding a :class:`DateOffset` object would return incorrect results (:issue:`23215`)
 - Bug in :class:`Series` that interpreted string indices as lists of characters when setting datetimelike values (:issue:`23451`)
 - Bug in :class:`Timestamp` constructor which would drop the frequency of an input :class:`Timestamp` (:issue:`22311`)
