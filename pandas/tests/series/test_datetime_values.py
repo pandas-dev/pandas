@@ -539,6 +539,8 @@ class TestSeriesDatetimeValues():
         # GH 23282
         assert nat.min() is pd.NaT
         assert nat.max() is pd.NaT
+        assert nat.min(skipna=False) is pd.NaT
+        assert nat.max(skipna=False) is pd.NaT
 
     @pytest.mark.parametrize('nat', [
         # GH 23282
@@ -548,6 +550,8 @@ class TestSeriesDatetimeValues():
     def test_minmax_nat_dataframe(self, nat):
         assert nat.min()[0] is pd.NaT
         assert nat.max()[0] is pd.NaT
+        assert nat.min(skipna=False)[0] is pd.NaT
+        assert nat.max(skipna=False)[0] is pd.NaT
 
     def test_setitem_with_string_index(self):
         # GH 23451

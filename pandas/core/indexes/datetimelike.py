@@ -271,16 +271,21 @@ class DatetimeIndexOpsMixin(DatetimeLikeArrayMixin):
         nv.validate_min(args, kwargs)
         nv.validate_minmax_axis(axis)
 
+        i8 = self.asi8
         try:
-            i8 = self.asi8
-
             # quick check
             if len(i8) and self.is_monotonic:
                 if i8[0] != iNaT:
                     return self._box_func(i8[0])
 
+            if not len(self):
+                return self._na_value
+
             if self.hasnans:
-                min_stamp = self[~self._isnan].asi8.min()
+                if skipna:
+                    min_stamp = self[~self._isnan].asi8.min()
+                else:
+                    return self._na_value
             else:
                 min_stamp = i8.min()
             return self._box_func(min_stamp)
@@ -304,7 +309,7 @@ class DatetimeIndexOpsMixin(DatetimeLikeArrayMixin):
         i8 = self.asi8
         if self.hasnans:
             mask = self._isnan
-            if mask.all():
+            if mask.all() or not skipna:
                 return -1
             i8 = i8.copy()
             i8[mask] = np.iinfo('int64').max
@@ -322,16 +327,21 @@ class DatetimeIndexOpsMixin(DatetimeLikeArrayMixin):
         nv.validate_max(args, kwargs)
         nv.validate_minmax_axis(axis)
 
+        i8 = self.asi8
         try:
-            i8 = self.asi8
-
             # quick check
             if len(i8) and self.is_monotonic:
                 if i8[-1] != iNaT:
                     return self._box_func(i8[-1])
 
+            if not len(self):
+                return self._na_value
+
             if self.hasnans:
-                max_stamp = self[~self._isnan].asi8.max()
+                if skipna:
+                    max_stamp = self[~self._isnan].asi8.max()
+                else:
+                    return self._na_value
             else:
                 max_stamp = i8.max()
             return self._box_func(max_stamp)
@@ -355,7 +365,7 @@ class DatetimeIndexOpsMixin(DatetimeLikeArrayMixin):
         i8 = self.asi8
         if self.hasnans:
             mask = self._isnan
-            if mask.all():
+            if mask.all() or not skipna:
                 return -1
             i8 = i8.copy()
             i8[mask] = 0

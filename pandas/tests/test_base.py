@@ -360,23 +360,57 @@ class TestIndexOps(Ops):
         # GH 7261
         for op in ['max', 'min']:
             for klass in [Index, Series]:
+                arg_op = 'arg' + op if klass is Index else 'idx' + op
 
                 obj = klass([np.nan, 2.0])
                 assert getattr(obj, op)() == 2.0
 
+                result = getattr(obj, op)(skipna=False)
+                assert np.isnan(result)
+
                 obj = klass([np.nan])
                 assert pd.isna(getattr(obj, op)())
+                assert pd.isna(getattr(obj, op)(skipna=False))
 
                 obj = klass([])
                 assert pd.isna(getattr(obj, op)())
+                assert pd.isna(getattr(obj, op)(skipna=False))
 
                 obj = klass([pd.NaT, datetime(2011, 11, 1)])
                 # check DatetimeIndex monotonic path
                 assert getattr(obj, op)() == datetime(2011, 11, 1)
+                assert getattr(obj, op)(skipna=False) is pd.NaT
+
+                assert getattr(obj, arg_op)() == 1
+                result = getattr(obj, arg_op)(skipna=False)
+                if klass is Series:
+                    assert np.isnan(result)
+                else:
+                    assert result == -1
 
                 obj = klass([pd.NaT, datetime(2011, 11, 1), pd.NaT])
                 # check DatetimeIndex non-monotonic path
-                assert getattr(obj, op)(), datetime(2011, 11, 1)
+                assert getattr(obj, op)() == datetime(2011, 11, 1)
+                assert getattr(obj, op)(skipna=False) is pd.NaT
+
+                assert getattr(obj, arg_op)() == 1
+                result = getattr(obj, arg_op)(skipna=False)
+                if klass is Series:
+                    assert np.isnan(result)
+                else:
+                    assert result == -1
+
+                for dtype in ["M8[ns]", "datetime64[ns, UTC]"]:
+                    # cases with empty Series/DatetimeIndex
+                    obj = klass([], dtype=dtype)
+
+                    assert getattr(obj, op)() is pd.NaT
+                    assert getattr(obj, op)(skipna=False) is pd.NaT
+
+                    with pytest.raises(ValueError, match="empty sequence"):
+                        getattr(obj, arg_op)()
+                    with pytest.raises(ValueError, match="empty sequence"):
+                        getattr(obj, arg_op)(skipna=False)
 
         # argmin/max
         obj = Index(np.arange(5, dtype='int64'))
@@ -386,19 +420,27 @@ class TestIndexOps(Ops):
         obj = Index([np.nan, 1, np.nan, 2])
         assert obj.argmin() == 1
         assert obj.argmax() == 3
+        assert obj.argmin(skipna=False) == -1
+        assert obj.argmax(skipna=False) == -1
 
         obj = Index([np.nan])
         assert obj.argmin() == -1
         assert obj.argmax() == -1
+        assert obj.argmin(skipna=False) == -1
+        assert obj.argmax(skipna=False) == -1
 
         obj = Index([pd.NaT, datetime(2011, 11, 1), datetime(2011, 11, 2),
                      pd.NaT])
         assert obj.argmin() == 1
         assert obj.argmax() == 2
+        assert obj.argmin(skipna=False) == -1
+        assert obj.argmax(skipna=False) == -1
 
         obj = Index([pd.NaT])
         assert obj.argmin() == -1
         assert obj.argmax() == -1
+        assert obj.argmin(skipna=False) == -1
+        assert obj.argmax(skipna=False) == -1
 
     def test_value_counts_unique_nunique(self):
         for orig in self.objs:

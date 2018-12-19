@@ -995,7 +995,7 @@ class IndexOpsMixin(object):
         ('b', 2)
         """
         nv.validate_minmax_axis(axis)
-        return nanops.nanmax(self.values)
+        return nanops.nanmax(self._values, skipna=skipna)
 
     def argmax(self, axis=None, skipna=True):
         """
@@ -1012,7 +1012,7 @@ class IndexOpsMixin(object):
         numpy.ndarray.argmax
         """
         nv.validate_minmax_axis(axis)
-        return nanops.nanargmax(self.values)
+        return nanops.nanargmax(self._values, skipna=skipna)
 
     def min(self, axis=None, skipna=True):
         """
@@ -1052,7 +1052,7 @@ class IndexOpsMixin(object):
         ('a', 1)
         """
         nv.validate_minmax_axis(axis)
-        return nanops.nanmin(self.values)
+        return nanops.nanmin(self._values, skipna=skipna)
 
     def argmin(self, axis=None, skipna=True):
         """
@@ -1069,7 +1069,7 @@ class IndexOpsMixin(object):
         numpy.ndarray.argmin
         """
         nv.validate_minmax_axis(axis)
-        return nanops.nanargmin(self.values)
+        return nanops.nanargmin(self._values, skipna=skipna)
 
     def tolist(self):
         """
@@ -1116,7 +1116,7 @@ class IndexOpsMixin(object):
         if func is None:
             raise TypeError("{klass} cannot perform the operation {op}".format(
                             klass=self.__class__.__name__, op=name))
-        return func(**kwds)
+        return func(skipna=skipna, **kwds)
 
     def _map_values(self, mapper, na_action=None):
         """

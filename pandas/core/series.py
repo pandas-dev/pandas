@@ -17,7 +17,8 @@ from pandas.util._validators import validate_bool_kwarg
 
 from pandas.core.dtypes.common import (
     _is_unorderable_exception, ensure_platform_int, is_bool,
-    is_categorical_dtype, is_datetime64tz_dtype, is_datetimelike, is_dict_like,
+    is_categorical_dtype, is_datetime64_dtype, is_datetime64tz_dtype,
+    is_datetimelike, is_dict_like,
     is_extension_array_dtype, is_extension_type, is_hashable, is_integer,
     is_iterator, is_list_like, is_scalar, is_string_like, is_timedelta64_dtype)
 from pandas.core.dtypes.generic import (
@@ -3491,6 +3492,9 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         # dispatch to ExtensionArray interface
         if isinstance(delegate, ExtensionArray):
             return delegate._reduce(name, skipna=skipna, **kwds)
+        elif is_datetime64_dtype(delegate):
+            # use DatetimeIndex implementation to handle skipna correctly
+            delegate = DatetimeIndex(delegate)
 
         # dispatch to numpy arrays
         elif isinstance(delegate, np.ndarray):

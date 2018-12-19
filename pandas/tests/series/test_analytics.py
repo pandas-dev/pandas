@@ -1333,11 +1333,13 @@ class TestSeriesAnalytics(object):
                                             check_stacklevel=False):
                 s.ptp(numeric_only=True)
 
-    def test_empty_timeseries_redections_return_nat(self):
+    def test_empty_timeseries_reductions_return_nat(self):
         # covers #11245
         for dtype in ('m8[ns]', 'm8[ns]', 'M8[ns]', 'M8[ns, UTC]'):
             assert Series([], dtype=dtype).min() is pd.NaT
             assert Series([], dtype=dtype).max() is pd.NaT
+            assert Series([], dtype=dtype).min(skipna=False) is pd.NaT
+            assert Series([], dtype=dtype).max(skipna=False) is pd.NaT
 
     def test_repeat(self):
         s = Series(np.random.randn(3), index=['a', 'b', 'c'])
