@@ -286,6 +286,10 @@ class TestMethods(BaseSparseTests, base.BaseMethodsTests):
             pytest.skip("TODO(SparseArray.__setitem__ will preserve dtype.")
         super(TestMethods, self).test_combine_first(data)
 
+    def test_searchsorted(self, data_for_sorting):
+        with tm.assert_produces_warning(PerformanceWarning):
+            super(TestMethods, self).test_searchsorted(data_for_sorting)
+
 
 class TestCasting(BaseSparseTests, base.BaseCastingTests):
     pass

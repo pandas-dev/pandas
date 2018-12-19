@@ -231,6 +231,26 @@ class BaseMethodsTests(BaseExtensionTests):
         b = pd.util.hash_pandas_object(data)
         self.assert_equal(a, b)
 
+    def test_searchsorted(self, data_for_sorting):
+        b, c, a = data_for_sorting
+        arr = type(data_for_sorting)._from_sequence([a, b, c])
+        assert arr.searchsorted(a) == 0
+        assert arr.searchsorted(a, side="right") == 1
+
+        assert arr.searchsorted(b) == 1
+        assert arr.searchsorted(b, side="right") == 2
+
+        assert arr.searchsorted(c) == 2
+        assert arr.searchsorted(c, side="right") == 3
+
+        result = arr.searchsorted(arr.take([0, 2]))
+        expected = np.array([0, 2])
+        tm.assert_numpy_array_equal(result, expected)
+
+        # sorter
+        sorter = np.array([1, 2, 0])
+        assert data_for_sorting.searchsorted(a, sorter=sorter) == 0
+
     @pytest.mark.parametrize("as_frame", [True, False])
     def test_where_series(self, data, na_value, as_frame):
         assert data[0] != data[1]

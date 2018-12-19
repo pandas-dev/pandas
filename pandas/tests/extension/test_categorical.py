@@ -189,6 +189,10 @@ class TestMethods(base.BaseMethodsTests):
     def test_fillna_length_mismatch(self, data_missing):
         super().test_fillna_length_mismatch(data_missing)
 
+    def test_searchsorted(self, data_for_sorting):
+        if not data_for_sorting.ordered:
+            raise pytest.skip(reason="searchsorted requires ordered data.")
+
 
 class TestCasting(base.BaseCastingTests):
     pass
