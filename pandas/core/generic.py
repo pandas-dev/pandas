@@ -4,6 +4,7 @@ import functools
 import gc
 import json
 import operator
+from textwrap import dedent
 import warnings
 import weakref
 
@@ -4895,7 +4896,7 @@ class NDFrame(PandasObject, SelectionMixin):
     def pipe(self, func, *args, **kwargs):
         return com._pipe(self, func, *args, **kwargs)
 
-    _shared_docs['aggregate'] = ("""
+    _shared_docs['aggregate'] = dedent("""
     Aggregate using one or more operations over the specified axis.
 
     %(versionadded)s
@@ -4926,11 +4927,15 @@ class NDFrame(PandasObject, SelectionMixin):
         if Series.agg is called with single function, returns a scalar
         if Series.agg is called with several functions, returns a Series
 
+    %(see_also)s
+
     Notes
     -----
     `agg` is an alias for `aggregate`. Use the alias.
 
     A passed user-defined-function will be passed a Series for evaluation.
+
+    %(examples)s
     """)
 
     _shared_docs['transform'] = ("""

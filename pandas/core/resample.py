@@ -211,13 +211,15 @@ class Resampler(_GroupBy):
     def pipe(self, func, *args, **kwargs):
         return super(Resampler, self).pipe(func, *args, **kwargs)
 
-    _agg_doc = dedent("""
+    _agg_see_also_doc = dedent("""
     See Also
     --------
     pandas.DataFrame.groupby.aggregate
     pandas.DataFrame.resample.transform
     pandas.DataFrame.aggregate
+    """)
 
+    _agg_examples_doc = dedent("""
     Examples
     --------
     >>> s = pd.Series([1,2,3,4,5],
@@ -253,11 +255,12 @@ class Resampler(_GroupBy):
     2013-01-01 00:00:04      5       NaN
     """)
 
-    @Appender(_agg_doc)
-    @Appender(_shared_docs['aggregate'] % dict(
-        klass='DataFrame',
-        versionadded='',
-        axis=''))
+    @Substitution(see_also=_agg_see_also_doc,
+                  examples=_agg_examples_doc,
+                  versionadded='',
+                  klass='DataFrame',
+                  axis='')
+    @Appender(_shared_docs['aggregate'])
     def aggregate(self, func, *args, **kwargs):
 
         self._set_binner()
