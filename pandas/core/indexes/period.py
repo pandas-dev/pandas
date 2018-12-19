@@ -194,15 +194,31 @@ class PeriodIndex(DatelikeOps, DatetimeIndexOpsMixin, Int64Index,
 
         if data is None and ordinal is None:
             # range-based.
-            data, freq = PeriodArray._generate_range(start, end, periods,
-                                                     freq, fields)
+            data, freq2 = PeriodArray._generate_range(start, end, periods,
+                                                      freq, fields)
             # PeriodArray._generate range does validate that fields is
             # empty when really using the range-based constructor.
             if not fields:
-                warnings.warn("Creating a PeriodIndex by passing range "
-                              "endpoints is deprecated.  Use "
-                              "`pandas.period_range` instead.",
-                              FutureWarning, stacklevel=2)
+                msg = ("Creating a PeriodIndex by passing range "
+                       "endpoints is deprecated.  Use "
+                       "`pandas.period_range` instead.")
+                # period_range differs from PeriodIndex for cases like
+                # start="2000", periods=4
+                # PeriodIndex interprets that as A-DEC freq.
+                # period_range interprets it as 'D' freq.
+                cond = (
+                    freq is None and (
+                        (start and not isinstance(start, Period)) or
+                        (end and not isinstance(end, Period))
+                    )
+                )
+                if cond:
+                    msg += (
+                        " Note that the default `freq` may differ. Pass "
+                        "'freq=\"{}\"' to ensure the same output."
+                    ).format(freq2.freqstr)
+                warnings.warn(msg, FutureWarning, stacklevel=2)
+            freq = freq2
 
             data = PeriodArray(data, freq=freq)
         else:
@@ -1058,6 +1074,9 @@ def period_range(start=None, end=None, periods=None, freq=None, name=None):
     if com.count_not_none(start, end, periods) != 2:
         raise ValueError('Of the three parameters: start, end, and periods, '
                          'exactly two must be specified')
+    if freq is None and (not isinstance(start, Period)
+                         and not isinstance(end, Period)):
+        freq = 'D'
 
     data, freq = PeriodArray._generate_range(start, end, periods, freq,
                                              fields={})

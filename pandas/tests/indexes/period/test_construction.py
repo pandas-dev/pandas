@@ -388,6 +388,13 @@ class TestPeriodIndex(object):
             pi = PeriodIndex(freq='A', start='1/1/2001', end='12/1/2009')
         assert len(pi) == 9
 
+    def test_constructor_range_based_deprecated_different_freq(self):
+        with tm.assert_produces_warning(FutureWarning) as m:
+            PeriodIndex(start='2000', periods=2)
+
+        warning, = m
+        assert 'freq="A-DEC"' in str(warning.message)
+
     def test_constructor(self):
         pi = period_range(freq='A', start='1/1/2001', end='12/1/2009')
         assert len(pi) == 9
