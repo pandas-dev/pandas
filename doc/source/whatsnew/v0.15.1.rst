@@ -22,7 +22,7 @@ API changes
 
   .. ipython:: python
 
-     s = Series(date_range('20130101', periods=5, freq='D'))
+     s = pd.Series(pd.date_range('20130101', periods=5, freq='D'))
      s.iloc[2] = np.nan
      s
 
@@ -110,8 +110,8 @@ API changes
 
   previous behavior:
 
-  .. code-block:: ipython
 
+  .. code-block:: ipython
      In [8]: s.loc[3.5:1.5]
      KeyError: 3.5
 
@@ -227,7 +227,8 @@ Enhancements
 
   .. ipython:: python
 
-     dfi = DataFrame(1, index=pd.MultiIndex.from_product([['a'], range(1000)]), columns=['A'])
+     dfi = pd.DataFrame(
+         1, index=pd.MultiIndex.from_product([['a'], range(1000)]), columns=['A'])
 
   previous behavior:
 
