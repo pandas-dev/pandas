@@ -24,6 +24,7 @@ import pandas as pd
 from pandas import (
     DataFrame, DatetimeIndex, Index, NaT, Series, Timestamp, compat,
     date_range, isna, to_datetime)
+from pandas.core.arrays import DatetimeArrayMixin as DatetimeArray
 from pandas.core.tools import datetimes as tools
 from pandas.util import testing as tm
 from pandas.util.testing import assert_series_equal
@@ -246,6 +247,17 @@ class TestTimeConversionFormats(object):
 
 
 class TestToDatetime(object):
+    def test_to_datetime_dtarr(self):
+        # DatetimeArray
+        dti = date_range('1965-04-03', periods=19, freq='2W')
+        arr = DatetimeArray(dti)
+
+        result = to_datetime(arr)
+        assert result is arr
+
+        result = to_datetime(arr, box=True)
+        assert result is arr
+
     def test_to_datetime_pydatetime(self):
         actual = pd.to_datetime(datetime(2008, 1, 15))
         assert actual == datetime(2008, 1, 15)
