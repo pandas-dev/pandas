@@ -510,7 +510,7 @@ class ExtensionArray(object):
         """
         Find indices where elements should be inserted to maintain order.
 
-        .. versionadded:: 0.25.0
+        .. versionadded:: 0.24.0
 
         Find the indices into a sorted array `self` (a) such that, if the
         corresponding elements in `v` were inserted before the indices, the
