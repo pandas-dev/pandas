@@ -25,7 +25,6 @@ def test_rands_array_2d():
 
 
 def test_numpy_err_state_is_default():
-    # The defaults since numpy 1.6.0
     expected = {"over": "warn", "divide": "warn",
                 "invalid": "warn", "under": "ignore"}
     import numpy as np

@@ -413,15 +413,13 @@ class TestTimedeltaIndexArithmetic(object):
         other = pd.to_timedelta(['1 day']).values
         expected = pd.to_timedelta(['2 days']).values
         tm.assert_numpy_array_equal(td + other, expected)
-        if LooseVersion(np.__version__) >= LooseVersion('1.8'):
-            tm.assert_numpy_array_equal(other + td, expected)
+        tm.assert_numpy_array_equal(other + td, expected)
         pytest.raises(TypeError, lambda: td + np.array([1]))
         pytest.raises(TypeError, lambda: np.array([1]) + td)
 
         expected = pd.to_timedelta(['0 days']).values
         tm.assert_numpy_array_equal(td - other, expected)
-        if LooseVersion(np.__version__) >= LooseVersion('1.8'):
-            tm.assert_numpy_array_equal(-other + td, expected)
+        tm.assert_numpy_array_equal(-other + td, expected)
         pytest.raises(TypeError, lambda: td - np.array([1]))
         pytest.raises(TypeError, lambda: np.array([1]) - td)
 
@@ -433,21 +431,18 @@ class TestTimedeltaIndexArithmetic(object):
 
         tm.assert_numpy_array_equal(td / other,
                                     np.array([1], dtype=np.float64))
-        if LooseVersion(np.__version__) >= LooseVersion('1.8'):
-            tm.assert_numpy_array_equal(other / td,
-                                        np.array([1], dtype=np.float64))
+        tm.assert_numpy_array_equal(other / td,
+                                    np.array([1], dtype=np.float64))
 
         # timedelta, datetime
         other = pd.to_datetime(['2000-01-01']).values
         expected = pd.to_datetime(['2000-01-02']).values
         tm.assert_numpy_array_equal(td + other, expected)
-        if LooseVersion(np.__version__) >= LooseVersion('1.8'):
-            tm.assert_numpy_array_equal(other + td, expected)
+        tm.assert_numpy_array_equal(other + td, expected)
 
         expected = pd.to_datetime(['1999-12-31']).values
         tm.assert_numpy_array_equal(-td + other, expected)
-        if LooseVersion(np.__version__) >= LooseVersion('1.8'):
-            tm.assert_numpy_array_equal(other - td, expected)
+        tm.assert_numpy_array_equal(other - td, expected)
 
     def test_timedelta_ops_with_missing_values(self):
         # setup
