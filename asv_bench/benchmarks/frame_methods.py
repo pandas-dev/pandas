@@ -171,8 +171,8 @@ class Iteration(object):
     def peakmem_itertuples_raw_start(self):
         self.df4.itertuples(index=False, name=None)
 
-    def mem_itertuples_raw_read_first(self):
-        return next(self.df4.itertuples(index=False, name=None))
+    def peakmem_itertuples_raw_read_first(self):
+        next(self.df4.itertuples(index=False, name=None))
 
     def peakmem_itertuples_raw(self):
         for row in self.df4.itertuples(index=False, name=None):
