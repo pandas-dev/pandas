@@ -8,21 +8,19 @@ import pandas.core.common as com
 from pandas.util import testing as tm
 
 
-def test_xs_multiindex():
-
-    # GH2903
-    columns = MultiIndex.from_tuples(
-        [('a', 'foo'), ('a', 'bar'), ('b', 'hello'),
-            ('b', 'world')], names=['lvl0', 'lvl1'])
-    df = DataFrame(np.random.randn(4, 4), columns=columns)
-    df.sort_index(axis=1, inplace=True)
-    result = df.xs('a', level='lvl0', axis=1)
-    expected = df.iloc[:, 0:2].loc[:, 'a']
-    tm.assert_frame_equal(result, expected)
-
-    result = df.xs('foo', level='lvl1', axis=1)
-    expected = df.iloc[:, 1:2].copy()
-    expected.columns = expected.columns.droplevel('lvl1')
+@pytest.mark.parametrize('key, level, exp_arr, exp_index', [
+    ('a', 'lvl0', lambda x: x[:, 0:2], Index(['bar', 'foo'], name='lvl1')),
+    ('foo', 'lvl1', lambda x: x[:, 1:2], Index(['a'], name='lvl0'))
+])
+def test_xs_named_levels_axis_eq_1(key, level, exp_arr, exp_index):
+    # see gh-2903
+    arr = np.random.randn(4, 4)
+    index = MultiIndex(levels=[['a', 'b'], ['bar', 'foo', 'hello', 'world']],
+                       codes=[[0, 0, 1, 1], [0, 1, 2, 3]],
+                       names=['lvl0', 'lvl1'])
+    df = DataFrame(arr, columns=index)
+    result = df.xs(key, level=level, axis=1)
+    expected = DataFrame(exp_arr(arr), columns=exp_index)
     tm.assert_frame_equal(result, expected)
 
 
