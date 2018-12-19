@@ -21,7 +21,7 @@ dependencies:
   - pymysql
   - pytables
   - python-snappy
-  - python=3.6*
+  - python=3.6.6
   - pytz
   - s3fs
   - scikit-learn
