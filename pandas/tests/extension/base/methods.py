@@ -244,7 +244,7 @@ class BaseMethodsTests(BaseExtensionTests):
         assert arr.searchsorted(c, side="right") == 3
 
         result = arr.searchsorted(arr.take([0, 2]))
-        expected = np.array([0, 2])
+        expected = np.array([0, 2], dtype=np.intp)
         tm.assert_numpy_array_equal(result, expected)
 
         # sorter
