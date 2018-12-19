@@ -26,13 +26,20 @@ def test_xs_named_levels_axis_eq_1(key, level, exp_arr, exp_index):
 
 def test_xs(multiindex_dataframe_random_data):
     frame = multiindex_dataframe_random_data
-    xs = frame.xs(('bar', 'two'))
-    xs2 = frame.loc[('bar', 'two')]
+    result = frame.xs(('bar', 'two')).values
+    expected = frame.values[4]
+    tm.assert_almost_equal(result, expected)
 
-    tm.assert_series_equal(xs, xs2)
-    tm.assert_almost_equal(xs.values, frame.values[4])
 
-    # GH 6574
+def test_xs_loc_equality(multiindex_dataframe_random_data):
+    frame = multiindex_dataframe_random_data
+    result = frame.xs(('bar', 'two'))
+    expected = frame.loc[('bar', 'two')]
+    tm.assert_series_equal(result, expected)
+
+
+def test_xs_missing_values_in_index():
+    # see gh-6574
     # missing values in returned index should be preserrved
     acc = [
         ('a', 'abcde', 1),
