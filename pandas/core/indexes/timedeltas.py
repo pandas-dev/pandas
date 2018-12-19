@@ -190,10 +190,9 @@ class TimedeltaIndex(DatetimeIndexOpsMixin,
                           "endpoints is deprecated.  Use "
                           "`pandas.timedelta_range` instead.",
                           FutureWarning, stacklevel=2)
-            result = cls._generate_range(start, end, periods, freq,
-                                         closed=closed)
-            result.name = name
-            return result
+            result = TimedeltaArray._generate_range(start, end, periods, freq,
+                                                    closed=closed)
+            return cls._simple_new(result, name=name)
 
         if is_scalar(data):
             raise TypeError('{cls}() must be called with a '
@@ -235,13 +234,6 @@ class TimedeltaIndex(DatetimeIndexOpsMixin,
         result._index_data = values._data
         result._reset_identity()
         return result
-
-    @classmethod
-    def _generate_range(cls, start, end, periods, freq, closed=None):
-        return cls._simple_new(
-            TimedeltaArray._generate_range(start, end, periods, freq,
-                                           closed=closed)
-        )
 
     # -------------------------------------------------------------------
 
@@ -798,7 +790,6 @@ def timedelta_range(start=None, end=None, periods=None, freq=None,
         freq = 'D'
 
     freq, freq_infer = dtl.maybe_infer_freq(freq)
-    result = TimedeltaIndex._generate_range(start, end, periods, freq,
+    result = TimedeltaArray._generate_range(start, end, periods, freq,
                                             closed=closed)
-    result.name = name
-    return result
+    return TimedeltaIndex(result, name=name)

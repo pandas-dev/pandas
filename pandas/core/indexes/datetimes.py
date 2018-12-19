@@ -265,11 +265,12 @@ class DatetimeIndex(DatelikeIndexMixin,
                           "endpoints is deprecated.  Use "
                           "`pandas.date_range` instead.",
                           FutureWarning, stacklevel=2)
-            result = cls._generate_range(start, end, periods,
-                                         freq=freq, tz=tz, normalize=normalize,
-                                         closed=closed, ambiguous=ambiguous)
-            result.name = name
-            return result
+            result = DatetimeArray._generate_range(start, end, periods,
+                                                   freq=freq, tz=tz,
+                                                   normalize=normalize,
+                                                   closed=closed,
+                                                   ambiguous=ambiguous)
+            return cls._simple_new(result, name=name)
 
         if is_scalar(data):
             raise TypeError("{cls}() must be called with a "
@@ -303,18 +304,6 @@ class DatetimeIndex(DatelikeIndexMixin,
         result._index_data = values._data
         result._reset_identity()
         return result
-
-    @classmethod
-    def _generate_range(cls, start, end, periods, freq, tz=None,
-                        normalize=False, ambiguous="raise",
-                        nonexistent="raise", closed=None):
-        return cls._simple_new(
-            DatetimeArray._generate_range(
-                start, end, periods, freq, tz=tz,
-                normalize=normalize, ambiguous=ambiguous,
-                nonexistent=nonexistent, closed=closed,
-            )
-        )
 
     # --------------------------------------------------------------------
 
@@ -1448,13 +1437,11 @@ def date_range(start=None, end=None, periods=None, freq=None, tz=None,
     if freq is None and com._any_none(periods, start, end):
         freq = 'D'
 
-    result = DatetimeIndex._generate_range(
+    result = DatetimeArray._generate_range(
         start=start, end=end, periods=periods,
         freq=freq, tz=tz, normalize=normalize,
         closed=closed, **kwargs)
-
-    result.name = name
-    return result
+    return DatetimeIndex(result, name=name)
 
 
 def bdate_range(start=None, end=None, periods=None, freq='B', tz=None,
