@@ -35,7 +35,7 @@ from pandas.compat import (range, map, zip, lmap, lzip, StringIO, u,
                            OrderedDict, PY36, raise_with_traceback,
                            string_and_binary_types)
 from pandas.compat.numpy import function as nv
-
+from pandas.api.types import infer_dtype
 from pandas.core.dtypes.cast import (
     maybe_upcast,
     cast_scalar_to_array,
@@ -1540,7 +1540,8 @@ class DataFrame(NDFrame):
 
         return cls(mgr)
 
-    def to_records(self, index=True, convert_datetime64=None):
+    def to_records(self, index=True, convert_datetime64=None,
+                   stringlike_as_fixed_length=False):
         """
         Convert DataFrame to a NumPy record array.
 
@@ -1557,6 +1558,11 @@ class DataFrame(NDFrame):
 
             Whether to convert the index to datetime.datetime if it is a
             DatetimeIndex.
+         stringlike_as_fixed_length : bool, default False
+             .. versionadded:: 0.24.0
+
+             Store string-likes as fixed-length string-like dtypes
+             (e.g. ``S1`` dtype) instead of Python objects (``O`` dtype).
 
         Returns
         -------
@@ -1598,6 +1604,27 @@ class DataFrame(NDFrame):
         >>> df.to_records(index=False)
         rec.array([(1, 0.5 ), (2, 0.75)],
                   dtype=[('A', '<i8'), ('B', '<f8')])
+
+         By default, strings are recorded as dtype 'O' for object:
+
+         >>> df = pd.DataFrame({'A': [1, 2], 'B': ['abc', 'defg']},
+         ...                   index=['a', 'b'])
+         >>> df.to_records()
+         rec.array([('a', 1, 'abc'), ('b', 2, 'defg')],
+                   dtype=[('index', 'O'), ('A', '<i8'), ('B', 'O')])
+
+         This can be inefficient (e.g. for short strings, or when storing with
+         `np.save()`). They can be recorded as fix-length string-like dtypes
+         such as 'S1' for zero-terminated bytes instead:
+
+         >>> df = pd.DataFrame({'A': [1, 2], 'B': ['abc', 'defg']},
+         ...                   index=['a', 'b'])
+         >>> df.to_records(stringlike_as_fixed_length=True)
+         rec.array([('a', 1, 'abc'), ('b', 2, 'defg')],
+                   dtype=[('index', '<U1'), ('A', '<i8'), ('B', '<U4')])
+
+        Notice how the 'B' column is now stored as '<U4' for length-four
+        strings ('S4' for Python 2.x) instead of the 'O' object dtype.
         """
 
         if convert_datetime64 is not None:
@@ -1633,7 +1660,47 @@ class DataFrame(NDFrame):
             arrays = [self[c].get_values() for c in self.columns]
             names = lmap(compat.text_type, self.columns)
 
-        formats = [v.dtype for v in arrays]
+        formats = []
+
+        for v in arrays:
+            if not stringlike_as_fixed_length:
+                formats.append(v.dtype)
+            else:
+                # gh-18146
+                #
+                # For string-like arrays, set dtype as zero-terminated bytes
+                # with max length equal to that of the longest string-like.
+                dtype = infer_dtype(v)
+                symbol = None
+
+                if dtype == "string":
+                    # In Python 3.x, infer_dtype does not
+                    # differentiate string from unicode
+                    # like NumPy arrays do, so we
+                    # specify unicode to be safe.
+                    symbol = "S" if compat.PY2 else "U"
+                elif dtype == "unicode":
+                    # In Python 3.x, infer_dtype does not
+                    # differentiate string from unicode.
+                    #
+                    # Thus, we can only get this result
+                    # in Python 2.x.
+                    symbol = "U"
+                elif dtype == "bytes":
+                    # In Python 2.x, infer_dtype does not
+                    # differentiate string from bytes.
+                    #
+                    # Thus, we can only get this result
+                    # in Python 3.x. However, NumPy does
+                    # not have a fixed-length bytes dtype
+                    # and just uses string instead.
+                    symbol = "S"
+
+                if symbol is not None:
+                    formats.append("{}{}".format(symbol, max(map(len, v))))
+                else:
+                    formats.append(v.dtype)
+
         return np.rec.fromarrays(
             arrays,
             dtype={'names': names, 'formats': formats}

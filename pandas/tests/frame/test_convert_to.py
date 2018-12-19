@@ -191,6 +191,44 @@ class TestDataFrameConvertTo(TestData):
                                 dtype=[('index', '=i8'), ('0', 'O')])
         tm.assert_almost_equal(result, expected)
 
+    @pytest.mark.parametrize("fixed_length", [True, False])
+    @pytest.mark.parametrize("values,dtype_getter", [
+        # Integer --> just take the dtype.
+        ([1, 2], lambda fixed, isPY2: "<i8"),
+
+        # Mixed --> cast to object.
+        ([1, "1"], lambda fixed, isPY2: "O"),
+
+        # String --> cast to string is PY2 else unicode in PY3.
+        (["1", "2"], lambda fixed, isPY2: (
+            ("S" if isPY2 else "U") + "1") if fixed else "O"),
+
+        # String + max-length of longest string.
+        (["12", "2"], lambda fixed, isPY2: (
+            ("S" if isPY2 else "U") + "2") if fixed else "O"),
+
+        # Unicode --> cast to unicode for both PY2 and PY3.
+        ([u"\u2120b", u"456"], lambda fixed, isPY2: "U3" if fixed else "O"),
+
+        # Bytes --> cast to string for both PY2 and PY3.
+        ([b"2", b"5"], lambda fixed, isPY2: "S1" if fixed else "O"),
+    ], ids=["int", "mixed", "str", "max-len", "unicode", "bytes"])
+    def test_to_records_with_strings_as_fixed_length(self, fixed_length,
+                                                     values, dtype_getter):
+
+        # see gh-18146
+        df = DataFrame({"values": values}, index=["a", "b"])
+        result = df.to_records(stringlike_as_fixed_length=fixed_length)
+
+        ind_dtype = ((("S" if compat.PY2 else "U") + "1")
+                     if fixed_length else "O")
+        val_dtype = dtype_getter(fixed_length, compat.PY2)
+
+        expected = np.rec.array([("a", values[0]), ("b", values[1])],
+                                dtype=[("index", ind_dtype),
+                                       ("values", val_dtype)])
+        tm.assert_almost_equal(result, expected)
+
     @pytest.mark.parametrize('mapping', [
         dict,
         collections.defaultdict(list),
