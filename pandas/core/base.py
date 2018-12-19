@@ -631,7 +631,9 @@ class SelectionMixin(object):
             return result
 
     def _shallow_copy(self, obj=None, obj_type=None, **kwargs):
-        """ return a new object with the replacement attributes """
+        """
+        return a new object with the replacement attributes
+        """
         if obj is None:
             obj = self._selected_obj.copy()
         if obj_type is None:
@@ -644,7 +646,9 @@ class SelectionMixin(object):
         return obj_type(obj, **kwargs)
 
     def _is_cython_func(self, arg):
-        """ if we define an internal function for this argument, return it """
+        """
+        if we define an internal function for this argument, return it
+        """
         return self._cython_table.get(arg)
 
     def _is_builtin_func(self, arg):
@@ -675,7 +679,8 @@ class IndexOpsMixin(object):
 
     @property
     def _is_homogeneous_type(self):
-        """Whether the object has a single dtype.
+        """
+        Whether the object has a single dtype.
 
         By definition, Series and Index are always considered homogeneous.
         A MultiIndex may or may not be homogeneous, depending on the
@@ -899,7 +904,8 @@ class IndexOpsMixin(object):
     @property
     def _ndarray_values(self):
         # type: () -> np.ndarray
-        """The data as an ndarray, possibly losing information.
+        """
+        The data as an ndarray, possibly losing information.
 
         The expectation is that this is cheap to compute, and is primarily
         used for interacting with our indexers.
@@ -907,7 +913,7 @@ class IndexOpsMixin(object):
         - categorical -> codes
         """
         if is_extension_array_dtype(self):
-            return self.values._ndarray_values
+            return self.array._ndarray_values
         return self.values
 
     @property
@@ -1019,6 +1025,8 @@ class IndexOpsMixin(object):
         else:
             return self._values.tolist()
 
+    to_list = tolist
+
     def __iter__(self):
         """
         Return an iterator of the values.
@@ -1046,7 +1054,8 @@ class IndexOpsMixin(object):
         return func(**kwds)
 
     def _map_values(self, mapper, na_action=None):
-        """An internal function that maps values using the input
+        """
+        An internal function that maps values using the input
         correspondence (which can be a dict, Series, or function).
 
         Parameters
@@ -1237,7 +1246,7 @@ class IndexOpsMixin(object):
     @property
     def is_unique(self):
         """
-        Return boolean if values in the object are unique
+        Return boolean if values in the object are unique.
 
         Returns
         -------
@@ -1249,7 +1258,7 @@ class IndexOpsMixin(object):
     def is_monotonic(self):
         """
         Return boolean if values in the object are
-        monotonic_increasing
+        monotonic_increasing.
 
         .. versionadded:: 0.19.0
 
@@ -1266,7 +1275,7 @@ class IndexOpsMixin(object):
     def is_monotonic_decreasing(self):
         """
         Return boolean if values in the object are
-        monotonic_decreasing
+        monotonic_decreasing.
 
         .. versionadded:: 0.19.0
 
@@ -1291,21 +1300,21 @@ class IndexOpsMixin(object):
         -------
         bytes used
 
+        See Also
+        --------
+        numpy.ndarray.nbytes
+
         Notes
         -----
         Memory usage does not include memory consumed by elements that
         are not components of the array if deep=False or if used on PyPy
-
-        See Also
-        --------
-        numpy.ndarray.nbytes
         """
-        if hasattr(self.values, 'memory_usage'):
-            return self.values.memory_usage(deep=deep)
+        if hasattr(self.array, 'memory_usage'):
+            return self.array.memory_usage(deep=deep)
 
-        v = self.values.nbytes
+        v = self.array.nbytes
         if deep and is_object_dtype(self) and not PYPY:
-            v += lib.memory_usage_of_objects(self.values)
+            v += lib.memory_usage_of_objects(self.array)
         return v
 
     @Substitution(
@@ -1320,7 +1329,8 @@ class IndexOpsMixin(object):
         return algorithms.factorize(self, sort=sort, na_sentinel=na_sentinel)
 
     _shared_docs['searchsorted'] = (
-        """Find indices where elements should be inserted to maintain order.
+        """
+        Find indices where elements should be inserted to maintain order.
 
         Find the indices into a sorted %(klass)s `self` such that, if the
         corresponding elements in `value` were inserted before the indices,

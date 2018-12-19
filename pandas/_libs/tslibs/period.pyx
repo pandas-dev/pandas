@@ -1455,7 +1455,9 @@ def extract_ordinals(object[:] values, freq):
                 ordinals[i] = p.ordinal
 
                 if p.freqstr != freqstr:
-                    msg = DIFFERENT_FREQ_INDEX.format(freqstr, p.freqstr)
+                    msg = DIFFERENT_FREQ.format(cls="PeriodIndex",
+                                                own_freq=freqstr,
+                                                other_freq=p.freqstr)
                     raise IncompatibleFrequency(msg)
 
             except AttributeError:
@@ -1545,9 +1547,8 @@ cdef int64_t[:] localize_dt64arr_to_period(int64_t[:] stamps,
     return result
 
 
-_DIFFERENT_FREQ = "Input has different freq={1} from Period(freq={0})"
-DIFFERENT_FREQ_INDEX = ("Input has different freq={1} "
-                        "from PeriodIndex(freq={0})")
+DIFFERENT_FREQ = ("Input has different freq={other_freq} "
+                  "from {cls}(freq={own_freq})")
 
 
 class IncompatibleFrequency(ValueError):
@@ -1596,7 +1597,9 @@ cdef class _Period(object):
     def __richcmp__(self, other, op):
         if is_period_object(other):
             if other.freq != self.freq:
-                msg = _DIFFERENT_FREQ.format(self.freqstr, other.freqstr)
+                msg = DIFFERENT_FREQ.format(cls=type(self).__name__,
+                                            own_freq=self.freqstr,
+                                            other_freq=other.freqstr)
                 raise IncompatibleFrequency(msg)
             return PyObject_RichCompareBool(self.ordinal, other.ordinal, op)
         elif other is NaT:
@@ -1637,7 +1640,9 @@ cdef class _Period(object):
             if base == self.freq.rule_code:
                 ordinal = self.ordinal + other.n
                 return Period(ordinal=ordinal, freq=self.freq)
-            msg = _DIFFERENT_FREQ.format(self.freqstr, other.freqstr)
+            msg = DIFFERENT_FREQ.format(cls=type(self).__name__,
+                                        own_freq=self.freqstr,
+                                        other_freq=other.freqstr)
             raise IncompatibleFrequency(msg)
         else:  # pragma no cover
             return NotImplemented
@@ -1684,9 +1689,12 @@ cdef class _Period(object):
                 return Period(ordinal=ordinal, freq=self.freq)
             elif is_period_object(other):
                 if other.freq != self.freq:
-                    msg = _DIFFERENT_FREQ.format(self.freqstr, other.freqstr)
+                    msg = DIFFERENT_FREQ.format(cls=type(self).__name__,
+                                                own_freq=self.freqstr,
+                                                other_freq=other.freqstr)
                     raise IncompatibleFrequency(msg)
-                return (self.ordinal - other.ordinal) * self.freq
+                # GH 23915 - mul by base freq since __add__ is agnostic of n
+                return (self.ordinal - other.ordinal) * self.freq.base
             elif getattr(other, '_typ', None) == 'periodindex':
                 # GH#21314 PeriodIndex - Period returns an object-index
                 # of DateOffset objects, for which we cannot use __neg__

@@ -77,8 +77,8 @@ class TestCategoricalConstructors(object):
         assert not factor.ordered
 
         # this however will raise as cannot be sorted
-        pytest.raises(
-            TypeError, lambda: Categorical(arr, ordered=True))
+        with pytest.raises(TypeError):
+            Categorical(arr, ordered=True)
 
     def test_constructor_interval(self):
         result = Categorical([Interval(1, 2), Interval(2, 3), Interval(3, 6)],
@@ -99,15 +99,11 @@ class TestCategoricalConstructors(object):
         tm.assert_numpy_array_equal(c2.__array__(), exp_arr)
 
         # categories must be unique
-        def f():
+        with pytest.raises(ValueError):
             Categorical([1, 2], [1, 2, 2])
 
-        pytest.raises(ValueError, f)
-
-        def f():
+        with pytest.raises(ValueError):
             Categorical(["a", "b"], ["a", "b", "b"])
-
-        pytest.raises(ValueError, f)
 
         # The default should be unordered
         c1 = Categorical(["a", "b", "c", "a"])
@@ -421,34 +417,24 @@ class TestCategoricalConstructors(object):
     def test_from_codes(self):
 
         # too few categories
-        def f():
+        with pytest.raises(ValueError):
             Categorical.from_codes([1, 2], [1, 2])
 
-        pytest.raises(ValueError, f)
-
         # no int codes
-        def f():
+        with pytest.raises(ValueError):
             Categorical.from_codes(["a"], [1, 2])
 
-        pytest.raises(ValueError, f)
-
         # no unique categories
-        def f():
+        with pytest.raises(ValueError):
             Categorical.from_codes([0, 1, 2], ["a", "a", "b"])
 
-        pytest.raises(ValueError, f)
-
         # NaN categories included
-        def f():
+        with pytest.raises(ValueError):
             Categorical.from_codes([0, 1, 2], ["a", "b", np.nan])
 
-        pytest.raises(ValueError, f)
-
         # too negative
-        def f():
+        with pytest.raises(ValueError):
             Categorical.from_codes([-2, 1, 2], ["a", "b", "c"])
-
-        pytest.raises(ValueError, f)
 
         exp = Categorical(["a", "b", "c"], ordered=False)
         res = Categorical.from_codes([0, 1, 2], ["a", "b", "c"])
@@ -538,8 +524,7 @@ class TestCategoricalConstructors(object):
         cat = Categorical([0, 1, 2], ordered=True)
         assert cat.ordered
 
-    @pytest.mark.xfail(reason="Imaginary values not supported in Categorical",
-                       strict=True)
+    @pytest.mark.xfail(reason="Imaginary values not supported in Categorical")
     def test_constructor_imaginary(self):
         values = [1, 2, 3 + 1j]
         c1 = Categorical(values)

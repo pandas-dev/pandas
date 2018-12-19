@@ -1,5 +1,7 @@
 #!/bin/bash
 
+set -e
+
 if [ "$DOC" ]; then
     echo "We are not running pytest as this is a doc-build"
     exit 0
@@ -43,10 +45,14 @@ do
         NUM_JOBS=2
     fi
 
-    pytest -m "$TYPE_PATTERN$PATTERN" -n $NUM_JOBS -s --strict --durations=10 --junitxml=test-data-$TYPE.xml $TEST_ARGS $COVERAGE pandas
+    PYTEST_CMD="pytest -m \"$TYPE_PATTERN$PATTERN\" -n $NUM_JOBS -s --strict --durations=10 --junitxml=test-data-$TYPE.xml $TEST_ARGS $COVERAGE pandas"
+    echo $PYTEST_CMD
+    # if no tests are found (the case of "single and slow"), pytest exits with code 5, and would make the script fail, if not for the below code
+    sh -c "$PYTEST_CMD; ret=\$?; [ \$ret = 5 ] && exit 0 || exit \$ret"
 
     if [[ "$COVERAGE" && $? == 0 ]]; then
         echo "uploading coverage for $TYPE tests"
-        bash <(curl -s https://codecov.io/bash) -Z -c -F $TYPE -f $COVERAGE_FNAME
+        echo "bash <(curl -s https://codecov.io/bash) -Z -c -F $TYPE -f $COVERAGE_FNAME"
+              bash <(curl -s https://codecov.io/bash) -Z -c -F $TYPE -f $COVERAGE_FNAME
     fi
 done

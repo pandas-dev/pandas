@@ -1,15 +1,6 @@
-.. currentmodule:: pandas
-
-.. ipython:: python
-   :suppress:
-
-   import numpy as np
-   import pandas as pd
-
-   np.set_printoptions(precision=4, suppress=True)
-   pd.options.display.max_rows = 15
-
 .. _basics:
+
+{{ header }}
 
 ==============================
  Essential Basic Functionality
@@ -97,7 +88,7 @@ may involve copying data and coercing values.
 
 Getting the "raw data" inside a :class:`DataFrame` is possibly a bit more
 complex. When your ``DataFrame`` only has a single data type for all the
-columns, :atr:`DataFrame.to_numpy` will return the underlying data:
+columns, :attr:`DataFrame.to_numpy` will return the underlying data:
 
 .. ipython:: python
 
@@ -1940,7 +1931,7 @@ Categorical         :class:`CategoricalDtype` (none)             :class:`Categor
 period (time spans) :class:`PeriodDtype`      :class:`Period`    :class:`arrays.PeriodArray`   :ref:`timeseries.periods`
 sparse              :class:`SparseDtype`      (none)             :class:`arrays.SparseArray`   :ref:`sparse`
 intervals           :class:`IntervalDtype`    :class:`Interval`  :class:`arrays.IntervalArray` :ref:`advanced.intervalindex`
-nullable integer    :clsas:`Int64Dtype`, ...  (none)             :class:`arrays.IntegerArray`  :ref:`integer_na`
+nullable integer    :class:`Int64Dtype`, ...  (none)             :class:`arrays.IntegerArray`  :ref:`integer_na`
 =================== ========================= ================== ============================= =============================
 
 Pandas uses the ``object`` dtype for storing strings.
