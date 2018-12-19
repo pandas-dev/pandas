@@ -246,7 +246,7 @@ class PeriodConverter(dates.DateConverter):
             return values.asfreq(axis.freq)._ndarray_values
         elif isinstance(values, Index):
             return values.map(lambda x: get_datevalue(x, axis.freq))
-        elif lib.infer_dtype(values) == 'period':
+        elif lib.infer_dtype(values, skipna=False) == 'period':
             # https://github.com/pandas-dev/pandas/issues/24304
             # convert ndarray[period] -> PeriodIndex
             return PeriodIndex(values, freq=axis.freq)._ndarray_values
