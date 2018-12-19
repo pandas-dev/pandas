@@ -10,7 +10,7 @@ from pandas._libs.tslibs import (
     NaT, Timestamp, ccalendar, conversion, fields, iNaT, normalize_date,
     resolution as libresolution, timezones)
 import pandas.compat as compat
-from pandas.errors import IncompatibleTimezoneError, PerformanceWarning
+from pandas.errors import PerformanceWarning
 from pandas.util._decorators import Appender
 
 from pandas.core.dtypes.common import (
@@ -446,7 +446,7 @@ class DatetimeArrayMixin(dtl.DatetimeLikeArrayMixin,
 
     def _check_compatible_with(self, other):
         if not timezones.tz_compare(self.tz, other.tz):
-            raise IncompatibleTimezoneError(
+            raise ValueError(
                 "Timezones don't match. '{} != {}'".format(self.tz, other.tz)
             )
 

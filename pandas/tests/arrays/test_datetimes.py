@@ -7,8 +7,6 @@ import operator
 import numpy as np
 import pytest
 
-from pandas.errors import IncompatibleTimezoneError
-
 from pandas.core.dtypes.dtypes import DatetimeTZDtype
 
 import pandas as pd
@@ -56,10 +54,10 @@ class TestSetitem(object):
         data = np.array([1, 2, 3], dtype='M8[ns]')
         arr = DatetimeArray(data, copy=False,
                             dtype=DatetimeTZDtype(tz="US/Central"))
-        with pytest.raises(IncompatibleTimezoneError, match="None"):
+        with pytest.raises(ValueError, match="None"):
             arr[0] = pd.Timestamp('2000')
 
-        with pytest.raises(IncompatibleTimezoneError, match="US/Central"):
+        with pytest.raises(ValueError, match="US/Central"):
             arr[0] = pd.Timestamp('2000', tz="US/Eastern")
 
 
