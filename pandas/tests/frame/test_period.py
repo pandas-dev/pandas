@@ -44,7 +44,7 @@ class TestPeriodIndex(object):
 
     def test_frame_to_time_stamp(self):
         K = 5
-        index = PeriodIndex(freq='A', start='1/1/2001', end='12/1/2009')
+        index = period_range(freq='A', start='1/1/2001', end='12/1/2009')
         df = DataFrame(randn(len(index), K), index=index)
         df['mix'] = 'a'
 

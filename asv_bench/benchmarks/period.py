@@ -1,5 +1,5 @@
-from pandas import (DataFrame, Series, Period, PeriodIndex, date_range,
-                    period_range)
+from pandas import (
+    DataFrame, Period, PeriodIndex, Series, date_range, period_range)
 
 
 class PeriodProperties(object):
@@ -94,7 +94,7 @@ class Algorithms(object):
 class Indexing(object):
 
     def setup(self):
-        self.index = PeriodIndex(start='1985', periods=1000, freq='D')
+        self.index = period_range(start='1985', periods=1000, freq='D')
         self.series = Series(range(1000), index=self.index)
         self.period = self.index[500]
 

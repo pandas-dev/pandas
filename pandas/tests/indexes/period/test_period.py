@@ -98,7 +98,7 @@ class TestPeriodIndex(DatetimeLike):
             hash(index)
 
     def test_make_time_series(self):
-        index = PeriodIndex(freq='A', start='1/1/2001', end='12/1/2009')
+        index = period_range(freq='A', start='1/1/2001', end='12/1/2009')
         series = Series(1, index=index)
         assert isinstance(series, Series)
 
@@ -165,50 +165,50 @@ class TestPeriodIndex(DatetimeLike):
         tm.assert_numpy_array_equal(idx._ndarray_values, exp)
 
     def test_period_index_length(self):
-        pi = PeriodIndex(freq='A', start='1/1/2001', end='12/1/2009')
+        pi = period_range(freq='A', start='1/1/2001', end='12/1/2009')
         assert len(pi) == 9
 
-        pi = PeriodIndex(freq='Q', start='1/1/2001', end='12/1/2009')
+        pi = period_range(freq='Q', start='1/1/2001', end='12/1/2009')
         assert len(pi) == 4 * 9
 
-        pi = PeriodIndex(freq='M', start='1/1/2001', end='12/1/2009')
+        pi = period_range(freq='M', start='1/1/2001', end='12/1/2009')
         assert len(pi) == 12 * 9
 
         start = Period('02-Apr-2005', 'B')
-        i1 = PeriodIndex(start=start, periods=20)
+        i1 = period_range(start=start, periods=20)
         assert len(i1) == 20
         assert i1.freq == start.freq
         assert i1[0] == start
 
         end_intv = Period('2006-12-31', 'W')
-        i1 = PeriodIndex(end=end_intv, periods=10)
+        i1 = period_range(end=end_intv, periods=10)
         assert len(i1) == 10
         assert i1.freq == end_intv.freq
         assert i1[-1] == end_intv
 
         end_intv = Period('2006-12-31', '1w')
-        i2 = PeriodIndex(end=end_intv, periods=10)
+        i2 = period_range(end=end_intv, periods=10)
         assert len(i1) == len(i2)
         assert (i1 == i2).all()
         assert i1.freq == i2.freq
 
         end_intv = Period('2006-12-31', ('w', 1))
-        i2 = PeriodIndex(end=end_intv, periods=10)
+        i2 = period_range(end=end_intv, periods=10)
         assert len(i1) == len(i2)
         assert (i1 == i2).all()
         assert i1.freq == i2.freq
 
         try:
-            PeriodIndex(start=start, end=end_intv)
+            period_range(start=start, end=end_intv)
             raise AssertionError('Cannot allow mixed freq for start and end')
         except ValueError:
             pass
 
         end_intv = Period('2005-05-01', 'B')
-        i1 = PeriodIndex(start=start, end=end_intv)
+        i1 = period_range(start=start, end=end_intv)
 
         try:
-            PeriodIndex(start=start)
+            period_range(start=start)
             raise AssertionError(
                 'Must specify periods if missing start or end')
         except ValueError:
@@ -233,33 +233,33 @@ class TestPeriodIndex(DatetimeLike):
         # year, month, day, hour, minute
         # second, weekofyear, week, dayofweek, weekday, dayofyear, quarter
         # qyear
-        pi = PeriodIndex(freq='A', start='1/1/2001', end='12/1/2005')
+        pi = period_range(freq='A', start='1/1/2001', end='12/1/2005')
         self._check_all_fields(pi)
 
-        pi = PeriodIndex(freq='Q', start='1/1/2001', end='12/1/2002')
+        pi = period_range(freq='Q', start='1/1/2001', end='12/1/2002')
         self._check_all_fields(pi)
 
-        pi = PeriodIndex(freq='M', start='1/1/2001', end='1/1/2002')
+        pi = period_range(freq='M', start='1/1/2001', end='1/1/2002')
         self._check_all_fields(pi)
 
-        pi = PeriodIndex(freq='D', start='12/1/2001', end='6/1/2001')
+        pi = period_range(freq='D', start='12/1/2001', end='6/1/2001')
         self._check_all_fields(pi)
 
-        pi = PeriodIndex(freq='B', start='12/1/2001', end='6/1/2001')
+        pi = period_range(freq='B', start='12/1/2001', end='6/1/2001')
         self._check_all_fields(pi)
 
-        pi = PeriodIndex(freq='H', start='12/31/2001', end='1/1/2002 23:00')
+        pi = period_range(freq='H', start='12/31/2001', end='1/1/2002 23:00')
         self._check_all_fields(pi)
 
-        pi = PeriodIndex(freq='Min', start='12/31/2001', end='1/1/2002 00:20')
+        pi = period_range(freq='Min', start='12/31/2001', end='1/1/2002 00:20')
         self._check_all_fields(pi)
 
-        pi = PeriodIndex(freq='S', start='12/31/2001 00:00:00',
-                         end='12/31/2001 00:05:00')
+        pi = period_range(freq='S', start='12/31/2001 00:00:00',
+                          end='12/31/2001 00:05:00')
         self._check_all_fields(pi)
 
         end_intv = Period('2006-12-31', 'W')
-        i1 = PeriodIndex(end=end_intv, periods=10)
+        i1 = period_range(end=end_intv, periods=10)
         self._check_all_fields(i1)
 
     def _check_all_fields(self, periodindex):
@@ -325,8 +325,8 @@ class TestPeriodIndex(DatetimeLike):
         tm.assert_index_equal(idx, exp_idx)
 
     def test_is_(self):
-        create_index = lambda: PeriodIndex(freq='A', start='1/1/2001',
-                                           end='12/1/2009')
+        create_index = lambda: period_range(freq='A', start='1/1/2001',
+                                            end='12/1/2009')
         index = create_index()
         assert index.is_(index)
         assert not index.is_(create_index())
@@ -371,13 +371,13 @@ class TestPeriodIndex(DatetimeLike):
 
     def test_start_time(self):
         # GH 17157
-        index = PeriodIndex(freq='M', start='2016-01-01', end='2016-05-31')
+        index = period_range(freq='M', start='2016-01-01', end='2016-05-31')
         expected_index = date_range('2016-01-01', end='2016-05-31', freq='MS')
         tm.assert_index_equal(index.start_time, expected_index)
 
     def test_end_time(self):
         # GH 17157
-        index = PeriodIndex(freq='M', start='2016-01-01', end='2016-05-31')
+        index = period_range(freq='M', start='2016-01-01', end='2016-05-31')
         expected_index = date_range('2016-01-01', end='2016-05-31', freq='M')
         expected_index = expected_index.shift(1, freq='D').shift(-1, freq='ns')
         tm.assert_index_equal(index.end_time, expected_index)
@@ -457,7 +457,8 @@ class TestPeriodIndex(DatetimeLike):
             np.repeat(index, 2, axis=1)
 
     def test_pindex_multiples(self):
-        pi = PeriodIndex(start='1/1/11', end='12/31/11', freq='2M')
+        with tm.assert_produces_warning(FutureWarning):
+            pi = PeriodIndex(start='1/1/11', end='12/31/11', freq='2M')
         expected = PeriodIndex(['2011-01', '2011-03', '2011-05', '2011-07',
                                 '2011-09', '2011-11'], freq='2M')
         tm.assert_index_equal(pi, expected)
@@ -475,7 +476,7 @@ class TestPeriodIndex(DatetimeLike):
         assert pi.freqstr == '2M'
 
     def test_iteration(self):
-        index = PeriodIndex(start='1/1/10', periods=4, freq='B')
+        index = period_range(start='1/1/10', periods=4, freq='B')
 
         result = list(index)
         assert isinstance(result[0], Period)

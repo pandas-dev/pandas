@@ -297,7 +297,7 @@ class TestPeriodIndexConversion(object):
         tm.assert_index_equal(result, expected)
 
     def test_to_timestamp_pi_combined(self):
-        idx = PeriodIndex(start='2011', periods=2, freq='1D1H', name='idx')
+        idx = period_range(start='2011', periods=2, freq='1D1H', name='idx')
 
         result = idx.to_timestamp()
         expected = DatetimeIndex(['2011-01-01 00:00', '2011-01-02 01:00'],

@@ -1491,10 +1491,10 @@ class TimeGrouper(Grouper):
             binner = labels = PeriodIndex(data=[], freq=freq, name=ax.name)
             return binner, [], labels
 
-        labels = binner = PeriodIndex(start=ax[0],
-                                      end=ax[-1],
-                                      freq=freq,
-                                      name=ax.name)
+        labels = binner = pd.period_range(start=ax[0],
+                                          end=ax[-1],
+                                          freq=freq,
+                                          name=ax.name)
 
         end_stamps = (labels + freq).asfreq(freq, 's').to_timestamp()
         if ax.tzinfo:
@@ -1543,8 +1543,8 @@ class TimeGrouper(Grouper):
             bin_shift = start_offset.n % freq_mult
             start = p_start
 
-        labels = binner = PeriodIndex(start=start, end=end,
-                                      freq=self.freq, name=ax.name)
+        labels = binner = pd.period_range(start=start, end=end,
+                                          freq=self.freq, name=ax.name)
 
         i8 = memb.asi8
 
