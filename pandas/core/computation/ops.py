@@ -23,7 +23,8 @@ _reductions = 'sum', 'prod'
 
 _unary_math_ops = ('sin', 'cos', 'exp', 'log', 'expm1', 'log1p',
                    'sqrt', 'sinh', 'cosh', 'tanh', 'arcsin', 'arccos',
-                   'arctan', 'arccosh', 'arcsinh', 'arctanh', 'abs', 'log10')
+                   'arctan', 'arccosh', 'arcsinh', 'arctanh', 'abs', 'log10',
+                   'floor', 'ceil')
 _binary_math_ops = ('arctan2',)
 _mathops = _unary_math_ops + _binary_math_ops
 
