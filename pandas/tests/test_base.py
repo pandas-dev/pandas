@@ -1346,3 +1346,43 @@ def test_to_numpy(array, expected, box):
 
     result = thing.to_numpy()
     tm.assert_numpy_array_equal(result, expected)
+
+
+@pytest.mark.parametrize("as_series", [True, False])
+@pytest.mark.parametrize("arr", [
+    np.array([1, 2, 3], dtype="int64"),
+    np.array(['a', 'b', 'c'], dtype=object),
+])
+def test_to_numpy_copy(arr, as_series):
+    obj = pd.Index(arr, copy=False)
+    if as_series:
+        obj = pd.Series(obj.values, copy=False)
+
+    # no copy by default
+    result = obj.to_numpy()
+    assert np.shares_memory(arr, result) is True
+
+    result = obj.to_numpy(copy=False)
+    assert np.shares_memory(arr, result) is True
+
+    # copy=True
+    result = obj.to_numpy(copy=True)
+    assert np.shares_memory(arr, result) is False
+
+
+@pytest.mark.parametrize("as_series", [True, False])
+def test_to_numpy_dtype(as_series):
+    tz = "US/Eastern"
+    obj = pd.DatetimeIndex(['2000', '2001'], tz=tz)
+    if as_series:
+        obj = pd.Series(obj)
+    result = obj.to_numpy(dtype=object)
+    expected = np.array([pd.Timestamp('2000', tz=tz),
+                         pd.Timestamp('2001', tz=tz)],
+                        dtype=object)
+    tm.assert_numpy_array_equal(result, expected)
+
+    result = obj.to_numpy()
+    expected = np.array(['2000-01-01T05', '2001-01-01T05'],
+                        dtype='M8[ns]')
+    tm.assert_numpy_array_equal(result, expected)
