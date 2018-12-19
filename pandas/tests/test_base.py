@@ -1376,13 +1376,18 @@ def test_to_numpy_dtype(as_series):
     obj = pd.DatetimeIndex(['2000', '2001'], tz=tz)
     if as_series:
         obj = pd.Series(obj)
-    result = obj.to_numpy(dtype=object)
+
+    # preserve tz by default
+    result = obj.to_numpy()
     expected = np.array([pd.Timestamp('2000', tz=tz),
                          pd.Timestamp('2001', tz=tz)],
                         dtype=object)
     tm.assert_numpy_array_equal(result, expected)
 
-    result = obj.to_numpy()
+    result = obj.to_numpy(dtype="object")
+    tm.assert_numpy_array_equal(result, expected)
+
+    result = obj.to_numpy(dtype="M8[ns]")
     expected = np.array(['2000-01-01T05', '2001-01-01T05'],
                         dtype='M8[ns]')
     tm.assert_numpy_array_equal(result, expected)
