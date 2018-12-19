@@ -8,6 +8,18 @@ import pandas.core.common as com
 from pandas.util import testing as tm
 
 
+@pytest.fixture
+def four_level_index_dataframe():
+    arr = np.array([[-0.5109, -2.3358, -0.4645, 0.05076, 0.364],
+                    [0.4473, 1.4152, 0.2834, 1.00661, 0.1744],
+                    [-0.6662, -0.5243, -0.358, 0.89145, 2.5838]])
+    index = MultiIndex(
+        levels=[['a', 'x'], ['b', 'q'], [10.0032, 20.0, 30.0], [3, 4, 5]],
+        codes=[[0, 0, 1], [0, 1, 1], [0, 1, 2], [2, 1, 0]],
+        names=['one', 'two', 'three', 'four'])
+    return DataFrame(arr, index=index, columns=list('ABCDE'))
+
+
 @pytest.mark.parametrize('key, level, exp_arr, exp_index', [
     ('a', 'lvl0', lambda x: x[:, 0:2], Index(['bar', 'foo'], name='lvl1')),
     ('foo', 'lvl1', lambda x: x[:, 1:2], Index(['a'], name='lvl0'))
@@ -93,6 +105,23 @@ def test_xs_level_eq_2():
     tm.assert_frame_equal(result, expected)
 
 
+@pytest.mark.parametrize('indexer', [
+    lambda df: df.xs(('a', 4), level=['one', 'four']),
+    lambda df: df.xs('a').xs(4, level='four')
+])
+def test_xs_level_multiple(indexer, four_level_index_dataframe):
+    df = four_level_index_dataframe
+    expected_values = [[0.4473, 1.4152, 0.2834, 1.00661, 0.1744]]
+    expected_index = MultiIndex(
+        levels=[['q'], [20.0]],
+        codes=[[0], [0]],
+        names=['two', 'three'])
+    expected = DataFrame(
+        expected_values, index=expected_index, columns=list('ABCDE'))
+    result = indexer(df)
+    tm.assert_frame_equal(result, expected)
+
+
 def test_xs_setting_with_copy_error(multiindex_dataframe_random_data):
     # this is a copy in 0.14
     df = multiindex_dataframe_random_data
@@ -105,39 +134,31 @@ def test_xs_setting_with_copy_error(multiindex_dataframe_random_data):
         result[:] = 10
 
 
-def test_xs_level_multiple():
-    text = """                      A       B       C       D        E
-one two three   four
-a   b   10.0032 5    -0.5109 -2.3358 -0.4645  0.05076  0.3640
-a   q   20      4     0.4473  1.4152  0.2834  1.00661  0.1744
-x   q   30      3    -0.6662 -0.5243 -0.3580  0.89145  2.5838"""
-
-    df = read_csv(StringIO(text), sep=r'\s+', engine='python')
-
-    result = df.xs(('a', 4), level=['one', 'four'])
-    expected = df.xs('a').xs(4, level='four')
-    tm.assert_frame_equal(result, expected)
-
+def test_xs_setting_with_copy_error_multiple(four_level_index_dataframe):
     # this is a copy in 0.14
+    df = four_level_index_dataframe
     result = df.xs(('a', 4), level=['one', 'four'])
 
     # setting this will give a SettingWithCopyError
     # as we are trying to write a view
-    def f(x):
-        x[:] = 10
+    msg = 'A value is trying to be set on a copy of a slice from a DataFrame'
+    with pytest.raises(com.SettingWithCopyError, match=msg):
+        result[:] = 10
 
-    pytest.raises(com.SettingWithCopyError, f, result)
 
-    # GH2107
+def test_xs_integer_key():
+    # see gh-2107
     dates = lrange(20111201, 20111205)
     ids = 'abcde'
-    idx = MultiIndex.from_tuples([x for x in cart_product(dates, ids)])
-    idx.names = ['date', 'secid']
-    df = DataFrame(np.random.randn(len(idx), 3), idx, ['X', 'Y', 'Z'])
+    index = MultiIndex.from_tuples(
+        [x for x in cart_product(dates, ids)],
+        names=['date', 'secid'])
+    df = DataFrame(
+        np.random.randn(len(index), 3), index, ['X', 'Y', 'Z'])
 
-    rs = df.xs(20111201, level='date')
-    xp = df.loc[20111201, :]
-    tm.assert_frame_equal(rs, xp)
+    result = df.xs(20111201, level='date')
+    expected = df.loc[20111201, :]
+    tm.assert_frame_equal(result, expected)
 
 
 def test_xs_level0():
