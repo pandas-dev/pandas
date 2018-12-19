@@ -1166,7 +1166,7 @@ class Categorical(ExtensionArray, PandasObject):
         Maps the categories to new categories. If the mapping correspondence is
         one-to-one the result is a :class:`~pandas.Categorical` which has the
         same order property as the original, otherwise a :class:`~pandas.Index`
-        is returned.
+        is returned. NaN values are unaffected.
 
         If a `dict` or :class:`~pandas.Series` is used any unmapped category is
         mapped to `NaN`. Note that if this happens an :class:`~pandas.Index`
@@ -1229,26 +1229,14 @@ class Categorical(ExtensionArray, PandasObject):
         Index(['first', 'second', nan], dtype='object')
         """
         new_categories = self.categories.map(mapper)
-
         try:
-            if is_dict_like(mapper):
-                new_value = mapper[np.nan]
-            else:
-                new_value = mapper(np.nan)
-        except (AttributeError, KeyError, TypeError, ValueError):
-            new_value = np.nan
-
-        try:
-            ret = self.from_codes(self._codes.copy(),
-                                  categories=new_categories,
-                                  ordered=self.ordered)
-            if new_value not in ret.categories and any(self._codes == -1):
-                ret.add_categories(new_value, inplace=True)
-                ret = ret.fillna(new_value)
-            return ret
+            return self.from_codes(self._codes.copy(),
+                                   categories=new_categories,
+                                   ordered=self.ordered)
         except ValueError:
-            new_categories = new_categories.insert(len(new_categories),
-                                                   new_value)
+            if any(self._codes == -1):
+                new_categories = new_categories.insert(len(new_categories),
+                                                       np.nan)
             return np.take(new_categories, self._codes)
 
     __eq__ = _cat_compare_op('__eq__')

@@ -1145,7 +1145,8 @@ dtype in apply
 
 Pandas currently does not preserve the dtype in apply functions: If you apply along rows you get
 a `Series` of ``object`` `dtype` (same as getting a row -> getting one element will return a
-basic type) and applying along columns will also convert to object.
+basic type) and applying along columns will also convert to object. ``NaN`` values are unaffected.
+You can use ``fillna`` to handle missing values before applying a function.
 
 .. ipython:: python
 
