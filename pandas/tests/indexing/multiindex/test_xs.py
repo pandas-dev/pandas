@@ -24,17 +24,17 @@ def test_xs_named_levels_axis_eq_1(key, level, exp_arr, exp_index):
     tm.assert_frame_equal(result, expected)
 
 
-def test_xs(multiindex_dataframe_random_data):
-    frame = multiindex_dataframe_random_data
-    result = frame.xs(('bar', 'two')).values
-    expected = frame.values[4]
+def test_xs_values(multiindex_dataframe_random_data):
+    df = multiindex_dataframe_random_data
+    result = df.xs(('bar', 'two')).values
+    expected = df.values[4]
     tm.assert_almost_equal(result, expected)
 
 
 def test_xs_loc_equality(multiindex_dataframe_random_data):
-    frame = multiindex_dataframe_random_data
-    result = frame.xs(('bar', 'two'))
-    expected = frame.loc[('bar', 'two')]
+    df = multiindex_dataframe_random_data
+    result = df.xs(('bar', 'two'))
+    expected = df.loc[('bar', 'two')]
     tm.assert_series_equal(result, expected)
 
 
@@ -75,30 +75,34 @@ def test_xs_with_duplicates(key, level, multiindex_dataframe_random_data):
 
 
 def test_xs_level(multiindex_dataframe_random_data):
-    frame = multiindex_dataframe_random_data
-    result = frame.xs('two', level='second')
-    expected = frame[frame.index.get_level_values(1) == 'two']
-    expected.index = expected.index.droplevel(1)
-
+    df = multiindex_dataframe_random_data
+    result = df.xs('two', level='second')
+    expected = df[df.index.get_level_values(1) == 'two']
+    expected.index = Index(['foo', 'bar', 'baz', 'qux'], name='first')
     tm.assert_frame_equal(result, expected)
 
-    index = MultiIndex.from_tuples([('x', 'y', 'z'), ('a', 'b', 'c'), (
-        'p', 'q', 'r')])
-    df = DataFrame(np.random.randn(3, 5), index=index)
+
+def test_xs_level_eq_2():
+    arr = np.random.randn(3, 5)
+    index = MultiIndex(
+        levels=[['a', 'p', 'x'], ['b', 'q', 'y'], ['c', 'r', 'z']],
+        codes=[[2, 0, 1], [2, 0, 1], [2, 0, 1]])
+    df = DataFrame(arr, index=index)
+    expected = DataFrame(arr[1:2], index=[['a'], ['b']])
     result = df.xs('c', level=2)
-    expected = df[1:2]
-    expected.index = expected.index.droplevel(2)
     tm.assert_frame_equal(result, expected)
 
+
+def test_xs_setting_with_copy_error(multiindex_dataframe_random_data):
     # this is a copy in 0.14
-    result = frame.xs('two', level='second')
+    df = multiindex_dataframe_random_data
+    result = df.xs('two', level='second')
 
     # setting this will give a SettingWithCopyError
     # as we are trying to write a view
-    def f(x):
-        x[:] = 10
-
-    pytest.raises(com.SettingWithCopyError, f, result)
+    msg = 'A value is trying to be set on a copy of a slice from a DataFrame'
+    with pytest.raises(com.SettingWithCopyError, match=msg):
+        result[:] = 10
 
 
 def test_xs_level_multiple():
