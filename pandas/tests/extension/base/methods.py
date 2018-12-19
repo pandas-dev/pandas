@@ -265,11 +265,16 @@ class BaseMethodsTests(BaseExtensionTests):
             expected = expected.to_frame(name='a')
         self.assert_equal(result, expected)
 
+    @pytest.mark.parametrize("as_series", [True, False])
     @pytest.mark.parametrize("repeats", [0, 1, 2])
-    def test_repeat(self, data, repeats):
+    def test_repeat(self, data, repeats, as_series):
         a, b, c = data[:3]
-        data = type(data)._from_sequence([a, b, c], dtype=data.dtype)
-        result = data.repeat(repeats)
+        arr = type(data)._from_sequence([a, b, c], dtype=data.dtype)
+
+        if as_series:
+            arr = pd.Series(arr)
+
+        result = arr.repeat(repeats)
 
         if repeats == 0:
             expected = []
@@ -278,6 +283,9 @@ class BaseMethodsTests(BaseExtensionTests):
         else:
             expected = [a, a, b, b, c, c]
         expected = type(data)._from_sequence(expected, dtype=data.dtype)
+        if as_series:
+            index = pd.Series(np.arange(len(arr))).repeat(repeats).index
+            expected = pd.Series(expected, index=index)
         self.assert_equal(result, expected)
 
     def test_repeat_raises(self, data):

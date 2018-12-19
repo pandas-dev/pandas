@@ -584,6 +584,8 @@ class ExtensionArray(object):
         """
         Repeat elements of an array.
 
+        .. versionadded:: 0.24.0
+
         Parameters
         ----------
         repeats : int
