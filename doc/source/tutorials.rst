@@ -1,5 +1,7 @@
 .. _tutorials:
 
+{{ header }}
+
 *********
 Tutorials
 *********
@@ -26,7 +28,7 @@ give you some concrete examples for getting started with pandas. These
 are examples with real-world data, and all the bugs and weirdness that
 entails.
 For the table of contents, see the `pandas-cookbook GitHub
-repository <http://github.com/jvns/pandas-cookbook>`_. 
+repository <http://github.com/jvns/pandas-cookbook>`_.
 
 Learn Pandas by Hernan Rojas
 ----------------------------
@@ -54,7 +56,7 @@ For more resources, please visit the main `repository <https://github.com/guipsa
 Modern pandas
 -------------
 
-Tutorial series written in 2016 by 
+Tutorial series written in 2016 by
 `Tom Augspurger <https://github.com/TomAugspurger>`_.
 The source may be found in the GitHub repository
 `TomAugspurger/effective-pandas <https://github.com/TomAugspurger/effective-pandas>`_.
@@ -84,6 +86,14 @@ Video Tutorials
 * `Pandas: .head() to .tail() <https://www.youtube.com/watch?v=7vuO9QXDN50>`_
   (2016) (1:26)
   `GitHub repo <https://github.com/TomAugspurger/pydata-chi-h2t>`__
+* `Data analysis in Python with pandas <https://www.youtube.com/playlist?list=PL5-da3qGB5ICCsgW1MxlZ0Hq8LL5U3u9y>`_
+  (2016-2018)
+  `GitHub repo <https://github.com/justmarkham/pandas-videos>`_ and
+  `Jupyter Notebook <http://nbviewer.jupyter.org/github/justmarkham/pandas-videos/blob/master/pandas.ipynb>`_
+* `Best practices with pandas <https://www.youtube.com/playlist?list=PL5-da3qGB5IBITZj_dYSFqnd_15JgqwA6>`_
+  (2018)
+  `GitHub repo <https://github.com/justmarkham/pycon-2018-tutorial>`_ and
+  `Jupyter Notebook <http://nbviewer.jupyter.org/github/justmarkham/pycon-2018-tutorial/blob/master/tutorial.ipynb>`_
 
 
 Various Tutorials

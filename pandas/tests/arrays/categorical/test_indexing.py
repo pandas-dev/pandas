@@ -133,16 +133,12 @@ class TestCategoricalIndexing(object):
         tm.assert_index_equal(s.categories, Index([1, 2, 3]))
 
         # lengthen
-        def f():
+        with pytest.raises(ValueError):
             s.categories = [1, 2, 3, 4]
 
-        pytest.raises(ValueError, f)
-
         # shorten
-        def f():
+        with pytest.raises(ValueError):
             s.categories = [1, 2]
-
-        pytest.raises(ValueError, f)
 
     # Combinations of sorted/unique:
     @pytest.mark.parametrize("idx_values", [[1, 2, 3, 4], [1, 3, 2, 4],
@@ -239,3 +235,30 @@ def test_mask_with_boolean_raises(index):
 
     with pytest.raises(ValueError, match='NA / NaN'):
         s[idx]
+
+
+@pytest.fixture
+def non_coercible_categorical(monkeypatch):
+    """
+    Monkeypatch Categorical.__array__ to ensure no implicit conversion.
+
+    Raises
+    ------
+    ValueError
+        When Categorical.__array__ is called.
+    """
+    # TODO(Categorical): identify other places where this may be
+    # useful and move to a conftest.py
+    def array(self, dtype=None):
+        raise ValueError("I cannot be converted.")
+
+    with monkeypatch.context() as m:
+        m.setattr(Categorical, "__array__", array)
+        yield
+
+
+def test_series_at(non_coercible_categorical):
+    arr = Categorical(['a', 'b', 'c'])
+    ser = Series(arr)
+    result = ser.at[0]
+    assert result == 'a'
