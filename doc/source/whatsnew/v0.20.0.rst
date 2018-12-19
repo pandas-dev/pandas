@@ -1027,7 +1027,7 @@ Retrieving a correlation matrix for a cross-section
 
    df.rolling(12).corr().loc['2016-04-07']
 
-  .. _whatsnew_0200.api_breaking.hdfstore_where:
+.. _whatsnew_0200.api_breaking.hdfstore_where:
 
 HDFStore where string comparison
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
