@@ -307,12 +307,12 @@ class DatetimeIndex(DatelikeIndexMixin,
     @classmethod
     def _generate_range(cls, start, end, periods, freq, tz=None,
                         normalize=False, ambiguous="raise",
-                        closed=None):
+                        nonexistent="raise", closed=None):
         return cls._simple_new(
             DatetimeArray._generate_range(
                 start, end, periods, freq, tz=tz,
                 normalize=normalize, ambiguous=ambiguous,
-                closed=closed,
+                nonexistent=nonexistent, closed=closed,
             )
         )
 
