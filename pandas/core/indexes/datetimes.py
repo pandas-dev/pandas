@@ -57,6 +57,10 @@ def _new_DatetimeIndex(cls, d):
 
 
 class DatetimeDelegateMixin(DatetimelikeDelegateMixin):
+    # Most attrs are dispatched via datetimelike_{ops,methods}
+    # Some are "raw" methods, the result is not not re-boxed in an Index
+    # We also have a few "extra" attrs, which may or may not be raw,
+    # which we we dont' want to expose in the .dt accessor.
     _extra_methods = [
         'to_perioddelta',
         'to_julian_date',

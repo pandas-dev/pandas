@@ -11,7 +11,6 @@ from pandas._libs import internals as libinternals, lib, tslib, tslibs
 from pandas._libs.tslibs import Timedelta, conversion
 import pandas.compat as compat
 from pandas.compat import range, zip
-from pandas.errors import AbstractMethodError
 from pandas.util._validators import validate_bool_kwarg
 
 from pandas.core.dtypes.cast import (
@@ -2205,7 +2204,7 @@ class DatetimeLikeBlockMixin(object):
 
     @property
     def asi8(self):
-        raise AbstractMethodError(self)
+        return self.values.view('i8')
 
 
 class TimeDeltaBlock(DatetimeLikeBlockMixin, IntBlock):
@@ -2230,10 +2229,6 @@ class TimeDeltaBlock(DatetimeLikeBlockMixin, IntBlock):
     @property
     def _box_func(self):
         return lambda x: Timedelta(x, unit='ns')
-
-    @property
-    def asi8(self):
-        return self.values.view('i8')
 
     def _can_hold_element(self, element):
         tipo = maybe_infer_dtype_type(element)
@@ -2782,10 +2777,6 @@ class DatetimeBlock(DatetimeLikeBlockMixin, Block):
         super(DatetimeBlock, self).__init__(values,
                                             placement=placement, ndim=ndim)
 
-    @property
-    def asi8(self):
-        return self.values.view('i8')
-
     def _maybe_coerce_values(self, values):
         """Input validation for values passed to __init__. Ensure that
         we have datetime64ns, coercing if necessary.
@@ -2951,10 +2942,6 @@ class DatetimeTZBlock(ExtensionBlock, DatetimeBlock):
     def _holder(self):
         return DatetimeArray
 
-    @property
-    def asi8(self):
-        return self.values.asi8
-
     def _maybe_coerce_values(self, values, dtype=None):
         """Input validation for values passed to __init__. Ensure that
         we have datetime64TZ, coercing if necessary.
@@ -3025,6 +3012,8 @@ class DatetimeTZBlock(ExtensionBlock, DatetimeBlock):
 
         if self.ndim == 2:
             # Ensure that our shape is correct for DataFrame.
+            # ExtensionArrays are always 1-D, even in a DataFrame when
+            # the analogous NumPy-backed column would be a 2-D ndarray.
             values = values.reshape(1, -1)
         return values
 

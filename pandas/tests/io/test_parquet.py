@@ -12,6 +12,7 @@ from pandas.compat import PY3, is_platform_windows, is_platform_mac
 from pandas.io.parquet import (to_parquet, read_parquet, get_engine,
                                PyArrowImpl, FastParquetImpl)
 from pandas.util import testing as tm
+import pandas.util._test_decorators as td
 
 try:
     import pyarrow  # noqa
@@ -470,8 +471,7 @@ class TestParquetPyArrow(Base):
 
 class TestParquetFastParquet(Base):
 
-    # https://github.com/dask/fastparquet/issues/388
-    @pytest.mark.xfail(reason="broke fastparquet", strict=True)
+    @td.skip_if_no('fastparquet', min_version="0.2.1")
     def test_basic(self, fp, df_full):
         df = df_full
 
