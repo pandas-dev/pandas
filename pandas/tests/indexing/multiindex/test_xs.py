@@ -59,14 +59,19 @@ def test_xs_missing_values_in_index():
     tm.assert_frame_equal(result, expected)
 
 
-def test_xs_with_duplicates(multiindex_dataframe_random_data):
-    # Issue #13719
+@pytest.mark.parametrize('key, level', [
+    ('one', 'second'),
+    (['one'], ['second'])
+])
+def test_xs_with_duplicates(key, level, multiindex_dataframe_random_data):
+    # see gh-13719
     frame = multiindex_dataframe_random_data
-    df_dup = concat([frame] * 2)
-    assert df_dup.index.is_unique is False
+    df = concat([frame] * 2)
+    assert df.index.is_unique is False
     expected = concat([frame.xs('one', level='second')] * 2)
-    tm.assert_frame_equal(df_dup.xs('one', level='second'), expected)
-    tm.assert_frame_equal(df_dup.xs(['one'], level=['second']), expected)
+
+    result = df.xs(key, level=level)
+    tm.assert_frame_equal(result, expected)
 
 
 def test_xs_level(multiindex_dataframe_random_data):
