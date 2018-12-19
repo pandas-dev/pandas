@@ -1664,7 +1664,9 @@ class TestSeriesAnalytics(object):
         s = pd.Series([1, 2])
         with pytest.raises(ValueError,
                            match="the 'overwrite_input' .* median"):
-            np.median(s, overwrite_input=True)
+            # It seems like np.median doesn't dispatch, so we use the
+            # method instead of the ufunc.
+            s.median(overwrite_input=True)
 
     def test_validate_stat_keepdims(self):
         s = pd.Series([1, 2])
