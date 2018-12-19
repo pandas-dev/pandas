@@ -580,6 +580,33 @@ class ExtensionArray(object):
         uniques = self._from_factorized(uniques, self)
         return labels, uniques
 
+    def repeat(self, repeats, axis=None):
+        """
+        Repeat elements of an array.
+
+        Parameters
+        ----------
+        repeats : int
+            This should be a non-negative integer. Repeating 0 times
+            will return an empty array.
+
+        Returns
+        -------
+        repeated_array : ExtensionArray
+            Same type as the input, with elements repeated `repeats` times.
+
+        See Also
+        --------
+        numpy.repeat : Similar method for :class:`numpy.ndarray`.
+        ExtensionArray.take : Take arbitrary positions.
+        """
+        if axis is not None:
+            raise ValueError("'axis' must be None.")
+        if repeats < 0:
+            raise ValueError("negative repeats are not allowed.")
+        ind = np.arange(len(self)).repeat(repeats)
+        return self.take(ind)
+
     # ------------------------------------------------------------------------
     # Indexing methods
     # ------------------------------------------------------------------------
