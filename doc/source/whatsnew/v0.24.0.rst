@@ -1562,7 +1562,7 @@ Build Changes
 
 - Building pandas for development now requires ``cython >= 0.28.2`` (:issue:`21688`)
 - Testing pandas now requires ``hypothesis>=3.58``.  You can find `the Hypothesis docs here <https://hypothesis.readthedocs.io/en/latest/index.html>`_, and a pandas-specific introduction :ref:`in the contributing guide <using-hypothesis>`. (:issue:`22280`)
--
+- Building pandas on macOS now targets minimum macOS 10.9 if run on macOS 10.9 or above (:issue:`23424`)
 
 Other
 ^^^^^
