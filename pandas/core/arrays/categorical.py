@@ -1236,7 +1236,7 @@ class Categorical(ExtensionArray, PandasObject):
         except ValueError:
             # NA values are represented in self._codes with -1
             # np.take causes NA values to take final element in new_categories
-            if any(self._codes == -1):
+            if np.any(self._codes == -1):
                 new_categories = new_categories.insert(len(new_categories),
                                                        np.nan)
             return np.take(new_categories, self._codes)
