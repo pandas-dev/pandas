@@ -14,8 +14,8 @@ import pandas.util._test_decorators as td
 
 import pandas as pd
 from pandas import (
-    Categorical, CategoricalIndex, DataFrame, Series, compat,
-    date_range, isna, notna)
+    Categorical, CategoricalIndex, DataFrame, Series, compat, date_range, isna,
+    notna)
 from pandas.core.index import MultiIndex
 from pandas.core.indexes.datetimes import Timestamp
 import pandas.util.testing as tm

@@ -11,9 +11,9 @@ from pandas.compat import lrange
 import pandas.util._test_decorators as td
 
 import pandas as pd
-import pandas.util.testing as tm
-from pandas import Categorical, Index, Series, PeriodIndex, DataFrame, compat
+from pandas import Categorical, DataFrame, Index, PeriodIndex, Series, compat
 from pandas.core import nanops
+import pandas.util.testing as tm
 
 
 def get_objs():
