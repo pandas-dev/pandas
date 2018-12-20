@@ -89,17 +89,17 @@ class AttributesMixin(object):
 
     @property
     def _scalar_type(self):
+        # type: () -> Union[type, Tuple[type]]
         """The scalar associated with this datelike
 
         * PeriodArray : Period
         * DatetimeArray : Timestamp
         * TimedeltaArray : Timedelta
         """
-        # type: # () -> Union[type, Tuple[type]]
         raise AbstractMethodError(self)
 
     def _scalar_from_string(self, value):
-        # type: (str) -> Union[Period, Timestamp, Timedelta, NaT]
+        # type: (str) -> Union[Period, Timestamp, Timedelta, NaTType]
         """
         Construct a scalar type from a string.
 
@@ -120,6 +120,7 @@ class AttributesMixin(object):
         raise AbstractMethodError(self)
 
     def _unbox_scalar(self, value):
+        # type: (Union[Period, Timestamp, Timedelta, NaTType]) -> int
         """
         Unbox the integer value of a scalar `value`.
 
@@ -139,6 +140,9 @@ class AttributesMixin(object):
         raise AbstractMethodError(self)
 
     def _check_compatible_with(self, other):
+        # TODO: choose a type for other
+        # Can it be NaT?
+        # Scalar, array, or both?
         """
         Verify that `self` and `other` are compatible.
 

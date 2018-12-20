@@ -240,7 +240,8 @@ class PeriodArray(dtl.DatetimeLikeArrayMixin,
         if value is NaT:
             return value.value
         elif isinstance(value, self._scalar_type):
-            self._check_compatible_with(value)
+            if not isna(value):
+                self._check_compatible_with(value)
             return value.ordinal
         else:
             msg = (
