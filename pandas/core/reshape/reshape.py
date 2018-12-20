@@ -853,6 +853,7 @@ def get_dummies(data, prefix=None, prefix_sep='_', dummy_na=False,
 
 def _get_dummies_1d(data, prefix, prefix_sep='_', dummy_na=False,
                     sparse=False, drop_first=False, dtype=None):
+    from pandas.core.reshape.concat import concat
     # Series avoids inconsistent NaN handling
     codes, levels = _factorize_from_iterable(Series(data))
 
@@ -909,7 +910,7 @@ def _get_dummies_1d(data, prefix, prefix_sep='_', dummy_na=False,
         index = None
 
     if sparse:
-        sparse_series = {}
+        sparse_series = []
         N = len(data)
         sp_indices = [[] for _ in range(len(dummy_cols))]
         mask = codes != -1
@@ -928,10 +929,9 @@ def _get_dummies_1d(data, prefix, prefix_sep='_', dummy_na=False,
             sarr = SparseArray(np.ones(len(ixs), dtype=dtype),
                                sparse_index=IntIndex(N, ixs), fill_value=0,
                                dtype=dtype)
-            sparse_series[col] = Series(data=sarr, index=index)
+            sparse_series.append(Series(data=sarr, index=index, name=col))
 
-        out = DataFrame(sparse_series, index=index, columns=dummy_cols,
-                        dtype=dtype)
+        out = concat(sparse_series, axis=1, copy=False)
         return out
 
     else:
