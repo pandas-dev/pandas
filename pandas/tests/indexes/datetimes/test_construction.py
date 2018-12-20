@@ -7,7 +7,7 @@ import numpy as np
 import pytest
 import pytz
 
-from pandas._libs.tslibs import conversion, OutOfBoundsDatetime
+from pandas._libs.tslibs import OutOfBoundsDatetime, conversion
 
 import pandas as pd
 from pandas import (
