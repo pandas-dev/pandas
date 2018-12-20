@@ -289,10 +289,11 @@ class TestPeriodIndex(object):
         index = date_range(start='2017-10-10', end='2017-10-20', freq='1H')
         index = index.tz_localize('UTC').tz_convert('America/Sao_Paulo')
         df = DataFrame(data=list(range(len(index))), index=index)
-        result = df.groupby(pd.Grouper(freq='1D'))
+        result = df.groupby(pd.Grouper(freq='1D')).count()
         expected = date_range(start='2017-10-09', end='2017-10-20', freq='D',
-                              tz="America/Sao_Paulo")
-        tm.assert_index_equal(result.count().index, expected)
+                              tz="America/Sao_Paulo", nonexistent='shift',
+                              closed='left')
+        tm.assert_index_equal(result.index, expected)
 
     def test_resample_ambiguous_time_bin_edge(self):
         # GH 10117
