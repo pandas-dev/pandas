@@ -23,8 +23,8 @@ from pandas.core.dtypes.common import (
     is_extension_array_dtype, is_extension_type, is_float_dtype,
     is_integer_dtype, is_iterator, is_list_like, is_object_dtype, pandas_dtype)
 from pandas.core.dtypes.generic import (
-    ABCDataFrame, ABCDatetimeIndex, ABCIndexClass, ABCPeriodIndex, ABCSeries,
-    ABCTimedeltaIndex)
+    ABCDataFrame, ABCDatetimeIndex, ABCIndexClass, ABCPandasArray,
+    ABCPeriodIndex, ABCSeries, ABCTimedeltaIndex)
 from pandas.core.dtypes.missing import isna
 
 from pandas.core import algorithms, common as com
@@ -578,7 +578,16 @@ def sanitize_array(data, index, dtype=None, copy=False,
             subarr = _try_cast(data, True, dtype, copy, raise_cast_failure)
 
     elif isinstance(data, ExtensionArray):
-        subarr = data
+        if isinstance(data, ABCPandasArray):
+            # We don't want to let people put our PandasArray wrapper
+            # (the output of Series/Index.array), into a Series. So
+            # we explicitly unwrap it here.
+            subarr = data._ndarray
+        else:
+            subarr = data
+
+        # everything else in this block must also handle ndarray's,
+        # becuase we've unwrapped PandasArray into an ndarray.
 
         if dtype is not None and not data.dtype.is_dtype(dtype):
             subarr = data.astype(dtype)

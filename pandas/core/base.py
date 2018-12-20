@@ -784,18 +784,21 @@ class IndexOpsMixin(object):
 
     @property
     def array(self):
-        # type: () -> Union[np.ndarray, ExtensionArray]
+        # type: () -> ExtensionArray
         """
-        The actual Array backing this Series or Index.
+        The ExtensionArray of the data backing this Series or Index.
 
         .. versionadded:: 0.24.0
 
         Returns
         -------
-        array : numpy.ndarray or ExtensionArray
-            This is the actual array stored within this object. This differs
-            from ``.values`` which may require converting the data
-            to a different form.
+        array : ExtensionArray
+            An ExtensionArray of the values stored within. For extension
+            types, this is the actual array. For NumPy native types, this
+            is a thin (no copy) wrapper around :class:`numpy.ndarray`.
+
+            ``.array`` differs ``.values`` which may require converting the
+            data to a different form.
 
         See Also
         --------
@@ -820,26 +823,39 @@ class IndexOpsMixin(object):
         For any 3rd-party extension types, the array type will be an
         ExtensionArray.
 
-        For all remaining dtypes ``.array`` will be the :class:`numpy.ndarray`
+        For all remaining dtypes ``.array`` will be a
+        :class:`arrays.NumpyExtensionArray` wrapping the actual ndarray
         stored within. If you absolutely need a NumPy array (possibly with
         copying / coercing data), then use :meth:`Series.to_numpy` instead.
 
-        .. note::
-
-           ``.array`` will always return the underlying object backing the
-           Series or Index. If a future version of pandas adds a specialized
-           extension type for a data type, then the return type of ``.array``
-           for that data type will change from an object-dtype ndarray to the
-           new ExtensionArray.
-
         Examples
         --------
+
+        For regular NumPy types like int, and float, a PandasArray
+        is returned.
+
+        >>> pd.Series([1, 2, 3]).array
+        <PandasArray>
+        [1, 2, 3]
+        Length: 3, dtype: int64
+
+        For extension types, like Categorical, the actual ExtensionArray
+        is returned
+
         >>> ser = pd.Series(pd.Categorical(['a', 'b', 'a']))
         >>> ser.array
         [a, b, a]
         Categories (2, object): [a, b]
         """
-        return self._values
+        result = self._values
+
+        # TODO(DatetimeArray): remvoe the second clause.
+        if (not is_extension_array_dtype(result.dtype)
+                and not is_datetime64tz_dtype(result.dtype)):
+            from pandas.core.arrays.numpy_ import PandasArray
+
+            result = PandasArray(result)
+        return result
 
     def to_numpy(self, dtype=None, copy=False):
         """

@@ -64,8 +64,11 @@ If you need an actual NumPy array, use :meth:`Series.to_numpy` or :meth:`Index.t
    idx.to_numpy()
    pd.Series(idx).to_numpy()
 
-For Series and Indexes backed by normal NumPy arrays, this will be the same thing (and the same
-as ``.values``).
+For Series and Indexes backed by normal NumPy arrays, :attr:`Series.array` will return a
+new :class:`arrays.PandasArray`, which is a thin (no-copy) wrapper around a
+:class:`numpy.ndarray`. :class:`arrays.PandasArray` isn't especially useful on its own,
+but it does provide the same interface as any extension array defined in pandas or by
+a third-party library.
 
 .. ipython:: python
 
@@ -74,7 +77,7 @@ as ``.values``).
    ser.to_numpy()
 
 We haven't removed or deprecated :attr:`Series.values` or :attr:`DataFrame.values`, but we
-recommend and using ``.array`` or ``.to_numpy()`` instead.
+highly recommend and using ``.array`` or ``.to_numpy()`` instead.
 
 See :ref:`Dtypes <basics.dtypes>` and :ref:`Attributes and Underlying Data <basics.attrs>` for more.
 

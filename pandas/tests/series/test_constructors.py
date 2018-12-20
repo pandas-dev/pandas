@@ -22,6 +22,7 @@ from pandas import (
     Timestamp, date_range, isna, period_range, timedelta_range)
 from pandas.api.types import CategoricalDtype
 from pandas.core.arrays import period_array
+from pandas.core.internals.blocks import IntBlock
 import pandas.util.testing as tm
 from pandas.util.testing import assert_series_equal
 
@@ -1238,3 +1239,9 @@ class TestSeriesConstructors():
         result = Series(dt_list)
         expected = Series(dt_list, dtype=object)
         tm.assert_series_equal(result, expected)
+
+    def test_constructor_no_numpy_backed_ea(self):
+        ser = pd.Series([1, 2, 3])
+        result = pd.Series(ser.array)
+        tm.assert_series_equal(ser, result)
+        assert isinstance(result._data.blocks[0], IntBlock)

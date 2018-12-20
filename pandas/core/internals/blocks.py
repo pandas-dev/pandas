@@ -18,12 +18,13 @@ from pandas.core.dtypes.cast import (
     infer_dtype_from_scalar, maybe_convert_objects, maybe_downcast_to_dtype,
     maybe_infer_dtype_type, maybe_promote, maybe_upcast, soft_convert_objects)
 from pandas.core.dtypes.common import (
-    _NS_DTYPE, _TD_DTYPE, ensure_platform_int, is_bool_dtype, is_categorical,
-    is_categorical_dtype, is_datetime64_dtype, is_datetime64tz_dtype,
-    is_dtype_equal, is_extension_array_dtype, is_extension_type,
-    is_float_dtype, is_integer, is_integer_dtype, is_interval_dtype,
-    is_list_like, is_numeric_v_string_like, is_object_dtype, is_period_dtype,
-    is_re, is_re_compilable, is_sparse, is_timedelta64_dtype, pandas_dtype)
+    _NS_DTYPE, _TD_DTYPE, ensure_platform_int, extract_array, is_bool_dtype,
+    is_categorical, is_categorical_dtype, is_datetime64_dtype,
+    is_datetime64tz_dtype, is_dtype_equal, is_extension_array_dtype,
+    is_extension_type, is_float_dtype, is_integer, is_integer_dtype,
+    is_interval_dtype, is_list_like, is_numeric_v_string_like, is_object_dtype,
+    is_period_dtype, is_re, is_re_compilable, is_sparse, is_timedelta64_dtype,
+    pandas_dtype)
 import pandas.core.dtypes.concat as _concat
 from pandas.core.dtypes.dtypes import (
     CategoricalDtype, DatetimeTZDtype, ExtensionDtype, PandasExtensionDtype)
@@ -1969,22 +1970,19 @@ class ExtensionBlock(NonConsolidatableMixIn, Block):
 
     def where(self, other, cond, align=True, errors='raise',
               try_cast=False, axis=0, transpose=False):
-        # Extract the underlying arrays.
-        if isinstance(other, (ABCIndexClass, ABCSeries)):
-            other = other.array
-
-        elif isinstance(other, ABCDataFrame):
+        if isinstance(other, ABCDataFrame):
             # ExtensionArrays are 1-D, so if we get here then
             # `other` should be a DataFrame with a single column.
             assert other.shape[1] == 1
-            other = other.iloc[:, 0].array
+            other = other.iloc[:, 0]
+
+        other = extract_array(other, extract_numpy=True)
 
         if isinstance(cond, ABCDataFrame):
             assert cond.shape[1] == 1
-            cond = cond.iloc[:, 0].array
+            cond = cond.iloc[:, 0]
 
-        elif isinstance(cond, (ABCIndexClass, ABCSeries)):
-            cond = cond.array
+        cond = extract_array(cond, extract_numpy=True)
 
         if lib.is_scalar(other) and isna(other):
             # The default `other` for Series / Frame is np.nan

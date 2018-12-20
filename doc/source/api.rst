@@ -2681,6 +2681,7 @@ objects.
    api.extensions.register_index_accessor
    api.extensions.ExtensionDtype
    api.extensions.ExtensionArray
+   arrays.PandasArray
 
 .. This is to prevent warnings in the doc build. We don't want to encourage
 .. these methods.

@@ -18,6 +18,7 @@ from pandas import (Series, Index, DatetimeIndex, TimedeltaIndex,
                     CategoricalIndex, Timestamp)
 from pandas.compat import StringIO, PYPY, long
 from pandas.compat.numpy import np_array_datetime64_compat
+from pandas.core.arrays import PandasArray
 from pandas.core.accessor import PandasDelegate
 from pandas.core.base import PandasObject, NoNewAttributesMixin
 from pandas.core.indexes.datetimelike import DatetimeIndexOpsMixin
@@ -1252,8 +1253,24 @@ def test_ndarray_values(array, expected):
     tm.assert_numpy_array_equal(l_values, expected)
 
 
+@pytest.mark.parametrize("arr", [
+    np.array([1, 2, 3]),
+    np.array([1, 2, 3], dtype="datetime64[ns]"),
+])
+def test_numpy_array(arr):
+    ser = pd.Series(arr)
+    result = ser.array
+    expected = PandasArray(arr)
+    tm.assert_extension_array_equal(result, expected)
+
+
+def test_numpy_array_all_dtypes(any_numpy_dtype):
+    ser = pd.Series(dtype=any_numpy_dtype)
+    result = ser.array
+    assert isinstance(result, PandasArray)
+
+
 @pytest.mark.parametrize("array, attr", [
-    (np.array([1, 2], dtype=np.int64), None),
     (pd.Categorical(['a', 'b']), '_codes'),
     (pd.core.arrays.period_array(['2000', '2001'], freq='D'), '_data'),
     (pd.core.arrays.integer_array([0, np.nan]), '_data'),

@@ -26,8 +26,8 @@ from pandas.core.dtypes.common import (
 import pandas.core.dtypes.concat as _concat
 from pandas.core.dtypes.generic import (
     ABCDataFrame, ABCDateOffset, ABCDatetimeIndex, ABCIndexClass,
-    ABCMultiIndex, ABCPeriodIndex, ABCSeries, ABCTimedeltaArray,
-    ABCTimedeltaIndex)
+    ABCMultiIndex, ABCPandasArray, ABCPeriodIndex, ABCSeries,
+    ABCTimedeltaArray, ABCTimedeltaIndex)
 from pandas.core.dtypes.missing import array_equivalent, isna
 
 from pandas.core import ops
@@ -264,6 +264,9 @@ class Index(IndexOpsMixin, PandasObject):
                 return cls._simple_new(data, name)
 
         from .range import RangeIndex
+        if isinstance(data, ABCPandasArray):
+            # ensure users don't accidentally put a PandasArray in an index.
+            data = data._ndarray
 
         # range
         if isinstance(data, RangeIndex):

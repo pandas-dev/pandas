@@ -11,8 +11,9 @@ from pandas.compat import PY2, range, text_type, u, zip
 
 from pandas.core.dtypes.cast import maybe_promote
 from pandas.core.dtypes.common import (
-    ensure_platform_int, is_bool_dtype, is_extension_array_dtype, is_list_like,
-    is_object_dtype, needs_i8_conversion)
+    ensure_platform_int, extract_array, is_bool_dtype,
+    is_extension_array_dtype, is_list_like, is_object_dtype,
+    needs_i8_conversion)
 from pandas.core.dtypes.missing import notna
 
 from pandas import compat
@@ -432,7 +433,7 @@ def _unstack_extension_series(series, level, fill_value):
                         level=level, fill_value=-1).get_result()
 
     out = []
-    values = series.array
+    values = extract_array(series, extract_numpy=False)
 
     for col, indices in result.iteritems():
         out.append(Series(values.take(indices.values,
