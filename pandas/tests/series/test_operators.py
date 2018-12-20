@@ -793,53 +793,6 @@ class TestSeriesOperators(TestData):
         expected = pd.Series([11, 12, np.nan], index=[1, 1, 2])
         assert_series_equal(result, expected)
 
-    @pytest.mark.parametrize(
-        "test_input,error_type",
-        [
-            (pd.Series([]), ValueError),
-
-            # For strings, or any Series with dtype 'O'
-            (pd.Series(['foo', 'bar', 'baz']), TypeError),
-            (pd.Series([(1,), (2,)]), TypeError),
-
-            # For mixed data types
-            (
-                pd.Series(['foo', 'foo', 'bar', 'bar', None, np.nan, 'baz']),
-                TypeError
-            ),
-        ]
-    )
-    def test_assert_idxminmax_raises(self, test_input, error_type):
-        """
-        Cases where ``Series.argmax`` and related should raise an exception
-        """
-        with pytest.raises(error_type):
-            test_input.idxmin()
-        with pytest.raises(error_type):
-            test_input.idxmin(skipna=False)
-        with pytest.raises(error_type):
-            test_input.idxmax()
-        with pytest.raises(error_type):
-            test_input.idxmax(skipna=False)
-
-    def test_idxminmax_with_inf(self):
-        # For numeric data with NA and Inf (GH #13595)
-        s = pd.Series([0, -np.inf, np.inf, np.nan])
-
-        assert s.idxmin() == 1
-        assert np.isnan(s.idxmin(skipna=False))
-
-        assert s.idxmax() == 2
-        assert np.isnan(s.idxmax(skipna=False))
-
-        # Using old-style behavior that treats floating point nan, -inf, and
-        # +inf as missing
-        with pd.option_context('mode.use_inf_as_na', True):
-            assert s.idxmin() == 0
-            assert np.isnan(s.idxmin(skipna=False))
-            assert s.idxmax() == 0
-            np.isnan(s.idxmax(skipna=False))
-
 
 class TestSeriesUnaryOps(object):
     # __neg__, __pos__, __inv__
