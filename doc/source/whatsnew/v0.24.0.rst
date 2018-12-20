@@ -1103,6 +1103,7 @@ Other API Changes
 - The order of the arguments of :func:`DataFrame.to_html` and :func:`DataFrame.to_string` is rearranged to be consistent with each other. (:issue:`23614`)
 - :meth:`CategoricalIndex.reindex` now raises a ``ValueError`` if the target index is non-unique and not equal to the current index. It previously only raised if the target index was not of a categorical dtype (:issue:`23963`).
 - :func:`Series.to_list` and :func:`Index.to_list` are now aliases of ``Series.tolist`` respectively ``Index.tolist`` (:issue:`8826`)
+- The result of ``SparseSeries.unstack`` is now a :class:`DataFrame` with sparse values, rather than a :class:`SparseDataFrame` (issue:`24372`).
 
 .. _whatsnew_0240.deprecations:
 
