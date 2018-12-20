@@ -1,9 +1,9 @@
 import numpy as np
 import pytest
 
-from pandas.compat import StringIO, lrange, product as cart_product
+from pandas.compat import lrange, product as cart_product
 
-from pandas import DataFrame, Index, MultiIndex, concat, read_csv
+from pandas import DataFrame, Index, MultiIndex, concat
 import pandas.core.common as com
 from pandas.util import testing as tm
 
@@ -161,18 +161,22 @@ def test_xs_integer_key():
     tm.assert_frame_equal(result, expected)
 
 
-def test_xs_level0():
-    text = """                      A       B       C       D        E
-one two three   four
-a   b   10.0032 5    -0.5109 -2.3358 -0.4645  0.05076  0.3640
-a   q   20      4     0.4473  1.4152  0.2834  1.00661  0.1744
-x   q   30      3    -0.6662 -0.5243 -0.3580  0.89145  2.5838"""
+@pytest.mark.parametrize('indexer', [
+    lambda df: df.xs('a', level=0),
+    lambda df: df.xs('a')
+])
+def test_xs_level0(indexer, four_level_index_dataframe):
+    df = four_level_index_dataframe
+    expected_values = [[-0.5109, -2.3358, -0.4645, 0.05076, 0.364],
+                       [0.4473, 1.4152, 0.2834, 1.00661, 0.1744]]
+    expected_index = MultiIndex(
+        levels=[['b', 'q'], [10.0032, 20.0], [4, 5]],
+        codes=[[0, 1], [0, 1], [1, 0]],
+        names=['two', 'three', 'four'])
+    expected = DataFrame(
+        expected_values, index=expected_index, columns=list('ABCDE'))
 
-    df = read_csv(StringIO(text), sep=r'\s+', engine='python')
-
-    result = df.xs('a', level=0)
-    expected = df.xs('a')
-    assert len(result) == 2
+    result = indexer(df)
     tm.assert_frame_equal(result, expected)
 
 
