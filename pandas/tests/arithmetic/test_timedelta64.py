@@ -158,6 +158,258 @@ class TestTimedelta64ArrayComparisons(object):
 # ------------------------------------------------------------------
 # Timedelta64[ns] dtype Arithmetic Operations
 
+class TestTimedelta64ArithmeticUnsorted(object):
+    # Tests moved from type-specific test files but not
+    #  yet sorted/parametrized/de-duplicated
+
+    def test_ufunc_coercions(self):
+        # normal ops are also tested in tseries/test_timedeltas.py
+        idx = TimedeltaIndex(['2H', '4H', '6H', '8H', '10H'],
+                             freq='2H', name='x')
+
+        for result in [idx * 2, np.multiply(idx, 2)]:
+            assert isinstance(result, TimedeltaIndex)
+            exp = TimedeltaIndex(['4H', '8H', '12H', '16H', '20H'],
+                                 freq='4H', name='x')
+            tm.assert_index_equal(result, exp)
+            assert result.freq == '4H'
+
+        for result in [idx / 2, np.divide(idx, 2)]:
+            assert isinstance(result, TimedeltaIndex)
+            exp = TimedeltaIndex(['1H', '2H', '3H', '4H', '5H'],
+                                 freq='H', name='x')
+            tm.assert_index_equal(result, exp)
+            assert result.freq == 'H'
+
+        idx = TimedeltaIndex(['2H', '4H', '6H', '8H', '10H'],
+                             freq='2H', name='x')
+        for result in [-idx, np.negative(idx)]:
+            assert isinstance(result, TimedeltaIndex)
+            exp = TimedeltaIndex(['-2H', '-4H', '-6H', '-8H', '-10H'],
+                                 freq='-2H', name='x')
+            tm.assert_index_equal(result, exp)
+            assert result.freq == '-2H'
+
+        idx = TimedeltaIndex(['-2H', '-1H', '0H', '1H', '2H'],
+                             freq='H', name='x')
+        for result in [abs(idx), np.absolute(idx)]:
+            assert isinstance(result, TimedeltaIndex)
+            exp = TimedeltaIndex(['2H', '1H', '0H', '1H', '2H'],
+                                 freq=None, name='x')
+            tm.assert_index_equal(result, exp)
+            assert result.freq is None
+
+    def test_subtraction_ops(self):
+        # with datetimes/timedelta and tdi/dti
+        tdi = TimedeltaIndex(['1 days', pd.NaT, '2 days'], name='foo')
+        dti = pd.date_range('20130101', periods=3, name='bar')
+        td = Timedelta('1 days')
+        dt = Timestamp('20130101')
+
+        pytest.raises(TypeError, lambda: tdi - dt)
+        pytest.raises(TypeError, lambda: tdi - dti)
+        pytest.raises(TypeError, lambda: td - dt)
+        pytest.raises(TypeError, lambda: td - dti)
+
+        result = dt - dti
+        expected = TimedeltaIndex(['0 days', '-1 days', '-2 days'], name='bar')
+        tm.assert_index_equal(result, expected)
+
+        result = dti - dt
+        expected = TimedeltaIndex(['0 days', '1 days', '2 days'], name='bar')
+        tm.assert_index_equal(result, expected)
+
+        result = tdi - td
+        expected = TimedeltaIndex(['0 days', pd.NaT, '1 days'], name='foo')
+        tm.assert_index_equal(result, expected, check_names=False)
+
+        result = td - tdi
+        expected = TimedeltaIndex(['0 days', pd.NaT, '-1 days'], name='foo')
+        tm.assert_index_equal(result, expected, check_names=False)
+
+        result = dti - td
+        expected = DatetimeIndex(
+            ['20121231', '20130101', '20130102'], name='bar')
+        tm.assert_index_equal(result, expected, check_names=False)
+
+        result = dt - tdi
+        expected = DatetimeIndex(['20121231', pd.NaT, '20121230'], name='foo')
+        tm.assert_index_equal(result, expected)
+
+    def test_subtraction_ops_with_tz(self):
+
+        # check that dt/dti subtraction ops with tz are validated
+        dti = pd.date_range('20130101', periods=3)
+        ts = Timestamp('20130101')
+        dt = ts.to_pydatetime()
+        dti_tz = pd.date_range('20130101', periods=3).tz_localize('US/Eastern')
+        ts_tz = Timestamp('20130101').tz_localize('US/Eastern')
+        ts_tz2 = Timestamp('20130101').tz_localize('CET')
+        dt_tz = ts_tz.to_pydatetime()
+        td = Timedelta('1 days')
+
+        def _check(result, expected):
+            assert result == expected
+            assert isinstance(result, Timedelta)
+
+        # scalars
+        result = ts - ts
+        expected = Timedelta('0 days')
+        _check(result, expected)
+
+        result = dt_tz - ts_tz
+        expected = Timedelta('0 days')
+        _check(result, expected)
+
+        result = ts_tz - dt_tz
+        expected = Timedelta('0 days')
+        _check(result, expected)
+
+        # tz mismatches
+        pytest.raises(TypeError, lambda: dt_tz - ts)
+        pytest.raises(TypeError, lambda: dt_tz - dt)
+        pytest.raises(TypeError, lambda: dt_tz - ts_tz2)
+        pytest.raises(TypeError, lambda: dt - dt_tz)
+        pytest.raises(TypeError, lambda: ts - dt_tz)
+        pytest.raises(TypeError, lambda: ts_tz2 - ts)
+        pytest.raises(TypeError, lambda: ts_tz2 - dt)
+        pytest.raises(TypeError, lambda: ts_tz - ts_tz2)
+
+        # with dti
+        pytest.raises(TypeError, lambda: dti - ts_tz)
+        pytest.raises(TypeError, lambda: dti_tz - ts)
+        pytest.raises(TypeError, lambda: dti_tz - ts_tz2)
+
+        result = dti_tz - dt_tz
+        expected = TimedeltaIndex(['0 days', '1 days', '2 days'])
+        tm.assert_index_equal(result, expected)
+
+        result = dt_tz - dti_tz
+        expected = TimedeltaIndex(['0 days', '-1 days', '-2 days'])
+        tm.assert_index_equal(result, expected)
+
+        result = dti_tz - ts_tz
+        expected = TimedeltaIndex(['0 days', '1 days', '2 days'])
+        tm.assert_index_equal(result, expected)
+
+        result = ts_tz - dti_tz
+        expected = TimedeltaIndex(['0 days', '-1 days', '-2 days'])
+        tm.assert_index_equal(result, expected)
+
+        result = td - td
+        expected = Timedelta('0 days')
+        _check(result, expected)
+
+        result = dti_tz - td
+        expected = DatetimeIndex(
+            ['20121231', '20130101', '20130102'], tz='US/Eastern')
+        tm.assert_index_equal(result, expected)
+
+    def test_dti_tdi_numeric_ops(self):
+        # These are normally union/diff set-like ops
+        tdi = TimedeltaIndex(['1 days', pd.NaT, '2 days'], name='foo')
+        dti = pd.date_range('20130101', periods=3, name='bar')
+
+        # TODO(wesm): unused?
+        # td = Timedelta('1 days')
+        # dt = Timestamp('20130101')
+
+        result = tdi - tdi
+        expected = TimedeltaIndex(['0 days', pd.NaT, '0 days'], name='foo')
+        tm.assert_index_equal(result, expected)
+
+        result = tdi + tdi
+        expected = TimedeltaIndex(['2 days', pd.NaT, '4 days'], name='foo')
+        tm.assert_index_equal(result, expected)
+
+        result = dti - tdi  # name will be reset
+        expected = DatetimeIndex(['20121231', pd.NaT, '20130101'])
+        tm.assert_index_equal(result, expected)
+
+    def test_addition_ops(self):
+        # with datetimes/timedelta and tdi/dti
+        tdi = TimedeltaIndex(['1 days', pd.NaT, '2 days'], name='foo')
+        dti = pd.date_range('20130101', periods=3, name='bar')
+        td = Timedelta('1 days')
+        dt = Timestamp('20130101')
+
+        result = tdi + dt
+        expected = DatetimeIndex(['20130102', pd.NaT, '20130103'], name='foo')
+        tm.assert_index_equal(result, expected)
+
+        result = dt + tdi
+        expected = DatetimeIndex(['20130102', pd.NaT, '20130103'], name='foo')
+        tm.assert_index_equal(result, expected)
+
+        result = td + tdi
+        expected = TimedeltaIndex(['2 days', pd.NaT, '3 days'], name='foo')
+        tm.assert_index_equal(result, expected)
+
+        result = tdi + td
+        expected = TimedeltaIndex(['2 days', pd.NaT, '3 days'], name='foo')
+        tm.assert_index_equal(result, expected)
+
+        # unequal length
+        pytest.raises(ValueError, lambda: tdi + dti[0:1])
+        pytest.raises(ValueError, lambda: tdi[0:1] + dti)
+
+        # random indexes
+        with pytest.raises(NullFrequencyError):
+            tdi + pd.Int64Index([1, 2, 3])
+
+        # this is a union!
+        # pytest.raises(TypeError, lambda : Int64Index([1,2,3]) + tdi)
+
+        result = tdi + dti  # name will be reset
+        expected = DatetimeIndex(['20130102', pd.NaT, '20130105'])
+        tm.assert_index_equal(result, expected)
+
+        result = dti + tdi  # name will be reset
+        expected = DatetimeIndex(['20130102', pd.NaT, '20130105'])
+        tm.assert_index_equal(result, expected)
+
+        result = dt + td
+        expected = Timestamp('20130102')
+        assert result == expected
+
+        result = td + dt
+        expected = Timestamp('20130102')
+        assert result == expected
+
+    # TODO: Needs more informative name, probably split up into
+    # more targeted tests
+    def test_timedelta(self, freq):
+        index = pd.date_range('1/1/2000', periods=50, freq=freq)
+
+        shifted = index + timedelta(1)
+        back = shifted + timedelta(-1)
+        tm.assert_index_equal(index, back)
+
+        if freq == 'D':
+            expected = pd.tseries.offsets.Day(1)
+            assert index.freq == expected
+            assert shifted.freq == expected
+            assert back.freq == expected
+        else:  # freq == 'B'
+            assert index.freq == pd.tseries.offsets.BusinessDay(1)
+            assert shifted.freq is None
+            assert back.freq == pd.tseries.offsets.BusinessDay(1)
+
+        result = index - timedelta(1)
+        expected = index + timedelta(-1)
+        tm.assert_index_equal(result, expected)
+
+        # GH#4134, buggy with timedeltas
+        rng = pd.date_range('2013', '2014')
+        s = Series(rng)
+        result1 = rng - pd.offsets.Hour(1)
+        result2 = DatetimeIndex(s - np.timedelta64(100000000))
+        result3 = rng - np.timedelta64(100000000)
+        result4 = DatetimeIndex(s - pd.offsets.Hour(1))
+        tm.assert_index_equal(result1, result4)
+        tm.assert_index_equal(result2, result3)
+
+
 class TestAddSubNaTMasking(object):
     # TODO: parametrize over boxes
 
