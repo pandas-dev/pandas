@@ -473,6 +473,22 @@ class TestAddSubNaTMasking(object):
 class TestTimedeltaArraylikeAddSubOps(object):
     # Tests for timedelta64[ns] __add__, __sub__, __radd__, __rsub__
 
+    # TODO: moved from frame tests; needs parametrization/de-duplication
+    def test_td64_df_add_int_frame(self):
+        # GH#22696 Check that we don't dispatch to numpy implementation,
+        #  which treats int64 as m8[ns]
+        tdi = pd.timedelta_range('1', periods=3)
+        df = tdi.to_frame()
+        other = pd.DataFrame([1, 2, 3], index=tdi)  # indexed like `df`
+        with pytest.raises(TypeError):
+            df + other
+        with pytest.raises(TypeError):
+            other + df
+        with pytest.raises(TypeError):
+            df - other
+        with pytest.raises(TypeError):
+            other - df
+
     # TODO: moved from tests.indexes.timedeltas.test_arithmetic; needs
     #  parametrization+de-duplication
     def test_timedelta_ops_with_missing_values(self):
