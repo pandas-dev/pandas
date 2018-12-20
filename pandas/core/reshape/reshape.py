@@ -11,8 +11,8 @@ from pandas.compat import PY2, range, text_type, u, zip
 
 from pandas.core.dtypes.cast import maybe_promote
 from pandas.core.dtypes.common import (
-    ensure_platform_int, is_bool_dtype, is_extension_array_dtype, is_list_like,
-    is_object_dtype, needs_i8_conversion)
+    ensure_platform_int, is_bool_dtype, is_extension_array_dtype,
+    is_integer_dtype, is_list_like, is_object_dtype, needs_i8_conversion)
 from pandas.core.dtypes.missing import notna
 
 from pandas import compat
@@ -910,6 +910,14 @@ def _get_dummies_1d(data, prefix, prefix_sep='_', dummy_na=False,
         index = None
 
     if sparse:
+
+        if is_integer_dtype(dtype):
+            fill_value = 0
+        elif dtype == bool:
+            fill_value = False
+        else:
+            fill_value = 0.0
+
         sparse_series = []
         N = len(data)
         sp_indices = [[] for _ in range(len(dummy_cols))]
@@ -927,7 +935,8 @@ def _get_dummies_1d(data, prefix, prefix_sep='_', dummy_na=False,
             dummy_cols = dummy_cols[1:]
         for col, ixs in zip(dummy_cols, sp_indices):
             sarr = SparseArray(np.ones(len(ixs), dtype=dtype),
-                               sparse_index=IntIndex(N, ixs), fill_value=0,
+                               sparse_index=IntIndex(N, ixs),
+                               fill_value=fill_value,
                                dtype=dtype)
             sparse_series.append(Series(data=sarr, index=index, name=col))
 
