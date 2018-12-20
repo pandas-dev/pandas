@@ -97,7 +97,6 @@ class TestRangeIndex(Numeric):
             assert index._step == 1
             tm.assert_index_equal(Index(expected), index)
 
-
         for index in [RangeIndex(0, name='Foo'),
                       RangeIndex(start=0, name='Foo'),
                       RangeIndex(stop=0, name='Foo'),
@@ -187,85 +186,6 @@ class TestRangeIndex(Numeric):
         assert orig.name == 'original'
         assert copy.name == 'copy'
         assert new.name == 'new'
-
-    # TODO: mod, divmod?
-    @pytest.mark.parametrize('op', [operator.add, operator.sub,
-                                    operator.mul, operator.floordiv,
-                                    operator.truediv, operator.pow])
-    def test_arithmetic_with_frame_or_series(self, op):
-        # check that we return NotImplemented when operating with Series
-        # or DataFrame
-        index = pd.RangeIndex(5)
-        other = pd.Series(np.random.randn(5))
-
-        expected = op(pd.Series(index), other)
-        result = op(index, other)
-        tm.assert_series_equal(result, expected)
-
-        other = pd.DataFrame(np.random.randn(2, 5))
-        expected = op(pd.DataFrame([index, index]), other)
-        result = op(index, other)
-        tm.assert_frame_equal(result, expected)
-
-    def test_numeric_compat2(self):
-        # validate that we are handling the RangeIndex overrides to numeric ops
-        # and returning RangeIndex where possible
-
-        idx = RangeIndex(0, 10, 2)
-
-        result = idx * 2
-        expected = RangeIndex(0, 20, 4)
-        tm.assert_index_equal(result, expected, exact=True)
-
-        result = idx + 2
-        expected = RangeIndex(2, 12, 2)
-        tm.assert_index_equal(result, expected, exact=True)
-
-        result = idx - 2
-        expected = RangeIndex(-2, 8, 2)
-        tm.assert_index_equal(result, expected, exact=True)
-
-        # truediv under PY3
-        result = idx / 2
-
-        if PY3:
-            expected = RangeIndex(0, 5, 1).astype('float64')
-        else:
-            expected = RangeIndex(0, 5, 1)
-        tm.assert_index_equal(result, expected, exact=True)
-
-        result = idx / 4
-        expected = RangeIndex(0, 10, 2) / 4
-        tm.assert_index_equal(result, expected, exact=True)
-
-        result = idx // 1
-        expected = idx
-        tm.assert_index_equal(result, expected, exact=True)
-
-        # __mul__
-        result = idx * idx
-        expected = Index(idx.values * idx.values)
-        tm.assert_index_equal(result, expected, exact=True)
-
-        # __pow__
-        idx = RangeIndex(0, 1000, 2)
-        result = idx ** 2
-        expected = idx._int64index ** 2
-        tm.assert_index_equal(Index(result.values), expected, exact=True)
-
-        # __floordiv__
-        cases_exact = [(RangeIndex(0, 1000, 2), 2, RangeIndex(0, 500, 1)),
-                       (RangeIndex(-99, -201, -3), -3, RangeIndex(33, 67, 1)),
-                       (RangeIndex(0, 1000, 1), 2,
-                        RangeIndex(0, 1000, 1)._int64index // 2),
-                       (RangeIndex(0, 100, 1), 2.0,
-                        RangeIndex(0, 100, 1)._int64index // 2.0),
-                       (RangeIndex(0), 50, RangeIndex(0)),
-                       (RangeIndex(2, 4, 2), 3, RangeIndex(0, 1, 1)),
-                       (RangeIndex(-5, -10, -6), 4, RangeIndex(-2, -1, 1)),
-                       (RangeIndex(-100, -200, 3), 2, RangeIndex(0))]
-        for idx, div, expected in cases_exact:
-            tm.assert_index_equal(idx // div, expected, exact=True)
 
     def test_constructor_corner(self):
         arr = np.array([1, 2, 3, 4], dtype=object)
@@ -834,12 +754,6 @@ class TestRangeIndex(Numeric):
             idx = self.indices[ind]
             assert idx.is_unique
             assert not idx.has_duplicates
-
-    def test_ufunc_compat(self):
-        idx = RangeIndex(5)
-        result = np.sin(idx)
-        expected = Float64Index(np.sin(np.arange(5, dtype='int64')))
-        tm.assert_index_equal(result, expected)
 
     def test_extended_gcd(self):
         result = self.index._extended_gcd(6, 10)

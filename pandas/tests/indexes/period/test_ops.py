@@ -410,11 +410,10 @@ class TestPeriodIndexSeriesMethods(object):
     def _check(self, values, func, expected):
         idx = pd.PeriodIndex(values)
         result = func(idx)
-        if isinstance(expected, pd.Index):
-            tm.assert_index_equal(result, expected)
-        else:
-            # comp op results in bool
-            tm.assert_numpy_array_equal(result, expected)
+
+        # check that we don't pass an unwanted type to tm.assert_equal
+        assert isinstance(expected, (pd.Index, np.ndarray))
+        tm.assert_equal(result, expected)
 
         s = pd.Series(values)
         result = func(s)
@@ -493,12 +492,3 @@ class TestPeriodIndexSeriesMethods(object):
         f = lambda x: NaT >= x
         exp = np.array([False, False, False, False], dtype=np.bool)
         self._check(idx, f, exp)
-
-
-@pytest.mark.parametrize("other", ["2017", 2017])
-def test_eq(other):
-    idx = pd.PeriodIndex(['2017', '2017', '2018'], freq="D")
-    expected = np.array([True, True, False])
-    result = idx == other
-
-    tm.assert_numpy_array_equal(result, expected)

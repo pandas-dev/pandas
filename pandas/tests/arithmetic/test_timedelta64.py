@@ -221,6 +221,102 @@ class TestAddSubNaTMasking(object):
 class TestTimedeltaArraylikeAddSubOps(object):
     # Tests for timedelta64[ns] __add__, __sub__, __radd__, __rsub__
 
+    # TODO: moved from tests.indexes.timedeltas.test_arithmetic; needs
+    #  parametrization+de-duplication
+    def test_timedelta_ops_with_missing_values(self):
+        # setup
+        s1 = pd.to_timedelta(Series(['00:00:01']))
+        s2 = pd.to_timedelta(Series(['00:00:02']))
+        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+            # Passing datetime64-dtype data to TimedeltaIndex is deprecated
+            sn = pd.to_timedelta(Series([pd.NaT]))
+
+        df1 = pd.DataFrame(['00:00:01']).apply(pd.to_timedelta)
+        df2 = pd.DataFrame(['00:00:02']).apply(pd.to_timedelta)
+        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+            # Passing datetime64-dtype data to TimedeltaIndex is deprecated
+            dfn = pd.DataFrame([pd.NaT]).apply(pd.to_timedelta)
+
+        scalar1 = pd.to_timedelta('00:00:01')
+        scalar2 = pd.to_timedelta('00:00:02')
+        timedelta_NaT = pd.to_timedelta('NaT')
+
+        actual = scalar1 + scalar1
+        assert actual == scalar2
+        actual = scalar2 - scalar1
+        assert actual == scalar1
+
+        actual = s1 + s1
+        tm.assert_series_equal(actual, s2)
+        actual = s2 - s1
+        tm.assert_series_equal(actual, s1)
+
+        actual = s1 + scalar1
+        tm.assert_series_equal(actual, s2)
+        actual = scalar1 + s1
+        tm.assert_series_equal(actual, s2)
+        actual = s2 - scalar1
+        tm.assert_series_equal(actual, s1)
+        actual = -scalar1 + s2
+        tm.assert_series_equal(actual, s1)
+
+        actual = s1 + timedelta_NaT
+        tm.assert_series_equal(actual, sn)
+        actual = timedelta_NaT + s1
+        tm.assert_series_equal(actual, sn)
+        actual = s1 - timedelta_NaT
+        tm.assert_series_equal(actual, sn)
+        actual = -timedelta_NaT + s1
+        tm.assert_series_equal(actual, sn)
+
+        with pytest.raises(TypeError):
+            s1 + np.nan
+        with pytest.raises(TypeError):
+            np.nan + s1
+        with pytest.raises(TypeError):
+            s1 - np.nan
+        with pytest.raises(TypeError):
+            -np.nan + s1
+
+        actual = s1 + pd.NaT
+        tm.assert_series_equal(actual, sn)
+        actual = s2 - pd.NaT
+        tm.assert_series_equal(actual, sn)
+
+        actual = s1 + df1
+        tm.assert_frame_equal(actual, df2)
+        actual = s2 - df1
+        tm.assert_frame_equal(actual, df1)
+        actual = df1 + s1
+        tm.assert_frame_equal(actual, df2)
+        actual = df2 - s1
+        tm.assert_frame_equal(actual, df1)
+
+        actual = df1 + df1
+        tm.assert_frame_equal(actual, df2)
+        actual = df2 - df1
+        tm.assert_frame_equal(actual, df1)
+
+        actual = df1 + scalar1
+        tm.assert_frame_equal(actual, df2)
+        actual = df2 - scalar1
+        tm.assert_frame_equal(actual, df1)
+
+        actual = df1 + timedelta_NaT
+        tm.assert_frame_equal(actual, dfn)
+        actual = df1 - timedelta_NaT
+        tm.assert_frame_equal(actual, dfn)
+
+        with pytest.raises(TypeError):
+            df1 + np.nan
+        with pytest.raises(TypeError):
+            df1 - np.nan
+
+        actual = df1 + pd.NaT  # NaT is datetime, not timedelta
+        tm.assert_frame_equal(actual, dfn)
+        actual = df1 - pd.NaT
+        tm.assert_frame_equal(actual, dfn)
+
     # TODO: moved from tests.series.test_operators, needs splitting, cleanup,
     # de-duplication, box-parametrization...
     def test_operators_timedelta64(self):

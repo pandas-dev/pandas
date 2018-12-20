@@ -22,6 +22,15 @@ from pandas.tseries.frequencies import to_offset
 # Comparisons
 
 class TestPeriodIndexComparisons(object):
+
+    @pytest.mark.parametrize("other", ["2017", 2017])
+    def test_eq(self, other):
+        idx = PeriodIndex(['2017', '2017', '2018'], freq="D")
+        expected = np.array([True, True, False])
+        result = idx == other
+
+        tm.assert_numpy_array_equal(result, expected)
+
     def test_pi_cmp_period(self):
         idx = period_range('2007-01', periods=20, freq='M')
 
