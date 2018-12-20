@@ -173,6 +173,38 @@ class BaseReshapingTests(BaseExtensionTests):
                  dtype=data.dtype)})
         self.assert_frame_equal(res, exp[['ext', 'int1', 'key', 'int2']])
 
+    def test_merge_on_extension_array(self, data):
+        # GH 23020
+        a, b = data[:2]
+        key = type(data)._from_sequence([a, b], dtype=data.dtype)
+
+        df = pd.DataFrame({"key": key, "val": [1, 2]})
+        result = pd.merge(df, df, on='key')
+        expected = pd.DataFrame({"key": key,
+                                 "val_x": [1, 2],
+                                 "val_y": [1, 2]})
+        self.assert_frame_equal(result, expected)
+
+        # order
+        result = pd.merge(df.iloc[[1, 0]], df, on='key')
+        expected = expected.iloc[[1, 0]].reset_index(drop=True)
+        self.assert_frame_equal(result, expected)
+
+    def test_merge_on_extension_array_duplicates(self, data):
+        # GH 23020
+        a, b = data[:2]
+        key = type(data)._from_sequence([a, b, a], dtype=data.dtype)
+        df1 = pd.DataFrame({"key": key, "val": [1, 2, 3]})
+        df2 = pd.DataFrame({"key": key, "val": [1, 2, 3]})
+
+        result = pd.merge(df1, df2, on='key')
+        expected = pd.DataFrame({
+            "key": key.take([0, 0, 0, 0, 1]),
+            "val_x": [1, 1, 3, 3, 2],
+            "val_y": [1, 3, 1, 3, 2],
+        })
+        self.assert_frame_equal(result, expected)
+
     @pytest.mark.parametrize("columns", [
         ["A", "B"],
         pd.MultiIndex.from_tuples([('A', 'a'), ('A', 'b')],

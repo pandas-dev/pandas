@@ -134,9 +134,10 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
     """
     _metadata = ['name']
     _accessors = {'dt', 'cat', 'str', 'sparse'}
+    # tolist is not actually deprecated, just suppressed in the __dir__
     _deprecations = generic.NDFrame._deprecations | frozenset(
         ['asobject', 'reshape', 'get_value', 'set_value',
-         'from_csv', 'valid'])
+         'from_csv', 'valid', 'tolist'])
 
     # Override cache_readonly bc Series is mutable
     hasnans = property(base.IndexOpsMixin.hasnans.func,
@@ -1082,11 +1083,11 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         """
         Quickly set single value at passed label.
 
-        If label is not contained, a new object is created with the label
-        placed at the end of the result index.
-
         .. deprecated:: 0.21.0
             Please use .at[] or .iat[] accessors.
+
+        If label is not contained, a new object is created with the label
+        placed at the end of the result index.
 
         Parameters
         ----------
@@ -3274,16 +3275,16 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         """
         return self
 
-    _agg_doc = dedent("""
+    _agg_see_also_doc = dedent("""
     See Also
     --------
     Series.apply : Invoke function on a Series.
-    Series.transform : Transform function producing
-        a Series with like indexes.
+    Series.transform : Transform function producing a Series with like indexes.
+    """)
 
+    _agg_examples_doc = dedent("""
     Examples
     --------
-
     >>> s = pd.Series([1, 2, 3, 4])
     >>> s
     0    1
@@ -3301,10 +3302,11 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
     dtype: int64
     """)
 
-    @Appender(_agg_doc)
-    @Appender(generic._shared_docs['aggregate'] % dict(
-        versionadded='.. versionadded:: 0.20.0',
-        **_shared_doc_kwargs))
+    @Substitution(see_also=_agg_see_also_doc,
+                  examples=_agg_examples_doc,
+                  versionadded='.. versionadded:: 0.20.0',
+                  **_shared_doc_kwargs)
+    @Appender(generic._shared_docs['aggregate'])
     def aggregate(self, func, axis=0, *args, **kwargs):
         # Validate the axis parameter
         self._get_axis_number(axis)

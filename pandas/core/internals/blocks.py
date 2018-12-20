@@ -28,7 +28,8 @@ import pandas.core.dtypes.concat as _concat
 from pandas.core.dtypes.dtypes import (
     CategoricalDtype, DatetimeTZDtype, ExtensionDtype, PandasExtensionDtype)
 from pandas.core.dtypes.generic import (
-    ABCDatetimeIndex, ABCExtensionArray, ABCIndexClass, ABCSeries)
+    ABCDataFrame, ABCDatetimeIndex, ABCExtensionArray, ABCIndexClass,
+    ABCSeries)
 from pandas.core.dtypes.missing import (
     _isna_compat, array_equivalent, is_null_datelike_scalar, isna, notna)
 
@@ -1886,7 +1887,6 @@ class ExtensionBlock(NonConsolidatableMixIn, Block):
         new_values = self.values.take(indexer, fill_value=fill_value,
                                       allow_fill=True)
 
-        # if we are a 1-dim object, then always place at 0
         if self.ndim == 1 and new_mgr_locs is None:
             new_mgr_locs = [0]
         else:
@@ -1968,6 +1968,57 @@ class ExtensionBlock(NonConsolidatableMixIn, Block):
                 self.values.shift(periods=periods, fill_value=fill_value),
                 placement=self.mgr_locs, ndim=self.ndim)
         ]
+
+    def where(self, other, cond, align=True, errors='raise',
+              try_cast=False, axis=0, transpose=False):
+        # Extract the underlying arrays.
+        if isinstance(other, (ABCIndexClass, ABCSeries)):
+            other = other.array
+
+        elif isinstance(other, ABCDataFrame):
+            # ExtensionArrays are 1-D, so if we get here then
+            # `other` should be a DataFrame with a single column.
+            assert other.shape[1] == 1
+            other = other.iloc[:, 0].array
+
+        if isinstance(cond, ABCDataFrame):
+            assert cond.shape[1] == 1
+            cond = cond.iloc[:, 0].array
+
+        elif isinstance(cond, (ABCIndexClass, ABCSeries)):
+            cond = cond.array
+
+        if lib.is_scalar(other) and isna(other):
+            # The default `other` for Series / Frame is np.nan
+            # we want to replace that with the correct NA value
+            # for the type
+            other = self.dtype.na_value
+
+        if is_sparse(self.values):
+            # TODO(SparseArray.__setitem__): remove this if condition
+            # We need to re-infer the type of the data after doing the
+            # where, for cases where the subtypes don't match
+            dtype = None
+        else:
+            dtype = self.dtype
+
+        try:
+            result = self.values.copy()
+            icond = ~cond
+            if lib.is_scalar(other):
+                result[icond] = other
+            else:
+                result[icond] = other[icond]
+        except (NotImplementedError, TypeError):
+            # NotImplementedError for class not implementing `__setitem__`
+            # TypeError for SparseArray, which implements just to raise
+            # a TypeError
+            result = self._holder._from_sequence(
+                np.where(cond, self.values, other),
+                dtype=dtype,
+            )
+
+        return self.make_block_same_class(result, placement=self.mgr_locs)
 
     @property
     def _ftype(self):
@@ -2659,6 +2710,33 @@ class CategoricalBlock(ExtensionBlock):
         return make_block(
             values, placement=placement or slice(0, len(values), 1),
             ndim=self.ndim)
+
+    def where(self, other, cond, align=True, errors='raise',
+              try_cast=False, axis=0, transpose=False):
+        # TODO(CategoricalBlock.where):
+        # This can all be deleted in favor of ExtensionBlock.where once
+        # we enforce the deprecation.
+        object_msg = (
+            "Implicitly converting categorical to object-dtype ndarray. "
+            "One or more of the values in 'other' are not present in this "
+            "categorical's categories. A future version of pandas will raise "
+            "a ValueError when 'other' contains different categories.\n\n"
+            "To preserve the current behavior, add the new categories to "
+            "the categorical before calling 'where', or convert the "
+            "categorical to a different dtype."
+        )
+        try:
+            # Attempt to do preserve categorical dtype.
+            result = super(CategoricalBlock, self).where(
+                other, cond, align, errors, try_cast, axis, transpose
+            )
+        except (TypeError, ValueError):
+            warnings.warn(object_msg, FutureWarning, stacklevel=6)
+            result = self.astype(object).where(other, cond, align=align,
+                                               errors=errors,
+                                               try_cast=try_cast,
+                                               axis=axis, transpose=transpose)
+        return result
 
 
 class DatetimeBlock(DatetimeLikeBlockMixin, Block):

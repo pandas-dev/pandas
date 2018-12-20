@@ -1,29 +1,16 @@
 .. _enhancingperf:
 
-.. currentmodule:: pandas
-
-.. ipython:: python
-   :suppress:
-
-   import numpy as np
-   np.random.seed(123456)
-   np.set_printoptions(precision=4, suppress=True)
-   import pandas as pd
-   pd.options.display.max_rows=15
-
-   import os
-   import csv
-
+{{ header }}
 
 *********************
 Enhancing Performance
 *********************
 
 In this part of the tutorial, we will investigate how to speed up certain
-functions operating on pandas ``DataFrames`` using three different techniques: 
-Cython, Numba and :func:`pandas.eval`. We will see a speed improvement of ~200 
-when we use Cython and Numba on a test function operating row-wise on the 
-``DataFrame``. Using :func:`pandas.eval` we will speed up a sum by an order of 
+functions operating on pandas ``DataFrames`` using three different techniques:
+Cython, Numba and :func:`pandas.eval`. We will see a speed improvement of ~200
+when we use Cython and Numba on a test function operating row-wise on the
+``DataFrame``. Using :func:`pandas.eval` we will speed up a sum by an order of
 ~2.
 
 .. _enhancingperf.cython:
@@ -482,7 +469,7 @@ These operations are supported by :func:`pandas.eval`:
 * Simple variable evaluation, e.g., ``pd.eval('df')`` (this is not very useful)
 * Math functions: `sin`, `cos`, `exp`, `log`, `expm1`, `log1p`,
   `sqrt`, `sinh`, `cosh`, `tanh`, `arcsin`, `arccos`, `arctan`, `arccosh`,
-  `arcsinh`, `arctanh`, `abs` and `arctan2`.
+  `arcsinh`, `arctanh`, `abs`, `arctan2` and `log10`.
 
 This Python syntax is **not** allowed:
 

@@ -1055,3 +1055,13 @@ class TestTimeSeries(TestData):
         index = MultiIndex(levels=levels, codes=codes)
 
         assert isinstance(index.get_level_values(0)[0], Timestamp)
+
+    def test_view_tz(self):
+        # GH#24024
+        ser = pd.Series(pd.date_range('2000', periods=4, tz='US/Central'))
+        result = ser.view("i8")
+        expected = pd.Series([946706400000000000,
+                              946792800000000000,
+                              946879200000000000,
+                              946965600000000000])
+        tm.assert_series_equal(result, expected)
