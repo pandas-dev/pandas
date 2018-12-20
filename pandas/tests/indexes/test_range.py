@@ -88,10 +88,6 @@ class TestRangeIndex(Numeric):
         assert index._step == 2
         tm.assert_index_equal(Index(expected), index)
 
-        msg = "RangeIndex\\(\\.\\.\\.\\) must be called with integers"
-        with pytest.raises(TypeError, match=msg):
-            RangeIndex()
-
         for index in [RangeIndex(0), RangeIndex(start=0), RangeIndex(stop=0),
                       RangeIndex(0, 0)]:
             expected = np.empty(0, dtype=np.int64)
@@ -101,8 +97,6 @@ class TestRangeIndex(Numeric):
             assert index._step == 1
             tm.assert_index_equal(Index(expected), index)
 
-        with pytest.raises(TypeError, match=msg):
-            RangeIndex(name='Foo')
 
         for index in [RangeIndex(0, name='Foo'),
                       RangeIndex(start=0, name='Foo'),
@@ -112,13 +106,23 @@ class TestRangeIndex(Numeric):
             assert index.name == 'Foo'
 
         # we don't allow on a bare Index
-        pytest.raises(TypeError, lambda: Index(0, 1000))
+        with pytest.raises(TypeError):
+            Index(0, 1000)
+
+    def test_constructor_invalid_args(self):
+        msg = "RangeIndex\\(\\.\\.\\.\\) must be called with integers"
+        with pytest.raises(TypeError, match=msg):
+            RangeIndex()
+
+        with pytest.raises(TypeError, match=msg):
+            RangeIndex(name='Foo')
 
         # invalid args
         for i in [Index(['a', 'b']), Series(['a', 'b']), np.array(['a', 'b']),
                   [], 'foo', datetime(2000, 1, 1, 0, 0), np.arange(0, 10),
                   np.array([1]), [1]]:
-            pytest.raises(TypeError, lambda: RangeIndex(i))
+            with pytest.raises(TypeError):
+                RangeIndex(i)
 
     def test_constructor_same(self):
 
@@ -133,12 +137,13 @@ class TestRangeIndex(Numeric):
         result = RangeIndex(index)
         tm.assert_index_equal(result, index, exact=True)
 
-        pytest.raises(TypeError,
-                      lambda: RangeIndex(index, dtype='float64'))
+        with pytest.raises(TypeError):
+            RangeIndex(index, dtype='float64')
 
     def test_constructor_range(self):
 
-        pytest.raises(TypeError, lambda: RangeIndex(range(1, 5, 2)))
+        with pytest.raises(TypeError):
+            RangeIndex(range(1, 5, 2))
 
         result = RangeIndex.from_range(range(1, 5, 2))
         expected = RangeIndex(1, 5, 2)
@@ -161,8 +166,8 @@ class TestRangeIndex(Numeric):
         expected = RangeIndex(1, 5, 2)
         tm.assert_index_equal(result, expected, exact=True)
 
-        pytest.raises(TypeError,
-                      lambda: Index(range(1, 5, 2), dtype='float64'))
+        with pytest.raises(TypeError):
+            Index(range(1, 5, 2), dtype='float64')
 
     def test_constructor_name(self):
         # GH12288
@@ -269,11 +274,14 @@ class TestRangeIndex(Numeric):
         tm.assert_index_equal(index, Index(arr))
 
         # non-int raise Exception
-        pytest.raises(TypeError, RangeIndex, '1', '10', '1')
-        pytest.raises(TypeError, RangeIndex, 1.1, 10.2, 1.3)
+        with pytest.raises(TypeError):
+            RangeIndex('1', '10', '1')
+        with pytest.raises(TypeError):
+            RangeIndex(1.1, 10.2, 1.3)
 
         # invalid passed type
-        pytest.raises(TypeError, lambda: RangeIndex(1, 5, dtype='float64'))
+        with pytest.raises(TypeError):
+            RangeIndex(1, 5, dtype='float64')
 
     def test_copy(self):
         i = RangeIndex(5, name='Foo')
@@ -735,10 +743,12 @@ class TestRangeIndex(Numeric):
 
     def test_cant_or_shouldnt_cast(self):
         # can't
-        pytest.raises(TypeError, RangeIndex, 'foo', 'bar', 'baz')
+        with pytest.raises(TypeError):
+            RangeIndex('foo', 'bar', 'baz')
 
         # shouldn't
-        pytest.raises(TypeError, RangeIndex, '0', '1', '2')
+        with pytest.raises(TypeError):
+            RangeIndex('0', '1', '2')
 
     def test_view_Index(self):
         self.index.view(Index)
