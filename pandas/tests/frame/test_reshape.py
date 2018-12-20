@@ -1043,6 +1043,101 @@ class TestDataFrameReshape(TestData):
         tm.assert_frame_equal(result, expected)
 
 
+class TestDataFrameExplode(object):
+    # GH 16538
+    columns = ['a', 'b', 'c']
+
+    def test_sep(self):
+        # Automatically do str.split
+        df = pd.DataFrame([['foo,bar', 'x', 42],
+                           ['fizz,buzz', 'y', 43]],
+                          columns=self.columns)
+        rs = df.explode('a', sep=',')
+        xp = pd.DataFrame({'a': ['foo', 'bar', 'fizz', 'buzz'],
+                           'b': ['x', 'x', 'y', 'y'],
+                           'c': [42, 42, 43, 43]},
+                          index=[0, 0, 1, 1])
+        tm.assert_frame_equal(rs, xp)
+
+    def test_dtype(self):
+        # Coerce dtype
+        df = pd.DataFrame([[[0, 1, 4], 'x', 42],
+                           [[2, 3], 'y', 43]],
+                          columns=self.columns)
+        rs = df.explode('a', dtype='int')
+        xp = pd.DataFrame({'a': np.array([0, 1, 4, 2, 3], dtype='int'),
+                           'b': ['x', 'x', 'x', 'y', 'y'],
+                           'c': [42, 42, 42, 43, 43]},
+                          index=[0, 0, 0, 1, 1])
+        tm.assert_frame_equal(rs, xp)
+
+    def test_na(self):
+        # NaN's and empty lists are omitted
+        # TODO: option to preserve explicit NAs instead
+        df = pd.DataFrame([[[], 'x', 42],
+                           [[2.0, np.nan], 'y', 43]],
+                          columns=self.columns)
+        rs = df.explode('a')
+        xp = pd.DataFrame({'a': [2.0],
+                           'b': ['y'],
+                           'c': [43]},
+                          index=[1])
+        tm.assert_frame_equal(rs, xp)
+
+    def test_nonuniform_type(self):
+        # Not everything is a list
+        df = pd.DataFrame([[[0, 1, 4], 'x', 42],
+                           [3, 'y', 43]],
+                          columns=self.columns)
+        rs = df.explode('a', dtype='int')
+        xp = pd.DataFrame({'a': np.array([0, 1, 4, 3], dtype='int'),
+                           'b': ['x', 'x', 'x', 'y'],
+                           'c': [42, 42, 42, 43]},
+                          index=[0, 0, 0, 1])
+        tm.assert_frame_equal(rs, xp)
+
+    def test_all_scalars(self):
+        # Nothing is a list
+        df = pd.DataFrame([[0, 'x', 42],
+                           [3, 'y', 43]],
+                          columns=self.columns)
+        rs = df.explode('a')
+        xp = pd.DataFrame({'a': [0, 3],
+                           'b': ['x', 'y'],
+                           'c': [42, 43]},
+                          index=[0, 1])
+        tm.assert_frame_equal(rs, xp)
+
+    def test_empty(self):
+        # Empty frame
+        rs = pd.DataFrame(columns=['a', 'b']).explode('a')
+        xp = pd.DataFrame(columns=['a', 'b'])
+        tm.assert_frame_equal(rs, xp)
+
+    def test_missing_column(self):
+        # Bad column name
+        df = pd.DataFrame([[0, 'x', 42],
+                           [3, 'y', 43]],
+                          columns=self.columns)
+        pytest.raises(KeyError, df.explode, 'badcolumnname')
+
+    def test_multi_index(self):
+        # Multi-index
+        idx = pd.MultiIndex.from_tuples([(0, 'a'), (1, 'b')])
+        df = pd.DataFrame([['foo,bar', 'x', 42],
+                           ['fizz,buzz', 'y', 43]],
+                          columns=self.columns,
+                          index=idx)
+        rs = df.explode('a', sep=',')
+        idx = pd.MultiIndex.from_tuples(
+            [(0, 'a'), (0, 'a'), (1, 'b'), (1, 'b')])
+        xp = pd.DataFrame({'a': ['foo', 'bar', 'fizz', 'buzz'],
+                           'b': ['x', 'x', 'y', 'y'],
+                           'c': [42, 42, 43, 43]},
+                          index=idx)
+        tm.assert_frame_equal(rs, xp)
+
+
 def test_unstack_fill_frame_object():
     # GH12815 Test unstacking with object.
     data = pd.Series(["a", "b", "c", "a"], dtype="object")
