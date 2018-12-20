@@ -63,6 +63,50 @@ class TestDatetime64DataFrameComparison(object):
 
 class TestDatetime64SeriesComparison(object):
     # TODO: moved from tests.series.test_operators; needs cleanup
+
+    @pytest.mark.parametrize('pair', [
+        ([pd.Timestamp('2011-01-01'), NaT, pd.Timestamp('2011-01-03')],
+         [NaT, NaT, pd.Timestamp('2011-01-03')]),
+
+        ([pd.Timedelta('1 days'), NaT, pd.Timedelta('3 days')],
+         [NaT, NaT, pd.Timedelta('3 days')]),
+
+        ([pd.Period('2011-01', freq='M'), NaT,
+          pd.Period('2011-03', freq='M')],
+         [NaT, NaT, pd.Period('2011-03', freq='M')]),
+
+    ])
+    @pytest.mark.parametrize('reverse', [True, False])
+    @pytest.mark.parametrize('box', [Series, pd.Index])
+    @pytest.mark.parametrize('dtype', [None, object])
+    def test_nat_comparisons(self, dtype, box, reverse, pair):
+        l, r = pair
+        if reverse:
+            # add lhs / rhs switched data
+            l, r = r, l
+
+        left = Series(l, dtype=dtype)
+        right = box(r, dtype=dtype)
+        # Series, Index
+
+        expected = Series([False, False, True])
+        tm.assert_series_equal(left == right, expected)
+
+        expected = Series([True, True, False])
+        tm.assert_series_equal(left != right, expected)
+
+        expected = Series([False, False, False])
+        tm.assert_series_equal(left < right, expected)
+
+        expected = Series([False, False, False])
+        tm.assert_series_equal(left > right, expected)
+
+        expected = Series([False, False, True])
+        tm.assert_series_equal(left >= right, expected)
+
+        expected = Series([False, False, True])
+        tm.assert_series_equal(left <= right, expected)
+
     def test_comparison_invalid(self, box_with_array):
         # GH#4968
         # invalid date/int comparisons
@@ -1489,6 +1533,42 @@ class TestDatetime64OverflowHandling(object):
 
 
 class TestTimestampSeriesArithmetic(object):
+
+    def test_empty_series_add_sub(self):
+        # GH#13844
+        a = Series(dtype='M8[ns]')
+        b = Series(dtype='m8[ns]')
+        tm.assert_series_equal(a, a + b)
+        tm.assert_series_equal(a, a - b)
+        tm.assert_series_equal(a, b + a)
+        with pytest.raises(TypeError):
+            b - a
+
+    def test_operators_datetimelike(self):
+
+        # ## timedelta64 ###
+        td1 = Series([timedelta(minutes=5, seconds=3)] * 3)
+        td1.iloc[2] = np.nan
+
+        # ## datetime64 ###
+        dt1 = Series([pd.Timestamp('20111230'), pd.Timestamp('20120101'),
+                      pd.Timestamp('20120103')])
+        dt1.iloc[2] = np.nan
+        dt2 = Series([pd.Timestamp('20111231'), pd.Timestamp('20120102'),
+                      pd.Timestamp('20120104')])
+        dt1 - dt2
+        dt2 - dt1
+
+        # ## datetime64 with timetimedelta ###
+        dt1 + td1
+        td1 + dt1
+        dt1 - td1
+        # TODO: Decide if this ought to work.
+        # td1 - dt1
+
+        # ## timetimedelta with datetime64 ###
+        td1 + dt1
+        dt1 + td1
 
     def test_dt64ser_sub_datetime_dtype(self):
         ts = Timestamp(datetime(1993, 1, 7, 13, 30, 00))
