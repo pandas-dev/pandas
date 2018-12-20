@@ -4,6 +4,7 @@
 
 import pytest
 
+import pandas as pd
 from pandas import DataFrame
 from pandas.compat import lmap
 import pandas.util.testing as tm
@@ -314,17 +315,13 @@ class TestDataFramePlots(TestPlotBase):
 
         # Make sure not to add more colors so that matplotlib can cycle
         # correctly.
-        from pandas.plotting._style import _get_standard_colors
         from matplotlib import cm
         color_before = cm.gnuplot(range(5))
-        color_after = _get_standard_colors(1, color=color_before)
+        color_after = plotting._style._get_standard_colors(
+            1, color=color_before)
         assert len(color_after) == len(color_before)
 
-        # Original bug report example.
-        import numpy as np
-        import pandas as pd
-
-        df = pd.DataFrame(np.abs(np.random.randn(48, 4)),
+        df = pd.DataFrame(np.random.randn(48, 4),
                           columns=list("ABCD"))
 
         color_list = cm.gnuplot(np.linspace(0, 1, 16))

@@ -80,6 +80,9 @@ def _get_standard_colors(num_colors=None, colormap=None, color_type='default',
             # mpl will raise error any of them is invalid
             pass
 
+    # Append more colors by cycling if there is not enough color.
+    # Extra colors will be ignored by matplotlib if there are more colors
+    # than needed and nothing needs to be done here.
     if len(colors) < num_colors:
         try:
             multiple = num_colors // len(colors) - 1
