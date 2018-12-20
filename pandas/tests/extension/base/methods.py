@@ -264,3 +264,34 @@ class BaseMethodsTests(BaseExtensionTests):
         if as_frame:
             expected = expected.to_frame(name='a')
         self.assert_equal(result, expected)
+
+    @pytest.mark.parametrize("as_series", [True, False])
+    @pytest.mark.parametrize("repeats", [0, 1, 2])
+    def test_repeat(self, data, repeats, as_series):
+        a, b, c = data[:3]
+        arr = type(data)._from_sequence([a, b, c], dtype=data.dtype)
+
+        if as_series:
+            arr = pd.Series(arr)
+
+        result = arr.repeat(repeats)
+
+        if repeats == 0:
+            expected = []
+        elif repeats == 1:
+            expected = [a, b, c]
+        else:
+            expected = [a, a, b, b, c, c]
+        expected = type(data)._from_sequence(expected, dtype=data.dtype)
+        if as_series:
+            index = pd.Series(np.arange(len(arr))).repeat(repeats).index
+            expected = pd.Series(expected, index=index)
+        self.assert_equal(result, expected)
+
+    def test_repeat_raises(self, data):
+        with pytest.raises(ValueError, match="'axis'"):
+            data.repeat(2, axis=1)
+
+        with pytest.raises(ValueError,
+                           match="negative"):
+            data.repeat(-1)

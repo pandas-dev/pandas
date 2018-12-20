@@ -383,7 +383,7 @@ class DataFrameFormatter(TableFormatter):
                  justify=None, float_format=None, sparsify=None,
                  index_names=True, line_width=None, max_rows=None,
                  max_cols=None, show_dimensions=False, decimal='.',
-                 table_id=None, **kwds):
+                 table_id=None, render_links=False, **kwds):
         self.frame = frame
         if buf is not None:
             self.buf = _expand_user(_stringify_path(buf))
@@ -410,6 +410,7 @@ class DataFrameFormatter(TableFormatter):
                                       len(self.frame))
         self.show_dimensions = show_dimensions
         self.table_id = table_id
+        self.render_links = render_links
 
         if justify is None:
             self.justify = get_option("display.colheader_justify")
@@ -731,7 +732,8 @@ class DataFrameFormatter(TableFormatter):
          """
         from pandas.io.formats.html import HTMLFormatter
         html_renderer = HTMLFormatter(self, classes=classes, notebook=notebook,
-                                      border=border, table_id=self.table_id)
+                                      border=border, table_id=self.table_id,
+                                      render_links=self.render_links)
         if hasattr(self.buf, 'write'):
             html_renderer.write_result(self.buf)
         elif isinstance(self.buf, compat.string_types):
@@ -840,10 +842,39 @@ class DataFrameFormatter(TableFormatter):
 
 
 def format_array(values, formatter, float_format=None, na_rep='NaN',
-                 digits=None, space=None, justify='right', decimal='.'):
+                 digits=None, space=None, justify='right', decimal='.',
+                 leading_space=None):
+    """
+    Format an array for printing.
+
+    Parameters
+    ----------
+    values
+    formatter
+    float_format
+    na_rep
+    digits
+    space
+    justify
+    decimal
+    leading_space : bool, optional
+        Whether the array should be formatted with a leading space.
+        When an array as a column of a Series or DataFrame, we do want
+        the leading space to pad between columns.
+
+        When formatting an Index subclass
+        (e.g. IntervalIndex._format_native_types), we don't want the
+        leading space since it should be left-aligned.
+
+    Returns
+    -------
+    List[str]
+    """
 
     if is_datetime64_dtype(values.dtype):
         fmt_klass = Datetime64Formatter
+    elif is_datetime64tz_dtype(values):
+        fmt_klass = Datetime64TZFormatter
     elif is_timedelta64_dtype(values.dtype):
         fmt_klass = Timedelta64Formatter
     elif is_extension_array_dtype(values.dtype):
@@ -852,8 +883,6 @@ def format_array(values, formatter, float_format=None, na_rep='NaN',
         fmt_klass = FloatArrayFormatter
     elif is_integer_dtype(values.dtype):
         fmt_klass = IntArrayFormatter
-    elif is_datetime64tz_dtype(values):
-        fmt_klass = Datetime64TZFormatter
     else:
         fmt_klass = GenericArrayFormatter
 
@@ -868,7 +897,8 @@ def format_array(values, formatter, float_format=None, na_rep='NaN',
 
     fmt_obj = fmt_klass(values, digits=digits, na_rep=na_rep,
                         float_format=float_format, formatter=formatter,
-                        space=space, justify=justify, decimal=decimal)
+                        space=space, justify=justify, decimal=decimal,
+                        leading_space=leading_space)
 
     return fmt_obj.get_result()
 
@@ -877,7 +907,7 @@ class GenericArrayFormatter(object):
 
     def __init__(self, values, digits=7, formatter=None, na_rep='NaN',
                  space=12, float_format=None, justify='right', decimal='.',
-                 quoting=None, fixed_width=True):
+                 quoting=None, fixed_width=True, leading_space=None):
         self.values = values
         self.digits = digits
         self.na_rep = na_rep
@@ -888,6 +918,7 @@ class GenericArrayFormatter(object):
         self.decimal = decimal
         self.quoting = quoting
         self.fixed_width = fixed_width
+        self.leading_space = leading_space
 
     def get_result(self):
         fmt_values = self._format_strings()
@@ -927,7 +958,9 @@ class GenericArrayFormatter(object):
             vals = vals.values
 
         is_float_type = lib.map_infer(vals, is_float) & notna(vals)
-        leading_space = is_float_type.any()
+        leading_space = self.leading_space
+        if leading_space is None:
+            leading_space = is_float_type.any()
 
         fmt_values = []
         for i, v in enumerate(vals):
@@ -936,7 +969,13 @@ class GenericArrayFormatter(object):
             elif is_float_type[i]:
                 fmt_values.append(float_format(v))
             else:
-                fmt_values.append(u' {v}'.format(v=_format(v)))
+                if leading_space is False:
+                    # False specifically, so that the default is
+                    # to include a space if we get here.
+                    tpl = u'{v}'
+                else:
+                    tpl = u' {v}'
+                fmt_values.append(tpl.format(v=_format(v)))
 
         return fmt_values
 
@@ -1135,7 +1174,8 @@ class ExtensionArrayFormatter(GenericArrayFormatter):
                                   formatter,
                                   float_format=self.float_format,
                                   na_rep=self.na_rep, digits=self.digits,
-                                  space=self.space, justify=self.justify)
+                                  space=self.space, justify=self.justify,
+                                  leading_space=self.leading_space)
         return fmt_values
 
 
