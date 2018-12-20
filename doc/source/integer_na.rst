@@ -24,7 +24,8 @@ you must explicitly pass the dtype into :meth:`array` or :class:`Series`:
 
 .. ipython:: python
 
-   pd.array([1, 2, np.nan], dtype=pd.Int64Dtype())
+   arr = pd.array([1, 2, np.nan], dtype=pd.Int64Dtype())
+   arr
 
 Or the string alias ``"Int64"`` (note the capital ``"I"``, to differentiate from
 NumPy's ``'int64'`` dtype:
