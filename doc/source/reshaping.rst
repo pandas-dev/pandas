@@ -801,3 +801,34 @@ Note to subdivide over multiple columns we can pass in a list to the
 
    df.pivot_table(
        values=['val0'], index='row', columns=['item', 'col'], aggfunc=['mean'])
+
+.. _reshaping.explode:
+
+Exploding a List-like Column
+----------------------------
+
+Sometimes the value column is list-like:
+
+.. ipython:: python
+
+   keys = ['panda1', 'panda2', 'panda3']
+   values = [['eats', 'shoots'], ['shoots', 'leaves'], ['eats', 'leaves']]
+   df = pd.DataFrame({'keys': keys, 'values': values})
+   df
+
+But we actually want to put each value onto its own row.
+For this purpose we can use ``DataFrame.explode``:
+
+.. ipython:: python
+
+   df.explode('values')
+
+For convenience, we can use the optional keyword ``sep`` to automatically
+split a string column before exploding:
+
+.. ipython:: python
+
+   values = ['eats,shoots', 'shoots,leaves', 'eats,shoots,leaves']
+   df2 = pd.DataFrame({'keys': keys, 'values': values})
+   df2
+   df2.explode('values', sep=',')
