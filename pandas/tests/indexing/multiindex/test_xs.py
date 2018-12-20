@@ -180,28 +180,34 @@ def test_xs_level0(indexer, four_level_index_dataframe):
     tm.assert_frame_equal(result, expected)
 
 
-def test_xs_level_series(multiindex_dataframe_random_data,
-                         multiindex_year_month_day_dataframe_random_data):
-    frame = multiindex_dataframe_random_data
-    ymd = multiindex_year_month_day_dataframe_random_data
-    s = frame['A']
+def test_xs_level_series(multiindex_dataframe_random_data):
+    # this test is not explicitly testing .xs functionality
+    # TODO: move to another module or refactor
+    df = multiindex_dataframe_random_data
+    s = df['A']
     result = s[:, 'two']
-    expected = frame.xs('two', level=1)['A']
+    expected = df.xs('two', level=1)['A']
     tm.assert_series_equal(result, expected)
 
-    s = ymd['A']
+
+def test_xs_level_series_ymd(multiindex_year_month_day_dataframe_random_data):
+    # this test is not explicitly testing .xs functionality
+    # TODO: move to another module or refactor
+    df = multiindex_year_month_day_dataframe_random_data
+    s = df['A']
     result = s[2000, 5]
-    expected = ymd.loc[2000, 5]['A']
+    expected = df.loc[2000, 5]['A']
     tm.assert_series_equal(result, expected)
 
+
+def test_xs_level_series_slice_not_implemented(
+        multiindex_year_month_day_dataframe_random_data):
+    # this test is not explicitly testing .xs functionality
+    # TODO: move to another module or refactor
     # not implementing this for now
+    df = multiindex_year_month_day_dataframe_random_data
+    s = df['A']
 
-    pytest.raises(TypeError, s.__getitem__, (2000, slice(3, 4)))
-
-    # result = s[2000, 3:4]
-    # lv =s.index.get_level_values(1)
-    # expected = s[(lv == 3) | (lv == 4)]
-    # expected.index = expected.index.droplevel(0)
-    # tm.assert_series_equal(result, expected)
-
-    # can do this though
+    msg = r'\(2000, slice\(3, 4, None\)\)'
+    with pytest.raises(TypeError, match=msg):
+        s[2000, 3:4]
