@@ -1,10 +1,6 @@
 .. currentmodule:: pandas
 
-.. ipython:: python
-    :suppress:
-
-    import numpy as np
-    import pandas as pd
+{{ header }}
 
  .. _integer_na:
 

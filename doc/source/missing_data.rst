@@ -1,16 +1,6 @@
-.. currentmodule:: pandas
-
-.. ipython:: python
-   :suppress:
-
-   import numpy as np
-   import pandas as pd
-   pd.options.display.max_rows=15
-   import matplotlib
-   # matplotlib.style.use('default')
-   import matplotlib.pyplot as plt
-
 .. _missing_data:
+
+{{ header }}
 
 *************************
 Working with missing data
@@ -29,6 +19,51 @@ pandas.
 
 See the :ref:`cookbook<cookbook.missing_data>` for some advanced strategies.
 
+Values considered "missing"
+~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+As data comes in many shapes and forms, pandas aims to be flexible with regard
+to handling missing data. While ``NaN`` is the default missing value marker for
+reasons of computational speed and convenience, we need to be able to easily
+detect this value with data of different types: floating point, integer,
+boolean, and general object. In many cases, however, the Python ``None`` will
+arise and we wish to also consider that "missing" or "not available" or "NA".
+
+.. note::
+
+   If you want to consider ``inf`` and ``-inf`` to be "NA" in computations,
+   you can set ``pandas.options.mode.use_inf_as_na = True``.
+
+.. _missing.isna:
+
+To make detecting missing values easier (and across different array dtypes),
+pandas provides the :func:`isna` and
+:func:`notna` functions, which are also methods on
+Series and DataFrame objects:
+
+.. ipython:: python
+
+   df2['one']
+   pd.isna(df2['one'])
+   df2['four'].notna()
+   df2.isna()
+
+.. warning::
+
+   One has to be mindful that in Python (and NumPy), the ``nan's`` don't compare equal, but ``None's`` **do**.
+   Note that pandas/NumPy uses the fact that ``np.nan != np.nan``, and treats ``None`` like ``np.nan``.
+
+   .. ipython:: python
+
+      None == None                                                 # noqa: E711
+      np.nan == np.nan
+
+   So as compared to above, a scalar equality comparison versus a ``None/np.nan`` doesn't provide useful information.
+
+   .. ipython:: python
+
+      df2['one'] == np.nan
+
 Integer Dtypes and Missing Data
 -------------------------------
 
@@ -41,12 +76,8 @@ the dtype:
 
    pd.Series([1, 2, np.nan, 4], dtype=pd.Int64Dtype())
 
-Alternatively, the string alias ``'Int64'`` (note the capital ``"I"``) can be
-used:
-
-.. ipython:: python
-
-   pd.Series([1, 2, np.nan, 4], dtype="Int64")
+Alternatively, the string alias ``dtype='Int64'`` (note the capital ``"I"``) can be
+used.
 
 See :ref:`integer_na` for more.
 
@@ -62,7 +93,7 @@ pandas objects provide compatibility between ``NaT`` and ``NaN``.
    df2 = df.copy()
    df2['timestamp'] = pd.Timestamp('20120101')
    df2
-   df2.loc[['a','c','h'],['one','timestamp']] = np.nan
+   df2.loc[['a', 'c', 'h'], ['one', 'timestamp']] = np.nan
    df2
    df2.get_dtype_counts()
 
@@ -147,7 +178,7 @@ The sum of an empty or all-NA Series or column of a DataFrame is 0.
 .. ipython:: python
 
    pd.Series([np.nan]).sum()
-   
+
    pd.Series([]).sum()
 
 The product of an empty or all-NA Series or column of a DataFrame is 1.
@@ -155,7 +186,7 @@ The product of an empty or all-NA Series or column of a DataFrame is 1.
 .. ipython:: python
 
    pd.Series([np.nan]).prod()
-   
+
    pd.Series([]).prod()
 
 
@@ -247,10 +278,10 @@ use case of this is to fill a DataFrame with the mean of that column.
 
 .. ipython:: python
 
-        dff = pd.DataFrame(np.random.randn(10,3), columns=list('ABC'))
-        dff.iloc[3:5,0] = np.nan
-        dff.iloc[4:6,1] = np.nan
-        dff.iloc[5:8,2] = np.nan
+        dff = pd.DataFrame(np.random.randn(10, 3), columns=list('ABC'))
+        dff.iloc[3:5, 0] = np.nan
+        dff.iloc[4:6, 1] = np.nan
+        dff.iloc[5:8, 2] = np.nan
         dff
 
         dff.fillna(dff.mean())
@@ -433,7 +464,8 @@ filled since the last valid observation:
 
 .. ipython:: python
 
-   ser = pd.Series([np.nan, np.nan, 5, np.nan, np.nan, np.nan, 13, np.nan, np.nan])
+   ser = pd.Series([np.nan, np.nan, 5, np.nan, np.nan,
+                    np.nan, 13, np.nan, np.nan])
 
    # fill all consecutive values in a forward direction
    ser.interpolate()

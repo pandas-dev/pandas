@@ -130,7 +130,7 @@ class DatetimeProperties(Properties):
 
     def to_pydatetime(self):
         """
-        Return the data as an array of native Python datetime objects
+        Return the data as an array of native Python datetime objects.
 
         Timezone information is retained if present.
 
@@ -289,7 +289,8 @@ class PeriodProperties(Properties):
     """
 
 
-class CombinedDatetimelikeProperties(DatetimeProperties, TimedeltaProperties):
+class CombinedDatetimelikeProperties(DatetimeProperties,
+                                     TimedeltaProperties, PeriodProperties):
 
     def __new__(cls, data):
         # CombinedDatetimelikeProperties isn't really instantiated. Instead
@@ -315,11 +316,10 @@ class CombinedDatetimelikeProperties(DatetimeProperties, TimedeltaProperties):
                 return DatetimeProperties(data, orig)
             elif is_timedelta64_dtype(data.dtype):
                 return TimedeltaProperties(data, orig)
-            else:
-                if is_period_arraylike(data):
-                    return PeriodProperties(data, orig)
-                if is_datetime_arraylike(data):
-                    return DatetimeProperties(data, orig)
+            elif is_period_arraylike(data):
+                return PeriodProperties(data, orig)
+            elif is_datetime_arraylike(data):
+                return DatetimeProperties(data, orig)
         except Exception:
             pass  # we raise an attribute error anyway
 

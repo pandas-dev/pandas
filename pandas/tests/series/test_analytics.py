@@ -924,8 +924,10 @@ class TestSeriesAnalytics(object):
     def test_clip(self, datetime_series):
         val = datetime_series.median()
 
-        assert datetime_series.clip_lower(val).min() == val
-        assert datetime_series.clip_upper(val).max() == val
+        with tm.assert_produces_warning(FutureWarning):
+            assert datetime_series.clip_lower(val).min() == val
+        with tm.assert_produces_warning(FutureWarning):
+            assert datetime_series.clip_upper(val).max() == val
 
         assert datetime_series.clip(lower=val).min() == val
         assert datetime_series.clip(upper=val).max() == val
@@ -943,8 +945,10 @@ class TestSeriesAnalytics(object):
 
         for s in sers:
             thresh = s[2]
-            lower = s.clip_lower(thresh)
-            upper = s.clip_upper(thresh)
+            with tm.assert_produces_warning(FutureWarning):
+                lower = s.clip_lower(thresh)
+            with tm.assert_produces_warning(FutureWarning):
+                upper = s.clip_upper(thresh)
             assert lower[notna(lower)].min() == thresh
             assert upper[notna(upper)].max() == thresh
             assert list(isna(s)) == list(isna(lower))
@@ -971,8 +975,12 @@ class TestSeriesAnalytics(object):
         s = Series([1.0, 1.0, 4.0])
         threshold = Series([1.0, 2.0, 3.0])
 
-        assert_series_equal(s.clip_lower(threshold), Series([1.0, 2.0, 4.0]))
-        assert_series_equal(s.clip_upper(threshold), Series([1.0, 1.0, 3.0]))
+        with tm.assert_produces_warning(FutureWarning):
+            assert_series_equal(s.clip_lower(threshold),
+                                Series([1.0, 2.0, 4.0]))
+        with tm.assert_produces_warning(FutureWarning):
+            assert_series_equal(s.clip_upper(threshold),
+                                Series([1.0, 1.0, 3.0]))
 
         lower = Series([1.0, 2.0, 3.0])
         upper = Series([1.5, 2.5, 3.5])

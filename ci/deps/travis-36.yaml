@@ -4,6 +4,7 @@ channels:
   - conda-forge
 dependencies:
   - beautifulsoup4
+  - botocore>=1.11
   - cython>=0.28.2
   - dask
   - fastparquet
@@ -20,7 +21,7 @@ dependencies:
   - pymysql
   - pytables
   - python-snappy
-  - python=3.6*
+  - python=3.6.6
   - pytz
   - s3fs
   - scikit-learn
@@ -35,10 +36,10 @@ dependencies:
   - pytest
   - pytest-xdist
   - pytest-cov
-  - moto
   - hypothesis>=3.58.0
   - pip:
     - brotlipy
     - coverage
+    - moto
     - pandas-datareader
     - python-dateutil
