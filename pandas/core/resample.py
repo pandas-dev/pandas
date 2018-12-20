@@ -211,13 +211,15 @@ class Resampler(_GroupBy):
     def pipe(self, func, *args, **kwargs):
         return super(Resampler, self).pipe(func, *args, **kwargs)
 
-    _agg_doc = dedent("""
+    _agg_see_also_doc = dedent("""
     See Also
     --------
     pandas.DataFrame.groupby.aggregate
     pandas.DataFrame.resample.transform
     pandas.DataFrame.aggregate
+    """)
 
+    _agg_examples_doc = dedent("""
     Examples
     --------
     >>> s = pd.Series([1,2,3,4,5],
@@ -253,11 +255,12 @@ class Resampler(_GroupBy):
     2013-01-01 00:00:04      5       NaN
     """)
 
-    @Appender(_agg_doc)
-    @Appender(_shared_docs['aggregate'] % dict(
-        klass='DataFrame',
-        versionadded='',
-        axis=''))
+    @Substitution(see_also=_agg_see_also_doc,
+                  examples=_agg_examples_doc,
+                  versionadded='',
+                  klass='DataFrame',
+                  axis='')
+    @Appender(_shared_docs['aggregate'])
     def aggregate(self, func, *args, **kwargs):
 
         self._set_binner()
@@ -1393,7 +1396,6 @@ class TimeGrouper(Grouper):
                                                  self.freq,
                                                  closed=self.closed,
                                                  base=self.base)
-        tz = ax.tz
         # GH #12037
         # use first/last directly instead of call replace() on them
         # because replace() will swallow the nanosecond part
@@ -1402,26 +1404,10 @@ class TimeGrouper(Grouper):
         binner = labels = date_range(freq=self.freq,
                                      start=first,
                                      end=last,
-                                     tz=tz,
-                                     name=ax.name)
-
-        # GH 15549
-        # In edge case of tz-aware resapmling binner last index can be
-        # less than the last variable in data object, this happens because of
-        # DST time change
-        if len(binner) > 1 and binner[-1] < last:
-            extra_date_range = pd.date_range(binner[-1], last + self.freq,
-                                             freq=self.freq, tz=tz,
-                                             name=ax.name)
-            binner = labels = binner.append(extra_date_range[1:])
-
-        # a little hack
-        trimmed = False
-        if (len(binner) > 2 and binner[-2] == last and
-                self.closed == 'right'):
-
-            binner = binner[:-1]
-            trimmed = True
+                                     tz=ax.tz,
+                                     name=ax.name,
+                                     ambiguous='infer',
+                                     nonexistent='shift')
 
         ax_values = ax.asi8
         binner, bin_edges = self._adjust_bin_edges(binner, ax_values)
@@ -1434,13 +1420,8 @@ class TimeGrouper(Grouper):
             labels = binner
             if self.label == 'right':
                 labels = labels[1:]
-            elif not trimmed:
-                labels = labels[:-1]
-        else:
-            if self.label == 'right':
-                labels = labels[1:]
-            elif not trimmed:
-                labels = labels[:-1]
+        elif self.label == 'right':
+            labels = labels[1:]
 
         if ax.hasnans:
             binner = binner.insert(0, NaT)
@@ -1607,7 +1588,7 @@ def _get_timestamp_range_edges(first, last, offset, closed='left', base=0):
     Adjust the `first` Timestamp to the preceeding Timestamp that resides on
     the provided offset. Adjust the `last` Timestamp to the following
     Timestamp that resides on the provided offset. Input Timestamps that
-    already reside on the offset will be adjusted depeding on the type of
+    already reside on the offset will be adjusted depending on the type of
     offset and the `closed` parameter.
 
     Parameters
@@ -1627,18 +1608,21 @@ def _get_timestamp_range_edges(first, last, offset, closed='left', base=0):
     -------
     A tuple of length 2, containing the adjusted pd.Timestamp objects.
     """
-    if not all(isinstance(obj, pd.Timestamp) for obj in [first, last]):
-        raise TypeError("'first' and 'last' must be instances of type "
-                        "Timestamp")
-
     if isinstance(offset, Tick):
         is_day = isinstance(offset, Day)
         day_nanos = delta_to_nanoseconds(timedelta(1))
 
         # #1165 and #24127
         if (is_day and not offset.nanos % day_nanos) or not is_day:
-            return _adjust_dates_anchored(first, last, offset,
-                                          closed=closed, base=base)
+            first, last = _adjust_dates_anchored(first, last, offset,
+                                                 closed=closed, base=base)
+            if is_day and first.tz is not None:
+                # _adjust_dates_anchored assumes 'D' means 24H, but first/last
+                # might contain a DST transition (23H, 24H, or 25H).
+                # Ensure first/last snap to midnight.
+                first = first.normalize()
+                last = last.normalize()
+            return first, last
 
     else:
         first = first.normalize()

@@ -591,48 +591,6 @@ that the dates have been converted to UTC
     pd.to_datetime(["2015-11-18 15:30:00+05:30",
                     "2015-11-18 16:30:00+06:30"], utc=True)
 
-.. _whatsnew_0240.api_breaking.calendarday:
-
-CalendarDay Offset
-^^^^^^^^^^^^^^^^^^
-
-:class:`Day` and associated frequency alias ``'D'`` were documented to represent
-a calendar day; however, arithmetic and operations with :class:`Day` sometimes
-respected absolute time instead (i.e. ``Day(n)`` and acted identically to ``Timedelta(days=n)``).
-
-*Previous Behavior*:
-
-.. code-block:: ipython
-
-
-    In [2]: ts = pd.Timestamp('2016-10-30 00:00:00', tz='Europe/Helsinki')
-
-    # Respects calendar arithmetic
-    In [3]: pd.date_range(start=ts, freq='D', periods=3)
-    Out[3]:
-    DatetimeIndex(['2016-10-30 00:00:00+03:00', '2016-10-31 00:00:00+02:00',
-                   '2016-11-01 00:00:00+02:00'],
-                  dtype='datetime64[ns, Europe/Helsinki]', freq='D')
-
-    # Respects absolute arithmetic
-    In [4]: ts + pd.tseries.frequencies.to_offset('D')
-    Out[4]: Timestamp('2016-10-30 23:00:00+0200', tz='Europe/Helsinki')
-
-*New Behavior*:
-
-:class:`CalendarDay` and associated frequency alias ``'CD'`` are now available
-and respect calendar day arithmetic while :class:`Day` and frequency alias ``'D'``
-will now respect absolute time (:issue:`22274`, :issue:`20596`, :issue:`16980`, :issue:`8774`)
-See the :ref:`documentation here <timeseries.dayvscalendarday>` for more information.
-
-Addition with :class:`CalendarDay` across a daylight savings time transition:
-
-.. ipython:: python
-
-   ts = pd.Timestamp('2016-10-30 00:00:00', tz='Europe/Helsinki')
-   ts + pd.offsets.Day(1)
-   ts + pd.offsets.CalendarDay(1)
-
 .. _whatsnew_0240.api_breaking.period_end_time:
 
 Time values in ``dt.end_time`` and ``to_timestamp(how='end')``
@@ -1051,6 +1009,7 @@ update the ``ExtensionDtype._metadata`` tuple to match the signature of your
 - :meth:`DataFrame.stack` no longer converts to object dtype for DataFrames where each column has the same extension dtype. The output Series will have the same dtype as the columns (:issue:`23077`).
 - :meth:`Series.unstack` and :meth:`DataFrame.unstack` no longer convert extension arrays to object-dtype ndarrays. Each column in the output ``DataFrame`` will now have the same dtype as the input (:issue:`23077`).
 - Bug when grouping :meth:`Dataframe.groupby()` and aggregating on ``ExtensionArray`` it was not returning the actual ``ExtensionArray`` dtype (:issue:`23227`).
+- Bug in :func:`pandas.merge` when merging on an extension array-backed column (:issue:`23020`).
 - A default repr for :class:`pandas.api.extensions.ExtensionArray` is now provided (:issue:`23601`).
 
 .. _whatsnew_0240.api.incompatibilities:
@@ -1576,6 +1535,7 @@ Notice how we now instead output ``np.nan`` itself instead of a stringified form
 - :func:`DataFrame.to_string()`, :func:`DataFrame.to_html()`, :func:`DataFrame.to_latex()` will correctly format output when a string is passed as the ``float_format`` argument (:issue:`21625`, :issue:`22270`)
 - Bug in :func:`read_csv` that caused it to raise ``OverflowError`` when trying to use 'inf' as ``na_value`` with integer index column (:issue:`17128`)
 - Bug in :func:`pandas.io.json.json_normalize` that caused it to raise ``TypeError`` when two consecutive elements of ``record_path`` are dicts (:issue:`22706`)
+- Bug in :meth:`DataFrame.to_stata`, :class:`pandas.io.stata.StataWriter` and :class:`pandas.io.stata.StataWriter117` where a exception would leave a partially written and invalid dta file (:issue:`23573`)
 - Bug in :meth:`DataFrame.to_stata` and :class:`pandas.io.stata.StataWriter117` that produced invalid files when using strLs with non-ASCII characters (:issue:`23573`)
 
 Plotting
