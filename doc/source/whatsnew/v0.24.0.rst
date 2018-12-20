@@ -1401,10 +1401,11 @@ Numeric
 - Logical operations ``&, |, ^`` between :class:`Series` and :class:`Index` will no longer raise ``ValueError`` (:issue:`22092`)
 - Checking PEP 3141 numbers in :func:`~pandas.api.types.is_scalar` function returns ``True`` (:issue:`22903`)
 
- Conversion
+Conversion
 ^^^^^^^^^^
 
 - Bug in :meth:`DataFrame.combine_first` in which column types were unexpectedly converted to float (:issue:`20699`)
+- Bug in :meth:`DataFrame.__init__` when providing a ``dict`` data, ``columns`` that don't overlap with the keys in ``data``, and an integer ``dtype`` returning a DataFrame with floating-point values (:issue:`24386`)
 
 Strings
 ^^^^^^^

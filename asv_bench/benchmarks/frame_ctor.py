@@ -17,6 +17,7 @@ class FromDicts(object):
         frame = DataFrame(np.random.randn(N, K), index=self.index,
                           columns=self.columns)
         self.data = frame.to_dict()
+        self.series_data = frame.to_dict(orient='series')
         self.dict_list = frame.to_dict(orient='records')
         self.data2 = {i: {j: float(j) for j in range(100)}
                       for i in range(2000)}
@@ -31,6 +32,9 @@ class FromDicts(object):
         DataFrame(self.data, index=self.index)
 
     def time_nested_dict_columns(self):
+        DataFrame(self.data, columns=self.columns)
+
+    def time_nested_dict_columns_series(self):
         DataFrame(self.data, columns=self.columns)
 
     def time_nested_dict_index_columns(self):

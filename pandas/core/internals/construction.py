@@ -21,7 +21,8 @@ from pandas.core.dtypes.cast import (
 from pandas.core.dtypes.common import (
     is_categorical_dtype, is_datetime64tz_dtype, is_dtype_equal,
     is_extension_array_dtype, is_extension_type, is_float_dtype,
-    is_integer_dtype, is_iterator, is_list_like, is_object_dtype, pandas_dtype)
+    is_integer_dtype, is_iterator, is_list_like, is_object_dtype,
+    is_string_dtype, pandas_dtype)
 from pandas.core.dtypes.generic import (
     ABCDataFrame, ABCDatetimeIndex, ABCIndexClass, ABCPeriodIndex, ABCSeries,
     ABCTimedeltaIndex)
@@ -171,44 +172,112 @@ def init_dict(data, index, columns, dtype=None):
     Segregate Series based on type and coerce into matrices.
     Needs to handle a lot of exceptional cases.
     """
-    if columns is not None:
-        from pandas.core.series import Series
-        arrays = Series(data, index=columns, dtype=object)
-        data_names = arrays.index
+    from pandas.core.series import Series
 
-        missing = arrays.isnull()
-        if index is None:
-            # GH10856
-            # raise ValueError if only scalars in dict
-            index = extract_index(arrays[~missing])
-        else:
-            index = ensure_index(index)
+    # Converting a dict of arrays to list of arrays sounds easy enough,
+    # right? Well, it's a bit more nuanced that that. Some problems:
+    # 1. Pandas allows missing values in the keys. If a user provides a dict
+    #    where the keys never compare equal (np.nan, pd.NaT, float('nan'))
+    #    we can't ever do a `data[key]`. So we *have* to iterate over the
+    #    key, value pairs of `data`, no way around it.
+    # 2. The key value pairs of `data` may have
+    #    1. A subset of the desired columns
+    #    2. A superset of the columns
+    #    3. Just the right columns
+    #    And may or may not be in the right order (or ordered, period).
+    #    So we need to get a mapping from `key in data -> position`.
+    # 3. Inconsistencies between the Series and DataFrame constructors
+    #    w.r.t. dtypes makes all for a lot of special casing later on.
+    if columns is None:
+        columns = list(data)
 
-        # no obvious "empty" int column
-        if missing.any() and not is_integer_dtype(dtype):
-            if dtype is None or np.issubdtype(dtype, np.flexible):
-                # GH#1783
-                nan_dtype = object
-            else:
-                nan_dtype = dtype
-            val = construct_1d_arraylike_from_scalar(np.nan, len(index),
-                                                     nan_dtype)
-            arrays.loc[missing] = [val] * missing.sum()
+    if not isinstance(columns, Index):
+        columns = Index(columns, copy=False)
 
+    if data:
+        normalized_keys = Index(data.keys(), copy=False)
+        positions = Series(columns.get_indexer_for(normalized_keys),
+                           index=normalized_keys)
     else:
+        positions = Series()
 
-        for key in data:
-            if (isinstance(data[key], ABCDatetimeIndex) and
-                    data[key].tz is not None):
-                # GH#24096 need copy to be deep for datetime64tz case
-                # TODO: See if we can avoid these copies
-                data[key] = data[key].copy(deep=True)
+    new_data = {}
+    index_len = 0 if index is None else len(index)
 
-        keys = com.dict_keys_to_ordered_list(data)
-        columns = data_names = Index(keys)
-        arrays = [data[k] for k in keys]
+    for key, val in data.items():
+        position = positions[key]
+        if position < 0:
+            # Something like data={"A": [...]}, columns={"B"}
+            continue
+        if (isinstance(val, ABCDatetimeIndex) and
+                data[key].tz is not None):
+            # GH#24096 need copy to be deep for datetime64tz case
+            # TODO: See if we can avoid these copies
+            val = val.copy(deep=True)
 
-    return arrays_to_mgr(arrays, data_names, index, columns, dtype=dtype)
+        elif val is None:
+            # Users may provide scalars as keys. These are aligned to the
+            # correct shape to align with `index`. We would use the Series
+            # constructor, but Series(None, index=index) is converted to
+            # NaNs. In DataFrame,
+            # DataFrame({"A": None}, index=[1, 2], columns=["A"])
+            # is an array of Nones.
+            val = Series([None] * index_len, index=index,
+                         dtype=dtype or object)
+
+        elif index_len and lib.is_scalar(val):
+            val = Series(val, index=index, dtype=dtype)
+
+        new_data[position] = val
+
+    # OK, so user-provided columns in `data` taken care of. Let's move on to
+    # "extra" columns as defined by `columns`. First, we figure out the
+    # positions of the holes we're filling in.
+    extra_positions = np.arange(len(columns))
+    mask = np.isin(extra_positions, positions, invert=True)
+    extra_positions = extra_positions[mask]
+
+    # And now, what should the dtype of this new guys be? We'll that's a little
+    # tricky.
+    # 1. User provided dtype, just use that...
+    #    unless the user provided dtype=int and an index (Gh-24385)
+    # 2. Empty data.keys() & columns is object (unless specified by the user)
+    # 3. No data and No dtype is object (unless specified by the user).
+
+    # https://github.com/pandas-dev/pandas/issues/24385
+    # Series(None, dtype=int) and DataFrame(None, dtype=dtype)
+    # differ when the index is provided.
+    # But if dtype is not provided, then we fall use object.
+    # we have to pass this dtype through to arrays_to_mgr
+
+    # Some things I'd like to change
+    # With DataFrame(None, index=[1], columns=['a'], dtype=dtype):
+    #   For dtype=object, the result is object
+    #   But for dtype=int, the result is float
+    empty_columns = len(positions.index & columns) == 0
+
+    if empty_columns and dtype is None:
+        dtype = object
+    elif (index_len
+            and is_integer_dtype(dtype)):
+        # That's one complicated condition:
+        #  DataFrame(None, index=idx, columns=cols, dtype=int) must be float
+        #  DataFrame(None, index=idx, columns=cols, dtype=object) is object
+        #  DataFrame({'a': 2}, columns=['b']) is object (empty)
+        dtype = float
+    elif not data and dtype is None:
+        dtype = np.dtype('object')
+
+    for position in extra_positions:
+        new_data[position] = Series(index=index, dtype=dtype)
+
+    arrays = [new_data[i] for i in range(len(columns))]
+
+    # hrm this probably belongs in arrays_to_mgr...
+    if is_string_dtype(dtype) and not is_categorical_dtype(dtype):
+        dtype = np.dtype("object")
+
+    return arrays_to_mgr(arrays, columns, index, columns, dtype=dtype)
 
 
 # ---------------------------------------------------------------------
