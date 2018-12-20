@@ -135,7 +135,7 @@ class PivotTable(object):
 class GetDummies(object):
     def setup(self):
         categories = list(string.ascii_letters[:12])
-        s = pd.Series(np.random.choice(categories, size=1000000),
+        s = pd.Series(np.random.choice(categories, size=10000),
                       dtype=pd.api.types.CategoricalDtype(categories))
         self.s = s
 
