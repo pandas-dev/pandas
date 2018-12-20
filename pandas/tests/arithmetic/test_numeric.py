@@ -3,6 +3,7 @@
 # behave identically.
 # Specifically for numeric dtypes
 from decimal import Decimal
+from itertools import combinations
 import operator
 
 import pytest
@@ -946,6 +947,35 @@ class TestObjectDtypeEquivalence(object):
 class TestNumericArithmeticUnsorted(object):
     # Tests in this class have been moved from type-specific test modules
     #  but not yet sorted, parametrized, and de-duplicated
+
+    def check_binop(self, ops, scalars, idxs):
+        for op in ops:
+            for a, b in combinations(idxs, 2):
+                result = op(a, b)
+                expected = op(pd.Int64Index(a), pd.Int64Index(b))
+                tm.assert_index_equal(result, expected)
+            for idx in idxs:
+                for scalar in scalars:
+                    result = op(idx, scalar)
+                    expected = op(pd.Int64Index(idx), scalar)
+                    tm.assert_index_equal(result, expected)
+
+    def test_binops(self):
+        ops = [operator.add, operator.sub, operator.mul, operator.floordiv,
+               operator.truediv]
+        scalars = [-1, 1, 2]
+        idxs = [pd.RangeIndex(0, 10, 1), pd.RangeIndex(0, 20, 2),
+                pd.RangeIndex(-10, 10, 2), pd.RangeIndex(5, -5, -1)]
+        self.check_binop(ops, scalars, idxs)
+
+    def test_binops_pow(self):
+        # later versions of numpy don't allow powers of negative integers
+        # so test separately
+        # https://github.com/numpy/numpy/pull/8127
+        ops = [pow]
+        scalars = [1, 2]
+        idxs = [pd.RangeIndex(0, 10, 1), pd.RangeIndex(0, 20, 2)]
+        self.check_binop(ops, scalars, idxs)
 
     # TODO: mod, divmod?
     @pytest.mark.parametrize('op', [operator.add, operator.sub,

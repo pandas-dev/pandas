@@ -1,8 +1,6 @@
 # -*- coding: utf-8 -*-
 
 from datetime import datetime
-from itertools import combinations
-import operator
 
 import numpy as np
 import pytest
@@ -28,39 +26,10 @@ class TestRangeIndex(Numeric):
     def create_index(self):
         return RangeIndex(5)
 
-    def check_binop(self, ops, scalars, idxs):
-        for op in ops:
-            for a, b in combinations(idxs, 2):
-                result = op(a, b)
-                expected = op(Int64Index(a), Int64Index(b))
-                tm.assert_index_equal(result, expected)
-            for idx in idxs:
-                for scalar in scalars:
-                    result = op(idx, scalar)
-                    expected = op(Int64Index(idx), scalar)
-                    tm.assert_index_equal(result, expected)
-
     def test_can_hold_identifiers(self):
         idx = self.create_index()
         key = idx[0]
         assert idx._can_hold_identifiers_and_holds_name(key) is False
-
-    def test_binops(self):
-        ops = [operator.add, operator.sub, operator.mul, operator.floordiv,
-               operator.truediv]
-        scalars = [-1, 1, 2]
-        idxs = [RangeIndex(0, 10, 1), RangeIndex(0, 20, 2),
-                RangeIndex(-10, 10, 2), RangeIndex(5, -5, -1)]
-        self.check_binop(ops, scalars, idxs)
-
-    def test_binops_pow(self):
-        # later versions of numpy don't allow powers of negative integers
-        # so test separately
-        # https://github.com/numpy/numpy/pull/8127
-        ops = [pow]
-        scalars = [1, 2]
-        idxs = [RangeIndex(0, 10, 1), RangeIndex(0, 20, 2)]
-        self.check_binop(ops, scalars, idxs)
 
     def test_too_many_names(self):
         with pytest.raises(ValueError, match="^Length"):
