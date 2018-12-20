@@ -168,29 +168,38 @@ class TestSeriesStatReductions(object):
                 with pytest.raises(NotImplementedError, match=name):
                     f(string_series_, numeric_only=True)
 
-    def test_sum(self, string_series):
+    def test_sum(self):
+        string_series = tm.makeStringSeries().rename('series')
         self._check_stat_op('sum', np.sum, string_series, check_allna=False)
 
-    def test_mean(self, string_series):
+    def test_mean(self):
+        string_series = tm.makeStringSeries().rename('series')
         self._check_stat_op('mean', np.mean, string_series)
 
-    def test_median(self, string_series):
+    def test_median(self):
+        string_series = tm.makeStringSeries().rename('series')
         self._check_stat_op('median', np.median, string_series)
 
         # test with integers, test failure
         int_ts = Series(np.ones(10, dtype=int), index=lrange(10))
         tm.assert_almost_equal(np.median(int_ts), int_ts.median())
 
-    def test_prod(self, string_series):
+    def test_prod(self):
+        string_series = tm.makeStringSeries().rename('series')
         self._check_stat_op('prod', np.prod, string_series)
 
-    def test_min(self, string_series):
+    def test_min(self):
+        string_series = tm.makeStringSeries().rename('series')
         self._check_stat_op('min', np.min, string_series, check_objects=True)
 
-    def test_max(self, string_series):
+    def test_max(self):
+        string_series = tm.makeStringSeries().rename('series')
         self._check_stat_op('max', np.max, string_series, check_objects=True)
 
-    def test_var_std(self, datetime_series, string_series):
+    def test_var_std(self):
+        string_series = tm.makeStringSeries().rename('series')
+        datetime_series = tm.makeTimeSeries().rename('ts')
+
         alt = lambda x: np.std(x, ddof=1)
         self._check_stat_op('std', alt, string_series)
 
@@ -213,7 +222,10 @@ class TestSeriesStatReductions(object):
         result = s.std(ddof=1)
         assert pd.isna(result)
 
-    def test_sem(self, datetime_series, string_series):
+    def test_sem(self):
+        string_series = tm.makeStringSeries().rename('series')
+        datetime_series = tm.makeTimeSeries().rename('ts')
+
         alt = lambda x: np.std(x, ddof=1) / np.sqrt(len(x))
         self._check_stat_op('sem', alt, string_series)
 
@@ -228,8 +240,11 @@ class TestSeriesStatReductions(object):
         assert pd.isna(result)
 
     @td.skip_if_no_scipy
-    def test_skew(self, string_series):
+    def test_skew(self):
         from scipy.stats import skew
+
+        string_series = tm.makeStringSeries().rename('series')
+
         alt = lambda x: skew(x, bias=False)
         self._check_stat_op('skew', alt, string_series)
 
@@ -247,8 +262,11 @@ class TestSeriesStatReductions(object):
                 assert (df.skew() == 0).all()
 
     @td.skip_if_no_scipy
-    def test_kurt(self, string_series):
+    def test_kurt(self):
         from scipy.stats import kurtosis
+
+        string_series = tm.makeStringSeries().rename('series')
+
         alt = lambda x: kurtosis(x, bias=False)
         self._check_stat_op('kurt', alt, string_series)
 
@@ -516,9 +534,10 @@ class TestSeriesReductions(object):
             with pytest.raises(ValueError, match=msg):
                 np.argmax(s, out=data)
 
-    def test_idxmin(self, string_series):
+    def test_idxmin(self):
         # test idxmin
         # _check_stat_op approach can not be used here because of isna check.
+        string_series = tm.makeStringSeries().rename('series')
 
         # add some NaNs
         string_series[5:15] = np.NaN
@@ -546,9 +565,10 @@ class TestSeriesReductions(object):
         result = s.idxmin()
         assert result == 1
 
-    def test_idxmax(self, string_series):
+    def test_idxmax(self):
         # test idxmax
         # _check_stat_op approach can not be used here because of isna check.
+        string_series = tm.makeStringSeries().rename('series')
 
         # add some NaNs
         string_series[5:15] = np.NaN
