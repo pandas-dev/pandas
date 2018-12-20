@@ -169,6 +169,8 @@ class TimedeltaIndex(DatetimeIndexOpsMixin,
     _object_ops = TimedeltaArray._object_ops
     _field_ops = TimedeltaArray._field_ops
     _datetimelike_ops = TimedeltaArray._datetimelike_ops
+    _datetimelike_methods = TimedeltaArray._datetimelike_methods
+    _other_ops = TimedeltaArray._other_ops
 
     # -------------------------------------------------------------------
     # Constructors
@@ -790,6 +792,6 @@ def timedelta_range(start=None, end=None, periods=None, freq=None,
         freq = 'D'
 
     freq, freq_infer = dtl.maybe_infer_freq(freq)
-    result = TimedeltaArray._generate_range(start, end, periods, freq,
-                                            closed=closed)
-    return TimedeltaIndex(result, name=name)
+    tdarr = TimedeltaArray._generate_range(start, end, periods, freq,
+                                           closed=closed)
+    return TimedeltaIndex(tdarr, name=name)

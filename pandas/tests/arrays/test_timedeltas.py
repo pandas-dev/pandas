@@ -37,6 +37,7 @@ class TestTimedeltaArrayConstructor(object):
 
         arr = TimedeltaArray(data, copy=True)
         assert arr._data is not data
+        assert arr._data.base is not data
 
 
 class TestTimedeltaArray(object):
