@@ -378,6 +378,7 @@ class TestTimedelta64ArithmeticUnsorted(object):
 
     # TODO: Needs more informative name, probably split up into
     # more targeted tests
+    @pytest.mark.parametrize('freq', ['D', 'B'])
     def test_timedelta(self, freq):
         index = pd.date_range('1/1/2000', periods=50, freq=freq)
 
