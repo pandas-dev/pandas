@@ -123,14 +123,14 @@ class TestDatetimeIndex(object):
         with pytest.raises(ValueError, match='Unsupported value'):
             series.resample('5min', **kwargs)
 
-    def test_resample_how(self, downsample_method):
+    @pytest.mark.parametrize(
+        '_index_start,_index_end,_index_name',
+        [('1/1/2000 00:00:00', '1/1/2000 00:13:00', 'index')])
+    def test_resample_how(self, series, downsample_method):
         if downsample_method == 'ohlc':
             pytest.skip('covered by test_resample_how_ohlc')
 
-        rng = date_range('1/1/2000 00:00:00', '1/1/2000 00:13:00', freq='min',
-                         name='index')
-        s = Series(np.random.randn(14), index=rng)
-
+        s = series
         grouplist = np.ones_like(s)
         grouplist[0] = 0
         grouplist[1:6] = 1
@@ -142,8 +142,6 @@ class TestDatetimeIndex(object):
 
         result = getattr(s.resample(
             '5min', closed='right', label='right'), downsample_method)()
-
-        assert result.index.name == 'index'  # redundant assert?
         assert_series_equal(result, expected)
 
     def test_resample_how_ohlc(self):
