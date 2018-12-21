@@ -632,11 +632,12 @@ class _NDFrameIndexer(_NDFrameIndexerBase):
 
                 if isinstance(value, ABCDataFrame):
                     if (len(indexer) > info_axis and
-                            (is_integer(indexer[info_axis]) or isinstance(indexer[info_axis], np.ndarray)) and
+                            (is_integer(indexer[info_axis]) or
+                            isinstance(indexer[info_axis], np.ndarray)) and
                             all(com.is_null_slice(idx)
                                 for i, idx in enumerate(indexer)
                                 if i != info_axis) and
-                        item_labels.is_unique):
+                            item_labels.is_unique):
                         self.obj[item_labels[indexer[info_axis]]] = value
                         return
 
