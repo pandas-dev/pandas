@@ -267,21 +267,18 @@ def init_dict(data, index, columns, dtype=None):
     #        https://github.com/pandas-dev/pandas/issues/24388 for more.
 
     empty_columns = len(positions.index & columns) == 0
+    any_new_columns = len(extra_positions)
 
     if empty_columns and dtype is None:
         dtype = object
     elif (index_len
-            and is_integer_dtype(dtype)):
+            and is_integer_dtype(dtype)
+            and any_new_columns):
         dtype = float
     elif not data and dtype is None:
         dtype = np.dtype('object')
 
-    for position in extra_positions:
-        new_data[position] = Series(index=index, dtype=dtype)
-
-    arrays = [new_data[i] for i in range(len(columns))]
-
-    if (empty_columns
+    elif (empty_columns
             and is_string_dtype(dtype)
             and not is_categorical_dtype(dtype)):
         # For user-provided `dtype=str`, we want to preserve that so
@@ -291,6 +288,11 @@ def init_dict(data, index, columns, dtype=None):
         # when all the columns are newly created. See
         # https://github.com/pandas-dev/pandas/issues/24388 for more.
         dtype = np.dtype("object")
+
+    for position in extra_positions:
+        new_data[position] = Series(index=index, dtype=dtype)
+
+    arrays = [new_data[i] for i in range(len(columns))]
 
     if columns_with_duplictes is not None:
         duplicated = columns_with_duplictes.duplicated()

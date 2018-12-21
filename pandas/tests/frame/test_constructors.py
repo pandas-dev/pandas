@@ -810,7 +810,8 @@ class TestDataFrameConstructors(TestData):
         (None, None, ['a', 'b'], 'int64', np.dtype('int64')),
         (None, lrange(10), ['a', 'b'], int, np.dtype('float64')),
         ({}, None, ['foo', 'bar'], None, np.object_),
-        ({'b': 1}, lrange(10), list('abc'), int, np.dtype('float64'))
+        ({'b': 1}, lrange(10), list('abc'), int, np.dtype('float64')),
+        ({'a': [0, 1]}, [0, 1], None, np.int16, np.dtype('int16')),
     ])
     def test_constructor_dtype(self, data, index, columns, dtype, expected):
         df = DataFrame(data, index, columns, dtype)
