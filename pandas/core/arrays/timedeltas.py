@@ -281,9 +281,6 @@ class TimedeltaArrayMixin(dtl.DatetimeLikeArrayMixin, dtl.TimelikeOps):
 
     # ----------------------------------------------------------------
     # Array-Like / EA-Interface Methods
-    def _formatter(self, boxed=False):
-        from pandas.io.formats.format import _get_format_timedelta64
-        return _get_format_timedelta64(self, box=True)
 
     def __array__(self, dtype=None):
         # TODO(https://github.com/pandas-dev/pandas/pull/23593)
@@ -305,6 +302,16 @@ class TimedeltaArrayMixin(dtl.DatetimeLikeArrayMixin, dtl.TimelikeOps):
             raise ValueError("'fill_value' should be a Timedelta. "
                              "Got '{got}'.".format(got=fill_value))
         return fill_value
+
+    # -----------------------------------------------------------------
+    # Rendering Methods
+
+    def _format_native_types(self):
+        return self.astype(object)
+
+    def _formatter(self, boxed=False):
+        from pandas.io.formats.format import _get_format_timedelta64
+        return _get_format_timedelta64(self, box=True)
 
     # ----------------------------------------------------------------
     # Arithmetic Methods
@@ -774,9 +781,6 @@ class TimedeltaArrayMixin(dtl.DatetimeLikeArrayMixin, dtl.TimelikeOps):
                 return self.copy()
             return self
         return super(TimedeltaArrayMixin, self).astype(dtype, copy=copy)
-
-    def _format_native_types(self):
-        return self.astype(object)
 
     days = _field_accessor("days", "days",
                            "Number of days for each element.")

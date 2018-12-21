@@ -427,7 +427,7 @@ class DatetimeLikeArrayMixin(AttributesMixin,
         return self._data
 
     # ------------------------------------------------------------------
-    # Formatting
+    # Rendering Methods
 
     def _format_native_types(self, na_rep=u'NaT', date_format=None):
         """
@@ -615,7 +615,7 @@ class DatetimeLikeArrayMixin(AttributesMixin,
         return new_values
 
     def astype(self, dtype, copy=True):
-        # Some notes on cases we don't have to handle:
+        # Some notes on cases we don't have to handle here in the base class:
         #   1. PeriodArray.astype handles period -> period
         #   2. DatetimeArray.astype handles conversion between tz.
         #   3. DatetimeArray.astype handles datetime -> period
@@ -626,9 +626,9 @@ class DatetimeLikeArrayMixin(AttributesMixin,
             return self._box_values(self.asi8)
         elif is_string_dtype(dtype) and not is_categorical_dtype(dtype):
             return self._format_native_types()
-            # return Index(self.format(), name=self.name, dtype=object)
         elif is_integer_dtype(dtype):
             # we deliberately ignore int32 vs. int64 here.
+            # See https://github.com/pandas-dev/pandas/issues/24381 for more.
             values = self.asi8
             if copy:
                 values = values.copy()
