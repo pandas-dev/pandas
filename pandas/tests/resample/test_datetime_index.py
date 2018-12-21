@@ -14,7 +14,6 @@ from pandas import (
     DataFrame, Panel, Series, Timedelta, Timestamp, isna, notna)
 from pandas.core.indexes.datetimes import date_range
 from pandas.core.indexes.period import Period, period_range
-from pandas.core.indexes.timedeltas import timedelta_range
 from pandas.core.resample import (
     DatetimeIndex, TimeGrouper, _get_timestamp_range_edges)
 import pandas.util.testing as tm
@@ -208,40 +207,6 @@ class TestDatetimeIndex(object):
         assert_frame_equal(df_standard, df_partial)
         assert_frame_equal(df_standard, df_partial2)
         assert_frame_equal(df_standard, df_class)
-
-    def test_resample_with_timedeltas(self):
-
-        expected = DataFrame({'A': np.arange(1480)})
-        expected = expected.groupby(expected.index // 30).sum()
-        expected.index = pd.timedelta_range('0 days', freq='30T', periods=50)
-
-        df = DataFrame({'A': np.arange(1480)}, index=pd.to_timedelta(
-            np.arange(1480), unit='T'))
-        result = df.resample('30T').sum()
-
-        assert_frame_equal(result, expected)
-
-        s = df['A']
-        result = s.resample('30T').sum()
-        assert_series_equal(result, expected['A'])
-
-    def test_resample_single_period_timedelta(self):
-
-        s = Series(list(range(5)), index=pd.timedelta_range(
-            '1 day', freq='s', periods=5))
-        result = s.resample('2s').sum()
-        expected = Series([1, 5, 4], index=pd.timedelta_range(
-            '1 day', freq='2s', periods=3))
-        assert_series_equal(result, expected)
-
-    def test_resample_timedelta_idempotency(self):
-
-        # GH 12072
-        index = pd.timedelta_range('0', periods=9, freq='10L')
-        series = Series(range(9), index=index)
-        result = series.resample('10L').mean()
-        expected = series
-        assert_series_equal(result, expected)
 
     def test_resample_rounding(self):
         # GH 8371
@@ -789,21 +754,6 @@ class TestDatetimeIndex(object):
         exp_rng = date_range('12/31/1999 23:57:00', '1/1/2000 01:57',
                              freq='5min')
         tm.assert_index_equal(resampled.index, exp_rng)
-
-    def test_resample_base_with_timedeltaindex(self):
-
-        # GH 10530
-        rng = timedelta_range(start='0s', periods=25, freq='s')
-        ts = Series(np.random.randn(len(rng)), index=rng)
-
-        with_base = ts.resample('2s', base=5).mean()
-        without_base = ts.resample('2s').mean()
-
-        exp_without_base = timedelta_range(start='0s', end='25s', freq='2s')
-        exp_with_base = timedelta_range(start='5s', end='29s', freq='2s')
-
-        tm.assert_index_equal(without_base.index, exp_without_base)
-        tm.assert_index_equal(with_base.index, exp_with_base)
 
     def test_resample_categorical_data_with_timedeltaindex(self):
         # GH #12169
@@ -1405,23 +1355,6 @@ class TestDatetimeIndex(object):
         assert_frame_equal(frame.resample('3s').mean(), frame_3s)
 
         assert_frame_equal(frame.resample('60s').mean(), frame_3s)
-
-    def test_resample_timedelta_values(self):
-        # GH 13119
-        # check that timedelta dtype is preserved when NaT values are
-        # introduced by the resampling
-
-        times = timedelta_range('1 day', '4 day', freq='4D')
-        df = DataFrame({'time': times}, index=times)
-
-        times2 = timedelta_range('1 day', '4 day', freq='2D')
-        exp = Series(times2, index=times2, name='time')
-        exp.iloc[1] = pd.NaT
-
-        res = df.resample('2D').first()['time']
-        tm.assert_series_equal(res, exp)
-        res = df['time'].resample('2D').first()
-        tm.assert_series_equal(res, exp)
 
     def test_resample_datetime_values(self):
         # GH 13119
