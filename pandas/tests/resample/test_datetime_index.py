@@ -31,11 +31,6 @@ def _index_factory():
 
 
 @pytest.fixture
-def _series_name():
-    return 'dti'
-
-
-@pytest.fixture
 def _index_freq():
     return 'Min'
 
@@ -86,11 +81,11 @@ class TestDatetimeIndex(object):
         assert len(r.columns) == 10
         assert len(r.index) == 2593
 
+    @pytest.mark.parametrize(
+        '_index_start,_index_end,_index_name',
+        [('1/1/2000 00:00:00', '1/1/2000 00:13:00', 'index')])
     def test_resample_basic(self, series):
-        rng = date_range('1/1/2000 00:00:00', '1/1/2000 00:13:00', freq='min',
-                         name='index')
-        s = Series(np.random.randn(14), index=rng)
-
+        s = series
         result = s.resample('5min', closed='right', label='right').mean()
 
         exp_idx = date_range('1/1/2000', periods=4, freq='5min', name='index')
@@ -107,6 +102,7 @@ class TestDatetimeIndex(object):
                            s[10:].mean()], index=exp_idx)
         assert_series_equal(result, expected)
 
+    def test_resample_basic_grouper(self, series):
         s = series
         result = s.resample('5Min').last()
         grouper = TimeGrouper(Minute(5), closed='left', label='left')

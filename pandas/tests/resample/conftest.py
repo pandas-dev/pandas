@@ -71,13 +71,24 @@ def _index_freq():
 
 
 @pytest.fixture
-def index(_index_factory, _index_start, _index_end, _index_freq):
-    return _index_factory(_index_start, _index_end, freq=_index_freq)
+def _index_name():
+    return None
+
+
+@pytest.fixture
+def index(_index_factory, _index_start, _index_end, _index_freq, _index_name):
+    return _index_factory(
+        _index_start, _index_end, freq=_index_freq, name=_index_name)
 
 
 @pytest.fixture
 def _static_values(index):
     return np.arange(len(index))
+
+
+@pytest.fixture
+def _series_name():
+    return None
 
 
 @pytest.fixture
