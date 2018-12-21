@@ -22,6 +22,15 @@ from pandas.tseries.frequencies import to_offset
 # Comparisons
 
 class TestPeriodIndexComparisons(object):
+
+    @pytest.mark.parametrize("other", ["2017", 2017])
+    def test_eq(self, other):
+        idx = PeriodIndex(['2017', '2017', '2018'], freq="D")
+        expected = np.array([True, True, False])
+        result = idx == other
+
+        tm.assert_numpy_array_equal(result, expected)
+
     def test_pi_cmp_period(self):
         idx = period_range('2007-01', periods=20, freq='M')
 
@@ -275,6 +284,99 @@ class TestPeriodSeriesComparisons(object):
 
         exp = Series([True, False, True, True])
         tm.assert_series_equal(base <= ser, exp)
+
+
+class TestPeriodIndexSeriesComparisonConsistency(object):
+    """ Test PeriodIndex and Period Series Ops consistency """
+    # TODO: needs parametrization+de-duplication
+
+    def _check(self, values, func, expected):
+        # Test PeriodIndex and Period Series Ops consistency
+
+        idx = pd.PeriodIndex(values)
+        result = func(idx)
+
+        # check that we don't pass an unwanted type to tm.assert_equal
+        assert isinstance(expected, (pd.Index, np.ndarray))
+        tm.assert_equal(result, expected)
+
+        s = pd.Series(values)
+        result = func(s)
+
+        exp = pd.Series(expected, name=values.name)
+        tm.assert_series_equal(result, exp)
+
+    def test_pi_comp_period(self):
+        idx = PeriodIndex(['2011-01', '2011-02', '2011-03',
+                           '2011-04'], freq='M', name='idx')
+
+        f = lambda x: x == pd.Period('2011-03', freq='M')
+        exp = np.array([False, False, True, False], dtype=np.bool)
+        self._check(idx, f, exp)
+        f = lambda x: pd.Period('2011-03', freq='M') == x
+        self._check(idx, f, exp)
+
+        f = lambda x: x != pd.Period('2011-03', freq='M')
+        exp = np.array([True, True, False, True], dtype=np.bool)
+        self._check(idx, f, exp)
+        f = lambda x: pd.Period('2011-03', freq='M') != x
+        self._check(idx, f, exp)
+
+        f = lambda x: pd.Period('2011-03', freq='M') >= x
+        exp = np.array([True, True, True, False], dtype=np.bool)
+        self._check(idx, f, exp)
+
+        f = lambda x: x > pd.Period('2011-03', freq='M')
+        exp = np.array([False, False, False, True], dtype=np.bool)
+        self._check(idx, f, exp)
+
+        f = lambda x: pd.Period('2011-03', freq='M') >= x
+        exp = np.array([True, True, True, False], dtype=np.bool)
+        self._check(idx, f, exp)
+
+    def test_pi_comp_period_nat(self):
+        idx = PeriodIndex(['2011-01', 'NaT', '2011-03',
+                           '2011-04'], freq='M', name='idx')
+
+        f = lambda x: x == pd.Period('2011-03', freq='M')
+        exp = np.array([False, False, True, False], dtype=np.bool)
+        self._check(idx, f, exp)
+        f = lambda x: pd.Period('2011-03', freq='M') == x
+        self._check(idx, f, exp)
+
+        f = lambda x: x == pd.NaT
+        exp = np.array([False, False, False, False], dtype=np.bool)
+        self._check(idx, f, exp)
+        f = lambda x: pd.NaT == x
+        self._check(idx, f, exp)
+
+        f = lambda x: x != pd.Period('2011-03', freq='M')
+        exp = np.array([True, True, False, True], dtype=np.bool)
+        self._check(idx, f, exp)
+        f = lambda x: pd.Period('2011-03', freq='M') != x
+        self._check(idx, f, exp)
+
+        f = lambda x: x != pd.NaT
+        exp = np.array([True, True, True, True], dtype=np.bool)
+        self._check(idx, f, exp)
+        f = lambda x: pd.NaT != x
+        self._check(idx, f, exp)
+
+        f = lambda x: pd.Period('2011-03', freq='M') >= x
+        exp = np.array([True, False, True, False], dtype=np.bool)
+        self._check(idx, f, exp)
+
+        f = lambda x: x < pd.Period('2011-03', freq='M')
+        exp = np.array([True, False, False, False], dtype=np.bool)
+        self._check(idx, f, exp)
+
+        f = lambda x: x > pd.NaT
+        exp = np.array([False, False, False, False], dtype=np.bool)
+        self._check(idx, f, exp)
+
+        f = lambda x: pd.NaT >= x
+        exp = np.array([False, False, False, False], dtype=np.bool)
+        self._check(idx, f, exp)
 
 
 # ------------------------------------------------------------------
