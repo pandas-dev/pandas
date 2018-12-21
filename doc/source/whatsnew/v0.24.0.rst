@@ -1145,7 +1145,7 @@ Deprecations
 - :func:`pandas.api.types.is_period` is deprecated in favor of `pandas.api.types.is_period_dtype` (:issue:`23917`)
 - :func:`pandas.api.types.is_datetimetz` is deprecated in favor of `pandas.api.types.is_datetime64tz` (:issue:`23917`)
 - Creating a :class:`TimedeltaIndex` or :class:`DatetimeIndex` by passing range arguments `start`, `end`, and `periods` is deprecated in favor of :func:`timedelta_range` and :func:`date_range` (:issue:`23919`)
-- Passing a string alias like ``'datetime64[ns, UTC]'`` as the `unit` parameter to :class:`DatetimeTZDtype` is deprecated. Use :class:`DatetimeTZDtype.construct_from_string` instead (:issue:`23990`).
+- Passing a string alias like ``'datetime64[ns, UTC]'`` as the ``unit`` parameter to :class:`DatetimeTZDtype` is deprecated. Use :class:`DatetimeTZDtype.construct_from_string` instead (:issue:`23990`).
 - The ``skipna`` parameter of :meth:`~pandas.api.types.infer_dtype` will switch to ``True`` by default in a future version of pandas (:issue:`17066`, :issue:`24050`)
 - In :meth:`Series.where` with Categorical data, providing an ``other`` that is not present in the categories is deprecated. Convert the categorical to a different dtype or add the ``other`` to the categories first (:issue:`24077`).
 - :meth:`Series.clip_lower`, :meth:`Series.clip_upper`, :meth:`DataFrame.clip_lower` and :meth:`DataFrame.clip_upper` are deprecated and will be removed in a future version. Use ``Series.clip(lower=threshold)``, ``Series.clip(upper=threshold)`` and the equivalent ``DataFrame`` methods (:issue:`24203`)
