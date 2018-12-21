@@ -200,7 +200,7 @@ def init_dict(data, index, columns, dtype=None):
     if not isinstance(columns, Index):
         # check for isinstance, else we lose the identity of user-provided
         # `columns`.
-        columns = Index(columns, copy=False)
+        columns = ensure_index(columns)
 
     # Columns make not be unique (even though we're in init_dict and
     # dict keys have to be unique...). We have two possible strategies

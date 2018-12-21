@@ -374,6 +374,12 @@ class TestDataFrameConstructors(TestData):
         df = DataFrame(index=mi, columns=mi)
         assert pd.isna(df).values.ravel().all()
 
+    def test_constructor_empty_multi_index(self):
+        result = pd.DataFrame(columns=[['a', 'b'], ['b', 'c']])
+        columns = pd.MultiIndex.from_arrays([['a', 'b'], ['b', 'c']])
+        expected = pd.DataFrame(columns=columns)
+        tm.assert_frame_equal(result, expected)
+
     def test_constructor_error_msgs(self):
         msg = "Empty data passed with indices specified."
         # passing an empty array with columns specified.
