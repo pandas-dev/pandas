@@ -35,4 +35,3 @@ class ExtensionParsingTests(BaseExtensionTests):
         result = pd.read_csv(StringIO(data), dtype={'Int': str(data.dtype)},
                              engine=engine)
         assert result is not None
-

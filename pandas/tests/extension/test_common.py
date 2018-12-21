@@ -7,6 +7,27 @@ from pandas.core.dtypes.common import is_extension_array_dtype
 import pandas as pd
 from pandas.core.arrays import ExtensionArray
 import pandas.util.testing as tm
+from pandas.compat import StringIO
+from pandas.core.arrays.integer import (
+    Int8Dtype, Int16Dtype, Int32Dtype, Int64Dtype, UInt8Dtype, UInt16Dtype,
+    UInt32Dtype, UInt64Dtype, integer_array,
+)
+
+
+def make_data():
+    return (list(range(1, 9)) + [np.nan] + list(range(10, 98))
+            + [np.nan] + [99, 100])
+
+
+@pytest.fixture(params=[Int8Dtype, Int16Dtype, Int32Dtype, Int64Dtype,
+                        UInt8Dtype, UInt16Dtype, UInt32Dtype, UInt64Dtype])
+def dtype(request):
+    return request.param()
+
+
+@pytest.fixture
+def data(dtype):
+    return integer_array(make_data(), dtype=dtype)
 
 
 class DummyDtype(dtypes.ExtensionDtype):
@@ -92,3 +113,22 @@ def test_is_not_extension_array_dtype(dtype):
 def test_is_extension_array_dtype(dtype):
     assert isinstance(dtype, dtypes.ExtensionDtype)
     assert is_extension_array_dtype(dtype)
+
+
+@pytest.mark.parametrize('engine', ['c', 'python'])
+def test_EA_types(engine):
+    df = pd.DataFrame({'Int': pd.Series([1, 2, 3], dtype='Int64'),
+                       'A': [1, 2, 1]})
+    data = df.to_csv(index=False)
+    result = pd.read_csv(StringIO(data), dtype={'Int': Int64Dtype},
+                         engine=engine)
+    assert result is not None
+    tm.assert_frame_equal(result, df)
+
+    df = pd.DataFrame({'Int': pd.Series([1, 2, 3], dtype='Int8'),
+                       'A': [1, 2, 1]})
+    data = df.to_csv(index=False)
+    result = pd.read_csv(StringIO(data), dtype={'Int': 'Int8'},
+                         engine=engine)
+    assert result is not None
+    tm.assert_frame_equal(result, df)

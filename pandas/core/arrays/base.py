@@ -130,7 +130,7 @@ class ExtensionArray(object):
 
     @classmethod
     def _from_sequence_of_strings(cls, strings, dtype=None, copy=False):
-        """Construct a new ExtensionArray from a sequence of scalars.
+        """Construct a new ExtensionArray from a sequence of strings.
 
         .. versionadded:: 0.24.0
 
@@ -150,7 +150,7 @@ class ExtensionArray(object):
         ExtensionArray
 
         """
-        raise AbstractMethodError(cls)
+        raise NotImplementedError(cls)
 
     @classmethod
     def _from_factorized(cls, values, original):

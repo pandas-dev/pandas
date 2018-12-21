@@ -4,7 +4,6 @@ from datetime import datetime, timedelta
 
 import numpy as np
 
-from pandas.errors import AbstractMethodError
 from pandas._libs import lib, tslib, tslibs
 from pandas._libs.tslibs import OutOfBoundsDatetime, Period, iNaT
 from pandas.compat import PY3, string_types, text_type, to_str
