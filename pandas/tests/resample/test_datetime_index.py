@@ -84,22 +84,23 @@ class TestDatetimeIndex(object):
     @pytest.mark.parametrize(
         '_index_start,_index_end,_index_name',
         [('1/1/2000 00:00:00', '1/1/2000 00:13:00', 'index')])
-    def test_resample_basic(self, series):
+    @pytest.mark.parametrize('closed, expected', [
+        ('right',
+         lambda s: Series(
+             [s[0], s[1:6].mean(), s[6:11].mean(), s[11:].mean()],
+             index=date_range(
+                 '1/1/2000', periods=4, freq='5min', name='index'))),
+        ('left',
+         lambda s: Series(
+             [s[:5].mean(), s[5:10].mean(), s[10:].mean()],
+             index=date_range(
+                 '1/1/2000 00:05', periods=3, freq='5min', name='index'))
+         )
+    ])
+    def test_resample_basic(self, series, closed, expected):
         s = series
-        result = s.resample('5min', closed='right', label='right').mean()
-
-        exp_idx = date_range('1/1/2000', periods=4, freq='5min', name='index')
-        expected = Series([s[0], s[1:6].mean(), s[6:11].mean(), s[11:].mean()],
-                          index=exp_idx)
-        assert_series_equal(result, expected)
-        assert result.index.name == 'index'
-
-        result = s.resample('5min', closed='left', label='right').mean()
-
-        exp_idx = date_range('1/1/2000 00:05', periods=3, freq='5min',
-                             name='index')
-        expected = Series([s[:5].mean(), s[5:10].mean(),
-                           s[10:].mean()], index=exp_idx)
+        expected = expected(s)
+        result = s.resample('5min', closed=closed, label='right').mean()
         assert_series_equal(result, expected)
 
     def test_resample_basic_grouper(self, series):
