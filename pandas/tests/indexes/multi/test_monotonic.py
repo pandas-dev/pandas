@@ -5,6 +5,7 @@ import pytest
 
 import pandas as pd
 from pandas import Index, IntervalIndex, MultiIndex
+from pandas.api.types import is_scalar
 
 
 def test_is_monotonic_increasing():
@@ -182,22 +183,28 @@ def test_searchsorted_monotonic(indices):
     # test searchsorted only for increasing
     if indices.is_monotonic_increasing:
         ssm_left = indices._searchsorted_monotonic(value, side='left')
+        assert is_scalar(ssm_left)
         assert expected_left == ssm_left
 
         ssm_right = indices._searchsorted_monotonic(value, side='right')
+        assert is_scalar(ssm_right)
         assert expected_right == ssm_right
 
         ss_left = indices.searchsorted(value, side='left')
+        assert is_scalar(ss_left)
         assert expected_left == ss_left
 
         ss_right = indices.searchsorted(value, side='right')
+        assert is_scalar(ss_right)
         assert expected_right == ss_right
 
     elif indices.is_monotonic_decreasing:
         ssm_left = indices._searchsorted_monotonic(value, side='left')
+        assert is_scalar(ssm_left)
         assert expected_left == ssm_left
 
         ssm_right = indices._searchsorted_monotonic(value, side='right')
+        assert is_scalar(ssm_right)
         assert expected_right == ssm_right
 
     else:
