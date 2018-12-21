@@ -107,8 +107,8 @@ class TestDatetimeIndex(object):
         s = series
         result = s.resample('5Min').last()
         grouper = TimeGrouper(Minute(5), closed='left', label='left')
-        expect = s.groupby(grouper).agg(lambda x: x[-1])
-        assert_series_equal(result, expect)
+        expected = s.groupby(grouper).agg(lambda x: x[-1])
+        assert_series_equal(result, expected)
 
     @pytest.mark.parametrize(
         '_index_start,_index_end,_index_name',
@@ -169,7 +169,9 @@ class TestDatetimeIndex(object):
         result = s.resample('5min', closed='right', label='right').ohlc()
         assert_frame_equal(result, expected)
 
-    def test_numpy_compat(self):
+    @pytest.mark.parametrize(
+        'func', ['min', 'max', 'sum', 'prod', 'mean', 'var', 'std'])
+    def test_numpy_compat(self, func):
         # see gh-12811
         s = Series([1, 2, 3, 4, 5], index=date_range(
             '20130101', periods=5, freq='s'))
@@ -177,12 +179,10 @@ class TestDatetimeIndex(object):
 
         msg = "numpy operations are not valid with resample"
 
-        for func in ('min', 'max', 'sum', 'prod',
-                     'mean', 'var', 'std'):
-            with pytest.raises(UnsupportedFunctionCall, match=msg):
-                getattr(r, func)(func, 1, 2, 3)
-            with pytest.raises(UnsupportedFunctionCall, match=msg):
-                getattr(r, func)(axis=1)
+        with pytest.raises(UnsupportedFunctionCall, match=msg):
+            getattr(r, func)(func, 1, 2, 3)
+        with pytest.raises(UnsupportedFunctionCall, match=msg):
+            getattr(r, func)(axis=1)
 
     def test_resample_how_callables(self):
         # GH#7929
