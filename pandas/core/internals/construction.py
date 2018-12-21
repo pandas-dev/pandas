@@ -243,33 +243,27 @@ def init_dict(data, index, columns, dtype=None):
     mask = np.isin(extra_positions, positions, invert=True)
     extra_positions = extra_positions[mask]
 
-    # And now, what should the dtype of this new guys be? We'll that's a little
+    # And now, what should the dtype of this new guys be? We'll that's
     # tricky.
     # 1. User provided dtype, just use that...
     #    unless the user provided dtype=int and an index (Gh-24385)
+    #      - DataFrame(None, index=idx, columns=cols, dtype=int)    :: float
+    #      - DataFrame(None, index=idx, columns=cols, dtype=object) :: object
     # 2. Empty data.keys() & columns is object (unless specified by the user)
     # 3. No data and No dtype is object (unless specified by the user).
+    # 4. For string-like `dtype`, things are even more subtle.
+    #    a.) We rely on arrays_to_mgr to coerce values to strings, when
+    #        the user provides dtype-str
+    #    b.) But we don't want the values coercion for newly-created
+    #        columns. This only partly works. See
+    #        https://github.com/pandas-dev/pandas/issues/24388 for more.
 
-    # https://github.com/pandas-dev/pandas/issues/24385
-    # Series(None, dtype=int) and DataFrame(None, dtype=dtype)
-    # differ when the index is provided.
-    # But if dtype is not provided, then we fall use object.
-    # we have to pass this dtype through to arrays_to_mgr
-
-    # Some things I'd like to change
-    # With DataFrame(None, index=[1], columns=['a'], dtype=dtype):
-    #   For dtype=object, the result is object
-    #   But for dtype=int, the result is float
     empty_columns = len(positions.index & columns) == 0
 
     if empty_columns and dtype is None:
         dtype = object
     elif (index_len
             and is_integer_dtype(dtype)):
-        # That's one complicated condition:
-        #  DataFrame(None, index=idx, columns=cols, dtype=int) must be float
-        #  DataFrame(None, index=idx, columns=cols, dtype=object) is object
-        #  DataFrame({'a': 2}, columns=['b']) is object (empty)
         dtype = float
     elif not data and dtype is None:
         dtype = np.dtype('object')
@@ -279,8 +273,15 @@ def init_dict(data, index, columns, dtype=None):
 
     arrays = [new_data[i] for i in range(len(columns))]
 
-    # hrm this probably belongs in arrays_to_mgr...
-    if is_string_dtype(dtype) and not is_categorical_dtype(dtype):
+    if (empty_columns
+            and is_string_dtype(dtype)
+            and not is_categorical_dtype(dtype)):
+        # For user-provided `dtype=str`, we want to preserve that so
+        # that arrays_to_mgr handles the *values* coercion from user-provided
+        # to strings. *But* we don't want to do that for columns that were
+        # newly created. But, there's the bug. We only handle this correctly
+        # when all the columns are newly created. See
+        # https://github.com/pandas-dev/pandas/issues/24388 for more.
         dtype = np.dtype("object")
 
     return arrays_to_mgr(arrays, columns, index, columns, dtype=dtype)

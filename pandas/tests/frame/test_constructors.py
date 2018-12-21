@@ -1419,6 +1419,11 @@ class TestDataFrameConstructors(TestData):
         df = DataFrame(index=[0, 1], columns=[0, 1], dtype='U5')
         tm.assert_frame_equal(df, expected)
 
+    def test_constsructor_string_dtype_coerces_values(self):
+        result = pd.DataFrame({"A": [1, 2]}, dtype=str)
+        expected = pd.DataFrame({"A": ['1', '2']}, dtype=object)
+        tm.assert_frame_equal(result, expected)
+
     def test_constructor_single_value(self):
         # expecting single value upcasting here
         df = DataFrame(0., index=[1, 2, 3], columns=['a', 'b', 'c'])
