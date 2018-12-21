@@ -647,7 +647,7 @@ changes were made:
   * The ``out`` and ``mode`` parameters are now longer accepted (previously, this raised if they were specified).
   * Passing a scalar for ``indices`` is no longer allowed.
 
-- The result of concatenating a mix of sparse and dense Series is a Series with sparse values, rather than a ``SparseSeries``.
+- The result of :func:`concat` with a mix of sparse and dense Series is a Series with sparse values, rather than a ``SparseSeries``.
 - ``SparseDataFrame.combine`` and ``DataFrame.combine_first`` no longer supports combining a sparse column with a dense column while preserving the sparse subtype. The result will be an object-dtype SparseArray.
 - Setting :attr:`SparseArray.fill_value` to a fill value with a different dtype is now allowed.
 - ``DataFrame[column]`` is now a :class:`Series` with sparse values, rather than a :class:`SparseSeries`, when slicing a single column with sparse values (:issue:`23559`).
@@ -1104,6 +1104,7 @@ Other API Changes
 - The order of the arguments of :func:`DataFrame.to_html` and :func:`DataFrame.to_string` is rearranged to be consistent with each other. (:issue:`23614`)
 - :meth:`CategoricalIndex.reindex` now raises a ``ValueError`` if the target index is non-unique and not equal to the current index. It previously only raised if the target index was not of a categorical dtype (:issue:`23963`).
 - :func:`Series.to_list` and :func:`Index.to_list` are now aliases of ``Series.tolist`` respectively ``Index.tolist`` (:issue:`8826`)
+- The result of ``SparseSeries.unstack`` is now a :class:`DataFrame` with sparse values, rather than a :class:`SparseDataFrame` (issue:`24372`).
 
 .. _whatsnew_0240.deprecations:
 
@@ -1616,6 +1617,7 @@ Sparse
 - Bug in :meth:`SparseArary.unique` not returning the unique values (:issue:`19595`)
 - Bug in :meth:`SparseArray.nonzero` and :meth:`SparseDataFrame.dropna` returning shifted/incorrect results (:issue:`21172`)
 - Bug in :meth:`DataFrame.apply` where dtypes would lose sparseness (:issue:`23744`)
+- Bug in :func:`concat` when concatenating a list of :class:`Series` with all-sparse values changing the ``fill_value`` and converting to a dense Series (:issue:`24371`)
 
 Style
 ^^^^^
