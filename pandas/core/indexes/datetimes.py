@@ -620,7 +620,7 @@ class DatetimeIndex(DatetimeArray, DatetimeIndexOpsMixin, Int64Index):
             return self.tz_convert(new_tz)
         elif is_period_dtype(dtype):
             return self.to_period(freq=dtype.freq)
-        return super(DatetimeIndex, self).astype(dtype, copy=copy)
+        return DatetimeIndexOpsMixin.astype(self, dtype, copy=copy)
 
     def _get_time_micros(self):
         values = self.asi8
@@ -717,15 +717,6 @@ class DatetimeIndex(DatetimeArray, DatetimeIndexOpsMixin, Int64Index):
         # we know it conforms; skip check
         return DatetimeIndex._simple_new(snapped, freq=freq)
         # TODO: what about self.name?  tz? if so, use shallow_copy?
-
-    def unique(self, level=None):
-        if level is not None:
-            self._validate_index_level(level)
-
-        # TODO(DatetimeArray): change dispatch once inheritance is removed
-        # call DatetimeArray method
-        result = DatetimeArray.unique(self)
-        return self._shallow_copy(result._data)
 
     def join(self, other, how='left', level=None, return_indexers=False,
              sort=False):
@@ -1093,6 +1084,12 @@ class DatetimeIndex(DatetimeArray, DatetimeIndexOpsMixin, Int64Index):
 
     # --------------------------------------------------------------------
     # Wrapping DatetimeArray
+
+    copy = DatetimeIndexOpsMixin.copy      # i.e. Index.copy
+    unique = DatetimeIndexOpsMixin.unique  # i.e. Index.unique
+    take = DatetimeIndexOpsMixin.take
+    shift = DatetimeIndexOpsMixin.shift
+    _create_comparison_method = DatetimeIndexOpsMixin._create_comparison_method
 
     # Compat for frequency inference, see GH#23789
     _is_monotonic_increasing = Index.is_monotonic_increasing

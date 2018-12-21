@@ -22,8 +22,8 @@ from pandas.core.base import _shared_docs
 import pandas.core.common as com
 from pandas.core.indexes.base import Index, _index_shared_docs
 from pandas.core.indexes.datetimelike import (
-    DatetimeIndexOpsMixin, wrap_arithmetic_op, wrap_array_method,
-    wrap_field_accessor, maybe_unwrap_index)
+    DatetimeIndexOpsMixin, maybe_unwrap_index, wrap_arithmetic_op,
+    wrap_array_method, wrap_field_accessor)
 from pandas.core.indexes.numeric import Int64Index
 from pandas.core.ops import get_op_result_name
 from pandas.core.tools.timedeltas import _coerce_scalar_to_timedelta_type
@@ -266,6 +266,15 @@ class TimedeltaIndex(TimedeltaArray, DatetimeIndexOpsMixin,
     _is_monotonic_decreasing = Index.is_monotonic_decreasing
     _is_unique = Index.is_unique
 
+    copy = DatetimeIndexOpsMixin.copy      # i.e. Index.copy
+    unique = DatetimeIndexOpsMixin.unique  # i.e. Index.unique
+    take = DatetimeIndexOpsMixin.take
+    shift = DatetimeIndexOpsMixin.shift
+    _create_comparison_method = DatetimeIndexOpsMixin._create_comparison_method
+    # TODO: make sure we have a test for name retention analogous
+    #  to series.test_arithmetic.test_ser_cmp_result_names;
+    #  also for PeriodIndex which I think may be missing one
+
     # -------------------------------------------------------------------
 
     @Appender(_index_shared_docs['astype'])
@@ -279,7 +288,7 @@ class TimedeltaIndex(TimedeltaArray, DatetimeIndexOpsMixin,
                                                   convert='float64')
                 return Index(values, name=self.name)
             return Index(result.astype('i8'), name=self.name)
-        return super(TimedeltaIndex, self).astype(dtype, copy=copy)
+        return DatetimeIndexOpsMixin.astype(self, dtype, copy=copy)
 
     def union(self, other):
         """

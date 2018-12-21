@@ -19,6 +19,7 @@ from pandas import compat
 from pandas.core import common as com
 from pandas.core.accessor import delegate_names
 from pandas.core.algorithms import unique1d
+from pandas.core.arrays import ExtensionOpsMixin
 from pandas.core.arrays.datetimelike import DatelikeOps
 from pandas.core.arrays.period import (
     PeriodArray, period_array, validate_dtype_freq)
@@ -26,7 +27,7 @@ from pandas.core.base import _shared_docs
 import pandas.core.indexes.base as ibase
 from pandas.core.indexes.base import _index_shared_docs, ensure_index
 from pandas.core.indexes.datetimelike import (
-    DatetimeIndexOpsMixin, DatetimelikeDelegateMixin, wrap_arithmetic_op)
+    DatetimeIndexOpsMixin, DatetimelikeDelegateMixin)
 from pandas.core.indexes.datetimes import DatetimeIndex, Index, Int64Index
 from pandas.core.missing import isna
 from pandas.core.ops import get_op_result_name
@@ -73,7 +74,7 @@ class PeriodDelegateMixin(DatetimelikeDelegateMixin):
                 PeriodDelegateMixin._delegated_methods,
                 typ="method")
 class PeriodIndex(DatelikeOps, DatetimeIndexOpsMixin, Int64Index,
-                  PeriodDelegateMixin):
+                  PeriodDelegateMixin, ExtensionOpsMixin):
     """
     Immutable ndarray holding ordinal values indicating regular periods in
     time such as particular years, quarters, months, etc.
@@ -881,19 +882,6 @@ class PeriodIndex(DatelikeOps, DatetimeIndexOpsMixin, Int64Index,
             raise Exception("invalid pickle state")
 
     _unpickle_compat = __setstate__
-
-    @classmethod
-    def _create_comparison_method(cls, op):
-        """
-        Create a comparison method that dispatches to ``cls.values``.
-        """
-        # TODO(DatetimeArray): move to base class.
-        def wrapper(self, other):
-            return op(self._data, other)
-
-        wrapper.__doc__ = op.__doc__
-        wrapper.__name__ = '__{}__'.format(op.__name__)
-        return wrapper
 
     def repeat(self, repeats, *args, **kwargs):
         # TODO(DatetimeArray): Just use Index.repeat

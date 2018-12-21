@@ -610,7 +610,9 @@ class Base(object):
         index_b = index_a[0:-1]
         index_c = index_a[0:-1].append(index_a[-2:-1])
         index_d = index_a[0:1]
-        with pytest.raises(ValueError, match="Lengths must match"):
+
+        msg = "Lengths must match|could not be broadcast"
+        with pytest.raises(ValueError, match=msg):
             index_a == index_b
         expected1 = np.array([True] * n)
         expected2 = np.array([True] * (n - 1) + [False])
@@ -622,7 +624,7 @@ class Base(object):
         array_b = np.array(index_a[0:-1])
         array_c = np.array(index_a[0:-1].append(index_a[-2:-1]))
         array_d = np.array(index_a[0:1])
-        with pytest.raises(ValueError, match="Lengths must match"):
+        with pytest.raises(ValueError, match=msg):
             index_a == array_b
         tm.assert_numpy_array_equal(index_a == array_a, expected1)
         tm.assert_numpy_array_equal(index_a == array_c, expected2)
@@ -632,7 +634,7 @@ class Base(object):
         series_b = Series(array_b)
         series_c = Series(array_c)
         series_d = Series(array_d)
-        with pytest.raises(ValueError, match="Lengths must match"):
+        with pytest.raises(ValueError, match=msg):
             index_a == series_b
 
         tm.assert_numpy_array_equal(index_a == series_a, expected1)

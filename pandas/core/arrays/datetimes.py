@@ -113,7 +113,7 @@ def _dt_array_cmp(cls, op):
         elif lib.is_scalar(other):
             return ops.invalid_comparison(self, other, op)
         else:
-            if isinstance(other, list):
+            if isinstance(other, list) or is_object_dtype(other):
                 try:
                     other = type(self)(other)
                 except ValueError:
@@ -123,6 +123,9 @@ def _dt_array_cmp(cls, op):
                 # Following Timestamp convention, __eq__ is all-False
                 # and __ne__ is all True, others raise TypeError.
                 return ops.invalid_comparison(self, other, op)
+
+            if len(other) != len(self):
+                raise ValueError("Lengths must match")
 
             if is_object_dtype(other):
                 result = op(self.astype('O'), np.array(other))

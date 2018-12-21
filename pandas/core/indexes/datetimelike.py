@@ -10,7 +10,7 @@ import numpy as np
 from pandas._libs import NaT, iNaT, lib
 from pandas.compat.numpy import function as nv
 from pandas.errors import AbstractMethodError
-from pandas.util._decorators import Appender, cache_readonly
+from pandas.util._decorators import Appender, cache_readonly, deprecate_kwarg
 
 from pandas.core.dtypes.common import (
     ensure_int64, is_bool_dtype, is_categorical_dtype,
@@ -32,14 +32,13 @@ import pandas.io.formats.printing as printing
 _index_doc_kwargs = dict(ibase._index_doc_kwargs)
 
 
-class DatetimeIndexOpsMixin(DatetimeLikeArrayMixin):
+class DatetimeIndexOpsMixin(object):
     """
     common ops mixin to support a unified interface datetimelike Index
     """
 
     # override DatetimeLikeArrayMixin method
     copy = Index.copy
-    unique = Index.unique
 
     # DatetimeLikeArrayMixin assumes subclasses are mutable, so these are
     # properties there.  They can be made into cache_readonly for Index
@@ -49,6 +48,34 @@ class DatetimeIndexOpsMixin(DatetimeLikeArrayMixin):
     hasnans = cache_readonly(DatetimeLikeArrayMixin.hasnans.fget)
     _resolution = cache_readonly(DatetimeLikeArrayMixin._resolution.fget)
     resolution = cache_readonly(DatetimeLikeArrayMixin.resolution.fget)
+
+    @property
+    def freqstr(self):
+        return self._eadata.freqstr
+
+    def unique(self, level=None):
+        if level is not None:
+            self._validate_index_level(level)
+
+        result = self._eadata.unique()
+
+        # Note: if `self` is already unique, then self.unique() should share
+        #  a `freq` with self.  If not already unique, then self.freq must be
+        #  None, so again sharing freq is correct.
+        return self._shallow_copy(result._data)
+
+    @classmethod
+    def _create_comparison_method(cls, op):
+        """
+        Create a comparison method that dispatches to ``cls.values``.
+        """
+        def wrapper(self, other):
+            result = op(self._eadata, maybe_unwrap_index(other))
+            return result
+
+        wrapper.__doc__ = op.__doc__
+        wrapper.__name__ = '__{}__'.format(op.__name__)
+        return wrapper
 
     def equals(self, other):
         """
@@ -100,7 +127,7 @@ class DatetimeIndexOpsMixin(DatetimeLikeArrayMixin):
 
     @Appender(DatetimeLikeArrayMixin._evaluate_compare.__doc__)
     def _evaluate_compare(self, other, op):
-        result = DatetimeLikeArrayMixin._evaluate_compare(self, other, op)
+        result = self._eadata._evaluate_compare(other, op)
         if is_bool_dtype(result):
             return result
         try:
@@ -563,13 +590,18 @@ class DatetimeIndexOpsMixin(DatetimeLikeArrayMixin):
             # and conversions for any datetimelike to float
             msg = 'Cannot cast {name} to dtype {dtype}'
             raise TypeError(msg.format(name=type(self).__name__, dtype=dtype))
-        return super(DatetimeIndexOpsMixin, self).astype(dtype, copy=copy)
+        return Index.astype(self, dtype, copy=copy)
 
     @Appender(DatetimeLikeArrayMixin._time_shift.__doc__)
     def _time_shift(self, periods, freq=None):
-        result = DatetimeLikeArrayMixin._time_shift(self, periods, freq=freq)
-        result.name = self.name
-        return result
+        result = self._eadata._time_shift(periods, freq=freq)
+        return type(self)(result, name=self.name)
+
+    @deprecate_kwarg(old_arg_name='n', new_arg_name='periods')
+    @Appender(DatetimeLikeArrayMixin.shift.__doc__)
+    def shift(self, periods, freq=None):
+        result = self._eadata.shift(periods, freq=freq)
+        return type(self)(result, name=self.name)
 
 
 def maybe_unwrap_index(obj):
@@ -630,7 +662,7 @@ def wrap_array_method(method, pin_name=False):
     method
     """
     def index_method(self, *args, **kwargs):
-        result = method(self, *args, **kwargs)
+        result = method(self._eadata, *args, **kwargs)
 
         # Index.__new__ will choose the appropriate subclass to return
         result = Index(result)
@@ -659,7 +691,7 @@ def wrap_field_accessor(prop):
     fget = prop.fget
 
     def f(self):
-        result = fget(self)
+        result = fget(self._eadata)
         if is_bool_dtype(result):
             # return numpy array b/c there is no BoolIndex
             return result
