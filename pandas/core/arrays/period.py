@@ -92,7 +92,9 @@ def _period_array_cmp(cls, op):
     return compat.set_function_name(wrapper, opname, cls)
 
 
-class PeriodArray(dtl.DatetimeLikeArrayMixin, ExtensionArray):
+class PeriodArray(dtl.DatetimeLikeArrayMixin,
+                  dtl.DatelikeOps,
+                  ExtensionArray):
     """
     Pandas ExtensionArray for storing Period data.
 
@@ -565,7 +567,7 @@ class PeriodArray(dtl.DatetimeLikeArrayMixin, ExtensionArray):
         return type(self)(new_data, freq=freq)
 
     # ------------------------------------------------------------------
-    # Formatting
+    # Rendering Methods
 
     def _format_native_types(self, na_rep=u'NaT', date_format=None, **kwargs):
         """
@@ -589,9 +591,7 @@ class PeriodArray(dtl.DatetimeLikeArrayMixin, ExtensionArray):
             values = np.array([formatter(dt) for dt in values])
         return values
 
-    # Delegation...
-    def strftime(self, date_format):
-        return self._format_native_types(date_format=date_format)
+    # ------------------------------------------------------------------
 
     def repeat(self, repeats, *args, **kwargs):
         """

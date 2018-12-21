@@ -88,8 +88,7 @@ class DatelikeOps(object):
 
     def strftime(self, date_format):
         from pandas import Index
-        return Index(self.format(date_format=date_format),
-                     dtype=compat.text_type)
+        return Index(self._format_native_types(date_format=date_format))
     strftime.__doc__ = """
     Convert to Index using specified date_format.
 
@@ -297,6 +296,23 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin, AttributesMixin):
     def asi8(self):
         # do not cache or you'll create a memory leak
         return self._data.view('i8')
+
+    # ----------------------------------------------------------------
+    # Rendering Methods
+
+    def _format_native_types(self, na_rep=u'NaT', date_format=None):
+        """
+        Helper method for astype when converting to strings.
+
+        Returns
+        -------
+        ndarray[str]
+        """
+        raise AbstractMethodError(self)
+
+    def _formatter(self, boxed=False):
+        # TODO: Remove Datetime & DatetimeTZ formatters.
+        return "'{}'".format
 
     # ----------------------------------------------------------------
     # Array-Like / EA-Interface Methods
