@@ -737,18 +737,18 @@ Other notable API changes:
   dtype to object (or errored, depending on the call). It now uses
   ``NaN``:
 
-  .. ipython:: python
+  ..  ipython:: python
 
-     s = pd.Series([1, 2, 3])
-     s.loc[0] = None
-     s
+      s = pd.Series([1, 2, 3])
+      s.loc[0] = None
+      s
 
   ``NaT`` is now used similarly for datetime containers.
 
   For object containers, we now preserve ``None`` values (previously these
   were converted to ``NaN`` values).
 
-  .. ipython:: python
+  ..  ipython:: python
 
       s = pd.Series(["a", "b", "c"])
       s.loc[0] = None
@@ -758,7 +758,7 @@ Other notable API changes:
 
 - In prior versions, updating a pandas object inplace would not reflect in other python references to this object. (:issue:`8511`, :issue:`5104`)
 
-  .. ipython:: python
+  ..  ipython:: python
 
       s = pd.Series([1, 2, 3])
       s2 = s
@@ -766,7 +766,7 @@ Other notable API changes:
 
   Behavior prior to v0.15.0
 
-  .. code-block:: ipython
+  ..  code-block:: ipython
 
 
       # the original object
@@ -788,7 +788,7 @@ Other notable API changes:
 
   This is now the correct behavior
 
-  .. ipython:: python
+  ..  ipython:: python
 
       # the original object
       s
@@ -810,7 +810,7 @@ Other notable API changes:
   In prior versions this would drop the timezone, now it retains the timezone,
   but gives a column of ``object`` dtype:
 
-  .. ipython:: python
+  ..  ipython:: python
 
       i = pd.date_range('1/1/2011', periods=3, freq='10s', tz='US/Eastern')
       i
@@ -833,11 +833,11 @@ Other notable API changes:
 
   .. code-block:: python
 
-             In [1]: df = pd.DataFrame(np.arange(0, 9), columns=['count'])
+     In [1]: df = pd.DataFrame(np.arange(0, 9), columns=['count'])
 
-         In [2]: df['group'] = 'b'
+     In [2]: df['group'] = 'b'
 
-      In [3]: df.iloc[0:5]['group'] = 'a'
+     In [3]: df.iloc[0:5]['group'] = 'a'
      /usr/local/bin/ipython:1: SettingWithCopyWarning:
      A value is trying to be set on a copy of a slice from a DataFrame.
      Try using .loc[row_indexer,col_indexer] = value instead
