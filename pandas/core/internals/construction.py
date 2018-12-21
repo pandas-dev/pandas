@@ -256,7 +256,7 @@ def init_dict(data, index, columns, dtype=None):
     # "extra" columns as defined by `columns`. First, we figure out the
     # positions of the holes we're filling in.
     extra_positions = np.arange(len(columns))
-    mask = np.isin(extra_positions, positions, invert=True)
+    mask = ~Series(extra_positions).isin(positions).values
     extra_positions = extra_positions[mask]
 
     # And now, what should the dtype of this new guys be? We'll that's
