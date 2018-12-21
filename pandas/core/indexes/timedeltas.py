@@ -15,7 +15,7 @@ from pandas.core.dtypes.common import (
 import pandas.core.dtypes.concat as _concat
 from pandas.core.dtypes.missing import isna
 
-from pandas.core.arrays import datetimelike as dtl
+from pandas.core.arrays import ExtensionOpsMixin, datetimelike as dtl
 from pandas.core.arrays.timedeltas import (
     TimedeltaArrayMixin as TimedeltaArray, _is_convertible_to_td, _to_m8)
 from pandas.core.base import _shared_docs
@@ -43,8 +43,8 @@ def _make_wrapped_arith_op(opname):
     return method
 
 
-class TimedeltaIndex(TimedeltaArray, DatetimeIndexOpsMixin,
-                     dtl.TimelikeOps, Int64Index):
+class TimedeltaIndex(DatetimeIndexOpsMixin,
+                     dtl.TimelikeOps, Int64Index, ExtensionOpsMixin):
     """
     Immutable ndarray of timedelta64 data, represented internally as int64, and
     which can be boxed to timedelta objects
@@ -159,10 +159,9 @@ class TimedeltaIndex(TimedeltaArray, DatetimeIndexOpsMixin,
                           "endpoints is deprecated.  Use "
                           "`pandas.timedelta_range` instead.",
                           FutureWarning, stacklevel=2)
-            result = cls._generate_range(start, end, periods, freq,
-                                         closed=closed)
-            result.name = name
-            return result
+            result = TimedeltaArray._generate_range(start, end, periods, freq,
+                                                    closed=closed)
+            return cls._simple_new(result._data, freq=freq, name=name)
 
         if is_scalar(data):
             raise TypeError('{cls}() must be called with a '
@@ -177,10 +176,9 @@ class TimedeltaIndex(TimedeltaArray, DatetimeIndexOpsMixin,
 
         # - Cases checked above all return/raise before reaching here - #
 
-        result = cls._from_sequence(data, freq=freq, unit=unit,
-                                    dtype=dtype, copy=copy)
-        result.name = name
-        return result
+        tdarr = TimedeltaArray._from_sequence(data, freq=freq, unit=unit,
+                                              dtype=dtype, copy=copy)
+        return cls._simple_new(tdarr._data, freq=tdarr.freq, name=name)
 
     @classmethod
     def _simple_new(cls, values, name=None, freq=None, dtype=_TD_DTYPE):
@@ -193,7 +191,11 @@ class TimedeltaIndex(TimedeltaArray, DatetimeIndexOpsMixin,
             values = values.view('m8[ns]')
         assert values.dtype == 'm8[ns]', values.dtype
 
-        result = super(TimedeltaIndex, cls)._simple_new(values, freq)
+        freq = to_offset(freq)
+        tdarr = TimedeltaArray._simple_new(values, freq=freq)
+        result = object.__new__(cls)
+        result._data = tdarr._data
+        result._freq = tdarr._freq
         result.name = name
         # For groupby perf. See note in indexes/base about _index_data
         result._index_data = result._data
@@ -274,6 +276,35 @@ class TimedeltaIndex(TimedeltaArray, DatetimeIndexOpsMixin,
     # TODO: make sure we have a test for name retention analogous
     #  to series.test_arithmetic.test_ser_cmp_result_names;
     #  also for PeriodIndex which I think may be missing one
+
+    @property
+    def _box_func(self):
+        return lambda x: Timedelta(x, unit='ns')
+
+    def __getitem__(self, key):
+        result = self._eadata.__getitem__(key)
+        if is_scalar(result):
+            return result
+        return type(self)(result, name=self.name)
+
+    @property
+    def freq(self):  # TODO: get via eadata
+        return self._freq
+
+    @freq.setter
+    def freq(self, value):  # TODO: get via eadata
+        if value is not None:
+            # dispatch to TimedeltaArray to validate frequency
+            self._eadata.freq = value
+
+        self._freq = to_offset(value)
+
+    def to_pytimedelta(self):
+        return self._eadata.to_pytimedelta()
+
+    @property
+    def components(self):
+        return self._eadata.components
 
     # -------------------------------------------------------------------
 
@@ -761,7 +792,6 @@ def timedelta_range(start=None, end=None, periods=None, freq=None,
         freq = 'D'
 
     freq, freq_infer = dtl.maybe_infer_freq(freq)
-    result = TimedeltaIndex._generate_range(start, end, periods, freq,
-                                            closed=closed)
-    result.name = name
-    return result
+    tdarr = TimedeltaArray._generate_range(start, end, periods, freq,
+                                           closed=closed)
+    return TimedeltaIndex._simple_new(tdarr._data, freq=tdarr.freq, name=name)

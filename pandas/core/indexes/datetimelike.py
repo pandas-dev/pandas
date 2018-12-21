@@ -49,6 +49,13 @@ class DatetimeIndexOpsMixin(object):
     _resolution = cache_readonly(DatetimeLikeArrayMixin._resolution.fget)
     resolution = cache_readonly(DatetimeLikeArrayMixin.resolution.fget)
 
+    def _box_values(self, values):
+        return self._eadata._box_values(values)
+
+    def _maybe_mask_results(self, result, fill_value=iNaT, convert=None):
+        return self._eadata._maybe_mask_results(
+            result, fill_value=fill_value, convert=convert)
+
     @property
     def freqstr(self):
         return self._eadata.freqstr
@@ -540,7 +547,7 @@ class DatetimeIndexOpsMixin(object):
             # - remove the .asi8 here
             # - remove the _maybe_box_as_values
             # - combine with the `else` block
-            new_data = self._concat_same_type(to_concat).asi8
+            new_data = self._eadata._concat_same_type(to_concat).asi8
         else:
             new_data = type(self._values)._concat_same_type(to_concat)
 
