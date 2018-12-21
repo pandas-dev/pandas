@@ -109,12 +109,12 @@ class TestDatetimeIndex(object):
         expect = s.groupby(grouper).agg(lambda x: x[-1])
         assert_series_equal(result, expect)
 
-    def test_resample_string_kwargs(self):
+    @pytest.mark.parametrize(
+        '_index_start,_index_end,_index_name',
+        [('1/1/2000 00:00:00', '1/1/2000 00:13:00', 'index')])
+    def test_resample_string_kwargs(self, series):
         # Test for issue #19303
-        rng = date_range('1/1/2000 00:00:00', '1/1/2000 00:13:00', freq='min',
-                         name='index')
-        s = Series(np.random.randn(14), index=rng)
-
+        s = series
         # Check that wrong keyword argument strings raise an error
         with pytest.raises(ValueError):
             s.resample('5min', label='righttt').mean()
