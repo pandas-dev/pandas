@@ -708,7 +708,7 @@ def value_counts(values, sort=True, ascending=False, normalize=False,
 
     if sort:
         result = result.sort_values(ascending=ascending)
-    else:
+    elif bins is None:
         uniq = unique(values)
         if not isinstance(result.index, CategoricalIndex):
             result = result.reindex(uniq)
