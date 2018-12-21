@@ -12,7 +12,7 @@ from pandas.compat import range
 
 import pandas as pd
 from pandas import (
-    Categorical, DataFrame, Index, NaT, Series, bdate_range, date_range, isna)
+    Categorical, DataFrame, Index, Series, bdate_range, date_range, isna)
 from pandas.core import ops
 import pandas.core.nanops as nanops
 import pandas.util.testing as tm
@@ -542,49 +542,6 @@ class TestSeriesComparisons(object):
 
         tm.assert_series_equal(cat == "d", Series([False, False, False]))
         tm.assert_series_equal(cat != "d", Series([True, True, True]))
-
-    @pytest.mark.parametrize('pair', [
-        ([pd.Timestamp('2011-01-01'), NaT, pd.Timestamp('2011-01-03')],
-         [NaT, NaT, pd.Timestamp('2011-01-03')]),
-
-        ([pd.Timedelta('1 days'), NaT, pd.Timedelta('3 days')],
-         [NaT, NaT, pd.Timedelta('3 days')]),
-
-        ([pd.Period('2011-01', freq='M'), NaT,
-          pd.Period('2011-03', freq='M')],
-         [NaT, NaT, pd.Period('2011-03', freq='M')]),
-
-    ])
-    @pytest.mark.parametrize('reverse', [True, False])
-    @pytest.mark.parametrize('box', [Series, Index])
-    @pytest.mark.parametrize('dtype', [None, object])
-    def test_nat_comparisons(self, dtype, box, reverse, pair):
-        l, r = pair
-        if reverse:
-            # add lhs / rhs switched data
-            l, r = r, l
-
-        left = Series(l, dtype=dtype)
-        right = box(r, dtype=dtype)
-        # Series, Index
-
-        expected = Series([False, False, True])
-        assert_series_equal(left == right, expected)
-
-        expected = Series([True, True, False])
-        assert_series_equal(left != right, expected)
-
-        expected = Series([False, False, False])
-        assert_series_equal(left < right, expected)
-
-        expected = Series([False, False, False])
-        assert_series_equal(left > right, expected)
-
-        expected = Series([False, False, True])
-        assert_series_equal(left >= right, expected)
-
-        expected = Series([False, False, True])
-        assert_series_equal(left <= right, expected)
 
     def test_ne(self):
         ts = Series([3, 4, 5, 6, 7], [3, 4, 5, 6, 7], dtype=float)
