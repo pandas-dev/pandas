@@ -194,6 +194,12 @@ def init_dict(data, index, columns, dtype=None):
     if not isinstance(columns, Index):
         columns = Index(columns, copy=False)
 
+    if not columns.is_unique:
+        # This is silly, but allowed and tested.
+        # Do the check, instead of always calling unique, to preserve
+        # the identity of unique user-provided indexes.
+        columns = columns.unique()
+
     if data:
         normalized_keys = Index(data.keys(), copy=False)
         positions = Series(columns.get_indexer_for(normalized_keys),
