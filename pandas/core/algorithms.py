@@ -666,7 +666,7 @@ def value_counts(values, sort=True, ascending=False, normalize=False,
     value_counts : Series
 
     """
-    from pandas.core.series import Series, Index
+    from pandas import Series, Index, CategoricalIndex
     name = getattr(values, 'name', None)
 
     if bins is not None:
@@ -708,6 +708,10 @@ def value_counts(values, sort=True, ascending=False, normalize=False,
 
     if sort:
         result = result.sort_values(ascending=ascending)
+    else:
+        uniq = unique(values)
+        if not isinstance(result.index, CategoricalIndex):
+            result = result.reindex(uniq)
 
     if normalize:
         result = result / float(counts.sum())
