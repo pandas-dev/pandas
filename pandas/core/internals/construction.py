@@ -176,25 +176,33 @@ def init_dict(data, index, columns, dtype=None):
 
     # Converting a dict of arrays to list of arrays sounds easy enough,
     # right? Well, it's a bit more nuanced that that. Some problems:
-    # 1. Pandas allows missing values in the keys. If a user provides a dict
+    # a. Pandas allows missing values in the keys. If a user provides a dict
     #    where the keys never compare equal (np.nan, pd.NaT, float('nan'))
     #    we can't ever do a `data[key]`. So we *have* to iterate over the
     #    key, value pairs of `data`, no way around it.
-    # 2. The key value pairs of `data` may have
-    #    1. A subset of the desired columns
-    #    2. A superset of the columns
-    #    3. Just the right columns
+    # b. The key value pairs of `data` may have
+    #      1. A subset of the desired columns
+    #      2. A superset of the columns
+    #      3. Just the right columns
     #    And may or may not be in the right order (or ordered, period).
     #    So we need to get a mapping from `key in data -> position`.
-    # 3. Inconsistencies between the Series and DataFrame constructors
+    # c. Inconsistencies between the Series and DataFrame constructors
     #    w.r.t. dtypes makes all for a lot of special casing later on.
+    # But the basic strategy we use is
+    # 1. Build a mapping `positions` from {key_in_data: position}
+    # 2. Build a mapping `new_data` from `{position: array}`
+    # 3. Update `new_data` with newly-created arrays from `columns`
+    # 4. Covert `new_data` to a list of arrays.
+
     if columns is None:
         columns = list(data)
 
     if not isinstance(columns, Index):
+        # check for isinstance, else we lose the identity of user-provided
+        # `columns`.
         columns = Index(columns, copy=False)
 
-    # Ugh columns make not be unique (even though we're in init_dict and
+    # Columns make not be unique (even though we're in init_dict and
     # dict keys have to be unique...). We have two possible strategies
     # 1.) Gracefully handle duplicates when going through data to build
     #     new_data.
