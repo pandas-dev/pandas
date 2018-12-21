@@ -4,6 +4,7 @@ import functools
 import gc
 import json
 import operator
+from textwrap import dedent
 import warnings
 import weakref
 
@@ -4895,7 +4896,7 @@ class NDFrame(PandasObject, SelectionMixin):
     def pipe(self, func, *args, **kwargs):
         return com._pipe(self, func, *args, **kwargs)
 
-    _shared_docs['aggregate'] = ("""
+    _shared_docs['aggregate'] = dedent("""
     Aggregate using one or more operations over the specified axis.
 
     %(versionadded)s
@@ -4926,11 +4927,15 @@ class NDFrame(PandasObject, SelectionMixin):
         if Series.agg is called with single function, returns a scalar
         if Series.agg is called with several functions, returns a Series
 
+    %(see_also)s
+
     Notes
     -----
     `agg` is an alias for `aggregate`. Use the alias.
 
     A passed user-defined-function will be passed a Series for evaluation.
+
+    %(examples)s
     """)
 
     _shared_docs['transform'] = ("""
@@ -10039,9 +10044,7 @@ class NDFrame(PandasObject, SelectionMixin):
             cls, 'ptp', name, name2, axis_descr,
             """Returns the difference between the maximum value and the
             minimum value in the object. This is the equivalent of the
-            ``numpy.ndarray`` method ``ptp``.
-
-            .. deprecated:: 0.24.0
+            ``numpy.ndarray`` method ``ptp``.\n\n.. deprecated:: 0.24.0
                 Use numpy.ptp instead""",
             nanptp)
 
@@ -10831,7 +10834,12 @@ def _make_min_count_stat_function(cls, name, name1, name2, axis_descr, desc,
     def stat_func(self, axis=None, skipna=None, level=None, numeric_only=None,
                   min_count=0,
                   **kwargs):
-        nv.validate_stat_func(tuple(), kwargs, fname=name)
+        if name == 'sum':
+            nv.validate_sum(tuple(), kwargs)
+        elif name == 'prod':
+            nv.validate_prod(tuple(), kwargs)
+        else:
+            nv.validate_stat_func(tuple(), kwargs, fname=name)
         if skipna is None:
             skipna = True
         if axis is None:
@@ -10852,7 +10860,10 @@ def _make_stat_function(cls, name, name1, name2, axis_descr, desc, f,
     @Appender(_num_doc)
     def stat_func(self, axis=None, skipna=None, level=None, numeric_only=None,
                   **kwargs):
-        nv.validate_stat_func(tuple(), kwargs, fname=name)
+        if name == 'median':
+            nv.validate_median(tuple(), kwargs)
+        else:
+            nv.validate_stat_func(tuple(), kwargs, fname=name)
         if skipna is None:
             skipna = True
         if axis is None:

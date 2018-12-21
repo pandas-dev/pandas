@@ -5,11 +5,6 @@ v0.18.0 (March 13, 2016)
 
 {{ header }}
 
-.. ipython:: python
-   :suppress:
-
-   from pandas import * # noqa F401, F403
-
 
 This is a major release from 0.17.1 and includes a small number of API changes, several new features,
 enhancements, and performance improvements along with a large number of bug fixes. We recommend that all
@@ -64,14 +59,14 @@ Window functions have been refactored to be methods on ``Series/DataFrame`` obje
 .. ipython:: python
 
    np.random.seed(1234)
-   df = pd.DataFrame({'A' : range(10), 'B' : np.random.randn(10)})
+   df = pd.DataFrame({'A': range(10), 'B': np.random.randn(10)})
    df
 
 Previous Behavior:
 
 .. code-block:: ipython
 
-   In [8]: pd.rolling_mean(df,window=3)
+   In [8]: pd.rolling_mean(df, window=3)
            FutureWarning: pd.rolling_mean is deprecated for DataFrame and will be removed in a future version, replace with
                           DataFrame.rolling(window=3,center=False).mean()
    Out[8]:
@@ -102,7 +97,7 @@ with tab-completion of available methods and properties.
 
 .. code-block:: ipython
 
-   In [9]: r.
+   In [9]: r.<TAB>  # noqa E225, E999
    r.A           r.agg         r.apply       r.count       r.exclusions  r.max         r.median      r.name        r.skew        r.sum
    r.B           r.aggregate   r.corr        r.cov         r.kurt        r.mean        r.min         r.quantile    r.std         r.var
 
@@ -122,8 +117,8 @@ And multiple aggregations
 
 .. ipython:: python
 
-   r.agg({'A' : ['mean','std'],
-          'B' : ['mean','std']})
+   r.agg({'A': ['mean', 'std'],
+          'B': ['mean', 'std']})
 
 .. _whatsnew_0180.enhancements.rename:
 
@@ -201,7 +196,7 @@ Currently the default is ``expand=None`` which gives a ``FutureWarning`` and use
 
 .. code-block:: ipython
 
-   In [1]: pd.Series(['a1', 'b2', 'c3']).str.extract('[ab](\d)', expand=None)
+   In [1]: pd.Series(['a1', 'b2', 'c3']).str.extract(r'[ab](\d)', expand=None)
    FutureWarning: currently extract(expand=None) means expand=False (return Index/Series/DataFrame)
    but in a future version of pandas this will be changed to expand=True (return DataFrame)
 
@@ -216,13 +211,13 @@ Extracting a regular expression with one group returns a Series if
 
 .. ipython:: python
 
-   pd.Series(['a1', 'b2', 'c3']).str.extract('[ab](\d)', expand=False)
+   pd.Series(['a1', 'b2', 'c3']).str.extract(r'[ab](\d)', expand=False)
 
 It returns a ``DataFrame`` with one column if ``expand=True``.
 
 .. ipython:: python
 
-   pd.Series(['a1', 'b2', 'c3']).str.extract('[ab](\d)', expand=True)
+   pd.Series(['a1', 'b2', 'c3']).str.extract(r'[ab](\d)', expand=True)
 
 Calling on an ``Index`` with a regex with exactly one capture group
 returns an ``Index`` if ``expand=False``.
@@ -270,13 +265,13 @@ match.
 
    s = pd.Series(["a1a2", "b1", "c1"], ["A", "B", "C"])
    s
-   s.str.extract("(?P<letter>[ab])(?P<digit>\d)", expand=False)
+   s.str.extract(r"(?P<letter>[ab])(?P<digit>\d)", expand=False)
 
 The ``extractall`` method returns all matches.
 
 .. ipython:: python
 
-   s.str.extractall("(?P<letter>[ab])(?P<digit>\d)")
+   s.str.extractall(r"(?P<letter>[ab])(?P<digit>\d)")
 
 .. _whatsnew_0180.enhancements.strcat:
 
@@ -289,12 +284,12 @@ A new, friendlier ``ValueError`` is added to protect against the mistake of supp
 
 .. ipython:: python
 
-    pd.Series(['a','b',np.nan,'c']).str.cat(sep=' ')
-    pd.Series(['a','b',np.nan,'c']).str.cat(sep=' ', na_rep='?')
+    pd.Series(['a', 'b', np.nan, 'c']).str.cat(sep=' ')
+    pd.Series(['a', 'b', np.nan, 'c']).str.cat(sep=' ', na_rep='?')
 
 .. code-block:: ipython
 
-    In [2]: pd.Series(['a','b',np.nan,'c']).str.cat(' ')
+    In [2]: pd.Series(['a', 'b', np.nan, 'c']).str.cat(' ')
     ValueError: Did you mean to supply a `sep` keyword?
 
 
@@ -329,7 +324,7 @@ Timedeltas
 
 .. ipython:: python
 
-   t = timedelta_range('1 days 2 hr 13 min 45 us',periods=3,freq='d')
+   t = timedelta_range('1 days 2 hr 13 min 45 us', periods=3, freq='d')
    t
    t.round('10min')
 
@@ -356,7 +351,7 @@ Previous Behavior:
 
 .. code-block:: ipython
 
-   In [2]: s = pd.Series([1,2,3], index=np.arange(3.))
+   In [2]: s = pd.Series([1, 2, 3], index=np.arange(3.))
 
    In [3]: s
    Out[3]:
@@ -378,7 +373,7 @@ New Behavior:
 
 .. ipython:: python
 
-   s = pd.Series([1,2,3], index=np.arange(3.))
+   s = pd.Series([1, 2, 3], index=np.arange(3.))
    s
    s.index
    print(s.to_csv(path_or_buf=None, header=False))
@@ -727,7 +722,8 @@ Like the change in the window functions API :ref:`above <whatsnew_0180.enhanceme
    np.random.seed(1234)
    df = pd.DataFrame(np.random.rand(10,4),
                      columns=list('ABCD'),
-                     index=pd.date_range('2010-01-01 09:00:00', periods=10, freq='s'))
+                     index=pd.date_range('2010-01-01 09:00:00',
+                                         periods=10, freq='s'))
    df
 
 
@@ -1137,7 +1133,7 @@ and setting
 
 Positional setting with ``.ix`` and a float indexer will ADD this value to the index, rather than previously setting the value by position.
 
-.. code-block:: python
+.. code-block:: ipython
 
    In [3]: s2.ix[1.0] = 10
    In [4]: s2
