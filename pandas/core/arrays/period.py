@@ -833,7 +833,7 @@ def dt64arr_to_periodarr(data, freq, tz=None):
 
     if not (is_datetime64_ns_dtype(data.dtype) or
             is_datetime64tz_dtype(data.dtype)):
-        raise ValueError('Wrong dtype: %s' % data.dtype)
+        raise ValueError('Wrong dtype: {dtype}'.format(dtype=data.dtype))
 
     if isinstance(data, ABCIndexClass):
         if freq is None:

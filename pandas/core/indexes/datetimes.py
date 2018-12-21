@@ -1437,11 +1437,11 @@ def date_range(start=None, end=None, periods=None, freq=None, tz=None,
     if freq is None and com._any_none(periods, start, end):
         freq = 'D'
 
-    result = DatetimeArray._generate_range(
+    dtarr = DatetimeArray._generate_range(
         start=start, end=end, periods=periods,
         freq=freq, tz=tz, normalize=normalize,
         closed=closed, **kwargs)
-    return DatetimeIndex(result, name=name)
+    return DatetimeIndex(dtarr, name=name)
 
 
 def bdate_range(start=None, end=None, periods=None, freq='B', tz=None,
