@@ -46,11 +46,9 @@ def _static_values(index):
 
 
 class TestDatetimeIndex(object):
-    def test_custom_grouper(self):
+    def test_custom_grouper(self, index):
 
-        dti = date_range(freq='Min', start=datetime(2005, 1, 1),
-                         end=datetime(2005, 1, 10))
-
+        dti = index
         s = Series(np.array([1] * len(dti)), index=dti, dtype='int64')
 
         b = TimeGrouper(Minute(5))
