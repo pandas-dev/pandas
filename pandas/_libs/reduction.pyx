@@ -17,7 +17,6 @@ cnp.import_array()
 
 cimport util
 from lib import maybe_convert_objects
-from tslibs.conversion import NS_DTYPE, TD_DTYPE
 
 
 cdef _get_result_array(object obj, Py_ssize_t size, Py_ssize_t cnt):
