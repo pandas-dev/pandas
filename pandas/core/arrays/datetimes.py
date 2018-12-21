@@ -113,6 +113,9 @@ def _dt_array_cmp(cls, op):
         elif lib.is_scalar(other):
             return ops.invalid_comparison(self, other, op)
         else:
+            if len(other) != len(self):
+                raise ValueError("Lengths must match")
+
             if isinstance(other, list):
                 try:
                     other = type(self)(other)

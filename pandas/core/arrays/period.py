@@ -57,6 +57,9 @@ def _period_array_cmp(cls, op):
         # return here with an unboxed PeriodArray). But before we do that,
         # we do a bit of validation on type (Period) and freq, so that our
         # error messages are sensible
+        if is_list_like(other) and len(other) != len(self):
+            raise ValueError("Lengths must match")
+
         not_implemented = isinstance(other, (ABCSeries, ABCIndexClass))
         if not_implemented:
             other = other._values

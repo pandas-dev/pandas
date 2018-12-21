@@ -59,6 +59,17 @@ def timedelta_index(request):
 class SharedTests(object):
     index_cls = None
 
+    def test_compare_len1_raises(self):
+        # make sure we raise when comparing with different lengths, specific
+        #  to the case where one has length-1, which numpy would broadcast
+        data = np.arange(10, dtype='i8')
+
+        idx = self.index_cls._simple_new(data, freq='D')
+        arr = self.array_cls(idx)
+
+        with pytest.raises(ValueError, match="Lengths must match"):
+            arr == arr[:1]
+
     def test_take(self):
         data = np.arange(100, dtype='i8')
         np.random.shuffle(data)
