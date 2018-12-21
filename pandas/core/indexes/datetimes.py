@@ -277,6 +277,11 @@ class DatetimeIndex(DatetimeArray, DatetimeIndexOpsMixin, Int64Index):
     # --------------------------------------------------------------------
 
     @property
+    def _eadata(self):
+        return DatetimeArray._simple_new(self._data, tz=self.tz,
+                                         freq=self.freq)
+
+    @property
     def _values(self):
         # tz-naive -> ndarray
         # tz-aware -> DatetimeIndex

@@ -40,7 +40,6 @@ class DatetimeIndexOpsMixin(DatetimeLikeArrayMixin):
     # override DatetimeLikeArrayMixin method
     copy = Index.copy
     unique = Index.unique
-    take = Index.take
 
     # DatetimeLikeArrayMixin assumes subclasses are mutable, so these are
     # properties there.  They can be made into cache_readonly for Index
@@ -420,7 +419,7 @@ class DatetimeIndexOpsMixin(DatetimeLikeArrayMixin):
 
         def __add__(self, other):
             # dispatch to ExtensionArray implementation
-            result = super(cls, self).__add__(other)
+            result = self._eadata.__add__(maybe_unwrap_index(other))
             return wrap_arithmetic_op(self, other, result)
 
         cls.__add__ = __add__
@@ -432,13 +431,13 @@ class DatetimeIndexOpsMixin(DatetimeLikeArrayMixin):
 
         def __sub__(self, other):
             # dispatch to ExtensionArray implementation
-            result = super(cls, self).__sub__(other)
+            result = self._eadata.__sub__(maybe_unwrap_index(other))
             return wrap_arithmetic_op(self, other, result)
 
         cls.__sub__ = __sub__
 
         def __rsub__(self, other):
-            result = super(cls, self).__rsub__(other)
+            result = self._eadata.__rsub__(maybe_unwrap_index(other))
             return wrap_arithmetic_op(self, other, result)
 
         cls.__rsub__ = __rsub__
@@ -571,6 +570,28 @@ class DatetimeIndexOpsMixin(DatetimeLikeArrayMixin):
         result = DatetimeLikeArrayMixin._time_shift(self, periods, freq=freq)
         result.name = self.name
         return result
+
+
+def maybe_unwrap_index(obj):
+    """
+    If operating against another Index object, we need to unwrap the underlying
+    data before deferring to the DatetimeArray/TimedeltaArray/PeriodArray
+    implementation, otherwise we will incorrectly return NotImplemented.
+
+    Parameters
+    ----------
+    obj : object
+
+    Returns
+    -------
+    unwrapped object
+    """
+    if isinstance(obj, ABCIndexClass):
+        if isinstance(obj, DatetimeIndexOpsMixin):
+            # i.e. PeriodIndex/DatetimeIndex/TimedeltaIndex
+            return obj._eadata
+        return obj._data
+    return obj
 
 
 def wrap_arithmetic_op(self, other, result):
