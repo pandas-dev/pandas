@@ -1013,7 +1013,8 @@ update the ``ExtensionDtype._metadata`` tuple to match the signature of your
 
 **Other changes**
 
-- ``ExtensionArray`` has gained the abstract methods ``.dropna()`` (:issue:`21185`)
+- :meth:`~pandas.api.types.ExtensionArray.dropna` has been added (:issue:`21185`)
+- :meth:`~pandas.api.types.ExtensionArray.repeat` has been added (:issue:`24349`)
 - ``ExtensionDtype`` has gained the ability to instantiate from string dtypes, e.g. ``decimal`` would instantiate a registered ``DecimalDtype``; furthermore
   the ``ExtensionDtype`` has gained the method ``construct_array_type`` (:issue:`21185`)
 - An ``ExtensionArray`` with a boolean dtype now works correctly as a boolean indexer. :meth:`pandas.api.types.is_bool_dtype` now properly considers them boolean (:issue:`22326`)
@@ -1310,6 +1311,7 @@ Categorical
 - Bug when resampling :meth:`DataFrame.resample()` and aggregating on categorical data, the categorical dtype was getting lost. (:issue:`23227`)
 - Bug in many methods of the ``.str``-accessor, which always failed on calling the ``CategoricalIndex.str`` constructor (:issue:`23555`, :issue:`23556`)
 - Bug in :meth:`Series.where` losing the categorical dtype for categorical data (:issue:`24077`)
+- Bug in :meth:`Categorical.apply` where ``NaN`` values could be handled unpredictably. They now remain unchanged (:issue:`24241`)
 
 Datetimelike
 ^^^^^^^^^^^^
