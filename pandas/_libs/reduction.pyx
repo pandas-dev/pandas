@@ -265,7 +265,10 @@ cdef class SeriesBinGrouper:
                     cached_typ = self.typ(vslider.buf, index=cached_ityp,
                                           name=name)
                 else:
-                    object.__setattr__(cached_ityp, '_data', islider.buf)
+                    # See the comment in indexes/base.py about _index_data.
+                    # We need this for EA-backed indexes that have a reference
+                    # to a 1-d ndarray like datetime / timedelta / period.
+                    object.__setattr__(cached_ityp, '_index_data', islider.buf)
                     cached_ityp._engine.clear_mapping()
                     object.__setattr__(
                         cached_typ._data._block, 'values', vslider.buf)
@@ -569,8 +572,11 @@ cdef class BlockSlider:
             util.set_array_not_contiguous(x)
 
         self.nblocks = len(self.blocks)
+        # See the comment in indexes/base.py about _index_data.
+        # We need this for EA-backed indexes that have a reference to a 1-d
+        # ndarray like datetime / timedelta / period.
         self.idx_slider = Slider(
-            self.frame.index.values, self.dummy.index.values)
+            self.frame.index._index_data, self.dummy.index._index_data)
 
         self.base_ptrs = <char**>malloc(sizeof(char*) * len(self.blocks))
         for i, block in enumerate(self.blocks):
@@ -594,7 +600,8 @@ cdef class BlockSlider:
 
         # move and set the index
         self.idx_slider.move(start, end)
-        object.__setattr__(self.index, '_data', self.idx_slider.buf)
+
+        object.__setattr__(self.index, '_index_data', self.idx_slider.buf)
         self.index._engine.clear_mapping()
 
     cdef reset(self):
