@@ -112,16 +112,16 @@ class TestDatetimeIndex(object):
     @pytest.mark.parametrize(
         '_index_start,_index_end,_index_name',
         [('1/1/2000 00:00:00', '1/1/2000 00:13:00', 'index')])
-    def test_resample_string_kwargs(self, series):
-        # Test for issue #19303
-        s = series
+    @pytest.mark.parametrize('kwargs', [
+        dict(label='righttt'),
+        dict(closed='righttt'),
+        dict(convention='starttt')
+    ])
+    def test_resample_string_kwargs(self, series, kwargs):
+        # see gh-19303
         # Check that wrong keyword argument strings raise an error
-        with pytest.raises(ValueError):
-            s.resample('5min', label='righttt').mean()
-        with pytest.raises(ValueError):
-            s.resample('5min', closed='righttt').mean()
-        with pytest.raises(ValueError):
-            s.resample('5min', convention='starttt').mean()
+        with pytest.raises(ValueError, match='Unsupported value'):
+            series.resample('5min', **kwargs)
 
     def test_resample_how(self, downsample_method):
         if downsample_method == 'ohlc':
