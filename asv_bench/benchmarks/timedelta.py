@@ -1,8 +1,9 @@
 import datetime
 
 import numpy as np
-from pandas import Series, timedelta_range, to_timedelta, Timestamp, \
-    Timedelta, TimedeltaIndex, DataFrame
+
+from pandas import (
+    DataFrame, Series, Timedelta, Timestamp, timedelta_range, to_timedelta)
 
 
 class TimedeltaConstructor(object):
@@ -122,8 +123,8 @@ class DatetimeAccessor(object):
 class TimedeltaIndexing(object):
 
     def setup(self):
-        self.index = TimedeltaIndex(start='1985', periods=1000, freq='D')
-        self.index2 = TimedeltaIndex(start='1986', periods=1000, freq='D')
+        self.index = timedelta_range(start='1985', periods=1000, freq='D')
+        self.index2 = timedelta_range(start='1986', periods=1000, freq='D')
         self.series = Series(range(1000), index=self.index)
         self.timedelta = self.index[500]
 
