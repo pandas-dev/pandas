@@ -11,7 +11,7 @@ from pandas.errors import UnsupportedFunctionCall
 
 import pandas as pd
 from pandas import (
-    DataFrame, Index, Panel, Series, Timedelta, Timestamp, isna, notna)
+    DataFrame, Panel, Series, Timedelta, Timestamp, isna, notna)
 from pandas.core.indexes.datetimes import date_range
 from pandas.core.indexes.period import Period, period_range
 from pandas.core.indexes.timedeltas import timedelta_range
@@ -144,10 +144,11 @@ class TestDatetimeIndex(object):
             '5min', closed='right', label='right'), downsample_method)()
         assert_series_equal(result, expected)
 
-    def test_resample_how_ohlc(self):
-        rng = date_range('1/1/2000 00:00:00', '1/1/2000 00:13:00', freq='min',
-                         name='index')
-        s = Series(np.random.randn(14), index=rng)
+    @pytest.mark.parametrize(
+        '_index_start,_index_end,_index_name',
+        [('1/1/2000 00:00:00', '1/1/2000 00:13:00', 'index')])
+    def test_resample_how_ohlc(self, series):
+        s = series
         grouplist = np.ones_like(s)
         grouplist[0] = 0
         grouplist[1:6] = 1
@@ -159,15 +160,12 @@ class TestDatetimeIndex(object):
                 return np.repeat(np.nan, 4)
             return [group[0], group.max(), group.min(), group[-1]]
 
-        inds = date_range('1/1/2000', periods=4, freq='5min', name='index')
-        expected = s.groupby(grouplist).agg(_ohlc)
-        expected = DataFrame(expected.values.tolist(),
-                             index=Index(inds, name='index'),
-                             columns=['open', 'high', 'low', 'close'])
+        expected = DataFrame(
+            s.groupby(grouplist).agg(_ohlc).values.tolist(),
+            index=date_range('1/1/2000', periods=4, freq='5min', name='index'),
+            columns=['open', 'high', 'low', 'close'])
 
         result = s.resample('5min', closed='right', label='right').ohlc()
-
-        assert result.index.name == 'index'  # redundant assert?
         assert_frame_equal(result, expected)
 
     def test_numpy_compat(self):
