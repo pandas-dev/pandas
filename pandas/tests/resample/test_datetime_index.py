@@ -25,13 +25,27 @@ import pandas.tseries.offsets as offsets
 from pandas.tseries.offsets import BDay, Minute
 
 
+@pytest.fixture()
+def _index_factory():
+    return date_range
+
+
+@pytest.fixture
+def _series_name():
+    return 'dti'
+
+
+@pytest.fixture
+def _index_freq():
+    return 'Min'
+
+
+@pytest.fixture
+def _static_values(index):
+    return np.random.rand(len(index))
+
+
 class TestDatetimeIndex(object):
-    def setup_method(self, method):
-        dti = date_range(start=datetime(2005, 1, 1),
-                         end=datetime(2005, 1, 10), freq='Min')
-
-        self.series = Series(np.random.rand(len(dti)), dti)
-
     def test_custom_grouper(self):
 
         dti = date_range(freq='Min', start=datetime(2005, 1, 1),
@@ -74,7 +88,7 @@ class TestDatetimeIndex(object):
         assert len(r.columns) == 10
         assert len(r.index) == 2593
 
-    def test_resample_basic(self):
+    def test_resample_basic(self, series):
         rng = date_range('1/1/2000 00:00:00', '1/1/2000 00:13:00', freq='min',
                          name='index')
         s = Series(np.random.randn(14), index=rng)
@@ -95,7 +109,7 @@ class TestDatetimeIndex(object):
                            s[10:].mean()], index=exp_idx)
         assert_series_equal(result, expected)
 
-        s = self.series
+        s = series
         result = s.resample('5Min').last()
         grouper = TimeGrouper(Minute(5), closed='left', label='left')
         expect = s.groupby(grouper).agg(lambda x: x[-1])
@@ -519,8 +533,8 @@ class TestDatetimeIndex(object):
         expected = ts.reindex(result.index, method='nearest', limit=2)
         assert_series_equal(result, expected)
 
-    def test_resample_ohlc(self):
-        s = self.series
+    def test_resample_ohlc(self, series):
+        s = series
 
         grouper = TimeGrouper(Minute(5))
         expect = s.groupby(grouper).agg(lambda x: x[-1])
@@ -1435,19 +1449,19 @@ class TestDatetimeIndex(object):
         res = df['timestamp'].resample('2D').first()
         tm.assert_series_equal(res, exp)
 
-    def test_resample_apply_with_additional_args(self):
+    def test_resample_apply_with_additional_args(self, series):
         # GH 14615
         def f(data, add_arg):
             return np.mean(data) * add_arg
 
         multiplier = 10
-        result = self.series.resample('D').apply(f, multiplier)
-        expected = self.series.resample('D').mean().multiply(multiplier)
+        result = series.resample('D').apply(f, multiplier)
+        expected = series.resample('D').mean().multiply(multiplier)
         tm.assert_series_equal(result, expected)
 
         # Testing as kwarg
-        result = self.series.resample('D').apply(f, add_arg=multiplier)
-        expected = self.series.resample('D').mean().multiply(multiplier)
+        result = series.resample('D').apply(f, add_arg=multiplier)
+        expected = series.resample('D').mean().multiply(multiplier)
         tm.assert_series_equal(result, expected)
 
         # Testing dataframe
