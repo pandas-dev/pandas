@@ -1260,6 +1260,7 @@ Performance Improvements
 - Fixed a performance regression on Windows with Python 3.7 of :func:`read_csv` (:issue:`23516`)
 - Improved performance of :class:`Categorical` constructor for ``Series`` objects (:issue:`23814`)
 - Improved performance of :meth:`~DataFrame.where` for Categorical data (:issue:`24077`)
+- Improved performance of creating a :class:`DataFrame` from a dictionary of arrays when providing the ``columns`` keyword (:issue:`24368`)
 
 .. _whatsnew_0240.docs:
 
