@@ -194,11 +194,19 @@ def init_dict(data, index, columns, dtype=None):
     if not isinstance(columns, Index):
         columns = Index(columns, copy=False)
 
+    # Ugh columns make not be unique (even though we're in init_dict and
+    # dict keys have to be unique...). We have two possible strategies
+    # 1.) Gracefully handle duplicates when going through data to build
+    #     new_data.
+    # 2.) Focus only on unique values on a first pass, and insert duplicates
+    #     in the correct positions after the uniques have been handled.
+    # We take option 2.
+
     if not columns.is_unique:
-        # This is silly, but allowed and tested.
-        # Do the check, instead of always calling unique, to preserve
-        # the identity of unique user-provided indexes.
+        columns_with_duplictes = columns.copy()
         columns = columns.unique()
+    else:
+        columns_with_duplictes = None
 
     if data:
         normalized_keys = Index(data.keys(), copy=False)
@@ -283,6 +291,19 @@ def init_dict(data, index, columns, dtype=None):
         # when all the columns are newly created. See
         # https://github.com/pandas-dev/pandas/issues/24388 for more.
         dtype = np.dtype("object")
+
+    if columns_with_duplictes is not None:
+        duplicated = columns_with_duplictes.duplicated()
+        duplicate_positions = np.arange(len(duplicated))[duplicated]
+        offset = 0
+
+        for position in duplicate_positions:
+            key = columns_with_duplictes[position]
+            loc = columns.get_loc(key)
+            arrays.insert(position, arrays[loc])
+            offset += 1
+
+        columns = columns_with_duplictes
 
     return arrays_to_mgr(arrays, columns, index, columns, dtype=dtype)
 

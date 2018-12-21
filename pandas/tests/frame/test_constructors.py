@@ -1402,9 +1402,24 @@ class TestDataFrameConstructors(TestData):
                       OrderedDict([('b', 8), ('a', 5), ('a', 6)]))
 
     def test_constructor_column_dict_duplicates(self):
-        result = DataFrame({"A": [1, 2], "B": [3, 4]}, columns=['A', 'B', 'A'])
-        expected = DataFrame({"A": [1, 2], "B": [3, 4]}, columns=['A', 'B'])
-        tm.assert_frame_equal(result, expected)
+        result = DataFrame({}, columns=['A', 'B', 'A']).columns
+        expected = pd.Index(['A', 'B', 'A'])
+        tm.assert_index_equal(result, expected)
+
+    def test_constructor_column_dict_duplicates_data(self):
+        df = pd.DataFrame({'a': [1], 'b': [2], 'c': [3]},
+                          columns=['c', 'b', 'a', 'a', 'b', 'c'])
+        # do this in pieces to avoid constructing an expected that
+        # maybe hits the same code path.
+        columns = pd.Index(['c', 'b', 'a', 'a', 'b', 'c'])
+        tm.assert_index_equal(df.columns, columns)
+
+        tm.assert_series_equal(df.iloc[:, 0], pd.Series([3], name='c'))
+        tm.assert_series_equal(df.iloc[:, 1], pd.Series([2], name='b'))
+        tm.assert_series_equal(df.iloc[:, 2], pd.Series([1], name='a'))
+        tm.assert_series_equal(df.iloc[:, 3], pd.Series([1], name='a'))
+        tm.assert_series_equal(df.iloc[:, 4], pd.Series([2], name='b'))
+        tm.assert_series_equal(df.iloc[:, 0], pd.Series([3], name='c'))
 
     def test_constructor_empty_with_string_dtype(self):
         # GH 9428
