@@ -17,6 +17,14 @@ from pandas.util.testing import (
     assert_almost_equal, assert_frame_equal, assert_index_equal,
     assert_series_equal)
 
+# tuples of '_index_factory,_series_name,_index_start,_index_end'
+DATE_RANGE = (date_range, 'dti', datetime(2005, 1, 1), datetime(2005, 1, 10))
+PERIOD_RANGE = (
+    period_range, 'pi', datetime(2005, 1, 1), datetime(2005, 1, 10))
+TIMEDELTA_RANGE = (timedelta_range, 'tdi', '1 day', '10 day')
+
+ALL_TIMESERIES_INDEXES = [DATE_RANGE, PERIOD_RANGE, TIMEDELTA_RANGE]
+
 
 @pytest.fixture
 def create_index(_index_factory):
@@ -28,10 +36,9 @@ def create_index(_index_factory):
 
 @pytest.mark.parametrize('freq', ['2D', '1H'])
 @pytest.mark.parametrize(
-    '_index_factory,_series_name,_index_start,_index_end', [
-        (date_range, 'dti', datetime(2005, 1, 1), datetime(2005, 1, 10)),
-        (timedelta_range, 'tdi', '1 day', '10 day')
-    ])
+    '_index_factory,_series_name,_index_start,_index_end',
+    [DATE_RANGE, TIMEDELTA_RANGE]
+)
 def test_asfreq(series_and_frame, freq, create_index):
     obj = series_and_frame
 
@@ -42,10 +49,9 @@ def test_asfreq(series_and_frame, freq, create_index):
 
 
 @pytest.mark.parametrize(
-    '_index_factory,_series_name,_index_start,_index_end', [
-        (date_range, 'dti', datetime(2005, 1, 1), datetime(2005, 1, 10)),
-        (timedelta_range, 'tdi', '1 day', '10 day')
-    ])
+    '_index_factory,_series_name,_index_start,_index_end',
+    [DATE_RANGE, TIMEDELTA_RANGE]
+)
 def test_asfreq_fill_value(series, create_index):
     # test for fill value during resampling, issue 3715
 
@@ -66,11 +72,8 @@ def test_asfreq_fill_value(series, create_index):
 
 
 @pytest.mark.parametrize(
-    '_index_factory,_series_name,_index_start,_index_end', [
-        (date_range, 'dti', datetime(2005, 1, 1), datetime(2005, 1, 10)),
-        (period_range, 'pi', datetime(2005, 1, 1), datetime(2005, 1, 10)),
-        (timedelta_range, 'tdi', '1 day', '10 day')
-    ])
+    '_index_factory,_series_name,_index_start,_index_end',
+    ALL_TIMESERIES_INDEXES)
 def test_resample_interpolate(series):
     # # 12925
     df = series.to_frame('value')
@@ -87,11 +90,8 @@ def test_raises_on_non_datetimelike_index():
 
 @pytest.mark.parametrize('freq', ['M', 'D', 'H'])
 @pytest.mark.parametrize(
-    '_index_factory,_series_name,_index_start,_index_end', [
-        (date_range, 'dti', datetime(2005, 1, 1), datetime(2005, 1, 10)),
-        (period_range, 'pi', datetime(2005, 1, 1), datetime(2005, 1, 10)),
-        (timedelta_range, 'tdi', '1 day', '10 day')
-    ])
+    '_index_factory,_series_name,_index_start,_index_end',
+    ALL_TIMESERIES_INDEXES)
 def test_resample_empty_series(freq, series, resample_method):
     # GH12771 & GH12868
 
@@ -110,11 +110,8 @@ def test_resample_empty_series(freq, series, resample_method):
 
 @pytest.mark.parametrize('freq', ['M', 'D', 'H'])
 @pytest.mark.parametrize(
-    '_index_factory,_series_name,_index_start,_index_end', [
-        (date_range, 'dti', datetime(2005, 1, 1), datetime(2005, 1, 10)),
-        (period_range, 'pi', datetime(2005, 1, 1), datetime(2005, 1, 10)),
-        (timedelta_range, 'tdi', '1 day', '10 day')
-    ])
+    '_index_factory,_series_name,_index_start,_index_end',
+    ALL_TIMESERIES_INDEXES)
 def test_resample_empty_dataframe(series, freq, resample_method):
     # GH13212
     index = series.index[:0]
@@ -155,11 +152,8 @@ def test_resample_empty_dtypes(index, dtype, resample_method):
 
 
 @pytest.mark.parametrize(
-    '_index_factory,_series_name,_index_start,_index_end', [
-        (date_range, 'dti', datetime(2005, 1, 1), datetime(2005, 1, 10)),
-        (period_range, 'pi', datetime(2005, 1, 1), datetime(2005, 1, 10)),
-        (timedelta_range, 'tdi', '1 day', '10 day')
-    ])
+    '_index_factory,_series_name,_index_start,_index_end',
+    ALL_TIMESERIES_INDEXES)
 def test_resample_loffset_arg_type(series, create_index):
     # GH 13218, 15002
     df = series.to_frame('value')
@@ -199,11 +193,8 @@ def test_resample_loffset_arg_type(series, create_index):
 
 
 @pytest.mark.parametrize(
-    '_index_factory,_series_name,_index_start,_index_end', [
-        (date_range, 'dti', datetime(2005, 1, 1), datetime(2005, 1, 10)),
-        (period_range, 'pi', datetime(2005, 1, 1), datetime(2005, 1, 10)),
-        (timedelta_range, 'tdi', '1 day', '10 day')
-    ])
+    '_index_factory,_series_name,_index_start,_index_end',
+    ALL_TIMESERIES_INDEXES)
 def test_apply_to_empty_series(series):
     # GH 14313
     series = series[:0]
@@ -216,11 +207,8 @@ def test_apply_to_empty_series(series):
 
 
 @pytest.mark.parametrize(
-    '_index_factory,_series_name,_index_start,_index_end', [
-        (date_range, 'dti', datetime(2005, 1, 1), datetime(2005, 1, 10)),
-        (period_range, 'pi', datetime(2005, 1, 1), datetime(2005, 1, 10)),
-        (timedelta_range, 'tdi', '1 day', '10 day')
-    ])
+    '_index_factory,_series_name,_index_start,_index_end',
+    ALL_TIMESERIES_INDEXES)
 def test_resampler_is_iterable(series):
     # GH 15314
     freq = 'H'
@@ -233,11 +221,8 @@ def test_resampler_is_iterable(series):
 
 
 @pytest.mark.parametrize(
-    '_index_factory,_series_name,_index_start,_index_end', [
-        (date_range, 'dti', datetime(2005, 1, 1), datetime(2005, 1, 10)),
-        (period_range, 'pi', datetime(2005, 1, 1), datetime(2005, 1, 10)),
-        (timedelta_range, 'tdi', '1 day', '10 day')
-    ])
+    '_index_factory,_series_name,_index_start,_index_end',
+    ALL_TIMESERIES_INDEXES)
 def test_resample_quantile(series):
     # GH 15023
     s = series
