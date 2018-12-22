@@ -96,6 +96,8 @@ def _dt_array_cmp(cls, op):
     def wrapper(self, other):
         meth = getattr(dtl.DatetimeLikeArrayMixin, opname)
 
+        other = lib.item_from_zerodim(other)
+
         if isinstance(other, (datetime, np.datetime64, compat.string_types)):
             if isinstance(other, (datetime, np.datetime64)):
                 # GH#18435 strings get a pass from tzawareness compat
