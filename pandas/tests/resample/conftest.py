@@ -86,7 +86,8 @@ def series(index, _series_name, _static_values):
 
 
 @pytest.fixture
-def frame(index, _static_values):
+def frame(index, _series_name, _static_values):
+    # _series_name is intentionally unused
     return DataFrame({'value': _static_values}, index=index)
 
 

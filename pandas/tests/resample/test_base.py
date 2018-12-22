@@ -79,9 +79,9 @@ def test_asfreq_fill_value(series, create_index):
     assert_frame_equal(result, expected)
 
 
-def test_resample_interpolate_all_ts(series):
+def test_resample_interpolate_all_ts(frame):
     # # 12925
-    df = series.to_frame('value')
+    df = frame
     assert_frame_equal(
         df.resample('1T').asfreq().interpolate(),
         df.resample('1T').interpolate())
@@ -150,9 +150,9 @@ def test_resample_empty_dtypes(index, dtype, resample_method):
         pass
 
 
-def test_resample_loffset_arg_type_all_ts(series, create_index):
+def test_resample_loffset_arg_type_all_ts(frame, create_index):
     # GH 13218, 15002
-    df = series.to_frame('value')
+    df = frame
     expected_means = [df.values[i:i + 2].mean()
                       for i in range(0, len(df.values), 2)]
     expected_index = create_index(df.index[0],
