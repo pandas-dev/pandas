@@ -91,6 +91,7 @@ def _coerce_method(converter):
         raise TypeError("cannot convert the series to "
                         "{0}".format(str(converter)))
 
+    wrapper.__name__ = "__{name}__".format(name=converter.__name__)
     return wrapper
 
 # ----------------------------------------------------------------------
