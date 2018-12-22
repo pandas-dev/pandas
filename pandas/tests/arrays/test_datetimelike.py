@@ -70,6 +70,10 @@ class SharedTests(object):
         with pytest.raises(ValueError, match="Lengths must match"):
             arr == arr[:1]
 
+        # test the index classes while we're at it, GH#23078
+        with pytest.raises(ValueError, match="Lengths must match"):
+            idx <= idx[[0]]
+
     def test_take(self):
         data = np.arange(100, dtype='i8')
         np.random.shuffle(data)
