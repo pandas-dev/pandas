@@ -5,10 +5,9 @@ import warnings
 
 import numpy as np
 
-from pandas._libs import NaT, iNaT, lib
-from pandas._libs.tslibs import timezones
+from pandas._libs import NaT, algos, iNaT, lib
 from pandas._libs.tslibs.period import (
-    DIFFERENT_FREQ_INDEX, IncompatibleFrequency, Period)
+    DIFFERENT_FREQ, IncompatibleFrequency, Period)
 from pandas._libs.tslibs.timedeltas import Timedelta, delta_to_nanoseconds
 from pandas._libs.tslibs.timestamps import (
     RoundTo, maybe_integer_op_deprecated, round_nsint64)
@@ -21,8 +20,7 @@ from pandas.core.dtypes.common import (
     is_bool_dtype, is_datetime64_any_dtype, is_datetime64_dtype,
     is_datetime64tz_dtype, is_extension_array_dtype, is_float_dtype,
     is_integer_dtype, is_list_like, is_object_dtype, is_offsetlike,
-    is_period_dtype, is_timedelta64_dtype, needs_i8_conversion, pandas_dtype)
-from pandas.core.dtypes.dtypes import DatetimeTZDtype
+    is_period_dtype, is_timedelta64_dtype, needs_i8_conversion)
 from pandas.core.dtypes.generic import ABCDataFrame, ABCIndexClass, ABCSeries
 from pandas.core.dtypes.missing import isna
 
@@ -157,6 +155,7 @@ class TimelikeOps(object):
               times
 
             .. versionadded:: 0.24.0
+
         nonexistent : 'shift', 'NaT', default 'raise'
             A nonexistent time does not exist in a particular timezone
             where clocks moved forward due to DST.
@@ -248,7 +247,7 @@ class TimelikeOps(object):
         if 'tz' in attribs:
             attribs['tz'] = None
         return self._ensure_localized(
-            self._shallow_copy(result, **attribs), ambiguous, nonexistent
+            self._simple_new(result, **attribs), ambiguous, nonexistent
         )
 
     @Appender((_round_doc + _round_example).format(op="round"))
@@ -312,6 +311,8 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin, AttributesMixin):
 
     @property
     def size(self):
+        # type: () -> int
+        """The number of elements in this array."""
         return np.prod(self.shape)
 
     def __len__(self):
@@ -353,6 +354,10 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin, AttributesMixin):
                     freq = key.step * self.freq
                 else:
                     freq = self.freq
+            elif key is Ellipsis:
+                # GH#21282 indexing with Ellipsis is similar to a full slice,
+                #  should preserve `freq` attribute
+                freq = self.freq
 
         attribs['freq'] = freq
 
@@ -549,12 +554,40 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin, AttributesMixin):
         if index.size == 0 or inferred == freq.freqstr:
             return None
 
-        on_freq = cls._generate_range(start=index[0], end=None,
-                                      periods=len(index), freq=freq, **kwargs)
-        if not np.array_equal(index.asi8, on_freq.asi8):
+        try:
+            on_freq = cls._generate_range(start=index[0], end=None,
+                                          periods=len(index), freq=freq,
+                                          **kwargs)
+            if not np.array_equal(index.asi8, on_freq.asi8):
+                raise ValueError
+        except ValueError as e:
+            if "non-fixed" in str(e):
+                # non-fixed frequencies are not meaningful for timedelta64;
+                #  we retain that error message
+                raise e
+            # GH#11587 the main way this is reached is if the `np.array_equal`
+            #  check above is False.  This can also be reached if index[0]
+            #  is `NaT`, in which case the call to `cls._generate_range` will
+            #  raise a ValueError, which we re-raise with a more targeted
+            #  message.
             raise ValueError('Inferred frequency {infer} from passed values '
                              'does not conform to passed frequency {passed}'
                              .format(infer=inferred, passed=freq.freqstr))
+
+    # monotonicity/uniqueness properties are called via frequencies.infer_freq,
+    #  see GH#23789
+
+    @property
+    def _is_monotonic_increasing(self):
+        return algos.is_monotonic(self.asi8, timelike=True)[0]
+
+    @property
+    def _is_monotonic_decreasing(self):
+        return algos.is_monotonic(self.asi8, timelike=True)[1]
+
+    @property
+    def _is_unique(self):
+        return len(unique1d(self.asi8)) == len(self)
 
     # ------------------------------------------------------------------
     # Arithmetic Methods
@@ -663,9 +696,7 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin, AttributesMixin):
         # and datetime dtypes
         result = np.zeros(len(self), dtype=np.int64)
         result.fill(iNaT)
-        if is_timedelta64_dtype(self):
-            return type(self)(result, freq=None)
-        return type(self)(result, tz=self.tz, freq=None)
+        return type(self)(result, dtype=self.dtype, freq=None)
 
     def _sub_nat(self):
         """
@@ -705,14 +736,16 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin, AttributesMixin):
             raise ValueError("cannot subtract arrays/indices of "
                              "unequal length")
         if self.freq != other.freq:
-            msg = DIFFERENT_FREQ_INDEX.format(self.freqstr, other.freqstr)
+            msg = DIFFERENT_FREQ.format(cls=type(self).__name__,
+                                        own_freq=self.freqstr,
+                                        other_freq=other.freqstr)
             raise IncompatibleFrequency(msg)
 
         new_values = checked_add_with_arr(self.asi8, -other.asi8,
                                           arr_mask=self._isnan,
                                           b_mask=other._isnan)
 
-        new_values = np.array([self.freq * x for x in new_values])
+        new_values = np.array([self.freq.base * x for x in new_values])
         if self.hasnans or other.hasnans:
             mask = (self._isnan) | (other._isnan)
             new_values[mask] = NaT
@@ -854,173 +887,159 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin, AttributesMixin):
         return self._generate_range(start=start, end=end, periods=None,
                                     freq=self.freq)
 
-    @classmethod
-    def _add_datetimelike_methods(cls):
-        """
-        add in the datetimelike methods (as we may have to override the
-        superclass)
-        """
+    def __add__(self, other):
+        other = lib.item_from_zerodim(other)
+        if isinstance(other, (ABCSeries, ABCDataFrame)):
+            return NotImplemented
 
-        def __add__(self, other):
-            other = lib.item_from_zerodim(other)
-            if isinstance(other, (ABCSeries, ABCDataFrame)):
-                return NotImplemented
+        # scalar others
+        elif other is NaT:
+            result = self._add_nat()
+        elif isinstance(other, (Tick, timedelta, np.timedelta64)):
+            result = self._add_delta(other)
+        elif isinstance(other, DateOffset):
+            # specifically _not_ a Tick
+            result = self._add_offset(other)
+        elif isinstance(other, (datetime, np.datetime64)):
+            result = self._add_datetimelike_scalar(other)
+        elif lib.is_integer(other):
+            # This check must come after the check for np.timedelta64
+            # as is_integer returns True for these
+            maybe_integer_op_deprecated(self)
+            result = self._time_shift(other)
 
-            # scalar others
-            elif other is NaT:
-                result = self._add_nat()
-            elif isinstance(other, (Tick, timedelta, np.timedelta64)):
-                result = self._add_delta(other)
-            elif isinstance(other, DateOffset):
-                # specifically _not_ a Tick
-                result = self._add_offset(other)
-            elif isinstance(other, (datetime, np.datetime64)):
-                result = self._add_datetimelike_scalar(other)
-            elif lib.is_integer(other):
-                # This check must come after the check for np.timedelta64
-                # as is_integer returns True for these
-                maybe_integer_op_deprecated(self)
-                result = self._time_shift(other)
+        # array-like others
+        elif is_timedelta64_dtype(other):
+            # TimedeltaIndex, ndarray[timedelta64]
+            result = self._add_delta(other)
+        elif is_offsetlike(other):
+            # Array/Index of DateOffset objects
+            result = self._addsub_offset_array(other, operator.add)
+        elif is_datetime64_dtype(other) or is_datetime64tz_dtype(other):
+            # DatetimeIndex, ndarray[datetime64]
+            return self._add_datetime_arraylike(other)
+        elif is_integer_dtype(other):
+            maybe_integer_op_deprecated(self)
+            result = self._addsub_int_array(other, operator.add)
+        elif is_float_dtype(other):
+            # Explicitly catch invalid dtypes
+            raise TypeError("cannot add {dtype}-dtype to {cls}"
+                            .format(dtype=other.dtype,
+                                    cls=type(self).__name__))
+        elif is_period_dtype(other):
+            # if self is a TimedeltaArray and other is a PeriodArray with
+            #  a timedelta-like (i.e. Tick) freq, this operation is valid.
+            #  Defer to the PeriodArray implementation.
+            # In remaining cases, this will end up raising TypeError.
+            return NotImplemented
+        elif is_extension_array_dtype(other):
+            # Categorical op will raise; defer explicitly
+            return NotImplemented
+        else:  # pragma: no cover
+            return NotImplemented
 
-            # array-like others
-            elif is_timedelta64_dtype(other):
-                # TimedeltaIndex, ndarray[timedelta64]
-                result = self._add_delta(other)
-            elif is_offsetlike(other):
-                # Array/Index of DateOffset objects
-                result = self._addsub_offset_array(other, operator.add)
-            elif is_datetime64_dtype(other) or is_datetime64tz_dtype(other):
-                # DatetimeIndex, ndarray[datetime64]
-                return self._add_datetime_arraylike(other)
-            elif is_integer_dtype(other):
-                maybe_integer_op_deprecated(self)
-                result = self._addsub_int_array(other, operator.add)
-            elif is_float_dtype(other):
-                # Explicitly catch invalid dtypes
-                raise TypeError("cannot add {dtype}-dtype to {cls}"
-                                .format(dtype=other.dtype,
-                                        cls=type(self).__name__))
-            elif is_period_dtype(other):
-                # if self is a TimedeltaArray and other is a PeriodArray with
-                #  a timedelta-like (i.e. Tick) freq, this operation is valid.
-                #  Defer to the PeriodArray implementation.
-                # In remaining cases, this will end up raising TypeError.
-                return NotImplemented
-            elif is_extension_array_dtype(other):
-                # Categorical op will raise; defer explicitly
-                return NotImplemented
-            else:  # pragma: no cover
-                return NotImplemented
+        if is_timedelta64_dtype(result) and isinstance(result, np.ndarray):
+            from pandas.core.arrays import TimedeltaArrayMixin
+            # TODO: infer freq?
+            return TimedeltaArrayMixin(result)
+        return result
 
-            if is_timedelta64_dtype(result) and isinstance(result, np.ndarray):
-                from pandas.core.arrays import TimedeltaArrayMixin
-                # TODO: infer freq?
-                return TimedeltaArrayMixin(result)
-            return result
+    def __radd__(self, other):
+        # alias for __add__
+        return self.__add__(other)
 
-        cls.__add__ = __add__
+    def __sub__(self, other):
+        other = lib.item_from_zerodim(other)
+        if isinstance(other, (ABCSeries, ABCDataFrame)):
+            return NotImplemented
 
-        def __radd__(self, other):
-            # alias for __add__
-            return self.__add__(other)
-        cls.__radd__ = __radd__
+        # scalar others
+        elif other is NaT:
+            result = self._sub_nat()
+        elif isinstance(other, (Tick, timedelta, np.timedelta64)):
+            result = self._add_delta(-other)
+        elif isinstance(other, DateOffset):
+            # specifically _not_ a Tick
+            result = self._add_offset(-other)
+        elif isinstance(other, (datetime, np.datetime64)):
+            result = self._sub_datetimelike_scalar(other)
+        elif lib.is_integer(other):
+            # This check must come after the check for np.timedelta64
+            # as is_integer returns True for these
+            maybe_integer_op_deprecated(self)
+            result = self._time_shift(-other)
 
-        def __sub__(self, other):
-            other = lib.item_from_zerodim(other)
-            if isinstance(other, (ABCSeries, ABCDataFrame)):
-                return NotImplemented
+        elif isinstance(other, Period):
+            result = self._sub_period(other)
 
-            # scalar others
-            elif other is NaT:
-                result = self._sub_nat()
-            elif isinstance(other, (Tick, timedelta, np.timedelta64)):
-                result = self._add_delta(-other)
-            elif isinstance(other, DateOffset):
-                # specifically _not_ a Tick
-                result = self._add_offset(-other)
-            elif isinstance(other, (datetime, np.datetime64)):
-                result = self._sub_datetimelike_scalar(other)
-            elif lib.is_integer(other):
-                # This check must come after the check for np.timedelta64
-                # as is_integer returns True for these
-                maybe_integer_op_deprecated(self)
-                result = self._time_shift(-other)
+        # array-like others
+        elif is_timedelta64_dtype(other):
+            # TimedeltaIndex, ndarray[timedelta64]
+            result = self._add_delta(-other)
+        elif is_offsetlike(other):
+            # Array/Index of DateOffset objects
+            result = self._addsub_offset_array(other, operator.sub)
+        elif is_datetime64_dtype(other) or is_datetime64tz_dtype(other):
+            # DatetimeIndex, ndarray[datetime64]
+            result = self._sub_datetime_arraylike(other)
+        elif is_period_dtype(other):
+            # PeriodIndex
+            result = self._sub_period_array(other)
+        elif is_integer_dtype(other):
+            maybe_integer_op_deprecated(self)
+            result = self._addsub_int_array(other, operator.sub)
+        elif isinstance(other, ABCIndexClass):
+            raise TypeError("cannot subtract {cls} and {typ}"
+                            .format(cls=type(self).__name__,
+                                    typ=type(other).__name__))
+        elif is_float_dtype(other):
+            # Explicitly catch invalid dtypes
+            raise TypeError("cannot subtract {dtype}-dtype from {cls}"
+                            .format(dtype=other.dtype,
+                                    cls=type(self).__name__))
+        elif is_extension_array_dtype(other):
+            # Categorical op will raise; defer explicitly
+            return NotImplemented
+        else:  # pragma: no cover
+            return NotImplemented
 
-            elif isinstance(other, Period):
-                result = self._sub_period(other)
+        if is_timedelta64_dtype(result) and isinstance(result, np.ndarray):
+            from pandas.core.arrays import TimedeltaArrayMixin
+            # TODO: infer freq?
+            return TimedeltaArrayMixin(result)
+        return result
 
-            # array-like others
-            elif is_timedelta64_dtype(other):
-                # TimedeltaIndex, ndarray[timedelta64]
-                result = self._add_delta(-other)
-            elif is_offsetlike(other):
-                # Array/Index of DateOffset objects
-                result = self._addsub_offset_array(other, operator.sub)
-            elif is_datetime64_dtype(other) or is_datetime64tz_dtype(other):
-                # DatetimeIndex, ndarray[datetime64]
-                result = self._sub_datetime_arraylike(other)
-            elif is_period_dtype(other):
-                # PeriodIndex
-                result = self._sub_period_array(other)
-            elif is_integer_dtype(other):
-                maybe_integer_op_deprecated(self)
-                result = self._addsub_int_array(other, operator.sub)
-            elif isinstance(other, ABCIndexClass):
-                raise TypeError("cannot subtract {cls} and {typ}"
-                                .format(cls=type(self).__name__,
-                                        typ=type(other).__name__))
-            elif is_float_dtype(other):
-                # Explicitly catch invalid dtypes
-                raise TypeError("cannot subtract {dtype}-dtype from {cls}"
-                                .format(dtype=other.dtype,
-                                        cls=type(self).__name__))
-            elif is_extension_array_dtype(other):
-                # Categorical op will raise; defer explicitly
-                return NotImplemented
-            else:  # pragma: no cover
-                return NotImplemented
+    def __rsub__(self, other):
+        if is_datetime64_dtype(other) and is_timedelta64_dtype(self):
+            # ndarray[datetime64] cannot be subtracted from self, so
+            # we need to wrap in DatetimeArray/Index and flip the operation
+            if not isinstance(other, DatetimeLikeArrayMixin):
+                # Avoid down-casting DatetimeIndex
+                from pandas.core.arrays import DatetimeArrayMixin
+                other = DatetimeArrayMixin(other)
+            return other - self
+        elif (is_datetime64_any_dtype(self) and hasattr(other, 'dtype') and
+              not is_datetime64_any_dtype(other)):
+            # GH#19959 datetime - datetime is well-defined as timedelta,
+            # but any other type - datetime is not well-defined.
+            raise TypeError("cannot subtract {cls} from {typ}"
+                            .format(cls=type(self).__name__,
+                                    typ=type(other).__name__))
+        elif is_period_dtype(self) and is_timedelta64_dtype(other):
+            # TODO: Can we simplify/generalize these cases at all?
+            raise TypeError("cannot subtract {cls} from {dtype}"
+                            .format(cls=type(self).__name__,
+                                    dtype=other.dtype))
+        return -(self - other)
 
-            if is_timedelta64_dtype(result) and isinstance(result, np.ndarray):
-                from pandas.core.arrays import TimedeltaArrayMixin
-                # TODO: infer freq?
-                return TimedeltaArrayMixin(result)
-            return result
+    # FIXME: DTA/TDA/PA inplace methods should actually be inplace, GH#24115
+    def __iadd__(self, other):
+        # alias for __add__
+        return self.__add__(other)
 
-        cls.__sub__ = __sub__
-
-        def __rsub__(self, other):
-            if is_datetime64_dtype(other) and is_timedelta64_dtype(self):
-                # ndarray[datetime64] cannot be subtracted from self, so
-                # we need to wrap in DatetimeArray/Index and flip the operation
-                if not isinstance(other, DatetimeLikeArrayMixin):
-                    # Avoid down-casting DatetimeIndex
-                    from pandas.core.arrays import DatetimeArrayMixin
-                    other = DatetimeArrayMixin(other)
-                return other - self
-            elif (is_datetime64_any_dtype(self) and hasattr(other, 'dtype') and
-                  not is_datetime64_any_dtype(other)):
-                # GH#19959 datetime - datetime is well-defined as timedelta,
-                # but any other type - datetime is not well-defined.
-                raise TypeError("cannot subtract {cls} from {typ}"
-                                .format(cls=type(self).__name__,
-                                        typ=type(other).__name__))
-            elif is_period_dtype(self) and is_timedelta64_dtype(other):
-                # TODO: Can we simplify/generalize these cases at all?
-                raise TypeError("cannot subtract {cls} from {dtype}"
-                                .format(cls=type(self).__name__,
-                                        dtype=other.dtype))
-            return -(self - other)
-        cls.__rsub__ = __rsub__
-
-        def __iadd__(self, other):
-            # alias for __add__
-            return self.__add__(other)
-        cls.__iadd__ = __iadd__
-
-        def __isub__(self, other):
-            # alias for __sub__
-            return self.__sub__(other)
-        cls.__isub__ = __isub__
+    def __isub__(self, other):
+        # alias for __sub__
+        return self.__sub__(other)
 
     # --------------------------------------------------------------
     # Comparison Methods
@@ -1059,6 +1078,41 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin, AttributesMixin):
 
         result[mask] = filler
         return result
+
+    def _ensure_localized(self, arg, ambiguous='raise', nonexistent='raise',
+                          from_utc=False):
+        """
+        Ensure that we are re-localized.
+
+        This is for compat as we can then call this on all datetimelike
+        arrays generally (ignored for Period/Timedelta)
+
+        Parameters
+        ----------
+        arg : Union[DatetimeLikeArray, DatetimeIndexOpsMixin, ndarray]
+        ambiguous : str, bool, or bool-ndarray, default 'raise'
+        nonexistent : str, default 'raise'
+        from_utc : bool, default False
+            If True, localize the i8 ndarray to UTC first before converting to
+            the appropriate tz. If False, localize directly to the tz.
+
+        Returns
+        -------
+        localized array
+        """
+
+        # reconvert to local tz
+        tz = getattr(self, 'tz', None)
+        if tz is not None:
+            if not isinstance(arg, type(self)):
+                arg = self._simple_new(arg)
+            if from_utc:
+                arg = arg.tz_localize('UTC').tz_convert(self.tz)
+            else:
+                arg = arg.tz_localize(
+                    self.tz, ambiguous=ambiguous, nonexistent=nonexistent
+                )
+        return arg
 
 
 DatetimeLikeArrayMixin._add_comparison_ops()
@@ -1127,6 +1181,41 @@ def validate_endpoints(closed):
     return left_closed, right_closed
 
 
+def validate_inferred_freq(freq, inferred_freq, freq_infer):
+    """
+    If the user passes a freq and another freq is inferred from passed data,
+    require that they match.
+
+    Parameters
+    ----------
+    freq : DateOffset or None
+    inferred_freq : DateOffset or None
+    freq_infer : bool
+
+    Returns
+    -------
+    freq : DateOffset or None
+    freq_infer : bool
+
+    Notes
+    -----
+    We assume at this point that `maybe_infer_freq` has been called, so
+    `freq` is either a DateOffset object or None.
+    """
+    if inferred_freq is not None:
+        if freq is not None and freq != inferred_freq:
+            raise ValueError('Inferred frequency {inferred} from passed '
+                             'values does not conform to passed frequency '
+                             '{passed}'
+                             .format(inferred=inferred_freq,
+                                     passed=freq.freqstr))
+        elif freq is None:
+            freq = inferred_freq
+        freq_infer = False
+
+    return freq, freq_infer
+
+
 def maybe_infer_freq(freq):
     """
     Comparing a DateOffset to the string "infer" raises, so we need to
@@ -1152,73 +1241,6 @@ def maybe_infer_freq(freq):
             freq_infer = True
             freq = None
     return freq, freq_infer
-
-
-def validate_tz_from_dtype(dtype, tz):
-    """
-    If the given dtype is a DatetimeTZDtype, extract the implied
-    tzinfo object from it and check that it does not conflict with the given
-    tz.
-
-    Parameters
-    ----------
-    dtype : dtype, str
-    tz : None, tzinfo
-
-    Returns
-    -------
-    tz : consensus tzinfo
-
-    Raises
-    ------
-    ValueError : on tzinfo mismatch
-    """
-    if dtype is not None:
-        try:
-            dtype = DatetimeTZDtype.construct_from_string(dtype)
-            dtz = getattr(dtype, 'tz', None)
-            if dtz is not None:
-                if tz is not None and not timezones.tz_compare(tz, dtz):
-                    raise ValueError("cannot supply both a tz and a dtype"
-                                     " with a tz")
-                tz = dtz
-        except TypeError:
-            pass
-    return tz
-
-
-def validate_dtype_freq(dtype, freq):
-    """
-    If both a dtype and a freq are available, ensure they match.  If only
-    dtype is available, extract the implied freq.
-
-    Parameters
-    ----------
-    dtype : dtype
-    freq : DateOffset or None
-
-    Returns
-    -------
-    freq : DateOffset
-
-    Raises
-    ------
-    ValueError : non-period dtype
-    IncompatibleFrequency : mismatch between dtype and freq
-    """
-    if freq is not None:
-        freq = frequencies.to_offset(freq)
-
-    if dtype is not None:
-        dtype = pandas_dtype(dtype)
-        if not is_period_dtype(dtype):
-            raise ValueError('dtype must be PeriodDtype')
-        if freq is None:
-            freq = dtype.freq
-        elif freq != dtype.freq:
-            raise IncompatibleFrequency('specified freq and dtype '
-                                        'are different')
-    return freq
 
 
 def _ensure_datetimelike_to_i8(other, to_utc=False):

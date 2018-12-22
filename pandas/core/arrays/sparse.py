@@ -631,8 +631,8 @@ class SparseArray(PandasObject, ExtensionArray, ExtensionOpsMixin):
         if not is_array_like(data):
             try:
                 # probably shared code in sanitize_series
-                from pandas.core.series import _sanitize_array
-                data = _sanitize_array(data, index=None)
+                from pandas.core.internals.construction import sanitize_array
+                data = sanitize_array(data, index=None)
             except ValueError:
                 # NumPy may raise a ValueError on data like [1, []]
                 # we retry with object dtype here.
@@ -706,6 +706,8 @@ class SparseArray(PandasObject, ExtensionArray, ExtensionOpsMixin):
 
     def __setitem__(self, key, value):
         # I suppose we could allow setting of non-fill_value elements.
+        # TODO(SparseArray.__setitem__): remove special cases in
+        # ExtensionBlock.where
         msg = "SparseArray does not support item assignment via setitem"
         raise TypeError(msg)
 
@@ -889,7 +891,7 @@ class SparseArray(PandasObject, ExtensionArray, ExtensionOpsMixin):
 
     def shift(self, periods=1):
 
-        if periods == 0:
+        if not len(self) or periods == 0:
             return self.copy()
 
         subtype = np.result_type(np.nan, self.dtype.subtype)
@@ -900,8 +902,11 @@ class SparseArray(PandasObject, ExtensionArray, ExtensionOpsMixin):
         else:
             arr = self
 
-        empty = self._from_sequence([self.dtype.na_value] * abs(periods),
-                                    dtype=arr.dtype)
+        empty = self._from_sequence(
+            [self.dtype.na_value] * min(abs(periods), len(self)),
+            dtype=arr.dtype
+        )
+
         if periods > 0:
             a = empty
             b = arr[:-periods]
@@ -1745,6 +1750,11 @@ class SparseArray(PandasObject, ExtensionArray, ExtensionOpsMixin):
             self=printing.pprint_thing(self),
             fill=printing.pprint_thing(self.fill_value),
             index=printing.pprint_thing(self.sp_index))
+
+    def _formatter(self, boxed=False):
+        # Defer to the formatter from the GenericArrayFormatter calling us.
+        # This will infer the correct formatter from the dtype of the values.
+        return None
 
 
 SparseArray._add_arithmetic_ops()

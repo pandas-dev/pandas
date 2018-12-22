@@ -32,11 +32,11 @@ def test_truncate():
     major_axis = Index(lrange(4))
     minor_axis = Index(lrange(2))
 
-    major_labels = np.array([0, 0, 1, 2, 3, 3])
-    minor_labels = np.array([0, 1, 0, 1, 0, 1])
+    major_codes = np.array([0, 0, 1, 2, 3, 3])
+    minor_codes = np.array([0, 1, 0, 1, 0, 1])
 
     index = MultiIndex(levels=[major_axis, minor_axis],
-                       labels=[major_labels, minor_labels])
+                       codes=[major_codes, minor_codes])
 
     result = index.truncate(before=1)
     assert 'foo' not in result.levels[0]
@@ -56,10 +56,8 @@ def test_truncate():
 def test_where():
     i = MultiIndex.from_tuples([('A', 1), ('A', 2)])
 
-    def f():
+    with pytest.raises(NotImplementedError):
         i.where(True)
-
-    pytest.raises(NotImplementedError, f)
 
 
 def test_where_array_like():
@@ -68,9 +66,9 @@ def test_where_array_like():
     cond = [False, True]
 
     for klass in klasses:
-        def f():
-            return i.where(klass(cond))
-        pytest.raises(NotImplementedError, f)
+        with pytest.raises(NotImplementedError):
+            i.where(klass(cond))
+
 
 # TODO: reshape
 
@@ -282,13 +280,13 @@ def test_numpy_ufuncs(func):
     # parameters and fixtures at the same time.
     major_axis = Index(['foo', 'bar', 'baz', 'qux'])
     minor_axis = Index(['one', 'two'])
-    major_labels = np.array([0, 0, 1, 2, 3, 3])
-    minor_labels = np.array([0, 1, 0, 1, 0, 1])
+    major_codes = np.array([0, 0, 1, 2, 3, 3])
+    minor_codes = np.array([0, 1, 0, 1, 0, 1])
     index_names = ['first', 'second']
 
     idx = MultiIndex(
         levels=[major_axis, minor_axis],
-        labels=[major_labels, minor_labels],
+        codes=[major_codes, minor_codes],
         names=index_names,
         verify_integrity=False
     )
@@ -307,13 +305,13 @@ def test_numpy_type_funcs(func):
     # parameters and fixtures at the same time.
     major_axis = Index(['foo', 'bar', 'baz', 'qux'])
     minor_axis = Index(['one', 'two'])
-    major_labels = np.array([0, 0, 1, 2, 3, 3])
-    minor_labels = np.array([0, 1, 0, 1, 0, 1])
+    major_codes = np.array([0, 0, 1, 2, 3, 3])
+    minor_codes = np.array([0, 1, 0, 1, 0, 1])
     index_names = ['first', 'second']
 
     idx = MultiIndex(
         levels=[major_axis, minor_axis],
-        labels=[major_labels, minor_labels],
+        codes=[major_codes, minor_codes],
         names=index_names,
         verify_integrity=False
     )

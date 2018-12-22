@@ -1106,6 +1106,38 @@ class TestArithmetic(object):
         with pytest.raises(period.IncompatibleFrequency, match=msg):
             per1 - Period('2011-02', freq='M')
 
+    @pytest.mark.parametrize('n', [1, 2, 3, 4])
+    def test_sub_n_gt_1_ticks(self, tick_classes, n):
+        # GH 23878
+        p1 = pd.Period('19910905', freq=tick_classes(n))
+        p2 = pd.Period('19920406', freq=tick_classes(n))
+
+        expected = (pd.Period(str(p2), freq=p2.freq.base)
+                    - pd.Period(str(p1), freq=p1.freq.base))
+
+        assert (p2 - p1) == expected
+
+    @pytest.mark.parametrize('normalize', [True, False])
+    @pytest.mark.parametrize('n', [1, 2, 3, 4])
+    @pytest.mark.parametrize('offset, kwd_name', [
+        (pd.offsets.YearEnd, 'month'),
+        (pd.offsets.QuarterEnd, 'startingMonth'),
+        (pd.offsets.MonthEnd, None),
+        (pd.offsets.Week, 'weekday')
+    ])
+    def test_sub_n_gt_1_offsets(self, offset, kwd_name, n, normalize):
+        # GH 23878
+        kwds = {kwd_name: 3} if kwd_name is not None else {}
+        p1_d = '19910905'
+        p2_d = '19920406'
+        p1 = pd.Period(p1_d, freq=offset(n, normalize, **kwds))
+        p2 = pd.Period(p2_d, freq=offset(n, normalize, **kwds))
+
+        expected = (pd.Period(p2_d, freq=p2.freq.base)
+                    - pd.Period(p1_d, freq=p1.freq.base))
+
+        assert (p2 - p1) == expected
+
     def test_add_offset(self):
         # freq is DateOffset
         for freq in ['A', '2A', '3A']:

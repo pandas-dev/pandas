@@ -164,6 +164,14 @@ class BaseMethodsTests(BaseExtensionTests):
             orig_data1._from_sequence([a + val for a in list(orig_data1)]))
         self.assert_series_equal(result, expected)
 
+    def test_combine_first(self, data):
+        # https://github.com/pandas-dev/pandas/issues/24147
+        a = pd.Series(data[:3])
+        b = pd.Series(data[2:5], index=[2, 3, 4])
+        result = a.combine_first(b)
+        expected = pd.Series(data[:5])
+        self.assert_series_equal(result, expected)
+
     @pytest.mark.parametrize('frame', [True, False])
     @pytest.mark.parametrize('periods, indices', [
         (-2, [2, 3, 4, -1, -1]),
@@ -189,6 +197,30 @@ class BaseMethodsTests(BaseExtensionTests):
 
         compare(result, expected)
 
+    @pytest.mark.parametrize('periods, indices', [
+        [-4, [-1, -1]],
+        [-1, [1, -1]],
+        [0, [0, 1]],
+        [1, [-1, 0]],
+        [4, [-1, -1]]
+    ])
+    def test_shift_non_empty_array(self, data, periods, indices):
+        # https://github.com/pandas-dev/pandas/issues/23911
+        subset = data[:2]
+        result = subset.shift(periods)
+        expected = subset.take(indices, allow_fill=True)
+        self.assert_extension_array_equal(result, expected)
+
+    @pytest.mark.parametrize('periods', [
+        -4, -1, 0, 1, 4
+    ])
+    def test_shift_empty_array(self, data, periods):
+        # https://github.com/pandas-dev/pandas/issues/23911
+        empty = data[:0]
+        result = empty.shift(periods)
+        expected = empty
+        self.assert_extension_array_equal(result, expected)
+
     @pytest.mark.parametrize("as_frame", [True, False])
     def test_hash_pandas_object_works(self, data, as_frame):
         # https://github.com/pandas-dev/pandas/issues/23066
@@ -198,3 +230,68 @@ class BaseMethodsTests(BaseExtensionTests):
         a = pd.util.hash_pandas_object(data)
         b = pd.util.hash_pandas_object(data)
         self.assert_equal(a, b)
+
+    @pytest.mark.parametrize("as_frame", [True, False])
+    def test_where_series(self, data, na_value, as_frame):
+        assert data[0] != data[1]
+        cls = type(data)
+        a, b = data[:2]
+
+        ser = pd.Series(cls._from_sequence([a, a, b, b], dtype=data.dtype))
+        cond = np.array([True, True, False, False])
+
+        if as_frame:
+            ser = ser.to_frame(name='a')
+            cond = cond.reshape(-1, 1)
+
+        result = ser.where(cond)
+        expected = pd.Series(cls._from_sequence([a, a, na_value, na_value],
+                                                dtype=data.dtype))
+
+        if as_frame:
+            expected = expected.to_frame(name='a')
+        self.assert_equal(result, expected)
+
+        # array other
+        cond = np.array([True, False, True, True])
+        other = cls._from_sequence([a, b, a, b], dtype=data.dtype)
+        if as_frame:
+            other = pd.DataFrame({"a": other})
+            cond = pd.DataFrame({"a": cond})
+        result = ser.where(cond, other)
+        expected = pd.Series(cls._from_sequence([a, b, b, b],
+                                                dtype=data.dtype))
+        if as_frame:
+            expected = expected.to_frame(name='a')
+        self.assert_equal(result, expected)
+
+    @pytest.mark.parametrize("as_series", [True, False])
+    @pytest.mark.parametrize("repeats", [0, 1, 2])
+    def test_repeat(self, data, repeats, as_series):
+        a, b, c = data[:3]
+        arr = type(data)._from_sequence([a, b, c], dtype=data.dtype)
+
+        if as_series:
+            arr = pd.Series(arr)
+
+        result = arr.repeat(repeats)
+
+        if repeats == 0:
+            expected = []
+        elif repeats == 1:
+            expected = [a, b, c]
+        else:
+            expected = [a, a, b, b, c, c]
+        expected = type(data)._from_sequence(expected, dtype=data.dtype)
+        if as_series:
+            index = pd.Series(np.arange(len(arr))).repeat(repeats).index
+            expected = pd.Series(expected, index=index)
+        self.assert_equal(result, expected)
+
+    def test_repeat_raises(self, data):
+        with pytest.raises(ValueError, match="'axis'"):
+            data.repeat(2, axis=1)
+
+        with pytest.raises(ValueError,
+                           match="negative"):
+            data.repeat(-1)

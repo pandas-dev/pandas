@@ -47,10 +47,12 @@ class ExtensionArray(object):
     * copy
     * _concat_same_type
 
-    An additional method is available to satisfy pandas' internal,
-    private block API.
+    A default repr displaying the type, (truncated) data, length,
+    and dtype is provided. It can be customized or replaced by
+    by overriding:
 
-    * _formatting_values
+    * __repr__ : A default repr for the ExtensionArray.
+    * _formatter : Print scalars inside a Series or DataFrame.
 
     Some methods require casting the ExtensionArray to an ndarray of Python
     objects with ``self.astype(object)``, which may be expensive. When
@@ -218,6 +220,8 @@ class ExtensionArray(object):
         #   example, a string like '2018-01-01' is coerced to a datetime
         #   when setting on a datetime64ns array. In general, if the
         #   __init__ method coerces that value, then so should __setitem__
+        # Note, also, that Series/DataFrame.where internally use __setitem__
+        # on a copy of the data.
         raise NotImplementedError(_not_implemented_message.format(
             type(self), '__setitem__')
         )
@@ -440,7 +444,6 @@ class ExtensionArray(object):
         -------
         valid : ExtensionArray
         """
-
         return self[~self.isna()]
 
     def shift(self, periods=1):
@@ -462,13 +465,25 @@ class ExtensionArray(object):
         Returns
         -------
         shifted : ExtensionArray
+
+        Notes
+        -----
+        If ``self`` is empty or ``periods`` is 0, a copy of ``self`` is
+        returned.
+
+        If ``periods > len(self)``, then an array of size
+        len(self) is returned, with all values filled with
+        ``self.dtype.na_value``.
         """
         # Note: this implementation assumes that `self.dtype.na_value` can be
         # stored in an instance of your ExtensionArray with `self.dtype`.
-        if periods == 0:
+        if not len(self) or periods == 0:
             return self.copy()
-        empty = self._from_sequence([self.dtype.na_value] * abs(periods),
-                                    dtype=self.dtype)
+
+        empty = self._from_sequence(
+            [self.dtype.na_value] * min(abs(periods), len(self)),
+            dtype=self.dtype
+        )
         if periods > 0:
             a = empty
             b = self[:-periods]
@@ -564,6 +579,35 @@ class ExtensionArray(object):
 
         uniques = self._from_factorized(uniques, self)
         return labels, uniques
+
+    def repeat(self, repeats, axis=None):
+        """
+        Repeat elements of an array.
+
+        .. versionadded:: 0.24.0
+
+        Parameters
+        ----------
+        repeats : int
+            This should be a non-negative integer. Repeating 0 times
+            will return an empty array.
+
+        Returns
+        -------
+        repeated_array : ExtensionArray
+            Same type as the input, with elements repeated `repeats` times.
+
+        See Also
+        --------
+        numpy.repeat : Similar method for :class:`numpy.ndarray`.
+        ExtensionArray.take : Take arbitrary positions.
+        """
+        if axis is not None:
+            raise ValueError("'axis' must be None.")
+        if repeats < 0:
+            raise ValueError("negative repeats are not allowed.")
+        ind = np.arange(len(self)).repeat(repeats)
+        return self.take(ind)
 
     # ------------------------------------------------------------------------
     # Indexing methods
@@ -676,16 +720,69 @@ class ExtensionArray(object):
         raise AbstractMethodError(self)
 
     # ------------------------------------------------------------------------
-    # Block-related methods
+    # Printing
     # ------------------------------------------------------------------------
+    def __repr__(self):
+        from pandas.io.formats.printing import format_object_summary
+
+        template = (
+            u'{class_name}'
+            u'{data}\n'
+            u'Length: {length}, dtype: {dtype}'
+        )
+        # the short repr has no trailing newline, while the truncated
+        # repr does. So we include a newline in our template, and strip
+        # any trailing newlines from format_object_summary
+        data = format_object_summary(self, self._formatter(),
+                                     indent_for_name=False).rstrip(', \n')
+        class_name = u'<{}>\n'.format(self.__class__.__name__)
+        return template.format(class_name=class_name, data=data,
+                               length=len(self),
+                               dtype=self.dtype)
+
+    def _formatter(self, boxed=False):
+        # type: (bool) -> Callable[[Any], Optional[str]]
+        """Formatting function for scalar values.
+
+        This is used in the default '__repr__'. The returned formatting
+        function receives instances of your scalar type.
+
+        Parameters
+        ----------
+        boxed: bool, default False
+            An indicated for whether or not your array is being printed
+            within a Series, DataFrame, or Index (True), or just by
+            itself (False). This may be useful if you want scalar values
+            to appear differently within a Series versus on its own (e.g.
+            quoted or not).
+
+        Returns
+        -------
+        Callable[[Any], str]
+            A callable that gets instances of the scalar type and
+            returns a string. By default, :func:`repr` is used
+            when ``boxed=False`` and :func:`str` is used when
+            ``boxed=True``.
+        """
+        if boxed:
+            return str
+        return repr
 
     def _formatting_values(self):
         # type: () -> np.ndarray
         # At the moment, this has to be an array since we use result.dtype
         """
         An array of values to be printed in, e.g. the Series repr
+
+        .. deprecated:: 0.24.0
+
+           Use :meth:`ExtensionArray._formatter` instead.
         """
         return np.array(self)
+
+    # ------------------------------------------------------------------------
+    # Reshaping
+    # ------------------------------------------------------------------------
 
     @classmethod
     def _concat_same_type(cls, to_concat):

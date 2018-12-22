@@ -1,5 +1,6 @@
-.. currentmodule:: pandas
 .. _compare_with_sas:
+
+{{ header }}
 
 Comparison with SAS
 ********************
@@ -363,7 +364,7 @@ String Processing
 Length
 ~~~~~~
 
-SAS determines the length of a character string with the 
+SAS determines the length of a character string with the
 `LENGTHN <https://support.sas.com/documentation/cdl/en/lrdict/64316/HTML/default/viewer.htm#a002284668.htm>`__
 and `LENGTHC <https://support.sas.com/documentation/cdl/en/lrdict/64316/HTML/default/viewer.htm#a002283942.htm>`__
 functions. ``LENGTHN`` excludes trailing blanks and ``LENGTHC`` includes trailing blanks.
@@ -377,7 +378,7 @@ functions. ``LENGTHN`` excludes trailing blanks and ``LENGTHC`` includes trailin
    run;
 
 Python determines the length of a character string with the ``len`` function.
-``len`` includes trailing blanks.  Use ``len`` and ``rstrip`` to exclude 
+``len`` includes trailing blanks.  Use ``len`` and ``rstrip`` to exclude
 trailing blanks.
 
 .. ipython:: python
@@ -389,9 +390,9 @@ trailing blanks.
 Find
 ~~~~
 
-SAS determines the position of a character in a string with the 
+SAS determines the position of a character in a string with the
 `FINDW <https://support.sas.com/documentation/cdl/en/lrdict/64316/HTML/default/viewer.htm#a002978282.htm>`__ function.
-``FINDW`` takes the string defined by the first argument and searches for the first position of the substring 
+``FINDW`` takes the string defined by the first argument and searches for the first position of the substring
 you supply as the second argument.
 
 .. code-block:: sas
@@ -401,10 +402,10 @@ you supply as the second argument.
    put(FINDW(sex,'ale'));
    run;
 
-Python determines the position of a character in a string with the 
-``find`` function.  ``find`` searches for the first position of the 
-substring.  If the substring is found, the function returns its 
-position.  Keep in mind that Python indexes are zero-based and 
+Python determines the position of a character in a string with the
+``find`` function.  ``find`` searches for the first position of the
+substring.  If the substring is found, the function returns its
+position.  Keep in mind that Python indexes are zero-based and
 the function will return -1 if it fails to find the substring.
 
 .. ipython:: python
@@ -415,7 +416,7 @@ the function will return -1 if it fails to find the substring.
 Substring
 ~~~~~~~~~
 
-SAS extracts a substring from a string based on its position with the 
+SAS extracts a substring from a string based on its position with the
 `SUBSTR <https://www2.sas.com/proceedings/sugi25/25/cc/25p088.pdf>`__ function.
 
 .. code-block:: sas
@@ -426,7 +427,7 @@ SAS extracts a substring from a string based on its position with the
    run;
 
 With pandas you can use ``[]`` notation to extract a substring
-from a string by position locations.  Keep in mind that Python 
+from a string by position locations.  Keep in mind that Python
 indexes are zero-based.
 
 .. ipython:: python
@@ -438,7 +439,7 @@ Scan
 ~~~~
 
 The SAS `SCAN <https://support.sas.com/documentation/cdl/en/lrdict/64316/HTML/default/viewer.htm#a000214639.htm>`__
-function returns the nth word from a string. The first argument is the string you want to parse and the 
+function returns the nth word from a string. The first argument is the string you want to parse and the
 second argument specifies which word you want to extract.
 
 .. code-block:: sas
@@ -451,10 +452,10 @@ second argument specifies which word you want to extract.
    John Smith;
    Jane Cook;
    ;;;
-   run;   
+   run;
 
-Python extracts a substring from a string based on its text 
-by using regular expressions. There are much more powerful 
+Python extracts a substring from a string based on its text
+by using regular expressions. There are much more powerful
 approaches, but this just shows a simple approach.
 
 .. ipython:: python
