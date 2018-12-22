@@ -14,7 +14,7 @@ from pandas._libs.tslibs.timestamps import (
 import pandas.compat as compat
 from pandas.errors import (
     AbstractMethodError, NullFrequencyError, PerformanceWarning)
-from pandas.util._decorators import Appender, deprecate_kwarg
+from pandas.util._decorators import Appender, Substitution, deprecate_kwarg
 
 from pandas.core.dtypes.common import (
     is_bool_dtype, is_datetime64_any_dtype, is_datetime64_dtype,
@@ -86,43 +86,45 @@ class DatelikeOps(object):
     Common ops for DatetimeIndex/PeriodIndex, but not TimedeltaIndex.
     """
 
+    @Substitution(URL="https://docs.python.org/3/library/datetime.html"
+                      "#strftime-and-strptime-behavior")
     def strftime(self, date_format):
+        """
+        Convert to Index using specified date_format.
+
+        Return an Index of formatted strings specified by date_format, which
+        supports the same string format as the python standard library. Details
+        of the string format can be found in `python string format
+        doc <{URL}>`__
+
+        Parameters
+        ----------
+        date_format : str
+            Date format string (e.g. "%Y-%m-%d").
+
+        Returns
+        -------
+        Index
+            Index of formatted strings
+
+        See Also
+        --------
+        to_datetime : Convert the given argument to datetime.
+        DatetimeIndex.normalize : Return DatetimeIndex with times to midnight.
+        DatetimeIndex.round : Round the DatetimeIndex to the specified freq.
+        DatetimeIndex.floor : Floor the DatetimeIndex to the specified freq.
+
+        Examples
+        --------
+        >>> rng = pd.date_range(pd.Timestamp("2018-03-10 09:00"),
+        ...                     periods=3, freq='s')
+        >>> rng.strftime('%B %d, %Y, %r')
+        Index(['March 10, 2018, 09:00:00 AM', 'March 10, 2018, 09:00:01 AM',
+               'March 10, 2018, 09:00:02 AM'],
+              dtype='object')
+        """
         from pandas import Index
         return Index(self._format_native_types(date_format=date_format))
-    strftime.__doc__ = """
-    Convert to Index using specified date_format.
-
-    Return an Index of formatted strings specified by date_format, which
-    supports the same string format as the python standard library. Details
-    of the string format can be found in `python string format doc <{0}>`__
-
-    Parameters
-    ----------
-    date_format : str
-        Date format string (e.g. "%Y-%m-%d").
-
-    Returns
-    -------
-    Index
-        Index of formatted strings
-
-    See Also
-    --------
-    to_datetime : Convert the given argument to datetime.
-    DatetimeIndex.normalize : Return DatetimeIndex with times to midnight.
-    DatetimeIndex.round : Round the DatetimeIndex to the specified freq.
-    DatetimeIndex.floor : Floor the DatetimeIndex to the specified freq.
-
-    Examples
-    --------
-    >>> rng = pd.date_range(pd.Timestamp("2018-03-10 09:00"),
-    ...                     periods=3, freq='s')
-    >>> rng.strftime('%B %d, %Y, %r')
-    Index(['March 10, 2018, 09:00:00 AM', 'March 10, 2018, 09:00:01 AM',
-           'March 10, 2018, 09:00:02 AM'],
-          dtype='object')
-    """.format("https://docs.python.org/3/library/datetime.html"
-               "#strftime-and-strptime-behavior")
 
 
 class TimelikeOps(object):
