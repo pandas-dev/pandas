@@ -636,7 +636,7 @@ class Categorical(ExtensionArray, PandasObject):
             .. versionadded:: 0.24.0
         """
         dtype = CategoricalDtype._from_values_or_dtype(codes, categories,
-                                                       ordered)
+                                                       ordered, dtype)
 
         codes = np.asarray(codes)  # #21767
         if not is_integer_dtype(codes):
@@ -652,7 +652,7 @@ class Categorical(ExtensionArray, PandasObject):
                 raise ValueError(msg)
 
         try:
-            codes = coerce_indexer_dtype(codes, categories)
+            codes = coerce_indexer_dtype(codes, dtype.categories)
         except (ValueError, TypeError):
             raise ValueError(
                 "codes need to be convertible to an arrays of integers")
