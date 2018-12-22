@@ -95,12 +95,12 @@ class DatelikeOps(object):
         Return an Index of formatted strings specified by date_format, which
         supports the same string format as the python standard library. Details
         of the string format can be found in `python string format
-        doc <{URL}>`__
+        doc <%(URL)s>`__
 
         Parameters
         ----------
         date_format : str
-            Date format string (e.g. "%Y-%m-%d").
+            Date format string (e.g. "%%Y-%%m-%%d").
 
         Returns
         -------
@@ -118,7 +118,7 @@ class DatelikeOps(object):
         --------
         >>> rng = pd.date_range(pd.Timestamp("2018-03-10 09:00"),
         ...                     periods=3, freq='s')
-        >>> rng.strftime('%B %d, %Y, %r')
+        >>> rng.strftime('%%B %%d, %%Y, %%r')
         Index(['March 10, 2018, 09:00:00 AM', 'March 10, 2018, 09:00:01 AM',
                'March 10, 2018, 09:00:02 AM'],
               dtype='object')
