@@ -619,10 +619,10 @@ class Categorical(ExtensionArray, PandasObject):
         codes : array-like, integers
             An integer array, where each integer points to a category in
             categories or -1 for NaN
-        categories : index-like
+        categories : index-like, optional
             The categories for the categorical. Items need to be unique.
-        ordered : boolean, optional
-            Whether or not this categorical is treated as a ordered
+        ordered : bool, optional
+            Whether or not this categorical is treated as an ordered
             categorical. If not given, the resulting categorical will be
             unordered.
 
