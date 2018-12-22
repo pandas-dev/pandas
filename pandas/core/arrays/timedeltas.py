@@ -75,6 +75,7 @@ def _td_array_cmp(cls, op):
     meth = getattr(dtl.DatetimeLikeArrayMixin, opname)
 
     def wrapper(self, other):
+
         if _is_convertible_to_td(other) or other is NaT:
             try:
                 other = _to_m8(other)

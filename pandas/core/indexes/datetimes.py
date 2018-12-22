@@ -20,6 +20,7 @@ from pandas.core.dtypes.common import (
 import pandas.core.dtypes.concat as _concat
 from pandas.core.dtypes.missing import isna
 
+from pandas.core.arrays import ExtensionOpsMixin
 from pandas.core.arrays.datetimes import (
     DatetimeArrayMixin as DatetimeArray, _to_m8)
 from pandas.core.base import _shared_docs
@@ -61,7 +62,7 @@ def _new_DatetimeIndex(cls, d):
     return result
 
 
-class DatetimeIndex(DatetimeArray, DatetimeIndexOpsMixin, Int64Index):
+class DatetimeIndex(DatetimeIndexOpsMixin, Int64Index, ExtensionOpsMixin):
     """
     Immutable ndarray of datetime64 data, represented internally as int64, and
     which can be boxed to Timestamp objects that are subclasses of datetime and
@@ -205,6 +206,7 @@ class DatetimeIndex(DatetimeArray, DatetimeIndexOpsMixin, Int64Index):
     _object_ops = DatetimeArray._object_ops
     _field_ops = DatetimeArray._field_ops
     _datetimelike_ops = DatetimeArray._datetimelike_ops
+    _datetimelike_methods = DatetimeArray._datetimelike_methods
 
     # --------------------------------------------------------------------
     # Constructors
@@ -227,11 +229,12 @@ class DatetimeIndex(DatetimeArray, DatetimeIndexOpsMixin, Int64Index):
                           "endpoints is deprecated.  Use "
                           "`pandas.date_range` instead.",
                           FutureWarning, stacklevel=2)
-            result = cls._generate_range(start, end, periods,
-                                         freq=freq, tz=tz, normalize=normalize,
-                                         closed=closed, ambiguous=ambiguous)
-            result.name = name
-            return result
+            dtarr = DatetimeArray._generate_range(
+                start, end, periods,
+                freq=freq, tz=tz, normalize=normalize,
+                closed=closed, ambiguous=ambiguous)
+            return cls._simple_new(
+                dtarr._data, freq=dtarr.freq, tz=dtarr.tz, name=name)
 
         if is_scalar(data):
             raise TypeError("{cls}() must be called with a "
@@ -267,7 +270,11 @@ class DatetimeIndex(DatetimeArray, DatetimeIndexOpsMixin, Int64Index):
         # DatetimeArray._simple_new will accept either i8 or M8[ns] dtypes
         assert isinstance(values, np.ndarray), type(values)
 
-        result = super(DatetimeIndex, cls)._simple_new(values, freq, tz)
+        dtarr = DatetimeArray._simple_new(values, freq=freq, tz=tz)
+        result = object.__new__(cls)
+        result._data = dtarr._data
+        result._freq = dtarr.freq
+        result._tz = dtarr.tz
         result.name = name
         # For groupby perf. See note in indexes/base about _index_data
         result._index_data = result._data
@@ -280,6 +287,10 @@ class DatetimeIndex(DatetimeArray, DatetimeIndexOpsMixin, Int64Index):
     def _eadata(self):
         return DatetimeArray._simple_new(self._data, tz=self.tz,
                                          freq=self.freq)
+
+    @property
+    def dtype(self):
+        return self._eadata.dtype
 
     @property
     def _values(self):
@@ -300,6 +311,8 @@ class DatetimeIndex(DatetimeArray, DatetimeIndexOpsMixin, Int64Index):
         # GH 3746: Prevent localizing or converting the index by setting tz
         raise AttributeError("Cannot directly set timezone. Use tz_localize() "
                              "or tz_convert() as appropriate")
+
+    tzinfo = tz
 
     @property
     def size(self):
@@ -625,7 +638,7 @@ class DatetimeIndex(DatetimeArray, DatetimeIndexOpsMixin, Int64Index):
     def _get_time_micros(self):
         values = self.asi8
         if self.tz is not None and not timezones.is_utc(self.tz):
-            values = self._local_timestamps()
+            values = self._eadata._local_timestamps()
         return fields.get_time_micros(values)
 
     def to_series(self, keep_tz=None, index=None, name=None):
@@ -1138,6 +1151,97 @@ class DatetimeIndex(DatetimeArray, DatetimeIndexOpsMixin, Int64Index):
     month_name = wrap_array_method(DatetimeArray.month_name, True)
     day_name = wrap_array_method(DatetimeArray.day_name, True)
 
+    @property
+    def date(self):
+        return self._eadata.date
+
+    @property
+    def time(self):
+        return self._eadata.time
+
+    @property
+    def timetz(self):
+        return self._eadata.timetz
+
+    def strftime(self, date_format):
+        return self._eadata.strftime(date_format)
+
+    def round(self, freq, ambiguous='raise', nonexistent='raise'):
+        result = self._eadata.round(
+            freq, ambiguous=ambiguous, nonexistent=nonexistent)
+        return type(self)._simple_new(
+            result._data, freq=result.freq, tz=result.tz)
+
+    def floor(self, freq, ambiguous='raise', nonexistent='raise'):
+        result = self._eadata.floor(
+            freq, ambiguous=ambiguous, nonexistent=nonexistent)
+        return type(self)._simple_new(
+            result._data, freq=result.freq, tz=result.tz)
+
+    def ceil(self, freq, ambiguous='raise', nonexistent='raise'):
+        result = self._eadata.ceil(
+            freq, ambiguous=ambiguous, nonexistent=nonexistent)
+        return type(self)._simple_new(
+            result._data, freq=result.freq, tz=result.tz)
+
+    @property
+    def offset(self):
+        """
+        get/set the frequency of the instance
+        """
+        msg = ('{cls}.offset has been deprecated and will be removed '
+               'in a future version; use {cls}.freq instead.'
+               .format(cls=type(self).__name__))
+        warnings.warn(msg, FutureWarning, stacklevel=2)
+        return self.freq
+
+    @offset.setter
+    def offset(self, value):
+        """
+        get/set the frequency of the instance
+        """
+        msg = ('{cls}.offset has been deprecated and will be removed '
+               'in a future version; use {cls}.freq instead.'
+               .format(cls=type(self).__name__))
+        warnings.warn(msg, FutureWarning, stacklevel=2)
+        self.freq = value
+
+    @property
+    def freq(self):
+        return self._freq
+
+    @freq.setter
+    def freq(self, value):
+        if value is not None:
+            # let DatetimeArray to validation
+            self._eadata.freq = value
+
+        self._freq = to_offset(value)
+
+    def __getitem__(self, key):
+        result = self._eadata.__getitem__(key)
+        if is_scalar(result):
+            return result
+        elif result.ndim > 1:
+            # To support MPL which performs slicing with 2 dim
+            # even though it only has 1 dim by definition
+            assert isinstance(result, np.ndarray), result
+            return result
+        return type(self)(result, name=self.name)
+
+    def _has_same_tz(self, other):
+        return self._eadata._has_same_tz(other)
+
+    @property
+    def _box_func(self):
+        return lambda x: Timestamp(x, tz=self.tz)
+
+    def __array__(self, dtype=None):
+        return self._eadata.__array__(dtype=dtype)
+
+    def to_pydatetime(self):
+        return self._eadata.to_pydatetime()
+
     # --------------------------------------------------------------------
 
     @Substitution(klass='DatetimeIndex')
@@ -1475,13 +1579,12 @@ def date_range(start=None, end=None, periods=None, freq=None, tz=None,
     if freq is None and com._any_none(periods, start, end):
         freq = 'D'
 
-    result = DatetimeIndex._generate_range(
+    dtarr = DatetimeArray._generate_range(
         start=start, end=end, periods=periods,
         freq=freq, tz=tz, normalize=normalize,
         closed=closed, **kwargs)
-
-    result.name = name
-    return result
+    return DatetimeIndex._simple_new(
+        dtarr._data, tz=dtarr.tz, freq=dtarr.freq, name=name)
 
 
 def bdate_range(start=None, end=None, periods=None, freq='B', tz=None,

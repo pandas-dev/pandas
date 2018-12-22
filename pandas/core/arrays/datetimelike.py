@@ -88,8 +88,7 @@ class DatelikeOps(object):
 
     def strftime(self, date_format):
         from pandas import Index
-        return Index(self.format(date_format=date_format),
-                     dtype=compat.text_type)
+        return Index(self._format_native_types(date_format=date_format))
     strftime.__doc__ = """
     Convert to Index using specified date_format.
 
@@ -1263,7 +1262,8 @@ def _ensure_datetimelike_to_i8(other, to_utc=False):
 
     if lib.is_scalar(other) and isna(other):
         return iNaT
-    elif isinstance(other, (PeriodArray, ABCIndexClass)):
+    elif isinstance(other, (PeriodArray, ABCIndexClass,
+                            DatetimeLikeArrayMixin)):
         # convert tz if needed
         if getattr(other, 'tz', None) is not None:
             if to_utc:

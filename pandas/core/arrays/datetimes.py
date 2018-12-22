@@ -18,7 +18,7 @@ from pandas.core.dtypes.common import (
     is_datetime64tz_dtype, is_extension_type, is_float_dtype, is_int64_dtype,
     is_object_dtype, is_period_dtype, is_string_dtype, is_timedelta64_dtype)
 from pandas.core.dtypes.dtypes import DatetimeTZDtype
-from pandas.core.dtypes.generic import ABCIndexClass, ABCSeries
+from pandas.core.dtypes.generic import ABCIndexClass, ABCSeries, ABCDataFrame
 from pandas.core.dtypes.missing import isna
 
 from pandas.core import ops
@@ -113,6 +113,8 @@ def _dt_array_cmp(cls, op):
         elif lib.is_scalar(other):
             return ops.invalid_comparison(self, other, op)
         else:
+            # TODO: figure out why the is_object_dtpye check is needed,
+            #  without we fail to raise on tzawareness_compat
             if isinstance(other, list) or is_object_dtype(other):
                 try:
                     other = type(self)(other)
@@ -470,6 +472,18 @@ class DatetimeArrayMixin(dtl.DatetimeLikeArrayMixin,
             raise ValueError("'fill_value' should be a Timestamp. "
                              "Got '{got}'.".format(got=fill_value))
         return fill_value
+
+    # -----------------------------------------------------------------
+    # Rendering Methods
+
+    def _format_native_types(self, na_rep=u'NaT', date_format=None, **kwargs):
+        from pandas.io.formats.format import _get_format_datetime64_from_values
+        fmt = _get_format_datetime64_from_values(self, date_format)
+
+        return tslib.format_array_from_datetime(self.asi8,
+                                                tz=self.tz,
+                                                format=fmt,
+                                                na_rep=na_rep)
 
     # -----------------------------------------------------------------
     # Comparison Methods
