@@ -22,8 +22,8 @@ from pandas.core.base import _shared_docs
 import pandas.core.common as com
 from pandas.core.indexes.base import Index, _index_shared_docs
 from pandas.core.indexes.datetimelike import (
-    DatetimeIndexOpsMixin, wrap_arithmetic_op, wrap_array_method,
-    wrap_field_accessor, maybe_unwrap_index)
+    DatetimeIndexOpsMixin, maybe_unwrap_index, wrap_arithmetic_op,
+    wrap_array_method, wrap_field_accessor)
 from pandas.core.indexes.numeric import Int64Index
 from pandas.core.ops import get_op_result_name
 from pandas.core.tools.timedeltas import _coerce_scalar_to_timedelta_type
