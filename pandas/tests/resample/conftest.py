@@ -96,6 +96,12 @@ def frame(index, _series_name, _static_values):
     return DataFrame({'value': _static_values}, index=index)
 
 
+@pytest.fixture
+def empty_frame(series):
+    index = series.index[:0]
+    return DataFrame(index=index)
+
+
 @pytest.fixture(params=[Series, DataFrame])
 def series_and_frame(request, series, frame):
     if request.param == Series:

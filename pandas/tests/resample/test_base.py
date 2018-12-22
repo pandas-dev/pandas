@@ -111,20 +111,18 @@ def test_resample_empty_series_all_ts(freq, empty_series, resample_method):
 
 
 @pytest.mark.parametrize('freq', ['M', 'D', 'H'])
-def test_resample_empty_dataframe_all_ts(series, freq, resample_method):
+def test_resample_empty_dataframe_all_ts(empty_frame, freq, resample_method):
     # GH13212
-    index = series.index[:0]
-    f = DataFrame(index=index)
-
+    df = empty_frame
     # count retains dimensions too
-    result = getattr(f.resample(freq), resample_method)()
+    result = getattr(df.resample(freq), resample_method)()
     if resample_method != 'size':
-        expected = f.copy()
+        expected = df.copy()
     else:
         # GH14962
         expected = Series([])
 
-    expected.index = f.index._shallow_copy(freq=freq)
+    expected.index = df.index._shallow_copy(freq=freq)
     assert_index_equal(result.index, expected.index)
     assert result.index.freq == expected.index.freq
     assert_almost_equal(result, expected, check_dtype=False)
