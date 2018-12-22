@@ -26,6 +26,14 @@ TIMEDELTA_RANGE = (timedelta_range, 'tdi', '1 day', '10 day')
 ALL_TIMESERIES_INDEXES = [DATE_RANGE, PERIOD_RANGE, TIMEDELTA_RANGE]
 
 
+def pytest_generate_tests(metafunc):
+    # called once per each test function
+    if metafunc.function.__name__.endswith('_all_ts'):
+        metafunc.parametrize(
+            '_index_factory,_series_name,_index_start,_index_end',
+            ALL_TIMESERIES_INDEXES)
+
+
 @pytest.fixture
 def create_index(_index_factory):
     def _create_index(*args, **kwargs):
@@ -71,10 +79,7 @@ def test_asfreq_fill_value(series, create_index):
     assert_frame_equal(result, expected)
 
 
-@pytest.mark.parametrize(
-    '_index_factory,_series_name,_index_start,_index_end',
-    ALL_TIMESERIES_INDEXES)
-def test_resample_interpolate(series):
+def test_resample_interpolate_all_ts(series):
     # # 12925
     df = series.to_frame('value')
     assert_frame_equal(
@@ -89,10 +94,7 @@ def test_raises_on_non_datetimelike_index():
 
 
 @pytest.mark.parametrize('freq', ['M', 'D', 'H'])
-@pytest.mark.parametrize(
-    '_index_factory,_series_name,_index_start,_index_end',
-    ALL_TIMESERIES_INDEXES)
-def test_resample_empty_series(freq, series, resample_method):
+def test_resample_empty_series_all_ts(freq, series, resample_method):
     # GH12771 & GH12868
 
     if resample_method == 'ohlc':
@@ -109,10 +111,7 @@ def test_resample_empty_series(freq, series, resample_method):
 
 
 @pytest.mark.parametrize('freq', ['M', 'D', 'H'])
-@pytest.mark.parametrize(
-    '_index_factory,_series_name,_index_start,_index_end',
-    ALL_TIMESERIES_INDEXES)
-def test_resample_empty_dataframe(series, freq, resample_method):
+def test_resample_empty_dataframe_all_ts(series, freq, resample_method):
     # GH13212
     index = series.index[:0]
     f = DataFrame(index=index)
@@ -151,10 +150,7 @@ def test_resample_empty_dtypes(index, dtype, resample_method):
         pass
 
 
-@pytest.mark.parametrize(
-    '_index_factory,_series_name,_index_start,_index_end',
-    ALL_TIMESERIES_INDEXES)
-def test_resample_loffset_arg_type(series, create_index):
+def test_resample_loffset_arg_type_all_ts(series, create_index):
     # GH 13218, 15002
     df = series.to_frame('value')
     expected_means = [df.values[i:i + 2].mean()
@@ -192,10 +188,7 @@ def test_resample_loffset_arg_type(series, create_index):
             assert_frame_equal(result_how, expected)
 
 
-@pytest.mark.parametrize(
-    '_index_factory,_series_name,_index_start,_index_end',
-    ALL_TIMESERIES_INDEXES)
-def test_apply_to_empty_series(series):
+def test_apply_to_empty_series_all_ts(series):
     # GH 14313
     series = series[:0]
 
@@ -206,10 +199,7 @@ def test_apply_to_empty_series(series):
         assert_series_equal(result, expected, check_dtype=False)
 
 
-@pytest.mark.parametrize(
-    '_index_factory,_series_name,_index_start,_index_end',
-    ALL_TIMESERIES_INDEXES)
-def test_resampler_is_iterable(series):
+def test_resampler_is_iterable_all_ts(series):
     # GH 15314
     freq = 'H'
     tg = TimeGrouper(freq, convention='start')
@@ -220,10 +210,7 @@ def test_resampler_is_iterable(series):
         assert_series_equal(rv, gv)
 
 
-@pytest.mark.parametrize(
-    '_index_factory,_series_name,_index_start,_index_end',
-    ALL_TIMESERIES_INDEXES)
-def test_resample_quantile(series):
+def test_resample_quantile_all_ts(series):
     # GH 15023
     s = series
     q = 0.75
