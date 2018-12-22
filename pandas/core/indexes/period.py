@@ -26,7 +26,7 @@ from pandas.core.base import _shared_docs
 import pandas.core.indexes.base as ibase
 from pandas.core.indexes.base import _index_shared_docs, ensure_index
 from pandas.core.indexes.datetimelike import (
-    DatetimeIndexOpsMixin, DatetimelikeDelegateMixin, wrap_arithmetic_op)
+    DatetimeIndexOpsMixin, DatetimelikeDelegateMixin)
 from pandas.core.indexes.datetimes import DatetimeIndex, Index, Int64Index
 from pandas.core.missing import isna
 from pandas.core.ops import get_op_result_name
