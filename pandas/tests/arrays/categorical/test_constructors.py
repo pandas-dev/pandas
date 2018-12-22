@@ -417,33 +417,44 @@ class TestCategoricalConstructors(object):
     def test_from_codes(self):
 
         # too few categories
+        dtype = CategoricalDtype(categories=[1, 2])
         with pytest.raises(ValueError):
-            Categorical.from_codes([1, 2], [1, 2])
+            Categorical.from_codes([1, 2], categories=dtype.categories)
+        with pytest.raises(ValueError):
+            Categorical.from_codes([1, 2], dtype=dtype)
 
         # no int codes
         with pytest.raises(ValueError):
-            Categorical.from_codes(["a"], [1, 2])
+            Categorical.from_codes(["a"], categories=dtype.categories)
+        with pytest.raises(ValueError):
+            Categorical.from_codes(["a"], dtype=dtype)
 
         # no unique categories
         with pytest.raises(ValueError):
-            Categorical.from_codes([0, 1, 2], ["a", "a", "b"])
+            Categorical.from_codes([0, 1, 2], categories=["a", "a", "b"])
 
         # NaN categories included
         with pytest.raises(ValueError):
-            Categorical.from_codes([0, 1, 2], ["a", "b", np.nan])
+            Categorical.from_codes([0, 1, 2], categories=["a", "b", np.nan])
 
         # too negative
+        dtype = CategoricalDtype(categories=["a", "b", "c"])
         with pytest.raises(ValueError):
-            Categorical.from_codes([-2, 1, 2], ["a", "b", "c"])
+            Categorical.from_codes([-2, 1, 2], categories=dtype.categories)
+        with pytest.raises(ValueError):
+            Categorical.from_codes([-2, 1, 2], dtype=dtype)
 
         exp = Categorical(["a", "b", "c"], ordered=False)
-        res = Categorical.from_codes([0, 1, 2], ["a", "b", "c"])
+        res = Categorical.from_codes([0, 1, 2], categories=dtype.categories)
         tm.assert_categorical_equal(exp, res)
 
-        # Not available in earlier numpy versions
-        if hasattr(np.random, "choice"):
-            codes = np.random.choice([0, 1], 5, p=[0.9, 0.1])
-            Categorical.from_codes(codes, categories=["train", "test"])
+        res = Categorical.from_codes([0, 1, 2], dtype=dtype)
+        tm.assert_categorical_equal(exp, res)
+
+        codes = np.random.choice([0, 1], 5, p=[0.9, 0.1])
+        dtype = CategoricalDtype(categories=["train", "test"])
+        Categorical.from_codes(codes, categories=dtype.categories)
+        Categorical.from_codes(codes, dtype=dtype)
 
     def test_from_codes_with_categorical_categories(self):
         # GH17884
@@ -464,22 +475,30 @@ class TestCategoricalConstructors(object):
     def test_from_codes_with_nan_code(self):
         # GH21767
         codes = [1, 2, np.nan]
-        categories = ['a', 'b', 'c']
+        dtype = CategoricalDtype(categories=['a', 'b', 'c'])
         with pytest.raises(ValueError):
-            Categorical.from_codes(codes, categories)
+            Categorical.from_codes(codes, categories=dtype.categories)
+        with pytest.raises(ValueError):
+            Categorical.from_codes(codes, dtype=dtype)
 
     def test_from_codes_with_float(self):
         # GH21767
         codes = [1.0, 2.0, 0]  # integer, but in float dtype
-        categories = ['a', 'b', 'c']
+        dtype = CategoricalDtype(categories=['a', 'b', 'c'])
 
         with tm.assert_produces_warning(FutureWarning):
-            cat = Categorical.from_codes(codes, categories)
+            cat = Categorical.from_codes(codes, dtype.categories)
+        tm.assert_numpy_array_equal(cat.codes, np.array([1, 2, 0], dtype='i1'))
+
+        with tm.assert_produces_warning(FutureWarning):
+            cat = Categorical.from_codes(codes, dtype=dtype)
         tm.assert_numpy_array_equal(cat.codes, np.array([1, 2, 0], dtype='i1'))
 
         codes = [1.1, 2.0, 0]  # non-integer
         with pytest.raises(ValueError):
-            Categorical.from_codes(codes, categories)
+            Categorical.from_codes(codes, dtype.categories)
+        with pytest.raises(ValueError):
+            Categorical.from_codes(codes, dtype=dtype)
 
     @pytest.mark.parametrize('dtype', [None, 'category'])
     def test_from_inferred_categories(self, dtype):
@@ -515,14 +534,11 @@ class TestCategoricalConstructors(object):
         expected = Categorical([1, 1, 2, np.nan])
         tm.assert_categorical_equal(result, expected)
 
-    def test_construction_with_ordered(self):
+    @pytest.mark.parametrize('ordered', [None, True, False])
+    def test_construction_with_ordered(self, ordered):
         # GH 9347, 9190
-        cat = Categorical([0, 1, 2])
-        assert not cat.ordered
-        cat = Categorical([0, 1, 2], ordered=False)
-        assert not cat.ordered
-        cat = Categorical([0, 1, 2], ordered=True)
-        assert cat.ordered
+        cat = Categorical([0, 1, 2], ordered=ordered)
+        assert cat.ordered == bool(ordered)
 
     @pytest.mark.xfail(reason="Imaginary values not supported in Categorical")
     def test_constructor_imaginary(self):

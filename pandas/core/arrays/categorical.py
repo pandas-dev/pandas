@@ -603,7 +603,7 @@ class Categorical(ExtensionArray, PandasObject):
         return cls(codes, dtype=dtype, fastpath=True)
 
     @classmethod
-    def from_codes(cls, codes, categories, ordered=False):
+    def from_codes(cls, codes, categories=None, ordered=None, dtype=None):
         """
         Make a Categorical type from codes and categories arrays.
 
@@ -621,10 +621,19 @@ class Categorical(ExtensionArray, PandasObject):
             categories or -1 for NaN
         categories : index-like
             The categories for the categorical. Items need to be unique.
-        ordered : boolean, (default False)
+        ordered : boolean, optional
             Whether or not this categorical is treated as a ordered
             categorical. If not given, the resulting categorical will be
             unordered.
+
+            .. versionchanged:: 0.24.0
+
+                The default value has been changed to  ``None``. Previously
+                the default value was ``False``.
+        dtype : CategoricalDtype, optional
+            An instance of ``CategoricalDtype`` to use for this categorical.
+
+            .. versionadded:: 0.24.0
         """
         dtype = CategoricalDtype._from_values_or_dtype(codes, categories,
                                                        ordered)
@@ -1265,8 +1274,7 @@ class Categorical(ExtensionArray, PandasObject):
             else:
                 codes[periods:] = fill_value
 
-        return self.from_codes(codes, categories=self.categories,
-                               ordered=self.ordered)
+        return self.from_codes(codes, dtype=self.dtype)
 
     def __array__(self, dtype=None):
         """
@@ -1887,9 +1895,7 @@ class Categorical(ExtensionArray, PandasObject):
 
         codes = take(self._codes, indexer, allow_fill=allow_fill,
                      fill_value=fill_value)
-        result = type(self).from_codes(codes,
-                                       categories=dtype.categories,
-                                       ordered=dtype.ordered)
+        result = type(self).from_codes(codes, dtype=dtype)
         return result
 
     take = take_nd
@@ -2078,9 +2084,7 @@ class Categorical(ExtensionArray, PandasObject):
                 new_codes = _recode_for_categories(
                     value.codes, value.categories, self.categories
                 )
-                value = Categorical.from_codes(new_codes,
-                                               categories=self.categories,
-                                               ordered=self.ordered)
+                value = Categorical.from_codes(new_codes, dtype=self.dtype)
 
         rvalue = value if is_list_like(value) else [value]
 
