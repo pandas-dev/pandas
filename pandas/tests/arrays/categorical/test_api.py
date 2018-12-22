@@ -455,7 +455,6 @@ class TestPrivateCategoricalAPI(object):
             c.codes = np.array([0, 1, 2, 0, 1], dtype='int8')
 
         # changes in the codes array should raise
-        # np 1.6.1 raises RuntimeError rather than ValueError
         codes = c.codes
 
         with pytest.raises(ValueError):
