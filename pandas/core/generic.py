@@ -9905,10 +9905,10 @@ class NDFrame(PandasObject, SelectionMixin):
 
         cls.any = _make_logical_function(
             cls, 'any', name, name2, axis_descr, _any_desc, nanops.nanany,
-            _any_examples, _any_see_also, empty_value=False)
+            _any_see_also, _any_examples, empty_value=False)
         cls.all = _make_logical_function(
             cls, 'all', name, name2, axis_descr, _all_desc, nanops.nanall,
-            _all_examples, _all_see_also, empty_value=True)
+            _all_see_also, _all_examples, empty_value=True)
 
         @Substitution(outname='mad',
                       desc="Return the mean absolute deviation of the values "
@@ -10937,7 +10937,7 @@ def _make_cum_function(cls, name, name1, name2, axis_descr, desc,
 def _make_logical_function(cls, name, name1, name2, axis_descr, desc, f,
                            see_also, examples, empty_value):
     @Substitution(outname=name, desc=desc, name1=name1, name2=name2,
-                  axis_descr=axis_descr, see_also=see_also, examples=examples)
+                  axis_descr=axis_descr, see_also=see_also, examples=examples,
                   empty_value=empty_value)
     @Appender(_bool_doc)
     def logical_func(self, axis=0, bool_only=None, skipna=True, level=None,
