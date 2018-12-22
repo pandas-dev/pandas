@@ -110,7 +110,7 @@ def _dt_array_cmp(cls, op):
             result = op(self.asi8, other.view('i8'))
             if isna(other):
                 result.fill(nat_result)
-        elif lib.is_scalar(other):
+        elif lib.is_scalar(other) or np.ndim(other) == 0:
             return ops.invalid_comparison(self, other, op)
         else:
             if len(other) != len(self):
