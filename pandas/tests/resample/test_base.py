@@ -94,13 +94,13 @@ def test_raises_on_non_datetimelike_index():
 
 
 @pytest.mark.parametrize('freq', ['M', 'D', 'H'])
-def test_resample_empty_series_all_ts(freq, series, resample_method):
+def test_resample_empty_series_all_ts(freq, empty_series, resample_method):
     # GH12771 & GH12868
 
     if resample_method == 'ohlc':
         pytest.skip('need to test for ohlc from GH13083')
 
-    s = series[:0]
+    s = empty_series
     result = getattr(s.resample(freq), resample_method)()
 
     expected = s.copy()
@@ -188,13 +188,12 @@ def test_resample_loffset_arg_type_all_ts(frame, create_index):
             assert_frame_equal(result_how, expected)
 
 
-def test_apply_to_empty_series_all_ts(series):
+def test_apply_to_empty_series_all_ts(empty_series):
     # GH 14313
-    series = series[:0]
-
+    s = empty_series
     for freq in ['M', 'D', 'H']:
-        result = series.resample(freq).apply(lambda x: 1)
-        expected = series.resample(freq).apply(np.sum)
+        result = s.resample(freq).apply(lambda x: 1)
+        expected = s.resample(freq).apply(np.sum)
 
         assert_series_equal(result, expected, check_dtype=False)
 
