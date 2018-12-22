@@ -307,8 +307,8 @@ class DatetimeArrayMixin(dtl.DatetimeLikeArrayMixin,
                 if end is not None:
                     end = end.tz_localize(None)
             # TODO: consider re-implementing _cached_range; GH#17914
-            values, tz = generate_regular_range(start, end, periods, freq)
-            index = cls._simple_new(values, freq=freq, tz=tz)
+            values, _tz = generate_regular_range(start, end, periods, freq)
+            index = cls._simple_new(values, freq=freq, tz=_tz)
 
             if tz is not None and index.tz is None:
                 arr = conversion.tz_localize_to_utc(
