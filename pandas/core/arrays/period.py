@@ -593,19 +593,6 @@ class PeriodArray(dtl.DatetimeLikeArrayMixin, ExtensionArray):
     def strftime(self, date_format):
         return self._format_native_types(date_format=date_format)
 
-    def repeat(self, repeats, *args, **kwargs):
-        """
-        Repeat elements of a PeriodArray.
-
-        See Also
-        --------
-        numpy.ndarray.repeat
-        """
-        # TODO(DatetimeArray): remove
-        nv.validate_repeat(args, kwargs)
-        values = self._data.repeat(repeats)
-        return type(self)(values, self.freq)
-
     def astype(self, dtype, copy=True):
         # TODO: Figure out something better here...
         # We have DatetimeLikeArrayMixin ->

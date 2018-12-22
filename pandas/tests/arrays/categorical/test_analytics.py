@@ -292,22 +292,6 @@ class TestCategoricalAnalytics(object):
             with pytest.raises(ValueError):
                 cat.sort_values(inplace=value)
 
-    def test_repeat(self):
-        # GH10183
-        cat = Categorical(["a", "b"], categories=["a", "b"])
-        exp = Categorical(["a", "a", "b", "b"], categories=["a", "b"])
-        res = cat.repeat(2)
-        tm.assert_categorical_equal(res, exp)
-
-    def test_numpy_repeat(self):
-        cat = Categorical(["a", "b"], categories=["a", "b"])
-        exp = Categorical(["a", "a", "b", "b"], categories=["a", "b"])
-        tm.assert_categorical_equal(np.repeat(cat, 2), exp)
-
-        msg = "the 'axis' parameter is not supported"
-        with pytest.raises(ValueError, match=msg):
-            np.repeat(cat, 2, axis=1)
-
     def test_isna(self):
         exp = np.array([False, False, True])
         c = Categorical(["a", "b", np.nan])
