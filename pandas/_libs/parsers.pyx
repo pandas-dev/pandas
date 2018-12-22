@@ -1224,10 +1224,10 @@ cdef class TextReader:
                               ._from_sequence_of_strings(result, dtype=dtype)
             except NotImplementedError:
                 raise NotImplementedError(
-                        "Extension Array: {ea} must implement "
-                        "_from_sequence_of_strings in order "
-                        "to be used in parser methods".format(
-                                ea=dtype.construct_array_type()))
+                    "Extension Array: {ea} must implement "
+                    "_from_sequence_of_strings in order "
+                    "to be used in parser methods".format(
+                            ea=dtype.construct_array_type()))
 
             return result, na_count
 
