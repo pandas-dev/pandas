@@ -39,7 +39,7 @@ from pandas.core.sorting import nargsort
 from pandas.io.formats import console
 from pandas.io.formats.terminal import get_terminal_size
 
-from .base import ExtensionArray
+from .base import ExtensionArray, _extension_array_shared_docs
 
 _take_msg = textwrap.dedent("""\
     Interpreting negative values in 'indexer' as missing values.
@@ -2394,15 +2394,9 @@ class Categorical(ExtensionArray, PandasObject):
 
         return result
 
+    @Substitution(klass='Categorical')
+    @Appender(_extension_array_shared_docs['repeat'])
     def repeat(self, repeats, *args, **kwargs):
-        """
-        Repeat elements of a Categorical.
-
-        See Also
-        --------
-        numpy.ndarray.repeat
-
-        """
         nv.validate_repeat(args, kwargs)
         codes = self._codes.repeat(repeats)
         return self._constructor(values=codes, dtype=self.dtype, fastpath=True)
