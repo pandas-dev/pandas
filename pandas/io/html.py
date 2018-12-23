@@ -3,22 +3,24 @@ HTML IO.
 
 """
 
+from distutils.version import LooseVersion
+import numbers
 import os
 import re
-import numbers
 
-from distutils.version import LooseVersion
+import pandas.compat as compat
+from pandas.compat import (
+    binary_type, iteritems, lmap, lrange, raise_with_traceback, string_types,
+    u)
+from pandas.errors import AbstractMethodError, EmptyDataError
 
 from pandas.core.dtypes.common import is_list_like
-from pandas.errors import EmptyDataError
-from pandas.io.common import _is_url, urlopen, _validate_header_arg
-from pandas.io.parsers import TextParser
-from pandas import compat
-from pandas.compat import (lrange, lmap, u, string_types, iteritems,
-                           raise_with_traceback, binary_type)
+
 from pandas import Series
-import pandas.core.common as com
+
+from pandas.io.common import _is_url, _validate_header_arg, urlopen
 from pandas.io.formats.printing import pprint_thing
+from pandas.io.parsers import TextParser
 
 _IMPORTS = False
 _HAS_BS4 = False
@@ -253,7 +255,7 @@ class _HtmlFrameParser(object):
         text : str or unicode
             The text from an individual DOM node.
         """
-        raise com.AbstractMethodError(self)
+        raise AbstractMethodError(self)
 
     def _parse_td(self, obj):
         """Return the td elements from a row element.
@@ -268,7 +270,7 @@ class _HtmlFrameParser(object):
         list of node-like
             These are the elements of each row, i.e., the columns.
         """
-        raise com.AbstractMethodError(self)
+        raise AbstractMethodError(self)
 
     def _parse_thead_tr(self, table):
         """
@@ -283,7 +285,7 @@ class _HtmlFrameParser(object):
         list of node-like
             These are the <tr> row elements of a table.
         """
-        raise com.AbstractMethodError(self)
+        raise AbstractMethodError(self)
 
     def _parse_tbody_tr(self, table):
         """
@@ -302,7 +304,7 @@ class _HtmlFrameParser(object):
         list of node-like
             These are the <tr> row elements of a table.
         """
-        raise com.AbstractMethodError(self)
+        raise AbstractMethodError(self)
 
     def _parse_tfoot_tr(self, table):
         """
@@ -317,7 +319,7 @@ class _HtmlFrameParser(object):
         list of node-like
             These are the <tr> row elements of a table.
         """
-        raise com.AbstractMethodError(self)
+        raise AbstractMethodError(self)
 
     def _parse_tables(self, doc, match, attrs):
         """
@@ -343,7 +345,7 @@ class _HtmlFrameParser(object):
         list of node-like
             HTML <table> elements to be parsed into raw data.
         """
-        raise com.AbstractMethodError(self)
+        raise AbstractMethodError(self)
 
     def _equals_tag(self, obj, tag):
         """
@@ -362,7 +364,7 @@ class _HtmlFrameParser(object):
         boolean
             Whether `obj`'s tag name is `tag`
         """
-        raise com.AbstractMethodError(self)
+        raise AbstractMethodError(self)
 
     def _build_doc(self):
         """
@@ -373,7 +375,7 @@ class _HtmlFrameParser(object):
         node-like
             The DOM from which to parse the table element.
         """
-        raise com.AbstractMethodError(self)
+        raise AbstractMethodError(self)
 
     def _parse_thead_tbody_tfoot(self, table_html):
         """
@@ -851,7 +853,8 @@ def _parser_dispatch(flavor):
 
 
 def _print_as_set(s):
-    return '{{arg}}'.format(arg=', '.join(pprint_thing(el) for el in s))
+    return ('{' + '{arg}'.format(arg=', '.join(
+        pprint_thing(el) for el in s)) + '}')
 
 
 def _validate_flavor(flavor):
@@ -1038,6 +1041,10 @@ def read_html(io, match='.+', flavor=None, header=None, index_col=None,
     -------
     dfs : list of DataFrames
 
+    See Also
+    --------
+    pandas.read_csv
+
     Notes
     -----
     Before using this function you should read the :ref:`gotchas about the
@@ -1069,10 +1076,6 @@ def read_html(io, match='.+', flavor=None, header=None, index_col=None,
     --------
     See the :ref:`read_html documentation in the IO section of the docs
     <io.read_html>` for some examples of reading in HTML tables.
-
-    See Also
-    --------
-    pandas.read_csv
     """
     _importers()
 

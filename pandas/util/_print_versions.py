@@ -1,11 +1,11 @@
+import codecs
+import importlib
+import locale
 import os
 import platform
-import sys
 import struct
 import subprocess
-import codecs
-import locale
-import importlib
+import sys
 
 
 def get_sys_info():
@@ -21,7 +21,7 @@ def get_sys_info():
                                     stdout=subprocess.PIPE,
                                     stderr=subprocess.PIPE)
             so, serr = pipe.communicate()
-        except:
+        except (OSError, ValueError):
             pass
         else:
             if pipe.returncode == 0:
@@ -50,7 +50,7 @@ def get_sys_info():
             ("LANG", "{lang}".format(lang=os.environ.get('LANG', "None"))),
             ("LOCALE", '.'.join(map(str, locale.getlocale()))),
         ])
-    except:
+    except (KeyError, ValueError):
         pass
 
     return blob
@@ -85,7 +85,7 @@ def show_versions(as_json=False):
         ("xlrd", lambda mod: mod.__VERSION__),
         ("xlwt", lambda mod: mod.__VERSION__),
         ("xlsxwriter", lambda mod: mod.__version__),
-        ("lxml", lambda mod: mod.etree.__version__),
+        ("lxml.etree", lambda mod: mod.__version__),
         ("bs4", lambda mod: mod.__version__),
         ("html5lib", lambda mod: mod.__version__),
         ("sqlalchemy", lambda mod: mod.__version__),
@@ -108,7 +108,7 @@ def show_versions(as_json=False):
                 mod = importlib.import_module(modname)
             ver = ver_f(mod)
             deps_blob.append((modname, ver))
-        except:
+        except ImportError:
             deps_blob.append((modname, None))
 
     if (as_json):

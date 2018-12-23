@@ -4,13 +4,13 @@ test setting *parts* of objects both positionally and label based
 TOD: these should be split among the indexer tests
 """
 
+from warnings import catch_warnings
+
+import numpy as np
 import pytest
 
-from warnings import catch_warnings
-import numpy as np
-
 import pandas as pd
-from pandas import Series, DataFrame, Panel, Index, date_range
+from pandas import DataFrame, Index, Panel, Series, date_range
 from pandas.util import testing as tm
 
 
@@ -48,15 +48,11 @@ class TestPartialSetting(object):
         # iloc/iat raise
         s = s_orig.copy()
 
-        def f():
+        with pytest.raises(IndexError):
             s.iloc[3] = 5.
 
-        pytest.raises(IndexError, f)
-
-        def f():
+        with pytest.raises(IndexError):
             s.iat[3] = 5.
-
-        pytest.raises(IndexError, f)
 
         # ## frame ##
 
@@ -66,15 +62,11 @@ class TestPartialSetting(object):
         # iloc/iat raise
         df = df_orig.copy()
 
-        def f():
+        with pytest.raises(IndexError):
             df.iloc[4, 2] = 5.
 
-        pytest.raises(IndexError, f)
-
-        def f():
+        with pytest.raises(IndexError):
             df.iat[4, 2] = 5.
-
-        pytest.raises(IndexError, f)
 
         # row setting where it exists
         expected = DataFrame(dict({'A': [0, 4, 4], 'B': [1, 5, 5]}))
@@ -159,23 +151,24 @@ class TestPartialSetting(object):
                             columns=['A', 'B', 'C', 'D'])
 
         expected = pd.concat([df_orig,
-                              DataFrame({'A': 7}, index=[dates[-1] + 1])],
+                              DataFrame({'A': 7},
+                                        index=[dates[-1] + dates.freq])],
                              sort=True)
         df = df_orig.copy()
-        df.loc[dates[-1] + 1, 'A'] = 7
+        df.loc[dates[-1] + dates.freq, 'A'] = 7
         tm.assert_frame_equal(df, expected)
         df = df_orig.copy()
-        df.at[dates[-1] + 1, 'A'] = 7
+        df.at[dates[-1] + dates.freq, 'A'] = 7
         tm.assert_frame_equal(df, expected)
 
-        exp_other = DataFrame({0: 7}, index=[dates[-1] + 1])
+        exp_other = DataFrame({0: 7}, index=[dates[-1] + dates.freq])
         expected = pd.concat([df_orig, exp_other], axis=1)
 
         df = df_orig.copy()
-        df.loc[dates[-1] + 1, 0] = 7
+        df.loc[dates[-1] + dates.freq, 0] = 7
         tm.assert_frame_equal(df, expected)
         df = df_orig.copy()
-        df.at[dates[-1] + 1, 0] = 7
+        df.at[dates[-1] + dates.freq, 0] = 7
         tm.assert_frame_equal(df, expected)
 
     def test_partial_setting_mixed_dtype(self):
@@ -207,10 +200,8 @@ class TestPartialSetting(object):
         # list-like must conform
         df = DataFrame(columns=['A', 'B'])
 
-        def f():
+        with pytest.raises(ValueError):
             df.loc[0] = [1, 2, 3]
-
-        pytest.raises(ValueError, f)
 
         # TODO: #15657, these are left as object and not coerced
         df = DataFrame(columns=['A', 'B'])
@@ -416,29 +407,21 @@ class TestPartialSetting(object):
         df = orig.copy()
 
         # don't allow not string inserts
-        def f():
+        with pytest.raises(TypeError):
             with catch_warnings(record=True):
                 df.loc[100.0, :] = df.ix[0]
 
-        pytest.raises(TypeError, f)
-
-        def f():
+        with pytest.raises(TypeError):
             with catch_warnings(record=True):
                 df.loc[100, :] = df.ix[0]
 
-        pytest.raises(TypeError, f)
-
-        def f():
+        with pytest.raises(TypeError):
             with catch_warnings(record=True):
                 df.ix[100.0, :] = df.ix[0]
 
-        pytest.raises(TypeError, f)
-
-        def f():
+        with pytest.raises(ValueError):
             with catch_warnings(record=True):
                 df.ix[100, :] = df.ix[0]
-
-        pytest.raises(ValueError, f)
 
         # allow object conversion here
         df = orig.copy()
@@ -480,20 +463,14 @@ class TestPartialSetting(object):
         # frame
         df = DataFrame()
 
-        def f():
+        with pytest.raises(ValueError):
             df.loc[1] = 1
 
-        pytest.raises(ValueError, f)
-
-        def f():
+        with pytest.raises(ValueError):
             df.loc[1] = Series([1], index=['foo'])
 
-        pytest.raises(ValueError, f)
-
-        def f():
+        with pytest.raises(ValueError):
             df.loc[:, 1] = 1
-
-        pytest.raises(ValueError, f)
 
         # these work as they don't really change
         # anything but the index

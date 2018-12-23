@@ -1,30 +1,29 @@
 import operator
+import warnings
 
 import numpy as np
+
 from pandas._libs import index as libindex
-
-from pandas import compat
+import pandas.compat as compat
 from pandas.compat.numpy import function as nv
-from pandas.core.dtypes.generic import ABCCategorical, ABCSeries
-from pandas.core.dtypes.dtypes import CategoricalDtype
-from pandas.core.dtypes.common import (
-    is_categorical_dtype,
-    ensure_platform_int,
-    is_list_like,
-    is_interval_dtype,
-    is_scalar)
-from pandas.core.dtypes.missing import array_equivalent, isna
-from pandas.core.algorithms import take_1d
-
-
 from pandas.util._decorators import Appender, cache_readonly
-from pandas.core.config import get_option
-from pandas.core.indexes.base import Index, _index_shared_docs
+
+from pandas.core.dtypes.common import (
+    ensure_platform_int, is_categorical_dtype, is_interval_dtype, is_list_like,
+    is_scalar)
+from pandas.core.dtypes.dtypes import CategoricalDtype
+from pandas.core.dtypes.generic import ABCCategorical, ABCSeries
+from pandas.core.dtypes.missing import isna
+
 from pandas.core import accessor
-import pandas.core.common as com
-import pandas.core.missing as missing
-import pandas.core.indexes.base as ibase
+from pandas.core.algorithms import take_1d
 from pandas.core.arrays.categorical import Categorical, contains
+import pandas.core.common as com
+from pandas.core.config import get_option
+import pandas.core.indexes.base as ibase
+from pandas.core.indexes.base import Index, _index_shared_docs
+import pandas.core.missing as missing
+from pandas.core.ops import get_op_result_name
 
 _index_doc_kwargs = dict(ibase._index_doc_kwargs)
 _index_doc_kwargs.update(dict(target_klass='CategoricalIndex'))
@@ -43,7 +42,6 @@ _index_doc_kwargs.update(dict(target_klass='CategoricalIndex'))
     typ='method', overwrite=True)
 class CategoricalIndex(Index, accessor.PandasDelegate):
     """
-
     Immutable Index implementing an ordered, sliceable set. CategoricalIndex
     represents a sparsely populated Index with an underlying Categorical.
 
@@ -83,14 +81,31 @@ class CategoricalIndex(Index, accessor.PandasDelegate):
     """
 
     _typ = 'categoricalindex'
-    _engine_type = libindex.Int64Engine
+
+    @property
+    def _engine_type(self):
+        # self.codes can have dtype int8, int16, int32 or int64, so we need
+        # to return the corresponding engine type (libindex.Int8Engine, etc.).
+        return {np.int8: libindex.Int8Engine,
+                np.int16: libindex.Int16Engine,
+                np.int32: libindex.Int32Engine,
+                np.int64: libindex.Int64Engine,
+                }[self.codes.dtype.type]
+
     _attributes = ['name']
 
-    def __new__(cls, data=None, categories=None, ordered=None, dtype=None,
-                copy=False, name=None, fastpath=False):
+    # --------------------------------------------------------------------
+    # Constructors
 
-        if fastpath:
-            return cls._simple_new(data, name=name, dtype=dtype)
+    def __new__(cls, data=None, categories=None, ordered=None, dtype=None,
+                copy=False, name=None, fastpath=None):
+
+        if fastpath is not None:
+            warnings.warn("The 'fastpath' keyword is deprecated, and will be "
+                          "removed in a future version.",
+                          FutureWarning, stacklevel=2)
+            if fastpath:
+                return cls._simple_new(data, name=name, dtype=dtype)
 
         if name is None and hasattr(data, 'name'):
             name = data.name
@@ -118,8 +133,7 @@ class CategoricalIndex(Index, accessor.PandasDelegate):
 
         return cls._simple_new(data, name=name)
 
-    def _create_from_codes(self, codes, categories=None, ordered=None,
-                           name=None):
+    def _create_from_codes(self, codes, dtype=None, name=None):
         """
         *this is an internal non-public method*
 
@@ -128,8 +142,7 @@ class CategoricalIndex(Index, accessor.PandasDelegate):
         Parameters
         ----------
         codes : new codes
-        categories : optional categories, defaults to existing
-        ordered : optional ordered attribute, defaults to existing
+        dtype: CategoricalDtype, defaults to existing
         name : optional name attribute, defaults to existing
 
         Returns
@@ -137,14 +150,12 @@ class CategoricalIndex(Index, accessor.PandasDelegate):
         CategoricalIndex
         """
 
-        if categories is None:
-            categories = self.categories
-        if ordered is None:
-            ordered = self.ordered
+        if dtype is None:
+            dtype = self.dtype
         if name is None:
             name = self.name
-        cat = Categorical.from_codes(codes, categories=categories,
-                                     ordered=ordered)
+        cat = Categorical.from_codes(codes, categories=dtype.categories,
+                                     ordered=dtype.ordered)
         return CategoricalIndex(cat, name=name)
 
     @classmethod
@@ -186,12 +197,10 @@ class CategoricalIndex(Index, accessor.PandasDelegate):
         return data
 
     @classmethod
-    def _simple_new(cls, values, name=None, categories=None, ordered=None,
-                    dtype=None, **kwargs):
+    def _simple_new(cls, values, name=None, dtype=None, **kwargs):
         result = object.__new__(cls)
 
-        values = cls._create_categorical(values, categories, ordered,
-                                         dtype=dtype)
+        values = cls._create_categorical(values, dtype=dtype)
         result._data = values
         result.name = name
         for k, v in compat.iteritems(kwargs):
@@ -200,30 +209,14 @@ class CategoricalIndex(Index, accessor.PandasDelegate):
         result._reset_identity()
         return result
 
+    # --------------------------------------------------------------------
+
     @Appender(_index_shared_docs['_shallow_copy'])
-    def _shallow_copy(self, values=None, categories=None, ordered=None,
-                      dtype=None, **kwargs):
-        # categories and ordered can't be part of attributes,
-        # as these are properties
-        # we want to reuse self.dtype if possible, i.e. neither are
-        # overridden.
-        if dtype is not None and (categories is not None or
-                                  ordered is not None):
-            raise TypeError("Cannot specify both `dtype` and `categories` "
-                            "or `ordered`")
-
-        if categories is None and ordered is None:
-            dtype = self.dtype if dtype is None else dtype
-            return super(CategoricalIndex, self)._shallow_copy(
-                values=values, dtype=dtype, **kwargs)
-        if categories is None:
-            categories = self.categories
-        if ordered is None:
-            ordered = self.ordered
-
+    def _shallow_copy(self, values=None, dtype=None, **kwargs):
+        if dtype is None:
+            dtype = self.dtype
         return super(CategoricalIndex, self)._shallow_copy(
-            values=values, categories=categories,
-            ordered=ordered, **kwargs)
+            values=values, dtype=dtype, **kwargs)
 
     def _is_dtype_compat(self, other):
         """
@@ -266,11 +259,16 @@ class CategoricalIndex(Index, accessor.PandasDelegate):
 
         try:
             other = self._is_dtype_compat(other)
-            return array_equivalent(self._data, other)
+            if isinstance(other, type(self)):
+                other = other._data
+            return self._data.equals(other)
         except (TypeError, ValueError):
             pass
 
         return False
+
+    # --------------------------------------------------------------------
+    # Rendering Methods
 
     @property
     def _formatter_func(self):
@@ -295,6 +293,8 @@ class CategoricalIndex(Index, accessor.PandasDelegate):
             attrs.append(('length', len(self)))
         return attrs
 
+    # --------------------------------------------------------------------
+
     @property
     def inferred_type(self):
         return 'categorical'
@@ -308,6 +308,10 @@ class CategoricalIndex(Index, accessor.PandasDelegate):
     def itemsize(self):
         # Size of the items in categories, not codes.
         return self.values.itemsize
+
+    def _wrap_setop_result(self, other, result):
+        name = get_op_result_name(self, other)
+        return self._shallow_copy(result, name=name)
 
     def get_values(self):
         """ return the underlying data as an ndarray """
@@ -331,7 +335,7 @@ class CategoricalIndex(Index, accessor.PandasDelegate):
     def _reverse_indexer(self):
         return self._data._reverse_indexer()
 
-    @Appender(_index_shared_docs['__contains__'] % _index_doc_kwargs)
+    @Appender(_index_shared_docs['contains'] % _index_doc_kwargs)
     def __contains__(self, key):
         # if key is a NaN, check if any NaN is in self.
         if isna(key):
@@ -377,7 +381,7 @@ class CategoricalIndex(Index, accessor.PandasDelegate):
     def _engine(self):
 
         # we are going to look things up with the codes themselves
-        return self._engine_type(lambda: self.codes.astype('i8'), len(self))
+        return self._engine_type(lambda: self.codes, len(self))
 
     # introspection
     @cache_readonly
@@ -397,10 +401,9 @@ class CategoricalIndex(Index, accessor.PandasDelegate):
         if level is not None:
             self._validate_index_level(level)
         result = self.values.unique()
-        # CategoricalIndex._shallow_copy keeps original categories
-        # and ordered if not otherwise specified
-        return self._shallow_copy(result, categories=result.categories,
-                                  ordered=result.ordered)
+        # CategoricalIndex._shallow_copy keeps original dtype
+        # if not otherwise specified
+        return self._shallow_copy(result, dtype=result.dtype)
 
     @Appender(Index.duplicated.__doc__)
     def duplicated(self, keep='first'):
@@ -426,6 +429,10 @@ class CategoricalIndex(Index, accessor.PandasDelegate):
         -------
         loc : int if unique index, slice if monotonic index, else mask
 
+        Raises
+        ------
+        KeyError : if the key is not in the index
+
         Examples
         ---------
         >>> unique_index = pd.CategoricalIndex(list('abc'))
@@ -440,10 +447,12 @@ class CategoricalIndex(Index, accessor.PandasDelegate):
         >>> non_monotonic_index.get_loc('b')
         array([False,  True, False,  True], dtype=bool)
         """
-        codes = self.categories.get_loc(key)
-        if (codes == -1):
+        code = self.categories.get_loc(key)
+        code = self.codes.dtype.type(code)
+        try:
+            return self._engine.get_loc(code)
+        except KeyError:
             raise KeyError(key)
-        return self._engine.get_loc(codes)
 
     def get_value(self, series, key):
         """
@@ -467,10 +476,13 @@ class CategoricalIndex(Index, accessor.PandasDelegate):
 
     @Appender(_index_shared_docs['where'])
     def where(self, cond, other=None):
+        # TODO: Investigate an alternative implementation with
+        # 1. copy the underyling Categorical
+        # 2. setitem with `cond` and `other`
+        # 3. Rebuild CategoricalIndex.
         if other is None:
             other = self._na_value
         values = np.where(cond, self.values, other)
-
         cat = Categorical(values, dtype=self.dtype)
         return self._shallow_copy(cat, **self._get_attributes_dict())
 
@@ -500,12 +512,16 @@ class CategoricalIndex(Index, accessor.PandasDelegate):
 
         target = ibase.ensure_index(target)
 
-        if not is_categorical_dtype(target) and not target.is_unique:
-            raise ValueError("cannot reindex with a non-unique indexer")
+        if self.equals(target):
+            indexer = None
+            missing = []
+        else:
+            if not target.is_unique:
+                raise ValueError("cannot reindex with a non-unique indexer")
 
-        indexer, missing = self.get_indexer_non_unique(np.array(target))
+            indexer, missing = self.get_indexer_non_unique(np.array(target))
 
-        if len(self.codes):
+        if len(self.codes) and indexer is not None:
             new_target = self.take(indexer)
         else:
             new_target = target

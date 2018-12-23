@@ -1,17 +1,15 @@
 # coding=utf-8
 # pylint: disable-msg=E1101,W0612
 
+import numpy as np
 import pytest
 
-import numpy as np
-import pandas as pd
-
-from pandas import (Index, Series, DataFrame)
-
 from pandas.compat import lrange, range
-from pandas.util.testing import (assert_series_equal)
 
+import pandas as pd
+from pandas import DataFrame, Index, Series
 import pandas.util.testing as tm
+from pandas.util.testing import assert_series_equal
 
 
 def test_get():
@@ -98,10 +96,8 @@ def test_delitem():
     # empty
     s = Series()
 
-    def f():
+    with pytest.raises(KeyError):
         del s[0]
-
-    pytest.raises(KeyError, f)
 
     # only 1 left, del, add, del
     s = Series(1)
@@ -209,10 +205,8 @@ def test_setitem_float_labels():
 def test_slice_float_get_set(test_data):
     pytest.raises(TypeError, lambda: test_data.ts[4.0:10.0])
 
-    def f():
+    with pytest.raises(TypeError):
         test_data.ts[4.0:10.0] = 0
-
-    pytest.raises(TypeError, f)
 
     pytest.raises(TypeError, test_data.ts.__getitem__, slice(4.5, 10.0))
     pytest.raises(TypeError, test_data.ts.__setitem__, slice(4.5, 10.0), 0)

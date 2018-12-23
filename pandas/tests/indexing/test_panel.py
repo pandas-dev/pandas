@@ -1,9 +1,10 @@
-import pytest
 from warnings import catch_warnings
 
 import numpy as np
+import pytest
+
+from pandas import DataFrame, Panel, date_range
 from pandas.util import testing as tm
-from pandas import Panel, date_range, DataFrame
 
 
 @pytest.mark.filterwarnings("ignore:\\nPanel:FutureWarning")
@@ -63,10 +64,8 @@ class TestPanel(object):
             with pytest.raises(IndexError):
                 p.iloc[tuple([10, 5])]
 
-            def f():
+            with pytest.raises(IndexError):
                 p.iloc[0, [True, True], [0, 1, 2]]
-
-            pytest.raises(IndexError, f)
 
             # trying to use a label
             with pytest.raises(ValueError):
@@ -87,15 +86,11 @@ class TestPanel(object):
             result = p.iloc[0, [True, True, True], [0, 1]]
             tm.assert_frame_equal(result, expected)
 
-            def f():
+            with pytest.raises(IndexError):
                 p.iloc[0, [True, True, True], [0, 1, 2]]
 
-            pytest.raises(IndexError, f)
-
-            def f():
+            with pytest.raises(IndexError):
                 p.iloc[0, [True, True, True], [2]]
-
-            pytest.raises(IndexError, f)
 
     def test_iloc_panel_issue(self):
 
@@ -209,11 +204,9 @@ class TestPanel(object):
             # TODO: unused?
             # expected = wp.loc[['Item1', 'Item2'], :, ['A', 'B']]
 
-            def f():
+            with pytest.raises(NotImplementedError):
                 wp.loc[['Item1', 'Item2'], :, ['A', 'B']] = wp2.loc[
                     ['Item1', 'Item2'], :, ['A', 'B']]
-
-            pytest.raises(NotImplementedError, f)
 
             # to_assign = wp2.loc[['Item1', 'Item2'], :, ['A', 'B']]
             # wp.loc[['Item1', 'Item2'], :, ['A', 'B']] = to_assign

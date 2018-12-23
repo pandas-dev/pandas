@@ -4,12 +4,10 @@ import numpy as np
 from pandas import DataFrame, Panel, date_range, HDFStore, read_hdf
 import pandas.util.testing as tm
 
-from ..pandas_vb_common import BaseIO, setup  # noqa
+from ..pandas_vb_common import BaseIO
 
 
 class HDFStoreDataFrame(BaseIO):
-
-    goal_time = 0.2
 
     def setup(self):
         N = 25000
@@ -103,8 +101,6 @@ class HDFStoreDataFrame(BaseIO):
 
 class HDFStorePanel(BaseIO):
 
-    goal_time = 0.2
-
     def setup(self):
         self.fname = '__test__.h5'
         with warnings.catch_warnings(record=True):
@@ -130,7 +126,6 @@ class HDFStorePanel(BaseIO):
 
 class HDF(BaseIO):
 
-    goal_time = 0.2
     params = ['table', 'fixed']
     param_names = ['format']
 
@@ -149,3 +144,6 @@ class HDF(BaseIO):
 
     def time_write_hdf(self, format):
         self.df.to_hdf(self.fname, 'df', format=format)
+
+
+from ..pandas_vb_common import setup  # noqa: F401
