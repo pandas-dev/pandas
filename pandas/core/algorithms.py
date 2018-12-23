@@ -696,12 +696,15 @@ def value_counts(values, sort=True, ascending=False, normalize=False,
         if is_extension_array_dtype(values) or is_sparse(values):
 
             # handle Categorical and sparse,
-            result = Series(values)._values.value_counts(dropna=dropna)
+            vals = Series(values)
+            uniq = vals._values.unique()
+            result = vals._values.value_counts(dropna=dropna)
             result.name = name
             counts = result.values
 
         else:
             keys, counts = _value_counts_arraylike(values, dropna)
+            uniq = unique(values)
 
             if not isinstance(keys, Index):
                 keys = Index(keys)
@@ -710,7 +713,6 @@ def value_counts(values, sort=True, ascending=False, normalize=False,
     if sort:
         result = result.sort_values(ascending=ascending)
     elif bins is None:
-        uniq = unique(values)
         if not isinstance(result.index, ABCCategoricalIndex):
             result = result.reindex(uniq)
 
