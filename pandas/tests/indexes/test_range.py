@@ -1,8 +1,6 @@
 # -*- coding: utf-8 -*-
 
 from datetime import datetime
-from itertools import combinations
-import operator
 
 import numpy as np
 import pytest
@@ -28,39 +26,10 @@ class TestRangeIndex(Numeric):
     def create_index(self):
         return RangeIndex(5)
 
-    def check_binop(self, ops, scalars, idxs):
-        for op in ops:
-            for a, b in combinations(idxs, 2):
-                result = op(a, b)
-                expected = op(Int64Index(a), Int64Index(b))
-                tm.assert_index_equal(result, expected)
-            for idx in idxs:
-                for scalar in scalars:
-                    result = op(idx, scalar)
-                    expected = op(Int64Index(idx), scalar)
-                    tm.assert_index_equal(result, expected)
-
     def test_can_hold_identifiers(self):
         idx = self.create_index()
         key = idx[0]
         assert idx._can_hold_identifiers_and_holds_name(key) is False
-
-    def test_binops(self):
-        ops = [operator.add, operator.sub, operator.mul, operator.floordiv,
-               operator.truediv]
-        scalars = [-1, 1, 2]
-        idxs = [RangeIndex(0, 10, 1), RangeIndex(0, 20, 2),
-                RangeIndex(-10, 10, 2), RangeIndex(5, -5, -1)]
-        self.check_binop(ops, scalars, idxs)
-
-    def test_binops_pow(self):
-        # later versions of numpy don't allow powers of negative integers
-        # so test separately
-        # https://github.com/numpy/numpy/pull/8127
-        ops = [pow]
-        scalars = [1, 2]
-        idxs = [RangeIndex(0, 10, 1), RangeIndex(0, 20, 2)]
-        self.check_binop(ops, scalars, idxs)
 
     def test_too_many_names(self):
         with pytest.raises(ValueError, match="^Length"):
@@ -88,10 +57,6 @@ class TestRangeIndex(Numeric):
         assert index._step == 2
         tm.assert_index_equal(Index(expected), index)
 
-        msg = "RangeIndex\\(\\.\\.\\.\\) must be called with integers"
-        with pytest.raises(TypeError, match=msg):
-            RangeIndex()
-
         for index in [RangeIndex(0), RangeIndex(start=0), RangeIndex(stop=0),
                       RangeIndex(0, 0)]:
             expected = np.empty(0, dtype=np.int64)
@@ -101,9 +66,6 @@ class TestRangeIndex(Numeric):
             assert index._step == 1
             tm.assert_index_equal(Index(expected), index)
 
-        with pytest.raises(TypeError, match=msg):
-            RangeIndex(name='Foo')
-
         for index in [RangeIndex(0, name='Foo'),
                       RangeIndex(start=0, name='Foo'),
                       RangeIndex(stop=0, name='Foo'),
@@ -112,13 +74,23 @@ class TestRangeIndex(Numeric):
             assert index.name == 'Foo'
 
         # we don't allow on a bare Index
-        pytest.raises(TypeError, lambda: Index(0, 1000))
+        with pytest.raises(TypeError):
+            Index(0, 1000)
+
+    def test_constructor_invalid_args(self):
+        msg = "RangeIndex\\(\\.\\.\\.\\) must be called with integers"
+        with pytest.raises(TypeError, match=msg):
+            RangeIndex()
+
+        with pytest.raises(TypeError, match=msg):
+            RangeIndex(name='Foo')
 
         # invalid args
         for i in [Index(['a', 'b']), Series(['a', 'b']), np.array(['a', 'b']),
                   [], 'foo', datetime(2000, 1, 1, 0, 0), np.arange(0, 10),
                   np.array([1]), [1]]:
-            pytest.raises(TypeError, lambda: RangeIndex(i))
+            with pytest.raises(TypeError):
+                RangeIndex(i)
 
     def test_constructor_same(self):
 
@@ -133,12 +105,13 @@ class TestRangeIndex(Numeric):
         result = RangeIndex(index)
         tm.assert_index_equal(result, index, exact=True)
 
-        pytest.raises(TypeError,
-                      lambda: RangeIndex(index, dtype='float64'))
+        with pytest.raises(TypeError):
+            RangeIndex(index, dtype='float64')
 
     def test_constructor_range(self):
 
-        pytest.raises(TypeError, lambda: RangeIndex(range(1, 5, 2)))
+        with pytest.raises(TypeError):
+            RangeIndex(range(1, 5, 2))
 
         result = RangeIndex.from_range(range(1, 5, 2))
         expected = RangeIndex(1, 5, 2)
@@ -161,8 +134,8 @@ class TestRangeIndex(Numeric):
         expected = RangeIndex(1, 5, 2)
         tm.assert_index_equal(result, expected, exact=True)
 
-        pytest.raises(TypeError,
-                      lambda: Index(range(1, 5, 2), dtype='float64'))
+        with pytest.raises(TypeError):
+            Index(range(1, 5, 2), dtype='float64')
 
     def test_constructor_name(self):
         # GH12288
@@ -183,85 +156,6 @@ class TestRangeIndex(Numeric):
         assert copy.name == 'copy'
         assert new.name == 'new'
 
-    # TODO: mod, divmod?
-    @pytest.mark.parametrize('op', [operator.add, operator.sub,
-                                    operator.mul, operator.floordiv,
-                                    operator.truediv, operator.pow])
-    def test_arithmetic_with_frame_or_series(self, op):
-        # check that we return NotImplemented when operating with Series
-        # or DataFrame
-        index = pd.RangeIndex(5)
-        other = pd.Series(np.random.randn(5))
-
-        expected = op(pd.Series(index), other)
-        result = op(index, other)
-        tm.assert_series_equal(result, expected)
-
-        other = pd.DataFrame(np.random.randn(2, 5))
-        expected = op(pd.DataFrame([index, index]), other)
-        result = op(index, other)
-        tm.assert_frame_equal(result, expected)
-
-    def test_numeric_compat2(self):
-        # validate that we are handling the RangeIndex overrides to numeric ops
-        # and returning RangeIndex where possible
-
-        idx = RangeIndex(0, 10, 2)
-
-        result = idx * 2
-        expected = RangeIndex(0, 20, 4)
-        tm.assert_index_equal(result, expected, exact=True)
-
-        result = idx + 2
-        expected = RangeIndex(2, 12, 2)
-        tm.assert_index_equal(result, expected, exact=True)
-
-        result = idx - 2
-        expected = RangeIndex(-2, 8, 2)
-        tm.assert_index_equal(result, expected, exact=True)
-
-        # truediv under PY3
-        result = idx / 2
-
-        if PY3:
-            expected = RangeIndex(0, 5, 1).astype('float64')
-        else:
-            expected = RangeIndex(0, 5, 1)
-        tm.assert_index_equal(result, expected, exact=True)
-
-        result = idx / 4
-        expected = RangeIndex(0, 10, 2) / 4
-        tm.assert_index_equal(result, expected, exact=True)
-
-        result = idx // 1
-        expected = idx
-        tm.assert_index_equal(result, expected, exact=True)
-
-        # __mul__
-        result = idx * idx
-        expected = Index(idx.values * idx.values)
-        tm.assert_index_equal(result, expected, exact=True)
-
-        # __pow__
-        idx = RangeIndex(0, 1000, 2)
-        result = idx ** 2
-        expected = idx._int64index ** 2
-        tm.assert_index_equal(Index(result.values), expected, exact=True)
-
-        # __floordiv__
-        cases_exact = [(RangeIndex(0, 1000, 2), 2, RangeIndex(0, 500, 1)),
-                       (RangeIndex(-99, -201, -3), -3, RangeIndex(33, 67, 1)),
-                       (RangeIndex(0, 1000, 1), 2,
-                        RangeIndex(0, 1000, 1)._int64index // 2),
-                       (RangeIndex(0, 100, 1), 2.0,
-                        RangeIndex(0, 100, 1)._int64index // 2.0),
-                       (RangeIndex(0), 50, RangeIndex(0)),
-                       (RangeIndex(2, 4, 2), 3, RangeIndex(0, 1, 1)),
-                       (RangeIndex(-5, -10, -6), 4, RangeIndex(-2, -1, 1)),
-                       (RangeIndex(-100, -200, 3), 2, RangeIndex(0))]
-        for idx, div, expected in cases_exact:
-            tm.assert_index_equal(idx // div, expected, exact=True)
-
     def test_constructor_corner(self):
         arr = np.array([1, 2, 3, 4], dtype=object)
         index = RangeIndex(1, 5)
@@ -269,11 +163,14 @@ class TestRangeIndex(Numeric):
         tm.assert_index_equal(index, Index(arr))
 
         # non-int raise Exception
-        pytest.raises(TypeError, RangeIndex, '1', '10', '1')
-        pytest.raises(TypeError, RangeIndex, 1.1, 10.2, 1.3)
+        with pytest.raises(TypeError):
+            RangeIndex('1', '10', '1')
+        with pytest.raises(TypeError):
+            RangeIndex(1.1, 10.2, 1.3)
 
         # invalid passed type
-        pytest.raises(TypeError, lambda: RangeIndex(1, 5, dtype='float64'))
+        with pytest.raises(TypeError):
+            RangeIndex(1, 5, dtype='float64')
 
     def test_copy(self):
         i = RangeIndex(5, name='Foo')
@@ -735,10 +632,12 @@ class TestRangeIndex(Numeric):
 
     def test_cant_or_shouldnt_cast(self):
         # can't
-        pytest.raises(TypeError, RangeIndex, 'foo', 'bar', 'baz')
+        with pytest.raises(TypeError):
+            RangeIndex('foo', 'bar', 'baz')
 
         # shouldn't
-        pytest.raises(TypeError, RangeIndex, '0', '1', '2')
+        with pytest.raises(TypeError):
+            RangeIndex('0', '1', '2')
 
     def test_view_Index(self):
         self.index.view(Index)
@@ -824,12 +723,6 @@ class TestRangeIndex(Numeric):
             idx = self.indices[ind]
             assert idx.is_unique
             assert not idx.has_duplicates
-
-    def test_ufunc_compat(self):
-        idx = RangeIndex(5)
-        result = np.sin(idx)
-        expected = Float64Index(np.sin(np.arange(5, dtype='int64')))
-        tm.assert_index_equal(result, expected)
 
     def test_extended_gcd(self):
         result = self.index._extended_gcd(6, 10)

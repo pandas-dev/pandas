@@ -14,7 +14,7 @@ from pandas._libs.tslibs.timestamps import (
 import pandas.compat as compat
 from pandas.errors import (
     AbstractMethodError, NullFrequencyError, PerformanceWarning)
-from pandas.util._decorators import Appender, deprecate_kwarg
+from pandas.util._decorators import Appender, Substitution, deprecate_kwarg
 
 from pandas.core.dtypes.common import (
     is_bool_dtype, is_datetime64_any_dtype, is_datetime64_dtype,
@@ -86,44 +86,45 @@ class DatelikeOps(object):
     Common ops for DatetimeIndex/PeriodIndex, but not TimedeltaIndex.
     """
 
+    @Substitution(URL="https://docs.python.org/3/library/datetime.html"
+                      "#strftime-and-strptime-behavior")
     def strftime(self, date_format):
+        """
+        Convert to Index using specified date_format.
+
+        Return an Index of formatted strings specified by date_format, which
+        supports the same string format as the python standard library. Details
+        of the string format can be found in `python string format
+        doc <%(URL)s>`__
+
+        Parameters
+        ----------
+        date_format : str
+            Date format string (e.g. "%%Y-%%m-%%d").
+
+        Returns
+        -------
+        Index
+            Index of formatted strings
+
+        See Also
+        --------
+        to_datetime : Convert the given argument to datetime.
+        DatetimeIndex.normalize : Return DatetimeIndex with times to midnight.
+        DatetimeIndex.round : Round the DatetimeIndex to the specified freq.
+        DatetimeIndex.floor : Floor the DatetimeIndex to the specified freq.
+
+        Examples
+        --------
+        >>> rng = pd.date_range(pd.Timestamp("2018-03-10 09:00"),
+        ...                     periods=3, freq='s')
+        >>> rng.strftime('%%B %%d, %%Y, %%r')
+        Index(['March 10, 2018, 09:00:00 AM', 'March 10, 2018, 09:00:01 AM',
+               'March 10, 2018, 09:00:02 AM'],
+              dtype='object')
+        """
         from pandas import Index
-        return Index(self.format(date_format=date_format),
-                     dtype=compat.text_type)
-    strftime.__doc__ = """
-    Convert to Index using specified date_format.
-
-    Return an Index of formatted strings specified by date_format, which
-    supports the same string format as the python standard library. Details
-    of the string format can be found in `python string format doc <{0}>`__
-
-    Parameters
-    ----------
-    date_format : str
-        Date format string (e.g. "%Y-%m-%d").
-
-    Returns
-    -------
-    Index
-        Index of formatted strings
-
-    See Also
-    --------
-    to_datetime : Convert the given argument to datetime.
-    DatetimeIndex.normalize : Return DatetimeIndex with times to midnight.
-    DatetimeIndex.round : Round the DatetimeIndex to the specified freq.
-    DatetimeIndex.floor : Floor the DatetimeIndex to the specified freq.
-
-    Examples
-    --------
-    >>> rng = pd.date_range(pd.Timestamp("2018-03-10 09:00"),
-    ...                     periods=3, freq='s')
-    >>> rng.strftime('%B %d, %Y, %r')
-    Index(['March 10, 2018, 09:00:00 AM', 'March 10, 2018, 09:00:01 AM',
-           'March 10, 2018, 09:00:02 AM'],
-          dtype='object')
-    """.format("https://docs.python.org/3/library/datetime.html"
-               "#strftime-and-strptime-behavior")
+        return Index(self._format_native_types(date_format=date_format))
 
 
 class TimelikeOps(object):
@@ -295,8 +296,38 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin, AttributesMixin):
 
     @property
     def asi8(self):
+        # type: () -> ndarray
+        """
+        Integer representation of the values.
+
+        Returns
+        -------
+        ndarray
+            An ndarray with int64 dtype.
+        """
         # do not cache or you'll create a memory leak
         return self._data.view('i8')
+
+    @property
+    def _ndarray_values(self):
+        return self._data
+
+    # ----------------------------------------------------------------
+    # Rendering Methods
+
+    def _format_native_types(self, na_rep=u'NaT', date_format=None):
+        """
+        Helper method for astype when converting to strings.
+
+        Returns
+        -------
+        ndarray[str]
+        """
+        raise AbstractMethodError(self)
+
+    def _formatter(self, boxed=False):
+        # TODO: Remove Datetime & DatetimeTZ formatters.
+        return "'{}'".format
 
     # ----------------------------------------------------------------
     # Array-Like / EA-Interface Methods
@@ -451,7 +482,7 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin, AttributesMixin):
         return (self.asi8 == iNaT)
 
     @property  # NB: override with cache_readonly in immutable subclasses
-    def hasnans(self):
+    def _hasnans(self):
         """
         return if I have any nans; enables various perf speedups
         """
@@ -475,7 +506,7 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin, AttributesMixin):
         This is an internal routine
         """
 
-        if self.hasnans:
+        if self._hasnans:
             if convert:
                 result = result.astype(convert)
             if fill_value is None:
@@ -698,7 +729,7 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin, AttributesMixin):
         new_values = checked_add_with_arr(self_i8, other_i8,
                                           arr_mask=self._isnan,
                                           b_mask=other._isnan)
-        if self.hasnans or other.hasnans:
+        if self._hasnans or other._hasnans:
             mask = (self._isnan) | (other._isnan)
             new_values[mask] = iNaT
         return new_values.view('i8')
@@ -766,7 +797,7 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin, AttributesMixin):
                                           b_mask=other._isnan)
 
         new_values = np.array([self.freq.base * x for x in new_values])
-        if self.hasnans or other.hasnans:
+        if self._hasnans or other._hasnans:
             mask = (self._isnan) | (other._isnan)
             new_values[mask] = NaT
         return new_values
@@ -925,7 +956,8 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin, AttributesMixin):
         elif lib.is_integer(other):
             # This check must come after the check for np.timedelta64
             # as is_integer returns True for these
-            maybe_integer_op_deprecated(self)
+            if not is_period_dtype(self):
+                maybe_integer_op_deprecated(self)
             result = self._time_shift(other)
 
         # array-like others
@@ -939,7 +971,8 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin, AttributesMixin):
             # DatetimeIndex, ndarray[datetime64]
             return self._add_datetime_arraylike(other)
         elif is_integer_dtype(other):
-            maybe_integer_op_deprecated(self)
+            if not is_period_dtype(self):
+                maybe_integer_op_deprecated(self)
             result = self._addsub_int_array(other, operator.add)
         elif is_float_dtype(other):
             # Explicitly catch invalid dtypes
@@ -986,7 +1019,8 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin, AttributesMixin):
         elif lib.is_integer(other):
             # This check must come after the check for np.timedelta64
             # as is_integer returns True for these
-            maybe_integer_op_deprecated(self)
+            if not is_period_dtype(self):
+                maybe_integer_op_deprecated(self)
             result = self._time_shift(-other)
 
         elif isinstance(other, Period):
@@ -1006,7 +1040,8 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin, AttributesMixin):
             # PeriodIndex
             result = self._sub_period_array(other)
         elif is_integer_dtype(other):
-            maybe_integer_op_deprecated(self)
+            if not is_period_dtype(self):
+                maybe_integer_op_deprecated(self)
             result = self._addsub_int_array(other, operator.sub)
         elif isinstance(other, ABCIndexClass):
             raise TypeError("cannot subtract {cls} and {typ}"
@@ -1083,7 +1118,7 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin, AttributesMixin):
             elif lib.is_scalar(lib.item_from_zerodim(other)):
                 # ndarray scalar
                 other = [other.item()]
-            other = type(self)(other)
+            other = type(self)._from_sequence(other)
 
         # compare
         result = op(self.asi8, other.asi8)
@@ -1098,6 +1133,41 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin, AttributesMixin):
 
         result[mask] = filler
         return result
+
+    def _ensure_localized(self, arg, ambiguous='raise', nonexistent='raise',
+                          from_utc=False):
+        """
+        Ensure that we are re-localized.
+
+        This is for compat as we can then call this on all datetimelike
+        arrays generally (ignored for Period/Timedelta)
+
+        Parameters
+        ----------
+        arg : Union[DatetimeLikeArray, DatetimeIndexOpsMixin, ndarray]
+        ambiguous : str, bool, or bool-ndarray, default 'raise'
+        nonexistent : str, default 'raise'
+        from_utc : bool, default False
+            If True, localize the i8 ndarray to UTC first before converting to
+            the appropriate tz. If False, localize directly to the tz.
+
+        Returns
+        -------
+        localized array
+        """
+
+        # reconvert to local tz
+        tz = getattr(self, 'tz', None)
+        if tz is not None:
+            if not isinstance(arg, type(self)):
+                arg = self._simple_new(arg)
+            if from_utc:
+                arg = arg.tz_localize('UTC').tz_convert(self.tz)
+            else:
+                arg = arg.tz_localize(
+                    self.tz, ambiguous=ambiguous, nonexistent=nonexistent
+                )
+        return arg
 
 
 DatetimeLikeArrayMixin._add_comparison_ops()
