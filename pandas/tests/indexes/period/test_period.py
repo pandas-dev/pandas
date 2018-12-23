@@ -339,10 +339,9 @@ class TestPeriodIndex(DatetimeLike):
         assert not index.is_(index[:])
         assert not index.is_(index.asfreq('M'))
         assert not index.is_(index.asfreq('A'))
-        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
-            # GH#22535
-            assert not index.is_(index - 2)
-            assert not index.is_(index - 0)
+
+        assert not index.is_(index - 2)
+        assert not index.is_(index - 0)
 
     def test_contains(self):
         rng = period_range('2007-01', freq='M', periods=10)
