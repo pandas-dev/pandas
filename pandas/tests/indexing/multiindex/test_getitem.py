@@ -135,36 +135,52 @@ def test_getitem_simple(multiindex_dataframe_random_data):
         df['foobar']
 
 
-@pytest.mark.filterwarnings("ignore:\\n.ix:DeprecationWarning")
-def test_series_getitem(multiindex_year_month_day_dataframe_random_data):
-    ymd = multiindex_year_month_day_dataframe_random_data
-    s = ymd['A']
-
-    result = s[2000, 3]
-
-    # TODO(wesm): unused?
-    # result2 = s.loc[2000, 3]
-
+@pytest.mark.parametrize('indexer', [
+    lambda s: s[2000, 3],
+    lambda s: s.loc[2000, 3]
+])
+def test_series_getitem(
+        multiindex_year_month_day_dataframe_random_data, indexer):
+    s = multiindex_year_month_day_dataframe_random_data['A']
     expected = s.reindex(s.index[42:65])
     expected.index = expected.index.droplevel(0).droplevel(0)
+
+    result = indexer(s)
     tm.assert_series_equal(result, expected)
 
-    result = s[2000, 3, 10]
-    expected = s[49]
+
+@pytest.mark.parametrize('indexer', [
+    lambda s: s[2000, 3, 10],
+    lambda s: s.loc[2000, 3, 10]
+])
+def test_series_getitem_returns_scalar(
+        multiindex_year_month_day_dataframe_random_data, indexer):
+    s = multiindex_year_month_day_dataframe_random_data['A']
+    expected = s.iloc[49]
+
+    result = indexer(s)
     assert result == expected
 
-    # fancy
+
+@pytest.mark.filterwarnings("ignore:\\n.ix:DeprecationWarning")
+@pytest.mark.parametrize('indexer', [
+    lambda s: s.loc[[(2000, 3, 10), (2000, 3, 13)]],
+    lambda s: s.ix[[(2000, 3, 10), (2000, 3, 13)]]
+])
+def test_series_getitem_fancy(
+        multiindex_year_month_day_dataframe_random_data, indexer):
+    s = multiindex_year_month_day_dataframe_random_data['A']
     expected = s.reindex(s.index[49:51])
-    result = s.loc[[(2000, 3, 10), (2000, 3, 13)]]
+
+    result = indexer(s)
     tm.assert_series_equal(result, expected)
 
-    result = s.ix[[(2000, 3, 10), (2000, 3, 13)]]
-    tm.assert_series_equal(result, expected)
 
-    # key error
-    msg = "356"
-    with pytest.raises(KeyError, match=msg):
-        s.__getitem__((2000, 3, 4))
+def test_series_getitem_raises_key_error(
+        multiindex_year_month_day_dataframe_random_data):
+    s = multiindex_year_month_day_dataframe_random_data['A']
+    with pytest.raises(KeyError, match="356"):
+        s[(2000, 3, 4)]
 
 
 def test_series_getitem_corner(
