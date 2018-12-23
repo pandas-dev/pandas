@@ -5,7 +5,6 @@ Cython implementations of functions resembling the stdlib calendar module
 """
 
 import cython
-from cython import Py_ssize_t
 
 from numpy cimport int64_t, int32_t
 
@@ -151,11 +150,8 @@ cpdef int32_t get_week_of_year(int year, int month, int day) nogil:
     Assumes the inputs describe a valid date.
     """
     cdef:
-        bint isleap
         int32_t doy, dow
         int woy
-
-    isleap = is_leapyear(year)
 
     doy = get_day_of_year(year, month, day)
     dow = dayofweek(year, month, day)

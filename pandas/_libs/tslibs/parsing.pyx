@@ -6,8 +6,6 @@ import sys
 import re
 import time
 
-from cython import Py_ssize_t
-
 from cpython.datetime cimport datetime
 
 
