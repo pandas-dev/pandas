@@ -26,22 +26,6 @@ def left_right_dtypes(request):
 
 class TestMethods(object):
 
-    @pytest.mark.parametrize('repeats', [0, 1, 5])
-    def test_repeat(self, left_right_dtypes, repeats):
-        left, right = left_right_dtypes
-        result = IntervalArray.from_arrays(left, right).repeat(repeats)
-        expected = IntervalArray.from_arrays(
-            left.repeat(repeats), right.repeat(repeats))
-        tm.assert_extension_array_equal(result, expected)
-
-    @pytest.mark.parametrize('bad_repeats, msg', [
-        (-1, 'negative dimensions are not allowed'),
-        ('foo', r'invalid literal for (int|long)\(\) with base 10')])
-    def test_repeat_errors(self, bad_repeats, msg):
-        array = IntervalArray.from_breaks(range(4))
-        with pytest.raises(ValueError, match=msg):
-            array.repeat(bad_repeats)
-
     @pytest.mark.parametrize('new_closed', [
         'left', 'right', 'both', 'neither'])
     def test_set_closed(self, closed, new_closed):
