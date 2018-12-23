@@ -257,15 +257,15 @@ class DatetimeIndexOpsMixin(DatetimeLikeArrayMixin):
         nv.validate_min(args, kwargs)
         nv.validate_minmax_axis(axis)
 
+        if not len(self):
+            return self._na_value
+
         i8 = self.asi8
         try:
             # quick check
             if len(i8) and self.is_monotonic:
                 if i8[0] != iNaT:
                     return self._box_func(i8[0])
-
-            if not len(self):
-                return self._na_value
 
             if self.hasnans:
                 if skipna:
@@ -313,15 +313,15 @@ class DatetimeIndexOpsMixin(DatetimeLikeArrayMixin):
         nv.validate_max(args, kwargs)
         nv.validate_minmax_axis(axis)
 
+        if not len(self):
+            return self._na_value
+
         i8 = self.asi8
         try:
             # quick check
             if len(i8) and self.is_monotonic:
                 if i8[-1] != iNaT:
                     return self._box_func(i8[-1])
-
-            if not len(self):
-                return self._na_value
 
             if self.hasnans:
                 if skipna:
