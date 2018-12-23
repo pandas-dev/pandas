@@ -1218,16 +1218,16 @@ cdef class TextReader:
         elif is_extension_array_dtype(dtype):
             result, na_count = self._string_convert(i, start, end, na_filter,
                                                     na_hashset)
+            array_type = dtype.construct_array_type()
             try:
                 # use _from_sequence_of_strings if the class defines it
-                result = dtype.construct_array_type() \
-                              ._from_sequence_of_strings(result, dtype=dtype)
+                result = array_type._from_sequence_of_strings(result,
+                                                              dtype=dtype)
             except NotImplementedError:
                 raise NotImplementedError(
                     "Extension Array: {ea} must implement "
                     "_from_sequence_of_strings in order "
-                    "to be used in parser methods".format(
-                            ea=dtype.construct_array_type()))
+                    "to be used in parser methods".format(ea=array_type))
 
             return result, na_count
 
@@ -2189,8 +2189,8 @@ def _concatenate_chunks(list chunks):
                                               sort_categories=sort_categories)
         else:
             if is_extension_array_dtype(dtype):
-                result[name] = dtype \
-                    .construct_array_type()._concat_same_type(arrs)
+                array_type = dtype.construct_array_type()
+                result[name] = array_type._concat_same_type(arrs)
             else:
                 result[name] = np.concatenate(arrs)
 

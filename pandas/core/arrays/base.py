@@ -150,7 +150,7 @@ class ExtensionArray(object):
         ExtensionArray
 
         """
-        raise NotImplementedError(cls)
+        raise AbstractMethodError(cls)
 
     @classmethod
     def _from_factorized(cls, values, original):
