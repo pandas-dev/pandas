@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-from datetime import datetime, date
+from datetime import datetime
 
 from cpython cimport (
     PyObject_RichCompareBool,
