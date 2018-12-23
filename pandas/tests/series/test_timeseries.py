@@ -967,35 +967,6 @@ class TestTimeSeries(TestData):
         assert result.freq == rng.freq
         assert result.tz == rng.tz
 
-    def test_min_max(self):
-        rng = date_range('1/1/2000', '12/31/2000')
-        rng2 = rng.take(np.random.permutation(len(rng)))
-
-        the_min = rng2.min()
-        the_max = rng2.max()
-        assert isinstance(the_min, Timestamp)
-        assert isinstance(the_max, Timestamp)
-        assert the_min == rng[0]
-        assert the_max == rng[-1]
-
-        assert rng.min() == rng[0]
-        assert rng.max() == rng[-1]
-
-    def test_min_max_series(self):
-        rng = date_range('1/1/2000', periods=10, freq='4h')
-        lvls = ['A', 'A', 'A', 'B', 'B', 'B', 'C', 'C', 'C', 'C']
-        df = DataFrame({'TS': rng, 'V': np.random.randn(len(rng)), 'L': lvls})
-
-        result = df.TS.max()
-        exp = Timestamp(df.TS.iat[-1])
-        assert isinstance(result, Timestamp)
-        assert result == exp
-
-        result = df.TS.min()
-        exp = Timestamp(df.TS.iat[0])
-        assert isinstance(result, Timestamp)
-        assert result == exp
-
     def test_from_M8_structured(self):
         dates = [(datetime(2012, 9, 9, 0, 0), datetime(2012, 9, 8, 15, 10))]
         arr = np.array(dates,
