@@ -519,6 +519,12 @@ class Index(IndexOpsMixin, PandasObject):
 
         result = object.__new__(cls)
         result._data = values
+        # _index_data is a (temporary?) fix to ensure that the direct data
+        # manipulation we do in `_libs/reduction.pyx` continues to work.
+        # We need access to the actual ndarray, since we're messing with
+        # data buffers and strides. We don't re-use `_ndarray_values`, since
+        # we actually set this value too.
+        result._index_data = values
         result.name = name
         for k, v in compat.iteritems(kwargs):
             setattr(result, k, v)
@@ -676,7 +682,7 @@ class Index(IndexOpsMixin, PandasObject):
         """
         The array interface, return my values.
         """
-        return self._data.view(np.ndarray)
+        return np.asarray(self._data, dtype=dtype)
 
     def __array_wrap__(self, result, context=None):
         """
@@ -733,6 +739,8 @@ class Index(IndexOpsMixin, PandasObject):
         Parameters
         ----------
         dtype : numpy dtype or pandas type
+            Note that any integer `dtype` is treated as ``'int64'``,
+            regardless of the sign and size.
         copy : bool, default True
             By default, astype always returns a newly allocated object.
             If copy is set to False and internal requirements on dtype are
