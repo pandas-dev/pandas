@@ -29,7 +29,8 @@ from pandas.core.dtypes.cast import astype_nansafe
 from pandas.core.dtypes.common import (
     ensure_object, is_bool_dtype, is_categorical_dtype, is_dtype_equal,
     is_float, is_integer, is_integer_dtype, is_list_like, is_object_dtype,
-    is_scalar, is_string_dtype, is_extension_array_dtype)
+    is_scalar, is_string_dtype, is_extension_array_dtype, pandas_dtype,
+)
 from pandas.core.dtypes.dtypes import CategoricalDtype
 from pandas.core.dtypes.missing import isna
 
@@ -1661,7 +1662,7 @@ class ParserBase(object):
             else:
                 # skip inference if specified dtype is object
                 try_num_bool = not (cast_type and (is_string_dtype(cast_type)
-                                                   or is_extension_array_dtype(cast_type))) # noqa
+                                                   or is_extension_array_dtype(cast_type)))  # noqa
 
                 # general type inference and conversion
                 cvals, na_count = self._infer_types(
@@ -1766,6 +1767,23 @@ class ParserBase(object):
             values = Categorical._from_inferred_categories(
                 cats, cats.get_indexer(values), cast_type,
                 true_values=self.true_values)
+
+        elif is_extension_array_dtype(cast_type):
+            try:
+                array_type = cast_type.construct_array_type()
+            except AttributeError:
+                cast_type = pandas_dtype(cast_type)
+                array_type = cast_type.construct_array_type()
+
+            try:
+                # use _from_sequence_of_strings if the class defines it
+                return array_type._from_sequence_of_strings(values,
+                                                            dtype=cast_type)
+            except NotImplementedError:
+                raise NotImplementedError(
+                    "Extension Array: {ea} must implement "
+                    "_from_sequence_of_strings in order "
+                    "to be used in parser methods".format(ea=array_type))
 
         else:
             try:
