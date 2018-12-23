@@ -55,6 +55,7 @@ from pandas.util._move import (
 from pandas.core.dtypes.common import (
     is_categorical_dtype, is_datetime64tz_dtype, is_object_dtype,
     needs_i8_conversion, pandas_dtype)
+from pandas.core.dtypes.dtypes import CategoricalDtype as CDT
 
 from pandas import (  # noqa:F401
     Categorical, CategoricalIndex, DataFrame, DatetimeIndex, Float64Index,
@@ -621,9 +622,8 @@ def decode(obj):
                                                     name=obj[u'name'])
     elif typ == u'category':
         from_codes = globals()[obj[u'klass']].from_codes
-        return from_codes(codes=obj[u'codes'],
-                          categories=obj[u'categories'],
-                          ordered=obj[u'ordered'])
+        dtype = CDT(obj[u'categories'], ordered=obj[u'ordered'])
+        return from_codes(codes=obj[u'codes'], dtype=dtype)
 
     elif typ == u'interval':
         return Interval(obj[u'left'], obj[u'right'], obj[u'closed'])

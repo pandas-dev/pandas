@@ -458,8 +458,9 @@ class TestCategoricalIndex(Base):
                                        right=[2, 4],
                                        closed='right')
 
+        dtype = CategoricalDtype(categories=ii, ordered=True)
         ci = CategoricalIndex(Categorical.from_codes(
-            [0, 1, -1], categories=ii, ordered=True))
+            [0, 1, -1], dtype=dtype))
 
         result = ci.astype('interval')
         expected = ii.take([0, 1, -1])

@@ -24,6 +24,7 @@ from pandas.core.dtypes.common import (
     ensure_int64, ensure_object, ensure_platform_int, is_categorical_dtype,
     is_datetime64_dtype, is_datetime64tz_dtype, is_list_like,
     is_timedelta64_dtype)
+from pandas.core.dtypes.dtypes import CategoricalDtype
 from pandas.core.dtypes.missing import array_equivalent
 
 from pandas import (
@@ -2206,10 +2207,8 @@ class DataCol(IndexCol):
                         categories = categories[~mask]
                         codes[codes != -1] -= mask.astype(int).cumsum().values
 
-                self.data = Categorical.from_codes(codes,
-                                                   categories=categories,
-                                                   ordered=self.ordered)
-
+                dtype = CategoricalDtype(categories, ordered=self.ordered)
+                self.data = Categorical.from_codes(codes, dtype=dtype)
             else:
 
                 try:

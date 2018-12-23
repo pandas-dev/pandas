@@ -5,6 +5,7 @@ import pytest
 
 import pandas as pd
 from pandas import DataFrame, Index, MultiIndex, Series
+from pandas.api.types import CategoricalDtype as CDT
 from pandas.core.util.hashing import _hash_scalar, hash_tuple, hash_tuples
 from pandas.util import hash_array, hash_pandas_object
 import pandas.util.testing as tm
@@ -243,14 +244,12 @@ def test_categorical_consistency(s1, categorize):
 
 
 def test_categorical_with_nan_consistency():
-    c = pd.Categorical.from_codes(
-        [-1, 0, 1, 2, 3, 4],
-        categories=pd.date_range("2012-01-01", periods=5, name="B"))
+    dtype = CDT(pd.date_range("2012-01-01", periods=5, name="B"))
+    c = pd.Categorical.from_codes([-1, 0, 1, 2, 3, 4], dtype=dtype)
     expected = hash_array(c, categorize=False)
 
-    c = pd.Categorical.from_codes(
-        [-1, 0],
-        categories=[pd.Timestamp("2012-01-01")])
+    c = pd.Categorical.from_codes([-1, 0],
+                                  dtype=CDT([pd.Timestamp("2012-01-01")]))
     result = hash_array(c, categorize=False)
 
     assert result[0] in expected

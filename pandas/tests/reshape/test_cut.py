@@ -76,8 +76,7 @@ def test_bins_from_interval_index():
     tm.assert_categorical_equal(result, expected)
 
     expected = Categorical.from_codes(np.append(c.codes, -1),
-                                      categories=c.categories,
-                                      ordered=True)
+                                      dtype=CDT(c.categories, ordered=True))
     result = cut(range(6), bins=expected.categories)
     tm.assert_categorical_equal(result, expected)
 
@@ -230,8 +229,9 @@ def test_cut_out_of_bounds():
      lambda labels: Categorical(["Medium"] + 4 * ["Small"] +
                                 ["Medium", "Large"],
                                 categories=labels, ordered=True)),
-    (lambda labels: Categorical.from_codes([0, 1, 2], labels),
-     lambda labels: Categorical.from_codes([1] + 4 * [0] + [1, 2], labels))
+    (lambda labels: Categorical.from_codes([0, 1, 2], dtype=CDT(labels)),
+     lambda labels: Categorical.from_codes([1] + 4 * [0] + [1, 2],
+                                           dtype=CDT(labels)))
 ])
 def test_cut_pass_labels(get_labels, get_expected):
     bins = [0, 25, 50, 100]

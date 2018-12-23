@@ -14,6 +14,7 @@ from pandas.util._decorators import cache_readonly
 from pandas.core.dtypes.common import (
     ensure_categorical, is_categorical_dtype, is_datetime64_dtype, is_hashable,
     is_list_like, is_scalar, is_timedelta64_dtype)
+from pandas.core.dtypes.dtypes import CategoricalDtype
 from pandas.core.dtypes.generic import ABCSeries
 
 import pandas.core.algorithms as algorithms
@@ -292,7 +293,8 @@ class Grouping(object):
                 from pandas.core.groupby.categorical import recode_for_groupby
                 self.grouper, self.all_grouper = recode_for_groupby(
                     self.grouper, self.sort, observed)
-                categories = self.grouper.categories
+                dtype = CategoricalDtype(self.grouper.categories,
+                                         ordered=self.grouper.ordered)
 
                 # we make a CategoricalIndex out of the cat grouper
                 # preserving the categories / ordered attributes
@@ -300,13 +302,10 @@ class Grouping(object):
                 if observed:
                     codes = algorithms.unique1d(self.grouper.codes)
                 else:
-                    codes = np.arange(len(categories))
+                    codes = np.arange(len(dtype.categories))
 
                 self._group_index = CategoricalIndex(
-                    Categorical.from_codes(
-                        codes=codes,
-                        categories=categories,
-                        ordered=self.grouper.ordered))
+                    Categorical.from_codes(codes=codes, dtype=dtype))
 
             # we are done
             if isinstance(self.grouper, Grouping):
@@ -395,8 +394,8 @@ class Grouping(object):
 
     @cache_readonly
     def groups(self):
-        return self.index.groupby(Categorical.from_codes(self.labels,
-                                                         self.group_index))
+        return self.index.groupby(
+            Categorical(self.labels, self.group_index, fastpath=True))
 
 
 def _get_grouper(obj, key=None, axis=0, level=None, sort=True,

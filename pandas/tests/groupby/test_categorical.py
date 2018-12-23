@@ -11,6 +11,7 @@ from pandas.compat import PY37
 import pandas as pd
 from pandas import (
     Categorical, CategoricalIndex, DataFrame, Index, MultiIndex, Series, qcut)
+from pandas.api.types import CategoricalDtype
 import pandas.util.testing as tm
 from pandas.util.testing import (
     assert_equal, assert_frame_equal, assert_series_equal)
@@ -22,10 +23,9 @@ def cartesian_product_for_groupers(result, args, names):
 
     def f(a):
         if isinstance(a, (CategoricalIndex, Categorical)):
-            categories = a.categories
-            a = Categorical.from_codes(np.arange(len(categories)),
-                                       categories=categories,
-                                       ordered=a.ordered)
+            dtype = CategoricalDtype(a.categories, ordered=a.ordered)
+            a = Categorical.from_codes(np.arange(len(dtype.categories)),
+                                       dtype=dtype)
         return a
 
     index = pd.MultiIndex.from_product(map(f, args), names=names)
@@ -148,17 +148,17 @@ def test_basic():
 
     # more basic
     levels = ['foo', 'bar', 'baz', 'qux']
+    dtype = CategoricalDtype(levels, ordered=True)
     codes = np.random.randint(0, 4, size=100)
 
-    cats = Categorical.from_codes(codes, levels, ordered=True)
+    cats = Categorical.from_codes(codes, dtype=dtype)
 
     data = DataFrame(np.random.randn(100, 4))
 
     result = data.groupby(cats, observed=False).mean()
 
     expected = data.groupby(np.asarray(cats), observed=False).mean()
-    exp_idx = CategoricalIndex(levels, categories=cats.categories,
-                               ordered=True)
+    exp_idx = CategoricalIndex(levels, dtype=dtype)
     expected = expected.reindex(exp_idx)
 
     assert_frame_equal(result, expected)
@@ -177,8 +177,7 @@ def test_basic():
     assert_frame_equal(desc_result, expected)
 
     # GH 10460
-    expc = Categorical.from_codes(np.arange(4).repeat(8),
-                                  levels, ordered=True)
+    expc = Categorical.from_codes(np.arange(4).repeat(8), dtype=dtype)
     exp = CategoricalIndex(expc)
     tm.assert_index_equal((desc_result.stack().index
                            .get_level_values(0)), exp)
@@ -423,9 +422,10 @@ def test_observed_groups(observed):
 def test_datetime():
     # GH9049: ensure backward compatibility
     levels = pd.date_range('2014-01-01', periods=4)
+    dtype = CategoricalDtype(levels, ordered=True)
     codes = np.random.randint(0, 4, size=100)
 
-    cats = Categorical.from_codes(codes, levels, ordered=True)
+    cats = Categorical.from_codes(codes, dtype=dtype)
 
     data = DataFrame(np.random.randn(100, 4))
     result = data.groupby(cats, observed=False).mean()
@@ -452,8 +452,7 @@ def test_datetime():
         expected.index.get_level_values(0))
 
     # GH 10460
-    expc = Categorical.from_codes(
-        np.arange(4).repeat(8), levels, ordered=True)
+    expc = Categorical.from_codes(np.arange(4).repeat(8), dtype=dtype)
     exp = CategoricalIndex(expc)
     tm.assert_index_equal((desc_result.stack().index
                            .get_level_values(0)), exp)
@@ -466,9 +465,9 @@ def test_datetime():
 def test_categorical_index():
 
     s = np.random.RandomState(12345)
-    levels = ['foo', 'bar', 'baz', 'qux']
+    dtype = CategoricalDtype(['foo', 'bar', 'baz', 'qux'], ordered=True)
     codes = s.randint(0, 4, size=20)
-    cats = Categorical.from_codes(codes, levels, ordered=True)
+    cats = Categorical.from_codes(codes, dtype=dtype)
     df = DataFrame(
         np.repeat(
             np.arange(20), 4).reshape(-1, 4), columns=list('abcd'))
@@ -478,16 +477,14 @@ def test_categorical_index():
     result = df.set_index('cats').groupby(level=0, observed=False).sum()
     expected = df[list('abcd')].groupby(cats.codes, observed=False).sum()
     expected.index = CategoricalIndex(
-        Categorical.from_codes(
-            [0, 1, 2, 3], levels, ordered=True), name='cats')
+        Categorical.from_codes([0, 1, 2, 3], dtype=dtype), name='cats')
     assert_frame_equal(result, expected)
 
     # with a cat column, should produce a cat index
     result = df.groupby('cats', observed=False).sum()
     expected = df[list('abcd')].groupby(cats.codes, observed=False).sum()
     expected.index = CategoricalIndex(
-        Categorical.from_codes(
-            [0, 1, 2, 3], levels, ordered=True), name='cats')
+        Categorical.from_codes([0, 1, 2, 3], dtype=dtype), name='cats')
     assert_frame_equal(result, expected)
 
 
@@ -638,7 +635,8 @@ def test_categorical_no_compress():
     data = Series(np.random.randn(9))
 
     codes = np.array([0, 0, 0, 1, 1, 1, 2, 2, 2])
-    cats = Categorical.from_codes(codes, [0, 1, 2], ordered=True)
+    dtype = CategoricalDtype([0, 1, 2], ordered=True)
+    cats = Categorical.from_codes(codes, dtype=dtype)
 
     result = data.groupby(cats, observed=False).mean()
     exp = data.groupby(codes, observed=False).mean()
@@ -648,12 +646,12 @@ def test_categorical_no_compress():
     assert_series_equal(result, exp)
 
     codes = np.array([0, 0, 0, 1, 1, 1, 3, 3, 3])
-    cats = Categorical.from_codes(codes, [0, 1, 2, 3], ordered=True)
+    dtype = CategoricalDtype([0, 1, 2, 3], ordered=True)
+    cats = Categorical.from_codes(codes, dtype=dtype)
 
     result = data.groupby(cats, observed=False).mean()
     exp = data.groupby(codes, observed=False).mean().reindex(cats.categories)
-    exp.index = CategoricalIndex(exp.index, categories=cats.categories,
-                                 ordered=cats.ordered)
+    exp.index = CategoricalIndex(exp.index, dtype=cats.dtype)
     assert_series_equal(result, exp)
 
     cats = Categorical(["a", "a", "a", "b", "b", "b", "c", "c", "c"],
