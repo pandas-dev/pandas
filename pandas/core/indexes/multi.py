@@ -1857,6 +1857,7 @@ class MultiIndex(Index):
     def argsort(self, *args, **kwargs):
         return self.values.argsort(*args, **kwargs)
 
+    @Appender(_index_shared_docs['repeat'] % _index_doc_kwargs)
     def repeat(self, repeats, *args, **kwargs):
         nv.validate_repeat(args, kwargs)
         return MultiIndex(levels=self.levels,

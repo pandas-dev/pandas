@@ -11,7 +11,6 @@ from pandas._libs.tslibs.period import (
     period_asfreq_arr)
 from pandas._libs.tslibs.timedeltas import Timedelta, delta_to_nanoseconds
 import pandas.compat as compat
-from pandas.compat.numpy import function as nv
 from pandas.util._decorators import Appender, cache_readonly
 from pandas.util._validators import validate_fillna_kwargs
 
@@ -592,19 +591,6 @@ class PeriodArray(dtl.DatetimeLikeArrayMixin,
         return values
 
     # ------------------------------------------------------------------
-
-    def repeat(self, repeats, *args, **kwargs):
-        """
-        Repeat elements of a PeriodArray.
-
-        See Also
-        --------
-        numpy.ndarray.repeat
-        """
-        # TODO(DatetimeArray): remove
-        nv.validate_repeat(args, kwargs)
-        values = self._data.repeat(repeats)
-        return type(self)(values, self.freq)
 
     def astype(self, dtype, copy=True):
         # TODO: Figure out something better here...
