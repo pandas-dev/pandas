@@ -385,6 +385,7 @@ Backwards incompatible API changes
 - :func:`read_csv` will now raise a ``ValueError`` if a column with missing values is declared as having dtype ``bool`` (:issue:`20591`)
 - The column order of the resultant :class:`DataFrame` from :meth:`MultiIndex.to_frame` is now guaranteed to match the :attr:`MultiIndex.names` order. (:issue:`22420`)
 - :func:`pd.offsets.generate_range` argument ``time_rule`` has been removed; use ``offset`` instead (:issue:`24157`)
+- :meth:`Series.value_counts` returns the counts in the same ordering as the original series when using ``sort=False`` (:issue:`12679`)
 
 Percentage change on groupby
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -1634,7 +1635,6 @@ Other
 
 - Bug where C variables were declared with external linkage causing import errors if certain other C libraries were imported before Pandas. (:issue:`24113`)
 - Require at least 0.28.2 version of ``cython`` to support read-only memoryviews (:issue:`21688`)
-- :meth:`Series.value_counts` returns the counts in the same ordering as the original series when using ``sort=False`` (:issue:`12679`)
 
 .. _whatsnew_0.24.0.contributors:
 
