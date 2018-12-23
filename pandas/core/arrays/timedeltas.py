@@ -232,6 +232,16 @@ class TimedeltaArrayMixin(dtl.DatetimeLikeArrayMixin, dtl.TimelikeOps):
         return fill_value
 
     # ----------------------------------------------------------------
+    # Rendering Methods
+
+    def _formatter(self, boxed=False):
+        from pandas.io.formats.format import _get_format_timedelta64
+        return _get_format_timedelta64(self, box=True)
+
+    def _format_native_types(self):
+        return self.astype(object)
+
+    # ----------------------------------------------------------------
     # Arithmetic Methods
 
     _create_comparison_method = classmethod(_td_array_cmp)
