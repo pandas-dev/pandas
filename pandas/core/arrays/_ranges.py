@@ -54,6 +54,8 @@ def generate_regular_range(start, end, periods, freq):
                              "if a 'period' is given.")
 
         with np.errstate(over="raise"):
+            # If the range is sufficiently large, np.arange may overflow
+            #  and incorrectly return an empty array if not caught.
             try:
                 values = np.arange(b, e, stride, dtype=np.int64)
             except FloatingPointError:
