@@ -1317,6 +1317,7 @@ Datetimelike
 - Bug in :class:`DatetimeIndex` where constructing a :class:`DatetimeIndex` from a :class:`Categorical` or :class:`CategoricalIndex` would incorrectly drop timezone information (:issue:`18664`)
 - Bug in :class:`DatetimeIndex` and :class:`TimedeltaIndex` where indexing with ``Ellipsis`` would incorrectly lose the index's ``freq`` attribute (:issue:`21282`)
 - Clarified error message produced when passing an incorrect ``freq`` argument to :class:`DatetimeIndex` with ``NaT`` as the first entry in the passed data (:issue:`11587`)
+- Bug in :class:`PeriodIndex` where comparisons against an array-like object with length 1 failed to raise ``ValueError`` (:issue:`23078`)
 
 Timedelta
 ^^^^^^^^^
