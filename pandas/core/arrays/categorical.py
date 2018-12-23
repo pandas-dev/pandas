@@ -371,9 +371,9 @@ class Categorical(ExtensionArray, PandasObject):
         null_mask = np.array(False)
 
         # sanitize input
-        if is_categorical_dtype(values) and dtype.categories is None:
-            dtype = CategoricalDtype(values.categories, dtype.ordered)
-
+        if is_categorical_dtype(values):
+            if dtype.categories is None:
+                dtype = CategoricalDtype(values.categories, dtype.ordered)
         elif not isinstance(values, (ABCIndexClass, ABCSeries)):
             # sanitize_array coerces np.nan to a string under certain versions
             # of numpy
