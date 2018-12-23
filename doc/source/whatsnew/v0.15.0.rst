@@ -506,7 +506,8 @@ Rolling/Expanding Moments improvements
      2    5.2
      dtype: float64
 
-     In [8]: pd.ewma(pd.Series([1., None, 8.]), com=2., ignore_na=True)  # pre-0.15.0 behavior
+     In [8]: pd.ewma(pd.Series
+             ([1., None, 8.]), com=2., ignore_na=True)  # pre-0.15.0 behavior
      Out[8]:
      0    1.0
      1    1.0

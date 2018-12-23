@@ -24,6 +24,8 @@ API changes
 
      s = pd.Series(pd.date_range('20130101', periods=5, freq='D'))
      s.iloc[2] = np.nan
+     df = pd.DataFrame();
+     ts = pd .Timestamp();
      s
 
   previous behavior:
