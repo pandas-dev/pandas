@@ -3,7 +3,7 @@ import pytest
 
 from pandas.compat import lrange, product as cart_product
 
-from pandas import DataFrame, Index, MultiIndex, concat
+from pandas import DataFrame, Index, MultiIndex, concat, Series, date_range
 import pandas.core.common as com
 from pandas.util import testing as tm
 
@@ -211,3 +211,27 @@ def test_xs_level_series_slice_not_implemented(
     msg = r'\(2000, slice\(3, 4, None\)\)'
     with pytest.raises(TypeError, match=msg):
         s[2000, 3:4]
+
+
+def test_series_getitem_multiindex_xs():
+    # GH6258
+    dt = list(date_range('20130903', periods=3))
+    idx = MultiIndex.from_product([list('AB'), dt])
+    s = Series([1, 3, 4, 1, 3, 4], index=idx)
+    expected = Series([1, 1], index=list('AB'))
+
+    result = s.xs('20130903', level=1)
+    tm.assert_series_equal(result, expected)
+
+
+def test_series_getitem_multiindex_xs_by_label():
+    # GH5684
+    idx = MultiIndex.from_tuples([('a', 'one'), ('a', 'two'), ('b', 'one'),
+                                  ('b', 'two')])
+    s = Series([1, 2, 3, 4], index=idx)
+    s.index.set_names(['L1', 'L2'], inplace=True)
+    expected = Series([1, 3], index=['a', 'b'])
+    expected.index.set_names(['L1'], inplace=True)
+
+    result = s.xs('one', level='L2')
+    tm.assert_series_equal(result, expected)

@@ -4,7 +4,7 @@ import pytest
 from pandas.compat import lrange, range, u, zip
 
 import pandas as pd
-from pandas import DataFrame, Index, MultiIndex, Series, date_range
+from pandas import DataFrame, Index, MultiIndex, Series
 import pandas.core.common as com
 from pandas.util import testing as tm
 
@@ -24,29 +24,6 @@ def test_series_getitem_multiindex(access_method, level1_value, expected):
     s = Series([1, 2, 3])
     s.index = MultiIndex.from_tuples([(0, 0), (1, 1), (2, 1)])
     result = access_method(s, level1_value)
-    tm.assert_series_equal(result, expected)
-
-
-def test_series_getitem_multiindex_xs():
-    # GH6258
-    dt = list(date_range('20130903', periods=3))
-    idx = MultiIndex.from_product([list('AB'), dt])
-    s = Series([1, 3, 4, 1, 3, 4], index=idx)
-
-    result = s.xs('20130903', level=1)
-    expected = Series([1, 1], index=list('AB'))
-    tm.assert_series_equal(result, expected)
-
-
-def test_series_getitem_multiindex_xs_by_label():
-    # GH5684
-    idx = MultiIndex.from_tuples([('a', 'one'), ('a', 'two'), ('b', 'one'),
-                                  ('b', 'two')])
-    s = Series([1, 2, 3, 4], index=idx)
-    s.index.set_names(['L1', 'L2'], inplace=True)
-    result = s.xs('one', level='L2')
-    expected = Series([1, 3], index=['a', 'b'])
-    expected.index.set_names(['L1'], inplace=True)
     tm.assert_series_equal(result, expected)
 
 
