@@ -86,8 +86,20 @@ def series(index, _series_name, _static_values):
 
 
 @pytest.fixture
-def frame(index, _static_values):
+def empty_series(series):
+    return series[:0]
+
+
+@pytest.fixture
+def frame(index, _series_name, _static_values):
+    # _series_name is intentionally unused
     return DataFrame({'value': _static_values}, index=index)
+
+
+@pytest.fixture
+def empty_frame(series):
+    index = series.index[:0]
+    return DataFrame(index=index)
 
 
 @pytest.fixture(params=[Series, DataFrame])
