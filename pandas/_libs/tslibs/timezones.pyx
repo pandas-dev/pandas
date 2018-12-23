@@ -1,9 +1,5 @@
 # -*- coding: utf-8 -*-
 
-from cython import Py_ssize_t
-
-from cpython.datetime cimport tzinfo
-
 # dateutil compat
 from dateutil.tz import (
     tzutc as _dateutil_tzutc,
@@ -25,6 +21,8 @@ cnp.import_array()
 # ----------------------------------------------------------------------
 from util cimport is_string_object, is_integer_object, get_nat
 
+# Timezone data caches, key is the pytz string or dateutil file name.
+cdef dict dst_cache = {}
 cdef int64_t NPY_NAT = get_nat()
 
 # ----------------------------------------------------------------------
@@ -59,6 +57,9 @@ cpdef inline object get_timezone(object tz):
     the tz name. It needs to be a string so that we can serialize it with
     UJSON/pytables. maybe_get_tz (below) is the inverse of this process.
     """
+    cdef:
+        object zone
+
     if is_utc(tz):
         return tz
     else:
@@ -89,6 +90,9 @@ cpdef inline object maybe_get_tz(object tz):
     (Maybe) Construct a timezone object from a string. If tz is a string, use
     it to construct a timezone object. Otherwise, just return tz.
     """
+    cdef:
+        str zone
+
     if is_string_object(tz):
         if tz == 'tzlocal()':
             tz = _dateutil_tzlocal()
@@ -108,10 +112,6 @@ cpdef inline object maybe_get_tz(object tz):
 def _p_tz_cache_key(tz):
     """ Python interface for cache function to facilitate testing."""
     return tz_cache_key(tz)
-
-
-# Timezone data caches, key is the pytz string or dateutil file name.
-dst_cache = {}
 
 
 cdef inline object tz_cache_key(object tz):
@@ -151,7 +151,7 @@ cdef inline object tz_cache_key(object tz):
 # UTC Offsets
 
 
-cdef get_utcoffset(tzinfo, obj):
+cdef get_utcoffset(object tzinfo, object obj):
     try:
         return tzinfo._utcoffset
     except AttributeError:
@@ -173,14 +173,19 @@ cdef inline bint is_fixed_offset(object tz):
     return 1
 
 
-cdef object get_utc_trans_times_from_dateutil_tz(object tz):
+cdef list get_utc_trans_times_from_dateutil_tz(object tz):
     """
     Transition times in dateutil timezones are stored in local non-dst
     time.  This code converts them to UTC. It's the reverse of the code
     in dateutil.tz.tzfile.__init__.
     """
+    cdef:
+        Py_ssize_t i
+        int last_std_offset = 0, trans
+        object tti
+        list new_trans
+
     new_trans = list(tz._trans_list)
-    last_std_offset = 0
     for i, (trans, tti) in enumerate(zip(tz._trans_list, tz._trans_idx)):
         if not tti.isdst:
             last_std_offset = tti.offset
@@ -206,7 +211,7 @@ cdef int64_t[:] unbox_utcoffsets(object transinfo):
 # Daylight Savings
 
 
-cdef object get_dst_info(object tz):
+cdef tuple get_dst_info(object tz):
     """
     return a tuple of :
       (UTC times of DST transitions,
@@ -214,6 +219,12 @@ cdef object get_dst_info(object tz):
        string of type of transitions)
 
     """
+    cdef:
+        object cache_key
+        list trans_list
+        str typ
+        int64_t num
+
     cache_key = tz_cache_key(tz)
     if cache_key is None:
         # e.g. pytz.FixedOffset, matplotlib.dates._UTC,
@@ -280,11 +291,14 @@ cdef object get_dst_info(object tz):
     return dst_cache[cache_key]
 
 
-def infer_tzinfo(start, end):
+def infer_tzinfo(object start, object end):
+    cdef:
+        str msg = 'Inputs must both have the same timezone, {tz1} != {tz2}'
+        object tz
+
     if start is not None and end is not None:
         tz = start.tzinfo
         if not tz_compare(tz, end.tzinfo):
-            msg = 'Inputs must both have the same timezone, {tz1} != {tz2}'
             raise AssertionError(msg.format(tz1=tz, tz2=end.tzinfo))
     elif start is not None:
         tz = start.tzinfo
