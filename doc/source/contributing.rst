@@ -125,7 +125,7 @@ requires a C compiler and Python environment. If you're making documentation
 changes, you can skip to :ref:`contributing.documentation` but you won't be able
 to build the documentation locally before pushing your changes.
 
-.. _contributiong.dev_c:
+.. _contributing.dev_c:
 
 Installing a C Compiler
 ~~~~~~~~~~~~~~~~~~~~~~~
@@ -133,13 +133,17 @@ Installing a C Compiler
 Pandas uses C extensions (mostly written using Cython) to speed up certain
 operations. To install pandas from source, you need to compile these C
 extensions, which means you need a C compiler. This process depends on which
-platform you're using. Follow the `CPython contributing guidelines
-<https://docs.python.org/devguide/setup.html#build-dependencies>`_ for getting a
+platform you're using. Follow the `CPython contributing guide
+<https://devguide.python.org/setup/#compile-and-build>`_ for getting a
 compiler installed. You don't need to do any of the ``./configure`` or ``make``
 steps; you only need to install the compiler.
 
-For Windows developers, the following links may be helpful.
+For Windows developers, when using Python 3.5 and later, it is sufficient to
+install `Visual Studio 2017 <https://visualstudio.com/>`_ with the
+**Python development workload** and the **Python native development tools**
+option. Otherwise, the following links may be helpful.
 
+* https://blogs.msdn.microsoft.com/pythonengineering/2017/03/07/python-support-in-vs2017/
 * https://blogs.msdn.microsoft.com/pythonengineering/2016/04/11/unable-to-find-vcvarsall-bat/
 * https://github.com/conda/conda-recipes/wiki/Building-from-Source-on-Windows-32-bit-and-64-bit
 * https://cowboyprogrammer.org/building-python-wheels-for-windows/
@@ -149,7 +153,7 @@ For Windows developers, the following links may be helpful.
 Let us know if you have any difficulties by opening an issue or reaching out on
 `Gitter`_.
 
-.. _contributiong.dev_python:
+.. _contributing.dev_python:
 
 Creating a Python Environment
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -457,25 +461,6 @@ When pull requests are merged into the *pandas* ``master`` branch, the main part
 the documentation are also built by Travis-CI. These docs are then hosted `here
 <http://pandas-docs.github.io/pandas-docs-travis>`__, see also
 the :ref:`Continuous Integration <contributing.ci>` section.
-
-Spell checking documentation
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-When contributing to documentation to **pandas** it's good to check if your work
-contains any spelling errors. Sphinx provides an easy way to spell check documentation
-and docstrings.
-
-Running the spell check is easy. Just navigate to your local ``pandas/doc/`` directory and run::
-
-    python make.py spellcheck
-
-The spellcheck will take a few minutes to run (between 1 to 6 minutes). Sphinx will alert you
-with warnings and misspelt words - these misspelt words will be added to a file called
-``output.txt`` and you can find it on your local directory ``pandas/doc/build/spelling/``.
-
-The Sphinx spelling extension uses an EN-US dictionary to correct words, what means that in
-some cases you might need to add a word to this dictionary. You can do so by adding the word to
-the bag-of-words file named ``spelling_wordlist.txt`` located in the folder ``pandas/doc/``.
 
 .. _contributing.code:
 

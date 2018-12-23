@@ -14,9 +14,9 @@ from pandas.errors import PerformanceWarning
 from pandas.util._decorators import Appender
 
 from pandas.core.dtypes.common import (
-    _INT64_DTYPE, _NS_DTYPE, is_datetime64_dtype, is_datetime64tz_dtype,
-    is_extension_type, is_float_dtype, is_int64_dtype, is_object_dtype,
-    is_period_dtype, is_string_dtype, is_timedelta64_dtype)
+    _INT64_DTYPE, _NS_DTYPE, is_categorical_dtype, is_datetime64_dtype,
+    is_datetime64tz_dtype, is_extension_type, is_float_dtype, is_int64_dtype,
+    is_object_dtype, is_period_dtype, is_string_dtype, is_timedelta64_dtype)
 from pandas.core.dtypes.dtypes import DatetimeTZDtype
 from pandas.core.dtypes.generic import ABCIndexClass, ABCSeries
 from pandas.core.dtypes.missing import isna
@@ -27,7 +27,7 @@ from pandas.core.arrays import datetimelike as dtl
 import pandas.core.common as com
 
 from pandas.tseries.frequencies import get_period_alias, to_offset
-from pandas.tseries.offsets import Tick, generate_range
+from pandas.tseries.offsets import Day, Tick, generate_range
 
 _midnight = time(0, 0)
 
@@ -165,10 +165,23 @@ class DatetimeArrayMixin(dtl.DatetimeLikeArrayMixin,
         _data
     """
     _typ = "datetimearray"
+
+    # define my properties & methods for delegation
     _bool_ops = ['is_month_start', 'is_month_end',
                  'is_quarter_start', 'is_quarter_end', 'is_year_start',
                  'is_year_end', 'is_leap_year']
     _object_ops = ['weekday_name', 'freq', 'tz']
+    _field_ops = ['year', 'month', 'day', 'hour', 'minute', 'second',
+                  'weekofyear', 'week', 'weekday', 'dayofweek',
+                  'dayofyear', 'quarter', 'days_in_month',
+                  'daysinmonth', 'microsecond',
+                  'nanosecond']
+    _other_ops = ['date', 'time', 'timetz']
+    _datetimelike_ops = _field_ops + _object_ops + _bool_ops + _other_ops
+    _datetimelike_methods = ['to_period', 'tz_localize',
+                             'tz_convert',
+                             'normalize', 'strftime', 'round', 'floor',
+                             'ceil', 'month_name', 'day_name']
 
     # dummy attribute so that datetime.__eq__(DatetimeArray) defers
     # by returning NotImplemented
@@ -242,7 +255,8 @@ class DatetimeArrayMixin(dtl.DatetimeLikeArrayMixin,
 
     @classmethod
     def _generate_range(cls, start, end, periods, freq, tz=None,
-                        normalize=False, ambiguous='raise', closed=None):
+                        normalize=False, ambiguous='raise',
+                        nonexistent='raise', closed=None):
 
         periods = dtl.validate_periods(periods)
         if freq is None and any(x is None for x in [periods, start, end]):
@@ -264,13 +278,15 @@ class DatetimeArrayMixin(dtl.DatetimeLikeArrayMixin,
             if closed is not None:
                 raise ValueError("Closed has to be None if not both of start"
                                  "and end are defined")
+        if start is NaT or end is NaT:
+            raise ValueError("Neither `start` nor `end` can be NaT")
 
         left_closed, right_closed = dtl.validate_endpoints(closed)
 
         start, end, _normalized = _maybe_normalize_endpoints(start, end,
                                                              normalize)
 
-        tz, _ = _infer_tz_from_endpoints(start, end, tz)
+        tz = _infer_tz_from_endpoints(start, end, tz)
 
         if tz is not None:
             # Localize the start and end arguments
@@ -280,22 +296,22 @@ class DatetimeArrayMixin(dtl.DatetimeLikeArrayMixin,
             end = _maybe_localize_point(
                 end, getattr(end, 'tz', None), end, freq, tz
             )
-        if start and end:
-            # Make sure start and end have the same tz
-            start = _maybe_localize_point(
-                start, start.tz, end.tz, freq, tz
-            )
-            end = _maybe_localize_point(
-                end, end.tz, start.tz, freq, tz
-            )
         if freq is not None:
+            # We break Day arithmetic (fixed 24 hour) here and opt for
+            # Day to mean calendar day (23/24/25 hour). Therefore, strip
+            # tz info from start and day to avoid DST arithmetic
+            if isinstance(freq, Day):
+                if start is not None:
+                    start = start.tz_localize(None)
+                if end is not None:
+                    end = end.tz_localize(None)
             # TODO: consider re-implementing _cached_range; GH#17914
             index = _generate_regular_range(cls, start, end, periods, freq)
 
             if tz is not None and index.tz is None:
                 arr = conversion.tz_localize_to_utc(
                     index.asi8,
-                    tz, ambiguous=ambiguous)
+                    tz, ambiguous=ambiguous, nonexistent=nonexistent)
 
                 index = cls(arr)
 
@@ -527,7 +543,7 @@ class DatetimeArrayMixin(dtl.DatetimeLikeArrayMixin,
                           "or DatetimeIndex", PerformanceWarning)
             result = self.astype('O') + offset
 
-        return type(self)(result, freq='infer')
+        return type(self)._from_sequence(result, freq='infer')
 
     def _sub_datetimelike_scalar(self, other):
         # subtract a datetime from myself, yielding a ndarray[timedelta64[ns]]
@@ -562,8 +578,8 @@ class DatetimeArrayMixin(dtl.DatetimeLikeArrayMixin,
         -------
         result : DatetimeArray
         """
-        new_values = dtl.DatetimeLikeArrayMixin._add_delta(self, delta)
-        return type(self)(new_values, tz=self.tz, freq='infer')
+        new_values = super(DatetimeArrayMixin, self)._add_delta(delta)
+        return type(self)._from_sequence(new_values, tz=self.tz, freq='infer')
 
     # -----------------------------------------------------------------
     # Timezone Conversion and Localization Methods
@@ -866,14 +882,15 @@ class DatetimeArrayMixin(dtl.DatetimeLikeArrayMixin,
                        dtype='datetime64[ns, Asia/Calcutta]', freq=None)
         """
         if self.tz is None or timezones.is_utc(self.tz):
-            not_null = self.notna()
+            not_null = ~self.isna()
             DAY_NS = ccalendar.DAY_SECONDS * 1000000000
             new_values = self.asi8.copy()
             adjustment = (new_values[not_null] % DAY_NS)
             new_values[not_null] = new_values[not_null] - adjustment
         else:
             new_values = conversion.normalize_i8_timestamps(self.asi8, self.tz)
-        return type(self)(new_values, freq='infer').tz_localize(self.tz)
+        return type(self)._from_sequence(new_values,
+                                         freq='infer').tz_localize(self.tz)
 
     def to_period(self, freq=None):
         """
@@ -1652,6 +1669,13 @@ def maybe_convert_dtype(data, copy):
         raise TypeError("Passing PeriodDtype data is invalid.  "
                         "Use `data.to_timestamp()` instead")
 
+    elif is_categorical_dtype(data):
+        # GH#18664 preserve tz in going DTI->Categorical->DTI
+        # TODO: cases where we need to do another pass through this func,
+        #  e.g. the categories are timedelta64s
+        data = data.categories.take(data.codes, fill_value=NaT)
+        copy = False
+
     elif is_extension_type(data) and not is_datetime64tz_dtype(data):
         # Includes categorical
         # TODO: We have no tests for these
@@ -1855,7 +1879,6 @@ def _infer_tz_from_endpoints(start, end, tz):
     Returns
     -------
     tz : tzinfo or None
-    inferred_tz : tzinfo or None
 
     Raises
     ------
@@ -1878,7 +1901,7 @@ def _infer_tz_from_endpoints(start, end, tz):
     elif inferred_tz is not None:
         tz = inferred_tz
 
-    return tz, inferred_tz
+    return tz
 
 
 def _maybe_normalize_endpoints(start, end, normalize):

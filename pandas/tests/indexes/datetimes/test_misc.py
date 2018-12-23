@@ -188,7 +188,6 @@ class TestDatetime64(object):
         assert sum(dti.is_year_end) == 1
 
         # Ensure is_start/end accessors throw ValueError for CustomBusinessDay,
-        # CBD requires np >= 1.7
         bday_egypt = offsets.CustomBusinessDay(weekmask='Sun Mon Tue Wed Thu')
         dti = date_range(datetime(2013, 4, 30), periods=5, freq=bday_egypt)
         pytest.raises(ValueError, lambda: dti.is_month_start)

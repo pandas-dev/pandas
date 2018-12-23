@@ -15,7 +15,8 @@ from pandas import (
 from pandas.core.indexes.datetimes import date_range
 from pandas.core.indexes.period import Period, period_range
 from pandas.core.indexes.timedeltas import timedelta_range
-from pandas.core.resample import DatetimeIndex, TimeGrouper
+from pandas.core.resample import (
+    DatetimeIndex, TimeGrouper, _get_timestamp_range_edges)
 import pandas.util.testing as tm
 from pandas.util.testing import (
     assert_almost_equal, assert_frame_equal, assert_series_equal)
@@ -1278,7 +1279,7 @@ class TestDatetimeIndex(object):
         # 5172
         dti = DatetimeIndex([datetime(2012, 11, 4, 23)], tz='US/Eastern')
         df = DataFrame([5], index=dti)
-        assert_frame_equal(df.resample(rule='CD').sum(),
+        assert_frame_equal(df.resample(rule='D').sum(),
                            DataFrame([5], index=df.index.normalize()))
         df.resample(rule='MS').sum()
         assert_frame_equal(
@@ -1332,14 +1333,14 @@ class TestDatetimeIndex(object):
 
         df_daily = df['10/26/2013':'10/29/2013']
         assert_frame_equal(
-            df_daily.resample("CD").agg({"a": "min", "b": "max", "c": "count"})
+            df_daily.resample("D").agg({"a": "min", "b": "max", "c": "count"})
             [["a", "b", "c"]],
             DataFrame({"a": [1248, 1296, 1346, 1394],
                        "b": [1295, 1345, 1393, 1441],
                        "c": [48, 50, 48, 48]},
                       index=date_range('10/26/2013', '10/29/2013',
-                                       freq='CD', tz='Europe/Paris')),
-            'CD Frequency')
+                                       freq='D', tz='Europe/Paris')),
+            'D Frequency')
 
     def test_downsample_across_dst(self):
         # GH 8531
@@ -1481,3 +1482,27 @@ class TestDatetimeIndex(object):
         result1 = s.resample(str(n1_) + freq1).mean()
         result2 = s.resample(str(n2_) + freq2).mean()
         assert_series_equal(result1, result2)
+
+    @pytest.mark.parametrize('first,last,offset,exp_first,exp_last', [
+        ('19910905', '19920406', 'D', '19910905', '19920407'),
+        ('19910905 00:00', '19920406 06:00', 'D', '19910905', '19920407'),
+        ('19910905 06:00', '19920406 06:00', 'H', '19910905 06:00',
+         '19920406 07:00'),
+        ('19910906', '19920406', 'M', '19910831', '19920430'),
+        ('19910831', '19920430', 'M', '19910831', '19920531'),
+        ('1991-08', '1992-04', 'M', '19910831', '19920531'),
+    ])
+    def test_get_timestamp_range_edges(self, first, last, offset,
+                                       exp_first, exp_last):
+        first = pd.Period(first)
+        first = first.to_timestamp(first.freq)
+        last = pd.Period(last)
+        last = last.to_timestamp(last.freq)
+
+        exp_first = pd.Timestamp(exp_first, freq=offset)
+        exp_last = pd.Timestamp(exp_last, freq=offset)
+
+        offset = pd.tseries.frequencies.to_offset(offset)
+        result = _get_timestamp_range_edges(first, last, offset)
+        expected = (exp_first, exp_last)
+        assert result == expected

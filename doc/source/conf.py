@@ -19,6 +19,8 @@ import logging
 import warnings
 import jinja2
 from sphinx.ext.autosummary import _import_by_name
+from numpydoc.docscrape import NumpyDocString
+from numpydoc.docscrape_sphinx import SphinxDocString
 
 logger = logging.getLogger(__name__)
 
@@ -49,10 +51,6 @@ sys.path.extend([
 
 ])
 
-# numpydoc is available in the sphinxext directory, and can't be imported
-# until sphinxext is available in the Python path
-from numpydoc.docscrape import NumpyDocString
-
 # -- General configuration -----------------------------------------------
 
 # Add any Sphinx extension module names here, as strings. They can be
@@ -64,7 +62,7 @@ extensions = ['sphinx.ext.autodoc',
               'sphinx.ext.doctest',
               'sphinx.ext.extlinks',
               'sphinx.ext.todo',
-              'numpydoc',
+              'numpydoc',  # handle NumPy documentation formatted docstrings
               'IPython.sphinxext.ipython_directive',
               'IPython.sphinxext.ipython_console_highlighting',
               'matplotlib.sphinxext.plot_directive',
@@ -76,14 +74,6 @@ extensions = ['sphinx.ext.autodoc',
               'nbsphinx',
               'contributors',  # custom pandas extension
               ]
-
-try:
-    import sphinxcontrib.spelling  # noqa
-except ImportError as err:
-    logger.warn(('sphinxcontrib.spelling failed to import with error "{}". '
-                '`spellcheck` command is not available.'.format(err)))
-else:
-    extensions.append('sphinxcontrib.spelling')
 
 exclude_patterns = ['**.ipynb_checkpoints']
 try:
@@ -127,10 +117,6 @@ with open(os.path.join(source_path, 'index.rst'), 'w') as f:
                      single_doc=(os.path.splitext(pattern)[0]
                                  if pattern is not None and pattern != '-api'
                                  else None)))
-
-
-spelling_word_list_filename = ['spelling_wordlist.txt', 'names_wordlist.txt']
-spelling_ignore_pypi_package_names = True
 
 # numpydoc
 # for now use old parameter listing (styling + **kwargs problem)
@@ -382,6 +368,8 @@ nbsphinx_allow_errors = True
 
 # -- Options for LaTeX output --------------------------------------------
 
+latex_elements = {}
+
 # The paper size ('letter' or 'a4').
 # latex_paper_size = 'letter'
 
@@ -416,7 +404,7 @@ latex_documents = [
 
 intersphinx_mapping = {
     'statsmodels': ('http://www.statsmodels.org/devel/', None),
-    'matplotlib': ('http://matplotlib.org/', None),
+    'matplotlib': ('https://matplotlib.org/', None),
     'pandas-gbq': ('https://pandas-gbq.readthedocs.io/en/latest/', None),
     'python': ('https://docs.python.org/3/', None),
     'numpy': ('https://docs.scipy.org/doc/numpy/', None),
@@ -450,6 +438,62 @@ ipython_exec_lines = [
     'pd.options.display.encoding="utf8"'
 ]
 
+
+def sphinxdocstring_str(self, indent=0, func_role="obj"):
+    # Pandas displays Attributes section in style like Methods section
+
+    # Function is copy of `SphinxDocString.__str__`
+    ns = {
+        'signature': self._str_signature(),
+        'index': self._str_index(),
+        'summary': self._str_summary(),
+        'extended_summary': self._str_extended_summary(),
+        'parameters': self._str_param_list('Parameters'),
+        'returns': self._str_returns('Returns'),
+        'yields': self._str_returns('Yields'),
+        'other_parameters': self._str_param_list('Other Parameters'),
+        'raises': self._str_param_list('Raises'),
+        'warns': self._str_param_list('Warns'),
+        'warnings': self._str_warnings(),
+        'see_also': self._str_see_also(func_role),
+        'notes': self._str_section('Notes'),
+        'references': self._str_references(),
+        'examples': self._str_examples(),
+        # Replaced `self._str_param_list('Attributes', fake_autosummary=True)`
+        # with `self._str_member_list('Attributes')`
+        'attributes': self._str_member_list('Attributes'),
+        'methods': self._str_member_list('Methods'),
+    }
+    ns = {k: '\n'.join(v) for k, v in ns.items()}
+
+    rendered = self.template.render(**ns)
+    return '\n'.join(self._str_indent(rendered.split('\n'), indent))
+
+
+SphinxDocString.__str__ = sphinxdocstring_str
+
+
+# Fix "WARNING: Inline strong start-string without end-string."
+# PR #155 "Escape the * in *args and **kwargs" from numpydoc
+# Can be removed after PR merges in v0.9.0
+def decorate_process_param(func):
+    def _escape_args_and_kwargs(name):
+        if name[:2] == '**':
+            return r'\*\*' + name[2:]
+        elif name[:1] == '*':
+            return r'\*' + name[1:]
+        else:
+            return name
+
+    def func_wrapper(self, param, desc, fake_autosummary):
+        param = _escape_args_and_kwargs(param.strip())
+        return func(self, param, desc, fake_autosummary)
+
+    return func_wrapper
+
+
+func = SphinxDocString._process_param
+SphinxDocString._process_param = decorate_process_param(func)
 
 # Add custom Documenter to handle attributes/methods of an AccessorProperty
 # eg pandas.Series.str and pandas.Series.dt (see GH9322)
