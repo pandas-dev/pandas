@@ -1,18 +1,6 @@
-.. currentmodule:: pandas
 .. _visualization:
 
-.. ipython:: python
-   :suppress:
-
-   import numpy as np
-   import pandas as pd
-   np.random.seed(123456)
-   np.set_printoptions(precision=4, suppress=True)
-   pd.options.display.max_rows = 15
-   import matplotlib
-   # matplotlib.style.use('default')
-   import matplotlib.pyplot as plt
-   plt.close('all')
+{{ header }}
 
 *************
 Visualization
@@ -23,6 +11,7 @@ We use the standard convention for referencing the matplotlib API:
 .. ipython:: python
 
    import matplotlib.pyplot as plt
+   plt.close('all')
 
 We provide the basics in pandas to easily create decent looking plots.
 See the :ref:`ecosystem <ecosystem.visualization>` section for visualization
@@ -37,7 +26,7 @@ libraries that go beyond the basics documented here.
 Basic Plotting: ``plot``
 ------------------------
 
-We will demonstrate the basics, see the :ref:`cookbook<cookbook.plotting>` for 
+We will demonstrate the basics, see the :ref:`cookbook<cookbook.plotting>` for
 some advanced strategies.
 
 The ``plot`` method on Series and DataFrame is just a simple wrapper around
@@ -50,7 +39,8 @@ The ``plot`` method on Series and DataFrame is just a simple wrapper around
 
 .. ipython:: python
 
-   ts = pd.Series(np.random.randn(1000), index=pd.date_range('1/1/2000', periods=1000))
+   ts = pd.Series(np.random.randn(1000),
+                  index=pd.date_range('1/1/2000', periods=1000))
    ts = ts.cumsum()
 
    @savefig series_plot_basic.png
@@ -69,11 +59,13 @@ On DataFrame, :meth:`~DataFrame.plot` is a convenience to plot all of the column
 
 .. ipython:: python
 
-   df = pd.DataFrame(np.random.randn(1000, 4), index=ts.index, columns=list('ABCD'))
+   df = pd.DataFrame(np.random.randn(1000, 4),
+                     index=ts.index, columns=list('ABCD'))
    df = df.cumsum()
 
+   plt.figure();
    @savefig frame_plot_basic.png
-   plt.figure(); df.plot();
+   df.plot();
 
 You can plot one column versus another using the `x` and `y` keywords in
 :meth:`~DataFrame.plot`:
@@ -95,7 +87,7 @@ You can plot one column versus another using the `x` and `y` keywords in
 
 .. note::
 
-   For more formatting and styling options, see 
+   For more formatting and styling options, see
    :ref:`formatting <visualization.formatting>` below.
 
 .. ipython:: python
@@ -137,7 +129,7 @@ You can also create these other plots using the methods ``DataFrame.plot.<kind>`
 
     In [14]: df = pd.DataFrame()
 
-    In [15]: df.plot.<TAB>
+    In [15]: df.plot.<TAB>  # noqa: E225, E999
     df.plot.area     df.plot.barh     df.plot.density  df.plot.hist     df.plot.line     df.plot.scatter
     df.plot.bar      df.plot.box      df.plot.hexbin   df.plot.kde      df.plot.pie
 
@@ -171,7 +163,8 @@ For labeled, non-time series data, you may wish to produce a bar plot:
    plt.figure();
 
    @savefig bar_plot_ex.png
-   df.iloc[5].plot.bar(); plt.axhline(0, color='k')
+   df.iloc[5].plot.bar()
+   plt.axhline(0, color='k');
 
 Calling a DataFrame's :meth:`plot.bar() <DataFrame.plot.bar>` method produces a multiple
 bar plot:
@@ -239,7 +232,7 @@ Histograms can be drawn by using the :meth:`DataFrame.plot.hist` and :meth:`Seri
 
    plt.close('all')
 
-A histogram can be stacked using ``stacked=True``. Bin size can be changed 
+A histogram can be stacked using ``stacked=True``. Bin size can be changed
 using the ``bins`` keyword.
 
 .. ipython:: python
@@ -254,8 +247,8 @@ using the ``bins`` keyword.
 
    plt.close('all')
 
-You can pass other keywords supported by matplotlib ``hist``. For example, 
-horizontal and cumulative histograms can be drawn by 
+You can pass other keywords supported by matplotlib ``hist``. For example,
+horizontal and cumulative histograms can be drawn by
 ``orientation='horizontal'`` and ``cumulative=True``.
 
 .. ipython:: python
@@ -355,8 +348,8 @@ more complicated colorization, you can get each drawn artists by passing
 
 .. ipython:: python
 
-   color = dict(boxes='DarkGreen', whiskers='DarkOrange',
-                medians='DarkBlue', caps='Gray')
+   color = {'boxes': 'DarkGreen', 'whiskers': 'DarkOrange',
+            'medians': 'DarkBlue', 'caps': 'Gray'}
 
    @savefig box_new_colorize.png
    df.plot.box(color=color, sym='r+')
@@ -391,7 +384,7 @@ The existing interface ``DataFrame.boxplot`` to plot boxplot still can be used.
 .. ipython:: python
    :okwarning:
 
-   df = pd.DataFrame(np.random.rand(10,5))
+   df = pd.DataFrame(np.random.rand(10, 5))
    plt.figure();
 
    @savefig box_plot_ex.png
@@ -409,8 +402,8 @@ groupings.  For instance,
 .. ipython:: python
    :okwarning:
 
-   df = pd.DataFrame(np.random.rand(10,2), columns=['Col1', 'Col2'] )
-   df['X'] = pd.Series(['A','A','A','A','A','B','B','B','B','B'])
+   df = pd.DataFrame(np.random.rand(10, 2), columns=['Col1', 'Col2'])
+   df['X'] = pd.Series(['A', 'A', 'A', 'A', 'A', 'B', 'B', 'B', 'B', 'B'])
 
    plt.figure();
 
@@ -429,14 +422,14 @@ columns:
 .. ipython:: python
    :okwarning:
 
-   df = pd.DataFrame(np.random.rand(10,3), columns=['Col1', 'Col2', 'Col3'])
-   df['X'] = pd.Series(['A','A','A','A','A','B','B','B','B','B'])
-   df['Y'] = pd.Series(['A','B','A','B','A','B','A','B','A','B'])
+   df = pd.DataFrame(np.random.rand(10, 3), columns=['Col1', 'Col2', 'Col3'])
+   df['X'] = pd.Series(['A', 'A', 'A', 'A', 'A', 'B', 'B', 'B', 'B', 'B'])
+   df['Y'] = pd.Series(['A', 'B', 'A', 'B', 'A', 'B', 'A', 'B', 'A', 'B'])
 
    plt.figure();
 
    @savefig box_plot_ex3.png
-   bp = df.boxplot(column=['Col1','Col2'], by=['X','Y'])
+   bp = df.boxplot(column=['Col1', 'Col2'], by=['X', 'Y'])
 
 .. ipython:: python
    :suppress:
@@ -485,7 +478,7 @@ keyword, will affect the output type as well:
 
    plt.close('all')
 
-The subplots above are split by the numeric columns first, then the value of 
+The subplots above are split by the numeric columns first, then the value of
 the ``g`` column. Below the subplots are first split by the value of ``g``,
 then by the numeric columns.
 
@@ -587,14 +580,14 @@ each point:
 
    plt.close('all')
 
-You can pass other keywords supported by matplotlib 
-:meth:`scatter <matplotlib.axes.Axes.scatter>`. The example  below shows a 
+You can pass other keywords supported by matplotlib
+:meth:`scatter <matplotlib.axes.Axes.scatter>`. The example  below shows a
 bubble chart using a column of the ``DataFrame`` as the bubble size.
 
 .. ipython:: python
 
    @savefig scatter_plot_bubble.png
-   df.plot.scatter(x='a', y='b', s=df['c']*200);
+   df.plot.scatter(x='a', y='b', s=df['c'] * 200);
 
 .. ipython:: python
    :suppress:
@@ -654,8 +647,7 @@ given by column ``z``. The bins are aggregated with NumPy's ``max`` function.
    df['z'] = np.random.uniform(0, 3, 1000)
 
    @savefig hexbin_plot_agg.png
-   df.plot.hexbin(x='a', y='b', C='z', reduce_C_function=np.max,
-           gridsize=25)
+   df.plot.hexbin(x='a', y='b', C='z', reduce_C_function=np.max, gridsize=25)
 
 .. ipython:: python
    :suppress:
@@ -682,7 +674,8 @@ A ``ValueError`` will be raised if there are any negative values in your data.
 
 .. ipython:: python
 
-   series = pd.Series(3 * np.random.rand(4), index=['a', 'b', 'c', 'd'], name='series')
+   series = pd.Series(3 * np.random.rand(4),
+                      index=['a', 'b', 'c', 'd'], name='series')
 
    @savefig series_pie_plot.png
    series.plot.pie(figsize=(6, 6))
@@ -692,15 +685,15 @@ A ``ValueError`` will be raised if there are any negative values in your data.
 
    plt.close('all')
 
-For pie plots it's best to use square figures, i.e. a figure aspect ratio 1. 
-You can create the figure with equal width and height, or force the aspect ratio 
-to be equal after plotting by calling ``ax.set_aspect('equal')`` on the returned 
+For pie plots it's best to use square figures, i.e. a figure aspect ratio 1.
+You can create the figure with equal width and height, or force the aspect ratio
+to be equal after plotting by calling ``ax.set_aspect('equal')`` on the returned
 ``axes`` object.
 
-Note that pie plot with :class:`DataFrame` requires that you either specify a 
-target column by the ``y`` argument or ``subplots=True``. When ``y`` is 
-specified, pie plot of selected column will be drawn. If ``subplots=True`` is 
-specified, pie plots for each column are drawn as subplots. A legend will be 
+Note that pie plot with :class:`DataFrame` requires that you either specify a
+target column by the ``y`` argument or ``subplots=True``. When ``y`` is
+specified, pie plot of selected column will be drawn. If ``subplots=True`` is
+specified, pie plots for each column are drawn as subplots. A legend will be
 drawn in each pie plots by default; specify ``legend=False`` to hide it.
 
 .. ipython:: python
@@ -711,7 +704,8 @@ drawn in each pie plots by default; specify ``legend=False`` to hide it.
 
 .. ipython:: python
 
-   df = pd.DataFrame(3 * np.random.rand(4, 2), index=['a', 'b', 'c', 'd'], columns=['x', 'y'])
+   df = pd.DataFrame(3 * np.random.rand(4, 2),
+                     index=['a', 'b', 'c', 'd'], columns=['x', 'y'])
 
    @savefig df_pie_plot.png
    df.plot.pie(subplots=True, figsize=(8, 4))
@@ -925,7 +919,7 @@ Lag Plot
 Lag plots are used to check if a data set or time series is random. Random
 data should not exhibit any structure in the lag plot. Non-random structure
 implies that the underlying data are not random. The ``lag`` argument may
-be passed, and when ``lag=1`` the plot is essentially ``data[:-1]`` vs. 
+be passed, and when ``lag=1`` the plot is essentially ``data[:-1]`` vs.
 ``data[1:]``.
 
 .. ipython:: python
@@ -939,8 +933,8 @@ be passed, and when ``lag=1`` the plot is essentially ``data[:-1]`` vs.
 
    plt.figure()
 
-   data = pd.Series(0.1 * np.random.rand(1000) +
-       0.9 * np.sin(np.linspace(-99 * np.pi, 99 * np.pi, num=1000)))
+   spacing = np.linspace(-99 * np.pi, 99 * np.pi, num=1000)
+   data = pd.Series(0.1 * np.random.rand(1000) + 0.9 * np.sin(spacing))
 
    @savefig lag_plot.png
    lag_plot(data)
@@ -961,7 +955,7 @@ If time series is random, such autocorrelations should be near zero for any and
 all time-lag separations. If time series is non-random then one or more of the
 autocorrelations will be significantly non-zero. The horizontal lines displayed
 in the plot correspond to 95% and 99% confidence bands. The dashed line is 99%
-confidence band. See the 
+confidence band. See the
 `Wikipedia entry <https://en.wikipedia.org/wiki/Correlogram>`__ for more about
 autocorrelation plots.
 
@@ -976,8 +970,8 @@ autocorrelation plots.
 
    plt.figure()
 
-   data = pd.Series(0.7 * np.random.rand(1000) +
-      0.3 * np.sin(np.linspace(-9 * np.pi, 9 * np.pi, num=1000)))
+   spacing = np.linspace(-9 * np.pi, 9 * np.pi, num=1000)
+   data = pd.Series(0.7 * np.random.rand(1000) + 0.3 * np.sin(spacing))
 
    @savefig autocorrelation_plot.png
    autocorrelation_plot(data)
@@ -1078,8 +1072,9 @@ layout and formatting of the returned plot:
 
 .. ipython:: python
 
+   plt.figure();
    @savefig series_plot_basic2.png
-   plt.figure(); ts.plot(style='k--', label='Series');
+   ts.plot(style='k--', label='Series');
 
 .. ipython:: python
    :suppress:
@@ -1106,7 +1101,8 @@ shown by default.
 
 .. ipython:: python
 
-   df = pd.DataFrame(np.random.randn(1000, 4), index=ts.index, columns=list('ABCD'))
+   df = pd.DataFrame(np.random.randn(1000, 4),
+                     index=ts.index, columns=list('ABCD'))
    df = df.cumsum()
 
    @savefig frame_plot_basic_noleg.png
@@ -1130,7 +1126,8 @@ You may pass ``logy`` to get a log-scale Y axis.
 
 .. ipython:: python
 
-   ts = pd.Series(np.random.randn(1000), index=pd.date_range('1/1/2000', periods=1000))
+   ts = pd.Series(np.random.randn(1000),
+                  index=pd.date_range('1/1/2000', periods=1000))
    ts = np.exp(ts.cumsum())
 
    @savefig series_plot_logy.png
@@ -1326,14 +1323,15 @@ otherwise you will see a warning.
 
 .. ipython:: python
 
-   fig, axes = plt.subplots(4, 4, figsize=(6, 6));
-   plt.subplots_adjust(wspace=0.5, hspace=0.5);
+   fig, axes = plt.subplots(4, 4, figsize=(6, 6))
+   plt.subplots_adjust(wspace=0.5, hspace=0.5)
    target1 = [axes[0][0], axes[1][1], axes[2][2], axes[3][3]]
    target2 = [axes[3][0], axes[2][1], axes[1][2], axes[0][3]]
 
    df.plot(subplots=True, ax=target1, legend=False, sharex=False, sharey=False);
    @savefig frame_plot_subplots_multi_ax.png
-   (-df).plot(subplots=True, ax=target2, legend=False, sharex=False, sharey=False);
+   (-df).plot(subplots=True, ax=target2, legend=False,
+              sharex=False, sharey=False);
 
 .. ipython:: python
    :suppress:
@@ -1346,10 +1344,12 @@ Another option is passing an ``ax`` argument to :meth:`Series.plot` to plot on a
    :suppress:
 
    np.random.seed(123456)
-   ts = pd.Series(np.random.randn(1000), index=pd.date_range('1/1/2000', periods=1000))
+   ts = pd.Series(np.random.randn(1000),
+                  index=pd.date_range('1/1/2000', periods=1000))
    ts = ts.cumsum()
 
-   df = pd.DataFrame(np.random.randn(1000, 4), index=ts.index, columns=list('ABCD'))
+   df = pd.DataFrame(np.random.randn(1000, 4), index=ts.index,
+                     columns=list('ABCD'))
    df = df.cumsum()
 
 .. ipython:: python
@@ -1360,12 +1360,15 @@ Another option is passing an ``ax`` argument to :meth:`Series.plot` to plot on a
 .. ipython:: python
 
    fig, axes = plt.subplots(nrows=2, ncols=2)
-   df['A'].plot(ax=axes[0,0]); axes[0,0].set_title('A');
-   df['B'].plot(ax=axes[0,1]); axes[0,1].set_title('B');
-   df['C'].plot(ax=axes[1,0]); axes[1,0].set_title('C');
-
+   df['A'].plot(ax=axes[0, 0]);
+   axes[0, 0].set_title('A');
+   df['B'].plot(ax=axes[0, 1]);
+   axes[0, 1].set_title('B');
+   df['C'].plot(ax=axes[1, 0]);
+   axes[1, 0].set_title('C');
+   df['D'].plot(ax=axes[1, 1]);
    @savefig series_plot_multi.png
-   df['D'].plot(ax=axes[1,1]); axes[1,1].set_title('D');
+   axes[1, 1].set_title('D');
 
 .. ipython:: python
    :suppress:
@@ -1392,10 +1395,16 @@ Here is an example of one way to easily plot group means with standard deviation
 .. ipython:: python
 
    # Generate the data
-   ix3 = pd.MultiIndex.from_arrays([['a', 'a', 'a', 'a', 'b', 'b', 'b', 'b'], ['foo', 'foo', 'bar', 'bar', 'foo', 'foo', 'bar', 'bar']], names=['letter', 'word'])
-   df3 = pd.DataFrame({'data1': [3, 2, 4, 3, 2, 4, 3, 2], 'data2': [6, 5, 7, 5, 4, 5, 6, 5]}, index=ix3)
+   ix3 = pd.MultiIndex.from_arrays([
+       ['a', 'a', 'a', 'a', 'b', 'b', 'b', 'b'],
+       ['foo', 'foo', 'bar', 'bar', 'foo', 'foo', 'bar', 'bar']],
+       names=['letter', 'word'])
 
-   # Group by index labels and take the means and standard deviations for each group
+   df3 = pd.DataFrame({'data1': [3, 2, 4, 3, 2, 4, 3, 2],
+                       'data2': [6, 5, 7, 5, 4, 5, 6, 5]}, index=ix3)
+
+   # Group by index labels and take the means and standard deviations
+   # for each group
    gp3 = df3.groupby(level=('letter', 'word'))
    means = gp3.mean()
    errors = gp3.std()
@@ -1405,7 +1414,7 @@ Here is an example of one way to easily plot group means with standard deviation
    # Plot
    fig, ax = plt.subplots()
    @savefig errorbar_example.png
-   means.plot.bar(yerr=errors, ax=ax)
+   means.plot.bar(yerr=errors, ax=ax, capsize=4)
 
 .. ipython:: python
    :suppress:
@@ -1438,9 +1447,9 @@ Plotting with matplotlib table is now supported in  :meth:`DataFrame.plot` and :
 
    plt.close('all')
 
-Also, you can pass a different :class:`DataFrame` or :class:`Series` to the 
-``table`` keyword. The data will be drawn as displayed in print method 
-(not transposed automatically). If required, it should be transposed manually 
+Also, you can pass a different :class:`DataFrame` or :class:`Series` to the
+``table`` keyword. The data will be drawn as displayed in print method
+(not transposed automatically). If required, it should be transposed manually
 as seen in the example below.
 
 .. ipython:: python
@@ -1455,9 +1464,9 @@ as seen in the example below.
 
    plt.close('all')
 
-There also exists a helper function ``pandas.plotting.table``, which creates a 
-table from :class:`DataFrame` or :class:`Series`, and adds it to an 
-``matplotlib.Axes`` instance. This function can accept keywords which the 
+There also exists a helper function ``pandas.plotting.table``, which creates a
+table from :class:`DataFrame` or :class:`Series`, and adds it to an
+``matplotlib.Axes`` instance. This function can accept keywords which the
 matplotlib `table <http://matplotlib.org/api/axes_api.html#matplotlib.axes.Axes.table>`__ has.
 
 .. ipython:: python
@@ -1589,8 +1598,8 @@ Plotting directly with matplotlib
 
 In some situations it may still be preferable or necessary to prepare plots
 directly with matplotlib, for instance when a certain type of plot or
-customization is not (yet) supported by pandas. ``Series`` and ``DataFrame`` 
-objects behave like arrays and can therefore be passed directly to 
+customization is not (yet) supported by pandas. ``Series`` and ``DataFrame``
+objects behave like arrays and can therefore be passed directly to
 matplotlib functions without explicit casts.
 
 pandas also automatically registers formatters and locators that recognize date
@@ -1616,7 +1625,8 @@ when plotting a large number of points.
    plt.plot(price.index, price, 'k')
    plt.plot(ma.index, ma, 'b')
    @savefig bollinger.png
-   plt.fill_between(mstd.index, ma-2*mstd, ma+2*mstd, color='b', alpha=0.2)
+   plt.fill_between(mstd.index, ma - 2 * mstd, ma + 2 * mstd,
+                    color='b', alpha=0.2)
 
 .. ipython:: python
    :suppress:

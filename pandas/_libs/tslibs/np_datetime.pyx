@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
 from cpython cimport (Py_EQ, Py_NE, Py_GE, Py_GT, Py_LT, Py_LE,
-                      PyUnicode_Check, PyUnicode_AsASCIIString)
+                      PyUnicode_AsASCIIString)
 
 from cpython.datetime cimport (datetime, date,
                                PyDateTime_IMPORT,
@@ -36,6 +36,7 @@ cdef extern from "src/datetime/np_datetime_strings.h":
     int parse_iso_8601_datetime(char *str, int len,
                                 npy_datetimestruct *out,
                                 int *out_local, int *out_tzoffset)
+
 
 # ----------------------------------------------------------------------
 # numpy object inspection
@@ -136,6 +137,7 @@ cdef inline void dt64_to_dtstruct(int64_t dt64,
     pandas_datetime_to_datetimestruct(dt64, NPY_FR_ns, out)
     return
 
+
 cdef inline void td64_to_tdstruct(int64_t td64,
                                   pandas_timedeltastruct* out) nogil:
     """Convenience function to call pandas_timedelta_to_timedeltastruct
@@ -175,7 +177,7 @@ cdef inline int _string_to_dts(object val, npy_datetimestruct* dts,
         int result
         char *tmp
 
-    if PyUnicode_Check(val):
+    if isinstance(val, unicode):
         val = PyUnicode_AsASCIIString(val)
 
     tmp = val

@@ -1,11 +1,15 @@
+from datetime import datetime, timedelta
 import warnings
 
-from pandas import DateOffset, DatetimeIndex, Series, Timestamp
-from pandas.compat import add_metaclass
-from datetime import datetime, timedelta
-from dateutil.relativedelta import MO, TU, WE, TH, FR, SA, SU  # noqa
-from pandas.tseries.offsets import Easter, Day
+from dateutil.relativedelta import FR, MO, SA, SU, TH, TU, WE  # noqa
 import numpy as np
+
+from pandas.compat import add_metaclass
+from pandas.errors import PerformanceWarning
+
+from pandas import DateOffset, Series, Timestamp, date_range
+
+from pandas.tseries.offsets import Day, Easter
 
 
 def next_monday(dt):
@@ -250,9 +254,9 @@ class Holiday(object):
         reference_end_date = Timestamp(
             datetime(end_date.year + 1, self.month, self.day))
         # Don't process unnecessary holidays
-        dates = DatetimeIndex(start=reference_start_date,
-                              end=reference_end_date,
-                              freq=year_offset, tz=start_date.tz)
+        dates = date_range(start=reference_start_date,
+                           end=reference_end_date,
+                           freq=year_offset, tz=start_date.tz)
 
         return dates
 
@@ -281,7 +285,8 @@ class Holiday(object):
 
                 # if we are adding a non-vectorized value
                 # ignore the PerformanceWarnings:
-                with warnings.catch_warnings(record=True):
+                with warnings.catch_warnings():
+                    warnings.simplefilter("ignore", PerformanceWarning)
                     dates += offset
         return dates
 
@@ -292,7 +297,7 @@ holiday_calendars = {}
 def register(cls):
     try:
         name = cls.name
-    except:
+    except AttributeError:
         name = cls.__name__
     holiday_calendars[name] = cls
 
@@ -424,7 +429,7 @@ class AbstractHolidayCalendar(object):
         """
         try:
             other = other.rules
-        except:
+        except AttributeError:
             pass
 
         if not isinstance(other, list):
@@ -433,7 +438,7 @@ class AbstractHolidayCalendar(object):
 
         try:
             base = base.rules
-        except:
+        except AttributeError:
             pass
 
         if not isinstance(base, list):

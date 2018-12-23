@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
 import pytest
-from warnings import catch_warnings
+from warnings import catch_warnings, simplefilter
 import numpy as np
 from datetime import datetime
 from pandas.util import testing as tm
@@ -94,6 +94,7 @@ class TestIsNA(object):
 
         # panel
         with catch_warnings(record=True):
+            simplefilter("ignore", FutureWarning)
             for p in [tm.makePanel(), tm.makePeriodPanel(),
                       tm.add_nans(tm.makePanel())]:
                 result = isna_f(p)
@@ -321,7 +322,7 @@ def test_array_equivalent_str():
     # Datetime-like
     (np.dtype("M8[ns]"), NaT),
     (np.dtype("m8[ns]"), NaT),
-    (DatetimeTZDtype('datetime64[ns, US/Eastern]'), NaT),
+    (DatetimeTZDtype.construct_from_string('datetime64[ns, US/Eastern]'), NaT),
     (PeriodDtype("M"), NaT),
     # Integer
     ('u1', 0), ('u2', 0), ('u4', 0), ('u8', 0),

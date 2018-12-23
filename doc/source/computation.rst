@@ -1,19 +1,6 @@
-.. currentmodule:: pandas
-
-.. ipython:: python
-   :suppress:
-
-   import numpy as np
-   np.random.seed(123456)
-   np.set_printoptions(precision=4, suppress=True)
-   import pandas as pd
-   import matplotlib
-   # matplotlib.style.use('default')
-   import matplotlib.pyplot as plt
-   plt.close('all')
-   pd.options.display.max_rows=15
-
 .. _computation:
+
+{{ header }}
 
 Computational tools
 ===================
@@ -26,9 +13,9 @@ Statistical Functions
 Percent Change
 ~~~~~~~~~~~~~~
 
-``Series``, ``DataFrame``, and ``Panel`` all have a method 
-:meth:`~DataFrame.pct_change` to compute the percent change over a given number 
-of periods (using ``fill_method`` to fill NA/null values *before* computing 
+``Series``, ``DataFrame``, and ``Panel`` all have a method
+:meth:`~DataFrame.pct_change` to compute the percent change over a given number
+of periods (using ``fill_method`` to fill NA/null values *before* computing
 the percent change).
 
 .. ipython:: python
@@ -48,7 +35,7 @@ the percent change).
 Covariance
 ~~~~~~~~~~
 
-:meth:`Series.cov` can be used to compute covariance between series 
+:meth:`Series.cov` can be used to compute covariance between series
 (excluding missing values).
 
 .. ipython:: python
@@ -57,7 +44,7 @@ Covariance
    s2 = pd.Series(np.random.randn(1000))
    s1.cov(s2)
 
-Analogously, :meth:`DataFrame.cov` to compute pairwise covariances among the 
+Analogously, :meth:`DataFrame.cov` to compute pairwise covariances among the
 series in the DataFrame, also excluding NA/null values.
 
 .. _computation.covariance.caveats:
@@ -75,7 +62,8 @@ series in the DataFrame, also excluding NA/null values.
 
 .. ipython:: python
 
-   frame = pd.DataFrame(np.random.randn(1000, 5), columns=['a', 'b', 'c', 'd', 'e'])
+   frame = pd.DataFrame(np.random.randn(1000, 5),
+                        columns=['a', 'b', 'c', 'd', 'e'])
    frame.cov()
 
 ``DataFrame.cov`` also supports an optional ``min_periods`` keyword that
@@ -99,7 +87,7 @@ Correlation
 ~~~~~~~~~~~
 
 Correlation may be computed using the :meth:`~DataFrame.corr` method.
-Using the ``method`` parameter, several methods for computing correlations are 
+Using the ``method`` parameter, several methods for computing correlations are
 provided:
 
 .. csv-table::
@@ -127,7 +115,8 @@ Wikipedia has articles covering the above correlation coefficients:
 
 .. ipython:: python
 
-   frame = pd.DataFrame(np.random.randn(1000, 5), columns=['a', 'b', 'c', 'd', 'e'])
+   frame = pd.DataFrame(np.random.randn(1000, 5),
+                        columns=['a', 'b', 'c', 'd', 'e'])
    frame.iloc[::2] = np.nan
 
    # Series with Series
@@ -153,8 +142,24 @@ Like ``cov``, ``corr`` also supports the optional ``min_periods`` keyword:
    frame.corr(min_periods=12)
 
 
-A related method :meth:`~DataFrame.corrwith` is implemented on DataFrame to 
-compute the correlation between like-labeled Series contained in different 
+.. versionadded:: 0.24.0
+
+The ``method`` argument can also be a callable for a generic correlation
+calculation. In this case, it should be a single function
+that produces a single value from two ndarray inputs. Suppose we wanted to
+compute the correlation based on histogram intersection:
+
+.. ipython:: python
+
+   # histogram intersection
+   def histogram_intersection(a, b):
+       return np.minimum(np.true_divide(a, a.sum()),
+                         np.true_divide(b, b.sum())).sum()
+
+   frame.corr(method=histogram_intersection)
+
+A related method :meth:`~DataFrame.corrwith` is implemented on DataFrame to
+compute the correlation between like-labeled Series contained in different
 DataFrame objects.
 
 .. ipython:: python
@@ -184,23 +189,23 @@ DataFrame object.
 Data ranking
 ~~~~~~~~~~~~
 
-The :meth:`~Series.rank` method produces a data ranking with ties being 
+The :meth:`~Series.rank` method produces a data ranking with ties being
 assigned the mean of the ranks (by default) for the group:
 
 .. ipython:: python
 
    s = pd.Series(np.random.np.random.randn(5), index=list('abcde'))
-   s['d'] = s['b'] # so there's a tie
+   s['d'] = s['b']  # so there's a tie
    s.rank()
 
-:meth:`~DataFrame.rank` is also a DataFrame method and can rank either the rows 
-(``axis=0``) or the columns (``axis=1``). ``NaN`` values are excluded from the 
+:meth:`~DataFrame.rank` is also a DataFrame method and can rank either the rows
+(``axis=0``) or the columns (``axis=1``). ``NaN`` values are excluded from the
 ranking.
 
 .. ipython:: python
 
    df = pd.DataFrame(np.random.np.random.randn(10, 6))
-   df[4] = df[2][:5] # some ties
+   df[4] = df[2][:5]  # some ties
    df
    df.rank(1)
 
@@ -241,7 +246,8 @@ objects, :class:`~pandas.core.window.Rolling`, :class:`~pandas.core.window.Expan
 
 .. ipython:: python
 
-   s = pd.Series(np.random.randn(1000), index=pd.date_range('1/1/2000', periods=1000))
+   s = pd.Series(np.random.randn(1000),
+                 index=pd.date_range('1/1/2000', periods=1000))
    s = s.cumsum()
    s
 
@@ -256,7 +262,7 @@ These object provide tab-completion of the available methods and properties.
 
 .. code-block:: ipython
 
-   In [14]: r.
+   In [14]: r.<TAB>                                          # noqa: E225, E999
    r.agg         r.apply       r.count       r.exclusions  r.max         r.median      r.name        r.skew        r.sum
    r.aggregate   r.corr        r.cov         r.kurt        r.mean        r.min         r.quantile    r.std         r.var
 
@@ -334,7 +340,9 @@ compute the mean absolute deviation on a rolling basis:
 
 .. ipython:: python
 
-   mad = lambda x: np.fabs(x - x.mean()).mean()
+   def mad(x):
+       return np.fabs(x - x.mean()).mean()
+
    @savefig rolling_apply_ex.png
    s.rolling(window=60).apply(mad, raw=True).plot(style='k')
 
@@ -374,7 +382,8 @@ The list of recognized types are the `scipy.signal window functions
 
 .. ipython:: python
 
-   ser = pd.Series(np.random.randn(10), index=pd.date_range('1/1/2000', periods=10))
+   ser = pd.Series(np.random.randn(10),
+                   index=pd.date_range('1/1/2000', periods=10))
 
    ser.rolling(window=5, win_type='triang').mean()
 
@@ -421,7 +430,9 @@ This can be particularly useful for a non-regular time frequency index.
 .. ipython:: python
 
    dft = pd.DataFrame({'B': [0, 1, 2, np.nan, 4]},
-                      index=pd.date_range('20130101 09:00:00', periods=5, freq='s'))
+                      index=pd.date_range('20130101 09:00:00',
+                                          periods=5,
+                                          freq='s'))
    dft
 
 This is a regular frequency index. Using an integer window parameter works to roll along the window frequency.
@@ -443,12 +454,12 @@ Using a non-regular, but still monotonic index, rolling with an integer window d
 .. ipython:: python
 
    dft = pd.DataFrame({'B': [0, 1, 2, np.nan, 4]},
-                      index = pd.Index([pd.Timestamp('20130101 09:00:00'),
-                                        pd.Timestamp('20130101 09:00:02'),
-                                        pd.Timestamp('20130101 09:00:03'),
-                                        pd.Timestamp('20130101 09:00:05'),
-                                        pd.Timestamp('20130101 09:00:06')],
-                                       name='foo'))
+                      index=pd.Index([pd.Timestamp('20130101 09:00:00'),
+                                      pd.Timestamp('20130101 09:00:02'),
+                                      pd.Timestamp('20130101 09:00:03'),
+                                      pd.Timestamp('20130101 09:00:05'),
+                                      pd.Timestamp('20130101 09:00:06')],
+                                     name='foo'))
    dft
    dft.rolling(2).sum()
 
@@ -494,11 +505,11 @@ from present information back to past information. This allows the rolling windo
 .. ipython:: python
 
    df = pd.DataFrame({'x': 1},
-                     index = [pd.Timestamp('20130101 09:00:01'),
-                              pd.Timestamp('20130101 09:00:02'),
-                              pd.Timestamp('20130101 09:00:03'),
-                              pd.Timestamp('20130101 09:00:04'),
-                              pd.Timestamp('20130101 09:00:06')])
+                     index=[pd.Timestamp('20130101 09:00:01'),
+                            pd.Timestamp('20130101 09:00:02'),
+                            pd.Timestamp('20130101 09:00:03'),
+                            pd.Timestamp('20130101 09:00:04'),
+                            pd.Timestamp('20130101 09:00:06')])
 
    df["right"] = df.rolling('2s', closed='right').x.sum()  # default
    df["both"] = df.rolling('2s', closed='both').x.sum()
@@ -599,7 +610,8 @@ can even be omitted:
 
 .. ipython:: python
 
-   covs = df[['B','C','D']].rolling(window=50).cov(df[['A','B','C']], pairwise=True)
+   covs = (df[['B', 'C', 'D']].rolling(window=50)
+                              .cov(df[['A', 'B', 'C']], pairwise=True))
    covs.loc['2002-09-22':]
 
 .. ipython:: python
@@ -635,10 +647,10 @@ perform multiple computations on the data. These operations are similar to the :
    dfa = pd.DataFrame(np.random.randn(1000, 3),
                       index=pd.date_range('1/1/2000', periods=1000),
                       columns=['A', 'B', 'C'])
-   r = dfa.rolling(window=60,min_periods=1)
+   r = dfa.rolling(window=60, min_periods=1)
    r
 
-We can aggregate by passing a function to the entire DataFrame, or select a 
+We can aggregate by passing a function to the entire DataFrame, or select a
 Series (or multiple Series) via standard ``__getitem__``.
 
 .. ipython:: python
@@ -647,7 +659,7 @@ Series (or multiple Series) via standard ``__getitem__``.
 
    r['A'].aggregate(np.sum)
 
-   r[['A','B']].aggregate(np.sum)
+   r[['A', 'B']].aggregate(np.sum)
 
 As you can see, the result of the aggregation will have the selected columns, or all
 columns if none are selected.
@@ -681,24 +693,21 @@ By passing a dict to ``aggregate`` you can apply a different aggregation to the
 columns of a ``DataFrame``:
 
 .. ipython:: python
-   :okexcept:
-   :okwarning:
 
-   r.agg({'A' : np.sum,
-          'B' : lambda x: np.std(x, ddof=1)})
+   r.agg({'A': np.sum, 'B': lambda x: np.std(x, ddof=1)})
 
 The function names can also be strings. In order for a string to be valid it
 must be implemented on the windowed object
 
 .. ipython:: python
 
-   r.agg({'A' : 'sum', 'B' : 'std'})
+   r.agg({'A': 'sum', 'B': 'std'})
 
 Furthermore you can pass a nested dict to indicate different aggregations on different columns.
 
 .. ipython:: python
 
-   r.agg({'A' : ['sum','std'], 'B' : ['mean','std'] })
+   r.agg({'A': ['sum', 'std'], 'B': ['mean', 'std']})
 
 
 .. _stats.moments.expanding:

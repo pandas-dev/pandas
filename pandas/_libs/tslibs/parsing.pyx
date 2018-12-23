@@ -6,8 +6,6 @@ import sys
 import re
 import time
 
-from cython import Py_ssize_t
-
 from cpython.datetime cimport datetime
 
 
@@ -118,12 +116,12 @@ def parse_time_string(arg, freq=None, dayfirst=None, yearfirst=None):
     if getattr(freq, "_typ", None) == "dateoffset":
         freq = freq.rule_code
 
-    if dayfirst is None:
+    if dayfirst is None or yearfirst is None:
         from pandas.core.config import get_option
-        dayfirst = get_option("display.date_dayfirst")
-    if yearfirst is None:
-        from pandas.core.config import get_option
-        yearfirst = get_option("display.date_yearfirst")
+        if dayfirst is None:
+            dayfirst = get_option("display.date_dayfirst")
+        if yearfirst is None:
+            yearfirst = get_option("display.date_yearfirst")
 
     res = parse_datetime_string_with_reso(arg, freq=freq,
                                           dayfirst=dayfirst,
@@ -361,7 +359,7 @@ cdef dateutil_parse(object timestr, object default, ignoretz=False,
     return ret, reso
 
 
-cpdef object _get_rule_month(object source, object default='DEC'):
+cdef object _get_rule_month(object source, object default='DEC'):
     """
     Return starting month of given freq, default is December.
 
@@ -537,7 +535,7 @@ except (ImportError, AttributeError):
     pass
 
 
-def _format_is_iso(f):
+def _format_is_iso(f) -> bint:
     """
     Does format match the iso8601 set that can be handled by the C parser?
     Generally of form YYYY-MM-DDTHH:MM:SS - date separator can be different

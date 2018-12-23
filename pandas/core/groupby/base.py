@@ -5,16 +5,22 @@ SeriesGroupBy and the DataFrameGroupBy objects.
 """
 
 import types
+
 from pandas.util._decorators import make_signature
-from pandas.core.dtypes.common import is_scalar, is_list_like
+
+from pandas.core.dtypes.common import is_list_like, is_scalar
 
 
 class GroupByMixin(object):
-    """ provide the groupby facilities to the mixed object """
+    """
+    Provide the groupby facilities to the mixed object.
+    """
 
     @staticmethod
     def _dispatch(name, *args, **kwargs):
-        """ dispatch to apply """
+        """
+        Dispatch to apply.
+        """
 
         def outer(self, *args, **kwargs):
             def f(x):
@@ -26,8 +32,7 @@ class GroupByMixin(object):
 
     def _gotitem(self, key, ndim, subset=None):
         """
-        sub-classes to define
-        return a sliced object
+        Sub-classes to define. Return a sliced object.
 
         Parameters
         ----------
@@ -44,8 +49,15 @@ class GroupByMixin(object):
         # we need to make a shallow copy of ourselves
         # with the same groupby
         kwargs = {attr: getattr(self, attr) for attr in self._attributes}
+
+        # Try to select from a DataFrame, falling back to a Series
+        try:
+            groupby = self._groupby[key]
+        except IndexError:
+            groupby = self._groupby
+
         self = self.__class__(subset,
-                              groupby=self._groupby[key],
+                              groupby=groupby,
                               parent=self,
                               **kwargs)
         self._reset_cache()

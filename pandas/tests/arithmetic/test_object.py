@@ -73,6 +73,21 @@ class TestObjectComparisons(object):
 
 class TestArithmetic(object):
 
+    # TODO: parametrize
+    def test_pow_ops_object(self):
+        # GH#22922
+        # pow is weird with masking & 1, so testing here
+        a = Series([1, np.nan, 1, np.nan], dtype=object)
+        b = Series([1, np.nan, np.nan, 1], dtype=object)
+        result = a ** b
+        expected = Series(a.values ** b.values, dtype=object)
+        tm.assert_series_equal(result, expected)
+
+        result = b ** a
+        expected = Series(b.values ** a.values, dtype=object)
+
+        tm.assert_series_equal(result, expected)
+
     @pytest.mark.parametrize("op", [operator.add, ops.radd])
     @pytest.mark.parametrize("other", ["category", "Int64"])
     def test_add_extension_scalar(self, other, box, op):
@@ -92,7 +107,7 @@ class TestArithmetic(object):
     @pytest.mark.parametrize('box', [
         pytest.param(pd.Index,
                      marks=pytest.mark.xfail(reason="Does not mask nulls",
-                                             strict=True, raises=TypeError)),
+                                             raises=TypeError)),
         pd.Series,
         pd.DataFrame
     ], ids=lambda x: x.__name__)
@@ -109,7 +124,7 @@ class TestArithmetic(object):
     @pytest.mark.parametrize('box', [
         pytest.param(pd.Index,
                      marks=pytest.mark.xfail(reason="Does not mask nulls",
-                                             strict=True, raises=TypeError)),
+                                             raises=TypeError)),
         pd.Series,
         pd.DataFrame
     ], ids=lambda x: x.__name__)
@@ -140,9 +155,6 @@ class TestArithmetic(object):
                                     operator.sub, ops.rsub])
     def test_objarr_add_invalid(self, op, box):
         # invalid ops
-        if box is pd.DataFrame and op is ops.radd:
-            pytest.xfail(reason="DataFrame op incorrectly casts the np.array"
-                                "case to M8[ns]")
 
         obj_ser = tm.makeObjectSeries()
         obj_ser.name = 'objects'
@@ -180,3 +192,36 @@ class TestArithmetic(object):
 
         result = ser + pd.Timedelta('3 days')
         tm.assert_series_equal(result, expected)
+
+    # TODO: cleanup & parametrize over box
+    def test_mixed_timezone_series_ops_object(self):
+        # GH#13043
+        ser = pd.Series([pd.Timestamp('2015-01-01', tz='US/Eastern'),
+                         pd.Timestamp('2015-01-01', tz='Asia/Tokyo')],
+                        name='xxx')
+        assert ser.dtype == object
+
+        exp = pd.Series([pd.Timestamp('2015-01-02', tz='US/Eastern'),
+                         pd.Timestamp('2015-01-02', tz='Asia/Tokyo')],
+                        name='xxx')
+        tm.assert_series_equal(ser + pd.Timedelta('1 days'), exp)
+        tm.assert_series_equal(pd.Timedelta('1 days') + ser, exp)
+
+        # object series & object series
+        ser2 = pd.Series([pd.Timestamp('2015-01-03', tz='US/Eastern'),
+                          pd.Timestamp('2015-01-05', tz='Asia/Tokyo')],
+                         name='xxx')
+        assert ser2.dtype == object
+        exp = pd.Series([pd.Timedelta('2 days'), pd.Timedelta('4 days')],
+                        name='xxx')
+        tm.assert_series_equal(ser2 - ser, exp)
+        tm.assert_series_equal(ser - ser2, -exp)
+
+        ser = pd.Series([pd.Timedelta('01:00:00'), pd.Timedelta('02:00:00')],
+                        name='xxx', dtype=object)
+        assert ser.dtype == object
+
+        exp = pd.Series([pd.Timedelta('01:30:00'), pd.Timedelta('02:30:00')],
+                        name='xxx')
+        tm.assert_series_equal(ser + pd.Timedelta('00:30:00'), exp)
+        tm.assert_series_equal(pd.Timedelta('00:30:00') + ser, exp)

@@ -2,7 +2,7 @@
 
 from __future__ import print_function
 
-from warnings import catch_warnings
+from warnings import catch_warnings, simplefilter
 from datetime import datetime
 
 import itertools
@@ -56,6 +56,7 @@ class TestDataFrameReshape(TestData):
 
         with catch_warnings(record=True):
             # pivot multiple columns
+            simplefilter("ignore", FutureWarning)
             wp = tm.makePanel()
             lp = wp.to_frame()
             df = lp.reset_index()
@@ -65,7 +66,7 @@ class TestDataFrameReshape(TestData):
         data = DataFrame({'a': ['bar', 'bar', 'foo', 'foo', 'foo'],
                           'b': ['one', 'two', 'one', 'one', 'two'],
                           'c': [1., 2., 3., 3., 4.]})
-        with tm.assert_raises_regex(ValueError, 'duplicate entries'):
+        with pytest.raises(ValueError, match='duplicate entries'):
             data.pivot('a', 'b', 'c')
 
     def test_pivot_empty(self):
@@ -302,7 +303,8 @@ class TestDataFrameReshape(TestData):
         # Test unstacking with categorical
         data = pd.Series(['a', 'b', 'c', 'a'], dtype='category')
         data.index = pd.MultiIndex.from_tuples(
-            [('x', 'a'), ('x', 'b'), ('y', 'b'), ('z', 'a')])
+            [('x', 'a'), ('x', 'b'), ('y', 'b'), ('z', 'a')],
+        )
 
         # By default missing values will be NaN
         result = data.unstack()
@@ -313,9 +315,10 @@ class TestDataFrameReshape(TestData):
                              index=list('xyz'))
         assert_frame_equal(result, expected)
 
-        # Fill with non-category results in NaN entries similar to above
-        result = data.unstack(fill_value='d')
-        assert_frame_equal(result, expected)
+        # Fill with non-category results in a TypeError
+        msg = r"'fill_value' \('d'\) is not in"
+        with pytest.raises(TypeError, match=msg):
+            data.unstack(fill_value='d')
 
         # Fill with category value replaces missing values as expected
         result = data.unstack(fill_value='c')
@@ -462,14 +465,14 @@ class TestDataFrameReshape(TestData):
         mi = pd.MultiIndex(
             levels=[[u('foo'), u('bar')], [u('one'), u('two')],
                     [u('a'), u('b')]],
-            labels=[[0, 0, 1, 1], [0, 1, 0, 1], [1, 0, 1, 0]],
+            codes=[[0, 0, 1, 1], [0, 1, 0, 1], [1, 0, 1, 0]],
             names=[u('first'), u('second'), u('third')])
         s = pd.Series(0, index=mi)
         result = s.unstack([1, 2]).stack(0)
 
         expected_mi = pd.MultiIndex(
             levels=[['foo', 'bar'], ['one', 'two']],
-            labels=[[0, 0, 1, 1], [0, 1, 0, 1]],
+            codes=[[0, 0, 1, 1], [0, 1, 0, 1]],
             names=['first', 'second'])
 
         expected = pd.DataFrame(np.array([[np.nan, 0],
@@ -496,7 +499,7 @@ class TestDataFrameReshape(TestData):
         result = data.unstack()
 
         midx = MultiIndex(levels=[['x', 'y'], ['a', 'b', 'c']],
-                          labels=[[0, 0, 0, 1, 1, 1], [0, 1, 2, 0, 1, 2]])
+                          codes=[[0, 0, 0, 1, 1, 1], [0, 1, 2, 0, 1, 2]])
         expected = Series([1, 2, np.NaN, 3, 4, np.NaN], index=midx)
 
         assert_series_equal(result, expected)
@@ -571,7 +574,7 @@ class TestDataFrameReshape(TestData):
             df.T.stack('c1')
 
     def test_unstack_unused_levels(self):
-        # GH 17845: unused labels in index make unstack() cast int to float
+        # GH 17845: unused codes in index make unstack() cast int to float
         idx = pd.MultiIndex.from_product([['a'], ['A', 'B', 'C', 'D']])[:-1]
         df = pd.DataFrame([[1, 0]] * 3, index=idx)
 
@@ -584,8 +587,8 @@ class TestDataFrameReshape(TestData):
 
         # Unused items on both levels
         levels = [[0, 1, 7], [0, 1, 2, 3]]
-        labels = [[0, 0, 1, 1], [0, 2, 0, 2]]
-        idx = pd.MultiIndex(levels, labels)
+        codes = [[0, 0, 1, 1], [0, 2, 0, 2]]
+        idx = pd.MultiIndex(levels, codes)
         block = np.arange(4).reshape(2, 2)
         df = pd.DataFrame(np.concatenate([block, block + 4]), index=idx)
         result = df.unstack()
@@ -597,8 +600,8 @@ class TestDataFrameReshape(TestData):
 
         # With mixed dtype and NaN
         levels = [['a', 2, 'c'], [1, 3, 5, 7]]
-        labels = [[0, -1, 1, 1], [0, 2, -1, 2]]
-        idx = pd.MultiIndex(levels, labels)
+        codes = [[0, -1, 1, 1], [0, 2, -1, 2]]
+        idx = pd.MultiIndex(levels, codes)
         data = np.arange(8)
         df = pd.DataFrame(data.reshape(4, 2), index=idx)
 
@@ -617,7 +620,7 @@ class TestDataFrameReshape(TestData):
 
     @pytest.mark.parametrize("cols", [['A', 'C'], slice(None)])
     def test_unstack_unused_level(self, cols):
-        # GH 18562 : unused labels on the unstacked level
+        # GH 18562 : unused codes on the unstacked level
         df = pd.DataFrame([[2010, 'a', 'I'],
                            [2011, 'b', 'II']],
                           columns=['A', 'B', 'C'])
@@ -690,7 +693,7 @@ class TestDataFrameReshape(TestData):
         vals = list(map(list, zip(*vals)))
         idx = Index([nan, 0, 1, 2, 4, 5, 6, 7], name='B')
         cols = MultiIndex(levels=[['C'], ['a', 'b']],
-                          labels=[[0, 0], [0, 1]],
+                          codes=[[0, 0], [0, 1]],
                           names=[None, 'A'])
 
         right = DataFrame(vals, columns=cols, index=idx)
@@ -703,7 +706,7 @@ class TestDataFrameReshape(TestData):
 
         vals = [[2, nan], [0, 4], [1, 5], [nan, 6], [3, 7]]
         cols = MultiIndex(levels=[['C'], ['a', 'b']],
-                          labels=[[0, 0], [0, 1]],
+                          codes=[[0, 0], [0, 1]],
                           names=[None, 'A'])
         idx = Index([nan, 0, 1, 2, 3], name='B')
         right = DataFrame(vals, columns=cols, index=idx)
@@ -716,7 +719,7 @@ class TestDataFrameReshape(TestData):
 
         vals = [[3, nan], [0, 4], [1, 5], [2, 6], [nan, 7]]
         cols = MultiIndex(levels=[['C'], ['a', 'b']],
-                          labels=[[0, 0], [0, 1]],
+                          codes=[[0, 0], [0, 1]],
                           names=[None, 'A'])
         idx = Index([nan, 0, 1, 2, 3], name='B')
         right = DataFrame(vals, columns=cols, index=idx)
@@ -734,7 +737,7 @@ class TestDataFrameReshape(TestData):
         vals = np.array([[3, 0, 1, 2, nan, 4], [nan, 5, 6, 7, 8, 9]])
         idx = Index(['a', 'b'], name='A')
         cols = MultiIndex(levels=[['C'], date_range('2012-01-01', periods=5)],
-                          labels=[[0, 0, 0, 0, 0, 0], [-1, 0, 1, 2, 3, 4]],
+                          codes=[[0, 0, 0, 0, 0, 0], [-1, 0, 1, 2, 3, 4]],
                           names=[None, 'B'])
 
         right = DataFrame(vals, columns=cols, index=idx)
@@ -756,11 +759,11 @@ class TestDataFrameReshape(TestData):
                 [0.0, -0.00015, nan, 2.3614e-05, nan]]
 
         idx = MultiIndex(levels=[[680585148, 680607017], [0.0133]],
-                         labels=[[0, 1], [-1, 0]],
+                         codes=[[0, 1], [-1, 0]],
                          names=['s_id', 'dosage'])
 
         cols = MultiIndex(levels=[['change'], ['Ag', 'Hg', 'Pb', 'Sn', 'U']],
-                          labels=[[0, 0, 0, 0, 0], [0, 1, 2, 3, 4]],
+                          codes=[[0, 0, 0, 0, 0], [0, 1, 2, 3, 4]],
                           names=[None, 'agent'])
 
         right = DataFrame(vals, columns=cols, index=idx)
@@ -848,8 +851,8 @@ class TestDataFrameReshape(TestData):
         expected = DataFrame([[0, 2], [1, nan], [3, 5], [4, nan]],
                              index=MultiIndex(
                                  levels=[[0, 1], ['u', 'x', 'y', 'z']],
-                                 labels=[[0, 0, 1, 1],
-                                         [1, 3, 1, 3]],
+                                 codes=[[0, 0, 1, 1],
+                                        [1, 3, 1, 3]],
                                  names=[None, 'Lower']),
                              columns=Index(['B', 'C'], name='Upper'),
                              dtype=df.dtypes[0])
@@ -870,6 +873,32 @@ class TestDataFrameReshape(TestData):
         expected = Series([10, 11, 12], index=midx)
 
         tm.assert_series_equal(result, expected)
+
+    def test_stack_preserve_categorical_dtype_values(self):
+        # GH-23077
+        cat = pd.Categorical(['a', 'a', 'b', 'c'])
+        df = pd.DataFrame({"A": cat, "B": cat})
+        result = df.stack()
+        index = pd.MultiIndex.from_product([[0, 1, 2, 3], ['A', 'B']])
+        expected = pd.Series(pd.Categorical(['a', 'a', 'a', 'a',
+                                             'b', 'b', 'c', 'c']),
+                             index=index)
+        tm.assert_series_equal(result, expected)
+
+    @pytest.mark.parametrize('level', [0, 1])
+    def test_unstack_mixed_extension_types(self, level):
+        index = pd.MultiIndex.from_tuples([('A', 0), ('A', 1), ('B', 1)],
+                                          names=['a', 'b'])
+        df = pd.DataFrame({"A": pd.core.arrays.integer_array([0, 1, None]),
+                           "B": pd.Categorical(['a', 'a', 'b'])}, index=index)
+
+        result = df.unstack(level=level)
+        expected = df.astype(object).unstack(level=level)
+
+        expected_dtypes = pd.Series([df.A.dtype] * 2 + [df.B.dtype] * 2,
+                                    index=result.columns)
+        tm.assert_series_equal(result.dtypes, expected_dtypes)
+        tm.assert_frame_equal(result.astype(object), expected)
 
     @pytest.mark.parametrize("level", [0, 'baz'])
     def test_unstack_swaplevel_sortlevel(self, level):

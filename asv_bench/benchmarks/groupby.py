@@ -1,14 +1,14 @@
-import warnings
-from string import ascii_letters
-from itertools import product
 from functools import partial
+from itertools import product
+from string import ascii_letters
+import warnings
 
 import numpy as np
-from pandas import (DataFrame, Series, MultiIndex, date_range, period_range,
-                    TimeGrouper, Categorical, Timestamp)
-import pandas.util.testing as tm
 
-from .pandas_vb_common import setup  # noqa
+from pandas import (
+    Categorical, DataFrame, MultiIndex, Series, TimeGrouper, Timestamp,
+    date_range, period_range)
+import pandas.util.testing as tm
 
 
 method_blacklist = {
@@ -22,8 +22,6 @@ method_blacklist = {
 
 
 class ApplyDictReturn(object):
-    goal_time = 0.2
-
     def setup(self):
         self.labels = np.arange(1000).repeat(10)
         self.data = Series(np.random.randn(len(self.labels)))
@@ -34,8 +32,6 @@ class ApplyDictReturn(object):
 
 
 class Apply(object):
-
-    goal_time = 0.2
 
     def setup_cache(self):
         N = 10**4
@@ -69,8 +65,6 @@ class Apply(object):
 
 class Groups(object):
 
-    goal_time = 0.2
-
     param_names = ['key']
     params = ['int64_small', 'int64_large', 'object_small', 'object_large']
 
@@ -95,7 +89,6 @@ class Groups(object):
 
 class GroupManyLabels(object):
 
-    goal_time = 0.2
     params = [1, 1000]
     param_names = ['ncols']
 
@@ -110,8 +103,6 @@ class GroupManyLabels(object):
 
 
 class Nth(object):
-
-    goal_time = 0.2
 
     param_names = ['dtype']
     params = ['float32', 'float64', 'datetime', 'object']
@@ -151,8 +142,6 @@ class Nth(object):
 
 class DateAttributes(object):
 
-    goal_time = 0.2
-
     def setup(self):
         rng = date_range('1/1/2000', '12/31/2005', freq='H')
         self.year, self.month, self.day = rng.year, rng.month, rng.day
@@ -163,8 +152,6 @@ class DateAttributes(object):
 
 
 class Int64(object):
-
-    goal_time = 0.2
 
     def setup(self):
         arr = np.random.randint(-1 << 12, 1 << 12, (1 << 17, 5))
@@ -181,8 +168,6 @@ class Int64(object):
 
 
 class CountMultiDtype(object):
-
-    goal_time = 0.2
 
     def setup_cache(self):
         n = 10000
@@ -210,8 +195,6 @@ class CountMultiDtype(object):
 
 class CountMultiInt(object):
 
-    goal_time = 0.2
-
     def setup_cache(self):
         n = 10000
         df = DataFrame({'key1': np.random.randint(0, 500, size=n),
@@ -229,9 +212,7 @@ class CountMultiInt(object):
 
 class AggFunctions(object):
 
-    goal_time = 0.2
-
-    def setup_cache():
+    def setup_cache(self):
         N = 10**5
         fac1 = np.array(['A', 'B', 'C'], dtype='O')
         fac2 = np.array(['one', 'two'], dtype='O')
@@ -261,8 +242,6 @@ class AggFunctions(object):
 
 class GroupStrings(object):
 
-    goal_time = 0.2
-
     def setup(self):
         n = 2 * 10**5
         alpha = list(map(''.join, product(ascii_letters, repeat=4)))
@@ -277,8 +256,6 @@ class GroupStrings(object):
 
 
 class MultiColumn(object):
-
-    goal_time = 0.2
 
     def setup_cache(self):
         N = 10**5
@@ -307,8 +284,6 @@ class MultiColumn(object):
 
 class Size(object):
 
-    goal_time = 0.2
-
     def setup(self):
         n = 10**5
         offsets = np.random.randint(n, size=n).astype('timedelta64[ns]')
@@ -335,8 +310,6 @@ class Size(object):
 
 
 class GroupByMethods(object):
-
-    goal_time = 0.2
 
     param_names = ['dtype', 'method', 'application']
     params = [['int', 'float', 'object', 'datetime'],
@@ -387,7 +360,6 @@ class GroupByMethods(object):
 
 class RankWithTies(object):
     # GH 21237
-    goal_time = 0.2
     param_names = ['dtype', 'tie_method']
     params = [['float64', 'float32', 'int64', 'datetime64'],
               ['first', 'average', 'dense', 'min', 'max']]
@@ -406,8 +378,6 @@ class RankWithTies(object):
 
 class Float32(object):
     # GH 13335
-    goal_time = 0.2
-
     def setup(self):
         tmp1 = (np.random.random(10000) * 0.1).astype(np.float32)
         tmp2 = (np.random.random(10000) * 10.0).astype(np.float32)
@@ -420,8 +390,6 @@ class Float32(object):
 
 
 class Categories(object):
-
-    goal_time = 0.2
 
     def setup(self):
         N = 10**5
@@ -459,7 +427,6 @@ class Categories(object):
 
 class Datelike(object):
     # GH 14338
-    goal_time = 0.2
     params = ['period_range', 'date_range', 'date_range_tz']
     param_names = ['grouper']
 
@@ -477,8 +444,6 @@ class Datelike(object):
 
 class SumBools(object):
     # GH 2692
-    goal_time = 0.2
-
     def setup(self):
         N = 500
         self.df = DataFrame({'ii': range(N),
@@ -490,7 +455,6 @@ class SumBools(object):
 
 class SumMultiLevel(object):
     # GH 9049
-    goal_time = 0.2
     timeout = 120.0
 
     def setup(self):
@@ -505,14 +469,12 @@ class SumMultiLevel(object):
 
 class Transform(object):
 
-    goal_time = 0.2
-
     def setup(self):
         n1 = 400
         n2 = 250
         index = MultiIndex(levels=[np.arange(n1), tm.makeStringIndex(n2)],
-                           labels=[np.repeat(range(n1), n2).tolist(),
-                                   list(range(n2)) * n1],
+                           codes=[np.repeat(range(n1), n2).tolist(),
+                                  list(range(n2)) * n1],
                            names=['lev1', 'lev2'])
         arr = np.random.randn(n1 * n2, 3)
         arr[::10000, 0] = np.nan
@@ -553,8 +515,6 @@ class Transform(object):
 
 class TransformBools(object):
 
-    goal_time = 0.2
-
     def setup(self):
         N = 120000
         transition_points = np.sort(np.random.choice(np.arange(N), 1400))
@@ -569,8 +529,6 @@ class TransformBools(object):
 
 class TransformNaN(object):
     # GH 12737
-    goal_time = 0.2
-
     def setup(self):
         self.df_nans = DataFrame({'key': np.repeat(np.arange(1000), 10),
                                   'B': np.nan,
@@ -579,3 +537,6 @@ class TransformNaN(object):
 
     def time_first(self):
         self.df_nans.groupby('key').transform('first')
+
+
+from .pandas_vb_common import setup  # noqa: F401

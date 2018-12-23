@@ -2,22 +2,24 @@
 # pylint: disable-msg=E1101,W0612
 from collections import OrderedDict
 import pydoc
-
-import pytest
+import warnings
 
 import numpy as np
+import pytest
+
+import pandas.compat as compat
+from pandas.compat import isidentifier, lzip, range, string_types
+
 import pandas as pd
-
-from pandas import Index, Series, DataFrame, date_range
+from pandas import (
+    Categorical, DataFrame, DatetimeIndex, Index, Series, TimedeltaIndex,
+    date_range, period_range, timedelta_range)
+from pandas.core.arrays import PeriodArray
 from pandas.core.indexes.datetimes import Timestamp
-
-from pandas.compat import range, lzip, isidentifier, string_types
-from pandas import (compat, Categorical, period_range, timedelta_range,
-                    DatetimeIndex, PeriodIndex, TimedeltaIndex)
-import pandas.io.formats.printing as printing
-from pandas.util.testing import (assert_series_equal,
-                                 ensure_clean)
 import pandas.util.testing as tm
+from pandas.util.testing import assert_series_equal, ensure_clean
+
+import pandas.io.formats.printing as printing
 
 from .common import TestData
 
@@ -455,8 +457,7 @@ class TestSeriesMisc(TestData, SharedWithSparse):
 
         # str accessor only valid with string values
         s = Series(range(5))
-        with tm.assert_raises_regex(AttributeError,
-                                    'only use .str accessor'):
+        with pytest.raises(AttributeError, match='only use .str accessor'):
             s.str.repeat(2)
 
     def test_empty_method(self):
@@ -523,26 +524,25 @@ class TestCategoricalSeries(object):
         assert isinstance(s.cat, CategoricalAccessor)
 
         invalid = Series([1])
-        with tm.assert_raises_regex(AttributeError,
-                                    "only use .cat accessor"):
+        with pytest.raises(AttributeError, match="only use .cat accessor"):
             invalid.cat
         assert not hasattr(invalid, 'cat')
 
     def test_cat_accessor_no_new_attributes(self):
         # https://github.com/pandas-dev/pandas/issues/10673
         c = Series(list('aabbcde')).astype('category')
-        with tm.assert_raises_regex(AttributeError,
-                                    "You cannot add any new attribute"):
+        with pytest.raises(AttributeError,
+                           match="You cannot add any new attribute"):
             c.cat.xlabel = "a"
 
     def test_categorical_delegations(self):
 
         # invalid accessor
         pytest.raises(AttributeError, lambda: Series([1, 2, 3]).cat)
-        tm.assert_raises_regex(
-            AttributeError,
-            r"Can only use .cat accessor with a 'category' dtype",
-            lambda: Series([1, 2, 3]).cat)
+        with pytest.raises(AttributeError,
+                           match=(r"Can only use .cat accessor "
+                                  r"with a 'category' dtype")):
+            Series([1, 2, 3]).cat()
         pytest.raises(AttributeError, lambda: Series(['a', 'b', 'c']).cat)
         pytest.raises(AttributeError, lambda: Series(np.arange(5.)).cat)
         pytest.raises(AttributeError,
@@ -602,82 +602,6 @@ class TestCategoricalSeries(object):
                                       ordered=True))
         tm.assert_series_equal(result, expected)
 
-    def test_str_accessor_api_for_categorical(self):
-        # https://github.com/pandas-dev/pandas/issues/10661
-        from pandas.core.strings import StringMethods
-        s = Series(list('aabb'))
-        s = s + " " + s
-        c = s.astype('category')
-        assert isinstance(c.str, StringMethods)
-
-        # str functions, which need special arguments
-        special_func_defs = [
-            ('cat', (list("zyxw"),), {"sep": ","}),
-            ('center', (10,), {}),
-            ('contains', ("a",), {}),
-            ('count', ("a",), {}),
-            ('decode', ("UTF-8",), {}),
-            ('encode', ("UTF-8",), {}),
-            ('endswith', ("a",), {}),
-            ('extract', ("([a-z]*) ",), {"expand": False}),
-            ('extract', ("([a-z]*) ",), {"expand": True}),
-            ('extractall', ("([a-z]*) ",), {}),
-            ('find', ("a",), {}),
-            ('findall', ("a",), {}),
-            ('index', (" ",), {}),
-            ('ljust', (10,), {}),
-            ('match', ("a"), {}),  # deprecated...
-            ('normalize', ("NFC",), {}),
-            ('pad', (10,), {}),
-            ('partition', (" ",), {"expand": False}),  # not default
-            ('partition', (" ",), {"expand": True}),  # default
-            ('repeat', (3,), {}),
-            ('replace', ("a", "z"), {}),
-            ('rfind', ("a",), {}),
-            ('rindex', (" ",), {}),
-            ('rjust', (10,), {}),
-            ('rpartition', (" ",), {"expand": False}),  # not default
-            ('rpartition', (" ",), {"expand": True}),  # default
-            ('slice', (0, 1), {}),
-            ('slice_replace', (0, 1, "z"), {}),
-            ('split', (" ",), {"expand": False}),  # default
-            ('split', (" ",), {"expand": True}),  # not default
-            ('startswith', ("a",), {}),
-            ('wrap', (2,), {}),
-            ('zfill', (10,), {})
-        ]
-        _special_func_names = [f[0] for f in special_func_defs]
-
-        # * get, join: they need a individual elements of type lists, but
-        #   we can't make a categorical with lists as individual categories.
-        #   -> `s.str.split(" ").astype("category")` will error!
-        # * `translate` has different interfaces for py2 vs. py3
-        _ignore_names = ["get", "join", "translate"]
-
-        str_func_names = [f for f in dir(s.str) if not (
-            f.startswith("_") or
-            f in _special_func_names or
-            f in _ignore_names)]
-
-        func_defs = [(f, (), {}) for f in str_func_names]
-        func_defs.extend(special_func_defs)
-
-        for func, args, kwargs in func_defs:
-            res = getattr(c.str, func)(*args, **kwargs)
-            exp = getattr(s.str, func)(*args, **kwargs)
-
-            if isinstance(res, DataFrame):
-                tm.assert_frame_equal(res, exp)
-            else:
-                tm.assert_series_equal(res, exp)
-
-        invalid = Series([1, 2, 3]).astype('category')
-        with tm.assert_raises_regex(AttributeError,
-                                    "Can only use .str "
-                                    "accessor with string"):
-            invalid.str
-        assert not hasattr(invalid, 'str')
-
     def test_dt_accessor_api_for_categorical(self):
         # https://github.com/pandas-dev/pandas/issues/10661
         from pandas.core.indexes.accessors import Properties
@@ -697,7 +621,7 @@ class TestCategoricalSeries(object):
 
         test_data = [
             ("Datetime", get_ops(DatetimeIndex), s_dr, c_dr),
-            ("Period", get_ops(PeriodIndex), s_pr, c_pr),
+            ("Period", get_ops(PeriodArray), s_pr, c_pr),
             ("Timedelta", get_ops(TimedeltaIndex), s_tdr, c_tdr)]
 
         assert isinstance(c_dr.dt, Properties)
@@ -728,8 +652,12 @@ class TestCategoricalSeries(object):
                     func_defs.append(f_def)
 
             for func, args, kwargs in func_defs:
-                res = getattr(c.dt, func)(*args, **kwargs)
-                exp = getattr(s.dt, func)(*args, **kwargs)
+                with warnings.catch_warnings():
+                    if func == 'to_period':
+                        # dropping TZ
+                        warnings.simplefilter("ignore", UserWarning)
+                    res = getattr(c.dt, func)(*args, **kwargs)
+                    exp = getattr(s.dt, func)(*args, **kwargs)
 
                 if isinstance(res, DataFrame):
                     tm.assert_frame_equal(res, exp)
@@ -754,7 +682,8 @@ class TestCategoricalSeries(object):
                 tm.assert_almost_equal(res, exp)
 
         invalid = Series([1, 2, 3]).astype('category')
-        with tm.assert_raises_regex(
-                AttributeError, "Can only use .dt accessor with datetimelike"):
+        msg = "Can only use .dt accessor with datetimelike"
+
+        with pytest.raises(AttributeError, match=msg):
             invalid.dt
         assert not hasattr(invalid, 'str')

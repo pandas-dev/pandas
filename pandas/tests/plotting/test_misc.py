@@ -22,7 +22,7 @@ def test_import_error_message():
     # GH-19810
     df = DataFrame({"A": [1, 2]})
 
-    with tm.assert_raises_regex(ImportError, 'matplotlib is required'):
+    with pytest.raises(ImportError, match='matplotlib is required'):
         df.plot()
 
 
@@ -61,6 +61,7 @@ class TestSeriesPlots(TestPlotBase):
 @td.skip_if_no_mpl
 class TestDataFramePlots(TestPlotBase):
 
+    # This XPASSES when tested with mpl == 3.0.1
     @td.xfail_if_mpl_2_2
     @td.skip_if_no_scipy
     def test_scatter_matrix_axis(self):
@@ -76,10 +77,7 @@ class TestDataFramePlots(TestPlotBase):
         axes0_labels = axes[0][0].yaxis.get_majorticklabels()
 
         # GH 5662
-        if self.mpl_ge_2_0_0:
-            expected = ['-2', '0', '2']
-        else:
-            expected = ['-2', '-1', '0', '1', '2']
+        expected = ['-2', '0', '2']
         self._check_text_labels(axes0_labels, expected)
         self._check_ticks_props(
             axes, xlabelsize=8, xrot=90, ylabelsize=8, yrot=0)
@@ -91,10 +89,7 @@ class TestDataFramePlots(TestPlotBase):
             axes = _check_plot_works(scatter_matrix, filterwarnings='always',
                                      frame=df, range_padding=.1)
         axes0_labels = axes[0][0].yaxis.get_majorticklabels()
-        if self.mpl_ge_2_0_0:
-            expected = ['-1.0', '-0.5', '0.0']
-        else:
-            expected = ['-1.2', '-1.0', '-0.8', '-0.6', '-0.4', '-0.2', '0.0']
+        expected = ['-1.0', '-0.5', '0.0']
         self._check_text_labels(axes0_labels, expected)
         self._check_ticks_props(
             axes, xlabelsize=8, xrot=90, ylabelsize=8, yrot=0)
@@ -212,6 +207,8 @@ class TestDataFramePlots(TestPlotBase):
         with tm.assert_produces_warning(FutureWarning):
             parallel_coordinates(df, 'Name', colors=colors)
 
+    # not sure if this is indicative of a problem
+    @pytest.mark.filterwarnings("ignore:Attempting to set:UserWarning")
     def test_parallel_coordinates_with_sorted_labels(self):
         """ For #15908 """
         from pandas.plotting import parallel_coordinates

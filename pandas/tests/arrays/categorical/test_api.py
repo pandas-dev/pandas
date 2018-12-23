@@ -1,14 +1,12 @@
 # -*- coding: utf-8 -*-
 
+import numpy as np
 import pytest
 
-import numpy as np
-
-import pandas.util.testing as tm
-from pandas import Categorical, CategoricalIndex, Index, Series, DataFrame
-
+from pandas import Categorical, CategoricalIndex, DataFrame, Index, Series
 from pandas.core.arrays.categorical import _recode_for_categories
 from pandas.tests.arrays.categorical.common import TestCategorical
+import pandas.util.testing as tm
 
 
 class TestCategoricalAPI(object):
@@ -52,9 +50,9 @@ class TestCategoricalAPI(object):
 
         # removed in 0.19.0
         msg = "can\'t set attribute"
-        with tm.assert_raises_regex(AttributeError, msg):
+        with pytest.raises(AttributeError, match=msg):
             cat.ordered = True
-        with tm.assert_raises_regex(AttributeError, msg):
+        with pytest.raises(AttributeError, match=msg):
             cat.ordered = False
 
     def test_rename_categories(self):
@@ -159,22 +157,16 @@ class TestCategoricalAPI(object):
         # not all "old" included in "new"
         cat = Categorical(["a", "b", "c", "a"], ordered=True)
 
-        def f():
+        with pytest.raises(ValueError):
             cat.reorder_categories(["a"])
 
-        pytest.raises(ValueError, f)
-
         # still not all "old" in "new"
-        def f():
+        with pytest.raises(ValueError):
             cat.reorder_categories(["a", "b", "d"])
 
-        pytest.raises(ValueError, f)
-
         # all "old" included in "new", but too long
-        def f():
+        with pytest.raises(ValueError):
             cat.reorder_categories(["a", "b", "c", "d"])
-
-        pytest.raises(ValueError, f)
 
     def test_add_categories(self):
         cat = Categorical(["a", "b", "c", "a"], ordered=True)
@@ -197,10 +189,8 @@ class TestCategoricalAPI(object):
         assert res is None
 
         # new is in old categories
-        def f():
+        with pytest.raises(ValueError):
             cat.add_categories(["d"])
-
-        pytest.raises(ValueError, f)
 
         # GH 9927
         cat = Categorical(list("abc"), ordered=True)
@@ -353,10 +343,8 @@ class TestCategoricalAPI(object):
         assert res is None
 
         # removal is not in categories
-        def f():
+        with pytest.raises(ValueError):
             cat.remove_categories(["c"])
-
-        pytest.raises(ValueError, f)
 
     def test_remove_unused_categories(self):
         c = Categorical(["a", "b", "c", "d", "a"],
@@ -463,19 +451,14 @@ class TestPrivateCategoricalAPI(object):
         tm.assert_numpy_array_equal(c.codes, exp)
 
         # Assignments to codes should raise
-        def f():
+        with pytest.raises(ValueError):
             c.codes = np.array([0, 1, 2, 0, 1], dtype='int8')
 
-        pytest.raises(ValueError, f)
-
         # changes in the codes array should raise
-        # np 1.6.1 raises RuntimeError rather than ValueError
         codes = c.codes
 
-        def f():
+        with pytest.raises(ValueError):
             codes[4] = 1
-
-        pytest.raises(ValueError, f)
 
         # But even after getting the codes, the original array should still be
         # writeable!

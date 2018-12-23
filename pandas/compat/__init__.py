@@ -38,6 +38,7 @@ from unicodedata import east_asian_width
 import struct
 import inspect
 from collections import namedtuple
+import collections
 
 PY2 = sys.version_info[0] == 2
 PY3 = sys.version_info[0] >= 3
@@ -135,6 +136,13 @@ if PY3:
 
     from importlib import reload
     reload = reload
+    Hashable = collections.abc.Hashable
+    Iterable = collections.abc.Iterable
+    Mapping = collections.abc.Mapping
+    MutableMapping = collections.abc.MutableMapping
+    Sequence = collections.abc.Sequence
+    Sized = collections.abc.Sized
+    Set = collections.abc.Set
 
 else:
     # Python 2
@@ -189,6 +197,14 @@ else:
     lfilter = builtins.filter
 
     reload = builtins.reload
+
+    Hashable = collections.Hashable
+    Iterable = collections.Iterable
+    Mapping = collections.Mapping
+    MutableMapping = collections.MutableMapping
+    Sequence = collections.Sequence
+    Sized = collections.Sized
+    Set = collections.Set
 
 if PY2:
     def iteritems(obj, **kw):

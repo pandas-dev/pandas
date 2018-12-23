@@ -1173,6 +1173,22 @@ class TestStyler(object):
         assert ctx['body'][1][2]['is_visible']
         assert ctx['body'][1][2]['display_value'] == 3
 
+    def test_pipe(self):
+        def set_caption_from_template(styler, a, b):
+            return styler.set_caption(
+                'Dataframe with a = {a} and b = {b}'.format(a=a, b=b))
+
+        styler = self.df.style.pipe(set_caption_from_template, 'A', b='B')
+        assert 'Dataframe with a = A and b = B' in styler.render()
+
+        # Test with an argument that is a (callable, keyword_name) pair.
+        def f(a, b, styler):
+            return (a, b, styler)
+
+        styler = self.df.style
+        result = styler.pipe((f, 'styler'), a=1, b=2)
+        assert result == (1, 2, styler)
+
 
 @td.skip_if_no_mpl
 class TestStylerMatplotlibDep(object):
@@ -1209,7 +1225,7 @@ class TestStylerMatplotlibDep(object):
     def test_text_color_threshold_raises(self, text_color_threshold):
         df = pd.DataFrame([[1, 2], [2, 4]], columns=['A', 'B'])
         msg = "`text_color_threshold` must be a value from 0 to 1."
-        with tm.assert_raises_regex(ValueError, msg):
+        with pytest.raises(ValueError, match=msg):
             df.style.background_gradient(
                 text_color_threshold=text_color_threshold)._compute()
 
@@ -1269,11 +1285,3 @@ def test_from_custom_template(tmpdir):
     assert result.template is not Styler.template
     styler = result(pd.DataFrame({"A": [1, 2]}))
     assert styler.render()
-
-
-def test_shim():
-    # https://github.com/pandas-dev/pandas/pull/16059
-    # Remove in 0.21
-    with tm.assert_produces_warning(FutureWarning,
-                                    check_stacklevel=False):
-        from pandas.formats.style import Styler as _styler  # noqa

@@ -1,18 +1,30 @@
-from datetime import datetime, timedelta, time
-import pytest
+from datetime import datetime, time, timedelta
 
-import pytz
 import numpy as np
-import pandas as pd
-import pandas.util.testing as tm
+import pytest
+import pytz
+
 import pandas.compat as compat
-from pandas import notna, Index, DatetimeIndex, date_range, Timestamp
-from pandas.tseries.offsets import CDay, BDay
+
+import pandas as pd
+from pandas import DatetimeIndex, Index, Timestamp, date_range, notna
+import pandas.util.testing as tm
+
+from pandas.tseries.offsets import BDay, CDay
 
 START, END = datetime(2009, 1, 1), datetime(2010, 1, 1)
 
 
 class TestGetItem(object):
+    def test_ellipsis(self):
+        # GH#21282
+        idx = pd.date_range('2011-01-01', '2011-01-31', freq='D',
+                            tz='Asia/Tokyo', name='idx')
+
+        result = idx[...]
+        assert result.equals(idx)
+        assert result is not idx
+
     def test_getitem(self):
         idx1 = pd.date_range('2011-01-01', '2011-01-31', freq='D', name='idx')
         idx2 = pd.date_range('2011-01-01', '2011-01-31', freq='D',
@@ -178,16 +190,16 @@ class TestTake(object):
         indices = [1, 6, 5, 9, 10, 13, 15, 3]
 
         msg = r"take\(\) got an unexpected keyword argument 'foo'"
-        tm.assert_raises_regex(TypeError, msg, idx.take,
-                               indices, foo=2)
+        with pytest.raises(TypeError, match=msg):
+            idx.take(indices, foo=2)
 
         msg = "the 'out' parameter is not supported"
-        tm.assert_raises_regex(ValueError, msg, idx.take,
-                               indices, out=indices)
+        with pytest.raises(ValueError, match=msg):
+            idx.take(indices, out=indices)
 
         msg = "the 'mode' parameter is not supported"
-        tm.assert_raises_regex(ValueError, msg, idx.take,
-                               indices, mode='clip')
+        with pytest.raises(ValueError, match=msg):
+            idx.take(indices, mode='clip')
 
     # TODO: This method came from test_datetime; de-dup with version above
     @pytest.mark.parametrize('tz', [None, 'US/Eastern', 'Asia/Tokyo'])
@@ -195,7 +207,7 @@ class TestTake(object):
         dates = [datetime(2010, 1, 1, 14), datetime(2010, 1, 1, 15),
                  datetime(2010, 1, 1, 17), datetime(2010, 1, 1, 21)]
 
-        idx = DatetimeIndex(start='2010-01-01 09:00',
+        idx = pd.date_range(start='2010-01-01 09:00',
                             end='2010-02-01 09:00', freq='H', tz=tz,
                             name='idx')
         expected = DatetimeIndex(dates, freq=None, name='idx', tz=tz)
@@ -234,9 +246,9 @@ class TestTake(object):
 
         msg = ('When allow_fill=True and fill_value is not None, '
                'all indices must be >= -1')
-        with tm.assert_raises_regex(ValueError, msg):
+        with pytest.raises(ValueError, match=msg):
             idx.take(np.array([1, 0, -2]), fill_value=True)
-        with tm.assert_raises_regex(ValueError, msg):
+        with pytest.raises(ValueError, match=msg):
             idx.take(np.array([1, 0, -5]), fill_value=True)
 
         with pytest.raises(IndexError):
@@ -265,9 +277,9 @@ class TestTake(object):
 
         msg = ('When allow_fill=True and fill_value is not None, '
                'all indices must be >= -1')
-        with tm.assert_raises_regex(ValueError, msg):
+        with pytest.raises(ValueError, match=msg):
             idx.take(np.array([1, 0, -2]), fill_value=True)
-        with tm.assert_raises_regex(ValueError, msg):
+        with pytest.raises(ValueError, match=msg):
             idx.take(np.array([1, 0, -5]), fill_value=True)
 
         with pytest.raises(IndexError):
@@ -408,8 +420,8 @@ class TestDatetimeIndex(object):
             assert result.freq == expected.freq
 
         with pytest.raises((IndexError, ValueError)):
-            # either depeidnig on numpy version
-            result = idx.delete(5)
+            # either depending on numpy version
+            idx.delete(5)
 
         for tz in [None, 'Asia/Tokyo', 'US/Pacific']:
             idx = date_range(start='2000-01-01 09:00', periods=10, freq='H',
@@ -505,8 +517,7 @@ class TestDatetimeIndex(object):
                            tolerance=np.timedelta64(1, 'D')) == 1
         assert idx.get_loc('2000-01-01T12', method='nearest',
                            tolerance=timedelta(1)) == 1
-        with tm.assert_raises_regex(ValueError,
-                                    'unit abbreviation w/o a number'):
+        with pytest.raises(ValueError, match='unit abbreviation w/o a number'):
             idx.get_loc('2000-01-01T12', method='nearest', tolerance='foo')
         with pytest.raises(KeyError):
             idx.get_loc('2000-01-01T03', method='nearest', tolerance='2 hours')
@@ -580,9 +591,22 @@ class TestDatetimeIndex(object):
         with pytest.raises(ValueError):
             idx.get_indexer(idx[[0]], method='nearest', tolerance='foo')
 
-    def test_reasonable_keyerror(self):
+    def test_reasonable_key_error(self):
         # GH#1062
         index = DatetimeIndex(['1/3/2000'])
-        with pytest.raises(KeyError) as excinfo:
+        with pytest.raises(KeyError, match='2000'):
             index.get_loc('1/1/2000')
-        assert '2000' in str(excinfo.value)
+
+    @pytest.mark.parametrize('key', [pd.Timedelta(0),
+                                     pd.Timedelta(1),
+                                     timedelta(0)])
+    def test_timedelta_invalid_key(self, key):
+        # GH#20464
+        dti = pd.date_range('1970-01-01', periods=10)
+        with pytest.raises(TypeError):
+            dti.get_loc(key)
+
+    def test_get_loc_nat(self):
+        # GH#20464
+        index = DatetimeIndex(['1/3/2000', 'NaT'])
+        assert index.get_loc(pd.NaT) == 1

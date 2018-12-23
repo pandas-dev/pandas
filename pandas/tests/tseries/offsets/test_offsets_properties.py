@@ -8,22 +8,26 @@ which was more ambitious but less idiomatic in its use of Hypothesis.
 You may wish to consult the previous version for inspiration on further
 tests, or when trying to pin down the bugs exposed by the tests below.
 """
+import warnings
 
-import pytest
-from hypothesis import given, assume, strategies as st
-from hypothesis.extra.pytz import timezones as pytz_timezones
+from hypothesis import assume, given, strategies as st
 from hypothesis.extra.dateutil import timezones as dateutil_timezones
+from hypothesis.extra.pytz import timezones as pytz_timezones
+import pytest
 
 import pandas as pd
 
 from pandas.tseries.offsets import (
-    MonthEnd, MonthBegin, BMonthEnd, BMonthBegin,
-    QuarterEnd, QuarterBegin, BQuarterEnd, BQuarterBegin,
-    YearEnd, YearBegin, BYearEnd, BYearBegin,
-)
+    BMonthBegin, BMonthEnd, BQuarterBegin, BQuarterEnd, BYearBegin, BYearEnd,
+    MonthBegin, MonthEnd, QuarterBegin, QuarterEnd, YearBegin, YearEnd)
 
 # ----------------------------------------------------------------
 # Helpers for generating random data
+
+with warnings.catch_warnings():
+    warnings.simplefilter('ignore')
+    min_dt = pd.Timestamp(1900, 1, 1).to_pydatetime(),
+    max_dt = pd.Timestamp(1900, 1, 1).to_pydatetime(),
 
 gen_date_range = st.builds(
     pd.date_range,
@@ -38,8 +42,8 @@ gen_date_range = st.builds(
 )
 
 gen_random_datetime = st.datetimes(
-    min_value=pd.Timestamp.min.to_pydatetime(),
-    max_value=pd.Timestamp.max.to_pydatetime(),
+    min_value=min_dt,
+    max_value=max_dt,
     timezones=st.one_of(st.none(), dateutil_timezones(), pytz_timezones())
 )
 
@@ -68,7 +72,7 @@ def test_on_offset_implementations(dt, offset):
     assert offset.onOffset(dt) == (compare == dt)
 
 
-@pytest.mark.xfail(strict=True)
+@pytest.mark.xfail
 @given(gen_yqm_offset, gen_date_range)
 def test_apply_index_implementations(offset, rng):
     # offset.apply_index(dti)[i] should match dti[i] + offset
@@ -90,7 +94,7 @@ def test_apply_index_implementations(offset, rng):
     # TODO: Check randomly assorted entries, not just first/last
 
 
-@pytest.mark.xfail(strict=True)
+@pytest.mark.xfail
 @given(gen_yqm_offset)
 def test_shift_across_dst(offset):
     # GH#18319 check that 1) timezone is correctly normalized and

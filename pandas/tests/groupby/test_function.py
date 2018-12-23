@@ -247,7 +247,7 @@ def test_non_cython_api():
     expected_col = pd.MultiIndex(levels=[['B'],
                                          ['count', 'mean', 'std', 'min',
                                           '25%', '50%', '75%', 'max']],
-                                 labels=[[0] * 8, list(range(8))])
+                                 codes=[[0] * 8, list(range(8))])
     expected = pd.DataFrame([[1.0, 2.0, np.nan, 2.0, 2.0, 2.0, 2.0, 2.0],
                              [0.0, np.nan, np.nan, np.nan, np.nan, np.nan,
                               np.nan, np.nan]],
@@ -517,18 +517,20 @@ def test_nsmallest():
     tm.assert_series_equal(gb.nsmallest(3, keep='last'), e)
 
 
-def test_numpy_compat():
+@pytest.mark.parametrize("func", [
+    'mean', 'var', 'std', 'cumprod', 'cumsum'
+])
+def test_numpy_compat(func):
     # see gh-12811
     df = pd.DataFrame({'A': [1, 2, 1], 'B': [1, 2, 3]})
     g = df.groupby('A')
 
     msg = "numpy operations are not valid with groupby"
 
-    for func in ('mean', 'var', 'std', 'cumprod', 'cumsum'):
-        tm.assert_raises_regex(UnsupportedFunctionCall, msg,
-                               getattr(g, func), 1, 2, 3)
-        tm.assert_raises_regex(UnsupportedFunctionCall, msg,
-                               getattr(g, func), foo=1)
+    with pytest.raises(UnsupportedFunctionCall, match=msg):
+        getattr(g, func)(1, 2, 3)
+    with pytest.raises(UnsupportedFunctionCall, match=msg):
+        getattr(g, func)(foo=1)
 
 
 def test_cummin_cummax():
@@ -731,7 +733,7 @@ def test_frame_describe_multikey(tsframe):
         # GH 17464 - Remove duplicate MultiIndex levels
         group_col = pd.MultiIndex(
             levels=[[col], group.columns],
-            labels=[[0] * len(group.columns), range(len(group.columns))])
+            codes=[[0] * len(group.columns), range(len(group.columns))])
         group = pd.DataFrame(group.values,
                              columns=group_col,
                              index=group.index)
@@ -745,7 +747,7 @@ def test_frame_describe_multikey(tsframe):
     expected = tsframe.describe().T
     expected.index = pd.MultiIndex(
         levels=[[0, 1], expected.index],
-        labels=[[0, 0, 1, 1], range(len(expected.index))])
+        codes=[[0, 0, 1, 1], range(len(expected.index))])
     tm.assert_frame_equal(result, expected)
 
 
@@ -1125,3 +1127,12 @@ def test_pipe_args():
     expected = pd.Series([4, 8, 12], index=pd.Int64Index([1, 2, 3]))
 
     tm.assert_series_equal(result, expected)
+
+
+def test_groupby_mean_no_overflow():
+    # Regression test for (#22487)
+    df = pd.DataFrame({
+        "user": ["A", "A", "A", "A", "A"],
+        "connections": [4970, 4749, 4719, 4704, 18446744073699999744]
+    })
+    assert df.groupby('user')['connections'].mean()['A'] == 3689348814740003840

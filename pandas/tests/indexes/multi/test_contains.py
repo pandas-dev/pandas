@@ -1,11 +1,13 @@
 # -*- coding: utf-8 -*-
 
 import numpy as np
-import pandas as pd
-import pandas.util.testing as tm
 import pytest
-from pandas import MultiIndex
+
 from pandas.compat import PYPY
+
+import pandas as pd
+from pandas import MultiIndex
+import pandas.util.testing as tm
 
 
 def test_contains_top_level():
@@ -18,7 +20,7 @@ def test_contains_with_nat():
     # MI with a NaT
     mi = MultiIndex(levels=[['C'],
                             pd.date_range('2012-01-01', periods=5)],
-                    labels=[[0, 0, 0, 0, 0, 0], [-1, 0, 1, 2, 3, 4]],
+                    codes=[[0, 0, 0, 0, 0, 0], [-1, 0, 1, 2, 3, 4]],
                     names=[None, 'B'])
     assert ('C', pd.Timestamp('2012-01-01')) in mi
     for val in mi.values:
