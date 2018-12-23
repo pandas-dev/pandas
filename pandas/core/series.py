@@ -1082,11 +1082,8 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         2    c
         2    c
         dtype: object
-        >>> s.repeat(3)
+        >>> s.repeat([1, 2, 3])
         0    a
-        0    a
-        0    a
-        1    b
         1    b
         1    b
         2    c

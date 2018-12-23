@@ -623,8 +623,8 @@ class ExtensionArray(object):
         >>> cat.repeat(2)
         [a, a, b, b, c, c]
         Categories (3, object): [a, b, c]
-        >>> cat.repeat(3)
-        [a, a, a, b, b, b, c, c, c]
+        >>> cat.repeat([1, 2, 3])
+        [a, b, b, c, c, c]
         Categories (3, object): [a, b, c]
         """
 
