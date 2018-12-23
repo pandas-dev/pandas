@@ -89,10 +89,10 @@ def _td_array_cmp(cls, op):
         elif not is_list_like(other):
             return ops.invalid_comparison(self, other, op)
 
-        else:
-            if len(other) != len(self):
-                raise ValueError("Lengths must match")
+        elif len(other) != len(self):
+            raise ValueError("Lengths must match")
 
+        else:
             try:
                 other = type(self)._from_sequence(other)._data
             except (ValueError, TypeError):
