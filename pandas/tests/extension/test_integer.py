@@ -153,6 +153,13 @@ class TestComparisonOps(base.BaseComparisonOpsTests):
     def _compare_other(self, s, data, op_name, other):
         self.check_opname(s, op_name, other)
 
+    @pytest.mark.filterwarnings("ignore:DeprecationWarning")
+    def test_compare_diff_lengths(self, data, all_compare_operators):
+        op = self.get_op_from_name(all_compare_operators)
+        other = data[:3]
+        with pytest.raises(ValueError):
+            op(data, other)
+
 
 class TestInterface(base.BaseInterfaceTests):
     pass
