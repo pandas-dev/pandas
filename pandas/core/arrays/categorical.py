@@ -634,6 +634,13 @@ class Categorical(ExtensionArray, PandasObject):
             An instance of ``CategoricalDtype`` to use for this categorical.
 
             .. versionadded:: 0.24.0
+
+        Examples
+        --------
+        >>> dtype = pd.api.types.CategoricalDtype(['a', 'b'], ordered=True)
+        >>> pd.Categorical.from_codes(codes=[0, 1, 0, 1], dtype=dtype)
+        [a, b, a, b]
+        Categories (2, object): [a < b]
         """
         dtype = CategoricalDtype._from_values_or_dtype(codes, categories,
                                                        ordered, dtype)
