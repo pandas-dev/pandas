@@ -18,8 +18,8 @@ from pandas.util.testing import (
     assert_series_equal)
 
 # a fixture value can be overridden by the test parameter value. Note that the
-# value of the fixture can be overridden this way even if the test doesn’t use
-# it directly (doesn’t mention it in the function prototype).
+# value of the fixture can be overridden this way even if the test doesn't use
+# it directly (doesn't mention it in the function prototype).
 # see https://docs.pytest.org/en/latest/fixture.html#override-a-fixture-with-direct-test-parametrization  # noqa
 # in this module we override the fixture values defined in conftest.py
 # tuples of '_index_factory,_series_name,_index_start,_index_end'
