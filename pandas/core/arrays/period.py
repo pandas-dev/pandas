@@ -84,7 +84,7 @@ def _period_array_cmp(cls, op):
             other = Period(other, freq=self.freq)
             result = op(other.ordinal)
 
-        if self.hasnans:
+        if self._hasnans:
             result[self._isnan] = nat_result
 
         return result
@@ -499,7 +499,7 @@ class PeriodArray(dtl.DatetimeLikeArrayMixin,
                             "{cls}._time_shift"
                             .format(cls=type(self).__name__))
         values = self.asi8 + n * self.freq.n
-        if self.hasnans:
+        if self._hasnans:
             values[self._isnan] = iNaT
         return type(self)(values, freq=self.freq)
 
@@ -561,7 +561,7 @@ class PeriodArray(dtl.DatetimeLikeArrayMixin,
 
         new_data = period_asfreq_arr(ordinal, base1, base2, end)
 
-        if self.hasnans:
+        if self._hasnans:
             new_data[self._isnan] = iNaT
 
         return type(self)(new_data, freq=freq)
@@ -581,7 +581,7 @@ class PeriodArray(dtl.DatetimeLikeArrayMixin,
         else:
             formatter = lambda dt: u'%s' % dt
 
-        if self.hasnans:
+        if self._hasnans:
             mask = self._isnan
             values[mask] = na_rep
             imask = ~mask
@@ -668,7 +668,7 @@ class PeriodArray(dtl.DatetimeLikeArrayMixin,
         new_data = asi8 - other.ordinal
         new_data = np.array([self.freq * x for x in new_data])
 
-        if self.hasnans:
+        if self._hasnans:
             new_data[self._isnan] = NaT
 
         return new_data
@@ -983,7 +983,7 @@ def dt64arr_to_periodarr(data, freq, tz=None):
 
     """
     if data.dtype != np.dtype('M8[ns]'):
-        raise ValueError('Wrong dtype: %s' % data.dtype)
+        raise ValueError('Wrong dtype: {dtype}'.format(dtype=data.dtype))
 
     if freq is None:
         if isinstance(data, ABCIndexClass):
