@@ -54,7 +54,7 @@ def _field_accessor(name, alias, docstring=None):
     def f(self):
         values = self.asi8
         result = get_timedelta_field(values, alias)
-        if self.hasnans:
+        if self._hasnans:
             result = self._maybe_mask_results(result, fill_value=None,
                                               convert='float64')
 
@@ -102,7 +102,7 @@ def _td_array_cmp(cls, op):
             if o_mask.any():
                 result[o_mask] = nat_result
 
-        if self.hasnans:
+        if self._hasnans:
             result[self._isnan] = nat_result
 
         return result
@@ -230,6 +230,16 @@ class TimedeltaArrayMixin(dtl.DatetimeLikeArrayMixin, dtl.TimelikeOps):
             raise ValueError("'fill_value' should be a Timedelta. "
                              "Got '{got}'.".format(got=fill_value))
         return fill_value
+
+    # ----------------------------------------------------------------
+    # Rendering Methods
+
+    def _formatter(self, boxed=False):
+        from pandas.io.formats.format import _get_format_timedelta64
+        return _get_format_timedelta64(self, box=True)
+
+    def _format_native_types(self):
+        return self.astype(object)
 
     # ----------------------------------------------------------------
     # Arithmetic Methods
@@ -704,7 +714,7 @@ class TimedeltaArrayMixin(dtl.DatetimeLikeArrayMixin, dtl.TimelikeOps):
 
         columns = ['days', 'hours', 'minutes', 'seconds',
                    'milliseconds', 'microseconds', 'nanoseconds']
-        hasnans = self.hasnans
+        hasnans = self._hasnans
         if hasnans:
             def f(x):
                 if isna(x):

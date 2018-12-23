@@ -7,7 +7,6 @@ import sys
 cdef bint PY3 = (sys.version_info[0] >= 3)
 
 import cython
-from cython import Py_ssize_t
 
 from cpython cimport Py_NE, Py_EQ, PyObject_RichCompare
 

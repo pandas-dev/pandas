@@ -45,7 +45,8 @@ class DatetimeIndexOpsMixin(DatetimeLikeArrayMixin):
     # subclasses bc they are immutable
     inferred_freq = cache_readonly(DatetimeLikeArrayMixin.inferred_freq.fget)
     _isnan = cache_readonly(DatetimeLikeArrayMixin._isnan.fget)
-    hasnans = cache_readonly(DatetimeLikeArrayMixin.hasnans.fget)
+    hasnans = cache_readonly(DatetimeLikeArrayMixin._hasnans.fget)
+    _hasnans = hasnans  # for index / array -agnostic code
     _resolution = cache_readonly(DatetimeLikeArrayMixin._resolution.fget)
     resolution = cache_readonly(DatetimeLikeArrayMixin.resolution.fget)
 
@@ -72,6 +73,11 @@ class DatetimeIndexOpsMixin(DatetimeLikeArrayMixin):
         wrapper.__doc__ = op.__doc__
         wrapper.__name__ = '__{}__'.format(op.__name__)
         return wrapper
+
+    # A few methods that are shared
+    _maybe_mask_results = DatetimeLikeArrayMixin._maybe_mask_results
+
+    # ------------------------------------------------------------------------
 
     def equals(self, other):
         """

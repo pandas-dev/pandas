@@ -121,15 +121,6 @@ class TimedeltaIndex(TimedeltaArray, DatetimeIndexOpsMixin,
     _left_indexer_unique = _join_i8_wrapper(
         libjoin.left_join_indexer_unique_int64, with_indexers=False)
 
-    # define my properties & methods for delegation
-    _other_ops = []
-    _bool_ops = []
-    _object_ops = ['freq']
-    _field_ops = ['days', 'seconds', 'microseconds', 'nanoseconds']
-    _datetimelike_ops = _field_ops + _object_ops + _bool_ops
-    _datetimelike_methods = ["to_pytimedelta", "total_seconds",
-                             "round", "floor", "ceil"]
-
     _engine_type = libindex.TimedeltaEngine
 
     _comparables = ['name', 'freq']
@@ -138,6 +129,14 @@ class TimedeltaIndex(TimedeltaArray, DatetimeIndexOpsMixin,
     _infer_as_myclass = True
 
     _freq = None
+
+    _box_func = TimedeltaArray._box_func
+    _bool_ops = TimedeltaArray._bool_ops
+    _object_ops = TimedeltaArray._object_ops
+    _field_ops = TimedeltaArray._field_ops
+    _datetimelike_ops = TimedeltaArray._datetimelike_ops
+    _datetimelike_methods = TimedeltaArray._datetimelike_methods
+    _other_ops = TimedeltaArray._other_ops
 
     # -------------------------------------------------------------------
     # Constructors
@@ -159,10 +158,9 @@ class TimedeltaIndex(TimedeltaArray, DatetimeIndexOpsMixin,
                           "endpoints is deprecated.  Use "
                           "`pandas.timedelta_range` instead.",
                           FutureWarning, stacklevel=2)
-            result = cls._generate_range(start, end, periods, freq,
-                                         closed=closed)
-            result.name = name
-            return result
+            tdarr = TimedeltaArray._generate_range(start, end, periods, freq,
+                                                   closed=closed)
+            return cls(tdarr, name=name)
 
         if is_scalar(data):
             raise TypeError('{cls}() must be called with a '
@@ -751,7 +749,6 @@ def timedelta_range(start=None, end=None, periods=None, freq=None,
         freq = 'D'
 
     freq, freq_infer = dtl.maybe_infer_freq(freq)
-    result = TimedeltaIndex._generate_range(start, end, periods, freq,
-                                            closed=closed)
-    result.name = name
-    return result
+    tdarr = TimedeltaArray._generate_range(start, end, periods, freq,
+                                           closed=closed)
+    return TimedeltaIndex(tdarr, name=name)

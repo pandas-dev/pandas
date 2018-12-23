@@ -1,6 +1,5 @@
 # -*- coding: utf-8 -*-
 import cython
-from cython import Py_ssize_t
 
 import numpy as np
 cimport numpy as cnp
@@ -1133,7 +1132,7 @@ def normalize_date(dt: object) -> datetime:
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
-def normalize_i8_timestamps(int64_t[:] stamps, object tz=None):
+def normalize_i8_timestamps(int64_t[:] stamps, object tz):
     """
     Normalize each of the (nanosecond) timezone aware timestamps in the given
     array by rounding down to the beginning of the day (i.e. midnight).
@@ -1152,7 +1151,6 @@ def normalize_i8_timestamps(int64_t[:] stamps, object tz=None):
         Py_ssize_t n = len(stamps)
         int64_t[:] result = np.empty(n, dtype=np.int64)
 
-    tz = maybe_get_tz(tz)
     result = _normalize_local(stamps, tz)
 
     return result.base  # .base to access underlying np.ndarray
@@ -1185,15 +1183,7 @@ cdef int64_t[:] _normalize_local(int64_t[:] stamps, tzinfo tz):
         npy_datetimestruct dts
         int64_t delta, local_val
 
-    if is_utc(tz):
-        with nogil:
-            for i in range(n):
-                if stamps[i] == NPY_NAT:
-                    result[i] = NPY_NAT
-                    continue
-                dt64_to_dtstruct(stamps[i], &dts)
-                result[i] = _normalized_stamp(&dts)
-    elif is_tzlocal(tz):
+    if is_tzlocal(tz):
         for i in range(n):
             if stamps[i] == NPY_NAT:
                 result[i] = NPY_NAT

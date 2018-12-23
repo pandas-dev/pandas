@@ -1,7 +1,6 @@
 # -*- coding: utf-8 -*-
 
 import cython
-from cython import Py_ssize_t
 
 import time
 from cpython.datetime cimport (PyDateTime_IMPORT,
