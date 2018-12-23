@@ -599,8 +599,8 @@ class TestDatetime64SeriesReductions(object):
         # GH#23282
         assert nat_ser.min() is pd.NaT
         assert nat_ser.max() is pd.NaT
-        assert nat.min(skipna=False) is pd.NaT
-        assert nat.max(skipna=False) is pd.NaT
+        assert nat_ser.min(skipna=False) is pd.NaT
+        assert nat_ser.max(skipna=False) is pd.NaT
 
     @pytest.mark.parametrize('nat_df', [
         pd.DataFrame([pd.NaT, pd.NaT]),
