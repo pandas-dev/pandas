@@ -1627,10 +1627,21 @@ class TestMathPythonPython(object):
         a = df.a
         for fn in self.unary_fns:
             expr = "{0}(a)".format(fn)
-            got = self.eval(expr)
             with np.errstate(all='ignore'):
-                expect = getattr(np, fn)(a)
-            tm.assert_series_equal(got, expect, check_names=False)
+                if hasattr(np, fn):
+                    got = self.eval(expr)
+                    expect = getattr(np, fn)(a)
+                    tm.assert_series_equal(got, expect, check_names=False)
+
+    def test_all_unary_functions_not_supported_in_numpy_112(self):
+        df = DataFrame({'a': np.random.randn(10)})
+        for fn in self.unary_fns:
+            expr = "{0}(a)".format(fn)
+            with np.errstate(all='ignore'):
+                if not hasattr(np, fn):
+                    msg = f"\"{fn}\" is not a supported function"
+                    with pytest.raises(ValueError, match=msg):
+                        self.eval(expr)
 
     def test_binary_functions(self):
         df = DataFrame({'a': np.random.randn(10),
