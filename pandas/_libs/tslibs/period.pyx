@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-from datetime import datetime, date
+from datetime import datetime
 
 from cpython cimport (
     PyObject_RichCompareBool,
@@ -32,7 +32,7 @@ cdef extern from "src/datetime/np_datetime.h":
 cimport util
 from util cimport is_period_object, is_string_object
 
-from timestamps import Timestamp, maybe_integer_op_deprecated
+from timestamps import Timestamp
 from timezones cimport is_utc, is_tzlocal, get_dst_info
 from timedeltas import Timedelta
 from timedeltas cimport delta_to_nanoseconds
@@ -1655,8 +1655,6 @@ cdef class _Period(object):
             elif other is NaT:
                 return NaT
             elif util.is_integer_object(other):
-                maybe_integer_op_deprecated(self)
-
                 ordinal = self.ordinal + other * self.freq.n
                 return Period(ordinal=ordinal, freq=self.freq)
             elif (PyDateTime_Check(other) or
@@ -1683,8 +1681,6 @@ cdef class _Period(object):
                 neg_other = -other
                 return self + neg_other
             elif util.is_integer_object(other):
-                maybe_integer_op_deprecated(self)
-
                 ordinal = self.ordinal - other * self.freq.n
                 return Period(ordinal=ordinal, freq=self.freq)
             elif is_period_object(other):

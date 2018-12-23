@@ -116,7 +116,7 @@ def _dt_array_cmp(cls, op):
         else:
             if isinstance(other, list):
                 try:
-                    other = type(self)(other)
+                    other = type(self)._from_sequence(other)
                 except ValueError:
                     other = np.array(other, dtype=np.object_)
             elif not isinstance(other, (np.ndarray, ABCIndexClass, ABCSeries,
@@ -148,7 +148,7 @@ def _dt_array_cmp(cls, op):
             if o_mask.any():
                 result[o_mask] = nat_result
 
-        if self.hasnans:
+        if self._hasnans:
             result[self._isnan] = nat_result
 
         return result
@@ -351,6 +351,19 @@ class DatetimeArrayMixin(dtl.DatetimeLikeArrayMixin,
 
     @property
     def dtype(self):
+        # type: () -> Union[np.dtype, DatetimeTZDtype]
+        """
+        The dtype for the DatetimeArray.
+
+        Returns
+        -------
+        numpy.dtype or DatetimeTZDtype
+            If the values are tz-naive, then ``np.dtype('datetime64[ns]')``
+            is returned.
+
+            If the values are tz-aware, then the ``DatetimeTZDtype``
+            is returned.
+        """
         if self.tz is None:
             return _NS_DTYPE
         return DatetimeTZDtype('ns', self.tz)
@@ -358,7 +371,12 @@ class DatetimeArrayMixin(dtl.DatetimeLikeArrayMixin,
     @property
     def tz(self):
         """
-        Return timezone.
+        Return timezone, if any.
+
+        Returns
+        -------
+        datetime.tzinfo, pytz.tzinfo.BaseTZInfo, dateutil.tz.tz.tzfile, or None
+             Returns None when the array is tz-naive.
         """
         # GH 18595
         return self._tz
@@ -471,6 +489,18 @@ class DatetimeArrayMixin(dtl.DatetimeLikeArrayMixin,
         return fill_value
 
     # -----------------------------------------------------------------
+    # Rendering Methods
+
+    def _format_native_types(self, na_rep=u'NaT', date_format=None, **kwargs):
+        from pandas.io.formats.format import _get_format_datetime64_from_values
+        fmt = _get_format_datetime64_from_values(self, date_format)
+
+        return tslib.format_array_from_datetime(self.asi8,
+                                                tz=self.tz,
+                                                format=fmt,
+                                                na_rep=na_rep)
+
+    # -----------------------------------------------------------------
     # Comparison Methods
 
     _create_comparison_method = classmethod(_dt_array_cmp)
@@ -524,7 +554,7 @@ class DatetimeArrayMixin(dtl.DatetimeLikeArrayMixin,
         other_i8 = other.asi8
         new_values = checked_add_with_arr(self_i8, -other_i8,
                                           arr_mask=self._isnan)
-        if self.hasnans or other.hasnans:
+        if self._hasnans or other._hasnans:
             mask = (self._isnan) | (other._isnan)
             new_values[mask] = iNaT
         return new_values.view('timedelta64[ns]')
