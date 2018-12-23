@@ -206,9 +206,9 @@ Finally, the combination of ``TimedeltaIndex`` with ``DatetimeIndex`` allow cert
 
 .. ipython:: python
 
-   tdi = TimedeltaIndex(['1 days', pd.NaT, '2 days'])
+   tdi = pd.TimedeltaIndex(['1 days', pd.NaT, '2 days'])
    tdi.tolist()
-   dti = date_range('20130101', periods=3)
+   dti = pd.date_range('20130101', periods=3)
    dti.tolist()
 
    (dti + tdi).tolist()
@@ -233,7 +233,7 @@ A new display option ``display.memory_usage`` (see :ref:`options`) sets the defa
     n = 5000
     data = [(t, np.random.randint(100, size=n).astype(t))
             for t in dtypes]
-    df = DataFrame(data)
+    df = pd.DataFrame(data)
     df['categorical'] = df['object'].astype('category')
 
     df.info()
@@ -256,7 +256,7 @@ This will return a Series, indexed like the existing Series. See the :ref:`docs 
 .. ipython:: python
 
    # datetime
-   s = Series(date_range('20130101 09:10:12', periods=4))
+   s = pd.Series(pd.date_range('20130101 09:10:12', periods=4))
    s
    s.dt.hour
    s.dt.second
@@ -288,7 +288,7 @@ The ``.dt`` accessor works for period and timedelta dtypes.
 .. ipython:: python
 
    # period
-   s = Series(period_range('20130101', periods=4, freq='D'))
+   s = pd.Series(pd.period_range('20130101', periods=4, freq='D'))
    s
    s.dt.year
    s.dt.day
@@ -296,7 +296,7 @@ The ``.dt`` accessor works for period and timedelta dtypes.
 .. ipython:: python
 
    # timedelta
-   s = Series(timedelta_range('1 day 00:00:05', periods=4, freq='s'))
+   s = pd.Series(pd.timedelta_range('1 day 00:00:05', periods=4, freq='s'))
    s
    s.dt.days
    s.dt.seconds
@@ -313,11 +313,11 @@ Timezone handling improvements
 
   .. ipython:: python
 
-     ts = Timestamp('2014-08-01 09:00', tz='US/Eastern')
+     ts = pd.Timestamp('2014-08-01 09:00', tz='US/Eastern')
      ts
      ts.tz_localize(None)
 
-     didx = DatetimeIndex(
+     didx = pd.DatetimeIndex(
          start='2014-08-01 09:00', freq='H', periods=10, tz='US/Eastern')
      didx
      didx.tz_localize(None)
@@ -349,11 +349,11 @@ Rolling/Expanding Moments improvements
 
   .. ipython:: python
 
-     s = Series([10, 11, 12, 13])
+     s = pd.Series([10, 11, 12, 13])
 
   .. code-block:: ipython
 
-     In [15]: rolling_min(s, window=10, min_periods=5)
+     In [15]: pd.rolling_min(s, window=10, min_periods=5)
      ValueError: min_periods (5) must be <= window (4)
 
   New behavior
@@ -394,7 +394,7 @@ Rolling/Expanding Moments improvements
 
   .. code-block:: ipython
 
-     In [7]: rolling_sum(Series(range(4)), window=3, min_periods=0, center=True)
+     In [7]: pd.rolling_sum(pd.Series(range(4)), window=3, min_periods=0, center=True)
      Out[7]:
      0    1
      1    3
@@ -414,7 +414,7 @@ Rolling/Expanding Moments improvements
 
   .. code-block:: ipython
 
-     In [39]: rolling_window(s, window=3, win_type='triang', center=True)
+     In [39]: pd.rolling_window(s, window=3, win_type='triang', center=True)
      Out[39]:
      0         NaN
      1    6.583333
@@ -499,21 +499,21 @@ Rolling/Expanding Moments improvements
 
   .. code-block:: ipython
 
-     In [7]: pd.ewma(Series([None, 1., 8.]), com=2.)
+     In [7]: pd.ewma(pd.Series([None, 1., 8.]), com=2.)
      Out[7]:
      0    NaN
      1    1.0
      2    5.2
      dtype: float64
 
-     In [8]: pd.ewma(Series([1., None, 8.]), com=2., ignore_na=True)  # pre-0.15.0 behavior
+     In [8]: pd.ewma(pd.Series([1., None, 8.]), com=2., ignore_na=True)  # pre-0.15.0 behavior
      Out[8]:
      0    1.0
      1    1.0
      2    5.2
      dtype: float64
 
-     In [9]: pd.ewma(Series([1., None, 8.]), com=2., ignore_na=False)  # new default
+     In [9]: pd.ewma(pd.Series([1., None, 8.]), com=2., ignore_na=False)  # new default
      Out[9]:
      0    1.000000
      1    1.000000
@@ -550,7 +550,7 @@ Rolling/Expanding Moments improvements
 
   .. ipython:: python
 
-     s = Series([1., 2., 0., 4.])
+     s = pd.Series([1., 2., 0., 4.])
 
   .. code-block:: ipython
 
@@ -608,8 +608,8 @@ Improvements in the sql io module
 
   .. code-block:: python
 
-         df.to_sql('table', engine, schema='other_schema')
-         pd.read_sql_table('table', engine, schema='other_schema')
+         df.to_sql('table', pd.engine, schema='other_schema')
+         pd.read_sql_table('table', pd.engine, schema='other_schema')
 
 - Added support for writing ``NaN`` values with ``to_sql`` (:issue:`2754`).
 - Added support for writing datetime64 columns with ``to_sql`` for all database flavors (:issue:`7103`).
@@ -664,7 +664,7 @@ Other notable API changes:
 
   .. ipython:: python
 
-     df = DataFrame([['a'], ['b']], index=[1, 2])
+     df = pd.DataFrame([['a'], ['b']], index=[1, 2])
      df
 
   In prior versions there was a difference in these two constructs:
@@ -699,10 +699,10 @@ Other notable API changes:
 
   .. ipython:: python
 
-     p = Panel(np.arange(2 * 3 * 4).reshape(2, 3, 4),
-               items=['ItemA', 'ItemB'],
-               major_axis=[1, 2, 3],
-               minor_axis=['A', 'B', 'C', 'D'])
+     p = pd.Panel(np.arange(2 * 3 * 4).reshape(2, 3, 4),
+                  items=['ItemA', 'ItemB'],
+                  major_axis=[1, 2, 3],
+                  minor_axis=['A', 'B', 'C', 'D'])
      p
 
   The following would raise ``KeyError`` prior to 0.15.0:
@@ -725,7 +725,7 @@ Other notable API changes:
                    index=pd.MultiIndex.from_product([['A'], ['foo', 'bar', 'baz']],
                                                     names=['one', 'two'])
                    ).sort_index()
-     s
+    
      try:
          s.loc[['D']]
      except KeyError as e:
@@ -831,7 +831,7 @@ Other notable API changes:
 
 - ``SettingWithCopy`` raise/warnings (according to the option ``mode.chained_assignment``) will now be issued when setting a value on a sliced mixed-dtype DataFrame using chained-assignment. (:issue:`7845`, :issue:`7950`)
 
-  .. code-block:: python
+ ..  code-block:: ipython
 
      In [1]: df = pd.DataFrame(np.arange(0, 9), columns=['count'])
 
@@ -849,7 +849,7 @@ Other notable API changes:
 
 - Previously an enlargement with a mixed-dtype frame would act unlike ``.append`` which will preserve dtypes (related :issue:`2578`, :issue:`8176`):
 
-  .. ipython:: python
+ ..  ipython:: python
 
      df = pd.DataFrame([[True, 1], [False, 2]],
                        columns=["female", "fitness"])
@@ -909,7 +909,7 @@ Deprecations
 
 - The ``Index`` set operations ``+`` and ``-`` were deprecated in order to provide these for numeric type operations on certain index types. ``+`` can be replaced by ``.union()`` or ``|``, and ``-`` by ``.difference()``. Further the method name ``Index.diff()`` is deprecated and can be replaced by ``Index.difference()`` (:issue:`8226`)
 
-  .. code-block:: python
+ ..  code-block:: python
 
      # +
      pd.Index(['a', 'b', 'c']) + pd.Index(['b', 'c', 'd'])
@@ -917,7 +917,7 @@ Deprecations
      # should be replaced by
      pd.Index(['a', 'b', 'c']).union(pd.Index(['b', 'c', 'd']))
 
-  .. code-block:: python
+ ..  code-block:: python
 
      # -
      pd.Index(['a', 'b', 'c']) - pd.Index(['b', 'c', 'd'])
@@ -1045,7 +1045,7 @@ Other:
 
 - :func:`set_names`, :func:`set_labels`, and :func:`set_levels` methods now take an optional ``level`` keyword argument to all modification of specific level(s) of a MultiIndex. Additionally :func:`set_names` now accepts a scalar string value when operating on an ``Index`` or on a specific level of a ``MultiIndex`` (:issue:`7792`)
 
-  .. ipython:: python
+ ..  ipython:: python
 
       idx = pd.MultiIndex.from_product(
           [['a'], range(3), list("pqr")], names=['foo', 'bar', 'baz'])
@@ -1057,7 +1057,7 @@ Other:
 - ``Index.isin`` now supports a ``level`` argument to specify which index level
   to use for membership tests (:issue:`7892`, :issue:`7890`)
 
-  .. code-block:: ipython
+ ..  code-block:: ipython
 
      In [1]: idx = pd.MultiIndex.from_product([[0, 1], ['a', 'b', 'c']])
 
@@ -1069,7 +1069,7 @@ Other:
 
 - ``Index`` now supports ``duplicated`` and ``drop_duplicates``. (:issue:`4060`)
 
-  .. ipython:: python
+ ..  ipython:: python
 
      idx = pd.Index([1, 2, 3, 4, 1, 2])
      idx
