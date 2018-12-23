@@ -296,8 +296,21 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin, AttributesMixin):
 
     @property
     def asi8(self):
+        # type: () -> ndarray
+        """
+        Integer representation of the values.
+
+        Returns
+        -------
+        ndarray
+            An ndarray with int64 dtype.
+        """
         # do not cache or you'll create a memory leak
         return self._data.view('i8')
+
+    @property
+    def _ndarray_values(self):
+        return self._data
 
     # ----------------------------------------------------------------
     # Rendering Methods
@@ -469,7 +482,7 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin, AttributesMixin):
         return (self.asi8 == iNaT)
 
     @property  # NB: override with cache_readonly in immutable subclasses
-    def hasnans(self):
+    def _hasnans(self):
         """
         return if I have any nans; enables various perf speedups
         """
@@ -493,7 +506,7 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin, AttributesMixin):
         This is an internal routine
         """
 
-        if self.hasnans:
+        if self._hasnans:
             if convert:
                 result = result.astype(convert)
             if fill_value is None:
@@ -696,7 +709,7 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin, AttributesMixin):
         new_values = checked_add_with_arr(self_i8, other_i8,
                                           arr_mask=self._isnan,
                                           b_mask=other._isnan)
-        if self.hasnans or other.hasnans:
+        if self._hasnans or other._hasnans:
             mask = (self._isnan) | (other._isnan)
             new_values[mask] = iNaT
         return new_values.view('i8')
@@ -764,7 +777,7 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin, AttributesMixin):
                                           b_mask=other._isnan)
 
         new_values = np.array([self.freq.base * x for x in new_values])
-        if self.hasnans or other.hasnans:
+        if self._hasnans or other._hasnans:
             mask = (self._isnan) | (other._isnan)
             new_values[mask] = NaT
         return new_values
@@ -1085,7 +1098,7 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin, AttributesMixin):
             elif lib.is_scalar(lib.item_from_zerodim(other)):
                 # ndarray scalar
                 other = [other.item()]
-            other = type(self)(other)
+            other = type(self)._from_sequence(other)
 
         # compare
         result = op(self.asi8, other.asi8)
