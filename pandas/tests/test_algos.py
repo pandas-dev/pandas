@@ -962,41 +962,51 @@ class TestValueCounts(object):
         if not compat.is_platform_32bit():
             tm.assert_series_equal(result, expected)
 
-    def test_value_counts_nonsorted(self):
+    def test_value_counts_nonsorted_single_occurance(self):
+        # GH 12679
         # All items occour exactly once.
         # No matter if sorted or not, the resulting values should be in
         # the same order.
         s = Series(list('bacdef'))
 
-        # Garantee the same index if value_counts(sort=False) is used
+        # Guarantee the same index if value_counts(sort=False) is used
         vc = s.value_counts(sort=False, ascending=False)
         tm.assert_series_equal(Series(vc.index), s)
         vc = s.value_counts(sort=False, ascending=True)
         tm.assert_series_equal(Series(vc.index), s)
 
-        # Garantee does not hold yet for the sort=True case
-        # vc = s.value_counts(sort=True, ascending=False)
-        # tm.assert_series_equal(Series(vc.index), s)
-        # vc = s.value_counts(sort=True, ascending=True)
-        # tm.assert_series_equal(Series(vc.index), s)
+    @pytest.mark.xfail(reason="sort=True does not guarantee the same order")
+    def test_value_counts_sorted_single_occurance(self):
+        # GH 12679
+        s = Series(list('bacdef'))
+        # Guarantee does not hold yet for the sort=True case
+        vc = s.value_counts(sort=True, ascending=False)
+        tm.assert_series_equal(Series(vc.index), s)
+        vc = s.value_counts(sort=True, ascending=True)
+        tm.assert_series_equal(Series(vc.index), s)
 
+    def test_value_counts_nonsorted_double_occurance(self):
+        # GH 12679
         # 'a' is there twice. Sorted, it should be there at the top.
-        # Unsorted it should stay where it is.
         s = Series(list('bacaef'))
         ref_nonsorted = Series(list('bacef'))
-        ref_sorted = Series(list('abcef'))
 
-        # Garantee the same index if value_counts(sort=False) is used
+        # Guarantee the same index if value_counts(sort=False) is used
         vc = s.value_counts(sort=False, ascending=False)
         tm.assert_series_equal(Series(vc.index), ref_nonsorted)
         vc = s.value_counts(sort=False, ascending=True)
         tm.assert_series_equal(Series(vc.index), ref_nonsorted)
 
-        # Garantee does not hold yet for the sort=True case
-        # vc = s.value_counts(sort=True, ascending=False)
-        # tm.assert_series_equal(Series(vc.index), ref_sorted)
-        # vc = s.value_counts(sort=True, ascending=True)
-        # tm.assert_series_equal(Series(vc.index), ref_sorted)
+    @pytest.mark.xfail(reason="sort=True does not guarantee the same order")
+    def test_value_counts_sorted_double_occurance(self):
+        # GH 12679
+        s = Series(list('bacaef'))
+        ref_sorted = Series(list('abcef'))
+        # Guarantee does not hold yet for the sort=True case
+        vc = s.value_counts(sort=True, ascending=False)
+        tm.assert_series_equal(Series(vc.index), ref_sorted)
+        vc = s.value_counts(sort=True, ascending=True)
+        tm.assert_series_equal(Series(vc.index), ref_sorted)
 
 
 class TestDuplicated(object):
