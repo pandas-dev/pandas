@@ -341,9 +341,6 @@ class Categorical(ExtensionArray, PandasObject):
             elif categories is not None or ordered is not None:
                 raise ValueError("Cannot specify both `dtype` and `categories`"
                                  " or `ordered`.")
-
-            categories = dtype.categories
-
         elif is_categorical(values):
             # If no "dtype" was passed, use the one from "values", but honor
             # the "ordered" and "categories" arguments
@@ -355,19 +352,17 @@ class Categorical(ExtensionArray, PandasObject):
             if (isinstance(values, (ABCSeries, ABCIndexClass)) and
                isinstance(values._values, type(self))):
                 values = values._values.codes.copy()
-                if categories is None:
-                    categories = dtype.categories
                 fastpath = True
-
         else:
             # If dtype=None and values is not categorical, create a new dtype
             dtype = CategoricalDtype(categories, ordered)
 
-        # At this point, dtype is always a CategoricalDtype
+        # At this point, dtype is always a CategoricalDtype and you should not
+        # use categories and ordered seperately.
         # if dtype.categories is None, we are inferring
 
         if fastpath:
-            self._codes = coerce_indexer_dtype(values, categories)
+            self._codes = coerce_indexer_dtype(values, dtype.categories)
             self._dtype = self._dtype.update_dtype(dtype)
             return
 
@@ -379,7 +374,6 @@ class Categorical(ExtensionArray, PandasObject):
         if is_categorical_dtype(values):
             if dtype.categories is None:
                 dtype = CategoricalDtype(values.categories, dtype.ordered)
-
         elif not isinstance(values, (ABCIndexClass, ABCSeries)):
             # sanitize_array coerces np.nan to a string under certain versions
             # of numpy
