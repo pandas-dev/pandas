@@ -183,18 +183,19 @@ def test_series_getitem_raises_key_error(
         s[(2000, 3, 4)]
 
 
-def test_series_getitem_corner(
+def test_series_getitem_corner_out_of_bound(
         multiindex_year_month_day_dataframe_random_data):
-    ymd = multiindex_year_month_day_dataframe_random_data
-    s = ymd['A']
-
-    # don't segfault, GH #495
-    # out of bounds access
+    # see gh-495
+    # don't segfault on out of bounds access
+    s = multiindex_year_month_day_dataframe_random_data['A']
     msg = "index out of bounds"
     with pytest.raises(IndexError, match=msg):
-        s.__getitem__(len(ymd))
+        s[len(s)]
 
-    # generator
+
+def test_series_getitem_corner_generator(
+        multiindex_year_month_day_dataframe_random_data):
+    s = multiindex_year_month_day_dataframe_random_data['A']
     result = s[(x > 0 for x in s)]
     expected = s[s > 0]
     tm.assert_series_equal(result, expected)
