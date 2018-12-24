@@ -10,8 +10,7 @@ from pandas.compat import range
 from pandas.errors import UnsupportedFunctionCall
 
 import pandas as pd
-from pandas import (
-    DataFrame, Panel, Series, Timedelta, Timestamp, isna, notna)
+from pandas import DataFrame, Panel, Series, Timedelta, Timestamp, isna, notna
 from pandas.core.indexes.datetimes import date_range
 from pandas.core.indexes.period import Period, period_range
 from pandas.core.resample import (
