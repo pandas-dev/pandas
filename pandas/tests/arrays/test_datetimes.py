@@ -7,9 +7,10 @@ import operator
 import numpy as np
 import pytest
 
+from pandas.core.dtypes.dtypes import DatetimeTZDtype
+
 import pandas as pd
 from pandas.core.arrays import DatetimeArrayMixin as DatetimeArray
-from pandas.core.dtypes.dtypes import DatetimeTZDtype
 import pandas.util.testing as tm
 
 

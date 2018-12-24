@@ -14,8 +14,8 @@ from .common import (
     is_period_dtype, is_scalar, is_string_dtype, is_string_like_dtype,
     is_timedelta64_dtype, needs_i8_conversion, pandas_dtype)
 from .generic import (
-    ABCExtensionArray, ABCGeneric, ABCIndexClass, ABCMultiIndex, ABCSeries,
-    ABCDatetimeArray, ABCTimedeltaArray)
+    ABCDatetimeArray, ABCExtensionArray, ABCGeneric, ABCIndexClass,
+    ABCMultiIndex, ABCSeries, ABCTimedeltaArray)
 from .inference import is_list_like
 
 isposinf_scalar = libmissing.isposinf_scalar

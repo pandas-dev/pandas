@@ -14,8 +14,8 @@ import pandas.compat as compat
 from pandas.util._decorators import Appender, Substitution, cache_readonly
 
 from pandas.core.dtypes.common import (
-    _NS_DTYPE, ensure_int64, is_float,
-    is_integer, is_list_like, is_scalar, is_string_like)
+    _NS_DTYPE, ensure_int64, is_float, is_integer, is_list_like, is_scalar,
+    is_string_like)
 import pandas.core.dtypes.concat as _concat
 from pandas.core.dtypes.missing import isna
 
