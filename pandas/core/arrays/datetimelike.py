@@ -17,10 +17,11 @@ from pandas.errors import (
 from pandas.util._decorators import Appender, Substitution, deprecate_kwarg
 
 from pandas.core.dtypes.common import (
-    is_bool_dtype, is_datetime64_any_dtype, is_datetime64_dtype,
-    is_datetime64tz_dtype, is_extension_array_dtype, is_float_dtype,
-    is_integer_dtype, is_list_like, is_object_dtype, is_offsetlike,
-    is_period_dtype, is_timedelta64_dtype, needs_i8_conversion)
+    is_bool_dtype, is_categorical_dtype, is_datetime64_any_dtype,
+    is_datetime64_dtype, is_datetime64tz_dtype, is_datetime_or_timedelta_dtype,
+    is_dtype_equal, is_extension_array_dtype, is_float_dtype, is_integer_dtype,
+    is_list_like, is_object_dtype, is_offsetlike, is_period_dtype,
+    is_string_dtype, is_timedelta64_dtype, needs_i8_conversion, pandas_dtype)
 from pandas.core.dtypes.generic import ABCDataFrame, ABCIndexClass, ABCSeries
 from pandas.core.dtypes.missing import isna
 
@@ -403,9 +404,49 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin, AttributesMixin):
         return self._simple_new(result, **attribs)
 
     def astype(self, dtype, copy=True):
+        # Some notes on cases we don't have to handle here in the base class:
+        #   1. PeriodArray.astype handles period -> period
+        #   2. DatetimeArray.astype handles conversion between tz.
+        #   3. DatetimeArray.astype handles datetime -> period
+        from pandas import Categorical
+        dtype = pandas_dtype(dtype)
+
         if is_object_dtype(dtype):
             return self._box_values(self.asi8)
-        return super(DatetimeLikeArrayMixin, self).astype(dtype, copy)
+        elif is_string_dtype(dtype) and not is_categorical_dtype(dtype):
+            return self._format_native_types()
+        elif is_integer_dtype(dtype):
+            # we deliberately ignore int32 vs. int64 here.
+            # See https://github.com/pandas-dev/pandas/issues/24381 for more.
+            values = self.asi8
+            if copy:
+                values = values.copy()
+            return values
+        elif (is_datetime_or_timedelta_dtype(dtype) and
+              not is_dtype_equal(self.dtype, dtype)) or is_float_dtype(dtype):
+            # disallow conversion between datetime/timedelta,
+            # and conversions for any datetimelike to float
+            msg = 'Cannot cast {name} to dtype {dtype}'
+            raise TypeError(msg.format(name=type(self).__name__, dtype=dtype))
+        elif is_categorical_dtype(dtype):
+            return Categorical(self, dtype=dtype)
+        else:
+            return np.asarray(self, dtype=dtype)
+
+    def view(self, dtype=None):
+        """
+        New view on this array with the same data.
+
+        Parameters
+        ----------
+        dtype : numpy dtype, optional
+
+        Returns
+        -------
+        ndarray
+            With the specified `dtype`.
+        """
+        return self._data.view(dtype=dtype)
 
     # ------------------------------------------------------------------
     # ExtensionArray Interface
