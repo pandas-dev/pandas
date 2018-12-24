@@ -43,6 +43,7 @@ jobs:
       ci/incremental/install_miniconda.sh
       ci/incremental/setup_conda_environment.sh
     displayName: 'Set up environment'
+    condition: true
 
   # Do not require pandas
   - script: |
