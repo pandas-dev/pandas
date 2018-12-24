@@ -1639,7 +1639,7 @@ class TestMathPythonPython(object):
             expr = "{0}(a)".format(fn)
             with np.errstate(all='ignore'):
                 if not hasattr(np, fn):
-                    msg = f"\"{fn}\" is not a supported function"
+                    msg = '"{0}" is not a supported function'.format(fn)
                     with pytest.raises(ValueError, match=msg):
                         self.eval(expr)
 
