@@ -45,7 +45,8 @@ class DatetimeIndexOpsMixin(object):
     # subclasses bc they are immutable
     inferred_freq = cache_readonly(DatetimeLikeArrayMixin.inferred_freq.fget)
     _isnan = cache_readonly(DatetimeLikeArrayMixin._isnan.fget)
-    hasnans = cache_readonly(DatetimeLikeArrayMixin.hasnans.fget)
+    hasnans = cache_readonly(DatetimeLikeArrayMixin._hasnans.fget)
+    _hasnans = hasnans  # for index / array -agnostic code
     _resolution = cache_readonly(DatetimeLikeArrayMixin._resolution.fget)
     resolution = cache_readonly(DatetimeLikeArrayMixin.resolution.fget)
 
@@ -83,6 +84,8 @@ class DatetimeIndexOpsMixin(object):
         wrapper.__doc__ = op.__doc__
         wrapper.__name__ = '__{}__'.format(op.__name__)
         return wrapper
+
+    # ------------------------------------------------------------------------
 
     def equals(self, other):
         """
@@ -478,17 +481,11 @@ class DatetimeIndexOpsMixin(object):
 
         return algorithms.isin(self.asi8, values.asi8)
 
+    @Appender(_index_shared_docs['repeat'] % _index_doc_kwargs)
     def repeat(self, repeats, *args, **kwargs):
-        """
-        Analogous to ndarray.repeat.
-        """
         nv.validate_repeat(args, kwargs)
-        if is_period_dtype(self):
-            freq = self.freq
-        else:
-            freq = None
-        return self._shallow_copy(self.asi8.repeat(repeats),
-                                  freq=freq)
+        freq = self.freq if is_period_dtype(self) else None
+        return self._shallow_copy(self.asi8.repeat(repeats), freq=freq)
 
     @Appender(_index_shared_docs['where'] % _index_doc_kwargs)
     def where(self, cond, other=None):
