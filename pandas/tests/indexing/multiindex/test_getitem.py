@@ -123,17 +123,21 @@ def test_getitem_duplicates_multiindex_non_scalar_type_object():
 
 
 def test_getitem_simple(multiindex_dataframe_random_data):
-    frame = multiindex_dataframe_random_data
-    df = frame.T
+    df = multiindex_dataframe_random_data.T
+    expected = df.values[:, 0]
+    result = df['foo', 'one'].values
+    tm.assert_almost_equal(result, expected)
 
-    col = df['foo', 'one']
-    tm.assert_almost_equal(col.values, df.values[:, 0])
-    msg = r"\('foo', 'four'\)"
+
+@pytest.mark.parametrize('indexer,msg', [
+    (lambda df: df[('foo', 'four')], r"\('foo', 'four'\)"),
+    (lambda df: df['foobar'], "'foobar'")
+])
+def test_getitem_simple_key_error(
+        multiindex_dataframe_random_data, indexer, msg):
+    df = multiindex_dataframe_random_data.T
     with pytest.raises(KeyError, match=msg):
-        df[('foo', 'four')]
-    msg = "'foobar'"
-    with pytest.raises(KeyError, match=msg):
-        df['foobar']
+        indexer(df)
 
 
 @pytest.mark.parametrize('indexer', [
