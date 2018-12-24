@@ -9,6 +9,7 @@ from pandas._libs.interval import Interval
 from pandas._libs.tslibs import NaT, Period, Timestamp, timezones
 
 from pandas.core.dtypes.generic import ABCCategoricalIndex, ABCIndexClass
+from .inference import is_list_like
 
 from pandas import compat
 
@@ -408,7 +409,10 @@ class CategoricalDtype(PandasExtensionDtype, ExtensionDtype):
         """
         from pandas import Index
 
-        if not isinstance(categories, ABCIndexClass):
+        if not fastpath and not is_list_like(categories, allow_sets=True):
+            msg = "Parameter 'categories' must be list-like, was {!r}"
+            raise TypeError(msg.format(categories))
+        elif not isinstance(categories, ABCIndexClass):
             categories = Index(categories, tupleize_cols=False)
 
         if not fastpath:
