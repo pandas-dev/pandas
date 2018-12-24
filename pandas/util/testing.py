@@ -34,7 +34,7 @@ import pandas as pd
 from pandas import (
     Categorical, CategoricalIndex, DataFrame, DatetimeIndex, Index,
     IntervalIndex, MultiIndex, Panel, PeriodIndex, RangeIndex, Series,
-    TimedeltaIndex, bdate_range)
+    bdate_range)
 from pandas.core.algorithms import take_1d
 from pandas.core.arrays import (
     DatetimeArrayMixin as DatetimeArray, ExtensionArray, IntervalArray,
@@ -206,6 +206,55 @@ def decompress_file(path, compression):
         f.close()
         if compression == "zip":
             zip_file.close()
+
+
+def write_to_compressed(compression, path, data, dest="test"):
+    """
+    Write data to a compressed file.
+
+    Parameters
+    ----------
+    compression : {'gzip', 'bz2', 'zip', 'xz'}
+        The compression type to use.
+    path : str
+        The file path to write the data.
+    data : str
+        The data to write.
+    dest : str, default "test"
+        The destination file (for ZIP only)
+
+    Raises
+    ------
+    ValueError : An invalid compression value was passed in.
+    """
+
+    if compression == "zip":
+        import zipfile
+        compress_method = zipfile.ZipFile
+    elif compression == "gzip":
+        import gzip
+        compress_method = gzip.GzipFile
+    elif compression == "bz2":
+        import bz2
+        compress_method = bz2.BZ2File
+    elif compression == "xz":
+        lzma = compat.import_lzma()
+        compress_method = lzma.LZMAFile
+    else:
+        msg = "Unrecognized compression type: {}".format(compression)
+        raise ValueError(msg)
+
+    if compression == "zip":
+        mode = "w"
+        args = (dest, data)
+        method = "writestr"
+    else:
+        mode = "wb"
+        args = (data,)
+        method = "write"
+
+    with compress_method(path, mode=mode) as f:
+        getattr(f, method)(*args)
 
 
 def assert_almost_equal(left, right, check_dtype="equiv",
@@ -625,7 +674,7 @@ def capture_stdout(f):
     AssertionError: assert 'foo\n' == 'bar\n'
     """
 
-    @wraps(f)
+    @compat.wraps(f)
     def wrapper(*args, **kwargs):
         try:
             sys.stdout = StringIO()
@@ -782,6 +831,22 @@ def ensure_clean_dir():
             pass
 
 
+@contextmanager
+def ensure_safe_environment_variables():
+    """
+    Get a context manager to safely set environment variables
+
+    All changes will be undone on close, hence environment variables set
+    within this contextmanager will neither persist nor change global state.
+    """
+    saved_environ = dict(os.environ)
+    try:
+        yield
+    finally:
+        os.environ.clear()
+        os.environ.update(saved_environ)
+
+
 # -----------------------------------------------------------------------------
 # Comparators
 
@@ -838,7 +903,7 @@ def assert_index_equal(left, right, exact='equiv', check_names=True,
     def _get_ilevel_values(index, level):
         # accept level number only
         unique = index.levels[level]
-        labels = index.labels[level]
+        labels = index.codes[level]
         filled = take_1d(unique.values, labels, fill_value=unique._na_value)
         values = unique._shallow_copy(filled, name=index.names[level])
         return values
@@ -1073,6 +1138,7 @@ def assert_period_array_equal(left, right, obj='PeriodArray'):
 
 
 def assert_datetime_array_equal(left, right, obj='DatetimeArray'):
+    __tracebackhide__ = True
     _check_isinstance(left, right, DatetimeArray)
 
     assert_numpy_array_equal(left._data, right._data,
@@ -1082,6 +1148,7 @@ def assert_datetime_array_equal(left, right, obj='DatetimeArray'):
 
 
 def assert_timedelta_array_equal(left, right, obj='TimedeltaArray'):
+    __tracebackhide__ = True
     _check_isinstance(left, right, TimedeltaArray)
     assert_numpy_array_equal(left._data, right._data,
                              obj='{obj}._data'.format(obj=obj))
@@ -1338,11 +1405,11 @@ def assert_series_equal(left, right, check_dtype=True,
             assert_numpy_array_equal(left.get_values(), right.get_values(),
                                      check_dtype=check_dtype)
     elif is_interval_dtype(left) or is_interval_dtype(right):
-        assert_interval_array_equal(left.values, right.values)
+        assert_interval_array_equal(left.array, right.array)
 
     elif (is_extension_array_dtype(left) and not is_categorical_dtype(left) and
           is_extension_array_dtype(right) and not is_categorical_dtype(right)):
-        return assert_extension_array_equal(left.values, right.values)
+        return assert_extension_array_equal(left.array, right.array)
 
     else:
         _testing.assert_almost_equal(left.get_values(), right.get_values(),
@@ -1659,9 +1726,9 @@ def to_array(obj):
     if is_period_dtype(obj):
         return period_array(obj)
     elif is_datetime64_dtype(obj) or is_datetime64tz_dtype(obj):
-        return DatetimeArray(obj)
+        return DatetimeArray._from_sequence(obj)
     elif is_timedelta64_dtype(obj):
-        return TimedeltaArray(obj)
+        return TimedeltaArray._from_sequence(obj)
     else:
         return np.array(obj)
 
@@ -1938,8 +2005,8 @@ def makeDateIndex(k=10, freq='B', name=None, **kwargs):
 
 
 def makeTimedeltaIndex(k=10, freq='D', name=None, **kwargs):
-    return TimedeltaIndex(start='1 day', periods=k, freq=freq,
-                          name=name, **kwargs)
+    return pd.timedelta_range(start='1 day', periods=k, freq=freq,
+                              name=name, **kwargs)
 
 
 def makePeriodIndex(k=10, name=None, **kwargs):

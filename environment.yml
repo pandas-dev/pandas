@@ -4,31 +4,32 @@ channels:
   - conda-forge
 dependencies:
   # required
-  - NumPy
+  - numpy>=1.15
   - python=3
   - python-dateutil>=2.5.0
   - pytz
 
   # development
-  - Cython>=0.28.2
+  - asv
+  - cython>=0.28.2
   - flake8
   - flake8-comprehensions
-  - flake8-rst=0.4.2
+  - flake8-rst>=0.6.0
   - gitpython
-  - hypothesis>=3.58.0
+  - hypothesis>=3.82
   - isort
   - moto
-  - pytest>=3.6
-  - setuptools>=24.2.0
+  - pytest>=4.0
   - sphinx
-  - sphinxcontrib-spelling
+  - numpydoc
 
   # optional
   - beautifulsoup4>=4.2.1
   - blosc
+  - botocore>=1.11
+  - boto3
   - bottleneck>=1.2.0
   - fastparquet>=0.1.2
-  - gcsfs
   - html5lib
   - ipython>=5.6.0
   - ipykernel
@@ -36,15 +37,14 @@ dependencies:
   - lxml
   - matplotlib>=2.0.0
   - nbsphinx
-  - numexpr>=2.6.1
+  - numexpr>=2.6.8
   - openpyxl
   - pyarrow>=0.7.0
-  - pymysql
   - pytables>=3.4.2
   - pytest-cov
   - pytest-xdist
   - s3fs
-  - scipy>=0.18.1
+  - scipy>=1.1
   - seaborn
   - sqlalchemy
   - statsmodels
@@ -52,3 +52,5 @@ dependencies:
   - xlrd
   - xlsxwriter
   - xlwt
+  - pip:
+    - cpplint

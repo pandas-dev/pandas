@@ -1,10 +1,10 @@
 import string
-import warnings
 
 import numpy as np
+
+from pandas import (
+    DataFrame, MultiIndex, NaT, Series, date_range, isnull, period_range)
 import pandas.util.testing as tm
-from pandas import (DataFrame, Series, MultiIndex, date_range, period_range,
-                    isnull, NaT)
 
 
 class GetNumericData(object):
@@ -13,8 +13,7 @@ class GetNumericData(object):
         self.df = DataFrame(np.random.randn(10000, 25))
         self.df['foo'] = 'bar'
         self.df['bar'] = 'baz'
-        with warnings.catch_warnings(record=True):
-            self.df = self.df.consolidate()
+        self.df = self.df._consolidate()
 
     def time_frame_get_numeric_data(self):
         self.df._get_numeric_data()
@@ -62,11 +61,38 @@ class Reindex(object):
     def time_reindex_both_axes(self):
         self.df.reindex(index=self.idx, columns=self.idx)
 
-    def time_reindex_both_axes_ix(self):
-        self.df.ix[self.idx, self.idx]
-
     def time_reindex_upcast(self):
         self.df2.reindex(np.random.permutation(range(1200)))
+
+
+class Rename(object):
+
+    def setup(self):
+        N = 10**3
+        self.df = DataFrame(np.random.randn(N * 10, N))
+        self.idx = np.arange(4 * N, 7 * N)
+        self.dict_idx = {k: k for k in self.idx}
+        self.df2 = DataFrame(
+            {c: {0: np.random.randint(0, 2, N).astype(np.bool_),
+                 1: np.random.randint(0, N, N).astype(np.int16),
+                 2: np.random.randint(0, N, N).astype(np.int32),
+                 3: np.random.randint(0, N, N).astype(np.int64)}
+                [np.random.randint(0, 4)] for c in range(N)})
+
+    def time_rename_single(self):
+        self.df.rename({0: 0})
+
+    def time_rename_axis0(self):
+        self.df.rename(self.dict_idx)
+
+    def time_rename_axis1(self):
+        self.df.rename(columns=self.dict_idx)
+
+    def time_rename_both_axes(self):
+        self.df.rename(index=self.dict_idx, columns=self.dict_idx)
+
+    def time_dict_rename_both_axes(self):
+        self.df.rename(index=self.dict_idx, columns=self.dict_idx)
 
 
 class Iteration(object):

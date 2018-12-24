@@ -767,10 +767,11 @@ class TestSeriesPlots(TestPlotBase):
             s.plot(yerr=np.arange(11))
 
         s_err = ['zzz'] * 10
-        # in mpl 1.5+ this is a TypeError
-        with pytest.raises((ValueError, TypeError)):
+        # MPL > 2.0.0 will most likely use TypeError here
+        with pytest.raises((TypeError, ValueError)):
             s.plot(yerr=s_err)
 
+    # This XPASSES when tested with mpl == 3.0.1
     @td.xfail_if_mpl_2_2
     def test_table(self):
         _check_plot_works(self.series.plot, table=True)
@@ -876,3 +877,16 @@ class TestSeriesPlots(TestPlotBase):
             freq=CustomBusinessDay(holidays=['2014-05-26'])))
 
         _check_plot_works(s.plot)
+
+    def test_misc_bindings(self, mock):
+        s = Series(randn(10))
+        p1 = mock.patch('pandas.plotting._misc.lag_plot',
+                        return_value=2)
+        p2 = mock.patch('pandas.plotting._misc.autocorrelation_plot',
+                        return_value=2)
+        p3 = mock.patch('pandas.plotting._misc.bootstrap_plot',
+                        return_value=2)
+        with p1, p2, p3:
+            assert s.plot.lag() == 2
+            assert s.plot.autocorrelation() == 2
+            assert s.plot.bootstrap() == 2

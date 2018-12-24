@@ -1,7 +1,5 @@
 # -*- coding: utf-8 -*-
 
-from cython import Py_ssize_t
-
 # dateutil compat
 from dateutil.tz import (
     tzutc as _dateutil_tzutc,
@@ -58,7 +56,7 @@ cpdef inline object get_timezone(object tz):
     UJSON/pytables. maybe_get_tz (below) is the inverse of this process.
     """
     if is_utc(tz):
-        return 'UTC'
+        return tz
     else:
         if treat_tz_as_dateutil(tz):
             if '.tar.gz' in tz._filename:

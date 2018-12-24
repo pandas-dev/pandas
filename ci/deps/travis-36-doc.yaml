@@ -1,4 +1,4 @@
-name: pandas
+name: pandas-dev
 channels:
   - defaults
   - conda-forge
@@ -21,6 +21,7 @@ dependencies:
   - notebook
   - numexpr
   - numpy=1.13*
+  - numpydoc
   - openpyxl
   - pandoc
   - pyarrow

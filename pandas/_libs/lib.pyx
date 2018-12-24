@@ -153,10 +153,10 @@ def is_scalar(val: object) -> bool:
     """
 
     return (cnp.PyArray_IsAnyScalar(val)
-            # As of numpy-1.9, PyArray_IsAnyScalar misses bytearrays on Py3.
-            or isinstance(val, (bytes, Fraction, Number))
-            # We differ from numpy (as of 1.10), which claims that None is
-            # not scalar in np.isscalar().
+            # PyArray_IsAnyScalar is always False for bytearrays on Py3
+            or isinstance(val, (Fraction, Number))
+            # We differ from numpy, which claims that None is not scalar;
+            # see np.isscalar
             or val is None
             or PyDate_Check(val)
             or PyDelta_Check(val)
@@ -518,9 +518,7 @@ def astype_intsafe(ndarray[object] arr, new_dtype):
         bint is_datelike
         ndarray result
 
-    # on 32-bit, 1.6.2 numpy M8[ns] is a subdtype of integer, which is weird
-    is_datelike = new_dtype in ['M8[ns]', 'm8[ns]']
-
+    is_datelike = new_dtype == 'm8[ns]'
     result = np.empty(n, dtype=new_dtype)
     for i in range(n):
         val = arr[i]
@@ -1250,25 +1248,19 @@ def infer_dtype(value: object, skipna: bool=False) -> str:
     if util.is_datetime64_object(val):
         if is_datetime64_array(values):
             return 'datetime64'
-        elif is_timedelta_or_timedelta64_array(values):
-            return 'timedelta'
 
     elif is_timedelta(val):
         if is_timedelta_or_timedelta64_array(values):
             return 'timedelta'
 
     elif util.is_integer_object(val):
-        # a timedelta will show true here as well
-        if is_timedelta(val):
-            if is_timedelta_or_timedelta64_array(values):
-                return 'timedelta'
+        # ordering matters here; this check must come after the is_timedelta
+        #  check otherwise numpy timedelta64 objects would come through here
 
         if is_integer_array(values):
             return 'integer'
         elif is_integer_float_array(values):
             return 'mixed-integer-float'
-        elif is_timedelta_or_timedelta64_array(values):
-            return 'timedelta'
         return 'mixed-integer'
 
     elif PyDateTime_Check(val):
@@ -1699,27 +1691,6 @@ cdef class TimedeltaValidator(TemporalValidator):
 
     cdef inline bint is_valid_null(self, object value) except -1:
         return is_null_timedelta64(value)
-
-
-# TODO: Not used outside of tests; remove?
-def is_timedelta_array(values: ndarray) -> bool:
-    cdef:
-        TimedeltaValidator validator = TimedeltaValidator(len(values),
-                                                          skipna=True)
-    return validator.validate(values)
-
-
-cdef class Timedelta64Validator(TimedeltaValidator):
-    cdef inline bint is_value_typed(self, object value) except -1:
-        return util.is_timedelta64_object(value)
-
-
-# TODO: Not used outside of tests; remove?
-def is_timedelta64_array(values: ndarray) -> bool:
-    cdef:
-        Timedelta64Validator validator = Timedelta64Validator(len(values),
-                                                              skipna=True)
-    return validator.validate(values)
 
 
 cdef class AnyTimedeltaValidator(TimedeltaValidator):
@@ -2237,7 +2208,7 @@ def map_infer(ndarray arr, object f, bint convert=1):
     return result
 
 
-def to_object_array(rows: list, min_width: int=0):
+def to_object_array(rows: object, int min_width=0):
     """
     Convert a list of lists into an object array.
 
@@ -2258,20 +2229,22 @@ def to_object_array(rows: list, min_width: int=0):
     cdef:
         Py_ssize_t i, j, n, k, tmp
         ndarray[object, ndim=2] result
+        list input_rows
         list row
 
-    n = len(rows)
+    input_rows = <list>rows
+    n = len(input_rows)
 
     k = min_width
     for i in range(n):
-        tmp = len(rows[i])
+        tmp = len(input_rows[i])
         if tmp > k:
             k = tmp
 
     result = np.empty((n, k), dtype=object)
 
     for i in range(n):
-        row = rows[i]
+        row = <list>input_rows[i]
 
         for j in range(len(row)):
             result[i, j] = row[j]

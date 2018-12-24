@@ -57,24 +57,27 @@ def test_dtypes(dtype):
     assert dtype.name is not None
 
 
-class TestInterface(object):
+def test_repr_array():
+    result = repr(integer_array([1, None, 3]))
+    expected = (
+        '<IntegerArray>\n'
+        '[1, NaN, 3]\n'
+        'Length: 3, dtype: Int64'
+    )
+    assert result == expected
 
-    def test_repr_array(self, data):
-        result = repr(data)
 
-        # not long
-        assert '...' not in result
-
-        assert 'dtype=' in result
-        assert 'IntegerArray' in result
-
-    def test_repr_array_long(self, data):
-        # some arrays may be able to assert a ... in the repr
-        with pd.option_context('display.max_seq_items', 1):
-            result = repr(data)
-
-            assert '...' in result
-            assert 'length' in result
+def test_repr_array_long():
+    data = integer_array([1, 2, None] * 1000)
+    expected = (
+        "<IntegerArray>\n"
+        "[  1,   2, NaN,   1,   2, NaN,   1,   2, NaN,   1,\n"
+        " ...\n"
+        " NaN,   1,   2, NaN,   1,   2, NaN,   1,   2, NaN]\n"
+        "Length: 3000, dtype: Int64"
+    )
+    result = repr(data)
+    assert result == expected
 
 
 class TestConstructors(object):

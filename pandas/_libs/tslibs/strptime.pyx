@@ -20,8 +20,6 @@ except:
         except:
             from _dummy_thread import allocate_lock as _thread_allocate_lock
 
-from cython import Py_ssize_t
-
 
 import pytz
 
@@ -69,7 +67,7 @@ def array_strptime(object[:] values, object fmt,
     values : ndarray of string-like objects
     fmt : string-like regex
     exact : matches must be exact if True, search if False
-    coerce : if invalid values found, coerce to NaT
+    errors : string specifying error handling, {'raise', 'ignore', 'coerce'}
     """
 
     cdef:

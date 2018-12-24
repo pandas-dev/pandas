@@ -1,5 +1,6 @@
-.. currentmodule:: pandas
 .. _compare_with_sas:
+
+{{ header }}
 
 Comparison with SAS
 ********************
@@ -105,9 +106,7 @@ and the values are the data.
 
 .. ipython:: python
 
-   df = pd.DataFrame({
-             'x': [1, 3, 5],
-             'y': [2, 4, 6]})
+   df = pd.DataFrame({'x': [1, 3, 5], 'y': [2, 4, 6]})
    df
 
 
@@ -131,7 +130,8 @@ The pandas method is :func:`read_csv`, which works similarly.
 
 .. ipython:: python
 
-   url = 'https://raw.github.com/pandas-dev/pandas/master/pandas/tests/data/tips.csv'
+   url = ('https://raw.github.com/pandas-dev/'
+          'pandas/master/pandas/tests/data/tips.csv')
    tips = pd.read_csv(url)
    tips.head()
 
@@ -289,17 +289,17 @@ see the :ref:`timeseries documentation<timeseries>` for more details.
    tips['date1_year'] = tips['date1'].dt.year
    tips['date2_month'] = tips['date2'].dt.month
    tips['date1_next'] = tips['date1'] + pd.offsets.MonthBegin()
-   tips['months_between'] = (tips['date2'].dt.to_period('M') -
-                             tips['date1'].dt.to_period('M'))
+   tips['months_between'] = (
+       tips['date2'].dt.to_period('M') - tips['date1'].dt.to_period('M'))
 
-   tips[['date1','date2','date1_year','date2_month',
-         'date1_next','months_between']].head()
+   tips[['date1', 'date2', 'date1_year', 'date2_month',
+         'date1_next', 'months_between']].head()
 
 .. ipython:: python
    :suppress:
 
-   tips = tips.drop(['date1','date2','date1_year',
-      'date2_month','date1_next','months_between'], axis=1)
+   tips = tips.drop(['date1', 'date2', 'date1_year',
+                     'date2_month', 'date1_next', 'months_between'], axis=1)
 
 Selection of Columns
 ~~~~~~~~~~~~~~~~~~~~
@@ -335,7 +335,7 @@ The same operations are expressed in pandas below.
    tips.drop('sex', axis=1).head()
 
    # rename
-   tips.rename(columns={'total_bill':'total_bill_2'}).head()
+   tips.rename(columns={'total_bill': 'total_bill_2'}).head()
 
 
 Sorting by Values
@@ -364,7 +364,7 @@ String Processing
 Length
 ~~~~~~
 
-SAS determines the length of a character string with the 
+SAS determines the length of a character string with the
 `LENGTHN <https://support.sas.com/documentation/cdl/en/lrdict/64316/HTML/default/viewer.htm#a002284668.htm>`__
 and `LENGTHC <https://support.sas.com/documentation/cdl/en/lrdict/64316/HTML/default/viewer.htm#a002283942.htm>`__
 functions. ``LENGTHN`` excludes trailing blanks and ``LENGTHC`` includes trailing blanks.
@@ -378,7 +378,7 @@ functions. ``LENGTHN`` excludes trailing blanks and ``LENGTHC`` includes trailin
    run;
 
 Python determines the length of a character string with the ``len`` function.
-``len`` includes trailing blanks.  Use ``len`` and ``rstrip`` to exclude 
+``len`` includes trailing blanks.  Use ``len`` and ``rstrip`` to exclude
 trailing blanks.
 
 .. ipython:: python
@@ -390,9 +390,9 @@ trailing blanks.
 Find
 ~~~~
 
-SAS determines the position of a character in a string with the 
+SAS determines the position of a character in a string with the
 `FINDW <https://support.sas.com/documentation/cdl/en/lrdict/64316/HTML/default/viewer.htm#a002978282.htm>`__ function.
-``FINDW`` takes the string defined by the first argument and searches for the first position of the substring 
+``FINDW`` takes the string defined by the first argument and searches for the first position of the substring
 you supply as the second argument.
 
 .. code-block:: sas
@@ -402,10 +402,10 @@ you supply as the second argument.
    put(FINDW(sex,'ale'));
    run;
 
-Python determines the position of a character in a string with the 
-``find`` function.  ``find`` searches for the first position of the 
-substring.  If the substring is found, the function returns its 
-position.  Keep in mind that Python indexes are zero-based and 
+Python determines the position of a character in a string with the
+``find`` function.  ``find`` searches for the first position of the
+substring.  If the substring is found, the function returns its
+position.  Keep in mind that Python indexes are zero-based and
 the function will return -1 if it fails to find the substring.
 
 .. ipython:: python
@@ -416,7 +416,7 @@ the function will return -1 if it fails to find the substring.
 Substring
 ~~~~~~~~~
 
-SAS extracts a substring from a string based on its position with the 
+SAS extracts a substring from a string based on its position with the
 `SUBSTR <https://www2.sas.com/proceedings/sugi25/25/cc/25p088.pdf>`__ function.
 
 .. code-block:: sas
@@ -427,7 +427,7 @@ SAS extracts a substring from a string based on its position with the
    run;
 
 With pandas you can use ``[]`` notation to extract a substring
-from a string by position locations.  Keep in mind that Python 
+from a string by position locations.  Keep in mind that Python
 indexes are zero-based.
 
 .. ipython:: python
@@ -439,7 +439,7 @@ Scan
 ~~~~
 
 The SAS `SCAN <https://support.sas.com/documentation/cdl/en/lrdict/64316/HTML/default/viewer.htm#a000214639.htm>`__
-function returns the nth word from a string. The first argument is the string you want to parse and the 
+function returns the nth word from a string. The first argument is the string you want to parse and the
 second argument specifies which word you want to extract.
 
 .. code-block:: sas
@@ -452,10 +452,10 @@ second argument specifies which word you want to extract.
    John Smith;
    Jane Cook;
    ;;;
-   run;   
+   run;
 
-Python extracts a substring from a string based on its text 
-by using regular expressions. There are much more powerful 
+Python extracts a substring from a string based on its text
+by using regular expressions. There are much more powerful
 approaches, but this just shows a simple approach.
 
 .. ipython:: python
@@ -508,7 +508,7 @@ The following tables will be used in the merge examples
                        'value': np.random.randn(4)})
    df1
    df2 = pd.DataFrame({'key': ['B', 'D', 'D', 'E'],
-                        'value': np.random.randn(4)})
+                       'value': np.random.randn(4)})
    df2
 
 In SAS, data must be explicitly sorted before merging.  Different
@@ -695,7 +695,7 @@ In pandas this would be written as:
 
 .. ipython:: python
 
-   tips.groupby(['sex','smoker']).first()
+   tips.groupby(['sex', 'smoker']).first()
 
 
 Other Considerations
