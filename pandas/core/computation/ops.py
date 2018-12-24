@@ -542,7 +542,7 @@ class MathCall(Op):
 class FuncNode(object):
 
     def __init__(self, name):
-        if name not in _mathops or not hasattr(np, name) :
+        if name not in _mathops or not hasattr(np, name):
             raise ValueError(
                 "\"{0}\" is not a supported function".format(name))
         self.name = name
