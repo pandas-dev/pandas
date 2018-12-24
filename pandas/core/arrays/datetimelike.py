@@ -431,7 +431,7 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin, AttributesMixin):
         elif is_categorical_dtype(dtype):
             return Categorical(self, dtype=dtype)
         else:
-            return np.asarray(self, dtype=dtype)
+            return np.asarray(self, dtype=dtype, copy=copy)
 
     def view(self, dtype=None):
         """

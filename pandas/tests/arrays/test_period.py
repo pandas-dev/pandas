@@ -109,6 +109,7 @@ def test_astype_copies():
 
     result = arr.astype(np.int64, copy=True)
     assert result is not arr._data
+    tm.assert_numpy_array_equal(result, arr._data.view('i8'))
 
 
 def test_astype_categorical():
