@@ -7,7 +7,6 @@ import sys
 cdef bint PY3 = (sys.version_info[0] >= 3)
 
 import cython
-from cython import Py_ssize_t
 
 from cpython cimport Py_NE, Py_EQ, PyObject_RichCompare
 
@@ -161,9 +160,6 @@ cpdef convert_to_timedelta64(object ts, object unit):
         - None/NaT
 
     Return an ns based int64
-
-    # kludgy here until we have a timedelta scalar
-    # handle the numpy < 1.7 case
     """
     if checknull_with_nat(ts):
         return np.timedelta64(NPY_NAT)

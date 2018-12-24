@@ -303,7 +303,7 @@ class TimedeltaArrayMixin(dtl.DatetimeLikeArrayMixin, dtl.TimelikeOps):
                              "Got '{got}'.".format(got=fill_value))
         return fill_value
 
-    # -----------------------------------------------------------------
+    # ----------------------------------------------------------------
     # Rendering Methods
 
     def _format_native_types(self):

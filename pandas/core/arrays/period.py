@@ -459,7 +459,7 @@ class PeriodArray(dtl.DatetimeLikeArrayMixin,
         return type(self)(new_data, freq=freq)
 
     # ------------------------------------------------------------------
-    # Formatting
+    # Rendering Methods
 
     def _format_native_types(self, na_rep=u'NaT', date_format=None, **kwargs):
         """
@@ -481,6 +481,8 @@ class PeriodArray(dtl.DatetimeLikeArrayMixin,
         else:
             values = np.array([formatter(dt) for dt in values])
         return values
+
+    # ------------------------------------------------------------------
 
     def astype(self, dtype, copy=True):
         # We handle Period[T] -> Period[U]
