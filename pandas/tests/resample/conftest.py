@@ -118,8 +118,8 @@ def empty_series(series):
 
 @pytest.fixture
 def frame(index, _series_name, _static_values):
-    """Fixture for parametrization of DataFrame with date_range, period_range and
-    timedelta_range indexes"""
+    """Fixture for parametrization of DataFrame with date_range, period_range
+    and timedelta_range indexes"""
     # _series_name is intentionally unused
     return DataFrame({'value': _static_values}, index=index)
 
