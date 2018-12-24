@@ -5,7 +5,8 @@ from pandas import DataFrame, MultiIndex, Panel, Series
 from pandas.util import testing as tm
 
 
-@pytest.mark.filterwarnings('ignore:\\nPanel:FutureWarning')
+@pytest.mark.filterwarnings('ignore::FutureWarning')
+# @pytest.mark.filterwarnings('ignore:\\nPanel:FutureWarning')
 class TestMultiIndexPanel(object):
 
     def test_iloc_getitem_panel_multiindex(self):
