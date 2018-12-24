@@ -860,3 +860,14 @@ def test_groupby_multiindex_categorical_datetime():
     expected = pd.DataFrame(
         {'values': [0, 4, 8, 3, 4, 5, 6, np.nan, 2]}, index=idx)
     assert_frame_equal(result, expected)
+
+
+def test_groupby_agg_observed_true_single_column():
+    # GH-23970
+    expected = pd.DataFrame({
+        'a': pd.Series([1, 1, 2], dtype='category'),
+        'b': [1, 2, 2], 'x': [1, 2, 3]})
+
+    result = df.groupby(['a', 'b'], as_index=False, observed=True)['x'].sum()
+
+    tm.assert_frame_equal(result, expected)

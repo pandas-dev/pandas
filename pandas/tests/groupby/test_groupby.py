@@ -1694,15 +1694,3 @@ def test_groupby_agg_ohlc_non_first():
     result = df.groupby(pd.Grouper(freq='D')).agg(['sum', 'ohlc'])
 
     tm.assert_frame_equal(result, expected)
-
-
-def test_groupby_agg_observed_lost_err():
-    # GH-23970
-    df = pd.DataFrame({
-        'a': pd.Series([1, 1, 2], dtype='category'),
-        'b': [1, 2, 2], 'x': [1, 2, 3]})
-
-    expected = df
-    result = df.groupby(['a', 'b'], as_index=False, observed=True)['x'].sum()
-
-    tm.assert_frame_equal(result, expected)
