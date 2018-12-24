@@ -1336,7 +1336,8 @@ class DataFrameGroupBy(NDFrameGroupBy):
             return DataFrameGroupBy(subset, self.grouper, selection=key,
                                     grouper=self.grouper,
                                     exclusions=self.exclusions,
-                                    as_index=self.as_index)
+                                    as_index=self.as_index,
+                                    observed=self.observed)
         elif ndim == 1:
             if subset is None:
                 subset = self.obj[key]
