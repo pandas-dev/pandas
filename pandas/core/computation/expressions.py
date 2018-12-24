@@ -11,7 +11,7 @@ import warnings
 import numpy as np
 
 import pandas.core.common as com
-from pandas.core.computation.check import _NUMEXPR_INSTALLED
+from pandas.core.computation.check import _NUMEXPR_INSTALLED, _ne_version_under_2_6_9
 from pandas.core.config import get_option
 
 if _NUMEXPR_INSTALLED:
@@ -20,6 +20,7 @@ if _NUMEXPR_INSTALLED:
 _TEST_MODE = None
 _TEST_RESULT = None
 _USE_NUMEXPR = _NUMEXPR_INSTALLED
+_ne_version_under2_6_9 = _ne_version_under_2_6_9
 _evaluate = None
 _where = None
 

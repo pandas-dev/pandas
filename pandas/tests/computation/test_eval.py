@@ -31,6 +31,9 @@ from pandas.util.testing import (assert_frame_equal, randbool,
                                  assert_numpy_array_equal, assert_series_equal,
                                  assert_produces_warning)
 from pandas.compat import PY3, reduce
+from pandas.core.computation.expressions import (
+    _ne_version_under_2_6_9)
+
 
 _series_frame_incompatible = _bool_ops_syms
 _scalar_skip = 'in', 'not in'
@@ -52,6 +55,19 @@ def engine(request):
 @pytest.fixture(params=expr._parsers)
 def parser(request):
     return request.param
+
+
+@pytest.fixture
+def ne_lt_2_6_9():
+    if not _ne_version_under_2_6_9:
+        pytest.skip("numexpr is > 2.6.9")
+    return 'numexpr'
+
+@pytest.fixture
+def ne_gt_2_6_9():
+    if _ne_version_under_2_6_9:
+        pytest.skip("numexpr is < 2.6.9")
+    return 'numexpr'
 
 
 def engine_has_neg_frac(engine):
@@ -1625,24 +1641,31 @@ class TestMathPythonPython(object):
     def test_unary_functions(self):
         df = DataFrame({'a': np.random.randn(10)})
         a = df.a
-        for fn in self.unary_fns:
+        unary_functions = [x for x in self.unary_fns
+                           if x not in ('floor', 'ceil')]
+        for fn in unary_functions:
             expr = "{0}(a)".format(fn)
+            got = self.eval(expr)
             with np.errstate(all='ignore'):
-                if hasattr(np, fn):
-                    got = self.eval(expr)
-                    expect = getattr(np, fn)(a)
-                    tm.assert_series_equal(got, expect, check_names=False)
+                expect = getattr(np, fn)(a)
+            tm.assert_series_equal(got, expect, check_names=False)
 
-    def test_all_unary_functions_not_supported_in_numpy_112(self):
+    def test_floor_and_ceil_functions_raise_error(self, ne_lt_2_6_9):
+        for fn in ('floor', 'ceil'):
+            msg = "\"{0}\" is not a supported function".format(fn)
+            with pytest.raises(ValueError, match=msg):
+                expr = "{0}(100)".format(fn)
+                self.eval(expr)
+
+    def test_floor_and_ceil_functions_evaluate_expressions(self, ne_gt_2_6_9):
         df = DataFrame({'a': np.random.randn(10)})
         a = df.a
-        for fn in self.unary_fns:
+        for fn in ('floor', 'ceil'):
             expr = "{0}(a)".format(fn)
+            got = self.eval(expr)
             with np.errstate(all='ignore'):
-                if not hasattr(np, fn):
-                    msg = '"{0}" is not a supported function'.format(fn)
-                    with pytest.raises(ValueError, match=msg):
-                        self.eval(expr)
+                expect = getattr(np, fn)(a)
+            tm.assert_series_equal(got, expect, check_names=False)
 
     def test_binary_functions(self):
         df = DataFrame({'a': np.random.randn(10),

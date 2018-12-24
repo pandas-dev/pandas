@@ -15,6 +15,8 @@ import pandas as pd
 from pandas.core.base import StringMixin
 import pandas.core.common as com
 from pandas.core.computation.common import _ensure_decoded, _result_type_many
+from pandas.core.computation.expressions import (_NUMEXPR_INSTALLED,
+                                                 _ne_version_under_2_6_9)
 from pandas.core.computation.scope import _DEFAULT_GLOBALS
 
 from pandas.io.formats.printing import pprint_thing, pprint_thing_encoded
@@ -26,6 +28,7 @@ _unary_math_ops = ('sin', 'cos', 'exp', 'log', 'expm1', 'log1p',
                    'arctan', 'arccosh', 'arcsinh', 'arctanh', 'abs', 'log10',
                    'floor', 'ceil')
 _binary_math_ops = ('arctan2',)
+_ops_for_ne_gt_2_6_9 = ('floor', 'ceil')
 _mathops = _unary_math_ops + _binary_math_ops
 
 
@@ -542,9 +545,12 @@ class MathCall(Op):
 class FuncNode(object):
 
     def __init__(self, name):
-        if name not in _mathops or not hasattr(np, name):
+        if name not in _mathops or (
+                _NUMEXPR_INSTALLED and _ne_version_under_2_6_9 and name in _ops_for_ne_gt_2_6_9
+        ):
             raise ValueError(
                 "\"{0}\" is not a supported function".format(name))
+
         self.name = name
         self.func = getattr(np, name)
 

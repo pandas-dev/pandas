@@ -3,11 +3,13 @@ import warnings
 
 _NUMEXPR_INSTALLED = False
 _MIN_NUMEXPR_VERSION = "2.6.1"
+_ne_version_under_2_6_9 = None
 
 try:
     import numexpr as ne
     ver = LooseVersion(ne.__version__)
     _NUMEXPR_INSTALLED = ver >= LooseVersion(_MIN_NUMEXPR_VERSION)
+    _ne_version_under_2_6_9 = ver < LooseVersion('2.6.9')
 
     if not _NUMEXPR_INSTALLED:
         warnings.warn(
