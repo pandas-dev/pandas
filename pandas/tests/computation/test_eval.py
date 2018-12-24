@@ -1641,9 +1641,8 @@ class TestMathPythonPython(object):
     def test_unary_functions(self):
         df = DataFrame({'a': np.random.randn(10)})
         a = df.a
-        unary_functions = [x for x in self.unary_fns
-                           if x not in ('floor', 'ceil')]
-        for fn in unary_functions:
+
+        for fn in self.unary_fns:
             expr = "{0}(a)".format(fn)
             got = self.eval(expr)
             with np.errstate(all='ignore'):
@@ -1656,16 +1655,6 @@ class TestMathPythonPython(object):
             with pytest.raises(ValueError, match=msg):
                 expr = "{0}(100)".format(fn)
                 self.eval(expr)
-
-    def test_floor_and_ceil_functions_evaluate_expressions(self, ne_gt_2_6_9):
-        df = DataFrame({'a': np.random.randn(10)})
-        a = df.a
-        for fn in ('floor', 'ceil'):
-            expr = "{0}(a)".format(fn)
-            got = self.eval(expr)
-            with np.errstate(all='ignore'):
-                expect = getattr(np, fn)(a)
-            tm.assert_series_equal(got, expect, check_names=False)
 
     def test_binary_functions(self):
         df = DataFrame({'a': np.random.randn(10),
