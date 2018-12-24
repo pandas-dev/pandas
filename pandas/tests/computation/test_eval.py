@@ -1,5 +1,6 @@
 import warnings
 import operator
+from distutils.version import LooseVersion
 from itertools import product
 
 import pytest
@@ -31,8 +32,7 @@ from pandas.util.testing import (assert_frame_equal, randbool,
                                  assert_numpy_array_equal, assert_series_equal,
                                  assert_produces_warning)
 from pandas.compat import PY3, reduce
-from pandas.core.computation.expressions import (
-    _ne_version_under_2_6_9)
+from pandas.core.computation.check import _NUMEXPR_VERSION
 
 
 _series_frame_incompatible = _bool_ops_syms
@@ -59,13 +59,13 @@ def parser(request):
 
 @pytest.fixture
 def ne_lt_2_6_9():
-    if not _ne_version_under_2_6_9:
-        pytest.skip("numexpr is > 2.6.9")
+    if _NUMEXPR_INSTALLED and _NUMEXPR_VERSION >= LooseVersion('2.6.9'):
+        pytest.skip("numexpr is >= 2.6.9")
     return 'numexpr'
 
 @pytest.fixture
 def ne_gt_2_6_9():
-    if _ne_version_under_2_6_9:
+    if _NUMEXPR_INSTALLED and _NUMEXPR_VERSION < LooseVersion('2.6.9'):
         pytest.skip("numexpr is < 2.6.9")
     return 'numexpr'
 
