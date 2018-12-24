@@ -1008,9 +1008,9 @@ class TestDataFrameAnalytics():
         assert_stat_op_api('kurt', float_frame, float_string_frame)
 
         index = MultiIndex(levels=[['bar'], ['one', 'two', 'three'], [0, 1]],
-                           labels=[[0, 0, 0, 0, 0, 0],
-                                   [0, 1, 2, 0, 1, 2],
-                                   [0, 1, 0, 1, 0, 1]])
+                           codes=[[0, 0, 0, 0, 0, 0],
+                                  [0, 1, 2, 0, 1, 2],
+                                  [0, 1, 0, 1, 0, 1]])
         df = DataFrame(np.random.randn(6, 3), index=index)
 
         kurt = df.kurt()
@@ -1841,10 +1841,12 @@ class TestDataFrameAnalytics():
         median = float_frame.median().median()
         original = float_frame.copy()
 
-        capped = float_frame.clip_upper(median)
+        with tm.assert_produces_warning(FutureWarning):
+            capped = float_frame.clip_upper(median)
         assert not (capped.values > median).any()
 
-        floored = float_frame.clip_lower(median)
+        with tm.assert_produces_warning(FutureWarning):
+            floored = float_frame.clip_lower(median)
         assert not (floored.values < median).any()
 
         double = float_frame.clip(upper=median, lower=median)
@@ -1858,11 +1860,13 @@ class TestDataFrameAnalytics():
         median = float_frame.median().median()
         frame_copy = float_frame.copy()
 
-        frame_copy.clip_upper(median, inplace=True)
+        with tm.assert_produces_warning(FutureWarning):
+            frame_copy.clip_upper(median, inplace=True)
         assert not (frame_copy.values > median).any()
         frame_copy = float_frame.copy()
 
-        frame_copy.clip_lower(median, inplace=True)
+        with tm.assert_produces_warning(FutureWarning):
+            frame_copy.clip_lower(median, inplace=True)
         assert not (frame_copy.values < median).any()
         frame_copy = float_frame.copy()
 
@@ -2263,7 +2267,8 @@ class TestNLargestNSmallest(object):
         s_nan = Series([np.nan, np.nan, 1])
 
         with tm.assert_produces_warning(None):
-            df_nan.clip_lower(s, axis=0)
+            with tm.assert_produces_warning(FutureWarning):
+                df_nan.clip_lower(s, axis=0)
             for op in ['lt', 'le', 'gt', 'ge', 'eq', 'ne']:
                 getattr(df, op)(s_nan, axis=0)
 

@@ -190,7 +190,7 @@ def test_level_get_group(observed):
     df = DataFrame(data=np.arange(2, 22, 2),
                    index=MultiIndex(
                        levels=[pd.CategoricalIndex(["a", "b"]), range(10)],
-                       labels=[[0] * 5 + [1] * 5, range(10)],
+                       codes=[[0] * 5 + [1] * 5, range(10)],
                        names=["Index1", "Index2"]))
     g = df.groupby(level=["Index1"], observed=observed)
 
@@ -199,7 +199,7 @@ def test_level_get_group(observed):
     expected = DataFrame(data=np.arange(2, 12, 2),
                          index=pd.MultiIndex(levels=[pd.CategoricalIndex(
                              ["a", "b"]), range(5)],
-        labels=[[0] * 5, range(5)],
+        codes=[[0] * 5, range(5)],
         names=["Index1", "Index2"]))
     result = g.get_group('a')
 
@@ -527,9 +527,8 @@ def test_bins_unequal_len():
     bins = pd.cut(series.dropna().values, 4)
 
     # len(bins) != len(series) here
-    def f():
+    with pytest.raises(ValueError):
         series.groupby(bins).mean()
-    pytest.raises(ValueError, f)
 
 
 def test_as_index():

@@ -1,4 +1,3 @@
-from collections import MutableMapping
 from datetime import datetime, time
 from functools import partial
 
@@ -18,6 +17,7 @@ from pandas.core.dtypes.common import (
 from pandas.core.dtypes.generic import ABCDataFrame, ABCIndexClass, ABCSeries
 from pandas.core.dtypes.missing import notna
 
+from pandas import compat
 from pandas.core import algorithms
 
 
@@ -171,6 +171,7 @@ def _convert_listlike_datetimes(arg, box, format, name=None, tz=None,
         - ndarray of Timestamps if box=False
     """
     from pandas import DatetimeIndex
+    from pandas.core.arrays import DatetimeArrayMixin as DatetimeArray
     from pandas.core.arrays.datetimes import (
         maybe_convert_dtype, objects_to_datetime64ns)
 
@@ -179,14 +180,14 @@ def _convert_listlike_datetimes(arg, box, format, name=None, tz=None,
 
     # these are shortcutable
     if is_datetime64tz_dtype(arg):
-        if not isinstance(arg, DatetimeIndex):
+        if not isinstance(arg, (DatetimeArray, DatetimeIndex)):
             return DatetimeIndex(arg, tz=tz, name=name)
         if tz == 'utc':
             arg = arg.tz_convert(None).tz_localize(tz)
         return arg
 
     elif is_datetime64_ns_dtype(arg):
-        if box and not isinstance(arg, DatetimeIndex):
+        if box and not isinstance(arg, (DatetimeArray, DatetimeIndex)):
             try:
                 return DatetimeIndex(arg, tz=tz, name=name)
             except ValueError:
@@ -479,6 +480,11 @@ def to_datetime(arg, errors='raise', dayfirst=False, yearfirst=False,
         return will have datetime.datetime type (or corresponding
         array/Series).
 
+    See Also
+    --------
+    pandas.DataFrame.astype : Cast argument to a specified dtype.
+    pandas.to_timedelta : Convert argument to timedelta.
+
     Examples
     --------
     Assembling a datetime from multiple columns of a DataFrame. The keys can be
@@ -542,11 +548,6 @@ def to_datetime(arg, errors='raise', dayfirst=False, yearfirst=False,
     0    1960-01-02
     1    1960-01-03
     2    1960-01-04
-
-    See Also
-    --------
-    pandas.DataFrame.astype : Cast argument to a specified dtype.
-    pandas.to_timedelta : Convert argument to timedelta.
     """
     if arg is None:
         return None
@@ -570,7 +571,7 @@ def to_datetime(arg, errors='raise', dayfirst=False, yearfirst=False,
             from pandas import Series
             values = convert_listlike(arg._values, True, format)
             result = Series(values, index=arg.index, name=arg.name)
-    elif isinstance(arg, (ABCDataFrame, MutableMapping)):
+    elif isinstance(arg, (ABCDataFrame, compat.MutableMapping)):
         result = _assemble_from_unit_mappings(arg, errors=errors)
     elif isinstance(arg, ABCIndexClass):
         cache_array = _maybe_cache(arg, format, cache, convert_listlike)

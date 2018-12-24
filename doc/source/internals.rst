@@ -1,16 +1,6 @@
 .. _internals:
 
-.. currentmodule:: pandas
-
-.. ipython:: python
-   :suppress:
-
-   import numpy as np
-   import pandas as pd
-
-   np.random.seed(123456)
-   np.set_printoptions(precision=4, suppress=True)
-   pd.options.display.max_rows = 15
+{{ header }}
 
 *********
 Internals
@@ -74,7 +64,7 @@ MultiIndex
 ~~~~~~~~~~
 
 Internally, the ``MultiIndex`` consists of a few things: the **levels**, the
-integer **labels**, and the level **names**:
+integer **codes** (until version 0.24 named *labels*), and the level **names**:
 
 .. ipython:: python
 
@@ -82,15 +72,15 @@ integer **labels**, and the level **names**:
                                       names=['first', 'second'])
    index
    index.levels
-   index.labels
+   index.codes
    index.names
 
-You can probably guess that the labels determine which unique element is
+You can probably guess that the codes determine which unique element is
 identified with that location at each layer of the index. It's important to
-note that sortedness is determined **solely** from the integer labels and does
+note that sortedness is determined **solely** from the integer codes and does
 not check (or care) whether the levels themselves are sorted. Fortunately, the
 constructors ``from_tuples`` and ``from_arrays`` ensure that this is true, but
-if you compute the levels and labels yourself, please be careful.
+if you compute the levels and codes yourself, please be careful.
 
 Values
 ~~~~~~

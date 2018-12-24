@@ -12,6 +12,7 @@ import numpy as np
 from pandas.compat import PY3, set_function_name
 from pandas.compat.numpy import function as nv
 from pandas.errors import AbstractMethodError
+from pandas.util._decorators import Appender, Substitution
 
 from pandas.core.dtypes.common import is_list_like
 from pandas.core.dtypes.generic import ABCIndexClass, ABCSeries
@@ -19,6 +20,8 @@ from pandas.core.dtypes.generic import ABCIndexClass, ABCSeries
 from pandas.core import ops
 
 _not_implemented_message = "{} does not implement {}."
+
+_extension_array_shared_docs = dict()
 
 
 class ExtensionArray(object):
@@ -220,6 +223,8 @@ class ExtensionArray(object):
         #   example, a string like '2018-01-01' is coerced to a datetime
         #   when setting on a datetime64ns array. In general, if the
         #   __init__ method coerces that value, then so should __setitem__
+        # Note, also, that Series/DataFrame.where internally use __setitem__
+        # on a copy of the data.
         raise NotImplementedError(_not_implemented_message.format(
             type(self), '__setitem__')
         )
@@ -442,7 +447,6 @@ class ExtensionArray(object):
         -------
         valid : ExtensionArray
         """
-
         return self[~self.isna()]
 
     def shift(self, periods=1):
@@ -464,13 +468,25 @@ class ExtensionArray(object):
         Returns
         -------
         shifted : ExtensionArray
+
+        Notes
+        -----
+        If ``self`` is empty or ``periods`` is 0, a copy of ``self`` is
+        returned.
+
+        If ``periods > len(self)``, then an array of size
+        len(self) is returned, with all values filled with
+        ``self.dtype.na_value``.
         """
         # Note: this implementation assumes that `self.dtype.na_value` can be
         # stored in an instance of your ExtensionArray with `self.dtype`.
-        if periods == 0:
+        if not len(self) or periods == 0:
             return self.copy()
-        empty = self._from_sequence([self.dtype.na_value] * abs(periods),
-                                    dtype=self.dtype)
+
+        empty = self._from_sequence(
+            [self.dtype.na_value] * min(abs(periods), len(self)),
+            dtype=self.dtype
+        )
         if periods > 0:
             a = empty
             b = self[:-periods]
@@ -566,6 +582,58 @@ class ExtensionArray(object):
 
         uniques = self._from_factorized(uniques, self)
         return labels, uniques
+
+    _extension_array_shared_docs['repeat'] = """
+        Repeat elements of a %(klass)s.
+
+        Returns a new %(klass)s where each element of the current %(klass)s
+        is repeated consecutively a given number of times.
+
+        Parameters
+        ----------
+        repeats : int or array of ints
+            The number of repetitions for each element. This should be a
+            non-negative integer. Repeating 0 times will return an empty
+            %(klass)s.
+        *args
+            Additional arguments have no effect but might be accepted for
+            compatibility with numpy.
+        **kwargs
+            Additional keywords have no effect but might be accepted for
+            compatibility with numpy.
+
+        Returns
+        -------
+        repeated_array : %(klass)s
+            Newly created %(klass)s with repeated elements.
+
+        See Also
+        --------
+        Series.repeat : Equivalent function for Series.
+        Index.repeat : Equivalent function for Index.
+        numpy.repeat : Similar method for :class:`numpy.ndarray`.
+        ExtensionArray.take : Take arbitrary positions.
+
+        Examples
+        --------
+        >>> cat = pd.Categorical(['a', 'b', 'c'])
+        >>> cat
+        [a, b, c]
+        Categories (3, object): [a, b, c]
+        >>> cat.repeat(2)
+        [a, a, b, b, c, c]
+        Categories (3, object): [a, b, c]
+        >>> cat.repeat([1, 2, 3])
+        [a, b, b, c, c, c]
+        Categories (3, object): [a, b, c]
+        """
+
+    @Substitution(klass='ExtensionArray')
+    @Appender(_extension_array_shared_docs['repeat'])
+    def repeat(self, repeats, *args, **kwargs):
+        nv.validate_repeat(args, kwargs)
+        ind = np.arange(len(self)).repeat(repeats)
+        return self.take(ind)
 
     # ------------------------------------------------------------------------
     # Indexing methods

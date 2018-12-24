@@ -1,15 +1,6 @@
-.. currentmodule:: pandas
-
-.. ipython:: python
-   :suppress:
-
-   import numpy as np
-   import pandas as pd
-
-   np.set_printoptions(precision=4, suppress=True)
-   pd.options.display.max_rows = 15
-
 .. _basics:
+
+{{ header }}
 
 ==============================
  Essential Basic Functionality
@@ -95,9 +86,30 @@ be the same as :attr:`~Series.array`. When the Series or Index is backed by
 a :class:`~pandas.api.extension.ExtensionArray`, :meth:`~Series.to_numpy`
 may involve copying data and coercing values.
 
+:meth:`~Series.to_numpy` gives some control over the ``dtype`` of the
+resulting :class:`ndarray`. For example, consider datetimes with timezones.
+NumPy doesn't have a dtype to represent timezone-aware datetimes, so there
+are two possibly useful representations:
+
+1. An object-dtype :class:`ndarray` with :class:`Timestamp` objects, each
+   with the correct ``tz``
+2. A ``datetime64[ns]`` -dtype :class:`ndarray`, where the values have
+   been converted to UTC and the timezone discarded
+
+Timezones may be preserved with ``dtype=object``
+
+.. ipython:: python
+
+   ser = pd.Series(pd.date_range('2000', periods=2, tz="CET"))
+   ser.to_numpy(dtype=object)
+
+Or thrown away with ``dtype='datetime64[ns]'``
+
+   ser.to_numpy(dtype="datetime64[ns]")
+
 Getting the "raw data" inside a :class:`DataFrame` is possibly a bit more
 complex. When your ``DataFrame`` only has a single data type for all the
-columns, :atr:`DataFrame.to_numpy` will return the underlying data:
+columns, :attr:`DataFrame.to_numpy` will return the underlying data:
 
 .. ipython:: python
 
@@ -1940,7 +1952,7 @@ Categorical         :class:`CategoricalDtype` (none)             :class:`Categor
 period (time spans) :class:`PeriodDtype`      :class:`Period`    :class:`arrays.PeriodArray`   :ref:`timeseries.periods`
 sparse              :class:`SparseDtype`      (none)             :class:`arrays.SparseArray`   :ref:`sparse`
 intervals           :class:`IntervalDtype`    :class:`Interval`  :class:`arrays.IntervalArray` :ref:`advanced.intervalindex`
-nullable integer    :clsas:`Int64Dtype`, ...  (none)             :class:`arrays.IntegerArray`  :ref:`integer_na`
+nullable integer    :class:`Int64Dtype`, ...  (none)             :class:`arrays.IntegerArray`  :ref:`integer_na`
 =================== ========================= ================== ============================= =============================
 
 Pandas uses the ``object`` dtype for storing strings.
