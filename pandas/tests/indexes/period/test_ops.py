@@ -317,26 +317,6 @@ class TestPeriodIndexOps(Ops):
         # This is tested in test_arithmetic
         pass
 
-    def test_repeat(self):
-        index = pd.period_range('2001-01-01', periods=2, freq='D')
-        exp = pd.PeriodIndex(['2001-01-01', '2001-01-01',
-                              '2001-01-02', '2001-01-02'], freq='D')
-        for res in [index.repeat(2), np.repeat(index, 2)]:
-            tm.assert_index_equal(res, exp)
-
-        index = pd.period_range('2001-01-01', periods=2, freq='2D')
-        exp = pd.PeriodIndex(['2001-01-01', '2001-01-01',
-                              '2001-01-03', '2001-01-03'], freq='2D')
-        for res in [index.repeat(2), np.repeat(index, 2)]:
-            tm.assert_index_equal(res, exp)
-
-        index = pd.PeriodIndex(['2001-01', 'NaT', '2003-01'], freq='M')
-        exp = pd.PeriodIndex(['2001-01', '2001-01', '2001-01',
-                              'NaT', 'NaT', 'NaT',
-                              '2003-01', '2003-01', '2003-01'], freq='M')
-        for res in [index.repeat(3), np.repeat(index, 3)]:
-            tm.assert_index_equal(res, exp)
-
     def test_nat(self):
         assert pd.PeriodIndex._na_value is NaT
         assert pd.PeriodIndex([], freq='M')._na_value is NaT

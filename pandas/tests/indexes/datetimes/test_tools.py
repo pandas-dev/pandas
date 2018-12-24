@@ -24,6 +24,7 @@ import pandas as pd
 from pandas import (
     DataFrame, DatetimeIndex, Index, NaT, Series, Timestamp, compat,
     date_range, isna, to_datetime)
+from pandas.core.arrays import DatetimeArrayMixin as DatetimeArray
 from pandas.core.tools import datetimes as tools
 from pandas.util import testing as tm
 from pandas.util.testing import assert_series_equal
@@ -246,6 +247,18 @@ class TestTimeConversionFormats(object):
 
 
 class TestToDatetime(object):
+    @pytest.mark.parametrize('tz', [None, 'US/Central'])
+    def test_to_datetime_dtarr(self, tz):
+        # DatetimeArray
+        dti = date_range('1965-04-03', periods=19, freq='2W', tz=tz)
+        arr = DatetimeArray(dti)
+
+        result = to_datetime(arr)
+        assert result is arr
+
+        result = to_datetime(arr, box=True)
+        assert result is arr
+
     def test_to_datetime_pydatetime(self):
         actual = pd.to_datetime(datetime(2008, 1, 15))
         assert actual == datetime(2008, 1, 15)
@@ -935,6 +948,33 @@ class TestToDatetimeUnit(object):
                         'day': [1, 1]})
         with pytest.raises(ValueError):
             to_datetime(df, cache=cache)
+
+    def test_dataframe_box_false(self):
+        # GH 23760
+        df = pd.DataFrame({'year': [2015, 2016],
+                           'month': [2, 3],
+                           'day': [4, 5]})
+        result = pd.to_datetime(df, box=False)
+        expected = np.array(['2015-02-04', '2016-03-05'],
+                            dtype='datetime64[ns]')
+        tm.assert_numpy_array_equal(result, expected)
+
+    def test_dataframe_utc_true(self):
+        # GH 23760
+        df = pd.DataFrame({'year': [2015, 2016],
+                           'month': [2, 3],
+                           'day': [4, 5]})
+        result = pd.to_datetime(df, utc=True)
+        expected = pd.Series(np.array(['2015-02-04', '2016-03-05'],
+                             dtype='datetime64[ns]')).dt.tz_localize('UTC')
+        tm.assert_series_equal(result, expected)
+
+    def test_to_datetime_errors_ignore_utc_true(self):
+        # GH 23758
+        result = pd.to_datetime([1], unit='s', box=True, utc=True,
+                                errors='ignore')
+        expected = DatetimeIndex(['1970-01-01 00:00:01'], tz='UTC')
+        tm.assert_index_equal(result, expected)
 
 
 class TestToDatetimeMisc(object):
