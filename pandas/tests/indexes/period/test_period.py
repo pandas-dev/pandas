@@ -37,13 +37,19 @@ class TestPeriodIndex(DatetimeLike):
         # This is handled in test_indexing
         pass
 
-    def test_repeat(self):
+    @pytest.mark.parametrize('use_numpy', [True, False])
+    @pytest.mark.parametrize('index', [
+        pd.period_range('2000-01-01', periods=3, freq='D'),
+        pytest.param(
+            pd.period_range('2001-01-01', periods=3, freq='2D'),
+            marks=pytest.mark.xfail(reason='GH 24391')),
+        pd.PeriodIndex(['2001-01', 'NaT', '2003-01'], freq='M')])
+    def test_repeat_freqstr(self, index, use_numpy):
         # GH10183
-        idx = pd.period_range('2000-01-01', periods=3, freq='D')
-        res = idx.repeat(3)
-        exp = PeriodIndex(idx.values.repeat(3), freq='D')
-        tm.assert_index_equal(res, exp)
-        assert res.freqstr == 'D'
+        expected = PeriodIndex([p for p in index for _ in range(3)])
+        result = np.repeat(index, 3) if use_numpy else index.repeat(3)
+        tm.assert_index_equal(result, expected)
+        assert result.freqstr == index.freqstr
 
     def test_fillna_period(self):
         # GH 11343
@@ -443,17 +449,6 @@ class TestPeriodIndex(DatetimeLike):
         s = Series(np.random.rand(len(pi)), index=pi).cumsum()
         # Todo: fix these accessors!
         assert s['05Q4'] == s[2]
-
-    def test_numpy_repeat(self):
-        index = period_range('20010101', periods=2)
-        expected = PeriodIndex([Period('2001-01-01'), Period('2001-01-01'),
-                                Period('2001-01-02'), Period('2001-01-02')])
-
-        tm.assert_index_equal(np.repeat(index, 2), expected)
-
-        msg = "the 'axis' parameter is not supported"
-        with pytest.raises(ValueError, match=msg):
-            np.repeat(index, 2, axis=1)
 
     def test_pindex_multiples(self):
         pi = PeriodIndex(start='1/1/11', end='12/31/11', freq='2M')

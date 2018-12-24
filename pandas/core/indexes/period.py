@@ -882,10 +882,6 @@ class PeriodIndex(DatelikeOps, DatetimeIndexOpsMixin, Int64Index,
 
     _unpickle_compat = __setstate__
 
-    def repeat(self, repeats, *args, **kwargs):
-        # TODO(DatetimeArray): Just use Index.repeat
-        return Index.repeat(self, repeats, *args, **kwargs)
-
     def view(self, dtype=None, type=None):
         # TODO(DatetimeArray): remove
         if dtype is None or dtype is __builtins__['type'](self):
