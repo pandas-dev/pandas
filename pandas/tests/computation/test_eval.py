@@ -1635,6 +1635,7 @@ class TestMathPythonPython(object):
 
     def test_all_unary_functions_not_supported_in_numpy_112(self):
         df = DataFrame({'a': np.random.randn(10)})
+        a = df.a
         for fn in self.unary_fns:
             expr = "{0}(a)".format(fn)
             with np.errstate(all='ignore'):
