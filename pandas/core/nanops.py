@@ -203,8 +203,17 @@ def _get_values(values, skipna, fill_value=None, fill_value_typ=None,
     if necessary copy and mask using the specified fill_value
     copy = True will force the copy
     """
-    orig_values = values
-    values = com.values_from_object(values)
+
+    if is_datetime64tz_dtype(values):
+        # com.values_from_object returns M8[ns] dtype instead of tz-aware,
+        #  so this case must be handled separately from the rest
+        dtype = values.dtype
+        values = np.array(values.asi8)
+    else:
+        values = com.values_from_object(values)
+        dtype = values.dtype
+
+    values = _view_if_needed(values)
 
     if mask is None:
         if isfinite:
@@ -212,11 +221,6 @@ def _get_values(values, skipna, fill_value=None, fill_value_typ=None,
         else:
             mask = isna(values)
 
-    dtype = values.dtype
-    if is_datetime64tz_dtype(orig_values):
-        dtype = orig_values.dtype
-
-    values = getattr(values, 'asi8', values)
     dtype_ok = _na_ok_dtype(dtype)
 
     # get our fill value (in case we need to provide an alternative
@@ -236,8 +240,6 @@ def _get_values(values, skipna, fill_value=None, fill_value_typ=None,
 
     elif copy:
         values = values.copy()
-
-    values = _view_if_needed(values)
 
     # return a platform independent precision dtype
     dtype_max = dtype
@@ -265,6 +267,7 @@ def _na_ok_dtype(dtype):
 
 
 def _view_if_needed(values):
+    values = getattr(values, 'asi8', values)
     if is_datetime_or_timedelta_dtype(values):
         return values.view(np.int64)
     return values
