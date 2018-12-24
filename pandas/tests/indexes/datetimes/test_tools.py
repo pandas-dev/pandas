@@ -949,6 +949,33 @@ class TestToDatetimeUnit(object):
         with pytest.raises(ValueError):
             to_datetime(df, cache=cache)
 
+    def test_dataframe_box_false(self):
+        # GH 23760
+        df = pd.DataFrame({'year': [2015, 2016],
+                           'month': [2, 3],
+                           'day': [4, 5]})
+        result = pd.to_datetime(df, box=False)
+        expected = np.array(['2015-02-04', '2016-03-05'],
+                            dtype='datetime64[ns]')
+        tm.assert_numpy_array_equal(result, expected)
+
+    def test_dataframe_utc_true(self):
+        # GH 23760
+        df = pd.DataFrame({'year': [2015, 2016],
+                           'month': [2, 3],
+                           'day': [4, 5]})
+        result = pd.to_datetime(df, utc=True)
+        expected = pd.Series(np.array(['2015-02-04', '2016-03-05'],
+                             dtype='datetime64[ns]')).dt.tz_localize('UTC')
+        tm.assert_series_equal(result, expected)
+
+    def test_to_datetime_errors_ignore_utc_true(self):
+        # GH 23758
+        result = pd.to_datetime([1], unit='s', box=True, utc=True,
+                                errors='ignore')
+        expected = DatetimeIndex(['1970-01-01 00:00:01'], tz='UTC')
+        tm.assert_index_equal(result, expected)
+
 
 class TestToDatetimeMisc(object):
     def test_to_datetime_barely_out_of_bounds(self):
