@@ -1,7 +1,7 @@
 import numpy as np
 import pytest
 
-from pandas.compat import lrange, range, u, zip
+from pandas.compat import StringIO, lrange, range, u, zip
 
 import pandas as pd
 from pandas import DataFrame, Index, MultiIndex, Series, date_range
@@ -345,3 +345,43 @@ def test_mixed_depth_get(unicode_strings):
     expected = df['routine1', 'result1', '']
     expected = expected.rename(('routine1', 'result1'))
     tm.assert_series_equal(result, expected)
+
+
+def test_mi_access():
+
+    # GH 4145
+    data = """h1 main  h3 sub  h5
+0  a    A   1  A1   1
+1  b    B   2  B1   2
+2  c    B   3  A1   3
+3  d    A   4  B2   4
+4  e    A   5  B2   5
+5  f    B   6  A2   6
+"""
+
+    df = pd.read_csv(StringIO(data), sep=r'\s+', index_col=0)
+    df2 = df.set_index(['main', 'sub']).T.sort_index(1)
+    index = Index(['h1', 'h3', 'h5'])
+    columns = MultiIndex.from_tuples([('A', 'A1')], names=['main', 'sub'])
+    expected = DataFrame([['a', 1, 1]], index=columns, columns=index).T
+
+    result = df2.loc[:, ('A', 'A1')]
+    tm.assert_frame_equal(result, expected)
+
+    result = df2[('A', 'A1')]
+    tm.assert_frame_equal(result, expected)
+
+    # GH 4146, not returning a block manager when selecting a unique index
+    # from a duplicate index
+    # as of 4879, this returns a Series (which is similar to what happens
+    # with a non-unique)
+    expected = Series(['a', 1, 1], index=['h1', 'h3', 'h5'], name='A1')
+    result = df2['A']['A1']
+    tm.assert_series_equal(result, expected)
+
+    # selecting a non_unique from the 2nd level
+    expected = DataFrame([['d', 4, 4], ['e', 5, 5]],
+                         index=Index(['B2', 'B2'], name='sub'),
+                         columns=['h1', 'h3', 'h5'], ).T
+    result = df2['A']['B2']
+    tm.assert_frame_equal(result, expected)
