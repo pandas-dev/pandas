@@ -3,7 +3,7 @@ import pytest
 
 from pandas.compat import lrange, product as cart_product
 
-from pandas import DataFrame, Index, MultiIndex, concat, Series, date_range
+from pandas import DataFrame, Index, MultiIndex, Series, concat, date_range
 import pandas.core.common as com
 from pandas.util import testing as tm
 
