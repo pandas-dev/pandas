@@ -40,16 +40,21 @@ class DatetimeIndexOpsMixin(DatetimeLikeArrayMixin):
     # override DatetimeLikeArrayMixin method
     copy = Index.copy
     unique = Index.unique
-    take = Index.take
 
     # DatetimeLikeArrayMixin assumes subclasses are mutable, so these are
     # properties there.  They can be made into cache_readonly for Index
     # subclasses bc they are immutable
     inferred_freq = cache_readonly(DatetimeLikeArrayMixin.inferred_freq.fget)
     _isnan = cache_readonly(DatetimeLikeArrayMixin._isnan.fget)
-    hasnans = cache_readonly(DatetimeLikeArrayMixin.hasnans.fget)
+    hasnans = cache_readonly(DatetimeLikeArrayMixin._hasnans.fget)
+    _hasnans = hasnans  # for index / array -agnostic code
     _resolution = cache_readonly(DatetimeLikeArrayMixin._resolution.fget)
     resolution = cache_readonly(DatetimeLikeArrayMixin.resolution.fget)
+
+    # A few methods that are shared
+    _maybe_mask_results = DatetimeLikeArrayMixin._maybe_mask_results
+
+    # ------------------------------------------------------------------------
 
     def equals(self, other):
         """
@@ -445,17 +450,11 @@ class DatetimeIndexOpsMixin(DatetimeLikeArrayMixin):
 
         return algorithms.isin(self.asi8, values.asi8)
 
+    @Appender(_index_shared_docs['repeat'] % _index_doc_kwargs)
     def repeat(self, repeats, *args, **kwargs):
-        """
-        Analogous to ndarray.repeat.
-        """
         nv.validate_repeat(args, kwargs)
-        if is_period_dtype(self):
-            freq = self.freq
-        else:
-            freq = None
-        return self._shallow_copy(self.asi8.repeat(repeats),
-                                  freq=freq)
+        freq = self.freq if is_period_dtype(self) else None
+        return self._shallow_copy(self.asi8.repeat(repeats), freq=freq)
 
     @Appender(_index_shared_docs['where'] % _index_doc_kwargs)
     def where(self, cond, other=None):
