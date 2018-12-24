@@ -6,6 +6,7 @@ from pandas.compat import lrange, range, u, zip
 import pandas as pd
 from pandas import DataFrame, Index, MultiIndex, Series
 import pandas.core.common as com
+from pandas.core.indexing import IndexingError
 from pandas.util import testing as tm
 
 
@@ -176,21 +177,20 @@ def test_series_getitem_fancy(
     tm.assert_series_equal(result, expected)
 
 
-def test_series_getitem_raises_key_error(
-        multiindex_year_month_day_dataframe_random_data):
+@pytest.mark.parametrize('indexer,error,msg', [
+    (lambda s: s.__getitem__((2000, 3, 4)), KeyError, '356'),
+    (lambda s: s[(2000, 3, 4)], KeyError, '356'),
+    (lambda s: s.loc[(2000, 3, 4)], IndexingError, 'Too many indexers'),
+    (lambda s: s.__getitem__(len(s)), IndexError, 'index out of bounds'),
+    (lambda s: s[len(s)], IndexError, 'index out of bounds'),
+    (lambda s: s.iloc[len(s)], IndexError,
+     'single positional indexer is out-of-bounds')
+])
+def test_series_getitem_indexing_errors(
+        multiindex_year_month_day_dataframe_random_data, indexer, error, msg):
     s = multiindex_year_month_day_dataframe_random_data['A']
-    with pytest.raises(KeyError, match="356"):
-        s[(2000, 3, 4)]
-
-
-def test_series_getitem_corner_out_of_bound(
-        multiindex_year_month_day_dataframe_random_data):
-    # see gh-495
-    # don't segfault on out of bounds access
-    s = multiindex_year_month_day_dataframe_random_data['A']
-    msg = "index out of bounds"
-    with pytest.raises(IndexError, match=msg):
-        s[len(s)]
+    with pytest.raises(error, match=msg):
+        indexer(s)
 
 
 def test_series_getitem_corner_generator(
