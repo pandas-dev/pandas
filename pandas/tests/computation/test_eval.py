@@ -15,10 +15,11 @@ from pandas import DataFrame, Series, Panel, date_range
 from pandas.util.testing import makeCustomDataframe as mkdf
 
 from pandas.core.computation import pytables
+from pandas.core.computation.check import _NUMEXPR_VERSION
 from pandas.core.computation.engines import _engines, NumExprClobberingError
 from pandas.core.computation.expr import PythonExprVisitor, PandasExprVisitor
 from pandas.core.computation.expressions import (
-    _USE_NUMEXPR, _NUMEXPR_INSTALLED, _NUMEXPR_VERSION)
+    _USE_NUMEXPR, _NUMEXPR_INSTALLED)
 from pandas.core.computation.ops import (
     _binary_ops_dict,
     _special_case_arith_ops_syms,
