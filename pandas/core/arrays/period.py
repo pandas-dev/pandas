@@ -472,6 +472,7 @@ class PeriodArray(dtl.DatetimeLikeArrayMixin, ExtensionArray):
             The number of periods to shift. Negative values are allowed
             for shifting backwards.
         fill_value : optional, default NaT
+
             .. versionadded:: 0.24.0
 
         Returns
