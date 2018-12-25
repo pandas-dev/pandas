@@ -2009,7 +2009,7 @@ class GroupBy(_GroupBy):
             .. versionadded:: 0.24.0
         """
 
-        if freq is not None or axis != 0 or fill_value is not None:
+        if freq is not None or axis != 0 or not isna(fill_value):
             return self.apply(lambda x: x.shift(periods, freq,
                                                 axis, fill_value))
 
