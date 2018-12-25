@@ -246,7 +246,7 @@ def main():
     # external libraries (namely Sphinx) to compile this module and resolve
     # the import of `python_path` correctly. The latter is used to resolve
     # the import within the module, injecting it into the global namespace
-    #os.environ['PYTHONPATH'] = args.python_path
+    os.environ['PYTHONPATH'] = args.python_path
     sys.path.append(args.python_path)
     globals()['pandas'] = importlib.import_module('pandas')
 
