@@ -358,23 +358,16 @@ def read_excel(io,
         **kwds)
 
 
-class ExcelFile(object):
-    """
-    Class for parsing tabular excel sheets into DataFrame objects.
-    Uses xlrd. See read_excel for more documentation
+class _XlrdReader(object):
 
-    Parameters
-    ----------
-    io : string, path object (pathlib.Path or py._path.local.LocalPath),
-        file-like object or xlrd workbook
-        If a string or path object, expected to be a path to xls or xlsx file
-    engine : string, default None
-        If io is not a buffer or path, this must be set to identify io.
-        Acceptable values are None or xlrd
-    """
+    def __init__(self, filepath_or_wb):
+        """Reader using xlrd engine.
 
-    def __init__(self, io, **kwds):
-
+        Parameters
+        ----------
+        filepath_or_wb : string, path object or Workbook
+            Object to be parsed.
+        """
         err_msg = "Install xlrd >= 1.0.0 for Excel support"
 
         try:
@@ -386,46 +379,38 @@ class ExcelFile(object):
                 raise ImportError(err_msg +
                                   ". Current version " + xlrd.__VERSION__)
 
-        # could be a str, ExcelFile, Book, etc.
-        self.io = io
-        # Always a string
-        self._io = _stringify_path(io)
+        # If filepath_or_wb is a url, want to keep the data as bytes so can't
+        # pass to get_filepath_or_buffer()
+        if _is_url(filepath_or_wb):
+            filepath_or_wb = _urlopen(filepath_or_wb)
+        elif not isinstance(filepath_or_wb, (ExcelFile, xlrd.Book)):
+            filepath_or_wb, _, _, _ = get_filepath_or_buffer(filepath_or_wb)
 
-        engine = kwds.pop('engine', None)
-
-        if engine is not None and engine != 'xlrd':
-            raise ValueError("Unknown engine: {engine}".format(engine=engine))
-
-        # If io is a url, want to keep the data as bytes so can't pass
-        # to get_filepath_or_buffer()
-        if _is_url(self._io):
-            io = _urlopen(self._io)
-        elif not isinstance(self.io, (ExcelFile, xlrd.Book)):
-            io, _, _, _ = get_filepath_or_buffer(self._io)
-
-        if engine == 'xlrd' and isinstance(io, xlrd.Book):
-            self.book = io
-        elif not isinstance(io, xlrd.Book) and hasattr(io, "read"):
+        if isinstance(filepath_or_wb, xlrd.Book):
+            self.book = filepath_or_wb
+        elif not isinstance(filepath_or_wb, xlrd.Book) and hasattr(
+                filepath_or_wb, "read"):
             # N.B. xlrd.Book has a read attribute too
-            if hasattr(io, 'seek'):
+            if hasattr(filepath_or_wb, 'seek'):
                 try:
                     # GH 19779
-                    io.seek(0)
+                    filepath_or_wb.seek(0)
                 except UnsupportedOperation:
                     # HTTPResponse does not support seek()
                     # GH 20434
                     pass
 
-            data = io.read()
+            data = filepath_or_wb.read()
             self.book = xlrd.open_workbook(file_contents=data)
-        elif isinstance(self._io, compat.string_types):
-            self.book = xlrd.open_workbook(self._io)
+        elif isinstance(filepath_or_wb, compat.string_types):
+            self.book = xlrd.open_workbook(filepath_or_wb)
         else:
             raise ValueError('Must explicitly set engine if not passing in'
                              ' buffer or path for io.')
 
-    def __fspath__(self):
-        return self._io
+    @property
+    def sheet_names(self):
+        return self.book.sheet_names()
 
     def parse(self,
               sheet_name=0,
@@ -434,12 +419,13 @@ class ExcelFile(object):
               index_col=None,
               usecols=None,
               squeeze=False,
-              converters=None,
+              dtype=None,
               true_values=None,
               false_values=None,
               skiprows=None,
               nrows=None,
               na_values=None,
+              verbose=False,
               parse_dates=False,
               date_parser=None,
               thousands=None,
@@ -448,71 +434,8 @@ class ExcelFile(object):
               convert_float=True,
               mangle_dupe_cols=True,
               **kwds):
-        """
-        Parse specified sheet(s) into a DataFrame
-
-        Equivalent to read_excel(ExcelFile, ...)  See the read_excel
-        docstring for more info on accepted parameters
-        """
-
-        # Can't use _deprecate_kwarg since sheetname=None has a special meaning
-        if is_integer(sheet_name) and sheet_name == 0 and 'sheetname' in kwds:
-            warnings.warn("The `sheetname` keyword is deprecated, use "
-                          "`sheet_name` instead", FutureWarning, stacklevel=2)
-            sheet_name = kwds.pop("sheetname")
-        elif 'sheetname' in kwds:
-            raise TypeError("Cannot specify both `sheet_name` "
-                            "and `sheetname`. Use just `sheet_name`")
-
-        return self._parse_excel(sheet_name=sheet_name,
-                                 header=header,
-                                 names=names,
-                                 index_col=index_col,
-                                 usecols=usecols,
-                                 squeeze=squeeze,
-                                 converters=converters,
-                                 true_values=true_values,
-                                 false_values=false_values,
-                                 skiprows=skiprows,
-                                 nrows=nrows,
-                                 na_values=na_values,
-                                 parse_dates=parse_dates,
-                                 date_parser=date_parser,
-                                 thousands=thousands,
-                                 comment=comment,
-                                 skipfooter=skipfooter,
-                                 convert_float=convert_float,
-                                 mangle_dupe_cols=mangle_dupe_cols,
-                                 **kwds)
-
-    def _parse_excel(self,
-                     sheet_name=0,
-                     header=0,
-                     names=None,
-                     index_col=None,
-                     usecols=None,
-                     squeeze=False,
-                     dtype=None,
-                     true_values=None,
-                     false_values=None,
-                     skiprows=None,
-                     nrows=None,
-                     na_values=None,
-                     verbose=False,
-                     parse_dates=False,
-                     date_parser=None,
-                     thousands=None,
-                     comment=None,
-                     skipfooter=0,
-                     convert_float=True,
-                     mangle_dupe_cols=True,
-                     **kwds):
 
         _validate_header_arg(header)
-
-        if 'chunksize' in kwds:
-            raise NotImplementedError("chunksize keyword of read_excel "
-                                      "is not implemented")
 
         from xlrd import (xldate, XL_CELL_DATE,
                           XL_CELL_ERROR, XL_CELL_BOOLEAN,
@@ -563,7 +486,7 @@ class ExcelFile(object):
             sheets = sheet_name
             ret_dict = True
         elif sheet_name is None:
-            sheets = self.sheet_names
+            sheets = self.book.sheet_names()
             ret_dict = True
         else:
             sheets = [sheet_name]
@@ -678,9 +601,111 @@ class ExcelFile(object):
         else:
             return output[asheetname]
 
+
+class ExcelFile(object):
+    """
+    Class for parsing tabular excel sheets into DataFrame objects.
+    Uses xlrd. See read_excel for more documentation
+
+    Parameters
+    ----------
+    io : string, path object (pathlib.Path or py._path.local.LocalPath),
+        file-like object or xlrd workbook
+        If a string or path object, expected to be a path to xls or xlsx file
+    engine : string, default None
+        If io is not a buffer or path, this must be set to identify io.
+        Acceptable values are None or xlrd
+    """
+
+    _engines = {
+        'xlrd': _XlrdReader,
+    }
+
+    def __init__(self, io, engine=None):
+        if engine is None:
+            engine = 'xlrd'
+        if engine not in self._engines:
+            raise ValueError("Unknown engine: {engine}".format(engine=engine))
+
+        # could be a str, ExcelFile, Book, etc.
+        self.io = io
+        # Always a string
+        self._io = _stringify_path(io)
+
+        self._reader = self._engines[engine](self._io)
+
+    def __fspath__(self):
+        return self._io
+
+    def parse(self,
+              sheet_name=0,
+              header=0,
+              names=None,
+              index_col=None,
+              usecols=None,
+              squeeze=False,
+              converters=None,
+              true_values=None,
+              false_values=None,
+              skiprows=None,
+              nrows=None,
+              na_values=None,
+              parse_dates=False,
+              date_parser=None,
+              thousands=None,
+              comment=None,
+              skipfooter=0,
+              convert_float=True,
+              mangle_dupe_cols=True,
+              **kwds):
+        """
+        Parse specified sheet(s) into a DataFrame
+
+        Equivalent to read_excel(ExcelFile, ...)  See the read_excel
+        docstring for more info on accepted parameters
+        """
+
+        # Can't use _deprecate_kwarg since sheetname=None has a special meaning
+        if is_integer(sheet_name) and sheet_name == 0 and 'sheetname' in kwds:
+            warnings.warn("The `sheetname` keyword is deprecated, use "
+                          "`sheet_name` instead", FutureWarning, stacklevel=2)
+            sheet_name = kwds.pop("sheetname")
+        elif 'sheetname' in kwds:
+            raise TypeError("Cannot specify both `sheet_name` "
+                            "and `sheetname`. Use just `sheet_name`")
+
+        if 'chunksize' in kwds:
+            raise NotImplementedError("chunksize keyword of read_excel "
+                                      "is not implemented")
+
+        return self._reader.parse(sheet_name=sheet_name,
+                                  header=header,
+                                  names=names,
+                                  index_col=index_col,
+                                  usecols=usecols,
+                                  squeeze=squeeze,
+                                  converters=converters,
+                                  true_values=true_values,
+                                  false_values=false_values,
+                                  skiprows=skiprows,
+                                  nrows=nrows,
+                                  na_values=na_values,
+                                  parse_dates=parse_dates,
+                                  date_parser=date_parser,
+                                  thousands=thousands,
+                                  comment=comment,
+                                  skipfooter=skipfooter,
+                                  convert_float=convert_float,
+                                  mangle_dupe_cols=mangle_dupe_cols,
+                                  **kwds)
+
+    @property
+    def book(self):
+        return self._reader.book
+
     @property
     def sheet_names(self):
-        return self.book.sheet_names()
+        return self._reader.sheet_names
 
     def close(self):
         """close io if necessary"""
