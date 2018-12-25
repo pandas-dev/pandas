@@ -93,7 +93,6 @@ else:
 # (e.g. '10min.rst' or 'generated/pandas.DataFrame.head.rst')
 source_path = os.path.dirname(os.path.abspath(__file__))
 pattern = os.environ.get('SPHINX_PATTERN')
-autosummary_generate = pattern != '-api'
 if pattern:
     for dirname, dirs, fnames in os.walk(source_path):
         for fname in fnames:
@@ -117,6 +116,7 @@ with open(os.path.join(source_path, 'index.rst'), 'w') as f:
                      single_doc=(pattern
                                  if pattern is not None and pattern != '-api'
                                  else None)))
+autosummary_generate = True if pattern is None else ['index']
 
 # matplotlib plot directive
 plot_include_source = True
@@ -396,17 +396,16 @@ latex_documents = [
 # latex_use_modindex = True
 
 
-intersphinx_mapping = {
-    'statsmodels': ('http://www.statsmodels.org/devel/', None),
-    'matplotlib': ('https://matplotlib.org/', None),
-    'pandas-gbq': ('https://pandas-gbq.readthedocs.io/en/latest/', None),
-    'python': ('https://docs.python.org/3/', None),
-    'numpy': ('https://docs.scipy.org/doc/numpy/', None),
-    'scipy': ('https://docs.scipy.org/doc/scipy/reference/', None),
-    'py': ('https://pylib.readthedocs.io/en/latest/', None)
-}
-import glob
-autosummary_generate = glob.glob("*.rst")
+if pattern is None:
+    intersphinx_mapping = {
+        'statsmodels': ('http://www.statsmodels.org/devel/', None),
+        'matplotlib': ('https://matplotlib.org/', None),
+        'pandas-gbq': ('https://pandas-gbq.readthedocs.io/en/latest/', None),
+        'python': ('https://docs.python.org/3/', None),
+        'numpy': ('https://docs.scipy.org/doc/numpy/', None),
+        'scipy': ('https://docs.scipy.org/doc/scipy/reference/', None),
+        'py': ('https://pylib.readthedocs.io/en/latest/', None)
+    }
 
 # extlinks alias
 extlinks = {'issue': ('https://github.com/pandas-dev/pandas/issues/%s',

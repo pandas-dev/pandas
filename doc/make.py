@@ -46,6 +46,7 @@ class DocBuilder:
         elif not include_api:
             os.environ['SPHINX_PATTERN'] = '-api'
 
+        self.single_doc_html = None
         if single_doc and single_doc.endswith('.rst'):
             self.single_doc_html = os.path.splitext(single_doc)[0] + '.html'
         elif single_doc:
