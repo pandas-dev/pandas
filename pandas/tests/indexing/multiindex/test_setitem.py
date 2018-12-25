@@ -408,7 +408,3 @@ class TestMultiIndexSetItem(object):
 
         df['A'] = df['A'].astype(np.float64)
         tm.assert_index_equal(df.index, index)
-
-        # TODO(wesm): unused variables
-        # result = df.get_dtype_counts().sort_index()
-        # expected = Series({'float64': 2, 'object': 1}).sort_index()
