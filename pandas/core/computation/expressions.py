@@ -160,6 +160,8 @@ set_use_numexpr(get_option('compute.use_numexpr'))
 
 def _has_bool_dtype(x):
     try:
+        if not isinstance(x.dtype, np.dtype):
+            x = x.rename({'dtype': 'temporary_dtype'}, axis=1)
         return x.dtype == bool
     except AttributeError:
         try:
