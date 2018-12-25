@@ -863,14 +863,11 @@ def test_groupby_multiindex_categorical_datetime():
     assert_frame_equal(result, expected)
 
 
-def test_shift():
+@pytest.mark.parametrize('fill_value', [None, np.nan, pd.NaT])
+def test_shift(fill_value):
     ct = pd.Categorical(['a', 'b', 'c', 'd'],
                         categories=['a', 'b', 'c', 'd'], ordered=False)
     expected = pd.Categorical([None, 'a', 'b', 'c'],
                               categories=['a', 'b', 'c', 'd'], ordered=False)
-    res = ct.shift(1)
-    assert_equal(res, expected)
-    res = ct.shift(1, fill_value=np.nan)
-    assert_equal(res, expected)
-    res = ct.shift(1, fill_value=pd.NaT)
+    res = ct.shift(1, fill_value=fill_value)
     assert_equal(res, expected)
