@@ -299,11 +299,12 @@ class TestArithmeticOps(BaseDecimal, base.BaseArithmeticOpsTests):
     def test_error(self):
         pass
 
-    def test_arith_diff_lengths(self):
-        # TODO
-        # Raise ValueError when carrying out arithmetic operation
-        # on two decimal arrays of different lengths
-        pass
+    # TODO
+    # Raise ValueError when carrying out arithmetic operation
+    # on two decimal arrays of different lengths
+    @pytest.mark.xfail(reason="raise of ValueError not implemented")
+    def test_arith_diff_lengths(self, data, all_compare_operators):
+        super().test_arith_diff_lengths(data, all_compare_operators)
 
 
 class TestComparisonOps(BaseDecimal, base.BaseComparisonOpsTests):
@@ -330,10 +331,11 @@ class TestComparisonOps(BaseDecimal, base.BaseComparisonOpsTests):
                                    for i in alter]
         self._compare_other(s, data, op_name, other)
 
-    def test_compare_diff_lengths(self):
-        # TODO:
-        # Raise ValueError when comparing decimal arrays of different lenghts
-        pass
+    # TODO:
+    # Raise ValueError when comparing decimal arrays of different lenghts
+    @pytest.mark.xfail(reason="raise of ValueError not implemented")
+    def test_compare_diff_lengths(self, data, all_compare_operators):
+        super().test_compare_diff_lenths(data, all_compare_operators)
 
 
 class DecimalArrayWithoutFromSequence(DecimalArray):
