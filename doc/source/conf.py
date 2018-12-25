@@ -114,15 +114,9 @@ with open(os.path.join(source_path, 'index.rst.template')) as f:
     t = jinja2.Template(f.read())
 with open(os.path.join(source_path, 'index.rst'), 'w') as f:
     f.write(t.render(include_api=pattern is None,
-                     single_doc=(os.path.splitext(pattern)[0]
+                     single_doc=(pattern
                                  if pattern is not None and pattern != '-api'
                                  else None)))
-
-# numpydoc
-# for now use old parameter listing (styling + **kwargs problem)
-numpydoc_use_blockquotes = True
-# use member listing for attributes
-numpydoc_attributes_as_param_list = False
 
 # matplotlib plot directive
 plot_include_source = True

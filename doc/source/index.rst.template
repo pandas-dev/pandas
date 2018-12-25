@@ -106,17 +106,21 @@ Some other notes
 See the package overview for more detail about what's in the library.
 
 
-{% if single_doc and single_doc.startswith('generated') -%}
+{% if single_doc and single_doc.endswith('.rst') -%}
+.. toctree::
+    :maxdepth: 4
+
+    {{ single_doc[:-4] }}
+{% elif single_doc %}
 .. autosummary::
     :toctree: generated/
+
+    {{ single_doc }}
 {% else -%}
 .. toctree::
     :maxdepth: 4
 {% endif %}
 
-    {% if single_doc -%}
-    {{ single_doc }}
-    {% endif -%}
     {% if not single_doc -%}
     What's New <whatsnew/v0.24.0>
     install

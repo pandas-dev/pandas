@@ -15,9 +15,8 @@ import importlib
 import sys
 import os
 import shutil
-# import subprocess
+import subprocess
 import argparse
-from contextlib import contextmanager
 import webbrowser
 
 
@@ -47,12 +46,11 @@ class DocBuilder:
         elif not include_api:
             os.environ['SPHINX_PATTERN'] = '-api'
 
-        # if self.single_doc_type == 'docstring':
-        #    self._run_os('sphinx-autogen', os.path.join(SOURCE_PATH, 'index.rst'))
-
-        if single_doc:
+        if single_doc and single_doc.endswith('.rst'):
             self.single_doc_html = os.path.splitext(single_doc)[0] + '.html'
-
+        elif single_doc:
+            self.single_doc_html = 'generated/pandas.{}.html'.format(
+                single_doc)
 
     def _process_single_doc(self, single_doc):
         """
@@ -78,7 +76,7 @@ class DocBuilder:
             except AttributeError:
                 raise ImportError('Could not import {}'.format(single_doc))
             else:
-                return os.path.join('generated', '{}.rst'.format(single_doc))
+                return single_doc[len('pandas.'):]
         else:
             raise ValueError('--single value should be a valid path to a '
                              '.rst or .ipynb file, or a valid pandas object '
@@ -98,14 +96,7 @@ class DocBuilder:
         --------
         >>> DocBuilder()._run_os('python', '--version')
         """
-        # TODO check_call should be more safe, but it fails with
-        # exclude patterns, needs investigation
-        # subprocess.check_call(args, stderr=subprocess.STDOUT)
-        exit_status = os.system(' '.join(args))
-        if exit_status:
-            msg = 'Command "{}" finished with exit code {}'
-            raise RuntimeError(msg.format(' '.join(args), exit_status))
-        #subprocess.check_call(args, stderr=subprocess.STDOUT)
+        subprocess.check_call(args, stdout=sys.stdout, stderr=sys.stderr)
 
     def _sphinx_build(self, kind):
         """
@@ -125,21 +116,26 @@ class DocBuilder:
             raise ValueError('kind must be html or latex, '
                              'not {}'.format(kind))
 
-        self._run_os('sphinx-build',
-                     '-j{}'.format(self.num_jobs),
-                     '-b{}'.format(kind),
-                     '-W' if self.warnings_are_errors else '',
-                     '-{}'.format(
-                         'v' * self.verbosity) if self.verbosity else '',
-                     '-d"{}"'.format(os.path.join(BUILD_PATH, 'doctrees')),
-                     '"{}"'.format(SOURCE_PATH),
-                     '"{}"'.format(os.path.join(BUILD_PATH, kind)))
+        self.clean()
+
+        cmd = ['sphinx-build', '-b', kind]
+        if self.num_jobs:
+            cmd += ['-j', str(self.num_jobs)]
+        if self.warnings_are_errors:
+            cmd.append('-W')
+        if self.verbosity:
+            cmd.append('-{}'.format('v' * self.verbosity))
+        cmd += ['-d', os.path.join(BUILD_PATH, 'doctrees'),
+                SOURCE_PATH, os.path.join(BUILD_PATH, kind)]
+        cmd = ['sphinx-build', SOURCE_PATH, os.path.join(BUILD_PATH, kind)]
+        self._run_os(*cmd)
 
     def _open_browser(self, single_doc_html):
         """
         Open a browser tab showing single
         """
-        url = os.path.join('file://', DOC_PATH, 'build', 'html', single_doc_html)
+        url = os.path.join('file://', DOC_PATH, 'build', 'html',
+                           single_doc_html)
         webbrowser.open(url, new=2)
 
     def html(self):
@@ -217,7 +213,7 @@ def main():
                            help='command to run: {}'.format(', '.join(cmds)))
     argparser.add_argument('--num-jobs',
                            type=int,
-                           default=1,
+                           default=0,
                            help='number of jobs used by sphinx-build')
     argparser.add_argument('--no-api',
                            default=False,
@@ -249,7 +245,7 @@ def main():
     # external libraries (namely Sphinx) to compile this module and resolve
     # the import of `python_path` correctly. The latter is used to resolve
     # the import within the module, injecting it into the global namespace
-    os.environ['PYTHONPATH'] = args.python_path
+    #os.environ['PYTHONPATH'] = args.python_path
     sys.path.append(args.python_path)
     globals()['pandas'] = importlib.import_module('pandas')
 
