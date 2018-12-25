@@ -64,13 +64,6 @@ def ne_lt_2_6_9():
     return 'numexpr'
 
 
-@pytest.fixture
-def ne_gt_2_6_9():
-    if _NUMEXPR_INSTALLED and _NUMEXPR_VERSION < LooseVersion('2.6.9'):
-        pytest.skip("numexpr is < 2.6.9")
-    return 'numexpr'
-
-
 def engine_has_neg_frac(engine):
     return _engines[engine].has_neg_frac
 
