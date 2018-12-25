@@ -1,14 +1,6 @@
-.. currentmodule:: pandas
 .. _text:
 
-.. ipython:: python
-   :suppress:
-
-   import numpy as np
-   import pandas as pd
-
-   np.set_printoptions(precision=4, suppress=True)
-   pd.options.display.max_rows = 15
+{{ header }}
 
 ======================
 Working with Text Data
@@ -317,8 +309,8 @@ All one-dimensional list-likes can be combined in a list-like container (includi
 
     s
     u
-    s.str.cat([u.values,
-               u.index.astype(str).values], na_rep='-')
+    s.str.cat([u.array,
+               u.index.astype(str).array], na_rep='-')
 
 All elements must match in length to the calling ``Series`` (or ``Index``), except those having an index if ``join`` is not None:
 

@@ -9,6 +9,14 @@ from pandas import Index, Timedelta, TimedeltaIndex, compat, timedelta_range
 
 
 class TestGetItem(object):
+    def test_ellipsis(self):
+        # GH#21282
+        idx = timedelta_range('1 day', '31 day', freq='D', name='idx')
+
+        result = idx[...]
+        assert result.equals(idx)
+        assert result is not idx
+
     def test_getitem(self):
         idx1 = timedelta_range('1 day', '31 day', freq='D', name='idx')
 
@@ -115,7 +123,7 @@ class TestTake(object):
     # TODO: This method came from test_timedelta; de-dup with version above
     def test_take2(self):
         tds = ['1day 02:00:00', '1 day 04:00:00', '1 day 10:00:00']
-        idx = TimedeltaIndex(start='1d', end='2d', freq='H', name='idx')
+        idx = timedelta_range(start='1d', end='2d', freq='H', name='idx')
         expected = TimedeltaIndex(tds, freq=None, name='idx')
 
         taken1 = idx.take([2, 4, 10])

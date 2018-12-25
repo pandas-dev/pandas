@@ -846,6 +846,7 @@ DataFrame\\.index values are different \\(100\\.0 %\\)
         assert_frame_equal(result, expected)
 
     @network
+    @pytest.mark.single
     def test_round_trip_exception_(self):
         # GH 3867
         csv = 'https://raw.github.com/hayd/lahman2012/master/csvs/Teams.csv'
@@ -856,6 +857,7 @@ DataFrame\\.index values are different \\(100\\.0 %\\)
             index=df.index, columns=df.columns), df)
 
     @network
+    @pytest.mark.single
     def test_url(self):
         url = 'https://api.github.com/repos/pandas-dev/pandas/issues?per_page=5'  # noqa
         result = read_json(url, convert_dates=True)
@@ -1024,7 +1026,8 @@ DataFrame\\.index values are different \\(100\\.0 %\\)
         dti = pd.DatetimeIndex(tz_range)
         assert dumps(dti, iso_dates=True) == exp
         df = DataFrame({'DT': dti})
-        assert dumps(df, iso_dates=True) == dfexp
+        result = dumps(df, iso_dates=True)
+        assert result == dfexp
 
         tz_range = pd.date_range('2013-01-01 00:00:00', periods=2,
                                  tz='US/Eastern')

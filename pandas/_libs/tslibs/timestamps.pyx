@@ -1,5 +1,4 @@
 # -*- coding: utf-8 -*-
-import enum
 import warnings
 
 from cpython cimport (PyObject_RichCompareBool, PyObject_RichCompare,
@@ -26,8 +25,7 @@ from conversion import tz_localize_to_utc, normalize_i8_timestamps
 from conversion cimport (tz_convert_single, _TSObject,
                          convert_to_tsobject, convert_datetime_to_tsobject)
 from fields import get_start_end_field, get_date_name_field
-from nattype import NaT
-from nattype cimport NPY_NAT
+from nattype cimport NPY_NAT, c_NaT as NaT
 from np_datetime import OutOfBoundsDatetime
 from np_datetime cimport (reverse_ops, cmp_scalar, check_dts_bounds,
                           npy_datetimestruct, dt64_to_dtstruct)
@@ -72,8 +70,7 @@ cdef inline object create_timestamp_from_ts(int64_t value,
     return ts_base
 
 
-@enum.unique
-class RoundTo(enum.Enum):
+class RoundTo(object):
     """
     enumeration defining the available rounding modes
 
@@ -106,11 +103,25 @@ class RoundTo(enum.Enum):
     .. [6] "Round half to even"
            https://en.wikipedia.org/wiki/Rounding#Round_half_to_even
     """
-    MINUS_INFTY = 0
-    PLUS_INFTY = 1
-    NEAREST_HALF_EVEN = 2
-    NEAREST_HALF_PLUS_INFTY = 3
-    NEAREST_HALF_MINUS_INFTY = 4
+    @property
+    def MINUS_INFTY(self):
+        return 0
+
+    @property
+    def PLUS_INFTY(self):
+        return 1
+
+    @property
+    def NEAREST_HALF_EVEN(self):
+        return 2
+
+    @property
+    def NEAREST_HALF_PLUS_INFTY(self):
+        return 3
+
+    @property
+    def NEAREST_HALF_MINUS_INFTY(self):
+        return 4
 
 
 cdef inline _npdivmod(x1, x2):
@@ -153,20 +164,17 @@ def round_nsint64(values, mode, freq):
     :obj:`ndarray`
     """
 
-    if not isinstance(mode, RoundTo):
-        raise ValueError('mode should be a RoundTo member')
-
     unit = to_offset(freq).nanos
 
-    if mode is RoundTo.MINUS_INFTY:
+    if mode == RoundTo.MINUS_INFTY:
         return _floor_int64(values, unit)
-    elif mode is RoundTo.PLUS_INFTY:
+    elif mode == RoundTo.PLUS_INFTY:
         return _ceil_int64(values, unit)
-    elif mode is RoundTo.NEAREST_HALF_MINUS_INFTY:
+    elif mode == RoundTo.NEAREST_HALF_MINUS_INFTY:
         return _rounddown_int64(values, unit)
-    elif mode is RoundTo.NEAREST_HALF_PLUS_INFTY:
+    elif mode == RoundTo.NEAREST_HALF_PLUS_INFTY:
         return _roundup_int64(values, unit)
-    elif mode is RoundTo.NEAREST_HALF_EVEN:
+    elif mode == RoundTo.NEAREST_HALF_EVEN:
         # for odd unit there is no need of a tie break
         if unit % 2:
             return _rounddown_int64(values, unit)
@@ -180,8 +188,8 @@ def round_nsint64(values, mode, freq):
 
     # if/elif above should catch all rounding modes defined in enum 'RoundTo':
     # if flow of control arrives here, it is a bug
-    raise AssertionError("round_nsint64 called with an unrecognized "
-                         "rounding mode")
+    raise ValueError("round_nsint64 called with an unrecognized "
+                     "rounding mode")
 
 
 # This is PITA. Because we inherit from datetime, which has very specific
@@ -377,13 +385,15 @@ cdef class _Timestamp(datetime):
             neg_other = -other
             return self + neg_other
 
+        typ = getattr(other, '_typ', None)
+
         # a Timestamp-DatetimeIndex -> yields a negative TimedeltaIndex
-        elif getattr(other, '_typ', None) == 'datetimeindex':
+        if typ in ('datetimeindex', 'datetimearray'):
             # timezone comparison is performed in DatetimeIndex._sub_datelike
             return -other.__sub__(self)
 
         # a Timestamp-TimedeltaIndex -> yields a negative TimedeltaIndex
-        elif getattr(other, '_typ', None) == 'timedeltaindex':
+        elif typ in ('timedeltaindex', 'timedeltaarray'):
             return (-other).__add__(self)
 
         elif other is NaT:
@@ -766,10 +776,6 @@ class Timestamp(_Timestamp):
         """
         Round the Timestamp to the specified resolution
 
-        Returns
-        -------
-        a new Timestamp rounded to the given resolution of `freq`
-
         Parameters
         ----------
         freq : a freq string indicating the rounding resolution
@@ -791,6 +797,10 @@ class Timestamp(_Timestamp):
               nonexistent times
 
             .. versionadded:: 0.24.0
+
+        Returns
+        -------
+        a new Timestamp rounded to the given resolution of `freq`
 
         Raises
         ------

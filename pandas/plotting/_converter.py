@@ -1,39 +1,32 @@
-import warnings
-from datetime import datetime, timedelta
 import datetime as pydt
-import numpy as np
+from datetime import datetime, timedelta
+import warnings
 
 from dateutil.relativedelta import relativedelta
-
-import matplotlib.units as units
 import matplotlib.dates as dates
-
-from matplotlib.ticker import Formatter, AutoLocator, Locator
+from matplotlib.ticker import AutoLocator, Formatter, Locator
 from matplotlib.transforms import nonsingular
+import matplotlib.units as units
+import numpy as np
 
-from pandas._libs import tslibs
+from pandas._libs import lib, tslibs
 from pandas._libs.tslibs import resolution
+import pandas.compat as compat
+from pandas.compat import lrange
 
 from pandas.core.dtypes.common import (
-    is_float, is_integer,
-    is_integer_dtype,
-    is_float_dtype,
-    is_datetime64_ns_dtype,
-    is_period_arraylike,
-    is_nested_list_like
-)
+    is_datetime64_ns_dtype, is_float, is_float_dtype, is_integer,
+    is_integer_dtype, is_nested_list_like)
 from pandas.core.dtypes.generic import ABCSeries
 
-from pandas.compat import lrange
-import pandas.compat as compat
 import pandas.core.common as com
 from pandas.core.index import Index
-
 from pandas.core.indexes.datetimes import date_range
+from pandas.core.indexes.period import Period, PeriodIndex
 import pandas.core.tools.datetimes as tools
+
 import pandas.tseries.frequencies as frequencies
 from pandas.tseries.frequencies import FreqGroup
-from pandas.core.indexes.period import Period, PeriodIndex
 
 # constants
 HOURS_PER_DAY = 24.
@@ -62,7 +55,8 @@ def get_pairs():
 
 
 def register(explicit=True):
-    """Register Pandas Formatters and Converters with matplotlib
+    """
+    Register Pandas Formatters and Converters with matplotlib
 
     This function modifies the global ``matplotlib.units.registry``
     dictionary. Pandas adds custom converters for
@@ -94,7 +88,8 @@ def register(explicit=True):
 
 
 def deregister():
-    """Remove pandas' formatters and converters
+    """
+    Remove pandas' formatters and converters
 
     Removes the custom converters added by :func:`register`. This
     attempts to set the state of the registry back to the state before
@@ -247,13 +242,15 @@ class PeriodConverter(dates.DateConverter):
         if (isinstance(values, valid_types) or is_integer(values) or
                 is_float(values)):
             return get_datevalue(values, axis.freq)
-        if isinstance(values, PeriodIndex):
+        elif isinstance(values, PeriodIndex):
             return values.asfreq(axis.freq)._ndarray_values
-        if isinstance(values, Index):
+        elif isinstance(values, Index):
             return values.map(lambda x: get_datevalue(x, axis.freq))
-        if is_period_arraylike(values):
+        elif lib.infer_dtype(values) == 'period':
+            # https://github.com/pandas-dev/pandas/issues/24304
+            # convert ndarray[period] -> PeriodIndex
             return PeriodIndex(values, freq=axis.freq)._ndarray_values
-        if isinstance(values, (list, tuple, np.ndarray, Index)):
+        elif isinstance(values, (list, tuple, np.ndarray, Index)):
             return [get_datevalue(x, axis.freq) for x in values]
         return values
 

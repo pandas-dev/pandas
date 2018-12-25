@@ -250,7 +250,7 @@ c2f_dict = {'complex': np.float64,
             'complex128': np.float64,
             'complex64': np.float32}
 
-# numpy 1.6.1 compat
+# windows (32 bit) compat
 if hasattr(np, 'float128'):
     c2f_dict['complex256'] = np.float128
 
@@ -604,8 +604,8 @@ def decode(obj):
 
     elif typ == u'datetime_index':
         data = unconvert(obj[u'data'], np.int64, obj.get(u'compress'))
-        d = dict(name=obj[u'name'], freq=obj[u'freq'], verify_integrity=False)
-        result = globals()[obj[u'klass']](data, **d)
+        d = dict(name=obj[u'name'], freq=obj[u'freq'])
+        result = DatetimeIndex(data, **d)
         tz = obj[u'tz']
 
         # reverse tz conversion

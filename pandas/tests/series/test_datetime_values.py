@@ -335,8 +335,8 @@ class TestSeriesDatetimeValues():
                 expected_days = calendar.day_name[:]
                 expected_months = calendar.month_name[1:]
 
-        s = Series(DatetimeIndex(freq='D', start=datetime(1998, 1, 1),
-                                 periods=365))
+        s = Series(date_range(freq='D', start=datetime(1998, 1, 1),
+                              periods=365))
         english_days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday',
                         'Friday', 'Saturday', 'Sunday']
         for day, name, eng_name in zip(range(4, 11),
@@ -348,7 +348,7 @@ class TestSeriesDatetimeValues():
         s = s.append(Series([pd.NaT]))
         assert np.isnan(s.dt.day_name(locale=time_locale).iloc[-1])
 
-        s = Series(DatetimeIndex(freq='M', start='2012', end='2013'))
+        s = Series(date_range(freq='M', start='2012', end='2013'))
         result = s.dt.month_name(locale=time_locale)
         expected = Series([month.capitalize() for month in expected_months])
 
@@ -531,27 +531,19 @@ class TestSeriesDatetimeValues():
         result = s.dt.timetz
         tm.assert_series_equal(result, expected)
 
-    @pytest.mark.parametrize('nat', [
-        pd.Series([pd.NaT, pd.NaT]),
-        pd.Series([pd.NaT, pd.Timedelta('nat')]),
-        pd.Series([pd.Timedelta('nat'), pd.Timedelta('nat')])])
-    def test_minmax_nat_series(self, nat):
-        # GH 23282
-        assert nat.min() is pd.NaT
-        assert nat.max() is pd.NaT
-
-    @pytest.mark.parametrize('nat', [
-        # GH 23282
-        pd.DataFrame([pd.NaT, pd.NaT]),
-        pd.DataFrame([pd.NaT, pd.Timedelta('nat')]),
-        pd.DataFrame([pd.Timedelta('nat'), pd.Timedelta('nat')])])
-    def test_minmax_nat_dataframe(self, nat):
-        assert nat.min()[0] is pd.NaT
-        assert nat.max()[0] is pd.NaT
-
     def test_setitem_with_string_index(self):
         # GH 23451
         x = pd.Series([1, 2, 3], index=['Date', 'b', 'other'])
         x['Date'] = date.today()
         assert x.Date == date.today()
         assert x['Date'] == date.today()
+
+    def test_setitem_with_different_tz(self):
+        # GH#24024
+        ser = pd.Series(pd.date_range('2000', periods=2, tz="US/Central"))
+        ser[0] = pd.Timestamp("2000", tz='US/Eastern')
+        expected = pd.Series([
+            pd.Timestamp("2000-01-01 00:00:00-05:00", tz="US/Eastern"),
+            pd.Timestamp("2000-01-02 00:00:00-06:00", tz="US/Central"),
+        ], dtype=object)
+        tm.assert_series_equal(ser, expected)

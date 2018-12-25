@@ -15,8 +15,8 @@ from pandas.util._decorators import Appender, Substitution, cache_readonly
 from pandas.util._validators import validate_bool_kwarg
 
 from pandas.core.dtypes.common import (
-    is_datetimelike, is_extension_array_dtype, is_extension_type, is_list_like,
-    is_object_dtype, is_scalar)
+    is_datetime64tz_dtype, is_datetimelike, is_extension_array_dtype,
+    is_extension_type, is_list_like, is_object_dtype, is_scalar)
 from pandas.core.dtypes.generic import ABCDataFrame, ABCIndexClass, ABCSeries
 from pandas.core.dtypes.missing import isna
 
@@ -631,7 +631,9 @@ class SelectionMixin(object):
             return result
 
     def _shallow_copy(self, obj=None, obj_type=None, **kwargs):
-        """ return a new object with the replacement attributes """
+        """
+        return a new object with the replacement attributes
+        """
         if obj is None:
             obj = self._selected_obj.copy()
         if obj_type is None:
@@ -644,7 +646,9 @@ class SelectionMixin(object):
         return obj_type(obj, **kwargs)
 
     def _is_cython_func(self, arg):
-        """ if we define an internal function for this argument, return it """
+        """
+        if we define an internal function for this argument, return it
+        """
         return self._cython_table.get(arg)
 
     def _is_builtin_func(self, arg):
@@ -675,7 +679,8 @@ class IndexOpsMixin(object):
 
     @property
     def _is_homogeneous_type(self):
-        """Whether the object has a single dtype.
+        """
+        Whether the object has a single dtype.
 
         By definition, Series and Index are always considered homogeneous.
         A MultiIndex may or may not be homogeneous, depending on the
@@ -778,9 +783,166 @@ class IndexOpsMixin(object):
         return self.values.base
 
     @property
+    def array(self):
+        # type: () -> Union[np.ndarray, ExtensionArray]
+        """
+        The actual Array backing this Series or Index.
+
+        .. versionadded:: 0.24.0
+
+        Returns
+        -------
+        array : numpy.ndarray or ExtensionArray
+            This is the actual array stored within this object. This differs
+            from ``.values`` which may require converting the data
+            to a different form.
+
+        See Also
+        --------
+        Index.to_numpy : Similar method that always returns a NumPy array.
+        Series.to_numpy : Similar method that always returns a NumPy array.
+
+        Notes
+        -----
+        This table lays out the different array types for each extension
+        dtype within pandas.
+
+        ================== =============================
+        dtype              array type
+        ================== =============================
+        category           Categorical
+        period             PeriodArray
+        interval           IntervalArray
+        IntegerNA          IntegerArray
+        datetime64[ns, tz] DatetimeArray
+        ================== =============================
+
+        For any 3rd-party extension types, the array type will be an
+        ExtensionArray.
+
+        For all remaining dtypes ``.array`` will be the :class:`numpy.ndarray`
+        stored within. If you absolutely need a NumPy array (possibly with
+        copying / coercing data), then use :meth:`Series.to_numpy` instead.
+
+        .. note::
+
+           ``.array`` will always return the underlying object backing the
+           Series or Index. If a future version of pandas adds a specialized
+           extension type for a data type, then the return type of ``.array``
+           for that data type will change from an object-dtype ndarray to the
+           new ExtensionArray.
+
+        Examples
+        --------
+        >>> ser = pd.Series(pd.Categorical(['a', 'b', 'a']))
+        >>> ser.array
+        [a, b, a]
+        Categories (2, object): [a, b]
+        """
+        return self._values
+
+    def to_numpy(self, dtype=None, copy=False):
+        """
+        A NumPy ndarray representing the values in this Series or Index.
+
+        .. versionadded:: 0.24.0
+
+
+        Parameters
+        ----------
+        dtype : str or numpy.dtype, optional
+            The dtype to pass to :meth:`numpy.asarray`
+        copy : bool, default False
+            Whether to ensure that the returned value is a not a view on
+            another array. Note that ``copy=False`` does not *ensure* that
+            ``to_numpy()`` is no-copy. Rather, ``copy=True`` ensure that
+            a copy is made, even if not strictly necessary.
+
+        Returns
+        -------
+        numpy.ndarray
+
+        See Also
+        --------
+        Series.array : Get the actual data stored within.
+        Index.array : Get the actual data stored within.
+        DataFrame.to_numpy : Similar method for DataFrame.
+
+        Notes
+        -----
+        The returned array will be the same up to equality (values equal
+        in `self` will be equal in the returned array; likewise for values
+        that are not equal). When `self` contains an ExtensionArray, the
+        dtype may be different. For example, for a category-dtype Series,
+        ``to_numpy()`` will return a NumPy array and the categorical dtype
+        will be lost.
+
+
+        For NumPy dtypes, this will be a reference to the actual data stored
+        in this Series or Index (assuming ``copy=False``). Modifying the result
+        in place will modify the data stored in the Series or Index (not that
+        we recommend doing that).
+
+        For extension types, ``to_numpy()`` *may* require copying data and
+        coercing the result to a NumPy type (possibly object), which may be
+        expensive. When you need a no-copy reference to the underlying data,
+        :attr:`Series.array` should be used instead.
+
+        This table lays out the different dtypes and return types of
+        ``to_numpy()`` for various dtypes within pandas.
+
+        ================== ================================
+        dtype              array type
+        ================== ================================
+        category[T]        ndarray[T] (same dtype as input)
+        period             ndarray[object] (Periods)
+        interval           ndarray[object] (Intervals)
+        IntegerNA          ndarray[object]
+        datetime64[ns, tz] ndarray[object] (Timestamps)
+        ================== ================================
+
+        Examples
+        --------
+        >>> ser = pd.Series(pd.Categorical(['a', 'b', 'a']))
+        >>> ser.to_numpy()
+        array(['a', 'b', 'a'], dtype=object)
+
+        Specify the `dtype` to control how datetime-aware data is represented.
+        Use ``dtype=object`` to return an ndarray of pandas :class:`Timestamp`
+        objects, each with the correct ``tz``.
+
+        >>> ser = pd.Series(pd.date_range('2000', periods=2, tz="CET"))
+        >>> ser.to_numpy(dtype=object)
+        array([Timestamp('2000-01-01 00:00:00+0100', tz='CET', freq='D'),
+               Timestamp('2000-01-02 00:00:00+0100', tz='CET', freq='D')],
+              dtype=object)
+
+        Or ``dtype='datetime64[ns]'`` to return an ndarray of native
+        datetime64 values. The values are converted to UTC and the timezone
+        info is dropped.
+
+        >>> ser.to_numpy(dtype="datetime64[ns]")
+        ... # doctest: +ELLIPSIS
+        array(['1999-12-31T23:00:00.000000000', '2000-01-01T23:00:00...'],
+              dtype='datetime64[ns]')
+        """
+        if (is_extension_array_dtype(self.dtype) or
+                is_datetime64tz_dtype(self.dtype)):
+            # TODO(DatetimeArray): remove the second clause.
+            # TODO(GH-24345): Avoid potential double copy
+            result = np.asarray(self._values, dtype=dtype)
+        else:
+            result = self._values
+
+        if copy:
+            result = result.copy()
+        return result
+
+    @property
     def _ndarray_values(self):
         # type: () -> np.ndarray
-        """The data as an ndarray, possibly losing information.
+        """
+        The data as an ndarray, possibly losing information.
 
         The expectation is that this is cheap to compute, and is primarily
         used for interacting with our indexers.
@@ -788,7 +950,7 @@ class IndexOpsMixin(object):
         - categorical -> codes
         """
         if is_extension_array_dtype(self):
-            return self.values._ndarray_values
+            return self.array._ndarray_values
         return self.values
 
     @property
@@ -900,6 +1062,8 @@ class IndexOpsMixin(object):
         else:
             return self._values.tolist()
 
+    to_list = tolist
+
     def __iter__(self):
         """
         Return an iterator of the values.
@@ -927,7 +1091,8 @@ class IndexOpsMixin(object):
         return func(**kwds)
 
     def _map_values(self, mapper, na_action=None):
-        """An internal function that maps values using the input
+        """
+        An internal function that maps values using the input
         correspondence (which can be a dict, Series, or function).
 
         Parameters
@@ -1118,7 +1283,7 @@ class IndexOpsMixin(object):
     @property
     def is_unique(self):
         """
-        Return boolean if values in the object are unique
+        Return boolean if values in the object are unique.
 
         Returns
         -------
@@ -1130,7 +1295,7 @@ class IndexOpsMixin(object):
     def is_monotonic(self):
         """
         Return boolean if values in the object are
-        monotonic_increasing
+        monotonic_increasing.
 
         .. versionadded:: 0.19.0
 
@@ -1147,7 +1312,7 @@ class IndexOpsMixin(object):
     def is_monotonic_decreasing(self):
         """
         Return boolean if values in the object are
-        monotonic_decreasing
+        monotonic_decreasing.
 
         .. versionadded:: 0.19.0
 
@@ -1172,21 +1337,21 @@ class IndexOpsMixin(object):
         -------
         bytes used
 
+        See Also
+        --------
+        numpy.ndarray.nbytes
+
         Notes
         -----
         Memory usage does not include memory consumed by elements that
         are not components of the array if deep=False or if used on PyPy
-
-        See Also
-        --------
-        numpy.ndarray.nbytes
         """
-        if hasattr(self.values, 'memory_usage'):
-            return self.values.memory_usage(deep=deep)
+        if hasattr(self.array, 'memory_usage'):
+            return self.array.memory_usage(deep=deep)
 
-        v = self.values.nbytes
+        v = self.array.nbytes
         if deep and is_object_dtype(self) and not PYPY:
-            v += lib.memory_usage_of_objects(self.values)
+            v += lib.memory_usage_of_objects(self.array)
         return v
 
     @Substitution(
@@ -1201,7 +1366,8 @@ class IndexOpsMixin(object):
         return algorithms.factorize(self, sort=sort, na_sentinel=na_sentinel)
 
     _shared_docs['searchsorted'] = (
-        """Find indices where elements should be inserted to maintain order.
+        """
+        Find indices where elements should be inserted to maintain order.
 
         Find the indices into a sorted %(klass)s `self` such that, if the
         corresponding elements in `value` were inserted before the indices,
@@ -1221,8 +1387,14 @@ class IndexOpsMixin(object):
 
         Returns
         -------
-        indices : array of ints
-            Array of insertion points with the same shape as `value`.
+        int or array of int
+            A scalar or array of insertion points with the
+            same shape as `value`.
+
+            .. versionchanged :: 0.24.0
+                If `value` is a scalar, an int is now always returned.
+                Previously, scalar inputs returned an 1-item array for
+                :class:`Series` and :class:`Categorical`.
 
         See Also
         --------
@@ -1243,7 +1415,7 @@ class IndexOpsMixin(object):
         dtype: int64
 
         >>> x.searchsorted(4)
-        array([3])
+        3
 
         >>> x.searchsorted([0, 4])
         array([0, 3])
@@ -1260,7 +1432,7 @@ class IndexOpsMixin(object):
         Categories (4, object): [apple < bread < cheese < milk]
 
         >>> x.searchsorted('bread')
-        array([1])     # Note: an array, not a scalar
+        1
 
         >>> x.searchsorted(['bread'], side='right')
         array([3])

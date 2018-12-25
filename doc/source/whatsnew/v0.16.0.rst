@@ -3,7 +3,8 @@
 v0.16.0 (March 22, 2015)
 ------------------------
 
-{{ common_imports }}
+{{ header }}
+
 
 This is a major release from 0.15.2 and includes a small number of API changes, several new features,
 enhancements, and performance improvements along with a large number of bug fixes. We recommend that all
@@ -52,7 +53,7 @@ and the entire DataFrame (with all original and new columns) is returned.
 
 .. ipython :: python
 
-   iris = read_csv('data/iris.data')
+   iris = pd.read_csv('data/iris.data')
    iris.head()
 
    iris.assign(sepal_ratio=iris['SepalWidth'] / iris['SepalLength']).head()
@@ -71,9 +72,10 @@ calculate the ratio, and plot
 
 .. ipython:: python
 
+   iris = pd.read_csv('data/iris.data')
    (iris.query('SepalLength > 5')
-        .assign(SepalRatio = lambda x: x.SepalWidth / x.SepalLength,
-                PetalRatio = lambda x: x.PetalWidth / x.PetalLength)
+        .assign(SepalRatio=lambda x: x.SepalWidth / x.SepalLength,
+                PetalRatio=lambda x: x.PetalWidth / x.PetalLength)
         .plot(kind='scatter', x='SepalRatio', y='PetalRatio'))
 
 .. image:: ../_static/whatsnew_assign.png
@@ -91,15 +93,14 @@ Added :meth:`SparseSeries.to_coo` and :meth:`SparseSeries.from_coo` methods (:is
 
 .. ipython:: python
 
-   from numpy import nan
-   s = Series([3.0, nan, 1.0, 3.0, nan, nan])
-   s.index = MultiIndex.from_tuples([(1, 2, 'a', 0),
-                                     (1, 2, 'a', 1),
-                                     (1, 1, 'b', 0),
-                                     (1, 1, 'b', 1),
-                                     (2, 1, 'b', 0),
-                                     (2, 1, 'b', 1)],
-                                     names=['A', 'B', 'C', 'D'])
+   s = pd.Series([3.0, np.nan, 1.0, 3.0, np.nan, np.nan])
+   s.index = pd.MultiIndex.from_tuples([(1, 2, 'a', 0),
+                                        (1, 2, 'a', 1),
+                                        (1, 1, 'b', 0),
+                                        (1, 1, 'b', 1),
+                                        (2, 1, 'b', 0),
+                                        (2, 1, 'b', 1)],
+                                       names=['A', 'B', 'C', 'D'])
 
    s
 
@@ -123,11 +124,11 @@ from a ``scipy.sparse.coo_matrix``:
 
    from scipy import sparse
    A = sparse.coo_matrix(([3.0, 1.0, 2.0], ([1, 0, 0], [0, 2, 3])),
-                               shape=(3, 4))
+                         shape=(3, 4))
    A
    A.todense()
 
-   ss = SparseSeries.from_coo(A)
+   ss = pd.SparseSeries.from_coo(A)
    ss
 
 .. _whatsnew_0160.enhancements.string:
@@ -147,7 +148,7 @@ String Methods Enhancements
 
   .. ipython:: python
 
-     s = Series(['abcd', '3456', 'EFGH'])
+     s = pd.Series(['abcd', '3456', 'EFGH'])
      s.str.isalpha()
      s.str.find('ab')
 
@@ -155,14 +156,14 @@ String Methods Enhancements
 
   .. ipython:: python
 
-     s = Series(['12', '300', '25'])
+     s = pd.Series(['12', '300', '25'])
      s.str.pad(5, fillchar='_')
 
 - Added :meth:`Series.str.slice_replace`, which previously raised ``NotImplementedError`` (:issue:`8888`)
 
   .. ipython:: python
 
-     s = Series(['ABCD', 'EFGH', 'IJK'])
+     s = pd.Series(['ABCD', 'EFGH', 'IJK'])
      s.str.slice_replace(1, 3, 'X')
      # replaced with empty char
      s.str.slice_replace(0, 1)
@@ -186,7 +187,7 @@ Other enhancements
   .. code-block:: python
 
      # Returns the 1st and 4th sheet, as a dictionary of DataFrames.
-     pd.read_excel('path_to_file.xls',sheetname=['Sheet1',3])
+     pd.read_excel('path_to_file.xls', sheetname=['Sheet1', 3])
 
 
 - Allow Stata files to be read incrementally with an iterator; support for long strings in Stata files. See the docs :ref:`here<io.stata_reader>` (:issue:`9493`:).
@@ -267,11 +268,11 @@ The behavior of a small sub-set of edge cases for using ``.loc`` have changed (:
 
   .. ipython:: python
 
-     df = DataFrame(np.random.randn(5,4),
-                    columns=list('ABCD'),
-                    index=date_range('20130101',periods=5))
+     df = pd.DataFrame(np.random.randn(5, 4),
+                       columns=list('ABCD'),
+                       index=pd.date_range('20130101', periods=5))
      df
-     s = Series(range(5),[-2,-1,1,2,3])
+     s = pd.Series(range(5), [-2, -1, 1, 2, 3])
      s
 
   Previous Behavior
@@ -341,7 +342,7 @@ Previous Behavior
 
 .. code-block:: ipython
 
-   In [3]: s = Series([0,1,2], dtype='category')
+   In [3]: s = pd.Series([0, 1, 2], dtype='category')
 
    In [4]: s
    Out[4]:
@@ -368,7 +369,7 @@ New Behavior
 
 .. ipython:: python
 
-   s = Series([0,1,2], dtype='category')
+   s = pd.Series([0, 1, 2], dtype='category')
    s
    s.cat.ordered
    s = s.cat.as_ordered()
@@ -376,7 +377,7 @@ New Behavior
    s.cat.ordered
 
    # you can set in the constructor of the Categorical
-   s = Series(Categorical([0,1,2],ordered=True))
+   s = pd.Series(pd.Categorical([0, 1, 2], ordered=True))
    s
    s.cat.ordered
 
@@ -384,7 +385,7 @@ For ease of creation of series of categorical data, we have added the ability to
 
 .. code-block:: python
 
-    In [54]: s = Series(["a","b","c","a"]).astype('category',ordered=True)
+    In [54]: s = pd.Series(["a", "b", "c", "a"]).astype('category', ordered=True)
 
     In [55]: s
     Out[55]:
@@ -395,7 +396,8 @@ For ease of creation of series of categorical data, we have added the ability to
     dtype: category
     Categories (3, object): [a < b < c]
 
-    In [56]: s = Series(["a","b","c","a"]).astype('category',categories=list('abcdef'),ordered=False)
+    In [56]: s = (pd.Series(["a", "b", "c", "a"])
+       ....:        .astype('category', categories=list('abcdef'), ordered=False))
 
     In [57]: s
     Out[57]:
@@ -443,7 +445,7 @@ Other API Changes
 
   .. code-block:: ipython
 
-     In [2]: pd.Series([0,1,2,3], list('abcd')) | pd.Series([4,4,4,4], list('abcd'))
+     In [2]: pd.Series([0, 1, 2, 3], list('abcd')) | pd.Series([4, 4, 4, 4], list('abcd'))
      Out[2]:
      a    True
      b    True
@@ -456,7 +458,7 @@ Other API Changes
 
   .. code-block:: ipython
 
-     In [2]: pd.Series([0,1,2,3], list('abcd')) | pd.Series([4,4,4,4], list('abcd'))
+     In [2]: pd.Series([0, 1, 2, 3], list('abcd')) | pd.Series([4, 4, 4, 4], list('abcd'))
      Out[2]:
      a    4
      b    5
@@ -674,7 +676,8 @@ Bug Fixes
 
   .. ipython:: python
 
-     df1 = DataFrame({'x': Series(['a','b','c']), 'y': Series(['d','e','f'])})
+     df1 = pd.DataFrame({'x': pd.Series(['a', 'b', 'c']),
+                         'y': pd.Series(['d', 'e', 'f'])})
      df2 = df1[['x']]
      df2['y'] = ['g', 'h', 'i']
 

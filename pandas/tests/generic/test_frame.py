@@ -1,23 +1,22 @@
 # -*- coding: utf-8 -*-
 # pylint: disable-msg=E1101,W0612
 
-from operator import methodcaller
 from copy import deepcopy
 from distutils.version import LooseVersion
+from operator import methodcaller
 
-import pytest
 import numpy as np
-import pandas as pd
-
-from pandas import Series, DataFrame, date_range, MultiIndex
+import pytest
 
 from pandas.compat import range
-from pandas.util.testing import (assert_series_equal,
-                                 assert_frame_equal,
-                                 assert_almost_equal)
-
-import pandas.util.testing as tm
 import pandas.util._test_decorators as td
+
+import pandas as pd
+from pandas import DataFrame, MultiIndex, Series, date_range
+import pandas.util.testing as tm
+from pandas.util.testing import (
+    assert_almost_equal, assert_frame_equal, assert_series_equal)
+
 from .test_generic import Generic
 
 try:
@@ -77,8 +76,10 @@ class TestDataFrame(Generic):
         assert not df.bool()
 
         df = DataFrame([[False, False]])
-        pytest.raises(ValueError, lambda: df.bool())
-        pytest.raises(ValueError, lambda: bool(df))
+        with pytest.raises(ValueError):
+            df.bool()
+        with pytest.raises(ValueError):
+            bool(df)
 
     def test_get_numeric_data_preserve_dtype(self):
 

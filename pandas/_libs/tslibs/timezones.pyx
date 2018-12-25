@@ -1,7 +1,5 @@
 # -*- coding: utf-8 -*-
 
-from cython import Py_ssize_t
-
 # dateutil compat
 from dateutil.tz import (
     tzutc as _dateutil_tzutc,
