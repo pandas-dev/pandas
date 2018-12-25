@@ -5,13 +5,13 @@ import warnings
 import numpy as np
 import pytest
 
-from pandas.core.dtypes.missing import isna
 from pandas._libs.sparse import IntIndex
 from pandas.compat import range
 import pandas.util._test_decorators as td
 
 import pandas as pd
 from pandas.core.sparse.api import SparseArray, SparseDtype, SparseSeries
+from pandas.core.dtypes.missing import isna
 import pandas.util.testing as tm
 from pandas.util.testing import assert_almost_equal
 
