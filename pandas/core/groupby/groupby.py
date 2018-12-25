@@ -2003,6 +2003,7 @@ class GroupBy(_GroupBy):
         freq : frequency string
         axis : axis to shift, default 0
         fill_value : optional
+
             .. versionadded:: 0.24.0
         """
 
