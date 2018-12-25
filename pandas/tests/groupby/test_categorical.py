@@ -866,7 +866,9 @@ def test_groupby_agg_observed_true_single_column():
     # GH-23970
     expected = pd.DataFrame({
         'a': pd.Series([1, 1, 2], dtype='category'),
-        'b': [1, 2, 2], 'x': [1, 2, 3]})
+        'b': [1, 2, 2],
+        'x': [1, 2, 3]
+    })
 
     result = expected.groupby(['a', 'b'],
         as_index=False, observed=True)['x'].sum()
