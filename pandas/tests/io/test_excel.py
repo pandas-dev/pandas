@@ -692,34 +692,6 @@ class ReadingTestsBase(SharedItems):
         with pytest.raises(ValueError, message="Unknown engine: foo"):
             read_excel('', engine=bad_engine)
 
-
-@pytest.mark.parametrize("ext", ['.xls', '.xlsx', '.xlsm'])
-class TestXlrdReader(ReadingTestsBase):
-    """
-    This is the base class for the xlrd tests, and 3 different file formats
-    are supported: xls, xlsx, xlsm
-    """
-
-    @td.skip_if_no("xlwt")
-    def test_read_xlrd_book(self, ext):
-        import xlrd
-        df = self.frame
-
-        engine = "xlrd"
-        sheet_name = "SheetA"
-
-        with ensure_clean(ext) as pth:
-            df.to_excel(pth, sheet_name)
-            book = xlrd.open_workbook(pth)
-
-            with ExcelFile(book, engine=engine) as xl:
-                result = read_excel(xl, sheet_name, index_col=0)
-                tm.assert_frame_equal(df, result)
-
-            result = read_excel(book, sheet_name=sheet_name,
-                                engine=engine, index_col=0)
-            tm.assert_frame_equal(df, result)
-
     @tm.network
     def test_read_from_http_url(self, ext):
         url = ('https://raw.github.com/pandas-dev/pandas/master/'
@@ -1159,6 +1131,34 @@ class TestXlrdReader(ReadingTestsBase):
         actual = pd.read_excel(f, 'one_column', squeeze=True)
         expected = pd.Series([1, 2, 3], name='a')
         tm.assert_series_equal(actual, expected)
+
+
+@pytest.mark.parametrize("ext", ['.xls', '.xlsx', '.xlsm'])
+class TestXlrdReader(ReadingTestsBase):
+    """
+    This is the base class for the xlrd tests, and 3 different file formats
+    are supported: xls, xlsx, xlsm
+    """
+
+    @td.skip_if_no("xlwt")
+    def test_read_xlrd_book(self, ext):
+        import xlrd
+        df = self.frame
+
+        engine = "xlrd"
+        sheet_name = "SheetA"
+
+        with ensure_clean(ext) as pth:
+            df.to_excel(pth, sheet_name)
+            book = xlrd.open_workbook(pth)
+
+            with ExcelFile(book, engine=engine) as xl:
+                result = read_excel(xl, sheet_name, index_col=0)
+                tm.assert_frame_equal(df, result)
+
+            result = read_excel(book, sheet_name=sheet_name,
+                                engine=engine, index_col=0)
+            tm.assert_frame_equal(df, result)
 
 
 class _WriterBase(SharedItems):
