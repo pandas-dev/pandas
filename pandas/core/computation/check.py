@@ -21,4 +21,4 @@ try:
 except ImportError:  # pragma: no cover
     pass
 
-__all__ = ['_NUMEXPR_INSTALLED']
+__all__ = ['_NUMEXPR_INSTALLED', '_NUMEXPR_VERSION']
