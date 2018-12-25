@@ -69,7 +69,7 @@ class GroupByMixin(object):
 
 # special case to prevent duplicate plots when catching exceptions when
 # forwarding methods from NDFrames
-plotting_methods = frozenset(['hist'])
+plotting_methods = frozenset(['plot', 'hist'])
 
 common_apply_whitelist = frozenset([
     'quantile', 'fillna', 'mad', 'take',
