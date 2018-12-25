@@ -7,10 +7,10 @@ if [ "${TRAVIS_OS_NAME}" != "linux" ]; then
    exit 0
 fi
 
-cd "$TRAVIS_BUILD_DIR"/doc
+cd "${TRAVIS_BUILD_DIR}"/doc
 echo "inside $0"
 
-if [ "$DOC" ]; then
+if [ "${DOC}" ]; then
 
     echo "Will build docs"
 

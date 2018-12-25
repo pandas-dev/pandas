@@ -29,17 +29,17 @@ EXCLUDE+="^pandas/util/testing.py$|" # contains function to evaluate if warning 
 EXCLUDE+="^pandas/io/parsers.py$"  # implements generic deprecation system in io reading
 
 BASE_DIR="$(dirname $0)/.."
-cd $BASE_DIR
-FILES=`grep -RIl "FutureWarning" pandas/* | grep -vE "$EXCLUDE"`
+cd "${BASE_DIR}" || exit 1
+FILES=$(grep -RIl "FutureWarning" pandas/* | grep -vE "${EXCLUDE}")
 OUTPUT=()
 IFS=$'\n'
 
 for FILE in $FILES; do
-    FILE_LINES=`git blame -sf $FILE | grep FutureWarning | tr -s " " | cut -d " " -f1,3`
+    FILE_LINES=$(git blame -sf "${FILE}" | grep FutureWarning | tr -s " " | cut -d " " -f1,3)
     for FILE_LINE in $FILE_LINES; do
-        TAG=$(git tag --contains $(echo $FILE_LINE | cut -d" " -f1) | head -n1)
-        OUTPUT_ROW=`printf "%-14s %-16s %s" ${TAG:-"(not released)"} $FILE_LINE $FILE`
-        OUTPUT+=($OUTPUT_ROW)
+        TAG=$(git tag --contains "$(echo "${FILE_LINE}" | cut -d" " -f1)" | head -n1)
+        OUTPUT_ROW=$(printf "%-14s %-16s %s" "${TAG:-"(not released)"}" "${FILE_LINE}" "${FILE}")
+        OUTPUT+=("${OUTPUT_ROW}")
     done
 done
 
