@@ -9,6 +9,7 @@ import operator
 
 import numpy as np
 
+from pandas.core.dtypes.missing import isna
 from pandas.compat import PY3, set_function_name
 from pandas.compat.numpy import function as nv
 from pandas.errors import AbstractMethodError
@@ -486,7 +487,7 @@ class ExtensionArray(object):
         if not len(self) or periods == 0:
             return self.copy()
 
-        if fill_value is None:
+        if isna(fill_value):
             fill_value = self.dtype.na_value
 
         empty = self._from_sequence(
