@@ -868,6 +868,7 @@ def test_groupby_agg_observed_true_single_column():
         'a': pd.Series([1, 1, 2], dtype='category'),
         'b': [1, 2, 2], 'x': [1, 2, 3]})
 
-    result = expected.groupby(['a', 'b'], as_index=False, observed=True)['x'].sum()
+    result = expected.groupby(['a', 'b'],
+        as_index=False, observed=True)['x'].sum()
 
     tm.assert_frame_equal(result, expected)
