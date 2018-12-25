@@ -870,7 +870,7 @@ def test_groupby_agg_observed_true_single_column():
         'x': [1, 2, 3]
     })
 
-    result = expected.groupby(['a', 'b'],
-        as_index=False, observed=True)['x'].sum()
+    result = expected.groupby(
+        ['a', 'b'], as_index=False, observed=True)['x'].sum()
 
     tm.assert_frame_equal(result, expected)
