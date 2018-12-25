@@ -2,7 +2,7 @@
 
 import pytest
 
-from pandas.core.api import DataFrame
+from pandas import DataFrame
 import pandas.util.testing as tm
 
 
