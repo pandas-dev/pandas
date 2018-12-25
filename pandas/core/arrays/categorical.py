@@ -200,22 +200,25 @@ def contains(cat, key, container):
         return any(loc_ in container for loc_ in loc)
 
 
-def create_categorical_dtype(values, categories=None, ordered=None,
+def create_categorical_dtype(values=None, categories=None, ordered=None,
                              dtype=None):
     """
-    Helper function to Construct/return a :class:`CategoricalDtype`.
+    Construct and return a :class:`~pandas.api.types.CategoricalDtype`.
 
-    Construct the CategoricalDtype from typical inputs to :class:`Categorical`.
+    This is a helper function, and specifically does not do the
+    factorization step, if that is needed.
 
     Parameters
     ----------
-    values : array-like or Categorical, (1-dimensional), optional
+    values : list-like, optional
+        The list-like must be 1-dimensional.
     categories : list-like, optional
-        categories for the CategoricalDtype
+        Categories for the CategoricalDtype.
     ordered : bool, optional
-        designating if the categories are ordered
-    dtype : CategoricalDtype, optional
-        Cannot be used in combination with `categories` or `ordered`.
+        Designating if the categories are ordered.
+    dtype : CategoricalDtype or the string "category", optional
+        If ``CategoricalDtype`` cannot be used together with
+        `categories` or `ordered`.
 
     Returns
     -------
@@ -227,10 +230,16 @@ def create_categorical_dtype(values, categories=None, ordered=None,
     CategoricalDtype(categories=None, ordered=None)
     >>> create_categorical_dtype(categories=['a', 'b'], ordered=True)
     CategoricalDtype(categories=['a', 'b'], ordered=True)
-    >>> dtype = CategoricalDtype(['a', 'b'], ordered=True)
-    >>> c = Categorical([0, 1], dtype=dtype, fastpath=True)
-    >>> create_categorical_dtype(c, ['x', 'y'], True, dtype=dtype)
-    CategoricalDtype(['a', 'b'], ordered=True)
+    >>> dtype1 = CategoricalDtype(['a', 'b'], ordered=True)
+    >>> dtype2 = CategoricalDtype(['x', 'y'], ordered=False)
+    >>> c = Categorical([0, 1], dtype=dtype1, fastpath=True)
+    >>> create_categorical_dtype(c, ['x', 'y'], ordered=True, dtype=dtype2)
+    ValueError: Cannot specify `categories` or `ordered` together with `dtype`.
+
+    The supplied dtype takes precedence over values's dtype:
+
+    >>> create_categorical_dtype(c, dtype=dtype2)
+    CategoricalDtype(['x', 'y'], ordered=False)
     """
     if dtype is not None:
         # The dtype argument takes precedence over values.dtype (if any)
