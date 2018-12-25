@@ -1,4 +1,3 @@
-import sys
 from distutils.version import LooseVersion
 import warnings
 
@@ -7,12 +6,10 @@ _MIN_NUMEXPR_VERSION = "2.6.1"
 _NUMEXPR_VERSION = None
 
 try:
-    modules = sys.modules.copy()
     import numexpr as ne
     ver = LooseVersion(ne.__version__)
     _NUMEXPR_INSTALLED = ver >= LooseVersion(_MIN_NUMEXPR_VERSION)
     _NUMEXPR_VERSION = ver
-    sys.modules = modules
 
     if not _NUMEXPR_INSTALLED:
         warnings.warn(
@@ -24,4 +21,4 @@ try:
 except ImportError:  # pragma: no cover
     pass
 
-__all__ = ['_NUMEXPR_INSTALLED', '_NUMEXPR_VERSION']
+__all__ = ['_NUMEXPR_INSTALLED']
