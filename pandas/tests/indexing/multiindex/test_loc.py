@@ -1,9 +1,10 @@
+import itertools
 from warnings import catch_warnings
 
 import numpy as np
 import pytest
 
-from pandas import DataFrame, MultiIndex, Series
+from pandas import DataFrame, Index, MultiIndex, Series
 from pandas.util import testing as tm
 
 
@@ -175,3 +176,74 @@ class TestMultiIndexLoc(object):
                    index=single_level)
         for k in single_level.values:
             s[k]
+
+    def test_loc_getitem_int_slice(self):
+        # GH 3053
+        # loc should treat integer slices like label slices
+
+        index = MultiIndex.from_tuples([t for t in itertools.product(
+            [6, 7, 8], ['a', 'b'])])
+        df = DataFrame(np.random.randn(6, 6), index, index)
+        result = df.loc[6:8, :]
+        expected = df
+        tm.assert_frame_equal(result, expected)
+
+        index = MultiIndex.from_tuples([t
+                                        for t in itertools.product(
+                                            [10, 20, 30], ['a', 'b'])])
+        df = DataFrame(np.random.randn(6, 6), index, index)
+        result = df.loc[20:30, :]
+        expected = df.iloc[2:]
+        tm.assert_frame_equal(result, expected)
+
+        # doc examples
+        result = df.loc[10, :]
+        expected = df.iloc[0:2]
+        expected.index = ['a', 'b']
+        tm.assert_frame_equal(result, expected)
+
+        result = df.loc[:, 10]
+        # expected = df.ix[:,10] (this fails)
+        expected = df[10]
+        tm.assert_frame_equal(result, expected)
+
+    @pytest.mark.parametrize(
+        'indexer_type_1',
+        (list, tuple, set, slice, np.ndarray, Series, Index))
+    @pytest.mark.parametrize(
+        'indexer_type_2',
+        (list, tuple, set, slice, np.ndarray, Series, Index))
+    def test_loc_getitem_nested_indexer(self, indexer_type_1, indexer_type_2):
+        # GH #19686
+        # .loc should work with nested indexers which can be
+        # any list-like objects (see `pandas.api.types.is_list_like`) or slices
+
+        def convert_nested_indexer(indexer_type, keys):
+            if indexer_type == np.ndarray:
+                return np.array(keys)
+            if indexer_type == slice:
+                return slice(*keys)
+            return indexer_type(keys)
+
+        a = [10, 20, 30]
+        b = [1, 2, 3]
+        index = MultiIndex.from_product([a, b])
+        df = DataFrame(
+            np.arange(len(index), dtype='int64'),
+            index=index, columns=['Data'])
+
+        keys = ([10, 20], [2, 3])
+        types = (indexer_type_1, indexer_type_2)
+
+        # check indexers with all the combinations of nested objects
+        # of all the valid types
+        indexer = tuple(
+            convert_nested_indexer(indexer_type, k)
+            for indexer_type, k in zip(types, keys))
+
+        result = df.loc[indexer, 'Data']
+        expected = Series(
+            [1, 2, 4, 5], name='Data',
+            index=MultiIndex.from_product(keys))
+
+        tm.assert_series_equal(result, expected)
