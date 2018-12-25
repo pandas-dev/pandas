@@ -41,7 +41,7 @@ from pandas.core.index import Index, MultiIndex
 from pandas.core.series import Series
 from pandas.core.sorting import get_group_index_sorter
 
-_doc_template = """
+_common_see_also = """
         See Also
         --------
         pandas.Series.%(name)s
@@ -77,18 +77,6 @@ _apply_docs = dict(
     Returns
     -------
     applied : Series or DataFrame
-
-    Notes
-    -----
-    In the current implementation `apply` calls `func` twice on the
-    first group to decide whether it can take a fast or slow code
-    path. This can lead to unexpected behavior if `func` has
-    side-effects, as they will take effect twice for the first
-    group.
-
-    Examples
-    --------
-    {examples}
 
     See Also
     --------
@@ -165,6 +153,18 @@ _apply_docs = dict(
     a    1
     b    0
     dtype: int64
+
+    Notes
+    -----
+    In the current implementation `apply` calls `func` twice on the
+    first group to decide whether it can take a fast or slow code
+    path. This can lead to unexpected behavior if `func` has
+    side-effects, as they will take effect twice for the first
+    group.
+
+    Examples
+    --------
+    {examples}
     """)
 
 _pipe_template = """\
@@ -204,6 +204,13 @@ Returns
 -------
 object : the return type of `func`.
 
+See Also
+--------
+pandas.Series.pipe : Apply a function with arguments to a series.
+pandas.DataFrame.pipe: Apply a function with arguments to a dataframe.
+apply : Apply function to each group instead of to the
+    full %(klass)s object.
+
 Notes
 -----
 See more `here
@@ -212,13 +219,6 @@ See more `here
 Examples
 --------
 %(examples)s
-
-See Also
---------
-pandas.Series.pipe : Apply a function with arguments to a series.
-pandas.DataFrame.pipe: Apply a function with arguments to a dataframe.
-apply : Apply function to each group instead of to the
-    full %(klass)s object.
 """
 
 _transform_template = """
@@ -230,6 +230,14 @@ Parameters
 ----------
 f : function
     Function to apply to each group
+
+Returns
+-------
+%(klass)s
+
+See Also
+--------
+aggregate, transform
 
 Notes
 -----
@@ -247,14 +255,6 @@ The current implementation imposes three requirements on f:
   then a fast path is used starting from the second chunk.
 * f must not mutate groups. Mutation is not supported and may
   produce unexpected results.
-
-Returns
--------
-%(klass)s
-
-See Also
---------
-aggregate, transform
 
 Examples
 --------
@@ -285,7 +285,6 @@ Examples
 3  3  8.0
 4  4  6.0
 5  3  8.0
-
 """
 
 
@@ -977,6 +976,14 @@ class GroupBy(_GroupBy):
     name : string
         Most users should ignore this
 
+    Returns
+    -------
+    **Attributes**
+    groups : dict
+        {group name -> group labels}
+    len(grouped) : int
+        Number of groups
+
     Notes
     -----
     After grouping, see aggregate, apply, and transform functions. Here are
@@ -1010,14 +1017,6 @@ class GroupBy(_GroupBy):
 
     See the online documentation for full exposition on these topics and much
     more
-
-    Returns
-    -------
-    **Attributes**
-    groups : dict
-        {group name -> group labels}
-    len(grouped) : int
-        Number of groups
     """
     def _bool_agg(self, val_test, skipna):
         """
@@ -1045,7 +1044,7 @@ class GroupBy(_GroupBy):
                                            val_test=val_test, skipna=skipna)
 
     @Substitution(name='groupby')
-    @Appender(_doc_template)
+    @Appender(_common_see_also)
     def any(self, skipna=True):
         """
         Returns True if any value in the group is truthful, else False.
@@ -1058,7 +1057,7 @@ class GroupBy(_GroupBy):
         return self._bool_agg('any', skipna)
 
     @Substitution(name='groupby')
-    @Appender(_doc_template)
+    @Appender(_common_see_also)
     def all(self, skipna=True):
         """
         Returns True if all values in the group are truthful, else False.
@@ -1071,7 +1070,7 @@ class GroupBy(_GroupBy):
         return self._bool_agg('all', skipna)
 
     @Substitution(name='groupby')
-    @Appender(_doc_template)
+    @Appender(_common_see_also)
     def count(self):
         """
         Compute count of group, excluding missing values.
@@ -1080,8 +1079,7 @@ class GroupBy(_GroupBy):
         # defined here for API doc
         raise NotImplementedError
 
-    @Substitution(name='groupby')
-    @Appender(_doc_template)
+    @Substitution(name='groupby', see_also=_common_see_also)
     def mean(self, *args, **kwargs):
         """
         Compute mean of groups, excluding missing values.
@@ -1089,6 +1087,8 @@ class GroupBy(_GroupBy):
         Returns
         -------
         pandas.Series or pandas.DataFrame
+
+        %(see_also)s
 
         Examples
         --------
@@ -1138,7 +1138,7 @@ class GroupBy(_GroupBy):
                 return self._python_agg_general(f)
 
     @Substitution(name='groupby')
-    @Appender(_doc_template)
+    @Appender(_common_see_also)
     def median(self, **kwargs):
         """
         Compute median of groups, excluding missing values.
@@ -1159,7 +1159,7 @@ class GroupBy(_GroupBy):
                 return self._python_agg_general(f)
 
     @Substitution(name='groupby')
-    @Appender(_doc_template)
+    @Appender(_common_see_also)
     def std(self, ddof=1, *args, **kwargs):
         """
         Compute standard deviation of groups, excluding missing values.
@@ -1177,7 +1177,7 @@ class GroupBy(_GroupBy):
         return np.sqrt(self.var(ddof=ddof, **kwargs))
 
     @Substitution(name='groupby')
-    @Appender(_doc_template)
+    @Appender(_common_see_also)
     def var(self, ddof=1, *args, **kwargs):
         """
         Compute variance of groups, excluding missing values.
@@ -1203,7 +1203,7 @@ class GroupBy(_GroupBy):
                 return self._python_agg_general(f)
 
     @Substitution(name='groupby')
-    @Appender(_doc_template)
+    @Appender(_common_see_also)
     def sem(self, ddof=1):
         """
         Compute standard error of the mean of groups, excluding missing values.
@@ -1219,7 +1219,7 @@ class GroupBy(_GroupBy):
         return self.std(ddof=ddof) / np.sqrt(self.count())
 
     @Substitution(name='groupby')
-    @Appender(_doc_template)
+    @Appender(_common_see_also)
     def size(self):
         """
         Compute group sizes.
@@ -1243,7 +1243,7 @@ class GroupBy(_GroupBy):
             _local_template = "Compute %(f)s of group values"
 
             @Substitution(name='groupby', f=name)
-            @Appender(_doc_template)
+            @Appender(_common_see_also)
             @Appender(_local_template)
             def f(self, **kwargs):
                 if 'numeric_only' not in kwargs:
@@ -1308,7 +1308,7 @@ class GroupBy(_GroupBy):
                                     numeric_only=False)
 
     @Substitution(name='groupby')
-    @Appender(_doc_template)
+    @Appender(_common_see_also)
     def ohlc(self):
         """
         Compute sum of values, excluding missing values.
@@ -1437,7 +1437,7 @@ class GroupBy(_GroupBy):
         return get_resampler_for_grouping(self, rule, *args, **kwargs)
 
     @Substitution(name='groupby')
-    @Appender(_doc_template)
+    @Appender(_common_see_also)
     def rolling(self, *args, **kwargs):
         """
         Return a rolling grouper, providing rolling functionality per group.
@@ -1446,7 +1446,7 @@ class GroupBy(_GroupBy):
         return RollingGroupby(self, *args, **kwargs)
 
     @Substitution(name='groupby')
-    @Appender(_doc_template)
+    @Appender(_common_see_also)
     def expanding(self, *args, **kwargs):
         """
         Return an expanding grouper, providing expanding
@@ -1528,8 +1528,7 @@ class GroupBy(_GroupBy):
         return self._fill('bfill', limit=limit)
     bfill = backfill
 
-    @Substitution(name='groupby')
-    @Appender(_doc_template)
+    @Substitution(name='groupby', see_also=_common_see_also)
     def nth(self, n, dropna=None):
         """
         Take the nth row from each group if n is an int, or a subset of rows
@@ -1547,6 +1546,8 @@ class GroupBy(_GroupBy):
         dropna : None or str, optional
             apply the specified dropna operation before counting which row is
             the nth row. Needs to be None, 'any' or 'all'
+
+        %(see_also)s
 
         Examples
         --------
@@ -1705,6 +1706,10 @@ class GroupBy(_GroupBy):
         ascending : bool, default True
             If False, number in reverse, from number of group - 1 to 0.
 
+        See Also
+        --------
+        .cumcount : Number the rows in each group.
+
         Examples
         --------
 
@@ -1741,10 +1746,6 @@ class GroupBy(_GroupBy):
         4    2
         5    0
         dtype: int64
-
-        See Also
-        --------
-        .cumcount : Number the rows in each group.
         """
 
         with _group_selection_context(self):
@@ -1767,6 +1768,10 @@ class GroupBy(_GroupBy):
         ----------
         ascending : bool, default True
             If False, number in reverse, from length of group - 1 to 0.
+
+        See Also
+        --------
+        .ngroup : Number the groups themselves.
 
         Examples
         --------
@@ -1797,10 +1802,6 @@ class GroupBy(_GroupBy):
         4    0
         5    0
         dtype: int64
-
-        See Also
-        --------
-        .ngroup : Number the groups themselves.
         """
 
         with _group_selection_context(self):
@@ -1809,7 +1810,7 @@ class GroupBy(_GroupBy):
             return Series(cumcounts, index)
 
     @Substitution(name='groupby')
-    @Appender(_doc_template)
+    @Appender(_common_see_also)
     def rank(self, method='average', ascending=True, na_option='keep',
              pct=False, axis=0):
         """
@@ -1846,7 +1847,7 @@ class GroupBy(_GroupBy):
                                       na_option=na_option, pct=pct, axis=axis)
 
     @Substitution(name='groupby')
-    @Appender(_doc_template)
+    @Appender(_common_see_also)
     def cumprod(self, axis=0, *args, **kwargs):
         """
         Cumulative product for each group.
@@ -1859,7 +1860,7 @@ class GroupBy(_GroupBy):
         return self._cython_transform('cumprod', **kwargs)
 
     @Substitution(name='groupby')
-    @Appender(_doc_template)
+    @Appender(_common_see_also)
     def cumsum(self, axis=0, *args, **kwargs):
         """
         Cumulative sum for each group.
@@ -1872,7 +1873,7 @@ class GroupBy(_GroupBy):
         return self._cython_transform('cumsum', **kwargs)
 
     @Substitution(name='groupby')
-    @Appender(_doc_template)
+    @Appender(_common_see_also)
     def cummin(self, axis=0, **kwargs):
         """
         Cumulative min for each group.
@@ -1883,7 +1884,7 @@ class GroupBy(_GroupBy):
         return self._cython_transform('cummin', numeric_only=False)
 
     @Substitution(name='groupby')
-    @Appender(_doc_template)
+    @Appender(_common_see_also)
     def cummax(self, axis=0, **kwargs):
         """
         Cumulative max for each group.
@@ -1992,7 +1993,7 @@ class GroupBy(_GroupBy):
             return self._wrap_transformed_output(output)
 
     @Substitution(name='groupby')
-    @Appender(_doc_template)
+    @Appender(_common_see_also)
     def shift(self, periods=1, freq=None, axis=0):
         """
         Shift each group by periods observations.
@@ -2015,7 +2016,7 @@ class GroupBy(_GroupBy):
                                            periods=periods)
 
     @Substitution(name='groupby')
-    @Appender(_doc_template)
+    @Appender(_common_see_also)
     def pct_change(self, periods=1, fill_method='pad', limit=None, freq=None,
                    axis=0):
         """
@@ -2026,21 +2027,21 @@ class GroupBy(_GroupBy):
                                                      fill_method=fill_method,
                                                      limit=limit, freq=freq,
                                                      axis=axis))
-
-        filled = getattr(self, fill_method)(limit=limit).drop(
-            self.grouper.names, axis=1)
-        shifted = filled.shift(periods=periods, freq=freq)
-
+        filled = getattr(self, fill_method)(limit=limit)
+        filled = filled.drop(self.grouper.names, axis=1)
+        fill_grp = filled.groupby(self.grouper.labels)
+        shifted = fill_grp.shift(periods=periods, freq=freq)
         return (filled / shifted) - 1
 
-    @Substitution(name='groupby')
-    @Appender(_doc_template)
+    @Substitution(name='groupby', see_also=_common_see_also)
     def head(self, n=5):
         """
         Returns first n rows of each group.
 
         Essentially equivalent to ``.apply(lambda x: x.head(n))``,
         except ignores as_index flag.
+
+        %(see_also)s
 
         Examples
         --------
@@ -2060,14 +2061,15 @@ class GroupBy(_GroupBy):
         mask = self._cumcount_array() < n
         return self._selected_obj[mask]
 
-    @Substitution(name='groupby')
-    @Appender(_doc_template)
+    @Substitution(name='groupby', see_also=_common_see_also)
     def tail(self, n=5):
         """
         Returns last n rows of each group.
 
         Essentially equivalent to ``.apply(lambda x: x.tail(n))``,
         except ignores as_index flag.
+
+        %(see_also)s
 
         Examples
         --------

@@ -1,4 +1,5 @@
 # pylint: disable=E1101,E1103,W0232
+from collections import OrderedDict
 import datetime
 from sys import getsizeof
 import warnings
@@ -18,6 +19,7 @@ from pandas.core.dtypes.common import (
     is_integer, is_iterator, is_list_like, is_object_dtype, is_scalar,
     pandas_dtype)
 from pandas.core.dtypes.dtypes import ExtensionDtype, PandasExtensionDtype
+from pandas.core.dtypes.generic import ABCDataFrame
 from pandas.core.dtypes.missing import array_equivalent, isna
 
 import pandas.core.algorithms as algos
@@ -125,25 +127,59 @@ class MultiIndex(Index):
     Parameters
     ----------
     levels : sequence of arrays
-        The unique labels for each level
+        The unique labels for each level.
     codes : sequence of arrays
-        Integers for each level designating which label at each location
+        Integers for each level designating which label at each location.
 
         .. versionadded:: 0.24.0
     labels : sequence of arrays
-        Integers for each level designating which label at each location
+        Integers for each level designating which label at each location.
 
         .. deprecated:: 0.24.0
             Use ``codes`` instead
     sortorder : optional int
         Level of sortedness (must be lexicographically sorted by that
-        level)
+        level).
     names : optional sequence of objects
-        Names for each of the index levels. (name is accepted for compat)
-    copy : boolean, default False
-        Copy the meta-data
-    verify_integrity : boolean, default True
-        Check that the levels/codes are consistent and valid
+        Names for each of the index levels. (name is accepted for compat).
+    copy : bool, default False
+        Copy the meta-data.
+    verify_integrity : bool, default True
+        Check that the levels/codes are consistent and valid.
+
+    Attributes
+    ----------
+    names
+    levels
+    codes
+    nlevels
+    levshape
+
+    Methods
+    -------
+    from_arrays
+    from_tuples
+    from_product
+    from_frame
+    set_levels
+    set_codes
+    to_frame
+    to_flat_index
+    is_lexsorted
+    sortlevel
+    droplevel
+    swaplevel
+    reorder_levels
+    remove_unused_levels
+
+    See Also
+    --------
+    MultiIndex.from_arrays  : Convert list of arrays to MultiIndex.
+    MultiIndex.from_product : Create a MultiIndex from the cartesian product
+                              of iterables.
+    MultiIndex.from_tuples  : Convert list of tuples to a MultiIndex.
+    MultiIndex.from_frame   : Make a MultiIndex from a DataFrame.
+    Index : The base pandas Index type.
 
     Examples
     ---------
@@ -164,38 +200,6 @@ class MultiIndex(Index):
     -----
     See the `user guide
     <http://pandas.pydata.org/pandas-docs/stable/advanced.html>`_ for more.
-
-    See Also
-    --------
-    MultiIndex.from_arrays  : Convert list of arrays to MultiIndex.
-    MultiIndex.from_product : Create a MultiIndex from the cartesian product
-                              of iterables.
-    MultiIndex.from_tuples  : Convert list of tuples to a MultiIndex.
-    Index : The base pandas Index type.
-
-    Attributes
-    ----------
-    names
-    levels
-    codes
-    nlevels
-    levshape
-
-    Methods
-    -------
-    from_arrays
-    from_tuples
-    from_product
-    set_levels
-    set_codes
-    to_frame
-    to_flat_index
-    is_lexsorted
-    sortlevel
-    droplevel
-    swaplevel
-    reorder_levels
-    remove_unused_levels
     """
 
     # initialize to zero-length tuples to make everything work
@@ -288,7 +292,7 @@ class MultiIndex(Index):
     @classmethod
     def from_arrays(cls, arrays, sortorder=None, names=None):
         """
-        Convert arrays to MultiIndex
+        Convert arrays to MultiIndex.
 
         Parameters
         ----------
@@ -297,22 +301,28 @@ class MultiIndex(Index):
             len(arrays) is the number of levels.
         sortorder : int or None
             Level of sortedness (must be lexicographically sorted by that
-            level)
+            level).
+        names : list / sequence of str, optional
+            Names for the levels in the index.
 
         Returns
         -------
         index : MultiIndex
-
-        Examples
-        --------
-        >>> arrays = [[1, 1, 2, 2], ['red', 'blue', 'red', 'blue']]
-        >>> pd.MultiIndex.from_arrays(arrays, names=('number', 'color'))
 
         See Also
         --------
         MultiIndex.from_tuples : Convert list of tuples to MultiIndex.
         MultiIndex.from_product : Make a MultiIndex from cartesian product
                                   of iterables.
+        MultiIndex.from_frame : Make a MultiIndex from a DataFrame.
+
+        Examples
+        --------
+        >>> arrays = [[1, 1, 2, 2], ['red', 'blue', 'red', 'blue']]
+        >>> pd.MultiIndex.from_arrays(arrays, names=('number', 'color'))
+        MultiIndex(levels=[[1, 2], ['blue', 'red']],
+                   labels=[[0, 0, 1, 1], [1, 0, 1, 0]],
+                   names=['number', 'color'])
         """
         if not is_list_like(arrays):
             raise TypeError("Input must be a list / sequence of array-likes.")
@@ -337,7 +347,7 @@ class MultiIndex(Index):
     @classmethod
     def from_tuples(cls, tuples, sortorder=None, names=None):
         """
-        Convert list of tuples to MultiIndex
+        Convert list of tuples to MultiIndex.
 
         Parameters
         ----------
@@ -345,23 +355,29 @@ class MultiIndex(Index):
             Each tuple is the index of one row/column.
         sortorder : int or None
             Level of sortedness (must be lexicographically sorted by that
-            level)
+            level).
+        names : list / sequence of str, optional
+            Names for the levels in the index.
 
         Returns
         -------
         index : MultiIndex
 
+        See Also
+        --------
+        MultiIndex.from_arrays : Convert list of arrays to MultiIndex.
+        MultiIndex.from_product : Make a MultiIndex from cartesian product
+                                  of iterables.
+        MultiIndex.from_frame : Make a MultiIndex from a DataFrame.
+
         Examples
         --------
         >>> tuples = [(1, u'red'), (1, u'blue'),
-                      (2, u'red'), (2, u'blue')]
+        ...           (2, u'red'), (2, u'blue')]
         >>> pd.MultiIndex.from_tuples(tuples, names=('number', 'color'))
-
-        See Also
-        --------
-        MultiIndex.from_arrays : Convert list of arrays to MultiIndex
-        MultiIndex.from_product : Make a MultiIndex from cartesian product
-                                  of iterables
+        MultiIndex(levels=[[1, 2], ['blue', 'red']],
+                   labels=[[0, 0, 1, 1], [1, 0, 1, 0]],
+                   names=['number', 'color'])
         """
         if not is_list_like(tuples):
             raise TypeError('Input must be a list / sequence of tuple-likes.')
@@ -388,7 +404,7 @@ class MultiIndex(Index):
     @classmethod
     def from_product(cls, iterables, sortorder=None, names=None):
         """
-        Make a MultiIndex from the cartesian product of multiple iterables
+        Make a MultiIndex from the cartesian product of multiple iterables.
 
         Parameters
         ----------
@@ -397,27 +413,28 @@ class MultiIndex(Index):
         sortorder : int or None
             Level of sortedness (must be lexicographically sorted by that
             level).
-        names : list / sequence of strings or None
+        names : list / sequence of str, optional
             Names for the levels in the index.
 
         Returns
         -------
         index : MultiIndex
 
-        Examples
-        --------
-        >>> numbers = [0, 1, 2]
-        >>> colors = [u'green', u'purple']
-        >>> pd.MultiIndex.from_product([numbers, colors],
-                                       names=['number', 'color'])
-        MultiIndex(levels=[[0, 1, 2], [u'green', u'purple']],
-                   labels=[[0, 0, 1, 1, 2, 2], [0, 1, 0, 1, 0, 1]],
-                   names=[u'number', u'color'])
-
         See Also
         --------
         MultiIndex.from_arrays : Convert list of arrays to MultiIndex.
         MultiIndex.from_tuples : Convert list of tuples to MultiIndex.
+        MultiIndex.from_frame : Make a MultiIndex from a DataFrame.
+
+        Examples
+        --------
+        >>> numbers = [0, 1, 2]
+        >>> colors = ['green', 'purple']
+        >>> pd.MultiIndex.from_product([numbers, colors],
+        ...                            names=['number', 'color'])
+        MultiIndex(levels=[[0, 1, 2], ['green', 'purple']],
+                   labels=[[0, 0, 1, 1, 2, 2], [0, 1, 0, 1, 0, 1]],
+                   names=['number', 'color'])
         """
         from pandas.core.arrays.categorical import _factorize_from_iterables
         from pandas.core.reshape.util import cartesian_product
@@ -430,6 +447,68 @@ class MultiIndex(Index):
         codes, levels = _factorize_from_iterables(iterables)
         codes = cartesian_product(codes)
         return MultiIndex(levels, codes, sortorder=sortorder, names=names)
+
+    @classmethod
+    def from_frame(cls, df, sortorder=None, names=None):
+        """
+        Make a MultiIndex from a DataFrame.
+
+        .. versionadded:: 0.24.0
+
+        Parameters
+        ----------
+        df : DataFrame
+            DataFrame to be converted to MultiIndex.
+        sortorder : int, optional
+            Level of sortedness (must be lexicographically sorted by that
+            level).
+        names : list-like, optional
+            If no names are provided, use the column names, or tuple of column
+            names if the columns is a MultiIndex. If a sequence, overwrite
+            names with the given sequence.
+
+        Returns
+        -------
+        MultiIndex
+            The MultiIndex representation of the given DataFrame.
+
+        See Also
+        --------
+        MultiIndex.from_arrays : Convert list of arrays to MultiIndex.
+        MultiIndex.from_tuples : Convert list of tuples to MultiIndex.
+        MultiIndex.from_product : Make a MultiIndex from cartesian product
+                                  of iterables.
+
+        Examples
+        --------
+        >>> df = pd.DataFrame([['HI', 'Temp'], ['HI', 'Precip'],
+        ...                    ['NJ', 'Temp'], ['NJ', 'Precip']],
+        ...                   columns=['a', 'b'])
+        >>> df
+              a       b
+        0    HI    Temp
+        1    HI  Precip
+        2    NJ    Temp
+        3    NJ  Precip
+
+        >>> pd.MultiIndex.from_frame(df)
+        MultiIndex(levels=[['HI', 'NJ'], ['Precip', 'Temp']],
+                   labels=[[0, 0, 1, 1], [1, 0, 1, 0]],
+                   names=['a', 'b'])
+
+        Using explicit names, instead of the column names
+
+        >>> pd.MultiIndex.from_frame(df, names=['state', 'observation'])
+        MultiIndex(levels=[['HI', 'NJ'], ['Precip', 'Temp']],
+                   labels=[[0, 0, 1, 1], [1, 0, 1, 0]],
+                   names=['state', 'observation'])
+        """
+        if not isinstance(df, ABCDataFrame):
+            raise TypeError("Input must be a DataFrame")
+
+        column_names, columns = lzip(*df.iteritems())
+        names = column_names if names is None else names
+        return cls.from_arrays(columns, sortorder=sortorder, names=names)
 
     # --------------------------------------------------------------------
 
@@ -755,7 +834,7 @@ class MultiIndex(Index):
                               **kwargs)
         return self._shallow_copy(values, **kwargs)
 
-    @Appender(_index_shared_docs['__contains__'] % _index_doc_kwargs)
+    @Appender(_index_shared_docs['contains'] % _index_doc_kwargs)
     def __contains__(self, key):
         hash(key)
         try:
@@ -1386,11 +1465,16 @@ class MultiIndex(Index):
         else:
             idx_names = self.names
 
-        result = DataFrame({(name or level):
-                            self._get_level_values(level)
-                            for name, level in
-                            zip(idx_names, range(len(self.levels)))},
-                           copy=False)
+        # Guarantee resulting column order
+        result = DataFrame(
+            OrderedDict([
+                ((level if name is None else name),
+                 self._get_level_values(level))
+                for name, level in zip(idx_names, range(len(self.levels)))
+            ]),
+            copy=False
+        )
+
         if index:
             result.index = self
         return result
@@ -1400,10 +1484,10 @@ class MultiIndex(Index):
         Return a MultiIndex reshaped to conform to the
         shapes given by n_repeat and n_shuffle.
 
+        .. deprecated:: 0.24.0
+
         Useful to replicate and rearrange a MultiIndex for combination
         with another Index with n_repeat items.
-
-        .. deprecated:: 0.24.0
 
         Parameters
         ----------
@@ -1773,6 +1857,7 @@ class MultiIndex(Index):
     def argsort(self, *args, **kwargs):
         return self.values.argsort(*args, **kwargs)
 
+    @Appender(_index_shared_docs['repeat'] % _index_doc_kwargs)
     def repeat(self, repeats, *args, **kwargs):
         nv.validate_repeat(args, kwargs)
         return MultiIndex(levels=self.levels,

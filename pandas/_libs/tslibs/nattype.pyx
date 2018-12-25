@@ -471,10 +471,6 @@ class NaTType(_NaT):
         """
         Round the Timestamp to the specified resolution
 
-        Returns
-        -------
-        a new Timestamp rounded to the given resolution of `freq`
-
         Parameters
         ----------
         freq : a freq string indicating the rounding resolution
@@ -496,6 +492,10 @@ class NaTType(_NaT):
               nonexistent times
 
             .. versionadded:: 0.24.0
+
+        Returns
+        -------
+        a new Timestamp rounded to the given resolution of `freq`
 
         Raises
         ------

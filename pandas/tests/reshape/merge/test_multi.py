@@ -505,18 +505,14 @@ class TestMergeMulti(object):
         # invalid cases
         household.index.name = 'foo'
 
-        def f():
+        with pytest.raises(ValueError):
             household.join(portfolio, how='inner')
-
-        pytest.raises(ValueError, f)
 
         portfolio2 = portfolio.copy()
         portfolio2.index.set_names(['household_id', 'foo'])
 
-        def f():
+        with pytest.raises(ValueError):
             portfolio2.join(portfolio, how='inner')
-
-        pytest.raises(ValueError, f)
 
     def test_join_multi_levels2(self):
 

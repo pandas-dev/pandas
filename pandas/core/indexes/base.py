@@ -31,7 +31,7 @@ from pandas.core.dtypes.generic import (
 from pandas.core.dtypes.missing import array_equivalent, isna
 
 from pandas.core import ops
-from pandas.core.accessor import CachedAccessor
+from pandas.core.accessor import CachedAccessor, DirNamesMixin
 import pandas.core.algorithms as algos
 from pandas.core.arrays import ExtensionArray
 from pandas.core.base import IndexOpsMixin, PandasObject
@@ -181,6 +181,15 @@ class Index(IndexOpsMixin, PandasObject):
     tupleize_cols : bool (default: True)
         When True, attempt to create a MultiIndex if possible
 
+    See Also
+    ---------
+    RangeIndex : Index implementing a monotonic integer range.
+    CategoricalIndex : Index of :class:`Categorical` s.
+    MultiIndex : A multi-level, or hierarchical, Index.
+    IntervalIndex : An Index of :class:`Interval` s.
+    DatetimeIndex, TimedeltaIndex, PeriodIndex
+    Int64Index, UInt64Index,  Float64Index
+
     Notes
     -----
     An Index instance can **only** contain hashable objects
@@ -192,16 +201,10 @@ class Index(IndexOpsMixin, PandasObject):
 
     >>> pd.Index(list('abc'))
     Index(['a', 'b', 'c'], dtype='object')
-
-    See Also
-    ---------
-    RangeIndex : Index implementing a monotonic integer range.
-    CategoricalIndex : Index of :class:`Categorical` s.
-    MultiIndex : A multi-level, or hierarchical, Index.
-    IntervalIndex : An Index of :class:`Interval` s.
-    DatetimeIndex, TimedeltaIndex, PeriodIndex
-    Int64Index, UInt64Index,  Float64Index
     """
+    # tolist is not actually deprecated, just suppressed in the __dir__
+    _deprecations = DirNamesMixin._deprecations | frozenset(['tolist'])
+
     # To hand over control to subclasses
     _join_precedence = 1
 
@@ -516,6 +519,12 @@ class Index(IndexOpsMixin, PandasObject):
 
         result = object.__new__(cls)
         result._data = values
+        # _index_data is a (temporary?) fix to ensure that the direct data
+        # manipulation we do in `_libs/reduction.pyx` continues to work.
+        # We need access to the actual ndarray, since we're messing with
+        # data buffers and strides. We don't re-use `_ndarray_values`, since
+        # we actually set this value too.
+        result._index_data = values
         result.name = name
         for k, v in compat.iteritems(kwargs):
             setattr(result, k, v)
@@ -673,7 +682,7 @@ class Index(IndexOpsMixin, PandasObject):
         """
         The array interface, return my values.
         """
-        return self._data.view(np.ndarray)
+        return np.asarray(self._data, dtype=dtype)
 
     def __array_wrap__(self, result, context=None):
         """
@@ -730,6 +739,8 @@ class Index(IndexOpsMixin, PandasObject):
         Parameters
         ----------
         dtype : numpy dtype or pandas type
+            Note that any integer `dtype` is treated as ``'int64'``,
+            regardless of the sign and size.
         copy : bool, default True
             By default, astype always returns a newly allocated object.
             If copy is set to False and internal requirements on dtype are
@@ -823,41 +834,48 @@ class Index(IndexOpsMixin, PandasObject):
             taken = values.take(indices)
         return taken
 
-    def repeat(self, repeats, *args, **kwargs):
-        """
-        Repeat elements of an Index.
+    _index_shared_docs['repeat'] = """
+        Repeat elements of a %(klass)s.
 
-        Returns a new index where each element of the current index
+        Returns a new %(klass)s where each element of the current %(klass)s
         is repeated consecutively a given number of times.
 
         Parameters
         ----------
-        repeats : int
-            The number of repetitions for each element.
+        repeats : int or array of ints
+            The number of repetitions for each element. This should be a
+            non-negative integer. Repeating 0 times will return an empty
+            %(klass)s.
+        *args
+            Additional arguments have no effect but might be accepted for
+            compatibility with numpy.
         **kwargs
             Additional keywords have no effect but might be accepted for
             compatibility with numpy.
 
         Returns
         -------
-        pandas.Index
-            Newly created Index with repeated elements.
+        repeated_index : %(klass)s
+            Newly created %(klass)s with repeated elements.
 
         See Also
         --------
         Series.repeat : Equivalent function for Series.
-        numpy.repeat : Underlying implementation.
+        numpy.repeat : Similar method for :class:`numpy.ndarray`.
 
         Examples
         --------
-        >>> idx = pd.Index([1, 2, 3])
+        >>> idx = pd.Index(['a', 'b', 'c'])
         >>> idx
-        Int64Index([1, 2, 3], dtype='int64')
+        Index(['a', 'b', 'c'], dtype='object')
         >>> idx.repeat(2)
-        Int64Index([1, 1, 2, 2, 3, 3], dtype='int64')
-        >>> idx.repeat(3)
-        Int64Index([1, 1, 1, 2, 2, 2, 3, 3, 3], dtype='int64')
+        Index(['a', 'a', 'b', 'b', 'c', 'c'], dtype='object')
+        >>> idx.repeat([1, 2, 3])
+        Index(['a', 'b', 'b', 'c', 'c', 'c'], dtype='object')
         """
+
+    @Appender(_index_shared_docs['repeat'] % _index_doc_kwargs)
+    def repeat(self, repeats, *args, **kwargs):
         nv.validate_repeat(args, kwargs)
         return self._shallow_copy(self._values.repeat(repeats))
 
@@ -2069,6 +2087,16 @@ class Index(IndexOpsMixin, PandasObject):
               occurrence.
             - ``False`` : Mark all duplicates as ``True``.
 
+        Returns
+        -------
+        numpy.ndarray
+
+        See Also
+        --------
+        pandas.Series.duplicated : Equivalent method on pandas.Series.
+        pandas.DataFrame.duplicated : Equivalent method on pandas.DataFrame.
+        pandas.Index.drop_duplicates : Remove duplicate values from Index.
+
         Examples
         --------
         By default, for each set of duplicated values, the first occurrence is
@@ -2093,16 +2121,6 @@ class Index(IndexOpsMixin, PandasObject):
 
         >>> idx.duplicated(keep=False)
         array([ True, False,  True, False,  True])
-
-        Returns
-        -------
-        numpy.ndarray
-
-        See Also
-        --------
-        pandas.Series.duplicated : Equivalent method on pandas.Series.
-        pandas.DataFrame.duplicated : Equivalent method on pandas.DataFrame.
-        pandas.Index.drop_duplicates : Remove duplicate values from Index.
         """
         return super(Index, self).duplicated(keep=keep)
 
@@ -2110,11 +2128,11 @@ class Index(IndexOpsMixin, PandasObject):
         """
         Extract duplicated index elements.
 
-        Returns a sorted list of index elements which appear more than once in
-        the index.
-
         .. deprecated:: 0.23.0
             Use idx[idx.duplicated()].unique() instead
+
+        Returns a sorted list of index elements which appear more than once in
+        the index.
 
         Returns
         -------
@@ -3812,37 +3830,50 @@ class Index(IndexOpsMixin, PandasObject):
     def is_type_compatible(self, kind):
         return kind == self.inferred_type
 
-    _index_shared_docs['__contains__'] = """
-        Return a boolean if this key is IN the index.
+    _index_shared_docs['contains'] = """
+        Return a boolean indicating whether the provided key is in the index.
 
         Parameters
         ----------
-        key : object
+        key : label
+            The key to check if it is present in the index.
 
         Returns
         -------
-        boolean
+        bool
+            Whether the key search is in the index.
+
+        See Also
+        --------
+        Index.isin : Returns an ndarray of boolean dtype indicating whether the
+            list-like key is in the index.
+
+        Examples
+        --------
+        >>> idx = pd.Index([1, 2, 3, 4])
+        >>> idx
+        Int64Index([1, 2, 3, 4], dtype='int64')
+
+        >>> idx.contains(2)
+        True
+        >>> idx.contains(6)
+        False
+
+        This is equivalent to:
+
+        >>> 2 in idx
+        True
+        >>> 6 in idx
+        False
         """
 
-    @Appender(_index_shared_docs['__contains__'] % _index_doc_kwargs)
+    @Appender(_index_shared_docs['contains'] % _index_doc_kwargs)
     def __contains__(self, key):
         hash(key)
         try:
             return key in self._engine
         except (OverflowError, TypeError, ValueError):
             return False
-
-    _index_shared_docs['contains'] = """
-        Return a boolean if this key is IN the index.
-
-        Parameters
-        ----------
-        key : object
-
-        Returns
-        -------
-        boolean
-        """
 
     @Appender(_index_shared_docs['contains'] % _index_doc_kwargs)
     def contains(self, key):
@@ -4187,6 +4218,11 @@ class Index(IndexOpsMixin, PandasObject):
         --------
         Series.shift : Shift values of Series.
 
+        Notes
+        -----
+        This method is only implemented for datetime-like index classes,
+        i.e., DatetimeIndex, PeriodIndex and TimedeltaIndex.
+
         Examples
         --------
         Put the first 5 month starts of 2011 into an index.
@@ -4211,11 +4247,6 @@ class Index(IndexOpsMixin, PandasObject):
         DatetimeIndex(['2011-11-01', '2011-12-01', '2012-01-01', '2012-02-01',
                        '2012-03-01'],
                       dtype='datetime64[ns]', freq='MS')
-
-        Notes
-        -----
-        This method is only implemented for datetime-like index classes,
-        i.e., DatetimeIndex, PeriodIndex and TimedeltaIndex.
         """
         raise NotImplementedError("Not supported for type %s" %
                                   type(self).__name__)
@@ -4268,7 +4299,8 @@ class Index(IndexOpsMixin, PandasObject):
 
         # if we have something that is Index-like, then
         # use this, e.g. DatetimeIndex
-        s = getattr(series, '_values', None)
+        # Things like `Series._get_value` (via .at) pass the EA directly here.
+        s = getattr(series, '_values', series)
         if isinstance(s, (ExtensionArray, Index)) and is_scalar(key):
             # GH 20882, 21257
             # Unify Index and ExtensionArray treatment
@@ -4768,6 +4800,10 @@ class Index(IndexOpsMixin, PandasObject):
         -------
         start, end : int
 
+        See Also
+        --------
+        Index.get_loc : Get location for a single label.
+
         Notes
         -----
         This method only works if the index is monotonic or unique.
@@ -4777,10 +4813,6 @@ class Index(IndexOpsMixin, PandasObject):
         >>> idx = pd.Index(list('abcd'))
         >>> idx.slice_locs(start='b', end='c')
         (1, 3)
-
-        See Also
-        --------
-        Index.get_loc : Get location for a single label.
         """
         inc = (step is None or step >= 0)
 

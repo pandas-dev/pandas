@@ -191,31 +191,20 @@ class DatetimeIndex(DatetimeArray, DatetimeIndexOpsMixin, Int64Index):
     _tz = None
     _freq = None
     _comparables = ['name', 'freqstr', 'tz']
-    _attributes = ['name', 'freq', 'tz']
+    _attributes = ['name', 'tz', 'freq']
 
     # dummy attribute so that datetime.__eq__(DatetimeArray) defers
     # by returning NotImplemented
     timetuple = None
 
-    # define my properties & methods for delegation
-    _bool_ops = ['is_month_start', 'is_month_end',
-                 'is_quarter_start', 'is_quarter_end', 'is_year_start',
-                 'is_year_end', 'is_leap_year']
-    _object_ops = ['weekday_name', 'freq', 'tz']
-    _field_ops = ['year', 'month', 'day', 'hour', 'minute', 'second',
-                  'weekofyear', 'week', 'weekday', 'dayofweek',
-                  'dayofyear', 'quarter', 'days_in_month',
-                  'daysinmonth', 'microsecond',
-                  'nanosecond']
-    _other_ops = ['date', 'time', 'timetz']
-    _datetimelike_ops = _field_ops + _object_ops + _bool_ops + _other_ops
-    _datetimelike_methods = ['to_period', 'tz_localize',
-                             'tz_convert',
-                             'normalize', 'strftime', 'round', 'floor',
-                             'ceil', 'month_name', 'day_name']
-
     _is_numeric_dtype = False
     _infer_as_myclass = True
+
+    # some things like freq inference make use of these attributes.
+    _bool_ops = DatetimeArray._bool_ops
+    _object_ops = DatetimeArray._object_ops
+    _field_ops = DatetimeArray._field_ops
+    _datetimelike_ops = DatetimeArray._datetimelike_ops
 
     # --------------------------------------------------------------------
     # Constructors
@@ -238,11 +227,11 @@ class DatetimeIndex(DatetimeArray, DatetimeIndexOpsMixin, Int64Index):
                           "endpoints is deprecated.  Use "
                           "`pandas.date_range` instead.",
                           FutureWarning, stacklevel=2)
-            result = cls._generate_range(start, end, periods,
-                                         freq=freq, tz=tz, normalize=normalize,
-                                         closed=closed, ambiguous=ambiguous)
-            result.name = name
-            return result
+            dtarr = DatetimeArray._generate_range(
+                start, end, periods,
+                freq=freq, tz=tz, normalize=normalize,
+                closed=closed, ambiguous=ambiguous)
+            return cls(dtarr, name=name)
 
         if is_scalar(data):
             raise TypeError("{cls}() must be called with a "
@@ -280,6 +269,8 @@ class DatetimeIndex(DatetimeArray, DatetimeIndexOpsMixin, Int64Index):
 
         result = super(DatetimeIndex, cls)._simple_new(values, freq, tz)
         result.name = name
+        # For groupby perf. See note in indexes/base about _index_data
+        result._index_data = result._data
         result._reset_identity()
         return result
 
@@ -325,6 +316,15 @@ class DatetimeIndex(DatetimeArray, DatetimeIndexOpsMixin, Int64Index):
         # Necessary to avoid recursion error since DTI._values is a DTI
         # for TZ-aware
         return self._ndarray_values.nbytes
+
+    def memory_usage(self, deep=False):
+        # TODO: Remove this when we have a DatetimeTZArray
+        # Necessary to avoid recursion error since DTI._values is a DTI
+        # for TZ-aware
+        result = self._ndarray_values.nbytes
+        # include our engine hashtable
+        result += self._engine.sizeof(deep=deep)
+        return result
 
     @cache_readonly
     def _is_dates_only(self):
@@ -1473,12 +1473,12 @@ def date_range(start=None, end=None, periods=None, freq=None, tz=None,
     if freq is None and com._any_none(periods, start, end):
         freq = 'D'
 
-    result = DatetimeIndex._generate_range(
+    dtarr = DatetimeArray._generate_range(
         start=start, end=end, periods=periods,
         freq=freq, tz=tz, normalize=normalize,
         closed=closed, **kwargs)
 
-    result.name = name
+    result = DatetimeIndex(dtarr, name=name)
     return result
 
 
@@ -1526,6 +1526,10 @@ def bdate_range(start=None, end=None, periods=None, freq='B', tz=None,
     **kwargs
         For compatibility. Has no effect on the result.
 
+    Returns
+    -------
+    DatetimeIndex
+
     Notes
     -----
     Of the four parameters: ``start``, ``end``, ``periods``, and ``freq``,
@@ -1535,10 +1539,6 @@ def bdate_range(start=None, end=None, periods=None, freq='B', tz=None,
 
     To learn more about the frequency strings, please see `this link
     <http://pandas.pydata.org/pandas-docs/stable/timeseries.html#offset-aliases>`__.
-
-    Returns
-    -------
-    DatetimeIndex
 
     Examples
     --------

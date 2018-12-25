@@ -154,10 +154,10 @@ def is_scalar(val: object) -> bool:
     """
 
     return (cnp.PyArray_IsAnyScalar(val)
-            # As of numpy-1.9, PyArray_IsAnyScalar misses bytearrays on Py3.
-            or isinstance(val, (bytes, Fraction, Number))
-            # We differ from numpy (as of 1.10), which claims that None is
-            # not scalar in np.isscalar().
+            # PyArray_IsAnyScalar is always False for bytearrays on Py3
+            or isinstance(val, (Fraction, Number))
+            # We differ from numpy, which claims that None is not scalar;
+            # see np.isscalar
             or val is None
             or PyDate_Check(val)
             or PyDelta_Check(val)
@@ -2209,7 +2209,7 @@ def map_infer(ndarray arr, object f, bint convert=1):
     return result
 
 
-def to_object_array(rows: list, min_width: int=0):
+def to_object_array(rows: object, int min_width=0):
     """
     Convert a list of lists into an object array.
 
@@ -2230,20 +2230,22 @@ def to_object_array(rows: list, min_width: int=0):
     cdef:
         Py_ssize_t i, j, n, k, tmp
         ndarray[object, ndim=2] result
+        list input_rows
         list row
 
-    n = len(rows)
+    input_rows = <list>rows
+    n = len(input_rows)
 
     k = min_width
     for i in range(n):
-        tmp = len(rows[i])
+        tmp = len(input_rows[i])
         if tmp > k:
             k = tmp
 
     result = np.empty((n, k), dtype=object)
 
     for i in range(n):
-        row = rows[i]
+        row = <list>input_rows[i]
 
         for j in range(len(row)):
             result[i, j] = row[j]

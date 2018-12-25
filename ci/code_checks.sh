@@ -145,9 +145,26 @@ if [[ -z "$CHECK" || "$CHECK" == "patterns" ]]; then
     RET=$(($RET + $?)) ; echo $MSG "DONE"
 
     MSG='Check that the deprecated `assert_raises_regex` is not used (`pytest.raises(match=pattern)` should be used instead)' ; echo $MSG
-    invgrep -R --exclude=*.pyc --exclude=testing.py --exclude=test_testing.py assert_raises_regex pandas
+    invgrep -R --exclude=*.pyc --exclude=testing.py --exclude=test_util.py assert_raises_regex pandas
     RET=$(($RET + $?)) ; echo $MSG "DONE"
 
+    # Check that we use pytest.raises only as a context manager
+    #
+    # For any flake8-compliant code, the only way this regex gets
+    # matched is if there is no "with" statement preceding "pytest.raises"
+    MSG='Check for pytest.raises as context manager (a line starting with `pytest.raises` is invalid, needs a `with` to precede it)' ; echo $MSG
+    MSG='TODO: This check is currently skipped because so many files fail this. Please enable when all are corrected (xref gh-24332)' ; echo $MSG
+    # invgrep -R --include '*.py' -E '[[:space:]] pytest.raises' pandas/tests
+    # RET=$(($RET + $?)) ; echo $MSG "DONE"
+
+    MSG='Check that no file in the repo contains tailing whitespaces' ; echo $MSG
+    set -o pipefail
+    if [[ "$AZURE" == "true" ]]; then
+        ! grep -n --exclude="*.svg" -RI "\s$" * | awk -F ":" '{print "##vso[task.logissue type=error;sourcepath=" $1 ";linenumber=" $2 ";] Tailing whitespaces found: " $3}'
+    else
+        ! grep -n --exclude="*.svg" -RI "\s$" * | awk -F ":" '{print $1 ":" $2 ":Tailing whitespaces found: " $3}'
+    fi
+    RET=$(($RET + $?)) ; echo $MSG "DONE"
 fi
 
 ### CODE ###
@@ -175,7 +192,7 @@ if [[ -z "$CHECK" || "$CHECK" == "doctests" ]]; then
 
     MSG='Doctests frame.py' ; echo $MSG
     pytest -q --doctest-modules pandas/core/frame.py \
-        -k"-axes -combine -itertuples -join -pivot_table -quantile -query -reindex -reindex_axis -round"
+        -k"-axes -combine -itertuples -join -pivot_table -query -reindex -reindex_axis -round"
     RET=$(($RET + $?)) ; echo $MSG "DONE"
 
     MSG='Doctests series.py' ; echo $MSG
@@ -209,8 +226,8 @@ fi
 ### DOCSTRINGS ###
 if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
 
-    MSG='Validate docstrings (GL06, SS04, PR03, PR05, EX04)' ; echo $MSG
-    $BASE_DIR/scripts/validate_docstrings.py --format=azure --errors=GL06,SS04,PR03,PR05,EX04
+    MSG='Validate docstrings (GL06, GL07, GL09, SS04, PR03, PR05, EX04)' ; echo $MSG
+    $BASE_DIR/scripts/validate_docstrings.py --format=azure --errors=GL06,GL07,GL09,SS04,PR03,PR05,EX04
     RET=$(($RET + $?)) ; echo $MSG "DONE"
 
 fi

@@ -11,8 +11,8 @@ from pandas.compat import PY2, range, text_type, u, zip
 
 from pandas.core.dtypes.cast import maybe_promote
 from pandas.core.dtypes.common import (
-    ensure_platform_int, is_bool_dtype, is_extension_array_dtype, is_list_like,
-    is_object_dtype, needs_i8_conversion)
+    ensure_platform_int, is_bool_dtype, is_extension_array_dtype,
+    is_integer_dtype, is_list_like, is_object_dtype, needs_i8_conversion)
 from pandas.core.dtypes.missing import notna
 
 from pandas import compat
@@ -25,7 +25,6 @@ from pandas.core.series import Series
 from pandas.core.sorting import (
     compress_group_index, decons_obs_group_ids, get_compressed_ids,
     get_group_index)
-from pandas.core.sparse.api import SparseDataFrame, SparseSeries
 
 
 class _Unstacker(object):
@@ -433,7 +432,7 @@ def _unstack_extension_series(series, level, fill_value):
                         level=level, fill_value=-1).get_result()
 
     out = []
-    values = series.values
+    values = series.array
 
     for col, indices in result.iteritems():
         out.append(Series(values.take(indices.values,
@@ -706,9 +705,8 @@ def get_dummies(data, prefix=None, prefix_sep='_', dummy_na=False,
         If `columns` is None then all the columns with
         `object` or `category` dtype will be converted.
     sparse : bool, default False
-        Whether the dummy columns should be sparse or not.  Returns
-        SparseDataFrame if `data` is a Series or if all columns are included.
-        Otherwise returns a DataFrame with some SparseBlocks.
+        Whether the dummy-encoded columns should be be backed by
+        a :class:`SparseArray` (True) or a regular NumPy array (False).
     drop_first : bool, default False
         Whether to get k-1 dummies out of k categorical levels by removing the
         first level.
@@ -722,7 +720,11 @@ def get_dummies(data, prefix=None, prefix_sep='_', dummy_na=False,
 
     Returns
     -------
-    dummies : DataFrame or SparseDataFrame
+    dummies : DataFrame
+
+    See Also
+    --------
+    Series.str.get_dummies
 
     Examples
     --------
@@ -779,10 +781,6 @@ def get_dummies(data, prefix=None, prefix_sep='_', dummy_na=False,
     0  1.0  0.0  0.0
     1  0.0  1.0  0.0
     2  0.0  0.0  1.0
-
-    See Also
-    --------
-    Series.str.get_dummies
     """
     from pandas.core.reshape.concat import concat
     from itertools import cycle
@@ -855,6 +853,7 @@ def get_dummies(data, prefix=None, prefix_sep='_', dummy_na=False,
 
 def _get_dummies_1d(data, prefix, prefix_sep='_', dummy_na=False,
                     sparse=False, drop_first=False, dtype=None):
+    from pandas.core.reshape.concat import concat
     # Series avoids inconsistent NaN handling
     codes, levels = _factorize_from_iterable(Series(data))
 
@@ -865,19 +864,16 @@ def _get_dummies_1d(data, prefix, prefix_sep='_', dummy_na=False,
     if is_object_dtype(dtype):
         raise ValueError("dtype=object is not a valid dtype for get_dummies")
 
-    def get_empty_Frame(data, sparse):
+    def get_empty_frame(data):
         if isinstance(data, Series):
             index = data.index
         else:
             index = np.arange(len(data))
-        if not sparse:
-            return DataFrame(index=index)
-        else:
-            return SparseDataFrame(index=index, default_fill_value=0)
+        return DataFrame(index=index)
 
     # if all NaN
     if not dummy_na and len(levels) == 0:
-        return get_empty_Frame(data, sparse)
+        return get_empty_frame(data)
 
     codes = codes.copy()
     if dummy_na:
@@ -886,7 +882,7 @@ def _get_dummies_1d(data, prefix, prefix_sep='_', dummy_na=False,
 
     # if dummy_na, we just fake a nan level. drop_first will drop it again
     if drop_first and len(levels) == 1:
-        return get_empty_Frame(data, sparse)
+        return get_empty_frame(data)
 
     number_of_cols = len(levels)
 
@@ -914,7 +910,15 @@ def _get_dummies_1d(data, prefix, prefix_sep='_', dummy_na=False,
         index = None
 
     if sparse:
-        sparse_series = {}
+
+        if is_integer_dtype(dtype):
+            fill_value = 0
+        elif dtype == bool:
+            fill_value = False
+        else:
+            fill_value = 0.0
+
+        sparse_series = []
         N = len(data)
         sp_indices = [[] for _ in range(len(dummy_cols))]
         mask = codes != -1
@@ -931,13 +935,12 @@ def _get_dummies_1d(data, prefix, prefix_sep='_', dummy_na=False,
             dummy_cols = dummy_cols[1:]
         for col, ixs in zip(dummy_cols, sp_indices):
             sarr = SparseArray(np.ones(len(ixs), dtype=dtype),
-                               sparse_index=IntIndex(N, ixs), fill_value=0,
+                               sparse_index=IntIndex(N, ixs),
+                               fill_value=fill_value,
                                dtype=dtype)
-            sparse_series[col] = SparseSeries(data=sarr, index=index)
+            sparse_series.append(Series(data=sarr, index=index, name=col))
 
-        out = SparseDataFrame(sparse_series, index=index, columns=dummy_cols,
-                              default_fill_value=0,
-                              dtype=dtype)
+        out = concat(sparse_series, axis=1, copy=False)
         return out
 
     else:

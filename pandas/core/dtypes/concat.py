@@ -66,19 +66,19 @@ def _get_series_result_type(result, objs=None):
     return appropriate class of Series concat
     input is either dict or array-like
     """
+    from pandas import SparseSeries, SparseDataFrame, DataFrame
+
     # concat Series with axis 1
     if isinstance(result, dict):
         # concat Series with axis 1
-        if all(is_sparse(c) for c in compat.itervalues(result)):
-            from pandas.core.sparse.api import SparseDataFrame
+        if all(isinstance(c, (SparseSeries, SparseDataFrame))
+               for c in compat.itervalues(result)):
             return SparseDataFrame
         else:
-            from pandas.core.frame import DataFrame
             return DataFrame
 
     # otherwise it is a SingleBlockManager (axis = 0)
     if result._block.is_sparse:
-        from pandas.core.sparse.api import SparseSeries
         return SparseSeries
     else:
         return objs[0]._constructor

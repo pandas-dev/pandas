@@ -64,7 +64,8 @@ cdef class BlockPlacement:
 
         return '%s(%r)' % (self.__class__.__name__, v)
 
-    __repr__ = __str__
+    def __repr__(self):
+        return str(self)
 
     def __len__(self):
         cdef:

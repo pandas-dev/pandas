@@ -478,6 +478,40 @@ class Window(_Window):
     -------
     a Window or Rolling sub-classed for the particular operation
 
+    See Also
+    --------
+    expanding : Provides expanding transformations.
+    ewm : Provides exponential weighted functions.
+
+    Notes
+    -----
+    By default, the result is set to the right edge of the window. This can be
+    changed to the center of the window by setting ``center=True``.
+
+    To learn more about the offsets & frequency strings, please see `this link
+    <http://pandas.pydata.org/pandas-docs/stable/timeseries.html#offset-aliases>`__.
+
+    The recognized win_types are:
+
+    * ``boxcar``
+    * ``triang``
+    * ``blackman``
+    * ``hamming``
+    * ``bartlett``
+    * ``parzen``
+    * ``bohman``
+    * ``blackmanharris``
+    * ``nuttall``
+    * ``barthann``
+    * ``kaiser`` (needs beta)
+    * ``gaussian`` (needs std)
+    * ``general_gaussian`` (needs power, width)
+    * ``slepian`` (needs width).
+
+    If ``win_type=None`` all points are evenly weighted. To learn more about
+    different window types see `scipy.signal window functions
+    <https://docs.scipy.org/doc/scipy/reference/signal.html#window-functions>`__.
+
     Examples
     --------
 
@@ -550,40 +584,6 @@ class Window(_Window):
     2013-01-01 09:00:03  3.0
     2013-01-01 09:00:05  NaN
     2013-01-01 09:00:06  4.0
-
-    Notes
-    -----
-    By default, the result is set to the right edge of the window. This can be
-    changed to the center of the window by setting ``center=True``.
-
-    To learn more about the offsets & frequency strings, please see `this link
-    <http://pandas.pydata.org/pandas-docs/stable/timeseries.html#offset-aliases>`__.
-
-    The recognized win_types are:
-
-    * ``boxcar``
-    * ``triang``
-    * ``blackman``
-    * ``hamming``
-    * ``bartlett``
-    * ``parzen``
-    * ``bohman``
-    * ``blackmanharris``
-    * ``nuttall``
-    * ``barthann``
-    * ``kaiser`` (needs beta)
-    * ``gaussian`` (needs std)
-    * ``general_gaussian`` (needs power, width)
-    * ``slepian`` (needs width).
-
-    If ``win_type=None`` all points are evenly weighted. To learn more about
-    different window types see `scipy.signal window functions
-    <https://docs.scipy.org/doc/scipy/reference/signal.html#window-functions>`__.
-
-    See Also
-    --------
-    expanding : Provides expanding transformations.
-    ewm : Provides exponential weighted functions.
     """
 
     def validate(self):
@@ -693,7 +693,14 @@ class Window(_Window):
 
         return self._wrap_results(results, blocks, obj)
 
-    _agg_doc = dedent("""
+    _agg_see_also_doc = dedent("""
+    See Also
+    --------
+    pandas.DataFrame.rolling.aggregate
+    pandas.DataFrame.aggregate
+    """)
+
+    _agg_examples_doc = dedent("""
     Examples
     --------
 
@@ -723,19 +730,14 @@ class Window(_Window):
     7  0.906020  1.283573  0.085482
     8 -0.096361  0.818139  0.472290
     9  0.070889  0.134399 -0.031308
-
-    See Also
-    --------
-    pandas.DataFrame.rolling.aggregate
-    pandas.DataFrame.aggregate
-
     """)
 
-    @Appender(_agg_doc)
-    @Appender(_shared_docs['aggregate'] % dict(
-        versionadded='',
-        klass='Series/DataFrame',
-        axis=''))
+    @Substitution(see_also=_agg_see_also_doc,
+                  examples=_agg_examples_doc,
+                  versionadded='',
+                  klass='Series/DataFrame',
+                  axis='')
+    @Appender(_shared_docs['aggregate'])
     def aggregate(self, arg, *args, **kwargs):
         result, how = self._aggregate(arg, *args, **kwargs)
         if result is None:
@@ -1294,6 +1296,13 @@ class _Rolling_and_Expanding(_Rolling):
         Returned object type is determined by the caller of the %(name)s
         calculation.
 
+    See Also
+    --------
+    pandas.Series.quantile : Computes value at the given quantile over all data
+        in Series.
+    pandas.DataFrame.quantile : Computes values at the given quantile over
+        requested axis in DataFrame.
+
     Examples
     --------
     >>> s = pd.Series([1, 2, 3, 4])
@@ -1310,13 +1319,6 @@ class _Rolling_and_Expanding(_Rolling):
     2    2.5
     3    3.5
     dtype: float64
-
-    See Also
-    --------
-    pandas.Series.quantile : Computes value at the given quantile over all data
-        in Series.
-    pandas.DataFrame.quantile : Computes values at the given quantile over
-        requested axis in DataFrame.
     """)
 
     def quantile(self, quantile, interpolation='linear', **kwargs):
@@ -1595,7 +1597,14 @@ class Rolling(_Rolling_and_Expanding):
                              "compatible with a datetimelike "
                              "index".format(self.window))
 
-    _agg_doc = dedent("""
+    _agg_see_also_doc = dedent("""
+    See Also
+    --------
+    pandas.Series.rolling
+    pandas.DataFrame.rolling
+    """)
+
+    _agg_examples_doc = dedent("""
     Examples
     --------
 
@@ -1638,18 +1647,14 @@ class Rolling(_Rolling_and_Expanding):
     7  2.718061 -1.647453
     8 -0.289082 -1.647453
     9  0.212668 -1.647453
-
-    See Also
-    --------
-    pandas.Series.rolling
-    pandas.DataFrame.rolling
     """)
 
-    @Appender(_agg_doc)
-    @Appender(_shared_docs['aggregate'] % dict(
-        versionadded='',
-        klass='Series/DataFrame',
-        axis=''))
+    @Substitution(see_also=_agg_see_also_doc,
+                  examples=_agg_examples_doc,
+                  versionadded='',
+                  klass='Series/Dataframe',
+                  axis='')
+    @Appender(_shared_docs['aggregate'])
     def aggregate(self, arg, *args, **kwargs):
         return super(Rolling, self).aggregate(arg, *args, **kwargs)
 
@@ -1821,6 +1826,16 @@ class Expanding(_Rolling_and_Expanding):
     -------
     a Window sub-classed for the particular operation
 
+    See Also
+    --------
+    rolling : Provides rolling window calculations.
+    ewm : Provides exponential weighted functions.
+
+    Notes
+    -----
+    By default, the result is set to the right edge of the window. This can be
+    changed to the center of the window by setting ``center=True``.
+
     Examples
     --------
 
@@ -1839,16 +1854,6 @@ class Expanding(_Rolling_and_Expanding):
     2  3.0
     3  3.0
     4  7.0
-
-    Notes
-    -----
-    By default, the result is set to the right edge of the window. This can be
-    changed to the center of the window by setting ``center=True``.
-
-    See Also
-    --------
-    rolling : Provides rolling window calculations.
-    ewm : Provides exponential weighted functions.
     """
 
     _attributes = ['min_periods', 'center', 'axis']
@@ -1883,7 +1888,15 @@ class Expanding(_Rolling_and_Expanding):
         other = self.min_periods or -1
         return max(length, other)
 
-    _agg_doc = dedent("""
+    _agg_see_also_doc = dedent("""
+    See Also
+    --------
+    pandas.DataFrame.expanding.aggregate
+    pandas.DataFrame.rolling.aggregate
+    pandas.DataFrame.aggregate
+    """)
+
+    _agg_examples_doc = dedent("""
     Examples
     --------
 
@@ -1913,19 +1926,14 @@ class Expanding(_Rolling_and_Expanding):
     7  0.680292  0.132049  0.548693
     8  0.067236  0.948257  0.163353
     9 -0.286980  0.618493 -0.694496
-
-    See Also
-    --------
-    pandas.DataFrame.expanding.aggregate
-    pandas.DataFrame.rolling.aggregate
-    pandas.DataFrame.aggregate
     """)
 
-    @Appender(_agg_doc)
-    @Appender(_shared_docs['aggregate'] % dict(
-        versionadded='',
-        klass='Series/DataFrame',
-        axis=''))
+    @Substitution(see_also=_agg_see_also_doc,
+                  examples=_agg_examples_doc,
+                  versionadded='',
+                  klass='Series/Dataframe',
+                  axis='')
+    @Appender(_shared_docs['aggregate'])
     def aggregate(self, arg, *args, **kwargs):
         return super(Expanding, self).aggregate(arg, *args, **kwargs)
 
@@ -2116,24 +2124,10 @@ class EWM(_Rolling):
     -------
     a Window sub-classed for the particular operation
 
-    Examples
+    See Also
     --------
-
-    >>> df = pd.DataFrame({'B': [0, 1, 2, np.nan, 4]})
-         B
-    0  0.0
-    1  1.0
-    2  2.0
-    3  NaN
-    4  4.0
-
-    >>> df.ewm(com=0.5).mean()
-              B
-    0  0.000000
-    1  0.750000
-    2  1.615385
-    3  1.615385
-    4  3.670213
+    rolling : Provides rolling window calculations.
+    expanding : Provides expanding transformations.
 
     Notes
     -----
@@ -2162,10 +2156,24 @@ class EWM(_Rolling):
     More details can be found at
     http://pandas.pydata.org/pandas-docs/stable/computation.html#exponentially-weighted-windows
 
-    See Also
+    Examples
     --------
-    rolling : Provides rolling window calculations.
-    expanding : Provides expanding transformations.
+
+    >>> df = pd.DataFrame({'B': [0, 1, 2, np.nan, 4]})
+         B
+    0  0.0
+    1  1.0
+    2  2.0
+    3  NaN
+    4  4.0
+
+    >>> df.ewm(com=0.5).mean()
+              B
+    0  0.000000
+    1  0.750000
+    2  1.615385
+    3  1.615385
+    4  3.670213
     """
     _attributes = ['com', 'min_periods', 'adjust', 'ignore_na', 'axis']
 
@@ -2184,7 +2192,13 @@ class EWM(_Rolling):
     def _constructor(self):
         return EWM
 
-    _agg_doc = dedent("""
+    _agg_see_also_doc = dedent("""
+    See Also
+    --------
+    pandas.DataFrame.rolling.aggregate
+    """)
+
+    _agg_examples_doc = dedent("""
     Examples
     --------
 
@@ -2214,17 +2228,14 @@ class EWM(_Rolling):
     7  0.680292  0.132049  0.548693
     8  0.067236  0.948257  0.163353
     9 -0.286980  0.618493 -0.694496
-
-    See Also
-    --------
-    pandas.DataFrame.rolling.aggregate
     """)
 
-    @Appender(_agg_doc)
-    @Appender(_shared_docs['aggregate'] % dict(
-        versionadded='',
-        klass='Series/DataFrame',
-        axis=''))
+    @Substitution(see_also=_agg_see_also_doc,
+                  examples=_agg_examples_doc,
+                  versionadded='',
+                  klass='Series/Dataframe',
+                  axis='')
+    @Appender(_shared_docs['aggregate'])
     def aggregate(self, arg, *args, **kwargs):
         return super(EWM, self).aggregate(arg, *args, **kwargs)
 

@@ -7,7 +7,6 @@ import sys
 cdef bint PY3 = (sys.version_info[0] >= 3)
 
 import cython
-from cython import Py_ssize_t
 
 from cpython cimport Py_NE, Py_EQ, PyObject_RichCompare
 
@@ -162,9 +161,6 @@ cpdef convert_to_timedelta64(object ts, object unit):
         - None/NaT
 
     Return an ns based int64
-
-    # kludgy here until we have a timedelta scalar
-    # handle the numpy < 1.7 case
     """
     if checknull_with_nat(ts):
         return np.timedelta64(NPY_NAT)
@@ -771,12 +767,26 @@ cdef class _Timedelta(timedelta):
                     if is_timedelta64_object(other):
                         other = Timedelta(other)
                     else:
-                        return NotImplemented
+                        if op == Py_EQ:
+                            return False
+                        elif op == Py_NE:
+                            return True
+                        # only allow ==, != ops
+                        raise TypeError('Cannot compare type {cls} with '
+                                        'type {other}'
+                                        .format(cls=type(self).__name__,
+                                                other=type(other).__name__))
                 if util.is_array(other):
                     return PyObject_RichCompare(np.array([self]), other, op)
                 return PyObject_RichCompare(other, self, reverse_ops[op])
             else:
-                return NotImplemented
+                if op == Py_EQ:
+                    return False
+                elif op == Py_NE:
+                    return True
+                raise TypeError('Cannot compare type {cls} with type {other}'
+                                .format(cls=type(self).__name__,
+                                        other=type(other).__name__))
 
         return cmp_scalar(self.value, ots.value, op)
 
@@ -1060,6 +1070,10 @@ cdef class _Timedelta(timedelta):
         -------
         formatted : str
 
+        See Also
+        --------
+        Timestamp.isoformat
+
         Notes
         -----
         The longest component is days, whose value may be larger than
@@ -1082,10 +1096,6 @@ cdef class _Timedelta(timedelta):
         'P0DT0H0M10S'
         >>> pd.Timedelta(days=500.5).isoformat()
         'P500DT12H0MS'
-
-        See Also
-        --------
-        Timestamp.isoformat
         """
         components = self.components
         seconds = '{}.{:0>3}{:0>3}{:0>3}'.format(components.seconds,
@@ -1211,13 +1221,13 @@ class Timedelta(_Timedelta):
         """
         Round the Timedelta to the specified resolution
 
-        Returns
-        -------
-        a new Timedelta rounded to the given resolution of `freq`
-
         Parameters
         ----------
         freq : a freq string indicating the rounding resolution
+
+        Returns
+        -------
+        a new Timedelta rounded to the given resolution of `freq`
 
         Raises
         ------
