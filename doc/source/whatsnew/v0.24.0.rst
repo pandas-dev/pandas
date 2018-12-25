@@ -28,6 +28,7 @@ New features
   dataframe's indexes from the resulting Parquet file. (:issue:`20768`)
 - :meth:`DataFrame.corr` and :meth:`Series.corr` now accept a callable for generic calculation methods of correlation, e.g. histogram intersection (:issue:`22684`)
 - :meth:`DataFrame.corrwith` now can compute correlation matrix between all columns/rows of two DataFrame objects using ``how='all'`` parameter. It also supports ``method`` and ``min_periods`` parameters with the same behavior as :meth:`DataFrame.corr`.
+  See the :ref:`section on using DataFrame.corrwith() <computation.corrwith_all>`. (:issue:`22622`)
 - :func:`DataFrame.to_string` now accepts ``decimal`` as an argument, allowing the user to specify which decimal separator should be used in the output. (:issue:`23614`)
 - :func:`read_feather` now accepts ``columns`` as an argument, allowing the user to specify which columns should be read. (:issue:`24025`)
 - :func:`DataFrame.to_html` now accepts ``render_links`` as an argument, allowing the user to generate HTML with links to any URLs that appear in the DataFrame.

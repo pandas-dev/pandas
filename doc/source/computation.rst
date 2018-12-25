@@ -158,8 +158,9 @@ compute the correlation based on histogram intersection:
 
    frame.corr(method=histogram_intersection)
 
-A related method :meth:`~DataFrame.corrwith` is implemented on DataFrame to 
-compute the correlation between another DataFrame or Series object.
+A related method :meth:`~DataFrame.corrwith` is implemented on DataFrame to
+compute the correlation between another DataFrame or Series object with
+the columns of the same names (``how='pairwise'`` by default):
 
 .. ipython:: python
 
@@ -167,9 +168,18 @@ compute the correlation between another DataFrame or Series object.
    columns = ['one', 'two', 'three', 'four']
    df1 = pd.DataFrame(np.random.randn(5, 4), index=index, columns=columns)
    df2 = pd.DataFrame(np.random.randn(4, 4), index=index[:4], columns=columns)
-   df1.corrwith(df2)
+   df1.corrwith(df2) # how='pairwise'
+   df2.corrwith(df1, axis=1) # how='pairwise'
+
+.. _computation.corrwith_all:
+.. versionadded:: 0.24.0
+
+... or compute the correlation matrix between another DataFrame with all possible 
+columns combinations (``how='all'``):
+
+.. ipython:: python
    df1.corrwith(df2, how='all')
-   df2.corrwith(df1, axis=1)
+   df1.corrwith(df2, axis=1, how='all')
 
 .. _computation.ranking:
 
