@@ -7,10 +7,8 @@ echo "[building extensions]"
 python setup.py build_ext -q --inplace
 python -m pip install -e .
 
-echo
-echo "[show environment]"
+echo -e "\n[show environment]"
 conda list
 
-echo
-echo "[done]"
+echo -e "\n[done]"
 exit 0

@@ -1,7 +1,6 @@
 #!/usr/bin/env bash
 
-home_dir=$(pwd)
-echo "[home_dir: $home_dir]"
+echo "[home_dir: $(pwd)]"
 
 echo "[ls -ltr]"
 ls -ltr
@@ -27,47 +26,44 @@ conda info -a || exit 1
 export ENVS_FILE=".envs"
 
 # make sure that the .envs file exists. it is ok if it is empty
-touch $ENVS_FILE
+touch "${ENVS_FILE}"
 
 # assume all command line arguments are environmental variables
-for var in "$@"
-do
-    echo "export $var" >> $ENVS_FILE
+for var in "$@"; do
+    echo "export $var" >> "${ENVS_FILE}"
 done
 
 echo "[environmental variable file]"
-cat $ENVS_FILE
-source $ENVS_FILE
+cat "${ENVS_FILE}"
+source "${ENVS_FILE}"
 
 # edit the locale override if needed
-if [ -n "$LOCALE_OVERRIDE" ]; then
+if [ -n "${LOCALE_OVERRIDE}" ]; then
 
     apt-get update && apt-get -y install locales locales-all
 
-    export LANG=$LOCALE_OVERRIDE
-    export LC_ALL=$LOCALE_OVERRIDE
+    export LANG="${LOCALE_OVERRIDE}"
+    export LC_ALL="${LOCALE_OVERRIDE}"
 
-    python -c "import locale; locale.setlocale(locale.LC_ALL, \"$LOCALE_OVERRIDE\")" || exit 1;
+    python -c "import locale; locale.setlocale(locale.LC_ALL, \"${LOCALE_OVERRIDE}\")" || exit 1;
 
     echo "[Adding locale to the first line of pandas/__init__.py]"
-    rm -f pandas/__init__.pyc
-    sedc="3iimport locale\nlocale.setlocale(locale.LC_ALL, \"$LOCALE_OVERRIDE\")\n"
+    rm -f pandas/__init__.pyc || true;
+    sedc="3iimport locale\nlocale.setlocale(locale.LC_ALL, \"${LOCALE_OVERRIDE}\")\n"
     sed -i "$sedc" pandas/__init__.py
     echo "[head -4 pandas/__init__.py]"
     head -4 pandas/__init__.py
-    echo
 fi
 
 # create envbuild deps
-echo "[create env]"
+echo -e "\n[create env]"
 time conda env create -q --file="${ENV_FILE}" || exit 1
 
 source activate pandas-dev
 
 # remove any installed pandas package
 # w/o removing anything else
-echo
-echo "[removing installed pandas]"
+echo -e "\n[removing installed pandas]"
 conda remove pandas -y --force
 pip uninstall -y pandas
 
@@ -75,7 +71,6 @@ pip uninstall -y pandas
 echo "[build em]"
 time python setup.py build_ext --inplace || exit 1
 
-echo
-echo "[show environment]"
+echo -e "\n[show environment]"
 
 conda list

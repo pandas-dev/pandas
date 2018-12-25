@@ -15,8 +15,7 @@ conda list
 #  `conda env remove` issue)
 conda remove --all -q -y -n pandas-dev
 
-echo
-echo "[create env]"
+echo -e "\n[create env]"
 time conda env create -q --file="${ENV_FILE}" || exit 1
 
 set +v
@@ -25,17 +24,15 @@ set -v
 
 # remove any installed pandas package
 # w/o removing anything else
-echo
-echo "[removing installed pandas]"
+echo -e "\n[removing installed pandas]"
 conda remove pandas -y --force || true
 pip uninstall -y pandas || true
 
-echo
-echo "[no installed pandas]"
+echo -e "\n[no installed pandas]"
 conda list pandas
 
-if [ -n "$LOCALE_OVERRIDE" ]; then
-    sudo locale-gen "$LOCALE_OVERRIDE"
+if [ -n "${LOCALE_OVERRIDE}" ]; then
+    sudo locale-gen "${LOCALE_OVERRIDE}"
 fi
 
 # # Install the compiler toolchain
