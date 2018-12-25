@@ -9,12 +9,12 @@ import operator
 
 import numpy as np
 
-from pandas.core.dtypes.missing import isna
 from pandas.compat import PY3, set_function_name
 from pandas.compat.numpy import function as nv
 from pandas.errors import AbstractMethodError
 
 from pandas.core.dtypes.common import is_list_like
+from pandas.core.dtypes.missing import isna
 from pandas.core.dtypes.generic import ABCIndexClass, ABCSeries
 
 from pandas.core import ops
