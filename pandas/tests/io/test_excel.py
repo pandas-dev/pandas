@@ -674,14 +674,6 @@ class ReadingTestsBase(SharedItems):
             excel.parse(sheetname='Sheet1',
                         sheet_name='Sheet1')
 
-
-@pytest.mark.parametrize("ext", ['.xls', '.xlsx', '.xlsm'])
-class TestXlrdReader(ReadingTestsBase):
-    """
-    This is the base class for the xlrd tests, and 3 different file formats
-    are supported: xls, xlsx, xlsm
-    """
-
     def test_excel_read_buffer(self, ext):
 
         pth = os.path.join(self.dirpath, 'test1' + ext)
@@ -694,6 +686,19 @@ class TestXlrdReader(ReadingTestsBase):
             xls = ExcelFile(f)
             actual = read_excel(xls, 'Sheet1', index_col=0)
             tm.assert_frame_equal(expected, actual)
+
+    def test_bad_engine_raises(self, ext):
+        bad_engine = 'foo'
+        with pytest.raises(ValueError, message="Unknown engine: foo"):
+            read_excel('', engine=bad_engine)
+
+
+@pytest.mark.parametrize("ext", ['.xls', '.xlsx', '.xlsm'])
+class TestXlrdReader(ReadingTestsBase):
+    """
+    This is the base class for the xlrd tests, and 3 different file formats
+    are supported: xls, xlsx, xlsm
+    """
 
     @td.skip_if_no("xlwt")
     def test_read_xlrd_book(self, ext):
