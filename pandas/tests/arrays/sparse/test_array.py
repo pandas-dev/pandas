@@ -5,6 +5,7 @@ import warnings
 import numpy as np
 import pytest
 
+from pandas.core.dtypes.missing import isna
 from pandas._libs.sparse import IntIndex
 from pandas.compat import range
 import pandas.util._test_decorators as td
@@ -268,7 +269,7 @@ class TestSparseArray(object):
         sparse = SparseArray(np.array([1, 0, 0, 3, 0]),
                              fill_value=8.0)
         res = sparse.shift(1, fill_value=fill_value)
-        if fill_value is None:
+        if isna(fill_value):
             fill_value = res.dtype.na_value
         exp = SparseArray(np.array([fill_value, 1, 0, 0, 3]),
                           fill_value=8.0)
