@@ -15,9 +15,8 @@ from pandas.core.dtypes.common import is_list_like, is_scalar
 import pandas as pd
 from pandas.core.base import StringMixin
 import pandas.core.common as com
-from pandas.core.computation.check import _NUMEXPR_VERSION
+from pandas.core.computation.check import _NUMEXPR_INSTALLED, _NUMEXPR_VERSION
 from pandas.core.computation.common import _ensure_decoded, _result_type_many
-from pandas.core.computation.expressions import _NUMEXPR_INSTALLED
 from pandas.core.computation.scope import _DEFAULT_GLOBALS
 
 from pandas.io.formats.printing import pprint_thing, pprint_thing_encoded

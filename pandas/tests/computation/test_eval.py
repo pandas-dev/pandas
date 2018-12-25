@@ -18,7 +18,7 @@ from pandas.core.computation import pytables
 from pandas.core.computation.engines import _engines, NumExprClobberingError
 from pandas.core.computation.expr import PythonExprVisitor, PandasExprVisitor
 from pandas.core.computation.expressions import (
-    _USE_NUMEXPR, _NUMEXPR_INSTALLED)
+    _USE_NUMEXPR, _NUMEXPR_INSTALLED, _NUMEXPR_VERSION)
 from pandas.core.computation.ops import (
     _binary_ops_dict,
     _special_case_arith_ops_syms,
@@ -32,7 +32,6 @@ from pandas.util.testing import (assert_frame_equal, randbool,
                                  assert_numpy_array_equal, assert_series_equal,
                                  assert_produces_warning)
 from pandas.compat import PY3, reduce
-from pandas.core.computation.check import _NUMEXPR_VERSION
 
 
 _series_frame_incompatible = _bool_ops_syms
