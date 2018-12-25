@@ -5,9 +5,9 @@ import warnings
 
 import numpy as np
 
-from pandas._libs import NaT, iNaT, lib
+from pandas._libs import NaT, algos, iNaT, lib
 from pandas._libs.tslibs.period import (
-    DIFFERENT_FREQ_INDEX, IncompatibleFrequency, Period)
+    DIFFERENT_FREQ, IncompatibleFrequency, Period)
 from pandas._libs.tslibs.timedeltas import Timedelta, delta_to_nanoseconds
 from pandas._libs.tslibs.timestamps import (
     RoundTo, maybe_integer_op_deprecated, round_nsint64)
@@ -155,6 +155,7 @@ class TimelikeOps(object):
               times
 
             .. versionadded:: 0.24.0
+
         nonexistent : 'shift', 'NaT', default 'raise'
             A nonexistent time does not exist in a particular timezone
             where clocks moved forward due to DST.
@@ -246,7 +247,7 @@ class TimelikeOps(object):
         if 'tz' in attribs:
             attribs['tz'] = None
         return self._ensure_localized(
-            self._shallow_copy(result, **attribs), ambiguous, nonexistent
+            self._simple_new(result, **attribs), ambiguous, nonexistent
         )
 
     @Appender((_round_doc + _round_example).format(op="round"))
@@ -310,6 +311,8 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin, AttributesMixin):
 
     @property
     def size(self):
+        # type: () -> int
+        """The number of elements in this array."""
         return np.prod(self.shape)
 
     def __len__(self):
@@ -351,6 +354,10 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin, AttributesMixin):
                     freq = key.step * self.freq
                 else:
                     freq = self.freq
+            elif key is Ellipsis:
+                # GH#21282 indexing with Ellipsis is similar to a full slice,
+                #  should preserve `freq` attribute
+                freq = self.freq
 
         attribs['freq'] = freq
 
@@ -547,12 +554,40 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin, AttributesMixin):
         if index.size == 0 or inferred == freq.freqstr:
             return None
 
-        on_freq = cls._generate_range(start=index[0], end=None,
-                                      periods=len(index), freq=freq, **kwargs)
-        if not np.array_equal(index.asi8, on_freq.asi8):
+        try:
+            on_freq = cls._generate_range(start=index[0], end=None,
+                                          periods=len(index), freq=freq,
+                                          **kwargs)
+            if not np.array_equal(index.asi8, on_freq.asi8):
+                raise ValueError
+        except ValueError as e:
+            if "non-fixed" in str(e):
+                # non-fixed frequencies are not meaningful for timedelta64;
+                #  we retain that error message
+                raise e
+            # GH#11587 the main way this is reached is if the `np.array_equal`
+            #  check above is False.  This can also be reached if index[0]
+            #  is `NaT`, in which case the call to `cls._generate_range` will
+            #  raise a ValueError, which we re-raise with a more targeted
+            #  message.
             raise ValueError('Inferred frequency {infer} from passed values '
                              'does not conform to passed frequency {passed}'
                              .format(infer=inferred, passed=freq.freqstr))
+
+    # monotonicity/uniqueness properties are called via frequencies.infer_freq,
+    #  see GH#23789
+
+    @property
+    def _is_monotonic_increasing(self):
+        return algos.is_monotonic(self.asi8, timelike=True)[0]
+
+    @property
+    def _is_monotonic_decreasing(self):
+        return algos.is_monotonic(self.asi8, timelike=True)[1]
+
+    @property
+    def _is_unique(self):
+        return len(unique1d(self.asi8)) == len(self)
 
     # ------------------------------------------------------------------
     # Arithmetic Methods
@@ -661,9 +696,7 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin, AttributesMixin):
         # and datetime dtypes
         result = np.zeros(len(self), dtype=np.int64)
         result.fill(iNaT)
-        if is_timedelta64_dtype(self):
-            return type(self)(result, freq=None)
-        return type(self)(result, tz=self.tz, freq=None)
+        return type(self)(result, dtype=self.dtype, freq=None)
 
     def _sub_nat(self):
         """
@@ -703,14 +736,16 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin, AttributesMixin):
             raise ValueError("cannot subtract arrays/indices of "
                              "unequal length")
         if self.freq != other.freq:
-            msg = DIFFERENT_FREQ_INDEX.format(self.freqstr, other.freqstr)
+            msg = DIFFERENT_FREQ.format(cls=type(self).__name__,
+                                        own_freq=self.freqstr,
+                                        other_freq=other.freqstr)
             raise IncompatibleFrequency(msg)
 
         new_values = checked_add_with_arr(self.asi8, -other.asi8,
                                           arr_mask=self._isnan,
                                           b_mask=other._isnan)
 
-        new_values = np.array([self.freq * x for x in new_values])
+        new_values = np.array([self.freq.base * x for x in new_values])
         if self.hasnans or other.hasnans:
             mask = (self._isnan) | (other._isnan)
             new_values[mask] = NaT

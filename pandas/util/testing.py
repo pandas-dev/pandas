@@ -208,6 +208,55 @@ def decompress_file(path, compression):
             zip_file.close()
 
 
+def write_to_compressed(compression, path, data, dest="test"):
+    """
+    Write data to a compressed file.
+
+    Parameters
+    ----------
+    compression : {'gzip', 'bz2', 'zip', 'xz'}
+        The compression type to use.
+    path : str
+        The file path to write the data.
+    data : str
+        The data to write.
+    dest : str, default "test"
+        The destination file (for ZIP only)
+
+    Raises
+    ------
+    ValueError : An invalid compression value was passed in.
+    """
+
+    if compression == "zip":
+        import zipfile
+        compress_method = zipfile.ZipFile
+    elif compression == "gzip":
+        import gzip
+        compress_method = gzip.GzipFile
+    elif compression == "bz2":
+        import bz2
+        compress_method = bz2.BZ2File
+    elif compression == "xz":
+        lzma = compat.import_lzma()
+        compress_method = lzma.LZMAFile
+    else:
+        msg = "Unrecognized compression type: {}".format(compression)
+        raise ValueError(msg)
+
+    if compression == "zip":
+        mode = "w"
+        args = (dest, data)
+        method = "writestr"
+    else:
+        mode = "wb"
+        args = (data,)
+        method = "write"
+
+    with compress_method(path, mode=mode) as f:
+        getattr(f, method)(*args)
+
+
 def assert_almost_equal(left, right, check_dtype="equiv",
                         check_less_precise=False, **kwargs):
     """
@@ -780,6 +829,22 @@ def ensure_clean_dir():
             rmtree(directory_name)
         except Exception:
             pass
+
+
+@contextmanager
+def ensure_safe_environment_variables():
+    """
+    Get a context manager to safely set environment variables
+
+    All changes will be undone on close, hence environment variables set
+    within this contextmanager will neither persist nor change global state.
+    """
+    saved_environ = dict(os.environ)
+    try:
+        yield
+    finally:
+        os.environ.clear()
+        os.environ.update(saved_environ)
 
 
 # -----------------------------------------------------------------------------
@@ -1661,9 +1726,9 @@ def to_array(obj):
     if is_period_dtype(obj):
         return period_array(obj)
     elif is_datetime64_dtype(obj) or is_datetime64tz_dtype(obj):
-        return DatetimeArray(obj)
+        return DatetimeArray._from_sequence(obj)
     elif is_timedelta64_dtype(obj):
-        return TimedeltaArray(obj)
+        return TimedeltaArray._from_sequence(obj)
     else:
         return np.array(obj)
 

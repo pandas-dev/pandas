@@ -206,7 +206,7 @@ class TestPeriodIndexComparisons(object):
         idx1 = PeriodIndex(['2011-01', '2011-02', 'NaT', '2011-05'], freq=freq)
 
         diff = PeriodIndex(['2011-02', '2011-01', '2011-04', 'NaT'], freq='4M')
-        msg = "Input has different freq=4M from PeriodIndex"
+        msg = "Input has different freq=4M from Period(Array|Index)"
         with pytest.raises(IncompatibleFrequency, match=msg):
             idx1 > diff
 
@@ -369,6 +369,41 @@ class TestPeriodIndexArithmetic(object):
         rng = tm.box_expected(rng, box_with_array)
         with pytest.raises(IncompatibleFrequency):
             rng - other
+
+    @pytest.mark.parametrize('n', [1, 2, 3, 4])
+    def test_sub_n_gt_1_ticks(self, tick_classes, n):
+        # GH 23878
+        p1_d = '19910905'
+        p2_d = '19920406'
+        p1 = pd.PeriodIndex([p1_d], freq=tick_classes(n))
+        p2 = pd.PeriodIndex([p2_d], freq=tick_classes(n))
+
+        expected = (pd.PeriodIndex([p2_d], freq=p2.freq.base)
+                    - pd.PeriodIndex([p1_d], freq=p1.freq.base))
+
+        tm.assert_index_equal((p2 - p1), expected)
+
+    @pytest.mark.parametrize('n', [1, 2, 3, 4])
+    @pytest.mark.parametrize('offset, kwd_name', [
+        (pd.offsets.YearEnd, 'month'),
+        (pd.offsets.QuarterEnd, 'startingMonth'),
+        (pd.offsets.MonthEnd, None),
+        (pd.offsets.Week, 'weekday')
+    ])
+    def test_sub_n_gt_1_offsets(self, offset, kwd_name, n):
+        # GH 23878
+        kwds = {kwd_name: 3} if kwd_name is not None else {}
+        p1_d = '19910905'
+        p2_d = '19920406'
+        freq = offset(n, normalize=False, **kwds)
+        p1 = pd.PeriodIndex([p1_d], freq=freq)
+        p2 = pd.PeriodIndex([p2_d], freq=freq)
+
+        result = p2 - p1
+        expected = (pd.PeriodIndex([p2_d], freq=freq.base)
+                    - pd.PeriodIndex([p1_d], freq=freq.base))
+
+        tm.assert_index_equal(result, expected)
 
     # -------------------------------------------------------------
     # Invalid Operations
@@ -1025,14 +1060,15 @@ class TestPeriodIndexSeriesMethods(object):
 
         # Series op is applied per Period instance, thus error is raised
         # from Period
-        msg = r"Input has different freq from Period.*?\(freq=D\)"
         for obj in [idx, ser]:
+            msg = r"Input has different freq=2H from Period.*?\(freq=D\)"
             with pytest.raises(IncompatibleFrequency, match=msg):
                 obj + pd.offsets.Hour(2)
 
             with pytest.raises(IncompatibleFrequency, match=msg):
                 pd.offsets.Hour(2) + obj
 
+            msg = r"Input has different freq=-2H from Period.*?\(freq=D\)"
             with pytest.raises(IncompatibleFrequency, match=msg):
                 obj - pd.offsets.Hour(2)
 

@@ -841,18 +841,22 @@ class IndexOpsMixin(object):
         """
         return self._values
 
-    def to_numpy(self):
+    def to_numpy(self, dtype=None, copy=False):
         """
         A NumPy ndarray representing the values in this Series or Index.
 
         .. versionadded:: 0.24.0
 
-        The returned array will be the same up to equality (values equal
-        in `self` will be equal in the returned array; likewise for values
-        that are not equal). When `self` contains an ExtensionArray, the
-        dtype may be different. For example, for a category-dtype Series,
-        ``to_numpy()`` will return a NumPy array and the categorical dtype
-        will be lost.
+
+        Parameters
+        ----------
+        dtype : str or numpy.dtype, optional
+            The dtype to pass to :meth:`numpy.asarray`
+        copy : bool, default False
+            Whether to ensure that the returned value is a not a view on
+            another array. Note that ``copy=False`` does not *ensure* that
+            ``to_numpy()`` is no-copy. Rather, ``copy=True`` ensure that
+            a copy is made, even if not strictly necessary.
 
         Returns
         -------
@@ -866,10 +870,18 @@ class IndexOpsMixin(object):
 
         Notes
         -----
+        The returned array will be the same up to equality (values equal
+        in `self` will be equal in the returned array; likewise for values
+        that are not equal). When `self` contains an ExtensionArray, the
+        dtype may be different. For example, for a category-dtype Series,
+        ``to_numpy()`` will return a NumPy array and the categorical dtype
+        will be lost.
+
+
         For NumPy dtypes, this will be a reference to the actual data stored
-        in this Series or Index. Modifying the result in place will modify
-        the data stored in the Series or Index (not that we recommend doing
-        that).
+        in this Series or Index (assuming ``copy=False``). Modifying the result
+        in place will modify the data stored in the Series or Index (not that
+        we recommend doing that).
 
         For extension types, ``to_numpy()`` *may* require copying data and
         coercing the result to a NumPy type (possibly object), which may be
@@ -894,12 +906,37 @@ class IndexOpsMixin(object):
         >>> ser = pd.Series(pd.Categorical(['a', 'b', 'a']))
         >>> ser.to_numpy()
         array(['a', 'b', 'a'], dtype=object)
+
+        Specify the `dtype` to control how datetime-aware data is represented.
+        Use ``dtype=object`` to return an ndarray of pandas :class:`Timestamp`
+        objects, each with the correct ``tz``.
+
+        >>> ser = pd.Series(pd.date_range('2000', periods=2, tz="CET"))
+        >>> ser.to_numpy(dtype=object)
+        array([Timestamp('2000-01-01 00:00:00+0100', tz='CET', freq='D'),
+               Timestamp('2000-01-02 00:00:00+0100', tz='CET', freq='D')],
+              dtype=object)
+
+        Or ``dtype='datetime64[ns]'`` to return an ndarray of native
+        datetime64 values. The values are converted to UTC and the timezone
+        info is dropped.
+
+        >>> ser.to_numpy(dtype="datetime64[ns]")
+        ... # doctest: +ELLIPSIS
+        array(['1999-12-31T23:00:00.000000000', '2000-01-01T23:00:00...'],
+              dtype='datetime64[ns]')
         """
         if (is_extension_array_dtype(self.dtype) or
                 is_datetime64tz_dtype(self.dtype)):
             # TODO(DatetimeArray): remove the second clause.
-            return np.asarray(self._values)
-        return self._values
+            # TODO(GH-24345): Avoid potential double copy
+            result = np.asarray(self._values, dtype=dtype)
+        else:
+            result = self._values
+
+        if copy:
+            result = result.copy()
+        return result
 
     @property
     def _ndarray_values(self):
@@ -1024,6 +1061,8 @@ class IndexOpsMixin(object):
             return list(self._values)
         else:
             return self._values.tolist()
+
+    to_list = tolist
 
     def __iter__(self):
         """
@@ -1244,7 +1283,7 @@ class IndexOpsMixin(object):
     @property
     def is_unique(self):
         """
-        Return boolean if values in the object are unique
+        Return boolean if values in the object are unique.
 
         Returns
         -------
@@ -1256,7 +1295,7 @@ class IndexOpsMixin(object):
     def is_monotonic(self):
         """
         Return boolean if values in the object are
-        monotonic_increasing
+        monotonic_increasing.
 
         .. versionadded:: 0.19.0
 
@@ -1273,7 +1312,7 @@ class IndexOpsMixin(object):
     def is_monotonic_decreasing(self):
         """
         Return boolean if values in the object are
-        monotonic_decreasing
+        monotonic_decreasing.
 
         .. versionadded:: 0.19.0
 

@@ -146,6 +146,11 @@ class Base(object):
 @pytest.mark.filterwarnings("ignore:\\nPanel:FutureWarning")
 class TestHDFStore(Base):
 
+    def test_format_kwarg_in_constructor(self):
+        # GH 13291
+        with ensure_clean_path(self.path) as path:
+            pytest.raises(ValueError, HDFStore, path, format='table')
+
     def test_context(self):
         path = create_tempfile(self.path)
         try:

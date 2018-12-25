@@ -309,7 +309,8 @@ class Categorical(ExtensionArray, PandasObject):
     # ops, which raise
     __array_priority__ = 1000
     _dtype = CategoricalDtype(ordered=False)
-    _deprecations = frozenset(['labels'])
+    # tolist is not actually deprecated, just suppressed in the __dir__
+    _deprecations = frozenset(['labels', 'tolist'])
     _typ = 'categorical'
 
     def __init__(self, values, categories=None, ordered=None, dtype=None,
@@ -477,7 +478,7 @@ class Categorical(ExtensionArray, PandasObject):
     @property
     def ordered(self):
         """
-        Whether the categories have an ordered relationship
+        Whether the categories have an ordered relationship.
         """
         return self.dtype.ordered
 
@@ -566,6 +567,8 @@ class Categorical(ExtensionArray, PandasObject):
         (for Timestamp/Timedelta/Interval/Period)
         """
         return list(self)
+
+    to_list = tolist
 
     @property
     def base(self):
@@ -782,7 +785,7 @@ class Categorical(ExtensionArray, PandasObject):
 
     def as_ordered(self, inplace=False):
         """
-        Sets the Categorical to be ordered
+        Set the Categorical to be ordered.
 
         Parameters
         ----------
@@ -795,7 +798,7 @@ class Categorical(ExtensionArray, PandasObject):
 
     def as_unordered(self, inplace=False):
         """
-        Sets the Categorical to be unordered
+        Set the Categorical to be unordered.
 
         Parameters
         ----------
@@ -2090,11 +2093,21 @@ class Categorical(ExtensionArray, PandasObject):
             `Categorical` does not have the same categories
         """
 
+        if isinstance(value, (ABCIndexClass, ABCSeries)):
+            value = value.array
+
         # require identical categories set
         if isinstance(value, Categorical):
-            if not value.categories.equals(self.categories):
+            if not is_dtype_equal(self, value):
                 raise ValueError("Cannot set a Categorical with another, "
                                  "without identical categories")
+            if not self.categories.equals(value.categories):
+                new_codes = _recode_for_categories(
+                    value.codes, value.categories, self.categories
+                )
+                value = Categorical.from_codes(new_codes,
+                                               categories=self.categories,
+                                               ordered=self.ordered)
 
         rvalue = value if is_list_like(value) else [value]
 

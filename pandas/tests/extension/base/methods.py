@@ -164,7 +164,6 @@ class BaseMethodsTests(BaseExtensionTests):
             orig_data1._from_sequence([a + val for a in list(orig_data1)]))
         self.assert_series_equal(result, expected)
 
-    @pytest.mark.xfail(reason="GH-24147", strict=True)
     def test_combine_first(self, data):
         # https://github.com/pandas-dev/pandas/issues/24147
         a = pd.Series(data[:3])
@@ -222,6 +221,17 @@ class BaseMethodsTests(BaseExtensionTests):
         expected = empty
         self.assert_extension_array_equal(result, expected)
 
+    def test_shift_fill_value(self, data):
+        arr = data[:4]
+        fill_value = data[0]
+        result = arr.shift(1, fill_value=fill_value)
+        expected = data.take([0, 0, 1, 2])
+        self.assert_extension_array_equal(result, expected)
+
+        result = arr.shift(-2, fill_value=fill_value)
+        expected = data.take([2, 3, 0, 0])
+        self.assert_extension_array_equal(result, expected)
+
     @pytest.mark.parametrize("as_frame", [True, False])
     def test_hash_pandas_object_works(self, data, as_frame):
         # https://github.com/pandas-dev/pandas/issues/23066
@@ -231,3 +241,37 @@ class BaseMethodsTests(BaseExtensionTests):
         a = pd.util.hash_pandas_object(data)
         b = pd.util.hash_pandas_object(data)
         self.assert_equal(a, b)
+
+    @pytest.mark.parametrize("as_frame", [True, False])
+    def test_where_series(self, data, na_value, as_frame):
+        assert data[0] != data[1]
+        cls = type(data)
+        a, b = data[:2]
+
+        ser = pd.Series(cls._from_sequence([a, a, b, b], dtype=data.dtype))
+        cond = np.array([True, True, False, False])
+
+        if as_frame:
+            ser = ser.to_frame(name='a')
+            cond = cond.reshape(-1, 1)
+
+        result = ser.where(cond)
+        expected = pd.Series(cls._from_sequence([a, a, na_value, na_value],
+                                                dtype=data.dtype))
+
+        if as_frame:
+            expected = expected.to_frame(name='a')
+        self.assert_equal(result, expected)
+
+        # array other
+        cond = np.array([True, False, True, True])
+        other = cls._from_sequence([a, b, a, b], dtype=data.dtype)
+        if as_frame:
+            other = pd.DataFrame({"a": other})
+            cond = pd.DataFrame({"a": cond})
+        result = ser.where(cond, other)
+        expected = pd.Series(cls._from_sequence([a, b, b, b],
+                                                dtype=data.dtype))
+        if as_frame:
+            expected = expected.to_frame(name='a')
+        self.assert_equal(result, expected)
