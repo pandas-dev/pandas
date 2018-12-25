@@ -26,6 +26,7 @@ from pandas.core.config import get_option
 from pandas.core.generic import _shared_doc_kwargs, _shared_docs
 
 from pandas.io.formats.printing import pprint_thing
+from pandas.plotting import _misc as misc
 from pandas.plotting._compat import _mpl_ge_3_0_0
 from pandas.plotting._style import _get_standard_colors, plot_params
 from pandas.plotting._tools import (
@@ -157,9 +158,8 @@ class MPLPlot(object):
         # parse errorbar input if given
         xerr = kwds.pop('xerr', None)
         yerr = kwds.pop('yerr', None)
-        self.errors = {}
-        for kw, err in zip(['xerr', 'yerr'], [xerr, yerr]):
-            self.errors[kw] = self._parse_errorbars(kw, err)
+        self.errors = {kw: self._parse_errorbars(kw, err)
+                       for kw, err in zip(['xerr', 'yerr'], [xerr, yerr])}
 
         if not isinstance(secondary_y, (bool, tuple, list,
                                         np.ndarray, ABCIndexClass)):
@@ -1721,9 +1721,7 @@ _all_kinds = _common_kinds + _dataframe_kinds + _series_kinds
 _klasses = [LinePlot, BarPlot, BarhPlot, KdePlot, HistPlot, BoxPlot,
             ScatterPlot, HexBinPlot, AreaPlot, PiePlot]
 
-_plot_klass = {}
-for klass in _klasses:
-    _plot_klass[klass._kind] = klass
+_plot_klass = {klass._kind: klass for klass in _klasses}
 
 
 def _plot(data, x=None, y=None, subplots=False,
@@ -1948,7 +1946,6 @@ _shared_docs['plot'] = """
       for bar plot layout by `position` keyword.
       From 0 (left/bottom-end) to 1 (right/top-end). Default is 0.5 (center)
     %(klass_note)s
-
     """
 
 
@@ -2421,7 +2418,7 @@ def hist_series(self, by=None, ax=None, grid=True, xlabelsize=None,
                 xrot=None, ylabelsize=None, yrot=None, figsize=None,
                 bins=10, **kwds):
     """
-    Draw histogram of the input series using matplotlib
+    Draw histogram of the input series using matplotlib.
 
     Parameters
     ----------
@@ -2709,7 +2706,8 @@ class BasePlotMethods(PandasObject):
 
 
 class SeriesPlotMethods(BasePlotMethods):
-    """Series plotting accessor and method
+    """
+    Series plotting accessor and method.
 
     Examples
     --------
@@ -2742,7 +2740,7 @@ class SeriesPlotMethods(BasePlotMethods):
 
     def line(self, **kwds):
         """
-        Line plot
+        Line plot.
 
         Parameters
         ----------
@@ -2767,7 +2765,7 @@ class SeriesPlotMethods(BasePlotMethods):
 
     def bar(self, **kwds):
         """
-        Vertical bar plot
+        Vertical bar plot.
 
         Parameters
         ----------
@@ -2783,7 +2781,7 @@ class SeriesPlotMethods(BasePlotMethods):
 
     def barh(self, **kwds):
         """
-        Horizontal bar plot
+        Horizontal bar plot.
 
         Parameters
         ----------
@@ -2799,7 +2797,7 @@ class SeriesPlotMethods(BasePlotMethods):
 
     def box(self, **kwds):
         """
-        Boxplot
+        Boxplot.
 
         Parameters
         ----------
@@ -2815,7 +2813,7 @@ class SeriesPlotMethods(BasePlotMethods):
 
     def hist(self, bins=10, **kwds):
         """
-        Histogram
+        Histogram.
 
         Parameters
         ----------
@@ -2876,7 +2874,7 @@ class SeriesPlotMethods(BasePlotMethods):
 
     def area(self, **kwds):
         """
-        Area plot
+        Area plot.
 
         Parameters
         ----------
@@ -2892,7 +2890,7 @@ class SeriesPlotMethods(BasePlotMethods):
 
     def pie(self, **kwds):
         """
-        Pie chart
+        Pie chart.
 
         Parameters
         ----------
@@ -2905,6 +2903,15 @@ class SeriesPlotMethods(BasePlotMethods):
         axes : :class:`matplotlib.axes.Axes` or numpy.ndarray of them
         """
         return self(kind='pie', **kwds)
+
+    def lag(self, *args, **kwds):
+        return misc.lag_plot(self._parent, *args, **kwds)
+
+    def autocorrelation(self, *args, **kwds):
+        return misc.autocorrelation_plot(self._parent, *args, **kwds)
+
+    def bootstrap(self, *args, **kwds):
+        return misc.bootstrap_plot(self._parent, *args, **kwds)
 
 
 class FramePlotMethods(BasePlotMethods):
@@ -3601,3 +3608,16 @@ class FramePlotMethods(BasePlotMethods):
         if gridsize is not None:
             kwds['gridsize'] = gridsize
         return self(kind='hexbin', x=x, y=y, C=C, **kwds)
+
+    def scatter_matrix(self, *args, **kwds):
+        return misc.scatter_matrix(self._parent, *args, **kwds)
+
+    def andrews_curves(self, class_column, *args, **kwds):
+        return misc.andrews_curves(self._parent, class_column, *args, **kwds)
+
+    def parallel_coordinates(self, class_column, *args, **kwds):
+        return misc.parallel_coordinates(self._parent, class_column,
+                                         *args, **kwds)
+
+    def radviz(self, class_column, *args, **kwds):
+        return misc.radviz(self._parent, class_column, *args, **kwds)

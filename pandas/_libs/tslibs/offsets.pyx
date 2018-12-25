@@ -1,7 +1,6 @@
 # -*- coding: utf-8 -*-
 
 import cython
-from cython import Py_ssize_t
 
 import time
 from cpython.datetime cimport (PyDateTime_IMPORT,
@@ -351,6 +350,14 @@ class _BaseOffset(object):
         kwds = {name: getattr(self, name, None) for name in self._attributes
                 if name not in ['n', 'normalize']}
         return {name: kwds[name] for name in kwds if kwds[name] is not None}
+
+    @property
+    def base(self):
+        """
+        Returns a copy of the calling offset object with n=1 and all other
+        attributes equal.
+        """
+        return type(self)(n=1, normalize=self.normalize, **self.kwds)
 
     def __add__(self, other):
         if getattr(other, "_typ", None) in ["datetimeindex", "periodindex",

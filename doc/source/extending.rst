@@ -1,5 +1,7 @@
 .. _extending:
 
+{{ header }}
+
 ****************
 Extending Pandas
 ****************
@@ -160,6 +162,8 @@ your ``MyExtensionArray`` class, as follows:
 
 .. code-block:: python
 
+    from pandas.core.arrays import ExtensionArray, ExtensionScalarOpsMixin
+
     class MyExtensionArray(ExtensionArray, ExtensionScalarOpsMixin):
         pass
 
@@ -186,7 +190,7 @@ Instead, you should detect these cases and return ``NotImplemented``.
 When pandas encounters an operation like ``op(Series, ExtensionArray)``, pandas
 will
 
-1. unbox the array from the ``Series`` (roughly ``Series.values``)
+1. unbox the array from the ``Series`` (``Series.array``)
 2. call ``result = op(values, ExtensionArray)``
 3. re-box the result in a ``Series``
 
@@ -269,7 +273,7 @@ Below example shows how to define ``SubclassedSeries`` and ``SubclassedDataFrame
 
 .. code-block:: python
 
-   class SubclassedSeries(Series):
+   class SubclassedSeries(pd.Series):
 
        @property
        def _constructor(self):
@@ -280,7 +284,7 @@ Below example shows how to define ``SubclassedSeries`` and ``SubclassedDataFrame
            return SubclassedDataFrame
 
 
-   class SubclassedDataFrame(DataFrame):
+   class SubclassedDataFrame(pd.DataFrame):
 
        @property
        def _constructor(self):
@@ -342,7 +346,7 @@ Below is an example to define two original properties, "internal_cache" as a tem
 
 .. code-block:: python
 
-   class SubclassedDataFrame2(DataFrame):
+   class SubclassedDataFrame2(pd.DataFrame):
 
        # temporary properties
        _internal_names = pd.DataFrame._internal_names + ['internal_cache']

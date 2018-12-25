@@ -1,5 +1,3 @@
-# pylint: disable=E1101
-
 from datetime import datetime, timedelta
 from functools import partial
 from warnings import catch_warnings, simplefilter
@@ -17,41 +15,27 @@ from pandas import (
 from pandas.core.indexes.datetimes import date_range
 from pandas.core.indexes.period import Period, period_range
 from pandas.core.indexes.timedeltas import timedelta_range
-from pandas.core.resample import DatetimeIndex, TimeGrouper
-from pandas.tests.resample.test_base import (
-    Base, business_day_offset, downsample_methods, simple_date_range_series,
-    simple_period_range_series)
+from pandas.core.resample import (
+    DatetimeIndex, TimeGrouper, _get_timestamp_range_edges)
 import pandas.util.testing as tm
 from pandas.util.testing import (
     assert_almost_equal, assert_frame_equal, assert_series_equal)
 
 import pandas.tseries.offsets as offsets
-from pandas.tseries.offsets import Minute
+from pandas.tseries.offsets import BDay, Minute
 
 
-class TestDatetimeIndex(Base):
-    _index_factory = lambda x: date_range
-
-    @pytest.fixture
-    def _series_name(self):
-        return 'dti'
-
+class TestDatetimeIndex(object):
     def setup_method(self, method):
-        dti = DatetimeIndex(start=datetime(2005, 1, 1),
-                            end=datetime(2005, 1, 10), freq='Min')
+        dti = date_range(start=datetime(2005, 1, 1),
+                         end=datetime(2005, 1, 10), freq='Min')
 
         self.series = Series(np.random.rand(len(dti)), dti)
 
-    def create_series(self):
-        i = date_range(datetime(2005, 1, 1),
-                       datetime(2005, 1, 10), freq='D')
-
-        return Series(np.arange(len(i)), index=i, name='dti')
-
     def test_custom_grouper(self):
 
-        dti = DatetimeIndex(freq='Min', start=datetime(2005, 1, 1),
-                            end=datetime(2005, 1, 10))
+        dti = date_range(freq='Min', start=datetime(2005, 1, 1),
+                         end=datetime(2005, 1, 10))
 
         s = Series(np.array([1] * len(dti)), index=dti, dtype='int64')
 
@@ -131,7 +115,30 @@ class TestDatetimeIndex(Base):
         with pytest.raises(ValueError):
             s.resample('5min', convention='starttt').mean()
 
-    def test_resample_how(self):
+    def test_resample_how(self, downsample_method):
+        if downsample_method == 'ohlc':
+            pytest.skip('covered by test_resample_how_ohlc')
+
+        rng = date_range('1/1/2000 00:00:00', '1/1/2000 00:13:00', freq='min',
+                         name='index')
+        s = Series(np.random.randn(14), index=rng)
+
+        grouplist = np.ones_like(s)
+        grouplist[0] = 0
+        grouplist[1:6] = 1
+        grouplist[6:11] = 2
+        grouplist[11:] = 3
+        expected = s.groupby(grouplist).agg(downsample_method)
+        expected.index = date_range(
+            '1/1/2000', periods=4, freq='5min', name='index')
+
+        result = getattr(s.resample(
+            '5min', closed='right', label='right'), downsample_method)()
+
+        assert result.index.name == 'index'  # redundant assert?
+        assert_series_equal(result, expected)
+
+    def test_resample_how_ohlc(self):
         rng = date_range('1/1/2000 00:00:00', '1/1/2000 00:13:00', freq='min',
                          name='index')
         s = Series(np.random.randn(14), index=rng)
@@ -140,7 +147,6 @@ class TestDatetimeIndex(Base):
         grouplist[1:6] = 1
         grouplist[6:11] = 2
         grouplist[11:] = 3
-        args = downsample_methods
 
         def _ohlc(group):
             if isna(group).all():
@@ -148,30 +154,15 @@ class TestDatetimeIndex(Base):
             return [group[0], group.max(), group.min(), group[-1]]
 
         inds = date_range('1/1/2000', periods=4, freq='5min', name='index')
+        expected = s.groupby(grouplist).agg(_ohlc)
+        expected = DataFrame(expected.values.tolist(),
+                             index=Index(inds, name='index'),
+                             columns=['open', 'high', 'low', 'close'])
 
-        for arg in args:
-            if arg == 'ohlc':
-                func = _ohlc
-            else:
-                func = arg
-            try:
-                result = getattr(s.resample(
-                    '5min', closed='right', label='right'), arg)()
+        result = s.resample('5min', closed='right', label='right').ohlc()
 
-                expected = s.groupby(grouplist).agg(func)
-                assert result.index.name == 'index'
-                if arg == 'ohlc':
-                    expected = DataFrame(expected.values.tolist())
-                    expected.columns = ['open', 'high', 'low', 'close']
-                    expected.index = Index(inds, name='index')
-                    assert_frame_equal(result, expected)
-                else:
-                    expected.index = inds
-                    assert_series_equal(result, expected)
-            except BaseException as exc:
-
-                exc.args += ('how=%s' % arg,)
-                raise
+        assert result.index.name == 'index'  # redundant assert?
+        assert_frame_equal(result, expected)
 
     def test_numpy_compat(self):
         # see gh-12811
@@ -189,9 +180,9 @@ class TestDatetimeIndex(Base):
                 getattr(r, func)(axis=1)
 
     def test_resample_how_callables(self):
-        # GH 7929
+        # GH#7929
         data = np.arange(5, dtype=np.int64)
-        ind = pd.DatetimeIndex(start='2014-01-01', periods=len(data), freq='d')
+        ind = date_range(start='2014-01-01', periods=len(data), freq='d')
         df = DataFrame({"A": data, "B": data}, index=ind)
 
         def fn(x, a=1):
@@ -308,8 +299,8 @@ class TestDatetimeIndex(Base):
 
     def test_resample_basic_from_daily(self):
         # from daily
-        dti = DatetimeIndex(start=datetime(2005, 1, 1),
-                            end=datetime(2005, 1, 10), freq='D', name='index')
+        dti = date_range(start=datetime(2005, 1, 1),
+                         end=datetime(2005, 1, 10), freq='D', name='index')
 
         s = Series(np.random.rand(len(dti)), dti)
 
@@ -426,12 +417,13 @@ class TestDatetimeIndex(Base):
         assert result.index.freq == Minute(5)
 
         # from daily
-        dti = DatetimeIndex(start=datetime(2005, 1, 1),
-                            end=datetime(2005, 1, 10), freq='D')
+        dti = date_range(start=datetime(2005, 1, 1),
+                         end=datetime(2005, 1, 10), freq='D')
         ser = Series(np.random.rand(len(dti)), dti)
 
         # to weekly
         result = ser.resample('w-sun').last()
+        business_day_offset = BDay()
         expected = ser.resample('w-sun', loffset=-business_day_offset).last()
         assert result.index[0] - business_day_offset == expected.index[0]
 
@@ -472,8 +464,8 @@ class TestDatetimeIndex(Base):
 
     def test_resample_upsample(self):
         # from daily
-        dti = DatetimeIndex(start=datetime(2005, 1, 1),
-                            end=datetime(2005, 1, 10), freq='D', name='index')
+        dti = date_range(start=datetime(2005, 1, 1),
+                         end=datetime(2005, 1, 10), freq='D', name='index')
 
         s = Series(np.random.rand(len(dti)), dti)
 
@@ -501,11 +493,11 @@ class TestDatetimeIndex(Base):
         assert_series_equal(s.resample("10S").mean(), expected)
 
     def test_resample_extra_index_point(self):
-        # GH 9756
-        index = DatetimeIndex(start='20150101', end='20150331', freq='BM')
+        # GH#9756
+        index = date_range(start='20150101', end='20150331', freq='BM')
         expected = DataFrame({'A': Series([21, 41, 63], index=index)})
 
-        index = DatetimeIndex(start='20150101', end='20150331', freq='B')
+        index = date_range(start='20150101', end='20150331', freq='B')
         df = DataFrame(
             {'A': Series(range(len(index)), index=index)}, dtype='int64')
         result = df.resample('BM').last()
@@ -619,8 +611,8 @@ class TestDatetimeIndex(Base):
         assert_frame_equal(result, expected)
 
     def test_resample_reresample(self):
-        dti = DatetimeIndex(start=datetime(2005, 1, 1),
-                            end=datetime(2005, 1, 10), freq='D')
+        dti = date_range(start=datetime(2005, 1, 1),
+                         end=datetime(2005, 1, 10), freq='D')
         s = Series(np.random.rand(len(dti)), dti)
         bs = s.resample('B', closed='right', label='right').mean()
         result = bs.resample('8H').mean()
@@ -628,7 +620,7 @@ class TestDatetimeIndex(Base):
         assert isinstance(result.index.freq, offsets.DateOffset)
         assert result.index.freq == offsets.Hour(8)
 
-    def test_resample_timestamp_to_period(self):
+    def test_resample_timestamp_to_period(self, simple_date_range_series):
         ts = simple_date_range_series('1/1/1990', '1/1/2000')
 
         result = ts.resample('A-DEC', kind='period').mean()
@@ -945,7 +937,7 @@ class TestDatetimeIndex(Base):
 
         assert_series_equal(result, exp)
 
-    def test_resample_anchored_intraday(self):
+    def test_resample_anchored_intraday(self, simple_date_range_series):
         # #1471, #1458
 
         rng = date_range('1/1/2012', '4/1/2012', freq='100min')
@@ -985,7 +977,7 @@ class TestDatetimeIndex(Base):
         resampled = ts.resample('M').mean()
         assert len(resampled) == 1
 
-    def test_resample_anchored_monthstart(self):
+    def test_resample_anchored_monthstart(self, simple_date_range_series):
         ts = simple_date_range_series('1/1/2000', '12/31/2002')
 
         freqs = ['MS', 'BMS', 'QS-MAR', 'AS-DEC', 'AS-JUN']
@@ -1015,7 +1007,8 @@ class TestDatetimeIndex(Base):
         result = s.resample('2200L', label='right').mean()
         assert result.index[-1] == Timestamp('2014-10-15 23:00:04.200')
 
-    def test_corner_cases(self):
+    def test_corner_cases(self, simple_period_range_series,
+                          simple_date_range_series):
         # miscellaneous test coverage
 
         rng = date_range('1/1/2000', periods=12, freq='t')
@@ -1078,7 +1071,7 @@ class TestDatetimeIndex(Base):
             exp = df.asfreq('T')
             tm.assert_frame_equal(result, exp)
 
-    def test_how_lambda_functions(self):
+    def test_how_lambda_functions(self, simple_date_range_series):
 
         ts = simple_date_range_series('1/1/2000', '4/1/2000')
 
@@ -1286,7 +1279,7 @@ class TestDatetimeIndex(Base):
         # 5172
         dti = DatetimeIndex([datetime(2012, 11, 4, 23)], tz='US/Eastern')
         df = DataFrame([5], index=dti)
-        assert_frame_equal(df.resample(rule='CD').sum(),
+        assert_frame_equal(df.resample(rule='D').sum(),
                            DataFrame([5], index=df.index.normalize()))
         df.resample(rule='MS').sum()
         assert_frame_equal(
@@ -1340,14 +1333,14 @@ class TestDatetimeIndex(Base):
 
         df_daily = df['10/26/2013':'10/29/2013']
         assert_frame_equal(
-            df_daily.resample("CD").agg({"a": "min", "b": "max", "c": "count"})
+            df_daily.resample("D").agg({"a": "min", "b": "max", "c": "count"})
             [["a", "b", "c"]],
             DataFrame({"a": [1248, 1296, 1346, 1394],
                        "b": [1295, 1345, 1393, 1441],
                        "c": [48, 50, 48, 48]},
                       index=date_range('10/26/2013', '10/29/2013',
-                                       freq='CD', tz='Europe/Paris')),
-            'CD Frequency')
+                                       freq='D', tz='Europe/Paris')),
+            'D Frequency')
 
     def test_downsample_across_dst(self):
         # GH 8531
@@ -1463,3 +1456,53 @@ class TestDatetimeIndex(Base):
         result = df.groupby("A").resample("D").agg(f, multiplier)
         expected = df.groupby("A").resample('D').mean().multiply(multiplier)
         assert_frame_equal(result, expected)
+
+    @pytest.mark.parametrize('k', [1, 2, 3])
+    @pytest.mark.parametrize('n1, freq1, n2, freq2', [
+        (30, 'S', 0.5, 'Min'),
+        (60, 'S', 1, 'Min'),
+        (3600, 'S', 1, 'H'),
+        (60, 'Min', 1, 'H'),
+        (21600, 'S', 0.25, 'D'),
+        (86400, 'S', 1, 'D'),
+        (43200, 'S', 0.5, 'D'),
+        (1440, 'Min', 1, 'D'),
+        (12, 'H', 0.5, 'D'),
+        (24, 'H', 1, 'D'),
+    ])
+    def test_resample_equivalent_offsets(self, n1, freq1, n2, freq2, k):
+        # GH 24127
+        n1_ = n1 * k
+        n2_ = n2 * k
+        s = pd.Series(0, index=pd.date_range('19910905 13:00',
+                                             '19911005 07:00',
+                                             freq=freq1))
+        s = s + range(len(s))
+
+        result1 = s.resample(str(n1_) + freq1).mean()
+        result2 = s.resample(str(n2_) + freq2).mean()
+        assert_series_equal(result1, result2)
+
+    @pytest.mark.parametrize('first,last,offset,exp_first,exp_last', [
+        ('19910905', '19920406', 'D', '19910905', '19920407'),
+        ('19910905 00:00', '19920406 06:00', 'D', '19910905', '19920407'),
+        ('19910905 06:00', '19920406 06:00', 'H', '19910905 06:00',
+         '19920406 07:00'),
+        ('19910906', '19920406', 'M', '19910831', '19920430'),
+        ('19910831', '19920430', 'M', '19910831', '19920531'),
+        ('1991-08', '1992-04', 'M', '19910831', '19920531'),
+    ])
+    def test_get_timestamp_range_edges(self, first, last, offset,
+                                       exp_first, exp_last):
+        first = pd.Period(first)
+        first = first.to_timestamp(first.freq)
+        last = pd.Period(last)
+        last = last.to_timestamp(last.freq)
+
+        exp_first = pd.Timestamp(exp_first, freq=offset)
+        exp_last = pd.Timestamp(exp_last, freq=offset)
+
+        offset = pd.tseries.frequencies.to_offset(offset)
+        result = _get_timestamp_range_edges(first, last, offset)
+        expected = (exp_first, exp_last)
+        assert result == expected

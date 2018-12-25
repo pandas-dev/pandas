@@ -2,13 +2,12 @@
 """
 Base and utility classes for tseries type pandas objects.
 """
+import operator
 import warnings
 
 import numpy as np
 
 from pandas._libs import NaT, iNaT, lib
-from pandas._libs.tslibs.timestamps import RoundTo, round_nsint64
-import pandas.compat as compat
 from pandas.compat.numpy import function as nv
 from pandas.errors import AbstractMethodError
 from pandas.util._decorators import Appender, cache_readonly
@@ -19,11 +18,11 @@ from pandas.core.dtypes.common import (
     is_integer, is_integer_dtype, is_list_like, is_object_dtype,
     is_period_dtype, is_scalar, is_string_dtype)
 from pandas.core.dtypes.generic import ABCIndex, ABCIndexClass, ABCSeries
-from pandas.core.dtypes.missing import isna
 
 from pandas.core import algorithms, ops
-from pandas.core.arrays import PeriodArray
-from pandas.core.arrays.datetimelike import DatetimeLikeArrayMixin
+from pandas.core.accessor import PandasDelegate
+from pandas.core.arrays.datetimelike import (
+    DatetimeLikeArrayMixin, _ensure_datetimelike_to_i8)
 import pandas.core.indexes.base as ibase
 from pandas.core.indexes.base import Index, _index_shared_docs
 from pandas.core.tools.timedeltas import to_timedelta
@@ -33,204 +32,29 @@ import pandas.io.formats.printing as printing
 _index_doc_kwargs = dict(ibase._index_doc_kwargs)
 
 
-class DatelikeOps(object):
-    """
-    Common ops for DatetimeIndex/PeriodIndex, but not TimedeltaIndex.
-    """
-
-    def strftime(self, date_format):
-        return Index(self.format(date_format=date_format),
-                     dtype=compat.text_type)
-    strftime.__doc__ = """
-    Convert to Index using specified date_format.
-
-    Return an Index of formatted strings specified by date_format, which
-    supports the same string format as the python standard library. Details
-    of the string format can be found in `python string format doc <{0}>`__
-
-    Parameters
-    ----------
-    date_format : str
-        Date format string (e.g. "%Y-%m-%d").
-
-    Returns
-    -------
-    Index
-        Index of formatted strings
-
-    See Also
-    --------
-    to_datetime : Convert the given argument to datetime.
-    DatetimeIndex.normalize : Return DatetimeIndex with times to midnight.
-    DatetimeIndex.round : Round the DatetimeIndex to the specified freq.
-    DatetimeIndex.floor : Floor the DatetimeIndex to the specified freq.
-
-    Examples
-    --------
-    >>> rng = pd.date_range(pd.Timestamp("2018-03-10 09:00"),
-    ...                     periods=3, freq='s')
-    >>> rng.strftime('%B %d, %Y, %r')
-    Index(['March 10, 2018, 09:00:00 AM', 'March 10, 2018, 09:00:01 AM',
-           'March 10, 2018, 09:00:02 AM'],
-          dtype='object')
-    """.format("https://docs.python.org/3/library/datetime.html"
-               "#strftime-and-strptime-behavior")
-
-
-class TimelikeOps(object):
-    """
-    Common ops for TimedeltaIndex/DatetimeIndex, but not PeriodIndex.
-    """
-
-    _round_doc = (
-        """
-        Perform {op} operation on the data to the specified `freq`.
-
-        Parameters
-        ----------
-        freq : str or Offset
-            The frequency level to {op} the index to. Must be a fixed
-            frequency like 'S' (second) not 'ME' (month end). See
-            :ref:`frequency aliases <timeseries.offset_aliases>` for
-            a list of possible `freq` values.
-        ambiguous : 'infer', bool-ndarray, 'NaT', default 'raise'
-            Only relevant for DatetimeIndex:
-
-            - 'infer' will attempt to infer fall dst-transition hours based on
-              order
-            - bool-ndarray where True signifies a DST time, False designates
-              a non-DST time (note that this flag is only applicable for
-              ambiguous times)
-            - 'NaT' will return NaT where there are ambiguous times
-            - 'raise' will raise an AmbiguousTimeError if there are ambiguous
-              times
-
-            .. versionadded:: 0.24.0
-        nonexistent : 'shift', 'NaT', default 'raise'
-            A nonexistent time does not exist in a particular timezone
-            where clocks moved forward due to DST.
-
-            - 'shift' will shift the nonexistent time forward to the closest
-              existing time
-            - 'NaT' will return NaT where there are nonexistent times
-            - 'raise' will raise an NonExistentTimeError if there are
-              nonexistent times
-
-            .. versionadded:: 0.24.0
-
-        Returns
-        -------
-        DatetimeIndex, TimedeltaIndex, or Series
-            Index of the same type for a DatetimeIndex or TimedeltaIndex,
-            or a Series with the same index for a Series.
-
-        Raises
-        ------
-        ValueError if the `freq` cannot be converted.
-
-        Examples
-        --------
-        **DatetimeIndex**
-
-        >>> rng = pd.date_range('1/1/2018 11:59:00', periods=3, freq='min')
-        >>> rng
-        DatetimeIndex(['2018-01-01 11:59:00', '2018-01-01 12:00:00',
-                       '2018-01-01 12:01:00'],
-                      dtype='datetime64[ns]', freq='T')
-        """)
-
-    _round_example = (
-        """>>> rng.round('H')
-        DatetimeIndex(['2018-01-01 12:00:00', '2018-01-01 12:00:00',
-                       '2018-01-01 12:00:00'],
-                      dtype='datetime64[ns]', freq=None)
-
-        **Series**
-
-        >>> pd.Series(rng).dt.round("H")
-        0   2018-01-01 12:00:00
-        1   2018-01-01 12:00:00
-        2   2018-01-01 12:00:00
-        dtype: datetime64[ns]
-        """)
-
-    _floor_example = (
-        """>>> rng.floor('H')
-        DatetimeIndex(['2018-01-01 11:00:00', '2018-01-01 12:00:00',
-                       '2018-01-01 12:00:00'],
-                      dtype='datetime64[ns]', freq=None)
-
-        **Series**
-
-        >>> pd.Series(rng).dt.floor("H")
-        0   2018-01-01 11:00:00
-        1   2018-01-01 12:00:00
-        2   2018-01-01 12:00:00
-        dtype: datetime64[ns]
-        """
-    )
-
-    _ceil_example = (
-        """>>> rng.ceil('H')
-        DatetimeIndex(['2018-01-01 12:00:00', '2018-01-01 12:00:00',
-                       '2018-01-01 13:00:00'],
-                      dtype='datetime64[ns]', freq=None)
-
-        **Series**
-
-        >>> pd.Series(rng).dt.ceil("H")
-        0   2018-01-01 12:00:00
-        1   2018-01-01 12:00:00
-        2   2018-01-01 13:00:00
-        dtype: datetime64[ns]
-        """
-    )
-
-    def _round(self, freq, mode, ambiguous, nonexistent):
-        # round the local times
-        values = _ensure_datetimelike_to_i8(self)
-        result = round_nsint64(values, mode, freq)
-        result = self._maybe_mask_results(result, fill_value=NaT)
-
-        attribs = self._get_attributes_dict()
-        attribs['freq'] = None
-        if 'tz' in attribs:
-            attribs['tz'] = None
-        return self._ensure_localized(
-            self._shallow_copy(result, **attribs), ambiguous, nonexistent
-        )
-
-    @Appender((_round_doc + _round_example).format(op="round"))
-    def round(self, freq, ambiguous='raise', nonexistent='raise'):
-        return self._round(
-            freq, RoundTo.NEAREST_HALF_EVEN, ambiguous, nonexistent
-        )
-
-    @Appender((_round_doc + _floor_example).format(op="floor"))
-    def floor(self, freq, ambiguous='raise', nonexistent='raise'):
-        return self._round(freq, RoundTo.MINUS_INFTY, ambiguous, nonexistent)
-
-    @Appender((_round_doc + _ceil_example).format(op="ceil"))
-    def ceil(self, freq, ambiguous='raise', nonexistent='raise'):
-        return self._round(freq, RoundTo.PLUS_INFTY, ambiguous, nonexistent)
-
-
 class DatetimeIndexOpsMixin(DatetimeLikeArrayMixin):
-    """ common ops mixin to support a unified interface datetimelike Index """
+    """
+    common ops mixin to support a unified interface datetimelike Index
+    """
 
     # override DatetimeLikeArrayMixin method
     copy = Index.copy
     unique = Index.unique
-    take = Index.take
 
     # DatetimeLikeArrayMixin assumes subclasses are mutable, so these are
     # properties there.  They can be made into cache_readonly for Index
     # subclasses bc they are immutable
     inferred_freq = cache_readonly(DatetimeLikeArrayMixin.inferred_freq.fget)
     _isnan = cache_readonly(DatetimeLikeArrayMixin._isnan.fget)
-    hasnans = cache_readonly(DatetimeLikeArrayMixin.hasnans.fget)
+    hasnans = cache_readonly(DatetimeLikeArrayMixin._hasnans.fget)
+    _hasnans = hasnans  # for index / array -agnostic code
     _resolution = cache_readonly(DatetimeLikeArrayMixin._resolution.fget)
     resolution = cache_readonly(DatetimeLikeArrayMixin.resolution.fget)
+
+    # A few methods that are shared
+    _maybe_mask_results = DatetimeLikeArrayMixin._maybe_mask_results
+
+    # ------------------------------------------------------------------------
 
     def equals(self, other):
         """
@@ -292,36 +116,17 @@ class DatetimeIndexOpsMixin(DatetimeLikeArrayMixin):
 
     def _ensure_localized(self, arg, ambiguous='raise', nonexistent='raise',
                           from_utc=False):
-        """
-        Ensure that we are re-localized.
+        # See DatetimeLikeArrayMixin._ensure_localized.__doc__
 
-        This is for compat as we can then call this on all datetimelike
-        indexes generally (ignored for Period/Timedelta)
-
-        Parameters
-        ----------
-        arg : DatetimeIndex / i8 ndarray
-        ambiguous : str, bool, or bool-ndarray, default 'raise'
-        nonexistent : str, default 'raise'
-        from_utc : bool, default False
-            If True, localize the i8 ndarray to UTC first before converting to
-            the appropriate tz. If False, localize directly to the tz.
-
-        Returns
-        -------
-        localized DTI
-        """
-
-        # reconvert to local tz
-        if getattr(self, 'tz', None) is not None:
-            if not isinstance(arg, ABCIndexClass):
-                arg = self._simple_new(arg)
-            if from_utc:
-                arg = arg.tz_localize('UTC').tz_convert(self.tz)
-            else:
-                arg = arg.tz_localize(
-                    self.tz, ambiguous=ambiguous, nonexistent=nonexistent
-                )
+        if getattr(self, 'tz', None):
+            # ensure_localized is only relevant for tz-aware DTI
+            from pandas.core.arrays import DatetimeArrayMixin as DatetimeArray
+            dtarr = DatetimeArray(self)
+            result = dtarr._ensure_localized(arg,
+                                             ambiguous=ambiguous,
+                                             nonexistent=nonexistent,
+                                             from_utc=from_utc)
+            return type(self)(result, name=self.name)
         return arg
 
     def _box_values_as_index(self):
@@ -331,10 +136,7 @@ class DatetimeIndexOpsMixin(DatetimeLikeArrayMixin):
         from pandas.core.index import Index
         return Index(self._box_values(self.asi8), name=self.name, dtype=object)
 
-    def _format_with_header(self, header, **kwargs):
-        return header + list(self._format_native_types(**kwargs))
-
-    @Appender(_index_shared_docs['__contains__'] % _index_doc_kwargs)
+    @Appender(_index_shared_docs['contains'] % _index_doc_kwargs)
     def __contains__(self, key):
         try:
             res = self.get_loc(key)
@@ -544,6 +346,12 @@ class DatetimeIndexOpsMixin(DatetimeLikeArrayMixin):
             i8[mask] = 0
         return i8.argmax()
 
+    # --------------------------------------------------------------------
+    # Rendering Methods
+
+    def _format_with_header(self, header, **kwargs):
+        return header + list(self._format_native_types(**kwargs))
+
     @property
     def _formatter_func(self):
         raise AbstractMethodError(self)
@@ -560,6 +368,8 @@ class DatetimeIndexOpsMixin(DatetimeLikeArrayMixin):
                     freq = "'%s'" % freq
                 attrs.append(('freq', freq))
         return attrs
+
+    # --------------------------------------------------------------------
 
     def _convert_scalar_indexer(self, key, kind=None):
         """
@@ -640,17 +450,11 @@ class DatetimeIndexOpsMixin(DatetimeLikeArrayMixin):
 
         return algorithms.isin(self.asi8, values.asi8)
 
+    @Appender(_index_shared_docs['repeat'] % _index_doc_kwargs)
     def repeat(self, repeats, *args, **kwargs):
-        """
-        Analogous to ndarray.repeat.
-        """
         nv.validate_repeat(args, kwargs)
-        if is_period_dtype(self):
-            freq = self.freq
-        else:
-            freq = None
-        return self._shallow_copy(self.asi8.repeat(repeats),
-                                  freq=freq)
+        freq = self.freq if is_period_dtype(self) else None
+        return self._shallow_copy(self.asi8.repeat(repeats), freq=freq)
 
     @Appender(_index_shared_docs['where'] % _index_doc_kwargs)
     def where(self, cond, other=None):
@@ -749,42 +553,15 @@ class DatetimeIndexOpsMixin(DatetimeLikeArrayMixin):
         return result
 
 
-def _ensure_datetimelike_to_i8(other, to_utc=False):
-    """
-    Helper for coercing an input scalar or array to i8.
-
-    Parameters
-    ----------
-    other : 1d array
-    to_utc : bool, default False
-        If True, convert the values to UTC before extracting the i8 values
-        If False, extract the i8 values directly.
-
-    Returns
-    -------
-    i8 1d array
-    """
-    if is_scalar(other) and isna(other):
-        return iNaT
-    elif isinstance(other, (PeriodArray, ABCIndexClass)):
-        # convert tz if needed
-        if getattr(other, 'tz', None) is not None:
-            if to_utc:
-                other = other.tz_convert('UTC')
-            else:
-                other = other.tz_localize(None)
-    else:
-        try:
-            return np.array(other, copy=False).view('i8')
-        except TypeError:
-            # period array cannot be coerced to int
-            other = Index(other)
-    return other.asi8
-
-
 def wrap_arithmetic_op(self, other, result):
     if result is NotImplemented:
         return NotImplemented
+
+    if isinstance(result, tuple):
+        # divmod, rdivmod
+        assert len(result) == 2
+        return (wrap_arithmetic_op(self, other, result[0]),
+                wrap_arithmetic_op(self, other, result[1]))
 
     if not isinstance(result, Index):
         # Index.__new__ will choose appropriate subclass for dtype
@@ -850,3 +627,48 @@ def wrap_field_accessor(prop):
     f.__name__ = fget.__name__
     f.__doc__ = fget.__doc__
     return property(f)
+
+
+class DatetimelikeDelegateMixin(PandasDelegate):
+    """
+    Delegation mechanism, specific for Datetime, Timedelta, and Period types.
+
+    Functionality is delegated from the Index class to an Array class. A
+    few things can be customized
+
+    * _delegate_class : type
+        The class being delegated to.
+    * _delegated_methods, delegated_properties : List
+        The list of property / method names being delagated.
+    * raw_methods : Set
+        The set of methods whose results should should *not* be
+        boxed in an index, after being returned from the array
+    * raw_properties : Set
+        The set of properties whose results should should *not* be
+        boxed in an index, after being returned from the array
+    """
+    # raw_methods : dispatch methods that shouldn't be boxed in an Index
+    _raw_methods = set()
+    # raw_properties : dispatch properties that shouldn't be boxed in an Index
+    _raw_properties = set()
+    name = None
+    _data = None
+
+    @property
+    def _delegate_class(self):
+        raise AbstractMethodError
+
+    def _delegate_property_get(self, name, *args, **kwargs):
+        result = getattr(self._data, name)
+        if name not in self._raw_properties:
+            result = Index(result, name=self.name)
+        return result
+
+    def _delegate_property_set(self, name, value, *args, **kwargs):
+        setattr(self._data, name, value)
+
+    def _delegate_method(self, name, *args, **kwargs):
+        result = operator.methodcaller(name, *args, **kwargs)(self._data)
+        if name not in self._raw_methods:
+            result = Index(result, name=self.name)
+        return result
