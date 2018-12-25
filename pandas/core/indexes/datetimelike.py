@@ -542,7 +542,9 @@ class DatetimeIndexOpsMixin(DatetimeLikeArrayMixin):
         if is_integer_dtype(dtype):
             dtype = np.dtype("int64")
 
-        return Index(new_values, dtype=dtype, name=self.name)
+        # pass copy=False because any copying will be done in the
+        #  _eadata.astype call above
+        return Index(new_values, dtype=dtype, name=self.name, copy=False)
 
     @Appender(DatetimeLikeArrayMixin._time_shift.__doc__)
     def _time_shift(self, periods, freq=None):

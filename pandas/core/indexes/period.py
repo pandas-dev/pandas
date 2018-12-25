@@ -544,7 +544,7 @@ class PeriodIndex(DatelikeOps, DatetimeIndexOpsMixin, Int64Index,
         dtype = pandas_dtype(dtype)
 
         if is_datetime64_any_dtype(dtype):
-            # 'how' is index-speicifc, isn't part of the EA interface.
+            # 'how' is index-specific, isn't part of the EA interface.
             tz = getattr(dtype, 'tz', None)
             return self.to_timestamp(how=how).tz_localize(tz)
 

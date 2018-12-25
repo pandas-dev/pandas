@@ -240,7 +240,9 @@ class TimedeltaArrayMixin(dtl.DatetimeLikeArrayMixin, dtl.TimelikeOps):
         dtype = pandas_dtype(dtype)
 
         if is_timedelta64_dtype(dtype) and not is_timedelta64_ns_dtype(dtype):
-            # essentially this is division
+            # by pandas convention, converting to non-nano timedelta64
+            #  returns an int64-dtyped array with ints representing multiples
+            #  of the desired timedelta unit.  This is essentially division
             result = self._data.astype(dtype, copy=copy)
             if self._hasnans:
                 values = self._maybe_mask_results(result,
