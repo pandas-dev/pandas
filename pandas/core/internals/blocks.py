@@ -3040,7 +3040,7 @@ class DatetimeTZBlock(NonConsolidatableMixIn, DatetimeBlock):
 
         new_values = self.values.asi8.take(indexer)
 
-        if fill_value is None:
+        if isna(fill_value):
             fill_value = tslibs.iNaT
         if periods > 0:
             new_values[:periods] = fill_value
