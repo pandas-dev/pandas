@@ -8883,13 +8883,13 @@ class NDFrame(PandasObject, SelectionMixin):
         3   NaN  30.0  33.0
         4   NaN  45.0  48.0
 
-        >>> df.shift(periods=3, fill_value=0.0)
+        >>> df.shift(periods=3, fill_value=0)
            Col1  Col2  Col3
-        0   0.0   0.0   0.0
-        1   0.0   0.0   0.0
-        2   0.0   0.0   0.0
-        3  10.0  13.0  17.0
-        4  20.0  23.0  27.0
+        0     0     0     0
+        1     0     0     0
+        2     0     0     0
+        3    10    13    17
+        4    20    23    27
     """)
 
     @Appender(_shared_docs['shift'] % _shared_doc_kwargs)
