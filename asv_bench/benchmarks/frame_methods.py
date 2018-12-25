@@ -103,6 +103,7 @@ class Iteration(object):
         self.df2 = DataFrame(np.random.randn(N * 50, 10))
         self.df3 = DataFrame(np.random.randn(N, 5 * N),
                              columns=['C' + str(c) for c in range(N * 5)])
+        self.df4 = DataFrame(np.random.randn(N * 1000, 10))
 
     def time_iteritems(self):
         # (monitor no-copying behaviour)
@@ -119,9 +120,69 @@ class Iteration(object):
         for col in self.df3:
             self.df3[col]
 
+    def time_itertuples_start(self):
+        self.df4.itertuples()
+
+    def time_itertuples_read_first(self):
+        next(self.df4.itertuples())
+
     def time_itertuples(self):
-        for row in self.df2.itertuples():
+        for row in self.df4.itertuples():
             pass
+
+    def time_itertuples_to_list(self):
+        list(self.df4.itertuples())
+
+    def mem_itertuples_start(self):
+        return self.df4.itertuples()
+
+    def peakmem_itertuples_start(self):
+        self.df4.itertuples()
+
+    def mem_itertuples_read_first(self):
+        return next(self.df4.itertuples())
+
+    def peakmem_itertuples(self):
+        for row in self.df4.itertuples():
+            pass
+
+    def mem_itertuples_to_list(self):
+        return list(self.df4.itertuples())
+
+    def peakmem_itertuples_to_list(self):
+        list(self.df4.itertuples())
+
+    def time_itertuples_raw_start(self):
+        self.df4.itertuples(index=False, name=None)
+
+    def time_itertuples_raw_read_first(self):
+        next(self.df4.itertuples(index=False, name=None))
+
+    def time_itertuples_raw_tuples(self):
+        for row in self.df4.itertuples(index=False, name=None):
+            pass
+
+    def time_itertuples_raw_tuples_to_list(self):
+        list(self.df4.itertuples(index=False, name=None))
+
+    def mem_itertuples_raw_start(self):
+        return self.df4.itertuples(index=False, name=None)
+
+    def peakmem_itertuples_raw_start(self):
+        self.df4.itertuples(index=False, name=None)
+
+    def peakmem_itertuples_raw_read_first(self):
+        next(self.df4.itertuples(index=False, name=None))
+
+    def peakmem_itertuples_raw(self):
+        for row in self.df4.itertuples(index=False, name=None):
+            pass
+
+    def mem_itertuples_raw_to_list(self):
+        return list(self.df4.itertuples(index=False, name=None))
+
+    def peakmem_itertuples_raw_to_list(self):
+        list(self.df4.itertuples(index=False, name=None))
 
     def time_iterrows(self):
         for row in self.df.iterrows():
