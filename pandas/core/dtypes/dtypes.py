@@ -9,11 +9,11 @@ from pandas._libs.interval import Interval
 from pandas._libs.tslibs import NaT, Period, Timestamp, timezones
 
 from pandas.core.dtypes.generic import ABCCategoricalIndex, ABCIndexClass
-from .inference import is_list_like
 
 from pandas import compat
 
 from .base import ExtensionDtype, _DtypeOpsMixin
+from .inference import is_list_like
 
 
 def register_extension_dtype(cls):

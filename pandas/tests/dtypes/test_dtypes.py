@@ -90,7 +90,7 @@ class TestCategoricalDtype(Base):
             TypeError, lambda: CategoricalDtype.construct_from_string('foo'))
 
     def test_constructor_invalid(self):
-        msg = "categories must be list-like"
+        msg = "Parameter 'categories' must be list-like"
         with pytest.raises(TypeError, match=msg):
             CategoricalDtype("category")
 
@@ -706,7 +706,7 @@ class TestCategoricalDtypeParametrized(object):
         with pytest.raises(TypeError, match='ordered'):
             CategoricalDtype(['a', 'b'], ordered='foo')
 
-        with pytest.raises(TypeError, match='categories must be list-like'):
+        with pytest.raises(TypeError, match="'categories' must be list-like"):
             CategoricalDtype('category')
 
     def test_mixed(self):
