@@ -360,12 +360,12 @@ def read_excel(io,
 
 class _XlrdReader(object):
 
-    def __init__(self, filepath_or_wb):
+    def __init__(self, filepath_or_buffer):
         """Reader using xlrd engine.
 
         Parameters
         ----------
-        filepath_or_wb : string, path object or Workbook
+        filepath_or_buffer : string, path object or Workbook
             Object to be parsed.
         """
         err_msg = "Install xlrd >= 1.0.0 for Excel support"
@@ -379,31 +379,32 @@ class _XlrdReader(object):
                 raise ImportError(err_msg +
                                   ". Current version " + xlrd.__VERSION__)
 
-        # If filepath_or_wb is a url, want to keep the data as bytes so can't
-        # pass to get_filepath_or_buffer()
-        if _is_url(filepath_or_wb):
-            filepath_or_wb = _urlopen(filepath_or_wb)
-        elif not isinstance(filepath_or_wb, (ExcelFile, xlrd.Book)):
-            filepath_or_wb, _, _, _ = get_filepath_or_buffer(filepath_or_wb)
+        # If filepath_or_buffer is a url, want to keep the data as bytes so
+        # can't pass to get_filepath_or_buffer()
+        if _is_url(filepath_or_buffer):
+            filepath_or_buffer = _urlopen(filepath_or_buffer)
+        elif not isinstance(filepath_or_buffer, (ExcelFile, xlrd.Book)):
+            filepath_or_buffer, _, _, _ = get_filepath_or_buffer(
+                filepath_or_buffer)
 
-        if isinstance(filepath_or_wb, xlrd.Book):
-            self.book = filepath_or_wb
-        elif not isinstance(filepath_or_wb, xlrd.Book) and hasattr(
-                filepath_or_wb, "read"):
+        if isinstance(filepath_or_buffer, xlrd.Book):
+            self.book = filepath_or_buffer
+        elif not isinstance(filepath_or_buffer, xlrd.Book) and hasattr(
+                filepath_or_buffer, "read"):
             # N.B. xlrd.Book has a read attribute too
-            if hasattr(filepath_or_wb, 'seek'):
+            if hasattr(filepath_or_buffer, 'seek'):
                 try:
                     # GH 19779
-                    filepath_or_wb.seek(0)
+                    filepath_or_buffer.seek(0)
                 except UnsupportedOperation:
                     # HTTPResponse does not support seek()
                     # GH 20434
                     pass
 
-            data = filepath_or_wb.read()
+            data = filepath_or_buffer.read()
             self.book = xlrd.open_workbook(file_contents=data)
-        elif isinstance(filepath_or_wb, compat.string_types):
-            self.book = xlrd.open_workbook(filepath_or_wb)
+        elif isinstance(filepath_or_buffer, compat.string_types):
+            self.book = xlrd.open_workbook(filepath_or_buffer)
         else:
             raise ValueError('Must explicitly set engine if not passing in'
                              ' buffer or path for io.')
@@ -611,10 +612,10 @@ class ExcelFile(object):
     ----------
     io : string, path object (pathlib.Path or py._path.local.LocalPath),
         file-like object or xlrd workbook
-        If a string or path object, expected to be a path to xls or xlsx file
+        If a string or path object, expected to be a path to xls or xlsx file.
     engine : string, default None
         If io is not a buffer or path, this must be set to identify io.
-        Acceptable values are None or xlrd
+        Acceptable values are None or ``xlrd``.
     """
 
     _engines = {
