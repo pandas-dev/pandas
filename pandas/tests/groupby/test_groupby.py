@@ -207,7 +207,7 @@ def test_pass_args_kwargs(ts, tsframe):
     trans_expected = ts_grouped.transform(g)
 
     assert_series_equal(apply_result, agg_expected)
-    assert_series_equal(agg_result, agg_expected, check_names=False)
+    assert_series_equal(agg_result, agg_expected)
     assert_series_equal(trans_result, trans_expected)
 
     agg_result = ts_grouped.agg(f, q=80)
@@ -223,11 +223,11 @@ def test_pass_args_kwargs(ts, tsframe):
     apply_result = df_grouped.apply(DataFrame.quantile, .8)
     expected = df_grouped.quantile(.8)
     assert_frame_equal(apply_result, expected, check_names=False)
-    assert_frame_equal(agg_result, expected, check_names=False)
+    assert_frame_equal(agg_result, expected)
 
     agg_result = df_grouped.agg(f, q=80)
     apply_result = df_grouped.apply(DataFrame.quantile, q=.8)
-    assert_frame_equal(agg_result, expected, check_names=False)
+    assert_frame_equal(agg_result, expected)
     assert_frame_equal(apply_result, expected, check_names=False)
 
 
