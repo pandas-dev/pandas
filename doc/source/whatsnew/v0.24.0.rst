@@ -31,7 +31,7 @@ New features
 - :func:`read_feather` now accepts ``columns`` as an argument, allowing the user to specify which columns should be read. (:issue:`24025`)
 - :func:`DataFrame.to_html` now accepts ``render_links`` as an argument, allowing the user to generate HTML with links to any URLs that appear in the DataFrame.
   See the :ref:`section on writing HTML <io.html>` in the IO docs for example usage. (:issue:`2679`)
-- :meth:`DataFrame.shift` :meth:`Series.shift`, :meth:`ExtensionArray.shift`, :meth:`SparseArray.shift`, :meth:`Period.shift`, :meth:`GroupBy.shift`, :meth:`Categorical.shift`, :meth:`NDFrame.shift` and :meth:`Block.shift` now accept fill_value as an argument, allowing the user to specify a value which will be used instead of NA/NaT in the empty periods
+- :meth:`DataFrame.shift` :meth:`Series.shift`, :meth:`ExtensionArray.shift`, :meth:`SparseArray.shift`, :meth:`Period.shift`, :meth:`GroupBy.shift`, :meth:`Categorical.shift`, :meth:`NDFrame.shift` and :meth:`Block.shift` now accept `fill_value` as an argument, allowing the user to specify a value which will be used instead of NA/NaT in the empty periods. (:issue:`15486`)
 
 .. _whatsnew_0240.values_api:
 
