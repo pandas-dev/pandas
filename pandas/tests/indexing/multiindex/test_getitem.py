@@ -242,27 +242,33 @@ def test_getitem_toplevel(
     tm.assert_frame_equal(result, expected)
 
 
-def test_getitem_int(multiindex_dataframe_random_data):
+@pytest.fixture
+def frame_random_data_integer_multi_index():
     levels = [[0, 1], [0, 1, 2]]
     codes = [[0, 0, 0, 1, 1, 1], [0, 1, 2, 0, 1, 2]]
     index = MultiIndex(levels=levels, codes=codes)
+    return DataFrame(np.random.randn(6, 2), index=index)
 
-    frame = DataFrame(np.random.randn(6, 2), index=index)
 
-    result = frame.loc[1]
-    expected = frame[-3:]
+def test_getitem_int(frame_random_data_integer_multi_index):
+    df = frame_random_data_integer_multi_index
+    result = df.loc[1]
+    expected = df[-3:]
     expected.index = expected.index.droplevel(0)
     tm.assert_frame_equal(result, expected)
 
-    # raises exception
+
+def test_getitem_int_raises_exception(frame_random_data_integer_multi_index):
+    df = frame_random_data_integer_multi_index
     msg = "3"
     with pytest.raises(KeyError, match=msg):
-        frame.loc.__getitem__(3)
+        df.loc.__getitem__(3)
 
-    # however this will work
-    frame = multiindex_dataframe_random_data
-    result = frame.iloc[2]
-    expected = frame.xs(frame.index[2])
+
+def test_getitem_iloc(multiindex_dataframe_random_data):
+    df = multiindex_dataframe_random_data
+    result = df.iloc[2]
+    expected = df.xs(df.index[2])
     tm.assert_series_equal(result, expected)
 
 
