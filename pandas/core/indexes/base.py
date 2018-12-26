@@ -846,12 +846,9 @@ class Index(IndexOpsMixin, PandasObject):
             The number of repetitions for each element. This should be a
             non-negative integer. Repeating 0 times will return an empty
             %(klass)s.
-        *args
-            Additional arguments have no effect but might be accepted for
-            compatibility with numpy.
-        **kwargs
-            Additional keywords have no effect but might be accepted for
-            compatibility with numpy.
+        axis : None
+            Must be ``None``. Has no effect but is accepted for compatibility
+            with numpy.
 
         Returns
         -------
@@ -875,8 +872,8 @@ class Index(IndexOpsMixin, PandasObject):
         """
 
     @Appender(_index_shared_docs['repeat'] % _index_doc_kwargs)
-    def repeat(self, repeats, *args, **kwargs):
-        nv.validate_repeat(args, kwargs)
+    def repeat(self, repeats, axis=None):
+        nv.validate_repeat(tuple(), dict(axis=axis))
         return self._shallow_copy(self._values.repeat(repeats))
 
     # --------------------------------------------------------------------
