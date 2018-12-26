@@ -655,6 +655,18 @@ class TestToDatetime(object):
                                            tzinfo=pytz.FixedOffset(240))] * 2)
         tm.assert_index_equal(result, expected)
 
+    def test_timestamp_utc_true(self):
+        # GH 24415
+        ts = Timestamp(2018, 1, 1)
+        result = to_datetime(ts, utc=True)
+        expected = ts.tz_localize('UTC')
+        assert result == expected
+
+        msg = ('Cannot localize tz-aware Timestamp, use tz_convert for '
+               'conversions')
+        with pytest.raises(TypeError, match=msg):
+            to_datetime(ts.tz_localize('US/Pacific'), utc=True)
+
 
 class TestToDatetimeUnit(object):
     @pytest.mark.parametrize('cache', [True, False])
