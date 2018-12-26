@@ -1397,7 +1397,7 @@ Numeric
 - Checking PEP 3141 numbers in :func:`~pandas.api.types.is_scalar` function returns ``True`` (:issue:`22903`)
 - Reduction methods like :meth:`Series.sum` now accept the default value of ``keepdims=False`` when called from a NumPy ufunc, rather than raising a ``TypeError``. Full support for ``keepdims`` has not been implemented (:issue:`24356`).
 
- Conversion
+Conversion
 ^^^^^^^^^^
 
 - Bug in :meth:`DataFrame.combine_first` in which column types were unexpectedly converted to float (:issue:`20699`)
