@@ -675,7 +675,9 @@ def test_asfreq_non_unique():
     rng2 = rng.repeat(2).values
     ts = Series(np.random.randn(len(rng2)), index=rng2)
 
-    pytest.raises(Exception, ts.asfreq, 'B')
+    msg = 'cannot reindex from a duplicate axis'
+    with pytest.raises(Exception, match=msg):
+        ts.asfreq('B')
 
 
 def test_resample_axis1():
