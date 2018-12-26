@@ -16,7 +16,8 @@ from pandas import (Categorical, CategoricalIndex, DataFrame, DatetimeIndex,
                     Series, UInt64Index)
 from pandas.api.types import CategoricalDtype as CDT
 from pandas.compat import lrange
-from pandas.core.dtypes.common import is_categorical_dtype, is_object_dtype
+from pandas.core.dtypes.common import (
+    is_categorical_dtype, is_object_dtype, is_float_dtype, is_integer_dtype)
 from pandas.core.dtypes.dtypes import CategoricalDtype
 from pandas.core.reshape.concat import concat
 from pandas.core.reshape.merge import MergeError, merge
@@ -942,22 +943,8 @@ class TestMergeDtypes(object):
         # GH 9780
         # We allow merging on object and categorical cols and cast
         # categorical cols to object
-        # if (is_categorical_dtype(right['A'].dtype) or
-        #         is_object_dtype(right['A'].dtype)):
         result = pd.merge(left, right, on='A')
         assert is_object_dtype(result.A.dtype)
-
-        # GH 9780
-        # We raise for merging on object col and int/float col and
-        # merging on categorical col and int/float col
-        # else:
-        #     msg = ("You are trying to merge on "
-        #            "{lk_dtype} and {rk_dtype} columns. "
-        #            "If you wish to proceed you should use "
-        #            "pd.concat".format(lk_dtype=left['A'].dtype,
-        #                               rk_dtype=right['A'].dtype))
-        #     with pytest.raises(ValueError, match=msg):
-        #         pd.merge(left, right, on='A')
 
     @pytest.mark.parametrize('d1', [np.int64, np.int32,
                                     np.int16, np.int8, np.uint8])
@@ -1055,16 +1042,53 @@ class TestMergeDtypes(object):
         result = pd.merge(df2, df1, on='key')
         assert_frame_equal(result, expected)
 
+    @pytest.mark.parametrize('df1_vals, df2_vals, left_type, right_type', [
+
+        # infer to numeric
+        ([0, 1, 2], ["0", "1", "2"],
+         is_integer_dtype, is_object_dtype),
+        ([0.0, 1.0, 2.0], ["0", "1", "2"],
+         is_float_dtype, is_object_dtype),
+
+        # unicode does not infer to numeric
+        ([0, 1, 2], [u"0", u"1", u"2"],
+         is_integer_dtype, is_object_dtype),
+
+        # merge on category coercs to object
+        ([0, 1, 2], Series(['a', 'b', 'a']).astype('category'),
+         is_object_dtype, is_object_dtype),
+        ([0.0, 1.0, 2.0], Series(['a', 'b', 'a']).astype('category'),
+         is_object_dtype, is_object_dtype),
+
+        # bool will infer if possible
+        ([0, 1], pd.Series([False, True], dtype=object),
+         is_integer_dtype, is_object_dtype),
+        ([0, 1], pd.Series([False, True], dtype=bool),
+         is_object_dtype, is_object_dtype)
+    ])
+    def test_merge_incompat_dtypes_are_ok(self, df1_vals, df2_vals,
+                                          left_type, right_type):
+        # these are explicity allowed incompat merges, that pass thru
+        # the result type is dependent on if the values on the rhs are
+        # inferred, otherwise these will be coereced to object
+
+        df1 = DataFrame({'A': df1_vals})
+        df2 = DataFrame({'A': df2_vals})
+
+        result = pd.merge(df1, df2, on=['A'])
+        assert left_type(result.A.dtype)
+        result = pd.merge(df2, df1, on=['A'])
+        assert right_type(result.A.dtype)
+
     @pytest.mark.parametrize('df1_vals, df2_vals', [
+        (pd.date_range('1/1/2011', periods=2, freq='D'), ['2011-01-01',
+                                                          '2011-01-02']),
         (pd.date_range('1/1/2011', periods=2, freq='D'), [0, 1]),
         (pd.date_range('1/1/2011', periods=2, freq='D'), [0.0, 1.0]),
         (pd.date_range('20130101', periods=3),
             pd.date_range('20130101', periods=3, tz='US/Eastern')),
-        ([0, 1, 2], Series(['a', 'b', 'a']).astype('category')),
-        ([0.0, 1.0, 2.0], Series(['a', 'b', 'a']).astype('category')),
-        # TODO ([0, 1], pd.Series([False, True]))
     ])
-    def test_merge_incompat_dtypes(self, df1_vals, df2_vals):
+    def test_merge_incompat_dtypes_error(self, df1_vals, df2_vals):
         # GH 9780, GH 15800
         # Raise a ValueError when a user tries to merge on
         # dtypes that are incompatible (e.g., obj and int/float)
