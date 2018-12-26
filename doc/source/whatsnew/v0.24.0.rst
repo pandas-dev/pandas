@@ -1321,7 +1321,8 @@ Datetimelike
 - Bug in :class:`DatetimeIndex` and :class:`TimedeltaIndex` where indexing with ``Ellipsis`` would incorrectly lose the index's ``freq`` attribute (:issue:`21282`)
 - Clarified error message produced when passing an incorrect ``freq`` argument to :class:`DatetimeIndex` with ``NaT`` as the first entry in the passed data (:issue:`11587`)
 - Bug in :func:`to_datetime` where ``box`` and ``utc`` arguments were ignored when passing a :class:`DataFrame` or ``dict`` of unit mappings (:issue:`23760`)
-- Bug in :attr:`Series.dt`` where the cache would not update properly after an in-place operation (:issue:`24408`)
+- Bug in :attr:`Series.dt` where the cache would not update properly after an in-place operation (:issue:`24408`)
+- Bug in :class:`PeriodIndex` where comparisons against an array-like object with length 1 failed to raise ``ValueError`` (:issue:`23078`)
 
 Timedelta
 ^^^^^^^^^
