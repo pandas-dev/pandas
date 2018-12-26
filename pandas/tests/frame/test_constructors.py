@@ -23,7 +23,6 @@ from pandas import (DataFrame, Index, Series, isna,
 import pandas as pd
 import pandas.util.testing as tm
 from pandas.core.dtypes.cast import construct_1d_object_array_from_listlike
-from pandas.core.internals.blocks import IntBlock
 
 from pandas.tests.frame.common import TestData
 
@@ -2165,15 +2164,6 @@ class TestDataFrameConstructors(TestData):
         expected = DataFrame({'A': [0, 1, 2, 3, 4]}, dtype=dtype or 'int64')
         result = DataFrame({'A': range(5)}, dtype=dtype)
         tm.assert_frame_equal(result, expected)
-
-    def test_constructor_no_numpy_backed_ea(self):
-        # Ensure that PandasArray isn't allowed inside Series
-        # See https://github.com/pandas-dev/pandas/issues/23995 for more.
-        arr = pd.Series([1, 2, 3]).array
-        result = pd.DataFrame({"A": arr})
-        expected = pd.DataFrame({"A": [1, 2, 3]})
-        tm.assert_frame_equal(result, expected)
-        assert isinstance(result._data.blocks[0], IntBlock)
 
     def test_frame_from_list_subclass(self):
         # GH21226

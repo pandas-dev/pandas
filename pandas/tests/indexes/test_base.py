@@ -258,7 +258,7 @@ class TestIndex(Base):
         with pytest.raises(ValueError, match=msg):
             Index(data, dtype=dtype)
 
-    def test_constructor_no_numpy_backed_ea(self):
+    def test_constructor_no_pandas_array(self):
         ser = pd.Series([1, 2, 3])
         result = pd.Index(ser.array)
         expected = pd.Index([1, 2, 3])
