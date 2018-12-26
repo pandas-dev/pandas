@@ -655,16 +655,14 @@ class TestToDatetime(object):
                                            tzinfo=pytz.FixedOffset(240))] * 2)
         tm.assert_index_equal(result, expected)
 
-    def test_timestamp_utc_true(self):
+    @pytest.mark.parametrize('ts, expected', [
+        (Timestamp('2018-01-01'),
+         Timestamp('2018-01-01', tz='UTC')),
+        (Timestamp('2018-01-01', tz='US/Pacific'),
+         Timestamp('2018-01-01 08:00', tz='UTC'))])
+    def test_timestamp_utc_true(self, ts, expected):
         # GH 24415
-        ts = Timestamp(2018, 1, 1)
         result = to_datetime(ts, utc=True)
-        expected = ts.tz_localize('UTC')
-        assert result == expected
-
-        ts = ts.tz_localize('US/Pacific')
-        result = to_datetime(ts, utc=True)
-        expected = ts.tz_convert('UTC')
         assert result == expected
 
 
