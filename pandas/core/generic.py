@@ -6108,16 +6108,14 @@ class NDFrame(PandasObject, SelectionMixin):
 
     def ffill(self, axis=None, inplace=False, limit=None, downcast=None):
         """
-        Synonym for :meth:`DataFrame.fillna(method='ffill')
-            <DataFrame.fillna>`.
+        Synonym for :meth:`DataFrame.fillna` with ``method='ffill'``.
         """
         return self.fillna(method='ffill', axis=axis, inplace=inplace,
                            limit=limit, downcast=downcast)
 
     def bfill(self, axis=None, inplace=False, limit=None, downcast=None):
         """
-        Synonym for :meth:`DataFrame.fillna(method='bfill')
-            <DataFrame.fillna>`.
+        Synonym for :meth:`DataFrame.fillna` with ``method='bfill'``.
         """
         return self.fillna(method='bfill', axis=axis, inplace=inplace,
                            limit=limit, downcast=downcast)
@@ -8849,6 +8847,14 @@ class NDFrame(PandasObject, SelectionMixin):
             extend the index when shifting and preserve the original data.
         axis : {0 or 'index', 1 or 'columns', None}, default None
             Shift direction.
+        fill_value : object, optional
+            The scalar value to use for newly introduced missing values.
+            the default depends on the dtype of `self`.
+            For numeric data, ``np.nan`` is used.
+            For datetime, timedelta, or period data, etc. :attr:`NaT` is used.
+            For extension dtypes, ``self.dtype.na_value`` is used.
+
+            .. versionchanged:: 0.24.0
 
         Returns
         -------
@@ -8884,16 +8890,25 @@ class NDFrame(PandasObject, SelectionMixin):
         2   NaN  15.0  18.0
         3   NaN  30.0  33.0
         4   NaN  45.0  48.0
+
+        >>> df.shift(periods=3, fill_value=0)
+           Col1  Col2  Col3
+        0     0     0     0
+        1     0     0     0
+        2     0     0     0
+        3    10    13    17
+        4    20    23    27
     """)
 
     @Appender(_shared_docs['shift'] % _shared_doc_kwargs)
-    def shift(self, periods=1, freq=None, axis=0):
+    def shift(self, periods=1, freq=None, axis=0, fill_value=None):
         if periods == 0:
             return self.copy()
 
         block_axis = self._get_block_manager_axis(axis)
         if freq is None:
-            new_data = self._data.shift(periods=periods, axis=block_axis)
+            new_data = self._data.shift(periods=periods, axis=block_axis,
+                                        fill_value=fill_value)
         else:
             return self.tshift(periods, freq)
 
