@@ -1,9 +1,10 @@
-import pytest
-
 import operator
+
+import pytest
 
 import pandas as pd
 from pandas.core import ops
+
 from .base import BaseExtensionTests
 
 
@@ -71,8 +72,7 @@ class BaseArithmeticOpsTests(BaseOpsUtil):
         s = pd.Series(data)
         self.check_opname(s, op_name, s.iloc[0], exc=self.series_scalar_exc)
 
-    @pytest.mark.xfail(run=False, reason="_reduce needs implementation",
-                       strict=True)
+    @pytest.mark.xfail(run=False, reason="_reduce needs implementation")
     def test_arith_frame_with_scalar(self, data, all_arithmetic_operators):
         # frame & scalar
         op_name = all_arithmetic_operators

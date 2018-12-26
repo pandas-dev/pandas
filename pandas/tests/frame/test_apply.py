@@ -11,8 +11,6 @@ from itertools import chain
 
 import warnings
 import numpy as np
-from hypothesis import given
-from hypothesis.strategies import composite, dates, integers, sampled_from
 
 from pandas import (notna, DataFrame, Series, MultiIndex, date_range,
                     Timestamp, compat)
@@ -57,7 +55,8 @@ class TestDataFrameApply():
         # invalid axis
         df = DataFrame(
             [[1, 2, 3], [4, 5, 6], [7, 8, 9]], index=['a', 'a', 'c'])
-        pytest.raises(ValueError, df.apply, lambda x: x, 2)
+        with pytest.raises(ValueError):
+            df.apply(lambda x: x, 2)
 
         # GH 9573
         df = DataFrame({'c0': ['A', 'A', 'B', 'B'],
@@ -876,19 +875,16 @@ class TestDataFrameAggregate():
 
     def test_transform_and_agg_err(self, axis, float_frame):
         # cannot both transform and agg
-        def f():
+        with pytest.raises(ValueError):
             float_frame.transform(['max', 'min'], axis=axis)
-        pytest.raises(ValueError, f)
 
-        def f():
+        with pytest.raises(ValueError):
             with np.errstate(all='ignore'):
                 float_frame.agg(['max', 'sqrt'], axis=axis)
-        pytest.raises(ValueError, f)
 
-        def f():
+        with pytest.raises(ValueError):
             with np.errstate(all='ignore'):
                 float_frame.transform(['max', 'sqrt'], axis=axis)
-        pytest.raises(ValueError, f)
 
         df = pd.DataFrame({'A': range(5), 'B': 5})
 
@@ -1142,23 +1138,11 @@ class TestDataFrameAggregate():
         with pytest.raises(expected):
             df.agg(func, axis=axis)
 
-    @composite
-    def indices(draw, max_length=5):
-        date = draw(
-            dates(
-                min_value=Timestamp.min.ceil("D").to_pydatetime().date(),
-                max_value=Timestamp.max.floor("D").to_pydatetime().date(),
-            ).map(Timestamp)
-        )
-        periods = draw(integers(0, max_length))
-        freq = draw(sampled_from(list("BDHTS")))
-        dr = date_range(date, periods=periods, freq=freq)
-        return pd.DatetimeIndex(list(dr))
-
-    @given(index=indices(5), num_columns=integers(0, 5))
-    def test_frequency_is_original(self, index, num_columns):
+    @pytest.mark.parametrize("num_cols", [2, 3, 5])
+    def test_frequency_is_original(self, num_cols):
         # GH 22150
+        index = pd.DatetimeIndex(["1950-06-30", "1952-10-24", "1953-05-29"])
         original = index.copy()
-        df = DataFrame(True, index=index, columns=range(num_columns))
+        df = DataFrame(1, index=index, columns=range(num_cols))
         df.apply(lambda x: x)
         assert index.freq == original.freq

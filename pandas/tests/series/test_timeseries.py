@@ -1,28 +1,28 @@
 # coding=utf-8
 # pylint: disable-msg=E1101,W0612
 
-import pytest
+from datetime import datetime, time, timedelta
 
 import numpy as np
-from datetime import datetime, timedelta, time
+import pytest
+
+from pandas._libs.tslib import iNaT
+from pandas.compat import StringIO, lrange, product
+from pandas.errors import NullFrequencyError
+import pandas.util._test_decorators as td
 
 import pandas as pd
-import pandas.util.testing as tm
-import pandas.util._test_decorators as td
-from pandas._libs.tslib import iNaT
-from pandas.compat import lrange, StringIO, product
-from pandas.errors import NullFrequencyError
-
-from pandas.core.indexes.timedeltas import TimedeltaIndex
+from pandas import (
+    DataFrame, Index, NaT, Series, Timestamp, concat, date_range, offsets,
+    timedelta_range, to_datetime)
 from pandas.core.indexes.datetimes import DatetimeIndex
-from pandas.tseries.offsets import BDay, BMonthEnd
-from pandas import (Index, Series, date_range, NaT, concat, DataFrame,
-                    Timestamp, to_datetime, offsets,
-                    timedelta_range)
-from pandas.util.testing import (assert_series_equal, assert_almost_equal,
-                                 assert_frame_equal)
-
+from pandas.core.indexes.timedeltas import TimedeltaIndex
 from pandas.tests.series.common import TestData
+import pandas.util.testing as tm
+from pandas.util.testing import (
+    assert_almost_equal, assert_frame_equal, assert_series_equal)
+
+from pandas.tseries.offsets import BDay, BMonthEnd
 
 
 def _simple_ts(start, end, freq='D'):
@@ -248,14 +248,16 @@ class TestTimeSeries(TestData):
 
         s = pd.Series(['a', 'b', 'c', 'd', 'e'],
                       index=[5, 3, 2, 9, 0])
-        with tm.assert_raises_regex(ValueError,
-                                    'truncate requires a sorted index'):
+        msg = 'truncate requires a sorted index'
+
+        with pytest.raises(ValueError, match=msg):
             s.truncate(before=3, after=9)
 
         rng = pd.date_range('2011-01-01', '2012-01-01', freq='W')
         ts = pd.Series(np.random.randn(len(rng)), index=rng)
-        with tm.assert_raises_regex(ValueError,
-                                    'truncate requires a sorted index'):
+        msg = 'truncate requires a sorted index'
+
+        with pytest.raises(ValueError, match=msg):
             ts.sort_values(ascending=False).truncate(before='2011-11',
                                                      after='2011-12')
 
@@ -455,16 +457,6 @@ class TestTimeSeries(TestData):
         ser = Series(np.random.randn(len(idx)), idx.astype(object))
         assert ser.index.is_all_dates
         assert isinstance(ser.index, DatetimeIndex)
-
-    def test_empty_series_ops(self):
-        # see issue #13844
-        a = Series(dtype='M8[ns]')
-        b = Series(dtype='m8[ns]')
-        assert_series_equal(a, a + b)
-        assert_series_equal(a, a - b)
-        assert_series_equal(a, b + a)
-        with pytest.raises(TypeError):
-            b - a
 
     def test_contiguous_boolean_preserve_freq(self):
         rng = date_range('1/1/2000', '3/1/2000', freq='B')
@@ -825,6 +817,17 @@ class TestTimeSeries(TestData):
         for time_string in strings:
             assert len(ts.between_time(*time_string)) == expected_length
 
+    def test_between_time_axis(self):
+        # issue 8839
+        rng = date_range('1/1/2000', periods=100, freq='10min')
+        ts = Series(np.random.randn(len(rng)), index=rng)
+        stime, etime = ('08:00:00', '09:00:00')
+        expected_length = 7
+
+        assert len(ts.between_time(stime, etime)) == expected_length
+        assert len(ts.between_time(stime, etime, axis=0)) == expected_length
+        pytest.raises(ValueError, ts.between_time, stime, etime, axis=1)
+
     def test_to_period(self):
         from pandas.core.indexes.period import period_range
 
@@ -964,35 +967,6 @@ class TestTimeSeries(TestData):
         assert result.freq == rng.freq
         assert result.tz == rng.tz
 
-    def test_min_max(self):
-        rng = date_range('1/1/2000', '12/31/2000')
-        rng2 = rng.take(np.random.permutation(len(rng)))
-
-        the_min = rng2.min()
-        the_max = rng2.max()
-        assert isinstance(the_min, Timestamp)
-        assert isinstance(the_max, Timestamp)
-        assert the_min == rng[0]
-        assert the_max == rng[-1]
-
-        assert rng.min() == rng[0]
-        assert rng.max() == rng[-1]
-
-    def test_min_max_series(self):
-        rng = date_range('1/1/2000', periods=10, freq='4h')
-        lvls = ['A', 'A', 'A', 'B', 'B', 'B', 'C', 'C', 'C', 'C']
-        df = DataFrame({'TS': rng, 'V': np.random.randn(len(rng)), 'L': lvls})
-
-        result = df.TS.max()
-        exp = Timestamp(df.TS.iat[-1])
-        assert isinstance(result, Timestamp)
-        assert result == exp
-
-        result = df.TS.min()
-        exp = Timestamp(df.TS.iat[0])
-        assert isinstance(result, Timestamp)
-        assert result == exp
-
     def test_from_M8_structured(self):
         dates = [(datetime(2012, 9, 9, 0, 0), datetime(2012, 9, 8, 15, 10))]
         arr = np.array(dates,
@@ -1015,8 +989,18 @@ class TestTimeSeries(TestData):
 
         dates = date_range('1/1/2000', periods=4)
         levels = [dates, [0, 1]]
-        labels = [[0, 0, 1, 1, 2, 2, 3, 3], [0, 1, 0, 1, 0, 1, 0, 1]]
+        codes = [[0, 0, 1, 1, 2, 2, 3, 3], [0, 1, 0, 1, 0, 1, 0, 1]]
 
-        index = MultiIndex(levels=levels, labels=labels)
+        index = MultiIndex(levels=levels, codes=codes)
 
         assert isinstance(index.get_level_values(0)[0], Timestamp)
+
+    def test_view_tz(self):
+        # GH#24024
+        ser = pd.Series(pd.date_range('2000', periods=4, tz='US/Central'))
+        result = ser.view("i8")
+        expected = pd.Series([946706400000000000,
+                              946792800000000000,
+                              946879200000000000,
+                              946965600000000000])
+        tm.assert_series_equal(result, expected)

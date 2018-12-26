@@ -1,9 +1,11 @@
 # -*- coding: utf-8 -*-
 
 import numpy as np
-import pandas as pd
 import pytest
+
+import pandas as pd
 from pandas import Index, IntervalIndex, MultiIndex
+from pandas.api.types import is_scalar
 
 
 def test_is_monotonic_increasing():
@@ -38,8 +40,8 @@ def test_is_monotonic_increasing():
     # string ordering
     i = MultiIndex(levels=[['foo', 'bar', 'baz', 'qux'],
                            ['one', 'two', 'three']],
-                   labels=[[0, 0, 0, 1, 1, 2, 2, 3, 3, 3],
-                           [0, 1, 2, 0, 1, 1, 2, 0, 1, 2]],
+                   codes=[[0, 0, 0, 1, 1, 2, 2, 3, 3, 3],
+                          [0, 1, 2, 0, 1, 1, 2, 0, 1, 2]],
                    names=['first', 'second'])
     assert i.is_monotonic is False
     assert Index(i.values).is_monotonic is False
@@ -48,8 +50,8 @@ def test_is_monotonic_increasing():
 
     i = MultiIndex(levels=[['bar', 'baz', 'foo', 'qux'],
                            ['mom', 'next', 'zenith']],
-                   labels=[[0, 0, 0, 1, 1, 2, 2, 3, 3, 3],
-                           [0, 1, 2, 0, 1, 1, 2, 0, 1, 2]],
+                   codes=[[0, 0, 0, 1, 1, 2, 2, 3, 3, 3],
+                          [0, 1, 2, 0, 1, 1, 2, 0, 1, 2]],
                    names=['first', 'second'])
     assert i.is_monotonic is True
     assert Index(i.values).is_monotonic is True
@@ -61,7 +63,7 @@ def test_is_monotonic_increasing():
         levels=[[1, 2, 3, 4], ['gb00b03mlx29', 'lu0197800237',
                                'nl0000289783',
                                'nl0000289965', 'nl0000301109']],
-        labels=[[0, 1, 1, 2, 2, 2, 3], [4, 2, 0, 0, 1, 3, -1]],
+        codes=[[0, 1, 1, 2, 2, 2, 3], [4, 2, 0, 0, 1, 3, -1]],
         names=['household_id', 'asset_id'])
 
     assert i.is_monotonic is False
@@ -108,8 +110,8 @@ def test_is_monotonic_decreasing():
     # string ordering
     i = MultiIndex(levels=[['qux', 'foo', 'baz', 'bar'],
                            ['three', 'two', 'one']],
-                   labels=[[0, 0, 0, 1, 1, 2, 2, 3, 3, 3],
-                           [0, 1, 2, 0, 1, 1, 2, 0, 1, 2]],
+                   codes=[[0, 0, 0, 1, 1, 2, 2, 3, 3, 3],
+                          [0, 1, 2, 0, 1, 1, 2, 0, 1, 2]],
                    names=['first', 'second'])
     assert i.is_monotonic_decreasing is False
     assert Index(i.values).is_monotonic_decreasing is False
@@ -118,8 +120,8 @@ def test_is_monotonic_decreasing():
 
     i = MultiIndex(levels=[['qux', 'foo', 'baz', 'bar'],
                            ['zenith', 'next', 'mom']],
-                   labels=[[0, 0, 0, 1, 1, 2, 2, 3, 3, 3],
-                           [0, 1, 2, 0, 1, 1, 2, 0, 1, 2]],
+                   codes=[[0, 0, 0, 1, 1, 2, 2, 3, 3, 3],
+                          [0, 1, 2, 0, 1, 1, 2, 0, 1, 2]],
                    names=['first', 'second'])
     assert i.is_monotonic_decreasing is True
     assert Index(i.values).is_monotonic_decreasing is True
@@ -131,7 +133,7 @@ def test_is_monotonic_decreasing():
         levels=[[4, 3, 2, 1], ['nl0000301109', 'nl0000289965',
                                'nl0000289783', 'lu0197800237',
                                'gb00b03mlx29']],
-        labels=[[0, 1, 1, 2, 2, 2, 3], [4, 2, 0, 0, 1, 3, -1]],
+        codes=[[0, 1, 1, 2, 2, 2, 3], [4, 2, 0, 0, 1, 3, -1]],
         names=['household_id', 'asset_id'])
 
     assert i.is_monotonic_decreasing is False
@@ -147,14 +149,14 @@ def test_is_monotonic_decreasing():
 
 def test_is_strictly_monotonic_increasing():
     idx = pd.MultiIndex(levels=[['bar', 'baz'], ['mom', 'next']],
-                        labels=[[0, 0, 1, 1], [0, 0, 0, 1]])
+                        codes=[[0, 0, 1, 1], [0, 0, 0, 1]])
     assert idx.is_monotonic_increasing is True
     assert idx._is_strictly_monotonic_increasing is False
 
 
 def test_is_strictly_monotonic_decreasing():
     idx = pd.MultiIndex(levels=[['baz', 'bar'], ['next', 'mom']],
-                        labels=[[0, 0, 1, 1], [0, 0, 0, 1]])
+                        codes=[[0, 0, 1, 1], [0, 0, 0, 1]])
     assert idx.is_monotonic_decreasing is True
     assert idx._is_strictly_monotonic_decreasing is False
 
@@ -181,22 +183,28 @@ def test_searchsorted_monotonic(indices):
     # test searchsorted only for increasing
     if indices.is_monotonic_increasing:
         ssm_left = indices._searchsorted_monotonic(value, side='left')
+        assert is_scalar(ssm_left)
         assert expected_left == ssm_left
 
         ssm_right = indices._searchsorted_monotonic(value, side='right')
+        assert is_scalar(ssm_right)
         assert expected_right == ssm_right
 
         ss_left = indices.searchsorted(value, side='left')
+        assert is_scalar(ss_left)
         assert expected_left == ss_left
 
         ss_right = indices.searchsorted(value, side='right')
+        assert is_scalar(ss_right)
         assert expected_right == ss_right
 
     elif indices.is_monotonic_decreasing:
         ssm_left = indices._searchsorted_monotonic(value, side='left')
+        assert is_scalar(ssm_left)
         assert expected_left == ssm_left
 
         ssm_right = indices._searchsorted_monotonic(value, side='right')
+        assert is_scalar(ssm_right)
         assert expected_right == ssm_right
 
     else:

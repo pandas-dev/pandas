@@ -11,7 +11,11 @@ def dtype():
 
 @pytest.fixture
 def data():
-    """Length-100 array for this type."""
+    """Length-100 array for this type.
+
+    * data[0] and data[1] should both be non missing
+    * data[0] and data[1] should not gbe equal
+    """
     raise NotImplementedError
 
 
@@ -98,3 +102,9 @@ def data_for_grouping():
     Where A < B < C and NA is missing
     """
     raise NotImplementedError
+
+
+@pytest.fixture(params=[True, False])
+def box_in_series(request):
+    """Whether to box the data in a Series"""
+    return request.param

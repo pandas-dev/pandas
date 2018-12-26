@@ -3,33 +3,24 @@ from datetime import date, datetime, timedelta
 import functools
 import operator
 
-from pandas.compat import range
-from pandas import compat
+from dateutil.easter import easter
 import numpy as np
 
-from pandas.core.dtypes.generic import ABCPeriod
-from pandas.core.tools.datetimes import to_datetime
-import pandas.core.common as com
-
-# import after tools, dateutil check
-from dateutil.easter import easter
-from pandas._libs import tslibs, Timestamp, OutOfBoundsDatetime, Timedelta
+from pandas._libs.tslibs import (
+    NaT, OutOfBoundsDatetime, Timedelta, Timestamp, ccalendar, conversion,
+    delta_to_nanoseconds, frequencies as libfrequencies, normalize_date,
+    offsets as liboffsets, timezones)
+from pandas._libs.tslibs.offsets import (
+    ApplyTypeError, BaseOffset, _get_calendar, _is_normalized, _to_dt64,
+    apply_index_wraps, as_datetime, roll_yearday, shift_month)
+import pandas.compat as compat
+from pandas.compat import range
+from pandas.errors import AbstractMethodError
 from pandas.util._decorators import cache_readonly
 
-from pandas._libs.tslibs import (
-    ccalendar, conversion,
-    frequencies as libfrequencies)
-from pandas._libs.tslibs.timedeltas import delta_to_nanoseconds
-import pandas._libs.tslibs.offsets as liboffsets
-from pandas._libs.tslibs.offsets import (
-    ApplyTypeError,
-    as_datetime, _is_normalized,
-    _get_calendar, _to_dt64,
-    apply_index_wraps,
-    roll_yearday,
-    shift_month,
-    BaseOffset)
+from pandas.core.dtypes.generic import ABCPeriod
 
+from pandas.core.tools.datetimes import to_datetime
 
 __all__ = ['Day', 'BusinessDay', 'BDay', 'CustomBusinessDay', 'CDay',
            'CBMonthEnd', 'CBMonthBegin',
@@ -41,7 +32,7 @@ __all__ = ['Day', 'BusinessDay', 'BDay', 'CustomBusinessDay', 'CDay',
            'LastWeekOfMonth', 'FY5253Quarter', 'FY5253',
            'Week', 'WeekOfMonth', 'Easter',
            'Hour', 'Minute', 'Second', 'Milli', 'Micro', 'Nano',
-           'DateOffset', 'CalendarDay']
+           'DateOffset']
 
 # convert to/from datetime/timestamp to allow invalid Timestamp ranges to
 # pass thru
@@ -60,8 +51,8 @@ def as_timestamp(obj):
 def apply_wraps(func):
     @functools.wraps(func)
     def wrapper(self, other):
-        if other is tslibs.NaT:
-            return tslibs.NaT
+        if other is NaT:
+            return NaT
         elif isinstance(other, (timedelta, Tick, DateOffset)):
             # timedelta path
             return func(self, other)
@@ -90,7 +81,7 @@ def apply_wraps(func):
                     if result.tz is not None:
                         # convert to UTC
                         value = conversion.tz_convert_single(
-                            result.value, 'UTC', result.tz)
+                            result.value, timezones.UTC, result.tz)
                     else:
                         value = result.value
                     result = Timestamp(value + nano)
@@ -103,7 +94,7 @@ def apply_wraps(func):
 
             if self.normalize:
                 # normalize_date returns normal datetime
-                result = tslibs.normalize_date(result)
+                result = normalize_date(result)
 
             if tz is not None and result.tzinfo is None:
                 result = conversion.localize_pydatetime(result, tz)
@@ -257,7 +248,7 @@ class DateOffset(BaseOffset):
         """
         Vectorized apply of DateOffset to DatetimeIndex,
         raises NotImplentedError for offsets without a
-        vectorized implementation
+        vectorized implementation.
 
         Parameters
         ----------
@@ -284,12 +275,18 @@ class DateOffset(BaseOffset):
                        kwds.get('months', 0)) * self.n)
             if months:
                 shifted = liboffsets.shift_months(i.asi8, months)
-                i = i._shallow_copy(shifted)
+                i = type(i)(shifted, freq=i.freq, dtype=i.dtype)
 
             weeks = (kwds.get('weeks', 0)) * self.n
             if weeks:
-                i = (i.to_period('W') + weeks).to_timestamp() + \
-                    i.to_perioddelta('W')
+                # integer addition on PeriodIndex is deprecated,
+                #   so we directly use _time_shift instead
+                asper = i.to_period('W')
+                if not isinstance(asper._data, np.ndarray):
+                    # unwrap PeriodIndex --> PeriodArray
+                    asper = asper._data
+                shifted = asper._time_shift(weeks)
+                i = shifted.to_timestamp() + i.to_perioddelta('W')
 
             timedelta_kwds = {k: v for k, v in kwds.items()
                               if k in ['days', 'hours', 'minutes',
@@ -336,14 +333,18 @@ class DateOffset(BaseOffset):
         return self.rule_code
 
     def rollback(self, dt):
-        """Roll provided date backward to next offset only if not on offset"""
+        """
+        Roll provided date backward to next offset only if not on offset.
+        """
         dt = as_timestamp(dt)
         if not self.onOffset(dt):
             dt = dt - self.__class__(1, normalize=self.normalize, **self.kwds)
         return dt
 
     def rollforward(self, dt):
-        """Roll provided date forward to next offset only if not on offset"""
+        """
+        Roll provided date forward to next offset only if not on offset.
+        """
         dt = as_timestamp(dt)
         if not self.onOffset(dt):
             dt = dt + self.__class__(1, normalize=self.normalize, **self.kwds)
@@ -413,7 +414,7 @@ class SingleConstructorOffset(DateOffset):
 class _CustomMixin(object):
     """
     Mixin for classes that define and validate calendar, holidays,
-    and weekdays attributes
+    and weekdays attributes.
     """
     def __init__(self, weekmask, holidays, calendar):
         calendar, holidays = _get_calendar(weekmask=weekmask,
@@ -429,11 +430,15 @@ class _CustomMixin(object):
 
 
 class BusinessMixin(object):
-    """ Mixin to business types to provide related functions """
+    """
+    Mixin to business types to provide related functions.
+    """
 
     @property
     def offset(self):
-        """Alias for self._offset"""
+        """
+        Alias for self._offset.
+        """
         # Alias for backward compat
         return self._offset
 
@@ -450,7 +455,7 @@ class BusinessMixin(object):
 
 class BusinessDay(BusinessMixin, SingleConstructorOffset):
     """
-    DateOffset subclass representing possibly n business days
+    DateOffset subclass representing possibly n business days.
     """
     _prefix = 'B'
     _adjust_dst = True
@@ -536,13 +541,25 @@ class BusinessDay(BusinessMixin, SingleConstructorOffset):
         time = i.to_perioddelta('D')
         # to_period rolls forward to next BDay; track and
         # reduce n where it does when rolling forward
-        shifted = (i.to_perioddelta('B') - time).asi8 != 0
-        if self.n > 0:
-            roll = np.where(shifted, self.n - 1, self.n)
-        else:
-            roll = self.n
+        asper = i.to_period('B')
+        if not isinstance(asper._data, np.ndarray):
+            # unwrap PeriodIndex --> PeriodArray
+            asper = asper._data
 
-        return (i.to_period('B') + roll).to_timestamp() + time
+        if self.n > 0:
+            shifted = (i.to_perioddelta('B') - time).asi8 != 0
+
+            # Integer-array addition is deprecated, so we use
+            # _time_shift directly
+            roll = np.where(shifted, self.n - 1, self.n)
+            shifted = asper._addsub_int_array(roll, operator.add)
+        else:
+            # Integer addition is deprecated, so we use _time_shift directly
+            roll = self.n
+            shifted = asper._time_shift(roll)
+
+        result = shifted.to_timestamp() + time
+        return result
 
     def onOffset(self, dt):
         if self.normalize and not _is_normalized(dt):
@@ -562,7 +579,9 @@ class BusinessHourMixin(BusinessMixin):
 
     @cache_readonly
     def next_bday(self):
-        """used for moving to next businessday"""
+        """
+        Used for moving to next business day.
+        """
         if self.n >= 0:
             nb_offset = 1
         else:
@@ -635,7 +654,9 @@ class BusinessHourMixin(BusinessMixin):
 
     @apply_wraps
     def rollback(self, dt):
-        """Roll provided date backward to next offset only if not on offset"""
+        """
+        Roll provided date backward to next offset only if not on offset.
+        """
         if not self.onOffset(dt):
             businesshours = self._get_business_hours_by_sec
             if self.n >= 0:
@@ -648,7 +669,9 @@ class BusinessHourMixin(BusinessMixin):
 
     @apply_wraps
     def rollforward(self, dt):
-        """Roll provided date forward to next offset only if not on offset"""
+        """
+        Roll provided date forward to next offset only if not on offset.
+        """
         if not self.onOffset(dt):
             if self.n >= 0:
                 return self._next_opening_time(dt)
@@ -745,7 +768,7 @@ class BusinessHourMixin(BusinessMixin):
 
     def _onOffset(self, dt, businesshours):
         """
-        Slight speedups using calculated values
+        Slight speedups using calculated values.
         """
         # if self.normalize and not _is_normalized(dt):
         #     return False
@@ -773,10 +796,9 @@ class BusinessHourMixin(BusinessMixin):
 
 class BusinessHour(BusinessHourMixin, SingleConstructorOffset):
     """
-    DateOffset subclass representing possibly n business days
+    DateOffset subclass representing possibly n business days.
 
     .. versionadded:: 0.16.1
-
     """
     _prefix = 'BH'
     _anchor = 0
@@ -791,12 +813,11 @@ class BusinessHour(BusinessHourMixin, SingleConstructorOffset):
 class CustomBusinessDay(_CustomMixin, BusinessDay):
     """
     DateOffset subclass representing possibly n custom business days,
-    excluding holidays
+    excluding holidays.
 
     Parameters
     ----------
     n : int, default 1
-    offset : timedelta, default timedelta(0)
     normalize : bool, default False
         Normalize start/end dates to midnight before generating date range
     weekmask : str, Default 'Mon Tue Wed Thu Fri'
@@ -805,6 +826,7 @@ class CustomBusinessDay(_CustomMixin, BusinessDay):
         list/array of dates to exclude from the set of valid business days,
         passed to ``numpy.busdaycalendar``
     calendar : pd.HolidayCalendar or np.busdaycalendar
+    offset : timedelta, default timedelta(0)
     """
     _prefix = 'C'
     _attributes = frozenset(['n', 'normalize',
@@ -858,10 +880,9 @@ class CustomBusinessDay(_CustomMixin, BusinessDay):
 class CustomBusinessHour(_CustomMixin, BusinessHourMixin,
                          SingleConstructorOffset):
     """
-    DateOffset subclass representing possibly n custom business days
+    DateOffset subclass representing possibly n custom business days.
 
     .. versionadded:: 0.18.1
-
     """
     _prefix = 'CBH'
     _anchor = 0
@@ -912,29 +933,39 @@ class MonthOffset(SingleConstructorOffset):
     @apply_index_wraps
     def apply_index(self, i):
         shifted = liboffsets.shift_months(i.asi8, self.n, self._day_opt)
-        return i._shallow_copy(shifted)
+        # TODO: going through __new__ raises on call to _validate_frequency;
+        #  are we passing incorrect freq?
+        return type(i)._simple_new(shifted, freq=i.freq, tz=i.tz)
 
 
 class MonthEnd(MonthOffset):
-    """DateOffset of one month end"""
+    """
+    DateOffset of one month end.
+    """
     _prefix = 'M'
     _day_opt = 'end'
 
 
 class MonthBegin(MonthOffset):
-    """DateOffset of one month at beginning"""
+    """
+    DateOffset of one month at beginning.
+    """
     _prefix = 'MS'
     _day_opt = 'start'
 
 
 class BusinessMonthEnd(MonthOffset):
-    """DateOffset increments between business EOM dates"""
+    """
+    DateOffset increments between business EOM dates.
+    """
     _prefix = 'BM'
     _day_opt = 'business_end'
 
 
 class BusinessMonthBegin(MonthOffset):
-    """DateOffset of one business month at beginning"""
+    """
+    DateOffset of one business month at beginning.
+    """
     _prefix = 'BMS'
     _day_opt = 'business_start'
 
@@ -942,12 +973,11 @@ class BusinessMonthBegin(MonthOffset):
 class _CustomBusinessMonth(_CustomMixin, BusinessMixin, MonthOffset):
     """
     DateOffset subclass representing one custom business month, incrementing
-    between [BEGIN/END] of month dates
+    between [BEGIN/END] of month dates.
 
     Parameters
     ----------
     n : int, default 1
-    offset : timedelta, default timedelta(0)
     normalize : bool, default False
         Normalize start/end dates to midnight before generating date range
     weekmask : str, Default 'Mon Tue Wed Thu Fri'
@@ -956,6 +986,7 @@ class _CustomBusinessMonth(_CustomMixin, BusinessMixin, MonthOffset):
         list/array of dates to exclude from the set of valid business days,
         passed to ``numpy.busdaycalendar``
     calendar : pd.HolidayCalendar or np.busdaycalendar
+    offset : timedelta, default timedelta(0)
     """
     _attributes = frozenset(['n', 'normalize',
                              'weekmask', 'holidays', 'calendar', 'offset'])
@@ -972,7 +1003,9 @@ class _CustomBusinessMonth(_CustomMixin, BusinessMixin, MonthOffset):
 
     @cache_readonly
     def cbday_roll(self):
-        """Define default roll function to be called in apply method"""
+        """
+        Define default roll function to be called in apply method.
+        """
         cbday = CustomBusinessDay(n=self.n, normalize=False, **self.kwds)
 
         if self._prefix.endswith('S'):
@@ -995,7 +1028,9 @@ class _CustomBusinessMonth(_CustomMixin, BusinessMixin, MonthOffset):
 
     @cache_readonly
     def month_roll(self):
-        """Define default roll function to be called in apply method"""
+        """
+        Define default roll function to be called in apply method.
+        """
         if self._prefix.endswith('S'):
             # MonthBegin
             roll_func = self.m_offset.rollback
@@ -1085,12 +1120,15 @@ class SemiMonthOffset(DateOffset):
         return self._apply(n, other)
 
     def _apply(self, n, other):
-        """Handle specific apply logic for child classes"""
-        raise com.AbstractMethodError(self)
+        """
+        Handle specific apply logic for child classes.
+        """
+        raise AbstractMethodError(self)
 
     @apply_index_wraps
     def apply_index(self, i):
         # determine how many days away from the 1st of the month we are
+        dti = i
         days_from_start = i.to_perioddelta('M').asi8
         delta = Timedelta(days=self.day_of_month - 1).value
 
@@ -1107,7 +1145,16 @@ class SemiMonthOffset(DateOffset):
         time = i.to_perioddelta('D')
 
         # apply the correct number of months
-        i = (i.to_period('M') + (roll // 2)).to_timestamp()
+
+        # integer-array addition on PeriodIndex is deprecated,
+        #  so we use _addsub_int_array directly
+        asper = i.to_period('M')
+        if not isinstance(asper._data, np.ndarray):
+            # unwrap PeriodIndex --> PeriodArray
+            asper = asper._data
+
+        shifted = asper._addsub_int_array(roll // 2, operator.add)
+        i = type(dti)(shifted.to_timestamp())
 
         # apply the correct day
         i = self._apply_index_days(i, roll)
@@ -1115,16 +1162,19 @@ class SemiMonthOffset(DateOffset):
         return i + time
 
     def _get_roll(self, i, before_day_of_month, after_day_of_month):
-        """Return an array with the correct n for each date in i.
+        """
+        Return an array with the correct n for each date in i.
 
         The roll array is based on the fact that i gets rolled back to
         the first day of the month.
         """
-        raise com.AbstractMethodError(self)
+        raise AbstractMethodError(self)
 
     def _apply_index_days(self, i, roll):
-        """Apply the correct day for each date in i"""
-        raise com.AbstractMethodError(self)
+        """
+        Apply the correct day for each date in i.
+        """
+        raise AbstractMethodError(self)
 
 
 class SemiMonthEnd(SemiMonthOffset):
@@ -1136,9 +1186,9 @@ class SemiMonthEnd(SemiMonthOffset):
 
     Parameters
     ----------
-    n: int
+    n : int
     normalize : bool, default False
-    day_of_month: int, {1, 3,...,27}, default 15
+    day_of_month : int, {1, 3,...,27}, default 15
     """
     _prefix = 'SM'
     _min_day_of_month = 1
@@ -1170,7 +1220,8 @@ class SemiMonthEnd(SemiMonthOffset):
         return roll
 
     def _apply_index_days(self, i, roll):
-        """Add days portion of offset to DatetimeIndex i
+        """
+        Add days portion of offset to DatetimeIndex i.
 
         Parameters
         ----------
@@ -1195,9 +1246,9 @@ class SemiMonthBegin(SemiMonthOffset):
 
     Parameters
     ----------
-    n: int
+    n : int
     normalize : bool, default False
-    day_of_month: int, {2, 3,...,27}, default 15
+    day_of_month : int, {2, 3,...,27}, default 15
     """
     _prefix = 'SMS'
 
@@ -1227,7 +1278,8 @@ class SemiMonthBegin(SemiMonthOffset):
         return roll
 
     def _apply_index_days(self, i, roll):
-        """Add days portion of offset to DatetimeIndex i
+        """
+        Add days portion of offset to DatetimeIndex i.
 
         Parameters
         ----------
@@ -1247,7 +1299,7 @@ class SemiMonthBegin(SemiMonthOffset):
 
 class Week(DateOffset):
     """
-    Weekly offset
+    Weekly offset.
 
     Parameters
     ----------
@@ -1288,13 +1340,21 @@ class Week(DateOffset):
     @apply_index_wraps
     def apply_index(self, i):
         if self.weekday is None:
-            return ((i.to_period('W') + self.n).to_timestamp() +
-                    i.to_perioddelta('W'))
+            # integer addition on PeriodIndex is deprecated,
+            #  so we use _time_shift directly
+            asper = i.to_period('W')
+            if not isinstance(asper._data, np.ndarray):
+                # unwrap PeriodIndex --> PeriodArray
+                asper = asper._data
+
+            shifted = asper._time_shift(self.n)
+            return shifted.to_timestamp() + i.to_perioddelta('W')
         else:
             return self._end_apply_index(i)
 
     def _end_apply_index(self, dtindex):
-        """Add self to the given DatetimeIndex, specialized for case where
+        """
+        Add self to the given DatetimeIndex, specialized for case where
         self.weekday is non-null.
 
         Parameters
@@ -1309,15 +1369,25 @@ class Week(DateOffset):
 
         base, mult = libfrequencies.get_freq_code(self.freqstr)
         base_period = dtindex.to_period(base)
+        if not isinstance(base_period._data, np.ndarray):
+            # unwrap PeriodIndex --> PeriodArray
+            base_period = base_period._data
+
         if self.n > 0:
             # when adding, dates on end roll to next
             normed = dtindex - off + Timedelta(1, 'D') - Timedelta(1, 'ns')
             roll = np.where(base_period.to_timestamp(how='end') == normed,
                             self.n, self.n - 1)
+            # integer-array addition on PeriodIndex is deprecated,
+            #  so we use _addsub_int_array directly
+            shifted = base_period._addsub_int_array(roll, operator.add)
+            base = shifted.to_timestamp(how='end')
         else:
+            # integer addition on PeriodIndex is deprecated,
+            #  so we use _time_shift directly
             roll = self.n
+            base = base_period._time_shift(roll).to_timestamp(how='end')
 
-        base = (base_period + roll).to_timestamp(how='end')
         return base + off + Timedelta(1, 'ns') - Timedelta(1, 'D')
 
     def onOffset(self, dt):
@@ -1345,7 +1415,9 @@ class Week(DateOffset):
 
 
 class _WeekOfMonthMixin(object):
-    """Mixin for methods common to WeekOfMonth and LastWeekOfMonth"""
+    """
+    Mixin for methods common to WeekOfMonth and LastWeekOfMonth.
+    """
     @apply_wraps
     def apply(self, other):
         compare_day = self._get_offset_day(other)
@@ -1368,7 +1440,7 @@ class _WeekOfMonthMixin(object):
 
 class WeekOfMonth(_WeekOfMonthMixin, DateOffset):
     """
-    Describes monthly dates like "the Tuesday of the 2nd week of each month"
+    Describes monthly dates like "the Tuesday of the 2nd week of each month".
 
     Parameters
     ----------
@@ -1407,11 +1479,11 @@ class WeekOfMonth(_WeekOfMonthMixin, DateOffset):
 
         Parameters
         ----------
-        other: datetime
+        other : datetime
 
         Returns
         -------
-        day: int
+        day : int
         """
         mstart = datetime(other.year, other.month, 1)
         wday = mstart.weekday()
@@ -1440,7 +1512,7 @@ class WeekOfMonth(_WeekOfMonthMixin, DateOffset):
 class LastWeekOfMonth(_WeekOfMonthMixin, DateOffset):
     """
     Describes monthly dates in last week of month like "the last Tuesday of
-    each month"
+    each month".
 
     Parameters
     ----------
@@ -1453,7 +1525,6 @@ class LastWeekOfMonth(_WeekOfMonthMixin, DateOffset):
         4: Fridays
         5: Saturdays
         6: Sundays
-
     """
     _prefix = 'LWOM'
     _adjust_dst = True
@@ -1509,7 +1580,9 @@ class LastWeekOfMonth(_WeekOfMonthMixin, DateOffset):
 
 
 class QuarterOffset(DateOffset):
-    """Quarter representation - doesn't call super"""
+    """
+    Quarter representation - doesn't call super.
+    """
     _default_startingMonth = None
     _from_name_startingMonth = None
     _adjust_dst = True
@@ -1566,11 +1639,16 @@ class QuarterOffset(DateOffset):
     def apply_index(self, dtindex):
         shifted = liboffsets.shift_quarters(dtindex.asi8, self.n,
                                             self.startingMonth, self._day_opt)
-        return dtindex._shallow_copy(shifted)
+        # TODO: going through __new__ raises on call to _validate_frequency;
+        #  are we passing incorrect freq?
+        return type(dtindex)._simple_new(shifted, freq=dtindex.freq,
+                                         tz=dtindex.tz)
 
 
 class BQuarterEnd(QuarterOffset):
-    """DateOffset increments between business Quarter dates
+    """
+    DateOffset increments between business Quarter dates.
+
     startingMonth = 1 corresponds to dates like 1/31/2007, 4/30/2007, ...
     startingMonth = 2 corresponds to dates like 2/28/2007, 5/31/2007, ...
     startingMonth = 3 corresponds to dates like 3/30/2007, 6/29/2007, ...
@@ -1593,7 +1671,9 @@ class BQuarterBegin(QuarterOffset):
 
 
 class QuarterEnd(QuarterOffset):
-    """DateOffset increments between business Quarter dates
+    """
+    DateOffset increments between business Quarter dates.
+
     startingMonth = 1 corresponds to dates like 1/31/2007, 4/30/2007, ...
     startingMonth = 2 corresponds to dates like 2/28/2007, 5/31/2007, ...
     startingMonth = 3 corresponds to dates like 3/31/2007, 6/30/2007, ...
@@ -1616,7 +1696,9 @@ class QuarterBegin(QuarterOffset):
 # Year-Based Offset Classes
 
 class YearOffset(DateOffset):
-    """DateOffset that just needs a month"""
+    """
+    DateOffset that just needs a month.
+    """
     _adjust_dst = True
     _attributes = frozenset(['n', 'normalize', 'month'])
 
@@ -1637,7 +1719,10 @@ class YearOffset(DateOffset):
         shifted = liboffsets.shift_quarters(dtindex.asi8, self.n,
                                             self.month, self._day_opt,
                                             modby=12)
-        return dtindex._shallow_copy(shifted)
+        # TODO: going through __new__ raises on call to _validate_frequency;
+        #  are we passing incorrect freq?
+        return type(dtindex)._simple_new(shifted, freq=dtindex.freq,
+                                         tz=dtindex.tz)
 
     def onOffset(self, dt):
         if self.normalize and not _is_normalized(dt):
@@ -1667,7 +1752,9 @@ class YearOffset(DateOffset):
 
 
 class BYearEnd(YearOffset):
-    """DateOffset increments between business EOM dates"""
+    """
+    DateOffset increments between business EOM dates.
+    """
     _outputName = 'BusinessYearEnd'
     _default_month = 12
     _prefix = 'BA'
@@ -1675,7 +1762,9 @@ class BYearEnd(YearOffset):
 
 
 class BYearBegin(YearOffset):
-    """DateOffset increments between business year begin dates"""
+    """
+    DateOffset increments between business year begin dates.
+    """
     _outputName = 'BusinessYearBegin'
     _default_month = 1
     _prefix = 'BAS'
@@ -1683,14 +1772,18 @@ class BYearBegin(YearOffset):
 
 
 class YearEnd(YearOffset):
-    """DateOffset increments between calendar year ends"""
+    """
+    DateOffset increments between calendar year ends.
+    """
     _default_month = 12
     _prefix = 'A'
     _day_opt = 'end'
 
 
 class YearBegin(YearOffset):
-    """DateOffset increments between calendar year begin dates"""
+    """
+    DateOffset increments between calendar year begin dates.
+    """
     _default_month = 1
     _prefix = 'AS'
     _day_opt = 'start'
@@ -1960,8 +2053,11 @@ class FY5253Quarter(DateOffset):
         return self.n == 1 and self._offset.isAnchored()
 
     def _rollback_to_year(self, other):
-        """roll `other` back to the most recent date that was on a fiscal year
-        end.  Return the date of that year-end, the number of full quarters
+        """
+        Roll `other` back to the most recent date that was on a fiscal year
+        end.
+
+        Return the date of that year-end, the number of full quarters
         elapsed between that year-end and other, and the remaining Timedelta
         since the most recent quarter-end.
 
@@ -2084,10 +2180,9 @@ class FY5253Quarter(DateOffset):
 
 class Easter(DateOffset):
     """
-    DateOffset for the Easter holiday using
-    logic defined in dateutil.  Right now uses
-    the revised method which is valid in years
-    1583-4099.
+    DateOffset for the Easter holiday using logic defined in dateutil.
+
+    Right now uses the revised method which is valid in years 1583-4099.
     """
     _adjust_dst = True
     _attributes = frozenset(['n', 'normalize'])
@@ -2121,62 +2216,23 @@ class Easter(DateOffset):
             return False
         return date(dt.year, dt.month, dt.day) == easter(dt.year)
 
-
-class CalendarDay(SingleConstructorOffset):
-    """
-    Calendar day offset. Respects calendar arithmetic as opposed to Day which
-    respects absolute time.
-    """
-    _adjust_dst = True
-    _inc = Timedelta(days=1)
-    _prefix = 'CD'
-    _attributes = frozenset(['n', 'normalize'])
-
-    def __init__(self, n=1, normalize=False):
-        BaseOffset.__init__(self, n, normalize)
-
-    @apply_wraps
-    def apply(self, other):
-        """
-        Apply scalar arithmetic with CalendarDay offset. Incoming datetime
-        objects can be tz-aware or naive.
-        """
-        if type(other) == type(self):
-            # Add other CalendarDays
-            return type(self)(self.n + other.n, normalize=self.normalize)
-        tzinfo = getattr(other, 'tzinfo', None)
-        if tzinfo is not None:
-            other = other.replace(tzinfo=None)
-
-        other = other + self.n * self._inc
-
-        if tzinfo is not None:
-            # This can raise a AmbiguousTimeError or NonExistentTimeError
-            other = conversion.localize_pydatetime(other, tzinfo)
-
-        try:
-            return as_timestamp(other)
-        except TypeError:
-            raise TypeError("Cannot perform arithmetic between {other} and "
-                            "CalendarDay".format(other=type(other)))
-
-    @apply_index_wraps
-    def apply_index(self, i):
-        """
-        Apply the CalendarDay offset to a DatetimeIndex. Incoming DatetimeIndex
-        objects are assumed to be tz_naive
-        """
-        return i + self.n * self._inc
-
-
 # ---------------------------------------------------------------------
 # Ticks
 
 
 def _tick_comp(op):
-    def f(self, other):
-        return op(self.delta, other.delta)
+    assert op not in [operator.eq, operator.ne]
 
+    def f(self, other):
+        try:
+            return op(self.delta, other.delta)
+        except AttributeError:
+            # comparing with a non-Tick object
+            raise TypeError("Invalid comparison between {cls} and {typ}"
+                            .format(cls=type(self).__name__,
+                                    typ=type(other).__name__))
+
+    f.__name__ = '__{opname}__'.format(opname=op.__name__)
     return f
 
 
@@ -2195,8 +2251,6 @@ class Tick(liboffsets._Tick, SingleConstructorOffset):
     __ge__ = _tick_comp(operator.ge)
     __lt__ = _tick_comp(operator.lt)
     __le__ = _tick_comp(operator.le)
-    __eq__ = _tick_comp(operator.eq)
-    __ne__ = _tick_comp(operator.ne)
 
     def __add__(self, other):
         if isinstance(other, Tick):
@@ -2217,8 +2271,13 @@ class Tick(liboffsets._Tick, SingleConstructorOffset):
     def __eq__(self, other):
         if isinstance(other, compat.string_types):
             from pandas.tseries.frequencies import to_offset
-
-            other = to_offset(other)
+            try:
+                # GH#23524 if to_offset fails, we are dealing with an
+                #  incomparable type so == is False and != is True
+                other = to_offset(other)
+            except ValueError:
+                # e.g. "infer"
+                return False
 
         if isinstance(other, Tick):
             return self.delta == other.delta
@@ -2233,8 +2292,13 @@ class Tick(liboffsets._Tick, SingleConstructorOffset):
     def __ne__(self, other):
         if isinstance(other, compat.string_types):
             from pandas.tseries.frequencies import to_offset
-
-            other = to_offset(other)
+            try:
+                # GH#23524 if to_offset fails, we are dealing with an
+                #  incomparable type so == is False and != is True
+                other = to_offset(other)
+            except ValueError:
+                # e.g. "infer"
+                return True
 
         if isinstance(other, Tick):
             return self.delta != other.delta
@@ -2345,12 +2409,11 @@ CDay = CustomBusinessDay
 # ---------------------------------------------------------------------
 
 
-def generate_range(start=None, end=None, periods=None,
-                   offset=BDay(), time_rule=None):
+def generate_range(start=None, end=None, periods=None, offset=BDay()):
     """
     Generates a sequence of dates corresponding to the specified time
     offset. Similar to dateutil.rrule except uses pandas DateOffset
-    objects to represent time increments
+    objects to represent time increments.
 
     Parameters
     ----------
@@ -2358,8 +2421,6 @@ def generate_range(start=None, end=None, periods=None,
     end : datetime (default None)
     periods : int, (default None)
     offset : DateOffset, (default BDay())
-    time_rule : (legacy) name of DateOffset object to be used, optional
-        Corresponds with names expected by tseries.frequencies.get_offset
 
     Notes
     -----
@@ -2367,17 +2428,13 @@ def generate_range(start=None, end=None, periods=None,
     * At least two of (start, end, periods) must be specified.
     * If both start and end are specified, the returned dates will
     satisfy start <= date <= end.
-    * If both time_rule and offset are specified, time_rule supersedes offset.
 
     Returns
     -------
     dates : generator object
-
     """
-    if time_rule is not None:
-        from pandas.tseries.frequencies import get_offset
-
-        offset = get_offset(time_rule)
+    from pandas.tseries.frequencies import to_offset
+    offset = to_offset(offset)
 
     start = to_datetime(start)
     end = to_datetime(end)
@@ -2452,6 +2509,5 @@ prefix_mapping = {offset._prefix: offset for offset in [
     Day,                       # 'D'
     WeekOfMonth,               # 'WOM'
     FY5253,
-    FY5253Quarter,
-    CalendarDay                # 'CD'
+    FY5253Quarter
 ]}

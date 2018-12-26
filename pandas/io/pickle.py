@@ -3,8 +3,9 @@ import warnings
 
 import numpy as np
 from numpy.lib.format import read_array, write_array
-from pandas.compat import BytesIO, cPickle as pkl, pickle_compat as pc, PY3
-from pandas.core.dtypes.common import is_datetime64_dtype, _NS_DTYPE
+
+from pandas.compat import PY3, BytesIO, cPickle as pkl, pickle_compat as pc
+
 from pandas.io.common import _get_handle, _stringify_path
 
 
@@ -196,11 +197,5 @@ def _pickle_array(arr):
 
 def _unpickle_array(bytes):
     arr = read_array(BytesIO(bytes))
-
-    # All datetimes should be stored as M8[ns].  When unpickling with
-    # numpy1.6, it will read these as M8[us].  So this ensures all
-    # datetime64 types are read as MS[ns]
-    if is_datetime64_dtype(arr):
-        arr = arr.view(_NS_DTYPE)
 
     return arr

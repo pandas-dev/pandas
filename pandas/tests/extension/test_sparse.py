@@ -1,18 +1,20 @@
-import pytest
-import pandas as pd
 import numpy as np
+import pytest
 
+import pandas as pd
+import pandas.util.testing as tm
 from pandas import SparseArray, SparseDtype
 from pandas.errors import PerformanceWarning
 from pandas.tests.extension import base
-import pandas.util.testing as tm
 
 
 def make_data(fill_value):
     if np.isnan(fill_value):
         data = np.random.uniform(size=100)
     else:
-        data = np.random.randint(0, 100, size=100)
+        data = np.random.randint(1, 100, size=100)
+        if data[0] == data[1]:
+            data[0] += 1
 
     data[2::3] = fill_value
     return data
@@ -231,6 +233,59 @@ class TestMethods(BaseSparseTests, base.BaseMethodsTests):
         ], fill_value=False))
         self.assert_series_equal(result, expected)
 
+    def test_fillna_copy_frame(self, data_missing):
+        arr = data_missing.take([1, 1])
+        df = pd.DataFrame({"A": arr})
+
+        filled_val = df.iloc[0, 0]
+        result = df.fillna(filled_val)
+
+        assert df.values.base is not result.values.base
+        assert df.A._values.to_dense() is arr.to_dense()
+
+    def test_fillna_copy_series(self, data_missing):
+        arr = data_missing.take([1, 1])
+        ser = pd.Series(arr)
+
+        filled_val = ser[0]
+        result = ser.fillna(filled_val)
+
+        assert ser._values is not result._values
+        assert ser._values.to_dense() is arr.to_dense()
+
+    @pytest.mark.skip(reason="Not Applicable")
+    def test_fillna_length_mismatch(self, data_missing):
+        pass
+
+    def test_where_series(self, data, na_value):
+        assert data[0] != data[1]
+        cls = type(data)
+        a, b = data[:2]
+
+        ser = pd.Series(cls._from_sequence([a, a, b, b], dtype=data.dtype))
+
+        cond = np.array([True, True, False, False])
+        result = ser.where(cond)
+
+        new_dtype = SparseDtype('float', 0.0)
+        expected = pd.Series(cls._from_sequence([a, a, na_value, na_value],
+                                                dtype=new_dtype))
+        self.assert_series_equal(result, expected)
+
+        other = cls._from_sequence([a, b, a, b], dtype=data.dtype)
+        cond = np.array([True, False, True, True])
+        result = ser.where(cond, other)
+        expected = pd.Series(cls._from_sequence([a, b, b, b],
+                                                dtype=data.dtype))
+        self.assert_series_equal(result, expected)
+
+    def test_combine_first(self, data):
+        if data.dtype.subtype == 'int':
+            # Right now this is upcasted to float, just like combine_first
+            # for Series[int]
+            pytest.skip("TODO(SparseArray.__setitem__ will preserve dtype.")
+        super(TestMethods, self).test_combine_first(data)
+
 
 class TestCasting(BaseSparseTests, base.BaseCastingTests):
     pass
@@ -292,3 +347,9 @@ class TestComparisonOps(BaseSparseTests, base.BaseComparisonOpsTests):
         s = pd.Series(data)
         result = op(s, other)
         tm.assert_series_equal(result, expected)
+
+
+class TestPrinting(BaseSparseTests, base.BasePrintingTests):
+    @pytest.mark.xfail(reason='Different repr', strict=True)
+    def test_array_repr(self, data, size):
+        super(TestPrinting, self).test_array_repr(data, size)

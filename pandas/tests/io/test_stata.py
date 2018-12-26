@@ -15,8 +15,8 @@ import pytest
 
 import pandas as pd
 import pandas.util.testing as tm
-from pandas import compat
-from pandas.compat import iterkeys
+import pandas.compat as compat
+from pandas.compat import iterkeys, PY3, ResourceWarning
 from pandas.core.dtypes.common import is_categorical_dtype
 from pandas.core.frame import DataFrame, Series
 from pandas.io.parsers import read_csv
@@ -1505,3 +1505,74 @@ class TestStata(object):
         expected = pd.DataFrame(values, columns=columns)
 
         tm.assert_frame_equal(unicode_df, expected)
+
+    def test_mixed_string_strl(self):
+        # GH 23633
+        output = [
+            {'mixed': 'string' * 500,
+             'number': 0},
+            {'mixed': None,
+             'number': 1}
+        ]
+        output = pd.DataFrame(output)
+        output.number = output.number.astype('int32')
+
+        with tm.ensure_clean() as path:
+            output.to_stata(path, write_index=False, version=117)
+            reread = read_stata(path)
+            expected = output.fillna('')
+            tm.assert_frame_equal(reread, expected)
+
+            # Check strl supports all None (null)
+            output.loc[:, 'mixed'] = None
+            output.to_stata(path, write_index=False, convert_strl=['mixed'],
+                            version=117)
+            reread = read_stata(path)
+            expected = output.fillna('')
+            tm.assert_frame_equal(reread, expected)
+
+    @pytest.mark.parametrize('version', [114, 117])
+    def test_all_none_exception(self, version):
+        output = [
+            {'none': 'none',
+             'number': 0},
+            {'none': None,
+             'number': 1}
+        ]
+        output = pd.DataFrame(output)
+        output.loc[:, 'none'] = None
+        with tm.ensure_clean() as path:
+            with pytest.raises(ValueError) as excinfo:
+                output.to_stata(path, version=version)
+        assert 'Only string-like' in excinfo.value.args[0]
+        assert 'Column `none`' in excinfo.value.args[0]
+
+    @pytest.mark.parametrize('version', [114, 117])
+    def test_invalid_file_not_written(self, version):
+        content = 'Here is one __�__ Another one __·__ Another one __½__'
+        df = DataFrame([content], columns=['invalid'])
+        expected_exc = UnicodeEncodeError if PY3 else UnicodeDecodeError
+        with tm.ensure_clean() as path:
+            with pytest.raises(expected_exc):
+                with tm.assert_produces_warning(ResourceWarning):
+                    df.to_stata(path)
+
+    def test_strl_latin1(self):
+        # GH 23573, correct GSO data to reflect correct size
+        output = DataFrame([[u'pandas'] * 2, [u'þâÑÐÅ§'] * 2],
+                           columns=['var_str', 'var_strl'])
+
+        with tm.ensure_clean() as path:
+            output.to_stata(path, version=117, convert_strl=['var_strl'])
+            with open(path, 'rb') as reread:
+                content = reread.read()
+                expected = u'þâÑÐÅ§'
+                assert expected.encode('latin-1') in content
+                assert expected.encode('utf-8') in content
+                gsos = content.split(b'strls')[1][1:-2]
+                for gso in gsos.split(b'GSO')[1:]:
+                    val = gso.split(b'\x00')[-2]
+                    size = gso[gso.find(b'\x82') + 1]
+                    if not PY3:
+                        size = ord(size)
+                    assert len(val) == size - 1

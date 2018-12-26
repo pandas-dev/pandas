@@ -5,16 +5,22 @@ SeriesGroupBy and the DataFrameGroupBy objects.
 """
 
 import types
+
 from pandas.util._decorators import make_signature
-from pandas.core.dtypes.common import is_scalar, is_list_like
+
+from pandas.core.dtypes.common import is_list_like, is_scalar
 
 
 class GroupByMixin(object):
-    """ provide the groupby facilities to the mixed object """
+    """
+    Provide the groupby facilities to the mixed object.
+    """
 
     @staticmethod
     def _dispatch(name, *args, **kwargs):
-        """ dispatch to apply """
+        """
+        Dispatch to apply.
+        """
 
         def outer(self, *args, **kwargs):
             def f(x):
@@ -26,8 +32,7 @@ class GroupByMixin(object):
 
     def _gotitem(self, key, ndim, subset=None):
         """
-        sub-classes to define
-        return a sliced object
+        Sub-classes to define. Return a sliced object.
 
         Parameters
         ----------
@@ -64,35 +69,22 @@ class GroupByMixin(object):
 
 # special case to prevent duplicate plots when catching exceptions when
 # forwarding methods from NDFrames
-plotting_methods = frozenset(['plot', 'boxplot', 'hist'])
+plotting_methods = frozenset(['plot', 'hist'])
 
 common_apply_whitelist = frozenset([
-    'last', 'first',
-    'head', 'tail', 'median',
-    'mean', 'sum', 'min', 'max',
-    'cumcount', 'ngroup',
-    'resample',
-    'rank', 'quantile',
-    'fillna',
-    'mad',
-    'any', 'all',
-    'take',
-    'idxmax', 'idxmin',
-    'shift', 'tshift',
-    'ffill', 'bfill',
-    'pct_change', 'skew',
-    'corr', 'cov', 'diff',
+    'quantile', 'fillna', 'mad', 'take',
+    'idxmax', 'idxmin', 'tshift',
+    'skew', 'corr', 'cov', 'diff'
 ]) | plotting_methods
 
 series_apply_whitelist = ((common_apply_whitelist |
                            {'nlargest', 'nsmallest',
                             'is_monotonic_increasing',
-                            'is_monotonic_decreasing'}) -
-                          {'boxplot'}) | frozenset(['dtype', 'unique'])
+                            'is_monotonic_decreasing'})
+                          ) | frozenset(['dtype', 'unique'])
 
 dataframe_apply_whitelist = ((common_apply_whitelist |
-                              frozenset(['dtypes', 'corrwith'])) -
-                             {'boxplot'})
+                              frozenset(['dtypes', 'corrwith'])))
 
 cython_transforms = frozenset(['cumprod', 'cumsum', 'shift',
                                'cummin', 'cummax'])

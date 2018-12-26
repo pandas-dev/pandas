@@ -15,10 +15,11 @@ import warnings
 import numpy as np
 
 from pandas.util._decorators import Appender
+
+import pandas as pd
 from pandas import compat
 
-from pandas.io.common import get_filepath_or_buffer, BaseIterator
-import pandas as pd
+from pandas.io.common import BaseIterator, get_filepath_or_buffer
 
 _correct_line1 = ("HEADER RECORD*******LIBRARY HEADER RECORD!!!!!!!"
                   "000000000000000000000000000000  ")
@@ -352,9 +353,8 @@ class XportReader(BaseIterator):
         self.columns = [x['name'].decode() for x in self.fields]
 
         # Setup the dtype.
-        dtypel = []
-        for i, field in enumerate(self.fields):
-            dtypel.append(('s' + str(i), "S" + str(field['field_length'])))
+        dtypel = [('s' + str(i), "S" + str(field['field_length']))
+                  for i, field in enumerate(self.fields)]
         dtype = np.dtype(dtypel)
         self._dtype = dtype
 

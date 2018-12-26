@@ -1,5 +1,7 @@
 .. _extending:
 
+{{ header }}
+
 ****************
 Extending Pandas
 ****************
@@ -160,8 +162,11 @@ your ``MyExtensionArray`` class, as follows:
 
 .. code-block:: python
 
+    from pandas.core.arrays import ExtensionArray, ExtensionScalarOpsMixin
+
     class MyExtensionArray(ExtensionArray, ExtensionScalarOpsMixin):
         pass
+
 
     MyExtensionArray._add_arithmetic_ops()
     MyExtensionArray._add_comparison_ops()
@@ -185,7 +190,7 @@ Instead, you should detect these cases and return ``NotImplemented``.
 When pandas encounters an operation like ``op(Series, ExtensionArray)``, pandas
 will
 
-1. unbox the array from the ``Series`` (roughly ``Series.values``)
+1. unbox the array from the ``Series`` (``Series.array``)
 2. call ``result = op(values, ExtensionArray)``
 3. re-box the result in a ``Series``
 
@@ -204,6 +209,7 @@ To use a test, subclass it:
 .. code-block:: python
 
    from pandas.tests.extension import base
+
 
    class TestConstructors(base.BaseConstructorsTests):
        pass
@@ -267,7 +273,7 @@ Below example shows how to define ``SubclassedSeries`` and ``SubclassedDataFrame
 
 .. code-block:: python
 
-   class SubclassedSeries(Series):
+   class SubclassedSeries(pd.Series):
 
        @property
        def _constructor(self):
@@ -277,7 +283,8 @@ Below example shows how to define ``SubclassedSeries`` and ``SubclassedDataFrame
        def _constructor_expanddim(self):
            return SubclassedDataFrame
 
-   class SubclassedDataFrame(DataFrame):
+
+   class SubclassedDataFrame(pd.DataFrame):
 
        @property
        def _constructor(self):
@@ -297,7 +304,7 @@ Below example shows how to define ``SubclassedSeries`` and ``SubclassedDataFrame
    >>> type(to_framed)
    <class '__main__.SubclassedDataFrame'>
 
-   >>> df = SubclassedDataFrame({'A', [1, 2, 3], 'B': [4, 5, 6], 'C': [7, 8, 9]})
+   >>> df = SubclassedDataFrame({'A': [1, 2, 3], 'B': [4, 5, 6], 'C': [7, 8, 9]})
    >>> df
       A  B  C
    0  1  4  7
@@ -313,6 +320,7 @@ Below example shows how to define ``SubclassedSeries`` and ``SubclassedDataFrame
    0  1  4
    1  2  5
    2  3  6
+
    >>> type(sliced1)
    <class '__main__.SubclassedDataFrame'>
 
@@ -322,6 +330,7 @@ Below example shows how to define ``SubclassedSeries`` and ``SubclassedDataFrame
    1    2
    2    3
    Name: A, dtype: int64
+
    >>> type(sliced2)
    <class '__main__.SubclassedSeries'>
 
@@ -337,7 +346,7 @@ Below is an example to define two original properties, "internal_cache" as a tem
 
 .. code-block:: python
 
-   class SubclassedDataFrame2(DataFrame):
+   class SubclassedDataFrame2(pd.DataFrame):
 
        # temporary properties
        _internal_names = pd.DataFrame._internal_names + ['internal_cache']

@@ -14,16 +14,16 @@ be added to the array-specific tests in `pandas/tests/arrays/`.
 
 """
 import numpy as np
-import pandas as pd
 import pytest
 
-from pandas.tests.extension import base
 from pandas.core.dtypes.common import is_extension_array_dtype
 
+import pandas as pd
 from pandas.core.arrays import integer_array
 from pandas.core.arrays.integer import (
-    Int8Dtype, Int16Dtype, Int32Dtype, Int64Dtype,
-    UInt8Dtype, UInt16Dtype, UInt32Dtype, UInt64Dtype)
+    Int8Dtype, Int16Dtype, Int32Dtype, Int64Dtype, UInt8Dtype, UInt16Dtype,
+    UInt32Dtype, UInt64Dtype)
+from pandas.tests.extension import base
 
 
 def make_data():
@@ -143,11 +143,6 @@ class TestArithmeticOps(base.BaseArithmeticOpsTests):
         # other specific errors tested in the integer array specific tests
         pass
 
-    def test_add_series_with_extension_array(self, data):
-        super(TestArithmeticOps, self).test_add_series_with_extension_array(
-            data
-        )
-
 
 class TestComparisonOps(base.BaseComparisonOpsTests):
 
@@ -176,6 +171,10 @@ class TestReshaping(base.BaseReshapingTests):
 
 
 class TestGetitem(base.BaseGetitemTests):
+    pass
+
+
+class TestSetitem(base.BaseSetitemTests):
     pass
 
 
@@ -214,4 +213,8 @@ class TestNumericReduce(base.BaseNumericReduceTests):
 
 
 class TestBooleanReduce(base.BaseBooleanReduceTests):
+    pass
+
+
+class TestPrinting(base.BasePrintingTests):
     pass

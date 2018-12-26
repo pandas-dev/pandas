@@ -1,7 +1,9 @@
 import datetime
 
-from pandas import Timestamp
+import dateutil
 import pytz
+
+from pandas import Timestamp
 
 
 class TimestampConstruction(object):
@@ -29,7 +31,8 @@ class TimestampConstruction(object):
 
 
 class TimestampProperties(object):
-    _tzs = [None, pytz.timezone('Europe/Amsterdam')]
+    _tzs = [None, pytz.timezone('Europe/Amsterdam'), pytz.UTC,
+            dateutil.tz.tzutc()]
     _freqs = [None, 'B']
     params = [_tzs, _freqs]
     param_names = ['tz', 'freq']
@@ -44,7 +47,7 @@ class TimestampProperties(object):
         self.ts.dayofweek
 
     def time_weekday_name(self, tz, freq):
-        self.ts.weekday_name
+        self.ts.day_name
 
     def time_dayofyear(self, tz, freq):
         self.ts.dayofyear
@@ -87,7 +90,8 @@ class TimestampProperties(object):
 
 
 class TimestampOps(object):
-    params = [None, 'US/Eastern']
+    params = [None, 'US/Eastern', pytz.UTC,
+              dateutil.tz.tzutc()]
     param_names = ['tz']
 
     def setup(self, tz):
@@ -101,6 +105,17 @@ class TimestampOps(object):
 
     def time_to_pydatetime(self, tz):
         self.ts.to_pydatetime()
+
+    def time_normalize(self, tz):
+        self.ts.normalize()
+
+    def time_tz_convert(self, tz):
+        if self.ts.tz is not None:
+            self.ts.tz_convert(tz)
+
+    def time_tz_localize(self, tz):
+        if self.ts.tz is None:
+            self.ts.tz_localize(tz)
 
 
 class TimestampAcrossDst(object):

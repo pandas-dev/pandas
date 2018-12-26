@@ -300,14 +300,14 @@ class TestDatetimeBlock(object):
         block = create_block('datetime', [0])
 
         # coerce None
-        none_coerced = block._try_coerce_args(block.values, None)[2]
+        none_coerced = block._try_coerce_args(block.values, None)[1]
         assert pd.Timestamp(none_coerced) is pd.NaT
 
         # coerce different types of date bojects
         vals = (np.datetime64('2010-10-10'), datetime(2010, 10, 10),
                 date(2010, 10, 10))
         for val in vals:
-            coerced = block._try_coerce_args(block.values, val)[2]
+            coerced = block._try_coerce_args(block.values, val)[1]
             assert np.int64 == type(coerced)
             assert pd.Timestamp('2010-10-10') == pd.Timestamp(coerced)
 
@@ -711,8 +711,8 @@ class TestBlockManager(object):
 
         index = MultiIndex(levels=[['foo', 'bar', 'baz', 'qux'], ['one', 'two',
                                                                   'three']],
-                           labels=[[0, 0, 0, 1, 1, 2, 2, 3, 3, 3],
-                                   [0, 1, 2, 0, 1, 1, 2, 0, 1, 2]],
+                           codes=[[0, 0, 0, 1, 1, 2, 2, 3, 3, 3],
+                                  [0, 1, 2, 0, 1, 1, 2, 0, 1, 2]],
                            names=['first', 'second'])
 
         mgr.set_axis(1, index)
@@ -1055,8 +1055,8 @@ class TestBlockPlacement(object):
 
     def test_unbounded_slice_raises(self):
         def assert_unbounded_slice_error(slc):
-            tm.assert_raises_regex(ValueError, "unbounded slice",
-                                   lambda: BlockPlacement(slc))
+            with pytest.raises(ValueError, match="unbounded slice"):
+                BlockPlacement(slc)
 
         assert_unbounded_slice_error(slice(None, None))
         assert_unbounded_slice_error(slice(10, None))
@@ -1243,12 +1243,11 @@ class TestCanHoldElement(object):
                    (operator.mul, '<M8[ns]'),
                    (operator.add, '<M8[ns]'),
                    (operator.pow, '<m8[ns]'),
-                   (operator.mod, '<m8[ns]'),
                    (operator.mul, '<m8[ns]')}
 
         if (op, dtype) in invalid:
             with pytest.raises(TypeError):
-                result = op(s, e.value)
+                op(s, e.value)
         else:
             # FIXME: Since dispatching to Series, this test no longer
             # asserts anything meaningful
@@ -1282,5 +1281,14 @@ def test_validate_ndim():
     placement = slice(2)
     msg = r"Wrong number of dimensions. values.ndim != ndim \[1 != 2\]"
 
-    with tm.assert_raises_regex(ValueError, msg):
+    with pytest.raises(ValueError, match=msg):
         make_block(values, placement, ndim=2)
+
+
+def test_block_shape():
+    idx = pd.Index([0, 1, 2, 3, 4])
+    a = pd.Series([1, 2, 3]).reindex(idx)
+    b = pd.Series(pd.Categorical([1, 2, 3])).reindex(idx)
+
+    assert (a._data.blocks[0].mgr_locs.indexer ==
+            b._data.blocks[0].mgr_locs.indexer)

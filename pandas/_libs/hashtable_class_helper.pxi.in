@@ -5,9 +5,9 @@ WARNING: DO NOT edit .pxi FILE directly, .pxi is generated from .pxi.in
 """
 
 
-#----------------------------------------------------------------------
+# ----------------------------------------------------------------------
 # VectorData
-#----------------------------------------------------------------------
+# ----------------------------------------------------------------------
 
 {{py:
 
@@ -53,9 +53,9 @@ ctypedef fused vector_data:
 cdef inline bint needs_resize(vector_data *data) nogil:
     return data.n == data.m
 
-#----------------------------------------------------------------------
+# ----------------------------------------------------------------------
 # Vector
-#----------------------------------------------------------------------
+# ----------------------------------------------------------------------
 
 {{py:
 
@@ -86,12 +86,12 @@ cdef class {{name}}Vector:
         self.data.n = 0
         self.data.m = _INIT_VEC_CAP
         self.ao = np.empty(self.data.m, dtype={{idtype}})
-        self.data.data = <{{arg}}*> self.ao.data
+        self.data.data = <{{arg}}*>self.ao.data
 
     cdef resize(self):
         self.data.m = max(self.data.m * 4, _INIT_VEC_CAP)
         self.ao.resize(self.data.m, refcheck=False)
-        self.data.data = <{{arg}}*> self.ao.data
+        self.data.data = <{{arg}}*>self.ao.data
 
     def __dealloc__(self):
         if self.data is not NULL:
@@ -134,14 +134,13 @@ cdef class StringVector:
         bint external_view_exists
 
     def __cinit__(self):
-        self.data = <StringVectorData *>PyMem_Malloc(
-            sizeof(StringVectorData))
+        self.data = <StringVectorData *>PyMem_Malloc(sizeof(StringVectorData))
         if not self.data:
             raise MemoryError()
         self.external_view_exists = False
         self.data.n = 0
         self.data.m = _INIT_VEC_CAP
-        self.data.data = <char **> malloc(self.data.m * sizeof(char *))
+        self.data.data = <char **>malloc(self.data.m * sizeof(char *))
         if not self.data.data:
             raise MemoryError()
 
@@ -154,7 +153,7 @@ cdef class StringVector:
         self.data.m = max(self.data.m * 4, _INIT_VEC_CAP)
 
         orig_data = self.data.data
-        self.data.data = <char **> malloc(self.data.m * sizeof(char *))
+        self.data.data = <char **>malloc(self.data.m * sizeof(char *))
         if not self.data.data:
             raise MemoryError()
         for i in range(m):
@@ -184,7 +183,7 @@ cdef class StringVector:
         self.data.m = self.data.n
         return ao
 
-    cdef inline void append(self, char * x):
+    cdef inline void append(self, char *x):
 
         if needs_resize(self.data):
             self.resize()
@@ -209,22 +208,22 @@ cdef class ObjectVector:
         self.n = 0
         self.m = _INIT_VEC_CAP
         self.ao = np.empty(_INIT_VEC_CAP, dtype=object)
-        self.data = <PyObject**> self.ao.data
+        self.data = <PyObject**>self.ao.data
 
     def __len__(self):
         return self.n
 
-    cdef inline append(self, object o):
+    cdef inline append(self, object obj):
         if self.n == self.m:
             if self.external_view_exists:
                 raise ValueError("external reference but "
                                  "Vector.resize() needed")
             self.m = max(self.m * 2, _INIT_VEC_CAP)
             self.ao.resize(self.m, refcheck=False)
-            self.data = <PyObject**> self.ao.data
+            self.data = <PyObject**>self.ao.data
 
-        Py_INCREF(o)
-        self.data[self.n] = <PyObject*> o
+        Py_INCREF(obj)
+        self.data[self.n] = <PyObject*>obj
         self.n += 1
 
     def to_array(self):
@@ -240,9 +239,9 @@ cdef class ObjectVector:
         for i in range(len(x)):
             self.append(x[i])
 
-#----------------------------------------------------------------------
+# ----------------------------------------------------------------------
 # HashTable
-#----------------------------------------------------------------------
+# ----------------------------------------------------------------------
 
 
 cdef class HashTable:
@@ -252,9 +251,9 @@ cdef class HashTable:
 {{py:
 
 # name, dtype, float_group, default_na_value
-dtypes = [('Float64', 'float64', True, 'nan'),
+dtypes = [('Float64', 'float64', True, 'np.nan'),
           ('UInt64', 'uint64', False, 0),
-          ('Int64', 'int64', False, 'iNaT')]
+          ('Int64', 'int64', False, 'NPY_NAT')]
 
 }}
 
@@ -283,9 +282,9 @@ cdef class {{name}}HashTable(HashTable):
 
     def sizeof(self, deep=False):
         """ return the size of my table in bytes """
-        return self.table.n_buckets * (sizeof({{dtype}}_t) + # keys
-                                       sizeof(Py_ssize_t) + # vals
-                                       sizeof(uint32_t)) # flags
+        return self.table.n_buckets * (sizeof({{dtype}}_t) +  # keys
+                                       sizeof(Py_ssize_t) +  # vals
+                                       sizeof(uint32_t))  # flags
 
     cpdef get_item(self, {{dtype}}_t val):
         cdef khiter_t k
@@ -319,7 +318,7 @@ cdef class {{name}}HashTable(HashTable):
             for i in range(n):
                 key = keys[i]
                 k = kh_put_{{dtype}}(self.table, key, &ret)
-                self.table.vals[k] = <Py_ssize_t> values[i]
+                self.table.vals[k] = <Py_ssize_t>values[i]
 
     @cython.boundscheck(False)
     def map_locations(self, ndarray[{{dtype}}_t, ndim=1] values):
@@ -357,11 +356,12 @@ cdef class {{name}}HashTable(HashTable):
 
     @cython.boundscheck(False)
     @cython.wraparound(False)
-    def _factorize(self, const {{dtype}}_t[:] values, {{name}}Vector uniques,
-                   Py_ssize_t count_prior=0, Py_ssize_t na_sentinel=-1,
-                   object na_value=None):
+    def _unique(self, const {{dtype}}_t[:] values, {{name}}Vector uniques,
+                Py_ssize_t count_prior=0, Py_ssize_t na_sentinel=-1,
+                object na_value=None, bint ignore_na=False,
+                bint return_inverse=False):
         """
-        Calculate unique values and labels (no sorting); ignores all NA-values
+        Calculate unique values and labels (no sorting!)
 
         Parameters
         ----------
@@ -375,13 +375,22 @@ cdef class {{name}}HashTable(HashTable):
             Sentinel value used for all NA-values in inverse
         na_value : object, default None
             Value to identify as missing. If na_value is None, then
-            any value satisfying val!=val are considered missing.
+            any value "val" satisfying val != val is considered missing.
+            If na_value is not None, then _additionally_, any value "val"
+            satisfying val == na_value is considered missing.
+        ignore_na : boolean, default False
+            Whether NA-values should be ignored for calculating the uniques. If
+            True, the labels corresponding to missing values will be set to
+            na_sentinel.
+        return_inverse : boolean, default False
+            Whether the mapping of the original array values to their location
+            in the vector of uniques should be returned.
 
         Returns
         -------
         uniques : ndarray[{{dtype}}]
             Unique values of input, not sorted
-        labels : ndarray[int64]
+        labels : ndarray[int64] (if return_inverse=True)
             The labels from values to uniques
         """
         cdef:
@@ -393,7 +402,8 @@ cdef class {{name}}HashTable(HashTable):
             {{name}}VectorData *ud
             bint use_na_value
 
-        labels = np.empty(n, dtype=np.int64)
+        if return_inverse:
+            labels = np.empty(n, dtype=np.int64)
         ud = uniques.data
         use_na_value = na_value is not None
 
@@ -411,20 +421,19 @@ cdef class {{name}}HashTable(HashTable):
             for i in range(n):
                 val = values[i]
 
-                if val != val or (use_na_value and val == na_value2):
+                if ignore_na and (val != val
+                                  or (use_na_value and val == na_value2)):
+                    # if missing values do not count as unique values (i.e. if
+                    # ignore_na is True), skip the hashtable entry for them,
+                    # and replace the corresponding label with na_sentinel
                     labels[i] = na_sentinel
                     continue
 
                 k = kh_get_{{dtype}}(self.table, val)
 
-                if k != self.table.n_buckets:
-                    # k falls into a previous bucket
-                    idx = self.table.vals[k]
-                    labels[i] = idx
-                else:
+                if k == self.table.n_buckets:
                     # k hasn't been seen yet
                     k = kh_put_{{dtype}}(self.table, val, &ret)
-                    self.table.vals[k] = count
 
                     if needs_resize(ud):
                         with gil:
@@ -434,23 +443,82 @@ cdef class {{name}}HashTable(HashTable):
                                                  "Vector.resize() needed")
                             uniques.resize()
                     append_data_{{dtype}}(ud, val)
-                    labels[i] = count
-                    count += 1
+                    if return_inverse:
+                        self.table.vals[k] = count
+                        labels[i] = count
+                        count += 1
+                elif return_inverse:
+                    # k falls into a previous bucket
+                    # only relevant in case we need to construct the inverse
+                    idx = self.table.vals[k]
+                    labels[i] = idx
 
-        return np.asarray(labels)
+        if return_inverse:
+            return uniques.to_array(), np.asarray(labels)
+        return uniques.to_array()
+
+    def unique(self, const {{dtype}}_t[:] values, bint return_inverse=False):
+        """
+        Calculate unique values and labels (no sorting!)
+
+        Parameters
+        ----------
+        values : ndarray[{{dtype}}]
+            Array of values of which unique will be calculated
+        return_inverse : boolean, default False
+            Whether the mapping of the original array values to their location
+            in the vector of uniques should be returned.
+
+        Returns
+        -------
+        uniques : ndarray[{{dtype}}]
+            Unique values of input, not sorted
+        labels : ndarray[int64] (if return_inverse)
+            The labels from values to uniques
+        """
+        uniques = {{name}}Vector()
+        return self._unique(values, uniques, ignore_na=False,
+                            return_inverse=return_inverse)
 
     def factorize(self, const {{dtype}}_t[:] values, Py_ssize_t na_sentinel=-1,
                   object na_value=None):
-        uniques = {{name}}Vector()
-        labels = self._factorize(values, uniques=uniques,
-                                 na_sentinel=na_sentinel, na_value=na_value)
-        return labels, uniques.to_array()
+        """
+        Calculate unique values and labels (no sorting!)
+
+        Missing values are not included in the "uniques" for this method.
+        The labels for any missing values will be set to "na_sentinel"
+
+        Parameters
+        ----------
+        values : ndarray[{{dtype}}]
+            Array of values of which unique will be calculated
+        na_sentinel : Py_ssize_t, default -1
+            Sentinel value used for all NA-values in inverse
+        na_value : object, default None
+            Value to identify as missing. If na_value is None, then
+            any value "val" satisfying val != val is considered missing.
+            If na_value is not None, then _additionally_, any value "val"
+            satisfying val == na_value is considered missing.
+
+        Returns
+        -------
+        uniques : ndarray[{{dtype}}]
+            Unique values of input, not sorted
+        labels : ndarray[int64]
+            The labels from values to uniques
+        """
+        uniques_vector = {{name}}Vector()
+        return self._unique(values, uniques_vector, na_sentinel=na_sentinel,
+                            na_value=na_value, ignore_na=True,
+                            return_inverse=True)
 
     def get_labels(self, const {{dtype}}_t[:] values, {{name}}Vector uniques,
                    Py_ssize_t count_prior=0, Py_ssize_t na_sentinel=-1,
                    object na_value=None):
-        return self._factorize(values, uniques, count_prior=count_prior,
-                               na_sentinel=na_sentinel, na_value=na_value)
+        _, labels = self._unique(values, uniques, count_prior=count_prior,
+                                 na_sentinel=na_sentinel, na_value=na_value,
+                                 ignore_na=True, return_inverse=True)
+        return labels
 
     @cython.boundscheck(False)
     def get_labels_groupby(self, const {{dtype}}_t[:] values):
@@ -496,44 +564,6 @@ cdef class {{name}}HashTable(HashTable):
         arr_uniques = uniques.to_array()
 
         return np.asarray(labels), arr_uniques
-
-    @cython.boundscheck(False)
-    @cython.wraparound(False)
-    def unique(self, const {{dtype}}_t[:] values):
-        """
-        Calculate unique values without sorting
-
-        Parameters
-        ----------
-        values : ndarray[{{dtype}}]
-            Array of values of which unique will be calculated
-
-        Returns
-        -------
-        uniques : ndarray[{{dtype}}]
-            Unique values of input, not sorted
-        """
-        cdef:
-            Py_ssize_t i, n = len(values)
-            int ret = 0
-            {{dtype}}_t val
-            khiter_t k
-            {{name}}Vector uniques = {{name}}Vector()
-            {{name}}VectorData *ud
-
-        ud = uniques.data
-
-        with nogil:
-            for i in range(n):
-                val = values[i]
-                k = kh_get_{{dtype}}(self.table, val)
-                if k == self.table.n_buckets:
-                    kh_put_{{dtype}}(self.table, val, &ret)
-                    if needs_resize(ud):
-                        with gil:
-                            uniques.resize()
-                    append_data_{{dtype}}(ud, val)
-        return uniques.to_array()
 
 {{endfor}}
 
@@ -591,13 +621,13 @@ cdef class StringHashTable(HashTable):
         cdef:
             Py_ssize_t i, n = len(values)
             ndarray[int64_t] labels = np.empty(n, dtype=np.int64)
-            int64_t *resbuf = <int64_t*> labels.data
+            int64_t *resbuf = <int64_t*>labels.data
             khiter_t k
             kh_str_t *table = self.table
             const char *v
             const char **vecs
 
-        vecs = <const char **> malloc(n * sizeof(char *))
+        vecs = <const char **>malloc(n * sizeof(char *))
         for i in range(n):
             val = values[i]
             v = util.get_c_string(val)
@@ -615,56 +645,6 @@ cdef class StringHashTable(HashTable):
         return labels
 
     @cython.boundscheck(False)
-    @cython.wraparound(False)
-    def unique(self, ndarray[object] values):
-        """
-        Calculate unique values without sorting
-
-        Parameters
-        ----------
-        values : ndarray[object]
-            Array of values of which unique will be calculated
-
-        Returns
-        -------
-        uniques : ndarray[object]
-            Unique values of input, not sorted
-        """
-        cdef:
-            Py_ssize_t i, count, n = len(values)
-            int64_t[:] uindexer
-            int ret = 0
-            object val
-            ObjectVector uniques
-            khiter_t k
-            const char *v
-            const char **vecs
-
-        vecs = <const char **> malloc(n * sizeof(char *))
-        uindexer = np.empty(n, dtype=np.int64)
-        for i in range(n):
-            val = values[i]
-            v = util.get_c_string(val)
-            vecs[i] = v
-
-        count = 0
-        with nogil:
-            for i in range(n):
-                v = vecs[i]
-                k = kh_get_str(self.table, v)
-                if k == self.table.n_buckets:
-                    kh_put_str(self.table, v, &ret)
-                    uindexer[count] = i
-                    count += 1
-        free(vecs)
-
-        # uniques
-        uniques = ObjectVector()
-        for i in range(count):
-            uniques.append(values[uindexer[i]])
-        return uniques.to_array()
-
-    @cython.boundscheck(False)
     def lookup(self, ndarray[object] values):
         cdef:
             Py_ssize_t i, n = len(values)
@@ -675,11 +655,11 @@ cdef class StringHashTable(HashTable):
             int64_t[:] locs = np.empty(n, dtype=np.int64)
 
         # these by-definition *must* be strings
-        vecs = <char **> malloc(n * sizeof(char *))
+        vecs = <char **>malloc(n * sizeof(char *))
         for i in range(n):
             val = values[i]
 
-            if PyUnicode_Check(val) or PyString_Check(val):
+            if isinstance(val, (str, unicode)):
                 v = util.get_c_string(val)
             else:
                 v = util.get_c_string(self.na_string_sentinel)
@@ -708,11 +688,11 @@ cdef class StringHashTable(HashTable):
             khiter_t k
 
         # these by-definition *must* be strings
-        vecs = <const char **> malloc(n * sizeof(char *))
+        vecs = <const char **>malloc(n * sizeof(char *))
         for i in range(n):
             val = values[i]
 
-            if PyUnicode_Check(val) or PyString_Check(val):
+            if isinstance(val, (str, unicode)):
                 v = util.get_c_string(val)
             else:
                 v = util.get_c_string(self.na_string_sentinel)
@@ -727,11 +707,12 @@ cdef class StringHashTable(HashTable):
 
     @cython.boundscheck(False)
     @cython.wraparound(False)
-    def _factorize(self, ndarray[object] values, ObjectVector uniques,
-                   Py_ssize_t count_prior=0, Py_ssize_t na_sentinel=-1,
-                   object na_value=None):
+    def _unique(self, ndarray[object] values, ObjectVector uniques,
+                Py_ssize_t count_prior=0, Py_ssize_t na_sentinel=-1,
+                object na_value=None, bint ignore_na=False,
+                bint return_inverse=False):
         """
-        Calculate unique values and labels (no sorting); ignores all NA-values
+        Calculate unique values and labels (no sorting!)
 
         Parameters
         ----------
@@ -744,13 +725,23 @@ cdef class StringHashTable(HashTable):
         na_sentinel : Py_ssize_t, default -1
             Sentinel value used for all NA-values in inverse
         na_value : object, default None
-            Value to identify as missing
+            Value to identify as missing. If na_value is None, then any value
+            that is not a string is considered missing. If na_value is
+            not None, then _additionally_ any value "val" satisfying
+            val == na_value is considered missing.
+        ignore_na : boolean, default False
+            Whether NA-values should be ignored for calculating the uniques. If
+            True, the labels corresponding to missing values will be set to
+            na_sentinel.
+        return_inverse : boolean, default False
+            Whether the mapping of the original array values to their location
+            in the vector of uniques should be returned.
 
         Returns
         -------
         uniques : ndarray[object]
             Unique values of input, not sorted
-        labels : ndarray[int64]
+        labels : ndarray[int64] (if return_inverse=True)
             The labels from values to uniques
         """
         cdef:
@@ -764,41 +755,50 @@ cdef class StringHashTable(HashTable):
             khiter_t k
             bint use_na_value
 
-        labels = np.zeros(n, dtype=np.int64)
+        if return_inverse:
+            labels = np.zeros(n, dtype=np.int64)
         uindexer = np.empty(n, dtype=np.int64)
         use_na_value = na_value is not None
 
-        # assign pointers and pre-filter out missing
-        vecs = <const char **> malloc(n * sizeof(char *))
+        # assign pointers and pre-filter out missing (if ignore_na)
+        vecs = <const char **>malloc(n * sizeof(char *))
         for i in range(n):
             val = values[i]
 
-            if ((PyUnicode_Check(val) or PyString_Check(val))
-                    and not (use_na_value and val == na_value)):
+            if (ignore_na
+                and (not isinstance(val, (str, unicode))
+                     or (use_na_value and val == na_value))):
+                # if missing values do not count as unique values (i.e. if
+                # ignore_na is True), we can skip the actual value, and
+                # replace the label with na_sentinel directly
+                labels[i] = na_sentinel
+            else:
+                # if ignore_na is False, we also stringify NaN/None/etc.
                 v = util.get_c_string(val)
                 vecs[i] = v
-            else:
-                labels[i] = na_sentinel
 
         # compute
         with nogil:
             for i in range(n):
-                if labels[i] == na_sentinel:
+                if ignore_na and labels[i] == na_sentinel:
+                    # skip entries for ignored missing values (see above)
                     continue
 
                 v = vecs[i]
                 k = kh_get_str(self.table, v)
-                if k != self.table.n_buckets:
-                    # k falls into a previous bucket
-                    idx = self.table.vals[k]
-                    labels[i] = <int64_t>idx
-                else:
+                if k == self.table.n_buckets:
                     # k hasn't been seen yet
                     k = kh_put_str(self.table, v, &ret)
-                    self.table.vals[k] = count
                     uindexer[count] = i
-                    labels[i] = <int64_t>count
+                    if return_inverse:
+                        self.table.vals[k] = count
+                        labels[i] = <int64_t>count
                     count += 1
+                elif return_inverse:
+                    # k falls into a previous bucket
+                    # only relevant in case we need to construct the inverse
+                    idx = self.table.vals[k]
+                    labels[i] = <int64_t>idx
 
         free(vecs)
 
@@ -806,20 +806,72 @@ cdef class StringHashTable(HashTable):
         for i in range(count):
             uniques.append(values[uindexer[i]])
 
-        return np.asarray(labels)
+        if return_inverse:
+            return uniques.to_array(), np.asarray(labels)
+        return uniques.to_array()
+
+    def unique(self, ndarray[object] values, bint return_inverse=False):
+        """
+        Calculate unique values and labels (no sorting!)
+
+        Parameters
+        ----------
+        values : ndarray[object]
+            Array of values of which unique will be calculated
+        return_inverse : boolean, default False
+            Whether the mapping of the original array values to their location
+            in the vector of uniques should be returned.
+
+        Returns
+        -------
+        uniques : ndarray[object]
+            Unique values of input, not sorted
+        labels : ndarray[int64] (if return_inverse)
+            The labels from values to uniques
+        """
+        uniques = ObjectVector()
+        return self._unique(values, uniques, ignore_na=False,
+                            return_inverse=return_inverse)
 
     def factorize(self, ndarray[object] values, Py_ssize_t na_sentinel=-1,
                   object na_value=None):
-        uniques = ObjectVector()
-        labels = self._factorize(values, uniques=uniques,
-                                 na_sentinel=na_sentinel, na_value=na_value)
-        return labels, uniques.to_array()
+        """
+        Calculate unique values and labels (no sorting!)
+
+        Missing values are not included in the "uniques" for this method.
+        The labels for any missing values will be set to "na_sentinel"
+
+        Parameters
+        ----------
+        values : ndarray[object]
+            Array of values of which unique will be calculated
+        na_sentinel : Py_ssize_t, default -1
+            Sentinel value used for all NA-values in inverse
+        na_value : object, default None
+            Value to identify as missing. If na_value is None, then any value
+            that is not a string is considered missing. If na_value is
+            not None, then _additionally_ any value "val" satisfying
+            val == na_value is considered missing.
+
+        Returns
+        -------
+        uniques : ndarray[object]
+            Unique values of input, not sorted
+        labels : ndarray[int64]
+            The labels from values to uniques
+        """
+        uniques_vector = ObjectVector()
+        return self._unique(values, uniques_vector, na_sentinel=na_sentinel,
+                            na_value=na_value, ignore_na=True,
+                            return_inverse=True)
 
     def get_labels(self, ndarray[object] values, ObjectVector uniques,
                    Py_ssize_t count_prior=0, Py_ssize_t na_sentinel=-1,
                    object na_value=None):
-        return self._factorize(values, uniques, count_prior=count_prior,
-                               na_sentinel=na_sentinel, na_value=na_value)
+        _, labels = self._unique(values, uniques, count_prior=count_prior,
+                                 na_sentinel=na_sentinel, na_value=na_value,
+                                 ignore_na=True, return_inverse=True)
+        return labels
 
 
 cdef class PyObjectHashTable(HashTable):
@@ -845,9 +897,9 @@ cdef class PyObjectHashTable(HashTable):
 
     def sizeof(self, deep=False):
         """ return the size of my table in bytes """
-        return self.table.n_buckets * (sizeof(PyObject *) + # keys
-                                       sizeof(Py_ssize_t) + # vals
-                                       sizeof(uint32_t)) # flags
+        return self.table.n_buckets * (sizeof(PyObject *) +  # keys
+                                       sizeof(Py_ssize_t) +  # vals
+                                       sizeof(uint32_t))  # flags
 
     cpdef get_item(self, object val):
         cdef khiter_t k
@@ -909,44 +961,12 @@ cdef class PyObjectHashTable(HashTable):
 
     @cython.boundscheck(False)
     @cython.wraparound(False)
-    def unique(self, ndarray[object] values):
+    def _unique(self, ndarray[object] values, ObjectVector uniques,
+                Py_ssize_t count_prior=0, Py_ssize_t na_sentinel=-1,
+                object na_value=None, bint ignore_na=False,
+                bint return_inverse=False):
         """
-        Calculate unique values without sorting
-
-        Parameters
-        ----------
-        values : ndarray[object]
-            Array of values of which unique will be calculated
-
-        Returns
-        -------
-        uniques : ndarray[object]
-            Unique values of input, not sorted
-        """
-        cdef:
-            Py_ssize_t i, n = len(values)
-            int ret = 0
-            object val
-            khiter_t k
-            ObjectVector uniques = ObjectVector()
-
-        for i in range(n):
-            val = values[i]
-            hash(val)
-            k = kh_get_pymap(self.table, <PyObject*>val)
-            if k == self.table.n_buckets:
-                kh_put_pymap(self.table, <PyObject*>val, &ret)
-                uniques.append(val)
-
-        return uniques.to_array()
-
-    @cython.boundscheck(False)
-    @cython.wraparound(False)
-    def _factorize(self, ndarray[object] values, ObjectVector uniques,
-                   Py_ssize_t count_prior=0, Py_ssize_t na_sentinel=-1,
-                   object na_value=None):
-        """
-        Calculate unique values and labels (no sorting); ignores all NA-values
+        Calculate unique values and labels (no sorting!)
 
         Parameters
         ----------
@@ -960,13 +980,22 @@ cdef class PyObjectHashTable(HashTable):
             Sentinel value used for all NA-values in inverse
         na_value : object, default None
             Value to identify as missing. If na_value is None, then None _plus_
-            any value satisfying val!=val are considered missing.
+            any value "val" satisfying val != val is considered missing.
+            If na_value is not None, then _additionally_, any value "val"
+            satisfying val == na_value is considered missing.
+        ignore_na : boolean, default False
+            Whether NA-values should be ignored for calculating the uniques. If
+            True, the labels corresponding to missing values will be set to
+            na_sentinel.
+        return_inverse : boolean, default False
+            Whether the mapping of the original array values to their location
+            in the vector of uniques should be returned.
 
         Returns
         -------
         uniques : ndarray[object]
             Unique values of input, not sorted
-        labels : ndarray[int64]
+        labels : ndarray[int64] (if return_inverse=True)
             The labels from values to uniques
         """
         cdef:
@@ -977,42 +1006,100 @@ cdef class PyObjectHashTable(HashTable):
             khiter_t k
             bint use_na_value
 
-        labels = np.empty(n, dtype=np.int64)
+        if return_inverse:
+            labels = np.empty(n, dtype=np.int64)
         use_na_value = na_value is not None
 
         for i in range(n):
             val = values[i]
             hash(val)
 
-            if ((val != val or val is None)
-                    or (use_na_value and val == na_value)):
+            if ignore_na and ((val != val or val is None)
+                              or (use_na_value and val == na_value)):
+                # if missing values do not count as unique values (i.e. if
+                # ignore_na is True), skip the hashtable entry for them, and
+                # replace the corresponding label with na_sentinel
                 labels[i] = na_sentinel
                 continue
 
             k = kh_get_pymap(self.table, <PyObject*>val)
-            if k != self.table.n_buckets:
-                # k falls into a previous bucket
-                idx = self.table.vals[k]
-                labels[i] = idx
-            else:
+            if k == self.table.n_buckets:
                 # k hasn't been seen yet
                 k = kh_put_pymap(self.table, <PyObject*>val, &ret)
-                self.table.vals[k] = count
                 uniques.append(val)
-                labels[i] = count
-                count += 1
+                if return_inverse:
+                    self.table.vals[k] = count
+                    labels[i] = count
+                    count += 1
+            elif return_inverse:
+                # k falls into a previous bucket
+                # only relevant in case we need to construct the inverse
+                idx = self.table.vals[k]
+                labels[i] = idx
 
-        return np.asarray(labels)
+        if return_inverse:
+            return uniques.to_array(), np.asarray(labels)
+        return uniques.to_array()
+
+    def unique(self, ndarray[object] values, bint return_inverse=False):
+        """
+        Calculate unique values and labels (no sorting!)
+
+        Parameters
+        ----------
+        values : ndarray[object]
+            Array of values of which unique will be calculated
+        return_inverse : boolean, default False
+            Whether the mapping of the original array values to their location
+            in the vector of uniques should be returned.
+
+        Returns
+        -------
+        uniques : ndarray[object]
+            Unique values of input, not sorted
+        labels : ndarray[int64] (if return_inverse)
+            The labels from values to uniques
+        """
+        uniques = ObjectVector()
+        return self._unique(values, uniques, ignore_na=False,
+                            return_inverse=return_inverse)
 
     def factorize(self, ndarray[object] values, Py_ssize_t na_sentinel=-1,
                   object na_value=None):
-        uniques = ObjectVector()
-        labels = self._factorize(values, uniques=uniques,
-                                 na_sentinel=na_sentinel, na_value=na_value)
-        return labels, uniques.to_array()
+        """
+        Calculate unique values and labels (no sorting!)
+
+        Missing values are not included in the "uniques" for this method.
+        The labels for any missing values will be set to "na_sentinel"
+
+        Parameters
+        ----------
+        values : ndarray[object]
+            Array of values of which unique will be calculated
+        na_sentinel : Py_ssize_t, default -1
+            Sentinel value used for all NA-values in inverse
+        na_value : object, default None
+            Value to identify as missing. If na_value is None, then None _plus_
+            any value "val" satisfying val != val is considered missing.
+            If na_value is not None, then _additionally_, any value "val"
+            satisfying val == na_value is considered missing.
+
+        Returns
+        -------
+        uniques : ndarray[object]
+            Unique values of input, not sorted
+        labels : ndarray[int64]
+            The labels from values to uniques
+        """
+        uniques_vector = ObjectVector()
+        return self._unique(values, uniques_vector, na_sentinel=na_sentinel,
+                            na_value=na_value, ignore_na=True,
+                            return_inverse=True)
 
     def get_labels(self, ndarray[object] values, ObjectVector uniques,
                    Py_ssize_t count_prior=0, Py_ssize_t na_sentinel=-1,
                    object na_value=None):
-        return self._factorize(values, uniques, count_prior=count_prior,
-                               na_sentinel=na_sentinel, na_value=na_value)
+        _, labels = self._unique(values, uniques, count_prior=count_prior,
+                                 na_sentinel=na_sentinel, na_value=na_value,
+                                 ignore_na=True, return_inverse=True)
+        return labels
