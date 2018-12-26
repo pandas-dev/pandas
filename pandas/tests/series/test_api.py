@@ -207,7 +207,7 @@ class SharedWithSparse(object):
     def test_sparse_accessor_updates_on_inplace(self):
         s = pd.Series([1, 1, 2, 3], dtype="Sparse[int]")
         s.drop([0, 1], inplace=True)
-        assert s.sparse.density == 0
+        assert s.sparse.density == 1.0
 
 
 class TestSeriesMisc(TestData, SharedWithSparse):
@@ -548,7 +548,7 @@ class TestCategoricalSeries(object):
     def test_cat_accessor_updates_on_inplace(self):
         s = Series(list('abc')).astype('category')
         s.drop(0, inplace=True)
-        s.cat.remove_unused_categories()
+        s.cat.remove_unused_categories(inplace=True)
         assert len(s.cat.categories) == 2
 
     def test_categorical_delegations(self):
