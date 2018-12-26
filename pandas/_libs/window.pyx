@@ -19,12 +19,12 @@ cdef extern from "src/headers/cmath" namespace "std":
     int signbit(float64_t) nogil
     float64_t sqrt(float64_t x) nogil
 
-cimport util
-from util cimport numeric
+cimport pandas._libs.util as util
+from pandas._libs.util cimport numeric
 
-from skiplist cimport (skiplist_t,
-                       skiplist_init, skiplist_destroy,
-                       skiplist_get, skiplist_insert, skiplist_remove)
+from pandas._libs.skiplist cimport (
+    skiplist_t, skiplist_init, skiplist_destroy, skiplist_get, skiplist_insert,
+    skiplist_remove)
 
 cdef float32_t MINfloat32 = np.NINF
 cdef float64_t MINfloat64 = np.NINF

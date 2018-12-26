@@ -656,7 +656,7 @@ outer_join_indexer_uint64 = outer_join_indexer["uint64_t"]
 # asof_join_by
 # ----------------------------------------------------------------------
 
-from hashtable cimport (
+from pandas._libs.hashtable cimport (
     HashTable, PyObjectHashTable, UInt64HashTable, Int64HashTable)
 
 ctypedef fused asof_t:

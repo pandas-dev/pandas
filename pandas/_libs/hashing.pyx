@@ -9,7 +9,7 @@ import numpy as np
 from numpy cimport uint8_t, uint32_t, uint64_t, import_array
 import_array()
 
-from util cimport is_nan
+from pandas._libs.util cimport is_nan
 
 DEF cROUNDS = 2
 DEF dROUNDS = 4

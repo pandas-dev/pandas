@@ -16,7 +16,7 @@ cdef extern from "numpy/npy_math.h":
     float64_t NAN "NPY_NAN"
 
 
-from khash cimport (
+from pandas._libs.khash cimport (
     khiter_t,
 
     kh_str_t, kh_init_str, kh_put_str, kh_exist_str,
@@ -37,9 +37,9 @@ from khash cimport (
     kh_put_pymap, kh_resize_pymap)
 
 
-cimport util
+cimport pandas._libs.util as util
 
-from missing cimport checknull
+from pandas._libs.missing cimport checknull
 
 
 cdef int64_t NPY_NAT = util.get_nat()

@@ -13,11 +13,13 @@ from numpy cimport (ndarray,
 cnp.import_array()
 
 
-from util cimport numeric, get_nat
+from pandas._libs.util cimport numeric, get_nat
 
-from algos cimport (swap, TiebreakEnumType, TIEBREAK_AVERAGE, TIEBREAK_MIN,
-                    TIEBREAK_MAX, TIEBREAK_FIRST, TIEBREAK_DENSE)
-from algos import take_2d_axis1_float64_float64, groupsort_indexer, tiebreakers
+from pandas._libs.algos cimport (swap, TiebreakEnumType, TIEBREAK_AVERAGE,
+                                 TIEBREAK_MIN, TIEBREAK_MAX, TIEBREAK_FIRST,
+                                 TIEBREAK_DENSE)
+from pandas._libs.algos import (take_2d_axis1_float64_float64,
+                                groupsort_indexer, tiebreakers)
 
 cdef int64_t NPY_NAT = get_nat()
 

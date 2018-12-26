@@ -15,11 +15,11 @@ from numpy cimport (ndarray, intp_t,
 cnp.import_array()
 
 
-cimport util
+cimport pandas._libs.util as util
 
-from tslibs.conversion cimport maybe_datetimelike_to_i8
+from pandas._libs.tslibs.conversion cimport maybe_datetimelike_to_i8
 
-from hashtable cimport HashTable
+from pandas._libs.hashtable cimport HashTable
 
 from pandas._libs import algos, hashtable as _hash
 from pandas._libs.tslibs import Timestamp, Timedelta, period as periodlib

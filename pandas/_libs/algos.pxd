@@ -1,4 +1,4 @@
-from util cimport numeric
+from pandas._libs.util cimport numeric
 
 
 cdef inline Py_ssize_t swap(numeric *a, numeric *b) nogil:
