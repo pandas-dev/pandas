@@ -32,10 +32,10 @@ cimport numpy as cnp
 from numpy cimport ndarray, uint8_t, uint64_t, int64_t, float64_t
 cnp.import_array()
 
-from util cimport UINT64_MAX, INT64_MAX, INT64_MIN
-import lib
+from pandas._libs.util cimport UINT64_MAX, INT64_MAX, INT64_MIN
+import pandas._libs.lib as lib
 
-from khash cimport (
+from pandas._libs.khash cimport (
     khiter_t,
     kh_str_t, kh_init_str, kh_put_str, kh_exist_str,
     kh_get_str, kh_destroy_str,
