@@ -17,8 +17,7 @@ from pandas.core.dtypes.missing import isna
 
 from pandas.core import accessor
 from pandas.core.algorithms import take_1d
-from pandas.core.arrays.categorical import (
-    Categorical, contains, create_categorical_dtype)
+from pandas.core.arrays.categorical import Categorical, contains
 import pandas.core.common as com
 from pandas.core.config import get_option
 import pandas.core.indexes.base as ibase
@@ -108,7 +107,8 @@ class CategoricalIndex(Index, accessor.PandasDelegate):
             if fastpath:
                 return cls._simple_new(data, name=name, dtype=dtype)
 
-        dtype = create_categorical_dtype(data, categories, ordered, dtype)
+        dtype = CategoricalDtype._from_values_or_dtype(data, categories,
+                                                       ordered, dtype)
 
         if name is None and hasattr(data, 'name'):
             name = data.name

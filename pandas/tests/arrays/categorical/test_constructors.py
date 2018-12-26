@@ -13,7 +13,6 @@ from pandas import (
     Categorical, CategoricalIndex, DatetimeIndex, Index, Interval,
     IntervalIndex, NaT, Series, Timestamp, date_range, period_range,
     timedelta_range)
-from pandas.core.arrays.categorical import create_categorical_dtype
 import pandas.util.testing as tm
 
 
@@ -531,32 +530,3 @@ class TestCategoricalConstructors(object):
         c1 = Categorical(values)
         tm.assert_index_equal(c1.categories, Index(values))
         tm.assert_numpy_array_equal(np.array(c1), np.array(values))
-
-
-class TestCreateCategoricalDtype(object):
-    dtype1 = CategoricalDtype(['a', 'b'], ordered=True)
-    dtype2 = CategoricalDtype(['x', 'y'], ordered=False)
-    c = Categorical([0, 1], dtype=dtype1, fastpath=True)
-
-    @pytest.mark.parametrize('values, categories, ordered, dtype, expected', [
-        [None, None, None, None, CategoricalDtype()],
-        [None, ['a', 'b'], True, None, dtype1],
-        [c, None, None, dtype2, dtype2],
-        [c, ['x', 'y'], False, None, dtype2],
-    ])
-    def test_create_categorical_dtype(
-            self, values, categories, ordered, dtype, expected):
-        result = create_categorical_dtype(values, categories, ordered, dtype)
-        assert result == expected
-
-    @pytest.mark.parametrize('values, categories, ordered, dtype', [
-        [None, ['a', 'b'], True, dtype2],
-        [None, ['a', 'b'], None, dtype2],
-        [None, None, True, dtype2],
-    ])
-    def test_create_categorical_dtype_raises(self, values, categories, ordered,
-                                             dtype):
-        msg = "Cannot specify `categories` or `ordered` together with `dtype`."
-
-        with pytest.raises(ValueError, match=msg):
-            create_categorical_dtype(values, categories, ordered, dtype)
