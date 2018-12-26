@@ -1,7 +1,7 @@
 import numpy as np
 import pytest
 
-from pandas.compat import StringIO, lrange, range, u, zip
+from pandas.compat import StringIO, range, u, zip
 
 import pandas as pd
 from pandas import DataFrame, Index, MultiIndex, Series
@@ -206,34 +206,26 @@ def test_series_getitem_corner_generator(
 
 
 def test_frame_getitem_multicolumn_empty_level():
-    f = DataFrame({'a': ['1', '2', '3'], 'b': ['2', '3', '4']})
-    f.columns = [['level1 item1', 'level1 item2'], ['', 'level2 item2'],
-                 ['level3 item1', 'level3 item2']]
+    df = DataFrame({'a': ['1', '2', '3'], 'b': ['2', '3', '4']})
+    df.columns = [['level1 item1', 'level1 item2'], ['', 'level2 item2'],
+                  ['level3 item1', 'level3 item2']]
 
-    result = f['level1 item1']
-    expected = DataFrame([['1'], ['2'], ['3']], index=f.index,
+    result = df['level1 item1']
+    expected = DataFrame([['1'], ['2'], ['3']], index=df.index,
                          columns=['level3 item1'])
     tm.assert_frame_equal(result, expected)
 
 
-@pytest.mark.filterwarnings("ignore:\\n.ix:DeprecationWarning")
 def test_getitem_tuple_plus_slice():
-    # GH #671
-    df = DataFrame({'a': lrange(10),
-                    'b': lrange(10),
+    # GH 671
+    df = DataFrame({'a': np.arange(10),
+                    'b': np.arange(10),
                     'c': np.random.randn(10),
-                    'd': np.random.randn(10)})
-
-    idf = df.set_index(['a', 'b'])
-
-    result = idf.loc[(0, 0), :]
-    expected = idf.loc[0, 0]
-    expected2 = idf.xs((0, 0))
-    expected3 = idf.ix[0, 0]
-
+                    'd': np.random.randn(10)}
+                   ).set_index(['a', 'b'])
+    expected = df.loc[0, 0]
+    result = df.loc[(0, 0), :]
     tm.assert_series_equal(result, expected)
-    tm.assert_series_equal(result, expected2)
-    tm.assert_series_equal(result, expected3)
 
 
 def test_getitem_toplevel(multiindex_dataframe_random_data):
