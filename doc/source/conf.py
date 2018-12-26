@@ -89,8 +89,8 @@ else:
         exclude_patterns.append('**/*.ipynb')
 
 # sphinx_pattern can be '-api' to exclude the API pages,
-# or the path to a file
-# (e.g. '10min.rst' or 'generated/pandas.DataFrame.head.rst')
+# the path to a file, or a Python object
+# (e.g. '10min.rst' or 'pandas.DataFrame.head')
 source_path = os.path.dirname(os.path.abspath(__file__))
 pattern = os.environ.get('SPHINX_PATTERN')
 if pattern:
