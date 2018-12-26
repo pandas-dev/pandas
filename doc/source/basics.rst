@@ -374,9 +374,7 @@ To evaluate single-element pandas objects in a boolean context, use the method
 
       >>> df and df2
 
-   These will both raise errors, as you are trying to compare multiple values.
-
-   .. code-block:: python-traceback
+   These will both raise errors, as you are trying to compare multiple values.::
 
        ValueError: The truth value of an array is ambiguous. Use a.empty, a.any() or a.all().
 
