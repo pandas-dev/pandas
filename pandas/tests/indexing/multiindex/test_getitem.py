@@ -228,22 +228,18 @@ def test_getitem_tuple_plus_slice():
     tm.assert_series_equal(result, expected)
 
 
-def test_getitem_toplevel(multiindex_dataframe_random_data):
-    frame = multiindex_dataframe_random_data
-    df = frame.T
-
-    result = df['foo']
-    expected = df.reindex(columns=df.columns[:3])
+@pytest.mark.parametrize('indexer,expected_slice', [
+    (lambda df: df['foo'], slice(3)),
+    (lambda df: df['bar'], slice(3, 5)),
+    (lambda df: df.loc[:, 'bar'], slice(3, 5))
+])
+def test_getitem_toplevel(
+        multiindex_dataframe_random_data, indexer, expected_slice):
+    df = multiindex_dataframe_random_data.T
+    expected = df.reindex(columns=df.columns[expected_slice])
     expected.columns = expected.columns.droplevel(0)
+    result = indexer(df)
     tm.assert_frame_equal(result, expected)
-
-    result = df['bar']
-    result2 = df.loc[:, 'bar']
-
-    expected = df.reindex(columns=df.columns[3:5])
-    expected.columns = expected.columns.droplevel(0)
-    tm.assert_frame_equal(result, expected)
-    tm.assert_frame_equal(result, result2)
 
 
 def test_getitem_int(multiindex_dataframe_random_data):
