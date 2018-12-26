@@ -1,3 +1,5 @@
+from datetime import timedelta
+
 import numpy as np
 
 import pandas as pd
@@ -8,9 +10,8 @@ from pandas.util.testing import assert_frame_equal, assert_series_equal
 
 
 def test_asfreq_bug():
-    import datetime as dt
     df = DataFrame(data=[1, 3],
-                   index=[dt.timedelta(), dt.timedelta(minutes=3)])
+                   index=[timedelta(), timedelta(minutes=3)])
     result = df.resample('1T').asfreq()
     expected = DataFrame(data=[1, np.nan, np.nan, 3],
                          index=timedelta_range('0 day',
