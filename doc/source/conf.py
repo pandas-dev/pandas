@@ -368,6 +368,7 @@ latex_documents = [
 
 
 intersphinx_mapping = {
+    'dateutil': ("https://dateutil.readthedocs.io/en/latest/", None),
     'matplotlib': ('https://matplotlib.org/', None),
     'numpy': ('https://docs.scipy.org/doc/numpy/', None),
     'pandas-gbq': ('https://pandas-gbq.readthedocs.io/en/latest/', None),
@@ -375,7 +376,6 @@ intersphinx_mapping = {
     'python': ('https://docs.python.org/3/', None),
     'scipy': ('https://docs.scipy.org/doc/scipy/reference/', None),
     'statsmodels': ('http://www.statsmodels.org/devel/', None),
-    'dateutil': ("https://dateutil.readthedocs.io/en/latest/", None),
 }
 import glob
 autosummary_generate = glob.glob("*.rst")
