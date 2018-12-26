@@ -320,6 +320,20 @@ class TestDataFrameTimeSeriesMethods(TestData):
         xp = DataFrame({'one': s1.shift(1), 'two': s2.shift(1)})
         assert_frame_equal(rs, xp)
 
+    def test_shift_fill_value(self):
+        # GH #24128
+        df = DataFrame([1, 2, 3, 4, 5],
+                       index=date_range('1/1/2000', periods=5, freq='H'))
+        exp = DataFrame([0, 1, 2, 3, 4],
+                        index=date_range('1/1/2000', periods=5, freq='H'))
+        result = df.shift(1, fill_value=0)
+        assert_frame_equal(result, exp)
+
+        exp = DataFrame([0, 0, 1, 2, 3],
+                        index=date_range('1/1/2000', periods=5, freq='H'))
+        result = df.shift(2, fill_value=0)
+        assert_frame_equal(result, exp)
+
     def test_shift_empty(self):
         # Regression test for #8019
         df = DataFrame({'foo': []})

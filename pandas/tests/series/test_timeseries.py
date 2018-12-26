@@ -129,6 +129,38 @@ class TestTimeSeries(TestData):
         idx = DatetimeIndex(['2000-01-01', '2000-01-02', '2000-01-04'])
         pytest.raises(NullFrequencyError, idx.shift, 1)
 
+    def test_shift_fill_value(self):
+        # GH #24128
+        ts = Series([1.0, 2.0, 3.0, 4.0, 5.0],
+                    index=date_range('1/1/2000', periods=5, freq='H'))
+
+        exp = Series([0.0, 1.0, 2.0, 3.0, 4.0],
+                     index=date_range('1/1/2000', periods=5, freq='H'))
+        # check that fill value works
+        result = ts.shift(1, fill_value=0.0)
+        tm.assert_series_equal(result, exp)
+
+        exp = Series([0.0, 0.0, 1.0, 2.0, 3.0],
+                     index=date_range('1/1/2000', periods=5, freq='H'))
+        result = ts.shift(2, fill_value=0.0)
+        tm.assert_series_equal(result, exp)
+
+        ts = pd.Series([1, 2, 3])
+        res = ts.shift(2, fill_value=0)
+        assert res.dtype == ts.dtype
+
+    def test_categorical_shift_fill_value(self):
+        ts = pd.Series(['a', 'b', 'c', 'd'], dtype="category")
+        res = ts.shift(1, fill_value='a')
+        expected = pd.Series(pd.Categorical(['a', 'a', 'b', 'c'],
+                                            categories=['a', 'b', 'c', 'd'],
+                                            ordered=False))
+        tm.assert_equal(res, expected)
+
+        # check for incorrect fill_value
+        with pytest.raises(ValueError):
+            ts.shift(1, fill_value='f')
+
     def test_shift_dst(self):
         # GH 13926
         dates = date_range('2016-11-06', freq='H', periods=10, tz='US/Eastern')
