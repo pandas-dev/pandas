@@ -396,7 +396,7 @@ def read_sql(sql, con, index_col=None, coerce_float=True, params=None,
 
 
 def to_sql(frame, name, con, schema=None, if_exists='fail', index=True,
-           index_label=None, chunksize=None, dtype=None, method='default'):
+           index_label=None, chunksize=None, dtype=None, method=None):
     """
     Write records stored in a DataFrame to a SQL database.
 
@@ -430,10 +430,10 @@ def to_sql(frame, name, con, schema=None, if_exists='fail', index=True,
         Optional specifying the datatype for columns. The SQL type should
         be a SQLAlchemy type, or a string for sqlite3 fallback connection.
         If all columns are of the same type, one single value can be used.
-    method : {'default', 'multi', callable}, default 'default'
+    method : {None, 'multi', callable}, default None
         Controls the SQL insertion clause used:
 
-        - 'default': Uses standard SQL ``INSERT`` clause (one per row).
+        - None : Uses standard SQL ``INSERT`` clause (one per row).
         - 'multi': Pass multiple values in a single ``INSERT`` clause.
         - callable with signature ``(pd_table, conn, keys, data_iter)``.
 
@@ -645,10 +645,10 @@ class SQLTable(PandasObject):
 
         return column_names, data_list
 
-    def insert(self, chunksize=None, method='default'):
+    def insert(self, chunksize=None, method=None):
 
         # set insert method
-        if method == 'default':
+        if method is None:
             exec_insert = self._execute_insert
         elif method == 'multi':
             exec_insert = self._execute_insert_multi
@@ -1126,7 +1126,7 @@ class SQLDatabase(PandasSQL):
 
     def to_sql(self, frame, name, if_exists='fail', index=True,
                index_label=None, schema=None, chunksize=None, dtype=None,
-               method='default'):
+               method=None):
         """
         Write records stored in a DataFrame to a SQL database.
 
@@ -1156,10 +1156,10 @@ class SQLDatabase(PandasSQL):
             Optional specifying the datatype for columns. The SQL type should
             be a SQLAlchemy type. If all columns are of the same type, one
             single value can be used.
-        method : {'default', 'multi', callable}, default 'default'
+        method : {None', 'multi', callable}, default None
             Controls the SQL insertion clause used:
 
-            * 'default': Uses standard SQL ``INSERT`` clause (one per row).
+            * None : Uses standard SQL ``INSERT`` clause (one per row).
             * 'multi': Pass multiple values in a single ``INSERT`` clause.
             * callable with signature ``(pd_table, conn, keys, data_iter)``.
 
@@ -1494,7 +1494,7 @@ class SQLiteDatabase(PandasSQL):
 
     def to_sql(self, frame, name, if_exists='fail', index=True,
                index_label=None, schema=None, chunksize=None, dtype=None,
-               method='default'):
+               method=None):
         """
         Write records stored in a DataFrame to a SQL database.
 
@@ -1523,10 +1523,10 @@ class SQLiteDatabase(PandasSQL):
             Optional specifying the datatype for columns. The SQL type should
             be a string. If all columns are of the same type, one single value
             can be used.
-        method : {'default', 'multi', callable}, default 'default'
+        method : {None, 'multi', callable}, default None
             Controls the SQL insertion clause used:
 
-            * 'default': Uses standard SQL ``INSERT`` clause (one per row).
+            * None : Uses standard SQL ``INSERT`` clause (one per row).
             * 'multi': Pass multiple values in a single ``INSERT`` clause.
             * callable with signature ``(pd_table, conn, keys, data_iter)``.
 

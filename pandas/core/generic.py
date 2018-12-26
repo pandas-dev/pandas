@@ -2386,7 +2386,7 @@ class NDFrame(PandasObject, SelectionMixin):
                                   **kwargs)
 
     def to_sql(self, name, con, schema=None, if_exists='fail', index=True,
-               index_label=None, chunksize=None, dtype=None, method='default'):
+               index_label=None, chunksize=None, dtype=None, method=None):
         """
         Write records stored in a DataFrame to a SQL database.
 
@@ -2424,10 +2424,10 @@ class NDFrame(PandasObject, SelectionMixin):
             Specifying the datatype for columns. The keys should be the column
             names and the values should be the SQLAlchemy types or strings for
             the sqlite3 legacy mode.
-        method : {'default', 'multi', callable}, default 'default'
+        method : {None, 'multi', callable}, default None
             Controls the SQL insertion clause used:
 
-            * 'default': Uses standard SQL ``INSERT`` clause (one per row).
+            * None : Uses standard SQL ``INSERT`` clause (one per row).
             * 'multi': Pass multiple values in a single ``INSERT`` clause.
             * callable with signature ``(pd_table, conn, keys, data_iter)``.
 

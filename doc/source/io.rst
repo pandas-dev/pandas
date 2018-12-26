@@ -4999,7 +4999,7 @@ Insertion Method
 The parameter ``method`` controls the SQL insertion clause used.
 Possible values are:
 
-- ``'default'``: Uses standard SQL ``INSERT`` clause (one per row).
+- ``None``: Uses standard SQL ``INSERT`` clause (one per row).
 - ``'multi'``: Pass multiple values in a single ``INSERT`` clause.
   It uses a *special* SQL syntax not supported by all backends.
   This usually provides better performance for analytic databases
