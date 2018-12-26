@@ -1560,7 +1560,7 @@ Groupby/Resample/Rolling
 - Bug in :meth:`pandas.core.groupby.GroupBy.rank` with ``method='dense'`` and ``pct=True`` when a group has only one member would raise a ``ZeroDivisionError`` (:issue:`23666`).
 - Calling :meth:`pandas.core.groupby.GroupBy.rank` with empty groups and ``pct=True`` was raising a ``ZeroDivisionError`` (:issue:`22519`)
 - Bug in :meth:`DataFrame.resample` when resampling ``NaT`` in ``TimeDeltaIndex`` (:issue:`13223`).
-- Bug in :meth:`DataFrame.groupby` did not work correctly with ``observed=True`` when aggregating a specified column (:issue:`23970`)
+- Bug in :meth:`DataFrame.groupby` did not respect the `observed` argument when selecting a column and instead always used ``observed=False`` (:issue:`23970`)
 
 Reshaping
 ^^^^^^^^^
