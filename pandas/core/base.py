@@ -93,10 +93,8 @@ class PandasMeta(type):
             if inspect.ismethod(attr):
                 expected = special_cases.get(name, name)
                 result = attr.__name__
-                if result != expected and result != name:
-                    print(result, expected, name, cls.__name__)
-                # assert result == expected, (result, expected, name,
-                #                            cls.__name__)
+                assert result == expected, (result, expected, name,
+                                            cls.__name__)
 
 
 class StringMixin(object):
