@@ -191,42 +191,127 @@ class TestDataFrameConvertTo(TestData):
                                 dtype=[('index', '=i8'), ('0', 'O')])
         tm.assert_almost_equal(result, expected)
 
-    @pytest.mark.parametrize("fixed_length", [True, False])
-    @pytest.mark.parametrize("values,dtype_getter", [
-        # Integer --> just take the dtype.
-        ([1, 2], lambda fixed, isPY2: "<i8"),
+    @pytest.mark.parametrize("kwargs,expected", [
+        # No dtypes --> default to array dtypes.
+        (dict(),
+         np.rec.array([(0, 1, 0.2, "a"), (1, 2, 1.5, "bc")],
+                      dtype=[("index", "<i8"), ("A", "<i8"),
+                             ("B", "<f8"), ("C", "O")])),
 
-        # Mixed --> cast to object.
-        ([1, "1"], lambda fixed, isPY2: "O"),
+        # Should have no effect in this case.
+        (dict(index=True),
+         np.rec.array([(0, 1, 0.2, "a"), (1, 2, 1.5, "bc")],
+                      dtype=[("index", "<i8"), ("A", "<i8"),
+                             ("B", "<f8"), ("C", "O")])),
 
-        # String --> cast to string is PY2 else unicode in PY3.
-        (["1", "2"], lambda fixed, isPY2: (
-            ("S" if isPY2 else "U") + "1") if fixed else "O"),
+        # Column dtype applied across the board. Index unaffected.
+        (dict(column_dtypes="<U4"),
+         np.rec.array([("0", "1", "0.2", "a"), ("1", "2", "1.5", "bc")],
+                      dtype=[("index", "<i8"), ("A", "<U4"),
+                             ("B", "<U4"), ("C", "<U4")])),
 
-        # String + max-length of longest string.
-        (["12", "2"], lambda fixed, isPY2: (
-            ("S" if isPY2 else "U") + "2") if fixed else "O"),
+        # Index dtype applied across the board. Columns unaffected.
+        (dict(index_dtypes="<U1"),
+         np.rec.array([("0", 1, 0.2, "a"), ("1", 2, 1.5, "bc")],
+                      dtype=[("index", "<U1"), ("A", "<i8"),
+                             ("B", "<f8"), ("C", "O")])),
 
-        # Unicode --> cast to unicode for both PY2 and PY3.
-        ([u"\u2120b", u"456"], lambda fixed, isPY2: "U3" if fixed else "O"),
+        # Pass in a type instance.
+        (dict(column_dtypes=np.unicode),
+         np.rec.array([("0", "1", "0.2", "a"), ("1", "2", "1.5", "bc")],
+                      dtype=[("index", "<i8"), ("A", "<U"),
+                             ("B", "<U"), ("C", "<U")])),
 
-        # Bytes --> cast to string for both PY2 and PY3.
-        ([b"2", b"5"], lambda fixed, isPY2: "S1" if fixed else "O"),
-    ], ids=["int", "mixed", "str", "max-len", "unicode", "bytes"])
-    def test_to_records_with_strings_as_fixed_length(self, fixed_length,
-                                                     values, dtype_getter):
+        # Pass in a dictionary (name-only).
+        (dict(column_dtypes={"A": np.int8, "B": np.float32, "C": "<U2"}),
+         np.rec.array([("0", "1", "0.2", "a"), ("1", "2", "1.5", "bc")],
+                      dtype=[("index", "<i8"), ("A", "i1"),
+                             ("B", "<f4"), ("C", "<U2")])),
 
+        # Pass in a dictionary (indices-only).
+        (dict(index_dtypes={0: "int16"}),
+         np.rec.array([(0, 1, 0.2, "a"), (1, 2, 1.5, "bc")],
+                      dtype=[("index", "i2"), ("A", "<i8"),
+                             ("B", "<f8"), ("C", "O")])),
+
+        # Ignore index mappings if index is not True.
+        (dict(index=False, index_dtypes="<U2"),
+         np.rec.array([(1, 0.2, "a"), (2, 1.5, "bc")],
+                      dtype=[("A", "<i8"), ("B", "<f8"), ("C", "O")])),
+
+        # Non-existent names / indices in mapping should not error.
+        (dict(index_dtypes={0: "int16", "not-there": "float32"}),
+         np.rec.array([(0, 1, 0.2, "a"), (1, 2, 1.5, "bc")],
+                      dtype=[("index", "i2"), ("A", "<i8"),
+                             ("B", "<f8"), ("C", "O")])),
+
+        # Names / indices not in mapping default to array dtype.
+        (dict(column_dtypes={"A": np.int8, "B": np.float32}),
+         np.rec.array([("0", "1", "0.2", "a"), ("1", "2", "1.5", "bc")],
+                      dtype=[("index", "<i8"), ("A", "i1"),
+                             ("B", "<f4"), ("C", "O")])),
+
+        # Mixture of everything.
+        (dict(column_dtypes={"A": np.int8, "B": np.float32},
+              index_dtypes="<U2"),
+         np.rec.array([("0", "1", "0.2", "a"), ("1", "2", "1.5", "bc")],
+                      dtype=[("index", "<U2"), ("A", "i1"),
+                             ("B", "<f4"), ("C", "O")])),
+
+        # Invalid dype values.
+        (dict(index=False, column_dtypes=list()),
+         "Invalid dtype \\[\\] specified for column A"),
+
+        (dict(index=False, column_dtypes={"A": "int32", "B": 5}),
+         "Invalid dtype 5 specified for column B"),
+    ])
+    def test_to_records_dtype(self, kwargs, expected):
         # see gh-18146
-        df = DataFrame({"values": values}, index=["a", "b"])
-        result = df.to_records(stringlike_as_fixed_length=fixed_length)
+        df = DataFrame({"A": [1, 2], "B": [0.2, 1.5], "C": ["a", "bc"]})
 
-        ind_dtype = ((("S" if compat.PY2 else "U") + "1")
-                     if fixed_length else "O")
-        val_dtype = dtype_getter(fixed_length, compat.PY2)
+        if isinstance(expected, str):
+            with pytest.raises(ValueError, match=expected):
+                df.to_records(**kwargs)
+        else:
+            result = df.to_records(**kwargs)
+            tm.assert_almost_equal(result, expected)
 
-        expected = np.rec.array([("a", values[0]), ("b", values[1])],
-                                dtype=[("index", ind_dtype),
-                                       ("values", val_dtype)])
+    @pytest.mark.parametrize("df,kwargs,expected", [
+        # MultiIndex in the index.
+        (DataFrame([[1, 2, 3], [4, 5, 6], [7, 8, 9]],
+                   columns=list("abc")).set_index(["a", "b"]),
+         dict(column_dtypes="float64", index_dtypes={0: "int32", 1: "int8"}),
+         np.rec.array([(1, 2, 3.), (4, 5, 6.), (7, 8, 9.)],
+                      dtype=[("a", "<i4"), ("b", "i1"), ("c", "<f8")])),
+
+        # MultiIndex in the columns.
+        (DataFrame([[1, 2, 3], [4, 5, 6], [7, 8, 9]],
+                   columns=MultiIndex.from_tuples([("a", "d"), ("b", "e"),
+                                                   ("c", "f")])),
+         dict(column_dtypes={0: "<U1", 2: "float32"}, index_dtypes="float32"),
+         np.rec.array([(0., u"1", 2, 3.), (1., u"4", 5, 6.),
+                       (2., u"7", 8, 9.)],
+                      dtype=[("index", "<f4"),
+                             ("('a', 'd')", "<U1"),
+                             ("('b', 'e')", "<i8"),
+                             ("('c', 'f')", "<f4")])),
+
+        # MultiIndex in both the columns and index.
+        (DataFrame([[1, 2, 3], [4, 5, 6], [7, 8, 9]],
+                   columns=MultiIndex.from_tuples([
+                       ("a", "d"), ("b", "e"), ("c", "f")], names=list("ab")),
+                   index=MultiIndex.from_tuples([
+                       ("d", -4), ("d", -5), ("f", -6)], names=list("cd"))),
+         dict(column_dtypes="float64", index_dtypes={0: "<U2", 1: "int8"}),
+         np.rec.array([("d", -4, 1., 2., 3.), ("d", -5, 4., 5., 6.),
+                       ("f", -6, 7, 8, 9.)],
+                      dtype=[("c", "<U2"), ("d", "i1"),
+                             ("('a', 'd')", "<f8"), ("('b', 'e')", "<f8"),
+                             ("('c', 'f')", "<f8")]))
+    ])
+    def test_to_records_dtype_mi(self, df, kwargs, expected):
+        # see gh-18146
+        result = df.to_records(**kwargs)
         tm.assert_almost_equal(result, expected)
 
     @pytest.mark.parametrize('mapping', [

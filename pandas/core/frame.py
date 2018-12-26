@@ -35,7 +35,6 @@ from pandas.compat import (range, map, zip, lmap, lzip, StringIO, u,
                            OrderedDict, PY36, raise_with_traceback,
                            string_and_binary_types)
 from pandas.compat.numpy import function as nv
-from pandas.api.types import infer_dtype
 from pandas.core.dtypes.cast import (
     maybe_upcast,
     cast_scalar_to_array,
@@ -1541,7 +1540,7 @@ class DataFrame(NDFrame):
         return cls(mgr)
 
     def to_records(self, index=True, convert_datetime64=None,
-                   stringlike_as_fixed_length=False):
+                   column_dtypes=None, index_dtypes=None):
         """
         Convert DataFrame to a NumPy record array.
 
@@ -1558,11 +1557,20 @@ class DataFrame(NDFrame):
 
             Whether to convert the index to datetime.datetime if it is a
             DatetimeIndex.
-         stringlike_as_fixed_length : bool, default False
-             .. versionadded:: 0.24.0
+        column_dtypes : str, type, dict, default None
+            .. versionadded:: 0.24.0
 
-             Store string-likes as fixed-length string-like dtypes
-             (e.g. ``S1`` dtype) instead of Python objects (``O`` dtype).
+            If a string or type, the data type to store all columns. If
+            a dictionary, a mapping of column names and indices (zero-indexed)
+            to specific data types.
+        index_dtypes : str, type, dict, default None
+            .. versionadded:: 0.24.0
+
+            If a string or type, the data type to store all index levels. If
+            a dictionary, a mapping of index level names and indices
+            (zero-indexed) to specific data types.
+
+            This mapping is applied only if `index=True`.
 
         Returns
         -------
@@ -1605,26 +1613,22 @@ class DataFrame(NDFrame):
         rec.array([(1, 0.5 ), (2, 0.75)],
                   dtype=[('A', '<i8'), ('B', '<f8')])
 
-         By default, strings are recorded as dtype 'O' for object:
+        Data types can be specified for the columns:
 
-         >>> df = pd.DataFrame({'A': [1, 2], 'B': ['abc', 'defg']},
-         ...                   index=['a', 'b'])
-         >>> df.to_records()
-         rec.array([('a', 1, 'abc'), ('b', 2, 'defg')],
-                   dtype=[('index', 'O'), ('A', '<i8'), ('B', 'O')])
+        >>> df.to_records(column_dtypes={"A": "int32"})
+        rec.array([('a', 1, 0.5 ), ('b', 2, 0.75)],
+                  dtype=[('I', 'O'), ('A', '<i4'), ('B', '<f8')])
 
-         This can be inefficient (e.g. for short strings, or when storing with
-         `np.save()`). They can be recorded as fix-length string-like dtypes
-         such as 'S1' for zero-terminated bytes instead:
+        As well as for the index:
 
-         >>> df = pd.DataFrame({'A': [1, 2], 'B': ['abc', 'defg']},
-         ...                   index=['a', 'b'])
-         >>> df.to_records(stringlike_as_fixed_length=True)
-         rec.array([('a', 1, 'abc'), ('b', 2, 'defg')],
-                   dtype=[('index', '<U1'), ('A', '<i8'), ('B', '<U4')])
+        >>> df.to_records(index_dtypes="<S2")
+        rec.array([(b'a', 1, 0.5 ), (b'b', 2, 0.75)],
+                  dtype=[('I', 'S2'), ('A', '<i8'), ('B', '<f8')])
 
-        Notice how the 'B' column is now stored as '<U4' for length-four
-        strings ('S4' for Python 2.x) instead of the 'O' object dtype.
+        >>> index_dtypes = "<S{}".format(df.index.str.len().max())
+        >>> df.to_records(index_dtypes=index_dtypes)
+        rec.array([(b'a', 1, 0.5 ), (b'b', 2, 0.75)],
+                  dtype=[('I', 'S1'), ('A', '<i8'), ('B', '<f8')])
         """
 
         if convert_datetime64 is not None:
@@ -1647,6 +1651,7 @@ class DataFrame(NDFrame):
 
             count = 0
             index_names = list(self.index.names)
+
             if isinstance(self.index, MultiIndex):
                 for i, n in enumerate(index_names):
                     if n is None:
@@ -1654,52 +1659,46 @@ class DataFrame(NDFrame):
                         count += 1
             elif index_names[0] is None:
                 index_names = ['index']
+
             names = (lmap(compat.text_type, index_names) +
                      lmap(compat.text_type, self.columns))
         else:
             arrays = [self[c].get_values() for c in self.columns]
             names = lmap(compat.text_type, self.columns)
+            index_names = []
 
+        index_len = len(index_names)
         formats = []
 
-        for v in arrays:
-            if not stringlike_as_fixed_length:
-                formats.append(v.dtype)
+        for i, v in enumerate(arrays):
+            index = i
+
+            if index < index_len:
+                dtype_mapping = index_dtypes
+                name = index_names[index]
             else:
-                # gh-18146
-                #
-                # For string-like arrays, set dtype as zero-terminated bytes
-                # with max length equal to that of the longest string-like.
-                dtype = infer_dtype(v)
-                symbol = None
+                index -= index_len
+                dtype_mapping = column_dtypes
+                name = self.columns[index]
 
-                if dtype == "string":
-                    # In Python 3.x, infer_dtype does not
-                    # differentiate string from unicode
-                    # like NumPy arrays do, so we
-                    # specify unicode to be safe.
-                    symbol = "S" if compat.PY2 else "U"
-                elif dtype == "unicode":
-                    # In Python 3.x, infer_dtype does not
-                    # differentiate string from unicode.
-                    #
-                    # Thus, we can only get this result
-                    # in Python 2.x.
-                    symbol = "U"
-                elif dtype == "bytes":
-                    # In Python 2.x, infer_dtype does not
-                    # differentiate string from bytes.
-                    #
-                    # Thus, we can only get this result
-                    # in Python 3.x. However, NumPy does
-                    # not have a fixed-length bytes dtype
-                    # and just uses string instead.
-                    symbol = "S"
-
-                if symbol is not None:
-                    formats.append("{}{}".format(symbol, max(map(len, v))))
+            if isinstance(dtype_mapping, dict):
+                if name in dtype_mapping:
+                    dtype_mapping = dtype_mapping[name]
+                elif index in dtype_mapping:
+                    dtype_mapping = dtype_mapping[index]
                 else:
-                    formats.append(v.dtype)
+                    dtype_mapping = None
+
+            if dtype_mapping is None:
+                formats.append(v.dtype)
+            elif isinstance(dtype_mapping, (type, compat.string_types)):
+                formats.append(dtype_mapping)
+            else:
+                element = "row" if i < index_len else "column"
+                msg = ("Invalid dtype {dtype} specified for "
+                       "{element} {name}").format(dtype=dtype_mapping,
+                                                  element=element, name=name)
+                raise ValueError(msg)
 
         return np.rec.fromarrays(
             arrays,
