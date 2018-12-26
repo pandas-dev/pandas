@@ -443,7 +443,7 @@ class PandasSQLTest(object):
 
         def sample(pd_table, conn, keys, data_iter):
             check.append(1)
-            data = [{k: v for k, v in zip(keys, row)} for row in data_iter]
+            data = [dict(zip(keys, row)) for row in data_iter]
             conn.execute(pd_table.table.insert(), data)
         self.drop_table('test_frame1')
 

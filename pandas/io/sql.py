@@ -591,7 +591,7 @@ class SQLTable(PandasObject):
         data_iter : generator of list
            Each item contains a list of values to be inserted
         """
-        data = [{k: v for k, v in zip(keys, row)} for row in data_iter]
+        data = [dict(zip(keys, row)) for row in data_iter]
         conn.execute(self.table.insert(), data)
 
     def _execute_insert_multi(self, conn, keys, data_iter):
@@ -601,7 +601,7 @@ class SQLTable(PandasObject):
         and tables containing a few columns
         but performance degrades quickly with increase of columns.
         """
-        data = [{k: v for k, v in zip(keys, row)} for row in data_iter]
+        data = [dict(zip(keys, row)) for row in data_iter]
         conn.execute(self.table.insert(data))
 
     def insert_data(self):
