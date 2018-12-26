@@ -227,11 +227,11 @@ class DatetimeIndex(DatetimeArray, DatetimeIndexOpsMixin, Int64Index):
                           "endpoints is deprecated.  Use "
                           "`pandas.date_range` instead.",
                           FutureWarning, stacklevel=2)
-            result = cls._generate_range(start, end, periods,
-                                         freq=freq, tz=tz, normalize=normalize,
-                                         closed=closed, ambiguous=ambiguous)
-            result.name = name
-            return result
+            dtarr = DatetimeArray._generate_range(
+                start, end, periods,
+                freq=freq, tz=tz, normalize=normalize,
+                closed=closed, ambiguous=ambiguous)
+            return cls(dtarr, name=name)
 
         if is_scalar(data):
             raise TypeError("{cls}() must be called with a "
@@ -269,6 +269,8 @@ class DatetimeIndex(DatetimeArray, DatetimeIndexOpsMixin, Int64Index):
 
         result = super(DatetimeIndex, cls)._simple_new(values, freq, tz)
         result.name = name
+        # For groupby perf. See note in indexes/base about _index_data
+        result._index_data = result._data
         result._reset_identity()
         return result
 
@@ -1471,12 +1473,12 @@ def date_range(start=None, end=None, periods=None, freq=None, tz=None,
     if freq is None and com._any_none(periods, start, end):
         freq = 'D'
 
-    result = DatetimeIndex._generate_range(
+    dtarr = DatetimeArray._generate_range(
         start=start, end=end, periods=periods,
         freq=freq, tz=tz, normalize=normalize,
         closed=closed, **kwargs)
 
-    result.name = name
+    result = DatetimeIndex(dtarr, name=name)
     return result
 
 

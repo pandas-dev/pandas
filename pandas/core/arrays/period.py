@@ -11,7 +11,6 @@ from pandas._libs.tslibs.period import (
     period_asfreq_arr)
 from pandas._libs.tslibs.timedeltas import Timedelta, delta_to_nanoseconds
 import pandas.compat as compat
-from pandas.compat.numpy import function as nv
 from pandas.util._decorators import Appender, cache_readonly
 from pandas.util._validators import validate_fillna_kwargs
 
@@ -57,6 +56,9 @@ def _period_array_cmp(cls, op):
         # return here with an unboxed PeriodArray). But before we do that,
         # we do a bit of validation on type (Period) and freq, so that our
         # error messages are sensible
+        if is_list_like(other) and len(other) != len(self):
+            raise ValueError("Lengths must match")
+
         not_implemented = isinstance(other, (ABCSeries, ABCIndexClass))
         if not_implemented:
             other = other._values
@@ -84,7 +86,7 @@ def _period_array_cmp(cls, op):
             other = Period(other, freq=self.freq)
             result = op(other.ordinal)
 
-        if self.hasnans:
+        if self._hasnans:
             result[self._isnan] = nat_result
 
         return result
@@ -92,7 +94,9 @@ def _period_array_cmp(cls, op):
     return compat.set_function_name(wrapper, opname, cls)
 
 
-class PeriodArray(dtl.DatetimeLikeArrayMixin, ExtensionArray):
+class PeriodArray(dtl.DatetimeLikeArrayMixin,
+                  dtl.DatelikeOps,
+                  ExtensionArray):
     """
     Pandas ExtensionArray for storing Period data.
 
@@ -497,7 +501,7 @@ class PeriodArray(dtl.DatetimeLikeArrayMixin, ExtensionArray):
                             "{cls}._time_shift"
                             .format(cls=type(self).__name__))
         values = self.asi8 + n * self.freq.n
-        if self.hasnans:
+        if self._hasnans:
             values[self._isnan] = iNaT
         return type(self)(values, freq=self.freq)
 
@@ -559,13 +563,13 @@ class PeriodArray(dtl.DatetimeLikeArrayMixin, ExtensionArray):
 
         new_data = period_asfreq_arr(ordinal, base1, base2, end)
 
-        if self.hasnans:
+        if self._hasnans:
             new_data[self._isnan] = iNaT
 
         return type(self)(new_data, freq=freq)
 
     # ------------------------------------------------------------------
-    # Formatting
+    # Rendering Methods
 
     def _format_native_types(self, na_rep=u'NaT', date_format=None, **kwargs):
         """
@@ -579,7 +583,7 @@ class PeriodArray(dtl.DatetimeLikeArrayMixin, ExtensionArray):
         else:
             formatter = lambda dt: u'%s' % dt
 
-        if self.hasnans:
+        if self._hasnans:
             mask = self._isnan
             values[mask] = na_rep
             imask = ~mask
@@ -589,22 +593,7 @@ class PeriodArray(dtl.DatetimeLikeArrayMixin, ExtensionArray):
             values = np.array([formatter(dt) for dt in values])
         return values
 
-    # Delegation...
-    def strftime(self, date_format):
-        return self._format_native_types(date_format=date_format)
-
-    def repeat(self, repeats, *args, **kwargs):
-        """
-        Repeat elements of a PeriodArray.
-
-        See Also
-        --------
-        numpy.ndarray.repeat
-        """
-        # TODO(DatetimeArray): remove
-        nv.validate_repeat(args, kwargs)
-        values = self._data.repeat(repeats)
-        return type(self)(values, self.freq)
+    # ------------------------------------------------------------------
 
     def astype(self, dtype, copy=True):
         # TODO: Figure out something better here...
@@ -668,7 +657,7 @@ class PeriodArray(dtl.DatetimeLikeArrayMixin, ExtensionArray):
         new_data = asi8 - other.ordinal
         new_data = np.array([self.freq * x for x in new_data])
 
-        if self.hasnans:
+        if self._hasnans:
             new_data[self._isnan] = NaT
 
         return new_data
@@ -983,7 +972,7 @@ def dt64arr_to_periodarr(data, freq, tz=None):
 
     """
     if data.dtype != np.dtype('M8[ns]'):
-        raise ValueError('Wrong dtype: %s' % data.dtype)
+        raise ValueError('Wrong dtype: {dtype}'.format(dtype=data.dtype))
 
     if freq is None:
         if isinstance(data, ABCIndexClass):

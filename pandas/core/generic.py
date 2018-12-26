@@ -4,6 +4,7 @@ import functools
 import gc
 import json
 import operator
+from textwrap import dedent
 import warnings
 import weakref
 
@@ -4895,7 +4896,7 @@ class NDFrame(PandasObject, SelectionMixin):
     def pipe(self, func, *args, **kwargs):
         return com._pipe(self, func, *args, **kwargs)
 
-    _shared_docs['aggregate'] = ("""
+    _shared_docs['aggregate'] = dedent("""
     Aggregate using one or more operations over the specified axis.
 
     %(versionadded)s
@@ -4926,11 +4927,15 @@ class NDFrame(PandasObject, SelectionMixin):
         if Series.agg is called with single function, returns a scalar
         if Series.agg is called with several functions, returns a Series
 
+    %(see_also)s
+
     Notes
     -----
     `agg` is an alias for `aggregate`. Use the alias.
 
     A passed user-defined-function will be passed a Series for evaluation.
+
+    %(examples)s
     """)
 
     _shared_docs['transform'] = ("""
@@ -9900,16 +9905,16 @@ class NDFrame(PandasObject, SelectionMixin):
 
         cls.any = _make_logical_function(
             cls, 'any', name, name2, axis_descr, _any_desc, nanops.nanany,
-            _any_examples, _any_see_also, empty_value=False)
+            _any_see_also, _any_examples, empty_value=False)
         cls.all = _make_logical_function(
             cls, 'all', name, name2, axis_descr, _all_desc, nanops.nanall,
-            _all_examples, _all_see_also, empty_value=True)
+            _all_see_also, _all_examples, empty_value=True)
 
         @Substitution(outname='mad',
                       desc="Return the mean absolute deviation of the values "
                            "for the requested axis.",
                       name1=name, name2=name2, axis_descr=axis_descr,
-                      min_count='', examples='')
+                      min_count='', see_also='', examples='')
         @Appender(_num_doc)
         def mad(self, axis=None, skipna=None, level=None):
             if skipna is None:
@@ -9951,7 +9956,7 @@ class NDFrame(PandasObject, SelectionMixin):
                       desc="Return the compound percentage of the values for "
                       "the requested axis.", name1=name, name2=name2,
                       axis_descr=axis_descr,
-                      min_count='', examples='')
+                      min_count='', see_also='', examples='')
         @Appender(_num_doc)
         def compound(self, axis=None, skipna=None, level=None):
             if skipna is None:
@@ -9979,8 +9984,9 @@ class NDFrame(PandasObject, SelectionMixin):
 
         cls.sum = _make_min_count_stat_function(
             cls, 'sum', name, name2, axis_descr,
-            'Return the sum of the values for the requested axis.',
-            nanops.nansum, _sum_examples)
+            """Return the sum of the values for the requested axis.\n
+            This is equivalent to the method ``numpy.sum``.""",
+            nanops.nansum, _stat_func_see_also, _sum_examples)
         cls.mean = _make_stat_function(
             cls, 'mean', name, name2, axis_descr,
             'Return the mean of the values for the requested axis.',
@@ -9999,7 +10005,7 @@ class NDFrame(PandasObject, SelectionMixin):
         cls.prod = _make_min_count_stat_function(
             cls, 'prod', name, name2, axis_descr,
             'Return the product of the values for the requested axis.',
-            nanops.nanprod, _prod_examples)
+            nanops.nanprod, examples=_prod_examples)
         cls.product = cls.prod
         cls.median = _make_stat_function(
             cls, 'median', name, name2, axis_descr,
@@ -10007,16 +10013,16 @@ class NDFrame(PandasObject, SelectionMixin):
             nanops.nanmedian)
         cls.max = _make_stat_function(
             cls, 'max', name, name2, axis_descr,
-            """This method returns the maximum of the values in the object.
+            """Return the maximum of the values for the requested axis.\n
             If you want the *index* of the maximum, use ``idxmax``. This is
             the equivalent of the ``numpy.ndarray`` method ``argmax``.""",
-            nanops.nanmax, _max_examples)
+            nanops.nanmax, _stat_func_see_also, _max_examples)
         cls.min = _make_stat_function(
             cls, 'min', name, name2, axis_descr,
-            """This method returns the minimum of the values in the object.
+            """Return the minimum of the values for the requested axis.\n
             If you want the *index* of the minimum, use ``idxmin``. This is
             the equivalent of the ``numpy.ndarray`` method ``argmin``.""",
-            nanops.nanmin)
+            nanops.nanmin, _stat_func_see_also, _min_examples)
 
     @classmethod
     def _add_series_only_operations(cls):
@@ -10169,21 +10175,25 @@ _num_doc = """
 Parameters
 ----------
 axis : %(axis_descr)s
-skipna : boolean, default True
+    Axis for the function to be applied on.
+skipna : bool, default True
     Exclude NA/null values when computing the result.
 level : int or level name, default None
     If the axis is a MultiIndex (hierarchical), count along a
-    particular level, collapsing into a %(name1)s
-numeric_only : boolean, default None
+    particular level, collapsing into a %(name1)s.
+numeric_only : bool, default None
     Include only float, int, boolean columns. If None, will attempt to use
     everything, then use only numeric data. Not implemented for Series.
 %(min_count)s\
+**kwargs
+    Additional keyword arguments to be passed to the function.
 
 Returns
 -------
-%(outname)s : %(name1)s or %(name2)s (if level specified)\
-
-%(examples)s"""
+%(outname)s : %(name1)s or %(name2)s (if level specified)
+%(see_also)s
+%(examples)s\
+"""
 
 _num_ddof_doc = """
 %(desc)s
@@ -10687,43 +10697,49 @@ True
 Series([], dtype: bool)
 """
 
-_sum_examples = """\
+_shared_docs['stat_func_example'] = """\
 Examples
 --------
-``MultiIndex`` series example of monthly rainfall
 
->>> index = pd.MultiIndex.from_product(
-...     [['London', 'New York'], ['Jun', 'Jul', 'Aug']],
-...     names=['city', 'month'])
->>> s = pd.Series([47, 35, 54, 112, 117, 113], index=index)
+>>> idx = pd.MultiIndex.from_arrays([
+...     ['warm', 'warm', 'cold', 'cold'],
+...     ['dog', 'falcon', 'fish', 'spider']],
+...     names=['blooded', 'animal'])
+>>> s = pd.Series([4, 2, 0, 8], name='legs', index=idx)
 >>> s
-city      month
-London    Jun       47
-          Jul       35
-          Aug       54
-New York  Jun      112
-          Jul      117
-          Aug      113
-dtype: int64
+blooded  animal
+warm     dog       4
+         falcon    2
+cold     fish      0
+         spider    8
+Name: legs, dtype: int64
 
->>> s.sum()
-478
+>>> s.{stat_func}()
+{default_output}
 
-Sum using level names, as well as indices
+{verb} using level names, as well as indices.
 
->>> s.sum(level='city')
-city
-London      136
-New York    342
-dtype: int64
+>>> s.{stat_func}(level='blooded')
+blooded
+warm    {level_output_0}
+cold    {level_output_1}
+Name: legs, dtype: int64
 
->>> s.sum(level=1)
-month
-Jun    159
-Jul    152
-Aug    167
-dtype: int64
+>>> s.{stat_func}(level=0)
+blooded
+warm    {level_output_0}
+cold    {level_output_1}
+Name: legs, dtype: int64
+"""
 
+_sum_examples = _shared_docs['stat_func_example'].format(
+    stat_func='sum',
+    verb='Sum',
+    default_output=14,
+    level_output_0=6,
+    level_output_1=8)
+
+_sum_examples += """
 By default, the sum of an empty or all-NA Series is ``0``.
 
 >>> pd.Series([]).sum()  # min_count=0 is the default
@@ -10743,6 +10759,35 @@ empty series identically.
 
 >>> pd.Series([np.nan]).sum(min_count=1)
 nan
+"""
+
+_max_examples = _shared_docs['stat_func_example'].format(
+    stat_func='max',
+    verb='Max',
+    default_output=8,
+    level_output_0=4,
+    level_output_1=8)
+
+_min_examples = _shared_docs['stat_func_example'].format(
+    stat_func='min',
+    verb='Min',
+    default_output=0,
+    level_output_0=2,
+    level_output_1=0)
+
+_stat_func_see_also = """
+See Also
+--------
+Series.sum : Return the sum.
+Series.min : Return the minimum.
+Series.max : Return the maximum.
+Series.idxmin : Return the index of the minimum.
+Series.idxmax : Return the index of the maximum.
+DataFrame.min : Return the sum over the requested axis.
+DataFrame.min : Return the minimum over the requested axis.
+DataFrame.max : Return the maximum over the requested axis.
+DataFrame.idxmin : Return the index of the minimum over the requested axis.
+DataFrame.idxmax : Return the index of the maximum over the requested axis.
 """
 
 _prod_examples = """\
@@ -10768,45 +10813,6 @@ empty series identically.
 nan
 """
 
-_max_examples = """\
-Examples
---------
-``MultiIndex`` series example of monthly rainfall
-
->>> index = pd.MultiIndex.from_product(
-...     [['London', 'New York'], ['Jun', 'Jul', 'Aug']],
-...     names=['city', 'month'])
->>> s = pd.Series([47, 35, 54, 112, 117, 113], index=index)
->>> s
-city      month
-London    Jun       47
-          Jul       35
-          Aug       54
-New York  Jun      112
-          Jul      117
-          Aug      113
-dtype: int64
-
->>> s.max()
-117
-
-Max using level names, as well as indices
-
->>> s.max(level='city')
-city
-London       54
-New York    117
-dtype: int64
-
->>> s.max(level=1)
-month
-Jun    112
-Jul    117
-Aug    113
-dtype: int64
-"""
-
-
 _min_count_stub = """\
 min_count : int, default 0
     The required number of valid values to perform the operation. If fewer than
@@ -10821,15 +10827,20 @@ min_count : int, default 0
 
 
 def _make_min_count_stat_function(cls, name, name1, name2, axis_descr, desc,
-                                  f, examples):
+                                  f, see_also='', examples=''):
     @Substitution(outname=name, desc=desc, name1=name1, name2=name2,
                   axis_descr=axis_descr, min_count=_min_count_stub,
-                  examples=examples)
+                  see_also=see_also, examples=examples)
     @Appender(_num_doc)
     def stat_func(self, axis=None, skipna=None, level=None, numeric_only=None,
                   min_count=0,
                   **kwargs):
-        nv.validate_stat_func(tuple(), kwargs, fname=name)
+        if name == 'sum':
+            nv.validate_sum(tuple(), kwargs)
+        elif name == 'prod':
+            nv.validate_prod(tuple(), kwargs)
+        else:
+            nv.validate_stat_func(tuple(), kwargs, fname=name)
         if skipna is None:
             skipna = True
         if axis is None:
@@ -10844,13 +10855,17 @@ def _make_min_count_stat_function(cls, name, name1, name2, axis_descr, desc,
 
 
 def _make_stat_function(cls, name, name1, name2, axis_descr, desc, f,
-                        examples=''):
+                        see_also='', examples=''):
     @Substitution(outname=name, desc=desc, name1=name1, name2=name2,
-                  axis_descr=axis_descr, min_count='', examples=examples)
+                  axis_descr=axis_descr, min_count='', see_also=see_also,
+                  examples=examples)
     @Appender(_num_doc)
     def stat_func(self, axis=None, skipna=None, level=None, numeric_only=None,
                   **kwargs):
-        nv.validate_stat_func(tuple(), kwargs, fname=name)
+        if name == 'median':
+            nv.validate_median(tuple(), kwargs)
+        else:
+            nv.validate_stat_func(tuple(), kwargs, fname=name)
         if skipna is None:
             skipna = True
         if axis is None:
@@ -10920,9 +10935,9 @@ def _make_cum_function(cls, name, name1, name2, axis_descr, desc,
 
 
 def _make_logical_function(cls, name, name1, name2, axis_descr, desc, f,
-                           examples, see_also, empty_value):
+                           see_also, examples, empty_value):
     @Substitution(outname=name, desc=desc, name1=name1, name2=name2,
-                  axis_descr=axis_descr, examples=examples, see_also=see_also,
+                  axis_descr=axis_descr, see_also=see_also, examples=examples,
                   empty_value=empty_value)
     @Appender(_bool_doc)
     def logical_func(self, axis=0, bool_only=None, skipna=True, level=None,
