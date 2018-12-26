@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 from __future__ import print_function
 
+import inspect
 import re
 import sys
 from datetime import datetime, timedelta
@@ -1273,3 +1274,47 @@ def test_to_numpy_dtype(as_series):
     expected = np.array(['2000-01-01T05', '2001-01-01T05'],
                         dtype='M8[ns]')
     tm.assert_numpy_array_equal(result, expected)
+
+
+def check_pinned_names(cls):
+    """
+    Check that the any dynamically-defined methods have the correct
+    names, i.e. not 'wrapper'.
+    """
+    special_cases = {
+        "isnull": "isna",
+        "notnull": "notna",
+        "take": "take_nd",     # Categorical
+        "to_list": "tolist",   # Categorical
+        "iteritems": "items",
+        "__bool__": "__nonzero__",
+    }
+    ignore = {
+        "_create_comparison_method",
+    }
+    if 'Subclassed' in cls.__name__:
+        # dummy classes defined in tests
+        return
+    for name in dir(cls):
+        try:
+            # e.g. properties may not be accessible on the class
+            attr = getattr(cls, name)
+        except Exception:
+            continue
+        if name in ignore:
+            continue
+        if inspect.ismethod(attr) or isinstance(attr, property):
+            expected = special_cases.get(name, name)
+            result = attr.__name__
+            assert result == expected, (result, expected, name,
+                                        cls.__name__)
+
+
+@pytest.mark.parametrize('klass',
+    PandasObject.__subclasses__() + [
+    pd.Timestamp,
+    pd.Period,
+    pd.Timedelta,
+    pd.Interval])
+def test_pinned_names(klass):
+    check_pinned_names(klass)

@@ -37,12 +37,6 @@ class PandasMeta(type):
         - class ordering
         - names for inherited methods
     """
-    def __new__(cls, name, bases, dct):
-        obj = type.__new__(cls, name, bases, dct)
-
-        PandasMeta._check_pinned_names(obj)
-        return obj
-
     def __lt__(self, other):
         # define comparison methods so we can compare classes, not just
         #  instances
@@ -62,39 +56,6 @@ class PandasMeta(type):
             elif issubclass(self, generic):
                 return True
         return True
-
-    @staticmethod
-    def _check_pinned_names(cls):
-        """
-        Check that the any dynamically-defined methods have the correct
-        names, i.e. not 'wrapper'.
-        """
-        special_cases = {
-            "isnull": "isna",
-            "notnull": "notna",
-            "take": "take_nd",     # Categorical
-            "to_list": "tolist",   # Categorical
-            "iteritems": "items",
-            "__bool__": "__nonzero__",
-        }
-        ignore = {
-            "_create_comparison_method",
-        }
-        if 'Subclassed' in cls.__name__:
-            return
-        for name in dir(cls):
-            try:
-                # e.g. properties may not be accessible on the class
-                attr = getattr(cls, name)
-            except Exception:
-                continue
-            if name in ignore:
-                continue
-            if inspect.ismethod(attr):
-                expected = special_cases.get(name, name)
-                result = attr.__name__
-                assert result == expected, (result, expected, name,
-                                            cls.__name__)
 
 
 class StringMixin(object):
