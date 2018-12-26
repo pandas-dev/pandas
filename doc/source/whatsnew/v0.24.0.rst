@@ -331,12 +331,7 @@ Other Enhancements
 
 - :func:`to_datetime` now supports the ``%Z`` and ``%z`` directive when passed into ``format`` (:issue:`13486`)
 - :func:`Series.mode` and :func:`DataFrame.mode` now support the ``dropna`` parameter which can be used to specify whether ``NaN``/``NaT`` values should be considered (:issue:`17534`)
-<<<<<<< HEAD:doc/source/whatsnew/v0.24.0.txt
-- :func:`to_csv` now supports ``compression`` keyword when a file handle is passed. (:issue:`21227`)
-- :func:`~pandas.DataFrame.to_sql` add parameter ``method`` to control SQL insertion clause (:8953:)
-=======
 - :func:`DataFrame.to_csv` and :func:`Series.to_csv` now support the ``compression`` keyword when a file handle is passed. (:issue:`21227`)
->>>>>>> upstream/master:doc/source/whatsnew/v0.24.0.rst
 - :meth:`Index.droplevel` is now implemented also for flat indexes, for compatibility with :class:`MultiIndex` (:issue:`21115`)
 - :meth:`Series.droplevel` and :meth:`DataFrame.droplevel` are now implemented (:issue:`20342`)
 - Added support for reading from/writing to Google Cloud Storage via the ``gcsfs`` library (:issue:`19454`, :issue:`23094`)
@@ -378,6 +373,7 @@ Other Enhancements
 - :meth:`DataFrame.between_time` and :meth:`DataFrame.at_time` have gained the an ``axis`` parameter (:issue:`8839`)
 - The ``scatter_matrix``, ``andrews_curves``, ``parallel_coordinates``, ``lag_plot``, ``autocorrelation_plot``, ``bootstrap_plot``, and ``radviz`` plots from the ``pandas.plotting`` module are now accessible from calling :meth:`DataFrame.plot` (:issue:`11978`)
 - :class:`IntervalIndex` has gained the :attr:`~IntervalIndex.is_overlapping` attribute to indicate if the ``IntervalIndex`` contains any overlapping intervals (:issue:`23309`)
+- :func:`pandas.DataFrame.to_sql` has gained the ``method`` argument to control SQL insertion clause (:issue:`8953`)
 
 .. _whatsnew_0240.api_breaking:
 
