@@ -8,7 +8,7 @@ import numpy as np
 
 import pandas._libs.lib as lib
 import pandas.compat as compat
-from pandas.compat import PYPY, OrderedDict, builtins
+from pandas.compat import PYPY, OrderedDict, builtins, map, range
 from pandas.compat.numpy import function as nv
 from pandas.errors import AbstractMethodError
 from pandas.util._decorators import Appender, Substitution, cache_readonly
@@ -1088,7 +1088,13 @@ class IndexOpsMixin(object):
         (for str, int, float) or a pandas scalar
         (for Timestamp/Timedelta/Interval/Period)
         """
-        return iter(self.tolist())
+        # We are explicity making element iterators.
+        if is_datetimelike(self._values):
+            return map(com.maybe_box_datetimelike, self._values)
+        elif is_extension_array_dtype(self._values):
+            return iter(self._values)
+        else:
+            return map(self._values.item, range(self._values.size))
 
     @cache_readonly
     def hasnans(self):
@@ -1403,8 +1409,14 @@ class IndexOpsMixin(object):
 
         Returns
         -------
-        indices : array of ints
-            Array of insertion points with the same shape as `value`.
+        int or array of int
+            A scalar or array of insertion points with the
+            same shape as `value`.
+
+            .. versionchanged :: 0.24.0
+                If `value` is a scalar, an int is now always returned.
+                Previously, scalar inputs returned an 1-item array for
+                :class:`Series` and :class:`Categorical`.
 
         See Also
         --------
@@ -1425,7 +1437,7 @@ class IndexOpsMixin(object):
         dtype: int64
 
         >>> x.searchsorted(4)
-        array([3])
+        3
 
         >>> x.searchsorted([0, 4])
         array([0, 3])
@@ -1442,7 +1454,7 @@ class IndexOpsMixin(object):
         Categories (4, object): [apple < bread < cheese < milk]
 
         >>> x.searchsorted('bread')
-        array([1])     # Note: an array, not a scalar
+        1
 
         >>> x.searchsorted(['bread'], side='right')
         array([3])

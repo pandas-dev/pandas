@@ -889,12 +889,15 @@ class SparseArray(PandasObject, ExtensionArray, ExtensionOpsMixin):
 
         return self._simple_new(new_values, self._sparse_index, new_dtype)
 
-    def shift(self, periods=1):
+    def shift(self, periods=1, fill_value=None):
 
         if not len(self) or periods == 0:
             return self.copy()
 
-        subtype = np.result_type(np.nan, self.dtype.subtype)
+        if isna(fill_value):
+            fill_value = self.dtype.na_value
+
+        subtype = np.result_type(fill_value, self.dtype.subtype)
 
         if subtype != self.dtype.subtype:
             # just coerce up front
@@ -903,7 +906,7 @@ class SparseArray(PandasObject, ExtensionArray, ExtensionOpsMixin):
             arr = self
 
         empty = self._from_sequence(
-            [self.dtype.na_value] * min(abs(periods), len(self)),
+            [fill_value] * min(abs(periods), len(self)),
             dtype=arr.dtype
         )
 

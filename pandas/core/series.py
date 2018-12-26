@@ -91,6 +91,7 @@ def _coerce_method(converter):
         raise TypeError("cannot convert the series to "
                         "{0}".format(str(converter)))
 
+    wrapper.__name__ = "__{name}__".format(name=converter.__name__)
     return wrapper
 
 # ----------------------------------------------------------------------
@@ -1038,12 +1039,58 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
     def repeat(self, repeats, *args, **kwargs):
         """
-        Repeat elements of an Series. Refer to `numpy.ndarray.repeat`
-        for more information about the `repeats` argument.
+        Repeat elements of a Series.
+
+        Returns a new Series where each element of the current Series
+        is repeated consecutively a given number of times.
+
+        Parameters
+        ----------
+        repeats : int or array of ints
+            The number of repetitions for each element. This should be a
+            non-negative integer. Repeating 0 times will return an empty
+            Series.
+        *args
+            Additional arguments have no effect but might be accepted for
+            compatibility with numpy.
+        **kwargs
+            Additional keywords have no effect but might be accepted for
+            compatibility with numpy.
+
+        Returns
+        -------
+        repeated_series : Series
+            Newly created Series with repeated elements.
 
         See Also
         --------
-        numpy.ndarray.repeat
+        Index.repeat : Equivalent function for Index.
+        numpy.repeat : Similar method for :class:`numpy.ndarray`.
+
+        Examples
+        --------
+        >>> s = pd.Series(['a', 'b', 'c'])
+        >>> s
+        0    a
+        1    b
+        2    c
+        dtype: object
+        >>> s.repeat(2)
+        0    a
+        0    a
+        1    b
+        1    b
+        2    c
+        2    c
+        dtype: object
+        >>> s.repeat([1, 2, 3])
+        0    a
+        1    b
+        1    b
+        2    c
+        2    c
+        2    c
+        dtype: object
         """
         nv.validate_repeat(args, kwargs)
         new_index = self.index.repeat(repeats)
@@ -2215,8 +2262,10 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
     def searchsorted(self, value, side='left', sorter=None):
         if sorter is not None:
             sorter = ensure_platform_int(sorter)
-        return self._values.searchsorted(Series(value)._values,
-                                         side=side, sorter=sorter)
+        result = self._values.searchsorted(Series(value)._values,
+                                           side=side, sorter=sorter)
+
+        return result[0] if is_scalar(value) else result
 
     # -------------------------------------------------------------------
     # Combination
@@ -3716,8 +3765,9 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
                                            regex=regex, method=method)
 
     @Appender(generic._shared_docs['shift'] % _shared_doc_kwargs)
-    def shift(self, periods=1, freq=None, axis=0):
-        return super(Series, self).shift(periods=periods, freq=freq, axis=axis)
+    def shift(self, periods=1, freq=None, axis=0, fill_value=None):
+        return super(Series, self).shift(periods=periods, freq=freq, axis=axis,
+                                         fill_value=fill_value)
 
     def reindex_axis(self, labels, axis=0, **kwargs):
         """

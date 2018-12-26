@@ -1,7 +1,6 @@
 # -*- coding: utf-8 -*-
 
 import math
-import operator
 from collections import defaultdict
 from datetime import datetime, timedelta
 from decimal import Decimal
@@ -28,7 +27,6 @@ from pandas.core.dtypes.common import (
 from pandas.core.dtypes.generic import ABCIndex
 from pandas.core.index import _get_combined_index, ensure_index_from_sequences
 from pandas.core.indexes.api import Index, MultiIndex
-from pandas.core.indexes.datetimes import _to_m8
 from pandas.tests.indexes.common import Base
 from pandas.util.testing import assert_almost_equal
 from pandas.core.sorting import safe_sort
@@ -629,22 +627,6 @@ class TestIndex(Base):
         expected_ts = np_datetime64_compat('2013-01-01 00:00:00.000000050+'
                                            '0000', 'ns')
         assert first_value == x[Timestamp(expected_ts)]
-
-    @pytest.mark.parametrize("op", [
-        operator.eq, operator.ne, operator.gt, operator.lt,
-        operator.ge, operator.le
-    ])
-    def test_comparators(self, op):
-        index = self.dateIndex
-        element = index[len(index) // 2]
-        element = _to_m8(element)
-
-        arr = np.array(index)
-        arr_result = op(arr, element)
-        index_result = op(index, element)
-
-        assert isinstance(index_result, np.ndarray)
-        tm.assert_numpy_array_equal(arr_result, index_result)
 
     def test_booleanindex(self):
         boolIndex = np.repeat(True, len(self.strIndex)).astype(bool)
@@ -2480,26 +2462,6 @@ class TestMixedIntIndex(Base):
 
         expected = Index([], dtype=object)
         tm.assert_index_equal(result, expected)
-
-    @pytest.mark.parametrize('op', [operator.eq, operator.ne,
-                                    operator.gt, operator.ge,
-                                    operator.lt, operator.le])
-    def test_comparison_tzawareness_compat(self, op):
-        # GH#18162
-        dr = pd.date_range('2016-01-01', periods=6)
-        dz = dr.tz_localize('US/Pacific')
-
-        # Check that there isn't a problem aware-aware and naive-naive do not
-        # raise
-        naive_series = Series(dr)
-        aware_series = Series(dz)
-        with pytest.raises(TypeError):
-            op(dz, naive_series)
-        with pytest.raises(TypeError):
-            op(dr, aware_series)
-
-        # TODO: implement _assert_tzawareness_compat for the reverse
-        # comparison with the Series on the left-hand side
 
 
 class TestIndexUtils(object):

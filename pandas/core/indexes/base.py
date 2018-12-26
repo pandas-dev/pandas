@@ -685,7 +685,7 @@ class Index(IndexOpsMixin, PandasObject):
         """
         The array interface, return my values.
         """
-        return self._data.view(np.ndarray)
+        return np.asarray(self._data, dtype=dtype)
 
     def __array_wrap__(self, result, context=None):
         """
@@ -742,6 +742,8 @@ class Index(IndexOpsMixin, PandasObject):
         Parameters
         ----------
         dtype : numpy dtype or pandas type
+            Note that any integer `dtype` is treated as ``'int64'``,
+            regardless of the sign and size.
         copy : bool, default True
             By default, astype always returns a newly allocated object.
             If copy is set to False and internal requirements on dtype are
@@ -835,41 +837,48 @@ class Index(IndexOpsMixin, PandasObject):
             taken = values.take(indices)
         return taken
 
-    def repeat(self, repeats, *args, **kwargs):
-        """
-        Repeat elements of an Index.
+    _index_shared_docs['repeat'] = """
+        Repeat elements of a %(klass)s.
 
-        Returns a new index where each element of the current index
+        Returns a new %(klass)s where each element of the current %(klass)s
         is repeated consecutively a given number of times.
 
         Parameters
         ----------
-        repeats : int
-            The number of repetitions for each element.
+        repeats : int or array of ints
+            The number of repetitions for each element. This should be a
+            non-negative integer. Repeating 0 times will return an empty
+            %(klass)s.
+        *args
+            Additional arguments have no effect but might be accepted for
+            compatibility with numpy.
         **kwargs
             Additional keywords have no effect but might be accepted for
             compatibility with numpy.
 
         Returns
         -------
-        pandas.Index
-            Newly created Index with repeated elements.
+        repeated_index : %(klass)s
+            Newly created %(klass)s with repeated elements.
 
         See Also
         --------
         Series.repeat : Equivalent function for Series.
-        numpy.repeat : Underlying implementation.
+        numpy.repeat : Similar method for :class:`numpy.ndarray`.
 
         Examples
         --------
-        >>> idx = pd.Index([1, 2, 3])
+        >>> idx = pd.Index(['a', 'b', 'c'])
         >>> idx
-        Int64Index([1, 2, 3], dtype='int64')
+        Index(['a', 'b', 'c'], dtype='object')
         >>> idx.repeat(2)
-        Int64Index([1, 1, 2, 2, 3, 3], dtype='int64')
-        >>> idx.repeat(3)
-        Int64Index([1, 1, 1, 2, 2, 2, 3, 3, 3], dtype='int64')
+        Index(['a', 'a', 'b', 'b', 'c', 'c'], dtype='object')
+        >>> idx.repeat([1, 2, 3])
+        Index(['a', 'b', 'b', 'c', 'c', 'c'], dtype='object')
         """
+
+    @Appender(_index_shared_docs['repeat'] % _index_doc_kwargs)
+    def repeat(self, repeats, *args, **kwargs):
         nv.validate_repeat(args, kwargs)
         return self._shallow_copy(self._values.repeat(repeats))
 
@@ -5088,6 +5097,7 @@ class Index(IndexOpsMixin, PandasObject):
                 attrs = self._maybe_update_attributes(attrs)
                 return Index(op(self.values), **attrs)
 
+            _evaluate_numeric_unary.__name__ = opstr
             return _evaluate_numeric_unary
 
         cls.__neg__ = _make_evaluate_unary(operator.neg, '__neg__')

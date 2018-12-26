@@ -12,7 +12,7 @@ from pandas.compat import PY2, range, text_type, u, zip
 from pandas.core.dtypes.cast import maybe_promote
 from pandas.core.dtypes.common import (
     ensure_platform_int, extract_array, is_bool_dtype,
-    is_extension_array_dtype, is_list_like, is_object_dtype,
+    is_extension_array_dtype, is_integer_dtype, is_list_like, is_object_dtype,
     needs_i8_conversion)
 from pandas.core.dtypes.missing import notna
 
@@ -854,6 +854,7 @@ def get_dummies(data, prefix=None, prefix_sep='_', dummy_na=False,
 
 def _get_dummies_1d(data, prefix, prefix_sep='_', dummy_na=False,
                     sparse=False, drop_first=False, dtype=None):
+    from pandas.core.reshape.concat import concat
     # Series avoids inconsistent NaN handling
     codes, levels = _factorize_from_iterable(Series(data))
 
@@ -910,7 +911,15 @@ def _get_dummies_1d(data, prefix, prefix_sep='_', dummy_na=False,
         index = None
 
     if sparse:
-        sparse_series = {}
+
+        if is_integer_dtype(dtype):
+            fill_value = 0
+        elif dtype == bool:
+            fill_value = False
+        else:
+            fill_value = 0.0
+
+        sparse_series = []
         N = len(data)
         sp_indices = [[] for _ in range(len(dummy_cols))]
         mask = codes != -1
@@ -927,12 +936,12 @@ def _get_dummies_1d(data, prefix, prefix_sep='_', dummy_na=False,
             dummy_cols = dummy_cols[1:]
         for col, ixs in zip(dummy_cols, sp_indices):
             sarr = SparseArray(np.ones(len(ixs), dtype=dtype),
-                               sparse_index=IntIndex(N, ixs), fill_value=0,
+                               sparse_index=IntIndex(N, ixs),
+                               fill_value=fill_value,
                                dtype=dtype)
-            sparse_series[col] = Series(data=sarr, index=index)
+            sparse_series.append(Series(data=sarr, index=index, name=col))
 
-        out = DataFrame(sparse_series, index=index, columns=dummy_cols,
-                        dtype=dtype)
+        out = concat(sparse_series, axis=1, copy=False)
         return out
 
     else:
