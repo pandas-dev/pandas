@@ -16,8 +16,7 @@ from pandas import (Categorical, CategoricalIndex, DataFrame, DatetimeIndex,
                     Series, UInt64Index)
 from pandas.api.types import CategoricalDtype as CDT
 from pandas.compat import lrange
-from pandas.core.dtypes.common import (
-    is_categorical_dtype, is_object_dtype, is_float_dtype, is_integer_dtype)
+from pandas.core.dtypes.common import is_categorical_dtype, is_object_dtype
 from pandas.core.dtypes.dtypes import CategoricalDtype
 from pandas.core.reshape.concat import concat
 from pandas.core.reshape.merge import MergeError, merge
@@ -1044,15 +1043,13 @@ class TestMergeDtypes(object):
 
     @pytest.mark.parametrize('df1_vals, df2_vals, left_type, right_type', [
 
-        # infer to numeric
+        # do not infer to numeric
         ([0, 1, 2], ["0", "1", "2"],
-         is_integer_dtype, is_object_dtype),
+         is_object_dtype, is_object_dtype),
         ([0.0, 1.0, 2.0], ["0", "1", "2"],
-         is_float_dtype, is_object_dtype),
-
-        # unicode does not infer to numeric
+         is_object_dtype, is_object_dtype),
         ([0, 1, 2], [u"0", u"1", u"2"],
-         is_integer_dtype, is_object_dtype),
+         is_object_dtype, is_object_dtype),
 
         # merge on category coercs to object
         ([0, 1, 2], Series(['a', 'b', 'a']).astype('category'),
@@ -1060,9 +1057,9 @@ class TestMergeDtypes(object):
         ([0.0, 1.0, 2.0], Series(['a', 'b', 'a']).astype('category'),
          is_object_dtype, is_object_dtype),
 
-        # bool will infer if possible
+        # no not infer
         ([0, 1], pd.Series([False, True], dtype=object),
-         is_integer_dtype, is_object_dtype),
+         is_object_dtype, is_object_dtype),
         ([0, 1], pd.Series([False, True], dtype=bool),
          is_object_dtype, is_object_dtype)
     ])

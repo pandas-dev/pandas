@@ -891,7 +891,7 @@ class _MergeOperation(object):
         # coerce these if they are originally incompatible types
         #
         # for example if these are categorical, but are not dtype_equal
-        # or if we have object and integer dtypes, that do not infer
+        # or if we have object and integer dtypes
 
         for lk, rk, name in zip(self.left_join_keys,
                                 self.right_join_keys,
@@ -961,7 +961,7 @@ class _MergeOperation(object):
             # object values are allowed to be merged
             elif ((lk_is_object and is_numeric_dtype(rk)) or
                   (is_numeric_dtype(lk) and rk_is_object)):
-                continue
+                pass
 
             # datetimelikes must match exactly
             elif is_datetimelike(lk) and not is_datetimelike(rk):
