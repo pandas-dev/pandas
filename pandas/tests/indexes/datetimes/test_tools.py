@@ -662,10 +662,10 @@ class TestToDatetime(object):
         expected = ts.tz_localize('UTC')
         assert result == expected
 
-        msg = ('Cannot localize tz-aware Timestamp, use tz_convert for '
-               'conversions')
-        with pytest.raises(TypeError, match=msg):
-            to_datetime(ts.tz_localize('US/Pacific'), utc=True)
+        ts = ts.tz_localize('US/Pacific')
+        result = to_datetime(ts, utc=True)
+        expected = ts.tz_convert('UTC')
+        assert result == expected
 
 
 class TestToDatetimeUnit(object):
