@@ -1246,7 +1246,7 @@ in the frame:
    formats = 'i4', 'f8', 'f4'
    dt = np.dtype({'names': names, 'offsets': offsets, 'formats': formats},
                  align=True)
-   df = pd.DataFrame(np.fromfile('binary.dat', dt))
+   df = pd.DataFrame(np.fromfile('data/binary.dat', dt))
 
 .. note::
 
