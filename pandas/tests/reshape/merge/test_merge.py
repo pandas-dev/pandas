@@ -1041,30 +1041,22 @@ class TestMergeDtypes(object):
         result = pd.merge(df2, df1, on='key')
         assert_frame_equal(result, expected)
 
-    @pytest.mark.parametrize('df1_vals, df2_vals, left_type, right_type', [
+    @pytest.mark.parametrize('df1_vals, df2_vals', [
 
         # do not infer to numeric
-        ([0, 1, 2], ["0", "1", "2"],
-         is_object_dtype, is_object_dtype),
-        ([0.0, 1.0, 2.0], ["0", "1", "2"],
-         is_object_dtype, is_object_dtype),
-        ([0, 1, 2], [u"0", u"1", u"2"],
-         is_object_dtype, is_object_dtype),
+        ([0, 1, 2], ["0", "1", "2"]),
+        ([0.0, 1.0, 2.0], ["0", "1", "2"]),
+        ([0, 1, 2], [u"0", u"1", u"2"]),
 
         # merge on category coercs to object
-        ([0, 1, 2], Series(['a', 'b', 'a']).astype('category'),
-         is_object_dtype, is_object_dtype),
-        ([0.0, 1.0, 2.0], Series(['a', 'b', 'a']).astype('category'),
-         is_object_dtype, is_object_dtype),
+        ([0, 1, 2], Series(['a', 'b', 'a']).astype('category')),
+        ([0.0, 1.0, 2.0], Series(['a', 'b', 'a']).astype('category')),
 
         # no not infer
-        ([0, 1], pd.Series([False, True], dtype=object),
-         is_object_dtype, is_object_dtype),
-        ([0, 1], pd.Series([False, True], dtype=bool),
-         is_object_dtype, is_object_dtype)
+        ([0, 1], pd.Series([False, True], dtype=object)),
+        ([0, 1], pd.Series([False, True], dtype=bool)),
     ])
-    def test_merge_incompat_dtypes_are_ok(self, df1_vals, df2_vals,
-                                          left_type, right_type):
+    def test_merge_incompat_dtypes_are_ok(self, df1_vals, df2_vals):
         # these are explicity allowed incompat merges, that pass thru
         # the result type is dependent on if the values on the rhs are
         # inferred, otherwise these will be coereced to object
@@ -1073,9 +1065,9 @@ class TestMergeDtypes(object):
         df2 = DataFrame({'A': df2_vals})
 
         result = pd.merge(df1, df2, on=['A'])
-        assert left_type(result.A.dtype)
+        assert is_object_dtype(result.A.dtype)
         result = pd.merge(df2, df1, on=['A'])
-        assert right_type(result.A.dtype)
+        assert is_object_dtype(result.A.dtype)
 
     @pytest.mark.parametrize('df1_vals, df2_vals', [
         (pd.date_range('1/1/2011', periods=2, freq='D'), ['2011-01-01',
