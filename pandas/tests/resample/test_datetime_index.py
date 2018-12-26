@@ -6,7 +6,7 @@ import numpy as np
 import pytest
 import pytz
 
-from pandas.compat import range
+from pandas.compat import StringIO, range
 from pandas.errors import UnsupportedFunctionCall
 
 import pandas as pd
@@ -239,7 +239,6 @@ def test_resample_rounding():
 11-08-2014,00:00:20.674,1
 11-08-2014,00:00:21.191,1"""
 
-    from pandas.compat import StringIO
     df = pd.read_csv(StringIO(data), parse_dates={'timestamp': [
         'date', 'time']}, index_col='timestamp')
     df.index.name = None
@@ -344,8 +343,7 @@ def test_resample_upsampling_picked_but_not_correct():
     # incorrect deciding to upsample when the axis frequency matches the
     # resample frequency
 
-    import datetime
-    s = Series(np.arange(1., 6), index=[datetime.datetime(
+    s = Series(np.arange(1., 6), index=[datetime(
         1975, 1, i, 12, 0) for i in range(1, 6)])
     expected = Series(np.arange(1., 6), index=date_range(
         '19750101', periods=5, freq='D'))
