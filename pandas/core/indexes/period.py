@@ -272,6 +272,8 @@ class PeriodIndex(DatelikeOps, DatetimeIndexOpsMixin, Int64Index,
             raise TypeError("PeriodIndex._simple_new only accepts PeriodArray")
         result = object.__new__(cls)
         result._data = values
+        # For groupby perf. See note in indexes/base about _index_data
+        result._index_data = values._data
         result.name = name
         result._reset_identity()
         return result
@@ -958,10 +960,6 @@ class PeriodIndex(DatelikeOps, DatetimeIndexOpsMixin, Int64Index,
         wrapper.__doc__ = op.__doc__
         wrapper.__name__ = '__{}__'.format(op.__name__)
         return wrapper
-
-    def repeat(self, repeats, *args, **kwargs):
-        # TODO(DatetimeArray): Just use Index.repeat
-        return Index.repeat(self, repeats, *args, **kwargs)
 
     def view(self, dtype=None, type=None):
         # TODO(DatetimeArray): remove
