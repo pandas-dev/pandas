@@ -1592,8 +1592,8 @@ _join_functions = {
 def _factorize_keys(lk, rk, sort=True):
     # Some pre-processing for non-ndarray lk / rk
     if is_datetime64tz_dtype(lk) and is_datetime64tz_dtype(rk):
-        lk = lk.values
-        rk = rk.values
+        lk = lk._data
+        rk = rk._data
 
     elif (is_categorical_dtype(lk) and
             is_categorical_dtype(rk) and

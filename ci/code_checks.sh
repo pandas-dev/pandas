@@ -145,7 +145,7 @@ if [[ -z "$CHECK" || "$CHECK" == "patterns" ]]; then
     RET=$(($RET + $?)) ; echo $MSG "DONE"
 
     MSG='Check that the deprecated `assert_raises_regex` is not used (`pytest.raises(match=pattern)` should be used instead)' ; echo $MSG
-    invgrep -R --exclude=*.pyc --exclude=testing.py --exclude=test_testing.py assert_raises_regex pandas
+    invgrep -R --exclude=*.pyc --exclude=testing.py --exclude=test_util.py assert_raises_regex pandas
     RET=$(($RET + $?)) ; echo $MSG "DONE"
 
     # Check that we use pytest.raises only as a context manager
@@ -158,7 +158,12 @@ if [[ -z "$CHECK" || "$CHECK" == "patterns" ]]; then
     # RET=$(($RET + $?)) ; echo $MSG "DONE"
 
     MSG='Check that no file in the repo contains tailing whitespaces' ; echo $MSG
-    invgrep --exclude="*.svg" -RI "\s$" *
+    set -o pipefail
+    if [[ "$AZURE" == "true" ]]; then
+        ! grep -n --exclude="*.svg" -RI "\s$" * | awk -F ":" '{print "##vso[task.logissue type=error;sourcepath=" $1 ";linenumber=" $2 ";] Tailing whitespaces found: " $3}'
+    else
+        ! grep -n --exclude="*.svg" -RI "\s$" * | awk -F ":" '{print $1 ":" $2 ":Tailing whitespaces found: " $3}'
+    fi
     RET=$(($RET + $?)) ; echo $MSG "DONE"
 fi
 
