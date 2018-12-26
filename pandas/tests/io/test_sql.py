@@ -378,7 +378,7 @@ class PandasSQLTest(object):
     def _to_sql(self):
         self.drop_table('test_frame1')
 
-        self.pandasSQL.to_sql(self.test_frame1, 'test_frame1', method=method)
+        self.pandasSQL.to_sql(self.test_frame1, 'test_frame1')
         assert self.pandasSQL.has_table('test_frame1')
 
         num_entries = len(self.test_frame1)
