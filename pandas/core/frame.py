@@ -898,10 +898,10 @@ class DataFrame(NDFrame):
         Animal(Index='hawk', num_legs=2, num_wings=2)
         """
         arrays = []
-        fields = []
+        fields = list(self.columns)
         if index:
             arrays.append(self.index)
-            fields.append("Index")
+            fields.insert(0, "Index")
 
         # use integer indexing because of possible duplicate column names
         arrays.extend(self.iloc[:, k] for k in range(len(self.columns)))
@@ -911,10 +911,9 @@ class DataFrame(NDFrame):
         if name is not None and len(self.columns) + index < 256:
             # `rename` is unsupported in Python 2.6
             try:
-                itertuple = collections.namedtuple(name,
-                                                   fields + list(self.columns),
-                                                   rename=True)
+                itertuple = collections.namedtuple(name, fields, rename=True)
                 return map(itertuple._make, zip(*arrays))
+
             except Exception:
                 pass
 
@@ -931,16 +930,70 @@ class DataFrame(NDFrame):
 
     def dot(self, other):
         """
-        Matrix multiplication with DataFrame or Series objects. Can also be
-        called using `self @ other` in Python >= 3.5.
+        Compute the matrix mutiplication between the DataFrame and other.
+
+        This method computes the matrix product between the DataFrame and the
+        values of an other Series, DataFrame or a numpy array.
+
+        It can also be called using ``self @ other`` in Python >= 3.5.
 
         Parameters
         ----------
-        other : DataFrame or Series
+        other : Series, DataFrame or array-like
+            The other object to compute the matrix product with.
 
         Returns
         -------
-        dot_product : DataFrame or Series
+        Series or DataFrame
+            If other is a Series, return the matrix product between self and
+            other as a Serie. If other is a DataFrame or a numpy.array, return
+            the matrix product of self and other in a DataFrame of a np.array.
+
+        See Also
+        --------
+        Series.dot: Similar method for Series.
+
+        Notes
+        -----
+        The dimensions of DataFrame and other must be compatible in order to
+        compute the matrix multiplication.
+
+        The dot method for Series computes the inner product, instead of the
+        matrix product here.
+
+        Examples
+        --------
+        Here we multiply a DataFrame with a Series.
+
+        >>> df = pd.DataFrame([[0, 1, -2, -1], [1, 1, 1, 1]])
+        >>> s = pd.Series([1, 1, 2, 1])
+        >>> df.dot(s)
+        0    -4
+        1     5
+        dtype: int64
+
+        Here we multiply a DataFrame with another DataFrame.
+
+        >>> other = pd.DataFrame([[0, 1], [1, 2], [-1, -1], [2, 0]])
+        >>> df.dot(other)
+            0   1
+        0   1   4
+        1   2   2
+
+        Note that the dot method give the same result as @
+
+        >>> df @ other
+            0   1
+        0   1   4
+        1   2   2
+
+        The dot method works also if other is an np.array.
+
+        >>> arr = np.array([[0, 1], [1, 2], [-1, -1], [2, 0]])
+        >>> df.dot(arr)
+            0   1
+        0   1   4
+        1   2   2
         """
         if isinstance(other, (Series, DataFrame)):
             common = self.columns.union(other.index)
@@ -1072,17 +1125,27 @@ class DataFrame(NDFrame):
 
         return cls(data, index=index, columns=columns, dtype=dtype)
 
-    def to_numpy(self):
+    def to_numpy(self, dtype=None, copy=False):
         """
         Convert the DataFrame to a NumPy array.
 
         .. versionadded:: 0.24.0
 
-        The dtype of the returned array will be the common NumPy
-        dtype of all types in the DataFrame. For example,
-        if the dtypes are ``float16`` and ``float32``, the results
-        dtype will be ``float32``. This may require copying data and
-        coercing values, which may be expensive.
+        By default, the dtype of the returned array will be the common NumPy
+        dtype of all types in the DataFrame. For example, if the dtypes are
+        ``float16`` and ``float32``, the results dtype will be ``float32``.
+        This may require copying data and coercing values, which may be
+        expensive.
+
+        Parameters
+        ----------
+        dtype : str or numpy.dtype, optional
+            The dtype to pass to :meth:`numpy.asarray`
+        copy : bool, default False
+            Whether to ensure that the returned value is a not a view on
+            another array. Note that ``copy=False`` does not *ensure* that
+            ``to_numpy()`` is no-copy. Rather, ``copy=True`` ensure that
+            a copy is made, even if not strictly necessary.
 
         Returns
         -------
@@ -1114,7 +1177,8 @@ class DataFrame(NDFrame):
         array([[1, 3.0, Timestamp('2000-01-01 00:00:00')],
                [2, 4.5, Timestamp('2000-01-02 00:00:00')]], dtype=object)
         """
-        return self.values
+        result = np.array(self.values, dtype=dtype, copy=copy)
+        return result
 
     def to_dict(self, orient='dict', into=dict):
         """
@@ -3874,9 +3938,9 @@ class DataFrame(NDFrame):
                                               method=method)
 
     @Appender(_shared_docs['shift'] % _shared_doc_kwargs)
-    def shift(self, periods=1, freq=None, axis=0):
+    def shift(self, periods=1, freq=None, axis=0, fill_value=None):
         return super(DataFrame, self).shift(periods=periods, freq=freq,
-                                            axis=axis)
+                                            axis=axis, fill_value=fill_value)
 
     def set_index(self, keys, drop=True, append=False, inplace=False,
                   verify_integrity=False):

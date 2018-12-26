@@ -86,6 +86,27 @@ be the same as :attr:`~Series.array`. When the Series or Index is backed by
 a :class:`~pandas.api.extension.ExtensionArray`, :meth:`~Series.to_numpy`
 may involve copying data and coercing values.
 
+:meth:`~Series.to_numpy` gives some control over the ``dtype`` of the
+resulting :class:`ndarray`. For example, consider datetimes with timezones.
+NumPy doesn't have a dtype to represent timezone-aware datetimes, so there
+are two possibly useful representations:
+
+1. An object-dtype :class:`ndarray` with :class:`Timestamp` objects, each
+   with the correct ``tz``
+2. A ``datetime64[ns]`` -dtype :class:`ndarray`, where the values have
+   been converted to UTC and the timezone discarded
+
+Timezones may be preserved with ``dtype=object``
+
+.. ipython:: python
+
+   ser = pd.Series(pd.date_range('2000', periods=2, tz="CET"))
+   ser.to_numpy(dtype=object)
+
+Or thrown away with ``dtype='datetime64[ns]'``
+
+   ser.to_numpy(dtype="datetime64[ns]")
+
 Getting the "raw data" inside a :class:`DataFrame` is possibly a bit more
 complex. When your ``DataFrame`` only has a single data type for all the
 columns, :attr:`DataFrame.to_numpy` will return the underlying data:
@@ -353,9 +374,7 @@ To evaluate single-element pandas objects in a boolean context, use the method
 
       >>> df and df2
 
-   These will both raise errors, as you are trying to compare multiple values.
-
-   .. code-block:: python-traceback
+   These will both raise errors, as you are trying to compare multiple values.::
 
        ValueError: The truth value of an array is ambiguous. Use a.empty, a.any() or a.all().
 

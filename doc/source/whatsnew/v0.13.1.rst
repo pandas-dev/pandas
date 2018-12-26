@@ -5,10 +5,6 @@ v0.13.1 (February 3, 2014)
 
 {{ header }}
 
-.. ipython:: python
-   :suppress:
-
-   from pandas import * # noqa F401, F403
 
 
 This is a minor release from 0.13.0 and includes a small number of API changes, several new features,
@@ -35,7 +31,7 @@ Highlights include:
 
    .. ipython:: python
 
-      df = DataFrame(dict(A = np.array(['foo','bar','bah','foo','bar'])))
+      df = pd.DataFrame({'A': np.array(['foo', 'bar', 'bah', 'foo', 'bar'])})
       df['A'].iloc[0] = np.nan
       df
 
@@ -43,8 +39,8 @@ Highlights include:
 
    .. ipython:: python
 
-      df = DataFrame(dict(A = np.array(['foo','bar','bah','foo','bar'])))
-      df.loc[0,'A'] = np.nan
+      df = pd.DataFrame({'A': np.array(['foo', 'bar', 'bah', 'foo', 'bar'])})
+      df.loc[0, 'A'] = np.nan
       df
 
 Output Formatting Enhancements
@@ -58,28 +54,29 @@ Output Formatting Enhancements
 
      max_info_rows = pd.get_option('max_info_rows')
 
-     df = DataFrame(dict(A = np.random.randn(10),
-                         B = np.random.randn(10),
-                         C = date_range('20130101',periods=10)))
-     df.iloc[3:6,[0,2]] = np.nan
+     df = pd.DataFrame({'A': np.random.randn(10),
+                        'B': np.random.randn(10),
+                        'C': pd.date_range('20130101', periods=10)
+                        })
+     df.iloc[3:6, [0, 2]] = np.nan
 
   .. ipython:: python
 
      # set to not display the null counts
-     pd.set_option('max_info_rows',0)
+     pd.set_option('max_info_rows', 0)
      df.info()
 
   .. ipython:: python
 
      # this is the default (same as in 0.13.0)
-     pd.set_option('max_info_rows',max_info_rows)
+     pd.set_option('max_info_rows', max_info_rows)
      df.info()
 
 - Add ``show_dimensions`` display option for the new DataFrame repr to control whether the dimensions print.
 
   .. ipython:: python
 
-      df = DataFrame([[1, 2], [3, 4]])
+      df = pd.DataFrame([[1, 2], [3, 4]])
       pd.set_option('show_dimensions', False)
       df
 
@@ -91,7 +88,7 @@ Output Formatting Enhancements
 
   Previously output might look like:
 
-  .. code-block:: python
+  ..   code-block:: text
 
         age                 today               diff
       0 2001-01-01 00:00:00 2013-04-19 00:00:00 4491 days, 00:00:00
@@ -101,10 +98,10 @@ Output Formatting Enhancements
 
   .. ipython:: python
 
-     df = DataFrame([ Timestamp('20010101'),
-                      Timestamp('20040601') ], columns=['age'])
-     df['today'] = Timestamp('20130419')
-     df['diff'] = df['today']-df['age']
+     df = pd.DataFrame([pd.Timestamp('20010101'),
+                        pd.Timestamp('20040601')], columns=['age'])
+     df['today'] = pd.Timestamp('20130419')
+     df['diff'] = df['today'] - df['age']
      df
 
 API changes
@@ -118,7 +115,7 @@ API changes
 
   .. ipython:: python
 
-      s = Series(['a', 'a|b', np.nan, 'a|c'])
+      s = pd.Series(['a', 'a|b', np.nan, 'a|c'])
       s.str.get_dummies(sep='|')
 
 - Added the ``NDFrame.equals()`` method to compare if two NDFrames are
@@ -129,8 +126,8 @@ API changes
 
   .. code-block:: python
 
-      df = DataFrame({'col':['foo', 0, np.nan]})
-      df2 = DataFrame({'col':[np.nan, 0, 'foo']}, index=[2,1,0])
+      df = pd.DataFrame({'col': ['foo', 0, np.nan]})
+      df2 = pd.DataFrame({'col': [np.nan, 0, 'foo']}, index=[2, 1, 0])
       df.equals(df2)
       df.equals(df2.sort_index())
 
@@ -221,7 +218,7 @@ Enhancements
       shades = ['light', 'dark']
       colors = ['red', 'green', 'blue']
 
-      MultiIndex.from_product([shades, colors], names=['shade', 'color'])
+      pd.MultiIndex.from_product([shades, colors], names=['shade', 'color'])
 
 - Panel :meth:`~pandas.Panel.apply` will work on non-ufuncs. See :ref:`the docs<basics.apply_panel>`.
 
@@ -255,9 +252,8 @@ Enhancements
 
   .. ipython:: python
 
-     result = panel.apply(
-                lambda x: (x-x.mean())/x.std(),
-                axis='major_axis')
+     result = panel.apply(lambda x: (x - x.mean()) / x.std(),
+                          axis='major_axis')
      result
      result['ItemA']
 
@@ -265,20 +261,21 @@ Enhancements
 
   .. ipython:: python
 
-     f = lambda x: ((x.T-x.mean(1))/x.std(1)).T
+     def f(x):
+         return ((x.T - x.mean(1)) / x.std(1)).T
 
-     result = panel.apply(f, axis = ['items','major_axis'])
+     result = panel.apply(f, axis=['items', 'major_axis'])
      result
-     result.loc[:,:,'ItemA']
+     result.loc[:, :, 'ItemA']
 
   This is equivalent to the following
 
   .. ipython:: python
 
-     result = Panel(dict([ (ax,f(panel.loc[:,:,ax]))
-                             for ax in panel.minor_axis ]))
+     result = pd.Panel({ax: f(panel.loc[:, :, ax]) for ax in panel.minor_axis})
+
      result
-     result.loc[:,:,'ItemA']
+     result.loc[:, :, 'ItemA']
 
 Performance
 ~~~~~~~~~~~
