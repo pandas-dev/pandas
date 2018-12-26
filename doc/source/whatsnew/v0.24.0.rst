@@ -387,6 +387,7 @@ Backwards incompatible API changes
 - :func:`read_csv` will now raise a ``ValueError`` if a column with missing values is declared as having dtype ``bool`` (:issue:`20591`)
 - The column order of the resultant :class:`DataFrame` from :meth:`MultiIndex.to_frame` is now guaranteed to match the :attr:`MultiIndex.names` order. (:issue:`22420`)
 - :func:`pd.offsets.generate_range` argument ``time_rule`` has been removed; use ``offset`` instead (:issue:`24157`)
+- In 0.23.x, pandas would raise a ``ValueError`` on a merge of a numeric column (e.g. ``int`` dtyped column) and an ``object`` dtyped column (:issue:`9780`). We have re-enabled the ability to merge ``object`` and other dtypes (:issue:`21681`)
 
 Percentage change on groupby
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
