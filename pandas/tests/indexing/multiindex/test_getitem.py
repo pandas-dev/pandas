@@ -303,14 +303,17 @@ def test_frame_setitem_copy_no_write(multiindex_dataframe_random_data):
 
 
 def test_getitem_lowerdim_corner(multiindex_dataframe_random_data):
-    frame = multiindex_dataframe_random_data
-    msg = "11"
-    with pytest.raises(KeyError, match=msg):
-        frame.loc.__getitem__((('bar', 'three'), 'B'))
+    df = multiindex_dataframe_random_data
+
+    # test setup - check key not in dataframe
+    with pytest.raises(KeyError, match="11"):
+        df.loc[('bar', 'three'), 'B']
 
     # in theory should be inserting in a sorted space????
-    frame.loc[('bar', 'three'), 'B'] = 0
-    assert frame.sort_index().loc[('bar', 'three'), 'B'] == 0
+    df.loc[('bar', 'three'), 'B'] = 0
+    expected = 0
+    result = df.sort_index().loc[('bar', 'three'), 'B']
+    assert result == expected
 
 
 @pytest.mark.parametrize('unicode_strings', [True, False])
