@@ -22,13 +22,6 @@ import pandas.util.testing as tm
 
 _frame = DataFrame(randn(10000, 4), columns=list('ABCD'), dtype='float64')
 _frame2 = DataFrame(randn(100, 4), columns=list('ABCD'), dtype='float64')
-_issued_frame = DataFrame([[0, 1, 2, 'aa'], [0, 1, 2, 'aa'],
-                           [0, 1, 5, 'bb'], [0, 1, 5, 'bb'],
-                           [0, 1, 5, 'bb']], columns=['a', 'b', 'c', 'dtype'])
-_issued_frame2 = DataFrame([[0, 3, 2, 'aa'], [0, 4, 2, 'aa'],
-                            [0, 1, 1, 'bb'], [0, 1, 2, 'bb'],
-                            [0, 2, 9, 'bb'], ['cc', 4, 3, 1]],
-                           columns=['a', 'b', 'c', 'dtype'])
 _mixed = DataFrame({'A': _frame['A'].copy(),
                     'B': _frame['B'].astype('float32'),
                     'C': _frame['C'].astype('int64'),
@@ -452,17 +445,19 @@ class TestExpressions(object):
                     tm.assert_frame_equal(r, e)
 
     @pytest.mark.parametrize("test_input,expected", [
-        (_issued_frame.loc[:, ['a', 'dtype']].
-         ne(_issued_frame.loc[:, ['a', 'dtype']]),
+        (DataFrame([[0, 1, 2, 'aa'], [0, 1, 2, 'aa']],
+                   columns=['a', 'b', 'c', 'dtype']).loc[:, ['a', 'dtype']].
+         ne(DataFrame([[0, 1, 2, 'aa'], [0, 1, 2, 'aa']],
+                      columns=['a', 'b', 'c', 'dtype']).
+            loc[:, ['a', 'dtype']]),
+         DataFrame([[False, False], [False, False]], columns=['a', 'dtype'])),
+        (DataFrame([[0, 3, 2, 'aa'], [0, 4, 2, 'aa'], [0, 1, 1, 'bb']],
+                   columns=['a', 'b', 'c', 'dtype']).loc[:, ['a', 'dtype']].
+         ne(DataFrame([[0, 3, 2, 'aa'], [0, 4, 2, 'aa'], [0, 1, 1, 'bb']],
+                      columns=['a', 'b', 'c', 'dtype'])
+            .loc[:, ['a', 'dtype']]),
          DataFrame([[False, False], [False, False],
-                    [False, False], [False, False],
-                    [False, False]], columns=['a', 'dtype'])),
-        (_issued_frame2.loc[:, ['a', 'dtype']].
-         ne(_issued_frame2.loc[:, ['a', 'dtype']]),
-         DataFrame([[False, False], [False, False],
-                   [False, False], [False, False],
-                   [False, False], [False, False]],
-                   columns=['a', 'dtype'])),
+                   [False, False]], columns=['a', 'dtype'])),
     ])
     def test_bool_ops_column_name_dtype(self, test_input, expected):
         # GH 22383 - .ne fails if columns containing column name 'dtype'
