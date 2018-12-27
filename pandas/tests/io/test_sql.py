@@ -1930,24 +1930,28 @@ class _TestPostgreSQLAlchemy(object):
 
 @pytest.mark.single
 @pytest.mark.db
+@pytest.importorskip('pymysql')
 class TestMySQLAlchemy(_TestMySQLAlchemy, _TestSQLAlchemy):
     pass
 
 
 @pytest.mark.single
 @pytest.mark.db
+@pytest.importorskip('pymysql')
 class TestMySQLAlchemyConn(_TestMySQLAlchemy, _TestSQLAlchemyConn):
     pass
 
 
 @pytest.mark.single
 @pytest.mark.db
+@pytest.importorskip('psycopg2')
 class TestPostgreSQLAlchemy(_TestPostgreSQLAlchemy, _TestSQLAlchemy):
     pass
 
 
 @pytest.mark.single
 @pytest.mark.db
+@pytest.importorskip('psycopg2')
 class TestPostgreSQLAlchemyConn(_TestPostgreSQLAlchemy, _TestSQLAlchemyConn):
     pass
 
@@ -2401,6 +2405,7 @@ class TestXSQLite(SQLiteMixIn):
 @pytest.mark.db
 @pytest.mark.skip(reason="gh-13611: there is no support for MySQL "
                   "if SQLAlchemy is not installed")
+@pytest.importorskip('pymysql')
 class TestXMySQL(MySQLMixIn):
 
     @pytest.fixture(autouse=True, scope='class')
