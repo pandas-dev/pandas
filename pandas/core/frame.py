@@ -7093,7 +7093,10 @@ class DataFrame(NDFrame):
                             index=left.columns)
 
         else:
-            raise ValueError('Invalid method')
+            raise ValueError("Invalid method {method} was passed, "
+                             "valid methods are: 'pearson', 'kendall', "
+                             "'spearman', or callable".
+                             format(method=str(method)))
 
         if not drop:
             raxis = 1 if axis == 0 else 0
