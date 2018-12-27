@@ -153,7 +153,7 @@ See the package overview for more detail about what's in the library.
     comparison_with_stata
     {% endif -%}
     {% if include_api -%}
-    api
+    api/index
     {% endif -%}
     {% if not single_doc -%}
     developer
