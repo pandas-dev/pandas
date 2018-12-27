@@ -5,7 +5,6 @@ import numpy as np
 from pandas._libs import lib
 from pandas.compat.numpy import function as nv
 
-from pandas.core.dtypes.common import extract_array
 from pandas.core.dtypes.dtypes import ExtensionDtype
 from pandas.core.dtypes.generic import ABCIndexClass, ABCSeries
 from pandas.core.dtypes.inference import is_list_like
@@ -210,6 +209,8 @@ class PandasArray(ExtensionArray, ExtensionOpsMixin, NDArrayOperatorsMixin):
         return result
 
     def __setitem__(self, key, value):
+        from pandas.core.internals.arrays import extract_array
+
         value = extract_array(value, extract_numpy=True)
 
         if not lib.is_scalar(key) and is_list_like(key):

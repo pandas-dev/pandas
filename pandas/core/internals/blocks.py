@@ -18,13 +18,12 @@ from pandas.core.dtypes.cast import (
     infer_dtype_from_scalar, maybe_convert_objects, maybe_downcast_to_dtype,
     maybe_infer_dtype_type, maybe_promote, maybe_upcast, soft_convert_objects)
 from pandas.core.dtypes.common import (
-    _NS_DTYPE, _TD_DTYPE, ensure_platform_int, extract_array, is_bool_dtype,
-    is_categorical, is_categorical_dtype, is_datetime64_dtype,
-    is_datetime64tz_dtype, is_dtype_equal, is_extension_array_dtype,
-    is_extension_type, is_float_dtype, is_integer, is_integer_dtype,
-    is_interval_dtype, is_list_like, is_numeric_v_string_like, is_object_dtype,
-    is_period_dtype, is_re, is_re_compilable, is_sparse, is_timedelta64_dtype,
-    pandas_dtype)
+    _NS_DTYPE, _TD_DTYPE, ensure_platform_int, is_bool_dtype, is_categorical,
+    is_categorical_dtype, is_datetime64_dtype, is_datetime64tz_dtype,
+    is_dtype_equal, is_extension_array_dtype, is_extension_type,
+    is_float_dtype, is_integer, is_integer_dtype, is_interval_dtype,
+    is_list_like, is_numeric_v_string_like, is_object_dtype, is_period_dtype,
+    is_re, is_re_compilable, is_sparse, is_timedelta64_dtype, pandas_dtype)
 import pandas.core.dtypes.concat as _concat
 from pandas.core.dtypes.dtypes import (
     CategoricalDtype, DatetimeTZDtype, ExtensionDtype, PandasExtensionDtype)
@@ -41,6 +40,7 @@ import pandas.core.common as com
 from pandas.core.indexes.datetimes import DatetimeIndex
 from pandas.core.indexes.timedeltas import TimedeltaIndex
 from pandas.core.indexing import check_setitem_lengths
+from pandas.core.internals.arrays import extract_array
 import pandas.core.missing as missing
 
 from pandas.io.formats.printing import pprint_thing

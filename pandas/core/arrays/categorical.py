@@ -16,11 +16,11 @@ from pandas.util._validators import validate_bool_kwarg, validate_fillna_kwargs
 from pandas.core.dtypes.cast import (
     coerce_indexer_dtype, maybe_infer_to_datetimelike)
 from pandas.core.dtypes.common import (
-    ensure_int64, ensure_object, ensure_platform_int, extract_array,
-    is_categorical, is_categorical_dtype, is_datetime64_dtype, is_datetimelike,
-    is_dict_like, is_dtype_equal, is_extension_array_dtype, is_float_dtype,
-    is_integer_dtype, is_iterator, is_list_like, is_object_dtype, is_scalar,
-    is_sequence, is_timedelta64_dtype)
+    ensure_int64, ensure_object, ensure_platform_int, is_categorical,
+    is_categorical_dtype, is_datetime64_dtype, is_datetimelike, is_dict_like,
+    is_dtype_equal, is_extension_array_dtype, is_float_dtype, is_integer_dtype,
+    is_iterator, is_list_like, is_object_dtype, is_scalar, is_sequence,
+    is_timedelta64_dtype)
 from pandas.core.dtypes.dtypes import CategoricalDtype
 from pandas.core.dtypes.generic import (
     ABCCategoricalIndex, ABCIndexClass, ABCSeries)
@@ -2091,6 +2091,7 @@ class Categorical(ExtensionArray, PandasObject):
             If (one or more) Value is not in categories or if a assigned
             `Categorical` does not have the same categories
         """
+        from pandas.core.internals.arrays import extract_array
 
         value = extract_array(value, extract_numpy=True)
 

@@ -11,9 +11,8 @@ from pandas.compat import PY2, range, text_type, u, zip
 
 from pandas.core.dtypes.cast import maybe_promote
 from pandas.core.dtypes.common import (
-    ensure_platform_int, extract_array, is_bool_dtype,
-    is_extension_array_dtype, is_integer_dtype, is_list_like, is_object_dtype,
-    needs_i8_conversion)
+    ensure_platform_int, is_bool_dtype, is_extension_array_dtype,
+    is_integer_dtype, is_list_like, is_object_dtype, needs_i8_conversion)
 from pandas.core.dtypes.missing import notna
 
 from pandas import compat
@@ -22,6 +21,7 @@ from pandas.core.arrays import SparseArray
 from pandas.core.arrays.categorical import _factorize_from_iterable
 from pandas.core.frame import DataFrame
 from pandas.core.index import Index, MultiIndex
+from pandas.core.internals.arrays import extract_array
 from pandas.core.series import Series
 from pandas.core.sorting import (
     compress_group_index, decons_obs_group_ids, get_compressed_ids,
