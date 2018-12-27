@@ -632,16 +632,6 @@ class BlockManager(PandasObject):
 
         return False
 
-    def get_data(self, copy=False):
-        """
-        Parameters
-        ----------
-        copy : boolean, default False
-            Whether to copy the blocks
-        """
-        self._consolidate_inplace()
-        return self.combine([b for b in self.blocks], copy)
-
     def get_bool_data(self, copy=False):
         """
         Parameters
