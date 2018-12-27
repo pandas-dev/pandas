@@ -1250,8 +1250,8 @@ Operators now preserve dtypes
    s
    s.astype(np.int64)
 
-  ``astype`` fails if data contains values which cannot be converted to specified ``dtype``.
-  Note that the limitation is applied to ``fill_value`` which default is ``np.nan``.
+``astype`` fails if data contains values which cannot be converted to specified ``dtype``.
+Note that the limitation is applied to ``fill_value`` which default is ``np.nan``.
 
 .. code-block:: ipython
 

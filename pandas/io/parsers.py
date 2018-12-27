@@ -59,8 +59,8 @@ _doc_read_csv_and_table = r"""
 Also supports optionally iterating or breaking of the file
 into chunks.
 
-Additional help can be found in the `online docs for IO Tools
-<http://pandas.pydata.org/pandas-docs/stable/io.html>`_.
+Additional help can be found in the online docs for
+`IO Tools <http://pandas.pydata.org/pandas-docs/stable/io.html>`_.
 
 Parameters
 ----------

@@ -977,21 +977,17 @@ categorical (categories and ordering). So if you read back the CSV file you have
 relevant columns back to `category` and assign the right categories and categories ordering.
 
 .. ipython:: python
-    :suppress:
 
-
-.. ipython:: python
-
-    from pandas.compat import StringIO
+    import io
     s = pd.Series(pd.Categorical(['a', 'b', 'b', 'a', 'a', 'd']))
     # rename the categories
     s.cat.categories = ["very good", "good", "bad"]
     # reorder the categories and add missing categories
     s = s.cat.set_categories(["very bad", "bad", "medium", "good", "very good"])
     df = pd.DataFrame({"cats": s, "vals": [1, 2, 3, 4, 5, 6]})
-    csv = StringIO()
+    csv = io.StringIO()
     df.to_csv(csv)
-    df2 = pd.read_csv(StringIO(csv.getvalue()))
+    df2 = pd.read_csv(io.StringIO(csv.getvalue()))
     df2.dtypes
     df2["cats"]
     # Redo the category
@@ -1206,6 +1202,7 @@ Use ``copy=True`` to prevent such a behaviour or simply don't reuse ``Categorica
     cat
 
 .. note::
+
     This also happens in some cases when you supply a NumPy array instead of a ``Categorical``:
     using an int array (e.g. ``np.array([1,2,3,4])``) will exhibit the same behavior, while using
     a string array (e.g. ``np.array(["a","b","c","a"])``) will not.
