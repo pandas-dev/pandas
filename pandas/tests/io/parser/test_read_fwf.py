@@ -555,11 +555,14 @@ cc\tdd """
     tm.assert_frame_equal(result, expected)
 
 
-@pytest.mark.parametrize("compression", ["gzip", "bz2"])
-def test_fwf_compression(compression):
+@pytest.mark.parametrize("infer", [True, False, None])
+def test_fwf_compression(compression_only, infer):
     data = """1111111111
     2222222222
     3333333333""".strip()
+
+    compression = compression_only
+    extension = "gz" if compression == "gzip" else compression
 
     kwargs = dict(widths=[5, 5], names=["one", "two"])
     expected = read_fwf(StringIO(data), **kwargs)
@@ -567,8 +570,11 @@ def test_fwf_compression(compression):
     if compat.PY3:
         data = bytes(data, encoding="utf-8")
 
-    with tm.ensure_clean() as path:
+    with tm.ensure_clean(filename="tmp." + extension) as path:
         tm.write_to_compressed(compression, path, data)
 
-        result = read_fwf(path, compression=compression, **kwargs)
+        if infer is not None:
+            kwargs["compression"] = "infer" if infer else compression
+
+        result = read_fwf(path, **kwargs)
         tm.assert_frame_equal(result, expected)
