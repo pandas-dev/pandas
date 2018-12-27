@@ -1122,6 +1122,8 @@ This is equivalent but less verbose and more memory efficient / faster than this
           labels=['left', 'right'], vertical=False);
    plt.close('all');
 
+.. _merging.join_with_two_multi_indexes:
+
 Joining with two MultiIndexes
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
