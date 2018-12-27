@@ -1895,7 +1895,8 @@ class TestDataFrameAnalytics():
         df = DataFrame({'A': [1, 2, 3],
                         'B': [1., np.nan, 3.]})
         result = df.clip(1, 2)
-        expected = DataFrame({'A': [1, 2, 2.],
+        # GH 24162, clipping now preserves types
+        expected = DataFrame({'A': [1, 2, 2],
                               'B': [1., np.nan, 2.]})
         tm.assert_frame_equal(result, expected, check_like=True)
 
