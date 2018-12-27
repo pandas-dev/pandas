@@ -5,7 +5,7 @@ from pandas.compat import StringIO, range, u, zip
 
 import pandas as pd
 from pandas import DataFrame, Index, MultiIndex, Series
-import pandas.core.common as com
+from pandas.core.common import SettingWithCopyError
 from pandas.core.indexing import IndexingError
 from pandas.util import testing as tm
 
@@ -272,33 +272,34 @@ def test_getitem_iloc(multiindex_dataframe_random_data):
     tm.assert_series_equal(result, expected)
 
 
-def test_frame_getitem_view(multiindex_dataframe_random_data):
-    frame = multiindex_dataframe_random_data
-    df = frame.T.copy()
-
+def test_frame_setitem_view_direct(multiindex_dataframe_random_data):
     # this works because we are modifying the underlying array
     # really a no-no
+    df = multiindex_dataframe_random_data.T
     df['foo'].values[:] = 0
     assert (df['foo'].values == 0).all()
 
-    # but not if it's mixed-type
-    df['foo', 'four'] = 'foo'
-    df = df.sort_index(level=0, axis=1)
 
-    # this will work, but will raise/warn as its chained assignment
-    def f():
-        df['foo']['one'] = 2
-        return df
-
+def test_frame_setitem_copy_raises(multiindex_dataframe_random_data):
+    # will raise/warn as its chained assignment
+    df = multiindex_dataframe_random_data.T
     msg = "A value is trying to be set on a copy of a slice from a DataFrame"
-    with pytest.raises(com.SettingWithCopyError, match=msg):
+    with pytest.raises(SettingWithCopyError, match=msg):
         df['foo']['one'] = 2
+
+
+def test_frame_setitem_copy_no_write(multiindex_dataframe_random_data):
+    frame = multiindex_dataframe_random_data.T
+    expected = frame
+    df = frame.copy()
 
     try:
-        df = f()
-    except ValueError:
+        df['foo']['one'] = 2
+    except SettingWithCopyError:
         pass
-    assert (df['foo', 'one'] == 0).all()
+
+    result = df
+    tm.assert_frame_equal(result, expected)
 
 
 def test_getitem_lowerdim_corner(multiindex_dataframe_random_data):
