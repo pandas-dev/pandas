@@ -43,8 +43,8 @@ def data(dtype):
 
 
 @pytest.fixture
-def data_for_ones(dtype):
-    return integer_array(np.ones(100), dtype=dtype)
+def data_for_twos(dtype):
+    return integer_array(np.ones(100) * 2, dtype=dtype)
 
 
 @pytest.fixture

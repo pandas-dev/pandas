@@ -24,8 +24,8 @@ def data():
 
 
 @pytest.fixture
-def data_for_ones():
-    return DecimalArray([decimal.Decimal(1) for _ in range(100)])
+def data_for_twos():
+    return DecimalArray([decimal.Decimal(2) for _ in range(100)])
 
 
 @pytest.fixture

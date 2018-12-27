@@ -21,8 +21,8 @@ def data(dtype):
 
 
 @pytest.fixture
-def data_for_ones(dtype):
-    return PeriodArray(np.ones(100), freq=dtype.freq)
+def data_for_twos(dtype):
+    return PeriodArray(np.ones(100) * 2, freq=dtype.freq)
 
 
 @pytest.fixture

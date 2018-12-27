@@ -35,8 +35,8 @@ def data(request):
 
 
 @pytest.fixture
-def data_for_ones(request):
-    return SparseArray(np.ones(100))
+def data_for_twos(request):
+    return SparseArray(np.ones(100) * 2)
 
 
 @pytest.fixture(params=[0, np.nan])
