@@ -582,7 +582,7 @@ def sanitize_array(data, index, dtype=None, copy=False,
             # We don't want to let people put our PandasArray wrapper
             # (the output of Series/Index.array), into a Series. So
             # we explicitly unwrap it here.
-            subarr = data._ndarray
+            subarr = data.to_numpy()
         else:
             subarr = data
 

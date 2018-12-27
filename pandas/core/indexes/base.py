@@ -266,7 +266,7 @@ class Index(IndexOpsMixin, PandasObject):
         from .range import RangeIndex
         if isinstance(data, ABCPandasArray):
             # ensure users don't accidentally put a PandasArray in an index.
-            data = data._ndarray
+            data = data.to_numpy()
 
         # range
         if isinstance(data, RangeIndex):
