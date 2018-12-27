@@ -961,7 +961,22 @@ class _MergeOperation(object):
             # object values are allowed to be merged
             elif ((lk_is_object and is_numeric_dtype(rk)) or
                   (is_numeric_dtype(lk) and rk_is_object)):
-                pass
+                inferred_left = lib.infer_dtype(lk)
+                inferred_right = lib.infer_dtype(rk)
+                bool_types = ['integer', 'mixed-integer', 'boolean', 'empty']
+                string_types = ['string', 'unicode', 'mixed', 'bytes', 'empty']
+
+                # inferred bool
+                if (inferred_left in bool_types and
+                        inferred_right in bool_types):
+                    pass
+
+                # unless we are merging non-string-like with string-like
+                elif ((inferred_left in string_types and
+                       inferred_right not in string_types) or
+                      (inferred_right in string_types and
+                       inferred_left not in string_types)):
+                    raise ValueError(msg)
 
             # datetimelikes must match exactly
             elif is_datetimelike(lk) and not is_datetimelike(rk):

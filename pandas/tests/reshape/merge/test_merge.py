@@ -924,10 +924,6 @@ class TestMergeDtypes(object):
     @pytest.mark.parametrize('right_vals', [
         ['foo', 'bar'],
         Series(['foo', 'bar']).astype('category'),
-        [1, 2],
-        [1.0, 2.0],
-        Series([1, 2], dtype='uint64'),
-        Series([1, 2], dtype='int32')
     ])
     def test_different(self, right_vals):
 
@@ -1043,12 +1039,7 @@ class TestMergeDtypes(object):
 
     @pytest.mark.parametrize('df1_vals, df2_vals', [
 
-        # do not infer to numeric
-        ([0, 1, 2], ["0", "1", "2"]),
-        ([0.0, 1.0, 2.0], ["0", "1", "2"]),
-        ([0, 1, 2], [u"0", u"1", u"2"]),
-
-        # merge on category coercs to object
+        # merge on category coerces to object
         ([0, 1, 2], Series(['a', 'b', 'a']).astype('category')),
         ([0.0, 1.0, 2.0], Series(['a', 'b', 'a']).astype('category')),
 
@@ -1070,6 +1061,13 @@ class TestMergeDtypes(object):
         assert is_object_dtype(result.A.dtype)
 
     @pytest.mark.parametrize('df1_vals, df2_vals', [
+        # do not infer to numeric
+
+        (Series([1, 2], dtype='uint64'), ["a", "b", "c"]),
+        (Series([1, 2], dtype='int32'), ["a", "b", "c"]),
+        ([0, 1, 2], ["0", "1", "2"]),
+        ([0.0, 1.0, 2.0], ["0", "1", "2"]),
+        ([0, 1, 2], [u"0", u"1", u"2"]),
         (pd.date_range('1/1/2011', periods=2, freq='D'), ['2011-01-01',
                                                           '2011-01-02']),
         (pd.date_range('1/1/2011', periods=2, freq='D'), [0, 1]),
