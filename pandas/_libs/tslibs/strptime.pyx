@@ -20,8 +20,6 @@ except:
         except:
             from _dummy_thread import allocate_lock as _thread_allocate_lock
 
-from cython import Py_ssize_t
-
 
 import pytz
 
@@ -29,13 +27,13 @@ import numpy as np
 from numpy cimport int64_t
 
 
-from np_datetime cimport (check_dts_bounds,
-                          dtstruct_to_dt64, npy_datetimestruct)
+from pandas._libs.tslibs.np_datetime cimport (
+    check_dts_bounds, dtstruct_to_dt64, npy_datetimestruct)
 
-from util cimport is_string_object
+from pandas._libs.tslibs.util cimport is_string_object
 
-from nattype cimport checknull_with_nat, NPY_NAT
-from nattype import nat_strings
+from pandas._libs.tslibs.nattype cimport checknull_with_nat, NPY_NAT
+from pandas._libs.tslibs.nattype import nat_strings
 
 cdef dict _parse_code_table = {'y': 0,
                                'Y': 1,
@@ -69,7 +67,7 @@ def array_strptime(object[:] values, object fmt,
     values : ndarray of string-like objects
     fmt : string-like regex
     exact : matches must be exact if True, search if False
-    coerce : if invalid values found, coerce to NaT
+    errors : string specifying error handling, {'raise', 'ignore', 'coerce'}
     """
 
     cdef:

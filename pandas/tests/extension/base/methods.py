@@ -221,6 +221,17 @@ class BaseMethodsTests(BaseExtensionTests):
         expected = empty
         self.assert_extension_array_equal(result, expected)
 
+    def test_shift_fill_value(self, data):
+        arr = data[:4]
+        fill_value = data[0]
+        result = arr.shift(1, fill_value=fill_value)
+        expected = data.take([0, 0, 1, 2])
+        self.assert_extension_array_equal(result, expected)
+
+        result = arr.shift(-2, fill_value=fill_value)
+        expected = data.take([2, 3, 0, 0])
+        self.assert_extension_array_equal(result, expected)
+
     @pytest.mark.parametrize("as_frame", [True, False])
     def test_hash_pandas_object_works(self, data, as_frame):
         # https://github.com/pandas-dev/pandas/issues/23066
@@ -264,3 +275,34 @@ class BaseMethodsTests(BaseExtensionTests):
         if as_frame:
             expected = expected.to_frame(name='a')
         self.assert_equal(result, expected)
+
+    @pytest.mark.parametrize("use_numpy", [True, False])
+    @pytest.mark.parametrize("as_series", [True, False])
+    @pytest.mark.parametrize("repeats", [0, 1, 2, [1, 2, 3]])
+    def test_repeat(self, data, repeats, as_series, use_numpy):
+        arr = type(data)._from_sequence(data[:3], dtype=data.dtype)
+        if as_series:
+            arr = pd.Series(arr)
+
+        result = np.repeat(arr, repeats) if use_numpy else arr.repeat(repeats)
+
+        repeats = [repeats] * 3 if isinstance(repeats, int) else repeats
+        expected = [x for x, n in zip(arr, repeats) for _ in range(n)]
+        expected = type(data)._from_sequence(expected, dtype=data.dtype)
+        if as_series:
+            expected = pd.Series(expected, index=arr.index.repeat(repeats))
+
+        self.assert_equal(result, expected)
+
+    @pytest.mark.parametrize("use_numpy", [True, False])
+    @pytest.mark.parametrize('repeats, kwargs, error, msg', [
+        (2, dict(axis=1), ValueError, "'axis"),
+        (-1, dict(), ValueError, "negative"),
+        ([1, 2], dict(), ValueError, "shape"),
+        (2, dict(foo='bar'), TypeError, "'foo'")])
+    def test_repeat_raises(self, data, repeats, kwargs, error, msg, use_numpy):
+        with pytest.raises(error, match=msg):
+            if use_numpy:
+                np.repeat(data, repeats, **kwargs)
+            else:
+                data.repeat(repeats, **kwargs)

@@ -7,7 +7,6 @@ import sys
 cdef bint PY3 = (sys.version_info[0] >= 3)
 
 import cython
-from cython import Py_ssize_t
 
 from cpython cimport Py_NE, Py_EQ, PyObject_RichCompare
 
@@ -23,19 +22,20 @@ from cpython.datetime cimport (datetime, timedelta,
 PyDateTime_IMPORT
 
 
-cimport util
-from util cimport (is_timedelta64_object, is_datetime64_object,
-                   is_integer_object, is_float_object,
-                   is_string_object)
+cimport pandas._libs.tslibs.util as util
+from pandas._libs.tslibs.util cimport (
+    is_timedelta64_object, is_datetime64_object, is_integer_object,
+    is_float_object, is_string_object)
 
-from ccalendar import DAY_SECONDS
+from pandas._libs.tslibs.ccalendar import DAY_SECONDS
 
-from np_datetime cimport (cmp_scalar, reverse_ops, td64_to_tdstruct,
-                          pandas_timedeltastruct)
+from pandas._libs.tslibs.np_datetime cimport (
+    cmp_scalar, reverse_ops, td64_to_tdstruct, pandas_timedeltastruct)
 
-from nattype import nat_strings
-from nattype cimport checknull_with_nat, NPY_NAT, c_NaT as NaT
-from offsets cimport to_offset
+from pandas._libs.tslibs.nattype import nat_strings
+from pandas._libs.tslibs.nattype cimport (
+    checknull_with_nat, NPY_NAT, c_NaT as NaT)
+from pandas._libs.tslibs.offsets cimport to_offset
 
 # ----------------------------------------------------------------------
 # Constants
@@ -161,9 +161,6 @@ cpdef convert_to_timedelta64(object ts, object unit):
         - None/NaT
 
     Return an ns based int64
-
-    # kludgy here until we have a timedelta scalar
-    # handle the numpy < 1.7 case
     """
     if checknull_with_nat(ts):
         return np.timedelta64(NPY_NAT)

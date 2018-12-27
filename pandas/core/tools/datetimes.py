@@ -171,6 +171,7 @@ def _convert_listlike_datetimes(arg, box, format, name=None, tz=None,
         - ndarray of Timestamps if box=False
     """
     from pandas import DatetimeIndex
+    from pandas.core.arrays import DatetimeArrayMixin as DatetimeArray
     from pandas.core.arrays.datetimes import (
         maybe_convert_dtype, objects_to_datetime64ns)
 
@@ -179,14 +180,14 @@ def _convert_listlike_datetimes(arg, box, format, name=None, tz=None,
 
     # these are shortcutable
     if is_datetime64tz_dtype(arg):
-        if not isinstance(arg, DatetimeIndex):
+        if not isinstance(arg, (DatetimeArray, DatetimeIndex)):
             return DatetimeIndex(arg, tz=tz, name=name)
         if tz == 'utc':
             arg = arg.tz_convert(None).tz_localize(tz)
         return arg
 
     elif is_datetime64_ns_dtype(arg):
-        if box and not isinstance(arg, DatetimeIndex):
+        if box and not isinstance(arg, (DatetimeArray, DatetimeIndex)):
             try:
                 return DatetimeIndex(arg, tz=tz, name=name)
             except ValueError:
@@ -203,7 +204,12 @@ def _convert_listlike_datetimes(arg, box, format, name=None, tz=None,
         if box:
             if errors == 'ignore':
                 from pandas import Index
-                return Index(result, name=name)
+                result = Index(result, name=name)
+                # GH 23758: We may still need to localize the result with tz
+                try:
+                    return result.tz_localize(tz)
+                except AttributeError:
+                    return result
 
             return DatetimeIndex(result, tz=tz, name=name)
         return result
@@ -562,6 +568,11 @@ def to_datetime(arg, errors='raise', dayfirst=False, yearfirst=False,
 
     if isinstance(arg, Timestamp):
         result = arg
+        if tz is not None:
+            if arg.tz is not None:
+                result = result.tz_convert(tz)
+            else:
+                result = result.tz_localize(tz)
     elif isinstance(arg, ABCSeries):
         cache_array = _maybe_cache(arg, format, cache, convert_listlike)
         if not cache_array.empty:
@@ -571,7 +582,7 @@ def to_datetime(arg, errors='raise', dayfirst=False, yearfirst=False,
             values = convert_listlike(arg._values, True, format)
             result = Series(values, index=arg.index, name=arg.name)
     elif isinstance(arg, (ABCDataFrame, compat.MutableMapping)):
-        result = _assemble_from_unit_mappings(arg, errors=errors)
+        result = _assemble_from_unit_mappings(arg, errors, box, tz)
     elif isinstance(arg, ABCIndexClass):
         cache_array = _maybe_cache(arg, format, cache, convert_listlike)
         if not cache_array.empty:
@@ -617,7 +628,7 @@ _unit_map = {'year': 'year',
              }
 
 
-def _assemble_from_unit_mappings(arg, errors):
+def _assemble_from_unit_mappings(arg, errors, box, tz):
     """
     assemble the unit specified fields from the arg (DataFrame)
     Return a Series for actual parsing
@@ -630,6 +641,11 @@ def _assemble_from_unit_mappings(arg, errors):
         - If 'raise', then invalid parsing will raise an exception
         - If 'coerce', then invalid parsing will be set as NaT
         - If 'ignore', then invalid parsing will return the input
+    box : boolean
+
+        - If True, return a DatetimeIndex
+        - If False, return an array
+    tz : None or 'utc'
 
     Returns
     -------
@@ -682,7 +698,7 @@ def _assemble_from_unit_mappings(arg, errors):
               coerce(arg[unit_rev['month']]) * 100 +
               coerce(arg[unit_rev['day']]))
     try:
-        values = to_datetime(values, format='%Y%m%d', errors=errors)
+        values = to_datetime(values, format='%Y%m%d', errors=errors, utc=tz)
     except (TypeError, ValueError) as e:
         raise ValueError("cannot assemble the "
                          "datetimes: {error}".format(error=e))
@@ -697,7 +713,8 @@ def _assemble_from_unit_mappings(arg, errors):
             except (TypeError, ValueError) as e:
                 raise ValueError("cannot assemble the datetimes [{value}]: "
                                  "{error}".format(value=value, error=e))
-
+    if not box:
+        return values.values
     return values
 
 
