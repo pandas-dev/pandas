@@ -11,6 +11,7 @@ import warnings
 import numpy as np
 
 import pandas.core.common as com
+from pandas import DataFrame
 from pandas.core.computation.check import _NUMEXPR_INSTALLED
 from pandas.core.config import get_option
 
@@ -160,14 +161,12 @@ set_use_numexpr(get_option('compute.use_numexpr'))
 
 def _has_bool_dtype(x):
     try:
-        if not isinstance(x.dtype, np.dtype):
-            x = x.rename({'dtype': 'temporary_dtype'}, axis=1)
-        return x.dtype == bool
-    except AttributeError:
-        try:
+        if isinstance(x, DataFrame):
             return 'bool' in x.dtypes
-        except AttributeError:
-            return isinstance(x, (bool, np.bool_))
+        else:
+            return x.dtype == bool
+    except AttributeError:
+        return isinstance(x, (bool, np.bool_))
 
 
 def _bool_arith_check(op_str, a, b, not_allowed=frozenset(('/', '//', '**')),
