@@ -1303,7 +1303,7 @@ arbitrary function, for example:
 .. ipython:: python
 
    def mean(groupby):
-       return(groupby.mean())
+       return groupby.mean()
 
    df.groupby(['Store', 'Product']).pipe(mean)
 
