@@ -1,7 +1,6 @@
 """
 Base and utility classes for pandas objects.
 """
-import inspect
 import textwrap
 import warnings
 
@@ -28,34 +27,6 @@ import pandas.core.nanops as nanops
 _shared_docs = dict()
 _indexops_doc_kwargs = dict(klass='IndexOpsMixin', inplace='',
                             unique='IndexOpsMixin', duplicated='IndexOpsMixin')
-
-
-class PandasMeta(type):
-    """
-    Metaclass for pandas objects to systematically handle:
-        - docstrings
-        - class ordering
-        - names for inherited methods
-    """
-    def __lt__(self, other):
-        # define comparison methods so we can compare classes, not just
-        #  instances
-        for generic in [ABCDataFrame, ABCSeries, ABCIndexClass]:
-            if issubclass(self, generic):
-                return False
-            elif issubclass(other, generic):
-                return True
-        return False
-
-    def __gt__(self, other):
-        # define comparison methods so we can compare classes, not just
-        #  instances
-        for generic in [ABCDataFrame, ABCSeries, ABCIndexClass]:
-            if issubclass(other, generic):
-                return False
-            elif issubclass(self, generic):
-                return True
-        return True
 
 
 class StringMixin(object):
@@ -109,7 +80,6 @@ class StringMixin(object):
 class PandasObject(StringMixin, DirNamesMixin):
 
     """baseclass for various pandas objects"""
-    __metaclass__ = PandasMeta
 
     @property
     def _constructor(self):

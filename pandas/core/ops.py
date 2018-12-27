@@ -1528,8 +1528,7 @@ def _arith_method_SERIES(cls, op, special):
             raise
 
     def wrapper(left, right):
-        if type(right) < type(left):
-            # i.e. other is a DataFrame
+        if isinstance(right, ABCDataFrame):
             return NotImplemented
 
         left, right = _align_method_SERIES(left, right)

@@ -20,7 +20,6 @@ from pandas.core.dtypes.common import (
 from pandas.core.dtypes.missing import isna
 
 from pandas.core.arrays.interval import IntervalArray, _interval_shared_docs
-from pandas.core.base import PandasMeta
 import pandas.core.common as com
 from pandas.core.config import get_option
 import pandas.core.indexes.base as ibase
@@ -100,10 +99,6 @@ def _new_IntervalIndex(cls, d):
     return cls.from_arrays(**d)
 
 
-class IntervalMetaClass(_WritableDoc, PandasMeta):
-    pass
-
-
 @Appender(_interval_shared_docs['class'] % dict(
     klass="IntervalIndex",
     summary="Immutable index of intervals that are closed on the same side.",
@@ -131,7 +126,7 @@ class IntervalMetaClass(_WritableDoc, PandasMeta):
     """),
 
 ))
-@add_metaclass(IntervalMetaClass)
+@add_metaclass(_WritableDoc)
 class IntervalIndex(IntervalMixin, Index):
     _typ = 'intervalindex'
     _comparables = ['name']
