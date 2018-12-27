@@ -1984,10 +1984,9 @@ class _TestPostgreSQLAlchemy(object):
 
         expected = DataFrame({'col1': [1, 2], 'col2': [0.1, 0.2],
                               'col3': ['a', 'n']})
-        expected.to_sql('test_copy_insert', self.conn, method=psql_insert_copy)
+        expected.to_sql('test_copy_insert', self.conn, index=False,
+                        method=psql_insert_copy)
         result = sql.read_sql_table('test_copy_insert', self.conn)
-        print(result)
-        print(expected)
         tm.assert_frame_equal(result, expected)
 
 
