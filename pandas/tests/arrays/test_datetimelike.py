@@ -59,6 +59,21 @@ def timedelta_index(request):
 class SharedTests(object):
     index_cls = None
 
+    def test_compare_len1_raises(self):
+        # make sure we raise when comparing with different lengths, specific
+        #  to the case where one has length-1, which numpy would broadcast
+        data = np.arange(10, dtype='i8')
+
+        idx = self.index_cls._simple_new(data, freq='D')
+        arr = self.array_cls(idx)
+
+        with pytest.raises(ValueError, match="Lengths must match"):
+            arr == arr[:1]
+
+        # test the index classes while we're at it, GH#23078
+        with pytest.raises(ValueError, match="Lengths must match"):
+            idx <= idx[[0]]
+
     def test_take(self):
         data = np.arange(100, dtype='i8')
         np.random.shuffle(data)
@@ -118,6 +133,15 @@ class SharedTests(object):
 class TestDatetimeArray(SharedTests):
     index_cls = pd.DatetimeIndex
     array_cls = DatetimeArray
+
+    def test_round(self, tz_naive_fixture):
+        # GH#24064
+        tz = tz_naive_fixture
+        dti = pd.date_range('2016-01-01 01:01:00', periods=3, freq='H', tz=tz)
+
+        result = dti.round(freq='2T')
+        expected = dti - pd.Timedelta(minutes=1)
+        tm.assert_index_equal(result, expected)
 
     def test_array_object_dtype(self, tz_naive_fixture):
         # GH#23524

@@ -1318,7 +1318,8 @@ def _ensure_datetimelike_to_i8(other, to_utc=False):
 
     if lib.is_scalar(other) and isna(other):
         return iNaT
-    elif isinstance(other, (PeriodArray, ABCIndexClass)):
+    elif isinstance(other, (PeriodArray, ABCIndexClass,
+                            DatetimeLikeArrayMixin)):
         # convert tz if needed
         if getattr(other, 'tz', None) is not None:
             if to_utc:
