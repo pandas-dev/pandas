@@ -1301,6 +1301,7 @@ Piping can also be expressive when you want to deliver a grouped object to some
 arbitrary function, for example:
 
 .. code-block:: python
+
    def mean(groupby):
        return(groupby.mean())
 
