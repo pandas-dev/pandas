@@ -48,14 +48,6 @@
 <tr>
   <td></td>
   <td>
-    <a href="https://circleci.com/gh/pandas-dev/pandas">
-    <img src="https://circleci.com/gh/circleci/mongofinil/tree/master.svg?style=shield&circle-token=223d8cafa7b02902c3e150242520af8944e34671" alt="circleci build status" />
-    </a>
-  </td>
-</tr>
-<tr>
-  <td></td>
-  <td>
     <a href="https://dev.azure.com/pandas-dev/pandas/_build/latest?definitionId=1&branch=master">
       <img src="https://dev.azure.com/pandas-dev/pandas/_apis/build/status/pandas-dev.pandas?branch=master" alt="Azure Pipelines build status" />
     </a>
