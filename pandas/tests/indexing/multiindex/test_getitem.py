@@ -1,7 +1,7 @@
 import numpy as np
 import pytest
 
-from pandas.compat import StringIO, range, u, zip
+from pandas.compat import range, u, zip
 
 import pandas as pd
 from pandas import DataFrame, Index, MultiIndex, Series
@@ -343,41 +343,51 @@ def test_mixed_depth_get(unicode_strings):
     tm.assert_series_equal(result, expected)
 
 
-def test_mi_access():
+@pytest.fixture
+def dataframe_with_duplicate_index():
+    """Fixture for DataFrame used in tests for gh-4145 and gh-4146"""
+    data = [['a', 'd', 'e', 'c', 'f', 'b'],
+            [1, 4, 5, 3, 6, 2],
+            [1, 4, 5, 3, 6, 2]]
+    index = ['h1', 'h3', 'h5']
+    columns = MultiIndex(
+        levels=[['A', 'B'], ['A1', 'A2', 'B1', 'B2']],
+        codes=[[0, 0, 0, 1, 1, 1], [0, 3, 3, 0, 1, 2]],
+        names=['main', 'sub'])
+    return DataFrame(data, index=index, columns=columns)
 
+
+@pytest.mark.parametrize('indexer', [
+    lambda df: df.loc[:, ('A', 'A1')],
+    lambda df: df[('A', 'A1')]
+])
+def test_mi_access(dataframe_with_duplicate_index, indexer):
     # GH 4145
-    data = """h1 main  h3 sub  h5
-0  a    A   1  A1   1
-1  b    B   2  B1   2
-2  c    B   3  A1   3
-3  d    A   4  B2   4
-4  e    A   5  B2   5
-5  f    B   6  A2   6
-"""
-
-    df = pd.read_csv(StringIO(data), sep=r'\s+', index_col=0)
-    df2 = df.set_index(['main', 'sub']).T.sort_index(1)
+    df = dataframe_with_duplicate_index
     index = Index(['h1', 'h3', 'h5'])
     columns = MultiIndex.from_tuples([('A', 'A1')], names=['main', 'sub'])
     expected = DataFrame([['a', 1, 1]], index=columns, columns=index).T
 
-    result = df2.loc[:, ('A', 'A1')]
+    result = indexer(df)
     tm.assert_frame_equal(result, expected)
 
-    result = df2[('A', 'A1')]
-    tm.assert_frame_equal(result, expected)
 
+def test_mi_access_returns_series(dataframe_with_duplicate_index):
     # GH 4146, not returning a block manager when selecting a unique index
     # from a duplicate index
     # as of 4879, this returns a Series (which is similar to what happens
     # with a non-unique)
+    df = dataframe_with_duplicate_index
     expected = Series(['a', 1, 1], index=['h1', 'h3', 'h5'], name='A1')
-    result = df2['A']['A1']
+    result = df['A']['A1']
     tm.assert_series_equal(result, expected)
 
+
+def test_mi_access_returns_frame(dataframe_with_duplicate_index):
     # selecting a non_unique from the 2nd level
+    df = dataframe_with_duplicate_index
     expected = DataFrame([['d', 4, 4], ['e', 5, 5]],
                          index=Index(['B2', 'B2'], name='sub'),
                          columns=['h1', 'h3', 'h5'], ).T
-    result = df2['A']['B2']
+    result = df['A']['B2']
     tm.assert_frame_equal(result, expected)
