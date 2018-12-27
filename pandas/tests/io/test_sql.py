@@ -1986,6 +1986,8 @@ class _TestPostgreSQLAlchemy(object):
                               'col3': ['a', 'n']})
         expected.to_sql('test_copy_insert', self.conn, method=psql_insert_copy)
         result = sql.read_sql_table('test_copy_insert', self.conn)
+        print(result)
+        print(expected)
         tm.assert_frame_equal(result, expected)
 
 
