@@ -1374,26 +1374,6 @@ class TestDataFrameAnalytics():
         result = df[['C']].all(axis=None).item()
         assert result is True
 
-        # skip pathological failure cases
-        # class CantNonzero(object):
-
-        #     def __nonzero__(self):
-        #         raise ValueError
-
-        # df[4] = CantNonzero()
-
-        # it works!
-        # df.any(1)
-        # df.all(1)
-        # df.any(1, bool_only=True)
-        # df.all(1, bool_only=True)
-
-        # df[4][4] = np.nan
-        # df.any(1)
-        # df.all(1)
-        # df.any(1, bool_only=True)
-        # df.all(1, bool_only=True)
-
     def test_any_datetime(self):
 
         # GH 23070
