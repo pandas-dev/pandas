@@ -1281,9 +1281,11 @@ class HDFStore(StringMixin):
 
         def error(t):
             raise TypeError(
-                "cannot properly create the storer for: [{}] [group->{},"
-                "value->{},format->{},append->{},kwargs->{}]".format(
-                    t, group, type(value), format, append, kwargs))
+                "cannot properly create the storer for: [{t}] [group->"
+                "{group},value->{value},format->{format},append->{append},"
+                "kwargs->{kwargs}]".format(t=t, group=group,
+                                           value=type(value), format=format,
+                                           append=append, kwargs=kwargs))
 
         pt = _ensure_decoded(getattr(group._v_attrs, 'pandas_type', None))
         tt = _ensure_decoded(getattr(group._v_attrs, 'table_type', None))
@@ -1594,7 +1596,9 @@ class IndexCol(StringMixin):
                      self.axis,
                      self.pos,
                      self.kind)))
-        return "name->{},cname->{},axis->{},pos->{},kind->{}".format(*temp)
+        return ','.join(
+            ("{}->{}".format(key, value) for key, value in zip(
+                ['name', 'cname', 'axis', 'pos', 'kind'], temp)))
 
     def __eq__(self, other):
         """ compare 2 col items """
