@@ -215,9 +215,6 @@ class PandasArray(ExtensionArray, ExtensionOpsMixin, NDArrayOperatorsMixin):
 
         if not lib.is_scalar(key) and is_list_like(key):
             key = np.asarray(key)
-            if not len(key):
-                # early return to avoid casting unnecessarily.
-                return
 
         if not lib.is_scalar(value):
             value = np.asarray(value)
