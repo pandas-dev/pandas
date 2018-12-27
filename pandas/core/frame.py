@@ -7084,14 +7084,16 @@ class DataFrame(NDFrame):
 
             correl = num / dom
 
-        else:
+        elif method in ['kendall', 'spearman'] or callable(method):
             def c(x):
-                return Series(x[0]).corr(Series(x[1]),
-                                         method=method)
+                return nanops.nancorr(x[0], x[1], method=method)
 
             correl = Series(map(c,
                                 zip(left.values.T, right.values.T)),
                             index=left.columns)
+
+        else:
+            raise ValueError('Invalid method')
 
         if not drop:
             raxis = 1 if axis == 0 else 0
