@@ -10834,7 +10834,12 @@ def _make_min_count_stat_function(cls, name, name1, name2, axis_descr, desc,
     def stat_func(self, axis=None, skipna=None, level=None, numeric_only=None,
                   min_count=0,
                   **kwargs):
-        nv.validate_stat_func(tuple(), kwargs, fname=name)
+        if name == 'sum':
+            nv.validate_sum(tuple(), kwargs)
+        elif name == 'prod':
+            nv.validate_prod(tuple(), kwargs)
+        else:
+            nv.validate_stat_func(tuple(), kwargs, fname=name)
         if skipna is None:
             skipna = True
         if axis is None:
@@ -10855,7 +10860,10 @@ def _make_stat_function(cls, name, name1, name2, axis_descr, desc, f,
     @Appender(_num_doc)
     def stat_func(self, axis=None, skipna=None, level=None, numeric_only=None,
                   **kwargs):
-        nv.validate_stat_func(tuple(), kwargs, fname=name)
+        if name == 'median':
+            nv.validate_median(tuple(), kwargs)
+        else:
+            nv.validate_stat_func(tuple(), kwargs, fname=name)
         if skipna is None:
             skipna = True
         if axis is None:

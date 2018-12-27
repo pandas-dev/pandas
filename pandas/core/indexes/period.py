@@ -877,10 +877,6 @@ class PeriodIndex(DatetimeIndexOpsMixin,
 
         cls.__rsub__ = __rsub__
 
-    def repeat(self, repeats, *args, **kwargs):
-        # TODO(DatetimeArray): Just use Index.repeat
-        return Index.repeat(self, repeats, *args, **kwargs)
-
     @property
     def flags(self):
         """ return the ndarray.flags for the underlying data """
