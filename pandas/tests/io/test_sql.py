@@ -1860,11 +1860,8 @@ class _TestPostgreSQLAlchemy(object):
 
     @classmethod
     def setup_driver(cls):
-        try:
-            import psycopg2  # noqa
-            cls.driver = 'psycopg2'
-        except ImportError:
-            pytest.skip('psycopg2 not installed')
+        import psycopg2  # noqa
+        cls.driver = 'psycopg2'
 
     def test_schema_support(self):
         # only test this for postgresql (schema's not supported in
@@ -1932,21 +1929,25 @@ class _TestPostgreSQLAlchemy(object):
 
 
 @pytest.mark.single
+@pytest.mark.db
 class TestMySQLAlchemy(_TestMySQLAlchemy, _TestSQLAlchemy):
     pass
 
 
 @pytest.mark.single
+@pytest.mark.db
 class TestMySQLAlchemyConn(_TestMySQLAlchemy, _TestSQLAlchemyConn):
     pass
 
 
 @pytest.mark.single
+@pytest.mark.db
 class TestPostgreSQLAlchemy(_TestPostgreSQLAlchemy, _TestSQLAlchemy):
     pass
 
 
 @pytest.mark.single
+@pytest.mark.db
 class TestPostgreSQLAlchemyConn(_TestPostgreSQLAlchemy, _TestSQLAlchemyConn):
     pass
 
@@ -2189,13 +2190,6 @@ def tquery(query, con=None, cur=None):
         return list(res)
 
 
-def _skip_if_no_pymysql():
-    try:
-        import pymysql  # noqa
-    except ImportError:
-        pytest.skip('pymysql not installed, skipping')
-
-
 @pytest.mark.single
 class TestXSQLite(SQLiteMixIn):
 
@@ -2404,76 +2398,56 @@ class TestXSQLite(SQLiteMixIn):
 
 
 @pytest.mark.single
+@pytest.mark.db
 @pytest.mark.skip(reason="gh-13611: there is no support for MySQL "
                   "if SQLAlchemy is not installed")
 class TestXMySQL(MySQLMixIn):
 
     @pytest.fixture(autouse=True, scope='class')
     def setup_class(cls):
-        _skip_if_no_pymysql()
-
-        # test connection
         import pymysql
-        try:
-            # Try Travis defaults.
-            # No real user should allow root access with a blank password.
-            pymysql.connect(host='localhost', user='root', passwd='',
-                            db='pandas_nosetest')
-        except pymysql.Error:
-            pass
-        else:
-            return
+        pymysql.connect(host='localhost', user='root', passwd='',
+                        db='pandas_nosetest')
         try:
             pymysql.connect(read_default_group='pandas')
         except pymysql.ProgrammingError:
-            pytest.skip(
+            raise RuntimeError(
                 "Create a group of connection parameters under the heading "
                 "[pandas] in your system's mysql default file, "
-                "typically located at ~/.my.cnf or /etc/.my.cnf. ")
+                "typically located at ~/.my.cnf or /etc/.my.cnf.")
         except pymysql.Error:
-            pytest.skip(
+            raise RuntimeError(
                 "Cannot connect to database. "
                 "Create a group of connection parameters under the heading "
                 "[pandas] in your system's mysql default file, "
-                "typically located at ~/.my.cnf or /etc/.my.cnf. ")
+                "typically located at ~/.my.cnf or /etc/.my.cnf.")
 
     @pytest.fixture(autouse=True)
     def setup_method(self, request, datapath):
-        _skip_if_no_pymysql()
         import pymysql
+        pymysql.connect(host='localhost', user='root', passwd='',
+                        db='pandas_nosetest')
         try:
-            # Try Travis defaults.
-            # No real user should allow root access with a blank password.
-            self.conn = pymysql.connect(host='localhost', user='root',
-                                        passwd='', db='pandas_nosetest')
-        except pymysql.Error:
-            pass
-        else:
-            return
-        try:
-            self.conn = pymysql.connect(read_default_group='pandas')
+            pymysql.connect(read_default_group='pandas')
         except pymysql.ProgrammingError:
-            pytest.skip(
+            raise RuntimeError(
                 "Create a group of connection parameters under the heading "
                 "[pandas] in your system's mysql default file, "
-                "typically located at ~/.my.cnf or /etc/.my.cnf. ")
+                "typically located at ~/.my.cnf or /etc/.my.cnf.")
         except pymysql.Error:
-            pytest.skip(
+            raise RuntimeError(
                 "Cannot connect to database. "
                 "Create a group of connection parameters under the heading "
                 "[pandas] in your system's mysql default file, "
-                "typically located at ~/.my.cnf or /etc/.my.cnf. ")
+                "typically located at ~/.my.cnf or /etc/.my.cnf.")
 
         self.method = request.function
 
     def test_basic(self):
-        _skip_if_no_pymysql()
         frame = tm.makeTimeDataFrame()
         self._check_roundtrip(frame)
 
     def test_write_row_by_row(self):
-
-        _skip_if_no_pymysql()
         frame = tm.makeTimeDataFrame()
         frame.iloc[0, 0] = np.nan
         drop_sql = "DROP TABLE IF EXISTS test"
@@ -2493,7 +2467,6 @@ class TestXMySQL(MySQLMixIn):
         tm.assert_frame_equal(result, frame, check_less_precise=True)
 
     def test_chunksize_read_type(self):
-        _skip_if_no_pymysql()
         frame = tm.makeTimeDataFrame()
         frame.index.name = "index"
         drop_sql = "DROP TABLE IF EXISTS test"
@@ -2508,7 +2481,6 @@ class TestXMySQL(MySQLMixIn):
         tm.assert_frame_equal(frame[:chunksize], chunk_df)
 
     def test_execute(self):
-        _skip_if_no_pymysql()
         frame = tm.makeTimeDataFrame()
         drop_sql = "DROP TABLE IF EXISTS test"
         create_sql = sql.get_schema(frame, 'test')
@@ -2528,7 +2500,6 @@ class TestXMySQL(MySQLMixIn):
         tm.assert_frame_equal(result, frame[:1])
 
     def test_schema(self):
-        _skip_if_no_pymysql()
         frame = tm.makeTimeDataFrame()
         create_sql = sql.get_schema(frame, 'test')
         lines = create_sql.splitlines()
@@ -2548,7 +2519,6 @@ class TestXMySQL(MySQLMixIn):
 
     @tm.capture_stdout
     def test_execute_fail(self):
-        _skip_if_no_pymysql()
         drop_sql = "DROP TABLE IF EXISTS test"
         create_sql = """
         CREATE TABLE test
@@ -2570,7 +2540,6 @@ class TestXMySQL(MySQLMixIn):
             sql.execute('INSERT INTO test VALUES("foo", "bar", 7)', self.conn)
 
     def test_execute_closed_connection(self, request, datapath):
-        _skip_if_no_pymysql()
         drop_sql = "DROP TABLE IF EXISTS test"
         create_sql = """
         CREATE TABLE test
@@ -2595,11 +2564,9 @@ class TestXMySQL(MySQLMixIn):
         self.setup_method(request, datapath)
 
     def test_na_roundtrip(self):
-        _skip_if_no_pymysql()
         pass
 
     def _check_roundtrip(self, frame):
-        _skip_if_no_pymysql()
         drop_sql = "DROP TABLE IF EXISTS test_table"
         cur = self.conn.cursor()
         with warnings.catch_warnings():
@@ -2636,13 +2603,11 @@ class TestXMySQL(MySQLMixIn):
         tm.assert_frame_equal(expected, result)
 
     def test_keyword_as_column_names(self):
-        _skip_if_no_pymysql()
         df = DataFrame({'From': np.ones(5)})
         sql.to_sql(df, con=self.conn, name='testkeywords',
                    if_exists='replace', index=False)
 
     def test_if_exists(self):
-        _skip_if_no_pymysql()
         df_if_exists_1 = DataFrame({'col1': [1, 2], 'col2': ['A', 'B']})
         df_if_exists_2 = DataFrame(
             {'col1': [3, 4, 5], 'col2': ['C', 'D', 'E']})
