@@ -1959,6 +1959,35 @@ class _TestPostgreSQLAlchemy(object):
             res2 = pdsql.read_table('test_schema_other2')
             tm.assert_frame_equal(res1, res2)
 
+    def test_copy_from_callable_insertion_method(self):
+        # GH 8953
+        # Example in io.rst found under _io.sql.method
+        # not available in sqlite, mysql
+        def psql_insert_copy(table, conn, keys, data_iter):
+            # gets a DBAPI connection that can provide a cursor
+            dbapi_conn = conn.connection
+            with dbapi_conn.cursor() as cur:
+                s_buf = compat.StringIO()
+                writer = csv.writer(s_buf)
+                writer.writerows(data_iter)
+                s_buf.seek(0)
+
+                columns = ', '.join('"{}"'.format(k) for k in keys)
+                if table.schema:
+                    table_name = '{}.{}'.format(table.schema, table.name)
+                else:
+                    table_name = table.name
+
+                sql_query = 'COPY {} ({}) FROM STDIN WITH CSV'.format(
+                    table_name, columns)
+                cur.copy_expert(sql=sql_query, file=s_buf)
+
+        expected = DataFrame({'col1': [1, 2], 'col2': [0.1, 0.2],
+                              'col3': ['a', 'n']})
+        expected.to_sql('test_copy_insert', self.conn, method=psql_insert_copy)
+        result = sql.read_sql_table('test_copy_insert', self.conn)
+        tm.assert_frame_equal(result, expected)
+
 
 @pytest.mark.single
 class TestMySQLAlchemy(_TestMySQLAlchemy, _TestSQLAlchemy):
