@@ -21,6 +21,11 @@ def data(dtype):
 
 
 @pytest.fixture
+def data_for_ones(dtype):
+    return PeriodArray(np.ones(100), freq=dtype.freq)
+
+
+@pytest.fixture
 def data_for_sorting(dtype):
     return PeriodArray([2018, 2019, 2017], freq=dtype.freq)
 
@@ -124,9 +129,6 @@ class TestArithmeticOps(BasePeriodTests, base.BaseArithmeticOpsTests):
         other = pd.Series(data)
         result = data.__sub__(other)
         assert result is NotImplemented
-
-    def test_divmod_series_array(self):
-        pass
 
 
 class TestCasting(BasePeriodTests, base.BaseCastingTests):

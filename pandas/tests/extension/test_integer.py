@@ -43,7 +43,7 @@ def data(dtype):
 
 
 @pytest.fixture
-def ones(dtype):
+def data_for_ones(dtype):
     return integer_array(np.ones(100), dtype=dtype)
 
 

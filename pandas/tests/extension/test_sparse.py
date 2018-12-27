@@ -35,7 +35,7 @@ def data(request):
 
 
 @pytest.fixture
-def ones(request):
+def data_for_ones(request):
     return SparseArray(np.ones(100))
 
 
