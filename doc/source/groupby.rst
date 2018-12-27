@@ -1300,7 +1300,7 @@ Now, to find prices per store/product, we can simply do:
 Piping can also be expressive when you want to deliver a grouped object to some
 arbitrary function, for example:
 
-.. code-block:: python
+.. ipython:: python
 
    def mean(groupby):
        return(groupby.mean())
