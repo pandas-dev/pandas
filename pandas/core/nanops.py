@@ -208,6 +208,7 @@ def _get_values(values, skipna, fill_value=None, fill_value_typ=None,
         # com.values_from_object returns M8[ns] dtype instead of tz-aware,
         #  so this case must be handled separately from the rest
         dtype = values.dtype
+        values = getattr(values, "_values", values)
         values = np.array(values.asi8)
     else:
         values = com.values_from_object(values)
