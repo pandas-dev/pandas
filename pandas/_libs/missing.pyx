@@ -8,11 +8,12 @@ cimport numpy as cnp
 from numpy cimport ndarray, int64_t, uint8_t, float64_t
 cnp.import_array()
 
-cimport util
+cimport pandas._libs.util as util
 
-from tslibs.np_datetime cimport get_timedelta64_value, get_datetime64_value
-from tslibs.nattype cimport checknull_with_nat
-from tslibs.nattype import NaT
+from pandas._libs.tslibs.np_datetime cimport (
+    get_timedelta64_value, get_datetime64_value)
+from pandas._libs.tslibs.nattype cimport checknull_with_nat
+from pandas._libs.tslibs.nattype import NaT
 
 cdef float64_t INF = <float64_t>np.inf
 cdef float64_t NEGINF = -INF
