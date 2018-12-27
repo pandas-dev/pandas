@@ -31,6 +31,7 @@ New features
 - :func:`read_feather` now accepts ``columns`` as an argument, allowing the user to specify which columns should be read. (:issue:`24025`)
 - :func:`DataFrame.to_html` now accepts ``render_links`` as an argument, allowing the user to generate HTML with links to any URLs that appear in the DataFrame.
   See the :ref:`section on writing HTML <io.html>` in the IO docs for example usage. (:issue:`2679`)
+- :meth:`DataFrame.shift` :meth:`Series.shift`, :meth:`ExtensionArray.shift`, :meth:`SparseArray.shift`, :meth:`Period.shift`, :meth:`GroupBy.shift`, :meth:`Categorical.shift`, :meth:`NDFrame.shift` and :meth:`Block.shift` now accept `fill_value` as an argument, allowing the user to specify a value which will be used instead of NA/NaT in the empty periods. (:issue:`15486`)
 
 .. _whatsnew_0240.values_api:
 
@@ -1277,6 +1278,8 @@ Performance Improvements
 - Fixed a performance regression on Windows with Python 3.7 of :func:`read_csv` (:issue:`23516`)
 - Improved performance of :class:`Categorical` constructor for ``Series`` objects (:issue:`23814`)
 - Improved performance of :meth:`~DataFrame.where` for Categorical data (:issue:`24077`)
+- Improved performance of iterating over a :class:`Series`. Using :meth:`DataFrame.itertuples` now creates iterators
+  without internally allocating lists of all elements (:issue:`20783`)
 
 .. _whatsnew_0240.docs:
 
@@ -1346,6 +1349,9 @@ Datetimelike
 - Bug in :class:`DatetimeIndex` where constructing a :class:`DatetimeIndex` from a :class:`Categorical` or :class:`CategoricalIndex` would incorrectly drop timezone information (:issue:`18664`)
 - Bug in :class:`DatetimeIndex` and :class:`TimedeltaIndex` where indexing with ``Ellipsis`` would incorrectly lose the index's ``freq`` attribute (:issue:`21282`)
 - Clarified error message produced when passing an incorrect ``freq`` argument to :class:`DatetimeIndex` with ``NaT`` as the first entry in the passed data (:issue:`11587`)
+- Bug in :func:`to_datetime` where ``box`` and ``utc`` arguments were ignored when passing a :class:`DataFrame` or ``dict`` of unit mappings (:issue:`23760`)
+- Bug in :attr:`Series.dt` where the cache would not update properly after an in-place operation (:issue:`24408`)
+- Bug in :class:`PeriodIndex` where comparisons against an array-like object with length 1 failed to raise ``ValueError`` (:issue:`23078`)
 
 Timedelta
 ^^^^^^^^^
@@ -1389,6 +1395,8 @@ Timezones
 - Bug in :class:`DatetimeIndex` constructor where ``NaT`` and ``dateutil.tz.tzlocal`` would raise an ``OutOfBoundsDatetime`` error (:issue:`23807`)
 - Bug in :meth:`DatetimeIndex.tz_localize` and :meth:`Timestamp.tz_localize` with ``dateutil.tz.tzlocal`` near a DST transition that would return an incorrectly localized datetime (:issue:`23807`)
 - Bug in :class:`Timestamp` constructor where a ``dateutil.tz.tzutc`` timezone passed with a ``datetime.datetime`` argument would be converted to a ``pytz.UTC`` timezone (:issue:`23807`)
+- Bug in :func:`to_datetime` where ``utc=True`` was not respected when specifying a ``unit`` and ``errors='ignore'`` (:issue:`23758`)
+- Bug in :func:`to_datetime` where ``utc=True`` was not respected when passing a :class:`Timestamp` (:issue:`24415`)
 
 Offsets
 ^^^^^^^
@@ -1421,7 +1429,7 @@ Numeric
 - Checking PEP 3141 numbers in :func:`~pandas.api.types.is_scalar` function returns ``True`` (:issue:`22903`)
 - Reduction methods like :meth:`Series.sum` now accept the default value of ``keepdims=False`` when called from a NumPy ufunc, rather than raising a ``TypeError``. Full support for ``keepdims`` has not been implemented (:issue:`24356`).
 
- Conversion
+Conversion
 ^^^^^^^^^^
 
 - Bug in :meth:`DataFrame.combine_first` in which column types were unexpectedly converted to float (:issue:`20699`)

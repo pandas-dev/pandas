@@ -8,7 +8,7 @@ import numpy as np
 
 import pandas._libs.lib as lib
 import pandas.compat as compat
-from pandas.compat import PYPY, OrderedDict, builtins
+from pandas.compat import PYPY, OrderedDict, builtins, map, range
 from pandas.compat.numpy import function as nv
 from pandas.errors import AbstractMethodError
 from pandas.util._decorators import Appender, Substitution, cache_readonly
@@ -1072,7 +1072,13 @@ class IndexOpsMixin(object):
         (for str, int, float) or a pandas scalar
         (for Timestamp/Timedelta/Interval/Period)
         """
-        return iter(self.tolist())
+        # We are explicity making element iterators.
+        if is_datetimelike(self._values):
+            return map(com.maybe_box_datetimelike, self._values)
+        elif is_extension_array_dtype(self._values):
+            return iter(self._values)
+        else:
+            return map(self._values.item, range(self._values.size))
 
     @cache_readonly
     def hasnans(self):

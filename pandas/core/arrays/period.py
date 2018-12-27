@@ -15,7 +15,8 @@ from pandas.util._decorators import Appender, cache_readonly
 
 from pandas.core.dtypes.common import (
     _TD_DTYPE, ensure_object, is_datetime64_dtype, is_datetime64_ns_dtype,
-    is_datetime64tz_dtype, is_float_dtype, is_period_dtype, pandas_dtype)
+    is_datetime64tz_dtype, is_float_dtype, is_list_like, is_period_dtype,
+    pandas_dtype)
 from pandas.core.dtypes.dtypes import PeriodDtype
 from pandas.core.dtypes.generic import ABCIndexClass, ABCPeriodIndex, ABCSeries
 from pandas.core.dtypes.missing import isna, notna
@@ -52,6 +53,9 @@ def _period_array_cmp(cls, op):
         # return here with an unboxed PeriodArray). But before we do that,
         # we do a bit of validation on type (Period) and freq, so that our
         # error messages are sensible
+        if is_list_like(other) and len(other) != len(self):
+            raise ValueError("Lengths must match")
+
         not_implemented = isinstance(other, (ABCSeries, ABCIndexClass))
         if not_implemented:
             other = other._values

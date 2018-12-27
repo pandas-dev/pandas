@@ -1390,6 +1390,7 @@ def add_special_arithmetic_methods(cls):
 
             return self
 
+        f.__name__ = "__i{name}__".format(name=method.__name__.strip("__"))
         return f
 
     new_methods.update(
@@ -1577,6 +1578,7 @@ def _arith_method_SERIES(cls, op, special):
         return construct_result(left, result,
                                 index=left.index, name=res_name, dtype=None)
 
+    wrapper.__name__ = op_name
     return wrapper
 
 
@@ -1765,6 +1767,7 @@ def _comp_method_SERIES(cls, op, special):
             return self._constructor(res_values, index=self.index,
                                      name=res_name, dtype='bool')
 
+    wrapper.__name__ = op_name
     return wrapper
 
 

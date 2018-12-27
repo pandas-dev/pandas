@@ -29,7 +29,6 @@ class Properties(PandasDelegate, PandasObject, NoNewAttributesMixin):
         self._parent = data
         self.orig = orig
         self.name = getattr(data, 'name', None)
-        self.index = getattr(data, 'index', None)
         self._freeze()
 
     def _get_values(self):
@@ -73,8 +72,7 @@ class Properties(PandasDelegate, PandasObject, NoNewAttributesMixin):
             result = take_1d(result, self.orig.cat.codes)
             index = self.orig.index
         else:
-            index = self.index
-
+            index = self._parent.index
         # return the result as a Series, which is by definition a copy
         result = Series(result, index=index, name=self.name)
 
@@ -100,7 +98,7 @@ class Properties(PandasDelegate, PandasObject, NoNewAttributesMixin):
         if not is_list_like(result):
             return result
 
-        result = Series(result, index=self.index, name=self.name)
+        result = Series(result, index=self._parent.index, name=self.name)
 
         # setting this object will show a SettingWithCopyWarning/Error
         result._is_copy = ("modifications to a method of a datetimelike "
@@ -263,7 +261,7 @@ class TimedeltaProperties(Properties):
         3     0      0        0        3             0             0            0
         4     0      0        0        4             0             0            0
         """  # noqa: E501
-        return self._get_values().components.set_index(self.index)
+        return self._get_values().components.set_index(self._parent.index)
 
     @property
     def freq(self):
