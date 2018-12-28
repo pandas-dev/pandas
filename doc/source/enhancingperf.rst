@@ -7,10 +7,10 @@ Enhancing Performance
 *********************
 
 In this part of the tutorial, we will investigate how to speed up certain
-functions operating on pandas ``DataFrames`` using three different techniques: 
-Cython, Numba and :func:`pandas.eval`. We will see a speed improvement of ~200 
-when we use Cython and Numba on a test function operating row-wise on the 
-``DataFrame``. Using :func:`pandas.eval` we will speed up a sum by an order of 
+functions operating on pandas ``DataFrames`` using three different techniques:
+Cython, Numba and :func:`pandas.eval`. We will see a speed improvement of ~200
+when we use Cython and Numba on a test function operating row-wise on the
+``DataFrame``. Using :func:`pandas.eval` we will speed up a sum by an order of
 ~2.
 
 .. _enhancingperf.cython:

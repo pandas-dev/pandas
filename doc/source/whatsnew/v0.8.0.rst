@@ -5,11 +5,6 @@ v0.8.0 (June 29, 2012)
 
 {{ header }}
 
-.. ipython:: python
-   :suppress:
-
-   from pandas import * # noqa F401, F403
-
 
 This is a major release from 0.7.3 and includes extensive work on the time
 series handling and processing infrastructure as well as a great deal of new
@@ -183,8 +178,8 @@ types. For example, ``'kde'`` is a new option:
 
 .. ipython:: python
 
-   s = Series(np.concatenate((np.random.randn(1000),
-                              np.random.randn(1000) * 0.5 + 3)))
+   s = pd.Series(np.concatenate((np.random.randn(1000),
+                                 np.random.randn(1000) * 0.5 + 3)))
    plt.figure()
    s.hist(density=True, alpha=0.2)
    s.plot(kind='kde')
@@ -211,7 +206,7 @@ with code using scalar values because you are handing control over to NumPy:
 .. ipython:: python
 
    import datetime
-   rng = date_range('1/1/2000', periods=10)
+   rng = pd.date_range('1/1/2000', periods=10)
    rng[5]
    isinstance(rng[5], datetime.datetime)
    rng_asarray = np.asarray(rng)
@@ -257,7 +252,7 @@ type. See `matplotlib documentation
 
     .. ipython:: python
 
-       rng = date_range('1/1/2000', periods=10)
+       rng = pd.date_range('1/1/2000', periods=10)
        rng
        np.asarray(rng)
        converted = np.asarray(rng, dtype=object)

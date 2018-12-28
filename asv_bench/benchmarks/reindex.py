@@ -1,6 +1,6 @@
 import numpy as np
 import pandas.util.testing as tm
-from pandas import (DataFrame, Series, DatetimeIndex, MultiIndex, Index,
+from pandas import (DataFrame, Series, MultiIndex, Index,
                     date_range)
 from .pandas_vb_common import lib
 
@@ -8,7 +8,7 @@ from .pandas_vb_common import lib
 class Reindex(object):
 
     def setup(self):
-        rng = DatetimeIndex(start='1/1/1970', periods=10000, freq='1min')
+        rng = date_range(start='1/1/1970', periods=10000, freq='1min')
         self.df = DataFrame(np.random.rand(10000, 10), index=rng,
                             columns=range(10))
         self.df['foo'] = 'bar'

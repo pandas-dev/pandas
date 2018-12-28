@@ -8,6 +8,7 @@ import pytest
 from pandas.compat import PYPY
 
 from pandas import Categorical, Index, Series
+from pandas.api.types import is_scalar
 import pandas.util.testing as tm
 
 
@@ -86,9 +87,11 @@ class TestCategoricalAnalytics(object):
         # Searching for single item argument, side='left' (default)
         res_cat = c1.searchsorted('apple')
         assert res_cat == 2
+        assert is_scalar(res_cat)
 
         res_ser = s1.searchsorted('apple')
         assert res_ser == 2
+        assert is_scalar(res_ser)
 
         # Searching for single item array, side='left' (default)
         res_cat = c1.searchsorted(['bread'])
@@ -291,22 +294,6 @@ class TestCategoricalAnalytics(object):
 
             with pytest.raises(ValueError):
                 cat.sort_values(inplace=value)
-
-    def test_repeat(self):
-        # GH10183
-        cat = Categorical(["a", "b"], categories=["a", "b"])
-        exp = Categorical(["a", "a", "b", "b"], categories=["a", "b"])
-        res = cat.repeat(2)
-        tm.assert_categorical_equal(res, exp)
-
-    def test_numpy_repeat(self):
-        cat = Categorical(["a", "b"], categories=["a", "b"])
-        exp = Categorical(["a", "a", "b", "b"], categories=["a", "b"])
-        tm.assert_categorical_equal(np.repeat(cat, 2), exp)
-
-        msg = "the 'axis' parameter is not supported"
-        with pytest.raises(ValueError, match=msg):
-            np.repeat(cat, 2, axis=1)
 
     def test_isna(self):
         exp = np.array([False, False, True])

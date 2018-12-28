@@ -1484,10 +1484,10 @@ class MultiIndex(Index):
         Return a MultiIndex reshaped to conform to the
         shapes given by n_repeat and n_shuffle.
 
+        .. deprecated:: 0.24.0
+
         Useful to replicate and rearrange a MultiIndex for combination
         with another Index with n_repeat items.
-
-        .. deprecated:: 0.24.0
 
         Parameters
         ----------
@@ -1857,8 +1857,9 @@ class MultiIndex(Index):
     def argsort(self, *args, **kwargs):
         return self.values.argsort(*args, **kwargs)
 
-    def repeat(self, repeats, *args, **kwargs):
-        nv.validate_repeat(args, kwargs)
+    @Appender(_index_shared_docs['repeat'] % _index_doc_kwargs)
+    def repeat(self, repeats, axis=None):
+        nv.validate_repeat(tuple(), dict(axis=axis))
         return MultiIndex(levels=self.levels,
                           codes=[level_codes.view(np.ndarray).repeat(repeats)
                                  for level_codes in self.codes],

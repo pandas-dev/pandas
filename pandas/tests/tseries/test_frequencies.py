@@ -13,7 +13,6 @@ from pandas.compat import is_platform_windows, range
 from pandas import (
     DatetimeIndex, Index, Series, Timedelta, Timestamp, date_range,
     period_range)
-from pandas.core.indexes.period import PeriodIndex
 from pandas.core.tools.datetimes import to_datetime
 import pandas.util.testing as tm
 
@@ -468,7 +467,7 @@ _dti = DatetimeIndex
 class TestFrequencyInference(object):
 
     def test_raise_if_period_index(self):
-        index = PeriodIndex(start="1/1/1990", periods=20, freq="M")
+        index = period_range(start="1/1/1990", periods=20, freq="M")
         pytest.raises(TypeError, frequencies.infer_freq, index)
 
     def test_raise_if_too_few(self):

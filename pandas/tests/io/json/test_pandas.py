@@ -1026,7 +1026,8 @@ DataFrame\\.index values are different \\(100\\.0 %\\)
         dti = pd.DatetimeIndex(tz_range)
         assert dumps(dti, iso_dates=True) == exp
         df = DataFrame({'DT': dti})
-        assert dumps(df, iso_dates=True) == dfexp
+        result = dumps(df, iso_dates=True)
+        assert result == dfexp
 
         tz_range = pd.date_range('2013-01-01 00:00:00', periods=2,
                                  tz='US/Eastern')
