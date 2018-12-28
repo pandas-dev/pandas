@@ -5,11 +5,6 @@ v0.8.1 (July 22, 2012)
 
 {{ header }}
 
-.. ipython:: python
-   :suppress:
-
-   from pandas import * # noqa F401, F403
-
 
 This release includes a few new features, performance enhancements, and over 30
 bug fixes from 0.8.0.  New features include notably NA friendly string

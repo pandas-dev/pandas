@@ -365,7 +365,7 @@ Generating Ranges of Time Deltas
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Similar to :func:`date_range`, you can construct regular ranges of a ``TimedeltaIndex``
-using :func:`timedelta_range`.  The default frequency for ``timedelta_range`` is 
+using :func:`timedelta_range`.  The default frequency for ``timedelta_range`` is
 calendar day:
 
 .. ipython:: python

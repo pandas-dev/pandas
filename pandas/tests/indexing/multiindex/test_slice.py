@@ -100,10 +100,8 @@ class TestMultiIndexSlicers(object):
         expected = df.iloc[[2, 3]]
         tm.assert_frame_equal(result, expected)
 
-        def f():
+        with pytest.raises(ValueError):
             df.loc[(slice(None), np.array([True, False])), :]
-
-        pytest.raises(ValueError, f)
 
         # ambiguous cases
         # these can be multiply interpreted (e.g. in this case
@@ -307,10 +305,8 @@ class TestMultiIndexSlicers(object):
         tm.assert_frame_equal(result, expected)
 
         # not sorted
-        def f():
+        with pytest.raises(UnsortedIndexError):
             df.loc['A1', ('a', slice('foo'))]
-
-        pytest.raises(UnsortedIndexError, f)
 
         # GH 16734: not sorted, but no real slicing
         tm.assert_frame_equal(df.loc['A1', (slice(None), 'foo')],
@@ -361,20 +357,14 @@ class TestMultiIndexSlicers(object):
         tm.assert_frame_equal(result, expected)
 
         # invalid axis
-        def f():
+        with pytest.raises(ValueError):
             df.loc(axis=-1)[:, :, ['C1', 'C3']]
 
-        pytest.raises(ValueError, f)
-
-        def f():
+        with pytest.raises(ValueError):
             df.loc(axis=2)[:, :, ['C1', 'C3']]
 
-        pytest.raises(ValueError, f)
-
-        def f():
+        with pytest.raises(ValueError):
             df.loc(axis='foo')[:, :, ['C1', 'C3']]
-
-        pytest.raises(ValueError, f)
 
     def test_per_axis_per_level_setitem(self):
 
@@ -475,17 +465,13 @@ class TestMultiIndexSlicers(object):
         # not enough values
         df = df_orig.copy()
 
-        def f():
+        with pytest.raises(ValueError):
             df.loc[(slice(None), 1), (slice(None), ['foo'])] = np.array(
                 [[100], [100, 100]], dtype='int64')
 
-        pytest.raises(ValueError, f)
-
-        def f():
+        with pytest.raises(ValueError):
             df.loc[(slice(None), 1), (slice(None), ['foo'])] = np.array(
                 [100, 100, 100, 100], dtype='int64')
-
-        pytest.raises(ValueError, f)
 
         # with an alignable rhs
         df = df_orig.copy()

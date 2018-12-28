@@ -132,10 +132,8 @@ class TestMultiIndexSetItem(object):
         tm.assert_frame_equal(df.loc[['bar']], expected)
 
         # raise because these have differing levels
-        def f():
+        with pytest.raises(TypeError):
             df.loc['bar'] *= 2
-
-        pytest.raises(TypeError, f)
 
         # from SO
         # http://stackoverflow.com/questions/24572040/pandas-access-the-level-of-multiindex-for-inplace-operation
@@ -195,17 +193,13 @@ class TestMultiIndexSetItem(object):
             tm.assert_series_equal(df.ix[4, 'c'], exp)
 
         # invalid assignments
-        def f():
+        with pytest.raises(ValueError):
             with catch_warnings(record=True):
                 df.ix[4, 'c'] = [0, 1, 2, 3]
 
-        pytest.raises(ValueError, f)
-
-        def f():
+        with pytest.raises(ValueError):
             with catch_warnings(record=True):
                 df.ix[4, 'c'] = [0]
-
-        pytest.raises(ValueError, f)
 
         # groupby example
         NUM_ROWS = 100
@@ -402,3 +396,15 @@ class TestMultiIndexSetItem(object):
         df.loc[ix, "C"] = '_'
 
         assert (df.xs((1, 1))['C'] == '_').all()
+
+    def test_astype_assignment_with_dups(self):
+
+        # GH 4686
+        # assignment with dups that has a dtype change
+        cols = MultiIndex.from_tuples([('A', '1'), ('B', '1'), ('A', '2')])
+        df = DataFrame(np.arange(3).reshape((1, 3)),
+                       columns=cols, dtype=object)
+        index = df.index.copy()
+
+        df['A'] = df['A'].astype(np.float64)
+        tm.assert_index_equal(df.index, index)
