@@ -2,7 +2,7 @@ import numpy as np
 import pytest
 
 import pandas as pd
-from pandas import DataFrame, Period, PeriodIndex, Series, period_range
+from pandas import DataFrame, Period, Series, period_range
 from pandas.util import testing as tm
 
 
@@ -52,7 +52,7 @@ class TestPeriodIndex(object):
         assert idx.name == idx[1:].name
 
     def test_pindex_slice_index(self):
-        pi = PeriodIndex(start='1/1/10', end='12/31/12', freq='M')
+        pi = period_range(start='1/1/10', end='12/31/12', freq='M')
         s = Series(np.random.rand(len(pi)), index=pi)
         res = s['2010']
         exp = s[0:12]
@@ -64,7 +64,7 @@ class TestPeriodIndex(object):
     def test_range_slice_day(self):
         # GH#6716
         didx = pd.date_range(start='2013/01/01', freq='D', periods=400)
-        pidx = PeriodIndex(start='2013/01/01', freq='D', periods=400)
+        pidx = period_range(start='2013/01/01', freq='D', periods=400)
 
         for idx in [didx, pidx]:
             # slices against index should raise IndexError
@@ -90,7 +90,8 @@ class TestPeriodIndex(object):
         # GH#6716
         didx = pd.date_range(start='2013/01/01 09:00:00', freq='S',
                              periods=4000)
-        pidx = PeriodIndex(start='2013/01/01 09:00:00', freq='S', periods=4000)
+        pidx = period_range(start='2013/01/01 09:00:00', freq='S',
+                            periods=4000)
 
         for idx in [didx, pidx]:
             # slices against index should raise IndexError
@@ -114,7 +115,7 @@ class TestPeriodIndex(object):
     def test_range_slice_outofbounds(self):
         # GH#5407
         didx = pd.date_range(start='2013/10/01', freq='D', periods=10)
-        pidx = PeriodIndex(start='2013/10/01', freq='D', periods=10)
+        pidx = period_range(start='2013/10/01', freq='D', periods=10)
 
         for idx in [didx, pidx]:
             df = DataFrame(dict(units=[100 + i for i in range(10)]), index=idx)
