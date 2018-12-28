@@ -16,6 +16,7 @@ from pandas.util._decorators import Appender, Substitution
 
 from pandas.core.dtypes.common import is_list_like
 from pandas.core.dtypes.generic import ABCIndexClass, ABCSeries
+from pandas.core.dtypes.missing import isna
 
 from pandas.core import ops
 
@@ -449,8 +450,8 @@ class ExtensionArray(object):
         """
         return self[~self.isna()]
 
-    def shift(self, periods=1):
-        # type: (int) -> ExtensionArray
+    def shift(self, periods=1, fill_value=None):
+        # type: (int, object) -> ExtensionArray
         """
         Shift values by desired number.
 
@@ -464,6 +465,12 @@ class ExtensionArray(object):
         periods : int, default 1
             The number of periods to shift. Negative values are allowed
             for shifting backwards.
+
+        fill_value : object, optional
+            The scalar value to use for newly introduced missing values.
+            The default is ``self.dtype.na_value``
+
+            .. versionadded:: 0.24.0
 
         Returns
         -------
@@ -483,8 +490,11 @@ class ExtensionArray(object):
         if not len(self) or periods == 0:
             return self.copy()
 
+        if isna(fill_value):
+            fill_value = self.dtype.na_value
+
         empty = self._from_sequence(
-            [self.dtype.na_value] * min(abs(periods), len(self)),
+            [fill_value] * min(abs(periods), len(self)),
             dtype=self.dtype
         )
         if periods > 0:

@@ -1,5 +1,8 @@
 .. _io:
 
+.. currentmodule:: pandas
+
+
 {{ header }}
 
 .. ipython:: python

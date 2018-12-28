@@ -1,11 +1,12 @@
 import numpy as np
 import pytest
 
-from pandas.compat import lrange, range, u, zip
+from pandas.compat import StringIO, lrange, range, u, zip
 
 import pandas as pd
-from pandas import DataFrame, Index, MultiIndex, Series, date_range
+from pandas import DataFrame, Index, MultiIndex, Series
 import pandas.core.common as com
+from pandas.core.indexing import IndexingError
 from pandas.util import testing as tm
 
 
@@ -24,29 +25,6 @@ def test_series_getitem_multiindex(access_method, level1_value, expected):
     s = Series([1, 2, 3])
     s.index = MultiIndex.from_tuples([(0, 0), (1, 1), (2, 1)])
     result = access_method(s, level1_value)
-    tm.assert_series_equal(result, expected)
-
-
-def test_series_getitem_multiindex_xs():
-    # GH6258
-    dt = list(date_range('20130903', periods=3))
-    idx = MultiIndex.from_product([list('AB'), dt])
-    s = Series([1, 3, 4, 1, 3, 4], index=idx)
-
-    result = s.xs('20130903', level=1)
-    expected = Series([1, 1], index=list('AB'))
-    tm.assert_series_equal(result, expected)
-
-
-def test_series_getitem_multiindex_xs_by_label():
-    # GH5684
-    idx = MultiIndex.from_tuples([('a', 'one'), ('a', 'two'), ('b', 'one'),
-                                  ('b', 'two')])
-    s = Series([1, 2, 3, 4], index=idx)
-    s.index.set_names(['L1', 'L2'], inplace=True)
-    result = s.xs('one', level='L2')
-    expected = Series([1, 3], index=['a', 'b'])
-    expected.index.set_names(['L1'], inplace=True)
     tm.assert_series_equal(result, expected)
 
 
@@ -145,63 +123,83 @@ def test_getitem_duplicates_multiindex_non_scalar_type_object():
 
 
 def test_getitem_simple(multiindex_dataframe_random_data):
-    frame = multiindex_dataframe_random_data
-    df = frame.T
+    df = multiindex_dataframe_random_data.T
+    expected = df.values[:, 0]
+    result = df['foo', 'one'].values
+    tm.assert_almost_equal(result, expected)
 
-    col = df['foo', 'one']
-    tm.assert_almost_equal(col.values, df.values[:, 0])
-    msg = r"\('foo', 'four'\)"
+
+@pytest.mark.parametrize('indexer,msg', [
+    (lambda df: df[('foo', 'four')], r"\('foo', 'four'\)"),
+    (lambda df: df['foobar'], "'foobar'")
+])
+def test_getitem_simple_key_error(
+        multiindex_dataframe_random_data, indexer, msg):
+    df = multiindex_dataframe_random_data.T
     with pytest.raises(KeyError, match=msg):
-        df[('foo', 'four')]
-    msg = "'foobar'"
-    with pytest.raises(KeyError, match=msg):
-        df['foobar']
+        indexer(df)
+
+
+@pytest.mark.parametrize('indexer', [
+    lambda s: s[2000, 3],
+    lambda s: s.loc[2000, 3]
+])
+def test_series_getitem(
+        multiindex_year_month_day_dataframe_random_data, indexer):
+    s = multiindex_year_month_day_dataframe_random_data['A']
+    expected = s.reindex(s.index[42:65])
+    expected.index = expected.index.droplevel(0).droplevel(0)
+
+    result = indexer(s)
+    tm.assert_series_equal(result, expected)
+
+
+@pytest.mark.parametrize('indexer', [
+    lambda s: s[2000, 3, 10],
+    lambda s: s.loc[2000, 3, 10]
+])
+def test_series_getitem_returns_scalar(
+        multiindex_year_month_day_dataframe_random_data, indexer):
+    s = multiindex_year_month_day_dataframe_random_data['A']
+    expected = s.iloc[49]
+
+    result = indexer(s)
+    assert result == expected
 
 
 @pytest.mark.filterwarnings("ignore:\\n.ix:DeprecationWarning")
-def test_series_getitem(multiindex_year_month_day_dataframe_random_data):
-    ymd = multiindex_year_month_day_dataframe_random_data
-    s = ymd['A']
-
-    result = s[2000, 3]
-
-    # TODO(wesm): unused?
-    # result2 = s.loc[2000, 3]
-
-    expected = s.reindex(s.index[42:65])
-    expected.index = expected.index.droplevel(0).droplevel(0)
-    tm.assert_series_equal(result, expected)
-
-    result = s[2000, 3, 10]
-    expected = s[49]
-    assert result == expected
-
-    # fancy
+@pytest.mark.parametrize('indexer', [
+    lambda s: s.loc[[(2000, 3, 10), (2000, 3, 13)]],
+    lambda s: s.ix[[(2000, 3, 10), (2000, 3, 13)]]
+])
+def test_series_getitem_fancy(
+        multiindex_year_month_day_dataframe_random_data, indexer):
+    s = multiindex_year_month_day_dataframe_random_data['A']
     expected = s.reindex(s.index[49:51])
-    result = s.loc[[(2000, 3, 10), (2000, 3, 13)]]
+
+    result = indexer(s)
     tm.assert_series_equal(result, expected)
 
-    result = s.ix[[(2000, 3, 10), (2000, 3, 13)]]
-    tm.assert_series_equal(result, expected)
 
-    # key error
-    msg = "356"
-    with pytest.raises(KeyError, match=msg):
-        s.__getitem__((2000, 3, 4))
+@pytest.mark.parametrize('indexer,error,msg', [
+    (lambda s: s.__getitem__((2000, 3, 4)), KeyError, '356'),
+    (lambda s: s[(2000, 3, 4)], KeyError, '356'),
+    (lambda s: s.loc[(2000, 3, 4)], IndexingError, 'Too many indexers'),
+    (lambda s: s.__getitem__(len(s)), IndexError, 'index out of bounds'),
+    (lambda s: s[len(s)], IndexError, 'index out of bounds'),
+    (lambda s: s.iloc[len(s)], IndexError,
+     'single positional indexer is out-of-bounds')
+])
+def test_series_getitem_indexing_errors(
+        multiindex_year_month_day_dataframe_random_data, indexer, error, msg):
+    s = multiindex_year_month_day_dataframe_random_data['A']
+    with pytest.raises(error, match=msg):
+        indexer(s)
 
 
-def test_series_getitem_corner(
+def test_series_getitem_corner_generator(
         multiindex_year_month_day_dataframe_random_data):
-    ymd = multiindex_year_month_day_dataframe_random_data
-    s = ymd['A']
-
-    # don't segfault, GH #495
-    # out of bounds access
-    msg = "index out of bounds"
-    with pytest.raises(IndexError, match=msg):
-        s.__getitem__(len(ymd))
-
-    # generator
+    s = multiindex_year_month_day_dataframe_random_data['A']
     result = s[(x > 0 for x in s)]
     expected = s[s > 0]
     tm.assert_series_equal(result, expected)
@@ -345,3 +343,43 @@ def test_mixed_depth_get(unicode_strings):
     expected = df['routine1', 'result1', '']
     expected = expected.rename(('routine1', 'result1'))
     tm.assert_series_equal(result, expected)
+
+
+def test_mi_access():
+
+    # GH 4145
+    data = """h1 main  h3 sub  h5
+0  a    A   1  A1   1
+1  b    B   2  B1   2
+2  c    B   3  A1   3
+3  d    A   4  B2   4
+4  e    A   5  B2   5
+5  f    B   6  A2   6
+"""
+
+    df = pd.read_csv(StringIO(data), sep=r'\s+', index_col=0)
+    df2 = df.set_index(['main', 'sub']).T.sort_index(1)
+    index = Index(['h1', 'h3', 'h5'])
+    columns = MultiIndex.from_tuples([('A', 'A1')], names=['main', 'sub'])
+    expected = DataFrame([['a', 1, 1]], index=columns, columns=index).T
+
+    result = df2.loc[:, ('A', 'A1')]
+    tm.assert_frame_equal(result, expected)
+
+    result = df2[('A', 'A1')]
+    tm.assert_frame_equal(result, expected)
+
+    # GH 4146, not returning a block manager when selecting a unique index
+    # from a duplicate index
+    # as of 4879, this returns a Series (which is similar to what happens
+    # with a non-unique)
+    expected = Series(['a', 1, 1], index=['h1', 'h3', 'h5'], name='A1')
+    result = df2['A']['A1']
+    tm.assert_series_equal(result, expected)
+
+    # selecting a non_unique from the 2nd level
+    expected = DataFrame([['d', 4, 4], ['e', 5, 5]],
+                         index=Index(['B2', 'B2'], name='sub'),
+                         columns=['h1', 'h3', 'h5'], ).T
+    result = df2['A']['B2']
+    tm.assert_frame_equal(result, expected)

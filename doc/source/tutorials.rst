@@ -88,12 +88,12 @@ Video Tutorials
   `GitHub repo <https://github.com/TomAugspurger/pydata-chi-h2t>`__
 * `Data analysis in Python with pandas <https://www.youtube.com/playlist?list=PL5-da3qGB5ICCsgW1MxlZ0Hq8LL5U3u9y>`_
   (2016-2018)
-  `GitHub repo <https://github.com/justmarkham/pandas-videos>`_ and
-  `Jupyter Notebook <http://nbviewer.jupyter.org/github/justmarkham/pandas-videos/blob/master/pandas.ipynb>`_
+  `GitHub repo <https://github.com/justmarkham/pandas-videos>`__ and
+  `Jupyter Notebook <http://nbviewer.jupyter.org/github/justmarkham/pandas-videos/blob/master/pandas.ipynb>`__
 * `Best practices with pandas <https://www.youtube.com/playlist?list=PL5-da3qGB5IBITZj_dYSFqnd_15JgqwA6>`_
   (2018)
-  `GitHub repo <https://github.com/justmarkham/pycon-2018-tutorial>`_ and
-  `Jupyter Notebook <http://nbviewer.jupyter.org/github/justmarkham/pycon-2018-tutorial/blob/master/tutorial.ipynb>`_
+  `GitHub repo <https://github.com/justmarkham/pycon-2018-tutorial>`__ and
+  `Jupyter Notebook <http://nbviewer.jupyter.org/github/justmarkham/pycon-2018-tutorial/blob/master/tutorial.ipynb>`__
 
 
 Various Tutorials

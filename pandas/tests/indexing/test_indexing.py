@@ -10,12 +10,12 @@ import weakref
 import numpy as np
 import pytest
 
-from pandas.compat import PY2, StringIO, lrange, lzip, range
+from pandas.compat import PY2, lrange, range
 
 from pandas.core.dtypes.common import is_float_dtype, is_integer_dtype
 
 import pandas as pd
-from pandas import DataFrame, Index, MultiIndex, NaT, Series
+from pandas import DataFrame, Index, NaT, Series
 from pandas.core.indexing import (
     _maybe_numeric_slice, _non_reducing_slice, validate_indices)
 from pandas.tests.indexing.common import Base, _mklbl
@@ -337,21 +337,6 @@ class TestFancy(Base):
             columns=df.columns)
         tm.assert_frame_equal(result, df)
 
-    def test_multi_nan_indexing(self):
-
-        # GH 3588
-        df = DataFrame({"a": ['R1', 'R2', np.nan, 'R4'],
-                        'b': ["C1", "C2", "C3", "C4"],
-                        "c": [10, 15, np.nan, 20]})
-        result = df.set_index(['a', 'b'], drop=False)
-        expected = DataFrame({"a": ['R1', 'R2', np.nan, 'R4'],
-                              'b': ["C1", "C2", "C3", "C4"],
-                              "c": [10, 15, np.nan, 20]},
-                             index=[Index(['R1', 'R2', np.nan, 'R4'],
-                                          name='a'),
-                                    Index(['C1', 'C2', 'C3', 'C4'], name='b')])
-        tm.assert_frame_equal(result, expected)
-
     def test_multi_assign(self):
 
         # GH 3626, an assignment of a sub-df to a df
@@ -482,45 +467,6 @@ class TestFancy(Base):
         with pytest.raises(KeyError):
             df.loc['2011', 0]
 
-    def test_mi_access(self):
-
-        # GH 4145
-        data = """h1 main  h3 sub  h5
-0  a    A   1  A1   1
-1  b    B   2  B1   2
-2  c    B   3  A1   3
-3  d    A   4  B2   4
-4  e    A   5  B2   5
-5  f    B   6  A2   6
-"""
-
-        df = pd.read_csv(StringIO(data), sep=r'\s+', index_col=0)
-        df2 = df.set_index(['main', 'sub']).T.sort_index(1)
-        index = Index(['h1', 'h3', 'h5'])
-        columns = MultiIndex.from_tuples([('A', 'A1')], names=['main', 'sub'])
-        expected = DataFrame([['a', 1, 1]], index=columns, columns=index).T
-
-        result = df2.loc[:, ('A', 'A1')]
-        tm.assert_frame_equal(result, expected)
-
-        result = df2[('A', 'A1')]
-        tm.assert_frame_equal(result, expected)
-
-        # GH 4146, not returning a block manager when selecting a unique index
-        # from a duplicate index
-        # as of 4879, this returns a Series (which is similar to what happens
-        # with a non-unique)
-        expected = Series(['a', 1, 1], index=['h1', 'h3', 'h5'], name='A1')
-        result = df2['A']['A1']
-        tm.assert_series_equal(result, expected)
-
-        # selecting a non_unique from the 2nd level
-        expected = DataFrame([['d', 4, 4], ['e', 5, 5]],
-                             index=Index(['B2', 'B2'], name='sub'),
-                             columns=['h1', 'h3', 'h5'], ).T
-        result = df2['A']['B2']
-        tm.assert_frame_equal(result, expected)
-
     def test_astype_assignment(self):
 
         # GH4312 (iloc)
@@ -562,22 +508,6 @@ class TestFancy(Base):
         df.loc[:, 'A'] = df['A'].astype(np.int64)
         expected = DataFrame({'A': [1, 2, 3, 4]})
         tm.assert_frame_equal(df, expected)
-
-    def test_astype_assignment_with_dups(self):
-
-        # GH 4686
-        # assignment with dups that has a dtype change
-        cols = MultiIndex.from_tuples([('A', '1'), ('B', '1'), ('A', '2')])
-        df = DataFrame(np.arange(3).reshape((1, 3)),
-                       columns=cols, dtype=object)
-        index = df.index.copy()
-
-        df['A'] = df['A'].astype(np.float64)
-        tm.assert_index_equal(df.index, index)
-
-        # TODO(wesm): unused variables
-        # result = df.get_dtype_counts().sort_index()
-        # expected = Series({'float64': 2, 'object': 1}).sort_index()
 
     @pytest.mark.parametrize("index,val", [
         (Index([0, 1, 2]), 2),
@@ -697,21 +627,6 @@ class TestFancy(Base):
 
 
 class TestMisc(Base):
-
-    def test_indexer_caching(self):
-        # GH5727
-        # make sure that indexers are in the _internal_names_set
-        n = 1000001
-        arrays = [lrange(n), lrange(n)]
-        index = MultiIndex.from_tuples(lzip(*arrays))
-        s = Series(np.zeros(n), index=index)
-        str(s)
-
-        # setitem
-        expected = Series(np.ones(n), index=index)
-        s = Series(np.zeros(n), index=index)
-        s[s == 0] = 1
-        tm.assert_series_equal(s, expected)
 
     def test_float_index_to_mixed(self):
         df = DataFrame({0.0: np.random.rand(10), 1.0: np.random.rand(10)})

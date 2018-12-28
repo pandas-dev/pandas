@@ -97,6 +97,8 @@ def _dt_array_cmp(cls, op):
     def wrapper(self, other):
         meth = getattr(dtl.DatetimeLikeArrayMixin, opname)
 
+        other = lib.item_from_zerodim(other)
+
         if isinstance(other, (datetime, np.datetime64, compat.string_types)):
             if isinstance(other, (datetime, np.datetime64)):
                 # GH#18435 strings get a pass from tzawareness compat
@@ -111,8 +113,10 @@ def _dt_array_cmp(cls, op):
             result = op(self.asi8, other.view('i8'))
             if isna(other):
                 result.fill(nat_result)
-        elif lib.is_scalar(other):
+        elif lib.is_scalar(other) or np.ndim(other) == 0:
             return ops.invalid_comparison(self, other, op)
+        elif len(other) != len(self):
+            raise ValueError("Lengths must match")
         else:
             if isinstance(other, list):
                 try:
