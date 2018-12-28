@@ -572,7 +572,7 @@ class PeriodArray(dtl.DatetimeLikeArrayMixin,
     # ------------------------------------------------------------------
     # Rendering Methods
 
-    def _format_native_types(self, na_rep='NaT', date_format=None, **kwargs):
+    def _format_native_types(self, na_rep=u'NaT', date_format=None, **kwargs):
         """
         actually format my specific types
         """
