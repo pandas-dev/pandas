@@ -204,13 +204,26 @@ def _get_values(values, skipna, fill_value=None, fill_value_typ=None,
     copy = True will force the copy
     """
 
-    values, dtype = _extract_datetimelike_values_and_dtype(values)
+    if is_datetime64tz_dtype(values):
+        # com.values_from_object returns M8[ns] dtype instead of tz-aware,
+        #  so this case must be handled separately from the rest
+        dtype = values.dtype
+        values = getattr(values, "_values", values)
+    else:
+        values = com.values_from_object(values)
+        dtype = values.dtype
 
     if mask is None:
         if isfinite:
             mask = _isfinite(values)
         else:
             mask = isna(values)
+
+    if is_datetime_or_timedelta_dtype(values) or is_datetime64tz_dtype(values):
+        # changing timedelta64/datetime64 to int64 needs to happen after
+        #  finding `mask` above
+        values = getattr(values, "asi8", values)
+        values = values.view(np.int64)
 
     dtype_ok = _na_ok_dtype(dtype)
 
@@ -255,37 +268,6 @@ def _na_ok_dtype(dtype):
     # TODO: what about datetime64tz?  PeriodDtype?
     return not issubclass(dtype.type,
                           (np.integer, np.timedelta64, np.datetime64))
-
-
-def _extract_datetimelike_values_and_dtype(values):
-    """
-    Find the appropriate values and dtype to use, with special handling
-    for datetime64tz-dtype.
-
-    Parameters
-    ----------
-    values : ndarray, ExtensionArray, Index, Series
-
-    Returns
-    -------
-    values : ndarray
-    dtype : numpy.dtype
-    """
-    if is_datetime64tz_dtype(values):
-        # com.values_from_object returns M8[ns] dtype instead of tz-aware,
-        #  so this case must be handled separately from the rest
-        dtype = values.dtype
-        values = getattr(values, "_values", values)
-        values = np.array(values.asi8)
-    else:
-        values = com.values_from_object(values)
-        dtype = values.dtype
-
-    values = getattr(values, 'asi8', values)
-    if is_datetime_or_timedelta_dtype(values):
-        values = values.view(np.int64)
-
-    return values, dtype
 
 
 def _wrap_results(result, dtype, fill_value=None):
