@@ -698,15 +698,6 @@ class DatetimeIndex(DatetimeArray, DatetimeIndexOpsMixin, Int64Index):
         return DatetimeIndex._simple_new(snapped, freq=freq)
         # TODO: what about self.name?  tz? if so, use shallow_copy?
 
-    def unique(self, level=None):
-        if level is not None:
-            self._validate_index_level(level)
-
-        # TODO(DatetimeArray): change dispatch once inheritance is removed
-        # call DatetimeArray method
-        result = DatetimeArray.unique(self)
-        return self._shallow_copy(result._data)
-
     def join(self, other, how='left', level=None, return_indexers=False,
              sort=False):
         """

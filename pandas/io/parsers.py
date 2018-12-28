@@ -59,8 +59,8 @@ _doc_read_csv_and_table = r"""
 Also supports optionally iterating or breaking of the file
 into chunks.
 
-Additional help can be found in the `online docs for IO Tools
-<http://pandas.pydata.org/pandas-docs/stable/io.html>`_.
+Additional help can be found in the online docs for
+`IO Tools <http://pandas.pydata.org/pandas-docs/stable/io.html>`_.
 
 Parameters
 ----------
@@ -401,7 +401,7 @@ def _read(filepath_or_buffer, kwds):
         encoding = re.sub('_', '-', encoding).lower()
         kwds['encoding'] = encoding
 
-    compression = kwds.get('compression')
+    compression = kwds.get('compression', 'infer')
     compression = _infer_compression(filepath_or_buffer, compression)
     filepath_or_buffer, _, compression, should_close = get_filepath_or_buffer(
         filepath_or_buffer, encoding, compression)
