@@ -407,6 +407,18 @@ class BadGenericDocStrings(object):
             before Examples.
         """
 
+    def deprecation_in_wrong_order(self):
+        """
+        This docstring has the deprecation warning in the wrong order.
+
+        This is the extended summary. The correct order should be
+        summary, deprecation warning, extended summary.
+
+        .. deprecated:: 1.0
+            This should generate an error as it needs to go before
+            extended summary.
+        """
+
     def method_wo_docstrings(self):
         pass
 
@@ -772,6 +784,8 @@ class TestValidator(object):
         ('BadGenericDocStrings', 'sections_in_wrong_order',
          ('Sections are in the wrong order. Correct order is: Parameters, '
           'See Also, Examples',)),
+        ('BadGenericDocStrings', 'deprecation_in_wrong_order',
+         ('Deprecation warning should precede extended summary',)),
         ('BadSeeAlso', 'desc_no_period',
          ('Missing period at end of description for See Also "Series.iloc"',)),
         ('BadSeeAlso', 'desc_first_letter_lowercase',

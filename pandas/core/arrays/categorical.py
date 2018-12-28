@@ -39,7 +39,7 @@ from pandas.core.sorting import nargsort
 from pandas.io.formats import console
 from pandas.io.formats.terminal import get_terminal_size
 
-from .base import ExtensionArray
+from .base import ExtensionArray, _extension_array_shared_docs
 
 _take_msg = textwrap.dedent("""\
     Interpreting negative values in 'indexer' as missing values.
@@ -341,9 +341,6 @@ class Categorical(ExtensionArray, PandasObject):
             elif categories is not None or ordered is not None:
                 raise ValueError("Cannot specify both `dtype` and `categories`"
                                  " or `ordered`.")
-
-            categories = dtype.categories
-
         elif is_categorical(values):
             # If no "dtype" was passed, use the one from "values", but honor
             # the "ordered" and "categories" arguments
@@ -355,19 +352,17 @@ class Categorical(ExtensionArray, PandasObject):
             if (isinstance(values, (ABCSeries, ABCIndexClass)) and
                isinstance(values._values, type(self))):
                 values = values._values.codes.copy()
-                if categories is None:
-                    categories = dtype.categories
                 fastpath = True
-
         else:
             # If dtype=None and values is not categorical, create a new dtype
             dtype = CategoricalDtype(categories, ordered)
 
-        # At this point, dtype is always a CategoricalDtype
+        # At this point, dtype is always a CategoricalDtype and you should not
+        # use categories and ordered seperately.
         # if dtype.categories is None, we are inferring
 
         if fastpath:
-            self._codes = coerce_indexer_dtype(values, categories)
+            self._codes = coerce_indexer_dtype(values, dtype.categories)
             self._dtype = self._dtype.update_dtype(dtype)
             return
 
@@ -379,7 +374,6 @@ class Categorical(ExtensionArray, PandasObject):
         if is_categorical_dtype(values):
             if dtype.categories is None:
                 dtype = CategoricalDtype(values.categories, dtype.ordered)
-
         elif not isinstance(values, (ABCIndexClass, ABCSeries)):
             # sanitize_array coerces np.nan to a string under certain versions
             # of numpy
@@ -1166,7 +1160,7 @@ class Categorical(ExtensionArray, PandasObject):
         Maps the categories to new categories. If the mapping correspondence is
         one-to-one the result is a :class:`~pandas.Categorical` which has the
         same order property as the original, otherwise a :class:`~pandas.Index`
-        is returned.
+        is returned. NaN values are unaffected.
 
         If a `dict` or :class:`~pandas.Series` is used any unmapped category is
         mapped to `NaN`. Note that if this happens an :class:`~pandas.Index`
@@ -1234,6 +1228,11 @@ class Categorical(ExtensionArray, PandasObject):
                                    categories=new_categories,
                                    ordered=self.ordered)
         except ValueError:
+            # NA values are represented in self._codes with -1
+            # np.take causes NA values to take final element in new_categories
+            if np.any(self._codes == -1):
+                new_categories = new_categories.insert(len(new_categories),
+                                                       np.nan)
             return np.take(new_categories, self._codes)
 
     __eq__ = _cat_compare_op('__eq__')
@@ -1258,7 +1257,7 @@ class Categorical(ExtensionArray, PandasObject):
 
         return tuple([len(self._codes)])
 
-    def shift(self, periods):
+    def shift(self, periods, fill_value=None):
         """
         Shift Categorical by desired number of periods.
 
@@ -1266,6 +1265,10 @@ class Categorical(ExtensionArray, PandasObject):
         ----------
         periods : int
             Number of periods to move, can be positive or negative
+        fill_value : object, optional
+            The scalar value to use for newly introduced missing values.
+
+            .. versionadded:: 0.24.0
 
         Returns
         -------
@@ -1278,10 +1281,18 @@ class Categorical(ExtensionArray, PandasObject):
             raise NotImplementedError("Categorical with ndim > 1.")
         if np.prod(codes.shape) and (periods != 0):
             codes = np.roll(codes, ensure_platform_int(periods), axis=0)
-            if periods > 0:
-                codes[:periods] = -1
+            if isna(fill_value):
+                fill_value = -1
+            elif fill_value in self.categories:
+                fill_value = self.categories.get_loc(fill_value)
             else:
-                codes[periods:] = -1
+                raise ValueError("'fill_value={}' is not present "
+                                 "in this Categorical's "
+                                 "categories".format(fill_value))
+            if periods > 0:
+                codes[:periods] = fill_value
+            else:
+                codes[periods:] = fill_value
 
         return self.from_codes(codes, categories=self.categories,
                                ordered=self.ordered)
@@ -2389,16 +2400,10 @@ class Categorical(ExtensionArray, PandasObject):
 
         return result
 
-    def repeat(self, repeats, *args, **kwargs):
-        """
-        Repeat elements of a Categorical.
-
-        See Also
-        --------
-        numpy.ndarray.repeat
-
-        """
-        nv.validate_repeat(args, kwargs)
+    @Substitution(klass='Categorical')
+    @Appender(_extension_array_shared_docs['repeat'])
+    def repeat(self, repeats, axis=None):
+        nv.validate_repeat(tuple(), dict(axis=axis))
         codes = self._codes.repeat(repeats)
         return self._constructor(values=codes, dtype=self.dtype, fastpath=True)
 

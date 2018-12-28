@@ -8,7 +8,7 @@ import numpy as np
 
 import pandas._libs.lib as lib
 import pandas.compat as compat
-from pandas.compat import PYPY, OrderedDict, builtins
+from pandas.compat import PYPY, OrderedDict, builtins, map, range
 from pandas.compat.numpy import function as nv
 from pandas.errors import AbstractMethodError
 from pandas.util._decorators import Appender, Substitution, cache_readonly
@@ -841,18 +841,22 @@ class IndexOpsMixin(object):
         """
         return self._values
 
-    def to_numpy(self):
+    def to_numpy(self, dtype=None, copy=False):
         """
         A NumPy ndarray representing the values in this Series or Index.
 
         .. versionadded:: 0.24.0
 
-        The returned array will be the same up to equality (values equal
-        in `self` will be equal in the returned array; likewise for values
-        that are not equal). When `self` contains an ExtensionArray, the
-        dtype may be different. For example, for a category-dtype Series,
-        ``to_numpy()`` will return a NumPy array and the categorical dtype
-        will be lost.
+
+        Parameters
+        ----------
+        dtype : str or numpy.dtype, optional
+            The dtype to pass to :meth:`numpy.asarray`
+        copy : bool, default False
+            Whether to ensure that the returned value is a not a view on
+            another array. Note that ``copy=False`` does not *ensure* that
+            ``to_numpy()`` is no-copy. Rather, ``copy=True`` ensure that
+            a copy is made, even if not strictly necessary.
 
         Returns
         -------
@@ -866,10 +870,18 @@ class IndexOpsMixin(object):
 
         Notes
         -----
+        The returned array will be the same up to equality (values equal
+        in `self` will be equal in the returned array; likewise for values
+        that are not equal). When `self` contains an ExtensionArray, the
+        dtype may be different. For example, for a category-dtype Series,
+        ``to_numpy()`` will return a NumPy array and the categorical dtype
+        will be lost.
+
+
         For NumPy dtypes, this will be a reference to the actual data stored
-        in this Series or Index. Modifying the result in place will modify
-        the data stored in the Series or Index (not that we recommend doing
-        that).
+        in this Series or Index (assuming ``copy=False``). Modifying the result
+        in place will modify the data stored in the Series or Index (not that
+        we recommend doing that).
 
         For extension types, ``to_numpy()`` *may* require copying data and
         coercing the result to a NumPy type (possibly object), which may be
@@ -894,12 +906,37 @@ class IndexOpsMixin(object):
         >>> ser = pd.Series(pd.Categorical(['a', 'b', 'a']))
         >>> ser.to_numpy()
         array(['a', 'b', 'a'], dtype=object)
+
+        Specify the `dtype` to control how datetime-aware data is represented.
+        Use ``dtype=object`` to return an ndarray of pandas :class:`Timestamp`
+        objects, each with the correct ``tz``.
+
+        >>> ser = pd.Series(pd.date_range('2000', periods=2, tz="CET"))
+        >>> ser.to_numpy(dtype=object)
+        array([Timestamp('2000-01-01 00:00:00+0100', tz='CET', freq='D'),
+               Timestamp('2000-01-02 00:00:00+0100', tz='CET', freq='D')],
+              dtype=object)
+
+        Or ``dtype='datetime64[ns]'`` to return an ndarray of native
+        datetime64 values. The values are converted to UTC and the timezone
+        info is dropped.
+
+        >>> ser.to_numpy(dtype="datetime64[ns]")
+        ... # doctest: +ELLIPSIS
+        array(['1999-12-31T23:00:00.000000000', '2000-01-01T23:00:00...'],
+              dtype='datetime64[ns]')
         """
         if (is_extension_array_dtype(self.dtype) or
                 is_datetime64tz_dtype(self.dtype)):
             # TODO(DatetimeArray): remove the second clause.
-            return np.asarray(self._values)
-        return self._values
+            # TODO(GH-24345): Avoid potential double copy
+            result = np.asarray(self._values, dtype=dtype)
+        else:
+            result = self._values
+
+        if copy:
+            result = result.copy()
+        return result
 
     @property
     def _ndarray_values(self):
@@ -1035,7 +1072,13 @@ class IndexOpsMixin(object):
         (for str, int, float) or a pandas scalar
         (for Timestamp/Timedelta/Interval/Period)
         """
-        return iter(self.tolist())
+        # We are explicity making element iterators.
+        if is_datetimelike(self._values):
+            return map(com.maybe_box_datetimelike, self._values)
+        elif is_extension_array_dtype(self._values):
+            return iter(self._values)
+        else:
+            return map(self._values.item, range(self._values.size))
 
     @cache_readonly
     def hasnans(self):
@@ -1350,8 +1393,14 @@ class IndexOpsMixin(object):
 
         Returns
         -------
-        indices : array of ints
-            Array of insertion points with the same shape as `value`.
+        int or array of int
+            A scalar or array of insertion points with the
+            same shape as `value`.
+
+            .. versionchanged :: 0.24.0
+                If `value` is a scalar, an int is now always returned.
+                Previously, scalar inputs returned an 1-item array for
+                :class:`Series` and :class:`Categorical`.
 
         See Also
         --------
@@ -1372,7 +1421,7 @@ class IndexOpsMixin(object):
         dtype: int64
 
         >>> x.searchsorted(4)
-        array([3])
+        3
 
         >>> x.searchsorted([0, 4])
         array([0, 3])
@@ -1389,7 +1438,7 @@ class IndexOpsMixin(object):
         Categories (4, object): [apple < bread < cheese < milk]
 
         >>> x.searchsorted('bread')
-        array([1])     # Note: an array, not a scalar
+        1
 
         >>> x.searchsorted(['bread'], side='right')
         array([3])

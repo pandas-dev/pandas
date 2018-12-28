@@ -17,6 +17,12 @@ def test_tolist(idx):
     assert result == exp
 
 
+def test_to_numpy(idx):
+    result = idx.to_numpy()
+    exp = idx.values
+    tm.assert_numpy_array_equal(result, exp)
+
+
 def test_to_frame():
     tuples = [(1, 'one'), (1, 'two'), (2, 'one'), (2, 'two')]
 

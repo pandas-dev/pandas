@@ -9,7 +9,8 @@ import pandas as pd
 from pandas.compat import PY37
 from pandas import (Index, MultiIndex, CategoricalIndex,
                     DataFrame, Categorical, Series, qcut)
-from pandas.util.testing import assert_frame_equal, assert_series_equal
+from pandas.util.testing import (assert_equal,
+                                 assert_frame_equal, assert_series_equal)
 import pandas.util.testing as tm
 
 
@@ -527,9 +528,8 @@ def test_bins_unequal_len():
     bins = pd.cut(series.dropna().values, 4)
 
     # len(bins) != len(series) here
-    def f():
+    with pytest.raises(ValueError):
         series.groupby(bins).mean()
-    pytest.raises(ValueError, f)
 
 
 def test_as_index():
@@ -861,3 +861,13 @@ def test_groupby_multiindex_categorical_datetime():
     expected = pd.DataFrame(
         {'values': [0, 4, 8, 3, 4, 5, 6, np.nan, 2]}, index=idx)
     assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize('fill_value', [None, np.nan, pd.NaT])
+def test_shift(fill_value):
+    ct = pd.Categorical(['a', 'b', 'c', 'd'],
+                        categories=['a', 'b', 'c', 'd'], ordered=False)
+    expected = pd.Categorical([None, 'a', 'b', 'c'],
+                              categories=['a', 'b', 'c', 'd'], ordered=False)
+    res = ct.shift(1, fill_value=fill_value)
+    assert_equal(res, expected)

@@ -38,28 +38,19 @@ matrix:
 
     - dist: trusty
       env:
-        - JOB="2.7, locale, slow, old NumPy" ENV_FILE="ci/deps/travis-27-locale.yaml" LOCALE_OVERRIDE="zh_CN.UTF-8" PATTERN="slow"
-      addons:
-        apt:
-          packages:
-          - language-pack-zh-hans
-    - dist: trusty
-      env:
         - JOB="2.7" ENV_FILE="ci/deps/travis-27.yaml" PATTERN="not slow"
       addons:
         apt:
           packages:
           - python-gtk2
+
+    - dist: trusty
+      env:
+        - JOB="3.6, locale" ENV_FILE="ci/deps/travis-36-locale.yaml" PATTERN="not slow and not network" LOCALE_OVERRIDE="zh_CN.UTF-8"
+
     - dist: trusty
       env:
         - JOB="3.6, coverage" ENV_FILE="ci/deps/travis-36.yaml" PATTERN="not slow and not network" PANDAS_TESTING_MODE="deprecate" COVERAGE=true
-    - dist: trusty
-      env:
-        - JOB="3.7, NumPy dev" ENV_FILE="ci/deps/travis-37-numpydev.yaml" PATTERN="not slow and not network" WARNINGS_ARE_ERRORS="true" PANDAS_TESTING_MODE="deprecate"
-      addons:
-        apt:
-          packages:
-          - xsel
 
     # In allow_failures
     - dist: trusty
@@ -90,6 +81,12 @@ before_install:
   - uname -a
   - git --version
   - git tag
+  # Because travis runs on Google Cloud and has a /etc/boto.cfg,
+  # it breaks moto import, see:
+  # https://github.com/spulec/moto/issues/1771
+  # https://github.com/boto/boto/issues/3741
+  # This overrides travis and tells it to look nowhere.
+  - export BOTO_CONFIG=/dev/null
 
 install:
   - echo "install start"
@@ -106,5 +103,5 @@ before_script:
 script:
   - echo "script start"
   - source activate pandas-dev
-  - ci/run_build_docs.sh
+  - ci/build_docs.sh
   - python ci/run_tests.py

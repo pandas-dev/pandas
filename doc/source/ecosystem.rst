@@ -142,7 +142,7 @@ which are utilized by Jupyter Notebook for displaying
 (Note: HTML tables may or may not be
 compatible with non-HTML Jupyter output formats.)
 
-See :ref:`Options and Settings <options>` and :ref:`options.available`
+See :ref:`Options and Settings <options>` and :ref:`<options.available>`
 for pandas ``display.`` settings.
 
 `quantopian/qgrid <https://github.com/quantopian/qgrid>`__

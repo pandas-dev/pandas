@@ -91,8 +91,7 @@ pandas is actively supported today by a community of like-minded individuals aro
 the world who contribute their valuable time and energy to help make open source
 pandas possible. Thanks to `all of our contributors <https://github.com/pandas-dev/pandas/graphs/contributors>`__.
 
-If you're interested in contributing, please
-visit `Contributing to pandas webpage <https://pandas.pydata.org/pandas-docs/stable/contributing.html>`__.
+If you're interested in contributing, please visit the :ref:`contributing guide <contributing>`.
 
 pandas is a `NumFOCUS <https://www.numfocus.org/open-source-projects/>`__ sponsored project.
 This will help ensure the success of development of pandas as a world-class open-source

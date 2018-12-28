@@ -1,5 +1,8 @@
 .. _io:
 
+.. currentmodule:: pandas
+
+
 {{ header }}
 
 .. ipython:: python
@@ -1863,7 +1866,9 @@ Writing to a file, with a date index and a date column:
    dfj2['bools'] = True
    dfj2.index = pd.date_range('20130101', periods=5)
    dfj2.to_json('test.json')
-   open('test.json').read()
+
+   with open('test.json') as fh:
+       print(fh.read())
 
 Fallback Behavior
 +++++++++++++++++
@@ -2320,6 +2325,11 @@ indicate missing values and the subsequent read cannot distinguish the intent.
    df.to_json('test.json', orient='table')
    new_df = pd.read_json('test.json', orient='table')
    print(new_df.index.name)
+
+.. ipython:: python
+   :suppress:
+
+   os.remove('test.json')
 
 .. _Table Schema: https://specs.frictionlessdata.io/json-table-schema/
 
@@ -4766,6 +4776,11 @@ this file into a ``DataFrame``.
 Passing ``index=True`` will *always* write the index, even if that's not the
 underlying engine's default behavior.
 
+.. ipython:: python
+   :suppress:
+
+   os.remove('test.parquet')
+
 
 Partitioning Parquet files
 ''''''''''''''''''''''''''
@@ -4864,7 +4879,7 @@ below and the SQLAlchemy `documentation <https://docs.sqlalchemy.org/en/latest/c
 
 If you want to manage your own connections you can pass one of those instead:
 
-.. code-block:: python
+.. ipython:: python
 
    with engine.connect() as conn, conn.begin():
        data = pd.read_sql_table('data', conn)

@@ -201,6 +201,10 @@ name : str
     Name under which the accessor should be registered. A warning is issued
     if this name conflicts with a preexisting attribute.
 
+See Also
+--------
+%(others)s
+
 Notes
 -----
 When accessed, your accessor will be initialized with the pandas object
@@ -250,10 +254,6 @@ Back in an interactive IPython session:
     (5.0, 10.0)
     >>> ds.geo.plot()
     # plots data on a map
-
-See Also
---------
-%(others)s
 """
 
 
