@@ -15,8 +15,8 @@ import pandas.compat as compat
 from pandas.compat.numpy import function as nv
 from pandas.errors import (
     AbstractMethodError, NullFrequencyError, PerformanceWarning)
-from pandas.util._validators import validate_fillna_kwargs
 from pandas.util._decorators import Appender, Substitution
+from pandas.util._validators import validate_fillna_kwargs
 
 from pandas.core.dtypes.common import (
     is_bool_dtype, is_categorical_dtype, is_datetime64_any_dtype,
