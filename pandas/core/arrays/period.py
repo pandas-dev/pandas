@@ -115,6 +115,11 @@ class PeriodArray(dtl.DatetimeLikeArrayMixin,
     copy : bool, default False
         Whether to copy the ordinals before storing.
 
+    See Also
+    --------
+    period_array : Create a new PeriodArray.
+    pandas.PeriodIndex : Immutable Index for period data.
+
     Notes
     -----
     There are two components to a PeriodArray
@@ -127,16 +132,12 @@ class PeriodArray(dtl.DatetimeLikeArrayMixin,
 
     The `freq` indicates the span covered by each element of the array.
     All elements in the PeriodArray have the same `freq`.
-
-    See Also
-    --------
-    period_array : Create a new PeriodArray.
-    pandas.PeriodIndex : Immutable Index for period data.
     """
     # array priority higher than numpy scalars
     __array_priority__ = 1000
     _attributes = ["freq"]
     _typ = "periodarray"  # ABCPeriodArray
+    _scalar_type = Period
 
     # Names others delegate to us
     _other_ops = []
@@ -240,7 +241,28 @@ class PeriodArray(dtl.DatetimeLikeArrayMixin,
 
         return subarr, freq
 
+    # -----------------------------------------------------------------
+    # DatetimeLike Interface
+
+    def _unbox_scalar(self, value):
+        # type: (Union[Period, NaTType]) -> int
+        if value is NaT:
+            return value.value
+        elif isinstance(value, self._scalar_type):
+            if not isna(value):
+                self._check_compatible_with(value)
+            return value.ordinal
+        else:
+            raise ValueError("'value' should be a Period. Got '{val}' instead."
+                             .format(val=value))
+
+    def _scalar_from_string(self, value):
+        # type: (str) -> Period
+        return Period(value, freq=self.freq)
+
     def _check_compatible_with(self, other):
+        if other is NaT:
+            return
         if self.freqstr != other.freqstr:
             _raise_on_incompatible(self, other)
 
