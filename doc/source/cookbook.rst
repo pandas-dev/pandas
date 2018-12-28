@@ -1236,7 +1236,7 @@ the following Python code will read the binary file ``'binary.dat'`` into a
 pandas ``DataFrame``, where each element of the struct corresponds to a column
 in the frame:
 
-.. code-block:: python
+.. ipython:: python
 
    names = 'count', 'avg', 'scale'
 
@@ -1398,7 +1398,6 @@ function, we can create a dict where the keys are column names and the values ar
 of the data values:
 
 .. ipython:: python
-
 
    def expand_grid(data_dict):
        rows = itertools.product(*data_dict.values())
