@@ -306,11 +306,9 @@ def test_frame_setitem_copy_no_write(multiindex_dataframe_random_data):
     frame = multiindex_dataframe_random_data.T
     expected = frame
     df = frame.copy()
-
-    try:
+    msg = "A value is trying to be set on a copy of a slice from a DataFrame"
+    with pytest.raises(com.SettingWithCopyError, match=msg):
         df['foo']['one'] = 2
-    except com.SettingWithCopyError:
-        pass
 
     result = df
     tm.assert_frame_equal(result, expected)
