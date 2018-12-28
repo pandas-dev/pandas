@@ -7133,17 +7133,17 @@ class NDFrame(PandasObject, SelectionMixin):
             raise ValueError("Cannot use an NA value as a clip threshold")
 
         result = self
-
         if upper is not None:
             subset = self.le(upper, axis=None) | isna(result)
-            result = result.where(subset, upper, axis=None, inplace=inplace)
+            result = result.where(subset, upper, axis=None, inplace=False)
         if lower is not None:
-            if inplace:
-                result = self
             subset = self.ge(lower, axis=None) | isna(result)
-            result = result.where(subset, lower, axis=None, inplace=inplace)
+            result = result.where(subset, lower, axis=None, inplace=False)
 
-        return result
+        if inplace:
+            self._update_inplace(result)
+        else:
+            return result
 
     def _clip_with_one_bound(self, threshold, method, axis, inplace):
 
