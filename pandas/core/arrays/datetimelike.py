@@ -12,6 +12,7 @@ from pandas._libs.tslibs.timedeltas import Timedelta, delta_to_nanoseconds
 from pandas._libs.tslibs.timestamps import (
     RoundTo, maybe_integer_op_deprecated, round_nsint64)
 import pandas.compat as compat
+from pandas.compat.numpy import function as nv
 from pandas.errors import (
     AbstractMethodError, NullFrequencyError, PerformanceWarning)
 from pandas.util._decorators import Appender, Substitution, deprecate_kwarg
@@ -79,6 +80,79 @@ class AttributesMixin(object):
         return an attributes dict for my class
         """
         return {k: getattr(self, k, None) for k in self._attributes}
+
+    @property
+    def _scalar_type(self):
+        # type: () -> Union[type, Tuple[type]]
+        """The scalar associated with this datelike
+
+        * PeriodArray : Period
+        * DatetimeArray : Timestamp
+        * TimedeltaArray : Timedelta
+        """
+        raise AbstractMethodError(self)
+
+    def _scalar_from_string(self, value):
+        # type: (str) -> Union[Period, Timestamp, Timedelta, NaTType]
+        """
+        Construct a scalar type from a string.
+
+        Parameters
+        ----------
+        value : str
+
+        Returns
+        -------
+        Period, Timestamp, or Timedelta, or NaT
+            Whatever the type of ``self._scalar_type`` is.
+
+        Notes
+        -----
+        This should call ``self._check_compatible_with`` before
+        unboxing the result.
+        """
+        raise AbstractMethodError(self)
+
+    def _unbox_scalar(self, value):
+        # type: (Union[Period, Timestamp, Timedelta, NaTType]) -> int
+        """
+        Unbox the integer value of a scalar `value`.
+
+        Parameters
+        ----------
+        value : Union[Period, Timestamp, Timedelta]
+
+        Returns
+        -------
+        int
+
+        Examples
+        --------
+        >>> self._unbox_scalar(Timedelta('10s'))  # DOCTEST: +SKIP
+        10000000000
+        """
+        raise AbstractMethodError(self)
+
+    def _check_compatible_with(self, other):
+        # TODO: choose a type for other
+        # Can it be NaT?
+        # Scalar, array, or both?
+        """
+        Verify that `self` and `other` are compatible.
+
+        * DatetimeArray verifies that the timezones (if any) match
+        * PeriodArray verifies that the freq matches
+        * Timedelta has no verification
+
+        Parameters
+        ----------
+        other
+
+        Raises
+        ------
+        Exception
+        """
+        raise AbstractMethodError(self)
 
 
 class DatelikeOps(object):
@@ -467,6 +541,67 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin, AttributesMixin):
     @classmethod
     def _from_factorized(cls, values, original):
         return cls(values, dtype=original.dtype)
+
+    def _values_for_argsort(self):
+        return self._data
+
+    # ------------------------------------------------------------------
+    # Additional array methods
+    #  These are not part of the EA API, but we implement them because
+    #  pandas assumes they're there.
+
+    def searchsorted(self, value, side='left', sorter=None):
+        """
+        Find indices where elements should be inserted to maintain order.
+
+        Find the indices into a sorted array `self` such that, if the
+        corresponding elements in `value` were inserted before the indices,
+        the order of `self` would be preserved.
+
+        Parameters
+        ----------
+        value : array_like
+            Values to insert into `self`.
+        side : {'left', 'right'}, optional
+            If 'left', the index of the first suitable location found is given.
+            If 'right', return the last such index.  If there is no suitable
+            index, return either 0 or N (where N is the length of `self`).
+        sorter : 1-D array_like, optional
+            Optional array of integer indices that sort `self` into ascending
+            order. They are typically the result of ``np.argsort``.
+
+        Returns
+        -------
+        indices : array of ints
+            Array of insertion points with the same shape as `value`.
+        """
+        if isinstance(value, compat.string_types):
+            value = self._scalar_from_string(value)
+
+        if not (isinstance(value, (self._scalar_type, type(self)))
+                or isna(value)):
+            msg = "Unexpected type for 'value': {}".format(type(value))
+            raise ValueError(msg)
+
+        self._check_compatible_with(value)
+        if isinstance(value, type(self)):
+            value = value.asi8
+        else:
+            value = self._unbox_scalar(value)
+
+        return self.asi8.searchsorted(value, side=side, sorter=sorter)
+
+    def repeat(self, repeats, *args, **kwargs):
+        """
+        Repeat elements of an array.
+
+        See Also
+        --------
+        numpy.ndarray.repeat
+        """
+        nv.validate_repeat(args, kwargs)
+        values = self._data.repeat(repeats)
+        return type(self)(values, dtype=self.dtype)
 
     # ------------------------------------------------------------------
     # Null Handling

@@ -139,6 +139,7 @@ class PeriodArray(dtl.DatetimeLikeArrayMixin,
     __array_priority__ = 1000
     _attributes = ["freq"]
     _typ = "periodarray"  # ABCPeriodArray
+    _scalar_type = Period
 
     # Names others delegate to us
     _other_ops = []
@@ -241,6 +242,25 @@ class PeriodArray(dtl.DatetimeLikeArrayMixin,
                              'Period range')
 
         return subarr, freq
+
+    # -----------------------------------------------------------------
+    # DatetimeLike Interface
+
+    def _unbox_scalar(self, value):
+        # type: (Union[Period, NaTType]) -> int
+        if value is NaT:
+            return value.value
+        elif isinstance(value, self._scalar_type):
+            if not isna(value):
+                self._check_compatible_with(value)
+            return value.ordinal
+        else:
+            raise ValueError("'value' should be a Period. Got '{val}' instead."
+                             .format(val=value))
+
+    def _scalar_from_string(self, value):
+        # type: (str) -> Period
+        return Period(value, freq=self.freq)
 
     def _check_compatible_with(self, other):
         if self.freqstr != other.freqstr:

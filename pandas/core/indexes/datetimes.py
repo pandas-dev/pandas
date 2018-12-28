@@ -1089,6 +1089,11 @@ class DatetimeIndex(DatetimeArray, DatetimeIndexOpsMixin, Int64Index):
     # --------------------------------------------------------------------
     # Wrapping DatetimeArray
 
+    @property
+    def _eadata(self):
+        return DatetimeArray._simple_new(self._data,
+                                         tz=self.tz, freq=self.freq)
+
     # Compat for frequency inference, see GH#23789
     _is_monotonic_increasing = Index.is_monotonic_increasing
     _is_monotonic_decreasing = Index.is_monotonic_decreasing

@@ -170,6 +170,7 @@ class DatetimeArrayMixin(dtl.DatetimeLikeArrayMixin,
         _data
     """
     _typ = "datetimearray"
+    _scalar_type = Timestamp
 
     # define my properties & methods for delegation
     _bool_ops = ['is_month_start', 'is_month_end',
@@ -345,6 +346,24 @@ class DatetimeArrayMixin(dtl.DatetimeLikeArrayMixin,
             index = index[:-1]
 
         return cls._simple_new(index.asi8, freq=freq, tz=tz)
+
+    # -----------------------------------------------------------------
+    # DatetimeLike Interface
+
+    def _unbox_scalar(self, value):
+        if not isinstance(value, self._scalar_type) and value is not NaT:
+            raise ValueError("'value' should be a Timestamp.")
+        if not isna(value):
+            self._check_compatible_with(value)
+        return value.value
+
+    def _scalar_from_string(self, value):
+        return Timestamp(value, tz=self.tz)
+
+    def _check_compatible_with(self, other):
+        if not timezones.tz_compare(self.tz, other.tz):
+            raise ValueError("Timezones don't match. '{own} != {other}'"
+                             .format(own=self.tz, other=other.tz))
 
     # -----------------------------------------------------------------
     # Descriptive Properties

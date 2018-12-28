@@ -237,6 +237,10 @@ class TimedeltaIndex(TimedeltaArray, DatetimeIndexOpsMixin,
     # -------------------------------------------------------------------
     # Wrapping TimedeltaArray
 
+    @property
+    def _eadata(self):
+        return TimedeltaArray._simple_new(self._data, freq=self.freq)
+
     __mul__ = _make_wrapped_arith_op("__mul__")
     __rmul__ = _make_wrapped_arith_op("__rmul__")
     __floordiv__ = _make_wrapped_arith_op("__floordiv__")
