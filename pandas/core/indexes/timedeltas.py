@@ -65,12 +65,6 @@ class TimedeltaDelegateMixin(DatetimelikeDelegateMixin):
 
 
 @delegate_names(TimedeltaArray,
-                ["to_pytimedelta", "total_seconds"],
-                typ="method", overwrite=True)
-@delegate_names(TimedeltaArray,
-                ["days", "seconds", "microseconds", "nanoseconds"],
-                typ="property", overwrite=True)
-@delegate_names(TimedeltaArray,
                 TimedeltaDelegateMixin._delegated_properties,
                 typ="property")
 @delegate_names(TimedeltaArray,

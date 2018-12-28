@@ -96,11 +96,6 @@ class DatetimeDelegateMixin(DatetimelikeDelegateMixin):
     _delegate_class = DatetimeArray
 
 
-@delegate_names(DatetimeArray, ["to_period", "tz_localize", "tz_convert",
-                                "day_name", "month_name"],
-                typ="method", overwrite=True)
-@delegate_names(DatetimeArray,
-                DatetimeArray._field_ops, typ="property", overwrite=True)
 @delegate_names(DatetimeArray,
                 DatetimeDelegateMixin._delegated_properties,
                 typ="property")
