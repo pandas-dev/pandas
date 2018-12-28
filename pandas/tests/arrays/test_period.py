@@ -87,13 +87,19 @@ def test_take_raises():
         arr.take([0, -1], allow_fill=True, fill_value='foo')
 
 
-@pytest.mark.parametrize('dtype', [int, np.int32, np.int64, 'uint'])
+@pytest.mark.parametrize('dtype', [
+    int, np.int32, np.int64, 'uint32', 'uint64',
+])
 def test_astype(dtype):
     # We choose to ignore the sign and size of integers for
     # Period/Datetime/Timedelta astype
     arr = period_array(['2000', '2001', None], freq='D')
     result = arr.astype(dtype)
-    expected_dtype = np.dtype('int64')
+
+    if np.dtype(dtype).kind == 'u':
+        expected_dtype = np.dtype('uint64')
+    else:
+        expected_dtype = np.dtype('int64')
     expected = arr.astype(expected_dtype)
 
     assert result.dtype == expected_dtype
@@ -109,6 +115,7 @@ def test_astype_copies():
 
     result = arr.astype(np.int64, copy=True)
     assert result is not arr._data
+    tm.assert_numpy_array_equal(result, arr._data.view('i8'))
 
 
 def test_astype_categorical():

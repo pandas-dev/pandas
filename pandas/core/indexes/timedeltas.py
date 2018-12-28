@@ -280,7 +280,7 @@ class TimedeltaIndex(DatetimeIndexOpsMixin,
         from pandas.io.formats.format import _get_format_timedelta64
         return _get_format_timedelta64(self, box=True)
 
-    def _format_native_types(self, na_rep=u'NaT', date_format=None, **kwargs):
+    def _format_native_types(self, na_rep='NaT', date_format=None, **kwargs):
         from pandas.io.formats.format import Timedelta64Formatter
         return Timedelta64Formatter(values=self,
                                     nat_rep=na_rep,
@@ -325,7 +325,7 @@ class TimedeltaIndex(DatetimeIndexOpsMixin,
             if self.hasnans:
                 return Index(result, name=self.name)
             return Index(result.astype('i8'), name=self.name)
-        return super(TimedeltaIndex, self).astype(dtype, copy=copy)
+        return DatetimeIndexOpsMixin.astype(self, dtype, copy=copy)
 
     def union(self, other):
         """

@@ -297,15 +297,44 @@ class TimedeltaArrayMixin(dtl.DatetimeLikeArrayMixin, dtl.TimelikeOps):
                              "Got '{got}'.".format(got=fill_value))
         return fill_value
 
+    def astype(self, dtype, copy=True):
+        # We handle
+        #   --> timedelta64[ns]
+        #   --> timedelta64
+        # DatetimeLikeArrayMixin super call handles other cases
+        dtype = pandas_dtype(dtype)
+
+        if is_timedelta64_dtype(dtype) and not is_timedelta64_ns_dtype(dtype):
+            # by pandas convention, converting to non-nano timedelta64
+            #  returns an int64-dtyped array with ints representing multiples
+            #  of the desired timedelta unit.  This is essentially division
+            if self._hasnans:
+                # avoid double-copying
+                result = self._data.astype(dtype, copy=False)
+                values = self._maybe_mask_results(result,
+                                                  fill_value=None,
+                                                  convert='float64')
+                return values
+            result = self._data.astype(dtype, copy=copy)
+            return result.astype('i8')
+        elif is_timedelta64_ns_dtype(dtype):
+            if copy:
+                return self.copy()
+            return self
+        return dtl.DatetimeLikeArrayMixin.astype(self, dtype, copy=copy)
+
     # ----------------------------------------------------------------
     # Rendering Methods
-
-    def _format_native_types(self):
-        return self.astype(object)
 
     def _formatter(self, boxed=False):
         from pandas.io.formats.format import _get_format_timedelta64
         return _get_format_timedelta64(self, box=True)
+
+    def _format_native_types(self, na_rep='NaT', date_format=None):
+        from pandas.io.formats.format import _get_format_timedelta64
+
+        formatter = _get_format_timedelta64(self._data, na_rep)
+        return np.array([formatter(x) for x in self._data])
 
     # ----------------------------------------------------------------
     # Arithmetic Methods
@@ -754,27 +783,6 @@ class TimedeltaArrayMixin(dtl.DatetimeLikeArrayMixin, dtl.TimelikeOps):
         datetimes : ndarray
         """
         return tslibs.ints_to_pytimedelta(self.asi8)
-
-    def astype(self, dtype, copy=True):
-        # We handle
-        # --> timedelta64[ns]
-        # --> timedelta64
-        dtype = pandas_dtype(dtype)
-
-        if is_timedelta64_dtype(dtype) and not is_timedelta64_ns_dtype(dtype):
-            # essentially this is division
-            result = self._data.astype(dtype, copy=copy)
-            if self._hasnans:
-                values = self._maybe_mask_results(result,
-                                                  fill_value=None,
-                                                  convert='float64')
-                return values
-            return result.astype('i8')
-        elif is_timedelta64_ns_dtype(dtype):
-            if copy:
-                return self.copy()
-            return self
-        return super(TimedeltaArrayMixin, self).astype(dtype, copy=copy)
 
     days = _field_accessor("days", "days",
                            "Number of days for each element.")

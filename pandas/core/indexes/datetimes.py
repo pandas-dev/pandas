@@ -1115,6 +1115,7 @@ class DatetimeIndex(DatelikeIndexMixin,
     _is_monotonic_increasing = Index.is_monotonic_increasing
     _is_monotonic_decreasing = Index.is_monotonic_decreasing
     _is_unique = Index.is_unique
+    astype = DatetimeIndexOpsMixin.astype
 
     _timezone = cache_readonly(DatetimeArray._timezone.fget)
     is_normalized = cache_readonly(DatetimeArray.is_normalized.fget)
