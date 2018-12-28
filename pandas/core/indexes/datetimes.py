@@ -62,6 +62,7 @@ class DatetimeDelegateMixin(DatetimelikeDelegateMixin):
     # We also have a few "extra" attrs, which may or may not be raw,
     # which we we dont' want to expose in the .dt accessor.
     _extra_methods = [
+        'to_period',
         'to_perioddelta',
         'to_julian_date',
     ]
@@ -90,6 +91,11 @@ class DatetimeDelegateMixin(DatetimelikeDelegateMixin):
     _delegate_class = DatetimeArray
 
 
+@delegate_names(DatetimeArray, ["to_period", "tz_localize", "tz_convert",
+                                "day_name", "month_name"],
+                typ="method", overwrite=True)
+@delegate_names(DatetimeArray,
+                DatetimeArray._field_ops, typ="property", overwrite=True)
 @delegate_names(DatetimeArray,
                 DatetimeDelegateMixin._delegated_properties,
                 typ="property")
@@ -119,15 +125,27 @@ class DatetimeIndex(DatelikeIndexMixin,
     start : starting value, datetime-like, optional
         If data is None, start is used as the start point in generating regular
         timestamp data.
+
+        .. deprecated:: 0.24.0
+
     periods  : int, optional, > 0
         Number of periods to generate, if generating index. Takes precedence
         over end argument
-    end   : end time, datetime-like, optional
+
+        .. deprecated:: 0.24.0
+
+    end : end time, datetime-like, optional
         If periods is none, generated index will extend to first conforming
         time on or just past end argument
+
+        .. deprecated:: 0.24.0
+
     closed : string or None, default None
         Make the interval closed with respect to the given frequency to
         the 'left', 'right', or both sides (None)
+
+        .. deprecated:: 0.24. 0
+
     tz : pytz.timezone or dateutil.tz.tzfile
     ambiguous : 'infer', bool-ndarray, 'NaT', default 'raise'
         When clocks moved backward due to DST, ambiguous times may arise.
@@ -204,12 +222,16 @@ class DatetimeIndex(DatelikeIndexMixin,
     To learn more about the frequency strings, please see `this link
     <http://pandas.pydata.org/pandas-docs/stable/timeseries.html#offset-aliases>`__.
 
+    Creating a DatetimeIndex based on `start`, `periods`, and `end` has
+    been deprecated in favor of :func:`date_range`.
+
     See Also
     ---------
     Index : The base pandas Index type.
     TimedeltaIndex : Index of timedelta64 data.
     PeriodIndex : Index of Period data.
-    pandas.to_datetime : Convert argument to datetime.
+    to_datetime : Convert argument to datetime.
+    date_range : Create a fixed-frequency DatetimeIndex.
     """
     _typ = 'datetimeindex'
     _join_precedence = 10
@@ -261,16 +283,16 @@ class DatetimeIndex(DatelikeIndexMixin,
             verify_integrity = True
 
         if data is None:
+            result = DatetimeArray._generate_range(
+                start, end, periods,
+                freq=freq, tz=tz, normalize=normalize,
+                closed=closed, ambiguous=ambiguous)
             warnings.warn("Creating a DatetimeIndex by passing range "
                           "endpoints is deprecated.  Use "
                           "`pandas.date_range` instead.",
                           FutureWarning, stacklevel=2)
-            result = DatetimeArray._generate_range(start, end, periods,
-                                                   freq=freq, tz=tz,
-                                                   normalize=normalize,
-                                                   closed=closed,
-                                                   ambiguous=ambiguous)
-            return cls._simple_new(result, name=name)
+
+            return cls(result, name=name)
 
         if is_scalar(data):
             raise TypeError("{cls}() must be called with a "

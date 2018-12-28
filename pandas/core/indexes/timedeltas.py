@@ -65,6 +65,12 @@ class TimedeltaDelegateMixin(DatetimelikeDelegateMixin):
 
 
 @delegate_names(TimedeltaArray,
+                ["to_pytimedelta", "total_seconds"],
+                typ="method", overwrite=True)
+@delegate_names(TimedeltaArray,
+                ["days", "seconds", "microseconds", "nanoseconds"],
+                typ="property", overwrite=True)
+@delegate_names(TimedeltaArray,
                 TimedeltaDelegateMixin._delegated_properties,
                 typ="property")
 @delegate_names(TimedeltaArray,
@@ -94,15 +100,27 @@ class TimedeltaIndex(DatetimeIndexOpsMixin,
     start : starting value, timedelta-like, optional
         If data is None, start is used as the start point in generating regular
         timedelta data.
+
+        .. deprecated:: 0.24.0
+
     periods  : int, optional, > 0
         Number of periods to generate, if generating index. Takes precedence
         over end argument
-    end   : end time, timedelta-like, optional
+
+        .. deprecated:: 0.24.0
+
+    end : end time, timedelta-like, optional
         If periods is none, generated index will extend to first conforming
         time on or just past end argument
+
+        .. deprecated:: 0.24. 0
+
     closed : string or None, default None
         Make the interval closed with respect to the given frequency to
         the 'left', 'right', or both sides (None)
+
+        .. deprecated:: 0.24. 0
+
     name : object
         Name to be stored in the index
 
@@ -130,12 +148,15 @@ class TimedeltaIndex(DatetimeIndexOpsMixin,
     Timedelta : Represents a duration between two dates or times.
     DatetimeIndex : Index of datetime64 data.
     PeriodIndex : Index of Period data.
+    timedelta_range : Create a fixed-frequency TimedeltaIndex.
 
     Notes
     -----
-
     To learn more about the frequency strings, please see `this link
     <http://pandas.pydata.org/pandas-docs/stable/timeseries.html#offset-aliases>`__.
+
+    Creating a TimedeltaIndex based on `start`, `periods`, and `end` has
+    been deprecated in favor of :func:`timedelta_range`.
     """
 
     _typ = 'timedeltaindex'
