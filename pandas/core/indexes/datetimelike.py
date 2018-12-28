@@ -31,6 +31,17 @@ import pandas.io.formats.printing as printing
 _index_doc_kwargs = dict(ibase._index_doc_kwargs)
 
 
+def ea_passthrough(name):
+    meth = getattr(DatetimeLikeArrayMixin, name)
+
+    def method(self, *args, **kwargs):
+        return meth(self._eadata, *args, **kwargs)
+
+    method.__name__ = name
+    method.__doc__ = meth.__doc__
+    return method
+
+
 class DatetimeIndexOpsMixin(ExtensionOpsMixin):
     """
     common ops mixin to support a unified interface datetimelike Index
@@ -50,15 +61,9 @@ class DatetimeIndexOpsMixin(ExtensionOpsMixin):
     _resolution = cache_readonly(DatetimeLikeArrayMixin._resolution.fget)
     resolution = cache_readonly(DatetimeLikeArrayMixin.resolution.fget)
 
-    def _box_values(self, values):
-        return self._eadata._box_values(values)
-
-    def _maybe_mask_results(self, result, fill_value=iNaT, convert=None):
-        return self._eadata._maybe_mask_results(
-            result, fill_value=fill_value, convert=convert)
-
-    def __iter__(self):
-        return self._eadata.__iter__()
+    _box_values = ea_passthrough("_box_values")
+    _maybe_mask_results = ea_passthrough("_maybe_mask_results")
+    __iter__ = ea_passthrough("__iter__")
 
     @property
     def freqstr(self):
