@@ -23,7 +23,8 @@ from pandas.core.base import _shared_docs
 import pandas.core.common as com
 from pandas.core.indexes.base import Index, _index_shared_docs
 from pandas.core.indexes.datetimelike import (
-    DatetimeIndexOpsMixin, DatetimelikeDelegateMixin, wrap_arithmetic_op)
+    DatetimeIndexOpsMixin, DatetimelikeDelegateMixin, maybe_unwrap_index,
+    wrap_arithmetic_op)
 from pandas.core.indexes.numeric import Int64Index
 from pandas.core.ops import get_op_result_name
 from pandas.core.tools.timedeltas import _coerce_scalar_to_timedelta_type
@@ -36,11 +37,7 @@ def _make_wrapped_arith_op(opname):
     meth = getattr(TimedeltaArray, opname)
 
     def method(self, other):
-        oth = other
-        if isinstance(other, Index):
-            oth = other._data
-
-        result = meth(self, oth)
+        result = meth(self._eadata, maybe_unwrap_index(other))
         return wrap_arithmetic_op(self, other, result)
 
     method.__name__ = opname
@@ -281,23 +278,8 @@ class TimedeltaIndex(TimedeltaArray, DatetimeIndexOpsMixin,
     __rmod__ = _make_wrapped_arith_op("__rmod__")
     __divmod__ = _make_wrapped_arith_op("__divmod__")
     __rdivmod__ = _make_wrapped_arith_op("__rdivmod__")
-
-    def __truediv__(self, other):
-        oth = other
-        if isinstance(other, Index):
-            # TimedeltaArray defers, so we need to unwrap
-            oth = other._values
-        result = TimedeltaArray.__truediv__(self, oth)
-        return wrap_arithmetic_op(self, other, result)
-
-    def __rtruediv__(self, other):
-        oth = other
-        if isinstance(other, Index):
-            # TimedeltaArray defers, so we need to unwrap
-            oth = other._values
-        result = TimedeltaArray.__rtruediv__(self, oth)
-        return wrap_arithmetic_op(self, other, result)
-
+    __truediv__ = _make_wrapped_arith_op("__truediv__")
+    __rtruediv__ = _make_wrapped_arith_op("__rtruediv__")
     if compat.PY2:
         __div__ = __truediv__
         __rdiv__ = __rtruediv__
