@@ -13,7 +13,7 @@ def array(data,         # type: Sequence[object]
           dtype=None,   # type: Optional[Union[str, np.dtype, ExtensionDtype]]
           copy=True,    # type: bool
           ):
-    # type: (...) -> Union[str, np.dtype, ExtensionDtype]
+    # type: (...) -> ExtensionArray
     """
     Create an array.
 
@@ -58,20 +58,27 @@ def array(data,         # type: Sequence[object]
 
         For all other cases, NumPy's usual inference rules will be used.
 
-        To avoid *future* breaking changing, pandas recommends using actual
-        dtypes, and not string aliases, for `dtype`. In other words, use
+        To avoid *future* breaking changes, when the underlying memory
+        representation of the returned array matters, we recommend specifying
+        the `dtype` as a concrete object rather than a string alias or
+        allowing it to be inferred. For example, a future version of pandas
+        or a 3rd-party library may include a dedicated ExtensionArray for
+        string data. In this event, the following would no longer return a
+        :class:`PandasArray` backed by a NumPy array.
 
-        >>> pd.array([1, 2, 3], dtype=np.dtype("int32"))
-        array([1, 2, 3], dtype=int32)
+        >>> pd.array(['a', 'b'], dtype=str)
+        <PandasArray>
+        ['a', 'b']
+        Length: 2, dtype: str32
 
-        rather than
+        This would instead return the new ExtensionArray dedicated for string
+        data. If you really need the new array to be backed by a  NumPy array,
+        specify that in the dtype.
 
-        >>> pd.array([1, 2, 3], dtype="int32")
-        array([1, 2, 3], dtype=int32)
-
-        If and when pandas switches to a different backend for storing arrays,
-        the meaning of the string aliases will change, while the actual
-        dtypes will be unambiguous.
+        >>> pd.array(['a', 'b'], dtype=np.dtype("<U1"))
+        <PandasArray>
+        ['a', 'b']
+        Length: 2, dtype: str32
 
     copy : bool, default True
         Whether to copy the data, even if not necessary. Depending
@@ -80,7 +87,7 @@ def array(data,         # type: Sequence[object]
 
     Returns
     -------
-    array : Union[numpy.ndarray, ExtensionArray]
+    array : ExtensionArray
 
     Raises
     ------
@@ -109,12 +116,16 @@ def array(data,         # type: Sequence[object]
     :meth:`numpy.array`, and an ``ndarray`` is returned.
 
     >>> pd.array([1, 2])
-    array([1, 2])
+    <PandasArray>
+    [1, 2]
+    Length: 2, dtype: int64
 
     Or the NumPy dtype can be specified
 
     >>> pd.array([1, 2], dtype=np.dtype("int32"))
-    array([1, 2], dtype=int32)
+    <PandasArray>
+    [1, 2]
+    Length: 2, dtype: int32
 
     You can use the string alias for `dtype`
 
@@ -134,7 +145,9 @@ def array(data,         # type: Sequence[object]
     NumPy array.
 
     >>> pd.array([1, 2, np.nan])
-    array([ 1.,  2., nan])
+    <PandasArray>
+    [1.0,  2.0, nan]
+    Length: 3, dtype: float64
 
     To use pandas' nullable :class:`pandas.arrays.IntegerArray`, specify
     the dtype:
@@ -159,7 +172,7 @@ def array(data,         # type: Sequence[object]
     ValueError: Cannot pass scalar '1' to 'pandas.array'.
     """
     from pandas.core.arrays import (
-        period_array, ExtensionArray, IntervalArray
+        period_array, ExtensionArray, IntervalArray, PandasArray
     )
 
     if lib.is_scalar(data):
@@ -202,4 +215,6 @@ def array(data,         # type: Sequence[object]
         # TODO(DatetimeArray): handle this type
         # TODO(BooleanArray): handle this type
 
-    return np.array(data, dtype=dtype, copy=copy)
+    result = np.array(data, dtype=dtype, copy=copy)
+    result = PandasArray(result)
+    return result

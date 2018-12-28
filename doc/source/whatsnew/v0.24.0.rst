@@ -165,18 +165,29 @@ Reduction and groupby operations such as 'sum' work.
 
 A new top-level method :func:`array` has been added for creating 1-dimensional arrays (:issue:`22860`).
 This can be used to create any :ref:`extension array <extending.extension-types>`, including
-extension arrays registered by :ref:`3rd party libraries <ecosystem.extensions>`, or to
-create NumPy arrays.
+extension arrays registered by :ref:`3rd party libraries <ecosystem.extensions>`.
 
 .. ipython:: python
 
    pd.array([1, 2, np.nan], dtype='Int64')
    pd.array(['a', 'b', 'c'], dtype='category')
-   pd.array([1, 2])
 
-Notice that the default return value, if no ``dtype`` is specified, the type of
+Passing data for which there isn't dedicated extension type (e.g. float, integer, etc.)
+will return a new :class:`arrays.PandasArray`, which is just a thin (no-copy)
+wrapper around a :class:`numpy.ndarray` that satisfies the extension array interface.
+
+.. ipython:: python
+
+   pd.array([1, 2, 3])
+
+On their own, a :class:`arrays.PandasArray` isn't a very useful object.
+But if you need write low-level code that works generically for any
+:class:`~pandas.api.extensions.ExtensionArray`, :class:`arrays.PandasArray`
+satisfies that need.
+
+Notice that by default, if no ``dtype`` is specified, the dtype of the returned
 array is inferred from the data. In particular, note that the first example of
-``[1, 2, np.nan]`` will return a floating-point NumPy array, since ``NaN``
+``[1, 2, np.nan]`` would have returned a floating-point array, since ``NaN``
 is a float.
 
 .. ipython:: python

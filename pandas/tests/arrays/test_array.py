@@ -7,7 +7,7 @@ from pandas.core.dtypes.dtypes import registry
 
 import pandas as pd
 from pandas.api.extensions import register_extension_dtype
-from pandas.core.arrays import integer_array, period_array
+from pandas.core.arrays import PandasArray, integer_array, period_array
 from pandas.tests.extension.decimal import (
     DecimalArray, DecimalDtype, to_decimal)
 import pandas.util.testing as tm
@@ -15,14 +15,14 @@ import pandas.util.testing as tm
 
 @pytest.mark.parametrize("data, dtype, expected", [
     # Basic NumPy defaults.
-    ([1, 2], None, np.array([1, 2])),
-    ([1, 2], object, np.array([1, 2], dtype=object)),
+    ([1, 2], None, PandasArray(np.array([1, 2]))),
+    ([1, 2], object, PandasArray(np.array([1, 2], dtype=object))),
     ([1, 2], np.dtype('float32'),
-     np.array([1., 2.0], dtype=np.dtype('float32'))),
-    (np.array([1, 2]), None, np.array([1, 2])),
+     PandasArray(np.array([1., 2.0], dtype=np.dtype('float32')))),
+    (np.array([1, 2]), None, PandasArray(np.array([1, 2]))),
 
     # String alias passes through to NumPy
-    ([1, 2], 'float32', np.array([1, 2], dtype='float32')),
+    ([1, 2], 'float32', PandasArray(np.array([1, 2], dtype='float32'))),
 
     # Period alias
     ([pd.Period('2000', 'D'), pd.Period('2001', 'D')], 'Period[D]',
@@ -34,7 +34,7 @@ import pandas.util.testing as tm
 
     # Datetime (naive)
     ([1, 2], np.dtype('datetime64[ns]'),
-     np.array([1, 2], dtype='datetime64[ns]')),
+     PandasArray(np.array([1, 2], dtype='datetime64[ns]'))),
     # TODO(DatetimeArray): add here
 
     # Category
@@ -51,10 +51,10 @@ import pandas.util.testing as tm
 
     # IntegerNA
     ([1, None], 'Int16', integer_array([1, None], dtype='Int16')),
-    (pd.Series([1, 2]), None, np.array([1, 2], dtype=np.int64)),
+    (pd.Series([1, 2]), None, PandasArray(np.array([1, 2], dtype=np.int64))),
 
     # Index
-    (pd.Index([1, 2]), None, np.array([1, 2], dtype=np.int64)),
+    (pd.Index([1, 2]), None, PandasArray(np.array([1, 2], dtype=np.int64))),
 
     # Series[EA] returns the EA
     (pd.Series(pd.Categorical(['a', 'b'], categories=['a', 'b', 'c'])),
@@ -63,10 +63,6 @@ import pandas.util.testing as tm
 
     # "3rd party" EAs work
     ([decimal.Decimal(0), decimal.Decimal(1)], 'decimal', to_decimal([0, 1])),
-
-    # 2D ndarrays pass through
-    (np.array([[1, 2], [3, 4]]), None, np.array([[1, 2], [3, 4]])),
-    ([[1, 2], [3, 4]], None, np.array([[1, 2, ], [3, 4]])),
 
     # pass an ExtensionArray, but a different dtype
     (period_array(['2000', '2001'], freq='D'),
@@ -82,15 +78,15 @@ def test_array_copy():
     a = np.array([1, 2])
     # default is to copy
     b = pd.array(a)
-    assert np.shares_memory(a, b) is False
+    assert np.shares_memory(a, b._ndarray) is False
 
     # copy=True
     b = pd.array(a, copy=True)
-    assert np.shares_memory(a, b) is False
+    assert np.shares_memory(a, b._ndarray) is False
 
     # copy=False
     b = pd.array(a, copy=False)
-    assert a is b
+    assert np.shares_memory(a, b._ndarray) is True
 
 
 @pytest.mark.parametrize('data, expected', [
@@ -112,9 +108,23 @@ def test_array_inference(data, expected):
 ])
 def test_array_inference_fails(data):
     result = pd.array(data)
-    expected = np.array(data, dtype=object)
-    tm.assert_numpy_array_equal(result, expected)
+    expected = PandasArray(np.array(data, dtype=object))
+    tm.assert_extension_array_equal(result, expected)
 
+
+@pytest.mark.parametrize("data", [
+    np.array([[1, 2], [3, 4]]),
+    [[1, 2], [3, 4]],
+])
+def test_nd_raises(data):
+    with pytest.raises(ValueError, match='PandasArray must be 1-dimensional'):
+        pd.array(data)
+
+
+def test_scalar_raises():
+    with pytest.raises(ValueError,
+                       match="Cannot pass scalar '1'"):
+        pd.array(1)
 
 # ---------------------------------------------------------------------------
 # A couple dummy classes to ensure that Series and Indexes are unboxed before
@@ -169,9 +179,3 @@ def test_array_not_registered(registry_without_decimal):
     result = pd.array(data, dtype=DecimalDtype)
     expected = DecimalArray._from_sequence(data)
     tm.assert_equal(result, expected)
-
-
-def test_scalar_raises():
-    with pytest.raises(ValueError,
-                       match="Cannot pass scalar '1'"):
-        pd.array(1)
