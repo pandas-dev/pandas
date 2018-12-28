@@ -116,6 +116,7 @@ def _td_array_cmp(cls, op):
 
 class TimedeltaArrayMixin(dtl.DatetimeLikeArrayMixin, dtl.TimelikeOps):
     _typ = "timedeltaarray"
+    _scalar_type = Timedelta
     __array_priority__ = 1000
     # define my properties & methods for delegation
     _other_ops = []
@@ -220,6 +221,22 @@ class TimedeltaArrayMixin(dtl.DatetimeLikeArrayMixin, dtl.TimelikeOps):
             index = index[:-1]
 
         return cls._simple_new(index, freq=freq)
+
+    # ----------------------------------------------------------------
+    # DatetimeLike Interface
+
+    def _unbox_scalar(self, value):
+        if not isinstance(value, self._scalar_type) and value is not NaT:
+            raise ValueError("'value' should be a Timedelta.")
+        self._check_compatible_with(value)
+        return value.value
+
+    def _scalar_from_string(self, value):
+        return Timedelta(value)
+
+    def _check_compatible_with(self, other):
+        # we don't have anything to validate.
+        pass
 
     # ----------------------------------------------------------------
     # Array-Like / EA-Interface Methods
