@@ -258,6 +258,12 @@ class TestIndex(Base):
         with pytest.raises(ValueError, match=msg):
             Index(data, dtype=dtype)
 
+    def test_constructor_no_pandas_array(self):
+        ser = pd.Series([1, 2, 3])
+        result = pd.Index(ser.array)
+        expected = pd.Index([1, 2, 3])
+        tm.assert_index_equal(result, expected)
+
     @pytest.mark.parametrize("klass,dtype,na_val", [
         (pd.Float64Index, np.float64, np.nan),
         (pd.DatetimeIndex, 'datetime64[ns]', pd.NaT)
@@ -1776,7 +1782,7 @@ class TestIndex(Base):
     @pytest.mark.parametrize("index", [
         Index(range(5)), tm.makeDateIndex(10),
         MultiIndex.from_tuples([('foo', '1'), ('bar', '3')]),
-        PeriodIndex(start='2000', end='2010', freq='A')])
+        period_range(start='2000', end='2010', freq='A')])
     def test_str_attribute_raises(self, index):
         with pytest.raises(AttributeError, match='only use .str accessor'):
             index.str.repeat(2)
