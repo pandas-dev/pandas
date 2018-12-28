@@ -56,7 +56,7 @@ def test_validate_reduction_keyword_args():
 
 @td.skip_if_no("numpy", min_version="1.13.0")
 def test_ufunc():
-    arr = PandasArray([-1.0, 0.0, 1.0])
+    arr = PandasArray(np.array([-1.0, 0.0, 1.0]))
     result = np.abs(arr)
     expected = PandasArray(np.abs(arr._ndarray))
     tm.assert_extension_array_equal(result, expected)
@@ -73,10 +73,15 @@ def test_ufunc():
 def test_basic_binop():
     # Just a basic smoke test. The EA interface tests exercise this
     # more thoroughly.
-    x = PandasArray([1, 2, 3])
+    x = PandasArray(np.array([1, 2, 3]))
     result = x + x
-    expected = PandasArray([2, 4, 6])
+    expected = PandasArray(np.array([2, 4, 6]))
     tm.assert_extension_array_equal(result, expected)
+
+
+def test_constructor_no_coercion():
+    with pytest.raises(ValueError, match='NumPy array'):
+        PandasArray([1, 2, 3])
 
 
 def test_series_constructor_with_copy():

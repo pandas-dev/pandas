@@ -4,13 +4,15 @@ import numpy as np
 
 from pandas._libs import lib
 from pandas.compat.numpy import function as nv
+from pandas.util._validators import validate_fillna_kwargs
 
 from pandas.core.dtypes.dtypes import ExtensionDtype
 from pandas.core.dtypes.generic import ABCIndexClass, ABCSeries
-from pandas.core.dtypes.inference import is_list_like
+from pandas.core.dtypes.inference import is_array_like, is_list_like
 
 from pandas import compat
 from pandas.core import nanops
+from pandas.core.missing import backfill_1d, pad_1d
 
 from .base import ExtensionArray, ExtensionOpsMixin
 
@@ -114,7 +116,9 @@ class PandasArray(ExtensionArray, ExtensionOpsMixin, NDArrayOperatorsMixin):
     def __init__(self, values):
         if isinstance(values, type(self)):
             values = values._ndarray
-        values = np.asarray(values)
+        if not isinstance(values, np.ndarray):
+            raise ValueError("'values' must be a NumPy array.")
+
         if values.ndim != 1:
             raise ValueError("PandasArray must be 1-dimensional.")
 
@@ -242,10 +246,6 @@ class PandasArray(ExtensionArray, ExtensionOpsMixin, NDArrayOperatorsMixin):
         return isna(self._ndarray)
 
     def fillna(self, value=None, method=None, limit=None):
-        from pandas.api.types import is_array_like
-        from pandas.util._validators import validate_fillna_kwargs
-        from pandas.core.missing import pad_1d, backfill_1d
-
         # TODO(_values_for_fillna): remove this
         value, method = validate_fillna_kwargs(value, method)
 
