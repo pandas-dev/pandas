@@ -1464,7 +1464,7 @@ class IndexOpsMixin(object):
     @Appender(_shared_docs['searchsorted'])
     def searchsorted(self, value, side='left', sorter=None):
         # needs coercion on the key (DatetimeIndex does already)
-        return self.values.searchsorted(value, side=side, sorter=sorter)
+        return self._values.searchsorted(value, side=side, sorter=sorter)
 
     def drop_duplicates(self, keep='first', inplace=False):
         inplace = validate_bool_kwarg(inplace, 'inplace')
