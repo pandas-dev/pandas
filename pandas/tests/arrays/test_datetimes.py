@@ -74,3 +74,19 @@ class TestDatetimeArray(object):
         arr = DatetimeArray._from_sequence(['2000'], tz='US/Central')
         with pytest.raises(AttributeError, match='tz_localize'):
             arr.tz = 'UTC'
+
+    def test_setitem_different_tz_raises(self):
+        data = np.array([1, 2, 3], dtype='M8[ns]')
+        arr = DatetimeArray(data, copy=False,
+                            dtype=DatetimeTZDtype(tz="US/Central"))
+        with pytest.raises(ValueError, match="None"):
+            arr[0] = pd.Timestamp('2000')
+
+        with pytest.raises(ValueError, match="US/Central"):
+            arr[0] = pd.Timestamp('2000', tz="US/Eastern")
+
+    def test_setitem_clears_freq(self):
+        a = DatetimeArray(pd.date_range('2000', periods=2, freq='D',
+                                        tz='US/Central'))
+        a[0] = pd.Timestamp("2000", tz="US/Central")
+        assert a.freq is None
