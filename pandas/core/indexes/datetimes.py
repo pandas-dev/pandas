@@ -129,15 +129,27 @@ class DatetimeIndex(DatetimeArray, DatetimeIndexOpsMixin, Int64Index,
     start : starting value, datetime-like, optional
         If data is None, start is used as the start point in generating regular
         timestamp data.
+
+        .. deprecated:: 0.24.0
+
     periods  : int, optional, > 0
         Number of periods to generate, if generating index. Takes precedence
         over end argument
-    end   : end time, datetime-like, optional
+
+        .. deprecated:: 0.24.0
+
+    end : end time, datetime-like, optional
         If periods is none, generated index will extend to first conforming
         time on or just past end argument
+
+        .. deprecated:: 0.24.0
+
     closed : string or None, default None
         Make the interval closed with respect to the given frequency to
         the 'left', 'right', or both sides (None)
+
+        .. deprecated:: 0.24. 0
+
     tz : pytz.timezone or dateutil.tz.tzfile
     ambiguous : 'infer', bool-ndarray, 'NaT', default 'raise'
         When clocks moved backward due to DST, ambiguous times may arise.
@@ -214,12 +226,16 @@ class DatetimeIndex(DatetimeArray, DatetimeIndexOpsMixin, Int64Index,
     To learn more about the frequency strings, please see `this link
     <http://pandas.pydata.org/pandas-docs/stable/timeseries.html#offset-aliases>`__.
 
+    Creating a DatetimeIndex based on `start`, `periods`, and `end` has
+    been deprecated in favor of :func:`date_range`.
+
     See Also
     ---------
     Index : The base pandas Index type.
     TimedeltaIndex : Index of timedelta64 data.
     PeriodIndex : Index of Period data.
-    pandas.to_datetime : Convert argument to datetime.
+    to_datetime : Convert argument to datetime.
+    date_range : Create a fixed-frequency DatetimeIndex.
     """
     _typ = 'datetimeindex'
     _join_precedence = 10
@@ -271,14 +287,15 @@ class DatetimeIndex(DatetimeArray, DatetimeIndexOpsMixin, Int64Index,
             verify_integrity = True
 
         if data is None:
-            warnings.warn("Creating a DatetimeIndex by passing range "
-                          "endpoints is deprecated.  Use "
-                          "`pandas.date_range` instead.",
-                          FutureWarning, stacklevel=2)
             dtarr = DatetimeArray._generate_range(
                 start, end, periods,
                 freq=freq, tz=tz, normalize=normalize,
                 closed=closed, ambiguous=ambiguous)
+            warnings.warn("Creating a DatetimeIndex by passing range "
+                          "endpoints is deprecated.  Use "
+                          "`pandas.date_range` instead.",
+                          FutureWarning, stacklevel=2)
+
             return cls(dtarr, name=name)
 
         if is_scalar(data):

@@ -3,7 +3,7 @@
 import pytest
 import numpy as np
 
-from pandas import DataFrame, Index, PeriodIndex
+from pandas import DataFrame, Index, period_range
 from pandas.tests.frame.common import TestData
 import pandas.util.testing as tm
 
@@ -13,7 +13,7 @@ def frame_with_period_index():
     return DataFrame(
         data=np.arange(20).reshape(4, 5),
         columns=list('abcde'),
-        index=PeriodIndex(start='2000', freq='A', periods=4))
+        index=period_range(start='2000', freq='A', periods=4))
 
 
 @pytest.fixture

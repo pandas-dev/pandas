@@ -654,7 +654,7 @@ Previous Behavior:
 
 .. code-block:: ipython
 
-   In [1]: pi = pd.PeriodIndex(start='2000-01-01', freq='D', periods=10)
+   In [1]: pi = pd.period_range(start='2000-01-01', freq='D', periods=10)
 
    In [2]: s = pd.Series(np.arange(10), index=pi)
 
@@ -674,7 +674,7 @@ New Behavior:
 
 .. ipython:: python
 
-   pi = pd.PeriodIndex(start='2000-01-01', freq='D', periods=10)
+   pi = pd.period_range(start='2000-01-01', freq='D', periods=10)
 
    s = pd.Series(np.arange(10), index=pi)
 
