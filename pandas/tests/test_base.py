@@ -1345,7 +1345,8 @@ def check_pinned_names(cls):
 
 
 @pytest.mark.parametrize('klass',
-                         sorted(PandasObject.__subclasses__()) + [
+                         sorted(PandasObject.__subclasses__(),
+                                key=lambda x: x.__name__) + [
                              pd.Timestamp,
                              pd.Period,
                              pd.Timedelta,
