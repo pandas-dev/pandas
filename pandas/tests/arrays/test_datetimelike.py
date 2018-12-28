@@ -2,6 +2,8 @@
 import numpy as np
 import pytest
 
+import pandas.compat as compat
+
 import pandas as pd
 from pandas.core.arrays import (
     DatetimeArrayMixin as DatetimeArray, PeriodArray,
@@ -128,6 +130,57 @@ class SharedTests(object):
         expected = idx._concat_same_dtype([idx[:-1], idx[1:], idx], None)
 
         tm.assert_index_equal(self.index_cls(result), expected)
+
+    def test_unbox_scalar(self):
+        data = np.arange(10, dtype='i8') * 24 * 3600 * 10**9
+        arr = self.array_cls(data, freq='D')
+        result = arr._unbox_scalar(arr[0])
+        assert isinstance(result, (int, compat.long))
+
+        result = arr._unbox_scalar(pd.NaT)
+        assert isinstance(result, (int, compat.long))
+
+        with pytest.raises(ValueError):
+            arr._unbox_scalar('foo')
+
+    def test_check_compatible_with(self):
+        data = np.arange(10, dtype='i8') * 24 * 3600 * 10**9
+        arr = self.array_cls(data, freq='D')
+
+        arr._check_compatible_with(arr[0])
+        arr._check_compatible_with(arr[:1])
+        arr._check_compatible_with(pd.NaT)
+
+    def test_scalar_from_string(self):
+        data = np.arange(10, dtype='i8') * 24 * 3600 * 10**9
+        arr = self.array_cls(data, freq='D')
+        result = arr._scalar_from_string(str(arr[0]))
+        assert result == arr[0]
+
+    def test_searchsorted(self):
+        data = np.arange(10, dtype='i8') * 24 * 3600 * 10**9
+        arr = self.array_cls(data, freq='D')
+
+        # scalar
+        result = arr.searchsorted(arr[1])
+        assert result == 1
+
+        result = arr.searchsorted(arr[2], side="right")
+        assert result == 3
+
+        # own-type
+        result = arr.searchsorted(arr[1:3])
+        expected = np.array([1, 2], dtype=np.int64)
+        tm.assert_numpy_array_equal(result, expected)
+
+        result = arr.searchsorted(arr[1:3], side="right")
+        expected = np.array([2, 3], dtype=np.int64)
+        tm.assert_numpy_array_equal(result, expected)
+
+        # Following numpy convention, NaT goes at the beginning
+        #  (unlike NaN which goes at the end)
+        result = arr.searchsorted(pd.NaT)
+        assert result == 0
 
 
 class TestDatetimeArray(SharedTests):

@@ -438,7 +438,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         .. warning::
 
            We recommend using :attr:`Series.array` or
-           :Series:`Index.to_numpy`, depending on whether you need
+           :meth:`Series.to_numpy`, depending on whether you need
            a reference to the underlying data or a NumPy array.
 
         Returns

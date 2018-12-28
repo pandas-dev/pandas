@@ -15,7 +15,7 @@ from .common import (
     is_timedelta64_dtype, needs_i8_conversion, pandas_dtype)
 from .generic import (
     ABCDatetimeArray, ABCExtensionArray, ABCGeneric, ABCIndexClass,
-    ABCMultiIndex, ABCSeries)
+    ABCMultiIndex, ABCSeries, ABCTimedeltaArray)
 from .inference import is_list_like
 
 isposinf_scalar = libmissing.isposinf_scalar
@@ -109,7 +109,8 @@ def _isna_new(obj):
     elif isinstance(obj, ABCMultiIndex):
         raise NotImplementedError("isna is not defined for MultiIndex")
     elif isinstance(obj, (ABCSeries, np.ndarray, ABCIndexClass,
-                          ABCExtensionArray, ABCDatetimeArray)):
+                          ABCExtensionArray,
+                          ABCDatetimeArray, ABCTimedeltaArray)):
         return _isna_ndarraylike(obj)
     elif isinstance(obj, ABCGeneric):
         return obj._constructor(obj._data.isna(func=isna))
