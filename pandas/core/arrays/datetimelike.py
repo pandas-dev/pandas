@@ -317,7 +317,7 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin, AttributesMixin):
     # ----------------------------------------------------------------
     # Rendering Methods
 
-    def _format_native_types(self, na_rep=u'NaT', date_format=None):
+    def _format_native_types(self, na_rep='NaT', date_format=None):
         """
         Helper method for astype when converting to strings.
 
