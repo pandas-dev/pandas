@@ -473,9 +473,9 @@ class TestDataFrameAnalytics():
         df2 = df1.copy()
         df2 = pd.concat((df2, df2[0]), axis=1)
 
-        result = df1.corrwith(df2).values
-        expected = np.ones(4)
-        tm.assert_almost_equal(result, expected)
+        result = df1.corrwith(df2)
+        expected = pd.Series(np.ones(4), index=[0, 0, 1, 2])
+        tm.assert_series_equal(result, expected)
 
     @td.skip_if_no_scipy
     def test_corrwith_spearman(self):
