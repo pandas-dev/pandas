@@ -39,7 +39,6 @@ class DatetimeIndexOpsMixin(DatetimeLikeArrayMixin):
 
     # override DatetimeLikeArrayMixin method
     copy = Index.copy
-    unique = Index.unique
 
     # DatetimeLikeArrayMixin assumes subclasses are mutable, so these are
     # properties there.  They can be made into cache_readonly for Index
@@ -50,6 +49,30 @@ class DatetimeIndexOpsMixin(DatetimeLikeArrayMixin):
     _hasnans = hasnans  # for index / array -agnostic code
     _resolution = cache_readonly(DatetimeLikeArrayMixin._resolution.fget)
     resolution = cache_readonly(DatetimeLikeArrayMixin.resolution.fget)
+
+    def unique(self, level=None):
+        if level is not None:
+            self._validate_index_level(level)
+
+        result = self._eadata.unique()
+
+        # Note: if `self` is already unique, then self.unique() should share
+        #  a `freq` with self.  If not already unique, then self.freq must be
+        #  None, so again sharing freq is correct.
+        return self._shallow_copy(result._data)
+
+    @classmethod
+    def _create_comparison_method(cls, op):
+        """
+        Create a comparison method that dispatches to ``cls.values``.
+        """
+        def wrapper(self, other):
+            result = op(self._eadata, maybe_unwrap_index(other))
+            return result
+
+        wrapper.__doc__ = op.__doc__
+        wrapper.__name__ = '__{}__'.format(op.__name__)
+        return wrapper
 
     # A few methods that are shared
     _maybe_mask_results = DatetimeLikeArrayMixin._maybe_mask_results
@@ -106,7 +129,7 @@ class DatetimeIndexOpsMixin(DatetimeLikeArrayMixin):
 
     @Appender(DatetimeLikeArrayMixin._evaluate_compare.__doc__)
     def _evaluate_compare(self, other, op):
-        result = DatetimeLikeArrayMixin._evaluate_compare(self, other, op)
+        result = self._eadata._evaluate_compare(other, op)
         if is_bool_dtype(result):
             return result
         try:
@@ -406,7 +429,7 @@ class DatetimeIndexOpsMixin(DatetimeLikeArrayMixin):
 
         def __add__(self, other):
             # dispatch to ExtensionArray implementation
-            result = super(cls, self).__add__(other)
+            result = self._eadata.__add__(maybe_unwrap_index(other))
             return wrap_arithmetic_op(self, other, result)
 
         cls.__add__ = __add__
@@ -418,13 +441,13 @@ class DatetimeIndexOpsMixin(DatetimeLikeArrayMixin):
 
         def __sub__(self, other):
             # dispatch to ExtensionArray implementation
-            result = super(cls, self).__sub__(other)
+            result = self._eadata.__sub__(maybe_unwrap_index(other))
             return wrap_arithmetic_op(self, other, result)
 
         cls.__sub__ = __sub__
 
         def __rsub__(self, other):
-            result = super(cls, self).__rsub__(other)
+            result = self._eadata.__rsub__(maybe_unwrap_index(other))
             return wrap_arithmetic_op(self, other, result)
 
         cls.__rsub__ = __rsub__
@@ -548,9 +571,8 @@ class DatetimeIndexOpsMixin(DatetimeLikeArrayMixin):
 
     @Appender(DatetimeLikeArrayMixin._time_shift.__doc__)
     def _time_shift(self, periods, freq=None):
-        result = DatetimeLikeArrayMixin._time_shift(self, periods, freq=freq)
-        result.name = self.name
-        return result
+        result = self._eadata._time_shift(periods, freq=freq)
+        return type(self)(result, name=self.name)
 
 
 def wrap_arithmetic_op(self, other, result):
@@ -572,61 +594,26 @@ def wrap_arithmetic_op(self, other, result):
     return result
 
 
-def wrap_array_method(method, pin_name=False):
+def maybe_unwrap_index(obj):
     """
-    Wrap a DatetimeArray/TimedeltaArray/PeriodArray method so that the
-    returned object is an Index subclass instead of ndarray or ExtensionArray
-    subclass.
+    If operating against another Index object, we need to unwrap the underlying
+    data before deferring to the DatetimeArray/TimedeltaArray/PeriodArray
+    implementation, otherwise we will incorrectly return NotImplemented.
 
     Parameters
     ----------
-    method : method of Datetime/Timedelta/Period Array class
-    pin_name : bool
-        Whether to set name=self.name on the output Index
+    obj : object
 
     Returns
     -------
-    method
+    unwrapped object
     """
-    def index_method(self, *args, **kwargs):
-        result = method(self, *args, **kwargs)
-
-        # Index.__new__ will choose the appropriate subclass to return
-        result = Index(result)
-        if pin_name:
-            result.name = self.name
-        return result
-
-    index_method.__name__ = method.__name__
-    index_method.__doc__ = method.__doc__
-    return index_method
-
-
-def wrap_field_accessor(prop):
-    """
-    Wrap a DatetimeArray/TimedeltaArray/PeriodArray array-returning property
-    to return an Index subclass instead of ndarray or ExtensionArray subclass.
-
-    Parameters
-    ----------
-    prop : property
-
-    Returns
-    -------
-    new_prop : property
-    """
-    fget = prop.fget
-
-    def f(self):
-        result = fget(self)
-        if is_bool_dtype(result):
-            # return numpy array b/c there is no BoolIndex
-            return result
-        return Index(result, name=self.name)
-
-    f.__name__ = fget.__name__
-    f.__doc__ = fget.__doc__
-    return property(f)
+    if isinstance(obj, ABCIndexClass):
+        if isinstance(obj, DatetimeIndexOpsMixin):
+            # i.e. PeriodIndex/DatetimeIndex/TimedeltaIndex
+            return obj._eadata
+        return obj._data
+    return obj
 
 
 class DatetimelikeDelegateMixin(PandasDelegate):
@@ -659,16 +646,16 @@ class DatetimelikeDelegateMixin(PandasDelegate):
         raise AbstractMethodError
 
     def _delegate_property_get(self, name, *args, **kwargs):
-        result = getattr(self._data, name)
+        result = getattr(self._eadata, name)
         if name not in self._raw_properties:
             result = Index(result, name=self.name)
         return result
 
     def _delegate_property_set(self, name, value, *args, **kwargs):
-        setattr(self._data, name, value)
+        setattr(self._eadata, name, value)
 
     def _delegate_method(self, name, *args, **kwargs):
-        result = operator.methodcaller(name, *args, **kwargs)(self._data)
+        result = operator.methodcaller(name, *args, **kwargs)(self._eadata)
         if name not in self._raw_methods:
             result = Index(result, name=self.name)
         return result
