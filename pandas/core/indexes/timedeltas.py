@@ -15,6 +15,7 @@ from pandas.core.dtypes.common import (
 import pandas.core.dtypes.concat as _concat
 from pandas.core.dtypes.missing import isna
 
+from pandas.core.accessor import delegate_names
 from pandas.core.arrays import datetimelike as dtl
 from pandas.core.arrays.timedeltas import (
     TimedeltaArrayMixin as TimedeltaArray, _is_convertible_to_td, _to_m8)
@@ -22,8 +23,8 @@ from pandas.core.base import _shared_docs
 import pandas.core.common as com
 from pandas.core.indexes.base import Index, _index_shared_docs
 from pandas.core.indexes.datetimelike import (
-    DatetimeIndexOpsMixin, maybe_unwrap_index, wrap_arithmetic_op,
-    wrap_array_method, wrap_field_accessor)
+    DatetimeIndexOpsMixin, DatetimelikeDelegateMixin, maybe_unwrap_index,
+    wrap_arithmetic_op)
 from pandas.core.indexes.numeric import Int64Index
 from pandas.core.ops import get_op_result_name
 from pandas.core.tools.timedeltas import _coerce_scalar_to_timedelta_type
@@ -43,8 +44,40 @@ def _make_wrapped_arith_op(opname):
     return method
 
 
+class TimedeltaDelegateMixin(DatetimelikeDelegateMixin):
+    # Most attrs are dispatched via datetimelike_{ops,methods}
+    # Some are "raw" methods, the result is not not re-boxed in an Index
+    # We also have a few "extra" attrs, which may or may not be raw,
+    # which we we dont' want to expose in the .dt accessor.
+    _delegate_class = TimedeltaArray
+    _delegated_properties = (TimedeltaArray._datetimelike_ops + [
+        'components',
+    ])
+    _delegated_methods = TimedeltaArray._datetimelike_methods + [
+        '_box_values',
+    ]
+    _raw_properties = {
+        'components',
+    }
+    _raw_methods = {
+        'to_pytimedelta',
+    }
+
+
+@delegate_names(TimedeltaArray,
+                ["to_pytimedelta", "total_seconds"],
+                typ="method", overwrite=True)
+@delegate_names(TimedeltaArray,
+                ["days", "seconds", "microseconds", "nanoseconds"],
+                typ="property", overwrite=True)
+@delegate_names(TimedeltaArray,
+                TimedeltaDelegateMixin._delegated_properties,
+                typ="property")
+@delegate_names(TimedeltaArray,
+                TimedeltaDelegateMixin._delegated_methods,
+                typ="method", overwrite=False)
 class TimedeltaIndex(TimedeltaArray, DatetimeIndexOpsMixin,
-                     dtl.TimelikeOps, Int64Index):
+                     dtl.TimelikeOps, Int64Index, TimedeltaDelegateMixin):
     """
     Immutable ndarray of timedelta64 data, represented internally as int64, and
     which can be boxed to timedelta objects
@@ -250,13 +283,6 @@ class TimedeltaIndex(TimedeltaArray, DatetimeIndexOpsMixin,
     if compat.PY2:
         __div__ = __truediv__
         __rdiv__ = __rtruediv__
-
-    days = wrap_field_accessor(TimedeltaArray.days)
-    seconds = wrap_field_accessor(TimedeltaArray.seconds)
-    microseconds = wrap_field_accessor(TimedeltaArray.microseconds)
-    nanoseconds = wrap_field_accessor(TimedeltaArray.nanoseconds)
-
-    total_seconds = wrap_array_method(TimedeltaArray.total_seconds, True)
 
     # Compat for frequency inference, see GH#23789
     _is_monotonic_increasing = Index.is_monotonic_increasing

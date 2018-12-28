@@ -594,63 +594,6 @@ def wrap_arithmetic_op(self, other, result):
     return result
 
 
-def wrap_array_method(method, pin_name=False):
-    """
-    Wrap a DatetimeArray/TimedeltaArray/PeriodArray method so that the
-    returned object is an Index subclass instead of ndarray or ExtensionArray
-    subclass.
-
-    Parameters
-    ----------
-    method : method of Datetime/Timedelta/Period Array class
-    pin_name : bool
-        Whether to set name=self.name on the output Index
-
-    Returns
-    -------
-    method
-    """
-    def index_method(self, *args, **kwargs):
-        result = method(self._eadata, *args, **kwargs)
-
-        # Index.__new__ will choose the appropriate subclass to return
-        result = Index(result)
-        if pin_name:
-            result.name = self.name
-        return result
-
-    index_method.__name__ = method.__name__
-    index_method.__doc__ = method.__doc__
-    return index_method
-
-
-def wrap_field_accessor(prop):
-    """
-    Wrap a DatetimeArray/TimedeltaArray/PeriodArray array-returning property
-    to return an Index subclass instead of ndarray or ExtensionArray subclass.
-
-    Parameters
-    ----------
-    prop : property
-
-    Returns
-    -------
-    new_prop : property
-    """
-    fget = prop.fget
-
-    def f(self):
-        result = fget(self._eadata)
-        if is_bool_dtype(result):
-            # return numpy array b/c there is no BoolIndex
-            return result
-        return Index(result, name=self.name)
-
-    f.__name__ = fget.__name__
-    f.__doc__ = fget.__doc__
-    return property(f)
-
-
 def maybe_unwrap_index(obj):
     """
     If operating against another Index object, we need to unwrap the underlying
@@ -703,16 +646,16 @@ class DatetimelikeDelegateMixin(PandasDelegate):
         raise AbstractMethodError
 
     def _delegate_property_get(self, name, *args, **kwargs):
-        result = getattr(self._data, name)
+        result = getattr(self._eadata, name)
         if name not in self._raw_properties:
             result = Index(result, name=self.name)
         return result
 
     def _delegate_property_set(self, name, value, *args, **kwargs):
-        setattr(self._data, name, value)
+        setattr(self._eadata, name, value)
 
     def _delegate_method(self, name, *args, **kwargs):
-        result = operator.methodcaller(name, *args, **kwargs)(self._data)
+        result = operator.methodcaller(name, *args, **kwargs)(self._eadata)
         if name not in self._raw_methods:
             result = Index(result, name=self.name)
         return result

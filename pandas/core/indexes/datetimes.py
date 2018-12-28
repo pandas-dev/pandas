@@ -20,13 +20,14 @@ from pandas.core.dtypes.common import (
 import pandas.core.dtypes.concat as _concat
 from pandas.core.dtypes.missing import isna
 
+from pandas.core.accessor import delegate_names
 from pandas.core.arrays.datetimes import (
     DatetimeArrayMixin as DatetimeArray, _to_m8)
 from pandas.core.base import _shared_docs
 import pandas.core.common as com
 from pandas.core.indexes.base import Index, _index_shared_docs
 from pandas.core.indexes.datetimelike import (
-    DatetimeIndexOpsMixin, wrap_array_method, wrap_field_accessor)
+    DatetimeIndexOpsMixin, DatetimelikeDelegateMixin)
 from pandas.core.indexes.numeric import Int64Index
 from pandas.core.ops import get_op_result_name
 import pandas.core.tools.datetimes as tools
@@ -61,7 +62,54 @@ def _new_DatetimeIndex(cls, d):
     return result
 
 
-class DatetimeIndex(DatetimeArray, DatetimeIndexOpsMixin, Int64Index):
+class DatetimeDelegateMixin(DatetimelikeDelegateMixin):
+    # Most attrs are dispatched via datetimelike_{ops,methods}
+    # Some are "raw" methods, the result is not not re-boxed in an Index
+    # We also have a few "extra" attrs, which may or may not be raw,
+    # which we we dont' want to expose in the .dt accessor.
+    _extra_methods = [
+        'to_period',
+        'to_perioddelta',
+        'to_julian_date',
+    ]
+    _extra_raw_methods = [
+        'to_pydatetime',
+        '_local_timestamps',
+        '_has_same_tz',
+    ]
+    _extra_raw_properties = [
+        '_box_func',
+        'tz', 'tzinfo',
+    ]
+    _delegated_properties = (
+        DatetimeArray._datetimelike_ops + _extra_raw_properties
+    )
+    _delegated_methods = (
+        DatetimeArray._datetimelike_methods + _extra_methods +
+        _extra_raw_methods
+    )
+    _raw_properties = {
+        'date',
+        'time',
+        'timetz',
+    } | set(DatetimeArray._bool_ops) | set(_extra_raw_properties)
+    _raw_methods = set(_extra_raw_methods)
+    _delegate_class = DatetimeArray
+
+
+@delegate_names(DatetimeArray, ["to_period", "tz_localize", "tz_convert",
+                                "day_name", "month_name"],
+                typ="method", overwrite=True)
+@delegate_names(DatetimeArray,
+                DatetimeArray._field_ops, typ="property", overwrite=True)
+@delegate_names(DatetimeArray,
+                DatetimeDelegateMixin._delegated_properties,
+                typ="property")
+@delegate_names(DatetimeArray,
+                DatetimeDelegateMixin._delegated_methods,
+                typ="method", overwrite=False)
+class DatetimeIndex(DatetimeArray, DatetimeIndexOpsMixin, Int64Index,
+                    DatetimeDelegateMixin):
     """
     Immutable ndarray of datetime64 data, represented internally as int64, and
     which can be boxed to Timestamp objects that are subclasses of datetime and
@@ -1093,44 +1141,6 @@ class DatetimeIndex(DatetimeArray, DatetimeIndexOpsMixin, Int64Index):
     _timezone = cache_readonly(DatetimeArray._timezone.fget)
     is_normalized = cache_readonly(DatetimeArray.is_normalized.fget)
     _resolution = cache_readonly(DatetimeArray._resolution.fget)
-
-    year = wrap_field_accessor(DatetimeArray.year)
-    month = wrap_field_accessor(DatetimeArray.month)
-    day = wrap_field_accessor(DatetimeArray.day)
-    hour = wrap_field_accessor(DatetimeArray.hour)
-    minute = wrap_field_accessor(DatetimeArray.minute)
-    second = wrap_field_accessor(DatetimeArray.second)
-    microsecond = wrap_field_accessor(DatetimeArray.microsecond)
-    nanosecond = wrap_field_accessor(DatetimeArray.nanosecond)
-    weekofyear = wrap_field_accessor(DatetimeArray.weekofyear)
-    week = weekofyear
-    dayofweek = wrap_field_accessor(DatetimeArray.dayofweek)
-    weekday = dayofweek
-
-    weekday_name = wrap_field_accessor(DatetimeArray.weekday_name)
-
-    dayofyear = wrap_field_accessor(DatetimeArray.dayofyear)
-    quarter = wrap_field_accessor(DatetimeArray.quarter)
-    days_in_month = wrap_field_accessor(DatetimeArray.days_in_month)
-    daysinmonth = days_in_month
-    is_month_start = wrap_field_accessor(DatetimeArray.is_month_start)
-    is_month_end = wrap_field_accessor(DatetimeArray.is_month_end)
-    is_quarter_start = wrap_field_accessor(DatetimeArray.is_quarter_start)
-    is_quarter_end = wrap_field_accessor(DatetimeArray.is_quarter_end)
-    is_year_start = wrap_field_accessor(DatetimeArray.is_year_start)
-    is_year_end = wrap_field_accessor(DatetimeArray.is_year_end)
-    is_leap_year = wrap_field_accessor(DatetimeArray.is_leap_year)
-
-    tz_localize = wrap_array_method(DatetimeArray.tz_localize, True)
-    tz_convert = wrap_array_method(DatetimeArray.tz_convert, True)
-    to_perioddelta = wrap_array_method(DatetimeArray.to_perioddelta,
-                                       False)
-    to_period = wrap_array_method(DatetimeArray.to_period, True)
-    normalize = wrap_array_method(DatetimeArray.normalize, True)
-    to_julian_date = wrap_array_method(DatetimeArray.to_julian_date,
-                                       False)
-    month_name = wrap_array_method(DatetimeArray.month_name, True)
-    day_name = wrap_array_method(DatetimeArray.day_name, True)
 
     # --------------------------------------------------------------------
 
