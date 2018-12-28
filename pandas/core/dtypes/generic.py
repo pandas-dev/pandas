@@ -70,6 +70,9 @@ ABCExtensionArray = create_pandas_abc_type("ABCExtensionArray", "_typ",
                                             "datetimearray",
                                             "timedeltaarray",
                                             ))
+ABCPandasArray = create_pandas_abc_type("ABCPandasArray",
+                                        "_typ",
+                                        ("npy_extension",))
 
 
 class _ABCGeneric(type):

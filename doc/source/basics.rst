@@ -71,8 +71,10 @@ the **array** property
    s.array
    s.index.array
 
-Depending on the data type (see :ref:`basics.dtypes`), :attr:`~Series.array`
-be either a NumPy array or an :ref:`ExtensionArray <extending.extension-type>`.
+:attr:`~Series.array` will always be an :class:`~pandas.api.extensions.ExtensionArray`.
+The exact details of what an ``ExtensionArray`` is and why pandas uses them is a bit
+beyond the scope of this introduction. See :ref:`basics.dtypes` for more.
+
 If you know you need a NumPy array, use :meth:`~Series.to_numpy`
 or :meth:`numpy.asarray`.
 
@@ -81,10 +83,30 @@ or :meth:`numpy.asarray`.
    s.to_numpy()
    np.asarray(s)
 
-For Series and Indexes backed by NumPy arrays (like we have here), this will
-be the same as :attr:`~Series.array`. When the Series or Index is backed by
-a :class:`~pandas.api.extension.ExtensionArray`, :meth:`~Series.to_numpy`
-may involve copying data and coercing values.
+When the Series or Index is backed by
+an :class:`~pandas.api.extension.ExtensionArray`, :meth:`~Series.to_numpy`
+may involve copying data and coercing values. See :ref:`basics.dtypes` for more.
+
+:meth:`~Series.to_numpy` gives some control over the ``dtype`` of the
+resulting :class:`ndarray`. For example, consider datetimes with timezones.
+NumPy doesn't have a dtype to represent timezone-aware datetimes, so there
+are two possibly useful representations:
+
+1. An object-dtype :class:`ndarray` with :class:`Timestamp` objects, each
+   with the correct ``tz``
+2. A ``datetime64[ns]`` -dtype :class:`ndarray`, where the values have
+   been converted to UTC and the timezone discarded
+
+Timezones may be preserved with ``dtype=object``
+
+.. ipython:: python
+
+   ser = pd.Series(pd.date_range('2000', periods=2, tz="CET"))
+   ser.to_numpy(dtype=object)
+
+Or thrown away with ``dtype='datetime64[ns]'``
+
+   ser.to_numpy(dtype="datetime64[ns]")
 
 :meth:`~Series.to_numpy` gives some control over the ``dtype`` of the
 resulting :class:`ndarray`. For example, consider datetimes with timezones.
@@ -109,7 +131,7 @@ Or thrown away with ``dtype='datetime64[ns]'``
 
 Getting the "raw data" inside a :class:`DataFrame` is possibly a bit more
 complex. When your ``DataFrame`` only has a single data type for all the
-columns, :attr:`DataFrame.to_numpy` will return the underlying data:
+columns, :meth:`DataFrame.to_numpy` will return the underlying data:
 
 .. ipython:: python
 
@@ -136,8 +158,9 @@ drawbacks:
 
 1. When your Series contains an :ref:`extension type <extending.extension-type>`, it's
    unclear whether :attr:`Series.values` returns a NumPy array or the extension array.
-   :attr:`Series.array` will always return the actual array backing the Series,
-   while :meth:`Series.to_numpy` will always return a NumPy array.
+   :attr:`Series.array` will always return an ``ExtensionArray``, and will never
+   copy data. :meth:`Series.to_numpy` will always return a NumPy array,
+   potentially at the cost of copying / coercing values.
 2. When your DataFrame contains a mixture of data types, :attr:`DataFrame.values` may
    involve copying data and coercing values to a common dtype, a relatively expensive
    operation. :meth:`DataFrame.to_numpy`, being a method, makes it clearer that the
