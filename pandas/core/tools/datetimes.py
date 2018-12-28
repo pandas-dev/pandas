@@ -568,6 +568,11 @@ def to_datetime(arg, errors='raise', dayfirst=False, yearfirst=False,
 
     if isinstance(arg, Timestamp):
         result = arg
+        if tz is not None:
+            if arg.tz is not None:
+                result = result.tz_convert(tz)
+            else:
+                result = result.tz_localize(tz)
     elif isinstance(arg, ABCSeries):
         cache_array = _maybe_cache(arg, format, cache, convert_listlike)
         if not cache_array.empty:

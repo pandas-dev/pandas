@@ -6108,16 +6108,14 @@ class NDFrame(PandasObject, SelectionMixin):
 
     def ffill(self, axis=None, inplace=False, limit=None, downcast=None):
         """
-        Synonym for :meth:`DataFrame.fillna(method='ffill')
-            <DataFrame.fillna>`.
+        Synonym for :meth:`DataFrame.fillna` with ``method='ffill'``.
         """
         return self.fillna(method='ffill', axis=axis, inplace=inplace,
                            limit=limit, downcast=downcast)
 
     def bfill(self, axis=None, inplace=False, limit=None, downcast=None):
         """
-        Synonym for :meth:`DataFrame.fillna(method='bfill')
-            <DataFrame.fillna>`.
+        Synonym for :meth:`DataFrame.fillna` with ``method='bfill'``.
         """
         return self.fillna(method='bfill', axis=axis, inplace=inplace,
                            limit=limit, downcast=downcast)

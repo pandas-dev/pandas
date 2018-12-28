@@ -296,7 +296,10 @@ header = """\
    np.random.seed(123456)
    np.set_printoptions(precision=4, suppress=True)
    pd.options.display.max_rows = 15
-"""
+
+   import os
+   os.chdir('{}')
+""".format(os.path.dirname(os.path.dirname(__file__)))
 
 
 html_context = {
@@ -368,13 +371,14 @@ latex_documents = [
 
 
 intersphinx_mapping = {
-    'statsmodels': ('http://www.statsmodels.org/devel/', None),
+    'dateutil': ("https://dateutil.readthedocs.io/en/latest/", None),
     'matplotlib': ('https://matplotlib.org/', None),
-    'pandas-gbq': ('https://pandas-gbq.readthedocs.io/en/latest/', None),
-    'python': ('https://docs.python.org/3/', None),
     'numpy': ('https://docs.scipy.org/doc/numpy/', None),
+    'pandas-gbq': ('https://pandas-gbq.readthedocs.io/en/latest/', None),
+    'py': ('https://pylib.readthedocs.io/en/latest/', None),
+    'python': ('https://docs.python.org/3/', None),
     'scipy': ('https://docs.scipy.org/doc/scipy/reference/', None),
-    'py': ('https://pylib.readthedocs.io/en/latest/', None)
+    'statsmodels': ('http://www.statsmodels.org/devel/', None),
 }
 import glob
 autosummary_generate = glob.glob("*.rst")

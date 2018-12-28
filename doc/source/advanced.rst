@@ -778,12 +778,12 @@ a ``Categorical`` will return a ``CategoricalIndex``, indexed according to the c
 of the **passed** ``Categorical`` dtype. This allows one to arbitrarily index these even with
 values **not** in the categories, similarly to how you can reindex **any** pandas index.
 
-.. ipython :: python
+.. ipython:: python
 
-   df2.reindex(['a','e'])
-   df2.reindex(['a','e']).index
-   df2.reindex(pd.Categorical(['a','e'],categories=list('abcde')))
-   df2.reindex(pd.Categorical(['a','e'],categories=list('abcde'))).index
+   df2.reindex(['a', 'e'])
+   df2.reindex(['a', 'e']).index
+   df2.reindex(pd.Categorical(['a', 'e'], categories=list('abcde')))
+   df2.reindex(pd.Categorical(['a', 'e'], categories=list('abcde'))).index
 
 .. warning::
 
@@ -1040,7 +1040,8 @@ than integer locations. Therefore, with an integer axis index *only*
 label-based indexing is possible with the standard tools like ``.loc``. The
 following code will generate exceptions:
 
-.. code-block:: python
+.. ipython:: python
+   :okexcept:
 
    s = pd.Series(range(5))
    s[-1]
@@ -1130,7 +1131,7 @@ index can be somewhat complicated. For example, the following does not work:
 
 ::
 
-    s.loc['c':'e'+1]
+    s.loc['c':'e' + 1]
 
 A very common use case is to limit a time series to start and end at two
 specific dates. To enable this, we made the design to make label-based

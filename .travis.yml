@@ -43,6 +43,7 @@ matrix:
         apt:
           packages:
           - language-pack-zh-hans
+
     - dist: trusty
       env:
         - JOB="2.7" ENV_FILE="ci/deps/travis-27.yaml" PATTERN="not slow"
@@ -50,9 +51,15 @@ matrix:
         apt:
           packages:
           - python-gtk2
+
+    - dist: trusty
+      env:
+        - JOB="3.6, locale" ENV_FILE="ci/deps/travis-36-locale.yaml" PATTERN="not slow and not network" LOCALE_OVERRIDE="zh_CN.UTF-8"
+
     - dist: trusty
       env:
         - JOB="3.6, coverage" ENV_FILE="ci/deps/travis-36.yaml" PATTERN="not slow and not network" PANDAS_TESTING_MODE="deprecate" COVERAGE=true
+
     - dist: trusty
       env:
         - JOB="3.7, NumPy dev" ENV_FILE="ci/deps/travis-37-numpydev.yaml" PATTERN="not slow and not network" TEST_ARGS="-W error" PANDAS_TESTING_MODE="deprecate"
