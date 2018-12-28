@@ -28,7 +28,7 @@ class TestPDApi(Base):
     ignored = ['tests', 'locale', 'conftest']
 
     # top-level sub-packages
-    lib = ['api', 'compat', 'core', 'errors', 'pandas',
+    lib = ['api', 'arrays', 'compat', 'core', 'errors', 'pandas',
            'plotting', 'test', 'testing', 'tseries',
            'util', 'options', 'io']
 

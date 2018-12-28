@@ -5,6 +5,9 @@ Tests for DatetimeArray
 import operator
 
 import numpy as np
+import pytest
+
+from pandas.core.dtypes.dtypes import DatetimeTZDtype
 
 import pandas as pd
 from pandas.core.arrays import DatetimeArrayMixin as DatetimeArray
@@ -42,3 +45,32 @@ class TestDatetimeArrayComparisons(object):
 
             result = op(other, arr)
             tm.assert_numpy_array_equal(result, expected)
+
+
+class TestDatetimeArray(object):
+    def test_astype_to_same(self):
+        arr = DatetimeArray._from_sequence(['2000'], tz='US/Central')
+        result = arr.astype(DatetimeTZDtype(tz="US/Central"), copy=False)
+        assert result is arr
+
+    @pytest.mark.parametrize("dtype", [
+        int, np.int32, np.int64, 'uint32', 'uint64',
+    ])
+    def test_astype_int(self, dtype):
+        arr = DatetimeArray._from_sequence([pd.Timestamp('2000'),
+                                            pd.Timestamp('2001')])
+        result = arr.astype(dtype)
+
+        if np.dtype(dtype).kind == 'u':
+            expected_dtype = np.dtype('uint64')
+        else:
+            expected_dtype = np.dtype('int64')
+        expected = arr.astype(expected_dtype)
+
+        assert result.dtype == expected_dtype
+        tm.assert_numpy_array_equal(result, expected)
+
+    def test_tz_setter_raises(self):
+        arr = DatetimeArray._from_sequence(['2000'], tz='US/Central')
+        with pytest.raises(AttributeError, match='tz_localize'):
+            arr.tz = 'UTC'
