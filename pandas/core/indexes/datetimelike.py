@@ -49,6 +49,30 @@ class DatetimeIndexOpsMixin(ExtensionOpsMixin):
     _resolution = cache_readonly(DatetimeLikeArrayMixin._resolution.fget)
     resolution = cache_readonly(DatetimeLikeArrayMixin.resolution.fget)
 
+    def unique(self, level=None):
+        if level is not None:
+            self._validate_index_level(level)
+
+        result = self._eadata.unique()
+
+        # Note: if `self` is already unique, then self.unique() should share
+        #  a `freq` with self.  If not already unique, then self.freq must be
+        #  None, so again sharing freq is correct.
+        return self._shallow_copy(result._data)
+
+    @classmethod
+    def _create_comparison_method(cls, op):
+        """
+        Create a comparison method that dispatches to ``cls.values``.
+        """
+        def wrapper(self, other):
+            result = op(self._eadata, maybe_unwrap_index(other))
+            return result
+
+        wrapper.__doc__ = op.__doc__
+        wrapper.__name__ = '__{}__'.format(op.__name__)
+        return wrapper
+
     # A few methods that are shared
     _maybe_mask_results = DatetimeLikeArrayMixin._maybe_mask_results
 
@@ -144,7 +168,7 @@ class DatetimeIndexOpsMixin(ExtensionOpsMixin):
 
     @Appender(DatetimeLikeArrayMixin._evaluate_compare.__doc__)
     def _evaluate_compare(self, other, op):
-        result = DatetimeLikeArrayMixin._evaluate_compare(self, other, op)
+        result = self._eadata._evaluate_compare(other, op)
         if is_bool_dtype(result):
             return result
         try:
@@ -459,7 +483,7 @@ class DatetimeIndexOpsMixin(ExtensionOpsMixin):
 
         def __add__(self, other):
             # dispatch to ExtensionArray implementation
-            result = self._data.__add__(other)
+            result = self._eadata.__add__(maybe_unwrap_index(other))
             return wrap_arithmetic_op(self, other, result)
 
         cls.__add__ = __add__
@@ -471,13 +495,13 @@ class DatetimeIndexOpsMixin(ExtensionOpsMixin):
 
         def __sub__(self, other):
             # dispatch to ExtensionArray implementation
-            result = self._data.__sub__(other)
+            result = self._eadata.__sub__(maybe_unwrap_index(other))
             return wrap_arithmetic_op(self, other, result)
 
         cls.__sub__ = __sub__
 
         def __rsub__(self, other):
-            result = self._data.__rsub__(other)
+            result = self._eadata.__rsub__(maybe_unwrap_index(other))
             return wrap_arithmetic_op(self, other, result)
 
         cls.__rsub__ = __rsub__
@@ -633,21 +657,8 @@ class DatetimeIndexOpsMixin(ExtensionOpsMixin):
 
     @Appender(DatetimeLikeArrayMixin._time_shift.__doc__)
     def _time_shift(self, periods, freq=None):
-        result = DatetimeLikeArrayMixin._time_shift(self, periods, freq=freq)
-        result.name = self.name
-        return result
-
-    @classmethod
-    def _create_comparison_method(cls, op):
-        """
-        Create a comparison method that dispatches to ``cls._data``.
-        """
-        def wrapper(self, other):
-            return op(self._data, other)
-
-        wrapper.__doc__ = op.__doc__
-        wrapper.__name__ = '__{}__'.format(op.__name__)
-        return wrapper
+        result = self._eadata._time_shift(periods, freq=freq)
+        return type(self)(result, name=self.name)
 
 
 def wrap_arithmetic_op(self, other, result):
@@ -667,6 +678,28 @@ def wrap_arithmetic_op(self, other, result):
     res_name = ops.get_op_result_name(self, other)
     result.name = res_name
     return result
+
+
+def maybe_unwrap_index(obj):
+    """
+    If operating against another Index object, we need to unwrap the underlying
+    data before deferring to the DatetimeArray/TimedeltaArray/PeriodArray
+    implementation, otherwise we will incorrectly return NotImplemented.
+
+    Parameters
+    ----------
+    obj : object
+
+    Returns
+    -------
+    unwrapped object
+    """
+    if isinstance(obj, ABCIndexClass):
+        if isinstance(obj, DatetimeIndexOpsMixin):
+            # i.e. PeriodIndex/DatetimeIndex/TimedeltaIndex
+            return obj._eadata
+        return obj._data
+    return obj
 
 
 class DatetimelikeDelegateMixin(PandasDelegate):
