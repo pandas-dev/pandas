@@ -979,8 +979,8 @@ class IndexOpsMixin(object):
 
         Parameters
         ----------
-        axis : {None}
-            Dummy argument for consistency with Series
+        axis : int, optional
+            For compatibility with NumPy. Only 0 or None are allowed.
         skipna : bool, default True
 
         Returns

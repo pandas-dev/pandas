@@ -274,6 +274,7 @@ class DatetimeIndexOpsMixin(DatetimeLikeArrayMixin):
         See Also
         --------
         numpy.ndarray.min
+        Series.min : Return the minimum value in a Series.
         """
         nv.validate_min(args, kwargs)
         nv.validate_minmax_axis(axis)
@@ -330,6 +331,7 @@ class DatetimeIndexOpsMixin(DatetimeLikeArrayMixin):
         See Also
         --------
         numpy.ndarray.max
+        Series.max : Return the maximum value in a Series.
         """
         nv.validate_max(args, kwargs)
         nv.validate_minmax_axis(axis)
