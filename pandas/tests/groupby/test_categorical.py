@@ -865,8 +865,9 @@ def test_groupby_multiindex_categorical_datetime():
 @pytest.mark.parametrize("as_index, expected", [
     (True, pd.Series(
         index=pd.MultiIndex.from_arrays(
-        [pd.Series([1, 1, 2], dtype='category'), 
-        [1, 2, 2]], names=['a', 'b']),
+            [pd.Series([1, 1, 2], dtype='category'),
+                [1, 2, 2]], names=['a', 'b']
+        ),
         data=[1, 2, 3], name='x'
     )),
     (False, pd.DataFrame({
