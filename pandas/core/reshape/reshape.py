@@ -21,6 +21,7 @@ from pandas.core.arrays import SparseArray
 from pandas.core.arrays.categorical import _factorize_from_iterable
 from pandas.core.frame import DataFrame
 from pandas.core.index import Index, MultiIndex
+from pandas.core.internals.arrays import extract_array
 from pandas.core.series import Series
 from pandas.core.sorting import (
     compress_group_index, decons_obs_group_ids, get_compressed_ids,
@@ -432,7 +433,7 @@ def _unstack_extension_series(series, level, fill_value):
                         level=level, fill_value=-1).get_result()
 
     out = []
-    values = series.array
+    values = extract_array(series, extract_numpy=False)
 
     for col, indices in result.iteritems():
         out.append(Series(values.take(indices.values,

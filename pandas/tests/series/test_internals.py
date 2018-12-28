@@ -8,6 +8,7 @@ import pytest
 
 import pandas as pd
 from pandas import NaT, Series, Timestamp
+from pandas.core.internals.blocks import IntBlock
 import pandas.util.testing as tm
 from pandas.util.testing import assert_series_equal
 
@@ -305,6 +306,12 @@ class TestSeriesInternals(object):
         r = s._convert(datetime=True, numeric=True)
         e = Series([False, True, False, False], dtype=bool)
         tm.assert_series_equal(r, e)
+
+    def test_constructor_no_pandas_array(self):
+        ser = pd.Series([1, 2, 3])
+        result = pd.Series(ser.array)
+        tm.assert_series_equal(ser, result)
+        assert isinstance(result._data.blocks[0], IntBlock)
 
 
 def test_hasnans_unchached_for_series():

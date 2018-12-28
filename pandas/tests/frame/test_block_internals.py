@@ -12,6 +12,7 @@ import numpy as np
 
 from pandas import (DataFrame, Series, Timestamp, date_range, compat,
                     option_context, Categorical)
+from pandas.core.internals.blocks import IntBlock
 from pandas.core.arrays import IntervalArray, integer_array
 from pandas.compat import StringIO
 import pandas as pd
@@ -579,3 +580,12 @@ starting,ending,measure
         first = len(df.loc[pd.isna(df[myid]), [myid]])
         second = len(df.loc[pd.isna(df[myid]), [myid]])
         assert first == second == 0
+
+    def test_constructor_no_pandas_array(self):
+        # Ensure that PandasArray isn't allowed inside Series
+        # See https://github.com/pandas-dev/pandas/issues/23995 for more.
+        arr = pd.Series([1, 2, 3]).array
+        result = pd.DataFrame({"A": arr})
+        expected = pd.DataFrame({"A": [1, 2, 3]})
+        tm.assert_frame_equal(result, expected)
+        assert isinstance(result._data.blocks[0], IntBlock)
