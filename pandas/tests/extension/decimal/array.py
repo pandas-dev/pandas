@@ -8,9 +8,11 @@ import numpy as np
 from pandas.core.dtypes.base import ExtensionDtype
 
 import pandas as pd
+from pandas.api.extensions import register_extension_dtype
 from pandas.core.arrays import ExtensionArray, ExtensionScalarOpsMixin
 
 
+@register_extension_dtype
 class DecimalDtype(ExtensionDtype):
     type = decimal.Decimal
     name = 'decimal'

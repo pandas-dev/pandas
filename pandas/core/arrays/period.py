@@ -115,6 +115,11 @@ class PeriodArray(dtl.DatetimeLikeArrayMixin,
     copy : bool, default False
         Whether to copy the ordinals before storing.
 
+    See Also
+    --------
+    period_array : Create a new PeriodArray.
+    pandas.PeriodIndex : Immutable Index for period data.
+
     Notes
     -----
     There are two components to a PeriodArray
@@ -127,11 +132,6 @@ class PeriodArray(dtl.DatetimeLikeArrayMixin,
 
     The `freq` indicates the span covered by each element of the array.
     All elements in the PeriodArray have the same `freq`.
-
-    See Also
-    --------
-    period_array : Create a new PeriodArray.
-    pandas.PeriodIndex : Immutable Index for period data.
     """
     # array priority higher than numpy scalars
     __array_priority__ = 1000
