@@ -321,34 +321,31 @@ class TestPeriodIndex(object):
         p = PeriodIndex(lops)
         tm.assert_index_equal(p, idx)
 
-    def test_constructor_freq_mult(self):
+    @pytest.mark.parametrize('func, warning', [
+        (PeriodIndex, FutureWarning),
+        (period_range, None)
+    ])
+    def test_constructor_freq_mult(self, func, warning):
         # GH #7811
-        for func in [PeriodIndex, period_range]:
+        with tm.assert_produces_warning(warning):
+            # must be the same, but for sure...
+            pidx = func(start='2014-01', freq='2M', periods=4)
+        expected = PeriodIndex(['2014-01', '2014-03',
+                                '2014-05', '2014-07'], freq='2M')
+        tm.assert_index_equal(pidx, expected)
 
-            if func is PeriodIndex:
-                warning = FutureWarning
-            else:
-                warning = None
+        with tm.assert_produces_warning(warning):
+            pidx = func(start='2014-01-02', end='2014-01-15', freq='3D')
+        expected = PeriodIndex(['2014-01-02', '2014-01-05',
+                                '2014-01-08', '2014-01-11',
+                                '2014-01-14'], freq='3D')
+        tm.assert_index_equal(pidx, expected)
 
-            with tm.assert_produces_warning(warning):
-                # must be the same, but for sure...
-                pidx = func(start='2014-01', freq='2M', periods=4)
-            expected = PeriodIndex(['2014-01', '2014-03',
-                                    '2014-05', '2014-07'], freq='2M')
-            tm.assert_index_equal(pidx, expected)
-
-            with tm.assert_produces_warning(warning):
-                pidx = func(start='2014-01-02', end='2014-01-15', freq='3D')
-            expected = PeriodIndex(['2014-01-02', '2014-01-05',
-                                    '2014-01-08', '2014-01-11',
-                                    '2014-01-14'], freq='3D')
-            tm.assert_index_equal(pidx, expected)
-
-            with tm.assert_produces_warning(warning):
-                pidx = func(end='2014-01-01 17:00', freq='4H', periods=3)
-            expected = PeriodIndex(['2014-01-01 09:00', '2014-01-01 13:00',
-                                    '2014-01-01 17:00'], freq='4H')
-            tm.assert_index_equal(pidx, expected)
+        with tm.assert_produces_warning(warning):
+            pidx = func(end='2014-01-01 17:00', freq='4H', periods=3)
+        expected = PeriodIndex(['2014-01-01 09:00', '2014-01-01 13:00',
+                                '2014-01-01 17:00'], freq='4H')
+        tm.assert_index_equal(pidx, expected)
 
         msg = ('Frequency must be positive, because it'
                ' represents span: -1M')
