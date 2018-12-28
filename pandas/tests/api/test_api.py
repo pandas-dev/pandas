@@ -45,7 +45,13 @@ class TestPDApi(Base):
                'Period', 'PeriodIndex', 'RangeIndex', 'UInt64Index',
                'Series', 'SparseArray', 'SparseDataFrame', 'SparseDtype',
                'SparseSeries', 'Timedelta',
-               'TimedeltaIndex', 'Timestamp', 'Interval', 'IntervalIndex']
+               'TimedeltaIndex', 'Timestamp', 'Interval', 'IntervalIndex',
+               'IntervalArray',
+               'CategoricalDtype', 'PeriodDtype', 'IntervalDtype',
+               'DatetimeTZDtype',
+               'Int8Dtype', 'Int16Dtype', 'Int32Dtype', 'Int64Dtype',
+               'UInt8Dtype', 'UInt16Dtype', 'UInt32Dtype', 'UInt64Dtype',
+               ]
 
     # these are already deprecated; awaiting removal
     deprecated_classes = ['TimeGrouper']
@@ -57,7 +63,7 @@ class TestPDApi(Base):
     modules = ['np', 'datetime']
 
     # top-level functions
-    funcs = ['bdate_range', 'concat', 'crosstab', 'cut',
+    funcs = ['array', 'bdate_range', 'concat', 'crosstab', 'cut',
              'date_range', 'interval_range', 'eval',
              'factorize', 'get_dummies',
              'infer_freq', 'isna', 'isnull', 'lreshape',
