@@ -26,7 +26,7 @@ def test_to_numpy():
     tm.assert_numpy_array_equal(result, expected)
 
 
-def test_setitem():
+def test_setitem_series():
     ser = pd.Series([1, 2, 3])
     ser.array[0] = 10
     expected = pd.Series([10, 2, 3])
@@ -99,6 +99,46 @@ def test_series_constructor_with_astype():
     tm.assert_series_equal(result, expected)
 
 
+@pytest.fixture(params=[
+    np.array(['a', 'b'], dtype=object),
+    np.array([0, 1], dtype=float),
+    np.array([0, 1], dtype=int),
+    np.array([0, 1+2j], dtype=complex),
+    np.array([True, False], dtype=bool),
+    np.array([0, 1], dtype='datetime64[ns]'),
+    np.array([0, 1], dtype='timedelta64[ns]'),
+])
+def any_numpy_array(request):
+    """Parametrized fixture for NumPy arrays with different dtypes.
+
+    This excludes string and bytes.
+    """
+    return request.param
+
+
+def test_constructor_copy():
+    arr = np.array([0, 1])
+    result = PandasArray(arr, copy=True)
+
+    assert np.shares_memory(result._ndarray, arr) is False
+
+
+def test_constructor_with_data(any_numpy_array):
+    nparr = any_numpy_array
+    arr = PandasArray(nparr)
+    assert arr.dtype.numpy_dtype == nparr.dtype
+
+
+def test_setitem(any_numpy_array):
+    nparr = any_numpy_array
+    arr = PandasArray(nparr, copy=True)
+
+    arr[0] = arr[1]
+    nparr[0] = nparr[1]
+
+    tm.assert_numpy_array_equal(arr.to_numpy(), nparr)
+
+
 @pytest.mark.parametrize('dtype, expected', [
     ('bool', True),
     ('int', True),
@@ -114,3 +154,20 @@ def test_series_constructor_with_astype():
 def test_is_numeric(dtype, expected):
     dtype = PandasDtype(dtype)
     assert dtype._is_numeric is expected
+
+
+@pytest.mark.parametrize('dtype, expected', [
+    ('bool', True),
+    ('int', False),
+    ('uint', False),
+    ('float', False),
+    ('complex', False),
+    ('str', False),
+    ('bytes', False),
+    ('datetime64[ns]', False),
+    ('object', False),
+    ('void', False)
+])
+def test_is_boolean(dtype, expected):
+    dtype = PandasDtype(dtype)
+    assert dtype._is_boolean is expected

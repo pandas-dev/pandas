@@ -39,6 +39,10 @@ class PandasDtype(ExtensionDtype):
         self._type = dtype.type
 
     @property
+    def numpy_dtype(self):
+        return self._dtype
+
+    @property
     def name(self):
         return self._name
 
@@ -98,6 +102,8 @@ class PandasArray(ExtensionArray, ExtensionOpsMixin, NDArrayOperatorsMixin):
     ----------
     values : ndarray
         The NumPy ndarray to wrap. Must be 1-dimensional.
+    copy : bool, default False
+        Whether to copy `values`.
 
     Notes
     -----
@@ -113,7 +119,7 @@ class PandasArray(ExtensionArray, ExtensionOpsMixin, NDArrayOperatorsMixin):
     # ------------------------------------------------------------------------
     # Constructors
 
-    def __init__(self, values):
+    def __init__(self, values, copy=False):
         if isinstance(values, type(self)):
             values = values._ndarray
         if not isinstance(values, np.ndarray):
@@ -121,6 +127,9 @@ class PandasArray(ExtensionArray, ExtensionOpsMixin, NDArrayOperatorsMixin):
 
         if values.ndim != 1:
             raise ValueError("PandasArray must be 1-dimensional.")
+
+        if copy:
+            values = values.copy()
 
         self._ndarray = values
         self._dtype = PandasDtype(values.dtype)
