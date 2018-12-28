@@ -33,11 +33,6 @@ jobs:
           PATTERN: "not slow and not network"
           LOCALE_OVERRIDE: "it_IT.UTF-8"
 
-        py37:
-          ENV_FILE: ci/deps/azure-37.yaml
-          CONDA_PY: "37"
-          PATTERN: "not slow and not network"
-
         py37_locale:
           ENV_FILE: ci/deps/azure-37-locale.yaml
           CONDA_PY: "37"
