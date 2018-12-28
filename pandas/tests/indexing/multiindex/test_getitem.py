@@ -10,6 +10,28 @@ from pandas.core.indexing import IndexingError
 from pandas.util import testing as tm
 
 
+@pytest.fixture
+def frame_random_data_integer_multi_index():
+    levels = [[0, 1], [0, 1, 2]]
+    codes = [[0, 0, 0, 1, 1, 1], [0, 1, 2, 0, 1, 2]]
+    index = MultiIndex(levels=levels, codes=codes)
+    return DataFrame(np.random.randn(6, 2), index=index)
+
+
+@pytest.fixture
+def dataframe_with_duplicate_index():
+    """Fixture for DataFrame used in tests for gh-4145 and gh-4146"""
+    data = [['a', 'd', 'e', 'c', 'f', 'b'],
+            [1, 4, 5, 3, 6, 2],
+            [1, 4, 5, 3, 6, 2]]
+    index = ['h1', 'h3', 'h5']
+    columns = MultiIndex(
+        levels=[['A', 'B'], ['A1', 'A2', 'B1', 'B2']],
+        codes=[[0, 0, 0, 1, 1, 1], [0, 3, 3, 0, 1, 2]],
+        names=['main', 'sub'])
+    return DataFrame(data, index=index, columns=columns)
+
+
 @pytest.mark.parametrize('access_method', [lambda s, x: s[:, x],
                                            lambda s, x: s.loc[:, x],
                                            lambda s, x: s.xs(x, level=1)])
@@ -242,14 +264,6 @@ def test_getitem_toplevel(
     tm.assert_frame_equal(result, expected)
 
 
-@pytest.fixture
-def frame_random_data_integer_multi_index():
-    levels = [[0, 1], [0, 1, 2]]
-    codes = [[0, 0, 0, 1, 1, 1], [0, 1, 2, 0, 1, 2]]
-    index = MultiIndex(levels=levels, codes=codes)
-    return DataFrame(np.random.randn(6, 2), index=index)
-
-
 def test_getitem_int(frame_random_data_integer_multi_index):
     df = frame_random_data_integer_multi_index
     result = df.loc[1]
@@ -341,20 +355,6 @@ def test_mixed_depth_get(unicode_strings):
     expected = df['routine1', 'result1', '']
     expected = expected.rename(('routine1', 'result1'))
     tm.assert_series_equal(result, expected)
-
-
-@pytest.fixture
-def dataframe_with_duplicate_index():
-    """Fixture for DataFrame used in tests for gh-4145 and gh-4146"""
-    data = [['a', 'd', 'e', 'c', 'f', 'b'],
-            [1, 4, 5, 3, 6, 2],
-            [1, 4, 5, 3, 6, 2]]
-    index = ['h1', 'h3', 'h5']
-    columns = MultiIndex(
-        levels=[['A', 'B'], ['A1', 'A2', 'B1', 'B2']],
-        codes=[[0, 0, 0, 1, 1, 1], [0, 3, 3, 0, 1, 2]],
-        names=['main', 'sub'])
-    return DataFrame(data, index=index, columns=columns)
 
 
 @pytest.mark.parametrize('indexer', [
