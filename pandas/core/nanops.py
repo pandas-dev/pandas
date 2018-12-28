@@ -204,17 +204,7 @@ def _get_values(values, skipna, fill_value=None, fill_value_typ=None,
     copy = True will force the copy
     """
 
-    if is_datetime64tz_dtype(values):
-        # com.values_from_object returns M8[ns] dtype instead of tz-aware,
-        #  so this case must be handled separately from the rest
-        dtype = values.dtype
-        values = getattr(values, "_values", values)
-        values = np.array(values.asi8)
-    else:
-        values = com.values_from_object(values)
-        dtype = values.dtype
-
-    values = _view_if_needed(values)
+    values, dtype = _extract_datetimelike_values_and_dtype(values)
 
     if mask is None:
         if isfinite:
@@ -267,11 +257,35 @@ def _na_ok_dtype(dtype):
                           (np.integer, np.timedelta64, np.datetime64))
 
 
-def _view_if_needed(values):
+def _extract_datetimelike_values_and_dtype(values):
+    """
+    Find the appropriate values and dtype to use, with special handling
+    for datetime64tz-dtype.
+
+    Parameters
+    ----------
+    values : ndarray, ExtensionArray, Index, Series
+
+    Returns
+    -------
+    values : ndarray
+    dtype : numpy.dtype
+    """
+    if is_datetime64tz_dtype(values):
+        # com.values_from_object returns M8[ns] dtype instead of tz-aware,
+        #  so this case must be handled separately from the rest
+        dtype = values.dtype
+        values = getattr(values, "_values", values)
+        values = np.array(values.asi8)
+    else:
+        values = com.values_from_object(values)
+        dtype = values.dtype
+
     values = getattr(values, 'asi8', values)
     if is_datetime_or_timedelta_dtype(values):
-        return values.view(np.int64)
-    return values
+        values = values.view(np.int64)
+
+    return values, dtype
 
 
 def _wrap_results(result, dtype, fill_value=None):
