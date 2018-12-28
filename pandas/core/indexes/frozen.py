@@ -21,8 +21,17 @@ from pandas.core.base import PandasObject
 from pandas.io.formats.printing import pprint_thing
 
 
-class FrozenList(PandasObject, list):
+def _make_disabled(name):
+    def _disabled(self, *args, **kwargs):
+        """This method will not function because object is immutable."""
+        raise TypeError("'{cls}' does not support mutable operations."
+                        .format(cls=self.__class__.__name__))
 
+    _disabled.__name__ = name
+    return _disabled
+
+
+class FrozenList(PandasObject, list):
     """
     Container that doesn't allow setting item *but*
     because it's technically non-hashable, will be used
@@ -103,11 +112,6 @@ class FrozenList(PandasObject, list):
     def __hash__(self):
         return hash(tuple(self))
 
-    def _disabled(self, *args, **kwargs):
-        """This method will not function because object is immutable."""
-        raise TypeError("'%s' does not support mutable operations." %
-                        self.__class__.__name__)
-
     def __unicode__(self):
         return pprint_thing(self, quote_strings=True,
                             escape_chars=('\t', '\r', '\n'))
@@ -116,8 +120,16 @@ class FrozenList(PandasObject, list):
         return "%s(%s)" % (self.__class__.__name__,
                            str(self))
 
-    __setitem__ = __setslice__ = __delitem__ = __delslice__ = _disabled
-    pop = append = extend = remove = sort = insert = _disabled
+    __setitem__ = _make_disabled("__setitem__")
+    __setslice__ = _make_disabled("__setslice__")
+    __delitem__ = _make_disabled("__delitem__")
+    __delslice__ = _make_disabled("__delslice__")
+    pop = _make_disabled("pop")
+    append = _make_disabled("append")
+    extend = _make_disabled("extend")
+    remove = _make_disabled("remove")
+    sort = _make_disabled("sort")
+    insert = _make_disabled("insert")
 
 
 class FrozenNDArray(PandasObject, np.ndarray):
@@ -133,13 +145,13 @@ class FrozenNDArray(PandasObject, np.ndarray):
         res = np.array(data, dtype=dtype, copy=copy).view(cls)
         return res
 
-    def _disabled(self, *args, **kwargs):
-        """This method will not function because object is immutable."""
-        raise TypeError("'%s' does not support mutable operations." %
-                        self.__class__)
-
-    __setitem__ = __setslice__ = __delitem__ = __delslice__ = _disabled
-    put = itemset = fill = _disabled
+    __setitem__ = _make_disabled("__setitem__")
+    __setslice__ = _make_disabled("__setslice__")
+    __delitem__ = _make_disabled("__delitem__")
+    __delslice__ = _make_disabled("__delslice__")
+    put = _make_disabled("put")
+    itemset = _make_disabled("itemset")
+    fill = _make_disabled("fill")
 
     def _shallow_copy(self):
         return self.view()

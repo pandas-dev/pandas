@@ -1284,10 +1284,31 @@ def check_pinned_names(cls):
     special_cases = {
         "isnull": "isna",
         "notnull": "notna",
-        "take": "take_nd",     # Categorical
-        "to_list": "tolist",   # Categorical
         "iteritems": "items",
         "__bool__": "__nonzero__",
+        "__div__": "__truediv__",
+        "__rdiv__": "__rtruediv__",
+        "__rmul__": "__mul__",
+        "__req__": "__eq__",
+
+        "T": "transpose",
+        "_unpickle_compat": "__setstate__",
+
+        # Questionable
+        "get_level_values": "_get_level_values",
+        "_xs": "xs",
+
+        # _Window
+        "agg": "aggregate",
+
+        # Categorical
+        "take": "take_nd",
+        "to_list": "tolist",
+
+        # Timestamp
+        "daysinmonth": "days_in_month",
+        "astimezone": "tz_convert",
+        "weekofyear": "week",
     }
     ignore = {
         "_create_comparison_method",
@@ -1303,15 +1324,28 @@ def check_pinned_names(cls):
             continue
         if name in ignore:
             continue
-        if inspect.ismethod(attr) or isinstance(attr, property):
+        if inspect.ismethod(attr) or inspect.isfunction(attr):
+            # isfunction check is needed in py3
             expected = special_cases.get(name, name)
             result = attr.__name__
-            assert result == expected, (result, expected, name,
-                                        cls.__name__)
+
+            # kludges for special cases that we need to make decisions about
+            if (cls.__name__ == "SparseArray" and
+                    result == "to_dense" and name == "get_values"):
+                continue
+            if (cls.__name__ == "FrozenList" and
+                    result == "union" and name in ["__add__", "__iadd__"]):
+                continue
+            if (cls.__name__ == "FrozenList" and
+                    result == "__mul__" and name == "__imul__"):
+                continue
+
+            assert result in [name, expected], (result, expected, name,
+                                                cls.__name__)
 
 
 @pytest.mark.parametrize('klass',
-                         PandasObject.__subclasses__() + [
+                         sorted(PandasObject.__subclasses__()) + [
                              pd.Timestamp,
                              pd.Period,
                              pd.Timedelta,

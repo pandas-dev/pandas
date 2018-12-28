@@ -1696,12 +1696,11 @@ class SparseArray(PandasObject, ExtensionArray, ExtensionOpsMixin):
 
     @classmethod
     def _create_comparison_method(cls, op):
+        op_name = op.__name__
+        if op_name in {'and_', 'or_'}:
+            op_name = op_name[:-1]
+
         def cmp_method(self, other):
-            op_name = op.__name__
-
-            if op_name in {'and_', 'or_'}:
-                op_name = op_name[:-1]
-
             if isinstance(other, (ABCSeries, ABCIndexClass)):
                 # Rely on pandas to unbox and dispatch to us.
                 return NotImplemented
@@ -1730,7 +1729,7 @@ class SparseArray(PandasObject, ExtensionArray, ExtensionOpsMixin):
                                   fill_value=fill_value,
                                   dtype=np.bool_)
 
-        name = '__{name}__'.format(name=op.__name__)
+        name = '__{name}__'.format(name=op_name)
         return compat.set_function_name(cmp_method, name, cls)
 
     @classmethod
