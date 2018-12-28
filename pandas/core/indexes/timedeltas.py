@@ -272,7 +272,7 @@ class TimedeltaIndex(TimedeltaArray, DatetimeIndexOpsMixin,
         from pandas.io.formats.format import _get_format_timedelta64
         return _get_format_timedelta64(self, box=True)
 
-    def _format_native_types(self, na_rep=u'NaT', date_format=None, **kwargs):
+    def _format_native_types(self, na_rep='NaT', date_format=None, **kwargs):
         from pandas.io.formats.format import Timedelta64Formatter
         return Timedelta64Formatter(values=self,
                                     nat_rep=na_rep,
@@ -310,14 +310,14 @@ class TimedeltaIndex(TimedeltaArray, DatetimeIndexOpsMixin,
     def astype(self, dtype, copy=True):
         dtype = pandas_dtype(dtype)
         if is_timedelta64_dtype(dtype) and not is_timedelta64_ns_dtype(dtype):
-            # return an index (essentially this is division)
-            result = self.values.astype(dtype, copy=copy)
+            # Have to repeat the check for 'timedelta64' (not ns) dtype
+            #  so that we can return a numeric index, since pandas will return
+            #  a TimedeltaIndex when dtype='timedelta'
+            result = self._eadata.astype(dtype, copy=copy)
             if self.hasnans:
-                values = self._maybe_mask_results(result, fill_value=None,
-                                                  convert='float64')
-                return Index(values, name=self.name)
+                return Index(result, name=self.name)
             return Index(result.astype('i8'), name=self.name)
-        return super(TimedeltaIndex, self).astype(dtype, copy=copy)
+        return DatetimeIndexOpsMixin.astype(self, dtype, copy=copy)
 
     def union(self, other):
         """
