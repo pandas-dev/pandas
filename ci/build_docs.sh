@@ -45,7 +45,6 @@ if [ "$DOC" ]; then
         git add --all .
         git commit -m "Version" --allow-empty
 
-        git remote remove origin
         git remote add origin "https://${PANDAS_GH_TOKEN}@github.com/pandas-dev/pandas-docs-travis.git"
         git fetch origin
         git remote -v
