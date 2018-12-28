@@ -221,6 +221,17 @@ class BaseMethodsTests(BaseExtensionTests):
         expected = empty
         self.assert_extension_array_equal(result, expected)
 
+    def test_shift_fill_value(self, data):
+        arr = data[:4]
+        fill_value = data[0]
+        result = arr.shift(1, fill_value=fill_value)
+        expected = data.take([0, 0, 1, 2])
+        self.assert_extension_array_equal(result, expected)
+
+        result = arr.shift(-2, fill_value=fill_value)
+        expected = data.take([2, 3, 0, 0])
+        self.assert_extension_array_equal(result, expected)
+
     @pytest.mark.parametrize("as_frame", [True, False])
     def test_hash_pandas_object_works(self, data, as_frame):
         # https://github.com/pandas-dev/pandas/issues/23066
