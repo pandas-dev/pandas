@@ -557,17 +557,10 @@ class DatetimeIndexOpsMixin(DatetimeLikeArrayMixin):
 
         new_values = self._eadata.astype(dtype, copy=copy)
 
-        # we pass `dtype` to the Index constructor, for cases like
-        #  dtype=object to disable inference. But, DTA.astype ignores
-        #  integer sign and size, so we need to detect that case and
-        #  just choose int64.
-        dtype = pandas_dtype(dtype)
-        if is_integer_dtype(dtype):
-            dtype = np.dtype("int64")
-
         # pass copy=False because any copying will be done in the
         #  _eadata.astype call above
-        return Index(new_values, dtype=dtype, name=self.name, copy=False)
+        return Index(new_values,
+                     dtype=new_values.dtype, name=self.name, copy=False)
 
     @Appender(DatetimeLikeArrayMixin._time_shift.__doc__)
     def _time_shift(self, periods, freq=None):
