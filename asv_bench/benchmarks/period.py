@@ -37,14 +37,13 @@ class PeriodUnaryMethods(object):
 
 class PeriodIndexConstructor(object):
 
-    goal_time = 0.2
-
     params = ['D']
     param_names = ['freq']
 
     def setup(self, freq):
         self.rng = date_range('1985', periods=1000)
         self.rng2 = date_range('1985', periods=1000).to_pydatetime()
+        self.ints = list(range(2000, 3000))
 
     def time_from_date_range(self, freq):
         PeriodIndex(self.rng, freq=freq)
@@ -52,10 +51,11 @@ class PeriodIndexConstructor(object):
     def time_from_pydatetime(self, freq):
         PeriodIndex(self.rng2, freq=freq)
 
+    def time_from_ints(self, freq):
+        PeriodIndex(self.ints, freq=freq)
+
 
 class DataFramePeriodColumn(object):
-
-    goal_time = 0.2
 
     def setup(self):
         self.rng = period_range(start='1/1/1990', freq='S', periods=20000)
@@ -71,8 +71,6 @@ class DataFramePeriodColumn(object):
 
 
 class Algorithms(object):
-
-    goal_time = 0.2
 
     params = ['index', 'series']
     param_names = ['typ']
@@ -94,8 +92,6 @@ class Algorithms(object):
 
 
 class Indexing(object):
-
-    goal_time = 0.2
 
     def setup(self):
         self.index = PeriodIndex(start='1985', periods=1000, freq='D')
@@ -119,3 +115,6 @@ class Indexing(object):
 
     def time_intersection(self):
         self.index[:750].intersection(self.index[250:])
+
+    def time_unique(self):
+        self.index.unique()

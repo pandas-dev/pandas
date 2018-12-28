@@ -1,26 +1,24 @@
 from datetime import datetime, timedelta
-from pandas.compat import range
 
-import pytest
 import numpy as np
+import pytest
 
-from pandas import (Index, DatetimeIndex, Timestamp, Series,
-                    date_range, period_range)
-
-from pandas._libs.tslibs.frequencies import (_period_code_map,
-                                             INVALID_FREQ_ERR_MSG)
-from pandas._libs.tslibs.ccalendar import MONTHS
 from pandas._libs.tslibs import resolution
-import pandas.tseries.frequencies as frequencies
-from pandas.core.tools.datetimes import to_datetime
-
-import pandas.tseries.offsets as offsets
-from pandas.core.indexes.period import PeriodIndex
+from pandas._libs.tslibs.ccalendar import MONTHS
+from pandas._libs.tslibs.frequencies import (
+    INVALID_FREQ_ERR_MSG, _period_code_map)
 import pandas.compat as compat
-from pandas.compat import is_platform_windows
+from pandas.compat import is_platform_windows, range
 
+from pandas import (
+    DatetimeIndex, Index, Series, Timedelta, Timestamp, date_range,
+    period_range)
+from pandas.core.indexes.period import PeriodIndex
+from pandas.core.tools.datetimes import to_datetime
 import pandas.util.testing as tm
-from pandas import Timedelta
+
+import pandas.tseries.frequencies as frequencies
+import pandas.tseries.offsets as offsets
 
 
 class TestToOffset(object):
@@ -105,8 +103,7 @@ class TestToOffset(object):
         assert (result == expected)
 
         # malformed
-        with tm.assert_raises_regex(ValueError,
-                                    'Invalid frequency: 2h20m'):
+        with pytest.raises(ValueError, match='Invalid frequency: 2h20m'):
             frequencies.to_offset('2h20m')
 
     def test_to_offset_negative(self):
@@ -128,23 +125,17 @@ class TestToOffset(object):
 
     def test_to_offset_invalid(self):
         # GH 13930
-        with tm.assert_raises_regex(ValueError,
-                                    'Invalid frequency: U1'):
+        with pytest.raises(ValueError, match='Invalid frequency: U1'):
             frequencies.to_offset('U1')
-        with tm.assert_raises_regex(ValueError,
-                                    'Invalid frequency: -U'):
+        with pytest.raises(ValueError, match='Invalid frequency: -U'):
             frequencies.to_offset('-U')
-        with tm.assert_raises_regex(ValueError,
-                                    'Invalid frequency: 3U1'):
+        with pytest.raises(ValueError, match='Invalid frequency: 3U1'):
             frequencies.to_offset('3U1')
-        with tm.assert_raises_regex(ValueError,
-                                    'Invalid frequency: -2-3U'):
+        with pytest.raises(ValueError, match='Invalid frequency: -2-3U'):
             frequencies.to_offset('-2-3U')
-        with tm.assert_raises_regex(ValueError,
-                                    'Invalid frequency: -2D:3H'):
+        with pytest.raises(ValueError, match='Invalid frequency: -2D:3H'):
             frequencies.to_offset('-2D:3H')
-        with tm.assert_raises_regex(ValueError,
-                                    'Invalid frequency: 1.5.0S'):
+        with pytest.raises(ValueError, match='Invalid frequency: 1.5.0S'):
             frequencies.to_offset('1.5.0S')
 
         # split offsets with spaces are valid
@@ -157,11 +148,9 @@ class TestToOffset(object):
 
         # special cases
         assert frequencies.to_offset('2SMS-15') == offsets.SemiMonthBegin(2)
-        with tm.assert_raises_regex(ValueError,
-                                    'Invalid frequency: 2SMS-15-15'):
+        with pytest.raises(ValueError, match='Invalid frequency: 2SMS-15-15'):
             frequencies.to_offset('2SMS-15-15')
-        with tm.assert_raises_regex(ValueError,
-                                    'Invalid frequency: 2SMS-15D'):
+        with pytest.raises(ValueError, match='Invalid frequency: 2SMS-15D'):
             frequencies.to_offset('2SMS-15D')
 
     def test_to_offset_leading_zero(self):
@@ -183,7 +172,7 @@ class TestToOffset(object):
         assert (result.n == 150)
 
         for bad_freq in ['+-1d', '-+1h', '+1', '-7', '+d', '-m']:
-            with tm.assert_raises_regex(ValueError, 'Invalid frequency:'):
+            with pytest.raises(ValueError, match='Invalid frequency:'):
                 frequencies.to_offset(bad_freq)
 
     def test_to_offset_pd_timedelta(self):
@@ -270,8 +259,7 @@ class TestToOffset(object):
                            'SMS-BAR', 'SMS-BYR' 'BSMS',
                            'SMS--2']
         for invalid_anchor in invalid_anchors:
-            with tm.assert_raises_regex(ValueError,
-                                        'Invalid frequency: '):
+            with pytest.raises(ValueError, match='Invalid frequency: '):
                 frequencies.to_offset(invalid_anchor)
 
 
@@ -464,13 +452,13 @@ class TestFrequencyCode(object):
         expected = offsets.Minute(5)
         assert result == expected
 
-        with tm.assert_raises_regex(ValueError, 'Invalid frequency'):
+        with pytest.raises(ValueError, match='Invalid frequency'):
             frequencies.get_freq_code((5, 'baz'))
 
-        with tm.assert_raises_regex(ValueError, 'Invalid frequency'):
+        with pytest.raises(ValueError, match='Invalid frequency'):
             frequencies.to_offset('100foo')
 
-        with tm.assert_raises_regex(ValueError, 'Could not evaluate'):
+        with pytest.raises(ValueError, match='Could not evaluate'):
             frequencies.to_offset(('', ''))
 
 
@@ -799,8 +787,8 @@ class TestFrequencyInference(object):
 
         msg = INVALID_FREQ_ERR_MSG
         for freq in freqs:
-            with tm.assert_raises_regex(ValueError, msg):
+            with pytest.raises(ValueError, match=msg):
                 frequencies.get_offset(freq)
 
-            with tm.assert_raises_regex(ValueError, msg):
+            with pytest.raises(ValueError, match=msg):
                 date_range('2011-01-01', periods=5, freq=freq)

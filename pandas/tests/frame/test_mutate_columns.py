@@ -126,7 +126,7 @@ class TestDataFrameMutateColumns(TestData):
         s = DataFrame({'foo': ['a', 'b', 'c', 'a'], 'fiz': [
                       'g', 'h', 'i', 'j']}).set_index('foo')
         msg = 'cannot reindex from a duplicate axis'
-        with tm.assert_raises_regex(ValueError, msg):
+        with pytest.raises(ValueError, match=msg):
             df['newcol'] = s
 
         # GH 4107, more descriptive error message
@@ -134,7 +134,7 @@ class TestDataFrameMutateColumns(TestData):
                        columns=['a', 'b', 'c', 'd'])
 
         msg = 'incompatible index of inserted column with frame index'
-        with tm.assert_raises_regex(TypeError, msg):
+        with pytest.raises(TypeError, match=msg):
             df['gr'] = df.groupby(['b', 'c']).count()
 
     def test_insert_benchmark(self):
@@ -178,7 +178,7 @@ class TestDataFrameMutateColumns(TestData):
         result = Series(dict(float32=2, float64=4, int32=1))
         assert (df.get_dtype_counts().sort_index() == result).all()
 
-        with tm.assert_raises_regex(ValueError, 'already exists'):
+        with pytest.raises(ValueError, match='already exists'):
             df.insert(1, 'a', df['b'])
         pytest.raises(ValueError, df.insert, 1, 'c', df['b'])
 
@@ -233,7 +233,7 @@ class TestDataFrameMutateColumns(TestData):
         self.frame['foo'] = 'bar'
         self.frame.pop('foo')
         assert 'foo' not in self.frame
-        # TODO assert self.frame.columns.name == 'baz'
+        assert self.frame.columns.name == 'baz'
 
         # gh-10912: inplace ops cause caching issue
         a = DataFrame([[1, 2, 3], [4, 5, 6]], columns=[

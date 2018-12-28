@@ -10,6 +10,8 @@ import os
 from os.path import join as pjoin
 
 import pkg_resources
+import platform
+from distutils.sysconfig import get_config_var
 import sys
 import shutil
 from distutils.version import LooseVersion
@@ -24,7 +26,11 @@ def is_platform_windows():
     return sys.platform == 'win32' or sys.platform == 'cygwin'
 
 
-min_numpy_ver = '1.9.0'
+def is_platform_mac():
+    return sys.platform == 'darwin'
+
+
+min_numpy_ver = '1.12.0'
 setuptools_kwargs = {
     'install_requires': [
         'python-dateutil >= 2.5.0',
@@ -76,8 +82,6 @@ _pxi_dep_template = {
               '_libs/algos_take_helper.pxi.in',
               '_libs/algos_rank_helper.pxi.in'],
     'groupby': ['_libs/groupby_helper.pxi.in'],
-    'join': ['_libs/join_helper.pxi.in', '_libs/join_func_helper.pxi.in'],
-    'reshape': ['_libs/reshape_helper.pxi.in'],
     'hashtable': ['_libs/hashtable_class_helper.pxi.in',
                   '_libs/hashtable_func_helper.pxi.in'],
     'index': ['_libs/index_class_helper.pxi.in'],
@@ -436,6 +440,19 @@ else:
     extra_compile_args = ['-Wno-unused-function']
 
 
+# For mac, ensure extensions are built for macos 10.9 when compiling on a
+# 10.9 system or above, overriding distuitls behaviour which is to target
+# the version that python was built for. This may be overridden by setting
+# MACOSX_DEPLOYMENT_TARGET before calling setup.py
+if is_platform_mac():
+    if 'MACOSX_DEPLOYMENT_TARGET' not in os.environ:
+        current_system = LooseVersion(platform.mac_ver()[0])
+        python_target = LooseVersion(
+            get_config_var('MACOSX_DEPLOYMENT_TARGET'))
+        if python_target < '10.9' and current_system >= '10.9':
+            os.environ['MACOSX_DEPLOYMENT_TARGET'] = '10.9'
+
+
 # enable coverage by building cython files by setting the environment variable
 # "PANDAS_CYTHON_COVERAGE" (with a Truthy value) or by running build_ext
 # with `--with-cython-coverage`enabled
@@ -491,8 +508,7 @@ common_include = ['pandas/_libs/src/klib', 'pandas/_libs/src']
 ts_include = ['pandas/_libs/tslibs/src']
 
 
-lib_depends = ['pandas/_libs/src/numpy_helper.h',
-               'pandas/_libs/src/parse_helper.h',
+lib_depends = ['pandas/_libs/src/parse_helper.h',
                'pandas/_libs/src/compat_helper.h']
 
 np_datetime_headers = [
@@ -533,8 +549,7 @@ ext_data = {
         'pyxfile': '_libs/interval',
         'depends': _pxi_dep['interval']},
     '_libs.join': {
-        'pyxfile': '_libs/join',
-        'depends': _pxi_dep['join']},
+        'pyxfile': '_libs/join'},
     '_libs.lib': {
         'pyxfile': '_libs/lib',
         'include': common_include + ts_include,
@@ -546,8 +561,7 @@ ext_data = {
     '_libs.parsers': {
         'pyxfile': '_libs/parsers',
         'depends': ['pandas/_libs/src/parser/tokenizer.h',
-                    'pandas/_libs/src/parser/io.h',
-                    'pandas/_libs/src/numpy_helper.h'],
+                    'pandas/_libs/src/parser/io.h'],
         'sources': ['pandas/_libs/src/parser/tokenizer.c',
                     'pandas/_libs/src/parser/io.c']},
     '_libs.reduction': {
@@ -559,7 +573,7 @@ ext_data = {
         'include': []},
     '_libs.reshape': {
         'pyxfile': '_libs/reshape',
-        'depends': _pxi_dep['reshape']},
+        'depends': []},
     '_libs.skiplist': {
         'pyxfile': '_libs/skiplist',
         'depends': ['pandas/_libs/src/skiplist.h']},

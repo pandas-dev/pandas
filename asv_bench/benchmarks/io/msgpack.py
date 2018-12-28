@@ -2,12 +2,10 @@ import numpy as np
 from pandas import DataFrame, date_range, read_msgpack
 import pandas.util.testing as tm
 
-from ..pandas_vb_common import BaseIO, setup  # noqa
+from ..pandas_vb_common import BaseIO
 
 
 class MSGPack(BaseIO):
-
-    goal_time = 0.2
 
     def setup(self):
         self.fname = '__test__.msg'
@@ -24,3 +22,6 @@ class MSGPack(BaseIO):
 
     def time_write_msgpack(self):
         self.df.to_msgpack(self.fname)
+
+
+from ..pandas_vb_common import setup  # noqa: F401

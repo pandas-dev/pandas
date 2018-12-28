@@ -11,7 +11,7 @@ from pandas.util._decorators import Appender
 
 
 class DirNamesMixin(object):
-    _accessors = frozenset([])
+    _accessors = frozenset()
     _deprecations = frozenset(
         ['asobject', 'base', 'data', 'flags', 'itemsize', 'strides'])
 
@@ -41,7 +41,9 @@ class DirNamesMixin(object):
 
 
 class PandasDelegate(object):
-    """ an abstract base class for delegating methods/properties """
+    """
+    an abstract base class for delegating methods/properties
+    """
 
     def _delegate_property_get(self, name, *args, **kwargs):
         raise TypeError("You cannot access the "
@@ -57,7 +59,7 @@ class PandasDelegate(object):
     def _add_delegate_accessors(cls, delegate, accessors, typ,
                                 overwrite=False):
         """
-        add accessors to cls from the delegate class
+        Add accessors to cls from the delegate class.
 
         Parameters
         ----------
@@ -105,13 +107,49 @@ class PandasDelegate(object):
                 setattr(cls, name, f)
 
 
+def delegate_names(delegate, accessors, typ, overwrite=False):
+    """
+    Add delegated names to a class using a class decorator.  This provides
+    an alternative usage to directly calling `_add_delegate_accessors`
+    below a class definition.
+
+    Parameters
+    ----------
+    delegate : object
+        the class to get methods/properties & doc-strings
+    acccessors : Sequence[str]
+        List of accessor to add
+    typ : {'property', 'method'}
+    overwrite : boolean, default False
+       overwrite the method/property in the target class if it exists
+
+    Returns
+    -------
+    callable
+        A class decorator.
+
+    Examples
+    --------
+    @delegate_names(Categorical, ["categories", "ordered"], "property")
+    class CategoricalAccessor(PandasDelegate):
+        [...]
+    """
+    def add_delegate_accessors(cls):
+        cls._add_delegate_accessors(delegate, accessors, typ,
+                                    overwrite=overwrite)
+        return cls
+
+    return add_delegate_accessors
+
+
 # Ported with modifications from xarray
 # https://github.com/pydata/xarray/blob/master/xarray/core/extensions.py
 # 1. We don't need to catch and re-raise AttributeErrors as RuntimeErrors
 # 2. We use a UserWarning instead of a custom Warning
 
 class CachedAccessor(object):
-    """Custom property-like object (descriptor) for caching accessors.
+    """
+    Custom property-like object (descriptor) for caching accessors.
 
     Parameters
     ----------
@@ -154,13 +192,18 @@ def _register_accessor(name, cls):
     return decorator
 
 
-_doc = """Register a custom accessor on %(klass)s objects.
+_doc = """\
+Register a custom accessor on %(klass)s objects.
 
 Parameters
 ----------
 name : str
     Name under which the accessor should be registered. A warning is issued
     if this name conflicts with a preexisting attribute.
+
+See Also
+--------
+%(others)s
 
 Notes
 -----
@@ -169,7 +212,8 @@ the user is interacting with. So the signature must be
 
 .. code-block:: python
 
-    def __init__(self, pandas_object):
+    def __init__(self, pandas_object):  # noqa: E999
+        ...
 
 For consistency with pandas methods, you should raise an ``AttributeError``
 if the data passed to your accessor has an incorrect dtype.
@@ -210,10 +254,6 @@ Back in an interactive IPython session:
     (5.0, 10.0)
     >>> ds.geo.plot()
     # plots data on a map
-
-See also
---------
-%(others)s
 """
 
 

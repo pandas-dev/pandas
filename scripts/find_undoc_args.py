@@ -65,10 +65,10 @@ def cmp_docstring_sig(f):
     sig_names = set(inspect.getargspec(f).args)
     # XXX numpydoc can be used to get the list of parameters
     doc = f.__doc__.lower()
-    doc = re.split('^\s*parameters\s*', doc, 1, re.M)[-1]
-    doc = re.split('^\s*returns*', doc, 1, re.M)[0]
+    doc = re.split(r'^\s*parameters\s*', doc, 1, re.M)[-1]
+    doc = re.split(r'^\s*returns*', doc, 1, re.M)[0]
     doc_names = {x.split(":")[0].strip() for x in doc.split('\n')
-                 if re.match('\s+[\w_]+\s*:', x)}
+                 if re.match(r'\s+[\w_]+\s*:', x)}
     sig_names.discard('self')
     doc_names.discard('kwds')
     doc_names.discard('kwargs')

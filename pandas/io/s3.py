@@ -1,5 +1,6 @@
 """ s3 support for remote file interactivity """
 from pandas import compat
+
 try:
     import s3fs
     from botocore.exceptions import NoCredentialsError

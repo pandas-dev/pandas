@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-from cython cimport Py_ssize_t
+from cython import Py_ssize_t
 
 from cpython cimport (
     PyDict_Contains, PyDict_GetItem, PyDict_SetItem)
@@ -31,7 +31,7 @@ cdef class CachedProperty(object):
 
         if PyDict_Contains(cache, self.name):
             # not necessary to Py_INCREF
-            val = <object> PyDict_GetItem(cache, self.name)
+            val = <object>PyDict_GetItem(cache, self.name)
         else:
             val = self.func(obj)
             PyDict_SetItem(cache, self.name, val)

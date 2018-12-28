@@ -59,7 +59,7 @@ def _check_for_default_values(fname, arg_val_dict, compat_args):
 
         # could not compare them directly, so try comparison
         # using the 'is' operator
-        except:
+        except ValueError:
             match = (arg_val_dict[key] is compat_args[key])
 
         if not match:
@@ -196,8 +196,8 @@ def validate_args_and_kwargs(fname, args, kwargs,
 
     See Also
     --------
-    validate_args : purely args validation
-    validate_kwargs : purely kwargs validation
+    validate_args : Purely args validation.
+    validate_kwargs : Purely kwargs validation.
 
     """
     # Check that the total number of arguments passed in (i.e.

@@ -3,15 +3,17 @@
 Tests for Timestamp parsing, aimed at pandas/_libs/tslibs/parsing.pyx
 """
 from datetime import datetime
+
+from dateutil.parser import parse
 import numpy as np
 import pytest
-from dateutil.parser import parse
 
-import pandas.util._test_decorators as td
-from pandas import compat
-from pandas.util import testing as tm
 from pandas._libs.tslibs import parsing
 from pandas._libs.tslibs.parsing import parse_time_string
+import pandas.compat as compat
+import pandas.util._test_decorators as td
+
+from pandas.util import testing as tm
 
 
 class TestParseQuarters(object):
@@ -60,13 +62,13 @@ class TestDatetimeParsingWrappers(object):
     def test_parsers_quarterly_with_freq(self):
         msg = ('Incorrect quarterly string is given, quarter '
                'must be between 1 and 4: 2013Q5')
-        with tm.assert_raises_regex(parsing.DateParseError, msg):
+        with pytest.raises(parsing.DateParseError, match=msg):
             parsing.parse_time_string('2013Q5')
 
         # GH 5418
         msg = ('Unable to retrieve month information from given freq: '
                'INVLD-L-DEC-SAT')
-        with tm.assert_raises_regex(parsing.DateParseError, msg):
+        with pytest.raises(parsing.DateParseError, match=msg):
             parsing.parse_time_string('2013Q1', freq='INVLD-L-DEC-SAT')
 
         cases = {('2013Q2', None): datetime(2013, 4, 1),
@@ -92,6 +94,7 @@ class TestDatetimeParsingWrappers(object):
             assert result1 == expected
 
 
+@pytest.mark.filterwarnings("ignore:_timelex:DeprecationWarning")
 class TestGuessDatetimeFormat(object):
 
     @td.skip_if_not_us_locale
@@ -160,6 +163,8 @@ class TestGuessDatetimeFormat(object):
             ('2011-1-1 00:00:00', '%Y-%m-%d %H:%M:%S'),
             ('2011-1-1 0:0:0', '%Y-%m-%d %H:%M:%S'),
             ('2011-1-3T00:00:0', '%Y-%m-%dT%H:%M:%S')])
+    # https://github.com/pandas-dev/pandas/issues/21322 for _timelex
+    @pytest.mark.filterwarnings("ignore:_timelex:DeprecationWarning")
     def test_guess_datetime_format_nopadding(self, string, format):
         # GH 11142
         result = parsing._guess_datetime_format(string)

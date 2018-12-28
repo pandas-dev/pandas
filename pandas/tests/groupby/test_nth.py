@@ -390,3 +390,27 @@ def test_nth_empty():
                                           names=['a', 'b']),
                          columns=['c'])
     assert_frame_equal(result, expected)
+
+
+def test_nth_column_order():
+    # GH 20760
+    # Check that nth preserves column order
+    df = DataFrame([[1, 'b', 100],
+                    [1, 'a', 50],
+                    [1, 'a', np.nan],
+                    [2, 'c', 200],
+                    [2, 'd', 150]],
+                   columns=['A', 'C', 'B'])
+    result = df.groupby('A').nth(0)
+    expected = DataFrame([['b', 100.0],
+                          ['c', 200.0]],
+                         columns=['C', 'B'],
+                         index=Index([1, 2], name='A'))
+    assert_frame_equal(result, expected)
+
+    result = df.groupby('A').nth(-1, dropna='any')
+    expected = DataFrame([['a', 50.0],
+                          ['d', 150.0]],
+                         columns=['C', 'B'],
+                         index=Index([1, 2], name='A'))
+    assert_frame_equal(result, expected)

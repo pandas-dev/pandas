@@ -1,11 +1,10 @@
 # -*- coding: utf-8 -*-
-# cython: profile=False
 
 from cpython.datetime cimport datetime, tzinfo
 
 from numpy cimport int64_t, int32_t
 
-from np_datetime cimport npy_datetimestruct
+from pandas._libs.tslibs.np_datetime cimport npy_datetimestruct
 
 
 cdef class _TSObject:

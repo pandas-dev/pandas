@@ -3,19 +3,16 @@ import string
 
 import numpy as np
 import pandas.util.testing as tm
-from pandas import (DataFrame, Series, MultiIndex, date_range, concat, merge,
-                    merge_asof)
+from pandas import (DataFrame, Series, Panel, MultiIndex,
+                    date_range, concat, merge, merge_asof)
+
 try:
     from pandas import merge_ordered
 except ImportError:
     from pandas import ordered_merge as merge_ordered
 
-from .pandas_vb_common import Panel, setup  # noqa
-
 
 class Append(object):
-
-    goal_time = 0.2
 
     def setup(self):
         self.df1 = DataFrame(np.random.randn(10000, 4),
@@ -26,11 +23,7 @@ class Append(object):
         self.mdf1['obj1'] = 'bar'
         self.mdf1['obj2'] = 'bar'
         self.mdf1['int1'] = 5
-        try:
-            with warnings.catch_warnings(record=True):
-                self.mdf1.consolidate(inplace=True)
-        except:
-            pass
+        self.mdf1 = self.mdf1._consolidate()
         self.mdf2 = self.mdf1.copy()
         self.mdf2.index = self.df2.index
 
@@ -43,7 +36,6 @@ class Append(object):
 
 class Concat(object):
 
-    goal_time = 0.2
     params = [0, 1]
     param_names = ['axis']
 
@@ -58,7 +50,7 @@ class Concat(object):
         self.empty_right = [df, DataFrame()]
 
     def time_concat_series(self, axis):
-        concat(self.series, axis=axis)
+        concat(self.series, axis=axis, sort=False)
 
     def time_concat_small_frames(self, axis):
         concat(self.small_frames, axis=axis)
@@ -72,7 +64,6 @@ class Concat(object):
 
 class ConcatPanels(object):
 
-    goal_time = 0.2
     params = ([0, 1, 2], [True, False])
     param_names = ['axis', 'ignore_index']
 
@@ -98,7 +89,6 @@ class ConcatPanels(object):
 
 class ConcatDataFrames(object):
 
-    goal_time = 0.2
     params = ([0, 1], [True, False])
     param_names = ['axis', 'ignore_index']
 
@@ -119,23 +109,22 @@ class ConcatDataFrames(object):
 
 class Join(object):
 
-    goal_time = 0.2
     params = [True, False]
     param_names = ['sort']
 
     def setup(self, sort):
         level1 = tm.makeStringIndex(10).values
         level2 = tm.makeStringIndex(1000).values
-        label1 = np.arange(10).repeat(1000)
-        label2 = np.tile(np.arange(1000), 10)
+        codes1 = np.arange(10).repeat(1000)
+        codes2 = np.tile(np.arange(1000), 10)
         index2 = MultiIndex(levels=[level1, level2],
-                            labels=[label1, label2])
+                            codes=[codes1, codes2])
         self.df_multi = DataFrame(np.random.randn(len(index2), 4),
                                   index=index2,
                                   columns=['A', 'B', 'C', 'D'])
 
-        self.key1 = np.tile(level1.take(label1), 10)
-        self.key2 = np.tile(level2.take(label2), 10)
+        self.key1 = np.tile(level1.take(codes1), 10)
+        self.key2 = np.tile(level2.take(codes2), 10)
         self.df = DataFrame({'data1': np.random.randn(100000),
                              'data2': np.random.randn(100000),
                              'key1': self.key1,
@@ -167,8 +156,6 @@ class Join(object):
 
 class JoinIndex(object):
 
-    goal_time = 0.2
-
     def setup(self):
         N = 50000
         self.left = DataFrame(np.random.randint(1, N / 500, (N, 2)),
@@ -183,8 +170,6 @@ class JoinIndex(object):
 class JoinNonUnique(object):
     # outer join of non-unique
     # GH 6329
-    goal_time = 0.2
-
     def setup(self):
         date_index = date_range('01-Jan-2013', '23-Jan-2013', freq='T')
         daily_dates = date_index.to_period('D').to_timestamp('S', 'S')
@@ -201,7 +186,6 @@ class JoinNonUnique(object):
 
 class Merge(object):
 
-    goal_time = 0.2
     params = [True, False]
     param_names = ['sort']
 
@@ -236,7 +220,6 @@ class Merge(object):
 
 class I8Merge(object):
 
-    goal_time = 0.2
     params = ['inner', 'outer', 'left', 'right']
     param_names = ['how']
 
@@ -254,8 +237,6 @@ class I8Merge(object):
 
 
 class MergeCategoricals(object):
-
-    goal_time = 0.2
 
     def setup(self):
         self.left_object = DataFrame(
@@ -344,8 +325,6 @@ class MergeAsof(object):
 
 class Align(object):
 
-    goal_time = 0.2
-
     def setup(self):
         size = 5 * 10**5
         rng = np.arange(0, 10**13, 10**7)
@@ -360,3 +339,6 @@ class Align(object):
 
     def time_series_align_left_monotonic(self):
         self.ts1.align(self.ts2, join='left')
+
+
+from .pandas_vb_common import setup  # noqa: F401

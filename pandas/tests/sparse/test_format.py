@@ -24,16 +24,20 @@ class TestSparseSeriesFormatting(object):
         result = repr(s)
         dfm = self.dtype_format_for_platform
         exp = ("0    1.0\n1    NaN\n2    NaN\n3    3.0\n"
-               "4    NaN\ndtype: float64\nBlockIndex\n"
+               "4    NaN\ndtype: Sparse[float64, nan]\nBlockIndex\n"
                "Block locations: array([0, 3]{0})\n"
                "Block lengths: array([1, 1]{0})".format(dfm))
         assert result == exp
+
+    def test_sparsea_max_row_truncated(self):
+        s = pd.Series([1, np.nan, np.nan, 3, np.nan]).to_sparse()
+        dfm = self.dtype_format_for_platform
 
         with option_context("display.max_rows", 3):
             # GH 10560
             result = repr(s)
             exp = ("0    1.0\n    ... \n4    NaN\n"
-                   "Length: 5, dtype: float64\nBlockIndex\n"
+                   "Length: 5, dtype: Sparse[float64, nan]\nBlockIndex\n"
                    "Block locations: array([0, 3]{0})\n"
                    "Block lengths: array([1, 1]{0})".format(dfm))
             assert result == exp
@@ -47,7 +51,7 @@ class TestSparseSeriesFormatting(object):
         dfm = self.dtype_format_for_platform
         exp = ("A  0    1.0\n   1    NaN\nB  0    NaN\n"
                "C  0    3.0\n   1    NaN\n   2    NaN\n"
-               "dtype: float64\nBlockIndex\n"
+               "dtype: Sparse[float64, nan]\nBlockIndex\n"
                "Block locations: array([0, 3]{0})\n"
                "Block lengths: array([1, 1]{0})".format(dfm))
         assert result == exp
@@ -57,7 +61,7 @@ class TestSparseSeriesFormatting(object):
             # GH 13144
             result = repr(s)
             exp = ("A  0    1.0\n       ... \nC  2    NaN\n"
-                   "dtype: float64\nBlockIndex\n"
+                   "dtype: Sparse[float64, nan]\nBlockIndex\n"
                    "Block locations: array([0, 3]{0})\n"
                    "Block lengths: array([1, 1]{0})".format(dfm))
             assert result == exp
@@ -70,7 +74,7 @@ class TestSparseSeriesFormatting(object):
         dtype = '' if use_32bit_repr else ', dtype=int32'
         exp = ("0     True\n1    False\n2    False\n"
                "3     True\n4    False\n5    False\n"
-               "dtype: bool\nBlockIndex\n"
+               "dtype: Sparse[bool, False]\nBlockIndex\n"
                "Block locations: array([0, 3]{0})\n"
                "Block lengths: array([1, 1]{0})".format(dtype))
         assert result == exp
@@ -78,7 +82,7 @@ class TestSparseSeriesFormatting(object):
         with option_context("display.max_rows", 3):
             result = repr(s)
             exp = ("0     True\n     ...  \n5    False\n"
-                   "Length: 6, dtype: bool\nBlockIndex\n"
+                   "Length: 6, dtype: Sparse[bool, False]\nBlockIndex\n"
                    "Block locations: array([0, 3]{0})\n"
                    "Block lengths: array([1, 1]{0})".format(dtype))
             assert result == exp
@@ -90,7 +94,7 @@ class TestSparseSeriesFormatting(object):
         result = repr(s)
         dtype = '' if use_32bit_repr else ', dtype=int32'
         exp = ("0    0\n1    1\n2    0\n3    0\n4    1\n"
-               "5    0\ndtype: int64\nBlockIndex\n"
+               "5    0\ndtype: Sparse[int64, False]\nBlockIndex\n"
                "Block locations: array([1, 4]{0})\n"
                "Block lengths: array([1, 1]{0})".format(dtype))
         assert result == exp
@@ -99,7 +103,7 @@ class TestSparseSeriesFormatting(object):
                             "display.show_dimensions", False):
             result = repr(s)
             exp = ("0    0\n    ..\n5    0\n"
-                   "dtype: int64\nBlockIndex\n"
+                   "dtype: Sparse[int64, False]\nBlockIndex\n"
                    "Block locations: array([1, 4]{0})\n"
                    "Block lengths: array([1, 1]{0})".format(dtype))
             assert result == exp

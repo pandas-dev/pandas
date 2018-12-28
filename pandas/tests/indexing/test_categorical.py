@@ -1,17 +1,20 @@
 # -*- coding: utf-8 -*-
 
+import numpy as np
 import pytest
 
-import pandas as pd
 import pandas.compat as compat
-import numpy as np
-from pandas import (Series, DataFrame, Timestamp, Categorical,
-                    CategoricalIndex, Interval, Index)
-from pandas.util.testing import assert_series_equal, assert_frame_equal
-from pandas.util import testing as tm
+
 from pandas.core.dtypes.common import is_categorical_dtype
-from pandas.api.types import CategoricalDtype as CDT
 from pandas.core.dtypes.dtypes import CategoricalDtype
+
+import pandas as pd
+from pandas import (
+    Categorical, CategoricalIndex, DataFrame, Index, Interval, Series,
+    Timestamp)
+from pandas.api.types import CategoricalDtype as CDT
+from pandas.util import testing as tm
+from pandas.util.testing import assert_frame_equal, assert_series_equal
 
 
 class TestCategoricalIndex(object):
@@ -359,10 +362,9 @@ class TestCategoricalIndex(object):
         exp = DataFrame({'A': [1, 1, 2], 'B': [4, 4, 5]}, index=exp_index)
         tm.assert_frame_equal(res, exp, check_index_type=True)
 
-        with tm.assert_raises_regex(
-                KeyError,
-                'a list-indexer must only include values that are '
-                'in the categories'):
+        msg = ('a list-indexer must only include '
+               'values that are in the categories')
+        with pytest.raises(KeyError, match=msg):
             df.loc[['a', 'x']]
 
         # duplicated categories and codes
@@ -384,10 +386,9 @@ class TestCategoricalIndex(object):
                    ]}, index=CategoricalIndex(['a', 'a', 'a', 'a', 'b']))
         tm.assert_frame_equal(res, exp, check_index_type=True)
 
-        with tm.assert_raises_regex(
-                KeyError,
-                'a list-indexer must only include values '
-                'that are in the categories'):
+        msg = ('a list-indexer must only include values '
+               'that are in the categories')
+        with pytest.raises(KeyError, match=msg):
             df.loc[['a', 'x']]
 
         # contains unused category
@@ -414,10 +415,9 @@ class TestCategoricalIndex(object):
                                                categories=list('abcde')))
         tm.assert_frame_equal(res, exp, check_index_type=True)
 
-        with tm.assert_raises_regex(
-                KeyError,
-                'a list-indexer must only include values '
-                'that are in the categories'):
+        msg = ('a list-indexer must only include values '
+               'that are in the categories')
+        with pytest.raises(KeyError, match=msg):
             df.loc[['a', 'x']]
 
     def test_get_indexer_array(self):

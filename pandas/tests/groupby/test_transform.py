@@ -658,11 +658,11 @@ def test_transform_with_non_scalar_group():
     df = pd.DataFrame(np.random.randint(1, 10, (4, 12)),
                       columns=cols,
                       index=['A', 'C', 'G', 'T'])
-    tm.assert_raises_regex(ValueError, 'transform must return '
-                           'a scalar value for each '
-                           'group.*',
-                           df.groupby(axis=1, level=1).transform,
-                           lambda z: z.div(z.sum(axis=1), axis=0))
+
+    msg = 'transform must return a scalar value for each group.*'
+    with pytest.raises(ValueError, match=msg):
+        df.groupby(axis=1, level=1).transform(
+            lambda z: z.div(z.sum(axis=1), axis=0))
 
 
 @pytest.mark.parametrize('cols,exp,comp_func', [
@@ -765,36 +765,36 @@ def test_pad_stable_sorting(fill_method):
 
 
 @pytest.mark.parametrize("test_series", [True, False])
+@pytest.mark.parametrize("freq", [
+    None,
+    pytest.param('D', marks=pytest.mark.xfail(
+        reason='GH#23918 before method uses freq in vectorized approach'))])
 @pytest.mark.parametrize("periods,fill_method,limit", [
     (1, 'ffill', None), (1, 'ffill', 1),
     (1, 'bfill', None), (1, 'bfill', 1),
     (-1, 'ffill', None), (-1, 'ffill', 1),
-    (-1, 'bfill', None), (-1, 'bfill', 1)])
-def test_pct_change(test_series, periods, fill_method, limit):
-    vals = [np.nan, np.nan, 1, 2, 4, 10, np.nan, np.nan]
-    exp_vals = Series(vals).pct_change(periods=periods,
-                                       fill_method=fill_method,
-                                       limit=limit).tolist()
+    (-1, 'bfill', None), (-1, 'bfill', 1),
+])
+def test_pct_change(test_series, freq, periods, fill_method, limit):
+    # GH  21200, 21621
+    vals = [3, np.nan, np.nan, np.nan, 1, 2, 4, 10, np.nan, 4]
+    keys = ['a', 'b']
+    key_v = np.repeat(keys, len(vals))
+    df = DataFrame({'key': key_v, 'vals': vals * 2})
 
-    df = DataFrame({'key': ['a'] * len(vals) + ['b'] * len(vals),
-                    'vals': vals * 2})
-    grp = df.groupby('key')
+    df_g = getattr(df.groupby('key'), fill_method)(limit=limit)
+    grp = df_g.groupby('key')
 
-    def get_result(grp_obj):
-        return grp_obj.pct_change(periods=periods,
-                                  fill_method=fill_method,
-                                  limit=limit)
+    expected = grp['vals'].obj / grp['vals'].shift(periods) - 1
 
     if test_series:
-        exp = pd.Series(exp_vals * 2)
-        exp.name = 'vals'
-        grp = grp['vals']
-        result = get_result(grp)
-        tm.assert_series_equal(result, exp)
+        result = df.groupby('key')['vals'].pct_change(
+            periods=periods, fill_method=fill_method, limit=limit, freq=freq)
+        tm.assert_series_equal(result, expected)
     else:
-        exp = DataFrame({'vals': exp_vals * 2})
-        result = get_result(grp)
-        tm.assert_frame_equal(result, exp)
+        result = df.groupby('key').pct_change(
+            periods=periods, fill_method=fill_method, limit=limit, freq=freq)
+        tm.assert_frame_equal(result, expected.to_frame('vals'))
 
 
 @pytest.mark.parametrize("func", [np.any, np.all])
@@ -808,3 +808,26 @@ def test_any_all_np_func(func):
 
     res = df.groupby('key')['val'].transform(func)
     tm.assert_series_equal(res, exp)
+
+
+def test_groupby_transform_rename():
+    # https://github.com/pandas-dev/pandas/issues/23461
+    def demean_rename(x):
+        result = x - x.mean()
+
+        if isinstance(x, pd.Series):
+            return result
+
+        result = result.rename(
+            columns={c: '{}_demeaned'.format(c) for c in result.columns})
+
+        return result
+
+    df = pd.DataFrame({'group': list('ababa'),
+                       'value': [1, 1, 1, 2, 2]})
+    expected = pd.DataFrame({'value': [-1. / 3, -0.5, -1. / 3, 0.5, 2. / 3]})
+
+    result = df.groupby('group').transform(demean_rename)
+    tm.assert_frame_equal(result, expected)
+    result_single = df.groupby('group').value.transform(demean_rename)
+    tm.assert_series_equal(result_single, expected['value'])

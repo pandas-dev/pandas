@@ -1,23 +1,22 @@
 # -*- coding: utf-8 -*-
-from pandas import compat, Timestamp
+from distutils.version import LooseVersion
+from itertools import chain
 
+import numpy as np
+from numpy import nan
 import pytest
 
-from distutils.version import LooseVersion
-from numpy import nan
-import numpy as np
-
-from pandas import Series, date_range, NaT
-from pandas.api.types import CategoricalDtype
-
-from pandas.compat import product
-from pandas.util.testing import assert_series_equal
-import pandas.util.testing as tm
-from pandas.tests.series.common import TestData
-from pandas._libs.tslib import iNaT
 from pandas._libs.algos import Infinity, NegInfinity
-from itertools import chain
+from pandas._libs.tslib import iNaT
+import pandas.compat as compat
+from pandas.compat import product
 import pandas.util._test_decorators as td
+
+from pandas import NaT, Series, Timestamp, date_range
+from pandas.api.types import CategoricalDtype
+from pandas.tests.series.common import TestData
+import pandas.util.testing as tm
+from pandas.util.testing import assert_series_equal
 
 
 class TestSeriesRank(TestData):
@@ -186,11 +185,11 @@ class TestSeriesRank(TestData):
         # Test invalid values for na_option
         msg = "na_option must be one of 'keep', 'top', or 'bottom'"
 
-        with tm.assert_raises_regex(ValueError, msg):
+        with pytest.raises(ValueError, match=msg):
             na_ser.rank(na_option='bad', ascending=False)
 
         # invalid type
-        with tm.assert_raises_regex(ValueError, msg):
+        with pytest.raises(ValueError, match=msg):
             na_ser.rank(na_option=True, ascending=False)
 
         # Test with pct=True
@@ -223,8 +222,7 @@ class TestSeriesRank(TestData):
                      'int64',
                      marks=pytest.mark.xfail(
                          reason="iNaT is equivalent to minimum value of dtype"
-                                "int64 pending issue GH#16674",
-                         strict=True)),
+                                "int64 pending issue GH#16674")),
         ([NegInfinity(), '1', 'A', 'BA', 'Ba', 'C', Infinity()],
          'object')
     ])
@@ -496,3 +494,11 @@ def test_rank_first_pct(dtype, ser, exp):
         result = s.rank(method='first', pct=True)
         expected = Series(exp).astype(result.dtype)
         assert_series_equal(result, expected)
+
+
+@pytest.mark.single
+def test_pct_max_many_rows():
+        # GH 18271
+        s = Series(np.arange(2**24 + 1))
+        result = s.rank(pct=True).max()
+        assert result == 1

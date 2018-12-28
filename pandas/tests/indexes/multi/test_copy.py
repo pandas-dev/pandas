@@ -2,19 +2,20 @@
 
 from copy import copy, deepcopy
 
-import pandas.util.testing as tm
 import pytest
+
 from pandas import MultiIndex
+import pandas.util.testing as tm
 
 
 def assert_multiindex_copied(copy, original):
     # Levels should be (at least, shallow copied)
     tm.assert_copy(copy.levels, original.levels)
-    tm.assert_almost_equal(copy.labels, original.labels)
+    tm.assert_almost_equal(copy.codes, original.codes)
 
     # Labels doesn't matter which way copied
-    tm.assert_almost_equal(copy.labels, original.labels)
-    assert copy.labels is not original.labels
+    tm.assert_almost_equal(copy.codes, original.codes)
+    assert copy.codes is not original.codes
 
     # Names doesn't matter which way copied
     assert copy.names == original.names
@@ -36,6 +37,12 @@ def test_shallow_copy(idx):
     assert_multiindex_copied(i_copy, idx)
 
 
+def test_labels_deprecated(idx):
+    # GH23752
+    with tm.assert_produces_warning(FutureWarning):
+        idx.copy(labels=idx.codes)
+
+
 def test_view(idx):
     i_view = idx.view()
     assert_multiindex_copied(i_view, idx)
@@ -46,7 +53,7 @@ def test_copy_and_deepcopy(func):
 
     idx = MultiIndex(
         levels=[['foo', 'bar'], ['fizz', 'buzz']],
-        labels=[[0, 0, 0, 1], [0, 0, 1, 1]],
+        codes=[[0, 0, 0, 1], [0, 0, 1, 1]],
         names=['first', 'second']
     )
     idx_copy = func(idx)
@@ -58,7 +65,7 @@ def test_copy_and_deepcopy(func):
 def test_copy_method(deep):
     idx = MultiIndex(
         levels=[['foo', 'bar'], ['fizz', 'buzz']],
-        labels=[[0, 0, 0, 1], [0, 0, 1, 1]],
+        codes=[[0, 0, 0, 1], [0, 0, 1, 1]],
         names=['first', 'second']
     )
     idx_copy = idx.copy(deep=deep)
@@ -69,16 +76,16 @@ def test_copy_method(deep):
 @pytest.mark.parametrize('kwarg, value', [
     ('names', ['thrid', 'fourth']),
     ('levels', [['foo2', 'bar2'], ['fizz2', 'buzz2']]),
-    ('labels', [[1, 0, 0, 0], [1, 1, 0, 0]])
+    ('codes', [[1, 0, 0, 0], [1, 1, 0, 0]])
 ])
 def test_copy_method_kwargs(deep, kwarg, value):
     # gh-12309: Check that the "name" argument as well other kwargs are honored
     idx = MultiIndex(
         levels=[['foo', 'bar'], ['fizz', 'buzz']],
-        labels=[[0, 0, 0, 1], [0, 0, 1, 1]],
+        codes=[[0, 0, 0, 1], [0, 0, 1, 1]],
         names=['first', 'second']
     )
-
+    return
     idx_copy = idx.copy(**{kwarg: value, 'deep': deep})
     if kwarg == 'names':
         assert getattr(idx_copy, kwarg) == value

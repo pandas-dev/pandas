@@ -1,13 +1,14 @@
-import locale
 import calendar
-
-import pytest
+import locale
+import unicodedata
 
 import numpy as np
+import pytest
+
 import pandas as pd
+from pandas import (
+    DatetimeIndex, Index, Timestamp, compat, date_range, datetime, offsets)
 import pandas.util.testing as tm
-from pandas import (Index, DatetimeIndex, datetime, offsets,
-                    date_range, Timestamp)
 
 
 class TestTimeSeries(object):
@@ -22,8 +23,8 @@ class TestTimeSeries(object):
         tm.assert_numpy_array_equal(idx.values, expected.values)
 
     def test_range_edges(self):
-        # GH 13672
-        idx = DatetimeIndex(start=Timestamp('1970-01-01 00:00:00.000000001'),
+        # GH#13672
+        idx = pd.date_range(start=Timestamp('1970-01-01 00:00:00.000000001'),
                             end=Timestamp('1970-01-01 00:00:00.000000004'),
                             freq='N')
         exp = DatetimeIndex(['1970-01-01 00:00:00.000000001',
@@ -32,19 +33,19 @@ class TestTimeSeries(object):
                              '1970-01-01 00:00:00.000000004'])
         tm.assert_index_equal(idx, exp)
 
-        idx = DatetimeIndex(start=Timestamp('1970-01-01 00:00:00.000000004'),
+        idx = pd.date_range(start=Timestamp('1970-01-01 00:00:00.000000004'),
                             end=Timestamp('1970-01-01 00:00:00.000000001'),
                             freq='N')
         exp = DatetimeIndex([])
         tm.assert_index_equal(idx, exp)
 
-        idx = DatetimeIndex(start=Timestamp('1970-01-01 00:00:00.000000001'),
+        idx = pd.date_range(start=Timestamp('1970-01-01 00:00:00.000000001'),
                             end=Timestamp('1970-01-01 00:00:00.000000001'),
                             freq='N')
         exp = DatetimeIndex(['1970-01-01 00:00:00.000000001'])
         tm.assert_index_equal(idx, exp)
 
-        idx = DatetimeIndex(start=Timestamp('1970-01-01 00:00:00.000001'),
+        idx = pd.date_range(start=Timestamp('1970-01-01 00:00:00.000001'),
                             end=Timestamp('1970-01-01 00:00:00.000004'),
                             freq='U')
         exp = DatetimeIndex(['1970-01-01 00:00:00.000001',
@@ -53,7 +54,7 @@ class TestTimeSeries(object):
                              '1970-01-01 00:00:00.000004'])
         tm.assert_index_equal(idx, exp)
 
-        idx = DatetimeIndex(start=Timestamp('1970-01-01 00:00:00.001'),
+        idx = pd.date_range(start=Timestamp('1970-01-01 00:00:00.001'),
                             end=Timestamp('1970-01-01 00:00:00.004'),
                             freq='L')
         exp = DatetimeIndex(['1970-01-01 00:00:00.001',
@@ -62,25 +63,25 @@ class TestTimeSeries(object):
                              '1970-01-01 00:00:00.004'])
         tm.assert_index_equal(idx, exp)
 
-        idx = DatetimeIndex(start=Timestamp('1970-01-01 00:00:01'),
+        idx = pd.date_range(start=Timestamp('1970-01-01 00:00:01'),
                             end=Timestamp('1970-01-01 00:00:04'), freq='S')
         exp = DatetimeIndex(['1970-01-01 00:00:01', '1970-01-01 00:00:02',
                              '1970-01-01 00:00:03', '1970-01-01 00:00:04'])
         tm.assert_index_equal(idx, exp)
 
-        idx = DatetimeIndex(start=Timestamp('1970-01-01 00:01'),
+        idx = pd.date_range(start=Timestamp('1970-01-01 00:01'),
                             end=Timestamp('1970-01-01 00:04'), freq='T')
         exp = DatetimeIndex(['1970-01-01 00:01', '1970-01-01 00:02',
                              '1970-01-01 00:03', '1970-01-01 00:04'])
         tm.assert_index_equal(idx, exp)
 
-        idx = DatetimeIndex(start=Timestamp('1970-01-01 01:00'),
+        idx = pd.date_range(start=Timestamp('1970-01-01 01:00'),
                             end=Timestamp('1970-01-01 04:00'), freq='H')
         exp = DatetimeIndex(['1970-01-01 01:00', '1970-01-01 02:00',
                              '1970-01-01 03:00', '1970-01-01 04:00'])
         tm.assert_index_equal(idx, exp)
 
-        idx = DatetimeIndex(start=Timestamp('1970-01-01'),
+        idx = pd.date_range(start=Timestamp('1970-01-01'),
                             end=Timestamp('1970-01-04'), freq='D')
         exp = DatetimeIndex(['1970-01-01', '1970-01-02',
                              '1970-01-03', '1970-01-04'])
@@ -90,10 +91,10 @@ class TestTimeSeries(object):
 class TestDatetime64(object):
 
     def test_datetimeindex_accessors(self):
-        dti_naive = DatetimeIndex(freq='D', start=datetime(1998, 1, 1),
+        dti_naive = pd.date_range(freq='D', start=datetime(1998, 1, 1),
                                   periods=365)
-        # GH 13303
-        dti_tz = DatetimeIndex(freq='D', start=datetime(1998, 1, 1),
+        # GH#13303
+        dti_tz = pd.date_range(freq='D', start=datetime(1998, 1, 1),
                                periods=365, tz='US/Eastern')
         for dti in [dti_naive, dti_tz]:
 
@@ -178,7 +179,7 @@ class TestDatetime64(object):
             exp = DatetimeIndex([], freq='D', tz=dti.tz, name='name')
             tm.assert_index_equal(res, exp)
 
-        dti = DatetimeIndex(freq='BQ-FEB', start=datetime(1998, 1, 1),
+        dti = pd.date_range(freq='BQ-FEB', start=datetime(1998, 1, 1),
                             periods=4)
 
         assert sum(dti.is_quarter_start) == 0
@@ -187,7 +188,6 @@ class TestDatetime64(object):
         assert sum(dti.is_year_end) == 1
 
         # Ensure is_start/end accessors throw ValueError for CustomBusinessDay,
-        # CBD requires np >= 1.7
         bday_egypt = offsets.CustomBusinessDay(weekmask='Sun Mon Tue Wed Thu')
         dti = date_range(datetime(2013, 4, 30), periods=5, freq=bday_egypt)
         pytest.raises(ValueError, lambda: dti.is_month_start)
@@ -259,8 +259,8 @@ class TestDatetime64(object):
                 expected_days = calendar.day_name[:]
                 expected_months = calendar.month_name[1:]
 
-        # GH 11128
-        dti = DatetimeIndex(freq='D', start=datetime(1998, 1, 1),
+        # GH#11128
+        dti = pd.date_range(freq='D', start=datetime(1998, 1, 1),
                             periods=365)
         english_days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday',
                         'Friday', 'Saturday', 'Sunday']
@@ -280,14 +280,28 @@ class TestDatetime64(object):
         ts = Timestamp(pd.NaT)
         assert np.isnan(ts.day_name(locale=time_locale))
 
-        # GH 12805
-        dti = DatetimeIndex(freq='M', start='2012', end='2013')
+        # GH#12805
+        dti = pd.date_range(freq='M', start='2012', end='2013')
         result = dti.month_name(locale=time_locale)
         expected = Index([month.capitalize() for month in expected_months])
+
+        # work around different normalization schemes
+        # https://github.com/pandas-dev/pandas/issues/22342
+        if not compat.PY2:
+            result = result.str.normalize("NFD")
+            expected = expected.str.normalize("NFD")
+
         tm.assert_index_equal(result, expected)
+
         for date, expected in zip(dti, expected_months):
             result = date.month_name(locale=time_locale)
-            assert result == expected.capitalize()
+            expected = expected.capitalize()
+
+            if not compat.PY2:
+                result = unicodedata.normalize("NFD", result)
+                expected = unicodedata.normalize("NFD", result)
+
+            assert result == expected
         dti = dti.append(DatetimeIndex([pd.NaT]))
         assert np.isnan(dti.month_name(locale=time_locale)[-1])
 

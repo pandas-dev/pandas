@@ -1,43 +1,39 @@
 # coding=utf-8
 # pylint: disable-msg=E1101,W0612
 
-import pytest
-
 from datetime import datetime
 
-from numpy import nan
 import numpy as np
+from numpy import nan
+import pytest
+
 import pandas as pd
-
-from pandas import Series, DataFrame, date_range, DatetimeIndex
-
-from pandas import compat
-from pandas.util.testing import assert_series_equal
+from pandas import DataFrame, DatetimeIndex, Series, compat, date_range
 import pandas.util.testing as tm
+from pandas.util.testing import assert_frame_equal, assert_series_equal
 
-from .common import TestData
 
+class TestSeriesCombine(object):
 
-class TestSeriesCombine(TestData):
-
-    def test_append(self):
-        appendedSeries = self.series.append(self.objSeries)
+    def test_append(self, datetime_series, string_series, object_series):
+        appendedSeries = string_series.append(object_series)
         for idx, value in compat.iteritems(appendedSeries):
-            if idx in self.series.index:
-                assert value == self.series[idx]
-            elif idx in self.objSeries.index:
-                assert value == self.objSeries[idx]
+            if idx in string_series.index:
+                assert value == string_series[idx]
+            elif idx in object_series.index:
+                assert value == object_series[idx]
             else:
-                self.fail("orphaned index!")
+                raise AssertionError("orphaned index!")
 
-        pytest.raises(ValueError, self.ts.append, self.ts,
+        pytest.raises(ValueError, datetime_series.append, datetime_series,
                       verify_integrity=True)
 
-    def test_append_many(self):
-        pieces = [self.ts[:5], self.ts[5:10], self.ts[10:]]
+    def test_append_many(self, datetime_series):
+        pieces = [datetime_series[:5], datetime_series[5:10],
+                  datetime_series[10:]]
 
         result = pieces[0].append(pieces[1:])
-        assert_series_equal(result, self.ts)
+        assert_series_equal(result, datetime_series)
 
     def test_append_duplicates(self):
         # GH 13677
@@ -55,9 +51,9 @@ class TestSeriesCombine(TestData):
                                exp, check_index_type=True)
 
         msg = 'Indexes have overlapping values:'
-        with tm.assert_raises_regex(ValueError, msg):
+        with pytest.raises(ValueError, match=msg):
             s1.append(s2, verify_integrity=True)
-        with tm.assert_raises_regex(ValueError, msg):
+        with pytest.raises(ValueError, match=msg):
             pd.concat([s1, s2], verify_integrity=True)
 
     def test_combine_scalar(self):
@@ -120,8 +116,40 @@ class TestSeriesCombine(TestData):
         df = DataFrame([{"a": 1}, {"a": 3, "b": 2}])
         df['c'] = np.nan
 
-        # this will fail as long as series is a sub-class of ndarray
-        # df['c'].update(Series(['foo'],index=[0])) #####
+        df['c'].update(Series(['foo'], index=[0]))
+        expected = DataFrame([[1, np.nan, 'foo'], [3, 2., np.nan]],
+                             columns=['a', 'b', 'c'])
+        assert_frame_equal(df, expected)
+
+    @pytest.mark.parametrize('other, dtype, expected', [
+        # other is int
+        ([61, 63], 'int32', pd.Series([10, 61, 12], dtype='int32')),
+        ([61, 63], 'int64', pd.Series([10, 61, 12])),
+        ([61, 63], float, pd.Series([10., 61., 12.])),
+        ([61, 63], object, pd.Series([10, 61, 12], dtype=object)),
+        # other is float, but can be cast to int
+        ([61., 63.], 'int32', pd.Series([10, 61, 12], dtype='int32')),
+        ([61., 63.], 'int64', pd.Series([10, 61, 12])),
+        ([61., 63.], float, pd.Series([10., 61., 12.])),
+        ([61., 63.], object, pd.Series([10, 61., 12], dtype=object)),
+        # others is float, cannot be cast to int
+        ([61.1, 63.1], 'int32', pd.Series([10., 61.1, 12.])),
+        ([61.1, 63.1], 'int64', pd.Series([10., 61.1, 12.])),
+        ([61.1, 63.1], float, pd.Series([10., 61.1, 12.])),
+        ([61.1, 63.1], object, pd.Series([10, 61.1, 12], dtype=object)),
+        # other is object, cannot be cast
+        ([(61,), (63,)], 'int32', pd.Series([10, (61,), 12])),
+        ([(61,), (63,)], 'int64', pd.Series([10, (61,), 12])),
+        ([(61,), (63,)], float, pd.Series([10., (61,), 12.])),
+        ([(61,), (63,)], object, pd.Series([10, (61,), 12]))
+    ])
+    def test_update_dtypes(self, other, dtype, expected):
+
+        s = Series([10, 11, 12], dtype=dtype)
+        other = Series(other, index=[1, 3])
+        s.update(other)
+
+        assert_series_equal(s, expected)
 
     def test_concat_empty_series_dtypes_roundtrips(self):
 
@@ -215,20 +243,25 @@ class TestSeriesCombine(TestData):
                           Series(dtype='object')]).dtype == 'object'
 
         # sparse
+        # TODO: move?
         result = pd.concat([Series(dtype='float64').to_sparse(), Series(
             dtype='float64').to_sparse()])
-        assert result.dtype == np.float64
+        assert result.dtype == 'Sparse[float64]'
         assert result.ftype == 'float64:sparse'
 
         result = pd.concat([Series(dtype='float64').to_sparse(), Series(
             dtype='float64')])
-        assert result.dtype == np.float64
+        # TODO: release-note: concat sparse dtype
+        expected = pd.core.sparse.api.SparseDtype(np.float64)
+        assert result.dtype == expected
         assert result.ftype == 'float64:sparse'
 
         result = pd.concat([Series(dtype='float64').to_sparse(), Series(
             dtype='object')])
-        assert result.dtype == np.object_
-        assert result.ftype == 'object:dense'
+        # TODO: release-note: concat sparse dtype
+        expected = pd.core.sparse.api.SparseDtype('object')
+        assert result.dtype == expected
+        assert result.ftype == 'object:sparse'
 
     def test_combine_first_dt64(self):
         from pandas.core.tools.datetimes import to_datetime

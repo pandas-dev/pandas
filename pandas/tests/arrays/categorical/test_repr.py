@@ -2,9 +2,11 @@
 
 import numpy as np
 
-from pandas import (Categorical, Series, CategoricalIndex, date_range,
-                    period_range, timedelta_range)
-from pandas.compat import u, PY3
+from pandas.compat import PY3, u
+
+from pandas import (
+    Categorical, CategoricalIndex, Series, date_range, period_range,
+    timedelta_range)
 from pandas.core.config import option_context
 from pandas.tests.arrays.categorical.common import TestCategorical
 
@@ -35,7 +37,6 @@ class TestCategoricalRepr(object):
     def test_empty_print(self):
         factor = Categorical([], ["a", "b", "c"])
         expected = ("[], Categories (3, object): [a, b, c]")
-        # hack because array_repr changed in numpy > 1.6.x
         actual = repr(factor)
         assert actual == expected
 

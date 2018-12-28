@@ -3,7 +3,6 @@ import pandas as pd
 import numpy as np
 
 from pandas.util.testing import assert_frame_equal, assert_series_equal
-import pandas.util.testing as tm
 
 
 @pytest.fixture(params=[['inner'], ['inner', 'outer']])
@@ -67,50 +66,3 @@ def test_grouper_index_level_as_string_series(series, levels):
     # Compute and check result
     result = series.groupby(levels).mean()
     assert_series_equal(result, expected)
-
-
-@pytest.mark.parametrize('key_strs,key_groupers,level_groupers', [
-    ('inner',  # Index name
-     pd.Grouper(key='inner'),
-     pd.Grouper(level='inner'),
-     ),
-    (['inner'],  # List of index name
-     [pd.Grouper(key='inner')],
-     [pd.Grouper(level='inner')]
-     ),
-    (['B', 'inner'],  # Column and index
-     ['B', pd.Grouper(key='inner')],
-     ['B', pd.Grouper(level='inner')]
-     ),
-    (['inner', 'B'],  # Index and column
-     [pd.Grouper(key='inner'), 'B'],
-     [pd.Grouper(level='inner'), 'B'])])
-def test_grouper_column_index_level_precedence(frame,
-                                               key_strs,
-                                               key_groupers,
-                                               level_groupers):
-
-    # GH 5677, when a string passed as the `by` parameter
-    # matches a column and an index level the column takes
-    # precedence and a FutureWarning is raised
-
-    # Add 'inner' column to frame
-    # (frame already has an 'inner' index)
-    frame['inner'] = [1, 1, 1, 1, 1, 1]
-
-    # Performing a groupby with strings should produce warning
-    with tm.assert_produces_warning(FutureWarning):
-        result = frame.groupby(key_strs).mean()
-
-    # Grouping with key Grouper should produce the same result and no warning
-    with tm.assert_produces_warning(False):
-        expected = frame.groupby(key_groupers).mean()
-
-    assert_frame_equal(result, expected)
-
-    # Grouping with level Grouper should produce a different result but
-    # still no warning
-    with tm.assert_produces_warning(False):
-        not_expected = frame.groupby(level_groupers).mean()
-
-    assert not result.index.equals(not_expected.index)

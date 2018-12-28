@@ -1,18 +1,17 @@
 """ test label based indexing with loc """
 
-import itertools
+from warnings import catch_warnings, filterwarnings
+
+import numpy as np
 import pytest
 
-from warnings import catch_warnings
-import numpy as np
+from pandas.compat import PY2, StringIO, lrange
 
 import pandas as pd
-from pandas.compat import lrange, StringIO
-from pandas import Series, DataFrame, Timestamp, date_range, MultiIndex, Index
-from pandas.util import testing as tm
-from pandas.tests.indexing.common import Base
+from pandas import DataFrame, Series, Timestamp, date_range
 from pandas.api.types import is_scalar
-from pandas.compat import PY2
+from pandas.tests.indexing.common import Base
+from pandas.util import testing as tm
 
 
 class TestLoc(Base):
@@ -225,35 +224,6 @@ class TestLoc(Base):
                           typs=['ints', 'uints'], axes=1)
         self.check_result('int slice2', 'loc', slice(4, 8), 'ix', [4, 8],
                           typs=['ints', 'uints'], axes=2)
-
-        # GH 3053
-        # loc should treat integer slices like label slices
-
-        index = MultiIndex.from_tuples([t for t in itertools.product(
-            [6, 7, 8], ['a', 'b'])])
-        df = DataFrame(np.random.randn(6, 6), index, index)
-        result = df.loc[6:8, :]
-        expected = df
-        tm.assert_frame_equal(result, expected)
-
-        index = MultiIndex.from_tuples([t
-                                        for t in itertools.product(
-                                            [10, 20, 30], ['a', 'b'])])
-        df = DataFrame(np.random.randn(6, 6), index, index)
-        result = df.loc[20:30, :]
-        expected = df.iloc[2:]
-        tm.assert_frame_equal(result, expected)
-
-        # doc examples
-        result = df.loc[10, :]
-        expected = df.iloc[0:2]
-        expected.index = ['a', 'b']
-        tm.assert_frame_equal(result, expected)
-
-        result = df.loc[:, 10]
-        # expected = df.ix[:,10] (this fails)
-        expected = df[10]
-        tm.assert_frame_equal(result, expected)
 
     def test_loc_to_fail(self):
 
@@ -668,15 +638,15 @@ Region_1,Site_2,3977723089,A,5/20/2015 8:33,5/20/2015 9:09,Yes,No"""
                           index=[0] * l2, columns=columns)])
 
         def gen_expected(df, mask):
-            l = len(mask)
+            len_mask = len(mask)
             return pd.concat([df.take([0]),
-                              DataFrame(np.ones((l, len(columns))),
-                                        index=[0] * l,
+                              DataFrame(np.ones((len_mask, len(columns))),
+                                        index=[0] * len_mask,
                                         columns=columns),
                               df.take(mask[1:])])
 
         df = gen_test(900, 100)
-        assert not df.index.is_unique
+        assert df.index.is_unique is False
 
         mask = np.arange(100)
         result = df.loc[mask]
@@ -684,7 +654,7 @@ Region_1,Site_2,3977723089,A,5/20/2015 8:33,5/20/2015 9:09,Yes,No"""
         tm.assert_frame_equal(result, expected)
 
         df = gen_test(900000, 100000)
-        assert not df.index.is_unique
+        assert df.index.is_unique is False
 
         mask = np.arange(100000)
         result = df.loc[mask]
@@ -699,6 +669,7 @@ Region_1,Site_2,3977723089,A,5/20/2015 8:33,5/20/2015 9:09,Yes,No"""
         assert result == 'index_name'
 
         with catch_warnings(record=True):
+            filterwarnings("ignore", "\\n.ix", DeprecationWarning)
             result = df.ix[[0, 1]].index.name
         assert result == 'index_name'
 
@@ -744,47 +715,6 @@ Region_1,Site_2,3977723089,A,5/20/2015 8:33,5/20/2015 9:09,Yes,No"""
         original_series[:3] = [7, 8, 9]
         assert all(sliced_series[:3] == [7, 8, 9])
 
-    @pytest.mark.parametrize(
-        'indexer_type_1',
-        (list, tuple, set, slice, np.ndarray, Series, Index))
-    @pytest.mark.parametrize(
-        'indexer_type_2',
-        (list, tuple, set, slice, np.ndarray, Series, Index))
-    def test_loc_getitem_nested_indexer(self, indexer_type_1, indexer_type_2):
-        # GH #19686
-        # .loc should work with nested indexers which can be
-        # any list-like objects (see `pandas.api.types.is_list_like`) or slices
-
-        def convert_nested_indexer(indexer_type, keys):
-            if indexer_type == np.ndarray:
-                return np.array(keys)
-            if indexer_type == slice:
-                return slice(*keys)
-            return indexer_type(keys)
-
-        a = [10, 20, 30]
-        b = [1, 2, 3]
-        index = pd.MultiIndex.from_product([a, b])
-        df = pd.DataFrame(
-            np.arange(len(index), dtype='int64'),
-            index=index, columns=['Data'])
-
-        keys = ([10, 20], [2, 3])
-        types = (indexer_type_1, indexer_type_2)
-
-        # check indexers with all the combinations of nested objects
-        # of all the valid types
-        indexer = tuple(
-            convert_nested_indexer(indexer_type, k)
-            for indexer_type, k in zip(types, keys))
-
-        result = df.loc[indexer, 'Data']
-        expected = pd.Series(
-            [1, 2, 4, 5], name='Data',
-            index=pd.MultiIndex.from_product(keys))
-
-        tm.assert_series_equal(result, expected)
-
     def test_loc_uint64(self):
         # GH20722
         # Test whether loc accept uint64 max value as index.
@@ -803,3 +733,35 @@ Region_1,Site_2,3977723089,A,5/20/2015 8:33,5/20/2015 9:09,Yes,No"""
         result = s.loc[[np.iinfo('uint64').max - 1,
                        np.iinfo('uint64').max]]
         tm.assert_series_equal(result, s)
+
+    def test_loc_setitem_empty_append(self):
+        # GH6173, various appends to an empty dataframe
+
+        data = [1, 2, 3]
+        expected = DataFrame({'x': data, 'y': [None] * len(data)})
+
+        # appends to fit length of data
+        df = DataFrame(columns=['x', 'y'])
+        df.loc[:, 'x'] = data
+        tm.assert_frame_equal(df, expected)
+
+        # only appends one value
+        expected = DataFrame({'x': [1.0], 'y': [np.nan]})
+        df = DataFrame(columns=['x', 'y'],
+                       dtype=np.float)
+        df.loc[0, 'x'] = expected.loc[0, 'x']
+        tm.assert_frame_equal(df, expected)
+
+    def test_loc_setitem_empty_append_raises(self):
+        # GH6173, various appends to an empty dataframe
+
+        data = [1, 2]
+        df = DataFrame(columns=['x', 'y'])
+        msg = (r"None of \[Int64Index\(\[0, 1\], dtype='int64'\)\] "
+               r"are in the \[index\]")
+        with pytest.raises(KeyError, match=msg):
+            df.loc[[0, 1], 'x'] = data
+
+        msg = "cannot copy sequence with size 2 to array axis with dimension 0"
+        with pytest.raises(ValueError, match=msg):
+            df.loc[0:2, 'x'] = data

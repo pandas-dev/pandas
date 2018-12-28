@@ -542,8 +542,7 @@ def test_filter_enforces_scalarness():
         ['worst', 'd', 'y'],
         ['best', 'd', 'z'],
     ], columns=['a', 'b', 'c'])
-    with tm.assert_raises_regex(TypeError,
-                                'filter function returned a.*'):
+    with pytest.raises(TypeError, match='filter function returned a.*'):
         df.groupby('c').filter(lambda g: g['a'] == 'best')
 
 
@@ -557,8 +556,7 @@ def test_filter_non_bool_raises():
         ['worst', 'd', 1],
         ['best', 'd', 1],
     ], columns=['a', 'b', 'c'])
-    with tm.assert_raises_regex(TypeError,
-                                'filter function returned a.*'):
+    with pytest.raises(TypeError, match='filter function returned a.*'):
         df.groupby('a').filter(lambda g: g.c.mean())
 
 

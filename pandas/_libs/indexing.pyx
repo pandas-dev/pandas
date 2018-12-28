@@ -1,4 +1,5 @@
-# cython: profile=False
+# -*- coding: utf-8 -*-
+
 
 cdef class _NDFrameIndexerBase:
     """

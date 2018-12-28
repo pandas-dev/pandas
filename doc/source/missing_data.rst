@@ -1,16 +1,6 @@
-.. currentmodule:: pandas
-
-.. ipython:: python
-   :suppress:
-
-   import numpy as np
-   import pandas as pd
-   pd.options.display.max_rows=15
-   import matplotlib
-   # matplotlib.style.use('default')
-   import matplotlib.pyplot as plt
-
 .. _missing_data:
+
+{{ header }}
 
 *************************
 Working with missing data
@@ -91,7 +81,7 @@ Series and DataFrame objects:
 
    .. ipython:: python
 
-      None == None
+      None == None                                                 # noqa: E711
       np.nan == np.nan
 
    So as compared to above, a scalar equality comparison versus a ``None/np.nan`` doesn't provide useful information.
@@ -112,7 +102,7 @@ pandas objects provide compatibility between ``NaT`` and ``NaN``.
    df2 = df.copy()
    df2['timestamp'] = pd.Timestamp('20120101')
    df2
-   df2.loc[['a','c','h'],['one','timestamp']] = np.nan
+   df2.loc[['a', 'c', 'h'], ['one', 'timestamp']] = np.nan
    df2
    df2.get_dtype_counts()
 
@@ -197,7 +187,7 @@ The sum of an empty or all-NA Series or column of a DataFrame is 0.
 .. ipython:: python
 
    pd.Series([np.nan]).sum()
-   
+
    pd.Series([]).sum()
 
 The product of an empty or all-NA Series or column of a DataFrame is 1.
@@ -205,7 +195,7 @@ The product of an empty or all-NA Series or column of a DataFrame is 1.
 .. ipython:: python
 
    pd.Series([np.nan]).prod()
-   
+
    pd.Series([]).prod()
 
 
@@ -297,10 +287,10 @@ use case of this is to fill a DataFrame with the mean of that column.
 
 .. ipython:: python
 
-        dff = pd.DataFrame(np.random.randn(10,3), columns=list('ABC'))
-        dff.iloc[3:5,0] = np.nan
-        dff.iloc[4:6,1] = np.nan
-        dff.iloc[5:8,2] = np.nan
+        dff = pd.DataFrame(np.random.randn(10, 3), columns=list('ABC'))
+        dff.iloc[3:5, 0] = np.nan
+        dff.iloc[4:6, 1] = np.nan
+        dff.iloc[5:8, 2] = np.nan
         dff
 
         dff.fillna(dff.mean())
@@ -483,7 +473,8 @@ filled since the last valid observation:
 
 .. ipython:: python
 
-   ser = pd.Series([np.nan, np.nan, 5, np.nan, np.nan, np.nan, 13, np.nan, np.nan])
+   ser = pd.Series([np.nan, np.nan, 5, np.nan, np.nan,
+                    np.nan, 13, np.nan, np.nan])
 
    # fill all consecutive values in a forward direction
    ser.interpolate()
@@ -678,7 +669,7 @@ Replacing more than one value is possible by passing a list.
 
 .. ipython:: python
 
-   df00 = df.values[0, 0]
+   df00 = df.iloc[0, 0]
    df.replace([1.5, df00], [np.nan, 'a'])
    df[1].dtype
 
@@ -696,9 +687,8 @@ You can also operate on the DataFrame in place:
 
    .. code-block:: python
 
-      s = pd.Series([True, False, True])
-      s.replace({'a string': 'new value', True: False})  # raises
-
+      >>> s = pd.Series([True, False, True])
+      >>> s.replace({'a string': 'new value', True: False})  # raises
       TypeError: Cannot compare types 'ndarray(dtype=bool)' and 'str'
 
    will raise a ``TypeError`` because one of the ``dict`` keys is not of the
@@ -728,7 +718,7 @@ rules introduced in the table below.
     :header: "data type", "Cast to"
     :widths: 40, 40
 
-	integer, float
+    integer, float
     boolean, object
     float, no cast
     object, no cast

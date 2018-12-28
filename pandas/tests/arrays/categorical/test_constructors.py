@@ -1,18 +1,19 @@
 # -*- coding: utf-8 -*-
 
-import pytest
 from datetime import datetime
 
 import numpy as np
+import pytest
+
+from pandas.core.dtypes.common import is_float_dtype, is_integer_dtype
+from pandas.core.dtypes.dtypes import CategoricalDtype
 
 import pandas as pd
+from pandas import (
+    Categorical, CategoricalIndex, DatetimeIndex, Index, Interval,
+    IntervalIndex, NaT, Series, Timestamp, date_range, period_range,
+    timedelta_range)
 import pandas.util.testing as tm
-from pandas import (Categorical, Index, Series, Timestamp,
-                    CategoricalIndex, date_range, DatetimeIndex,
-                    period_range, timedelta_range, NaT,
-                    Interval, IntervalIndex)
-from pandas.core.dtypes.dtypes import CategoricalDtype
-from pandas.core.dtypes.common import is_float_dtype, is_integer_dtype
 
 
 class TestCategoricalConstructors(object):
@@ -25,10 +26,10 @@ class TestCategoricalConstructors(object):
         # This should be a boolean.
         ordered = np.array([0, 1, 2])
 
-        with tm.assert_raises_regex(exp_err, exp_msg):
+        with pytest.raises(exp_err, match=exp_msg):
             Categorical([1, 2, 3], ordered=ordered)
 
-        with tm.assert_raises_regex(exp_err, exp_msg):
+        with pytest.raises(exp_err, match=exp_msg):
             Categorical.from_codes([0, 0, 1], categories=['a', 'b', 'c'],
                                    ordered=ordered)
 
@@ -41,6 +42,12 @@ class TestCategoricalConstructors(object):
         c = Categorical([], categories=[1, 2, 3])
         expected = pd.Int64Index([1, 2, 3])
         tm.assert_index_equal(c.categories, expected)
+
+    def test_constructor_empty_boolean(self):
+        # see gh-22702
+        cat = pd.Categorical([], categories=[True, False])
+        categories = sorted(cat.categories.tolist())
+        assert categories == [False, True]
 
     def test_constructor_tuples(self):
         values = np.array([(1,), (1, 2), (1,), (1, 2)], dtype=object)
@@ -70,8 +77,8 @@ class TestCategoricalConstructors(object):
         assert not factor.ordered
 
         # this however will raise as cannot be sorted
-        pytest.raises(
-            TypeError, lambda: Categorical(arr, ordered=True))
+        with pytest.raises(TypeError):
+            Categorical(arr, ordered=True)
 
     def test_constructor_interval(self):
         result = Categorical([Interval(1, 2), Interval(2, 3), Interval(3, 6)],
@@ -92,15 +99,11 @@ class TestCategoricalConstructors(object):
         tm.assert_numpy_array_equal(c2.__array__(), exp_arr)
 
         # categories must be unique
-        def f():
+        with pytest.raises(ValueError):
             Categorical([1, 2], [1, 2, 2])
 
-        pytest.raises(ValueError, f)
-
-        def f():
+        with pytest.raises(ValueError):
             Categorical(["a", "b"], ["a", "b", "b"])
-
-        pytest.raises(ValueError, f)
 
         # The default should be unordered
         c1 = Categorical(["a", "b", "c", "a"])
@@ -344,13 +347,13 @@ class TestCategoricalConstructors(object):
 
     def test_constructor_dtype_and_others_raises(self):
         dtype = CategoricalDtype(['a', 'b'], ordered=True)
-        with tm.assert_raises_regex(ValueError, "Cannot"):
+        with pytest.raises(ValueError, match="Cannot"):
             Categorical(['a', 'b'], categories=['a', 'b'], dtype=dtype)
 
-        with tm.assert_raises_regex(ValueError, "Cannot"):
+        with pytest.raises(ValueError, match="Cannot"):
             Categorical(['a', 'b'], ordered=True, dtype=dtype)
 
-        with tm.assert_raises_regex(ValueError, "Cannot"):
+        with pytest.raises(ValueError, match="Cannot"):
             Categorical(['a', 'b'], ordered=False, dtype=dtype)
 
     @pytest.mark.parametrize('categories', [
@@ -365,7 +368,7 @@ class TestCategoricalConstructors(object):
         tm.assert_categorical_equal(result, expected)
 
     def test_constructor_str_unknown(self):
-        with tm.assert_raises_regex(ValueError, "Unknown `dtype`"):
+        with pytest.raises(ValueError, match="Unknown `dtype`"):
             Categorical([1, 2], dtype="foo")
 
     def test_constructor_from_categorical_with_dtype(self):
@@ -414,34 +417,24 @@ class TestCategoricalConstructors(object):
     def test_from_codes(self):
 
         # too few categories
-        def f():
+        with pytest.raises(ValueError):
             Categorical.from_codes([1, 2], [1, 2])
 
-        pytest.raises(ValueError, f)
-
         # no int codes
-        def f():
+        with pytest.raises(ValueError):
             Categorical.from_codes(["a"], [1, 2])
 
-        pytest.raises(ValueError, f)
-
         # no unique categories
-        def f():
+        with pytest.raises(ValueError):
             Categorical.from_codes([0, 1, 2], ["a", "a", "b"])
 
-        pytest.raises(ValueError, f)
-
         # NaN categories included
-        def f():
+        with pytest.raises(ValueError):
             Categorical.from_codes([0, 1, 2], ["a", "b", np.nan])
 
-        pytest.raises(ValueError, f)
-
         # too negative
-        def f():
+        with pytest.raises(ValueError):
             Categorical.from_codes([-2, 1, 2], ["a", "b", "c"])
-
-        pytest.raises(ValueError, f)
 
         exp = Categorical(["a", "b", "c"], ordered=False)
         res = Categorical.from_codes([0, 1, 2], ["a", "b", "c"])
@@ -531,8 +524,7 @@ class TestCategoricalConstructors(object):
         cat = Categorical([0, 1, 2], ordered=True)
         assert cat.ordered
 
-    @pytest.mark.xfail(reason="Imaginary values not supported in Categorical",
-                       strict=True)
+    @pytest.mark.xfail(reason="Imaginary values not supported in Categorical")
     def test_constructor_imaginary(self):
         values = [1, 2, 3 + 1j]
         c1 = Categorical(values)
