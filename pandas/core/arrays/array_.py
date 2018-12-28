@@ -58,28 +58,6 @@ def array(data,         # type: Sequence[object]
 
         For all other cases, NumPy's usual inference rules will be used.
 
-        To avoid *future* breaking changes, when the underlying memory
-        representation of the returned array matters, we recommend specifying
-        the `dtype` as a concrete object rather than a string alias or
-        allowing it to be inferred. For example, a future version of pandas
-        or a 3rd-party library may include a dedicated ExtensionArray for
-        string data. In this event, the following would no longer return a
-        :class:`PandasArray` backed by a NumPy array.
-
-        >>> pd.array(['a', 'b'], dtype=str)
-        <PandasArray>
-        ['a', 'b']
-        Length: 2, dtype: str32
-
-        This would instead return the new ExtensionArray dedicated for string
-        data. If you really need the new array to be backed by a  NumPy array,
-        specify that in the dtype.
-
-        >>> pd.array(['a', 'b'], dtype=np.dtype("<U1"))
-        <PandasArray>
-        ['a', 'b']
-        Length: 2, dtype: str32
-
     copy : bool, default True
         Whether to copy the data, even if not necessary. Depending
         on the type of `data`, creating the new array may require
@@ -97,7 +75,9 @@ def array(data,         # type: Sequence[object]
     See Also
     --------
     numpy.array : Construct a NumPy array.
+    arrays.PandasArray : ExtensionArray wrapping a NumPy array.
     Series : Construct a pandas Series.
+    Index : Construct a pandas Index.
 
     Notes
     -----
@@ -110,10 +90,40 @@ def array(data,         # type: Sequence[object]
     2. the returned array type doesn't change as new extension types
        are added by pandas and third-party libraries
 
+    Additionally, if the underlying memory representation of the returned
+    array matters, we recommend specifying the `dtype` as a concrete object
+    rather than a string alias or allowing it to be inferred. For example,
+    a future version of pandas or a 3rd-party library may include a
+    dedicated ExtensionArray for string data. In this event, the following
+    would no longer return a :class:`arrays.PandasArray` backed by a NumPy
+    array.
+
+    >>> pd.array(['a', 'b'], dtype=str)
+    <PandasArray>
+    ['a', 'b']
+    Length: 2, dtype: str32
+
+    This would instead return the new ExtensionArray dedicated for string
+    data. If you really need the new array to be backed by a  NumPy array,
+    specify that in the dtype.
+
+    >>> pd.array(['a', 'b'], dtype=np.dtype("<U1"))
+    <PandasArray>
+    ['a', 'b']
+    Length: 2, dtype: str32
+
+    Or use the dedicated constructor for the array you're expecting, and
+    wrap that in a PandasArray
+
+    >>> pd.array(np.array(['a', 'b'], dtype='<U1'))
+    <PandasArray>
+    ['a', 'b']
+    Length: 2, dtype: str32
+
     Examples
     --------
     If a dtype is not specified, `data` is passed through to
-    :meth:`numpy.array`, and an ``ndarray`` is returned.
+    :meth:`numpy.array`, and a :class:`arrays.PandasArray` is returned.
 
     >>> pd.array([1, 2])
     <PandasArray>
@@ -164,7 +174,8 @@ def array(data,         # type: Sequence[object]
     ['2000-01-01', '2000-01-01']
     Length: 2, dtype: period[D]
 
-    A ValueError is raised when the input has the wrong dimensionality.
+    `data` must be 1-dimensional. A ValueError is raised when the input
+    has the wrong dimensionality.
 
     >>> pd.array(1)
     Traceback (most recent call last):
