@@ -1594,7 +1594,7 @@ class TestTimestampSeriesArithmetic(object):
             # Previously, _validate_for_numeric_binop in core/indexes/base.py
             # did this for us.
             with pytest.raises(TypeError,
-                               match='operate|[cC]annot|unsupported|ufunc'):
+                               match='operate|[cC]annot|unsupported operand'):
                 op(test_ser)
 
         # ## timedelta64 ###
@@ -1984,7 +1984,7 @@ class TestDatetimeIndexArithmetic(object):
         result = dti - tdi.values
         tm.assert_index_equal(result, expected)
 
-        msg = 'cannot subtract DatetimeArray(Mixin)? from'
+        msg = 'cannot subtract DatetimeArrayMixin from'
         with pytest.raises(TypeError, match=msg):
             tdi.values - dti
 
@@ -2011,7 +2011,7 @@ class TestDatetimeIndexArithmetic(object):
 
         msg = '|'.join(['cannot perform __neg__ with this index type:',
                         'ufunc subtract cannot use operands with types',
-                        'cannot subtract DatetimeArray(Mixin)? from'])
+                        'cannot subtract DatetimeArrayMixin from'])
         with pytest.raises(TypeError, match=msg):
             tdi.values -= dti
 
@@ -2031,8 +2031,9 @@ class TestDatetimeIndexArithmetic(object):
     def test_add_datetimelike_and_dti(self, addend, tz):
         # GH#9631
         dti = DatetimeIndex(['2011-01-01', '2011-01-02']).tz_localize(tz)
-        msg = ('cannot add DatetimeArray(Mixin)? and '
-               '{0}'.format(type(addend).__name__))
+        msg = ('cannot add DatetimeArrayMixin and {0}'
+               .format(type(addend).__name__)).replace('DatetimeIndex',
+                                                       'DatetimeArrayMixin')
         with pytest.raises(TypeError, match=msg):
             dti + addend
         with pytest.raises(TypeError, match=msg):
