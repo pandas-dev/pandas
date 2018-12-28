@@ -96,6 +96,20 @@ def test_resample_base_with_timedeltaindex():
     tm.assert_index_equal(with_base.index, exp_with_base)
 
 
+def test_resample_categorical_data_with_timedeltaindex():
+    # GH #12169
+    df = DataFrame({'Group_obj': 'A'},
+                   index=pd.to_timedelta(list(range(20)), unit='s'))
+    df['Group'] = df['Group_obj'].astype('category')
+    result = df.resample('10s').agg(lambda x: (x.value_counts().index[0]))
+    expected = DataFrame({'Group_obj': ['A', 'A'],
+                          'Group': ['A', 'A']},
+                         index=pd.to_timedelta([0, 10], unit='s'))
+    expected = expected.reindex(['Group_obj', 'Group'], axis=1)
+    expected['Group'] = expected['Group_obj'].astype('category')
+    tm.assert_frame_equal(result, expected)
+
+
 def test_resample_timedelta_values():
     # GH 13119
     # check that timedelta dtype is preserved when NaT values are
