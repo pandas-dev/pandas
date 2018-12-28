@@ -29,7 +29,7 @@ def expected_html(datapath, name):
     str : contents of HTML file.
     """
     filename = '.'.join([name, 'html'])
-    filepath = datapath('io', 'formats', 'data', filename)
+    filepath = datapath('io', 'formats', 'data', 'html', filename)
     with open(filepath, encoding='utf-8') as f:
         html = f.read()
     return html.rstrip()
