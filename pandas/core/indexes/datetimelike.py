@@ -14,7 +14,7 @@ from pandas.util._decorators import Appender, cache_readonly
 
 from pandas.core.dtypes.common import (
     ensure_int64, is_bool_dtype, is_dtype_equal, is_float, is_integer,
-    is_integer_dtype, is_list_like, is_period_dtype, is_scalar, pandas_dtype)
+    is_list_like, is_period_dtype, is_scalar)
 from pandas.core.dtypes.generic import ABCIndex, ABCIndexClass, ABCSeries
 
 from pandas.core import algorithms, ops
