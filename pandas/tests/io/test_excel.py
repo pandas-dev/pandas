@@ -119,6 +119,15 @@ class SharedItems(object):
 class ReadingTestsBase(SharedItems):
     # This is based on ExcelWriterBase
 
+    @pytest.fixture(autouse=True, params=['xlrd', None])
+    def set_engine(self, request):
+        func_name = "get_exceldf"
+        old_func = getattr(self, func_name)
+        new_func = partial(old_func, engine=request.param)
+        setattr(self, func_name, new_func)
+        yield
+        setattr(self, func_name, old_func)
+
     @td.skip_if_no("xlrd", "1.0.1")  # see gh-22682
     def test_usecols_int(self, ext):
 
@@ -674,14 +683,6 @@ class ReadingTestsBase(SharedItems):
             excel.parse(sheetname='Sheet1',
                         sheet_name='Sheet1')
 
-
-@pytest.mark.parametrize("ext", ['.xls', '.xlsx', '.xlsm'])
-class TestXlrdReader(ReadingTestsBase):
-    """
-    This is the base class for the xlrd tests, and 3 different file formats
-    are supported: xls, xlsx, xlsm
-    """
-
     def test_excel_read_buffer(self, ext):
 
         pth = os.path.join(self.dirpath, 'test1' + ext)
@@ -695,25 +696,10 @@ class TestXlrdReader(ReadingTestsBase):
             actual = read_excel(xls, 'Sheet1', index_col=0)
             tm.assert_frame_equal(expected, actual)
 
-    @td.skip_if_no("xlwt")
-    def test_read_xlrd_book(self, ext):
-        import xlrd
-        df = self.frame
-
-        engine = "xlrd"
-        sheet_name = "SheetA"
-
-        with ensure_clean(ext) as pth:
-            df.to_excel(pth, sheet_name)
-            book = xlrd.open_workbook(pth)
-
-            with ExcelFile(book, engine=engine) as xl:
-                result = read_excel(xl, sheet_name, index_col=0)
-                tm.assert_frame_equal(df, result)
-
-            result = read_excel(book, sheet_name=sheet_name,
-                                engine=engine, index_col=0)
-            tm.assert_frame_equal(df, result)
+    def test_bad_engine_raises(self, ext):
+        bad_engine = 'foo'
+        with pytest.raises(ValueError, message="Unknown engine: foo"):
+            read_excel('', engine=bad_engine)
 
     @tm.network
     def test_read_from_http_url(self, ext):
@@ -1154,6 +1140,34 @@ class TestXlrdReader(ReadingTestsBase):
         actual = pd.read_excel(f, 'one_column', squeeze=True)
         expected = pd.Series([1, 2, 3], name='a')
         tm.assert_series_equal(actual, expected)
+
+
+@pytest.mark.parametrize("ext", ['.xls', '.xlsx', '.xlsm'])
+class TestXlrdReader(ReadingTestsBase):
+    """
+    This is the base class for the xlrd tests, and 3 different file formats
+    are supported: xls, xlsx, xlsm
+    """
+
+    @td.skip_if_no("xlwt")
+    def test_read_xlrd_book(self, ext):
+        import xlrd
+        df = self.frame
+
+        engine = "xlrd"
+        sheet_name = "SheetA"
+
+        with ensure_clean(ext) as pth:
+            df.to_excel(pth, sheet_name)
+            book = xlrd.open_workbook(pth)
+
+            with ExcelFile(book, engine=engine) as xl:
+                result = read_excel(xl, sheet_name, index_col=0)
+                tm.assert_frame_equal(df, result)
+
+            result = read_excel(book, sheet_name=sheet_name,
+                                engine=engine, index_col=0)
+            tm.assert_frame_equal(df, result)
 
 
 class _WriterBase(SharedItems):
