@@ -24,7 +24,7 @@ import pandas.core.common as com
 from pandas.core.indexes.base import Index, _index_shared_docs
 from pandas.core.indexes.datetimelike import (
     DatelikeIndexMixin, DatetimeIndexOpsMixin, DatetimelikeDelegateMixin,
-    wrap_arithmetic_op)
+    maybe_unwrap_index, wrap_arithmetic_op)
 from pandas.core.indexes.numeric import Int64Index
 from pandas.core.ops import get_op_result_name
 from pandas.core.tools.timedeltas import _coerce_scalar_to_timedelta_type
@@ -37,11 +37,7 @@ def _make_wrapped_arith_op(opname):
     meth = getattr(TimedeltaArray, opname)
 
     def method(self, other):
-        oth = other
-        if isinstance(other, Index):
-            oth = other._data
-
-        result = meth(self._values, oth)
+        result = meth(self._eadata, maybe_unwrap_index(other))
         return wrap_arithmetic_op(self, other, result)
 
     method.__name__ = opname
@@ -272,6 +268,10 @@ class TimedeltaIndex(DatetimeIndexOpsMixin,
     # -------------------------------------------------------------------
     # Wrapping TimedeltaArray
 
+    @property
+    def _eadata(self):
+        return TimedeltaArray._simple_new(self._data, freq=self.freq)
+
     __mul__ = _make_wrapped_arith_op("__mul__")
     __rmul__ = _make_wrapped_arith_op("__rmul__")
     __floordiv__ = _make_wrapped_arith_op("__floordiv__")
@@ -280,23 +280,8 @@ class TimedeltaIndex(DatetimeIndexOpsMixin,
     __rmod__ = _make_wrapped_arith_op("__rmod__")
     __divmod__ = _make_wrapped_arith_op("__divmod__")
     __rdivmod__ = _make_wrapped_arith_op("__rdivmod__")
-
-    def __truediv__(self, other):
-        oth = other
-        if isinstance(other, Index):
-            # TimedeltaArray defers, so we need to unwrap
-            oth = other._values
-        result = self._data.__truediv__(oth)
-        return wrap_arithmetic_op(self, other, result)
-
-    def __rtruediv__(self, other):
-        oth = other
-        if isinstance(other, Index):
-            # TimedeltaArray defers, so we need to unwrap
-            oth = other._values
-        result = self._data.__rtruediv__(oth)
-        return wrap_arithmetic_op(self, other, result)
-
+    __truediv__ = _make_wrapped_arith_op("__truediv__")
+    __rtruediv__ = _make_wrapped_arith_op("__rtruediv__")
     if compat.PY2:
         __div__ = __truediv__
         __rdiv__ = __rtruediv__

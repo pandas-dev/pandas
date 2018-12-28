@@ -66,12 +66,21 @@ pandas objects can be split on any of their axes. The abstract definition of
 grouping is to provide a mapping of labels to group names. To create a GroupBy
 object (more on what the GroupBy object is later), you may do the following:
 
-.. code-block:: python
+.. ipython:: python
 
-   # default is axis=0
-   >>> grouped = obj.groupby(key)
-   >>> grouped = obj.groupby(key, axis=1)
-   >>> grouped = obj.groupby([key1, key2])
+    df = pd.DataFrame([('bird', 'Falconiformes', 389.0),
+                       ('bird', 'Psittaciformes', 24.0),
+                       ('mammal', 'Carnivora', 80.2),
+                       ('mammal', 'Primates', np.nan),
+                       ('mammal', 'Carnivora', 58)],
+                      index=['falcon', 'parrot', 'lion', 'monkey', 'leopard'],
+                      columns=('class', 'order', 'max_speed'))
+    df
+
+    # default is axis=0
+    grouped = df.groupby('class')
+    grouped = df.groupby('order', axis='columns')
+    grouped = df.groupby(['class', 'order'])
 
 The mapping can be specified many different ways:
 
@@ -239,7 +248,7 @@ the length of the ``groups`` dict, so it is largely just a convenience:
 .. ipython::
 
    @verbatim
-   In [1]: gb.<TAB>
+   In [1]: gb.<TAB>  # noqa: E225, E999
    gb.agg        gb.boxplot    gb.cummin     gb.describe   gb.filter     gb.get_group  gb.height     gb.last       gb.median     gb.ngroups    gb.plot       gb.rank       gb.std        gb.transform
    gb.aggregate  gb.count      gb.cumprod    gb.dtype      gb.first      gb.groups     gb.hist       gb.max        gb.min        gb.nth        gb.prod       gb.resample   gb.sum        gb.var
    gb.apply      gb.cummax     gb.cumsum     gb.fillna     gb.gender     gb.head       gb.indices    gb.mean       gb.name       gb.ohlc       gb.quantile   gb.size       gb.tail       gb.weight
@@ -1300,12 +1309,17 @@ Now, to find prices per store/product, we can simply do:
 Piping can also be expressive when you want to deliver a grouped object to some
 arbitrary function, for example:
 
-.. code-block:: python
+.. ipython:: python
 
-   df.groupby(['Store', 'Product']).pipe(report_func)
+   def mean(groupby):
+       return groupby.mean()
 
-where ``report_func`` takes a GroupBy object and creates a report
-from that.
+   df.groupby(['Store', 'Product']).pipe(mean)
+
+where ``mean`` takes a GroupBy object and finds the mean of the Revenue and Quantity
+columns repectively for each Store-Product combination. The ``mean`` function can
+be any function that takes in a GroupBy object; the ``.pipe`` will pass the GroupBy
+object as a parameter into the function you specify.
 
 Examples
 --------
