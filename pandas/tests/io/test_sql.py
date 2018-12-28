@@ -1152,14 +1152,8 @@ class _TestSQLAlchemy(SQLAlchemyMixIn, PandasSQLTest):
     def setup_class(cls):
         cls.setup_import()
         cls.setup_driver()
-
-        # test connection
-        try:
-            conn = cls.connect()
-            conn.connect()
-        except sqlalchemy.exc.OperationalError:
-            msg = "{0} - can't connect to {1} server".format(cls, cls.flavor)
-            pytest.skip(msg)
+        conn = cls.connect()
+        conn.connect()
 
     def load_test_data_and_sql(self):
         self._load_raw_sql()
@@ -1791,13 +1785,10 @@ class _TestMySQLAlchemy(object):
 
     @classmethod
     def setup_driver(cls):
-        try:
-            import pymysql  # noqa
-            cls.driver = 'pymysql'
-            from pymysql.constants import CLIENT
-            cls.connect_args = {'client_flag': CLIENT.MULTI_STATEMENTS}
-        except ImportError:
-            pytest.skip('pymysql not installed')
+        pymysql = pytest.importorskip('pymysql')
+        cls.driver = 'pymysql'
+        cls.connect_args = {
+            'client_flag': pymysql.constants.CLIENT.MULTI_STATEMENTS}
 
     def test_default_type_conversion(self):
         df = sql.read_sql_table("types_test_data", self.conn)
@@ -1860,7 +1851,7 @@ class _TestPostgreSQLAlchemy(object):
 
     @classmethod
     def setup_driver(cls):
-        import psycopg2  # noqa
+        psycopg2 = pytest.importorskip('psycopg2')
         cls.driver = 'psycopg2'
 
     def test_schema_support(self):
@@ -1930,28 +1921,24 @@ class _TestPostgreSQLAlchemy(object):
 
 @pytest.mark.single
 @pytest.mark.db
-@pytest.importorskip('pymysql')
 class TestMySQLAlchemy(_TestMySQLAlchemy, _TestSQLAlchemy):
     pass
 
 
 @pytest.mark.single
 @pytest.mark.db
-@pytest.importorskip('pymysql')
 class TestMySQLAlchemyConn(_TestMySQLAlchemy, _TestSQLAlchemyConn):
     pass
 
 
 @pytest.mark.single
 @pytest.mark.db
-@pytest.importorskip('psycopg2')
 class TestPostgreSQLAlchemy(_TestPostgreSQLAlchemy, _TestSQLAlchemy):
     pass
 
 
 @pytest.mark.single
 @pytest.mark.db
-@pytest.importorskip('psycopg2')
 class TestPostgreSQLAlchemyConn(_TestPostgreSQLAlchemy, _TestSQLAlchemyConn):
     pass
 
@@ -2405,12 +2392,11 @@ class TestXSQLite(SQLiteMixIn):
 @pytest.mark.db
 @pytest.mark.skip(reason="gh-13611: there is no support for MySQL "
                   "if SQLAlchemy is not installed")
-@pytest.importorskip('pymysql')
 class TestXMySQL(MySQLMixIn):
 
     @pytest.fixture(autouse=True, scope='class')
     def setup_class(cls):
-        import pymysql
+        pymysql = pytest.importorskip('pymysql')
         pymysql.connect(host='localhost', user='root', passwd='',
                         db='pandas_nosetest')
         try:
@@ -2429,7 +2415,7 @@ class TestXMySQL(MySQLMixIn):
 
     @pytest.fixture(autouse=True)
     def setup_method(self, request, datapath):
-        import pymysql
+        pymysql = pytest.importorskip('pymysql')
         pymysql.connect(host='localhost', user='root', passwd='',
                         db='pandas_nosetest')
         try:
