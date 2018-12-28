@@ -135,7 +135,6 @@ class AttributesMixin(object):
 
     def _check_compatible_with(self, other):
         # type: (Union[Period, Timestamp, Timedelta, NaTType]) -> None
-        # TODO: Scalar, array, or both?
         """
         Verify that `self` and `other` are compatible.
 
@@ -551,7 +550,7 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin, AttributesMixin):
     #  These are not part of the EA API, but we implement them because
     #  pandas assumes they're there.
 
-    def searchsorted(self, v, side='left', sorter=None):
+    def searchsorted(self, value, side='left', sorter=None):
         """
         Find indices where elements should be inserted to maintain order.
 
@@ -561,7 +560,7 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin, AttributesMixin):
 
         Parameters
         ----------
-        v : array_like
+        value : array_like
             Values to insert into `self`.
         side : {'left', 'right'}, optional
             If 'left', the index of the first suitable location found is given.
@@ -576,19 +575,19 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin, AttributesMixin):
         indices : array of ints
             Array of insertion points with the same shape as `value`.
         """
-        if isinstance(v, compat.string_types):
-            v = self._scalar_from_string(v)
+        if isinstance(value, compat.string_types):
+            value = self._scalar_from_string(value)
 
-        if not (isinstance(v, (self._scalar_type, type(self)))
-                or isna(v)):
+        if not (isinstance(value, (self._scalar_type, type(self)))
+                or isna(value)):
             raise ValueError("Unexpected type for 'value': {valtype}"
-                             .format(valtype=type(v)))
+                             .format(valtype=type(value)))
 
-        self._check_compatible_with(v)
-        if isinstance(v, type(self)):
-            value = v.asi8
+        self._check_compatible_with(value)
+        if isinstance(value, type(self)):
+            value = value.asi8
         else:
-            value = self._unbox_scalar(v)
+            value = self._unbox_scalar(value)
 
         return self.asi8.searchsorted(value, side=side, sorter=sorter)
 
