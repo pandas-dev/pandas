@@ -140,6 +140,17 @@ class SharedTests(object):
         result = arr._unbox_scalar(pd.NaT)
         assert isinstance(result, (int, compat.long))
 
+        with pytest.raises(ValueError):
+            arr._unbox_scalar('foo')
+
+    def test_check_compatible_with(self):
+        data = np.arange(10, dtype='i8') * 24 * 3600 * 10**9
+        arr = self.array_cls(data, freq='D')
+
+        arr._check_compatible_with(arr[0])
+        arr._check_compatible_with(arr[:1])
+        arr._check_compatible_with(pd.NaT)
+
     def test_scalar_from_string(self):
         data = np.arange(10, dtype='i8') * 24 * 3600 * 10**9
         arr = self.array_cls(data, freq='D')
@@ -166,10 +177,10 @@ class SharedTests(object):
         expected = np.array([2, 3])
         tm.assert_numpy_array_equal(result, expected)
 
-        # FIXME: this fails for different reasons for all three classes;
-        #  need to check that this is in fact the desired behavior
-        # with pytest.raises(ValueError):
-        #     arr.searchsorted(pd.NaT)
+        # Following numpy convention, NaT goes at the beginning
+        #  (unlike NaN which goes at the end)
+        result = arr.searchsorted(pd.NaT)
+        assert result == 0
 
 
 class TestDatetimeArray(SharedTests):
