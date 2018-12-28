@@ -134,15 +134,16 @@ class AttributesMixin(object):
         raise AbstractMethodError(self)
 
     def _check_compatible_with(self, other):
-        # TODO: choose a type for other
-        # Can it be NaT?
-        # Scalar, array, or both?
+        # type: (Union[Period, Timestamp, Timedelta, NaTType]) -> None
+        # TODO: Scalar, array, or both?
         """
         Verify that `self` and `other` are compatible.
 
         * DatetimeArray verifies that the timezones (if any) match
         * PeriodArray verifies that the freq matches
         * Timedelta has no verification
+
+        In each case, NaT is considered compatible.
 
         Parameters
         ----------
@@ -550,7 +551,7 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin, AttributesMixin):
     #  These are not part of the EA API, but we implement them because
     #  pandas assumes they're there.
 
-    def searchsorted(self, value, side='left', sorter=None):
+    def searchsorted(self, v, side='left', sorter=None):
         """
         Find indices where elements should be inserted to maintain order.
 
@@ -560,7 +561,7 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin, AttributesMixin):
 
         Parameters
         ----------
-        value : array_like
+        v : array_like
             Values to insert into `self`.
         side : {'left', 'right'}, optional
             If 'left', the index of the first suitable location found is given.
@@ -575,19 +576,19 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin, AttributesMixin):
         indices : array of ints
             Array of insertion points with the same shape as `value`.
         """
-        if isinstance(value, compat.string_types):
-            value = self._scalar_from_string(value)
+        if isinstance(v, compat.string_types):
+            v = self._scalar_from_string(v)
 
-        if not (isinstance(value, (self._scalar_type, type(self)))
-                or isna(value)):
-            msg = "Unexpected type for 'value': {}".format(type(value))
-            raise ValueError(msg)
+        if not (isinstance(v, (self._scalar_type, type(self)))
+                or isna(v)):
+            raise ValueError("Unexpected type for 'value': {valtype}"
+                             .format(valtype=type(v)))
 
-        self._check_compatible_with(value)
-        if isinstance(value, type(self)):
-            value = value.asi8
+        self._check_compatible_with(v)
+        if isinstance(v, type(self)):
+            value = v.asi8
         else:
-            value = self._unbox_scalar(value)
+            value = self._unbox_scalar(v)
 
         return self.asi8.searchsorted(value, side=side, sorter=sorter)
 
