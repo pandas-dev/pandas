@@ -1,10 +1,7 @@
-import numpy as np
-
 from pandas._libs import lib, tslibs
 
 from pandas.core.dtypes.common import is_extension_array_dtype
 from pandas.core.dtypes.dtypes import registry
-from pandas.core.dtypes.generic import ABCIndexClass, ABCSeries
 
 from pandas import compat
 
@@ -185,6 +182,7 @@ def array(data,         # type: Sequence[object]
     from pandas.core.arrays import (
         period_array, ExtensionArray, IntervalArray, PandasArray
     )
+    from pandas.core.internals.arrays import extract_array
 
     if lib.is_scalar(data):
         msg = (
@@ -192,8 +190,7 @@ def array(data,         # type: Sequence[object]
         )
         raise ValueError(msg.format(data))
 
-    if isinstance(data, (ABCSeries, ABCIndexClass)):
-        data = data._values
+    data = extract_array(data, extract_numpy=True)
 
     if dtype is None and isinstance(data, ExtensionArray):
         dtype = data.dtype
@@ -226,6 +223,5 @@ def array(data,         # type: Sequence[object]
         # TODO(DatetimeArray): handle this type
         # TODO(BooleanArray): handle this type
 
-    result = np.array(data, dtype=dtype, copy=copy)
-    result = PandasArray(result)
+    result = PandasArray._from_sequence(data, dtype=dtype, copy=copy)
     return result

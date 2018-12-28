@@ -165,7 +165,9 @@ Reduction and groupby operations such as 'sum' work.
 
 A new top-level method :func:`array` has been added for creating 1-dimensional arrays (:issue:`22860`).
 This can be used to create any :ref:`extension array <extending.extension-types>`, including
-extension arrays registered by :ref:`3rd party libraries <ecosystem.extensions>`.
+extension arrays registered by :ref:`3rd party libraries <ecosystem.extensions>`. See
+
+See :ref:`Dtypes <basics.dtypes>` for more on extension arrays.
 
 .. ipython:: python
 
