@@ -2386,7 +2386,7 @@ class NDFrame(PandasObject, SelectionMixin):
                                   **kwargs)
 
     def to_sql(self, name, con, schema=None, if_exists='fail', index=True,
-               index_label=None, chunksize=None, dtype=None):
+               index_label=None, chunksize=None, dtype=None, method=None):
         """
         Write records stored in a DataFrame to a SQL database.
 
@@ -2424,6 +2424,17 @@ class NDFrame(PandasObject, SelectionMixin):
             Specifying the datatype for columns. The keys should be the column
             names and the values should be the SQLAlchemy types or strings for
             the sqlite3 legacy mode.
+        method : {None, 'multi', callable}, default None
+            Controls the SQL insertion clause used:
+
+            * None : Uses standard SQL ``INSERT`` clause (one per row).
+            * 'multi': Pass multiple values in a single ``INSERT`` clause.
+            * callable with signature ``(pd_table, conn, keys, data_iter)``.
+
+            Details and a sample callable implementation can be found in the
+            section :ref:`insert method <io.sql.method>`.
+
+            .. versionadded:: 0.24.0
 
         Raises
         ------
@@ -2505,7 +2516,7 @@ class NDFrame(PandasObject, SelectionMixin):
         from pandas.io import sql
         sql.to_sql(self, name, con, schema=schema, if_exists=if_exists,
                    index=index, index_label=index_label, chunksize=chunksize,
-                   dtype=dtype)
+                   dtype=dtype, method=method)
 
     def to_pickle(self, path, compression='infer',
                   protocol=pkl.HIGHEST_PROTOCOL):
