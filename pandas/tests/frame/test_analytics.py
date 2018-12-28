@@ -1836,7 +1836,6 @@ class TestDataFrameAnalytics():
             tm.assert_frame_equal(result, expected)
 
     # Clip
-
     def test_clip(self, float_frame):
         median = float_frame.median().median()
         original = float_frame.copy()
@@ -1895,10 +1894,16 @@ class TestDataFrameAnalytics():
         df = DataFrame({'A': [1, 2, 3],
                         'B': [1., np.nan, 3.]})
         result = df.clip(1, 2)
-        # GH 24162, clipping now preserves types
         expected = DataFrame({'A': [1, 2, 2],
                               'B': [1., np.nan, 2.]})
         tm.assert_frame_equal(result, expected, check_like=True)
+
+        # GH 24162, clipping now preserves numeric types per column
+        df = DataFrame([[1, 2, 3.4], [3, 4, 5.6]],
+                       columns=['foo', 'bar', 'baz'])
+        expected = df.dtypes
+        result = df.clip(upper=3).dtypes
+        tm.assert_series_equal(result, expected)
 
     @pytest.mark.parametrize("inplace", [True, False])
     def test_clip_against_series(self, inplace):
