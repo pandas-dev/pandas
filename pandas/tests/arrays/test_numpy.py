@@ -8,6 +8,7 @@ import pytest
 import pandas.util._test_decorators as td
 
 import pandas as pd
+from pandas import compat
 from pandas.arrays import PandasArray
 from pandas.core.arrays.numpy_ import PandasDtype
 import pandas.util.testing as tm
@@ -41,10 +42,11 @@ def any_numpy_array(request):
     ('float', True),
     ('complex', True),
     ('str', False),
-    ('bytes', False),
+    pytest.param('bytes', False,
+                 marks=pytest.mark.skipif(compat.PY2, reason="PY2")),
     ('datetime64[ns]', False),
     ('object', False),
-    ('void', False)
+    ('void', False),
 ])
 def test_is_numeric(dtype, expected):
     dtype = PandasDtype(dtype)
@@ -58,7 +60,8 @@ def test_is_numeric(dtype, expected):
     ('float', False),
     ('complex', False),
     ('str', False),
-    ('bytes', False),
+    pytest.param('bytes', False,
+                 marks=pytest.mark.skipif(compat.PY2, reason="PY2")),
     ('datetime64[ns]', False),
     ('object', False),
     ('void', False)
