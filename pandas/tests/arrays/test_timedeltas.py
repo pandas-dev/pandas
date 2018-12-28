@@ -14,15 +14,15 @@ class TestTimedeltaArrayConstructor(object):
             TimedeltaArray([1, 2, 3])
 
     def test_other_type_raises(self):
-        with pytest.raises(ValueError,
-                           match="The dtype of 'values' is incorrect.*bool"):
+        with pytest.raises(TypeError,
+                           match="dtype bool cannot be converted"):
             TimedeltaArray(np.array([1, 2, 3], dtype='bool'))
 
     def test_incorrect_dtype_raises(self):
-        with pytest.raises(ValueError, match=".dtype. must be .timedelta64."):
+        with pytest.raises(TypeError, match="dtype category"):
             TimedeltaArray(np.array([1, 2, 3], dtype='i8'), dtype='category')
 
-        with pytest.raises(ValueError, match=".dtype. must be .timedelta64."):
+        with pytest.raises(TypeError, match="dtype int"):
             TimedeltaArray(np.array([1, 2, 3], dtype='i8'),
                            dtype=np.dtype(int))
 

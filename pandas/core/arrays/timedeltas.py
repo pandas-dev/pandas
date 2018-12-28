@@ -33,6 +33,8 @@ from pandas.tseries.offsets import Tick
 
 from . import datetimelike as dtl
 
+_BAD_DTYPE = "dtype {dtype} cannot be converted to timedelta64[ns]"
+
 
 def _to_m8(key):
     """
@@ -147,15 +149,7 @@ class TimedeltaArrayMixin(dtl.DatetimeLikeArrayMixin, dtl.TimelikeOps):
             values = values._values
 
         if isinstance(values, type(self)):
-            if freq is None:
-                freq = values.freq
-            elif freq and values.freq:
-                freq = to_offset(freq)
-                freq, freq_infer = dtl.validate_inferred_freq(
-                    freq, values.freq,
-                    freq_infer=False
-                )
-            values = values._data
+            values, freq, freq_infer = extract_values_freq(values, freq)
 
         if not isinstance(values, np.ndarray):
             msg = (
@@ -171,18 +165,15 @@ class TimedeltaArrayMixin(dtl.DatetimeLikeArrayMixin, dtl.TimelikeOps):
             values = values.view(_TD_DTYPE)
 
         if values.dtype != _TD_DTYPE:
-            msg = (
-                "The dtype of 'values' is incorrect. Must be "
-                "'timedelta64[ns]'. Got '{}' instead."
-            )
-            raise ValueError(msg.format(values.dtype))
+            raise TypeError(_BAD_DTYPE.format(dtype=values.dtype))
 
-        dtype_msg = "'dtype' must be 'timedelta64[ns]'. Got '{}' instead."
         try:
-            if dtype != _TD_DTYPE:
-                raise ValueError(dtype_msg.format(dtype))
+            dtype_mismatch = dtype != _TD_DTYPE
         except TypeError:
-            raise ValueError(dtype_msg.format(dtype))
+            raise TypeError(_BAD_DTYPE.format(dtype=dtype))
+        else:
+            if dtype_mismatch:
+                raise TypeError(_BAD_DTYPE.format(dtype=dtype))
 
         if freq == "infer":
             msg = (
@@ -1017,3 +1008,18 @@ def _generate_regular_range(start, end, periods, offset):
 
     data = np.arange(b, e, stride, dtype=np.int64)
     return data
+
+
+def extract_values_freq(arr, freq):
+    # type: (TimedeltaArray, Offset) -> Tuple[ndarray, Offset, bool]
+    freq_infer = False
+    if freq is None:
+        freq = arr.freq
+    elif freq and arr.freq:
+        freq = to_offset(freq)
+        freq, freq_infer = dtl.validate_inferred_freq(
+            freq, arr.freq,
+            freq_infer=False
+        )
+    values = arr._data
+    return values, freq, freq_infer
