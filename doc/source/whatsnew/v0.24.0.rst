@@ -1536,6 +1536,7 @@ Notice how we now instead output ``np.nan`` itself instead of a stringified form
 - Bug in :meth:`DataFrame.to_dict` when the resulting dict contains non-Python scalars in the case of numeric data (:issue:`23753`)
 - :func:`DataFrame.to_string()`, :func:`DataFrame.to_html()`, :func:`DataFrame.to_latex()` will correctly format output when a string is passed as the ``float_format`` argument (:issue:`21625`, :issue:`22270`)
 - Bug in :func:`read_csv` that caused it to raise ``OverflowError`` when trying to use 'inf' as ``na_value`` with integer index column (:issue:`17128`)
+- Bug in :func:`read_fwf` in which the compression type of a file was not being properly inferred (:issue:`22199`)
 - Bug in :func:`pandas.io.json.json_normalize` that caused it to raise ``TypeError`` when two consecutive elements of ``record_path`` are dicts (:issue:`22706`)
 - Bug in :meth:`DataFrame.to_stata`, :class:`pandas.io.stata.StataWriter` and :class:`pandas.io.stata.StataWriter117` where a exception would leave a partially written and invalid dta file (:issue:`23573`)
 - Bug in :meth:`DataFrame.to_stata` and :class:`pandas.io.stata.StataWriter117` that produced invalid files when using strLs with non-ASCII characters (:issue:`23573`)
@@ -1629,6 +1630,7 @@ Build Changes
 
 - Building pandas for development now requires ``cython >= 0.28.2`` (:issue:`21688`)
 - Testing pandas now requires ``hypothesis>=3.58``.  You can find `the Hypothesis docs here <https://hypothesis.readthedocs.io/en/latest/index.html>`_, and a pandas-specific introduction :ref:`in the contributing guide <using-hypothesis>`. (:issue:`22280`)
+- Building pandas on macOS now targets minimum macOS 10.9 if run on macOS 10.9 or above (:issue:`23424`)
 
 Other
 ^^^^^

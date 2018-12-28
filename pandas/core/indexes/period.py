@@ -26,7 +26,7 @@ from pandas.core.base import _shared_docs
 import pandas.core.indexes.base as ibase
 from pandas.core.indexes.base import _index_shared_docs, ensure_index
 from pandas.core.indexes.datetimelike import (
-    DatetimeIndexOpsMixin, DatetimelikeDelegateMixin, wrap_arithmetic_op)
+    DatetimeIndexOpsMixin, DatetimelikeDelegateMixin)
 from pandas.core.indexes.datetimes import DatetimeIndex, Index, Int64Index
 from pandas.core.missing import isna
 from pandas.core.ops import get_op_result_name
@@ -881,52 +881,6 @@ class PeriodIndex(DatelikeOps, DatetimeIndexOpsMixin, Int64Index,
             raise Exception("invalid pickle state")
 
     _unpickle_compat = __setstate__
-
-    @classmethod
-    def _add_datetimelike_methods(cls):
-        """
-        add in the datetimelike methods (as we may have to override the
-        superclass)
-        """
-        # TODO(DatetimeArray): move this up to DatetimeArrayMixin
-
-        def __add__(self, other):
-            # dispatch to ExtensionArray implementation
-            result = self._data.__add__(other)
-            return wrap_arithmetic_op(self, other, result)
-
-        cls.__add__ = __add__
-
-        def __radd__(self, other):
-            # alias for __add__
-            return self.__add__(other)
-        cls.__radd__ = __radd__
-
-        def __sub__(self, other):
-            # dispatch to ExtensionArray implementation
-            result = self._data.__sub__(other)
-            return wrap_arithmetic_op(self, other, result)
-
-        cls.__sub__ = __sub__
-
-        def __rsub__(self, other):
-            result = self._data.__rsub__(other)
-            return wrap_arithmetic_op(self, other, result)
-
-        cls.__rsub__ = __rsub__
-
-    @classmethod
-    def _create_comparison_method(cls, op):
-        """
-        Create a comparison method that dispatches to ``cls.values``.
-        """
-        # TODO(DatetimeArray): move to base class.
-        def wrapper(self, other):
-            return op(self._data, other)
-
-        wrapper.__doc__ = op.__doc__
-        wrapper.__name__ = '__{}__'.format(op.__name__)
-        return wrapper
 
     def view(self, dtype=None, type=None):
         # TODO(DatetimeArray): remove
