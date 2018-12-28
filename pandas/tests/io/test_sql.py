@@ -1851,7 +1851,7 @@ class _TestPostgreSQLAlchemy(object):
 
     @classmethod
     def setup_driver(cls):
-        psycopg2 = pytest.importorskip('psycopg2')
+        pytest.importorskip('psycopg2')
         cls.driver = 'psycopg2'
 
     def test_schema_support(self):
