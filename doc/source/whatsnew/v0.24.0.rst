@@ -1409,6 +1409,7 @@ Conversion
 ^^^^^^^^^^
 
 - Bug in :meth:`DataFrame.combine_first` in which column types were unexpectedly converted to float (:issue:`20699`)
+- Bug in :meth:`DataFrame.clip` in which column types are not preserved and casted to float (:issue:`24162`)
 
 Strings
 ^^^^^^^
