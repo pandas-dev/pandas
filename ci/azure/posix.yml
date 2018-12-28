@@ -20,11 +20,12 @@ jobs:
           CONDA_PY: "27"
           PATTERN: "not slow and not network"
 
-        py37_locale:
-          ENV_FILE: ci/deps/azure-37-locale.yaml
-          CONDA_PY: "37"
-          PATTERN: "not slow and not network"
+        py27_locale_slow_old_np:
+          ENV_FILE: ci/deps/azure-27-locale.yaml
+          CONDA_PY: "27"
+          PATTERN: "slow"
           LOCALE_OVERRIDE: "zh_CN.UTF-8"
+          EXTRA_APT: "language-pack-zh-hans"
 
         py36_locale_slow:
           ENV_FILE: ci/deps/azure-36-locale_slow.yaml
@@ -32,9 +33,28 @@ jobs:
           PATTERN: "not slow and not network"
           LOCALE_OVERRIDE: "it_IT.UTF-8"
 
+        py37:
+          ENV_FILE: ci/deps/azure-37.yaml
+          CONDA_PY: "37"
+          PATTERN: "not slow and not network"
+
+        py37_locale:
+          ENV_FILE: ci/deps/azure-37-locale.yaml
+          CONDA_PY: "37"
+          PATTERN: "not slow and not network"
+          LOCALE_OVERRIDE: "zh_CN.UTF-8"
+
+        py37_np_dev:
+          ENV_FILE: ci/deps/azure-37-numpydev.yaml
+          CONDA_PY: "37"
+          PATTERN: "not slow and not network"
+          TEST_ARGS: "-W error"
+          PANDAS_TESTING_MODE: "deprecate"
+          EXTRA_APT: "xsel"
+
   steps:
     - script: |
-        if [ "$(uname)" == "Linux" ]; then sudo apt-get install -y libc6-dev-i386; fi
+        if [ "$(uname)" == "Linux" ]; then sudo apt-get install -y libc6-dev-i386 $EXTRA_APT; fi
         echo "Installing Miniconda"
         ci/incremental/install_miniconda.sh
         export PATH=$HOME/miniconda3/bin:$PATH

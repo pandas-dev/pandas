@@ -34,18 +34,6 @@ matrix:
     include:
     - dist: trusty
       env:
-        - JOB="3.7" ENV_FILE="ci/deps/travis-37.yaml" PATTERN="not slow and not network"
-
-    - dist: trusty
-      env:
-        - JOB="2.7, locale, slow, old NumPy" ENV_FILE="ci/deps/travis-27-locale.yaml" LOCALE_OVERRIDE="zh_CN.UTF-8" PATTERN="slow"
-      addons:
-        apt:
-          packages:
-          - language-pack-zh-hans
-
-    - dist: trusty
-      env:
         - JOB="2.7" ENV_FILE="ci/deps/travis-27.yaml" PATTERN="not slow"
       addons:
         apt:
@@ -59,14 +47,6 @@ matrix:
     - dist: trusty
       env:
         - JOB="3.6, coverage" ENV_FILE="ci/deps/travis-36.yaml" PATTERN="not slow and not network" PANDAS_TESTING_MODE="deprecate" COVERAGE=true
-
-    - dist: trusty
-      env:
-        - JOB="3.7, NumPy dev" ENV_FILE="ci/deps/travis-37-numpydev.yaml" PATTERN="not slow and not network" TEST_ARGS="-W error" PANDAS_TESTING_MODE="deprecate"
-      addons:
-        apt:
-          packages:
-          - xsel
 
     # In allow_failures
     - dist: trusty
