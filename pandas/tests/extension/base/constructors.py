@@ -64,5 +64,6 @@ class BaseConstructorsTests(BaseExtensionTests):
 
     def test_pandas_array_dtype(self, data):
         # ... but specifying dtype will override idempotency
-        result = pd.array(data, dtype=object)
-        self.assert_equal(result, np.asarray(data, dtype=object))
+        result = pd.array(data, dtype=np.dtype(object))
+        expected = pd.arrays.PandasArray(np.asarray(data, dtype=object))
+        self.assert_equal(result, expected)
