@@ -26,7 +26,7 @@ from pandas.core.base import _shared_docs
 import pandas.core.common as com
 from pandas.core.indexes.base import Index
 from pandas.core.indexes.datetimelike import (
-    DatetimeIndexOpsMixin, DatetimelikeDelegateMixin)
+    DatetimeIndexOpsMixin, DatetimelikeDelegateMixin, ea_passthrough)
 from pandas.core.indexes.numeric import Int64Index
 from pandas.core.ops import get_op_result_name
 import pandas.core.tools.datetimes as tools
@@ -1149,26 +1149,14 @@ class DatetimeIndex(DatetimeIndexOpsMixin, Int64Index, DatetimeDelegateMixin):
     _is_monotonic_increasing = Index.is_monotonic_increasing
     _is_monotonic_decreasing = Index.is_monotonic_decreasing
     _is_unique = Index.is_unique
-    astype = DatetimeIndexOpsMixin.astype
 
     _timezone = cache_readonly(DatetimeArray._timezone.fget)
     is_normalized = cache_readonly(DatetimeArray.is_normalized.fget)
     _resolution = cache_readonly(DatetimeArray._resolution.fget)
 
-    @property
-    def date(self):
-        return self._eadata.date
-
-    @property
-    def time(self):
-        return self._eadata.time
-
-    @property
-    def timetz(self):
-        return self._eadata.timetz
-
-    def strftime(self, date_format):
-        return self._eadata.strftime(date_format)
+    strftime = ea_passthrough("strftime")
+    _has_same_tz = ea_passthrough("_has_same_tz")
+    __array__ = ea_passthrough("__array__")
 
     def round(self, freq, ambiguous='raise', nonexistent='raise'):
         result = self._eadata.round(
@@ -1233,18 +1221,9 @@ class DatetimeIndex(DatetimeIndexOpsMixin, Int64Index, DatetimeDelegateMixin):
             return result
         return type(self)(result, name=self.name)
 
-    def _has_same_tz(self, other):
-        return self._eadata._has_same_tz(other)
-
     @property
     def _box_func(self):
         return lambda x: Timestamp(x, tz=self.tz)
-
-    def __array__(self, dtype=None):
-        return self._eadata.__array__(dtype=dtype)
-
-    def to_pydatetime(self):
-        return self._eadata.to_pydatetime()
 
     # --------------------------------------------------------------------
 

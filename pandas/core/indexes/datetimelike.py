@@ -32,13 +32,11 @@ _index_doc_kwargs = dict(ibase._index_doc_kwargs)
 
 
 def ea_passthrough(name):
-    meth = getattr(DatetimeLikeArrayMixin, name)
-
     def method(self, *args, **kwargs):
-        return meth(self._eadata, *args, **kwargs)
+        return getattr(self._eadata, name)(*args, **kwargs)
 
     method.__name__ = name
-    method.__doc__ = meth.__doc__
+    # TODO: docstrings
     return method
 
 
@@ -46,10 +44,6 @@ class DatetimeIndexOpsMixin(ExtensionOpsMixin):
     """
     common ops mixin to support a unified interface datetimelike Index
     """
-
-    # override DatetimeLikeArrayMixin method
-    copy = Index.copy
-    view = Index.view
 
     # DatetimeLikeArrayMixin assumes subclasses are mutable, so these are
     # properties there.  They can be made into cache_readonly for Index

@@ -312,10 +312,6 @@ class TimedeltaIndex(DatetimeIndexOpsMixin,
     _is_monotonic_decreasing = Index.is_monotonic_decreasing
     _is_unique = Index.is_unique
 
-    copy = DatetimeIndexOpsMixin.copy      # i.e. Index.copy
-    unique = DatetimeIndexOpsMixin.unique  # i.e. Index.unique
-    take = DatetimeIndexOpsMixin.take
-    shift = DatetimeIndexOpsMixin.shift
     _create_comparison_method = DatetimeIndexOpsMixin._create_comparison_method
     # TODO: make sure we have a test for name retention analogous
     #  to series.test_arithmetic.test_ser_cmp_result_names;
@@ -342,13 +338,6 @@ class TimedeltaIndex(DatetimeIndexOpsMixin,
             self._eadata.freq = value
 
         self._freq = to_offset(value)
-
-    def to_pytimedelta(self):
-        return self._eadata.to_pytimedelta()
-
-    @property
-    def components(self):
-        return self._eadata.components
 
     # -------------------------------------------------------------------
 
