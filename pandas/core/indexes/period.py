@@ -74,7 +74,7 @@ class PeriodDelegateMixin(DatetimelikeDelegateMixin):
                 PeriodDelegateMixin._delegated_methods,
                 typ="method")
 class PeriodIndex(DatelikeOps, DatetimeIndexOpsMixin, Int64Index,
-                  PeriodDelegateMixin, ExtensionOpsMixin):
+                  PeriodDelegateMixin):
     """
     Immutable ndarray holding ordinal values indicating regular periods in
     time such as particular years, quarters, months, etc.
