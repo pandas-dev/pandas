@@ -189,6 +189,7 @@ URLs and paths are now inferred using their file extensions. Additionally,
 support for bz2 compression in the python 2 C-engine improved (:issue:`14874`).
 
 .. ipython:: python
+   :okwarning:
 
    url = ('https://github.com/{repo}/raw/{branch}/{path}'
           .format(repo='pandas-dev/pandas',

@@ -24,10 +24,11 @@ from pandas.core.dtypes.missing import isna
 from pandas.core import ops
 from pandas.core.algorithms import checked_add_with_arr
 from pandas.core.arrays import datetimelike as dtl
+from pandas.core.arrays._ranges import generate_regular_range
 import pandas.core.common as com
 
 from pandas.tseries.frequencies import get_period_alias, to_offset
-from pandas.tseries.offsets import Day, Tick, generate_range
+from pandas.tseries.offsets import Day, Tick
 
 _midnight = time(0, 0)
 
@@ -96,6 +97,8 @@ def _dt_array_cmp(cls, op):
     def wrapper(self, other):
         meth = getattr(dtl.DatetimeLikeArrayMixin, opname)
 
+        other = lib.item_from_zerodim(other)
+
         if isinstance(other, (datetime, np.datetime64, compat.string_types)):
             if isinstance(other, (datetime, np.datetime64)):
                 # GH#18435 strings get a pass from tzawareness compat
@@ -110,12 +113,14 @@ def _dt_array_cmp(cls, op):
             result = op(self.asi8, other.view('i8'))
             if isna(other):
                 result.fill(nat_result)
-        elif lib.is_scalar(other):
+        elif lib.is_scalar(other) or np.ndim(other) == 0:
             return ops.invalid_comparison(self, other, op)
+        elif len(other) != len(self):
+            raise ValueError("Lengths must match")
         else:
             if isinstance(other, list):
                 try:
-                    other = type(self)(other)
+                    other = type(self)._from_sequence(other)
                 except ValueError:
                     other = np.array(other, dtype=np.object_)
             elif not isinstance(other, (np.ndarray, ABCIndexClass, ABCSeries,
@@ -147,7 +152,7 @@ def _dt_array_cmp(cls, op):
             if o_mask.any():
                 result[o_mask] = nat_result
 
-        if self.hasnans:
+        if self._hasnans:
             result[self._isnan] = nat_result
 
         return result
@@ -306,7 +311,8 @@ class DatetimeArrayMixin(dtl.DatetimeLikeArrayMixin,
                 if end is not None:
                     end = end.tz_localize(None)
             # TODO: consider re-implementing _cached_range; GH#17914
-            index = _generate_regular_range(cls, start, end, periods, freq)
+            values, _tz = generate_regular_range(start, end, periods, freq)
+            index = cls._simple_new(values, freq=freq, tz=_tz)
 
             if tz is not None and index.tz is None:
                 arr = conversion.tz_localize_to_utc(
@@ -349,6 +355,19 @@ class DatetimeArrayMixin(dtl.DatetimeLikeArrayMixin,
 
     @property
     def dtype(self):
+        # type: () -> Union[np.dtype, DatetimeTZDtype]
+        """
+        The dtype for the DatetimeArray.
+
+        Returns
+        -------
+        numpy.dtype or DatetimeTZDtype
+            If the values are tz-naive, then ``np.dtype('datetime64[ns]')``
+            is returned.
+
+            If the values are tz-aware, then the ``DatetimeTZDtype``
+            is returned.
+        """
         if self.tz is None:
             return _NS_DTYPE
         return DatetimeTZDtype('ns', self.tz)
@@ -356,7 +375,12 @@ class DatetimeArrayMixin(dtl.DatetimeLikeArrayMixin,
     @property
     def tz(self):
         """
-        Return timezone.
+        Return timezone, if any.
+
+        Returns
+        -------
+        datetime.tzinfo, pytz.tzinfo.BaseTZInfo, dateutil.tz.tz.tzfile, or None
+             Returns None when the array is tz-naive.
         """
         # GH 18595
         return self._tz
@@ -469,6 +493,18 @@ class DatetimeArrayMixin(dtl.DatetimeLikeArrayMixin,
         return fill_value
 
     # -----------------------------------------------------------------
+    # Rendering Methods
+
+    def _format_native_types(self, na_rep=u'NaT', date_format=None, **kwargs):
+        from pandas.io.formats.format import _get_format_datetime64_from_values
+        fmt = _get_format_datetime64_from_values(self, date_format)
+
+        return tslib.format_array_from_datetime(self.asi8,
+                                                tz=self.tz,
+                                                format=fmt,
+                                                na_rep=na_rep)
+
+    # -----------------------------------------------------------------
     # Comparison Methods
 
     _create_comparison_method = classmethod(_dt_array_cmp)
@@ -522,7 +558,7 @@ class DatetimeArrayMixin(dtl.DatetimeLikeArrayMixin,
         other_i8 = other.asi8
         new_values = checked_add_with_arr(self_i8, -other_i8,
                                           arr_mask=self._isnan)
-        if self.hasnans or other.hasnans:
+        if self._hasnans or other._hasnans:
             mask = (self._isnan) | (other._isnan)
             new_values[mask] = iNaT
         return new_values.view('timedelta64[ns]')
@@ -1683,107 +1719,6 @@ def maybe_convert_dtype(data, copy):
         copy = False
 
     return data, copy
-
-
-def _generate_regular_range(cls, start, end, periods, freq):
-    """
-    Generate a range of dates with the spans between dates described by
-    the given `freq` DateOffset.
-
-    Parameters
-    ----------
-    cls : class
-    start : Timestamp or None
-        first point of produced date range
-    end : Timestamp or None
-        last point of produced date range
-    periods : int
-        number of periods in produced date range
-    freq : DateOffset
-        describes space between dates in produced date range
-
-    Returns
-    -------
-    ndarray[np.int64] representing nanosecond unix timestamps
-
-    """
-    if isinstance(freq, Tick):
-        stride = freq.nanos
-        if periods is None:
-            b = Timestamp(start).value
-            # cannot just use e = Timestamp(end) + 1 because arange breaks when
-            # stride is too large, see GH10887
-            e = (b + (Timestamp(end).value - b) // stride * stride +
-                 stride // 2 + 1)
-            # end.tz == start.tz by this point due to _generate implementation
-            tz = start.tz
-        elif start is not None:
-            b = Timestamp(start).value
-            e = _generate_range_overflow_safe(b, periods, stride, side='start')
-            tz = start.tz
-        elif end is not None:
-            e = Timestamp(end).value + stride
-            b = _generate_range_overflow_safe(e, periods, stride, side='end')
-            tz = end.tz
-        else:
-            raise ValueError("at least 'start' or 'end' should be specified "
-                             "if a 'period' is given.")
-
-        values = np.arange(b, e, stride, dtype=np.int64)
-
-    else:
-        tz = None
-        # start and end should have the same timezone by this point
-        if start is not None:
-            tz = start.tz
-        elif end is not None:
-            tz = end.tz
-
-        xdr = generate_range(start=start, end=end,
-                             periods=periods, offset=freq)
-
-        values = np.array([x.value for x in xdr], dtype=np.int64)
-
-    data = cls._simple_new(values, freq=freq, tz=tz)
-    return data
-
-
-def _generate_range_overflow_safe(endpoint, periods, stride, side='start'):
-    """
-    Calculate the second endpoint for passing to np.arange, checking
-    to avoid an integer overflow.  Catch OverflowError and re-raise
-    as OutOfBoundsDatetime.
-
-    Parameters
-    ----------
-    endpoint : int
-    periods : int
-    stride : int
-    side : {'start', 'end'}
-
-    Returns
-    -------
-    other_end : int
-
-    Raises
-    ------
-    OutOfBoundsDatetime
-    """
-    # GH#14187 raise instead of incorrectly wrapping around
-    assert side in ['start', 'end']
-    if side == 'end':
-        stride *= -1
-
-    try:
-        other_end = checked_add_with_arr(np.int64(endpoint),
-                                         np.int64(periods) * stride)
-    except OverflowError:
-        raise tslib.OutOfBoundsDatetime('Cannot generate range with '
-                                        '{side}={endpoint} and '
-                                        'periods={periods}'
-                                        .format(side=side, endpoint=endpoint,
-                                                periods=periods))
-    return other_end
 
 
 # -------------------------------------------------------------------

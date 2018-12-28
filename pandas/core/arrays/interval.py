@@ -20,11 +20,12 @@ from pandas.core.dtypes.generic import (
     ABCDatetimeIndex, ABCInterval, ABCIntervalIndex, ABCPeriodIndex, ABCSeries)
 from pandas.core.dtypes.missing import isna, notna
 
+from pandas.core.arrays.base import (
+    ExtensionArray, _extension_array_shared_docs)
+from pandas.core.arrays.categorical import Categorical
 import pandas.core.common as com
 from pandas.core.config import get_option
 from pandas.core.indexes.base import Index, ensure_index
-
-from . import Categorical, ExtensionArray
 
 _VALID_CLOSED = {'left', 'right', 'both', 'neither'}
 _interval_shared_docs = {}
@@ -1000,35 +1001,11 @@ class IntervalArray(IntervalMixin, ExtensionArray):
             tuples = np.where(~self.isna(), tuples, np.nan)
         return tuples
 
-    def repeat(self, repeats, **kwargs):
-        """
-        Repeat elements of an IntervalArray.
-
-        Returns a new IntervalArray where each element of the current
-        IntervalArray is repeated consecutively a given number of times.
-
-        Parameters
-        ----------
-        repeats : int
-            The number of repetitions for each element.
-
-        **kwargs
-            Additional keywords have no effect but might be accepted for
-            compatibility with numpy.
-
-        Returns
-        -------
-        IntervalArray
-            Newly created IntervalArray with repeated elements.
-
-        See Also
-        --------
-        Index.repeat : Equivalent function for Index.
-        Series.repeat : Equivalent function for Series.
-        numpy.repeat : Underlying implementation.
-        """
-        left_repeat = self.left.repeat(repeats, **kwargs)
-        right_repeat = self.right.repeat(repeats, **kwargs)
+    @Appender(_extension_array_shared_docs['repeat'] % _shared_docs_kwargs)
+    def repeat(self, repeats, axis=None):
+        nv.validate_repeat(tuple(), dict(axis=axis))
+        left_repeat = self.left.repeat(repeats)
+        right_repeat = self.right.repeat(repeats)
         return self._shallow_copy(left=left_repeat, right=right_repeat)
 
     _interval_shared_docs['overlaps'] = """
