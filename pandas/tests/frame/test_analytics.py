@@ -1964,13 +1964,14 @@ class TestDataFrameAnalytics():
         tm.assert_frame_equal(clipped_df[lb_mask], lb[lb_mask])
         tm.assert_frame_equal(clipped_df[ub_mask], ub[ub_mask])
         tm.assert_frame_equal(clipped_df[mask], df[mask])
-         # GH 20911, clipping now preserves types       
-        df1 = DataFrame(np.random.randn(1000,4), columns=['A', 'B','C','D'])
-        df2 = DataFrame(np.random.randn(1000,4), columns=['D', 'A','B','C'])
-        
-        res1 = df1.clip(lower=0,upper=df2)
-        res2 = df1.clip(lower=0,upper=df2[df1.columns])
-        tm.assert_frame_equal(res1,res2)
+
+    def test_clip_against_unordered_columns(self):
+        # GH 20911
+        df1 = DataFrame(np.random.randn(1000, 4), columns=['A', 'B', 'C', 'D'])
+        df2 = DataFrame(np.random.randn(1000, 4), columns=['D', 'A', 'B', 'C'])
+        result = df1.clip(lower=0, upper=df2)
+        expected = df1.clip(lower=0, upper=df2[df1.columns])
+        tm.assert_frame_equal(result, expected)
 
     def test_clip_with_na_args(self, float_frame):
         """Should process np.nan argument as None """
