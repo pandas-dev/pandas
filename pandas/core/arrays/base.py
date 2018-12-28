@@ -519,7 +519,7 @@ class ExtensionArray(object):
         uniques = unique(self.astype(object))
         return self._from_sequence(uniques, dtype=self.dtype)
 
-    def searchsorted(self, v, side="left", sorter=None):
+    def searchsorted(self, value, side="left", sorter=None):
         """
         Find indices where elements should be inserted to maintain order.
 
@@ -540,7 +540,7 @@ class ExtensionArray(object):
 
         Parameters
         ----------
-        v : array_like
+        value : array_like
             Values to insert into `self`.
         side : {'left', 'right'}, optional
             If 'left', the index of the first suitable location found is given.
@@ -553,7 +553,7 @@ class ExtensionArray(object):
         Returns
         -------
         indices : array of ints
-            Array of insertion points with the same shape as `v`.
+            Array of insertion points with the same shape as `value`.
 
         See Also
         --------
@@ -565,7 +565,7 @@ class ExtensionArray(object):
         # 2. Values between the values in the `data_for_sorting` fixture
         # 3. Missing values.
         arr = self.astype(object)
-        return arr.searchsorted(v, side=side, sorter=sorter)
+        return arr.searchsorted(value, side=side, sorter=sorter)
 
     def _values_for_factorize(self):
         # type: () -> Tuple[ndarray, Any]
