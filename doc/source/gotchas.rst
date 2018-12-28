@@ -301,9 +301,7 @@ Byte-Ordering Issues
 --------------------
 Occasionally you may have to deal with data that were created on a machine with
 a different byte order than the one on which you are running Python. A common
-symptom of this issue is an error like:
-
-.. code-block:: python-traceback
+symptom of this issue is an error like:::
 
     Traceback
         ...

@@ -220,7 +220,7 @@ Enhancements
 
       pd.MultiIndex.from_product([shades, colors], names=['shade', 'color'])
 
-- Panel :meth:`~pandas.Panel.apply` will work on non-ufuncs. See :ref:`the docs<basics.apply_panel>`.
+- Panel :meth:`~pandas.Panel.apply` will work on non-ufuncs. See :ref:`the docs<basics.apply>`.
 
   .. ipython:: python
 
