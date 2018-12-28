@@ -8,7 +8,8 @@ import pytest
 import pandas.util._test_decorators as td
 
 import pandas as pd
-from pandas.core.arrays import PandasArray
+from pandas.arrays import PandasArray
+from pandas.core.arrays.numpy_ import PandasDtype
 import pandas.util.testing as tm
 
 
@@ -96,3 +97,20 @@ def test_series_constructor_with_astype():
     result = pd.Series(PandasArray(ndarray), dtype="float64")
     expected = pd.Series([1.0, 2.0, 3.0], dtype="float64")
     tm.assert_series_equal(result, expected)
+
+
+@pytest.mark.parametrize('dtype, expected', [
+    ('bool', True),
+    ('int', True),
+    ('uint', True),
+    ('float', True),
+    ('complex', True),
+    ('str', False),
+    ('bytes', False),
+    ('datetime64[ns]', False),
+    ('object', False),
+    ('void', False)
+])
+def test_is_numeric(dtype, expected):
+    dtype = PandasDtype(dtype)
+    assert dtype._is_numeric is expected
