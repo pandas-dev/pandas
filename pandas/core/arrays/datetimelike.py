@@ -21,7 +21,8 @@ from pandas.core.dtypes.common import (
     is_datetime64_dtype, is_datetime64tz_dtype, is_datetime_or_timedelta_dtype,
     is_dtype_equal, is_extension_array_dtype, is_float_dtype, is_integer_dtype,
     is_list_like, is_object_dtype, is_offsetlike, is_period_dtype,
-    is_string_dtype, is_timedelta64_dtype, needs_i8_conversion, pandas_dtype)
+    is_string_dtype, is_timedelta64_dtype, is_unsigned_integer_dtype,
+    needs_i8_conversion, pandas_dtype)
 from pandas.core.dtypes.generic import ABCDataFrame, ABCIndexClass, ABCSeries
 from pandas.core.dtypes.missing import isna
 
@@ -419,6 +420,11 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin, AttributesMixin):
             # we deliberately ignore int32 vs. int64 here.
             # See https://github.com/pandas-dev/pandas/issues/24381 for more.
             values = self.asi8
+
+            if is_unsigned_integer_dtype(dtype):
+                # Again, we ignore int32 vs. int64
+                values = values.view("uint64")
+
             if copy:
                 values = values.copy()
             return values
