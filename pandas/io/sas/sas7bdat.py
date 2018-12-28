@@ -435,8 +435,11 @@ class SAS7BDATReader(BaseIterator):
         self.column_count = self._read_int(offset, int_len)
         if (self.col_count_p1 + self.col_count_p2 !=
                 self.column_count):
-            print("Warning: column count mismatch ({} + {} != {})\n".format(
-                  self.col_count_p1, self.col_count_p2, self.column_count))
+            print(
+                "Warning: column count mismatch ({p1} + {p2} != "
+                "{column_count})\n".format(
+                    p1=self.col_count_p1, p2=self.col_count_p2,
+                    column_count=self.column_count))
 
     # Unknown purpose
     def _process_subheader_counts(self, offset, length):

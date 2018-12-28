@@ -1165,7 +1165,7 @@ class HDFStore(StringMixin):
         """ return the storer object for a key, raise if not in the file """
         group = self.get_node(key)
         if group is None:
-            raise KeyError('No object named {} in the file'.format(key))
+            raise KeyError('No object named {key} in the file'.format(key=key))
 
         s = self._create_storer(group)
         s.infer_axes()
@@ -1596,9 +1596,9 @@ class IndexCol(StringMixin):
                      self.axis,
                      self.pos,
                      self.kind)))
-        return ','.join(
-            ("{}->{}".format(key, value) for key, value in zip(
-                ['name', 'cname', 'axis', 'pos', 'kind'], temp)))
+        return ','.join(("{key}->{value}".format(key=key, value=value)
+                         for key, value in zip(
+            ['name', 'cname', 'axis', 'pos', 'kind'], temp)))
 
     def __eq__(self, other):
         """ compare 2 col items """
@@ -1722,11 +1722,12 @@ class IndexCol(StringMixin):
                     itemsize = self.itemsize
                 if c.itemsize < itemsize:
                     raise ValueError(
-                        "Trying to store a string with len [{}] in [{}] "
-                        "column but\nthis column has a limit of [{}]!\n"
-                        "Consider using min_itemsize to preset the sizes on "
-                        "these columns".format(
-                            itemsize, self.cname, c.itemsize))
+                        "Trying to store a string with len [{itemsize}] in "
+                        "[{cname}] column but\nthis column has a limit of "
+                        "[{c_itemsize}]!\nConsider using min_itemsize to "
+                        "preset the sizes on these columns".format(
+                            itemsize=itemsize, cname=self.cname,
+                            c_itemsize=c.itemsize))
                 return c.itemsize
 
         return None
@@ -1736,8 +1737,10 @@ class IndexCol(StringMixin):
         if append:
             existing_kind = getattr(self.attrs, self.kind_attr, None)
             if existing_kind is not None and existing_kind != self.kind:
-                raise TypeError("incompatible kind in col [{} - {}]".format(
-                    existing_kind, self.kind))
+                raise TypeError(
+                    "incompatible kind in col [{existing} - "
+                    "{self_kind}]".format(
+                        existing=existing_kind, self_kind=self.kind))
 
     def update_info(self, info):
         """ set/update the info for this indexable with the key/value
@@ -1762,9 +1765,11 @@ class IndexCol(StringMixin):
 
                 else:
                     raise ValueError(
-                        "invalid info for [{}] for [{}], existing_value [{}] "
-                        "conflicts with new value [{}]".format(
-                            self.name, key, existing_value, value))
+                        "invalid info for [{name}] for [{key}], "
+                        "existing_value [{existing_value}] conflicts with "
+                        "new value [{value}]".format(
+                            name=self.name, key=key,
+                            existing_value=existing_value, value=value))
             else:
                 if value is not None or existing_value is not None:
                     idx[key] = value
@@ -1871,9 +1876,9 @@ class DataCol(IndexCol):
         super(DataCol, self).__init__(values=values, kind=kind, typ=typ,
                                       cname=cname, **kwargs)
         self.dtype = None
-        self.dtype_attr = u'{}_dtype'.format(self.name)
+        self.dtype_attr = u'{name}_dtype'.format(name=self.name)
         self.meta = meta
-        self.meta_attr = u'{}_meta'.format(self.name)
+        self.meta_attr = u'{name}_meta'.format(name=self.name)
         self.set_data(data)
         self.set_metadata(metadata)
 
@@ -1885,8 +1890,9 @@ class DataCol(IndexCol):
                      self.dtype,
                      self.kind,
                      self.shape)))
-        return ("name->{},cname->{},dtype->{},kind->{},"
-                "shape->{}".format(*temp))
+        return ','.join(("{key}->{value}".format(key=key, value=value)
+                         for key, value in zip(
+            ['name', 'cname', 'dtype', 'kind', 'shape'], temp)))
 
     def __eq__(self, other):
         """ compare 2 col items """
@@ -3094,9 +3100,13 @@ class Table(Fixed):
                 version='.'.join(str(x) for x in self.version))
 
         return (
-            "{:12.12}{} (typ->{},nrows->{},ncols->{},indexers->[{}]{})".format(
-                self.pandas_type, ver, self.table_type_short, self.nrows,
-                self.ncols, ','.join(a.name for a in self.index_axes), dc))
+            "{pandas_type:12.12}{ver} (typ->{table_type},nrows->{nrows},"
+            "ncols->{ncols},indexers->[{index_axes}]{dc})".format(
+                pandas_type=self.pandas_type, ver=ver,
+                table_type=self.table_type_short, nrows=self.nrows,
+                ncols=self.ncols,
+                index_axes=(','.join(a.name for a in self.index_axes)), dc=dc
+            ))
 
     def __getitem__(self, c):
         """ return the axis for c """
