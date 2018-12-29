@@ -19,6 +19,7 @@ from pandas.core.dtypes.generic import ABCIndex, ABCIndexClass, ABCSeries
 
 from pandas.core import algorithms, ops
 from pandas.core.accessor import PandasDelegate
+from pandas.core.arrays import ExtensionOpsMixin
 from pandas.core.arrays.datetimelike import (
     DatetimeLikeArrayMixin, _ensure_datetimelike_to_i8)
 import pandas.core.indexes.base as ibase
@@ -30,15 +31,30 @@ import pandas.io.formats.printing as printing
 _index_doc_kwargs = dict(ibase._index_doc_kwargs)
 
 
-class DatetimeIndexOpsMixin(DatetimeLikeArrayMixin):
+def ea_passthrough(name):
+    """
+    Make an alias for a method of the underlying ExtensionArray.
+
+    Parameters
+    ----------
+    name : str
+
+    Returns
+    -------
+    method
+    """
+    def method(self, *args, **kwargs):
+        return getattr(self._eadata, name)(*args, **kwargs)
+
+    method.__name__ = name
+    # TODO: docstrings
+    return method
+
+
+class DatetimeIndexOpsMixin(ExtensionOpsMixin):
     """
     common ops mixin to support a unified interface datetimelike Index
     """
-
-    # override DatetimeLikeArrayMixin method
-    copy = Index.copy
-    view = Index.view
-    __setitem__ = Index.__setitem__
 
     # DatetimeLikeArrayMixin assumes subclasses are mutable, so these are
     # properties there.  They can be made into cache_readonly for Index
@@ -49,6 +65,14 @@ class DatetimeIndexOpsMixin(DatetimeLikeArrayMixin):
     _hasnans = hasnans  # for index / array -agnostic code
     _resolution = cache_readonly(DatetimeLikeArrayMixin._resolution.fget)
     resolution = cache_readonly(DatetimeLikeArrayMixin.resolution.fget)
+
+    _box_values = ea_passthrough("_box_values")
+    _maybe_mask_results = ea_passthrough("_maybe_mask_results")
+    __iter__ = ea_passthrough("__iter__")
+
+    @property
+    def freqstr(self):
+        return self._eadata.freqstr
 
     def unique(self, level=None):
         if level is not None:
@@ -73,9 +97,6 @@ class DatetimeIndexOpsMixin(DatetimeLikeArrayMixin):
         wrapper.__doc__ = op.__doc__
         wrapper.__name__ = '__{}__'.format(op.__name__)
         return wrapper
-
-    # A few methods that are shared
-    _maybe_mask_results = DatetimeLikeArrayMixin._maybe_mask_results
 
     # ------------------------------------------------------------------------
 
@@ -549,7 +570,7 @@ class DatetimeIndexOpsMixin(DatetimeLikeArrayMixin):
             # - remove the .asi8 here
             # - remove the _maybe_box_as_values
             # - combine with the `else` block
-            new_data = self._concat_same_type(to_concat).asi8
+            new_data = self._eadata._concat_same_type(to_concat).asi8
         else:
             new_data = type(self._values)._concat_same_type(to_concat)
 
