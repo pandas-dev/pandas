@@ -33,7 +33,7 @@ class DocBuilder:
     All public methods of this class can be called as parameters of the
     script.
     """
-    def __init__(self, num_jobs=1, include_api=True, single_doc=None,
+    def __init__(self, num_jobs=0, include_api=True, single_doc=None,
                  verbosity=0, warnings_are_errors=False):
         self.num_jobs = num_jobs
         self.verbosity = verbosity
