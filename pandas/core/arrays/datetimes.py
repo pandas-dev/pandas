@@ -374,6 +374,9 @@ class DatetimeArrayMixin(dtl.DatetimeLikeArrayMixin,
             raise ValueError("Timezones don't match. '{own} != {other}'"
                              .format(own=self.tz, other=other.tz))
 
+    def _maybe_clear_freq(self):
+        self._freq = None
+
     # -----------------------------------------------------------------
     # Descriptive Properties
 
