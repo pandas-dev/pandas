@@ -38,6 +38,7 @@ class DatetimeIndexOpsMixin(DatetimeLikeArrayMixin):
     # override DatetimeLikeArrayMixin method
     copy = Index.copy
     view = Index.view
+    __setitem__ = Index.__setitem__
 
     # DatetimeLikeArrayMixin assumes subclasses are mutable, so these are
     # properties there.  They can be made into cache_readonly for Index
