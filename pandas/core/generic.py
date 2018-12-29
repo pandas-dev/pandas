@@ -7176,7 +7176,7 @@ class NDFrame(PandasObject, SelectionMixin):
             if isinstance(self, ABCSeries):
                 threshold = pd.Series(threshold, index=self.index)
             else:
-                threshold = _align_method_FRAME(self, np.asarray(threshold),
+                threshold = _align_method_FRAME(self, threshold,
                                                 axis)
         return self.where(subset, threshold, axis=axis, inplace=inplace)
 

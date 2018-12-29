@@ -161,6 +161,41 @@ Reduction and groupby operations such as 'sum' work.
 
    The Integer NA support currently uses the captilized dtype version, e.g. ``Int8`` as compared to the traditional ``int8``. This may be changed at a future date.
 
+.. _whatsnew_0240.enhancements.array:
+
+A new top-level method :func:`array` has been added for creating 1-dimensional arrays (:issue:`22860`).
+This can be used to create any :ref:`extension array <extending.extension-types>`, including
+extension arrays registered by :ref:`3rd party libraries <ecosystem.extensions>`. See
+
+See :ref:`Dtypes <basics.dtypes>` for more on extension arrays.
+
+.. ipython:: python
+
+   pd.array([1, 2, np.nan], dtype='Int64')
+   pd.array(['a', 'b', 'c'], dtype='category')
+
+Passing data for which there isn't dedicated extension type (e.g. float, integer, etc.)
+will return a new :class:`arrays.PandasArray`, which is just a thin (no-copy)
+wrapper around a :class:`numpy.ndarray` that satisfies the extension array interface.
+
+.. ipython:: python
+
+   pd.array([1, 2, 3])
+
+On their own, a :class:`arrays.PandasArray` isn't a very useful object.
+But if you need write low-level code that works generically for any
+:class:`~pandas.api.extensions.ExtensionArray`, :class:`arrays.PandasArray`
+satisfies that need.
+
+Notice that by default, if no ``dtype`` is specified, the dtype of the returned
+array is inferred from the data. In particular, note that the first example of
+``[1, 2, np.nan]`` would have returned a floating-point array, since ``NaN``
+is a float.
+
+.. ipython:: python
+
+   pd.array([1, 2, np.nan])
+
 .. _whatsnew_0240.enhancements.read_html:
 
 ``read_html`` Enhancements
@@ -1023,6 +1058,7 @@ update the ``ExtensionDtype._metadata`` tuple to match the signature of your
 - :meth:`~pandas.api.types.ExtensionArray.repeat` has been added (:issue:`24349`)
 - ``ExtensionDtype`` has gained the ability to instantiate from string dtypes, e.g. ``decimal`` would instantiate a registered ``DecimalDtype``; furthermore
   the ``ExtensionDtype`` has gained the method ``construct_array_type`` (:issue:`21185`)
+- :meth:`~pandas.api.types.ExtensionArray.searchsorted` has been added (:issue:`24350`)
 - An ``ExtensionArray`` with a boolean dtype now works correctly as a boolean indexer. :meth:`pandas.api.types.is_bool_dtype` now properly considers them boolean (:issue:`22326`)
 - Added ``ExtensionDtype._is_numeric`` for controlling whether an extension dtype is considered numeric (:issue:`22290`).
 - The ``ExtensionArray`` constructor, ``_from_sequence`` now take the keyword arg ``copy=False`` (:issue:`21185`)
@@ -1440,6 +1476,7 @@ Conversion
 
 - Bug in :meth:`DataFrame.combine_first` in which column types were unexpectedly converted to float (:issue:`20699`)
 - Bug in :meth:`DataFrame.clip` in which column types are not preserved and casted to float (:issue:`24162`)
+- Bug in :meth:`DataFrame.clip` when order of columns of dataframes doesn't match, result observed is wrong in numeric values (:issue:`20911`)
 
 Strings
 ^^^^^^^

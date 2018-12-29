@@ -443,8 +443,8 @@ class DatetimeArrayMixin(dtl.DatetimeLikeArrayMixin,
     # DatetimeLike Interface
 
     def _unbox_scalar(self, value):
-        if not isinstance(value, (self._scalar_type, type(NaT))):
-            raise ValueError("'value' should be a a Timestamp..")
+        if not isinstance(value, self._scalar_type) and value is not NaT:
+            raise ValueError("'value' should be a Timestamp.")
         if not isna(value):
             self._check_compatible_with(value)
         return value.value
@@ -453,10 +453,11 @@ class DatetimeArrayMixin(dtl.DatetimeLikeArrayMixin,
         return Timestamp(value, tz=self.tz)
 
     def _check_compatible_with(self, other):
+        if other is NaT:
+            return
         if not timezones.tz_compare(self.tz, other.tz):
-            raise ValueError(
-                "Timezones don't match. '{} != {}'".format(self.tz, other.tz)
-            )
+            raise ValueError("Timezones don't match. '{own} != {other}'"
+                             .format(own=self.tz, other=other.tz))
 
     def _maybe_clear_freq(self):
         self._freq = None

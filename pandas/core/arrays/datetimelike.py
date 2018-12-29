@@ -141,15 +141,15 @@ class AttributesMixin(object):
         raise AbstractMethodError(self)
 
     def _check_compatible_with(self, other):
-        # TODO: choose a type for other
-        # Can it be NaT?
-        # Scalar, array, or both?
+        # type: (Union[Period, Timestamp, Timedelta, NaTType]) -> None
         """
         Verify that `self` and `other` are compatible.
 
         * DatetimeArray verifies that the timezones (if any) match
         * PeriodArray verifies that the freq matches
         * Timedelta has no verification
+
+        In each case, NaT is considered compatible.
 
         Parameters
         ----------
@@ -699,36 +699,8 @@ class DatetimeLikeArrayMixin(AttributesMixin,
 
     # ------------------------------------------------------------------
     # Additional array methods
-    # These are not part of the EA API, but we implement them because
-    # pandas currently assumes they're there.
-
-    def value_counts(self, dropna=False):
-        """
-        Return a Series containing counts of unique values.
-
-        Parameters
-        ----------
-        dropna : boolean, default True
-            Don't include counts of NaT values.
-
-        Returns
-        -------
-        Series
-        """
-        # n.b. moved from PeriodArray.value_counts
-        from pandas import Series, Index
-
-        if dropna:
-            values = self[~self.isna()]._data
-        else:
-            values = self._data
-
-        cls = type(self)
-
-        result = value_counts(values, sort=False, dropna=dropna)
-        index = Index(cls(result.index, dtype=self.dtype),
-                      name=result.index.name)
-        return Series(result.values, index=index, name=result.name)
+    #  These are not part of the EA API, but we implement them because
+    #  pandas assumes they're there.
 
     def searchsorted(self, value, side='left', sorter=None):
         """
@@ -760,8 +732,8 @@ class DatetimeLikeArrayMixin(AttributesMixin,
 
         if not (isinstance(value, (self._scalar_type, type(self)))
                 or isna(value)):
-            msg = "Unexpected type for 'value': {}".format(type(value))
-            raise ValueError(msg)
+            raise ValueError("Unexpected type for 'value': {valtype}"
+                             .format(valtype=type(value)))
 
         self._check_compatible_with(value)
         if isinstance(value, type(self)):
@@ -779,10 +751,37 @@ class DatetimeLikeArrayMixin(AttributesMixin,
         --------
         numpy.ndarray.repeat
         """
-        # n.b. moved from PeriodArray.repeat
         nv.validate_repeat(args, kwargs)
         values = self._data.repeat(repeats)
         return type(self)(values, dtype=self.dtype)
+
+    def value_counts(self, dropna=False):
+        """
+        Return a Series containing counts of unique values.
+
+        Parameters
+        ----------
+        dropna : boolean, default True
+            Don't include counts of NaT values.
+
+        Returns
+        -------
+        Series
+        """
+        # n.b. moved from PeriodArray.value_counts
+        from pandas import Series, Index
+
+        if dropna:
+            values = self[~self.isna()]._data
+        else:
+            values = self._data
+
+        cls = type(self)
+
+        result = value_counts(values, sort=False, dropna=dropna)
+        index = Index(cls(result.index, dtype=self.dtype),
+                      name=result.index.name)
+        return Series(result.values, index=index, name=result.name)
 
     def map(self, mapper):
         # TODO(GH-23179): Add ExtensionArray.map
@@ -793,6 +792,7 @@ class DatetimeLikeArrayMixin(AttributesMixin,
         from pandas import Index
 
         return Index(self).map(mapper).array
+
     # ------------------------------------------------------------------
     # Null Handling
 
