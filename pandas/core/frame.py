@@ -7103,8 +7103,8 @@ class DataFrame(NDFrame):
             result_index = (this._get_axis(raxis).
                             union(other._get_axis(raxis)))
             idx_diff = result_index.difference(correl.index)
-            correl = correl.append(pd.Series([np.nan] * len(idx_diff),
-                                             index=idx_diff))
+            correl = correl.append(Series([np.nan] * len(idx_diff),
+                                          index=idx_diff))
 
         return correl
 
