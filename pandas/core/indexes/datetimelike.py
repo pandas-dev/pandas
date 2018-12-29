@@ -13,10 +13,8 @@ from pandas.errors import AbstractMethodError
 from pandas.util._decorators import Appender, cache_readonly
 
 from pandas.core.dtypes.common import (
-    ensure_int64, is_bool_dtype, is_categorical_dtype,
-    is_datetime_or_timedelta_dtype, is_dtype_equal, is_float, is_float_dtype,
-    is_integer, is_integer_dtype, is_list_like, is_object_dtype,
-    is_period_dtype, is_scalar, is_string_dtype)
+    ensure_int64, is_bool_dtype, is_dtype_equal, is_float, is_integer,
+    is_list_like, is_period_dtype, is_scalar)
 from pandas.core.dtypes.generic import ABCIndex, ABCIndexClass, ABCSeries
 
 from pandas.core import algorithms, ops
@@ -39,7 +37,7 @@ class DatetimeIndexOpsMixin(DatetimeLikeArrayMixin):
 
     # override DatetimeLikeArrayMixin method
     copy = Index.copy
-    unique = Index.unique
+    view = Index.view
 
     # DatetimeLikeArrayMixin assumes subclasses are mutable, so these are
     # properties there.  They can be made into cache_readonly for Index
@@ -50,6 +48,30 @@ class DatetimeIndexOpsMixin(DatetimeLikeArrayMixin):
     _hasnans = hasnans  # for index / array -agnostic code
     _resolution = cache_readonly(DatetimeLikeArrayMixin._resolution.fget)
     resolution = cache_readonly(DatetimeLikeArrayMixin.resolution.fget)
+
+    def unique(self, level=None):
+        if level is not None:
+            self._validate_index_level(level)
+
+        result = self._eadata.unique()
+
+        # Note: if `self` is already unique, then self.unique() should share
+        #  a `freq` with self.  If not already unique, then self.freq must be
+        #  None, so again sharing freq is correct.
+        return self._shallow_copy(result._data)
+
+    @classmethod
+    def _create_comparison_method(cls, op):
+        """
+        Create a comparison method that dispatches to ``cls.values``.
+        """
+        def wrapper(self, other):
+            result = op(self._eadata, maybe_unwrap_index(other))
+            return result
+
+        wrapper.__doc__ = op.__doc__
+        wrapper.__name__ = '__{}__'.format(op.__name__)
+        return wrapper
 
     # A few methods that are shared
     _maybe_mask_results = DatetimeLikeArrayMixin._maybe_mask_results
@@ -106,7 +128,7 @@ class DatetimeIndexOpsMixin(DatetimeLikeArrayMixin):
 
     @Appender(DatetimeLikeArrayMixin._evaluate_compare.__doc__)
     def _evaluate_compare(self, other, op):
-        result = DatetimeLikeArrayMixin._evaluate_compare(self, other, op)
+        result = self._eadata._evaluate_compare(other, op)
         if is_bool_dtype(result):
             return result
         try:
@@ -406,7 +428,7 @@ class DatetimeIndexOpsMixin(DatetimeLikeArrayMixin):
 
         def __add__(self, other):
             # dispatch to ExtensionArray implementation
-            result = super(cls, self).__add__(other)
+            result = self._eadata.__add__(maybe_unwrap_index(other))
             return wrap_arithmetic_op(self, other, result)
 
         cls.__add__ = __add__
@@ -418,13 +440,13 @@ class DatetimeIndexOpsMixin(DatetimeLikeArrayMixin):
 
         def __sub__(self, other):
             # dispatch to ExtensionArray implementation
-            result = super(cls, self).__sub__(other)
+            result = self._eadata.__sub__(maybe_unwrap_index(other))
             return wrap_arithmetic_op(self, other, result)
 
         cls.__sub__ = __sub__
 
         def __rsub__(self, other):
-            result = super(cls, self).__rsub__(other)
+            result = self._eadata.__rsub__(maybe_unwrap_index(other))
             return wrap_arithmetic_op(self, other, result)
 
         cls.__rsub__ = __rsub__
@@ -455,6 +477,7 @@ class DatetimeIndexOpsMixin(DatetimeLikeArrayMixin):
         nv.validate_repeat(tuple(), dict(axis=axis))
         freq = self.freq if is_period_dtype(self) else None
         return self._shallow_copy(self.asi8.repeat(repeats), freq=freq)
+        # TODO: dispatch to _eadata
 
     @Appender(_index_shared_docs['where'] % _index_doc_kwargs)
     def where(self, cond, other=None):
@@ -527,30 +550,23 @@ class DatetimeIndexOpsMixin(DatetimeLikeArrayMixin):
         # - sort_values
         return values
 
+    @Appender(_index_shared_docs['astype'])
     def astype(self, dtype, copy=True):
-        if is_object_dtype(dtype):
-            return self._box_values_as_index()
-        elif is_string_dtype(dtype) and not is_categorical_dtype(dtype):
-            return Index(self.format(), name=self.name, dtype=object)
-        elif is_integer_dtype(dtype):
-            # TODO(DatetimeArray): use self._values here.
-            # Can't use ._values currently, because that returns a
-            # DatetimeIndex, which throws us in an infinite loop.
-            return Index(self.values.astype('i8', copy=copy), name=self.name,
-                         dtype='i8')
-        elif (is_datetime_or_timedelta_dtype(dtype) and
-              not is_dtype_equal(self.dtype, dtype)) or is_float_dtype(dtype):
-            # disallow conversion between datetime/timedelta,
-            # and conversions for any datetimelike to float
-            msg = 'Cannot cast {name} to dtype {dtype}'
-            raise TypeError(msg.format(name=type(self).__name__, dtype=dtype))
-        return super(DatetimeIndexOpsMixin, self).astype(dtype, copy=copy)
+        if is_dtype_equal(self.dtype, dtype) and copy is False:
+            # Ensure that self.astype(self.dtype) is self
+            return self
+
+        new_values = self._eadata.astype(dtype, copy=copy)
+
+        # pass copy=False because any copying will be done in the
+        #  _eadata.astype call above
+        return Index(new_values,
+                     dtype=new_values.dtype, name=self.name, copy=False)
 
     @Appender(DatetimeLikeArrayMixin._time_shift.__doc__)
     def _time_shift(self, periods, freq=None):
-        result = DatetimeLikeArrayMixin._time_shift(self, periods, freq=freq)
-        result.name = self.name
-        return result
+        result = self._eadata._time_shift(periods, freq=freq)
+        return type(self)(result, name=self.name)
 
 
 def wrap_arithmetic_op(self, other, result):
@@ -572,61 +588,26 @@ def wrap_arithmetic_op(self, other, result):
     return result
 
 
-def wrap_array_method(method, pin_name=False):
+def maybe_unwrap_index(obj):
     """
-    Wrap a DatetimeArray/TimedeltaArray/PeriodArray method so that the
-    returned object is an Index subclass instead of ndarray or ExtensionArray
-    subclass.
+    If operating against another Index object, we need to unwrap the underlying
+    data before deferring to the DatetimeArray/TimedeltaArray/PeriodArray
+    implementation, otherwise we will incorrectly return NotImplemented.
 
     Parameters
     ----------
-    method : method of Datetime/Timedelta/Period Array class
-    pin_name : bool
-        Whether to set name=self.name on the output Index
+    obj : object
 
     Returns
     -------
-    method
+    unwrapped object
     """
-    def index_method(self, *args, **kwargs):
-        result = method(self, *args, **kwargs)
-
-        # Index.__new__ will choose the appropriate subclass to return
-        result = Index(result)
-        if pin_name:
-            result.name = self.name
-        return result
-
-    index_method.__name__ = method.__name__
-    index_method.__doc__ = method.__doc__
-    return index_method
-
-
-def wrap_field_accessor(prop):
-    """
-    Wrap a DatetimeArray/TimedeltaArray/PeriodArray array-returning property
-    to return an Index subclass instead of ndarray or ExtensionArray subclass.
-
-    Parameters
-    ----------
-    prop : property
-
-    Returns
-    -------
-    new_prop : property
-    """
-    fget = prop.fget
-
-    def f(self):
-        result = fget(self)
-        if is_bool_dtype(result):
-            # return numpy array b/c there is no BoolIndex
-            return result
-        return Index(result, name=self.name)
-
-    f.__name__ = fget.__name__
-    f.__doc__ = fget.__doc__
-    return property(f)
+    if isinstance(obj, ABCIndexClass):
+        if isinstance(obj, DatetimeIndexOpsMixin):
+            # i.e. PeriodIndex/DatetimeIndex/TimedeltaIndex
+            return obj._eadata
+        return obj._data
+    return obj
 
 
 class DatetimelikeDelegateMixin(PandasDelegate):
@@ -659,16 +640,16 @@ class DatetimelikeDelegateMixin(PandasDelegate):
         raise AbstractMethodError
 
     def _delegate_property_get(self, name, *args, **kwargs):
-        result = getattr(self._data, name)
+        result = getattr(self._eadata, name)
         if name not in self._raw_properties:
             result = Index(result, name=self.name)
         return result
 
     def _delegate_property_set(self, name, value, *args, **kwargs):
-        setattr(self._data, name, value)
+        setattr(self._eadata, name, value)
 
     def _delegate_method(self, name, *args, **kwargs):
-        result = operator.methodcaller(name, *args, **kwargs)(self._data)
+        result = operator.methodcaller(name, *args, **kwargs)(self._eadata)
         if name not in self._raw_methods:
             result = Index(result, name=self.name)
         return result

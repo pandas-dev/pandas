@@ -18,3 +18,4 @@ objects.
    api.extensions.register_index_accessor
    api.extensions.ExtensionDtype
    api.extensions.ExtensionArray
+   arrays.PandasArray

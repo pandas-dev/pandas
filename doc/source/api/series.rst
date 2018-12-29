@@ -444,6 +444,17 @@ strings and apply several methods to it. These can be accessed like
        Series.dt
        Index.str
 
+.. _api.arrays:
+
+Arrays
+------
+Pandas and third-party libraries can extend NumPy's type system (see :ref:`extending.extension-types`).
+
+.. autosummary::
+   :toctree: generated/
+
+   array
+
 .. _api.categorical:
 
 Categorical
