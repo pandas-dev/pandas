@@ -748,6 +748,23 @@ class DatetimeLikeArrayMixin(AttributesMixin,
     # ------------------------------------------------------------------
     # Null Handling
 
+    def isna(self):
+        return self._isnan
+
+    @property  # NB: override with cache_readonly in immutable subclasses
+    def _isnan(self):
+        """
+        return if each value is nan
+        """
+        return (self.asi8 == iNaT)
+
+    @property  # NB: override with cache_readonly in immutable subclasses
+    def _hasnans(self):
+        """
+        return if I have any nans; enables various perf speedups
+        """
+        return bool(self._isnan.any())
+
     def _maybe_mask_results(self, result, fill_value=iNaT, convert=None):
         """
         Parameters
@@ -773,23 +790,6 @@ class DatetimeLikeArrayMixin(AttributesMixin,
                 fill_value = np.nan
             result[self._isnan] = fill_value
         return result
-
-    def isna(self):
-        return self._isnan
-
-    @property  # NB: override with cache_readonly in immutable subclasses
-    def _isnan(self):
-        """
-        return if each value is nan
-        """
-        return (self.asi8 == iNaT)
-
-    @property  # NB: override with cache_readonly in immutable subclasses
-    def _hasnans(self):
-        """
-        return if I have any nans; enables various perf speedups
-        """
-        return bool(self._isnan.any())
 
     def fillna(self, value=None, method=None, limit=None):
         # TODO(GH-20300): remove this
