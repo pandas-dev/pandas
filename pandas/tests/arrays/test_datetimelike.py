@@ -64,7 +64,7 @@ class SharedTests(object):
     def test_compare_len1_raises(self):
         # make sure we raise when comparing with different lengths, specific
         #  to the case where one has length-1, which numpy would broadcast
-        data = np.arange(10, dtype='i8')
+        data = np.arange(10, dtype='i8') * 24 * 3600 * 10**9
 
         idx = self.index_cls._simple_new(data, freq='D')
         arr = self.array_cls(idx)
@@ -77,7 +77,7 @@ class SharedTests(object):
             idx <= idx[[0]]
 
     def test_take(self):
-        data = np.arange(100, dtype='i8')
+        data = np.arange(100, dtype='i8') * 24 * 3600 * 10**9
         np.random.shuffle(data)
 
         idx = self.index_cls._simple_new(data, freq='D')
@@ -96,7 +96,7 @@ class SharedTests(object):
         tm.assert_index_equal(self.index_cls(result), expected)
 
     def test_take_fill(self):
-        data = np.arange(10, dtype='i8')
+        data = np.arange(10, dtype='i8') * 24 * 3600 * 10**9
 
         idx = self.index_cls._simple_new(data, freq='D')
         arr = self.array_cls(idx)
@@ -121,7 +121,7 @@ class SharedTests(object):
                      fill_value=pd.Timestamp.now().time)
 
     def test_concat_same_type(self):
-        data = np.arange(10, dtype='i8')
+        data = np.arange(10, dtype='i8') * 24 * 3600 * 10**9
 
         idx = self.index_cls._simple_new(data, freq='D').insert(0, pd.NaT)
         arr = self.array_cls(idx)

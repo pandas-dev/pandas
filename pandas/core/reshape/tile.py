@@ -390,10 +390,10 @@ def _coerce_to_type(x):
         dtype = x.dtype
     elif is_datetime64_dtype(x):
         x = to_datetime(x)
-        dtype = np.datetime64
+        dtype = np.dtype('datetime64[ns]')
     elif is_timedelta64_dtype(x):
         x = to_timedelta(x)
-        dtype = np.timedelta64
+        dtype = np.dtype('timedelta64[ns]')
 
     if dtype is not None:
         # GH 19768: force NaT to NaN during integer conversion
