@@ -34,6 +34,8 @@ def pytest_addoption(parser):
                      help="skip slow tests")
     parser.addoption("--skip-network", action="store_true",
                      help="skip network tests")
+    parser.addoption("--skip-db", action="store_true",
+                     help="skip db tests")
     parser.addoption("--run-high-memory", action="store_true",
                      help="run high memory tests")
     parser.addoption("--only-slow", action="store_true",
@@ -51,6 +53,9 @@ def pytest_runtest_setup(item):
 
     if 'network' in item.keywords and item.config.getoption("--skip-network"):
         pytest.skip("skipping due to --skip-network")
+
+    if 'db' in item.keywords and item.config.getoption("--skip-db"):
+        pytest.skip("skipping due to --skip-db")
 
     if 'high_memory' in item.keywords and not item.config.getoption(
             "--run-high-memory"):
