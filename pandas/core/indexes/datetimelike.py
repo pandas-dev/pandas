@@ -13,10 +13,8 @@ from pandas.errors import AbstractMethodError
 from pandas.util._decorators import Appender, cache_readonly
 
 from pandas.core.dtypes.common import (
-    ensure_int64, is_bool_dtype, is_categorical_dtype,
-    is_datetime_or_timedelta_dtype, is_dtype_equal, is_float, is_float_dtype,
-    is_integer, is_integer_dtype, is_list_like, is_object_dtype,
-    is_period_dtype, is_scalar, is_string_dtype)
+    ensure_int64, is_bool_dtype, is_dtype_equal, is_float, is_integer,
+    is_list_like, is_period_dtype, is_scalar)
 from pandas.core.dtypes.generic import ABCIndex, ABCIndexClass, ABCSeries
 
 from pandas.core import algorithms, ops
@@ -39,6 +37,7 @@ class DatetimeIndexOpsMixin(DatetimeLikeArrayMixin):
 
     # override DatetimeLikeArrayMixin method
     copy = Index.copy
+    view = Index.view
 
     # DatetimeLikeArrayMixin assumes subclasses are mutable, so these are
     # properties there.  They can be made into cache_readonly for Index
@@ -478,6 +477,7 @@ class DatetimeIndexOpsMixin(DatetimeLikeArrayMixin):
         nv.validate_repeat(tuple(), dict(axis=axis))
         freq = self.freq if is_period_dtype(self) else None
         return self._shallow_copy(self.asi8.repeat(repeats), freq=freq)
+        # TODO: dispatch to _eadata
 
     @Appender(_index_shared_docs['where'] % _index_doc_kwargs)
     def where(self, cond, other=None):
@@ -550,24 +550,18 @@ class DatetimeIndexOpsMixin(DatetimeLikeArrayMixin):
         # - sort_values
         return values
 
+    @Appender(_index_shared_docs['astype'])
     def astype(self, dtype, copy=True):
-        if is_object_dtype(dtype):
-            return self._box_values_as_index()
-        elif is_string_dtype(dtype) and not is_categorical_dtype(dtype):
-            return Index(self.format(), name=self.name, dtype=object)
-        elif is_integer_dtype(dtype):
-            # TODO(DatetimeArray): use self._values here.
-            # Can't use ._values currently, because that returns a
-            # DatetimeIndex, which throws us in an infinite loop.
-            return Index(self.values.astype('i8', copy=copy), name=self.name,
-                         dtype='i8')
-        elif (is_datetime_or_timedelta_dtype(dtype) and
-              not is_dtype_equal(self.dtype, dtype)) or is_float_dtype(dtype):
-            # disallow conversion between datetime/timedelta,
-            # and conversions for any datetimelike to float
-            msg = 'Cannot cast {name} to dtype {dtype}'
-            raise TypeError(msg.format(name=type(self).__name__, dtype=dtype))
-        return super(DatetimeIndexOpsMixin, self).astype(dtype, copy=copy)
+        if is_dtype_equal(self.dtype, dtype) and copy is False:
+            # Ensure that self.astype(self.dtype) is self
+            return self
+
+        new_values = self._eadata.astype(dtype, copy=copy)
+
+        # pass copy=False because any copying will be done in the
+        #  _eadata.astype call above
+        return Index(new_values,
+                     dtype=new_values.dtype, name=self.name, copy=False)
 
     @Appender(DatetimeLikeArrayMixin._time_shift.__doc__)
     def _time_shift(self, periods, freq=None):

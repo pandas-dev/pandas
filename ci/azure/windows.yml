@@ -11,7 +11,7 @@ jobs:
       py36_np14:
         ENV_FILE: ci/deps/azure-windows-36.yaml
         CONDA_PY: "36"
-        PATTERN: "not slow and not network"
+        PATTERN: "not slow and not network and not db"
 
       py27_np121:
         ENV_FILE: ci/deps/azure-windows-27.yaml

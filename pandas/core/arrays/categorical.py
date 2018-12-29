@@ -2091,9 +2091,9 @@ class Categorical(ExtensionArray, PandasObject):
             If (one or more) Value is not in categories or if a assigned
             `Categorical` does not have the same categories
         """
+        from pandas.core.internals.arrays import extract_array
 
-        if isinstance(value, (ABCIndexClass, ABCSeries)):
-            value = value.array
+        value = extract_array(value, extract_numpy=True)
 
         # require identical categories set
         if isinstance(value, Categorical):

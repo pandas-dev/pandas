@@ -720,6 +720,19 @@ strings and apply several methods to it. These can be accessed like
        Series.dt
        Index.str
 
+
+.. _api.arrays:
+
+Arrays
+------
+
+Pandas and third-party libraries can extend NumPy's type system (see :ref:`extending.extension-types`).
+
+.. autosummary::
+   :toctree: generated/
+
+   array
+
 .. _api.categorical:
 
 Categorical
@@ -807,6 +820,65 @@ following usable methods and properties:
    Series.cat.set_categories
    Series.cat.as_ordered
    Series.cat.as_unordered
+
+.. _api.arrays.integerna:
+
+Integer-NA
+~~~~~~~~~~
+
+:class:`arrays.IntegerArray` can hold integer data, potentially with missing
+values.
+
+.. autosummary::
+   :toctree: generated/
+
+   arrays.IntegerArray
+
+.. _api.arrays.interval:
+
+Interval
+~~~~~~~~
+
+:class:`IntervalArray` is an array for storing data representing intervals.
+The scalar type is a :class:`Interval`. These may be stored in a :class:`Series`
+or as a :class:`IntervalIndex`. :class:`IntervalArray` can be closed on the
+``'left'``, ``'right'``, or ``'both'``, or ``'neither'`` sides.
+See :ref:`indexing.intervallindex` for more.
+
+.. currentmodule:: pandas
+
+.. autosummary::
+   :toctree: generated/
+
+   IntervalArray
+
+.. _api.arrays.period:
+
+Period
+~~~~~~
+
+Periods represent a span of time (e.g. the year 2000, or the hour from 11:00 to 12:00
+on January 1st, 2000). A collection of :class:`Period` objects with a common frequency
+can be collected in a :class:`PeriodArray`. See :ref:`timeseries.periods` for more.
+
+.. autosummary::
+   :toctree: generated/
+
+   arrays.PeriodArray
+
+Sparse
+~~~~~~
+
+Sparse data may be stored and operated on more efficiently when there is a single value
+that's often repeated. :class:`SparseArray` is a container for this type of data.
+See :ref:`sparse` for more.
+
+.. _api.arrays.sparse:
+
+.. autosummary::
+   :toctree: generated/
+
+   SparseArray
 
 Plotting
 ~~~~~~~~
@@ -1701,6 +1773,7 @@ IntervalIndex Components
    IntervalIndex.get_indexer
    IntervalIndex.set_closed
    IntervalIndex.overlaps
+   IntervalArray.to_tuples
 
 
 .. _api.multiindex:
@@ -1932,6 +2005,8 @@ Methods
     PeriodIndex.asfreq
     PeriodIndex.strftime
     PeriodIndex.to_timestamp
+
+.. api.scalars:
 
 Scalars
 -------
@@ -3997,6 +4072,7 @@ objects.
    api.extensions.register_index_accessor
    api.extensions.ExtensionDtype
    api.extensions.ExtensionArray
+   arrays.PandasArray
 
 .. This is to prevent warnings in the doc build. We don't want to encourage
 .. these methods.
