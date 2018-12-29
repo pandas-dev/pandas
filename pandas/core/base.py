@@ -17,7 +17,8 @@ from pandas.util._validators import validate_bool_kwarg
 from pandas.core.dtypes.common import (
     is_datetime64tz_dtype, is_datetimelike, is_extension_array_dtype,
     is_extension_type, is_list_like, is_object_dtype, is_scalar)
-from pandas.core.dtypes.generic import ABCDataFrame, ABCIndexClass, ABCSeries
+from pandas.core.dtypes.generic import (
+    ABCDataFrame, ABCDatetimeArray, ABCIndexClass, ABCSeries)
 from pandas.core.dtypes.missing import isna
 
 from pandas.core import algorithms, common as com
@@ -849,9 +850,13 @@ class IndexOpsMixin(object):
         """
         result = self._values
 
-        # TODO(DatetimeArray): remvoe the second clause.
-        if (not is_extension_array_dtype(result.dtype)
-                and not is_datetime64tz_dtype(result.dtype)):
+        if not (is_extension_array_dtype(result.dtype)
+                or isinstance(result, ABCDatetimeArray)):
+            # TODO: Should this be a DatetimeArray or PandasArray
+            # for tz-naive data?
+            # DatetimeArray is a bit strange, since tz-naive
+            # arrays are an ExtensionArray, but the dtype is not
+            # an extension dtype.
             from pandas.core.arrays.numpy_ import PandasArray
 
             result = PandasArray(result)
