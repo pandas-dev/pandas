@@ -1,11 +1,13 @@
-import pytest
-import pandas as pd
 import numpy as np
+import pytest
+
 from pandas.compat import StringIO
+
+import pandas as pd
 from pandas.core.arrays.integer import (
     Int8Dtype, Int16Dtype, Int32Dtype, Int64Dtype, UInt8Dtype, UInt16Dtype,
-    UInt32Dtype, UInt64Dtype, integer_array,
-)
+    UInt32Dtype, UInt64Dtype, integer_array)
+
 from .base import BaseExtensionTests
 
 

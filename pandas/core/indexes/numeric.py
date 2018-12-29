@@ -7,9 +7,8 @@ import pandas.compat as compat
 from pandas.util._decorators import Appender, cache_readonly
 
 from pandas.core.dtypes.common import (
-    is_bool, is_bool_dtype, is_dtype_equal, is_float, is_integer_dtype,
-    is_scalar, needs_i8_conversion, pandas_dtype, is_extension_array_dtype,
-)
+    is_bool, is_bool_dtype, is_dtype_equal, is_extension_array_dtype, is_float,
+    is_integer_dtype, is_scalar, needs_i8_conversion, pandas_dtype)
 import pandas.core.dtypes.concat as _concat
 from pandas.core.dtypes.missing import isna
 

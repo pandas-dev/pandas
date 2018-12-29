@@ -28,9 +28,8 @@ from pandas.util._decorators import Appender
 from pandas.core.dtypes.cast import astype_nansafe
 from pandas.core.dtypes.common import (
     ensure_object, is_bool_dtype, is_categorical_dtype, is_dtype_equal,
-    is_float, is_integer, is_integer_dtype, is_list_like, is_object_dtype,
-    is_scalar, is_string_dtype, is_extension_array_dtype, pandas_dtype,
-)
+    is_extension_array_dtype, is_float, is_integer, is_integer_dtype,
+    is_list_like, is_object_dtype, is_scalar, is_string_dtype, pandas_dtype)
 from pandas.core.dtypes.dtypes import CategoricalDtype
 from pandas.core.dtypes.missing import isna
 

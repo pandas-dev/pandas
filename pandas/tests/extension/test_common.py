@@ -1,17 +1,17 @@
 import numpy as np
 import pytest
 
+from pandas.compat import StringIO
+
 from pandas.core.dtypes import dtypes
 from pandas.core.dtypes.common import is_extension_array_dtype
 
 import pandas as pd
 from pandas.core.arrays import ExtensionArray
-import pandas.util.testing as tm
-from pandas.compat import StringIO
 from pandas.core.arrays.integer import (
     Int8Dtype, Int16Dtype, Int32Dtype, Int64Dtype, UInt8Dtype, UInt16Dtype,
-    UInt32Dtype, UInt64Dtype, integer_array,
-)
+    UInt32Dtype, UInt64Dtype, integer_array)
+import pandas.util.testing as tm
 
 
 def make_data():
