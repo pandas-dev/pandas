@@ -32,6 +32,17 @@ _index_doc_kwargs = dict(ibase._index_doc_kwargs)
 
 
 def ea_passthrough(name):
+    """
+    Make an alias for a method of the underlying ExtensionArray.
+
+    Parameters
+    ----------
+    name : str
+
+    Returns
+    -------
+    method
+    """
     def method(self, *args, **kwargs):
         return getattr(self._eadata, name)(*args, **kwargs)
 

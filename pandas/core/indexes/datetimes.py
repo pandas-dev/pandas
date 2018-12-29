@@ -281,14 +281,14 @@ class DatetimeIndex(DatetimeIndexOpsMixin, Int64Index, DatetimeDelegateMixin):
             verify_integrity = True
 
         if data is None:
-            warnings.warn("Creating a DatetimeIndex by passing range "
-                          "endpoints is deprecated.  Use "
-                          "`pandas.date_range` instead.",
-                          FutureWarning, stacklevel=2)
             dtarr = DatetimeArray._generate_range(
                 start, end, periods,
                 freq=freq, tz=tz, normalize=normalize,
                 closed=closed, ambiguous=ambiguous)
+            warnings.warn("Creating a DatetimeIndex by passing range "
+                          "endpoints is deprecated.  Use "
+                          "`pandas.date_range` instead.",
+                          FutureWarning, stacklevel=2)
             return cls._simple_new(
                 dtarr._data, freq=dtarr.freq, tz=dtarr.tz, name=name)
 
@@ -1152,24 +1152,6 @@ class DatetimeIndex(DatetimeIndexOpsMixin, Int64Index, DatetimeDelegateMixin):
     strftime = ea_passthrough("strftime")
     _has_same_tz = ea_passthrough("_has_same_tz")
     __array__ = ea_passthrough("__array__")
-
-    def round(self, freq, ambiguous='raise', nonexistent='raise'):
-        result = self._eadata.round(
-            freq, ambiguous=ambiguous, nonexistent=nonexistent)
-        return type(self)._simple_new(
-            result._data, freq=result.freq, tz=result.tz)
-
-    def floor(self, freq, ambiguous='raise', nonexistent='raise'):
-        result = self._eadata.floor(
-            freq, ambiguous=ambiguous, nonexistent=nonexistent)
-        return type(self)._simple_new(
-            result._data, freq=result.freq, tz=result.tz)
-
-    def ceil(self, freq, ambiguous='raise', nonexistent='raise'):
-        result = self._eadata.ceil(
-            freq, ambiguous=ambiguous, nonexistent=nonexistent)
-        return type(self)._simple_new(
-            result._data, freq=result.freq, tz=result.tz)
 
     @property
     def offset(self):
