@@ -14,19 +14,19 @@ import pandas.compat as compat
 from pandas.util._decorators import Appender, Substitution, cache_readonly
 
 from pandas.core.dtypes.common import (
-    _NS_DTYPE, ensure_int64, is_datetime64_ns_dtype, is_dtype_equal, is_float,
-    is_integer, is_list_like, is_period_dtype, is_scalar, is_string_like,
-    pandas_dtype)
+    _NS_DTYPE, ensure_int64, is_float, is_integer, is_list_like, is_scalar,
+    is_string_like)
 import pandas.core.dtypes.concat as _concat
 from pandas.core.dtypes.missing import isna
 
+from pandas.core.accessor import delegate_names
 from pandas.core.arrays.datetimes import (
     DatetimeArrayMixin as DatetimeArray, _to_m8)
 from pandas.core.base import _shared_docs
 import pandas.core.common as com
-from pandas.core.indexes.base import Index, _index_shared_docs
+from pandas.core.indexes.base import Index
 from pandas.core.indexes.datetimelike import (
-    DatetimeIndexOpsMixin, wrap_array_method, wrap_field_accessor)
+    DatetimeIndexOpsMixin, DatetimelikeDelegateMixin)
 from pandas.core.indexes.numeric import Int64Index
 from pandas.core.ops import get_op_result_name
 import pandas.core.tools.datetimes as tools
@@ -61,7 +61,54 @@ def _new_DatetimeIndex(cls, d):
     return result
 
 
-class DatetimeIndex(DatetimeArray, DatetimeIndexOpsMixin, Int64Index):
+class DatetimeDelegateMixin(DatetimelikeDelegateMixin):
+    # Most attrs are dispatched via datetimelike_{ops,methods}
+    # Some are "raw" methods, the result is not not re-boxed in an Index
+    # We also have a few "extra" attrs, which may or may not be raw,
+    # which we we dont' want to expose in the .dt accessor.
+    _extra_methods = [
+        'to_period',
+        'to_perioddelta',
+        'to_julian_date',
+    ]
+    _extra_raw_methods = [
+        'to_pydatetime',
+        '_local_timestamps',
+        '_has_same_tz',
+    ]
+    _extra_raw_properties = [
+        '_box_func',
+        'tz', 'tzinfo',
+    ]
+    _delegated_properties = (
+        DatetimeArray._datetimelike_ops + _extra_raw_properties
+    )
+    _delegated_methods = (
+        DatetimeArray._datetimelike_methods + _extra_methods +
+        _extra_raw_methods
+    )
+    _raw_properties = {
+        'date',
+        'time',
+        'timetz',
+    } | set(DatetimeArray._bool_ops) | set(_extra_raw_properties)
+    _raw_methods = set(_extra_raw_methods)
+    _delegate_class = DatetimeArray
+
+
+@delegate_names(DatetimeArray, ["to_period", "tz_localize", "tz_convert",
+                                "day_name", "month_name"],
+                typ="method", overwrite=True)
+@delegate_names(DatetimeArray,
+                DatetimeArray._field_ops, typ="property", overwrite=True)
+@delegate_names(DatetimeArray,
+                DatetimeDelegateMixin._delegated_properties,
+                typ="property")
+@delegate_names(DatetimeArray,
+                DatetimeDelegateMixin._delegated_methods,
+                typ="method", overwrite=False)
+class DatetimeIndex(DatetimeArray, DatetimeIndexOpsMixin, Int64Index,
+                    DatetimeDelegateMixin):
     """
     Immutable ndarray of datetime64 data, represented internally as int64, and
     which can be boxed to Timestamp objects that are subclasses of datetime and
@@ -81,15 +128,27 @@ class DatetimeIndex(DatetimeArray, DatetimeIndexOpsMixin, Int64Index):
     start : starting value, datetime-like, optional
         If data is None, start is used as the start point in generating regular
         timestamp data.
+
+        .. deprecated:: 0.24.0
+
     periods  : int, optional, > 0
         Number of periods to generate, if generating index. Takes precedence
         over end argument
-    end   : end time, datetime-like, optional
+
+        .. deprecated:: 0.24.0
+
+    end : end time, datetime-like, optional
         If periods is none, generated index will extend to first conforming
         time on or just past end argument
+
+        .. deprecated:: 0.24.0
+
     closed : string or None, default None
         Make the interval closed with respect to the given frequency to
         the 'left', 'right', or both sides (None)
+
+        .. deprecated:: 0.24. 0
+
     tz : pytz.timezone or dateutil.tz.tzfile
     ambiguous : 'infer', bool-ndarray, 'NaT', default 'raise'
         When clocks moved backward due to DST, ambiguous times may arise.
@@ -166,12 +225,16 @@ class DatetimeIndex(DatetimeArray, DatetimeIndexOpsMixin, Int64Index):
     To learn more about the frequency strings, please see `this link
     <http://pandas.pydata.org/pandas-docs/stable/timeseries.html#offset-aliases>`__.
 
+    Creating a DatetimeIndex based on `start`, `periods`, and `end` has
+    been deprecated in favor of :func:`date_range`.
+
     See Also
     ---------
     Index : The base pandas Index type.
     TimedeltaIndex : Index of timedelta64 data.
     PeriodIndex : Index of Period data.
-    pandas.to_datetime : Convert argument to datetime.
+    to_datetime : Convert argument to datetime.
+    date_range : Create a fixed-frequency DatetimeIndex.
     """
     _typ = 'datetimeindex'
     _join_precedence = 10
@@ -223,15 +286,16 @@ class DatetimeIndex(DatetimeArray, DatetimeIndexOpsMixin, Int64Index):
             verify_integrity = True
 
         if data is None:
+            dtarr = DatetimeArray._generate_range(
+                start, end, periods,
+                freq=freq, tz=tz, normalize=normalize,
+                closed=closed, ambiguous=ambiguous)
             warnings.warn("Creating a DatetimeIndex by passing range "
                           "endpoints is deprecated.  Use "
                           "`pandas.date_range` instead.",
                           FutureWarning, stacklevel=2)
-            result = cls._generate_range(start, end, periods,
-                                         freq=freq, tz=tz, normalize=normalize,
-                                         closed=closed, ambiguous=ambiguous)
-            result.name = name
-            return result
+
+            return cls(dtarr, name=name)
 
         if is_scalar(data):
             raise TypeError("{cls}() must be called with a "
@@ -269,6 +333,8 @@ class DatetimeIndex(DatetimeArray, DatetimeIndexOpsMixin, Int64Index):
 
         result = super(DatetimeIndex, cls)._simple_new(values, freq, tz)
         result.name = name
+        # For groupby perf. See note in indexes/base about _index_data
+        result._index_data = result._data
         result._reset_identity()
         return result
 
@@ -601,20 +667,6 @@ class DatetimeIndex(DatetimeArray, DatetimeIndexOpsMixin, Int64Index):
 
     # --------------------------------------------------------------------
 
-    @Appender(_index_shared_docs['astype'])
-    def astype(self, dtype, copy=True):
-        dtype = pandas_dtype(dtype)
-        if (is_datetime64_ns_dtype(dtype) and
-                not is_dtype_equal(dtype, self.dtype)):
-            # GH 18951: datetime64_ns dtype but not equal means different tz
-            new_tz = getattr(dtype, 'tz', None)
-            if getattr(self.dtype, 'tz', None) is None:
-                return self.tz_localize(new_tz)
-            return self.tz_convert(new_tz)
-        elif is_period_dtype(dtype):
-            return self.to_period(freq=dtype.freq)
-        return super(DatetimeIndex, self).astype(dtype, copy=copy)
-
     def _get_time_micros(self):
         values = self.asi8
         if self.tz is not None and not timezones.is_utc(self.tz):
@@ -710,15 +762,6 @@ class DatetimeIndex(DatetimeArray, DatetimeIndexOpsMixin, Int64Index):
         # we know it conforms; skip check
         return DatetimeIndex._simple_new(snapped, freq=freq)
         # TODO: what about self.name?  tz? if so, use shallow_copy?
-
-    def unique(self, level=None):
-        if level is not None:
-            self._validate_index_level(level)
-
-        # TODO(DatetimeArray): change dispatch once inheritance is removed
-        # call DatetimeArray method
-        result = DatetimeArray.unique(self)
-        return self._shallow_copy(result._data)
 
     def join(self, other, how='left', level=None, return_indexers=False,
              sort=False):
@@ -1087,52 +1130,20 @@ class DatetimeIndex(DatetimeArray, DatetimeIndexOpsMixin, Int64Index):
     # --------------------------------------------------------------------
     # Wrapping DatetimeArray
 
+    @property
+    def _eadata(self):
+        return DatetimeArray._simple_new(self._data,
+                                         tz=self.tz, freq=self.freq)
+
     # Compat for frequency inference, see GH#23789
     _is_monotonic_increasing = Index.is_monotonic_increasing
     _is_monotonic_decreasing = Index.is_monotonic_decreasing
     _is_unique = Index.is_unique
+    astype = DatetimeIndexOpsMixin.astype
 
     _timezone = cache_readonly(DatetimeArray._timezone.fget)
     is_normalized = cache_readonly(DatetimeArray.is_normalized.fget)
     _resolution = cache_readonly(DatetimeArray._resolution.fget)
-
-    year = wrap_field_accessor(DatetimeArray.year)
-    month = wrap_field_accessor(DatetimeArray.month)
-    day = wrap_field_accessor(DatetimeArray.day)
-    hour = wrap_field_accessor(DatetimeArray.hour)
-    minute = wrap_field_accessor(DatetimeArray.minute)
-    second = wrap_field_accessor(DatetimeArray.second)
-    microsecond = wrap_field_accessor(DatetimeArray.microsecond)
-    nanosecond = wrap_field_accessor(DatetimeArray.nanosecond)
-    weekofyear = wrap_field_accessor(DatetimeArray.weekofyear)
-    week = weekofyear
-    dayofweek = wrap_field_accessor(DatetimeArray.dayofweek)
-    weekday = dayofweek
-
-    weekday_name = wrap_field_accessor(DatetimeArray.weekday_name)
-
-    dayofyear = wrap_field_accessor(DatetimeArray.dayofyear)
-    quarter = wrap_field_accessor(DatetimeArray.quarter)
-    days_in_month = wrap_field_accessor(DatetimeArray.days_in_month)
-    daysinmonth = days_in_month
-    is_month_start = wrap_field_accessor(DatetimeArray.is_month_start)
-    is_month_end = wrap_field_accessor(DatetimeArray.is_month_end)
-    is_quarter_start = wrap_field_accessor(DatetimeArray.is_quarter_start)
-    is_quarter_end = wrap_field_accessor(DatetimeArray.is_quarter_end)
-    is_year_start = wrap_field_accessor(DatetimeArray.is_year_start)
-    is_year_end = wrap_field_accessor(DatetimeArray.is_year_end)
-    is_leap_year = wrap_field_accessor(DatetimeArray.is_leap_year)
-
-    tz_localize = wrap_array_method(DatetimeArray.tz_localize, True)
-    tz_convert = wrap_array_method(DatetimeArray.tz_convert, True)
-    to_perioddelta = wrap_array_method(DatetimeArray.to_perioddelta,
-                                       False)
-    to_period = wrap_array_method(DatetimeArray.to_period, True)
-    normalize = wrap_array_method(DatetimeArray.normalize, True)
-    to_julian_date = wrap_array_method(DatetimeArray.to_julian_date,
-                                       False)
-    month_name = wrap_array_method(DatetimeArray.month_name, True)
-    day_name = wrap_array_method(DatetimeArray.day_name, True)
 
     # --------------------------------------------------------------------
 
@@ -1471,12 +1482,12 @@ def date_range(start=None, end=None, periods=None, freq=None, tz=None,
     if freq is None and com._any_none(periods, start, end):
         freq = 'D'
 
-    result = DatetimeIndex._generate_range(
+    dtarr = DatetimeArray._generate_range(
         start=start, end=end, periods=periods,
         freq=freq, tz=tz, normalize=normalize,
         closed=closed, **kwargs)
 
-    result.name = name
+    result = DatetimeIndex(dtarr, name=name)
     return result
 
 

@@ -8,7 +8,7 @@ import numpy as np
 
 import pandas._libs.lib as lib
 import pandas.compat as compat
-from pandas.compat import PYPY, OrderedDict, builtins
+from pandas.compat import PYPY, OrderedDict, builtins, map, range
 from pandas.compat.numpy import function as nv
 from pandas.errors import AbstractMethodError
 from pandas.util._decorators import Appender, Substitution, cache_readonly
@@ -784,18 +784,21 @@ class IndexOpsMixin(object):
 
     @property
     def array(self):
-        # type: () -> Union[np.ndarray, ExtensionArray]
+        # type: () -> ExtensionArray
         """
-        The actual Array backing this Series or Index.
+        The ExtensionArray of the data backing this Series or Index.
 
         .. versionadded:: 0.24.0
 
         Returns
         -------
-        array : numpy.ndarray or ExtensionArray
-            This is the actual array stored within this object. This differs
-            from ``.values`` which may require converting the data
-            to a different form.
+        array : ExtensionArray
+            An ExtensionArray of the values stored within. For extension
+            types, this is the actual array. For NumPy native types, this
+            is a thin (no copy) wrapper around :class:`numpy.ndarray`.
+
+            ``.array`` differs ``.values`` which may require converting the
+            data to a different form.
 
         See Also
         --------
@@ -820,26 +823,39 @@ class IndexOpsMixin(object):
         For any 3rd-party extension types, the array type will be an
         ExtensionArray.
 
-        For all remaining dtypes ``.array`` will be the :class:`numpy.ndarray`
+        For all remaining dtypes ``.array`` will be a
+        :class:`arrays.NumpyExtensionArray` wrapping the actual ndarray
         stored within. If you absolutely need a NumPy array (possibly with
         copying / coercing data), then use :meth:`Series.to_numpy` instead.
 
-        .. note::
-
-           ``.array`` will always return the underlying object backing the
-           Series or Index. If a future version of pandas adds a specialized
-           extension type for a data type, then the return type of ``.array``
-           for that data type will change from an object-dtype ndarray to the
-           new ExtensionArray.
-
         Examples
         --------
+
+        For regular NumPy types like int, and float, a PandasArray
+        is returned.
+
+        >>> pd.Series([1, 2, 3]).array
+        <PandasArray>
+        [1, 2, 3]
+        Length: 3, dtype: int64
+
+        For extension types, like Categorical, the actual ExtensionArray
+        is returned
+
         >>> ser = pd.Series(pd.Categorical(['a', 'b', 'a']))
         >>> ser.array
         [a, b, a]
         Categories (2, object): [a, b]
         """
-        return self._values
+        result = self._values
+
+        # TODO(DatetimeArray): remvoe the second clause.
+        if (not is_extension_array_dtype(result.dtype)
+                and not is_datetime64tz_dtype(result.dtype)):
+            from pandas.core.arrays.numpy_ import PandasArray
+
+            result = PandasArray(result)
+        return result
 
     def to_numpy(self, dtype=None, copy=False):
         """
@@ -1072,7 +1088,13 @@ class IndexOpsMixin(object):
         (for str, int, float) or a pandas scalar
         (for Timestamp/Timedelta/Interval/Period)
         """
-        return iter(self.tolist())
+        # We are explicity making element iterators.
+        if is_datetimelike(self._values):
+            return map(com.maybe_box_datetimelike, self._values)
+        elif is_extension_array_dtype(self._values):
+            return iter(self._values)
+        else:
+            return map(self._values.item, range(self._values.size))
 
     @cache_readonly
     def hasnans(self):
@@ -1387,8 +1409,14 @@ class IndexOpsMixin(object):
 
         Returns
         -------
-        indices : array of ints
-            Array of insertion points with the same shape as `value`.
+        int or array of int
+            A scalar or array of insertion points with the
+            same shape as `value`.
+
+            .. versionchanged :: 0.24.0
+                If `value` is a scalar, an int is now always returned.
+                Previously, scalar inputs returned an 1-item array for
+                :class:`Series` and :class:`Categorical`.
 
         See Also
         --------
@@ -1409,7 +1437,7 @@ class IndexOpsMixin(object):
         dtype: int64
 
         >>> x.searchsorted(4)
-        array([3])
+        3
 
         >>> x.searchsorted([0, 4])
         array([0, 3])
@@ -1426,7 +1454,7 @@ class IndexOpsMixin(object):
         Categories (4, object): [apple < bread < cheese < milk]
 
         >>> x.searchsorted('bread')
-        array([1])     # Note: an array, not a scalar
+        1
 
         >>> x.searchsorted(['bread'], side='right')
         array([3])
@@ -1436,7 +1464,7 @@ class IndexOpsMixin(object):
     @Appender(_shared_docs['searchsorted'])
     def searchsorted(self, value, side='left', sorter=None):
         # needs coercion on the key (DatetimeIndex does already)
-        return self.values.searchsorted(value, side=side, sorter=sorter)
+        return self._values.searchsorted(value, side=side, sorter=sorter)
 
     def drop_duplicates(self, keep='first', inplace=False):
         inplace = validate_bool_kwarg(inplace, 'inplace')

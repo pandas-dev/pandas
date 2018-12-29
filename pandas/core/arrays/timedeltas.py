@@ -17,7 +17,8 @@ from pandas.util._decorators import Appender
 from pandas.core.dtypes.common import (
     _NS_DTYPE, _TD_DTYPE, ensure_int64, is_datetime64_dtype, is_float_dtype,
     is_integer_dtype, is_list_like, is_object_dtype, is_scalar,
-    is_string_dtype, is_timedelta64_dtype)
+    is_string_dtype, is_timedelta64_dtype, is_timedelta64_ns_dtype,
+    pandas_dtype)
 from pandas.core.dtypes.dtypes import DatetimeTZDtype
 from pandas.core.dtypes.generic import (
     ABCDataFrame, ABCIndexClass, ABCSeries, ABCTimedeltaIndex)
@@ -54,7 +55,7 @@ def _field_accessor(name, alias, docstring=None):
     def f(self):
         values = self.asi8
         result = get_timedelta_field(values, alias)
-        if self.hasnans:
+        if self._hasnans:
             result = self._maybe_mask_results(result, fill_value=None,
                                               convert='float64')
 
@@ -89,6 +90,9 @@ def _td_array_cmp(cls, op):
         elif not is_list_like(other):
             return ops.invalid_comparison(self, other, op)
 
+        elif len(other) != len(self):
+            raise ValueError("Lengths must match")
+
         else:
             try:
                 other = type(self)._from_sequence(other)._data
@@ -102,7 +106,7 @@ def _td_array_cmp(cls, op):
             if o_mask.any():
                 result[o_mask] = nat_result
 
-        if self.hasnans:
+        if self._hasnans:
             result[self._isnan] = nat_result
 
         return result
@@ -112,6 +116,7 @@ def _td_array_cmp(cls, op):
 
 class TimedeltaArrayMixin(dtl.DatetimeLikeArrayMixin, dtl.TimelikeOps):
     _typ = "timedeltaarray"
+    _scalar_type = Timedelta
     __array_priority__ = 1000
     # define my properties & methods for delegation
     _other_ops = []
@@ -218,6 +223,22 @@ class TimedeltaArrayMixin(dtl.DatetimeLikeArrayMixin, dtl.TimelikeOps):
         return cls._simple_new(index, freq=freq)
 
     # ----------------------------------------------------------------
+    # DatetimeLike Interface
+
+    def _unbox_scalar(self, value):
+        if not isinstance(value, self._scalar_type) and value is not NaT:
+            raise ValueError("'value' should be a Timedelta.")
+        self._check_compatible_with(value)
+        return value.value
+
+    def _scalar_from_string(self, value):
+        return Timedelta(value)
+
+    def _check_compatible_with(self, other):
+        # we don't have anything to validate.
+        pass
+
+    # ----------------------------------------------------------------
     # Array-Like / EA-Interface Methods
 
     @Appender(dtl.DatetimeLikeArrayMixin._validate_fill_value.__doc__)
@@ -230,6 +251,45 @@ class TimedeltaArrayMixin(dtl.DatetimeLikeArrayMixin, dtl.TimelikeOps):
             raise ValueError("'fill_value' should be a Timedelta. "
                              "Got '{got}'.".format(got=fill_value))
         return fill_value
+
+    def astype(self, dtype, copy=True):
+        # We handle
+        #   --> timedelta64[ns]
+        #   --> timedelta64
+        # DatetimeLikeArrayMixin super call handles other cases
+        dtype = pandas_dtype(dtype)
+
+        if is_timedelta64_dtype(dtype) and not is_timedelta64_ns_dtype(dtype):
+            # by pandas convention, converting to non-nano timedelta64
+            #  returns an int64-dtyped array with ints representing multiples
+            #  of the desired timedelta unit.  This is essentially division
+            if self._hasnans:
+                # avoid double-copying
+                result = self._data.astype(dtype, copy=False)
+                values = self._maybe_mask_results(result,
+                                                  fill_value=None,
+                                                  convert='float64')
+                return values
+            result = self._data.astype(dtype, copy=copy)
+            return result.astype('i8')
+        elif is_timedelta64_ns_dtype(dtype):
+            if copy:
+                return self.copy()
+            return self
+        return dtl.DatetimeLikeArrayMixin.astype(self, dtype, copy=copy)
+
+    # ----------------------------------------------------------------
+    # Rendering Methods
+
+    def _formatter(self, boxed=False):
+        from pandas.io.formats.format import _get_format_timedelta64
+        return _get_format_timedelta64(self, box=True)
+
+    def _format_native_types(self, na_rep='NaT', date_format=None):
+        from pandas.io.formats.format import _get_format_timedelta64
+
+        formatter = _get_format_timedelta64(self._data, na_rep)
+        return np.array([formatter(x) for x in self._data])
 
     # ----------------------------------------------------------------
     # Arithmetic Methods
@@ -704,7 +764,7 @@ class TimedeltaArrayMixin(dtl.DatetimeLikeArrayMixin, dtl.TimelikeOps):
 
         columns = ['days', 'hours', 'minutes', 'seconds',
                    'milliseconds', 'microseconds', 'nanoseconds']
-        hasnans = self.hasnans
+        hasnans = self._hasnans
         if hasnans:
             def f(x):
                 if isna(x):

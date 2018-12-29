@@ -50,7 +50,7 @@ class Concat(object):
         self.empty_right = [df, DataFrame()]
 
     def time_concat_series(self, axis):
-        concat(self.series, axis=axis)
+        concat(self.series, axis=axis, sort=False)
 
     def time_concat_small_frames(self, axis):
         concat(self.small_frames, axis=axis)

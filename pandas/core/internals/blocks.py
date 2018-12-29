@@ -40,6 +40,7 @@ import pandas.core.common as com
 from pandas.core.indexes.datetimes import DatetimeIndex
 from pandas.core.indexes.timedeltas import TimedeltaIndex
 from pandas.core.indexing import check_setitem_lengths
+from pandas.core.internals.arrays import extract_array
 import pandas.core.missing as missing
 
 from pandas.io.formats.printing import pprint_thing
@@ -1261,12 +1262,12 @@ class Block(PandasObject):
         new_values = algos.diff(self.values, n, axis=axis)
         return [self.make_block(values=new_values)]
 
-    def shift(self, periods, axis=0):
+    def shift(self, periods, axis=0, fill_value=None):
         """ shift the block by periods, possibly upcast """
 
         # convert integer to float if necessary. need to do a lot more than
         # that, handle boolean etc also
-        new_values, fill_value = maybe_upcast(self.values)
+        new_values, fill_value = maybe_upcast(self.values, fill_value)
 
         # make sure array sent to np.roll is c_contiguous
         f_ordered = new_values.flags.f_contiguous
@@ -1955,7 +1956,7 @@ class ExtensionBlock(NonConsolidatableMixIn, Block):
                                  limit=limit),
             placement=self.mgr_locs)
 
-    def shift(self, periods, axis=0):
+    def shift(self, periods, axis=0, fill_value=None):
         """
         Shift the block by `periods`.
 
@@ -1963,28 +1964,27 @@ class ExtensionBlock(NonConsolidatableMixIn, Block):
         ExtensionBlock.
         """
         # type: (int, Optional[BlockPlacement]) -> List[ExtensionBlock]
-        return [self.make_block_same_class(self.values.shift(periods=periods),
-                                           placement=self.mgr_locs,
-                                           ndim=self.ndim)]
+        return [
+            self.make_block_same_class(
+                self.values.shift(periods=periods, fill_value=fill_value),
+                placement=self.mgr_locs, ndim=self.ndim)
+        ]
 
     def where(self, other, cond, align=True, errors='raise',
               try_cast=False, axis=0, transpose=False):
-        # Extract the underlying arrays.
-        if isinstance(other, (ABCIndexClass, ABCSeries)):
-            other = other.array
-
-        elif isinstance(other, ABCDataFrame):
+        if isinstance(other, ABCDataFrame):
             # ExtensionArrays are 1-D, so if we get here then
             # `other` should be a DataFrame with a single column.
             assert other.shape[1] == 1
-            other = other.iloc[:, 0].array
+            other = other.iloc[:, 0]
+
+        other = extract_array(other, extract_numpy=True)
 
         if isinstance(cond, ABCDataFrame):
             assert cond.shape[1] == 1
-            cond = cond.iloc[:, 0].array
+            cond = cond.iloc[:, 0]
 
-        elif isinstance(cond, (ABCIndexClass, ABCSeries)):
-            cond = cond.array
+        cond = extract_array(cond, extract_numpy=True)
 
         if lib.is_scalar(other) and isna(other):
             # The default `other` for Series / Frame is np.nan
@@ -3023,7 +3023,7 @@ class DatetimeTZBlock(NonConsolidatableMixIn, DatetimeBlock):
     def _box_func(self):
         return lambda x: tslibs.Timestamp(x, tz=self.dtype.tz)
 
-    def shift(self, periods, axis=0):
+    def shift(self, periods, axis=0, fill_value=None):
         """ shift the block by periods """
 
         # think about moving this to the DatetimeIndex. This is a non-freq
@@ -3038,10 +3038,12 @@ class DatetimeTZBlock(NonConsolidatableMixIn, DatetimeBlock):
 
         new_values = self.values.asi8.take(indexer)
 
+        if isna(fill_value):
+            fill_value = tslibs.iNaT
         if periods > 0:
-            new_values[:periods] = tslibs.iNaT
+            new_values[:periods] = fill_value
         else:
-            new_values[periods:] = tslibs.iNaT
+            new_values[periods:] = fill_value
 
         new_values = self.values._shallow_copy(new_values)
         return [self.make_block_same_class(new_values,

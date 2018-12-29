@@ -151,6 +151,7 @@ It raises if any value cannot be coerced to specified dtype.
 .. code-block:: ipython
 
    In [1]: ss = pd.Series([1, np.nan, np.nan]).to_sparse()
+   Out[1]:
    0    1.0
    1    NaN
    2    NaN
@@ -160,6 +161,7 @@ It raises if any value cannot be coerced to specified dtype.
    Block lengths: array([1], dtype=int32)
 
    In [2]: ss.astype(np.int64)
+   Out[2]:
    ValueError: unable to coerce current fill_value nan to int64 dtype
 
 .. _sparse.calculation:
@@ -224,10 +226,6 @@ A :meth:`SparseSeries.to_coo` method is implemented for transforming a ``SparseS
 The method requires a ``MultiIndex`` with two or more levels.
 
 .. ipython:: python
-   :suppress:
-
-
-.. ipython:: python
 
    s = pd.Series([3.0, np.nan, 1.0, 3.0, np.nan, np.nan])
    s.index = pd.MultiIndex.from_tuples([(1, 2, 'a', 0),
@@ -270,9 +268,6 @@ Specifying different row and column labels (and not sorting them) yields a diffe
    columns
 
 A convenience method :meth:`SparseSeries.from_coo` is implemented for creating a ``SparseSeries`` from a ``scipy.sparse.coo_matrix``.
-
-.. ipython:: python
-   :suppress:
 
 .. ipython:: python
 

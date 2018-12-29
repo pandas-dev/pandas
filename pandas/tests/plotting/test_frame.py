@@ -2988,6 +2988,22 @@ class TestDataFramePlots(TestPlotBase):
         self._check_ticks_props(axes=ax.right_ax,
                                 ylabelsize=fontsize)
 
+    def test_misc_bindings(self, mock):
+        df = pd.DataFrame(randn(10, 10), columns=list('abcdefghij'))
+        p1 = mock.patch('pandas.plotting._misc.scatter_matrix',
+                        return_value=2)
+        p2 = mock.patch('pandas.plotting._misc.andrews_curves',
+                        return_value=2)
+        p3 = mock.patch('pandas.plotting._misc.parallel_coordinates',
+                        return_value=2)
+        p4 = mock.patch('pandas.plotting._misc.radviz',
+                        return_value=2)
+        with p1, p2, p3, p4:
+            assert df.plot.scatter_matrix() == 2
+            assert df.plot.andrews_curves('a') == 2
+            assert df.plot.parallel_coordinates('a') == 2
+            assert df.plot.radviz('a') == 2
+
 
 def _generate_4_axes_via_gridspec():
     import matplotlib.pyplot as plt
