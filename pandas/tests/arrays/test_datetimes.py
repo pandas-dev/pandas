@@ -90,3 +90,10 @@ class TestDatetimeArray(object):
                                         tz='US/Central'))
         a[0] = pd.Timestamp("2000", tz="US/Central")
         assert a.freq is None
+
+    def test_repeat_preserves_tz(self):
+        dti = pd.date_range('2000', periods=2, freq='D', tz='US/Central')
+        arr = DatetimeArray(dti)
+
+        repeated = arr.repeat([1, 1])
+        tm.assert_equal(arr, repeated)

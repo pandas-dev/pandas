@@ -698,7 +698,7 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin, AttributesMixin):
         """
         nv.validate_repeat(args, kwargs)
         values = self._data.repeat(repeats)
-        return type(self)(values, dtype=self.dtype)
+        return type(self)._simple_new(values, dtype=self.dtype)
 
     # ------------------------------------------------------------------
     # Null Handling
