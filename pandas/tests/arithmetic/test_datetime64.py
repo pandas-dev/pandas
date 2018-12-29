@@ -593,12 +593,17 @@ class TestDatetimeIndexComparisons(object):
             # DataFrame op is invalid until transpose bug is fixed
             with pytest.raises(TypeError):
                 op(dr, list(dz))
+            with pytest.raises(TypeError):
+                op(dr, np.array(list(dz), dtype=object))
+
         with pytest.raises(TypeError):
             op(dz, dr)
         if box_with_array is not pd.DataFrame:
             # DataFrame op is invalid until transpose bug is fixed
             with pytest.raises(TypeError):
                 op(dz, list(dr))
+            with pytest.raises(TypeError):
+                op(dz, np.array(list(dr), dtype=object))
 
         # Check that there isn't a problem aware-aware and naive-naive do not
         # raise
@@ -1998,7 +2003,7 @@ class TestDatetimeIndexArithmetic(object):
         result -= tdi
         tm.assert_index_equal(result, expected)
 
-        msg = 'cannot subtract .*TimedeltaArrayMixin'
+        msg = 'cannot subtract .* from a TimedeltaArrayMixin'
         with pytest.raises(TypeError, match=msg):
             tdi -= dti
 
