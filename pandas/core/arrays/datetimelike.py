@@ -27,9 +27,9 @@ from pandas.core.dtypes.common import (
 from pandas.core.dtypes.generic import ABCDataFrame, ABCIndexClass, ABCSeries
 from pandas.core.dtypes.missing import isna
 
+from pandas.core import nanops
 from pandas.core.algorithms import checked_add_with_arr, take, unique1d
 import pandas.core.common as com
-from pandas.core import nanops
 
 from pandas.tseries import frequencies
 from pandas.tseries.offsets import DateOffset, Tick
