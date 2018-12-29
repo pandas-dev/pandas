@@ -275,7 +275,12 @@ def join_type(request):
 
 
 @pytest.fixture
-def datapath(request):
+def strict_data_files(pytestconfig):
+    return pytestconfig.getoption("--strict-data-files")
+
+
+@pytest.fixture
+def datapath(strict_data_files):
     """Get the path to a data file.
 
     Parameters
@@ -297,7 +302,7 @@ def datapath(request):
     def deco(*args):
         path = os.path.join(BASE_PATH, *args)
         if not os.path.exists(path):
-            if request.config.getoption("--strict-data-files"):
+            if strict_data_files:
                 msg = "Could not find file {} and --strict-data-files is set."
                 raise ValueError(msg.format(path))
             else:

@@ -50,7 +50,7 @@ class TestDatetimeArrayConstructor(object):
 
 
 class TestSetitem(object):
-    def test_set_different_tz_raises(self):
+    def test_setitem_different_tz_raises(self):
         data = np.array([1, 2, 3], dtype='M8[ns]')
         arr = DatetimeArray(data, copy=False,
                             dtype=DatetimeTZDtype(tz="US/Central"))
@@ -59,6 +59,12 @@ class TestSetitem(object):
 
         with pytest.raises(ValueError, match="US/Central"):
             arr[0] = pd.Timestamp('2000', tz="US/Eastern")
+
+    def test_setitem_clears_freq(self):
+        a = DatetimeArray(pd.date_range('2000', periods=2, freq='D',
+                                        tz='US/Central'))
+        a[0] = pd.Timestamp("2000", tz="US/Central")
+        assert a.freq is None
 
 
 class TestDatetimeArrayComparisons(object):

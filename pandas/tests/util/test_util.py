@@ -100,13 +100,13 @@ def test_assert_raises_regex_deprecated():
             assert 1 == 2, msg
 
 
-def test_datapath_missing(datapath, request):
-    if not request.config.getoption("--strict-data-files"):
-        pytest.skip("Need to set '--strict-data-files'")
-
+@pytest.mark.parametrize('strict_data_files', [True, False])
+def test_datapath_missing(datapath):
     with pytest.raises(ValueError, match="Could not find file"):
         datapath("not_a_file")
 
+
+def test_datapath(datapath):
     args = ("data", "iris.csv")
 
     result = datapath(*args)
