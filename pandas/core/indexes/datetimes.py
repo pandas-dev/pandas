@@ -1141,6 +1141,11 @@ class DatetimeIndex(DatetimeArray, DatetimeIndexOpsMixin, Int64Index,
     _is_unique = Index.is_unique
     astype = DatetimeIndexOpsMixin.astype
 
+    # Override DatetimeArray methods
+    max = DatetimeIndexOpsMixin.max
+    min = DatetimeIndexOpsMixin.min
+    _reduce = Index._reduce
+
     _timezone = cache_readonly(DatetimeArray._timezone.fget)
     is_normalized = cache_readonly(DatetimeArray.is_normalized.fget)
     _resolution = cache_readonly(DatetimeArray._resolution.fget)

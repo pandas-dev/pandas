@@ -304,6 +304,11 @@ class TimedeltaIndex(TimedeltaArray, DatetimeIndexOpsMixin,
     _is_monotonic_decreasing = Index.is_monotonic_decreasing
     _is_unique = Index.is_unique
 
+    # Override DatetimeArray methods
+    max = DatetimeIndexOpsMixin.max
+    min = DatetimeIndexOpsMixin.min
+    _reduce = Index._reduce
+
     # -------------------------------------------------------------------
 
     @Appender(_index_shared_docs['astype'])
