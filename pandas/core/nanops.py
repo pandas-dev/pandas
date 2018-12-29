@@ -6,14 +6,14 @@ import warnings
 
 import numpy as np
 
-from pandas._libs import lib, tslibs
+from pandas._libs import iNaT, lib, tslibs
 import pandas.compat as compat
 
 from pandas.core.dtypes.cast import _int64_max, maybe_upcast_putmask
 from pandas.core.dtypes.common import (
     _get_dtype, is_any_int_dtype, is_bool_dtype, is_complex, is_complex_dtype,
-    is_datetime64_dtype, is_datetime_or_timedelta_dtype, is_float,
-    is_float_dtype, is_integer, is_integer_dtype, is_numeric_dtype,
+    is_datetime64_dtype, is_datetime64tz_dtype, is_datetime_or_timedelta_dtype,
+    is_float, is_float_dtype, is_integer, is_integer_dtype, is_numeric_dtype,
     is_object_dtype, is_scalar, is_timedelta64_dtype)
 from pandas.core.dtypes.missing import isna, na_value_for_dtype, notna
 
@@ -203,7 +203,15 @@ def _get_values(values, skipna, fill_value=None, fill_value_typ=None,
     if necessary copy and mask using the specified fill_value
     copy = True will force the copy
     """
-    values = com.values_from_object(values)
+
+    if is_datetime64tz_dtype(values):
+        # com.values_from_object returns M8[ns] dtype instead of tz-aware,
+        #  so this case must be handled separately from the rest
+        dtype = values.dtype
+        values = getattr(values, "_values", values)
+    else:
+        values = com.values_from_object(values)
+        dtype = values.dtype
 
     if mask is None:
         if isfinite:
@@ -211,7 +219,12 @@ def _get_values(values, skipna, fill_value=None, fill_value_typ=None,
         else:
             mask = isna(values)
 
-    dtype = values.dtype
+    if is_datetime_or_timedelta_dtype(values) or is_datetime64tz_dtype(values):
+        # changing timedelta64/datetime64 to int64 needs to happen after
+        #  finding `mask` above
+        values = getattr(values, "asi8", values)
+        values = values.view(np.int64)
+
     dtype_ok = _na_ok_dtype(dtype)
 
     # get our fill value (in case we need to provide an alternative
@@ -231,8 +244,6 @@ def _get_values(values, skipna, fill_value=None, fill_value_typ=None,
 
     elif copy:
         values = values.copy()
-
-    values = _view_if_needed(values)
 
     # return a platform independent precision dtype
     dtype_max = dtype
@@ -259,21 +270,19 @@ def _na_ok_dtype(dtype):
                           (np.integer, np.timedelta64, np.datetime64))
 
 
-def _view_if_needed(values):
-    if is_datetime_or_timedelta_dtype(values):
-        return values.view(np.int64)
-    return values
-
-
 def _wrap_results(result, dtype, fill_value=None):
     """ wrap our results if needed """
 
-    if is_datetime64_dtype(dtype):
+    if is_datetime64_dtype(dtype) or is_datetime64tz_dtype(dtype):
+        if fill_value is None:
+            # GH#24293
+            fill_value = iNaT
         if not isinstance(result, np.ndarray):
+            tz = getattr(dtype, 'tz', None)
             assert not isna(fill_value), "Expected non-null fill_value"
             if result == fill_value:
                 result = np.nan
-            result = tslibs.Timestamp(result)
+            result = tslibs.Timestamp(result, tz=tz)
         else:
             result = result.view(dtype)
     elif is_timedelta64_dtype(dtype):
@@ -426,7 +435,6 @@ def nansum(values, axis=None, skipna=True, min_count=0, mask=None):
     return _wrap_results(the_sum, dtype)
 
 
-@disallow('M8')
 @bottleneck_switch()
 def nanmean(values, axis=None, skipna=True, mask=None):
     """
@@ -457,7 +465,8 @@ def nanmean(values, axis=None, skipna=True, mask=None):
         values, skipna, 0, mask=mask)
     dtype_sum = dtype_max
     dtype_count = np.float64
-    if is_integer_dtype(dtype) or is_timedelta64_dtype(dtype):
+    if (is_integer_dtype(dtype) or is_timedelta64_dtype(dtype) or
+            is_datetime64_dtype(dtype) or is_datetime64tz_dtype(dtype)):
         dtype_sum = np.float64
     elif is_float_dtype(dtype):
         dtype_sum = dtype
@@ -466,7 +475,9 @@ def nanmean(values, axis=None, skipna=True, mask=None):
     the_sum = _ensure_numeric(values.sum(axis, dtype=dtype_sum))
 
     if axis is not None and getattr(the_sum, 'ndim', False):
-        the_mean = the_sum / count
+        with np.errstate(all="ignore"):
+            # suppress division by zero warnings
+            the_mean = the_sum / count
         ct_mask = count == 0
         if ct_mask.any():
             the_mean[ct_mask] = np.nan

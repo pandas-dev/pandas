@@ -56,23 +56,54 @@ class TestReductions(object):
         # GH#7261
         for opname in ['max', 'min']:
             for klass in [Index, Series]:
+                arg_op = 'arg' + opname if klass is Index else 'idx' + opname
 
                 obj = klass([np.nan, 2.0])
                 assert getattr(obj, opname)() == 2.0
 
                 obj = klass([np.nan])
                 assert pd.isna(getattr(obj, opname)())
+                assert pd.isna(getattr(obj, opname)(skipna=False))
 
                 obj = klass([])
                 assert pd.isna(getattr(obj, opname)())
+                assert pd.isna(getattr(obj, opname)(skipna=False))
 
                 obj = klass([pd.NaT, datetime(2011, 11, 1)])
                 # check DatetimeIndex monotonic path
                 assert getattr(obj, opname)() == datetime(2011, 11, 1)
+                assert getattr(obj, opname)(skipna=False) is pd.NaT
+
+                assert getattr(obj, arg_op)() == 1
+                result = getattr(obj, arg_op)(skipna=False)
+                if klass is Series:
+                    assert np.isnan(result)
+                else:
+                    assert result == -1
 
                 obj = klass([pd.NaT, datetime(2011, 11, 1), pd.NaT])
                 # check DatetimeIndex non-monotonic path
                 assert getattr(obj, opname)(), datetime(2011, 11, 1)
+                assert getattr(obj, opname)(skipna=False) is pd.NaT
+
+                assert getattr(obj, arg_op)() == 1
+                result = getattr(obj, arg_op)(skipna=False)
+                if klass is Series:
+                    assert np.isnan(result)
+                else:
+                    assert result == -1
+
+                for dtype in ["M8[ns]", "datetime64[ns, UTC]"]:
+                    # cases with empty Series/DatetimeIndex
+                    obj = klass([], dtype=dtype)
+
+                    assert getattr(obj, opname)() is pd.NaT
+                    assert getattr(obj, opname)(skipna=False) is pd.NaT
+
+                    with pytest.raises(ValueError, match="empty sequence"):
+                        getattr(obj, arg_op)()
+                    with pytest.raises(ValueError, match="empty sequence"):
+                        getattr(obj, arg_op)(skipna=False)
 
         # argmin/max
         obj = Index(np.arange(5, dtype='int64'))
@@ -82,19 +113,27 @@ class TestReductions(object):
         obj = Index([np.nan, 1, np.nan, 2])
         assert obj.argmin() == 1
         assert obj.argmax() == 3
+        assert obj.argmin(skipna=False) == -1
+        assert obj.argmax(skipna=False) == -1
 
         obj = Index([np.nan])
         assert obj.argmin() == -1
         assert obj.argmax() == -1
+        assert obj.argmin(skipna=False) == -1
+        assert obj.argmax(skipna=False) == -1
 
         obj = Index([pd.NaT, datetime(2011, 11, 1), datetime(2011, 11, 2),
                      pd.NaT])
         assert obj.argmin() == 1
         assert obj.argmax() == 2
+        assert obj.argmin(skipna=False) == -1
+        assert obj.argmax(skipna=False) == -1
 
         obj = Index([pd.NaT])
         assert obj.argmin() == -1
         assert obj.argmax() == -1
+        assert obj.argmin(skipna=False) == -1
+        assert obj.argmax(skipna=False) == -1
 
 
 class TestSeriesReductions(object):
@@ -290,6 +329,8 @@ class TestSeriesReductions(object):
         for dtype in ('m8[ns]', 'm8[ns]', 'M8[ns]', 'M8[ns, UTC]'):
             assert Series([], dtype=dtype).min() is pd.NaT
             assert Series([], dtype=dtype).max() is pd.NaT
+            assert Series([], dtype=dtype).min(skipna=False) is pd.NaT
+            assert Series([], dtype=dtype).max(skipna=False) is pd.NaT
 
     def test_numpy_argmin_deprecated(self):
         # See GH#16830
@@ -558,6 +599,8 @@ class TestDatetime64SeriesReductions(object):
         # GH#23282
         assert nat_ser.min() is pd.NaT
         assert nat_ser.max() is pd.NaT
+        assert nat_ser.min(skipna=False) is pd.NaT
+        assert nat_ser.max(skipna=False) is pd.NaT
 
     @pytest.mark.parametrize('nat_df', [
         pd.DataFrame([pd.NaT, pd.NaT]),
@@ -567,6 +610,8 @@ class TestDatetime64SeriesReductions(object):
         # GH#23282
         assert nat_df.min()[0] is pd.NaT
         assert nat_df.max()[0] is pd.NaT
+        assert nat_df.min(skipna=False)[0] is pd.NaT
+        assert nat_df.max(skipna=False)[0] is pd.NaT
 
     def test_min_max(self):
         rng = pd.date_range('1/1/2000', '12/31/2000')

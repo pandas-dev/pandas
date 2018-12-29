@@ -198,6 +198,8 @@ def _isna_ndarraylike(obj):
         else:
             values = obj
         result = values.isna()
+    elif isinstance(obj, ABCDatetimeArray):
+        return obj.isna()
     elif is_string_dtype(dtype):
         # Working around NumPy ticket 1542
         shape = values.shape
