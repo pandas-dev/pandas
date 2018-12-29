@@ -492,6 +492,10 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin, AttributesMixin):
 
         if is_list_like(value):
             is_slice = isinstance(key, slice)
+
+            if lib.is_scalar(key):
+                raise ValueError("setting an array element with a sequence.")
+
             if (not is_slice
                     and len(key) != len(value)
                     and not com.is_bool_indexer(key)):
