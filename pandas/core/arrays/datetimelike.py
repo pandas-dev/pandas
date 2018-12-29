@@ -27,6 +27,7 @@ from pandas.core.dtypes.common import (
 from pandas.core.dtypes.generic import ABCDataFrame, ABCIndexClass, ABCSeries
 from pandas.core.dtypes.missing import isna
 
+from pandas.core import nanops
 from pandas.core.algorithms import checked_add_with_arr, take, unique1d
 import pandas.core.common as com
 
@@ -1380,6 +1381,71 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin, AttributesMixin):
                     self.tz, ambiguous=ambiguous, nonexistent=nonexistent
                 )
         return arg
+
+    # --------------------------------------------------------------
+    # Reductions
+
+    def _reduce(self, name, axis=0, skipna=True, **kwargs):
+        op = getattr(self, name, None)
+        if op:
+            return op(axis=axis, skipna=skipna, **kwargs)
+        else:
+            raise TypeError("cannot perform {name} with type {dtype}"
+                            .format(name=name, dtype=self.dtype))
+            # TODO: use super(DatetimeLikeArrayMixin, self)._reduce
+            #  after we subclass ExtensionArray
+
+    def min(self, axis=None, skipna=True, *args, **kwargs):
+        """
+        Return the minimum value of the Array or minimum along
+        an axis.
+
+        See Also
+        --------
+        numpy.ndarray.min
+        Index.min : Return the minimum value in an Index.
+        Series.min : Return the minimum value in a Series.
+        """
+        nv.validate_min(args, kwargs)
+        nv.validate_minmax_axis(axis)
+
+        result = nanops.nanmin(self.asi8, skipna=skipna, mask=self.isna())
+        if isna(result):
+            # Period._from_ordinal does not handle np.nan gracefully
+            return NaT
+        return self._box_func(result)
+
+    def max(self, axis=None, skipna=True, *args, **kwargs):
+        """
+        Return the maximum value of the Array or maximum along
+        an axis.
+
+        See Also
+        --------
+        numpy.ndarray.max
+        Index.max : Return the maximum value in an Index.
+        Series.max : Return the maximum value in a Series.
+        """
+        # TODO: skipna is broken with max.
+        # See https://github.com/pandas-dev/pandas/issues/24265
+        nv.validate_max(args, kwargs)
+        nv.validate_minmax_axis(axis)
+
+        mask = self.isna()
+        if skipna:
+            values = self[~mask].asi8
+        elif mask.any():
+            return NaT
+        else:
+            values = self.asi8
+
+        if not len(values):
+            # short-circut for empty max / min
+            return NaT
+
+        result = nanops.nanmax(values, skipna=skipna)
+        # Don't have to worry about NA `result`, since no NA went in.
+        return self._box_func(result)
 
 
 DatetimeLikeArrayMixin._add_comparison_ops()
