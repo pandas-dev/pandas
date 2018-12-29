@@ -62,9 +62,10 @@ def pytest_command(pattern, junit_xml, coverage_file):
     if coverage_file:
         cmd += ['--cov=pandas', '--cov-report=xml:{}'.format(coverage_file)]
 
-    test_jobs = os.environ.get('TESTS_JOBS', 'auto')
-    if test_jobs != '0':
-        cmd += ['-n', test_jobs, '--dist', 'loadfile']
+    # test_jobs = os.environ.get('TESTS_JOBS', 'auto')
+    # if test_jobs != '0':
+    #    cmd += ['-n', test_jobs, '--dist', 'loadfile']
+    cmd += ['-n', '2']
 
     if os.environ.get('WARNINGS_ARE_ERRORS'):
         cmd += ['-W', 'error']
