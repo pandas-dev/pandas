@@ -299,12 +299,6 @@ class DatetimeIndex(DatetimeIndexOpsMixin, Int64Index, DatetimeDelegateMixin):
 
         # - Cases checked above all return/raise before reaching here - #
 
-        # This allows to later ensure that the 'copy' parameter is honored:
-        if isinstance(data, Index):
-            ref_to_data = data._data
-        else:
-            ref_to_data = data
-
         if name is None and hasattr(data, 'name'):
             name = data.name
 
