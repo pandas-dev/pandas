@@ -156,7 +156,7 @@ class TimedeltaArrayMixin(dtl.DatetimeLikeArrayMixin, dtl.TimelikeOps):
 
         result = object.__new__(cls)
         result._data = values
-        result._freq = to_offset(freq)
+        result._freq = freq
         return result
 
     def __new__(cls, values, freq=None, dtype=_TD_DTYPE, copy=False):

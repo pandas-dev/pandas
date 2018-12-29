@@ -119,9 +119,7 @@ def _dt_array_cmp(cls, op):
         elif len(other) != len(self):
             raise ValueError("Lengths must match")
         else:
-            # TODO: figure out why the is_object_dtpye check is needed,
-            #  without we fail to raise on tzawareness_compat
-            if isinstance(other, list) or is_object_dtype(other):
+            if isinstance(other, list):
                 try:
                     other = type(self)._from_sequence(other)
                 except ValueError:
@@ -132,11 +130,14 @@ def _dt_array_cmp(cls, op):
                 # and __ne__ is all True, others raise TypeError.
                 return ops.invalid_comparison(self, other, op)
 
-            if len(other) != len(self):
-                raise ValueError("Lengths must match")
-
             if is_object_dtype(other):
-                result = op(self.astype('O'), np.array(other))
+                # We have to use _comp_method_OBJECT_ARRAY instead of numpy
+                #  comparison otherwise it would fail to raise when
+                #  comparing tz-aware and tz-naive
+                with np.errstate(all='ignore'):
+                    result = ops._comp_method_OBJECT_ARRAY(op,
+                                                           self.astype(object),
+                                                           other)
                 o_mask = isna(other)
             elif not (is_datetime64_dtype(other) or
                       is_datetime64tz_dtype(other)):
@@ -431,28 +432,6 @@ class DatetimeArrayMixin(dtl.DatetimeLikeArrayMixin,
         Comparable timezone both for pytz / dateutil
         """
         return timezones.get_timezone(self.tzinfo)
-
-    @property
-    def offset(self):
-        """
-        get/set the frequency of the instance
-        """
-        msg = ('{cls}.offset has been deprecated and will be removed '
-               'in a future version; use {cls}.freq instead.'
-               .format(cls=type(self).__name__))
-        warnings.warn(msg, FutureWarning, stacklevel=2)
-        return self.freq
-
-    @offset.setter
-    def offset(self, value):
-        """
-        get/set the frequency of the instance
-        """
-        msg = ('{cls}.offset has been deprecated and will be removed '
-               'in a future version; use {cls}.freq instead.'
-               .format(cls=type(self).__name__))
-        warnings.warn(msg, FutureWarning, stacklevel=2)
-        self.freq = value
 
     @property  # NB: override with cache_readonly in immutable subclasses
     def is_normalized(self):

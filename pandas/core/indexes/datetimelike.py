@@ -586,6 +586,25 @@ class DatetimeIndexOpsMixin(ExtensionOpsMixin):
         return type(self)(result, name=self.name)
 
 
+def wrap_arithmetic_op(self, other, result):
+    if result is NotImplemented:
+        return NotImplemented
+
+    if isinstance(result, tuple):
+        # divmod, rdivmod
+        assert len(result) == 2
+        return (wrap_arithmetic_op(self, other, result[0]),
+                wrap_arithmetic_op(self, other, result[1]))
+
+    if not isinstance(result, Index):
+        # Index.__new__ will choose appropriate subclass for dtype
+        result = Index(result)
+
+    res_name = ops.get_op_result_name(self, other)
+    result.name = res_name
+    return result
+
+
 def maybe_unwrap_index(obj):
     """
     If operating against another Index object, we need to unwrap the underlying
@@ -606,25 +625,6 @@ def maybe_unwrap_index(obj):
             return obj._eadata
         return obj._data
     return obj
-
-
-def wrap_arithmetic_op(self, other, result):
-    if result is NotImplemented:
-        return NotImplemented
-
-    if isinstance(result, tuple):
-        # divmod, rdivmod
-        assert len(result) == 2
-        return (wrap_arithmetic_op(self, other, result[0]),
-                wrap_arithmetic_op(self, other, result[1]))
-
-    if not isinstance(result, Index):
-        # Index.__new__ will choose appropriate subclass for dtype
-        result = Index(result)
-
-    res_name = ops.get_op_result_name(self, other)
-    result.name = res_name
-    return result
 
 
 class DatetimelikeDelegateMixin(PandasDelegate):
