@@ -140,9 +140,6 @@ class SharedTests(object):
         result = arr._unbox_scalar(pd.NaT)
         assert isinstance(result, (int, compat.long))
 
-    def test_scalar_from_string(self):
-        data = np.arange(10, dtype='i8') * 24 * 3600 * 10**9
-
         with pytest.raises(ValueError):
             arr._unbox_scalar('foo')
 
