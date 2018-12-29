@@ -319,8 +319,7 @@ class DatetimeIndex(DatetimeArray, DatetimeIndexOpsMixin, Int64Index,
 
         subarr = cls._simple_new(dtarr._data, name=name,
                                  freq=dtarr.freq, tz=dtarr.tz)
-
-        return subarr._deepcopy_if_needed(ref_to_data, copy)
+        return subarr
 
     @classmethod
     def _simple_new(cls, values, name=None, freq=None, tz=None, dtype=None):
