@@ -134,8 +134,9 @@ def _dt_array_cmp(cls, op):
                 return ops.invalid_comparison(self, other, op)
 
             if is_object_dtype(other):
-                # We use ops._comp_method_OBJECT_ARRAY to ensure that
-                # we raise when comparing tz and non-tz arrays
+                # We have to use _comp_method_OBJECT_ARRAY instead of numpy
+                #  comparison otherwise it would fail to raise when
+                #  comparing tz-aware and tz-naive
                 with np.errstate(all='ignore'):
                     result = ops._comp_method_OBJECT_ARRAY(op,
                                                            self.astype(object),

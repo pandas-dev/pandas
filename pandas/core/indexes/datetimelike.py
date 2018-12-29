@@ -31,17 +31,31 @@ import pandas.io.formats.printing as printing
 _index_doc_kwargs = dict(ibase._index_doc_kwargs)
 
 
+def ea_passthrough(name):
+    """
+    Make an alias for a method of the underlying ExtensionArray.
+
+    Parameters
+    ----------
+    name : str
+
+    Returns
+    -------
+    method
+    """
+    def method(self, *args, **kwargs):
+        return getattr(self._data, name)(*args, **kwargs)
+
+    method.__name__ = name
+    # TODO: docstrings
+    return method
+
+
 class DatetimeIndexOpsMixin(ExtensionOpsMixin):
     """
     common ops mixin to support a unified interface datetimelike Index
     """
-
-    # The underlying Array (DatetimeArray, PeriodArray, TimedeltaArray)
     _data = None  # type: ExtensionArray
-    # override DatetimeLikeArrayMixin method
-    copy = Index.copy
-    view = Index.view
-    __setitem__ = Index.__setitem__
 
     # DatetimeLikeArrayMixin assumes subclasses are mutable, so these are
     # properties there.  They can be made into cache_readonly for Index
@@ -53,11 +67,19 @@ class DatetimeIndexOpsMixin(ExtensionOpsMixin):
     _resolution = cache_readonly(DatetimeLikeArrayMixin._resolution.fget)
     resolution = cache_readonly(DatetimeLikeArrayMixin.resolution.fget)
 
+    _box_values = ea_passthrough("_box_values")
+    _maybe_mask_results = ea_passthrough("_maybe_mask_results")
+    __iter__ = ea_passthrough("__iter__")
+
+    @property
+    def freqstr(self):
+        return self._data.freqstr
+
     def unique(self, level=None):
         if level is not None:
             self._validate_index_level(level)
 
-        result = self._eadata.unique()
+        result = self._data.unique()
 
         # Note: if `self` is already unique, then self.unique() should share
         #  a `freq` with self.  If not already unique, then self.freq must be
@@ -70,15 +92,12 @@ class DatetimeIndexOpsMixin(ExtensionOpsMixin):
         Create a comparison method that dispatches to ``cls.values``.
         """
         def wrapper(self, other):
-            result = op(self._eadata, maybe_unwrap_index(other))
+            result = op(self._data, maybe_unwrap_index(other))
             return result
 
         wrapper.__doc__ = op.__doc__
         wrapper.__name__ = '__{}__'.format(op.__name__)
         return wrapper
-
-    # A few methods that are shared
-    _maybe_mask_results = DatetimeLikeArrayMixin._maybe_mask_results
 
     # ------------------------------------------------------------------------
     # Abstract data attributes
@@ -172,7 +191,7 @@ class DatetimeIndexOpsMixin(ExtensionOpsMixin):
 
     @Appender(DatetimeLikeArrayMixin._evaluate_compare.__doc__)
     def _evaluate_compare(self, other, op):
-        result = self._eadata._evaluate_compare(other, op)
+        result = self._data._evaluate_compare(other, op)
         if is_bool_dtype(result):
             return result
         try:
@@ -499,7 +518,7 @@ class DatetimeIndexOpsMixin(ExtensionOpsMixin):
 
         def __add__(self, other):
             # dispatch to ExtensionArray implementation
-            result = self._eadata.__add__(maybe_unwrap_index(other))
+            result = self._data.__add__(maybe_unwrap_index(other))
             return wrap_arithmetic_op(self, other, result)
 
         cls.__add__ = __add__
@@ -511,13 +530,13 @@ class DatetimeIndexOpsMixin(ExtensionOpsMixin):
 
         def __sub__(self, other):
             # dispatch to ExtensionArray implementation
-            result = self._eadata.__sub__(maybe_unwrap_index(other))
+            result = self._data.__sub__(maybe_unwrap_index(other))
             return wrap_arithmetic_op(self, other, result)
 
         cls.__sub__ = __sub__
 
         def __rsub__(self, other):
-            result = self._eadata.__rsub__(maybe_unwrap_index(other))
+            result = self._data.__rsub__(maybe_unwrap_index(other))
             return wrap_arithmetic_op(self, other, result)
 
         cls.__rsub__ = __rsub__
@@ -548,7 +567,7 @@ class DatetimeIndexOpsMixin(ExtensionOpsMixin):
         nv.validate_repeat(tuple(), dict(axis=axis))
         freq = self.freq if is_period_dtype(self) else None
         return self._shallow_copy(self.asi8.repeat(repeats), freq=freq)
-        # TODO: dispatch to _eadata
+        # TODO: dispatch to _data
 
     @Appender(_index_shared_docs['where'] % _index_doc_kwargs)
     def where(self, cond, other=None):
@@ -604,7 +623,8 @@ class DatetimeIndexOpsMixin(ExtensionOpsMixin):
             # reset freq
             attribs['freq'] = None
 
-        new_data = type(self._values)._concat_same_type(to_concat)
+        # TODO: Verify that asi8 is what we want.
+        new_data = type(self._values)._concat_same_type(to_concat).asi8
         return self._simple_new(new_data, **attribs)
 
     def _maybe_box_as_values(self, values, **attribs):
@@ -639,39 +659,16 @@ class DatetimeIndexOpsMixin(ExtensionOpsMixin):
             return result
         return self._ndarray_values.view(dtype=dtype)
 
-    @deprecate_kwarg(old_arg_name='n', new_arg_name='periods')
-    def shift(self, periods, freq=None):
-        """
-        Shift index by desired number of increments.
-
-        This method is for shifting the values of period indexes
-        by a specified time increment.
-
-        Parameters
-        ----------
-        periods : int, default 1
-            Number of periods (or increments) to shift by,
-            can be positive or negative.
-
-            .. versionchanged:: 0.24.0
-        freq :
-
-        Returns
-        -------
-        pandas.PeriodIndex
-            Shifted index.
-
-        See Also
-        --------
-        DatetimeIndex.shift : Shift values of DatetimeIndex.
-        """
-        new_values = self._data._time_shift(periods, freq=freq)
-        return self._simple_new(new_values, name=self.name, freq=self.freq)
-
     @Appender(DatetimeLikeArrayMixin._time_shift.__doc__)
     def _time_shift(self, periods, freq=None):
-        result = self._eadata._time_shift(periods, freq=freq)
+        result = self._data._time_shift(periods, freq=freq)
         return type(self)(result, name=self.name)
+
+    @deprecate_kwarg(old_arg_name='n', new_arg_name='periods')
+    @Appender(DatetimeLikeArrayMixin.shift.__doc__)
+    def shift(self, periods, freq=None):
+        new_values = self._data.shift(periods, freq=freq)
+        return self._simple_new(new_values, name=self.name, freq=self.freq)
 
 
 def wrap_arithmetic_op(self, other, result):
@@ -710,7 +707,7 @@ def maybe_unwrap_index(obj):
     if isinstance(obj, ABCIndexClass):
         if isinstance(obj, DatetimeIndexOpsMixin):
             # i.e. PeriodIndex/DatetimeIndex/TimedeltaIndex
-            return obj._eadata
+            return obj._data
         return obj._data
     return obj
 
