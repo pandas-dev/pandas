@@ -973,9 +973,15 @@ class IndexOpsMixin(object):
     def empty(self):
         return not self.size
 
-    def max(self):
+    def max(self, axis=None, skipna=True):
         """
         Return the maximum value of the Index.
+
+        Parameters
+        ----------
+        axis : int, optional
+            For compatibility with NumPy. Only 0 or None are allowed.
+        skipna : bool, default True
 
         Returns
         -------
@@ -1004,21 +1010,35 @@ class IndexOpsMixin(object):
         >>> idx.max()
         ('b', 2)
         """
-        return nanops.nanmax(self.values)
+        nv.validate_minmax_axis(axis)
+        return nanops.nanmax(self._values, skipna=skipna)
 
-    def argmax(self, axis=None):
+    def argmax(self, axis=None, skipna=True):
         """
         Return a ndarray of the maximum argument indexer.
+
+        Parameters
+        ----------
+        axis : {None}
+            Dummy argument for consistency with Series
+        skipna : bool, default True
 
         See Also
         --------
         numpy.ndarray.argmax
         """
-        return nanops.nanargmax(self.values)
+        nv.validate_minmax_axis(axis)
+        return nanops.nanargmax(self._values, skipna=skipna)
 
-    def min(self):
+    def min(self, axis=None, skipna=True):
         """
         Return the minimum value of the Index.
+
+        Parameters
+        ----------
+        axis : {None}
+            Dummy argument for consistency with Series
+        skipna : bool, default True
 
         Returns
         -------
@@ -1047,17 +1067,25 @@ class IndexOpsMixin(object):
         >>> idx.min()
         ('a', 1)
         """
-        return nanops.nanmin(self.values)
+        nv.validate_minmax_axis(axis)
+        return nanops.nanmin(self._values, skipna=skipna)
 
-    def argmin(self, axis=None):
+    def argmin(self, axis=None, skipna=True):
         """
         Return a ndarray of the minimum argument indexer.
+
+        Parameters
+        ----------
+        axis : {None}
+            Dummy argument for consistency with Series
+        skipna : bool, default True
 
         See Also
         --------
         numpy.ndarray.argmin
         """
-        return nanops.nanargmin(self.values)
+        nv.validate_minmax_axis(axis)
+        return nanops.nanargmin(self._values, skipna=skipna)
 
     def tolist(self):
         """
@@ -1110,7 +1138,7 @@ class IndexOpsMixin(object):
         if func is None:
             raise TypeError("{klass} cannot perform the operation {op}".format(
                             klass=self.__class__.__name__, op=name))
-        return func(**kwds)
+        return func(skipna=skipna, **kwds)
 
     def _map_values(self, mapper, na_action=None):
         """
