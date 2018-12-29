@@ -38,6 +38,7 @@ class DatetimeIndexOpsMixin(DatetimeLikeArrayMixin):
     # override DatetimeLikeArrayMixin method
     copy = Index.copy
     view = Index.view
+    __setitem__ = Index.__setitem__
 
     # DatetimeLikeArrayMixin assumes subclasses are mutable, so these are
     # properties there.  They can be made into cache_readonly for Index
@@ -266,7 +267,7 @@ class DatetimeIndexOpsMixin(DatetimeLikeArrayMixin):
         """
         return list(self.astype(object))
 
-    def min(self, axis=None, *args, **kwargs):
+    def min(self, axis=None, skipna=True, *args, **kwargs):
         """
         Return the minimum value of the Index or minimum along
         an axis.
@@ -274,27 +275,33 @@ class DatetimeIndexOpsMixin(DatetimeLikeArrayMixin):
         See Also
         --------
         numpy.ndarray.min
+        Series.min : Return the minimum value in a Series.
         """
         nv.validate_min(args, kwargs)
         nv.validate_minmax_axis(axis)
 
-        try:
-            i8 = self.asi8
+        if not len(self):
+            return self._na_value
 
+        i8 = self.asi8
+        try:
             # quick check
             if len(i8) and self.is_monotonic:
                 if i8[0] != iNaT:
                     return self._box_func(i8[0])
 
             if self.hasnans:
-                min_stamp = self[~self._isnan].asi8.min()
+                if skipna:
+                    min_stamp = self[~self._isnan].asi8.min()
+                else:
+                    return self._na_value
             else:
                 min_stamp = i8.min()
             return self._box_func(min_stamp)
         except ValueError:
             return self._na_value
 
-    def argmin(self, axis=None, *args, **kwargs):
+    def argmin(self, axis=None, skipna=True, *args, **kwargs):
         """
         Returns the indices of the minimum values along an axis.
 
@@ -311,13 +318,13 @@ class DatetimeIndexOpsMixin(DatetimeLikeArrayMixin):
         i8 = self.asi8
         if self.hasnans:
             mask = self._isnan
-            if mask.all():
+            if mask.all() or not skipna:
                 return -1
             i8 = i8.copy()
             i8[mask] = np.iinfo('int64').max
         return i8.argmin()
 
-    def max(self, axis=None, *args, **kwargs):
+    def max(self, axis=None, skipna=True, *args, **kwargs):
         """
         Return the maximum value of the Index or maximum along
         an axis.
@@ -325,27 +332,33 @@ class DatetimeIndexOpsMixin(DatetimeLikeArrayMixin):
         See Also
         --------
         numpy.ndarray.max
+        Series.max : Return the maximum value in a Series.
         """
         nv.validate_max(args, kwargs)
         nv.validate_minmax_axis(axis)
 
-        try:
-            i8 = self.asi8
+        if not len(self):
+            return self._na_value
 
+        i8 = self.asi8
+        try:
             # quick check
             if len(i8) and self.is_monotonic:
                 if i8[-1] != iNaT:
                     return self._box_func(i8[-1])
 
             if self.hasnans:
-                max_stamp = self[~self._isnan].asi8.max()
+                if skipna:
+                    max_stamp = self[~self._isnan].asi8.max()
+                else:
+                    return self._na_value
             else:
                 max_stamp = i8.max()
             return self._box_func(max_stamp)
         except ValueError:
             return self._na_value
 
-    def argmax(self, axis=None, *args, **kwargs):
+    def argmax(self, axis=None, skipna=True, *args, **kwargs):
         """
         Returns the indices of the maximum values along an axis.
 
@@ -362,7 +375,7 @@ class DatetimeIndexOpsMixin(DatetimeLikeArrayMixin):
         i8 = self.asi8
         if self.hasnans:
             mask = self._isnan
-            if mask.all():
+            if mask.all() or not skipna:
                 return -1
             i8 = i8.copy()
             i8[mask] = 0
