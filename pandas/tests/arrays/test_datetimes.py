@@ -118,7 +118,10 @@ class TestDatetimeArray(object):
         arr = DatetimeArray(dti)
 
         repeated = arr.repeat([1, 1])
-        tm.assert_equal(arr, repeated)
+
+        # preserves tz and values, but not freq
+        expected = DatetimeArray(arr.asi8, freq=None, tz=arr.tz)
+        tm.assert_equal(repeated, expected)
 
 
 class TestSequenceToDT64NS(object):
