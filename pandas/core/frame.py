@@ -48,6 +48,7 @@ from pandas.core.dtypes.cast import (
     maybe_upcast_putmask,
     find_common_type)
 from pandas.core.dtypes.common import (
+    is_dict_like,
     is_object_dtype,
     is_extension_type,
     is_extension_array_dtype,
@@ -1681,7 +1682,7 @@ class DataFrame(NDFrame):
                 dtype_mapping = column_dtypes
                 name = self.columns[index]
 
-            if isinstance(dtype_mapping, dict):
+            if is_dict_like(dtype_mapping):
                 if name in dtype_mapping:
                     dtype_mapping = dtype_mapping[name]
                 elif index in dtype_mapping:
