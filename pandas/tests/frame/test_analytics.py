@@ -228,13 +228,6 @@ def assert_bool_op_api(opname, bool_frame_with_na, float_string_frame,
     getattr(mixed, opname)(axis=0)
     getattr(mixed, opname)(axis=1)
 
-    class NonzeroFail(object):
-
-        def __nonzero__(self):
-            raise ValueError
-
-    mixed['_nonzero_fail_'] = NonzeroFail()
-
     if has_bool_only:
         getattr(mixed, opname)(axis=0, bool_only=True)
         getattr(mixed, opname)(axis=1, bool_only=True)
