@@ -17,6 +17,7 @@ import os
 import sys
 import json
 import re
+import glob
 import functools
 import collections
 import argparse
@@ -776,9 +777,11 @@ def validate_all(prefix, ignore_deprecated=False):
     seen = {}
 
     # functions from the API docs
-    api_doc_fname = os.path.join(BASE_PATH, 'doc', 'source', 'api.rst')
-    with open(api_doc_fname) as f:
-        api_items = list(get_api_items(f))
+    api_doc_fnames = os.path.join(BASE_PATH, 'doc', 'source', 'api', '*.rst')
+    api_items = []
+    for api_doc_fname in glob.glob(api_doc_fnames):
+        with open(api_doc_fname) as f:
+            api_items += list(get_api_items(f))
     for func_name, func_obj, section, subsection in api_items:
         if prefix and not func_name.startswith(prefix):
             continue
