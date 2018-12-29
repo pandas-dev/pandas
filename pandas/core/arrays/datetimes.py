@@ -852,7 +852,7 @@ class DatetimeArrayMixin(dtl.DatetimeLikeArrayMixin,
         nonexistent_options = ('raise', 'NaT', 'shift_forward',
                                'shift_backward')
         if nonexistent not in nonexistent_options and not isinstance(
-            nonexistent, timedelta):
+                nonexistent, timedelta):
             raise ValueError("The nonexistent argument must be one of 'raise',"
                              " 'NaT', 'shift_forward', 'shift_backward' or"
                              " a timedelta object")

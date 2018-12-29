@@ -1,5 +1,6 @@
 # pylint: disable=W0231,E1101
 import collections
+from datetime import timedelta
 import functools
 import gc
 import json
@@ -9243,13 +9244,17 @@ class NDFrame(PandasObject, SelectionMixin):
             - 'NaT' will return NaT where there are ambiguous times
             - 'raise' will raise an AmbiguousTimeError if there are ambiguous
               times
-        nonexistent : 'shift', 'NaT', default 'raise'
+        nonexistent : 'shift_forward', 'shift_backward, 'NaT', timedelta,
+                      default 'raise'
             A nonexistent time does not exist in a particular timezone
             where clocks moved forward due to DST.
 
-            - 'shift' will shift the nonexistent times forward to the closest
-              existing time
+            - 'shift_forward' will shift the nonexistent time forward to the
+              closest existing time
+            - 'shift_backward' will shift the nonexistent time backward to the
+              closest existing time
             - 'NaT' will return NaT where there are nonexistent times
+            - timedelta objects will shift nonexistent times by the timedelta
             - 'raise' will raise an NonExistentTimeError if there are
               nonexistent times
 
@@ -9308,9 +9313,13 @@ class NDFrame(PandasObject, SelectionMixin):
         2018-10-28 03:46:00+01:00    2
         dtype: int64
         """
-        if nonexistent not in ('raise', 'NaT', 'shift'):
+        nonexistent_options = ('raise', 'NaT', 'shift_forward',
+                               'shift_backward')
+        if nonexistent not in nonexistent_options and not isinstance(
+                nonexistent, timedelta):
             raise ValueError("The nonexistent argument must be one of 'raise',"
-                             " 'NaT' or 'shift'")
+                             " 'NaT', 'shift_forward', 'shift_backward' or"
+                             " a timedelta object")
 
         axis = self._get_axis_number(axis)
         ax = self._get_axis(axis)
