@@ -140,9 +140,6 @@ class SharedTests(object):
         result = arr._unbox_scalar(pd.NaT)
         assert isinstance(result, (int, compat.long))
 
-    def test_scalar_from_string(self):
-        data = np.arange(10, dtype='i8') * 24 * 3600 * 10**9
-
         with pytest.raises(ValueError):
             arr._unbox_scalar('foo')
 
@@ -180,17 +177,42 @@ class SharedTests(object):
 
         # own-type
         result = arr.searchsorted(arr[1:3])
-        expected = np.array([1, 2], dtype=np.int64)
+        expected = np.array([1, 2], dtype=np.intp)
         tm.assert_numpy_array_equal(result, expected)
 
         result = arr.searchsorted(arr[1:3], side="right")
-        expected = np.array([2, 3], dtype=np.int64)
+        expected = np.array([2, 3], dtype=np.intp)
         tm.assert_numpy_array_equal(result, expected)
 
         # Following numpy convention, NaT goes at the beginning
         #  (unlike NaN which goes at the end)
         result = arr.searchsorted(pd.NaT)
         assert result == 0
+
+    def test_setitem(self):
+        data = np.arange(10, dtype='i8') * 24 * 3600 * 10**9
+        arr = self.array_cls(data, freq='D')
+
+        arr[0] = arr[1]
+        expected = np.arange(10, dtype='i8') * 24 * 3600 * 10**9
+        expected[0] = expected[1]
+
+        tm.assert_numpy_array_equal(arr.asi8, expected)
+
+        arr[:2] = arr[-2:]
+        expected[:2] = expected[-2:]
+        tm.assert_numpy_array_equal(arr.asi8, expected)
+
+    def test_setitem_raises(self):
+        data = np.arange(10, dtype='i8') * 24 * 3600 * 10**9
+        arr = self.array_cls(data, freq='D')
+        val = arr[0]
+
+        with pytest.raises(IndexError, match="index 12 is out of bounds"):
+            arr[12] = val
+
+        with pytest.raises(TypeError, match="'value' should be a.* 'object'"):
+            arr[0] = object()
 
 
 class TestDatetimeArray(SharedTests):
