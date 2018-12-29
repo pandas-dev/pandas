@@ -887,10 +887,3 @@ class IntervalDtype(PandasExtensionDtype, ExtensionDtype):
             else:
                 return False
         return super(IntervalDtype, cls).is_dtype(dtype)
-
-
-# TODO(Extension): remove the second registry once all internal extension
-# dtypes are real extension dtypes.
-_pandas_registry = Registry()
-
-_pandas_registry.register(DatetimeTZDtype)
