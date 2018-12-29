@@ -182,3 +182,8 @@ class BaseSetitemTests(BaseExtensionTests):
         arr = data[:5].copy()
         arr[:5] = data[-5:]
         self.assert_extension_array_equal(arr, data[-5:])
+
+    def test_setitem_scalar_key_sequence_raise(self, data):
+        arr = data[:5].copy()
+        with pytest.raises(ValueError):
+            arr[0] = arr[[0, 1]]

@@ -478,6 +478,56 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin, AttributesMixin):
 
         return self._simple_new(result, **attribs)
 
+    def __setitem__(
+            self,
+            key,    # type: Union[int, Sequence[int], Sequence[bool], slice]
+            value,  # type: Union[NaTType, Scalar, Sequence[Scalar]]
+    ):
+        # type: (...) -> None
+        # I'm fudging the types a bit here. The "Scalar" above really depends
+        # on type(self). For PeriodArray, it's Period (or stuff coercible
+        # to a period in from_sequence). For DatetimeArray, it's Timestamp...
+        # I don't know if mypy can do that, possibly with Generics.
+        # https://mypy.readthedocs.io/en/latest/generics.html
+
+        if is_list_like(value):
+            is_slice = isinstance(key, slice)
+
+            if lib.is_scalar(key):
+                raise ValueError("setting an array element with a sequence.")
+
+            if (not is_slice
+                    and len(key) != len(value)
+                    and not com.is_bool_indexer(key)):
+                msg = ("shape mismatch: value array of length '{}' does not "
+                       "match indexing result of length '{}'.")
+                raise ValueError(msg.format(len(key), len(value)))
+            if not is_slice and len(key) == 0:
+                return
+
+            value = type(self)._from_sequence(value, dtype=self.dtype)
+            self._check_compatible_with(value)
+            value = value.asi8
+        elif isinstance(value, self._scalar_type):
+            self._check_compatible_with(value)
+            value = self._unbox_scalar(value)
+        elif isna(value) or value == iNaT:
+            value = iNaT
+        else:
+            msg = (
+                "'value' should be a '{scalar}', 'NaT', or array of those. "
+                "Got '{typ}' instead."
+            )
+            raise TypeError(msg.format(scalar=self._scalar_type.__name__,
+                                       typ=type(value).__name__))
+        self._data[key] = value
+        self._maybe_clear_freq()
+
+    def _maybe_clear_freq(self):
+        # inplace operations like __setitem__ may invalidate the freq of
+        # DatetimeArray and TimedeltaArray
+        pass
+
     def astype(self, dtype, copy=True):
         # Some notes on cases we don't have to handle here in the base class:
         #   1. PeriodArray.astype handles period -> period

@@ -238,6 +238,9 @@ class TimedeltaArrayMixin(dtl.DatetimeLikeArrayMixin, dtl.TimelikeOps):
         # we don't have anything to validate.
         pass
 
+    def _maybe_clear_freq(self):
+        self._freq = None
+
     # ----------------------------------------------------------------
     # Array-Like / EA-Interface Methods
 
