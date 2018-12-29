@@ -79,9 +79,10 @@ class DocBuilder:
             else:
                 return single_doc[len('pandas.'):]
         else:
-            raise ValueError('--single value should be a valid path to a '
-                             '.rst or .ipynb file, or a valid pandas object '
-                             '(e.g. categorical.rst or pandas.DataFrame.head)')
+            raise ValueError(('--single={} not understood. Value should be a '
+                              'valid path to a .rst or .ipynb file, or a '
+                              'valid pandas object (e.g. categorical.rst or '
+                              'pandas.DataFrame.head)').format(single_doc))
 
     @staticmethod
     def _run_os(*args):
