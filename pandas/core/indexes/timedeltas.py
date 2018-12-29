@@ -245,11 +245,6 @@ class TimedeltaIndex(DatetimeIndexOpsMixin,
 
     # -------------------------------------------------------------------
 
-    @property
-    def _eadata(self):
-        return TimedeltaArray._simple_new(self._data,
-                                          freq=self.freq)
-
     def __setstate__(self, state):
         """Necessary for making this object picklable"""
         if isinstance(state, dict):
