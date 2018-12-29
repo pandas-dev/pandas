@@ -40,7 +40,12 @@ class Registry(object):
     Registry for dtype inference
 
     The registry allows one to map a string repr of a extension
-    dtype to an extenstion dtype.
+    dtype to an extension dtype. The string alias can be used in several
+    places, including
+
+    * Series and Index constructors
+    * :meth:`pandas.array`
+    * :meth:`pandas.Series.astype`
 
     Multiple extension types can be registered.
     These are tried in order.
@@ -625,6 +630,7 @@ class DatetimeTZDtype(PandasExtensionDtype, ExtensionDtype):
         self._unit = state['unit']
 
 
+@register_extension_dtype
 class PeriodDtype(ExtensionDtype, PandasExtensionDtype):
     """
     A Period duck-typed class, suitable for holding a period with freq dtype.
@@ -888,4 +894,3 @@ class IntervalDtype(PandasExtensionDtype, ExtensionDtype):
 _pandas_registry = Registry()
 
 _pandas_registry.register(DatetimeTZDtype)
-_pandas_registry.register(PeriodDtype)

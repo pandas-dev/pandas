@@ -274,6 +274,22 @@ class TimedeltaArrayMixin(dtl.DatetimeLikeArrayMixin, dtl.TimelikeOps):
         self._freq = None
 
     # ----------------------------------------------------------------
+    # DatetimeLike Interface
+
+    def _unbox_scalar(self, value):
+        if not isinstance(value, self._scalar_type) and value is not NaT:
+            raise ValueError("'value' should be a Timedelta.")
+        self._check_compatible_with(value)
+        return value.value
+
+    def _scalar_from_string(self, value):
+        return Timedelta(value)
+
+    def _check_compatible_with(self, other):
+        # we don't have anything to validate.
+        pass
+
+    # ----------------------------------------------------------------
     # Array-Like / EA-Interface Methods
 
     def __array__(self, dtype=None):

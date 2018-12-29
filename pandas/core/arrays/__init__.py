@@ -1,3 +1,4 @@
+from .array_ import array  # noqa
 from .base import (ExtensionArray,    # noqa
                    ExtensionOpsMixin,
                    ExtensionScalarOpsMixin)
