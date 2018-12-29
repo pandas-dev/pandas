@@ -17,11 +17,11 @@ import pandas.util.testing as tm
 
 class TestDatetimeArrayConstructor(object):
     def test_mismatched_timezone_raises(self):
-        a = DatetimeArray(np.array(['2000-01-01T06:00:00'], dtype='M8[ns]'),
-                          dtype=DatetimeTZDtype(tz='US/Central'))
+        arr = DatetimeArray(np.array(['2000-01-01T06:00:00'], dtype='M8[ns]'),
+                            dtype=DatetimeTZDtype(tz='US/Central'))
         dtype = DatetimeTZDtype(tz='US/Eastern')
-        with pytest.raises(TypeError, match='do not match'):
-            DatetimeArray(a, dtype=dtype)
+        with pytest.raises(TypeError, match='data is already tz-aware'):
+            DatetimeArray(arr, dtype=dtype)
 
     def test_non_array_raises(self):
         with pytest.raises(ValueError, match='list'):

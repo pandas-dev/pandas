@@ -19,16 +19,15 @@ class TestTimedeltaArrayConstructor(object):
             TimedeltaArray(np.array([1, 2, 3], dtype='bool'))
 
     def test_incorrect_dtype_raises(self):
-        with pytest.raises(TypeError, match="dtype category"):
+        # TODO: why TypeError for 'category' but ValueError for i8?
+        with pytest.raises(TypeError,
+                           match='data type "category" not understood'):
             TimedeltaArray(np.array([1, 2, 3], dtype='i8'), dtype='category')
 
-        with pytest.raises(TypeError, match="dtype int"):
+        with pytest.raises(ValueError,
+                           match=r"Only timedelta64\[ns\] dtype is valid"):
             TimedeltaArray(np.array([1, 2, 3], dtype='i8'),
                            dtype=np.dtype(int))
-
-    def test_freq_infer_raises(self):
-        with pytest.raises(ValueError, match='Frequency inference'):
-            TimedeltaArray(np.array([1, 2, 3], dtype='i8'), freq="infer")
 
     def test_copy(self):
         data = np.array([1, 2, 3], dtype='m8[ns]')

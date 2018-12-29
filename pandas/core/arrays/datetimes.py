@@ -1632,6 +1632,8 @@ def sequence_to_dt64ns(data, dtype=None, copy=False,
 
     inferred_freq = None
 
+    dtype = _validate_dt64_dtype(dtype)
+
     if not hasattr(data, "dtype"):
         # e.g. list, tuple
         if np.ndim(data) == 0:
@@ -1836,7 +1838,7 @@ def maybe_convert_dtype(data, copy):
         data = data.view(_NS_DTYPE)
 
     elif is_period_dtype(data):
-        # Note: without explicitly raising here, PeriondIndex
+        # Note: without explicitly raising here, PeriodIndex
         #  test_setops.test_join_does_not_recur fails
         raise TypeError("Passing PeriodDtype data is invalid.  "
                         "Use `data.to_timestamp()` instead")
@@ -1887,6 +1889,38 @@ def maybe_infer_tz(tz, inferred_tz):
                         'set specified tz: {tz}'
                         .format(inferred_tz=inferred_tz, tz=tz))
     return tz
+
+
+def _validate_dt64_dtype(dtype):
+    """
+    Check that a dtype, if passed, represents either a numpy datetime64[ns]
+    dtype or a pandas DatetimeTZDtype.
+
+    Parameters
+    ----------
+    dtype : object
+
+    Returns
+    -------
+    dtype : None, numpy.dtype, or DatetimeTZDtype
+
+    Raises
+    ------
+    ValueError : invalid dtype
+
+    Notes
+    -----
+    Unlike validate_tz_from_dtype, this does _not_ allow non-existent
+    tz errors to go through
+    """
+    if dtype is not None:
+        dtype = pandas_dtype(dtype)
+        if ((isinstance(dtype, np.dtype) and dtype != _NS_DTYPE)
+                or not isinstance(dtype, (np.dtype, DatetimeTZDtype))):
+            raise ValueError("Unexpected value for 'dtype': '{dtype}'. "
+                             "Must be 'datetime64[ns]' or DatetimeTZDtype'."
+                             .format(dtype=dtype))
+    return dtype
 
 
 def validate_tz_from_dtype(dtype, tz):
