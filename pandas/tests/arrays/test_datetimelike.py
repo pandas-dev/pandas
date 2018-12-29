@@ -170,11 +170,11 @@ class SharedTests(object):
 
         # own-type
         result = arr.searchsorted(arr[1:3])
-        expected = np.array([1, 2], dtype=np.int64)
+        expected = np.array([1, 2], dtype=np.intp)
         tm.assert_numpy_array_equal(result, expected)
 
         result = arr.searchsorted(arr[1:3], side="right")
-        expected = np.array([2, 3], dtype=np.int64)
+        expected = np.array([2, 3], dtype=np.intp)
         tm.assert_numpy_array_equal(result, expected)
 
         # Following numpy convention, NaT goes at the beginning
