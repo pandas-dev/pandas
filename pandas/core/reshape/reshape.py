@@ -117,6 +117,7 @@ class _Unstacker(object):
                            in self.new_index_levels])
         num_columns = self.removed_level.size
 
+        # GH20601: This forces an overflow if the number of cells is too high.
         num_cells = np.multiply(num_rows, num_columns, dtype=np.int32)
 
         if num_cells <= 0:
