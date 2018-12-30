@@ -1659,16 +1659,18 @@ class ParserBase(object):
                     values, set(col_na_values) | col_na_fvalues,
                     try_num_bool=False)
             else:
+                is_str_or_ea_dtype = (is_string_dtype(cast_type)
+                                      or is_extension_array_dtype(cast_type))
                 # skip inference if specified dtype is object
-                try_num_bool = not (cast_type and (is_string_dtype(cast_type)
-                                                   or is_extension_array_dtype(cast_type)))  # noqa
+                # or casting to an EA
+                try_num_bool = not (cast_type and is_str_or_ea_dtype)
 
                 # general type inference and conversion
                 cvals, na_count = self._infer_types(
                     values, set(col_na_values) | col_na_fvalues,
                     try_num_bool)
 
-                # type specified in dtype param
+                # type specified in dtype param or cast_type is an EA
                 if cast_type and (not is_dtype_equal(cvals, cast_type)
                                   or is_extension_array_dtype(cast_type)):
                     try:
@@ -1767,6 +1769,7 @@ class ParserBase(object):
                 cats, cats.get_indexer(values), cast_type,
                 true_values=self.true_values)
 
+        # use the EA's implementation of casting
         elif is_extension_array_dtype(cast_type):
             try:
                 array_type = cast_type.construct_array_type()
@@ -1775,7 +1778,6 @@ class ParserBase(object):
                 array_type = cast_type.construct_array_type()
 
             try:
-                # use _from_sequence_of_strings if the class defines it
                 return array_type._from_sequence_of_strings(values,
                                                             dtype=cast_type)
             except NotImplementedError:
@@ -2193,7 +2195,14 @@ class PythonParser(ParserBase):
 
         self.verbose = kwds['verbose']
         self.converters = kwds['converters']
-        self.dtype = kwds['dtype']
+
+        # convert dtype to a pandas_dtype
+        dtype = kwds['dtype']
+        if isinstance(dtype, dict):
+            self.dtype = {k: pandas_dtype(dtype[k])
+                          for k in dtype}
+        else:
+            self.dtype = dtype
 
         self.thousands = kwds['thousands']
         self.decimal = kwds['decimal']

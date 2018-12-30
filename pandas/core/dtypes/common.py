@@ -1986,6 +1986,9 @@ def pandas_dtype(dtype):
     # registered extension types
     result = _pandas_registry.find(dtype) or registry.find(dtype)
     if result is not None:
+        # ensure result is an instantiated type
+        if isinstance(result, type):
+            return result()
         return result
 
     # un-registered extension types

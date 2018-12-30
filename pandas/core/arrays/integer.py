@@ -155,10 +155,7 @@ def coerce_to_array(values, dtype, mask=None, copy=False):
             dtype = dtype.lower()
         if not issubclass(type(dtype), _IntegerDtype):
             try:
-                try:
-                    dtype = _dtypes[str(np.dtype(dtype.name.lower()))]
-                except AttributeError:
-                    dtype = _dtypes[str(np.dtype(dtype))]
+                dtype = _dtypes[str(np.dtype(dtype))]
             except KeyError:
                 raise ValueError("invalid dtype specified {}".format(dtype))
 

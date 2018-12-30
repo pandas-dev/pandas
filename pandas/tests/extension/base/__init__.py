@@ -53,4 +53,4 @@ from .reduce import BaseNoReduceTests, BaseNumericReduceTests, BaseBooleanReduce
 from .missing import BaseMissingTests  # noqa
 from .reshaping import BaseReshapingTests  # noqa
 from .setitem import BaseSetitemTests  # noqa
-from .io import ExtensionParsingTests  # noqa
+from .io import BaseParsingTests  # noqa

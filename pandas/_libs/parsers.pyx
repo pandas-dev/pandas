@@ -50,14 +50,13 @@ from pandas.core.dtypes.common import (
     is_integer_dtype, is_float_dtype,
     is_bool_dtype, is_object_dtype,
     is_datetime64_dtype,
-    pandas_dtype, is_extension_array_dtype,
-)
+    pandas_dtype, is_extension_array_dtype)
 from pandas.core.arrays import Categorical
 from pandas.core.dtypes.concat import union_categoricals
 import pandas.io.common as icom
 
-from pandas.errors import ( ParserError, DtypeWarning,
-                            EmptyDataError, ParserWarning )
+from pandas.errors import (ParserError, DtypeWarning,
+                           EmptyDataError, ParserWarning)
 
 # Import CParserError as alias of ParserError for backwards compatibility.
 # Ultimately, we want to remove this import. See gh-12665 and gh-14479.
@@ -1123,7 +1122,9 @@ cdef class TextReader:
                 if na_filter:
                     self._free_na_set(na_hashset)
 
-            if upcast_na and na_count > 0:
+            try_upcast = upcast_na and na_count > 0
+            # don't try to upcast EAs
+            if try_upcast and not is_extension_array_dtype(col_dtype):
                 col_res = _maybe_upcast(col_res)
 
             if col_res is None:
