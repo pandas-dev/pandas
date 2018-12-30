@@ -1883,8 +1883,7 @@ def test_warn_bad_lines(all_parsers, capsys):
     assert "Skipping line 5" in captured.err
 
 
-@tm.capture_stderr
-def test_suppress_error_output(all_parsers):
+def test_suppress_error_output(all_parsers, capsys):
     # see gh-15925
     parser = all_parsers
     data = "a\n1\n1,2,3\n4\n5,6,7"
@@ -1895,8 +1894,8 @@ def test_suppress_error_output(all_parsers):
                              warn_bad_lines=False)
     tm.assert_frame_equal(result, expected)
 
-    val = sys.stderr.getvalue()
-    assert val == ""
+    captured = capsys.readouterr()
+    assert captured.err == ""
 
 
 def test_read_table_deprecated(all_parsers):
