@@ -633,6 +633,43 @@ class BadReturns(object):
         """
         return "Hello world!"
 
+    def named_single_return(self):
+        """
+        Provides name but returns only one value.
+
+        Returns
+        -------
+        s : str
+           A nice greeting.
+        """
+        return "Hello world!"
+
+    def no_capitalization(self):
+        """
+        Forgets capitalization in return values description.
+
+        Returns
+        -------
+        foo : str
+           The first returned string.
+        bar : str
+           the second returned string.
+        """
+        return "Hello", "World!"
+
+    def no_period_multi(self):
+        """
+        Forgets period in return values description.
+
+        Returns
+        -------
+        foo : str
+           The first returned string
+        bar : str
+           The second returned string.
+        """
+        return "Hello", "World!"
+
 
 class BadSeeAlso(object):
 
@@ -829,10 +866,18 @@ class TestValidator(object):
         ('BadReturns', 'yield_not_documented', ('No Yields section found',)),
         pytest.param('BadReturns', 'no_type', ('foo',),
                      marks=pytest.mark.xfail),
-        pytest.param('BadReturns', 'no_description', ('foo',),
-                     marks=pytest.mark.xfail),
-        pytest.param('BadReturns', 'no_punctuation', ('foo',),
-                     marks=pytest.mark.xfail),
+        ('BadReturns', 'no_description',
+         ('Return value has no description',)),
+        ('BadReturns', 'no_punctuation',
+         ('Return value description should finish with "."',)),
+        ('BadReturns', 'named_single_return',
+         ('The first line of the Returns section should contain only the '
+          'type, unless multiple values are being returned',)),
+        ('BadReturns', 'no_capitalization',
+         ('Return value description should start with a capital '
+          'letter',)),
+        ('BadReturns', 'no_period_multi',
+         ('Return value description should finish with "."',)),
         # Examples tests
         ('BadGenericDocStrings', 'method',
          ('Do not import numpy, as it is imported automatically',)),
