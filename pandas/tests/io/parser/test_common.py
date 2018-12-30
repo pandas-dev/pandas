@@ -1509,8 +1509,7 @@ def test_whitespace_regex_separator(all_parsers, data, expected):
     tm.assert_frame_equal(result, expected)
 
 
-@tm.capture_stdout
-def test_verbose_read(all_parsers):
+def test_verbose_read(all_parsers, capsys):
     parser = all_parsers
     data = """a,b,c,d
 one,1,2,3
@@ -1524,17 +1523,16 @@ two,1,2,3"""
 
     # Engines are verbose in different ways.
     parser.read_csv(StringIO(data), verbose=True)
-    output = sys.stdout.getvalue()
+    captured = capsys.readouterr()
 
     if parser.engine == "c":
-        assert "Tokenization took:" in output
-        assert "Parser memory cleanup took:" in output
+        assert "Tokenization took:" in captured.out
+        assert "Parser memory cleanup took:" in captured.out
     else:  # Python engine
-        assert output == "Filled 3 NA values in column a\n"
+        assert captured.out == "Filled 3 NA values in column a\n"
 
 
-@tm.capture_stdout
-def test_verbose_read2(all_parsers):
+def test_verbose_read2(all_parsers, capsys):
     parser = all_parsers
     data = """a,b,c,d
 one,1,2,3
@@ -1547,14 +1545,14 @@ seven,1,2,3
 eight,1,2,3"""
 
     parser.read_csv(StringIO(data), verbose=True, index_col=0)
-    output = sys.stdout.getvalue()
+    captured = capsys.readouterr()
 
     # Engines are verbose in different ways.
     if parser.engine == "c":
-        assert "Tokenization took:" in output
-        assert "Parser memory cleanup took:" in output
+        assert "Tokenization took:" in captured.out
+        assert "Parser memory cleanup took:" in captured.out
     else:  # Python engine
-        assert output == "Filled 1 NA values in column a\n"
+        assert captured.out == "Filled 1 NA values in column a\n"
 
 
 def test_iteration_open_handle(all_parsers):
