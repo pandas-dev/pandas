@@ -10,7 +10,7 @@ import numpy as np
 from pandas._libs import NaT, iNaT, lib
 from pandas.compat.numpy import function as nv
 from pandas.errors import AbstractMethodError
-from pandas.util._decorators import Appender, cache_readonly
+from pandas.util._decorators import Appender, cache_readonly, deprecate_kwarg
 
 from pandas.core.dtypes.common import (
     ensure_int64, is_bool_dtype, is_dtype_equal, is_float, is_integer,
@@ -19,6 +19,7 @@ from pandas.core.dtypes.generic import ABCIndex, ABCIndexClass, ABCSeries
 
 from pandas.core import algorithms, ops
 from pandas.core.accessor import PandasDelegate
+from pandas.core.arrays import ExtensionOpsMixin
 from pandas.core.arrays.datetimelike import (
     DatetimeLikeArrayMixin, _ensure_datetimelike_to_i8)
 import pandas.core.indexes.base as ibase
@@ -30,14 +31,30 @@ import pandas.io.formats.printing as printing
 _index_doc_kwargs = dict(ibase._index_doc_kwargs)
 
 
-class DatetimeIndexOpsMixin(DatetimeLikeArrayMixin):
+def ea_passthrough(name):
+    """
+    Make an alias for a method of the underlying ExtensionArray.
+
+    Parameters
+    ----------
+    name : str
+
+    Returns
+    -------
+    method
+    """
+    def method(self, *args, **kwargs):
+        return getattr(self._eadata, name)(*args, **kwargs)
+
+    method.__name__ = name
+    # TODO: docstrings
+    return method
+
+
+class DatetimeIndexOpsMixin(ExtensionOpsMixin):
     """
     common ops mixin to support a unified interface datetimelike Index
     """
-
-    # override DatetimeLikeArrayMixin method
-    copy = Index.copy
-    view = Index.view
 
     # DatetimeLikeArrayMixin assumes subclasses are mutable, so these are
     # properties there.  They can be made into cache_readonly for Index
@@ -48,6 +65,14 @@ class DatetimeIndexOpsMixin(DatetimeLikeArrayMixin):
     _hasnans = hasnans  # for index / array -agnostic code
     _resolution = cache_readonly(DatetimeLikeArrayMixin._resolution.fget)
     resolution = cache_readonly(DatetimeLikeArrayMixin.resolution.fget)
+
+    _box_values = ea_passthrough("_box_values")
+    _maybe_mask_results = ea_passthrough("_maybe_mask_results")
+    __iter__ = ea_passthrough("__iter__")
+
+    @property
+    def freqstr(self):
+        return self._eadata.freqstr
 
     def unique(self, level=None):
         if level is not None:
@@ -72,9 +97,6 @@ class DatetimeIndexOpsMixin(DatetimeLikeArrayMixin):
         wrapper.__doc__ = op.__doc__
         wrapper.__name__ = '__{}__'.format(op.__name__)
         return wrapper
-
-    # A few methods that are shared
-    _maybe_mask_results = DatetimeLikeArrayMixin._maybe_mask_results
 
     # ------------------------------------------------------------------------
 
@@ -266,7 +288,7 @@ class DatetimeIndexOpsMixin(DatetimeLikeArrayMixin):
         """
         return list(self.astype(object))
 
-    def min(self, axis=None, *args, **kwargs):
+    def min(self, axis=None, skipna=True, *args, **kwargs):
         """
         Return the minimum value of the Index or minimum along
         an axis.
@@ -274,27 +296,33 @@ class DatetimeIndexOpsMixin(DatetimeLikeArrayMixin):
         See Also
         --------
         numpy.ndarray.min
+        Series.min : Return the minimum value in a Series.
         """
         nv.validate_min(args, kwargs)
         nv.validate_minmax_axis(axis)
 
-        try:
-            i8 = self.asi8
+        if not len(self):
+            return self._na_value
 
+        i8 = self.asi8
+        try:
             # quick check
             if len(i8) and self.is_monotonic:
                 if i8[0] != iNaT:
                     return self._box_func(i8[0])
 
             if self.hasnans:
-                min_stamp = self[~self._isnan].asi8.min()
+                if skipna:
+                    min_stamp = self[~self._isnan].asi8.min()
+                else:
+                    return self._na_value
             else:
                 min_stamp = i8.min()
             return self._box_func(min_stamp)
         except ValueError:
             return self._na_value
 
-    def argmin(self, axis=None, *args, **kwargs):
+    def argmin(self, axis=None, skipna=True, *args, **kwargs):
         """
         Returns the indices of the minimum values along an axis.
 
@@ -311,13 +339,13 @@ class DatetimeIndexOpsMixin(DatetimeLikeArrayMixin):
         i8 = self.asi8
         if self.hasnans:
             mask = self._isnan
-            if mask.all():
+            if mask.all() or not skipna:
                 return -1
             i8 = i8.copy()
             i8[mask] = np.iinfo('int64').max
         return i8.argmin()
 
-    def max(self, axis=None, *args, **kwargs):
+    def max(self, axis=None, skipna=True, *args, **kwargs):
         """
         Return the maximum value of the Index or maximum along
         an axis.
@@ -325,27 +353,33 @@ class DatetimeIndexOpsMixin(DatetimeLikeArrayMixin):
         See Also
         --------
         numpy.ndarray.max
+        Series.max : Return the maximum value in a Series.
         """
         nv.validate_max(args, kwargs)
         nv.validate_minmax_axis(axis)
 
-        try:
-            i8 = self.asi8
+        if not len(self):
+            return self._na_value
 
+        i8 = self.asi8
+        try:
             # quick check
             if len(i8) and self.is_monotonic:
                 if i8[-1] != iNaT:
                     return self._box_func(i8[-1])
 
             if self.hasnans:
-                max_stamp = self[~self._isnan].asi8.max()
+                if skipna:
+                    max_stamp = self[~self._isnan].asi8.max()
+                else:
+                    return self._na_value
             else:
                 max_stamp = i8.max()
             return self._box_func(max_stamp)
         except ValueError:
             return self._na_value
 
-    def argmax(self, axis=None, *args, **kwargs):
+    def argmax(self, axis=None, skipna=True, *args, **kwargs):
         """
         Returns the indices of the maximum values along an axis.
 
@@ -362,7 +396,7 @@ class DatetimeIndexOpsMixin(DatetimeLikeArrayMixin):
         i8 = self.asi8
         if self.hasnans:
             mask = self._isnan
-            if mask.all():
+            if mask.all() or not skipna:
                 return -1
             i8 = i8.copy()
             i8[mask] = 0
@@ -536,7 +570,7 @@ class DatetimeIndexOpsMixin(DatetimeLikeArrayMixin):
             # - remove the .asi8 here
             # - remove the _maybe_box_as_values
             # - combine with the `else` block
-            new_data = self._concat_same_type(to_concat).asi8
+            new_data = self._eadata._concat_same_type(to_concat).asi8
         else:
             new_data = type(self._values)._concat_same_type(to_concat)
 
@@ -566,6 +600,12 @@ class DatetimeIndexOpsMixin(DatetimeLikeArrayMixin):
     @Appender(DatetimeLikeArrayMixin._time_shift.__doc__)
     def _time_shift(self, periods, freq=None):
         result = self._eadata._time_shift(periods, freq=freq)
+        return type(self)(result, name=self.name)
+
+    @deprecate_kwarg(old_arg_name='n', new_arg_name='periods')
+    @Appender(DatetimeLikeArrayMixin.shift.__doc__)
+    def shift(self, periods, freq=None):
+        result = self._eadata.shift(periods, freq=freq)
         return type(self)(result, name=self.name)
 
 

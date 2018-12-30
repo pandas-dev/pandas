@@ -1294,6 +1294,7 @@ Performance Improvements
 - Improved performance of :meth:`~DataFrame.where` for Categorical data (:issue:`24077`)
 - Improved performance of iterating over a :class:`Series`. Using :meth:`DataFrame.itertuples` now creates iterators
   without internally allocating lists of all elements (:issue:`20783`)
+- Improved performance of :class:`Period` constructor, additionally benefitting ``PeriodArray`` and ``PeriodIndex`` creation (:issue:`24084` and :issue:`24118`)
 
 .. _whatsnew_0240.docs:
 
@@ -1366,6 +1367,7 @@ Datetimelike
 - Bug in :attr:`Series.dt` where the cache would not update properly after an in-place operation (:issue:`24408`)
 - Bug in :class:`PeriodIndex` where comparisons against an array-like object with length 1 failed to raise ``ValueError`` (:issue:`23078`)
 - Bug in :meth:`DatetimeIndex.astype`, :meth:`PeriodIndex.astype` and :meth:`TimedeltaIndex.astype` ignoring the sign of the ``dtype`` for unsigned integer dtypes (:issue:`24405`).
+- Fixed bug in :meth:`Series.max` with ``datetime64[ns]``-dtype failing to return ``NaT`` when nulls are present and ``skipna=False`` is passed (:issue:`24265`)
 
 Timedelta
 ^^^^^^^^^
