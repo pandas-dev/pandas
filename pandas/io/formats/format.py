@@ -1176,6 +1176,11 @@ class ExtensionArrayFormatter(GenericArrayFormatter):
                                   na_rep=self.na_rep, digits=self.digits,
                                   space=self.space, justify=self.justify,
                                   leading_space=self.leading_space)
+
+        if (is_categorical_dtype(values.dtype) and
+                is_integer_dtype(values.dtype.categories)):
+            # integers were coerced to float for array with NaN (GH 19214)
+            return [value.replace(".0", "") for value in fmt_values]
         return fmt_values
 
 
