@@ -228,13 +228,6 @@ def assert_bool_op_api(opname, bool_frame_with_na, float_string_frame,
     getattr(mixed, opname)(axis=0)
     getattr(mixed, opname)(axis=1)
 
-    class NonzeroFail(object):
-
-        def __nonzero__(self):
-            raise ValueError
-
-    mixed['_nonzero_fail_'] = NonzeroFail()
-
     if has_bool_only:
         getattr(mixed, opname)(axis=0, bool_only=True)
         getattr(mixed, opname)(axis=1, bool_only=True)
@@ -1374,25 +1367,22 @@ class TestDataFrameAnalytics():
         result = df[['C']].all(axis=None).item()
         assert result is True
 
-        # skip pathological failure cases
-        # class CantNonzero(object):
+    def test_any_datetime(self):
 
-        #     def __nonzero__(self):
-        #         raise ValueError
+        # GH 23070
+        float_data = [1, np.nan, 3, np.nan]
+        datetime_data = [pd.Timestamp('1960-02-15'),
+                         pd.Timestamp('1960-02-16'),
+                         pd.NaT,
+                         pd.NaT]
+        df = DataFrame({
+            "A": float_data,
+            "B": datetime_data
+        })
 
-        # df[4] = CantNonzero()
-
-        # it works!
-        # df.any(1)
-        # df.all(1)
-        # df.any(1, bool_only=True)
-        # df.all(1, bool_only=True)
-
-        # df[4][4] = np.nan
-        # df.any(1)
-        # df.all(1)
-        # df.any(1, bool_only=True)
-        # df.all(1, bool_only=True)
+        result = df.any(1)
+        expected = Series([True, True, True, False])
+        tm.assert_series_equal(result, expected)
 
     @pytest.mark.parametrize('func, data, expected', [
         (np.any, {}, False),
