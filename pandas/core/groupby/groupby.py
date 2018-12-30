@@ -1334,7 +1334,7 @@ class GroupBy(_GroupBy):
         Given a grouper, the function resamples it according to a string
         "string" -> "frequency".
 
-        See the :ref:`frequency aliases <timeseries.offset-aliases>`
+        See the :ref:`frequency aliases <timeseries.offset_aliases>`
         documentation for more details.
 
         Parameters

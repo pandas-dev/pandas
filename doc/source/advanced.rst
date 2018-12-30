@@ -921,7 +921,7 @@ If you need integer based selection, you should use ``iloc``:
 
    dfir.iloc[0:5]
 
-.. _indexing.intervallindex:
+.. _advanced.intervallindex:
 
 IntervalIndex
 ~~~~~~~~~~~~~
