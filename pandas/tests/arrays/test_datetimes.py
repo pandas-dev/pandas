@@ -113,6 +113,16 @@ class TestDatetimeArray(object):
         a[0] = pd.Timestamp("2000", tz="US/Central")
         assert a.freq is None
 
+    def test_repeat_preserves_tz(self):
+        dti = pd.date_range('2000', periods=2, freq='D', tz='US/Central')
+        arr = DatetimeArray(dti)
+
+        repeated = arr.repeat([1, 1])
+
+        # preserves tz and values, but not freq
+        expected = DatetimeArray(arr.asi8, freq=None, tz=arr.tz)
+        tm.assert_equal(repeated, expected)
+
 
 class TestSequenceToDT64NS(object):
 
