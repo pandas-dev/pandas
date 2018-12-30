@@ -4589,7 +4589,10 @@ class DataFrame(NDFrame):
                 else:
                     raise TypeError('must specify how or thresh')
 
-            result = self._take(mask.nonzero()[0], axis=axis)
+            if axis == 0:
+                result = self.loc[mask]
+            else:
+                result = self.loc[:, mask]
 
         if inplace:
             self._update_inplace(result)
