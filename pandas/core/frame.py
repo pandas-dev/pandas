@@ -4627,7 +4627,7 @@ class DataFrame(NDFrame):
         duplicated = self.duplicated(subset, keep=keep)
 
         if inplace:
-            inds, = (-duplicated).nonzero()
+            inds, = (-duplicated).values.nonzero()
             new_data = self._data.take(inds)
             self._update_inplace(new_data)
         else:
