@@ -11,7 +11,6 @@ import csv
 from datetime import datetime
 import os
 import platform
-import sys
 from tempfile import TemporaryFile
 
 import numpy as np
