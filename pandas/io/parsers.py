@@ -261,7 +261,7 @@ doublequote : bool, default ``True``
    whether or not to interpret two consecutive quotechar elements INSIDE a
    field as a single ``quotechar`` element.
 escapechar : str (length 1), optional
-    One-character string used to escape delimiter when quoting is QUOTE_NONE.
+    One-character string used to escape other characters.
 comment : str, optional
     Indicates remainder of line should not be parsed. If found at the beginning
     of a line, the line will be ignored altogether. This parameter must be a

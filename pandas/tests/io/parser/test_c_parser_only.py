@@ -10,7 +10,6 @@ further arguments when parsing.
 from io import TextIOWrapper
 import mmap
 import os
-import sys
 import tarfile
 
 import numpy as np
@@ -449,8 +448,7 @@ def test_data_after_quote(c_parser_only):
     tm.assert_frame_equal(result, expected)
 
 
-@tm.capture_stderr
-def test_comment_whitespace_delimited(c_parser_only):
+def test_comment_whitespace_delimited(c_parser_only, capsys):
     parser = c_parser_only
     test_input = """\
 1 2
@@ -466,10 +464,10 @@ def test_comment_whitespace_delimited(c_parser_only):
     df = parser.read_csv(StringIO(test_input), comment="#", header=None,
                          delimiter="\\s+", skiprows=0,
                          error_bad_lines=False)
-    error = sys.stderr.getvalue()
+    captured = capsys.readouterr()
     # skipped lines 2, 3, 4, 9
     for line_num in (2, 3, 4, 9):
-        assert "Skipping line {}".format(line_num) in error, error
+        assert "Skipping line {}".format(line_num) in captured.err
     expected = DataFrame([[1, 2],
                           [5, 2],
                           [6, 2],
