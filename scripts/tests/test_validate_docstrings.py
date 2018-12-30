@@ -4,7 +4,6 @@ import string
 import textwrap
 import pytest
 import numpy as np
-from pandas.util.testing import capture_stderr
 import validate_docstrings
 validate_one = validate_docstrings.validate_one
 
@@ -739,36 +738,32 @@ class TestValidator(object):
 
         return base_path
 
-    @capture_stderr
-    def test_good_class(self):
+    def test_good_class(self, capsys):
         errors = validate_one(self._import_path(
             klass='GoodDocStrings'))['errors']
         assert isinstance(errors, list)
         assert not errors
 
-    @capture_stderr
     @pytest.mark.parametrize("func", [
         'plot', 'sample', 'random_letters', 'sample_values', 'head', 'head1',
         'contains', 'mode', 'good_imports'])
-    def test_good_functions(self, func):
+    def test_good_functions(self, capsys, func):
         errors = validate_one(self._import_path(
             klass='GoodDocStrings', func=func))['errors']
         assert isinstance(errors, list)
         assert not errors
 
-    @capture_stderr
-    def test_bad_class(self):
+    def test_bad_class(self, capsys):
         errors = validate_one(self._import_path(
             klass='BadGenericDocStrings'))['errors']
         assert isinstance(errors, list)
         assert errors
 
-    @capture_stderr
     @pytest.mark.parametrize("func", [
         'func', 'astype', 'astype1', 'astype2', 'astype3', 'plot', 'method',
         'private_classes',
     ])
-    def test_bad_generic_functions(self, func):
+    def test_bad_generic_functions(self, capsys, func):
         errors = validate_one(self._import_path(  # noqa:F821
             klass='BadGenericDocStrings', func=func))['errors']
         assert isinstance(errors, list)
