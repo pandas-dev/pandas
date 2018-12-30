@@ -38,7 +38,7 @@ jobs:
       displayName: 'Build'
     - script: |
         call activate pandas-dev
-        pytest -m "not slow and not network and not db" --junitxml=test-data.xml pandas -n 2 -r sxX --strict --durations=10 %*
+        pytest -m "not slow and not network" --junitxml=test-data.xml pandas -n 2 -r sxX --strict --durations=10 %*
       displayName: 'Test'
     - task: PublishTestResults@2
       inputs:
