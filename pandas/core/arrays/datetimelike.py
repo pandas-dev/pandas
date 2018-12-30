@@ -28,7 +28,8 @@ from pandas.core.dtypes.generic import ABCDataFrame, ABCIndexClass, ABCSeries
 from pandas.core.dtypes.missing import isna
 
 from pandas.core import nanops
-from pandas.core.algorithms import checked_add_with_arr, take, unique1d
+from pandas.core.algorithms import (
+    checked_add_with_arr, take, unique1d, value_counts)
 import pandas.core.common as com
 
 from pandas.tseries import frequencies
@@ -702,6 +703,33 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin,
         nv.validate_repeat(args, kwargs)
         values = self._data.repeat(repeats)
         return type(self)(values.view('i8'), dtype=self.dtype)
+
+    def value_counts(self, dropna=False):
+        """
+        Return a Series containing counts of unique values.
+
+        Parameters
+        ----------
+        dropna : boolean, default True
+            Don't include counts of NaT values.
+
+        Returns
+        -------
+        Series
+        """
+        from pandas import Series, Index
+
+        if dropna:
+            values = self[~self.isna()]._data
+        else:
+            values = self._data
+
+        cls = type(self)
+
+        result = value_counts(values, sort=False, dropna=dropna)
+        index = Index(cls(result.index.view('i8'), dtype=self.dtype),
+                      name=result.index.name)
+        return Series(result.values, index=index, name=result.name)
 
     # ------------------------------------------------------------------
     # Null Handling
