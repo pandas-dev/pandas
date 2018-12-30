@@ -7096,15 +7096,19 @@ class DataFrame(NDFrame):
             raise ValueError("Invalid method {method} was passed, "
                              "valid methods are: 'pearson', 'kendall', "
                              "'spearman', or callable".
-                             format(method=str(method)))
+                             format(method=method))
 
         if not drop:
+            # Find non-matching labels along the given axis
+            # and append missing correlations (GH 22375)
             raxis = 1 if axis == 0 else 0
             result_index = (this._get_axis(raxis).
                             union(other._get_axis(raxis)))
             idx_diff = result_index.difference(correl.index)
-            correl = correl.append(Series([np.nan] * len(idx_diff),
-                                          index=idx_diff))
+
+            if len(idx_diff) > 0:
+                correl = correl.append(Series([np.nan] * len(idx_diff),
+                                              index=idx_diff))
 
         return correl
 
