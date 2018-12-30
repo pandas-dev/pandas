@@ -228,13 +228,6 @@ def assert_bool_op_api(opname, bool_frame_with_na, float_string_frame,
     getattr(mixed, opname)(axis=0)
     getattr(mixed, opname)(axis=1)
 
-    class NonzeroFail(object):
-
-        def __nonzero__(self):
-            raise ValueError
-
-    mixed['_nonzero_fail_'] = NonzeroFail()
-
     if has_bool_only:
         getattr(mixed, opname)(axis=0, bool_only=True)
         getattr(mixed, opname)(axis=1, bool_only=True)
@@ -1374,25 +1367,22 @@ class TestDataFrameAnalytics():
         result = df[['C']].all(axis=None).item()
         assert result is True
 
-        # skip pathological failure cases
-        # class CantNonzero(object):
+    def test_any_datetime(self):
 
-        #     def __nonzero__(self):
-        #         raise ValueError
+        # GH 23070
+        float_data = [1, np.nan, 3, np.nan]
+        datetime_data = [pd.Timestamp('1960-02-15'),
+                         pd.Timestamp('1960-02-16'),
+                         pd.NaT,
+                         pd.NaT]
+        df = DataFrame({
+            "A": float_data,
+            "B": datetime_data
+        })
 
-        # df[4] = CantNonzero()
-
-        # it works!
-        # df.any(1)
-        # df.all(1)
-        # df.any(1, bool_only=True)
-        # df.all(1, bool_only=True)
-
-        # df[4][4] = np.nan
-        # df.any(1)
-        # df.all(1)
-        # df.any(1, bool_only=True)
-        # df.all(1, bool_only=True)
+        result = df.any(1)
+        expected = Series([True, True, True, False])
+        tm.assert_series_equal(result, expected)
 
     @pytest.mark.parametrize('func, data, expected', [
         (np.any, {}, False),
@@ -1836,7 +1826,6 @@ class TestDataFrameAnalytics():
             tm.assert_frame_equal(result, expected)
 
     # Clip
-
     def test_clip(self, float_frame):
         median = float_frame.median().median()
         original = float_frame.copy()
@@ -1895,9 +1884,16 @@ class TestDataFrameAnalytics():
         df = DataFrame({'A': [1, 2, 3],
                         'B': [1., np.nan, 3.]})
         result = df.clip(1, 2)
-        expected = DataFrame({'A': [1, 2, 2.],
+        expected = DataFrame({'A': [1, 2, 2],
                               'B': [1., np.nan, 2.]})
         tm.assert_frame_equal(result, expected, check_like=True)
+
+        # GH 24162, clipping now preserves numeric types per column
+        df = DataFrame([[1, 2, 3.4], [3, 4, 5.6]],
+                       columns=['foo', 'bar', 'baz'])
+        expected = df.dtypes
+        result = df.clip(upper=3).dtypes
+        tm.assert_series_equal(result, expected)
 
     @pytest.mark.parametrize("inplace", [True, False])
     def test_clip_against_series(self, inplace):
@@ -1964,6 +1960,22 @@ class TestDataFrameAnalytics():
         tm.assert_frame_equal(clipped_df[lb_mask], lb[lb_mask])
         tm.assert_frame_equal(clipped_df[ub_mask], ub[ub_mask])
         tm.assert_frame_equal(clipped_df[mask], df[mask])
+
+    def test_clip_against_unordered_columns(self):
+        # GH 20911
+        df1 = DataFrame(np.random.randn(1000, 4), columns=['A', 'B', 'C', 'D'])
+        df2 = DataFrame(np.random.randn(1000, 4), columns=['D', 'A', 'B', 'C'])
+        df3 = DataFrame(df2.values - 1, columns=['B', 'D', 'C', 'A'])
+        result_upper = df1.clip(lower=0, upper=df2)
+        expected_upper = df1.clip(lower=0, upper=df2[df1.columns])
+        result_lower = df1.clip(lower=df3, upper=3)
+        expected_lower = df1.clip(lower=df3[df1.columns], upper=3)
+        result_lower_upper = df1.clip(lower=df3, upper=df2)
+        expected_lower_upper = df1.clip(lower=df3[df1.columns],
+                                        upper=df2[df1.columns])
+        tm.assert_frame_equal(result_upper, expected_upper)
+        tm.assert_frame_equal(result_lower, expected_lower)
+        tm.assert_frame_equal(result_lower_upper, expected_lower_upper)
 
     def test_clip_with_na_args(self, float_frame):
         """Should process np.nan argument as None """

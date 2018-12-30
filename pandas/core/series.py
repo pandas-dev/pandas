@@ -17,9 +17,10 @@ from pandas.util._validators import validate_bool_kwarg
 
 from pandas.core.dtypes.common import (
     _is_unorderable_exception, ensure_platform_int, is_bool,
-    is_categorical_dtype, is_datetime64tz_dtype, is_datetimelike, is_dict_like,
-    is_extension_array_dtype, is_extension_type, is_hashable, is_integer,
-    is_iterator, is_list_like, is_scalar, is_string_like, is_timedelta64_dtype)
+    is_categorical_dtype, is_datetime64_dtype, is_datetime64tz_dtype,
+    is_datetimelike, is_dict_like, is_extension_array_dtype, is_extension_type,
+    is_hashable, is_integer, is_iterator, is_list_like, is_scalar,
+    is_string_like, is_timedelta64_dtype)
 from pandas.core.dtypes.generic import (
     ABCDataFrame, ABCDatetimeIndex, ABCSeries, ABCSparseArray, ABCSparseSeries)
 from pandas.core.dtypes.missing import (
@@ -130,6 +131,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
     dtype : str, numpy.dtype, or ExtensionDtype, optional
         dtype for the output Series. If not specified, this will be
         inferred from `data`.
+        See the :ref:`user guide <basics.dtypes>` for more usages.
     copy : bool, default False
         Copy input data.
     """
@@ -437,7 +439,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         .. warning::
 
            We recommend using :attr:`Series.array` or
-           :Series:`Index.to_numpy`, depending on whether you need
+           :meth:`Series.to_numpy`, depending on whether you need
            a reference to the underlying data or a NumPy array.
 
         Returns
@@ -1037,7 +1039,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         self._data = self._data.setitem(indexer=key, value=value)
         self._maybe_update_cacher()
 
-    def repeat(self, repeats, *args, **kwargs):
+    def repeat(self, repeats, axis=None):
         """
         Repeat elements of a Series.
 
@@ -1050,12 +1052,9 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
             The number of repetitions for each element. This should be a
             non-negative integer. Repeating 0 times will return an empty
             Series.
-        *args
-            Additional arguments have no effect but might be accepted for
-            compatibility with numpy.
-        **kwargs
-            Additional keywords have no effect but might be accepted for
-            compatibility with numpy.
+        axis : None
+            Must be ``None``. Has no effect but is accepted for compatibility
+            with numpy.
 
         Returns
         -------
@@ -1092,7 +1091,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         2    c
         dtype: object
         """
-        nv.validate_repeat(args, kwargs)
+        nv.validate_repeat(tuple(), dict(axis=axis))
         new_index = self.index.repeat(repeats)
         new_values = self._values.repeat(repeats)
         return self._constructor(new_values,
@@ -3540,6 +3539,9 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         # dispatch to ExtensionArray interface
         if isinstance(delegate, ExtensionArray):
             return delegate._reduce(name, skipna=skipna, **kwds)
+        elif is_datetime64_dtype(delegate):
+            # use DatetimeIndex implementation to handle skipna correctly
+            delegate = DatetimeIndex(delegate)
 
         # dispatch to numpy arrays
         elif isinstance(delegate, np.ndarray):

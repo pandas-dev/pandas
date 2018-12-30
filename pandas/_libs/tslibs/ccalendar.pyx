@@ -9,7 +9,7 @@ import cython
 from numpy cimport int64_t, int32_t
 
 from locale import LC_TIME
-from strptime import LocaleTime
+from pandas._libs.tslibs.strptime import LocaleTime
 
 # ----------------------------------------------------------------------
 # Constants

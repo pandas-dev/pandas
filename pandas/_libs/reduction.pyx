@@ -15,8 +15,8 @@ from numpy cimport (ndarray,
                     flatiter)
 cnp.import_array()
 
-cimport util
-from lib import maybe_convert_objects
+cimport pandas._libs.util as util
+from pandas._libs.lib import maybe_convert_objects
 
 
 cdef _get_result_array(object obj, Py_ssize_t size, Py_ssize_t cnt):

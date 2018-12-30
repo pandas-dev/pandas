@@ -26,8 +26,8 @@ from pandas.core.dtypes.common import (
 import pandas.core.dtypes.concat as _concat
 from pandas.core.dtypes.generic import (
     ABCDataFrame, ABCDateOffset, ABCDatetimeIndex, ABCIndexClass,
-    ABCMultiIndex, ABCPeriodIndex, ABCSeries, ABCTimedeltaArray,
-    ABCTimedeltaIndex)
+    ABCMultiIndex, ABCPandasArray, ABCPeriodIndex, ABCSeries,
+    ABCTimedeltaArray, ABCTimedeltaIndex)
 from pandas.core.dtypes.missing import array_equivalent, isna
 
 from pandas.core import ops
@@ -264,6 +264,9 @@ class Index(IndexOpsMixin, PandasObject):
                 return cls._simple_new(data, name)
 
         from .range import RangeIndex
+        if isinstance(data, ABCPandasArray):
+            # ensure users don't accidentally put a PandasArray in an index.
+            data = data.to_numpy()
 
         # range
         if isinstance(data, RangeIndex):
@@ -599,36 +602,6 @@ class Index(IndexOpsMixin, PandasObject):
                 pass
         return Index(values, **attributes)
 
-    def _deepcopy_if_needed(self, orig, copy=False):
-        """
-        Make a copy of self if data coincides (in memory) with orig.
-        Subclasses should override this if self._base is not an ndarray.
-
-        .. versionadded:: 0.19.0
-
-        Parameters
-        ----------
-        orig : ndarray
-            other ndarray to compare self._data against
-        copy : boolean, default False
-            when False, do not run any check, just return self
-
-        Returns
-        -------
-        A copy of self if needed, otherwise self : Index
-        """
-        if copy:
-            # Retrieve the "base objects", i.e. the original memory allocations
-            if not isinstance(orig, np.ndarray):
-                # orig is a DatetimeIndex
-                orig = orig.values
-            orig = orig if orig.base is None else orig.base
-            new = self._data if self._data.base is None else self._data.base
-            if orig is new:
-                return self.copy(deep=True)
-
-        return self
-
     def _update_inplace(self, result, **kwargs):
         # guard when called from IndexOpsMixin
         raise TypeError("Index can't be updated inplace")
@@ -739,8 +712,9 @@ class Index(IndexOpsMixin, PandasObject):
         Parameters
         ----------
         dtype : numpy dtype or pandas type
-            Note that any integer `dtype` is treated as ``'int64'``,
-            regardless of the sign and size.
+            Note that any signed integer `dtype` is treated as ``'int64'``,
+            and any unsigned integer `dtype` is treated as ``'uint64'``,
+            regardless of the size.
         copy : bool, default True
             By default, astype always returns a newly allocated object.
             If copy is set to False and internal requirements on dtype are
@@ -846,12 +820,9 @@ class Index(IndexOpsMixin, PandasObject):
             The number of repetitions for each element. This should be a
             non-negative integer. Repeating 0 times will return an empty
             %(klass)s.
-        *args
-            Additional arguments have no effect but might be accepted for
-            compatibility with numpy.
-        **kwargs
-            Additional keywords have no effect but might be accepted for
-            compatibility with numpy.
+        axis : None
+            Must be ``None``. Has no effect but is accepted for compatibility
+            with numpy.
 
         Returns
         -------
@@ -875,8 +846,8 @@ class Index(IndexOpsMixin, PandasObject):
         """
 
     @Appender(_index_shared_docs['repeat'] % _index_doc_kwargs)
-    def repeat(self, repeats, *args, **kwargs):
-        nv.validate_repeat(args, kwargs)
+    def repeat(self, repeats, axis=None):
+        nv.validate_repeat(tuple(), dict(axis=axis))
         return self._shallow_copy(self._values.repeat(repeats))
 
     # --------------------------------------------------------------------

@@ -59,8 +59,8 @@ _doc_read_csv_and_table = r"""
 Also supports optionally iterating or breaking of the file
 into chunks.
 
-Additional help can be found in the `online docs for IO Tools
-<http://pandas.pydata.org/pandas-docs/stable/io.html>`_.
+Additional help can be found in the online docs for
+`IO Tools <http://pandas.pydata.org/pandas-docs/stable/io.html>`_.
 
 Parameters
 ----------
@@ -261,7 +261,7 @@ doublequote : bool, default ``True``
    whether or not to interpret two consecutive quotechar elements INSIDE a
    field as a single ``quotechar`` element.
 escapechar : str (length 1), optional
-    One-character string used to escape delimiter when quoting is QUOTE_NONE.
+    One-character string used to escape other characters.
 comment : str, optional
     Indicates remainder of line should not be parsed. If found at the beginning
     of a line, the line will be ignored altogether. This parameter must be a
@@ -401,7 +401,7 @@ def _read(filepath_or_buffer, kwds):
         encoding = re.sub('_', '-', encoding).lower()
         kwds['encoding'] = encoding
 
-    compression = kwds.get('compression')
+    compression = kwds.get('compression', 'infer')
     compression = _infer_compression(filepath_or_buffer, compression)
     filepath_or_buffer, _, compression, should_close = get_filepath_or_buffer(
         filepath_or_buffer, encoding, compression)

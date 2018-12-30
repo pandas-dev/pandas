@@ -40,6 +40,7 @@ import pandas.core.common as com
 from pandas.core.indexes.datetimes import DatetimeIndex
 from pandas.core.indexes.timedeltas import TimedeltaIndex
 from pandas.core.indexing import check_setitem_lengths
+from pandas.core.internals.arrays import extract_array
 import pandas.core.missing as missing
 
 from pandas.io.formats.printing import pprint_thing
@@ -1971,22 +1972,19 @@ class ExtensionBlock(NonConsolidatableMixIn, Block):
 
     def where(self, other, cond, align=True, errors='raise',
               try_cast=False, axis=0, transpose=False):
-        # Extract the underlying arrays.
-        if isinstance(other, (ABCIndexClass, ABCSeries)):
-            other = other.array
-
-        elif isinstance(other, ABCDataFrame):
+        if isinstance(other, ABCDataFrame):
             # ExtensionArrays are 1-D, so if we get here then
             # `other` should be a DataFrame with a single column.
             assert other.shape[1] == 1
-            other = other.iloc[:, 0].array
+            other = other.iloc[:, 0]
+
+        other = extract_array(other, extract_numpy=True)
 
         if isinstance(cond, ABCDataFrame):
             assert cond.shape[1] == 1
-            cond = cond.iloc[:, 0].array
+            cond = cond.iloc[:, 0]
 
-        elif isinstance(cond, (ABCIndexClass, ABCSeries)):
-            cond = cond.array
+        cond = extract_array(cond, extract_numpy=True)
 
         if lib.is_scalar(other) and isna(other):
             # The default `other` for Series / Frame is np.nan

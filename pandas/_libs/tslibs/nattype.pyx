@@ -14,10 +14,10 @@ cimport numpy as cnp
 from numpy cimport int64_t
 cnp.import_array()
 
-cimport util
-from util cimport (get_nat,
-                   is_integer_object, is_float_object,
-                   is_datetime64_object, is_timedelta64_object)
+cimport pandas._libs.tslibs.util as util
+from pandas._libs.tslibs.util cimport (
+    get_nat, is_integer_object, is_float_object, is_datetime64_object,
+    is_timedelta64_object)
 
 # ----------------------------------------------------------------------
 # Constants

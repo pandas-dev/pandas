@@ -27,8 +27,8 @@ from dateutil.relativedelta import relativedelta
 from dateutil.parser import DEFAULTPARSER
 from dateutil.parser import parse as du_parse
 
-from ccalendar import MONTH_NUMBERS
-from nattype import nat_strings, NaT
+from pandas._libs.tslibs.ccalendar import MONTH_NUMBERS
+from pandas._libs.tslibs.nattype import nat_strings, NaT
 
 # ----------------------------------------------------------------------
 # Constants
@@ -46,6 +46,20 @@ cdef object _TIMEPAT = re.compile(r'^([01]?[0-9]|2[0-3]):([0-5][0-9])')
 cdef set _not_datelike_strings = {'a', 'A', 'm', 'M', 'p', 'P', 't', 'T'}
 
 # ----------------------------------------------------------------------
+
+_get_option = None
+
+
+def get_option(param):
+    """ Defer import of get_option to break an import cycle that caused
+    significant performance degradation in Period construction. See
+    GH#24118 for details
+    """
+    global _get_option
+    if _get_option is None:
+        from pandas.core.config import get_option
+        _get_option = get_option
+    return _get_option(param)
 
 
 def parse_datetime_string(date_string, freq=None, dayfirst=False,
@@ -117,7 +131,6 @@ def parse_time_string(arg, freq=None, dayfirst=None, yearfirst=None):
         freq = freq.rule_code
 
     if dayfirst is None or yearfirst is None:
-        from pandas.core.config import get_option
         if dayfirst is None:
             dayfirst = get_option("display.date_dayfirst")
         if yearfirst is None:
