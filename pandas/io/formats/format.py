@@ -134,11 +134,8 @@ class CategoricalFormatter(object):
         return compat.text_type(footer)
 
     def _get_formatted_values(self):
-        results = format_array(self.categorical.get_values(), None,
-                               float_format=None, na_rep=self.na_rep)
-        if is_integer_dtype(self.categorical.dtype.categories):
-            return [result.replace(".0", "") for result in results]
-        return results
+        return format_array(self.categorical.get_values(), None,
+                            float_format=None, na_rep=self.na_rep)
 
     def to_string(self):
         categorical = self.categorical
@@ -1179,11 +1176,6 @@ class ExtensionArrayFormatter(GenericArrayFormatter):
                                   na_rep=self.na_rep, digits=self.digits,
                                   space=self.space, justify=self.justify,
                                   leading_space=self.leading_space)
-
-        if (is_categorical_dtype(values.dtype) and
-                is_integer_dtype(values.dtype.categories)):
-            # integers were coerced to float for array with NaN (GH 19214)
-            return [value.replace(".0", "") for value in fmt_values]
         return fmt_values
 
 

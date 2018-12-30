@@ -1321,7 +1321,7 @@ Categorical
 - Bug in many methods of the ``.str``-accessor, which always failed on calling the ``CategoricalIndex.str`` constructor (:issue:`23555`, :issue:`23556`)
 - Bug in :meth:`Series.where` losing the categorical dtype for categorical data (:issue:`24077`)
 - Bug in :meth:`Categorical.apply` where ``NaN`` values could be handled unpredictably. They now remain unchanged (:issue:`24241`)
-- Bug where an integer ``Categorical`` would be formatted as if it had floats if ``NaN`` values were present (:issue:`19214`)
+- Bug in :meth:`Categorical.get_values` where integers would be coerced to floats with ``NaN`` values were present (:issue:`19214`)
 
 Datetimelike
 ^^^^^^^^^^^^
