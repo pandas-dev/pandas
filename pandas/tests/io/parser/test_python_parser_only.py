@@ -8,7 +8,6 @@ arguments when parsing.
 """
 
 import csv
-import sys
 
 import pytest
 
@@ -248,8 +247,7 @@ def test_multi_char_sep_quotes(python_parser_only, quoting):
         fail_read()
 
 
-@tm.capture_stderr
-def test_none_delimiter(python_parser_only):
+def test_none_delimiter(python_parser_only, capsys):
     # see gh-13374 and gh-17465
     parser = python_parser_only
     data = "a,b,c\n0,1,2\n3,4,5,6\n7,8,9"
@@ -263,8 +261,8 @@ def test_none_delimiter(python_parser_only):
                              error_bad_lines=False)
     tm.assert_frame_equal(result, expected)
 
-    warning = sys.stderr.getvalue()
-    assert "Skipping line 3" in warning
+    captured = capsys.readouterr()
+    assert "Skipping line 3" in captured.err
 
 
 @pytest.mark.parametrize("data", [
