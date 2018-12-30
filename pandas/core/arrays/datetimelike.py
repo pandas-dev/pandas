@@ -34,7 +34,7 @@ import pandas.core.common as com
 from pandas.tseries import frequencies
 from pandas.tseries.offsets import DateOffset, Tick
 
-from .base import ExtensionOpsMixin
+from .base import ExtensionArray, ExtensionOpsMixin
 
 
 def _make_comparison_op(cls, op):
@@ -343,7 +343,9 @@ class TimelikeOps(object):
         return self._round(freq, RoundTo.PLUS_INFTY, ambiguous, nonexistent)
 
 
-class DatetimeLikeArrayMixin(ExtensionOpsMixin, AttributesMixin):
+class DatetimeLikeArrayMixin(ExtensionOpsMixin,
+                             AttributesMixin,
+                             ExtensionArray):
     """
     Shared Base/Mixin class for DatetimeArray, TimedeltaArray, PeriodArray
 
@@ -1357,10 +1359,9 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin, AttributesMixin):
         if op:
             return op(axis=axis, skipna=skipna, **kwargs)
         else:
-            raise TypeError("cannot perform {name} with type {dtype}"
-                            .format(name=name, dtype=self.dtype))
-            # TODO: use super(DatetimeLikeArrayMixin, self)._reduce
-            #  after we subclass ExtensionArray
+            return super(DatetimeLikeArrayMixin, self)._reduce(
+                name, skipna, **kwargs
+            )
 
     def min(self, axis=None, skipna=True, *args, **kwargs):
         """
