@@ -1367,6 +1367,7 @@ Datetimelike
 - Bug in :attr:`Series.dt` where the cache would not update properly after an in-place operation (:issue:`24408`)
 - Bug in :class:`PeriodIndex` where comparisons against an array-like object with length 1 failed to raise ``ValueError`` (:issue:`23078`)
 - Bug in :meth:`DatetimeIndex.astype`, :meth:`PeriodIndex.astype` and :meth:`TimedeltaIndex.astype` ignoring the sign of the ``dtype`` for unsigned integer dtypes (:issue:`24405`).
+- Fixed bug in :meth:`Series.max` with ``datetime64[ns]``-dtype failing to return ``NaT`` when nulls are present and ``skipna=False`` is passed (:issue:`24265`)
 
 Timedelta
 ^^^^^^^^^
@@ -1412,6 +1413,7 @@ Timezones
 - Bug in :class:`Timestamp` constructor where a ``dateutil.tz.tzutc`` timezone passed with a ``datetime.datetime`` argument would be converted to a ``pytz.UTC`` timezone (:issue:`23807`)
 - Bug in :func:`to_datetime` where ``utc=True`` was not respected when specifying a ``unit`` and ``errors='ignore'`` (:issue:`23758`)
 - Bug in :func:`to_datetime` where ``utc=True`` was not respected when passing a :class:`Timestamp` (:issue:`24415`)
+- Bug in :meth:`DataFrame.any` returns wrong value when ``axis=1`` and the data is of datetimelike type (:issue:`23070`)
 
 Offsets
 ^^^^^^^
@@ -1439,7 +1441,7 @@ Numeric
 - :meth:`Series.agg` can now handle numpy NaN-aware methods like :func:`numpy.nansum` (:issue:`19629`)
 - Bug in :meth:`Series.rank` and :meth:`DataFrame.rank` when ``pct=True`` and more than 2:sup:`24` rows are present resulted in percentages greater than 1.0 (:issue:`18271`)
 - Calls such as :meth:`DataFrame.round` with a non-unique :meth:`CategoricalIndex` now return expected data. Previously, data would be improperly duplicated (:issue:`21809`).
-- Added ``log10`` to the list of supported functions in :meth:`DataFrame.eval` (:issue:`24139`)
+- Added ``log10``, `floor` and `ceil` to the list of supported functions in :meth:`DataFrame.eval` (:issue:`24139`, :issue:`24353`)
 - Logical operations ``&, |, ^`` between :class:`Series` and :class:`Index` will no longer raise ``ValueError`` (:issue:`22092`)
 - Checking PEP 3141 numbers in :func:`~pandas.api.types.is_scalar` function returns ``True`` (:issue:`22903`)
 - Reduction methods like :meth:`Series.sum` now accept the default value of ``keepdims=False`` when called from a NumPy ufunc, rather than raising a ``TypeError``. Full support for ``keepdims`` has not been implemented (:issue:`24356`).

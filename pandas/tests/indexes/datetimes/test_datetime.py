@@ -1,5 +1,4 @@
 from datetime import date
-import sys
 
 import dateutil
 import numpy as np
@@ -125,15 +124,14 @@ class TestDatetimeIndex(object):
         exp = Index([f(x) for x in rng], dtype='<U8')
         tm.assert_index_equal(result, exp)
 
-    @tm.capture_stderr
-    def test_map_fallthrough(self):
+    def test_map_fallthrough(self, capsys):
         # GH#22067, check we don't get warnings about silently ignored errors
         dti = date_range('2017-01-01', '2018-01-01', freq='B')
 
         dti.map(lambda x: pd.Period(year=x.year, month=x.month, freq='M'))
 
-        cv = sys.stderr.getvalue()
-        assert cv == ''
+        captured = capsys.readouterr()
+        assert captured.err == ''
 
     def test_iteration_preserves_tz(self):
         # see gh-8890
