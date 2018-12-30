@@ -2,8 +2,9 @@
 
 .. _api.io:
 
+============
 Input/Output
-------------
+============
 .. currentmodule:: pandas
 
 Pickling

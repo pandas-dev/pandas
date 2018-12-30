@@ -2,8 +2,9 @@
 
 .. _api.extensions:
 
+==========
 Extensions
-----------
+==========
 .. currentmodule:: pandas
 
 These are primarily intended for library authors looking to extend pandas
