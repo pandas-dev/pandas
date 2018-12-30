@@ -113,7 +113,7 @@ See the package overview for more detail about what's in the library.
     {{ single_doc[:-4] }}
 {% elif single_doc %}
 .. autosummary::
-    :toctree: generated/
+    :toctree: api/generated/
 
     {{ single_doc }}
 {% else -%}

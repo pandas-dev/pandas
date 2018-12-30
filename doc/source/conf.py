@@ -98,8 +98,7 @@ if pattern:
                 if (fname == 'index.rst'
                         and os.path.abspath(dirname) == source_path):
                     continue
-                elif (pattern == '-api'
-                        and (fname == 'api.rst' or dirname == 'generated')):
+                elif pattern == '-api' and dirname == 'api':
                     exclude_patterns.append(fname)
                 elif fname != pattern:
                     exclude_patterns.append(fname)
