@@ -411,6 +411,7 @@ Other Enhancements
 - :meth:`DataFrame.to_stata` and :class:`pandas.io.stata.StataWriter117` can write mixed sting columns to Stata strl format (:issue:`23633`)
 - :meth:`DataFrame.between_time` and :meth:`DataFrame.at_time` have gained the ``axis`` parameter (:issue:`8839`)
 - The ``scatter_matrix``, ``andrews_curves``, ``parallel_coordinates``, ``lag_plot``, ``autocorrelation_plot``, ``bootstrap_plot``, and ``radviz`` plots from the ``pandas.plotting`` module are now accessible from calling :meth:`DataFrame.plot` (:issue:`11978`)
+- :meth:`DataFrame.to_records` now accepts ``index_dtypes`` and ``column_dtypes`` parameters to allow different data types in stored column and index records (:issue:`18146`)
 - :class:`IntervalIndex` has gained the :attr:`~IntervalIndex.is_overlapping` attribute to indicate if the ``IntervalIndex`` contains any overlapping intervals (:issue:`23309`)
 - :func:`pandas.DataFrame.to_sql` has gained the ``method`` argument to control SQL insertion clause. See the :ref:`insertion method <io.sql.method>` section in the documentation. (:issue:`8953`)
 
@@ -1494,6 +1495,7 @@ Indexing
 - Bug in :class:`Index` slicing with boolean :class:`Index` may raise ``TypeError`` (:issue:`22533`)
 - Bug in ``PeriodArray.__setitem__`` when accepting slice and list-like value (:issue:`23978`)
 - Bug in :class:`DatetimeIndex`, :class:`TimedeltaIndex` where indexing with ``Ellipsis`` would lose their ``freq`` attribute (:issue:`21282`)
+- Bug in ``iat`` where using it to assign an incompatible value would create a new column (:issue:`23236`)
 
 Missing
 ^^^^^^^

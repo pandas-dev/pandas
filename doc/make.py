@@ -50,7 +50,7 @@ class DocBuilder:
         if single_doc and single_doc.endswith('.rst'):
             self.single_doc_html = os.path.splitext(single_doc)[0] + '.html'
         elif single_doc:
-            self.single_doc_html = 'generated/pandas.{}.html'.format(
+            self.single_doc_html = 'api/generated/pandas.{}.html'.format(
                 single_doc)
 
     def _process_single_doc(self, single_doc):

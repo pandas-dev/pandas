@@ -12,37 +12,37 @@ jobs:
         py35_np_120:
           ENV_FILE: ci/deps/azure-macos-35.yaml
           CONDA_PY: "35"
-          PATTERN: "not slow and not network and not db"
+          PATTERN: "not slow and not network"
 
       ${{ if eq(parameters.name, 'Linux') }}:
         py27_np_120:
           ENV_FILE: ci/deps/azure-27-compat.yaml
           CONDA_PY: "27"
-          PATTERN: "not slow and not network and not db"
+          PATTERN: "not slow and not network"
 
         py27_locale_slow_old_np:
           ENV_FILE: ci/deps/azure-27-locale.yaml
           CONDA_PY: "27"
-          PATTERN: "slow and not db"
+          PATTERN: "slow"
           LOCALE_OVERRIDE: "zh_CN.UTF-8"
           EXTRA_APT: "language-pack-zh-hans"
 
         py36_locale_slow:
           ENV_FILE: ci/deps/azure-36-locale_slow.yaml
           CONDA_PY: "36"
-          PATTERN: "not slow and not network and not db"
+          PATTERN: "not slow and not network"
           LOCALE_OVERRIDE: "it_IT.UTF-8"
 
         py37_locale:
           ENV_FILE: ci/deps/azure-37-locale.yaml
           CONDA_PY: "37"
-          PATTERN: "not slow and not network and not db"
+          PATTERN: "not slow and not network"
           LOCALE_OVERRIDE: "zh_CN.UTF-8"
 
         py37_np_dev:
           ENV_FILE: ci/deps/azure-37-numpydev.yaml
           CONDA_PY: "37"
-          PATTERN: "not slow and not network and not db"
+          PATTERN: "not slow and not network"
           TEST_ARGS: "-W error"
           PANDAS_TESTING_MODE: "deprecate"
           EXTRA_APT: "xsel"
