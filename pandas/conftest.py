@@ -1,3 +1,4 @@
+import collections
 from datetime import date, time, timedelta
 from decimal import Decimal
 import importlib
@@ -60,7 +61,6 @@ def pytest_runtest_setup(item):
             "skipping high memory test since --run-high-memory was not set")
 
     # if "db" not explicitly set in the -m pattern, we skip the db tests
-    import collections
     if 'db' in item.keywords:
         pattern = item.config.getoption('-m')
         markers = collections.defaultdict(bool)
