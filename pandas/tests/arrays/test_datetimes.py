@@ -50,24 +50,6 @@ class TestDatetimeArrayConstructor(object):
         assert arr._data is not data
 
 
-class TestSetitem(object):
-    def test_setitem_different_tz_raises(self):
-        data = np.array([1, 2, 3], dtype='M8[ns]')
-        arr = DatetimeArray(data, copy=False,
-                            dtype=DatetimeTZDtype(tz="US/Central"))
-        with pytest.raises(ValueError, match="None"):
-            arr[0] = pd.Timestamp('2000')
-
-        with pytest.raises(ValueError, match="US/Central"):
-            arr[0] = pd.Timestamp('2000', tz="US/Eastern")
-
-    def test_setitem_clears_freq(self):
-        a = DatetimeArray(pd.date_range('2000', periods=2, freq='D',
-                                        tz='US/Central'))
-        a[0] = pd.Timestamp("2000", tz="US/Central")
-        assert a.freq is None
-
-
 class TestDatetimeArrayComparisons(object):
     # TODO: merge this into tests/arithmetic/test_datetime64 once it is
     #  sufficiently robust
@@ -129,6 +111,32 @@ class TestDatetimeArray(object):
         with pytest.raises(AttributeError, match='tz_localize'):
             arr.tz = 'UTC'
 
+    def test_setitem_different_tz_raises(self):
+        data = np.array([1, 2, 3], dtype='M8[ns]')
+        arr = DatetimeArray(data, copy=False,
+                            dtype=DatetimeTZDtype(tz="US/Central"))
+        with pytest.raises(ValueError, match="None"):
+            arr[0] = pd.Timestamp('2000')
+
+        with pytest.raises(ValueError, match="US/Central"):
+            arr[0] = pd.Timestamp('2000', tz="US/Eastern")
+
+    def test_setitem_clears_freq(self):
+        a = DatetimeArray(pd.date_range('2000', periods=2, freq='D',
+                                        tz='US/Central'))
+        a[0] = pd.Timestamp("2000", tz="US/Central")
+        assert a.freq is None
+
+    def test_repeat_preserves_tz(self):
+        dti = pd.date_range('2000', periods=2, freq='D', tz='US/Central')
+        arr = DatetimeArray(dti)
+
+        repeated = arr.repeat([1, 1])
+
+        # preserves tz and values, but not freq
+        expected = DatetimeArray(arr.asi8, freq=None, tz=arr.tz)
+        tm.assert_equal(repeated, expected)
+
 
 class TestSequenceToDT64NS(object):
 
@@ -141,7 +149,7 @@ class TestSequenceToDT64NS(object):
         arr = DatetimeArray._from_sequence(['2000'], tz='US/Central')
         result, _, _ = sequence_to_dt64ns(
             arr, dtype=DatetimeTZDtype(tz="US/Central"))
-        tm.assert_extension_array_equal(arr, result)
+        tm.assert_numpy_array_equal(arr._data, result)
 
 
 class TestReductions(object):
