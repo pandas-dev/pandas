@@ -13,6 +13,8 @@ dependencies:
   - numexpr
   - numpy=1.12.0
   - openpyxl=2.5.5
+  - pyarrow
+  - fastparquet
   - pytables
   - python=3.5*
   - pytz
