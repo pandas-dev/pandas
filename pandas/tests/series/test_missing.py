@@ -475,7 +475,6 @@ class TestSeriesMissingData():
         tm.assert_series_equal(r, e)
         tm.assert_series_equal(dr, de)
 
-    @tm.capture_stdout
     def test_isnull_for_inf_deprecated(self):
         # gh-17115
         s = Series(['a', np.inf, np.nan, 1.0])

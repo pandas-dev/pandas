@@ -1819,7 +1819,6 @@ class TestDataFramePlots(TestPlotBase):
         assert ax.get_legend().get_texts()[0].get_text() == 'None'
 
     @pytest.mark.slow
-    @tm.capture_stdout
     def test_line_colors(self):
         from matplotlib import cm
 

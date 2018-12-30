@@ -246,7 +246,6 @@ class TestToHTML(object):
         result = df.to_html(border=0)
         assert 'border="0"' in result
 
-    @tm.capture_stdout
     def test_display_option_warning(self):
         with tm.assert_produces_warning(FutureWarning,
                                         check_stacklevel=False):

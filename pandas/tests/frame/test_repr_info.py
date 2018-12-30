@@ -193,7 +193,6 @@ class TestDataFrameReprInfoEtc(TestData):
         # GH 12182
         assert df._repr_latex_() is None
 
-    @tm.capture_stdout
     def test_info(self):
         io = StringIO()
         self.frame.info(buf=io)

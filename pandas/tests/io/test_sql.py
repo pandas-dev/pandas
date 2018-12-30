@@ -2310,7 +2310,6 @@ class TestXSQLite(SQLiteMixIn):
         cur = self.conn.cursor()
         cur.execute(create_sql)
 
-    @tm.capture_stdout
     def test_execute_fail(self):
         create_sql = """
         CREATE TABLE test
@@ -2567,7 +2566,6 @@ class TestXMySQL(MySQLMixIn):
         cur.execute(drop_sql)
         cur.execute(create_sql)
 
-    @tm.capture_stdout
     def test_execute_fail(self):
         drop_sql = "DROP TABLE IF EXISTS test"
         create_sql = """
