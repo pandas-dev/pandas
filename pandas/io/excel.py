@@ -57,12 +57,12 @@ sheet_name : str, int, list, or None, default 0
 
     Available cases:
 
-    * Defaults to ``0`` : 1st sheet as a `DataFrame`
-    * ``1`` : 2nd sheet as a `DataFrame`
-    * ``"Sheet1"`` : Load sheet with name "Sheet1"
-    * ``[0,1,"Sheet5"]`` : Load first, second and sheet named "Sheet5"
+    * Defaults to ``0``: 1st sheet as a `DataFrame`
+    * ``1``: 2nd sheet as a `DataFrame`
+    * ``"Sheet1"``: Load sheet with name "Sheet1"
+    * ``[0, 1, "Sheet5"]``: Load first, second and sheet named "Sheet5"
       as a dict of `DataFrame`
-    * None : All sheets.
+    * None: All sheets.
 
 sheetname : str, int, list, or None, default 0
     Alias of `sheet_name`.
@@ -228,14 +228,14 @@ The file can be read using the file name as string or an open file object:
        Name  Value
 0   string1      1
 1   string2      2
-2  #string3      3
+2  #Comment      3
 
 >>> pd.read_excel(open('tmp.xlsx', 'rb'),
 ...               sheet_name='Sheet3')  # doctest: +SKIP
    Unnamed: 0      Name  Value
 0           0   string1      1
 1           1   string2      2
-2           2  #string3      3
+2           2  #Comment      3
 
 Index and header can be specified via the `index_col` and `header` arguments
 
@@ -244,7 +244,7 @@ Index and header can be specified via the `index_col` and `header` arguments
 0  NaN      Name  Value
 1  0.0   string1      1
 2  1.0   string2      2
-3  2.0  #string3      3
+3  2.0  #Comment      3
 
 Column types are inferred but can be explicitly specified
 
@@ -253,7 +253,7 @@ Column types are inferred but can be explicitly specified
        Name  Value
 0   string1    1.0
 1   string2    2.0
-2  #string3    3.0
+2  #Comment    3.0
 
 True, False, and NA values, and thousands separators have defaults,
 but can be explicitly specified, too. Supply the values you would like
@@ -264,7 +264,7 @@ as strings or lists of strings!
        Name  Value
 0       NaN      1
 1       NaN      2
-2  #string3      3
+2  #Comment      3
 
 Comment lines in the excel input file can be skipped using the `comment` kwarg
 
