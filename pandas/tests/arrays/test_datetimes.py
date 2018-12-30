@@ -113,6 +113,16 @@ class TestDatetimeArray(object):
         a[0] = pd.Timestamp("2000", tz="US/Central")
         assert a.freq is None
 
+    def test_repeat_preserves_tz(self):
+        dti = pd.date_range('2000', periods=2, freq='D', tz='US/Central')
+        arr = DatetimeArray(dti)
+
+        repeated = arr.repeat([1, 1])
+
+        # preserves tz and values, but not freq
+        expected = DatetimeArray(arr.asi8, freq=None, tz=arr.tz)
+        tm.assert_equal(repeated, expected)
+
 
 class TestSequenceToDT64NS(object):
 
@@ -126,3 +136,41 @@ class TestSequenceToDT64NS(object):
         result, _, _ = sequence_to_dt64ns(
             arr, dtype=DatetimeTZDtype(tz="US/Central"))
         tm.assert_numpy_array_equal(arr._data, result)
+
+
+class TestReductions(object):
+
+    @pytest.mark.parametrize("tz", [None, "US/Central"])
+    def test_min_max(self, tz):
+        arr = DatetimeArray._from_sequence([
+            '2000-01-03',
+            '2000-01-03',
+            'NaT',
+            '2000-01-02',
+            '2000-01-05',
+            '2000-01-04',
+        ], tz=tz)
+
+        result = arr.min()
+        expected = pd.Timestamp('2000-01-02', tz=tz)
+        assert result == expected
+
+        result = arr.max()
+        expected = pd.Timestamp('2000-01-05', tz=tz)
+        assert result == expected
+
+        result = arr.min(skipna=False)
+        assert result is pd.NaT
+
+        result = arr.max(skipna=False)
+        assert result is pd.NaT
+
+    @pytest.mark.parametrize("tz", [None, "US/Central"])
+    @pytest.mark.parametrize('skipna', [True, False])
+    def test_min_max_empty(self, skipna, tz):
+        arr = DatetimeArray._from_sequence([], tz=tz)
+        result = arr.min(skipna=skipna)
+        assert result is pd.NaT
+
+        result = arr.max(skipna=skipna)
+        assert result is pd.NaT
