@@ -1356,9 +1356,7 @@ class _TestSQLAlchemy(SQLAlchemyMixIn, PandasSQLTest):
         # even with the same versions of psycopg2 & sqlalchemy, possibly a
         # Postgrsql server version difference
         col = df.DateColWithTz
-        assert (is_object_dtype(col.dtype) or
-                is_datetime64_dtype(col.dtype) or
-                is_datetime64tz_dtype(col.dtype))
+        assert is_datetime64tz_dtype(col.dtype)
 
         df = pd.read_sql_query("select * from types_test_data",
                                self.conn, parse_dates=['DateColWithTz'])
