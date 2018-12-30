@@ -289,6 +289,11 @@ def unique(values):
       - If the input is a Categorical dtype, the return is a Categorical
       - If the input is a Series/ndarray, the return will be an ndarray
 
+    See Also
+    --------
+    pandas.Index.unique
+    pandas.Series.unique
+
     Examples
     --------
     >>> pd.unique(pd.Series([2, 1, 3, 3]))
@@ -338,11 +343,6 @@ def unique(values):
 
     >>> pd.unique([('a', 'b'), ('b', 'a'), ('a', 'c'), ('b', 'a')])
     array([('a', 'b'), ('b', 'a'), ('a', 'c')], dtype=object)
-
-    See Also
-    --------
-    pandas.Index.unique
-    pandas.Series.unique
     """
 
     values = _ensure_arraylike(values)

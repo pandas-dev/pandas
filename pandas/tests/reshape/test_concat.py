@@ -1188,8 +1188,8 @@ class TestConcatenate(ConcatenateBase):
     def test_concat_multiindex_with_keys(self):
         index = MultiIndex(levels=[['foo', 'bar', 'baz', 'qux'],
                                    ['one', 'two', 'three']],
-                           labels=[[0, 0, 0, 1, 1, 2, 2, 3, 3, 3],
-                                   [0, 1, 2, 0, 1, 1, 2, 0, 1, 2]],
+                           codes=[[0, 0, 0, 1, 1, 2, 2, 3, 3, 3],
+                                  [0, 1, 2, 0, 1, 1, 2, 0, 1, 2]],
                            names=['first', 'second'])
         frame = DataFrame(np.random.randn(10, 3), index=index,
                           columns=Index(['A', 'B', 'C'], name='exp'))
@@ -1258,8 +1258,8 @@ class TestConcatenate(ConcatenateBase):
                         names=names)
         expected = concat([df, df2, df, df2])
         exp_index = MultiIndex(levels=levels + [[0]],
-                               labels=[[0, 0, 1, 1], [0, 1, 0, 1],
-                                       [0, 0, 0, 0]],
+                               codes=[[0, 0, 1, 1], [0, 1, 0, 1],
+                                      [0, 0, 0, 0]],
                                names=names + [None])
         expected.index = exp_index
 
@@ -1591,10 +1591,10 @@ class TestConcatenate(ConcatenateBase):
 
         ts.index = DatetimeIndex(np.array(ts.index.values, dtype='M8[ns]'))
 
-        exp_labels = [np.repeat([0, 1, 2], [len(x) for x in pieces]),
-                      np.arange(len(ts))]
+        exp_codes = [np.repeat([0, 1, 2], [len(x) for x in pieces]),
+                     np.arange(len(ts))]
         exp_index = MultiIndex(levels=[[0, 1, 2], ts.index],
-                               labels=exp_labels)
+                               codes=exp_codes)
         expected.index = exp_index
         tm.assert_series_equal(result, expected)
 
@@ -2141,8 +2141,8 @@ bar2,12,13,14,15
 
         df = DataFrame(np.random.randn(9, 2))
         df.index = MultiIndex(levels=[pd.RangeIndex(3), pd.RangeIndex(3)],
-                              labels=[np.repeat(np.arange(3), 3),
-                                      np.tile(np.arange(3), 3)])
+                              codes=[np.repeat(np.arange(3), 3),
+                                     np.tile(np.arange(3), 3)])
 
         res = concat([df.iloc[[2, 3, 4], :], df.iloc[[5], :]])
         exp = df.iloc[[2, 3, 4, 5], :]
@@ -2161,7 +2161,7 @@ bar2,12,13,14,15
         expected_index = pd.MultiIndex(levels=[['s1', 's2'],
                                                ['a'],
                                                ['b', 'c']],
-                                       labels=[[0, 1], [0, 0], [0, 1]],
+                                       codes=[[0, 1], [0, 0], [0, 1]],
                                        names=['testname', None, None])
         expected = pd.DataFrame([[0], [1]], index=expected_index)
         result_copy = pd.concat(deepcopy(example_dict), names=['testname'])
@@ -2551,4 +2551,17 @@ def test_concat_series_name_npscalar_tuple(s1name, s2name):
     s2 = pd.Series({'c': 5, 'd': 6}, name=s2name)
     result = pd.concat([s1, s2])
     expected = pd.Series({'a': 1, 'b': 2, 'c': 5, 'd': 6})
+    tm.assert_series_equal(result, expected)
+
+
+def test_concat_categorical_tz():
+    # GH-23816
+    a = pd.Series(pd.date_range('2017-01-01', periods=2, tz='US/Pacific'))
+    b = pd.Series(['a', 'b'], dtype='category')
+    result = pd.concat([a, b], ignore_index=True)
+    expected = pd.Series([
+        pd.Timestamp('2017-01-01', tz="US/Pacific"),
+        pd.Timestamp('2017-01-02', tz="US/Pacific"),
+        'a', 'b'
+    ])
     tm.assert_series_equal(result, expected)

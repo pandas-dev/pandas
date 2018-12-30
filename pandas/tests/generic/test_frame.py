@@ -76,8 +76,10 @@ class TestDataFrame(Generic):
         assert not df.bool()
 
         df = DataFrame([[False, False]])
-        pytest.raises(ValueError, lambda: df.bool())
-        pytest.raises(ValueError, lambda: bool(df))
+        with pytest.raises(ValueError):
+            df.bool()
+        with pytest.raises(ValueError):
+            bool(df)
 
     def test_get_numeric_data_preserve_dtype(self):
 

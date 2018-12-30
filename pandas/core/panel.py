@@ -953,46 +953,46 @@ class Panel(NDFrame):
 
         def construct_multi_parts(idx, n_repeat, n_shuffle=1):
             # Replicates and shuffles MultiIndex, returns individual attributes
-            labels = [np.repeat(x, n_repeat) for x in idx.labels]
+            codes = [np.repeat(x, n_repeat) for x in idx.codes]
             # Assumes that each label is divisible by n_shuffle
-            labels = [x.reshape(n_shuffle, -1).ravel(order='F')
-                      for x in labels]
-            labels = [x[selector] for x in labels]
+            codes = [x.reshape(n_shuffle, -1).ravel(order='F')
+                     for x in codes]
+            codes = [x[selector] for x in codes]
             levels = idx.levels
             names = idx.names
-            return labels, levels, names
+            return codes, levels, names
 
         def construct_index_parts(idx, major=True):
             levels = [idx]
             if major:
-                labels = [np.arange(N).repeat(K)[selector]]
+                codes = [np.arange(N).repeat(K)[selector]]
                 names = idx.name or 'major'
             else:
-                labels = np.arange(K).reshape(1, K)[np.zeros(N, dtype=int)]
-                labels = [labels.ravel()[selector]]
+                codes = np.arange(K).reshape(1, K)[np.zeros(N, dtype=int)]
+                codes = [codes.ravel()[selector]]
                 names = idx.name or 'minor'
             names = [names]
-            return labels, levels, names
+            return codes, levels, names
 
         if isinstance(self.major_axis, MultiIndex):
-            major_labels, major_levels, major_names = construct_multi_parts(
+            major_codes, major_levels, major_names = construct_multi_parts(
                 self.major_axis, n_repeat=K)
         else:
-            major_labels, major_levels, major_names = construct_index_parts(
+            major_codes, major_levels, major_names = construct_index_parts(
                 self.major_axis)
 
         if isinstance(self.minor_axis, MultiIndex):
-            minor_labels, minor_levels, minor_names = construct_multi_parts(
+            minor_codes, minor_levels, minor_names = construct_multi_parts(
                 self.minor_axis, n_repeat=N, n_shuffle=K)
         else:
-            minor_labels, minor_levels, minor_names = construct_index_parts(
+            minor_codes, minor_levels, minor_names = construct_index_parts(
                 self.minor_axis, major=False)
 
         levels = major_levels + minor_levels
-        labels = major_labels + minor_labels
+        codes = major_codes + minor_codes
         names = major_names + minor_names
 
-        index = MultiIndex(levels=levels, labels=labels, names=names,
+        index = MultiIndex(levels=levels, codes=codes, names=names,
                            verify_integrity=False)
 
         return DataFrame(data, index=index, columns=self.items)
@@ -1011,6 +1011,10 @@ class Panel(NDFrame):
         axis : {'items', 'minor', 'major'}, or {0, 1, 2}, or a tuple with two
             axes
         Additional keyword arguments will be passed as keywords to the function
+
+        Returns
+        -------
+        result : Panel, DataFrame, or Series
 
         Examples
         --------
@@ -1032,10 +1036,6 @@ class Panel(NDFrame):
         items x major), as a Series
 
         >>> p.apply(lambda x: x.shape, axis=(0,1))  # doctest: +SKIP
-
-        Returns
-        -------
-        result : Panel, DataFrame, or Series
         """
 
         if kwargs and not isinstance(func, np.ufunc):

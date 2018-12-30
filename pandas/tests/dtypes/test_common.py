@@ -43,8 +43,8 @@ class TestPandasDtype(object):
         'datetime64[ns, Asia/Tokyo]',
         'datetime64[ns, UTC]'])
     def test_datetimetz_dtype(self, dtype):
-        assert com.pandas_dtype(dtype) is DatetimeTZDtype(dtype)
-        assert com.pandas_dtype(dtype) == DatetimeTZDtype(dtype)
+        assert (com.pandas_dtype(dtype) ==
+                DatetimeTZDtype.construct_from_string(dtype))
         assert com.pandas_dtype(dtype) == dtype
 
     def test_categorical_dtype(self):
@@ -340,8 +340,8 @@ def test_is_datetime64_any_dtype():
     assert com.is_datetime64_any_dtype(np.datetime64)
     assert com.is_datetime64_any_dtype(np.array([], dtype=np.datetime64))
     assert com.is_datetime64_any_dtype(DatetimeTZDtype("ns", "US/Eastern"))
-    assert com.is_datetime64_any_dtype(pd.DatetimeIndex([1, 2, 3],
-                                                        dtype=np.datetime64))
+    assert com.is_datetime64_any_dtype(
+        pd.DatetimeIndex([1, 2, 3], dtype="datetime64[ns]"))
 
 
 def test_is_datetime64_ns_dtype():
@@ -356,8 +356,8 @@ def test_is_datetime64_ns_dtype():
     assert not com.is_datetime64_ns_dtype(np.array([], dtype="datetime64[ps]"))
 
     assert com.is_datetime64_ns_dtype(DatetimeTZDtype("ns", "US/Eastern"))
-    assert com.is_datetime64_ns_dtype(pd.DatetimeIndex([1, 2, 3],
-                                                       dtype=np.datetime64))
+    assert com.is_datetime64_ns_dtype(
+        pd.DatetimeIndex([1, 2, 3], dtype=np.dtype('datetime64[ns]')))
 
 
 def test_is_timedelta64_ns_dtype():

@@ -66,19 +66,19 @@ def _get_series_result_type(result, objs=None):
     return appropriate class of Series concat
     input is either dict or array-like
     """
+    from pandas import SparseSeries, SparseDataFrame, DataFrame
+
     # concat Series with axis 1
     if isinstance(result, dict):
         # concat Series with axis 1
-        if all(is_sparse(c) for c in compat.itervalues(result)):
-            from pandas.core.sparse.api import SparseDataFrame
+        if all(isinstance(c, (SparseSeries, SparseDataFrame))
+               for c in compat.itervalues(result)):
             return SparseDataFrame
         else:
-            from pandas.core.frame import DataFrame
             return DataFrame
 
     # otherwise it is a SingleBlockManager (axis = 0)
     if result._block.is_sparse:
-        from pandas.core.sparse.api import SparseSeries
         return SparseSeries
     else:
         return objs[0]._constructor
@@ -191,15 +191,6 @@ def _concat_categorical(to_concat, axis=0):
         A single array, preserving the combined dtypes
     """
 
-    def _concat_asobject(to_concat):
-        to_concat = [x.get_values() if is_categorical_dtype(x.dtype)
-                     else np.asarray(x).ravel() for x in to_concat]
-        res = _concat_compat(to_concat)
-        if axis == 1:
-            return res.reshape(1, len(res))
-        else:
-            return res
-
     # we could have object blocks and categoricals here
     # if we only have a single categoricals then combine everything
     # else its a non-compat categorical
@@ -214,7 +205,14 @@ def _concat_categorical(to_concat, axis=0):
         if all(first.is_dtype_equal(other) for other in to_concat[1:]):
             return union_categoricals(categoricals)
 
-    return _concat_asobject(to_concat)
+    # extract the categoricals & coerce to object if needed
+    to_concat = [x.get_values() if is_categorical_dtype(x.dtype)
+                 else np.asarray(x).ravel() if not is_datetime64tz_dtype(x)
+                 else np.asarray(x.astype(object)) for x in to_concat]
+    result = _concat_compat(to_concat)
+    if axis == 1:
+        result = result.reshape(1, len(result))
+    return result
 
 
 def union_categoricals(to_union, sort_categories=False, ignore_order=False):

@@ -36,10 +36,8 @@ from pandas.tseries.offsets import DateOffset
 _VALID_CLOSED = {'left', 'right', 'both', 'neither'}
 _index_doc_kwargs = dict(ibase._index_doc_kwargs)
 
-# TODO(jschendel) remove constructor key when IntervalArray is public (GH22860)
 _index_doc_kwargs.update(
     dict(klass='IntervalIndex',
-         constructor='pd.IntervalIndex',
          target_klass='IntervalIndex or list of Intervals',
          name=textwrap.dedent("""\
          name : object, optional
@@ -486,6 +484,12 @@ class IntervalIndex(IntervalMixin, Index):
         bool
             Boolean indicating if the IntervalIndex has overlapping intervals.
 
+        See Also
+        --------
+        Interval.overlaps : Check whether two Interval objects overlap.
+        IntervalIndex.overlaps : Check an IntervalIndex elementwise for
+            overlaps.
+
         Examples
         --------
         >>> index = pd.IntervalIndex.from_tuples([(0, 2), (1, 3), (4, 5)])
@@ -515,12 +519,6 @@ class IntervalIndex(IntervalMixin, Index):
               dtype='interval[int64]')
         >>> index.is_overlapping
         False
-
-        See Also
-        --------
-        Interval.overlaps : Check whether two Interval objects overlap.
-        IntervalIndex.overlaps : Check an IntervalIndex elementwise for
-            overlaps.
         """
         # GH 23309
         return self._engine.is_overlapping
@@ -1015,10 +1013,11 @@ class IntervalIndex(IntervalMixin, Index):
 
     def _format_native_types(self, na_rep='', quoting=None, **kwargs):
         """ actually format my specific types """
-        from pandas.io.formats.format import IntervalArrayFormatter
-        return IntervalArrayFormatter(values=self,
-                                      na_rep=na_rep,
-                                      justify='all').get_result()
+        from pandas.io.formats.format import ExtensionArrayFormatter
+        return ExtensionArrayFormatter(values=self,
+                                       na_rep=na_rep,
+                                       justify='all',
+                                       leading_space=False).get_result()
 
     def _format_data(self, name=None):
 
@@ -1180,6 +1179,14 @@ def interval_range(start=None, end=None, periods=None, freq=None,
         Whether the intervals are closed on the left-side, right-side, both
         or neither.
 
+    Returns
+    -------
+    rng : IntervalIndex
+
+    See Also
+    --------
+    IntervalIndex : An Index of intervals that are all closed on the same side.
+
     Notes
     -----
     Of the four parameters ``start``, ``end``, ``periods``, and ``freq``,
@@ -1189,10 +1196,6 @@ def interval_range(start=None, end=None, periods=None, freq=None,
 
     To learn more about datetime-like frequency strings, please see `this link
     <http://pandas.pydata.org/pandas-docs/stable/timeseries.html#offset-aliases>`__.
-
-    Returns
-    -------
-    rng : IntervalIndex
 
     Examples
     --------
@@ -1241,10 +1244,6 @@ def interval_range(start=None, end=None, periods=None, freq=None,
     >>> pd.interval_range(end=5, periods=4, closed='both')
     IntervalIndex([[1, 2], [2, 3], [3, 4], [4, 5]]
                   closed='both', dtype='interval[int64]')
-
-    See Also
-    --------
-    IntervalIndex : An Index of intervals that are all closed on the same side.
     """
     start = com.maybe_box_datetimelike(start)
     end = com.maybe_box_datetimelike(end)

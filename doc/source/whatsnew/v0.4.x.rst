@@ -3,7 +3,7 @@
 v.0.4.3 through v0.4.1 (September 25 - October 9, 2011)
 -------------------------------------------------------
 
-{{ common_imports }}
+{{ header }}
 
 New Features
 ~~~~~~~~~~~~

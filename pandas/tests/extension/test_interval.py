@@ -146,3 +146,9 @@ class TestReshaping(BaseInterval, base.BaseReshapingTests):
 
 class TestSetitem(BaseInterval, base.BaseSetitemTests):
     pass
+
+
+class TestPrinting(BaseInterval, base.BasePrintingTests):
+    @pytest.mark.skip(reason="custom repr")
+    def test_array_repr(self, data, size):
+        pass

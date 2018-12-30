@@ -76,7 +76,7 @@ def test_basic(dtype):
 
 
 def test_groupby_nonobject_dtype(mframe, df_mixed_floats):
-    key = mframe.index.labels[0]
+    key = mframe.index.codes[0]
     grouped = mframe.groupby(key)
     result = grouped.sum()
 
@@ -295,7 +295,7 @@ def test_indices_concatenation_order():
     def f1(x):
         y = x[(x.b % 2) == 1] ** 2
         if y.empty:
-            multiindex = MultiIndex(levels=[[]] * 2, labels=[[]] * 2,
+            multiindex = MultiIndex(levels=[[]] * 2, codes=[[]] * 2,
                                     names=['b', 'c'])
             res = DataFrame(None, columns=['a'], index=multiindex)
             return res
@@ -314,7 +314,7 @@ def test_indices_concatenation_order():
     def f3(x):
         y = x[(x.b % 2) == 1] ** 2
         if y.empty:
-            multiindex = MultiIndex(levels=[[]] * 2, labels=[[]] * 2,
+            multiindex = MultiIndex(levels=[[]] * 2, codes=[[]] * 2,
                                     names=['foo', 'bar'])
             res = DataFrame(None, columns=['a', 'b'], index=multiindex)
             return res
@@ -1416,11 +1416,11 @@ def test_groupby_sort_multiindex_series():
     # _compress_group_index
     # GH 9444
     index = MultiIndex(levels=[[1, 2], [1, 2]],
-                       labels=[[0, 0, 0, 0, 1, 1], [1, 1, 0, 0, 0, 0]],
+                       codes=[[0, 0, 0, 0, 1, 1], [1, 1, 0, 0, 0, 0]],
                        names=['a', 'b'])
     mseries = Series([0, 1, 2, 3, 4, 5], index=index)
     index = MultiIndex(levels=[[1, 2], [1, 2]],
-                       labels=[[0, 0, 1], [1, 0, 0]], names=['a', 'b'])
+                       codes=[[0, 0, 1], [1, 0, 0]], names=['a', 'b'])
     mseries_result = Series([0, 2, 4], index=index)
 
     result = mseries.groupby(level=['a', 'b'], sort=False).first()
@@ -1613,6 +1613,23 @@ def test_group_shift_with_null_key():
                           for i in range(n_rows)], dtype=float,
                          columns=["Z"], index=None)
     result = g.shift(-1)
+
+    assert_frame_equal(result, expected)
+
+
+def test_group_shift_with_fill_value():
+    # GH #24128
+    n_rows = 24
+    df = DataFrame([(i % 12, i % 3, i)
+                    for i in range(n_rows)], dtype=float,
+                   columns=["A", "B", "Z"], index=None)
+    g = df.groupby(["A", "B"])
+
+    expected = DataFrame([(i + 12 if i < n_rows - 12
+                           else 0)
+                          for i in range(n_rows)], dtype=float,
+                         columns=["Z"], index=None)
+    result = g.shift(-1, fill_value=0)[["Z"]]
 
     assert_frame_equal(result, expected)
 

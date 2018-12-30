@@ -46,11 +46,6 @@ class RangeIndex(Int64Index):
     copy : bool, default False
         Unused, accepted for homogeneity with other index types.
 
-    See Also
-    --------
-    Index : The base pandas Index type.
-    Int64Index : Index of int64 data.
-
     Attributes
     ----------
     None
@@ -58,6 +53,11 @@ class RangeIndex(Int64Index):
     Methods
     -------
     from_range
+
+    See Also
+    --------
+    Index : The base pandas Index type.
+    Int64Index : Index of int64 data.
     """
 
     _typ = 'rangeindex'
@@ -297,12 +297,14 @@ class RangeIndex(Int64Index):
 
         return self._start + self._step * no_steps
 
-    def min(self):
+    def min(self, axis=None, skipna=True):
         """The minimum value of the RangeIndex"""
+        nv.validate_minmax_axis(axis)
         return self._minmax('min')
 
-    def max(self):
+    def max(self, axis=None, skipna=True):
         """The maximum value of the RangeIndex"""
+        nv.validate_minmax_axis(axis)
         return self._minmax('max')
 
     def argsort(self, *args, **kwargs):

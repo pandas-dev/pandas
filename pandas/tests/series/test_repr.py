@@ -25,8 +25,8 @@ class TestSeriesRepr(TestData):
     def test_multilevel_name_print(self):
         index = MultiIndex(levels=[['foo', 'bar', 'baz', 'qux'], ['one', 'two',
                                                                   'three']],
-                           labels=[[0, 0, 0, 1, 1, 2, 2, 3, 3, 3],
-                                   [0, 1, 2, 0, 1, 1, 2, 0, 1, 2]],
+                           codes=[[0, 0, 0, 1, 1, 2, 2, 3, 3, 3],
+                                  [0, 1, 2, 0, 1, 1, 2, 0, 1, 2]],
                            names=['first', 'second'])
         s = Series(lrange(0, len(index)), index=index, name='sth')
         expected = ["first  second", "foo    one       0",
@@ -364,11 +364,11 @@ Categories (5, datetime64[ns, US/Eastern]): [2011-01-01 09:00:00-05:00 < 2011-01
     def test_categorical_series_repr_period(self):
         idx = period_range('2011-01-01 09:00', freq='H', periods=5)
         s = Series(Categorical(idx))
-        exp = """0   2011-01-01 09:00
-1   2011-01-01 10:00
-2   2011-01-01 11:00
-3   2011-01-01 12:00
-4   2011-01-01 13:00
+        exp = """0    2011-01-01 09:00
+1    2011-01-01 10:00
+2    2011-01-01 11:00
+3    2011-01-01 12:00
+4    2011-01-01 13:00
 dtype: category
 Categories (5, period[H]): [2011-01-01 09:00, 2011-01-01 10:00, 2011-01-01 11:00, 2011-01-01 12:00,
                             2011-01-01 13:00]"""  # noqa
@@ -377,11 +377,11 @@ Categories (5, period[H]): [2011-01-01 09:00, 2011-01-01 10:00, 2011-01-01 11:00
 
         idx = period_range('2011-01', freq='M', periods=5)
         s = Series(Categorical(idx))
-        exp = """0   2011-01
-1   2011-02
-2   2011-03
-3   2011-04
-4   2011-05
+        exp = """0    2011-01
+1    2011-02
+2    2011-03
+3    2011-04
+4    2011-05
 dtype: category
 Categories (5, period[M]): [2011-01, 2011-02, 2011-03, 2011-04, 2011-05]"""
 
@@ -390,11 +390,11 @@ Categories (5, period[M]): [2011-01, 2011-02, 2011-03, 2011-04, 2011-05]"""
     def test_categorical_series_repr_period_ordered(self):
         idx = period_range('2011-01-01 09:00', freq='H', periods=5)
         s = Series(Categorical(idx, ordered=True))
-        exp = """0   2011-01-01 09:00
-1   2011-01-01 10:00
-2   2011-01-01 11:00
-3   2011-01-01 12:00
-4   2011-01-01 13:00
+        exp = """0    2011-01-01 09:00
+1    2011-01-01 10:00
+2    2011-01-01 11:00
+3    2011-01-01 12:00
+4    2011-01-01 13:00
 dtype: category
 Categories (5, period[H]): [2011-01-01 09:00 < 2011-01-01 10:00 < 2011-01-01 11:00 < 2011-01-01 12:00 <
                             2011-01-01 13:00]"""  # noqa
@@ -403,11 +403,11 @@ Categories (5, period[H]): [2011-01-01 09:00 < 2011-01-01 10:00 < 2011-01-01 11:
 
         idx = period_range('2011-01', freq='M', periods=5)
         s = Series(Categorical(idx, ordered=True))
-        exp = """0   2011-01
-1   2011-02
-2   2011-03
-3   2011-04
-4   2011-05
+        exp = """0    2011-01
+1    2011-02
+2    2011-03
+3    2011-04
+4    2011-05
 dtype: category
 Categories (5, period[M]): [2011-01 < 2011-02 < 2011-03 < 2011-04 < 2011-05]"""
 

@@ -8,6 +8,7 @@ from __future__ import division, print_function
 
 from contextlib import contextmanager
 from datetime import date, datetime, time
+from functools import partial
 import re
 import warnings
 
@@ -218,14 +219,14 @@ def read_sql_table(table_name, con, schema=None, index_col=None,
     -------
     DataFrame
 
-    Notes
-    -----
-    Any datetime values with time zone information will be converted to UTC.
-
     See Also
     --------
     read_sql_query : Read SQL query into a DataFrame.
     read_sql
+
+    Notes
+    -----
+    Any datetime values with time zone information will be converted to UTC.
     """
 
     con = _engine_builder(con)
@@ -296,15 +297,15 @@ def read_sql_query(sql, con, index_col=None, coerce_float=True, params=None,
     -------
     DataFrame
 
-    Notes
-    -----
-    Any datetime values with time zone information parsed via the `parse_dates`
-    parameter will be converted to UTC.
-
     See Also
     --------
     read_sql_table : Read SQL database table into a DataFrame.
     read_sql
+
+    Notes
+    -----
+    Any datetime values with time zone information parsed via the `parse_dates`
+    parameter will be converted to UTC.
     """
     pandas_sql = pandasSQL_builder(con)
     return pandas_sql.read_query(
@@ -395,7 +396,7 @@ def read_sql(sql, con, index_col=None, coerce_float=True, params=None,
 
 
 def to_sql(frame, name, con, schema=None, if_exists='fail', index=True,
-           index_label=None, chunksize=None, dtype=None):
+           index_label=None, chunksize=None, dtype=None, method=None):
     """
     Write records stored in a DataFrame to a SQL database.
 
@@ -429,6 +430,17 @@ def to_sql(frame, name, con, schema=None, if_exists='fail', index=True,
         Optional specifying the datatype for columns. The SQL type should
         be a SQLAlchemy type, or a string for sqlite3 fallback connection.
         If all columns are of the same type, one single value can be used.
+    method : {None, 'multi', callable}, default None
+        Controls the SQL insertion clause used:
+
+        - None : Uses standard SQL ``INSERT`` clause (one per row).
+        - 'multi': Pass multiple values in a single ``INSERT`` clause.
+        - callable with signature ``(pd_table, conn, keys, data_iter)``.
+
+        Details and a sample callable implementation can be found in the
+        section :ref:`insert method <io.sql.method>`.
+
+        .. versionadded:: 0.24.0
     """
     if if_exists not in ('fail', 'replace', 'append'):
         raise ValueError("'{0}' is not valid for if_exists".format(if_exists))
@@ -443,7 +455,7 @@ def to_sql(frame, name, con, schema=None, if_exists='fail', index=True,
 
     pandas_sql.to_sql(frame, name, if_exists=if_exists, index=index,
                       index_label=index_label, schema=schema,
-                      chunksize=chunksize, dtype=dtype)
+                      chunksize=chunksize, dtype=dtype, method=method)
 
 
 def has_table(table_name, con, schema=None):
@@ -568,8 +580,29 @@ class SQLTable(PandasObject):
         else:
             self._execute_create()
 
-    def insert_statement(self):
-        return self.table.insert()
+    def _execute_insert(self, conn, keys, data_iter):
+        """Execute SQL statement inserting data
+
+        Parameters
+        ----------
+        conn : sqlalchemy.engine.Engine or sqlalchemy.engine.Connection
+        keys : list of str
+           Column names
+        data_iter : generator of list
+           Each item contains a list of values to be inserted
+        """
+        data = [dict(zip(keys, row)) for row in data_iter]
+        conn.execute(self.table.insert(), data)
+
+    def _execute_insert_multi(self, conn, keys, data_iter):
+        """Alternative to _execute_insert for DBs support multivalue INSERT.
+
+        Note: multi-value insert is usually faster for analytics DBs
+        and tables containing a few columns
+        but performance degrades quickly with increase of columns.
+        """
+        data = [dict(zip(keys, row)) for row in data_iter]
+        conn.execute(self.table.insert(data))
 
     def insert_data(self):
         if self.index is not None:
@@ -612,11 +645,18 @@ class SQLTable(PandasObject):
 
         return column_names, data_list
 
-    def _execute_insert(self, conn, keys, data_iter):
-        data = [dict(zip(keys, row)) for row in data_iter]
-        conn.execute(self.insert_statement(), data)
+    def insert(self, chunksize=None, method=None):
 
-    def insert(self, chunksize=None):
+        # set insert method
+        if method is None:
+            exec_insert = self._execute_insert
+        elif method == 'multi':
+            exec_insert = self._execute_insert_multi
+        elif callable(method):
+            exec_insert = partial(method, self)
+        else:
+            raise ValueError('Invalid parameter `method`: {}'.format(method))
+
         keys, data_list = self.insert_data()
 
         nrows = len(self.frame)
@@ -639,7 +679,7 @@ class SQLTable(PandasObject):
                     break
 
                 chunk_iter = zip(*[arr[start_i:end_i] for arr in data_list])
-                self._execute_insert(conn, keys, chunk_iter)
+                exec_insert(conn, keys, chunk_iter)
 
     def _query_iterator(self, result, chunksize, columns, coerce_float=True,
                         parse_dates=None):
@@ -1085,7 +1125,8 @@ class SQLDatabase(PandasSQL):
     read_sql = read_query
 
     def to_sql(self, frame, name, if_exists='fail', index=True,
-               index_label=None, schema=None, chunksize=None, dtype=None):
+               index_label=None, schema=None, chunksize=None, dtype=None,
+               method=None):
         """
         Write records stored in a DataFrame to a SQL database.
 
@@ -1115,7 +1156,17 @@ class SQLDatabase(PandasSQL):
             Optional specifying the datatype for columns. The SQL type should
             be a SQLAlchemy type. If all columns are of the same type, one
             single value can be used.
+        method : {None', 'multi', callable}, default None
+            Controls the SQL insertion clause used:
 
+            * None : Uses standard SQL ``INSERT`` clause (one per row).
+            * 'multi': Pass multiple values in a single ``INSERT`` clause.
+            * callable with signature ``(pd_table, conn, keys, data_iter)``.
+
+            Details and a sample callable implementation can be found in the
+            section :ref:`insert method <io.sql.method>`.
+
+            .. versionadded:: 0.24.0
         """
         if dtype and not is_dict_like(dtype):
             dtype = {col_name: dtype for col_name in frame}
@@ -1131,7 +1182,7 @@ class SQLDatabase(PandasSQL):
                          if_exists=if_exists, index_label=index_label,
                          schema=schema, dtype=dtype)
         table.create()
-        table.insert(chunksize)
+        table.insert(chunksize, method=method)
         if (not name.isdigit() and not name.islower()):
             # check for potentially case sensitivity issues (GH7815)
             # Only check when name is not a number and name is not lower case
@@ -1442,7 +1493,8 @@ class SQLiteDatabase(PandasSQL):
         return result
 
     def to_sql(self, frame, name, if_exists='fail', index=True,
-               index_label=None, schema=None, chunksize=None, dtype=None):
+               index_label=None, schema=None, chunksize=None, dtype=None,
+               method=None):
         """
         Write records stored in a DataFrame to a SQL database.
 
@@ -1471,7 +1523,17 @@ class SQLiteDatabase(PandasSQL):
             Optional specifying the datatype for columns. The SQL type should
             be a string. If all columns are of the same type, one single value
             can be used.
+        method : {None, 'multi', callable}, default None
+            Controls the SQL insertion clause used:
 
+            * None : Uses standard SQL ``INSERT`` clause (one per row).
+            * 'multi': Pass multiple values in a single ``INSERT`` clause.
+            * callable with signature ``(pd_table, conn, keys, data_iter)``.
+
+            Details and a sample callable implementation can be found in the
+            section :ref:`insert method <io.sql.method>`.
+
+            .. versionadded:: 0.24.0
         """
         if dtype and not is_dict_like(dtype):
             dtype = {col_name: dtype for col_name in frame}
@@ -1486,7 +1548,7 @@ class SQLiteDatabase(PandasSQL):
                             if_exists=if_exists, index_label=index_label,
                             dtype=dtype)
         table.create()
-        table.insert(chunksize)
+        table.insert(chunksize, method)
 
     def has_table(self, name, schema=None):
         # TODO(wesm): unused?

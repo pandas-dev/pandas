@@ -5,7 +5,6 @@ Module for formatting output data in HTML.
 
 from __future__ import print_function
 
-from distutils.version import LooseVersion
 from textwrap import dedent
 
 from pandas.compat import OrderedDict, lzip, map, range, u, unichr, zip
@@ -16,6 +15,7 @@ from pandas import compat
 import pandas.core.common as com
 from pandas.core.config import get_option
 
+from pandas.io.common import _is_url
 from pandas.io.formats.format import (
     TableFormatter, buffer_put_lines, get_level_lengths)
 from pandas.io.formats.printing import pprint_thing
@@ -26,7 +26,7 @@ class HTMLFormatter(TableFormatter):
     indent_delta = 2
 
     def __init__(self, formatter, classes=None, notebook=False, border=None,
-                 table_id=None):
+                 table_id=None, render_links=False):
         self.fmt = formatter
         self.classes = classes
 
@@ -41,6 +41,7 @@ class HTMLFormatter(TableFormatter):
             border = get_option('display.html.border')
         self.border = border
         self.table_id = table_id
+        self.render_links = render_links
 
     @property
     def is_truncated(self):
@@ -77,9 +78,19 @@ class HTMLFormatter(TableFormatter):
                                ('>', r'&gt;')])
         else:
             esc = {}
+
         rs = pprint_thing(s, escape_chars=esc).strip()
-        self.write(u'{start}{rs}</{kind}>'
-                   .format(start=start_tag, rs=rs, kind=kind), indent)
+
+        if self.render_links and _is_url(rs):
+            rs_unescaped = pprint_thing(s, escape_chars={}).strip()
+            start_tag += '<a href="{url}" target="_blank">'.format(
+                url=rs_unescaped)
+            end_a = '</a>'
+        else:
+            end_a = ''
+
+        self.write(u'{start}{rs}{end_a}</{kind}>'.format(
+            start=start_tag, rs=rs, end_a=end_a, kind=kind), indent)
 
     def write_tr(self, line, indent=0, indent_delta=0, header=False,
                  align=None, tags=None, nindex_levels=0):
@@ -161,15 +172,7 @@ class HTMLFormatter(TableFormatter):
             _classes.extend(self.classes)
 
         if self.notebook:
-            div_style = ''
-            try:
-                import IPython
-                if IPython.__version__ < LooseVersion('3.0.0'):
-                    div_style = ' style="max-width:1500px;overflow:auto;"'
-            except (ImportError, AttributeError):
-                pass
-
-            self.write('<div{style}>'.format(style=div_style))
+            self.write('<div>')
 
         self.write_style()
 

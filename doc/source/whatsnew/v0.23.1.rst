@@ -3,7 +3,8 @@
 What's New in 0.23.1 (June 12, 2018)
 ------------------------------------
 
-{{ common_imports }}
+{{ header }}
+
 
 This is a minor bug-fix release in the 0.23.x series and includes some small regression fixes
 and bug fixes. We recommend that all users upgrade to this version.
@@ -37,19 +38,20 @@ To summarize, here's the behavior in 0.22.0, 0.23.0, 0.23.1:
 .. code-block:: python
 
    # 0.22.0... Silently coerce the datetime.date
-   >>> Series(pd.date_range('2017', periods=2)) == datetime.date(2017, 1, 1)
+   >>> import datetime
+   >>> pd.Series(pd.date_range('2017', periods=2)) == datetime.date(2017, 1, 1)
    0     True
    1    False
    dtype: bool
 
    # 0.23.0... Do not coerce the datetime.date
-   >>> Series(pd.date_range('2017', periods=2)) == datetime.date(2017, 1, 1)
+   >>> pd.Series(pd.date_range('2017', periods=2)) == datetime.date(2017, 1, 1)
    0    False
    1    False
    dtype: bool
 
    # 0.23.1... Coerce the datetime.date with a warning
-   >>> Series(pd.date_range('2017', periods=2)) == datetime.date(2017, 1, 1)
+   >>> pd.Series(pd.date_range('2017', periods=2)) == datetime.date(2017, 1, 1)
    /bin/python:1: FutureWarning: Comparing Series of datetimes with 'datetime.date'.  Currently, the
    'datetime.date' is coerced to a datetime. In the future pandas will
    not coerce, and the values not compare equal to the 'datetime.date'.
