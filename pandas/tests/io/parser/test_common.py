@@ -1867,8 +1867,7 @@ def test_error_bad_lines(all_parsers, kwargs, warn_kwargs):
         parser.read_csv(StringIO(data), **kwargs)
 
 
-@tm.capture_stderr
-def test_warn_bad_lines(all_parsers):
+def test_warn_bad_lines(all_parsers, capsys):
     # see gh-15925
     parser = all_parsers
     data = "a\n1\n1,2,3\n4\n5,6,7"
@@ -1879,9 +1878,9 @@ def test_warn_bad_lines(all_parsers):
                              warn_bad_lines=True)
     tm.assert_frame_equal(result, expected)
 
-    val = sys.stderr.getvalue()
-    assert "Skipping line 3" in val
-    assert "Skipping line 5" in val
+    captured = capsys.readouterr()
+    assert "Skipping line 3" in captured.err
+    assert "Skipping line 5" in captured.err
 
 
 @tm.capture_stderr
