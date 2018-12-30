@@ -535,58 +535,6 @@ class DatetimeLikeArrayMixin(AttributesMixin,
         # DatetimeArray and TimedeltaArray
         pass
 
-    def isna(self):
-        return self._isnan
-
-    @property  # NB: override with cache_readonly in immutable subclasses
-    def _isnan(self):
-        """
-        return if each value is nan
-        """
-        return (self.asi8 == iNaT)
-
-    @property  # NB: override with cache_readonly in immutable subclasses
-    def _hasnans(self):
-        """
-        return if I have any nans; enables various perf speedups
-        """
-        return bool(self._isnan.any())
-
-    def fillna(self, value=None, method=None, limit=None):
-        # TODO(GH-20300): remove this
-        # Just overriding to ensure that we avoid an astype(object).
-        # Either 20300 or a `_values_for_fillna` would avoid this duplication.
-        if isinstance(value, ABCSeries):
-            value = value.array
-
-        value, method = validate_fillna_kwargs(value, method)
-
-        mask = self.isna()
-
-        if is_array_like(value):
-            if len(value) != len(self):
-                raise ValueError("Length of 'value' does not match. Got ({}) "
-                                 " expected {}".format(len(value), len(self)))
-            value = value[mask]
-
-        if mask.any():
-            if method is not None:
-                if method == 'pad':
-                    func = missing.pad_1d
-                else:
-                    func = missing.backfill_1d
-
-                new_values = func(self._data, limit=limit,
-                                  mask=mask)
-                new_values = type(self)(new_values, dtype=self.dtype)
-            else:
-                # fill with value
-                new_values = self.copy()
-                new_values[mask] = value
-        else:
-            new_values = self.copy()
-        return new_values
-
     def astype(self, dtype, copy=True):
         # Some notes on cases we don't have to handle here in the base class:
         #   1. PeriodArray.astype handles period -> period
@@ -800,6 +748,23 @@ class DatetimeLikeArrayMixin(AttributesMixin,
     # ------------------------------------------------------------------
     # Null Handling
 
+    def isna(self):
+        return self._isnan
+
+    @property  # NB: override with cache_readonly in immutable subclasses
+    def _isnan(self):
+        """
+        return if each value is nan
+        """
+        return (self.asi8 == iNaT)
+
+    @property  # NB: override with cache_readonly in immutable subclasses
+    def _hasnans(self):
+        """
+        return if I have any nans; enables various perf speedups
+        """
+        return bool(self._isnan.any())
+
     def _maybe_mask_results(self, result, fill_value=iNaT, convert=None):
         """
         Parameters
@@ -825,6 +790,41 @@ class DatetimeLikeArrayMixin(AttributesMixin,
                 fill_value = np.nan
             result[self._isnan] = fill_value
         return result
+
+    def fillna(self, value=None, method=None, limit=None):
+        # TODO(GH-20300): remove this
+        # Just overriding to ensure that we avoid an astype(object).
+        # Either 20300 or a `_values_for_fillna` would avoid this duplication.
+        if isinstance(value, ABCSeries):
+            value = value.array
+
+        value, method = validate_fillna_kwargs(value, method)
+
+        mask = self.isna()
+
+        if is_array_like(value):
+            if len(value) != len(self):
+                raise ValueError("Length of 'value' does not match. Got ({}) "
+                                 " expected {}".format(len(value), len(self)))
+            value = value[mask]
+
+        if mask.any():
+            if method is not None:
+                if method == 'pad':
+                    func = missing.pad_1d
+                else:
+                    func = missing.backfill_1d
+
+                new_values = func(self._data, limit=limit,
+                                  mask=mask)
+                new_values = type(self)(new_values, dtype=self.dtype)
+            else:
+                # fill with value
+                new_values = self.copy()
+                new_values[mask] = value
+        else:
+            new_values = self.copy()
+        return new_values
 
     # ------------------------------------------------------------------
     # Frequency Properties/Methods
