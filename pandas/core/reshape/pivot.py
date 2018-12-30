@@ -433,6 +433,9 @@ def crosstab(index, columns, values=None, rownames=None, colnames=None,
 
         .. versionadded:: 0.18.1
 
+    Returns
+    -------
+    crosstab : DataFrame
 
     Notes
     -----
@@ -485,10 +488,6 @@ def crosstab(index, columns, values=None, rownames=None, colnames=None,
     a      1  0  0
     b      0  1  0
     c      0  0  0
-
-    Returns
-    -------
-    crosstab : DataFrame
     """
 
     index = com.maybe_make_list(index)

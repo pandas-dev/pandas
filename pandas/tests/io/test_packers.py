@@ -940,3 +940,9 @@ TestPackers
         except ImportError:
             # blosc not installed
             pass
+
+    def test_msgpack_period_freq(self):
+        # https://github.com/pandas-dev/pandas/issues/24135
+        s = Series(np.random.rand(5), index=date_range('20130101', periods=5))
+        r = read_msgpack(s.to_msgpack())
+        repr(r)

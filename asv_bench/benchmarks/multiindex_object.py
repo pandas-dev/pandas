@@ -79,8 +79,8 @@ class Duplicated(object):
         levels = [np.arange(n),
                   tm.makeStringIndex(n).values,
                   1000 + np.arange(n)]
-        labels = [np.random.choice(n, (k * n)) for lev in levels]
-        self.mi = MultiIndex(levels=levels, labels=labels)
+        codes = [np.random.choice(n, (k * n)) for lev in levels]
+        self.mi = MultiIndex(levels=levels, codes=codes)
 
     def time_duplicated(self):
         self.mi.duplicated()

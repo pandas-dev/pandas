@@ -5,6 +5,7 @@ set -v -e
 CONDA_INSTALL="conda install -q -y"
 PIP_INSTALL="pip install -q"
 
+
 # Deactivate any environment
 source deactivate
 # Display root environment (for debugging)
@@ -12,15 +13,14 @@ conda list
 # Clean up any left-over from a previous build
 # (note workaround for https://github.com/conda/conda/issues/2679:
 #  `conda env remove` issue)
-conda remove --all -q -y -n $CONDA_ENV
+conda remove --all -q -y -n pandas-dev
 
 echo
 echo "[create env]"
-time conda env create -q -n "${CONDA_ENV}" --file="${ENV_FILE}" || exit 1
+time conda env create -q --file="${ENV_FILE}" || exit 1
 
-# Activate first
 set +v
-source activate $CONDA_ENV
+source activate pandas-dev
 set -v
 
 # remove any installed pandas package

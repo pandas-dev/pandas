@@ -1,7 +1,9 @@
 import pytest
+
+from pandas.core.dtypes.missing import array_equivalent
+
 import pandas as pd
 import pandas.util.testing as tm
-from pandas.core.dtypes.missing import array_equivalent
 
 
 # Fixtures

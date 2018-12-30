@@ -24,8 +24,8 @@ class TestMisc(object):
         assert libwriters.max_len_string_array(arr) == 3
 
         # raises
-        pytest.raises(TypeError,
-                      lambda: libwriters.max_len_string_array(arr.astype('U')))
+        with pytest.raises(TypeError):
+            libwriters.max_len_string_array(arr.astype('U'))
 
     def test_fast_unique_multiple_list_gen_sort(self):
         keys = [['p', 'a'], ['n', 'd'], ['a', 's']]

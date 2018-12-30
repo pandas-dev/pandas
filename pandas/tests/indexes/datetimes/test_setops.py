@@ -114,7 +114,7 @@ class TestDatetimeIndexSetOps(object):
 
     def test_union_with_DatetimeIndex(self):
         i1 = Int64Index(np.arange(0, 20, 2))
-        i2 = DatetimeIndex(start='2012-01-03 00:00:00', periods=10, freq='D')
+        i2 = date_range(start='2012-01-03 00:00:00', periods=10, freq='D')
         i1.union(i2)  # Works
         i2.union(i1)  # Fails with "AttributeError: can't set attribute"
 
@@ -253,14 +253,14 @@ class TestDatetimeIndexSetOps(object):
 
     @pytest.mark.parametrize("sort", [True, False])
     def test_datetimeindex_diff(self, sort):
-        dti1 = DatetimeIndex(freq='Q-JAN', start=datetime(1997, 12, 31),
-                             periods=100)
-        dti2 = DatetimeIndex(freq='Q-JAN', start=datetime(1997, 12, 31),
-                             periods=98)
+        dti1 = date_range(freq='Q-JAN', start=datetime(1997, 12, 31),
+                          periods=100)
+        dti2 = date_range(freq='Q-JAN', start=datetime(1997, 12, 31),
+                          periods=98)
         assert len(dti1.difference(dti2, sort)) == 2
 
     def test_datetimeindex_union_join_empty(self):
-        dti = DatetimeIndex(start='1/1/2001', end='2/1/2001', freq='D')
+        dti = date_range(start='1/1/2001', end='2/1/2001', freq='D')
         empty = Index([])
 
         result = dti.union(empty)

@@ -3,7 +3,8 @@
 v.0.7.2 (March 16, 2012)
 ---------------------------
 
-{{ common_imports }}
+{{ header }}
+
 
 This release targets bugs in 0.7.1, and adds a few minor features.
 

@@ -18,7 +18,7 @@ cdef extern from "compat_helper.h":
                                Py_ssize_t *slicelength) except -1
 
 
-from algos import ensure_int64
+from pandas._libs.algos import ensure_int64
 
 
 cdef class BlockPlacement:
@@ -64,7 +64,8 @@ cdef class BlockPlacement:
 
         return '%s(%r)' % (self.__class__.__name__, v)
 
-    __repr__ = __str__
+    def __repr__(self):
+        return str(self)
 
     def __len__(self):
         cdef:

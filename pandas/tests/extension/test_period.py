@@ -152,3 +152,7 @@ class TestSetitem(BasePeriodTests, base.BaseSetitemTests):
 
 class TestGroupby(BasePeriodTests, base.BaseGroupbyTests):
     pass
+
+
+class TestPrinting(BasePeriodTests, base.BasePrintingTests):
+    pass

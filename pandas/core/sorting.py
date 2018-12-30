@@ -1,18 +1,17 @@
 """ miscellaneous sorting / groupby utilities """
 
 import numpy as np
-from pandas.compat import long, string_types, PY3
-from pandas.core.dtypes.common import (
-    ensure_platform_int,
-    ensure_int64,
-    is_list_like,
-    is_categorical_dtype)
-from pandas.core.dtypes.cast import infer_dtype_from_array
-from pandas.core.dtypes.missing import isna
-import pandas.core.algorithms as algorithms
-from pandas._libs import lib, algos, hashtable
-from pandas._libs.hashtable import unique_label_indices
 
+from pandas._libs import algos, hashtable, lib
+from pandas._libs.hashtable import unique_label_indices
+from pandas.compat import PY3, long, string_types
+
+from pandas.core.dtypes.cast import infer_dtype_from_array
+from pandas.core.dtypes.common import (
+    ensure_int64, ensure_platform_int, is_categorical_dtype, is_list_like)
+from pandas.core.dtypes.missing import isna
+
+import pandas.core.algorithms as algorithms
 
 _INT64_MAX = np.iinfo(np.int64).max
 
