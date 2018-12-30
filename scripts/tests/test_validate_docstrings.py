@@ -646,7 +646,7 @@ class BadReturns(object):
 
     def no_capitalization(self):
         """
-        Forgets capitalization in return values descriptions.
+        Forgets capitalization in return values description.
 
         Returns
         -------
@@ -654,6 +654,19 @@ class BadReturns(object):
            The first returned string.
         bar : str
            the second returned string.
+        """
+        return "Hello", "World!"
+
+    def no_period_multi(self):
+        """
+        Forgets period in return values description.
+
+        Returns
+        -------
+        foo : str
+           The first returned string
+        bar : str
+           The second returned string.
         """
         return "Hello", "World!"
 
@@ -863,6 +876,8 @@ class TestValidator(object):
         ('BadReturns', 'no_capitalization',
          ('Return value description should start with a capital '
           'letter',)),
+        ('BadReturns', 'no_period_multi',
+         ('Return value description should finish with "."',)),
         # Examples tests
         ('BadGenericDocStrings', 'method',
          ('Do not import numpy, as it is imported automatically',)),
