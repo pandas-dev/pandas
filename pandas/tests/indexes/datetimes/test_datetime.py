@@ -1,5 +1,4 @@
 from datetime import date
-import sys
 
 import dateutil
 import numpy as np
@@ -95,15 +94,15 @@ class TestDatetimeIndex(object):
 
     def test_hash_error(self):
         index = date_range('20010101', periods=10)
-        with tm.assert_raises_regex(TypeError, "unhashable type: %r" %
-                                    type(index).__name__):
+        with pytest.raises(TypeError, match=("unhashable type: %r" %
+                                             type(index).__name__)):
             hash(index)
 
     def test_stringified_slice_with_tz(self):
-        # GH2658
+        # GH#2658
         import datetime
         start = datetime.datetime.now()
-        idx = DatetimeIndex(start=start, freq="1d", periods=10)
+        idx = date_range(start=start, freq="1d", periods=10)
         df = DataFrame(lrange(10), index=idx)
         df["2013-01-14 23:44:34.437768-05:00":]  # no exception here
 
@@ -125,15 +124,14 @@ class TestDatetimeIndex(object):
         exp = Index([f(x) for x in rng], dtype='<U8')
         tm.assert_index_equal(result, exp)
 
-    @tm.capture_stderr
-    def test_map_fallthrough(self):
+    def test_map_fallthrough(self, capsys):
         # GH#22067, check we don't get warnings about silently ignored errors
         dti = date_range('2017-01-01', '2018-01-01', freq='B')
 
         dti.map(lambda x: pd.Period(year=x.year, month=x.month, freq='M'))
 
-        cv = sys.stderr.getvalue()
-        assert cv == ''
+        captured = capsys.readouterr()
+        assert captured.err == ''
 
     def test_iteration_preserves_tz(self):
         # see gh-8890
@@ -293,8 +291,8 @@ class TestDatetimeIndex(object):
         index = pd.DatetimeIndex(dt, freq=freq, name='time')
         self.assert_index_parameters(index)
 
-        new_index = pd.DatetimeIndex(start=index[0], end=index[-1],
-                                     freq=index.freq)
+        new_index = pd.date_range(start=index[0], end=index[-1],
+                                  freq=index.freq)
         self.assert_index_parameters(new_index)
 
     def test_join_with_period_index(self, join_type):
@@ -303,9 +301,8 @@ class TestDatetimeIndex(object):
             c_idx_type='p', r_idx_type='dt')
         s = df.iloc[:5, 0]
 
-        with tm.assert_raises_regex(ValueError,
-                                    'can only call with other '
-                                    'PeriodIndex-ed objects'):
+        msg = 'can only call with other PeriodIndex-ed objects'
+        with pytest.raises(ValueError, match=msg):
             df.columns.join(s.index, how=join_type)
 
     def test_factorize(self):

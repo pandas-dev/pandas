@@ -69,8 +69,7 @@ class TestDataFramePlots(TestPlotBase):
         self._check_axes_shape(axes, axes_num=4, layout=(4, 1))
 
         df = DataFrame({'x': [1, 2], 'y': [3, 4]})
-        # mpl >= 1.5.2 (or slightly below) throw AttributError
-        with pytest.raises((TypeError, AttributeError)):
+        with pytest.raises(AttributeError, match='Unknown property blarg'):
             df.plot.line(blarg=True)
 
         df = DataFrame(np.random.rand(10, 3),
@@ -489,8 +488,7 @@ class TestDataFramePlots(TestPlotBase):
             testdata.plot(y="text")
 
     @pytest.mark.xfail(reason='not support for period, categorical, '
-                              'datetime_mixed_tz',
-                       strict=True)
+                              'datetime_mixed_tz')
     def test_subplots_timeseries_y_axis_not_supported(self):
         """
         This test will fail for:
@@ -2558,6 +2556,7 @@ class TestDataFramePlots(TestPlotBase):
 
         tm.close()
 
+    # This XPASSES when tested with mpl == 3.0.1
     @td.xfail_if_mpl_2_2
     def test_table(self):
         df = DataFrame(np.random.rand(10, 3),
@@ -2967,13 +2966,9 @@ class TestDataFramePlots(TestPlotBase):
     def test_rcParams_bar_colors(self):
         import matplotlib as mpl
         color_tuples = [(0.9, 0, 0, 1), (0, 0.9, 0, 1), (0, 0, 0.9, 1)]
-        try:  # mpl 1.5
-            with mpl.rc_context(
-                    rc={'axes.prop_cycle': mpl.cycler("color", color_tuples)}):
-                barplot = pd.DataFrame([[1, 2, 3]]).plot(kind="bar")
-        except (AttributeError, KeyError):  # mpl 1.4
-            with mpl.rc_context(rc={'axes.color_cycle': color_tuples}):
-                barplot = pd.DataFrame([[1, 2, 3]]).plot(kind="bar")
+        with mpl.rc_context(
+                rc={'axes.prop_cycle': mpl.cycler("color", color_tuples)}):
+            barplot = pd.DataFrame([[1, 2, 3]]).plot(kind="bar")
         assert color_tuples == [c.get_facecolor() for c in barplot.patches]
 
     @pytest.mark.parametrize('method', ['line', 'barh', 'bar'])
@@ -2992,6 +2987,22 @@ class TestDataFramePlots(TestPlotBase):
         ax = getattr(df.plot, method)(**kwargs)
         self._check_ticks_props(axes=ax.right_ax,
                                 ylabelsize=fontsize)
+
+    def test_misc_bindings(self, mock):
+        df = pd.DataFrame(randn(10, 10), columns=list('abcdefghij'))
+        p1 = mock.patch('pandas.plotting._misc.scatter_matrix',
+                        return_value=2)
+        p2 = mock.patch('pandas.plotting._misc.andrews_curves',
+                        return_value=2)
+        p3 = mock.patch('pandas.plotting._misc.parallel_coordinates',
+                        return_value=2)
+        p4 = mock.patch('pandas.plotting._misc.radviz',
+                        return_value=2)
+        with p1, p2, p3, p4:
+            assert df.plot.scatter_matrix() == 2
+            assert df.plot.andrews_curves('a') == 2
+            assert df.plot.parallel_coordinates('a') == 2
+            assert df.plot.radviz('a') == 2
 
 
 def _generate_4_axes_via_gridspec():

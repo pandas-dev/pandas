@@ -84,17 +84,21 @@ class TestDatetimeIndexOps(Ops):
         assert np.max(dr) == Timestamp('2016-01-20 00:00:00', freq='D')
 
         errmsg = "the 'out' parameter is not supported"
-        tm.assert_raises_regex(ValueError, errmsg, np.min, dr, out=0)
-        tm.assert_raises_regex(ValueError, errmsg, np.max, dr, out=0)
+        with pytest.raises(ValueError, match=errmsg):
+            np.min(dr, out=0)
+
+        with pytest.raises(ValueError, match=errmsg):
+            np.max(dr, out=0)
 
         assert np.argmin(dr) == 0
         assert np.argmax(dr) == 5
 
         errmsg = "the 'out' parameter is not supported"
-        tm.assert_raises_regex(
-            ValueError, errmsg, np.argmin, dr, out=0)
-        tm.assert_raises_regex(
-            ValueError, errmsg, np.argmax, dr, out=0)
+        with pytest.raises(ValueError, match=errmsg):
+            np.argmin(dr, out=0)
+
+        with pytest.raises(ValueError, match=errmsg):
+            np.argmax(dr, out=0)
 
     def test_repeat_range(self, tz_naive_fixture):
         tz = tz_naive_fixture
@@ -148,8 +152,8 @@ class TestDatetimeIndexOps(Ops):
         assert res.freq is None
 
         tm.assert_index_equal(np.repeat(rng, reps), expected_rng)
-        tm.assert_raises_regex(ValueError, msg, np.repeat,
-                               rng, reps, axis=1)
+        with pytest.raises(ValueError, match=msg):
+            np.repeat(rng, reps, axis=1)
 
     def test_resolution(self, tz_naive_fixture):
         tz = tz_naive_fixture
@@ -415,11 +419,11 @@ class TestDatetimeIndexOps(Ops):
         # setting with an incompatible freq
         msg = ('Inferred frequency 2D from passed values does not conform to '
                'passed frequency 5D')
-        with tm.assert_raises_regex(ValueError, msg):
+        with pytest.raises(ValueError, match=msg):
             idx.freq = '5D'
 
         # setting with non-freq string
-        with tm.assert_raises_regex(ValueError, 'Invalid frequency'):
+        with pytest.raises(ValueError, match='Invalid frequency'):
             idx.freq = 'foo'
 
     def test_offset_deprecated(self):
@@ -531,9 +535,8 @@ class TestCustomDatetimeIndex(object):
             assert shifted[0] == rng[0] + CDay()
 
     def test_shift_periods(self):
-        # GH #22458 : argument 'n' was deprecated in favor of 'periods'
-        idx = pd.DatetimeIndex(start=START, end=END,
-                               periods=3)
+        # GH#22458 : argument 'n' was deprecated in favor of 'periods'
+        idx = pd.date_range(start=START, end=END, periods=3)
         tm.assert_index_equal(idx.shift(periods=0), idx)
         tm.assert_index_equal(idx.shift(0), idx)
         with tm.assert_produces_warning(FutureWarning,

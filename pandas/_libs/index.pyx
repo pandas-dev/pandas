@@ -15,17 +15,17 @@ from numpy cimport (ndarray, intp_t,
 cnp.import_array()
 
 
-cimport util
+cimport pandas._libs.util as util
 
-from tslibs.conversion cimport maybe_datetimelike_to_i8
+from pandas._libs.tslibs.conversion cimport maybe_datetimelike_to_i8
 
-from hashtable cimport HashTable
+from pandas._libs.hashtable cimport HashTable
 
 from pandas._libs import algos, hashtable as _hash
 from pandas._libs.tslibs import Timestamp, Timedelta, period as periodlib
 from pandas._libs.missing import checknull
 
-cdef int64_t iNaT = util.get_nat()
+cdef int64_t NPY_NAT = util.get_nat()
 
 
 cdef inline bint is_definitely_invalid_key(object val):
@@ -113,6 +113,8 @@ cdef class IndexEngine:
             if not self.is_unique:
                 return self._get_loc_duplicates(val)
             values = self._get_index_values()
+
+            self._check_type(val)
             loc = _bin_search(values, val)  # .searchsorted(val, side='left')
             if loc >= len(values):
                 raise KeyError(val)
@@ -520,7 +522,7 @@ cpdef convert_scalar(ndarray arr, object value):
         elif isinstance(value, (datetime, np.datetime64, date)):
             return Timestamp(value).value
         elif value is None or value != value:
-            return iNaT
+            return NPY_NAT
         elif util.is_string_object(value):
             return Timestamp(value).value
         raise ValueError("cannot set a Timestamp with a non-timestamp")
@@ -531,7 +533,7 @@ cpdef convert_scalar(ndarray arr, object value):
         elif isinstance(value, timedelta):
             return Timedelta(value).value
         elif value is None or value != value:
-            return iNaT
+            return NPY_NAT
         elif util.is_string_object(value):
             return Timedelta(value).value
         raise ValueError("cannot set a Timedelta with a non-timedelta")

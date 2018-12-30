@@ -57,24 +57,27 @@ def test_dtypes(dtype):
     assert dtype.name is not None
 
 
-class TestInterface(object):
+def test_repr_array():
+    result = repr(integer_array([1, None, 3]))
+    expected = (
+        '<IntegerArray>\n'
+        '[1, NaN, 3]\n'
+        'Length: 3, dtype: Int64'
+    )
+    assert result == expected
 
-    def test_repr_array(self, data):
-        result = repr(data)
 
-        # not long
-        assert '...' not in result
-
-        assert 'dtype=' in result
-        assert 'IntegerArray' in result
-
-    def test_repr_array_long(self, data):
-        # some arrays may be able to assert a ... in the repr
-        with pd.option_context('display.max_seq_items', 1):
-            result = repr(data)
-
-            assert '...' in result
-            assert 'length' in result
+def test_repr_array_long():
+    data = integer_array([1, 2, None] * 1000)
+    expected = (
+        "<IntegerArray>\n"
+        "[  1,   2, NaN,   1,   2, NaN,   1,   2, NaN,   1,\n"
+        " ...\n"
+        " NaN,   1,   2, NaN,   1,   2, NaN,   1,   2, NaN]\n"
+        "Length: 3000, dtype: Int64"
+    )
+    result = repr(data)
+    assert result == expected
 
 
 class TestConstructors(object):
@@ -314,11 +317,11 @@ class TestArithmeticOps(BaseOpsUtil):
 
 class TestComparisonOps(BaseOpsUtil):
 
-    def _compare_other(self, s, data, op_name, other):
+    def _compare_other(self, data, op_name, other):
         op = self.get_op_from_name(op_name)
 
         # array
-        result = op(s, other)
+        result = pd.Series(op(data, other))
         expected = pd.Series(op(data._data, other))
 
         # fill the nan locations
@@ -340,14 +343,12 @@ class TestComparisonOps(BaseOpsUtil):
 
     def test_compare_scalar(self, data, all_compare_operators):
         op_name = all_compare_operators
-        s = pd.Series(data)
-        self._compare_other(s, data, op_name, 0)
+        self._compare_other(data, op_name, 0)
 
     def test_compare_array(self, data, all_compare_operators):
         op_name = all_compare_operators
-        s = pd.Series(data)
         other = pd.Series([0] * len(data))
-        self._compare_other(s, data, op_name, other)
+        self._compare_other(data, op_name, other)
 
 
 class TestCasting(object):
@@ -453,17 +454,17 @@ class TestCasting(object):
 
         msg = "cannot safely"
         arr = [1.2, 2.3, 3.7]
-        with tm.assert_raises_regex(TypeError, msg):
+        with pytest.raises(TypeError, match=msg):
             integer_array(arr, dtype=dtype)
 
-        with tm.assert_raises_regex(TypeError, msg):
+        with pytest.raises(TypeError, match=msg):
             pd.Series(arr).astype(dtype)
 
         arr = [1.2, 2.3, 3.7, np.nan]
-        with tm.assert_raises_regex(TypeError, msg):
+        with pytest.raises(TypeError, match=msg):
             integer_array(arr, dtype=dtype)
 
-        with tm.assert_raises_regex(TypeError, msg):
+        with pytest.raises(TypeError, match=msg):
             pd.Series(arr).astype(dtype)
 
 
@@ -683,11 +684,11 @@ def test_reduce_to_float(op):
 
 
 def test_astype_nansafe():
-    # https://github.com/pandas-dev/pandas/pull/22343
+    # see gh-22343
     arr = integer_array([np.nan, 1, 2], dtype="Int8")
+    msg = "cannot convert float NaN to integer"
 
-    with tm.assert_raises_regex(
-            ValueError, 'cannot convert float NaN to integer'):
+    with pytest.raises(ValueError, match=msg):
         arr.astype('uint32')
 
 

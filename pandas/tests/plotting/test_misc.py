@@ -22,7 +22,7 @@ def test_import_error_message():
     # GH-19810
     df = DataFrame({"A": [1, 2]})
 
-    with tm.assert_raises_regex(ImportError, 'matplotlib is required'):
+    with pytest.raises(ImportError, match='matplotlib is required'):
         df.plot()
 
 
@@ -61,6 +61,7 @@ class TestSeriesPlots(TestPlotBase):
 @td.skip_if_no_mpl
 class TestDataFramePlots(TestPlotBase):
 
+    # This XPASSES when tested with mpl == 3.0.1
     @td.xfail_if_mpl_2_2
     @td.skip_if_no_scipy
     def test_scatter_matrix_axis(self):

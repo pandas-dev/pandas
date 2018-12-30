@@ -127,13 +127,6 @@ class TestSorting(object):
         # np.argsort(items2) may not place NaNs first
         items2 = np.array(items, dtype='O')
 
-        try:
-            # GH 2785; due to a regression in NumPy1.6.2
-            np.argsort(np.array([[1, 2], [1, 3], [1, 2]], dtype='i'))
-            np.argsort(items2, kind='mergesort')
-        except TypeError:
-            pytest.skip('requested sort not available for type')
-
         # mergesort is the most difficult to get right because we want it to be
         # stable.
 
@@ -423,14 +416,14 @@ class TestSafeSort(object):
             pytest.raises(TypeError, safe_sort, arr)
 
     def test_exceptions(self):
-        with tm.assert_raises_regex(TypeError,
-                                    "Only list-like objects are allowed"):
+        with pytest.raises(TypeError,
+                           match="Only list-like objects are allowed"):
             safe_sort(values=1)
 
-        with tm.assert_raises_regex(TypeError,
-                                    "Only list-like objects or None"):
+        with pytest.raises(TypeError,
+                           match="Only list-like objects or None"):
             safe_sort(values=[0, 1, 2], labels=1)
 
-        with tm.assert_raises_regex(ValueError,
-                                    "values should be unique"):
+        with pytest.raises(ValueError,
+                           match="values should be unique"):
             safe_sort(values=[0, 1, 2, 1], labels=[0, 1])

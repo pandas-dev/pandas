@@ -14,35 +14,16 @@ AGG_FUNCTIONS = ['sum', 'prod', 'min', 'max', 'median', 'mean', 'skew',
 AGG_FUNCTIONS_WITH_SKIPNA = ['skew', 'mad']
 
 df_whitelist = [
-    'last',
-    'first',
-    'mean',
-    'sum',
-    'min',
-    'max',
-    'head',
-    'tail',
-    'cumcount',
-    'ngroup',
-    'resample',
-    'rank',
     'quantile',
     'fillna',
     'mad',
-    'any',
-    'all',
     'take',
     'idxmax',
     'idxmin',
-    'shift',
     'tshift',
-    'ffill',
-    'bfill',
-    'pct_change',
     'skew',
     'plot',
     'hist',
-    'median',
     'dtypes',
     'corrwith',
     'corr',
@@ -57,35 +38,16 @@ def df_whitelist_fixture(request):
 
 
 s_whitelist = [
-    'last',
-    'first',
-    'mean',
-    'sum',
-    'min',
-    'max',
-    'head',
-    'tail',
-    'cumcount',
-    'ngroup',
-    'resample',
-    'rank',
     'quantile',
     'fillna',
     'mad',
-    'any',
-    'all',
     'take',
     'idxmax',
     'idxmin',
-    'shift',
     'tshift',
-    'ffill',
-    'bfill',
-    'pct_change',
     'skew',
     'plot',
     'hist',
-    'median',
     'dtype',
     'corr',
     'cov',
@@ -107,8 +69,8 @@ def s_whitelist_fixture(request):
 def mframe():
     index = MultiIndex(levels=[['foo', 'bar', 'baz', 'qux'], ['one', 'two',
                                                               'three']],
-                       labels=[[0, 0, 0, 1, 1, 2, 2, 3, 3, 3],
-                               [0, 1, 2, 0, 1, 1, 2, 0, 1, 2]],
+                       codes=[[0, 0, 0, 1, 1, 2, 2, 3, 3, 3],
+                              [0, 1, 2, 0, 1, 1, 2, 0, 1, 2]],
                        names=['first', 'second'])
     return DataFrame(np.random.randn(10, 3), index=index,
                      columns=['A', 'B', 'C'])
@@ -150,16 +112,7 @@ def test_groupby_whitelist(df_letters, whitelist):
 def check_whitelist(obj, df, m):
     # check the obj for a particular whitelist m
 
-    # these are aliases so ok to have the alias __name__
-    alias = {'bfill': 'backfill',
-             'ffill': 'pad',
-             'boxplot': None}
-
     gb = obj.groupby(df.letters)
-
-    m = alias.get(m, m)
-    if m is None:
-        return
 
     f = getattr(type(gb), m)
 
@@ -195,8 +148,8 @@ def test_groupby_frame_whitelist(df_letters, df_whitelist_fixture):
 def raw_frame():
     index = MultiIndex(levels=[['foo', 'bar', 'baz', 'qux'], ['one', 'two',
                                                               'three']],
-                       labels=[[0, 0, 0, 1, 1, 2, 2, 3, 3, 3],
-                               [0, 1, 2, 0, 1, 1, 2, 0, 1, 2]],
+                       codes=[[0, 0, 0, 1, 1, 2, 2, 3, 3, 3],
+                              [0, 1, 2, 0, 1, 1, 2, 0, 1, 2]],
                        names=['first', 'second'])
     raw_frame = DataFrame(np.random.randn(10, 3), index=index,
                           columns=Index(['A', 'B', 'C'], name='exp'))
@@ -263,7 +216,7 @@ def test_groupby_blacklist(df_letters):
         for obj in (df, s):
             gb = obj.groupby(df.letters)
             msg = fmt.format(bl, type(gb).__name__)
-            with tm.assert_raises_regex(AttributeError, msg):
+            with pytest.raises(AttributeError, match=msg):
                 getattr(gb, bl)
 
 

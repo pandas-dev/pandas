@@ -16,7 +16,7 @@ def read_clipboard(sep=r'\s+', **kwargs):  # pragma: no cover
 
     Parameters
     ----------
-    sep : str, default '\s+'.
+    sep : str, default '\s+'
         A string or regex delimiter. The default of '\s+' denotes
         one or more whitespace characters.
 

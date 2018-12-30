@@ -46,8 +46,8 @@ def test_join_level_corner_case(idx):
     result = index.join(idx, level='second')
     assert isinstance(result, MultiIndex)
 
-    tm.assert_raises_regex(TypeError, "Join.*MultiIndex.*ambiguous",
-                           idx.join, idx, level=1)
+    with pytest.raises(TypeError, match="Join.*MultiIndex.*ambiguous"):
+        idx.join(idx, level=1)
 
 
 def test_join_self(idx, join_type):

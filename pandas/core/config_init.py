@@ -10,8 +10,10 @@ module is imported, register them here rather then in the module.
 
 """
 import pandas.core.config as cf
-from pandas.core.config import (is_int, is_bool, is_text, is_instance_factory,
-                                is_one_of_factory, is_callable)
+from pandas.core.config import (
+    is_bool, is_callable, is_instance_factory, is_int, is_one_of_factory,
+    is_text)
+
 from pandas.io.formats.console import detect_console_encoding
 from pandas.io.formats.terminal import is_terminal
 

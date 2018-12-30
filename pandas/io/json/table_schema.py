@@ -201,6 +201,16 @@ def build_table_schema(data, index=True, primary_key=None, version=True):
     -------
     schema : dict
 
+    Notes
+    -----
+    See `_as_json_table_type` for conversion types.
+    Timedeltas as converted to ISO8601 duration format with
+    9 decimal places after the seconds field for nanosecond precision.
+
+    Categoricals are converted to the `any` dtype, and use the `enum` field
+    constraint to list the allowed values. The `ordered` attribute is included
+    in an `ordered` field.
+
     Examples
     --------
     >>> df = pd.DataFrame(
@@ -215,16 +225,6 @@ def build_table_schema(data, index=True, primary_key=None, version=True):
     {'name': 'C', 'type': 'datetime'}],
     'pandas_version': '0.20.0',
     'primaryKey': ['idx']}
-
-    Notes
-    -----
-    See `_as_json_table_type` for conversion types.
-    Timedeltas as converted to ISO8601 duration format with
-    9 decimal places after the seconds field for nanosecond precision.
-
-    Categoricals are converted to the `any` dtype, and use the `enum` field
-    constraint to list the allowed values. The `ordered` attribute is included
-    in an `ordered` field.
     """
     if index is True:
         data = set_default_names(data)
@@ -290,9 +290,9 @@ def parse_table_schema(json, precise_float):
         :class:`Index` name of 'index'  and :class:`MultiIndex` names starting
         with 'level_' are not supported.
 
-    See also
+    See Also
     --------
-    build_table_schema : inverse function
+    build_table_schema : Inverse function.
     pandas.read_json
     """
     table = loads(json, precise_float=precise_float)

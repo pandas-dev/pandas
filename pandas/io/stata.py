@@ -12,6 +12,7 @@ http://www.statsmodels.org/devel/
 
 from collections import OrderedDict
 import datetime
+import os
 import struct
 import sys
 import warnings
@@ -23,7 +24,8 @@ from pandas._libs.lib import infer_dtype
 from pandas._libs.tslibs import NaT, Timestamp
 from pandas._libs.writers import max_len_string_array
 from pandas.compat import (
-    BytesIO, lmap, lrange, lzip, range, string_types, text_type, zip)
+    BytesIO, ResourceWarning, lmap, lrange, lzip, range, string_types,
+    text_type, zip)
 from pandas.util._decorators import Appender, deprecate_kwarg
 
 from pandas.core.dtypes.common import (
@@ -98,8 +100,8 @@ DataFrame or StataReader
 
 See Also
 --------
-pandas.io.stata.StataReader : low-level reader for Stata data files
-pandas.DataFrame.to_stata: export Stata data files
+pandas.io.stata.StataReader : Low-level reader for Stata data files.
+pandas.DataFrame.to_stata: Export Stata data files.
 
 Examples
 --------
@@ -119,8 +121,8 @@ Read a Stata dta file in 10,000 line chunks:
 _data_method_doc = """\
 Reads observations from Stata file, converting them into a dataframe
 
-    .. deprecated::
-       This is a legacy method.  Use `read` in new code.
+.. deprecated::
+    This is a legacy method.  Use `read` in new code.
 
 Parameters
 ----------
@@ -461,7 +463,8 @@ def _datetime_to_stata_elapsed_vec(dates, fmt):
 
 excessive_string_length_error = """
 Fixed width strings in Stata .dta files are limited to 244 (or fewer)
-characters.  Column '%s' does not satisfy this restriction.
+characters.  Column '%s' does not satisfy this restriction. Use the
+'version=117' parameter to write the newer (Stata 13 and later) format.
 """
 
 
@@ -1867,7 +1870,14 @@ def _dtype_to_default_stata_fmt(dtype, column, dta_version=114,
         inferred_dtype = infer_dtype(column.dropna())
         if not (inferred_dtype in ('string', 'unicode') or
                 len(column) == 0):
-            raise ValueError('Writing general object arrays is not supported')
+            raise ValueError('Column `{col}` cannot be exported.\n\nOnly '
+                             'string-like object arrays containing all '
+                             'strings or a mix of strings and None can be '
+                             'exported. Object arrays containing only null '
+                             'values are prohibited. Other object types'
+                             'cannot be exported and must first be converted '
+                             'to one of the supported '
+                             'types.'.format(col=column.name))
         itemsize = max_len_string_array(ensure_object(column.values))
         if itemsize > max_str_len:
             if dta_version >= 117:
@@ -2201,7 +2211,17 @@ class StataWriter(StataParser):
             self._write_value_labels()
             self._write_file_close_tag()
             self._write_map()
-        finally:
+        except Exception as exc:
+            self._close()
+            try:
+                if self._own_file:
+                    os.unlink(self._fname)
+            except Exception:
+                warnings.warn('This save was not successful but {0} could not '
+                              'be deleted.  This file is not '
+                              'valid.'.format(self._fname), ResourceWarning)
+            raise exc
+        else:
             self._close()
 
     def _close(self):
@@ -2557,6 +2577,8 @@ class StataStrLWriter(object):
         for o, (idx, row) in enumerate(selected.iterrows()):
             for j, (col, v) in enumerate(col_index):
                 val = row[col]
+                # Allow columns with mixed str and None (GH 23633)
+                val = '' if val is None else val
                 key = gso_table.get(val, None)
                 if key is None:
                     # Stata prefers human numbers
@@ -2633,12 +2655,11 @@ class StataStrLWriter(object):
             bio.write(gso_type)
 
             # llll
-            encoded = self._encode(strl)
-            bio.write(struct.pack(len_type, len(encoded) + 1))
+            utf8_string = _bytes(strl, 'utf-8')
+            bio.write(struct.pack(len_type, len(utf8_string) + 1))
 
             # xxx...xxx
-            s = _bytes(strl, 'utf-8')
-            bio.write(s)
+            bio.write(utf8_string)
             bio.write(null)
 
         bio.seek(0)
@@ -2937,10 +2958,10 @@ class StataWriter117(StataWriter):
     def _convert_strls(self, data):
         """Convert columns to StrLs if either very large or in the
         convert_strl variable"""
-        convert_cols = []
-        for i, col in enumerate(data):
-            if self.typlist[i] == 32768 or col in self._convert_strl:
-                convert_cols.append(col)
+        convert_cols = [
+            col for i, col in enumerate(data)
+            if self.typlist[i] == 32768 or col in self._convert_strl]
+
         if convert_cols:
             ssw = StataStrLWriter(data, convert_cols)
             tab, new_data = ssw.generate_table()

@@ -4,16 +4,23 @@ import pytest
 from pandas._libs.tslibs import iNaT
 from pandas._libs.tslibs.period import IncompatibleFrequency
 
-from pandas.core.dtypes.common import pandas_dtype
-from pandas.core.dtypes.dtypes import PeriodDtype
+from pandas.core.dtypes.dtypes import PeriodDtype, registry
 
 import pandas as pd
 from pandas.core.arrays import PeriodArray, period_array
 import pandas.util.testing as tm
 
 # ----------------------------------------------------------------------------
-# Constructors
+# Dtype
 
+
+def test_registered():
+    assert PeriodDtype in registry.dtypes
+    result = registry.find("Period[D]")
+    expected = PeriodDtype("D")
+    assert result == expected
+
+# ----------------------------------------------------------------------------
 # period_array
 
 
@@ -53,22 +60,22 @@ def test_from_datetime64_freq_changes():
      "Input has different freq"),
 ])
 def test_period_array_raises(data, freq, msg):
-    with tm.assert_raises_regex(IncompatibleFrequency, msg):
+    with pytest.raises(IncompatibleFrequency, match=msg):
         period_array(data, freq)
 
 
 def test_period_array_non_period_series_raies():
     ser = pd.Series([1, 2, 3])
-    with tm.assert_raises_regex(TypeError, 'dtype'):
+    with pytest.raises(TypeError, match='dtype'):
         PeriodArray(ser, freq='D')
 
 
 def test_period_array_freq_mismatch():
     arr = period_array(['2000', '2001'], freq='D')
-    with tm.assert_raises_regex(IncompatibleFrequency, 'freq'):
+    with pytest.raises(IncompatibleFrequency, match='freq'):
         PeriodArray(arr, freq='M')
 
-    with tm.assert_raises_regex(IncompatibleFrequency, 'freq'):
+    with pytest.raises(IncompatibleFrequency, match='freq'):
         PeriodArray(arr, freq=pd.tseries.offsets.MonthEnd())
 
 
@@ -80,32 +87,43 @@ def test_asi8():
 
 def test_take_raises():
     arr = period_array(['2000', '2001'], freq='D')
-    with tm.assert_raises_regex(IncompatibleFrequency, 'freq'):
+    with pytest.raises(IncompatibleFrequency, match='freq'):
         arr.take([0, -1], allow_fill=True,
                  fill_value=pd.Period('2000', freq='W'))
 
-    with tm.assert_raises_regex(ValueError, 'foo'):
+    with pytest.raises(ValueError, match='foo'):
         arr.take([0, -1], allow_fill=True, fill_value='foo')
 
 
-@pytest.mark.parametrize('dtype', [int, np.int32, np.int64])
+@pytest.mark.parametrize('dtype', [
+    int, np.int32, np.int64, 'uint32', 'uint64',
+])
 def test_astype(dtype):
-    # Need to ensure ordinals are astyped correctly for both
-    # int32 and 64
+    # We choose to ignore the sign and size of integers for
+    # Period/Datetime/Timedelta astype
     arr = period_array(['2000', '2001', None], freq='D')
     result = arr.astype(dtype)
-    # need pandas_dtype to handle int32 vs. int64 correctly
-    expected = pandas_dtype(dtype)
-    assert result.dtype == expected
+
+    if np.dtype(dtype).kind == 'u':
+        expected_dtype = np.dtype('uint64')
+    else:
+        expected_dtype = np.dtype('int64')
+    expected = arr.astype(expected_dtype)
+
+    assert result.dtype == expected_dtype
+    tm.assert_numpy_array_equal(result, expected)
 
 
 def test_astype_copies():
     arr = period_array(['2000', '2001', None], freq='D')
     result = arr.astype(np.int64, copy=False)
-    assert result is arr._data
+    # Add the `.base`, since we now use `.asi8` which returns a view.
+    # We could maybe override it in PeriodArray to return ._data directly.
+    assert result.base is arr._data
 
     result = arr.astype(np.int64, copy=True)
     assert result is not arr._data
+    tm.assert_numpy_array_equal(result, arr._data.view('i8'))
 
 
 def test_astype_categorical():
@@ -129,13 +147,13 @@ def test_astype_period():
 def test_astype_datetime(other):
     arr = period_array(['2000', '2001', None], freq='D')
     # slice off the [ns] so that the regex matches.
-    with tm.assert_raises_regex(TypeError, other[:-4]):
+    with pytest.raises(TypeError, match=other[:-4]):
         arr.astype(other)
 
 
 def test_fillna_raises():
     arr = period_array(['2000', '2001', '2002'], freq='D')
-    with tm.assert_raises_regex(ValueError, 'Length'):
+    with pytest.raises(ValueError, match='Length'):
         arr.fillna(arr[:2])
 
 
@@ -167,31 +185,118 @@ def test_setitem(key, value, expected):
 
 def test_setitem_raises_incompatible_freq():
     arr = PeriodArray(np.arange(3), freq="D")
-    with tm.assert_raises_regex(IncompatibleFrequency, "freq"):
+    with pytest.raises(IncompatibleFrequency, match="freq"):
         arr[0] = pd.Period("2000", freq="A")
 
     other = period_array(['2000', '2001'], freq='A')
-    with tm.assert_raises_regex(IncompatibleFrequency, "freq"):
+    with pytest.raises(IncompatibleFrequency, match="freq"):
         arr[[0, 1]] = other
 
 
 def test_setitem_raises_length():
     arr = PeriodArray(np.arange(3), freq="D")
-    with tm.assert_raises_regex(ValueError, "length"):
+    with pytest.raises(ValueError, match="length"):
         arr[[0, 1]] = [pd.Period("2000", freq="D")]
 
 
 def test_setitem_raises_type():
     arr = PeriodArray(np.arange(3), freq="D")
-    with tm.assert_raises_regex(TypeError, "int"):
+    with pytest.raises(TypeError, match="int"):
         arr[0] = 1
 
 
 # ----------------------------------------------------------------------------
 # Ops
 
-def tet_sub_period():
+def test_sub_period():
     arr = period_array(['2000', '2001'], freq='D')
     other = pd.Period("2000", freq="M")
-    with tm.assert_raises_regex(IncompatibleFrequency, "freq"):
+    with pytest.raises(IncompatibleFrequency, match="freq"):
         arr - other
+
+
+# ----------------------------------------------------------------------------
+# Methods
+
+@pytest.mark.parametrize('other', [
+    pd.Period('2000', freq='H'),
+    period_array(['2000', '2001', '2000'], freq='H')
+])
+def test_where_different_freq_raises(other):
+    ser = pd.Series(period_array(['2000', '2001', '2002'], freq='D'))
+    cond = np.array([True, False, True])
+    with pytest.raises(IncompatibleFrequency,
+                       match="Input has different freq=H"):
+        ser.where(cond, other)
+
+
+# ----------------------------------------------------------------------------
+# Printing
+
+def test_repr_small():
+    arr = period_array(['2000', '2001'], freq='D')
+    result = str(arr)
+    expected = (
+        "<PeriodArray>\n"
+        "['2000-01-01', '2001-01-01']\n"
+        "Length: 2, dtype: period[D]"
+    )
+    assert result == expected
+
+
+def test_repr_large():
+    arr = period_array(['2000', '2001'] * 500, freq='D')
+    result = str(arr)
+    expected = (
+        "<PeriodArray>\n"
+        "['2000-01-01', '2001-01-01', '2000-01-01', '2001-01-01', "
+        "'2000-01-01',\n"
+        " '2001-01-01', '2000-01-01', '2001-01-01', '2000-01-01', "
+        "'2001-01-01',\n"
+        " ...\n"
+        " '2000-01-01', '2001-01-01', '2000-01-01', '2001-01-01', "
+        "'2000-01-01',\n"
+        " '2001-01-01', '2000-01-01', '2001-01-01', '2000-01-01', "
+        "'2001-01-01']\n"
+        "Length: 1000, dtype: period[D]"
+    )
+    assert result == expected
+
+
+# ----------------------------------------------------------------------------
+# Reductions
+
+class TestReductions(object):
+
+    def test_min_max(self):
+        arr = period_array([
+            '2000-01-03',
+            '2000-01-03',
+            'NaT',
+            '2000-01-02',
+            '2000-01-05',
+            '2000-01-04',
+        ], freq='D')
+
+        result = arr.min()
+        expected = pd.Period('2000-01-02', freq='D')
+        assert result == expected
+
+        result = arr.max()
+        expected = pd.Period('2000-01-05', freq='D')
+        assert result == expected
+
+        result = arr.min(skipna=False)
+        assert result is pd.NaT
+
+        result = arr.max(skipna=False)
+        assert result is pd.NaT
+
+    @pytest.mark.parametrize('skipna', [True, False])
+    def test_min_max_empty(self, skipna):
+        arr = period_array([], freq='D')
+        result = arr.min(skipna=skipna)
+        assert result is pd.NaT
+
+        result = arr.max(skipna=skipna)
+        assert result is pd.NaT

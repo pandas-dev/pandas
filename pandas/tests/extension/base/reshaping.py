@@ -173,6 +173,60 @@ class BaseReshapingTests(BaseExtensionTests):
                  dtype=data.dtype)})
         self.assert_frame_equal(res, exp[['ext', 'int1', 'key', 'int2']])
 
+    def test_merge_on_extension_array(self, data):
+        # GH 23020
+        a, b = data[:2]
+        key = type(data)._from_sequence([a, b], dtype=data.dtype)
+
+        df = pd.DataFrame({"key": key, "val": [1, 2]})
+        result = pd.merge(df, df, on='key')
+        expected = pd.DataFrame({"key": key,
+                                 "val_x": [1, 2],
+                                 "val_y": [1, 2]})
+        self.assert_frame_equal(result, expected)
+
+        # order
+        result = pd.merge(df.iloc[[1, 0]], df, on='key')
+        expected = expected.iloc[[1, 0]].reset_index(drop=True)
+        self.assert_frame_equal(result, expected)
+
+    def test_merge_on_extension_array_duplicates(self, data):
+        # GH 23020
+        a, b = data[:2]
+        key = type(data)._from_sequence([a, b, a], dtype=data.dtype)
+        df1 = pd.DataFrame({"key": key, "val": [1, 2, 3]})
+        df2 = pd.DataFrame({"key": key, "val": [1, 2, 3]})
+
+        result = pd.merge(df1, df2, on='key')
+        expected = pd.DataFrame({
+            "key": key.take([0, 0, 0, 0, 1]),
+            "val_x": [1, 1, 3, 3, 2],
+            "val_y": [1, 3, 1, 3, 2],
+        })
+        self.assert_frame_equal(result, expected)
+
+    @pytest.mark.parametrize("columns", [
+        ["A", "B"],
+        pd.MultiIndex.from_tuples([('A', 'a'), ('A', 'b')],
+                                  names=['outer', 'inner']),
+    ])
+    def test_stack(self, data, columns):
+        df = pd.DataFrame({"A": data[:5], "B": data[:5]})
+        df.columns = columns
+        result = df.stack()
+        expected = df.astype(object).stack()
+        # we need a second astype(object), in case the constructor inferred
+        # object -> specialized, as is done for period.
+        expected = expected.astype(object)
+
+        if isinstance(expected, pd.Series):
+            assert result.dtype == df.iloc[:, 0].dtype
+        else:
+            assert all(result.dtypes == df.iloc[:, 0].dtype)
+
+        result = result.astype(object)
+        self.assert_equal(result, expected)
+
     @pytest.mark.parametrize("index", [
         # Two levels, uniform.
         pd.MultiIndex.from_product(([['A', 'B'], ['a', 'b']]),
@@ -209,7 +263,7 @@ class BaseReshapingTests(BaseExtensionTests):
 
         for level in combinations:
             result = ser.unstack(level=level)
-            assert all(isinstance(result[col].values, type(data))
+            assert all(isinstance(result[col].array, type(data))
                        for col in result.columns)
             expected = ser.astype(object).unstack(level=level)
             result = result.astype(object)

@@ -4,7 +4,6 @@ import string
 import textwrap
 import pytest
 import numpy as np
-from pandas.util.testing import capture_stderr
 import validate_docstrings
 validate_one = validate_docstrings.validate_one
 
@@ -288,6 +287,34 @@ class BadGenericDocStrings(object):
         """
         pass
 
+    def two_linebreaks_between_sections(self, foo):
+        """
+        Test linebreaks message GL03.
+
+        Note 2 blank lines before parameters section.
+
+
+        Parameters
+        ----------
+        foo : str
+            Description of foo parameter.
+        """
+        pass
+
+    def linebreak_at_end_of_docstring(self, foo):
+        """
+        Test linebreaks message GL03.
+
+        Note extra blank line at end of docstring.
+
+        Parameters
+        ----------
+        foo : str
+            Description of foo parameter.
+
+        """
+        pass
+
     def plot(self, kind, **kwargs):
         """
         Generate a plot.
@@ -349,6 +376,50 @@ class BadGenericDocStrings(object):
         """
         This mentions NDFrame, which is not correct.
         """
+
+    def unknown_section(self):
+        """
+        This section has an unknown section title.
+
+        Unknown Section
+        ---------------
+        This should raise an error in the validation.
+        """
+
+    def sections_in_wrong_order(self):
+        """
+        This docstring has the sections in the wrong order.
+
+        Parameters
+        ----------
+        name : str
+            This section is in the right position.
+
+        Examples
+        --------
+        >>> print('So far Examples is good, as it goes before Parameters')
+        So far Examples is good, as it goes before Parameters
+
+        See Also
+        --------
+        function : This should generate an error, as See Also needs to go
+            before Examples.
+        """
+
+    def deprecation_in_wrong_order(self):
+        """
+        This docstring has the deprecation warning in the wrong order.
+
+        This is the extended summary. The correct order should be
+        summary, deprecation warning, extended summary.
+
+        .. deprecated:: 1.0
+            This should generate an error as it needs to go before
+            extended summary.
+        """
+
+    def method_wo_docstrings(self):
+        pass
 
 
 class BadSummaries(object):
@@ -691,35 +762,32 @@ class TestValidator(object):
 
         return base_path
 
-    @capture_stderr
-    def test_good_class(self):
+    def test_good_class(self, capsys):
         errors = validate_one(self._import_path(
             klass='GoodDocStrings'))['errors']
         assert isinstance(errors, list)
         assert not errors
 
-    @capture_stderr
     @pytest.mark.parametrize("func", [
         'plot', 'sample', 'random_letters', 'sample_values', 'head', 'head1',
         'contains', 'mode', 'good_imports'])
-    def test_good_functions(self, func):
+    def test_good_functions(self, capsys, func):
         errors = validate_one(self._import_path(
             klass='GoodDocStrings', func=func))['errors']
         assert isinstance(errors, list)
         assert not errors
 
-    @capture_stderr
-    def test_bad_class(self):
+    def test_bad_class(self, capsys):
         errors = validate_one(self._import_path(
             klass='BadGenericDocStrings'))['errors']
         assert isinstance(errors, list)
         assert errors
 
-    @capture_stderr
     @pytest.mark.parametrize("func", [
         'func', 'astype', 'astype1', 'astype2', 'astype3', 'plot', 'method',
-        'private_classes'])
-    def test_bad_generic_functions(self, func):
+        'private_classes',
+    ])
+    def test_bad_generic_functions(self, capsys, func):
         errors = validate_one(self._import_path(  # noqa:F821
             klass='BadGenericDocStrings', func=func))['errors']
         assert isinstance(errors, list)
@@ -730,6 +798,13 @@ class TestValidator(object):
         ('BadGenericDocStrings', 'private_classes',
          ("Private classes (NDFrame) should not be mentioned in public "
           'docstrings',)),
+        ('BadGenericDocStrings', 'unknown_section',
+         ('Found unknown section "Unknown Section".',)),
+        ('BadGenericDocStrings', 'sections_in_wrong_order',
+         ('Sections are in the wrong order. Correct order is: Parameters, '
+          'See Also, Examples',)),
+        ('BadGenericDocStrings', 'deprecation_in_wrong_order',
+         ('Deprecation warning should precede extended summary',)),
         ('BadSeeAlso', 'desc_no_period',
          ('Missing period at end of description for See Also "Series.iloc"',)),
         ('BadSeeAlso', 'desc_first_letter_lowercase',
@@ -751,9 +826,8 @@ class TestValidator(object):
         ('BadParameters', 'missing_params',
          ('Parameters {**kwargs} not documented',)),
         ('BadParameters', 'bad_colon_spacing',
-         ('Parameters {kind} not documented',
-          'Unknown parameters {kind: str}',
-          'Parameter "kind: str" has no type')),
+         ('Parameter "kind" requires a space before the colon '
+          'separating the parameter name and type',)),
         ('BadParameters', 'no_description_period',
          ('Parameter "kind" description should finish with "."',)),
         ('BadParameters', 'no_description_period_with_directive',
@@ -794,6 +868,8 @@ class TestValidator(object):
          ('Do not import numpy, as it is imported automatically',)),
         ('BadGenericDocStrings', 'method',
          ('Do not import pandas, as it is imported automatically',)),
+        ('BadGenericDocStrings', 'method_wo_docstrings',
+         ("The object does not have a docstring",)),
         # See Also tests
         ('BadSeeAlso', 'prefix_pandas',
          ('pandas.Series.rename in `See Also` section '
@@ -808,17 +884,39 @@ class TestValidator(object):
           'E226 missing whitespace around arithmetic operator',)),
         ('BadExamples', 'missing_whitespace_after_comma',
          ("flake8 error: E231 missing whitespace after ',' (3 times)",)),
+        ('BadGenericDocStrings', 'two_linebreaks_between_sections',
+         ('Double line break found; please use only one blank line to '
+          'separate sections or paragraphs, and do not leave blank lines '
+          'at the end of docstrings',)),
+        ('BadGenericDocStrings', 'linebreak_at_end_of_docstring',
+         ('Double line break found; please use only one blank line to '
+          'separate sections or paragraphs, and do not leave blank lines '
+          'at the end of docstrings',)),
     ])
-    def test_bad_examples(self, capsys, klass, func, msgs):
+    def test_bad_docstrings(self, capsys, klass, func, msgs):
         result = validate_one(self._import_path(klass=klass, func=func))
         for msg in msgs:
             assert msg in ' '.join(err[1] for err in result['errors'])
 
+    def test_validate_all_ignore_deprecated(self, monkeypatch):
+        monkeypatch.setattr(
+            validate_docstrings, 'validate_one', lambda func_name: {
+                'docstring': 'docstring1',
+                'errors': [('ER01', 'err desc'),
+                           ('ER02', 'err desc'),
+                           ('ER03', 'err desc')],
+                'warnings': [],
+                'examples_errors': '',
+                'deprecated': True})
+        result = validate_docstrings.validate_all(prefix=None,
+                                                  ignore_deprecated=True)
+        assert len(result) == 0
 
-class ApiItems(object):
+
+class TestApiItems(object):
     @property
     def api_doc(self):
-        return textwrap.dedent(io.StringIO('''
+        return io.StringIO(textwrap.dedent('''
             .. currentmodule:: itertools
 
             Itertools
@@ -891,93 +989,100 @@ class ApiItems(object):
         assert result[idx][3] == subsection
 
 
-class MainFunction(object):
-    def test_num_errors_for_validate_one(self, monkeypatch):
+class TestMainFunction(object):
+    def test_exit_status_for_validate_one(self, monkeypatch):
         monkeypatch.setattr(
-            validate_docstrings, 'validate_one',
-            lambda func_name: {'docstring': 'docstring1',
-                               'errors': [('ER01', 'err desc'),
-                                          ('ER02', 'err desc')
+            validate_docstrings, 'validate_one', lambda func_name: {
+                'docstring': 'docstring1',
+                'errors': [('ER01', 'err desc'),
+                           ('ER02', 'err desc'),
+                           ('ER03', 'err desc')],
+                'warnings': [],
+                'examples_errors': ''})
+        exit_status = validate_docstrings.main(func_name='docstring1',
+                                               prefix=None,
+                                               errors=[],
+                                               output_format='default',
+                                               ignore_deprecated=False)
+        assert exit_status == 0
+
+    def test_exit_status_errors_for_validate_all(self, monkeypatch):
+        monkeypatch.setattr(
+            validate_docstrings, 'validate_all',
+            lambda prefix, ignore_deprecated=False: {
+                'docstring1': {'errors': [('ER01', 'err desc'),
+                                          ('ER02', 'err desc'),
                                           ('ER03', 'err desc')],
-                               'warnings': [],
-                               'examples_errors': ''})
-        num_errors = validate_docstrings.main(func_name='docstring1',
-                                              prefix=None,
-                                              errors=[],
-                                              output_format='default')
-        assert num_errors == 3
+                               'file': 'module1.py',
+                               'file_line': 23},
+                'docstring2': {'errors': [('ER04', 'err desc'),
+                                          ('ER05', 'err desc')],
+                               'file': 'module2.py',
+                               'file_line': 925}})
+        exit_status = validate_docstrings.main(func_name=None,
+                                               prefix=None,
+                                               errors=[],
+                                               output_format='default',
+                                               ignore_deprecated=False)
+        assert exit_status == 5
 
-    def test_no_num_errors_for_validate_one(self, monkeypatch):
-        monkeypatch.setattr(
-            validate_docstrings, 'validate_one',
-            lambda func_name: {'docstring': 'docstring1',
-                               'errors': [],
-                               'warnings': [('WN01', 'warn desc')],
-                               'examples_errors': ''})
-        num_errors = validate_docstrings.main(func_name='docstring1',
-                                              prefix=None,
-                                              errors=[],
-                                              output_format='default')
-        assert num_errors == 0
-
-    def test_num_errors_for_validate_all(self, monkeypatch):
+    def test_no_exit_status_noerrors_for_validate_all(self, monkeypatch):
         monkeypatch.setattr(
             validate_docstrings, 'validate_all',
-            lambda: {'docstring1': {'errors': [('ER01', 'err desc'),
-                                               ('ER02', 'err desc'),
-                                               ('ER03', 'err desc')]},
-                     'docstring2': {'errors': [('ER04', 'err desc'),
-                                               ('ER05', 'err desc')]}})
-        num_errors = validate_docstrings.main(func_name=None,
-                                              prefix=None,
-                                              errors=[],
-                                              output_format='default')
-        assert num_errors == 5
+            lambda prefix, ignore_deprecated=False: {
+                'docstring1': {'errors': [],
+                               'warnings': [('WN01', 'warn desc')]},
+                'docstring2': {'errors': []}})
+        exit_status = validate_docstrings.main(func_name=None,
+                                               prefix=None,
+                                               errors=[],
+                                               output_format='default',
+                                               ignore_deprecated=False)
+        assert exit_status == 0
 
-    def test_no_num_errors_for_validate_all(self, monkeypatch):
+    def test_exit_status_for_validate_all_json(self, monkeypatch):
+        print('EXECUTED')
         monkeypatch.setattr(
             validate_docstrings, 'validate_all',
-            lambda: {'docstring1': {'errors': [],
-                                    'warnings': [('WN01', 'warn desc')]},
-                     'docstring2': {'errors': []}})
-        num_errors = validate_docstrings.main(func_name=None,
-                                              prefix=None,
-                                              errors=[],
-                                              output_format='default')
-        assert num_errors == 0
-
-    def test_prefix_param_filters_docstrings(self, monkeypatch):
-        monkeypatch.setattr(
-            validate_docstrings, 'validate_all',
-            lambda: {'Series.foo': {'errors': [('ER01', 'err desc'),
-                                               ('ER02', 'err desc'),
-                                               ('ER03', 'err desc')]},
-                     'DataFrame.bar': {'errors': [('ER04', 'err desc'),
-                                                  ('ER05', 'err desc')]},
-                     'Series.foobar': {'errors': [('ER06', 'err desc')]}})
-        num_errors = validate_docstrings.main(func_name=None,
-                                              prefix='Series.',
-                                              errors=[],
-                                              output_format='default')
-        assert num_errors == 4
+            lambda prefix, ignore_deprecated=False: {
+                'docstring1': {'errors': [('ER01', 'err desc'),
+                                          ('ER02', 'err desc'),
+                                          ('ER03', 'err desc')]},
+                'docstring2': {'errors': [('ER04', 'err desc'),
+                                          ('ER05', 'err desc')]}})
+        exit_status = validate_docstrings.main(func_name=None,
+                                               prefix=None,
+                                               errors=[],
+                                               output_format='json',
+                                               ignore_deprecated=False)
+        assert exit_status == 0
 
     def test_errors_param_filters_errors(self, monkeypatch):
         monkeypatch.setattr(
             validate_docstrings, 'validate_all',
-            lambda: {'Series.foo': {'errors': [('ER01', 'err desc'),
-                                               ('ER02', 'err desc'),
-                                               ('ER03', 'err desc')]},
-                     'DataFrame.bar': {'errors': [('ER01', 'err desc'),
-                                                  ('ER02', 'err desc')]},
-                     'Series.foobar': {'errors': [('ER01', 'err desc')]}})
-        num_errors = validate_docstrings.main(func_name=None,
-                                              prefix=None,
-                                              errors=['E01'],
-                                              output_format='default')
-        assert num_errors == 3
+            lambda prefix, ignore_deprecated=False: {
+                'Series.foo': {'errors': [('ER01', 'err desc'),
+                                          ('ER02', 'err desc'),
+                                          ('ER03', 'err desc')],
+                               'file': 'series.py',
+                               'file_line': 142},
+                'DataFrame.bar': {'errors': [('ER01', 'err desc'),
+                                             ('ER02', 'err desc')],
+                                  'file': 'frame.py',
+                                  'file_line': 598},
+                'Series.foobar': {'errors': [('ER01', 'err desc')],
+                                  'file': 'series.py',
+                                  'file_line': 279}})
+        exit_status = validate_docstrings.main(func_name=None,
+                                               prefix=None,
+                                               errors=['ER01'],
+                                               output_format='default',
+                                               ignore_deprecated=False)
+        assert exit_status == 3
 
-        num_errors = validate_docstrings.main(func_name=None,
-                                              prefix=None,
-                                              errors=['E03'],
-                                              output_format='default')
-        assert num_errors == 1
+        exit_status = validate_docstrings.main(func_name=None,
+                                               prefix=None,
+                                               errors=['ER03'],
+                                               output_format='default',
+                                               ignore_deprecated=False)
+        assert exit_status == 1

@@ -90,7 +90,7 @@ class TestTake(object):
             expected[3] = np.nan
             tm.assert_almost_equal(out, expected)
         else:
-            with tm.assert_raises_regex(TypeError, self.fill_error):
+            with pytest.raises(TypeError, match=self.fill_error):
                 algos.take_1d(data, indexer, out=out)
 
             # No Exception otherwise.
@@ -146,8 +146,7 @@ class TestTake(object):
             tm.assert_almost_equal(out1, expected1)
         else:
             for i, out in enumerate([out0, out1]):
-                with tm.assert_raises_regex(TypeError,
-                                            self.fill_error):
+                with pytest.raises(TypeError, match=self.fill_error):
                     algos.take_nd(data, indexer, out=out, axis=i)
 
                 # No Exception otherwise.
@@ -226,8 +225,7 @@ class TestTake(object):
             tm.assert_almost_equal(out2, expected2)
         else:
             for i, out in enumerate([out0, out1, out2]):
-                with tm.assert_raises_regex(TypeError,
-                                            self.fill_error):
+                with pytest.raises(TypeError, match=self.fill_error):
                     algos.take_nd(data, indexer, out=out, axis=i)
 
                 # No Exception otherwise.

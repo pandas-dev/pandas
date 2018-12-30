@@ -48,14 +48,6 @@
 <tr>
   <td></td>
   <td>
-    <a href="https://circleci.com/gh/pandas-dev/pandas">
-    <img src="https://circleci.com/gh/circleci/mongofinil/tree/master.svg?style=shield&circle-token=223d8cafa7b02902c3e150242520af8944e34671" alt="circleci build status" />
-    </a>
-  </td>
-</tr>
-<tr>
-  <td></td>
-  <td>
     <a href="https://dev.azure.com/pandas-dev/pandas/_build/latest?definitionId=1&branch=master">
       <img src="https://dev.azure.com/pandas-dev/pandas/_apis/build/status/pandas-dev.pandas?branch=master" alt="Azure Pipelines build status" />
     </a>
@@ -171,7 +163,7 @@ pip install pandas
 ```
 
 ## Dependencies
-- [NumPy](https://www.numpy.org): 1.9.0 or higher
+- [NumPy](https://www.numpy.org): 1.12.0 or higher
 - [python-dateutil](https://labix.org/python-dateutil): 2.5.0 or higher
 - [pytz](https://pythonhosted.org/pytz): 2011k or higher
 
@@ -231,9 +223,9 @@ Most development discussion is taking place on github in this repo. Further, the
 
 All contributions, bug reports, bug fixes, documentation improvements, enhancements and ideas are welcome.
 
-A detailed overview on how to contribute can be found in the **[contributing guide.](https://pandas.pydata.org/pandas-docs/stable/contributing.html)**
+A detailed overview on how to contribute can be found in the **[contributing guide](https://pandas-docs.github.io/pandas-docs-travis/contributing.html)**. There is also an [overview](.github/CONTRIBUTING.md) on GitHub.
 
-If you are simply looking to start working with the pandas codebase, navigate to the [GitHub “issues” tab](https://github.com/pandas-dev/pandas/issues) and start looking through interesting issues. There are a number of issues listed under [Docs](https://github.com/pandas-dev/pandas/issues?labels=Docs&sort=updated&state=open) and [good first issue](https://github.com/pandas-dev/pandas/issues?labels=good+first+issue&sort=updated&state=open) where you could start out.
+If you are simply looking to start working with the pandas codebase, navigate to the [GitHub "issues" tab](https://github.com/pandas-dev/pandas/issues) and start looking through interesting issues. There are a number of issues listed under [Docs](https://github.com/pandas-dev/pandas/issues?labels=Docs&sort=updated&state=open) and [good first issue](https://github.com/pandas-dev/pandas/issues?labels=good+first+issue&sort=updated&state=open) where you could start out.
 
 You can also triage issues which may include reproducing bug reports, or asking for vital information such as version numbers or reproduction instructions. If you would like to start triaging issues, one easy way to get started is to [subscribe to pandas on CodeTriage](https://www.codetriage.com/pandas-dev/pandas).
 

@@ -33,6 +33,15 @@ class TestDatetimeIndex(object):
         tm.assert_index_equal(result, Index(rng.asi8))
         tm.assert_numpy_array_equal(result.values, rng.asi8)
 
+    def test_astype_uint(self):
+        arr = date_range('2000', periods=2)
+        expected = pd.UInt64Index(
+            np.array([946684800000000000, 946771200000000000], dtype="uint64")
+        )
+
+        tm.assert_index_equal(arr.astype("uint64"), expected)
+        tm.assert_index_equal(arr.astype("uint32"), expected)
+
     def test_astype_with_tz(self):
 
         # with tz
@@ -168,8 +177,8 @@ class TestDatetimeIndex(object):
     def test_astype_raises(self, dtype):
         # GH 13149, GH 13209
         idx = DatetimeIndex(['2016-05-16', 'NaT', NaT, np.NaN])
-        msg = 'Cannot cast DatetimeIndex to dtype'
-        with tm.assert_raises_regex(TypeError, msg):
+        msg = 'Cannot cast DatetimeArrayMixin to dtype'
+        with pytest.raises(TypeError, match=msg):
             idx.astype(dtype)
 
     def test_index_convert_to_datetime_array(self):
@@ -286,7 +295,8 @@ class TestToPeriod(object):
 
     def test_to_period_nofreq(self):
         idx = DatetimeIndex(['2000-01-01', '2000-01-02', '2000-01-04'])
-        pytest.raises(ValueError, idx.to_period)
+        with pytest.raises(ValueError):
+            idx.to_period()
 
         idx = DatetimeIndex(['2000-01-01', '2000-01-02', '2000-01-03'],
                             freq='infer')
@@ -299,3 +309,27 @@ class TestToPeriod(object):
         idx = DatetimeIndex(['2000-01-01', '2000-01-02', '2000-01-03'])
         assert idx.freqstr is None
         tm.assert_index_equal(idx.to_period(), expected)
+
+    @pytest.mark.parametrize('tz', [None, 'US/Central'])
+    def test_astype_category(self, tz):
+        obj = pd.date_range("2000", periods=2, tz=tz)
+        result = obj.astype('category')
+        expected = pd.CategoricalIndex([pd.Timestamp('2000-01-01', tz=tz),
+                                        pd.Timestamp('2000-01-02', tz=tz)])
+        tm.assert_index_equal(result, expected)
+
+        # TODO: use \._data following composition changeover
+        result = obj._eadata.astype('category')
+        expected = expected.values
+        tm.assert_categorical_equal(result, expected)
+
+    @pytest.mark.parametrize('tz', [None, 'US/Central'])
+    def test_astype_array_fallback(self, tz):
+        obj = pd.date_range("2000", periods=2, tz=tz)
+        result = obj.astype(bool)
+        expected = pd.Index(np.array([True, True]))
+        tm.assert_index_equal(result, expected)
+
+        result = obj._data.astype(bool)
+        expected = np.array([True, True])
+        tm.assert_numpy_array_equal(result, expected)

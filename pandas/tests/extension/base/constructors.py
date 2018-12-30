@@ -1,8 +1,8 @@
+import numpy as np
 import pytest
 
 import pandas as pd
 from pandas.core.internals import ExtensionBlock
-import pandas.util.testing as tm
 
 from .base import BaseExtensionTests
 
@@ -43,7 +43,7 @@ class BaseConstructorsTests(BaseExtensionTests):
 
     def test_series_given_mismatched_index_raises(self, data):
         msg = 'Length of passed values is 3, index implies 5'
-        with tm.assert_raises_regex(ValueError, msg):
+        with pytest.raises(ValueError, match=msg):
             pd.Series(data[:3], index=[0, 1, 2, 3, 4])
 
     def test_from_dtype(self, data):
@@ -56,3 +56,14 @@ class BaseConstructorsTests(BaseExtensionTests):
 
         result = pd.Series(list(data), dtype=str(dtype))
         self.assert_series_equal(result, expected)
+
+    def test_pandas_array(self, data):
+        # pd.array(extension_array) should be idempotent...
+        result = pd.array(data)
+        self.assert_extension_array_equal(result, data)
+
+    def test_pandas_array_dtype(self, data):
+        # ... but specifying dtype will override idempotency
+        result = pd.array(data, dtype=np.dtype(object))
+        expected = pd.arrays.PandasArray(np.asarray(data, dtype=object))
+        self.assert_equal(result, expected)

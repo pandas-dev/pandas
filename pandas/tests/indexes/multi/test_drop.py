@@ -71,7 +71,7 @@ def test_droplevel_with_names(idx):
 
     index = MultiIndex(
         levels=[Index(lrange(4)), Index(lrange(4)), Index(lrange(4))],
-        labels=[np.array([0, 0, 1, 2, 2, 2, 3, 3]), np.array(
+        codes=[np.array([0, 0, 1, 2, 2, 2, 3, 3]), np.array(
             [0, 1, 0, 0, 0, 1, 0, 1]), np.array([1, 0, 1, 1, 0, 0, 1, 0])],
         names=['one', 'two', 'three'])
     dropped = index.droplevel(0)
@@ -85,7 +85,7 @@ def test_droplevel_with_names(idx):
 def test_droplevel_list():
     index = MultiIndex(
         levels=[Index(lrange(4)), Index(lrange(4)), Index(lrange(4))],
-        labels=[np.array([0, 0, 1, 2, 2, 2, 3, 3]), np.array(
+        codes=[np.array([0, 0, 1, 2, 2, 2, 3, 3]), np.array(
             [0, 1, 0, 0, 0, 1, 0, 1]), np.array([1, 0, 1, 1, 0, 0, 1, 0])],
         names=['one', 'two', 'three'])
 

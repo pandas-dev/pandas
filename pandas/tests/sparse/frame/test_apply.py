@@ -91,3 +91,14 @@ def test_applymap(frame):
     # just test that it works
     result = frame.applymap(lambda x: x * 2)
     assert isinstance(result, SparseDataFrame)
+
+
+def test_apply_keep_sparse_dtype():
+    # GH 23744
+    sdf = SparseDataFrame(np.array([[0, 1, 0], [0, 0, 0], [0, 0, 1]]),
+                          columns=['b', 'a', 'c'], default_fill_value=1)
+    df = DataFrame(sdf)
+
+    expected = sdf.apply(np.exp)
+    result = df.apply(np.exp)
+    tm.assert_frame_equal(expected, result)

@@ -138,5 +138,5 @@ class TestTake(object):
         # https://github.com/pandas-dev/pandas/issues/23296
         cat = pd.Categorical(['a', 'b', 'c'])
         xpr = r"'fill_value' \('d'\) is not in this Categorical's categories."
-        with tm.assert_raises_regex(TypeError, xpr):
+        with pytest.raises(TypeError, match=xpr):
             cat.take([0, 1, -1], fill_value='d', allow_fill=True)

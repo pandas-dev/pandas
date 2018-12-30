@@ -1,4 +1,5 @@
 """ test parquet compat """
+import os
 
 import pytest
 import datetime
@@ -7,7 +8,7 @@ from warnings import catch_warnings
 
 import numpy as np
 import pandas as pd
-from pandas.compat import PY3, is_platform_windows, is_platform_mac
+from pandas.compat import PY3
 from pandas.io.parquet import (to_parquet, read_parquet, get_engine,
                                PyArrowImpl, FastParquetImpl)
 from pandas.util import testing as tm
@@ -199,9 +200,6 @@ def test_options_get_engine(fp, pa):
         assert isinstance(get_engine('fastparquet'), FastParquetImpl)
 
 
-@pytest.mark.xfail(is_platform_windows() or is_platform_mac(),
-                   reason="reading pa metadata failing on Windows/mac",
-                   strict=True)
 def test_cross_engine_pa_fp(df_cross_compat, pa, fp):
     # cross-compat with differing reading/writing engines
 
@@ -403,7 +401,8 @@ class TestParquetPyArrow(Base):
         check_round_trip(df, pa)
 
     # TODO: This doesn't fail on all systems; track down which
-    @pytest.mark.xfail(reason="pyarrow fails on this (ARROW-1883)")
+    @pytest.mark.xfail(reason="pyarrow fails on this (ARROW-1883)",
+                       strict=False)
     def test_basic_subset_columns(self, pa, df_full):
         # GH18628
 
@@ -421,7 +420,6 @@ class TestParquetPyArrow(Base):
                           columns=list('aaa')).copy()
         self.check_error_on_write(df, pa, ValueError)
 
-    @pytest.mark.xfail(reason="failing for pyarrow < 0.11.0")
     def test_unsupported(self, pa):
         # period
         df = pd.DataFrame({'a': pd.period_range('2013', freq='M', periods=3)})
@@ -453,6 +451,18 @@ class TestParquetPyArrow(Base):
         # GH #19134
         check_round_trip(df_compat, pa,
                          path='s3://pandas-test/pyarrow.parquet')
+
+    def test_partition_cols_supported(self, pa, df_full):
+        # GH #23283
+        partition_cols = ['bool', 'int']
+        df = df_full
+        with tm.ensure_clean_dir() as path:
+            df.to_parquet(path, partition_cols=partition_cols,
+                          compression=None)
+            import pyarrow.parquet as pq
+            dataset = pq.ParquetDataset(path, validate_schema=False)
+            assert len(dataset.partitions.partition_names) == 2
+            assert dataset.partitions.partition_names == set(partition_cols)
 
 
 class TestParquetFastParquet(Base):
@@ -519,3 +529,37 @@ class TestParquetFastParquet(Base):
         # GH #19134
         check_round_trip(df_compat, fp,
                          path='s3://pandas-test/fastparquet.parquet')
+
+    def test_partition_cols_supported(self, fp, df_full):
+        # GH #23283
+        partition_cols = ['bool', 'int']
+        df = df_full
+        with tm.ensure_clean_dir() as path:
+            df.to_parquet(path, engine="fastparquet",
+                          partition_cols=partition_cols, compression=None)
+            assert os.path.exists(path)
+            import fastparquet
+            actual_partition_cols = fastparquet.ParquetFile(path, False).cats
+            assert len(actual_partition_cols) == 2
+
+    def test_partition_on_supported(self, fp, df_full):
+        # GH #23283
+        partition_cols = ['bool', 'int']
+        df = df_full
+        with tm.ensure_clean_dir() as path:
+            df.to_parquet(path, engine="fastparquet", compression=None,
+                          partition_on=partition_cols)
+            assert os.path.exists(path)
+            import fastparquet
+            actual_partition_cols = fastparquet.ParquetFile(path, False).cats
+            assert len(actual_partition_cols) == 2
+
+    def test_error_on_using_partition_cols_and_partition_on(self, fp, df_full):
+        # GH #23283
+        partition_cols = ['bool', 'int']
+        df = df_full
+        with pytest.raises(ValueError):
+            with tm.ensure_clean_dir() as path:
+                df.to_parquet(path, engine="fastparquet", compression=None,
+                              partition_on=partition_cols,
+                              partition_cols=partition_cols)

@@ -14,6 +14,7 @@ import pandas.util.testing as tm
 from pandas import Series, isna
 from pandas.compat.numpy import _np_version_under1p13
 from pandas.core.dtypes.common import is_integer_dtype
+from pandas.core.arrays import DatetimeArrayMixin as DatetimeArray
 
 use_bn = nanops._USE_BOTTLENECK
 
@@ -141,12 +142,12 @@ class TestnanopsDataFrame(object):
             if axis != 0 and hasattr(
                     targ, 'shape') and targ.ndim and targ.shape != res.shape:
                 res = np.split(res, [targ.shape[0]], axis=0)[0]
-        except:
+        except (ValueError, IndexError):
             targ, res = _coerce_tds(targ, res)
 
         try:
             tm.assert_almost_equal(targ, res, check_dtype=check_dtype)
-        except:
+        except AssertionError:
 
             # handle timedelta dtypes
             if hasattr(targ, 'dtype') and targ.dtype == 'm8[ns]':
@@ -167,11 +168,11 @@ class TestnanopsDataFrame(object):
                 else:
                     try:
                         res = res.astype('c16')
-                    except:
+                    except RuntimeError:
                         res = res.astype('f8')
                     try:
                         targ = targ.astype('c16')
-                    except:
+                    except RuntimeError:
                         targ = targ.astype('f8')
             # there should never be a case where numpy returns an object
             # but nanops doesn't, so make that an exception
@@ -464,7 +465,6 @@ class TestnanopsDataFrame(object):
                             allow_str=False, allow_date=False,
                             allow_tdelta=False)
 
-    @td.skip_if_no("numpy", min_version="1.10.0")
     def test_nanprod(self):
         self.check_funs(nanops.nanprod, np.prod, allow_str=False,
                         allow_date=False, allow_tdelta=False,
@@ -997,6 +997,23 @@ class TestNankurtFixedValues(object):
     @property
     def prng(self):
         return np.random.RandomState(1234)
+
+
+class TestDatetime64NaNOps(object):
+    @pytest.mark.parametrize('tz', [None, 'UTC'])
+    def test_nanmean(self, tz):
+        dti = pd.date_range('2016-01-01', periods=3, tz=tz)
+        expected = dti[1]
+
+        for obj in [dti, DatetimeArray(dti), Series(dti)]:
+            result = nanops.nanmean(obj)
+            assert result == expected
+
+        dti2 = dti.insert(1, pd.NaT)
+
+        for obj in [dti2, DatetimeArray(dti2), Series(dti2)]:
+            result = nanops.nanmean(obj)
+            assert result == expected
 
 
 def test_use_bottleneck():

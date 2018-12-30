@@ -379,22 +379,22 @@ class TestExpressions(object):
                 f = getattr(operator, name)
                 err_msg = re.escape(msg % op)
 
-                with tm.assert_raises_regex(NotImplementedError, err_msg):
+                with pytest.raises(NotImplementedError, match=err_msg):
                     f(df, df)
 
-                with tm.assert_raises_regex(NotImplementedError, err_msg):
+                with pytest.raises(NotImplementedError, match=err_msg):
                     f(df.a, df.b)
 
-                with tm.assert_raises_regex(NotImplementedError, err_msg):
+                with pytest.raises(NotImplementedError, match=err_msg):
                     f(df.a, True)
 
-                with tm.assert_raises_regex(NotImplementedError, err_msg):
+                with pytest.raises(NotImplementedError, match=err_msg):
                     f(False, df.a)
 
-                with tm.assert_raises_regex(NotImplementedError, err_msg):
+                with pytest.raises(NotImplementedError, match=err_msg):
                     f(False, df)
 
-                with tm.assert_raises_regex(NotImplementedError, err_msg):
+                with pytest.raises(NotImplementedError, match=err_msg):
                     f(df, True)
 
     def test_bool_ops_warn_on_arithmetic(self):
