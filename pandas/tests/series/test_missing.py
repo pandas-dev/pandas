@@ -1324,3 +1324,9 @@ class TestSeriesInterpolateData():
         result = ts.reindex(new_index).interpolate(method='time')
 
         tm.assert_numpy_array_equal(result.values, exp.values)
+
+    def test_nonzero_warning(self):
+        # GH 24048
+        ser = pd.Series([1, 0, 3, 4])
+        with pytest.warns(FutureWarning, match="Series.nonzero()"):
+            ser.nonzero()
