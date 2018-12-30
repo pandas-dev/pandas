@@ -65,8 +65,11 @@ If you need an actual NumPy array, use :meth:`Series.to_numpy` or :meth:`Index.t
    idx.to_numpy()
    pd.Series(idx).to_numpy()
 
-For Series and Indexes backed by normal NumPy arrays, this will be the same thing (and the same
-as ``.values``).
+For Series and Indexes backed by normal NumPy arrays, :attr:`Series.array` will return a
+new :class:`arrays.PandasArray`, which is a thin (no-copy) wrapper around a
+:class:`numpy.ndarray`. :class:`arrays.PandasArray` isn't especially useful on its own,
+but it does provide the same interface as any extension array defined in pandas or by
+a third-party library.
 
 .. ipython:: python
 
@@ -75,7 +78,7 @@ as ``.values``).
    ser.to_numpy()
 
 We haven't removed or deprecated :attr:`Series.values` or :attr:`DataFrame.values`, but we
-recommend and using ``.array`` or ``.to_numpy()`` instead.
+highly recommend and using ``.array`` or ``.to_numpy()`` instead.
 
 See :ref:`Dtypes <basics.dtypes>` and :ref:`Attributes and Underlying Data <basics.attrs>` for more.
 
@@ -157,6 +160,41 @@ Reduction and groupby operations such as 'sum' work.
 .. warning::
 
    The Integer NA support currently uses the captilized dtype version, e.g. ``Int8`` as compared to the traditional ``int8``. This may be changed at a future date.
+
+.. _whatsnew_0240.enhancements.array:
+
+A new top-level method :func:`array` has been added for creating 1-dimensional arrays (:issue:`22860`).
+This can be used to create any :ref:`extension array <extending.extension-types>`, including
+extension arrays registered by :ref:`3rd party libraries <ecosystem.extensions>`. See
+
+See :ref:`Dtypes <basics.dtypes>` for more on extension arrays.
+
+.. ipython:: python
+
+   pd.array([1, 2, np.nan], dtype='Int64')
+   pd.array(['a', 'b', 'c'], dtype='category')
+
+Passing data for which there isn't dedicated extension type (e.g. float, integer, etc.)
+will return a new :class:`arrays.PandasArray`, which is just a thin (no-copy)
+wrapper around a :class:`numpy.ndarray` that satisfies the extension array interface.
+
+.. ipython:: python
+
+   pd.array([1, 2, 3])
+
+On their own, a :class:`arrays.PandasArray` isn't a very useful object.
+But if you need write low-level code that works generically for any
+:class:`~pandas.api.extensions.ExtensionArray`, :class:`arrays.PandasArray`
+satisfies that need.
+
+Notice that by default, if no ``dtype`` is specified, the dtype of the returned
+array is inferred from the data. In particular, note that the first example of
+``[1, 2, np.nan]`` would have returned a floating-point array, since ``NaN``
+is a float.
+
+.. ipython:: python
+
+   pd.array([1, 2, np.nan])
 
 .. _whatsnew_0240.enhancements.read_html:
 
@@ -374,6 +412,7 @@ Other Enhancements
 - :meth:`DataFrame.between_time` and :meth:`DataFrame.at_time` have gained the ``axis`` parameter (:issue:`8839`)
 - The ``scatter_matrix``, ``andrews_curves``, ``parallel_coordinates``, ``lag_plot``, ``autocorrelation_plot``, ``bootstrap_plot``, and ``radviz`` plots from the ``pandas.plotting`` module are now accessible from calling :meth:`DataFrame.plot` (:issue:`11978`)
 - :class:`IntervalIndex` has gained the :attr:`~IntervalIndex.is_overlapping` attribute to indicate if the ``IntervalIndex`` contains any overlapping intervals (:issue:`23309`)
+- :func:`pandas.DataFrame.to_sql` has gained the ``method`` argument to control SQL insertion clause. See the :ref:`insertion method <io.sql.method>` section in the documentation. (:issue:`8953`)
 
 .. _whatsnew_0240.api_breaking:
 
@@ -993,6 +1032,7 @@ update the ``ExtensionDtype._metadata`` tuple to match the signature of your
 - :meth:`~pandas.api.types.ExtensionArray.repeat` has been added (:issue:`24349`)
 - ``ExtensionDtype`` has gained the ability to instantiate from string dtypes, e.g. ``decimal`` would instantiate a registered ``DecimalDtype``; furthermore
   the ``ExtensionDtype`` has gained the method ``construct_array_type`` (:issue:`21185`)
+- :meth:`~pandas.api.types.ExtensionArray.searchsorted` has been added (:issue:`24350`)
 - An ``ExtensionArray`` with a boolean dtype now works correctly as a boolean indexer. :meth:`pandas.api.types.is_bool_dtype` now properly considers them boolean (:issue:`22326`)
 - Added ``ExtensionDtype._is_numeric`` for controlling whether an extension dtype is considered numeric (:issue:`22290`).
 - The ``ExtensionArray`` constructor, ``_from_sequence`` now take the keyword arg ``copy=False`` (:issue:`21185`)
@@ -1148,7 +1188,7 @@ Deprecations
 - Timezone converting a tz-aware ``datetime.datetime`` or :class:`Timestamp` with :class:`Timestamp` and the ``tz`` argument is now deprecated. Instead, use :meth:`Timestamp.tz_convert` (:issue:`23579`)
 - :func:`pandas.api.types.is_period` is deprecated in favor of `pandas.api.types.is_period_dtype` (:issue:`23917`)
 - :func:`pandas.api.types.is_datetimetz` is deprecated in favor of `pandas.api.types.is_datetime64tz` (:issue:`23917`)
-- Creating a :class:`TimedeltaIndex` or :class:`DatetimeIndex` by passing range arguments `start`, `end`, and `periods` is deprecated in favor of :func:`timedelta_range` and :func:`date_range` (:issue:`23919`)
+- Creating a :class:`TimedeltaIndex`, :class:`DatetimeIndex`, or :class:`PeriodIndex` by passing range arguments `start`, `end`, and `periods` is deprecated in favor of :func:`timedelta_range`, :func:`date_range`, or :func:`period_range` (:issue:`23919`)
 - Passing a string alias like ``'datetime64[ns, UTC]'`` as the ``unit`` parameter to :class:`DatetimeTZDtype` is deprecated. Use :class:`DatetimeTZDtype.construct_from_string` instead (:issue:`23990`).
 - In :meth:`Series.where` with Categorical data, providing an ``other`` that is not present in the categories is deprecated. Convert the categorical to a different dtype or add the ``other`` to the categories first (:issue:`24077`).
 - :meth:`Series.clip_lower`, :meth:`Series.clip_upper`, :meth:`DataFrame.clip_lower` and :meth:`DataFrame.clip_upper` are deprecated and will be removed in a future version. Use ``Series.clip(lower=threshold)``, ``Series.clip(upper=threshold)`` and the equivalent ``DataFrame`` methods (:issue:`24203`)
@@ -1254,6 +1294,7 @@ Performance Improvements
 - Improved performance of :meth:`~DataFrame.where` for Categorical data (:issue:`24077`)
 - Improved performance of iterating over a :class:`Series`. Using :meth:`DataFrame.itertuples` now creates iterators
   without internally allocating lists of all elements (:issue:`20783`)
+- Improved performance of :class:`Period` constructor, additionally benefitting ``PeriodArray`` and ``PeriodIndex`` creation (:issue:`24084` and :issue:`24118`)
 
 .. _whatsnew_0240.docs:
 
@@ -1310,6 +1351,7 @@ Datetimelike
 - Bug in :meth:`Series.combine_first` not properly aligning categoricals, so that missing values in ``self`` where not filled by valid values from ``other`` (:issue:`24147`)
 - Bug in :func:`DataFrame.combine` with datetimelike values raising a TypeError (:issue:`23079`)
 - Bug in :func:`date_range` with frequency of ``Day`` or higher where dates sufficiently far in the future could wrap around to the past instead of raising ``OutOfBoundsDatetime`` (:issue:`14187`)
+- Bug in :func:`period_range` ignoring the frequency of ``start`` and ``end`` when those are provided as :class:`Period` objects (:issue:`20535`).
 - Bug in :class:`PeriodIndex` with attribute ``freq.n`` greater than 1 where adding a :class:`DateOffset` object would return incorrect results (:issue:`23215`)
 - Bug in :class:`Series` that interpreted string indices as lists of characters when setting datetimelike values (:issue:`23451`)
 - Bug in :class:`Timestamp` constructor which would drop the frequency of an input :class:`Timestamp` (:issue:`22311`)
@@ -1324,6 +1366,7 @@ Datetimelike
 - Bug in :func:`to_datetime` where ``box`` and ``utc`` arguments were ignored when passing a :class:`DataFrame` or ``dict`` of unit mappings (:issue:`23760`)
 - Bug in :attr:`Series.dt` where the cache would not update properly after an in-place operation (:issue:`24408`)
 - Bug in :class:`PeriodIndex` where comparisons against an array-like object with length 1 failed to raise ``ValueError`` (:issue:`23078`)
+- Bug in :meth:`DatetimeIndex.astype`, :meth:`PeriodIndex.astype` and :meth:`TimedeltaIndex.astype` ignoring the sign of the ``dtype`` for unsigned integer dtypes (:issue:`24405`).
 
 Timedelta
 ^^^^^^^^^
@@ -1405,6 +1448,8 @@ Conversion
 ^^^^^^^^^^
 
 - Bug in :meth:`DataFrame.combine_first` in which column types were unexpectedly converted to float (:issue:`20699`)
+- Bug in :meth:`DataFrame.clip` in which column types are not preserved and casted to float (:issue:`24162`)
+- Bug in :meth:`DataFrame.clip` when order of columns of dataframes doesn't match, result observed is wrong in numeric values (:issue:`20911`)
 
 Strings
 ^^^^^^^
@@ -1537,6 +1582,7 @@ Notice how we now instead output ``np.nan`` itself instead of a stringified form
 - Bug in :meth:`DataFrame.to_dict` when the resulting dict contains non-Python scalars in the case of numeric data (:issue:`23753`)
 - :func:`DataFrame.to_string()`, :func:`DataFrame.to_html()`, :func:`DataFrame.to_latex()` will correctly format output when a string is passed as the ``float_format`` argument (:issue:`21625`, :issue:`22270`)
 - Bug in :func:`read_csv` that caused it to raise ``OverflowError`` when trying to use 'inf' as ``na_value`` with integer index column (:issue:`17128`)
+- Bug in :func:`read_fwf` in which the compression type of a file was not being properly inferred (:issue:`22199`)
 - Bug in :func:`pandas.io.json.json_normalize` that caused it to raise ``TypeError`` when two consecutive elements of ``record_path`` are dicts (:issue:`22706`)
 - Bug in :meth:`DataFrame.to_stata`, :class:`pandas.io.stata.StataWriter` and :class:`pandas.io.stata.StataWriter117` where a exception would leave a partially written and invalid dta file (:issue:`23573`)
 - Bug in :meth:`DataFrame.to_stata` and :class:`pandas.io.stata.StataWriter117` that produced invalid files when using strLs with non-ASCII characters (:issue:`23573`)
@@ -1630,6 +1676,7 @@ Build Changes
 
 - Building pandas for development now requires ``cython >= 0.28.2`` (:issue:`21688`)
 - Testing pandas now requires ``hypothesis>=3.58``.  You can find `the Hypothesis docs here <https://hypothesis.readthedocs.io/en/latest/index.html>`_, and a pandas-specific introduction :ref:`in the contributing guide <using-hypothesis>`. (:issue:`22280`)
+- Building pandas on macOS now targets minimum macOS 10.9 if run on macOS 10.9 or above (:issue:`23424`)
 
 Other
 ^^^^^

@@ -12,18 +12,22 @@ from pandas._libs.tslibs.timedeltas import Timedelta, delta_to_nanoseconds
 from pandas._libs.tslibs.timestamps import (
     RoundTo, maybe_integer_op_deprecated, round_nsint64)
 import pandas.compat as compat
+from pandas.compat.numpy import function as nv
 from pandas.errors import (
     AbstractMethodError, NullFrequencyError, PerformanceWarning)
 from pandas.util._decorators import Appender, Substitution, deprecate_kwarg
 
 from pandas.core.dtypes.common import (
-    is_bool_dtype, is_datetime64_any_dtype, is_datetime64_dtype,
-    is_datetime64tz_dtype, is_extension_array_dtype, is_float_dtype,
-    is_integer_dtype, is_list_like, is_object_dtype, is_offsetlike,
-    is_period_dtype, is_timedelta64_dtype, needs_i8_conversion)
+    is_bool_dtype, is_categorical_dtype, is_datetime64_any_dtype,
+    is_datetime64_dtype, is_datetime64tz_dtype, is_datetime_or_timedelta_dtype,
+    is_dtype_equal, is_extension_array_dtype, is_float_dtype, is_integer_dtype,
+    is_list_like, is_object_dtype, is_offsetlike, is_period_dtype,
+    is_string_dtype, is_timedelta64_dtype, is_unsigned_integer_dtype,
+    needs_i8_conversion, pandas_dtype)
 from pandas.core.dtypes.generic import ABCDataFrame, ABCIndexClass, ABCSeries
 from pandas.core.dtypes.missing import isna
 
+from pandas.core import nanops
 from pandas.core.algorithms import checked_add_with_arr, take, unique1d
 import pandas.core.common as com
 
@@ -79,6 +83,79 @@ class AttributesMixin(object):
         return an attributes dict for my class
         """
         return {k: getattr(self, k, None) for k in self._attributes}
+
+    @property
+    def _scalar_type(self):
+        # type: () -> Union[type, Tuple[type]]
+        """The scalar associated with this datelike
+
+        * PeriodArray : Period
+        * DatetimeArray : Timestamp
+        * TimedeltaArray : Timedelta
+        """
+        raise AbstractMethodError(self)
+
+    def _scalar_from_string(self, value):
+        # type: (str) -> Union[Period, Timestamp, Timedelta, NaTType]
+        """
+        Construct a scalar type from a string.
+
+        Parameters
+        ----------
+        value : str
+
+        Returns
+        -------
+        Period, Timestamp, or Timedelta, or NaT
+            Whatever the type of ``self._scalar_type`` is.
+
+        Notes
+        -----
+        This should call ``self._check_compatible_with`` before
+        unboxing the result.
+        """
+        raise AbstractMethodError(self)
+
+    def _unbox_scalar(self, value):
+        # type: (Union[Period, Timestamp, Timedelta, NaTType]) -> int
+        """
+        Unbox the integer value of a scalar `value`.
+
+        Parameters
+        ----------
+        value : Union[Period, Timestamp, Timedelta]
+
+        Returns
+        -------
+        int
+
+        Examples
+        --------
+        >>> self._unbox_scalar(Timedelta('10s'))  # DOCTEST: +SKIP
+        10000000000
+        """
+        raise AbstractMethodError(self)
+
+    def _check_compatible_with(self, other):
+        # type: (Union[Period, Timestamp, Timedelta, NaTType]) -> None
+        """
+        Verify that `self` and `other` are compatible.
+
+        * DatetimeArray verifies that the timezones (if any) match
+        * PeriodArray verifies that the freq matches
+        * Timedelta has no verification
+
+        In each case, NaT is considered compatible.
+
+        Parameters
+        ----------
+        other
+
+        Raises
+        ------
+        Exception
+        """
+        raise AbstractMethodError(self)
 
 
 class DatelikeOps(object):
@@ -315,7 +392,7 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin, AttributesMixin):
     # ----------------------------------------------------------------
     # Rendering Methods
 
-    def _format_native_types(self, na_rep=u'NaT', date_format=None):
+    def _format_native_types(self, na_rep='NaT', date_format=None):
         """
         Helper method for astype when converting to strings.
 
@@ -402,10 +479,105 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin, AttributesMixin):
 
         return self._simple_new(result, **attribs)
 
+    def __setitem__(
+            self,
+            key,    # type: Union[int, Sequence[int], Sequence[bool], slice]
+            value,  # type: Union[NaTType, Scalar, Sequence[Scalar]]
+    ):
+        # type: (...) -> None
+        # I'm fudging the types a bit here. The "Scalar" above really depends
+        # on type(self). For PeriodArray, it's Period (or stuff coercible
+        # to a period in from_sequence). For DatetimeArray, it's Timestamp...
+        # I don't know if mypy can do that, possibly with Generics.
+        # https://mypy.readthedocs.io/en/latest/generics.html
+
+        if is_list_like(value):
+            is_slice = isinstance(key, slice)
+
+            if lib.is_scalar(key):
+                raise ValueError("setting an array element with a sequence.")
+
+            if (not is_slice
+                    and len(key) != len(value)
+                    and not com.is_bool_indexer(key)):
+                msg = ("shape mismatch: value array of length '{}' does not "
+                       "match indexing result of length '{}'.")
+                raise ValueError(msg.format(len(key), len(value)))
+            if not is_slice and len(key) == 0:
+                return
+
+            value = type(self)._from_sequence(value, dtype=self.dtype)
+            self._check_compatible_with(value)
+            value = value.asi8
+        elif isinstance(value, self._scalar_type):
+            self._check_compatible_with(value)
+            value = self._unbox_scalar(value)
+        elif isna(value) or value == iNaT:
+            value = iNaT
+        else:
+            msg = (
+                "'value' should be a '{scalar}', 'NaT', or array of those. "
+                "Got '{typ}' instead."
+            )
+            raise TypeError(msg.format(scalar=self._scalar_type.__name__,
+                                       typ=type(value).__name__))
+        self._data[key] = value
+        self._maybe_clear_freq()
+
+    def _maybe_clear_freq(self):
+        # inplace operations like __setitem__ may invalidate the freq of
+        # DatetimeArray and TimedeltaArray
+        pass
+
     def astype(self, dtype, copy=True):
+        # Some notes on cases we don't have to handle here in the base class:
+        #   1. PeriodArray.astype handles period -> period
+        #   2. DatetimeArray.astype handles conversion between tz.
+        #   3. DatetimeArray.astype handles datetime -> period
+        from pandas import Categorical
+        dtype = pandas_dtype(dtype)
+
         if is_object_dtype(dtype):
             return self._box_values(self.asi8)
-        return super(DatetimeLikeArrayMixin, self).astype(dtype, copy)
+        elif is_string_dtype(dtype) and not is_categorical_dtype(dtype):
+            return self._format_native_types()
+        elif is_integer_dtype(dtype):
+            # we deliberately ignore int32 vs. int64 here.
+            # See https://github.com/pandas-dev/pandas/issues/24381 for more.
+            values = self.asi8
+
+            if is_unsigned_integer_dtype(dtype):
+                # Again, we ignore int32 vs. int64
+                values = values.view("uint64")
+
+            if copy:
+                values = values.copy()
+            return values
+        elif (is_datetime_or_timedelta_dtype(dtype) and
+              not is_dtype_equal(self.dtype, dtype)) or is_float_dtype(dtype):
+            # disallow conversion between datetime/timedelta,
+            # and conversions for any datetimelike to float
+            msg = 'Cannot cast {name} to dtype {dtype}'
+            raise TypeError(msg.format(name=type(self).__name__, dtype=dtype))
+        elif is_categorical_dtype(dtype):
+            return Categorical(self, dtype=dtype)
+        else:
+            return np.asarray(self, dtype=dtype)
+
+    def view(self, dtype=None):
+        """
+        New view on this array with the same data.
+
+        Parameters
+        ----------
+        dtype : numpy dtype, optional
+
+        Returns
+        -------
+        ndarray
+            With the specified `dtype`.
+        """
+        return self._data.view(dtype=dtype)
 
     # ------------------------------------------------------------------
     # ExtensionArray Interface
@@ -467,6 +639,67 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin, AttributesMixin):
     @classmethod
     def _from_factorized(cls, values, original):
         return cls(values, dtype=original.dtype)
+
+    def _values_for_argsort(self):
+        return self._data
+
+    # ------------------------------------------------------------------
+    # Additional array methods
+    #  These are not part of the EA API, but we implement them because
+    #  pandas assumes they're there.
+
+    def searchsorted(self, value, side='left', sorter=None):
+        """
+        Find indices where elements should be inserted to maintain order.
+
+        Find the indices into a sorted array `self` such that, if the
+        corresponding elements in `value` were inserted before the indices,
+        the order of `self` would be preserved.
+
+        Parameters
+        ----------
+        value : array_like
+            Values to insert into `self`.
+        side : {'left', 'right'}, optional
+            If 'left', the index of the first suitable location found is given.
+            If 'right', return the last such index.  If there is no suitable
+            index, return either 0 or N (where N is the length of `self`).
+        sorter : 1-D array_like, optional
+            Optional array of integer indices that sort `self` into ascending
+            order. They are typically the result of ``np.argsort``.
+
+        Returns
+        -------
+        indices : array of ints
+            Array of insertion points with the same shape as `value`.
+        """
+        if isinstance(value, compat.string_types):
+            value = self._scalar_from_string(value)
+
+        if not (isinstance(value, (self._scalar_type, type(self)))
+                or isna(value)):
+            raise ValueError("Unexpected type for 'value': {valtype}"
+                             .format(valtype=type(value)))
+
+        self._check_compatible_with(value)
+        if isinstance(value, type(self)):
+            value = value.asi8
+        else:
+            value = self._unbox_scalar(value)
+
+        return self.asi8.searchsorted(value, side=side, sorter=sorter)
+
+    def repeat(self, repeats, *args, **kwargs):
+        """
+        Repeat elements of an array.
+
+        See Also
+        --------
+        numpy.ndarray.repeat
+        """
+        nv.validate_repeat(args, kwargs)
+        values = self._data.repeat(repeats)
+        return type(self)(values, dtype=self.dtype)
 
     # ------------------------------------------------------------------
     # Null Handling
@@ -1148,6 +1381,71 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin, AttributesMixin):
                     self.tz, ambiguous=ambiguous, nonexistent=nonexistent
                 )
         return arg
+
+    # --------------------------------------------------------------
+    # Reductions
+
+    def _reduce(self, name, axis=0, skipna=True, **kwargs):
+        op = getattr(self, name, None)
+        if op:
+            return op(axis=axis, skipna=skipna, **kwargs)
+        else:
+            raise TypeError("cannot perform {name} with type {dtype}"
+                            .format(name=name, dtype=self.dtype))
+            # TODO: use super(DatetimeLikeArrayMixin, self)._reduce
+            #  after we subclass ExtensionArray
+
+    def min(self, axis=None, skipna=True, *args, **kwargs):
+        """
+        Return the minimum value of the Array or minimum along
+        an axis.
+
+        See Also
+        --------
+        numpy.ndarray.min
+        Index.min : Return the minimum value in an Index.
+        Series.min : Return the minimum value in a Series.
+        """
+        nv.validate_min(args, kwargs)
+        nv.validate_minmax_axis(axis)
+
+        result = nanops.nanmin(self.asi8, skipna=skipna, mask=self.isna())
+        if isna(result):
+            # Period._from_ordinal does not handle np.nan gracefully
+            return NaT
+        return self._box_func(result)
+
+    def max(self, axis=None, skipna=True, *args, **kwargs):
+        """
+        Return the maximum value of the Array or maximum along
+        an axis.
+
+        See Also
+        --------
+        numpy.ndarray.max
+        Index.max : Return the maximum value in an Index.
+        Series.max : Return the maximum value in a Series.
+        """
+        # TODO: skipna is broken with max.
+        # See https://github.com/pandas-dev/pandas/issues/24265
+        nv.validate_max(args, kwargs)
+        nv.validate_minmax_axis(axis)
+
+        mask = self.isna()
+        if skipna:
+            values = self[~mask].asi8
+        elif mask.any():
+            return NaT
+        else:
+            values = self.asi8
+
+        if not len(values):
+            # short-circut for empty max / min
+            return NaT
+
+        result = nanops.nanmax(values, skipna=skipna)
+        # Don't have to worry about NA `result`, since no NA went in.
+        return self._box_func(result)
 
 
 DatetimeLikeArrayMixin._add_comparison_ops()

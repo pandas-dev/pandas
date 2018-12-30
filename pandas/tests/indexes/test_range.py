@@ -895,9 +895,17 @@ class TestRangeIndex(Numeric):
         result = idx.max()
         assert result == expected
 
+        # skipna should be irrelevant since RangeIndex should never have NAs
+        result2 = idx.max(skipna=False)
+        assert result2 == expected
+
         expected = idx._int64index.min()
         result = idx.min()
         assert result == expected
+
+        # skipna should be irrelevant since RangeIndex should never have NAs
+        result2 = idx.min(skipna=False)
+        assert result2 == expected
 
         # empty
         idx = RangeIndex(start, stop, -step)
