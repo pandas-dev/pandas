@@ -215,8 +215,8 @@ class TestDataFramePlots(TestPlotBase):
 
         df = DataFrame({"feat": [i for i in range(30)],
                         "class": [2 for _ in range(10)] +
-                        [3 for _ in range(10)] +
-                        [1 for _ in range(10)]})
+                                 [3 for _ in range(10)] +
+                                 [1 for _ in range(10)]})
         ax = parallel_coordinates(df, 'class', sort_labels=True)
         polylines, labels = ax.get_legend_handles_labels()
         color_label_tuples = \
@@ -319,3 +319,15 @@ class TestDataFramePlots(TestPlotBase):
         assert len(color1) == 1
         assert len(color2) == 9
         assert len(color3) == 20
+
+        # Example from #20585
+        df = DataFrame({'account-start': ['2017-02-03', '2017-03-03', '2017-01-01'],
+                        'client': ['Alice Anders', 'Bob Baker', 'Charlie Chaplin'],
+                        'balance': [-1432.32, 10.43, 30000.00],
+                        'db-id': [1234, 2424, 251],
+                        'proxy-id': [525, 1525, 2542],
+                        'rank': [52, 525, 32],
+                        })
+        ax = df.client.value_counts().plot.bar()
+        colors = lmap(lambda rect: rect.get_facecolor(), ax.get_children()[0:3])
+        assert all(color == colors[0] for color in colors)
