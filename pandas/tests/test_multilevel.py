@@ -3,7 +3,6 @@
 from warnings import catch_warnings, simplefilter
 import datetime
 import itertools
-import sys
 
 import pytest
 import pytz
@@ -17,7 +16,7 @@ from pandas import (Panel, DataFrame, Series, isna, Timestamp)
 from pandas.core.dtypes.common import is_float_dtype, is_integer_dtype
 import pandas.util.testing as tm
 from pandas.compat import (range, lrange, StringIO, lzip, u, product as
-                           cart_product, zip, is_platform_windows)
+                           cart_product, zip)
 import pandas as pd
 
 AGG_FUNCTIONS = ['sum', 'prod', 'min', 'max', 'median', 'mean', 'skew', 'mad',
@@ -725,11 +724,10 @@ Thur,Lunch,Yes,51.51,17"""
     @pytest.mark.slow
     def test_unstack_number_of_levels_larger_than_int32(self):
         # GH 20601
-        if is_platform_windows():
-            df = DataFrame(np.random.randn(2 ** 16, 2),
-                           index=[np.arange(2 ** 16), np.arange(2 ** 16)])
-            with tm.assert_raises_regex(ValueError, 'int32 overflow'):
-                df.unstack()
+        df = DataFrame(np.random.randn(2 ** 16, 2),
+                       index=[np.arange(2 ** 16), np.arange(2 ** 16)])
+        with pytest.raises(ValueError, match='int32 overflow'):
+            df.unstack()
 
     def test_stack_order_with_unsorted_levels(self):
         # GH 16323

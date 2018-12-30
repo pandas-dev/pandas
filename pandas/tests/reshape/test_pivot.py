@@ -1,7 +1,6 @@
 # -*- coding: utf-8 -*-
 
 from datetime import datetime, date, timedelta
-import sys
 
 import pytest
 
@@ -13,7 +12,7 @@ import pandas as pd
 from pandas import (DataFrame, Series, Index, MultiIndex,
                     Grouper, date_range, concat, Categorical)
 from pandas.core.reshape.pivot import pivot_table, crosstab
-from pandas.compat import range, product, is_platform_windows
+from pandas.compat import range, product
 import pandas.util.testing as tm
 from pandas.api.types import CategoricalDtype as CDT
 
@@ -1276,14 +1275,13 @@ class TestPivotTable(object):
     @pytest.mark.slow
     def test_pivot_number_of_levels_larger_than_int32(self):
         # GH 20601
-        if is_platform_windows():
-            df = DataFrame({'ind1': np.arange(2 ** 16),
-                            'ind2': np.arange(2 ** 16),
-                            'count': 0})
+        df = DataFrame({'ind1': np.arange(2 ** 16),
+                        'ind2': np.arange(2 ** 16),
+                        'count': 0})
 
-            with tm.assert_raises_regex(ValueError, 'int32 overflow'):
-                df.pivot_table(index='ind1', columns='ind2',
-                               values='count', aggfunc='count')
+        with pytest.raises(ValueError, match='int32 overflow'):
+            df.pivot_table(index='ind1', columns='ind2',
+                           values='count', aggfunc='count')
 
 
 class TestCrosstab(object):
