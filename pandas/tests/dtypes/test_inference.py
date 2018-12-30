@@ -181,7 +181,7 @@ def test_is_dict_like_fails(ll):
 @pytest.mark.parametrize("has_keys", [True, False])
 @pytest.mark.parametrize("has_getitem", [True, False])
 @pytest.mark.parametrize("has_contains", [True, False])
-def test_is_dict_like_duct_type(has_keys, has_getitem, has_contains):
+def test_is_dict_like_duck_type(has_keys, has_getitem, has_contains):
     class DictLike(object):
         def __init__(self, d):
             self.d = d

@@ -1674,6 +1674,15 @@ class DataFrame(NDFrame):
         for i, v in enumerate(arrays):
             index = i
 
+            # When the names and arrays are collected, we
+            # first collect those in the DataFrame's index,
+            # followed by those in its columns.
+            #
+            # Thus, the total length of the array is:
+            # len(index_names) + len(DataFrame.columns).
+            #
+            # This check allows us to see whether we are
+            # handling a name / array in the index or column.
             if index < index_len:
                 dtype_mapping = index_dtypes
                 name = index_names[index]
@@ -1682,6 +1691,11 @@ class DataFrame(NDFrame):
                 dtype_mapping = column_dtypes
                 name = self.columns[index]
 
+            # We have a dictionary, so we get the data type
+            # associated with the index or column (which can
+            # be denoted by its name in the DataFrame or its
+            # position in DataFrame's array of indices or
+            # columns, whichever is applicable.
             if is_dict_like(dtype_mapping):
                 if name in dtype_mapping:
                     dtype_mapping = dtype_mapping[name]
@@ -1690,6 +1704,11 @@ class DataFrame(NDFrame):
                 else:
                     dtype_mapping = None
 
+            # If no mapping can be found, use the array's
+            # dtype attribute for formatting.
+            #
+            # A valid dtype must either be a type or
+            # string naming a type.
             if dtype_mapping is None:
                 formats.append(v.dtype)
             elif isinstance(dtype_mapping, (type, compat.string_types)):
