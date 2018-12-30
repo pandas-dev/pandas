@@ -435,33 +435,6 @@ class PeriodArray(dtl.DatetimeLikeArrayMixin,
 
     # --------------------------------------------------------------------
 
-    def shift(self, periods=1, fill_value=None):
-        """
-        Shift values by desired number.
-
-        Newly introduced missing values are filled with
-        ``self.dtype.na_value``.
-
-        .. versionadded:: 0.24.0
-
-        Parameters
-        ----------
-        periods : int, default 1
-            The number of periods to shift. Negative values are allowed
-            for shifting backwards.
-        fill_value : optional, default NaT
-
-            .. versionadded:: 0.24.0
-
-        Returns
-        -------
-        shifted : PeriodArray
-        """
-        # TODO(DatetimeArray): remove
-        # The semantics for Index.shift differ from EA.shift
-        # then just call super.
-        return ExtensionArray.shift(self, periods, fill_value=fill_value)
-
     def _time_shift(self, n, freq=None):
         """
         Shift each value by `periods`.

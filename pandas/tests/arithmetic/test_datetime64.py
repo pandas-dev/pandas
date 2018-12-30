@@ -1596,6 +1596,8 @@ class TestTimestampSeriesArithmetic(object):
             # with 'operate' (from core/ops.py) for the ops that are not
             # defined
             op = getattr(get_ser, op_str, None)
+            # Previously, _validate_for_numeric_binop in core/indexes/base.py
+            # did this for us.
             with pytest.raises(TypeError,
                                match='operate|[cC]annot|unsupported operand'):
                 op(test_ser)

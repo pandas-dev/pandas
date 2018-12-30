@@ -88,12 +88,12 @@ class TestTimedeltaIndex(object):
         with pytest.raises(TypeError, match=msg):
             idx.astype(dtype)
 
-    @pytest.mark.parametrize('tz', [None, 'US/Central'])
-    def test_astype_category(self, tz):
-        obj = pd.date_range("2000", periods=2, tz=tz)
+    def test_astype_category(self):
+        obj = pd.timedelta_range("1H", periods=2, freq='H')
+
         result = obj.astype('category')
-        expected = pd.CategoricalIndex([pd.Timestamp('2000-01-01', tz=tz),
-                                        pd.Timestamp('2000-01-02', tz=tz)])
+        expected = pd.CategoricalIndex([pd.Timedelta('1H'),
+                                        pd.Timedelta('2H')])
         tm.assert_index_equal(result, expected)
 
         # TODO: Use \._data following composition changeover

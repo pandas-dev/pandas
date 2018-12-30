@@ -299,12 +299,6 @@ class DatetimeIndex(DatetimeIndexOpsMixin, Int64Index, DatetimeDelegateMixin):
 
         # - Cases checked above all return/raise before reaching here - #
 
-        # This allows to later ensure that the 'copy' parameter is honored:
-        if isinstance(data, Index):
-            ref_to_data = data._data
-        else:
-            ref_to_data = data
-
         if name is None and hasattr(data, 'name'):
             name = data.name
 
@@ -314,8 +308,7 @@ class DatetimeIndex(DatetimeIndexOpsMixin, Int64Index, DatetimeDelegateMixin):
 
         subarr = cls._simple_new(dtarr._data, name=name,
                                  freq=dtarr.freq, tz=dtarr.tz)
-
-        return subarr._deepcopy_if_needed(ref_to_data, copy)
+        return subarr
 
     @classmethod
     def _simple_new(cls, values, name=None, freq=None, tz=None, dtype=None):

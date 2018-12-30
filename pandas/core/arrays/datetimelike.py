@@ -15,7 +15,7 @@ import pandas.compat as compat
 from pandas.compat.numpy import function as nv
 from pandas.errors import (
     AbstractMethodError, NullFrequencyError, PerformanceWarning)
-from pandas.util._decorators import Appender, Substitution, deprecate_kwarg
+from pandas.util._decorators import Appender, Substitution
 
 from pandas.core.dtypes.common import (
     is_bool_dtype, is_categorical_dtype, is_datetime64_any_dtype,
@@ -1077,39 +1077,6 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin, AttributesMixin):
         if not is_period_dtype(self):
             return type(self)(res_values, freq='infer')
         return self._from_sequence(res_values)
-
-    @deprecate_kwarg(old_arg_name='n', new_arg_name='periods')
-    def shift(self, periods, freq=None):
-        """
-        Shift index by desired number of time frequency increments.
-
-        This method is for shifting the values of datetime-like indexes
-        by a specified time increment a given number of times.
-
-        Parameters
-        ----------
-        periods : int
-            Number of periods (or increments) to shift by,
-            can be positive or negative.
-
-            .. versionchanged:: 0.24.0
-
-        freq : pandas.DateOffset, pandas.Timedelta or string, optional
-            Frequency increment to shift by.
-            If None, the index is shifted by its own `freq` attribute.
-            Offset aliases are valid strings, e.g., 'D', 'W', 'M' etc.
-
-        Returns
-        -------
-        pandas.DatetimeIndex
-            Shifted index.
-
-        See Also
-        --------
-        Index.shift : Shift values of Index.
-        PeriodIndex.shift : Shift values of PeriodIndex.
-        """
-        return self._time_shift(periods=periods, freq=freq)
 
     def _time_shift(self, periods, freq=None):
         """
