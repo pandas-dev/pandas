@@ -64,6 +64,18 @@ def ne_lt_2_6_9():
     return 'numexpr'
 
 
+@pytest.fixture
+def unary_fns_for_ne():
+    if _NUMEXPR_INSTALLED:
+        if _NUMEXPR_VERSION >= LooseVersion('2.6.9'):
+            return _unary_math_ops
+        else:
+            return tuple(x for x in _unary_math_ops
+                         if x not in ("floor", "ceil"))
+    else:
+        pytest.skip("numexpr is not present")
+
+
 def engine_has_neg_frac(engine):
     return _engines[engine].has_neg_frac
 
@@ -1632,18 +1644,20 @@ class TestMathPythonPython(object):
         kwargs['level'] = kwargs.pop('level', 0) + 1
         return pd.eval(*args, **kwargs)
 
-    def test_unary_functions(self):
+    def test_unary_functions(self, unary_fns_for_ne):
         df = DataFrame({'a': np.random.randn(10)})
         a = df.a
 
-        for fn in self.unary_fns:
+        for fn in unary_fns_for_ne:
             expr = "{0}(a)".format(fn)
             got = self.eval(expr)
             with np.errstate(all='ignore'):
                 expect = getattr(np, fn)(a)
             tm.assert_series_equal(got, expect, check_names=False)
 
-    def test_floor_and_ceil_functions_raise_error(self, ne_lt_2_6_9):
+    def test_floor_and_ceil_functions_raise_error(self,
+                                                  ne_lt_2_6_9,
+                                                  unary_fns_for_ne):
         for fn in ('floor', 'ceil'):
             msg = "\"{0}\" is not a supported function".format(fn)
             with pytest.raises(ValueError, match=msg):

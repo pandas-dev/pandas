@@ -15,7 +15,6 @@ from pandas.core.dtypes.common import is_list_like, is_scalar
 import pandas as pd
 from pandas.core.base import StringMixin
 import pandas.core.common as com
-from pandas.core.computation.check import _NUMEXPR_INSTALLED, _NUMEXPR_VERSION
 from pandas.core.computation.common import _ensure_decoded, _result_type_many
 from pandas.core.computation.scope import _DEFAULT_GLOBALS
 
@@ -25,10 +24,10 @@ _reductions = 'sum', 'prod'
 
 _unary_math_ops = ('sin', 'cos', 'exp', 'log', 'expm1', 'log1p',
                    'sqrt', 'sinh', 'cosh', 'tanh', 'arcsin', 'arccos',
-                   'arctan', 'arccosh', 'arcsinh', 'arctanh', 'abs', 'log10')
+                   'arctan', 'arccosh', 'arcsinh', 'arctanh', 'abs', 'log10',
+                   'floor', 'ceil'
+                   )
 _binary_math_ops = ('arctan2',)
-if _NUMEXPR_INSTALLED and _NUMEXPR_VERSION >= LooseVersion('2.6.9'):
-    _unary_math_ops += ('floor', 'ceil')
 
 _mathops = _unary_math_ops + _binary_math_ops
 
@@ -544,9 +543,14 @@ class MathCall(Op):
 
 
 class FuncNode(object):
-
     def __init__(self, name):
-        if name not in _mathops:
+        from pandas.core.computation.check import (_NUMEXPR_INSTALLED,
+                                                   _NUMEXPR_VERSION)
+        if name not in _mathops or (
+                _NUMEXPR_INSTALLED and
+                _NUMEXPR_VERSION < LooseVersion('2.6.9') and
+                name in ('floor', 'ceil')
+        ):
             raise ValueError(
                 "\"{0}\" is not a supported function".format(name))
 
