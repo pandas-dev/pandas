@@ -57,7 +57,7 @@ def pytest_command(pattern, junit_xml, coverage_file):
     cmd = ['pytest', '--junitxml={}'.format(junit_xml)]
 
     if pattern:
-        cmd += ['-m', pattern]
+        cmd += ['-m', '"{}"'.format(pattern)]
 
     if coverage_file:
         cmd += ['--cov=pandas', '--cov-report=xml:{}'.format(coverage_file)]
