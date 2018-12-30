@@ -27,8 +27,7 @@ from pandas.core.base import _shared_docs
 import pandas.core.common as com
 from pandas.core.indexes.base import Index
 from pandas.core.indexes.datetimelike import (
-    DatelikeIndexMixin, DatetimeIndexOpsMixin, DatetimelikeDelegateMixin,
-    ea_passthrough)
+    DatetimeIndexOpsMixin, DatetimelikeDelegateMixin, ea_passthrough)
 from pandas.core.indexes.numeric import Int64Index
 from pandas.core.ops import get_op_result_name
 import pandas.core.tools.datetimes as tools
@@ -98,10 +97,7 @@ class DatetimeDelegateMixin(DatetimelikeDelegateMixin):
 @delegate_names(DatetimeArray,
                 DatetimeDelegateMixin._delegated_methods,
                 typ="method", overwrite=False)
-class DatetimeIndex(DatelikeIndexMixin,
-                    DatetimeIndexOpsMixin,
-                    Int64Index,
-                    DatetimeDelegateMixin):
+class DatetimeIndex(DatetimeIndexOpsMixin, Int64Index, DatetimeDelegateMixin):
     """
     Immutable ndarray of datetime64 data, represented internally as int64, and
     which can be boxed to Timestamp objects that are subclasses of datetime and
@@ -319,9 +315,7 @@ class DatetimeIndex(DatelikeIndexMixin,
 
         dtarr = DatetimeArray._simple_new(values, freq=freq, tz=tz)
         result = object.__new__(cls)
-        result._data = dtarr._data
-        result._freq = dtarr.freq
-        result._tz = dtarr.tz
+        result._data = dtarr
         result.name = name
         # For groupby perf. See note in indexes/base about _index_data
         result._index_data = values._data
@@ -1173,18 +1167,6 @@ class DatetimeIndex(DatelikeIndexMixin,
         warnings.warn(msg, FutureWarning, stacklevel=2)
         self.freq = value
 
-    @property
-    def freq(self):
-        return self._freq
-
-    @freq.setter
-    def freq(self, value):
-        if value is not None:
-            # let DatetimeArray to validation
-            self._eadata.freq = value
-
-        self._freq = to_offset(value)
-
     def __getitem__(self, key):
         result = self._eadata.__getitem__(key)
         if is_scalar(result):
@@ -1542,7 +1524,7 @@ def date_range(start=None, end=None, periods=None, freq=None, tz=None,
         freq=freq, tz=tz, normalize=normalize,
         closed=closed, **kwargs)
     return DatetimeIndex._simple_new(
-        dtarr._data, tz=dtarr.tz, freq=dtarr.freq, name=name)
+        dtarr, tz=dtarr.tz, freq=dtarr.freq, name=name)
 
 
 def bdate_range(start=None, end=None, periods=None, freq='B', tz=None,

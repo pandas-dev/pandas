@@ -673,7 +673,7 @@ is the case with :attr:`Period.end_time`, for example
 .. _whatsnew_0240.api_breaking.datetime_unique:
 
 The return type of :meth:`Series.unique` for datetime with timezone values has changed
-from an :class:`ndarray` of :class:`Timestamp` objects to a :class:`arrays.DatetimeArray` (:issue:`24024`).
+from an :class:`numpy.ndarray` of :class:`Timestamp` objects to a :class:`arrays.DatetimeArray` (:issue:`24024`).
 
 .. ipython:: python
 

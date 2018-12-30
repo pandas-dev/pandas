@@ -23,8 +23,8 @@ from pandas.core.base import _shared_docs
 import pandas.core.common as com
 from pandas.core.indexes.base import Index, _index_shared_docs
 from pandas.core.indexes.datetimelike import (
-    DatelikeIndexMixin, DatetimeIndexOpsMixin, DatetimelikeDelegateMixin,
-    maybe_unwrap_index, wrap_arithmetic_op)
+    DatetimeIndexOpsMixin, DatetimelikeDelegateMixin, maybe_unwrap_index,
+    wrap_arithmetic_op)
 from pandas.core.indexes.numeric import Int64Index
 from pandas.core.ops import get_op_result_name
 from pandas.core.tools.timedeltas import _coerce_scalar_to_timedelta_type
@@ -70,10 +70,7 @@ class TimedeltaDelegateMixin(DatetimelikeDelegateMixin):
 @delegate_names(TimedeltaArray,
                 TimedeltaDelegateMixin._delegated_methods,
                 typ="method", overwrite=False)
-class TimedeltaIndex(DatetimeIndexOpsMixin,
-                     DatelikeIndexMixin,
-                     dtl.TimelikeOps,
-                     Int64Index,
+class TimedeltaIndex(DatetimeIndexOpsMixin, dtl.TimelikeOps, Int64Index,
                      TimedeltaDelegateMixin):
 
     """
@@ -325,18 +322,6 @@ class TimedeltaIndex(DatetimeIndexOpsMixin,
         if is_scalar(result):
             return result
         return type(self)(result, name=self.name)
-
-    @property
-    def freq(self):  # TODO: get via eadata
-        return self._freq
-
-    @freq.setter
-    def freq(self, value):  # TODO: get via eadata
-        if value is not None:
-            # dispatch to TimedeltaArray to validate frequency
-            self._eadata.freq = value
-
-        self._freq = to_offset(value)
 
     # -------------------------------------------------------------------
 

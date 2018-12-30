@@ -72,6 +72,16 @@ class DatetimeIndexOpsMixin(ExtensionOpsMixin):
     __iter__ = ea_passthrough("__iter__")
 
     @property
+    def freq(self):
+        # Can't simply use delegate_names since our base class is defining
+        # freq
+        return self._data.freq
+
+    @freq.setter
+    def freq(self, value):
+        self._data.freq = value
+
+    @property
     def freqstr(self):
         return self._data.freqstr
 
@@ -755,22 +765,3 @@ class DatetimelikeDelegateMixin(PandasDelegate):
         if name not in self._raw_methods:
             result = Index(result, name=self.name)
         return result
-
-
-class DatelikeIndexMixin(object):
-
-    @property
-    def freq(self):
-        # Can't simply use delegate_names since our base class is defining
-        # freq
-        return self._data.freq
-
-    @freq.setter
-    def freq(self, value):
-        self._data.freq = value
-
-    @property
-    def freqstr(self):
-        freq = self.freq
-        if freq:
-            return freq.freqstr
