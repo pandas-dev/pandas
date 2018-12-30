@@ -313,6 +313,7 @@ class TestDataFramePlots(TestPlotBase):
     def test_get_standard_colors_default_num_colors(self):
         from pandas.plotting._style import _get_standard_colors
 
+        # Make sure the default color_types returns the specified amount
         color1 = _get_standard_colors(1, color_type='default')
         color2 = _get_standard_colors(9, color_type='default')
         color3 = _get_standard_colors(20, color_type='default')
@@ -320,7 +321,8 @@ class TestDataFramePlots(TestPlotBase):
         assert len(color2) == 9
         assert len(color3) == 20
 
-        # Example from #20585
+    def test_plot_single_color(self):
+        # Example from #20585. All 3 bars in the plot should have the same color
         df = DataFrame({'account-start': ['2017-02-03', '2017-03-03', '2017-01-01'],
                         'client': ['Alice Anders', 'Bob Baker', 'Charlie Chaplin'],
                         'balance': [-1432.32, 10.43, 30000.00],
