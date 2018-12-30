@@ -134,8 +134,11 @@ class CategoricalFormatter(object):
         return compat.text_type(footer)
 
     def _get_formatted_values(self):
-        return format_array(self.categorical.get_values(), None,
-                            float_format=None, na_rep=self.na_rep)
+        results = format_array(self.categorical.get_values(), None,
+                               float_format=None, na_rep=self.na_rep)
+        if is_integer_dtype(self.categorical.dtype.categories):
+            return [result.replace(".0", "") for result in results]
+        return results
 
     def to_string(self):
         categorical = self.categorical
