@@ -198,3 +198,10 @@ class TestScalar(Base):
             df.at[0, 3]
         with pytest.raises(KeyError):
             df.loc[0, 3]
+
+    def test_iat_setter_incompatible_assignment(self):
+        # GH 23236
+        df = DataFrame({'a': [0, 1], 'b': [4, 5]})
+        df.iat[0, 0] = None
+        assert np.isnan(df.iat[0, 0])
+        assert len(df.index) == 2

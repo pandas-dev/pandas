@@ -1493,6 +1493,7 @@ Indexing
 - Bug in :class:`Index` slicing with boolean :class:`Index` may raise ``TypeError`` (:issue:`22533`)
 - Bug in ``PeriodArray.__setitem__`` when accepting slice and list-like value (:issue:`23978`)
 - Bug in :class:`DatetimeIndex`, :class:`TimedeltaIndex` where indexing with ``Ellipsis`` would lose their ``freq`` attribute (:issue:`21282`)
+- Bug in ``iat`` where using it to assign an incompatible value would create a new column (:issue:`23236`)
 
 Missing
 ^^^^^^^
