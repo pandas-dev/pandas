@@ -1122,8 +1122,8 @@ cdef class TextReader:
                 if na_filter:
                     self._free_na_set(na_hashset)
 
-            try_upcast = upcast_na and na_count > 0
             # don't try to upcast EAs
+            try_upcast = upcast_na and na_count > 0
             if try_upcast and not is_extension_array_dtype(col_dtype):
                 col_res = _maybe_upcast(col_res)
 

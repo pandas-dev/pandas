@@ -33,8 +33,6 @@ New features
   See the :ref:`section on writing HTML <io.html>` in the IO docs for example usage. (:issue:`2679`)
 - :func:`pandas.read_csv` now supports pandas extension types as an argument to ``dtype``, allowing the user to use pandas extension types when reading CSVs. (:issue:`23228`)
 - :meth:`DataFrame.shift` :meth:`Series.shift`, :meth:`ExtensionArray.shift`, :meth:`SparseArray.shift`, :meth:`Period.shift`, :meth:`GroupBy.shift`, :meth:`Categorical.shift`, :meth:`NDFrame.shift` and :meth:`Block.shift` now accept `fill_value` as an argument, allowing the user to specify a value which will be used instead of NA/NaT in the empty periods. (:issue:`15486`)
-- :func:`pandas.read_csv` now supports ``EA`` types as an argument to ``dtype``,
-  allowing the user to use ``EA`` types when reading CSVs. (:issue:`23228`)
 
 .. _whatsnew_0240.values_api:
 

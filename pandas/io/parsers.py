@@ -1771,12 +1771,9 @@ class ParserBase(object):
 
         # use the EA's implementation of casting
         elif is_extension_array_dtype(cast_type):
-            try:
-                array_type = cast_type.construct_array_type()
-            except AttributeError:
-                cast_type = pandas_dtype(cast_type)
-                array_type = cast_type.construct_array_type()
-
+            # ensure cast_type is an actual dtype and not a string
+            cast_type = pandas_dtype(cast_type)
+            array_type = cast_type.construct_array_type()
             try:
                 return array_type._from_sequence_of_strings(values,
                                                             dtype=cast_type)
@@ -2196,14 +2193,7 @@ class PythonParser(ParserBase):
         self.verbose = kwds['verbose']
         self.converters = kwds['converters']
 
-        # convert dtype to a pandas_dtype
-        dtype = kwds['dtype']
-        if isinstance(dtype, dict):
-            self.dtype = {k: pandas_dtype(dtype[k])
-                          for k in dtype}
-        else:
-            self.dtype = dtype
-
+        self.dtype = kwds['dtype']
         self.thousands = kwds['thousands']
         self.decimal = kwds['decimal']
 

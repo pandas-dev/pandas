@@ -20,5 +20,5 @@ class BaseParsingTests(BaseExtensionTests):
         result = pd.read_csv(StringIO(csv_output), dtype={
             'with_dtype': str(data.dtype)
         }, engine=engine)
-        assert result is not None
-        tm.assert_frame_equal(df, result)
+        expected = df
+        tm.assert_frame_equal(result, expected)
