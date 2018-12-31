@@ -1515,7 +1515,7 @@ MultiIndex
 I/O
 ^^^
 
-- Fix ``ValueError`` when reading a Dataframe with HDFStore in Python 3 from fixed format written in Python 2
+- Fix ``ValueError`` when reading a Dataframe with HDFStore in Python 3 from fixed format written in Python 2 (:issue:`24510`)
 
 .. _whatsnew_0240.bug_fixes.nan_with_str_dtype:
 
