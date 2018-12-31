@@ -720,7 +720,6 @@ class DatetimeLikeArrayMixin(AttributesMixin,
         -------
         Series
         """
-        # n.b. moved from PeriodArray.value_counts
         from pandas import Series, Index
 
         if dropna:
@@ -731,7 +730,7 @@ class DatetimeLikeArrayMixin(AttributesMixin,
         cls = type(self)
 
         result = value_counts(values, sort=False, dropna=dropna)
-        index = Index(cls(result.index, dtype=self.dtype),
+        index = Index(cls(result.index.view('i8'), dtype=self.dtype),
                       name=result.index.name)
         return Series(result.values, index=index, name=result.name)
 
@@ -1437,10 +1436,9 @@ class DatetimeLikeArrayMixin(AttributesMixin,
         if op:
             return op(axis=axis, skipna=skipna, **kwargs)
         else:
-            raise TypeError("cannot perform {name} with type {dtype}"
-                            .format(name=name, dtype=self.dtype))
-            # TODO: use super(DatetimeLikeArrayMixin, self)._reduce
-            #  after we subclass ExtensionArray
+            return super(DatetimeLikeArrayMixin, self)._reduce(
+                name, skipna, **kwargs
+            )
 
     def min(self, axis=None, skipna=True, *args, **kwargs):
         """

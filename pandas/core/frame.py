@@ -35,7 +35,6 @@ from pandas.compat import (range, map, zip, lmap, lzip, StringIO, u,
                            OrderedDict, PY36, raise_with_traceback,
                            string_and_binary_types)
 from pandas.compat.numpy import function as nv
-
 from pandas.core.dtypes.cast import (
     maybe_upcast,
     cast_scalar_to_array,
@@ -49,6 +48,7 @@ from pandas.core.dtypes.cast import (
     maybe_upcast_putmask,
     find_common_type)
 from pandas.core.dtypes.common import (
+    is_dict_like,
     is_object_dtype,
     is_extension_type,
     is_extension_array_dtype,
@@ -1543,7 +1543,8 @@ class DataFrame(NDFrame):
 
         return cls(mgr)
 
-    def to_records(self, index=True, convert_datetime64=None):
+    def to_records(self, index=True, convert_datetime64=None,
+                   column_dtypes=None, index_dtypes=None):
         """
         Convert DataFrame to a NumPy record array.
 
@@ -1560,6 +1561,20 @@ class DataFrame(NDFrame):
 
             Whether to convert the index to datetime.datetime if it is a
             DatetimeIndex.
+        column_dtypes : str, type, dict, default None
+            .. versionadded:: 0.24.0
+
+            If a string or type, the data type to store all columns. If
+            a dictionary, a mapping of column names and indices (zero-indexed)
+            to specific data types.
+        index_dtypes : str, type, dict, default None
+            .. versionadded:: 0.24.0
+
+            If a string or type, the data type to store all index levels. If
+            a dictionary, a mapping of index level names and indices
+            (zero-indexed) to specific data types.
+
+            This mapping is applied only if `index=True`.
 
         Returns
         -------
@@ -1601,6 +1616,23 @@ class DataFrame(NDFrame):
         >>> df.to_records(index=False)
         rec.array([(1, 0.5 ), (2, 0.75)],
                   dtype=[('A', '<i8'), ('B', '<f8')])
+
+        Data types can be specified for the columns:
+
+        >>> df.to_records(column_dtypes={"A": "int32"})
+        rec.array([('a', 1, 0.5 ), ('b', 2, 0.75)],
+                  dtype=[('I', 'O'), ('A', '<i4'), ('B', '<f8')])
+
+        As well as for the index:
+
+        >>> df.to_records(index_dtypes="<S2")
+        rec.array([(b'a', 1, 0.5 ), (b'b', 2, 0.75)],
+                  dtype=[('I', 'S2'), ('A', '<i8'), ('B', '<f8')])
+
+        >>> index_dtypes = "<S{}".format(df.index.str.len().max())
+        >>> df.to_records(index_dtypes=index_dtypes)
+        rec.array([(b'a', 1, 0.5 ), (b'b', 2, 0.75)],
+                  dtype=[('I', 'S1'), ('A', '<i8'), ('B', '<f8')])
         """
 
         if convert_datetime64 is not None:
@@ -1623,6 +1655,7 @@ class DataFrame(NDFrame):
 
             count = 0
             index_names = list(self.index.names)
+
             if isinstance(self.index, MultiIndex):
                 for i, n in enumerate(index_names):
                     if n is None:
@@ -1630,13 +1663,66 @@ class DataFrame(NDFrame):
                         count += 1
             elif index_names[0] is None:
                 index_names = ['index']
+
             names = (lmap(compat.text_type, index_names) +
                      lmap(compat.text_type, self.columns))
         else:
             arrays = [self[c].get_values() for c in self.columns]
             names = lmap(compat.text_type, self.columns)
+            index_names = []
 
-        formats = [v.dtype for v in arrays]
+        index_len = len(index_names)
+        formats = []
+
+        for i, v in enumerate(arrays):
+            index = i
+
+            # When the names and arrays are collected, we
+            # first collect those in the DataFrame's index,
+            # followed by those in its columns.
+            #
+            # Thus, the total length of the array is:
+            # len(index_names) + len(DataFrame.columns).
+            #
+            # This check allows us to see whether we are
+            # handling a name / array in the index or column.
+            if index < index_len:
+                dtype_mapping = index_dtypes
+                name = index_names[index]
+            else:
+                index -= index_len
+                dtype_mapping = column_dtypes
+                name = self.columns[index]
+
+            # We have a dictionary, so we get the data type
+            # associated with the index or column (which can
+            # be denoted by its name in the DataFrame or its
+            # position in DataFrame's array of indices or
+            # columns, whichever is applicable.
+            if is_dict_like(dtype_mapping):
+                if name in dtype_mapping:
+                    dtype_mapping = dtype_mapping[name]
+                elif index in dtype_mapping:
+                    dtype_mapping = dtype_mapping[index]
+                else:
+                    dtype_mapping = None
+
+            # If no mapping can be found, use the array's
+            # dtype attribute for formatting.
+            #
+            # A valid dtype must either be a type or
+            # string naming a type.
+            if dtype_mapping is None:
+                formats.append(v.dtype)
+            elif isinstance(dtype_mapping, (type, compat.string_types)):
+                formats.append(dtype_mapping)
+            else:
+                element = "row" if i < index_len else "column"
+                msg = ("Invalid dtype {dtype} specified for "
+                       "{element} {name}").format(dtype=dtype_mapping,
+                                                  element=element, name=name)
+                raise ValueError(msg)
+
         return np.rec.fromarrays(
             arrays,
             dtype={'names': names, 'formats': formats}
@@ -2719,7 +2805,10 @@ class DataFrame(NDFrame):
         except (KeyError, TypeError):
 
             # set using a non-recursive method & reset the cache
-            self.loc[index, col] = value
+            if takeable:
+                self.iloc[index, col] = value
+            else:
+                self.loc[index, col] = value
             self._item_cache.pop(col, None)
 
             return self
@@ -7309,7 +7398,7 @@ class DataFrame(NDFrame):
                 if filter_type is None or filter_type == 'numeric':
                     data = self._get_numeric_data()
                 elif filter_type == 'bool':
-                    data = self._get_bool_data()
+                    data = self
                 else:  # pragma: no cover
                     msg = ("Generating numeric_only data with filter_type {f}"
                            "not supported.".format(f=filter_type))

@@ -134,8 +134,23 @@ class TestDatetimeArray(object):
         repeated = arr.repeat([1, 1])
 
         # preserves tz and values, but not freq
-        expected = DatetimeArray(arr.asi8, freq=None, tz=arr.tz)
+        expected = DatetimeArray(arr.asi8, freq=None, dtype=arr.dtype)
         tm.assert_equal(repeated, expected)
+
+    def test_value_counts_preserves_tz(self):
+        dti = pd.date_range('2000', periods=2, freq='D', tz='US/Central')
+        arr = DatetimeArray(dti).repeat([4, 3])
+
+        result = arr.value_counts()
+
+        # Note: not tm.assert_index_equal, since `freq`s do not match
+        assert result.index.equals(dti)
+
+        arr[-2] = pd.NaT
+        result = arr.value_counts()
+        expected = pd.Series([1, 4, 2],
+                             index=[pd.NaT, dti[0], dti[1]])
+        tm.assert_series_equal(result, expected)
 
 
 class TestSequenceToDT64NS(object):
@@ -149,7 +164,7 @@ class TestSequenceToDT64NS(object):
         arr = DatetimeArray._from_sequence(['2000'], tz='US/Central')
         result, _, _ = sequence_to_dt64ns(
             arr, dtype=DatetimeTZDtype(tz="US/Central"))
-        tm.assert_numpy_array_equal(arr._data, result)
+        tm.assert_extension_array_equal(arr, result)
 
 
 class TestReductions(object):

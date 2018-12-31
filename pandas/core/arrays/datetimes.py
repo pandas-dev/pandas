@@ -19,7 +19,7 @@ from pandas.core.dtypes.common import (
     is_extension_type, is_float_dtype, is_int64_dtype, is_object_dtype,
     is_period_dtype, is_string_dtype, is_timedelta64_dtype, pandas_dtype)
 from pandas.core.dtypes.dtypes import DatetimeTZDtype
-from pandas.core.dtypes.generic import ABCIndexClass, ABCSeries
+from pandas.core.dtypes.generic import ABCPandasArray, ABCIndexClass, ABCSeries
 from pandas.core.dtypes.missing import isna
 
 from pandas.core import ops
@@ -1644,6 +1644,8 @@ def sequence_to_dt64ns(data, dtype=None, copy=False,
         copy = False
     elif isinstance(data, ABCSeries):
         data = data._values
+    elif isinstance(data, ABCPandasArray):
+        data = data._ndarray
 
     if hasattr(data, "freq"):
         # i.e. DatetimeArray/Index

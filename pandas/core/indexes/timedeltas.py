@@ -242,7 +242,7 @@ class TimedeltaIndex(DatetimeIndexOpsMixin, dtl.TimelikeOps, Int64Index,
         freq = to_offset(freq)
         tdarr = TimedeltaArray._simple_new(values, freq=freq)
         result = object.__new__(cls)
-        result._data = tdarr._data
+        result._data = tdarr
         result._freq = tdarr._freq
         result.name = name
         # For groupby perf. See note in indexes/base about _index_data

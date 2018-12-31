@@ -20,8 +20,8 @@ from numpy.random import rand, randn
 from pandas._libs import testing as _testing
 import pandas.compat as compat
 from pandas.compat import (
-    PY2, PY3, Counter, StringIO, callable, filter, httplib, lmap, lrange, lzip,
-    map, raise_with_traceback, range, string_types, u, unichr, zip)
+    PY2, PY3, Counter, callable, filter, httplib, lmap, lrange, lzip, map,
+    raise_with_traceback, range, string_types, u, unichr, zip)
 
 from pandas.core.dtypes.common import (
     is_bool, is_categorical_dtype, is_datetime64_dtype, is_datetime64tz_dtype,
@@ -636,99 +636,6 @@ def set_defaultencoding(encoding):
     finally:
         sys.setdefaultencoding(orig)
 
-
-def capture_stdout(f):
-    r"""
-    Decorator to capture stdout in a buffer so that it can be checked
-    (or suppressed) during testing.
-
-    Parameters
-    ----------
-    f : callable
-        The test that is capturing stdout.
-
-    Returns
-    -------
-    f : callable
-        The decorated test ``f``, which captures stdout.
-
-    Examples
-    --------
-
-    >>> from pandas.util.testing import capture_stdout
-    >>> import sys
-    >>>
-    >>> @capture_stdout
-    ... def test_print_pass():
-    ...     print("foo")
-    ...     out = sys.stdout.getvalue()
-    ...     assert out == "foo\n"
-    >>>
-    >>> @capture_stdout
-    ... def test_print_fail():
-    ...     print("foo")
-    ...     out = sys.stdout.getvalue()
-    ...     assert out == "bar\n"
-    ...
-    AssertionError: assert 'foo\n' == 'bar\n'
-    """
-
-    @compat.wraps(f)
-    def wrapper(*args, **kwargs):
-        try:
-            sys.stdout = StringIO()
-            f(*args, **kwargs)
-        finally:
-            sys.stdout = sys.__stdout__
-
-    return wrapper
-
-
-def capture_stderr(f):
-    r"""
-    Decorator to capture stderr in a buffer so that it can be checked
-    (or suppressed) during testing.
-
-    Parameters
-    ----------
-    f : callable
-        The test that is capturing stderr.
-
-    Returns
-    -------
-    f : callable
-        The decorated test ``f``, which captures stderr.
-
-    Examples
-    --------
-
-    >>> from pandas.util.testing import capture_stderr
-    >>> import sys
-    >>>
-    >>> @capture_stderr
-    ... def test_stderr_pass():
-    ...     sys.stderr.write("foo")
-    ...     out = sys.stderr.getvalue()
-    ...     assert out == "foo\n"
-    >>>
-    >>> @capture_stderr
-    ... def test_stderr_fail():
-    ...     sys.stderr.write("foo")
-    ...     out = sys.stderr.getvalue()
-    ...     assert out == "bar\n"
-    ...
-    AssertionError: assert 'foo\n' == 'bar\n'
-    """
-
-    @compat.wraps(f)
-    def wrapper(*args, **kwargs):
-        try:
-            sys.stderr = StringIO()
-            f(*args, **kwargs)
-        finally:
-            sys.stderr = sys.__stderr__
-
-    return wrapper
 
 # -----------------------------------------------------------------------------
 # Console debugging tools

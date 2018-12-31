@@ -22,7 +22,7 @@ from pandas.core.dtypes.generic import ABCIndexClass, ABCPeriodIndex, ABCSeries
 from pandas.core.dtypes.missing import isna, notna
 
 import pandas.core.algorithms as algos
-from pandas.core.arrays import ExtensionArray, datetimelike as dtl
+from pandas.core.arrays import datetimelike as dtl
 import pandas.core.common as com
 
 from pandas.tseries import frequencies
@@ -91,9 +91,7 @@ def _period_array_cmp(cls, op):
     return compat.set_function_name(wrapper, opname, cls)
 
 
-class PeriodArray(dtl.DatetimeLikeArrayMixin,
-                  dtl.DatelikeOps,
-                  ExtensionArray):
+class PeriodArray(dtl.DatetimeLikeArrayMixin, dtl.DatelikeOps):
     """
     Pandas ExtensionArray for storing Period data.
 
