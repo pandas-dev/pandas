@@ -64,12 +64,6 @@ sheet_name : str, int, list, or None, default 0
       as a dict of `DataFrame`
     * None: All sheets.
 
-sheetname : str, int, list, or None, default 0
-    Alias of `sheet_name`.
-
-    .. deprecated:: 0.21.0
-        Use `sheet_name` instead
-
 header : int, list of int, default 0
     Row (0-indexed) to use for the column labels of the parsed
     DataFrame. If a list of integers is passed those row positions will
