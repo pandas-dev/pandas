@@ -235,11 +235,12 @@ class TimedeltaIndex(DatetimeIndexOpsMixin,
         freq = to_offset(freq)
         tdarr = TimedeltaArray._simple_new(values, freq=freq)
         result = object.__new__(cls)
-        result._data = tdarr._data
-        result._freq = tdarr._freq
+        result._eadata = tdarr
         result.name = name
         # For groupby perf. See note in indexes/base about _index_data
-        result._index_data = result._data
+        # TODO: make sure this is updated correctly if edited
+        result._index_data = tdarr._data
+
         result._reset_identity()
         return result
 
@@ -279,8 +280,25 @@ class TimedeltaIndex(DatetimeIndexOpsMixin,
     # Wrapping TimedeltaArray
 
     @property
-    def _eadata(self):
-        return TimedeltaArray._simple_new(self._data, freq=self.freq)
+    def _data(self):
+        return self._eadata._data
+
+    @property
+    def _freq(self):
+        return self._eadata._freq
+
+    @_freq.setter
+    def _freq(self, value):
+        self._eadata._freq = value
+
+    @property
+    def freq(self):
+        return self._freq
+
+    @freq.setter
+    def freq(self, value):
+        # Validation will be done in _eadata setter
+        self._eadata.freq = value
 
     __mul__ = _make_wrapped_arith_op("__mul__")
     __rmul__ = _make_wrapped_arith_op("__rmul__")
@@ -315,18 +333,6 @@ class TimedeltaIndex(DatetimeIndexOpsMixin,
         if is_scalar(result):
             return result
         return type(self)(result, name=self.name)
-
-    @property
-    def freq(self):  # TODO: get via eadata
-        return self._freq
-
-    @freq.setter
-    def freq(self, value):  # TODO: get via eadata
-        if value is not None:
-            # dispatch to TimedeltaArray to validate frequency
-            self._eadata.freq = value
-
-        self._freq = to_offset(value)
 
     # -------------------------------------------------------------------
 

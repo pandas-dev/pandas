@@ -1138,8 +1138,8 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin,
                 freq = frequencies.to_offset(freq)
             offset = periods * freq
             result = self + offset
-            if hasattr(self, 'tz'):
-                result._tz = self.tz
+            if getattr(self, 'tz', None):
+                result._dtype = self._dtype
             return result
 
         if periods == 0:

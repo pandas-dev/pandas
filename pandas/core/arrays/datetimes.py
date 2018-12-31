@@ -210,7 +210,7 @@ class DatetimeArrayMixin(dtl.DatetimeLikeArrayMixin,
     # Constructors
 
     _attributes = ["freq", "tz"]
-    _tz = None
+    _dtype = None
     _freq = None
 
     @classmethod
@@ -231,8 +231,13 @@ class DatetimeArrayMixin(dtl.DatetimeLikeArrayMixin,
         result = object.__new__(cls)
         result._data = values
         result._freq = freq
-        tz = timezones.maybe_get_tz(tz)
-        result._tz = timezones.tz_standardize(tz)
+        if tz is None:
+            dtype = _NS_DTYPE
+        else:
+            tz = timezones.maybe_get_tz(tz)
+            tz = timezones.tz_standardize(tz)
+            dtype = DatetimeTZDtype('ns', tz)
+        result._dtype = dtype
         return result
 
     def __new__(cls, values, freq=None, tz=None, dtype=None, copy=False,
@@ -399,9 +404,12 @@ class DatetimeArrayMixin(dtl.DatetimeLikeArrayMixin,
             If the values are tz-aware, then the ``DatetimeTZDtype``
             is returned.
         """
-        if self.tz is None:
-            return _NS_DTYPE
-        return DatetimeTZDtype('ns', self.tz)
+        return self._dtype
+
+    @property
+    def _tz(self):
+        # TODO: Can we get rid of the private version of this?
+        return getattr(self._dtype, "tz", None)
 
     @property
     def tz(self):
@@ -411,7 +419,7 @@ class DatetimeArrayMixin(dtl.DatetimeLikeArrayMixin,
         Returns
         -------
         datetime.tzinfo, pytz.tzinfo.BaseTZInfo, dateutil.tz.tz.tzfile, or None
-             Returns None when the array is tz-naive.
+            Returns None when the array is tz-naive.
         """
         # GH 18595
         return self._tz
