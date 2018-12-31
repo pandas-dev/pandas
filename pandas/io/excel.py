@@ -68,7 +68,7 @@ sheetname : str, int, list, or None, default 0
     Alias of `sheet_name`.
 
     .. deprecated:: 0.21.0
-       Use `sheet_name` instead
+        Use `sheet_name` instead
 
 header : int, list of int, default 0
     Row (0-indexed) to use for the column labels of the parsed
@@ -209,7 +209,7 @@ mangle_dupe_cols : bool, default True
 
 Returns
 -------
-parsed : DataFrame or dict of DataFrames
+DataFrame or dict of DataFrames
     DataFrame from the passed in Excel file. See notes in sheet_name
     argument for more information on when a dict of DataFrames is returned.
 
@@ -316,7 +316,6 @@ def get_writer(engine_name):
 @deprecate_kwarg("skip_footer", "skipfooter")
 def read_excel(io,
                sheet_name=0,
-               sheetname=0,
                header=0,
                names=None,
                index_col=None,
