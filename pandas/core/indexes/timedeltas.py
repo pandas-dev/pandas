@@ -327,7 +327,7 @@ class TimedeltaIndex(DatetimeIndexOpsMixin, dtl.TimelikeOps, Int64Index,
             # Have to repeat the check for 'timedelta64' (not ns) dtype
             #  so that we can return a numeric index, since pandas will return
             #  a TimedeltaIndex when dtype='timedelta'
-            result = self._data.astype(dtype, copy=copy)
+            result = self._eadata.astype(dtype, copy=copy)
             if self.hasnans:
                 return Index(result, name=self.name)
             return Index(result.astype('i8'), name=self.name)
