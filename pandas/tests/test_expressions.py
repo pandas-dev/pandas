@@ -443,3 +443,19 @@ class TestExpressions(object):
                     r = f(df, True)
                     e = fe(df, True)
                     tm.assert_frame_equal(r, e)
+
+    @pytest.mark.parametrize("test_input,expected", [
+        (DataFrame([[0, 1, 2, 'aa'], [0, 1, 2, 'aa']],
+                   columns=['a', 'b', 'c', 'dtype']),
+         DataFrame([[False, False], [False, False]],
+                   columns=['a', 'dtype'])),
+        (DataFrame([[0, 3, 2, 'aa'], [0, 4, 2, 'aa'], [0, 1, 1, 'bb']],
+                   columns=['a', 'b', 'c', 'dtype']),
+         DataFrame([[False, False], [False, False],
+                   [False, False]], columns=['a', 'dtype'])),
+    ])
+    def test_bool_ops_column_name_dtype(self, test_input, expected):
+        # GH 22383 - .ne fails if columns containing column name 'dtype'
+        result = test_input.loc[:, ['a', 'dtype']].ne(
+            test_input.loc[:, ['a', 'dtype']])
+        assert_frame_equal(result, expected)
