@@ -22,7 +22,7 @@ from pandas.core.dtypes.generic import ABCIndexClass, ABCPeriodIndex, ABCSeries
 from pandas.core.dtypes.missing import isna, notna
 
 import pandas.core.algorithms as algos
-from pandas.core.arrays import ExtensionArray, datetimelike as dtl
+from pandas.core.arrays import datetimelike as dtl
 import pandas.core.common as com
 from pandas.core.missing import backfill_1d, pad_1d
 
@@ -92,9 +92,7 @@ def _period_array_cmp(cls, op):
     return compat.set_function_name(wrapper, opname, cls)
 
 
-class PeriodArray(dtl.DatetimeLikeArrayMixin,
-                  dtl.DatelikeOps,
-                  ExtensionArray):
+class PeriodArray(dtl.DatetimeLikeArrayMixin, dtl.DatelikeOps):
     """
     Pandas ExtensionArray for storing Period data.
 
@@ -371,48 +369,6 @@ class PeriodArray(dtl.DatetimeLikeArrayMixin,
             return str
         return "'{}'".format
 
-    def __setitem__(
-            self,
-            key,   # type: Union[int, Sequence[int], Sequence[bool], slice]
-            value  # type: Union[NaTType, Period, Sequence[Period]]
-    ):
-        # type: (...) -> None
-        # n.b. the type on `value` is a bit too restrictive.
-        # we also accept a sequence of stuff coercible to a PeriodArray
-        # by period_array, which includes things like ndarray[object],
-        # ndarray[datetime64ns]. I think ndarray[int] / ndarray[str] won't
-        # work, since the freq can't be inferred.
-        if is_list_like(value):
-            is_slice = isinstance(key, slice)
-            if (not is_slice
-                    and len(key) != len(value)
-                    and not com.is_bool_indexer(key)):
-                msg = ("shape mismatch: value array of length '{}' does not "
-                       "match indexing result of length '{}'.")
-                raise ValueError(msg.format(len(key), len(value)))
-            if not is_slice and len(key) == 0:
-                return
-
-            value = period_array(value)
-
-            if self.freqstr != value.freqstr:
-                _raise_on_incompatible(self, value)
-
-            value = value.asi8
-        elif isinstance(value, Period):
-
-            if self.freqstr != value.freqstr:
-                _raise_on_incompatible(self, value)
-
-            value = value.ordinal
-        elif isna(value):
-            value = iNaT
-        else:
-            msg = ("'value' should be a 'Period', 'NaT', or array of those. "
-                   "Got '{}' instead.".format(type(value).__name__))
-            raise TypeError(msg)
-        self._data[key] = value
-
     @Appender(dtl.DatetimeLikeArrayMixin._validate_fill_value.__doc__)
     def _validate_fill_value(self, fill_value):
         if isna(fill_value):
@@ -460,51 +416,9 @@ class PeriodArray(dtl.DatetimeLikeArrayMixin,
             new_values = self.copy()
         return new_values
 
-    def value_counts(self, dropna=False):
-        from pandas import Series, PeriodIndex
-
-        if dropna:
-            values = self[~self.isna()]._data
-        else:
-            values = self._data
-
-        cls = type(self)
-
-        result = algos.value_counts(values, sort=False)
-        index = PeriodIndex(cls(result.index, freq=self.freq),
-                            name=result.index.name)
-        return Series(result.values, index=index, name=result.name)
-
     # --------------------------------------------------------------------
 
-    def shift(self, periods=1, fill_value=None):
-        """
-        Shift values by desired number.
-
-        Newly introduced missing values are filled with
-        ``self.dtype.na_value``.
-
-        .. versionadded:: 0.24.0
-
-        Parameters
-        ----------
-        periods : int, default 1
-            The number of periods to shift. Negative values are allowed
-            for shifting backwards.
-        fill_value : optional, default NaT
-
-            .. versionadded:: 0.24.0
-
-        Returns
-        -------
-        shifted : PeriodArray
-        """
-        # TODO(DatetimeArray): remove
-        # The semantics for Index.shift differ from EA.shift
-        # then just call super.
-        return ExtensionArray.shift(self, periods, fill_value=fill_value)
-
-    def _time_shift(self, n, freq=None):
+    def _time_shift(self, periods, freq=None):
         """
         Shift each value by `periods`.
 
@@ -523,7 +437,7 @@ class PeriodArray(dtl.DatetimeLikeArrayMixin,
             raise TypeError("`freq` argument is not supported for "
                             "{cls}._time_shift"
                             .format(cls=type(self).__name__))
-        values = self.asi8 + n * self.freq.n
+        values = self.asi8 + periods * self.freq.n
         if self._hasnans:
             values[self._isnan] = iNaT
         return type(self)(values, freq=self.freq)

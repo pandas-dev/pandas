@@ -13,22 +13,16 @@
 
 import sys
 import os
-import re
 import inspect
 import importlib
 import logging
 import warnings
-
+import jinja2
 from sphinx.ext.autosummary import _import_by_name
 from numpydoc.docscrape import NumpyDocString
 from numpydoc.docscrape_sphinx import SphinxDocString
 
 logger = logging.getLogger(__name__)
-
-try:
-    raw_input          # Python 2
-except NameError:
-    raw_input = input  # Python 3
 
 # https://github.com/sphinx-doc/sphinx/pull/2325/files
 # Workaround for sphinx-build recursion limit overflow:
@@ -77,18 +71,46 @@ extensions = ['sphinx.ext.autodoc',
               ]
 
 exclude_patterns = ['**.ipynb_checkpoints']
+try:
+    import nbconvert
+except ImportError:
+    logger.warn('nbconvert not installed. Skipping notebooks.')
+    exclude_patterns.append('**/*.ipynb')
+else:
+    try:
+        nbconvert.utils.pandoc.get_pandoc_version()
+    except nbconvert.utils.pandoc.PandocMissing:
+        logger.warn('Pandoc not installed. Skipping notebooks.')
+        exclude_patterns.append('**/*.ipynb')
 
-with open("index.rst") as f:
-    index_rst_lines = f.readlines()
+# sphinx_pattern can be '-api' to exclude the API pages,
+# the path to a file, or a Python object
+# (e.g. '10min.rst' or 'pandas.DataFrame.head')
+source_path = os.path.dirname(os.path.abspath(__file__))
+pattern = os.environ.get('SPHINX_PATTERN')
+if pattern:
+    for dirname, dirs, fnames in os.walk(source_path):
+        for fname in fnames:
+            if os.path.splitext(fname)[-1] in ('.rst', '.ipynb'):
+                fname = os.path.relpath(os.path.join(dirname, fname),
+                                        source_path)
 
-# only include the slow autosummary feature if we're building the API section
-# of the docs
+                if (fname == 'index.rst'
+                        and os.path.abspath(dirname) == source_path):
+                    continue
+                elif pattern == '-api' and dirname == 'api':
+                    exclude_patterns.append(fname)
+                elif fname != pattern:
+                    exclude_patterns.append(fname)
 
-# JP: added from sphinxdocs
-autosummary_generate = False
-
-if any(re.match(r"\s*api\s*", l) for l in index_rst_lines):
-    autosummary_generate = True
+with open(os.path.join(source_path, 'index.rst.template')) as f:
+    t = jinja2.Template(f.read())
+with open(os.path.join(source_path, 'index.rst'), 'w') as f:
+    f.write(t.render(include_api=pattern is None,
+                     single_doc=(pattern
+                                 if pattern is not None and pattern != '-api'
+                                 else None)))
+autosummary_generate = True if pattern is None else ['index']
 
 # matplotlib plot directive
 plot_include_source = True
@@ -277,10 +299,11 @@ for old, new in moved_classes:
              "{new}.{method}".format(new=new, method=method))
         )
 
-html_additional_pages = {
-    'generated/' + page[0]: 'api_redirect.html'
-    for page in moved_api_pages
-}
+if pattern is None:
+    html_additional_pages = {
+        'generated/' + page[0]: 'api_redirect.html'
+        for page in moved_api_pages
+    }
 
 
 header = """\
@@ -370,18 +393,17 @@ latex_documents = [
 # latex_use_modindex = True
 
 
-intersphinx_mapping = {
-    'dateutil': ("https://dateutil.readthedocs.io/en/latest/", None),
-    'matplotlib': ('https://matplotlib.org/', None),
-    'numpy': ('https://docs.scipy.org/doc/numpy/', None),
-    'pandas-gbq': ('https://pandas-gbq.readthedocs.io/en/latest/', None),
-    'py': ('https://pylib.readthedocs.io/en/latest/', None),
-    'python': ('https://docs.python.org/3/', None),
-    'scipy': ('https://docs.scipy.org/doc/scipy/reference/', None),
-    'statsmodels': ('http://www.statsmodels.org/devel/', None),
-}
-import glob
-autosummary_generate = glob.glob("*.rst")
+if pattern is None:
+    intersphinx_mapping = {
+        'dateutil': ("https://dateutil.readthedocs.io/en/latest/", None),
+        'matplotlib': ('https://matplotlib.org/', None),
+        'numpy': ('https://docs.scipy.org/doc/numpy/', None),
+        'pandas-gbq': ('https://pandas-gbq.readthedocs.io/en/latest/', None),
+        'py': ('https://pylib.readthedocs.io/en/latest/', None),
+        'python': ('https://docs.python.org/3/', None),
+        'scipy': ('https://docs.scipy.org/doc/scipy/reference/', None),
+        'statsmodels': ('http://www.statsmodels.org/devel/', None),
+    }
 
 # extlinks alias
 extlinks = {'issue': ('https://github.com/pandas-dev/pandas/issues/%s',
@@ -716,6 +738,10 @@ suppress_warnings = [
     # suppress this warning.
     'app.add_directive'
 ]
+if pattern:
+    # When building a single document we don't want to warn because references
+    # to other documents are unknown, as it's expected
+    suppress_warnings.append('ref.ref')
 
 
 def rstjinja(app, docname, source):

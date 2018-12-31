@@ -1,3 +1,4 @@
+import collections
 from datetime import date, time, timedelta
 from decimal import Decimal
 import importlib
@@ -54,13 +55,23 @@ def pytest_runtest_setup(item):
     if 'network' in item.keywords and item.config.getoption("--skip-network"):
         pytest.skip("skipping due to --skip-network")
 
-    if 'db' in item.keywords and item.config.getoption("--skip-db"):
-        pytest.skip("skipping due to --skip-db")
-
     if 'high_memory' in item.keywords and not item.config.getoption(
             "--run-high-memory"):
         pytest.skip(
             "skipping high memory test since --run-high-memory was not set")
+
+    # if "db" not explicitly set in the -m pattern, we skip the db tests
+    pattern = item.config.getoption('-m')
+    if 'db' in item.keywords and not pattern:
+        pytest.skip('skipping db unless -m "db" is specified')
+    elif 'db' in item.keywords and pattern:
+        markers = collections.defaultdict(bool)
+        for marker in item.iter_markers():
+            markers[marker.name] = True
+        markers['db'] = False
+        db_in_pattern = not eval(pattern, {}, markers)
+        if not db_in_pattern:
+            pytest.skip('skipping db unless -m "db" is specified')
 
 
 # Configurations for all tests and all test modules
@@ -275,7 +286,12 @@ def join_type(request):
 
 
 @pytest.fixture
-def datapath(request):
+def strict_data_files(pytestconfig):
+    return pytestconfig.getoption("--strict-data-files")
+
+
+@pytest.fixture
+def datapath(strict_data_files):
     """Get the path to a data file.
 
     Parameters
@@ -297,7 +313,7 @@ def datapath(request):
     def deco(*args):
         path = os.path.join(BASE_PATH, *args)
         if not os.path.exists(path):
-            if request.config.getoption("--strict-data-files"):
+            if strict_data_files:
                 msg = "Could not find file {} and --strict-data-files is set."
                 raise ValueError(msg.format(path))
             else:
