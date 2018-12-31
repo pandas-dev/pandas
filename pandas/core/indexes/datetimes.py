@@ -491,14 +491,9 @@ class DatetimeIndex(DatetimeIndexOpsMixin, Int64Index, DatetimeDelegateMixin):
         else:
             result = Index.union(this, other)
             if isinstance(result, DatetimeIndex):
-                if this.tz is not None:
-                    # TODO: can this be simplified?  It used to just be
-                    # `result._tz = timezones.tz_standardize(this.tz)`
-                    tz = timezones.tz_standardize(this.tz)
-                    if result.tz is None:
-                        result = result.tz_localize(tz)
-                    else:
-                        result = result.tz_convert(tz)
+                # TODO: we shouldn't be setting attributes like this;
+                #  in all the tests this equality already holds
+                result._eadata._dtype = this.dtype
                 if (result.freq is None and
                         (this.freq is not None or other.freq is not None)):
                     result.freq = to_offset(result.inferred_freq)
@@ -526,15 +521,12 @@ class DatetimeIndex(DatetimeIndexOpsMixin, Int64Index, DatetimeDelegateMixin):
             if this._can_fast_union(other):
                 this = this._fast_union(other)
             else:
-                tz = this.tz
+                dtype = this.dtype
                 this = Index.union(this, other)
-                if isinstance(this, DatetimeIndex) and tz is not None:
-                    # TODO: can this be simplified?  it used to just be
-                    # `this._tz = tz_standardize(tz)`
-                    if this.tz is None:
-                        this = this.tz_localize(timezones.tz_standardize(tz))
-                    else:
-                        this = this.tz_convert(timezones.tz_standardize(tz))
+                if isinstance(this, DatetimeIndex):
+                    # TODO: we shouldn't be setting attributes like this;
+                    #  in all the tests this equality already holds
+                    this._eadata._dtype = dtype
         return this
 
     def _can_fast_union(self, other):
