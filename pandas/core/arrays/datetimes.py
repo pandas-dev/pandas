@@ -19,7 +19,7 @@ from pandas.core.dtypes.common import (
     is_extension_type, is_float_dtype, is_int64_dtype, is_object_dtype,
     is_period_dtype, is_string_dtype, is_timedelta64_dtype, pandas_dtype)
 from pandas.core.dtypes.dtypes import DatetimeTZDtype
-from pandas.core.dtypes.generic import ABCPandasArray, ABCIndexClass, ABCSeries
+from pandas.core.dtypes.generic import ABCIndexClass, ABCPandasArray, ABCSeries
 from pandas.core.dtypes.missing import isna
 
 from pandas.core import ops
@@ -286,13 +286,7 @@ class DatetimeArrayMixin(dtl.DatetimeLikeArrayMixin,
         # We should consider requiring an actual dtype.
 
         dtype = pandas_dtype(dtype)
-        if (isinstance(dtype, np.dtype) and dtype != _NS_DTYPE
-                or not isinstance(dtype, (np.dtype, DatetimeTZDtype))):
-            msg = (
-                "Unexpected value for 'dtype': '{}'. "
-                "Must be 'datetime64[ns]' or DatetimeTZDtype'."
-            )
-            raise ValueError(msg.format(dtype))
+        _validate_dt64_dtype(dtype)
 
         if freq == "infer":
             msg = (

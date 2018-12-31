@@ -346,8 +346,8 @@ class TimelikeOps(object):
         return self._round(freq, RoundTo.PLUS_INFTY, ambiguous, nonexistent)
 
 
-class DatetimeLikeArrayMixin(AttributesMixin,
-                             ExtensionOpsMixin,
+class DatetimeLikeArrayMixin(ExtensionOpsMixin,
+                             AttributesMixin,
                              ExtensionArray):
     """
     Shared Base/Mixin class for DatetimeArray, TimedeltaArray, PeriodArray
