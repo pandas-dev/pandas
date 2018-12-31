@@ -2008,45 +2008,45 @@ class NDFrame(PandasObject, SelectionMixin):
 
     Parameters
     ----------
-    excel_writer : string or ExcelWriter object
+    excel_writer : str or ExcelWriter object
         File path or existing ExcelWriter.
-    sheet_name : string, default 'Sheet1'
+    sheet_name : str, default 'Sheet1'
         Name of sheet which will contain DataFrame.
-    na_rep : string, default ''
+    na_rep : str, default ''
         Missing data representation.
-    float_format : string, optional
+    float_format : str, optional
         Format string for floating point numbers. For example
         ``float_format="%%.2f"`` will format 0.1234 to 0.12.
-    columns : sequence or list of string, optional
+    columns : sequence or list of str, optional
         Columns to write.
-    header : boolean or list of string, default True
-        Write out the column names. If a list of strings is given it is
+    header : bool or list of str, default True
+        Write out the column names. If a list of string is given it is
         assumed to be aliases for the column names.
-    index : boolean, default True
+    index : bool, default True
         Write row names (index).
-    index_label : string or sequence, optional
+    index_label : str or sequence, optional
         Column label for index column(s) if desired. If not specified, and
         `header` and `index` are True, then the index names are used. A
         sequence should be given if the DataFrame uses MultiIndex.
-    startrow : integer, default 0
+    startrow : int, default 0
         Upper left cell row to dump data frame.
-    startcol : integer, default 0
+    startcol : int, default 0
         Upper left cell column to dump data frame.
-    engine : string, optional
+    engine : str, optional
         Write engine to use, 'openpyxl' or 'xlsxwriter'. You can also set this
         via the options ``io.excel.xlsx.writer``, ``io.excel.xls.writer``, and
         ``io.excel.xlsm.writer``.
-    merge_cells : boolean, default True
+    merge_cells : bool, default True
         Write MultiIndex and Hierarchical Rows as merged cells.
-    encoding : string, optional
+    encoding : str, optional
         Encoding of the resulting excel file. Only necessary for xlwt,
         other writers support unicode natively.
-    inf_rep : string, default 'inf'
+    inf_rep : str, default 'inf'
         Representation for infinity (there is no native representation for
         infinity in Excel).
-    verbose : boolean, default True
+    verbose : bool, default True
         Display more information in the error logs.
-    freeze_panes : tuple of integer (length 2), optional
+    freeze_panes : tuple of int (length 2), optional
         Specifies the one-based bottommost row and rightmost column that
         is to be frozen.
 
@@ -2054,8 +2054,10 @@ class NDFrame(PandasObject, SelectionMixin):
 
     See Also
     --------
-    read_excel
-    ExcelWriter
+    to_csv : Write DataFrame to a comma-separated values (csv) file.
+    ExcelWriter : Class for writing DataFrame objects into excel sheets.
+    read_excel : Read an Excel file into a pandas DataFrame.
+    read_csv : Read a comma-separated values (csv) file into DataFrame.
 
     Notes
     -----
@@ -2071,8 +2073,8 @@ class NDFrame(PandasObject, SelectionMixin):
     Create, write to and save a workbook:
 
     >>> df1 = pd.DataFrame([['a', 'b'], ['c', 'd']],
-    ...                   index=['row 1', 'row 2'],
-    ...                   columns=['col 1', 'col 2'])
+    ...                    index=['row 1', 'row 2'],
+    ...                    columns=['col 1', 'col 2'])
     >>> df1.to_excel("output.xlsx")  # doctest: +SKIP
 
     To specify the sheet name:
@@ -2166,7 +2168,7 @@ class NDFrame(PandasObject, SelectionMixin):
         double_precision : int, default 10
             The number of decimal places to use when encoding
             floating point values.
-        force_ascii : boolean, default True
+        force_ascii : bool, default True
             Force encoded string to be ASCII.
         date_unit : string, default 'ms' (milliseconds)
             The time unit to encode to, governs timestamp and ISO8601
@@ -2176,7 +2178,7 @@ class NDFrame(PandasObject, SelectionMixin):
             Handler to call if object cannot otherwise be converted to a
             suitable format for JSON. Should receive a single argument which is
             the object to convert and return a serialisable object.
-        lines : boolean, default False
+        lines : bool, default False
             If 'orient' is 'records' write out line delimited json format. Will
             throw ValueError if incorrect 'orient' since others are not list
             like.
@@ -2192,7 +2194,7 @@ class NDFrame(PandasObject, SelectionMixin):
             .. versionadded:: 0.21.0
             .. versionchanged:: 0.24.0
                'infer' option added and set to default
-        index : boolean, default True
+        index : bool, default True
             Whether to include the index values in the JSON string. Not
             including the index (``index=False``) is only supported when
             orient is 'split' or 'table'.
@@ -2375,7 +2377,7 @@ class NDFrame(PandasObject, SelectionMixin):
         ----------
         path : string File path, buffer-like, or None
             if None, return generated string
-        append : boolean whether to append to an existing msgpack
+        append : bool whether to append to an existing msgpack
             (default is False)
         compress : type of compressor (zlib or blosc), default to None (no
             compression)
@@ -2410,7 +2412,7 @@ class NDFrame(PandasObject, SelectionMixin):
             * replace: Drop the table before inserting new values.
             * append: Insert new values to the existing table.
 
-        index : boolean, default True
+        index : bool, default True
             Write DataFrame index as a column. Uses `index_label` as the column
             name in the table.
         index_label : string or sequence, default None
