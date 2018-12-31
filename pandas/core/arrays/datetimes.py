@@ -210,7 +210,7 @@ class DatetimeArrayMixin(dtl.DatetimeLikeArrayMixin,
     # Constructors
 
     _attributes = ["freq", "tz"]
-    _dtype = None
+    _dtype = None  # type: Union[np.dtype, DatetimeTZDtype]
     _freq = None
 
     @classmethod
@@ -407,11 +407,6 @@ class DatetimeArrayMixin(dtl.DatetimeLikeArrayMixin,
         return self._dtype
 
     @property
-    def _tz(self):
-        # TODO: Can we get rid of the private version of this?
-        return getattr(self._dtype, "tz", None)
-
-    @property
     def tz(self):
         """
         Return timezone, if any.
@@ -422,7 +417,7 @@ class DatetimeArrayMixin(dtl.DatetimeLikeArrayMixin,
             Returns None when the array is tz-naive.
         """
         # GH 18595
-        return self._tz
+        return getattr(self._dtype, "tz", None)
 
     @tz.setter
     def tz(self, value):

@@ -1133,37 +1133,14 @@ class DatetimeIndex(DatetimeIndexOpsMixin, Int64Index, DatetimeDelegateMixin):
         return self._eadata._data
 
     @property
-    def _freq(self):
-        return self._eadata._freq
-
-    @_freq.setter
-    def _freq(self, value):
-        # Validation will be handled by _eadata setter
-        self._eadata._freq = value
-
-    @property
-    def freq(self):
-        return self._freq
-
-    @freq.setter
-    def freq(self, value):
-        # validation is handled by _eadata setter
-        self._eadata.freq = value
-
-    @property
-    def _tz(self):
-        return self._eadata._tz
-
-    @property
     def tz(self):
         # GH#18595
-        return self._tz
+        return self._eadata.tz
 
     @tz.setter
     def tz(self, value):
-        # GH 3746: Prevent localizing or converting the index by setting tz
-        raise AttributeError("Cannot directly set timezone. Use tz_localize() "
-                             "or tz_convert() as appropriate")
+        # GH#3746; DatetimeArray will raise to disallow setting
+        self._eadata.tz = value
 
     tzinfo = tz
 

@@ -288,10 +288,6 @@ class PeriodIndex(DatelikeOps, DatetimeIndexOpsMixin, Int64Index,
         return self._data
 
     @property
-    def _ndarray_values(self):
-        return self._data._ndarray_values
-
-    @property
     def values(self):
         return np.asarray(self)
 
