@@ -1593,7 +1593,7 @@ Plotting
 
 - Bug in :func:`DataFrame.plot.scatter` and :func:`DataFrame.plot.hexbin` caused x-axis label and ticklabels to disappear when colorbar was on in IPython inline backend (:issue:`10611`, :issue:`10678`, and :issue:`20455`)
 - Bug in plotting a Series with datetimes using :func:`matplotlib.axes.Axes.scatter` (:issue:`22039`)
-- Bug in :func:`_get_standard_colors` caused :class:`DataFrame` plots to use multiple colors instead of a single one when plotting without a colormap (:issue:`20585`)
+- Bug in :func:`DataFrame.plot.bar` caused bars to use multiple colors instead of a single one (:issue:`20585`)
 
 Groupby/Resample/Rolling
 ^^^^^^^^^^^^^^^^^^^^^^^^
