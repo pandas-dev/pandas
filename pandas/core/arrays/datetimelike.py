@@ -705,7 +705,7 @@ class DatetimeLikeArrayMixin(AttributesMixin,
         """
         nv.validate_repeat(args, kwargs)
         values = self._data.repeat(repeats)
-        return type(self)(values, dtype=self.dtype)
+        return type(self)(values.view('i8'), dtype=self.dtype)
 
     def value_counts(self, dropna=False):
         """
@@ -720,7 +720,6 @@ class DatetimeLikeArrayMixin(AttributesMixin,
         -------
         Series
         """
-        # n.b. moved from PeriodArray.value_counts
         from pandas import Series, Index
 
         if dropna:
@@ -731,7 +730,7 @@ class DatetimeLikeArrayMixin(AttributesMixin,
         cls = type(self)
 
         result = value_counts(values, sort=False, dropna=dropna)
-        index = Index(cls(result.index, dtype=self.dtype),
+        index = Index(cls(result.index.view('i8'), dtype=self.dtype),
                       name=result.index.name)
         return Series(result.values, index=index, name=result.name)
 
@@ -1432,25 +1431,51 @@ class DatetimeLikeArrayMixin(AttributesMixin,
     # --------------------------------------------------------------
     # Reductions
 
-    def _reduce(self, name, skipna=True, **kwargs):
+    def _reduce(self, name, axis=0, skipna=True, **kwargs):
         op = getattr(self, name, None)
         if op:
-            return op(skipna=skipna)
+            return op(axis=axis, skipna=skipna, **kwargs)
         else:
             return super(DatetimeLikeArrayMixin, self)._reduce(
                 name, skipna, **kwargs
             )
 
-    def min(self, skipna=True):
+    def min(self, axis=None, skipna=True, *args, **kwargs):
+        """
+        Return the minimum value of the Array or minimum along
+        an axis.
+
+        See Also
+        --------
+        numpy.ndarray.min
+        Index.min : Return the minimum value in an Index.
+        Series.min : Return the minimum value in a Series.
+        """
+        nv.validate_min(args, kwargs)
+        nv.validate_minmax_axis(axis)
+
         result = nanops.nanmin(self.asi8, skipna=skipna, mask=self.isna())
         if isna(result):
             # Period._from_ordinal does not handle np.nan gracefully
             return NaT
         return self._box_func(result)
 
-    def max(self, skipna=True):
+    def max(self, axis=None, skipna=True, *args, **kwargs):
+        """
+        Return the maximum value of the Array or maximum along
+        an axis.
+
+        See Also
+        --------
+        numpy.ndarray.max
+        Index.max : Return the maximum value in an Index.
+        Series.max : Return the maximum value in a Series.
+        """
         # TODO: skipna is broken with max.
         # See https://github.com/pandas-dev/pandas/issues/24265
+        nv.validate_max(args, kwargs)
+        nv.validate_minmax_axis(axis)
+
         mask = self.isna()
         if skipna:
             values = self[~mask].asi8

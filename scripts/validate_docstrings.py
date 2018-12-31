@@ -17,6 +17,7 @@ import os
 import sys
 import json
 import re
+import glob
 import functools
 import collections
 import argparse
@@ -104,6 +105,11 @@ ERROR_MSGS = {
     'PR10': 'Parameter "{param_name}" requires a space before the colon '
             'separating the parameter name and type',
     'RT01': 'No Returns section found',
+    'RT02': 'The first line of the Returns section should contain only the '
+            'type, unless multiple values are being returned',
+    'RT03': 'Return value has no description',
+    'RT04': 'Return value description should start with a capital letter',
+    'RT05': 'Return value description should finish with "."',
     'YD01': 'No Yields section found',
     'SA01': 'See Also section not found',
     'SA02': 'Missing period at end of description for See Also '
@@ -684,8 +690,22 @@ def get_validation_data(doc):
                 errs.append(error('PR09', param_name=param))
 
     if doc.is_function_or_method:
-        if not doc.returns and 'return' in doc.method_source:
-            errs.append(error('RT01'))
+        if not doc.returns:
+            if 'return' in doc.method_source:
+                errs.append(error('RT01'))
+        else:
+            if len(doc.returns) == 1 and doc.returns[0][1]:
+                errs.append(error('RT02'))
+            for name_or_type, type_, desc in doc.returns:
+                if not desc:
+                    errs.append(error('RT03'))
+                else:
+                    desc = ' '.join(desc)
+                    if not desc[0].isupper():
+                        errs.append(error('RT04'))
+                    if not desc.endswith('.'):
+                        errs.append(error('RT05'))
+
         if not doc.yields and 'yield' in doc.method_source:
             errs.append(error('YD01'))
 
@@ -776,9 +796,11 @@ def validate_all(prefix, ignore_deprecated=False):
     seen = {}
 
     # functions from the API docs
-    api_doc_fname = os.path.join(BASE_PATH, 'doc', 'source', 'api.rst')
-    with open(api_doc_fname) as f:
-        api_items = list(get_api_items(f))
+    api_doc_fnames = os.path.join(BASE_PATH, 'doc', 'source', 'api', '*.rst')
+    api_items = []
+    for api_doc_fname in glob.glob(api_doc_fnames):
+        with open(api_doc_fname) as f:
+            api_items += list(get_api_items(f))
     for func_name, func_obj, section, subsection in api_items:
         if prefix and not func_name.startswith(prefix):
             continue
