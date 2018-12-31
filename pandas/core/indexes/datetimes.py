@@ -316,16 +316,18 @@ class DatetimeIndex(DatelikeIndexMixin,
         if we are passed a non-dtype compat, then coerce using the constructor
         """
         # DatetimeArray._simple_new will accept either i8 or M8[ns] dtypes
-        values = DatetimeArray._simple_new(values, freq=freq, tz=tz)
-
+        if isinstance(values, DatetimeIndex):
+            values = values._data
         dtarr = DatetimeArray._simple_new(values, freq=freq, tz=tz)
+        assert isinstance(dtarr, DatetimeArray)
+
         result = object.__new__(cls)
-        result._data = dtarr._data
-        result._freq = dtarr.freq
+        result._data = dtarr
+        result._freq = dtarr._freq
         result._tz = dtarr.tz
         result.name = name
         # For groupby perf. See note in indexes/base about _index_data
-        result._index_data = values._data
+        result._index_data = dtarr._data
         result._reset_identity()
         return result
 
@@ -334,15 +336,6 @@ class DatetimeIndex(DatelikeIndexMixin,
     @property
     def dtype(self):
         return self._eadata.dtype
-
-    @property
-    def _values(self):
-        # tz-naive -> ndarray
-        # tz-aware -> DatetimeIndex
-        if self.tz is not None:
-            return self
-        else:
-            return self.values
 
     @property
     def tz(self):
