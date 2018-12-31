@@ -156,7 +156,7 @@ to these in old code bases and online. Going forward, we recommend avoiding
 ``.values`` and using ``.array`` or ``.to_numpy()``. ``.values`` has the following
 drawbacks:
 
-1. When your Series contains an :ref:`extension type <extending.extension-type>`, it's
+1. When your Series contains an :ref:`extension type <extending.extension-types>`, it's
    unclear whether :attr:`Series.values` returns a NumPy array or the extension array.
    :attr:`Series.array` will always return an ``ExtensionArray``, and will never
    copy data. :meth:`Series.to_numpy` will always return a NumPy array,
