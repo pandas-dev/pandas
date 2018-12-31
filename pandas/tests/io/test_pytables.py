@@ -4543,13 +4543,15 @@ class TestHDFStore(Base):
     def test_legacy_table_fixed_format_read_py2(self, datapath):
         # legacy table with fixed format written en Python 2
         with ensure_clean_store(
-                datapath('io', 'data', 'legacy_hdf', 'legacy_table_fixed_py2.h5'),
+                datapath('io', 'data', 'legacy_hdf',
+                         'legacy_table_fixed_py2.h5'),
                 mode='r') as store:
             with catch_warnings():
                 result = store.select('df')
                 expected = pd.DataFrame([[1, 2, 3, 'D']],
                                         columns=['A', 'B', 'C', 'D'],
-                                        index=pd.Index(['ABC'], name='INDEX_NAME'))
+                                        index=pd.Index(['ABC'],
+                                                       name='INDEX_NAME'))
                 assert_frame_equal(expected, result)
 
     def test_legacy_table_read(self, datapath):
