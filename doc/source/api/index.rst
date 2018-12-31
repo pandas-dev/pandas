@@ -2,9 +2,9 @@
 
 .. _api:
 
-*************
+=============
 API Reference
-*************
+=============
 
 This page gives an overview of all public pandas objects, functions and
 methods. All classes and functions exposed in ``pandas.*`` namespace are public.
@@ -27,7 +27,7 @@ public functions related to data types in pandas.
    series
    frame
    panel
-   indices
+   indexing
    scalars
    offset_frequency
    window

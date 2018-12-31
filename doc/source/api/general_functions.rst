@@ -2,8 +2,9 @@
 
 .. _api.general_functions:
 
+=================
 General functions
------------------
+=================
 .. currentmodule:: pandas
 
 Data manipulations

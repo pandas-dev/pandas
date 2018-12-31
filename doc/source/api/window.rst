@@ -2,8 +2,9 @@
 
 .. _api.window:
 
+======
 Window
-------
+======
 .. currentmodule:: pandas.core.window
 
 Rolling objects are returned by ``.rolling`` calls: :func:`pandas.DataFrame.rolling`, :func:`pandas.Series.rolling`, etc.
@@ -11,7 +12,7 @@ Expanding objects are returned by ``.expanding`` calls: :func:`pandas.DataFrame.
 EWM objects are returned by ``.ewm`` calls: :func:`pandas.DataFrame.ewm`, :func:`pandas.Series.ewm`, etc.
 
 Standard moving window functions
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+--------------------------------
 .. autosummary::
    :toctree: generated/
 
@@ -36,7 +37,7 @@ Standard moving window functions
 .. _api.functions_expanding:
 
 Standard expanding window functions
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+-----------------------------------
 .. autosummary::
    :toctree: generated/
 
@@ -57,7 +58,7 @@ Standard expanding window functions
    Expanding.quantile
 
 Exponentially-weighted moving window functions
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+----------------------------------------------
 .. autosummary::
    :toctree: generated/
 

@@ -2,8 +2,9 @@
 
 .. _api.dataframe:
 
+=========
 DataFrame
----------
+=========
 .. currentmodule:: pandas
 
 Constructor

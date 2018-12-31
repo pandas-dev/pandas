@@ -2,18 +2,19 @@
 
 .. _api.scalars:
 
+=======
 Scalars
--------
+=======
 .. currentmodule:: pandas
 
 Period
-~~~~~~
+------
 .. autosummary::
     :toctree: generated/
 
     Period
 
-Attributes
+Properties
 ~~~~~~~~~~
 .. autosummary::
     :toctree: generated/
@@ -51,7 +52,7 @@ Methods
     Period.to_timestamp
 
 Timestamp
-~~~~~~~~~
+---------
 .. autosummary::
     :toctree: generated/
 
@@ -140,7 +141,7 @@ Methods
     Timestamp.weekday
 
 Interval
-~~~~~~~~
+--------
 .. autosummary::
     :toctree: generated/
 
@@ -163,7 +164,7 @@ Properties
     Interval.right
 
 Timedelta
-~~~~~~~~~
+---------
 .. autosummary::
     :toctree: generated/
 

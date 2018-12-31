@@ -2,22 +2,23 @@
 
 .. _api.style:
 
+=====
 Style
------
+=====
 .. currentmodule:: pandas.io.formats.style
 
 ``Styler`` objects are returned by :attr:`pandas.DataFrame.style`.
 
 Styler Constructor
-~~~~~~~~~~~~~~~~~~
+------------------
 .. autosummary::
    :toctree: generated/
 
    Styler
    Styler.from_custom_template
 
-Styler Attributes
-~~~~~~~~~~~~~~~~~
+Styler Properties
+-----------------
 .. autosummary::
    :toctree: generated/
 
@@ -26,7 +27,7 @@ Styler Attributes
    Styler.loader
 
 Style Application
-~~~~~~~~~~~~~~~~~
+-----------------
 .. autosummary::
    :toctree: generated/
 
@@ -44,7 +45,7 @@ Style Application
    Styler.pipe
 
 Builtin Styles
-~~~~~~~~~~~~~~
+--------------
 .. autosummary::
    :toctree: generated/
 
@@ -55,7 +56,7 @@ Builtin Styles
    Styler.bar
 
 Style Export and Import
-~~~~~~~~~~~~~~~~~~~~~~~
+-----------------------
 .. autosummary::
    :toctree: generated/
 

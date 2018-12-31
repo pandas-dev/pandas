@@ -1,6 +1,10 @@
 {{ header }}
 
-.. _api.index:
+.. _api.indexing:
+
+========
+Indexing
+========
 
 Index
 -----
@@ -15,7 +19,7 @@ used before calling these methods directly.**
 
    Index
 
-Attributes
+Properties
 ~~~~~~~~~~
 .. autosummary::
    :toctree: generated/
@@ -280,7 +284,7 @@ MultiIndex Constructors
    MultiIndex.from_product
    MultiIndex.from_frame
 
-MultiIndex Attributes
+MultiIndex Properties
 ~~~~~~~~~~~~~~~~~~~~~
 .. autosummary::
    :toctree: generated/
@@ -433,14 +437,14 @@ Conversion
 .. currentmodule:: pandas
 
 PeriodIndex
---------------
+-----------
 .. autosummary::
    :toctree: generated/
    :template: autosummary/class_without_autosummary.rst
 
    PeriodIndex
 
-Attributes
+Properties
 ~~~~~~~~~~
 .. autosummary::
     :toctree: generated/

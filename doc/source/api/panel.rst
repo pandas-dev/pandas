@@ -2,8 +2,9 @@
 
 .. _api.panel:
 
+=====
 Panel
-------
+=====
 .. currentmodule:: pandas
 
 Constructor
@@ -13,7 +14,7 @@ Constructor
 
    Panel
 
-Attributes and underlying data
+Properties and underlying data
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 **Axes**
 

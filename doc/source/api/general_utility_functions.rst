@@ -2,12 +2,13 @@
 
 .. _api.general_utility_functions:
 
+=========================
 General utility functions
--------------------------
+=========================
 .. currentmodule:: pandas
 
 Working with options
-~~~~~~~~~~~~~~~~~~~~
+--------------------
 .. autosummary::
    :toctree: generated/
 
@@ -18,7 +19,7 @@ Working with options
    option_context
 
 Testing functions
-~~~~~~~~~~~~~~~~~
+-----------------
 .. autosummary::
    :toctree: generated/
 
@@ -27,7 +28,7 @@ Testing functions
    testing.assert_index_equal
 
 Exceptions and warnings
-~~~~~~~~~~~~~~~~~~~~~~~
+-----------------------
 .. autosummary::
    :toctree: generated/
 
@@ -41,7 +42,7 @@ Exceptions and warnings
    errors.UnsupportedFunctionCall
 
 Data types related functionality
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+--------------------------------
 .. autosummary::
    :toctree: generated/
 
@@ -50,7 +51,7 @@ Data types related functionality
    api.types.pandas_dtype
 
 Dtype introspection
-
+~~~~~~~~~~~~~~~~~~~
 .. autosummary::
    :toctree: generated/
 
@@ -77,7 +78,7 @@ Dtype introspection
     api.types.is_sparse
 
 Iterable introspection
-
+~~~~~~~~~~~~~~~~~~~~~~
 .. autosummary::
    :toctree: generated/
 
@@ -88,7 +89,7 @@ Iterable introspection
     api.types.is_iterator
 
 Scalar introspection
-
+~~~~~~~~~~~~~~~~~~~~
 .. autosummary::
    :toctree: generated/
 

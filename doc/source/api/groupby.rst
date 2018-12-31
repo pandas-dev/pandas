@@ -2,14 +2,15 @@
 
 .. _api.groupby:
 
+=======
 GroupBy
--------
+=======
 .. currentmodule:: pandas.core.groupby
 
 GroupBy objects are returned by groupby calls: :func:`pandas.DataFrame.groupby`, :func:`pandas.Series.groupby`, etc.
 
 Indexing, iteration
-~~~~~~~~~~~~~~~~~~~
+-------------------
 .. autosummary::
    :toctree: generated/
 
@@ -29,7 +30,7 @@ Indexing, iteration
 .. currentmodule:: pandas.core.groupby
 
 Function application
-~~~~~~~~~~~~~~~~~~~~
+--------------------
 .. autosummary::
    :toctree: generated/
 
@@ -40,7 +41,7 @@ Function application
    GroupBy.pipe
 
 Computations / Descriptive Stats
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+--------------------------------
 .. autosummary::
    :toctree: generated/
 
