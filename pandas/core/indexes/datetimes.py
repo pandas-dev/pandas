@@ -423,6 +423,7 @@ class DatetimeIndex(DatelikeIndexMixin,
                 freq = None
 
             self._data = DatetimeArray(data, dtype=dtype, freq=freq)
+            self._freq = self._data._freq
             self._reset_identity()
 
         else:

@@ -21,11 +21,13 @@ class TestTimedeltaArrayConstructor(object):
     def test_incorrect_dtype_raises(self):
         # TODO: why TypeError for 'category' but ValueError for i8?
         with pytest.raises(TypeError,
-                           match='data type "category" not understood'):
+                           match=r'category cannot be converted '
+                                 r'to timedelta64\[ns\]'):
             TimedeltaArray(np.array([1, 2, 3], dtype='i8'), dtype='category')
 
-        with pytest.raises(ValueError,
-                           match=r"Only timedelta64\[ns\] dtype is valid"):
+        with pytest.raises(TypeError,
+                           match=r"dtype int64 cannot be converted "
+                                 r"to timedelta64\[ns\]"):
             TimedeltaArray(np.array([1, 2, 3], dtype='i8'),
                            dtype=np.dtype(int))
 
