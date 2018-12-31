@@ -283,10 +283,6 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index, PeriodDelegateMixin):
     # Data
 
     @property
-    def _eadata(self):
-        return self._data
-
-    @property
     def _ndarray_values(self):
         return self._data._ndarray_values
 

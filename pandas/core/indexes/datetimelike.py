@@ -72,6 +72,10 @@ class DatetimeIndexOpsMixin(ExtensionOpsMixin):
     __iter__ = ea_passthrough("__iter__")
 
     @property
+    def _eadata(self):
+        return self._data
+
+    @property
     def freq(self):
         # Can't simply use delegate_names since our base class is defining
         # freq

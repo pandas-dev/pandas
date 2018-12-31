@@ -417,7 +417,6 @@ class DatetimeIndex(DatetimeIndexOpsMixin, Int64Index, DatetimeDelegateMixin):
                 freq = None
 
             self._data = DatetimeArray(data, dtype=dtype, freq=freq)
-            self._freq = self._data._freq
             self._reset_identity()
 
         else:
@@ -1121,11 +1120,6 @@ class DatetimeIndex(DatetimeIndexOpsMixin, Int64Index, DatetimeDelegateMixin):
 
     # --------------------------------------------------------------------
     # Wrapping DatetimeArray
-
-    @property
-    def _eadata(self):
-        return DatetimeArray._simple_new(self._data,
-                                         tz=self.tz, freq=self.freq)
 
     # Compat for frequency inference, see GH#23789
     _is_monotonic_increasing = Index.is_monotonic_increasing

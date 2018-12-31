@@ -243,7 +243,6 @@ class TimedeltaIndex(DatetimeIndexOpsMixin, dtl.TimelikeOps, Int64Index,
         tdarr = TimedeltaArray._simple_new(values, freq=freq)
         result = object.__new__(cls)
         result._data = tdarr
-        result._freq = tdarr._freq
         result.name = name
         # For groupby perf. See note in indexes/base about _index_data
         result._index_data = values._data
@@ -284,10 +283,6 @@ class TimedeltaIndex(DatetimeIndexOpsMixin, dtl.TimelikeOps, Int64Index,
 
     # -------------------------------------------------------------------
     # Wrapping TimedeltaArray
-
-    @property
-    def _eadata(self):
-        return TimedeltaArray._simple_new(self._data, freq=self.freq)
 
     __mul__ = _make_wrapped_arith_op("__mul__")
     __rmul__ = _make_wrapped_arith_op("__rmul__")
