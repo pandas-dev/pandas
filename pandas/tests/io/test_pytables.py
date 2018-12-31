@@ -4547,13 +4547,12 @@ class TestHDFStore(Base):
                 datapath('io', 'data', 'legacy_hdf',
                          'legacy_table_fixed_py2.h5'),
                 mode='r') as store:
-            with catch_warnings():
-                result = store.select('df')
-                expected = pd.DataFrame([[1, 2, 3, 'D']],
-                                        columns=['A', 'B', 'C', 'D'],
-                                        index=pd.Index(['ABC'],
-                                                       name='INDEX_NAME'))
-                assert_frame_equal(expected, result)
+            result = store.select('df')
+            expected = pd.DataFrame([[1, 2, 3, 'D']],
+                                    columns=['A', 'B', 'C', 'D'],
+                                    index=pd.Index(['ABC'],
+                                                   name='INDEX_NAME'))
+            assert_frame_equal(expected, result)
 
     def test_legacy_table_read(self, datapath):
         # legacy table types
