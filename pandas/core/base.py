@@ -15,11 +15,10 @@ from pandas.util._decorators import Appender, Substitution, cache_readonly
 from pandas.util._validators import validate_bool_kwarg
 
 from pandas.core.dtypes.common import (
-    is_datetime64tz_dtype, is_datetimelike, is_extension_array_dtype,
-    is_extension_type, is_list_like, is_object_dtype, is_scalar)
-from pandas.core.dtypes.generic import (
-    ABCDataFrame, ABCDatetimeArray, ABCIndexClass, ABCSeries,
-    ABCTimedeltaArray)
+    is_datetime64_ns_dtype, is_datetime64tz_dtype, is_datetimelike,
+    is_extension_array_dtype, is_extension_type, is_list_like, is_object_dtype,
+    is_scalar, is_timedelta64_ns_dtype)
+from pandas.core.dtypes.generic import ABCDataFrame, ABCIndexClass, ABCSeries
 from pandas.core.dtypes.missing import isna
 
 from pandas.core import algorithms, common as com
@@ -851,16 +850,17 @@ class IndexOpsMixin(object):
         """
         result = self._values
 
-        if not (is_extension_array_dtype(result.dtype)
-                or isinstance(result, (ABCDatetimeArray, ABCTimedeltaArray))):
-            # TODO: Should this be a DatetimeArray or PandasArray
-            # for tz-naive data?
-            # DatetimeArray is a bit strange, since tz-naive
-            # arrays are an ExtensionArray, but the dtype is not
-            # an extension dtype.
-            from pandas.core.arrays.numpy_ import PandasArray
+        if is_datetime64_ns_dtype(result.dtype):
+            from pandas.arrays import DatetimeArray
+            result = DatetimeArray(result)
+        elif is_timedelta64_ns_dtype(result.dtype):
+            from pandas.arrays import TimedeltaArray
+            result = TimedeltaArray(result)
 
+        elif not is_extension_array_dtype(result.dtype):
+            from pandas.arrays import PandasArray
             result = PandasArray(result)
+
         return result
 
     def to_numpy(self, dtype=None, copy=False):

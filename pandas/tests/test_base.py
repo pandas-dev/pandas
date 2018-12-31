@@ -1211,7 +1211,6 @@ def test_ndarray_values(array, expected):
 
 @pytest.mark.parametrize("arr", [
     np.array([1, 2, 3]),
-    np.array([1, 2, 3], dtype="datetime64[ns]"),
 ])
 def test_numpy_array(arr):
     ser = pd.Series(arr)
@@ -1223,7 +1222,10 @@ def test_numpy_array(arr):
 def test_numpy_array_all_dtypes(any_numpy_dtype):
     ser = pd.Series(dtype=any_numpy_dtype)
     result = ser.array
-    assert isinstance(result, PandasArray)
+    if is_datetime64_dtype(any_numpy_dtype):
+        assert isinstance(result, DatetimeArray)
+    else:
+        assert isinstance(result, PandasArray)
 
 
 @pytest.mark.parametrize("array, attr", [
@@ -1232,7 +1234,7 @@ def test_numpy_array_all_dtypes(any_numpy_dtype):
     (pd.core.arrays.integer_array([0, np.nan]), '_data'),
     (pd.core.arrays.IntervalArray.from_breaks([0, 1]), '_left'),
     (pd.SparseArray([0, 1]), '_sparse_values'),
-    # TODO: tz-naive Datetime. DatetimeArray or ndarray?
+    (DatetimeArray(np.array([1, 2], dtype="datetime64[ns]")), "_data"),
     # tz-aware Datetime
     (DatetimeArray(np.array(['2000-01-01T12:00:00',
                              '2000-01-02T12:00:00'],
