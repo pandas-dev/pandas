@@ -4546,7 +4546,6 @@ class TestHDFStore(Base):
                 datapath('io', 'data', 'legacy_hdf', 'legacy_table_fixed_py2.h5'),
                 mode='r') as store:
             with catch_warnings():
-                simplefilter("ignore", pd.io.pytables.IncompatibilityWarning)
                 result = store.select('df')
                 expected = pd.DataFrame([[1, 2, 3, 'D']],
                                         columns=['A', 'B', 'C', 'D'],
