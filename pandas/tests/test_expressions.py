@@ -456,6 +456,6 @@ class TestExpressions(object):
     ])
     def test_bool_ops_column_name_dtype(self, test_input, expected):
         # GH 22383 - .ne fails if columns containing column name 'dtype'
-        result = test_input.loc[:, ['a', 'dtype']].\
-            ne(test_input.loc[:, ['a', 'dtype']])
+        result = test_input.loc[:, ['a', 'dtype']].ne(
+            test_input.loc[:, ['a', 'dtype']])
         assert_frame_equal(result, expected)
