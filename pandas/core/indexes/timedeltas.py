@@ -283,23 +283,6 @@ class TimedeltaIndex(DatetimeIndexOpsMixin,
     def _data(self):
         return self._eadata._data
 
-    @property
-    def _freq(self):
-        return self._eadata._freq
-
-    @_freq.setter
-    def _freq(self, value):
-        self._eadata._freq = value
-
-    @property
-    def freq(self):
-        return self._freq
-
-    @freq.setter
-    def freq(self, value):
-        # Validation will be done in _eadata setter
-        self._eadata.freq = value
-
     __mul__ = _make_wrapped_arith_op("__mul__")
     __rmul__ = _make_wrapped_arith_op("__rmul__")
     __floordiv__ = _make_wrapped_arith_op("__floordiv__")
