@@ -835,6 +835,25 @@ class DatetimeArrayMixin(dtl.DatetimeLikeArrayMixin,
         1   2018-10-28 02:36:00+02:00
         2   2018-10-28 03:46:00+01:00
         dtype: datetime64[ns, CET]
+
+        If the DST transition causes nonexistent times, you can shift these
+        dates forward or backwards with a timedelta object or `'shift_forward'`
+        or `'shift_backwards'`.
+        >>> s = pd.to_datetime(pd.Series([
+        ... '2015-03-29 02:30:00',
+        ... '2015-03-29 03:30:00']))
+        >>> s.dt.tz_localize('Europe/Warsaw', nonexistent='shift_forward')
+        0   2015-03-29 03:00:00+02:00
+        1   2015-03-29 03:30:00+02:00
+        dtype: datetime64[ns, 'Europe/Warsaw']
+        >>> s.dt.tz_localize('Europe/Warsaw', nonexistent='shift_backward')
+        0   2015-03-29 01:59:59.999999999+01:00
+        1   2015-03-29 03:30:00+02:00
+        dtype: datetime64[ns, 'Europe/Warsaw']
+        >>> s.dt.tz_localize('Europe/Warsaw', nonexistent=pd.Timedelta('1H'))
+        0   2015-03-29 03:30:00+02:00
+        1   2015-03-29 03:30:00+02:00
+        dtype: datetime64[ns, 'Europe/Warsaw']
         """
         if errors is not None:
             warnings.warn("The errors argument is deprecated and will be "
