@@ -371,7 +371,9 @@ columns:
     df = pd.read_csv(StringIO(data), dtype=object)
     df
     df['a'][0]
-    df = pd.read_csv(StringIO(data), dtype={'b': object, 'c': np.float64, 'd': 'Int64'})
+    df = pd.read_csv(StringIO(data), 
+                     dtype={'b': object, 'c': np.float64, 
+                     'd': 'Int64'})
     df.dtypes
 
 Fortunately, pandas offers more than one way to ensure that your column(s)

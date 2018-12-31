@@ -78,6 +78,11 @@ class ExtensionArray(object):
 
     * _reduce
 
+    One can implement methods to handle parsing from strings that will be used
+    in methods such as ``pandas.io.parsers.read_csv``.
+
+    * _from_sequence_of_strings
+
     This class does not inherit from 'abc.ABCMeta' for performance reasons.
     Methods and properties required by the interface raise
     ``pandas.errors.AbstractMethodError`` and no ``register`` method is
