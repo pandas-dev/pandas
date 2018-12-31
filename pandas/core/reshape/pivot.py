@@ -78,8 +78,6 @@ def pivot_table(data, values=None, index=None, columns=None, aggfunc='mean',
                 pass
         values = list(values)
 
-    # group by the cartesian product of the grouper
-    # if we have a categorical
     grouped = data.groupby(keys, observed=False)
     agged = grouped.agg(aggfunc)
     if dropna and isinstance(agged, ABCDataFrame) and len(agged.columns):
