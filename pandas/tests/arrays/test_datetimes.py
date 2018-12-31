@@ -123,6 +123,21 @@ class TestDatetimeArray(object):
         expected = DatetimeArray(arr.asi8, freq=None, tz=arr.tz)
         tm.assert_equal(repeated, expected)
 
+    def test_value_counts_preserves_tz(self):
+        dti = pd.date_range('2000', periods=2, freq='D', tz='US/Central')
+        arr = DatetimeArray(dti).repeat([4, 3])
+
+        result = arr.value_counts()
+
+        # Note: not tm.assert_index_equal, since `freq`s do not match
+        assert result.index.equals(dti)
+
+        arr[-2] = pd.NaT
+        result = arr.value_counts()
+        expected = pd.Series([1, 4, 2],
+                             index=[pd.NaT, dti[0], dti[1]])
+        tm.assert_series_equal(result, expected)
+
 
 class TestSequenceToDT64NS(object):
 

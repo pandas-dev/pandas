@@ -178,6 +178,33 @@ def test_is_dict_like_fails(ll):
     assert not inference.is_dict_like(ll)
 
 
+@pytest.mark.parametrize("has_keys", [True, False])
+@pytest.mark.parametrize("has_getitem", [True, False])
+@pytest.mark.parametrize("has_contains", [True, False])
+def test_is_dict_like_duck_type(has_keys, has_getitem, has_contains):
+    class DictLike(object):
+        def __init__(self, d):
+            self.d = d
+
+        if has_keys:
+            def keys(self):
+                return self.d.keys()
+
+        if has_getitem:
+            def __getitem__(self, key):
+                return self.d.__getitem__(key)
+
+        if has_contains:
+            def __contains__(self, key):
+                return self.d.__contains__(key)
+
+    d = DictLike({1: 2})
+    result = inference.is_dict_like(d)
+    expected = has_keys and has_getitem and has_contains
+
+    assert result is expected
+
+
 def test_is_file_like(mock):
     class MockFile(object):
         pass
