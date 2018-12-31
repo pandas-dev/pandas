@@ -19,15 +19,14 @@ from numpy cimport (ndarray,
 cnp.import_array()
 
 
-cimport util
-from util cimport numeric, get_nat
+cimport pandas._libs.util as util
+from pandas._libs.util cimport numeric, get_nat
 
-from khash cimport (khiter_t,
-                    kh_destroy_int64, kh_put_int64,
-                    kh_init_int64, kh_int64_t,
-                    kh_resize_int64, kh_get_int64)
+from pandas._libs.khash cimport (
+    khiter_t, kh_destroy_int64, kh_put_int64, kh_init_int64, kh_int64_t,
+    kh_resize_int64, kh_get_int64)
 
-import missing
+import pandas._libs.missing as missing
 
 cdef float64_t FP_ERR = 1e-13
 

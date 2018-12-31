@@ -41,7 +41,9 @@ class DirNamesMixin(object):
 
 
 class PandasDelegate(object):
-    """ an abstract base class for delegating methods/properties """
+    """
+    an abstract base class for delegating methods/properties
+    """
 
     def _delegate_property_get(self, name, *args, **kwargs):
         raise TypeError("You cannot access the "
@@ -57,7 +59,7 @@ class PandasDelegate(object):
     def _add_delegate_accessors(cls, delegate, accessors, typ,
                                 overwrite=False):
         """
-        add accessors to cls from the delegate class
+        Add accessors to cls from the delegate class.
 
         Parameters
         ----------
@@ -146,7 +148,8 @@ def delegate_names(delegate, accessors, typ, overwrite=False):
 # 2. We use a UserWarning instead of a custom Warning
 
 class CachedAccessor(object):
-    """Custom property-like object (descriptor) for caching accessors.
+    """
+    Custom property-like object (descriptor) for caching accessors.
 
     Parameters
     ----------
@@ -189,13 +192,18 @@ def _register_accessor(name, cls):
     return decorator
 
 
-_doc = """Register a custom accessor on %(klass)s objects.
+_doc = """\
+Register a custom accessor on %(klass)s objects.
 
 Parameters
 ----------
 name : str
     Name under which the accessor should be registered. A warning is issued
     if this name conflicts with a preexisting attribute.
+
+See Also
+--------
+%(others)s
 
 Notes
 -----
@@ -246,10 +254,6 @@ Back in an interactive IPython session:
     (5.0, 10.0)
     >>> ds.geo.plot()
     # plots data on a map
-
-See Also
---------
-%(others)s
 """
 
 

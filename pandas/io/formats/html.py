@@ -5,7 +5,6 @@ Module for formatting output data in HTML.
 
 from __future__ import print_function
 
-from distutils.version import LooseVersion
 from textwrap import dedent
 
 from pandas.compat import OrderedDict, lzip, map, range, u, unichr, zip
@@ -16,6 +15,7 @@ from pandas import compat
 import pandas.core.common as com
 from pandas.core.config import get_option
 
+from pandas.io.common import _is_url
 from pandas.io.formats.format import (
     TableFormatter, buffer_put_lines, get_level_lengths)
 from pandas.io.formats.printing import pprint_thing
@@ -25,8 +25,8 @@ class HTMLFormatter(TableFormatter):
 
     indent_delta = 2
 
-    def __init__(self, formatter, classes=None, max_rows=None, max_cols=None,
-                 notebook=False, border=None, table_id=None):
+    def __init__(self, formatter, classes=None, notebook=False, border=None,
+                 table_id=None, render_links=False):
         self.fmt = formatter
         self.classes = classes
 
@@ -35,17 +35,21 @@ class HTMLFormatter(TableFormatter):
         self.elements = []
         self.bold_rows = self.fmt.kwds.get('bold_rows', False)
         self.escape = self.fmt.kwds.get('escape', True)
-
-        self.max_rows = max_rows or len(self.fmt.frame)
-        self.max_cols = max_cols or len(self.fmt.columns)
         self.show_dimensions = self.fmt.show_dimensions
-        self.is_truncated = (self.max_rows < len(self.fmt.frame) or
-                             self.max_cols < len(self.fmt.columns))
         self.notebook = notebook
         if border is None:
             border = get_option('display.html.border')
         self.border = border
         self.table_id = table_id
+        self.render_links = render_links
+
+    @property
+    def is_truncated(self):
+        return self.fmt.is_truncated
+
+    @property
+    def ncols(self):
+        return len(self.fmt.tr_frame.columns)
 
     def write(self, s, indent=0):
         rs = pprint_thing(s)
@@ -74,9 +78,19 @@ class HTMLFormatter(TableFormatter):
                                ('>', r'&gt;')])
         else:
             esc = {}
+
         rs = pprint_thing(s, escape_chars=esc).strip()
-        self.write(u'{start}{rs}</{kind}>'
-                   .format(start=start_tag, rs=rs, kind=kind), indent)
+
+        if self.render_links and _is_url(rs):
+            rs_unescaped = pprint_thing(s, escape_chars={}).strip()
+            start_tag += '<a href="{url}" target="_blank">'.format(
+                url=rs_unescaped)
+            end_a = '</a>'
+        else:
+            end_a = ''
+
+        self.write(u'{start}{rs}{end_a}</{kind}>'.format(
+            start=start_tag, rs=rs, end_a=end_a, kind=kind), indent)
 
     def write_tr(self, line, indent=0, indent_delta=0, header=False,
                  align=None, tags=None, nindex_levels=0):
@@ -158,15 +172,7 @@ class HTMLFormatter(TableFormatter):
             _classes.extend(self.classes)
 
         if self.notebook:
-            div_style = ''
-            try:
-                import IPython
-                if IPython.__version__ < LooseVersion('3.0.0'):
-                    div_style = ' style="max-width:1500px;overflow:auto;"'
-            except (ImportError, AttributeError):
-                pass
-
-            self.write('<div{style}>'.format(style=div_style))
+            self.write('<div>')
 
         self.write_style()
 
@@ -301,12 +307,8 @@ class HTMLFormatter(TableFormatter):
         if all((self.fmt.has_index_names,
                 self.fmt.index,
                 self.fmt.show_index_names)):
-            row = ([x if x is not None else ''
-                    for x in self.frame.index.names] +
-                   [''] * min(len(self.columns), self.max_cols))
-            if truncate_h:
-                ins_col = row_levels + self.fmt.tr_col_num
-                row.insert(ins_col, '')
+            row = ([x if x is not None else '' for x in self.frame.index.names]
+                   + [''] * (self.ncols + (1 if truncate_h else 0)))
             self.write_tr(row, indent, self.indent_delta, header=True)
 
         indent -= self.indent_delta
@@ -318,9 +320,7 @@ class HTMLFormatter(TableFormatter):
         self.write('<tbody>', indent)
         indent += self.indent_delta
 
-        fmt_values = {}
-        for i in range(min(len(self.columns), self.max_cols)):
-            fmt_values[i] = self.fmt._format_col(i)
+        fmt_values = {i: self.fmt._format_col(i) for i in range(self.ncols)}
 
         # write values
         if self.fmt.index and isinstance(self.frame.index, ABCMultiIndex):
@@ -338,7 +338,6 @@ class HTMLFormatter(TableFormatter):
         truncate_h = self.fmt.truncate_h
         truncate_v = self.fmt.truncate_v
 
-        ncols = len(self.fmt.tr_frame.columns)
         nrows = len(self.fmt.tr_frame)
 
         if self.fmt.index:
@@ -362,7 +361,7 @@ class HTMLFormatter(TableFormatter):
             row = []
             if self.fmt.index:
                 row.append(index_values[i])
-            row.extend(fmt_values[j][i] for j in range(ncols))
+            row.extend(fmt_values[j][i] for j in range(self.ncols))
 
             if truncate_h:
                 dot_col_ix = self.fmt.tr_col_num + row_levels
@@ -376,7 +375,6 @@ class HTMLFormatter(TableFormatter):
         truncate_h = self.fmt.truncate_h
         truncate_v = self.fmt.truncate_v
         frame = self.fmt.tr_frame
-        ncols = len(frame.columns)
         nrows = len(frame)
         row_levels = self.frame.index.nlevels
 
@@ -454,7 +452,7 @@ class HTMLFormatter(TableFormatter):
                     j += 1
                     row.append(v)
 
-                row.extend(fmt_values[j][i] for j in range(ncols))
+                row.extend(fmt_values[j][i] for j in range(self.ncols))
                 if truncate_h:
                     row.insert(row_levels - sparse_offset +
                                self.fmt.tr_col_num, '...')
@@ -466,7 +464,7 @@ class HTMLFormatter(TableFormatter):
                     sparsify=False, adjoin=False, names=False)))
                 row = []
                 row.extend(idx_values[i])
-                row.extend(fmt_values[j][i] for j in range(ncols))
+                row.extend(fmt_values[j][i] for j in range(self.ncols))
                 if truncate_h:
                     row.insert(row_levels + self.fmt.tr_col_num, '...')
                 self.write_tr(row, indent, self.indent_delta, tags=None,

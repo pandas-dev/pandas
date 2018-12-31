@@ -634,6 +634,10 @@ class NDFrameGroupBy(GroupBy):
         dropna : Drop groups that do not pass the filter. True by default;
             if False, groups that evaluate False are filled with NaNs.
 
+        Returns
+        -------
+        filtered : DataFrame
+
         Notes
         -----
         Each subframe is endowed the attribute 'name' in case you need to know
@@ -651,10 +655,6 @@ class NDFrameGroupBy(GroupBy):
         1  bar  2  5.0
         3  bar  4  1.0
         5  bar  6  9.0
-
-        Returns
-        -------
-        filtered : DataFrame
         """
 
         indices = []
@@ -706,10 +706,17 @@ class SeriesGroupBy(GroupBy):
         else:
             return self._selection
 
-    _agg_doc = dedent("""
+    _agg_see_also_doc = dedent("""
+    See Also
+    --------
+    pandas.Series.groupby.apply
+    pandas.Series.groupby.transform
+    pandas.Series.aggregate
+    """)
+
+    _agg_examples_doc = dedent("""
     Examples
     --------
-
     >>> s = pd.Series([1, 2, 3, 4])
 
     >>> s
@@ -733,13 +740,6 @@ class SeriesGroupBy(GroupBy):
        min  max
     1    1    2
     2    3    4
-
-    See Also
-    --------
-    pandas.Series.groupby.apply
-    pandas.Series.groupby.transform
-    pandas.Series.aggregate
-
     """)
 
     @Appender(_apply_docs['template']
@@ -748,11 +748,12 @@ class SeriesGroupBy(GroupBy):
     def apply(self, func, *args, **kwargs):
         return super(SeriesGroupBy, self).apply(func, *args, **kwargs)
 
-    @Appender(_agg_doc)
-    @Appender(_shared_docs['aggregate'] % dict(
-        klass='Series',
-        versionadded='',
-        axis=''))
+    @Substitution(see_also=_agg_see_also_doc,
+                  examples=_agg_examples_doc,
+                  versionadded='',
+                  klass='Series',
+                  axis='')
+    @Appender(_shared_docs['aggregate'])
     def aggregate(self, func_or_funcs, *args, **kwargs):
         _level = kwargs.pop('_level', None)
         if isinstance(func_or_funcs, compat.string_types):
@@ -826,8 +827,9 @@ class SeriesGroupBy(GroupBy):
         for name, func in arg:
             obj = self
             if name in results:
-                raise SpecificationError('Function names must be unique, '
-                                         'found multiple named %s' % name)
+                raise SpecificationError(
+                    'Function names must be unique, found multiple named '
+                    '{}'.format(name))
 
             # reset the cache so that we
             # only include the named selection
@@ -1027,8 +1029,7 @@ class SeriesGroupBy(GroupBy):
         try:
             sorter = np.lexsort((val, ids))
         except TypeError:  # catches object dtypes
-            msg = ('val.dtype must be object, got {dtype}'
-                   .format(dtype=val.dtype))
+            msg = 'val.dtype must be object, got {}'.format(val.dtype)
             assert val.dtype == object, msg
             val, _ = algorithms.factorize(val, sort=False)
             sorter = np.lexsort((val, ids))
@@ -1112,7 +1113,7 @@ class SeriesGroupBy(GroupBy):
             lab = cut(Series(val), bins, include_lowest=True)
             lev = lab.cat.categories
             lab = lev.take(lab.cat.codes)
-            llab = lambda lab, inc: lab[inc]._multiindex.labels[-1]
+            llab = lambda lab, inc: lab[inc]._multiindex.codes[-1]
 
         if is_interval_dtype(lab):
             # TODO: should we do this inside II?
@@ -1163,7 +1164,7 @@ class SeriesGroupBy(GroupBy):
             out, labels[-1] = out[sorter], labels[-1][sorter]
 
         if bins is None:
-            mi = MultiIndex(levels=levels, labels=labels, names=names,
+            mi = MultiIndex(levels=levels, codes=labels, names=names,
                             verify_integrity=False)
 
             if is_integer_dtype(out):
@@ -1191,10 +1192,10 @@ class SeriesGroupBy(GroupBy):
             out, left[-1] = out[sorter], left[-1][sorter]
 
         # build the multi-index w/ full levels
-        labels = list(map(lambda lab: np.repeat(lab[diff], nbin), labels[:-1]))
-        labels.append(left[-1])
+        codes = list(map(lambda lab: np.repeat(lab[diff], nbin), labels[:-1]))
+        codes.append(left[-1])
 
-        mi = MultiIndex(levels=levels, labels=labels, names=names,
+        mi = MultiIndex(levels=levels, codes=codes, names=names,
                         verify_integrity=False)
 
         if is_integer_dtype(out):
@@ -1221,9 +1222,15 @@ class SeriesGroupBy(GroupBy):
         return func(self)
 
     def pct_change(self, periods=1, fill_method='pad', limit=None, freq=None):
-        """Calculate percent change of each value to previous entry in group"""
+        """Calcuate pct_change of each value to previous entry in group"""
+        # TODO: Remove this conditional when #23918 is fixed
+        if freq:
+            return self.apply(lambda x: x.pct_change(periods=periods,
+                                                     fill_method=fill_method,
+                                                     limit=limit, freq=freq))
         filled = getattr(self, fill_method)(limit=limit)
-        shifted = filled.shift(periods=periods, freq=freq)
+        fill_grp = filled.groupby(self.grouper.labels)
+        shifted = fill_grp.shift(periods=periods, freq=freq)
 
         return (filled / shifted) - 1
 
@@ -1240,7 +1247,15 @@ class DataFrameGroupBy(NDFrameGroupBy):
 
     _block_agg_axis = 1
 
-    _agg_doc = dedent("""
+    _agg_see_also_doc = dedent("""
+    See Also
+    --------
+    pandas.DataFrame.groupby.apply
+    pandas.DataFrame.groupby.transform
+    pandas.DataFrame.aggregate
+    """)
+
+    _agg_examples_doc = dedent("""
     Examples
     --------
 
@@ -1288,19 +1303,14 @@ class DataFrameGroupBy(NDFrameGroupBy):
     A
     1   1   2  0.590716
     2   3   4  0.704907
-
-    See Also
-    --------
-    pandas.DataFrame.groupby.apply
-    pandas.DataFrame.groupby.transform
-    pandas.DataFrame.aggregate
     """)
 
-    @Appender(_agg_doc)
-    @Appender(_shared_docs['aggregate'] % dict(
-        klass='DataFrame',
-        versionadded='',
-        axis=''))
+    @Substitution(see_also=_agg_see_also_doc,
+                  examples=_agg_examples_doc,
+                  versionadded='',
+                  klass='DataFrame',
+                  axis='')
+    @Appender(_shared_docs['aggregate'])
     def aggregate(self, arg, *args, **kwargs):
         return super(DataFrameGroupBy, self).aggregate(arg, *args, **kwargs)
 

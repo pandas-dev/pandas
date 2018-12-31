@@ -1,12 +1,10 @@
 .. _docstring:
 
+{{ header }}
+
 ======================
 pandas docstring guide
 ======================
-
-.. note::
-  `Video tutorial: Pandas docstring guide
-  <https://www.youtube.com/watch?v=EOA0lUeW4NI>`_ by Frank Akogun.
 
 About docstrings and standards
 ------------------------------

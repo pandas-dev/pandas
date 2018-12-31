@@ -1173,6 +1173,22 @@ class TestStyler(object):
         assert ctx['body'][1][2]['is_visible']
         assert ctx['body'][1][2]['display_value'] == 3
 
+    def test_pipe(self):
+        def set_caption_from_template(styler, a, b):
+            return styler.set_caption(
+                'Dataframe with a = {a} and b = {b}'.format(a=a, b=b))
+
+        styler = self.df.style.pipe(set_caption_from_template, 'A', b='B')
+        assert 'Dataframe with a = A and b = B' in styler.render()
+
+        # Test with an argument that is a (callable, keyword_name) pair.
+        def f(a, b, styler):
+            return (a, b, styler)
+
+        styler = self.df.style
+        result = styler.pipe((f, 'styler'), a=1, b=2)
+        assert result == (1, 2, styler)
+
 
 @td.skip_if_no_mpl
 class TestStylerMatplotlibDep(object):

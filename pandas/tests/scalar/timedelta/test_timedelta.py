@@ -4,7 +4,7 @@ from datetime import timedelta
 import numpy as np
 import pytest
 
-from pandas._libs.tslib import NaT, iNaT
+from pandas._libs.tslibs import NaT, iNaT
 import pandas.compat as compat
 
 import pandas as pd
@@ -44,10 +44,8 @@ class TestTimedeltaArithmetic(object):
             with pytest.raises(TypeError):
                 left + right
 
-            # GH 20829: python 2 comparison naturally does not raise TypeError
-            if compat.PY3:
-                with pytest.raises(TypeError):
-                    left > right
+            with pytest.raises(TypeError):
+                left > right
 
             assert not left == right
             assert left != right
@@ -107,9 +105,12 @@ class TestTimedeltaComparison(object):
         expected = np.array([False, False])
         tm.assert_numpy_array_equal(result, expected)
 
+    @pytest.mark.skip(reason="GH#20829 is reverted until after 0.24.0")
     def test_compare_custom_object(self):
-        """Make sure non supported operations on Timedelta returns NonImplemented
-        and yields to other operand (GH20829)."""
+        """
+        Make sure non supported operations on Timedelta returns NonImplemented
+        and yields to other operand (GH#20829).
+        """
         class CustomClass(object):
 
             def __init__(self, cmp_result=None):
@@ -139,11 +140,7 @@ class TestTimedeltaComparison(object):
 
         assert t == CustomClass(cmp_result=True)
 
-    @pytest.mark.skipif(compat.PY2,
-                        reason="python 2 does not raise TypeError for \
-                               comparisons of different types")
-    @pytest.mark.parametrize("val", [
-        "string", 1])
+    @pytest.mark.parametrize("val", ["string", 1])
     def test_compare_unknown_type(self, val):
         # GH20829
         t = Timedelta('1s')

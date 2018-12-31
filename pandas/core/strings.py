@@ -15,7 +15,7 @@ from pandas.util._decorators import Appender, deprecate_kwarg
 from pandas.core.dtypes.common import (
     ensure_object, is_bool_dtype, is_categorical_dtype, is_integer,
     is_list_like, is_object_dtype, is_re, is_scalar, is_string_like)
-from pandas.core.dtypes.generic import ABCIndex, ABCSeries
+from pandas.core.dtypes.generic import ABCIndexClass, ABCSeries
 from pandas.core.dtypes.missing import isna
 
 from pandas.core.algorithms import take_1d
@@ -123,16 +123,16 @@ def str_count(arr, pat, flags=0):
     counts : Series or Index
         Same type as the calling object containing the integer counts.
 
+    See Also
+    --------
+    re : Standard library module for regular expressions.
+    str.count : Standard library version, without regular expression support.
+
     Notes
     -----
     Some characters need to be escaped when passing in `pat`.
     eg. ``'$'`` has a special meaning in regex and must be escaped when
     finding this literal character.
-
-    See Also
-    --------
-    re : Standard library module for regular expressions.
-    str.count : Standard library version, without regular expression support.
 
     Examples
     --------
@@ -931,7 +931,7 @@ def str_extractall(arr, pat, flags=0):
     if regex.groups == 0:
         raise ValueError("pattern contains no capture groups")
 
-    if isinstance(arr, ABCIndex):
+    if isinstance(arr, ABCIndexClass):
         arr = arr.to_series().reset_index(drop=True)
 
     names = dict(zip(regex.groupindex.values(), regex.groupindex.keys()))
@@ -978,6 +978,10 @@ def str_get_dummies(arr, sep='|'):
     -------
     dummies : DataFrame
 
+    See Also
+    --------
+    get_dummies
+
     Examples
     --------
     >>> pd.Series(['a|b', 'a', 'a|c']).str.get_dummies()
@@ -991,10 +995,6 @@ def str_get_dummies(arr, sep='|'):
     0  1  1  0
     1  0  0  0
     2  1  0  1
-
-    See Also
-    --------
-    get_dummies
     """
     arr = arr.fillna('')
     try:
@@ -1039,15 +1039,15 @@ def str_join(arr, sep):
     AttributeError
         If the supplied Series contains neither strings nor lists.
 
-    Notes
-    -----
-    If any of the list items is not a string object, the result of the join
-    will be `NaN`.
-
     See Also
     --------
     str.join : Standard library version of this method.
     Series.str.split : Split strings around given separator/delimiter.
+
+    Notes
+    -----
+    If any of the list items is not a string object, the result of the join
+    will be `NaN`.
 
     Examples
     --------
@@ -1854,7 +1854,7 @@ class StringMethods(NoNewAttributesMixin):
     def _wrap_result(self, result, use_codes=True,
                      name=None, expand=None, fill_value=np.nan):
 
-        from pandas.core.index import Index, MultiIndex
+        from pandas import Index, Series, MultiIndex
 
         # for category, we do the stuff on the categories, so blow it up
         # to the full series again
@@ -1862,7 +1862,8 @@ class StringMethods(NoNewAttributesMixin):
         # so make it possible to skip this step as the method already did this
         # before the transformation...
         if use_codes and self._is_categorical:
-            result = take_1d(result, self._orig.cat.codes,
+            # if self._orig is a CategoricalIndex, there is no .cat-accessor
+            result = take_1d(result, Series(self._orig, copy=False).cat.codes,
                              fill_value=fill_value)
 
         if not hasattr(result, 'ndim') or not hasattr(result, 'dtype'):
@@ -2260,9 +2261,11 @@ class StringMethods(NoNewAttributesMixin):
             result = cat_core(all_cols, sep)
 
         if isinstance(self._orig, Index):
-            result = Index(result, name=self._orig.name)
+            # add dtype for case that result is all-NA
+            result = Index(result, dtype=object, name=self._orig.name)
         else:  # Series
-            result = Series(result, index=data.index, name=self._orig.name)
+            result = Series(result, dtype=object, index=data.index,
+                            name=self._orig.name)
         return result
 
     _shared_docs['str_split'] = ("""
@@ -2804,7 +2807,8 @@ class StringMethods(NoNewAttributesMixin):
         return self._wrap_result(result)
 
     def normalize(self, form):
-        """Return the Unicode normal form for the strings in the Series/Index.
+        """
+        Return the Unicode normal form for the strings in the Series/Index.
         For more information on the forms, see the
         :func:`unicodedata.normalize`.
 

@@ -102,15 +102,7 @@ def rank_1d_{{dtype}}(object in_arr, ties_method='average',
     ranks = np.empty(n, dtype='f8')
 
     {{if dtype == 'object'}}
-
-    try:
-        _as = np.lexsort(keys=order)
-    except TypeError:
-        # lexsort on object array will raise TypeError for numpy version
-        # earlier than 1.11.0. Use argsort with order argument instead.
-        _dt = [('values', 'O'), ('mask', '?')]
-        _values = np.asarray(list(zip(order[0], order[1])), dtype=_dt)
-        _as = np.argsort(_values, kind='mergesort', order=('mask', 'values'))
+    _as = np.lexsort(keys=order)
     {{else}}
     if tiebreak == TIEBREAK_FIRST:
         # need to use a stable sort here

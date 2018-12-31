@@ -7,21 +7,18 @@ from datetime import datetime
 import pytest
 
 import pandas as pd
-from pandas import Timestamp
-from pandas import compat
+from pandas import Timestamp, compat
 
-from pandas.tseries.offsets import (BMonthBegin, BMonthEnd,
-                                    MonthBegin, MonthEnd,
-                                    YearEnd, YearBegin, BYearEnd, BYearBegin,
-                                    QuarterEnd, QuarterBegin,
-                                    BQuarterEnd, BQuarterBegin)
+from pandas.tseries.offsets import (
+    BMonthBegin, BMonthEnd, BQuarterBegin, BQuarterEnd, BYearBegin, BYearEnd,
+    MonthBegin, MonthEnd, QuarterBegin, QuarterEnd, YearBegin, YearEnd)
 
-from .test_offsets import Base
 from .common import assert_offset_equal, assert_onOffset
-
+from .test_offsets import Base
 
 # --------------------------------------------------------------------
 # Misc
+
 
 def test_quarterly_dont_normalize():
     date = datetime(2012, 3, 31, 5, 30)

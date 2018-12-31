@@ -178,6 +178,33 @@ def test_is_dict_like_fails(ll):
     assert not inference.is_dict_like(ll)
 
 
+@pytest.mark.parametrize("has_keys", [True, False])
+@pytest.mark.parametrize("has_getitem", [True, False])
+@pytest.mark.parametrize("has_contains", [True, False])
+def test_is_dict_like_duck_type(has_keys, has_getitem, has_contains):
+    class DictLike(object):
+        def __init__(self, d):
+            self.d = d
+
+        if has_keys:
+            def keys(self):
+                return self.d.keys()
+
+        if has_getitem:
+            def __getitem__(self, key):
+                return self.d.__getitem__(key)
+
+        if has_contains:
+            def __contains__(self, key):
+                return self.d.__contains__(key)
+
+    d = DictLike({1: 2})
+    result = inference.is_dict_like(d)
+    expected = has_keys and has_getitem and has_contains
+
+    assert result is expected
+
+
 def test_is_file_like(mock):
     class MockFile(object):
         pass
@@ -495,6 +522,13 @@ class TestTypeInference(object):
     # Dummy class used for testing with Python objects
     class Dummy():
         pass
+
+    def test_inferred_dtype_fixture(self, any_skipna_inferred_dtype):
+        # see pandas/conftest.py
+        inferred_dtype, values = any_skipna_inferred_dtype
+
+        # make sure the inferred dtype of the fixture is as requested
+        assert inferred_dtype == lib.infer_dtype(values, skipna=True)
 
     def test_length_zero(self):
         result = lib.infer_dtype(np.array([], dtype='i4'))
@@ -875,37 +909,27 @@ class TestTypeInference(object):
         arr = np.array([np.nan, pd.NaT, np.datetime64('nat')])
         assert lib.is_datetime_array(arr)
         assert lib.is_datetime64_array(arr)
-        assert not lib.is_timedelta_array(arr)
-        assert not lib.is_timedelta64_array(arr)
         assert not lib.is_timedelta_or_timedelta64_array(arr)
 
         arr = np.array([np.nan, pd.NaT, np.timedelta64('nat')])
         assert not lib.is_datetime_array(arr)
         assert not lib.is_datetime64_array(arr)
-        assert lib.is_timedelta_array(arr)
-        assert lib.is_timedelta64_array(arr)
         assert lib.is_timedelta_or_timedelta64_array(arr)
 
         arr = np.array([np.nan, pd.NaT, np.datetime64('nat'),
                         np.timedelta64('nat')])
         assert not lib.is_datetime_array(arr)
         assert not lib.is_datetime64_array(arr)
-        assert not lib.is_timedelta_array(arr)
-        assert not lib.is_timedelta64_array(arr)
         assert not lib.is_timedelta_or_timedelta64_array(arr)
 
         arr = np.array([np.nan, pd.NaT])
         assert lib.is_datetime_array(arr)
         assert lib.is_datetime64_array(arr)
-        assert lib.is_timedelta_array(arr)
-        assert lib.is_timedelta64_array(arr)
         assert lib.is_timedelta_or_timedelta64_array(arr)
 
         arr = np.array([np.nan, np.nan], dtype=object)
         assert not lib.is_datetime_array(arr)
         assert not lib.is_datetime64_array(arr)
-        assert not lib.is_timedelta_array(arr)
-        assert not lib.is_timedelta64_array(arr)
         assert not lib.is_timedelta_or_timedelta64_array(arr)
 
         assert lib.is_datetime_with_singletz_array(
@@ -923,8 +947,6 @@ class TestTypeInference(object):
             'is_datetime_array',
             'is_datetime64_array',
             'is_bool_array',
-            'is_timedelta_array',
-            'is_timedelta64_array',
             'is_timedelta_or_timedelta64_array',
             'is_date_array',
             'is_time_array',
@@ -1168,7 +1190,7 @@ class TestNumberScalar(object):
         assert not is_timedelta64_ns_dtype('timedelta64')
         assert is_timedelta64_ns_dtype('timedelta64[ns]')
 
-        tdi = TimedeltaIndex([1e14, 2e14], dtype='timedelta64')
+        tdi = TimedeltaIndex([1e14, 2e14], dtype='timedelta64[ns]')
         assert is_timedelta64_dtype(tdi)
         assert is_timedelta64_ns_dtype(tdi)
         assert is_timedelta64_ns_dtype(tdi.astype('timedelta64[ns]'))
@@ -1272,10 +1294,7 @@ def test_nan_to_nat_conversions():
     s._data = s._data.setitem(indexer=tuple([slice(8, 9)]), value=np.nan)
     assert (isna(s[8]))
 
-    # numpy < 1.7.0 is wrong
-    from distutils.version import LooseVersion
-    if LooseVersion(np.__version__) >= LooseVersion('1.7.0'):
-        assert (s[8].value == np.datetime64('NaT').astype(np.int64))
+    assert (s[8].value == np.datetime64('NaT').astype(np.int64))
 
 
 @td.skip_if_no_scipy

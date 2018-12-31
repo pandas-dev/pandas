@@ -1,5 +1,7 @@
 from __future__ import division
 
+from itertools import permutations
+
 import numpy as np
 import pytest
 
@@ -135,3 +137,36 @@ class TestIntervalTree(object):
 
         expected = found if tree.closed_right else not_found
         tm.assert_numpy_array_equal(expected, tree.get_indexer(x + 0.5))
+
+    @pytest.mark.parametrize('left, right, expected', [
+        (np.array([0, 1, 4]), np.array([2, 3, 5]), True),
+        (np.array([0, 1, 2]), np.array([5, 4, 3]), True),
+        (np.array([0, 1, np.nan]), np.array([5, 4, np.nan]), True),
+        (np.array([0, 2, 4]), np.array([1, 3, 5]), False),
+        (np.array([0, 2, np.nan]), np.array([1, 3, np.nan]), False)])
+    @pytest.mark.parametrize('order', map(list, permutations(range(3))))
+    def test_is_overlapping(self, closed, order, left, right, expected):
+        # GH 23309
+        tree = IntervalTree(left[order], right[order], closed=closed)
+        result = tree.is_overlapping
+        assert result is expected
+
+    @pytest.mark.parametrize('order', map(list, permutations(range(3))))
+    def test_is_overlapping_endpoints(self, closed, order):
+        """shared endpoints are marked as overlapping"""
+        # GH 23309
+        left, right = np.arange(3), np.arange(1, 4)
+        tree = IntervalTree(left[order], right[order], closed=closed)
+        result = tree.is_overlapping
+        expected = closed is 'both'
+        assert result is expected
+
+    @pytest.mark.parametrize('left, right', [
+        (np.array([], dtype='int64'), np.array([], dtype='int64')),
+        (np.array([0], dtype='int64'), np.array([1], dtype='int64')),
+        (np.array([np.nan]), np.array([np.nan])),
+        (np.array([np.nan] * 3), np.array([np.nan] * 3))])
+    def test_is_overlapping_trivial(self, closed, left, right):
+        # GH 23309
+        tree = IntervalTree(left, right, closed=closed)
+        assert tree.is_overlapping is False

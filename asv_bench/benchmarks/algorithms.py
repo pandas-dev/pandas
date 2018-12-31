@@ -1,9 +1,10 @@
-import warnings
 from importlib import import_module
 
 import numpy as np
+
 import pandas as pd
 from pandas.util import testing as tm
+
 
 for imp in ['pandas.util', 'pandas.tools.hashing']:
     try:
@@ -72,10 +73,6 @@ class Match(object):
     def setup(self):
         self.uniques = tm.makeStringIndex(1000).values
         self.all = self.uniques.repeat(10)
-
-    def time_match_string(self):
-        with warnings.catch_warnings(record=True):
-            pd.match(self.all, self.uniques)
 
 
 class Hashing(object):

@@ -1361,6 +1361,14 @@ class TestHashTable(object):
         result_unique = htable().unique(s_duplicated.values)
         tm.assert_numpy_array_equal(result_unique, expected_unique)
 
+        # test return_inverse=True
+        # reconstruction can only succeed if the inverse is correct
+        result_unique, result_inverse = htable().unique(s_duplicated.values,
+                                                        return_inverse=True)
+        tm.assert_numpy_array_equal(result_unique, expected_unique)
+        reconstr = result_unique[result_inverse]
+        tm.assert_numpy_array_equal(reconstr, s_duplicated.values)
+
     @pytest.mark.parametrize('htable, tm_dtype', [
         (ht.PyObjectHashTable, 'String'),
         (ht.StringHashTable, 'String'),
@@ -1383,7 +1391,7 @@ class TestHashTable(object):
         s_duplicated.values.setflags(write=writable)
         na_mask = s_duplicated.isna().values
 
-        result_inverse, result_unique = htable().factorize(s_duplicated.values)
+        result_unique, result_inverse = htable().factorize(s_duplicated.values)
 
         # drop_duplicates has own cython code (hash_table_func_helper.pxi)
         # and is tested separately; keeps first occurrence like ht.factorize()
