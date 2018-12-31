@@ -13,7 +13,8 @@ from dateutil.tz import tzutc
 from datetime import time as datetime_time, timedelta
 from cpython.datetime cimport (datetime, tzinfo,
                                PyDateTime_Check, PyDate_Check,
-                               PyDateTime_CheckExact, PyDateTime_IMPORT)
+                               PyDateTime_CheckExact, PyDateTime_IMPORT,
+                               PyDelta_Check)
 PyDateTime_IMPORT
 
 from pandas._libs.tslibs.ccalendar import DAY_SECONDS, HOUR_SECONDS
@@ -936,7 +937,7 @@ def tz_localize_to_utc(ndarray[int64_t] vals, object tz, object ambiguous=None,
         shift_forward = True
     elif nonexistent == 'shift_backward':
         shift_backward = True
-    elif isinstance(nonexistent, timedelta):
+    elif PyDelta_Check(nonexistent):
         shift_delta = delta_to_nanoseconds(nonexistent)
     elif nonexistent not in ('raise', None):
         msg = ("nonexistent must be one of {'NaT', 'raise', 'shift_forward', "
