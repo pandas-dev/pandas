@@ -411,6 +411,7 @@ Other Enhancements
 - :meth:`DataFrame.to_stata` and :class:`pandas.io.stata.StataWriter117` can write mixed sting columns to Stata strl format (:issue:`23633`)
 - :meth:`DataFrame.between_time` and :meth:`DataFrame.at_time` have gained the ``axis`` parameter (:issue:`8839`)
 - The ``scatter_matrix``, ``andrews_curves``, ``parallel_coordinates``, ``lag_plot``, ``autocorrelation_plot``, ``bootstrap_plot``, and ``radviz`` plots from the ``pandas.plotting`` module are now accessible from calling :meth:`DataFrame.plot` (:issue:`11978`)
+- :meth:`DataFrame.to_records` now accepts ``index_dtypes`` and ``column_dtypes`` parameters to allow different data types in stored column and index records (:issue:`18146`)
 - :class:`IntervalIndex` has gained the :attr:`~IntervalIndex.is_overlapping` attribute to indicate if the ``IntervalIndex`` contains any overlapping intervals (:issue:`23309`)
 - :func:`pandas.DataFrame.to_sql` has gained the ``method`` argument to control SQL insertion clause. See the :ref:`insertion method <io.sql.method>` section in the documentation. (:issue:`8953`)
 
@@ -1367,6 +1368,7 @@ Datetimelike
 - Bug in :attr:`Series.dt` where the cache would not update properly after an in-place operation (:issue:`24408`)
 - Bug in :class:`PeriodIndex` where comparisons against an array-like object with length 1 failed to raise ``ValueError`` (:issue:`23078`)
 - Bug in :meth:`DatetimeIndex.astype`, :meth:`PeriodIndex.astype` and :meth:`TimedeltaIndex.astype` ignoring the sign of the ``dtype`` for unsigned integer dtypes (:issue:`24405`).
+- Fixed bug in :meth:`Series.max` with ``datetime64[ns]``-dtype failing to return ``NaT`` when nulls are present and ``skipna=False`` is passed (:issue:`24265`)
 
 Timedelta
 ^^^^^^^^^
@@ -1412,6 +1414,7 @@ Timezones
 - Bug in :class:`Timestamp` constructor where a ``dateutil.tz.tzutc`` timezone passed with a ``datetime.datetime`` argument would be converted to a ``pytz.UTC`` timezone (:issue:`23807`)
 - Bug in :func:`to_datetime` where ``utc=True`` was not respected when specifying a ``unit`` and ``errors='ignore'`` (:issue:`23758`)
 - Bug in :func:`to_datetime` where ``utc=True`` was not respected when passing a :class:`Timestamp` (:issue:`24415`)
+- Bug in :meth:`DataFrame.any` returns wrong value when ``axis=1`` and the data is of datetimelike type (:issue:`23070`)
 
 Offsets
 ^^^^^^^
@@ -1439,7 +1442,7 @@ Numeric
 - :meth:`Series.agg` can now handle numpy NaN-aware methods like :func:`numpy.nansum` (:issue:`19629`)
 - Bug in :meth:`Series.rank` and :meth:`DataFrame.rank` when ``pct=True`` and more than 2:sup:`24` rows are present resulted in percentages greater than 1.0 (:issue:`18271`)
 - Calls such as :meth:`DataFrame.round` with a non-unique :meth:`CategoricalIndex` now return expected data. Previously, data would be improperly duplicated (:issue:`21809`).
-- Added ``log10`` to the list of supported functions in :meth:`DataFrame.eval` (:issue:`24139`)
+- Added ``log10``, `floor` and `ceil` to the list of supported functions in :meth:`DataFrame.eval` (:issue:`24139`, :issue:`24353`)
 - Logical operations ``&, |, ^`` between :class:`Series` and :class:`Index` will no longer raise ``ValueError`` (:issue:`22092`)
 - Checking PEP 3141 numbers in :func:`~pandas.api.types.is_scalar` function returns ``True`` (:issue:`22903`)
 - Reduction methods like :meth:`Series.sum` now accept the default value of ``keepdims=False`` when called from a NumPy ufunc, rather than raising a ``TypeError``. Full support for ``keepdims`` has not been implemented (:issue:`24356`).
@@ -1493,6 +1496,7 @@ Indexing
 - Bug in :class:`Index` slicing with boolean :class:`Index` may raise ``TypeError`` (:issue:`22533`)
 - Bug in ``PeriodArray.__setitem__`` when accepting slice and list-like value (:issue:`23978`)
 - Bug in :class:`DatetimeIndex`, :class:`TimedeltaIndex` where indexing with ``Ellipsis`` would lose their ``freq`` attribute (:issue:`21282`)
+- Bug in ``iat`` where using it to assign an incompatible value would create a new column (:issue:`23236`)
 
 Missing
 ^^^^^^^

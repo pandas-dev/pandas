@@ -15,7 +15,7 @@ import pandas.compat as compat
 from pandas.compat.numpy import function as nv
 from pandas.errors import (
     AbstractMethodError, NullFrequencyError, PerformanceWarning)
-from pandas.util._decorators import Appender, Substitution, deprecate_kwarg
+from pandas.util._decorators import Appender, Substitution
 
 from pandas.core.dtypes.common import (
     is_bool_dtype, is_categorical_dtype, is_datetime64_any_dtype,
@@ -28,13 +28,14 @@ from pandas.core.dtypes.generic import ABCDataFrame, ABCIndexClass, ABCSeries
 from pandas.core.dtypes.missing import isna
 
 from pandas.core import nanops
-from pandas.core.algorithms import checked_add_with_arr, take, unique1d
+from pandas.core.algorithms import (
+    checked_add_with_arr, take, unique1d, value_counts)
 import pandas.core.common as com
 
 from pandas.tseries import frequencies
 from pandas.tseries.offsets import DateOffset, Tick
 
-from .base import ExtensionOpsMixin
+from .base import ExtensionArray, ExtensionOpsMixin
 
 
 def _make_comparison_op(cls, op):
@@ -343,7 +344,9 @@ class TimelikeOps(object):
         return self._round(freq, RoundTo.PLUS_INFTY, ambiguous, nonexistent)
 
 
-class DatetimeLikeArrayMixin(ExtensionOpsMixin, AttributesMixin):
+class DatetimeLikeArrayMixin(ExtensionOpsMixin,
+                             AttributesMixin,
+                             ExtensionArray):
     """
     Shared Base/Mixin class for DatetimeArray, TimedeltaArray, PeriodArray
 
@@ -699,7 +702,44 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin, AttributesMixin):
         """
         nv.validate_repeat(args, kwargs)
         values = self._data.repeat(repeats)
-        return type(self)(values, dtype=self.dtype)
+        return type(self)(values.view('i8'), dtype=self.dtype)
+
+    def value_counts(self, dropna=False):
+        """
+        Return a Series containing counts of unique values.
+
+        Parameters
+        ----------
+        dropna : boolean, default True
+            Don't include counts of NaT values.
+
+        Returns
+        -------
+        Series
+        """
+        from pandas import Series, Index
+
+        if dropna:
+            values = self[~self.isna()]._data
+        else:
+            values = self._data
+
+        cls = type(self)
+
+        result = value_counts(values, sort=False, dropna=dropna)
+        index = Index(cls(result.index.view('i8'), dtype=self.dtype),
+                      name=result.index.name)
+        return Series(result.values, index=index, name=result.name)
+
+    def map(self, mapper):
+        # TODO(GH-23179): Add ExtensionArray.map
+        # Need to figure out if we want ExtensionArray.map first.
+        # If so, then we can refactor IndexOpsMixin._map_values to
+        # a standalone function and call from here..
+        # Else, just rewrite _map_infer_values to do the right thing.
+        from pandas import Index
+
+        return Index(self).map(mapper).array
 
     # ------------------------------------------------------------------
     # Null Handling
@@ -1078,39 +1118,6 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin, AttributesMixin):
             return type(self)(res_values, freq='infer')
         return self._from_sequence(res_values)
 
-    @deprecate_kwarg(old_arg_name='n', new_arg_name='periods')
-    def shift(self, periods, freq=None):
-        """
-        Shift index by desired number of time frequency increments.
-
-        This method is for shifting the values of datetime-like indexes
-        by a specified time increment a given number of times.
-
-        Parameters
-        ----------
-        periods : int
-            Number of periods (or increments) to shift by,
-            can be positive or negative.
-
-            .. versionchanged:: 0.24.0
-
-        freq : pandas.DateOffset, pandas.Timedelta or string, optional
-            Frequency increment to shift by.
-            If None, the index is shifted by its own `freq` attribute.
-            Offset aliases are valid strings, e.g., 'D', 'W', 'M' etc.
-
-        Returns
-        -------
-        pandas.DatetimeIndex
-            Shifted index.
-
-        See Also
-        --------
-        Index.shift : Shift values of Index.
-        PeriodIndex.shift : Shift values of PeriodIndex.
-        """
-        return self._time_shift(periods=periods, freq=freq)
-
     def _time_shift(self, periods, freq=None):
         """
         Shift each value by `periods`.
@@ -1390,10 +1397,9 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin, AttributesMixin):
         if op:
             return op(axis=axis, skipna=skipna, **kwargs)
         else:
-            raise TypeError("cannot perform {name} with type {dtype}"
-                            .format(name=name, dtype=self.dtype))
-            # TODO: use super(DatetimeLikeArrayMixin, self)._reduce
-            #  after we subclass ExtensionArray
+            return super(DatetimeLikeArrayMixin, self)._reduce(
+                name, skipna, **kwargs
+            )
 
     def min(self, axis=None, skipna=True, *args, **kwargs):
         """
