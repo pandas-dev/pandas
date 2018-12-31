@@ -2,12 +2,13 @@
 
 .. _api.dateoffsets:
 
+============
 Date Offsets
-------------
+============
 .. currentmodule:: pandas.tseries.offsets
 
 DateOffset
-~~~~~~~~~~
+----------
 .. autosummary::
    :toctree: generated/
 
@@ -36,7 +37,7 @@ Methods
     DateOffset.onOffset
 
 BusinessDay
-~~~~~~~~~~~
+-----------
 .. autosummary::
    :toctree: generated/
 
@@ -66,7 +67,7 @@ Methods
     BusinessDay.onOffset
 
 BusinessHour
-~~~~~~~~~~~~
+------------
 .. autosummary::
    :toctree: generated/
 
@@ -95,7 +96,7 @@ Methods
     BusinessHour.onOffset
 
 CustomBusinessDay
-~~~~~~~~~~~~~~~~~
+-----------------
 .. autosummary::
    :toctree: generated/
 
@@ -124,7 +125,7 @@ Methods
     CustomBusinessDay.onOffset
 
 CustomBusinessHour
-~~~~~~~~~~~~~~~~~~
+------------------
 .. autosummary::
    :toctree: generated/
 
@@ -153,7 +154,7 @@ Methods
     CustomBusinessHour.onOffset
 
 MonthOffset
-~~~~~~~~~~~
+-----------
 .. autosummary::
    :toctree: generated/
 
@@ -183,7 +184,7 @@ Methods
     MonthOffset.onOffset
 
 MonthEnd
-~~~~~~~~
+--------
 .. autosummary::
    :toctree: generated/
 
@@ -213,7 +214,7 @@ Methods
     MonthEnd.onOffset
 
 MonthBegin
-~~~~~~~~~~
+----------
 .. autosummary::
    :toctree: generated/
 
@@ -243,7 +244,7 @@ Methods
     MonthBegin.onOffset
 
 BusinessMonthEnd
-~~~~~~~~~~~~~~~~
+----------------
 .. autosummary::
    :toctree: generated/
 
@@ -273,7 +274,7 @@ Methods
     BusinessMonthEnd.onOffset
 
 BusinessMonthBegin
-~~~~~~~~~~~~~~~~~~
+------------------
 .. autosummary::
    :toctree: generated/
 
@@ -303,7 +304,7 @@ Methods
     BusinessMonthBegin.onOffset
 
 CustomBusinessMonthEnd
-~~~~~~~~~~~~~~~~~~~~~~
+----------------------
 .. autosummary::
    :toctree: generated/
 
@@ -333,7 +334,7 @@ Methods
     CustomBusinessMonthEnd.onOffset
 
 CustomBusinessMonthBegin
-~~~~~~~~~~~~~~~~~~~~~~~~
+------------------------
 .. autosummary::
    :toctree: generated/
 
@@ -363,7 +364,7 @@ Methods
     CustomBusinessMonthBegin.onOffset
 
 SemiMonthOffset
-~~~~~~~~~~~~~~~
+---------------
 .. autosummary::
    :toctree: generated/
 
@@ -393,7 +394,7 @@ Methods
     SemiMonthOffset.onOffset
 
 SemiMonthEnd
-~~~~~~~~~~~~
+------------
 .. autosummary::
    :toctree: generated/
 
@@ -423,7 +424,7 @@ Methods
     SemiMonthEnd.onOffset
 
 SemiMonthBegin
-~~~~~~~~~~~~~~
+--------------
 .. autosummary::
    :toctree: generated/
 
@@ -453,7 +454,7 @@ Methods
     SemiMonthBegin.onOffset
 
 Week
-~~~~
+----
 .. autosummary::
    :toctree: generated/
 
@@ -483,7 +484,7 @@ Methods
     Week.onOffset
 
 WeekOfMonth
-~~~~~~~~~~~
+-----------
 .. autosummary::
    :toctree: generated/
 
@@ -512,7 +513,7 @@ Methods
     WeekOfMonth.onOffset
 
 LastWeekOfMonth
-~~~~~~~~~~~~~~~
+---------------
 .. autosummary::
    :toctree: generated/
 
@@ -541,7 +542,7 @@ Methods
     LastWeekOfMonth.onOffset
 
 QuarterOffset
-~~~~~~~~~~~~~
+-------------
 .. autosummary::
    :toctree: generated/
 
@@ -571,7 +572,7 @@ Methods
     QuarterOffset.onOffset
 
 BQuarterEnd
-~~~~~~~~~~~
+-----------
 .. autosummary::
    :toctree: generated/
 
@@ -601,7 +602,7 @@ Methods
     BQuarterEnd.onOffset
 
 BQuarterBegin
-~~~~~~~~~~~~~
+-------------
 .. autosummary::
    :toctree: generated/
 
@@ -631,7 +632,7 @@ Methods
     BQuarterBegin.onOffset
 
 QuarterEnd
-~~~~~~~~~~
+----------
 .. autosummary::
    :toctree: generated/
 
@@ -661,7 +662,7 @@ Methods
     QuarterEnd.onOffset
 
 QuarterBegin
-~~~~~~~~~~~~
+------------
 .. autosummary::
    :toctree: generated/
 
@@ -691,7 +692,7 @@ Methods
     QuarterBegin.onOffset
 
 YearOffset
-~~~~~~~~~~
+----------
 .. autosummary::
    :toctree: generated/
 
@@ -721,7 +722,7 @@ Methods
     YearOffset.onOffset
 
 BYearEnd
-~~~~~~~~
+--------
 .. autosummary::
    :toctree: generated/
 
@@ -751,7 +752,7 @@ Methods
     BYearEnd.onOffset
 
 BYearBegin
-~~~~~~~~~~
+----------
 .. autosummary::
    :toctree: generated/
 
@@ -781,7 +782,7 @@ Methods
     BYearBegin.onOffset
 
 YearEnd
-~~~~~~~
+-------
 .. autosummary::
    :toctree: generated/
 
@@ -811,7 +812,7 @@ Methods
     YearEnd.onOffset
 
 YearBegin
-~~~~~~~~~
+---------
 .. autosummary::
    :toctree: generated/
 
@@ -841,7 +842,7 @@ Methods
     YearBegin.onOffset
 
 FY5253
-~~~~~~
+------
 .. autosummary::
    :toctree: generated/
 
@@ -872,7 +873,7 @@ Methods
     FY5253.onOffset
 
 FY5253Quarter
-~~~~~~~~~~~~~
+-------------
 .. autosummary::
    :toctree: generated/
 
@@ -903,7 +904,7 @@ Methods
     FY5253Quarter.year_has_extra_week
 
 Easter
-~~~~~~
+------
 .. autosummary::
    :toctree: generated/
 
@@ -932,7 +933,7 @@ Methods
     Easter.onOffset
 
 Tick
-~~~~
+----
 .. autosummary::
    :toctree: generated/
 
@@ -961,7 +962,7 @@ Methods
     Tick.onOffset
 
 Day
-~~~
+---
 .. autosummary::
    :toctree: generated/
 
@@ -990,7 +991,7 @@ Methods
     Day.onOffset
 
 Hour
-~~~~
+----
 .. autosummary::
    :toctree: generated/
 
@@ -1019,7 +1020,7 @@ Methods
     Hour.onOffset
 
 Minute
-~~~~~~
+------
 .. autosummary::
    :toctree: generated/
 
@@ -1048,7 +1049,7 @@ Methods
     Minute.onOffset
 
 Second
-~~~~~~
+------
 .. autosummary::
    :toctree: generated/
 
@@ -1077,7 +1078,7 @@ Methods
     Second.onOffset
 
 Milli
-~~~~~
+-----
 .. autosummary::
    :toctree: generated/
 
@@ -1106,7 +1107,7 @@ Methods
     Milli.onOffset
 
 Micro
-~~~~~
+-----
 .. autosummary::
    :toctree: generated/
 
@@ -1135,7 +1136,7 @@ Methods
     Micro.onOffset
 
 Nano
-~~~~
+----
 .. autosummary::
    :toctree: generated/
 
@@ -1164,7 +1165,7 @@ Methods
     Nano.onOffset
 
 BDay
-~~~~
+----
 .. autosummary::
    :toctree: generated/
 
@@ -1198,7 +1199,7 @@ Methods
     BDay.rollforward
 
 BMonthEnd
-~~~~~~~~~
+---------
 .. autosummary::
    :toctree: generated/
 
@@ -1231,7 +1232,7 @@ Methods
     BMonthEnd.rollforward
 
 BMonthBegin
-~~~~~~~~~~~
+-----------
 .. autosummary::
    :toctree: generated/
 
@@ -1264,7 +1265,7 @@ Methods
     BMonthBegin.rollforward
 
 CBMonthEnd
-~~~~~~~~~~
+----------
 .. autosummary::
    :toctree: generated/
 
@@ -1301,7 +1302,7 @@ Methods
     CBMonthEnd.rollforward
 
 CBMonthBegin
-~~~~~~~~~~~~
+------------
 .. autosummary::
    :toctree: generated/
 
@@ -1338,7 +1339,7 @@ Methods
     CBMonthBegin.rollforward
 
 CDay
-~~~~
+----
 .. autosummary::
    :toctree: generated/
 
@@ -1373,8 +1374,9 @@ Methods
 
 .. _api.frequencies:
 
+===========
 Frequencies
------------
+===========
 .. currentmodule:: pandas.tseries.frequencies
 
 .. _api.offsets:
