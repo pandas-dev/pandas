@@ -4541,6 +4541,7 @@ class TestHDFStore(Base):
             assert isinstance(d1, DataFrame)
 
     def test_legacy_table_fixed_format_read_py2(self, datapath):
+        # GH 24510
         # legacy table with fixed format written en Python 2
         with ensure_clean_store(
                 datapath('io', 'data', 'legacy_hdf',
