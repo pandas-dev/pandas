@@ -744,44 +744,6 @@ class DatetimeLikeArrayMixin(AttributesMixin,
 
         return Index(self).map(mapper).array
 
-    def value_counts(self, dropna=False):
-        """
-        Return a Series containing counts of unique values.
-
-        Parameters
-        ----------
-        dropna : boolean, default True
-            Don't include counts of NaT values.
-
-        Returns
-        -------
-        Series
-        """
-        # n.b. moved from PeriodArray.value_counts
-        from pandas import Series, Index
-
-        if dropna:
-            values = self[~self.isna()]._data
-        else:
-            values = self._data
-
-        cls = type(self)
-
-        result = value_counts(values, sort=False, dropna=dropna)
-        index = Index(cls(result.index, dtype=self.dtype),
-                      name=result.index.name)
-        return Series(result.values, index=index, name=result.name)
-
-    def map(self, mapper):
-        # TODO(GH-23179): Add ExtensionArray.map
-        # Need to figure out if we want ExtensionArray.map first.
-        # If so, then we can refactor IndexOpsMixin._map_values to
-        # a standalone function and call from here..
-        # Else, just rewrite _map_infer_values to do the right thing.
-        from pandas import Index
-
-        return Index(self).map(mapper).array
-
     # ------------------------------------------------------------------
     # Null Handling
 
