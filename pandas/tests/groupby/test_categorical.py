@@ -888,10 +888,7 @@ def test_groupby_agg_observed_true_single_column(as_index, expected):
     result = df.groupby(
         ['a', 'b'], as_index=as_index, observed=True)['x'].sum()
 
-    if isinstance(result, pd.DataFrame):
-        tm.assert_frame_equal(result, expected)
-    else:
-        tm.assert_series_equal(result, expected)
+    assert_equal(result, expected)
 
 
 @pytest.mark.parametrize('fill_value', [None, np.nan, pd.NaT])
