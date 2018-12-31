@@ -1321,7 +1321,7 @@ Categorical
 - Bug in many methods of the ``.str``-accessor, which always failed on calling the ``CategoricalIndex.str`` constructor (:issue:`23555`, :issue:`23556`)
 - Bug in :meth:`Series.where` losing the categorical dtype for categorical data (:issue:`24077`)
 - Bug in :meth:`Categorical.apply` where ``NaN`` values could be handled unpredictably. They now remain unchanged (:issue:`24241`)
-- Bug in :meth:`Categorical.get_values` where integers would be coerced to floats with ``NaN`` values were present (:issue:`19214`)
+- Bug in :meth:`Categorical.get_values` where integers would be formatted as floats if ``NaN`` values were present (:issue:`19214`)
 
 Datetimelike
 ^^^^^^^^^^^^
@@ -1647,6 +1647,7 @@ Reshaping
 - :meth:`DataFrame.nlargest` and :meth:`DataFrame.nsmallest` now returns the correct n values when keep != 'all' also when tied on the first columns (:issue:`22752`)
 - Constructing a DataFrame with an index argument that wasn't already an instance of :class:`~pandas.core.Index` was broken (:issue:`22227`).
 - Bug in :class:`DataFrame` prevented list subclasses to be used to construction (:issue:`21226`)
+- Calling :func:`pandas.concat` on a ``Categorical`` of ints with NA values causes them to be processed as objects (formerly coerced to floats) (:issue:`19214`)
 
 .. _whatsnew_0240.bug_fixes.sparse:
 
