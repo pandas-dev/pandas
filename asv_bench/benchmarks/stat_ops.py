@@ -106,6 +106,7 @@ class Correlation(object):
             from pandas.core import nanops
             nanops._USE_BOTTLENECK = use_bottleneck
         self.df = pd.DataFrame(np.random.randn(1000, 30))
+        self.df2 = pd.DataFrame(np.random.randn(1000, 30))
         self.s = pd.Series(np.random.randn(1000))
         self.s2 = pd.Series(np.random.randn(1000))
 
@@ -114,6 +115,12 @@ class Correlation(object):
 
     def time_corr_series(self, method, use_bottleneck):
         self.s.corr(self.s2, method=method)
+
+    def time_corrwith_cols(self, method, use_bottleneck):
+        self.df.corrwith(self.df2, method=method)
+
+    def time_corrwith_rows(self, method, use_bottleneck):
+        self.df.corrwith(self.df2, axis=1, method=method)
 
 
 class Covariance(object):
