@@ -4,7 +4,6 @@
 
 import pytest
 
-import pandas as pd
 from pandas import DataFrame
 from pandas.compat import lmap
 import pandas.util.testing as tm
@@ -321,8 +320,7 @@ class TestDataFramePlots(TestPlotBase):
             1, color=color_before)
         assert len(color_after) == len(color_before)
 
-        df = pd.DataFrame(np.random.randn(48, 4),
-                          columns=list("ABCD"))
+        df = DataFrame(np.random.randn(48, 4), columns=list("ABCD"))
 
         color_list = cm.gnuplot(np.linspace(0, 1, 16))
         p = df.A.plot.bar(figsize=(16, 7), color=color_list)
