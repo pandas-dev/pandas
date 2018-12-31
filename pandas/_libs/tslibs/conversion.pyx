@@ -10,7 +10,7 @@ import pytz
 from dateutil.tz import tzutc
 
 # stdlib datetime imports
-from datetime import time as datetime_time, timedelta
+from datetime import time as datetime_time
 from cpython.datetime cimport (datetime, tzinfo,
                                PyDateTime_Check, PyDate_Check,
                                PyDateTime_CheckExact, PyDateTime_IMPORT,
@@ -30,7 +30,7 @@ from pandas._libs.tslibs.util cimport (
     is_string_object, is_datetime64_object, is_integer_object, is_float_object)
 
 from pandas._libs.tslibs.timedeltas cimport (cast_from_unit,
-    delta_to_nanoseconds)
+                                             delta_to_nanoseconds)
 from pandas._libs.tslibs.timezones cimport (
     is_utc, is_tzlocal, is_fixed_offset, get_utcoffset, get_dst_info,
     get_timezone, maybe_get_tz, tz_compare)
