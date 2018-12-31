@@ -496,6 +496,7 @@ def test_setitem_with_tz_dst():
     tm.assert_series_equal(s, exp)
 
 
+@pytest.mark.filterwarnings("ignore:Integer values:RuntimeWarning")
 def test_categorial_assigning_ops():
     orig = Series(Categorical(["b", "b"], categories=["a", "b"]))
     s = orig.copy()

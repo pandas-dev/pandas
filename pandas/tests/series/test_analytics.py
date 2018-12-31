@@ -1314,6 +1314,7 @@ class TestNLargestNSmallest(object):
 
 class TestCategoricalSeriesAnalytics(object):
 
+    @pytest.mark.filterwarnings("ignore:Integer values:RuntimeWarning")
     def test_count(self):
 
         s = Series(Categorical([np.nan, 1, 2, np.nan],
