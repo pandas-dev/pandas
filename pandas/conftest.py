@@ -61,8 +61,10 @@ def pytest_runtest_setup(item):
             "skipping high memory test since --run-high-memory was not set")
 
     # if "db" not explicitly set in the -m pattern, we skip the db tests
-    if 'db' in item.keywords:
-        pattern = item.config.getoption('-m')
+    pattern = item.config.getoption('-m')
+    if 'db' in item.keywords and not pattern:
+        pytest.skip('skipping db unless -m "db" is specified')
+    elif 'db' in item.keywords and pattern:
         markers = collections.defaultdict(bool)
         for marker in item.iter_markers():
             markers[marker.name] = True

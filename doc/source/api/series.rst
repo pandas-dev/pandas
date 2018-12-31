@@ -2,19 +2,20 @@
 
 .. _api.series:
 
+======
 Series
-------
+======
 .. currentmodule:: pandas
 
 Constructor
-~~~~~~~~~~~
+-----------
 .. autosummary::
    :toctree: generated/
 
    Series
 
 Attributes
-~~~~~~~~~~
+----------
 **Axes**
 
 .. autosummary::
@@ -48,7 +49,7 @@ Attributes
    Series.put
 
 Conversion
-~~~~~~~~~~
+----------
 .. autosummary::
    :toctree: generated/
 
@@ -63,7 +64,7 @@ Conversion
    Series.get_values
 
 Indexing, iteration
-~~~~~~~~~~~~~~~~~~~
+-------------------
 .. autosummary::
    :toctree: generated/
 
@@ -84,7 +85,7 @@ For more information on ``.at``, ``.iat``, ``.loc``, and
 ``.iloc``,  see the :ref:`indexing documentation <indexing>`.
 
 Binary operator functions
-~~~~~~~~~~~~~~~~~~~~~~~~~
+-------------------------
 .. autosummary::
    :toctree: generated/
 
@@ -117,7 +118,7 @@ Binary operator functions
    Series.dot
 
 Function application, GroupBy & Window
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+--------------------------------------
 .. autosummary::
    :toctree: generated/
 
@@ -135,7 +136,7 @@ Function application, GroupBy & Window
 .. _api.series.stats:
 
 Computations / Descriptive Stats
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+--------------------------------
 .. autosummary::
    :toctree: generated/
 
@@ -187,7 +188,7 @@ Computations / Descriptive Stats
    Series.nonzero
 
 Reindexing / Selection / Label manipulation
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+-------------------------------------------
 .. autosummary::
    :toctree: generated/
 
@@ -221,7 +222,7 @@ Reindexing / Selection / Label manipulation
    Series.filter
 
 Missing data handling
-~~~~~~~~~~~~~~~~~~~~~
+---------------------
 .. autosummary::
    :toctree: generated/
 
@@ -232,7 +233,7 @@ Missing data handling
    Series.interpolate
 
 Reshaping, sorting
-~~~~~~~~~~~~~~~~~~
+------------------
 .. autosummary::
    :toctree: generated/
 
@@ -251,7 +252,7 @@ Reshaping, sorting
    Series.view
 
 Combining / joining / merging
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+-----------------------------
 .. autosummary::
    :toctree: generated/
 
@@ -260,7 +261,7 @@ Combining / joining / merging
    Series.update
 
 Time series-related
-~~~~~~~~~~~~~~~~~~~
+-------------------
 .. autosummary::
    :toctree: generated/
 
@@ -278,13 +279,13 @@ Time series-related
    Series.slice_shift
 
 Datetimelike Properties
-~~~~~~~~~~~~~~~~~~~~~~~
+-----------------------
 ``Series.dt`` can be used to access the values of the series as
 datetimelike and return several properties.
 These can be accessed like ``Series.dt.<property>``.
 
-**Datetime Properties**
-
+Datetime Properties
+~~~~~~~~~~~~~~~~~~~
 .. autosummary::
    :toctree: generated/
    :template: autosummary/accessor_attribute.rst
@@ -318,8 +319,8 @@ These can be accessed like ``Series.dt.<property>``.
    Series.dt.tz
    Series.dt.freq
 
-**Datetime Methods**
-
+Datetime Methods
+~~~~~~~~~~~~~~~~
 .. autosummary::
    :toctree: generated/
    :template: autosummary/accessor_method.rst
@@ -336,8 +337,8 @@ These can be accessed like ``Series.dt.<property>``.
    Series.dt.month_name
    Series.dt.day_name
 
-**Period Properties**
-
+Period Properties
+~~~~~~~~~~~~~~~~~
 .. autosummary::
    :toctree: generated/
    :template: autosummary/accessor_attribute.rst
@@ -346,8 +347,8 @@ These can be accessed like ``Series.dt.<property>``.
    Series.dt.start_time
    Series.dt.end_time
 
-**Timedelta Properties**
-
+Timedelta Properties
+~~~~~~~~~~~~~~~~~~~~
 .. autosummary::
    :toctree: generated/
    :template: autosummary/accessor_attribute.rst
@@ -358,8 +359,8 @@ These can be accessed like ``Series.dt.<property>``.
    Series.dt.nanoseconds
    Series.dt.components
 
-**Timedelta Methods**
-
+Timedelta Methods
+~~~~~~~~~~~~~~~~~
 .. autosummary::
    :toctree: generated/
    :template: autosummary/accessor_method.rst
@@ -368,7 +369,7 @@ These can be accessed like ``Series.dt.<property>``.
    Series.dt.total_seconds
 
 String handling
-~~~~~~~~~~~~~~~
+---------------
 ``Series.str`` can be used to access the values of the series as
 strings and apply several methods to it. These can be accessed like
 ``Series.str.<function/property>``.
@@ -543,7 +544,7 @@ following usable methods and properties:
    Series.cat.as_unordered
 
 Plotting
-~~~~~~~~
+--------
 ``Series.plot`` is both a callable method and a namespace attribute for
 specific plotting methods of the form ``Series.plot.<kind>``.
 
@@ -573,7 +574,7 @@ specific plotting methods of the form ``Series.plot.<kind>``.
    Series.hist
 
 Serialization / IO / Conversion
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+-------------------------------
 .. autosummary::
    :toctree: generated/
 
@@ -594,7 +595,7 @@ Serialization / IO / Conversion
    Series.to_latex
 
 Sparse
-~~~~~~
+------
 .. autosummary::
    :toctree: generated/
 

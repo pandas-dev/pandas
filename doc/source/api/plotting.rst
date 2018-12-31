@@ -2,8 +2,9 @@
 
 .. _api.plotting:
 
+========
 Plotting
---------
+========
 .. currentmodule:: pandas.plotting
 
 The following functions are contained in the `pandas.plotting` module.
