@@ -738,6 +738,10 @@ suppress_warnings = [
     # suppress this warning.
     'app.add_directive'
 ]
+if pattern:
+    # When building a single document we don't want to warn because references
+    # to other documents are unknown, as it's expected
+    suppress_warnings.append('ref.ref')
 
 
 def rstjinja(app, docname, source):
