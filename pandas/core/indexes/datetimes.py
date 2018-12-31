@@ -297,6 +297,7 @@ class DatetimeIndex(DatelikeIndexMixin,
                             .format(cls=cls.__name__, data=repr(data)))
 
         # - Cases checked above all return/raise before reaching here - #
+
         if name is None and hasattr(data, 'name'):
             name = data.name
 

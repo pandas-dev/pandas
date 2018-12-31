@@ -705,7 +705,44 @@ class DatetimeLikeArrayMixin(AttributesMixin,
         """
         nv.validate_repeat(args, kwargs)
         values = self._data.repeat(repeats)
-        return type(self)(values, dtype=self.dtype)
+        return type(self)(values.view('i8'), dtype=self.dtype)
+
+    def value_counts(self, dropna=False):
+        """
+        Return a Series containing counts of unique values.
+
+        Parameters
+        ----------
+        dropna : boolean, default True
+            Don't include counts of NaT values.
+
+        Returns
+        -------
+        Series
+        """
+        from pandas import Series, Index
+
+        if dropna:
+            values = self[~self.isna()]._data
+        else:
+            values = self._data
+
+        cls = type(self)
+
+        result = value_counts(values, sort=False, dropna=dropna)
+        index = Index(cls(result.index.view('i8'), dtype=self.dtype),
+                      name=result.index.name)
+        return Series(result.values, index=index, name=result.name)
+
+    def map(self, mapper):
+        # TODO(GH-23179): Add ExtensionArray.map
+        # Need to figure out if we want ExtensionArray.map first.
+        # If so, then we can refactor IndexOpsMixin._map_values to
+        # a standalone function and call from here..
+        # Else, just rewrite _map_infer_values to do the right thing.
+        from pandas import Index
+
+        return Index(self).map(mapper).array
 
     def value_counts(self, dropna=False):
         """
@@ -1432,25 +1469,51 @@ class DatetimeLikeArrayMixin(AttributesMixin,
     # --------------------------------------------------------------
     # Reductions
 
-    def _reduce(self, name, skipna=True, **kwargs):
+    def _reduce(self, name, axis=0, skipna=True, **kwargs):
         op = getattr(self, name, None)
         if op:
-            return op(skipna=skipna)
+            return op(axis=axis, skipna=skipna, **kwargs)
         else:
             return super(DatetimeLikeArrayMixin, self)._reduce(
                 name, skipna, **kwargs
             )
 
-    def min(self, skipna=True):
+    def min(self, axis=None, skipna=True, *args, **kwargs):
+        """
+        Return the minimum value of the Array or minimum along
+        an axis.
+
+        See Also
+        --------
+        numpy.ndarray.min
+        Index.min : Return the minimum value in an Index.
+        Series.min : Return the minimum value in a Series.
+        """
+        nv.validate_min(args, kwargs)
+        nv.validate_minmax_axis(axis)
+
         result = nanops.nanmin(self.asi8, skipna=skipna, mask=self.isna())
         if isna(result):
             # Period._from_ordinal does not handle np.nan gracefully
             return NaT
         return self._box_func(result)
 
-    def max(self, skipna=True):
+    def max(self, axis=None, skipna=True, *args, **kwargs):
+        """
+        Return the maximum value of the Array or maximum along
+        an axis.
+
+        See Also
+        --------
+        numpy.ndarray.max
+        Index.max : Return the maximum value in an Index.
+        Series.max : Return the maximum value in a Series.
+        """
         # TODO: skipna is broken with max.
         # See https://github.com/pandas-dev/pandas/issues/24265
+        nv.validate_max(args, kwargs)
+        nv.validate_minmax_axis(axis)
+
         mask = self.isna()
         if skipna:
             values = self[~mask].asi8

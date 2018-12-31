@@ -665,7 +665,6 @@ class DatetimeIndexOpsMixin(ExtensionOpsMixin):
         return type(self)(result, name=self.name)
 
     @deprecate_kwarg(old_arg_name='n', new_arg_name='periods')
-    @Appender(DatetimeLikeArrayMixin.shift.__doc__)
     def shift(self, periods, freq=None):
         new_values = self._data.shift(periods, freq=freq)
         return self._simple_new(new_values, name=self.name, freq=self.freq)
