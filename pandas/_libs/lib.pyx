@@ -200,7 +200,7 @@ def item_from_zerodim(val: object) -> object:
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
-def fast_unique_multiple(list arrays):
+def fast_unique_multiple(list arrays, sort: bool=True):
     cdef:
         ndarray[object] buf
         Py_ssize_t k = len(arrays)
@@ -217,10 +217,11 @@ def fast_unique_multiple(list arrays):
             if val not in table:
                 table[val] = stub
                 uniques.append(val)
-    try:
-        uniques.sort()
-    except Exception:
-        pass
+    if sort:
+        try:
+            uniques.sort()
+        except Exception:
+            pass
 
     return uniques
 
