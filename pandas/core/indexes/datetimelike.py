@@ -71,6 +71,15 @@ class DatetimeIndexOpsMixin(ExtensionOpsMixin):
     __iter__ = ea_passthrough("__iter__")
 
     @property
+    def freq(self):
+        return self._eadata.freq
+
+    @freq.setter
+    def freq(self, value):
+        # validation is handled by _eadata setter
+        self._eadata.freq = value
+
+    @property
     def freqstr(self):
         return self._eadata.freqstr
 
@@ -97,6 +106,10 @@ class DatetimeIndexOpsMixin(ExtensionOpsMixin):
         wrapper.__doc__ = op.__doc__
         wrapper.__name__ = '__{}__'.format(op.__name__)
         return wrapper
+
+    @property
+    def _ndarray_values(self):
+        return self._eadata._ndarray_values
 
     # ------------------------------------------------------------------------
 
