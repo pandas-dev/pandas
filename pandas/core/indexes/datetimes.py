@@ -310,6 +310,12 @@ class DatetimeIndex(DatetimeIndexOpsMixin, Int64Index, DatetimeDelegateMixin):
         we require the we have a dtype compat for the values
         if we are passed a non-dtype compat, then coerce using the constructor
         """
+        if isinstance(values, DatetimeArray):
+            values = DatetimeArray(values, freq=freq, tz=tz, dtype=dtype)
+            tz = values.tz
+            freq = values.freq
+            values = values._data
+
         # DatetimeArray._simple_new will accept either i8 or M8[ns] dtypes
         if isinstance(values, DatetimeIndex):
             values = values._data

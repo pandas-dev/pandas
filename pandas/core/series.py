@@ -477,7 +477,10 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         """
         Return the internal repr of this data.
         """
-        return self._data.internal_values()
+        result = self._data.internal_values()
+        if isinstance(result, DatetimeIndex):
+            result = result._eadata
+        return result
 
     def _formatting_values(self):
         """

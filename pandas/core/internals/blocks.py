@@ -2460,7 +2460,7 @@ class ObjectBlock(Block):
         """ provide coercion to our input arguments """
 
         if isinstance(other, ABCDatetimeIndex):
-            # May get a DateimtimeIndex here. Unbox it.
+            # May get a DatetimeIndex here. Unbox it.
             other = other.array
 
         if isinstance(other, DatetimeArray):
@@ -3053,7 +3053,8 @@ class DatetimeTZBlock(ExtensionBlock, DatetimeBlock):
         elif (is_null_datelike_scalar(other) or
               (lib.is_scalar(other) and isna(other))):
             other = tslibs.iNaT
-        elif isinstance(other, self._holder):
+        elif isinstance(other, (self._holder, DatetimeArray)):
+            # TODO: DatetimeArray check will be redundant after GH#24024
             if other.tz != self.values.tz:
                 raise ValueError("incompatible or non tz-aware value")
             other = _block_shape(other.asi8, ndim=self.ndim)

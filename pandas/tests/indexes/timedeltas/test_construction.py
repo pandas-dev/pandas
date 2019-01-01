@@ -4,9 +4,9 @@ import numpy as np
 import pytest
 
 import pandas as pd
-import pandas.util.testing as tm
-from pandas import TimedeltaIndex, timedelta_range, to_timedelta, Timedelta
+from pandas import Timedelta, TimedeltaIndex, timedelta_range, to_timedelta
 from pandas.core.arrays import TimedeltaArrayMixin as TimedeltaArray
+import pandas.util.testing as tm
 
 
 class TestTimedeltaIndex(object):

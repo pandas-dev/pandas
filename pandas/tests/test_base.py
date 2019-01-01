@@ -18,12 +18,12 @@ from pandas import (Series, Index, DatetimeIndex, TimedeltaIndex,
                     PeriodIndex, Timedelta, IntervalIndex, Interval,
                     CategoricalIndex, Timestamp, DataFrame, Panel)
 from pandas.core.arrays import (
+    PandasArray,
     DatetimeArrayMixin as DatetimeArray,
     TimedeltaArrayMixin as TimedeltaArray,
 )
 from pandas.compat import StringIO, PYPY, long
 from pandas.compat.numpy import np_array_datetime64_compat
-from pandas.core.arrays import PandasArray
 from pandas.core.accessor import PandasDelegate
 from pandas.core.base import PandasObject, NoNewAttributesMixin
 from pandas.core.indexes.datetimelike import DatetimeIndexOpsMixin
@@ -390,8 +390,10 @@ class TestIndexOps(Ops):
                 assert result[0] == orig[0]
                 for r in result:
                     assert isinstance(r, Timestamp)
-                tm.assert_numpy_array_equal(result.astype(object),
-                                            orig._values.astype(object))
+
+                tm.assert_numpy_array_equal(
+                    result.astype(object),
+                    orig._values.astype(object))
             else:
                 tm.assert_numpy_array_equal(result, orig.values)
 
