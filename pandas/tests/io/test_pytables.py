@@ -146,6 +146,11 @@ class Base(object):
 @pytest.mark.filterwarnings("ignore:\\nPanel:FutureWarning")
 class TestHDFStore(Base):
 
+    def test_format_kwarg_in_constructor(self):
+        # GH 13291
+        with ensure_clean_path(self.path) as path:
+            pytest.raises(ValueError, HDFStore, path, format='table')
+
     def test_context(self):
         path = create_tempfile(self.path)
         try:
@@ -4534,6 +4539,20 @@ class TestHDFStore(Base):
             str(store)
             d1 = store['detector']
             assert isinstance(d1, DataFrame)
+
+    def test_legacy_table_fixed_format_read_py2(self, datapath):
+        # GH 24510
+        # legacy table with fixed format written en Python 2
+        with ensure_clean_store(
+                datapath('io', 'data', 'legacy_hdf',
+                         'legacy_table_fixed_py2.h5'),
+                mode='r') as store:
+            result = store.select('df')
+            expected = pd.DataFrame([[1, 2, 3, 'D']],
+                                    columns=['A', 'B', 'C', 'D'],
+                                    index=pd.Index(['ABC'],
+                                                   name='INDEX_NAME'))
+            assert_frame_equal(expected, result)
 
     def test_legacy_table_read(self, datapath):
         # legacy table types

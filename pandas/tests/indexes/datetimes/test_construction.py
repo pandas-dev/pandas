@@ -7,18 +7,48 @@ import numpy as np
 import pytest
 import pytz
 
-from pandas._libs.tslib import OutOfBoundsDatetime
-from pandas._libs.tslibs import conversion
+from pandas._libs.tslibs import OutOfBoundsDatetime, conversion
 
 import pandas as pd
 from pandas import (
     DatetimeIndex, Index, Timestamp, date_range, datetime, offsets,
     to_datetime)
-from pandas.core.arrays import period_array
+from pandas.core.arrays import (
+    DatetimeArrayMixin as DatetimeArray, period_array)
 import pandas.util.testing as tm
 
 
 class TestDatetimeIndex(object):
+
+    @pytest.mark.parametrize('dt_cls', [DatetimeIndex,
+                                        DatetimeArray._from_sequence])
+    def test_freq_validation_with_nat(self, dt_cls):
+        # GH#11587 make sure we get a useful error message when generate_range
+        #  raises
+        msg = ("Inferred frequency None from passed values does not conform "
+               "to passed frequency D")
+        with pytest.raises(ValueError, match=msg):
+            dt_cls([pd.NaT, pd.Timestamp('2011-01-01')], freq='D')
+        with pytest.raises(ValueError, match=msg):
+            dt_cls([pd.NaT, pd.Timestamp('2011-01-01').value],
+                   freq='D')
+
+    def test_categorical_preserves_tz(self):
+        # GH#18664 retain tz when going DTI-->Categorical-->DTI
+        # TODO: parametrize over DatetimeIndex/DatetimeArray
+        #  once CategoricalIndex(DTA) works
+
+        dti = pd.DatetimeIndex(
+            [pd.NaT, '2015-01-01', '1999-04-06 15:14:13', '2015-01-01'],
+            tz='US/Eastern')
+
+        ci = pd.CategoricalIndex(dti)
+        carr = pd.Categorical(dti)
+        cser = pd.Series(ci)
+
+        for obj in [ci, carr, cser]:
+            result = pd.DatetimeIndex(obj)
+            tm.assert_index_equal(result, dti)
 
     def test_dti_with_period_data_raises(self):
         # GH#23675

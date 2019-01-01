@@ -1,37 +1,33 @@
 # -*- coding: utf-8 -*-
 
-import math
-import operator
 from collections import defaultdict
 from datetime import datetime, timedelta
 from decimal import Decimal
+import math
 
 import numpy as np
 import pytest
 
+from pandas._libs.tslib import Timestamp
+from pandas.compat import (
+    PY3, PY35, PY36, StringIO, lrange, lzip, range, text_type, u, zip)
+from pandas.compat.numpy import np_datetime64_compat
+
+from pandas.core.dtypes.common import is_unsigned_integer_dtype
+from pandas.core.dtypes.generic import ABCIndex
+
 import pandas as pd
-import pandas.core.config as cf
-import pandas.util.testing as tm
 from pandas import (
     CategoricalIndex, DataFrame, DatetimeIndex, Float64Index, Int64Index,
     PeriodIndex, RangeIndex, Series, TimedeltaIndex, UInt64Index, date_range,
-    isna, period_range,
-)
-from pandas._libs.tslib import Timestamp
-from pandas.compat import (
-    PY3, PY35, PY36, StringIO, lrange, lzip, range, text_type, u, zip
-)
-from pandas.compat.numpy import np_datetime64_compat
-from pandas.core.dtypes.common import (
-    is_unsigned_integer_dtype,
-)
-from pandas.core.dtypes.generic import ABCIndex
+    isna, period_range)
+import pandas.core.config as cf
 from pandas.core.index import _get_combined_index, ensure_index_from_sequences
 from pandas.core.indexes.api import Index, MultiIndex
-from pandas.core.indexes.datetimes import _to_m8
-from pandas.tests.indexes.common import Base
-from pandas.util.testing import assert_almost_equal
 from pandas.core.sorting import safe_sort
+from pandas.tests.indexes.common import Base
+import pandas.util.testing as tm
+from pandas.util.testing import assert_almost_equal
 
 
 class TestIndex(Base):
@@ -259,6 +255,12 @@ class TestIndex(Base):
         msg = "cannot convert"
         with pytest.raises(ValueError, match=msg):
             Index(data, dtype=dtype)
+
+    def test_constructor_no_pandas_array(self):
+        ser = pd.Series([1, 2, 3])
+        result = pd.Index(ser.array)
+        expected = pd.Index([1, 2, 3])
+        tm.assert_index_equal(result, expected)
 
     @pytest.mark.parametrize("klass,dtype,na_val", [
         (pd.Float64Index, np.float64, np.nan),
@@ -624,22 +626,6 @@ class TestIndex(Base):
                                            '0000', 'ns')
         assert first_value == x[Timestamp(expected_ts)]
 
-    @pytest.mark.parametrize("op", [
-        operator.eq, operator.ne, operator.gt, operator.lt,
-        operator.ge, operator.le
-    ])
-    def test_comparators(self, op):
-        index = self.dateIndex
-        element = index[len(index) // 2]
-        element = _to_m8(element)
-
-        arr = np.array(index)
-        arr_result = op(arr, element)
-        index_result = op(index, element)
-
-        assert isinstance(index_result, np.ndarray)
-        tm.assert_numpy_array_equal(arr_result, index_result)
-
     def test_booleanindex(self):
         boolIndex = np.repeat(True, len(self.strIndex)).astype(bool)
         boolIndex[5:30:2] = False
@@ -822,8 +808,7 @@ class TestIndex(Base):
 
     def test_union_dt_as_obj(self):
         # TODO: Replace with fixturesult
-        with tm.assert_produces_warning(RuntimeWarning):
-            firstCat = self.strIndex.union(self.dateIndex)
+        firstCat = self.strIndex.union(self.dateIndex)
         secondCat = self.strIndex.union(self.strIndex)
 
         if self.dateIndex.dtype == np.object_:
@@ -1632,7 +1617,7 @@ class TestIndex(Base):
     @pytest.mark.parametrize("method,expected", [
         ('intersection', np.array([(1, 'A'), (2, 'A'), (1, 'B'), (2, 'B')],
                                   dtype=[('num', int), ('let', 'a1')])),
-        ('union', np.array([(1, 'A'), (2, 'A'), (1, 'B'), (2, 'B'), (1, 'C'),
+        ('union', np.array([(1, 'A'), (1, 'B'), (1, 'C'), (2, 'A'), (2, 'B'),
                             (2, 'C')], dtype=[('num', int), ('let', 'a1')]))
     ])
     def test_tuple_union_bug(self, method, expected):
@@ -1799,7 +1784,7 @@ class TestIndex(Base):
     @pytest.mark.parametrize("index", [
         Index(range(5)), tm.makeDateIndex(10),
         MultiIndex.from_tuples([('foo', '1'), ('bar', '3')]),
-        PeriodIndex(start='2000', end='2010', freq='A')])
+        period_range(start='2000', end='2010', freq='A')])
     def test_str_attribute_raises(self, index):
         with pytest.raises(AttributeError, match='only use .str accessor'):
             index.str.repeat(2)
@@ -2259,10 +2244,7 @@ class TestMixedIntIndex(Base):
         s1 = Series(2, index=first)
         s2 = Series(3, index=second[:-1])
 
-        warning_type = RuntimeWarning if PY3 else None
-        with tm.assert_produces_warning(warning_type):
-            # Python 3: Unorderable types
-            s3 = s1 * s2
+        s3 = s1 * s2
 
         assert s3.index.name == 'mario'
 
@@ -2291,16 +2273,9 @@ class TestMixedIntIndex(Base):
         first = index[3:]
         second = index[:5]
 
-        if PY3:
-            # unorderable types
-            warn_type = RuntimeWarning
-        else:
-            warn_type = None
+        result = first.union(second)
 
-        with tm.assert_produces_warning(warn_type):
-            result = first.union(second)
-
-        expected = Index(['b', 2, 'c', 0, 'a', 1])
+        expected = Index([0, 1, 2, 'a', 'b', 'c'])
         tm.assert_index_equal(result, expected)
 
     @pytest.mark.parametrize("klass", [
@@ -2311,14 +2286,7 @@ class TestMixedIntIndex(Base):
         first = index[3:]
         second = index[:5]
 
-        if PY3:
-            # unorderable types
-            warn_type = RuntimeWarning
-        else:
-            warn_type = None
-
-        with tm.assert_produces_warning(warn_type):
-            result = first.union(klass(second.values))
+        result = first.union(klass(second.values))
 
         assert tm.equalContents(result, index)
 
@@ -2479,26 +2447,6 @@ class TestMixedIntIndex(Base):
 
         expected = Index([], dtype=object)
         tm.assert_index_equal(result, expected)
-
-    @pytest.mark.parametrize('op', [operator.eq, operator.ne,
-                                    operator.gt, operator.ge,
-                                    operator.lt, operator.le])
-    def test_comparison_tzawareness_compat(self, op):
-        # GH#18162
-        dr = pd.date_range('2016-01-01', periods=6)
-        dz = dr.tz_localize('US/Pacific')
-
-        # Check that there isn't a problem aware-aware and naive-naive do not
-        # raise
-        naive_series = Series(dr)
-        aware_series = Series(dz)
-        with pytest.raises(TypeError):
-            op(dz, naive_series)
-        with pytest.raises(TypeError):
-            op(dr, aware_series)
-
-        # TODO: implement _assert_tzawareness_compat for the reverse
-        # comparison with the Series on the left-hand side
 
 
 class TestIndexUtils(object):

@@ -1,20 +1,20 @@
 from __future__ import division
 
-import re
 from itertools import permutations
+import re
 
 import numpy as np
 import pytest
 
+from pandas.compat import lzip
+
 import pandas as pd
-import pandas.core.common as com
-import pandas.util.testing as tm
 from pandas import (
     Index, Interval, IntervalIndex, Timedelta, Timestamp, date_range,
-    interval_range, isna, notna, timedelta_range
-)
-from pandas.compat import lzip
+    interval_range, isna, notna, timedelta_range)
+import pandas.core.common as com
 from pandas.tests.indexes.common import Base
+import pandas.util.testing as tm
 
 
 @pytest.fixture(scope='class', params=[None, 'foo'])
@@ -377,7 +377,21 @@ class TestIntervalIndex(Base):
     def test_repr_roundtrip(self):
         super(TestIntervalIndex, self).test_repr_roundtrip()
 
-    # TODO: check this behavior is consistent with test_interval_new.py
+    def test_frame_repr(self):
+        # https://github.com/pandas-dev/pandas/pull/24134/files
+        df = pd.DataFrame({'A': [1, 2, 3, 4]},
+                          index=pd.IntervalIndex.from_breaks([0, 1, 2, 3, 4]))
+        result = repr(df)
+        expected = (
+            '        A\n'
+            '(0, 1]  1\n'
+            '(1, 2]  2\n'
+            '(2, 3]  3\n'
+            '(3, 4]  4'
+        )
+        assert result == expected
+
+        # TODO: check this behavior is consistent with test_interval_new.py
     def test_get_item(self, closed):
         i = IntervalIndex.from_arrays((0, 1, np.nan), (1, 2, np.nan),
                                       closed=closed)

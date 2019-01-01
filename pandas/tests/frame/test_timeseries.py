@@ -4,25 +4,22 @@ from __future__ import print_function
 
 from datetime import datetime, time
 
+import numpy as np
+from numpy.random import randn
 import pytest
 
-from numpy.random import randn
-import numpy as np
-
-from pandas import (DataFrame, Series, Index,
-                    Timestamp, DatetimeIndex, MultiIndex,
-                    to_datetime, date_range, period_range)
-import pandas as pd
-import pandas.tseries.offsets as offsets
-
-from pandas.util.testing import (assert_series_equal,
-                                 assert_frame_equal,
-                                 assert_index_equal)
-
-import pandas.util.testing as tm
 from pandas.compat import product
 
+import pandas as pd
+from pandas import (
+    DataFrame, DatetimeIndex, Index, MultiIndex, Series, Timestamp, date_range,
+    period_range, to_datetime)
 from pandas.tests.frame.common import TestData
+import pandas.util.testing as tm
+from pandas.util.testing import (
+    assert_frame_equal, assert_index_equal, assert_series_equal)
+
+import pandas.tseries.offsets as offsets
 
 
 @pytest.fixture(params=product([True, False], [True, False]))
@@ -319,6 +316,20 @@ class TestDataFrameTimeSeriesMethods(TestData):
         rs = df.shift(1)
         xp = DataFrame({'one': s1.shift(1), 'two': s2.shift(1)})
         assert_frame_equal(rs, xp)
+
+    def test_shift_fill_value(self):
+        # GH #24128
+        df = DataFrame([1, 2, 3, 4, 5],
+                       index=date_range('1/1/2000', periods=5, freq='H'))
+        exp = DataFrame([0, 1, 2, 3, 4],
+                        index=date_range('1/1/2000', periods=5, freq='H'))
+        result = df.shift(1, fill_value=0)
+        assert_frame_equal(result, exp)
+
+        exp = DataFrame([0, 0, 1, 2, 3],
+                        index=date_range('1/1/2000', periods=5, freq='H'))
+        result = df.shift(2, fill_value=0)
+        assert_frame_equal(result, exp)
 
     def test_shift_empty(self):
         # Regression test for #8019

@@ -1,16 +1,6 @@
-.. currentmodule:: pandas
 .. _visualization:
 
-.. ipython:: python
-   :suppress:
-
-   import numpy as np
-   import pandas as pd
-
-   np.random.seed(123456)
-   np.set_printoptions(precision=4, suppress=True)
-   pd.options.display.max_rows = 15
-
+{{ header }}
 
 *************
 Visualization
@@ -21,6 +11,7 @@ We use the standard convention for referencing the matplotlib API:
 .. ipython:: python
 
    import matplotlib.pyplot as plt
+   plt.close('all')
 
 We provide the basics in pandas to easily create decent looking plots.
 See the :ref:`ecosystem <ecosystem.visualization>` section for visualization
@@ -35,7 +26,7 @@ libraries that go beyond the basics documented here.
 Basic Plotting: ``plot``
 ------------------------
 
-We will demonstrate the basics, see the :ref:`cookbook<cookbook.plotting>` for 
+We will demonstrate the basics, see the :ref:`cookbook<cookbook.plotting>` for
 some advanced strategies.
 
 The ``plot`` method on Series and DataFrame is just a simple wrapper around
@@ -96,7 +87,7 @@ You can plot one column versus another using the `x` and `y` keywords in
 
 .. note::
 
-   For more formatting and styling options, see 
+   For more formatting and styling options, see
    :ref:`formatting <visualization.formatting>` below.
 
 .. ipython:: python
@@ -138,7 +129,7 @@ You can also create these other plots using the methods ``DataFrame.plot.<kind>`
 
     In [14]: df = pd.DataFrame()
 
-    In [15]: df.plot.<TAB>
+    In [15]: df.plot.<TAB>  # noqa: E225, E999
     df.plot.area     df.plot.barh     df.plot.density  df.plot.hist     df.plot.line     df.plot.scatter
     df.plot.bar      df.plot.box      df.plot.hexbin   df.plot.kde      df.plot.pie
 
@@ -172,7 +163,8 @@ For labeled, non-time series data, you may wish to produce a bar plot:
    plt.figure();
 
    @savefig bar_plot_ex.png
-   df.iloc[5].plot.bar(); plt.axhline(0, color='k')
+   df.iloc[5].plot.bar()
+   plt.axhline(0, color='k');
 
 Calling a DataFrame's :meth:`plot.bar() <DataFrame.plot.bar>` method produces a multiple
 bar plot:
@@ -240,7 +232,7 @@ Histograms can be drawn by using the :meth:`DataFrame.plot.hist` and :meth:`Seri
 
    plt.close('all')
 
-A histogram can be stacked using ``stacked=True``. Bin size can be changed 
+A histogram can be stacked using ``stacked=True``. Bin size can be changed
 using the ``bins`` keyword.
 
 .. ipython:: python
@@ -255,8 +247,8 @@ using the ``bins`` keyword.
 
    plt.close('all')
 
-You can pass other keywords supported by matplotlib ``hist``. For example, 
-horizontal and cumulative histograms can be drawn by 
+You can pass other keywords supported by matplotlib ``hist``. For example,
+horizontal and cumulative histograms can be drawn by
 ``orientation='horizontal'`` and ``cumulative=True``.
 
 .. ipython:: python
@@ -486,7 +478,7 @@ keyword, will affect the output type as well:
 
    plt.close('all')
 
-The subplots above are split by the numeric columns first, then the value of 
+The subplots above are split by the numeric columns first, then the value of
 the ``g`` column. Below the subplots are first split by the value of ``g``,
 then by the numeric columns.
 
@@ -588,8 +580,8 @@ each point:
 
    plt.close('all')
 
-You can pass other keywords supported by matplotlib 
-:meth:`scatter <matplotlib.axes.Axes.scatter>`. The example  below shows a 
+You can pass other keywords supported by matplotlib
+:meth:`scatter <matplotlib.axes.Axes.scatter>`. The example  below shows a
 bubble chart using a column of the ``DataFrame`` as the bubble size.
 
 .. ipython:: python
@@ -693,15 +685,15 @@ A ``ValueError`` will be raised if there are any negative values in your data.
 
    plt.close('all')
 
-For pie plots it's best to use square figures, i.e. a figure aspect ratio 1. 
-You can create the figure with equal width and height, or force the aspect ratio 
-to be equal after plotting by calling ``ax.set_aspect('equal')`` on the returned 
+For pie plots it's best to use square figures, i.e. a figure aspect ratio 1.
+You can create the figure with equal width and height, or force the aspect ratio
+to be equal after plotting by calling ``ax.set_aspect('equal')`` on the returned
 ``axes`` object.
 
-Note that pie plot with :class:`DataFrame` requires that you either specify a 
-target column by the ``y`` argument or ``subplots=True``. When ``y`` is 
-specified, pie plot of selected column will be drawn. If ``subplots=True`` is 
-specified, pie plots for each column are drawn as subplots. A legend will be 
+Note that pie plot with :class:`DataFrame` requires that you either specify a
+target column by the ``y`` argument or ``subplots=True``. When ``y`` is
+specified, pie plot of selected column will be drawn. If ``subplots=True`` is
+specified, pie plots for each column are drawn as subplots. A legend will be
 drawn in each pie plots by default; specify ``legend=False`` to hide it.
 
 .. ipython:: python
@@ -927,7 +919,7 @@ Lag Plot
 Lag plots are used to check if a data set or time series is random. Random
 data should not exhibit any structure in the lag plot. Non-random structure
 implies that the underlying data are not random. The ``lag`` argument may
-be passed, and when ``lag=1`` the plot is essentially ``data[:-1]`` vs. 
+be passed, and when ``lag=1`` the plot is essentially ``data[:-1]`` vs.
 ``data[1:]``.
 
 .. ipython:: python
@@ -963,7 +955,7 @@ If time series is random, such autocorrelations should be near zero for any and
 all time-lag separations. If time series is non-random then one or more of the
 autocorrelations will be significantly non-zero. The horizontal lines displayed
 in the plot correspond to 95% and 99% confidence bands. The dashed line is 99%
-confidence band. See the 
+confidence band. See the
 `Wikipedia entry <https://en.wikipedia.org/wiki/Correlogram>`__ for more about
 autocorrelation plots.
 
@@ -1455,9 +1447,9 @@ Plotting with matplotlib table is now supported in  :meth:`DataFrame.plot` and :
 
    plt.close('all')
 
-Also, you can pass a different :class:`DataFrame` or :class:`Series` to the 
-``table`` keyword. The data will be drawn as displayed in print method 
-(not transposed automatically). If required, it should be transposed manually 
+Also, you can pass a different :class:`DataFrame` or :class:`Series` to the
+``table`` keyword. The data will be drawn as displayed in print method
+(not transposed automatically). If required, it should be transposed manually
 as seen in the example below.
 
 .. ipython:: python
@@ -1472,9 +1464,9 @@ as seen in the example below.
 
    plt.close('all')
 
-There also exists a helper function ``pandas.plotting.table``, which creates a 
-table from :class:`DataFrame` or :class:`Series`, and adds it to an 
-``matplotlib.Axes`` instance. This function can accept keywords which the 
+There also exists a helper function ``pandas.plotting.table``, which creates a
+table from :class:`DataFrame` or :class:`Series`, and adds it to an
+``matplotlib.Axes`` instance. This function can accept keywords which the
 matplotlib `table <http://matplotlib.org/api/axes_api.html#matplotlib.axes.Axes.table>`__ has.
 
 .. ipython:: python
@@ -1606,8 +1598,8 @@ Plotting directly with matplotlib
 
 In some situations it may still be preferable or necessary to prepare plots
 directly with matplotlib, for instance when a certain type of plot or
-customization is not (yet) supported by pandas. ``Series`` and ``DataFrame`` 
-objects behave like arrays and can therefore be passed directly to 
+customization is not (yet) supported by pandas. ``Series`` and ``DataFrame``
+objects behave like arrays and can therefore be passed directly to
 matplotlib functions without explicit casts.
 
 pandas also automatically registers formatters and locators that recognize date

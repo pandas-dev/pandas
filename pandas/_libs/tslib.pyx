@@ -1,6 +1,5 @@
 # -*- coding: utf-8 -*-
 import cython
-from cython import Py_ssize_t
 
 from cpython.datetime cimport (PyDateTime_Check, PyDate_Check,
                                PyDateTime_CheckExact,
@@ -17,36 +16,33 @@ cnp.import_array()
 
 import pytz
 
-from util cimport (is_integer_object, is_float_object, is_string_object,
-                   is_datetime64_object)
+from pandas._libs.util cimport (
+    is_integer_object, is_float_object, is_string_object, is_datetime64_object)
 
 
-from tslibs.np_datetime cimport (check_dts_bounds,
-                                 npy_datetimestruct,
-                                 _string_to_dts,
-                                 dt64_to_dtstruct, dtstruct_to_dt64,
-                                 pydatetime_to_dt64, pydate_to_dt64,
-                                 get_datetime64_value)
-from tslibs.np_datetime import OutOfBoundsDatetime
+from pandas._libs.tslibs.np_datetime cimport (
+    check_dts_bounds, npy_datetimestruct, _string_to_dts, dt64_to_dtstruct,
+    dtstruct_to_dt64, pydatetime_to_dt64, pydate_to_dt64, get_datetime64_value)
+from pandas._libs.tslibs.np_datetime import OutOfBoundsDatetime
 
-from tslibs.parsing import parse_datetime_string
+from pandas._libs.tslibs.parsing import parse_datetime_string
 
-from tslibs.timedeltas cimport cast_from_unit
-from tslibs.timezones cimport is_utc, is_tzlocal, get_dst_info
-from tslibs.timezones import UTC
-from tslibs.conversion cimport (tz_convert_single, _TSObject,
-                                convert_datetime_to_tsobject,
-                                get_datetime64_nanos,
-                                tz_convert_utc_to_tzlocal)
+from pandas._libs.tslibs.timedeltas cimport cast_from_unit
+from pandas._libs.tslibs.timezones cimport is_utc, is_tzlocal, get_dst_info
+from pandas._libs.tslibs.timezones import UTC
+from pandas._libs.tslibs.conversion cimport (
+    tz_convert_single, _TSObject, convert_datetime_to_tsobject,
+    get_datetime64_nanos, tz_convert_utc_to_tzlocal)
 
 # many modules still look for NaT and iNaT here despite them not being needed
-from tslibs.nattype import nat_strings, iNaT  # noqa:F821
-from tslibs.nattype cimport checknull_with_nat, NPY_NAT, c_NaT as NaT
+from pandas._libs.tslibs.nattype import nat_strings, iNaT  # noqa:F821
+from pandas._libs.tslibs.nattype cimport (
+    checknull_with_nat, NPY_NAT, c_NaT as NaT)
 
-from tslibs.offsets cimport to_offset
+from pandas._libs.tslibs.offsets cimport to_offset
 
-from tslibs.timestamps cimport create_timestamp_from_ts
-from tslibs.timestamps import Timestamp
+from pandas._libs.tslibs.timestamps cimport create_timestamp_from_ts
+from pandas._libs.tslibs.timestamps import Timestamp
 
 
 cdef bint PY2 = str == bytes

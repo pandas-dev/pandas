@@ -1,5 +1,7 @@
 .. _release:
 
+{{ header }}
+
 *************
 Release Notes
 *************
