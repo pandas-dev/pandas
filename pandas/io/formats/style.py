@@ -2,7 +2,11 @@
 Module for applying conditional formatting to
 DataFrames and Series.
 """
-from collections import MutableMapping, defaultdict
+try:
+    from collections.abc import MutableMapping
+except ImportError:
+    from collections import MutableMapping
+from collections import defaultdict
 from contextlib import contextmanager
 import copy
 from functools import partial
