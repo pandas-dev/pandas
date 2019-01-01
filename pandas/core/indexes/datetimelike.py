@@ -637,17 +637,6 @@ class DatetimeIndexOpsMixin(ExtensionOpsMixin):
         return Index(new_values,
                      dtype=new_values.dtype, name=self.name, copy=False)
 
-    def view(self, dtype=None, type=None):
-        if dtype is None or dtype is __builtins__['type'](self):
-            # Series.copy() eventually calls this. Need to call
-            # _shallow_copy here so that we don't propagate modifications
-            # to attributes like .index.name
-            result = self._shallow_copy()
-            # We repeat the same setting of ._id that Index.view does.
-            result._id = self._id
-            return result
-        return self._ndarray_values.view(dtype=dtype)
-
     @Appender(DatetimeLikeArrayMixin._time_shift.__doc__)
     def _time_shift(self, periods, freq=None):
         result = self._eadata._time_shift(periods, freq=freq)
