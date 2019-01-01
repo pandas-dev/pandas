@@ -17,11 +17,12 @@ from pandas.core.dtypes.common import (
     _NS_DTYPE, ensure_int64, is_float, is_integer, is_list_like, is_scalar,
     is_string_like)
 import pandas.core.dtypes.concat as _concat
+from pandas.core.dtypes.dtypes import DatetimeTZDtype
 from pandas.core.dtypes.missing import isna
 
 from pandas.core.accessor import delegate_names
 from pandas.core.arrays.datetimes import (
-    DatetimeArrayMixin as DatetimeArray, _to_m8)
+    DatetimeArrayMixin as DatetimeArray, _to_m8, validate_tz_from_dtype)
 from pandas.core.base import _shared_docs
 import pandas.core.common as com
 from pandas.core.indexes.base import Index
@@ -311,7 +312,13 @@ class DatetimeIndex(DatetimeIndexOpsMixin, Int64Index, DatetimeDelegateMixin):
         if we are passed a non-dtype compat, then coerce using the constructor
         """
         if isinstance(values, DatetimeArray):
-            values = DatetimeArray(values, freq=freq, tz=tz, dtype=dtype)
+            if tz:
+                tz = validate_tz_from_dtype(dtype, tz)
+                dtype = DatetimeTZDtype(tz=tz)
+            elif dtype is None:
+                dtype = _NS_DTYPE
+
+            values = DatetimeArray(values, freq=freq, dtype=dtype)
             tz = values.tz
             freq = values.freq
             values = values._data
