@@ -38,7 +38,7 @@ matrix:
 
     - dist: trusty
       env:
-        - JOB="2.7" ENV_FILE="ci/deps/travis-27.yaml" PATTERN="not slow and db"
+        - JOB="2.7" ENV_FILE="ci/deps/travis-27.yaml" PATTERN="not slow or db"
       addons:
         apt:
           packages:
@@ -46,11 +46,11 @@ matrix:
 
     - dist: trusty
       env:
-        - JOB="3.6, locale" ENV_FILE="ci/deps/travis-36-locale.yaml" PATTERN="not slow and not network and db" LOCALE_OVERRIDE="zh_CN.UTF-8"
+        - JOB="3.6, locale" ENV_FILE="ci/deps/travis-36-locale.yaml" PATTERN="(not slow and not network) or db" LOCALE_OVERRIDE="zh_CN.UTF-8"
 
     - dist: trusty
       env:
-        - JOB="3.6, coverage" ENV_FILE="ci/deps/travis-36.yaml" PATTERN="not slow and not network and db" PANDAS_TESTING_MODE="deprecate" COVERAGE=true
+        - JOB="3.6, coverage" ENV_FILE="ci/deps/travis-36.yaml" PATTERN="(not slow and not network) or db" PANDAS_TESTING_MODE="deprecate" COVERAGE=true
 
     # In allow_failures
     - dist: trusty
