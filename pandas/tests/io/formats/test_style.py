@@ -275,7 +275,8 @@ class TestStyler(object):
             assert result == expected
 
     def test_applymap_subset_multiindex(self):
-        # https://github.com/pandas-dev/pandas/issues/19861
+        # GH 19861
+        # Smoke test for applymap
         def color_negative_red(val):
             """
             Takes a scalar and returns a string with

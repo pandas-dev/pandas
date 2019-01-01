@@ -813,6 +813,7 @@ class TestMisc(Base):
             assert isinstance(df.loc[tslice_], DataFrame)
 
     def test_non_reducing_slice_on_multiindex(self):
+        # GH 19861
         dic = {
             ('a', 'd'): [1, 4],
             ('a', 'c'): [2, 3],
