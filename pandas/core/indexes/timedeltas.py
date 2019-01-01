@@ -215,7 +215,7 @@ class TimedeltaIndex(DatetimeIndexOpsMixin, dtl.TimelikeOps, Int64Index,
                 data = data.copy()
             return cls._simple_new(data, name=name, freq=freq)
 
-        if (isinstance(data, (TimedeltaArray, TimedeltaIndex)) and
+        if (isinstance(data, TimedeltaIndex) and
                 freq is None and name is None):
             if copy:
                 return data.copy()
