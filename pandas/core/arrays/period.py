@@ -14,8 +14,8 @@ import pandas.compat as compat
 from pandas.util._decorators import Appender, cache_readonly
 
 from pandas.core.dtypes.common import (
-    _TD_DTYPE, ensure_object, is_datetime64_dtype,
-    is_float_dtype, is_list_like, is_period_dtype, pandas_dtype)
+    _TD_DTYPE, ensure_object, is_datetime64_dtype, is_float_dtype,
+    is_list_like, is_period_dtype, pandas_dtype)
 from pandas.core.dtypes.dtypes import PeriodDtype
 from pandas.core.dtypes.generic import ABCIndexClass, ABCPeriodIndex, ABCSeries
 from pandas.core.dtypes.missing import isna, notna
