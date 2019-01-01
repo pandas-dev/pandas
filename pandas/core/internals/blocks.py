@@ -34,7 +34,8 @@ from pandas.core.dtypes.missing import (
     _isna_compat, array_equivalent, is_null_datelike_scalar, isna, notna)
 
 import pandas.core.algorithms as algos
-from pandas.core.arrays import Categorical, ExtensionArray
+from pandas.core.arrays import (
+    Categorical, DatetimeArrayMixin as DatetimeArray, ExtensionArray)
 from pandas.core.base import PandasObject
 import pandas.core.common as com
 from pandas.core.indexes.datetimes import DatetimeIndex
@@ -2437,8 +2438,14 @@ class ObjectBlock(Block):
         """ provide coercion to our input arguments """
 
         if isinstance(other, ABCDatetimeIndex):
-            # to store DatetimeTZBlock as object
-            other = other.astype(object).values
+            # May get a DatetimeIndex here. Unbox it.
+            other = other.array
+
+        if isinstance(other, DatetimeArray):
+            # hit in pandas/tests/indexing/test_coercion.py
+            # ::TestWhereCoercion::test_where_series_datetime64[datetime64tz]
+            # when falling back to ObjectBlock.where
+            other = other.astype(object)
 
         return values, other
 
@@ -2985,7 +2992,8 @@ class DatetimeTZBlock(NonConsolidatableMixIn, DatetimeBlock):
         elif (is_null_datelike_scalar(other) or
               (lib.is_scalar(other) and isna(other))):
             other = tslibs.iNaT
-        elif isinstance(other, self._holder):
+        elif isinstance(other, (self._holder, DatetimeArray)):
+            # TODO: DatetimeArray check will be redundant after GH#24024
             if other.tz != self.values.tz:
                 raise ValueError("incompatible or non tz-aware value")
             other = _block_shape(other.asi8, ndim=self.ndim)
