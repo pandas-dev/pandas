@@ -12,7 +12,7 @@ import pandas.compat as compat
 from pandas.core.dtypes.dtypes import DatetimeTZDtype
 from pandas.core.dtypes.common import (
     is_object_dtype, is_datetime64_dtype, is_datetime64tz_dtype,
-    needs_i8_conversion)
+    is_timedelta64_dtype, needs_i8_conversion)
 import pandas.util.testing as tm
 from pandas import (Series, Index, DatetimeIndex, TimedeltaIndex,
                     PeriodIndex, Timedelta, IntervalIndex, Interval,
@@ -1224,6 +1224,8 @@ def test_numpy_array_all_dtypes(any_numpy_dtype):
     result = ser.array
     if is_datetime64_dtype(any_numpy_dtype):
         assert isinstance(result, DatetimeArray)
+    elif is_timedelta64_dtype(any_numpy_dtype):
+        assert isinstance(result, TimedeltaArray)
     else:
         assert isinstance(result, PandasArray)
 
