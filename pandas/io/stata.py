@@ -12,6 +12,7 @@ http://www.statsmodels.org/devel/
 
 from collections import OrderedDict
 import datetime
+import os
 import struct
 import sys
 import warnings
@@ -23,7 +24,8 @@ from pandas._libs.lib import infer_dtype
 from pandas._libs.tslibs import NaT, Timestamp
 from pandas._libs.writers import max_len_string_array
 from pandas.compat import (
-    BytesIO, lmap, lrange, lzip, range, string_types, text_type, zip)
+    BytesIO, ResourceWarning, lmap, lrange, lzip, range, string_types,
+    text_type, zip)
 from pandas.util._decorators import Appender, deprecate_kwarg
 
 from pandas.core.dtypes.common import (
@@ -2209,7 +2211,17 @@ class StataWriter(StataParser):
             self._write_value_labels()
             self._write_file_close_tag()
             self._write_map()
-        finally:
+        except Exception as exc:
+            self._close()
+            try:
+                if self._own_file:
+                    os.unlink(self._fname)
+            except Exception:
+                warnings.warn('This save was not successful but {0} could not '
+                              'be deleted.  This file is not '
+                              'valid.'.format(self._fname), ResourceWarning)
+            raise exc
+        else:
             self._close()
 
     def _close(self):

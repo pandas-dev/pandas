@@ -289,10 +289,11 @@ class TestPeriodIndex(object):
         index = date_range(start='2017-10-10', end='2017-10-20', freq='1H')
         index = index.tz_localize('UTC').tz_convert('America/Sao_Paulo')
         df = DataFrame(data=list(range(len(index))), index=index)
-        result = df.groupby(pd.Grouper(freq='1D'))
+        result = df.groupby(pd.Grouper(freq='1D')).count()
         expected = date_range(start='2017-10-09', end='2017-10-20', freq='D',
-                              tz="America/Sao_Paulo")
-        tm.assert_index_equal(result.count().index, expected)
+                              tz="America/Sao_Paulo", nonexistent='shift',
+                              closed='left')
+        tm.assert_index_equal(result.index, expected)
 
     def test_resample_ambiguous_time_bin_edge(self):
         # GH 10117
@@ -659,14 +660,14 @@ class TestPeriodIndex(object):
     @pytest.mark.parametrize('kind', [None, 'period'])
     def test_upsampling_ohlc(self, freq, period_mult, kind):
         # GH 13083
-        pi = PeriodIndex(start='2000', freq='D', periods=10)
+        pi = period_range(start='2000', freq='D', periods=10)
         s = Series(range(len(pi)), index=pi)
         expected = s.to_timestamp().resample(freq).ohlc().to_period(freq)
 
         # timestamp-based resampling doesn't include all sub-periods
         # of the last original period, so extend accordingly:
-        new_index = PeriodIndex(start='2000', freq=freq,
-                                periods=period_mult * len(pi))
+        new_index = period_range(start='2000', freq=freq,
+                                 periods=period_mult * len(pi))
         expected = expected.reindex(new_index)
         result = s.resample(freq, kind=kind).ohlc()
         assert_frame_equal(result, expected)

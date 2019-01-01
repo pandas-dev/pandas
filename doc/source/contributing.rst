@@ -125,7 +125,7 @@ requires a C compiler and Python environment. If you're making documentation
 changes, you can skip to :ref:`contributing.documentation` but you won't be able
 to build the documentation locally before pushing your changes.
 
-.. _contributiong.dev_c:
+.. _contributing.dev_c:
 
 Installing a C Compiler
 ~~~~~~~~~~~~~~~~~~~~~~~
@@ -133,13 +133,17 @@ Installing a C Compiler
 Pandas uses C extensions (mostly written using Cython) to speed up certain
 operations. To install pandas from source, you need to compile these C
 extensions, which means you need a C compiler. This process depends on which
-platform you're using. Follow the `CPython contributing guidelines
-<https://docs.python.org/devguide/setup.html#build-dependencies>`_ for getting a
+platform you're using. Follow the `CPython contributing guide
+<https://devguide.python.org/setup/#compile-and-build>`_ for getting a
 compiler installed. You don't need to do any of the ``./configure`` or ``make``
 steps; you only need to install the compiler.
 
-For Windows developers, the following links may be helpful.
+For Windows developers, when using Python 3.5 and later, it is sufficient to
+install `Visual Studio 2017 <https://visualstudio.com/>`_ with the
+**Python development workload** and the **Python native development tools**
+option. Otherwise, the following links may be helpful.
 
+* https://blogs.msdn.microsoft.com/pythonengineering/2017/03/07/python-support-in-vs2017/
 * https://blogs.msdn.microsoft.com/pythonengineering/2016/04/11/unable-to-find-vcvarsall-bat/
 * https://github.com/conda/conda-recipes/wiki/Building-from-Source-on-Windows-32-bit-and-64-bit
 * https://cowboyprogrammer.org/building-python-wheels-for-windows/
@@ -149,7 +153,7 @@ For Windows developers, the following links may be helpful.
 Let us know if you have any difficulties by opening an issue or reaching out on
 `Gitter`_.
 
-.. _contributiong.dev_python:
+.. _contributing.dev_python:
 
 Creating a Python Environment
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -682,13 +686,13 @@ See :ref:`contributing.warnings` for more.
 Testing With Continuous Integration
 -----------------------------------
 
-The *pandas* test suite will run automatically on `Travis-CI <https://travis-ci.org/>`__,
-`Azure Pipelines <https://azure.microsoft.com/en-us/services/devops/pipelines/>`__,
-and `Circle CI <https://circleci.com/>`__ continuous integration services, once your pull request is submitted.
+The *pandas* test suite will run automatically on `Travis-CI <https://travis-ci.org/>`__ and
+`Azure Pipelines <https://azure.microsoft.com/en-us/services/devops/pipelines/>`__
+continuous integration services, once your pull request is submitted.
 However, if you wish to run the test suite on a branch prior to submitting the pull request,
 then the continuous integration services need to be hooked to your GitHub repository. Instructions are here
-for `Travis-CI <http://about.travis-ci.org/docs/user/getting-started/>`__,
-`Azure Pipelines <https://docs.microsoft.com/en-us/azure/devops/pipelines/>`__, and `CircleCI <https://circleci.com/>`__.
+for `Travis-CI <http://about.travis-ci.org/docs/user/getting-started/>`__ and
+`Azure Pipelines <https://docs.microsoft.com/en-us/azure/devops/pipelines/>`__.
 
 A pull-request will be considered for merging when you have an all 'green' build. If any tests are failing,
 then you will get a red 'X', where you can click through to see the individual failed tests.
@@ -700,8 +704,7 @@ This is an example of a green build.
 
    Each time you push to *your* fork, a *new* run of the tests will be triggered on the CI.
    You can enable the auto-cancel feature, which removes any non-currently-running tests for that same pull-request, for
-   `Travis-CI here <https://docs.travis-ci.com/user/customizing-the-build/#Building-only-the-latest-commit>`__ and
-   for `CircleCI here <https://circleci.com/changelog-legacy/#option-to-auto-cancel-redundant-builds>`__.
+   `Travis-CI here <https://docs.travis-ci.com/user/customizing-the-build/#Building-only-the-latest-commit>`__.
 
 .. _contributing.tdd:
 
