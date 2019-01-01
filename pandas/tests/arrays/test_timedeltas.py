@@ -29,7 +29,7 @@ class TestTimedeltaArrayConstructor(object):
                            match=r"dtype int64 cannot be converted "
                                  r"to timedelta64\[ns\]"):
             TimedeltaArray(np.array([1, 2, 3], dtype='i8'),
-                           dtype=np.dtype(int))
+                           dtype=np.dtype("int64"))
 
     def test_copy(self):
         data = np.array([1, 2, 3], dtype='m8[ns]')
