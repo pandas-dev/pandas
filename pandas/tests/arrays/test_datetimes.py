@@ -158,8 +158,10 @@ class TestDatetimeArray(object):
         arr[2] = pd.NaT
 
         fill_val = dti[1] if method == 'pad' else dti[3]
-        expected = DatetimeArray([dti[0], dti[1], fill_val, dti[3], dti[4]],
-                                 freq=None, tz='US/Central')
+        expected = DatetimeArray._from_sequence(
+            [dti[0], dti[1], fill_val, dti[3], dti[4]],
+            freq=None, tz='US/Central'
+        )
 
         result = arr.fillna(method=method)
         tm.assert_extension_array_equal(result, expected)
