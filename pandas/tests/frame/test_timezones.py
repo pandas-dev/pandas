@@ -4,15 +4,17 @@ Tests for DataFrame timezone-related methods
 """
 from datetime import datetime
 
+import numpy as np
 import pytest
 import pytz
-import numpy as np
 
-import pandas.util.testing as tm
 from pandas.compat import lrange
-from pandas.core.indexes.datetimes import date_range
+
 from pandas.core.dtypes.dtypes import DatetimeTZDtype
-from pandas import Series, DataFrame
+
+from pandas import DataFrame, Series
+from pandas.core.indexes.datetimes import date_range
+import pandas.util.testing as tm
 
 
 class TestDataFrameTimezones(object):

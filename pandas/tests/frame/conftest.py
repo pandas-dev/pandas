@@ -1,10 +1,8 @@
+import numpy as np
 import pytest
 
-import numpy as np
-
-from pandas import compat
+from pandas import DataFrame, NaT, compat, date_range
 import pandas.util.testing as tm
-from pandas import DataFrame, date_range, NaT
 
 
 @pytest.fixture
