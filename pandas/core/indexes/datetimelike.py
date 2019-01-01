@@ -15,8 +15,7 @@ from pandas.util._decorators import Appender, cache_readonly, deprecate_kwarg
 from pandas.core.dtypes.common import (
     ensure_int64, is_bool_dtype, is_dtype_equal, is_float, is_integer,
     is_list_like, is_period_dtype, is_scalar)
-from pandas.core.dtypes.generic import (
-    ABCDatetimeArray, ABCIndex, ABCIndexClass, ABCSeries)
+from pandas.core.dtypes.generic import ABCIndex, ABCIndexClass, ABCSeries
 
 from pandas.core import algorithms, ops
 from pandas.core.accessor import PandasDelegate
@@ -174,13 +173,15 @@ class DatetimeIndexOpsMixin(ExtensionOpsMixin):
         """
         Create the join wrapper methods.
         """
+        from pandas.core.arrays.datetimelike import DatetimeLikeArrayMixin
+
         @staticmethod
         def wrapper(left, right):
             if isinstance(left, (np.ndarray, ABCIndex, ABCSeries,
-                                 ABCDatetimeArray)):
+                                 DatetimeLikeArrayMixin)):
                 left = left.view('i8')
             if isinstance(right, (np.ndarray, ABCIndex, ABCSeries,
-                                  ABCDatetimeArray)):
+                                  DatetimeLikeArrayMixin)):
                 right = right.view('i8')
             results = joinf(left, right)
             if with_indexers:
