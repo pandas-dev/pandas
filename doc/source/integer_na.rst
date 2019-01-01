@@ -77,6 +77,22 @@ dtype if needed.
    # coerce when needed
    s + 0.01
 
+These dtypes can operate as part of of ``DataFrame``.
+
+.. ipython:: python
+
+   df = pd.DataFrame({'A': s, 'B': [1, 1, 3], 'C': list('aab')})
+   df
+   df.dtypes
+
+
+These dtypes can be merged & reshaped & casted.
+
+.. ipython:: python
+
+   pd.concat([df[['A']], df[['B', 'C']]], axis=1).dtypes
+   df['A'].astype(float)
+
 Reduction and groupby operations such as 'sum' work as well.
 
 .. ipython:: python

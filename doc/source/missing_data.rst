@@ -36,6 +36,16 @@ arise and we wish to also consider that "missing" or "not available" or "NA".
 
 .. _missing.isna:
 
+.. ipython:: python
+
+   df = pd.DataFrame(np.random.randn(5, 3), index=['a', 'c', 'e', 'f', 'h'],
+                     columns=['one', 'two', 'three'])
+   df['four'] = 'bar'
+   df['five'] = df['one'] > 0
+   df
+   df2 = df.reindex(['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h'])
+   df2
+
 To make detecting missing values easier (and across different array dtypes),
 pandas provides the :func:`isna` and
 :func:`notna` functions, which are also methods on
