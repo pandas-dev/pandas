@@ -805,8 +805,7 @@ class TestIndex(Base):
 
     def test_union_dt_as_obj(self):
         # TODO: Replace with fixturesult
-        with tm.assert_produces_warning(RuntimeWarning):
-            firstCat = self.strIndex.union(self.dateIndex)
+        firstCat = self.strIndex.union(self.dateIndex)
         secondCat = self.strIndex.union(self.strIndex)
 
         if self.dateIndex.dtype == np.object_:
@@ -1615,7 +1614,7 @@ class TestIndex(Base):
     @pytest.mark.parametrize("method,expected", [
         ('intersection', np.array([(1, 'A'), (2, 'A'), (1, 'B'), (2, 'B')],
                                   dtype=[('num', int), ('let', 'a1')])),
-        ('union', np.array([(1, 'A'), (2, 'A'), (1, 'B'), (2, 'B'), (1, 'C'),
+        ('union', np.array([(1, 'A'), (1, 'B'), (1, 'C'), (2, 'A'), (2, 'B'),
                             (2, 'C')], dtype=[('num', int), ('let', 'a1')]))
     ])
     def test_tuple_union_bug(self, method, expected):
@@ -2242,10 +2241,7 @@ class TestMixedIntIndex(Base):
         s1 = Series(2, index=first)
         s2 = Series(3, index=second[:-1])
 
-        warning_type = RuntimeWarning if PY3 else None
-        with tm.assert_produces_warning(warning_type):
-            # Python 3: Unorderable types
-            s3 = s1 * s2
+        s3 = s1 * s2
 
         assert s3.index.name == 'mario'
 
@@ -2274,16 +2270,9 @@ class TestMixedIntIndex(Base):
         first = index[3:]
         second = index[:5]
 
-        if PY3:
-            # unorderable types
-            warn_type = RuntimeWarning
-        else:
-            warn_type = None
+        result = first.union(second)
 
-        with tm.assert_produces_warning(warn_type):
-            result = first.union(second)
-
-        expected = Index(['b', 2, 'c', 0, 'a', 1])
+        expected = Index([0, 1, 2, 'a', 'b', 'c'])
         tm.assert_index_equal(result, expected)
 
     @pytest.mark.parametrize("klass", [
@@ -2294,14 +2283,7 @@ class TestMixedIntIndex(Base):
         first = index[3:]
         second = index[:5]
 
-        if PY3:
-            # unorderable types
-            warn_type = RuntimeWarning
-        else:
-            warn_type = None
-
-        with tm.assert_produces_warning(warn_type):
-            result = first.union(klass(second.values))
+        result = first.union(klass(second.values))
 
         assert tm.equalContents(result, index)
 
