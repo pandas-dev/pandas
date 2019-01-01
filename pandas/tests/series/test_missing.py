@@ -1328,5 +1328,5 @@ class TestSeriesInterpolateData():
     def test_nonzero_warning(self):
         # GH 24048
         ser = pd.Series([1, 0, 3, 4])
-        with pytest.warns(FutureWarning, match="Series.nonzero()"):
+        with tm.assert_produces_warning(FutureWarning):
             ser.nonzero()
