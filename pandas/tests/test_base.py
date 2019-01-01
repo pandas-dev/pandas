@@ -18,7 +18,7 @@ from pandas import (Series, Index, DatetimeIndex, TimedeltaIndex,
                     CategoricalIndex, Timestamp, DataFrame, Panel)
 from pandas.compat import StringIO, PYPY, long
 from pandas.compat.numpy import np_array_datetime64_compat
-from pandas.core.arrays import PandasArray
+from pandas.core.arrays import PandasArray, DatetimeArrayMixin as DatetimeArray
 from pandas.core.accessor import PandasDelegate
 from pandas.core.base import PandasObject, NoNewAttributesMixin
 from pandas.core.indexes.datetimelike import DatetimeIndexOpsMixin
@@ -1149,7 +1149,7 @@ class TestToIterable(object):
     (np.array(['a', 'b']), np.ndarray, 'object'),
     (pd.Categorical(['a', 'b']), pd.Categorical, 'category'),
     (pd.DatetimeIndex(['2017', '2018']), np.ndarray, 'datetime64[ns]'),
-    (pd.DatetimeIndex(['2017', '2018'], tz="US/Central"), pd.DatetimeIndex,
+    (pd.DatetimeIndex(['2017', '2018'], tz="US/Central"), DatetimeArray,
      'datetime64[ns, US/Central]'),
     (pd.TimedeltaIndex([10**10]), np.ndarray, 'm8[ns]'),
     (pd.PeriodIndex([2018, 2019], freq='A'), pd.core.arrays.PeriodArray,
