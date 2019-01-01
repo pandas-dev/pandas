@@ -1659,7 +1659,7 @@ def sequence_to_dt64ns(data, dtype=None, copy=False,
         tz = data.tz
         tz = validate_tz_from_dtype(dtype, tz)
 
-        return data, tz, None
+        return data._data, tz, data.freq
 
     # By this point we are assured to have either a numpy array or Index
     data, copy = maybe_convert_dtype(data, copy)
