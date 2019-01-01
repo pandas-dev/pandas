@@ -12,8 +12,8 @@ from pandas.core.dtypes.common import (
     is_extension_array_dtype, is_interval_dtype, is_object_dtype,
     is_period_dtype, is_sparse, is_timedelta64_dtype)
 from pandas.core.dtypes.generic import (
-    ABCDatetimeIndex, ABCPeriodIndex, ABCRangeIndex, ABCSparseDataFrame,
-    ABCTimedeltaIndex)
+    ABCDatetimeArray, ABCDatetimeIndex, ABCIndexClass, ABCPeriodIndex,
+    ABCRangeIndex, ABCSparseDataFrame, ABCTimedeltaIndex)
 
 from pandas import compat
 
@@ -471,7 +471,15 @@ def _concat_datetimetz(to_concat, name=None):
     all inputs must be DatetimeIndex
     it is used in DatetimeIndex.append also
     """
-    return to_concat[0]._concat_same_dtype(to_concat, name=name)
+    # Right now, internals will pass a List[DatetimeArray] here
+    # for reductions like quantile. I would like to disentangle
+    # all this before we get here.
+    sample = to_concat[0]
+
+    if isinstance(sample, ABCIndexClass):
+        return sample._concat_same_dtype(to_concat, name=name)
+    elif isinstance(sample, ABCDatetimeArray):
+        return sample._concat_same_type(to_concat)
 
 
 def _concat_index_same_dtype(indexes, klass=None):
