@@ -1,9 +1,10 @@
 # -*- coding: utf-8 -*-
 
 import pytest
+
 import pandas as pd
-import pandas.util.testing as tm
 from pandas import MultiIndex
+import pandas.util.testing as tm
 
 
 def check_level_names(index, names):

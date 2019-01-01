@@ -3,10 +3,11 @@ from datetime import time, timedelta
 import numpy as np
 import pytest
 
-import pandas as pd
-import pandas.util.testing as tm
-from pandas import Series, TimedeltaIndex, isna, to_timedelta
 from pandas._libs.tslib import iNaT
+
+import pandas as pd
+from pandas import Series, TimedeltaIndex, isna, to_timedelta
+import pandas.util.testing as tm
 from pandas.util.testing import assert_series_equal
 
 

@@ -4,8 +4,8 @@ import numpy as np
 import pytest
 
 import pandas as pd
-import pandas.util.testing as tm
 from pandas import Index, Timedelta, TimedeltaIndex, compat, timedelta_range
+import pandas.util.testing as tm
 
 
 class TestGetItem(object):

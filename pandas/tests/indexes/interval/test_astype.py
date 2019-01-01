@@ -3,12 +3,12 @@ from __future__ import division
 import numpy as np
 import pytest
 
-import pandas.util.testing as tm
+from pandas.core.dtypes.dtypes import CategoricalDtype, IntervalDtype
+
 from pandas import (
     CategoricalIndex, Index, IntervalIndex, NaT, Timedelta, Timestamp,
-    interval_range
-)
-from pandas.core.dtypes.dtypes import CategoricalDtype, IntervalDtype
+    interval_range)
+import pandas.util.testing as tm
 
 
 class Base(object):

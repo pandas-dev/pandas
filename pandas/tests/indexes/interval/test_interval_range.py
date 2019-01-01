@@ -5,12 +5,13 @@ from datetime import timedelta
 import numpy as np
 import pytest
 
-import pandas.util.testing as tm
+from pandas.core.dtypes.common import is_integer
+
 from pandas import (
     DateOffset, Interval, IntervalIndex, Timedelta, Timestamp, date_range,
-    interval_range, timedelta_range
-)
-from pandas.core.dtypes.common import is_integer
+    interval_range, timedelta_range)
+import pandas.util.testing as tm
+
 from pandas.tseries.offsets import Day
 
 

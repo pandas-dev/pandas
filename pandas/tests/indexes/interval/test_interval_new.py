@@ -3,8 +3,8 @@ from __future__ import division
 import numpy as np
 import pytest
 
-import pandas.util.testing as tm
 from pandas import Int64Index, Interval, IntervalIndex
+import pandas.util.testing as tm
 
 pytestmark = pytest.mark.skip(reason="new indexing tests for issue 16316")
 

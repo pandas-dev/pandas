@@ -5,11 +5,13 @@ import re
 import numpy as np
 import pytest
 
-import pandas as pd
-import pandas.util.testing as tm
-from pandas import IntervalIndex, MultiIndex, RangeIndex
 from pandas.compat import lrange, range
+
 from pandas.core.dtypes.cast import construct_1d_object_array_from_listlike
+
+import pandas as pd
+from pandas import IntervalIndex, MultiIndex, RangeIndex
+import pandas.util.testing as tm
 
 
 def test_labels_dtypes():

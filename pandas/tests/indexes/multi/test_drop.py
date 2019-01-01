@@ -4,11 +4,12 @@
 import numpy as np
 import pytest
 
-import pandas as pd
-import pandas.util.testing as tm
-from pandas import Index, MultiIndex
 from pandas.compat import lrange
 from pandas.errors import PerformanceWarning
+
+import pandas as pd
+from pandas import Index, MultiIndex
+import pandas.util.testing as tm
 
 
 def test_drop(idx):
