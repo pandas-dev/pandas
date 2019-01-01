@@ -17,12 +17,12 @@ from pandas import (Series, Index, DatetimeIndex, TimedeltaIndex,
                     PeriodIndex, Timedelta, IntervalIndex, Interval,
                     CategoricalIndex, Timestamp, DataFrame, Panel)
 from pandas.core.arrays import (
+    PandasArray,
     DatetimeArrayMixin as DatetimeArray,
     TimedeltaArrayMixin as TimedeltaArray,
 )
 from pandas.compat import StringIO, PYPY, long
 from pandas.compat.numpy import np_array_datetime64_compat
-from pandas.core.arrays import PandasArray, DatetimeArrayMixin as DatetimeArray
 from pandas.core.accessor import PandasDelegate
 from pandas.core.base import PandasObject, NoNewAttributesMixin
 from pandas.core.indexes.datetimelike import DatetimeIndexOpsMixin
@@ -388,11 +388,9 @@ class TestIndexOps(Ops):
                 for r in result:
                     assert isinstance(r, Timestamp)
 
-                # TODO(#24024) once orig._values returns DTA, remove
-                #  the `._eadata` below
                 tm.assert_numpy_array_equal(
                     result.astype(object),
-                    orig._values._eadata.astype(object))
+                    orig._values.astype(object))
             else:
                 tm.assert_numpy_array_equal(result, orig.values)
 
@@ -418,9 +416,7 @@ class TestIndexOps(Ops):
                     else:
                         o = o.copy()
                         o[0:2] = iNaT
-                        # TODO(#24024) once Series._values returns DTA, remove
-                        #  the `._eadata` here
-                        values = o._values._eadata
+                        values = o._values
 
                 elif needs_i8_conversion(o):
                     values[0:2] = iNaT
