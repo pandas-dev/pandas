@@ -1,6 +1,7 @@
 import pytest
 
 from pandas.util import testing as tm
+
 from pandas.io.formats.css import CSSResolver, CSSWarning
 
 
