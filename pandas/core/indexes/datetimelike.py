@@ -637,11 +637,6 @@ class DatetimeIndexOpsMixin(ExtensionOpsMixin):
         return Index(new_values,
                      dtype=new_values.dtype, name=self.name, copy=False)
 
-    @Appender(DatetimeLikeArrayMixin._time_shift.__doc__)
-    def _time_shift(self, periods, freq=None):
-        result = self._eadata._time_shift(periods, freq=freq)
-        return type(self)(result, name=self.name)
-
     @deprecate_kwarg(old_arg_name='n', new_arg_name='periods')
     def shift(self, periods, freq=None):
         """
