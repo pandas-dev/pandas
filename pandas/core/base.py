@@ -15,8 +15,9 @@ from pandas.util._decorators import Appender, Substitution, cache_readonly
 from pandas.util._validators import validate_bool_kwarg
 
 from pandas.core.dtypes.common import (
-    is_datetime64tz_dtype, is_datetimelike, is_extension_array_dtype,
-    is_extension_type, is_list_like, is_object_dtype, is_scalar)
+    is_datetime64_ns_dtype, is_datetime64tz_dtype, is_datetimelike,
+    is_extension_array_dtype, is_extension_type, is_list_like, is_object_dtype,
+    is_scalar, is_timedelta64_ns_dtype)
 from pandas.core.dtypes.generic import ABCDataFrame, ABCIndexClass, ABCSeries
 from pandas.core.dtypes.missing import isna
 
@@ -849,12 +850,19 @@ class IndexOpsMixin(object):
         """
         result = self._values
 
-        # TODO(DatetimeArray): remvoe the second clause.
-        if (not is_extension_array_dtype(result.dtype)
-                and not is_datetime64tz_dtype(result.dtype)):
-            from pandas.core.arrays.numpy_ import PandasArray
+        if (is_datetime64_ns_dtype(result.dtype) or
+                is_datetime64tz_dtype(result.dtype)):
+            from pandas.arrays import DatetimeArray
+            result = DatetimeArray(result)
 
+        elif is_timedelta64_ns_dtype(result.dtype):
+            from pandas.arrays import TimedeltaArray
+            result = TimedeltaArray(result)
+
+        elif not is_extension_array_dtype(result.dtype):
+            from pandas.core.arrays.numpy_ import PandasArray
             result = PandasArray(result)
+
         return result
 
     def to_numpy(self, dtype=None, copy=False):
