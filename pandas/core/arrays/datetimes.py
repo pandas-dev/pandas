@@ -1677,11 +1677,11 @@ def sequence_to_dt64ns(data, dtype=None, copy=False,
                 data, dayfirst=dayfirst, yearfirst=yearfirst)
             tz = maybe_infer_tz(tz, inferred_tz)
 
+    # `data` may have originally been a Categorical[datetime64[ns, tz]],
+    # so we need to handle these types.
     if is_datetime64tz_dtype(data):
-        # DatetimeIndex or DatetimeArray -> ndarray
+        # DatetimeArray -> ndarray
         tz = maybe_infer_tz(tz, data.tz)
-        if isinstance(data, ABCIndexClass):
-            data = data._data
         result = data._data
 
     elif is_datetime64_dtype(data):
@@ -1840,7 +1840,7 @@ def maybe_convert_dtype(data, copy):
         # GH#18664 preserve tz in going DTI->Categorical->DTI
         # TODO: cases where we need to do another pass through this func,
         #  e.g. the categories are timedelta64s
-        data = data.categories.take(data.codes, fill_value=NaT)
+        data = data.categories.take(data.codes, fill_value=NaT)._values
         copy = False
 
     elif is_extension_type(data) and not is_datetime64tz_dtype(data):
