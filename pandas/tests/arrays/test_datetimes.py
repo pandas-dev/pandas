@@ -163,7 +163,7 @@ class TestSequenceToDT64NS(object):
         arr = DatetimeArray._from_sequence(['2000'], tz='US/Central')
         result, _, _ = sequence_to_dt64ns(
             arr, dtype=DatetimeTZDtype(tz="US/Central"))
-        tm.assert_extension_array_equal(arr, result)
+        tm.assert_numpy_array_equal(arr._data, result)
 
 
 class TestReductions(object):
