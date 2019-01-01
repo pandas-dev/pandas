@@ -610,12 +610,7 @@ class _timelex(object):
         return cls(s).get_tokens()
 
 
-def _lexer_split_from_str(dt_str):
-    # The StringIO(str(_)) is for dateutil 2.2 compatibility
-    return _timelex.split(StringIO(str(dt_str)))
-
-
-_DATEUTIL_LEXER_SPLIT = _lexer_split_from_str
+_DATEUTIL_LEXER_SPLIT = _timelex.split
 
 
 def _format_is_iso(f) -> bint:
