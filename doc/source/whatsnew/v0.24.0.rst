@@ -812,25 +812,19 @@ rather than simply returning the other :class:`Index` object (:issue:`23525`).
 
 Previous Behavior:
 
-.. code-block:: ipython
+.. ipython:: python
 
-    
     In [1]: pd.period_range('19910905', periods=2).union(pd.Int64Index([1, 2, 3]))
-    ...
-    ValueError: can only call with other PeriodIndex-ed objects
 
     In [2]: pd.Index([]).astype(str).union(pd.Index([1, 2, 3]))
-    Out[2]: Int64Index([1, 2, 3], dtype='int64')
 
 Current Behavior:
 
-.. code-block:: ipython
+.. ipython:: python
 
     In [1]: pd.period_range('19910905', periods=2).union(pd.Int64Index([1, 2, 3]))
-    Out[1]: Index([1991-09-05, 1991-09-06, 1, 2, 3], dtype='object')
 
     In [2]: pd.Index([]).astype(str).union(pd.Index([1, 2, 3]))
-    Out[2]: Index([1, 2, 3], dtype='object')
 
 .. _whatsnew_0240.api.datetimelike.normalize:
 
