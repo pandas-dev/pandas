@@ -5,7 +5,8 @@ import numpy as np
 import pandas as pd
 
 from pandas.core.dtypes.dtypes import (DatetimeTZDtype, PeriodDtype,
-                                       CategoricalDtype, IntervalDtype)
+                                       CategoricalDtype, CategoricalDtypeType,
+                                       IntervalDtype)
 from pandas.core.sparse.api import SparseDtype
 
 import pandas.core.dtypes.common as com
@@ -587,11 +588,11 @@ def test__get_dtype_fails(input_param):
     (pd.Series(['a', 'b']), np.object_),
     (pd.Index([1, 2], dtype='int64'), np.int64),
     (pd.Index(['a', 'b']), np.object_),
-    ('category', com.CategoricalDtypeType),
-    (pd.Categorical(['a', 'b']).dtype, com.CategoricalDtypeType),
-    (pd.Categorical(['a', 'b']), com.CategoricalDtypeType),
-    (pd.CategoricalIndex(['a', 'b']).dtype, com.CategoricalDtypeType),
-    (pd.CategoricalIndex(['a', 'b']), com.CategoricalDtypeType),
+    ('category', CategoricalDtypeType),
+    (pd.Categorical(['a', 'b']).dtype, CategoricalDtypeType),
+    (pd.Categorical(['a', 'b']), CategoricalDtypeType),
+    (pd.CategoricalIndex(['a', 'b']).dtype, CategoricalDtypeType),
+    (pd.CategoricalIndex(['a', 'b']), CategoricalDtypeType),
     (pd.DatetimeIndex([1, 2]), np.datetime64),
     (pd.DatetimeIndex([1, 2]).dtype, np.datetime64),
     ('<M8[ns]', np.datetime64),
@@ -610,4 +611,4 @@ def test__get_dtype_fails(input_param):
     (pd.DataFrame([1, 2]), type(None)),  # composite dtype
 ])
 def test__get_dtype_type(input_param, result):
-    assert com._get_dtype_type(input_param) == result
+    assert com._is_dtype_type(input_param, lambda tipo: tipo == result)
