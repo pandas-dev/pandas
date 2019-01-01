@@ -174,7 +174,7 @@ As a result of this change, these methods are now all discoverable via tab-compl
 .. ipython::
     :verbatim:
 
-    In [15]: df.plot.<TAB>
+    In [15]: df.plot.<TAB>  # noqa: E225, E999
     df.plot.area     df.plot.barh     df.plot.density  df.plot.hist     df.plot.line     df.plot.scatter
     df.plot.bar      df.plot.box      df.plot.hexbin   df.plot.kde      df.plot.pie
 
@@ -747,14 +747,14 @@ Previous Behavior:
 
 .. code-block:: ipython
 
-   In [5]: s == None
+   In [5]: s == None  # noqa: E711
    TypeError: Could not compare <type 'NoneType'> type with Series
 
 New Behavior:
 
 .. ipython:: python
 
-   s == None
+   s == None  # noqa: E711
 
 Usually you simply want to know which values are null.
 
@@ -769,7 +769,7 @@ Usually you simply want to know which values are null.
 
    .. ipython:: python
 
-      None == None
+      None == None  # noqa: E711
       np.nan == np.nan
 
 .. _whatsnew_0170.api_breaking.hdf_dropna:
