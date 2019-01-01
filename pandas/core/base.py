@@ -858,7 +858,7 @@ class IndexOpsMixin(object):
             result = TimedeltaArray(result)
 
         elif not is_extension_array_dtype(result.dtype):
-            from pandas.arrays import PandasArray
+            from pandas.core.arrays.numpy_ import PandasArray
             result = PandasArray(result)
 
         return result

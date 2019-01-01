@@ -417,7 +417,9 @@ class TestIndexOps(Ops):
                     else:
                         o = o.copy()
                         o[0:2] = iNaT
-                        values = o._values
+                        # TODO(#24024) once Series._values returns DTA, remove
+                        #  the `._eadata` here
+                        values = o._values._eadata
 
                 elif needs_i8_conversion(o):
                     values[0:2] = iNaT

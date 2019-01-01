@@ -8,7 +8,6 @@ from pandas.core.arrays import (
     PandasArray,
     DatetimeArrayMixin as DatetimeArray,
     TimedeltaArrayMixin as TimedeltaArray,
-
 )
 
 
