@@ -2,24 +2,24 @@
 
 from __future__ import print_function
 
-import pytest
-
 from datetime import timedelta
 
 import numpy as np
-from pandas import (DataFrame, Series, date_range, Timedelta, Timestamp,
-                    Categorical, compat, concat, option_context)
-from pandas.compat import u
-from pandas import _np_version_under1p14
+import pytest
 
-from pandas.core.arrays import integer_array
-from pandas.core.dtypes.dtypes import DatetimeTZDtype, CategoricalDtype
-from pandas.tests.frame.common import TestData
-from pandas.util.testing import (assert_series_equal,
-                                 assert_frame_equal,
-                                 makeCustomDataframe as mkdf)
-import pandas.util.testing as tm
+from pandas.compat import u
+
+from pandas.core.dtypes.dtypes import CategoricalDtype, DatetimeTZDtype
+
 import pandas as pd
+from pandas import (
+    Categorical, DataFrame, Series, Timedelta, Timestamp,
+    _np_version_under1p14, compat, concat, date_range, option_context)
+from pandas.core.arrays import integer_array
+from pandas.tests.frame.common import TestData
+import pandas.util.testing as tm
+from pandas.util.testing import (
+    assert_frame_equal, assert_series_equal, makeCustomDataframe as mkdf)
 
 
 @pytest.fixture(params=[str, compat.text_type])

@@ -2,26 +2,23 @@
 
 from __future__ import print_function
 
-from warnings import catch_warnings, simplefilter
 from datetime import datetime
-
 import itertools
+from warnings import catch_warnings, simplefilter
+
+import numpy as np
+from numpy import nan
+from numpy.random import randn
 import pytest
 
-from numpy.random import randn
-from numpy import nan
-import numpy as np
-
 from pandas.compat import u
-from pandas import (DataFrame, Index, Series, MultiIndex, date_range,
-                    Timedelta, Period)
+
 import pandas as pd
-
-from pandas.util.testing import assert_series_equal, assert_frame_equal
-
-import pandas.util.testing as tm
-
+from pandas import (
+    DataFrame, Index, MultiIndex, Period, Series, Timedelta, date_range)
 from pandas.tests.frame.common import TestData
+import pandas.util.testing as tm
+from pandas.util.testing import assert_frame_equal, assert_series_equal
 
 
 class TestDataFrameReshape(TestData):

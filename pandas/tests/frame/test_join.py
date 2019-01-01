@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
-import pytest
 import numpy as np
+import pytest
 
 from pandas import DataFrame, Index, period_range
 from pandas.tests.frame.common import TestData

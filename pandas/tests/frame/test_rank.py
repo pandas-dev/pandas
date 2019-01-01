@@ -1,15 +1,15 @@
 # -*- coding: utf-8 -*-
-import pytest
-import numpy as np
-import pandas.util.testing as tm
-
+from datetime import datetime, timedelta
 from distutils.version import LooseVersion
-from datetime import timedelta, datetime
-from numpy import nan
 
-from pandas.util.testing import assert_frame_equal
+import numpy as np
+from numpy import nan
+import pytest
+
+from pandas import DataFrame, Series
 from pandas.tests.frame.common import TestData
-from pandas import Series, DataFrame
+import pandas.util.testing as tm
+from pandas.util.testing import assert_frame_equal
 
 
 class TestRank(TestData):

@@ -3,25 +3,21 @@
 from __future__ import print_function
 
 import operator
+
+import numpy as np
+from numpy.random import randn
 import pytest
 
-from pandas.compat import (zip, range, lrange, StringIO)
-from pandas import DataFrame, Series, Index, MultiIndex, date_range
-import pandas as pd
-import numpy as np
-
-from numpy.random import randn
-
-from pandas.util.testing import (assert_series_equal,
-                                 assert_frame_equal,
-                                 makeCustomDataframe as mkdf)
-
-import pandas.util.testing as tm
+from pandas.compat import StringIO, lrange, range, zip
 import pandas.util._test_decorators as td
+
+import pandas as pd
+from pandas import DataFrame, Index, MultiIndex, Series, date_range
 from pandas.core.computation.check import _NUMEXPR_INSTALLED
-
 from pandas.tests.frame.common import TestData
-
+import pandas.util.testing as tm
+from pandas.util.testing import (
+    assert_frame_equal, assert_series_equal, makeCustomDataframe as mkdf)
 
 PARSERS = 'python', 'pandas'
 ENGINES = 'python', pytest.param('numexpr', marks=td.skip_if_no_ne)

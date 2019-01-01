@@ -6,26 +6,25 @@ from datetime import datetime, timedelta
 import functools
 import itertools
 
-import pytest
-from numpy.random import randn
-
 import numpy as np
 import numpy.ma as ma
 import numpy.ma.mrecords as mrecords
+from numpy.random import randn
+import pytest
 
-from pandas.core.dtypes.common import is_integer_dtype
-from pandas.compat import (lmap, long, zip, range, lrange, lzip,
-                           OrderedDict, is_platform_little_endian, PY3, PY36)
-from pandas import compat
-from pandas import (DataFrame, Index, Series, isna,
-                    MultiIndex, Timedelta, Timestamp,
-                    date_range, Categorical)
-import pandas as pd
-import pandas.util.testing as tm
+from pandas.compat import (
+    PY3, PY36, OrderedDict, is_platform_little_endian, lmap, long, lrange,
+    lzip, range, zip)
+
 from pandas.core.dtypes.cast import construct_1d_object_array_from_listlike
+from pandas.core.dtypes.common import is_integer_dtype
 
+import pandas as pd
+from pandas import (
+    Categorical, DataFrame, Index, MultiIndex, Series, Timedelta, Timestamp,
+    compat, date_range, isna)
 from pandas.tests.frame.common import TestData
-
+import pandas.util.testing as tm
 
 MIXED_FLOAT_DTYPES = ['float16', 'float32', 'float64']
 MIXED_INT_DTYPES = ['uint8', 'uint16', 'uint32', 'uint64', 'int8', 'int16',

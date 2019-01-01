@@ -2,29 +2,27 @@
 
 from __future__ import print_function
 
-import os
 import csv
-import pytest
+import os
 
 import numpy as np
+import pytest
 
-from pandas.compat import (lmap, range, lrange, StringIO, u)
-from pandas.io.common import _get_handle
-import pandas.core.common as com
+from pandas.compat import StringIO, lmap, lrange, range, u
 from pandas.errors import ParserError
-from pandas import (DataFrame, Index, Series, MultiIndex, Timestamp,
-                    date_range, read_csv, compat, to_datetime)
+
 import pandas as pd
-
-from pandas.util.testing import (assert_almost_equal,
-                                 assert_series_equal,
-                                 assert_frame_equal,
-                                 ensure_clean,
-                                 makeCustomDataframe as mkdf)
-import pandas.util.testing as tm
-
+from pandas import (
+    DataFrame, Index, MultiIndex, Series, Timestamp, compat, date_range,
+    read_csv, to_datetime)
+import pandas.core.common as com
 from pandas.tests.frame.common import TestData
+import pandas.util.testing as tm
+from pandas.util.testing import (
+    assert_almost_equal, assert_frame_equal, assert_series_equal, ensure_clean,
+    makeCustomDataframe as mkdf)
 
+from pandas.io.common import _get_handle
 
 MIXED_FLOAT_DTYPES = ['float16', 'float32', 'float64']
 MIXED_INT_DTYPES = ['uint8', 'uint16', 'uint32', 'uint64', 'int8', 'int16',

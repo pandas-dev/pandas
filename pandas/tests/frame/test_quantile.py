@@ -2,18 +2,14 @@
 
 from __future__ import print_function
 
-
-import pytest
 import numpy as np
+import pytest
 
-from pandas import DataFrame, Series, Timestamp
 import pandas as pd
-
-from pandas.util.testing import assert_series_equal, assert_frame_equal
-
-import pandas.util.testing as tm
-
+from pandas import DataFrame, Series, Timestamp
 from pandas.tests.frame.common import TestData
+import pandas.util.testing as tm
+from pandas.util.testing import assert_frame_equal, assert_series_equal
 
 
 class TestDataFrameQuantile(TestData):

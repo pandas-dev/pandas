@@ -2,26 +2,22 @@
 
 from __future__ import print_function
 
+import datetime
+from distutils.version import LooseVersion
+
+import dateutil
+import numpy as np
+from numpy import nan, random
 import pytest
 
-from distutils.version import LooseVersion
-from numpy import nan, random
-import numpy as np
-
-import datetime
-import dateutil
-
 from pandas.compat import lrange
-from pandas import (DataFrame, Series, Timestamp,
-                    date_range, Categorical)
-import pandas as pd
-
-from pandas.util.testing import assert_series_equal, assert_frame_equal
-
-import pandas.util.testing as tm
 import pandas.util._test_decorators as td
-from pandas.tests.frame.common import TestData, _check_mixed_float
 
+import pandas as pd
+from pandas import Categorical, DataFrame, Series, Timestamp, date_range
+from pandas.tests.frame.common import TestData, _check_mixed_float
+import pandas.util.testing as tm
+from pandas.util.testing import assert_frame_equal, assert_series_equal
 
 try:
     import scipy

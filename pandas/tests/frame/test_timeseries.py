@@ -4,25 +4,22 @@ from __future__ import print_function
 
 from datetime import datetime, time
 
+import numpy as np
+from numpy.random import randn
 import pytest
 
-from numpy.random import randn
-import numpy as np
-
-from pandas import (DataFrame, Series, Index,
-                    Timestamp, DatetimeIndex, MultiIndex,
-                    to_datetime, date_range, period_range)
-import pandas as pd
-import pandas.tseries.offsets as offsets
-
-from pandas.util.testing import (assert_series_equal,
-                                 assert_frame_equal,
-                                 assert_index_equal)
-
-import pandas.util.testing as tm
 from pandas.compat import product
 
+import pandas as pd
+from pandas import (
+    DataFrame, DatetimeIndex, Index, MultiIndex, Series, Timestamp, date_range,
+    period_range, to_datetime)
 from pandas.tests.frame.common import TestData
+import pandas.util.testing as tm
+from pandas.util.testing import (
+    assert_frame_equal, assert_index_equal, assert_series_equal)
+
+import pandas.tseries.offsets as offsets
 
 
 @pytest.fixture(params=product([True, False], [True, False]))

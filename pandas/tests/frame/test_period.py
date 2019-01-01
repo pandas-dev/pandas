@@ -1,12 +1,14 @@
-import pytest
-import numpy as np
-from numpy.random import randn
 from datetime import timedelta
 
+import numpy as np
+from numpy.random import randn
+import pytest
+
 import pandas as pd
+from pandas import (
+    DataFrame, DatetimeIndex, Index, PeriodIndex, Timedelta, date_range,
+    period_range, to_datetime)
 import pandas.util.testing as tm
-from pandas import (PeriodIndex, period_range, DataFrame, date_range,
-                    Index, to_datetime, DatetimeIndex, Timedelta)
 
 
 def _permute(obj):
