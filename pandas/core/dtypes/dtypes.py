@@ -245,11 +245,23 @@ class CategoricalDtype(PandasExtensionDtype, ExtensionDtype):
     def _from_values_or_dtype(cls, values=None, categories=None, ordered=None,
                               dtype=None):
         """
-        Construct from the inputs used in :class:`Categorical` construction.
+        Construct dtype from the input parameters used in :class:`Categorical`.
 
-        This is an internal helper method, and specifically does not do the
-        factorization step, if that is needed. Additional steps may
-        therefore have to be taken to create the final dtype.
+        This constructor method specifically does not do the factorization
+        step, if that is needed to find the categories. This constructor may
+        therefore return ``CategoricalDtype(categories=None, ordered=None)``,
+        which may not be useful. Additional steps may therefore have to be
+        taken to create the final dtype.
+
+        The return dtype is specified from the inputs in this prioritized
+        order:
+        1. if dtype is a CategoricalDtype, return dtype
+        2. if dtype is the string 'category', create a CategoricalDtype from
+           the supplied categories and ordered parameters, and return that.
+        3. if values is a categorical, use value.dtype, but override it with
+           categories and ordered if either/both of those are not None.
+        4. if dtype is None and values is not a categorical, construct the
+           dtype from categories and ordered, even if either of those is None.
 
         Parameters
         ----------
@@ -307,7 +319,8 @@ class CategoricalDtype(PandasExtensionDtype, ExtensionDtype):
                                                          categories, ordered)
         else:
             # If dtype=None and values is not categorical, create a new dtype.
-            # Note: This could potentially have categories=None and ordered=None.
+            # Note: This could potentially have categories=None and
+            # ordered=None.
             dtype = CategoricalDtype(categories, ordered)
 
         return dtype
