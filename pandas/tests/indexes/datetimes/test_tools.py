@@ -1243,8 +1243,6 @@ class TestToDatetimeMisc(object):
 class TestGuessDatetimeFormat(object):
 
     @td.skip_if_not_us_locale
-    @pytest.mark.filterwarnings("ignore:_timelex:DeprecationWarning")
-    # https://github.com/pandas-dev/pandas/issues/21322
     def test_guess_datetime_format_for_array(self):
         expected_format = '%Y-%m-%d %H:%M:%S.%f'
         dt_string = datetime(2011, 12, 30, 0, 0, 0).strftime(expected_format)
