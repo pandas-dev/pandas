@@ -14,9 +14,8 @@ import pandas.compat as compat
 from pandas.util._decorators import Appender, cache_readonly
 
 from pandas.core.dtypes.common import (
-    _TD_DTYPE, ensure_object, is_datetime64_dtype, is_datetime64_ns_dtype,
-    is_datetime64tz_dtype, is_float_dtype, is_list_like, is_period_dtype,
-    pandas_dtype)
+    _TD_DTYPE, ensure_object, is_datetime64_dtype, is_float_dtype,
+    is_list_like, is_period_dtype, pandas_dtype)
 from pandas.core.dtypes.dtypes import PeriodDtype
 from pandas.core.dtypes.generic import ABCIndexClass, ABCPeriodIndex, ABCSeries
 from pandas.core.dtypes.missing import isna, notna
@@ -836,24 +835,19 @@ def dt64arr_to_periodarr(data, freq, tz=None):
         used.
 
     """
-    from pandas.core.arrays import DatetimeArrayMixin as DatetimeArray
-
-    if not (is_datetime64_ns_dtype(data.dtype) or
-            is_datetime64tz_dtype(data.dtype)):
+    if data.dtype != np.dtype('M8[ns]'):
         raise ValueError('Wrong dtype: {dtype}'.format(dtype=data.dtype))
 
-    if isinstance(data, ABCIndexClass):
-        if freq is None:
-            freq = data.freq
-        data = data._values
-    elif isinstance(data, ABCSeries):
-        if freq is None:
-            freq = data.dt.freq
-        data = data._values
+    if freq is None:
+        if isinstance(data, ABCIndexClass):
+            data, freq = data._values, data.freq
+        elif isinstance(data, ABCSeries):
+            data, freq = data._values, data.dt.freq
 
     freq = Period._maybe_convert_freq(freq)
-    if isinstance(data, DatetimeArray):
-        data = data.asi8
+
+    if isinstance(data, (ABCIndexClass, ABCSeries)):
+        data = data._values
 
     base, mult = frequencies.get_freq_code(freq)
     return libperiod.dt64arr_to_periodarr(data.view('i8'), base, tz), freq
