@@ -426,8 +426,7 @@ def _concat_datetime(to_concat, axis=0, typs=None):
     if any(typ.startswith('datetime') for typ in typs):
 
         if 'datetime' in typs:
-            to_concat = [np.array(x, copy=False).view(np.int64)
-                         for x in to_concat]
+            to_concat = [x.astype(np.int64, copy=False) for x in to_concat]
             return _concatenate_2d(to_concat, axis=axis).view(_NS_DTYPE)
         else:
             # when to_concat has different tz, len(typs) > 1.
@@ -451,7 +450,7 @@ def _convert_datetimelike_to_object(x):
     # if dtype is of datetimetz or timezone
     if x.dtype.kind == _NS_DTYPE.kind:
         if getattr(x, 'tz', None) is not None:
-            x = x.astype(object).values
+            x = np.asarray(x.astype(object))
         else:
             shape = x.shape
             x = tslib.ints_to_pydatetime(x.view(np.int64).ravel(),
