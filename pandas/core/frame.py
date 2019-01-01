@@ -4589,10 +4589,7 @@ class DataFrame(NDFrame):
                 else:
                     raise TypeError('must specify how or thresh')
 
-            if axis == 0:
-                result = self.loc[mask]
-            else:
-                result = self.loc[:, mask]
+            result = self.loc(axis=axis)[mask]
 
         if inplace:
             self._update_inplace(result)
@@ -4627,7 +4624,7 @@ class DataFrame(NDFrame):
         duplicated = self.duplicated(subset, keep=keep)
 
         if inplace:
-            inds, = (-duplicated).values.nonzero()
+            inds, = (-duplicated)._values.nonzero()
             new_data = self._data.take(inds)
             self._update_inplace(new_data)
         else:
