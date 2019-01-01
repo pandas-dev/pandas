@@ -1113,6 +1113,36 @@ cast from integer dtype to floating dtype (:issue:`22019`)
        ...:                    'c': [1, 1, np.nan, 1, 1]})
     In [4]: pd.crosstab(df.a, df.b, normalize='columns')
 
+Formatting Categorical Integer Data With ``NaN`` Values
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Categorical integer data with ``NaN`` values will be formatted as integers
+instead of floats. :meth:`Series.to_numpy` is not affected (:issue:`19214`)
+
+*Previous Behavior*
+
+.. code-block:: ipython
+
+    In [3]: pd.Series([1, 2, np.nan], dtype='object').astype('category')
+    Out[3]:
+    0    1.0
+    1    2.0
+    2    NaN
+    dtype: category
+    Categories (2, int64): [1, 2]
+
+    In [4]: pd.Categorical([1, 2, np.nan])
+    Out[4]:
+    [1.0, 2.0, NaN]
+    Categories (2, int64): [1, 2]
+
+*New Behavior*
+
+.. ipython:: python
+
+    pd.Series([1, 2, np.nan], dtype='object').astype('category')
+    pd.Categorical([1, 2, np.nan])
+
 Datetimelike API Changes
 ^^^^^^^^^^^^^^^^^^^^^^^^
 
@@ -1323,7 +1353,6 @@ Categorical
 - Bug in many methods of the ``.str``-accessor, which always failed on calling the ``CategoricalIndex.str`` constructor (:issue:`23555`, :issue:`23556`)
 - Bug in :meth:`Series.where` losing the categorical dtype for categorical data (:issue:`24077`)
 - Bug in :meth:`Categorical.apply` where ``NaN`` values could be handled unpredictably. They now remain unchanged (:issue:`24241`)
-- Bug in :meth:`Categorical.get_values` where integers would be formatted as floats if ``NaN`` values were present (:issue:`19214`)
 
 Datetimelike
 ^^^^^^^^^^^^

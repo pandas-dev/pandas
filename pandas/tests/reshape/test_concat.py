@@ -473,7 +473,6 @@ class TestConcatAppendCommon(ConcatenateBase):
         res = pd.concat([tds, ps1])
         tm.assert_series_equal(res, pd.Series(exp, index=[0, 1, 0, 1]))
 
-    @pytest.mark.filterwarnings("ignore:Integer values:RuntimeWarning")
     def test_concat_categorical(self):
         # GH 13524
 
@@ -510,7 +509,6 @@ class TestConcatAppendCommon(ConcatenateBase):
                                          categories=['a', 'b', 'c']))
         tm.assert_series_equal(result, expected)
 
-    @pytest.mark.filterwarnings("ignore:Integer values:RuntimeWarning")
     def test_concat_categorical_coercion(self):
         # GH 13524
 
@@ -575,7 +573,6 @@ class TestConcatAppendCommon(ConcatenateBase):
         tm.assert_series_equal(pd.concat([s2, s1], ignore_index=True), exp)
         tm.assert_series_equal(s2.append(s1, ignore_index=True), exp)
 
-    @pytest.mark.filterwarnings("ignore:Integer values:RuntimeWarning")
     def test_concat_categorical_3elem_coercion(self):
         # GH 13524
 
@@ -643,7 +640,6 @@ class TestConcatAppendCommon(ConcatenateBase):
         res = s6.append([s5, s4, s3, s2, s1], ignore_index=True)
         tm.assert_series_equal(res, exp)
 
-    @pytest.mark.filterwarnings("ignore:Integer values:RuntimeWarning")
     def test_concat_categorical_ordered(self):
         # GH 13524
 
@@ -659,7 +655,6 @@ class TestConcatAppendCommon(ConcatenateBase):
         tm.assert_series_equal(pd.concat([s1, s2, s1], ignore_index=True), exp)
         tm.assert_series_equal(s1.append([s2, s1], ignore_index=True), exp)
 
-    @pytest.mark.filterwarnings("ignore:Integer values:RuntimeWarning")
     def test_concat_categorical_coercion_nan(self):
         # GH 13524
 

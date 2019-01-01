@@ -806,7 +806,6 @@ class TestSeriesMode(object):
         expected2 = Series(expected2, dtype='timedelta64[ns]')
         tm.assert_series_equal(result, expected2)
 
-    @pytest.mark.filterwarnings("ignore:Integer values:RuntimeWarning")
     @pytest.mark.parametrize('dropna, expected1, expected2, expected3', [
         (True, Categorical([1, 2], categories=[1, 2]),
          Categorical(['a'], categories=[1, 'a']),

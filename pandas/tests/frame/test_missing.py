@@ -354,7 +354,6 @@ class TestDataFrameMissingData(TestData):
         res = df.fillna("a")
         tm.assert_frame_equal(res, df_exp)
 
-    @pytest.mark.filterwarnings("ignore:Integer values:RuntimeWarning")
     def test_fillna_categorical_nan(self):
         # GH 14021
         # np.nan should always be a valid filler

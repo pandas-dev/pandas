@@ -1,7 +1,6 @@
 # -*- coding: utf-8 -*-
 
 import numpy as np
-import pytest
 
 from pandas.compat import PY3, u
 
@@ -241,7 +240,6 @@ Categories (5, datetime64[ns, US/Eastern]): [2011-01-01 09:00:00-05:00 < 2011-01
 
         assert repr(c) == exp
 
-    @pytest.mark.filterwarnings("ignore:Integer values:RuntimeWarning")
     def test_categorical_repr_int_with_nan(self):
         c = Categorical([1, 2, np.nan])
         c_exp = """[1, 2, NaN]\nCategories (2, int64): [1, 2]"""

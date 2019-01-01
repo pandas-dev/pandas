@@ -1521,8 +1521,6 @@ class Categorical(ExtensionArray, PandasObject):
         if is_datetimelike(self.categories):
             return self.categories.take(self._codes, fill_value=np.nan)
         elif is_integer_dtype(self.categories) and -1 in self._codes:
-            warn("Integer values represented as objects to accomodate NaNs",
-                 RuntimeWarning)
             return self.categories.astype("object").take(self._codes,
                                                          fill_value=np.nan)
         return np.array(self)
