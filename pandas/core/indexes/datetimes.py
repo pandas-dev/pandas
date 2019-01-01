@@ -316,6 +316,12 @@ class DatetimeIndex(DatetimeIndexOpsMixin, Int64Index, DatetimeDelegateMixin):
         we require the we have a dtype compat for the values
         if we are passed a non-dtype compat, then coerce using the constructor
         """
+        if isinstance(values, DatetimeArray):
+            values = DatetimeArray(values, freq=freq, tz=tz, dtype=dtype)
+            tz = values.tz
+            freq = values.freq
+            values = values._data
+
         # DatetimeArray._simple_new will accept either i8 or M8[ns] dtypes
         assert isinstance(values, np.ndarray), type(values)
 
@@ -340,7 +346,7 @@ class DatetimeIndex(DatetimeIndexOpsMixin, Int64Index, DatetimeDelegateMixin):
         # tz-naive -> ndarray
         # tz-aware -> DatetimeIndex
         if self.tz is not None:
-            return self
+            return self._eadata
         else:
             return self.values
 
@@ -629,6 +635,9 @@ class DatetimeIndex(DatetimeIndexOpsMixin, Int64Index, DatetimeDelegateMixin):
               not other.freq.isAnchored() or
               (not self.is_monotonic or not other.is_monotonic)):
             result = Index.intersection(self, other)
+            # Invalidate the freq of `result`, which may not be correct at
+            # this point, depending on the values.
+            result.freq = None
             result = self._shallow_copy(result._values, name=result.name,
                                         tz=result.tz, freq=None)
             if result.freq is None:

@@ -3,19 +3,18 @@ from collections import deque
 from datetime import datetime
 import operator
 
-import pytest
 import numpy as np
+import pytest
 
 from pandas.compat import range
 
 import pandas as pd
-import pandas.util.testing as tm
-
 from pandas.tests.frame.common import _check_mixed_float, _check_mixed_int
-
+import pandas.util.testing as tm
 
 # -------------------------------------------------------------------
 # Comparisons
+
 
 class TestFrameComparisons(object):
     # Specifically _not_ flex-comparisons
