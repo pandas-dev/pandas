@@ -15,7 +15,8 @@ from pandas.util._decorators import Appender, cache_readonly, deprecate_kwarg
 from pandas.core.dtypes.common import (
     ensure_int64, is_bool_dtype, is_dtype_equal, is_float, is_integer,
     is_list_like, is_period_dtype, is_scalar)
-from pandas.core.dtypes.generic import ABCIndex, ABCIndexClass, ABCSeries
+from pandas.core.dtypes.generic import (
+    ABCDatetimeArray, ABCIndex, ABCIndexClass, ABCSeries)
 
 from pandas.core import algorithms, ops
 from pandas.core.accessor import PandasDelegate
@@ -55,7 +56,7 @@ class DatetimeIndexOpsMixin(ExtensionOpsMixin):
     """
     common ops mixin to support a unified interface datetimelike Index
     """
-    _data = None  # type: ExtensionArray
+    _data = None  # type: DatetimeLikeArrayMixin
 
     # DatetimeLikeArrayMixin assumes subclasses are mutable, so these are
     # properties there.  They can be made into cache_readonly for Index
@@ -77,8 +78,9 @@ class DatetimeIndexOpsMixin(ExtensionOpsMixin):
 
     @property
     def freq(self):
-        # Can't simply use delegate_names since our base class is defining
-        # freq
+        """
+        Return the frequency object if it is set, otherwise None.
+        """
         return self._data.freq
 
     @freq.setter
@@ -87,6 +89,9 @@ class DatetimeIndexOpsMixin(ExtensionOpsMixin):
 
     @property
     def freqstr(self):
+        """
+        Return the frequency object as a string if it is set, otherwise None.
+        """
         return self._eadata.freqstr
 
     def unique(self, level=None):
@@ -137,25 +142,6 @@ class DatetimeIndexOpsMixin(ExtensionOpsMixin):
 
     # ------------------------------------------------------------------------
 
-    # Note: moved from DatetimeLikeArrayMixin
-    @property
-    def offset(self):
-        """get/set the frequency of the instance"""
-        msg = ('{cls}.offset has been deprecated and will be removed '
-               'in a future version; use {cls}.freq instead.'
-               .format(cls=type(self).__name__))
-        warnings.warn(msg, FutureWarning, stacklevel=2)
-        return self.freq
-
-    @offset.setter
-    def offset(self, value):
-        """get/set the frequency of the instance"""
-        msg = ('{cls}.offset has been deprecated and will be removed '
-               'in a future version; use {cls}.freq instead.'
-               .format(cls=type(self).__name__))
-        warnings.warn(msg, FutureWarning, stacklevel=2)
-        self.freq = value
-
     def equals(self, other):
         """
         Determines if two Index objects contain the same elements.
@@ -188,15 +174,13 @@ class DatetimeIndexOpsMixin(ExtensionOpsMixin):
         """
         Create the join wrapper methods.
         """
-        from pandas.core.arrays.datetimelike import DatetimeLikeArrayMixin
-
         @staticmethod
         def wrapper(left, right):
             if isinstance(left, (np.ndarray, ABCIndex, ABCSeries,
-                                 DatetimeLikeArrayMixin)):
+                                 ABCDatetimeArray)):
                 left = left.view('i8')
             if isinstance(right, (np.ndarray, ABCIndex, ABCSeries,
-                                  DatetimeLikeArrayMixin)):
+                                  ABCDatetimeArray)):
                 right = right.view('i8')
             results = joinf(left, right)
             if with_indexers:
@@ -641,7 +625,6 @@ class DatetimeIndexOpsMixin(ExtensionOpsMixin):
             # reset freq
             attribs['freq'] = None
 
-        # TODO: Verify that asi8 is what we want.
         new_data = type(self._values)._concat_same_type(to_concat).asi8
         return self._simple_new(new_data, **attribs)
 
@@ -753,7 +736,7 @@ def maybe_unwrap_index(obj):
     if isinstance(obj, ABCIndexClass):
         if isinstance(obj, DatetimeIndexOpsMixin):
             # i.e. PeriodIndex/DatetimeIndex/TimedeltaIndex
-            return obj._data
+            return obj._eadata
         return obj._data
     return obj
 

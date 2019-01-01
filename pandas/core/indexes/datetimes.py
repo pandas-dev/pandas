@@ -408,7 +408,7 @@ class DatetimeIndex(DatetimeIndexOpsMixin, Int64Index, DatetimeDelegateMixin):
                 self.name = own_state[0]
 
             else:  # pragma: no cover
-                data = np.empty(state)  # TODO: dtype=_NS_DTYPE?
+                data = np.empty(state)
                 np.ndarray.__setstate__(data, state)
                 dtarr = DatetimeArray(data)
 

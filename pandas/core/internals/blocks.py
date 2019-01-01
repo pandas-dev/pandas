@@ -1320,7 +1320,6 @@ class Block(PandasObject):
 
         values = self.values
         orig_other = other
-
         if transpose:
             values = values.T
 
@@ -3066,7 +3065,6 @@ class DatetimeTZBlock(ExtensionBlock, DatetimeBlock):
             if tz is None or str(tz) != str(self.values.tz):
                 raise ValueError("incompatible or non tz-aware value")
             other = other.value
-
         else:
             raise TypeError
 
@@ -3081,6 +3079,7 @@ class DatetimeTZBlock(ExtensionBlock, DatetimeBlock):
             result = tslibs.Timestamp(result, tz=self.values.tz)
         if isinstance(result, np.ndarray):
             # allow passing of > 1dim if its trivial
+
             if result.ndim > 1:
                 result = result.reshape(np.prod(result.shape))
             # GH#24096 new values invalidates a frequency
