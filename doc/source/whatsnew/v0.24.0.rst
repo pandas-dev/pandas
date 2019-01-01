@@ -673,6 +673,31 @@ is the case with :attr:`Period.end_time`, for example
 
    p.end_time
 
+.. _whatsnew_0240.api_breaking.datetime_unique:
+
+The return type of :meth:`Series.unique` for datetime with timezone values has changed
+from an :class:`numpy.ndarray` of :class:`Timestamp` objects to a :class:`arrays.DatetimeArray` (:issue:`24024`).
+
+.. ipython:: python
+
+   ser = pd.Series([pd.Timestamp('2000', tz='UTC'),
+                    pd.Timestamp('2000', tz='UTC')])
+
+*Previous Behavior*:
+
+.. code-block:: ipython
+
+   In [3]: ser.unique()
+   Out[3]: array([Timestamp('2000-01-01 00:00:00+0000', tz='UTC')], dtype=object)
+
+
+*New Behavior*:
+
+.. ipython:: python
+
+   ser.unique()
+
+
 .. _whatsnew_0240.api_breaking.sparse_values:
 
 Sparse Data Structure Refactor
