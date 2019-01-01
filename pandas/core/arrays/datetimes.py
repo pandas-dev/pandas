@@ -1678,6 +1678,7 @@ def sequence_to_dt64ns(data, dtype=None, copy=False,
             tz = maybe_infer_tz(tz, inferred_tz)
 
     if is_datetime64tz_dtype(data):
+        # DatetimeIndex or DatetimeArray -> ndarray
         tz = maybe_infer_tz(tz, data.tz)
         if isinstance(data, ABCIndexClass):
             data = data._data
