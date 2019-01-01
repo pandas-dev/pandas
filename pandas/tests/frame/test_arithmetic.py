@@ -15,6 +15,7 @@ import pandas.util.testing as tm
 # -------------------------------------------------------------------
 # Comparisons
 
+
 class TestFrameComparisons(object):
     # Specifically _not_ flex-comparisons
 
