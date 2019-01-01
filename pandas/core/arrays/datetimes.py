@@ -234,6 +234,7 @@ class DatetimeArrayMixin(dtl.DatetimeLikeArrayMixin,
     # Constructors
 
     _attributes = ["freq", "tz"]
+    _dtype = None  # type: Union[np.dtype, DatetimeTZDtype]
     _freq = None
 
     def __init__(self, values, dtype=_NS_DTYPE, freq=None, copy=False):
@@ -278,12 +279,6 @@ class DatetimeArrayMixin(dtl.DatetimeLikeArrayMixin,
                 " Got {} instead."
             )
             raise ValueError(msg.format(values.dtype))
-
-        # Performance note:
-        # for a length 10,000 ndarray[datetime64[ns]], pandas_dtype() takes
-        # ~15% of the runtime of __init__. It's only useful for converting
-        # string aliases like 'M8[ns]' or 'datetime64[ns, tz]'.
-        # We should consider requiring an actual dtype.
 
         dtype = pandas_dtype(dtype)
         _validate_dt64_dtype(dtype)

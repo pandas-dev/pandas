@@ -17,7 +17,6 @@ from pandas.core.dtypes.common import (
     _NS_DTYPE, ensure_int64, is_float, is_integer, is_list_like, is_scalar,
     is_string_like)
 import pandas.core.dtypes.concat as _concat
-from pandas.core.dtypes.dtypes import DatetimeTZDtype
 from pandas.core.dtypes.missing import isna
 
 from pandas.core.accessor import delegate_names
@@ -402,21 +401,18 @@ class DatetimeIndex(DatetimeIndexOpsMixin, Int64Index, DatetimeDelegateMixin):
                 data = np.empty(nd_state[1], dtype=nd_state[2])
                 np.ndarray.__setstate__(data, nd_state)
 
-                self.name = own_state[0]
                 freq = own_state[1]
                 tz = timezones.tz_standardize(own_state[2])
-                if tz:
-                    dtype = DatetimeTZDtype(tz=tz)
-                else:
-                    dtype = _NS_DTYPE
+                dtarr = DatetimeArray._simple_new(data, freq=freq, tz=tz)
+
+                self.name = own_state[0]
 
             else:  # pragma: no cover
                 data = np.empty(state)  # TODO: dtype=_NS_DTYPE?
                 np.ndarray.__setstate__(data, state)
-                dtype = _NS_DTYPE
-                freq = None
+                dtarr = DatetimeArray(data)
 
-            self._data = DatetimeArray(data, dtype=dtype, freq=freq)
+            self._data = dtarr
             self._reset_identity()
 
         else:
@@ -494,7 +490,9 @@ class DatetimeIndex(DatetimeIndexOpsMixin, Int64Index, DatetimeDelegateMixin):
         else:
             result = Index.union(this, other)
             if isinstance(result, DatetimeIndex):
-                result._tz = timezones.tz_standardize(this.tz)
+                # TODO: we shouldn't be setting attributes like this;
+                #  in all the tests this equality already holds
+                result._eadata._dtype = this.dtype
                 if (result.freq is None and
                         (this.freq is not None or other.freq is not None)):
                     result.freq = to_offset(result.inferred_freq)
@@ -522,11 +520,12 @@ class DatetimeIndex(DatetimeIndexOpsMixin, Int64Index, DatetimeDelegateMixin):
             if this._can_fast_union(other):
                 this = this._fast_union(other)
             else:
-                tz = this.tz
+                dtype = this.dtype
                 this = Index.union(this, other)
                 if isinstance(this, DatetimeIndex):
-                    this._tz = timezones.tz_standardize(tz)
-
+                    # TODO: we shouldn't be setting attributes like this;
+                    #  in all the tests this equality already holds
+                    this._eadata._dtype = dtype
         return this
 
     def _can_fast_union(self, other):

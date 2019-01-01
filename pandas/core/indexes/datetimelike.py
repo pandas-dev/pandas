@@ -113,6 +113,10 @@ class DatetimeIndexOpsMixin(ExtensionOpsMixin):
         wrapper.__name__ = '__{}__'.format(op.__name__)
         return wrapper
 
+    @property
+    def _ndarray_values(self):
+        return self._eadata._ndarray_values
+
     # ------------------------------------------------------------------------
     # Abstract data attributes
 

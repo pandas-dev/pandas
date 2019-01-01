@@ -2501,7 +2501,7 @@ class GenericFixed(Fixed):
     def get_attrs(self):
         """ retrieve our attributes """
         self.encoding = _ensure_encoding(getattr(self.attrs, 'encoding', None))
-        self.errors = getattr(self.attrs, 'errors', 'strict')
+        self.errors = _ensure_decoded(getattr(self.attrs, 'errors', 'strict'))
         for n in self.attributes:
             setattr(self, n, _ensure_decoded(getattr(self.attrs, n, None)))
 
@@ -2661,6 +2661,7 @@ class GenericFixed(Fixed):
 
         if 'name' in node._v_attrs:
             name = _ensure_str(node._v_attrs.name)
+            name = _ensure_decoded(name)
 
         index_class = self._alias_to_class(_ensure_decoded(
             getattr(node._v_attrs, 'index_class', '')))

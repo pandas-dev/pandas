@@ -76,7 +76,7 @@ def df(request):
 
 
 @pytest.fixture
-def mock_clipboard(mock, request):
+def mock_clipboard(monkeypatch, request):
     """Fixture mocking clipboard IO.
 
     This mocks pandas.io.clipboard.clipboard_get and
@@ -98,12 +98,10 @@ def mock_clipboard(mock, request):
     def _mock_get():
         return _mock_data[request.node.name]
 
-    mock_set = mock.patch("pandas.io.clipboard.clipboard_set",
-                          side_effect=_mock_set)
-    mock_get = mock.patch("pandas.io.clipboard.clipboard_get",
-                          side_effect=_mock_get)
-    with mock_get, mock_set:
-        yield _mock_data
+    monkeypatch.setattr("pandas.io.clipboard.clipboard_set", _mock_set)
+    monkeypatch.setattr("pandas.io.clipboard.clipboard_get", _mock_get)
+
+    yield _mock_data
 
 
 @pytest.mark.clipboard
