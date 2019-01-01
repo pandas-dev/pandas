@@ -19,7 +19,7 @@ from pandas.core.dtypes.generic import ABCIndex, ABCIndexClass, ABCSeries
 
 from pandas.core import algorithms, ops
 from pandas.core.accessor import PandasDelegate
-from pandas.core.arrays import ExtensionOpsMixin, PeriodArray
+from pandas.core.arrays import ExtensionOpsMixin
 from pandas.core.arrays.datetimelike import (
     DatetimeLikeArrayMixin, _ensure_datetimelike_to_i8)
 import pandas.core.indexes.base as ibase
@@ -282,19 +282,6 @@ class DatetimeIndexOpsMixin(ExtensionOpsMixin):
                                                       **attribs)
 
             return self._simple_new(sorted_values, **attribs)
-
-    def __getitem__(self, key):
-        # Override Index.__getitem__ because the original `freq` is
-        # included when we `promote()` the result there. DTI and
-        # TDI do *not* want the freq to remain the same, but
-        # PeriodArray does.
-        if isinstance(self._data, PeriodArray):
-            return super(DatetimeIndexOpsMixin, self).__getitem__(key)
-        new_values = self._data[key]
-        if isinstance(new_values, type(self._data)):
-            # rebox, but with a new freq
-            return self._simple_new(new_values, name=self.name)
-        return new_values
 
     @Appender(_index_shared_docs['take'] % _index_doc_kwargs)
     def take(self, indices, axis=0, allow_fill=True,
