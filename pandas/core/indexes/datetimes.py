@@ -321,11 +321,10 @@ class DatetimeIndex(DatetimeIndexOpsMixin, Int64Index, DatetimeDelegateMixin):
 
         dtarr = DatetimeArray._simple_new(values, freq=freq, tz=tz)
         result = object.__new__(cls)
-        result._data = dtarr._data
-        result._freq = dtarr.freq
-        result._tz = dtarr.tz
+        result._eadata = dtarr
         result.name = name
         # For groupby perf. See note in indexes/base about _index_data
+        # TODO: make sure this is updated correctly if edited
         result._index_data = result._data
         result._reset_identity()
         return result
@@ -344,19 +343,6 @@ class DatetimeIndex(DatetimeIndexOpsMixin, Int64Index, DatetimeDelegateMixin):
             return self
         else:
             return self.values
-
-    @property
-    def tz(self):
-        # GH 18595
-        return self._tz
-
-    @tz.setter
-    def tz(self, value):
-        # GH 3746: Prevent localizing or converting the index by setting tz
-        raise AttributeError("Cannot directly set timezone. Use tz_localize() "
-                             "or tz_convert() as appropriate")
-
-    tzinfo = tz
 
     @property
     def size(self):
@@ -416,15 +402,18 @@ class DatetimeIndex(DatetimeIndexOpsMixin, Int64Index, DatetimeDelegateMixin):
                 data = np.empty(nd_state[1], dtype=nd_state[2])
                 np.ndarray.__setstate__(data, nd_state)
 
+                freq = own_state[1]
+                tz = timezones.tz_standardize(own_state[2])
+                dtarr = DatetimeArray._simple_new(data, freq=freq, tz=tz)
+
                 self.name = own_state[0]
-                self._freq = own_state[1]
-                self._tz = timezones.tz_standardize(own_state[2])
 
             else:  # pragma: no cover
                 data = np.empty(state)
                 np.ndarray.__setstate__(data, state)
+                dtarr = DatetimeArray(data)
 
-            self._data = data
+            self._eadata = dtarr
             self._reset_identity()
 
         else:
@@ -502,7 +491,9 @@ class DatetimeIndex(DatetimeIndexOpsMixin, Int64Index, DatetimeDelegateMixin):
         else:
             result = Index.union(this, other)
             if isinstance(result, DatetimeIndex):
-                result._tz = timezones.tz_standardize(this.tz)
+                # TODO: we shouldn't be setting attributes like this;
+                #  in all the tests this equality already holds
+                result._eadata._dtype = this.dtype
                 if (result.freq is None and
                         (this.freq is not None or other.freq is not None)):
                     result.freq = to_offset(result.inferred_freq)
@@ -530,11 +521,12 @@ class DatetimeIndex(DatetimeIndexOpsMixin, Int64Index, DatetimeDelegateMixin):
             if this._can_fast_union(other):
                 this = this._fast_union(other)
             else:
-                tz = this.tz
+                dtype = this.dtype
                 this = Index.union(this, other)
                 if isinstance(this, DatetimeIndex):
-                    this._tz = timezones.tz_standardize(tz)
-
+                    # TODO: we shouldn't be setting attributes like this;
+                    #  in all the tests this equality already holds
+                    this._eadata._dtype = dtype
         return this
 
     def _can_fast_union(self, other):
@@ -1129,9 +1121,20 @@ class DatetimeIndex(DatetimeIndexOpsMixin, Int64Index, DatetimeDelegateMixin):
     # Wrapping DatetimeArray
 
     @property
-    def _eadata(self):
-        return DatetimeArray._simple_new(self._data,
-                                         tz=self.tz, freq=self.freq)
+    def _data(self):
+        return self._eadata._data
+
+    @property
+    def tz(self):
+        # GH#18595
+        return self._eadata.tz
+
+    @tz.setter
+    def tz(self, value):
+        # GH#3746; DatetimeArray will raise to disallow setting
+        self._eadata.tz = value
+
+    tzinfo = tz
 
     # Compat for frequency inference, see GH#23789
     _is_monotonic_increasing = Index.is_monotonic_increasing
@@ -1167,18 +1170,6 @@ class DatetimeIndex(DatetimeIndexOpsMixin, Int64Index, DatetimeDelegateMixin):
                .format(cls=type(self).__name__))
         warnings.warn(msg, FutureWarning, stacklevel=2)
         self.freq = value
-
-    @property
-    def freq(self):
-        return self._freq
-
-    @freq.setter
-    def freq(self, value):
-        if value is not None:
-            # let DatetimeArray to validation
-            self._eadata.freq = value
-
-        self._freq = to_offset(value)
 
     def __getitem__(self, key):
         result = self._eadata.__getitem__(key)
