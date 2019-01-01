@@ -4,7 +4,6 @@ import pytest
 from pandas.compat import StringIO
 
 import pandas as pd
-import pandas.testing as tm
 
 from .base import BaseExtensionTests
 
@@ -21,4 +20,4 @@ class BaseParsingTests(BaseExtensionTests):
             'with_dtype': str(data.dtype)
         }, engine=engine)
         expected = df
-        tm.assert_frame_equal(result, expected)
+        self.assert_frame_equal(result, expected)
