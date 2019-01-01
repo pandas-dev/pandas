@@ -1634,7 +1634,7 @@ def sequence_to_dt64ns(data, dtype=None, copy=False,
     elif isinstance(data, ABCSeries):
         data = data._values
     elif isinstance(data, ABCPandasArray):
-        data = data._ndarray
+        data = data.to_numpy()
 
     if hasattr(data, "freq"):
         # i.e. DatetimeArray/Index
