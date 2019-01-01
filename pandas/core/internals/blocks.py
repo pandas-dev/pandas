@@ -3047,7 +3047,7 @@ class DatetimeTZBlock(ExtensionBlock, DatetimeBlock):
         if isinstance(other, bool):
             raise TypeError
         elif is_datetime64_dtype(other):
-            # add the dz back
+            # add the tz back
             other = self._holder(other, dtype=self.dtype)
 
         elif (is_null_datelike_scalar(other) or
