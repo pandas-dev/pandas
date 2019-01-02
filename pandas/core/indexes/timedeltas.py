@@ -209,7 +209,13 @@ class TimedeltaIndex(DatetimeIndexOpsMixin, dtl.TimelikeOps, Int64Index,
                             'collection of some kind, {data} was passed'
                             .format(cls=cls.__name__, data=repr(data)))
 
-        if isinstance(data, TimedeltaIndex) and freq is None and name is None:
+        if isinstance(data, TimedeltaArray):
+            if copy:
+                data = data.copy()
+            return cls._simple_new(data, name=name, freq=freq)
+
+        if (isinstance(data, TimedeltaIndex) and
+                freq is None and name is None):
             if copy:
                 return data.copy()
             else:
@@ -225,17 +231,17 @@ class TimedeltaIndex(DatetimeIndexOpsMixin, dtl.TimelikeOps, Int64Index,
     def _simple_new(cls, values, name=None, freq=None, dtype=_TD_DTYPE):
         # `dtype` is passed by _shallow_copy in corner cases, should always
         #  be timedelta64[ns] if present
-        assert dtype == _TD_DTYPE
-
-        assert isinstance(values, np.ndarray), type(values)
-        if values.dtype == 'i8':
-            values = values.view('m8[ns]')
+        if not isinstance(values, TimedeltaArray):
+            values = TimedeltaArray._simple_new(values, dtype=dtype,
+                                                freq=freq)
+        assert isinstance(values, TimedeltaArray), type(values)
+        assert dtype == _TD_DTYPE, dtype
         assert values.dtype == 'm8[ns]', values.dtype
 
         freq = to_offset(freq)
         tdarr = TimedeltaArray._simple_new(values, freq=freq)
         result = object.__new__(cls)
-        result._eadata = tdarr
+        result._data = tdarr
         result.name = name
         # For groupby perf. See note in indexes/base about _index_data
         result._index_data = tdarr._data
@@ -277,10 +283,6 @@ class TimedeltaIndex(DatetimeIndexOpsMixin, dtl.TimelikeOps, Int64Index,
 
     # -------------------------------------------------------------------
     # Wrapping TimedeltaArray
-
-    @property
-    def _data(self):
-        return self._eadata._data
 
     __mul__ = _make_wrapped_arith_op("__mul__")
     __rmul__ = _make_wrapped_arith_op("__rmul__")

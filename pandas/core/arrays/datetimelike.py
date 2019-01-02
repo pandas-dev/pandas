@@ -47,7 +47,7 @@ def _make_comparison_op(cls, op):
         if isinstance(other, ABCDataFrame):
             return NotImplemented
 
-        if isinstance(other, (np.ndarray, ABCIndexClass, ABCSeries)):
+        if isinstance(other, (np.ndarray, ABCIndexClass, ABCSeries, cls)):
             if other.ndim > 0 and len(self) != len(other):
                 raise ValueError('Lengths must match to compare')
 
@@ -1162,9 +1162,10 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin,
         left = lib.values_from_object(self.astype('O'))
 
         res_values = op(left, np.array(other))
+        kwargs = {}
         if not is_period_dtype(self):
-            return type(self)(res_values, freq='infer')
-        return self._from_sequence(res_values)
+            kwargs['freq'] = 'infer'
+        return self._from_sequence(res_values, **kwargs)
 
     def _time_shift(self, periods, freq=None):
         """
