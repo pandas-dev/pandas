@@ -1162,9 +1162,10 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin,
         left = lib.values_from_object(self.astype('O'))
 
         res_values = op(left, np.array(other))
+        kwargs = {}
         if not is_period_dtype(self):
-            return type(self)(res_values, freq='infer')
-        return self._from_sequence(res_values)
+            kwargs['freq'] = 'infer'
+        return self._from_sequence(res_values, **kwargs)
 
     def _time_shift(self, periods, freq=None):
         """
