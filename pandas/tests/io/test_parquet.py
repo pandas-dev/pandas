@@ -8,10 +8,10 @@ import numpy as np
 import pytest
 
 from pandas.compat import PY3
+import pandas.util._test_decorators as td
 
 import pandas as pd
 from pandas.util import testing as tm
-import pandas.util._test_decorators as td
 
 from pandas.io.parquet import (
     FastParquetImpl, PyArrowImpl, get_engine, read_parquet, to_parquet)
