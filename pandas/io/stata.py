@@ -1867,7 +1867,7 @@ def _dtype_to_default_stata_fmt(dtype, column, dta_version=114,
         if force_strl:
             return '%9s'
     if dtype.type == np.object_:
-        inferred_dtype = infer_dtype(column, skipna=False)
+        inferred_dtype = infer_dtype(column, skipna=True)
         if not (inferred_dtype in ('string', 'unicode') or
                 len(column) == 0):
             raise ValueError('Column `{col}` cannot be exported.\n\nOnly '
