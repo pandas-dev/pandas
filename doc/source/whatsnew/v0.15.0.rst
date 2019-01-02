@@ -81,8 +81,10 @@ For full docs, see the :ref:`categorical introduction <categorical>` and the
     df["grade"].cat.categories = ["very good", "good", "very bad"]
 
     # Reorder the categories and simultaneously add the missing categories
-    df["grade"] = df["grade"].cat.set_categories(
-      ["very bad", "bad", "medium", "good", "very good"])
+    df["grade"] = df["grade"].cat.set_categories(["very bad",
+                                                  "bad", "medium",
+                                                 "good", "very good"]
+                                                 )
     df["grade"]
     df.sort_values("grade")
     df.groupby("grade").size()
@@ -499,7 +501,7 @@ Rolling/Expanding Moments improvements
 
   .. code-block:: ipython
 
-     In [7]: pd.ewma(pd.Series([None, 1., 8.]), com=2.)
+     In[7]: pd.ewma(pd.Series([None, 1., 8.]), com=2.)
      Out[7]:
      0    NaN
      1    1.0
@@ -514,7 +516,9 @@ Rolling/Expanding Moments improvements
      2    5.2
      dtype: float64
 
-     In [9]: pd.ewma(pd.Series([1., None, 8.]), com=2., ignore_na=False)  # new default
+     In[9]: pd.ewma(
+             pd.Series([1., None, 8.]), com=2., ignore_na=False)  # new default
+
      Out[9]:
      0    1.000000
      1    1.000000
@@ -726,7 +730,7 @@ Other notable API changes:
                    index=pd.MultiIndex.from_product([['A'], ['foo', 'bar', 'baz']],
                                                     names=['one', 'two'])
                    ).sort_index()
-    
+
      try:
          s.loc[['D']]
      except KeyError as e:
@@ -738,7 +742,7 @@ Other notable API changes:
   dtype to object (or errored, depending on the call). It now uses
   ``NaN``:
 
-  ..  ipython:: python
+  .. ipython:: python
 
       s = pd.Series([1, 2, 3])
       s.loc[0] = None
@@ -749,7 +753,7 @@ Other notable API changes:
   For object containers, we now preserve ``None`` values (previously these
   were converted to ``NaN`` values).
 
-  ..  ipython:: python
+  .. ipython:: python
 
       s = pd.Series(["a", "b", "c"])
       s.loc[0] = None
@@ -759,7 +763,7 @@ Other notable API changes:
 
 - In prior versions, updating a pandas object inplace would not reflect in other python references to this object. (:issue:`8511`, :issue:`5104`)
 
-  ..  ipython:: python
+  .. ipython:: python
 
       s = pd.Series([1, 2, 3])
       s2 = s
