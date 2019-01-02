@@ -12,12 +12,6 @@ import pandas as pd
 from pandas import DataFrame, compat
 import pandas.util.testing as tm
 
-try:
-    from unittest import mock
-except ImportError:
-    mock = pytest.importorskip("mock")
-
-
 api_exceptions = pytest.importorskip("google.api_core.exceptions")
 bigquery = pytest.importorskip("google.cloud.bigquery")
 service_account = pytest.importorskip("google.oauth2.service_account")
@@ -104,9 +98,7 @@ def make_mixed_dataframe_v2(test_size):
 def test_read_gbq_without_dialect_warns_future_change(monkeypatch):
     # Default dialect is changing to standard SQL. See:
     # https://github.com/pydata/pandas-gbq/issues/195
-    mock_read_gbq = mock.Mock()
-    mock_read_gbq.return_value = DataFrame([[1.0]])
-    monkeypatch.setattr(pandas_gbq, 'read_gbq', mock_read_gbq)
+    monkeypatch.setattr(pandas_gbq, 'read_gbq', lambda x: DataFrame([[1.0]]))
     with tm.assert_produces_warning(FutureWarning):
         pd.read_gbq("SELECT 1")
 
