@@ -1,9 +1,9 @@
 import pytest
 
 from pandas.compat import StringIO
-import pandas.util.testing as tm
 
 from pandas import read_sas
+import pandas.util.testing as tm
 
 
 class TestSas(object):
