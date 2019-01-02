@@ -73,7 +73,8 @@ def maybe_downcast_to_dtype(result, dtype):
 
     if isinstance(dtype, string_types):
         if dtype == 'infer':
-            inferred_type = lib.infer_dtype(ensure_object(result.ravel()))
+            inferred_type = lib.infer_dtype(ensure_object(result.ravel()),
+                                            skipna=False)
             if inferred_type == 'boolean':
                 dtype = 'bool'
             elif inferred_type == 'integer':
@@ -458,7 +459,7 @@ def infer_dtype_from_array(arr, pandas_dtype=False):
         return arr.dtype, np.asarray(arr)
 
     # don't force numpy coerce with nan's
-    inferred = lib.infer_dtype(arr)
+    inferred = lib.infer_dtype(arr, skipna=False)
     if inferred in ['string', 'bytes', 'unicode',
                     'mixed', 'mixed-integer']:
         return (np.object_, arr)
@@ -937,10 +938,11 @@ def maybe_infer_to_datetimelike(value, convert_dates=False):
 
             # We have at least a NaT and a string
             # try timedelta first to avoid spurious datetime conversions
-            # e.g. '00:00:01' is a timedelta but
-            # technically is also a datetime
+            # e.g. '00:00:01' is a timedelta but technically is also a datetime
             value = try_timedelta(v)
-            if lib.infer_dtype(value) in ['mixed']:
+            if lib.infer_dtype(value, skipna=False) in ['mixed']:
+                # cannot skip missing values, as NaT implies that the string
+                # is actually a datetime
                 value = try_datetime(v)
 
     return value

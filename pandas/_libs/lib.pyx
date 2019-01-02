@@ -623,7 +623,7 @@ def clean_index_list(obj: list):
         return obj, all_arrays
 
     # don't force numpy coerce with nan's
-    inferred = infer_dtype(obj)
+    inferred = infer_dtype(obj, skipna=False)
     if inferred in ['string', 'bytes', 'unicode', 'mixed', 'mixed-integer']:
         return np.asarray(obj, dtype=object), 0
     elif inferred in ['integer']:
@@ -1210,6 +1210,10 @@ def infer_dtype(value: object, skipna: bool=False) -> str:
         values = construct_1d_object_array_from_listlike(value)
 
     values = getattr(values, 'values', values)
+
+    # make contiguous
+    values = values.ravel()
+
     if skipna:
         values = values[~isnaobj(values)]
 
@@ -1219,9 +1223,6 @@ def infer_dtype(value: object, skipna: bool=False) -> str:
 
     if values.dtype != np.object_:
         values = values.astype('O')
-
-    # make contiguous
-    values = values.ravel()
 
     n = len(values)
     if n == 0:
