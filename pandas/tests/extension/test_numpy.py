@@ -210,3 +210,7 @@ class TestReshaping(BaseNumPyTests, base.BaseReshapingTests):
 
 class TestSetitem(BaseNumPyTests, base.BaseSetitemTests):
     pass
+
+
+class TestParsing(BaseNumPyTests, base.BaseParsingTests):
+    pass

@@ -152,3 +152,11 @@ class TestPrinting(BaseInterval, base.BasePrintingTests):
     @pytest.mark.skip(reason="custom repr")
     def test_array_repr(self, data, size):
         pass
+
+
+class TestParsing(BaseInterval, base.BaseParsingTests):
+    @pytest.mark.parametrize('engine', ['c', 'python'])
+    def test_EA_types(self, engine, data):
+        expected_msg = r'.*must implement _from_sequence_of_strings.*'
+        with pytest.raises(NotImplementedError, match=expected_msg):
+            super(TestParsing, self).test_EA_types(engine, data)
