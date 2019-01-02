@@ -759,12 +759,7 @@ the ``dtype="Int64"``.
 
 .. ipython:: python
 
-   s = pd.Series(np.random.randn(5), index=[0, 2, 4, 6, 7],
-                 dtype="Int64")
-   s > 0
-   (s > 0).dtype
-   crit = (s > 0).reindex(list(range(8)))
-   crit
-   crit.dtype
+   s = pd.Series([0, 1, np.nan, 3, 4], dtype="Int64")
+   s
 
 See :ref:`integer_na` for more.

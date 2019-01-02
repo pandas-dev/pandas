@@ -33,7 +33,7 @@ repository <http://github.com/jvns/pandas-cookbook>`_.
 Learn Pandas by Hernan Rojas
 ----------------------------
 
-A set of lesson for new pandas users: `Learn pandas <https://bitbucket.org/hrojas/learn-pandas>`__.
+A set of lesson for new pandas users: https://bitbucket.org/hrojas/learn-pandas
 
 Practical data analysis with Python
 -----------------------------------

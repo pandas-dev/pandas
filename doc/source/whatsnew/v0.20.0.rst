@@ -189,14 +189,15 @@ URLs and paths are now inferred using their file extensions. Additionally,
 support for bz2 compression in the python 2 C-engine improved (:issue:`14874`).
 
 .. ipython:: python
-   :okwarning:
 
    url = ('https://github.com/{repo}/raw/{branch}/{path}'
           .format(repo='pandas-dev/pandas',
                   branch='master',
                   path='pandas/tests/io/parser/data/salaries.csv.bz2'))
-   df = pd.read_table(url, compression='infer')  # default, infer compression
-   df = pd.read_table(url, compression='bz2')  # explicitly specify compression
+   # default, infer compression
+   df = pd.read_csv(url, sep='\t', compression='infer')
+   # explicitly specify compression
+   df = pd.read_csv(url, sep='\t', compression='bz2')
    df.head(2)
 
 .. _whatsnew_0200.enhancements.pickle_compression:

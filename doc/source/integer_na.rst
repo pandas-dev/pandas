@@ -2,7 +2,7 @@
 
 {{ header }}
 
- .. _integer_na:
+.. _integer_na:
 
 **************************
 Nullable Integer Data Type
