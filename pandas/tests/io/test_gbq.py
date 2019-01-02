@@ -98,7 +98,11 @@ def make_mixed_dataframe_v2(test_size):
 def test_read_gbq_without_dialect_warns_future_change(monkeypatch):
     # Default dialect is changing to standard SQL. See:
     # https://github.com/pydata/pandas-gbq/issues/195
-    monkeypatch.setattr(pandas_gbq, 'read_gbq', lambda x: DataFrame([[1.0]]))
+
+    def mock_read_gbq(*args, **kwargs):
+        return DataFrame([[1.0]])
+
+    monkeypatch.setattr(pandas_gbq, 'read_gbq', mock_read_gbq)
     with tm.assert_produces_warning(FutureWarning):
         pd.read_gbq("SELECT 1")
 
