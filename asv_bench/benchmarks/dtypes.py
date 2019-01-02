@@ -5,9 +5,10 @@ from .pandas_vb_common import (
     numeric_dtypes, datetime_dtypes, string_dtypes, extension_dtypes)
 
 
-_numpy_dtypes = list(map(np.dtype, (numeric_dtypes +
-                                    datetime_dtypes +
-                                    string_dtypes)))
+_numpy_dtypes = [np.dtype(dtype)
+                 for dtype in (numeric_dtypes +
+                               datetime_dtypes +
+                               string_dtypes)]
 _dtypes = _numpy_dtypes + extension_dtypes
 
 

@@ -1719,11 +1719,11 @@ def is_complex_dtype(arr_or_dtype):
 
 def _is_dtype(arr_or_dtype, condition):
     """
-    Return a boolean if the the condition is satisfied for the arr_or_dtype.
+    Return a boolean if the condition is satisfied for the arr_or_dtype.
 
     Parameters
     ----------
-    arr_or_dtype : array-like
+    arr_or_dtype : array-like, str, np.dtype, or ExtensionArrayType
         The array-like or dtype object whose dtype we want to extract.
     condition : callable[Union[np.dtype, ExtensionDtype]]
 
@@ -1780,7 +1780,7 @@ def _get_dtype(arr_or_dtype):
 
 def _is_dtype_type(arr_or_dtype, condition):
     """
-    Return a boolean if the the condition is satisfied for the arr_or_dtype.
+    Return a boolean if the condition is satisfied for the arr_or_dtype.
 
     Parameters
     ----------
@@ -1790,7 +1790,7 @@ def _is_dtype_type(arr_or_dtype, condition):
 
     Returns
     -------
-    bool
+    bool : if the condition is satisifed for the arr_or_dtype
 
     """
 
@@ -1798,7 +1798,8 @@ def _is_dtype_type(arr_or_dtype, condition):
         return condition(type(None))
 
     # fastpath
-    if isinstance(arr_or_dtype, np.dtype):
+    if isinstance(arr_or_dtype, (
+            np.dtype, PandasExtensionDtype, ExtensionDtype)):
         return condition(arr_or_dtype.type)
     elif isinstance(arr_or_dtype, type):
         return condition(np.dtype(arr_or_dtype).type)
@@ -1815,7 +1816,7 @@ def _is_dtype_type(arr_or_dtype, condition):
 
     try:
         tipo = pandas_dtype(arr_or_dtype).type
-    except (TypeError, ValueError, SyntaxError, UnicodeEncodeError):
+    except (TypeError, ValueError, UnicodeEncodeError):
         if is_scalar(arr_or_dtype):
             return condition(type(None))
 
