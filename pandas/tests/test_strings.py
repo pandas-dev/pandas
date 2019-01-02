@@ -2,21 +2,20 @@
 # pylint: disable-msg=E1101,W0612
 
 from datetime import datetime, timedelta
-import pytest
 import re
 
-from numpy import nan as NA
 import numpy as np
+from numpy import nan as NA
 from numpy.random import randint
+import pytest
 
-from pandas.compat import range, u, PY3
 import pandas.compat as compat
-from pandas import Index, Series, DataFrame, isna, MultiIndex, notna, concat
+from pandas.compat import PY3, range, u
 
-from pandas.util.testing import assert_series_equal, assert_index_equal
-import pandas.util.testing as tm
-
+from pandas import DataFrame, Index, MultiIndex, Series, concat, isna, notna
 import pandas.core.strings as strings
+import pandas.util.testing as tm
+from pandas.util.testing import assert_index_equal, assert_series_equal
 
 
 def assert_series_or_index_equal(left, right):
