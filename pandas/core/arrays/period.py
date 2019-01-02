@@ -270,11 +270,6 @@ class PeriodArray(dtl.DatetimeLikeArrayMixin, dtl.DatelikeOps):
         return self._dtype
 
     @property
-    def _ndarray_values(self):
-        # Ordinals
-        return self._data
-
-    @property
     def freq(self):
         """
         Return the frequency object for this PeriodArray.
@@ -475,7 +470,6 @@ class PeriodArray(dtl.DatetimeLikeArrayMixin, dtl.DatelikeOps):
         """
         actually format my specific types
         """
-        # TODO(DatetimeArray): remove
         values = self.astype(object)
 
         if date_format:

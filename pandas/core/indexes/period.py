@@ -70,9 +70,9 @@ class PeriodDelegateMixin(DatetimelikeDelegateMixin):
                 typ='property')
 @delegate_names(PeriodArray,
                 PeriodDelegateMixin._delegated_methods,
-                typ="method")
-class PeriodIndex(DatelikeOps, DatetimeIndexOpsMixin, Int64Index,
-                  PeriodDelegateMixin):
+                typ="method",
+                overwrite=True)
+class PeriodIndex(DatetimeIndexOpsMixin, Int64Index, PeriodDelegateMixin):
     """
     Immutable ndarray holding ordinal values indicating regular periods in
     time such as particular years, quarters, months, etc.
@@ -292,19 +292,14 @@ class PeriodIndex(DatelikeOps, DatetimeIndexOpsMixin, Int64Index,
         return np.asarray(self)
 
     @property
-    def _values(self):
-        return self._data
-
-    @property
     def freq(self):
-        # TODO(DatetimeArray): remove
-        # Can't simply use delegate_names since our base class is defining
-        # freq
         return self._data.freq
 
     @freq.setter
     def freq(self, value):
         value = Period._maybe_convert_freq(value)
+        # Note: When this deprecation is enforced, PeriodIndex.freq can
+        # be removed entirely, and we'll just inherit.
         msg = ('Setting {cls}.freq has been deprecated and will be '
                'removed in a future version; use {cls}.asfreq instead. '
                'The {cls}.freq setter is not guaranteed to work.')
@@ -896,11 +891,6 @@ class PeriodIndex(DatelikeOps, DatetimeIndexOpsMixin, Int64Index,
                       "in a future version".format(obj=type(self).__name__),
                       FutureWarning, stacklevel=2)
         return self._ndarray_values.flags
-
-    @property
-    def asi8(self):
-        # TODO(DatetimeArray): remove
-        return self.view('i8')
 
     def item(self):
         """
