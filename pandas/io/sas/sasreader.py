@@ -16,8 +16,8 @@ def read_sas(filepath_or_buffer, format=None, index=None, encoding=None,
     filepath_or_buffer : string or file-like object
         Path to the SAS file.
     format : string {'xport', 'sas7bdat'} or None
-        If None, file format is inferred.  If 'xport' or 'sas7bdat',
-        uses the corresponding format.
+        If None, file format is inferred from file extension. If 'xport' or
+        'sas7bdat', uses the corresponding format.
     index : identifier of index column, defaults to None
         Identifier of column that should be used as index of the DataFrame.
     encoding : string, default is None
