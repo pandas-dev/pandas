@@ -12,20 +12,22 @@ $ python generate_legacy_storage_files.py <output_dir> pickle
 
 3. Move the created pickle to "data/legacy_pickle/<version>" directory.
 """
+from distutils.version import LooseVersion
 import glob
-import pytest
+import os
+import shutil
 from warnings import catch_warnings, simplefilter
 
-import os
-from distutils.version import LooseVersion
+import pytest
+
+from pandas.compat import PY3, is_platform_little_endian
+import pandas.util._test_decorators as td
+
 import pandas as pd
 from pandas import Index
-from pandas.compat import is_platform_little_endian, PY3
-import pandas
 import pandas.util.testing as tm
-import pandas.util._test_decorators as td
+
 from pandas.tseries.offsets import Day, MonthEnd
-import shutil
 
 
 @pytest.fixture(scope='module')
@@ -63,7 +65,7 @@ def compare(data, vf, version):
 
     # py3 compat when reading py2 pickle
     try:
-        data = pandas.read_pickle(vf)
+        data = pd.read_pickle(vf)
     except (ValueError) as e:
         if 'unsupported pickle protocol:' in str(e):
             # trying to read a py3 pickle in py2
@@ -111,13 +113,13 @@ def compare_series_ts(result, expected, typ, version):
     freq = result.index.freq
     assert freq + Day(1) == Day(2)
 
-    res = freq + pandas.Timedelta(hours=1)
-    assert isinstance(res, pandas.Timedelta)
-    assert res == pandas.Timedelta(days=1, hours=1)
+    res = freq + pd.Timedelta(hours=1)
+    assert isinstance(res, pd.Timedelta)
+    assert res == pd.Timedelta(days=1, hours=1)
 
-    res = freq + pandas.Timedelta(nanoseconds=1)
-    assert isinstance(res, pandas.Timedelta)
-    assert res == pandas.Timedelta(days=1, nanoseconds=1)
+    res = freq + pd.Timedelta(nanoseconds=1)
+    assert isinstance(res, pd.Timedelta)
+    assert res == pd.Timedelta(days=1, nanoseconds=1)
 
 
 def compare_series_dt_tz(result, expected, typ, version):
@@ -337,7 +339,7 @@ class TestCompression(object):
                                  compression=zipfile.ZIP_DEFLATED) as f:
                 f.write(src_path, os.path.basename(src_path))
         elif compression == 'xz':
-            lzma = pandas.compat.import_lzma()
+            lzma = pd.compat.import_lzma()
             f = lzma.LZMAFile(dest_path, "w")
         else:
             msg = 'Unrecognized compression type: {}'.format(compression)

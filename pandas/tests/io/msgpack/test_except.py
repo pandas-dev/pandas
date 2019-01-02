@@ -1,9 +1,10 @@
 # coding: utf-8
 
 from datetime import datetime
-from pandas.io.msgpack import packb, unpackb
 
 import pytest
+
+from pandas.io.msgpack import packb, unpackb
 
 
 class DummyException(Exception):

@@ -5,35 +5,35 @@ Test output formatting for Series/DataFrame, including to_string & reprs
 """
 
 from __future__ import print_function
-import re
 
-import pytz
-import dateutil
+from datetime import datetime
 import itertools
 from operator import methodcaller
 import os
+import re
 import sys
 import warnings
-from datetime import datetime
 
-import pytest
-
+import dateutil
 import numpy as np
-import pandas as pd
-from pandas import (DataFrame, Series, Index, Timestamp, MultiIndex,
-                    date_range, NaT, read_csv)
-from pandas.compat import (range, zip, lrange, StringIO, PY3,
-                           u, lzip, is_platform_windows,
-                           is_platform_32bit)
+import pytest
+import pytz
+
 import pandas.compat as compat
+from pandas.compat import (
+    PY3, StringIO, is_platform_32bit, is_platform_windows, lrange, lzip, range,
+    u, zip)
+
+import pandas as pd
+from pandas import (
+    DataFrame, Index, MultiIndex, NaT, Series, Timestamp, date_range, read_csv)
+from pandas.core.config import (
+    get_option, option_context, reset_option, set_option)
+import pandas.util.testing as tm
 
 import pandas.io.formats.format as fmt
 import pandas.io.formats.printing as printing
-
-import pandas.util.testing as tm
 from pandas.io.formats.terminal import get_terminal_size
-from pandas.core.config import (set_option, get_option, option_context,
-                                reset_option)
 
 use_32bit_repr = is_platform_windows() or is_platform_32bit()
 

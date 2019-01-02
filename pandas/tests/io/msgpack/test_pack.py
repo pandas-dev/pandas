@@ -1,12 +1,14 @@
 # coding: utf-8
 
-import pytest
-
 import struct
 
+import pytest
+
+from pandas.compat import OrderedDict, u
+
 from pandas import compat
-from pandas.compat import u, OrderedDict
-from pandas.io.msgpack import packb, unpackb, Unpacker, Packer
+
+from pandas.io.msgpack import Packer, Unpacker, packb, unpackb
 
 
 class TestPack(object):

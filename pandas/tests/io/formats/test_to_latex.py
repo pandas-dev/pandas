@@ -1,12 +1,13 @@
+import codecs
 from datetime import datetime
 
 import pytest
 
-import pandas as pd
-from pandas import DataFrame, compat, Series
-from pandas.util import testing as tm
 from pandas.compat import u
-import codecs
+
+import pandas as pd
+from pandas import DataFrame, Series, compat
+from pandas.util import testing as tm
 
 
 @pytest.fixture

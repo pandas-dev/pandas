@@ -1,9 +1,12 @@
+import os
+
+import numpy as np
 import pytest
+
 import pandas as pd
 import pandas.util.testing as tm
+
 from pandas.io.sas.sasreader import read_sas
-import numpy as np
-import os
 
 # CSV versions of test xpt files were obtained using the R foreign library
 

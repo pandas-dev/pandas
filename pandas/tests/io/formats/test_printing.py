@@ -1,13 +1,13 @@
 # -*- coding: utf-8 -*-
+import numpy as np
 import pytest
 
-import numpy as np
 import pandas as pd
-
 from pandas import compat
-import pandas.io.formats.printing as printing
-import pandas.io.formats.format as fmt
 import pandas.core.config as cf
+
+import pandas.io.formats.format as fmt
+import pandas.io.formats.printing as printing
 
 
 def test_adjoin():

@@ -1,6 +1,7 @@
 import pytest
 
 from pandas.compat import StringIO
+
 from pandas import read_sas
 
 

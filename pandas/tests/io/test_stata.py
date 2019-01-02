@@ -1,27 +1,31 @@
 # -*- coding: utf-8 -*-
 # pylint: disable=E1101
 
+from collections import OrderedDict
 import datetime as dt
-import io
+from datetime import datetime
 import gzip
+import io
 import os
 import struct
 import warnings
-from collections import OrderedDict
-from datetime import datetime
 
 import numpy as np
 import pytest
 
-import pandas as pd
-import pandas.util.testing as tm
 import pandas.compat as compat
-from pandas.compat import iterkeys, PY3, ResourceWarning
+from pandas.compat import PY3, ResourceWarning, iterkeys
+
 from pandas.core.dtypes.common import is_categorical_dtype
+
+import pandas as pd
 from pandas.core.frame import DataFrame, Series
+import pandas.util.testing as tm
+
 from pandas.io.parsers import read_csv
-from pandas.io.stata import (InvalidColumnName, PossiblePrecisionLoss,
-                             StataMissingValue, StataReader, read_stata)
+from pandas.io.stata import (
+    InvalidColumnName, PossiblePrecisionLoss, StataMissingValue, StataReader,
+    read_stata)
 
 
 @pytest.fixture
