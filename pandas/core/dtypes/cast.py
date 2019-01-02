@@ -9,7 +9,7 @@ from pandas._libs.tslibs import OutOfBoundsDatetime, Period, iNaT
 from pandas.compat import PY3, string_types, text_type, to_str
 
 from .common import (
-    _INT64_DTYPE, _NS_DTYPE, _POSSIBLY_CAST_DTYPES, _TD_DTYPE, _string_dtypes,
+    _INT64_DTYPE, _NS_DTYPE, _POSSIBLY_CAST_DTYPES, _TD_DTYPE,
     ensure_int8, ensure_int16, ensure_int32, ensure_int64, ensure_object,
     is_bool, is_bool_dtype, is_categorical_dtype, is_complex, is_complex_dtype,
     is_datetime64_dtype, is_datetime64_ns_dtype, is_datetime64tz_dtype,
@@ -541,7 +541,7 @@ def invalidate_string_dtypes(dtype_set):
     """Change string like dtypes to object for
     ``DataFrame.select_dtypes()``.
     """
-    non_string_dtypes = dtype_set - _string_dtypes
+    non_string_dtypes = dtype_set - {np.dtype('S').type, np.dtype('<U').type}
     if non_string_dtypes != dtype_set:
         raise TypeError("string dtypes are not allowed, use 'object' instead")
 

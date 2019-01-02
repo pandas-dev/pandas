@@ -5,7 +5,7 @@ import numpy as np
 
 from pandas._libs import algos, lib
 from pandas._libs.tslibs import conversion
-from pandas.compat import PY3, PY36, binary_type, string_types, text_type
+from pandas.compat import PY3, PY36, string_types
 
 from pandas.core.dtypes.dtypes import (
     CategoricalDtype, DatetimeTZDtype, ExtensionDtype, IntervalDtype,
@@ -1825,7 +1825,7 @@ def _is_dtype_type(arr_or_dtype, condition):
     return condition(tipo)
 
 
-def _get_dtype_from_object(dtype):
+def infer_dtype_from_object(dtype):
     """
     Get a numpy dtype.type-style object for a dtype object.
 
@@ -1869,7 +1869,7 @@ def _get_dtype_from_object(dtype):
             dtype += '64'
 
         try:
-            return _get_dtype_from_object(getattr(np, dtype))
+            return infer_dtype_from_object(getattr(np, dtype))
         except (AttributeError, TypeError):
             # Handles cases like _get_dtype(int) i.e.,
             # Python objects that are valid dtypes
@@ -1879,7 +1879,7 @@ def _get_dtype_from_object(dtype):
             # further handle internal types
             pass
 
-    return _get_dtype_from_object(np.dtype(dtype))
+    return infer_dtype_from_object(np.dtype(dtype))
 
 
 def _validate_date_like_dtype(dtype):
@@ -1905,10 +1905,6 @@ def _validate_date_like_dtype(dtype):
     if typ != 'generic' and typ != 'ns':
         msg = '{name!r} is too specific of a frequency, try passing {type!r}'
         raise ValueError(msg.format(name=dtype.name, type=dtype.type.__name__))
-
-
-_string_dtypes = frozenset(map(_get_dtype_from_object, (binary_type,
-                                                        text_type)))
 
 
 def pandas_dtype(dtype):
