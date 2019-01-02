@@ -19,6 +19,7 @@ from pandas.core.dtypes.missing import isna, notna
 
 from pandas.core import nanops
 from pandas.core.arrays import ExtensionArray, ExtensionOpsMixin
+from pandas.core.arrays._mask import NAMask
 
 
 class _IntegerDtype(ExtensionDtype):
@@ -213,23 +214,6 @@ def coerce_to_array(values, dtype, mask=None, copy=False):
     return values, mask
 
 
-def _numpy_to_bitarray(arr):
-    """
-    Efficiently convert a NumPy array to a bitarray object.
-    """
-    barr = bitarray()
-    barr.pack(arr.astype(bool, copy=False).tostring())
-
-    return barr
-
-
-def _bitarray_to_numpy(arr):
-    """
-    Efficiently convert a bitarray object to a NumPy array.
-    """
-    return np.fromstring(arr.unpack(), dtype=bool)
-
-
 class IntegerArray(ExtensionArray, ExtensionOpsMixin):
     """
     Array of integer (optional missing) values.
@@ -272,7 +256,7 @@ class IntegerArray(ExtensionArray, ExtensionOpsMixin):
             mask = mask.copy()
 
         self._data = values
-        self._mask = mask
+        self._mask = NAMask(mask)
 
     @classmethod
     def _from_sequence(cls, scalars, dtype=None, copy=False):
@@ -295,8 +279,7 @@ class IntegerArray(ExtensionArray, ExtensionOpsMixin):
                 return self.dtype.na_value
             return self._data[item]
 
-        return type(self)(self._data[item],
-                          mask=_bitarray_to_numpy(self._mask)[item])
+        return type(self)(self._data[item], self._mask[item])
 
     def _coerce_to_ndarray(self):
         """
@@ -375,7 +358,7 @@ class IntegerArray(ExtensionArray, ExtensionOpsMixin):
 
     @property
     def nbytes(self):
-        return self._data.nbytes + self._mask.buffer_info()[1]
+        return self._data.nbytes + self._mask.nbytes
 
     def isna(self):
         return self._mask

@@ -1020,7 +1020,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
                 else:
                     return self._set_values(key, value)
             elif key_type == 'boolean':
-                self._set_values(key, value)
+                self._set_values(key.astype(np.bool_), value)
             else:
                 self._set_labels(key, value)
 

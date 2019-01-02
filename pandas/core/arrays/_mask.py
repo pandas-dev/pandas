@@ -30,11 +30,17 @@ class NAMask():
     def _bitarray_to_numpy(self, arr):
         return np.fromstring(arr.unpack(), dtype=bool)
 
-    def __getitem__(self):
-        pass
+    def __getitem__(self, item):
+        if self._has_bitarray:
+            raise NotImplementedError
 
-    def __setitem__(self):
-        pass
+        return self._data[item]
+
+    def __setitem__(self, key, value):
+        if self._has_bitarray:
+            raise NotImplementedError
+
+        self._data[key] = value
 
     @property
     def nbytes(self):
@@ -44,4 +50,7 @@ class NAMask():
         return self._data.nbytes
 
     def sum(self):
-        pass
+        if self._has_bitarray:
+            raise NotImplementedError
+
+        return self._data.sum()
