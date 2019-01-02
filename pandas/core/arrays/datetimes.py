@@ -1643,7 +1643,7 @@ def sequence_to_dt64ns(data, dtype=None, copy=False,
     # if dtype has an embedded tz, capture it
     tz = validate_tz_from_dtype(dtype, tz)
 
-    if isinstance(data, (ABCSeries, ABCIndexClass)):
+    if isinstance(data, ABCIndexClass):
         data = data._data
 
     if isinstance(data, DatetimeArrayMixin):
