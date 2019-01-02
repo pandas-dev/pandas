@@ -126,10 +126,6 @@ class DatetimeIndexOpsMixin(ExtensionOpsMixin):
     # Abstract data attributes
 
     @property
-    def _values(self):
-        return self._data
-
-    @property
     def values(self):
         # type: () -> np.ndarray
         # Note: PeriodArray overrides this to return an ndarray of objects.

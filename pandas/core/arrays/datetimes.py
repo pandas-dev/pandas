@@ -487,7 +487,7 @@ class DatetimeArrayMixin(dtl.DatetimeLikeArrayMixin,
             Returns None when the array is tz-naive.
         """
         # GH 18595
-        return getattr(self.dtype, 'tz', None)
+        return getattr(self.dtype, "tz", None)
 
     @tz.setter
     def tz(self, value):
@@ -1633,7 +1633,7 @@ def sequence_to_dt64ns(data, dtype=None, copy=False,
         copy = False
     elif isinstance(data, ABCSeries):
         data = data._values
-    elif isinstance(data, ABCPandasArray):
+    if isinstance(data, ABCPandasArray):
         data = data.to_numpy()
 
     if hasattr(data, "freq"):

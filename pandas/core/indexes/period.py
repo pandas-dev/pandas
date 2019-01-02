@@ -293,7 +293,7 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index, PeriodDelegateMixin):
     @freq.setter
     def freq(self, value):
         value = Period._maybe_convert_freq(value)
-        # Note: When this deprecation is enforced, PeriodIndex.freq can
+        # TODO: When this deprecation is enforced, PeriodIndex.freq can
         # be removed entirely, and we'll just inherit.
         msg = ('Setting {cls}.freq has been deprecated and will be '
                'removed in a future version; use {cls}.asfreq instead. '

@@ -16,6 +16,14 @@ import pandas.util.testing as tm
 
 
 class TestDatetimeArrayConstructor(object):
+    def test_from_pandas_array(self):
+        arr = pd.array(np.arange(5, dtype=np.int64)) * 3600 * 10**9
+
+        result = DatetimeArray._from_sequence(arr, freq='infer')
+
+        expected = pd.date_range('1970-01-01', periods=5, freq='H')._eadata
+        tm.assert_datetime_array_equal(result, expected)
+
     def test_mismatched_timezone_raises(self):
         arr = DatetimeArray(np.array(['2000-01-01T06:00:00'], dtype='M8[ns]'),
                             dtype=DatetimeTZDtype(tz='US/Central'))

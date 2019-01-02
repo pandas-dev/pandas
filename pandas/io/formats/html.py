@@ -44,6 +44,12 @@ class HTMLFormatter(TableFormatter):
         self.render_links = render_links
 
     @property
+    def show_row_idx_names(self):
+        return all((self.fmt.has_index_names,
+                    self.fmt.index,
+                    self.fmt.show_index_names))
+
+    @property
     def show_col_idx_names(self):
         # see gh-22579
         # Column misalignment also occurs for
@@ -165,9 +171,7 @@ class HTMLFormatter(TableFormatter):
             element_props.append(('thead tr th',
                                   'text-align',
                                   'left'))
-            if all((self.fmt.has_index_names,
-                    self.fmt.index,
-                    self.fmt.show_index_names)):
+            if self.show_row_idx_names:
                 element_props.append(('thead tr:last-of-type th',
                                       'text-align',
                                       'right'))
@@ -228,17 +232,8 @@ class HTMLFormatter(TableFormatter):
 
         buffer_put_lines(buf, self.elements)
 
-    def _write_header(self, indent):
+    def _write_col_header(self, indent):
         truncate_h = self.fmt.truncate_h
-
-        if not self.fmt.header:
-            # write nothing
-            return indent
-
-        self.write('<thead>', indent)
-
-        indent += self.indent_delta
-
         if isinstance(self.columns, ABCMultiIndex):
             template = 'colspan="{span:d}" halign="left"'
 
@@ -357,12 +352,25 @@ class HTMLFormatter(TableFormatter):
             self.write_tr(row, indent, self.indent_delta, header=True,
                           align=align)
 
-        if all((self.fmt.has_index_names,
-                self.fmt.index,
-                self.fmt.show_index_names)):
-            row = ([x if x is not None else '' for x in self.frame.index.names]
-                   + [''] * (self.ncols + (1 if truncate_h else 0)))
-            self.write_tr(row, indent, self.indent_delta, header=True)
+    def _write_row_header(self, indent):
+        truncate_h = self.fmt.truncate_h
+        row = ([x if x is not None else '' for x in self.frame.index.names]
+               + [''] * (self.ncols + (1 if truncate_h else 0)))
+        self.write_tr(row, indent, self.indent_delta, header=True)
+
+    def _write_header(self, indent):
+        if not (self.fmt.header or self.show_row_idx_names):
+            # write nothing
+            return indent
+
+        self.write('<thead>', indent)
+        indent += self.indent_delta
+
+        if self.fmt.header:
+            self._write_col_header(indent)
+
+        if self.show_row_idx_names:
+            self._write_row_header(indent)
 
         indent -= self.indent_delta
         self.write('</thead>', indent)

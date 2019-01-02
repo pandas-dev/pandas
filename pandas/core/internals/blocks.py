@@ -2884,7 +2884,7 @@ class DatetimeBlock(DatetimeLikeBlockMixin, Block):
         """ convert to our native types format, slicing if desired """
 
         values = self.values
-        i8values = self.asi8
+        i8values = self.values.view('i8')
 
         if slicer is not None:
             i8values = i8values[..., slicer]
