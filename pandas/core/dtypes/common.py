@@ -1934,10 +1934,6 @@ def pandas_dtype(dtype):
     if result is not None:
         return result
 
-    # un-registered extension types
-    elif isinstance(dtype, (PandasExtensionDtype, ExtensionDtype)):
-        return dtype
-
     # try a numpy dtype
     # raise a consistent TypeError if failed
     try:
