@@ -1195,20 +1195,9 @@ def assert_extension_array_equal(left, right, check_dtype=True,
     The remaining all-valid values are cast to object dtype and checked.
     """
     assert isinstance(left, ExtensionArray), 'left is not an ExtensionArray'
-    assert left.dtype == right.dtype, 'right is not an ExtensionArray'
+    assert isinstance(right, ExtensionArray), 'right is not an ExtensionArray'
     if check_dtype:
         assert_attr_equal('dtype', left, right, obj='ExtensionArray')
-    
-    left_na = left.isna()
-    right_na = right.isna()
-
-    # TODO - maybe generate dedicated method for bitarray comparison?
-    if isinstance(left_na, bitarray):
-        left_na = np.fromstring(left_na.unpack(), dtype=bool)
-    if isinstance(right_na, bitarray):
-        right_na = np.fromstring(right_na.unpack(), dtype=bool)
-
-    assert_numpy_array_equal(left_na, right_na)
 
     left_na = np.asarray(left.isna())
     right_na = np.asarray(right.isna())
