@@ -673,10 +673,6 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin,
         if isinstance(value, compat.string_types):
             value = self._scalar_from_string(value)
 
-        if isinstance(value, ABCIndexClass):
-            # unbox e.g. DatetimeIndex -> DatetimeArray
-            value = value._values
-
         if not (isinstance(value, (self._scalar_type, type(self)))
                 or isna(value)):
             raise ValueError("Unexpected type for 'value': {valtype}"
