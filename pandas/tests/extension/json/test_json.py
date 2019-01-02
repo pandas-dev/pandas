@@ -232,6 +232,10 @@ class TestMethods(BaseJSON, base.BaseMethodsTests):
         # with shapes (4,) (4,) (0,)
         super().test_where_series(data, na_value)
 
+    @pytest.mark.skip(reason="Can't compare dicts.")
+    def test_searchsorted(self, data_for_sorting):
+        super(TestMethods, self).test_searchsorted(data_for_sorting)
+
 
 class TestCasting(BaseJSON, base.BaseCastingTests):
     @pytest.mark.skip(reason="failing on np.array(self, dtype=str)")

@@ -1,11 +1,13 @@
 import numpy as np
 import pytest
 
-from pandas import DataFrame, date_range, read_csv
 from pandas.compat import StringIO
-from pandas.io.common import is_gcs_url
+
+from pandas import DataFrame, date_range, read_csv
 from pandas.util import _test_decorators as td
 from pandas.util.testing import assert_frame_equal
+
+from pandas.io.common import is_gcs_url
 
 
 def test_is_gcs_url():

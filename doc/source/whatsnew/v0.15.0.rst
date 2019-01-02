@@ -314,6 +314,7 @@ Timezone handling improvements
   previously this resulted in ``Exception`` or ``TypeError`` (:issue:`7812`)
 
   .. ipython:: python
+     :okwarning:
 
      ts = pd.Timestamp('2014-08-01 09:00', tz='US/Eastern')
      ts

@@ -4,9 +4,26 @@
 
 import numpy as np
 
+from pandas.core.arrays import IntervalArray
+from pandas.core.arrays.integer import (
+    Int8Dtype,
+    Int16Dtype,
+    Int32Dtype,
+    Int64Dtype,
+    UInt8Dtype,
+    UInt16Dtype,
+    UInt32Dtype,
+    UInt64Dtype,
+)
 from pandas.core.algorithms import factorize, unique, value_counts
 from pandas.core.dtypes.missing import isna, isnull, notna, notnull
-from pandas.core.arrays import Categorical
+from pandas.core.dtypes.dtypes import (
+    CategoricalDtype,
+    PeriodDtype,
+    IntervalDtype,
+    DatetimeTZDtype,
+)
+from pandas.core.arrays import Categorical, array
 from pandas.core.groupby import Grouper
 from pandas.io.formats.format import set_eng_float_format
 from pandas.core.index import (Index, CategoricalIndex, Int64Index,

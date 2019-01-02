@@ -27,13 +27,13 @@ import numpy as np
 from numpy cimport int64_t
 
 
-from np_datetime cimport (check_dts_bounds,
-                          dtstruct_to_dt64, npy_datetimestruct)
+from pandas._libs.tslibs.np_datetime cimport (
+    check_dts_bounds, dtstruct_to_dt64, npy_datetimestruct)
 
-from util cimport is_string_object
+from pandas._libs.tslibs.util cimport is_string_object
 
-from nattype cimport checknull_with_nat, NPY_NAT
-from nattype import nat_strings
+from pandas._libs.tslibs.nattype cimport checknull_with_nat, NPY_NAT
+from pandas._libs.tslibs.nattype import nat_strings
 
 cdef dict _parse_code_table = {'y': 0,
                                'Y': 1,

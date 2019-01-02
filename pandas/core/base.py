@@ -8,15 +8,16 @@ import numpy as np
 
 import pandas._libs.lib as lib
 import pandas.compat as compat
-from pandas.compat import PYPY, OrderedDict, builtins
+from pandas.compat import PYPY, OrderedDict, builtins, map, range
 from pandas.compat.numpy import function as nv
 from pandas.errors import AbstractMethodError
 from pandas.util._decorators import Appender, Substitution, cache_readonly
 from pandas.util._validators import validate_bool_kwarg
 
 from pandas.core.dtypes.common import (
-    is_datetime64tz_dtype, is_datetimelike, is_extension_array_dtype,
-    is_extension_type, is_list_like, is_object_dtype, is_scalar)
+    is_datetime64_ns_dtype, is_datetime64tz_dtype, is_datetimelike,
+    is_extension_array_dtype, is_extension_type, is_list_like, is_object_dtype,
+    is_scalar, is_timedelta64_ns_dtype)
 from pandas.core.dtypes.generic import ABCDataFrame, ABCIndexClass, ABCSeries
 from pandas.core.dtypes.missing import isna
 
@@ -784,18 +785,21 @@ class IndexOpsMixin(object):
 
     @property
     def array(self):
-        # type: () -> Union[np.ndarray, ExtensionArray]
+        # type: () -> ExtensionArray
         """
-        The actual Array backing this Series or Index.
+        The ExtensionArray of the data backing this Series or Index.
 
         .. versionadded:: 0.24.0
 
         Returns
         -------
-        array : numpy.ndarray or ExtensionArray
-            This is the actual array stored within this object. This differs
-            from ``.values`` which may require converting the data
-            to a different form.
+        array : ExtensionArray
+            An ExtensionArray of the values stored within. For extension
+            types, this is the actual array. For NumPy native types, this
+            is a thin (no copy) wrapper around :class:`numpy.ndarray`.
+
+            ``.array`` differs ``.values`` which may require converting the
+            data to a different form.
 
         See Also
         --------
@@ -820,26 +824,46 @@ class IndexOpsMixin(object):
         For any 3rd-party extension types, the array type will be an
         ExtensionArray.
 
-        For all remaining dtypes ``.array`` will be the :class:`numpy.ndarray`
+        For all remaining dtypes ``.array`` will be a
+        :class:`arrays.NumpyExtensionArray` wrapping the actual ndarray
         stored within. If you absolutely need a NumPy array (possibly with
         copying / coercing data), then use :meth:`Series.to_numpy` instead.
 
-        .. note::
-
-           ``.array`` will always return the underlying object backing the
-           Series or Index. If a future version of pandas adds a specialized
-           extension type for a data type, then the return type of ``.array``
-           for that data type will change from an object-dtype ndarray to the
-           new ExtensionArray.
-
         Examples
         --------
+
+        For regular NumPy types like int, and float, a PandasArray
+        is returned.
+
+        >>> pd.Series([1, 2, 3]).array
+        <PandasArray>
+        [1, 2, 3]
+        Length: 3, dtype: int64
+
+        For extension types, like Categorical, the actual ExtensionArray
+        is returned
+
         >>> ser = pd.Series(pd.Categorical(['a', 'b', 'a']))
         >>> ser.array
         [a, b, a]
         Categories (2, object): [a, b]
         """
-        return self._values
+        result = self._values
+
+        if (is_datetime64_ns_dtype(result.dtype) or
+                is_datetime64tz_dtype(result.dtype)):
+            from pandas.arrays import DatetimeArray
+            result = DatetimeArray(result)
+
+        elif is_timedelta64_ns_dtype(result.dtype):
+            from pandas.arrays import TimedeltaArray
+            result = TimedeltaArray(result)
+
+        elif not is_extension_array_dtype(result.dtype):
+            from pandas.core.arrays.numpy_ import PandasArray
+            result = PandasArray(result)
+
+        return result
 
     def to_numpy(self, dtype=None, copy=False):
         """
@@ -957,9 +981,15 @@ class IndexOpsMixin(object):
     def empty(self):
         return not self.size
 
-    def max(self):
+    def max(self, axis=None, skipna=True):
         """
         Return the maximum value of the Index.
+
+        Parameters
+        ----------
+        axis : int, optional
+            For compatibility with NumPy. Only 0 or None are allowed.
+        skipna : bool, default True
 
         Returns
         -------
@@ -988,21 +1018,35 @@ class IndexOpsMixin(object):
         >>> idx.max()
         ('b', 2)
         """
-        return nanops.nanmax(self.values)
+        nv.validate_minmax_axis(axis)
+        return nanops.nanmax(self._values, skipna=skipna)
 
-    def argmax(self, axis=None):
+    def argmax(self, axis=None, skipna=True):
         """
         Return a ndarray of the maximum argument indexer.
+
+        Parameters
+        ----------
+        axis : {None}
+            Dummy argument for consistency with Series
+        skipna : bool, default True
 
         See Also
         --------
         numpy.ndarray.argmax
         """
-        return nanops.nanargmax(self.values)
+        nv.validate_minmax_axis(axis)
+        return nanops.nanargmax(self._values, skipna=skipna)
 
-    def min(self):
+    def min(self, axis=None, skipna=True):
         """
         Return the minimum value of the Index.
+
+        Parameters
+        ----------
+        axis : {None}
+            Dummy argument for consistency with Series
+        skipna : bool, default True
 
         Returns
         -------
@@ -1031,17 +1075,25 @@ class IndexOpsMixin(object):
         >>> idx.min()
         ('a', 1)
         """
-        return nanops.nanmin(self.values)
+        nv.validate_minmax_axis(axis)
+        return nanops.nanmin(self._values, skipna=skipna)
 
-    def argmin(self, axis=None):
+    def argmin(self, axis=None, skipna=True):
         """
         Return a ndarray of the minimum argument indexer.
+
+        Parameters
+        ----------
+        axis : {None}
+            Dummy argument for consistency with Series
+        skipna : bool, default True
 
         See Also
         --------
         numpy.ndarray.argmin
         """
-        return nanops.nanargmin(self.values)
+        nv.validate_minmax_axis(axis)
+        return nanops.nanargmin(self._values, skipna=skipna)
 
     def tolist(self):
         """
@@ -1072,7 +1124,13 @@ class IndexOpsMixin(object):
         (for str, int, float) or a pandas scalar
         (for Timestamp/Timedelta/Interval/Period)
         """
-        return iter(self.tolist())
+        # We are explicity making element iterators.
+        if is_datetimelike(self._values):
+            return map(com.maybe_box_datetimelike, self._values)
+        elif is_extension_array_dtype(self._values):
+            return iter(self._values)
+        else:
+            return map(self._values.item, range(self._values.size))
 
     @cache_readonly
     def hasnans(self):
@@ -1088,7 +1146,7 @@ class IndexOpsMixin(object):
         if func is None:
             raise TypeError("{klass} cannot perform the operation {op}".format(
                             klass=self.__class__.__name__, op=name))
-        return func(**kwds)
+        return func(skipna=skipna, **kwds)
 
     def _map_values(self, mapper, na_action=None):
         """
@@ -1442,7 +1500,7 @@ class IndexOpsMixin(object):
     @Appender(_shared_docs['searchsorted'])
     def searchsorted(self, value, side='left', sorter=None):
         # needs coercion on the key (DatetimeIndex does already)
-        return self.values.searchsorted(value, side=side, sorter=sorter)
+        return self._values.searchsorted(value, side=side, sorter=sorter)
 
     def drop_duplicates(self, keep='first', inplace=False):
         inplace = validate_bool_kwarg(inplace, 'inplace')

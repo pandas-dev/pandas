@@ -286,6 +286,12 @@ class TestMethods(BaseSparseTests, base.BaseMethodsTests):
             pytest.skip("TODO(SparseArray.__setitem__ will preserve dtype.")
         super(TestMethods, self).test_combine_first(data)
 
+    @pytest.mark.parametrize("as_series", [True, False])
+    def test_searchsorted(self, data_for_sorting, as_series):
+        with tm.assert_produces_warning(PerformanceWarning):
+            super(TestMethods, self).test_searchsorted(data_for_sorting,
+                                                       as_series=as_series)
+
 
 class TestCasting(BaseSparseTests, base.BaseCastingTests):
     pass
@@ -353,3 +359,11 @@ class TestPrinting(BaseSparseTests, base.BasePrintingTests):
     @pytest.mark.xfail(reason='Different repr', strict=True)
     def test_array_repr(self, data, size):
         super(TestPrinting, self).test_array_repr(data, size)
+
+
+class TestParsing(BaseSparseTests, base.BaseParsingTests):
+    @pytest.mark.parametrize('engine', ['c', 'python'])
+    def test_EA_types(self, engine, data):
+        expected_msg = r'.*must implement _from_sequence_of_strings.*'
+        with pytest.raises(NotImplementedError, match=expected_msg):
+            super(TestParsing, self).test_EA_types(engine, data)

@@ -1272,6 +1272,17 @@ class TestPivotTable(object):
                                aggfunc=f_numpy)
         tm.assert_frame_equal(result, expected)
 
+    @pytest.mark.slow
+    def test_pivot_number_of_levels_larger_than_int32(self):
+        # GH 20601
+        df = DataFrame({'ind1': np.arange(2 ** 16),
+                        'ind2': np.arange(2 ** 16),
+                        'count': 0})
+
+        with pytest.raises(ValueError, match='int32 overflow'):
+            df.pivot_table(index='ind1', columns='ind2',
+                           values='count', aggfunc='count')
+
 
 class TestCrosstab(object):
 

@@ -15,6 +15,7 @@ from pandas.core.dtypes.common import (
 import pandas.core.dtypes.concat as _concat
 from pandas.core.dtypes.missing import isna
 
+from pandas.core.accessor import delegate_names
 from pandas.core.arrays import datetimelike as dtl
 from pandas.core.arrays.timedeltas import (
     TimedeltaArrayMixin as TimedeltaArray, _is_convertible_to_td, _to_m8)
@@ -22,8 +23,8 @@ from pandas.core.base import _shared_docs
 import pandas.core.common as com
 from pandas.core.indexes.base import Index, _index_shared_docs
 from pandas.core.indexes.datetimelike import (
-    DatetimeIndexOpsMixin, wrap_arithmetic_op, wrap_array_method,
-    wrap_field_accessor)
+    DatetimeIndexOpsMixin, DatetimelikeDelegateMixin, maybe_unwrap_index,
+    wrap_arithmetic_op)
 from pandas.core.indexes.numeric import Int64Index
 from pandas.core.ops import get_op_result_name
 from pandas.core.tools.timedeltas import _coerce_scalar_to_timedelta_type
@@ -36,19 +37,41 @@ def _make_wrapped_arith_op(opname):
     meth = getattr(TimedeltaArray, opname)
 
     def method(self, other):
-        oth = other
-        if isinstance(other, Index):
-            oth = other._data
-
-        result = meth(self, oth)
+        result = meth(self._eadata, maybe_unwrap_index(other))
         return wrap_arithmetic_op(self, other, result)
 
     method.__name__ = opname
     return method
 
 
-class TimedeltaIndex(TimedeltaArray, DatetimeIndexOpsMixin,
-                     dtl.TimelikeOps, Int64Index):
+class TimedeltaDelegateMixin(DatetimelikeDelegateMixin):
+    # Most attrs are dispatched via datetimelike_{ops,methods}
+    # Some are "raw" methods, the result is not not re-boxed in an Index
+    # We also have a few "extra" attrs, which may or may not be raw,
+    # which we we dont' want to expose in the .dt accessor.
+    _delegate_class = TimedeltaArray
+    _delegated_properties = (TimedeltaArray._datetimelike_ops + [
+        'components',
+    ])
+    _delegated_methods = TimedeltaArray._datetimelike_methods + [
+        '_box_values',
+    ]
+    _raw_properties = {
+        'components',
+    }
+    _raw_methods = {
+        'to_pytimedelta',
+    }
+
+
+@delegate_names(TimedeltaArray,
+                TimedeltaDelegateMixin._delegated_properties,
+                typ="property")
+@delegate_names(TimedeltaArray,
+                TimedeltaDelegateMixin._delegated_methods,
+                typ="method", overwrite=False)
+class TimedeltaIndex(DatetimeIndexOpsMixin,
+                     dtl.TimelikeOps, Int64Index, TimedeltaDelegateMixin):
     """
     Immutable ndarray of timedelta64 data, represented internally as int64, and
     which can be boxed to timedelta objects
@@ -68,15 +91,27 @@ class TimedeltaIndex(TimedeltaArray, DatetimeIndexOpsMixin,
     start : starting value, timedelta-like, optional
         If data is None, start is used as the start point in generating regular
         timedelta data.
+
+        .. deprecated:: 0.24.0
+
     periods  : int, optional, > 0
         Number of periods to generate, if generating index. Takes precedence
         over end argument
-    end   : end time, timedelta-like, optional
+
+        .. deprecated:: 0.24.0
+
+    end : end time, timedelta-like, optional
         If periods is none, generated index will extend to first conforming
         time on or just past end argument
+
+        .. deprecated:: 0.24. 0
+
     closed : string or None, default None
         Make the interval closed with respect to the given frequency to
         the 'left', 'right', or both sides (None)
+
+        .. deprecated:: 0.24. 0
+
     name : object
         Name to be stored in the index
 
@@ -104,12 +139,15 @@ class TimedeltaIndex(TimedeltaArray, DatetimeIndexOpsMixin,
     Timedelta : Represents a duration between two dates or times.
     DatetimeIndex : Index of datetime64 data.
     PeriodIndex : Index of Period data.
+    timedelta_range : Create a fixed-frequency TimedeltaIndex.
 
     Notes
     -----
-
     To learn more about the frequency strings, please see `this link
     <http://pandas.pydata.org/pandas-docs/stable/timeseries.html#offset-aliases>`__.
+
+    Creating a TimedeltaIndex based on `start`, `periods`, and `end` has
+    been deprecated in favor of :func:`timedelta_range`.
     """
 
     _typ = 'timedeltaindex'
@@ -162,9 +200,9 @@ class TimedeltaIndex(TimedeltaArray, DatetimeIndexOpsMixin,
                           "endpoints is deprecated.  Use "
                           "`pandas.timedelta_range` instead.",
                           FutureWarning, stacklevel=2)
-            tdarr = TimedeltaArray._generate_range(start, end, periods, freq,
-                                                   closed=closed)
-            return cls(tdarr, name=name)
+            result = TimedeltaArray._generate_range(start, end, periods, freq,
+                                                    closed=closed)
+            return cls._simple_new(result._data, freq=freq, name=name)
 
         if is_scalar(data):
             raise TypeError('{cls}() must be called with a '
@@ -179,10 +217,9 @@ class TimedeltaIndex(TimedeltaArray, DatetimeIndexOpsMixin,
 
         # - Cases checked above all return/raise before reaching here - #
 
-        result = cls._from_sequence(data, freq=freq, unit=unit,
-                                    dtype=dtype, copy=copy)
-        result.name = name
-        return result
+        tdarr = TimedeltaArray._from_sequence(data, freq=freq, unit=unit,
+                                              dtype=dtype, copy=copy)
+        return cls._simple_new(tdarr._data, freq=tdarr.freq, name=name)
 
     @classmethod
     def _simple_new(cls, values, name=None, freq=None, dtype=_TD_DTYPE):
@@ -195,10 +232,15 @@ class TimedeltaIndex(TimedeltaArray, DatetimeIndexOpsMixin,
             values = values.view('m8[ns]')
         assert values.dtype == 'm8[ns]', values.dtype
 
-        result = super(TimedeltaIndex, cls)._simple_new(values, freq)
+        freq = to_offset(freq)
+        tdarr = TimedeltaArray._simple_new(values, freq=freq)
+        result = object.__new__(cls)
+        result._eadata = tdarr
         result.name = name
         # For groupby perf. See note in indexes/base about _index_data
-        result._index_data = result._data
+        # TODO: make sure this is updated correctly if edited
+        result._index_data = tdarr._data
+
         result._reset_identity()
         return result
 
@@ -228,7 +270,7 @@ class TimedeltaIndex(TimedeltaArray, DatetimeIndexOpsMixin,
         from pandas.io.formats.format import _get_format_timedelta64
         return _get_format_timedelta64(self, box=True)
 
-    def _format_native_types(self, na_rep=u'NaT', date_format=None, **kwargs):
+    def _format_native_types(self, na_rep='NaT', date_format=None, **kwargs):
         from pandas.io.formats.format import Timedelta64Formatter
         return Timedelta64Formatter(values=self,
                                     nat_rep=na_rep,
@@ -236,6 +278,10 @@ class TimedeltaIndex(TimedeltaArray, DatetimeIndexOpsMixin,
 
     # -------------------------------------------------------------------
     # Wrapping TimedeltaArray
+
+    @property
+    def _data(self):
+        return self._eadata._data
 
     __mul__ = _make_wrapped_arith_op("__mul__")
     __rmul__ = _make_wrapped_arith_op("__rmul__")
@@ -245,30 +291,8 @@ class TimedeltaIndex(TimedeltaArray, DatetimeIndexOpsMixin,
     __rmod__ = _make_wrapped_arith_op("__rmod__")
     __divmod__ = _make_wrapped_arith_op("__divmod__")
     __rdivmod__ = _make_wrapped_arith_op("__rdivmod__")
-
-    days = wrap_field_accessor(TimedeltaArray.days)
-    seconds = wrap_field_accessor(TimedeltaArray.seconds)
-    microseconds = wrap_field_accessor(TimedeltaArray.microseconds)
-    nanoseconds = wrap_field_accessor(TimedeltaArray.nanoseconds)
-
-    total_seconds = wrap_array_method(TimedeltaArray.total_seconds, True)
-
-    def __truediv__(self, other):
-        oth = other
-        if isinstance(other, Index):
-            # TimedeltaArray defers, so we need to unwrap
-            oth = other._values
-        result = TimedeltaArray.__truediv__(self, oth)
-        return wrap_arithmetic_op(self, other, result)
-
-    def __rtruediv__(self, other):
-        oth = other
-        if isinstance(other, Index):
-            # TimedeltaArray defers, so we need to unwrap
-            oth = other._values
-        result = TimedeltaArray.__rtruediv__(self, oth)
-        return wrap_arithmetic_op(self, other, result)
-
+    __truediv__ = _make_wrapped_arith_op("__truediv__")
+    __rtruediv__ = _make_wrapped_arith_op("__rtruediv__")
     if compat.PY2:
         __div__ = __truediv__
         __rdiv__ = __rtruediv__
@@ -278,20 +302,35 @@ class TimedeltaIndex(TimedeltaArray, DatetimeIndexOpsMixin,
     _is_monotonic_decreasing = Index.is_monotonic_decreasing
     _is_unique = Index.is_unique
 
+    _create_comparison_method = DatetimeIndexOpsMixin._create_comparison_method
+    # TODO: make sure we have a test for name retention analogous
+    #  to series.test_arithmetic.test_ser_cmp_result_names;
+    #  also for PeriodIndex which I think may be missing one
+
+    @property
+    def _box_func(self):
+        return lambda x: Timedelta(x, unit='ns')
+
+    def __getitem__(self, key):
+        result = self._eadata.__getitem__(key)
+        if is_scalar(result):
+            return result
+        return type(self)(result, name=self.name)
+
     # -------------------------------------------------------------------
 
     @Appender(_index_shared_docs['astype'])
     def astype(self, dtype, copy=True):
         dtype = pandas_dtype(dtype)
         if is_timedelta64_dtype(dtype) and not is_timedelta64_ns_dtype(dtype):
-            # return an index (essentially this is division)
-            result = self.values.astype(dtype, copy=copy)
+            # Have to repeat the check for 'timedelta64' (not ns) dtype
+            #  so that we can return a numeric index, since pandas will return
+            #  a TimedeltaIndex when dtype='timedelta'
+            result = self._eadata.astype(dtype, copy=copy)
             if self.hasnans:
-                values = self._maybe_mask_results(result, fill_value=None,
-                                                  convert='float64')
-                return Index(values, name=self.name)
+                return Index(result, name=self.name)
             return Index(result.astype('i8'), name=self.name)
-        return super(TimedeltaIndex, self).astype(dtype, copy=copy)
+        return DatetimeIndexOpsMixin.astype(self, dtype, copy=copy)
 
     def union(self, other):
         """
@@ -766,4 +805,4 @@ def timedelta_range(start=None, end=None, periods=None, freq=None,
     freq, freq_infer = dtl.maybe_infer_freq(freq)
     tdarr = TimedeltaArray._generate_range(start, end, periods, freq,
                                            closed=closed)
-    return TimedeltaIndex(tdarr, name=name)
+    return TimedeltaIndex._simple_new(tdarr._data, freq=tdarr.freq, name=name)
