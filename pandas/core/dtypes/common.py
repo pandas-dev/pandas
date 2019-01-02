@@ -1848,18 +1848,26 @@ def infer_dtype_from_object(dtype):
     if isinstance(dtype, type) and issubclass(dtype, np.generic):
         # Type object from a dtype
         return dtype
-    elif is_categorical(dtype):
-        return CategoricalDtype().type
-    elif is_datetime64tz_dtype(dtype):
-        return DatetimeTZDtype(dtype).type
-    elif isinstance(dtype, np.dtype):  # dtype object
+    elif isinstance(dtype, np.dtype):
+        # dtype object
         try:
             _validate_date_like_dtype(dtype)
         except TypeError:
             # Should still pass if we don't have a date-like
             pass
         return dtype.type
+
+    try:
+        dtype = pandas_dtype(dtype)
+    except TypeError:
+        pass
+
+    if is_extension_array_dtype(dtype):
+        return dtype.type
     elif isinstance(dtype, string_types):
+
+        # TODO(jreback)
+        # should deprecate these
         if dtype in ['datetimetz', 'datetime64tz']:
             return DatetimeTZDtype.type
         elif dtype in ['period']:
@@ -1867,7 +1875,6 @@ def infer_dtype_from_object(dtype):
 
         if dtype == 'datetime' or dtype == 'timedelta':
             dtype += '64'
-
         try:
             return infer_dtype_from_object(getattr(np, dtype))
         except (AttributeError, TypeError):
