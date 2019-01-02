@@ -1,13 +1,15 @@
 # -*- coding: utf-8 -*-
-import re
 from datetime import datetime
+import re
 
 import numpy as np
 import pytest
+
+from pandas._libs.tslib import iNaT
 from pandas.compat import long
+
 import pandas.core.algorithms as algos
 import pandas.util.testing as tm
-from pandas._libs.tslib import iNaT
 
 
 @pytest.fixture(params=[True, False])

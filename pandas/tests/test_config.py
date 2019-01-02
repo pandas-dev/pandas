@@ -1,9 +1,9 @@
 # -*- coding: utf-8 -*-
+import warnings
+
 import pytest
 
 import pandas as pd
-
-import warnings
 
 
 class TestConfig(object):

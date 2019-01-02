@@ -1,9 +1,10 @@
 # -*- coding: utf-8 -*-
 
 import pytest
-import pandas  # noqa
-import pandas as pd
+
 from pandas.errors import AbstractMethodError
+
+import pandas as pd  # noqa
 
 
 @pytest.mark.parametrize(

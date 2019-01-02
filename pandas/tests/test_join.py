@@ -1,9 +1,10 @@
 # -*- coding: utf-8 -*-
 
 import numpy as np
-from pandas import Index, DataFrame, Categorical, merge
 
 from pandas._libs import join as _join
+
+from pandas import Categorical, DataFrame, Index, merge
 import pandas.util.testing as tm
 from pandas.util.testing import assert_almost_equal, assert_frame_equal
 
