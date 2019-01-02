@@ -1,9 +1,11 @@
-import pytest
-import numpy as np
-import pandas as pd
 from datetime import datetime
+
+import numpy as np
+import pytest
+
+import pandas as pd
+from pandas import DataFrame, Index, MultiIndex, Series, bdate_range, compat
 from pandas.util import testing as tm
-from pandas import DataFrame, MultiIndex, compat, Series, bdate_range, Index
 
 
 def test_apply_issues():

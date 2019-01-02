@@ -3,10 +3,12 @@ test methods relating to generic function evaluation
 the so-called white/black lists
 """
 
-import pytest
 from string import ascii_lowercase
+
 import numpy as np
-from pandas import DataFrame, Series, compat, date_range, Index, MultiIndex
+import pytest
+
+from pandas import DataFrame, Index, MultiIndex, Series, compat, date_range
 from pandas.util import testing as tm
 
 AGG_FUNCTIONS = ['sum', 'prod', 'min', 'max', 'median', 'mean', 'skew',

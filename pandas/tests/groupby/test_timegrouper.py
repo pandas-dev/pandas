@@ -1,17 +1,17 @@
 """ test with the TimeGrouper / grouping with datetimes """
 
+from datetime import datetime
+
+import numpy as np
+from numpy import nan
 import pytest
 import pytz
 
-from datetime import datetime
-import numpy as np
-from numpy import nan
+from pandas.compat import StringIO
 
 import pandas as pd
-from pandas import (DataFrame, date_range, Index,
-                    Series, MultiIndex, Timestamp)
+from pandas import DataFrame, Index, MultiIndex, Series, Timestamp, date_range
 from pandas.core.groupby.ops import BinGrouper
-from pandas.compat import StringIO
 from pandas.util import testing as tm
 from pandas.util.testing import assert_frame_equal, assert_series_equal
 

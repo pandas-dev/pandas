@@ -1,26 +1,25 @@
 # -*- coding: utf-8 -*-
 from __future__ import print_function
 
-import pytest
-
+from collections import defaultdict
 from datetime import datetime
 from decimal import Decimal
 
-from pandas import (date_range, Timestamp,
-                    Index, MultiIndex, DataFrame, Series,
-                    Panel, read_csv)
-from pandas.errors import PerformanceWarning
-from pandas.util.testing import (assert_frame_equal,
-                                 assert_series_equal, assert_almost_equal)
-from pandas.compat import (range, lrange, StringIO, lmap, lzip, map, zip,
-                           OrderedDict)
-from pandas import compat
-from collections import defaultdict
-import pandas.core.common as com
 import numpy as np
+import pytest
 
-import pandas.util.testing as tm
+from pandas.compat import (
+    OrderedDict, StringIO, lmap, lrange, lzip, map, range, zip)
+from pandas.errors import PerformanceWarning
+
 import pandas as pd
+from pandas import (
+    DataFrame, Index, MultiIndex, Panel, Series, Timestamp, compat, date_range,
+    read_csv)
+import pandas.core.common as com
+import pandas.util.testing as tm
+from pandas.util.testing import (
+    assert_almost_equal, assert_frame_equal, assert_series_equal)
 
 
 def test_repr():
