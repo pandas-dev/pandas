@@ -324,7 +324,6 @@ class DatetimeIndex(DatetimeIndexOpsMixin, Int64Index, DatetimeDelegateMixin):
         result._data = dtarr
         result.name = name
         # For groupby perf. See note in indexes/base about _index_data
-        # TODO: make sure this is updated correctly if edited
         result._index_data = result._data
         result._reset_identity()
         return result

@@ -55,6 +55,7 @@ class DatetimeIndexOpsMixin(ExtensionOpsMixin):
     """
     common ops mixin to support a unified interface datetimelike Index
     """
+    _data = None  # type: DatetimeLikeArrayMixin
 
     # DatetimeLikeArrayMixin assumes subclasses are mutable, so these are
     # properties there.  They can be made into cache_readonly for Index
@@ -76,6 +77,9 @@ class DatetimeIndexOpsMixin(ExtensionOpsMixin):
 
     @property
     def freq(self):
+        """
+        Return the frequency object if it is set, otherwise None.
+        """
         return self._eadata.freq
 
     @freq.setter
@@ -85,6 +89,9 @@ class DatetimeIndexOpsMixin(ExtensionOpsMixin):
 
     @property
     def freqstr(self):
+        """
+        Return the frequency object as a string if it is set, otherwise None.
+        """
         return self._eadata.freqstr
 
     def unique(self, level=None):
@@ -114,6 +121,20 @@ class DatetimeIndexOpsMixin(ExtensionOpsMixin):
     @property
     def _ndarray_values(self):
         return self._eadata._ndarray_values
+
+    # ------------------------------------------------------------------------
+    # Abstract data attributes
+
+    @property
+    def values(self):
+        # type: () -> np.ndarray
+        # Note: PeriodArray overrides this to return an ndarray of objects.
+        return self._eadata._data
+
+    @property
+    @Appender(DatetimeLikeArrayMixin.asi8.__doc__)
+    def asi8(self):
+        return self._eadata.asi8
 
     # ------------------------------------------------------------------------
 

@@ -70,8 +70,8 @@ class TimedeltaDelegateMixin(DatetimelikeDelegateMixin):
 @delegate_names(TimedeltaArray,
                 TimedeltaDelegateMixin._delegated_methods,
                 typ="method", overwrite=False)
-class TimedeltaIndex(DatetimeIndexOpsMixin,
-                     dtl.TimelikeOps, Int64Index, TimedeltaDelegateMixin):
+class TimedeltaIndex(DatetimeIndexOpsMixin, dtl.TimelikeOps, Int64Index,
+                     TimedeltaDelegateMixin):
     """
     Immutable ndarray of timedelta64 data, represented internally as int64, and
     which can be boxed to timedelta objects
@@ -239,7 +239,6 @@ class TimedeltaIndex(DatetimeIndexOpsMixin,
         result._data = tdarr
         result.name = name
         # For groupby perf. See note in indexes/base about _index_data
-        # TODO: make sure this is updated correctly if edited
         result._index_data = tdarr._data
 
         result._reset_identity()
