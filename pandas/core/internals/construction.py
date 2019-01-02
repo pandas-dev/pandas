@@ -589,7 +589,7 @@ def sanitize_array(data, index, dtype=None, copy=False,
         # everything else in this block must also handle ndarray's,
         # becuase we've unwrapped PandasArray into an ndarray.
 
-        if dtype is not None and not data.dtype.is_dtype(dtype):
+        if dtype is not None:
             subarr = data.astype(dtype)
 
         if copy:

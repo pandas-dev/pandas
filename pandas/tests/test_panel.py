@@ -469,7 +469,8 @@ class CheckIndexing(object):
 
     def test_setitem(self):
         lp = self.panel.filter(['ItemA', 'ItemB']).to_frame()
-        with pytest.raises(ValueError):
+
+        with pytest.raises(TypeError):
             self.panel['ItemE'] = lp
 
         # DataFrame

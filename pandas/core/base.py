@@ -850,11 +850,9 @@ class IndexOpsMixin(object):
         """
         result = self._values
 
-        if (is_datetime64_ns_dtype(result.dtype) or
-                is_datetime64tz_dtype(result.dtype)):
+        if is_datetime64_ns_dtype(result.dtype):
             from pandas.arrays import DatetimeArray
             result = DatetimeArray(result)
-
         elif is_timedelta64_ns_dtype(result.dtype):
             from pandas.arrays import TimedeltaArray
             result = TimedeltaArray(result)
@@ -950,14 +948,14 @@ class IndexOpsMixin(object):
         array(['1999-12-31T23:00:00.000000000', '2000-01-01T23:00:00...'],
               dtype='datetime64[ns]')
         """
-        if (is_extension_array_dtype(self.dtype) or
-                is_datetime64tz_dtype(self.dtype)):
-            # TODO(DatetimeArray): remove the second clause.
-            # TODO(GH-24345): Avoid potential double copy
-            result = np.asarray(self._values, dtype=dtype)
-        else:
-            result = self._values
+        if is_datetime64tz_dtype(self.dtype) and dtype is None:
+            # note: this is going to change very soon.
+            # I have a WIP PR making this unnecessary, but it's
+            # a bit out of scope for the DatetimeArray PR.
+            dtype = "object"
 
+        result = np.asarray(self._values, dtype=dtype)
+        # TODO(GH-24345): Avoid potential double copy
         if copy:
             result = result.copy()
         return result

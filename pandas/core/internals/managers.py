@@ -750,8 +750,13 @@ class BlockManager(PandasObject):
         else:
             mgr = self
 
-        if self._is_single_block or not self.is_mixed_type:
-            arr = mgr.blocks[0].get_values()
+        if self._is_single_block and mgr.blocks[0].is_datetimetz:
+            # TODO(Block.get_values): Make DatetimeTZBlock.get_values
+            # always be object dtype. Some callers seem to want the
+            # DatetimeArray (previously DTI)
+            arr = mgr.blocks[0].get_values(dtype=object)
+        elif self._is_single_block or not self.is_mixed_type:
+            arr = np.asarray(mgr.blocks[0].get_values())
         else:
             arr = mgr._interleave()
 

@@ -183,8 +183,8 @@ class JoinUnit(object):
                         is_datetime64tz_dtype(empty_dtype)):
                     if self.block is None:
                         array = empty_dtype.construct_array_type()
-                        missing_arr = array([fill_value], dtype=empty_dtype)
-                        return missing_arr.repeat(self.shape[1])
+                        return array(np.full(self.shape[1], fill_value),
+                                     dtype=empty_dtype)
                     pass
                 elif getattr(self.block, 'is_categorical', False):
                     pass

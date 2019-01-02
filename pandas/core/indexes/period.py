@@ -283,10 +283,6 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index, PeriodDelegateMixin):
     # Data
 
     @property
-    def _eadata(self):
-        return self._data
-
-    @property
     def values(self):
         return np.asarray(self)
 
@@ -876,12 +872,6 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index, PeriodDelegateMixin):
             raise Exception("invalid pickle state")
 
     _unpickle_compat = __setstate__
-
-    def view(self, dtype=None, type=None):
-        # TODO(DatetimeArray): remove
-        if dtype is None or dtype is __builtins__['type'](self):
-            return self
-        return self._ndarray_values.view(dtype=dtype)
 
     @property
     def flags(self):

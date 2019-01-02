@@ -20,7 +20,9 @@ from .common import (
     pandas_dtype)
 from .dtypes import (
     DatetimeTZDtype, ExtensionDtype, PandasExtensionDtype, PeriodDtype)
-from .generic import ABCDatetimeIndex, ABCPeriodIndex, ABCSeries
+from .generic import (
+    ABCDatetimeArray, ABCDatetimeIndex, ABCPeriodArray, ABCPeriodIndex,
+    ABCSeries)
 from .inference import is_list_like
 from .missing import isna, notna
 
@@ -860,7 +862,9 @@ def maybe_infer_to_datetimelike(value, convert_dates=False):
 
     """
 
-    if isinstance(value, (ABCDatetimeIndex, ABCPeriodIndex)):
+    # TODO: why not timedelta?
+    if isinstance(value, (ABCDatetimeIndex, ABCPeriodIndex,
+                          ABCDatetimeArray, ABCPeriodArray)):
         return value
     elif isinstance(value, ABCSeries):
         if isinstance(value._values, ABCDatetimeIndex):

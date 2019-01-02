@@ -1015,13 +1015,17 @@ class TestAppend(ConcatenateBase):
         s = Series({'date': date, 'a': 1.0, 'b': 2.0})
         df = DataFrame(columns=['c', 'd'])
         result = df.append(s, ignore_index=True)
+        # n.b. it's not clear to me that expected is correct here.
+        # It's possible that the `date` column should have
+        # datetime64[ns, tz] dtype for both result and expected.
+        # that would be more consistent with new columns having
+        # their own dtype (float for a and b, datetime64ns, tz for date).
         expected = DataFrame([[np.nan, np.nan, 1., 2., date]],
-                             columns=['c', 'd', 'a', 'b', 'date'])
+                             columns=['c', 'd', 'a', 'b', 'date'],
+                             dtype=object)
         # These columns get cast to object after append
-        object_cols = ['c', 'd', 'date']
-        expected.loc[:, object_cols] = expected.loc[:, object_cols].astype(
-            object
-        )
+        expected['a'] = expected['a'].astype(float)
+        expected['b'] = expected['b'].astype(float)
         assert_frame_equal(result, expected)
 
 

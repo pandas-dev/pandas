@@ -25,7 +25,7 @@ from pandas.core.dtypes.common import (
     is_signed_integer_dtype, is_timedelta64_dtype, is_unsigned_integer_dtype)
 import pandas.core.dtypes.concat as _concat
 from pandas.core.dtypes.generic import (
-    ABCDataFrame, ABCDateOffset, ABCDatetimeIndex, ABCIndexClass,
+    ABCDataFrame, ABCDateOffset, ABCDatetimeArray, ABCIndexClass,
     ABCMultiIndex, ABCPandasArray, ABCPeriodIndex, ABCSeries,
     ABCTimedeltaArray, ABCTimedeltaIndex)
 from pandas.core.dtypes.missing import array_equivalent, isna
@@ -568,9 +568,9 @@ class Index(IndexOpsMixin, PandasObject):
         if not len(values) and 'dtype' not in kwargs:
             attributes['dtype'] = self.dtype
 
-        # _simple_new expects an ndarray
-        values = getattr(values, 'values', values)
-        if isinstance(values, ABCDatetimeIndex):
+        # _simple_new expects an the type of self._data
+        values = getattr(values, '_values', values)
+        if isinstance(values, ABCDatetimeArray):
             # `self.values` returns `self` for tz-aware, so we need to unwrap
             #  more specifically
             values = values.asi8
