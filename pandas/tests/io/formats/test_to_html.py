@@ -429,6 +429,7 @@ class TestToHTML(object):
         assert result == expected
 
     @pytest.mark.parametrize('index_names', [True, False])
+    @pytest.mark.parametrize('header', [True, False])
     @pytest.mark.parametrize('index', [True, False])
     @pytest.mark.parametrize('column_index, column_type', [
         (Index([0, 1]), 'unnamed_standard'),
@@ -448,18 +449,21 @@ class TestToHTML(object):
     ])
     def test_to_html_basic_alignment(
             self, datapath, row_index, row_type, column_index, column_type,
-            index, index_names):
+            index, header, index_names):
         # GH 22747, GH 22579
         df = DataFrame(np.zeros((2, 2), dtype=int),
                        index=row_index, columns=column_index)
-        result = df.to_html(index=index, index_names=index_names)
+        result = df.to_html(
+            index=index, header=header, index_names=index_names)
 
         if not index:
             row_type = 'none'
         elif not index_names and row_type.startswith('named'):
             row_type = 'un' + row_type
 
-        if not index_names and column_type.startswith('named'):
+        if not header:
+            column_type = 'none'
+        elif not index_names and column_type.startswith('named'):
             column_type = 'un' + column_type
 
         filename = 'index_' + row_type + '_columns_' + column_type
@@ -467,6 +471,7 @@ class TestToHTML(object):
         assert result == expected
 
     @pytest.mark.parametrize('index_names', [True, False])
+    @pytest.mark.parametrize('header', [True, False])
     @pytest.mark.parametrize('index', [True, False])
     @pytest.mark.parametrize('column_index, column_type', [
         (Index(np.arange(8)), 'unnamed_standard'),
@@ -488,19 +493,22 @@ class TestToHTML(object):
     ])
     def test_to_html_alignment_with_truncation(
             self, datapath, row_index, row_type, column_index, column_type,
-            index, index_names):
+            index, header, index_names):
         # GH 22747, GH 22579
         df = DataFrame(np.arange(64).reshape(8, 8),
                        index=row_index, columns=column_index)
-        result = df.to_html(max_rows=4, max_cols=4,
-                            index=index, index_names=index_names)
+        result = df.to_html(
+            max_rows=4, max_cols=4,
+            index=index, header=header, index_names=index_names)
 
         if not index:
             row_type = 'none'
         elif not index_names and row_type.startswith('named'):
             row_type = 'un' + row_type
 
-        if not index_names and column_type.startswith('named'):
+        if not header:
+            column_type = 'none'
+        elif not index_names and column_type.startswith('named'):
             column_type = 'un' + column_type
 
         filename = 'trunc_df_index_' + row_type + '_columns_' + column_type
