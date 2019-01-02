@@ -1,18 +1,20 @@
 """ test parquet compat """
-import os
-
-import pytest
 import datetime
 from distutils.version import LooseVersion
+import os
 from warnings import catch_warnings
 
 import numpy as np
-import pandas as pd
+import pytest
+
 from pandas.compat import PY3
-from pandas.io.parquet import (to_parquet, read_parquet, get_engine,
-                               PyArrowImpl, FastParquetImpl)
+
+import pandas as pd
 from pandas.util import testing as tm
 import pandas.util._test_decorators as td
+
+from pandas.io.parquet import (
+    FastParquetImpl, PyArrowImpl, get_engine, read_parquet, to_parquet)
 
 try:
     import pyarrow  # noqa

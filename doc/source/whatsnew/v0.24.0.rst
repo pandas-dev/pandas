@@ -31,6 +31,7 @@ New features
 - :func:`read_feather` now accepts ``columns`` as an argument, allowing the user to specify which columns should be read. (:issue:`24025`)
 - :func:`DataFrame.to_html` now accepts ``render_links`` as an argument, allowing the user to generate HTML with links to any URLs that appear in the DataFrame.
   See the :ref:`section on writing HTML <io.html>` in the IO docs for example usage. (:issue:`2679`)
+- :func:`pandas.read_csv` now supports pandas extension types as an argument to ``dtype``, allowing the user to use pandas extension types when reading CSVs. (:issue:`23228`)
 - :meth:`DataFrame.shift` :meth:`Series.shift`, :meth:`ExtensionArray.shift`, :meth:`SparseArray.shift`, :meth:`Period.shift`, :meth:`GroupBy.shift`, :meth:`Categorical.shift`, :meth:`NDFrame.shift` and :meth:`Block.shift` now accept `fill_value` as an argument, allowing the user to specify a value which will be used instead of NA/NaT in the empty periods. (:issue:`15486`)
 
 .. _whatsnew_0240.values_api:
@@ -1541,6 +1542,7 @@ Missing
 MultiIndex
 ^^^^^^^^^^
 
+- Bug in :func:`io.formats.style.Styler.applymap` where ``subset=`` with :class:`MultiIndex` slice would reduce to :class:`Series` (:issue:`19861`)
 - Removed compatibility for :class:`MultiIndex` pickles prior to version 0.8.0; compatibility with :class:`MultiIndex` pickles from version 0.13 forward is maintained (:issue:`21654`)
 - :meth:`MultiIndex.get_loc_level` (and as a consequence, ``.loc`` on a ``Series`` or ``DataFrame`` with a :class:`MultiIndex` index) will now raise a ``KeyError``, rather than returning an empty ``slice``, if asked a label which is present in the ``levels`` but is unused (:issue:`22221`)
 - :class:`MultiIndex` has gained the :meth:`MultiIndex.from_frame`, it allows constructing a :class:`MultiIndex` object from a :class:`DataFrame` (:issue:`22420`)
@@ -1629,6 +1631,7 @@ Plotting
 
 - Bug in :func:`DataFrame.plot.scatter` and :func:`DataFrame.plot.hexbin` caused x-axis label and ticklabels to disappear when colorbar was on in IPython inline backend (:issue:`10611`, :issue:`10678`, and :issue:`20455`)
 - Bug in plotting a Series with datetimes using :func:`matplotlib.axes.Axes.scatter` (:issue:`22039`)
+- Bug in :func:`DataFrame.plot.bar` caused bars to use multiple colors instead of a single one (:issue:`20585`)
 - Bug in validating color parameter caused extra color to be appended to the given color array. This happened to multiple plotting functions using matplotlib. (:issue:`20726`)
 
 Groupby/Resample/Rolling
