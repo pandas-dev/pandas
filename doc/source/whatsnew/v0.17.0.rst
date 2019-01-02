@@ -8,7 +8,6 @@ v0.17.0 (October 9, 2015)
 .. ipython:: python
    :suppress:
 
-   from pandas import * # noqa F401, F403
 
 
 This is a major release from 0.16.2 and includes a small number of API changes, several new features,
@@ -85,9 +84,9 @@ The new implementation allows for having a single-timezone across all rows, with
 
 .. ipython:: python
 
-   df = DataFrame({'A' : date_range('20130101',periods=3),
-                   'B' : date_range('20130101',periods=3,tz='US/Eastern'),
-                   'C' : date_range('20130101',periods=3,tz='CET')})
+   df = DataFrame({'A': date_range('20130101', periods=3),
+                   'B': date_range('20130101', periods=3, tz='US/Eastern'),
+                   'C': date_range('20130101', periods=3, tz='CET')})
    df
    df.dtypes
 
@@ -112,20 +111,20 @@ This uses a new-dtype representation as well, that is very similar in look-and-f
 
    .. code-block:: ipython
 
-      In [1]: pd.date_range('20130101',periods=3,tz='US/Eastern')
+      In [1]: pd.date_range('20130101', periods=3, tz='US/Eastern')
       Out[1]: DatetimeIndex(['2013-01-01 00:00:00-05:00', '2013-01-02 00:00:00-05:00',
                              '2013-01-03 00:00:00-05:00'],
                             dtype='datetime64[ns]', freq='D', tz='US/Eastern')
 
-      In [2]: pd.date_range('20130101',periods=3,tz='US/Eastern').dtype
+      In [2]: pd.date_range('20130101', periods=3, tz='US/Eastern').dtype
       Out[2]: dtype('<M8[ns]')
 
    New Behavior:
 
    .. ipython:: python
 
-      pd.date_range('20130101',periods=3,tz='US/Eastern')
-      pd.date_range('20130101',periods=3,tz='US/Eastern').dtype
+      pd.date_range('20130101', periods=3, tz='US/Eastern')
+      pd.date_range('20130101', periods=3, tz='US/Eastern').dtype
 
 .. _whatsnew_0170.gil:
 
@@ -143,8 +142,8 @@ as well as the ``.sum()`` operation.
 
    N = 1000000
    ngroups = 10
-   df = DataFrame({'key' : np.random.randint(0,ngroups,size=N),
-                   'data' : np.random.randn(N) })
+   df = DataFrame({'key': np.random.randint(0, ngroups, size=N),
+                   'data': np.random.randn(N)})
    df.groupby('key')['data'].sum()
 
 Releasing of the GIL could benefit an application that uses threads for user interactions (e.g. QT_), or performing multi-threaded computations. A nice example of a library that can handle these types of computation-in-parallel is the dask_ library.
@@ -175,7 +174,7 @@ As a result of this change, these methods are now all discoverable via tab-compl
 .. ipython::
     :verbatim:
 
-    In [15]: df.plot.<TAB>
+    In [15]: df.plot.<TAB>  # noqa: E225, E999
     df.plot.area     df.plot.barh     df.plot.density  df.plot.hist     df.plot.line     df.plot.scatter
     df.plot.bar      df.plot.box      df.plot.hexbin   df.plot.kde      df.plot.pie
 
@@ -261,7 +260,7 @@ incrementally.
 
 .. code-block:: python
 
-    for df in pd.read_sas('sas_xport.xpt', chunksize=10000)
+    for df in pd.read_sas('sas_xport.xpt', chunksize=10000):
         do_something(df)
 
 See the :ref:`docs <io.sas>` for more details.
@@ -297,16 +296,16 @@ See the :ref:`documentation <io.excel>` for more details.
 
 .. ipython:: python
 
-   df = pd.DataFrame([[1,2,3,4], [5,6,7,8]],
-                     columns = pd.MultiIndex.from_product([['foo','bar'],['a','b']],
-                                                          names = ['col1', 'col2']),
-                     index = pd.MultiIndex.from_product([['j'], ['l', 'k']],
-                                                        names = ['i1', 'i2']))
+   df = pd.DataFrame([[1, 2, 3, 4], [5, 6, 7, 8]],
+                     columns=pd.MultiIndex.from_product(
+                     [['foo', 'bar'], ['a', 'b']], names=['col1', 'col2']),
+                     index=pd.MultiIndex.from_product([['j'], ['l', 'k']],
+                                                      names=['i1', 'i2']))
 
    df
    df.to_excel('test.xlsx')
 
-   df = pd.read_excel('test.xlsx', header=[0,1], index_col=[0,1])
+   df = pd.read_excel('test.xlsx', header=[0, 1], index_col=[0, 1])
    df
 
 .. ipython:: python
@@ -412,15 +411,15 @@ Other enhancements
 
   .. ipython:: python
 
-     foo = pd.Series([1,2], name='foo')
-     bar = pd.Series([1,2])
-     baz = pd.Series([4,5])
+     foo = pd.Series([1, 2], name='foo')
+     bar = pd.Series([1, 2])
+     baz = pd.Series([4, 5])
 
   Previous Behavior:
 
   .. code-block:: ipython
 
-     In [1] pd.concat([foo, bar, baz], 1)
+     In [1]: pd.concat([foo, bar, baz], 1)
      Out[1]:
            0  1  2
         0  1  1  4
@@ -748,14 +747,14 @@ Previous Behavior:
 
 .. code-block:: ipython
 
-   In [5]: s==None
+   In [5]: s == None
    TypeError: Could not compare <type 'NoneType'> type with Series
 
 New Behavior:
 
 .. ipython:: python
 
-   s==None
+   s == None
 
 Usually you simply want to know which values are null.
 
@@ -784,8 +783,8 @@ Previous Behavior:
 
 .. ipython:: python
 
-   df_with_missing = pd.DataFrame({'col1':[0, np.nan, 2],
-                                   'col2':[1, np.nan, np.nan]})
+   df_with_missing = pd.DataFrame({'col1': [0, np.nan, 2],
+                                   'col2': [1, np.nan, np.nan]})
 
    df_with_missing
 
@@ -817,8 +816,8 @@ New Behavior:
 
    df_with_missing.to_hdf('file.h5',
                           'df_with_missing',
-                           format='table',
-                           mode='w')
+                          format='table',
+                          mode='w')
 
    pd.read_hdf('file.h5', 'df_with_missing')
 
