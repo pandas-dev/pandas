@@ -1,27 +1,26 @@
-from warnings import catch_warnings, simplefilter
-from itertools import combinations
 from collections import deque
-from decimal import Decimal
-
 import datetime as dt
+from datetime import datetime
+from decimal import Decimal
+from itertools import combinations
+from warnings import catch_warnings, simplefilter
+
 import dateutil
 import numpy as np
 from numpy.random import randn
-
-from datetime import datetime
-from pandas.compat import Iterable, StringIO, iteritems, PY2
-import pandas as pd
-from pandas import (DataFrame, concat,
-                    read_csv, isna, Series, date_range,
-                    Index, Panel, MultiIndex, Timestamp,
-                    DatetimeIndex, Categorical)
-from pandas.core.dtypes.dtypes import CategoricalDtype
-from pandas.util import testing as tm
-from pandas.util.testing import (assert_frame_equal,
-                                 makeCustomDataframe as mkdf)
-from pandas.tests.extension.decimal import to_decimal
-
 import pytest
+
+from pandas.compat import PY2, Iterable, StringIO, iteritems
+
+from pandas.core.dtypes.dtypes import CategoricalDtype
+
+import pandas as pd
+from pandas import (
+    Categorical, DataFrame, DatetimeIndex, Index, MultiIndex, Panel, Series,
+    Timestamp, concat, date_range, isna, read_csv)
+from pandas.tests.extension.decimal import to_decimal
+from pandas.util import testing as tm
+from pandas.util.testing import assert_frame_equal, makeCustomDataframe as mkdf
 
 
 @pytest.fixture(params=[True, False])
