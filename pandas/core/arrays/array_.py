@@ -225,14 +225,16 @@ def array(data,         # type: Sequence[object]
                 # We choose to return an ndarray, rather than raising.
                 pass
 
-        elif inferred_dtype == 'datetime':
+        elif inferred_dtype.startswith('datetime'):
+            # datetime, datetime64
             try:
                 return DatetimeArrayMixin._from_sequence(data, copy=copy)
             except ValueError:
                 # Mixture of timezones, fall back to PandasArray
                 pass
 
-        elif inferred_dtype == 'timedelta':
+        elif inferred_dtype.startswith('timedelta'):
+            # timedelta, timedelta64
             return TimedeltaArrayMixin._from_sequence(data, copy=copy)
 
         # TODO(BooleanArray): handle this type

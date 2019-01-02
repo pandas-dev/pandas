@@ -110,6 +110,12 @@ cet = pytz.timezone("CET")
     ([datetime.datetime(2000, 1, 1), datetime.datetime(2001, 1, 1)],
      pd.arrays.DatetimeArray._from_sequence(['2000', '2001'])),
 
+    (np.array([1, 2], dtype='M8[ns]'),
+     pd.arrays.DatetimeArray(np.array([1, 2], dtype='M8[ns]'))),
+
+    (np.array([1, 2], dtype='M8[us]'),
+     pd.arrays.DatetimeArray(np.array([1000, 2000], dtype='M8[ns]'))),
+
     # datetimetz
     ([pd.Timestamp('2000', tz='CET'), pd.Timestamp('2001', tz='CET')],
      pd.arrays.DatetimeArray._from_sequence(
@@ -123,6 +129,13 @@ cet = pytz.timezone("CET")
     # timedelta
     ([pd.Timedelta('1H'), pd.Timedelta('2H')],
      pd.arrays.TimedeltaArray._from_sequence(['1H', '2H'])),
+
+    (np.array([1, 2], dtype='m8[ns]'),
+     pd.arrays.TimedeltaArray(np.array([1, 2], dtype='m8[ns]'))),
+
+    (np.array([1, 2], dtype='m8[us]'),
+     pd.arrays.TimedeltaArray(np.array([1000, 2000], dtype='m8[ns]'))),
+
 ])
 def test_array_inference(data, expected):
     result = pd.array(data)
