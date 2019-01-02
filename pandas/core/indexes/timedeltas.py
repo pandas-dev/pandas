@@ -70,8 +70,8 @@ class TimedeltaDelegateMixin(DatetimelikeDelegateMixin):
 @delegate_names(TimedeltaArray,
                 TimedeltaDelegateMixin._delegated_methods,
                 typ="method", overwrite=False)
-class TimedeltaIndex(DatetimeIndexOpsMixin,
-                     dtl.TimelikeOps, Int64Index, TimedeltaDelegateMixin):
+class TimedeltaIndex(DatetimeIndexOpsMixin, dtl.TimelikeOps, Int64Index,
+                     TimedeltaDelegateMixin):
     """
     Immutable ndarray of timedelta64 data, represented internally as int64, and
     which can be boxed to timedelta objects
@@ -209,7 +209,13 @@ class TimedeltaIndex(DatetimeIndexOpsMixin,
                             'collection of some kind, {data} was passed'
                             .format(cls=cls.__name__, data=repr(data)))
 
-        if isinstance(data, TimedeltaIndex) and freq is None and name is None:
+        if isinstance(data, TimedeltaArray):
+            if copy:
+                data = data.copy()
+            return cls._simple_new(data, name=name, freq=freq)
+
+        if (isinstance(data, TimedeltaIndex) and
+                freq is None and name is None):
             if copy:
                 return data.copy()
             else:
@@ -225,21 +231,21 @@ class TimedeltaIndex(DatetimeIndexOpsMixin,
     def _simple_new(cls, values, name=None, freq=None, dtype=_TD_DTYPE):
         # `dtype` is passed by _shallow_copy in corner cases, should always
         #  be timedelta64[ns] if present
-        assert dtype == _TD_DTYPE
-
-        assert isinstance(values, np.ndarray), type(values)
-        if values.dtype == 'i8':
-            values = values.view('m8[ns]')
+        if not isinstance(values, TimedeltaArray):
+            values = TimedeltaArray._simple_new(values, dtype=dtype,
+                                                freq=freq)
+        assert isinstance(values, TimedeltaArray), type(values)
+        assert dtype == _TD_DTYPE, dtype
         assert values.dtype == 'm8[ns]', values.dtype
 
         freq = to_offset(freq)
         tdarr = TimedeltaArray._simple_new(values, freq=freq)
         result = object.__new__(cls)
-        result._data = tdarr._data
-        result._freq = tdarr._freq
+        result._data = tdarr
         result.name = name
         # For groupby perf. See note in indexes/base about _index_data
-        result._index_data = result._data
+        result._index_data = tdarr._data
+
         result._reset_identity()
         return result
 
@@ -278,10 +284,6 @@ class TimedeltaIndex(DatetimeIndexOpsMixin,
     # -------------------------------------------------------------------
     # Wrapping TimedeltaArray
 
-    @property
-    def _eadata(self):
-        return TimedeltaArray._simple_new(self._data, freq=self.freq)
-
     __mul__ = _make_wrapped_arith_op("__mul__")
     __rmul__ = _make_wrapped_arith_op("__rmul__")
     __floordiv__ = _make_wrapped_arith_op("__floordiv__")
@@ -315,18 +317,6 @@ class TimedeltaIndex(DatetimeIndexOpsMixin,
         if is_scalar(result):
             return result
         return type(self)(result, name=self.name)
-
-    @property
-    def freq(self):  # TODO: get via eadata
-        return self._freq
-
-    @freq.setter
-    def freq(self, value):  # TODO: get via eadata
-        if value is not None:
-            # dispatch to TimedeltaArray to validate frequency
-            self._eadata.freq = value
-
-        self._freq = to_offset(value)
 
     # -------------------------------------------------------------------
 

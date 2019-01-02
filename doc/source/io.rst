@@ -362,16 +362,17 @@ columns:
 
 .. ipython:: python
 
-    data = ('a,b,c\n'
-            '1,2,3\n'
-            '4,5,6\n'
-            '7,8,9')
+    data = ('a,b,c,d\n'
+            '1,2,3,4\n'
+            '5,6,7,8\n'
+            '9,10,11')
     print(data)
 
     df = pd.read_csv(StringIO(data), dtype=object)
     df
     df['a'][0]
-    df = pd.read_csv(StringIO(data), dtype={'b': object, 'c': np.float64})
+    df = pd.read_csv(StringIO(data),
+                     dtype={'b': object, 'c': np.float64, 'd': 'Int64'})
     df.dtypes
 
 Fortunately, pandas offers more than one way to ensure that your column(s)
@@ -4879,7 +4880,7 @@ below and the SQLAlchemy `documentation <https://docs.sqlalchemy.org/en/latest/c
 
 If you want to manage your own connections you can pass one of those instead:
 
-.. ipython:: python
+.. code-block:: python
 
    with engine.connect() as conn, conn.begin():
        data = pd.read_sql_table('data', conn)

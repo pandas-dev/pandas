@@ -2,8 +2,9 @@
 
 .. _api.resampling:
 
+==========
 Resampling
-----------
+==========
 .. currentmodule:: pandas.core.resample
 
 Resampler objects are returned by resample calls: :func:`pandas.DataFrame.resample`, :func:`pandas.Series.resample`.

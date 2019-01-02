@@ -1,21 +1,19 @@
-import pytest
-from itertools import product
 from collections import defaultdict
-import warnings
 from datetime import datetime
+from itertools import product
+import warnings
 
 import numpy as np
 from numpy import nan
+import pytest
+
+from pandas import DataFrame, MultiIndex, Series, compat, concat, merge
 from pandas.core import common as com
-from pandas import DataFrame, MultiIndex, merge, concat, Series, compat
+from pandas.core.sorting import (
+    decons_group_index, get_group_index, is_int64_overflow_possible,
+    lexsort_indexer, nargsort, safe_sort)
 from pandas.util import testing as tm
 from pandas.util.testing import assert_frame_equal, assert_series_equal
-from pandas.core.sorting import (is_int64_overflow_possible,
-                                 decons_group_index,
-                                 get_group_index,
-                                 nargsort,
-                                 lexsort_indexer,
-                                 safe_sort)
 
 
 class TestSorting(object):

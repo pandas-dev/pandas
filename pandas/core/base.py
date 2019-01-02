@@ -15,8 +15,9 @@ from pandas.util._decorators import Appender, Substitution, cache_readonly
 from pandas.util._validators import validate_bool_kwarg
 
 from pandas.core.dtypes.common import (
-    is_datetime64tz_dtype, is_datetimelike, is_extension_array_dtype,
-    is_extension_type, is_list_like, is_object_dtype, is_scalar)
+    is_datetime64_ns_dtype, is_datetime64tz_dtype, is_datetimelike,
+    is_extension_array_dtype, is_extension_type, is_list_like, is_object_dtype,
+    is_scalar, is_timedelta64_ns_dtype)
 from pandas.core.dtypes.generic import ABCDataFrame, ABCIndexClass, ABCSeries
 from pandas.core.dtypes.missing import isna
 
@@ -849,12 +850,17 @@ class IndexOpsMixin(object):
         """
         result = self._values
 
-        # TODO(DatetimeArray): remvoe the second clause.
-        if (not is_extension_array_dtype(result.dtype)
-                and not is_datetime64tz_dtype(result.dtype)):
-            from pandas.core.arrays.numpy_ import PandasArray
+        if is_datetime64_ns_dtype(result.dtype):
+            from pandas.arrays import DatetimeArray
+            result = DatetimeArray(result)
+        elif is_timedelta64_ns_dtype(result.dtype):
+            from pandas.arrays import TimedeltaArray
+            result = TimedeltaArray(result)
 
+        elif not is_extension_array_dtype(result.dtype):
+            from pandas.core.arrays.numpy_ import PandasArray
             result = PandasArray(result)
+
         return result
 
     def to_numpy(self, dtype=None, copy=False):
@@ -942,14 +948,14 @@ class IndexOpsMixin(object):
         array(['1999-12-31T23:00:00.000000000', '2000-01-01T23:00:00...'],
               dtype='datetime64[ns]')
         """
-        if (is_extension_array_dtype(self.dtype) or
-                is_datetime64tz_dtype(self.dtype)):
-            # TODO(DatetimeArray): remove the second clause.
-            # TODO(GH-24345): Avoid potential double copy
-            result = np.asarray(self._values, dtype=dtype)
-        else:
-            result = self._values
+        if is_datetime64tz_dtype(self.dtype) and dtype is None:
+            # note: this is going to change very soon.
+            # I have a WIP PR making this unnecessary, but it's
+            # a bit out of scope for the DatetimeArray PR.
+            dtype = "object"
 
+        result = np.asarray(self._values, dtype=dtype)
+        # TODO(GH-24345): Avoid potential double copy
         if copy:
             result = result.copy()
         return result

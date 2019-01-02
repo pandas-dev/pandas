@@ -1313,6 +1313,13 @@ def assert_series_equal(left, right, check_dtype=True,
     elif is_interval_dtype(left) or is_interval_dtype(right):
         assert_interval_array_equal(left.array, right.array)
 
+    elif (is_extension_array_dtype(left.dtype) and
+          is_datetime64tz_dtype(left.dtype)):
+        # .values is an ndarray, but ._values is the ExtensionArray.
+        # TODO: Use .array
+        assert is_extension_array_dtype(right.dtype)
+        return assert_extension_array_equal(left._values, right._values)
+
     elif (is_extension_array_dtype(left) and not is_categorical_dtype(left) and
           is_extension_array_dtype(right) and not is_categorical_dtype(right)):
         return assert_extension_array_equal(left.array, right.array)
@@ -2971,58 +2978,6 @@ class SubclassedCategorical(Categorical):
     @property
     def _constructor(self):
         return SubclassedCategorical
-
-
-@contextmanager
-def patch(ob, attr, value):
-    """Temporarily patch an attribute of an object.
-
-    Parameters
-    ----------
-    ob : any
-        The object to patch. This must support attribute assignment for `attr`.
-    attr : str
-        The name of the attribute to patch.
-    value : any
-        The temporary attribute to assign.
-
-    Examples
-    --------
-    >>> class C(object):
-    ...     attribute = 'original'
-    ...
-    >>> C.attribute
-    'original'
-    >>> with patch(C, 'attribute', 'patched'):
-    ...     in_context = C.attribute
-    ...
-    >>> in_context
-    'patched'
-    >>> C.attribute  # the value is reset when the context manager exists
-    'original'
-
-    Correctly replaces attribute when the manager exits with an exception.
-    >>> with patch(C, 'attribute', 'patched'):
-    ...     in_context = C.attribute
-    ...     raise ValueError()
-    Traceback (most recent call last):
-       ...
-    ValueError
-    >>> in_context
-    'patched'
-    >>> C.attribute
-    'original'
-    """
-    noattr = object()  # mark that the attribute never existed
-    old = getattr(ob, attr, noattr)
-    setattr(ob, attr, value)
-    try:
-        yield
-    finally:
-        if old is noattr:
-            delattr(ob, attr)
-        else:
-            setattr(ob, attr, old)
 
 
 @contextmanager

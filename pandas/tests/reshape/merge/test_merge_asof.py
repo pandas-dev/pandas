@@ -1,10 +1,9 @@
-import pytest
-
-import pytz
 import numpy as np
+import pytest
+import pytz
+
 import pandas as pd
-from pandas import (merge_asof, read_csv,
-                    to_datetime, Timedelta)
+from pandas import Timedelta, merge_asof, read_csv, to_datetime
 from pandas.core.reshape.merge import MergeError
 from pandas.util.testing import assert_frame_equal
 
