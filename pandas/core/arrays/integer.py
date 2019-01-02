@@ -3,7 +3,6 @@ import sys
 import warnings
 
 import numpy as np
-from bitarray import bitarray
 
 from pandas._libs import lib
 from pandas.compat import range, set_function_name, string_types
@@ -189,12 +188,10 @@ def coerce_to_array(values, dtype, mask=None, copy=False):
     else:
         assert len(mask) == len(values)
 
-    # Work with bitarrays from here on out
-    if isinstance(mask, np.ndarray):
-        mask = _numpy_to_bitarray(mask)
-
     if not values.ndim == 1:
         raise TypeError("values must be a 1D list-like")
+    if not mask.ndim == 1:
+        raise TypeError("mask must be a 1D list-like")
 
     # infer dtype if needed
     if dtype is None:
@@ -299,8 +296,7 @@ class IntegerArray(ExtensionArray, ExtensionOpsMixin):
             return self._data[item]
 
         return type(self)(self._data[item],
-                          mask=_bitarray_to_numpy(self._mask)[item],
-                          dtype=self.dtype)
+                          mask=_bitarray_to_numpy(self._mask)[item])
 
     def _coerce_to_ndarray(self):
         """
@@ -372,10 +368,7 @@ class IntegerArray(ExtensionArray, ExtensionOpsMixin):
             mask = mask[0]
 
         self._data[key] = value
-        # Coerce to numpy array to leverage advanced indexing, then coerce back
-        arr = _bitarray_to_numpy(self._mask)
-        arr[key] = mask
-        self._mask = _numpy_to_bitarray(arr)
+        self._mask[key] = mask
 
     def __len__(self):
         return len(self._data)
@@ -385,7 +378,7 @@ class IntegerArray(ExtensionArray, ExtensionOpsMixin):
         return self._data.nbytes + self._mask.buffer_info()[1]
 
     def isna(self):
-        return _bitarray_to_numpy(self._mask)
+        return self._mask
 
     @property
     def _na_value(self):
@@ -482,7 +475,7 @@ class IntegerArray(ExtensionArray, ExtensionOpsMixin):
             # TODO(extension)
             # appending to an Index *always* infers
             # w/o passing the dtype
-            array = np.append(array, [_bitarray_to_numpy(self._mask).sum()])
+            array = np.append(array, [self._mask.sum()])
             index = Index(np.concatenate(
                 [index.values,
                  np.array([np.nan], dtype=object)]), dtype=object)
@@ -585,8 +578,7 @@ class IntegerArray(ExtensionArray, ExtensionOpsMixin):
         # may need to fill infs
         # and mask wraparound
         if is_float_dtype(result):
-            arr = _numpy_to_bitarray((result == np.inf) | (result == -np.inf))
-            mask |= arr
+            mask |= (result == np.inf) | (result == -np.inf)
 
         # if we have a float operand we are by-definition
         # a float result
