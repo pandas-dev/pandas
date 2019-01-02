@@ -2,17 +2,17 @@
 import warnings
 
 import numpy as np
+
 from pandas._libs import algos, lib
 from pandas._libs.tslibs import conversion
 from pandas.compat import PY3, PY36, binary_type, string_types, text_type
 
 from pandas.core.dtypes.dtypes import (
-    CategoricalDtype, DatetimeTZDtype, ExtensionDtype,
-    IntervalDtype, PandasExtensionDtype, PeriodDtype, _pandas_registry,
-    registry)
+    CategoricalDtype, DatetimeTZDtype, ExtensionDtype, IntervalDtype,
+    PandasExtensionDtype, PeriodDtype, _pandas_registry, registry)
 from pandas.core.dtypes.generic import (
-    ABCCategorical, ABCDateOffset, ABCDatetimeIndex,
-    ABCIndexClass, ABCPeriodArray, ABCPeriodIndex, ABCSeries)
+    ABCCategorical, ABCDateOffset, ABCDatetimeIndex, ABCIndexClass,
+    ABCPeriodArray, ABCPeriodIndex, ABCSeries)
 from pandas.core.dtypes.inference import (  # noqa:F401
     is_array_like, is_bool, is_complex, is_decimal, is_dict_like, is_file_like,
     is_float, is_hashable, is_integer, is_interval, is_iterator, is_list_like,
