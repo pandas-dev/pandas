@@ -21,15 +21,6 @@ class Dtypes(object):
 
 
 class DtypesInvalid(object):
-    params = ['foo', 1, ['foo'] * 1000, np.array(['foo'] * 1000)]
-    param_names = ['dtype']
-
-    def time_pandas_dtype_invalid(self, dtype):
-        try:
-            pandas_dtype(dtype)
-        except TypeError:
-            pass
-
     param_names = ['dtype']
     params = ['scalar-string', 'scalar-int', 'list-string', 'array-string']
     data_dict = {'scalar-string': 'foo',
@@ -37,8 +28,11 @@ class DtypesInvalid(object):
                  'list-string': ['foo'] * 1000,
                  'array-string': np.array(['foo'] * 1000)}
 
-    def setup(self, dtype):
-        self.data = self.data_dict[dtype]
+    def time_pandas_dtype_invalid(self, dtype):
+        try:
+            pandas_dtype(self.data_dict[dtype])
+        except TypeError:
+            pass
 
 
 from .pandas_vb_common import setup  # noqa: F401
