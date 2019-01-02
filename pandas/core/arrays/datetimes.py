@@ -1646,21 +1646,6 @@ def sequence_to_dt64ns(data, dtype=None, copy=False,
     if isinstance(data, ABCIndexClass):
         data = data._data
 
-    if isinstance(data, DatetimeArrayMixin):
-        # series / index have been unboxed. If we're here, we just
-        # need to validate against user-provided parameters and exit early.
-        if tz and data.tz:
-            if not timezones.tz_compare(tz, data.tz):
-                msg = (
-                    "Timezone of the array and 'dtype' do not match. "
-                    "'{}' != '{}'"
-                )
-                raise TypeError(msg.format(tz, data.tz))
-        tz = data.tz
-        tz = validate_tz_from_dtype(dtype, tz)
-
-        return data._data, tz, data.freq
-
     # By this point we are assured to have either a numpy array or Index
     data, copy = maybe_convert_dtype(data, copy)
 
