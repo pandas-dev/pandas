@@ -4,17 +4,15 @@ from __future__ import print_function
 
 from datetime import datetime
 
-import pytest
 import numpy as np
 from numpy import nan
+import pytest
 
-import pandas as pd
-
-from pandas import DataFrame, Index, Series, Timestamp, date_range
 from pandas.compat import lrange
 
+import pandas as pd
+from pandas import DataFrame, Index, Series, Timestamp, date_range
 from pandas.tests.frame.common import TestData
-
 import pandas.util.testing as tm
 from pandas.util.testing import assert_frame_equal, assert_series_equal
 
@@ -77,8 +75,7 @@ class TestDataFrameConcatCommon(TestData):
         [
             '2015-01-01',
             pytest.param(pd.NaT, marks=pytest.mark.xfail(
-                reason='GH23037 incorrect dtype when concatenating',
-                strict=True))])
+                reason='GH23037 incorrect dtype when concatenating'))])
     def test_concat_tz_NaT(self, t1):
         # GH 22796
         # Concating tz-aware multicolumn DataFrames

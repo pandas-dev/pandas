@@ -1,5 +1,8 @@
 # -*- coding: utf-8 -*-
 from decimal import Decimal
+from fractions import Fraction
+from numbers import Number
+
 import sys
 
 import cython
@@ -14,7 +17,6 @@ from cpython.datetime cimport (PyDateTime_Check, PyDate_Check,
                                PyTime_Check, PyDelta_Check,
                                PyDateTime_IMPORT)
 PyDateTime_IMPORT
-
 
 import numpy as np
 cimport numpy as cnp
@@ -47,18 +49,19 @@ cdef extern from "numpy/arrayobject.h":
 cdef extern from "src/parse_helper.h":
     int floatify(object, float64_t *result, int *maybe_int) except -1
 
-cimport util
-from util cimport is_nan, UINT64_MAX, INT64_MAX, INT64_MIN
+cimport pandas._libs.util as util
+from pandas._libs.util cimport is_nan, UINT64_MAX, INT64_MAX, INT64_MIN
 
-from tslib import array_to_datetime
-from tslibs.nattype cimport NPY_NAT
-from tslibs.nattype import NaT
-from tslibs.conversion cimport convert_to_tsobject
-from tslibs.timedeltas cimport convert_to_timedelta64
-from tslibs.timezones cimport get_timezone, tz_compare
+from pandas._libs.tslib import array_to_datetime
+from pandas._libs.tslibs.nattype cimport NPY_NAT
+from pandas._libs.tslibs.nattype import NaT
+from pandas._libs.tslibs.conversion cimport convert_to_tsobject
+from pandas._libs.tslibs.timedeltas cimport convert_to_timedelta64
+from pandas._libs.tslibs.timezones cimport get_timezone, tz_compare
 
-from missing cimport (checknull, isnaobj,
-                      is_null_datetime64, is_null_timedelta64, is_null_period)
+from pandas._libs.missing cimport (
+    checknull, isnaobj, is_null_datetime64, is_null_timedelta64, is_null_period
+)
 
 
 # constants that will be compared to potentially arbitrarily large
@@ -105,25 +108,56 @@ def is_scalar(val: object) -> bool:
     """
     Return True if given value is scalar.
 
-    This includes:
-    - numpy array scalar (e.g. np.int64)
-    - Python builtin numerics
-    - Python builtin byte arrays and strings
-    - None
-    - instances of datetime.datetime
-    - instances of datetime.timedelta
-    - Period
-    - instances of decimal.Decimal
-    - Interval
-    - DateOffset
+    Parameters
+    ----------
+    val : object
+        This includes:
 
+        - numpy array scalar (e.g. np.int64)
+        - Python builtin numerics
+        - Python builtin byte arrays and strings
+        - None
+        - datetime.datetime
+        - datetime.timedelta
+        - Period
+        - decimal.Decimal
+        - Interval
+        - DateOffset
+        - Fraction
+        - Number
+
+    Returns
+    -------
+    bool
+        Return True if given object is scalar, False otherwise
+
+    Examples
+    --------
+    >>> dt = pd.datetime.datetime(2018, 10, 3)
+    >>> pd.is_scalar(dt)
+    True
+
+    >>> pd.api.types.is_scalar([2, 3])
+    False
+
+    >>> pd.api.types.is_scalar({0: 1, 2: 3})
+    False
+
+    >>> pd.api.types.is_scalar((0, 2))
+    False
+
+    pandas supports PEP 3141 numbers:
+
+    >>> from fractions import Fraction
+    >>> pd.api.types.is_scalar(Fraction(3, 5))
+    True
     """
 
     return (cnp.PyArray_IsAnyScalar(val)
-            # As of numpy-1.9, PyArray_IsAnyScalar misses bytearrays on Py3.
-            or isinstance(val, bytes)
-            # We differ from numpy (as of 1.10), which claims that None is
-            # not scalar in np.isscalar().
+            # PyArray_IsAnyScalar is always False for bytearrays on Py3
+            or isinstance(val, (Fraction, Number))
+            # We differ from numpy, which claims that None is not scalar;
+            # see np.isscalar
             or val is None
             or PyDate_Check(val)
             or PyDelta_Check(val)
@@ -485,9 +519,7 @@ def astype_intsafe(ndarray[object] arr, new_dtype):
         bint is_datelike
         ndarray result
 
-    # on 32-bit, 1.6.2 numpy M8[ns] is a subdtype of integer, which is weird
-    is_datelike = new_dtype in ['M8[ns]', 'm8[ns]']
-
+    is_datelike = new_dtype == 'm8[ns]'
     result = np.empty(n, dtype=new_dtype)
     for i in range(n):
         val = arr[i]
@@ -1217,25 +1249,19 @@ def infer_dtype(value: object, skipna: bool=False) -> str:
     if util.is_datetime64_object(val):
         if is_datetime64_array(values):
             return 'datetime64'
-        elif is_timedelta_or_timedelta64_array(values):
-            return 'timedelta'
 
     elif is_timedelta(val):
         if is_timedelta_or_timedelta64_array(values):
             return 'timedelta'
 
     elif util.is_integer_object(val):
-        # a timedelta will show true here as well
-        if is_timedelta(val):
-            if is_timedelta_or_timedelta64_array(values):
-                return 'timedelta'
+        # ordering matters here; this check must come after the is_timedelta
+        #  check otherwise numpy timedelta64 objects would come through here
 
         if is_integer_array(values):
             return 'integer'
         elif is_integer_float_array(values):
             return 'mixed-integer-float'
-        elif is_timedelta_or_timedelta64_array(values):
-            return 'timedelta'
         return 'mixed-integer'
 
     elif PyDateTime_Check(val):
@@ -1666,27 +1692,6 @@ cdef class TimedeltaValidator(TemporalValidator):
 
     cdef inline bint is_valid_null(self, object value) except -1:
         return is_null_timedelta64(value)
-
-
-# TODO: Not used outside of tests; remove?
-def is_timedelta_array(values: ndarray) -> bool:
-    cdef:
-        TimedeltaValidator validator = TimedeltaValidator(len(values),
-                                                          skipna=True)
-    return validator.validate(values)
-
-
-cdef class Timedelta64Validator(TimedeltaValidator):
-    cdef inline bint is_value_typed(self, object value) except -1:
-        return util.is_timedelta64_object(value)
-
-
-# TODO: Not used outside of tests; remove?
-def is_timedelta64_array(values: ndarray) -> bool:
-    cdef:
-        Timedelta64Validator validator = Timedelta64Validator(len(values),
-                                                              skipna=True)
-    return validator.validate(values)
 
 
 cdef class AnyTimedeltaValidator(TimedeltaValidator):
@@ -2204,7 +2209,7 @@ def map_infer(ndarray arr, object f, bint convert=1):
     return result
 
 
-def to_object_array(rows: list, min_width: int=0):
+def to_object_array(rows: object, int min_width=0):
     """
     Convert a list of lists into an object array.
 
@@ -2225,20 +2230,22 @@ def to_object_array(rows: list, min_width: int=0):
     cdef:
         Py_ssize_t i, j, n, k, tmp
         ndarray[object, ndim=2] result
+        list input_rows
         list row
 
-    n = len(rows)
+    input_rows = <list>rows
+    n = len(input_rows)
 
     k = min_width
     for i in range(n):
-        tmp = len(rows[i])
+        tmp = len(input_rows[i])
         if tmp > k:
             k = tmp
 
     result = np.empty((n, k), dtype=object)
 
     for i in range(n):
-        row = rows[i]
+        row = <list>input_rows[i]
 
         for j in range(len(row)):
             result[i, j] = row[j]

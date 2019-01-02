@@ -6,26 +6,25 @@ from datetime import datetime, timedelta
 import functools
 import itertools
 
-import pytest
-from numpy.random import randn
-
 import numpy as np
 import numpy.ma as ma
 import numpy.ma.mrecords as mrecords
+from numpy.random import randn
+import pytest
 
-from pandas.core.dtypes.common import is_integer_dtype
-from pandas.compat import (lmap, long, zip, range, lrange, lzip,
-                           OrderedDict, is_platform_little_endian, PY36)
-from pandas import compat
-from pandas import (DataFrame, Index, Series, isna,
-                    MultiIndex, Timedelta, Timestamp,
-                    date_range, Categorical)
-import pandas as pd
-import pandas.util.testing as tm
+from pandas.compat import (
+    PY3, PY36, OrderedDict, is_platform_little_endian, lmap, long, lrange,
+    lzip, range, zip)
+
 from pandas.core.dtypes.cast import construct_1d_object_array_from_listlike
+from pandas.core.dtypes.common import is_integer_dtype
 
+import pandas as pd
+from pandas import (
+    Categorical, DataFrame, Index, MultiIndex, Series, Timedelta, Timestamp,
+    compat, date_range, isna)
 from pandas.tests.frame.common import TestData
-
+import pandas.util.testing as tm
 
 MIXED_FLOAT_DTYPES = ['float16', 'float32', 'float64']
 MIXED_INT_DTYPES = ['uint8', 'uint16', 'uint32', 'uint64', 'int8', 'int16',
@@ -164,9 +163,9 @@ class TestDataFrameConstructors(TestData):
 
     def test_constructor_rec(self):
         rec = self.frame.to_records(index=False)
-
-        # Assigning causes segfault in NumPy < 1.5.1
-        # rec.dtype.names = list(rec.dtype.names)[::-1]
+        if PY3:
+            # unicode error under PY2
+            rec.dtype.names = list(rec.dtype.names)[::-1]
 
         index = self.frame.index
 
@@ -2163,6 +2162,15 @@ class TestDataFrameConstructors(TestData):
         # GH 16804
         expected = DataFrame({'A': [0, 1, 2, 3, 4]}, dtype=dtype or 'int64')
         result = DataFrame({'A': range(5)}, dtype=dtype)
+        tm.assert_frame_equal(result, expected)
+
+    def test_frame_from_list_subclass(self):
+        # GH21226
+        class List(list):
+            pass
+
+        expected = DataFrame([[1, 2, 3], [4, 5, 6]])
+        result = DataFrame(List([List([1, 2, 3]), List([4, 5, 6])]))
         tm.assert_frame_equal(result, expected)
 
 

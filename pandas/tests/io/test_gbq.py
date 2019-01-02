@@ -1,19 +1,21 @@
-import pytest
 from datetime import datetime
-import pytz
-import platform
 import os
+import platform
+
+import numpy as np
+import pytest
+import pytz
+
+from pandas.compat import range
+
+import pandas as pd
+from pandas import DataFrame, compat
+import pandas.util.testing as tm
 
 try:
     from unittest import mock
 except ImportError:
     mock = pytest.importorskip("mock")
-
-import numpy as np
-import pandas as pd
-from pandas import compat, DataFrame
-from pandas.compat import range
-import pandas.util.testing as tm
 
 
 api_exceptions = pytest.importorskip("google.api_core.exceptions")

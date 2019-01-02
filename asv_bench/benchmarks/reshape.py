@@ -146,4 +146,42 @@ class GetDummies(object):
         pd.get_dummies(self.s, sparse=True)
 
 
+class Cut(object):
+    params = [[4, 10, 1000]]
+    param_names = ['bins']
+
+    def setup(self, bins):
+        N = 10**5
+        self.int_series = pd.Series(np.arange(N).repeat(5))
+        self.float_series = pd.Series(np.random.randn(N).repeat(5))
+        self.timedelta_series = pd.Series(np.random.randint(N, size=N),
+                                          dtype='timedelta64[ns]')
+        self.datetime_series = pd.Series(np.random.randint(N, size=N),
+                                         dtype='datetime64[ns]')
+
+    def time_cut_int(self, bins):
+        pd.cut(self.int_series, bins)
+
+    def time_cut_float(self, bins):
+        pd.cut(self.float_series, bins)
+
+    def time_cut_timedelta(self, bins):
+        pd.cut(self.timedelta_series, bins)
+
+    def time_cut_datetime(self, bins):
+        pd.cut(self.datetime_series, bins)
+
+    def time_qcut_int(self, bins):
+        pd.qcut(self.int_series, bins)
+
+    def time_qcut_float(self, bins):
+        pd.qcut(self.float_series, bins)
+
+    def time_qcut_timedelta(self, bins):
+        pd.qcut(self.timedelta_series, bins)
+
+    def time_qcut_datetime(self, bins):
+        pd.qcut(self.datetime_series, bins)
+
+
 from .pandas_vb_common import setup  # noqa: F401

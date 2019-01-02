@@ -1,25 +1,27 @@
 # pylint: disable=E1103
 
-import random
-import re
 from collections import OrderedDict
 from datetime import date, datetime
+import random
+import re
 
 import numpy as np
-import pytest
 from numpy import nan
+import pytest
 
-import pandas as pd
-import pandas.util.testing as tm
-from pandas import (Categorical, CategoricalIndex, DataFrame, DatetimeIndex,
-                    Float64Index, Int64Index, MultiIndex, RangeIndex,
-                    Series, UInt64Index)
-from pandas.api.types import CategoricalDtype as CDT
 from pandas.compat import lrange
+
 from pandas.core.dtypes.common import is_categorical_dtype, is_object_dtype
 from pandas.core.dtypes.dtypes import CategoricalDtype
+
+import pandas as pd
+from pandas import (
+    Categorical, CategoricalIndex, DataFrame, DatetimeIndex, Float64Index,
+    Int64Index, MultiIndex, RangeIndex, Series, UInt64Index)
+from pandas.api.types import CategoricalDtype as CDT
 from pandas.core.reshape.concat import concat
 from pandas.core.reshape.merge import MergeError, merge
+import pandas.util.testing as tm
 from pandas.util.testing import assert_frame_equal, assert_series_equal
 
 N = 50
@@ -1326,6 +1328,16 @@ class TestMergeCategorical(object):
             CDT(categories, ordered=ordered))
         assert_frame_equal(expected, result)
 
+    def test_merge_on_int_array(self):
+        # GH 23020
+        df = pd.DataFrame({'A': pd.Series([1, 2, np.nan], dtype='Int64'),
+                           'B': 1})
+        result = pd.merge(df, df, on='A')
+        expected = pd.DataFrame({'A': pd.Series([1, 2, np.nan], dtype='Int64'),
+                                 'B_x': 1,
+                                 'B_y': 1})
+        assert_frame_equal(result, expected)
+
 
 @pytest.fixture
 def left_df():
@@ -1397,16 +1409,16 @@ def test_merge_index_types(index):
     assert_frame_equal(result, expected)
 
 
-@pytest.mark.parametrize("on,left_on,right_on,left_index,right_index,nms,nm", [
-    (['outer', 'inner'], None, None, False, False, ['outer', 'inner'], 'B'),
-    (None, None, None, True, True, ['outer', 'inner'], 'B'),
-    (None, ['outer', 'inner'], None, False, True, None, 'B'),
-    (None, None, ['outer', 'inner'], True, False, None, 'B'),
-    (['outer', 'inner'], None, None, False, False, ['outer', 'inner'], None),
-    (None, None, None, True, True, ['outer', 'inner'], None),
-    (None, ['outer', 'inner'], None, False, True, None, None),
-    (None, None, ['outer', 'inner'], True, False, None, None)])
-def test_merge_series(on, left_on, right_on, left_index, right_index, nms, nm):
+@pytest.mark.parametrize("on,left_on,right_on,left_index,right_index,nm", [
+    (['outer', 'inner'], None, None, False, False, 'B'),
+    (None, None, None, True, True, 'B'),
+    (None, ['outer', 'inner'], None, False, True, 'B'),
+    (None, None, ['outer', 'inner'], True, False, 'B'),
+    (['outer', 'inner'], None, None, False, False, None),
+    (None, None, None, True, True, None),
+    (None, ['outer', 'inner'], None, False, True, None),
+    (None, None, ['outer', 'inner'], True, False, None)])
+def test_merge_series(on, left_on, right_on, left_index, right_index, nm):
     # GH 21220
     a = pd.DataFrame({"A": [1, 2, 3, 4]},
                      index=pd.MultiIndex.from_product([['a', 'b'], [0, 1]],
@@ -1416,7 +1428,7 @@ def test_merge_series(on, left_on, right_on, left_index, right_index, nms, nm):
                   names=['outer', 'inner']), name=nm)
     expected = pd.DataFrame({"A": [2, 4], "B": [1, 3]},
                             index=pd.MultiIndex.from_product([['a', 'b'], [1]],
-                            names=nms))
+                            names=['outer', 'inner']))
     if nm is not None:
         result = pd.merge(a, b, on=on, left_on=left_on, right_on=right_on,
                           left_index=left_index, right_index=right_index)

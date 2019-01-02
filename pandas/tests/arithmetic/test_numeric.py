@@ -3,6 +3,7 @@
 # behave identically.
 # Specifically for numeric dtypes
 from decimal import Decimal
+from itertools import combinations
 import operator
 
 import pytest
@@ -407,7 +408,7 @@ class TestMultiplicationDivision(object):
         pytest.param(pd.Index,
                      marks=pytest.mark.xfail(reason="Index.__div__ always "
                                                     "raises",
-                                             raises=TypeError, strict=True)),
+                                             raises=TypeError)),
         pd.Series,
         pd.DataFrame
     ], ids=lambda x: x.__name__)
@@ -596,6 +597,44 @@ class TestMultiplicationDivision(object):
                                check_names=False)
         tm.assert_series_equal(ts / ts, ts / df['A'],
                                check_names=False)
+
+    # TODO: this came from tests.series.test_analytics, needs cleannup and
+    #  de-duplication with test_modulo above
+    def test_modulo2(self):
+        with np.errstate(all='ignore'):
+
+            # GH#3590, modulo as ints
+            p = pd.DataFrame({'first': [3, 4, 5, 8], 'second': [0, 0, 0, 3]})
+            result = p['first'] % p['second']
+            expected = Series(p['first'].values % p['second'].values,
+                              dtype='float64')
+            expected.iloc[0:3] = np.nan
+            tm.assert_series_equal(result, expected)
+
+            result = p['first'] % 0
+            expected = Series(np.nan, index=p.index, name='first')
+            tm.assert_series_equal(result, expected)
+
+            p = p.astype('float64')
+            result = p['first'] % p['second']
+            expected = Series(p['first'].values % p['second'].values)
+            tm.assert_series_equal(result, expected)
+
+            p = p.astype('float64')
+            result = p['first'] % p['second']
+            result2 = p['second'] % p['first']
+            assert not result.equals(result2)
+
+            # GH#9144
+            s = Series([0, 1])
+
+            result = s % 0
+            expected = Series([np.nan, np.nan])
+            tm.assert_series_equal(result, expected)
+
+            result = 0 % s
+            expected = Series([np.nan, 0.0])
+            tm.assert_series_equal(result, expected)
 
 
 class TestAdditionSubtraction(object):
@@ -808,11 +847,15 @@ class TestAdditionSubtraction(object):
 class TestUFuncCompat(object):
 
     @pytest.mark.parametrize('holder', [pd.Int64Index, pd.UInt64Index,
-                                        pd.Float64Index, pd.Series])
+                                        pd.Float64Index, pd.RangeIndex,
+                                        pd.Series])
     def test_ufunc_compat(self, holder):
         box = pd.Series if holder is pd.Series else pd.Index
 
-        idx = holder(np.arange(5, dtype='int64'))
+        if holder is pd.RangeIndex:
+            idx = pd.RangeIndex(0, 5)
+        else:
+            idx = holder(np.arange(5, dtype='int64'))
         result = np.sin(idx)
         expected = box(np.sin(np.arange(5, dtype='int64')))
         tm.assert_equal(result, expected)
@@ -902,3 +945,117 @@ class TestObjectDtypeEquivalence(object):
         result = op(1., arr)
         expected = op(1., arr.astype(float))
         tm.assert_series_equal(result.astype(float), expected)
+
+
+class TestNumericArithmeticUnsorted(object):
+    # Tests in this class have been moved from type-specific test modules
+    #  but not yet sorted, parametrized, and de-duplicated
+
+    def check_binop(self, ops, scalars, idxs):
+        for op in ops:
+            for a, b in combinations(idxs, 2):
+                result = op(a, b)
+                expected = op(pd.Int64Index(a), pd.Int64Index(b))
+                tm.assert_index_equal(result, expected)
+            for idx in idxs:
+                for scalar in scalars:
+                    result = op(idx, scalar)
+                    expected = op(pd.Int64Index(idx), scalar)
+                    tm.assert_index_equal(result, expected)
+
+    def test_binops(self):
+        ops = [operator.add, operator.sub, operator.mul, operator.floordiv,
+               operator.truediv]
+        scalars = [-1, 1, 2]
+        idxs = [pd.RangeIndex(0, 10, 1), pd.RangeIndex(0, 20, 2),
+                pd.RangeIndex(-10, 10, 2), pd.RangeIndex(5, -5, -1)]
+        self.check_binop(ops, scalars, idxs)
+
+    def test_binops_pow(self):
+        # later versions of numpy don't allow powers of negative integers
+        # so test separately
+        # https://github.com/numpy/numpy/pull/8127
+        ops = [pow]
+        scalars = [1, 2]
+        idxs = [pd.RangeIndex(0, 10, 1), pd.RangeIndex(0, 20, 2)]
+        self.check_binop(ops, scalars, idxs)
+
+    # TODO: mod, divmod?
+    @pytest.mark.parametrize('op', [operator.add, operator.sub,
+                                    operator.mul, operator.floordiv,
+                                    operator.truediv, operator.pow])
+    def test_arithmetic_with_frame_or_series(self, op):
+        # check that we return NotImplemented when operating with Series
+        # or DataFrame
+        index = pd.RangeIndex(5)
+        other = pd.Series(np.random.randn(5))
+
+        expected = op(pd.Series(index), other)
+        result = op(index, other)
+        tm.assert_series_equal(result, expected)
+
+        other = pd.DataFrame(np.random.randn(2, 5))
+        expected = op(pd.DataFrame([index, index]), other)
+        result = op(index, other)
+        tm.assert_frame_equal(result, expected)
+
+    def test_numeric_compat2(self):
+        # validate that we are handling the RangeIndex overrides to numeric ops
+        # and returning RangeIndex where possible
+
+        idx = pd.RangeIndex(0, 10, 2)
+
+        result = idx * 2
+        expected = pd.RangeIndex(0, 20, 4)
+        tm.assert_index_equal(result, expected, exact=True)
+
+        result = idx + 2
+        expected = pd.RangeIndex(2, 12, 2)
+        tm.assert_index_equal(result, expected, exact=True)
+
+        result = idx - 2
+        expected = pd.RangeIndex(-2, 8, 2)
+        tm.assert_index_equal(result, expected, exact=True)
+
+        # truediv under PY3
+        result = idx / 2
+
+        if PY3:
+            expected = pd.RangeIndex(0, 5, 1).astype('float64')
+        else:
+            expected = pd.RangeIndex(0, 5, 1)
+        tm.assert_index_equal(result, expected, exact=True)
+
+        result = idx / 4
+        expected = pd.RangeIndex(0, 10, 2) / 4
+        tm.assert_index_equal(result, expected, exact=True)
+
+        result = idx // 1
+        expected = idx
+        tm.assert_index_equal(result, expected, exact=True)
+
+        # __mul__
+        result = idx * idx
+        expected = Index(idx.values * idx.values)
+        tm.assert_index_equal(result, expected, exact=True)
+
+        # __pow__
+        idx = pd.RangeIndex(0, 1000, 2)
+        result = idx ** 2
+        expected = idx._int64index ** 2
+        tm.assert_index_equal(Index(result.values), expected, exact=True)
+
+        # __floordiv__
+        cases_exact = [
+            (pd.RangeIndex(0, 1000, 2), 2, pd.RangeIndex(0, 500, 1)),
+            (pd.RangeIndex(-99, -201, -3), -3, pd.RangeIndex(33, 67, 1)),
+            (pd.RangeIndex(0, 1000, 1), 2,
+             pd.RangeIndex(0, 1000, 1)._int64index // 2),
+            (pd.RangeIndex(0, 100, 1), 2.0,
+             pd.RangeIndex(0, 100, 1)._int64index // 2.0),
+            (pd.RangeIndex(0), 50, pd.RangeIndex(0)),
+            (pd.RangeIndex(2, 4, 2), 3, pd.RangeIndex(0, 1, 1)),
+            (pd.RangeIndex(-5, -10, -6), 4, pd.RangeIndex(-2, -1, 1)),
+            (pd.RangeIndex(-100, -200, 3), 2, pd.RangeIndex(0))]
+        for idx, div, expected in cases_exact:
+            tm.assert_index_equal(idx // div, expected, exact=True)

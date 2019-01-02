@@ -1,4 +1,4 @@
-"""Public API for extending panadas objects."""
+"""Public API for extending pandas objects."""
 from pandas.core.accessor import (register_dataframe_accessor,  # noqa
                                   register_index_accessor,
                                   register_series_accessor)

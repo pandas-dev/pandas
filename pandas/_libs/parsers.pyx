@@ -32,10 +32,10 @@ cimport numpy as cnp
 from numpy cimport ndarray, uint8_t, uint64_t, int64_t, float64_t
 cnp.import_array()
 
-from util cimport UINT64_MAX, INT64_MAX, INT64_MIN
-import lib
+from pandas._libs.util cimport UINT64_MAX, INT64_MAX, INT64_MIN
+import pandas._libs.lib as lib
 
-from khash cimport (
+from pandas._libs.khash cimport (
     khiter_t,
     kh_str_t, kh_init_str, kh_put_str, kh_exist_str,
     kh_get_str, kh_destroy_str,
@@ -50,7 +50,7 @@ from pandas.core.dtypes.common import (
     is_integer_dtype, is_float_dtype,
     is_bool_dtype, is_object_dtype,
     is_datetime64_dtype,
-    pandas_dtype)
+    pandas_dtype, is_extension_array_dtype)
 from pandas.core.arrays import Categorical
 from pandas.core.dtypes.concat import union_categoricals
 import pandas.io.common as icom
@@ -983,7 +983,6 @@ cdef class TextReader:
                                             footer=footer,
                                             upcast_na=True)
         self._end_clock('Type conversion')
-
         self._start_clock()
         if len(columns) > 0:
             rows_read = len(list(columns.values())[0])
@@ -1123,7 +1122,9 @@ cdef class TextReader:
                 if na_filter:
                     self._free_na_set(na_hashset)
 
-            if upcast_na and na_count > 0:
+            # don't try to upcast EAs
+            try_upcast = upcast_na and na_count > 0
+            if try_upcast and not is_extension_array_dtype(col_dtype):
                 col_res = _maybe_upcast(col_res)
 
             if col_res is None:
@@ -1202,7 +1203,36 @@ cdef class TextReader:
                              bint user_dtype,
                              kh_str_t *na_hashset,
                              object na_flist):
-        if is_integer_dtype(dtype):
+        if is_categorical_dtype(dtype):
+            # TODO: I suspect that _categorical_convert could be
+            # optimized when dtype is an instance of CategoricalDtype
+            codes, cats, na_count = _categorical_convert(
+                self.parser, i, start, end, na_filter,
+                na_hashset, self.c_encoding)
+
+            # Method accepts list of strings, not encoded ones.
+            true_values = [x.decode() for x in self.true_values]
+            cat = Categorical._from_inferred_categories(
+                cats, codes, dtype, true_values=true_values)
+            return cat, na_count
+
+        elif is_extension_array_dtype(dtype):
+            result, na_count = self._string_convert(i, start, end, na_filter,
+                                                    na_hashset)
+            array_type = dtype.construct_array_type()
+            try:
+                # use _from_sequence_of_strings if the class defines it
+                result = array_type._from_sequence_of_strings(result,
+                                                              dtype=dtype)
+            except NotImplementedError:
+                raise NotImplementedError(
+                    "Extension Array: {ea} must implement "
+                    "_from_sequence_of_strings in order "
+                    "to be used in parser methods".format(ea=array_type))
+
+            return result, na_count
+
+        elif is_integer_dtype(dtype):
             try:
                 result, na_count = _try_int64(self.parser, i, start,
                                               end, na_filter, na_hashset)
@@ -1227,12 +1257,16 @@ cdef class TextReader:
             if result is not None and dtype != 'float64':
                 result = result.astype(dtype)
             return result, na_count
-
         elif is_bool_dtype(dtype):
             result, na_count = _try_bool_flex(self.parser, i, start, end,
                                               na_filter, na_hashset,
                                               self.true_set, self.false_set)
+            if user_dtype and na_count is not None:
+                if na_count > 0:
+                    raise ValueError("Bool column has NA values in "
+                                     "column {column}".format(column=i))
             return result, na_count
+
         elif dtype.kind == 'S':
             # TODO: na handling
             width = dtype.itemsize
@@ -1252,15 +1286,6 @@ cdef class TextReader:
             # unicode variable width
             return self._string_convert(i, start, end, na_filter,
                                         na_hashset)
-        elif is_categorical_dtype(dtype):
-            # TODO: I suspect that _categorical_convert could be
-            # optimized when dtype is an instance of CategoricalDtype
-            codes, cats, na_count = _categorical_convert(
-                self.parser, i, start, end, na_filter,
-                na_hashset, self.c_encoding)
-            cat = Categorical._from_inferred_categories(cats, codes, dtype)
-            return cat, na_count
-
         elif is_object_dtype(dtype):
             return self._string_convert(i, start, end, na_filter,
                                         na_hashset)
@@ -2164,7 +2189,11 @@ def _concatenate_chunks(list chunks):
             result[name] = union_categoricals(arrs,
                                               sort_categories=sort_categories)
         else:
-            result[name] = np.concatenate(arrs)
+            if is_extension_array_dtype(dtype):
+                array_type = dtype.construct_array_type()
+                result[name] = array_type._concat_same_type(arrs)
+            else:
+                result[name] = np.concatenate(arrs)
 
     if warning_columns:
         warning_names = ','.join(warning_columns)

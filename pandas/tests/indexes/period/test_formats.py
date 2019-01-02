@@ -49,6 +49,18 @@ def test_to_native_types():
 
 
 class TestPeriodIndexRendering(object):
+
+    def test_frame_repr(self):
+        df = pd.DataFrame({"A": [1, 2, 3]},
+                          index=pd.date_range('2000', periods=3))
+        result = repr(df)
+        expected = (
+            '            A\n'
+            '2000-01-01  1\n'
+            '2000-01-02  2\n'
+            '2000-01-03  3')
+        assert result == expected
+
     @pytest.mark.parametrize('method', ['__repr__', '__unicode__', '__str__'])
     def test_representation(self, method):
         # GH#7601

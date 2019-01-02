@@ -4,15 +4,20 @@ frozen (immutable) data structures to support MultiIndexing
 These are used for:
 
 - .names (FrozenList)
-- .levels & .labels (FrozenNDArray)
+- .levels & .codes (FrozenNDArray)
 
 """
 
 import warnings
+
 import numpy as np
-from pandas.core.base import PandasObject
+
 from pandas.util._decorators import deprecate_kwarg
+
 from pandas.core.dtypes.cast import coerce_indexer_dtype
+
+from pandas.core.base import PandasObject
+
 from pandas.io.formats.printing import pprint_thing
 
 
