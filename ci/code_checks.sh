@@ -160,9 +160,9 @@ if [[ -z "$CHECK" || "$CHECK" == "patterns" ]]; then
     MSG='Check that no file in the repo contains tailing whitespaces' ; echo $MSG
     set -o pipefail
     if [[ "$AZURE" == "true" ]]; then
-        ! grep -n --exclude="*.svg" -RI "\s$" * | awk -F ":" '{print "##vso[task.logissue type=error;sourcepath=" $1 ";linenumber=" $2 ";] Tailing whitespaces found: " $3}'
+        ! grep -n '--exclude=*.'{svg,c,cpp} -RI "\s$" * | awk -F ":" '{print "##vso[task.logissue type=error;sourcepath=" $1 ";linenumber=" $2 ";] Tailing whitespaces found: " $3}'
     else
-        ! grep -n --exclude="*.svg" -RI "\s$" * | awk -F ":" '{print $1 ":" $2 ":Tailing whitespaces found: " $3}'
+        ! grep -n '--exclude=*.'{svg,c,cpp}  -RI "\s$" * | awk -F ":" '{print $1 ":" $2 ":Tailing whitespaces found: " $3}'
     fi
     RET=$(($RET + $?)) ; echo $MSG "DONE"
 fi
