@@ -1,20 +1,22 @@
 # -*- coding: utf-8 -*-
 from __future__ import division, print_function
 
-import warnings
 from functools import partial
+import warnings
 
 import numpy as np
 import pytest
 
-import pandas as pd
-import pandas.core.nanops as nanops
-import pandas.util._test_decorators as td
-import pandas.util.testing as tm
-from pandas import Series, isna
 from pandas.compat.numpy import _np_version_under1p13
+import pandas.util._test_decorators as td
+
 from pandas.core.dtypes.common import is_integer_dtype
+
+import pandas as pd
+from pandas import Series, isna
 from pandas.core.arrays import DatetimeArrayMixin as DatetimeArray
+import pandas.core.nanops as nanops
+import pandas.util.testing as tm
 
 use_bn = nanops._USE_BOTTLENECK
 
