@@ -1,17 +1,15 @@
 # -*- coding: utf-8 -*-
 # pylint: disable-msg=W0612,E1101
 
+import numpy as np
+from numpy import nan
 import pytest
 
-from pandas import DataFrame
-import pandas as pd
-
-from numpy import nan
-import numpy as np
-
-from pandas import melt, lreshape, wide_to_long
-import pandas.util.testing as tm
 from pandas.compat import range
+
+import pandas as pd
+from pandas import DataFrame, lreshape, melt, wide_to_long
+import pandas.util.testing as tm
 
 
 class TestMelt(object):

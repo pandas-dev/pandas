@@ -1,25 +1,27 @@
 # pylint: disable=E1103
 
-import random
-import re
 from collections import OrderedDict
 from datetime import date, datetime
+import random
+import re
 
 import numpy as np
-import pytest
 from numpy import nan
+import pytest
 
-import pandas as pd
-import pandas.util.testing as tm
-from pandas import (Categorical, CategoricalIndex, DataFrame, DatetimeIndex,
-                    Float64Index, Int64Index, MultiIndex, RangeIndex,
-                    Series, UInt64Index)
-from pandas.api.types import CategoricalDtype as CDT
 from pandas.compat import lrange
+
 from pandas.core.dtypes.common import is_categorical_dtype, is_object_dtype
 from pandas.core.dtypes.dtypes import CategoricalDtype
+
+import pandas as pd
+from pandas import (
+    Categorical, CategoricalIndex, DataFrame, DatetimeIndex, Float64Index,
+    Int64Index, MultiIndex, RangeIndex, Series, UInt64Index)
+from pandas.api.types import CategoricalDtype as CDT
 from pandas.core.reshape.concat import concat
 from pandas.core.reshape.merge import MergeError, merge
+import pandas.util.testing as tm
 from pandas.util.testing import assert_frame_equal, assert_series_equal
 
 N = 50
