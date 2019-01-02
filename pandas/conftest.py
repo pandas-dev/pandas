@@ -34,6 +34,8 @@ def pytest_addoption(parser):
                      help="skip slow tests")
     parser.addoption("--skip-network", action="store_true",
                      help="skip network tests")
+    parser.addoption("--skip-db", action="store_true",
+                     help="skip db tests")
     parser.addoption("--run-high-memory", action="store_true",
                      help="run high memory tests")
     parser.addoption("--only-slow", action="store_true",
@@ -51,6 +53,9 @@ def pytest_runtest_setup(item):
 
     if 'network' in item.keywords and item.config.getoption("--skip-network"):
         pytest.skip("skipping due to --skip-network")
+
+    if 'db' in item.keywords and item.config.getoption("--skip-db"):
+        pytest.skip("skipping due to --skip-db")
 
     if 'high_memory' in item.keywords and not item.config.getoption(
             "--run-high-memory"):
@@ -270,7 +275,12 @@ def join_type(request):
 
 
 @pytest.fixture
-def datapath(request):
+def strict_data_files(pytestconfig):
+    return pytestconfig.getoption("--strict-data-files")
+
+
+@pytest.fixture
+def datapath(strict_data_files):
     """Get the path to a data file.
 
     Parameters
@@ -292,7 +302,7 @@ def datapath(request):
     def deco(*args):
         path = os.path.join(BASE_PATH, *args)
         if not os.path.exists(path):
-            if request.config.getoption("--strict-data-files"):
+            if strict_data_files:
                 msg = "Could not find file {} and --strict-data-files is set."
                 raise ValueError(msg.format(path))
             else:

@@ -863,6 +863,34 @@ def test_groupby_multiindex_categorical_datetime():
     assert_frame_equal(result, expected)
 
 
+@pytest.mark.parametrize("as_index, expected", [
+    (True, pd.Series(
+        index=pd.MultiIndex.from_arrays(
+            [pd.Series([1, 1, 2], dtype='category'),
+                [1, 2, 2]], names=['a', 'b']
+        ),
+        data=[1, 2, 3], name='x'
+    )),
+    (False, pd.DataFrame({
+        'a': pd.Series([1, 1, 2], dtype='category'),
+        'b': [1, 2, 2],
+        'x': [1, 2, 3]
+    }))
+])
+def test_groupby_agg_observed_true_single_column(as_index, expected):
+    # GH-23970
+    df = pd.DataFrame({
+        'a': pd.Series([1, 1, 2], dtype='category'),
+        'b': [1, 2, 2],
+        'x': [1, 2, 3]
+    })
+
+    result = df.groupby(
+        ['a', 'b'], as_index=as_index, observed=True)['x'].sum()
+
+    assert_equal(result, expected)
+
+
 @pytest.mark.parametrize('fill_value', [None, np.nan, pd.NaT])
 def test_shift(fill_value):
     ct = pd.Categorical(['a', 'b', 'c', 'd'],

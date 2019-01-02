@@ -26,8 +26,8 @@ from pandas.core.dtypes.common import (
 import pandas.core.dtypes.concat as _concat
 from pandas.core.dtypes.generic import (
     ABCDataFrame, ABCDateOffset, ABCDatetimeIndex, ABCIndexClass,
-    ABCMultiIndex, ABCPeriodIndex, ABCSeries, ABCTimedeltaArray,
-    ABCTimedeltaIndex)
+    ABCMultiIndex, ABCPandasArray, ABCPeriodIndex, ABCSeries,
+    ABCTimedeltaArray, ABCTimedeltaIndex)
 from pandas.core.dtypes.missing import array_equivalent, isna
 
 from pandas.core import ops
@@ -264,6 +264,9 @@ class Index(IndexOpsMixin, PandasObject):
                 return cls._simple_new(data, name)
 
         from .range import RangeIndex
+        if isinstance(data, ABCPandasArray):
+            # ensure users don't accidentally put a PandasArray in an index.
+            data = data.to_numpy()
 
         # range
         if isinstance(data, RangeIndex):
@@ -599,36 +602,6 @@ class Index(IndexOpsMixin, PandasObject):
                 pass
         return Index(values, **attributes)
 
-    def _deepcopy_if_needed(self, orig, copy=False):
-        """
-        Make a copy of self if data coincides (in memory) with orig.
-        Subclasses should override this if self._base is not an ndarray.
-
-        .. versionadded:: 0.19.0
-
-        Parameters
-        ----------
-        orig : ndarray
-            other ndarray to compare self._data against
-        copy : boolean, default False
-            when False, do not run any check, just return self
-
-        Returns
-        -------
-        A copy of self if needed, otherwise self : Index
-        """
-        if copy:
-            # Retrieve the "base objects", i.e. the original memory allocations
-            if not isinstance(orig, np.ndarray):
-                # orig is a DatetimeIndex
-                orig = orig.values
-            orig = orig if orig.base is None else orig.base
-            new = self._data if self._data.base is None else self._data.base
-            if orig is new:
-                return self.copy(deep=True)
-
-        return self
-
     def _update_inplace(self, result, **kwargs):
         # guard when called from IndexOpsMixin
         raise TypeError("Index can't be updated inplace")
@@ -739,8 +712,9 @@ class Index(IndexOpsMixin, PandasObject):
         Parameters
         ----------
         dtype : numpy dtype or pandas type
-            Note that any integer `dtype` is treated as ``'int64'``,
-            regardless of the sign and size.
+            Note that any signed integer `dtype` is treated as ``'int64'``,
+            and any unsigned integer `dtype` is treated as ``'uint64'``,
+            regardless of the size.
         copy : bool, default True
             By default, astype always returns a newly allocated object.
             If copy is set to False and internal requirements on dtype are
@@ -2328,27 +2302,15 @@ class Index(IndexOpsMixin, PandasObject):
                                            allow_fill=False)
                 result = _concat._concat_compat((lvals, other_diff))
 
-                try:
-                    lvals[0] < other_diff[0]
-                except TypeError as e:
-                    warnings.warn("%s, sort order is undefined for "
-                                  "incomparable objects" % e, RuntimeWarning,
-                                  stacklevel=3)
-                else:
-                    types = frozenset((self.inferred_type,
-                                       other.inferred_type))
-                    if not types & _unsortable_types:
-                        result.sort()
-
             else:
                 result = lvals
 
-                try:
-                    result = np.sort(result)
-                except TypeError as e:
-                    warnings.warn("%s, sort order is undefined for "
-                                  "incomparable objects" % e, RuntimeWarning,
-                                  stacklevel=3)
+            try:
+                result = sorting.safe_sort(result)
+            except TypeError as e:
+                warnings.warn("%s, sort order is undefined for "
+                              "incomparable objects" % e, RuntimeWarning,
+                              stacklevel=3)
 
         # for subclasses
         return self._wrap_setop_result(other, result)

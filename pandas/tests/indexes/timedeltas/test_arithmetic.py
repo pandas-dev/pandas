@@ -5,10 +5,11 @@ from datetime import timedelta
 import numpy as np
 import pytest
 
-import pandas as pd
-import pandas.util.testing as tm
-from pandas import Timedelta, TimedeltaIndex, timedelta_range
 from pandas.errors import NullFrequencyError
+
+import pandas as pd
+from pandas import Timedelta, TimedeltaIndex, timedelta_range
+import pandas.util.testing as tm
 
 
 @pytest.fixture(params=[pd.offsets.Hour(2), timedelta(hours=2),
