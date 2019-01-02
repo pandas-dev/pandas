@@ -26,8 +26,6 @@ def test_union_same_types(indices):
     idx2 = indices.sort_values()
     assert idx1.union(idx2).dtype == idx1.dtype
 
-    # Note: catIndex reflects only left dtype, should it reflect both?
-
 
 @pytest.mark.parametrize(
     'idx1,idx2',

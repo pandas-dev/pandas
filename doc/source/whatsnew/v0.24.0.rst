@@ -810,21 +810,23 @@ of empty :class:`Index` objects will now be evaluated before performing union op
 rather than simply returning the other :class:`Index` object (:issue:`23525`).
 
 
-Previous Behavior:
+*Previous Behavior*:
+
+.. code-block:: ipython
+
+    In [1]: pd.period_range('19910905', periods=2).union(pd.Int64Index([1, 2, 3]))
+    ...
+    ValueError: can only call with other PeriodIndex-ed objects
+
+    In [2]: pd.Index([]).astype(str).union(pd.Index([1, 2, 3]))
+    Out[2]: Int64Index([1, 2, 3], dtype='int64')
+
+*Current Behavior*:
 
 .. ipython:: python
 
-    In [1]: pd.period_range('19910905', periods=2).union(pd.Int64Index([1, 2, 3]))
-
-    In [2]: pd.Index([]).astype(str).union(pd.Index([1, 2, 3]))
-
-Current Behavior:
-
-.. ipython:: python
-
-    In [1]: pd.period_range('19910905', periods=2).union(pd.Int64Index([1, 2, 3]))
-
-    In [2]: pd.Index([]).astype(str).union(pd.Index([1, 2, 3]))
+    pd.period_range('19910905', periods=2).union(pd.Int64Index([1, 2, 3]))
+    pd.Index([]).astype(str).union(pd.Index([1, 2, 3]))
 
 .. _whatsnew_0240.api.datetimelike.normalize:
 
