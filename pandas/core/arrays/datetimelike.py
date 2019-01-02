@@ -47,10 +47,6 @@ def _make_comparison_op(cls, op):
         if isinstance(other, ABCDataFrame):
             return NotImplemented
 
-        if isinstance(other, (np.ndarray, ABCIndexClass, ABCSeries, cls)):
-            if other.ndim > 0 and len(self) != len(other):
-                raise ValueError('Lengths must match to compare')
-
         if needs_i8_conversion(self) and needs_i8_conversion(other):
             # we may need to directly compare underlying
             # representations
@@ -586,10 +582,6 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin,
 
     # ------------------------------------------------------------------
     # ExtensionArray Interface
-    # TODO:
-    #   * _from_sequence
-    #   * argsort / _values_for_argsort
-    #   * _reduce
 
     def unique(self):
         result = unique1d(self.asi8)
@@ -680,6 +672,10 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin,
         """
         if isinstance(value, compat.string_types):
             value = self._scalar_from_string(value)
+
+        if isinstance(value, ABCIndexClass):
+            # unbox e.g. DatetimeIndex -> DatetimeArray
+            value = value._values
 
         if not (isinstance(value, (self._scalar_type, type(self)))
                 or isna(value)):
