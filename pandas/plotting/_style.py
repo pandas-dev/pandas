@@ -42,6 +42,8 @@ def _get_standard_colors(num_colors=None, colormap=None, color_type='default',
                                                list('bgrcmyk')))
             if isinstance(colors, compat.string_types):
                 colors = list(colors)
+
+            colors = colors[0:num_colors]
         elif color_type == 'random':
             import pandas.core.common as com
 
