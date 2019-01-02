@@ -1113,36 +1113,6 @@ cast from integer dtype to floating dtype (:issue:`22019`)
        ...:                    'c': [1, 1, np.nan, 1, 1]})
     In [4]: pd.crosstab(df.a, df.b, normalize='columns')
 
-Formatting Categorical Integer Data With ``NaN`` Values
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-Categorical integer data with ``NaN`` values will be formatted as integers
-instead of floats. :meth:`Series.to_numpy` is not affected (:issue:`19214`)
-
-*Previous Behavior*
-
-.. code-block:: ipython
-
-    In [3]: pd.Series([1, 2, np.nan], dtype='object').astype('category')
-    Out[3]:
-    0    1.0
-    1    2.0
-    2    NaN
-    dtype: category
-    Categories (2, int64): [1, 2]
-
-    In [4]: pd.Categorical([1, 2, np.nan])
-    Out[4]:
-    [1.0, 2.0, NaN]
-    Categories (2, int64): [1, 2]
-
-*New Behavior*
-
-.. ipython:: python
-
-    pd.Series([1, 2, np.nan], dtype='object').astype('category')
-    pd.Categorical([1, 2, np.nan])
-
 Datetimelike API Changes
 ^^^^^^^^^^^^^^^^^^^^^^^^
 
@@ -1180,6 +1150,7 @@ Other API Changes
 - :meth:`CategoricalIndex.reindex` now raises a ``ValueError`` if the target index is non-unique and not equal to the current index. It previously only raised if the target index was not of a categorical dtype (:issue:`23963`).
 - :func:`Series.to_list` and :func:`Index.to_list` are now aliases of ``Series.tolist`` respectively ``Index.tolist`` (:issue:`8826`)
 - The result of ``SparseSeries.unstack`` is now a :class:`DataFrame` with sparse values, rather than a :class:`SparseDataFrame` (issue:`24372`).
+- Calling :func:`pandas.concat` on a ``Categorical`` of ints with NA values now causes them to be processed as objects in cases where previously they would be coerced to floats (:issue:`19214`)
 
 .. _whatsnew_0240.deprecations:
 
@@ -1549,6 +1520,8 @@ MultiIndex
 I/O
 ^^^
 
+- Bug where integer categorical data would be formatted as floats if ``NaN`` values were present (:issue:`19214`)
+
 
 .. _whatsnew_0240.bug_fixes.nan_with_str_dtype:
 
@@ -1683,7 +1656,6 @@ Reshaping
 - :meth:`DataFrame.nlargest` and :meth:`DataFrame.nsmallest` now returns the correct n values when keep != 'all' also when tied on the first columns (:issue:`22752`)
 - Constructing a DataFrame with an index argument that wasn't already an instance of :class:`~pandas.core.Index` was broken (:issue:`22227`).
 - Bug in :class:`DataFrame` prevented list subclasses to be used to construction (:issue:`21226`)
-- Calling :func:`pandas.concat` on a ``Categorical`` of ints with NA values now causes them to be processed as objects (formerly coerced to floats) (:issue:`19214`)
 - Bug in :func:`DataFrame.unstack` and :func:`DataFrame.pivot_table` returning a missleading error message when the resulting DataFrame has more elements than int32 can handle. Now, the error message is improved, pointing towards the actual problem (:issue:`20601`)
 
 .. _whatsnew_0240.bug_fixes.sparse:

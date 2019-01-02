@@ -246,7 +246,9 @@ Categories (5, datetime64[ns, US/Eastern]): [2011-01-01 09:00:00-05:00 < 2011-01
         assert repr(c) == c_exp
 
         s = Series([1, 2, np.nan], dtype="object").astype("category")
-        s_exp = """0      1\n1      2\n2    NaN\ndtype: category\nCategories (2, int64): [1, 2]"""  # noqa
+        s_exp = """0      1\n1      2\n2    NaN
+dtype: category
+Categories (2, int64): [1, 2]"""
         assert repr(s) == s_exp
 
     def test_categorical_repr_period(self):
