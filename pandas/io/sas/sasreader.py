@@ -48,7 +48,7 @@ def read_sas(filepath_or_buffer, format=None, index=None, encoding=None,
             else:
                 raise ValueError("unable to infer format of SAS file")
         except ValueError:
-            pass
+            raise
 
     if format.lower() == 'xport':
         from pandas.io.sas.sas_xport import XportReader
