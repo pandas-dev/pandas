@@ -7,6 +7,7 @@ from pandas.errors import UnsortedIndexError
 
 import pandas as pd
 from pandas import DataFrame, Index, MultiIndex, Series, Timestamp
+from pandas.core.indexing import _non_reducing_slice
 from pandas.tests.indexing.common import _mklbl
 from pandas.util import testing as tm
 
@@ -555,4 +556,21 @@ class TestMultiIndexSlicers(object):
 
         result = ymd[5:]
         expected = ymd.reindex(s.index[5:])
+        tm.assert_frame_equal(result, expected)
+
+    def test_non_reducing_slice_on_multiindex(self):
+        # GH 19861
+        dic = {
+            ('a', 'd'): [1, 4],
+            ('a', 'c'): [2, 3],
+            ('b', 'c'): [3, 2],
+            ('b', 'd'): [4, 1]
+        }
+        df = pd.DataFrame(dic, index=[0, 1])
+        idx = pd.IndexSlice
+        slice_ = idx[:, idx['b', 'd']]
+        tslice_ = _non_reducing_slice(slice_)
+
+        result = df.loc[tslice_]
+        expected = pd.DataFrame({('b', 'd'): [4, 1]})
         tm.assert_frame_equal(result, expected)
