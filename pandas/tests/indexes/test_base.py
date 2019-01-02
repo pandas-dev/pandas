@@ -1,35 +1,33 @@
 # -*- coding: utf-8 -*-
 
-import math
 from collections import defaultdict
 from datetime import datetime, timedelta
 from decimal import Decimal
+import math
 
 import numpy as np
 import pytest
 
+from pandas._libs.tslib import Timestamp
+from pandas.compat import (
+    PY3, PY35, PY36, StringIO, lrange, lzip, range, text_type, u, zip)
+from pandas.compat.numpy import np_datetime64_compat
+
+from pandas.core.dtypes.common import is_unsigned_integer_dtype
+from pandas.core.dtypes.generic import ABCIndex
+
 import pandas as pd
-import pandas.core.config as cf
-import pandas.util.testing as tm
 from pandas import (
     CategoricalIndex, DataFrame, DatetimeIndex, Float64Index, Int64Index,
     PeriodIndex, RangeIndex, Series, TimedeltaIndex, UInt64Index, date_range,
-    isna, period_range,
-)
-from pandas._libs.tslib import Timestamp
-from pandas.compat import (
-    PY3, PY35, PY36, StringIO, lrange, lzip, range, text_type, u, zip
-)
-from pandas.compat.numpy import np_datetime64_compat
-from pandas.core.dtypes.common import (
-    is_unsigned_integer_dtype,
-)
-from pandas.core.dtypes.generic import ABCIndex
+    isna, period_range)
+import pandas.core.config as cf
 from pandas.core.index import _get_combined_index, ensure_index_from_sequences
 from pandas.core.indexes.api import Index, MultiIndex
-from pandas.tests.indexes.common import Base
-from pandas.util.testing import assert_almost_equal
 from pandas.core.sorting import safe_sort
+from pandas.tests.indexes.common import Base
+import pandas.util.testing as tm
+from pandas.util.testing import assert_almost_equal
 
 
 class TestIndex(Base):
@@ -805,8 +803,7 @@ class TestIndex(Base):
 
     def test_union_dt_as_obj(self):
         # TODO: Replace with fixturesult
-        with tm.assert_produces_warning(RuntimeWarning):
-            firstCat = self.strIndex.union(self.dateIndex)
+        firstCat = self.strIndex.union(self.dateIndex)
         secondCat = self.strIndex.union(self.strIndex)
 
         if self.dateIndex.dtype == np.object_:
@@ -1615,7 +1612,7 @@ class TestIndex(Base):
     @pytest.mark.parametrize("method,expected", [
         ('intersection', np.array([(1, 'A'), (2, 'A'), (1, 'B'), (2, 'B')],
                                   dtype=[('num', int), ('let', 'a1')])),
-        ('union', np.array([(1, 'A'), (2, 'A'), (1, 'B'), (2, 'B'), (1, 'C'),
+        ('union', np.array([(1, 'A'), (1, 'B'), (1, 'C'), (2, 'A'), (2, 'B'),
                             (2, 'C')], dtype=[('num', int), ('let', 'a1')]))
     ])
     def test_tuple_union_bug(self, method, expected):
@@ -2242,10 +2239,7 @@ class TestMixedIntIndex(Base):
         s1 = Series(2, index=first)
         s2 = Series(3, index=second[:-1])
 
-        warning_type = RuntimeWarning if PY3 else None
-        with tm.assert_produces_warning(warning_type):
-            # Python 3: Unorderable types
-            s3 = s1 * s2
+        s3 = s1 * s2
 
         assert s3.index.name == 'mario'
 
@@ -2274,16 +2268,9 @@ class TestMixedIntIndex(Base):
         first = index[3:]
         second = index[:5]
 
-        if PY3:
-            # unorderable types
-            warn_type = RuntimeWarning
-        else:
-            warn_type = None
+        result = first.union(second)
 
-        with tm.assert_produces_warning(warn_type):
-            result = first.union(second)
-
-        expected = Index(['b', 2, 'c', 0, 'a', 1])
+        expected = Index([0, 1, 2, 'a', 'b', 'c'])
         tm.assert_index_equal(result, expected)
 
     @pytest.mark.parametrize("klass", [
@@ -2294,14 +2281,7 @@ class TestMixedIntIndex(Base):
         first = index[3:]
         second = index[:5]
 
-        if PY3:
-            # unorderable types
-            warn_type = RuntimeWarning
-        else:
-            warn_type = None
-
-        with tm.assert_produces_warning(warn_type):
-            result = first.union(klass(second.values))
+        result = first.union(klass(second.values))
 
         assert tm.equalContents(result, index)
 

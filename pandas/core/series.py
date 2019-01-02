@@ -17,10 +17,9 @@ from pandas.util._validators import validate_bool_kwarg
 
 from pandas.core.dtypes.common import (
     _is_unorderable_exception, ensure_platform_int, is_bool,
-    is_categorical_dtype, is_datetime64_dtype, is_datetime64tz_dtype,
-    is_datetimelike, is_dict_like, is_extension_array_dtype, is_extension_type,
-    is_hashable, is_integer, is_iterator, is_list_like, is_scalar,
-    is_string_like, is_timedelta64_dtype)
+    is_categorical_dtype, is_datetime64_dtype, is_datetimelike, is_dict_like,
+    is_extension_array_dtype, is_extension_type, is_hashable, is_integer,
+    is_iterator, is_list_like, is_scalar, is_string_like, is_timedelta64_dtype)
 from pandas.core.dtypes.generic import (
     ABCDataFrame, ABCDatetimeIndex, ABCSeries, ABCSparseArray, ABCSparseSeries)
 from pandas.core.dtypes.missing import (
@@ -478,7 +477,10 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         """
         Return the internal repr of this data.
         """
-        return self._data.internal_values()
+        result = self._data.internal_values()
+        if isinstance(result, DatetimeIndex):
+            result = result._eadata
+        return result
 
     def _formatting_values(self):
         """
@@ -1556,9 +1558,18 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
         Returns
         -------
-        ndarray or Categorical
-            The unique values returned as a NumPy array. In case of categorical
-            data type, returned as a Categorical.
+        ndarray or ExtensionArray
+            The unique values returned as a NumPy array. In case of an
+            extension-array backed Series, a new
+            :class:`~api.extensions.ExtensionArray` of that type with just
+            the unique values is returned. This includes
+
+            * Categorical
+            * Period
+            * Datetime with Timezone
+            * Interval
+            * Sparse
+            * IntegerNA
 
         See Also
         --------
@@ -1575,8 +1586,9 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
         >>> pd.Series([pd.Timestamp('2016-01-01', tz='US/Eastern')
         ...            for _ in range(3)]).unique()
-        array([Timestamp('2016-01-01 00:00:00-0500', tz='US/Eastern')],
-              dtype=object)
+        <DatetimeArrayMixin>
+        ['2016-01-01 00:00:00-05:00']
+        Length: 1, dtype: datetime64[ns, US/Eastern]
 
         An unordered Categorical will return categories in the order of
         appearance.
@@ -1593,14 +1605,6 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         Categories (3, object): [a < b < c]
         """
         result = super(Series, self).unique()
-
-        if is_datetime64tz_dtype(self.dtype):
-            # we are special casing datetime64tz_dtype
-            # to return an object array of tz-aware Timestamps
-
-            # TODO: it must return DatetimeArray with tz in pandas 2.0
-            result = result.astype(object).values
-
         return result
 
     def drop_duplicates(self, keep='first', inplace=False):
