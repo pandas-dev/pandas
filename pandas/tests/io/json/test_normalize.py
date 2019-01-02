@@ -1,9 +1,10 @@
-import pytest
-import numpy as np
 import json
 
+import numpy as np
+import pytest
+
+from pandas import DataFrame, Index, compat
 import pandas.util.testing as tm
-from pandas import compat, Index, DataFrame
 
 from pandas.io.json import json_normalize
 from pandas.io.json.normalize import nested_to_record

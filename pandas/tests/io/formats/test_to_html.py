@@ -1,15 +1,18 @@
 # -*- coding: utf-8 -*-
 
-import re
 from datetime import datetime
 from io import open
+import re
 
-import pytest
 import numpy as np
+import pytest
+
+from pandas.compat import StringIO, lrange, u
+
 import pandas as pd
-from pandas import compat, DataFrame, MultiIndex, option_context, Index
-from pandas.compat import u, lrange, StringIO
+from pandas import DataFrame, Index, MultiIndex, compat, option_context
 from pandas.util import testing as tm
+
 import pandas.io.formats.format as fmt
 
 
@@ -29,7 +32,7 @@ def expected_html(datapath, name):
     str : contents of HTML file.
     """
     filename = '.'.join([name, 'html'])
-    filepath = datapath('io', 'formats', 'data', filename)
+    filepath = datapath('io', 'formats', 'data', 'html', filename)
     with open(filepath, encoding='utf-8') as f:
         html = f.read()
     return html.rstrip()
@@ -246,7 +249,6 @@ class TestToHTML(object):
         result = df.to_html(border=0)
         assert 'border="0"' in result
 
-    @tm.capture_stdout
     def test_display_option_warning(self):
         with tm.assert_produces_warning(FutureWarning,
                                         check_stacklevel=False):
@@ -415,6 +417,104 @@ class TestToHTML(object):
         expected = expected_html(datapath, 'gh6131_expected_output')
         assert result == expected
 
+    def test_to_html_multi_indexes_index_false(self, datapath):
+        # GH 22579
+        df = DataFrame({'a': range(10), 'b': range(10, 20), 'c': range(10, 20),
+                        'd': range(10, 20)})
+        df.columns = MultiIndex.from_product([['a', 'b'], ['c', 'd']])
+        df.index = MultiIndex.from_product([['a', 'b'],
+                                            ['c', 'd', 'e', 'f', 'g']])
+        result = df.to_html(index=False)
+        expected = expected_html(datapath, 'gh22579_expected_output')
+        assert result == expected
+
+    @pytest.mark.parametrize('index_names', [True, False])
+    @pytest.mark.parametrize('header', [True, False])
+    @pytest.mark.parametrize('index', [True, False])
+    @pytest.mark.parametrize('column_index, column_type', [
+        (Index([0, 1]), 'unnamed_standard'),
+        (Index([0, 1], name='columns.name'), 'named_standard'),
+        (MultiIndex.from_product([['a'], ['b', 'c']]), 'unnamed_multi'),
+        (MultiIndex.from_product(
+            [['a'], ['b', 'c']], names=['columns.name.0',
+                                        'columns.name.1']), 'named_multi')
+    ])
+    @pytest.mark.parametrize('row_index, row_type', [
+        (Index([0, 1]), 'unnamed_standard'),
+        (Index([0, 1], name='index.name'), 'named_standard'),
+        (MultiIndex.from_product([['a'], ['b', 'c']]), 'unnamed_multi'),
+        (MultiIndex.from_product(
+            [['a'], ['b', 'c']], names=['index.name.0',
+                                        'index.name.1']), 'named_multi')
+    ])
+    def test_to_html_basic_alignment(
+            self, datapath, row_index, row_type, column_index, column_type,
+            index, header, index_names):
+        # GH 22747, GH 22579
+        df = DataFrame(np.zeros((2, 2), dtype=int),
+                       index=row_index, columns=column_index)
+        result = df.to_html(
+            index=index, header=header, index_names=index_names)
+
+        if not index:
+            row_type = 'none'
+        elif not index_names and row_type.startswith('named'):
+            row_type = 'un' + row_type
+
+        if not header:
+            column_type = 'none'
+        elif not index_names and column_type.startswith('named'):
+            column_type = 'un' + column_type
+
+        filename = 'index_' + row_type + '_columns_' + column_type
+        expected = expected_html(datapath, filename)
+        assert result == expected
+
+    @pytest.mark.parametrize('index_names', [True, False])
+    @pytest.mark.parametrize('header', [True, False])
+    @pytest.mark.parametrize('index', [True, False])
+    @pytest.mark.parametrize('column_index, column_type', [
+        (Index(np.arange(8)), 'unnamed_standard'),
+        (Index(np.arange(8), name='columns.name'), 'named_standard'),
+        (MultiIndex.from_product(
+            [['a', 'b'], ['c', 'd'], ['e', 'f']]), 'unnamed_multi'),
+        (MultiIndex.from_product(
+            [['a', 'b'], ['c', 'd'], ['e', 'f']], names=['foo', None, 'baz']),
+            'named_multi')
+    ])
+    @pytest.mark.parametrize('row_index, row_type', [
+        (Index(np.arange(8)), 'unnamed_standard'),
+        (Index(np.arange(8), name='index.name'), 'named_standard'),
+        (MultiIndex.from_product(
+            [['a', 'b'], ['c', 'd'], ['e', 'f']]), 'unnamed_multi'),
+        (MultiIndex.from_product(
+            [['a', 'b'], ['c', 'd'], ['e', 'f']], names=['foo', None, 'baz']),
+            'named_multi')
+    ])
+    def test_to_html_alignment_with_truncation(
+            self, datapath, row_index, row_type, column_index, column_type,
+            index, header, index_names):
+        # GH 22747, GH 22579
+        df = DataFrame(np.arange(64).reshape(8, 8),
+                       index=row_index, columns=column_index)
+        result = df.to_html(
+            max_rows=4, max_cols=4,
+            index=index, header=header, index_names=index_names)
+
+        if not index:
+            row_type = 'none'
+        elif not index_names and row_type.startswith('named'):
+            row_type = 'un' + row_type
+
+        if not header:
+            column_type = 'none'
+        elif not index_names and column_type.startswith('named'):
+            column_type = 'un' + column_type
+
+        filename = 'trunc_df_index_' + row_type + '_columns_' + column_type
+        expected = expected_html(datapath, filename)
+        assert result == expected
+
     @pytest.mark.parametrize('index', [False, 0])
     def test_to_html_truncation_index_false_max_rows(self, datapath, index):
         # GH 15019
@@ -429,13 +529,20 @@ class TestToHTML(object):
         assert result == expected
 
     @pytest.mark.parametrize('index', [False, 0])
-    def test_to_html_truncation_index_false_max_cols(self, datapath, index):
+    @pytest.mark.parametrize('col_index_named, expected_output', [
+        (False, 'gh22783_expected_output'),
+        (True, 'gh22783_named_columns_index')
+    ])
+    def test_to_html_truncation_index_false_max_cols(
+            self, datapath, index, col_index_named, expected_output):
         # GH 22783
         data = [[1.764052, 0.400157, 0.978738, 2.240893, 1.867558],
                 [-0.977278, 0.950088, -0.151357, -0.103219, 0.410599]]
         df = DataFrame(data)
+        if col_index_named:
+            df.columns.rename('columns.name', inplace=True)
         result = df.to_html(max_cols=4, index=index)
-        expected = expected_html(datapath, 'gh22783_expected_output')
+        expected = expected_html(datapath, expected_output)
         assert result == expected
 
     def test_to_html_notebook_has_style(self):

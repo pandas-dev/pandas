@@ -11,7 +11,6 @@ import csv
 from datetime import datetime
 import os
 import platform
-import sys
 from tempfile import TemporaryFile
 
 import numpy as np
@@ -1509,8 +1508,7 @@ def test_whitespace_regex_separator(all_parsers, data, expected):
     tm.assert_frame_equal(result, expected)
 
 
-@tm.capture_stdout
-def test_verbose_read(all_parsers):
+def test_verbose_read(all_parsers, capsys):
     parser = all_parsers
     data = """a,b,c,d
 one,1,2,3
@@ -1524,17 +1522,16 @@ two,1,2,3"""
 
     # Engines are verbose in different ways.
     parser.read_csv(StringIO(data), verbose=True)
-    output = sys.stdout.getvalue()
+    captured = capsys.readouterr()
 
     if parser.engine == "c":
-        assert "Tokenization took:" in output
-        assert "Parser memory cleanup took:" in output
+        assert "Tokenization took:" in captured.out
+        assert "Parser memory cleanup took:" in captured.out
     else:  # Python engine
-        assert output == "Filled 3 NA values in column a\n"
+        assert captured.out == "Filled 3 NA values in column a\n"
 
 
-@tm.capture_stdout
-def test_verbose_read2(all_parsers):
+def test_verbose_read2(all_parsers, capsys):
     parser = all_parsers
     data = """a,b,c,d
 one,1,2,3
@@ -1547,14 +1544,14 @@ seven,1,2,3
 eight,1,2,3"""
 
     parser.read_csv(StringIO(data), verbose=True, index_col=0)
-    output = sys.stdout.getvalue()
+    captured = capsys.readouterr()
 
     # Engines are verbose in different ways.
     if parser.engine == "c":
-        assert "Tokenization took:" in output
-        assert "Parser memory cleanup took:" in output
+        assert "Tokenization took:" in captured.out
+        assert "Parser memory cleanup took:" in captured.out
     else:  # Python engine
-        assert output == "Filled 1 NA values in column a\n"
+        assert captured.out == "Filled 1 NA values in column a\n"
 
 
 def test_iteration_open_handle(all_parsers):
@@ -1867,8 +1864,7 @@ def test_error_bad_lines(all_parsers, kwargs, warn_kwargs):
         parser.read_csv(StringIO(data), **kwargs)
 
 
-@tm.capture_stderr
-def test_warn_bad_lines(all_parsers):
+def test_warn_bad_lines(all_parsers, capsys):
     # see gh-15925
     parser = all_parsers
     data = "a\n1\n1,2,3\n4\n5,6,7"
@@ -1879,13 +1875,12 @@ def test_warn_bad_lines(all_parsers):
                              warn_bad_lines=True)
     tm.assert_frame_equal(result, expected)
 
-    val = sys.stderr.getvalue()
-    assert "Skipping line 3" in val
-    assert "Skipping line 5" in val
+    captured = capsys.readouterr()
+    assert "Skipping line 3" in captured.err
+    assert "Skipping line 5" in captured.err
 
 
-@tm.capture_stderr
-def test_suppress_error_output(all_parsers):
+def test_suppress_error_output(all_parsers, capsys):
     # see gh-15925
     parser = all_parsers
     data = "a\n1\n1,2,3\n4\n5,6,7"
@@ -1896,8 +1891,8 @@ def test_suppress_error_output(all_parsers):
                              warn_bad_lines=False)
     tm.assert_frame_equal(result, expected)
 
-    val = sys.stderr.getvalue()
-    assert val == ""
+    captured = capsys.readouterr()
+    assert captured.err == ""
 
 
 def test_read_table_deprecated(all_parsers):

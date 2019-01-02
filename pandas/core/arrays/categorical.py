@@ -2091,9 +2091,9 @@ class Categorical(ExtensionArray, PandasObject):
             If (one or more) Value is not in categories or if a assigned
             `Categorical` does not have the same categories
         """
+        from pandas.core.internals.arrays import extract_array
 
-        if isinstance(value, (ABCIndexClass, ABCSeries)):
-            value = value.array
+        value = extract_array(value, extract_numpy=True)
 
         # require identical categories set
         if isinstance(value, Categorical):
@@ -2402,8 +2402,8 @@ class Categorical(ExtensionArray, PandasObject):
 
     @Substitution(klass='Categorical')
     @Appender(_extension_array_shared_docs['repeat'])
-    def repeat(self, repeats, *args, **kwargs):
-        nv.validate_repeat(args, kwargs)
+    def repeat(self, repeats, axis=None):
+        nv.validate_repeat(tuple(), dict(axis=axis))
         codes = self._codes.repeat(repeats)
         return self._constructor(values=codes, dtype=self.dtype, fastpath=True)
 
