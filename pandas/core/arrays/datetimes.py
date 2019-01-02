@@ -19,7 +19,7 @@ from pandas.core.dtypes.common import (
     is_extension_type, is_float_dtype, is_int64_dtype, is_object_dtype,
     is_period_dtype, is_string_dtype, is_timedelta64_dtype, pandas_dtype)
 from pandas.core.dtypes.dtypes import DatetimeTZDtype
-from pandas.core.dtypes.generic import ABCIndexClass, ABCSeries
+from pandas.core.dtypes.generic import ABCIndexClass, ABCPandasArray, ABCSeries
 from pandas.core.dtypes.missing import isna
 
 from pandas.core import ops
@@ -224,7 +224,7 @@ class DatetimeArrayMixin(dtl.DatetimeLikeArrayMixin,
             # for compat with datetime/timedelta/period shared methods,
             #  we can sometimes get here with int64 values.  These represent
             #  nanosecond UTC (or tz-naive) unix timestamps
-            values = values.view('M8[ns]')
+            values = values.view(_NS_DTYPE)
 
         assert values.dtype == 'M8[ns]', values.dtype
 
@@ -417,7 +417,7 @@ class DatetimeArrayMixin(dtl.DatetimeLikeArrayMixin,
             Returns None when the array is tz-naive.
         """
         # GH 18595
-        return getattr(self._dtype, "tz", None)
+        return getattr(self.dtype, "tz", None)
 
     @tz.setter
     def tz(self, value):
@@ -516,10 +516,6 @@ class DatetimeArrayMixin(dtl.DatetimeLikeArrayMixin,
 
     # ----------------------------------------------------------------
     # ExtensionArray Interface
-
-    @property
-    def _ndarray_values(self):
-        return self._data
 
     @Appender(dtl.DatetimeLikeArrayMixin._validate_fill_value.__doc__)
     def _validate_fill_value(self, fill_value):
@@ -1568,6 +1564,8 @@ def sequence_to_dt64ns(data, dtype=None, copy=False,
         copy = False
     elif isinstance(data, ABCSeries):
         data = data._values
+    if isinstance(data, ABCPandasArray):
+        data = data.to_numpy()
 
     if hasattr(data, "freq"):
         # i.e. DatetimeArray/Index
