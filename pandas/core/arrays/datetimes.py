@@ -19,7 +19,7 @@ from pandas.core.dtypes.common import (
     is_extension_type, is_float_dtype, is_int64_dtype, is_object_dtype,
     is_period_dtype, is_string_dtype, is_timedelta64_dtype, pandas_dtype)
 from pandas.core.dtypes.dtypes import DatetimeTZDtype
-from pandas.core.dtypes.generic import ABCIndexClass, ABCSeries
+from pandas.core.dtypes.generic import ABCIndexClass, ABCSeries, ABCPandasArray
 from pandas.core.dtypes.missing import isna
 
 from pandas.core import ops
@@ -240,11 +240,14 @@ class DatetimeArrayMixin(dtl.DatetimeLikeArrayMixin,
         result._dtype = dtype
         return result
 
-    def __new__(cls, values, freq=None, tz=None, dtype=None, copy=False,
+    def __init__(self, values, freq=None, tz=None, dtype=None, copy=False,
                 dayfirst=False, yearfirst=False, ambiguous='raise'):
-        return cls._from_sequence(
+        result = type(self)._from_sequence(
             values, freq=freq, tz=tz, dtype=dtype, copy=copy,
             dayfirst=dayfirst, yearfirst=yearfirst, ambiguous=ambiguous)
+        self._data = result._data
+        self._freq = result._freq
+        self._dtype = result._dtype
 
     @classmethod
     def _from_sequence(cls, data, dtype=None, copy=False,
@@ -1570,6 +1573,8 @@ def sequence_to_dt64ns(data, dtype=None, copy=False,
         copy = False
     elif isinstance(data, ABCSeries):
         data = data._values
+    elif isinstance(data, ABCPandasArray):
+        data = data.to_numpy()
 
     if hasattr(data, "freq"):
         # i.e. DatetimeArray/Index
