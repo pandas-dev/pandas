@@ -1623,7 +1623,7 @@ Notice how we now instead output ``np.nan`` itself instead of a stringified form
 - Bug in :meth:`DataFrame.to_stata`, :class:`pandas.io.stata.StataWriter` and :class:`pandas.io.stata.StataWriter117` where a exception would leave a partially written and invalid dta file (:issue:`23573`)
 - Bug in :meth:`DataFrame.to_stata` and :class:`pandas.io.stata.StataWriter117` that produced invalid files when using strLs with non-ASCII characters (:issue:`23573`)
 - Bug in :class:`HDFStore` that caused it to raise ``ValueError`` when reading a Dataframe in Python 3 from fixed format written in Python 2 (:issue:`24510`)
-- Bug in :func:`read_sas()` in which ``ValueError`` supposedly raised by an inability to infer file format is passed instead of actually raised (:issue:`24548`) 
+- Bug in :func:`read_sas()` in which ``ValueError`` was passed by a try/except block when no format kwarg was provided and function attempted to infer a file format from the extension in the file path. (:issue:`24548`) 
 
 Plotting
 ^^^^^^^^
