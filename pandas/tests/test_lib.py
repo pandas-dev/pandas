@@ -1,10 +1,11 @@
 # -*- coding: utf-8 -*-
 
+import numpy as np
 import pytest
 
-import numpy as np
-from pandas import Index
 from pandas._libs import lib, writers as libwriters
+
+from pandas import Index
 import pandas.util.testing as tm
 
 

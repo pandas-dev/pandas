@@ -877,3 +877,28 @@ class TestSeriesPlots(TestPlotBase):
             freq=CustomBusinessDay(holidays=['2014-05-26'])))
 
         _check_plot_works(s.plot)
+
+    def test_misc_bindings(self, mock):
+        s = Series(randn(10))
+        p1 = mock.patch('pandas.plotting._misc.lag_plot',
+                        return_value=2)
+        p2 = mock.patch('pandas.plotting._misc.autocorrelation_plot',
+                        return_value=2)
+        p3 = mock.patch('pandas.plotting._misc.bootstrap_plot',
+                        return_value=2)
+        with p1, p2, p3:
+            assert s.plot.lag() == 2
+            assert s.plot.autocorrelation() == 2
+            assert s.plot.bootstrap() == 2
+
+    @pytest.mark.xfail
+    def test_plot_accessor_updates_on_inplace(self):
+        s = Series([1, 2, 3, 4])
+        _, ax = self.plt.subplots()
+        ax = s.plot(ax=ax)
+        before = ax.xaxis.get_ticklocs()
+
+        s.drop([0, 1], inplace=True)
+        _, ax = self.plt.subplots()
+        after = ax.xaxis.get_ticklocs()
+        tm.assert_numpy_array_equal(before, after)

@@ -1,5 +1,4 @@
 # -*- coding: utf-8 -*-
-from datetime import timedelta
 import operator
 
 import numpy as np
@@ -59,16 +58,6 @@ class TestSeriesFlexArithmetic(object):
 class TestSeriesArithmetic(object):
     # Some of these may end up in tests/arithmetic, but are not yet sorted
 
-    def test_empty_series_add_sub(self):
-        # GH#13844
-        a = Series(dtype='M8[ns]')
-        b = Series(dtype='m8[ns]')
-        tm.assert_series_equal(a, a + b)
-        tm.assert_series_equal(a, a - b)
-        tm.assert_series_equal(a, b + a)
-        with pytest.raises(TypeError):
-            b - a
-
     def test_add_series_with_period_index(self):
         rng = pd.period_range('1/1/2000', '1/1/2010', freq='A')
         ts = Series(np.random.randn(len(rng)), index=rng)
@@ -84,32 +73,6 @@ class TestSeriesArithmetic(object):
         msg = "Input has different freq=D from PeriodIndex\\(freq=A-DEC\\)"
         with pytest.raises(IncompatibleFrequency, match=msg):
             ts + ts.asfreq('D', how="end")
-
-    def test_operators_datetimelike(self):
-
-        # ## timedelta64 ###
-        td1 = Series([timedelta(minutes=5, seconds=3)] * 3)
-        td1.iloc[2] = np.nan
-
-        # ## datetime64 ###
-        dt1 = Series([pd.Timestamp('20111230'), pd.Timestamp('20120101'),
-                      pd.Timestamp('20120103')])
-        dt1.iloc[2] = np.nan
-        dt2 = Series([pd.Timestamp('20111231'), pd.Timestamp('20120102'),
-                      pd.Timestamp('20120104')])
-        dt1 - dt2
-        dt2 - dt1
-
-        # ## datetime64 with timetimedelta ###
-        dt1 + td1
-        td1 + dt1
-        dt1 - td1
-        # TODO: Decide if this ought to work.
-        # td1 - dt1
-
-        # ## timetimedelta with datetime64 ###
-        td1 + dt1
-        dt1 + td1
 
 
 # ------------------------------------------------------------------
@@ -207,18 +170,3 @@ class TestSeriesComparison(object):
             ser = Series(cidx).rename(names[1])
             result = op(ser, cidx)
             assert result.name == names[2]
-
-
-def test_pow_ops_object():
-    # 22922
-    # pow is weird with masking & 1, so testing here
-    a = Series([1, np.nan, 1, np.nan], dtype=object)
-    b = Series([1, np.nan, np.nan, 1], dtype=object)
-    result = a ** b
-    expected = Series(a.values ** b.values, dtype=object)
-    tm.assert_series_equal(result, expected)
-
-    result = b ** a
-    expected = Series(b.values ** a.values, dtype=object)
-
-    tm.assert_series_equal(result, expected)

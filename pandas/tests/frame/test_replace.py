@@ -2,22 +2,19 @@
 
 from __future__ import print_function
 
-import pytest
-
 from datetime import datetime
 import re
 
-from pandas.compat import (zip, range, lrange, StringIO)
-from pandas import (DataFrame, Series, Index, date_range, compat,
-                    Timestamp)
-import pandas as pd
-
-from numpy import nan
 import numpy as np
+from numpy import nan
+import pytest
 
-from pandas.util.testing import (assert_series_equal,
-                                 assert_frame_equal)
+from pandas.compat import StringIO, lrange, range, zip
+
+import pandas as pd
+from pandas import DataFrame, Index, Series, Timestamp, compat, date_range
 from pandas.tests.frame.common import TestData
+from pandas.util.testing import assert_frame_equal, assert_series_equal
 
 
 class TestDataFrameReplace(TestData):

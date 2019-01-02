@@ -9,7 +9,8 @@ import pandas as pd
 from pandas.compat import PY37
 from pandas import (Index, MultiIndex, CategoricalIndex,
                     DataFrame, Categorical, Series, qcut)
-from pandas.util.testing import assert_frame_equal, assert_series_equal
+from pandas.util.testing import (assert_equal,
+                                 assert_frame_equal, assert_series_equal)
 import pandas.util.testing as tm
 
 
@@ -860,3 +861,41 @@ def test_groupby_multiindex_categorical_datetime():
     expected = pd.DataFrame(
         {'values': [0, 4, 8, 3, 4, 5, 6, np.nan, 2]}, index=idx)
     assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize("as_index, expected", [
+    (True, pd.Series(
+        index=pd.MultiIndex.from_arrays(
+            [pd.Series([1, 1, 2], dtype='category'),
+                [1, 2, 2]], names=['a', 'b']
+        ),
+        data=[1, 2, 3], name='x'
+    )),
+    (False, pd.DataFrame({
+        'a': pd.Series([1, 1, 2], dtype='category'),
+        'b': [1, 2, 2],
+        'x': [1, 2, 3]
+    }))
+])
+def test_groupby_agg_observed_true_single_column(as_index, expected):
+    # GH-23970
+    df = pd.DataFrame({
+        'a': pd.Series([1, 1, 2], dtype='category'),
+        'b': [1, 2, 2],
+        'x': [1, 2, 3]
+    })
+
+    result = df.groupby(
+        ['a', 'b'], as_index=as_index, observed=True)['x'].sum()
+
+    assert_equal(result, expected)
+
+
+@pytest.mark.parametrize('fill_value', [None, np.nan, pd.NaT])
+def test_shift(fill_value):
+    ct = pd.Categorical(['a', 'b', 'c', 'd'],
+                        categories=['a', 'b', 'c', 'd'], ordered=False)
+    expected = pd.Categorical([None, 'a', 'b', 'c'],
+                              categories=['a', 'b', 'c', 'd'], ordered=False)
+    res = ct.shift(1, fill_value=fill_value)
+    assert_equal(res, expected)

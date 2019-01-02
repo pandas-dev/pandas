@@ -1,8 +1,9 @@
 import pytest
 
+import pandas.util._test_decorators as td
+
 import pandas as pd
 import pandas.util.testing as tm
-import pandas.util._test_decorators as td
 from pandas.util.testing import assert_frame_equal
 
 
