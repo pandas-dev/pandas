@@ -39,16 +39,13 @@ def read_sas(filepath_or_buffer, format=None, index=None, encoding=None,
         filepath_or_buffer = _stringify_path(filepath_or_buffer)
         if not isinstance(filepath_or_buffer, compat.string_types):
             raise ValueError(buffer_error_msg)
-        try:
-            fname = filepath_or_buffer.lower()
-            if fname.endswith(".xpt"):
-                format = "xport"
-            elif fname.endswith(".sas7bdat"):
-                format = "sas7bdat"
-            else:
-                raise ValueError("unable to infer format of SAS file")
-        except ValueError:
-            raise
+        fname = filepath_or_buffer.lower()
+        if fname.endswith(".xpt"):
+            format = "xport"
+        elif fname.endswith(".sas7bdat"):
+            format = "sas7bdat"
+        else:
+            raise ValueError("unable to infer format of SAS file")
 
     if format.lower() == 'xport':
         from pandas.io.sas.sas_xport import XportReader
