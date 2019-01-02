@@ -1937,7 +1937,7 @@ def pandas_dtype(dtype):
         return dtype
 
     # registered extension types
-    result = _pandas_registry.find(dtype) or registry.find(dtype)
+    result = registry.find(dtype)
     if result is not None:
         return result
 

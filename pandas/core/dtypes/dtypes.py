@@ -479,7 +479,8 @@ class CategoricalDtype(PandasExtensionDtype, ExtensionDtype):
         return is_bool_dtype(self.categories)
 
 
-class DatetimeTZDtype(PandasExtensionDtype):
+@register_extension_dtype
+class DatetimeTZDtype(PandasExtensionDtype, ExtensionDtype):
 
     """
     A np.dtype duck-typed class, suitable for holding a custom datetime with tz
@@ -493,6 +494,7 @@ class DatetimeTZDtype(PandasExtensionDtype):
     str = '|M8[ns]'
     num = 101
     base = np.dtype('M8[ns]')
+    na_value = NaT
     _metadata = ('unit', 'tz')
     _match = re.compile(r"(datetime64|M8)\[(?P<unit>.+), (?P<tz>.+)\]")
     _cache = {}
@@ -570,8 +572,8 @@ class DatetimeTZDtype(PandasExtensionDtype):
         -------
         type
         """
-        from pandas import DatetimeIndex
-        return DatetimeIndex
+        from pandas.core.arrays import DatetimeArrayMixin
+        return DatetimeArrayMixin
 
     @classmethod
     def construct_from_string(cls, string):
@@ -885,10 +887,3 @@ class IntervalDtype(PandasExtensionDtype, ExtensionDtype):
             else:
                 return False
         return super(IntervalDtype, cls).is_dtype(dtype)
-
-
-# TODO(Extension): remove the second registry once all internal extension
-# dtypes are real extension dtypes.
-_pandas_registry = Registry()
-
-_pandas_registry.register(DatetimeTZDtype)

@@ -17,11 +17,12 @@ from pandas.core.dtypes.common import (
     _NS_DTYPE, ensure_int64, is_float, is_integer, is_list_like, is_scalar,
     is_string_like)
 import pandas.core.dtypes.concat as _concat
+from pandas.core.dtypes.dtypes import DatetimeTZDtype
 from pandas.core.dtypes.missing import isna
 
 from pandas.core.accessor import delegate_names
 from pandas.core.arrays.datetimes import (
-    DatetimeArrayMixin as DatetimeArray, _to_m8)
+    DatetimeArrayMixin as DatetimeArray, _to_m8, validate_tz_from_dtype)
 from pandas.core.base import _shared_docs
 import pandas.core.common as com
 from pandas.core.indexes.base import Index
@@ -40,10 +41,6 @@ def _new_DatetimeIndex(cls, d):
     """ This is called upon unpickling, rather than the default which doesn't
     have arguments and breaks __new__ """
 
-    # data are already in UTC
-    # so need to localize
-    tz = d.pop('tz', None)
-
     if "data" in d and not isinstance(d["data"], DatetimeIndex):
         # Avoid need to verify integrity by calling simple_new directly
         data = d.pop("data")
@@ -56,8 +53,6 @@ def _new_DatetimeIndex(cls, d):
             warnings.simplefilter("ignore")
             result = cls.__new__(cls, verify_integrity=False, **d)
 
-    if tz is not None:
-        result = result.tz_localize('UTC').tz_convert(tz)
     return result
 
 
@@ -306,7 +301,7 @@ class DatetimeIndex(DatetimeIndexOpsMixin, Int64Index, DatetimeDelegateMixin):
             data, dtype=dtype, copy=copy, tz=tz, freq=freq,
             dayfirst=dayfirst, yearfirst=yearfirst, ambiguous=ambiguous)
 
-        subarr = cls._simple_new(dtarr._data, name=name,
+        subarr = cls._simple_new(dtarr, name=name,
                                  freq=dtarr.freq, tz=dtarr.tz)
         return subarr
 
@@ -317,20 +312,28 @@ class DatetimeIndex(DatetimeIndexOpsMixin, Int64Index, DatetimeDelegateMixin):
         if we are passed a non-dtype compat, then coerce using the constructor
         """
         if isinstance(values, DatetimeArray):
-            values = DatetimeArray(values, freq=freq, tz=tz, dtype=dtype)
+            if tz:
+                tz = validate_tz_from_dtype(dtype, tz)
+                dtype = DatetimeTZDtype(tz=tz)
+            elif dtype is None:
+                dtype = _NS_DTYPE
+
+            values = DatetimeArray(values, freq=freq, dtype=dtype)
             tz = values.tz
             freq = values.freq
             values = values._data
 
         # DatetimeArray._simple_new will accept either i8 or M8[ns] dtypes
-        assert isinstance(values, np.ndarray), type(values)
-
+        if isinstance(values, DatetimeIndex):
+            values = values._data
         dtarr = DatetimeArray._simple_new(values, freq=freq, tz=tz)
+        assert isinstance(dtarr, DatetimeArray)
+
         result = object.__new__(cls)
-        result._eadata = dtarr
+        result._data = dtarr
         result.name = name
         # For groupby perf. See note in indexes/base about _index_data
-        result._index_data = result._data
+        result._index_data = dtarr._data
         result._reset_identity()
         return result
 
@@ -341,13 +344,17 @@ class DatetimeIndex(DatetimeIndexOpsMixin, Int64Index, DatetimeDelegateMixin):
         return self._eadata.dtype
 
     @property
-    def _values(self):
-        # tz-naive -> ndarray
-        # tz-aware -> DatetimeIndex
-        if self.tz is not None:
-            return self._eadata
-        else:
-            return self.values
+    def tz(self):
+        # GH 18595
+        return self._eadata.tz
+
+    @tz.setter
+    def tz(self, value):
+        # GH 3746: Prevent localizing or converting the index by setting tz
+        raise AttributeError("Cannot directly set timezone. Use tz_localize() "
+                             "or tz_convert() as appropriate")
+
+    tzinfo = tz
 
     @property
     def size(self):
@@ -418,7 +425,7 @@ class DatetimeIndex(DatetimeIndexOpsMixin, Int64Index, DatetimeDelegateMixin):
                 np.ndarray.__setstate__(data, state)
                 dtarr = DatetimeArray(data)
 
-            self._eadata = dtarr
+            self._data = dtarr
             self._reset_identity()
 
         else:
@@ -596,8 +603,6 @@ class DatetimeIndex(DatetimeIndexOpsMixin, Int64Index, DatetimeDelegateMixin):
 
     def _wrap_setop_result(self, other, result):
         name = get_op_result_name(self, other)
-        if not timezones.tz_compare(self.tz, other.tz):
-            raise ValueError('Passed item and index have different timezone')
         return self._shallow_copy(result, name=name, freq=None, tz=self.tz)
 
     def intersection(self, other):
@@ -1128,22 +1133,6 @@ class DatetimeIndex(DatetimeIndexOpsMixin, Int64Index, DatetimeDelegateMixin):
     # --------------------------------------------------------------------
     # Wrapping DatetimeArray
 
-    @property
-    def _data(self):
-        return self._eadata._data
-
-    @property
-    def tz(self):
-        # GH#18595
-        return self._eadata.tz
-
-    @tz.setter
-    def tz(self, value):
-        # GH#3746; DatetimeArray will raise to disallow setting
-        self._eadata.tz = value
-
-    tzinfo = tz
-
     # Compat for frequency inference, see GH#23789
     _is_monotonic_increasing = Index.is_monotonic_increasing
     _is_monotonic_decreasing = Index.is_monotonic_decreasing
@@ -1536,7 +1525,7 @@ def date_range(start=None, end=None, periods=None, freq=None, tz=None,
         freq=freq, tz=tz, normalize=normalize,
         closed=closed, **kwargs)
     return DatetimeIndex._simple_new(
-        dtarr._data, tz=dtarr.tz, freq=dtarr.freq, name=name)
+        dtarr, tz=dtarr.tz, freq=dtarr.freq, name=name)
 
 
 def bdate_range(start=None, end=None, periods=None, freq='B', tz=None,
