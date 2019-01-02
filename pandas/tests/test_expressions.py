@@ -1,23 +1,29 @@
 # -*- coding: utf-8 -*-
 from __future__ import print_function
-# pylint: disable-msg=W0612,E1101
 
-from warnings import catch_warnings, simplefilter
-import re
 import operator
-import pytest
-
-from numpy.random import randn
+import re
+from warnings import catch_warnings, simplefilter
 
 import numpy as np
+from numpy.random import randn
+import pytest
 
+from pandas import _np_version_under1p13, compat
 from pandas.core.api import DataFrame, Panel
 from pandas.core.computation import expressions as expr
-from pandas import compat, _np_version_under1p13
-from pandas.util.testing import (assert_almost_equal, assert_series_equal,
-                                 assert_frame_equal, assert_panel_equal)
-from pandas.io.formats.printing import pprint_thing
 import pandas.util.testing as tm
+from pandas.util.testing import (
+    assert_almost_equal, assert_frame_equal, assert_panel_equal,
+    assert_series_equal)
+
+from pandas.io.formats.printing import pprint_thing
+
+# pylint: disable-msg=W0612,E1101
+
+
+
+
 
 
 _frame = DataFrame(randn(10000, 4), columns=list('ABCD'), dtype='float64')
