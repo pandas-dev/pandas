@@ -3051,7 +3051,9 @@ class DatetimeTZBlock(ExtensionBlock, DatetimeBlock):
             raise TypeError
         elif is_datetime64_dtype(other):
             # add the tz back
-            other = self._holder(other, dtype=self.dtype)
+            # FIXME: we shouldn't be ravelling at this point, but Otherwise
+            #  this raises on tests.frame.test_quantile.test_quantile_box
+            other = self._holder(other.ravel(), dtype=self.dtype)
 
         elif (is_null_datelike_scalar(other) or
               (lib.is_scalar(other) and isna(other))):
