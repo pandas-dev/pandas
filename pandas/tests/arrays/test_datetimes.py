@@ -17,7 +17,7 @@ import pandas.util.testing as tm
 
 class TestDatetimeArrayConstructor(object):
     def test_from_pandas_array(self):
-        arr = pd.array(np.arange(5)) * 3600 * 10**9
+        arr = pd.array(np.arange(5, dtype=np.int64)) * 3600 * 10**9
 
         result = DatetimeArray._from_sequence(arr, freq='infer')
 
