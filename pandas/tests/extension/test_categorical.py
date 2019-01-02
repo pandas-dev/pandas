@@ -237,3 +237,7 @@ class TestComparisonOps(base.BaseComparisonOpsTests):
         else:
             with pytest.raises(TypeError):
                 op(data, other)
+
+
+class TestParsing(base.BaseParsingTests):
+    pass
