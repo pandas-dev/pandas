@@ -241,7 +241,7 @@ class DatetimeArrayMixin(dtl.DatetimeLikeArrayMixin,
         return result
 
     def __init__(self, values, freq=None, tz=None, dtype=None, copy=False,
-                dayfirst=False, yearfirst=False, ambiguous='raise'):
+                 dayfirst=False, yearfirst=False, ambiguous='raise'):
         result = type(self)._from_sequence(
             values, freq=freq, tz=tz, dtype=dtype, copy=copy,
             dayfirst=dayfirst, yearfirst=yearfirst, ambiguous=ambiguous)
