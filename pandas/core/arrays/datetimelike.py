@@ -415,6 +415,13 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin,
     # Array-Like / EA-Interface Methods
 
     @property
+    def transpose(self):
+        # no-op because we are always 1-D
+        return self
+
+    T = transpose
+
+    @property
     def nbytes(self):
         return self._data.nbytes
 
