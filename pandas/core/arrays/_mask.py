@@ -13,7 +13,7 @@ class NAMask():
         mask : numpy array
             Mask of missing values.
         """
-        
+
         self._has_bitarray = False
         try:
             import bitarray
@@ -42,12 +42,28 @@ class NAMask():
 
         self._data[key] = value
 
+    def __iter__(self):
+        for i in range(len(self._data)):
+            yield self._data[i]
+
     @property
     def nbytes(self):
         if self._has_bitarray:
             return self._data.buffer_info()[1]
 
         return self._data.nbytes
+
+    def astype(self, dtype, copy=False):
+        if self._has_bitarray:
+            raise NotImplementedError
+
+        return self._data.astype(dtype, copy=copy)
+
+    def copy(self):
+        if self._has_bitarray:
+            raise NotImplementedError
+
+        return self._data.copy()
 
     def sum(self):
         if self._has_bitarray:
