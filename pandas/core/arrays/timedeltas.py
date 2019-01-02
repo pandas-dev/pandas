@@ -255,7 +255,7 @@ class TimedeltaArrayMixin(dtl.DatetimeLikeArrayMixin, dtl.TimelikeOps):
 
         return cls._simple_new(index, freq=freq)
 
-    # -----------------------------------------------------------------
+    # ----------------------------------------------------------------
     # DatetimeLike Interface
 
     def _unbox_scalar(self, value):

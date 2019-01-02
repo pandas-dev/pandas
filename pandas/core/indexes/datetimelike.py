@@ -44,7 +44,7 @@ def ea_passthrough(name):
     method
     """
     def method(self, *args, **kwargs):
-        return getattr(self._data, name)(*args, **kwargs)
+        return getattr(self._eadata, name)(*args, **kwargs)
 
     method.__name__ = name
     # TODO: docstrings
@@ -80,11 +80,12 @@ class DatetimeIndexOpsMixin(ExtensionOpsMixin):
         """
         Return the frequency object if it is set, otherwise None.
         """
-        return self._data.freq
+        return self._eadata.freq
 
     @freq.setter
     def freq(self, value):
-        self._data.freq = value
+        # validation is handled by _eadata setter
+        self._eadata.freq = value
 
     @property
     def freqstr(self):
@@ -132,12 +133,12 @@ class DatetimeIndexOpsMixin(ExtensionOpsMixin):
     def values(self):
         # type: () -> np.ndarray
         # Note: PeriodArray overrides this to return an ndarray of objects.
-        return self._data._data
+        return self._eadata._data
 
     @property
     @Appender(DatetimeLikeArrayMixin.asi8.__doc__)
     def asi8(self):
-        return self._data.asi8
+        return self._eadata.asi8
 
     # ------------------------------------------------------------------------
 
@@ -743,16 +744,16 @@ class DatetimelikeDelegateMixin(PandasDelegate):
         raise AbstractMethodError
 
     def _delegate_property_get(self, name, *args, **kwargs):
-        result = getattr(self._data, name)
+        result = getattr(self._eadata, name)
         if name not in self._raw_properties:
             result = Index(result, name=self.name)
         return result
 
     def _delegate_property_set(self, name, value, *args, **kwargs):
-        setattr(self._data, name, value)
+        setattr(self._eadata, name, value)
 
     def _delegate_method(self, name, *args, **kwargs):
-        result = operator.methodcaller(name, *args, **kwargs)(self._data)
+        result = operator.methodcaller(name, *args, **kwargs)(self._eadata)
         if name not in self._raw_methods:
             result = Index(result, name=self.name)
         return result
