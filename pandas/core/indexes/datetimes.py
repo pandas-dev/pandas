@@ -40,10 +40,6 @@ def _new_DatetimeIndex(cls, d):
     """ This is called upon unpickling, rather than the default which doesn't
     have arguments and breaks __new__ """
 
-    # data are already in UTC
-    # so need to localize
-    tz = d.pop('tz', None)
-
     if "data" in d and not isinstance(d["data"], DatetimeIndex):
         # Avoid need to verify integrity by calling simple_new directly
         data = d.pop("data")
@@ -56,8 +52,6 @@ def _new_DatetimeIndex(cls, d):
             warnings.simplefilter("ignore")
             result = cls.__new__(cls, verify_integrity=False, **d)
 
-    if tz is not None:
-        result = result.tz_localize('UTC').tz_convert(tz)
     return result
 
 
@@ -327,7 +321,7 @@ class DatetimeIndex(DatetimeIndexOpsMixin, Int64Index, DatetimeDelegateMixin):
 
         dtarr = DatetimeArray._simple_new(values, freq=freq, tz=tz)
         result = object.__new__(cls)
-        result._eadata = dtarr
+        result._data = dtarr
         result.name = name
         # For groupby perf. See note in indexes/base about _index_data
         # TODO: make sure this is updated correctly if edited
@@ -419,7 +413,7 @@ class DatetimeIndex(DatetimeIndexOpsMixin, Int64Index, DatetimeDelegateMixin):
                 np.ndarray.__setstate__(data, state)
                 dtarr = DatetimeArray(data)
 
-            self._eadata = dtarr
+            self._data = dtarr
             self._reset_identity()
 
         else:
@@ -1128,10 +1122,6 @@ class DatetimeIndex(DatetimeIndexOpsMixin, Int64Index, DatetimeDelegateMixin):
 
     # --------------------------------------------------------------------
     # Wrapping DatetimeArray
-
-    @property
-    def _data(self):
-        return self._eadata._data
 
     @property
     def tz(self):

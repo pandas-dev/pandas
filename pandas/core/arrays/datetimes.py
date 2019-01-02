@@ -240,11 +240,14 @@ class DatetimeArrayMixin(dtl.DatetimeLikeArrayMixin,
         result._dtype = dtype
         return result
 
-    def __new__(cls, values, freq=None, tz=None, dtype=None, copy=False,
-                dayfirst=False, yearfirst=False, ambiguous='raise'):
-        return cls._from_sequence(
+    def __init__(self, values, freq=None, tz=None, dtype=None, copy=False,
+                 dayfirst=False, yearfirst=False, ambiguous='raise'):
+        result = type(self)._from_sequence(
             values, freq=freq, tz=tz, dtype=dtype, copy=copy,
             dayfirst=dayfirst, yearfirst=yearfirst, ambiguous=ambiguous)
+        self._data = result._data
+        self._freq = result._freq
+        self._dtype = result._dtype
 
     @classmethod
     def _from_sequence(cls, data, dtype=None, copy=False,
@@ -1573,6 +1576,10 @@ def sequence_to_dt64ns(data, dtype=None, copy=False,
         # i.e. DatetimeArray/Index
         inferred_freq = data.freq
 
+    if isinstance(data, ABCIndexClass):
+        # need to unpack this after extracking `freq`
+        data = data._values
+
     # if dtype has an embedded tz, capture it
     tz = validate_tz_from_dtype(dtype, tz)
 
@@ -1594,7 +1601,7 @@ def sequence_to_dt64ns(data, dtype=None, copy=False,
 
     if is_datetime64tz_dtype(data):
         tz = maybe_infer_tz(tz, data.tz)
-        result = data._data
+        result = np.asarray(data._data)
 
     elif is_datetime64_dtype(data):
         # tz-naive DatetimeArray/Index or ndarray[datetime64]

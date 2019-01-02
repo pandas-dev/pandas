@@ -159,8 +159,11 @@ class TimedeltaArrayMixin(dtl.DatetimeLikeArrayMixin, dtl.TimelikeOps):
         result._freq = freq
         return result
 
-    def __new__(cls, values, freq=None, dtype=_TD_DTYPE, copy=False):
-        return cls._from_sequence(values, dtype=dtype, copy=copy, freq=freq)
+    def __init__(self, values, freq=None, dtype=_TD_DTYPE, copy=False):
+        result = type(self)._from_sequence(values, dtype=dtype,
+                                           copy=copy, freq=freq)
+        self._data = result._data
+        self._freq = result._freq
 
     @classmethod
     def _from_sequence(cls, data, dtype=_TD_DTYPE, copy=False,

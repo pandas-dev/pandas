@@ -35,7 +35,8 @@ from pandas.core.dtypes.missing import (
 
 import pandas.core.algorithms as algos
 from pandas.core.arrays import (
-    Categorical, DatetimeArrayMixin as DatetimeArray, ExtensionArray)
+    Categorical, DatetimeArrayMixin as DatetimeArray, ExtensionArray,
+    TimedeltaArrayMixin as TimedeltaArray)
 from pandas.core.base import PandasObject
 import pandas.core.common as com
 from pandas.core.indexes.datetimes import DatetimeIndex
@@ -2198,7 +2199,9 @@ class TimeDeltaBlock(DatetimeLikeBlockMixin, IntBlock):
     def __init__(self, values, placement, ndim=None):
         if values.dtype != _TD_DTYPE:
             values = conversion.ensure_timedelta64ns(values)
-
+        if isinstance(values, TimedeltaArray):
+            values = values._data
+        assert isinstance(values, np.ndarray), type(values)
         super(TimeDeltaBlock, self).__init__(values,
                                              placement=placement, ndim=ndim)
 
@@ -2298,6 +2301,9 @@ class TimeDeltaBlock(DatetimeLikeBlockMixin, IntBlock):
                                         for val in values.ravel()[imask]],
                                        dtype=object)
         return rvalues
+
+    def external_values(self, dtype=None):
+        return np.asarray(self.values.astype("timedelta64[ns]", copy=False))
 
 
 class BoolBlock(NumericBlock):

@@ -414,6 +414,10 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin,
     # ----------------------------------------------------------------
     # Array-Like / EA-Interface Methods
 
+    def ravel(self, method=None):
+        # no-op because we are always 1-D
+        return self
+
     @property
     def nbytes(self):
         return self._data.nbytes

@@ -227,15 +227,16 @@ class TimedeltaIndex(DatetimeIndexOpsMixin,
         #  be timedelta64[ns] if present
         assert dtype == _TD_DTYPE
 
-        assert isinstance(values, np.ndarray), type(values)
+        assert isinstance(values, (np.ndarray, TimedeltaArray)), type(values)
         if values.dtype == 'i8':
             values = values.view('m8[ns]')
         assert values.dtype == 'm8[ns]', values.dtype
 
         freq = to_offset(freq)
-        tdarr = TimedeltaArray._simple_new(values, freq=freq)
+        tdarr = TimedeltaArray._simple_new(getattr(values, '_data', values),
+                                           freq=freq)
         result = object.__new__(cls)
-        result._eadata = tdarr
+        result._data = tdarr
         result.name = name
         # For groupby perf. See note in indexes/base about _index_data
         # TODO: make sure this is updated correctly if edited
@@ -280,8 +281,9 @@ class TimedeltaIndex(DatetimeIndexOpsMixin,
     # Wrapping TimedeltaArray
 
     @property
-    def _data(self):
-        return self._eadata._data
+    def _values(self):
+        # Note: without this TimedeltaIndex union ops break
+        return self._data._data
 
     __mul__ = _make_wrapped_arith_op("__mul__")
     __rmul__ = _make_wrapped_arith_op("__rmul__")
