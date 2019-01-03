@@ -1968,7 +1968,7 @@ documentation sections for more on each type.
 =================== ========================= ================== ============================= =============================
 Kind of Data        Data Type                 Scalar             Array                         Documentation
 =================== ========================= ================== ============================= =============================
-tz-aware datetime   :class:`DatetimeArray`    :class:`Timestamp` :class:`arrays.DatetimeArray` :ref:`timeseries.timezone`
+tz-aware datetime   :class:`DatetimeTZDtype`  :class:`Timestamp` :class:`arrays.DatetimeArray` :ref:`timeseries.timezone`
 Categorical         :class:`CategoricalDtype` (none)             :class:`Categorical`          :ref:`categorical`
 period (time spans) :class:`PeriodDtype`      :class:`Period`    :class:`arrays.PeriodArray`   :ref:`timeseries.periods`
 sparse              :class:`SparseDtype`      (none)             :class:`arrays.SparseArray`   :ref:`sparse`

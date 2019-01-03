@@ -456,92 +456,6 @@ Pandas and third-party libraries can extend NumPy's type system (see :ref:`exten
 
    array
 
-.. _api.categorical:
-
-Categorical
-~~~~~~~~~~~
-
-Pandas defines a custom data type for representing data that can take only a
-limited, fixed set of values. The dtype of a ``Categorical`` can be described by
-a :class:`pandas.api.types.CategoricalDtype`.
-
-.. autosummary::
-   :toctree: generated/
-   :template: autosummary/class_without_autosummary.rst
-
-   api.types.CategoricalDtype
-
-.. autosummary::
-   :toctree: generated/
-
-   api.types.CategoricalDtype.categories
-   api.types.CategoricalDtype.ordered
-
-Categorical data can be stored in a :class:`pandas.Categorical`
-
-.. autosummary::
-   :toctree: generated/
-   :template: autosummary/class_without_autosummary.rst
-
-   Categorical
-
-The alternative :meth:`Categorical.from_codes` constructor can be used when you
-have the categories and integer codes already:
-
-.. autosummary::
-   :toctree: generated/
-
-   Categorical.from_codes
-
-The dtype information is available on the ``Categorical``
-
-.. autosummary::
-   :toctree: generated/
-
-   Categorical.dtype
-   Categorical.categories
-   Categorical.ordered
-   Categorical.codes
-
-``np.asarray(categorical)`` works by implementing the array interface. Be aware, that this converts
-the Categorical back to a NumPy array, so categories and order information is not preserved!
-
-.. autosummary::
-   :toctree: generated/
-
-   Categorical.__array__
-
-A ``Categorical`` can be stored in a ``Series`` or ``DataFrame``.
-To create a Series of dtype ``category``, use ``cat = s.astype(dtype)`` or
-``Series(..., dtype=dtype)`` where ``dtype`` is either
-
-* the string ``'category'``
-* an instance of :class:`~pandas.api.types.CategoricalDtype`.
-
-If the Series is of dtype ``CategoricalDtype``, ``Series.cat`` can be used to change the categorical
-data. This accessor is similar to the ``Series.dt`` or ``Series.str`` and has the
-following usable methods and properties:
-
-.. autosummary::
-   :toctree: generated/
-   :template: autosummary/accessor_attribute.rst
-
-   Series.cat.categories
-   Series.cat.ordered
-   Series.cat.codes
-
-.. autosummary::
-   :toctree: generated/
-   :template: autosummary/accessor_method.rst
-
-   Series.cat.rename_categories
-   Series.cat.reorder_categories
-   Series.cat.add_categories
-   Series.cat.remove_categories
-   Series.cat.remove_unused_categories
-   Series.cat.set_categories
-   Series.cat.as_ordered
-   Series.cat.as_unordered
 
 Plotting
 --------
@@ -594,8 +508,6 @@ Serialization / IO / Conversion
    Series.to_clipboard
    Series.to_latex
 
-Sparse
-------
 .. autosummary::
    :toctree: generated/
 
