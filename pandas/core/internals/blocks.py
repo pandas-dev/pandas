@@ -2676,7 +2676,7 @@ class ObjectBlock(Block):
 
         if args:
             raise NotImplementedError
-        by_item = True if 'by_item' not in kwargs else kwargs['by_item']
+        by_item = kwargs.get('by_item', True)
 
         new_inputs = ['coerce', 'datetime', 'numeric', 'timedelta']
         new_style = False
