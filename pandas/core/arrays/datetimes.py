@@ -34,7 +34,7 @@ from pandas.tseries.offsets import Day, Tick
 _midnight = time(0, 0)
 
 
-def _to_m8(key, tz=None):
+def _to_M8(key, tz=None):
     """
     Timestamp-like => dt64
     """
@@ -96,7 +96,6 @@ def _dt_array_cmp(cls, op):
     nat_result = True if opname == '__ne__' else False
 
     def wrapper(self, other):
-        meth = getattr(dtl.DatetimeLikeArrayMixin, opname)
         # TODO: return NotImplemented for Series / Index and let pandas unbox
         # Right now, returning NotImplemented for Index fails because we
         # go into the index implementation, which may be a bug?
@@ -109,7 +108,7 @@ def _dt_array_cmp(cls, op):
                 self._assert_tzawareness_compat(other)
 
             try:
-                other = _to_m8(other, tz=self.tz)
+                other = _to_M8(other, tz=self.tz)
             except ValueError:
                 # string that cannot be parsed to Timestamp
                 return ops.invalid_comparison(self, other, op)
@@ -158,7 +157,7 @@ def _dt_array_cmp(cls, op):
                     # or an object-dtype ndarray
                     other = type(self)._from_sequence(other)
 
-                result = meth(self, other)
+                result = op(self.view('i8'), other.view('i8'))
                 o_mask = other._isnan
 
             result = com.values_from_object(result)
