@@ -16,8 +16,6 @@ from pandas.tests.reshape.merge.test_merge import NGROUPS, N, get_test_data
 import pandas.util.testing as tm
 from pandas.util.testing import assert_frame_equal
 
-a_ = np.array
-
 
 @pytest.mark.filterwarnings("ignore:\\nPanel:FutureWarning")
 class TestJoin(object):
@@ -45,8 +43,8 @@ class TestJoin(object):
                                 index=data['C'])
 
     def test_cython_left_outer_join(self):
-        left = a_([0, 1, 2, 1, 2, 0, 0, 1, 2, 3, 3], dtype=np.int64)
-        right = a_([1, 1, 0, 4, 2, 2, 1], dtype=np.int64)
+        left = np.array([0, 1, 2, 1, 2, 0, 0, 1, 2, 3, 3], dtype=np.int64)
+        right = np.array([1, 1, 0, 4, 2, 2, 1], dtype=np.int64)
         max_group = 5
 
         ls, rs = libjoin.left_outer_join(left, right, max_group)
@@ -54,10 +52,10 @@ class TestJoin(object):
         exp_ls = left.argsort(kind='mergesort')
         exp_rs = right.argsort(kind='mergesort')
 
-        exp_li = a_([0, 1, 2, 3, 3, 3, 4, 4, 4, 5, 5, 5,
-                     6, 6, 7, 7, 8, 8, 9, 10])
-        exp_ri = a_([0, 0, 0, 1, 2, 3, 1, 2, 3, 1, 2, 3,
-                     4, 5, 4, 5, 4, 5, -1, -1])
+        exp_li = np.array([0, 1, 2, 3, 3, 3, 4, 4, 4, 5, 5, 5,
+                           6, 6, 7, 7, 8, 8, 9, 10])
+        exp_ri = np.array([0, 0, 0, 1, 2, 3, 1, 2, 3, 1, 2, 3,
+                           4, 5, 4, 5, 4, 5, -1, -1])
 
         exp_ls = exp_ls.take(exp_li)
         exp_ls[exp_li == -1] = -1
@@ -69,8 +67,8 @@ class TestJoin(object):
         tm.assert_numpy_array_equal(rs, exp_rs, check_dtype=False)
 
     def test_cython_right_outer_join(self):
-        left = a_([0, 1, 2, 1, 2, 0, 0, 1, 2, 3, 3], dtype=np.int64)
-        right = a_([1, 1, 0, 4, 2, 2, 1], dtype=np.int64)
+        left = np.array([0, 1, 2, 1, 2, 0, 0, 1, 2, 3, 3], dtype=np.int64)
+        right = np.array([1, 1, 0, 4, 2, 2, 1], dtype=np.int64)
         max_group = 5
 
         rs, ls = libjoin.left_outer_join(right, left, max_group)
@@ -78,12 +76,12 @@ class TestJoin(object):
         exp_ls = left.argsort(kind='mergesort')
         exp_rs = right.argsort(kind='mergesort')
 
-        #            0        1        1        1
-        exp_li = a_([0, 1, 2, 3, 4, 5, 3, 4, 5, 3, 4, 5,
-                     #            2        2        4
-                     6, 7, 8, 6, 7, 8, -1])
-        exp_ri = a_([0, 0, 0, 1, 1, 1, 2, 2, 2, 3, 3, 3,
-                     4, 4, 4, 5, 5, 5, 6])
+        #                  0        1        1        1
+        exp_li = np.array([0, 1, 2, 3, 4, 5, 3, 4, 5, 3, 4, 5,
+                           #            2        2        4
+                           6, 7, 8, 6, 7, 8, -1])
+        exp_ri = np.array([0, 0, 0, 1, 1, 1, 2, 2, 2, 3, 3, 3,
+                           4, 4, 4, 5, 5, 5, 6])
 
         exp_ls = exp_ls.take(exp_li)
         exp_ls[exp_li == -1] = -1
@@ -95,8 +93,8 @@ class TestJoin(object):
         tm.assert_numpy_array_equal(rs, exp_rs, check_dtype=False)
 
     def test_cython_inner_join(self):
-        left = a_([0, 1, 2, 1, 2, 0, 0, 1, 2, 3, 3], dtype=np.int64)
-        right = a_([1, 1, 0, 4, 2, 2, 1, 4], dtype=np.int64)
+        left = np.array([0, 1, 2, 1, 2, 0, 0, 1, 2, 3, 3], dtype=np.int64)
+        right = np.array([1, 1, 0, 4, 2, 2, 1, 4], dtype=np.int64)
         max_group = 5
 
         ls, rs = libjoin.inner_join(left, right, max_group)
@@ -104,10 +102,10 @@ class TestJoin(object):
         exp_ls = left.argsort(kind='mergesort')
         exp_rs = right.argsort(kind='mergesort')
 
-        exp_li = a_([0, 1, 2, 3, 3, 3, 4, 4, 4, 5, 5, 5,
-                     6, 6, 7, 7, 8, 8])
-        exp_ri = a_([0, 0, 0, 1, 2, 3, 1, 2, 3, 1, 2, 3,
-                     4, 5, 4, 5, 4, 5])
+        exp_li = np.array([0, 1, 2, 3, 3, 3, 4, 4, 4, 5, 5, 5,
+                           6, 6, 7, 7, 8, 8])
+        exp_ri = np.array([0, 0, 0, 1, 2, 3, 1, 2, 3, 1, 2, 3,
+                           4, 5, 4, 5, 4, 5])
 
         exp_ls = exp_ls.take(exp_li)
         exp_ls[exp_li == -1] = -1
@@ -700,8 +698,10 @@ class TestJoin(object):
     def test_panel_join_many(self):
         with catch_warnings(record=True):
             tm.K = 10
+            tm.strategies.K = 10
             panel = tm.makePanel()
             tm.K = 4
+            tm.strategies.K = 4
 
             panels = [panel.iloc[:2], panel.iloc[2:6], panel.iloc[6:]]
 

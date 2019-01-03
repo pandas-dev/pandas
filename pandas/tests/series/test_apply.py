@@ -10,6 +10,8 @@ import pytest
 import pandas.compat as compat
 from pandas.compat import lrange
 
+from pandas.core.dtypes.common import is_number
+
 import pandas as pd
 from pandas import DataFrame, Index, Series, isna
 from pandas.conftest import _get_cython_table_params
@@ -368,7 +370,7 @@ class TestSeriesAggregate():
         # test reducing functions in
         # pandas.core.base.SelectionMixin._cython_table
         result = series.agg(func)
-        if tm.is_number(expected):
+        if is_number(expected):
             assert np.isclose(result, expected, equal_nan=True)
         else:
             assert result == expected

@@ -65,8 +65,8 @@ class TestSeriesRepr(TestData):
         str(self.series.astype(int))
         str(self.objSeries)
 
-        str(Series(tm.randn(1000), index=np.arange(1000)))
-        str(Series(tm.randn(1000), index=np.arange(1000, 0, step=-1)))
+        str(Series(np.random.randn(1000), index=np.arange(1000)))
+        str(Series(np.random.randn(1000), index=np.arange(1000, 0, step=-1)))
 
         # empty
         str(self.empty)
@@ -89,7 +89,7 @@ class TestSeriesRepr(TestData):
             self.series.name = name
             repr(self.series)
 
-        biggie = Series(tm.randn(1000), index=np.arange(1000),
+        biggie = Series(np.random.randn(1000), index=np.arange(1000),
                         name=('foo', 'bar', 'baz'))
         repr(biggie)
 

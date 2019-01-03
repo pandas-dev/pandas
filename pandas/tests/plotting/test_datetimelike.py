@@ -316,8 +316,10 @@ class TestTSPlot(TestPlotBase):
     def test_business_freq_convert(self):
         n = tm.N
         tm.N = 300
+        tm.strategies.N = 300
         bts = tm.makeTimeSeries().asfreq('BM')
         tm.N = n
+        tm.strategies.N = n
         ts = bts.to_period('M')
         _, ax = self.plt.subplots()
         bts.plot(ax=ax)
