@@ -36,8 +36,8 @@ from pandas import (
     IntervalIndex, MultiIndex, Panel, RangeIndex, Series, bdate_range)
 from pandas.core.algorithms import take_1d
 from pandas.core.arrays import (
-    DatetimeArray, ExtensionArray, IntervalArray, PeriodArray,
-    TimedeltaArrayMixin as TimedeltaArray, period_array)
+    DatetimeArray, ExtensionArray, IntervalArray, PeriodArray, TimedeltaArray,
+    period_array)
 import pandas.core.common as com
 
 from pandas.io.common import urlopen

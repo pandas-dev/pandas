@@ -1981,7 +1981,7 @@ class TestDatetimeIndexArithmetic(object):
         result = dti - tdi
         tm.assert_index_equal(result, expected)
 
-        msg = 'cannot subtract .*TimedeltaArrayMixin'
+        msg = 'cannot subtract .*TimedeltaArray'
         with pytest.raises(TypeError, match=msg):
             tdi - dti
 
@@ -2005,7 +2005,7 @@ class TestDatetimeIndexArithmetic(object):
         result -= tdi
         tm.assert_index_equal(result, expected)
 
-        msg = 'cannot subtract .* from a TimedeltaArrayMixin'
+        msg = 'cannot subtract .* from a TimedeltaArray'
         with pytest.raises(TypeError, match=msg):
             tdi -= dti
 

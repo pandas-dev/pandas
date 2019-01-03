@@ -5,8 +5,7 @@ import pytest
 import pandas.compat as compat
 
 import pandas as pd
-from pandas.core.arrays import (
-    DatetimeArray, PeriodArray, TimedeltaArrayMixin as TimedeltaArray)
+from pandas.core.arrays import DatetimeArray, PeriodArray, TimedeltaArray
 import pandas.util.testing as tm
 
 

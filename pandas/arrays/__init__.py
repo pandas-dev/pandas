@@ -7,7 +7,7 @@ from pandas.core.arrays import (
     IntervalArray, PeriodArray, Categorical, SparseArray, IntegerArray,
     PandasArray,
     DatetimeArray,
-    TimedeltaArrayMixin as TimedeltaArray,
+    TimedeltaArray,
 )
 
 

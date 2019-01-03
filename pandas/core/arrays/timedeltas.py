@@ -102,7 +102,7 @@ def _td_array_cmp(cls, op):
     return compat.set_function_name(wrapper, opname, cls)
 
 
-class TimedeltaArrayMixin(dtl.DatetimeLikeArrayMixin, dtl.TimelikeOps):
+class TimedeltaArray(dtl.DatetimeLikeArrayMixin, dtl.TimelikeOps):
     _typ = "timedeltaarray"
     _scalar_type = Timedelta
     __array_priority__ = 1000
@@ -348,7 +348,7 @@ class TimedeltaArrayMixin(dtl.DatetimeLikeArrayMixin, dtl.TimelikeOps):
         -------
         result : TimedeltaArray
         """
-        new_values = super(TimedeltaArrayMixin, self)._add_delta(delta)
+        new_values = super(TimedeltaArray, self)._add_delta(delta)
         return type(self)._from_sequence(new_values, freq='infer')
 
     def _add_datetime_arraylike(self, other):
@@ -388,7 +388,7 @@ class TimedeltaArrayMixin(dtl.DatetimeLikeArrayMixin, dtl.TimelikeOps):
             # TimedeltaIndex can only operate with a subset of DateOffset
             # subclasses.  Incompatible classes will raise AttributeError,
             # which we re-raise as TypeError
-            return super(TimedeltaArrayMixin, self)._addsub_offset_array(
+            return super(TimedeltaArray, self)._addsub_offset_array(
                 other, op
             )
         except AttributeError:
@@ -813,7 +813,7 @@ class TimedeltaArrayMixin(dtl.DatetimeLikeArrayMixin, dtl.TimelikeOps):
         return result
 
 
-TimedeltaArrayMixin._add_comparison_ops()
+TimedeltaArray._add_comparison_ops()
 
 
 # ---------------------------------------------------------------------
@@ -860,7 +860,7 @@ def sequence_to_td64ns(data, copy=False, unit="ns", errors="raise"):
         data = np.array(data, copy=False)
     elif isinstance(data, ABCSeries):
         data = data._values
-    elif isinstance(data, (ABCTimedeltaIndex, TimedeltaArrayMixin)):
+    elif isinstance(data, (ABCTimedeltaIndex, TimedeltaArray)):
         inferred_freq = data.freq
         data = data._data
 

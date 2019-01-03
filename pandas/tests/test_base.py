@@ -23,8 +23,7 @@ from pandas import (
     CategoricalIndex, DataFrame, DatetimeIndex, Index, Interval, IntervalIndex,
     Panel, PeriodIndex, Series, Timedelta, TimedeltaIndex, Timestamp)
 from pandas.core.accessor import PandasDelegate
-from pandas.core.arrays import (
-    DatetimeArray, PandasArray, TimedeltaArrayMixin as TimedeltaArray)
+from pandas.core.arrays import DatetimeArray, PandasArray, TimedeltaArray
 from pandas.core.base import NoNewAttributesMixin, PandasObject
 from pandas.core.indexes.datetimelike import DatetimeIndexOpsMixin
 import pandas.util.testing as tm

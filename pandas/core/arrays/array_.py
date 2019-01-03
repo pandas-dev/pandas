@@ -185,7 +185,7 @@ def array(data,         # type: Sequence[object]
     from pandas.core.arrays import (
         period_array, ExtensionArray, IntervalArray, PandasArray,
         DatetimeArray,
-        TimedeltaArrayMixin,
+        TimedeltaArray,
     )
     from pandas.core.internals.arrays import extract_array
 
@@ -235,7 +235,7 @@ def array(data,         # type: Sequence[object]
 
         elif inferred_dtype.startswith('timedelta'):
             # timedelta, timedelta64
-            return TimedeltaArrayMixin._from_sequence(data, copy=copy)
+            return TimedeltaArray._from_sequence(data, copy=copy)
 
         # TODO(BooleanArray): handle this type
 

@@ -16,7 +16,7 @@ from pandas import (Index, MultiIndex, DataFrame, DatetimeIndex,
 from pandas.compat import OrderedDict, lrange
 from pandas.core.arrays import (
     DatetimeArray,
-    TimedeltaArrayMixin as TimedeltaArray,
+    TimedeltaArray,
 )
 from pandas.core.internals import (SingleBlockManager,
                                    make_block, BlockManager)

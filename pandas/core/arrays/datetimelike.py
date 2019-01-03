@@ -1228,9 +1228,9 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin,
             return NotImplemented
 
         if is_timedelta64_dtype(result) and isinstance(result, np.ndarray):
-            from pandas.core.arrays import TimedeltaArrayMixin
+            from pandas.core.arrays import TimedeltaArray
             # TODO: infer freq?
-            return TimedeltaArrayMixin(result)
+            return TimedeltaArray(result)
         return result
 
     def __radd__(self, other):
@@ -1295,9 +1295,9 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin,
             return NotImplemented
 
         if is_timedelta64_dtype(result) and isinstance(result, np.ndarray):
-            from pandas.core.arrays import TimedeltaArrayMixin
+            from pandas.core.arrays import TimedeltaArray
             # TODO: infer freq?
-            return TimedeltaArrayMixin(result)
+            return TimedeltaArray(result)
         return result
 
     def __rsub__(self, other):
