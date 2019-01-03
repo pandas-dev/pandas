@@ -165,7 +165,7 @@ def _ensure_arraylike(values):
     ensure that we are arraylike if not already
     """
     if not is_array_like(values):
-        inferred = lib.infer_dtype(values)
+        inferred = lib.infer_dtype(values, skipna=False)
         if inferred in ['mixed', 'string', 'unicode']:
             if isinstance(values, tuple):
                 values = list(values)
@@ -202,8 +202,10 @@ def _get_hashtable_algo(values):
 
     if ndtype == 'object':
 
-        # its cheaper to use a String Hash Table than Object
-        if lib.infer_dtype(values) in ['string']:
+        # it's cheaper to use a String Hash Table than Object; we infer
+        # including nulls because that is the only difference between
+        # StringHashTable and ObjectHashtable
+        if lib.infer_dtype(values, skipna=False) in ['string']:
             ndtype = 'string'
         else:
             ndtype = 'object'
@@ -220,8 +222,10 @@ def _get_data_algo(values, func_map):
     values, dtype, ndtype = _ensure_data(values)
     if ndtype == 'object':
 
-        # its cheaper to use a String Hash Table than Object
-        if lib.infer_dtype(values) in ['string']:
+        # it's cheaper to use a String Hash Table than Object; we infer
+        # including nulls because that is the only difference between
+        # StringHashTable and ObjectHashtable
+        if lib.infer_dtype(values, skipna=False) in ['string']:
             ndtype = 'string'
 
     f = func_map.get(ndtype, func_map['object'])

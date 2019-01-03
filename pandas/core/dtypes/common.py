@@ -683,7 +683,8 @@ def is_datetime_arraylike(arr):
     if isinstance(arr, ABCDatetimeIndex):
         return True
     elif isinstance(arr, (np.ndarray, ABCSeries)):
-        return arr.dtype == object and lib.infer_dtype(arr) == 'datetime'
+        return (is_object_dtype(arr.dtype)
+                and lib.infer_dtype(arr, skipna=False) == 'datetime')
     return getattr(arr, 'inferred_type', None) == 'datetime'
 
 
