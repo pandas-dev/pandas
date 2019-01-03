@@ -13,8 +13,8 @@ from pandas.errors import AbstractMethodError
 from pandas.util._decorators import Appender, cache_readonly, deprecate_kwarg
 
 from pandas.core.dtypes.common import (
-    ensure_int64, is_bool_dtype, is_dtype_equal, is_float, is_integer,
-    is_list_like, is_period_dtype, is_scalar)
+    ensure_int64, is_dtype_equal, is_float, is_integer, is_list_like,
+    is_period_dtype, is_scalar)
 from pandas.core.dtypes.generic import ABCIndex, ABCIndexClass, ABCSeries
 
 from pandas.core import algorithms, ops
@@ -190,16 +190,6 @@ class DatetimeIndexOpsMixin(ExtensionOpsMixin):
             return results
 
         return wrapper
-
-    @Appender(DatetimeLikeArrayMixin._evaluate_compare.__doc__)
-    def _evaluate_compare(self, other, op):
-        result = self._eadata._evaluate_compare(other, op)
-        if is_bool_dtype(result):
-            return result
-        try:
-            return Index(result)
-        except TypeError:
-            return result
 
     def _ensure_localized(self, arg, ambiguous='raise', nonexistent='raise',
                           from_utc=False):
