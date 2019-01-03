@@ -20,19 +20,18 @@ from pandas.core.dtypes.generic import (
     ABCDatetimeIndex, ABCInterval, ABCIntervalIndex, ABCPeriodIndex, ABCSeries)
 from pandas.core.dtypes.missing import isna, notna
 
+from pandas.core.arrays.base import (
+    ExtensionArray, _extension_array_shared_docs)
+from pandas.core.arrays.categorical import Categorical
 import pandas.core.common as com
 from pandas.core.config import get_option
 from pandas.core.indexes.base import Index, ensure_index
 
-from . import Categorical, ExtensionArray
-
 _VALID_CLOSED = {'left', 'right', 'both', 'neither'}
 _interval_shared_docs = {}
 
-# TODO(jschendel) remove constructor key when IntervalArray is public (GH22860)
 _shared_docs_kwargs = dict(
     klass='IntervalArray',
-    constructor='pd.core.arrays.IntervalArray',
     name=''
 )
 
@@ -81,7 +80,9 @@ Methods
 from_arrays
 from_tuples
 from_breaks
+overlaps
 set_closed
+to_tuples
 %(extra_methods)s\
 
 See Also
@@ -102,7 +103,6 @@ for more.
 """
 
 
-# TODO(jschendel) use a more direct call in Examples when made public (GH22860)
 @Appender(_interval_shared_docs['class'] % dict(
     klass="IntervalArray",
     summary="Pandas array for interval data that are closed on the same side.",
@@ -116,7 +116,7 @@ for more.
     A new ``IntervalArray`` can be constructed directly from an array-like of
     ``Interval`` objects:
 
-    >>> pd.core.arrays.IntervalArray([pd.Interval(0, 1), pd.Interval(1, 5)])
+    >>> pd.IntervalArray([pd.Interval(0, 1), pd.Interval(1, 5)])
     IntervalArray([(0, 1], (1, 5]],
                   closed='right',
                   dtype='interval[int64]')
@@ -1000,35 +1000,11 @@ class IntervalArray(IntervalMixin, ExtensionArray):
             tuples = np.where(~self.isna(), tuples, np.nan)
         return tuples
 
-    def repeat(self, repeats, **kwargs):
-        """
-        Repeat elements of an IntervalArray.
-
-        Returns a new IntervalArray where each element of the current
-        IntervalArray is repeated consecutively a given number of times.
-
-        Parameters
-        ----------
-        repeats : int
-            The number of repetitions for each element.
-
-        **kwargs
-            Additional keywords have no effect but might be accepted for
-            compatibility with numpy.
-
-        Returns
-        -------
-        IntervalArray
-            Newly created IntervalArray with repeated elements.
-
-        See Also
-        --------
-        Index.repeat : Equivalent function for Index.
-        Series.repeat : Equivalent function for Series.
-        numpy.repeat : Underlying implementation.
-        """
-        left_repeat = self.left.repeat(repeats, **kwargs)
-        right_repeat = self.right.repeat(repeats, **kwargs)
+    @Appender(_extension_array_shared_docs['repeat'] % _shared_docs_kwargs)
+    def repeat(self, repeats, axis=None):
+        nv.validate_repeat(tuple(), dict(axis=axis))
+        left_repeat = self.left.repeat(repeats)
+        right_repeat = self.right.repeat(repeats)
         return self._shallow_copy(left=left_repeat, right=right_repeat)
 
     _interval_shared_docs['overlaps'] = """
@@ -1056,7 +1032,7 @@ class IntervalArray(IntervalMixin, ExtensionArray):
 
         Examples
         --------
-        >>> intervals = %(constructor)s.from_tuples([(0, 1), (1, 3), (2, 4)])
+        >>> intervals = pd.%(klass)s.from_tuples([(0, 1), (1, 3), (2, 4)])
         >>> intervals
         %(klass)s([(0, 1], (1, 3], (2, 4]],
               closed='right',

@@ -137,6 +137,17 @@ def test_cut_not_1d_arg(arg, cut_func):
         cut_func(arg, 2)
 
 
+@pytest.mark.parametrize('data', [
+    [0, 1, 2, 3, 4, np.inf],
+    [-np.inf, 0, 1, 2, 3, 4],
+    [-np.inf, 0, 1, 2, 3, 4, np.inf]])
+def test_int_bins_with_inf(data):
+    # GH 24314
+    msg = 'cannot specify integer `bins` when input data contains infinity'
+    with pytest.raises(ValueError, match=msg):
+        cut(data, bins=3)
+
+
 def test_cut_out_of_range_more():
     # see gh-1511
     name = "x"

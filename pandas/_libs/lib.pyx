@@ -49,18 +49,19 @@ cdef extern from "numpy/arrayobject.h":
 cdef extern from "src/parse_helper.h":
     int floatify(object, float64_t *result, int *maybe_int) except -1
 
-cimport util
-from util cimport is_nan, UINT64_MAX, INT64_MAX, INT64_MIN
+cimport pandas._libs.util as util
+from pandas._libs.util cimport is_nan, UINT64_MAX, INT64_MAX, INT64_MIN
 
-from tslib import array_to_datetime
-from tslibs.nattype cimport NPY_NAT
-from tslibs.nattype import NaT
-from tslibs.conversion cimport convert_to_tsobject
-from tslibs.timedeltas cimport convert_to_timedelta64
-from tslibs.timezones cimport get_timezone, tz_compare
+from pandas._libs.tslib import array_to_datetime
+from pandas._libs.tslibs.nattype cimport NPY_NAT
+from pandas._libs.tslibs.nattype import NaT
+from pandas._libs.tslibs.conversion cimport convert_to_tsobject
+from pandas._libs.tslibs.timedeltas cimport convert_to_timedelta64
+from pandas._libs.tslibs.timezones cimport get_timezone, tz_compare
 
-from missing cimport (checknull, isnaobj,
-                      is_null_datetime64, is_null_timedelta64, is_null_period)
+from pandas._libs.missing cimport (
+    checknull, isnaobj, is_null_datetime64, is_null_timedelta64, is_null_period
+)
 
 
 # constants that will be compared to potentially arbitrarily large
@@ -153,10 +154,10 @@ def is_scalar(val: object) -> bool:
     """
 
     return (cnp.PyArray_IsAnyScalar(val)
-            # As of numpy-1.9, PyArray_IsAnyScalar misses bytearrays on Py3.
-            or isinstance(val, (bytes, Fraction, Number))
-            # We differ from numpy (as of 1.10), which claims that None is
-            # not scalar in np.isscalar().
+            # PyArray_IsAnyScalar is always False for bytearrays on Py3
+            or isinstance(val, (Fraction, Number))
+            # We differ from numpy, which claims that None is not scalar;
+            # see np.isscalar
             or val is None
             or PyDate_Check(val)
             or PyDelta_Check(val)
@@ -622,7 +623,7 @@ def clean_index_list(obj: list):
         return obj, all_arrays
 
     # don't force numpy coerce with nan's
-    inferred = infer_dtype(obj)
+    inferred = infer_dtype(obj, skipna=False)
     if inferred in ['string', 'bytes', 'unicode', 'mixed', 'mixed-integer']:
         return np.asarray(obj, dtype=object), 0
     elif inferred in ['integer']:
@@ -1209,6 +1210,10 @@ def infer_dtype(value: object, skipna: bool=False) -> str:
         values = construct_1d_object_array_from_listlike(value)
 
     values = getattr(values, 'values', values)
+
+    # make contiguous
+    values = values.ravel()
+
     if skipna:
         values = values[~isnaobj(values)]
 
@@ -1218,9 +1223,6 @@ def infer_dtype(value: object, skipna: bool=False) -> str:
 
     if values.dtype != np.object_:
         values = values.astype('O')
-
-    # make contiguous
-    values = values.ravel()
 
     n = len(values)
     if n == 0:

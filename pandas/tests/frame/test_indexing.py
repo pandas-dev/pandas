@@ -1,41 +1,33 @@
 # -*- coding: utf-8 -*-
 
 from __future__ import print_function
+
+from datetime import date, datetime, time, timedelta
 from warnings import catch_warnings, simplefilter
 
-from datetime import datetime, date, timedelta, time
-
-from pandas.compat import map, zip, range, lrange, lzip, long
-from pandas import compat
-
+import numpy as np
 from numpy import nan
 from numpy.random import randn
-
 import pytest
-import numpy as np
 
-import pandas.core.common as com
-from pandas import (DataFrame, Index, Series, notna, isna,
-                    MultiIndex, DatetimeIndex, Timestamp,
-                    date_range, Categorical)
+from pandas._libs.tslib import iNaT
+from pandas.compat import long, lrange, lzip, map, range, zip
+
+from pandas.core.dtypes.common import is_float_dtype, is_integer, is_scalar
 from pandas.core.dtypes.dtypes import CategoricalDtype
 
 import pandas as pd
-
-from pandas._libs.tslib import iNaT
-from pandas.tseries.offsets import BDay
-from pandas.core.dtypes.common import (
-    is_float_dtype,
-    is_integer,
-    is_scalar)
-from pandas.util.testing import (assert_almost_equal,
-                                 assert_series_equal,
-                                 assert_frame_equal)
+from pandas import (
+    Categorical, DataFrame, DatetimeIndex, Index, MultiIndex, Series,
+    Timestamp, compat, date_range, isna, notna)
+import pandas.core.common as com
 from pandas.core.indexing import IndexingError
-
-import pandas.util.testing as tm
-
 from pandas.tests.frame.common import TestData
+import pandas.util.testing as tm
+from pandas.util.testing import (
+    assert_almost_equal, assert_frame_equal, assert_series_equal)
+
+from pandas.tseries.offsets import BDay
 
 
 class TestDataFrameIndexing(TestData):
@@ -3252,8 +3244,10 @@ class TestDataFrameIndexingDatetimeWithTZ(TestData):
         # are copies)
         b1 = df._data.blocks[1]
         b2 = df._data.blocks[2]
-        assert b1.values.equals(b2.values)
-        assert id(b1.values.values.base) != id(b2.values.values.base)
+        tm.assert_extension_array_equal(b1.values, b2.values)
+        if b1.values._data.base is not None:
+            # base being None suffices to assure a copy was made
+            assert id(b1.values._data.base) != id(b2.values._data.base)
 
         # with nan
         df2 = df.copy()

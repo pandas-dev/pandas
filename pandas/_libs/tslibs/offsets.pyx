@@ -1,7 +1,6 @@
 # -*- coding: utf-8 -*-
 
 import cython
-from cython import Py_ssize_t
 
 import time
 from cpython.datetime cimport (PyDateTime_IMPORT,
@@ -18,15 +17,16 @@ from numpy cimport int64_t
 cnp.import_array()
 
 
-from util cimport is_string_object, is_integer_object
+from pandas._libs.tslibs.util cimport is_string_object, is_integer_object
 
-from ccalendar import MONTHS, DAYS
-from ccalendar cimport get_days_in_month, dayofweek
-from conversion cimport tz_convert_single, pydt_to_i8, localize_pydatetime
-from nattype cimport NPY_NAT
-from np_datetime cimport (npy_datetimestruct,
-                          dtstruct_to_dt64, dt64_to_dtstruct)
-from timezones import UTC
+from pandas._libs.tslibs.ccalendar import MONTHS, DAYS
+from pandas._libs.tslibs.ccalendar cimport get_days_in_month, dayofweek
+from pandas._libs.tslibs.conversion cimport (
+    tz_convert_single, pydt_to_i8, localize_pydatetime)
+from pandas._libs.tslibs.nattype cimport NPY_NAT
+from pandas._libs.tslibs.np_datetime cimport (
+    npy_datetimestruct, dtstruct_to_dt64, dt64_to_dtstruct)
+from pandas._libs.tslibs.timezones import UTC
 
 # ---------------------------------------------------------------------
 # Constants

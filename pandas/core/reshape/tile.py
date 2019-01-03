@@ -205,7 +205,11 @@ def cut(x, bins, right=True, labels=None, retbins=False, precision=3,
         rng = (nanops.nanmin(x), nanops.nanmax(x))
         mn, mx = [mi + 0.0 for mi in rng]
 
-        if mn == mx:  # adjust end points before binning
+        if np.isinf(mn) or np.isinf(mx):
+            # GH 24314
+            raise ValueError('cannot specify integer `bins` when input data '
+                             'contains infinity')
+        elif mn == mx:  # adjust end points before binning
             mn -= .001 * abs(mn) if mn != 0 else .001
             mx += .001 * abs(mx) if mx != 0 else .001
             bins = np.linspace(mn, mx, bins + 1, endpoint=True)
@@ -386,10 +390,10 @@ def _coerce_to_type(x):
         dtype = x.dtype
     elif is_datetime64_dtype(x):
         x = to_datetime(x)
-        dtype = np.datetime64
+        dtype = np.dtype('datetime64[ns]')
     elif is_timedelta64_dtype(x):
         x = to_timedelta(x)
-        dtype = np.timedelta64
+        dtype = np.dtype('timedelta64[ns]')
 
     if dtype is not None:
         # GH 19768: force NaT to NaN during integer conversion
@@ -412,7 +416,7 @@ def _convert_bin_to_numeric_type(bins, dtype):
     ------
     ValueError if bins are not of a compat dtype to dtype
     """
-    bins_dtype = infer_dtype(bins)
+    bins_dtype = infer_dtype(bins, skipna=False)
     if is_timedelta64_dtype(dtype):
         if bins_dtype in ['timedelta', 'timedelta64']:
             bins = to_timedelta(bins).view(np.int64)

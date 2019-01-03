@@ -10,8 +10,7 @@ from pandas.compat import PY3, PY36, binary_type, string_types, text_type
 
 from pandas.core.dtypes.dtypes import (
     CategoricalDtype, CategoricalDtypeType, DatetimeTZDtype, ExtensionDtype,
-    IntervalDtype, PandasExtensionDtype, PeriodDtype, _pandas_registry,
-    registry)
+    IntervalDtype, PandasExtensionDtype, PeriodDtype, registry)
 from pandas.core.dtypes.generic import (
     ABCCategorical, ABCCategoricalIndex, ABCDateOffset, ABCDatetimeIndex,
     ABCIndexClass, ABCPeriodArray, ABCPeriodIndex, ABCSeries, ABCSparseArray,
@@ -704,7 +703,8 @@ def is_datetime_arraylike(arr):
     if isinstance(arr, ABCDatetimeIndex):
         return True
     elif isinstance(arr, (np.ndarray, ABCSeries)):
-        return arr.dtype == object and lib.infer_dtype(arr) == 'datetime'
+        return (is_object_dtype(arr.dtype)
+                and lib.infer_dtype(arr, skipna=False) == 'datetime')
     return getattr(arr, 'inferred_type', None) == 'datetime'
 
 
@@ -1984,7 +1984,7 @@ def pandas_dtype(dtype):
         return dtype
 
     # registered extension types
-    result = _pandas_registry.find(dtype) or registry.find(dtype)
+    result = registry.find(dtype)
     if result is not None:
         return result
 

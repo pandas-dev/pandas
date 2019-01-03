@@ -1,27 +1,31 @@
 # -*- coding: utf-8 -*-
 # pylint: disable=E1101
 
+from collections import OrderedDict
 import datetime as dt
-import io
+from datetime import datetime
 import gzip
+import io
 import os
 import struct
 import warnings
-from collections import OrderedDict
-from datetime import datetime
 
 import numpy as np
 import pytest
 
-import pandas as pd
-import pandas.util.testing as tm
 import pandas.compat as compat
-from pandas.compat import iterkeys
+from pandas.compat import PY3, ResourceWarning, iterkeys
+
 from pandas.core.dtypes.common import is_categorical_dtype
+
+import pandas as pd
 from pandas.core.frame import DataFrame, Series
+import pandas.util.testing as tm
+
 from pandas.io.parsers import read_csv
-from pandas.io.stata import (InvalidColumnName, PossiblePrecisionLoss,
-                             StataMissingValue, StataReader, read_stata)
+from pandas.io.stata import (
+    InvalidColumnName, PossiblePrecisionLoss, StataMissingValue, StataReader,
+    read_stata)
 
 
 @pytest.fixture
@@ -1546,3 +1550,33 @@ class TestStata(object):
                 output.to_stata(path, version=version)
         assert 'Only string-like' in excinfo.value.args[0]
         assert 'Column `none`' in excinfo.value.args[0]
+
+    @pytest.mark.parametrize('version', [114, 117])
+    def test_invalid_file_not_written(self, version):
+        content = 'Here is one __�__ Another one __·__ Another one __½__'
+        df = DataFrame([content], columns=['invalid'])
+        expected_exc = UnicodeEncodeError if PY3 else UnicodeDecodeError
+        with tm.ensure_clean() as path:
+            with pytest.raises(expected_exc):
+                with tm.assert_produces_warning(ResourceWarning):
+                    df.to_stata(path)
+
+    def test_strl_latin1(self):
+        # GH 23573, correct GSO data to reflect correct size
+        output = DataFrame([[u'pandas'] * 2, [u'þâÑÐÅ§'] * 2],
+                           columns=['var_str', 'var_strl'])
+
+        with tm.ensure_clean() as path:
+            output.to_stata(path, version=117, convert_strl=['var_strl'])
+            with open(path, 'rb') as reread:
+                content = reread.read()
+                expected = u'þâÑÐÅ§'
+                assert expected.encode('latin-1') in content
+                assert expected.encode('utf-8') in content
+                gsos = content.split(b'strls')[1][1:-2]
+                for gso in gsos.split(b'GSO')[1:]:
+                    val = gso.split(b'\x00')[-2]
+                    size = gso[gso.find(b'\x82') + 1]
+                    if not PY3:
+                        size = ord(size)
+                    assert len(val) == size - 1

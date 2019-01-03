@@ -10,6 +10,7 @@ from pandas.compat import range
 import pandas.util._test_decorators as td
 
 import pandas as pd
+from pandas import isna
 from pandas.core.sparse.api import SparseArray, SparseDtype, SparseSeries
 import pandas.util.testing as tm
 from pandas.util.testing import assert_almost_equal
@@ -261,6 +262,18 @@ class TestSparseArray(object):
 
         exp = SparseArray(np.take(self.arr_data, [-4, -3, -2]))
         tm.assert_sp_array_equal(self.arr.take([-4, -3, -2]), exp)
+
+    @pytest.mark.parametrize('fill_value', [0, None, np.nan])
+    def test_shift_fill_value(self, fill_value):
+        # GH #24128
+        sparse = SparseArray(np.array([1, 0, 0, 3, 0]),
+                             fill_value=8.0)
+        res = sparse.shift(1, fill_value=fill_value)
+        if isna(fill_value):
+            fill_value = res.dtype.na_value
+        exp = SparseArray(np.array([fill_value, 1, 0, 0, 3]),
+                          fill_value=8.0)
+        tm.assert_sp_array_equal(res, exp)
 
     def test_bad_take(self):
         with pytest.raises(IndexError, match="bounds"):

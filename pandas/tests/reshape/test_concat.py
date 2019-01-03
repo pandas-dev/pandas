@@ -1,27 +1,26 @@
-from warnings import catch_warnings, simplefilter
-from itertools import combinations
 from collections import deque
-from decimal import Decimal
-
 import datetime as dt
+from datetime import datetime
+from decimal import Decimal
+from itertools import combinations
+from warnings import catch_warnings, simplefilter
+
 import dateutil
 import numpy as np
 from numpy.random import randn
-
-from datetime import datetime
-from pandas.compat import Iterable, StringIO, iteritems, PY2
-import pandas as pd
-from pandas import (DataFrame, concat,
-                    read_csv, isna, Series, date_range,
-                    Index, Panel, MultiIndex, Timestamp,
-                    DatetimeIndex, Categorical)
-from pandas.core.dtypes.dtypes import CategoricalDtype
-from pandas.util import testing as tm
-from pandas.util.testing import (assert_frame_equal,
-                                 makeCustomDataframe as mkdf)
-from pandas.tests.extension.decimal import to_decimal
-
 import pytest
+
+from pandas.compat import PY2, Iterable, StringIO, iteritems
+
+from pandas.core.dtypes.dtypes import CategoricalDtype
+
+import pandas as pd
+from pandas import (
+    Categorical, DataFrame, DatetimeIndex, Index, MultiIndex, Panel, Series,
+    Timestamp, concat, date_range, isna, read_csv)
+from pandas.tests.extension.decimal import to_decimal
+from pandas.util import testing as tm
+from pandas.util.testing import assert_frame_equal, makeCustomDataframe as mkdf
 
 
 @pytest.fixture(params=[True, False])
@@ -1016,13 +1015,17 @@ class TestAppend(ConcatenateBase):
         s = Series({'date': date, 'a': 1.0, 'b': 2.0})
         df = DataFrame(columns=['c', 'd'])
         result = df.append(s, ignore_index=True)
+        # n.b. it's not clear to me that expected is correct here.
+        # It's possible that the `date` column should have
+        # datetime64[ns, tz] dtype for both result and expected.
+        # that would be more consistent with new columns having
+        # their own dtype (float for a and b, datetime64ns, tz for date).
         expected = DataFrame([[np.nan, np.nan, 1., 2., date]],
-                             columns=['c', 'd', 'a', 'b', 'date'])
+                             columns=['c', 'd', 'a', 'b', 'date'],
+                             dtype=object)
         # These columns get cast to object after append
-        object_cols = ['c', 'd', 'date']
-        expected.loc[:, object_cols] = expected.loc[:, object_cols].astype(
-            object
-        )
+        expected['a'] = expected['a'].astype(float)
+        expected['b'] = expected['b'].astype(float)
         assert_frame_equal(result, expected)
 
 

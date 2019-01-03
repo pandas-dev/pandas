@@ -122,6 +122,7 @@ Enhancements
   pytz timezones across pandas. (:issue:`4688`)
 
   .. ipython:: python
+
      rng = pd.date_range('3/6/2012 00:00', periods=10, freq='D',
                          tz='dateutil/Europe/London')
      rng.tz

@@ -1,19 +1,16 @@
 # -*- coding: utf-8 -*-
 
 from __future__ import print_function
-import pytest
-from pandas.compat import range, lrange
+
 import numpy as np
-from pandas.compat import PY36
+import pytest
 
-from pandas import DataFrame, Series, Index, MultiIndex
+from pandas.compat import PY36, lrange, range
 
-from pandas.util.testing import assert_frame_equal
-
-import pandas.util.testing as tm
-
+from pandas import DataFrame, Index, MultiIndex, Series
 from pandas.tests.frame.common import TestData
-
+import pandas.util.testing as tm
+from pandas.util.testing import assert_frame_equal
 
 # Column add, remove, delete.
 

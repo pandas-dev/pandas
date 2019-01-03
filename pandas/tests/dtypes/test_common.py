@@ -1,15 +1,16 @@
 # -*- coding: utf-8 -*-
 
-import pytest
 import numpy as np
-import pandas as pd
+import pytest
 
-from pandas.core.dtypes.dtypes import (DatetimeTZDtype, PeriodDtype,
-                                       CategoricalDtype, IntervalDtype)
-from pandas.core.sparse.api import SparseDtype
+import pandas.util._test_decorators as td
 
 import pandas.core.dtypes.common as com
-import pandas.util._test_decorators as td
+from pandas.core.dtypes.dtypes import (
+    CategoricalDtype, DatetimeTZDtype, IntervalDtype, PeriodDtype)
+
+import pandas as pd
+from pandas.core.sparse.api import SparseDtype
 import pandas.util.testing as tm
 
 
@@ -340,8 +341,8 @@ def test_is_datetime64_any_dtype():
     assert com.is_datetime64_any_dtype(np.datetime64)
     assert com.is_datetime64_any_dtype(np.array([], dtype=np.datetime64))
     assert com.is_datetime64_any_dtype(DatetimeTZDtype("ns", "US/Eastern"))
-    assert com.is_datetime64_any_dtype(pd.DatetimeIndex([1, 2, 3],
-                                                        dtype=np.datetime64))
+    assert com.is_datetime64_any_dtype(
+        pd.DatetimeIndex([1, 2, 3], dtype="datetime64[ns]"))
 
 
 def test_is_datetime64_ns_dtype():
@@ -356,8 +357,8 @@ def test_is_datetime64_ns_dtype():
     assert not com.is_datetime64_ns_dtype(np.array([], dtype="datetime64[ps]"))
 
     assert com.is_datetime64_ns_dtype(DatetimeTZDtype("ns", "US/Eastern"))
-    assert com.is_datetime64_ns_dtype(pd.DatetimeIndex([1, 2, 3],
-                                                       dtype=np.datetime64))
+    assert com.is_datetime64_ns_dtype(
+        pd.DatetimeIndex([1, 2, 3], dtype=np.dtype('datetime64[ns]')))
 
 
 def test_is_timedelta64_ns_dtype():

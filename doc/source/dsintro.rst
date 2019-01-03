@@ -146,10 +146,14 @@ If you need the actual array backing a ``Series``, use :attr:`Series.array`.
 
    s.array
 
-Again, this is often a NumPy array, but may instead be a
-:class:`~pandas.api.extensions.ExtensionArray`. See :ref:`basics.dtypes` for more.
 Accessing the array can be useful when you need to do some operation without the
 index (to disable :ref:`automatic alignment <dsintro.alignment>`, for example).
+
+:attr:`Series.array` will always be an :class:`~pandas.api.extensions.ExtensionArray`.
+Briefly, an ExtensionArray is a thin wrapper around one or more *concrete* arrays like a
+:class:`numpy.ndarray`. Pandas knows how to take an ``ExtensionArray`` and
+store it in a ``Series`` or a column of a ``DataFrame``.
+See :ref:`basics.dtypes` for more.
 
 While Series is ndarray-like, if you need an *actual* ndarray, then use
 :meth:`Series.to_numpy`.
