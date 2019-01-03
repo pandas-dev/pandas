@@ -138,14 +138,6 @@ class DatetimeIndexOpsMixin(ExtensionOpsMixin):
     def asi8(self):
         return self._eadata.asi8
 
-    def __array__(self, dtype=None):
-        # TODO properly dispatch to EA
-        if is_period_dtype(self):
-            return self._data.__array__(dtype=dtype)
-        if is_object_dtype(dtype):
-            return np.array(list(self), dtype=object)
-        return self._data
-
     # ------------------------------------------------------------------------
 
     def equals(self, other):
