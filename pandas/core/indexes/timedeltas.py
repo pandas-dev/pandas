@@ -18,7 +18,7 @@ from pandas.core.dtypes.missing import isna
 from pandas.core.accessor import delegate_names
 from pandas.core.arrays import datetimelike as dtl
 from pandas.core.arrays.timedeltas import (
-    TimedeltaArrayMixin as TimedeltaArray, _is_convertible_to_td, _to_m8)
+    TimedeltaArrayMixin as TimedeltaArray, _is_convertible_to_td)
 from pandas.core.base import _shared_docs
 import pandas.core.common as com
 from pandas.core.indexes.base import Index, _index_shared_docs
@@ -614,7 +614,7 @@ class TimedeltaIndex(DatetimeIndexOpsMixin, dtl.TimelikeOps, Int64Index,
         if isinstance(value, (np.ndarray, Index)):
             value = np.array(value, dtype=_TD_DTYPE, copy=False)
         else:
-            value = _to_m8(value)
+            value = Timedelta(value).asm8.view(_TD_DTYPE)
 
         return self.values.searchsorted(value, side=side, sorter=sorter)
 
@@ -664,7 +664,7 @@ class TimedeltaIndex(DatetimeIndexOpsMixin, dtl.TimelikeOps, Int64Index,
                     freq = self.freq
                 elif (loc == len(self)) and item - self.freq == self[-1]:
                     freq = self.freq
-            item = _to_m8(item)
+            item = Timedelta(item).asm8.view(_TD_DTYPE)
 
         try:
             new_tds = np.concatenate((self[:loc].asi8, [item.view(np.int64)],

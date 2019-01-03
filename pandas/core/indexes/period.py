@@ -277,9 +277,6 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index, PeriodDelegateMixin):
         return result
 
     # ------------------------------------------------------------------------
-    # Wrapping PeriodArray
-
-    # ------------------------------------------------------------------------
     # Data
 
     @property
@@ -416,6 +413,10 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index, PeriodDelegateMixin):
         # how to represent ourselves to matplotlib
         return self.astype(object).values
 
+    @property
+    def _formatter_func(self):
+        return self.array._formatter(boxed=False)
+
     # ------------------------------------------------------------------------
     # Indexing
 
@@ -495,10 +496,6 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index, PeriodDelegateMixin):
         # the result is object dtype array of Period
         # cannot pass _simple_new as it is
         return type(self)(result, freq=self.freq, name=self.name)
-
-    @property
-    def _formatter_func(self):
-        return self.array._formatter(boxed=False)
 
     def asof_locs(self, where, mask):
         """

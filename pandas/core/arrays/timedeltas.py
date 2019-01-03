@@ -36,18 +36,6 @@ from . import datetimelike as dtl
 _BAD_DTYPE = "dtype {dtype} cannot be converted to timedelta64[ns]"
 
 
-def _to_m8(key):
-    """
-    Timedelta-like => dt64
-    """
-    if not isinstance(key, Timedelta):
-        # this also converts strings
-        key = Timedelta(key)
-
-    # return an type that can be compared
-    return np.int64(key.value).view(_TD_DTYPE)
-
-
 def _is_convertible_to_td(key):
     return isinstance(key, (Tick, timedelta,
                             np.timedelta64, compat.string_types))
@@ -75,17 +63,15 @@ def _td_array_cmp(cls, op):
     opname = '__{name}__'.format(name=op.__name__)
     nat_result = True if opname == '__ne__' else False
 
-    meth = getattr(dtl.DatetimeLikeArrayMixin, opname)
-
     def wrapper(self, other):
         if _is_convertible_to_td(other) or other is NaT:
             try:
-                other = _to_m8(other)
+                other = Timedelta(other)
             except ValueError:
                 # failed to parse as timedelta
                 return ops.invalid_comparison(self, other, op)
 
-            result = meth(self, other)
+            result = op(self.view('i8'), other.value)
             if isna(other):
                 result.fill(nat_result)
 
@@ -101,7 +87,7 @@ def _td_array_cmp(cls, op):
             except (ValueError, TypeError):
                 return ops.invalid_comparison(self, other, op)
 
-            result = meth(self, other)
+            result = op(self.view('i8'), other.view('i8'))
             result = com.values_from_object(result)
 
             o_mask = np.array(isna(other))

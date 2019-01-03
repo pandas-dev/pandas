@@ -22,7 +22,7 @@ from pandas.core.dtypes.missing import isna
 
 from pandas.core.accessor import delegate_names
 from pandas.core.arrays.datetimes import (
-    DatetimeArrayMixin as DatetimeArray, _to_m8, validate_tz_from_dtype)
+    DatetimeArrayMixin as DatetimeArray, _to_M8, validate_tz_from_dtype)
 from pandas.core.base import _shared_docs
 import pandas.core.common as com
 from pandas.core.indexes.base import Index
@@ -405,7 +405,7 @@ class DatetimeIndex(DatetimeIndexOpsMixin, Int64Index, DatetimeDelegateMixin):
     def _convert_for_op(self, value):
         """ Convert value to be insertable to ndarray """
         if self._has_same_tz(value):
-            return _to_m8(value)
+            return _to_M8(value)
         raise ValueError('Passed item and index have different timezone')
 
     def _maybe_update_attributes(self, attrs):
@@ -1161,7 +1161,7 @@ class DatetimeIndex(DatetimeIndexOpsMixin, Int64Index, DatetimeDelegateMixin):
         if isinstance(value, (np.ndarray, Index)):
             value = np.array(value, dtype=_NS_DTYPE, copy=False)
         else:
-            value = _to_m8(value, tz=self.tz)
+            value = _to_M8(value, tz=self.tz)
 
         return self.values.searchsorted(value, side=side)
 
@@ -1211,7 +1211,7 @@ class DatetimeIndex(DatetimeIndexOpsMixin, Int64Index, DatetimeDelegateMixin):
                     freq = self.freq
                 elif (loc == len(self)) and item - self.freq == self[-1]:
                     freq = self.freq
-            item = _to_m8(item, tz=self.tz)
+            item = _to_M8(item, tz=self.tz)
 
         try:
             new_dates = np.concatenate((self[:loc].asi8, [item.view(np.int64)],
