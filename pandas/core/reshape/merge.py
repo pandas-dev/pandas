@@ -947,8 +947,8 @@ class _MergeOperation(object):
                     continue
 
                 # let's infer and see if we are ok
-                elif (lib.infer_dtype(lk, skipna=True)
-                      == lib.infer_dtype(rk, skipna=True)):
+                elif (lib.infer_dtype(lk, skipna=False)
+                      == lib.infer_dtype(rk, skipna=False)):
                     continue
 
             # Check if we are trying to merge on obviously
@@ -962,8 +962,8 @@ class _MergeOperation(object):
             # object values are allowed to be merged
             elif ((lk_is_object and is_numeric_dtype(rk)) or
                   (is_numeric_dtype(lk) and rk_is_object)):
-                inferred_left = lib.infer_dtype(lk, skipna=True)
-                inferred_right = lib.infer_dtype(rk, skipna=True)
+                inferred_left = lib.infer_dtype(lk, skipna=False)
+                inferred_right = lib.infer_dtype(rk, skipna=False)
                 bool_types = ['integer', 'mixed-integer', 'boolean', 'empty']
                 string_types = ['string', 'unicode', 'mixed', 'bytes', 'empty']
 

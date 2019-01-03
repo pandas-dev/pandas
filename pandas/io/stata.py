@@ -396,7 +396,7 @@ def _datetime_to_stata_elapsed_vec(dates, fmt):
                         to_datetime(d['year'], format='%Y').astype(np.int64))
                 d['days'] = days // NS_PER_DAY
 
-        elif infer_dtype(dates, skipna=True) == 'datetime':
+        elif infer_dtype(dates, skipna=False) == 'datetime':
             if delta:
                 delta = dates.values - stata_epoch
                 f = lambda x: \

@@ -704,7 +704,7 @@ def is_datetime_arraylike(arr):
         return True
     elif isinstance(arr, (np.ndarray, ABCSeries)):
         return (is_object_dtype(arr.dtype)
-                and lib.infer_dtype(arr, skipna=True) == 'datetime')
+                and lib.infer_dtype(arr, skipna=False) == 'datetime')
     return getattr(arr, 'inferred_type', None) == 'datetime'
 
 

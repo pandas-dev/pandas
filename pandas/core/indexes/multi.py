@@ -2319,7 +2319,7 @@ class MultiIndex(Index):
 
             if lab not in lev:
                 if not lev.is_type_compatible(lib.infer_dtype([lab],
-                                                              skipna=True)):
+                                                              skipna=False)):
                     raise TypeError('Level type mismatch: %s' % lab)
 
                 # short circuit

@@ -346,7 +346,7 @@ class Index(IndexOpsMixin, PandasObject):
                     # should not be coerced
                     # GH 11836
                     if is_integer_dtype(dtype):
-                        inferred = lib.infer_dtype(data, skipna=True)
+                        inferred = lib.infer_dtype(data, skipna=False)
                         if inferred == 'integer':
                             data = maybe_cast_to_integer_array(data, dtype,
                                                                copy=copy)
@@ -376,7 +376,7 @@ class Index(IndexOpsMixin, PandasObject):
                         else:
                             data = data.astype(dtype)
                     elif is_float_dtype(dtype):
-                        inferred = lib.infer_dtype(data, skipna=True)
+                        inferred = lib.infer_dtype(data, skipna=False)
                         if inferred == 'string':
                             pass
                         else:
@@ -1718,7 +1718,7 @@ class Index(IndexOpsMixin, PandasObject):
         """
         Return a string of the type inferred from the values.
         """
-        return lib.infer_dtype(self, skipna=True)
+        return lib.infer_dtype(self, skipna=False)
 
     @cache_readonly
     def is_all_dates(self):
