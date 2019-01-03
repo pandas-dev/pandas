@@ -114,6 +114,11 @@ def ensure_int64_or_float64(arr, copy=False):
         return arr.astype('float64', copy=copy)
 
 
+def _issubclass(*klasses):
+    """ evaluate if the tipo is a subclass of the klasses """
+    return lambda tipo: issubclass(tipo, klasses)
+
+
 def is_object_dtype(arr_or_dtype):
     """
     Check whether an array-like or dtype is of the object dtype.
@@ -140,8 +145,7 @@ def is_object_dtype(arr_or_dtype):
     >>> is_object_dtype([1, 2, 3])
     False
     """
-    return _is_dtype_type(
-        arr_or_dtype, lambda tipo: issubclass(tipo, np.object_))
+    return _is_dtype_type(arr_or_dtype, _issubclass(np.object_))
 
 
 def is_sparse(arr):
@@ -415,8 +419,7 @@ def is_datetime64_dtype(arr_or_dtype):
     False
     """
 
-    return _is_dtype_type(
-        arr_or_dtype, lambda tipo: issubclass(tipo, np.datetime64))
+    return _is_dtype_type(arr_or_dtype, _issubclass(np.datetime64))
 
 
 def is_datetime64tz_dtype(arr_or_dtype):
@@ -485,8 +488,7 @@ def is_timedelta64_dtype(arr_or_dtype):
     False
     """
 
-    return _is_dtype_type(
-        arr_or_dtype, lambda tipo: issubclass(tipo, np.timedelta64))
+    return _is_dtype_type(arr_or_dtype, _issubclass(np.timedelta64))
 
 
 def is_period_dtype(arr_or_dtype):
@@ -845,9 +847,8 @@ def is_any_int_dtype(arr_or_dtype):
     False
     """
 
-    def condition(tipo):
-        return issubclass(tipo, (np.integer, np.timedelta64))
-    return _is_dtype_type(arr_or_dtype, condition)
+    return _is_dtype_type(
+        arr_or_dtype, _issubclass(np.integer, np.timedelta64))
 
 
 def is_integer_dtype(arr_or_dtype):
@@ -1025,8 +1026,7 @@ def is_int64_dtype(arr_or_dtype):
     False
     """
 
-    return _is_dtype_type(
-        arr_or_dtype, lambda tipo: issubclass(tipo, np.int64))
+    return _is_dtype_type(arr_or_dtype, _issubclass(np.int64))
 
 
 def is_datetime64_any_dtype(arr_or_dtype):
@@ -1185,8 +1185,7 @@ def is_datetime_or_timedelta_dtype(arr_or_dtype):
     """
 
     return _is_dtype_type(
-        arr_or_dtype,
-        lambda tipo: issubclass(tipo, (np.datetime64, np.timedelta64)))
+        arr_or_dtype, _issubclass(np.datetime64, np.timedelta64))
 
 
 def _is_unorderable_exception(e):
@@ -1529,8 +1528,7 @@ def is_float_dtype(arr_or_dtype):
     >>> is_float_dtype(pd.Index([1, 2.]))
     True
     """
-    return _is_dtype_type(
-        arr_or_dtype, lambda tipo: issubclass(tipo, np.floating))
+    return _is_dtype_type(arr_or_dtype, _issubclass(np.floating))
 
 
 def is_bool_dtype(arr_or_dtype):
@@ -1714,8 +1712,7 @@ def is_complex_dtype(arr_or_dtype):
     True
     """
 
-    return _is_dtype_type(
-        arr_or_dtype, lambda tipo: issubclass(tipo, np.complexfloating))
+    return _is_dtype_type(arr_or_dtype, _issubclass(np.complexfloating))
 
 
 def _is_dtype(arr_or_dtype, condition):
