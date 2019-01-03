@@ -1,19 +1,22 @@
 # -*- coding: utf-8 -*-
 
-import pytest
 import numpy as np
-import pandas as pd
+import pytest
 
 from pandas.core.dtypes.dtypes import (DatetimeTZDtype, PeriodDtype,
                                        CategoricalDtype, CategoricalDtypeType,
                                        IntervalDtype)
 from pandas.core.sparse.api import SparseDtype
+import pandas.util._test_decorators as td
 
 from pandas.conftest import (
     ALL_INT_DTYPES, UNSIGNED_INT_DTYPES, SIGNED_INT_DTYPES,
     ALL_EA_INT_DTYPES, UNSIGNED_EA_INT_DTYPES, SIGNED_EA_INT_DTYPES)
 import pandas.core.dtypes.common as com
-import pandas.util._test_decorators as td
+from pandas.core.dtypes.dtypes import (
+    CategoricalDtype, DatetimeTZDtype, IntervalDtype, PeriodDtype)
+
+import pandas as pd
 import pandas.util.testing as tm
 
 
