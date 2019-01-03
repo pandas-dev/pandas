@@ -272,7 +272,7 @@ class CategoricalDtype(PandasExtensionDtype, ExtensionDtype):
         ordered : bool, optional
             Designating if the categories are ordered.
         dtype : CategoricalDtype or the string "category", optional
-            If ``CategoricalDtype`` cannot be used together with
+            If ``CategoricalDtype``, cannot be used together with
             `categories` or `ordered`.
 
         Returns
@@ -294,7 +294,7 @@ class CategoricalDtype(PandasExtensionDtype, ExtensionDtype):
         ValueError: Cannot specify `categories` or `ordered` together with
         `dtype`.
 
-        The supplied dtype takes precedence over values's dtype:
+        The supplied dtype takes precedence over values' dtype:
 
         >>> CategoricalDtype._from_values_or_dtype(c, dtype=dtype2)
         CategoricalDtype(['x', 'y'], ordered=False)
@@ -493,7 +493,7 @@ class CategoricalDtype(PandasExtensionDtype, ExtensionDtype):
         """
         from pandas import Index
 
-        if not fastpath and not is_list_like(categories, allow_sets=True):
+        if not fastpath and not is_list_like(categories):
             msg = "Parameter 'categories' must be list-like, was {!r}"
             raise TypeError(msg.format(categories))
         elif not isinstance(categories, ABCIndexClass):

@@ -106,7 +106,7 @@ class TestCategoricalDtype(Base):
                                  [c, None, None, dtype2, dtype2],
                                  [c, ['x', 'y'], False, None, dtype2],
                              ])
-    def test_create_categorical_dtype(
+    def test_from_values_or_dtype(
             self, values, categories, ordered, dtype, expected):
         result = CategoricalDtype._from_values_or_dtype(values, categories,
                                                         ordered, dtype)
@@ -117,11 +117,9 @@ class TestCategoricalDtype(Base):
         [None, ['a', 'b'], None, dtype2],
         [None, None, True, dtype2],
     ])
-    def test_create_categorical_dtype_raises(self, values, categories,
-                                             ordered,
-                                             dtype):
+    def test_from_values_or_dtype_raises(self, values, categories,
+                                         ordered, dtype):
         msg = "Cannot specify `categories` or `ordered` together with `dtype`."
-
         with pytest.raises(ValueError, match=msg):
             CategoricalDtype._from_values_or_dtype(values, categories,
                                                    ordered, dtype)
