@@ -1848,7 +1848,7 @@ def infer_dtype_from_object(dtype):
     if isinstance(dtype, type) and issubclass(dtype, np.generic):
         # Type object from a dtype
         return dtype
-    elif isinstance(dtype, np.dtype):
+    elif isinstance(dtype, (np.dtype, PandasExtensionDtype, ExtensionDtype)):
         # dtype object
         try:
             _validate_date_like_dtype(dtype)
