@@ -282,7 +282,9 @@ def test_is_datetimelike():
 
 
 @pytest.mark.parametrize(
-    'dtype', ALL_INT_DTYPES + ALL_EA_INT_DTYPES + [pd.Series([1, 2])])
+    'dtype', [
+        pd.Series([1, 2])] +
+    ALL_INT_DTYPES + ALL_EA_INT_DTYPES)
 def test_is_integer_dtype(dtype):
     assert com.is_integer_dtype(dtype)
 
@@ -296,7 +298,9 @@ def test_is_not_integer_dtype(dtype):
 
 
 @pytest.mark.parametrize(
-    'dtype', SIGNED_INT_DTYPES + SIGNED_EA_INT_DTYPES + [pd.Series([1, 2])])
+    'dtype', [
+        pd.Series([1, 2])] +
+    SIGNED_INT_DTYPES + SIGNED_EA_INT_DTYPES)
 def test_is_signed_integer_dtype(dtype):
     assert com.is_integer_dtype(dtype)
 
@@ -314,9 +318,8 @@ def test_is_not_signed_integer_dtype(dtype):
 
 @pytest.mark.parametrize(
     'dtype',
-    UNSIGNED_INT_DTYPES +
-    UNSIGNED_EA_INT_DTYPES +
-    [pd.Series([1, 2], dtype=np.uint32)])
+    [pd.Series([1, 2], dtype=np.uint32)] +
+    UNSIGNED_INT_DTYPES + UNSIGNED_EA_INT_DTYPES)
 def test_is_unsigned_integer_dtype(dtype):
     assert com.is_unsigned_integer_dtype(dtype)
 
