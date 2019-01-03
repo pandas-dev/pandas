@@ -28,7 +28,7 @@ The 0.24.x feature release will be the last release to
 support Python 2. The released package will continue to be available on
 PyPI and through conda.
 
-Starting **January 1, 2019**, all feature releases will be Python 3 only.
+ Starting **January 1, 2019**, all new feature releases (> 0.24) will be Python 3 only.
 
 If there are people interested in continued support for Python 2.7 past December
 31, 2018 (either backporting bug fixes or funding) please reach out to the
