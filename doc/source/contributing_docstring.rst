@@ -47,11 +47,11 @@ Next example gives an idea on how a docstring looks like:
 
     Examples
     --------
-    >>> add(2, 2)
+    >>> add(2, 2)  # noqa F821
     4
-    >>> add(25, 0)
+    >>> add(25, 0)  # noqa F821
     25
-    >>> add(10, -10)
+    >>> add(10, -10)  # noqa F821
     0
     """
     return num1 + num2
@@ -187,7 +187,7 @@ infinitive verb.
 
 .. code-block:: python
 
-    def astype(dtype):
+    def astype(dtype):  # noqa F811
         """
         Casts Series type.
 
@@ -197,7 +197,7 @@ infinitive verb.
 
 .. code-block:: python
 
-    def astype(dtype):
+    def astype(dtype):  # noqa F811
         """
         Method to cast Series type.
 
@@ -207,7 +207,7 @@ infinitive verb.
 
 .. code-block:: python
 
-    def astype(dtype):
+    def astype(dtype):  # noqa F811
         """
         Cast Series type
 
@@ -217,7 +217,7 @@ infinitive verb.
 
 .. code-block:: python
 
-    def astype(dtype):
+    def astype(dtype):  # noqa F811
         """
         Cast Series type from its current type to the new type defined in
         the parameter dtype.
@@ -322,7 +322,7 @@ would be used, then we will specify "str, int or None, default None".
 
 .. code-block:: python
 
-    class Series:
+    class Series:  # noqa F811
         def plot(self, kind, **kwargs):
             """
             Generate a plot.
@@ -457,11 +457,13 @@ For example, with a single value:
         float
             Random number generated.
         """
-        return random.random()
+        return np.random.random()
 
 With more than one value:
 
 .. code-block:: python
+
+    import string
 
     def random_letters():
         """
@@ -477,8 +479,8 @@ With more than one value:
         letters : str
             String of random letters.
         """
-        length = random.randint(1, 10)
-        letters = ''.join(random.choice(string.ascii_lowercase)
+        length = np.random.randint(1, 10)
+        letters = ''.join(np.random.choice(string.ascii_lowercase)
                           for i in range(length))
         return length, letters
 
@@ -499,7 +501,7 @@ If the method yields its value:
             Random number generated.
         """
         while True:
-            yield random.random()
+            yield np.random.random()
 
 .. _docstring.see_also:
 
@@ -558,7 +560,7 @@ For example:
 
 .. code-block:: python
 
-    class Series:
+    class Series:  # noqa F811
         def head(self):
             """
             Return the first 5 elements of the Series.
@@ -776,7 +778,7 @@ positional arguments ``head(3)``.
 
             Examples
             --------
-            >>> s = pd.Series('Antelope', 'Lion', 'Zebra', numpy.nan)
+            >>> s = pd.Series('Antelope', 'Lion', 'Zebra', np.nan)
             >>> s.contains(pattern='a')
             0    False
             1    False
@@ -834,7 +836,7 @@ positional arguments ``head(3)``.
         --------
         >>> import numpy as np
         >>> import pandas as pd
-        >>> df = pd.DataFrame(numpy.random.randn(3, 3),
+        >>> df = pd.DataFrame(np.random.randn(3, 3),
         ...                   columns=('a', 'b', 'c'))
         >>> df.method(1)
         21
@@ -909,7 +911,7 @@ plot will be generated automatically when building the documentation.
 
 .. code-block:: python
 
-    class Series:
+    class Series:  # noqa F811
         def plot(self):
             """
             Generate a plot with the `Series` data.
@@ -953,15 +955,15 @@ substitute the children's class names in this docstring.
 
 
    class ChildA(Parent):
-       @Substitution(klass="ChildA")
-       @Appender(Parent.my_function.__doc__)
+       @Substitution(klass="ChildA")  # noqa F821
+       @Appender(Parent.my_function.__doc__)  # noqa F821
        def my_function(self):
            ...
 
 
    class ChildB(Parent):
-       @Substitution(klass="ChildB")
-       @Appender(Parent.my_function.__doc__)
+       @Substitution(klass="ChildB")  # noqa F821
+       @Appender(Parent.my_function.__doc__)  # noqa F821
        def my_function(self):
            ...
 
@@ -990,7 +992,7 @@ You can substitute and append in one shot with something like
 
 .. code-block:: python
 
-   @Appender(template % _shared_doc_kwargs)
+   @Appender(template % _shared_doc_kwargs)  # noqa F821
    def my_function(self):
        ...
 
