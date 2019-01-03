@@ -658,7 +658,6 @@ for dtype in ['int8', 'int16', 'int32', 'int64',
     classname = "{}Dtype".format(name)
     numpy_dtype = getattr(np, dtype)
     attributes_dict = {'type': numpy_dtype,
-                       'base': np.dtype(numpy_dtype),
                        'name': name}
     dtype_type = register_extension_dtype(
         type(classname, (_IntegerDtype, ), attributes_dict)
