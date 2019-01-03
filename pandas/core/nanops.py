@@ -1196,7 +1196,7 @@ naneq = make_nancomp(operator.eq)
 nanne = make_nancomp(operator.ne)
 
 
-def _nanpercentile1D(values, mask, q, na_value, interpolation):
+def _nanpercentile_1d(values, mask, q, na_value, interpolation):
     """
     Wraper for np.percentile that skips missing values, specialized to
     1-dimensional case.
@@ -1250,8 +1250,8 @@ def nanpercentile(values, q, axis, na_value, mask, ndim, interpolation):
     """
     if not lib.is_scalar(mask) and mask.any():
         if ndim == 1:
-            return _nanpercentile1D(values, mask, q, na_value,
-                                    interpolation=interpolation)
+            return _nanpercentile_1d(values, mask, q, na_value,
+                                     interpolation=interpolation)
         else:
             # for nonconsolidatable blocks mask is 1D, but values 2D
             if mask.ndim < values.ndim:
@@ -1259,8 +1259,8 @@ def nanpercentile(values, q, axis, na_value, mask, ndim, interpolation):
             if axis == 0:
                 values = values.T
                 mask = mask.T
-            result = [_nanpercentile1D(val, m, q, na_value,
-                                       interpolation=interpolation)
+            result = [_nanpercentile_1d(val, m, q, na_value,
+                                        interpolation=interpolation)
                       for (val, m) in zip(list(values), list(mask))]
             result = np.array(result, dtype=values.dtype, copy=False).T
             return result
