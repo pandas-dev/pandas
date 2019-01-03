@@ -493,6 +493,9 @@ class TestTimedeltaArray(SharedTests):
         expected = arr._data
         assert result is expected
         tm.assert_numpy_array_equal(result, expected)
+        result = np.array(arr, copy=False)
+        assert result is expected
+        tm.assert_numpy_array_equal(result, expected)
 
         # to object dtype
         result = np.asarray(arr, dtype=object)
@@ -505,6 +508,12 @@ class TestTimedeltaArray(SharedTests):
         assert not np.may_share_memory(arr, result)
         expected = arr.asi8.copy()
         tm.assert_numpy_array_equal(result, expected)
+
+        # other dtypes handled by numpy
+        for dtype in ['float64', str]:
+            result = np.asarray(arr, dtype=dtype)
+            expected = np.asarray(arr).astype(dtype)
+            tm.assert_numpy_array_equal(result, expected)
 
     def test_take_fill_valid(self, timedelta_index):
         tdi = timedelta_index
@@ -592,3 +601,10 @@ class TestPeriodArray(SharedTests):
 
         with pytest.raises(TypeError):
             np.asarray(arr, dtype='int64')
+
+        with pytest.raises(TypeError):
+            np.asarray(arr, dtype='float64')
+
+        result = np.asarray(arr, dtype='S20')
+        expected = np.asarray(arr).astype('S20')
+        tm.assert_numpy_array_equal(result, expected)
