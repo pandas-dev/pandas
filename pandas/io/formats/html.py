@@ -241,7 +241,7 @@ class HTMLFormatter(TableFormatter):
                 # GH3547
                 sentinel = com.sentinel_factory()
             else:
-                sentinel = None
+                sentinel = False
             levels = self.columns.format(sparsify=sentinel, adjoin=False,
                                          names=False)
             level_lengths = get_level_lengths(levels, sentinel)
@@ -440,9 +440,6 @@ class HTMLFormatter(TableFormatter):
         truncate_v = self.fmt.truncate_v
         frame = self.fmt.tr_frame
         nrows = len(frame)
-        # TODO: after gh-22887 fixed, refactor to use class property
-        # in place of row_levels
-        row_levels = self.frame.index.nlevels
 
         idx_values = frame.index.format(sparsify=False, adjoin=False,
                                         names=False)
@@ -520,18 +517,24 @@ class HTMLFormatter(TableFormatter):
 
                 row.extend(fmt_values[j][i] for j in range(self.ncols))
                 if truncate_h:
-                    row.insert(row_levels - sparse_offset +
+                    row.insert(self.row_levels - sparse_offset +
                                self.fmt.tr_col_num, '...')
                 self.write_tr(row, indent, self.indent_delta, tags=tags,
                               nindex_levels=len(levels) - sparse_offset)
         else:
+            row = []
             for i in range(len(frame)):
+                if truncate_v and i == (self.fmt.tr_row_num):
+                    str_sep_row = ['...'] * len(row)
+                    self.write_tr(str_sep_row, indent, self.indent_delta,
+                                  tags=None, nindex_levels=self.row_levels)
+
                 idx_values = list(zip(*frame.index.format(
                     sparsify=False, adjoin=False, names=False)))
                 row = []
                 row.extend(idx_values[i])
                 row.extend(fmt_values[j][i] for j in range(self.ncols))
                 if truncate_h:
-                    row.insert(row_levels + self.fmt.tr_col_num, '...')
+                    row.insert(self.row_levels + self.fmt.tr_col_num, '...')
                 self.write_tr(row, indent, self.indent_delta, tags=None,
                               nindex_levels=frame.index.nlevels)
