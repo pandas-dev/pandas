@@ -1448,101 +1448,53 @@ class Block(PandasObject):
         qs: a scalar or list of the quantiles to be computed
         interpolation: type of interpolation, default 'linear'
         axis: axis to compute, default 0
-        axes : BlockManager.axes
 
         Returns
         -------
-        tuple of (axis, block)
-
+        Block
         """
         kw = {'interpolation': interpolation}
         values = self.get_values()
         values, _ = self._try_coerce_args(values, values)
 
-        def _nanpercentile1D(values, mask, q, **kw):
-            # mask is Union[ExtensionArray, ndarray]
-            values = values[~mask]
-
-            if len(values) == 0:
-                if lib.is_scalar(q):
-                    return self._na_value
-                else:
-                    return np.array([self._na_value] * len(q),
-                                    dtype=values.dtype)
-
-            return np.percentile(values, q, **kw)
-
-        def _nanpercentile(values, q, axis, **kw):
-
-            mask = isna(self.values)
-            if not lib.is_scalar(mask) and mask.any():
-                if self.ndim == 1:
-                    return _nanpercentile1D(values, mask, q, **kw)
-                else:
-                    # for nonconsolidatable blocks mask is 1D, but values 2D
-                    if mask.ndim < values.ndim:
-                        mask = mask.reshape(values.shape)
-                    if axis == 0:
-                        values = values.T
-                        mask = mask.T
-                    result = [_nanpercentile1D(val, m, q, **kw) for (val, m)
-                              in zip(list(values), list(mask))]
-                    result = np.array(result, dtype=values.dtype, copy=False).T
-                    return result
-            else:
-                return np.percentile(values, q, axis=axis, **kw)
-
-        from pandas import Float64Index
         is_empty = values.shape[axis] == 0
-        if is_list_like(qs):
-            ax = Float64Index(qs)
+        orig_scalar = not is_list_like(qs)
+        if orig_scalar:
+            # make list-like, unpack later
+            qs = [qs]
 
-            if is_empty:
-                if self.ndim == 1:
-                    result = self._na_value
-                else:
-                    # create the array of na_values
-                    # 2d len(values) * len(qs)
-                    result = np.repeat(np.array([self._na_value] * len(qs)),
-                                       len(values)).reshape(len(values),
-                                                            len(qs))
-            else:
-
-                try:
-                    result = _nanpercentile(values, np.array(qs) * 100,
-                                            axis=axis, **kw)
-                except ValueError:
-
-                    # older numpies don't handle an array for q
-                    result = [_nanpercentile(values, q * 100,
-                                             axis=axis, **kw) for q in qs]
-
-                result = np.array(result, copy=False)
-                if self.ndim > 1:
-                    result = result.T
-
-        else:
-
+        if is_empty:
             if self.ndim == 1:
-                ax = Float64Index([qs])
+                result = self._na_value
             else:
-                ax = axes[0]
+                # create the array of na_values
+                # 2d len(values) * len(qs)
+                result = np.repeat(np.array([self._na_value] * len(qs)),
+                                   len(values)).reshape(len(values),
+                                                        len(qs))
+        else:
+            mask = isna(self.values)
+            result = _nanpercentile(values, np.array(qs) * 100,
+                                    axis=axis, na_value=self._na_value,
+                                    mask=mask, ndim=self.ndim, **kw)
 
-            if is_empty:
-                if self.ndim == 1:
-                    result = self._na_value
-                else:
-                    result = np.array([self._na_value] * len(self))
-            else:
-                result = _nanpercentile(values, qs * 100, axis=axis, **kw)
+            result = np.array(result, copy=False)
+            if self.ndim > 1:
+                result = result.T
+
+        if orig_scalar and not lib.is_scalar(result):
+            # result could be scalar in case with is_empty and self.ndim == 1
+            assert result.shape[-1] == 1, result.shape
+            result = result[..., 0]
+            result = lib.item_from_zerodim(result)
 
         ndim = getattr(result, 'ndim', None) or 0
         result = self._try_coerce_result(result)
         if lib.is_scalar(result):
-            return ax, self.make_block_scalar(result)
-        return ax, make_block(result,
-                              placement=np.arange(len(result)),
-                              ndim=ndim)
+            return self.make_block_scalar(result)
+        return make_block(result,
+                          placement=np.arange(len(result)),
+                          ndim=ndim)
 
     def _replace_coerce(self, to_replace, value, inplace=True, regex=False,
                         convert=False, mask=None):
@@ -3421,3 +3373,37 @@ def _putmask_smart(v, m, n):
         v = v.astype(dtype)
 
     return _putmask_preserve(v, n)
+
+
+# TODO: belongs elsewhere?
+def _nanpercentile1D(values, mask, q, na_value, **kw):
+    # mask is Union[ExtensionArray, ndarray]
+    values = values[~mask]
+
+    if len(values) == 0:
+        if lib.is_scalar(q):
+            return na_value
+        else:
+            return np.array([na_value] * len(q),
+                            dtype=values.dtype)
+
+    return np.percentile(values, q, **kw)
+
+
+def _nanpercentile(values, q, axis, na_value, mask, ndim, **kw):
+    if not lib.is_scalar(mask) and mask.any():
+        if ndim == 1:
+            return _nanpercentile1D(values, mask, q, na_value, **kw)
+        else:
+            # for nonconsolidatable blocks mask is 1D, but values 2D
+            if mask.ndim < values.ndim:
+                mask = mask.reshape(values.shape)
+            if axis == 0:
+                values = values.T
+                mask = mask.T
+            result = [_nanpercentile1D(val, m, q, na_value, **kw) for (val, m)
+                      in zip(list(values), list(mask))]
+            result = np.array(result, dtype=values.dtype, copy=False).T
+            return result
+    else:
+        return np.percentile(values, q, axis=axis, **kw)
