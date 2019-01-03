@@ -278,12 +278,14 @@ class TestJSONNormalize(object):
         tm.assert_frame_equal(result, expected)
 
     def test_with_max_level_one(self):
-        data = [{
+        data = {
+            "Unique_id": "User001",
+            "data": [{
             'CreatedBy': {'Name': 'User001'},
             'Lookup': {'TextField': 'Some text',
                        'UserField': {'Id': 'ID001', 'Name': 'Name001'}},
             'Image': {'a': 'b'}
-        }]
+        }]}
         expected_output = [{
             'CreatedBy.Name': 'User001',
             'Lookup.TextField': 'Some text',
@@ -291,7 +293,12 @@ class TestJSONNormalize(object):
             'Image': {'a': 'b'}
         }]
         expected = DataFrame(expected_output)
-        result = json_normalize(data, max_level=1, ignore_keys=["Image"])
+        result = json_normalize(data, max_level=1,
+                                ignore_keys=["Image"],
+                                record_path=["data"],
+                                # meta=["Unique_id"]
+                                )
+        print (result.to_dict(orient="records"))
         tm.assert_frame_equal(result, expected)
 
 

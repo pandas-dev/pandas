@@ -44,7 +44,7 @@ def nested_to_record(ds, prefix="", sep=".", level=0,
 
         .. versionadded:: 0.20.0
 
-    level: the number of levels in the jason string, optional, default: 0
+    level: the number of levels in the json string, optional, default: 0
 
     max_level: int, normalize to a maximum level of, optional, default: None
 
@@ -179,7 +179,7 @@ def json_normalize(data, record_path=None, meta=None,
     ...          "fitness":{"height":130, "weight":60}},},
     ...         {'id': 2, 'name': 'Faye Raker',
     ...          "fitness":{"height":130, "weight":60}}}]
-    >>> json_normalize(data, mex_level=1, ignore_keys=["name"])
+    >>> json_normalize(data, max_level=1, ignore_keys=["name"])
         id      name                                 fitness.height  fitness.weight
     0  1.0    {'first': 'Coleen', 'last': 'Volk'}      130               60
     1  NaN    {'given': 'Mose', 'family': 'Regner'}    130               60
