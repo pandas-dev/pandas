@@ -20,6 +20,7 @@ from pandas.tseries.frequencies import to_offset
 # ------------------------------------------------------------------
 # Comparisons
 
+
 class TestPeriodIndexComparisons(object):
 
     @pytest.mark.parametrize("other", ["2017", 2017])

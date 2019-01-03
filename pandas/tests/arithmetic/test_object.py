@@ -15,6 +15,7 @@ import pandas.util.testing as tm
 # ------------------------------------------------------------------
 # Comparisons
 
+
 class TestObjectComparisons(object):
 
     def test_comparison_object_numeric_nas(self):

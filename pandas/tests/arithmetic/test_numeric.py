@@ -19,6 +19,7 @@ import pandas.util.testing as tm
 # ------------------------------------------------------------------
 # Comparisons
 
+
 class TestNumericComparisons(object):
     def test_operator_series_comparison_zerorank(self):
         # GH#13006
