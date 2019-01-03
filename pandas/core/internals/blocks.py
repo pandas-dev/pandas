@@ -222,12 +222,6 @@ class Block(PandasObject):
 
         return make_block(values, placement=placement, ndim=ndim)
 
-    def make_block_scalar(self, values):
-        """
-        Create a ScalarBlock
-        """
-        return ScalarBlock(values)
-
     def make_block_same_class(self, values, placement=None, ndim=None,
                               dtype=None):
         """ Wrap given values in a block of same type as self. """
@@ -1563,29 +1557,6 @@ class Block(PandasObject):
                                             convert=convert,
                                             mask=mask)
         return self
-
-
-class ScalarBlock(Block):
-    """
-    a scalar compat Block
-    """
-    __slots__ = ['_mgr_locs', 'values', 'ndim']
-
-    def __init__(self, values):
-        self.ndim = 0
-        self.mgr_locs = [0]
-        self.values = values
-
-    @property
-    def dtype(self):
-        return type(self.values)
-
-    @property
-    def shape(self):
-        return tuple([0])
-
-    def __len__(self):
-        return 0
 
 
 class NonConsolidatableMixIn(object):
