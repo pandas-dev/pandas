@@ -6,16 +6,15 @@ from decimal import Decimal
 from itertools import combinations
 import operator
 
-import pytest
 import numpy as np
-
-import pandas as pd
-import pandas.util.testing as tm
+import pytest
 
 from pandas.compat import PY3, Iterable
-from pandas.core import ops
-from pandas import Timedelta, Series, Index, TimedeltaIndex
 
+import pandas as pd
+from pandas import Index, Series, Timedelta, TimedeltaIndex
+from pandas.core import ops
+import pandas.util.testing as tm
 
 # ------------------------------------------------------------------
 # Comparisons

@@ -1,12 +1,11 @@
 # -*- coding: utf-8 -*-
+import numpy as np
 import pytest
 
-import numpy as np
-import pandas as pd
-
 from pandas.compat import long
-import pandas.util.testing as tm
 
+import pandas as pd
+import pandas.util.testing as tm
 
 # ------------------------------------------------------------------
 # Helper Functions

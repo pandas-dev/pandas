@@ -4,15 +4,13 @@
 # Specifically for object dtype
 import operator
 
-import pytest
 import numpy as np
+import pytest
 
 import pandas as pd
-import pandas.util.testing as tm
-from pandas.core import ops
-
 from pandas import Series, Timestamp
-
+from pandas.core import ops
+import pandas.util.testing as tm
 
 # ------------------------------------------------------------------
 # Comparisons
