@@ -277,7 +277,6 @@ class TestJSONNormalize(object):
         expected = DataFrame(ex_data)
         tm.assert_frame_equal(result, expected)
 
-
     def test_records_path_with_nested_data(self):
         data = [{'CreatedBy': {'Name': 'User001'},
                  'Lookup': [{'TextField': 'Some text',
@@ -289,15 +288,44 @@ class TestJSONNormalize(object):
                  'random': [{'foo': 'something', 'bar': 'else'},
                             {'foo': 'something2', 'bar': 'else2'}]
                  }]
+        ex_data_level_0 = [{"TextField": "Some text",
+                            'UserField': {'Id': 'ID001', 'Name': 'Name001'},
+                            "CreatedBy": {"Name": "User001"},
+                            'Image': {'a': 'b'}},
+                           {"TextField": "Some text",
+                            'UserField': {'Id': 'ID001', 'Name': 'Name001'},
+                            "CreatedBy": {"Name": "User001"},
+                            'Image': {'a': 'b'}}]
 
-        ex_data = [{"TextField": "Some text", "UserField.Id": "ID001",
-                    "UserField.Name": "Name001", "CreatedBy": {"Name": "User001"}, 'Image': {'a': 'b'}},
-                   {"TextField": "Some text", "UserField.Id": "ID001",
-                    "UserField.Name": "Name001", "CreatedBy": {"Name": "User001"}, 'Image': {'a': 'b'}}]
+        expected_level_0 = DataFrame(ex_data_level_0,
+                                     columns=['TextField', 'UserField',
+                                              'CreatedBy', "Image"])
+        result_level_0 = json_normalize(data, record_path=["Lookup"],
+                                        meta=[["CreatedBy"], ["Image"]],
+                                        max_level=0)
 
-        expected = DataFrame(ex_data, columns=['TextField', 'UserField.Id', 'UserField.Name', 'CreatedBy', "Image"])
-        result = json_normalize(data, record_path=["Lookup"], meta=[["CreatedBy"], ["Image"]])
-        tm.assert_frame_equal(result, expected)
+        ex_data_level_1 = [{"TextField": "Some text", "UserField.Id": "ID001",
+                            "UserField.Name": "Name001",
+                            "CreatedBy": {"Name": "User001"},
+                            'Image': {'a': 'b'}},
+                           {"TextField": "Some text", "UserField.Id": "ID001",
+                            "UserField.Name": "Name001",
+                            "CreatedBy": {"Name": "User001"},
+                            'Image': {'a': 'b'}}]
+
+        expected_level_1 = DataFrame(ex_data_level_1,
+                                     columns=['TextField',
+                                              'UserField.Id',
+                                              'UserField.Name',
+                                              'CreatedBy',
+                                              "Image"]
+                                     )
+        result_level_1 = json_normalize(data, record_path=["Lookup"],
+                                        meta=[["CreatedBy"], ["Image"]],
+                                        max_level=1)
+
+        tm.assert_frame_equal(expected_level_0, result_level_0)
+        tm.assert_frame_equal(expected_level_1, result_level_1)
 
 
 class TestNestedToRecord(object):
@@ -479,7 +507,6 @@ class TestNestedToRecord(object):
             'location.country.state.town.info.z': 27.572303771972656}
         assert result == expected
 
-<<<<<<< HEAD
     def test_with_max_level_none(self):
         data = [{
             'CreatedBy': {'Name': 'User001'},
@@ -524,34 +551,38 @@ class TestNestedToRecord(object):
         assert output == expected_output
 
     def test_with_large_max_level(self):
-        print ("*"*100)
-        data = [{
-            'CreatedBy': {
+        data = [
+            {'CreatedBy': {
                 "user": {
-                    "name":
-                        {"firstname":"Leo",
-                         "LastName": "Thomson"},
-                    "family_tree":{
-                        "father":{
+                    "name": {"firstname": "Leo",
+                             "LastName": "Thomson"},
+                    "family_tree": {
+                        "father": {
                             "name": "Father001",
-                            "father":{
+                            "father": {
                                 "Name": "Father002",
                                 "father": {
                                     "name": "Father003",
                                     "father": {
                                         "Name": "Father004",
                                     },
-                            },
+                                },
+                            }
                         }
                     }
-            }}}}
+                }
+            }}
         ]
-        expected_output = [{'CreatedBy.user.name.firstname': 'Leo',
-                            'CreatedBy.user.name.LastName': 'Thomson',
-                            'CreatedBy.user.family_tree.father.name': 'Father001',
-                            'CreatedBy.user.family_tree.father.father.Name': 'Father002',
-                            'CreatedBy.user.family_tree.father.father.father.name': 'Father003',
-                            'CreatedBy.user.family_tree.father.father.father.father.Name': 'Father004'}]
+        expected_output = [
+            {'CreatedBy.user.name.firstname': 'Leo',
+             'CreatedBy.user.name.LastName': 'Thomson',
+             'CreatedBy.user.family_tree.father.name': 'Father001',
+             'CreatedBy.user.family_tree.father.father.Name': 'Father002',
+             'CreatedBy.user.family_tree.father.father.father.name':
+                 'Father003',
+             'CreatedBy.user.family_tree.father.father.father.father.Name':
+                 'Father004'}
+        ]
 
         output = nested_to_record(data, max_level=100)
         assert output == expected_output
@@ -565,5 +596,3 @@ class TestNestedToRecord(object):
         }]
         output = nested_to_record(data, ignore_keys=list(data[0].keys()))
         assert output == data
-=======
->>>>>>> json_records_path_bug_fix

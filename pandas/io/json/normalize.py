@@ -180,7 +180,7 @@ def json_normalize(data, record_path=None, meta=None,
     ...         {'id': 2, 'name': 'Faye Raker',
     ...          "fitness":{"height":130, "weight":60}}}]
     >>> json_normalize(data, max_level=1, ignore_keys=["name"])
-        id      name                                 fitness.height  fitness.weight
+        id      name                             fitness.height  fitness.weight
     0  1.0    {'first': 'Coleen', 'last': 'Volk'}      130               60
     1  NaN    {'given': 'Mose', 'family': 'Regner'}    130               60
     2  2.0     Faye Raker                              130               60
@@ -280,7 +280,8 @@ def json_normalize(data, record_path=None, meta=None,
         else:
             for obj in data:
                 recs = _pull_field(obj, path[0])
-                recs = [nested_to_record(r, sep=sep) if isinstance(r, dict) else r for r in recs]
+                recs = [nested_to_record(r, sep=sep, max_level=max_level)
+                        if isinstance(r, dict) else r for r in recs]
 
                 # For repeating the metadata later
                 lengths.append(len(recs))
