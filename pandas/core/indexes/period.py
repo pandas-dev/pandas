@@ -8,8 +8,7 @@ from pandas._libs import index as libindex
 from pandas._libs.tslibs import NaT, iNaT, resolution
 from pandas._libs.tslibs.period import (
     DIFFERENT_FREQ, IncompatibleFrequency, Period)
-from pandas.util._decorators import (
-    Appender, Substitution, cache_readonly, deprecate_kwarg)
+from pandas.util._decorators import Appender, Substitution, cache_readonly
 
 from pandas.core.dtypes.common import (
     is_bool_dtype, is_datetime64_any_dtype, is_float, is_float_dtype,
@@ -19,7 +18,6 @@ from pandas import compat
 from pandas.core import common as com
 from pandas.core.accessor import delegate_names
 from pandas.core.algorithms import unique1d
-from pandas.core.arrays.datetimelike import DatelikeOps
 from pandas.core.arrays.period import (
     PeriodArray, period_array, validate_dtype_freq)
 from pandas.core.base import _shared_docs
@@ -71,9 +69,9 @@ class PeriodDelegateMixin(DatetimelikeDelegateMixin):
                 typ='property')
 @delegate_names(PeriodArray,
                 PeriodDelegateMixin._delegated_methods,
-                typ="method")
-class PeriodIndex(DatelikeOps, DatetimeIndexOpsMixin, Int64Index,
-                  PeriodDelegateMixin):
+                typ="method",
+                overwrite=True)
+class PeriodIndex(DatetimeIndexOpsMixin, Int64Index, PeriodDelegateMixin):
     """
     Immutable ndarray holding ordinal values indicating regular periods in
     time such as particular years, quarters, months, etc.
@@ -285,31 +283,18 @@ class PeriodIndex(DatelikeOps, DatetimeIndexOpsMixin, Int64Index,
     # Data
 
     @property
-    def _eadata(self):
-        return self._data
-
-    @property
-    def _ndarray_values(self):
-        return self._data._ndarray_values
-
-    @property
     def values(self):
         return np.asarray(self)
 
     @property
-    def _values(self):
-        return self._data
-
-    @property
     def freq(self):
-        # TODO(DatetimeArray): remove
-        # Can't simply use delegate_names since our base class is defining
-        # freq
         return self._data.freq
 
     @freq.setter
     def freq(self, value):
         value = Period._maybe_convert_freq(value)
+        # TODO: When this deprecation is enforced, PeriodIndex.freq can
+        # be removed entirely, and we'll just inherit.
         msg = ('Setting {cls}.freq has been deprecated and will be '
                'removed in a future version; use {cls}.asfreq instead. '
                'The {cls}.freq setter is not guaranteed to work.')
@@ -371,17 +356,6 @@ class PeriodIndex(DatelikeOps, DatetimeIndexOpsMixin, Int64Index,
             else:
                 return Period._from_ordinal(ordinal=x, freq=self.freq)
         return func
-
-    def _maybe_box_as_values(self, values, **attribs):
-        """Box an array of ordinals to a PeriodArray
-
-        This is purely for compatibility between PeriodIndex
-        and Datetime/TimedeltaIndex. Once these are all backed by
-        an ExtensionArray, this can be removed
-        """
-        # TODO(DatetimeArray): remove
-        freq = attribs['freq']
-        return PeriodArray(values, freq=freq)
 
     def _maybe_convert_timedelta(self, other):
         """
@@ -472,34 +446,6 @@ class PeriodIndex(DatelikeOps, DatetimeIndexOpsMixin, Int64Index,
     # ------------------------------------------------------------------------
     # Index Methods
 
-    @deprecate_kwarg(old_arg_name='n', new_arg_name='periods')
-    def shift(self, periods):
-        """
-        Shift index by desired number of increments.
-
-        This method is for shifting the values of period indexes
-        by a specified time increment.
-
-        Parameters
-        ----------
-        periods : int, default 1
-            Number of periods (or increments) to shift by,
-            can be positive or negative.
-
-            .. versionchanged:: 0.24.0
-
-        Returns
-        -------
-        pandas.PeriodIndex
-            Shifted index.
-
-        See Also
-        --------
-        DatetimeIndex.shift : Shift values of DatetimeIndex.
-        """
-        i8values = self._data._time_shift(periods)
-        return self._simple_new(i8values, name=self.name, freq=self.freq)
-
     def _coerce_scalar_to_index(self, item):
         """
         we need to coerce a scalar to a compat for our index type
@@ -580,16 +526,13 @@ class PeriodIndex(DatelikeOps, DatetimeIndexOpsMixin, Int64Index,
     def astype(self, dtype, copy=True, how='start'):
         dtype = pandas_dtype(dtype)
 
-        # We have a few special-cases for `dtype`.
-        # Failing those, we fall back to astyping the values
-
         if is_datetime64_any_dtype(dtype):
-            # 'how' is index-speicifc, isn't part of the EA interface.
+            # 'how' is index-specific, isn't part of the EA interface.
             tz = getattr(dtype, 'tz', None)
             return self.to_timestamp(how=how).tz_localize(tz)
 
-        result = self._data.astype(dtype, copy=copy)
-        return Index(result, name=self.name, dtype=dtype, copy=False)
+        # TODO: should probably raise on `how` here, so we don't ignore it.
+        return super(PeriodIndex, self).astype(dtype, copy=copy)
 
     @Substitution(klass='PeriodIndex')
     @Appender(_shared_docs['searchsorted'])
@@ -919,12 +862,6 @@ class PeriodIndex(DatelikeOps, DatetimeIndexOpsMixin, Int64Index,
 
     _unpickle_compat = __setstate__
 
-    def view(self, dtype=None, type=None):
-        # TODO(DatetimeArray): remove
-        if dtype is None or dtype is __builtins__['type'](self):
-            return self
-        return self._ndarray_values.view(dtype=dtype)
-
     @property
     def flags(self):
         """ return the ndarray.flags for the underlying data """
@@ -932,11 +869,6 @@ class PeriodIndex(DatelikeOps, DatetimeIndexOpsMixin, Int64Index,
                       "in a future version".format(obj=type(self).__name__),
                       FutureWarning, stacklevel=2)
         return self._ndarray_values.flags
-
-    @property
-    def asi8(self):
-        # TODO(DatetimeArray): remove
-        return self.view('i8')
 
     def item(self):
         """

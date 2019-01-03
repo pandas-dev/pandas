@@ -1,22 +1,21 @@
 # -*- coding: utf-8 -*-
 # pylint: disable-msg=W0612,E1101
 
-import pytest
 from collections import OrderedDict
 
-from pandas import DataFrame, Series
-from pandas.core.dtypes.common import is_integer_dtype
-from pandas.core.sparse.api import SparseDtype, SparseArray
-import pandas as pd
-
-from numpy import nan
 import numpy as np
+from numpy import nan
+import pytest
 
-from pandas.util.testing import assert_frame_equal
-
-from pandas import get_dummies, Categorical, Index
-import pandas.util.testing as tm
 from pandas.compat import u
+
+from pandas.core.dtypes.common import is_integer_dtype
+
+import pandas as pd
+from pandas import Categorical, DataFrame, Index, Series, get_dummies
+from pandas.core.sparse.api import SparseArray, SparseDtype
+import pandas.util.testing as tm
+from pandas.util.testing import assert_frame_equal
 
 
 class TestGetDummies(object):

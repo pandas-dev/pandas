@@ -28,8 +28,8 @@ from pandas.util._decorators import Appender
 from pandas.core.dtypes.cast import astype_nansafe
 from pandas.core.dtypes.common import (
     ensure_object, is_bool_dtype, is_categorical_dtype, is_dtype_equal,
-    is_float, is_integer, is_integer_dtype, is_list_like, is_object_dtype,
-    is_scalar, is_string_dtype)
+    is_extension_array_dtype, is_float, is_integer, is_integer_dtype,
+    is_list_like, is_object_dtype, is_scalar, is_string_dtype, pandas_dtype)
 from pandas.core.dtypes.dtypes import CategoricalDtype
 from pandas.core.dtypes.missing import isna
 
@@ -134,7 +134,8 @@ mangle_dupe_cols : bool, default True
     'X'...'X'. Passing in False will cause data to be overwritten if there
     are duplicate names in the columns.
 dtype : Type name or dict of column -> type, optional
-    Data type for data or columns. E.g. {{'a': np.float64, 'b': np.int32}}
+    Data type for data or columns. E.g. {{'a': np.float64, 'b': np.int32,
+    'c': 'Int64'}}
     Use `str` or `object` together with suitable `na_values` settings
     to preserve and not interpret dtype.
     If converters are specified, they will be applied INSTEAD
@@ -261,7 +262,7 @@ doublequote : bool, default ``True``
    whether or not to interpret two consecutive quotechar elements INSIDE a
    field as a single ``quotechar`` element.
 escapechar : str (length 1), optional
-    One-character string used to escape delimiter when quoting is QUOTE_NONE.
+    One-character string used to escape other characters.
 comment : str, optional
     Indicates remainder of line should not be parsed. If found at the beginning
     of a line, the line will be ignored altogether. This parameter must be a
@@ -1659,16 +1660,20 @@ class ParserBase(object):
                     values, set(col_na_values) | col_na_fvalues,
                     try_num_bool=False)
             else:
+                is_str_or_ea_dtype = (is_string_dtype(cast_type)
+                                      or is_extension_array_dtype(cast_type))
                 # skip inference if specified dtype is object
-                try_num_bool = not (cast_type and is_string_dtype(cast_type))
+                # or casting to an EA
+                try_num_bool = not (cast_type and is_str_or_ea_dtype)
 
                 # general type inference and conversion
                 cvals, na_count = self._infer_types(
                     values, set(col_na_values) | col_na_fvalues,
                     try_num_bool)
 
-                # type specified in dtype param
-                if cast_type and not is_dtype_equal(cvals, cast_type):
+                # type specified in dtype param or cast_type is an EA
+                if cast_type and (not is_dtype_equal(cvals, cast_type)
+                                  or is_extension_array_dtype(cast_type)):
                     try:
                         if (is_bool_dtype(cast_type) and
                                 not is_categorical_dtype(cast_type)
@@ -1764,6 +1769,20 @@ class ParserBase(object):
             values = Categorical._from_inferred_categories(
                 cats, cats.get_indexer(values), cast_type,
                 true_values=self.true_values)
+
+        # use the EA's implementation of casting
+        elif is_extension_array_dtype(cast_type):
+            # ensure cast_type is an actual dtype and not a string
+            cast_type = pandas_dtype(cast_type)
+            array_type = cast_type.construct_array_type()
+            try:
+                return array_type._from_sequence_of_strings(values,
+                                                            dtype=cast_type)
+            except NotImplementedError:
+                raise NotImplementedError(
+                    "Extension Array: {ea} must implement "
+                    "_from_sequence_of_strings in order "
+                    "to be used in parser methods".format(ea=array_type))
 
         else:
             try:
@@ -2174,8 +2193,8 @@ class PythonParser(ParserBase):
 
         self.verbose = kwds['verbose']
         self.converters = kwds['converters']
-        self.dtype = kwds['dtype']
 
+        self.dtype = kwds['dtype']
         self.thousands = kwds['thousands']
         self.decimal = kwds['decimal']
 

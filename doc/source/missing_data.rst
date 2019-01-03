@@ -19,32 +19,6 @@ pandas.
 
 See the :ref:`cookbook<cookbook.missing_data>` for some advanced strategies.
 
-Missing data basics
--------------------
-
-When / why does data become missing?
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-Some might quibble over our usage of *missing*. By "missing" we simply mean
-**NA** ("not available") or "not present for whatever reason". Many data sets simply arrive with
-missing data, either because it exists and was not collected or it never
-existed. For example, in a collection of financial time series, some of the time
-series might start on different dates. Thus, values prior to the start date
-would generally be marked as missing.
-
-In pandas, one of the most common ways that missing data is **introduced** into
-a data set is by reindexing. For example:
-
-.. ipython:: python
-
-   df = pd.DataFrame(np.random.randn(5, 3), index=['a', 'c', 'e', 'f', 'h'],
-                     columns=['one', 'two', 'three'])
-   df['four'] = 'bar'
-   df['five'] = df['one'] > 0
-   df
-   df2 = df.reindex(['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h'])
-   df2
-
 Values considered "missing"
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -61,6 +35,16 @@ arise and we wish to also consider that "missing" or "not available" or "NA".
    you can set ``pandas.options.mode.use_inf_as_na = True``.
 
 .. _missing.isna:
+
+.. ipython:: python
+
+   df = pd.DataFrame(np.random.randn(5, 3), index=['a', 'c', 'e', 'f', 'h'],
+                     columns=['one', 'two', 'three'])
+   df['four'] = 'bar'
+   df['five'] = df['one'] > 0
+   df
+   df2 = df.reindex(['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h'])
+   df2
 
 To make detecting missing values easier (and across different array dtypes),
 pandas provides the :func:`isna` and
@@ -89,6 +73,23 @@ Series and DataFrame objects:
    .. ipython:: python
 
       df2['one'] == np.nan
+
+Integer Dtypes and Missing Data
+-------------------------------
+
+Because ``NaN`` is a float, a column of integers with even one missing values
+is cast to floating-point dtype (see :ref:`gotchas.intna` for more). Pandas
+provides a nullable integer array, which can be used by explicitly requesting
+the dtype:
+
+.. ipython:: python
+
+   pd.Series([1, 2, np.nan, 4], dtype=pd.Int64Dtype())
+
+Alternatively, the string alias ``dtype='Int64'`` (note the capital ``"I"``) can be
+used.
+
+See :ref:`integer_na` for more.
 
 Datetimes
 ---------
@@ -751,3 +752,14 @@ However, these can be filled in using :meth:`~DataFrame.fillna` and it will work
 
    reindexed[crit.fillna(False)]
    reindexed[crit.fillna(True)]
+
+Pandas provides a nullable integer dtype, but you must explicitly request it
+when creating the series or column. Notice that we use a capital "I" in
+the ``dtype="Int64"``.
+
+.. ipython:: python
+
+   s = pd.Series([0, 1, np.nan, 3, 4], dtype="Int64")
+   s
+
+See :ref:`integer_na` for more.

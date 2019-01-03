@@ -34,12 +34,14 @@ from pandas.core.dtypes.missing import (
     _isna_compat, array_equivalent, is_null_datelike_scalar, isna, notna)
 
 import pandas.core.algorithms as algos
-from pandas.core.arrays import Categorical, ExtensionArray
+from pandas.core.arrays import (
+    Categorical, DatetimeArrayMixin as DatetimeArray, ExtensionArray,
+    TimedeltaArrayMixin as TimedeltaArray)
 from pandas.core.base import PandasObject
 import pandas.core.common as com
 from pandas.core.indexes.datetimes import DatetimeIndex
-from pandas.core.indexes.timedeltas import TimedeltaIndex
 from pandas.core.indexing import check_setitem_lengths
+from pandas.core.internals.arrays import extract_array
 import pandas.core.missing as missing
 
 from pandas.io.formats.printing import pprint_thing
@@ -336,7 +338,7 @@ class Block(PandasObject):
     def iget(self, i):
         return self.values[i]
 
-    def set(self, locs, values, check=False):
+    def set(self, locs, values):
         """
         Modify Block in-place with new item value
 
@@ -1971,22 +1973,19 @@ class ExtensionBlock(NonConsolidatableMixIn, Block):
 
     def where(self, other, cond, align=True, errors='raise',
               try_cast=False, axis=0, transpose=False):
-        # Extract the underlying arrays.
-        if isinstance(other, (ABCIndexClass, ABCSeries)):
-            other = other.array
-
-        elif isinstance(other, ABCDataFrame):
+        if isinstance(other, ABCDataFrame):
             # ExtensionArrays are 1-D, so if we get here then
             # `other` should be a DataFrame with a single column.
             assert other.shape[1] == 1
-            other = other.iloc[:, 0].array
+            other = other.iloc[:, 0]
+
+        other = extract_array(other, extract_numpy=True)
 
         if isinstance(cond, ABCDataFrame):
             assert cond.shape[1] == 1
-            cond = cond.iloc[:, 0].array
+            cond = cond.iloc[:, 0]
 
-        elif isinstance(cond, (ABCIndexClass, ABCSeries)):
-            cond = cond.array
+        cond = extract_array(cond, extract_numpy=True)
 
         if lib.is_scalar(other) and isna(other):
             # The default `other` for Series / Frame is np.nan
@@ -2166,11 +2165,11 @@ class IntBlock(NumericBlock):
 
 
 class DatetimeLikeBlockMixin(object):
-    """Mixin class for DatetimeBlock and DatetimeTZBlock."""
+    """Mixin class for DatetimeBlock, DatetimeTZBlock, and TimedeltaBlock."""
 
     @property
     def _holder(self):
-        return DatetimeIndex
+        return DatetimeArray
 
     @property
     def _na_value(self):
@@ -2180,14 +2179,31 @@ class DatetimeLikeBlockMixin(object):
     def fill_value(self):
         return tslibs.iNaT
 
+    def to_dense(self):
+        # TODO(DatetimeBlock): remove
+        return np.asarray(self.values)
+
     def get_values(self, dtype=None):
         """
         return object dtype as boxed values, such as Timestamps/Timedelta
         """
         if is_object_dtype(dtype):
-            return lib.map_infer(self.values.ravel(),
-                                 self._box_func).reshape(self.values.shape)
+            values = self.values
+
+            if self.ndim > 1:
+                values = values.ravel()
+
+            values = lib.map_infer(values, self._box_func)
+
+            if self.ndim > 1:
+                values = values.reshape(self.values.shape)
+
+            return values
         return self.values
+
+    @property
+    def asi8(self):
+        return self.values.view('i8')
 
 
 class TimeDeltaBlock(DatetimeLikeBlockMixin, IntBlock):
@@ -2199,13 +2215,15 @@ class TimeDeltaBlock(DatetimeLikeBlockMixin, IntBlock):
     def __init__(self, values, placement, ndim=None):
         if values.dtype != _TD_DTYPE:
             values = conversion.ensure_timedelta64ns(values)
-
+        if isinstance(values, TimedeltaArray):
+            values = values._data
+        assert isinstance(values, np.ndarray), type(values)
         super(TimeDeltaBlock, self).__init__(values,
                                              placement=placement, ndim=ndim)
 
     @property
     def _holder(self):
-        return TimedeltaIndex
+        return TimedeltaArray
 
     @property
     def _box_func(self):
@@ -2299,6 +2317,9 @@ class TimeDeltaBlock(DatetimeLikeBlockMixin, IntBlock):
                                         for val in values.ravel()[imask]],
                                        dtype=object)
         return rvalues
+
+    def external_values(self, dtype=None):
+        return np.asarray(self.values.astype("timedelta64[ns]", copy=False))
 
 
 class BoolBlock(NumericBlock):
@@ -2395,7 +2416,7 @@ class ObjectBlock(Block):
 
         return blocks
 
-    def set(self, locs, values, check=False):
+    def set(self, locs, values):
         """
         Modify Block in-place with new item value
 
@@ -2403,14 +2424,6 @@ class ObjectBlock(Block):
         -------
         None
         """
-
-        # GH6026
-        if check:
-            try:
-                if (self.values[locs] == values).all():
-                    return
-            except (IndexError, ValueError):
-                pass
         try:
             self.values[locs] = values
         except (ValueError):
@@ -2439,8 +2452,14 @@ class ObjectBlock(Block):
         """ provide coercion to our input arguments """
 
         if isinstance(other, ABCDatetimeIndex):
-            # to store DatetimeTZBlock as object
-            other = other.astype(object).values
+            # May get a DatetimeIndex here. Unbox it.
+            other = other.array
+
+        if isinstance(other, DatetimeArray):
+            # hit in pandas/tests/indexing/test_coercion.py
+            # ::TestWhereCoercion::test_where_series_datetime64[datetime64tz]
+            # when falling back to ObjectBlock.where
+            other = other.astype(object)
 
         return values, other
 
@@ -2766,6 +2785,11 @@ class DatetimeBlock(DatetimeLikeBlockMixin, Block):
         """
         if values.dtype != _NS_DTYPE:
             values = conversion.ensure_datetime64ns(values)
+
+        if isinstance(values, DatetimeArray):
+            values = values._data
+
+        assert isinstance(values, np.ndarray), type(values)
         return values
 
     def _astype(self, dtype, **kwargs):
@@ -2852,15 +2876,17 @@ class DatetimeBlock(DatetimeLikeBlockMixin, Block):
         """ convert to our native types format, slicing if desired """
 
         values = self.values
+        i8values = self.values.view('i8')
+
         if slicer is not None:
-            values = values[..., slicer]
+            i8values = i8values[..., slicer]
 
         from pandas.io.formats.format import _get_format_datetime64_from_values
         format = _get_format_datetime64_from_values(values, date_format)
 
         result = tslib.format_array_from_datetime(
-            values.view('i8').ravel(), tz=getattr(self.values, 'tz', None),
-            format=format, na_rep=na_rep).reshape(values.shape)
+            i8values.ravel(), tz=getattr(self.values, 'tz', None),
+            format=format, na_rep=na_rep).reshape(i8values.shape)
         return np.atleast_2d(result)
 
     def should_store(self, value):
@@ -2868,7 +2894,7 @@ class DatetimeBlock(DatetimeLikeBlockMixin, Block):
                 not is_datetime64tz_dtype(value) and
                 not is_extension_array_dtype(value))
 
-    def set(self, locs, values, check=False):
+    def set(self, locs, values):
         """
         Modify Block in-place with new item value
 
@@ -2880,12 +2906,15 @@ class DatetimeBlock(DatetimeLikeBlockMixin, Block):
 
         self.values[locs] = values
 
+    def external_values(self):
+        return np.asarray(self.values.astype('datetime64[ns]', copy=False))
 
-class DatetimeTZBlock(NonConsolidatableMixIn, DatetimeBlock):
+
+class DatetimeTZBlock(ExtensionBlock, DatetimeBlock):
     """ implement a datetime64 block with a tz attribute """
     __slots__ = ()
-    _concatenator = staticmethod(_concat._concat_datetime)
     is_datetimetz = True
+    is_extension = True
 
     def __init__(self, values, placement, ndim=2, dtype=None):
         # XXX: This will end up calling _maybe_coerce_values twice
@@ -2899,6 +2928,10 @@ class DatetimeTZBlock(NonConsolidatableMixIn, DatetimeBlock):
             values = self._maybe_coerce_values(values, dtype=dtype)
         super(DatetimeTZBlock, self).__init__(values, placement=placement,
                                               ndim=ndim)
+
+    @property
+    def _holder(self):
+        return DatetimeArray
 
     def _maybe_coerce_values(self, values, dtype=None):
         """Input validation for values passed to __init__. Ensure that
@@ -2921,7 +2954,7 @@ class DatetimeTZBlock(NonConsolidatableMixIn, DatetimeBlock):
         if dtype is not None:
             if isinstance(dtype, compat.string_types):
                 dtype = DatetimeTZDtype.construct_from_string(dtype)
-            values = values._shallow_copy(tz=dtype.tz)
+            values = type(values)(values, dtype=dtype)
 
         if values.tz is None:
             raise ValueError("cannot create a DatetimeTZBlock without a tz")
@@ -2932,7 +2965,7 @@ class DatetimeTZBlock(NonConsolidatableMixIn, DatetimeBlock):
     def is_view(self):
         """ return a boolean if I am possibly a view """
         # check the ndarray values of the DatetimeIndex values
-        return self.values.values.base is not None
+        return self.values._data.base is not None
 
     def copy(self, deep=True):
         """ copy constructor """
@@ -2941,18 +2974,39 @@ class DatetimeTZBlock(NonConsolidatableMixIn, DatetimeBlock):
             values = values.copy(deep=True)
         return self.make_block_same_class(values)
 
-    def external_values(self):
-        """ we internally represent the data as a DatetimeIndex, but for
-        external compat with ndarray, export as a ndarray of Timestamps
-        """
-        return self.values.astype('datetime64[ns]').values
-
     def get_values(self, dtype=None):
-        # return object dtype as Timestamps with the zones
+        """
+        Returns an ndarray of values.
+
+        Parameters
+        ----------
+        dtype : np.dtype
+            Only `object`-like dtypes are respected here (not sure
+            why).
+
+        Returns
+        -------
+        values : ndarray
+            When ``dtype=object``, then and object-dtype ndarray of
+            boxed values is returned. Otherwise, an M8[ns] ndarray
+            is returned.
+
+            DatetimeArray is always 1-d. ``get_values`` will reshape
+            the return value to be the same dimensionality as the
+            block.
+        """
+        values = self.values
         if is_object_dtype(dtype):
-            return lib.map_infer(
-                self.values.ravel(), self._box_func).reshape(self.values.shape)
-        return self.values
+            values = values._box_values(values._data)
+
+        values = np.asarray(values)
+
+        if self.ndim == 2:
+            # Ensure that our shape is correct for DataFrame.
+            # ExtensionArrays are always 1-D, even in a DataFrame when
+            # the analogous NumPy-backed column would be a 2-D ndarray.
+            values = values.reshape(1, -1)
+        return values
 
     def _slice(self, slicer):
         """ return a slice of my values """
@@ -2977,13 +3031,17 @@ class DatetimeTZBlock(NonConsolidatableMixIn, DatetimeBlock):
         base-type values, base-type other
         """
         # asi8 is a view, needs copy
-        values = _block_shape(values.asi8, ndim=self.ndim)
+        values = _block_shape(values.view("i8"), ndim=self.ndim)
 
         if isinstance(other, ABCSeries):
             other = self._holder(other)
 
         if isinstance(other, bool):
             raise TypeError
+        elif is_datetime64_dtype(other):
+            # add the tz back
+            other = self._holder(other, dtype=self.dtype)
+
         elif (is_null_datelike_scalar(other) or
               (lib.is_scalar(other) and isna(other))):
             other = tslibs.iNaT
@@ -3013,43 +3071,18 @@ class DatetimeTZBlock(NonConsolidatableMixIn, DatetimeBlock):
             result = tslibs.Timestamp(result, tz=self.values.tz)
         if isinstance(result, np.ndarray):
             # allow passing of > 1dim if its trivial
+
             if result.ndim > 1:
                 result = result.reshape(np.prod(result.shape))
-
             # GH#24096 new values invalidates a frequency
-            result = self.values._shallow_copy(result, freq=None)
+            result = self._holder._simple_new(result, freq=None,
+                                              tz=self.values.tz)
 
         return result
 
     @property
     def _box_func(self):
         return lambda x: tslibs.Timestamp(x, tz=self.dtype.tz)
-
-    def shift(self, periods, axis=0, fill_value=None):
-        """ shift the block by periods """
-
-        # think about moving this to the DatetimeIndex. This is a non-freq
-        # (number of periods) shift ###
-
-        N = len(self)
-        indexer = np.zeros(N, dtype=int)
-        if periods > 0:
-            indexer[periods:] = np.arange(N - periods)
-        else:
-            indexer[:periods] = np.arange(-periods, N)
-
-        new_values = self.values.asi8.take(indexer)
-
-        if isna(fill_value):
-            fill_value = tslibs.iNaT
-        if periods > 0:
-            new_values[:periods] = fill_value
-        else:
-            new_values[periods:] = fill_value
-
-        new_values = self.values._shallow_copy(new_values)
-        return [self.make_block_same_class(new_values,
-                                           placement=self.mgr_locs)]
 
     def diff(self, n, axis=0):
         """1st discrete difference
@@ -3080,14 +3113,44 @@ class DatetimeTZBlock(NonConsolidatableMixIn, DatetimeBlock):
         return [TimeDeltaBlock(new_values, placement=self.mgr_locs.indexer)]
 
     def concat_same_type(self, to_concat, placement=None):
-        """
-        Concatenate list of single blocks of the same type.
-        """
-        values = self._concatenator([blk.values for blk in to_concat],
-                                    axis=self.ndim - 1)
-        # not using self.make_block_same_class as values can be non-tz dtype
-        return make_block(
-            values, placement=placement or slice(0, len(values), 1))
+        # need to handle concat([tz1, tz2]) here, since DatetimeArray
+        # only handles cases where all the tzs are the same.
+        # Instead of placing the condition here, it could also go into the
+        # is_uniform_join_units check, but I'm not sure what is better.
+        if len({x.dtype for x in to_concat}) > 1:
+            values = _concat._concat_datetime([x.values for x in to_concat])
+            placement = placement or slice(0, len(values), 1)
+
+            if self.ndim > 1:
+                values = np.atleast_2d(values)
+            return ObjectBlock(values, ndim=self.ndim, placement=placement)
+        return super(DatetimeTZBlock, self).concat_same_type(to_concat,
+                                                             placement)
+
+    def fillna(self, value, limit=None, inplace=False, downcast=None):
+        # We support filling a DatetimeTZ with a `value` whose timezone
+        # is different by coercing to object.
+        try:
+            return super(DatetimeTZBlock, self).fillna(
+                value, limit, inplace, downcast
+            )
+        except (ValueError, TypeError):
+            # different timezones, or a non-tz
+            return self.astype(object).fillna(
+                value, limit=limit, inplace=inplace, downcast=downcast
+            )
+
+    def setitem(self, indexer, value):
+        # https://github.com/pandas-dev/pandas/issues/24020
+        # Need a dedicated setitem until #24020 (type promotion in setitem
+        # for extension arrays) is designed and implemented.
+        try:
+            return super(DatetimeTZBlock, self).setitem(indexer, value)
+        except (ValueError, TypeError):
+            newb = make_block(self.values.astype(object),
+                              placement=self.mgr_locs,
+                              klass=ObjectBlock,)
+            return newb.setitem(indexer, value)
 
 
 # -----------------------------------------------------------------
@@ -3109,8 +3172,16 @@ def get_block_type(values, dtype=None):
     dtype = dtype or values.dtype
     vtype = dtype.type
 
-    if is_categorical(values):
+    if is_sparse(dtype):
+        # Need this first(ish) so that Sparse[datetime] is sparse
+        cls = ExtensionBlock
+    elif is_categorical(values):
         cls = CategoricalBlock
+    elif issubclass(vtype, np.datetime64):
+        assert not is_datetime64tz_dtype(values)
+        cls = DatetimeBlock
+    elif is_datetime64tz_dtype(values):
+        cls = DatetimeTZBlock
     elif is_interval_dtype(dtype) or is_period_dtype(dtype):
         cls = ObjectValuesExtensionBlock
     elif is_extension_array_dtype(values):
@@ -3122,11 +3193,6 @@ def get_block_type(values, dtype=None):
         cls = TimeDeltaBlock
     elif issubclass(vtype, np.complexfloating):
         cls = ComplexBlock
-    elif issubclass(vtype, np.datetime64):
-        assert not is_datetime64tz_dtype(values)
-        cls = DatetimeBlock
-    elif is_datetime64tz_dtype(values):
-        cls = DatetimeTZBlock
     elif issubclass(vtype, np.integer):
         cls = IntBlock
     elif dtype == np.bool_:

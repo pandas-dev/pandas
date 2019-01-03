@@ -20,8 +20,8 @@ from numpy.random import rand, randn
 from pandas._libs import testing as _testing
 import pandas.compat as compat
 from pandas.compat import (
-    PY2, PY3, Counter, StringIO, callable, filter, httplib, lmap, lrange, lzip,
-    map, raise_with_traceback, range, string_types, u, unichr, zip)
+    PY2, PY3, Counter, callable, filter, httplib, lmap, lrange, lzip, map,
+    raise_with_traceback, range, string_types, u, unichr, zip)
 
 from pandas.core.dtypes.common import (
     is_bool, is_categorical_dtype, is_datetime64_dtype, is_datetime64tz_dtype,
@@ -636,99 +636,6 @@ def set_defaultencoding(encoding):
     finally:
         sys.setdefaultencoding(orig)
 
-
-def capture_stdout(f):
-    r"""
-    Decorator to capture stdout in a buffer so that it can be checked
-    (or suppressed) during testing.
-
-    Parameters
-    ----------
-    f : callable
-        The test that is capturing stdout.
-
-    Returns
-    -------
-    f : callable
-        The decorated test ``f``, which captures stdout.
-
-    Examples
-    --------
-
-    >>> from pandas.util.testing import capture_stdout
-    >>> import sys
-    >>>
-    >>> @capture_stdout
-    ... def test_print_pass():
-    ...     print("foo")
-    ...     out = sys.stdout.getvalue()
-    ...     assert out == "foo\n"
-    >>>
-    >>> @capture_stdout
-    ... def test_print_fail():
-    ...     print("foo")
-    ...     out = sys.stdout.getvalue()
-    ...     assert out == "bar\n"
-    ...
-    AssertionError: assert 'foo\n' == 'bar\n'
-    """
-
-    @compat.wraps(f)
-    def wrapper(*args, **kwargs):
-        try:
-            sys.stdout = StringIO()
-            f(*args, **kwargs)
-        finally:
-            sys.stdout = sys.__stdout__
-
-    return wrapper
-
-
-def capture_stderr(f):
-    r"""
-    Decorator to capture stderr in a buffer so that it can be checked
-    (or suppressed) during testing.
-
-    Parameters
-    ----------
-    f : callable
-        The test that is capturing stderr.
-
-    Returns
-    -------
-    f : callable
-        The decorated test ``f``, which captures stderr.
-
-    Examples
-    --------
-
-    >>> from pandas.util.testing import capture_stderr
-    >>> import sys
-    >>>
-    >>> @capture_stderr
-    ... def test_stderr_pass():
-    ...     sys.stderr.write("foo")
-    ...     out = sys.stderr.getvalue()
-    ...     assert out == "foo\n"
-    >>>
-    >>> @capture_stderr
-    ... def test_stderr_fail():
-    ...     sys.stderr.write("foo")
-    ...     out = sys.stderr.getvalue()
-    ...     assert out == "bar\n"
-    ...
-    AssertionError: assert 'foo\n' == 'bar\n'
-    """
-
-    @compat.wraps(f)
-    def wrapper(*args, **kwargs):
-        try:
-            sys.stderr = StringIO()
-            f(*args, **kwargs)
-        finally:
-            sys.stderr = sys.__stderr__
-
-    return wrapper
 
 # -----------------------------------------------------------------------------
 # Console debugging tools
@@ -1405,6 +1312,13 @@ def assert_series_equal(left, right, check_dtype=True,
                                      check_dtype=check_dtype)
     elif is_interval_dtype(left) or is_interval_dtype(right):
         assert_interval_array_equal(left.array, right.array)
+
+    elif (is_extension_array_dtype(left.dtype) and
+          is_datetime64tz_dtype(left.dtype)):
+        # .values is an ndarray, but ._values is the ExtensionArray.
+        # TODO: Use .array
+        assert is_extension_array_dtype(right.dtype)
+        return assert_extension_array_equal(left._values, right._values)
 
     elif (is_extension_array_dtype(left) and not is_categorical_dtype(left) and
           is_extension_array_dtype(right) and not is_categorical_dtype(right)):
@@ -3064,58 +2978,6 @@ class SubclassedCategorical(Categorical):
     @property
     def _constructor(self):
         return SubclassedCategorical
-
-
-@contextmanager
-def patch(ob, attr, value):
-    """Temporarily patch an attribute of an object.
-
-    Parameters
-    ----------
-    ob : any
-        The object to patch. This must support attribute assignment for `attr`.
-    attr : str
-        The name of the attribute to patch.
-    value : any
-        The temporary attribute to assign.
-
-    Examples
-    --------
-    >>> class C(object):
-    ...     attribute = 'original'
-    ...
-    >>> C.attribute
-    'original'
-    >>> with patch(C, 'attribute', 'patched'):
-    ...     in_context = C.attribute
-    ...
-    >>> in_context
-    'patched'
-    >>> C.attribute  # the value is reset when the context manager exists
-    'original'
-
-    Correctly replaces attribute when the manager exits with an exception.
-    >>> with patch(C, 'attribute', 'patched'):
-    ...     in_context = C.attribute
-    ...     raise ValueError()
-    Traceback (most recent call last):
-       ...
-    ValueError
-    >>> in_context
-    'patched'
-    >>> C.attribute
-    'original'
-    """
-    noattr = object()  # mark that the attribute never existed
-    old = getattr(ob, attr, noattr)
-    setattr(ob, attr, value)
-    try:
-        yield
-    finally:
-        if old is noattr:
-            delattr(ob, attr)
-        else:
-            setattr(ob, attr, old)
 
 
 @contextmanager

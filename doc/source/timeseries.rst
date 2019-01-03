@@ -1874,7 +1874,7 @@ has multiplied span.
 
 .. ipython:: python
 
-   pd.PeriodIndex(start='2014-01', freq='3M', periods=4)
+   pd.period_range(start='2014-01', freq='3M', periods=4)
 
 If ``start`` or ``end`` are ``Period`` objects, they will be used as anchor
 endpoints for a ``PeriodIndex`` with frequency matching that of the
@@ -1882,8 +1882,8 @@ endpoints for a ``PeriodIndex`` with frequency matching that of the
 
 .. ipython:: python
 
-   pd.PeriodIndex(start=pd.Period('2017Q1', freq='Q'),
-                  end=pd.Period('2017Q2', freq='Q'), freq='M')
+   pd.period_range(start=pd.Period('2017Q1', freq='Q'),
+                   end=pd.Period('2017Q2', freq='Q'), freq='M')
 
 Just like ``DatetimeIndex``, a ``PeriodIndex`` can also be used to index pandas
 objects:
