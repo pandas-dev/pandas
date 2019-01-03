@@ -26,7 +26,8 @@ from pandas.util._validators import validate_kwargs
 
 from pandas.core.dtypes.cast import maybe_downcast_to_dtype
 from pandas.core.dtypes.common import (
-    ensure_float, is_extension_array_dtype, is_numeric_dtype, is_scalar)
+    _NS_DTYPE, ensure_float, is_datetime64tz_dtype, is_extension_array_dtype,
+    is_numeric_dtype, is_scalar)
 from pandas.core.dtypes.missing import isna, notna
 
 import pandas.core.algorithms as algorithms
@@ -1269,10 +1270,18 @@ class GroupBy(_GroupBy):
             return f
 
         def first_compat(x, axis=0):
+            # This is a bit strange.
+            # We only hit this block when grouping a DatetimeTZBlock *and*
+            # a categorical. Something strange going on with first for
+            # categorical dta.
+            if is_datetime64tz_dtype(x.dtype):
+                dtype = _NS_DTYPE
+            else:
+                dtype = None
 
             def first(x):
 
-                x = np.asarray(x)
+                x = np.asarray(x, dtype=dtype)
                 x = x[notna(x)]
                 if len(x) == 0:
                     return np.nan
@@ -1284,10 +1293,18 @@ class GroupBy(_GroupBy):
                 return first(x)
 
         def last_compat(x, axis=0):
+            # This is a bit strange.
+            # We only hit this block when grouping a DatetimeTZBlock *and*
+            # a categorical. Something strange going on with first for
+            # categorical dta.
+            if is_datetime64tz_dtype(x.dtype):
+                dtype = _NS_DTYPE
+            else:
+                dtype = None
 
             def last(x):
 
-                x = np.asarray(x)
+                x = np.asarray(x, dtype=dtype)
                 x = x[notna(x)]
                 if len(x) == 0:
                     return np.nan

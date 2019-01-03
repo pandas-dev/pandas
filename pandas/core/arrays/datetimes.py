@@ -522,7 +522,7 @@ class DatetimeArrayMixin(dtl.DatetimeLikeArrayMixin,
     # Array-Like / EA-Interface Methods
 
     def __array__(self, dtype=None):
-        if is_object_dtype(dtype):
+        if is_object_dtype(dtype) or (dtype is None and self.tz):
             return np.array(list(self), dtype=object)
         elif is_int64_dtype(dtype):
             return self.asi8

@@ -1228,7 +1228,7 @@ Deprecations
 .. _whatsnew_0240.deprecations.datetimelike_int_ops:
 
 Integer Addition/Subtraction with Datetimes and Timedeltas is Deprecated
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 In the past, users could—in some cases—add or subtract integers or integer-dtype
 arrays from :class:`Timestamp`, :class:`DatetimeIndex` and :class:`TimedeltaIndex`.
@@ -1265,6 +1265,60 @@ the object's ``freq`` attribute (:issue:`21939`, :issue:`23878`).
 
     dti = pd.date_range('2001-01-01', periods=2, freq='7D')
     dti + pd.Index([1 * dti.freq, 2 * dti.freq])
+
+
+.. _whatsnew_0240.deprecations.tz_aware_array:
+
+Converting Timezone-Aware Series and Index to NumPy Arrays
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+The conversion from a :class:`Series` or :class:`Index` with timezone-aware
+datetime data will changing to preserve timezones by default (:issue:`23569`).
+
+NumPy doesn't have a dedicated dtype for timezone-aware datetimes.
+In the past, converting a :class:`Series` or :class:`DatetimeIndex` with
+timezone-aware datatimes would convert to a NumPy array by
+
+1. converting the tz-aware data to UTC
+2. dropping the timezone-info
+3. returning a :class:`numpy.ndarray` with ``datetime64[ns]`` dtype
+
+Future versions of pandas will preserve the timezone information by returning an
+object-dtype NumPy array where each value is a :class:`Timestamp` with the correct
+timezone attached
+
+.. ipython:: python
+
+   ser = pd.Series(pd.date_range('2000', periods=2, tz="CET"))
+   ser
+
+The default behavior renames the same, but issues a warning
+
+.. code-block:: python
+
+   In [8]: np.asarray(ser)
+   /bin/ipython:1: FutureWarning: Converting timezone-aware DatetimeArray to timezone-naive
+         ndarray with 'datetime64[ns]' dtype. In the future, this will return an ndarray
+         with 'object' dtype where each element is a 'pandas.Timestamp' with the correct 'tz'.
+
+           To accept the future behavior, pass 'dtype=object'.
+           To keep the old behavior, pass 'dtype="datetime64[ns]"'.
+     #!/bin/python3
+   Out[8]:
+   array(['1999-12-31T23:00:00.000000000', '2000-01-01T23:00:00.000000000'],
+         dtype='datetime64[ns]')
+
+The old or new behavior can be obtained by specifying the ``dtype``
+
+.. ipython:: python
+   :okwarning:
+
+   # Old behavior
+   np.asarray(ser, dtype='datetime64[ns]')
+
+   # New behavior
+   np.asarray(ser, dtype=object)
+
 
 .. _whatsnew_0240.prior_deprecations:
 

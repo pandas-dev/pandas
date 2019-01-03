@@ -318,6 +318,7 @@ class CategoricalDtype(PandasExtensionDtype, ExtensionDtype):
         from pandas.core.util.hashing import (
             hash_array, _combine_hash_arrays, hash_tuples
         )
+        from pandas.core.dtypes.common import is_datetime64tz_dtype, _NS_DTYPE
 
         if len(categories) and isinstance(categories[0], tuple):
             # assumes if any individual category is a tuple, then all our. ATM
@@ -335,6 +336,11 @@ class CategoricalDtype(PandasExtensionDtype, ExtensionDtype):
                     # find a better solution
                     hashed = hash((tuple(categories), ordered))
                     return hashed
+
+            if is_datetime64tz_dtype(categories.dtype):
+                # Avoid future warning.
+                categories = categories.astype(_NS_DTYPE)
+
             cat_array = hash_array(np.asarray(categories), categorize=False)
         if ordered:
             cat_array = np.vstack([

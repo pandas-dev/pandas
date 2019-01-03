@@ -2400,6 +2400,12 @@ class DatetimeTZBlock(ExtensionBlock, DatetimeBlock):
             values = values.reshape(1, -1)
         return values
 
+    def to_dense(self):
+        # we request M8[ns] dtype here, even though it discards tzinfo,
+        # as lots of code (e.g. anything using values_from_object)
+        # expects that behavior.
+        return np.asarray(self.values, dtype=_NS_DTYPE)
+
     def _slice(self, slicer):
         """ return a slice of my values """
         if isinstance(slicer, tuple):
@@ -2543,6 +2549,40 @@ class DatetimeTZBlock(ExtensionBlock, DatetimeBlock):
                               placement=self.mgr_locs,
                               klass=ObjectBlock,)
             return newb.setitem(indexer, value)
+
+    def quantile(self, qs, interpolation='linear', axis=0, axes=None):
+        # TODO: Add quantile as a reduction method.
+        # We can't just use Block.quantile, as that converts the DTA
+        # to an ndarray[object] via get_values.
+        # This method
+        # 1. Convert DatetimeTZBlock -> DatetimeBlock
+        # 2. Perform the op via Block.quantile
+        # 3. Converts back to tz-aware
+        # Alternatively, we could special case the call to `get_values`
+        # in Block.quantile for DatetimeTZ.
+
+        new_values = np.asarray(self.values, dtype=_NS_DTYPE)
+        if self.ndim == 2:
+            new_values = new_values[None, :]
+
+        new_block = DatetimeBlock(new_values, placement=self.mgr_locs)
+
+        ax, naive = new_block.quantile(qs, interpolation=interpolation,
+                                       axis=axis, axes=axes)
+
+        ndim = getattr(naive, 'ndim', None) or 0
+        if ndim == 0:
+            return ax, self.make_block_scalar(
+                tslibs.Timestamp(naive.values.value, tz=self.values.tz)
+            )
+        else:
+            naive = naive.values.ravel()
+
+        result = DatetimeArray(naive, dtype=self.values.dtype)
+
+        return ax, make_block(result,
+                              placement=np.arange(len(result)),
+                              ndim=ndim)
 
 
 class TimeDeltaBlock(DatetimeLikeBlockMixin, IntBlock):

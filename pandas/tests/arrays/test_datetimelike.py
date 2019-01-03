@@ -264,11 +264,11 @@ class TestDatetimeArray(SharedTests):
         arr = DatetimeArray(dti)
 
         expected = dti.asi8.view('M8[ns]')
-        result = np.array(arr)
+        result = np.array(arr, dtype='M8[ns]')
         tm.assert_numpy_array_equal(result, expected)
 
         # check that we are not making copies when setting copy=False
-        result = np.array(arr, copy=False)
+        result = np.array(arr, dtype='M8[ns]', copy=False)
         assert result.base is expected.base
         assert result.base is not None
 
