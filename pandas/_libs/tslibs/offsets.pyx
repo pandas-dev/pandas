@@ -847,11 +847,15 @@ def shift_month(stamp: datetime, months: int,
     ----------
     stamp : datetime or Timestamp
     months : int
-    day_opt : None, 'start', 'end', or an integer
+    day_opt : None, 'start', 'end', 'business_start', 'business_end', or int
         None: returned datetimelike has the same day as the input, or the
               last day of the month if the new month is too short
         'start': returned datetimelike has day=1
         'end': returned datetimelike has day on the last day of the month
+        'business_start': returned datetimelike has day on the first
+            business day of the month
+        'business_end': returned datetimelike has day on the last
+            business day of the month
         int: returned datetimelike has day equal to day_opt
 
     Returns
