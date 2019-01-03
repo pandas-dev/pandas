@@ -280,8 +280,7 @@ class DatetimeArrayMixin(dtl.DatetimeLikeArrayMixin,
             )
             raise ValueError(msg.format(values.dtype))
 
-        dtype = pandas_dtype(dtype)
-        _validate_dt64_dtype(dtype)
+        dtype = _validate_dt64_dtype(dtype)
 
         if freq == "infer":
             msg = (

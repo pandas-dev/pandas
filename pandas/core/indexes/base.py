@@ -68,8 +68,7 @@ def _make_comparison_op(op, cls):
             if other.ndim > 0 and len(self) != len(other):
                 raise ValueError('Lengths must match to compare')
 
-        from .multi import MultiIndex
-        if is_object_dtype(self) and not isinstance(self, MultiIndex):
+        if is_object_dtype(self) and not isinstance(self, ABCMultiIndex):
             # don't pass MultiIndex
             with np.errstate(all='ignore'):
                 result = ops._comp_method_OBJECT_ARRAY(op, self.values, other)
@@ -1307,8 +1306,7 @@ class Index(IndexOpsMixin, PandasObject):
                    names=['species', 'year'])
         """
 
-        from .multi import MultiIndex
-        if level is not None and not isinstance(self, MultiIndex):
+        if level is not None and not isinstance(self, ABCMultiIndex):
             raise ValueError('Level must be None for non-MultiIndex')
 
         if level is not None and not is_list_like(level) and is_list_like(
@@ -3145,9 +3143,8 @@ class Index(IndexOpsMixin, PandasObject):
     @Appender(_index_shared_docs['join'])
     def join(self, other, how='left', level=None, return_indexers=False,
              sort=False):
-        from .multi import MultiIndex
-        self_is_mi = isinstance(self, MultiIndex)
-        other_is_mi = isinstance(other, MultiIndex)
+        self_is_mi = isinstance(self, ABCMultiIndex)
+        other_is_mi = isinstance(other, ABCMultiIndex)
 
         # try to figure out the join level
         # GH3662
@@ -4394,8 +4391,7 @@ class Index(IndexOpsMixin, PandasObject):
 
         # TODO: if we are a MultiIndex, we can do better
         # that converting to tuples
-        from .multi import MultiIndex
-        if isinstance(values, MultiIndex):
+        if isinstance(values, ABCMultiIndex):
             values = values.values
         values = ensure_categorical(values)
         result = values._reverse_indexer()

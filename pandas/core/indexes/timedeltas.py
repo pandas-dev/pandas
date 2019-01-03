@@ -303,11 +303,6 @@ class TimedeltaIndex(DatetimeIndexOpsMixin, dtl.TimelikeOps, Int64Index,
     _is_monotonic_decreasing = Index.is_monotonic_decreasing
     _is_unique = Index.is_unique
 
-    _create_comparison_method = DatetimeIndexOpsMixin._create_comparison_method
-    # TODO: make sure we have a test for name retention analogous
-    #  to series.test_arithmetic.test_ser_cmp_result_names;
-    #  also for PeriodIndex which I think may be missing one
-
     @property
     def _box_func(self):
         return lambda x: Timedelta(x, unit='ns')
