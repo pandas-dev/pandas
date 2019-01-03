@@ -277,28 +277,26 @@ class TestJSONNormalize(object):
         expected = DataFrame(ex_data)
         tm.assert_frame_equal(result, expected)
 
-    def test_with_max_level_one(self):
-        data = {
-            "Unique_id": "User001",
-            "data": [{
-            'CreatedBy': {'Name': 'User001'},
-            'Lookup': {'TextField': 'Some text',
-                       'UserField': {'Id': 'ID001', 'Name': 'Name001'}},
-            'Image': {'a': 'b'}
-        }]}
-        expected_output = [{
-            'CreatedBy.Name': 'User001',
-            'Lookup.TextField': 'Some text',
-            'Lookup.UserField': {'Id': 'ID001', 'Name': 'Name001'},
-            'Image': {'a': 'b'}
-        }]
-        expected = DataFrame(expected_output)
-        result = json_normalize(data, max_level=1,
-                                ignore_keys=["Image"],
-                                record_path=["data"],
-                                # meta=["Unique_id"]
-                                )
-        print (result.to_dict(orient="records"))
+
+    def test_records_path_with_nested_data(self):
+        data = [{'CreatedBy': {'Name': 'User001'},
+                 'Lookup': [{'TextField': 'Some text',
+                             'UserField': {'Id': 'ID001', 'Name': 'Name001'}},
+                            {'TextField': 'Some text',
+                             'UserField': {'Id': 'ID001', 'Name': 'Name001'}}
+                            ],
+                 'Image': {'a': 'b'},
+                 'random': [{'foo': 'something', 'bar': 'else'},
+                            {'foo': 'something2', 'bar': 'else2'}]
+                 }]
+
+        ex_data = [{"TextField": "Some text", "UserField.Id": "ID001",
+                    "UserField.Name": "Name001", "CreatedBy": {"Name": "User001"}, 'Image': {'a': 'b'}},
+                   {"TextField": "Some text", "UserField.Id": "ID001",
+                    "UserField.Name": "Name001", "CreatedBy": {"Name": "User001"}, 'Image': {'a': 'b'}}]
+
+        expected = DataFrame(ex_data, columns=['TextField', 'UserField.Id', 'UserField.Name', 'CreatedBy', "Image"])
+        result = json_normalize(data, record_path=["Lookup"], meta=[["CreatedBy"], ["Image"]])
         tm.assert_frame_equal(result, expected)
 
 
@@ -481,6 +479,7 @@ class TestNestedToRecord(object):
             'location.country.state.town.info.z': 27.572303771972656}
         assert result == expected
 
+<<<<<<< HEAD
     def test_with_max_level_none(self):
         data = [{
             'CreatedBy': {'Name': 'User001'},
@@ -566,3 +565,5 @@ class TestNestedToRecord(object):
         }]
         output = nested_to_record(data, ignore_keys=list(data[0].keys()))
         assert output == data
+=======
+>>>>>>> json_records_path_bug_fix
