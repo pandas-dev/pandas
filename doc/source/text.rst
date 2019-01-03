@@ -303,7 +303,7 @@ The same alignment can be used when ``others`` is a ``DataFrame``:
 Concatenating a Series and many objects into a Series
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Several items can be combined a list-like container (including iterators, ``dict``-views, etc.), which may contain ``Series``, ``Index``, ``PandasArray`` and ``np.ndarray``.
+Several items (specifically: ``Series``, ``Index``, ``PandasArray`` and ``np.ndarray``) can be combined in a list-like container (including iterators, ``dict``-views, etc.).
 
 .. ipython:: python
 
