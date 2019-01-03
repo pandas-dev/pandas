@@ -20,7 +20,7 @@ import pandas as pd
 from pandas import (
     DatetimeIndex, NaT, Period, Series, Timedelta, TimedeltaIndex, Timestamp,
     date_range)
-from pandas.core.indexes.datetimes import _to_m8
+from pandas.core.indexes.datetimes import _to_M8
 import pandas.util.testing as tm
 
 
@@ -346,7 +346,7 @@ class TestDatetimeIndexComparisons(object):
     def test_comparators(self, op):
         index = tm.makeDateIndex(100)
         element = index[len(index) // 2]
-        element = _to_m8(element)
+        element = _to_M8(element)
 
         arr = np.array(index)
         arr_result = op(arr, element)
