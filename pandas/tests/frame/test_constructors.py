@@ -757,6 +757,20 @@ class TestDataFrameConstructors(TestData):
         assert frame['A'][1] is True
         assert frame['C'][2] is False
 
+        # Check hardened masks
+        mat_hard = ma.masked_all((2, 3), dtype=float).harden_mask()
+        frame = DataFrame(mat_hard, columns=['A', 'B', 'C'], index=[1, 2])
+        assert len(frame.index) == 2
+        assert len(frame.columns) == 3
+        assert np.all(~np.asarray(frame == frame))
+        # Check case where mask is hard but no data are masked
+        mat_hard = ma.ones((2,3), dtype=float).harden_mask()
+        frame = DataFrame(mat_hard, columns=['A', 'B', 'C'], index=[1, 2])
+        assert len(frame.index) == 2
+        assert len(frame.columns) == 3
+        assert np.all(np.asarray(frame == 1.0))
+
+
     def test_constructor_mrecarray(self):
         # Ensure mrecarray produces frame identical to dict of masked arrays
         # from GH3479

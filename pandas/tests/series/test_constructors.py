@@ -386,6 +386,11 @@ class TestSeriesConstructors():
         expected = Series([nan, nan, nan])
         assert_series_equal(result, expected)
 
+        data_hard = ma.copy(data).harden_mask()
+        result = Series(data_hard)
+        expected = Series([nan, nan, nan])
+        assert_series_equal(result, expected)
+
         data[0] = 0.0
         data[2] = 2.0
         index = ['a', 'b', 'c']
