@@ -1920,7 +1920,7 @@ class Index(IndexOpsMixin, PandasObject):
 
         Returns
         -------
-        filled : %(klass)s
+        filled : Index
         """
 
     @Appender(_index_shared_docs['fillna'])
