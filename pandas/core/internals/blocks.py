@@ -1439,7 +1439,7 @@ class Block(PandasObject):
         blocks = [make_block(new_values, placement=new_placement)]
         return blocks, mask
 
-    def quantile(self, qs, interpolation='linear', axis=0, axes=None):
+    def quantile(self, qs, interpolation='linear', axis=0):
         """
         compute the quantiles of the
 
