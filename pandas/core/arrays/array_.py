@@ -209,7 +209,7 @@ def array(data,         # type: Sequence[object]
         return cls._from_sequence(data, dtype=dtype, copy=copy)
 
     if dtype is None:
-        inferred_dtype = lib.infer_dtype(data, skipna=False)
+        inferred_dtype = lib.infer_dtype(data, skipna=True)
         if inferred_dtype == 'period':
             try:
                 return period_array(data, copy=copy)
