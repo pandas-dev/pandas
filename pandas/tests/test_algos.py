@@ -22,7 +22,7 @@ from pandas import (
     Categorical, CategoricalIndex, DatetimeIndex, Index, IntervalIndex, Series,
     Timestamp, compat)
 import pandas.core.algorithms as algos
-from pandas.core.arrays import DatetimeArrayMixin as DatetimeArray
+from pandas.core.arrays import DatetimeArray
 import pandas.core.common as com
 import pandas.util.testing as tm
 from pandas.util.testing import assert_almost_equal

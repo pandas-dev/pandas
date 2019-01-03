@@ -83,7 +83,7 @@ class TestTimedeltaIndex(object):
     def test_astype_raises(self, dtype):
         # GH 13149, GH 13209
         idx = TimedeltaIndex([1e14, 'NaT', NaT, np.NaN])
-        msg = 'Cannot cast TimedeltaArrayMixin to dtype'
+        msg = 'Cannot cast TimedeltaArray to dtype'
         with pytest.raises(TypeError, match=msg):
             idx.astype(dtype)
 

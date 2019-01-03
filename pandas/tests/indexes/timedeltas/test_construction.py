@@ -5,7 +5,7 @@ import pytest
 
 import pandas as pd
 from pandas import Timedelta, TimedeltaIndex, timedelta_range, to_timedelta
-from pandas.core.arrays import TimedeltaArrayMixin as TimedeltaArray
+from pandas.core.arrays import TimedeltaArray
 import pandas.util.testing as tm
 
 

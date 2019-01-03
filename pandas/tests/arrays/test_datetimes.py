@@ -10,7 +10,7 @@ import pytest
 from pandas.core.dtypes.dtypes import DatetimeTZDtype
 
 import pandas as pd
-from pandas.core.arrays import DatetimeArrayMixin as DatetimeArray
+from pandas.core.arrays import DatetimeArray
 from pandas.core.arrays.datetimes import sequence_to_dt64ns
 import pandas.util.testing as tm
 

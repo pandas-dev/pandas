@@ -14,7 +14,7 @@ from pandas.core.dtypes.common import is_integer_dtype
 
 import pandas as pd
 from pandas import Series, isna
-from pandas.core.arrays import DatetimeArrayMixin as DatetimeArray
+from pandas.core.arrays import DatetimeArray
 import pandas.core.nanops as nanops
 import pandas.util.testing as tm
 

@@ -13,8 +13,7 @@ import pandas as pd
 from pandas import (
     DatetimeIndex, Index, Timestamp, date_range, datetime, offsets,
     to_datetime)
-from pandas.core.arrays import (
-    DatetimeArrayMixin as DatetimeArray, period_array)
+from pandas.core.arrays import DatetimeArray, period_array
 import pandas.util.testing as tm
 
 

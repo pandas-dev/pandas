@@ -6,8 +6,8 @@ See :ref:`extending.extension-types` for more.
 from pandas.core.arrays import (
     IntervalArray, PeriodArray, Categorical, SparseArray, IntegerArray,
     PandasArray,
-    DatetimeArrayMixin as DatetimeArray,
-    TimedeltaArrayMixin as TimedeltaArray,
+    DatetimeArray,
+    TimedeltaArray,
 )
 
 
