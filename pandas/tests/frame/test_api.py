@@ -2,27 +2,23 @@
 
 from __future__ import print_function
 
-import pytest
-
 # pylint: disable-msg=W0612,E1101
 from copy import deepcopy
 import pydoc
 
-from pandas.compat import range, lrange, long
-from pandas import compat
-
-from numpy.random import randn
 import numpy as np
+from numpy.random import randn
+import pytest
 
-from pandas import (DataFrame, Series, date_range, timedelta_range,
-                    Categorical, SparseDataFrame)
+from pandas.compat import long, lrange, range
+
 import pandas as pd
-
-from pandas.util.testing import (assert_almost_equal,
-                                 assert_series_equal,
-                                 assert_frame_equal)
-
+from pandas import (
+    Categorical, DataFrame, Series, SparseDataFrame, compat, date_range,
+    timedelta_range)
 import pandas.util.testing as tm
+from pandas.util.testing import (
+    assert_almost_equal, assert_frame_equal, assert_series_equal)
 
 
 class SharedWithSparse(object):
@@ -318,6 +314,25 @@ class SharedWithSparse(object):
         arr = float_frame[['A', 'B']].values
         expected = float_frame.reindex(columns=['A', 'B']).values
         assert_almost_equal(arr, expected)
+
+    def test_to_numpy(self):
+        df = pd.DataFrame({"A": [1, 2], "B": [3, 4.5]})
+        expected = np.array([[1, 3], [2, 4.5]])
+        result = df.to_numpy()
+        tm.assert_numpy_array_equal(result, expected)
+
+    def test_to_numpy_dtype(self):
+        df = pd.DataFrame({"A": [1, 2], "B": [3, 4.5]})
+        expected = np.array([[1, 3], [2, 4]], dtype="int64")
+        result = df.to_numpy(dtype="int64")
+        tm.assert_numpy_array_equal(result, expected)
+
+    def test_to_numpy_copy(self):
+        arr = np.random.randn(4, 3)
+        df = pd.DataFrame(arr)
+        assert df.values.base is arr
+        assert df.to_numpy(copy=False).base is arr
+        assert df.to_numpy(copy=True).base is None
 
     def test_transpose(self, float_frame):
         frame = float_frame

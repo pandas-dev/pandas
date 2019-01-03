@@ -1,21 +1,23 @@
 # -*- coding: utf-8 -*-
 # pylint: disable-msg=W0612,E1101
-import pytest
-from pandas.compat import (range, lrange, StringIO,
-                           OrderedDict, is_platform_32bit)
-import os
-import numpy as np
-from pandas import (Series, DataFrame, DatetimeIndex, Timestamp,
-                    read_json, compat)
 from datetime import timedelta
-import pandas as pd
 import json
+import os
 
-from pandas.util.testing import (assert_almost_equal, assert_frame_equal,
-                                 assert_series_equal, network,
-                                 ensure_clean, assert_index_equal)
-import pandas.util.testing as tm
+import numpy as np
+import pytest
+
+from pandas.compat import (
+    OrderedDict, StringIO, is_platform_32bit, lrange, range)
 import pandas.util._test_decorators as td
+
+import pandas as pd
+from pandas import (
+    DataFrame, DatetimeIndex, Series, Timestamp, compat, read_json)
+import pandas.util.testing as tm
+from pandas.util.testing import (
+    assert_almost_equal, assert_frame_equal, assert_index_equal,
+    assert_series_equal, ensure_clean, network)
 
 _seriesd = tm.getSeriesData()
 _tsd = tm.getTimeSeriesData()
@@ -846,6 +848,7 @@ DataFrame\\.index values are different \\(100\\.0 %\\)
         assert_frame_equal(result, expected)
 
     @network
+    @pytest.mark.single
     def test_round_trip_exception_(self):
         # GH 3867
         csv = 'https://raw.github.com/hayd/lahman2012/master/csvs/Teams.csv'
@@ -856,6 +859,7 @@ DataFrame\\.index values are different \\(100\\.0 %\\)
             index=df.index, columns=df.columns), df)
 
     @network
+    @pytest.mark.single
     def test_url(self):
         url = 'https://api.github.com/repos/pandas-dev/pandas/issues?per_page=5'  # noqa
         result = read_json(url, convert_dates=True)
@@ -1024,7 +1028,8 @@ DataFrame\\.index values are different \\(100\\.0 %\\)
         dti = pd.DatetimeIndex(tz_range)
         assert dumps(dti, iso_dates=True) == exp
         df = DataFrame({'DT': dti})
-        assert dumps(df, iso_dates=True) == dfexp
+        result = dumps(df, iso_dates=True)
+        assert result == dfexp
 
         tz_range = pd.date_range('2013-01-01 00:00:00', periods=2,
                                  tz='US/Eastern')

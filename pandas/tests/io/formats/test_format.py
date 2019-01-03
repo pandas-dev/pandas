@@ -5,35 +5,35 @@ Test output formatting for Series/DataFrame, including to_string & reprs
 """
 
 from __future__ import print_function
-import re
 
-import pytz
-import dateutil
+from datetime import datetime
 import itertools
 from operator import methodcaller
 import os
+import re
 import sys
 import warnings
-from datetime import datetime
 
-import pytest
-
+import dateutil
 import numpy as np
-import pandas as pd
-from pandas import (DataFrame, Series, Index, Timestamp, MultiIndex,
-                    date_range, NaT, read_csv)
-from pandas.compat import (range, zip, lrange, StringIO, PY3,
-                           u, lzip, is_platform_windows,
-                           is_platform_32bit)
+import pytest
+import pytz
+
 import pandas.compat as compat
+from pandas.compat import (
+    PY3, StringIO, is_platform_32bit, is_platform_windows, lrange, lzip, range,
+    u, zip)
+
+import pandas as pd
+from pandas import (
+    DataFrame, Index, MultiIndex, NaT, Series, Timestamp, date_range, read_csv)
+from pandas.core.config import (
+    get_option, option_context, reset_option, set_option)
+import pandas.util.testing as tm
 
 import pandas.io.formats.format as fmt
 import pandas.io.formats.printing as printing
-
-import pandas.util.testing as tm
 from pandas.io.formats.terminal import get_terminal_size
-from pandas.core.config import (set_option, get_option, option_context,
-                                reset_option)
 
 use_32bit_repr = is_platform_windows() or is_platform_32bit()
 
@@ -1358,6 +1358,18 @@ class TestDataFrameFormatting(object):
                         '0  1.000000e+09\n'
                         '1  2.512000e-01')
         assert df_s == expected
+
+    def test_to_string_float_format_no_fixed_width(self):
+
+        # GH 21625
+        df = DataFrame({'x': [0.19999]})
+        expected = '      x\n0 0.200'
+        assert df.to_string(float_format='%.3f') == expected
+
+        # GH 22270
+        df = DataFrame({'x': [100.0]})
+        expected = '    x\n0 100'
+        assert df.to_string(float_format='%.0f') == expected
 
     def test_to_string_small_float_values(self):
         df = DataFrame({'a': [1.5, 1e-17, -5.5e-7]})

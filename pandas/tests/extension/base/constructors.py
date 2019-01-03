@@ -1,3 +1,4 @@
+import numpy as np
 import pytest
 
 import pandas as pd
@@ -55,3 +56,14 @@ class BaseConstructorsTests(BaseExtensionTests):
 
         result = pd.Series(list(data), dtype=str(dtype))
         self.assert_series_equal(result, expected)
+
+    def test_pandas_array(self, data):
+        # pd.array(extension_array) should be idempotent...
+        result = pd.array(data)
+        self.assert_extension_array_equal(result, data)
+
+    def test_pandas_array_dtype(self, data):
+        # ... but specifying dtype will override idempotency
+        result = pd.array(data, dtype=np.dtype(object))
+        expected = pd.arrays.PandasArray(np.asarray(data, dtype=object))
+        self.assert_equal(result, expected)

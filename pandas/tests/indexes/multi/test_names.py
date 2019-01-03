@@ -1,9 +1,10 @@
 # -*- coding: utf-8 -*-
 
 import pytest
+
 import pandas as pd
-import pandas.util.testing as tm
 from pandas import MultiIndex
+import pandas.util.testing as tm
 
 
 def check_level_names(index, names):
@@ -99,14 +100,14 @@ def test_names(idx, index_names):
 
     # initializing with bad names (should always be equivalent)
     major_axis, minor_axis = idx.levels
-    major_labels, minor_labels = idx.labels
+    major_codes, minor_codes = idx.codes
     with pytest.raises(ValueError, match="^Length of names"):
         MultiIndex(levels=[major_axis, minor_axis],
-                   labels=[major_labels, minor_labels],
+                   codes=[major_codes, minor_codes],
                    names=['first'])
     with pytest.raises(ValueError, match="^Length of names"):
         MultiIndex(levels=[major_axis, minor_axis],
-                   labels=[major_labels, minor_labels],
+                   codes=[major_codes, minor_codes],
                    names=['first', 'second', 'third'])
 
     # names are assigned

@@ -1,26 +1,22 @@
 # -*- coding: utf-8 -*-
 
 from __future__ import print_function
+
 from decimal import Decimal
 import operator
 
+import numpy as np
 import pytest
 
-import numpy as np
-
 from pandas.compat import range
-from pandas import compat
-from pandas import DataFrame, Series, MultiIndex
-import pandas.core.common as com
+
 import pandas as pd
-
-from pandas.util.testing import (assert_numpy_array_equal,
-                                 assert_series_equal,
-                                 assert_frame_equal)
-
-import pandas.util.testing as tm
-
+from pandas import DataFrame, MultiIndex, Series, compat
+import pandas.core.common as com
 from pandas.tests.frame.common import TestData, _check_mixed_float
+import pandas.util.testing as tm
+from pandas.util.testing import (
+    assert_frame_equal, assert_numpy_array_equal, assert_series_equal)
 
 
 class TestDataFrameUnaryOperators(object):
@@ -190,7 +186,6 @@ class TestDataFrameLogicalOperators(object):
         _check_bin_op(operator.or_)
         _check_bin_op(operator.xor)
 
-        # operator.neg is deprecated in numpy >= 1.9
         _check_unary_op(operator.inv)  # TODO: belongs elsewhere
 
     def test_logical_with_nas(self):

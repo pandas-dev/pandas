@@ -30,8 +30,9 @@ from pandas.core.indexing import maybe_convert_indices
 from pandas.io.formats.printing import pprint_thing
 
 from .blocks import (
-    Block, CategoricalBlock, DatetimeTZBlock, ExtensionBlock, _extend_blocks,
-    _merge_blocks, _safe_reshape, get_block_type, make_block)
+    Block, CategoricalBlock, DatetimeTZBlock, ExtensionBlock,
+    ObjectValuesExtensionBlock, _extend_blocks, _merge_blocks, _safe_reshape,
+    get_block_type, make_block)
 from .concat import (  # all for concatenate_block_managers
     combine_concat_plans, concatenate_join_units, get_mgr_concatenation_plan,
     is_uniform_join_units)
@@ -248,9 +249,6 @@ class BlockManager(PandasObject):
 
     def __setstate__(self, state):
         def unpickle_block(values, mgr_locs):
-            # numpy < 1.7 pickle compat
-            if values.dtype == 'M8[us]':
-                values = values.astype('M8[ns]')
             return make_block(values, placement=mgr_locs)
 
         if (isinstance(state, tuple) and len(state) >= 4 and
@@ -752,8 +750,13 @@ class BlockManager(PandasObject):
         else:
             mgr = self
 
-        if self._is_single_block or not self.is_mixed_type:
-            arr = mgr.blocks[0].get_values()
+        if self._is_single_block and mgr.blocks[0].is_datetimetz:
+            # TODO(Block.get_values): Make DatetimeTZBlock.get_values
+            # always be object dtype. Some callers seem to want the
+            # DatetimeArray (previously DTI)
+            arr = mgr.blocks[0].get_values(dtype=object)
+        elif self._is_single_block or not self.is_mixed_type:
+            arr = np.asarray(mgr.blocks[0].get_values())
         else:
             arr = mgr._interleave()
 
@@ -775,18 +778,6 @@ class BlockManager(PandasObject):
             dtype = 'object'
 
         result = np.empty(self.shape, dtype=dtype)
-
-        if result.shape[0] == 0:
-            # Workaround for numpy 1.7 bug:
-            #
-            #     >>> a = np.empty((0,10))
-            #     >>> a[slice(0,0)]
-            #     array([], shape=(0, 10), dtype=float64)
-            #     >>> a[[]]
-            #     Traceback (most recent call last):
-            #       File "<stdin>", line 1, in <module>
-            #     IndexError: index 0 is out of bounds for axis 0 with size 0
-            return result
 
         itemmask = np.zeros(self.shape[0])
 
@@ -1018,11 +1009,10 @@ class BlockManager(PandasObject):
         self._shape = None
         self._rebuild_blknos_and_blklocs()
 
-    def set(self, item, value, check=False):
+    def set(self, item, value):
         """
         Set new item in-place. Does not consolidate. Adds new Block if not
         contained in the current set of items
-        if check, then validate that we are not setting the same data in-place
         """
         # FIXME: refactor, clearly separate broadcasting & zip-like assignment
         #        can prob also fix the various if tests for sparse/categorical
@@ -1074,7 +1064,7 @@ class BlockManager(PandasObject):
             blk = self.blocks[blkno]
             blk_locs = blklocs[val_locs.indexer]
             if blk.should_store(value):
-                blk.set(blk_locs, value_getitem(val_locs), check=check)
+                blk.set(blk_locs, value_getitem(val_locs))
             else:
                 unfit_mgr_locs.append(blk.mgr_locs.as_array[blk_locs])
                 unfit_val_locs.append(val_locs)
@@ -1170,8 +1160,7 @@ class BlockManager(PandasObject):
                 blk.mgr_locs = new_mgr_locs
 
         if loc == self._blklocs.shape[0]:
-            # np.append is a lot faster (at least in numpy 1.7.1), let's use it
-            # if we can.
+            # np.append is a lot faster, let's use it if we can.
             self._blklocs = np.append(self._blklocs, 0)
             self._blknos = np.append(self._blknos, len(self.blocks))
         else:
@@ -1768,6 +1757,14 @@ def form_blocks(arrays, names, axes):
 
         blocks.extend(external_blocks)
 
+    if len(items_dict['ObjectValuesExtensionBlock']):
+        external_blocks = [
+            make_block(array, klass=ObjectValuesExtensionBlock, placement=[i])
+            for i, _, array in items_dict['ObjectValuesExtensionBlock']
+        ]
+
+        blocks.extend(external_blocks)
+
     if len(extra_locs):
         shape = (len(extra_locs),) + tuple(len(x) for x in axes[1:])
 
@@ -1995,13 +1992,9 @@ def _transform_index(index, func, level=None):
 
 def _fast_count_smallints(arr):
     """Faster version of set(arr) for sequences of small numbers."""
-    if len(arr) == 0:
-        # Handle empty arr case separately: numpy 1.6 chokes on that.
-        return np.empty((0, 2), dtype=arr.dtype)
-    else:
-        counts = np.bincount(arr.astype(np.int_))
-        nz = counts.nonzero()[0]
-        return np.c_[nz, counts[nz]]
+    counts = np.bincount(arr.astype(np.int_))
+    nz = counts.nonzero()[0]
+    return np.c_[nz, counts[nz]]
 
 
 def _preprocess_slice_or_indexer(slice_or_indexer, length, allow_fill):

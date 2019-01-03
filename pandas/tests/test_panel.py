@@ -1,31 +1,31 @@
 # -*- coding: utf-8 -*-
 # pylint: disable=W0612,E1101
 
-from warnings import catch_warnings, simplefilter
 from datetime import datetime
 import operator
-import pytest
+from warnings import catch_warnings, simplefilter
 
 import numpy as np
+import pytest
+
+from pandas.compat import OrderedDict, StringIO, lrange, range, signature
+import pandas.util._test_decorators as td
 
 from pandas.core.dtypes.common import is_float_dtype
-from pandas import (Series, DataFrame, Index, date_range, isna, notna,
-                    MultiIndex)
+
+from pandas import (
+    DataFrame, Index, MultiIndex, Series, compat, date_range, isna, notna)
 from pandas.core.nanops import nanall, nanany
+import pandas.core.panel as panelm
 from pandas.core.panel import Panel
+import pandas.util.testing as tm
+from pandas.util.testing import (
+    assert_almost_equal, assert_frame_equal, assert_panel_equal,
+    assert_series_equal, ensure_clean, makeCustomDataframe as mkdf,
+    makeMixedDataFrame)
 
 from pandas.io.formats.printing import pprint_thing
-from pandas import compat
-from pandas.compat import range, lrange, StringIO, OrderedDict, signature
-
 from pandas.tseries.offsets import BDay, MonthEnd
-from pandas.util.testing import (assert_panel_equal, assert_frame_equal,
-                                 assert_series_equal, assert_almost_equal,
-                                 ensure_clean, makeMixedDataFrame,
-                                 makeCustomDataframe as mkdf)
-import pandas.core.panel as panelm
-import pandas.util.testing as tm
-import pandas.util._test_decorators as td
 
 
 def make_test_panel():
@@ -85,7 +85,6 @@ class SafeForLongAndSparse(object):
     def test_mean(self):
         self._check_stat_op('mean', np.mean)
 
-    @td.skip_if_no("numpy", min_version="1.10.0")
     def test_prod(self):
         self._check_stat_op('prod', np.prod, skipna_alternative=np.nanprod)
 
@@ -470,7 +469,8 @@ class CheckIndexing(object):
 
     def test_setitem(self):
         lp = self.panel.filter(['ItemA', 'ItemB']).to_frame()
-        with pytest.raises(ValueError):
+
+        with pytest.raises(TypeError):
             self.panel['ItemE'] = lp
 
         # DataFrame
@@ -1761,7 +1761,7 @@ class TestPanel(PanelTests, CheckIndexing, SafeForLongAndSparse,
 
     def test_to_frame_multi_major_minor(self):
         cols = MultiIndex(levels=[['C_A', 'C_B'], ['C_1', 'C_2']],
-                          labels=[[0, 0, 1, 1], [0, 1, 0, 1]])
+                          codes=[[0, 0, 1, 1], [0, 1, 0, 1]])
         idx = MultiIndex.from_tuples([(1, 'one'), (1, 'two'), (2, 'one'), (
             2, 'two'), (3, 'three'), (4, 'four')])
         df = DataFrame([[1, 2, 11, 12], [3, 4, 13, 14],
@@ -2487,10 +2487,10 @@ class TestPanelFrame(object):
             return (arr[1:] > arr[:-1]).any()
 
         sorted_minor = self.panel.sort_index(level=1)
-        assert is_sorted(sorted_minor.index.labels[1])
+        assert is_sorted(sorted_minor.index.codes[1])
 
         sorted_major = sorted_minor.sort_index(level=0)
-        assert is_sorted(sorted_major.index.labels[0])
+        assert is_sorted(sorted_major.index.codes[0])
 
     def test_to_string(self):
         buf = StringIO()
@@ -2562,7 +2562,7 @@ class TestPanelFrame(object):
     def test_get_dummies(self):
         from pandas.core.reshape.reshape import get_dummies, make_axis_dummies
 
-        self.panel['Label'] = self.panel.index.labels[1]
+        self.panel['Label'] = self.panel.index.codes[1]
         minor_dummies = make_axis_dummies(self.panel, 'minor').astype(np.uint8)
         dummies = get_dummies(self.panel['Label'])
         tm.assert_numpy_array_equal(dummies.values, minor_dummies.values)
@@ -2585,14 +2585,14 @@ class TestPanelFrame(object):
         index = self.panel.index
 
         major_count = self.panel.count(level=0)['ItemA']
-        labels = index.labels[0]
+        level_codes = index.codes[0]
         for i, idx in enumerate(index.levels[0]):
-            assert major_count[i] == (labels == i).sum()
+            assert major_count[i] == (level_codes == i).sum()
 
         minor_count = self.panel.count(level=1)['ItemA']
-        labels = index.labels[1]
+        level_codes = index.codes[1]
         for i, idx in enumerate(index.levels[1]):
-            assert minor_count[i] == (labels == i).sum()
+            assert minor_count[i] == (level_codes == i).sum()
 
     def test_join(self):
         lp1 = self.panel.filter(['ItemA', 'ItemB'])

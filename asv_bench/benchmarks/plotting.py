@@ -8,17 +8,48 @@ import matplotlib
 matplotlib.use('Agg')
 
 
-class Plotting(object):
+class SeriesPlotting(object):
+    params = [['line', 'bar', 'area', 'barh', 'hist', 'kde', 'pie']]
+    param_names = ['kind']
 
-    def setup(self):
-        self.s = Series(np.random.randn(1000000))
-        self.df = DataFrame({'col': self.s})
+    def setup(self, kind):
+        if kind in ['bar', 'barh', 'pie']:
+            n = 100
+        elif kind in ['kde']:
+            n = 10000
+        else:
+            n = 1000000
 
-    def time_series_plot(self):
-        self.s.plot()
+        self.s = Series(np.random.randn(n))
+        if kind in ['area', 'pie']:
+            self.s = self.s.abs()
 
-    def time_frame_plot(self):
-        self.df.plot()
+    def time_series_plot(self, kind):
+        self.s.plot(kind=kind)
+
+
+class FramePlotting(object):
+    params = [['line', 'bar', 'area', 'barh', 'hist', 'kde', 'pie', 'scatter',
+               'hexbin']]
+    param_names = ['kind']
+
+    def setup(self, kind):
+        if kind in ['bar', 'barh', 'pie']:
+            n = 100
+        elif kind in ['kde', 'scatter', 'hexbin']:
+            n = 10000
+        else:
+            n = 1000000
+
+        self.x = Series(np.random.randn(n))
+        self.y = Series(np.random.randn(n))
+        if kind in ['area', 'pie']:
+            self.x = self.x.abs()
+            self.y = self.y.abs()
+        self.df = DataFrame({'x': self.x, 'y': self.y})
+
+    def time_frame_plot(self, kind):
+        self.df.plot(x='x', y='y', kind=kind)
 
 
 class TimeseriesPlotting(object):

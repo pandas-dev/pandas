@@ -1,9 +1,10 @@
-import pytest
-import numpy as np
 import json
 
+import numpy as np
+import pytest
+
+from pandas import DataFrame, Index, compat
 import pandas.util.testing as tm
-from pandas import compat, Index, DataFrame
 
 from pandas.io.json import json_normalize
 from pandas.io.json.normalize import nested_to_record
@@ -127,6 +128,21 @@ class TestJSONNormalize(object):
         # GH 21536
         result = json_normalize({'A': [1, 2]}, 'A', record_prefix='Prefix.')
         expected = DataFrame([[1], [2]], columns=['Prefix.0'])
+        tm.assert_frame_equal(result, expected)
+
+    def test_nested_object_record_path(self):
+        # GH 22706
+        data = {'state': 'Florida',
+                'info': {
+                    'governor': 'Rick Scott',
+                    'counties': [{'name': 'Dade', 'population': 12345},
+                                 {'name': 'Broward', 'population': 40000},
+                                 {'name': 'Palm Beach', 'population': 60000}]}}
+        result = json_normalize(data, record_path=["info", "counties"])
+        expected = DataFrame([['Dade', 12345],
+                              ['Broward', 40000],
+                              ['Palm Beach', 60000]],
+                             columns=['name', 'population'])
         tm.assert_frame_equal(result, expected)
 
     def test_more_deeply_nested(self, deep_nested):

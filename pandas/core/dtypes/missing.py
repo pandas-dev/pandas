@@ -14,7 +14,8 @@ from .common import (
     is_period_dtype, is_scalar, is_string_dtype, is_string_like_dtype,
     is_timedelta64_dtype, needs_i8_conversion, pandas_dtype)
 from .generic import (
-    ABCExtensionArray, ABCGeneric, ABCIndexClass, ABCMultiIndex, ABCSeries)
+    ABCDatetimeArray, ABCExtensionArray, ABCGeneric, ABCIndexClass,
+    ABCMultiIndex, ABCSeries, ABCTimedeltaArray)
 from .inference import is_list_like
 
 isposinf_scalar = libmissing.isposinf_scalar
@@ -108,7 +109,8 @@ def _isna_new(obj):
     elif isinstance(obj, ABCMultiIndex):
         raise NotImplementedError("isna is not defined for MultiIndex")
     elif isinstance(obj, (ABCSeries, np.ndarray, ABCIndexClass,
-                          ABCExtensionArray)):
+                          ABCExtensionArray,
+                          ABCDatetimeArray, ABCTimedeltaArray)):
         return _isna_ndarraylike(obj)
     elif isinstance(obj, ABCGeneric):
         return obj._constructor(obj._data.isna(func=isna))
@@ -196,6 +198,8 @@ def _isna_ndarraylike(obj):
         else:
             values = obj
         result = values.isna()
+    elif isinstance(obj, ABCDatetimeArray):
+        return obj.isna()
     elif is_string_dtype(dtype):
         # Working around NumPy ticket 1542
         shape = values.shape
@@ -209,7 +213,7 @@ def _isna_ndarraylike(obj):
             vec = libmissing.isnaobj(values.ravel())
             result[...] = vec.reshape(shape)
 
-    elif needs_i8_conversion(obj):
+    elif needs_i8_conversion(dtype):
         # this is the NaT pattern
         result = values.view('i8') == iNaT
     else:
@@ -470,7 +474,7 @@ def _infer_fill_value(val):
     if is_datetimelike(val):
         return np.array('NaT', dtype=val.dtype)
     elif is_object_dtype(val.dtype):
-        dtype = lib.infer_dtype(ensure_object(val))
+        dtype = lib.infer_dtype(ensure_object(val), skipna=False)
         if dtype in ['datetime', 'datetime64']:
             return np.array('NaT', dtype=_NS_DTYPE)
         elif dtype in ['timedelta', 'timedelta64']:

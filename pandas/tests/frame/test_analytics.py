@@ -2,26 +2,26 @@
 
 from __future__ import print_function
 
-import warnings
 from datetime import timedelta
 import operator
-import pytest
-
 from string import ascii_lowercase
+import warnings
+
+import numpy as np
 from numpy import nan
 from numpy.random import randn
-import numpy as np
+import pytest
 
-from pandas.compat import lrange, PY35
-from pandas import (compat, isna, notna, DataFrame, Series,
-                    MultiIndex, date_range, Timestamp, Categorical,
-                    to_datetime, to_timedelta)
-import pandas as pd
-import pandas.core.nanops as nanops
-import pandas.core.algorithms as algorithms
-
-import pandas.util.testing as tm
+from pandas.compat import PY35, lrange
 import pandas.util._test_decorators as td
+
+import pandas as pd
+from pandas import (
+    Categorical, DataFrame, MultiIndex, Series, Timestamp, compat, date_range,
+    isna, notna, to_datetime, to_timedelta)
+import pandas.core.algorithms as algorithms
+import pandas.core.nanops as nanops
+import pandas.util.testing as tm
 
 
 def assert_stat_op_calc(opname, alternative, frame, has_skipna=True,
@@ -227,13 +227,6 @@ def assert_bool_op_api(opname, bool_frame_with_na, float_string_frame,
     mixed['_bool_'] = np.random.randn(len(mixed)) > 0.5
     getattr(mixed, opname)(axis=0)
     getattr(mixed, opname)(axis=1)
-
-    class NonzeroFail(object):
-
-        def __nonzero__(self):
-            raise ValueError
-
-    mixed['_nonzero_fail_'] = NonzeroFail()
 
     if has_bool_only:
         getattr(mixed, opname)(axis=0, bool_only=True)
@@ -464,6 +457,52 @@ class TestDataFrameAnalytics():
         result = df.corrwith(s)
         corrs = [df['a'].corr(s), df['b'].corr(s)]
         expected = pd.Series(data=corrs, index=['a', 'b'])
+        tm.assert_series_equal(result, expected)
+
+    def test_corrwith_index_intersection(self):
+        df1 = pd.DataFrame(np.random.random(size=(10, 2)),
+                           columns=["a", "b"])
+        df2 = pd.DataFrame(np.random.random(size=(10, 3)),
+                           columns=["a", "b", "c"])
+
+        result = df1.corrwith(df2, drop=True).index.sort_values()
+        expected = df1.columns.intersection(df2.columns).sort_values()
+        tm.assert_index_equal(result, expected)
+
+    def test_corrwith_index_union(self):
+        df1 = pd.DataFrame(np.random.random(size=(10, 2)),
+                           columns=["a", "b"])
+        df2 = pd.DataFrame(np.random.random(size=(10, 3)),
+                           columns=["a", "b", "c"])
+
+        result = df1.corrwith(df2, drop=False).index.sort_values()
+        expected = df1.columns.union(df2.columns).sort_values()
+        tm.assert_index_equal(result, expected)
+
+    def test_corrwith_dup_cols(self):
+        # GH 21925
+        df1 = pd.DataFrame(np.vstack([np.arange(10)] * 3).T)
+        df2 = df1.copy()
+        df2 = pd.concat((df2, df2[0]), axis=1)
+
+        result = df1.corrwith(df2)
+        expected = pd.Series(np.ones(4), index=[0, 0, 1, 2])
+        tm.assert_series_equal(result, expected)
+
+    @td.skip_if_no_scipy
+    def test_corrwith_spearman(self):
+        # GH 21925
+        df = pd.DataFrame(np.random.random(size=(100, 3)))
+        result = df.corrwith(df**2, method="spearman")
+        expected = Series(np.ones(len(result)))
+        tm.assert_series_equal(result, expected)
+
+    @td.skip_if_no_scipy
+    def test_corrwith_kendall(self):
+        # GH 21925
+        df = pd.DataFrame(np.random.random(size=(100, 3)))
+        result = df.corrwith(df**2, method="kendall")
+        expected = Series(np.ones(len(result)))
         tm.assert_series_equal(result, expected)
 
     def test_bool_describe_in_mixed_frame(self):
@@ -1008,9 +1047,9 @@ class TestDataFrameAnalytics():
         assert_stat_op_api('kurt', float_frame, float_string_frame)
 
         index = MultiIndex(levels=[['bar'], ['one', 'two', 'three'], [0, 1]],
-                           labels=[[0, 0, 0, 0, 0, 0],
-                                   [0, 1, 2, 0, 1, 2],
-                                   [0, 1, 0, 1, 0, 1]])
+                           codes=[[0, 0, 0, 0, 0, 0],
+                                  [0, 1, 2, 0, 1, 2],
+                                  [0, 1, 0, 1, 0, 1]])
         df = DataFrame(np.random.randn(6, 3), index=index)
 
         kurt = df.kurt()
@@ -1374,25 +1413,22 @@ class TestDataFrameAnalytics():
         result = df[['C']].all(axis=None).item()
         assert result is True
 
-        # skip pathological failure cases
-        # class CantNonzero(object):
+    def test_any_datetime(self):
 
-        #     def __nonzero__(self):
-        #         raise ValueError
+        # GH 23070
+        float_data = [1, np.nan, 3, np.nan]
+        datetime_data = [pd.Timestamp('1960-02-15'),
+                         pd.Timestamp('1960-02-16'),
+                         pd.NaT,
+                         pd.NaT]
+        df = DataFrame({
+            "A": float_data,
+            "B": datetime_data
+        })
 
-        # df[4] = CantNonzero()
-
-        # it works!
-        # df.any(1)
-        # df.all(1)
-        # df.any(1, bool_only=True)
-        # df.all(1, bool_only=True)
-
-        # df[4][4] = np.nan
-        # df.any(1)
-        # df.all(1)
-        # df.any(1, bool_only=True)
-        # df.all(1, bool_only=True)
+        result = df.any(1)
+        expected = Series([True, True, True, False])
+        tm.assert_series_equal(result, expected)
 
     @pytest.mark.parametrize('func, data, expected', [
         (np.any, {}, False),
@@ -1805,6 +1841,21 @@ class TestDataFrameAnalytics():
             {'col1': [1., 2., 3.], 'col2': [1., 2., 3.]})
         tm.assert_frame_equal(round(df), expected_rounded)
 
+    def test_round_nonunique_categorical(self):
+        # See GH21809
+        idx = pd.CategoricalIndex(['low'] * 3 + ['hi'] * 3)
+        df = pd.DataFrame(np.random.rand(6, 3), columns=list('abc'))
+
+        expected = df.round(3)
+        expected.index = idx
+
+        df_categorical = df.copy().set_index(idx)
+        assert df_categorical.shape == (6, 3)
+        result = df_categorical.round(3)
+        assert result.shape == (6, 3)
+
+        tm.assert_frame_equal(result, expected)
+
     def test_pct_change(self):
         # GH 11150
         pnl = DataFrame([np.arange(0, 40, 10), np.arange(0, 40, 10), np.arange(
@@ -1821,15 +1872,16 @@ class TestDataFrameAnalytics():
             tm.assert_frame_equal(result, expected)
 
     # Clip
-
     def test_clip(self, float_frame):
         median = float_frame.median().median()
         original = float_frame.copy()
 
-        capped = float_frame.clip_upper(median)
+        with tm.assert_produces_warning(FutureWarning):
+            capped = float_frame.clip_upper(median)
         assert not (capped.values > median).any()
 
-        floored = float_frame.clip_lower(median)
+        with tm.assert_produces_warning(FutureWarning):
+            floored = float_frame.clip_lower(median)
         assert not (floored.values < median).any()
 
         double = float_frame.clip(upper=median, lower=median)
@@ -1843,11 +1895,13 @@ class TestDataFrameAnalytics():
         median = float_frame.median().median()
         frame_copy = float_frame.copy()
 
-        frame_copy.clip_upper(median, inplace=True)
+        with tm.assert_produces_warning(FutureWarning):
+            frame_copy.clip_upper(median, inplace=True)
         assert not (frame_copy.values > median).any()
         frame_copy = float_frame.copy()
 
-        frame_copy.clip_lower(median, inplace=True)
+        with tm.assert_produces_warning(FutureWarning):
+            frame_copy.clip_lower(median, inplace=True)
         assert not (frame_copy.values < median).any()
         frame_copy = float_frame.copy()
 
@@ -1876,9 +1930,16 @@ class TestDataFrameAnalytics():
         df = DataFrame({'A': [1, 2, 3],
                         'B': [1., np.nan, 3.]})
         result = df.clip(1, 2)
-        expected = DataFrame({'A': [1, 2, 2.],
+        expected = DataFrame({'A': [1, 2, 2],
                               'B': [1., np.nan, 2.]})
         tm.assert_frame_equal(result, expected, check_like=True)
+
+        # GH 24162, clipping now preserves numeric types per column
+        df = DataFrame([[1, 2, 3.4], [3, 4, 5.6]],
+                       columns=['foo', 'bar', 'baz'])
+        expected = df.dtypes
+        result = df.clip(upper=3).dtypes
+        tm.assert_series_equal(result, expected)
 
     @pytest.mark.parametrize("inplace", [True, False])
     def test_clip_against_series(self, inplace):
@@ -1945,6 +2006,22 @@ class TestDataFrameAnalytics():
         tm.assert_frame_equal(clipped_df[lb_mask], lb[lb_mask])
         tm.assert_frame_equal(clipped_df[ub_mask], ub[ub_mask])
         tm.assert_frame_equal(clipped_df[mask], df[mask])
+
+    def test_clip_against_unordered_columns(self):
+        # GH 20911
+        df1 = DataFrame(np.random.randn(1000, 4), columns=['A', 'B', 'C', 'D'])
+        df2 = DataFrame(np.random.randn(1000, 4), columns=['D', 'A', 'B', 'C'])
+        df3 = DataFrame(df2.values - 1, columns=['B', 'D', 'C', 'A'])
+        result_upper = df1.clip(lower=0, upper=df2)
+        expected_upper = df1.clip(lower=0, upper=df2[df1.columns])
+        result_lower = df1.clip(lower=df3, upper=3)
+        expected_lower = df1.clip(lower=df3[df1.columns], upper=3)
+        result_lower_upper = df1.clip(lower=df3, upper=df2)
+        expected_lower_upper = df1.clip(lower=df3[df1.columns],
+                                        upper=df2[df1.columns])
+        tm.assert_frame_equal(result_upper, expected_upper)
+        tm.assert_frame_equal(result_lower, expected_lower)
+        tm.assert_frame_equal(result_lower_upper, expected_lower_upper)
 
     def test_clip_with_na_args(self, float_frame):
         """Should process np.nan argument as None """
@@ -2248,7 +2325,8 @@ class TestNLargestNSmallest(object):
         s_nan = Series([np.nan, np.nan, 1])
 
         with tm.assert_produces_warning(None):
-            df_nan.clip_lower(s, axis=0)
+            with tm.assert_produces_warning(FutureWarning):
+                df_nan.clip_lower(s, axis=0)
             for op in ['lt', 'le', 'gt', 'ge', 'eq', 'ne']:
                 getattr(df, op)(s_nan, axis=0)
 

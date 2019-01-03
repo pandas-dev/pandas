@@ -2,14 +2,15 @@
 # pylint: disable=E1101
 from __future__ import division
 
-import warnings
 from contextlib import contextmanager
+import warnings
 
 import numpy as np
 
-from pandas.core.dtypes.common import is_list_like
-from pandas.compat import lrange, lmap
 import pandas.compat as compat
+from pandas.compat import lmap, lrange
+
+from pandas.core.dtypes.common import is_list_like
 
 
 def _get_standard_colors(num_colors=None, colormap=None, color_type='default',
@@ -41,6 +42,8 @@ def _get_standard_colors(num_colors=None, colormap=None, color_type='default',
                                                list('bgrcmyk')))
             if isinstance(colors, compat.string_types):
                 colors = list(colors)
+
+            colors = colors[0:num_colors]
         elif color_type == 'random':
             import pandas.core.common as com
 
@@ -80,7 +83,10 @@ def _get_standard_colors(num_colors=None, colormap=None, color_type='default',
             # mpl will raise error any of them is invalid
             pass
 
-    if len(colors) != num_colors:
+    # Append more colors by cycling if there is not enough color.
+    # Extra colors will be ignored by matplotlib if there are more colors
+    # than needed and nothing needs to be done here.
+    if len(colors) < num_colors:
         try:
             multiple = num_colors // len(colors) - 1
         except ZeroDivisionError:

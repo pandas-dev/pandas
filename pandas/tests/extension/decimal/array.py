@@ -8,9 +8,11 @@ import numpy as np
 from pandas.core.dtypes.base import ExtensionDtype
 
 import pandas as pd
+from pandas.api.extensions import register_extension_dtype
 from pandas.core.arrays import ExtensionArray, ExtensionScalarOpsMixin
 
 
+@register_extension_dtype
 class DecimalDtype(ExtensionDtype):
     type = decimal.Decimal
     name = 'decimal'
@@ -74,6 +76,11 @@ class DecimalArray(ExtensionArray, ExtensionScalarOpsMixin):
         return cls(scalars)
 
     @classmethod
+    def _from_sequence_of_strings(cls, strings, dtype=None, copy=False):
+        return cls._from_sequence([decimal.Decimal(x) for x in strings],
+                                  dtype, copy)
+
+    @classmethod
     def _from_factorized(cls, values, original):
         return cls(values)
 
@@ -106,6 +113,8 @@ class DecimalArray(ExtensionArray, ExtensionScalarOpsMixin):
 
     def __setitem__(self, key, value):
         if pd.api.types.is_list_like(value):
+            if pd.api.types.is_scalar(key):
+                raise ValueError("setting an array element with a sequence.")
             value = [decimal.Decimal(v) for v in value]
         else:
             value = decimal.Decimal(value)
@@ -113,9 +122,6 @@ class DecimalArray(ExtensionArray, ExtensionScalarOpsMixin):
 
     def __len__(self):
         return len(self._data)
-
-    def __repr__(self):
-        return 'DecimalArray({!r})'.format(self._data)
 
     @property
     def nbytes(self):

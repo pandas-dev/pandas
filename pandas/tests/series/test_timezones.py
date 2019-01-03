@@ -79,7 +79,7 @@ class TestSeriesTimezones(object):
 
     @pytest.mark.parametrize('tz', ['Europe/Warsaw', 'dateutil/Europe/Warsaw'])
     @pytest.mark.parametrize('method, exp', [
-        ['shift', '2015-03-29 03:00:00'],
+        ['shift_forward', '2015-03-29 03:00:00'],
         ['NaT', NaT],
         ['raise', None],
         ['foo', 'invalid']
@@ -343,7 +343,7 @@ class TestSeriesTimezones(object):
 
     def test_series_truncate_datetimeindex_tz(self):
         # GH 9243
-        idx = date_range('4/1/2005', '4/30/2005', freq='CD', tz='US/Pacific')
+        idx = date_range('4/1/2005', '4/30/2005', freq='D', tz='US/Pacific')
         s = Series(range(len(idx)), index=idx)
         result = s.truncate(datetime(2005, 4, 2), datetime(2005, 4, 4))
         expected = Series([1, 2, 3], index=idx[1:4])

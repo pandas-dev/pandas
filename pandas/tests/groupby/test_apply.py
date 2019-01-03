@@ -1,9 +1,11 @@
-import pytest
-import numpy as np
-import pandas as pd
 from datetime import datetime
+
+import numpy as np
+import pytest
+
+import pandas as pd
+from pandas import DataFrame, Index, MultiIndex, Series, bdate_range, compat
 from pandas.util import testing as tm
-from pandas import DataFrame, MultiIndex, compat, Series, bdate_range, Index
 
 
 def test_apply_issues():
@@ -60,8 +62,7 @@ def test_apply_trivial():
 
 @pytest.mark.xfail(reason="GH#20066; function passed into apply "
                           "returns a DataFrame with the same index "
-                          "as the one to create GroupBy object.",
-                   strict=True)
+                          "as the one to create GroupBy object.")
 def test_apply_trivial_fail():
     # GH 20066
     # trivial apply fails if the constant dataframe has the same index

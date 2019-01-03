@@ -106,17 +106,21 @@ Some other notes
 See the package overview for more detail about what's in the library.
 
 
-{% if single_doc_type == 'docstring' -%}
+{% if single_doc and single_doc.endswith('.rst') -%}
+.. toctree::
+    :maxdepth: 4
+
+    {{ single_doc[:-4] }}
+{% elif single_doc %}
 .. autosummary::
-    :toctree: generated_single/
+    :toctree: api/generated/
+
+    {{ single_doc }}
 {% else -%}
 .. toctree::
     :maxdepth: 4
 {% endif %}
 
-    {% if single_doc -%}
-    {{ single_doc }}
-    {% endif -%}
     {% if not single_doc -%}
     What's New <whatsnew/v0.24.0>
     install
@@ -139,6 +143,7 @@ See the package overview for more detail about what's in the library.
     timeseries
     timedeltas
     categorical
+    integer_na
     visualization
     style
     io
@@ -153,7 +158,7 @@ See the package overview for more detail about what's in the library.
     comparison_with_stata
     {% endif -%}
     {% if include_api -%}
-    api
+    api/index
     {% endif -%}
     {% if not single_doc -%}
     developer
