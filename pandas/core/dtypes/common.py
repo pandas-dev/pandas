@@ -894,6 +894,12 @@ def is_integer_dtype(arr_or_dtype):
     False
     >>> is_integer_dtype(np.uint64)
     True
+    >>> is_integer_dtype('int8')
+    True
+    >>> is_integer_dtype('Int8')
+    True
+    >>> is_integer_dtype(pd.Int8Dtype)
+    True
     >>> is_integer_dtype(np.datetime64)
     False
     >>> is_integer_dtype(np.timedelta64)
@@ -942,6 +948,12 @@ def is_signed_integer_dtype(arr_or_dtype):
     False
     >>> is_signed_integer_dtype(np.uint64)  # unsigned
     False
+    >>> is_signed_integer_dtype('int8')
+    True
+    >>> is_signed_integer_dtype('Int8')
+    True
+    >>> is_signed_dtype(pd.Int8Dtype)
+    True
     >>> is_signed_integer_dtype(np.datetime64)
     False
     >>> is_signed_integer_dtype(np.timedelta64)
@@ -990,6 +1002,12 @@ def is_unsigned_integer_dtype(arr_or_dtype):
     False
     >>> is_unsigned_integer_dtype(np.uint64)
     True
+    >>> is_unsigned_integer_dtype('uint8')
+    True
+    >>> is_unsigned_integer_dtype('UInt8')
+    True
+    >>> is_unsigned_integer_dtype(pd.UInt8Dtype)
+    True
     >>> is_unsigned_integer_dtype(np.array(['a', 'b']))
     False
     >>> is_unsigned_integer_dtype(pd.Series([1, 2]))  # signed
@@ -1029,6 +1047,12 @@ def is_int64_dtype(arr_or_dtype):
     >>> is_int64_dtype(np.int32)
     False
     >>> is_int64_dtype(np.int64)
+    True
+    >>> is_int64_dtype('int8')
+    False
+    >>> is_int64_dtype('Int8')
+    False
+    >>> is_int64_dtype(pd.Int64Dtype)
     True
     >>> is_int64_dtype(float)
     False

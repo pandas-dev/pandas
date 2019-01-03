@@ -352,17 +352,21 @@ def test_is_not_unsigned_integer_dtype(dtype):
     assert not com.is_unsigned_integer_dtype(dtype)
 
 
-def test_is_int64_dtype():
-    assert not com.is_int64_dtype(str)
-    assert not com.is_int64_dtype(float)
-    assert not com.is_int64_dtype(np.int32)
-    assert not com.is_int64_dtype(np.uint64)
-    assert not com.is_int64_dtype(pd.Index([1, 2.]))
-    assert not com.is_int64_dtype(np.array(['a', 'b']))
-    assert not com.is_int64_dtype(np.array([1, 2], dtype=np.uint32))
+@pytest.mark.parametrize(
+    'dtype',
+    [np.int64, np.array([1, 2], dtype=np.int64), 'Int64', pd.Int64Dtype])
+def test_is_int64_dtype(dtype):
+    assert com.is_int64_dtype(dtype)
 
-    assert com.is_int64_dtype(np.int64)
-    assert com.is_int64_dtype(np.array([1, 2], dtype=np.int64))
+
+@pytest.mark.parametrize(
+    'dtype',
+    [
+        str, float, np.int32, np.uint64, pd.Index([1, 2.]),
+        np.array(['a', 'b']), np.array([1, 2], dtype=np.uint32),
+        'int8', 'Int8', pd.Int8Dtype])
+def test_is_not_int64_dtype(dtype):
+    assert not com.is_int64_dtype(dtype)
 
 
 def test_is_datetime64_any_dtype():
