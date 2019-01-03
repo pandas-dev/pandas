@@ -24,8 +24,7 @@ from pandas import (
     Panel, PeriodIndex, Series, Timedelta, TimedeltaIndex, Timestamp)
 from pandas.core.accessor import PandasDelegate
 from pandas.core.arrays import (
-    DatetimeArrayMixin as DatetimeArray, PandasArray,
-    TimedeltaArrayMixin as TimedeltaArray)
+    DatetimeArray, PandasArray, TimedeltaArrayMixin as TimedeltaArray)
 from pandas.core.base import NoNewAttributesMixin, PandasObject
 from pandas.core.indexes.datetimelike import DatetimeIndexOpsMixin
 import pandas.util.testing as tm

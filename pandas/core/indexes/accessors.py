@@ -12,8 +12,7 @@ from pandas.core.dtypes.generic import ABCSeries
 from pandas.core.accessor import PandasDelegate, delegate_names
 from pandas.core.algorithms import take_1d
 from pandas.core.arrays import (
-    DatetimeArrayMixin as DatetimeArray, PeriodArray,
-    TimedeltaArrayMixin as TimedeltaArray)
+    DatetimeArray, PeriodArray, TimedeltaArrayMixin as TimedeltaArray)
 from pandas.core.base import NoNewAttributesMixin, PandasObject
 from pandas.core.indexes.datetimes import DatetimeIndex
 from pandas.core.indexes.timedeltas import TimedeltaIndex

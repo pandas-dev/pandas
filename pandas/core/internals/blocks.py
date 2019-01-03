@@ -35,7 +35,7 @@ from pandas.core.dtypes.missing import (
 
 import pandas.core.algorithms as algos
 from pandas.core.arrays import (
-    Categorical, DatetimeArrayMixin as DatetimeArray, ExtensionArray,
+    Categorical, DatetimeArray, ExtensionArray,
     TimedeltaArrayMixin as TimedeltaArray)
 from pandas.core.base import PandasObject
 import pandas.core.common as com
