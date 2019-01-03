@@ -19,12 +19,11 @@ from pandas.util._decorators import Appender, Substitution
 from pandas.util._validators import validate_fillna_kwargs
 
 from pandas.core.dtypes.common import (
-    is_bool_dtype, is_categorical_dtype, is_datetime64_any_dtype,
-    is_datetime64_dtype, is_datetime64tz_dtype, is_datetime_or_timedelta_dtype,
-    is_dtype_equal, is_extension_array_dtype, is_float_dtype, is_integer_dtype,
-    is_list_like, is_object_dtype, is_offsetlike, is_period_dtype,
-    is_string_dtype, is_timedelta64_dtype, is_unsigned_integer_dtype,
-    needs_i8_conversion, pandas_dtype)
+    is_categorical_dtype, is_datetime64_any_dtype, is_datetime64_dtype,
+    is_datetime64tz_dtype, is_datetime_or_timedelta_dtype, is_dtype_equal,
+    is_extension_array_dtype, is_float_dtype, is_integer_dtype, is_list_like,
+    is_object_dtype, is_offsetlike, is_period_dtype, is_string_dtype,
+    is_timedelta64_dtype, is_unsigned_integer_dtype, pandas_dtype)
 from pandas.core.dtypes.generic import ABCDataFrame, ABCIndexClass, ABCSeries
 from pandas.core.dtypes.inference import is_array_like
 from pandas.core.dtypes.missing import isna
@@ -38,32 +37,6 @@ from pandas.tseries import frequencies
 from pandas.tseries.offsets import DateOffset, Tick
 
 from .base import ExtensionArray, ExtensionOpsMixin
-
-
-def _make_comparison_op(cls, op):
-    # TODO: share code with indexes.base version?  Main difference is that
-    # the block for MultiIndex was removed here.
-    def cmp_method(self, other):
-        if isinstance(other, ABCDataFrame):
-            return NotImplemented
-
-        if needs_i8_conversion(self) and needs_i8_conversion(other):
-            # we may need to directly compare underlying
-            # representations
-            return self._evaluate_compare(other, op)
-
-        # numpy will show a DeprecationWarning on invalid elementwise
-        # comparisons, this will raise in the future
-        with warnings.catch_warnings(record=True):
-            warnings.filterwarnings("ignore", "elementwise", FutureWarning)
-            with np.errstate(all='ignore'):
-                result = op(self._data, np.asarray(other))
-
-        return result
-
-    name = '__{name}__'.format(name=op.__name__)
-    # TODO: docstring?
-    return compat.set_function_name(cmp_method, name, cls)
 
 
 class AttributesMixin(object):
@@ -233,13 +206,17 @@ class TimelikeOps(object):
 
             .. versionadded:: 0.24.0
 
-        nonexistent : 'shift', 'NaT', default 'raise'
+        nonexistent : 'shift_forward', 'shift_backward, 'NaT', timedelta,
+                      default 'raise'
             A nonexistent time does not exist in a particular timezone
             where clocks moved forward due to DST.
 
-            - 'shift' will shift the nonexistent time forward to the closest
-              existing time
+            - 'shift_forward' will shift the nonexistent time forward to the
+              closest existing time
+            - 'shift_backward' will shift the nonexistent time backward to the
+              closest existing time
             - 'NaT' will return NaT where there are nonexistent times
+            - timedelta objects will shift nonexistent times by the timedelta
             - 'raise' will raise an NonExistentTimeError if there are
               nonexistent times
 
@@ -1358,41 +1335,6 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin,
     # --------------------------------------------------------------
     # Comparison Methods
 
-    # Called by _add_comparison_methods defined in ExtensionOpsMixin
-    _create_comparison_method = classmethod(_make_comparison_op)
-
-    def _evaluate_compare(self, other, op):
-        """
-        We have been called because a comparison between
-        8 aware arrays. numpy will warn about NaT comparisons
-        """
-        # Called by comparison methods when comparing datetimelike
-        # with datetimelike
-
-        if not isinstance(other, type(self)):
-            # coerce to a similar object
-            if not is_list_like(other):
-                # scalar
-                other = [other]
-            elif lib.is_scalar(lib.item_from_zerodim(other)):
-                # ndarray scalar
-                other = [other.item()]
-            other = type(self)._from_sequence(other)
-
-        # compare
-        result = op(self.asi8, other.asi8)
-
-        # technically we could support bool dtyped Index
-        # for now just return the indexing array directly
-        mask = (self._isnan) | (other._isnan)
-
-        filler = iNaT
-        if is_bool_dtype(result):
-            filler = False
-
-        result[mask] = filler
-        return result
-
     def _ensure_localized(self, arg, ambiguous='raise', nonexistent='raise',
                           from_utc=False):
         """
@@ -1491,9 +1433,6 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin,
         result = nanops.nanmax(values, skipna=skipna)
         # Don't have to worry about NA `result`, since no NA went in.
         return self._box_func(result)
-
-
-DatetimeLikeArrayMixin._add_comparison_ops()
 
 
 # -------------------------------------------------------------------

@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-from datetime import datetime, time
+from datetime import datetime, time, timedelta
 import warnings
 
 import numpy as np
@@ -34,7 +34,7 @@ from pandas.tseries.offsets import Day, Tick
 _midnight = time(0, 0)
 
 
-def _to_m8(key, tz=None):
+def _to_M8(key, tz=None):
     """
     Timestamp-like => dt64
     """
@@ -96,7 +96,6 @@ def _dt_array_cmp(cls, op):
     nat_result = True if opname == '__ne__' else False
 
     def wrapper(self, other):
-        meth = getattr(dtl.DatetimeLikeArrayMixin, opname)
         # TODO: return NotImplemented for Series / Index and let pandas unbox
         # Right now, returning NotImplemented for Index fails because we
         # go into the index implementation, which may be a bug?
@@ -109,7 +108,7 @@ def _dt_array_cmp(cls, op):
                 self._assert_tzawareness_compat(other)
 
             try:
-                other = _to_m8(other, tz=self.tz)
+                other = _to_M8(other, tz=self.tz)
             except ValueError:
                 # string that cannot be parsed to Timestamp
                 return ops.invalid_comparison(self, other, op)
@@ -158,7 +157,7 @@ def _dt_array_cmp(cls, op):
                     # or an object-dtype ndarray
                     other = type(self)._from_sequence(other)
 
-                result = meth(self, other)
+                result = op(self.view('i8'), other.view('i8'))
                 o_mask = other._isnan
 
             result = com.values_from_object(result)
@@ -842,13 +841,17 @@ class DatetimeArrayMixin(dtl.DatetimeLikeArrayMixin,
             - 'raise' will raise an AmbiguousTimeError if there are ambiguous
               times
 
-        nonexistent : 'shift', 'NaT' default 'raise'
+        nonexistent : 'shift_forward', 'shift_backward, 'NaT', timedelta,
+                      default 'raise'
             A nonexistent time does not exist in a particular timezone
             where clocks moved forward due to DST.
 
-            - 'shift' will shift the nonexistent times forward to the closest
-              existing time
+            - 'shift_forward' will shift the nonexistent time forward to the
+              closest existing time
+            - 'shift_backward' will shift the nonexistent time backward to the
+              closest existing time
             - 'NaT' will return NaT where there are nonexistent times
+            - timedelta objects will shift nonexistent times by the timedelta
             - 'raise' will raise an NonExistentTimeError if there are
               nonexistent times
 
@@ -936,6 +939,25 @@ class DatetimeArrayMixin(dtl.DatetimeLikeArrayMixin,
         1   2018-10-28 02:36:00+02:00
         2   2018-10-28 03:46:00+01:00
         dtype: datetime64[ns, CET]
+
+        If the DST transition causes nonexistent times, you can shift these
+        dates forward or backwards with a timedelta object or `'shift_forward'`
+        or `'shift_backwards'`.
+        >>> s = pd.to_datetime(pd.Series([
+        ... '2015-03-29 02:30:00',
+        ... '2015-03-29 03:30:00']))
+        >>> s.dt.tz_localize('Europe/Warsaw', nonexistent='shift_forward')
+        0   2015-03-29 03:00:00+02:00
+        1   2015-03-29 03:30:00+02:00
+        dtype: datetime64[ns, 'Europe/Warsaw']
+        >>> s.dt.tz_localize('Europe/Warsaw', nonexistent='shift_backward')
+        0   2015-03-29 01:59:59.999999999+01:00
+        1   2015-03-29 03:30:00+02:00
+        dtype: datetime64[ns, 'Europe/Warsaw']
+        >>> s.dt.tz_localize('Europe/Warsaw', nonexistent=pd.Timedelta('1H'))
+        0   2015-03-29 03:30:00+02:00
+        1   2015-03-29 03:30:00+02:00
+        dtype: datetime64[ns, 'Europe/Warsaw']
         """
         if errors is not None:
             warnings.warn("The errors argument is deprecated and will be "
@@ -950,9 +972,13 @@ class DatetimeArrayMixin(dtl.DatetimeLikeArrayMixin,
                 raise ValueError("The errors argument must be either 'coerce' "
                                  "or 'raise'.")
 
-        if nonexistent not in ('raise', 'NaT', 'shift'):
+        nonexistent_options = ('raise', 'NaT', 'shift_forward',
+                               'shift_backward')
+        if nonexistent not in nonexistent_options and not isinstance(
+                nonexistent, timedelta):
             raise ValueError("The nonexistent argument must be one of 'raise',"
-                             " 'NaT' or 'shift'")
+                             " 'NaT', 'shift_forward', 'shift_backward' or"
+                             " a timedelta object")
 
         if self.tz is not None:
             if tz is None:
