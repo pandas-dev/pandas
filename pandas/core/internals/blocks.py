@@ -2206,122 +2206,6 @@ class DatetimeLikeBlockMixin(object):
         return self.values.view('i8')
 
 
-class TimeDeltaBlock(DatetimeLikeBlockMixin, IntBlock):
-    __slots__ = ()
-    is_timedelta = True
-    _can_hold_na = True
-    is_numeric = False
-
-    def __init__(self, values, placement, ndim=None):
-        if values.dtype != _TD_DTYPE:
-            values = conversion.ensure_timedelta64ns(values)
-        if isinstance(values, TimedeltaArray):
-            values = values._data
-        assert isinstance(values, np.ndarray), type(values)
-        super(TimeDeltaBlock, self).__init__(values,
-                                             placement=placement, ndim=ndim)
-
-    @property
-    def _holder(self):
-        return TimedeltaArray
-
-    @property
-    def _box_func(self):
-        return lambda x: Timedelta(x, unit='ns')
-
-    def _can_hold_element(self, element):
-        tipo = maybe_infer_dtype_type(element)
-        if tipo is not None:
-            return issubclass(tipo.type, (np.timedelta64, np.int64))
-        return is_integer(element) or isinstance(
-            element, (timedelta, np.timedelta64, np.int64))
-
-    def fillna(self, value, **kwargs):
-
-        # allow filling with integers to be
-        # interpreted as seconds
-        if is_integer(value) and not isinstance(value, np.timedelta64):
-            value = Timedelta(value, unit='s')
-        return super(TimeDeltaBlock, self).fillna(value, **kwargs)
-
-    def _try_coerce_args(self, values, other):
-        """
-        Coerce values and other to int64, with null values converted to
-        iNaT. values is always ndarray-like, other may not be
-
-        Parameters
-        ----------
-        values : ndarray-like
-        other : ndarray-like or scalar
-
-        Returns
-        -------
-        base-type values, base-type other
-        """
-        values = values.view('i8')
-
-        if isinstance(other, bool):
-            raise TypeError
-        elif is_null_datelike_scalar(other):
-            other = tslibs.iNaT
-        elif isinstance(other, Timedelta):
-            other = other.value
-        elif isinstance(other, timedelta):
-            other = Timedelta(other).value
-        elif isinstance(other, np.timedelta64):
-            other = Timedelta(other).value
-        elif hasattr(other, 'dtype') and is_timedelta64_dtype(other):
-            other = other.astype('i8', copy=False).view('i8')
-        else:
-            # coercion issues
-            # let higher levels handle
-            raise TypeError
-
-        return values, other
-
-    def _try_coerce_result(self, result):
-        """ reverse of try_coerce_args / try_operate """
-        if isinstance(result, np.ndarray):
-            mask = isna(result)
-            if result.dtype.kind in ['i', 'f', 'O']:
-                result = result.astype('m8[ns]')
-            result[mask] = tslibs.iNaT
-        elif isinstance(result, (np.integer, np.float)):
-            result = self._box_func(result)
-        return result
-
-    def should_store(self, value):
-        return (issubclass(value.dtype.type, np.timedelta64) and
-                not is_extension_array_dtype(value))
-
-    def to_native_types(self, slicer=None, na_rep=None, quoting=None,
-                        **kwargs):
-        """ convert to our native types format, slicing if desired """
-
-        values = self.values
-        if slicer is not None:
-            values = values[:, slicer]
-        mask = isna(values)
-
-        rvalues = np.empty(values.shape, dtype=object)
-        if na_rep is None:
-            na_rep = 'NaT'
-        rvalues[mask] = na_rep
-        imask = (~mask).ravel()
-
-        # FIXME:
-        # should use the formats.format.Timedelta64Formatter here
-        # to figure what format to pass to the Timedelta
-        # e.g. to not show the decimals say
-        rvalues.flat[imask] = np.array([Timedelta(val)._repr_base(format='all')
-                                        for val in values.ravel()[imask]],
-                                       dtype=object)
-        return rvalues
-
-    def external_values(self, dtype=None):
-        return np.asarray(self.values.astype("timedelta64[ns]", copy=False))
-
-
 class DatetimeBlock(DatetimeLikeBlockMixin, Block):
     __slots__ = ()
     is_datetime = True
@@ -2715,6 +2599,122 @@ class DatetimeTZBlock(ExtensionBlock, DatetimeBlock):
                               placement=self.mgr_locs,
                               klass=ObjectBlock,)
             return newb.setitem(indexer, value)
+
+
+class TimeDeltaBlock(DatetimeLikeBlockMixin, IntBlock):
+    __slots__ = ()
+    is_timedelta = True
+    _can_hold_na = True
+    is_numeric = False
+
+    def __init__(self, values, placement, ndim=None):
+        if values.dtype != _TD_DTYPE:
+            values = conversion.ensure_timedelta64ns(values)
+        if isinstance(values, TimedeltaArray):
+            values = values._data
+        assert isinstance(values, np.ndarray), type(values)
+        super(TimeDeltaBlock, self).__init__(values,
+                                             placement=placement, ndim=ndim)
+
+    @property
+    def _holder(self):
+        return TimedeltaArray
+
+    @property
+    def _box_func(self):
+        return lambda x: Timedelta(x, unit='ns')
+
+    def _can_hold_element(self, element):
+        tipo = maybe_infer_dtype_type(element)
+        if tipo is not None:
+            return issubclass(tipo.type, (np.timedelta64, np.int64))
+        return is_integer(element) or isinstance(
+            element, (timedelta, np.timedelta64, np.int64))
+
+    def fillna(self, value, **kwargs):
+
+        # allow filling with integers to be
+        # interpreted as seconds
+        if is_integer(value) and not isinstance(value, np.timedelta64):
+            value = Timedelta(value, unit='s')
+        return super(TimeDeltaBlock, self).fillna(value, **kwargs)
+
+    def _try_coerce_args(self, values, other):
+        """
+        Coerce values and other to int64, with null values converted to
+        iNaT. values is always ndarray-like, other may not be
+
+        Parameters
+        ----------
+        values : ndarray-like
+        other : ndarray-like or scalar
+
+        Returns
+        -------
+        base-type values, base-type other
+        """
+        values = values.view('i8')
+
+        if isinstance(other, bool):
+            raise TypeError
+        elif is_null_datelike_scalar(other):
+            other = tslibs.iNaT
+        elif isinstance(other, Timedelta):
+            other = other.value
+        elif isinstance(other, timedelta):
+            other = Timedelta(other).value
+        elif isinstance(other, np.timedelta64):
+            other = Timedelta(other).value
+        elif hasattr(other, 'dtype') and is_timedelta64_dtype(other):
+            other = other.astype('i8', copy=False).view('i8')
+        else:
+            # coercion issues
+            # let higher levels handle
+            raise TypeError
+
+        return values, other
+
+    def _try_coerce_result(self, result):
+        """ reverse of try_coerce_args / try_operate """
+        if isinstance(result, np.ndarray):
+            mask = isna(result)
+            if result.dtype.kind in ['i', 'f', 'O']:
+                result = result.astype('m8[ns]')
+            result[mask] = tslibs.iNaT
+        elif isinstance(result, (np.integer, np.float)):
+            result = self._box_func(result)
+        return result
+
+    def should_store(self, value):
+        return (issubclass(value.dtype.type, np.timedelta64) and
+                not is_extension_array_dtype(value))
+
+    def to_native_types(self, slicer=None, na_rep=None, quoting=None,
+                        **kwargs):
+        """ convert to our native types format, slicing if desired """
+
+        values = self.values
+        if slicer is not None:
+            values = values[:, slicer]
+        mask = isna(values)
+
+        rvalues = np.empty(values.shape, dtype=object)
+        if na_rep is None:
+            na_rep = 'NaT'
+        rvalues[mask] = na_rep
+        imask = (~mask).ravel()
+
+        # FIXME:
+        # should use the formats.format.Timedelta64Formatter here
+        # to figure what format to pass to the Timedelta
+        # e.g. to not show the decimals say
+        rvalues.flat[imask] = np.array([Timedelta(val)._repr_base(format='all')
+                                        for val in values.ravel()[imask]],
+                                       dtype=object)
+        return rvalues
+
+    def external_values(self, dtype=None):
+        return np.asarray(self.values.astype("timedelta64[ns]", copy=False))
 
 
 class BoolBlock(NumericBlock):
