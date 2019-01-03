@@ -8,6 +8,7 @@ import numpy as np
 import pytest
 
 from pandas.compat import PY3
+import pandas.util._test_decorators as td
 
 import pandas as pd
 from pandas.util import testing as tm
@@ -469,6 +470,7 @@ class TestParquetPyArrow(Base):
 
 class TestParquetFastParquet(Base):
 
+    @td.skip_if_no('fastparquet', min_version="0.2.1")
     def test_basic(self, fp, df_full):
         df = df_full
 

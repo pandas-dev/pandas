@@ -1874,7 +1874,7 @@ has multiplied span.
 
 .. ipython:: python
 
-   pd.PeriodIndex(start='2014-01', freq='3M', periods=4)
+   pd.period_range(start='2014-01', freq='3M', periods=4)
 
 If ``start`` or ``end`` are ``Period`` objects, they will be used as anchor
 endpoints for a ``PeriodIndex`` with frequency matching that of the
@@ -1882,8 +1882,8 @@ endpoints for a ``PeriodIndex`` with frequency matching that of the
 
 .. ipython:: python
 
-   pd.PeriodIndex(start=pd.Period('2017Q1', freq='Q'),
-                  end=pd.Period('2017Q2', freq='Q'), freq='M')
+   pd.period_range(start=pd.Period('2017Q1', freq='Q'),
+                   end=pd.Period('2017Q2', freq='Q'), freq='M')
 
 Just like ``DatetimeIndex``, a ``PeriodIndex`` can also be used to index pandas
 objects:
@@ -2351,9 +2351,11 @@ A DST transition may also shift the local time ahead by 1 hour creating nonexist
 local times. The behavior of localizing a timeseries with nonexistent times
 can be controlled by the ``nonexistent`` argument. The following options are available:
 
-* ``raise``: Raises a ``pytz.NonExistentTimeError`` (the default behavior)
-* ``NaT``: Replaces nonexistent times with ``NaT``
-* ``shift``: Shifts nonexistent times forward to the closest real time
+* ``'raise'``: Raises a ``pytz.NonExistentTimeError`` (the default behavior)
+* ``'NaT'``: Replaces nonexistent times with ``NaT``
+* ``'shift_forward'``: Shifts nonexistent times forward to the closest real time
+* ``'shift_backward'``: Shifts nonexistent times backward to the closest real time
+* timedelta object: Shifts nonexistent times by the timedelta duration
 
 .. ipython:: python
 
@@ -2367,12 +2369,14 @@ Localization of nonexistent times will raise an error by default.
    In [2]: dti.tz_localize('Europe/Warsaw')
    NonExistentTimeError: 2015-03-29 02:30:00
 
-Transform nonexistent times to ``NaT`` or the closest real time forward in time.
+Transform nonexistent times to ``NaT`` or shift the times.
 
 .. ipython:: python
 
     dti
-    dti.tz_localize('Europe/Warsaw', nonexistent='shift')
+    dti.tz_localize('Europe/Warsaw', nonexistent='shift_forward')
+    dti.tz_localize('Europe/Warsaw', nonexistent='shift_backward')
+    dti.tz_localize('Europe/Warsaw', nonexistent=pd.Timedelta(1, unit='H'))
     dti.tz_localize('Europe/Warsaw', nonexistent='NaT')
 
 

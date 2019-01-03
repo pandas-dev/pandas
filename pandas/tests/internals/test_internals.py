@@ -11,8 +11,13 @@ import re
 from distutils.version import LooseVersion
 import itertools
 from pandas import (Index, MultiIndex, DataFrame, DatetimeIndex,
-                    Series, Categorical, TimedeltaIndex, SparseArray)
+                    Series, Categorical, SparseArray)
+
 from pandas.compat import OrderedDict, lrange
+from pandas.core.arrays import (
+    DatetimeArrayMixin as DatetimeArray,
+    TimedeltaArrayMixin as TimedeltaArray,
+)
 from pandas.core.internals import (SingleBlockManager,
                                    make_block, BlockManager)
 import pandas.core.algorithms as algos
@@ -290,7 +295,7 @@ class TestBlock(object):
         block = create_block('M8[ns, US/Eastern]', [3])
         with tm.assert_produces_warning(DeprecationWarning,
                                         check_stacklevel=False):
-            block.make_block_same_class(block.values.values,
+            block.make_block_same_class(block.values,
                                         dtype=block.values.dtype)
 
 
@@ -451,7 +456,7 @@ class TestBlockManager(object):
                 assert cp_blk.values.base is blk.values.base
             else:
                 # DatetimeTZBlock has DatetimeIndex values
-                assert cp_blk.values.values.base is blk.values.values.base
+                assert cp_blk.values._data.base is blk.values._data.base
 
         cp = mgr.copy(deep=True)
         for blk, cp_blk in zip(mgr.blocks, cp.blocks):
@@ -460,7 +465,7 @@ class TestBlockManager(object):
             # some blocks it is an array (e.g. datetimetz), but was copied
             assert cp_blk.equals(blk)
             if not isinstance(cp_blk.values, np.ndarray):
-                assert cp_blk.values.values.base is not blk.values.values.base
+                assert cp_blk.values._data.base is not blk.values._data.base
             else:
                 assert cp_blk.values.base is None and blk.values.base is None
 
@@ -1258,9 +1263,9 @@ class TestCanHoldElement(object):
 
 @pytest.mark.parametrize('typestr, holder', [
     ('category', Categorical),
-    ('M8[ns]', DatetimeIndex),
-    ('M8[ns, US/Central]', DatetimeIndex),
-    ('m8[ns]', TimedeltaIndex),
+    ('M8[ns]', DatetimeArray),
+    ('M8[ns, US/Central]', DatetimeArray),
+    ('m8[ns]', TimedeltaArray),
     ('sparse', SparseArray),
 ])
 def test_holder(typestr, holder):
