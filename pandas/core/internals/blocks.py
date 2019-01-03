@@ -26,7 +26,7 @@ from pandas.core.dtypes.common import (
     is_re, is_re_compilable, is_sparse, is_timedelta64_dtype, pandas_dtype)
 import pandas.core.dtypes.concat as _concat
 from pandas.core.dtypes.dtypes import (
-    CategoricalDtype, DatetimeTZDtype, ExtensionDtype, PandasExtensionDtype)
+    CategoricalDtype, ExtensionDtype, PandasExtensionDtype)
 from pandas.core.dtypes.generic import (
     ABCDataFrame, ABCDatetimeIndex, ABCExtensionArray, ABCIndexClass,
     ABCSeries)
@@ -35,8 +35,7 @@ from pandas.core.dtypes.missing import (
 
 import pandas.core.algorithms as algos
 from pandas.core.arrays import (
-    Categorical, DatetimeArrayMixin as DatetimeArray, ExtensionArray,
-    TimedeltaArrayMixin as TimedeltaArray)
+    Categorical, DatetimeArray, ExtensionArray, TimedeltaArray)
 from pandas.core.base import PandasObject
 import pandas.core.common as com
 from pandas.core.indexes.datetimes import DatetimeIndex
@@ -1507,15 +1506,8 @@ class Block(PandasObject):
                                        len(values)).reshape(len(values),
                                                             len(qs))
             else:
-
-                try:
-                    result = _nanpercentile(values, np.array(qs) * 100,
-                                            axis=axis, **kw)
-                except ValueError:
-
-                    # older numpies don't handle an array for q
-                    result = [_nanpercentile(values, q * 100,
-                                             axis=axis, **kw) for q in qs]
+                result = _nanpercentile(values, np.array(qs) * 100,
+                                        axis=axis, **kw)
 
                 result = np.array(result, copy=False)
                 if self.ndim > 1:
@@ -1639,13 +1631,6 @@ class NonConsolidatableMixIn(object):
             return (len(self.values)),
         return (len(self.mgr_locs), len(self.values))
 
-    def get_values(self, dtype=None):
-        """ need to to_dense myself (and always return a ndim sized object) """
-        values = self.values.to_dense()
-        if values.ndim == self.ndim - 1:
-            values = values.reshape((1,) + values.shape)
-        return values
-
     def iget(self, col):
 
         if self.ndim == 2 and isinstance(col, tuple):
@@ -1700,48 +1685,8 @@ class NonConsolidatableMixIn(object):
         new_values = self._try_coerce_result(new_values)
         return [self.make_block(values=new_values)]
 
-    def _slice(self, slicer):
-        """ return a slice of my values (but densify first) """
-        return self.get_values()[slicer]
-
     def _try_cast_result(self, result, dtype=None):
         return result
-
-    def _unstack(self, unstacker_func, new_columns, n_rows, fill_value):
-        """Return a list of unstacked blocks of self
-
-        Parameters
-        ----------
-        unstacker_func : callable
-            Partially applied unstacker.
-        new_columns : Index
-            All columns of the unstacked BlockManager.
-        n_rows : int
-            Only used in ExtensionBlock.unstack
-        fill_value : int
-            Only used in ExtensionBlock.unstack
-
-        Returns
-        -------
-        blocks : list of Block
-            New blocks of unstacked values.
-        mask : array_like of bool
-            The mask of columns of `blocks` we should keep.
-        """
-        # NonConsolidatable blocks can have a single item only, so we return
-        # one block per item
-        unstacker = unstacker_func(self.values.T)
-
-        new_placement, new_values, mask = self._get_unstack_items(
-            unstacker, new_columns
-        )
-
-        new_values = new_values.T[mask]
-        new_placement = new_placement[mask]
-
-        blocks = [self.make_block_same_class(vals, [place])
-                  for vals, place in zip(new_values, new_placement)]
-        return blocks, mask
 
     def _get_unstack_items(self, unstacker, new_columns):
         """
@@ -2330,11 +2275,11 @@ class DatetimeBlock(DatetimeLikeBlockMixin, Block):
             i8values = i8values[..., slicer]
 
         from pandas.io.formats.format import _get_format_datetime64_from_values
-        format = _get_format_datetime64_from_values(values, date_format)
+        fmt = _get_format_datetime64_from_values(values, date_format)
 
         result = tslib.format_array_from_datetime(
             i8values.ravel(), tz=getattr(self.values, 'tz', None),
-            format=format, na_rep=na_rep).reshape(i8values.shape)
+            format=fmt, na_rep=na_rep).reshape(i8values.shape)
         return np.atleast_2d(result)
 
     def should_store(self, value):
@@ -2400,8 +2345,6 @@ class DatetimeTZBlock(ExtensionBlock, DatetimeBlock):
             values = self._holder(values)
 
         if dtype is not None:
-            if isinstance(dtype, compat.string_types):
-                dtype = DatetimeTZDtype.construct_from_string(dtype)
             values = type(values)(values, dtype=dtype)
 
         if values.tz is None:
