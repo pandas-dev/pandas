@@ -2298,7 +2298,6 @@ class Index(IndexOpsMixin, PandasObject):
         should be overwritten here rather than in `self.union`
         """
         self._assert_can_do_setop(other)
-        other = ensure_index(other)
 
         if not len(other) or self.equals(other):
             return self._get_reconciled_name_object(other)

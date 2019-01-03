@@ -11,7 +11,7 @@ from pandas.core.dtypes.common import is_dtype_equal
 
 import pandas as pd
 from pandas import Int64Index, RangeIndex
-from pandas.tests.indexes.conftest import indices
+from pandas.tests.indexes.conftest import indices_list
 import pandas.util.testing as tm
 
 COMPATIBLE_INCONSISTENT_PAIRS = {
@@ -29,7 +29,7 @@ def test_union_same_types(indices):
 
 @pytest.mark.parametrize(
     'idx1,idx2',
-    list(it.combinations(indices._pytestfixturefunction.params, 2))
+    list(it.combinations(indices_list, 2))
 )
 def test_union_different_types(idx1, idx2):
     # GH 23525
