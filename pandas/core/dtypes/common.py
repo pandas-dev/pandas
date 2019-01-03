@@ -1813,16 +1813,6 @@ def _is_dtype_type(arr_or_dtype, condition):
     # fastpath
     if isinstance(arr_or_dtype, np.dtype):
         return condition(arr_or_dtype.type)
-    elif isinstance(arr_or_dtype, (PandasExtensionDtype, ExtensionDtype)):
-
-        # introspect the underlying type
-        if hasattr(arr_or_dtype, 'subtype'):
-            arr_or_dtype = arr_or_dtype.subtype
-
-        if hasattr(arr_or_dtype, 'base'):
-            arr_or_dtype = arr_or_dtype.base
-
-        return condition(np.dtype(arr_or_dtype.type).type)
     elif isinstance(arr_or_dtype, type):
         if issubclass(arr_or_dtype, (PandasExtensionDtype, ExtensionDtype)):
             arr_or_dtype = arr_or_dtype.type
