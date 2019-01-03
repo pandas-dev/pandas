@@ -1453,7 +1453,6 @@ class Block(PandasObject):
         -------
         Block
         """
-        kw = {'interpolation': interpolation}
         values = self.get_values()
         values, _ = self._try_coerce_args(values, values)
 
@@ -1476,7 +1475,8 @@ class Block(PandasObject):
             mask = isna(self.values)
             result = _nanpercentile(values, np.array(qs) * 100,
                                     axis=axis, na_value=self._na_value,
-                                    mask=mask, ndim=self.ndim, **kw)
+                                    mask=mask, ndim=self.ndim,
+                                    interpolation=interpolation)
 
             result = np.array(result, copy=False)
             if self.ndim > 1:
@@ -3327,7 +3327,7 @@ def _putmask_smart(v, m, n):
 
 
 # TODO: belongs elsewhere?
-def _nanpercentile1D(values, mask, q, na_value, **kw):
+def _nanpercentile1D(values, mask, q, na_value, interpolation):
     # mask is Union[ExtensionArray, ndarray]
     values = values[~mask]
 
@@ -3338,13 +3338,14 @@ def _nanpercentile1D(values, mask, q, na_value, **kw):
             return np.array([na_value] * len(q),
                             dtype=values.dtype)
 
-    return np.percentile(values, q, **kw)
+    return np.percentile(values, q, interpolation=interpolation)
 
 
-def _nanpercentile(values, q, axis, na_value, mask, ndim, **kw):
+def _nanpercentile(values, q, axis, na_value, mask, ndim, interpolation):
     if not lib.is_scalar(mask) and mask.any():
         if ndim == 1:
-            return _nanpercentile1D(values, mask, q, na_value, **kw)
+            return _nanpercentile1D(values, mask, q, na_value,
+                                    interpolation=interpolation)
         else:
             # for nonconsolidatable blocks mask is 1D, but values 2D
             if mask.ndim < values.ndim:
@@ -3352,9 +3353,10 @@ def _nanpercentile(values, q, axis, na_value, mask, ndim, **kw):
             if axis == 0:
                 values = values.T
                 mask = mask.T
-            result = [_nanpercentile1D(val, m, q, na_value, **kw) for (val, m)
-                      in zip(list(values), list(mask))]
+            result = [_nanpercentile1D(val, m, q, na_value,
+                                       interpolation=interpolation)
+                      for (val, m) in zip(list(values), list(mask))]
             result = np.array(result, dtype=values.dtype, copy=False).T
             return result
     else:
-        return np.percentile(values, q, axis=axis, **kw)
+        return np.percentile(values, q, axis=axis, interpolation=interpolation)
