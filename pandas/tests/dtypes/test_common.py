@@ -18,6 +18,17 @@ from pandas.core.sparse.api import SparseDtype
 import pandas.util.testing as tm
 
 
+# EA & Actual Dtypes
+def to_ea_dtypes(dtypes):
+    """ convert list of string dtypes to EA dtype """
+    return [getattr(pd, dt + 'Dtype') for dt in dtypes]
+
+
+def to_numpy_dtypes(dtypes):
+    """ convert list of string dtypes to numpy dtype """
+    return [getattr(np, dt) for dt in dtypes if isinstance(dt, str)]
+
+
 class TestPandasDtype(object):
 
     # Passing invalid dtype, both as a string or object, must raise TypeError
@@ -285,7 +296,8 @@ def test_is_datetimelike():
 @pytest.mark.parametrize(
     'dtype', [
         pd.Series([1, 2])] +
-    ALL_INT_DTYPES + ALL_EA_INT_DTYPES)
+    ALL_INT_DTYPES + to_numpy_dtypes(ALL_INT_DTYPES) +
+    ALL_EA_INT_DTYPES + to_ea_dtypes(ALL_EA_INT_DTYPES))
 def test_is_integer_dtype(dtype):
     assert com.is_integer_dtype(dtype)
 
@@ -301,7 +313,8 @@ def test_is_not_integer_dtype(dtype):
 @pytest.mark.parametrize(
     'dtype', [
         pd.Series([1, 2])] +
-    SIGNED_INT_DTYPES + SIGNED_EA_INT_DTYPES)
+    SIGNED_INT_DTYPES + to_numpy_dtypes(SIGNED_INT_DTYPES) +
+    SIGNED_EA_INT_DTYPES + to_ea_dtypes(SIGNED_EA_INT_DTYPES))
 def test_is_signed_integer_dtype(dtype):
     assert com.is_integer_dtype(dtype)
 
@@ -312,7 +325,8 @@ def test_is_signed_integer_dtype(dtype):
         str, float, np.datetime64, np.timedelta64,
         pd.Index([1, 2.]), np.array(['a', 'b']),
         np.array([], dtype=np.timedelta64)] +
-    UNSIGNED_INT_DTYPES + UNSIGNED_EA_INT_DTYPES)
+    UNSIGNED_INT_DTYPES + to_numpy_dtypes(UNSIGNED_INT_DTYPES) +
+    UNSIGNED_EA_INT_DTYPES + to_ea_dtypes(UNSIGNED_EA_INT_DTYPES))
 def test_is_not_signed_integer_dtype(dtype):
     assert not com.is_signed_integer_dtype(dtype)
 
@@ -320,7 +334,8 @@ def test_is_not_signed_integer_dtype(dtype):
 @pytest.mark.parametrize(
     'dtype',
     [pd.Series([1, 2], dtype=np.uint32)] +
-    UNSIGNED_INT_DTYPES + UNSIGNED_EA_INT_DTYPES)
+    UNSIGNED_INT_DTYPES + to_numpy_dtypes(UNSIGNED_INT_DTYPES) +
+    UNSIGNED_EA_INT_DTYPES + to_ea_dtypes(UNSIGNED_EA_INT_DTYPES))
 def test_is_unsigned_integer_dtype(dtype):
     assert com.is_unsigned_integer_dtype(dtype)
 
@@ -331,7 +346,8 @@ def test_is_unsigned_integer_dtype(dtype):
         str, float, np.datetime64, np.timedelta64,
         pd.Index([1, 2.]), np.array(['a', 'b']),
         np.array([], dtype=np.timedelta64)] +
-    SIGNED_INT_DTYPES + SIGNED_EA_INT_DTYPES)
+    SIGNED_INT_DTYPES + to_numpy_dtypes(SIGNED_INT_DTYPES) +
+    SIGNED_EA_INT_DTYPES + to_ea_dtypes(SIGNED_EA_INT_DTYPES))
 def test_is_not_unsigned_integer_dtype(dtype):
     assert not com.is_unsigned_integer_dtype(dtype)
 
@@ -627,5 +643,5 @@ def test__get_dtype_fails(input_param):
     (1.2, type(None)),
     (pd.DataFrame([1, 2]), type(None)),  # composite dtype
 ])
-def test__get_dtype_type(input_param, result):
+def test__is_dtype_type(input_param, result):
     assert com._is_dtype_type(input_param, lambda tipo: tipo == result)

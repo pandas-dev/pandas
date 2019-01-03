@@ -823,6 +823,10 @@ def is_any_int_dtype(arr_or_dtype):
 
     This function is internal and should not be exposed in the public API.
 
+    null-able Integer support
+
+    .. versionadded:: 0.24.0
+
     Parameters
     ----------
     arr_or_dtype : array-like
@@ -865,6 +869,10 @@ def is_integer_dtype(arr_or_dtype):
     Check whether the provided array or dtype is of an integer dtype.
 
     Unlike in `in_any_int_dtype`, timedelta64 instances will return False.
+
+    null-able Integer support
+
+    .. versionadded:: 0.24.0
 
     Parameters
     ----------
@@ -910,6 +918,10 @@ def is_signed_integer_dtype(arr_or_dtype):
 
     Unlike in `in_any_int_dtype`, timedelta64 instances will return False.
 
+    null-able Integer support
+
+    .. versionadded:: 0.24.0
+
     Parameters
     ----------
     arr_or_dtype : array-like
@@ -954,6 +966,10 @@ def is_unsigned_integer_dtype(arr_or_dtype):
     """
     Check whether the provided array or dtype is of an unsigned integer dtype.
 
+    null-able Integer support
+
+    .. versionadded:: 0.24.0
+
     Parameters
     ----------
     arr_or_dtype : array-like
@@ -983,7 +999,6 @@ def is_unsigned_integer_dtype(arr_or_dtype):
     >>> is_unsigned_integer_dtype(np.array([1, 2], dtype=np.uint32))
     True
     """
-
     return _is_dtype_type(
         arr_or_dtype, _issubclass_and_not_datetimelike(np.unsignedinteger))
 
@@ -1796,10 +1811,20 @@ def _is_dtype_type(arr_or_dtype, condition):
         return condition(type(None))
 
     # fastpath
-    if isinstance(arr_or_dtype, (
-            np.dtype, PandasExtensionDtype, ExtensionDtype)):
+    if isinstance(arr_or_dtype, np.dtype):
         return condition(arr_or_dtype.type)
+    elif isinstance(arr_or_dtype, (PandasExtensionDtype, ExtensionDtype)):
+
+        # introspect the underlying type
+        if hasattr(arr_or_dtype, 'subtype'):
+            arr_or_dtype = arr_or_dtype.subtype.type
+        elif hasattr(arr_or_dtype, 'base'):
+            arr_or_dtype = arr_or_dtype.base.type
+
+        return condition(np.dtype(arr_or_dtype).type)
     elif isinstance(arr_or_dtype, type):
+        if issubclass(arr_or_dtype, (PandasExtensionDtype, ExtensionDtype)):
+            arr_or_dtype = arr_or_dtype.type
         return condition(np.dtype(arr_or_dtype).type)
     elif arr_or_dtype is None:
         return condition(type(None))

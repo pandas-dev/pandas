@@ -32,6 +32,7 @@ class _IntegerDtype(ExtensionDtype):
     The attributes name & type are set when these subclasses are created.
     """
     name = None
+    base = None
     type = None
     na_value = np.nan
 
@@ -655,7 +656,9 @@ for dtype in ['int8', 'int16', 'int32', 'int64',
     else:
         name = dtype.capitalize()
     classname = "{}Dtype".format(name)
-    attributes_dict = {'type': getattr(np, dtype),
+    numpy_dtype = getattr(np, dtype)
+    attributes_dict = {'type': numpy_dtype,
+                       'base': np.dtype(numpy_dtype),
                        'name': name}
     dtype_type = register_extension_dtype(
         type(classname, (_IntegerDtype, ), attributes_dict)
