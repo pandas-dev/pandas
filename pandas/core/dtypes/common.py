@@ -114,12 +114,12 @@ def ensure_int64_or_float64(arr, copy=False):
         return arr.astype('float64', copy=copy)
 
 
-def _issubclass(*klasses):
+def classes(*klasses):
     """ evaluate if the tipo is a subclass of the klasses """
     return lambda tipo: issubclass(tipo, klasses)
 
 
-def _issubclass_and_not_datetimelike(*klasses):
+def classes_and_not_datetimelike(*klasses):
     """
     evaluate if the tipo is a subclass of the klasses
     and not a datetimelike
@@ -154,7 +154,7 @@ def is_object_dtype(arr_or_dtype):
     >>> is_object_dtype([1, 2, 3])
     False
     """
-    return _is_dtype_type(arr_or_dtype, _issubclass(np.object_))
+    return _is_dtype_type(arr_or_dtype, classes(np.object_))
 
 
 def is_sparse(arr):
@@ -428,7 +428,7 @@ def is_datetime64_dtype(arr_or_dtype):
     False
     """
 
-    return _is_dtype_type(arr_or_dtype, _issubclass(np.datetime64))
+    return _is_dtype_type(arr_or_dtype, classes(np.datetime64))
 
 
 def is_datetime64tz_dtype(arr_or_dtype):
@@ -497,7 +497,7 @@ def is_timedelta64_dtype(arr_or_dtype):
     False
     """
 
-    return _is_dtype_type(arr_or_dtype, _issubclass(np.timedelta64))
+    return _is_dtype_type(arr_or_dtype, classes(np.timedelta64))
 
 
 def is_period_dtype(arr_or_dtype):
@@ -823,9 +823,9 @@ def is_any_int_dtype(arr_or_dtype):
 
     This function is internal and should not be exposed in the public API.
 
-    null-able Integer support
+    .. versionchanged:: 0.24.0
 
-    .. versionadded:: 0.24.0
+       Nullable Integer support
 
     Parameters
     ----------
@@ -861,7 +861,7 @@ def is_any_int_dtype(arr_or_dtype):
     """
 
     return _is_dtype_type(
-        arr_or_dtype, _issubclass(np.integer, np.timedelta64))
+        arr_or_dtype, classes(np.integer, np.timedelta64))
 
 
 def is_integer_dtype(arr_or_dtype):
@@ -870,9 +870,9 @@ def is_integer_dtype(arr_or_dtype):
 
     Unlike in `in_any_int_dtype`, timedelta64 instances will return False.
 
-    null-able Integer support
+    .. versionchanged:: 0.24.0
 
-    .. versionadded:: 0.24.0
+       Nullable Integer support
 
     Parameters
     ----------
@@ -915,7 +915,7 @@ def is_integer_dtype(arr_or_dtype):
     """
 
     return _is_dtype_type(
-        arr_or_dtype, _issubclass_and_not_datetimelike(np.integer))
+        arr_or_dtype, classes_and_not_datetimelike(np.integer))
 
 
 def is_signed_integer_dtype(arr_or_dtype):
@@ -924,9 +924,9 @@ def is_signed_integer_dtype(arr_or_dtype):
 
     Unlike in `in_any_int_dtype`, timedelta64 instances will return False.
 
-    null-able Integer support
+    .. versionchanged:: 0.24.0
 
-    .. versionadded:: 0.24.0
+       Nullable Integer support
 
     Parameters
     ----------
@@ -971,16 +971,16 @@ def is_signed_integer_dtype(arr_or_dtype):
     """
 
     return _is_dtype_type(
-        arr_or_dtype, _issubclass_and_not_datetimelike(np.signedinteger))
+        arr_or_dtype, classes_and_not_datetimelike(np.signedinteger))
 
 
 def is_unsigned_integer_dtype(arr_or_dtype):
     """
     Check whether the provided array or dtype is of an unsigned integer dtype.
 
-    null-able Integer support
+    .. versionchanged:: 0.24.0
 
-    .. versionadded:: 0.24.0
+       Nullable Integer support
 
     Parameters
     ----------
@@ -1018,7 +1018,7 @@ def is_unsigned_integer_dtype(arr_or_dtype):
     True
     """
     return _is_dtype_type(
-        arr_or_dtype, _issubclass_and_not_datetimelike(np.unsignedinteger))
+        arr_or_dtype, classes_and_not_datetimelike(np.unsignedinteger))
 
 
 def is_int64_dtype(arr_or_dtype):
@@ -1068,7 +1068,7 @@ def is_int64_dtype(arr_or_dtype):
     False
     """
 
-    return _is_dtype_type(arr_or_dtype, _issubclass(np.int64))
+    return _is_dtype_type(arr_or_dtype, classes(np.int64))
 
 
 def is_datetime64_any_dtype(arr_or_dtype):
@@ -1227,7 +1227,7 @@ def is_datetime_or_timedelta_dtype(arr_or_dtype):
     """
 
     return _is_dtype_type(
-        arr_or_dtype, _issubclass(np.datetime64, np.timedelta64))
+        arr_or_dtype, classes(np.datetime64, np.timedelta64))
 
 
 def _is_unorderable_exception(e):
@@ -1503,7 +1503,7 @@ def is_numeric_dtype(arr_or_dtype):
     """
 
     return _is_dtype_type(
-        arr_or_dtype, _issubclass_and_not_datetimelike(np.number, np.bool_))
+        arr_or_dtype, classes_and_not_datetimelike(np.number, np.bool_))
 
 
 def is_string_like_dtype(arr_or_dtype):
@@ -1568,7 +1568,7 @@ def is_float_dtype(arr_or_dtype):
     >>> is_float_dtype(pd.Index([1, 2.]))
     True
     """
-    return _is_dtype_type(arr_or_dtype, _issubclass(np.floating))
+    return _is_dtype_type(arr_or_dtype, classes(np.floating))
 
 
 def is_bool_dtype(arr_or_dtype):
@@ -1752,7 +1752,7 @@ def is_complex_dtype(arr_or_dtype):
     True
     """
 
-    return _is_dtype_type(arr_or_dtype, _issubclass(np.complexfloating))
+    return _is_dtype_type(arr_or_dtype, classes(np.complexfloating))
 
 
 def _is_dtype(arr_or_dtype, condition):
@@ -1824,7 +1824,7 @@ def _is_dtype_type(arr_or_dtype, condition):
     ----------
     arr_or_dtype : array-like
         The array-like or dtype object whose dtype we want to extract.
-    condition : callable[Union[type(np.dtype), ExtensionDtypeType]]
+    condition : callable[Union[np.dtype, ExtensionDtypeType]]
 
     Returns
     -------
