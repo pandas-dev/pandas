@@ -354,9 +354,6 @@ def unique(values):
     if is_extension_array_dtype(values):
         # Dispatch to extension dtype's unique.
         return values.unique()
-    elif is_datetime64tz_dtype(values):
-        # TODO: merge this check into the previous one following #24024
-        return values.unique()
 
     original = values
     htable, _, values, dtype, ndtype = _get_hashtable_algo(values)

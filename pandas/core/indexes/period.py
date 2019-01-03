@@ -283,10 +283,6 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index, PeriodDelegateMixin):
     # Data
 
     @property
-    def _eadata(self):
-        return self._data
-
-    @property
     def values(self):
         return np.asarray(self)
 
@@ -360,17 +356,6 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index, PeriodDelegateMixin):
             else:
                 return Period._from_ordinal(ordinal=x, freq=self.freq)
         return func
-
-    def _maybe_box_as_values(self, values, **attribs):
-        """Box an array of ordinals to a PeriodArray
-
-        This is purely for compatibility between PeriodIndex
-        and Datetime/TimedeltaIndex. Once these are all backed by
-        an ExtensionArray, this can be removed
-        """
-        # TODO(DatetimeArray): remove
-        freq = attribs['freq']
-        return PeriodArray(values, freq=freq)
 
     def _maybe_convert_timedelta(self, other):
         """
@@ -876,12 +861,6 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index, PeriodDelegateMixin):
             raise Exception("invalid pickle state")
 
     _unpickle_compat = __setstate__
-
-    def view(self, dtype=None, type=None):
-        # TODO(DatetimeArray): remove
-        if dtype is None or dtype is __builtins__['type'](self):
-            return self
-        return self._ndarray_values.view(dtype=dtype)
 
     @property
     def flags(self):

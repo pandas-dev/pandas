@@ -1468,9 +1468,9 @@ class MultiIndex(Index):
         # Guarantee resulting column order
         result = DataFrame(
             OrderedDict([
-                ((level if name is None else name),
+                ((level if lvlname is None else lvlname),
                  self._get_level_values(level))
-                for name, level in zip(idx_names, range(len(self.levels)))
+                for lvlname, level in zip(idx_names, range(len(self.levels)))
             ]),
             copy=False
         )
