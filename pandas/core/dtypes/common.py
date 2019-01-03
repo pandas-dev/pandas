@@ -119,6 +119,15 @@ def _issubclass(*klasses):
     return lambda tipo: issubclass(tipo, klasses)
 
 
+def _issubclass_and_not_datetimelike(*klasses):
+    """
+    evaluate if the tipo is a subclass of the klasses
+    and not a datetimelike
+    """
+    return lambda tipo: (issubclass(tipo, klasses) and
+                         not issubclass(tipo, (np.datetime64, np.timedelta64)))
+
+
 def is_object_dtype(arr_or_dtype):
     """
     Check whether an array-like or dtype is of the object dtype.
@@ -891,10 +900,8 @@ def is_integer_dtype(arr_or_dtype):
     False
     """
 
-    def condition(tipo):
-        return (issubclass(tipo, np.integer) and
-                not issubclass(tipo, (np.datetime64, np.timedelta64)))
-    return _is_dtype_type(arr_or_dtype, condition)
+    return _is_dtype_type(
+        arr_or_dtype, _issubclass_and_not_datetimelike(np.integer))
 
 
 def is_signed_integer_dtype(arr_or_dtype):
@@ -939,10 +946,8 @@ def is_signed_integer_dtype(arr_or_dtype):
     False
     """
 
-    def condition(tipo):
-        return (issubclass(tipo, np.signedinteger) and
-                not issubclass(tipo, (np.datetime64, np.timedelta64)))
-    return _is_dtype_type(arr_or_dtype, condition)
+    return _is_dtype_type(
+        arr_or_dtype, _issubclass_and_not_datetimelike(np.signedinteger))
 
 
 def is_unsigned_integer_dtype(arr_or_dtype):
@@ -979,10 +984,8 @@ def is_unsigned_integer_dtype(arr_or_dtype):
     True
     """
 
-    def condition(tipo):
-        return (issubclass(tipo, np.unsignedinteger) and
-                not issubclass(tipo, (np.datetime64, np.timedelta64)))
-    return _is_dtype_type(arr_or_dtype, condition)
+    return _is_dtype_type(
+        arr_or_dtype, _issubclass_and_not_datetimelike(np.unsignedinteger))
 
 
 def is_int64_dtype(arr_or_dtype):
@@ -1460,10 +1463,8 @@ def is_numeric_dtype(arr_or_dtype):
     False
     """
 
-    def condition(tipo):
-        return (issubclass(tipo, (np.number, np.bool_)) and
-                not issubclass(tipo, (np.datetime64, np.timedelta64)))
-    return _is_dtype_type(arr_or_dtype, condition)
+    return _is_dtype_type(
+        arr_or_dtype, _issubclass_and_not_datetimelike(np.number, np.bool_))
 
 
 def is_string_like_dtype(arr_or_dtype):
