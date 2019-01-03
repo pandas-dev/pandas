@@ -1599,6 +1599,7 @@ Notice how we now instead output ``np.nan`` itself instead of a stringified form
 - :func:`read_sas()` will parse numbers in sas7bdat-files that have width less than 8 bytes correctly. (:issue:`21616`)
 - :func:`read_sas()` will correctly parse sas7bdat files with many columns (:issue:`22628`)
 - :func:`read_sas()` will correctly parse sas7bdat files with data page types having also bit 7 set (so page type is 128 + 256 = 384) (:issue:`16615`)
+- Bug in :func:`read_sas()` in which an incorrect error was raised on an invalid file format. (:issue:`24548`)
 - Bug in :meth:`detect_client_encoding` where potential ``IOError`` goes unhandled when importing in a mod_wsgi process due to restricted access to stdout. (:issue:`21552`)
 - Bug in :func:`to_html()` with ``index=False`` misses truncation indicators (...) on truncated DataFrame (:issue:`15019`, :issue:`22783`)
 - Bug in :func:`to_html()` with ``index=False`` when both columns and row index are ``MultiIndex`` (:issue:`22579`)
