@@ -416,7 +416,7 @@ def _convert_bin_to_numeric_type(bins, dtype):
     ------
     ValueError if bins are not of a compat dtype to dtype
     """
-    bins_dtype = infer_dtype(bins)
+    bins_dtype = infer_dtype(bins, skipna=False)
     if is_timedelta64_dtype(dtype):
         if bins_dtype in ['timedelta', 'timedelta64']:
             bins = to_timedelta(bins).view(np.int64)

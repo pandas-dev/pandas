@@ -589,7 +589,7 @@ def sanitize_array(data, index, dtype=None, copy=False,
         # everything else in this block must also handle ndarray's,
         # becuase we've unwrapped PandasArray into an ndarray.
 
-        if dtype is not None and not data.dtype.is_dtype(dtype):
+        if dtype is not None:
             subarr = data.astype(dtype)
 
         if copy:
@@ -667,7 +667,7 @@ def sanitize_array(data, index, dtype=None, copy=False,
             subarr = np.array(data, dtype=object, copy=copy)
 
     if is_object_dtype(subarr.dtype) and dtype != 'object':
-        inferred = lib.infer_dtype(subarr)
+        inferred = lib.infer_dtype(subarr, skipna=False)
         if inferred == 'period':
             try:
                 subarr = period_array(subarr)

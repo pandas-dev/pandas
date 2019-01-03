@@ -20,7 +20,7 @@ from pandas.errors import PerformanceWarning, NullFrequencyError
 from pandas._libs.tslibs.conversion import localize_pydatetime
 from pandas._libs.tslibs.offsets import shift_months
 
-from pandas.core.indexes.datetimes import _to_m8
+from pandas.core.indexes.datetimes import _to_M8
 
 from pandas import (
     Timestamp, Timedelta, Period, Series, date_range, NaT,
@@ -349,7 +349,7 @@ class TestDatetimeIndexComparisons(object):
     def test_comparators(self, op):
         index = tm.makeDateIndex(100)
         element = index[len(index) // 2]
-        element = _to_m8(element)
+        element = _to_M8(element)
 
         arr = np.array(index)
         arr_result = op(arr, element)
