@@ -763,8 +763,7 @@ class TestDataFrameConstructors(TestData):
         result = pd.DataFrame(mat_hard, columns=['A', 'B'], index=[1, 2])
         expected = pd.DataFrame({
             'A': [np.nan, np.nan],
-            'B': [np.nan, np.nan],
-            },
+            'B': [np.nan, np.nan]},
             columns=['A', 'B'],
             index=[1, 2],
             dtype=float)
@@ -774,8 +773,7 @@ class TestDataFrameConstructors(TestData):
         result = pd.DataFrame(mat_hard, columns=['A', 'B'], index=[1, 2])
         expected = pd.DataFrame({
             'A': [1.0, 1.0],
-            'B': [1.0, 1.0],
-            },
+            'B': [1.0, 1.0]},
             columns=['A', 'B'],
             index=[1, 2],
             dtype=float)
