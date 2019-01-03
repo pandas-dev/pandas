@@ -155,7 +155,7 @@ def any_allowed_skipna_inferred_dtype(request):
     >>> import pandas._libs.lib as lib
     >>>
     >>> def test_something(any_allowed_skipna_inferred_dtype):
-    ...     inferred_dtype, values = any_skipna_inferred_dtype
+    ...     inferred_dtype, values = any_allowed_skipna_inferred_dtype
     ...     # will pass
     ...     assert lib.infer_dtype(values, skipna=True) == inferred_dtype
     """

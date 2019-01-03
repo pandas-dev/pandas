@@ -947,7 +947,8 @@ class _MergeOperation(object):
                     continue
 
                 # let's infer and see if we are ok
-                elif lib.infer_dtype(lk) == lib.infer_dtype(rk):
+                elif (lib.infer_dtype(lk, skipna=False)
+                      == lib.infer_dtype(rk, skipna=False)):
                     continue
 
             # Check if we are trying to merge on obviously
