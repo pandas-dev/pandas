@@ -105,6 +105,14 @@ class BaseMethodsTests(BaseExtensionTests):
         tm.assert_numpy_array_equal(l1, l2)
         self.assert_extension_array_equal(u1, u2)
 
+    def test_factorize_empty(self, data):
+        labels, uniques = pd.factorize(data[:0])
+        expected_labels = np.array([], dtype=np.intp)
+        expected_uniques = type(data)._from_sequence([], dtype=data[:0].dtype)
+
+        tm.assert_numpy_array_equal(labels, expected_labels)
+        self.assert_extension_array_equal(uniques, expected_uniques)
+
     def test_fillna_copy_frame(self, data_missing):
         arr = data_missing.take([1, 1])
         df = pd.DataFrame({"A": arr})

@@ -179,6 +179,9 @@ class JSONArray(ExtensionArray):
 
     def _values_for_factorize(self):
         frozen = self._values_for_argsort()
+        if len(frozen) == 0:
+            # _factorize_array expects 1-d array, this is a len-0 2-d array.
+            frozen = frozen.ravel()
         return frozen, ()
 
     def _values_for_argsort(self):
