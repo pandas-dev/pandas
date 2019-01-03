@@ -183,13 +183,47 @@ class TestTimestampTZOperations(object):
         assert result.hour == expected.hour
         assert result == expected
 
-    @pytest.mark.parametrize('tz', ['Europe/Warsaw', 'dateutil/Europe/Warsaw'])
-    def test_timestamp_tz_localize_nonexistent_shift(self, tz):
-        # GH 8917
-        ts = Timestamp('2015-03-29 02:20:00')
-        result = ts.tz_localize(tz, nonexistent='shift')
-        expected = Timestamp('2015-03-29 03:00:00').tz_localize(tz)
+    @pytest.mark.parametrize('start_ts, tz, end_ts, shift', [
+        ['2015-03-29 02:20:00', 'Europe/Warsaw', '2015-03-29 03:00:00',
+         'forward'],
+        ['2015-03-29 02:20:00', 'Europe/Warsaw',
+         '2015-03-29 01:59:59.999999999', 'backward'],
+        ['2015-03-29 02:20:00', 'Europe/Warsaw',
+         '2015-03-29 03:20:00', timedelta(hours=1)],
+        ['2015-03-29 02:20:00', 'Europe/Warsaw',
+         '2015-03-29 01:20:00', timedelta(hours=-1)],
+        ['2018-03-11 02:33:00', 'US/Pacific', '2018-03-11 03:00:00',
+         'forward'],
+        ['2018-03-11 02:33:00', 'US/Pacific', '2018-03-11 01:59:59.999999999',
+         'backward'],
+        ['2018-03-11 02:33:00', 'US/Pacific', '2018-03-11 03:33:00',
+         timedelta(hours=1)],
+        ['2018-03-11 02:33:00', 'US/Pacific', '2018-03-11 01:33:00',
+         timedelta(hours=-1)]
+    ])
+    @pytest.mark.parametrize('tz_type', ['', 'dateutil/'])
+    def test_timestamp_tz_localize_nonexistent_shift(self, start_ts, tz,
+                                                     end_ts, shift,
+                                                     tz_type):
+        # GH 8917, 24466
+        tz = tz_type + tz
+        if isinstance(shift, str):
+            shift = 'shift_' + shift
+        ts = Timestamp(start_ts)
+        result = ts.tz_localize(tz, nonexistent=shift)
+        expected = Timestamp(end_ts).tz_localize(tz)
         assert result == expected
+
+    @pytest.mark.parametrize('offset', [-1, 1])
+    @pytest.mark.parametrize('tz_type', ['', 'dateutil/'])
+    def test_timestamp_tz_localize_nonexistent_shift_invalid(self, offset,
+                                                             tz_type):
+        # GH 8917, 24466
+        tz = tz_type + 'Europe/Warsaw'
+        ts = Timestamp('2015-03-29 02:20:00')
+        msg = "The provided timedelta will relocalize on a nonexistent time"
+        with pytest.raises(ValueError, match=msg):
+            ts.tz_localize(tz, nonexistent=timedelta(seconds=offset))
 
     @pytest.mark.parametrize('tz', ['Europe/Warsaw', 'dateutil/Europe/Warsaw'])
     def test_timestamp_tz_localize_nonexistent_NaT(self, tz):

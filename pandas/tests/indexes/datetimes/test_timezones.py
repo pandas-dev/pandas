@@ -581,7 +581,6 @@ class TestDatetimeIndexTimezones(object):
 
     @pytest.mark.parametrize('tz', ['Europe/Warsaw', 'dateutil/Europe/Warsaw'])
     @pytest.mark.parametrize('method, exp', [
-        ['shift', '2015-03-29 03:00:00'],
         ['NaT', pd.NaT],
         ['raise', None],
         ['foo', 'invalid']
@@ -600,6 +599,47 @@ class TestDatetimeIndexTimezones(object):
             result = dti.tz_localize(tz, nonexistent=method)
             expected = DatetimeIndex([exp] * n, tz=tz)
             tm.assert_index_equal(result, expected)
+
+    @pytest.mark.parametrize('start_ts, tz, end_ts, shift', [
+        ['2015-03-29 02:20:00', 'Europe/Warsaw', '2015-03-29 03:00:00',
+         'forward'],
+        ['2015-03-29 02:20:00', 'Europe/Warsaw',
+         '2015-03-29 01:59:59.999999999', 'backward'],
+        ['2015-03-29 02:20:00', 'Europe/Warsaw',
+         '2015-03-29 03:20:00', timedelta(hours=1)],
+        ['2015-03-29 02:20:00', 'Europe/Warsaw',
+         '2015-03-29 01:20:00', timedelta(hours=-1)],
+        ['2018-03-11 02:33:00', 'US/Pacific', '2018-03-11 03:00:00',
+         'forward'],
+        ['2018-03-11 02:33:00', 'US/Pacific', '2018-03-11 01:59:59.999999999',
+         'backward'],
+        ['2018-03-11 02:33:00', 'US/Pacific', '2018-03-11 03:33:00',
+         timedelta(hours=1)],
+        ['2018-03-11 02:33:00', 'US/Pacific', '2018-03-11 01:33:00',
+         timedelta(hours=-1)]
+    ])
+    @pytest.mark.parametrize('tz_type', ['', 'dateutil/'])
+    def test_dti_tz_localize_nonexistent_shift(self, start_ts, tz,
+                                               end_ts, shift,
+                                               tz_type):
+        # GH 8917
+        tz = tz_type + tz
+        if isinstance(shift, str):
+            shift = 'shift_' + shift
+        dti = DatetimeIndex([Timestamp(start_ts)])
+        result = dti.tz_localize(tz, nonexistent=shift)
+        expected = DatetimeIndex([Timestamp(end_ts)]).tz_localize(tz)
+        tm.assert_index_equal(result, expected)
+
+    @pytest.mark.parametrize('offset', [-1, 1])
+    @pytest.mark.parametrize('tz_type', ['', 'dateutil/'])
+    def test_dti_tz_localize_nonexistent_shift_invalid(self, offset, tz_type):
+        # GH 8917
+        tz = tz_type + 'Europe/Warsaw'
+        dti = DatetimeIndex([Timestamp('2015-03-29 02:20:00')])
+        msg = "The provided timedelta will relocalize on a nonexistent time"
+        with pytest.raises(ValueError, match=msg):
+            dti.tz_localize(tz, nonexistent=timedelta(seconds=offset))
 
     @pytest.mark.filterwarnings('ignore::FutureWarning')
     def test_dti_tz_localize_errors_deprecation(self):

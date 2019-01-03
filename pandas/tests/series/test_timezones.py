@@ -79,7 +79,7 @@ class TestSeriesTimezones(object):
 
     @pytest.mark.parametrize('tz', ['Europe/Warsaw', 'dateutil/Europe/Warsaw'])
     @pytest.mark.parametrize('method, exp', [
-        ['shift', '2015-03-29 03:00:00'],
+        ['shift_forward', '2015-03-29 03:00:00'],
         ['NaT', NaT],
         ['raise', None],
         ['foo', 'invalid']
