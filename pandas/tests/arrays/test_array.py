@@ -1,7 +1,9 @@
+import datetime
 import decimal
 
 import numpy as np
 import pytest
+import pytz
 
 from pandas.core.dtypes.dtypes import registry
 
@@ -89,11 +91,51 @@ def test_array_copy():
     assert np.shares_memory(a, b._ndarray) is True
 
 
+cet = pytz.timezone("CET")
+
+
 @pytest.mark.parametrize('data, expected', [
+    # period
     ([pd.Period("2000", "D"), pd.Period("2001", "D")],
      period_array(["2000", "2001"], freq="D")),
+
+    # interval
     ([pd.Interval(0, 1), pd.Interval(1, 2)],
      pd.IntervalArray.from_breaks([0, 1, 2])),
+
+    # datetime
+    ([pd.Timestamp('2000',), pd.Timestamp('2001')],
+     pd.arrays.DatetimeArray._from_sequence(['2000', '2001'])),
+
+    ([datetime.datetime(2000, 1, 1), datetime.datetime(2001, 1, 1)],
+     pd.arrays.DatetimeArray._from_sequence(['2000', '2001'])),
+
+    (np.array([1, 2], dtype='M8[ns]'),
+     pd.arrays.DatetimeArray(np.array([1, 2], dtype='M8[ns]'))),
+
+    (np.array([1, 2], dtype='M8[us]'),
+     pd.arrays.DatetimeArray(np.array([1000, 2000], dtype='M8[ns]'))),
+
+    # datetimetz
+    ([pd.Timestamp('2000', tz='CET'), pd.Timestamp('2001', tz='CET')],
+     pd.arrays.DatetimeArray._from_sequence(
+         ['2000', '2001'], dtype=pd.DatetimeTZDtype(tz='CET'))),
+
+    ([datetime.datetime(2000, 1, 1, tzinfo=cet),
+      datetime.datetime(2001, 1, 1, tzinfo=cet)],
+     pd.arrays.DatetimeArray._from_sequence(['2000', '2001'],
+                                            tz=cet)),
+
+    # timedelta
+    ([pd.Timedelta('1H'), pd.Timedelta('2H')],
+     pd.arrays.TimedeltaArray._from_sequence(['1H', '2H'])),
+
+    (np.array([1, 2], dtype='m8[ns]'),
+     pd.arrays.TimedeltaArray(np.array([1, 2], dtype='m8[ns]'))),
+
+    (np.array([1, 2], dtype='m8[us]'),
+     pd.arrays.TimedeltaArray(np.array([1000, 2000], dtype='m8[ns]'))),
+
 ])
 def test_array_inference(data, expected):
     result = pd.array(data)
@@ -105,6 +147,15 @@ def test_array_inference(data, expected):
     [pd.Period("2000", "D"), pd.Period("2001", "A")],
     # mix of closed
     [pd.Interval(0, 1, closed='left'), pd.Interval(1, 2, closed='right')],
+    # Mix of timezones
+    [pd.Timestamp("2000", tz="CET"), pd.Timestamp("2000", tz="UTC")],
+    # Mix of tz-aware and tz-naive
+    [pd.Timestamp("2000", tz="CET"), pd.Timestamp("2000")],
+    # GH-24569
+    pytest.param(
+        np.array([pd.Timestamp('2000'), pd.Timestamp('2000', tz='CET')]),
+        marks=pytest.mark.xfail(reason="bug in DTA._from_sequence")
+    ),
 ])
 def test_array_inference_fails(data):
     result = pd.array(data)
