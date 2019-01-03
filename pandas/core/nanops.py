@@ -1197,6 +1197,24 @@ nanne = make_nancomp(operator.ne)
 
 
 def _nanpercentile1D(values, mask, q, na_value, interpolation):
+    """
+    Wraper for np.percentile that skips missing values, specialized to
+    1-dimensional case.
+
+    Parameters
+    ----------
+    values : array over which to find quantiles
+    mask : ndarray[bool]
+        locations in values that should be considered missing
+    q : scalar or array of quantile indices to find
+    na_value : scalar
+        value to return for empty or all-null values
+    interpolation : str
+
+    Returns
+    -------
+    quantiles : scalar or array
+    """
     # mask is Union[ExtensionArray, ndarray]
     values = values[~mask]
 
@@ -1211,6 +1229,25 @@ def _nanpercentile1D(values, mask, q, na_value, interpolation):
 
 
 def nanpercentile(values, q, axis, na_value, mask, ndim, interpolation):
+    """
+    Wraper for np.percentile that skips missing values.
+
+    Parameters
+    ----------
+    values : array over which to find quantiles
+    q : scalar or array of quantile indices to find
+    axis : {0, 1}
+    na_value : scalar
+        value to return for empty or all-null values
+    mask : ndarray[bool]
+        locations in values that should be considered missing
+    ndim : {1, 2}
+    interpolation : str
+
+    Returns
+    -------
+    quantiles : scalar or array
+    """
     if not lib.is_scalar(mask) and mask.any():
         if ndim == 1:
             return _nanpercentile1D(values, mask, q, na_value,
