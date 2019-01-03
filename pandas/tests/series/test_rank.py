@@ -222,8 +222,7 @@ class TestSeriesRank(TestData):
                      'int64',
                      marks=pytest.mark.xfail(
                          reason="iNaT is equivalent to minimum value of dtype"
-                                "int64 pending issue GH#16674",
-                         strict=True)),
+                                "int64 pending issue GH#16674")),
         ([NegInfinity(), '1', 'A', 'BA', 'Ba', 'C', Infinity()],
          'object')
     ])

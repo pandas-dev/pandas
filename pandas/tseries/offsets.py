@@ -32,7 +32,7 @@ __all__ = ['Day', 'BusinessDay', 'BDay', 'CustomBusinessDay', 'CDay',
            'LastWeekOfMonth', 'FY5253Quarter', 'FY5253',
            'Week', 'WeekOfMonth', 'Easter',
            'Hour', 'Minute', 'Second', 'Milli', 'Micro', 'Nano',
-           'DateOffset', 'CalendarDay']
+           'DateOffset']
 
 # convert to/from datetime/timestamp to allow invalid Timestamp ranges to
 # pass thru
@@ -275,14 +275,17 @@ class DateOffset(BaseOffset):
                        kwds.get('months', 0)) * self.n)
             if months:
                 shifted = liboffsets.shift_months(i.asi8, months)
-                i = i._shallow_copy(shifted)
+                i = type(i)(shifted, freq=i.freq, dtype=i.dtype)
 
             weeks = (kwds.get('weeks', 0)) * self.n
             if weeks:
                 # integer addition on PeriodIndex is deprecated,
                 #   so we directly use _time_shift instead
                 asper = i.to_period('W')
-                shifted = asper._data._time_shift(weeks)
+                if not isinstance(asper._data, np.ndarray):
+                    # unwrap PeriodIndex --> PeriodArray
+                    asper = asper._data
+                shifted = asper._time_shift(weeks)
                 i = shifted.to_timestamp() + i.to_perioddelta('W')
 
             timedelta_kwds = {k: v for k, v in kwds.items()
@@ -539,17 +542,21 @@ class BusinessDay(BusinessMixin, SingleConstructorOffset):
         # to_period rolls forward to next BDay; track and
         # reduce n where it does when rolling forward
         asper = i.to_period('B')
+        if not isinstance(asper._data, np.ndarray):
+            # unwrap PeriodIndex --> PeriodArray
+            asper = asper._data
+
         if self.n > 0:
             shifted = (i.to_perioddelta('B') - time).asi8 != 0
 
             # Integer-array addition is deprecated, so we use
             # _time_shift directly
             roll = np.where(shifted, self.n - 1, self.n)
-            shifted = asper._data._addsub_int_array(roll, operator.add)
+            shifted = asper._addsub_int_array(roll, operator.add)
         else:
             # Integer addition is deprecated, so we use _time_shift directly
             roll = self.n
-            shifted = asper._data._time_shift(roll)
+            shifted = asper._time_shift(roll)
 
         result = shifted.to_timestamp() + time
         return result
@@ -926,7 +933,9 @@ class MonthOffset(SingleConstructorOffset):
     @apply_index_wraps
     def apply_index(self, i):
         shifted = liboffsets.shift_months(i.asi8, self.n, self._day_opt)
-        return i._shallow_copy(shifted)
+        # TODO: going through __new__ raises on call to _validate_frequency;
+        #  are we passing incorrect freq?
+        return type(i)._simple_new(shifted, freq=i.freq, tz=i.tz)
 
 
 class MonthEnd(MonthOffset):
@@ -1140,7 +1149,11 @@ class SemiMonthOffset(DateOffset):
         # integer-array addition on PeriodIndex is deprecated,
         #  so we use _addsub_int_array directly
         asper = i.to_period('M')
-        shifted = asper._data._addsub_int_array(roll // 2, operator.add)
+        if not isinstance(asper._data, np.ndarray):
+            # unwrap PeriodIndex --> PeriodArray
+            asper = asper._data
+
+        shifted = asper._addsub_int_array(roll // 2, operator.add)
         i = type(dti)(shifted.to_timestamp())
 
         # apply the correct day
@@ -1329,7 +1342,12 @@ class Week(DateOffset):
         if self.weekday is None:
             # integer addition on PeriodIndex is deprecated,
             #  so we use _time_shift directly
-            shifted = i.to_period('W')._data._time_shift(self.n)
+            asper = i.to_period('W')
+            if not isinstance(asper._data, np.ndarray):
+                # unwrap PeriodIndex --> PeriodArray
+                asper = asper._data
+
+            shifted = asper._time_shift(self.n)
             return shifted.to_timestamp() + i.to_perioddelta('W')
         else:
             return self._end_apply_index(i)
@@ -1351,6 +1369,10 @@ class Week(DateOffset):
 
         base, mult = libfrequencies.get_freq_code(self.freqstr)
         base_period = dtindex.to_period(base)
+        if not isinstance(base_period._data, np.ndarray):
+            # unwrap PeriodIndex --> PeriodArray
+            base_period = base_period._data
+
         if self.n > 0:
             # when adding, dates on end roll to next
             normed = dtindex - off + Timedelta(1, 'D') - Timedelta(1, 'ns')
@@ -1358,13 +1380,13 @@ class Week(DateOffset):
                             self.n, self.n - 1)
             # integer-array addition on PeriodIndex is deprecated,
             #  so we use _addsub_int_array directly
-            shifted = base_period._data._addsub_int_array(roll, operator.add)
+            shifted = base_period._addsub_int_array(roll, operator.add)
             base = shifted.to_timestamp(how='end')
         else:
             # integer addition on PeriodIndex is deprecated,
             #  so we use _time_shift directly
             roll = self.n
-            base = base_period._data._time_shift(roll).to_timestamp(how='end')
+            base = base_period._time_shift(roll).to_timestamp(how='end')
 
         return base + off + Timedelta(1, 'ns') - Timedelta(1, 'D')
 
@@ -1617,7 +1639,10 @@ class QuarterOffset(DateOffset):
     def apply_index(self, dtindex):
         shifted = liboffsets.shift_quarters(dtindex.asi8, self.n,
                                             self.startingMonth, self._day_opt)
-        return dtindex._shallow_copy(shifted)
+        # TODO: going through __new__ raises on call to _validate_frequency;
+        #  are we passing incorrect freq?
+        return type(dtindex)._simple_new(shifted, freq=dtindex.freq,
+                                         tz=dtindex.tz)
 
 
 class BQuarterEnd(QuarterOffset):
@@ -1694,7 +1719,10 @@ class YearOffset(DateOffset):
         shifted = liboffsets.shift_quarters(dtindex.asi8, self.n,
                                             self.month, self._day_opt,
                                             modby=12)
-        return dtindex._shallow_copy(shifted)
+        # TODO: going through __new__ raises on call to _validate_frequency;
+        #  are we passing incorrect freq?
+        return type(dtindex)._simple_new(shifted, freq=dtindex.freq,
+                                         tz=dtindex.tz)
 
     def onOffset(self, dt):
         if self.normalize and not _is_normalized(dt):
@@ -2188,54 +2216,6 @@ class Easter(DateOffset):
             return False
         return date(dt.year, dt.month, dt.day) == easter(dt.year)
 
-
-class CalendarDay(SingleConstructorOffset):
-    """
-    Calendar day offset. Respects calendar arithmetic as opposed to Day which
-    respects absolute time.
-    """
-    _adjust_dst = True
-    _inc = Timedelta(days=1)
-    _prefix = 'CD'
-    _attributes = frozenset(['n', 'normalize'])
-
-    def __init__(self, n=1, normalize=False):
-        BaseOffset.__init__(self, n, normalize)
-
-    @apply_wraps
-    def apply(self, other):
-        """
-        Apply scalar arithmetic with CalendarDay offset. Incoming datetime
-        objects can be tz-aware or naive.
-        """
-        if type(other) == type(self):
-            # Add other CalendarDays
-            return type(self)(self.n + other.n, normalize=self.normalize)
-        tzinfo = getattr(other, 'tzinfo', None)
-        if tzinfo is not None:
-            other = other.replace(tzinfo=None)
-
-        other = other + self.n * self._inc
-
-        if tzinfo is not None:
-            # This can raise a AmbiguousTimeError or NonExistentTimeError
-            other = conversion.localize_pydatetime(other, tzinfo)
-
-        try:
-            return as_timestamp(other)
-        except TypeError:
-            raise TypeError("Cannot perform arithmetic between {other} and "
-                            "CalendarDay".format(other=type(other)))
-
-    @apply_index_wraps
-    def apply_index(self, i):
-        """
-        Apply the CalendarDay offset to a DatetimeIndex. Incoming DatetimeIndex
-        objects are assumed to be tz_naive
-        """
-        return i + self.n * self._inc
-
-
 # ---------------------------------------------------------------------
 # Ticks
 
@@ -2429,8 +2409,7 @@ CDay = CustomBusinessDay
 # ---------------------------------------------------------------------
 
 
-def generate_range(start=None, end=None, periods=None,
-                   offset=BDay(), time_rule=None):
+def generate_range(start=None, end=None, periods=None, offset=BDay()):
     """
     Generates a sequence of dates corresponding to the specified time
     offset. Similar to dateutil.rrule except uses pandas DateOffset
@@ -2442,8 +2421,6 @@ def generate_range(start=None, end=None, periods=None,
     end : datetime (default None)
     periods : int, (default None)
     offset : DateOffset, (default BDay())
-    time_rule : (legacy) name of DateOffset object to be used, optional
-        Corresponds with names expected by tseries.frequencies.get_offset
 
     Notes
     -----
@@ -2451,17 +2428,13 @@ def generate_range(start=None, end=None, periods=None,
     * At least two of (start, end, periods) must be specified.
     * If both start and end are specified, the returned dates will
     satisfy start <= date <= end.
-    * If both time_rule and offset are specified, time_rule supersedes offset.
 
     Returns
     -------
     dates : generator object
-
     """
-    if time_rule is not None:
-        from pandas.tseries.frequencies import get_offset
-
-        offset = get_offset(time_rule)
+    from pandas.tseries.frequencies import to_offset
+    offset = to_offset(offset)
 
     start = to_datetime(start)
     end = to_datetime(end)
@@ -2536,6 +2509,5 @@ prefix_mapping = {offset._prefix: offset for offset in [
     Day,                       # 'D'
     WeekOfMonth,               # 'WOM'
     FY5253,
-    FY5253Quarter,
-    CalendarDay                # 'CD'
+    FY5253Quarter
 ]}

@@ -2,24 +2,24 @@
 
 """ test where we are determining what we are grouping, or getting groups """
 
+import numpy as np
 import pytest
 
-from pandas import (date_range, Timestamp,
-                    Index, MultiIndex, DataFrame, Series, CategoricalIndex)
-from pandas.util.testing import (assert_panel_equal, assert_frame_equal,
-                                 assert_series_equal, assert_almost_equal)
-from pandas.core.groupby.grouper import Grouping
-from pandas.compat import lrange, long
+from pandas.compat import long, lrange
 
-from pandas import compat
-import numpy as np
-
-import pandas.util.testing as tm
 import pandas as pd
-
+from pandas import (
+    CategoricalIndex, DataFrame, Index, MultiIndex, Series, Timestamp, compat,
+    date_range)
+from pandas.core.groupby.grouper import Grouping
+import pandas.util.testing as tm
+from pandas.util.testing import (
+    assert_almost_equal, assert_frame_equal, assert_panel_equal,
+    assert_series_equal)
 
 # selection
 # --------------------------------
+
 
 class TestSelection(object):
 
@@ -483,8 +483,8 @@ class TestGrouping():
     def test_groupby_level_with_nas(self, sort):
         # GH 17537
         index = MultiIndex(levels=[[1, 0], [0, 1, 2, 3]],
-                           labels=[[1, 1, 1, 1, 0, 0, 0, 0], [0, 1, 2, 3, 0, 1,
-                                                              2, 3]])
+                           codes=[[1, 1, 1, 1, 0, 0, 0, 0], [0, 1, 2, 3, 0, 1,
+                                                             2, 3]])
 
         # factorizing doesn't confuse things
         s = Series(np.arange(8.), index=index)
@@ -493,8 +493,8 @@ class TestGrouping():
         assert_series_equal(result, expected)
 
         index = MultiIndex(levels=[[1, 0], [0, 1, 2, 3]],
-                           labels=[[1, 1, 1, 1, -1, 0, 0, 0], [0, 1, 2, 3, 0,
-                                                               1, 2, 3]])
+                           codes=[[1, 1, 1, 1, -1, 0, 0, 0], [0, 1, 2, 3, 0,
+                                                              1, 2, 3]])
 
         # factorizing doesn't confuse things
         s = Series(np.arange(8.), index=index)
@@ -727,9 +727,7 @@ class TestIteration():
         df['k1'] = np.array(['b', 'b', 'b', 'a', 'a', 'a'])
         df['k2'] = np.array(['1', '1', '1', '2', '2', '2'])
         grouped = df.groupby(['k1', 'k2'])
-        groups = {}
-        for key, gp in grouped:
-            groups[key] = gp
+        groups = {key: gp for key, gp in grouped}
         assert len(groups) == 2
 
         # axis = 1

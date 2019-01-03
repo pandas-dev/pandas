@@ -23,8 +23,8 @@ Also test support for datetime64[ns] in Series / DataFrame
 
 
 def test_fancy_getitem():
-    dti = DatetimeIndex(freq='WOM-1FRI', start=datetime(2005, 1, 1),
-                        end=datetime(2010, 1, 1))
+    dti = date_range(freq='WOM-1FRI', start=datetime(2005, 1, 1),
+                     end=datetime(2010, 1, 1))
 
     s = Series(np.arange(len(dti)), index=dti)
 
@@ -40,8 +40,8 @@ def test_fancy_getitem():
 
 
 def test_fancy_setitem():
-    dti = DatetimeIndex(freq='WOM-1FRI', start=datetime(2005, 1, 1),
-                        end=datetime(2010, 1, 1))
+    dti = date_range(freq='WOM-1FRI', start=datetime(2005, 1, 1),
+                     end=datetime(2010, 1, 1))
 
     s = Series(np.arange(len(dti)), index=dti)
     s[48] = -1
@@ -69,7 +69,7 @@ def test_dti_snap():
 
 
 def test_dti_reset_index_round_trip():
-    dti = DatetimeIndex(start='1/1/2001', end='6/1/2001', freq='D')
+    dti = date_range(start='1/1/2001', end='6/1/2001', freq='D')
     d1 = DataFrame({'v': np.random.rand(len(dti))}, index=dti)
     d2 = d1.reset_index()
     assert d2.dtypes[0] == np.dtype('M8[ns]')

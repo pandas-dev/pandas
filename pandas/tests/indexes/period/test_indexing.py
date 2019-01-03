@@ -13,6 +13,14 @@ from pandas.util import testing as tm
 
 
 class TestGetItem(object):
+    def test_ellipsis(self):
+        # GH#21282
+        idx = period_range('2011-01-01', '2011-01-31', freq='D',
+                           name='idx')
+
+        result = idx[...]
+        assert result.equals(idx)
+        assert result is not idx
 
     def test_getitem(self):
         idx1 = pd.period_range('2011-01-01', '2011-01-31', freq='D',
@@ -136,10 +144,11 @@ class TestGetItem(object):
         tm.assert_series_equal(ts[[Period('2012-01-02', freq='D')]], exp)
 
     def test_getitem_seconds(self):
-        # GH 6716
-        didx = DatetimeIndex(start='2013/01/01 09:00:00', freq='S',
+        # GH#6716
+        didx = pd.date_range(start='2013/01/01 09:00:00', freq='S',
                              periods=4000)
-        pidx = PeriodIndex(start='2013/01/01 09:00:00', freq='S', periods=4000)
+        pidx = period_range(start='2013/01/01 09:00:00', freq='S',
+                            periods=4000)
 
         for idx in [didx, pidx]:
             # getitem against index should raise ValueError
@@ -160,10 +169,10 @@ class TestGetItem(object):
                 tm.assert_series_equal(s[d], s)
 
     def test_getitem_day(self):
-        # GH 6716
+        # GH#6716
         # Confirm DatetimeIndex and PeriodIndex works identically
-        didx = DatetimeIndex(start='2013/01/01', freq='D', periods=400)
-        pidx = PeriodIndex(start='2013/01/01', freq='D', periods=400)
+        didx = pd.date_range(start='2013/01/01', freq='D', periods=400)
+        pidx = period_range(start='2013/01/01', freq='D', periods=400)
 
         for idx in [didx, pidx]:
             # getitem against index should raise ValueError
@@ -273,8 +282,8 @@ class TestTake(object):
             assert result.freq == 'D'
 
     def test_take_misc(self):
-        index = PeriodIndex(start='1/1/10', end='12/31/12', freq='D',
-                            name='idx')
+        index = period_range(start='1/1/10', end='12/31/12', freq='D',
+                             name='idx')
         expected = PeriodIndex([datetime(2010, 1, 6), datetime(2010, 1, 7),
                                 datetime(2010, 1, 9), datetime(2010, 1, 13)],
                                freq='D', name='idx')
@@ -569,7 +578,7 @@ class TestIndexing(object):
         with pytest.raises(ValueError, match=msg):
             idx.get_loc('2000-01-10', method='nearest', tolerance='foo')
 
-        msg = 'Input has different freq from PeriodArray\\(freq=D\\)'
+        msg = 'Input has different freq=None from PeriodArray\\(freq=D\\)'
         with pytest.raises(ValueError, match=msg):
             idx.get_loc('2000-01-10', method='nearest', tolerance='1 hour')
         with pytest.raises(KeyError):
@@ -599,7 +608,7 @@ class TestIndexing(object):
                                                     tolerance='1 hour'),
                                     np.array([0, -1, 1], dtype=np.intp))
 
-        msg = 'Input has different freq from PeriodArray\\(freq=H\\)'
+        msg = 'Input has different freq=None from PeriodArray\\(freq=H\\)'
         with pytest.raises(ValueError, match=msg):
             idx.get_indexer(target, 'nearest', tolerance='1 minute')
 
@@ -618,7 +627,7 @@ class TestIndexing(object):
                    np.timedelta64(1, 'M'), ]
         with pytest.raises(
                 libperiod.IncompatibleFrequency,
-                match='Input has different freq from'):
+                match='Input has different freq=None from'):
             idx.get_indexer(target, 'nearest', tolerance=tol_bad)
 
     def test_indexing(self):

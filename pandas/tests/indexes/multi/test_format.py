@@ -3,10 +3,13 @@
 
 import warnings
 
-import pandas as pd
-import pandas.util.testing as tm
-from pandas import MultiIndex, compat
+import pytest
+
 from pandas.compat import PY3, range, u
+
+import pandas as pd
+from pandas import MultiIndex, compat
+import pandas.util.testing as tm
 
 
 def test_dtype_str(indices):
@@ -22,7 +25,7 @@ def test_format(idx):
 
 def test_format_integer_names():
     index = MultiIndex(levels=[[0, 1], [0, 1]],
-                       labels=[[0, 0, 1, 1], [0, 1, 0, 1]], names=[0, 1])
+                       codes=[[0, 0, 1, 1], [0, 1, 0, 1]], names=[0, 1])
     index.format(names=True)
 
 
@@ -43,8 +46,8 @@ def test_format_sparse_config(idx):
 
 def test_format_sparse_display():
     index = MultiIndex(levels=[[0, 1], [0, 1], [0, 1], [0]],
-                       labels=[[0, 0, 0, 1, 1, 1], [0, 0, 1, 0, 0, 1],
-                               [0, 1, 0, 0, 1, 0], [0, 0, 0, 0, 0, 0]])
+                       codes=[[0, 0, 0, 1, 1, 1], [0, 0, 1, 0, 0, 1],
+                              [0, 1, 0, 0, 1, 0], [0, 0, 0, 0, 0, 0]])
 
     result = index.format()
     assert result[3] == '1  0  0  0'
@@ -57,6 +60,7 @@ def test_repr_with_unicode_data():
         assert "\\u" not in repr(index)  # we don't want unicode-escaped
 
 
+@pytest.mark.skip(reason="#22511 will remove this test")
 def test_repr_roundtrip():
 
     mi = MultiIndex.from_product([list('ab'), range(3)],

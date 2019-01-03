@@ -50,7 +50,7 @@ def to_timedelta(arg, unit='ns', box=True, errors='raise'):
     timedelta64 or numpy.array of timedelta64
         Output type returned if parsing succeeded.
 
-    See also
+    See Also
     --------
     DataFrame.astype : Cast argument to a specified dtype.
     to_datetime : Convert argument to datetime.

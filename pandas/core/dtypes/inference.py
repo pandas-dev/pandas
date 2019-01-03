@@ -398,8 +398,11 @@ def is_dict_like(obj):
     >>> is_dict_like([1, 2, 3])
     False
     """
+    for attr in ("__getitem__", "keys", "__contains__"):
+        if not hasattr(obj, attr):
+            return False
 
-    return hasattr(obj, '__getitem__') and hasattr(obj, 'keys')
+    return True
 
 
 def is_named_tuple(obj):

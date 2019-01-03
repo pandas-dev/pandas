@@ -1,4 +1,4 @@
-from tslibs.util cimport *
+from pandas._libs.tslibs.util cimport *
 
 from cython cimport Py_ssize_t
 

@@ -57,3 +57,15 @@ class TestTZConvert(object):
                                        timezones.maybe_get_tz('US/Eastern'),
                                        timezones.maybe_get_tz('Asia/Tokyo'))
         tm.assert_numpy_array_equal(result, arr)
+
+
+class TestEnsureDatetime64NS(object):
+    @pytest.mark.parametrize('copy', [True, False])
+    @pytest.mark.parametrize('dtype', ['M8[ns]', 'M8[s]'])
+    def test_length_zero_copy(self, dtype, copy):
+        arr = np.array([], dtype=dtype)
+        result = conversion.ensure_datetime64ns(arr, copy=copy)
+        if copy:
+            assert result.base is None
+        else:
+            assert result.base is arr

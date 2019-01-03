@@ -31,7 +31,7 @@ def check_comprehensiveness(request):
     for combo in combos:
         if not has_test(combo):
             msg = 'test method is not defined: {0}, {1}'
-            raise AssertionError(msg.format(type(cls), combo))
+            raise AssertionError(msg.format(cls.__name__, combo))
 
     yield
 
@@ -903,11 +903,12 @@ class TestReplaceSeriesCoercion(CoercionBase):
 
     # TODO(jreback) commented out to only have a single xfail printed
     @pytest.mark.xfail(reason="different tz, "
-                       "currently mask_missing raises SystemError")
+                       "currently mask_missing raises SystemError",
+                       strict=False)
     # @pytest.mark.parametrize('how', ['dict', 'series'])
     # @pytest.mark.parametrize('to_key', [
-    #     'datetime64[ns]', 'datetime64[ns, UTC]',
-    #     'datetime64[ns, US/Eastern]'])
+    #    'datetime64[ns]', 'datetime64[ns, UTC]',
+    #    'datetime64[ns, US/Eastern]'])
     # @pytest.mark.parametrize('from_key', [
     #    'datetime64[ns]', 'datetime64[ns, UTC]',
     #    'datetime64[ns, US/Eastern]'])

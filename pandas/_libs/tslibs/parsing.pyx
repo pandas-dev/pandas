@@ -6,12 +6,13 @@ import sys
 import re
 import time
 
-from cython import Py_ssize_t
-
 from cpython.datetime cimport datetime
 
 
 import numpy as np
+
+import six
+from six import binary_type, text_type
 
 # Avoid import from outside _libs
 if sys.version_info.major == 2:
@@ -29,8 +30,8 @@ from dateutil.relativedelta import relativedelta
 from dateutil.parser import DEFAULTPARSER
 from dateutil.parser import parse as du_parse
 
-from ccalendar import MONTH_NUMBERS
-from nattype import nat_strings, NaT
+from pandas._libs.tslibs.ccalendar import MONTH_NUMBERS
+from pandas._libs.tslibs.nattype import nat_strings, NaT
 
 # ----------------------------------------------------------------------
 # Constants
@@ -48,6 +49,20 @@ cdef object _TIMEPAT = re.compile(r'^([01]?[0-9]|2[0-3]):([0-5][0-9])')
 cdef set _not_datelike_strings = {'a', 'A', 'm', 'M', 'p', 'P', 't', 'T'}
 
 # ----------------------------------------------------------------------
+
+_get_option = None
+
+
+def get_option(param):
+    """ Defer import of get_option to break an import cycle that caused
+    significant performance degradation in Period construction. See
+    GH#24118 for details
+    """
+    global _get_option
+    if _get_option is None:
+        from pandas.core.config import get_option
+        _get_option = get_option
+    return _get_option(param)
 
 
 def parse_datetime_string(date_string, freq=None, dayfirst=False,
@@ -118,12 +133,11 @@ def parse_time_string(arg, freq=None, dayfirst=None, yearfirst=None):
     if getattr(freq, "_typ", None) == "dateoffset":
         freq = freq.rule_code
 
-    if dayfirst is None:
-        from pandas.core.config import get_option
-        dayfirst = get_option("display.date_dayfirst")
-    if yearfirst is None:
-        from pandas.core.config import get_option
-        yearfirst = get_option("display.date_yearfirst")
+    if dayfirst is None or yearfirst is None:
+        if dayfirst is None:
+            dayfirst = get_option("display.date_dayfirst")
+        if yearfirst is None:
+            yearfirst = get_option("display.date_yearfirst")
 
     res = parse_datetime_string_with_reso(arg, freq=freq,
                                           dayfirst=dayfirst,
@@ -520,21 +534,83 @@ def try_parse_datetime_components(object[:] years,
 # ----------------------------------------------------------------------
 # Miscellaneous
 
-_DATEUTIL_LEXER_SPLIT = None
-try:
-    # Since these are private methods from dateutil, it is safely imported
-    # here so in case this interface changes, pandas will just fallback
-    # to not using the functionality
-    from dateutil.parser import _timelex
 
-    if hasattr(_timelex, 'split'):
-        def _lexer_split_from_str(dt_str):
-            # The StringIO(str(_)) is for dateutil 2.2 compatibility
-            return _timelex.split(StringIO(str(dt_str)))
+# Class copied verbatim from https://github.com/dateutil/dateutil/pull/732
+#
+# We use this class to parse and tokenize date strings. However, as it is
+# a private class in the dateutil library, relying on backwards compatibility
+# is not practical. In fact, using this class issues warnings (xref gh-21322).
+# Thus, we port the class over so that both issues are resolved.
+#
+# Copyright (c) 2017 - dateutil contributors
+class _timelex(object):
+    def __init__(self, instream):
+        if six.PY2:
+            # In Python 2, we can't duck type properly because unicode has
+            # a 'decode' function, and we'd be double-decoding
+            if isinstance(instream, (binary_type, bytearray)):
+                instream = instream.decode()
+        else:
+            if getattr(instream, 'decode', None) is not None:
+                instream = instream.decode()
 
-        _DATEUTIL_LEXER_SPLIT = _lexer_split_from_str
-except (ImportError, AttributeError):
-    pass
+        if isinstance(instream, text_type):
+            self.stream = instream
+        elif getattr(instream, 'read', None) is None:
+            raise TypeError(
+                'Parser must be a string or character stream, not '
+                '{itype}'.format(itype=instream.__class__.__name__))
+        else:
+            self.stream = instream.read()
+
+    def get_tokens(self):
+        """
+        This function breaks the time string into lexical units (tokens), which
+        can be parsed by the parser. Lexical units are demarcated by changes in
+        the character set, so any continuous string of letters is considered
+        one unit, any continuous string of numbers is considered one unit.
+        The main complication arises from the fact that dots ('.') can be used
+        both as separators (e.g. "Sep.20.2009") or decimal points (e.g.
+        "4:30:21.447"). As such, it is necessary to read the full context of
+        any dot-separated strings before breaking it into tokens; as such, this
+        function maintains a "token stack", for when the ambiguous context
+        demands that multiple tokens be parsed at once.
+        """
+        stream = self.stream.replace('\x00', '')
+
+        # TODO: Change \s --> \s+ (this doesn't match existing behavior)
+        # TODO: change the punctuation block to punc+ (doesnt match existing)
+        # TODO: can we merge the two digit patterns?
+        tokens = re.findall('\s|'
+                            '(?<![\.\d])\d+\.\d+(?![\.\d])'
+                            '|\d+'
+                            '|[a-zA-Z]+'
+                            '|[\./:]+'
+                            '|[^\da-zA-Z\./:\s]+', stream)
+
+        # Re-combine token tuples of the form ["59", ",", "456"] because
+        # in this context the "," is treated as a decimal
+        # (e.g. in python's default logging format)
+        for n, token in enumerate(tokens[:-2]):
+            # Kludge to match ,-decimal behavior; it'd be better to do this
+            # later in the process and have a simpler tokenization
+            if (token is not None and token.isdigit() and
+                    tokens[n + 1] == ',' and tokens[n + 2].isdigit()):
+                # Have to check None b/c it might be replaced during the loop
+                # TODO: I _really_ don't faking the value here
+                tokens[n] = token + '.' + tokens[n + 2]
+                tokens[n + 1] = None
+                tokens[n + 2] = None
+
+        tokens = [x for x in tokens if x is not None]
+        return tokens
+
+    @classmethod
+    def split(cls, s):
+        return cls(s).get_tokens()
+
+
+_DATEUTIL_LEXER_SPLIT = _timelex.split
 
 
 def _format_is_iso(f) -> bint:

@@ -1,6 +1,4 @@
 # -*- coding: utf-8 -*-
-import pytest
-
 from pandas.api import types
 from pandas.util import testing as tm
 
@@ -34,17 +32,6 @@ class TestTypes(Base):
     def test_types(self):
 
         self.check(types, self.allowed + self.dtypes + self.deprecated)
-
-    def check_deprecation(self, fold, fnew):
-        with tm.assert_produces_warning(DeprecationWarning):
-            try:
-                result = fold('foo')
-                expected = fnew('foo')
-                assert result == expected
-            except TypeError:
-                pytest.raises(TypeError, lambda: fnew('foo'))
-            except AttributeError:
-                pytest.raises(AttributeError, lambda: fnew('foo'))
 
     def test_deprecated_from_api_types(self):
 

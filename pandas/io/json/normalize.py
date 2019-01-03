@@ -229,6 +229,8 @@ def json_normalize(data, record_path=None, meta=None,
     meta_keys = [sep.join(val) for val in meta]
 
     def _recursive_extract(data, path, seen_meta, level=0):
+        if isinstance(data, dict):
+            data = [data]
         if len(path) > 1:
             for obj in data:
                 for val, key in zip(meta, meta_keys):

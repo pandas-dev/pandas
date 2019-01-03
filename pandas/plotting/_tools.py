@@ -2,14 +2,15 @@
 # pylint: disable=E1101
 from __future__ import division
 
-import warnings
 from math import ceil
+import warnings
 
 import numpy as np
 
-from pandas.core.dtypes.common import is_list_like
-from pandas.core.dtypes.generic import ABCSeries, ABCIndexClass, ABCDataFrame
 from pandas.compat import range
+
+from pandas.core.dtypes.common import is_list_like
+from pandas.core.dtypes.generic import ABCDataFrame, ABCIndexClass, ABCSeries
 
 
 def format_date_labels(ax, rot):

@@ -30,8 +30,9 @@ from pandas.core.indexing import maybe_convert_indices
 from pandas.io.formats.printing import pprint_thing
 
 from .blocks import (
-    Block, CategoricalBlock, DatetimeTZBlock, ExtensionBlock, _extend_blocks,
-    _merge_blocks, _safe_reshape, get_block_type, make_block)
+    Block, CategoricalBlock, DatetimeTZBlock, ExtensionBlock,
+    ObjectValuesExtensionBlock, _extend_blocks, _merge_blocks, _safe_reshape,
+    get_block_type, make_block)
 from .concat import (  # all for concatenate_block_managers
     combine_concat_plans, concatenate_join_units, get_mgr_concatenation_plan,
     is_uniform_join_units)
@@ -749,8 +750,13 @@ class BlockManager(PandasObject):
         else:
             mgr = self
 
-        if self._is_single_block or not self.is_mixed_type:
-            arr = mgr.blocks[0].get_values()
+        if self._is_single_block and mgr.blocks[0].is_datetimetz:
+            # TODO(Block.get_values): Make DatetimeTZBlock.get_values
+            # always be object dtype. Some callers seem to want the
+            # DatetimeArray (previously DTI)
+            arr = mgr.blocks[0].get_values(dtype=object)
+        elif self._is_single_block or not self.is_mixed_type:
+            arr = np.asarray(mgr.blocks[0].get_values())
         else:
             arr = mgr._interleave()
 
@@ -1003,11 +1009,10 @@ class BlockManager(PandasObject):
         self._shape = None
         self._rebuild_blknos_and_blklocs()
 
-    def set(self, item, value, check=False):
+    def set(self, item, value):
         """
         Set new item in-place. Does not consolidate. Adds new Block if not
         contained in the current set of items
-        if check, then validate that we are not setting the same data in-place
         """
         # FIXME: refactor, clearly separate broadcasting & zip-like assignment
         #        can prob also fix the various if tests for sparse/categorical
@@ -1059,7 +1064,7 @@ class BlockManager(PandasObject):
             blk = self.blocks[blkno]
             blk_locs = blklocs[val_locs.indexer]
             if blk.should_store(value):
-                blk.set(blk_locs, value_getitem(val_locs), check=check)
+                blk.set(blk_locs, value_getitem(val_locs))
             else:
                 unfit_mgr_locs.append(blk.mgr_locs.as_array[blk_locs])
                 unfit_val_locs.append(val_locs)
@@ -1748,6 +1753,14 @@ def form_blocks(arrays, names, axes):
         external_blocks = [
             make_block(array, klass=ExtensionBlock, placement=[i])
             for i, _, array in items_dict['ExtensionBlock']
+        ]
+
+        blocks.extend(external_blocks)
+
+    if len(items_dict['ObjectValuesExtensionBlock']):
+        external_blocks = [
+            make_block(array, klass=ObjectValuesExtensionBlock, placement=[i])
+            for i, _, array in items_dict['ObjectValuesExtensionBlock']
         ]
 
         blocks.extend(external_blocks)

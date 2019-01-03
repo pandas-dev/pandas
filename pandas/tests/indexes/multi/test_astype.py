@@ -4,6 +4,7 @@ import numpy as np
 import pytest
 
 from pandas.core.dtypes.dtypes import CategoricalDtype
+
 from pandas.util.testing import assert_copy
 
 
@@ -11,7 +12,7 @@ def test_astype(idx):
     expected = idx.copy()
     actual = idx.astype('O')
     assert_copy(actual.levels, expected.levels)
-    assert_copy(actual.labels, expected.labels)
+    assert_copy(actual.codes, expected.codes)
     assert [level.name for level in actual.levels] == list(expected.names)
 
     with pytest.raises(TypeError, match="^Setting.*dtype.*object"):

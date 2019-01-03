@@ -2,7 +2,8 @@
 Module for applying conditional formatting to
 DataFrames and Series.
 """
-from collections import MutableMapping, defaultdict
+
+from collections import defaultdict
 from contextlib import contextmanager
 import copy
 from functools import partial
@@ -18,7 +19,7 @@ from pandas.core.dtypes.common import is_float, is_string_like
 from pandas.core.dtypes.generic import ABCSeries
 
 import pandas as pd
-from pandas.api.types import is_list_like
+from pandas.api.types import is_dict_like, is_list_like
 import pandas.core.common as com
 from pandas.core.config import get_option
 from pandas.core.generic import _shared_docs
@@ -78,6 +79,10 @@ class Styler(object):
     template : Jinja2 Template
     loader : Jinja2 Loader
 
+    See Also
+    --------
+    pandas.DataFrame.style
+
     Notes
     -----
     Most styling will be done by passing style functions into
@@ -106,10 +111,6 @@ class Styler(object):
 
     * Blank cells include ``blank``
     * Data cells include ``data``
-
-    See Also
-    --------
-    pandas.DataFrame.style
     """
     loader = PackageLoader("pandas", "io/formats/templates")
     env = Environment(
@@ -401,7 +402,7 @@ class Styler(object):
             row_locs = self.data.index.get_indexer_for(sub_df.index)
             col_locs = self.data.columns.get_indexer_for(sub_df.columns)
 
-        if isinstance(formatter, MutableMapping):
+        if is_dict_like(formatter):
             for col, col_formatter in formatter.items():
                 # formatter must be callable, so '{}' are converted to lambdas
                 col_formatter = _maybe_wrap_formatter(col_formatter)
@@ -906,17 +907,17 @@ class Styler(object):
         -------
         self : Styler
 
+        Raises
+        ------
+        ValueError
+            If ``text_color_threshold`` is not a value from 0 to 1.
+
         Notes
         -----
         Set ``text_color_threshold`` or tune ``low`` and ``high`` to keep the
         text legible by not using the entire range of the color map. The range
         of the data is extended by ``low * (x.max() - x.min())`` and ``high *
         (x.max() - x.min())`` before normalizing.
-
-        Raises
-        ------
-        ValueError
-            If ``text_color_threshold`` is not a value from 0 to 1.
         """
         subset = _maybe_numeric_slice(self.data, subset)
         subset = _non_reducing_slice(subset)
@@ -1235,6 +1236,75 @@ class Styler(object):
 
         return MyStyler
 
+    def pipe(self, func, *args, **kwargs):
+        """
+        Apply ``func(self, *args, **kwargs)``, and return the result.
+
+        .. versionadded:: 0.24.0
+
+        Parameters
+        ----------
+        func : function
+            Function to apply to the Styler.  Alternatively, a
+            ``(callable, keyword)`` tuple where ``keyword`` is a string
+            indicating the keyword of ``callable`` that expects the Styler.
+        *args, **kwargs :
+            Arguments passed to `func`.
+
+        Returns
+        -------
+        object :
+            The value returned by ``func``.
+
+        See Also
+        --------
+        DataFrame.pipe : Analogous method for DataFrame.
+        Styler.apply : Apply a function row-wise, column-wise, or table-wise to
+            modify the dataframe's styling.
+
+        Notes
+        -----
+        Like :meth:`DataFrame.pipe`, this method can simplify the
+        application of several user-defined functions to a styler.  Instead
+        of writing:
+
+        .. code-block:: python
+
+            f(g(df.style.set_precision(3), arg1=a), arg2=b, arg3=c)
+
+        users can write:
+
+        .. code-block:: python
+
+            (df.style.set_precision(3)
+               .pipe(g, arg1=a)
+               .pipe(f, arg2=b, arg3=c))
+
+        In particular, this allows users to define functions that take a
+        styler object, along with other parameters, and return the styler after
+        making styling changes (such as calling :meth:`Styler.apply` or
+        :meth:`Styler.set_properties`).  Using ``.pipe``, these user-defined
+        style "transformations" can be interleaved with calls to the built-in
+        Styler interface.
+
+        Examples
+        --------
+        >>> def format_conversion(styler):
+        ...     return (styler.set_properties(**{'text-align': 'right'})
+        ...                   .format({'conversion': '{:.1%}'}))
+
+        The user-defined ``format_conversion`` function above can be called
+        within a sequence of other style modifications:
+
+        >>> df = pd.DataFrame({'trial': list(range(5)),
+        ...                    'conversion': [0.75, 0.85, np.nan, 0.7, 0.72]})
+        >>> (df.style
+        ...    .highlight_min(subset=['conversion'], color='yellow')
+        ...    .pipe(format_conversion)
+        ...    .set_caption("Results with minimum conversion highlighted."))
+        """
+        return com._pipe(self, func, *args, **kwargs)
+
 
 def _is_visible(idx_row, idx_col, lengths):
     """
@@ -1280,10 +1350,8 @@ def _get_level_lengths(index, hidden_elements=None):
             elif(j not in hidden_elements):
                 lengths[(i, last_label)] += 1
 
-    non_zero_lengths = {}
-    for element, length in lengths.items():
-        if(length >= 1):
-            non_zero_lengths[element] = length
+    non_zero_lengths = {
+        element: length for element, length in lengths.items() if length >= 1}
 
     return non_zero_lengths
 

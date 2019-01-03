@@ -311,13 +311,13 @@ def read_json(path_or_buf=None, orient=None, typ='frame', dtype=True,
         is to try and detect the correct precision, but if this is not desired
         then pass one of 's', 'ms', 'us' or 'ns' to force parsing only seconds,
         milliseconds, microseconds or nanoseconds respectively.
-    lines : boolean, default False
-        Read the file as a json object per line.
+    encoding : str, default is 'utf-8'
+        The encoding to use to decode py3 bytes.
 
         .. versionadded:: 0.19.0
 
-    encoding : str, default is 'utf-8'
-        The encoding to use to decode py3 bytes.
+    lines : boolean, default False
+        Read the file as a json object per line.
 
         .. versionadded:: 0.19.0
 
@@ -344,6 +344,10 @@ def read_json(path_or_buf=None, orient=None, typ='frame', dtype=True,
     -------
     result : Series or DataFrame, depending on the value of `typ`.
 
+    See Also
+    --------
+    DataFrame.to_json
+
     Notes
     -----
     Specific to ``orient='table'``, if a :class:`DataFrame` with a literal
@@ -354,10 +358,6 @@ def read_json(path_or_buf=None, orient=None, typ='frame', dtype=True,
     :func:`read_json` operation cannot distinguish between the two. The same
     limitation is encountered with a :class:`MultiIndex` and any names
     beginning with ``'level_'``.
-
-    See Also
-    --------
-    DataFrame.to_json
 
     Examples
     --------

@@ -1,7 +1,7 @@
 import warnings
 from datetime import datetime, timedelta
 
-from pandas import DataFrame, Panel, DatetimeIndex, date_range
+from pandas import DataFrame, Panel, date_range
 
 
 class DifferentIndexes(object):
@@ -23,9 +23,9 @@ class DifferentIndexes(object):
 class SameIndexes(object):
 
     def setup(self):
-        idx = DatetimeIndex(start=datetime(1990, 1, 1),
-                            end=datetime(2012, 1, 1),
-                            freq='D')
+        idx = date_range(start=datetime(1990, 1, 1),
+                         end=datetime(2012, 1, 1),
+                         freq='D')
         df = DataFrame({'a': 0, 'b': 1, 'c': 2}, index=idx)
         self.data_frames = dict(enumerate([df] * 100))
 
@@ -40,10 +40,10 @@ class TwoIndexes(object):
         start = datetime(1990, 1, 1)
         end = datetime(2012, 1, 1)
         df1 = DataFrame({'a': 0, 'b': 1, 'c': 2},
-                        index=DatetimeIndex(start=start, end=end, freq='D'))
+                        index=date_range(start=start, end=end, freq='D'))
         end += timedelta(days=1)
         df2 = DataFrame({'a': 0, 'b': 1, 'c': 2},
-                        index=DatetimeIndex(start=start, end=end, freq='D'))
+                        index=date_range(start=start, end=end, freq='D'))
         dfs = [df1] * 50 + [df2] * 50
         self.data_frames = dict(enumerate(dfs))
 
