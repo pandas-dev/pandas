@@ -903,9 +903,13 @@ cpdef int get_day_of_month(datetime other, day_opt) except? -1:
     Parameters
     ----------
     other : datetime or Timestamp
-    day_opt : 'start', 'end'
+    day_opt : 'start', 'end', 'business_start', 'business_end', or int
         'start': returns 1
         'end': returns last day of the month
+        'business_start': returns the first business day of the month
+        'business_end': returns the last business day of the month
+        int: returns the day in the month indicated by `other`, or the last of
+            day the month if the value exceeds in that month's number of days.
 
     Returns
     -------
@@ -980,7 +984,7 @@ def roll_qtrday(other: datetime, n: int, month: int,
     other : datetime or Timestamp
     n : number of periods to increment, before adjusting for rolling
     month : int reference month giving the first month of the year
-    day_opt : 'start', 'end', 'business_start', 'business_end'
+    day_opt : 'start', 'end', 'business_start', 'business_end', or int
         The convention to use in finding the day in a given month against
         which to compare for rollforward/rollbackward decisions.
     modby : int 3 for quarters, 12 for years
@@ -988,6 +992,10 @@ def roll_qtrday(other: datetime, n: int, month: int,
     Returns
     -------
     n : int number of periods to increment
+
+    See Also
+    --------
+    get_day_of_month : Find the day in a month provided an offset.
     """
     cdef:
         int months_since
@@ -1022,9 +1030,16 @@ def roll_yearday(other: datetime, n: int, month: int, day_opt: object) -> int:
     other : datetime or Timestamp
     n : number of periods to increment, before adjusting for rolling
     month : reference month giving the first month of the year
-    day_opt : 'start', 'end'
-        'start': returns 1
-        'end': returns last day of the month
+    day_opt : 'start', 'end', 'business_start', 'business_end', or int
+        The day of the month to compare against that of `other` when
+        incrementing or decrementing the number of periods:
+
+        'start': 1
+        'end': last day of the month
+        'business_start': first business day of the month
+        'business_end': last business day of the month
+        int: day in the month indicated by `other`, or the last of day
+            the month if the value exceeds in that month's number of days.
 
     Returns
     -------
