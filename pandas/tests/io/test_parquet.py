@@ -60,15 +60,6 @@ def fp():
 
 
 @pytest.fixture
-def fp_lt_014():
-    if not _HAVE_FASTPARQUET:
-        pytest.skip("fastparquet is not installed")
-    if LooseVersion(fastparquet.__version__) >= LooseVersion('0.1.4'):
-        pytest.skip("fastparquet is >= 0.1.4")
-    return 'fastparquet'
-
-
-@pytest.fixture
 def df_compat():
     return pd.DataFrame({'A': [1, 2, 3], 'B': 'foo'})
 
@@ -509,16 +500,6 @@ class TestParquetFastParquet(Base):
             pytest.skip("CategoricalDtype not supported for older fp")
         df = pd.DataFrame({'a': pd.Categorical(list('abc'))})
         check_round_trip(df, fp)
-
-    def test_datetime_tz(self, fp_lt_014):
-
-        # fastparquet<0.1.4 doesn't preserve tz
-        df = pd.DataFrame({'a': pd.date_range('20130101', periods=3,
-                                              tz='US/Eastern')})
-        # warns on the coercion
-        with catch_warnings(record=True):
-            check_round_trip(df, fp_lt_014,
-                             expected=df.astype('datetime64[ns]'))
 
     def test_filter_row_groups(self, fp):
         d = {'a': list(range(0, 3))}

@@ -151,7 +151,7 @@ class FastParquetImpl(BaseImpl):
                 "\nor via pip\n"
                 "pip install -U fastparquet"
             )
-        if LooseVersion(fastparquet.__version__) < '0.1.2':
+        if LooseVersion(fastparquet.__version__) < '0.2.1':
             raise ImportError(
                 "fastparquet >= 0.1.2 is required for parquet "
                 "support\n\n"
