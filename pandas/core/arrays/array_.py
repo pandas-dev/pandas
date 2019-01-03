@@ -184,8 +184,8 @@ def array(data,         # type: Sequence[object]
     """
     from pandas.core.arrays import (
         period_array, ExtensionArray, IntervalArray, PandasArray,
-        DatetimeArrayMixin,
-        TimedeltaArrayMixin,
+        DatetimeArray,
+        TimedeltaArray,
     )
     from pandas.core.internals.arrays import extract_array
 
@@ -228,14 +228,14 @@ def array(data,         # type: Sequence[object]
         elif inferred_dtype.startswith('datetime'):
             # datetime, datetime64
             try:
-                return DatetimeArrayMixin._from_sequence(data, copy=copy)
+                return DatetimeArray._from_sequence(data, copy=copy)
             except ValueError:
                 # Mixture of timezones, fall back to PandasArray
                 pass
 
         elif inferred_dtype.startswith('timedelta'):
             # timedelta, timedelta64
-            return TimedeltaArrayMixin._from_sequence(data, copy=copy)
+            return TimedeltaArray._from_sequence(data, copy=copy)
 
         # TODO(BooleanArray): handle this type
 

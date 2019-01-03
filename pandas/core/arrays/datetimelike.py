@@ -1228,9 +1228,9 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin,
             return NotImplemented
 
         if is_timedelta64_dtype(result) and isinstance(result, np.ndarray):
-            from pandas.core.arrays import TimedeltaArrayMixin
+            from pandas.core.arrays import TimedeltaArray
             # TODO: infer freq?
-            return TimedeltaArrayMixin(result)
+            return TimedeltaArray(result)
         return result
 
     def __radd__(self, other):
@@ -1295,9 +1295,9 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin,
             return NotImplemented
 
         if is_timedelta64_dtype(result) and isinstance(result, np.ndarray):
-            from pandas.core.arrays import TimedeltaArrayMixin
+            from pandas.core.arrays import TimedeltaArray
             # TODO: infer freq?
-            return TimedeltaArrayMixin(result)
+            return TimedeltaArray(result)
         return result
 
     def __rsub__(self, other):
@@ -1306,8 +1306,8 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin,
             # we need to wrap in DatetimeArray/Index and flip the operation
             if not isinstance(other, DatetimeLikeArrayMixin):
                 # Avoid down-casting DatetimeIndex
-                from pandas.core.arrays import DatetimeArrayMixin
-                other = DatetimeArrayMixin(other)
+                from pandas.core.arrays import DatetimeArray
+                other = DatetimeArray(other)
             return other - self
         elif (is_datetime64_any_dtype(self) and hasattr(other, 'dtype') and
               not is_datetime64_any_dtype(other)):
