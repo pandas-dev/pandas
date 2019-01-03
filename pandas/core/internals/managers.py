@@ -750,8 +750,13 @@ class BlockManager(PandasObject):
         else:
             mgr = self
 
-        if self._is_single_block or not self.is_mixed_type:
-            arr = mgr.blocks[0].get_values()
+        if self._is_single_block and mgr.blocks[0].is_datetimetz:
+            # TODO(Block.get_values): Make DatetimeTZBlock.get_values
+            # always be object dtype. Some callers seem to want the
+            # DatetimeArray (previously DTI)
+            arr = mgr.blocks[0].get_values(dtype=object)
+        elif self._is_single_block or not self.is_mixed_type:
+            arr = np.asarray(mgr.blocks[0].get_values())
         else:
             arr = mgr._interleave()
 
@@ -1004,11 +1009,10 @@ class BlockManager(PandasObject):
         self._shape = None
         self._rebuild_blknos_and_blklocs()
 
-    def set(self, item, value, check=False):
+    def set(self, item, value):
         """
         Set new item in-place. Does not consolidate. Adds new Block if not
         contained in the current set of items
-        if check, then validate that we are not setting the same data in-place
         """
         # FIXME: refactor, clearly separate broadcasting & zip-like assignment
         #        can prob also fix the various if tests for sparse/categorical
@@ -1060,7 +1064,7 @@ class BlockManager(PandasObject):
             blk = self.blocks[blkno]
             blk_locs = blklocs[val_locs.indexer]
             if blk.should_store(value):
-                blk.set(blk_locs, value_getitem(val_locs), check=check)
+                blk.set(blk_locs, value_getitem(val_locs))
             else:
                 unfit_mgr_locs.append(blk.mgr_locs.as_array[blk_locs])
                 unfit_val_locs.append(val_locs)

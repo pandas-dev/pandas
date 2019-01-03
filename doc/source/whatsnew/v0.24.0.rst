@@ -430,6 +430,7 @@ Backwards incompatible API changes
 - ``max_rows`` and ``max_cols`` parameters removed from :class:`HTMLFormatter` since truncation is handled by :class:`DataFrameFormatter` (:issue:`23818`)
 - :func:`read_csv` will now raise a ``ValueError`` if a column with missing values is declared as having dtype ``bool`` (:issue:`20591`)
 - The column order of the resultant :class:`DataFrame` from :meth:`MultiIndex.to_frame` is now guaranteed to match the :attr:`MultiIndex.names` order. (:issue:`22420`)
+- Incorrectly passing a :class:`DatetimeIndex` to :meth:`MultiIndex.from_tuples`, rather than a sequence of tuples, now raises a ``TypeError`` rather than a ``ValueError`` (:issue:`24024`)
 - :func:`pd.offsets.generate_range` argument ``time_rule`` has been removed; use ``offset`` instead (:issue:`24157`)
 
 Percentage change on groupby
@@ -1368,6 +1369,7 @@ Datetimelike
 - Bug in :class:`DataFrame` with ``datetime64[ns]`` dtype subtracting ``np.datetime64`` object with non-nanosecond unit failing to convert to nanoseconds (:issue:`18874`, :issue:`22163`)
 - Bug in :class:`DataFrame` comparisons against ``Timestamp``-like objects failing to raise ``TypeError`` for inequality checks with mismatched types (:issue:`8932`, :issue:`22163`)
 - Bug in :class:`DataFrame` with mixed dtypes including ``datetime64[ns]`` incorrectly raising ``TypeError`` on equality comparisons (:issue:`13128`, :issue:`22163`)
+- Bug in :attr:`DataFrame.values` returning a :class:`DatetimeIndex` for a single-column ``DataFrame`` with tz-aware datetime values. Now a 2-D :class:`numpy.ndarray` of :class:`Timestamp` objects is returned (:issue:`24024`)
 - Bug in :meth:`DataFrame.eq` comparison against ``NaT`` incorrectly returning ``True`` or ``NaN`` (:issue:`15697`, :issue:`22163`)
 - Bug in :class:`DatetimeIndex` subtraction that incorrectly failed to raise ``OverflowError`` (:issue:`22492`, :issue:`22508`)
 - Bug in :class:`DatetimeIndex` incorrectly allowing indexing with ``Timedelta`` object (:issue:`20464`)
@@ -1384,6 +1386,7 @@ Datetimelike
 - Bug in :func:`period_range` ignoring the frequency of ``start`` and ``end`` when those are provided as :class:`Period` objects (:issue:`20535`).
 - Bug in :class:`PeriodIndex` with attribute ``freq.n`` greater than 1 where adding a :class:`DateOffset` object would return incorrect results (:issue:`23215`)
 - Bug in :class:`Series` that interpreted string indices as lists of characters when setting datetimelike values (:issue:`23451`)
+- Bug in :class:`DataFrame` when creating a new column from an ndarray of :class:`Timestamp` objects with timezones creating an object-dtype column, rather than datetime with timezone (:issue:`23932`)
 - Bug in :class:`Timestamp` constructor which would drop the frequency of an input :class:`Timestamp` (:issue:`22311`)
 - Bug in :class:`DatetimeIndex` where calling ``np.array(dtindex, dtype=object)`` would incorrectly return an array of ``long`` objects (:issue:`23524`)
 - Bug in :class:`Index` where passing a timezone-aware :class:`DatetimeIndex` and `dtype=object` would incorrectly raise a ``ValueError`` (:issue:`23524`)
@@ -1602,6 +1605,7 @@ Notice how we now instead output ``np.nan`` itself instead of a stringified form
 - Bug in :func:`to_html()` with ``index=False`` when both columns and row index are ``MultiIndex`` (:issue:`22579`)
 - Bug in :func:`to_html()` with ``index_names=False`` displaying index name (:issue:`22747`)
 - Bug in :func:`to_html()` with ``header=False`` not displaying row index names (:issue:`23788`)
+- Bug in :func:`to_html()` with ``sparsify=False`` that caused it to raise ``TypeError`` (:issue:`22887`)
 - Bug in :func:`DataFrame.to_string()` that broke column alignment when ``index=False`` and width of first column's values is greater than the width of first column's header (:issue:`16839`, :issue:`13032`)
 - Bug in :func:`DataFrame.to_string()` that caused representations of :class:`DataFrame` to not take up the whole window (:issue:`22984`)
 - Bug in :func:`DataFrame.to_csv` where a single level MultiIndex incorrectly wrote a tuple. Now just the value of the index is written (:issue:`19589`).

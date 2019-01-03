@@ -31,23 +31,24 @@ import pandas.io.formats.printing as printing
 _index_doc_kwargs = dict(ibase._index_doc_kwargs)
 
 
-def ea_passthrough(name):
+def ea_passthrough(array_method):
     """
     Make an alias for a method of the underlying ExtensionArray.
 
     Parameters
     ----------
-    name : str
+    array_method : method on an Array class
 
     Returns
     -------
     method
     """
-    def method(self, *args, **kwargs):
-        return getattr(self._eadata, name)(*args, **kwargs)
 
-    method.__name__ = name
-    # TODO: docstrings
+    def method(self, *args, **kwargs):
+        return array_method(self._data, *args, **kwargs)
+
+    method.__name__ = array_method.__name__
+    method.__doc__ = array_method.__doc__
     return method
 
 
@@ -67,9 +68,14 @@ class DatetimeIndexOpsMixin(ExtensionOpsMixin):
     _resolution = cache_readonly(DatetimeLikeArrayMixin._resolution.fget)
     resolution = cache_readonly(DatetimeLikeArrayMixin.resolution.fget)
 
-    _box_values = ea_passthrough("_box_values")
-    _maybe_mask_results = ea_passthrough("_maybe_mask_results")
-    __iter__ = ea_passthrough("__iter__")
+    _box_values = ea_passthrough(DatetimeLikeArrayMixin._box_values)
+    _maybe_mask_results = ea_passthrough(
+        DatetimeLikeArrayMixin._maybe_mask_results)
+    __iter__ = ea_passthrough(DatetimeLikeArrayMixin.__iter__)
+
+    @property
+    def _eadata(self):
+        return self._data
 
     @property
     def freq(self):
@@ -166,12 +172,15 @@ class DatetimeIndexOpsMixin(ExtensionOpsMixin):
         """
         Create the join wrapper methods.
         """
+        from pandas.core.arrays.datetimelike import DatetimeLikeArrayMixin
 
         @staticmethod
         def wrapper(left, right):
-            if isinstance(left, (np.ndarray, ABCIndex, ABCSeries)):
+            if isinstance(left, (np.ndarray, ABCIndex, ABCSeries,
+                                 DatetimeLikeArrayMixin)):
                 left = left.view('i8')
-            if isinstance(right, (np.ndarray, ABCIndex, ABCSeries)):
+            if isinstance(right, (np.ndarray, ABCIndex, ABCSeries,
+                                  DatetimeLikeArrayMixin)):
                 right = right.view('i8')
             results = joinf(left, right)
             if with_indexers:
@@ -195,24 +204,26 @@ class DatetimeIndexOpsMixin(ExtensionOpsMixin):
     def _ensure_localized(self, arg, ambiguous='raise', nonexistent='raise',
                           from_utc=False):
         # See DatetimeLikeArrayMixin._ensure_localized.__doc__
-
         if getattr(self, 'tz', None):
             # ensure_localized is only relevant for tz-aware DTI
-            from pandas.core.arrays import DatetimeArrayMixin as DatetimeArray
-            dtarr = DatetimeArray(self)
-            result = dtarr._ensure_localized(arg,
-                                             ambiguous=ambiguous,
-                                             nonexistent=nonexistent,
-                                             from_utc=from_utc)
-            return type(self)(result, name=self.name)
+            result = self._data._ensure_localized(arg,
+                                                  ambiguous=ambiguous,
+                                                  nonexistent=nonexistent,
+                                                  from_utc=from_utc)
+            return type(self)._simple_new(result, name=self.name)
         return arg
 
     def _box_values_as_index(self):
         """
         Return object Index which contains boxed values.
         """
+        # XXX: this is broken (not called) for PeriodIndex, which doesn't
+        # define _box_values AFAICT
         from pandas.core.index import Index
         return Index(self._box_values(self.asi8), name=self.name, dtype=object)
+
+    def _box_values(self, values):
+        return self._data._box_values(values)
 
     @Appender(_index_shared_docs['contains'] % _index_doc_kwargs)
     def __contains__(self, key):
@@ -265,9 +276,6 @@ class DatetimeIndexOpsMixin(ExtensionOpsMixin):
 
             if not ascending:
                 sorted_values = sorted_values[::-1]
-
-            sorted_values = self._maybe_box_as_values(sorted_values,
-                                                      **attribs)
 
             return self._simple_new(sorted_values, **attribs)
 
@@ -600,23 +608,9 @@ class DatetimeIndexOpsMixin(ExtensionOpsMixin):
         if not is_period_dtype(self):
             # reset freq
             attribs['freq'] = None
-            # TODO(DatetimeArray)
-            # - remove the .asi8 here
-            # - remove the _maybe_box_as_values
-            # - combine with the `else` block
-            new_data = self._eadata._concat_same_type(to_concat).asi8
-        else:
-            new_data = type(self._values)._concat_same_type(to_concat)
 
+        new_data = type(self._values)._concat_same_type(to_concat).asi8
         return self._simple_new(new_data, **attribs)
-
-    def _maybe_box_as_values(self, values, **attribs):
-        # TODO(DatetimeArray): remove
-        # This is a temporary shim while PeriodArray is an ExtensoinArray,
-        # but others are not. When everyone is an ExtensionArray, this can
-        # be removed. Currently used in
-        # - sort_values
-        return values
 
     @Appender(_index_shared_docs['astype'])
     def astype(self, dtype, copy=True):
@@ -630,11 +624,6 @@ class DatetimeIndexOpsMixin(ExtensionOpsMixin):
         #  _eadata.astype call above
         return Index(new_values,
                      dtype=new_values.dtype, name=self.name, copy=False)
-
-    @Appender(DatetimeLikeArrayMixin._time_shift.__doc__)
-    def _time_shift(self, periods, freq=None):
-        result = self._eadata._time_shift(periods, freq=freq)
-        return type(self)(result, name=self.name)
 
     @deprecate_kwarg(old_arg_name='n', new_arg_name='periods')
     def shift(self, periods, freq=None):

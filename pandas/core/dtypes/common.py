@@ -10,8 +10,7 @@ from pandas.compat import PY3, PY36, binary_type, string_types, text_type
 
 from pandas.core.dtypes.dtypes import (
     CategoricalDtype, CategoricalDtypeType, DatetimeTZDtype, ExtensionDtype,
-    IntervalDtype, PandasExtensionDtype, PeriodDtype, _pandas_registry,
-    registry)
+    IntervalDtype, PandasExtensionDtype, PeriodDtype, registry)
 from pandas.core.dtypes.generic import (
     ABCCategorical, ABCCategoricalIndex, ABCDateOffset, ABCDatetimeIndex,
     ABCIndexClass, ABCPeriodArray, ABCPeriodIndex, ABCSeries, ABCSparseArray,
@@ -1984,7 +1983,7 @@ def pandas_dtype(dtype):
         return dtype
 
     # registered extension types
-    result = _pandas_registry.find(dtype) or registry.find(dtype)
+    result = registry.find(dtype)
     if result is not None:
         return result
 
