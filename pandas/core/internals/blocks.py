@@ -338,7 +338,7 @@ class Block(PandasObject):
     def iget(self, i):
         return self.values[i]
 
-    def set(self, locs, values, check=False):
+    def set(self, locs, values):
         """
         Modify Block in-place with new item value
 
@@ -2416,7 +2416,7 @@ class ObjectBlock(Block):
 
         return blocks
 
-    def set(self, locs, values, check=False):
+    def set(self, locs, values):
         """
         Modify Block in-place with new item value
 
@@ -2424,14 +2424,6 @@ class ObjectBlock(Block):
         -------
         None
         """
-
-        # GH6026
-        if check:
-            try:
-                if (self.values[locs] == values).all():
-                    return
-            except (IndexError, ValueError):
-                pass
         try:
             self.values[locs] = values
         except (ValueError):
@@ -2902,7 +2894,7 @@ class DatetimeBlock(DatetimeLikeBlockMixin, Block):
                 not is_datetime64tz_dtype(value) and
                 not is_extension_array_dtype(value))
 
-    def set(self, locs, values, check=False):
+    def set(self, locs, values):
         """
         Modify Block in-place with new item value
 
@@ -3053,8 +3045,7 @@ class DatetimeTZBlock(ExtensionBlock, DatetimeBlock):
         elif (is_null_datelike_scalar(other) or
               (lib.is_scalar(other) and isna(other))):
             other = tslibs.iNaT
-        elif isinstance(other, (self._holder, DatetimeArray)):
-            # TODO: DatetimeArray check will be redundant after GH#24024
+        elif isinstance(other, self._holder):
             if other.tz != self.values.tz:
                 raise ValueError("incompatible or non tz-aware value")
             other = _block_shape(other.asi8, ndim=self.ndim)
