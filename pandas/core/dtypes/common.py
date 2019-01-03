@@ -1791,7 +1791,6 @@ def _is_dtype_type(arr_or_dtype, condition):
     Returns
     -------
     bool : if the condition is satisifed for the arr_or_dtype
-
     """
 
     if arr_or_dtype is None:
