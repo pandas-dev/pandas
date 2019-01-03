@@ -1273,7 +1273,7 @@ Converting Timezone-Aware Series and Index to NumPy Arrays
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 The conversion from a :class:`Series` or :class:`Index` with timezone-aware
-datetime data will changing to preserve timezones by default (:issue:`23569`).
+datetime data will change to preserve timezones by default (:issue:`23569`).
 
 NumPy doesn't have a dedicated dtype for timezone-aware datetimes.
 In the past, converting a :class:`Series` or :class:`DatetimeIndex` with
@@ -1292,7 +1292,7 @@ timezone attached
    ser = pd.Series(pd.date_range('2000', periods=2, tz="CET"))
    ser
 
-The default behavior renames the same, but issues a warning
+The default behavior remains the same, but issues a warning
 
 .. code-block:: python
 

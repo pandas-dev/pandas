@@ -340,8 +340,8 @@ class DatetimeIndex(DatetimeIndexOpsMixin, Int64Index, DatetimeDelegateMixin):
     # --------------------------------------------------------------------
 
     def __array__(self, dtype=None):
-        if dtype is None and isinstance(self._data, DatetimeArray)\
-                and getattr(self.dtype, 'tz', None):
+        if (dtype is None and isinstance(self._data, DatetimeArray)
+                and getattr(self.dtype, 'tz', None)):
             msg = (
                 "Converting timezone-aware DatetimeArray to timezone-naive "
                 "ndarray with 'datetime64[ns]' dtype. In the future, this "
