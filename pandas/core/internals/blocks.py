@@ -1439,7 +1439,7 @@ class Block(PandasObject):
         blocks = [make_block(new_values, placement=new_placement)]
         return blocks, mask
 
-    def quantile(self, qs, interpolation='linear', axis=0, axes=None):
+    def quantile(self, qs, interpolation='linear', axis=0):
         """
         compute the quantiles of the
 
@@ -1448,12 +1448,10 @@ class Block(PandasObject):
         qs: a scalar or list of the quantiles to be computed
         interpolation: type of interpolation, default 'linear'
         axis: axis to compute, default 0
-        axes : BlockManager.axes
 
         Returns
         -------
-        tuple of (axis, block)
-
+        Block
         """
         kw = {'interpolation': interpolation}
         values = self.get_values()
@@ -1492,10 +1490,8 @@ class Block(PandasObject):
             else:
                 return np.percentile(values, q, axis=axis, **kw)
 
-        from pandas import Float64Index
         is_empty = values.shape[axis] == 0
         if is_list_like(qs):
-            ax = Float64Index(qs)
 
             if is_empty:
                 if self.ndim == 1:
@@ -1515,12 +1511,6 @@ class Block(PandasObject):
                     result = result.T
 
         else:
-
-            if self.ndim == 1:
-                ax = Float64Index([qs])
-            else:
-                ax = axes[0]
-
             if is_empty:
                 if self.ndim == 1:
                     result = self._na_value
@@ -1532,10 +1522,10 @@ class Block(PandasObject):
         ndim = getattr(result, 'ndim', None) or 0
         result = self._try_coerce_result(result)
         if lib.is_scalar(result):
-            return ax, self.make_block_scalar(result)
-        return ax, make_block(result,
-                              placement=np.arange(len(result)),
-                              ndim=ndim)
+            return result  # FIXME: doesn't match signature
+        return make_block(result,
+                          placement=np.arange(len(result)),
+                          ndim=ndim)
 
     def _replace_coerce(self, to_replace, value, inplace=True, regex=False,
                         convert=False, mask=None):
