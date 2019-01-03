@@ -1736,7 +1736,7 @@ def _is_dtype(arr_or_dtype, condition):
         return False
     try:
         dtype = _get_dtype(arr_or_dtype)
-    except (TypeError, ValueError, SyntaxError, UnicodeEncodeError):
+    except (TypeError, ValueError, UnicodeEncodeError):
         return False
     return condition(dtype)
 
