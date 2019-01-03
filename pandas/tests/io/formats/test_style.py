@@ -1,16 +1,18 @@
 import copy
-import textwrap
 import re
+import textwrap
 
-import pytest
 import numpy as np
+import pytest
+
+import pandas.util._test_decorators as td
+
 import pandas as pd
 from pandas import DataFrame
 import pandas.util.testing as tm
-import pandas.util._test_decorators as td
 
 jinja2 = pytest.importorskip('jinja2')
-from pandas.io.formats.style import Styler, _get_level_lengths  # noqa
+from pandas.io.formats.style import Styler, _get_level_lengths  # noqa  # isort:skip
 
 
 class TestStyler(object):
@@ -273,6 +275,32 @@ class TestStyler(object):
                         if row in self.df.loc[slice_].index and
                         col in self.df.loc[slice_].columns}
             assert result == expected
+
+    def test_applymap_subset_multiindex(self):
+        # GH 19861
+        # Smoke test for applymap
+        def color_negative_red(val):
+            """
+            Takes a scalar and returns a string with
+            the css property `'color: red'` for negative
+            strings, black otherwise.
+            """
+            color = 'red' if val < 0 else 'black'
+            return 'color: %s' % color
+
+        dic = {
+            ('a', 'd'): [-1.12, 2.11],
+            ('a', 'c'): [2.78, -2.88],
+            ('b', 'c'): [-3.99, 3.77],
+            ('b', 'd'): [4.21, -1.22],
+        }
+
+        idx = pd.IndexSlice
+        df = pd.DataFrame(dic, index=[0, 1])
+
+        (df.style
+         .applymap(color_negative_red, subset=idx[:, idx['b', 'd']])
+         .render())
 
     def test_where_with_one_style(self):
         # GH 17474

@@ -3,7 +3,13 @@
 v0.15.0 (October 18, 2014)
 --------------------------
 
-{{ common_imports }}
+{{ header }}
+
+.. ipython:: python
+   :suppress:
+
+   from pandas import * # noqa F401, F403
+
 
 This is a major release from 0.14.1 and includes a small number of API changes, several new features,
 enhancements, and performance improvements along with a large number of bug fixes. We recommend that all
@@ -310,6 +316,7 @@ Timezone handling improvements
   previously this resulted in ``Exception`` or ``TypeError`` (:issue:`7812`)
 
   .. ipython:: python
+     :okwarning:
 
      ts = Timestamp('2014-08-01 09:00', tz='US/Eastern')
      ts

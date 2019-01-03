@@ -17,7 +17,7 @@ from pandas.util._validators import validate_bool_kwarg
 
 from pandas.core.dtypes.common import (
     _is_unorderable_exception, ensure_platform_int, is_bool,
-    is_categorical_dtype, is_datetime64tz_dtype, is_datetimelike, is_dict_like,
+    is_categorical_dtype, is_datetime64_dtype, is_datetimelike, is_dict_like,
     is_extension_array_dtype, is_extension_type, is_hashable, is_integer,
     is_iterator, is_list_like, is_scalar, is_string_like, is_timedelta64_dtype)
 from pandas.core.dtypes.generic import (
@@ -91,6 +91,7 @@ def _coerce_method(converter):
         raise TypeError("cannot convert the series to "
                         "{0}".format(str(converter)))
 
+    wrapper.__name__ = "__{name}__".format(name=converter.__name__)
     return wrapper
 
 # ----------------------------------------------------------------------
@@ -129,14 +130,16 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
     dtype : str, numpy.dtype, or ExtensionDtype, optional
         dtype for the output Series. If not specified, this will be
         inferred from `data`.
+        See the :ref:`user guide <basics.dtypes>` for more usages.
     copy : bool, default False
         Copy input data.
     """
     _metadata = ['name']
     _accessors = {'dt', 'cat', 'str', 'sparse'}
+    # tolist is not actually deprecated, just suppressed in the __dir__
     _deprecations = generic.NDFrame._deprecations | frozenset(
         ['asobject', 'reshape', 'get_value', 'set_value',
-         'from_csv', 'valid'])
+         'from_csv', 'valid', 'tolist'])
 
     # Override cache_readonly bc Series is mutable
     hasnans = property(base.IndexOpsMixin.hasnans.func,
@@ -435,7 +438,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         .. warning::
 
            We recommend using :attr:`Series.array` or
-           :Series:`Index.to_numpy`, depending on whether you need
+           :meth:`Series.to_numpy`, depending on whether you need
            a reference to the underlying data or a NumPy array.
 
         Returns
@@ -474,7 +477,10 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         """
         Return the internal repr of this data.
         """
-        return self._data.internal_values()
+        result = self._data.internal_values()
+        if isinstance(result, DatetimeIndex):
+            result = result._eadata
+        return result
 
     def _formatting_values(self):
         """
@@ -869,7 +875,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         if isinstance(key, Index):
             key_type = key.inferred_type
         else:
-            key_type = lib.infer_dtype(key)
+            key_type = lib.infer_dtype(key, skipna=False)
 
         if key_type == 'integer':
             if self.index.is_integer() or self.index.is_floating():
@@ -1006,7 +1012,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
             if isinstance(key, Index):
                 key_type = key.inferred_type
             else:
-                key_type = lib.infer_dtype(key)
+                key_type = lib.infer_dtype(key, skipna=False)
 
             if key_type == 'integer':
                 if self.index.inferred_type == 'integer':
@@ -1035,16 +1041,59 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         self._data = self._data.setitem(indexer=key, value=value)
         self._maybe_update_cacher()
 
-    def repeat(self, repeats, *args, **kwargs):
+    def repeat(self, repeats, axis=None):
         """
-        Repeat elements of an Series. Refer to `numpy.ndarray.repeat`
-        for more information about the `repeats` argument.
+        Repeat elements of a Series.
+
+        Returns a new Series where each element of the current Series
+        is repeated consecutively a given number of times.
+
+        Parameters
+        ----------
+        repeats : int or array of ints
+            The number of repetitions for each element. This should be a
+            non-negative integer. Repeating 0 times will return an empty
+            Series.
+        axis : None
+            Must be ``None``. Has no effect but is accepted for compatibility
+            with numpy.
+
+        Returns
+        -------
+        repeated_series : Series
+            Newly created Series with repeated elements.
 
         See Also
         --------
-        numpy.ndarray.repeat
+        Index.repeat : Equivalent function for Index.
+        numpy.repeat : Similar method for :class:`numpy.ndarray`.
+
+        Examples
+        --------
+        >>> s = pd.Series(['a', 'b', 'c'])
+        >>> s
+        0    a
+        1    b
+        2    c
+        dtype: object
+        >>> s.repeat(2)
+        0    a
+        0    a
+        1    b
+        1    b
+        2    c
+        2    c
+        dtype: object
+        >>> s.repeat([1, 2, 3])
+        0    a
+        1    b
+        1    b
+        2    c
+        2    c
+        2    c
+        dtype: object
         """
-        nv.validate_repeat(args, kwargs)
+        nv.validate_repeat(tuple(), dict(axis=axis))
         new_index = self.index.repeat(repeats)
         new_values = self._values.repeat(repeats)
         return self._constructor(new_values,
@@ -1082,11 +1131,11 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         """
         Quickly set single value at passed label.
 
-        If label is not contained, a new object is created with the label
-        placed at the end of the result index.
-
         .. deprecated:: 0.21.0
             Please use .at[] or .iat[] accessors.
+
+        If label is not contained, a new object is created with the label
+        placed at the end of the result index.
 
         Parameters
         ----------
@@ -1509,9 +1558,18 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
         Returns
         -------
-        ndarray or Categorical
-            The unique values returned as a NumPy array. In case of categorical
-            data type, returned as a Categorical.
+        ndarray or ExtensionArray
+            The unique values returned as a NumPy array. In case of an
+            extension-array backed Series, a new
+            :class:`~api.extensions.ExtensionArray` of that type with just
+            the unique values is returned. This includes
+
+            * Categorical
+            * Period
+            * Datetime with Timezone
+            * Interval
+            * Sparse
+            * IntegerNA
 
         See Also
         --------
@@ -1528,8 +1586,9 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
         >>> pd.Series([pd.Timestamp('2016-01-01', tz='US/Eastern')
         ...            for _ in range(3)]).unique()
-        array([Timestamp('2016-01-01 00:00:00-0500', tz='US/Eastern')],
-              dtype=object)
+        <DatetimeArrayMixin>
+        ['2016-01-01 00:00:00-05:00']
+        Length: 1, dtype: datetime64[ns, US/Eastern]
 
         An unordered Categorical will return categories in the order of
         appearance.
@@ -1546,14 +1605,6 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         Categories (3, object): [a < b < c]
         """
         result = super(Series, self).unique()
-
-        if is_datetime64tz_dtype(self.dtype):
-            # we are special casing datetime64tz_dtype
-            # to return an object array of tz-aware Timestamps
-
-            # TODO: it must return DatetimeArray with tz in pandas 2.0
-            result = result.astype(object).values
-
         return result
 
     def drop_duplicates(self, keep='first', inplace=False):
@@ -2214,8 +2265,10 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
     def searchsorted(self, value, side='left', sorter=None):
         if sorter is not None:
             sorter = ensure_platform_int(sorter)
-        return self._values.searchsorted(Series(value)._values,
-                                         side=side, sorter=sorter)
+        result = self._values.searchsorted(Series(value)._values,
+                                           side=side, sorter=sorter)
+
+        return result[0] if is_scalar(value) else result
 
     # -------------------------------------------------------------------
     # Combination
@@ -3274,16 +3327,16 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         """
         return self
 
-    _agg_doc = dedent("""
+    _agg_see_also_doc = dedent("""
     See Also
     --------
     Series.apply : Invoke function on a Series.
-    Series.transform : Transform function producing
-        a Series with like indexes.
+    Series.transform : Transform function producing a Series with like indexes.
+    """)
 
+    _agg_examples_doc = dedent("""
     Examples
     --------
-
     >>> s = pd.Series([1, 2, 3, 4])
     >>> s
     0    1
@@ -3301,10 +3354,11 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
     dtype: int64
     """)
 
-    @Appender(_agg_doc)
-    @Appender(generic._shared_docs['aggregate'] % dict(
-        versionadded='.. versionadded:: 0.20.0',
-        **_shared_doc_kwargs))
+    @Substitution(see_also=_agg_see_also_doc,
+                  examples=_agg_examples_doc,
+                  versionadded='.. versionadded:: 0.20.0',
+                  **_shared_doc_kwargs)
+    @Appender(generic._shared_docs['aggregate'])
     def aggregate(self, func, axis=0, *args, **kwargs):
         # Validate the axis parameter
         self._get_axis_number(axis)
@@ -3489,6 +3543,9 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         # dispatch to ExtensionArray interface
         if isinstance(delegate, ExtensionArray):
             return delegate._reduce(name, skipna=skipna, **kwds)
+        elif is_datetime64_dtype(delegate):
+            # use DatetimeIndex implementation to handle skipna correctly
+            delegate = DatetimeIndex(delegate)
 
         # dispatch to numpy arrays
         elif isinstance(delegate, np.ndarray):
@@ -3714,8 +3771,9 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
                                            regex=regex, method=method)
 
     @Appender(generic._shared_docs['shift'] % _shared_doc_kwargs)
-    def shift(self, periods=1, freq=None, axis=0):
-        return super(Series, self).shift(periods=periods, freq=freq, axis=axis)
+    def shift(self, periods=1, freq=None, axis=0, fill_value=None):
+        return super(Series, self).shift(periods=periods, freq=freq, axis=axis,
+                                         fill_value=fill_value)
 
     def reindex_axis(self, labels, axis=0, **kwargs):
         """

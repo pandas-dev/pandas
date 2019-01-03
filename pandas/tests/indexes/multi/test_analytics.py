@@ -3,10 +3,11 @@
 import numpy as np
 import pytest
 
-import pandas as pd
-import pandas.util.testing as tm
-from pandas import Index, MultiIndex, date_range, period_range
 from pandas.compat import lrange
+
+import pandas as pd
+from pandas import Index, MultiIndex, date_range, period_range
+import pandas.util.testing as tm
 
 
 def test_shift(idx):
@@ -56,10 +57,8 @@ def test_truncate():
 def test_where():
     i = MultiIndex.from_tuples([('A', 1), ('A', 2)])
 
-    def f():
+    with pytest.raises(NotImplementedError):
         i.where(True)
-
-    pytest.raises(NotImplementedError, f)
 
 
 def test_where_array_like():
@@ -68,9 +67,9 @@ def test_where_array_like():
     cond = [False, True]
 
     for klass in klasses:
-        def f():
-            return i.where(klass(cond))
-        pytest.raises(NotImplementedError, f)
+        with pytest.raises(NotImplementedError):
+            i.where(klass(cond))
+
 
 # TODO: reshape
 

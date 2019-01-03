@@ -2,24 +2,22 @@
 
 from __future__ import print_function
 
-import pytest
-
 from datetime import datetime
 
-from numpy import random
 import numpy as np
+from numpy import random
+import pytest
 
 from pandas.compat import lrange, lzip, u
-from pandas import (compat, DataFrame, Series, Index, MultiIndex, Categorical,
-                    date_range, isna)
-import pandas as pd
-
-from pandas.util.testing import assert_frame_equal
-
 from pandas.errors import PerformanceWarning
-import pandas.util.testing as tm
 
+import pandas as pd
+from pandas import (
+    Categorical, DataFrame, Index, MultiIndex, Series, compat, date_range,
+    isna)
 from pandas.tests.frame.common import TestData
+import pandas.util.testing as tm
+from pandas.util.testing import assert_frame_equal
 
 
 class TestDataFrameSelectReindex(TestData):

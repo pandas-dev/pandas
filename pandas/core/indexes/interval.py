@@ -36,10 +36,8 @@ from pandas.tseries.offsets import DateOffset
 _VALID_CLOSED = {'left', 'right', 'both', 'neither'}
 _index_doc_kwargs = dict(ibase._index_doc_kwargs)
 
-# TODO(jschendel) remove constructor key when IntervalArray is public (GH22860)
 _index_doc_kwargs.update(
     dict(klass='IntervalIndex',
-         constructor='pd.IntervalIndex',
          target_klass='IntervalIndex or list of Intervals',
          name=textwrap.dedent("""\
          name : object, optional
@@ -1015,10 +1013,11 @@ class IntervalIndex(IntervalMixin, Index):
 
     def _format_native_types(self, na_rep='', quoting=None, **kwargs):
         """ actually format my specific types """
-        from pandas.io.formats.format import IntervalArrayFormatter
-        return IntervalArrayFormatter(values=self,
-                                      na_rep=na_rep,
-                                      justify='all').get_result()
+        from pandas.io.formats.format import ExtensionArrayFormatter
+        return ExtensionArrayFormatter(values=self,
+                                       na_rep=na_rep,
+                                       justify='all',
+                                       leading_space=False).get_result()
 
     def _format_data(self, name=None):
 

@@ -1,9 +1,10 @@
 import numpy as np
 
-from pandas import compat
 from pandas.util._decorators import cache_readonly
-import pandas.util.testing as tm
+
 import pandas as pd
+from pandas import compat
+import pandas.util.testing as tm
 
 _seriesd = tm.getSeriesData()
 _tsd = tm.getTimeSeriesData()

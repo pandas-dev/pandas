@@ -706,6 +706,8 @@ class SparseArray(PandasObject, ExtensionArray, ExtensionOpsMixin):
 
     def __setitem__(self, key, value):
         # I suppose we could allow setting of non-fill_value elements.
+        # TODO(SparseArray.__setitem__): remove special cases in
+        # ExtensionBlock.where
         msg = "SparseArray does not support item assignment via setitem"
         raise TypeError(msg)
 
@@ -887,12 +889,15 @@ class SparseArray(PandasObject, ExtensionArray, ExtensionOpsMixin):
 
         return self._simple_new(new_values, self._sparse_index, new_dtype)
 
-    def shift(self, periods=1):
+    def shift(self, periods=1, fill_value=None):
 
         if not len(self) or periods == 0:
             return self.copy()
 
-        subtype = np.result_type(np.nan, self.dtype.subtype)
+        if isna(fill_value):
+            fill_value = self.dtype.na_value
+
+        subtype = np.result_type(fill_value, self.dtype.subtype)
 
         if subtype != self.dtype.subtype:
             # just coerce up front
@@ -901,7 +906,7 @@ class SparseArray(PandasObject, ExtensionArray, ExtensionOpsMixin):
             arr = self
 
         empty = self._from_sequence(
-            [self.dtype.na_value] * min(abs(periods), len(self)),
+            [fill_value] * min(abs(periods), len(self)),
             dtype=arr.dtype
         )
 
@@ -1163,6 +1168,16 @@ class SparseArray(PandasObject, ExtensionArray, ExtensionOpsMixin):
             taken[fillable] = self.fill_value
 
         return taken
+
+    def searchsorted(self, v, side="left", sorter=None):
+        msg = "searchsorted requires high memory usage."
+        warnings.warn(msg, PerformanceWarning, stacklevel=2)
+        if not is_scalar(v):
+            v = np.asarray(v)
+        v = np.asarray(v)
+        return np.asarray(self, dtype=self.dtype.subtype).searchsorted(
+            v, side, sorter
+        )
 
     def copy(self, deep=False):
         if deep:

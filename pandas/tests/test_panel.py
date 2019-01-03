@@ -1,31 +1,31 @@
 # -*- coding: utf-8 -*-
 # pylint: disable=W0612,E1101
 
-from warnings import catch_warnings, simplefilter
 from datetime import datetime
 import operator
-import pytest
+from warnings import catch_warnings, simplefilter
 
 import numpy as np
+import pytest
+
+from pandas.compat import OrderedDict, StringIO, lrange, range, signature
+import pandas.util._test_decorators as td
 
 from pandas.core.dtypes.common import is_float_dtype
-from pandas import (Series, DataFrame, Index, date_range, isna, notna,
-                    MultiIndex)
+
+from pandas import (
+    DataFrame, Index, MultiIndex, Series, compat, date_range, isna, notna)
 from pandas.core.nanops import nanall, nanany
+import pandas.core.panel as panelm
 from pandas.core.panel import Panel
+import pandas.util.testing as tm
+from pandas.util.testing import (
+    assert_almost_equal, assert_frame_equal, assert_panel_equal,
+    assert_series_equal, ensure_clean, makeCustomDataframe as mkdf,
+    makeMixedDataFrame)
 
 from pandas.io.formats.printing import pprint_thing
-from pandas import compat
-from pandas.compat import range, lrange, StringIO, OrderedDict, signature
-
 from pandas.tseries.offsets import BDay, MonthEnd
-from pandas.util.testing import (assert_panel_equal, assert_frame_equal,
-                                 assert_series_equal, assert_almost_equal,
-                                 ensure_clean, makeMixedDataFrame,
-                                 makeCustomDataframe as mkdf)
-import pandas.core.panel as panelm
-import pandas.util.testing as tm
-import pandas.util._test_decorators as td
 
 
 def make_test_panel():
@@ -469,7 +469,8 @@ class CheckIndexing(object):
 
     def test_setitem(self):
         lp = self.panel.filter(['ItemA', 'ItemB']).to_frame()
-        with pytest.raises(ValueError):
+
+        with pytest.raises(TypeError):
             self.panel['ItemE'] = lp
 
         # DataFrame

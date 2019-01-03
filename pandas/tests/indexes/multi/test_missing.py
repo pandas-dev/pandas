@@ -3,11 +3,12 @@
 import numpy as np
 import pytest
 
-import pandas as pd
-import pandas.util.testing as tm
-from pandas import Int64Index, MultiIndex, PeriodIndex, UInt64Index
 from pandas._libs.tslib import iNaT
+
+import pandas as pd
+from pandas import Int64Index, MultiIndex, PeriodIndex, UInt64Index
 from pandas.core.indexes.datetimelike import DatetimeIndexOpsMixin
+import pandas.util.testing as tm
 
 
 def test_fillna(idx):

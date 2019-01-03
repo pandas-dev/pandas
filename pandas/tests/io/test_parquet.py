@@ -1,17 +1,20 @@
 """ test parquet compat """
-import os
-
-import pytest
 import datetime
 from distutils.version import LooseVersion
+import os
 from warnings import catch_warnings
 
 import numpy as np
+import pytest
+
+from pandas.compat import PY3
+import pandas.util._test_decorators as td
+
 import pandas as pd
-from pandas.compat import PY3, is_platform_windows, is_platform_mac
-from pandas.io.parquet import (to_parquet, read_parquet, get_engine,
-                               PyArrowImpl, FastParquetImpl)
 from pandas.util import testing as tm
+
+from pandas.io.parquet import (
+    FastParquetImpl, PyArrowImpl, get_engine, read_parquet, to_parquet)
 
 try:
     import pyarrow  # noqa
@@ -200,8 +203,6 @@ def test_options_get_engine(fp, pa):
         assert isinstance(get_engine('fastparquet'), FastParquetImpl)
 
 
-@pytest.mark.xfail(is_platform_windows() or is_platform_mac(),
-                   reason="reading pa metadata failing on Windows/mac")
 def test_cross_engine_pa_fp(df_cross_compat, pa, fp):
     # cross-compat with differing reading/writing engines
 
@@ -469,6 +470,7 @@ class TestParquetPyArrow(Base):
 
 class TestParquetFastParquet(Base):
 
+    @td.skip_if_no('fastparquet', min_version="0.2.1")
     def test_basic(self, fp, df_full):
         df = df_full
 
