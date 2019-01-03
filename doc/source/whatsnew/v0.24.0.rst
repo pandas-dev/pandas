@@ -6,9 +6,10 @@ What's New in 0.24.0 (January XX, 2019)
 .. warning::
 
    The 0.24.x series of releases will be the last to support Python 2. Future feature
-   releases will support Python 3 only.
+   releases will support Python 3 only. See :ref:`install.dropping-27` for more.
 
-   See :ref:`install.dropping-27` for more.
+   The 0.24.x series of releases will be the last to support 32-bit Python. Future feature
+   releases will support 64-bit Python only.
 
 {{ header }}
 
