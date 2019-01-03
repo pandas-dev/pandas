@@ -31,23 +31,24 @@ import pandas.io.formats.printing as printing
 _index_doc_kwargs = dict(ibase._index_doc_kwargs)
 
 
-def ea_passthrough(name):
+def ea_passthrough(array_method):
     """
     Make an alias for a method of the underlying ExtensionArray.
 
     Parameters
     ----------
-    name : str
+    array_method : method on an Array class
 
     Returns
     -------
     method
     """
-    def method(self, *args, **kwargs):
-        return getattr(self._eadata, name)(*args, **kwargs)
 
-    method.__name__ = name
-    # TODO: docstrings
+    def method(self, *args, **kwargs):
+        return array_method(self._data, *args, **kwargs)
+
+    method.__name__ = array_method.__name__
+    method.__doc__ = array_method.__doc__
     return method
 
 
@@ -67,9 +68,10 @@ class DatetimeIndexOpsMixin(ExtensionOpsMixin):
     _resolution = cache_readonly(DatetimeLikeArrayMixin._resolution.fget)
     resolution = cache_readonly(DatetimeLikeArrayMixin.resolution.fget)
 
-    _box_values = ea_passthrough("_box_values")
-    _maybe_mask_results = ea_passthrough("_maybe_mask_results")
-    __iter__ = ea_passthrough("__iter__")
+    _box_values = ea_passthrough(DatetimeLikeArrayMixin._box_values)
+    _maybe_mask_results = ea_passthrough(
+        DatetimeLikeArrayMixin._maybe_mask_results)
+    __iter__ = ea_passthrough(DatetimeLikeArrayMixin.__iter__)
 
     @property
     def _eadata(self):
@@ -274,9 +276,6 @@ class DatetimeIndexOpsMixin(ExtensionOpsMixin):
 
             if not ascending:
                 sorted_values = sorted_values[::-1]
-
-            sorted_values = self._maybe_box_as_values(sorted_values,
-                                                      **attribs)
 
             return self._simple_new(sorted_values, **attribs)
 
@@ -612,14 +611,6 @@ class DatetimeIndexOpsMixin(ExtensionOpsMixin):
 
         new_data = type(self._values)._concat_same_type(to_concat).asi8
         return self._simple_new(new_data, **attribs)
-
-    def _maybe_box_as_values(self, values, **attribs):
-        # TODO(DatetimeArray): remove
-        # This is a temporary shim while PeriodArray is an ExtensoinArray,
-        # but others are not. When everyone is an ExtensionArray, this can
-        # be removed. Currently used in
-        # - sort_values
-        return values
 
     @Appender(_index_shared_docs['astype'])
     def astype(self, dtype, copy=True):

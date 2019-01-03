@@ -356,36 +356,6 @@ class DatetimeIndex(DatetimeIndexOpsMixin, Int64Index, DatetimeDelegateMixin):
 
     tzinfo = tz
 
-    @property
-    def size(self):
-        # TODO: Remove this when we have a DatetimeTZArray
-        # Necessary to avoid recursion error since DTI._values is a DTI
-        # for TZ-aware
-        return self._ndarray_values.size
-
-    @property
-    def shape(self):
-        # TODO: Remove this when we have a DatetimeTZArray
-        # Necessary to avoid recursion error since DTI._values is a DTI
-        # for TZ-aware
-        return self._ndarray_values.shape
-
-    @property
-    def nbytes(self):
-        # TODO: Remove this when we have a DatetimeTZArray
-        # Necessary to avoid recursion error since DTI._values is a DTI
-        # for TZ-aware
-        return self._ndarray_values.nbytes
-
-    def memory_usage(self, deep=False):
-        # TODO: Remove this when we have a DatetimeTZArray
-        # Necessary to avoid recursion error since DTI._values is a DTI
-        # for TZ-aware
-        result = self._ndarray_values.nbytes
-        # include our engine hashtable
-        result += self._engine.sizeof(deep=deep)
-        return result
-
     @cache_readonly
     def _is_dates_only(self):
         """Return a boolean if we are only dates (and don't have a timezone)"""
@@ -455,11 +425,11 @@ class DatetimeIndex(DatetimeIndexOpsMixin, Int64Index, DatetimeDelegateMixin):
 
     def _format_native_types(self, na_rep='NaT', date_format=None, **kwargs):
         from pandas.io.formats.format import _get_format_datetime64_from_values
-        format = _get_format_datetime64_from_values(self, date_format)
+        fmt = _get_format_datetime64_from_values(self, date_format)
 
         return libts.format_array_from_datetime(self.asi8,
                                                 tz=self.tz,
-                                                format=format,
+                                                format=fmt,
                                                 na_rep=na_rep)
 
     @property
@@ -1142,9 +1112,9 @@ class DatetimeIndex(DatetimeIndexOpsMixin, Int64Index, DatetimeDelegateMixin):
     is_normalized = cache_readonly(DatetimeArray.is_normalized.fget)
     _resolution = cache_readonly(DatetimeArray._resolution.fget)
 
-    strftime = ea_passthrough("strftime")
-    _has_same_tz = ea_passthrough("_has_same_tz")
-    __array__ = ea_passthrough("__array__")
+    strftime = ea_passthrough(DatetimeArray.strftime)
+    _has_same_tz = ea_passthrough(DatetimeArray._has_same_tz)
+    __array__ = ea_passthrough(DatetimeArray.__array__)
 
     @property
     def offset(self):
