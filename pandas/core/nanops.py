@@ -1194,3 +1194,38 @@ nanlt = make_nancomp(operator.lt)
 nanle = make_nancomp(operator.le)
 naneq = make_nancomp(operator.eq)
 nanne = make_nancomp(operator.ne)
+
+
+def _nanpercentile1D(values, mask, q, na_value, interpolation):
+    # mask is Union[ExtensionArray, ndarray]
+    values = values[~mask]
+
+    if len(values) == 0:
+        if lib.is_scalar(q):
+            return na_value
+        else:
+            return np.array([na_value] * len(q),
+                            dtype=values.dtype)
+
+    return np.percentile(values, q, interpolation=interpolation)
+
+
+def nanpercentile(values, q, axis, na_value, mask, ndim, interpolation):
+    if not lib.is_scalar(mask) and mask.any():
+        if ndim == 1:
+            return _nanpercentile1D(values, mask, q, na_value,
+                                    interpolation=interpolation)
+        else:
+            # for nonconsolidatable blocks mask is 1D, but values 2D
+            if mask.ndim < values.ndim:
+                mask = mask.reshape(values.shape)
+            if axis == 0:
+                values = values.T
+                mask = mask.T
+            result = [_nanpercentile1D(val, m, q, na_value,
+                                       interpolation=interpolation)
+                      for (val, m) in zip(list(values), list(mask))]
+            result = np.array(result, dtype=values.dtype, copy=False).T
+            return result
+    else:
+        return np.percentile(values, q, axis=axis, interpolation=interpolation)

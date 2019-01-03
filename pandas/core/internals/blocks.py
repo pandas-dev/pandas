@@ -43,6 +43,7 @@ from pandas.core.indexes.datetimes import DatetimeIndex
 from pandas.core.indexing import check_setitem_lengths
 from pandas.core.internals.arrays import extract_array
 import pandas.core.missing as missing
+from pandas.core.nanops import nanpercentile
 
 from pandas.io.formats.printing import pprint_thing
 
@@ -1473,10 +1474,10 @@ class Block(PandasObject):
                                                         len(qs))
         else:
             mask = isna(self.values)
-            result = _nanpercentile(values, np.array(qs) * 100,
-                                    axis=axis, na_value=self._na_value,
-                                    mask=mask, ndim=self.ndim,
-                                    interpolation=interpolation)
+            result = nanpercentile(values, np.array(qs) * 100,
+                                   axis=axis, na_value=self._na_value,
+                                   mask=mask, ndim=self.ndim,
+                                   interpolation=interpolation)
 
             result = np.array(result, copy=False)
             if self.ndim > 1:
@@ -3324,39 +3325,3 @@ def _putmask_smart(v, m, n):
         v = v.astype(dtype)
 
     return _putmask_preserve(v, n)
-
-
-# TODO: belongs elsewhere?
-def _nanpercentile1D(values, mask, q, na_value, interpolation):
-    # mask is Union[ExtensionArray, ndarray]
-    values = values[~mask]
-
-    if len(values) == 0:
-        if lib.is_scalar(q):
-            return na_value
-        else:
-            return np.array([na_value] * len(q),
-                            dtype=values.dtype)
-
-    return np.percentile(values, q, interpolation=interpolation)
-
-
-def _nanpercentile(values, q, axis, na_value, mask, ndim, interpolation):
-    if not lib.is_scalar(mask) and mask.any():
-        if ndim == 1:
-            return _nanpercentile1D(values, mask, q, na_value,
-                                    interpolation=interpolation)
-        else:
-            # for nonconsolidatable blocks mask is 1D, but values 2D
-            if mask.ndim < values.ndim:
-                mask = mask.reshape(values.shape)
-            if axis == 0:
-                values = values.T
-                mask = mask.T
-            result = [_nanpercentile1D(val, m, q, na_value,
-                                       interpolation=interpolation)
-                      for (val, m) in zip(list(values), list(mask))]
-            result = np.array(result, dtype=values.dtype, copy=False).T
-            return result
-    else:
-        return np.percentile(values, q, axis=axis, interpolation=interpolation)
