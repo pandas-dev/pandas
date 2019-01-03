@@ -303,15 +303,16 @@ The same alignment can be used when ``others`` is a ``DataFrame``:
 Concatenating a Series and many objects into a Series
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Several items (specifically: ``Series``, ``Index``, ``PandasArray`` and ``np.ndarray``) can be combined in a list-like container (including iterators, ``dict``-views, etc.).
+Several array-like items (specifically: ``Series``, ``Index``, and 1-dimensional variants of ``np.ndarray``)
+can be combined in a list-like container (including iterators, ``dict``-views, etc.).
 
 .. ipython:: python
 
     s
     u
-    s.str.cat([u, u.array, u.to_numpy()], join='left')
+    s.str.cat([u, u.to_numpy()], join='left')
 
-All elements without an index (e.g. ``PandasArray`` and ``np.ndarray``) within the passed list-like must match in length to the calling ``Series`` (or ``Index``),
+All elements without an index (e.g. ``np.ndarray``) within the passed list-like must match in length to the calling ``Series`` (or ``Index``),
 but ``Series`` and ``Index`` may have arbitrary length (as long as alignment is not disabled with ``join=None``):
 
 .. ipython:: python
