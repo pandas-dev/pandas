@@ -8,7 +8,7 @@ import warnings
 import numpy as np
 
 from pandas._libs import internals as libinternals, lib, tslib, tslibs
-from pandas._libs.tslibs import Timedelta, conversion
+from pandas._libs.tslibs import Timedelta, conversion, is_null_datetimelike
 import pandas.compat as compat
 from pandas.compat import range, zip
 from pandas.util._validators import validate_bool_kwarg
@@ -31,7 +31,7 @@ from pandas.core.dtypes.generic import (
     ABCDataFrame, ABCDatetimeIndex, ABCExtensionArray, ABCIndexClass,
     ABCSeries)
 from pandas.core.dtypes.missing import (
-    _isna_compat, array_equivalent, is_null_datelike_scalar, isna, notna)
+    _isna_compat, array_equivalent, isna, notna)
 
 import pandas.core.algorithms as algos
 from pandas.core.arrays import (
@@ -2162,7 +2162,7 @@ class DatetimeBlock(DatetimeLikeBlockMixin, Block):
 
         if isinstance(other, bool):
             raise TypeError
-        elif is_null_datelike_scalar(other):
+        elif is_null_datetimelike(other):
             other = tslibs.iNaT
         elif isinstance(other, (datetime, np.datetime64, date)):
             other = self._box_func(other)
@@ -2364,8 +2364,7 @@ class DatetimeTZBlock(ExtensionBlock, DatetimeBlock):
             # add the tz back
             other = self._holder(other, dtype=self.dtype)
 
-        elif (is_null_datelike_scalar(other) or
-              (lib.is_scalar(other) and isna(other))):
+        elif is_null_datetimelike(other):
             other = tslibs.iNaT
         elif isinstance(other, self._holder):
             if other.tz != self.values.tz:
@@ -2531,7 +2530,7 @@ class TimeDeltaBlock(DatetimeLikeBlockMixin, IntBlock):
 
         if isinstance(other, bool):
             raise TypeError
-        elif is_null_datelike_scalar(other):
+        elif is_null_datetimelike(other):
             other = tslibs.iNaT
         elif isinstance(other, Timedelta):
             other = other.value
