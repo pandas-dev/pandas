@@ -5,9 +5,7 @@ import pytest
 import pandas.compat as compat
 
 import pandas as pd
-from pandas.core.arrays import (
-    DatetimeArrayMixin as DatetimeArray, PeriodArray,
-    TimedeltaArrayMixin as TimedeltaArray)
+from pandas.core.arrays import DatetimeArray, PeriodArray, TimedeltaArray
 import pandas.util.testing as tm
 
 
@@ -389,6 +387,10 @@ class TestDatetimeArray(SharedTests):
         with pytest.raises(TypeError):
             # Timestamp with mismatched tz-awareness
             arr.take([-1, 1], allow_fill=True, fill_value=now)
+
+        with pytest.raises(ValueError):
+            # require NaT, not iNaT, as it could be confused with an integer
+            arr.take([-1, 1], allow_fill=True, fill_value=pd.NaT.value)
 
     def test_concat_same_type_invalid(self, datetime_index):
         # different timezones

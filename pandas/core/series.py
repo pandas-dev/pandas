@@ -1600,7 +1600,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
         >>> pd.Series([pd.Timestamp('2016-01-01', tz='US/Eastern')
         ...            for _ in range(3)]).unique()
-        <DatetimeArrayMixin>
+        <DatetimeArray>
         ['2016-01-01 00:00:00-05:00']
         Length: 1, dtype: datetime64[ns, US/Eastern]
 
@@ -2001,15 +2001,23 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
         self._check_percentile(q)
 
-        result = self._data.quantile(qs=q, interpolation=interpolation)
+        # We dispatch to DataFrame so that core.internals only has to worry
+        #  about 2D cases.
+        df = self.to_frame()
+
+        result = df.quantile(q=q, interpolation=interpolation,
+                             numeric_only=False)
+        if result.ndim == 2:
+            result = result.iloc[:, 0]
 
         if is_list_like(q):
+            result.name = self.name
             return self._constructor(result,
                                      index=Float64Index(q),
                                      name=self.name)
         else:
             # scalar
-            return result
+            return result.iloc[0]
 
     def corr(self, other, method='pearson', min_periods=None):
         """

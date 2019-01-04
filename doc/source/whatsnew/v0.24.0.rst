@@ -6,9 +6,7 @@ What's New in 0.24.0 (January XX, 2019)
 .. warning::
 
    The 0.24.x series of releases will be the last to support Python 2. Future feature
-   releases will support Python 3 only.
-
-   See :ref:`install.dropping-27` for more.
+   releases will support Python 3 only. See :ref:`install.dropping-27` for more.
 
 {{ header }}
 
@@ -432,7 +430,7 @@ Backwards incompatible API changes
 - The column order of the resultant :class:`DataFrame` from :meth:`MultiIndex.to_frame` is now guaranteed to match the :attr:`MultiIndex.names` order. (:issue:`22420`)
 - Incorrectly passing a :class:`DatetimeIndex` to :meth:`MultiIndex.from_tuples`, rather than a sequence of tuples, now raises a ``TypeError`` rather than a ``ValueError`` (:issue:`24024`)
 - :func:`pd.offsets.generate_range` argument ``time_rule`` has been removed; use ``offset`` instead (:issue:`24157`)
-- In 0.23.x, pandas would raise a ``ValueError`` on a merge of a numeric column (e.g. ``int`` dtyped column) and an ``object`` dtyped column (:issue:`9780`). We have re-enabled the ability to merge ``object`` and other dtypes (:issue:`21681`)
+- In 0.23.x, pandas would raise a ``ValueError`` on a merge of a numeric column (e.g. ``int`` dtyped column) and an ``object`` dtyped column (:issue:`9780`). We have re-enabled the ability to merge ``object`` and other dtypes; pandas will still raise on a merge between a numeric and an ``object`` dtyped column that is composed only of strings (:issue:`21681`)
 
 Percentage change on groupby
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -1222,6 +1220,7 @@ Deprecations
 - :func:`pandas.api.types.is_datetimetz` is deprecated in favor of `pandas.api.types.is_datetime64tz` (:issue:`23917`)
 - Creating a :class:`TimedeltaIndex`, :class:`DatetimeIndex`, or :class:`PeriodIndex` by passing range arguments `start`, `end`, and `periods` is deprecated in favor of :func:`timedelta_range`, :func:`date_range`, or :func:`period_range` (:issue:`23919`)
 - Passing a string alias like ``'datetime64[ns, UTC]'`` as the ``unit`` parameter to :class:`DatetimeTZDtype` is deprecated. Use :class:`DatetimeTZDtype.construct_from_string` instead (:issue:`23990`).
+- The ``skipna`` parameter of :meth:`~pandas.api.types.infer_dtype` will switch to ``True`` by default in a future version of pandas (:issue:`17066`, :issue:`24050`)
 - In :meth:`Series.where` with Categorical data, providing an ``other`` that is not present in the categories is deprecated. Convert the categorical to a different dtype or add the ``other`` to the categories first (:issue:`24077`).
 - :meth:`Series.clip_lower`, :meth:`Series.clip_upper`, :meth:`DataFrame.clip_lower` and :meth:`DataFrame.clip_upper` are deprecated and will be removed in a future version. Use ``Series.clip(lower=threshold)``, ``Series.clip(upper=threshold)`` and the equivalent ``DataFrame`` methods (:issue:`24203`)
 
@@ -1381,6 +1380,7 @@ Performance Improvements
 - Improved performance of iterating over a :class:`Series`. Using :meth:`DataFrame.itertuples` now creates iterators
   without internally allocating lists of all elements (:issue:`20783`)
 - Improved performance of :class:`Period` constructor, additionally benefitting ``PeriodArray`` and ``PeriodIndex`` creation (:issue:`24084` and :issue:`24118`)
+- Improved performance of tz-aware :class:`DatetimeArray` binary operations (:issue:`24491`)
 
 .. _whatsnew_0240.docs:
 
@@ -1592,6 +1592,7 @@ Missing
 - Bug in :func:`Series.hasnans` that could be incorrectly cached and return incorrect answers if null elements are introduced after an initial call (:issue:`19700`)
 - :func:`Series.isin` now treats all NaN-floats as equal also for ``np.object``-dtype. This behavior is consistent with the behavior for float64 (:issue:`22119`)
 - :func:`unique` no longer mangles NaN-floats and the ``NaT``-object for ``np.object``-dtype, i.e. ``NaT`` is no longer coerced to a NaN-value and is treated as a different entity. (:issue:`22295`)
+- :func:`DataFrame` and :func:`Series` now properly handle numpy masked arrays with hardened masks. Previously, constructing a DataFrame or Series from a masked array with a hard mask would create a pandas object containing the underlying value, rather than the expected NaN. (:issue:`24574`)
 
 
 MultiIndex
