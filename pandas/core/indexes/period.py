@@ -277,14 +277,7 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index, PeriodDelegateMixin):
         return result
 
     # ------------------------------------------------------------------------
-    # Wrapping PeriodArray
-
-    # ------------------------------------------------------------------------
     # Data
-
-    @property
-    def _eadata(self):
-        return self._data
 
     @property
     def values(self):
@@ -361,17 +354,6 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index, PeriodDelegateMixin):
                 return Period._from_ordinal(ordinal=x, freq=self.freq)
         return func
 
-    def _maybe_box_as_values(self, values, **attribs):
-        """Box an array of ordinals to a PeriodArray
-
-        This is purely for compatibility between PeriodIndex
-        and Datetime/TimedeltaIndex. Once these are all backed by
-        an ExtensionArray, this can be removed
-        """
-        # TODO(DatetimeArray): remove
-        freq = attribs['freq']
-        return PeriodArray(values, freq=freq)
-
     def _maybe_convert_timedelta(self, other):
         """
         Convert timedelta-like input to an integer multiple of self.freq
@@ -430,6 +412,10 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index, PeriodDelegateMixin):
     def _mpl_repr(self):
         # how to represent ourselves to matplotlib
         return self.astype(object).values
+
+    @property
+    def _formatter_func(self):
+        return self.array._formatter(boxed=False)
 
     # ------------------------------------------------------------------------
     # Indexing
@@ -510,10 +496,6 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index, PeriodDelegateMixin):
         # the result is object dtype array of Period
         # cannot pass _simple_new as it is
         return type(self)(result, freq=self.freq, name=self.name)
-
-    @property
-    def _formatter_func(self):
-        return self.array._formatter(boxed=False)
 
     def asof_locs(self, where, mask):
         """
@@ -876,12 +858,6 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index, PeriodDelegateMixin):
             raise Exception("invalid pickle state")
 
     _unpickle_compat = __setstate__
-
-    def view(self, dtype=None, type=None):
-        # TODO(DatetimeArray): remove
-        if dtype is None or dtype is __builtins__['type'](self):
-            return self
-        return self._ndarray_values.view(dtype=dtype)
 
     @property
     def flags(self):

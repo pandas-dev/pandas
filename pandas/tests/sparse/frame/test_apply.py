@@ -1,8 +1,9 @@
-import pytest
 import numpy as np
-from pandas import SparseDataFrame, DataFrame, Series, bdate_range
-from pandas.core.sparse.api import SparseDtype
+import pytest
+
+from pandas import DataFrame, Series, SparseDataFrame, bdate_range
 from pandas.core import nanops
+from pandas.core.sparse.api import SparseDtype
 from pandas.util import testing as tm
 
 

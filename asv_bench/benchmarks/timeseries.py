@@ -12,7 +12,7 @@ except ImportError:
 
 class DatetimeIndex(object):
 
-    params = ['dst', 'repeated', 'tz_aware', 'tz_naive']
+    params = ['dst', 'repeated', 'tz_aware', 'tz_local', 'tz_naive']
     param_names = ['index_type']
 
     def setup(self, index_type):
@@ -26,6 +26,10 @@ class DatetimeIndex(object):
                                           periods=N,
                                           freq='s',
                                           tz='US/Eastern'),
+                   'tz_local': date_range(start='2000',
+                                          periods=N,
+                                          freq='s',
+                                          tz=dateutil.tz.tzlocal()),
                    'tz_naive': date_range(start='2000',
                                           periods=N,
                                           freq='s')}

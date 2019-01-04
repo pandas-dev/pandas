@@ -10,7 +10,7 @@ import pytest
 from pandas.core.dtypes.dtypes import DatetimeTZDtype
 
 import pandas as pd
-from pandas.core.arrays import DatetimeArrayMixin as DatetimeArray
+from pandas.core.arrays import DatetimeArray
 from pandas.core.arrays.datetimes import sequence_to_dt64ns
 import pandas.util.testing as tm
 
@@ -28,12 +28,25 @@ class TestDatetimeArrayConstructor(object):
         arr = DatetimeArray(np.array(['2000-01-01T06:00:00'], dtype='M8[ns]'),
                             dtype=DatetimeTZDtype(tz='US/Central'))
         dtype = DatetimeTZDtype(tz='US/Eastern')
-        with pytest.raises(TypeError, match='data is already tz-aware'):
+        with pytest.raises(TypeError, match='Timezone of the array'):
             DatetimeArray(arr, dtype=dtype)
+
+    def test_non_array_raises(self):
+        with pytest.raises(ValueError, match='list'):
+            DatetimeArray([1, 2, 3])
+
+    def test_other_type_raises(self):
+        with pytest.raises(ValueError,
+                           match="The dtype of 'values' is incorrect.*bool"):
+            DatetimeArray(np.array([1, 2, 3], dtype='bool'))
 
     def test_incorrect_dtype_raises(self):
         with pytest.raises(ValueError, match="Unexpected value for 'dtype'."):
             DatetimeArray(np.array([1, 2, 3], dtype='i8'), dtype='category')
+
+    def test_freq_infer_raises(self):
+        with pytest.raises(ValueError, match='Frequency inference'):
+            DatetimeArray(np.array([1, 2, 3], dtype='i8'), freq="infer")
 
     def test_copy(self):
         data = np.array([1, 2, 3], dtype='M8[ns]')
@@ -128,7 +141,7 @@ class TestDatetimeArray(object):
         repeated = arr.repeat([1, 1])
 
         # preserves tz and values, but not freq
-        expected = DatetimeArray(arr.asi8, freq=None, tz=arr.tz)
+        expected = DatetimeArray(arr.asi8, freq=None, dtype=arr.dtype)
         tm.assert_equal(repeated, expected)
 
     def test_value_counts_preserves_tz(self):
@@ -153,8 +166,10 @@ class TestDatetimeArray(object):
         arr[2] = pd.NaT
 
         fill_val = dti[1] if method == 'pad' else dti[3]
-        expected = DatetimeArray([dti[0], dti[1], fill_val, dti[3], dti[4]],
-                                 freq=None, tz='US/Central')
+        expected = DatetimeArray._from_sequence(
+            [dti[0], dti[1], fill_val, dti[3], dti[4]],
+            freq=None, tz='US/Central'
+        )
 
         result = arr.fillna(method=method)
         tm.assert_extension_array_equal(result, expected)

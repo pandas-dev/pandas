@@ -171,7 +171,7 @@ def _convert_listlike_datetimes(arg, box, format, name=None, tz=None,
         - ndarray of Timestamps if box=False
     """
     from pandas import DatetimeIndex
-    from pandas.core.arrays import DatetimeArrayMixin as DatetimeArray
+    from pandas.core.arrays import DatetimeArray
     from pandas.core.arrays.datetimes import (
         maybe_convert_dtype, objects_to_datetime64ns)
 
