@@ -899,7 +899,6 @@ class IndexOpsMixin(object):
         ``to_numpy()`` will return a NumPy array and the categorical dtype
         will be lost.
 
-
         For NumPy dtypes, this will be a reference to the actual data stored
         in this Series or Index (assuming ``copy=False``). Modifying the result
         in place will modify the data stored in the Series or Index (not that
@@ -910,7 +909,7 @@ class IndexOpsMixin(object):
         expensive. When you need a no-copy reference to the underlying data,
         :attr:`Series.array` should be used instead.
 
-        This table lays out the different dtypes and return types of
+        This table lays out the different dtypes and default return types of
         ``to_numpy()`` for various dtypes within pandas.
 
         ================== ================================
@@ -920,6 +919,7 @@ class IndexOpsMixin(object):
         period             ndarray[object] (Periods)
         interval           ndarray[object] (Intervals)
         IntegerNA          ndarray[object]
+        datetime64[ns]     datetime64[ns]
         datetime64[ns, tz] ndarray[object] (Timestamps)
         ================== ================================
 

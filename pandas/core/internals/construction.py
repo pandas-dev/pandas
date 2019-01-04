@@ -547,6 +547,7 @@ def sanitize_array(data, index, dtype=None, copy=False,
         mask = ma.getmaskarray(data)
         if mask.any():
             data, fill_value = maybe_upcast(data, copy=True)
+            data.soften_mask()  # set hardmask False if it was True
             data[mask] = fill_value
         else:
             data = data.copy()
@@ -559,11 +560,12 @@ def sanitize_array(data, index, dtype=None, copy=False,
 
             # possibility of nan -> garbage
             if is_float_dtype(data.dtype) and is_integer_dtype(dtype):
-                if not isna(data).any():
+                try:
                     subarr = _try_cast(data, True, dtype, copy,
-                                       raise_cast_failure)
-                elif copy:
-                    subarr = data.copy()
+                                       True)
+                except ValueError:
+                    if copy:
+                        subarr = data.copy()
             else:
                 subarr = _try_cast(data, True, dtype, copy, raise_cast_failure)
         elif isinstance(data, Index):
