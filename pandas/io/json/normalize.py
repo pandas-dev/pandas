@@ -26,7 +26,7 @@ def _convert_to_line_delimits(s):
 
 
 def nested_to_record(ds, prefix="", sep=".", level=0,
-                     max_level=None, ignore_keys=None):
+                     max_level=None, ignore_keys=[]):
     """
 
     A simplified json_normalize
@@ -50,7 +50,7 @@ def nested_to_record(ds, prefix="", sep=".", level=0,
 
         .. versionadded:: 0.24.0
 
-    ignore_keys: list, keys to ignore, default None, optional, default: None
+    ignore_keys: list, keys to ignore, default None, optional, default: []
 
          .. versionadded:: 0.24.0
 
@@ -94,7 +94,7 @@ def nested_to_record(ds, prefix="", sep=".", level=0,
             # only at level>1 do we rename the rest of the keys
             if (not isinstance(v, dict) or
                     (max_level is not None and level >= max_level) or
-                    (ignore_keys is not None and k in ignore_keys)):
+                    (k in ignore_keys)):
                 if level != 0:  # so we skip copying for top level, common case
                     v = new_d.pop(k)
                     new_d[newkey] = v
@@ -116,19 +116,19 @@ def json_normalize(data, record_path=None, meta=None,
                    errors='raise',
                    sep='.',
                    max_level=None,
-                   ignore_keys=None):
+                   ignore_keys=[]):
     """
     Normalize semi-structured JSON data into a flat table.
 
     Parameters
     ----------
     data : dict or list of dicts
-        Unserialized JSON objects
-    record_path : string or list of strings, default None
+        Unserialized JSON objects.
+    record_path : string or list of string, default None
         Path in each object to list of records. If not passed, data will be
-        assumed to be an array of records
+        assumed to be an array of records.
     meta : list of paths (string or list of strings), default None
-        Fields to use as metadata for each record in resulting table
+        Fields to use as metadata for each record in resulting table.
     meta_prefix : string, default None
     record_prefix : string, default None
         If True, prefix records with dotted (?) path, e.g. foo.bar.field if
@@ -147,11 +147,13 @@ def json_normalize(data, record_path=None, meta=None,
 
         .. versionadded:: 0.20.0
 
-    max_level : integer, max depth to normalize, default sNone
+    max_level : integer, default None
+        Max no of levels(depth of dict) to normalize. None, normalizes all levels.
 
         .. versionadded:: 0.24.0
 
-    ignore_keys : list, keys to ignore, default None
+    ignore_keys : list, keys to ignore, default 0
+        List of keys that you do not want to normalize.
 
         .. versionadded:: 0.24.0
 
@@ -173,17 +175,18 @@ def json_normalize(data, record_path=None, meta=None,
     2  2.0  Faye Raker         NaN        NaN        NaN       NaN
 
     >>> from pandas.io.json import json_normalize
-    >>> data = [{'id': 1, 'name': {'first': 'Coleen', 'last': 'Volk'},
+    >>> data = [{'id': 1,
+    ...          'name': {'first': 'Coleen', 'last': 'Volk'},
     ...          "fitness":{"height":130, "weight":60}},
     ...         {'name': {'given': 'Mose', 'family': 'Regner'},
-    ...          "fitness":{"height":130, "weight":60}},},
+    ...          "fitness":{"height":130, "weight":60}},
     ...         {'id': 2, 'name': 'Faye Raker',
-    ...          "fitness":{"height":130, "weight":60}}}]
+    ...          "fitness":{"height":130, "weight":60}}]
     >>> json_normalize(data, max_level=1, ignore_keys=["name"])
-        id      name                             fitness.height  fitness.weight
-    0  1.0    {'first': 'Coleen', 'last': 'Volk'}      130               60
-    1  NaN    {'given': 'Mose', 'family': 'Regner'}    130               60
-    2  2.0     Faye Raker                              130               60
+         fitness.height  fitness.weight   id                  name
+    0        130              60          1.0    {'first': 'Coleen', 'last': 'Volk'}
+    1        130              60          NaN  {'given': 'Mose', 'family': 'Regner'}
+    2        130              60          2.0                             Faye Raker
 
     >>> data = [{'state': 'Florida',
     ...          'shortname': 'FL',
@@ -203,12 +206,12 @@ def json_normalize(data, record_path=None, meta=None,
     >>> result = json_normalize(data, 'counties', ['state', 'shortname',
     ...                                           ['info', 'governor']])
     >>> result
-             name  population info.governor    state shortname
-    0        Dade       12345    Rick Scott  Florida        FL
-    1     Broward       40000    Rick Scott  Florida        FL
-    2  Palm Beach       60000    Rick Scott  Florida        FL
-    3      Summit        1234   John Kasich     Ohio        OH
-    4    Cuyahoga        1337   John Kasich     Ohio        OH
+             name  population    state shortname info.governor
+    0        Dade       12345   Florida    FL    Rick Scott
+    1     Broward       40000   Florida    FL    Rick Scott
+    2  Palm Beach       60000   Florida    FL    Rick Scott
+    3      Summit        1234   Ohio       OH    John Kasich
+    4    Cuyahoga        1337   Ohio       OH    John Kasich
 
     >>> data = {'A': [1, 2]}
     >>> json_normalize(data, 'A', record_prefix='Prefix.')
@@ -280,7 +283,9 @@ def json_normalize(data, record_path=None, meta=None,
         else:
             for obj in data:
                 recs = _pull_field(obj, path[0])
-                recs = [nested_to_record(r, sep=sep, max_level=max_level)
+                recs = [nested_to_record(r, sep=sep,
+                                         max_level=max_level,
+                                         ignore_keys=ignore_keys)
                         if isinstance(r, dict) else r for r in recs]
 
                 # For repeating the metadata later
