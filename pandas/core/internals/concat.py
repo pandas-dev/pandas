@@ -11,8 +11,8 @@ from pandas.util._decorators import cache_readonly
 from pandas.core.dtypes.cast import maybe_promote
 from pandas.core.dtypes.common import (
     _get_dtype, is_categorical_dtype, is_datetime64_dtype,
-    is_datetime64tz_dtype, is_float_dtype, is_numeric_dtype, is_sparse,
-    is_timedelta64_dtype)
+    is_datetime64tz_dtype, is_extension_array_dtype, is_float_dtype,
+    is_numeric_dtype, is_sparse, is_timedelta64_dtype)
 import pandas.core.dtypes.concat as _concat
 from pandas.core.dtypes.missing import isna
 
@@ -306,6 +306,8 @@ def get_empty_dtype_and_na(join_units):
             upcast_cls = 'timedelta'
         elif is_sparse(dtype):
             upcast_cls = dtype.subtype.name
+        elif is_extension_array_dtype(dtype):
+            upcast_cls = 'object'
         elif is_float_dtype(dtype) or is_numeric_dtype(dtype):
             upcast_cls = dtype.name
         else:

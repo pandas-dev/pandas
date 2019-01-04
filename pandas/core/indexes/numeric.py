@@ -7,8 +7,8 @@ import pandas.compat as compat
 from pandas.util._decorators import Appender, cache_readonly
 
 from pandas.core.dtypes.common import (
-    is_bool, is_bool_dtype, is_dtype_equal, is_float, is_integer_dtype,
-    is_scalar, needs_i8_conversion, pandas_dtype)
+    is_bool, is_bool_dtype, is_dtype_equal, is_extension_array_dtype, is_float,
+    is_integer_dtype, is_scalar, needs_i8_conversion, pandas_dtype)
 import pandas.core.dtypes.concat as _concat
 from pandas.core.dtypes.missing import isna
 
@@ -328,7 +328,9 @@ class Float64Index(NumericIndex):
             msg = ('Cannot convert Float64Index to dtype {dtype}; integer '
                    'values are required for conversion').format(dtype=dtype)
             raise TypeError(msg)
-        elif is_integer_dtype(dtype) and self.hasnans:
+        elif (is_integer_dtype(dtype) and
+              not is_extension_array_dtype(dtype)) and self.hasnans:
+            # TODO(jreback); this can change once we have an EA Index type
             # GH 13149
             raise ValueError('Cannot convert NA to integer')
         return super(Float64Index, self).astype(dtype, copy=copy)

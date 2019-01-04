@@ -9,8 +9,7 @@ from pandas._libs import tslib, tslibs
 from pandas.core.dtypes.common import (
     _NS_DTYPE, _TD_DTYPE, is_bool_dtype, is_categorical_dtype,
     is_datetime64_dtype, is_datetime64tz_dtype, is_dtype_equal,
-    is_extension_array_dtype, is_interval_dtype, is_object_dtype,
-    is_period_dtype, is_sparse, is_timedelta64_dtype)
+    is_extension_array_dtype, is_object_dtype, is_sparse, is_timedelta64_dtype)
 from pandas.core.dtypes.generic import (
     ABCDatetimeArray, ABCDatetimeIndex, ABCIndexClass, ABCPeriodIndex,
     ABCRangeIndex, ABCSparseDataFrame, ABCTimedeltaIndex)
@@ -51,9 +50,7 @@ def get_dtype_kinds(l):
             typ = 'object'
         elif is_bool_dtype(dtype):
             typ = 'bool'
-        elif is_period_dtype(dtype):
-            typ = str(arr.dtype)
-        elif is_interval_dtype(dtype):
+        elif is_extension_array_dtype(dtype):
             typ = str(arr.dtype)
         else:
             typ = dtype.kind
@@ -136,7 +133,6 @@ def _concat_compat(to_concat, axis=0):
     # np.concatenate which has them both implemented is compiled.
 
     typs = get_dtype_kinds(to_concat)
-
     _contains_datetime = any(typ.startswith('datetime') for typ in typs)
     _contains_period = any(typ.startswith('period') for typ in typs)
 
