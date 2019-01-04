@@ -489,10 +489,17 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         """
         return self._data.formatting_values()
 
+    def _internal_get_values(self):
+        """
+        DEPRECATED: Same as values (but handles sparseness conversions); is a view.
+        """
+        return self._data.get_values()
+
     def get_values(self):
         """
-        Same as values (but handles sparseness conversions); is a view.
+        DEPRECATED: Same as values (but handles sparseness conversions); is a view.
         """
+        warnings.warn("deprecated", FutureWarning, stacklevel=2)
         return self._data.get_values()
 
     @property

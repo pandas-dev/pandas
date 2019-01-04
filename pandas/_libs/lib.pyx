@@ -79,7 +79,7 @@ def values_from_object(obj: object):
     """ return my values or the object if we are say an ndarray """
     func: object
 
-    func = getattr(obj, 'get_values', None)
+    func = getattr(obj, '_internal_get_values', None)
     if func is not None:
         obj = func()
 
