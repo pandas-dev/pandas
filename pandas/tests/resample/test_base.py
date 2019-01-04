@@ -218,5 +218,5 @@ def test_resample_quantile_all_ts(series):
     q = 0.75
     freq = 'H'
     result = s.resample(freq).quantile(q)
-    expected = s.resample(freq).agg(lambda x: x.quantile(q))
+    expected = s.resample(freq).agg(lambda x: x.quantile(q)).rename(s.name)
     tm.assert_series_equal(result, expected)
