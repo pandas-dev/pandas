@@ -2207,13 +2207,17 @@ class DatetimeBlock(DatetimeLikeBlockMixin, Block):
     def _try_coerce_result(self, result):
         """ reverse of try_coerce_args """
         if isinstance(result, np.ndarray):
-            if result.dtype.kind in ['i', 'f', 'O']:
-                try:
-                    result = result.astype('M8[ns]')
-                except ValueError:
-                    pass
+            try:
+                arr = self._holder._from_sequence(result.ravel())
+                # TODO: tzawareness-compat check?
+            except ValueError:
+                pass
+            else:
+                result = arr._data.reshape(result.shape)
+
         elif isinstance(result, (np.integer, np.float, np.datetime64)):
             result = self._box_func(result)
+            # TODO: np.float is kinda weird here.
         return result
 
     @property
@@ -2275,6 +2279,8 @@ class DatetimeTZBlock(ExtensionBlock, DatetimeBlock):
         # and just use DatetimeBlock's.
         if dtype is not None:
             values = self._maybe_coerce_values(values, dtype=dtype)
+            # TODO: this gets hit in msgpack tests, but in all cases the values
+            #  are already DatetimeArrays with the appropriate dtype
         super(DatetimeTZBlock, self).__init__(values, placement=placement,
                                               ndim=ndim)
 
@@ -2386,6 +2392,7 @@ class DatetimeTZBlock(ExtensionBlock, DatetimeBlock):
         if isinstance(other, bool):
             raise TypeError
         elif is_datetime64_dtype(other):
+            # TODO: wont this catch np.datetime64 scalar?
             # add the tz back
             other = self._holder(other, dtype=self.dtype)
 
@@ -2411,10 +2418,17 @@ class DatetimeTZBlock(ExtensionBlock, DatetimeBlock):
     def _try_coerce_result(self, result):
         """ reverse of try_coerce_args """
         if isinstance(result, np.ndarray):
-            if result.dtype.kind in ['i', 'f', 'O']:
-                result = result.astype('M8[ns]')
+            try:
+                arr = self._holder._from_sequence(result.ravel())
+                # TODO: pass own tz?  tzawareness-compat?
+            except ValueError:
+                pass
+            else:
+                result = arr._data.reshape(result.shape)
+
         elif isinstance(result, (np.integer, np.float, np.datetime64)):
             result = self._box_func(result)
+
         if isinstance(result, np.ndarray):
             # allow passing of > 1dim if its trivial
 
@@ -2557,11 +2571,7 @@ class TimeDeltaBlock(DatetimeLikeBlockMixin, IntBlock):
             raise TypeError
         elif is_null_datetimelike(other):
             other = tslibs.iNaT
-        elif isinstance(other, Timedelta):
-            other = other.value
-        elif isinstance(other, timedelta):
-            other = Timedelta(other).value
-        elif isinstance(other, np.timedelta64):
+        elif isinstance(other, (timedelta, np.timedelta64)):
             other = Timedelta(other).value
         elif hasattr(other, 'dtype') and is_timedelta64_dtype(other):
             other = other.astype('i8', copy=False).view('i8')
@@ -2575,12 +2585,16 @@ class TimeDeltaBlock(DatetimeLikeBlockMixin, IntBlock):
     def _try_coerce_result(self, result):
         """ reverse of try_coerce_args / try_operate """
         if isinstance(result, np.ndarray):
-            mask = isna(result)
-            if result.dtype.kind in ['i', 'f', 'O']:
-                result = result.astype('m8[ns]')
-            result[mask] = tslibs.iNaT
+            try:
+                arr = self._holder._from_sequence(result.ravel())
+            except ValueError:
+                pass
+            else:
+                result = arr._data.reshape(result.shape)
+
         elif isinstance(result, (np.integer, np.float)):
             result = self._box_func(result)
+
         return result
 
     def should_store(self, value):
