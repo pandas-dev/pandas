@@ -2178,17 +2178,11 @@ class DatetimeBlock(DatetimeLikeBlockMixin, Block):
     def _try_coerce_result(self, result):
         """ reverse of try_coerce_args """
         if isinstance(result, np.ndarray):
-            try:
-                arr = self._holder._from_sequence(result.ravel())
-                # TODO: tzawareness-compat check?
-            except ValueError:
-                pass
-            else:
-                result = arr._data.reshape(result.shape)
+            if result.dtype.kind in ['i', 'f']:
+                result = result.astype('M8[ns]')
 
         elif isinstance(result, (np.integer, np.float, np.datetime64)):
             result = self._box_func(result)
-            # TODO: np.float is kinda weird here.
         return result
 
     @property
@@ -2389,13 +2383,8 @@ class DatetimeTZBlock(ExtensionBlock, DatetimeBlock):
     def _try_coerce_result(self, result):
         """ reverse of try_coerce_args """
         if isinstance(result, np.ndarray):
-            try:
-                arr = self._holder._from_sequence(result.ravel())
-                # TODO: pass own tz?  tzawareness-compat?
-            except ValueError:
-                pass
-            else:
-                result = arr._data.reshape(result.shape)
+            if result.dtype.kind in ['i', 'f']:
+                result = result.astype('M8[ns]')
 
         elif isinstance(result, (np.integer, np.float, np.datetime64)):
             result = self._box_func(result)
@@ -2556,12 +2545,10 @@ class TimeDeltaBlock(DatetimeLikeBlockMixin, IntBlock):
     def _try_coerce_result(self, result):
         """ reverse of try_coerce_args / try_operate """
         if isinstance(result, np.ndarray):
-            try:
-                arr = self._holder._from_sequence(result.ravel())
-            except ValueError:
-                pass
-            else:
-                result = arr._data.reshape(result.shape)
+            mask = isna(result)
+            if result.dtype.kind in ['i', 'f']:
+                result = result.astype('m8[ns]')
+            result[mask] = tslibs.iNaT
 
         elif isinstance(result, (np.integer, np.float)):
             result = self._box_func(result)
