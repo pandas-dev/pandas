@@ -322,13 +322,9 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index, PeriodDelegateMixin):
                 # this quite a bit.
                 values = period_array(values, freq=self.freq)
 
-        # I don't like overloading shallow_copy with freq changes.
-        # See if it's used anywhere outside of test_resample_empty_dataframe
+        # We don't allow changing `freq` in _shallow_copy.
+        validate_dtype_freq(self.dtype, kwargs.get('freq'))
         attributes = self._get_attributes_dict()
-        freq = kwargs.pop("freq", None)
-        if freq:
-            values = values.asfreq(freq)
-            attributes.pop("freq", None)
 
         attributes.update(kwargs)
         if not len(values) and 'dtype' not in kwargs:
