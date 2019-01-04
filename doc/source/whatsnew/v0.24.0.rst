@@ -1327,6 +1327,7 @@ Performance Improvements
 - Improved performance of iterating over a :class:`Series`. Using :meth:`DataFrame.itertuples` now creates iterators
   without internally allocating lists of all elements (:issue:`20783`)
 - Improved performance of :class:`Period` constructor, additionally benefitting ``PeriodArray`` and ``PeriodIndex`` creation (:issue:`24084` and :issue:`24118`)
+- Improved performance of tz-aware :class:`DatetimeArray` binary operations (:issue:`24491`)
 
 .. _whatsnew_0240.docs:
 
