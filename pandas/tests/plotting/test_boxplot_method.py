@@ -1,21 +1,20 @@
 # coding: utf-8
 
-import pytest
 import itertools
 import string
 
-from pandas import Series, DataFrame, MultiIndex
-from pandas.compat import range, lzip
-import pandas.util.testing as tm
-import pandas.util._test_decorators as td
-
 import numpy as np
 from numpy import random
+import pytest
+
+from pandas.compat import lzip, range
+import pandas.util._test_decorators as td
+
+from pandas import DataFrame, MultiIndex, Series
+from pandas.tests.plotting.common import TestPlotBase, _check_plot_works
+import pandas.util.testing as tm
 
 import pandas.plotting as plotting
-
-from pandas.tests.plotting.common import (TestPlotBase, _check_plot_works)
-
 
 """ Test cases for .boxplot method """
 

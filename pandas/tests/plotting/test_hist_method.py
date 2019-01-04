@@ -2,18 +2,18 @@
 
 """ Test cases for .hist method """
 
-import pytest
-
-from pandas import Series, DataFrame
-import pandas.util.testing as tm
-import pandas.util._test_decorators as td
-
 import numpy as np
 from numpy.random import randn
+import pytest
 
-from pandas.plotting._core import grouped_hist
+import pandas.util._test_decorators as td
+
+from pandas import DataFrame, Series
+from pandas.tests.plotting.common import TestPlotBase, _check_plot_works
+import pandas.util.testing as tm
+
 from pandas.plotting._compat import _mpl_ge_2_2_0
-from pandas.tests.plotting.common import (TestPlotBase, _check_plot_works)
+from pandas.plotting._core import grouped_hist
 
 
 @td.skip_if_no_mpl
