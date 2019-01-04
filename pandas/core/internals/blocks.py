@@ -2106,10 +2106,6 @@ class DatetimeLikeBlockMixin(object):
             return values
         return self.values
 
-    @property
-    def asi8(self):
-        return self.values.view('i8')
-
 
 class DatetimeBlock(DatetimeLikeBlockMixin, Block):
     __slots__ = ()
