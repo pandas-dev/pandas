@@ -83,8 +83,7 @@ For full docs, see the :ref:`categorical introduction <categorical>` and the
     # Reorder the categories and simultaneously add the missing categories
     df["grade"] = df["grade"].cat.set_categories(["very bad",
                                                   "bad", "medium",
-                                                 "good", "very good"]
-                                                 )
+                                                  "good", "very good"])
     df["grade"]
     df.sort_values("grade")
     df.groupby("grade").size()
@@ -233,8 +232,8 @@ A new display option ``display.memory_usage`` (see :ref:`options`) sets the defa
     dtypes = ['int64', 'float64', 'datetime64[ns]', 'timedelta64[ns]',
               'complex128', 'object', 'bool']
     n = 5000
-    data = [(t, np.random.randint(100, size=n).astype(t))
-            for t in dtypes]
+    data = dict[(t, np.random.randint(100, size=n).astype(t))
+                for t in dtypes])
     df = pd.DataFrame(data)
     df['categorical'] = df['object'].astype('category')
 
@@ -253,8 +252,8 @@ Additionally :meth:`~pandas.DataFrame.memory_usage` is an available method for a
 ^^^^^^^^^^^^
 
 ``Series`` has gained an accessor to succinctly return datetime like properties for the *values* of the Series, if its a datetime/period like Series. (:issue:`7207`)
-This will return a Series, indexed like the existing Series. See the :ref:`docs <basics.dt_accessors>`
 
+This will return a Series, indexed like the existing Series. See the :ref:`docs <basics.dt_accessors>`
 .. ipython:: python
 
    # datetime
@@ -321,7 +320,8 @@ Timezone handling improvements
      ts.tz_localize(None)
 
      didx = pd.DatetimeIndex(
-         start='2014-08-01 09:00', freq='H', periods=10, tz='US/Eastern')
+         start='2014-08-01 09:00',
+         freq='H', periods=10, tz='US/Eastern')
      didx
      didx.tz_localize(None)
 
@@ -411,7 +411,7 @@ Rolling/Expanding Moments improvements
 
   .. ipython:: python
 
-    s = Series([10.5, 8.8, 11.4, 9.7, 9.3])
+     s = Series([10.5, 8.8, 11.4, 9.7, 9.3])
 
   Behavior prior to 0.15.0:
 
@@ -460,19 +460,19 @@ Rolling/Expanding Moments improvements
 
   .. ipython:: python
 
-    s  = Series([1, None, None, None, 2, 3])
+     s = Series([1, None, None, None, 2, 3])
 
   .. code-block:: ipython
 
-	In [51]: ewma(s, com=3., min_periods=2)
-	Out[51]:
-	0         NaN
-	1         NaN
-	2    1.000000
-	3    1.000000
-	4    1.571429
-	5    2.189189
-	dtype: float64
+	 In [51]: ewma(s, com=3., min_periods=2)
+	 Out[51]:
+	 0         NaN
+	 1         NaN
+	 2    1.000000
+	 3    1.000000
+	 4    1.571429
+	 5    2.189189
+	 dtype: float64
 
   New behavior (note values start at index ``4``, the location of the 2nd (since ``min_periods=2``) non-empty value):
 
@@ -509,16 +509,14 @@ Rolling/Expanding Moments improvements
      2    5.2
      dtype: float64
 
-     In [8]: pd.ewma(pd.Series
-             ([1., None, 8.]), com=2., ignore_na=True)  # pre-0.15.0 behavior
+     In [8]: pd.ewma(pd.Series([1., None, 8.]), com=2., ignore_na=True)  # pre-0.15.0 behavior
      Out[8]:
      0    1.0
      1    1.0
      2    5.2
      dtype: float64
 
-     In[9]: pd.ewma(
-             pd.Series([1., None, 8.]), com=2., ignore_na=False)  # new default
+     In[9]: pd.ewma(pd.Series([1., None, 8.]), com=2., ignore_na=False)  # new default
 
      Out[9]:
      0    1.000000
@@ -614,8 +612,8 @@ Improvements in the sql io module
 
   .. code-block:: python
 
-         df.to_sql('table', pd.engine, schema='other_schema')
-         pd.read_sql_table('table', pd.engine, schema='other_schema')
+         df.to_sql('table', engine, schema='other_schema')
+         pd.read_sql_table('table', engine, schema='other_schema')
 
 - Added support for writing ``NaN`` values with ``to_sql`` (:issue:`2754`).
 - Added support for writing datetime64 columns with ``to_sql`` for all database flavors (:issue:`7103`).
@@ -772,8 +770,7 @@ Other notable API changes:
 
   Behavior prior to v0.15.0
 
-  ..  code-block:: ipython
-
+  .. code-block:: ipython
 
       # the original object
       In [5]: s
