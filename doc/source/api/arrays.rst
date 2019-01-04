@@ -1,19 +1,29 @@
 {{ header }}
 
-.. _api:
+.. _api.arrays:
 
-Pandas extends NumPy's type system in several places.
+=============
+Pandas Arrays
+=============
+
+.. currentmodule:: pandas
+
+For most data types, pandas uses NumPy arrays as the concrete
+objects contained with a :class:`Index`, :class:`Series`, or
+:class:`DataFrame`.
+
+For some data types, pandas extends NumPy's type system.
 
 =================== ========================= ================== ======================
 Kind of Data        Pandas Data Type          Scalar             Array
 =================== ========================= ================== ======================
-tz-aware datetime   :class:`DatetimeTZDtype`  :class:`Timestamp` :ref:`api.datetime`
-timedetlas          (none)                    :class:`Timedelta` :ref:`api.timedelta`
-period (time spans) :class:`PeriodDtype`      :class:`Period`    :ref:`api.period`
-intervals           :class:`IntervalDtype`    :class:`Interval`  :ref:`api.interval`
-nullable integer    :class:`Int64Dtype`, ...  (none)             :ref:`api.integer_na`
+TZ-aware datetime   :class:`DatetimeTZDtype`  :class:`Timestamp` :ref:`api.datetime`
+Timedeltas          (none)                    :class:`Timedelta` :ref:`api.timedelta`
+Period (time spans) :class:`PeriodDtype`      :class:`Period`    :ref:`api.period`
+Intervals           :class:`IntervalDtype`    :class:`Interval`  :ref:`api.interval`
+Nullable Integer    :class:`Int64Dtype`, ...  (none)             :ref:`api.integer_na`
 Categorical         :class:`CategoricalDtype` (none)             :ref:`api.categorical`
-sparse              :class:`SparseDtype`      (none)             :ref:`api.sparse`
+Sparse              :class:`SparseDtype`      (none)             :ref:`api.sparse`
 =================== ========================= ================== ======================
 
 Each of these arrays may be stored in a :class:`Index`, :class:`Series`, or as
@@ -255,25 +265,25 @@ Interval Data
 Arbitrary intervals can be represented as :class:`Interval` objects.
 
 .. autosummary::
-    :toctree: generated/
+   :toctree: generated/
 
     Interval
 
 Properties
 ~~~~~~~~~~
 .. autosummary::
-    :toctree: generated/
+   :toctree: generated/
 
-    Interval.closed
-    Interval.closed_left
-    Interval.closed_right
-    Interval.left
-    Interval.length
-    Interval.mid
-    Interval.open_left
-    Interval.open_right
-    Interval.overlaps
-    Interval.right
+   Interval.closed
+   Interval.closed_left
+   Interval.closed_right
+   Interval.left
+   Interval.length
+   Interval.mid
+   Interval.open_left
+   Interval.open_right
+   Interval.overlaps
+   Interval.right
 
 A collection of intervals may be stored in an :class:`IntervalArray`.
 
