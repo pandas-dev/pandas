@@ -109,7 +109,10 @@ def test_resample_empty_series_all_ts(freq, empty_series, resample_method):
     result = getattr(s.resample(freq), resample_method)()
 
     expected = s.copy()
-    expected.index = s.index._shallow_copy(freq=freq)
+    if isinstance(s.index, PeriodIndex):
+        expected.index = s.index.asfreq(freq=freq)
+    else:
+        expected.index = s.index._shallow_copy(freq=freq)
     assert_index_equal(result.index, expected.index)
     assert result.index.freq == expected.index.freq
     assert_series_equal(result, expected, check_dtype=False)
@@ -127,7 +130,10 @@ def test_resample_empty_dataframe_all_ts(empty_frame, freq, resample_method):
         # GH14962
         expected = Series([])
 
-    expected.index = df.index._shallow_copy(freq=freq)
+    if isinstance(df.index, PeriodIndex):
+        expected.index = df.index.asfreq(freq=freq)
+    else:
+        expected.index = df.index._shallow_copy(freq=freq)
     assert_index_equal(result.index, expected.index)
     assert result.index.freq == expected.index.freq
     assert_almost_equal(result, expected, check_dtype=False)
