@@ -56,7 +56,7 @@ class NAMask():
         if self._has_bitarray:
             raise NotImplementedError
 
-        return ~self._data
+        return type(self)(~self._data)
 
     def __or__(self, other):
         if self._has_bitarray:
@@ -77,17 +77,24 @@ class NAMask():
 
         return self._data.nbytes
 
+    @property
+    def size(self):
+        if self._has_bitarray:
+            raise NotImplementedError
+
+        return self._data.size        
+
     def astype(self, dtype, copy=False):
         if self._has_bitarray:
             raise NotImplementedError
 
         return self._data.astype(dtype, copy=copy)
 
-    def copy(self):
-        if self._has_bitarray:
-            raise NotImplementedError
+    def any(self):
+        return self._data.any()
 
-        return self._data.copy()
+    def copy(self):
+        return type(self)(self._data.copy())
 
     def sum(self):
         if self._has_bitarray:
