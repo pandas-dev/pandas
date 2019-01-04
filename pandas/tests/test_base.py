@@ -1241,7 +1241,7 @@ def test_numpy_array_all_dtypes(any_numpy_dtype):
     # tz-aware Datetime
     (DatetimeArray(np.array(['2000-01-01T12:00:00',
                              '2000-01-02T12:00:00'],
-                            dtype='M8[ns]'),
+                            dtype='M8[ns]').view('i8'),
                    dtype=DatetimeTZDtype(tz="US/Central")),
      '_data'),
 ])
@@ -1255,7 +1255,7 @@ def test_array(array, attr, box):
         array = getattr(array, attr)
         result = getattr(result, attr)
 
-    assert result is array
+    assert result is array or result.base is array.base
 
 
 def test_array_multiindex_raises():
@@ -1282,7 +1282,7 @@ def test_array_multiindex_raises():
     # tz-aware stays tz`-aware
     (DatetimeArray(np.array(['2000-01-01T06:00:00',
                              '2000-01-02T06:00:00'],
-                            dtype='M8[ns]'),
+                            dtype='M8[ns]').view('i8'),
                    dtype=DatetimeTZDtype(tz='US/Central')),
      np.array([pd.Timestamp('2000-01-01', tz='US/Central'),
                pd.Timestamp('2000-01-02', tz='US/Central')])),

@@ -28,7 +28,8 @@ class TestDatetimeArrayConstructor(object):
         arr = DatetimeArray(np.array(['2000-01-01T06:00:00'], dtype='M8[ns]'),
                             dtype=DatetimeTZDtype(tz='US/Central'))
         dtype = DatetimeTZDtype(tz='US/Eastern')
-        with pytest.raises(TypeError, match='Timezone of the array'):
+        with pytest.raises(TypeError,
+                           match='data is already tz-aware US/Central'):
             DatetimeArray(arr, dtype=dtype)
 
     def test_non_array_raises(self):
@@ -51,10 +52,11 @@ class TestDatetimeArrayConstructor(object):
     def test_copy(self):
         data = np.array([1, 2, 3], dtype='M8[ns]')
         arr = DatetimeArray(data, copy=False)
-        assert arr._data is data
+        assert arr._data.base is data
 
         arr = DatetimeArray(data, copy=True)
         assert arr._data is not data
+        assert arr._data.base is not data
 
 
 class TestDatetimeArrayComparisons(object):

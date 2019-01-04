@@ -4360,7 +4360,7 @@ class DataFrame(NDFrame):
                     values.fill(np.nan)
                 else:
                     values = values.take(labels)
-
+                    #
                     # TODO(https://github.com/pandas-dev/pandas/issues/24206)
                     # Push this into maybe_upcast_putmask?
                     # We can't pass EAs there right now. Looks a bit
@@ -4377,7 +4377,8 @@ class DataFrame(NDFrame):
                             values, mask, np.nan)
 
                     if issubclass(values_type, DatetimeLikeArray):
-                        values = values_type(values, dtype=values_dtype)
+                        values = values_type._simple_new(values,
+                                                         dtype=values_dtype)
 
             return values
 

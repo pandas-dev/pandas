@@ -236,83 +236,52 @@ class DatetimeArray(dtl.DatetimeLikeArrayMixin,
     _dtype = None  # type: Union[np.dtype, DatetimeTZDtype]
     _freq = None
 
-    def __init__(self, values, dtype=_NS_DTYPE, freq=None, copy=False):
-        if isinstance(values, (ABCSeries, ABCIndexClass)):
-            values = values._values
-
-        if isinstance(values, type(self)):
-            # validation
-            dtz = getattr(dtype, 'tz', None)
-            if dtz and values.tz is None:
-                dtype = DatetimeTZDtype(tz=dtype.tz)
-            elif dtz and values.tz:
-                if not timezones.tz_compare(dtz, values.tz):
-                    msg = (
-                        "Timezone of the array and 'dtype' do not match. "
-                        "'{}' != '{}'"
-                    )
-                    raise TypeError(msg.format(dtz, values.tz))
-            elif values.tz:
-                dtype = values.dtype
-            # freq = validate_values_freq(values, freq)
-            if freq is None:
-                freq = values.freq
-            values = values._data
-
-        if not isinstance(values, np.ndarray):
-            msg = (
-                "Unexpected type '{}'. 'values' must be a DatetimeArray "
-                "ndarray, or Series or Index containing one of those."
-            )
-            raise ValueError(msg.format(type(values).__name__))
-
-        if values.dtype == 'i8':
-            # for compat with datetime/timedelta/period shared methods,
-            #  we can sometimes get here with int64 values.  These represent
-            #  nanosecond UTC (or tz-naive) unix timestamps
-            values = values.view(_NS_DTYPE)
-
-        if values.dtype != _NS_DTYPE:
-            msg = (
-                "The dtype of 'values' is incorrect. Must be 'datetime64[ns]'."
-                " Got {} instead."
-            )
-            raise ValueError(msg.format(values.dtype))
-
-        dtype = _validate_dt64_dtype(dtype)
-
+    def __init__(self, values, dtype=None, freq=None, copy=False):
         if freq == "infer":
-            msg = (
+            raise ValueError(
                 "Frequency inference not allowed in DatetimeArray.__init__. "
-                "Use 'pd.array()' instead."
-            )
-            raise ValueError(msg)
+                "Use 'pd.array()' instead.")
 
-        if copy:
-            values = values.copy()
-        if freq:
-            freq = to_offset(freq)
-        if getattr(dtype, 'tz', None):
-            # https://github.com/pandas-dev/pandas/issues/18595
-            # Ensure that we have a standard timezone for pytz objects.
-            # Without this, things like adding an array of timedeltas and
-            # a  tz-aware Timestamp (with a tz specific to its datetime) will
-            # be incorrect(ish?) for the array as a whole
-            dtype = DatetimeTZDtype(tz=timezones.tz_standardize(dtype.tz))
+        if not hasattr(values, "dtype"):
+            # e.g. list
+            raise ValueError(
+                "Unexpected type '{vals}'. 'values' must be a DatetimeArray "
+                "ndarray, or Series or Index containing one of those."
+                .format(vals=type(values).__name__))
 
-        self._data = values
-        self._dtype = dtype
-        self._freq = freq
+        if values.dtype == np.bool_:
+            raise ValueError(
+                "The dtype of 'values' is incorrect. Must be 'datetime64[ns]'."
+                " Got {dtype} instead."
+                .format(dtype=values.dtype))
+
+        arr = type(self)._from_sequence(values, dtype=dtype,
+                                        freq=freq, copy=copy)
+        self._data = arr._data
+        self._freq = arr._freq
+        self._dtype = arr._dtype
 
     @classmethod
-    def _simple_new(cls, values, freq=None, tz=None):
+    def _simple_new(cls, values, freq=None, tz=None, dtype=None):
         """
         we require the we have a dtype compat for the values
         if we are passed a non-dtype compat, then coerce using the constructor
         """
-        dtype = DatetimeTZDtype(tz=tz) if tz else _NS_DTYPE
+        if tz is not None:
+            # TODO: get tz out of here altogether
+            assert dtype is None
+            tz = timezones.tz_standardize(tz)
+            dtype = DatetimeTZDtype(tz=tz)
+        elif dtype is None:
+            dtype = _NS_DTYPE
 
-        return cls(values, freq=freq, dtype=dtype)
+        assert isinstance(values, np.ndarray), type(values)
+
+        result = object.__new__(cls)
+        result._data = values.view('datetime64[ns]')
+        result._freq = freq
+        result._dtype = dtype
+        return result
 
     @classmethod
     def _from_sequence(cls, data, dtype=None, copy=False,

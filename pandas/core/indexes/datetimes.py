@@ -316,12 +316,12 @@ class DatetimeIndex(DatetimeIndexOpsMixin, Int64Index, DatetimeDelegateMixin):
                 tz = validate_tz_from_dtype(dtype, tz)
                 dtype = DatetimeTZDtype(tz=tz)
             elif dtype is None:
-                dtype = _NS_DTYPE
+                dtype = values.dtype
 
             values = DatetimeArray(values, freq=freq, dtype=dtype)
             tz = values.tz
             freq = values.freq
-            values = values._data
+            values = values._data.view('i8')
 
         # DatetimeArray._simple_new will accept either i8 or M8[ns] dtypes
         if isinstance(values, DatetimeIndex):
