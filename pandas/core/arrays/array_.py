@@ -47,13 +47,13 @@ def array(data,         # type: Sequence[object]
         Currently, pandas will infer an extension dtype for sequences of
 
         ============================== =====================================
-        scalar type                    Array Type
-        =============================  =====================================
-        * :class:`pandas.Interval`     :class:`pandas.IntervalArray`
-        * :class:`pandas.Period`       :class:`pandas.arrays.PeriodArray`
-        * :class:`datetime.datetime`   :class:`pandas.arrays.DatetimeArray`
-        * :class:`datetime.timedelta`  :class:`pandas.arrays.TimedeltaArray`
-        =============================  =====================================
+        Scalar Type                    Array Type
+        ============================== =====================================
+        :class:`pandas.Interval`       :class:`pandas.IntervalArray`
+        :class:`pandas.Period`         :class:`pandas.arrays.PeriodArray`
+        :class:`datetime.datetime`     :class:`pandas.arrays.DatetimeArray`
+        :class:`datetime.timedelta`    :class:`pandas.arrays.TimedeltaArray`
+        ============================== =====================================
 
         For all other cases, NumPy's usual inference rules will be used.
 

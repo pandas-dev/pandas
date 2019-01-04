@@ -9250,10 +9250,9 @@ class NDFrame(PandasObject, SelectionMixin):
             - 'NaT' will return NaT where there are ambiguous times
             - 'raise' will raise an AmbiguousTimeError if there are ambiguous
               times
-        nonexistent : 'shift_forward', 'shift_backward, 'NaT', timedelta,
-                      default 'raise'
+        nonexistent : str, default 'raise'
             A nonexistent time does not exist in a particular timezone
-            where clocks moved forward due to DST.
+            where clocks moved forward due to DST. Valid valuse are:
 
             - 'shift_forward' will shift the nonexistent time forward to the
               closest existing time

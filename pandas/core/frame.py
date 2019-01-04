@@ -6978,7 +6978,7 @@ class DataFrame(NDFrame):
         cats   0.3  1.0
 
         See Also
-        -------
+        --------
         DataFrame.corrwith
         Series.corr
         """
