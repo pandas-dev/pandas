@@ -639,22 +639,23 @@ class NDFrame(PandasObject, SelectionMixin):
         Parameters
         ----------
         %(params)s
-        append : boolean, default False
+        append : bool, default False
             Whether to append columns to existing index.
-        inplace : boolean, default False
+        inplace : bool, default False
             Modify the %(klass)s in place (do not create a new object).
-        verify_integrity : boolean, default False
+        verify_integrity : bool, default False
             Check the new index for duplicates. Otherwise defer the check until
             necessary. Setting to False will improve the performance of this
             method.
 
         Returns
         -------
-        reindexed : %(klass)s if inplace is False, else None
+        %(klass)s
+            The reindexed %(klass)s. Will be None if inplace is True.
 
         See Also
         --------
-        %(other_klass)s.set_index: method adapted for %(other_klass)s
+        %(other_klass)s.set_index: Method adapted for %(other_klass)s.
         %(klass)s.reset_index : Opposite of set_index.
         %(klass)s.reindex : Change to new indices or expand indices.
         %(klass)s.reindex_like : Change to same indices as other %(klass)s.

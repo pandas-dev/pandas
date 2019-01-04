@@ -4042,9 +4042,8 @@ class DataFrame(NDFrame):
             Either a column label, Series, Index, MultiIndex, list, np.ndarray
             or a list containing only column labels, Series, Index, MultiIndex,
             list np.ndarray.
-        drop : boolean, default True
-            Delete columns to be used as the new index.\
-        """),
+        drop : bool, default True
+            Delete columns to be used as the new index."""),
         examples=dedent("""\
         >>> df = pd.DataFrame({'month': [1, 4, 7, 10],
         ...                    'year': [2012, 2014, 2013, 2014],
@@ -4084,8 +4083,7 @@ class DataFrame(NDFrame):
         1  2012  1      55
         2  2014  4      40
         3  2013  7      84
-        4  2014  10     31
-        """)
+        4  2014  10     31""")
     )
     @Appender(NDFrame.set_index.__doc__)
     def set_index(self, keys, drop=True, append=False, inplace=False,

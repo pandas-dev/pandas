@@ -1176,8 +1176,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         params=dedent("""\
         arrays : array or list of arrays
             Either a Series, Index, MultiIndex, list, np.ndarray or a list
-            containing only Series, Index, MultiIndex, list, np.ndarray.\
-        """),
+            containing only Series, Index, MultiIndex, list, np.ndarray."""),
         examples=dedent("""\
         >>> s = pd.Series(range(10, 13))
         >>> s
@@ -1217,8 +1216,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         a  I      10
         b  II     11
         c  III    12
-        dtype: int64
-        """)
+        dtype: int64""")
     )
     @Appender(generic.NDFrame.set_index.__doc__)
     def set_index(self, arrays, append=False, inplace=False,
