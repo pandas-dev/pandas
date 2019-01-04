@@ -47,11 +47,11 @@ Next example gives an idea on how a docstring looks like:
 
     Examples
     --------
-    >>> add(2, 2)  # noqa F821
+    >>> add(2, 2)
     4
-    >>> add(25, 0)  # noqa F821
+    >>> add(25, 0)
     25
-    >>> add(10, -10)  # noqa F821
+    >>> add(10, -10)
     0
     """
     return num1 + num2
@@ -187,7 +187,7 @@ infinitive verb.
 
 .. code-block:: python
 
-    def astype(dtype):  # noqa F811
+    def astype(dtype):
         """
         Casts Series type.
 
@@ -197,7 +197,7 @@ infinitive verb.
 
 .. code-block:: python
 
-    def astype(dtype):  # noqa F811
+    def astype(dtype):
         """
         Method to cast Series type.
 
@@ -207,7 +207,7 @@ infinitive verb.
 
 .. code-block:: python
 
-    def astype(dtype):  # noqa F811
+    def astype(dtype):
         """
         Cast Series type
 
@@ -217,7 +217,7 @@ infinitive verb.
 
 .. code-block:: python
 
-    def astype(dtype):  # noqa F811
+    def astype(dtype):
         """
         Cast Series type from its current type to the new type defined in
         the parameter dtype.
@@ -322,7 +322,7 @@ would be used, then we will specify "str, int or None, default None".
 
 .. code-block:: python
 
-    class Series:  # noqa F811
+    class Series:
         def plot(self, kind, **kwargs):
             """
             Generate a plot.
@@ -560,7 +560,7 @@ For example:
 
 .. code-block:: python
 
-    class Series:  # noqa F811
+    class Series:
         def head(self):
             """
             Return the first 5 elements of the Series.
@@ -688,8 +688,8 @@ shown:
 
 .. code-block:: python
 
-    import numpy as np          # noqa: F401
-    import pandas as pd         # noqa: F401
+    import numpy as np
+    import pandas as pd
 
 Any other module used in the examples must be explicitly imported, one per line (as
 recommended in :pep:`8#imports`)
@@ -911,7 +911,7 @@ plot will be generated automatically when building the documentation.
 
 .. code-block:: python
 
-    class Series:  # noqa F811
+    class Series:
         def plot(self):
             """
             Generate a plot with the `Series` data.
@@ -955,15 +955,15 @@ substitute the children's class names in this docstring.
 
 
    class ChildA(Parent):
-       @Substitution(klass="ChildA")  # noqa F821
-       @Appender(Parent.my_function.__doc__)  # noqa F821
+       @Substitution(klass="ChildA")
+       @Appender(Parent.my_function.__doc__)
        def my_function(self):
            ...
 
 
    class ChildB(Parent):
-       @Substitution(klass="ChildB")  # noqa F821
-       @Appender(Parent.my_function.__doc__)  # noqa F821
+       @Substitution(klass="ChildB")
+       @Appender(Parent.my_function.__doc__)
        def my_function(self):
            ...
 
@@ -992,7 +992,7 @@ You can substitute and append in one shot with something like
 
 .. code-block:: python
 
-   @Appender(template % _shared_doc_kwargs)  # noqa F821
+   @Appender(template % _shared_doc_kwargs)
    def my_function(self):
        ...
 

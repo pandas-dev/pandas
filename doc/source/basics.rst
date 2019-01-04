@@ -807,15 +807,15 @@ Compare the following
 .. code-block:: python
 
    # f, g, and h are functions taking and returning ``DataFrames``
-   >>> f(g(h(df), arg1=1), arg2=2, arg3=3)  # noqa F821
+   >>> f(g(h(df), arg1=1), arg2=2, arg3=3)
 
 with the equivalent
 
 .. code-block:: python
 
-   >>> (df.pipe(h)                   # noqa F821
-   ...    .pipe(g, arg1=1)           # noqa F821
-   ...    .pipe(f, arg2=2, arg3=3))  # noqa F821
+   >>> (df.pipe(h)
+   ...    .pipe(g, arg1=1)
+   ...    .pipe(f, arg2=2, arg3=3))
 
 Pandas encourages the second style, which is known as method chaining.
 ``pipe`` makes it easy to use your own or another library's functions
