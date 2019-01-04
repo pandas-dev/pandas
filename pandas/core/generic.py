@@ -664,7 +664,9 @@ class NDFrame(PandasObject, SelectionMixin):
         --------
         %(examples)s
         """
-        # parameter keys is checked in Series.set_index / DataFrame.set_index!
+        # parameter keys is checked in Series.set_index / DataFrame.set_index,
+        # will always be passed as a list of list-likes!
+
         inplace = validate_bool_kwarg(inplace, 'inplace')
         if inplace:
             obj = self

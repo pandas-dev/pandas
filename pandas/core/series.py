@@ -1222,6 +1222,8 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
     def set_index(self, arrays, append=False, inplace=False,
                   verify_integrity=False):
 
+        # NDFrame.set_index expects a list of list-likes. Lists of scalars
+        # must be wrapped in another list to avoid being interpreted as keys.
         if not isinstance(arrays, list) or all(is_scalar(x) for x in arrays):
             arrays = [arrays]
 
