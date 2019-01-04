@@ -158,7 +158,7 @@ class TestCategoricalIndex(Base):
         tm.assert_index_equal(result, expected, exact=True)
 
         # error when combining categories/ordered and dtype kwargs
-        msg = 'Cannot specify both `dtype` and `categories` or `ordered`.'
+        msg = 'Cannot specify `categories` or `ordered` together with `dtype`.'
         with pytest.raises(ValueError, match=msg):
             CategoricalIndex(data, categories=cats, dtype=dtype)
 

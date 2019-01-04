@@ -107,29 +107,23 @@ class CategoricalIndex(Index, accessor.PandasDelegate):
             if fastpath:
                 return cls._simple_new(data, name=name, dtype=dtype)
 
+        dtype = CategoricalDtype._from_values_or_dtype(data, categories,
+                                                       ordered, dtype)
+
         if name is None and hasattr(data, 'name'):
             name = data.name
 
-        if isinstance(data, ABCCategorical):
-            data = cls._create_categorical(data, categories, ordered,
-                                           dtype)
-        elif isinstance(data, CategoricalIndex):
-            data = data._data
-            data = cls._create_categorical(data, categories, ordered,
-                                           dtype)
-        else:
-
+        if not is_categorical_dtype(data):
             # don't allow scalars
             # if data is None, then categories must be provided
             if is_scalar(data):
                 if data is not None or categories is None:
                     cls._scalar_data_error(data)
                 data = []
-            data = cls._create_categorical(data, categories, ordered,
-                                           dtype)
 
-        if copy:
-            data = data.copy()
+        data = cls._create_categorical(data, dtype=dtype)
+
+        data = data.copy() if copy else data
 
         return cls._simple_new(data, name=name)
 
@@ -159,8 +153,7 @@ class CategoricalIndex(Index, accessor.PandasDelegate):
         return CategoricalIndex(cat, name=name)
 
     @classmethod
-    def _create_categorical(cls, data, categories=None, ordered=None,
-                            dtype=None):
+    def _create_categorical(cls, data, dtype=None):
         """
         *this is an internal non-public method*
 
@@ -169,8 +162,6 @@ class CategoricalIndex(Index, accessor.PandasDelegate):
         Parameters
         ----------
         data : data for new Categorical
-        categories : optional categories, defaults to existing
-        ordered : optional ordered attribute, defaults to existing
         dtype : CategoricalDtype, defaults to existing
 
         Returns
@@ -182,18 +173,11 @@ class CategoricalIndex(Index, accessor.PandasDelegate):
             data = data.values
 
         if not isinstance(data, ABCCategorical):
-            if ordered is None and dtype is None:
-                ordered = False
-            data = Categorical(data, categories=categories, ordered=ordered,
-                               dtype=dtype)
-        else:
-            if categories is not None:
-                data = data.set_categories(categories, ordered=ordered)
-            elif ordered is not None and ordered != data.ordered:
-                data = data.set_ordered(ordered)
-            if isinstance(dtype, CategoricalDtype) and dtype != data.dtype:
-                # we want to silently ignore dtype='category'
-                data = data._set_dtype(dtype)
+            return Categorical(data, dtype=dtype)
+
+        if isinstance(dtype, CategoricalDtype) and dtype != data.dtype:
+            # we want to silently ignore dtype='category'
+            data = data._set_dtype(dtype)
         return data
 
     @classmethod

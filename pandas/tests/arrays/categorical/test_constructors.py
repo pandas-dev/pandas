@@ -368,7 +368,7 @@ class TestCategoricalConstructors(object):
         tm.assert_categorical_equal(result, expected)
 
     def test_constructor_str_unknown(self):
-        with pytest.raises(ValueError, match="Unknown `dtype`"):
+        with pytest.raises(ValueError, match="Unknown dtype"):
             Categorical([1, 2], dtype="foo")
 
     def test_constructor_from_categorical_with_dtype(self):
