@@ -9223,7 +9223,10 @@ class NDFrame(PandasObject, SelectionMixin):
     def tz_localize(self, tz, axis=0, level=None, copy=True,
                     ambiguous='raise', nonexistent='raise'):
         """
-        Localize tz-naive TimeSeries to target time zone.
+        Localize tz-naive index of a Series or DataFrame to target time zone.
+
+        This operation localizes the Index. To localize the values in a
+        timezone-naive Series, use :meth:`Series.dt.tz_localize`.
 
         Parameters
         ----------
@@ -9267,6 +9270,8 @@ class NDFrame(PandasObject, SelectionMixin):
 
         Returns
         -------
+        Series or DataFrame
+            Same type as the input.
 
         Raises
         ------
