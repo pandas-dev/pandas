@@ -1310,7 +1310,6 @@ The default behavior remains the same, but issues a warning
 The old or new behavior can be obtained by specifying the ``dtype``
 
 .. ipython:: python
-   :okwarning:
 
    # Old behavior
    np.asarray(ser, dtype='datetime64[ns]')
@@ -1318,6 +1317,15 @@ The old or new behavior can be obtained by specifying the ``dtype``
    # New behavior
    np.asarray(ser, dtype=object)
 
+
+Or by using :meth:`Series.to_numpy`
+
+.. ipython:: python
+
+   ser.to_numpy()
+   ser.to_numpy(dtype="datetime64[ns]")
+
+All the above applies to a :class:`DatetimeIndex` with tz-aware values as well.
 
 .. _whatsnew_0240.prior_deprecations:
 
