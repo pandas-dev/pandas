@@ -215,8 +215,28 @@ arrays. For example:
    s2.dtype
 
 This trade-off is made largely for memory and performance reasons, and also so
-that the resulting ``Series`` continues to be "numeric". One possibility is to
-use ``dtype=object`` arrays instead.
+that the resulting ``Series`` continues to be "numeric".
+
+If you need to represent integers with possibly missing values, use one of
+the nullable-integer extension dtypes provided by pandas
+
+* :class:`Int8Dtype`
+* :class:`Int16Dtype`
+* :class:`Int32Dtype`
+* :class:`Int64Dtype`
+
+.. ipython:: python
+
+   s_int = pd.Series([1, 2, 3, 4, 5], index=list('abcde'),
+                     dtype=pd.Int64Dtype())
+   s_int
+   s_int.dtype
+
+   s2_int = s_int.reindex(['a', 'b', 'c', 'f', 'u'])
+   s2_int
+   s2_int.dtype
+
+See :ref:`integer_na` for more.
 
 ``NA`` type promotions
 ~~~~~~~~~~~~~~~~~~~~~~

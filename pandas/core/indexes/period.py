@@ -8,8 +8,7 @@ from pandas._libs import index as libindex
 from pandas._libs.tslibs import NaT, iNaT, resolution
 from pandas._libs.tslibs.period import (
     DIFFERENT_FREQ, IncompatibleFrequency, Period)
-from pandas.util._decorators import (
-    Appender, Substitution, cache_readonly, deprecate_kwarg)
+from pandas.util._decorators import Appender, Substitution, cache_readonly
 
 from pandas.core.dtypes.common import (
     is_bool_dtype, is_datetime64_any_dtype, is_float, is_float_dtype,
@@ -289,10 +288,6 @@ class PeriodIndex(DatelikeOps, DatetimeIndexOpsMixin, Int64Index,
         return self._data
 
     @property
-    def _ndarray_values(self):
-        return self._data._ndarray_values
-
-    @property
     def values(self):
         return np.asarray(self)
 
@@ -471,34 +466,6 @@ class PeriodIndex(DatelikeOps, DatetimeIndexOpsMixin, Int64Index,
 
     # ------------------------------------------------------------------------
     # Index Methods
-
-    @deprecate_kwarg(old_arg_name='n', new_arg_name='periods')
-    def shift(self, periods):
-        """
-        Shift index by desired number of increments.
-
-        This method is for shifting the values of period indexes
-        by a specified time increment.
-
-        Parameters
-        ----------
-        periods : int, default 1
-            Number of periods (or increments) to shift by,
-            can be positive or negative.
-
-            .. versionchanged:: 0.24.0
-
-        Returns
-        -------
-        pandas.PeriodIndex
-            Shifted index.
-
-        See Also
-        --------
-        DatetimeIndex.shift : Shift values of DatetimeIndex.
-        """
-        i8values = self._data._time_shift(periods)
-        return self._simple_new(i8values, name=self.name, freq=self.freq)
 
     def _coerce_scalar_to_index(self, item):
         """

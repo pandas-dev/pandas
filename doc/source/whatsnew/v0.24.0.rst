@@ -159,7 +159,9 @@ Reduction and groupby operations such as 'sum' work.
 
 .. warning::
 
-   The Integer NA support currently uses the captilized dtype version, e.g. ``Int8`` as compared to the traditional ``int8``. This may be changed at a future date.
+   The Integer NA support currently uses the capitalized dtype version, e.g. ``Int8`` as compared to the traditional ``int8``. This may be changed at a future date.
+
+See :ref:`integer_na` for more.
 
 .. _whatsnew_0240.enhancements.array:
 
@@ -670,6 +672,31 @@ is the case with :attr:`Period.end_time`, for example
    pd.Series(pi).dt.end_time[0]
 
    p.end_time
+
+.. _whatsnew_0240.api_breaking.datetime_unique:
+
+The return type of :meth:`Series.unique` for datetime with timezone values has changed
+from an :class:`numpy.ndarray` of :class:`Timestamp` objects to a :class:`arrays.DatetimeArray` (:issue:`24024`).
+
+.. ipython:: python
+
+   ser = pd.Series([pd.Timestamp('2000', tz='UTC'),
+                    pd.Timestamp('2000', tz='UTC')])
+
+*Previous Behavior*:
+
+.. code-block:: ipython
+
+   In [3]: ser.unique()
+   Out[3]: array([Timestamp('2000-01-01 00:00:00+0000', tz='UTC')], dtype=object)
+
+
+*New Behavior*:
+
+.. ipython:: python
+
+   ser.unique()
+
 
 .. _whatsnew_0240.api_breaking.sparse_values:
 
@@ -1605,6 +1632,8 @@ Notice how we now instead output ``np.nan`` itself instead of a stringified form
 - :func:`read_sas()` will correctly parse sas7bdat files with data page types having also bit 7 set (so page type is 128 + 256 = 384) (:issue:`16615`)
 - Bug in :meth:`detect_client_encoding` where potential ``IOError`` goes unhandled when importing in a mod_wsgi process due to restricted access to stdout. (:issue:`21552`)
 - Bug in :func:`to_html()` with ``index=False`` misses truncation indicators (...) on truncated DataFrame (:issue:`15019`, :issue:`22783`)
+- Bug in :func:`to_html()` with ``index=False`` when both columns and row index are ``MultiIndex`` (:issue:`22579`)
+- Bug in :func:`to_html()` with ``index_names=False`` displaying index name (:issue:`22747`)
 - Bug in :func:`DataFrame.to_string()` that broke column alignment when ``index=False`` and width of first column's values is greater than the width of first column's header (:issue:`16839`, :issue:`13032`)
 - Bug in :func:`DataFrame.to_string()` that caused representations of :class:`DataFrame` to not take up the whole window (:issue:`22984`)
 - Bug in :func:`DataFrame.to_csv` where a single level MultiIndex incorrectly wrote a tuple. Now just the value of the index is written (:issue:`19589`).
@@ -1626,6 +1655,7 @@ Notice how we now instead output ``np.nan`` itself instead of a stringified form
 - Bug in :func:`pandas.io.json.json_normalize` that caused it to raise ``TypeError`` when two consecutive elements of ``record_path`` are dicts (:issue:`22706`)
 - Bug in :meth:`DataFrame.to_stata`, :class:`pandas.io.stata.StataWriter` and :class:`pandas.io.stata.StataWriter117` where a exception would leave a partially written and invalid dta file (:issue:`23573`)
 - Bug in :meth:`DataFrame.to_stata` and :class:`pandas.io.stata.StataWriter117` that produced invalid files when using strLs with non-ASCII characters (:issue:`23573`)
+- Bug in :class:`HDFStore` that caused it to raise ``ValueError`` when reading a Dataframe in Python 3 from fixed format written in Python 2 (:issue:`24510`)
 
 Plotting
 ^^^^^^^^

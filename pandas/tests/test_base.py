@@ -11,14 +11,18 @@ import pandas as pd
 import pandas.compat as compat
 from pandas.core.dtypes.common import (
     is_object_dtype, is_datetime64_dtype, is_datetime64tz_dtype,
-    needs_i8_conversion)
+    needs_i8_conversion, is_timedelta64_dtype)
 import pandas.util.testing as tm
 from pandas import (Series, Index, DatetimeIndex, TimedeltaIndex,
                     PeriodIndex, Timedelta, IntervalIndex, Interval,
                     CategoricalIndex, Timestamp, DataFrame, Panel)
+from pandas.core.arrays import (
+    PandasArray,
+    DatetimeArrayMixin as DatetimeArray,
+    TimedeltaArrayMixin as TimedeltaArray,
+)
 from pandas.compat import StringIO, PYPY, long
 from pandas.compat.numpy import np_array_datetime64_compat
-from pandas.core.arrays import PandasArray
 from pandas.core.accessor import PandasDelegate
 from pandas.core.base import PandasObject, NoNewAttributesMixin
 from pandas.core.indexes.datetimelike import DatetimeIndexOpsMixin
@@ -383,8 +387,10 @@ class TestIndexOps(Ops):
                 assert result[0] == orig[0]
                 for r in result:
                     assert isinstance(r, Timestamp)
-                tm.assert_numpy_array_equal(result,
-                                            orig._values.astype(object).values)
+
+                tm.assert_numpy_array_equal(
+                    result.astype(object),
+                    orig._values.astype(object))
             else:
                 tm.assert_numpy_array_equal(result, orig.values)
 
@@ -431,7 +437,7 @@ class TestIndexOps(Ops):
                     o = klass(values.repeat(range(1, len(o) + 1)))
                     o.name = 'a'
                 else:
-                    if is_datetime64tz_dtype(o):
+                    if isinstance(o, DatetimeIndex):
                         expected_index = orig._values._shallow_copy(values)
                     else:
                         expected_index = Index(values)
@@ -472,8 +478,7 @@ class TestIndexOps(Ops):
                                           Index(values[1:], name='a'))
                 elif is_datetime64tz_dtype(o):
                     # unable to compare NaT / nan
-                    vals = values[2:].astype(object).values
-                    tm.assert_numpy_array_equal(result[1:], vals)
+                    tm.assert_extension_array_equal(result[1:], values[2:])
                     assert result[0] is pd.NaT
                 else:
                     tm.assert_numpy_array_equal(result[1:], values[2:])
@@ -1149,7 +1154,7 @@ class TestToIterable(object):
     (np.array(['a', 'b']), np.ndarray, 'object'),
     (pd.Categorical(['a', 'b']), pd.Categorical, 'category'),
     (pd.DatetimeIndex(['2017', '2018']), np.ndarray, 'datetime64[ns]'),
-    (pd.DatetimeIndex(['2017', '2018'], tz="US/Central"), pd.DatetimeIndex,
+    (pd.DatetimeIndex(['2017', '2018'], tz="US/Central"), DatetimeArray,
      'datetime64[ns, US/Central]'),
     (pd.TimedeltaIndex([10**10]), np.ndarray, 'm8[ns]'),
     (pd.PeriodIndex([2018, 2019], freq='A'), pd.core.arrays.PeriodArray,
@@ -1187,7 +1192,6 @@ def test_ndarray_values(array, expected):
 
 @pytest.mark.parametrize("arr", [
     np.array([1, 2, 3]),
-    np.array([1, 2, 3], dtype="datetime64[ns]"),
 ])
 def test_numpy_array(arr):
     ser = pd.Series(arr)
@@ -1199,7 +1203,12 @@ def test_numpy_array(arr):
 def test_numpy_array_all_dtypes(any_numpy_dtype):
     ser = pd.Series(dtype=any_numpy_dtype)
     result = ser.array
-    assert isinstance(result, PandasArray)
+    if is_datetime64_dtype(any_numpy_dtype):
+        assert isinstance(result, DatetimeArray)
+    elif is_timedelta64_dtype(any_numpy_dtype):
+        assert isinstance(result, TimedeltaArray)
+    else:
+        assert isinstance(result, PandasArray)
 
 
 @pytest.mark.parametrize("array, attr", [
