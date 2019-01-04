@@ -10,7 +10,7 @@ from .common import (
     _NS_DTYPE, _TD_DTYPE, ensure_object, is_bool_dtype, is_complex_dtype,
     is_datetime64_dtype, is_datetime64tz_dtype, is_datetimelike,
     is_datetimelike_v_numeric, is_dtype_equal, is_extension_array_dtype,
-    is_float_dtype, is_integer, is_integer_dtype, is_object_dtype,
+    is_float_dtype, is_integer_dtype, is_object_dtype,
     is_period_dtype, is_scalar, is_string_dtype, is_string_like_dtype,
     is_timedelta64_dtype, needs_i8_conversion, pandas_dtype)
 from .generic import (
@@ -337,22 +337,6 @@ def notna(obj):
 
 
 notnull = notna
-
-
-def is_null_datelike_scalar(other):
-    """ test whether the object is a null datelike, e.g. Nat
-    but guard against passing a non-scalar """
-    if other is NaT or other is None:
-        return True
-    elif is_scalar(other):
-
-        # a timedelta
-        if hasattr(other, 'dtype'):
-            return other.view('i8') == iNaT
-        elif is_integer(other) and other == iNaT:
-            return True
-        return isna(other)
-    return False
 
 
 def _isna_compat(arr, fill_value=np.nan):
