@@ -240,6 +240,36 @@ class TestDatetimeArray(SharedTests):
         expected = dti - pd.Timedelta(minutes=1)
         tm.assert_index_equal(result, expected)
 
+    def test_array_interface(self, datetime_index):
+        arr = DatetimeArray(datetime_index)
+
+        # default asarray gives the same underlying data (for tz naive)
+        result = np.asarray(arr)
+        expected = arr._data
+        assert result is expected
+        tm.assert_numpy_array_equal(result, expected)
+        result = np.array(arr, copy=False)
+        assert result is expected
+        tm.assert_numpy_array_equal(result, expected)
+
+        # to object dtype
+        result = np.asarray(arr, dtype=object)
+        expected = np.array(list(arr), dtype=object)
+        tm.assert_numpy_array_equal(result, expected)
+
+        # to other dtype always copies
+        result = np.asarray(arr, dtype='int64')
+        assert result is not arr.asi8
+        assert not np.may_share_memory(arr, result)
+        expected = arr.asi8.copy()
+        tm.assert_numpy_array_equal(result, expected)
+
+        # other dtypes handled by numpy
+        for dtype in ['float64', str]:
+            result = np.asarray(arr, dtype=dtype)
+            expected = np.asarray(arr).astype(dtype)
+            tm.assert_numpy_array_equal(result, expected)
+
     def test_array_object_dtype(self, tz_naive_fixture):
         # GH#23524
         tz = tz_naive_fixture
@@ -253,25 +283,6 @@ class TestDatetimeArray(SharedTests):
 
         # also test the DatetimeIndex method while we're at it
         result = np.array(dti, dtype=object)
-        tm.assert_numpy_array_equal(result, expected)
-
-    def test_array(self, datetime_index):
-        arr = DatetimeArray(datetime_index)
-
-        result = np.asarray(arr)
-        expected = arr._data
-        assert result is expected
-        tm.assert_numpy_array_equal(result, expected)
-
-        result = np.asarray(arr, dtype=object)
-        expected = np.array(list(arr), dtype=object)
-        tm.assert_numpy_array_equal(result, expected)
-
-        # to other dtype always copies
-        result = np.asarray(arr, dtype='int64')
-        assert result is not arr.asi8
-        assert not np.may_share_memory(arr, result)
-        expected = arr.asi8.copy()
         tm.assert_numpy_array_equal(result, expected)
 
     def test_array_tz(self, tz_naive_fixture):
@@ -488,9 +499,10 @@ class TestTimedeltaArray(SharedTests):
 
         tm.assert_numpy_array_equal(result, expected)
 
-    def test_array(self, timedelta_index):
+    def test_array_interface(self, timedelta_index):
         arr = TimedeltaArray(timedelta_index)
 
+        # default asarray gives the same underlying data
         result = np.asarray(arr)
         expected = arr._data
         assert result is expected
@@ -591,16 +603,19 @@ class TestPeriodArray(SharedTests):
 
         tm.assert_numpy_array_equal(result, expected)
 
-    def test_array(self, period_index):
+    def test_array_interface(self, period_index):
         arr = PeriodArray(period_index)
 
+        # default asarray gives objects
         result = np.asarray(arr)
         expected = np.array(list(arr), dtype=object)
         tm.assert_numpy_array_equal(result, expected)
 
+        # to object dtype (same as default)
         result = np.asarray(arr, dtype=object)
         tm.assert_numpy_array_equal(result, expected)
 
+        # to other dtypes
         with pytest.raises(TypeError):
             np.asarray(arr, dtype='int64')
 
