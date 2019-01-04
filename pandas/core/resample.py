@@ -404,7 +404,7 @@ class Resampler(_GroupBy):
 
         if isinstance(result, ABCSeries) and result.empty:
             obj = self.obj
-            result.index = obj.index._shallow_copy(freq=to_offset(self.freq))
+            result.index = obj.index.asfreq(self.freq)
             result.name = getattr(obj, 'name', None)
 
         return result
