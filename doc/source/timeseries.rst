@@ -2425,21 +2425,25 @@ a convert on an aware stamp.
 .. note::
 
    Using :meth:`Series.to_numpy` on a ``Series``, returns a NumPy array of the data.
-   These values are converted to UTC, as NumPy does not currently support timezones (even though it is *printing* in the local timezone!).
+   NumPy does not currently support timezones (even though it is *printing* in the local timezone!),
+   therefore an object array of Timestamps is returned for timezone aware data:
 
    .. ipython:: python
 
       s_naive.to_numpy()
       s_aware.to_numpy()
 
-   Further note that once converted to a NumPy array these would lose the tz tenor.
+   By converting to an object array of Timestamps, it preserves the timezone
+   information. For example, when converting back to a Series:
 
    .. ipython:: python
 
       pd.Series(s_aware.to_numpy())
 
-   However, these can be easily converted:
+   However, if you want an actual NumPy ``datetime64[ns]`` array (with the values
+   converted to UTC) instead of an array of objects, you can specify the
+   ``dtype`` argument:
 
    .. ipython:: python
 
-      pd.Series(s_aware.to_numpy()).dt.tz_localize('UTC').dt.tz_convert('US/Eastern')
+      s_aware.to_numpy(dtype='datetime64[ns]')

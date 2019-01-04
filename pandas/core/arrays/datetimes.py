@@ -127,7 +127,7 @@ def _dt_array_cmp(cls, op):
                 except ValueError:
                     other = np.array(other, dtype=np.object_)
             elif not isinstance(other, (np.ndarray, ABCIndexClass, ABCSeries,
-                                        DatetimeArrayMixin)):
+                                        DatetimeArray)):
                 # Following Timestamp convention, __eq__ is all-False
                 # and __ne__ is all True, others raise TypeError.
                 return ops.invalid_comparison(self, other, op)
@@ -176,9 +176,9 @@ def _dt_array_cmp(cls, op):
     return compat.set_function_name(wrapper, opname, cls)
 
 
-class DatetimeArrayMixin(dtl.DatetimeLikeArrayMixin,
-                         dtl.TimelikeOps,
-                         dtl.DatelikeOps):
+class DatetimeArray(dtl.DatetimeLikeArrayMixin,
+                    dtl.TimelikeOps,
+                    dtl.DatelikeOps):
     """
     Pandas ExtensionArray for tz-naive or tz-aware datetime data.
 
@@ -335,7 +335,9 @@ class DatetimeArrayMixin(dtl.DatetimeLikeArrayMixin,
             cls._validate_frequency(result, freq, ambiguous=ambiguous)
 
         elif freq_infer:
-            result.freq = to_offset(result.inferred_freq)
+            # Set _freq directly to bypass duplicative _validate_frequency
+            # check.
+            result._freq = to_offset(result.inferred_freq)
 
         return result
 
@@ -718,7 +720,7 @@ class DatetimeArrayMixin(dtl.DatetimeLikeArrayMixin,
         -------
         result : DatetimeArray
         """
-        new_values = super(DatetimeArrayMixin, self)._add_delta(delta)
+        new_values = super(DatetimeArray, self)._add_delta(delta)
         return type(self)._from_sequence(new_values, tz=self.tz, freq='infer')
 
     # -----------------------------------------------------------------
@@ -1135,10 +1137,10 @@ class DatetimeArrayMixin(dtl.DatetimeLikeArrayMixin,
         TimedeltaArray/Index
         """
         # TODO: consider privatizing (discussion in GH#23113)
-        from pandas.core.arrays.timedeltas import TimedeltaArrayMixin
+        from pandas.core.arrays.timedeltas import TimedeltaArray
         i8delta = self.asi8 - self.to_period(freq).to_timestamp().asi8
         m8delta = i8delta.view('m8[ns]')
-        return TimedeltaArrayMixin(m8delta)
+        return TimedeltaArray(m8delta)
 
     # -----------------------------------------------------------------
     # Properties - Vectorized Timestamp Properties/Methods
@@ -1610,7 +1612,7 @@ class DatetimeArrayMixin(dtl.DatetimeLikeArrayMixin,
                  ) / 24.0)
 
 
-DatetimeArrayMixin._add_comparison_ops()
+DatetimeArray._add_comparison_ops()
 
 
 # -------------------------------------------------------------------
