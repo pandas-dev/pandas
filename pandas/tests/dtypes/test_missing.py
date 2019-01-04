@@ -418,6 +418,8 @@ inf_vals = [
     float('-inf'),
     complex('inf'),
     complex('-inf'),
+    np.inf,
+    np.NINF,
 ]
 
 int_na_vals = [
