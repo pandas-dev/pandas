@@ -1462,13 +1462,15 @@ class Block(PandasObject):
             else:
                 # create the array of na_values
                 # 2d len(values) * len(qs)
-                result = np.repeat(np.array([self._na_value] * len(qs)),
+                result = np.repeat(np.array([self.fill_value] * len(qs)),
                                    len(values)).reshape(len(values),
                                                         len(qs))
         else:
-            mask = isna(self.values)
+            # asarray needed for Sparse, see GH#24600
+            # TODO: Why self.values and not values?
+            mask = np.asarray(isna(self.values))
             result = nanpercentile(values, np.array(qs) * 100,
-                                   axis=axis, na_value=self._na_value,
+                                   axis=axis, na_value=self.fill_value,
                                    mask=mask, ndim=self.ndim,
                                    interpolation=interpolation)
 
@@ -1484,8 +1486,6 @@ class Block(PandasObject):
 
         ndim = getattr(result, 'ndim', None) or 0
         result = self._try_coerce_result(result)
-        if lib.is_scalar(result):
-            return result  # FIXME: doesn't match signature
         return make_block(result,
                           placement=np.arange(len(result)),
                           ndim=ndim)

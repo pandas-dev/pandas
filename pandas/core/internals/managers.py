@@ -425,6 +425,10 @@ class BlockManager(PandasObject):
         Block Manager (new object)
         """
 
+        # Series dispatches to DataFrame for quantile, which allows us to
+        #  simplify some of the code here and in the blocks
+        assert self.ndim >= 2
+
         if consolidate:
             self._consolidate_inplace()
 
@@ -448,16 +452,8 @@ class BlockManager(PandasObject):
             blocks.append(block)
 
         # note that some DatetimeTZ, Categorical are always ndim==1
-        # we may cheat and have a scalar in `blocks`.
-        ndim = {np.ndim(b) for b in blocks}
-        if 0 in ndim:
-            # we cheated and returned a scalar instead of a dummy block;
-            #  this is only reached in the Series case
-            assert len(blocks) == 1, blocks
-            assert lib.is_scalar(blocks[0]), blocks[0]
-            assert len(self.blocks) == 1, self.blocks
-            assert self.blocks[0].ndim == 1, self.blocks[0]  # i.e. Series
-            return blocks[0]
+        ndim = {b.ndim for b in blocks}
+        assert 0 not in ndim, ndim
 
         if 2 in ndim:
 
