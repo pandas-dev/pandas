@@ -586,7 +586,7 @@ class DatetimeArray(dtl.DatetimeLikeArrayMixin,
 
     @Appender(dtl.DatetimeLikeArrayMixin._validate_fill_value.__doc__)
     def _validate_fill_value(self, fill_value):
-        if isna(fill_value) or fill_value == iNaT:
+        if isna(fill_value):
             fill_value = iNaT
         elif isinstance(fill_value, (datetime, np.datetime64)):
             self._assert_tzawareness_compat(fill_value)

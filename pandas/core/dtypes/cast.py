@@ -5,7 +5,7 @@ from datetime import datetime, timedelta
 import numpy as np
 
 from pandas._libs import lib, tslib, tslibs
-from pandas._libs.tslibs import OutOfBoundsDatetime, Period, iNaT
+from pandas._libs.tslibs import OutOfBoundsDatetime, Period, iNaT, NaT
 from pandas.compat import PY3, string_types, text_type, to_str
 
 from .common import (
@@ -272,7 +272,7 @@ def maybe_promote(dtype, fill_value=np.nan):
         fill_value = tslibs.Timedelta(fill_value).value
     elif is_datetime64tz_dtype(dtype):
         if isna(fill_value):
-            fill_value = iNaT
+            fill_value = NaT
     elif is_extension_array_dtype(dtype) and isna(fill_value):
         fill_value = dtype.na_value
     elif is_float(fill_value):
