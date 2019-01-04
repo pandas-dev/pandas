@@ -4647,6 +4647,7 @@ Write to a feather file.
 Read from a feather file.
 
 .. ipython:: python
+   :okwarning:
 
    result = pd.read_feather('example.feather')
    result
@@ -4721,6 +4722,7 @@ Write to a parquet file.
 Read from a parquet file.
 
 .. ipython:: python
+   :okwarning:
 
    result = pd.read_parquet('example_fp.parquet', engine='fastparquet')
    result = pd.read_parquet('example_pa.parquet', engine='pyarrow')
@@ -4791,6 +4793,7 @@ Partitioning Parquet files
 Parquet supports partitioning of data based on the values of one or more columns.
 
 .. ipython:: python
+    :okwarning:
 
     df = pd.DataFrame({'a': [0, 0, 1, 1], 'b': [0, 1, 0, 1]})
     df.to_parquet(fname='test', engine='pyarrow',
@@ -4880,7 +4883,7 @@ below and the SQLAlchemy `documentation <https://docs.sqlalchemy.org/en/latest/c
 
 If you want to manage your own connections you can pass one of those instead:
 
-.. ipython:: python
+.. code-block:: python
 
    with engine.connect() as conn, conn.begin():
        data = pd.read_sql_table('data', conn)

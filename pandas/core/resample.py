@@ -1407,7 +1407,7 @@ class TimeGrouper(Grouper):
                                      tz=ax.tz,
                                      name=ax.name,
                                      ambiguous='infer',
-                                     nonexistent='shift')
+                                     nonexistent='shift_forward')
 
         ax_values = ax.asi8
         binner, bin_edges = self._adjust_bin_edges(binner, ax_values)

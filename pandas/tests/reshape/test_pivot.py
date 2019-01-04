@@ -1,20 +1,20 @@
 # -*- coding: utf-8 -*-
 
-from datetime import datetime, date, timedelta
-
-import pytest
-
+from collections import OrderedDict
+from datetime import date, datetime, timedelta
 
 import numpy as np
+import pytest
 
-from collections import OrderedDict
+from pandas.compat import product, range
+
 import pandas as pd
-from pandas import (DataFrame, Series, Index, MultiIndex,
-                    Grouper, date_range, concat, Categorical)
-from pandas.core.reshape.pivot import pivot_table, crosstab
-from pandas.compat import range, product
-import pandas.util.testing as tm
+from pandas import (
+    Categorical, DataFrame, Grouper, Index, MultiIndex, Series, concat,
+    date_range)
 from pandas.api.types import CategoricalDtype as CDT
+from pandas.core.reshape.pivot import crosstab, pivot_table
+import pandas.util.testing as tm
 
 
 @pytest.fixture(params=[True, False])
