@@ -508,6 +508,10 @@ Serialization / IO / Conversion
    Series.to_clipboard
    Series.to_latex
 
+
+Sparse
+------
+
 .. autosummary::
    :toctree: generated/
 
