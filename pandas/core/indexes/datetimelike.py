@@ -203,15 +203,6 @@ class DatetimeIndexOpsMixin(ExtensionOpsMixin):
             return type(self)._simple_new(result, name=self.name)
         return arg
 
-    def _box_values_as_index(self):
-        """
-        Return object Index which contains boxed values.
-        """
-        # XXX: this is broken (not called) for PeriodIndex, which doesn't
-        # define _box_values AFAICT
-        from pandas.core.index import Index
-        return Index(self._box_values(self.asi8), name=self.name, dtype=object)
-
     def _box_values(self, values):
         return self._data._box_values(values)
 
