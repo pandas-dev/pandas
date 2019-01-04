@@ -549,7 +549,8 @@ class TestTypeInference(object):
         result = lib.infer_dtype(arr, skipna=True)
         assert result == 'integer'
 
-    def test_warn(self):
+    def test_deprecation(self):
+        # GH 24050
         arr = np.array([1, 2, 3], dtype=object)
 
         with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
