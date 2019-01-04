@@ -18,7 +18,6 @@ dependencies:
   - python=3.6.6
   - pytz
   - scipy
-  - thrift=0.10*
   - xlrd
   - xlsxwriter
   - xlwt
