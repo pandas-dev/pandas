@@ -457,11 +457,13 @@ For example, with a single value:
         float
             Random number generated.
         """
-        return random.random()
+        return np.random.random()
 
 With more than one value:
 
 .. code-block:: python
+
+    import string
 
     def random_letters():
         """
@@ -477,8 +479,8 @@ With more than one value:
         letters : str
             String of random letters.
         """
-        length = random.randint(1, 10)
-        letters = ''.join(random.choice(string.ascii_lowercase)
+        length = np.random.randint(1, 10)
+        letters = ''.join(np.random.choice(string.ascii_lowercase)
                           for i in range(length))
         return length, letters
 
@@ -499,7 +501,7 @@ If the method yields its value:
             Random number generated.
         """
         while True:
-            yield random.random()
+            yield np.random.random()
 
 .. _docstring.see_also:
 
@@ -686,8 +688,8 @@ shown:
 
 .. code-block:: python
 
-    import numpy as np          # noqa: F401
-    import pandas as pd         # noqa: F401
+    import numpy as np
+    import pandas as pd
 
 Any other module used in the examples must be explicitly imported, one per line (as
 recommended in :pep:`8#imports`)
@@ -776,7 +778,7 @@ positional arguments ``head(3)``.
 
             Examples
             --------
-            >>> s = pd.Series('Antelope', 'Lion', 'Zebra', numpy.nan)
+            >>> s = pd.Series('Antelope', 'Lion', 'Zebra', np.nan)
             >>> s.contains(pattern='a')
             0    False
             1    False
@@ -834,7 +836,7 @@ positional arguments ``head(3)``.
         --------
         >>> import numpy as np
         >>> import pandas as pd
-        >>> df = pd.DataFrame(numpy.random.randn(3, 3),
+        >>> df = pd.DataFrame(np.random.randn(3, 3),
         ...                   columns=('a', 'b', 'c'))
         >>> df.method(1)
         21
