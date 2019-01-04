@@ -153,7 +153,7 @@ class FastParquetImpl(BaseImpl):
             )
         if LooseVersion(fastparquet.__version__) < '0.2.1':
             raise ImportError(
-                "fastparquet >= 0.1.2 is required for parquet "
+                "fastparquet >= 0.2.1 is required for parquet "
                 "support\n\n"
                 "you can install via conda\n"
                 "conda install fastparquet -c conda-forge\n"
