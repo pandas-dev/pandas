@@ -388,6 +388,10 @@ class TestDatetimeArray(SharedTests):
             # Timestamp with mismatched tz-awareness
             arr.take([-1, 1], allow_fill=True, fill_value=now)
 
+        with pytest.raises(ValueError):
+            # require NaT, not iNaT, as it could be confused with an integer
+            arr.take([-1, 1], allow_fill=True, fill_value=pd.NaT.value)
+
     def test_concat_same_type_invalid(self, datetime_index):
         # different timezones
         dti = datetime_index

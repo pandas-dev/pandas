@@ -335,7 +335,9 @@ class DatetimeArray(dtl.DatetimeLikeArrayMixin,
             cls._validate_frequency(result, freq, ambiguous=ambiguous)
 
         elif freq_infer:
-            result.freq = to_offset(result.inferred_freq)
+            # Set _freq directly to bypass duplicative _validate_frequency
+            # check.
+            result._freq = to_offset(result.inferred_freq)
 
         return result
 
@@ -586,7 +588,7 @@ class DatetimeArray(dtl.DatetimeLikeArrayMixin,
 
     @Appender(dtl.DatetimeLikeArrayMixin._validate_fill_value.__doc__)
     def _validate_fill_value(self, fill_value):
-        if isna(fill_value) or fill_value == iNaT:
+        if isna(fill_value):
             fill_value = iNaT
         elif isinstance(fill_value, (datetime, np.datetime64)):
             self._assert_tzawareness_compat(fill_value)
