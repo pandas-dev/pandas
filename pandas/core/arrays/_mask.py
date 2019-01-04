@@ -42,9 +42,33 @@ class NAMask():
 
         self._data[key] = value
 
+    def __array__(self):
+        if self._has_bitarray:
+            raise NotImplementedError
+
+        return self._data
+
     def __iter__(self):
         for i in range(len(self._data)):
             yield self._data[i]
+
+    def __invert__(self):
+        if self._has_bitarray:
+            raise NotImplementedError
+
+        return ~self._data
+
+    def __or__(self, other):
+        if self._has_bitarray:
+            raise NotImplementedError
+
+        return self._data.__or__(other)
+
+    def __ior__(self, other):
+        if self._has_bitarray:
+            raise NotImplementedError
+
+        return self._data | other
 
     @property
     def nbytes(self):

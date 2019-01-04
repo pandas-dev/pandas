@@ -248,7 +248,8 @@ class IntegerArray(ExtensionArray, ExtensionOpsMixin):
                 and is_integer_dtype(values.dtype)):
             raise TypeError("values should be integer numpy array. Use "
                             "the 'integer_array' function instead")
-        if not (isinstance(mask, np.ndarray) and is_bool_dtype(mask.dtype)):
+        if not (isinstance(mask, NAMask) or (
+                isinstance(mask, np.ndarray) and is_bool_dtype(mask.dtype))):
             raise TypeError("mask should be boolean numpy array. Use "
                             "the 'integer_array' function instead")
 
