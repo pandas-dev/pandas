@@ -1814,13 +1814,16 @@ def test_invalid_file_buffer_class(all_parsers):
         parser.read_csv(InvalidBuffer())
 
 
-def test_invalid_file_buffer_mock(all_parsers, mock):
+def test_invalid_file_buffer_mock(all_parsers):
     # see gh-15337
     parser = all_parsers
     msg = "Invalid file path or buffer object type"
 
+    class Mock():
+        pass
+
     with pytest.raises(ValueError, match=msg):
-        parser.read_csv(mock.Mock())
+        parser.read_csv(Mock())
 
 
 def test_valid_file_buffer_seems_invalid(all_parsers):
