@@ -1113,6 +1113,39 @@ cast from integer dtype to floating dtype (:issue:`22019`)
        ...:                    'c': [1, 1, np.nan, 1, 1]})
     In [4]: pd.crosstab(df.a, df.b, normalize='columns')
 
+.. _whatsnew_0240.api.concat_categorical:
+
+Concatenation Changes
+^^^^^^^^^^^^^^^^^^^^^
+
+Calling :func:`pandas.concat` on a ``Categorical`` of ints with NA values now
+causes them to be processed as objects in cases where previously they would be
+coerced to floats (:issue:`19214`)
+
+*Previous Behavior*
+
+.. code-block:: ipython
+    In [2]: s = pd.Series([0, 1, np.nan])
+
+    In [3]: c = pd.Series([0, 1, np.nan], dtype="object").astype("category")
+
+    In [4]: pd.concat([s, c])
+    Out[4]:
+    0    0.0
+    1    1.0
+    2    NaN
+    0    0.0
+    1    1.0
+    2    NaN
+    dtype: float64
+
+*New Behavior*
+
+.. ipython:: python
+    s = pd.Series([0, 1, np.nan])
+    c = pd.Series([0, 1, np.nan], dtype="object").astype("category")
+    pd.concat([s, c])
+
 Datetimelike API Changes
 ^^^^^^^^^^^^^^^^^^^^^^^^
 
@@ -1150,7 +1183,6 @@ Other API Changes
 - :meth:`CategoricalIndex.reindex` now raises a ``ValueError`` if the target index is non-unique and not equal to the current index. It previously only raised if the target index was not of a categorical dtype (:issue:`23963`).
 - :func:`Series.to_list` and :func:`Index.to_list` are now aliases of ``Series.tolist`` respectively ``Index.tolist`` (:issue:`8826`)
 - The result of ``SparseSeries.unstack`` is now a :class:`DataFrame` with sparse values, rather than a :class:`SparseDataFrame` (issue:`24372`).
-- Calling :func:`pandas.concat` on a ``Categorical`` of ints with NA values now causes them to be processed as objects in cases where previously they would be coerced to floats (:issue:`19214`)
 
 .. _whatsnew_0240.deprecations:
 
