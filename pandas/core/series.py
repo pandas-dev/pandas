@@ -875,7 +875,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         if isinstance(key, Index):
             key_type = key.inferred_type
         else:
-            key_type = lib.infer_dtype(key)
+            key_type = lib.infer_dtype(key, skipna=False)
 
         if key_type == 'integer':
             if self.index.is_integer() or self.index.is_floating():
@@ -1012,7 +1012,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
             if isinstance(key, Index):
                 key_type = key.inferred_type
             else:
-                key_type = lib.infer_dtype(key)
+                key_type = lib.infer_dtype(key, skipna=False)
 
             if key_type == 'integer':
                 if self.index.inferred_type == 'integer':
@@ -1586,7 +1586,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
         >>> pd.Series([pd.Timestamp('2016-01-01', tz='US/Eastern')
         ...            for _ in range(3)]).unique()
-        <DatetimeArrayMixin>
+        <DatetimeArray>
         ['2016-01-01 00:00:00-05:00']
         Length: 1, dtype: datetime64[ns, US/Eastern]
 

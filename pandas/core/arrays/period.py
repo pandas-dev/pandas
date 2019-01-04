@@ -12,11 +12,10 @@ from pandas._libs.tslibs.period import (
 from pandas._libs.tslibs.timedeltas import Timedelta, delta_to_nanoseconds
 import pandas.compat as compat
 from pandas.util._decorators import Appender, cache_readonly
-from pandas.util._validators import validate_fillna_kwargs
 
 from pandas.core.dtypes.common import (
-    _TD_DTYPE, ensure_object, is_array_like, is_datetime64_dtype,
-    is_float_dtype, is_list_like, is_period_dtype, pandas_dtype)
+    _TD_DTYPE, ensure_object, is_datetime64_dtype, is_float_dtype,
+    is_list_like, is_period_dtype, pandas_dtype)
 from pandas.core.dtypes.dtypes import PeriodDtype
 from pandas.core.dtypes.generic import ABCIndexClass, ABCPeriodIndex, ABCSeries
 from pandas.core.dtypes.missing import isna, notna
@@ -24,7 +23,6 @@ from pandas.core.dtypes.missing import isna, notna
 import pandas.core.algorithms as algos
 from pandas.core.arrays import datetimelike as dtl
 import pandas.core.common as com
-from pandas.core.missing import backfill_1d, pad_1d
 
 from pandas.tseries import frequencies
 from pandas.tseries.offsets import DateOffset, Tick, _delta_to_tick
@@ -181,8 +179,7 @@ class PeriodArray(dtl.DatetimeLikeArrayMixin, dtl.DatelikeOps):
 
     @classmethod
     def _simple_new(cls, values, freq=None, **kwargs):
-        # TODO(DatetimeArray): remove once all constructors are aligned.
-        # alias from PeriodArray.__init__
+        # alias for PeriodArray.__init__
         return cls(values, freq=freq, **kwargs)
 
     @classmethod
@@ -192,6 +189,13 @@ class PeriodArray(dtl.DatetimeLikeArrayMixin, dtl.DatelikeOps):
             freq = dtype.freq
         else:
             freq = None
+
+        if isinstance(scalars, cls):
+            validate_dtype_freq(scalars.dtype, freq)
+            if copy:
+                scalars = scalars.copy()
+            return scalars
+
         periods = np.asarray(scalars, dtype=object)
         if copy:
             periods = periods.copy()
@@ -272,11 +276,6 @@ class PeriodArray(dtl.DatetimeLikeArrayMixin, dtl.DatelikeOps):
         return self._dtype
 
     @property
-    def _ndarray_values(self):
-        # Ordinals
-        return self._data
-
-    @property
     def freq(self):
         """
         Return the frequency object for this PeriodArray.
@@ -335,7 +334,7 @@ class PeriodArray(dtl.DatetimeLikeArrayMixin, dtl.DatelikeOps):
         -------
         DatetimeArray/Index
         """
-        from pandas.core.arrays import DatetimeArrayMixin
+        from pandas.core.arrays import DatetimeArray
 
         how = libperiod._validate_end_alias(how)
 
@@ -359,7 +358,7 @@ class PeriodArray(dtl.DatetimeLikeArrayMixin, dtl.DatelikeOps):
         new_data = self.asfreq(freq, how=how)
 
         new_data = libperiod.periodarr_to_dt64arr(new_data.asi8, base)
-        return DatetimeArrayMixin._from_sequence(new_data, freq='infer')
+        return DatetimeArray._from_sequence(new_data, freq='infer')
 
     # --------------------------------------------------------------------
     # Array-like / EA-Interface Methods
@@ -380,41 +379,6 @@ class PeriodArray(dtl.DatetimeLikeArrayMixin, dtl.DatelikeOps):
             raise ValueError("'fill_value' should be a Period. "
                              "Got '{got}'.".format(got=fill_value))
         return fill_value
-
-    def fillna(self, value=None, method=None, limit=None):
-        # TODO(#20300)
-        # To avoid converting to object, we re-implement here with the changes
-        # 1. Passing `_data` to func instead of self.astype(object)
-        # 2. Re-boxing output of 1.
-        # #20300 should let us do this kind of logic on ExtensionArray.fillna
-        # and we can use it.
-
-        if isinstance(value, ABCSeries):
-            value = value._values
-
-        value, method = validate_fillna_kwargs(value, method)
-
-        mask = self.isna()
-
-        if is_array_like(value):
-            if len(value) != len(self):
-                raise ValueError("Length of 'value' does not match. Got ({}) "
-                                 " expected {}".format(len(value), len(self)))
-            value = value[mask]
-
-        if mask.any():
-            if method is not None:
-                func = pad_1d if method == 'pad' else backfill_1d
-                new_values = func(self._data, limit=limit,
-                                  mask=mask)
-                new_values = type(self)(new_values, freq=self.freq)
-            else:
-                # fill with value
-                new_values = self.copy()
-                new_values[mask] = value
-        else:
-            new_values = self.copy()
-        return new_values
 
     # --------------------------------------------------------------------
 
@@ -512,7 +476,6 @@ class PeriodArray(dtl.DatetimeLikeArrayMixin, dtl.DatelikeOps):
         """
         actually format my specific types
         """
-        # TODO(DatetimeArray): remove
         values = self.astype(object)
 
         if date_format:

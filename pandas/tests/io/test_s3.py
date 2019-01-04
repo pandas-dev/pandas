@@ -1,7 +1,9 @@
 import pytest
 
-from pandas import read_csv
 from pandas.compat import BytesIO
+
+from pandas import read_csv
+
 from pandas.io.common import is_s3_url
 
 

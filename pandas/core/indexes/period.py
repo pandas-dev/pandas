@@ -18,7 +18,6 @@ from pandas import compat
 from pandas.core import common as com
 from pandas.core.accessor import delegate_names
 from pandas.core.algorithms import unique1d
-from pandas.core.arrays.datetimelike import DatelikeOps
 from pandas.core.arrays.period import (
     PeriodArray, period_array, validate_dtype_freq)
 from pandas.core.base import _shared_docs
@@ -70,9 +69,9 @@ class PeriodDelegateMixin(DatetimelikeDelegateMixin):
                 typ='property')
 @delegate_names(PeriodArray,
                 PeriodDelegateMixin._delegated_methods,
-                typ="method")
-class PeriodIndex(DatelikeOps, DatetimeIndexOpsMixin, Int64Index,
-                  PeriodDelegateMixin):
+                typ="method",
+                overwrite=True)
+class PeriodIndex(DatetimeIndexOpsMixin, Int64Index, PeriodDelegateMixin):
     """
     Immutable ndarray holding ordinal values indicating regular periods in
     time such as particular years, quarters, months, etc.
@@ -278,33 +277,21 @@ class PeriodIndex(DatelikeOps, DatetimeIndexOpsMixin, Int64Index,
         return result
 
     # ------------------------------------------------------------------------
-    # Wrapping PeriodArray
-
-    # ------------------------------------------------------------------------
     # Data
-
-    @property
-    def _eadata(self):
-        return self._data
 
     @property
     def values(self):
         return np.asarray(self)
 
     @property
-    def _values(self):
-        return self._data
-
-    @property
     def freq(self):
-        # TODO(DatetimeArray): remove
-        # Can't simply use delegate_names since our base class is defining
-        # freq
         return self._data.freq
 
     @freq.setter
     def freq(self, value):
         value = Period._maybe_convert_freq(value)
+        # TODO: When this deprecation is enforced, PeriodIndex.freq can
+        # be removed entirely, and we'll just inherit.
         msg = ('Setting {cls}.freq has been deprecated and will be '
                'removed in a future version; use {cls}.asfreq instead. '
                'The {cls}.freq setter is not guaranteed to work.')
@@ -367,17 +354,6 @@ class PeriodIndex(DatelikeOps, DatetimeIndexOpsMixin, Int64Index,
                 return Period._from_ordinal(ordinal=x, freq=self.freq)
         return func
 
-    def _maybe_box_as_values(self, values, **attribs):
-        """Box an array of ordinals to a PeriodArray
-
-        This is purely for compatibility between PeriodIndex
-        and Datetime/TimedeltaIndex. Once these are all backed by
-        an ExtensionArray, this can be removed
-        """
-        # TODO(DatetimeArray): remove
-        freq = attribs['freq']
-        return PeriodArray(values, freq=freq)
-
     def _maybe_convert_timedelta(self, other):
         """
         Convert timedelta-like input to an integer multiple of self.freq
@@ -436,6 +412,10 @@ class PeriodIndex(DatelikeOps, DatetimeIndexOpsMixin, Int64Index,
     def _mpl_repr(self):
         # how to represent ourselves to matplotlib
         return self.astype(object).values
+
+    @property
+    def _formatter_func(self):
+        return self.array._formatter(boxed=False)
 
     # ------------------------------------------------------------------------
     # Indexing
@@ -516,10 +496,6 @@ class PeriodIndex(DatelikeOps, DatetimeIndexOpsMixin, Int64Index,
         # the result is object dtype array of Period
         # cannot pass _simple_new as it is
         return type(self)(result, freq=self.freq, name=self.name)
-
-    @property
-    def _formatter_func(self):
-        return self.array._formatter(boxed=False)
 
     def asof_locs(self, where, mask):
         """
@@ -883,12 +859,6 @@ class PeriodIndex(DatelikeOps, DatetimeIndexOpsMixin, Int64Index,
 
     _unpickle_compat = __setstate__
 
-    def view(self, dtype=None, type=None):
-        # TODO(DatetimeArray): remove
-        if dtype is None or dtype is __builtins__['type'](self):
-            return self
-        return self._ndarray_values.view(dtype=dtype)
-
     @property
     def flags(self):
         """ return the ndarray.flags for the underlying data """
@@ -896,11 +866,6 @@ class PeriodIndex(DatelikeOps, DatetimeIndexOpsMixin, Int64Index,
                       "in a future version".format(obj=type(self).__name__),
                       FutureWarning, stacklevel=2)
         return self._ndarray_values.flags
-
-    @property
-    def asi8(self):
-        # TODO(DatetimeArray): remove
-        return self.view('i8')
 
     def item(self):
         """

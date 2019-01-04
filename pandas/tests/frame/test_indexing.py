@@ -3244,8 +3244,8 @@ class TestDataFrameIndexingDatetimeWithTZ(TestData):
         # are copies)
         b1 = df._data.blocks[1]
         b2 = df._data.blocks[2]
-        assert b1.values.equals(b2.values)
-        assert id(b1.values.values.base) != id(b2.values.values.base)
+        tm.assert_extension_array_equal(b1.values, b2.values)
+        assert id(b1.values._data.base) != id(b2.values._data.base)
 
         # with nan
         df2 = df.copy()

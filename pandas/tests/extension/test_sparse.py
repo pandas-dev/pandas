@@ -359,3 +359,11 @@ class TestPrinting(BaseSparseTests, base.BasePrintingTests):
     @pytest.mark.xfail(reason='Different repr', strict=True)
     def test_array_repr(self, data, size):
         super(TestPrinting, self).test_array_repr(data, size)
+
+
+class TestParsing(BaseSparseTests, base.BaseParsingTests):
+    @pytest.mark.parametrize('engine', ['c', 'python'])
+    def test_EA_types(self, engine, data):
+        expected_msg = r'.*must implement _from_sequence_of_strings.*'
+        with pytest.raises(NotImplementedError, match=expected_msg):
+            super(TestParsing, self).test_EA_types(engine, data)
