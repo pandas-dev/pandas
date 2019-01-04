@@ -451,6 +451,13 @@ class TestSeriesConstructors():
                            datetime(2001, 1, 3)], index=index, dtype='M8[ns]')
         assert_series_equal(result, expected)
 
+    def test_constructor_maskedarray_hardened(self):
+        # Check numpy masked arrays with hard masks -- from GH24574
+        data = ma.masked_all((3, ), dtype=float).harden_mask()
+        result = pd.Series(data)
+        expected = pd.Series([nan, nan, nan])
+        tm.assert_series_equal(result, expected)
+
     def test_series_ctor_plus_datetimeindex(self):
         rng = date_range('20090415', '20090519', freq='B')
         data = {k: 1 for k in rng}
@@ -806,12 +813,12 @@ class TestSeriesConstructors():
         s = Series([pd.Timestamp('2013-01-01 13:00:00-0800', tz='US/Pacific'),
                     pd.Timestamp('2013-01-02 14:00:00-0800', tz='US/Pacific')])
         assert s.dtype == 'datetime64[ns, US/Pacific]'
-        assert lib.infer_dtype(s, skipna=False) == 'datetime64'
+        assert lib.infer_dtype(s, skipna=True) == 'datetime64'
 
         s = Series([pd.Timestamp('2013-01-01 13:00:00-0800', tz='US/Pacific'),
                     pd.Timestamp('2013-01-02 14:00:00-0800', tz='US/Eastern')])
         assert s.dtype == 'object'
-        assert lib.infer_dtype(s, skipna=False) == 'datetime'
+        assert lib.infer_dtype(s, skipna=True) == 'datetime'
 
         # with all NaT
         s = Series(pd.NaT, index=[0, 1], dtype='datetime64[ns, US/Eastern]')
