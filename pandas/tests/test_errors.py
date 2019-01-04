@@ -7,6 +7,11 @@ from pandas.errors import AbstractMethodError
 import pandas as pd  # noqa
 
 
+def test_warning_raises():
+    import numpy as np
+    np.dtype("Int64")
+
+
 @pytest.mark.parametrize(
     "exc", ['UnsupportedFunctionCall', 'UnsortedIndexError',
             'OutOfBoundsDatetime',
