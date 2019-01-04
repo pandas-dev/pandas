@@ -1,11 +1,4 @@
-import sys
-
-PY3 = sys.version_info[0] >= 3
-
-if PY3:
-    from collections.abc import MutableMapping
-else:
-    from collections import MutableMapping
+from collections import MutableMapping
 
 try:
     from thread import get_ident
