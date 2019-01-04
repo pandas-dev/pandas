@@ -252,6 +252,18 @@ class TestDatetimeArray(SharedTests):
         assert result is expected
         tm.assert_numpy_array_equal(result, expected)
 
+        # specifying M8[ns] gives the same result as default
+        result = np.asarray(arr, dtype='datetime64[ns]')
+        expected = arr._data
+        assert result is expected
+        tm.assert_numpy_array_equal(result, expected)
+        result = np.array(arr, dtype='datetime64[ns]', copy=False)
+        assert result is expected
+        tm.assert_numpy_array_equal(result, expected)
+        result = np.array(arr, dtype='datetime64[ns]')
+        assert not result is expected
+        tm.assert_numpy_array_equal(result, expected)
+
         # to object dtype
         result = np.asarray(arr, dtype=object)
         expected = np.array(list(arr), dtype=object)
@@ -295,8 +307,14 @@ class TestDatetimeArray(SharedTests):
         result = np.array(arr)
         tm.assert_numpy_array_equal(result, expected)
 
+        result = np.array(arr, dtype='datetime64[ns]')
+        tm.assert_numpy_array_equal(result, expected)
+
         # check that we are not making copies when setting copy=False
         result = np.array(arr, copy=False)
+        assert result.base is expected.base
+        assert result.base is not None
+        result = np.array(arr, dtype='datetime64[ns]', copy=False)
         assert result.base is expected.base
         assert result.base is not None
 
@@ -509,6 +527,18 @@ class TestTimedeltaArray(SharedTests):
         tm.assert_numpy_array_equal(result, expected)
         result = np.array(arr, copy=False)
         assert result is expected
+        tm.assert_numpy_array_equal(result, expected)
+
+        # specifying m8[ns] gives the same result as default
+        result = np.asarray(arr, dtype='timedelta64[ns]')
+        expected = arr._data
+        assert result is expected
+        tm.assert_numpy_array_equal(result, expected)
+        result = np.array(arr, dtype='timedelta64[ns]', copy=False)
+        assert result is expected
+        tm.assert_numpy_array_equal(result, expected)
+        result = np.array(arr, dtype='timedelta64[ns]')
+        assert not result is expected
         tm.assert_numpy_array_equal(result, expected)
 
         # to object dtype
