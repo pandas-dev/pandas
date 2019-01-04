@@ -1830,9 +1830,8 @@ cdef class _Period(object):
 
         See Also
         --------
-        Period.dayofweek : Get the day of the week
-
-        Period.dayofyear : Get the day of the year
+        Period.dayofweek : Get the day of the week.
+        Period.dayofyear : Get the day of the year.
 
         Examples
         --------
@@ -2189,8 +2188,8 @@ cdef class _Period(object):
 
         See Also
         --------
-        Period.days_in_month : Return the days of the month
-        Period.dayofyear : Return the day of the year
+        Period.days_in_month : Return the days of the month.
+        Period.dayofyear : Return the day of the year.
 
         Examples
         --------
