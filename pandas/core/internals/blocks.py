@@ -2357,7 +2357,6 @@ class DatetimeTZBlock(ExtensionBlock, DatetimeBlock):
         if isinstance(other, bool):
             raise TypeError
         elif is_datetime64_dtype(other):
-            # TODO: wont this catch np.datetime64 scalar?
             # add the tz back
             other = self._holder(other, dtype=self.dtype)
 
