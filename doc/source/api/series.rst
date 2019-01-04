@@ -278,14 +278,34 @@ Time series-related
    Series.tshift
    Series.slice_shift
 
+Accessors
+---------
+
+Pandas provides dtype-specific methods under various accessors.
+These are separate namespaces within :class:`Series` that only apply
+to specific data types.
+
+=========================== =================================
+Data Type                   Accessor
+=========================== =================================
+Datetime, Timedelta, Period :ref:`dt <api.series.dt>`
+String                      :ref:`str <api.series.str>`
+Categorical                 :ref:`cat <api.series.cat>`
+Sparse                      :ref:`sparse <api.series.sparse>`
+=========================== =================================
+
+.. _api.series.dt:
+
 Datetimelike Properties
------------------------
+~~~~~~~~~~~~~~~~~~~~~~~
+
 ``Series.dt`` can be used to access the values of the series as
 datetimelike and return several properties.
 These can be accessed like ``Series.dt.<property>``.
 
 Datetime Properties
-~~~~~~~~~~~~~~~~~~~
+^^^^^^^^^^^^^^^^^^^
+
 .. autosummary::
    :toctree: generated/
    :template: autosummary/accessor_attribute.rst
@@ -320,7 +340,8 @@ Datetime Properties
    Series.dt.freq
 
 Datetime Methods
-~~~~~~~~~~~~~~~~
+^^^^^^^^^^^^^^^^
+
 .. autosummary::
    :toctree: generated/
    :template: autosummary/accessor_method.rst
@@ -338,7 +359,8 @@ Datetime Methods
    Series.dt.day_name
 
 Period Properties
-~~~~~~~~~~~~~~~~~
+^^^^^^^^^^^^^^^^^
+
 .. autosummary::
    :toctree: generated/
    :template: autosummary/accessor_attribute.rst
@@ -348,7 +370,8 @@ Period Properties
    Series.dt.end_time
 
 Timedelta Properties
-~~~~~~~~~~~~~~~~~~~~
+^^^^^^^^^^^^^^^^^^^^
+
 .. autosummary::
    :toctree: generated/
    :template: autosummary/accessor_attribute.rst
@@ -360,7 +383,8 @@ Timedelta Properties
    Series.dt.components
 
 Timedelta Methods
-~~~~~~~~~~~~~~~~~
+^^^^^^^^^^^^^^^^^
+
 .. autosummary::
    :toctree: generated/
    :template: autosummary/accessor_method.rst
@@ -368,8 +392,12 @@ Timedelta Methods
    Series.dt.to_pytimedelta
    Series.dt.total_seconds
 
+
+.. _api.series.str:
+
 String handling
----------------
+~~~~~~~~~~~~~~~
+
 ``Series.str`` can be used to access the values of the series as
 strings and apply several methods to it. These can be accessed like
 ``Series.str.<function/property>``.
@@ -445,16 +473,58 @@ strings and apply several methods to it. These can be accessed like
        Series.dt
        Index.str
 
-.. _api.arrays:
+.. _api.series.cat:
 
-Arrays
-------
-Pandas and third-party libraries can extend NumPy's type system (see :ref:`extending.extension-types`).
+Categorical Accessor
+~~~~~~~~~~~~~~~~~~~~
+
+Categorical-dtype specific methods and attributes are available under
+the ``Series.cat`` accessor.
+
+.. autosummary::
+   :toctree: generated/
+   :template: autosummary/accessor_attribute.rst
+
+   Series.cat.categories
+   Series.cat.ordered
+   Series.cat.codes
+
+.. autosummary::
+   :toctree: generated/
+   :template: autosummary/accessor_method.rst
+
+   Series.cat.rename_categories
+   Series.cat.reorder_categories
+   Series.cat.add_categories
+   Series.cat.remove_categories
+   Series.cat.remove_unused_categories
+   Series.cat.set_categories
+   Series.cat.as_ordered
+   Series.cat.as_unordered
+
+
+.. _api.series.sparse:
+
+Sparse Accessor
+~~~~~~~~~~~~~~~
+
+Sparse-dtype specific methods and attributes are provided under the
+``Series.sparse`` accessor.
+
+.. autosummary::
+   :toctree: generated/
+   :template: autosummary/accessor_attribute.rst
+
+   Series.sparse.npoints
+   Series.sparse.density
+   Series.sparse.fill_value
+   Series.sparse.sp_values
 
 .. autosummary::
    :toctree: generated/
 
-   array
+   Series.sparse.from_coo
+   Series.sparse.to_coo
 
 
 Plotting
@@ -518,17 +588,3 @@ Sparse
    SparseSeries.to_coo
    SparseSeries.from_coo
 
-.. autosummary::
-   :toctree: generated/
-   :template: autosummary/accessor_attribute.rst
-
-   Series.sparse.npoints
-   Series.sparse.density
-   Series.sparse.fill_value
-   Series.sparse.sp_values
-
-.. autosummary::
-   :toctree: generated/
-
-   Series.sparse.from_coo
-   Series.sparse.to_coo

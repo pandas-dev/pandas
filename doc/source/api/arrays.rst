@@ -26,8 +26,19 @@ Categorical         :class:`CategoricalDtype` (none)             :ref:`api.categ
 Sparse              :class:`SparseDtype`      (none)             :ref:`api.sparse`
 =================== ========================= ================== ======================
 
-Each of these arrays may be stored in a :class:`Index`, :class:`Series`, or as
-a column in a :class:`DataFrame`.
+.. _api.arrays:
+
+Arrays
+------
+
+Pandas and third-party libraries can extend NumPy's type system (see :ref:`extending.extension-types`).
+The top-level :meth:`array` method can be used to create a new array, which may be
+stored in a :class:`Series`, :class:`Index`, or as a column in a :class:`DataFrame`.
+
+.. autosummary::
+   :toctree: generated/
+
+   array
 
 .. _api.datetime:
 
@@ -379,29 +390,7 @@ To create a Series of dtype ``category``, use ``cat = s.astype(dtype)`` or
 * an instance of :class:`~pandas.api.types.CategoricalDtype`.
 
 If the Series is of dtype ``CategoricalDtype``, ``Series.cat`` can be used to change the categorical
-data. This accessor is similar to the ``Series.dt`` or ``Series.str`` and has the
-following usable methods and properties:
-
-.. autosummary::
-   :toctree: generated/
-   :template: autosummary/accessor_attribute.rst
-
-   Series.cat.categories
-   Series.cat.ordered
-   Series.cat.codes
-
-.. autosummary::
-   :toctree: generated/
-   :template: autosummary/accessor_method.rst
-
-   Series.cat.rename_categories
-   Series.cat.reorder_categories
-   Series.cat.add_categories
-   Series.cat.remove_categories
-   Series.cat.remove_unused_categories
-   Series.cat.set_categories
-   Series.cat.as_ordered
-   Series.cat.as_unordered
+data. See :ref:`api.series.cat` for more.
 
 .. _api.sparse:
 
@@ -417,3 +406,7 @@ be stored efficiently as a :class:`SparseArray`.
 
    SparseArray
    SparseDtype
+
+The ``Series.sparse`` accessor may be used to access sparse-specific attributes
+and methods if the :class:`Series` contains sparse values. See
+:ref:`api.series.sparse` for more.
