@@ -240,8 +240,8 @@ def test_to_html_border(option, result, expected):
 
 
 def test_display_option_warning():
-    msg = "html.border has been deprecated, use display.html.border instead"
-    with pytest.warns(FutureWarning, match=msg):
+    with tm.assert_produces_warning(FutureWarning,
+                                    check_stacklevel=False):
         pd.options.html.border
 
 
