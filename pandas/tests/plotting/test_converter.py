@@ -12,11 +12,11 @@ from pandas import Index, Period, Series, Timestamp, date_range
 import pandas.core.config as cf
 import pandas.util.testing as tm
 
-from pandas.plotting import (
-    deregister_matplotlib_converters, register_matplotlib_converters)
 from pandas.tseries.offsets import Day, Micro, Milli, Second
 
 converter = pytest.importorskip('pandas.plotting._converter')
+from pandas.plotting import (deregister_matplotlib_converters,  # isort:skip
+                             register_matplotlib_converters)
 
 
 def test_timtetonum_accepts_unicode():
