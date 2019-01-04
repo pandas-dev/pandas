@@ -2244,8 +2244,6 @@ class DatetimeTZBlock(ExtensionBlock, DatetimeBlock):
         # and just use DatetimeBlock's.
         if dtype is not None:
             values = self._maybe_coerce_values(values, dtype=dtype)
-            # TODO: this gets hit in msgpack tests, but in all cases the values
-            #  are already DatetimeArrays with the appropriate dtype
         super(DatetimeTZBlock, self).__init__(values, placement=placement,
                                               ndim=ndim)
 
