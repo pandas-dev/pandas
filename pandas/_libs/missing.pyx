@@ -12,8 +12,7 @@ cimport pandas._libs.util as util
 
 from pandas._libs.tslibs.np_datetime cimport (
     get_timedelta64_value, get_datetime64_value)
-from pandas._libs.tslibs.nattype cimport checknull_with_nat
-from pandas._libs.tslibs.nattype cimport c_NaT
+from pandas._libs.tslibs.nattype cimport checknull_with_nat, c_NaT
 
 cdef float64_t INF = <float64_t>np.inf
 cdef float64_t NEGINF = -INF
