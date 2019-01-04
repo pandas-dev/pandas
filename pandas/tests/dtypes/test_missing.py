@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
 from datetime import datetime
-from warnings import catch_warnings, simplefilter
+from warnings import catch_warnings, filterwarnings, simplefilter
 
 import numpy as np
 import pytest
@@ -279,7 +279,7 @@ def test_array_equivalent():
     assert not array_equivalent(
         TimedeltaIndex([0, np.nan]), TimedeltaIndex([1, np.nan]))
     with catch_warnings():
-        simplefilter("ignore")
+        filterwarnings("ignore", "Converting timezone", FutureWarning)
         assert array_equivalent(DatetimeIndex([0, np.nan], tz='US/Eastern'),
                                 DatetimeIndex([0, np.nan], tz='US/Eastern'))
         assert not array_equivalent(

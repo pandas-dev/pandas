@@ -1307,12 +1307,18 @@ The default behavior remains the same, but issues a warning
    array(['1999-12-31T23:00:00.000000000', '2000-01-01T23:00:00.000000000'],
          dtype='datetime64[ns]')
 
-The old or new behavior can be obtained by specifying the ``dtype``
+The previous or future behavior can be obtained, without any warnings, by specifying
+the ``dtype``
+
+*Previous Behavior*
 
 .. ipython:: python
 
-   # Old behavior
    np.asarray(ser, dtype='datetime64[ns]')
+
+*Future Behavior*
+
+.. ipython:: python
 
    # New behavior
    np.asarray(ser, dtype=object)

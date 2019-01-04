@@ -1448,11 +1448,13 @@ class Block(PandasObject):
         Block
         """
         if self.is_datetimetz:
+            # TODO: cleanup this special case.
             # We need to operate on i8 values for datetimetz
             # but `Block.get_values()` returns an ndarray of objects
-            # right now.
+            # right now. We need an API for "values to do numeric-like ops on"
             values = self.values.asi8
 
+            # TODO: NonConsolidatableMixin shape
             # Usual shape inconsistencies for ExtensionBlocks
             if self.ndim > 1:
                 values = values[None, :]
@@ -2064,10 +2066,6 @@ class DatetimeLikeBlockMixin(object):
     @property
     def fill_value(self):
         return tslibs.iNaT
-
-    def to_dense(self):
-        # TODO(DatetimeBlock): remove
-        return np.asarray(self.values)
 
     def get_values(self, dtype=None):
         """
