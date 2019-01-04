@@ -66,6 +66,38 @@ def author_missing_data():
          }]
 
 
+@pytest.fixture
+def data_records_path_with_nested_data():
+    return [{'CreatedBy': {'Name': 'User001'},
+             'Lookup': [{'TextField': 'Some text',
+                         'UserField': {'Id': 'ID001', 'Name': 'Name001'}},
+                        {'TextField': 'Some text',
+                         'UserField': {'Id': 'ID001', 'Name': 'Name001'}}
+                        ],
+             'Image': {'a': 'b'},
+             'random': [{'foo': 'something', 'bar': 'else'},
+                        {'foo': 'something2', 'bar': 'else2'}]
+             }]
+
+
+def expected_data_for_test_records_path_with_nested_data():
+    return {0: [{"TextField": "Some text",
+                 'UserField': {'Id': 'ID001', 'Name': 'Name001'},
+                 "CreatedBy": {"Name": "User001"},
+                 'Image': {'a': 'b'}},
+                {"TextField": "Some text",
+                 'UserField': {'Id': 'ID001', 'Name': 'Name001'},
+                 "CreatedBy": {"Name": "User001"},
+                 'Image': {'a': 'b'}}],
+            1: [{"TextField": "Some text", "UserField.Id": "ID001",
+                 "UserField.Name": "Name001",
+                 "CreatedBy": {"Name": "User001"},
+                 'Image': {'a': 'b'}},
+                {"TextField": "Some text", "UserField.Id": "ID001",
+                 "UserField.Name": "Name001",
+                 "CreatedBy": {"Name": "User001"},
+                 'Image': {'a': 'b'}}]}
+
 class TestJSONNormalize(object):
 
     def test_simple_records(self):
@@ -277,55 +309,20 @@ class TestJSONNormalize(object):
         expected = DataFrame(ex_data)
         tm.assert_frame_equal(result, expected)
 
-    def test_records_path_with_nested_data(self):
-        data = [{'CreatedBy': {'Name': 'User001'},
-                 'Lookup': [{'TextField': 'Some text',
-                             'UserField': {'Id': 'ID001', 'Name': 'Name001'}},
-                            {'TextField': 'Some text',
-                             'UserField': {'Id': 'ID001', 'Name': 'Name001'}}
-                            ],
-                 'Image': {'a': 'b'},
-                 'random': [{'foo': 'something', 'bar': 'else'},
-                            {'foo': 'something2', 'bar': 'else2'}]
-                 }]
-        ex_data_level_0 = [{"TextField": "Some text",
-                            'UserField': {'Id': 'ID001', 'Name': 'Name001'},
-                            "CreatedBy": {"Name": "User001"},
-                            'Image': {'a': 'b'}},
-                           {"TextField": "Some text",
-                            'UserField': {'Id': 'ID001', 'Name': 'Name001'},
-                            "CreatedBy": {"Name": "User001"},
-                            'Image': {'a': 'b'}}]
-
-        expected_level_0 = DataFrame(ex_data_level_0,
-                                     columns=['TextField', 'UserField',
-                                              'CreatedBy', "Image"])
-        result_level_0 = json_normalize(data, record_path=["Lookup"],
-                                        meta=[["CreatedBy"], ["Image"]],
-                                        max_level=0)
-
-        ex_data_level_1 = [{"TextField": "Some text", "UserField.Id": "ID001",
-                            "UserField.Name": "Name001",
-                            "CreatedBy": {"Name": "User001"},
-                            'Image': {'a': 'b'}},
-                           {"TextField": "Some text", "UserField.Id": "ID001",
-                            "UserField.Name": "Name001",
-                            "CreatedBy": {"Name": "User001"},
-                            'Image': {'a': 'b'}}]
-
-        expected_level_1 = DataFrame(ex_data_level_1,
-                                     columns=['TextField',
-                                              'UserField.Id',
-                                              'UserField.Name',
-                                              'CreatedBy',
-                                              "Image"]
-                                     )
-        result_level_1 = json_normalize(data, record_path=["Lookup"],
-                                        meta=[["CreatedBy"], ["Image"]],
-                                        max_level=1)
-
-        tm.assert_frame_equal(expected_level_0, result_level_0)
-        tm.assert_frame_equal(expected_level_1, result_level_1)
+    @pytest.mark.parametrize("max_level, columns", [
+        (0, ['TextField', 'UserField', 'CreatedBy', "Image"] ),
+        (1, ['TextField', 'UserField.Id', 'UserField.Name', 'CreatedBy', "Image"]),
+    ])
+    def test_records_path_with_nested_data(self, data_records_path_with_nested_data,
+                                           max_level, columns):
+        test_input = data_records_path_with_nested_data
+        expected_data = expected_data_for_test_records_path_with_nested_data()[max_level]
+        result = json_normalize(test_input,
+                                record_path=["Lookup"],
+                                meta=[["CreatedBy"], ["Image"]],
+                                max_level=max_level)
+        expected_df = DataFrame(data=expected_data, columns=columns)
+        tm.assert_frame_equal(expected_df, result)
 
 
 class TestNestedToRecord(object):
