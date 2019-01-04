@@ -5,7 +5,7 @@
 Pandas extends NumPy's type system in several places.
 
 =================== ========================= ================== ======================
-Kind of Data        Data Type                 Scalar             Array
+Kind of Data        Pandas Data Type          Scalar             Array
 =================== ========================= ================== ======================
 tz-aware datetime   :class:`DatetimeTZDtype`  :class:`Timestamp` :ref:`api.datetime`
 timedetlas          (none)                    :class:`Timedelta` :ref:`api.timedelta`
@@ -16,6 +16,9 @@ Categorical         :class:`CategoricalDtype` (none)             :ref:`api.categ
 sparse              :class:`SparseDtype`      (none)             :ref:`api.sparse`
 =================== ========================= ================== ======================
 
+Each of these arrays may be stored in a :class:`Index`, :class:`Series`, or as
+a column in a :class:`DataFrame`.
+
 .. _api.datetime:
 
 =============
@@ -23,7 +26,7 @@ Datetime Data
 =============
 
 NumPy cannot natively represent timezone-aware datetimes. Pandas supports this
-with the :class:`DatetimeArray` extension type, which can hold timezone-naive
+with the :class:`arrays.DatetimeArray` extension array, which can hold timezone-naive
 or timezone-aware values.
 
 :class:`Timestamp` is the scalar type for datetime data.
@@ -115,9 +118,11 @@ Methods
    Timestamp.utctimetuple
    Timestamp.weekday
 
-A collection of timestamps may be stored in an :class:`IntervalArray`.
-:class:`DatetimeTZDtype` is the ``ExtensionDtype`` for timezone-aware data.
-Timezone-naive data uses ``np.dtype("datetime64[ns]")`` for the array dtype.
+A collection of timestamps may be stored in a :class:`arrays.DatetimeArray`.
+For timezone-aware data, the ``.dtype`` of a ``DatetimeArray`` is a
+:class:`DatetimeTZDtype`. For timezone-naive data, ``np.dtype("datetime64[ns]")``
+is used.
+
 If the data are tz-aware, then every value must have the same timezone.
 
 .. autosummary::
@@ -232,7 +237,8 @@ Methods
    Period.strftime
    Period.to_timestamp
 
-:class:`arrays.PeriodArray` is the array type for scalar :class:`Period` objects
+A collection of timedeltas may be stored in a :class:`arrays.PeriodArray`.
+Every period in a ``PeriodArray`` must have the same ``freq``.
 
 .. autosummary::
    :toctree: generated/
@@ -400,3 +406,4 @@ be stored efficiently as a :class:`SparseArray`.
    :toctree: generated/
 
    SparseArray
+   SparseDtype
