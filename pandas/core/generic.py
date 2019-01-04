@@ -655,7 +655,7 @@ class NDFrame(PandasObject, SelectionMixin):
 
         See Also
         --------
-        %(other_klass)s.set_index: Method adapted for %(other_klass)s.
+        %(other_klass)s.set_index : Method adapted for %(other_klass)s.
         %(klass)s.reset_index : Opposite of set_index.
         %(klass)s.reindex : Change to new indices or expand indices.
         %(klass)s.reindex_like : Change to same indices as other %(klass)s.
