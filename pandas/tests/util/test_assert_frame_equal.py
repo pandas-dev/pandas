@@ -207,3 +207,17 @@ def test_frame_equal_unicode(df1, df2, msg, by_blocks):
     # when comparing DataFrames containing differing unicode objects.
     with pytest.raises(AssertionError, match=msg):
         assert_frame_equal(df1, df2, by_blocks=by_blocks)
+
+
+def test_frame_equal_index_different_type():
+    left = DataFrame(data=[[3, 7.45678], [12, 37.45678]],
+                     columns=["one", "two"])
+
+    right = left.copy()
+    right.iloc[0, :], right.iloc[1, :] = right.iloc[1, :], right.iloc[0, :]
+    right.one = right.one.astype(str)
+
+    right = right.set_index("one")
+    left = left.set_index("one")
+
+    assert_frame_equal(left, right, check_like=True)
