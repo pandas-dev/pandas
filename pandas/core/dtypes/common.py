@@ -825,7 +825,8 @@ def is_any_int_dtype(arr_or_dtype):
 
     .. versionchanged:: 0.24.0
 
-       Nullable Integer support
+       The nullable Integer dtypes (e.g. pandas.Int64Dtype) are also considered
+       as integer by this function.
 
     Parameters
     ----------
@@ -872,7 +873,8 @@ def is_integer_dtype(arr_or_dtype):
 
     .. versionchanged:: 0.24.0
 
-       Nullable Integer support
+       The nullable Integer dtypes (e.g. pandas.Int64Dtype) are also considered
+       as integer by this function.
 
     Parameters
     ----------
@@ -926,7 +928,8 @@ def is_signed_integer_dtype(arr_or_dtype):
 
     .. versionchanged:: 0.24.0
 
-       Nullable Integer support
+       The nullable Integer dtypes (e.g. pandas.Int64Dtype) are also considered
+       as integer by this function.
 
     Parameters
     ----------
@@ -980,7 +983,8 @@ def is_unsigned_integer_dtype(arr_or_dtype):
 
     .. versionchanged:: 0.24.0
 
-       Nullable Integer support
+       The nullable Integer dtypes (e.g. pandas.UInt64Dtype) are also
+       considered as integer by this function.
 
     Parameters
     ----------
