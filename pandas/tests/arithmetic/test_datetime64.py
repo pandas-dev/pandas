@@ -2,29 +2,26 @@
 # Arithmetic tests for DataFrame/Series/Index/Array classes that should
 # behave identically.
 # Specifically for datetime64 and datetime64tz dtypes
-import operator
 from datetime import datetime, timedelta
-import warnings
 from itertools import product, starmap
+import operator
+import warnings
 
 import numpy as np
 import pytest
 import pytz
 
-import pandas as pd
-import pandas.util.testing as tm
-
-from pandas.compat.numpy import np_datetime64_compat
-from pandas.errors import PerformanceWarning, NullFrequencyError
-
 from pandas._libs.tslibs.conversion import localize_pydatetime
 from pandas._libs.tslibs.offsets import shift_months
+from pandas.compat.numpy import np_datetime64_compat
+from pandas.errors import NullFrequencyError, PerformanceWarning
 
-from pandas.core.indexes.datetimes import _to_M8
-
+import pandas as pd
 from pandas import (
-    Timestamp, Timedelta, Period, Series, date_range, NaT,
-    DatetimeIndex, TimedeltaIndex)
+    DatetimeIndex, NaT, Period, Series, Timedelta, TimedeltaIndex, Timestamp,
+    date_range)
+from pandas.core.indexes.datetimes import _to_M8
+import pandas.util.testing as tm
 
 
 def assert_all(obj):
@@ -1981,7 +1978,7 @@ class TestDatetimeIndexArithmetic(object):
         result = dti - tdi
         tm.assert_index_equal(result, expected)
 
-        msg = 'cannot subtract .*TimedeltaArrayMixin'
+        msg = 'cannot subtract .*TimedeltaArray'
         with pytest.raises(TypeError, match=msg):
             tdi - dti
 
@@ -1989,7 +1986,7 @@ class TestDatetimeIndexArithmetic(object):
         result = dti - tdi.values
         tm.assert_index_equal(result, expected)
 
-        msg = 'cannot subtract DatetimeArrayMixin from'
+        msg = 'cannot subtract DatetimeArray from'
         with pytest.raises(TypeError, match=msg):
             tdi.values - dti
 
@@ -2005,7 +2002,7 @@ class TestDatetimeIndexArithmetic(object):
         result -= tdi
         tm.assert_index_equal(result, expected)
 
-        msg = 'cannot subtract .* from a TimedeltaArrayMixin'
+        msg = 'cannot subtract .* from a TimedeltaArray'
         with pytest.raises(TypeError, match=msg):
             tdi -= dti
 
@@ -2016,7 +2013,7 @@ class TestDatetimeIndexArithmetic(object):
 
         msg = '|'.join(['cannot perform __neg__ with this index type:',
                         'ufunc subtract cannot use operands with types',
-                        'cannot subtract DatetimeArrayMixin from'])
+                        'cannot subtract DatetimeArray from'])
         with pytest.raises(TypeError, match=msg):
             tdi.values -= dti
 
@@ -2036,9 +2033,9 @@ class TestDatetimeIndexArithmetic(object):
     def test_add_datetimelike_and_dti(self, addend, tz):
         # GH#9631
         dti = DatetimeIndex(['2011-01-01', '2011-01-02']).tz_localize(tz)
-        msg = ('cannot add DatetimeArrayMixin and {0}'
+        msg = ('cannot add DatetimeArray and {0}'
                .format(type(addend).__name__)).replace('DatetimeIndex',
-                                                       'DatetimeArrayMixin')
+                                                       'DatetimeArray')
         with pytest.raises(TypeError, match=msg):
             dti + addend
         with pytest.raises(TypeError, match=msg):
