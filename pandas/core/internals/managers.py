@@ -425,6 +425,10 @@ class BlockManager(PandasObject):
         Block Manager (new object)
         """
 
+        # Series dispatches to DataFrame for quantile, which allows us to
+        #  simplify some of the code here and in the blocks
+        assert self.ndim >= 2
+
         if consolidate:
             self._consolidate_inplace()
 
@@ -449,6 +453,7 @@ class BlockManager(PandasObject):
 
         # note that some DatetimeTZ, Categorical are always ndim==1
         ndim = {b.ndim for b in blocks}
+        assert 0 not in ndim, ndim
 
         if 2 in ndim:
 
@@ -474,15 +479,7 @@ class BlockManager(PandasObject):
 
             return self.__class__(blocks, new_axes)
 
-        # 0 ndim
-        if 0 in ndim and 1 not in ndim:
-            values = np.array([b.values for b in blocks])
-            if len(values) == 1:
-                return values.item()
-            blocks = [make_block(values, ndim=1)]
-            axes = Index([ax[0] for ax in axes])
-
-        # single block
+        # single block, i.e. ndim == {1}
         values = _concat._concat_compat([b.values for b in blocks])
 
         # compute the orderings of our original data

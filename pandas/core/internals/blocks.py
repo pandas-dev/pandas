@@ -222,12 +222,6 @@ class Block(PandasObject):
 
         return make_block(values, placement=placement, ndim=ndim)
 
-    def make_block_scalar(self, values):
-        """
-        Create a ScalarBlock
-        """
-        return ScalarBlock(values)
-
     def make_block_same_class(self, values, placement=None, ndim=None,
                               dtype=None):
         """ Wrap given values in a block of same type as self. """
@@ -1468,13 +1462,15 @@ class Block(PandasObject):
             else:
                 # create the array of na_values
                 # 2d len(values) * len(qs)
-                result = np.repeat(np.array([self._na_value] * len(qs)),
+                result = np.repeat(np.array([self.fill_value] * len(qs)),
                                    len(values)).reshape(len(values),
                                                         len(qs))
         else:
-            mask = isna(self.values)
+            # asarray needed for Sparse, see GH#24600
+            # TODO: Why self.values and not values?
+            mask = np.asarray(isna(self.values))
             result = nanpercentile(values, np.array(qs) * 100,
-                                   axis=axis, na_value=self._na_value,
+                                   axis=axis, na_value=self.fill_value,
                                    mask=mask, ndim=self.ndim,
                                    interpolation=interpolation)
 
@@ -1490,8 +1486,6 @@ class Block(PandasObject):
 
         ndim = getattr(result, 'ndim', None) or 0
         result = self._try_coerce_result(result)
-        if lib.is_scalar(result):
-            return self.make_block_scalar(result)
         return make_block(result,
                           placement=np.arange(len(result)),
                           ndim=ndim)
@@ -1532,29 +1526,6 @@ class Block(PandasObject):
                                             convert=convert,
                                             mask=mask)
         return self
-
-
-class ScalarBlock(Block):
-    """
-    a scalar compat Block
-    """
-    __slots__ = ['_mgr_locs', 'values', 'ndim']
-
-    def __init__(self, values):
-        self.ndim = 0
-        self.mgr_locs = [0]
-        self.values = values
-
-    @property
-    def dtype(self):
-        return type(self.values)
-
-    @property
-    def shape(self):
-        return tuple([0])
-
-    def __len__(self):
-        return 0
 
 
 class NonConsolidatableMixIn(object):
@@ -2684,7 +2655,7 @@ class ObjectBlock(Block):
 
         if args:
             raise NotImplementedError
-        by_item = True if 'by_item' not in kwargs else kwargs['by_item']
+        by_item = kwargs.get('by_item', True)
 
         new_inputs = ['coerce', 'datetime', 'numeric', 'timedelta']
         new_style = False
