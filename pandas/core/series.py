@@ -479,7 +479,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         """
         result = self._data.internal_values()
         if isinstance(result, DatetimeIndex):
-            result = result._eadata
+            result = result._data
         return result
 
     def _formatting_values(self):
