@@ -1,24 +1,27 @@
 #!/usr/bin/env python
 # coding: utf-8
 
-import pytest
 import os
 import warnings
 
-from pandas import DataFrame, Series
-from pandas.compat import zip, iteritems
-from pandas.util._decorators import cache_readonly
-from pandas.core.dtypes.api import is_list_like
-import pandas.util.testing as tm
-from pandas.util.testing import (ensure_clean,
-                                 assert_is_valid_plot_return_object)
-import pandas.util._test_decorators as td
-
 import numpy as np
 from numpy import random
+import pytest
+
+from pandas.compat import iteritems, zip
+from pandas.util._decorators import cache_readonly
+import pandas.util._test_decorators as td
+
+from pandas.core.dtypes.api import is_list_like
+
+from pandas import DataFrame, Series
+import pandas.util.testing as tm
+from pandas.util.testing import (
+    assert_is_valid_plot_return_object, ensure_clean)
 
 import pandas.plotting as plotting
 from pandas.plotting._tools import _flatten
+
 
 """
 This is a common base class used for various plotting tests
