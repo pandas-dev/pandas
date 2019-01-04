@@ -13,7 +13,7 @@ import pandas.compat as compat
 from pandas.compat import range
 from pandas.compat.numpy import np_datetime64_compat
 
-from pandas.core.indexes.datetimes import DatetimeIndex, _to_m8, date_range
+from pandas.core.indexes.datetimes import DatetimeIndex, _to_M8, date_range
 from pandas.core.series import Series
 import pandas.util.testing as tm
 
@@ -47,9 +47,9 @@ class WeekDay(object):
 ####
 
 
-def test_to_m8():
+def test_to_M8():
     valb = datetime(2007, 10, 1)
-    valu = _to_m8(valb)
+    valu = _to_M8(valb)
     assert isinstance(valu, np.datetime64)
 
 

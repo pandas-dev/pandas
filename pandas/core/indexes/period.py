@@ -277,9 +277,6 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index, PeriodDelegateMixin):
         return result
 
     # ------------------------------------------------------------------------
-    # Wrapping PeriodArray
-
-    # ------------------------------------------------------------------------
     # Data
 
     @property
@@ -325,13 +322,9 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index, PeriodDelegateMixin):
                 # this quite a bit.
                 values = period_array(values, freq=self.freq)
 
-        # I don't like overloading shallow_copy with freq changes.
-        # See if it's used anywhere outside of test_resample_empty_dataframe
+        # We don't allow changing `freq` in _shallow_copy.
+        validate_dtype_freq(self.dtype, kwargs.get('freq'))
         attributes = self._get_attributes_dict()
-        freq = kwargs.pop("freq", None)
-        if freq:
-            values = values.asfreq(freq)
-            attributes.pop("freq", None)
 
         attributes.update(kwargs)
         if not len(values) and 'dtype' not in kwargs:
@@ -356,17 +349,6 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index, PeriodDelegateMixin):
             else:
                 return Period._from_ordinal(ordinal=x, freq=self.freq)
         return func
-
-    def _maybe_box_as_values(self, values, **attribs):
-        """Box an array of ordinals to a PeriodArray
-
-        This is purely for compatibility between PeriodIndex
-        and Datetime/TimedeltaIndex. Once these are all backed by
-        an ExtensionArray, this can be removed
-        """
-        # TODO(DatetimeArray): remove
-        freq = attribs['freq']
-        return PeriodArray(values, freq=freq)
 
     def _maybe_convert_timedelta(self, other):
         """
@@ -426,6 +408,10 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index, PeriodDelegateMixin):
     def _mpl_repr(self):
         # how to represent ourselves to matplotlib
         return self.astype(object).values
+
+    @property
+    def _formatter_func(self):
+        return self.array._formatter(boxed=False)
 
     # ------------------------------------------------------------------------
     # Indexing
@@ -506,10 +492,6 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index, PeriodDelegateMixin):
         # the result is object dtype array of Period
         # cannot pass _simple_new as it is
         return type(self)(result, freq=self.freq, name=self.name)
-
-    @property
-    def _formatter_func(self):
-        return self.array._formatter(boxed=False)
 
     def asof_locs(self, where, mask):
         """

@@ -1,5 +1,6 @@
 import numpy as np
 import pytest
+
 from pandas import SparseDataFrame, read_csv
 from pandas.util import testing as tm
 

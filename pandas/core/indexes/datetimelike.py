@@ -13,8 +13,8 @@ from pandas.errors import AbstractMethodError
 from pandas.util._decorators import Appender, cache_readonly, deprecate_kwarg
 
 from pandas.core.dtypes.common import (
-    ensure_int64, is_bool_dtype, is_dtype_equal, is_float, is_integer,
-    is_list_like, is_period_dtype, is_scalar)
+    ensure_int64, is_dtype_equal, is_float, is_integer, is_list_like,
+    is_period_dtype, is_scalar)
 from pandas.core.dtypes.generic import ABCIndex, ABCIndexClass, ABCSeries
 
 from pandas.core import algorithms, ops
@@ -31,23 +31,24 @@ import pandas.io.formats.printing as printing
 _index_doc_kwargs = dict(ibase._index_doc_kwargs)
 
 
-def ea_passthrough(name):
+def ea_passthrough(array_method):
     """
     Make an alias for a method of the underlying ExtensionArray.
 
     Parameters
     ----------
-    name : str
+    array_method : method on an Array class
 
     Returns
     -------
     method
     """
-    def method(self, *args, **kwargs):
-        return getattr(self._eadata, name)(*args, **kwargs)
 
-    method.__name__ = name
-    # TODO: docstrings
+    def method(self, *args, **kwargs):
+        return array_method(self._data, *args, **kwargs)
+
+    method.__name__ = array_method.__name__
+    method.__doc__ = array_method.__doc__
     return method
 
 
@@ -67,9 +68,10 @@ class DatetimeIndexOpsMixin(ExtensionOpsMixin):
     _resolution = cache_readonly(DatetimeLikeArrayMixin._resolution.fget)
     resolution = cache_readonly(DatetimeLikeArrayMixin.resolution.fget)
 
-    _box_values = ea_passthrough("_box_values")
-    _maybe_mask_results = ea_passthrough("_maybe_mask_results")
-    __iter__ = ea_passthrough("__iter__")
+    _box_values = ea_passthrough(DatetimeLikeArrayMixin._box_values)
+    _maybe_mask_results = ea_passthrough(
+        DatetimeLikeArrayMixin._maybe_mask_results)
+    __iter__ = ea_passthrough(DatetimeLikeArrayMixin.__iter__)
 
     @property
     def _eadata(self):
@@ -189,16 +191,6 @@ class DatetimeIndexOpsMixin(ExtensionOpsMixin):
 
         return wrapper
 
-    @Appender(DatetimeLikeArrayMixin._evaluate_compare.__doc__)
-    def _evaluate_compare(self, other, op):
-        result = self._eadata._evaluate_compare(other, op)
-        if is_bool_dtype(result):
-            return result
-        try:
-            return Index(result)
-        except TypeError:
-            return result
-
     def _ensure_localized(self, arg, ambiguous='raise', nonexistent='raise',
                           from_utc=False):
         # See DatetimeLikeArrayMixin._ensure_localized.__doc__
@@ -210,15 +202,6 @@ class DatetimeIndexOpsMixin(ExtensionOpsMixin):
                                                   from_utc=from_utc)
             return type(self)._simple_new(result, name=self.name)
         return arg
-
-    def _box_values_as_index(self):
-        """
-        Return object Index which contains boxed values.
-        """
-        # XXX: this is broken (not called) for PeriodIndex, which doesn't
-        # define _box_values AFAICT
-        from pandas.core.index import Index
-        return Index(self._box_values(self.asi8), name=self.name, dtype=object)
 
     def _box_values(self, values):
         return self._data._box_values(values)
@@ -274,9 +257,6 @@ class DatetimeIndexOpsMixin(ExtensionOpsMixin):
 
             if not ascending:
                 sorted_values = sorted_values[::-1]
-
-            sorted_values = self._maybe_box_as_values(sorted_values,
-                                                      **attribs)
 
             return self._simple_new(sorted_values, **attribs)
 
@@ -612,14 +592,6 @@ class DatetimeIndexOpsMixin(ExtensionOpsMixin):
 
         new_data = type(self._values)._concat_same_type(to_concat).asi8
         return self._simple_new(new_data, **attribs)
-
-    def _maybe_box_as_values(self, values, **attribs):
-        # TODO(DatetimeArray): remove
-        # This is a temporary shim while PeriodArray is an ExtensoinArray,
-        # but others are not. When everyone is an ExtensionArray, this can
-        # be removed. Currently used in
-        # - sort_values
-        return values
 
     @Appender(_index_shared_docs['astype'])
     def astype(self, dtype, copy=True):

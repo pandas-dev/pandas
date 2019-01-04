@@ -13,6 +13,7 @@ from pandas.core.dtypes.generic import ABCCategoricalIndex, ABCIndexClass
 from pandas import compat
 
 from .base import ExtensionDtype, _DtypeOpsMixin
+from .inference import is_list_like
 
 
 def register_extension_dtype(cls):
@@ -240,6 +241,90 @@ class CategoricalDtype(PandasExtensionDtype, ExtensionDtype):
             ordered = dtype.ordered
         return cls(categories, ordered)
 
+    @classmethod
+    def _from_values_or_dtype(cls, values=None, categories=None, ordered=None,
+                              dtype=None):
+        """
+        Construct dtype from the input parameters used in :class:`Categorical`.
+
+        This constructor method specifically does not do the factorization
+        step, if that is needed to find the categories. This constructor may
+        therefore return ``CategoricalDtype(categories=None, ordered=None)``,
+        which may not be useful. Additional steps may therefore have to be
+        taken to create the final dtype.
+
+        The return dtype is specified from the inputs in this prioritized
+        order:
+        1. if dtype is a CategoricalDtype, return dtype
+        2. if dtype is the string 'category', create a CategoricalDtype from
+           the supplied categories and ordered parameters, and return that.
+        3. if values is a categorical, use value.dtype, but override it with
+           categories and ordered if either/both of those are not None.
+        4. if dtype is None and values is not a categorical, construct the
+           dtype from categories and ordered, even if either of those is None.
+
+        Parameters
+        ----------
+        values : list-like, optional
+            The list-like must be 1-dimensional.
+        categories : list-like, optional
+            Categories for the CategoricalDtype.
+        ordered : bool, optional
+            Designating if the categories are ordered.
+        dtype : CategoricalDtype or the string "category", optional
+            If ``CategoricalDtype``, cannot be used together with
+            `categories` or `ordered`.
+
+        Returns
+        -------
+        CategoricalDtype
+
+        Examples
+        --------
+        >>> CategoricalDtype._from_values_or_dtype()
+        CategoricalDtype(categories=None, ordered=None)
+        >>> CategoricalDtype._from_values_or_dtype(categories=['a', 'b'],
+        ...                                        ordered=True)
+        CategoricalDtype(categories=['a', 'b'], ordered=True)
+        >>> dtype1 = CategoricalDtype(['a', 'b'], ordered=True)
+        >>> dtype2 = CategoricalDtype(['x', 'y'], ordered=False)
+        >>> c = Categorical([0, 1], dtype=dtype1, fastpath=True)
+        >>> CategoricalDtype._from_values_or_dtype(c, ['x', 'y'], ordered=True,
+        ...                                        dtype=dtype2)
+        ValueError: Cannot specify `categories` or `ordered` together with
+        `dtype`.
+
+        The supplied dtype takes precedence over values' dtype:
+
+        >>> CategoricalDtype._from_values_or_dtype(c, dtype=dtype2)
+        CategoricalDtype(['x', 'y'], ordered=False)
+        """
+        from pandas.core.dtypes.common import is_categorical
+
+        if dtype is not None:
+            # The dtype argument takes precedence over values.dtype (if any)
+            if isinstance(dtype, compat.string_types):
+                if dtype == 'category':
+                    dtype = CategoricalDtype(categories, ordered)
+                else:
+                    msg = "Unknown dtype {dtype!r}"
+                    raise ValueError(msg.format(dtype=dtype))
+            elif categories is not None or ordered is not None:
+                raise ValueError("Cannot specify `categories` or `ordered` "
+                                 "together with `dtype`.")
+        elif is_categorical(values):
+            # If no "dtype" was passed, use the one from "values", but honor
+            # the "ordered" and "categories" arguments
+            dtype = values.dtype._from_categorical_dtype(values.dtype,
+                                                         categories, ordered)
+        else:
+            # If dtype=None and values is not categorical, create a new dtype.
+            # Note: This could potentially have categories=None and
+            # ordered=None.
+            dtype = CategoricalDtype(categories, ordered)
+
+        return dtype
+
     def _finalize(self, categories, ordered, fastpath=False):
 
         if ordered is not None:
@@ -408,7 +493,10 @@ class CategoricalDtype(PandasExtensionDtype, ExtensionDtype):
         """
         from pandas import Index
 
-        if not isinstance(categories, ABCIndexClass):
+        if not fastpath and not is_list_like(categories):
+            msg = "Parameter 'categories' must be list-like, was {!r}"
+            raise TypeError(msg.format(categories))
+        elif not isinstance(categories, ABCIndexClass):
             categories = Index(categories, tupleize_cols=False)
 
         if not fastpath:
@@ -572,8 +660,8 @@ class DatetimeTZDtype(PandasExtensionDtype, ExtensionDtype):
         -------
         type
         """
-        from pandas.core.arrays import DatetimeArrayMixin
-        return DatetimeArrayMixin
+        from pandas.core.arrays import DatetimeArray
+        return DatetimeArray
 
     @classmethod
     def construct_from_string(cls, string):
