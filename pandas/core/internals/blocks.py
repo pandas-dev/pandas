@@ -26,7 +26,7 @@ from pandas.core.dtypes.common import (
     is_re, is_re_compilable, is_sparse, is_timedelta64_dtype, pandas_dtype)
 import pandas.core.dtypes.concat as _concat
 from pandas.core.dtypes.dtypes import (
-    CategoricalDtype, DatetimeTZDtype, ExtensionDtype, PandasExtensionDtype)
+    CategoricalDtype, ExtensionDtype, PandasExtensionDtype)
 from pandas.core.dtypes.generic import (
     ABCDataFrame, ABCDatetimeIndex, ABCExtensionArray, ABCIndexClass,
     ABCSeries)
@@ -35,14 +35,14 @@ from pandas.core.dtypes.missing import (
 
 import pandas.core.algorithms as algos
 from pandas.core.arrays import (
-    Categorical, DatetimeArrayMixin as DatetimeArray, ExtensionArray,
-    TimedeltaArrayMixin as TimedeltaArray)
+    Categorical, DatetimeArray, ExtensionArray, TimedeltaArray)
 from pandas.core.base import PandasObject
 import pandas.core.common as com
 from pandas.core.indexes.datetimes import DatetimeIndex
 from pandas.core.indexing import check_setitem_lengths
 from pandas.core.internals.arrays import extract_array
 import pandas.core.missing as missing
+from pandas.core.nanops import nanpercentile
 
 from pandas.io.formats.printing import pprint_thing
 
@@ -1439,7 +1439,7 @@ class Block(PandasObject):
         blocks = [make_block(new_values, placement=new_placement)]
         return blocks, mask
 
-    def quantile(self, qs, interpolation='linear', axis=0, axes=None):
+    def quantile(self, qs, interpolation='linear', axis=0):
         """
         compute the quantiles of the
 
@@ -1448,101 +1448,53 @@ class Block(PandasObject):
         qs: a scalar or list of the quantiles to be computed
         interpolation: type of interpolation, default 'linear'
         axis: axis to compute, default 0
-        axes : BlockManager.axes
 
         Returns
         -------
-        tuple of (axis, block)
-
+        Block
         """
-        kw = {'interpolation': interpolation}
         values = self.get_values()
         values, _ = self._try_coerce_args(values, values)
 
-        def _nanpercentile1D(values, mask, q, **kw):
-            # mask is Union[ExtensionArray, ndarray]
-            values = values[~mask]
-
-            if len(values) == 0:
-                if lib.is_scalar(q):
-                    return self._na_value
-                else:
-                    return np.array([self._na_value] * len(q),
-                                    dtype=values.dtype)
-
-            return np.percentile(values, q, **kw)
-
-        def _nanpercentile(values, q, axis, **kw):
-
-            mask = isna(self.values)
-            if not lib.is_scalar(mask) and mask.any():
-                if self.ndim == 1:
-                    return _nanpercentile1D(values, mask, q, **kw)
-                else:
-                    # for nonconsolidatable blocks mask is 1D, but values 2D
-                    if mask.ndim < values.ndim:
-                        mask = mask.reshape(values.shape)
-                    if axis == 0:
-                        values = values.T
-                        mask = mask.T
-                    result = [_nanpercentile1D(val, m, q, **kw) for (val, m)
-                              in zip(list(values), list(mask))]
-                    result = np.array(result, dtype=values.dtype, copy=False).T
-                    return result
-            else:
-                return np.percentile(values, q, axis=axis, **kw)
-
-        from pandas import Float64Index
         is_empty = values.shape[axis] == 0
-        if is_list_like(qs):
-            ax = Float64Index(qs)
+        orig_scalar = not is_list_like(qs)
+        if orig_scalar:
+            # make list-like, unpack later
+            qs = [qs]
 
-            if is_empty:
-                if self.ndim == 1:
-                    result = self._na_value
-                else:
-                    # create the array of na_values
-                    # 2d len(values) * len(qs)
-                    result = np.repeat(np.array([self._na_value] * len(qs)),
-                                       len(values)).reshape(len(values),
-                                                            len(qs))
-            else:
-
-                try:
-                    result = _nanpercentile(values, np.array(qs) * 100,
-                                            axis=axis, **kw)
-                except ValueError:
-
-                    # older numpies don't handle an array for q
-                    result = [_nanpercentile(values, q * 100,
-                                             axis=axis, **kw) for q in qs]
-
-                result = np.array(result, copy=False)
-                if self.ndim > 1:
-                    result = result.T
-
-        else:
-
+        if is_empty:
             if self.ndim == 1:
-                ax = Float64Index([qs])
+                result = self._na_value
             else:
-                ax = axes[0]
+                # create the array of na_values
+                # 2d len(values) * len(qs)
+                result = np.repeat(np.array([self._na_value] * len(qs)),
+                                   len(values)).reshape(len(values),
+                                                        len(qs))
+        else:
+            mask = isna(self.values)
+            result = nanpercentile(values, np.array(qs) * 100,
+                                   axis=axis, na_value=self._na_value,
+                                   mask=mask, ndim=self.ndim,
+                                   interpolation=interpolation)
 
-            if is_empty:
-                if self.ndim == 1:
-                    result = self._na_value
-                else:
-                    result = np.array([self._na_value] * len(self))
-            else:
-                result = _nanpercentile(values, qs * 100, axis=axis, **kw)
+            result = np.array(result, copy=False)
+            if self.ndim > 1:
+                result = result.T
+
+        if orig_scalar and not lib.is_scalar(result):
+            # result could be scalar in case with is_empty and self.ndim == 1
+            assert result.shape[-1] == 1, result.shape
+            result = result[..., 0]
+            result = lib.item_from_zerodim(result)
 
         ndim = getattr(result, 'ndim', None) or 0
         result = self._try_coerce_result(result)
         if lib.is_scalar(result):
-            return ax, self.make_block_scalar(result)
-        return ax, make_block(result,
-                              placement=np.arange(len(result)),
-                              ndim=ndim)
+            return self.make_block_scalar(result)
+        return make_block(result,
+                          placement=np.arange(len(result)),
+                          ndim=ndim)
 
     def _replace_coerce(self, to_replace, value, inplace=True, regex=False,
                         convert=False, mask=None):
@@ -1639,13 +1591,6 @@ class NonConsolidatableMixIn(object):
             return (len(self.values)),
         return (len(self.mgr_locs), len(self.values))
 
-    def get_values(self, dtype=None):
-        """ need to to_dense myself (and always return a ndim sized object) """
-        values = self.values.to_dense()
-        if values.ndim == self.ndim - 1:
-            values = values.reshape((1,) + values.shape)
-        return values
-
     def iget(self, col):
 
         if self.ndim == 2 and isinstance(col, tuple):
@@ -1700,48 +1645,8 @@ class NonConsolidatableMixIn(object):
         new_values = self._try_coerce_result(new_values)
         return [self.make_block(values=new_values)]
 
-    def _slice(self, slicer):
-        """ return a slice of my values (but densify first) """
-        return self.get_values()[slicer]
-
     def _try_cast_result(self, result, dtype=None):
         return result
-
-    def _unstack(self, unstacker_func, new_columns, n_rows, fill_value):
-        """Return a list of unstacked blocks of self
-
-        Parameters
-        ----------
-        unstacker_func : callable
-            Partially applied unstacker.
-        new_columns : Index
-            All columns of the unstacked BlockManager.
-        n_rows : int
-            Only used in ExtensionBlock.unstack
-        fill_value : int
-            Only used in ExtensionBlock.unstack
-
-        Returns
-        -------
-        blocks : list of Block
-            New blocks of unstacked values.
-        mask : array_like of bool
-            The mask of columns of `blocks` we should keep.
-        """
-        # NonConsolidatable blocks can have a single item only, so we return
-        # one block per item
-        unstacker = unstacker_func(self.values.T)
-
-        new_placement, new_values, mask = self._get_unstack_items(
-            unstacker, new_columns
-        )
-
-        new_values = new_values.T[mask]
-        new_placement = new_placement[mask]
-
-        blocks = [self.make_block_same_class(vals, [place])
-                  for vals, place in zip(new_values, new_placement)]
-        return blocks, mask
 
     def _get_unstack_items(self, unstacker, new_columns):
         """
@@ -2330,11 +2235,11 @@ class DatetimeBlock(DatetimeLikeBlockMixin, Block):
             i8values = i8values[..., slicer]
 
         from pandas.io.formats.format import _get_format_datetime64_from_values
-        format = _get_format_datetime64_from_values(values, date_format)
+        fmt = _get_format_datetime64_from_values(values, date_format)
 
         result = tslib.format_array_from_datetime(
             i8values.ravel(), tz=getattr(self.values, 'tz', None),
-            format=format, na_rep=na_rep).reshape(i8values.shape)
+            format=fmt, na_rep=na_rep).reshape(i8values.shape)
         return np.atleast_2d(result)
 
     def should_store(self, value):
@@ -2400,8 +2305,6 @@ class DatetimeTZBlock(ExtensionBlock, DatetimeBlock):
             values = self._holder(values)
 
         if dtype is not None:
-            if isinstance(dtype, compat.string_types):
-                dtype = DatetimeTZDtype.construct_from_string(dtype)
             values = type(values)(values, dtype=dtype)
 
         if values.tz is None:

@@ -451,6 +451,13 @@ class TestSeriesConstructors():
                            datetime(2001, 1, 3)], index=index, dtype='M8[ns]')
         assert_series_equal(result, expected)
 
+    def test_constructor_maskedarray_hardened(self):
+        # Check numpy masked arrays with hard masks -- from GH24574
+        data = ma.masked_all((3, ), dtype=float).harden_mask()
+        result = pd.Series(data)
+        expected = pd.Series([nan, nan, nan])
+        tm.assert_series_equal(result, expected)
+
     def test_series_ctor_plus_datetimeindex(self):
         rng = date_range('20090415', '20090519', freq='B')
         data = {k: 1 for k in rng}
