@@ -139,7 +139,7 @@ if PY3:
     Hashable = collections.abc.Hashable
     Iterable = collections.abc.Iterable
     Mapping = collections.abc.Mapping
-    MutableMapping = collections.MutableMapping
+    MutableMapping = collections.abc.MutableMapping
     Sequence = collections.abc.Sequence
     Sized = collections.abc.Sized
     Set = collections.abc.Set
