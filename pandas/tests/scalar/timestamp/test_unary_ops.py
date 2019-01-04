@@ -163,7 +163,7 @@ class TestTimestampUnaryOps(object):
     def test_round_dst_border_nonexistent(self, method, ts_str, freq):
         # GH 23324 round near "spring forward" DST
         ts = Timestamp(ts_str, tz='America/Chicago')
-        result = getattr(ts, method)(freq, nonexistent='shift')
+        result = getattr(ts, method)(freq, nonexistent='shift_forward')
         expected = Timestamp('2018-03-11 03:00:00', tz='America/Chicago')
         assert result == expected
 
