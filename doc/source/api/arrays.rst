@@ -14,19 +14,17 @@ objects contained with a :class:`Index`, :class:`Series`, or
 
 For some data types, pandas extends NumPy's type system.
 
-=================== ========================= ================== ======================
+=================== ========================= ================== =============================
 Kind of Data        Pandas Data Type          Scalar             Array
-=================== ========================= ================== ======================
-TZ-aware datetime   :class:`DatetimeTZDtype`  :class:`Timestamp` :ref:`api.datetime`
-Timedeltas          (none)                    :class:`Timedelta` :ref:`api.timedelta`
-Period (time spans) :class:`PeriodDtype`      :class:`Period`    :ref:`api.period`
-Intervals           :class:`IntervalDtype`    :class:`Interval`  :ref:`api.interval`
-Nullable Integer    :class:`Int64Dtype`, ...  (none)             :ref:`api.integer_na`
-Categorical         :class:`CategoricalDtype` (none)             :ref:`api.categorical`
-Sparse              :class:`SparseDtype`      (none)             :ref:`api.sparse`
-=================== ========================= ================== ======================
-
-.. _api.arrays:
+=================== ========================= ================== =============================
+TZ-aware datetime   :class:`DatetimeTZDtype`  :class:`Timestamp` :ref:`api.arrays.datetime`
+Timedeltas          (none)                    :class:`Timedelta` :ref:`api.arrays.timedelta`
+Period (time spans) :class:`PeriodDtype`      :class:`Period`    :ref:`api.arrays.period`
+Intervals           :class:`IntervalDtype`    :class:`Interval`  :ref:`api.arrays.interval`
+Nullable Integer    :class:`Int64Dtype`, ...  (none)             :ref:`api.arrays.integer_na`
+Categorical         :class:`CategoricalDtype` (none)             :ref:`api.arrays.categorical`
+Sparse              :class:`SparseDtype`      (none)             :ref:`api.arrays.sparse`
+=================== ========================= ================== =============================
 
 Arrays
 ------
@@ -40,7 +38,7 @@ stored in a :class:`Series`, :class:`Index`, or as a column in a :class:`DataFra
 
    array
 
-.. _api.datetime:
+.. _api.arrays.datetime:
 
 =============
 Datetime Data
@@ -152,7 +150,7 @@ If the data are tz-aware, then every value must have the same timezone.
    arrays.DatetimeArray
    DatetimeTZDtype
 
-.. _api.timedelta:
+.. _api.arrays.timedelta:
 
 ==============
 Timedelta Data
@@ -206,7 +204,7 @@ A collection of timedeltas may be stored in a :class:`TimedeltaArray`.
 
    arrays.TimedeltaArray
 
-.. _api.period:
+.. _api.arrays.period:
 
 =============
 Timespan Data
@@ -267,7 +265,7 @@ Every period in a ``PeriodArray`` must have the same ``freq``.
    arrays.DatetimeArray
    PeriodDtype
 
-.. _api.interval:
+.. _api.arrays.interval:
 
 =============
 Interval Data
@@ -304,7 +302,7 @@ A collection of intervals may be stored in an :class:`IntervalArray`.
    IntervalArray
    IntervalDtype
 
-.. _api.integer_na:
+.. _api.arrays.integer_na:
 
 ================
 Nullable Integer
@@ -326,7 +324,7 @@ Pandas provides this through :class:`arrays.IntegerArray`.
    UInt32Dtype
    UInt64Dtype
 
-.. _api.categorical:
+.. _api.arrays.categorical:
 
 ================
 Categorical Data
@@ -392,7 +390,7 @@ To create a Series of dtype ``category``, use ``cat = s.astype(dtype)`` or
 If the Series is of dtype ``CategoricalDtype``, ``Series.cat`` can be used to change the categorical
 data. See :ref:`api.series.cat` for more.
 
-.. _api.sparse:
+.. _api.arrays.sparse:
 
 ===========
 Sparse Data
