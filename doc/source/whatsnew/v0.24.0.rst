@@ -1142,6 +1142,40 @@ cast from integer dtype to floating dtype (:issue:`22019`)
        ...:                    'c': [1, 1, np.nan, 1, 1]})
     In [4]: pd.crosstab(df.a, df.b, normalize='columns')
 
+.. _whatsnew_0240.api.concat_categorical:
+
+Concatenation Changes
+^^^^^^^^^^^^^^^^^^^^^
+
+Calling :func:`pandas.concat` on a ``Categorical`` of ints with NA values now
+causes them to be processed as objects when concatenating with anything
+other than another ``Categorical`` of ints (:issue:`19214`)
+
+.. ipython:: python
+
+    s = pd.Series([0, 1, np.nan])
+    c = pd.Series([0, 1, np.nan], dtype="category")
+
+*Previous Behavior*
+
+.. code-block:: ipython
+
+    In [3]: pd.concat([s, c])
+    Out[3]:
+    0    0.0
+    1    1.0
+    2    NaN
+    0    0.0
+    1    1.0
+    2    NaN
+    dtype: float64
+
+*New Behavior*
+
+.. ipython:: python
+
+    pd.concat([s, c])
+
 Datetimelike API Changes
 ^^^^^^^^^^^^^^^^^^^^^^^^
 
@@ -1622,6 +1656,9 @@ MultiIndex
 
 I/O
 ^^^
+
+- Bug where integer categorical data would be formatted as floats if ``NaN`` values were present (:issue:`19214`)
+
 
 .. _whatsnew_0240.bug_fixes.nan_with_str_dtype:
 
