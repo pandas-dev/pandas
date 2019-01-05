@@ -575,7 +575,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         """
         msg = ("Series.nonzero() is deprecated "
                "and will be removed in a future version."
-               "Use np.nonzero(Series.values) instead")
+               "Use Series.to_numpy().non_zero() instead")
         warnings.warn(msg, FutureWarning, stacklevel=2)
         return self._values.nonzero()
 
