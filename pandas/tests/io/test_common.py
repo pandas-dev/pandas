@@ -3,6 +3,7 @@ Tests for the pandas.io.common functionalities
 """
 import mmap
 import os
+import re
 
 import pytest
 
@@ -146,6 +147,31 @@ bar2,12,13,14,15
 
         path = os.path.join(HERE, 'data', 'does_not_exist.' + fn_ext)
         with pytest.raises(error_class):
+            reader(path)
+
+    @pytest.mark.parametrize('reader, module, error_class, fn_ext', [
+        (pd.read_csv, 'os', FileNotFoundError, 'csv'),
+        (pd.read_fwf, 'os', FileNotFoundError, 'txt'),
+        (pd.read_excel, 'xlrd', FileNotFoundError, 'xlsx'),
+        (pd.read_feather, 'feather', Exception, 'feather'),
+        (pd.read_hdf, 'tables', FileNotFoundError, 'h5'),
+        (pd.read_stata, 'os', FileNotFoundError, 'dta'),
+        (pd.read_sas, 'os', FileNotFoundError, 'sas7bdat'),
+        (pd.read_json, 'os', ValueError, 'json'),
+        (pd.read_msgpack, 'os', ValueError, 'mp'),
+        (pd.read_pickle, 'os', FileNotFoundError, 'pickle'),
+    ])
+    def test_read_expands_user_home_dir(self, reader, module,
+                                        error_class, fn_ext, monkeypatch):
+        pytest.importorskip(module)
+
+        path = os.path.join('~', 'does_not_exist.' + fn_ext)
+        monkeypatch.setattr(icom, '_expand_user',
+                            lambda x: os.path.join('foo', x))
+
+        message = "".join(["foo", os.path.sep, "does_not_exist.", fn_ext])
+
+        with pytest.raises(error_class, message=re.escape(message)):
             reader(path)
 
     def test_read_non_existant_read_table(self):

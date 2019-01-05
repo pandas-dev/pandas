@@ -157,7 +157,7 @@ def _stringify_path(filepath_or_buffer):
         return text_type(filepath_or_buffer)
     if _PY_PATH_INSTALLED and isinstance(filepath_or_buffer, LocalPath):
         return filepath_or_buffer.strpath
-    return filepath_or_buffer
+    return _expand_user(filepath_or_buffer)
 
 
 def is_s3_url(url):
