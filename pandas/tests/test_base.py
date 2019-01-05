@@ -1382,6 +1382,17 @@ def check_pinned_names(cls):
         "astimezone": "tz_convert",
         "weekofyear": "week",
     }
+    # special cases that we are more restrictive about, possibly fixing
+    #  them at some point.
+    class_special_cases = {
+        "SparseArray": {
+            "get_values": "to_dense",
+        },
+        "FrozenList": {
+            "__add__": "union",
+            "__iadd__": "union",
+        },
+    }
     ignore = {
         "_create_comparison_method",
     }
@@ -1401,16 +1412,8 @@ def check_pinned_names(cls):
             expected = special_cases.get(name, name)
             result = attr.__name__
 
-            # kludges for special cases that we need to make decisions about
-            if (cls.__name__ == "SparseArray" and
-                    result == "to_dense" and name == "get_values"):
-                continue
-            if (cls.__name__ == "FrozenList" and
-                    result == "union" and name in ["__add__", "__iadd__"]):
-                continue
-            if (cls.__name__ == "FrozenList" and
-                    result == "__mul__" and name == "__imul__"):
-                continue
+            cls_kludge = class_special_cases.get(cls.__name__, {})
+            expected = cls_kludge.get(name, expected)
 
             assert result in [name, expected], (result, expected, name,
                                                 cls.__name__)
