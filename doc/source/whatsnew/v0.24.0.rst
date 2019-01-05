@@ -1695,6 +1695,7 @@ Reshaping
 - Bug in :class:`DataFrame` prevented list subclasses to be used to construction (:issue:`21226`)
 - Bug in :func:`DataFrame.unstack` and :func:`DataFrame.pivot_table` returning a missleading error message when the resulting DataFrame has more elements than int32 can handle. Now, the error message is improved, pointing towards the actual problem (:issue:`20601`)
 - Bug in :func:`DataFrame.unstack` raising a ``ValueError`` when unstacking timezone aware values (:issues:`18338`)
+- Bug in :func:`DataFrame.stack` where timezone aware values were converted to timezone naive values (:issues:`19420`)
 
 .. _whatsnew_0240.bug_fixes.sparse:
 
