@@ -188,7 +188,6 @@ Computations / Descriptive Stats
    Series.is_monotonic_decreasing
    Series.value_counts
    Series.compound
-   Series.nonzero
 
 Reindexing / Selection / Label manipulation
 -------------------------------------------
