@@ -160,12 +160,13 @@ bar2,12,13,14,15
         (pd.read_msgpack, 'os', ValueError, 'mp'),
         (pd.read_pickle, 'os', FileNotFoundError, 'pickle'),
     ])
-    def test_read_non_existant_user_home_dir(self, reader, module,
-                                             error_class, fn_ext):
+    def test_read_expands_user_home_dir(self, reader, module,
+                                             error_class, fn_ext, monkeypatch):
         pytest.importorskip(module)
 
         path = os.path.join('~', 'does_not_exist.' + fn_ext)
-        with pytest.raises(error_class):
+        monkeypatch.setattr(icom, '_expand_user', lambda x: 'foo')
+        with pytest.raises(error_class, message=r".*foo/does_not_exist.*"):
             reader(path)
 
     def test_read_non_existant_read_table(self):
