@@ -109,8 +109,12 @@ class DatetimeIndexOpsMixin(ExtensionOpsMixin):
         Create a comparison method that dispatches to ``cls.values``.
         """
         def wrapper(self, other):
-            other = maybe_unwrap_index(other, unwrap_series=True)
-            result = op(self._data, other)
+            if isinstance(other, ABCSeries):
+                # the arrays defer to Series for comparison ops but the indexes
+                #  don't, so we have to unwrap here.
+                other = other._values
+
+            result = op(self._data, maybe_unwrap_index(other))
             return result
 
         wrapper.__doc__ = op.__doc__
@@ -656,7 +660,7 @@ def wrap_arithmetic_op(self, other, result):
     return result
 
 
-def maybe_unwrap_index(obj, unwrap_series=False):
+def maybe_unwrap_index(obj):
     """
     If operating against another Index object, we need to unwrap the underlying
     data before deferring to the DatetimeArray/TimedeltaArray/PeriodArray
@@ -665,8 +669,6 @@ def maybe_unwrap_index(obj, unwrap_series=False):
     Parameters
     ----------
     obj : object
-    unwrap_series : bool
-        Whether to also unwrap Series objects.
 
     Returns
     -------
@@ -674,8 +676,6 @@ def maybe_unwrap_index(obj, unwrap_series=False):
     """
     if isinstance(obj, ABCIndexClass):
         return obj._data
-    elif isinstance(obj, ABCSeries) and unwrap_series:
-        obj = obj._values
     return obj
 
 
