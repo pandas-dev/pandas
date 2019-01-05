@@ -19,7 +19,8 @@ from pandas.core.dtypes.common import (
     is_extension_type, is_float_dtype, is_int64_dtype, is_object_dtype,
     is_period_dtype, is_string_dtype, is_timedelta64_dtype, pandas_dtype)
 from pandas.core.dtypes.dtypes import DatetimeTZDtype
-from pandas.core.dtypes.generic import ABCIndexClass, ABCPandasArray, ABCSeries
+from pandas.core.dtypes.generic import (
+    ABCDataFrame, ABCIndexClass, ABCPandasArray, ABCSeries)
 from pandas.core.dtypes.missing import isna
 
 from pandas.core import ops
@@ -96,9 +97,8 @@ def _dt_array_cmp(cls, op):
     nat_result = True if opname == '__ne__' else False
 
     def wrapper(self, other):
-        # TODO: return NotImplemented for Series / Index and let pandas unbox
-        # Right now, returning NotImplemented for Index fails because we
-        # go into the index implementation, which may be a bug?
+        if isinstance(other, (ABCDataFrame, ABCSeries, ABCIndexClass)):
+            return NotImplemented
 
         other = lib.item_from_zerodim(other)
 
