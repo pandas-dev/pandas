@@ -5,11 +5,6 @@ v0.15.2 (December 12, 2014)
 
 {{ header }}
 
-.. ipython:: python
-   :suppress:
-
-   from pandas import * # noqa F401, F403
-
 
 This is a minor release from 0.15.1 and includes a large number of bug fixes
 along with several new features, enhancements, and performance improvements.
@@ -79,7 +74,7 @@ API changes
 
   .. ipython:: python
 
-     data = pd.DataFrame({'x':[1, 2, 3]})
+     data = pd.DataFrame({'x': [1, 2, 3]})
      data.y = 2
      data['y'] = [2, 4, 6]
      data
@@ -154,7 +149,7 @@ Other enhancements:
   .. code-block:: python
 
      from sqlalchemy.types import String
-     data.to_sql('data_dtype', engine, dtype={'Col_1': String})
+     data.to_sql('data_dtype', engine, dtype={'Col_1': String})  # noqa F821
 
 - ``Series.all`` and ``Series.any`` now support the ``level`` and ``skipna`` parameters (:issue:`8302`):
 
