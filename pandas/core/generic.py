@@ -1,5 +1,6 @@
 # pylint: disable=W0231,E1101
 import collections
+from datetime import timedelta
 import functools
 import gc
 import json
@@ -2008,45 +2009,45 @@ class NDFrame(PandasObject, SelectionMixin):
 
     Parameters
     ----------
-    excel_writer : string or ExcelWriter object
+    excel_writer : str or ExcelWriter object
         File path or existing ExcelWriter.
-    sheet_name : string, default 'Sheet1'
+    sheet_name : str, default 'Sheet1'
         Name of sheet which will contain DataFrame.
-    na_rep : string, default ''
+    na_rep : str, default ''
         Missing data representation.
-    float_format : string, optional
+    float_format : str, optional
         Format string for floating point numbers. For example
         ``float_format="%%.2f"`` will format 0.1234 to 0.12.
-    columns : sequence or list of string, optional
+    columns : sequence or list of str, optional
         Columns to write.
-    header : boolean or list of string, default True
-        Write out the column names. If a list of strings is given it is
+    header : bool or list of str, default True
+        Write out the column names. If a list of string is given it is
         assumed to be aliases for the column names.
-    index : boolean, default True
+    index : bool, default True
         Write row names (index).
-    index_label : string or sequence, optional
+    index_label : str or sequence, optional
         Column label for index column(s) if desired. If not specified, and
         `header` and `index` are True, then the index names are used. A
         sequence should be given if the DataFrame uses MultiIndex.
-    startrow : integer, default 0
+    startrow : int, default 0
         Upper left cell row to dump data frame.
-    startcol : integer, default 0
+    startcol : int, default 0
         Upper left cell column to dump data frame.
-    engine : string, optional
+    engine : str, optional
         Write engine to use, 'openpyxl' or 'xlsxwriter'. You can also set this
         via the options ``io.excel.xlsx.writer``, ``io.excel.xls.writer``, and
         ``io.excel.xlsm.writer``.
-    merge_cells : boolean, default True
+    merge_cells : bool, default True
         Write MultiIndex and Hierarchical Rows as merged cells.
-    encoding : string, optional
+    encoding : str, optional
         Encoding of the resulting excel file. Only necessary for xlwt,
         other writers support unicode natively.
-    inf_rep : string, default 'inf'
+    inf_rep : str, default 'inf'
         Representation for infinity (there is no native representation for
         infinity in Excel).
-    verbose : boolean, default True
+    verbose : bool, default True
         Display more information in the error logs.
-    freeze_panes : tuple of integer (length 2), optional
+    freeze_panes : tuple of int (length 2), optional
         Specifies the one-based bottommost row and rightmost column that
         is to be frozen.
 
@@ -2054,8 +2055,10 @@ class NDFrame(PandasObject, SelectionMixin):
 
     See Also
     --------
-    read_excel
-    ExcelWriter
+    to_csv : Write DataFrame to a comma-separated values (csv) file.
+    ExcelWriter : Class for writing DataFrame objects into excel sheets.
+    read_excel : Read an Excel file into a pandas DataFrame.
+    read_csv : Read a comma-separated values (csv) file into DataFrame.
 
     Notes
     -----
@@ -2071,8 +2074,8 @@ class NDFrame(PandasObject, SelectionMixin):
     Create, write to and save a workbook:
 
     >>> df1 = pd.DataFrame([['a', 'b'], ['c', 'd']],
-    ...                   index=['row 1', 'row 2'],
-    ...                   columns=['col 1', 'col 2'])
+    ...                    index=['row 1', 'row 2'],
+    ...                    columns=['col 1', 'col 2'])
     >>> df1.to_excel("output.xlsx")  # doctest: +SKIP
 
     To specify the sheet name:
@@ -2166,7 +2169,7 @@ class NDFrame(PandasObject, SelectionMixin):
         double_precision : int, default 10
             The number of decimal places to use when encoding
             floating point values.
-        force_ascii : boolean, default True
+        force_ascii : bool, default True
             Force encoded string to be ASCII.
         date_unit : string, default 'ms' (milliseconds)
             The time unit to encode to, governs timestamp and ISO8601
@@ -2176,7 +2179,7 @@ class NDFrame(PandasObject, SelectionMixin):
             Handler to call if object cannot otherwise be converted to a
             suitable format for JSON. Should receive a single argument which is
             the object to convert and return a serialisable object.
-        lines : boolean, default False
+        lines : bool, default False
             If 'orient' is 'records' write out line delimited json format. Will
             throw ValueError if incorrect 'orient' since others are not list
             like.
@@ -2192,7 +2195,7 @@ class NDFrame(PandasObject, SelectionMixin):
             .. versionadded:: 0.21.0
             .. versionchanged:: 0.24.0
                'infer' option added and set to default
-        index : boolean, default True
+        index : bool, default True
             Whether to include the index values in the JSON string. Not
             including the index (``index=False``) is only supported when
             orient is 'split' or 'table'.
@@ -2375,7 +2378,7 @@ class NDFrame(PandasObject, SelectionMixin):
         ----------
         path : string File path, buffer-like, or None
             if None, return generated string
-        append : boolean whether to append to an existing msgpack
+        append : bool whether to append to an existing msgpack
             (default is False)
         compress : type of compressor (zlib or blosc), default to None (no
             compression)
@@ -2386,7 +2389,7 @@ class NDFrame(PandasObject, SelectionMixin):
                                   **kwargs)
 
     def to_sql(self, name, con, schema=None, if_exists='fail', index=True,
-               index_label=None, chunksize=None, dtype=None):
+               index_label=None, chunksize=None, dtype=None, method=None):
         """
         Write records stored in a DataFrame to a SQL database.
 
@@ -2410,7 +2413,7 @@ class NDFrame(PandasObject, SelectionMixin):
             * replace: Drop the table before inserting new values.
             * append: Insert new values to the existing table.
 
-        index : boolean, default True
+        index : bool, default True
             Write DataFrame index as a column. Uses `index_label` as the column
             name in the table.
         index_label : string or sequence, default None
@@ -2424,6 +2427,17 @@ class NDFrame(PandasObject, SelectionMixin):
             Specifying the datatype for columns. The keys should be the column
             names and the values should be the SQLAlchemy types or strings for
             the sqlite3 legacy mode.
+        method : {None, 'multi', callable}, default None
+            Controls the SQL insertion clause used:
+
+            * None : Uses standard SQL ``INSERT`` clause (one per row).
+            * 'multi': Pass multiple values in a single ``INSERT`` clause.
+            * callable with signature ``(pd_table, conn, keys, data_iter)``.
+
+            Details and a sample callable implementation can be found in the
+            section :ref:`insert method <io.sql.method>`.
+
+            .. versionadded:: 0.24.0
 
         Raises
         ------
@@ -2505,7 +2519,7 @@ class NDFrame(PandasObject, SelectionMixin):
         from pandas.io import sql
         sql.to_sql(self, name, con, schema=schema, if_exists=if_exists,
                    index=index, index_label=index_label, chunksize=chunksize,
-                   dtype=dtype)
+                   dtype=dtype, method=method)
 
     def to_pickle(self, path, compression='infer',
                   protocol=pkl.HIGHEST_PROTOCOL):
@@ -3069,7 +3083,7 @@ class NDFrame(PandasObject, SelectionMixin):
     def _maybe_cache_changed(self, item, value):
         """The object has called back to us saying maybe it has changed.
         """
-        self._data.set(item, value, check=False)
+        self._data.set(item, value)
 
     @property
     def _is_cached(self):
@@ -7132,19 +7146,13 @@ class NDFrame(PandasObject, SelectionMixin):
                 (upper is not None and np.any(isna(upper)))):
             raise ValueError("Cannot use an NA value as a clip threshold")
 
-        result = self.values
-        mask = isna(result)
-
-        with np.errstate(all='ignore'):
-            if upper is not None:
-                result = np.where(result >= upper, upper, result)
-            if lower is not None:
-                result = np.where(result <= lower, lower, result)
-        if np.any(mask):
-            result[mask] = np.nan
-
-        axes_dict = self._construct_axes_dict()
-        result = self._constructor(result, **axes_dict).__finalize__(self)
+        result = self
+        if upper is not None:
+            subset = self.le(upper, axis=None) | isna(result)
+            result = result.where(subset, upper, axis=None, inplace=False)
+        if lower is not None:
+            subset = self.ge(lower, axis=None) | isna(result)
+            result = result.where(subset, lower, axis=None, inplace=False)
 
         if inplace:
             self._update_inplace(result)
@@ -7153,7 +7161,6 @@ class NDFrame(PandasObject, SelectionMixin):
 
     def _clip_with_one_bound(self, threshold, method, axis, inplace):
 
-        inplace = validate_bool_kwarg(inplace, 'inplace')
         if axis is not None:
             axis = self._get_axis_number(axis)
 
@@ -7172,7 +7179,7 @@ class NDFrame(PandasObject, SelectionMixin):
             if isinstance(self, ABCSeries):
                 threshold = pd.Series(threshold, index=self.index)
             else:
-                threshold = _align_method_FRAME(self, np.asarray(threshold),
+                threshold = _align_method_FRAME(self, threshold,
                                                 axis)
         return self.where(subset, threshold, axis=axis, inplace=inplace)
 
@@ -9243,13 +9250,17 @@ class NDFrame(PandasObject, SelectionMixin):
             - 'NaT' will return NaT where there are ambiguous times
             - 'raise' will raise an AmbiguousTimeError if there are ambiguous
               times
-        nonexistent : 'shift', 'NaT', default 'raise'
+        nonexistent : 'shift_forward', 'shift_backward, 'NaT', timedelta,
+                      default 'raise'
             A nonexistent time does not exist in a particular timezone
             where clocks moved forward due to DST.
 
-            - 'shift' will shift the nonexistent times forward to the closest
-              existing time
+            - 'shift_forward' will shift the nonexistent time forward to the
+              closest existing time
+            - 'shift_backward' will shift the nonexistent time backward to the
+              closest existing time
             - 'NaT' will return NaT where there are nonexistent times
+            - timedelta objects will shift nonexistent times by the timedelta
             - 'raise' will raise an NonExistentTimeError if there are
               nonexistent times
 
@@ -9307,10 +9318,33 @@ class NDFrame(PandasObject, SelectionMixin):
         2018-10-28 02:36:00+02:00    1
         2018-10-28 03:46:00+01:00    2
         dtype: int64
+
+        If the DST transition causes nonexistent times, you can shift these
+        dates forward or backwards with a timedelta object or `'shift_forward'`
+        or `'shift_backwards'`.
+        >>> s = pd.Series(range(2), index=pd.DatetimeIndex([
+        ... '2015-03-29 02:30:00',
+        ... '2015-03-29 03:30:00']))
+        >>> s.tz_localize('Europe/Warsaw', nonexistent='shift_forward')
+        2015-03-29 03:00:00+02:00    0
+        2015-03-29 03:30:00+02:00    1
+        dtype: int64
+        >>> s.tz_localize('Europe/Warsaw', nonexistent='shift_backward')
+        2015-03-29 01:59:59.999999999+01:00    0
+        2015-03-29 03:30:00+02:00              1
+        dtype: int64
+        >>> s.tz_localize('Europe/Warsaw', nonexistent=pd.Timedelta('1H'))
+        2015-03-29 03:30:00+02:00    0
+        2015-03-29 03:30:00+02:00    1
+        dtype: int64
         """
-        if nonexistent not in ('raise', 'NaT', 'shift'):
+        nonexistent_options = ('raise', 'NaT', 'shift_forward',
+                               'shift_backward')
+        if nonexistent not in nonexistent_options and not isinstance(
+                nonexistent, timedelta):
             raise ValueError("The nonexistent argument must be one of 'raise',"
-                             " 'NaT' or 'shift'")
+                             " 'NaT', 'shift_forward', 'shift_backward' or"
+                             " a timedelta object")
 
         axis = self._get_axis_number(axis)
         ax = self._get_axis(axis)

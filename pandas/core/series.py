@@ -17,7 +17,7 @@ from pandas.util._validators import validate_bool_kwarg
 
 from pandas.core.dtypes.common import (
     _is_unorderable_exception, ensure_platform_int, is_bool,
-    is_categorical_dtype, is_datetime64tz_dtype, is_datetimelike, is_dict_like,
+    is_categorical_dtype, is_datetime64_dtype, is_datetimelike, is_dict_like,
     is_extension_array_dtype, is_extension_type, is_hashable, is_integer,
     is_iterator, is_list_like, is_scalar, is_string_like, is_timedelta64_dtype)
 from pandas.core.dtypes.generic import (
@@ -130,6 +130,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
     dtype : str, numpy.dtype, or ExtensionDtype, optional
         dtype for the output Series. If not specified, this will be
         inferred from `data`.
+        See the :ref:`user guide <basics.dtypes>` for more usages.
     copy : bool, default False
         Copy input data.
     """
@@ -437,7 +438,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         .. warning::
 
            We recommend using :attr:`Series.array` or
-           :Series:`Index.to_numpy`, depending on whether you need
+           :meth:`Series.to_numpy`, depending on whether you need
            a reference to the underlying data or a NumPy array.
 
         Returns
@@ -476,7 +477,10 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         """
         Return the internal repr of this data.
         """
-        return self._data.internal_values()
+        result = self._data.internal_values()
+        if isinstance(result, DatetimeIndex):
+            result = result._eadata
+        return result
 
     def _formatting_values(self):
         """
@@ -871,7 +875,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         if isinstance(key, Index):
             key_type = key.inferred_type
         else:
-            key_type = lib.infer_dtype(key)
+            key_type = lib.infer_dtype(key, skipna=False)
 
         if key_type == 'integer':
             if self.index.is_integer() or self.index.is_floating():
@@ -1008,7 +1012,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
             if isinstance(key, Index):
                 key_type = key.inferred_type
             else:
-                key_type = lib.infer_dtype(key)
+                key_type = lib.infer_dtype(key, skipna=False)
 
             if key_type == 'integer':
                 if self.index.inferred_type == 'integer':
@@ -1554,9 +1558,18 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
         Returns
         -------
-        ndarray or Categorical
-            The unique values returned as a NumPy array. In case of categorical
-            data type, returned as a Categorical.
+        ndarray or ExtensionArray
+            The unique values returned as a NumPy array. In case of an
+            extension-array backed Series, a new
+            :class:`~api.extensions.ExtensionArray` of that type with just
+            the unique values is returned. This includes
+
+            * Categorical
+            * Period
+            * Datetime with Timezone
+            * Interval
+            * Sparse
+            * IntegerNA
 
         See Also
         --------
@@ -1573,8 +1586,9 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
         >>> pd.Series([pd.Timestamp('2016-01-01', tz='US/Eastern')
         ...            for _ in range(3)]).unique()
-        array([Timestamp('2016-01-01 00:00:00-0500', tz='US/Eastern')],
-              dtype=object)
+        <DatetimeArray>
+        ['2016-01-01 00:00:00-05:00']
+        Length: 1, dtype: datetime64[ns, US/Eastern]
 
         An unordered Categorical will return categories in the order of
         appearance.
@@ -1591,14 +1605,6 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         Categories (3, object): [a < b < c]
         """
         result = super(Series, self).unique()
-
-        if is_datetime64tz_dtype(self.dtype):
-            # we are special casing datetime64tz_dtype
-            # to return an object array of tz-aware Timestamps
-
-            # TODO: it must return DatetimeArray with tz in pandas 2.0
-            result = result.astype(object).values
-
         return result
 
     def drop_duplicates(self, keep='first', inplace=False):
@@ -1981,15 +1987,23 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
         self._check_percentile(q)
 
-        result = self._data.quantile(qs=q, interpolation=interpolation)
+        # We dispatch to DataFrame so that core.internals only has to worry
+        #  about 2D cases.
+        df = self.to_frame()
+
+        result = df.quantile(q=q, interpolation=interpolation,
+                             numeric_only=False)
+        if result.ndim == 2:
+            result = result.iloc[:, 0]
 
         if is_list_like(q):
+            result.name = self.name
             return self._constructor(result,
                                      index=Float64Index(q),
                                      name=self.name)
         else:
             # scalar
-            return result
+            return result.iloc[0]
 
     def corr(self, other, method='pearson', min_periods=None):
         """
@@ -3537,6 +3551,9 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         # dispatch to ExtensionArray interface
         if isinstance(delegate, ExtensionArray):
             return delegate._reduce(name, skipna=skipna, **kwds)
+        elif is_datetime64_dtype(delegate):
+            # use DatetimeIndex implementation to handle skipna correctly
+            delegate = DatetimeIndex(delegate)
 
         # dispatch to numpy arrays
         elif isinstance(delegate, np.ndarray):

@@ -759,7 +759,7 @@ b  2""")
 
         """
         if obj.ndim > 1:
-            dtype = obj.values.dtype
+            dtype = obj._values.dtype
         else:
             dtype = obj.dtype
 
@@ -768,7 +768,7 @@ b  2""")
                 # The function can return something of any type, so check
                 # if the type is compatible with the calling EA.
                 try:
-                    result = obj.values._from_sequence(result)
+                    result = obj._values._from_sequence(result, dtype=dtype)
                 except Exception:
                     # https://github.com/pandas-dev/pandas/issues/22850
                     # pandas has no control over what 3rd-party ExtensionArrays
@@ -1334,7 +1334,7 @@ class GroupBy(_GroupBy):
         Given a grouper, the function resamples it according to a string
         "string" -> "frequency".
 
-        See the :ref:`frequency aliases <timeseries.offset-aliases>`
+        See the :ref:`frequency aliases <timeseries.offset_aliases>`
         documentation for more details.
 
         Parameters

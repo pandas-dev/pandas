@@ -362,16 +362,17 @@ columns:
 
 .. ipython:: python
 
-    data = ('a,b,c\n'
-            '1,2,3\n'
-            '4,5,6\n'
-            '7,8,9')
+    data = ('a,b,c,d\n'
+            '1,2,3,4\n'
+            '5,6,7,8\n'
+            '9,10,11')
     print(data)
 
     df = pd.read_csv(StringIO(data), dtype=object)
     df
     df['a'][0]
-    df = pd.read_csv(StringIO(data), dtype={'b': object, 'c': np.float64})
+    df = pd.read_csv(StringIO(data),
+                     dtype={'b': object, 'c': np.float64, 'd': 'Int64'})
     df.dtypes
 
 Fortunately, pandas offers more than one way to ensure that your column(s)
@@ -4646,6 +4647,7 @@ Write to a feather file.
 Read from a feather file.
 
 .. ipython:: python
+   :okwarning:
 
    result = pd.read_feather('example.feather')
    result
@@ -4720,6 +4722,7 @@ Write to a parquet file.
 Read from a parquet file.
 
 .. ipython:: python
+   :okwarning:
 
    result = pd.read_parquet('example_fp.parquet', engine='fastparquet')
    result = pd.read_parquet('example_pa.parquet', engine='pyarrow')
@@ -4790,6 +4793,7 @@ Partitioning Parquet files
 Parquet supports partitioning of data based on the values of one or more columns.
 
 .. ipython:: python
+    :okwarning:
 
     df = pd.DataFrame({'a': [0, 0, 1, 1], 'b': [0, 1, 0, 1]})
     df.to_parquet(fname='test', engine='pyarrow',
@@ -4879,7 +4883,7 @@ below and the SQLAlchemy `documentation <https://docs.sqlalchemy.org/en/latest/c
 
 If you want to manage your own connections you can pass one of those instead:
 
-.. ipython:: python
+.. code-block:: python
 
    with engine.connect() as conn, conn.begin():
        data = pd.read_sql_table('data', conn)
@@ -4988,6 +4992,54 @@ with respect to the timezone.
 :func:`~pandas.read_sql_table` is also capable of reading datetime data that is
 timezone aware or naive. When reading ``TIMESTAMP WITH TIME ZONE`` types, pandas
 will convert the data to UTC.
+
+.. _io.sql.method:
+
+Insertion Method
+++++++++++++++++
+
+.. versionadded:: 0.24.0
+
+The parameter ``method`` controls the SQL insertion clause used.
+Possible values are:
+
+- ``None``: Uses standard SQL ``INSERT`` clause (one per row).
+- ``'multi'``: Pass multiple values in a single ``INSERT`` clause.
+  It uses a *special* SQL syntax not supported by all backends.
+  This usually provides better performance for analytic databases
+  like *Presto* and *Redshift*, but has worse performance for
+  traditional SQL backend if the table contains many columns.
+  For more information check the SQLAlchemy `documention
+  <http://docs.sqlalchemy.org/en/latest/core/dml.html#sqlalchemy.sql.expression.Insert.values.params.*args>`__.
+- callable with signature ``(pd_table, conn, keys, data_iter)``:
+  This can be used to implement a more performant insertion method based on
+  specific backend dialect features.
+
+Example of a callable using PostgreSQL `COPY clause
+<https://www.postgresql.org/docs/current/static/sql-copy.html>`__::
+
+  # Alternative to_sql() *method* for DBs that support COPY FROM
+  import csv
+  from io import StringIO
+
+  def psql_insert_copy(table, conn, keys, data_iter):
+      # gets a DBAPI connection that can provide a cursor
+      dbapi_conn = conn.connection
+      with dbapi_conn.cursor() as cur:
+          s_buf = StringIO()
+          writer = csv.writer(s_buf)
+          writer.writerows(data_iter)
+          s_buf.seek(0)
+
+          columns = ', '.join('"{}"'.format(k) for k in keys)
+          if table.schema:
+              table_name = '{}.{}'.format(table.schema, table.name)
+          else:
+              table_name = table.name
+
+          sql = 'COPY {} ({}) FROM STDIN WITH CSV'.format(
+              table_name, columns)
+          cur.copy_expert(sql=sql, file=s_buf)
 
 Reading Tables
 ''''''''''''''

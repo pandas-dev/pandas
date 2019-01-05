@@ -105,6 +105,14 @@ class BaseMethodsTests(BaseExtensionTests):
         tm.assert_numpy_array_equal(l1, l2)
         self.assert_extension_array_equal(u1, u2)
 
+    def test_factorize_empty(self, data):
+        labels, uniques = pd.factorize(data[:0])
+        expected_labels = np.array([], dtype=np.intp)
+        expected_uniques = type(data)._from_sequence([], dtype=data[:0].dtype)
+
+        tm.assert_numpy_array_equal(labels, expected_labels)
+        self.assert_extension_array_equal(uniques, expected_uniques)
+
     def test_fillna_copy_frame(self, data_missing):
         arr = data_missing.take([1, 1])
         df = pd.DataFrame({"A": arr})
@@ -241,6 +249,31 @@ class BaseMethodsTests(BaseExtensionTests):
         a = pd.util.hash_pandas_object(data)
         b = pd.util.hash_pandas_object(data)
         self.assert_equal(a, b)
+
+    @pytest.mark.parametrize("as_series", [True, False])
+    def test_searchsorted(self, data_for_sorting, as_series):
+        b, c, a = data_for_sorting
+        arr = type(data_for_sorting)._from_sequence([a, b, c])
+
+        if as_series:
+            arr = pd.Series(arr)
+        assert arr.searchsorted(a) == 0
+        assert arr.searchsorted(a, side="right") == 1
+
+        assert arr.searchsorted(b) == 1
+        assert arr.searchsorted(b, side="right") == 2
+
+        assert arr.searchsorted(c) == 2
+        assert arr.searchsorted(c, side="right") == 3
+
+        result = arr.searchsorted(arr.take([0, 2]))
+        expected = np.array([0, 2], dtype=np.intp)
+
+        tm.assert_numpy_array_equal(result, expected)
+
+        # sorter
+        sorter = np.array([1, 2, 0])
+        assert data_for_sorting.searchsorted(a, sorter=sorter) == 0
 
     @pytest.mark.parametrize("as_frame", [True, False])
     def test_where_series(self, data, na_value, as_frame):

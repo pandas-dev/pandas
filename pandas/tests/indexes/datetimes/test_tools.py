@@ -24,7 +24,7 @@ import pandas as pd
 from pandas import (
     DataFrame, DatetimeIndex, Index, NaT, Series, Timestamp, compat,
     date_range, isna, to_datetime)
-from pandas.core.arrays import DatetimeArrayMixin as DatetimeArray
+from pandas.core.arrays import DatetimeArray
 from pandas.core.tools import datetimes as tools
 from pandas.util import testing as tm
 from pandas.util.testing import assert_series_equal
@@ -1243,8 +1243,6 @@ class TestToDatetimeMisc(object):
 class TestGuessDatetimeFormat(object):
 
     @td.skip_if_not_us_locale
-    @pytest.mark.filterwarnings("ignore:_timelex:DeprecationWarning")
-    # https://github.com/pandas-dev/pandas/issues/21322
     def test_guess_datetime_format_for_array(self):
         expected_format = '%Y-%m-%d %H:%M:%S.%f'
         dt_string = datetime(2011, 12, 30, 0, 0, 0).strftime(expected_format)

@@ -2,26 +2,24 @@
 
 from __future__ import print_function
 
-import pytest
-
 from datetime import datetime, timedelta
 import itertools
 
-from numpy import nan
 import numpy as np
+from numpy import nan
+import pytest
 
-from pandas import (DataFrame, Series, Timestamp, date_range, compat,
-                    option_context, Categorical)
-from pandas.core.arrays import IntervalArray, integer_array
 from pandas.compat import StringIO
+
 import pandas as pd
-
-from pandas.util.testing import (assert_almost_equal,
-                                 assert_series_equal,
-                                 assert_frame_equal)
-
+from pandas import (
+    Categorical, DataFrame, Series, Timestamp, compat, date_range,
+    option_context)
+from pandas.core.arrays import IntervalArray, integer_array
+from pandas.core.internals.blocks import IntBlock
 import pandas.util.testing as tm
-
+from pandas.util.testing import (
+    assert_almost_equal, assert_frame_equal, assert_series_equal)
 
 # Segregated collection of methods that require the BlockManager internal data
 # structure
@@ -579,3 +577,12 @@ starting,ending,measure
         first = len(df.loc[pd.isna(df[myid]), [myid]])
         second = len(df.loc[pd.isna(df[myid]), [myid]])
         assert first == second == 0
+
+    def test_constructor_no_pandas_array(self):
+        # Ensure that PandasArray isn't allowed inside Series
+        # See https://github.com/pandas-dev/pandas/issues/23995 for more.
+        arr = pd.Series([1, 2, 3]).array
+        result = pd.DataFrame({"A": arr})
+        expected = pd.DataFrame({"A": [1, 2, 3]})
+        tm.assert_frame_equal(result, expected)
+        assert isinstance(result._data.blocks[0], IntBlock)

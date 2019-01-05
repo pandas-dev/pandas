@@ -1236,7 +1236,7 @@ the following Python code will read the binary file ``'binary.dat'`` into a
 pandas ``DataFrame``, where each element of the struct corresponds to a column
 in the frame:
 
-.. ipython:: python
+.. code-block:: python
 
    names = 'count', 'avg', 'scale'
 

@@ -2,29 +2,26 @@
 # Arithmetic tests for DataFrame/Series/Index/Array classes that should
 # behave identically.
 # Specifically for datetime64 and datetime64tz dtypes
-import operator
 from datetime import datetime, timedelta
-import warnings
 from itertools import product, starmap
+import operator
+import warnings
 
 import numpy as np
 import pytest
 import pytz
 
-import pandas as pd
-import pandas.util.testing as tm
-
-from pandas.compat.numpy import np_datetime64_compat
-from pandas.errors import PerformanceWarning, NullFrequencyError
-
 from pandas._libs.tslibs.conversion import localize_pydatetime
 from pandas._libs.tslibs.offsets import shift_months
+from pandas.compat.numpy import np_datetime64_compat
+from pandas.errors import NullFrequencyError, PerformanceWarning
 
-from pandas.core.indexes.datetimes import _to_m8
-
+import pandas as pd
 from pandas import (
-    Timestamp, Timedelta, Period, Series, date_range, NaT,
-    DatetimeIndex, TimedeltaIndex)
+    DatetimeIndex, NaT, Period, Series, Timedelta, TimedeltaIndex, Timestamp,
+    date_range)
+from pandas.core.indexes.datetimes import _to_M8
+import pandas.util.testing as tm
 
 
 def assert_all(obj):
@@ -349,7 +346,7 @@ class TestDatetimeIndexComparisons(object):
     def test_comparators(self, op):
         index = tm.makeDateIndex(100)
         element = index[len(index) // 2]
-        element = _to_m8(element)
+        element = _to_M8(element)
 
         arr = np.array(index)
         arr_result = op(arr, element)
@@ -593,12 +590,17 @@ class TestDatetimeIndexComparisons(object):
             # DataFrame op is invalid until transpose bug is fixed
             with pytest.raises(TypeError):
                 op(dr, list(dz))
+            with pytest.raises(TypeError):
+                op(dr, np.array(list(dz), dtype=object))
+
         with pytest.raises(TypeError):
             op(dz, dr)
         if box_with_array is not pd.DataFrame:
             # DataFrame op is invalid until transpose bug is fixed
             with pytest.raises(TypeError):
                 op(dz, list(dr))
+            with pytest.raises(TypeError):
+                op(dz, np.array(list(dr), dtype=object))
 
         # Check that there isn't a problem aware-aware and naive-naive do not
         # raise
@@ -1591,7 +1593,10 @@ class TestTimestampSeriesArithmetic(object):
             # with 'operate' (from core/ops.py) for the ops that are not
             # defined
             op = getattr(get_ser, op_str, None)
-            with pytest.raises(TypeError, match='operate|[cC]annot'):
+            # Previously, _validate_for_numeric_binop in core/indexes/base.py
+            # did this for us.
+            with pytest.raises(TypeError,
+                               match='operate|[cC]annot|unsupported operand'):
                 op(test_ser)
 
         # ## timedelta64 ###
@@ -1973,7 +1978,7 @@ class TestDatetimeIndexArithmetic(object):
         result = dti - tdi
         tm.assert_index_equal(result, expected)
 
-        msg = 'cannot subtract .*TimedeltaIndex'
+        msg = 'cannot subtract .*TimedeltaArray'
         with pytest.raises(TypeError, match=msg):
             tdi - dti
 
@@ -1981,7 +1986,7 @@ class TestDatetimeIndexArithmetic(object):
         result = dti - tdi.values
         tm.assert_index_equal(result, expected)
 
-        msg = 'cannot subtract DatetimeIndex from'
+        msg = 'cannot subtract DatetimeArray from'
         with pytest.raises(TypeError, match=msg):
             tdi.values - dti
 
@@ -1997,7 +2002,7 @@ class TestDatetimeIndexArithmetic(object):
         result -= tdi
         tm.assert_index_equal(result, expected)
 
-        msg = 'cannot subtract .*TimedeltaIndex'
+        msg = 'cannot subtract .* from a TimedeltaArray'
         with pytest.raises(TypeError, match=msg):
             tdi -= dti
 
@@ -2008,7 +2013,7 @@ class TestDatetimeIndexArithmetic(object):
 
         msg = '|'.join(['cannot perform __neg__ with this index type:',
                         'ufunc subtract cannot use operands with types',
-                        'cannot subtract DatetimeIndex from'])
+                        'cannot subtract DatetimeArray from'])
         with pytest.raises(TypeError, match=msg):
             tdi.values -= dti
 
@@ -2028,7 +2033,9 @@ class TestDatetimeIndexArithmetic(object):
     def test_add_datetimelike_and_dti(self, addend, tz):
         # GH#9631
         dti = DatetimeIndex(['2011-01-01', '2011-01-02']).tz_localize(tz)
-        msg = 'cannot add DatetimeIndex and {0}'.format(type(addend).__name__)
+        msg = ('cannot add DatetimeArray and {0}'
+               .format(type(addend).__name__)).replace('DatetimeIndex',
+                                                       'DatetimeArray')
         with pytest.raises(TypeError, match=msg):
             dti + addend
         with pytest.raises(TypeError, match=msg):

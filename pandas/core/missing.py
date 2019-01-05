@@ -13,7 +13,7 @@ from pandas.core.dtypes.cast import infer_dtype_from_array
 from pandas.core.dtypes.common import (
     ensure_float64, is_datetime64_dtype, is_datetime64tz_dtype, is_float_dtype,
     is_integer, is_integer_dtype, is_numeric_v_string_like, is_scalar,
-    needs_i8_conversion)
+    is_timedelta64_dtype, needs_i8_conversion)
 from pandas.core.dtypes.missing import isna
 
 
@@ -481,6 +481,10 @@ def pad_1d(values, limit=None, mask=None, dtype=None):
         _method = algos.pad_inplace_float64
     elif values.dtype == np.object_:
         _method = algos.pad_inplace_object
+    elif is_timedelta64_dtype(values):
+        # NaTs are treated identically to datetime64, so we can dispatch
+        #  to that implementation
+        _method = _pad_1d_datetime
 
     if _method is None:
         raise ValueError('Invalid dtype for pad_1d [{name}]'
@@ -507,6 +511,10 @@ def backfill_1d(values, limit=None, mask=None, dtype=None):
         _method = algos.backfill_inplace_float64
     elif values.dtype == np.object_:
         _method = algos.backfill_inplace_object
+    elif is_timedelta64_dtype(values):
+        # NaTs are treated identically to datetime64, so we can dispatch
+        #  to that implementation
+        _method = _backfill_1d_datetime
 
     if _method is None:
         raise ValueError('Invalid dtype for backfill_1d [{name}]'
