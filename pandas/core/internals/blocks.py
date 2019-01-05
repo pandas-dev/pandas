@@ -1447,8 +1447,20 @@ class Block(PandasObject):
         -------
         Block
         """
-        values = self.get_values()
-        values, _ = self._try_coerce_args(values, values)
+        if self.is_datetimetz:
+            # TODO: cleanup this special case.
+            # We need to operate on i8 values for datetimetz
+            # but `Block.get_values()` returns an ndarray of objects
+            # right now. We need an API for "values to do numeric-like ops on"
+            values = self.values.asi8
+
+            # TODO: NonConsolidatableMixin shape
+            # Usual shape inconsistencies for ExtensionBlocks
+            if self.ndim > 1:
+                values = values[None, :]
+        else:
+            values = self.get_values()
+            values, _ = self._try_coerce_args(values, values)
 
         is_empty = values.shape[axis] == 0
         orig_scalar = not is_list_like(qs)
@@ -2055,10 +2067,6 @@ class DatetimeLikeBlockMixin(object):
     def fill_value(self):
         return tslibs.iNaT
 
-    def to_dense(self):
-        # TODO(DatetimeBlock): remove
-        return np.asarray(self.values)
-
     def get_values(self, dtype=None):
         """
         return object dtype as boxed values, such as Timestamps/Timedelta
@@ -2329,6 +2337,12 @@ class DatetimeTZBlock(ExtensionBlock, DatetimeBlock):
             # the analogous NumPy-backed column would be a 2-D ndarray.
             values = values.reshape(1, -1)
         return values
+
+    def to_dense(self):
+        # we request M8[ns] dtype here, even though it discards tzinfo,
+        # as lots of code (e.g. anything using values_from_object)
+        # expects that behavior.
+        return np.asarray(self.values, dtype=_NS_DTYPE)
 
     def _slice(self, slicer):
         """ return a slice of my values """
