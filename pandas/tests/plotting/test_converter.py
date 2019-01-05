@@ -239,29 +239,17 @@ class TestDateTimeConverter(object):
         xp = converter.dates.date2num(values[0])
         assert rs == xp
 
-    def test_time_formatter(self):
+    @pytest.mark.parametrize('time,format_expected', [
+        (0, '00:00'),  # time2num(datetime.time.min)
+        (86399.999999, '23:59:59.999999'),  # time2num(datetime.time.max)
+        (90000, '01:00'),
+        (3723, '01:02:03'),
+        (39723.2, '11:02:03.200')
+    ])
+    def test_time_formatter(self, time, format_expected):
         # issue 18478
-
-        # time2num(datetime.time.min)
-        rs = self.tc(0)
-        xp = '00:00'
-        assert rs == xp
-
-        # time2num(datetime.time.max)
-        rs = self.tc(86399.999999)
-        xp = '23:59:59.999999'
-        assert rs == xp
-
-        # some other times
-        rs = self.tc(90000)
-        xp = '01:00'
-        assert rs == xp
-        rs = self.tc(3723)
-        xp = '01:02:03'
-        assert rs == xp
-        rs = self.tc(39723.2)
-        xp = '11:02:03.200'
-        assert rs == xp
+        result = self.tc(time)
+        assert result == format_expected
 
     def test_dateindex_conversion(self):
         decimals = 9

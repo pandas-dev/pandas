@@ -18,7 +18,7 @@ blosc
 botocore>=1.11
 boto3
 bottleneck>=1.2.0
-fastparquet>=0.1.2
+fastparquet>=0.2.1
 html5lib
 ipython>=5.6.0
 ipykernel

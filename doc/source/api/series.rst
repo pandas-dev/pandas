@@ -26,6 +26,7 @@ Attributes
 .. autosummary::
    :toctree: generated/
 
+   Series.array
    Series.values
    Series.dtype
    Series.ftype
@@ -58,10 +59,12 @@ Conversion
    Series.convert_objects
    Series.copy
    Series.bool
+   Series.to_numpy
    Series.to_period
    Series.to_timestamp
    Series.to_list
    Series.get_values
+   Series.__array__
 
 Indexing, iteration
 -------------------
@@ -277,14 +280,34 @@ Time series-related
    Series.tshift
    Series.slice_shift
 
+Accessors
+---------
+
+Pandas provides dtype-specific methods under various accessors.
+These are separate namespaces within :class:`Series` that only apply
+to specific data types.
+
+=========================== =================================
+Data Type                   Accessor
+=========================== =================================
+Datetime, Timedelta, Period :ref:`dt <api.series.dt>`
+String                      :ref:`str <api.series.str>`
+Categorical                 :ref:`cat <api.series.cat>`
+Sparse                      :ref:`sparse <api.series.sparse>`
+=========================== =================================
+
+.. _api.series.dt:
+
 Datetimelike Properties
------------------------
+~~~~~~~~~~~~~~~~~~~~~~~
+
 ``Series.dt`` can be used to access the values of the series as
 datetimelike and return several properties.
 These can be accessed like ``Series.dt.<property>``.
 
 Datetime Properties
-~~~~~~~~~~~~~~~~~~~
+^^^^^^^^^^^^^^^^^^^
+
 .. autosummary::
    :toctree: generated/
    :template: autosummary/accessor_attribute.rst
@@ -319,7 +342,8 @@ Datetime Properties
    Series.dt.freq
 
 Datetime Methods
-~~~~~~~~~~~~~~~~
+^^^^^^^^^^^^^^^^
+
 .. autosummary::
    :toctree: generated/
    :template: autosummary/accessor_method.rst
@@ -337,7 +361,8 @@ Datetime Methods
    Series.dt.day_name
 
 Period Properties
-~~~~~~~~~~~~~~~~~
+^^^^^^^^^^^^^^^^^
+
 .. autosummary::
    :toctree: generated/
    :template: autosummary/accessor_attribute.rst
@@ -347,7 +372,8 @@ Period Properties
    Series.dt.end_time
 
 Timedelta Properties
-~~~~~~~~~~~~~~~~~~~~
+^^^^^^^^^^^^^^^^^^^^
+
 .. autosummary::
    :toctree: generated/
    :template: autosummary/accessor_attribute.rst
@@ -359,7 +385,8 @@ Timedelta Properties
    Series.dt.components
 
 Timedelta Methods
-~~~~~~~~~~~~~~~~~
+^^^^^^^^^^^^^^^^^
+
 .. autosummary::
    :toctree: generated/
    :template: autosummary/accessor_method.rst
@@ -367,8 +394,12 @@ Timedelta Methods
    Series.dt.to_pytimedelta
    Series.dt.total_seconds
 
+
+.. _api.series.str:
+
 String handling
----------------
+~~~~~~~~~~~~~~~
+
 ``Series.str`` can be used to access the values of the series as
 strings and apply several methods to it. These can be accessed like
 ``Series.str.<function/property>``.
@@ -444,82 +475,13 @@ strings and apply several methods to it. These can be accessed like
        Series.dt
        Index.str
 
-.. _api.arrays:
+.. _api.series.cat:
 
-Arrays
-------
-Pandas and third-party libraries can extend NumPy's type system (see :ref:`extending.extension-types`).
+Categorical Accessor
+~~~~~~~~~~~~~~~~~~~~
 
-.. autosummary::
-   :toctree: generated/
-
-   array
-
-.. _api.categorical:
-
-Categorical
-~~~~~~~~~~~
-
-Pandas defines a custom data type for representing data that can take only a
-limited, fixed set of values. The dtype of a ``Categorical`` can be described by
-a :class:`pandas.api.types.CategoricalDtype`.
-
-.. autosummary::
-   :toctree: generated/
-   :template: autosummary/class_without_autosummary.rst
-
-   api.types.CategoricalDtype
-
-.. autosummary::
-   :toctree: generated/
-
-   api.types.CategoricalDtype.categories
-   api.types.CategoricalDtype.ordered
-
-Categorical data can be stored in a :class:`pandas.Categorical`
-
-.. autosummary::
-   :toctree: generated/
-   :template: autosummary/class_without_autosummary.rst
-
-   Categorical
-
-The alternative :meth:`Categorical.from_codes` constructor can be used when you
-have the categories and integer codes already:
-
-.. autosummary::
-   :toctree: generated/
-
-   Categorical.from_codes
-
-The dtype information is available on the ``Categorical``
-
-.. autosummary::
-   :toctree: generated/
-
-   Categorical.dtype
-   Categorical.categories
-   Categorical.ordered
-   Categorical.codes
-
-``np.asarray(categorical)`` works by implementing the array interface. Be aware, that this converts
-the Categorical back to a NumPy array, so categories and order information is not preserved!
-
-.. autosummary::
-   :toctree: generated/
-
-   Categorical.__array__
-
-A ``Categorical`` can be stored in a ``Series`` or ``DataFrame``.
-To create a Series of dtype ``category``, use ``cat = s.astype(dtype)`` or
-``Series(..., dtype=dtype)`` where ``dtype`` is either
-
-* the string ``'category'``
-* an instance of :class:`~pandas.api.types.CategoricalDtype`.
-
-If the Series is of dtype ``CategoricalDtype``, ``Series.cat`` can be used to change the categorical
-data. This accessor is similar to the ``Series.dt`` or ``Series.str`` and has the
-following usable methods and properties:
+Categorical-dtype specific methods and attributes are available under
+the ``Series.cat`` accessor.
 
 .. autosummary::
    :toctree: generated/
@@ -541,6 +503,31 @@ following usable methods and properties:
    Series.cat.set_categories
    Series.cat.as_ordered
    Series.cat.as_unordered
+
+
+.. _api.series.sparse:
+
+Sparse Accessor
+~~~~~~~~~~~~~~~
+
+Sparse-dtype specific methods and attributes are provided under the
+``Series.sparse`` accessor.
+
+.. autosummary::
+   :toctree: generated/
+   :template: autosummary/accessor_attribute.rst
+
+   Series.sparse.npoints
+   Series.sparse.density
+   Series.sparse.fill_value
+   Series.sparse.sp_values
+
+.. autosummary::
+   :toctree: generated/
+
+   Series.sparse.from_coo
+   Series.sparse.to_coo
+
 
 Plotting
 --------
@@ -593,25 +580,13 @@ Serialization / IO / Conversion
    Series.to_clipboard
    Series.to_latex
 
+
 Sparse
 ------
+
 .. autosummary::
    :toctree: generated/
 
    SparseSeries.to_coo
    SparseSeries.from_coo
 
-.. autosummary::
-   :toctree: generated/
-   :template: autosummary/accessor_attribute.rst
-
-   Series.sparse.npoints
-   Series.sparse.density
-   Series.sparse.fill_value
-   Series.sparse.sp_values
-
-.. autosummary::
-   :toctree: generated/
-
-   Series.sparse.from_coo
-   Series.sparse.to_coo

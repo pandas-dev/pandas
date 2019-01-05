@@ -318,8 +318,7 @@ class TestToPeriod(object):
                                         pd.Timestamp('2000-01-02', tz=tz)])
         tm.assert_index_equal(result, expected)
 
-        # TODO: use \._data following composition changeover
-        result = obj._eadata.astype('category')
+        result = obj._data.astype('category')
         expected = expected.values
         tm.assert_categorical_equal(result, expected)
 

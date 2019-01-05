@@ -1475,7 +1475,7 @@ class TestTimedeltaArraylikeMulDivOps(object):
 
         tdi = TimedeltaIndex(['1 Day'] * 10)
         expected = timedelta_range('1 days', '10 days')
-        expected._eadata.freq = None
+        expected._data.freq = None
 
         tdi = tm.box_expected(tdi, box)
         expected = tm.box_expected(expected, xbox)
