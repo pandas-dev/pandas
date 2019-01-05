@@ -8,7 +8,7 @@ import warnings
 import numpy as np
 
 from pandas._libs import internals as libinternals, lib, tslib, tslibs
-from pandas._libs.tslibs import Timedelta, conversion
+from pandas._libs.tslibs import Timedelta, conversion, is_null_datetimelike
 import pandas.compat as compat
 from pandas.compat import range, zip
 from pandas.util._validators import validate_bool_kwarg
@@ -31,7 +31,7 @@ from pandas.core.dtypes.generic import (
     ABCDataFrame, ABCDatetimeIndex, ABCExtensionArray, ABCIndexClass,
     ABCSeries)
 from pandas.core.dtypes.missing import (
-    _isna_compat, array_equivalent, is_null_datelike_scalar, isna, notna)
+    _isna_compat, array_equivalent, isna, notna)
 
 import pandas.core.algorithms as algos
 from pandas.core.arrays import (
@@ -2085,10 +2085,6 @@ class DatetimeLikeBlockMixin(object):
             return values
         return self.values
 
-    @property
-    def asi8(self):
-        return self.values.view('i8')
-
 
 class DatetimeBlock(DatetimeLikeBlockMixin, Block):
     __slots__ = ()
@@ -2170,7 +2166,7 @@ class DatetimeBlock(DatetimeLikeBlockMixin, Block):
 
         if isinstance(other, bool):
             raise TypeError
-        elif is_null_datelike_scalar(other):
+        elif is_null_datetimelike(other):
             other = tslibs.iNaT
         elif isinstance(other, (datetime, np.datetime64, date)):
             other = self._box_func(other)
@@ -2183,18 +2179,16 @@ class DatetimeBlock(DatetimeLikeBlockMixin, Block):
         else:
             # coercion issues
             # let higher levels handle
-            raise TypeError
+            raise TypeError(other)
 
         return values, other
 
     def _try_coerce_result(self, result):
         """ reverse of try_coerce_args """
         if isinstance(result, np.ndarray):
-            if result.dtype.kind in ['i', 'f', 'O']:
-                try:
-                    result = result.astype('M8[ns]')
-                except ValueError:
-                    pass
+            if result.dtype.kind in ['i', 'f']:
+                result = result.astype('M8[ns]')
+
         elif isinstance(result, (np.integer, np.float, np.datetime64)):
             result = self._box_func(result)
         return result
@@ -2378,8 +2372,7 @@ class DatetimeTZBlock(ExtensionBlock, DatetimeBlock):
             # add the tz back
             other = self._holder(other, dtype=self.dtype)
 
-        elif (is_null_datelike_scalar(other) or
-              (lib.is_scalar(other) and isna(other))):
+        elif is_null_datetimelike(other):
             other = tslibs.iNaT
         elif isinstance(other, self._holder):
             if other.tz != self.values.tz:
@@ -2394,17 +2387,19 @@ class DatetimeTZBlock(ExtensionBlock, DatetimeBlock):
                 raise ValueError("incompatible or non tz-aware value")
             other = other.value
         else:
-            raise TypeError
+            raise TypeError(other)
 
         return values, other
 
     def _try_coerce_result(self, result):
         """ reverse of try_coerce_args """
         if isinstance(result, np.ndarray):
-            if result.dtype.kind in ['i', 'f', 'O']:
+            if result.dtype.kind in ['i', 'f']:
                 result = result.astype('M8[ns]')
+
         elif isinstance(result, (np.integer, np.float, np.datetime64)):
             result = self._box_func(result)
+
         if isinstance(result, np.ndarray):
             # allow passing of > 1dim if its trivial
 
@@ -2545,20 +2540,16 @@ class TimeDeltaBlock(DatetimeLikeBlockMixin, IntBlock):
 
         if isinstance(other, bool):
             raise TypeError
-        elif is_null_datelike_scalar(other):
+        elif is_null_datetimelike(other):
             other = tslibs.iNaT
-        elif isinstance(other, Timedelta):
-            other = other.value
-        elif isinstance(other, timedelta):
-            other = Timedelta(other).value
-        elif isinstance(other, np.timedelta64):
+        elif isinstance(other, (timedelta, np.timedelta64)):
             other = Timedelta(other).value
         elif hasattr(other, 'dtype') and is_timedelta64_dtype(other):
             other = other.astype('i8', copy=False).view('i8')
         else:
             # coercion issues
             # let higher levels handle
-            raise TypeError
+            raise TypeError(other)
 
         return values, other
 
@@ -2566,11 +2557,13 @@ class TimeDeltaBlock(DatetimeLikeBlockMixin, IntBlock):
         """ reverse of try_coerce_args / try_operate """
         if isinstance(result, np.ndarray):
             mask = isna(result)
-            if result.dtype.kind in ['i', 'f', 'O']:
+            if result.dtype.kind in ['i', 'f']:
                 result = result.astype('m8[ns]')
             result[mask] = tslibs.iNaT
+
         elif isinstance(result, (np.integer, np.float)):
             result = self._box_func(result)
+
         return result
 
     def should_store(self, value):
