@@ -197,7 +197,7 @@ def test_is_dict_like_duck_type(has_keys, has_getitem, has_contains):
     assert result is expected
 
 
-def test_is_file_like(mock):
+def test_is_file_like():
     class MockFile(object):
         pass
 
@@ -235,7 +235,6 @@ def test_is_file_like(mock):
     # Iterator but no read / write attributes
     data = [1, 2, 3]
     assert not is_file(data)
-    assert not is_file(mock.Mock())
 
 
 @pytest.mark.parametrize(
