@@ -56,7 +56,7 @@ class SparseDtype(ExtensionDtype):
     ----------
     dtype : str, ExtensionDtype, numpy.dtype, type, default numpy.float64
         The dtype of the underlying array storing the non-fill value values.
-    fill_value : scalar, optional.
+    fill_value : scalar, optional
         The scalar value not stored in the SparseArray. By default, this
         depends on `dtype`.
 

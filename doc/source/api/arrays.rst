@@ -26,9 +26,6 @@ Categorical         :class:`CategoricalDtype` (none)             :ref:`api.array
 Sparse              :class:`SparseDtype`      (none)             :ref:`api.arrays.sparse`
 =================== ========================= ================== =============================
 
-Arrays
-------
-
 Pandas and third-party libraries can extend NumPy's type system (see :ref:`extending.extension-types`).
 The top-level :meth:`array` method can be used to create a new array, which may be
 stored in a :class:`Series`, :class:`Index`, or as a column in a :class:`DataFrame`.
@@ -40,15 +37,15 @@ stored in a :class:`Series`, :class:`Index`, or as a column in a :class:`DataFra
 
 .. _api.arrays.datetime:
 
-=============
 Datetime Data
-=============
+-------------
 
 NumPy cannot natively represent timezone-aware datetimes. Pandas supports this
 with the :class:`arrays.DatetimeArray` extension array, which can hold timezone-naive
 or timezone-aware values.
 
-:class:`Timestamp` is the scalar type for datetime data.
+:class:`Timestamp`, a subclass of :class:`datetime.datetime`, is pandas'
+scalar type for timezone-naive or timezone-aware datetime data.
 
 .. autosummary::
    :toctree: generated/
@@ -142,7 +139,7 @@ For timezone-aware data, the ``.dtype`` of a ``DatetimeArray`` is a
 :class:`DatetimeTZDtype`. For timezone-naive data, ``np.dtype("datetime64[ns]")``
 is used.
 
-If the data are tz-aware, then every value must have the same timezone.
+If the data are tz-aware, then every value in the array must have the same timezone.
 
 .. autosummary::
    :toctree: generated/
@@ -152,9 +149,8 @@ If the data are tz-aware, then every value must have the same timezone.
 
 .. _api.arrays.timedelta:
 
-==============
 Timedelta Data
-==============
+--------------
 
 NumPy can natively represent timedeltas. Pandas provides :class:`Timedelta`
 for symmetry with :class:`Timestamp`.
@@ -206,9 +202,8 @@ A collection of timedeltas may be stored in a :class:`TimedeltaArray`.
 
 .. _api.arrays.period:
 
-=============
 Timespan Data
-=============
+-------------
 
 Pandas represents spans of times as :class:`Period` objects.
 
@@ -267,9 +262,8 @@ Every period in a ``PeriodArray`` must have the same ``freq``.
 
 .. _api.arrays.interval:
 
-=============
 Interval Data
-=============
+-------------
 
 Arbitrary intervals can be represented as :class:`Interval` objects.
 
@@ -304,9 +298,8 @@ A collection of intervals may be stored in an :class:`IntervalArray`.
 
 .. _api.arrays.integer_na:
 
-================
 Nullable Integer
-================
+----------------
 
 :class:`numpy.ndarray` cannot natively represent integer-data with missing values.
 Pandas provides this through :class:`arrays.IntegerArray`.
@@ -326,9 +319,8 @@ Pandas provides this through :class:`arrays.IntegerArray`.
 
 .. _api.arrays.categorical:
 
-================
 Categorical Data
-================
+----------------
 
 Pandas defines a custom data type for representing data that can take only a
 limited, fixed set of values. The dtype of a ``Categorical`` can be described by
@@ -392,9 +384,8 @@ data. See :ref:`api.series.cat` for more.
 
 .. _api.arrays.sparse:
 
-===========
 Sparse Data
-===========
+-----------
 
 Data where a single value is repeated many times (e.g. ``0`` or ``NaN``) may
 be stored efficiently as a :class:`SparseArray`.
