@@ -16,8 +16,8 @@ from pandas.util._decorators import Appender
 from pandas.core.dtypes.common import (
     _INT64_DTYPE, _NS_DTYPE, is_categorical_dtype, is_datetime64_dtype,
     is_datetime64_ns_dtype, is_datetime64tz_dtype, is_dtype_equal,
-    is_extension_type, is_float_dtype, is_int64_dtype, is_object_dtype,
-    is_period_dtype, is_string_dtype, is_timedelta64_dtype, pandas_dtype)
+    is_extension_type, is_float_dtype, is_object_dtype, is_period_dtype,
+    is_string_dtype, is_timedelta64_dtype, pandas_dtype)
 from pandas.core.dtypes.dtypes import DatetimeTZDtype
 from pandas.core.dtypes.generic import ABCIndexClass, ABCPandasArray, ABCSeries
 from pandas.core.dtypes.missing import isna
@@ -524,12 +524,11 @@ class DatetimeArray(dtl.DatetimeLikeArrayMixin,
     # Array-Like / EA-Interface Methods
 
     def __array__(self, dtype=None):
-        if is_object_dtype(dtype) or (dtype is None and self.tz):
-            return np.array(list(self), dtype=object)
-        elif is_int64_dtype(dtype):
-            return self.asi8
+        if dtype is None and self.tz:
+            # The default for tz-aware is object, to preserve tz info
+            dtype = object
 
-        return self._data
+        return super(DatetimeArray, self).__array__(dtype=dtype)
 
     def __iter__(self):
         """

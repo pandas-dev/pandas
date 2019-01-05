@@ -391,6 +391,12 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin,
     def nbytes(self):
         return self._data.nbytes
 
+    def __array__(self, dtype=None):
+        # used for Timedelta/DatetimeArray, overwritten by PeriodArray
+        if is_object_dtype(dtype):
+            return np.array(list(self), dtype=object)
+        return self._data
+
     @property
     def shape(self):
         return (len(self),)

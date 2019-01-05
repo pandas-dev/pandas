@@ -282,6 +282,10 @@ class PeriodArray(dtl.DatetimeLikeArrayMixin, dtl.DatelikeOps):
         """
         return self.dtype.freq
 
+    def __array__(self, dtype=None):
+        # overriding DatetimelikeArray
+        return np.array(list(self), dtype=object)
+
     # --------------------------------------------------------------------
     # Vectorized analogues of Period properties
 
