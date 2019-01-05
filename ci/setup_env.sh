@@ -1,5 +1,7 @@
 #!/bin/bash
 
+
+set -v -e
 # edit the locale file if needed
 function edit_init()
 {
@@ -14,8 +16,6 @@ function edit_init()
     fi
 }
 
-echo
-echo "[install_travis]"
 edit_init
 
 home_dir=$(pwd)
@@ -32,9 +32,6 @@ if [ -d "$MINICONDA_DIR" ]; then
     rm -rf "$MINICONDA_DIR"
 fi
 
-#!/bin/bash
-
-set -v -e
 
 # Install Miniconda
 unamestr=`uname`
