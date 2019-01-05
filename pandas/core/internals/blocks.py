@@ -2242,24 +2242,11 @@ class DatetimeTZBlock(ExtensionBlock, DatetimeBlock):
     is_datetimetz = True
     is_extension = True
 
-    def __init__(self, values, placement, ndim=2, dtype=None):
-        # XXX: This will end up calling _maybe_coerce_values twice
-        # when dtype is not None. It's relatively cheap (just an isinstance)
-        # but it'd nice to avoid.
-        #
-        # If we can remove dtype from __init__, and push that conversion
-        # push onto the callers, then we can remove this entire __init__
-        # and just use DatetimeBlock's.
-        if dtype is not None:
-            values = self._maybe_coerce_values(values, dtype=dtype)
-        super(DatetimeTZBlock, self).__init__(values, placement=placement,
-                                              ndim=ndim)
-
     @property
     def _holder(self):
         return DatetimeArray
 
-    def _maybe_coerce_values(self, values, dtype=None):
+    def _maybe_coerce_values(self, values):
         """Input validation for values passed to __init__. Ensure that
         we have datetime64TZ, coercing if necessary.
 
@@ -2267,18 +2254,13 @@ class DatetimeTZBlock(ExtensionBlock, DatetimeBlock):
         -----------
         values : array-like
             Must be convertible to datetime64
-        dtype : string or DatetimeTZDtype, optional
-            Does a shallow copy to this tz
 
         Returns
         -------
-        values : ndarray[datetime64ns]
+        values : DatetimeArray
         """
         if not isinstance(values, self._holder):
             values = self._holder(values)
-
-        if dtype is not None:
-            values = type(values)(values, dtype=dtype)
 
         if values.tz is None:
             raise ValueError("cannot create a DatetimeTZBlock without a tz")
@@ -3094,8 +3076,9 @@ def make_block(values, placement, klass=None, ndim=None, dtype=None,
         klass = get_block_type(values, dtype)
 
     elif klass is DatetimeTZBlock and not is_datetime64tz_dtype(values):
-        return klass(values, ndim=ndim,
-                     placement=placement, dtype=dtype)
+        # TODO: This is no longer hit internally; does it need to be retained
+        #  for e.g. pyarrow?
+        values = DatetimeArray(values, dtype)
 
     return klass(values, ndim=ndim, placement=placement)
 
