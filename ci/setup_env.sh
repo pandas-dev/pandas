@@ -118,7 +118,6 @@ pip uninstall -y pandas || true
 echo
 echo "[no installed pandas]"
 conda list pandas
-pip list --format columns |grep pandas
 
 
 if [ -n "$LOCALE_OVERRIDE" ]; then
