@@ -23,6 +23,7 @@ def test_namespace():
 
     api = ['NaT',
            'iNaT',
+           'is_null_datetimelike',
            'OutOfBoundsDatetime',
            'Period',
            'IncompatibleFrequency',

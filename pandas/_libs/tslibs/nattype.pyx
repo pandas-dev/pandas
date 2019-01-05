@@ -686,7 +686,7 @@ cdef inline bint checknull_with_nat(object val):
     return val is None or util.is_nan(val) or val is c_NaT
 
 
-cdef inline bint is_null_datetimelike(object val):
+cpdef bint is_null_datetimelike(object val):
     """
     Determine if we have a null for a timedelta/datetime (or integer versions)
 
