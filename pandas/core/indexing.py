@@ -581,7 +581,12 @@ class _NDFrameIndexer(_NDFrameIndexerBase):
                         setter(item, v)
 
                 # we have an equal len ndarray/convertible to our labels
-                elif np.array(value).ndim == 2:
+                # hasattr first, to avoid coercing to ndarray without reason.
+                # But we may be relying on the ndarray coercion to check ndim.
+                # Why not just convert to an ndarray earlier on if needed?
+                elif ((hasattr(value, 'ndim') and value.ndim == 2)
+                      or (not hasattr(value, 'ndim') and
+                          np.array(value).ndim) == 2):
 
                     # note that this coerces the dtype if we are mixed
                     # GH 7551

@@ -26,6 +26,7 @@ Attributes
 .. autosummary::
    :toctree: generated/
 
+   Series.array
    Series.values
    Series.dtype
    Series.ftype
@@ -58,10 +59,12 @@ Conversion
    Series.convert_objects
    Series.copy
    Series.bool
+   Series.to_numpy
    Series.to_period
    Series.to_timestamp
    Series.to_list
    Series.get_values
+   Series.__array__
 
 Indexing, iteration
 -------------------

@@ -1036,3 +1036,44 @@ class TestTimeSeries(TestData):
                               946879200000000000,
                               946965600000000000])
         tm.assert_series_equal(result, expected)
+
+    def test_asarray_tz_naive(self):
+        # This shouldn't produce a warning.
+        ser = pd.Series(pd.date_range('2000', periods=2))
+        expected = np.array(['2000-01-01', '2000-01-02'], dtype='M8[ns]')
+        with tm.assert_produces_warning(None):
+            result = np.asarray(ser)
+
+        tm.assert_numpy_array_equal(result, expected)
+
+        # optionally, object
+        with tm.assert_produces_warning(None):
+            result = np.asarray(ser, dtype=object)
+
+        expected = np.array([pd.Timestamp('2000-01-01'),
+                             pd.Timestamp('2000-01-02')])
+        tm.assert_numpy_array_equal(result, expected)
+
+    def test_asarray_tz_aware(self):
+        tz = 'US/Central'
+        ser = pd.Series(pd.date_range('2000', periods=2, tz=tz))
+        expected = np.array(['2000-01-01T06', '2000-01-02T06'], dtype='M8[ns]')
+        # We warn by default and return an ndarray[M8[ns]]
+        with tm.assert_produces_warning(FutureWarning):
+            result = np.asarray(ser)
+
+        tm.assert_numpy_array_equal(result, expected)
+
+        # Old behavior with no warning
+        with tm.assert_produces_warning(None):
+            result = np.asarray(ser, dtype="M8[ns]")
+
+        tm.assert_numpy_array_equal(result, expected)
+
+        # Future behavior with no warning
+        expected = np.array([pd.Timestamp("2000-01-01", tz=tz),
+                             pd.Timestamp("2000-01-02", tz=tz)])
+        with tm.assert_produces_warning(None):
+            result = np.asarray(ser, dtype=object)
+
+        tm.assert_numpy_array_equal(result, expected)
