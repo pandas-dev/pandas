@@ -1630,7 +1630,7 @@ class StataReader(StataParser, BaseIterator):
 
             if convert_missing:  # Replacement follows Stata notation
 
-                missing_loc = np.argwhere(missing.values)
+                missing_loc = np.argwhere(missing._ndarray_values)
                 umissing, umissing_loc = np.unique(series[missing],
                                                    return_inverse=True)
                 replacement = Series(series, dtype=np.object)
