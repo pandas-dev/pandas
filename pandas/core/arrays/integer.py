@@ -36,6 +36,11 @@ class _IntegerDtype(ExtensionDtype):
     type = None
     na_value = np.nan
 
+    def __repr__(self):
+        sign = 'U' if self.is_unsigned_integer else ''
+        return "{sign}Int{size}Dtype()".format(sign=sign,
+                                               size=8 * self.itemsize)
+
     @cache_readonly
     def is_signed_integer(self):
         return self.kind == 'i'

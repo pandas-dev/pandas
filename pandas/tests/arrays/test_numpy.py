@@ -71,6 +71,17 @@ def test_is_boolean(dtype, expected):
     assert dtype._is_boolean is expected
 
 
+def test_repr():
+    dtype = PandasDtype(np.dtype("int64"))
+    assert repr(dtype) == "PandasDtype('int64')"
+
+
+def test_constructor_from_string():
+    result = PandasDtype.construct_from_string("int64")
+    expected = PandasDtype(np.dtype("int64"))
+    assert result == expected
+
+
 # ----------------------------------------------------------------------------
 # Construction
 
