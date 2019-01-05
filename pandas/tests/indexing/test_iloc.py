@@ -296,33 +296,6 @@ class TestiLoc(Base):
         expected = Series([0, 1, 0], index=[4, 5, 6])
         tm.assert_series_equal(s, expected)
 
-    @pytest.mark.parametrize(
-        'data, indexes, values, expected_k', [
-            # test without indexer value in first level of MultiIndex
-            ([[2, 22, 5], [2, 33, 6]], [0, -1, 1], [2, 3, 1], [7, 10]),
-            # test like code sample 1 in the issue
-            ([[1, 22, 555], [1, 33, 666]], [0, -1, 1], [200, 300, 100],
-                [755, 1066]),
-            # test like code sample 2 in the issue
-            ([[1, 3, 7], [2, 4, 8]], [0, -1, 1], [10, 10, 1000], [17, 1018]),
-            # test like code sample 3 in the issue
-            ([[1, 11, 4], [2, 22, 5], [3, 33, 6]], [0, -1, 1], [4, 7, 10],
-                [8, 15, 13])
-        ])
-    def test_iloc_setitem_int_multiindex_series(
-            self, data, indexes, values, expected_k):
-        # GH17148
-        df = DataFrame(data=data, columns=['i', 'j', 'k'])
-        df = df.set_index(['i', 'j'])
-
-        series = df.k.copy()
-        for i, v in zip(indexes, values):
-            series.iloc[i] += v
-
-        df['k'] = expected_k
-        expected = df.k
-        tm.assert_series_equal(series, expected)
-
     def test_iloc_setitem_list(self):
 
         # setitem with an iloc list
@@ -337,7 +310,7 @@ class TestiLoc(Base):
         tm.assert_frame_equal(df, expected)
 
     def test_iloc_setitem_pandas_object(self):
-        # GH 17193, affecting old numpy (1.7 and 1.8)
+        # GH 17193
         s_orig = Series([0, 1, 2, 3])
         expected = Series([0, -1, -2, 3])
 

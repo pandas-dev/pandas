@@ -37,7 +37,6 @@ class TestCategoricalRepr(object):
     def test_empty_print(self):
         factor = Categorical([], ["a", "b", "c"])
         expected = ("[], Categories (3, object): [a, b, c]")
-        # hack because array_repr changed in numpy > 1.6.x
         actual = repr(factor)
         assert actual == expected
 

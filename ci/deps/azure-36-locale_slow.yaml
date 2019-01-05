@@ -1,4 +1,4 @@
-name: pandas
+name: pandas-dev
 channels:
   - defaults
   - conda-forge
@@ -15,15 +15,12 @@ dependencies:
   - numexpr
   - numpy
   - openpyxl
-  - psycopg2
-  - pymysql
   - pytables
   - python-dateutil
   - python=3.6*
   - pytz
   - s3fs
   - scipy
-  - sqlalchemy
   - xarray
   - xlrd
   - xlsxwriter

@@ -232,6 +232,12 @@ def wide_to_long(df, stubnames, i, j, sep="", suffix=r'\d+'):
         A DataFrame that contains each stub name as a variable, with new index
         (i, j)
 
+    Notes
+    -----
+    All extra variables are left untouched. This simply uses
+    `pandas.melt` under the hood, but is hard-coded to "do the right thing"
+    in a typical case.
+
     Examples
     --------
     >>> np.random.seed(123)
@@ -403,12 +409,6 @@ def wide_to_long(df, stubnames, i, j, sep="", suffix=r'\d+'):
                 two  3.4
           3     one  2.1
                 two  2.9
-
-    Notes
-    -----
-    All extra variables are left untouched. This simply uses
-    `pandas.melt` under the hood, but is hard-coded to "do the right thing"
-    in a typical case.
     """
     def get_var_names(df, stub, sep, suffix):
         regex = r'^{stub}{sep}{suffix}$'.format(
@@ -448,9 +448,8 @@ def wide_to_long(df, stubnames, i, j, sep="", suffix=r'\d+'):
     value_vars_flattened = [e for sublist in value_vars for e in sublist]
     id_vars = list(set(df.columns.tolist()).difference(value_vars_flattened))
 
-    melted = []
-    for s, v in zip(stubnames, value_vars):
-        melted.append(melt_stub(df, s, i, j, v, sep))
+    melted = [melt_stub(df, s, i, j, v, sep)
+              for s, v in zip(stubnames, value_vars)]
     melted = melted[0].join(melted[1:], how='outer')
 
     if len(i) == 1:

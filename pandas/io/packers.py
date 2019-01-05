@@ -53,14 +53,15 @@ from pandas.util._move import (
     BadMove as _BadMove, move_into_mutable_buffer as _move_into_mutable_buffer)
 
 from pandas.core.dtypes.common import (
-    is_categorical_dtype, is_object_dtype, needs_i8_conversion, pandas_dtype)
+    is_categorical_dtype, is_datetime64tz_dtype, is_object_dtype,
+    needs_i8_conversion, pandas_dtype)
 
 from pandas import (  # noqa:F401
     Categorical, CategoricalIndex, DataFrame, DatetimeIndex, Float64Index,
     Index, Int64Index, Interval, IntervalIndex, MultiIndex, NaT, Panel, Period,
     PeriodIndex, RangeIndex, Series, TimedeltaIndex, Timestamp)
 from pandas.core import internals
-from pandas.core.arrays import IntervalArray, PeriodArray
+from pandas.core.arrays import DatetimeArray, IntervalArray, PeriodArray
 from pandas.core.arrays.sparse import BlockIndex, IntIndex
 from pandas.core.generic import NDFrame
 from pandas.core.internals import BlockManager, _safe_reshape, make_block
@@ -177,7 +178,6 @@ def read_msgpack(path_or_buf, encoding='utf-8', iterator=False, **kwargs):
     Returns
     -------
     obj : same type as object stored in file
-
     """
     path_or_buf, _, _, should_close = get_filepath_or_buffer(path_or_buf)
     if iterator:
@@ -251,7 +251,7 @@ c2f_dict = {'complex': np.float64,
             'complex128': np.float64,
             'complex64': np.float32}
 
-# numpy 1.6.1 compat
+# windows (32 bit) compat
 if hasattr(np, 'float128'):
     c2f_dict['complex256'] = np.float128
 
@@ -585,28 +585,28 @@ def decode(obj):
         dtype = dtype_for(obj[u'dtype'])
         data = unconvert(obj[u'data'], dtype,
                          obj.get(u'compress'))
-        return globals()[obj[u'klass']](data, dtype=dtype, name=obj[u'name'])
+        return Index(data, dtype=dtype, name=obj[u'name'])
     elif typ == u'range_index':
-        return globals()[obj[u'klass']](obj[u'start'],
-                                        obj[u'stop'],
-                                        obj[u'step'],
-                                        name=obj[u'name'])
+        return RangeIndex(obj[u'start'],
+                          obj[u'stop'],
+                          obj[u'step'],
+                          name=obj[u'name'])
     elif typ == u'multi_index':
         dtype = dtype_for(obj[u'dtype'])
         data = unconvert(obj[u'data'], dtype,
                          obj.get(u'compress'))
         data = [tuple(x) for x in data]
-        return globals()[obj[u'klass']].from_tuples(data, names=obj[u'names'])
+        return MultiIndex.from_tuples(data, names=obj[u'names'])
     elif typ == u'period_index':
         data = unconvert(obj[u'data'], np.int64, obj.get(u'compress'))
         d = dict(name=obj[u'name'], freq=obj[u'freq'])
         freq = d.pop('freq', None)
-        return globals()[obj[u'klass']](PeriodArray(data, freq), **d)
+        return PeriodIndex(PeriodArray(data, freq), **d)
 
     elif typ == u'datetime_index':
         data = unconvert(obj[u'data'], np.int64, obj.get(u'compress'))
-        d = dict(name=obj[u'name'], freq=obj[u'freq'], verify_integrity=False)
-        result = globals()[obj[u'klass']](data, **d)
+        d = dict(name=obj[u'name'], freq=obj[u'freq'])
+        result = DatetimeIndex(data, **d)
         tz = obj[u'tz']
 
         # reverse tz conversion
@@ -632,11 +632,10 @@ def decode(obj):
         pd_dtype = pandas_dtype(dtype)
 
         index = obj[u'index']
-        result = globals()[obj[u'klass']](unconvert(obj[u'data'], dtype,
-                                                    obj[u'compress']),
-                                          index=index,
-                                          dtype=pd_dtype,
-                                          name=obj[u'name'])
+        result = Series(unconvert(obj[u'data'], dtype, obj[u'compress']),
+                        index=index,
+                        dtype=pd_dtype,
+                        name=obj[u'name'])
         return result
 
     elif typ == u'block_manager':
@@ -653,6 +652,12 @@ def decode(obj):
                 placement = b[u'locs']
             else:
                 placement = axes[0].get_indexer(b[u'items'])
+
+            if is_datetime64tz_dtype(b[u'dtype']):
+                assert isinstance(values, np.ndarray), type(values)
+                assert values.dtype == 'M8[ns]', values.dtype
+                values = DatetimeArray(values, dtype=b[u'dtype'])
+
             return make_block(values=values,
                               klass=getattr(internals, b[u'klass']),
                               placement=placement,
@@ -672,18 +677,18 @@ def decode(obj):
         return np.timedelta64(int(obj[u'data']))
     # elif typ == 'sparse_series':
     #    dtype = dtype_for(obj['dtype'])
-    #    return globals()[obj['klass']](
+    #    return SparseSeries(
     #        unconvert(obj['sp_values'], dtype, obj['compress']),
     #        sparse_index=obj['sp_index'], index=obj['index'],
     #        fill_value=obj['fill_value'], kind=obj['kind'], name=obj['name'])
     # elif typ == 'sparse_dataframe':
-    #    return globals()[obj['klass']](
+    #    return SparseDataFrame(
     #        obj['data'], columns=obj['columns'],
     #        default_fill_value=obj['default_fill_value'],
     #        default_kind=obj['default_kind']
     #    )
     # elif typ == 'sparse_panel':
-    #    return globals()[obj['klass']](
+    #    return SparsePanel(
     #        obj['data'], items=obj['items'],
     #        default_fill_value=obj['default_fill_value'],
     #        default_kind=obj['default_kind'])

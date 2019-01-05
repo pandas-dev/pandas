@@ -80,6 +80,75 @@ class TestTimestampEquivDateRange(object):
 
 
 class TestDateRanges(TestData):
+    def test_date_range_nat(self):
+        # GH#11587
+        msg = "Neither `start` nor `end` can be NaT"
+        with pytest.raises(ValueError, match=msg):
+            date_range(start='2016-01-01', end=pd.NaT, freq='D')
+        with pytest.raises(ValueError, match=msg):
+            date_range(start=pd.NaT, end='2016-01-01', freq='D')
+
+    def test_date_range_multiplication_overflow(self):
+        # GH#24255
+        # check that overflows in calculating `addend = periods * stride`
+        #  are caught
+        with tm.assert_produces_warning(None):
+            # we should _not_ be seeing a overflow RuntimeWarning
+            dti = date_range(start='1677-09-22', periods=213503, freq='D')
+
+        assert dti[0] == Timestamp('1677-09-22')
+        assert len(dti) == 213503
+
+        msg = "Cannot generate range with"
+        with pytest.raises(OutOfBoundsDatetime, match=msg):
+            date_range('1969-05-04', periods=200000000, freq='30000D')
+
+    def test_date_range_unsigned_overflow_handling(self):
+        # GH#24255
+        # case where `addend = periods * stride` overflows int64 bounds
+        #  but not uint64 bounds
+        dti = date_range(start='1677-09-22', end='2262-04-11', freq='D')
+
+        dti2 = date_range(start=dti[0], periods=len(dti), freq='D')
+        assert dti2.equals(dti)
+
+        dti3 = date_range(end=dti[-1], periods=len(dti), freq='D')
+        assert dti3.equals(dti)
+
+    def test_date_range_int64_overflow_non_recoverable(self):
+        # GH#24255
+        # case with start later than 1970-01-01, overflow int64 but not uint64
+        msg = "Cannot generate range with"
+        with pytest.raises(OutOfBoundsDatetime, match=msg):
+            date_range(start='1970-02-01', periods=106752 * 24, freq='H')
+
+        # case with end before 1970-01-01, overflow int64 but not uint64
+        with pytest.raises(OutOfBoundsDatetime, match=msg):
+            date_range(end='1969-11-14', periods=106752 * 24, freq='H')
+
+    def test_date_range_int64_overflow_stride_endpoint_different_signs(self):
+        # cases where stride * periods overflow int64 and stride/endpoint
+        #  have different signs
+        start = Timestamp('2262-02-23')
+        end = Timestamp('1969-11-14')
+
+        expected = date_range(start=start, end=end, freq='-1H')
+        assert expected[0] == start
+        assert expected[-1] == end
+
+        dti = date_range(end=end, periods=len(expected), freq='-1H')
+        tm.assert_index_equal(dti, expected)
+
+        start2 = Timestamp('1970-02-01')
+        end2 = Timestamp('1677-10-22')
+
+        expected2 = date_range(start=start2, end=end2, freq='-1H')
+        assert expected2[0] == start2
+        assert expected2[-1] == end2
+
+        dti2 = date_range(start=start2, periods=len(expected2), freq='-1H')
+        tm.assert_index_equal(dti2, expected2)
+
     def test_date_range_out_of_bounds(self):
         # GH#14187
         with pytest.raises(OutOfBoundsDatetime):
@@ -351,18 +420,18 @@ class TestDateRanges(TestData):
          Timestamp(datetime(2013, 11, 6), tz='US/Eastern')]
     ])
     def test_range_tz_dst_straddle_pytz(self, start, end):
-        dr = date_range(start, end, freq='CD')
+        dr = date_range(start, end, freq='D')
         assert dr[0] == start
         assert dr[-1] == end
         assert np.all(dr.hour == 0)
 
-        dr = date_range(start, end, freq='CD', tz='US/Eastern')
+        dr = date_range(start, end, freq='D', tz='US/Eastern')
         assert dr[0] == start
         assert dr[-1] == end
         assert np.all(dr.hour == 0)
 
         dr = date_range(start.replace(tzinfo=None), end.replace(
-            tzinfo=None), freq='CD', tz='US/Eastern')
+            tzinfo=None), freq='D', tz='US/Eastern')
         assert dr[0] == start
         assert dr[-1] == end
         assert np.all(dr.hour == 0)
@@ -533,12 +602,12 @@ class TestGenRangeGeneration(object):
 
     def test_generate(self):
         rng1 = list(generate_range(START, END, offset=BDay()))
-        rng2 = list(generate_range(START, END, time_rule='B'))
+        rng2 = list(generate_range(START, END, offset='B'))
         assert rng1 == rng2
 
     def test_generate_cday(self):
         rng1 = list(generate_range(START, END, offset=CDay()))
-        rng2 = list(generate_range(START, END, time_rule='C'))
+        rng2 = list(generate_range(START, END, offset='C'))
         assert rng1 == rng2
 
     def test_1(self):
@@ -561,10 +630,10 @@ class TestGenRangeGeneration(object):
         assert rng == expected
 
     def test_precision_finer_than_offset(self):
-        # GH 9907
-        result1 = DatetimeIndex(start='2015-04-15 00:00:03',
+        # GH#9907
+        result1 = pd.date_range(start='2015-04-15 00:00:03',
                                 end='2016-04-22 00:00:00', freq='Q')
-        result2 = DatetimeIndex(start='2015-04-15 00:00:03',
+        result2 = pd.date_range(start='2015-04-15 00:00:03',
                                 end='2015-06-22 00:00:04', freq='W')
         expected1_list = ['2015-06-30 00:00:03', '2015-09-30 00:00:03',
                           '2015-12-31 00:00:03', '2016-03-31 00:00:03']
@@ -594,15 +663,7 @@ class TestGenRangeGeneration(object):
         with pytest.raises(TypeError):
             pd.date_range(start, end)
         with pytest.raises(TypeError):
-            pd.DatetimeIndex(start, end, freq=BDay())
-
-    def test_CalendarDay_range_with_dst_crossing(self):
-        # GH 20596
-        result = date_range('2018-10-23', '2018-11-06', freq='7CD',
-                            tz='Europe/Paris')
-        expected = date_range('2018-10-23', '2018-11-06',
-                              freq=pd.DateOffset(days=7), tz='Europe/Paris')
-        tm.assert_index_equal(result, expected)
+            pd.date_range(start, end, freq=BDay())
 
 
 class TestBusinessDateRange(object):
@@ -758,8 +819,7 @@ class TestCustomDateRange(object):
                         holidays=['2013-05-01'])
 
     @pytest.mark.parametrize('freq', [freq for freq in prefix_mapping
-                                      if freq.startswith('C')
-                                      and freq != 'CD'])  # CalendarDay
+                                      if freq.startswith('C')])
     def test_all_custom_freq(self, freq):
         # should not raise
         bdate_range(START, END, freq=freq, weekmask='Mon Wed Fri',
@@ -769,3 +829,14 @@ class TestCustomDateRange(object):
         msg = 'invalid custom frequency string: {freq}'
         with pytest.raises(ValueError, match=msg.format(freq=bad_freq)):
             bdate_range(START, END, freq=bad_freq)
+
+    @pytest.mark.parametrize('start_end', [
+        ('2018-01-01T00:00:01.000Z', '2018-01-03T00:00:01.000Z'),
+        ('2018-01-01T00:00:00.010Z', '2018-01-03T00:00:00.010Z'),
+        ('2001-01-01T00:00:00.010Z', '2001-01-03T00:00:00.010Z')])
+    def test_range_with_millisecond_resolution(self, start_end):
+        # https://github.com/pandas-dev/pandas/issues/24110
+        start, end = start_end
+        result = pd.date_range(start=start, end=end, periods=2, closed='left')
+        expected = DatetimeIndex([start])
+        tm.assert_index_equal(result, expected)

@@ -3,7 +3,6 @@ import os
 import pytest
 
 from pandas import read_csv, read_table
-import pandas.util.testing as tm
 
 
 class BaseParser(object):
@@ -24,8 +23,7 @@ class BaseParser(object):
 
     def read_table(self, *args, **kwargs):
         kwargs = self.update_kwargs(kwargs)
-        with tm.assert_produces_warning(FutureWarning):
-            return read_table(*args, **kwargs)
+        return read_table(*args, **kwargs)
 
 
 class CParser(BaseParser):
@@ -43,7 +41,7 @@ class CParserLowMemory(CParser):
 
 class PythonParser(BaseParser):
     engine = "python"
-    float_precision_choices = []
+    float_precision_choices = [None]
 
 
 @pytest.fixture

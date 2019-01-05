@@ -1,14 +1,15 @@
-import importlib
+from datetime import date, time, timedelta
+from decimal import Decimal
 import os
 
-from dateutil.tz import tzutc
+from dateutil.tz import tzlocal, tzutc
 import hypothesis
 from hypothesis import strategies as st
 import numpy as np
 import pytest
-from pytz import utc
+from pytz import FixedOffset, utc
 
-from pandas.compat import PY3
+from pandas.compat import PY3, u
 import pandas.util._test_decorators as td
 
 import pandas as pd
@@ -32,6 +33,8 @@ def pytest_addoption(parser):
                      help="skip slow tests")
     parser.addoption("--skip-network", action="store_true",
                      help="skip network tests")
+    parser.addoption("--skip-db", action="store_true",
+                     help="skip db tests")
     parser.addoption("--run-high-memory", action="store_true",
                      help="run high memory tests")
     parser.addoption("--only-slow", action="store_true",
@@ -49,6 +52,9 @@ def pytest_runtest_setup(item):
 
     if 'network' in item.keywords and item.config.getoption("--skip-network"):
         pytest.skip("skipping due to --skip-network")
+
+    if 'db' in item.keywords and item.config.getoption("--skip-db"):
+        pytest.skip("skipping due to --skip-db")
 
     if 'high_memory' in item.keywords and not item.config.getoption(
             "--run-high-memory"):
@@ -245,7 +251,7 @@ def datetime_tz_utc():
     return timezone.utc
 
 
-utc_objs = ['utc', utc, tzutc()]
+utc_objs = ['utc', 'dateutil/UTC', utc, tzutc()]
 if PY3:
     from datetime import timezone
     utc_objs.append(timezone.utc)
@@ -268,7 +274,12 @@ def join_type(request):
 
 
 @pytest.fixture
-def datapath(request):
+def strict_data_files(pytestconfig):
+    return pytestconfig.getoption("--strict-data-files")
+
+
+@pytest.fixture
+def datapath(strict_data_files):
     """Get the path to a data file.
 
     Parameters
@@ -290,7 +301,7 @@ def datapath(request):
     def deco(*args):
         path = os.path.join(BASE_PATH, *args)
         if not os.path.exists(path):
-            if request.config.getoption("--strict-data-files"):
+            if strict_data_files:
                 msg = "Could not find file {} and --strict-data-files is set."
                 raise ValueError(msg.format(path))
             else:
@@ -354,7 +365,8 @@ unique_nulls_fixture2 = unique_nulls_fixture
 
 
 TIMEZONES = [None, 'UTC', 'US/Eastern', 'Asia/Tokyo', 'dateutil/US/Pacific',
-             'dateutil/Asia/Singapore']
+             'dateutil/Asia/Singapore', tzutc(), tzlocal(), FixedOffset(300),
+             FixedOffset(0), FixedOffset(-300)]
 
 
 @td.parametrize_fixture_doc(str(TIMEZONES))
@@ -375,16 +387,30 @@ def tz_aware_fixture(request):
     return request.param
 
 
+# ----------------------------------------------------------------
+# Dtypes
 UNSIGNED_INT_DTYPES = ["uint8", "uint16", "uint32", "uint64"]
+UNSIGNED_EA_INT_DTYPES = ["UInt8", "UInt16", "UInt32", "UInt64"]
 SIGNED_INT_DTYPES = [int, "int8", "int16", "int32", "int64"]
+SIGNED_EA_INT_DTYPES = ["Int8", "Int16", "Int32", "Int64"]
 ALL_INT_DTYPES = UNSIGNED_INT_DTYPES + SIGNED_INT_DTYPES
+ALL_EA_INT_DTYPES = UNSIGNED_EA_INT_DTYPES + SIGNED_EA_INT_DTYPES
 
 FLOAT_DTYPES = [float, "float32", "float64"]
 COMPLEX_DTYPES = [complex, "complex64", "complex128"]
 STRING_DTYPES = [str, 'str', 'U']
 
+DATETIME_DTYPES = ['datetime64[ns]', 'M8[ns]']
+TIMEDELTA_DTYPES = ['timedelta64[ns]', 'm8[ns]']
+
+BOOL_DTYPES = [bool, 'bool']
+BYTES_DTYPES = [bytes, 'bytes']
+OBJECT_DTYPES = [object, 'object']
+
 ALL_REAL_DTYPES = FLOAT_DTYPES + ALL_INT_DTYPES
-ALL_NUMPY_DTYPES = ALL_REAL_DTYPES + COMPLEX_DTYPES + STRING_DTYPES
+ALL_NUMPY_DTYPES = (ALL_REAL_DTYPES + COMPLEX_DTYPES + STRING_DTYPES
+                    + DATETIME_DTYPES + TIMEDELTA_DTYPES + BOOL_DTYPES
+                    + OBJECT_DTYPES + BYTES_DTYPES * PY3)  # bytes only for PY3
 
 
 @pytest.fixture(params=STRING_DTYPES)
@@ -403,8 +429,9 @@ def float_dtype(request):
     """
     Parameterized fixture for float dtypes.
 
-    * float32
-    * float64
+    * float
+    * 'float32'
+    * 'float64'
     """
 
     return request.param
@@ -415,8 +442,9 @@ def complex_dtype(request):
     """
     Parameterized fixture for complex dtypes.
 
-    * complex64
-    * complex128
+    * complex
+    * 'complex64'
+    * 'complex128'
     """
 
     return request.param
@@ -427,10 +455,11 @@ def sint_dtype(request):
     """
     Parameterized fixture for signed integer dtypes.
 
-    * int8
-    * int16
-    * int32
-    * int64
+    * int
+    * 'int8'
+    * 'int16'
+    * 'int32'
+    * 'int64'
     """
 
     return request.param
@@ -441,10 +470,10 @@ def uint_dtype(request):
     """
     Parameterized fixture for unsigned integer dtypes.
 
-    * uint8
-    * uint16
-    * uint32
-    * uint64
+    * 'uint8'
+    * 'uint16'
+    * 'uint32'
+    * 'uint64'
     """
 
     return request.param
@@ -453,16 +482,17 @@ def uint_dtype(request):
 @pytest.fixture(params=ALL_INT_DTYPES)
 def any_int_dtype(request):
     """
-    Parameterized fixture for any integer dtypes.
+    Parameterized fixture for any integer dtype.
 
-    * int8
-    * uint8
-    * int16
-    * uint16
-    * int32
-    * uint32
-    * int64
-    * uint64
+    * int
+    * 'int8'
+    * 'uint8'
+    * 'int16'
+    * 'uint16'
+    * 'int32'
+    * 'uint32'
+    * 'int64'
+    * 'uint64'
     """
 
     return request.param
@@ -471,18 +501,20 @@ def any_int_dtype(request):
 @pytest.fixture(params=ALL_REAL_DTYPES)
 def any_real_dtype(request):
     """
-    Parameterized fixture for any (purely) real numeric dtypes.
+    Parameterized fixture for any (purely) real numeric dtype.
 
-    * int8
-    * uint8
-    * int16
-    * uint16
-    * int32
-    * uint32
-    * int64
-    * uint64
-    * float32
-    * float64
+    * int
+    * 'int8'
+    * 'uint8'
+    * 'int16'
+    * 'uint16'
+    * 'int32'
+    * 'uint32'
+    * 'int64'
+    * 'uint64'
+    * float
+    * 'float32'
+    * 'float64'
     """
 
     return request.param
@@ -493,39 +525,124 @@ def any_numpy_dtype(request):
     """
     Parameterized fixture for all numpy dtypes.
 
-    * int8
-    * uint8
-    * int16
-    * uint16
-    * int32
-    * uint32
-    * int64
-    * uint64
-    * float32
-    * float64
-    * complex64
-    * complex128
+    * bool
+    * 'bool'
+    * int
+    * 'int8'
+    * 'uint8'
+    * 'int16'
+    * 'uint16'
+    * 'int32'
+    * 'uint32'
+    * 'int64'
+    * 'uint64'
+    * float
+    * 'float32'
+    * 'float64'
+    * complex
+    * 'complex64'
+    * 'complex128'
     * str
     * 'str'
     * 'U'
+    * bytes
+    * 'bytes'
+    * 'datetime64[ns]'
+    * 'M8[ns]'
+    * 'timedelta64[ns]'
+    * 'm8[ns]'
+    * object
+    * 'object'
     """
 
     return request.param
 
 
-@pytest.fixture
-def mock():
-    """
-    Fixture providing the 'mock' module.
+# categoricals are handled separately
+_any_skipna_inferred_dtype = [
+    ('string', ['a', np.nan, 'c']),
+    ('unicode' if not PY3 else 'string', [u('a'), np.nan, u('c')]),
+    ('bytes' if PY3 else 'string', [b'a', np.nan, b'c']),
+    ('empty', [np.nan, np.nan, np.nan]),
+    ('empty', []),
+    ('mixed-integer', ['a', np.nan, 2]),
+    ('mixed', ['a', np.nan, 2.0]),
+    ('floating', [1.0, np.nan, 2.0]),
+    ('integer', [1, np.nan, 2]),
+    ('mixed-integer-float', [1, np.nan, 2.0]),
+    ('decimal', [Decimal(1), np.nan, Decimal(2)]),
+    ('boolean', [True, np.nan, False]),
+    ('datetime64', [np.datetime64('2013-01-01'), np.nan,
+                    np.datetime64('2018-01-01')]),
+    ('datetime', [pd.Timestamp('20130101'), np.nan, pd.Timestamp('20180101')]),
+    ('date', [date(2013, 1, 1), np.nan, date(2018, 1, 1)]),
+    # The following two dtypes are commented out due to GH 23554
+    # ('complex', [1 + 1j, np.nan, 2 + 2j]),
+    # ('timedelta64', [np.timedelta64(1, 'D'),
+    #                  np.nan, np.timedelta64(2, 'D')]),
+    ('timedelta', [timedelta(1), np.nan, timedelta(2)]),
+    ('time', [time(1), np.nan, time(2)]),
+    ('period', [pd.Period(2013), pd.NaT, pd.Period(2018)]),
+    ('interval', [pd.Interval(0, 1), np.nan, pd.Interval(0, 2)])]
+ids, _ = zip(*_any_skipna_inferred_dtype)  # use inferred type as fixture-id
 
-    Uses 'unittest.mock' for Python 3. Attempts to import the 3rd party 'mock'
-    package for Python 2, skipping if not present.
-    """
-    if PY3:
-        return importlib.import_module("unittest.mock")
-    else:
-        return pytest.importorskip("mock")
 
+@pytest.fixture(params=_any_skipna_inferred_dtype, ids=ids)
+def any_skipna_inferred_dtype(request):
+    """
+    Fixture for all inferred dtypes from _libs.lib.infer_dtype
+
+    The covered (inferred) types are:
+    * 'string'
+    * 'unicode' (if PY2)
+    * 'empty'
+    * 'bytes' (if PY3)
+    * 'mixed'
+    * 'mixed-integer'
+    * 'mixed-integer-float'
+    * 'floating'
+    * 'integer'
+    * 'decimal'
+    * 'boolean'
+    * 'datetime64'
+    * 'datetime'
+    * 'date'
+    * 'timedelta'
+    * 'time'
+    * 'period'
+    * 'interval'
+
+    Returns
+    -------
+    inferred_dtype : str
+        The string for the inferred dtype from _libs.lib.infer_dtype
+    values : np.ndarray
+        An array of object dtype that will be inferred to have
+        `inferred_dtype`
+
+    Examples
+    --------
+    >>> import pandas._libs.lib as lib
+    >>>
+    >>> def test_something(any_skipna_inferred_dtype):
+    ...     inferred_dtype, values = any_skipna_inferred_dtype
+    ...     # will pass
+    ...     assert lib.infer_dtype(values, skipna=True) == inferred_dtype
+    """
+    inferred_dtype, values = request.param
+    values = np.array(values, dtype=object)  # object dtype to avoid casting
+
+    # correctness of inference tested in tests/dtypes/test_inference.py
+    return inferred_dtype, values
+
+
+@pytest.fixture(params=[getattr(pd.offsets, o) for o in pd.offsets.__all__ if
+                        issubclass(getattr(pd.offsets, o), pd.offsets.Tick)])
+def tick_classes(request):
+    """
+    Fixture for Tick based datetime offsets available for a time series.
+    """
+    return request.param
 
 # ----------------------------------------------------------------
 # Global setup for tests using Hypothesis

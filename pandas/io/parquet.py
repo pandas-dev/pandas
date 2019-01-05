@@ -151,9 +151,9 @@ class FastParquetImpl(BaseImpl):
                 "\nor via pip\n"
                 "pip install -U fastparquet"
             )
-        if LooseVersion(fastparquet.__version__) < '0.1.2':
+        if LooseVersion(fastparquet.__version__) < '0.2.1':
             raise ImportError(
-                "fastparquet >= 0.1.2 is required for parquet "
+                "fastparquet >= 0.2.1 is required for parquet "
                 "support\n\n"
                 "you can install via conda\n"
                 "conda install fastparquet -c conda-forge\n"
@@ -276,7 +276,6 @@ def read_parquet(path, engine='auto', columns=None, **kwargs):
     Returns
     -------
     DataFrame
-
     """
 
     impl = get_engine(engine)

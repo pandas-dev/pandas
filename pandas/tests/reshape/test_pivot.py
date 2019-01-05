@@ -1,20 +1,20 @@
 # -*- coding: utf-8 -*-
 
-from datetime import datetime, date, timedelta
-
-import pytest
-
+from collections import OrderedDict
+from datetime import date, datetime, timedelta
 
 import numpy as np
+import pytest
 
-from collections import OrderedDict
+from pandas.compat import product, range
+
 import pandas as pd
-from pandas import (DataFrame, Series, Index, MultiIndex,
-                    Grouper, date_range, concat, Categorical)
-from pandas.core.reshape.pivot import pivot_table, crosstab
-from pandas.compat import range, product
-import pandas.util.testing as tm
+from pandas import (
+    Categorical, DataFrame, Grouper, Index, MultiIndex, Series, concat,
+    date_range)
 from pandas.api.types import CategoricalDtype as CDT
+from pandas.core.reshape.pivot import crosstab, pivot_table
+import pandas.util.testing as tm
 
 
 @pytest.fixture(params=[True, False])
@@ -451,7 +451,7 @@ class TestPivotTable(object):
                 [4, 5, 6, 'q', 'w', 't']]
         index = Index(data=['one', 'two'], name='foo')
         columns = MultiIndex(levels=[['baz', 'zoo'], ['A', 'B', 'C']],
-                             labels=[[0, 0, 0, 1, 1, 1], [0, 1, 2, 0, 1, 2]],
+                             codes=[[0, 0, 0, 1, 1, 1], [0, 1, 2, 0, 1, 2]],
                              names=[None, 'bar'])
         expected = DataFrame(data=data, index=index,
                              columns=columns, dtype='object')
@@ -482,15 +482,14 @@ class TestPivotTable(object):
                 ['C', np.nan, 3, np.nan]]
         index = Index(data=['q', 't', 'w', 'x', 'y', 'z'], name='zoo')
         columns = MultiIndex(levels=[['bar', 'baz'], ['one', 'two']],
-                             labels=[[0, 0, 1, 1], [0, 1, 0, 1]],
+                             codes=[[0, 0, 1, 1], [0, 1, 0, 1]],
                              names=[None, 'foo'])
         expected = DataFrame(data=data, index=index,
                              columns=columns, dtype='object')
         tm.assert_frame_equal(result, expected)
 
     @pytest.mark.xfail(reason='MultiIndexed unstack with tuple names fails'
-                              'with KeyError GH#19966',
-                       strict=True)
+                              'with KeyError GH#19966')
     @pytest.mark.parametrize('method', [True, False])
     def test_pivot_with_multiindex(self, method):
         # issue #17160
@@ -502,7 +501,7 @@ class TestPivotTable(object):
                 ['two', 'B', 5, 'w'],
                 ['two', 'C', 6, 't']]
         columns = MultiIndex(levels=[['bar', 'baz'], ['first', 'second']],
-                             labels=[[0, 0, 1, 1], [0, 1, 0, 1]])
+                             codes=[[0, 0, 1, 1], [0, 1, 0, 1]])
         df = DataFrame(data=data, index=index, columns=columns, dtype='object')
         if method:
             result = df.pivot(index=('bar', 'first'),
@@ -616,8 +615,7 @@ class TestPivotTable(object):
         tm.assert_frame_equal(expected, result)
 
     @pytest.mark.xfail(reason='GH#17035 (len of floats is casted back to '
-                              'floats)',
-                       strict=True)
+                              'floats)')
     def test_margins_dtype_len(self):
         mi_val = list(product(['bar', 'foo'], ['one', 'two'])) + [('All', '')]
         mi = MultiIndex.from_tuples(mi_val, names=('A', 'B'))
@@ -1102,8 +1100,7 @@ class TestPivotTable(object):
         tm.assert_frame_equal(table, expected)
 
     @pytest.mark.xfail(reason='GH#17035 (np.mean of ints is casted back to '
-                              'ints)',
-                       strict=True)
+                              'ints)')
     def test_categorical_margins(self, observed):
         # GH 10989
         df = pd.DataFrame({'x': np.arange(8),
@@ -1118,8 +1115,7 @@ class TestPivotTable(object):
         tm.assert_frame_equal(table, expected)
 
     @pytest.mark.xfail(reason='GH#17035 (np.mean of ints is casted back to '
-                              'ints)',
-                       strict=True)
+                              'ints)')
     def test_categorical_margins_category(self, observed):
         df = pd.DataFrame({'x': np.arange(8),
                            'y': np.arange(8) // 4,
@@ -1242,7 +1238,7 @@ class TestPivotTable(object):
 
         result = pivot_table(data, index='A', columns='B', aggfunc='sum')
         mi = MultiIndex(levels=[['C'], ['one', 'two']],
-                        labels=[[0, 0], [0, 1]], names=[None, 'B'])
+                        codes=[[0, 0], [0, 1]], names=[None, 'B'])
         expected = DataFrame({('C', 'one'): {'bar': 15, 'foo': 13},
                               ('C', 'two'): {'bar': 7, 'foo': 20}},
                              columns=mi).rename_axis('A')
@@ -1251,7 +1247,7 @@ class TestPivotTable(object):
         result = pivot_table(data, index='A', columns='B',
                              aggfunc=['sum', 'mean'])
         mi = MultiIndex(levels=[['sum', 'mean'], ['C'], ['one', 'two']],
-                        labels=[[0, 0, 1, 1], [0, 0, 0, 0], [0, 1, 0, 1]],
+                        codes=[[0, 0, 1, 1], [0, 0, 0, 0], [0, 1, 0, 1]],
                         names=[None, None, 'B'])
         expected = DataFrame({('mean', 'C', 'one'): {'bar': 5.0, 'foo': 3.25},
                               ('mean', 'C', 'two'): {'bar': 7.0,
@@ -1275,6 +1271,17 @@ class TestPivotTable(object):
         expected = pivot_table(self.data, index='A', columns='B',
                                aggfunc=f_numpy)
         tm.assert_frame_equal(result, expected)
+
+    @pytest.mark.slow
+    def test_pivot_number_of_levels_larger_than_int32(self):
+        # GH 20601
+        df = DataFrame({'ind1': np.arange(2 ** 16),
+                        'ind2': np.arange(2 ** 16),
+                        'count': 0})
+
+        with pytest.raises(ValueError, match='int32 overflow'):
+            df.pivot_table(index='ind1', columns='ind2',
+                           values='count', aggfunc='count')
 
 
 class TestCrosstab(object):
@@ -1728,8 +1735,8 @@ class TestCrosstab(object):
                              values=df['D'])
         expected_index = pd.MultiIndex(levels=[['All', 'one', 'three', 'two'],
                                                ['', 'A', 'B', 'C']],
-                                       labels=[[1, 1, 1, 2, 2, 2, 3, 3, 3, 0],
-                                               [1, 2, 3, 1, 2, 3, 1, 2, 3, 0]],
+                                       codes=[[1, 1, 1, 2, 2, 2, 3, 3, 3, 0],
+                                              [1, 2, 3, 1, 2, 3, 1, 2, 3, 0]],
                                        names=['A', 'B'])
         expected_column = pd.Index(['bar', 'foo', 'All'],
                                    dtype='object',

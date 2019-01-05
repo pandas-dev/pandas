@@ -2,22 +2,20 @@
 
 from __future__ import print_function
 
-import inspect
-import pytest
-
 from datetime import datetime, timedelta
+import inspect
 
 import numpy as np
+import pytest
 
-from pandas.compat import lrange, PY2
-from pandas import (DataFrame, Series, Index, MultiIndex, RangeIndex,
-                    IntervalIndex, DatetimeIndex, Categorical, cut,
-                    Timestamp, date_range, to_datetime)
+from pandas.compat import PY2, lrange
+
 from pandas.core.dtypes.common import (
-    is_object_dtype,
-    is_categorical_dtype,
-    is_interval_dtype)
+    is_categorical_dtype, is_interval_dtype, is_object_dtype)
 
+from pandas import (
+    Categorical, DataFrame, DatetimeIndex, Index, IntervalIndex, MultiIndex,
+    RangeIndex, Series, Timestamp, cut, date_range, to_datetime)
 import pandas.util.testing as tm
 
 
@@ -712,9 +710,9 @@ class TestDataFrameAlterAxes():
 
     def test_reorder_levels(self):
         index = MultiIndex(levels=[['bar'], ['one', 'two', 'three'], [0, 1]],
-                           labels=[[0, 0, 0, 0, 0, 0],
-                                   [0, 1, 2, 0, 1, 2],
-                                   [0, 1, 0, 1, 0, 1]],
+                           codes=[[0, 0, 0, 0, 0, 0],
+                                  [0, 1, 2, 0, 1, 2],
+                                  [0, 1, 0, 1, 0, 1]],
                            names=['L0', 'L1', 'L2'])
         df = DataFrame({'A': np.arange(6), 'B': np.arange(6)}, index=index)
 
@@ -729,9 +727,9 @@ class TestDataFrameAlterAxes():
         # rotate, position
         result = df.reorder_levels([1, 2, 0])
         e_idx = MultiIndex(levels=[['one', 'two', 'three'], [0, 1], ['bar']],
-                           labels=[[0, 1, 2, 0, 1, 2],
-                                   [0, 1, 0, 1, 0, 1],
-                                   [0, 0, 0, 0, 0, 0]],
+                           codes=[[0, 1, 2, 0, 1, 2],
+                                  [0, 1, 0, 1, 0, 1],
+                                  [0, 0, 0, 0, 0, 0]],
                            names=['L1', 'L2', 'L0'])
         expected = DataFrame({'A': np.arange(6), 'B': np.arange(6)},
                              index=e_idx)
@@ -739,9 +737,9 @@ class TestDataFrameAlterAxes():
 
         result = df.reorder_levels([0, 0, 0])
         e_idx = MultiIndex(levels=[['bar'], ['bar'], ['bar']],
-                           labels=[[0, 0, 0, 0, 0, 0],
-                                   [0, 0, 0, 0, 0, 0],
-                                   [0, 0, 0, 0, 0, 0]],
+                           codes=[[0, 0, 0, 0, 0, 0],
+                                  [0, 0, 0, 0, 0, 0],
+                                  [0, 0, 0, 0, 0, 0]],
                            names=['L0', 'L0', 'L0'])
         expected = DataFrame({'A': np.arange(6), 'B': np.arange(6)},
                              index=e_idx)
@@ -757,9 +755,9 @@ class TestDataFrameAlterAxes():
         names = ['first', 'second']
         stacked.index.names = names
         deleveled = stacked.reset_index()
-        for i, (lev, lab) in enumerate(zip(stacked.index.levels,
-                                           stacked.index.labels)):
-            values = lev.take(lab)
+        for i, (lev, level_codes) in enumerate(zip(stacked.index.levels,
+                                                   stacked.index.codes)):
+            values = lev.take(level_codes)
             name = names[i]
             tm.assert_index_equal(values, Index(deleveled[name]))
 
@@ -1093,7 +1091,7 @@ class TestDataFrameAlterAxes():
             df.rename(id, mapper=id)
 
     def test_reindex_api_equivalence(self):
-        # equivalence of the labels/axis and index/columns API's
+            # equivalence of the labels/axis and index/columns API's
         df = DataFrame([[1, 2, 3], [3, 4, 5], [5, 6, 7]],
                        index=['a', 'b', 'c'],
                        columns=['d', 'e', 'f'])

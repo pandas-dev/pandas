@@ -8,8 +8,8 @@ further arguments when parsing.
 """
 
 from io import TextIOWrapper
+import mmap
 import os
-import sys
 import tarfile
 
 import numpy as np
@@ -111,7 +111,24 @@ nan 2
                         names=["a", "b"], dtype={"a": np.int32})
 
 
-def test_unsupported_dtype(c_parser_only):
+@pytest.mark.parametrize("match,kwargs", [
+    # For each of these cases, all of the dtypes are valid, just unsupported.
+    (("the dtype datetime64 is not supported for parsing, "
+      "pass this column using parse_dates instead"),
+     dict(dtype={"A": "datetime64", "B": "float64"})),
+
+    (("the dtype datetime64 is not supported for parsing, "
+      "pass this column using parse_dates instead"),
+     dict(dtype={"A": "datetime64", "B": "float64"},
+          parse_dates=["B"])),
+
+    ("the dtype timedelta64 is not supported for parsing",
+     dict(dtype={"A": "timedelta64", "B": "float64"})),
+
+    ("the dtype <U8 is not supported for parsing",
+     dict(dtype={"A": "U8"}))
+], ids=["dt64-0", "dt64-1", "td64", "<U8"])
+def test_unsupported_dtype(c_parser_only, match, kwargs):
     parser = c_parser_only
     df = DataFrame(np.random.rand(5, 2), columns=list(
         "AB"), index=["1A", "1B", "1C", "1D", "1E"])
@@ -119,23 +136,8 @@ def test_unsupported_dtype(c_parser_only):
     with tm.ensure_clean("__unsupported_dtype__.csv") as path:
         df.to_csv(path)
 
-        # valid but we don"t support it (date)
-        pytest.raises(TypeError, parser.read_csv, path,
-                      dtype={"A": "datetime64", "B": "float64"},
-                      index_col=0)
-        pytest.raises(TypeError, parser.read_csv, path,
-                      dtype={"A": "datetime64", "B": "float64"},
-                      index_col=0, parse_dates=["B"])
-
-        # valid but we don"t support it
-        pytest.raises(TypeError, parser.read_csv, path,
-                      dtype={"A": "timedelta64", "B": "float64"},
-                      index_col=0)
-
-        # valid but unsupported - fixed width unicode string
-        pytest.raises(TypeError, parser.read_csv, path,
-                      dtype={"A": "U8"},
-                      index_col=0)
+        with pytest.raises(TypeError, match=match):
+            parser.read_csv(path, index_col=0, **kwargs)
 
 
 @td.skip_if_32bit
@@ -381,7 +383,7 @@ def test_internal_null_byte(c_parser_only):
     # character, only as a placeholder to indicate that
     # none was specified.
     #
-    # This test should be moved to common.py ONLY when
+    # This test should be moved to test_common.py ONLY when
     # Python's csv class supports parsing '\x00'.
     parser = c_parser_only
 
@@ -448,8 +450,7 @@ def test_data_after_quote(c_parser_only):
     tm.assert_frame_equal(result, expected)
 
 
-@tm.capture_stderr
-def test_comment_whitespace_delimited(c_parser_only):
+def test_comment_whitespace_delimited(c_parser_only, capsys):
     parser = c_parser_only
     test_input = """\
 1 2
@@ -465,10 +466,10 @@ def test_comment_whitespace_delimited(c_parser_only):
     df = parser.read_csv(StringIO(test_input), comment="#", header=None,
                          delimiter="\\s+", skiprows=0,
                          error_bad_lines=False)
-    error = sys.stderr.getvalue()
+    captured = capsys.readouterr()
     # skipped lines 2, 3, 4, 9
     for line_num in (2, 3, 4, 9):
-        assert "Skipping line {}".format(line_num) in error, error
+        assert "Skipping line {}".format(line_num) in captured.err
     expected = DataFrame([[1, 2],
                           [5, 2],
                           [6, 2],
@@ -544,3 +545,33 @@ def test_bytes_exceed_2gb(c_parser_only):
         ["x" * (1 << 20) for _ in range(2100)]))
     df = parser.read_csv(csv)
     assert not df.empty
+
+
+def test_chunk_whitespace_on_boundary(c_parser_only):
+    # see gh-9735: this issue is C parser-specific (bug when
+    # parsing whitespace and characters at chunk boundary)
+    #
+    # This test case has a field too large for the Python parser / CSV library.
+    parser = c_parser_only
+
+    chunk1 = "a" * (1024 * 256 - 2) + "\na"
+    chunk2 = "\n a"
+    result = parser.read_csv(StringIO(chunk1 + chunk2), header=None)
+
+    expected = DataFrame(["a" * (1024 * 256 - 2), "a", " a"])
+    tm.assert_frame_equal(result, expected)
+
+
+def test_file_handles_mmap(c_parser_only, csv1):
+    # gh-14418
+    #
+    # Don't close user provided file handles.
+    parser = c_parser_only
+
+    with open(csv1, "r") as f:
+        m = mmap.mmap(f.fileno(), 0, access=mmap.ACCESS_READ)
+        parser.read_csv(m)
+
+        if PY3:
+            assert not m.closed
+        m.close()

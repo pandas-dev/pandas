@@ -1,4 +1,4 @@
-name: pandas
+name: pandas-dev
 channels:
   - defaults
   - conda-forge
@@ -6,7 +6,7 @@ dependencies:
   - beautifulsoup4
   - bottleneck
   - cython=0.28.2
-  - fastparquet
+  - fastparquet>=0.2.1
   - gcsfs
   - html5lib
   - ipython

@@ -1,17 +1,20 @@
 """ test parquet compat """
-import os
-
-import pytest
 import datetime
 from distutils.version import LooseVersion
+import os
 from warnings import catch_warnings
 
 import numpy as np
+import pytest
+
+from pandas.compat import PY3
+import pandas.util._test_decorators as td
+
 import pandas as pd
-from pandas.compat import PY3, is_platform_windows, is_platform_mac
-from pandas.io.parquet import (to_parquet, read_parquet, get_engine,
-                               PyArrowImpl, FastParquetImpl)
 from pandas.util import testing as tm
+
+from pandas.io.parquet import (
+    FastParquetImpl, PyArrowImpl, get_engine, read_parquet, to_parquet)
 
 try:
     import pyarrow  # noqa
@@ -53,15 +56,6 @@ def pa():
 def fp():
     if not _HAVE_FASTPARQUET:
         pytest.skip("fastparquet is not installed")
-    return 'fastparquet'
-
-
-@pytest.fixture
-def fp_lt_014():
-    if not _HAVE_FASTPARQUET:
-        pytest.skip("fastparquet is not installed")
-    if LooseVersion(fastparquet.__version__) >= LooseVersion('0.1.4'):
-        pytest.skip("fastparquet is >= 0.1.4")
     return 'fastparquet'
 
 
@@ -200,9 +194,6 @@ def test_options_get_engine(fp, pa):
         assert isinstance(get_engine('fastparquet'), FastParquetImpl)
 
 
-@pytest.mark.xfail(is_platform_windows() or is_platform_mac(),
-                   reason="reading pa metadata failing on Windows/mac",
-                   strict=True)
 def test_cross_engine_pa_fp(df_cross_compat, pa, fp):
     # cross-compat with differing reading/writing engines
 
@@ -404,7 +395,8 @@ class TestParquetPyArrow(Base):
         check_round_trip(df, pa)
 
     # TODO: This doesn't fail on all systems; track down which
-    @pytest.mark.xfail(reason="pyarrow fails on this (ARROW-1883)")
+    @pytest.mark.xfail(reason="pyarrow fails on this (ARROW-1883)",
+                       strict=False)
     def test_basic_subset_columns(self, pa, df_full):
         # GH18628
 
@@ -422,7 +414,6 @@ class TestParquetPyArrow(Base):
                           columns=list('aaa')).copy()
         self.check_error_on_write(df, pa, ValueError)
 
-    @pytest.mark.xfail(reason="failing for pyarrow < 0.11.0")
     def test_unsupported(self, pa):
         # period
         df = pd.DataFrame({'a': pd.period_range('2013', freq='M', periods=3)})
@@ -470,6 +461,7 @@ class TestParquetPyArrow(Base):
 
 class TestParquetFastParquet(Base):
 
+    @td.skip_if_no('fastparquet', min_version="0.2.1")
     def test_basic(self, fp, df_full):
         df = df_full
 
@@ -508,16 +500,6 @@ class TestParquetFastParquet(Base):
             pytest.skip("CategoricalDtype not supported for older fp")
         df = pd.DataFrame({'a': pd.Categorical(list('abc'))})
         check_round_trip(df, fp)
-
-    def test_datetime_tz(self, fp_lt_014):
-
-        # fastparquet<0.1.4 doesn't preserve tz
-        df = pd.DataFrame({'a': pd.date_range('20130101', periods=3,
-                                              tz='US/Eastern')})
-        # warns on the coercion
-        with catch_warnings(record=True):
-            check_round_trip(df, fp_lt_014,
-                             expected=df.astype('datetime64[ns]'))
 
     def test_filter_row_groups(self, fp):
         d = {'a': list(range(0, 3))}

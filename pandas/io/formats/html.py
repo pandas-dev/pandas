@@ -5,7 +5,6 @@ Module for formatting output data in HTML.
 
 from __future__ import print_function
 
-from distutils.version import LooseVersion
 from textwrap import dedent
 
 from pandas.compat import OrderedDict, lzip, map, range, u, unichr, zip
@@ -16,6 +15,7 @@ from pandas import compat
 import pandas.core.common as com
 from pandas.core.config import get_option
 
+from pandas.io.common import _is_url
 from pandas.io.formats.format import (
     TableFormatter, buffer_put_lines, get_level_lengths)
 from pandas.io.formats.printing import pprint_thing
@@ -25,8 +25,8 @@ class HTMLFormatter(TableFormatter):
 
     indent_delta = 2
 
-    def __init__(self, formatter, classes=None, max_rows=None, max_cols=None,
-                 notebook=False, border=None, table_id=None):
+    def __init__(self, formatter, classes=None, notebook=False, border=None,
+                 table_id=None, render_links=False):
         self.fmt = formatter
         self.classes = classes
 
@@ -35,17 +35,44 @@ class HTMLFormatter(TableFormatter):
         self.elements = []
         self.bold_rows = self.fmt.kwds.get('bold_rows', False)
         self.escape = self.fmt.kwds.get('escape', True)
-
-        self.max_rows = max_rows or len(self.fmt.frame)
-        self.max_cols = max_cols or len(self.fmt.columns)
         self.show_dimensions = self.fmt.show_dimensions
-        self.is_truncated = (self.max_rows < len(self.fmt.frame) or
-                             self.max_cols < len(self.fmt.columns))
         self.notebook = notebook
         if border is None:
             border = get_option('display.html.border')
         self.border = border
         self.table_id = table_id
+        self.render_links = render_links
+
+    @property
+    def show_row_idx_names(self):
+        return self.fmt.show_row_idx_names
+
+    @property
+    def show_col_idx_names(self):
+        return self.fmt.show_col_idx_names
+
+    @property
+    def row_levels(self):
+        if self.fmt.index:
+            # showing (row) index
+            return self.frame.index.nlevels
+        elif self.show_col_idx_names:
+            # see gh-22579
+            # Column misalignment also occurs for
+            # a standard index when the columns index is named.
+            # If the row index is not displayed a column of
+            # blank cells need to be included before the DataFrame values.
+            return 1
+        # not showing (row) index
+        return 0
+
+    @property
+    def is_truncated(self):
+        return self.fmt.is_truncated
+
+    @property
+    def ncols(self):
+        return len(self.fmt.tr_frame.columns)
 
     def write(self, s, indent=0):
         rs = pprint_thing(s)
@@ -74,9 +101,19 @@ class HTMLFormatter(TableFormatter):
                                ('>', r'&gt;')])
         else:
             esc = {}
+
         rs = pprint_thing(s, escape_chars=esc).strip()
-        self.write(u'{start}{rs}</{kind}>'
-                   .format(start=start_tag, rs=rs, kind=kind), indent)
+
+        if self.render_links and _is_url(rs):
+            rs_unescaped = pprint_thing(s, escape_chars={}).strip()
+            start_tag += '<a href="{url}" target="_blank">'.format(
+                url=rs_unescaped)
+            end_a = '</a>'
+        else:
+            end_a = ''
+
+        self.write(u'{start}{rs}{end_a}</{kind}>'.format(
+            start=start_tag, rs=rs, end_a=end_a, kind=kind), indent)
 
     def write_tr(self, line, indent=0, indent_delta=0, header=False,
                  align=None, tags=None, nindex_levels=0):
@@ -122,9 +159,7 @@ class HTMLFormatter(TableFormatter):
             element_props.append(('thead tr th',
                                   'text-align',
                                   'left'))
-            if all((self.fmt.has_index_names,
-                    self.fmt.index,
-                    self.fmt.show_index_names)):
+            if self.show_row_idx_names:
                 element_props.append(('thead tr:last-of-type th',
                                       'text-align',
                                       'right'))
@@ -137,14 +172,28 @@ class HTMLFormatter(TableFormatter):
         template = dedent('\n'.join((template_first,
                                      template_mid,
                                      template_last)))
-        if self.notebook:
-            self.write(template)
+        self.write(template)
 
     def write_result(self, buf):
-        indent = 0
-        id_section = ""
-        frame = self.frame
+        if self.notebook:
+            self.write('<div>')
+            self.write_style()
 
+        self._write_table()
+
+        if self.should_show_dimensions:
+            by = chr(215) if compat.PY3 else unichr(215)  # ×
+            self.write(u('<p>{rows} rows {by} {cols} columns</p>')
+                       .format(rows=len(self.frame),
+                               by=by,
+                               cols=len(self.frame.columns)))
+
+        if self.notebook:
+            self.write('</div>')
+
+        buffer_put_lines(buf, self.elements)
+
+    def _write_table(self, indent=0):
         _classes = ['dataframe']  # Default class.
         use_mathjax = get_option("display.html.use_mathjax")
         if not use_mathjax:
@@ -157,53 +206,24 @@ class HTMLFormatter(TableFormatter):
                                      .format(typ=type(self.classes)))
             _classes.extend(self.classes)
 
-        if self.notebook:
-            div_style = ''
-            try:
-                import IPython
-                if IPython.__version__ < LooseVersion('3.0.0'):
-                    div_style = ' style="max-width:1500px;overflow:auto;"'
-            except (ImportError, AttributeError):
-                pass
-
-            self.write('<div{style}>'.format(style=div_style))
-
-        self.write_style()
-
-        if self.table_id is not None:
+        if self.table_id is None:
+            id_section = ""
+        else:
             id_section = ' id="{table_id}"'.format(table_id=self.table_id)
+
         self.write('<table border="{border}" class="{cls}"{id_section}>'
                    .format(border=self.border, cls=' '.join(_classes),
                            id_section=id_section), indent)
 
-        indent += self.indent_delta
-        indent = self._write_header(indent)
-        indent = self._write_body(indent)
+        if self.fmt.header or self.show_row_idx_names:
+            self._write_header(indent + self.indent_delta)
+
+        self._write_body(indent + self.indent_delta)
 
         self.write('</table>', indent)
-        if self.should_show_dimensions:
-            by = chr(215) if compat.PY3 else unichr(215)  # ×
-            self.write(u('<p>{rows} rows {by} {cols} columns</p>')
-                       .format(rows=len(frame),
-                               by=by,
-                               cols=len(frame.columns)))
 
-        if self.notebook:
-            self.write('</div>')
-
-        buffer_put_lines(buf, self.elements)
-
-    def _write_header(self, indent):
+    def _write_col_header(self, indent):
         truncate_h = self.fmt.truncate_h
-        row_levels = self.frame.index.nlevels
-        if not self.fmt.header:
-            # write nothing
-            return indent
-
-        self.write('<thead>', indent)
-
-        indent += self.indent_delta
-
         if isinstance(self.columns, ABCMultiIndex):
             template = 'colspan="{span:d}" halign="left"'
 
@@ -211,7 +231,7 @@ class HTMLFormatter(TableFormatter):
                 # GH3547
                 sentinel = com.sentinel_factory()
             else:
-                sentinel = None
+                sentinel = False
             levels = self.columns.format(sparsify=sentinel, adjoin=False,
                                          names=False)
             level_lengths = get_level_lengths(levels, sentinel)
@@ -261,12 +281,26 @@ class HTMLFormatter(TableFormatter):
                         values = (values[:ins_col] + [u('...')] +
                                   values[ins_col:])
 
-                name = self.columns.names[lnum]
-                row = [''] * (row_levels - 1) + ['' if name is None else
-                                                 pprint_thing(name)]
-
-                if row == [""] and self.fmt.index is False:
-                    row = []
+                # see gh-22579
+                # Column Offset Bug with to_html(index=False) with
+                # MultiIndex Columns and Index.
+                # Initially fill row with blank cells before column names.
+                # TODO: Refactor to remove code duplication with code
+                # block below for standard columns index.
+                row = [''] * (self.row_levels - 1)
+                if self.fmt.index or self.show_col_idx_names:
+                    # see gh-22747
+                    # If to_html(index_names=False) do not show columns
+                    # index names.
+                    # TODO: Refactor to use _get_column_name_list from
+                    # DataFrameFormatter class and create a
+                    # _get_formatted_column_labels function for code
+                    # parity with DataFrameFormatter class.
+                    if self.fmt.show_index_names:
+                        name = self.columns.names[lnum]
+                        row.append(pprint_thing(name or ''))
+                    else:
+                        row.append('')
 
                 tags = {}
                 j = len(row)
@@ -281,64 +315,68 @@ class HTMLFormatter(TableFormatter):
                 self.write_tr(row, indent, self.indent_delta, tags=tags,
                               header=True)
         else:
-            if self.fmt.index:
-                row = [''] * (self.frame.index.nlevels - 1)
-                row.append(self.columns.name or '')
-            else:
-                row = []
+            # see gh-22579
+            # Column misalignment also occurs for
+            # a standard index when the columns index is named.
+            # Initially fill row with blank cells before column names.
+            # TODO: Refactor to remove code duplication with code block
+            # above for columns MultiIndex.
+            row = [''] * (self.row_levels - 1)
+            if self.fmt.index or self.show_col_idx_names:
+                # see gh-22747
+                # If to_html(index_names=False) do not show columns
+                # index names.
+                # TODO: Refactor to use _get_column_name_list from
+                # DataFrameFormatter class.
+                if self.fmt.show_index_names:
+                    row.append(self.columns.name or '')
+                else:
+                    row.append('')
             row.extend(self.columns)
             align = self.fmt.justify
 
             if truncate_h:
-                if not self.fmt.index:
-                    row_levels = 0
-                ins_col = row_levels + self.fmt.tr_col_num
+                ins_col = self.row_levels + self.fmt.tr_col_num
                 row.insert(ins_col, '...')
 
             self.write_tr(row, indent, self.indent_delta, header=True,
                           align=align)
 
-        if all((self.fmt.has_index_names,
-                self.fmt.index,
-                self.fmt.show_index_names)):
-            row = ([x if x is not None else ''
-                    for x in self.frame.index.names] +
-                   [''] * min(len(self.columns), self.max_cols))
-            if truncate_h:
-                ins_col = row_levels + self.fmt.tr_col_num
-                row.insert(ins_col, '')
-            self.write_tr(row, indent, self.indent_delta, header=True)
+    def _write_row_header(self, indent):
+        truncate_h = self.fmt.truncate_h
+        row = ([x if x is not None else '' for x in self.frame.index.names]
+               + [''] * (self.ncols + (1 if truncate_h else 0)))
+        self.write_tr(row, indent, self.indent_delta, header=True)
 
-        indent -= self.indent_delta
+    def _write_header(self, indent):
+        self.write('<thead>', indent)
+
+        if self.fmt.header:
+            self._write_col_header(indent + self.indent_delta)
+
+        if self.show_row_idx_names:
+            self._write_row_header(indent + self.indent_delta)
+
         self.write('</thead>', indent)
-
-        return indent
 
     def _write_body(self, indent):
         self.write('<tbody>', indent)
-        indent += self.indent_delta
-
-        fmt_values = {}
-        for i in range(min(len(self.columns), self.max_cols)):
-            fmt_values[i] = self.fmt._format_col(i)
+        fmt_values = {i: self.fmt._format_col(i) for i in range(self.ncols)}
 
         # write values
         if self.fmt.index and isinstance(self.frame.index, ABCMultiIndex):
-            self._write_hierarchical_rows(fmt_values, indent)
+            self._write_hierarchical_rows(
+                fmt_values, indent + self.indent_delta)
         else:
-            self._write_regular_rows(fmt_values, indent)
+            self._write_regular_rows(
+                fmt_values, indent + self.indent_delta)
 
-        indent -= self.indent_delta
         self.write('</tbody>', indent)
-        indent -= self.indent_delta
-
-        return indent
 
     def _write_regular_rows(self, fmt_values, indent):
         truncate_h = self.fmt.truncate_h
         truncate_v = self.fmt.truncate_v
 
-        ncols = len(self.fmt.tr_frame.columns)
         nrows = len(self.fmt.tr_frame)
 
         if self.fmt.index:
@@ -347,9 +385,6 @@ class HTMLFormatter(TableFormatter):
                 index_values = self.fmt.tr_frame.index.map(fmt)
             else:
                 index_values = self.fmt.tr_frame.index.format()
-            row_levels = 1
-        else:
-            row_levels = 0
 
         row = []
         for i in range(nrows):
@@ -357,18 +392,24 @@ class HTMLFormatter(TableFormatter):
             if truncate_v and i == (self.fmt.tr_row_num):
                 str_sep_row = ['...'] * len(row)
                 self.write_tr(str_sep_row, indent, self.indent_delta,
-                              tags=None, nindex_levels=row_levels)
+                              tags=None, nindex_levels=self.row_levels)
 
             row = []
             if self.fmt.index:
                 row.append(index_values[i])
-            row.extend(fmt_values[j][i] for j in range(ncols))
+            # see gh-22579
+            # Column misalignment also occurs for
+            # a standard index when the columns index is named.
+            # Add blank cell before data cells.
+            elif self.show_col_idx_names:
+                row.append('')
+            row.extend(fmt_values[j][i] for j in range(self.ncols))
 
             if truncate_h:
-                dot_col_ix = self.fmt.tr_col_num + row_levels
+                dot_col_ix = self.fmt.tr_col_num + self.row_levels
                 row.insert(dot_col_ix, '...')
             self.write_tr(row, indent, self.indent_delta, tags=None,
-                          nindex_levels=row_levels)
+                          nindex_levels=self.row_levels)
 
     def _write_hierarchical_rows(self, fmt_values, indent):
         template = 'rowspan="{span}" valign="top"'
@@ -376,9 +417,7 @@ class HTMLFormatter(TableFormatter):
         truncate_h = self.fmt.truncate_h
         truncate_v = self.fmt.truncate_v
         frame = self.fmt.tr_frame
-        ncols = len(frame.columns)
         nrows = len(frame)
-        row_levels = self.frame.index.nlevels
 
         idx_values = frame.index.format(sparsify=False, adjoin=False,
                                         names=False)
@@ -454,20 +493,26 @@ class HTMLFormatter(TableFormatter):
                     j += 1
                     row.append(v)
 
-                row.extend(fmt_values[j][i] for j in range(ncols))
+                row.extend(fmt_values[j][i] for j in range(self.ncols))
                 if truncate_h:
-                    row.insert(row_levels - sparse_offset +
+                    row.insert(self.row_levels - sparse_offset +
                                self.fmt.tr_col_num, '...')
                 self.write_tr(row, indent, self.indent_delta, tags=tags,
                               nindex_levels=len(levels) - sparse_offset)
         else:
+            row = []
             for i in range(len(frame)):
+                if truncate_v and i == (self.fmt.tr_row_num):
+                    str_sep_row = ['...'] * len(row)
+                    self.write_tr(str_sep_row, indent, self.indent_delta,
+                                  tags=None, nindex_levels=self.row_levels)
+
                 idx_values = list(zip(*frame.index.format(
                     sparsify=False, adjoin=False, names=False)))
                 row = []
                 row.extend(idx_values[i])
-                row.extend(fmt_values[j][i] for j in range(ncols))
+                row.extend(fmt_values[j][i] for j in range(self.ncols))
                 if truncate_h:
-                    row.insert(row_levels + self.fmt.tr_col_num, '...')
+                    row.insert(self.row_levels + self.fmt.tr_col_num, '...')
                 self.write_tr(row, indent, self.indent_delta, tags=None,
                               nindex_levels=frame.index.nlevels)

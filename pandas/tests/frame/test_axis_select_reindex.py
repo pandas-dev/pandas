@@ -2,24 +2,22 @@
 
 from __future__ import print_function
 
-import pytest
-
 from datetime import datetime
 
-from numpy import random
 import numpy as np
+from numpy import random
+import pytest
 
 from pandas.compat import lrange, lzip, u
-from pandas import (compat, DataFrame, Series, Index, MultiIndex, Categorical,
-                    date_range, isna)
-import pandas as pd
-
-from pandas.util.testing import assert_frame_equal
-
 from pandas.errors import PerformanceWarning
-import pandas.util.testing as tm
 
+import pandas as pd
+from pandas import (
+    Categorical, DataFrame, Index, MultiIndex, Series, compat, date_range,
+    isna)
 from pandas.tests.frame.common import TestData
+import pandas.util.testing as tm
+from pandas.util.testing import assert_frame_equal
 
 
 class TestDataFrameSelectReindex(TestData):
@@ -634,9 +632,7 @@ class TestDataFrameSelectReindex(TestData):
 
         left, right = self.frame.align(s, broadcast_axis=1)
         tm.assert_index_equal(left.index, self.frame.index)
-        expected = {}
-        for c in self.frame.columns:
-            expected[c] = s
+        expected = {c: s for c in self.frame.columns}
         expected = DataFrame(expected, index=self.frame.index,
                              columns=self.frame.columns)
         tm.assert_frame_equal(right, expected)

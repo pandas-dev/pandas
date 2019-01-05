@@ -8,11 +8,11 @@ cimport numpy as cnp
 from numpy cimport ndarray, int64_t, uint8_t, float64_t
 cnp.import_array()
 
-cimport util
+cimport pandas._libs.util as util
 
-from tslibs.np_datetime cimport get_timedelta64_value, get_datetime64_value
-from tslibs.nattype cimport checknull_with_nat
-from tslibs.nattype import NaT
+from pandas._libs.tslibs.np_datetime cimport (
+    get_timedelta64_value, get_datetime64_value)
+from pandas._libs.tslibs.nattype cimport checknull_with_nat, c_NaT
 
 cdef float64_t INF = <float64_t>np.inf
 cdef float64_t NEGINF = -INF
@@ -26,7 +26,7 @@ cdef inline bint _check_all_nulls(object val):
 
     if isinstance(val, (float, complex)):
         res = val != val
-    elif val is NaT:
+    elif val is c_NaT:
         res = 1
     elif val is None:
         res = 1
@@ -66,7 +66,7 @@ cpdef bint checknull(object val):
         return val != val  # and val != INF and val != NEGINF
     elif util.is_datetime64_object(val):
         return get_datetime64_value(val) == NPY_NAT
-    elif val is NaT:
+    elif val is c_NaT:
         return True
     elif util.is_timedelta64_object(val):
         return get_timedelta64_value(val) == NPY_NAT
@@ -105,7 +105,7 @@ cpdef bint checknull_old(object val):
         return val != val or val == INF or val == NEGINF
     elif util.is_datetime64_object(val):
         return get_datetime64_value(val) == NPY_NAT
-    elif val is NaT:
+    elif val is c_NaT:
         return True
     elif util.is_timedelta64_object(val):
         return get_timedelta64_value(val) == NPY_NAT
@@ -189,7 +189,7 @@ def isnaobj_old(ndarray arr):
     result = np.zeros(n, dtype=np.uint8)
     for i in range(n):
         val = arr[i]
-        result[i] = val is NaT or _check_none_nan_inf_neginf(val)
+        result[i] = val is c_NaT or _check_none_nan_inf_neginf(val)
     return result.view(np.bool_)
 
 

@@ -1,8 +1,9 @@
 import datetime
 
-from pandas import Timestamp
-import pytz
 import dateutil
+import pytz
+
+from pandas import Timestamp
 
 
 class TimestampConstruction(object):
@@ -46,7 +47,7 @@ class TimestampProperties(object):
         self.ts.dayofweek
 
     def time_weekday_name(self, tz, freq):
-        self.ts.weekday_name
+        self.ts.day_name
 
     def time_dayofyear(self, tz, freq):
         self.ts.dayofyear

@@ -3,40 +3,31 @@ Generic data algorithms. This module is experimental at the moment and not
 intended for public consumption
 """
 from __future__ import division
-from warnings import warn, catch_warnings, simplefilter
+
 from textwrap import dedent
+from warnings import catch_warnings, simplefilter, warn
 
 import numpy as np
 
+from pandas._libs import algos, hashtable as htable, lib
+from pandas._libs.tslib import iNaT
+from pandas.util._decorators import Appender, Substitution, deprecate_kwarg
+
 from pandas.core.dtypes.cast import (
-    maybe_promote, construct_1d_object_array_from_listlike)
-from pandas.core.dtypes.generic import (
-    ABCSeries, ABCIndex,
-    ABCIndexClass)
+    construct_1d_object_array_from_listlike, maybe_promote)
 from pandas.core.dtypes.common import (
-    is_array_like,
-    is_unsigned_integer_dtype, is_signed_integer_dtype,
-    is_integer_dtype, is_complex_dtype,
-    is_object_dtype,
-    is_extension_array_dtype,
-    is_categorical_dtype, is_sparse,
-    is_period_dtype,
-    is_numeric_dtype, is_float_dtype,
-    is_bool_dtype, needs_i8_conversion,
-    is_datetimetz,
-    is_datetime64_any_dtype, is_datetime64tz_dtype,
-    is_timedelta64_dtype, is_datetimelike,
-    is_interval_dtype, is_scalar, is_list_like,
-    ensure_platform_int, ensure_object,
-    ensure_float64, ensure_uint64,
-    ensure_int64)
+    ensure_float64, ensure_int64, ensure_object, ensure_platform_int,
+    ensure_uint64, is_array_like, is_bool_dtype, is_categorical_dtype,
+    is_complex_dtype, is_datetime64_any_dtype, is_datetime64tz_dtype,
+    is_datetimelike, is_extension_array_dtype, is_float_dtype,
+    is_integer_dtype, is_interval_dtype, is_list_like, is_numeric_dtype,
+    is_object_dtype, is_period_dtype, is_scalar, is_signed_integer_dtype,
+    is_sparse, is_timedelta64_dtype, is_unsigned_integer_dtype,
+    needs_i8_conversion)
+from pandas.core.dtypes.generic import ABCIndex, ABCIndexClass, ABCSeries
 from pandas.core.dtypes.missing import isna, na_value_for_dtype
 
 from pandas.core import common as com
-from pandas._libs import algos, lib, hashtable as htable
-from pandas._libs.tslib import iNaT
-from pandas.util._decorators import (Appender, Substitution,
-                                     deprecate_kwarg)
 
 _shared_docs = {}
 
@@ -174,7 +165,7 @@ def _ensure_arraylike(values):
     ensure that we are arraylike if not already
     """
     if not is_array_like(values):
-        inferred = lib.infer_dtype(values)
+        inferred = lib.infer_dtype(values, skipna=False)
         if inferred in ['mixed', 'string', 'unicode']:
             if isinstance(values, tuple):
                 values = list(values)
@@ -211,8 +202,10 @@ def _get_hashtable_algo(values):
 
     if ndtype == 'object':
 
-        # its cheaper to use a String Hash Table than Object
-        if lib.infer_dtype(values) in ['string']:
+        # it's cheaper to use a String Hash Table than Object; we infer
+        # including nulls because that is the only difference between
+        # StringHashTable and ObjectHashtable
+        if lib.infer_dtype(values, skipna=False) in ['string']:
             ndtype = 'string'
         else:
             ndtype = 'object'
@@ -229,8 +222,10 @@ def _get_data_algo(values, func_map):
     values, dtype, ndtype = _ensure_data(values)
     if ndtype == 'object':
 
-        # its cheaper to use a String Hash Table than Object
-        if lib.infer_dtype(values) in ['string']:
+        # it's cheaper to use a String Hash Table than Object; we infer
+        # including nulls because that is the only difference between
+        # StringHashTable and ObjectHashtable
+        if lib.infer_dtype(values, skipna=False) in ['string']:
             ndtype = 'string'
 
     f = func_map.get(ndtype, func_map['object'])
@@ -298,6 +293,11 @@ def unique(values):
       - If the input is a Categorical dtype, the return is a Categorical
       - If the input is a Series/ndarray, the return will be an ndarray
 
+    See Also
+    --------
+    pandas.Index.unique
+    pandas.Series.unique
+
     Examples
     --------
     >>> pd.unique(pd.Series([2, 1, 3, 3]))
@@ -347,12 +347,6 @@ def unique(values):
 
     >>> pd.unique([('a', 'b'), ('b', 'a'), ('a', 'c'), ('b', 'a')])
     array([('a', 'b'), ('b', 'a'), ('a', 'c')], dtype=object)
-
-    See Also
-    --------
-    pandas.Index.unique
-    pandas.Series.unique
-
     """
 
     values = _ensure_arraylike(values)
@@ -367,14 +361,6 @@ def unique(values):
     table = htable(len(values))
     uniques = table.unique(values)
     uniques = _reconstruct_data(uniques, dtype, original)
-
-    if isinstance(original, ABCSeries) and is_datetime64tz_dtype(dtype):
-        # we are special casing datetime64tz_dtype
-        # to return an object array of tz-aware Timestamps
-
-        # TODO: it must return DatetimeArray with tz in pandas 2.0
-        uniques = uniques.astype(object).values
-
     return uniques
 
 
@@ -470,7 +456,7 @@ def _factorize_array(values, na_sentinel=-1, size_hint=None,
     (hash_klass, _), values = _get_data_algo(values, _hashtables)
 
     table = hash_klass(size_hint or len(values))
-    labels, uniques = table.factorize(values, na_sentinel=na_sentinel,
+    uniques, labels = table.factorize(values, na_sentinel=na_sentinel,
                                       na_value=na_value)
 
     labels = ensure_platform_int(labels)
@@ -1591,7 +1577,7 @@ def take_nd(arr, indexer, axis=0, out=None, fill_value=np.nan, mask_info=None,
     # dispatch to internal type takes
     if is_extension_array_dtype(arr):
         return arr.take(indexer, fill_value=fill_value, allow_fill=allow_fill)
-    elif is_datetimetz(arr):
+    elif is_datetime64tz_dtype(arr):
         return arr.take(indexer, fill_value=fill_value, allow_fill=allow_fill)
     elif is_interval_dtype(arr):
         return arr.take(indexer, fill_value=fill_value, allow_fill=allow_fill)

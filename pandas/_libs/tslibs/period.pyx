@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-from datetime import datetime, date
+from datetime import datetime
 
 from cpython cimport (
     PyObject_RichCompareBool,
@@ -20,36 +20,37 @@ from cpython.datetime cimport (PyDateTime_Check, PyDelta_Check, PyDate_Check,
 # import datetime C API
 PyDateTime_IMPORT
 
-from np_datetime cimport (npy_datetimestruct, dtstruct_to_dt64,
-                          dt64_to_dtstruct,
-                          pandas_datetime_to_datetimestruct,
-                          NPY_DATETIMEUNIT, NPY_FR_D)
+from pandas._libs.tslibs.np_datetime cimport (
+    npy_datetimestruct, dtstruct_to_dt64, dt64_to_dtstruct,
+    pandas_datetime_to_datetimestruct, NPY_DATETIMEUNIT, NPY_FR_D)
 
 cdef extern from "src/datetime/np_datetime.h":
     int64_t npy_datetimestruct_to_datetime(NPY_DATETIMEUNIT fr,
                                            npy_datetimestruct *d) nogil
 
-cimport util
-from util cimport is_period_object, is_string_object
+cimport pandas._libs.tslibs.util as util
+from pandas._libs.tslibs.util cimport is_period_object, is_string_object
 
-from timestamps import Timestamp, maybe_integer_op_deprecated
-from timezones cimport is_utc, is_tzlocal, get_dst_info
-from timedeltas import Timedelta
-from timedeltas cimport delta_to_nanoseconds
+from pandas._libs.tslibs.timestamps import Timestamp
+from pandas._libs.tslibs.timezones cimport is_utc, is_tzlocal, get_dst_info
+from pandas._libs.tslibs.timedeltas import Timedelta
+from pandas._libs.tslibs.timedeltas cimport delta_to_nanoseconds
 
-cimport ccalendar
-from ccalendar cimport dayofweek, get_day_of_year, is_leapyear
-from ccalendar import MONTH_NUMBERS
-from conversion cimport tz_convert_utc_to_tzlocal
-from frequencies cimport (get_freq_code, get_base_alias,
-                          get_to_timestamp_base, get_freq_str,
-                          get_rule_month)
-from parsing import parse_time_string
-from resolution import Resolution
-from nattype import nat_strings, NaT
-from nattype cimport _nat_scalar_rules, NPY_NAT, is_null_datetimelike
-from offsets cimport to_offset
-from offsets import _Tick
+cimport pandas._libs.tslibs.ccalendar as ccalendar
+from pandas._libs.tslibs.ccalendar cimport (
+    dayofweek, get_day_of_year, is_leapyear)
+from pandas._libs.tslibs.ccalendar import MONTH_NUMBERS
+from pandas._libs.tslibs.conversion cimport tz_convert_utc_to_tzlocal
+from pandas._libs.tslibs.frequencies cimport (
+    get_freq_code, get_base_alias, get_to_timestamp_base, get_freq_str,
+    get_rule_month)
+from pandas._libs.tslibs.parsing import parse_time_string
+from pandas._libs.tslibs.resolution import Resolution
+from pandas._libs.tslibs.nattype import nat_strings
+from pandas._libs.tslibs.nattype cimport (
+    _nat_scalar_rules, NPY_NAT, is_null_datetimelike, c_NaT as NaT)
+from pandas._libs.tslibs.offsets cimport to_offset
+from pandas._libs.tslibs.offsets import _Tick
 
 cdef bint PY2 = str == bytes
 cdef enum:
@@ -1454,7 +1455,9 @@ def extract_ordinals(object[:] values, freq):
                 ordinals[i] = p.ordinal
 
                 if p.freqstr != freqstr:
-                    msg = DIFFERENT_FREQ_INDEX.format(freqstr, p.freqstr)
+                    msg = DIFFERENT_FREQ.format(cls="PeriodIndex",
+                                                own_freq=freqstr,
+                                                other_freq=p.freqstr)
                     raise IncompatibleFrequency(msg)
 
             except AttributeError:
@@ -1544,9 +1547,8 @@ cdef int64_t[:] localize_dt64arr_to_period(int64_t[:] stamps,
     return result
 
 
-_DIFFERENT_FREQ = "Input has different freq={1} from Period(freq={0})"
-DIFFERENT_FREQ_INDEX = ("Input has different freq={1} "
-                        "from PeriodIndex(freq={0})")
+DIFFERENT_FREQ = ("Input has different freq={other_freq} "
+                  "from {cls}(freq={own_freq})")
 
 
 class IncompatibleFrequency(ValueError):
@@ -1595,7 +1597,9 @@ cdef class _Period(object):
     def __richcmp__(self, other, op):
         if is_period_object(other):
             if other.freq != self.freq:
-                msg = _DIFFERENT_FREQ.format(self.freqstr, other.freqstr)
+                msg = DIFFERENT_FREQ.format(cls=type(self).__name__,
+                                            own_freq=self.freqstr,
+                                            other_freq=other.freqstr)
                 raise IncompatibleFrequency(msg)
             return PyObject_RichCompareBool(self.ordinal, other.ordinal, op)
         elif other is NaT:
@@ -1636,7 +1640,9 @@ cdef class _Period(object):
             if base == self.freq.rule_code:
                 ordinal = self.ordinal + other.n
                 return Period(ordinal=ordinal, freq=self.freq)
-            msg = _DIFFERENT_FREQ.format(self.freqstr, other.freqstr)
+            msg = DIFFERENT_FREQ.format(cls=type(self).__name__,
+                                        own_freq=self.freqstr,
+                                        other_freq=other.freqstr)
             raise IncompatibleFrequency(msg)
         else:  # pragma no cover
             return NotImplemented
@@ -1649,8 +1655,6 @@ cdef class _Period(object):
             elif other is NaT:
                 return NaT
             elif util.is_integer_object(other):
-                maybe_integer_op_deprecated(self)
-
                 ordinal = self.ordinal + other * self.freq.n
                 return Period(ordinal=ordinal, freq=self.freq)
             elif (PyDateTime_Check(other) or
@@ -1677,15 +1681,16 @@ cdef class _Period(object):
                 neg_other = -other
                 return self + neg_other
             elif util.is_integer_object(other):
-                maybe_integer_op_deprecated(self)
-
                 ordinal = self.ordinal - other * self.freq.n
                 return Period(ordinal=ordinal, freq=self.freq)
             elif is_period_object(other):
                 if other.freq != self.freq:
-                    msg = _DIFFERENT_FREQ.format(self.freqstr, other.freqstr)
+                    msg = DIFFERENT_FREQ.format(cls=type(self).__name__,
+                                                own_freq=self.freqstr,
+                                                other_freq=other.freqstr)
                     raise IncompatibleFrequency(msg)
-                return (self.ordinal - other.ordinal) * self.freq
+                # GH 23915 - mul by base freq since __add__ is agnostic of n
+                return (self.ordinal - other.ordinal) * self.freq.base
             elif getattr(other, '_typ', None) == 'periodindex':
                 # GH#21314 PeriodIndex - Period returns an object-index
                 # of DateOffset objects, for which we cannot use __neg__
@@ -1825,9 +1830,8 @@ cdef class _Period(object):
 
         See Also
         --------
-        Period.dayofweek : Get the day of the week
-
-        Period.dayofyear : Get the day of the year
+        Period.dayofweek : Get the day of the week.
+        Period.dayofyear : Get the day of the year.
 
         Examples
         --------
@@ -2184,8 +2188,8 @@ cdef class _Period(object):
 
         See Also
         --------
-        Period.days_in_month : Return the days of the month
-        Period.dayofyear : Return the day of the year
+        Period.days_in_month : Return the days of the month.
+        Period.dayofyear : Return the day of the year.
 
         Examples
         --------

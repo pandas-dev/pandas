@@ -21,6 +21,42 @@ class Methods(object):
         getattr(self.roll, method)()
 
 
+class ExpandingMethods(object):
+
+    sample_time = 0.2
+    params = (['DataFrame', 'Series'],
+              ['int', 'float'],
+              ['median', 'mean', 'max', 'min', 'std', 'count', 'skew', 'kurt',
+               'sum'])
+    param_names = ['contructor', 'window', 'dtype', 'method']
+
+    def setup(self, constructor, dtype, method):
+        N = 10**5
+        arr = (100 * np.random.random(N)).astype(dtype)
+        self.expanding = getattr(pd, constructor)(arr).expanding()
+
+    def time_expanding(self, constructor, dtype, method):
+        getattr(self.expanding, method)()
+
+
+class EWMMethods(object):
+
+    sample_time = 0.2
+    params = (['DataFrame', 'Series'],
+              [10, 1000],
+              ['int', 'float'],
+              ['mean', 'std'])
+    param_names = ['contructor', 'window', 'dtype', 'method']
+
+    def setup(self, constructor, window, dtype, method):
+        N = 10**5
+        arr = (100 * np.random.random(N)).astype(dtype)
+        self.ewm = getattr(pd, constructor)(arr).ewm(halflife=window)
+
+    def time_ewm(self, constructor, window, dtype, method):
+        getattr(self.ewm, method)()
+
+
 class VariableWindowMethods(Methods):
     sample_time = 0.2
     params = (['DataFrame', 'Series'],

@@ -4,14 +4,14 @@ from __future__ import division
 
 import numpy as np
 
+from pandas.compat import lmap, lrange, range, zip
 from pandas.util._decorators import deprecate_kwarg
+
 from pandas.core.dtypes.missing import notna
-from pandas.compat import range, lrange, lmap, zip
+
 from pandas.io.formats.printing import pprint_thing
-
-
 from pandas.plotting._style import _get_standard_colors
-from pandas.plotting._tools import _subplots, _set_ticks_props
+from pandas.plotting._tools import _set_ticks_props, _subplots
 
 
 def scatter_matrix(frame, alpha=0.5, figsize=None, ax=None, grid=False,
@@ -138,9 +138,6 @@ def scatter_matrix(frame, alpha=0.5, figsize=None, ax=None, grid=False,
 
 def _get_marker_compat(marker):
     import matplotlib.lines as mlines
-    import matplotlib as mpl
-    if mpl.__version__ < '1.1.0' and marker == '.':
-        return 'o'
     if marker not in mlines.lineMarkers:
         return 'o'
     return marker
