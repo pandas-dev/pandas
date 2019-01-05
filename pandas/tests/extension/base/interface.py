@@ -4,6 +4,7 @@ from pandas.core.dtypes.common import is_extension_array_dtype
 from pandas.core.dtypes.dtypes import ExtensionDtype
 
 import pandas as pd
+import pandas.util.testing as tm
 
 from .base import BaseExtensionTests
 
@@ -32,6 +33,10 @@ class BaseInterfaceTests(BaseExtensionTests):
     def test_array_interface(self, data):
         result = np.array(data)
         assert result[0] == data[0]
+
+        result = np.array(data, dtype=object)
+        expected = np.array(list(data), dtype=object)
+        tm.assert_numpy_array_equal(result, expected)
 
     def test_is_extension_array_dtype(self, data):
         assert is_extension_array_dtype(data)
