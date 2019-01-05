@@ -64,6 +64,9 @@ def _td_array_cmp(cls, op):
     nat_result = True if opname == '__ne__' else False
 
     def wrapper(self, other):
+        if isinstance(other, (ABCDataFrame, ABCSeries, ABCIndexClass)):
+            return NotImplemented
+
         if _is_convertible_to_td(other) or other is NaT:
             try:
                 other = Timedelta(other)

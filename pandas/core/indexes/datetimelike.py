@@ -109,6 +109,11 @@ class DatetimeIndexOpsMixin(ExtensionOpsMixin):
         Create a comparison method that dispatches to ``cls.values``.
         """
         def wrapper(self, other):
+            if isinstance(other, ABCSeries):
+                # the arrays defer to Series for comparison ops but the indexes
+                #  don't, so we have to unwrap here.
+                other = other._values
+
             result = op(self._data, maybe_unwrap_index(other))
             return result
 

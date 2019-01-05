@@ -17,7 +17,8 @@ from pandas.core.dtypes.common import (
     _TD_DTYPE, ensure_object, is_datetime64_dtype, is_float_dtype,
     is_list_like, is_period_dtype, pandas_dtype)
 from pandas.core.dtypes.dtypes import PeriodDtype
-from pandas.core.dtypes.generic import ABCIndexClass, ABCPeriodIndex, ABCSeries
+from pandas.core.dtypes.generic import (
+    ABCDataFrame, ABCIndexClass, ABCPeriodIndex, ABCSeries)
 from pandas.core.dtypes.missing import isna, notna
 
 import pandas.core.algorithms as algos
@@ -48,16 +49,12 @@ def _period_array_cmp(cls, op):
 
     def wrapper(self, other):
         op = getattr(self.asi8, opname)
-        # We want to eventually defer to the Series or PeriodIndex (which will
-        # return here with an unboxed PeriodArray). But before we do that,
-        # we do a bit of validation on type (Period) and freq, so that our
-        # error messages are sensible
+
+        if isinstance(other, (ABCDataFrame, ABCSeries, ABCIndexClass)):
+            return NotImplemented
+
         if is_list_like(other) and len(other) != len(self):
             raise ValueError("Lengths must match")
-
-        not_implemented = isinstance(other, (ABCSeries, ABCIndexClass))
-        if not_implemented:
-            other = other._values
 
         if isinstance(other, Period):
             self._check_compatible_with(other)
@@ -66,8 +63,6 @@ def _period_array_cmp(cls, op):
         elif isinstance(other, cls):
             self._check_compatible_with(other)
 
-            if not_implemented:
-                return NotImplemented
             result = op(other.asi8)
 
             mask = self._isnan | other._isnan
