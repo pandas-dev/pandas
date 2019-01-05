@@ -6,6 +6,7 @@ import time
 import warnings
 
 from csv import QUOTE_MINIMAL, QUOTE_NONNUMERIC, QUOTE_NONE
+from errno import ENOENT
 
 from libc.stdlib cimport free
 from libc.string cimport strncpy, strlen, strcasecmp
@@ -696,7 +697,9 @@ cdef class TextReader:
             if ptr == NULL:
                 if not os.path.exists(source):
                     raise compat.FileNotFoundError(
-                        'File {source} does not exist'.format(source=source))
+                        ENOENT,
+                        'File {source} does not exist'.format(source=source),
+                        source)
                 raise IOError('Initializing from file failed')
 
             self.parser.source = ptr
