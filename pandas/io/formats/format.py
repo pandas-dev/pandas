@@ -778,7 +778,7 @@ class DataFrameFormatter(TableFormatter):
                            for i, (col, x) in enumerate(zip(columns,
                                                             fmt_columns))]
 
-        if self.show_index_names and self.has_index_names:
+        if self.show_row_idx_names:
             for x in str_columns:
                 x.append('')
 
