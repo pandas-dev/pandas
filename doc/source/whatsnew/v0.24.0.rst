@@ -164,6 +164,9 @@ See :ref:`integer_na` for more.
 
 .. _whatsnew_0240.enhancements.array:
 
+Array
+^^^^^
+
 A new top-level method :func:`array` has been added for creating 1-dimensional arrays (:issue:`22860`).
 This can be used to create any :ref:`extension array <extending.extension-types>`, including
 extension arrays registered by :ref:`3rd party libraries <ecosystem.extensions>`. See
@@ -579,6 +582,41 @@ You must pass in the ``line_terminator`` explicitly, even in this case.
       ...:     print(f.read())
    Out[3]: b'string_with_lf,string_with_crlf\r\n"a\nbc","a\r\nbc"\r\n'
 
+.. _whatsnew_0240.bug_fixes.nan_with_str_dtype:
+
+Proper handling of `np.NaN` in a string data-typed column with the Python engine
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+There was bug in :func:`read_excel` and :func:`read_csv` with the Python
+engine, where missing values turned to ``'nan'`` with ``dtype=str`` and
+``na_filter=True``. Now, these missing values are converted to the string
+missing indicator, ``np.nan``. (:issue:`20377`)
+
+.. ipython:: python
+   :suppress:
+
+   from pandas.compat import StringIO
+
+*Previous Behavior*:
+
+.. code-block:: ipython
+
+   In [5]: data = 'a,b,c\n1,,3\n4,5,6'
+   In [6]: df = pd.read_csv(StringIO(data), engine='python', dtype=str, na_filter=True)
+   In [7]: df.loc[0, 'b']
+   Out[7]:
+   'nan'
+
+*New Behavior*:
+
+.. ipython:: python
+
+   data = 'a,b,c\n1,,3\n4,5,6'
+   df = pd.read_csv(StringIO(data), engine='python', dtype=str, na_filter=True)
+   df.loc[0, 'b']
+
+Notice how we now instead output ``np.nan`` itself instead of a stringified form of it.
+
 .. _whatsnew_0240.api.timezone_offset_parsing:
 
 Parsing Datetime Strings with Timezone Offsets
@@ -676,6 +714,9 @@ is the case with :attr:`Period.end_time`, for example
    p.end_time
 
 .. _whatsnew_0240.api_breaking.datetime_unique:
+
+Datetime w/tz and unique
+^^^^^^^^^^^^^^^^^^^^^^^^
 
 The return type of :meth:`Series.unique` for datetime with timezone values has changed
 from an :class:`numpy.ndarray` of :class:`Timestamp` objects to a :class:`arrays.DatetimeArray` (:issue:`24024`).
@@ -852,12 +893,6 @@ Period Subtraction
 Subtraction of a ``Period`` from another ``Period`` will give a ``DateOffset``.
 instead of an integer (:issue:`21314`)
 
-.. ipython:: python
-
-    june = pd.Period('June 2018')
-    april = pd.Period('April 2018')
-    june - april
-
 *Previous Behavior*:
 
 .. code-block:: ipython
@@ -869,13 +904,16 @@ instead of an integer (:issue:`21314`)
     In [4]: june - april
     Out [4]: 2
 
-Similarly, subtraction of a ``Period`` from a ``PeriodIndex`` will now return
-an ``Index`` of ``DateOffset`` objects instead of an ``Int64Index``
+*New Behavior*:
 
 .. ipython:: python
 
-    pi = pd.period_range('June 2018', freq='M', periods=3)
-    pi - pi[0]
+    june = pd.Period('June 2018')
+    april = pd.Period('April 2018')
+    june - april
+
+Similarly, subtraction of a ``Period`` from a ``PeriodIndex`` will now return
+an ``Index`` of ``DateOffset`` objects instead of an ``Int64Index``
 
 *Previous Behavior*:
 
@@ -885,6 +923,13 @@ an ``Index`` of ``DateOffset`` objects instead of an ``Int64Index``
 
     In [3]: pi - pi[0]
     Out[3]: Int64Index([0, 1, 2], dtype='int64')
+
+*New Behavior*:
+
+.. ipython:: python
+
+    pi = pd.period_range('June 2018', freq='M', periods=3)
+    pi - pi[0]
 
 
 .. _whatsnew_0240.api.timedelta64_subtract_nan:
@@ -902,12 +947,6 @@ all-``NaT``.  This is for compatibility with ``TimedeltaIndex`` and
    df = pd.DataFrame([pd.Timedelta(days=1)])
    df
 
-.. code-block:: ipython
-
-    In [2]: df - np.nan
-    ...
-    TypeError: unsupported operand type(s) for -: 'TimedeltaIndex' and 'float'
-
 *Previous Behavior*:
 
 .. code-block:: ipython
@@ -918,6 +957,14 @@ all-``NaT``.  This is for compatibility with ``TimedeltaIndex`` and
     Out[5]:
         0
     0 NaT
+
+*New Behavior*:
+
+.. code-block:: ipython
+
+    In [2]: df - np.nan
+    ...
+    TypeError: unsupported operand type(s) for -: 'TimedeltaIndex' and 'float'
 
 .. _whatsnew_0240.api.dataframe_cmp_broadcasting:
 
@@ -935,12 +982,15 @@ The affected cases are:
 - a list or tuple with length matching the number of rows in the :class:`DataFrame` will now raise ``ValueError`` instead of operating column-by-column (:issue:`22880`.
 - a list or tuple with length matching the number of columns in the :class:`DataFrame` will now operate row-by-row instead of raising ``ValueError`` (:issue:`22880`).
 
+.. ipython:: python
+
+   arr = np.arange(6).reshape(3, 2)
+   df = pd.DataFrame(arr)
+   df
+
 *Previous Behavior*:
 
 .. code-block:: ipython
-
-   In [3]: arr = np.arange(6).reshape(3, 2)
-   In [4]: df = pd.DataFrame(arr)
 
    In [5]: df == arr[[0], :]
        ...: # comparison previously broadcast where arithmetic would raise
@@ -980,13 +1030,6 @@ The affected cases are:
 *New Behavior*:
 
 .. ipython:: python
-   :okexcept:
-
-   arr = np.arange(6).reshape(3, 2)
-   df = pd.DataFrame(arr)
-   df
-
-.. ipython:: python
 
    # Comparison operations and arithmetic operations both broadcast.
    df == arr[[0], :]
@@ -1018,12 +1061,16 @@ DataFrame Arithmetic Operations Broadcasting Changes
 ``np.ndarray`` objects now broadcast in the same way as ``np.ndarray``
 broadcast.  (:issue:`23000`)
 
+.. ipython:: python
+
+   arr = np.arange(6).reshape(3, 2)
+   df = pd.DataFrame(arr)
+   df
+
 *Previous Behavior*:
 
 .. code-block:: ipython
 
-   In [3]: arr = np.arange(6).reshape(3, 2)
-   In [4]: df = pd.DataFrame(arr)
    In [5]: df + arr[[0], :]   # 1 row, 2 columns
    ...
    ValueError: Unable to coerce to DataFrame, shape must be (3, 2): given (1, 2)
@@ -1032,12 +1079,6 @@ broadcast.  (:issue:`23000`)
    ValueError: Unable to coerce to DataFrame, shape must be (3, 2): given (3, 1)
 
 *New Behavior*:
-
-.. ipython:: python
-
-   arr = np.arange(6).reshape(3, 2)
-   df = pd.DataFrame(arr)
-   df
 
 .. ipython:: python
 
@@ -1050,41 +1091,50 @@ broadcast.  (:issue:`23000`)
 ExtensionType Changes
 ^^^^^^^^^^^^^^^^^^^^^
 
-:class:`pandas.api.extensions.ExtensionDtype` **Equality and Hashability**
+ **Equality and Hashability**
 
 Pandas now requires that extension dtypes be hashable. The base class implements
 a default ``__eq__`` and ``__hash__``. If you have a parametrized dtype, you should
 update the ``ExtensionDtype._metadata`` tuple to match the signature of your
 ``__init__`` method. See :class:`pandas.api.extensions.ExtensionDtype` for more (:issue:`22476`).
 
-**Other changes**
+**Reshaping changes**
 
 - :meth:`~pandas.api.types.ExtensionArray.dropna` has been added (:issue:`21185`)
 - :meth:`~pandas.api.types.ExtensionArray.repeat` has been added (:issue:`24349`)
+- The ``ExtensionArray`` constructor, ``_from_sequence`` now take the keyword arg ``copy=False`` (:issue:`21185`)
+- :meth:`pandas.api.extensions.ExtensionArray.shift` added as part of the basic ``ExtensionArray`` interface (:issue:`22387`).
+- :meth:`~pandas.api.types.ExtensionArray.searchsorted` has been added (:issue:`24350`)
+- Support for reduction operations such as ``sum``, ``mean`` via opt-in base class method override (:issue:`22762`)
+- :func:`ExtensionArray.isna` is allowed to return an ``ExtensionArray`` (:issue:`22325`).
+
+**Dtype changes**
+
 - ``ExtensionDtype`` has gained the ability to instantiate from string dtypes, e.g. ``decimal`` would instantiate a registered ``DecimalDtype``; furthermore
   the ``ExtensionDtype`` has gained the method ``construct_array_type`` (:issue:`21185`)
-- :meth:`~pandas.api.types.ExtensionArray.searchsorted` has been added (:issue:`24350`)
-- An ``ExtensionArray`` with a boolean dtype now works correctly as a boolean indexer. :meth:`pandas.api.types.is_bool_dtype` now properly considers them boolean (:issue:`22326`)
 - Added ``ExtensionDtype._is_numeric`` for controlling whether an extension dtype is considered numeric (:issue:`22290`).
-- The ``ExtensionArray`` constructor, ``_from_sequence`` now take the keyword arg ``copy=False`` (:issue:`21185`)
+- Added :meth:`pandas.api.types.register_extension_dtype` to register an extension type with pandas (:issue:`22664`)
+- Updated the ``.type`` attribute for ``PeriodDtype``, ``DatetimeTZDtype``, and ``IntervalDtype`` to be instances of the dtype (``Period``, ``Timestamp``, and ``Interval`` respectively) (:issue:`22938`)
+
+**Other changes**
+
+- A default repr for :class:`pandas.api.extensions.ExtensionArray` is now provided (:issue:`23601`).
+- An ``ExtensionArray`` with a boolean dtype now works correctly as a boolean indexer. :meth:`pandas.api.types.is_bool_dtype` now properly considers them boolean (:issue:`22326`)
+
+**Bug Fixes**
+
 - Bug in :meth:`Series.get` for ``Series`` using ``ExtensionArray`` and integer index (:issue:`21257`)
-- :meth:`pandas.api.extensions.ExtensionArray.shift` added as part of the basic ``ExtensionArray`` interface (:issue:`22387`).
 - :meth:`~Series.shift` now dispatches to :meth:`ExtensionArray.shift` (:issue:`22386`)
 - :meth:`Series.combine()` works correctly with :class:`~pandas.api.extensions.ExtensionArray` inside of :class:`Series` (:issue:`20825`)
 - :meth:`Series.combine()` with scalar argument now works for any function type (:issue:`21248`)
 - :meth:`Series.astype` and :meth:`DataFrame.astype` now dispatch to :meth:`ExtensionArray.astype` (:issue:`21185:`).
 - Slicing a single row of a ``DataFrame`` with multiple ExtensionArrays of the same type now preserves the dtype, rather than coercing to object (:issue:`22784`)
-- Added :meth:`pandas.api.types.register_extension_dtype` to register an extension type with pandas (:issue:`22664`)
 - Bug when concatenating multiple ``Series`` with different extension dtypes not casting to object dtype (:issue:`22994`)
 - Series backed by an ``ExtensionArray`` now work with :func:`util.hash_pandas_object` (:issue:`23066`)
-- Updated the ``.type`` attribute for ``PeriodDtype``, ``DatetimeTZDtype``, and ``IntervalDtype`` to be instances of the dtype (``Period``, ``Timestamp``, and ``Interval`` respectively) (:issue:`22938`)
-- :func:`ExtensionArray.isna` is allowed to return an ``ExtensionArray`` (:issue:`22325`).
-- Support for reduction operations such as ``sum``, ``mean`` via opt-in base class method override (:issue:`22762`)
 - :meth:`DataFrame.stack` no longer converts to object dtype for DataFrames where each column has the same extension dtype. The output Series will have the same dtype as the columns (:issue:`23077`).
 - :meth:`Series.unstack` and :meth:`DataFrame.unstack` no longer convert extension arrays to object-dtype ndarrays. Each column in the output ``DataFrame`` will now have the same dtype as the input (:issue:`23077`).
 - Bug when grouping :meth:`Dataframe.groupby()` and aggregating on ``ExtensionArray`` it was not returning the actual ``ExtensionArray`` dtype (:issue:`23227`).
 - Bug in :func:`pandas.merge` when merging on an extension array-backed column (:issue:`23020`).
-- A default repr for :class:`pandas.api.extensions.ExtensionArray` is now provided (:issue:`23601`).
 
 .. _whatsnew_0240.api.incompatibilities:
 
@@ -1184,19 +1234,18 @@ Datetimelike API Changes
 - :class:`PeriodIndex` subtraction of another ``PeriodIndex`` will now return an object-dtype :class:`Index` of :class:`DateOffset` objects instead of raising a ``TypeError`` (:issue:`20049`)
 - :func:`cut` and :func:`qcut` now returns a :class:`DatetimeIndex` or :class:`TimedeltaIndex` bins when the input is datetime or timedelta dtype respectively and ``retbins=True`` (:issue:`19891`)
 - :meth:`DatetimeIndex.to_period` and :meth:`Timestamp.to_period` will issue a warning when timezone information will be lost (:issue:`21333`)
+- :class:`DatetimeIndex` now accepts :class:`Int64Index` arguments as epoch timestamps (:issue:`20997`)
+- :meth:`PeriodIndex.tz_convert` and :meth:`PeriodIndex.tz_localize` have been removed (:issue:`21781`)
 
 .. _whatsnew_0240.api.other:
 
 Other API Changes
 ^^^^^^^^^^^^^^^^^
 
-- :class:`DatetimeIndex` now accepts :class:`Int64Index` arguments as epoch timestamps (:issue:`20997`)
 - Accessing a level of a ``MultiIndex`` with a duplicate name (e.g. in
-  :meth:`~MultiIndex.get_level_values`) now raises a ``ValueError`` instead of
-  a ``KeyError`` (:issue:`21678`).
+  :meth:`~MultiIndex.get_level_values`) now raises a ``ValueError`` instead of a ``KeyError`` (:issue:`21678`).
 - Invalid construction of ``IntervalDtype`` will now always raise a ``TypeError`` rather than a ``ValueError`` if the subdtype is invalid (:issue:`21185`)
 - Trying to reindex a ``DataFrame`` with a non unique ``MultiIndex`` now raises a ``ValueError`` instead of an ``Exception`` (:issue:`21770`)
-- :meth:`PeriodIndex.tz_convert` and :meth:`PeriodIndex.tz_localize` have been removed (:issue:`21781`)
 - :class:`Index` subtraction will attempt to operate element-wise instead of raising ``TypeError`` (:issue:`19369`)
 - :class:`pandas.io.formats.style.Styler` supports a ``number-format`` property when using :meth:`~pandas.io.formats.style.Styler.to_excel` (:issue:`22015`)
 - :meth:`DataFrame.corr` and :meth:`Series.corr` now raise a ``ValueError`` along with a helpful error message instead of a ``KeyError`` when supplied with an invalid method (:issue:`22298`)
@@ -1432,13 +1481,6 @@ Performance Improvements
 - Improved performance of :class:`Period` constructor, additionally benefitting ``PeriodArray`` and ``PeriodIndex`` creation (:issue:`24084` and :issue:`24118`)
 - Improved performance of tz-aware :class:`DatetimeArray` binary operations (:issue:`24491`)
 
-.. _whatsnew_0240.docs:
-
-Documentation Changes
-~~~~~~~~~~~~~~~~~~~~~
-
--
-
 .. _whatsnew_0240.bug_fixes:
 
 Bug Fixes
@@ -1658,44 +1700,6 @@ MultiIndex
 I/O
 ^^^
 
-- Bug where integer categorical data would be formatted as floats if ``NaN`` values were present (:issue:`19214`)
-
-
-.. _whatsnew_0240.bug_fixes.nan_with_str_dtype:
-
-Proper handling of `np.NaN` in a string data-typed column with the Python engine
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-There was bug in :func:`read_excel` and :func:`read_csv` with the Python
-engine, where missing values turned to ``'nan'`` with ``dtype=str`` and
-``na_filter=True``. Now, these missing values are converted to the string
-missing indicator, ``np.nan``. (:issue:`20377`)
-
-.. ipython:: python
-   :suppress:
-
-   from pandas.compat import StringIO
-
-*Previous Behavior*:
-
-.. code-block:: ipython
-
-   In [5]: data = 'a,b,c\n1,,3\n4,5,6'
-   In [6]: df = pd.read_csv(StringIO(data), engine='python', dtype=str, na_filter=True)
-   In [7]: df.loc[0, 'b']
-   Out[7]:
-   'nan'
-
-*New Behavior*:
-
-.. ipython:: python
-
-   data = 'a,b,c\n1,,3\n4,5,6'
-   df = pd.read_csv(StringIO(data), engine='python', dtype=str, na_filter=True)
-   df.loc[0, 'b']
-
-Notice how we now instead output ``np.nan`` itself instead of a stringified form of it.
-
 - Bug in :func:`read_csv` in which a column specified with ``CategoricalDtype`` of boolean categories was not being correctly coerced from string values to booleans (:issue:`20498`)
 - Bug in :meth:`DataFrame.to_sql` when writing timezone aware data (``datetime64[ns, tz]`` dtype) would raise a ``TypeError`` (:issue:`9086`)
 - Bug in :meth:`DataFrame.to_sql` where a naive :class:`DatetimeIndex` would be written as ``TIMESTAMP WITH TIMEZONE`` type in supported databases, e.g. PostgreSQL (:issue:`23510`)
@@ -1711,11 +1715,11 @@ Notice how we now instead output ``np.nan`` itself instead of a stringified form
 - :func:`read_sas()` will correctly parse sas7bdat files with data page types having also bit 7 set (so page type is 128 + 256 = 384) (:issue:`16615`)
 - Bug in :func:`read_sas()` in which an incorrect error was raised on an invalid file format. (:issue:`24548`)
 - Bug in :meth:`detect_client_encoding` where potential ``IOError`` goes unhandled when importing in a mod_wsgi process due to restricted access to stdout. (:issue:`21552`)
-- Bug in :func:`to_html()` with ``index=False`` misses truncation indicators (...) on truncated DataFrame (:issue:`15019`, :issue:`22783`)
-- Bug in :func:`to_html()` with ``index=False`` when both columns and row index are ``MultiIndex`` (:issue:`22579`)
-- Bug in :func:`to_html()` with ``index_names=False`` displaying index name (:issue:`22747`)
-- Bug in :func:`to_html()` with ``header=False`` not displaying row index names (:issue:`23788`)
-- Bug in :func:`to_html()` with ``sparsify=False`` that caused it to raise ``TypeError`` (:issue:`22887`)
+- Bug in :func:`DataFrame.to_html()` with ``index=False`` misses truncation indicators (...) on truncated DataFrame (:issue:`15019`, :issue:`22783`)
+- Bug in :func:`DataFrame.to_html()` with ``index=False`` when both columns and row index are ``MultiIndex`` (:issue:`22579`)
+- Bug in :func:`DataFrame.to_html()` with ``index_names=False`` displaying index name (:issue:`22747`)
+- Bug in :func:`DataFrame.to_html()` with ``header=False`` not displaying row index names (:issue:`23788`)
+- Bug in :func:`DataFrame.to_html()` with ``sparsify=False`` that caused it to raise ``TypeError`` (:issue:`22887`)
 - Bug in :func:`DataFrame.to_string()` that broke column alignment when ``index=False`` and width of first column's values is greater than the width of first column's header (:issue:`16839`, :issue:`13032`)
 - Bug in :func:`DataFrame.to_string()` that caused representations of :class:`DataFrame` to not take up the whole window (:issue:`22984`)
 - Bug in :func:`DataFrame.to_csv` where a single level MultiIndex incorrectly wrote a tuple. Now just the value of the index is written (:issue:`19589`).
@@ -1838,7 +1842,6 @@ Other
 ^^^^^
 
 - Bug where C variables were declared with external linkage causing import errors if certain other C libraries were imported before Pandas. (:issue:`24113`)
-- Require at least 0.28.2 version of ``cython`` to support read-only memoryviews (:issue:`21688`)
 
 .. _whatsnew_0.24.0.contributors:
 
