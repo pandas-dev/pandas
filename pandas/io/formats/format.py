@@ -810,17 +810,16 @@ class DataFrameFormatter(TableFormatter):
         # to_html().
         index = frame.index
         columns = frame.columns
-
-        show_index_names = self.show_index_names and self.has_index_names
-        show_col_names = (self.show_index_names and self.has_column_names)
-
         fmt = self._get_formatter('__index__')
 
         if isinstance(index, ABCMultiIndex):
-            fmt_index = index.format(sparsify=self.sparsify, adjoin=False,
-                                     names=show_index_names, formatter=fmt)
+            fmt_index = index.format(
+                sparsify=self.sparsify, adjoin=False,
+                names=self.show_row_idx_names, formatter=fmt)
         else:
-            fmt_index = [index.format(name=show_index_names, formatter=fmt)]
+            fmt_index = [index.format(
+                name=self.show_row_idx_names, formatter=fmt)]
+
         fmt_index = [tuple(_make_fixed_width(list(x), justify='left',
                                              minimum=(self.col_space or 0),
                                              adj=self.adj)) for x in fmt_index]
@@ -828,7 +827,7 @@ class DataFrameFormatter(TableFormatter):
         adjoined = self.adj.adjoin(1, *fmt_index).split('\n')
 
         # empty space for columns
-        if show_col_names:
+        if self.show_col_idx_names:
             col_header = ['{x}'.format(x=x)
                           for x in self._get_column_name_list()]
         else:
