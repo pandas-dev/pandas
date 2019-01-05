@@ -936,3 +936,24 @@ def test_unstack_fill_frame_object():
         index=list('xyz')
     )
     assert_frame_equal(result, expected)
+
+
+def test_unstack_timezone_aware_values():
+    # GH 18338
+    df = pd.DataFrame({
+        'timestamp': [
+            pd.Timestamp('2017-08-27 01:00:00.709949+0000', tz='UTC')],
+        'a': ['a'],
+        'b': ['b'],
+        'c': ['c'],
+    })
+    result = df.set_index(['a', 'b']).unstack()
+    expected = pd.DataFrame([[pd.Timestamp('2017-08-27 01:00:00.709949+0000',
+                                           tz='UTC'),
+                              'c']],
+                            index=pd.Index(['a'], name='a'),
+                            columns=pd.MultiIndex(
+                                levels=[['timestamp', 'c'], ['b']],
+                                codes=[[0, 1], [0, 0]],
+                                names=[None, 'b']))
+    assert_frame_equal(result, expected)
