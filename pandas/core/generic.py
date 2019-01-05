@@ -9223,7 +9223,10 @@ class NDFrame(PandasObject, SelectionMixin):
     def tz_localize(self, tz, axis=0, level=None, copy=True,
                     ambiguous='raise', nonexistent='raise'):
         """
-        Localize tz-naive TimeSeries to target time zone.
+        Localize tz-naive index of a Series or DataFrame to target time zone.
+
+        This operation localizes the Index. To localize the values in a
+        timezone-naive Series, use :meth:`Series.dt.tz_localize`.
 
         Parameters
         ----------
@@ -9250,10 +9253,9 @@ class NDFrame(PandasObject, SelectionMixin):
             - 'NaT' will return NaT where there are ambiguous times
             - 'raise' will raise an AmbiguousTimeError if there are ambiguous
               times
-        nonexistent : 'shift_forward', 'shift_backward, 'NaT', timedelta,
-                      default 'raise'
+        nonexistent : str, default 'raise'
             A nonexistent time does not exist in a particular timezone
-            where clocks moved forward due to DST.
+            where clocks moved forward due to DST. Valid valuse are:
 
             - 'shift_forward' will shift the nonexistent time forward to the
               closest existing time
@@ -9268,6 +9270,8 @@ class NDFrame(PandasObject, SelectionMixin):
 
         Returns
         -------
+        Series or DataFrame
+            Same type as the input.
 
         Raises
         ------

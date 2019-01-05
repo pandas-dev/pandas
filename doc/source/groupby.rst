@@ -1351,7 +1351,7 @@ important than their content, or as input to an algorithm which only
 accepts the integer encoding. (For more information about support in
 pandas for full categorical data, see the :ref:`Categorical
 introduction <categorical>` and the
-:ref:`API documentation <api.categorical>`.)
+:ref:`API documentation <api.arrays.categorical>`.)
 
 .. ipython:: python
 

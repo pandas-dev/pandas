@@ -512,7 +512,7 @@ In pandas this is accomplished with ``pd.cut`` and ``astype("category")``:
    pd.Series([1, 2, 3, 2, 2, 3]).astype("category")
 
 For more details and examples see :ref:`categorical introduction <categorical>` and the
-:ref:`API documentation <api.categorical>`. There is also a documentation regarding the
+:ref:`API documentation <api.arrays.categorical>`. There is also a documentation regarding the
 :ref:`differences to R's factor <categorical.rfactor>`.
 
 

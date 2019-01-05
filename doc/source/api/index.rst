@@ -26,9 +26,9 @@ public functions related to data types in pandas.
    general_functions
    series
    frame
+   arrays
    panel
    indexing
-   scalars
    offset_frequency
    window
    groupby

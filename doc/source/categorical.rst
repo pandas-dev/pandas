@@ -34,7 +34,7 @@ The categorical data type is useful in the following cases:
 * As a signal to other Python libraries that this column should be treated as a categorical
   variable (e.g. to use suitable statistical methods or plot types).
 
-See also the :ref:`API docs on categoricals<api.categorical>`.
+See also the :ref:`API docs on categoricals<api.arrays.categorical>`.
 
 .. _categorical.objectcreation:
 
