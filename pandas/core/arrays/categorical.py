@@ -23,7 +23,7 @@ from pandas.core.dtypes.common import (
     is_timedelta64_dtype)
 from pandas.core.dtypes.dtypes import CategoricalDtype
 from pandas.core.dtypes.generic import (
-    ABCCategoricalIndex, ABCIndexClass, ABCSeries)
+    ABCCategoricalIndex, ABCDataFrame, ABCIndexClass, ABCSeries)
 from pandas.core.dtypes.inference import is_hashable
 from pandas.core.dtypes.missing import isna, notna
 
@@ -59,8 +59,10 @@ def _cat_compare_op(op):
         # results depending whether categories are the same or not is kind of
         # insane, so be a bit stricter here and use the python3 idea of
         # comparing only things of equal type.
-        if isinstance(other, ABCSeries):
+        if isinstance(other, (ABCDataFrame, ABCSeries, ABCIndexClass)):
             return NotImplemented
+
+        other = lib.item_from_zerodim(other)
 
         if not self.ordered:
             if op in ['__lt__', '__gt__', '__le__', '__ge__']:
@@ -105,7 +107,6 @@ def _cat_compare_op(op):
         #
         # With cat[0], for example, being ``np.int64(1)`` by the time it gets
         # into this function would become ``np.array(1)``.
-        other = lib.item_from_zerodim(other)
         if is_scalar(other):
             if other in self.categories:
                 i = self.categories.get_loc(other)
