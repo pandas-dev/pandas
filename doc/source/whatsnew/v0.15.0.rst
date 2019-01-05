@@ -72,7 +72,7 @@ methods to manipulate. Thanks to Jan Schulz for much of this API/implementation.
 :issue:`8075`, :issue:`8076`, :issue:`8143`, :issue:`8453`, :issue:`8518`).
 
 For full docs, see the :ref:`categorical introduction <categorical>` and the
-:ref:`API documentation <api.categorical>`.
+:ref:`API documentation <api.arrays.categorical>`.
 
 .. ipython:: python
     :okwarning:
@@ -101,7 +101,7 @@ For full docs, see the :ref:`categorical introduction <categorical>` and the
 
 - The ``Categorical.labels`` attribute was renamed to ``Categorical.codes`` and is read
   only. If you want to manipulate codes, please use one of the
-  :ref:`API methods on Categoricals <api.categorical>`.
+  :ref:`API methods on Categoricals <api.arrays.categorical>`.
 
 - The ``Categorical.levels`` attribute is renamed to ``Categorical.categories``.
 
