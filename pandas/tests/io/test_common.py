@@ -3,6 +3,7 @@ Tests for the pandas.io.common functionalities
 """
 import mmap
 import os
+import re
 
 import pytest
 
@@ -167,8 +168,10 @@ bar2,12,13,14,15
         path = os.path.join('~', 'does_not_exist.' + fn_ext)
         monkeypatch.setattr(icom, '_expand_user',
                             lambda x: os.path.join('foo', x))
-        with pytest.raises(error_class,
-                           message=r".*foo/does_not_exist." + fn_ext):
+
+        message = "".join(["foo", os.path.sep, "does_not_exist.", fn_ext])
+
+        with pytest.raises(error_class, message=re.escape(message)):
             reader(path)
 
     def test_read_non_existant_read_table(self):
