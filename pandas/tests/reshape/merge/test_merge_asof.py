@@ -1034,7 +1034,5 @@ class TestAsOfMerge(object):
         result = pd.merge_asof(left, right, by='by_col', on='on_col')
         expected = pd.DataFrame([
             [pd.Timestamp('2018-01-01', tz='UTC'), 2, 'a', 'b']
-        ],
-                                 columns=['by_col', 'on_col', 'values_x',
-                                          'values_y'])
+        ], columns=['by_col', 'on_col', 'values_x', 'values_y'])
         assert_frame_equal(result, expected)
