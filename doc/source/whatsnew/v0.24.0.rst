@@ -1694,8 +1694,9 @@ Reshaping
 - Constructing a DataFrame with an index argument that wasn't already an instance of :class:`~pandas.core.Index` was broken (:issue:`22227`).
 - Bug in :class:`DataFrame` prevented list subclasses to be used to construction (:issue:`21226`)
 - Bug in :func:`DataFrame.unstack` and :func:`DataFrame.pivot_table` returning a missleading error message when the resulting DataFrame has more elements than int32 can handle. Now, the error message is improved, pointing towards the actual problem (:issue:`20601`)
-- Bug in :func:`DataFrame.unstack` raising a ``ValueError`` when unstacking timezone aware values (:issues:`18338`)
-- Bug in :func:`DataFrame.stack` where timezone aware values were converted to timezone naive values (:issues:`19420`)
+- Bug in :func:`DataFrame.unstack` where a ``ValueError`` was raised when unstacking timezone aware values (:issue:`18338`)
+- Bug in :func:`DataFrame.stack` where timezone aware values were converted to timezone naive values (:issue:`19420`)
+- Bug in :func:`merge_asof` where a ``TypeError`` was raised when ``by_col`` were timezone aware values (:issue:`21184`)
 
 .. _whatsnew_0240.bug_fixes.sparse:
 
