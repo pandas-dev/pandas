@@ -59,7 +59,6 @@ class TestCut(object):
         # Test that a `bin` string not present in `np.histogram_bin_edges`
         # throws a ValueError.
         with pytest.raises(ValueError,
-            match="'*' is not a valid estimator for `bins`", 
             message="Verify acceptable bins in `np.histogram_bin_edges`."):
                 cut(data, bins="bad bins")
 
