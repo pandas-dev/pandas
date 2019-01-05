@@ -165,8 +165,10 @@ bar2,12,13,14,15
         pytest.importorskip(module)
 
         path = os.path.join('~', 'does_not_exist.' + fn_ext)
-        monkeypatch.setattr(icom, '_expand_user', lambda x: 'foo')
-        with pytest.raises(error_class, message=r".*foo/does_not_exist.*"):
+        monkeypatch.setattr(icom, '_expand_user',
+                            lambda x: os.path.join('foo', x))
+        with pytest.raises(error_class,
+                           message=r".*foo/does_not_exist." + fn_ext):
             reader(path)
 
     def test_read_non_existant_read_table(self):
