@@ -946,7 +946,7 @@ def test_unstack_timezone_aware_values():
         'a': ['a'],
         'b': ['b'],
         'c': ['c'],
-    })
+    }, columns=['timestamp', 'a', 'b', 'c'])
     result = df.set_index(['a', 'b']).unstack()
     expected = pd.DataFrame([[pd.Timestamp('2017-08-27 01:00:00.709949+0000',
                                            tz='UTC'),
