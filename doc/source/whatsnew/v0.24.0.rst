@@ -1448,6 +1448,7 @@ Timezones
 - Bug in :func:`to_datetime` where ``utc=True`` was not respected when specifying a ``unit`` and ``errors='ignore'`` (:issue:`23758`)
 - Bug in :func:`to_datetime` where ``utc=True`` was not respected when passing a :class:`Timestamp` (:issue:`24415`)
 - Bug in :meth:`DataFrame.any` returns wrong value when ``axis=1`` and the data is of datetimelike type (:issue:`23070`)
+- Bug in :meth:`DatetimeIndex.to_period` where a timezone aware index was converted to UTC first before creating :class:`PeriodIndex` (:issue:`22905`)
 
 Offsets
 ^^^^^^^
