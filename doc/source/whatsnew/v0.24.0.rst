@@ -1146,18 +1146,20 @@ Concatenation Changes
 ^^^^^^^^^^^^^^^^^^^^^
 
 Calling :func:`pandas.concat` on a ``Categorical`` of ints with NA values now
-causes them to be processed as objects in cases where previously they would be
-coerced to floats (:issue:`19214`)
+causes them to be processed as objects when concatenating with anything
+other than another ``Categorical`` of ints (:issue:`19214`)
+
+.. ipython:: python
+
+    s = pd.Series([0, 1, np.nan])
+    c = pd.Series([0, 1, np.nan], dtype="category")
 
 *Previous Behavior*
 
 .. code-block:: ipython
-    In [2]: s = pd.Series([0, 1, np.nan])
 
-    In [3]: c = pd.Series([0, 1, np.nan], dtype="object").astype("category")
-
-    In [4]: pd.concat([s, c])
-    Out[4]:
+    In [3]: pd.concat([s, c])
+    Out[3]:
     0    0.0
     1    1.0
     2    NaN
@@ -1169,8 +1171,7 @@ coerced to floats (:issue:`19214`)
 *New Behavior*
 
 .. ipython:: python
-    s = pd.Series([0, 1, np.nan])
-    c = pd.Series([0, 1, np.nan], dtype="object").astype("category")
+
     pd.concat([s, c])
 
 Datetimelike API Changes
