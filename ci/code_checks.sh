@@ -148,6 +148,11 @@ if [[ -z "$CHECK" || "$CHECK" == "patterns" ]]; then
     invgrep -R --exclude=*.pyc --exclude=testing.py --exclude=test_util.py assert_raises_regex pandas
     RET=$(($RET + $?)) ; echo $MSG "DONE"
 
+    # Check for the following code in testing: `unittest.mock`, `mock.Mock()` or `mock.patch`
+    MSG='Check that unittest.mock is not used (pytest builtin monkeypatch fixture should be used instread)' ; echo $MSG
+    invgrep -r -E --include '*.py' '(unittest(\.| import )mock|mock\.Mock\(\)|mock\.patch)' pandas/tests/
+    RET=$(($RET + $?)) ; echo $MSG "DONE"
+
     # Check that we use pytest.raises only as a context manager
     #
     # For any flake8-compliant code, the only way this regex gets
