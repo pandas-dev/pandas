@@ -162,7 +162,7 @@ bar2,12,13,14,15
         (pd.read_pickle, 'os', FileNotFoundError, 'pickle'),
     ])
     def test_read_expands_user_home_dir(self, reader, module,
-                                             error_class, fn_ext, monkeypatch):
+                                        error_class, fn_ext, monkeypatch):
         pytest.importorskip(module)
 
         path = os.path.join('~', 'does_not_exist.' + fn_ext)
