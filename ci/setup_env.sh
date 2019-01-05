@@ -139,7 +139,6 @@ conda list
 
 echo
 echo "[done]"
-exit 0
 
 #!/bin/bash
 
