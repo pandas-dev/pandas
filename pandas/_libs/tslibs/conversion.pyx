@@ -1290,7 +1290,8 @@ def is_date_array_normalized(int64_t[:] stamps, object tz=None):
     cdef:
         Py_ssize_t i, n = len(stamps)
         ndarray[int64_t] trans
-        int64_t[:] deltas, pos
+        int64_t[:] deltas
+        intp_t[:] pos
         npy_datetimestruct dts
         int64_t local_val, delta
         str typ

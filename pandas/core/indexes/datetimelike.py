@@ -74,33 +74,29 @@ class DatetimeIndexOpsMixin(ExtensionOpsMixin):
     __iter__ = ea_passthrough(DatetimeLikeArrayMixin.__iter__)
 
     @property
-    def _eadata(self):
-        return self._data
-
-    @property
     def freq(self):
         """
         Return the frequency object if it is set, otherwise None.
         """
-        return self._eadata.freq
+        return self._data.freq
 
     @freq.setter
     def freq(self, value):
-        # validation is handled by _eadata setter
-        self._eadata.freq = value
+        # validation is handled by _data setter
+        self._data.freq = value
 
     @property
     def freqstr(self):
         """
         Return the frequency object as a string if it is set, otherwise None.
         """
-        return self._eadata.freqstr
+        return self._data.freqstr
 
     def unique(self, level=None):
         if level is not None:
             self._validate_index_level(level)
 
-        result = self._eadata.unique()
+        result = self._data.unique()
 
         # Note: if `self` is already unique, then self.unique() should share
         #  a `freq` with self.  If not already unique, then self.freq must be
@@ -113,7 +109,12 @@ class DatetimeIndexOpsMixin(ExtensionOpsMixin):
         Create a comparison method that dispatches to ``cls.values``.
         """
         def wrapper(self, other):
-            result = op(self._eadata, maybe_unwrap_index(other))
+            if isinstance(other, ABCSeries):
+                # the arrays defer to Series for comparison ops but the indexes
+                #  don't, so we have to unwrap here.
+                other = other._values
+
+            result = op(self._data, maybe_unwrap_index(other))
             return result
 
         wrapper.__doc__ = op.__doc__
@@ -122,7 +123,7 @@ class DatetimeIndexOpsMixin(ExtensionOpsMixin):
 
     @property
     def _ndarray_values(self):
-        return self._eadata._ndarray_values
+        return self._data._ndarray_values
 
     # ------------------------------------------------------------------------
     # Abstract data attributes
@@ -131,12 +132,12 @@ class DatetimeIndexOpsMixin(ExtensionOpsMixin):
     def values(self):
         # type: () -> np.ndarray
         # Note: PeriodArray overrides this to return an ndarray of objects.
-        return self._eadata._data
+        return self._data._data
 
     @property
     @Appender(DatetimeLikeArrayMixin.asi8.__doc__)
     def asi8(self):
-        return self._eadata.asi8
+        return self._data.asi8
 
     # ------------------------------------------------------------------------
 
@@ -485,7 +486,7 @@ class DatetimeIndexOpsMixin(ExtensionOpsMixin):
 
         def __add__(self, other):
             # dispatch to ExtensionArray implementation
-            result = self._eadata.__add__(maybe_unwrap_index(other))
+            result = self._data.__add__(maybe_unwrap_index(other))
             return wrap_arithmetic_op(self, other, result)
 
         cls.__add__ = __add__
@@ -497,13 +498,13 @@ class DatetimeIndexOpsMixin(ExtensionOpsMixin):
 
         def __sub__(self, other):
             # dispatch to ExtensionArray implementation
-            result = self._eadata.__sub__(maybe_unwrap_index(other))
+            result = self._data.__sub__(maybe_unwrap_index(other))
             return wrap_arithmetic_op(self, other, result)
 
         cls.__sub__ = __sub__
 
         def __rsub__(self, other):
-            result = self._eadata.__rsub__(maybe_unwrap_index(other))
+            result = self._data.__rsub__(maybe_unwrap_index(other))
             return wrap_arithmetic_op(self, other, result)
 
         cls.__rsub__ = __rsub__
@@ -534,7 +535,6 @@ class DatetimeIndexOpsMixin(ExtensionOpsMixin):
         nv.validate_repeat(tuple(), dict(axis=axis))
         freq = self.freq if is_period_dtype(self) else None
         return self._shallow_copy(self.asi8.repeat(repeats), freq=freq)
-        # TODO: dispatch to _eadata
 
     @Appender(_index_shared_docs['where'] % _index_doc_kwargs)
     def where(self, cond, other=None):
@@ -599,10 +599,10 @@ class DatetimeIndexOpsMixin(ExtensionOpsMixin):
             # Ensure that self.astype(self.dtype) is self
             return self
 
-        new_values = self._eadata.astype(dtype, copy=copy)
+        new_values = self._data.astype(dtype, copy=copy)
 
         # pass copy=False because any copying will be done in the
-        #  _eadata.astype call above
+        #  _data.astype call above
         return Index(new_values,
                      dtype=new_values.dtype, name=self.name, copy=False)
 
@@ -637,7 +637,7 @@ class DatetimeIndexOpsMixin(ExtensionOpsMixin):
         Index.shift : Shift values of Index.
         PeriodIndex.shift : Shift values of PeriodIndex.
         """
-        result = self._eadata._time_shift(periods, freq=freq)
+        result = self._data._time_shift(periods, freq=freq)
         return type(self)(result, name=self.name)
 
 
@@ -675,9 +675,6 @@ def maybe_unwrap_index(obj):
     unwrapped object
     """
     if isinstance(obj, ABCIndexClass):
-        if isinstance(obj, DatetimeIndexOpsMixin):
-            # i.e. PeriodIndex/DatetimeIndex/TimedeltaIndex
-            return obj._eadata
         return obj._data
     return obj
 
@@ -712,16 +709,16 @@ class DatetimelikeDelegateMixin(PandasDelegate):
         raise AbstractMethodError
 
     def _delegate_property_get(self, name, *args, **kwargs):
-        result = getattr(self._eadata, name)
+        result = getattr(self._data, name)
         if name not in self._raw_properties:
             result = Index(result, name=self.name)
         return result
 
     def _delegate_property_set(self, name, value, *args, **kwargs):
-        setattr(self._eadata, name, value)
+        setattr(self._data, name, value)
 
     def _delegate_method(self, name, *args, **kwargs):
-        result = operator.methodcaller(name, *args, **kwargs)(self._eadata)
+        result = operator.methodcaller(name, *args, **kwargs)(self._data)
         if name not in self._raw_methods:
             result = Index(result, name=self.name)
         return result
