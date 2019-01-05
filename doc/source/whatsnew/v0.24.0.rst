@@ -1731,7 +1731,6 @@ Other
 
 - Bug where C variables were declared with external linkage causing import errors if certain other C libraries were imported before Pandas. (:issue:`24113`)
 - Require at least 0.28.2 version of ``cython`` to support read-only memoryviews (:issue:`21688`)
-- Fixing a `DeprecationWarning`: invalid escape sequence in versioneer.py (:issue:`24636`)
 
 .. _whatsnew_0.24.0.contributors:
 
