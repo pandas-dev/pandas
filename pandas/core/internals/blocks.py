@@ -35,14 +35,14 @@ from pandas.core.dtypes.missing import (
 
 import pandas.core.algorithms as algos
 from pandas.core.arrays import (
-    Categorical, DatetimeArrayMixin as DatetimeArray, ExtensionArray,
-    TimedeltaArrayMixin as TimedeltaArray)
+    Categorical, DatetimeArray, ExtensionArray, TimedeltaArray)
 from pandas.core.base import PandasObject
 import pandas.core.common as com
 from pandas.core.indexes.datetimes import DatetimeIndex
 from pandas.core.indexing import check_setitem_lengths
 from pandas.core.internals.arrays import extract_array
 import pandas.core.missing as missing
+from pandas.core.nanops import nanpercentile
 
 from pandas.io.formats.printing import pprint_thing
 
@@ -221,12 +221,6 @@ class Block(PandasObject):
             ndim = self.ndim
 
         return make_block(values, placement=placement, ndim=ndim)
-
-    def make_block_scalar(self, values):
-        """
-        Create a ScalarBlock
-        """
-        return ScalarBlock(values)
 
     def make_block_same_class(self, values, placement=None, ndim=None,
                               dtype=None):
@@ -1439,7 +1433,7 @@ class Block(PandasObject):
         blocks = [make_block(new_values, placement=new_placement)]
         return blocks, mask
 
-    def quantile(self, qs, interpolation='linear', axis=0, axes=None):
+    def quantile(self, qs, interpolation='linear', axis=0):
         """
         compute the quantiles of the
 
@@ -1448,94 +1442,53 @@ class Block(PandasObject):
         qs: a scalar or list of the quantiles to be computed
         interpolation: type of interpolation, default 'linear'
         axis: axis to compute, default 0
-        axes : BlockManager.axes
 
         Returns
         -------
-        tuple of (axis, block)
-
+        Block
         """
-        kw = {'interpolation': interpolation}
         values = self.get_values()
         values, _ = self._try_coerce_args(values, values)
 
-        def _nanpercentile1D(values, mask, q, **kw):
-            # mask is Union[ExtensionArray, ndarray]
-            values = values[~mask]
-
-            if len(values) == 0:
-                if lib.is_scalar(q):
-                    return self._na_value
-                else:
-                    return np.array([self._na_value] * len(q),
-                                    dtype=values.dtype)
-
-            return np.percentile(values, q, **kw)
-
-        def _nanpercentile(values, q, axis, **kw):
-
-            mask = isna(self.values)
-            if not lib.is_scalar(mask) and mask.any():
-                if self.ndim == 1:
-                    return _nanpercentile1D(values, mask, q, **kw)
-                else:
-                    # for nonconsolidatable blocks mask is 1D, but values 2D
-                    if mask.ndim < values.ndim:
-                        mask = mask.reshape(values.shape)
-                    if axis == 0:
-                        values = values.T
-                        mask = mask.T
-                    result = [_nanpercentile1D(val, m, q, **kw) for (val, m)
-                              in zip(list(values), list(mask))]
-                    result = np.array(result, dtype=values.dtype, copy=False).T
-                    return result
-            else:
-                return np.percentile(values, q, axis=axis, **kw)
-
-        from pandas import Float64Index
         is_empty = values.shape[axis] == 0
-        if is_list_like(qs):
-            ax = Float64Index(qs)
+        orig_scalar = not is_list_like(qs)
+        if orig_scalar:
+            # make list-like, unpack later
+            qs = [qs]
 
-            if is_empty:
-                if self.ndim == 1:
-                    result = self._na_value
-                else:
-                    # create the array of na_values
-                    # 2d len(values) * len(qs)
-                    result = np.repeat(np.array([self._na_value] * len(qs)),
-                                       len(values)).reshape(len(values),
-                                                            len(qs))
-            else:
-                result = _nanpercentile(values, np.array(qs) * 100,
-                                        axis=axis, **kw)
-
-                result = np.array(result, copy=False)
-                if self.ndim > 1:
-                    result = result.T
-
-        else:
-
+        if is_empty:
             if self.ndim == 1:
-                ax = Float64Index([qs])
+                result = self._na_value
             else:
-                ax = axes[0]
+                # create the array of na_values
+                # 2d len(values) * len(qs)
+                result = np.repeat(np.array([self.fill_value] * len(qs)),
+                                   len(values)).reshape(len(values),
+                                                        len(qs))
+        else:
+            # asarray needed for Sparse, see GH#24600
+            # TODO: Why self.values and not values?
+            mask = np.asarray(isna(self.values))
+            result = nanpercentile(values, np.array(qs) * 100,
+                                   axis=axis, na_value=self.fill_value,
+                                   mask=mask, ndim=self.ndim,
+                                   interpolation=interpolation)
 
-            if is_empty:
-                if self.ndim == 1:
-                    result = self._na_value
-                else:
-                    result = np.array([self._na_value] * len(self))
-            else:
-                result = _nanpercentile(values, qs * 100, axis=axis, **kw)
+            result = np.array(result, copy=False)
+            if self.ndim > 1:
+                result = result.T
+
+        if orig_scalar and not lib.is_scalar(result):
+            # result could be scalar in case with is_empty and self.ndim == 1
+            assert result.shape[-1] == 1, result.shape
+            result = result[..., 0]
+            result = lib.item_from_zerodim(result)
 
         ndim = getattr(result, 'ndim', None) or 0
         result = self._try_coerce_result(result)
-        if lib.is_scalar(result):
-            return ax, self.make_block_scalar(result)
-        return ax, make_block(result,
-                              placement=np.arange(len(result)),
-                              ndim=ndim)
+        return make_block(result,
+                          placement=np.arange(len(result)),
+                          ndim=ndim)
 
     def _replace_coerce(self, to_replace, value, inplace=True, regex=False,
                         convert=False, mask=None):
@@ -1573,29 +1526,6 @@ class Block(PandasObject):
                                             convert=convert,
                                             mask=mask)
         return self
-
-
-class ScalarBlock(Block):
-    """
-    a scalar compat Block
-    """
-    __slots__ = ['_mgr_locs', 'values', 'ndim']
-
-    def __init__(self, values):
-        self.ndim = 0
-        self.mgr_locs = [0]
-        self.values = values
-
-    @property
-    def dtype(self):
-        return type(self.values)
-
-    @property
-    def shape(self):
-        return tuple([0])
-
-    def __len__(self):
-        return 0
 
 
 class NonConsolidatableMixIn(object):
@@ -2716,7 +2646,7 @@ class ObjectBlock(Block):
 
         if args:
             raise NotImplementedError
-        by_item = True if 'by_item' not in kwargs else kwargs['by_item']
+        by_item = kwargs.get('by_item', True)
 
         new_inputs = ['coerce', 'datetime', 'numeric', 'timedelta']
         new_style = False

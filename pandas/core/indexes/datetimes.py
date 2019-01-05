@@ -22,7 +22,7 @@ from pandas.core.dtypes.missing import isna
 
 from pandas.core.accessor import delegate_names
 from pandas.core.arrays.datetimes import (
-    DatetimeArrayMixin as DatetimeArray, _to_M8, validate_tz_from_dtype)
+    DatetimeArray, _to_M8, validate_tz_from_dtype)
 from pandas.core.base import _shared_docs
 import pandas.core.common as com
 from pandas.core.indexes.base import Index
