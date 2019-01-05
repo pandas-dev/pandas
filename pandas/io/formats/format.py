@@ -793,6 +793,18 @@ class DataFrameFormatter(TableFormatter):
     def has_column_names(self):
         return _has_names(self.frame.columns)
 
+    @property
+    def show_row_idx_names(self):
+        return all((self.has_index_names,
+                    self.index,
+                    self.show_index_names))
+
+    @property
+    def show_col_idx_names(self):
+        return all((self.has_column_names,
+                    self.show_index_names,
+                    self.header))
+
     def _get_formatted_index(self, frame):
         # Note: this is only used by to_string() and to_latex(), not by
         # to_html().
