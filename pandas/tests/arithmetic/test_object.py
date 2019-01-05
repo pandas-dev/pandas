@@ -74,6 +74,19 @@ class TestTimedeltaNaTArithmetic(object):
     # Tests for arithmetic with np.timedelta64('NaT') which has some tough
     #  corner cases
 
+    def test_tdarr_rfloordiv_nat(self):
+        # TODO: test belongs elsewhere, mostly just putting this here because
+        #  it is the only TDA method patched for the proof of concept
+        td = np.timedelta64('NaT')
+
+        arr = np.arange(3) * 10**9
+        tda = pd.TimedeltaIndex(arr)._data
+
+        result = td // tda
+
+        expected = np.array([np.nan, np.nan, np.nan])
+        tm.assert_numpy_array_equal(result, expected)
+
     def test_numeric_with_timedelta_nat(self, box):
         arr = np.array([1, 2, 3, 4], dtype=np.int64)
         obj = tm.box_expected(arr, box)

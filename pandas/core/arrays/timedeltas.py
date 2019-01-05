@@ -605,11 +605,8 @@ class TimedeltaArray(dtl.DatetimeLikeArrayMixin, dtl.TimelikeOps):
         if is_scalar(other):
             if isinstance(other, (timedelta, np.timedelta64, Tick)):
                 other = Timedelta(other)
-                if other is NaT:  # TODO: use NaTD
-                    # treat this specifically as timedelta-NaT
-                    result = np.empty(self.shape, dtype=np.float64)
-                    result.fill(np.nan)
-                    return result
+                if other is NaT:
+                    other = NaTD
 
                 # dispatch to Timedelta implementation
                 result = other.__floordiv__(self._data)
