@@ -21,7 +21,7 @@ class TestDatetimeArrayConstructor(object):
 
         result = DatetimeArray._from_sequence(arr, freq='infer')
 
-        expected = pd.date_range('1970-01-01', periods=5, freq='H')._eadata
+        expected = pd.date_range('1970-01-01', periods=5, freq='H')._data
         tm.assert_datetime_array_equal(result, expected)
 
     def test_mismatched_timezone_raises(self):
