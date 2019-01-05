@@ -1447,8 +1447,20 @@ class Block(PandasObject):
         -------
         Block
         """
-        values = self.get_values()
-        values, _ = self._try_coerce_args(values, values)
+        if self.is_datetimetz:
+            # TODO: cleanup this special case.
+            # We need to operate on i8 values for datetimetz
+            # but `Block.get_values()` returns an ndarray of objects
+            # right now. We need an API for "values to do numeric-like ops on"
+            values = self.values.asi8
+
+            # TODO: NonConsolidatableMixin shape
+            # Usual shape inconsistencies for ExtensionBlocks
+            if self.ndim > 1:
+                values = values[None, :]
+        else:
+            values = self.get_values()
+            values, _ = self._try_coerce_args(values, values)
 
         is_empty = values.shape[axis] == 0
         orig_scalar = not is_list_like(qs)
@@ -2055,10 +2067,6 @@ class DatetimeLikeBlockMixin(object):
     def fill_value(self):
         return tslibs.iNaT
 
-    def to_dense(self):
-        # TODO(DatetimeBlock): remove
-        return np.asarray(self.values)
-
     def get_values(self, dtype=None):
         """
         return object dtype as boxed values, such as Timestamps/Timedelta
@@ -2076,10 +2084,6 @@ class DatetimeLikeBlockMixin(object):
 
             return values
         return self.values
-
-    @property
-    def asi8(self):
-        return self.values.view('i8')
 
 
 class DatetimeBlock(DatetimeLikeBlockMixin, Block):
@@ -2175,18 +2179,16 @@ class DatetimeBlock(DatetimeLikeBlockMixin, Block):
         else:
             # coercion issues
             # let higher levels handle
-            raise TypeError
+            raise TypeError(other)
 
         return values, other
 
     def _try_coerce_result(self, result):
         """ reverse of try_coerce_args """
         if isinstance(result, np.ndarray):
-            if result.dtype.kind in ['i', 'f', 'O']:
-                try:
-                    result = result.astype('M8[ns]')
-                except ValueError:
-                    pass
+            if result.dtype.kind in ['i', 'f']:
+                result = result.astype('M8[ns]')
+
         elif isinstance(result, (np.integer, np.float, np.datetime64)):
             result = self._box_func(result)
         return result
@@ -2240,24 +2242,11 @@ class DatetimeTZBlock(ExtensionBlock, DatetimeBlock):
     is_datetimetz = True
     is_extension = True
 
-    def __init__(self, values, placement, ndim=2, dtype=None):
-        # XXX: This will end up calling _maybe_coerce_values twice
-        # when dtype is not None. It's relatively cheap (just an isinstance)
-        # but it'd nice to avoid.
-        #
-        # If we can remove dtype from __init__, and push that conversion
-        # push onto the callers, then we can remove this entire __init__
-        # and just use DatetimeBlock's.
-        if dtype is not None:
-            values = self._maybe_coerce_values(values, dtype=dtype)
-        super(DatetimeTZBlock, self).__init__(values, placement=placement,
-                                              ndim=ndim)
-
     @property
     def _holder(self):
         return DatetimeArray
 
-    def _maybe_coerce_values(self, values, dtype=None):
+    def _maybe_coerce_values(self, values):
         """Input validation for values passed to __init__. Ensure that
         we have datetime64TZ, coercing if necessary.
 
@@ -2265,18 +2254,13 @@ class DatetimeTZBlock(ExtensionBlock, DatetimeBlock):
         -----------
         values : array-like
             Must be convertible to datetime64
-        dtype : string or DatetimeTZDtype, optional
-            Does a shallow copy to this tz
 
         Returns
         -------
-        values : ndarray[datetime64ns]
+        values : DatetimeArray
         """
         if not isinstance(values, self._holder):
             values = self._holder(values)
-
-        if dtype is not None:
-            values = type(values)(values, dtype=dtype)
 
         if values.tz is None:
             raise ValueError("cannot create a DatetimeTZBlock without a tz")
@@ -2330,6 +2314,12 @@ class DatetimeTZBlock(ExtensionBlock, DatetimeBlock):
             values = values.reshape(1, -1)
         return values
 
+    def to_dense(self):
+        # we request M8[ns] dtype here, even though it discards tzinfo,
+        # as lots of code (e.g. anything using values_from_object)
+        # expects that behavior.
+        return np.asarray(self.values, dtype=_NS_DTYPE)
+
     def _slice(self, slicer):
         """ return a slice of my values """
         if isinstance(slicer, tuple):
@@ -2379,17 +2369,19 @@ class DatetimeTZBlock(ExtensionBlock, DatetimeBlock):
                 raise ValueError("incompatible or non tz-aware value")
             other = other.value
         else:
-            raise TypeError
+            raise TypeError(other)
 
         return values, other
 
     def _try_coerce_result(self, result):
         """ reverse of try_coerce_args """
         if isinstance(result, np.ndarray):
-            if result.dtype.kind in ['i', 'f', 'O']:
+            if result.dtype.kind in ['i', 'f']:
                 result = result.astype('M8[ns]')
+
         elif isinstance(result, (np.integer, np.float, np.datetime64)):
             result = self._box_func(result)
+
         if isinstance(result, np.ndarray):
             # allow passing of > 1dim if its trivial
 
@@ -2532,18 +2524,14 @@ class TimeDeltaBlock(DatetimeLikeBlockMixin, IntBlock):
             raise TypeError
         elif is_null_datetimelike(other):
             other = tslibs.iNaT
-        elif isinstance(other, Timedelta):
-            other = other.value
-        elif isinstance(other, timedelta):
-            other = Timedelta(other).value
-        elif isinstance(other, np.timedelta64):
+        elif isinstance(other, (timedelta, np.timedelta64)):
             other = Timedelta(other).value
         elif hasattr(other, 'dtype') and is_timedelta64_dtype(other):
             other = other.astype('i8', copy=False).view('i8')
         else:
             # coercion issues
             # let higher levels handle
-            raise TypeError
+            raise TypeError(other)
 
         return values, other
 
@@ -2551,11 +2539,13 @@ class TimeDeltaBlock(DatetimeLikeBlockMixin, IntBlock):
         """ reverse of try_coerce_args / try_operate """
         if isinstance(result, np.ndarray):
             mask = isna(result)
-            if result.dtype.kind in ['i', 'f', 'O']:
+            if result.dtype.kind in ['i', 'f']:
                 result = result.astype('m8[ns]')
             result[mask] = tslibs.iNaT
+
         elif isinstance(result, (np.integer, np.float)):
             result = self._box_func(result)
+
         return result
 
     def should_store(self, value):
@@ -3086,8 +3076,9 @@ def make_block(values, placement, klass=None, ndim=None, dtype=None,
         klass = get_block_type(values, dtype)
 
     elif klass is DatetimeTZBlock and not is_datetime64tz_dtype(values):
-        return klass(values, ndim=ndim,
-                     placement=placement, dtype=dtype)
+        # TODO: This is no longer hit internally; does it need to be retained
+        #  for e.g. pyarrow?
+        values = DatetimeArray(values, dtype)
 
     return klass(values, ndim=ndim, placement=placement)
 

@@ -13,7 +13,7 @@ cimport pandas._libs.util as util
 from pandas._libs.tslibs.np_datetime cimport (
     get_timedelta64_value, get_datetime64_value)
 from pandas._libs.tslibs.nattype cimport (
-    checknull_with_nat, c_NaT, is_null_datetimelike)
+    checknull_with_nat, c_NaT as NaT, is_null_datetimelike)
 
 
 cdef float64_t INF = <float64_t>np.inf
@@ -93,7 +93,7 @@ cdef inline bint _check_none_nan_inf_neginf(object val):
 cpdef ndarray[uint8_t] isnaobj(ndarray arr):
     """
     Return boolean mask denoting which elements of a 1-D array are na-like,
-    according to the criteria defined in `_check_all_nulls`:
+    according to the criteria defined in `checknull`:
      - None
      - nan
      - NaT
@@ -154,7 +154,7 @@ def isnaobj_old(ndarray arr):
     result = np.zeros(n, dtype=np.uint8)
     for i in range(n):
         val = arr[i]
-        result[i] = val is c_NaT or _check_none_nan_inf_neginf(val)
+        result[i] = val is NaT or _check_none_nan_inf_neginf(val)
     return result.view(np.bool_)
 
 

@@ -8,7 +8,7 @@ import numpy as np
 from pandas._libs.lib import infer_dtype
 
 from pandas.core.dtypes.common import (
-    ensure_int64, is_categorical_dtype, is_datetime64_dtype,
+    _NS_DTYPE, ensure_int64, is_categorical_dtype, is_datetime64_dtype,
     is_datetime64tz_dtype, is_datetime_or_timedelta_dtype, is_integer,
     is_scalar, is_timedelta64_dtype)
 from pandas.core.dtypes.missing import isna
@@ -226,7 +226,10 @@ def cut(x, bins, right=True, labels=None, retbins=False, precision=3,
             raise ValueError('Overlapping IntervalIndex is not accepted.')
 
     else:
-        bins = np.asarray(bins)
+        if is_datetime64tz_dtype(bins):
+            bins = np.asarray(bins, dtype=_NS_DTYPE)
+        else:
+            bins = np.asarray(bins)
         bins = _convert_bin_to_numeric_type(bins, dtype)
         if (np.diff(bins) < 0).any():
             raise ValueError('bins must increase monotonically.')

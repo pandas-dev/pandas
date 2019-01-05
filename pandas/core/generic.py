@@ -8345,8 +8345,17 @@ class NDFrame(PandasObject, SelectionMixin):
         fill_value : scalar, default np.NaN
             Value to use for missing values. Defaults to NaN, but can be any
             "compatible" value
-        method : str, default None
+        method : {'backfill', 'bfill', 'pad', 'ffill', None}, default None
+            Method to use for filling holes in reindexed Series
+            pad / ffill: propagate last valid observation forward to next valid
+            backfill / bfill: use NEXT valid observation to fill gap
         limit : int, default None
+            If method is specified, this is the maximum number of consecutive
+            NaN values to forward/backward fill. In other words, if there is
+            a gap with more than this number of consecutive NaNs, it will only
+            be partially filled. If method is not specified, this is the
+            maximum number of entries along the entire axis where NaNs will be
+            filled. Must be greater than 0 if not None.
         fill_axis : %(axes_single_arg)s, default 0
             Filling axis, method and limit
         broadcast_axis : %(axes_single_arg)s, default None
@@ -9223,7 +9232,10 @@ class NDFrame(PandasObject, SelectionMixin):
     def tz_localize(self, tz, axis=0, level=None, copy=True,
                     ambiguous='raise', nonexistent='raise'):
         """
-        Localize tz-naive TimeSeries to target time zone.
+        Localize tz-naive index of a Series or DataFrame to target time zone.
+
+        This operation localizes the Index. To localize the values in a
+        timezone-naive Series, use :meth:`Series.dt.tz_localize`.
 
         Parameters
         ----------
@@ -9250,10 +9262,9 @@ class NDFrame(PandasObject, SelectionMixin):
             - 'NaT' will return NaT where there are ambiguous times
             - 'raise' will raise an AmbiguousTimeError if there are ambiguous
               times
-        nonexistent : 'shift_forward', 'shift_backward, 'NaT', timedelta,
-                      default 'raise'
+        nonexistent : str, default 'raise'
             A nonexistent time does not exist in a particular timezone
-            where clocks moved forward due to DST.
+            where clocks moved forward due to DST. Valid valuse are:
 
             - 'shift_forward' will shift the nonexistent time forward to the
               closest existing time
@@ -9268,6 +9279,8 @@ class NDFrame(PandasObject, SelectionMixin):
 
         Returns
         -------
+        Series or DataFrame
+            Same type as the input.
 
         Raises
         ------

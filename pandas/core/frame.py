@@ -6501,6 +6501,14 @@ class DataFrame(NDFrame):
         --------
         DataFrame.apply : Apply a function along input axis of DataFrame.
 
+        Notes
+        -----
+        In the current implementation applymap calls `func` twice on the
+        first column/row to decide whether it can take a fast or slow
+        code path. This can lead to unexpected behavior if `func` has
+        side-effects, as they will take effect twice for the first
+        column/row.
+
         Examples
         --------
         >>> df = pd.DataFrame([[1, 2.12], [3.356, 4.567]])
@@ -6966,6 +6974,11 @@ class DataFrame(NDFrame):
         -------
         y : DataFrame
 
+        See Also
+        --------
+        DataFrame.corrwith
+        Series.corr
+
         Examples
         --------
         >>> histogram_intersection = lambda a, b: np.minimum(a, b
@@ -6976,11 +6989,6 @@ class DataFrame(NDFrame):
               dogs cats
         dogs   1.0  0.3
         cats   0.3  1.0
-
-        See Also
-        -------
-        DataFrame.corrwith
-        Series.corr
         """
         numeric_df = self._get_numeric_data()
         cols = numeric_df.columns
