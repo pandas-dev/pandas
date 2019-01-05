@@ -655,7 +655,7 @@ def decode(obj):
 
             if is_datetime64tz_dtype(b[u'dtype']):
                 assert isinstance(values, np.ndarray), type(values)
-                assert values.dtype == 'datetime64[ns]', values.dtype
+                assert values.dtype == 'M8[ns]', values.dtype
                 # These values are interpreted as unix timestamps, so we
                 #  view as i8
                 values = DatetimeArray(values.view('i8'), dtype=b[u'dtype'])

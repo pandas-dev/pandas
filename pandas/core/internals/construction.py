@@ -34,6 +34,7 @@ from pandas.core.index import (
 from pandas.core.indexes import base as ibase
 from pandas.core.internals import (
     create_block_manager_from_arrays, create_block_manager_from_blocks)
+from pandas.core.internals.arrays import extract_array
 
 # ---------------------------------------------------------------------
 # BlockManager Interface
@@ -539,7 +540,6 @@ def sanitize_array(data, index, dtype=None, copy=False,
     Sanitize input data to an ndarray, copy if specified, coerce to the
     dtype if specified.
     """
-
     if dtype is not None:
         dtype = pandas_dtype(dtype)
 
@@ -552,8 +552,10 @@ def sanitize_array(data, index, dtype=None, copy=False,
         else:
             data = data.copy()
 
+    data = extract_array(data, extract_numpy=True)
+
     # GH#846
-    if isinstance(data, (np.ndarray, Index, ABCSeries)):
+    if isinstance(data, np.ndarray):
 
         if dtype is not None:
             subarr = np.array(data, copy=False)

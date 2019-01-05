@@ -3,7 +3,7 @@ import cython
 
 import numpy as np
 cimport numpy as cnp
-from numpy cimport uint8_t, int64_t, int32_t, ndarray
+from numpy cimport uint8_t, int64_t, int32_t, intp_t, ndarray
 cnp.import_array()
 
 import pytz
@@ -639,7 +639,7 @@ cdef inline int64_t[:] _tz_convert_dst(int64_t[:] values, tzinfo tz,
     cdef:
         Py_ssize_t n = len(values)
         Py_ssize_t i
-        int64_t[:] pos
+        intp_t[:] pos
         int64_t[:] result = np.empty(n, dtype=np.int64)
         ndarray[int64_t] trans
         int64_t[:] deltas
@@ -1290,7 +1290,8 @@ def is_date_array_normalized(int64_t[:] stamps, object tz=None):
     cdef:
         Py_ssize_t i, n = len(stamps)
         ndarray[int64_t] trans
-        int64_t[:] deltas, pos
+        int64_t[:] deltas
+        intp_t[:] pos
         npy_datetimestruct dts
         int64_t local_val, delta
         str typ

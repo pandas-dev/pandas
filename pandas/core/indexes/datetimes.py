@@ -339,14 +339,29 @@ class DatetimeIndex(DatetimeIndexOpsMixin, Int64Index, DatetimeDelegateMixin):
 
     # --------------------------------------------------------------------
 
+    def __array__(self, dtype=None):
+        if (dtype is None and isinstance(self._data, DatetimeArray)
+                and getattr(self.dtype, 'tz', None)):
+            msg = (
+                "Converting timezone-aware DatetimeArray to timezone-naive "
+                "ndarray with 'datetime64[ns]' dtype. In the future, this "
+                "will return an ndarray with 'object' dtype where each "
+                "element is a 'pandas.Timestamp' with the correct 'tz'.\n\t"
+                "To accept the future behavior, pass 'dtype=object'.\n\t"
+                "To keep the old behavior, pass 'dtype=\"datetime64[ns]\"'."
+            )
+            warnings.warn(msg, FutureWarning, stacklevel=3)
+            dtype = 'M8[ns]'
+        return np.asarray(self._data, dtype=dtype)
+
     @property
     def dtype(self):
-        return self._eadata.dtype
+        return self._data.dtype
 
     @property
     def tz(self):
         # GH 18595
-        return self._eadata.tz
+        return self._data.tz
 
     @tz.setter
     def tz(self, value):
@@ -475,7 +490,7 @@ class DatetimeIndex(DatetimeIndexOpsMixin, Int64Index, DatetimeDelegateMixin):
             if isinstance(result, DatetimeIndex):
                 # TODO: we shouldn't be setting attributes like this;
                 #  in all the tests this equality already holds
-                result._eadata._dtype = this.dtype
+                result._data._dtype = this.dtype
                 if (result.freq is None and
                         (this.freq is not None or other.freq is not None)):
                     result.freq = to_offset(result.inferred_freq)
@@ -508,7 +523,7 @@ class DatetimeIndex(DatetimeIndexOpsMixin, Int64Index, DatetimeDelegateMixin):
                 if isinstance(this, DatetimeIndex):
                     # TODO: we shouldn't be setting attributes like this;
                     #  in all the tests this equality already holds
-                    this._eadata._dtype = dtype
+                    this._data._dtype = dtype
         return this
 
     def _can_fast_union(self, other):
@@ -643,7 +658,7 @@ class DatetimeIndex(DatetimeIndexOpsMixin, Int64Index, DatetimeDelegateMixin):
     def _get_time_micros(self):
         values = self.asi8
         if self.tz is not None and not timezones.is_utc(self.tz):
-            values = self._eadata._local_timestamps()
+            values = self._data._local_timestamps()
         return fields.get_time_micros(values)
 
     def to_series(self, keep_tz=None, index=None, name=None):
@@ -1114,7 +1129,6 @@ class DatetimeIndex(DatetimeIndexOpsMixin, Int64Index, DatetimeDelegateMixin):
 
     strftime = ea_passthrough(DatetimeArray.strftime)
     _has_same_tz = ea_passthrough(DatetimeArray._has_same_tz)
-    __array__ = ea_passthrough(DatetimeArray.__array__)
 
     @property
     def offset(self):
@@ -1139,7 +1153,7 @@ class DatetimeIndex(DatetimeIndexOpsMixin, Int64Index, DatetimeDelegateMixin):
         self.freq = value
 
     def __getitem__(self, key):
-        result = self._eadata.__getitem__(key)
+        result = self._data.__getitem__(key)
         if is_scalar(result):
             return result
         elif result.ndim > 1:
