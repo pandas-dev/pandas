@@ -14,6 +14,8 @@ cimport numpy as cnp
 from numpy cimport int64_t
 cnp.import_array()
 
+from pandas._libs.tslibs.np_datetime cimport (
+    get_datetime64_value, get_timedelta64_value)
 cimport pandas._libs.tslibs.util as util
 from pandas._libs.tslibs.util cimport (
     get_nat, is_integer_object, is_float_object, is_datetime64_object,
@@ -686,26 +688,30 @@ cdef inline bint checknull_with_nat(object val):
     return val is None or util.is_nan(val) or val is c_NaT
 
 
-cdef inline bint is_null_datetimelike(object val):
+cpdef bint is_null_datetimelike(object val, bint inat_is_null=True):
     """
     Determine if we have a null for a timedelta/datetime (or integer versions)
 
     Parameters
     ----------
     val : object
+    inat_is_null : bool, default True
+        Whether to treat integer iNaT value as null
 
     Returns
     -------
     null_datetimelike : bool
     """
-    if val is None or util.is_nan(val):
+    if val is None:
         return True
     elif val is c_NaT:
         return True
+    elif util.is_float_object(val) or util.is_complex_object(val):
+        return val != val
     elif util.is_timedelta64_object(val):
-        return val.view('int64') == NPY_NAT
+        return get_timedelta64_value(val) == NPY_NAT
     elif util.is_datetime64_object(val):
-        return val.view('int64') == NPY_NAT
-    elif util.is_integer_object(val):
+        return get_datetime64_value(val) == NPY_NAT
+    elif inat_is_null and util.is_integer_object(val):
         return val == NPY_NAT
     return False

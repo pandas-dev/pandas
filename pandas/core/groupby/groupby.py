@@ -1271,8 +1271,8 @@ class GroupBy(_GroupBy):
         def first_compat(x, axis=0):
 
             def first(x):
+                x = x.to_numpy()
 
-                x = np.asarray(x)
                 x = x[notna(x)]
                 if len(x) == 0:
                     return np.nan
@@ -1286,8 +1286,7 @@ class GroupBy(_GroupBy):
         def last_compat(x, axis=0):
 
             def last(x):
-
-                x = np.asarray(x)
+                x = x.to_numpy()
                 x = x[notna(x)]
                 if len(x) == 0:
                     return np.nan

@@ -523,6 +523,13 @@ class DatetimeArray(dtl.DatetimeLikeArrayMixin,
     # ----------------------------------------------------------------
     # Array-Like / EA-Interface Methods
 
+    def __array__(self, dtype=None):
+        if dtype is None and self.tz:
+            # The default for tz-aware is object, to preserve tz info
+            dtype = object
+
+        return super(DatetimeArray, self).__array__(dtype=dtype)
+
     def __iter__(self):
         """
         Return an iterator over the boxed values
@@ -758,8 +765,8 @@ class DatetimeArray(dtl.DatetimeLikeArrayMixin,
         With the `tz` parameter, we can change the DatetimeIndex
         to other time zones:
 
-        >>> dti = pd.DatetimeIndex(start='2014-08-01 09:00',
-        ...                        freq='H', periods=3, tz='Europe/Berlin')
+        >>> dti = pd.date_range(start='2014-08-01 09:00',
+        ...                     freq='H', periods=3, tz='Europe/Berlin')
 
         >>> dti
         DatetimeIndex(['2014-08-01 09:00:00+02:00',
@@ -776,8 +783,8 @@ class DatetimeArray(dtl.DatetimeLikeArrayMixin,
         With the ``tz=None``, we can remove the timezone (after converting
         to UTC if necessary):
 
-        >>> dti = pd.DatetimeIndex(start='2014-08-01 09:00',freq='H',
-        ...                        periods=3, tz='Europe/Berlin')
+        >>> dti = pd.date_range(start='2014-08-01 09:00',freq='H',
+        ...                     periods=3, tz='Europe/Berlin')
 
         >>> dti
         DatetimeIndex(['2014-08-01 09:00:00+02:00',
@@ -1029,8 +1036,8 @@ class DatetimeArray(dtl.DatetimeLikeArrayMixin,
 
         Examples
         --------
-        >>> idx = pd.DatetimeIndex(start='2014-08-01 10:00', freq='H',
-        ...                        periods=3, tz='Asia/Calcutta')
+        >>> idx = pd.date_range(start='2014-08-01 10:00', freq='H',
+        ...                     periods=3, tz='Asia/Calcutta')
         >>> idx
         DatetimeIndex(['2014-08-01 10:00:00+05:30',
                        '2014-08-01 11:00:00+05:30',
@@ -1156,7 +1163,7 @@ class DatetimeArray(dtl.DatetimeLikeArrayMixin,
 
         Examples
         --------
-        >>> idx = pd.DatetimeIndex(start='2018-01', freq='M', periods=3)
+        >>> idx = pd.date_range(start='2018-01', freq='M', periods=3)
         >>> idx
         DatetimeIndex(['2018-01-31', '2018-02-28', '2018-03-31'],
                       dtype='datetime64[ns]', freq='M')
@@ -1192,7 +1199,7 @@ class DatetimeArray(dtl.DatetimeLikeArrayMixin,
 
         Examples
         --------
-        >>> idx = pd.DatetimeIndex(start='2018-01-01', freq='D', periods=3)
+        >>> idx = pd.date_range(start='2018-01-01', freq='D', periods=3)
         >>> idx
         DatetimeIndex(['2018-01-01', '2018-01-02', '2018-01-03'],
                       dtype='datetime64[ns]', freq='D')
