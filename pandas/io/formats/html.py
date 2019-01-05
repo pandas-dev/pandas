@@ -172,14 +172,28 @@ class HTMLFormatter(TableFormatter):
         template = dedent('\n'.join((template_first,
                                      template_mid,
                                      template_last)))
-        if self.notebook:
-            self.write(template)
+        self.write(template)
 
     def write_result(self, buf):
-        indent = 0
-        id_section = ""
-        frame = self.frame
+        if self.notebook:
+            self.write('<div>')
+            self.write_style()
 
+        self._write_table()
+
+        if self.should_show_dimensions:
+            by = chr(215) if compat.PY3 else unichr(215)  # ×
+            self.write(u('<p>{rows} rows {by} {cols} columns</p>')
+                       .format(rows=len(self.frame),
+                               by=by,
+                               cols=len(self.frame.columns)))
+
+        if self.notebook:
+            self.write('</div>')
+
+        buffer_put_lines(buf, self.elements)
+
+    def _write_table(self, indent=0):
         _classes = ['dataframe']  # Default class.
         use_mathjax = get_option("display.html.use_mathjax")
         if not use_mathjax:
@@ -192,33 +206,21 @@ class HTMLFormatter(TableFormatter):
                                      .format(typ=type(self.classes)))
             _classes.extend(self.classes)
 
-        if self.notebook:
-            self.write('<div>')
-
-        self.write_style()
-
-        if self.table_id is not None:
+        if self.table_id is None:
+            id_section = ""
+        else:
             id_section = ' id="{table_id}"'.format(table_id=self.table_id)
+
         self.write('<table border="{border}" class="{cls}"{id_section}>'
                    .format(border=self.border, cls=' '.join(_classes),
                            id_section=id_section), indent)
 
-        indent += self.indent_delta
-        indent = self._write_header(indent)
-        indent = self._write_body(indent)
+        if self.fmt.header or self.show_row_idx_names:
+            self._write_header(indent + self.indent_delta)
+
+        self._write_body(indent + self.indent_delta)
 
         self.write('</table>', indent)
-        if self.should_show_dimensions:
-            by = chr(215) if compat.PY3 else unichr(215)  # ×
-            self.write(u('<p>{rows} rows {by} {cols} columns</p>')
-                       .format(rows=len(frame),
-                               by=by,
-                               cols=len(frame.columns)))
-
-        if self.notebook:
-            self.write('</div>')
-
-        buffer_put_lines(buf, self.elements)
 
     def _write_col_header(self, indent):
         truncate_h = self.fmt.truncate_h
@@ -347,41 +349,29 @@ class HTMLFormatter(TableFormatter):
         self.write_tr(row, indent, self.indent_delta, header=True)
 
     def _write_header(self, indent):
-        if not (self.fmt.header or self.show_row_idx_names):
-            # write nothing
-            return indent
-
         self.write('<thead>', indent)
-        indent += self.indent_delta
 
         if self.fmt.header:
-            self._write_col_header(indent)
+            self._write_col_header(indent + self.indent_delta)
 
         if self.show_row_idx_names:
-            self._write_row_header(indent)
+            self._write_row_header(indent + self.indent_delta)
 
-        indent -= self.indent_delta
         self.write('</thead>', indent)
-
-        return indent
 
     def _write_body(self, indent):
         self.write('<tbody>', indent)
-        indent += self.indent_delta
-
         fmt_values = {i: self.fmt._format_col(i) for i in range(self.ncols)}
 
         # write values
         if self.fmt.index and isinstance(self.frame.index, ABCMultiIndex):
-            self._write_hierarchical_rows(fmt_values, indent)
+            self._write_hierarchical_rows(
+                fmt_values, indent + self.indent_delta)
         else:
-            self._write_regular_rows(fmt_values, indent)
+            self._write_regular_rows(
+                fmt_values, indent + self.indent_delta)
 
-        indent -= self.indent_delta
         self.write('</tbody>', indent)
-        indent -= self.indent_delta
-
-        return indent
 
     def _write_regular_rows(self, fmt_values, indent):
         truncate_h = self.fmt.truncate_h
