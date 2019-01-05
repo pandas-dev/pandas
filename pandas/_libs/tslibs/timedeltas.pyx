@@ -1,4 +1,6 @@
 # -*- coding: utf-8 -*-
+from __future__ import division
+
 import collections
 import textwrap
 import warnings
@@ -36,6 +38,7 @@ from pandas._libs.tslibs.nattype import nat_strings
 from pandas._libs.tslibs.nattype cimport (
     checknull_with_nat, NPY_NAT, c_NaT as NaT)
 from pandas._libs.tslibs.offsets cimport to_offset
+from pandas._libs.tslibs.offsets import _Tick
 
 # ----------------------------------------------------------------------
 # Constants
@@ -1323,7 +1326,7 @@ class Timedelta(_Timedelta):
             # integers or floats
             return Timedelta(self.value / other, unit='ns')
 
-        elif not _validate_ops_compat(other):
+        elif not _validate_ops_compat(other) or other is NaTD:
             return NotImplemented
 
         other = Timedelta(other)
@@ -1346,7 +1349,7 @@ class Timedelta(_Timedelta):
         elif hasattr(other, 'dtype'):
             return other / self.to_timedelta64()
 
-        elif not _validate_ops_compat(other):
+        elif not _validate_ops_compat(other) or other is NaTD:
             return NotImplemented
 
         other = Timedelta(other)
@@ -1522,3 +1525,278 @@ cdef _broadcast_floordiv_td64(int64_t value, object other,
 # resolution in ns
 Timedelta.min = Timedelta(np.iinfo(np.int64).min + 1)
 Timedelta.max = Timedelta(np.iinfo(np.int64).max)
+
+
+# ----------------------------------------------------------------------
+# An internally used timedelta-NaT largely to use in place of
+#  np.timedelta64('NaT') for binary operations.
+
+cdef inline bint is_tdlike_scalar(object obj):
+    return (is_timedelta64_object(obj) or
+            PyDelta_Check(obj) or
+            isinstance(obj, _Tick))
+
+
+cdef class _TDNaTType(timedelta):
+    """
+    NaTD (Not-a-TimeDelta) is a pandas-internal analogue of NaT that behaves
+    explicitly like a timedelta, never like a datetime.
+    """
+    cdef readonly:
+        int64_t value
+
+    def __cinit__(self):
+        # TODO: is there such a thing as a super __cinit__?
+        self.value = NPY_NAT
+
+    def __repr__(self):
+        return 'NaTD'
+
+    def __str__(self):
+        return 'NaTD'
+
+    @property
+    def asm8(self):
+        return np.timedelta64('NaT', 'ns')
+
+    def __hash__(_TDNaTType self):
+        # py3k needs this defined here
+        return hash(self.value)
+
+    def __richcmp__(_TDNaTType self, object other, int op):
+        cdef:
+            int ndim = getattr(other, 'ndim', -1)
+
+        if ndim == -1:
+            return op == Py_NE
+
+        if ndim == 0:
+            if is_tdlike_scalar(other):
+                return op == Py_NE
+            else:  # FIXME: shouldnt we be raising only for inequalities?
+                raise TypeError('Cannot compare type %r with type %r' %
+                                (type(self).__name__, type(other).__name__))
+        # Note: instead of passing "other, self, _reverse_ops[op]", we observe
+        # that `_nat_scalar_rules` is invariant under `_reverse_ops`,
+        # rendering it unnecessary.
+        return PyObject_RichCompare(other, self, op)
+
+    def __add__(self, other):
+        if other is NaT:
+            return NaT
+        if is_tdlike_scalar(other):
+            return NaTD
+
+        if hasattr(other, '_typ'):
+            # Series, DataFrame, ...
+            return NotImplemented
+
+        if util.is_array(other):
+            if other.dtype.kind in ['m', 'M']:
+                result = np.empty(other.shape, dtype='i8')
+                result.fill(NPY_NAT)
+                return result.view(other.dtype)
+            elif other.dtype.kind == 'O':
+                return np.array([self + x for x in other])
+
+            raise TypeError("Cannot add dtype {dtype} to Timedelta"
+                            .format(dtype=other.dtype))
+
+        elif hasattr(other, "dtype"):
+            return NotImplemented
+
+        # all thats left is invalid scalars
+        raise TypeError("Cannot add {typ} to Timedelta"
+                        .format(typ=type(other).__name__))
+
+    def __sub__(self, other):
+        if is_tdlike_scalar(other):
+            return NaTD
+
+        if hasattr(other, '_typ'):
+            # Series, DataFrame, ...
+            return NotImplemented
+
+        if util.is_array(other):
+            if other.dtype.kind == 'm':
+                result = np.empty(other.shape, dtype='i8')
+                result.fill(NPY_NAT)
+                return result.view(other.dtype)
+            elif other.dtype.kind == 'O':
+                # TODO: does this get shape right?
+                return np.array([self - x for x in other])
+
+            raise TypeError("Cannot subtract dtype {dtype} from Timedelta"
+                            .format(dtype=other.dtype))
+
+        elif hasattr(other, "dtype"):
+            return NotImplemented
+
+        # all thats left is invalid scalars
+        raise TypeError("Cannot subtract {typ} from Timedelta"
+                        .format(typ=type(other).__name__))
+
+    def __mul__(self, other):
+        if is_integer_object(other) or is_float_object(other):
+            return NaTD
+
+        if hasattr(other, '_typ'):
+            # Series, DataFrame, ...
+            return NotImplemented
+
+        if util.is_array(other):
+            if other.dtype.kind in ['i', 'u', 'f']:
+                result = np.empty(other.shape, dtype='i8')
+                result.fill(NPY_NAT)
+                return result.view("timedelta64[ns]")
+            elif other.dtype.kind == 'O':
+                # TODO: does this get shape right?
+                return np.array([self * x for x in other])
+
+            raise TypeError("Cannot multiply Timedelta by dtype {dtype}"
+                            .format(dtype=other.dtype))
+
+        elif hasattr(other, "dtype"):
+            return NotImplemented
+
+        # all thats left is invalid scalars
+        raise TypeError("Cannot multiply Timedelta by {typ}"
+                        .format(typ=type(other).__name__))
+
+    def __truediv__(self, other):
+        if is_tdlike_scalar(other):
+            return np.nan
+
+        if is_integer_object(other) or is_float_object(other):
+            return NaTD
+
+        if hasattr(other, '_typ'):
+            # Series, DataFrame, ...
+            return NotImplemented
+
+        if util.is_array(other):
+            if other.dtype.kind in ['i', 'u', 'f']:
+                result = np.empty(other.shape, dtype='i8')
+                result.fill(NPY_NAT)
+                return result.view("timedelta64[ns]")
+            elif other.dtype.kind == 'm':
+                result = np.empty(other.shape, dtype=np.float64)
+                result.fill(np.nan)
+                return result
+            elif other.dtype.kind == 'O':
+                # TODO: does this get shape right?
+                return np.array([self / x for x in other])
+
+            raise TypeError("Cannot divide Timedelta by dtype {dtype}"
+                            .format(dtype=other.dtype))
+
+        elif hasattr(other, "dtype"):
+            return NotImplemented
+
+        # all thats left is invalid scalars
+        raise TypeError("Cannot divide Timedelta by {typ}"
+                        .format(typ=type(other).__name__))
+
+    def __floordiv__(self, other):
+        return self.__truediv__(other)  # TODO: is this right?
+
+    def __mod__(self, other):
+        # Naive implementation, room for optimization
+        return self.__divmod__(other)[1]
+
+    def __divmod__(self, other):
+        # Naive implementation, room for optimization
+        div = self // other
+        return div, self - div * other
+
+    if not PY3:
+        def __div__(self, other):
+            return self.__truediv__(other)
+
+
+class TDNaTType(_TDNaTType):
+    __array_priority__ = 100
+
+    def __radd__(self, other):
+        return self.__add__(other)
+
+    def __rsub__(self, other):
+        if is_tdlike_scalar(other):
+            return NaTD
+
+        if is_datetime64_object(other) or PyDateTime_Check(other):
+            return NaT
+
+        if hasattr(other, '_typ'):
+            # Series, DataFrame, ...
+            return NotImplemented
+
+        if util.is_array(other):
+            if other.dtype.kind == 'M':
+                result = np.empty(other.shape, dtype='i8')
+                result.fill(NPY_NAT)
+                return result.view(other.dtype)
+            if other.dtype.kind == 'm':
+                result = np.empty(other.shape, dtype='i8')
+                result.fill(NPY_NAT)
+                return result.view(other.dtype)
+            elif other.dtype.kind == 'O':
+                return np.array([x - self for x in other])
+
+            raise TypeError("Cannot subtract Timedelta from dtype {dtype}"
+                            .format(dtype=other.dtype))
+
+        elif hasattr(other, "dtype"):
+            return NotImplemented
+
+        # all thats left is invalid scalars
+        raise TypeError("Cannot subtract Timedelta from {typ}"
+                        .format(typ=type(other).__name__))
+
+    def __rmul__(self, other):
+        return self.__mul__(other)
+
+    def __rtruediv__(self, other):
+        if is_tdlike_scalar(other):
+            return np.nan
+
+        if hasattr(other, '_typ'):
+            # Series, DataFrame, ...
+            return NotImplemented
+
+        if util.is_array(other):
+            if other.dtype.kind == 'm':
+                result = np.empty(other.shape, dtype=np.float64)
+                result.fill(np.nan)
+                return result
+            elif other.dtype.kind == 'O':
+                return np.array([x / self for x in other])
+
+            raise TypeError("Cannot divide dtype {dtype} by Timedelta"
+                            .format(dtype=other.dtype))
+
+        elif hasattr(other, "dtype"):
+            return NotImplemented
+
+        # all thats left is invalid scalars
+        raise TypeError("Cannot divide {typ} by Timedelta"
+                        .format(typ=type(other).__name__))
+
+    def __rfloordiv__(self, other):
+        return self.__rtruediv__(other)  # TODO: is this right?
+
+    def __rmod__(self, other):
+        # Naive implementation, room for optimization
+        return self.__rdivmod__(other)[1]
+
+    def __rdivmod__(self, other):
+        # Naive implementation, room for optimization
+        div = other // self
+        return div, other - div * self
+
+    if not PY3:
+        def __rdiv__(self, other):
+            return self.__rtruediv__(other)
+
+
+NaTD = TDNaTType()

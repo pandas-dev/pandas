@@ -10,6 +10,7 @@ from pandas._libs import lib, tslibs
 from pandas._libs.tslibs import NaT, Timedelta, Timestamp, iNaT
 from pandas._libs.tslibs.fields import get_timedelta_field
 from pandas._libs.tslibs.timedeltas import (
+    NaTD,
     array_to_timedelta64, parse_timedelta_unit)
 import pandas.compat as compat
 from pandas.util._decorators import Appender
@@ -371,7 +372,7 @@ class TimedeltaArray(dtl.DatetimeLikeArrayMixin, dtl.TimelikeOps):
 
         assert other is not NaT
         other = Timestamp(other)
-        if other is NaT:
+        if other is NaT:  # TODO: use NaTD
             # In this case we specifically interpret NaT as a datetime, not
             # the timedelta interpretation we would get by returning self + NaT
             result = self.asi8.view('m8[ms]') + NaT.to_datetime64()
@@ -442,7 +443,7 @@ class TimedeltaArray(dtl.DatetimeLikeArrayMixin, dtl.TimelikeOps):
 
         if isinstance(other, (timedelta, np.timedelta64, Tick)):
             other = Timedelta(other)
-            if other is NaT:
+            if other is NaT:  # TODO: use NaTD
                 # specifically timedelta64-NaT
                 result = np.empty(self.shape, dtype=np.float64)
                 result.fill(np.nan)
@@ -492,7 +493,7 @@ class TimedeltaArray(dtl.DatetimeLikeArrayMixin, dtl.TimelikeOps):
 
         if isinstance(other, (timedelta, np.timedelta64, Tick)):
             other = Timedelta(other)
-            if other is NaT:
+            if other is NaT:  # TODO: use NaTD
                 # specifically timedelta64-NaT
                 result = np.empty(self.shape, dtype=np.float64)
                 result.fill(np.nan)
@@ -541,7 +542,7 @@ class TimedeltaArray(dtl.DatetimeLikeArrayMixin, dtl.TimelikeOps):
         if is_scalar(other):
             if isinstance(other, (timedelta, np.timedelta64, Tick)):
                 other = Timedelta(other)
-                if other is NaT:
+                if other is NaT:  # TODO: use NaTD
                     # treat this specifically as timedelta-NaT
                     result = np.empty(self.shape, dtype=np.float64)
                     result.fill(np.nan)
@@ -604,7 +605,7 @@ class TimedeltaArray(dtl.DatetimeLikeArrayMixin, dtl.TimelikeOps):
         if is_scalar(other):
             if isinstance(other, (timedelta, np.timedelta64, Tick)):
                 other = Timedelta(other)
-                if other is NaT:
+                if other is NaT:  # TODO: use NaTD
                     # treat this specifically as timedelta-NaT
                     result = np.empty(self.shape, dtype=np.float64)
                     result.fill(np.nan)

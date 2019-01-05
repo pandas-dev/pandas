@@ -127,7 +127,7 @@ def maybe_upcast_for_op(obj):
         #  np.timedelta64(3, 'D') / 2 == np.timedelta64(1, 'D')
         # The isna check is to avoid casting timedelta64("NaT"), which would
         #  return NaT and incorrectly be treated as a datetime-NaT.
-        return pd.Timedelta(obj)
+        return pd.Timedelta(obj)  # TODO: use NaTD for isna case
     elif isinstance(obj, np.ndarray) and is_timedelta64_dtype(obj):
         # GH#22390 Unfortunately we need to special-case right-hand
         # timedelta64 dtypes because numpy casts integer dtypes to

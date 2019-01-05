@@ -70,6 +70,65 @@ class TestObjectComparisons(object):
 # ------------------------------------------------------------------
 # Arithmetic
 
+class TestTimedeltaNaTArithmetic(object):
+    # Tests for arithmetic with np.timedelta64('NaT') which has some tough
+    #  corner cases
+
+    def test_numeric_with_timedelta_nat(self, box):
+        arr = np.array([1, 2, 3, 4], dtype=np.int64)
+        obj = tm.box_expected(arr, box)
+
+        td = np.timedelta64('NaT')
+
+        expected = np.array([td] * 4)
+        expected = tm.box_expected(expected, box)
+
+        # TODO: RangeIndex
+        for dtype in [np.int64, np.float64, np.uint64, object]:
+            dobj = obj.astype(dtype)
+            for op in [operator.add, operator.sub, ops.radd, ops.rsub]:
+                with pytest.raises(TypeError):
+                    op(td, dobj)
+
+            if type(dobj) is pd.Index:
+                # FIXME: implement these on pd.Index
+                continue
+
+            result = dobj * td
+            tm.assert_equal(result, expected)
+            result = td * dobj
+            tm.assert_equal(result, expected)
+            result = td / dobj
+            tm.assert_equal(result, expected)
+            result = td // dobj
+            tm.assert_equal(result, expected)
+            result = td % dobj
+            tm.assert_equal(result, expected)
+
+            # ops that are invalid with tdnat on the right
+            with pytest.raises(TypeError):
+                dobj / td
+            with pytest.raises(TypeError):
+                dobj // td
+            with pytest.raises(TypeError):
+                dobj % td
+            with pytest.raises(TypeError):
+                divmod(dobj, td)
+
+    @pytest.mark.xfail(reason="I haven't fixed it yet...")
+    def test_object_with_timedelta_nat(self, box):
+        td = np.timedelta64('NaT')
+
+        arr = np.array([
+            pd.offsets.Minute(2),
+            pd.Timedelta(hours=2),
+            pd.Timedelta(seconds=1).to_pytimedelta(),
+            pd.Timedelta(days=3).to_timedelta64()])
+        obj = tm.box_expected(arr, box)
+
+        # FIXME: obj + td raises incorrectly
+        result = arr + td
+
 class TestArithmetic(object):
 
     # TODO: parametrize

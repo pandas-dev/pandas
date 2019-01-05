@@ -6,7 +6,7 @@ import warnings
 import numpy as np
 
 from pandas._libs import (
-    Timedelta, algos as libalgos, index as libindex, join as libjoin, lib,
+    NaT, Timedelta, algos as libalgos, index as libindex, join as libjoin, lib,
     tslibs)
 from pandas._libs.lib import is_datetime_array
 import pandas.compat as compat
@@ -4888,6 +4888,10 @@ class Index(IndexOpsMixin, PandasObject):
                                                 other=type(other).__name__))
 
         other = Timedelta(other)
+        if other is NaT:
+            from pandas._libs.tslibs.timedeltas import NaTD
+            other = NaTD
+
         values = self.values
 
         with np.errstate(all='ignore'):
@@ -5027,8 +5031,8 @@ class Index(IndexOpsMixin, PandasObject):
             cls.__div__ = _make_arithmetic_op(operator.div, cls)
             cls.__rdiv__ = _make_arithmetic_op(ops.rdiv, cls)
 
-        # TODO: rmod? rdivmod?
         cls.__mod__ = _make_arithmetic_op(operator.mod, cls)
+        cls.__rmod__ = _make_arithmetic_op(ops.rmod, cls)
         cls.__floordiv__ = _make_arithmetic_op(operator.floordiv, cls)
         cls.__rfloordiv__ = _make_arithmetic_op(ops.rfloordiv, cls)
         cls.__divmod__ = _make_arithmetic_op(divmod, cls)
