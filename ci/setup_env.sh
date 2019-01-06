@@ -139,7 +139,7 @@ fi
 
 echo
 echo "Setup virtual framebuffer"
-export DISPLAY=":99.
+export DISPLAY=":99."
 if [ "${TRAVIS_OS_NAME}" == "linux" ]; then
    sh -e /etc/init.d/xvfb start
    sleep 3
