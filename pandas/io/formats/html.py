@@ -16,8 +16,7 @@ import pandas.core.common as com
 from pandas.core.config import get_option
 
 from pandas.io.common import _is_url
-from pandas.io.formats.format import (
-    TableFormatter, buffer_put_lines, get_level_lengths)
+from pandas.io.formats.format import TableFormatter, get_level_lengths
 from pandas.io.formats.printing import pprint_thing
 
 
@@ -136,7 +135,7 @@ class HTMLFormatter(TableFormatter):
         indent -= indent_delta
         self.write('</tr>', indent)
 
-    def write_result(self, buf):
+    def render(self):
         self._write_table()
 
         if self.should_show_dimensions:
@@ -146,7 +145,7 @@ class HTMLFormatter(TableFormatter):
                                by=by,
                                cols=len(self.frame.columns)))
 
-        buffer_put_lines(buf, self.elements)
+        return self.elements
 
     def _write_table(self, indent=0):
         _classes = ['dataframe']  # Default class.
@@ -512,10 +511,9 @@ class NotebookFormatter(HTMLFormatter):
                                      template_last)))
         self.write(template)
 
-    def write_result(self, buf):
+    def render(self):
         self.write('<div>')
         self.write_style()
-        super().write_result(buf)
+        super().render()
         self.write('</div>')
-
-        buffer_put_lines(buf, self.elements)
+        return self.elements
