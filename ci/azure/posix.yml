@@ -51,7 +51,7 @@ jobs:
     - script: |
         if [ "$(uname)" == "Linux" ]; then sudo apt-get install -y libc6-dev-i386 $EXTRA_APT; fi
         echo "Creating Environment"
-        ci/incremental/setup_env.sh
+        ci/setup_env.sh
       displayName: 'Setup environment and build pandas'
     - script: |
         export PATH=$HOME/miniconda3/bin:$PATH
