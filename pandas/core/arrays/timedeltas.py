@@ -10,8 +10,7 @@ from pandas._libs import lib, tslibs
 from pandas._libs.tslibs import NaT, Timedelta, Timestamp, iNaT
 from pandas._libs.tslibs.fields import get_timedelta_field
 from pandas._libs.tslibs.timedeltas import (
-    NaTD,
-    array_to_timedelta64, parse_timedelta_unit)
+    NaTD, array_to_timedelta64, parse_timedelta_unit)
 import pandas.compat as compat
 from pandas.util._decorators import Appender
 
