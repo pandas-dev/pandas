@@ -36,12 +36,12 @@ echo "Install Miniconda"
 unamestr=`uname`
 if [[ "$unamestr" == 'Linux' ]]; then
     if [[ "$BITS32" == "yes" ]]; then
-        conda_dist = "Linux-x86.sh"
+        conda_dist="Linux-x86.sh"
     else
-        conda_dist = "Linux-x86_64.sh"
+        conda_dist="Linux-x86_64.sh"
     fi
 elif [[ "$unamestr" == 'Darwin' ]]; then
-    conda_dist = "MacOSX-x86_64.sh"
+    conda_dist="MacOSX-x86_64.sh"
 else
   echo "OS $unamestr not supported"
   exit 1
