@@ -140,7 +140,11 @@ class TestTimedeltaNaTArithmetic(object):
         obj = tm.box_expected(arr, box)
 
         # FIXME: obj + td raises incorrectly
-        result = arr + td
+        result = obj + td
+
+        expected = tm.box_expected(np.array([td, td, td, td]))
+        tm.assert_equal(result, expected)
+
 
 class TestArithmetic(object):
 
