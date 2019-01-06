@@ -24,8 +24,7 @@ class HTMLFormatter(TableFormatter):
 
     indent_delta = 2
 
-    def __init__(self, formatter, classes=None, border=None,
-                 table_id=None, render_links=False):
+    def __init__(self, formatter, classes=None, border=None):
         self.fmt = formatter
         self.classes = classes
 
@@ -38,8 +37,8 @@ class HTMLFormatter(TableFormatter):
         if border is None:
             border = get_option('display.html.border')
         self.border = border
-        self.table_id = table_id
-        self.render_links = render_links
+        self.table_id = self.fmt.table_id
+        self.render_links = self.fmt.render_links
 
     @property
     def show_row_idx_names(self):

@@ -732,9 +732,7 @@ class DataFrameFormatter(TableFormatter):
          """
         from pandas.io.formats.html import HTMLFormatter, NotebookFormatter
         Klass = NotebookFormatter if notebook else HTMLFormatter
-        html = Klass(
-            self, classes=classes, border=border, table_id=self.table_id,
-            render_links=self.render_links).render()
+        html = Klass(self, classes=classes, border=border).render()
         if hasattr(self.buf, 'write'):
             buffer_put_lines(self.buf, html)
         elif isinstance(self.buf, compat.string_types):
