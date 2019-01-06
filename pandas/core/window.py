@@ -1239,7 +1239,14 @@ class _Rolling_and_Expanding(_Rolling):
                            check_minp=_require_min_periods(1), ddof=ddof,
                            **kwargs)
 
-    _shared_docs['skew'] = """Unbiased %(name)s skewness"""
+    _shared_docs['skew'] = """
+    Unbiased %(name)s skewness.
+
+    Parameters
+    ----------
+    **kwargs :
+        Keyword arguments to be passed into func.
+    """
 
     def skew(self, **kwargs):
         return self._apply('roll_skew', 'skew',
