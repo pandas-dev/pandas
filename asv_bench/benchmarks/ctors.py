@@ -41,7 +41,7 @@ def list_of_lists_with_none(arr):
 
 class SeriesConstructors(object):
 
-    param_names = ["data_fmt", "with_index"]
+    param_names = ["data_fmt", "with_index", "dtype"]
     params = [[no_change,
                list,
                list_of_str,
@@ -52,15 +52,19 @@ class SeriesConstructors(object):
                list_of_lists,
                list_of_tuples_with_none,
                list_of_lists_with_none],
-              [False, True]]
+              [False, True],
+              ['float', 'int']]
 
-    def setup(self, data_fmt, with_index):
+    def setup(self, data_fmt, with_index, dtype):
         N = 10**4
-        arr = np.random.randn(N)
+        if dtype == 'float':
+            arr = np.random.randn(N)
+        else:
+            arr = np.arange(N)
         self.data = data_fmt(arr)
         self.index = np.arange(N) if with_index else None
 
-    def time_series_constructor(self, data_fmt, with_index):
+    def time_series_constructor(self, data_fmt, with_index, dtype):
         Series(self.data, index=self.index)
 
 

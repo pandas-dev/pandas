@@ -2011,7 +2011,8 @@ def maybe_convert_objects(ndarray[object] objects, bint try_float=0,
             floats[i] = <float64_t>val
             complexes[i] = <double complex>val
             if not seen.null_:
-                seen.saw_int(int(val))
+                val = int(val)
+                seen.saw_int(val)
 
                 if ((seen.uint_ and seen.sint_) or
                         val > oUINT64_MAX or val < oINT64_MIN):
