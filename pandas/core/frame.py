@@ -4035,56 +4035,6 @@ class DataFrame(NDFrame):
         return super(DataFrame, self).shift(periods=periods, freq=freq,
                                             axis=axis, fill_value=fill_value)
 
-    @Substitution(
-        klass='DataFrame', other_klass='Series',
-        params=dedent("""\
-        keys : column label or list of column labels / arrays
-            Either a column label, Series, Index, MultiIndex, list, np.ndarray
-            or a list containing only column labels, Series, Index, MultiIndex,
-            list np.ndarray.
-        drop : bool, default True
-            Delete columns to be used as the new index."""),
-        examples=dedent("""\
-        >>> df = pd.DataFrame({'month': [1, 4, 7, 10],
-        ...                    'year': [2012, 2014, 2013, 2014],
-        ...                    'sale': [55, 40, 84, 31]})
-        >>> df
-           month  year  sale
-        0      1  2012    55
-        1      4  2014    40
-        2      7  2013    84
-        3     10  2014    31
-
-        Set the index to become the 'month' column:
-
-        >>> df.set_index('month')
-               year  sale
-        month
-        1      2012    55
-        4      2014    40
-        7      2013    84
-        10     2014    31
-
-        Create a MultiIndex using columns 'year' and 'month':
-
-        >>> df.set_index(['year', 'month'])
-                    sale
-        year  month
-        2012  1     55
-        2014  4     40
-        2013  7     84
-        2014  10    31
-
-        Create a MultiIndex using a set of values and a column:
-
-        >>> df.set_index([[1, 2, 3, 4], 'year'])
-                 month  sale
-           year
-        1  2012  1      55
-        2  2014  4      40
-        3  2013  7      84
-        4  2014  10     31""")
-    )
     @Appender(NDFrame.set_index.__doc__)
     def set_index(self, keys, drop=True, append=False, inplace=False,
                   verify_integrity=False):

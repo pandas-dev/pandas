@@ -631,39 +631,91 @@ class NDFrame(PandasObject, SelectionMixin):
         self._data.set_axis(axis, labels)
         self._clear_item_cache()
 
+    _shared_docs['set_index'] = """
+    Set the index (row labels) using one or more given arrays (or labels).
+
+    Parameters
+    ----------
+    %(params)s
+    append : bool, default False
+        Whether to append columns to existing index.
+    inplace : bool, default False
+        Modify the %(klass)s in place (do not create a new object).
+    verify_integrity : bool, default False
+        Check the new index for duplicates. Otherwise defer the check until
+        necessary. Setting to False will improve the performance of this
+        method.
+
+    Returns
+    -------
+    %(klass)s
+        The reindexed %(klass)s. Will be None if inplace is True.
+
+    See Also
+    --------
+    %(other_klass)s.set_index : Method adapted for %(other_klass)s.
+    %(klass)s.reset_index : Opposite of set_index.
+    %(klass)s.reindex : Change to new indices or expand indices.
+    %(klass)s.reindex_like : Change to same indices as other %(klass)s.
+
+    Examples
+    --------
+    %(examples)s
+    """
+
+    @Substitution(
+        klass='DataFrame', other_klass='Series',
+        params=dedent("""\
+        keys : column label or list of column labels / arrays
+            Either a column label, Series, Index, MultiIndex, list, np.ndarray
+            or a list containing only column labels, Series, Index, MultiIndex,
+            list np.ndarray.
+        drop : bool, default True
+            Delete columns to be used as the new index."""),
+        examples=dedent("""\
+        >>> df = pd.DataFrame({'month': [1, 4, 7, 10],
+        ...                    'year': [2012, 2014, 2013, 2014],
+        ...                    'sale': [55, 40, 84, 31]})
+        >>> df
+           month  year  sale
+        0      1  2012    55
+        1      4  2014    40
+        2      7  2013    84
+        3     10  2014    31
+
+        Set the index to become the 'month' column:
+
+        >>> df.set_index('month')
+               year  sale
+        month
+        1      2012    55
+        4      2014    40
+        7      2013    84
+        10     2014    31
+
+        Create a MultiIndex using columns 'year' and 'month':
+
+        >>> df.set_index(['year', 'month'])
+                    sale
+        year  month
+        2012  1     55
+        2014  4     40
+        2013  7     84
+        2014  10    31
+
+        Create a MultiIndex using a set of values and a column:
+
+        >>> df.set_index([[1, 2, 3, 4], 'year'])
+                 month  sale
+           year
+        1  2012  1      55
+        2  2014  4      40
+        3  2013  7      84
+        4  2014  10     31""")
+    )
+    @Appender(_shared_docs["set_index"])
     def set_index(self, keys, drop=True, append=False, inplace=False,
                   verify_integrity=False):
-        """
-        Set the index (row labels) using one or more given arrays (or labels).
-
-        Parameters
-        ----------
-        %(params)s
-        append : bool, default False
-            Whether to append columns to existing index.
-        inplace : bool, default False
-            Modify the %(klass)s in place (do not create a new object).
-        verify_integrity : bool, default False
-            Check the new index for duplicates. Otherwise defer the check until
-            necessary. Setting to False will improve the performance of this
-            method.
-
-        Returns
-        -------
-        %(klass)s
-            The reindexed %(klass)s. Will be None if inplace is True.
-
-        See Also
-        --------
-        %(other_klass)s.set_index : Method adapted for %(other_klass)s.
-        %(klass)s.reset_index : Opposite of set_index.
-        %(klass)s.reindex : Change to new indices or expand indices.
-        %(klass)s.reindex_like : Change to same indices as other %(klass)s.
-
-        Examples
-        --------
-        %(examples)s
-        """
         # parameter keys is checked in Series.set_index / DataFrame.set_index,
         # will always be passed as a list of list-likes!
 

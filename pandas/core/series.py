@@ -1218,7 +1218,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         c  III    12
         dtype: int64""")
     )
-    @Appender(generic.NDFrame.set_index.__doc__)
+    @Appender(generic._shared_docs['set_index'])
     def set_index(self, arrays, append=False, inplace=False,
                   verify_integrity=False):
 
