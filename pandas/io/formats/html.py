@@ -21,6 +21,14 @@ from pandas.io.formats.printing import pprint_thing
 
 
 class HTMLFormatter(TableFormatter):
+    """
+    Internal class for formatting output data in html.
+    This class is intended for shared functionality between
+    DataFrame.to_html() and DataFrame._repr_html_().
+    Any logic in common with other output formatting methods
+    should ideally be inherited from classes in format.py
+    and this class responsible for only producing html markup.
+    """
 
     indent_delta = 2
 
@@ -472,6 +480,11 @@ class HTMLFormatter(TableFormatter):
 
 
 class NotebookFormatter(HTMLFormatter):
+    """
+    Internal class for formatting output data in html for display in Jupyter
+    Notebooks. This class is intended for functionality specific to
+    DataFrame._repr_html_() and DataFrame.to_html(notebook=True)
+    """
 
     def write_style(self):
         # We use the "scoped" attribute here so that the desired
