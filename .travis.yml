@@ -95,10 +95,6 @@ install:
   - ci/submit_cython_cache.sh
   - echo "install done"
 
-before_script:
-  - export DISPLAY=":99.0"
-  - ci/before_script_travis.sh
-
 script:
   - echo "script start"
   - source activate pandas-dev
