@@ -730,10 +730,11 @@ class DataFrameFormatter(TableFormatter):
 
             .. versionadded:: 0.19.0
          """
-        from pandas.io.formats.html import HTMLFormatter
-        html_renderer = HTMLFormatter(self, classes=classes, notebook=notebook,
-                                      border=border, table_id=self.table_id,
-                                      render_links=self.render_links)
+        from pandas.io.formats.html import HTMLFormatter, NotebookFormatter
+        Klass = NotebookFormatter if notebook else HTMLFormatter
+        html_renderer = Klass(
+            self, classes=classes, border=border, table_id=self.table_id,
+            render_links=self.render_links)
         if hasattr(self.buf, 'write'):
             html_renderer.write_result(self.buf)
         elif isinstance(self.buf, compat.string_types):

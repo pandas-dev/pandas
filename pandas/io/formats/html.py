@@ -25,7 +25,7 @@ class HTMLFormatter(TableFormatter):
 
     indent_delta = 2
 
-    def __init__(self, formatter, classes=None, notebook=False, border=None,
+    def __init__(self, formatter, classes=None, border=None,
                  table_id=None, render_links=False):
         self.fmt = formatter
         self.classes = classes
@@ -36,7 +36,6 @@ class HTMLFormatter(TableFormatter):
         self.bold_rows = self.fmt.kwds.get('bold_rows', False)
         self.escape = self.fmt.kwds.get('escape', True)
         self.show_dimensions = self.fmt.show_dimensions
-        self.notebook = notebook
         if border is None:
             border = get_option('display.html.border')
         self.border = border
@@ -137,48 +136,7 @@ class HTMLFormatter(TableFormatter):
         indent -= indent_delta
         self.write('</tr>', indent)
 
-    def write_style(self):
-        # We use the "scoped" attribute here so that the desired
-        # style properties for the data frame are not then applied
-        # throughout the entire notebook.
-        template_first = """\
-            <style scoped>"""
-        template_last = """\
-            </style>"""
-        template_select = """\
-                .dataframe %s {
-                    %s: %s;
-                }"""
-        element_props = [('tbody tr th:only-of-type',
-                          'vertical-align',
-                          'middle'),
-                         ('tbody tr th',
-                          'vertical-align',
-                          'top')]
-        if isinstance(self.columns, ABCMultiIndex):
-            element_props.append(('thead tr th',
-                                  'text-align',
-                                  'left'))
-            if self.show_row_idx_names:
-                element_props.append(('thead tr:last-of-type th',
-                                      'text-align',
-                                      'right'))
-        else:
-            element_props.append(('thead th',
-                                  'text-align',
-                                  'right'))
-        template_mid = '\n\n'.join(map(lambda t: template_select % t,
-                                       element_props))
-        template = dedent('\n'.join((template_first,
-                                     template_mid,
-                                     template_last)))
-        self.write(template)
-
     def write_result(self, buf):
-        if self.notebook:
-            self.write('<div>')
-            self.write_style()
-
         self._write_table()
 
         if self.should_show_dimensions:
@@ -187,9 +145,6 @@ class HTMLFormatter(TableFormatter):
                        .format(rows=len(self.frame),
                                by=by,
                                cols=len(self.frame.columns)))
-
-        if self.notebook:
-            self.write('</div>')
 
         buffer_put_lines(buf, self.elements)
 
@@ -516,3 +471,51 @@ class HTMLFormatter(TableFormatter):
                     row.insert(self.row_levels + self.fmt.tr_col_num, '...')
                 self.write_tr(row, indent, self.indent_delta, tags=None,
                               nindex_levels=frame.index.nlevels)
+
+
+class NotebookFormatter(HTMLFormatter):
+
+    def write_style(self):
+        # We use the "scoped" attribute here so that the desired
+        # style properties for the data frame are not then applied
+        # throughout the entire notebook.
+        template_first = """\
+            <style scoped>"""
+        template_last = """\
+            </style>"""
+        template_select = """\
+                .dataframe %s {
+                    %s: %s;
+                }"""
+        element_props = [('tbody tr th:only-of-type',
+                          'vertical-align',
+                          'middle'),
+                         ('tbody tr th',
+                          'vertical-align',
+                          'top')]
+        if isinstance(self.columns, ABCMultiIndex):
+            element_props.append(('thead tr th',
+                                  'text-align',
+                                  'left'))
+            if self.show_row_idx_names:
+                element_props.append(('thead tr:last-of-type th',
+                                      'text-align',
+                                      'right'))
+        else:
+            element_props.append(('thead th',
+                                  'text-align',
+                                  'right'))
+        template_mid = '\n\n'.join(map(lambda t: template_select % t,
+                                       element_props))
+        template = dedent('\n'.join((template_first,
+                                     template_mid,
+                                     template_last)))
+        self.write(template)
+
+    def write_result(self, buf):
+        self.write('<div>')
+        self.write_style()
+        super().write_result(buf)
+        self.write('</div>')
+
+        buffer_put_lines(buf, self.elements)
