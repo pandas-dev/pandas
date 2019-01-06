@@ -240,6 +240,48 @@ class TestDatetimeArray(SharedTests):
         expected = dti - pd.Timedelta(minutes=1)
         tm.assert_index_equal(result, expected)
 
+    def test_array_interface(self, datetime_index):
+        arr = DatetimeArray(datetime_index)
+
+        # default asarray gives the same underlying data (for tz naive)
+        result = np.asarray(arr)
+        expected = arr._data
+        assert result is expected
+        tm.assert_numpy_array_equal(result, expected)
+        result = np.array(arr, copy=False)
+        assert result is expected
+        tm.assert_numpy_array_equal(result, expected)
+
+        # specifying M8[ns] gives the same result as default
+        result = np.asarray(arr, dtype='datetime64[ns]')
+        expected = arr._data
+        assert result is expected
+        tm.assert_numpy_array_equal(result, expected)
+        result = np.array(arr, dtype='datetime64[ns]', copy=False)
+        assert result is expected
+        tm.assert_numpy_array_equal(result, expected)
+        result = np.array(arr, dtype='datetime64[ns]')
+        assert result is not expected
+        tm.assert_numpy_array_equal(result, expected)
+
+        # to object dtype
+        result = np.asarray(arr, dtype=object)
+        expected = np.array(list(arr), dtype=object)
+        tm.assert_numpy_array_equal(result, expected)
+
+        # to other dtype always copies
+        result = np.asarray(arr, dtype='int64')
+        assert result is not arr.asi8
+        assert not np.may_share_memory(arr, result)
+        expected = arr.asi8.copy()
+        tm.assert_numpy_array_equal(result, expected)
+
+        # other dtypes handled by numpy
+        for dtype in ['float64', str]:
+            result = np.asarray(arr, dtype=dtype)
+            expected = np.asarray(arr).astype(dtype)
+            tm.assert_numpy_array_equal(result, expected)
+
     def test_array_object_dtype(self, tz_naive_fixture):
         # GH#23524
         tz = tz_naive_fixture
@@ -255,23 +297,28 @@ class TestDatetimeArray(SharedTests):
         result = np.array(dti, dtype=object)
         tm.assert_numpy_array_equal(result, expected)
 
-    def test_array(self, tz_naive_fixture):
+    def test_array_tz(self, tz_naive_fixture):
         # GH#23524
         tz = tz_naive_fixture
         dti = pd.date_range('2016-01-01', periods=3, tz=tz)
         arr = DatetimeArray(dti)
 
         expected = dti.asi8.view('M8[ns]')
-        result = np.array(arr)
+        result = np.array(arr, dtype='M8[ns]')
+        tm.assert_numpy_array_equal(result, expected)
+
+        result = np.array(arr, dtype='datetime64[ns]')
         tm.assert_numpy_array_equal(result, expected)
 
         # check that we are not making copies when setting copy=False
-        result = np.array(arr, copy=False)
+        result = np.array(arr, dtype='M8[ns]', copy=False)
+        assert result.base is expected.base
+        assert result.base is not None
+        result = np.array(arr, dtype='datetime64[ns]', copy=False)
         assert result.base is expected.base
         assert result.base is not None
 
     def test_array_i8_dtype(self, tz_naive_fixture):
-        # GH#23524
         tz = tz_naive_fixture
         dti = pd.date_range('2016-01-01', periods=3, tz=tz)
         arr = DatetimeArray(dti)
@@ -283,10 +330,10 @@ class TestDatetimeArray(SharedTests):
         result = np.array(arr, dtype=np.int64)
         tm.assert_numpy_array_equal(result, expected)
 
-        # check that we are not making copies when setting copy=False
+        # check that we are still making copies when setting copy=False
         result = np.array(arr, dtype='i8', copy=False)
-        assert result.base is expected.base
-        assert result.base is not None
+        assert result.base is not expected.base
+        assert result.base is None
 
     def test_from_array_keeps_base(self):
         # Ensure that DatetimeArray._data.base isn't lost.
@@ -470,6 +517,48 @@ class TestTimedeltaArray(SharedTests):
 
         tm.assert_numpy_array_equal(result, expected)
 
+    def test_array_interface(self, timedelta_index):
+        arr = TimedeltaArray(timedelta_index)
+
+        # default asarray gives the same underlying data
+        result = np.asarray(arr)
+        expected = arr._data
+        assert result is expected
+        tm.assert_numpy_array_equal(result, expected)
+        result = np.array(arr, copy=False)
+        assert result is expected
+        tm.assert_numpy_array_equal(result, expected)
+
+        # specifying m8[ns] gives the same result as default
+        result = np.asarray(arr, dtype='timedelta64[ns]')
+        expected = arr._data
+        assert result is expected
+        tm.assert_numpy_array_equal(result, expected)
+        result = np.array(arr, dtype='timedelta64[ns]', copy=False)
+        assert result is expected
+        tm.assert_numpy_array_equal(result, expected)
+        result = np.array(arr, dtype='timedelta64[ns]')
+        assert result is not expected
+        tm.assert_numpy_array_equal(result, expected)
+
+        # to object dtype
+        result = np.asarray(arr, dtype=object)
+        expected = np.array(list(arr), dtype=object)
+        tm.assert_numpy_array_equal(result, expected)
+
+        # to other dtype always copies
+        result = np.asarray(arr, dtype='int64')
+        assert result is not arr.asi8
+        assert not np.may_share_memory(arr, result)
+        expected = arr.asi8.copy()
+        tm.assert_numpy_array_equal(result, expected)
+
+        # other dtypes handled by numpy
+        for dtype in ['float64', str]:
+            result = np.asarray(arr, dtype=dtype)
+            expected = np.asarray(arr).astype(dtype)
+            tm.assert_numpy_array_equal(result, expected)
+
     def test_take_fill_valid(self, timedelta_index):
         tdi = timedelta_index
         arr = TimedeltaArray(tdi)
@@ -542,4 +631,27 @@ class TestPeriodArray(SharedTests):
         result = getattr(arr, propname)
         expected = np.array(getattr(pi, propname))
 
+        tm.assert_numpy_array_equal(result, expected)
+
+    def test_array_interface(self, period_index):
+        arr = PeriodArray(period_index)
+
+        # default asarray gives objects
+        result = np.asarray(arr)
+        expected = np.array(list(arr), dtype=object)
+        tm.assert_numpy_array_equal(result, expected)
+
+        # to object dtype (same as default)
+        result = np.asarray(arr, dtype=object)
+        tm.assert_numpy_array_equal(result, expected)
+
+        # to other dtypes
+        with pytest.raises(TypeError):
+            np.asarray(arr, dtype='int64')
+
+        with pytest.raises(TypeError):
+            np.asarray(arr, dtype='float64')
+
+        result = np.asarray(arr, dtype='S20')
+        expected = np.asarray(arr).astype('S20')
         tm.assert_numpy_array_equal(result, expected)

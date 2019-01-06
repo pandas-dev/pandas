@@ -17,7 +17,7 @@ from pandas.util._decorators import Appender
 
 from pandas.core.dtypes.common import (
     _NS_DTYPE, _TD_DTYPE, ensure_int64, is_datetime64_dtype, is_float_dtype,
-    is_int64_dtype, is_integer_dtype, is_list_like, is_object_dtype, is_scalar,
+    is_integer_dtype, is_list_like, is_object_dtype, is_scalar,
     is_string_dtype, is_timedelta64_dtype, is_timedelta64_ns_dtype,
     pandas_dtype)
 from pandas.core.dtypes.dtypes import DatetimeTZDtype
@@ -65,6 +65,9 @@ def _td_array_cmp(cls, op):
     nat_result = True if opname == '__ne__' else False
 
     def wrapper(self, other):
+        if isinstance(other, (ABCDataFrame, ABCSeries, ABCIndexClass)):
+            return NotImplemented
+
         if _is_convertible_to_td(other) or other is NaT:
             try:
                 other = Timedelta(other)
@@ -265,16 +268,6 @@ class TimedeltaArray(dtl.DatetimeLikeArrayMixin, dtl.TimelikeOps):
 
     # ----------------------------------------------------------------
     # Array-Like / EA-Interface Methods
-
-    def __array__(self, dtype=None):
-        # TODO(https://github.com/pandas-dev/pandas/pull/23593)
-        # Maybe push to parent once datetimetz __array__ is figured out.
-        if is_object_dtype(dtype):
-            return np.array(list(self), dtype=object)
-        elif is_int64_dtype(dtype):
-            return self.asi8
-
-        return self._data
 
     @Appender(dtl.DatetimeLikeArrayMixin._validate_fill_value.__doc__)
     def _validate_fill_value(self, fill_value):

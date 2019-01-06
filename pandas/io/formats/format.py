@@ -778,7 +778,7 @@ class DataFrameFormatter(TableFormatter):
                            for i, (col, x) in enumerate(zip(columns,
                                                             fmt_columns))]
 
-        if self.show_index_names and self.has_index_names:
+        if self.show_row_idx_names:
             for x in str_columns:
                 x.append('')
 
@@ -793,22 +793,33 @@ class DataFrameFormatter(TableFormatter):
     def has_column_names(self):
         return _has_names(self.frame.columns)
 
+    @property
+    def show_row_idx_names(self):
+        return all((self.has_index_names,
+                    self.index,
+                    self.show_index_names))
+
+    @property
+    def show_col_idx_names(self):
+        return all((self.has_column_names,
+                    self.show_index_names,
+                    self.header))
+
     def _get_formatted_index(self, frame):
         # Note: this is only used by to_string() and to_latex(), not by
         # to_html().
         index = frame.index
         columns = frame.columns
-
-        show_index_names = self.show_index_names and self.has_index_names
-        show_col_names = (self.show_index_names and self.has_column_names)
-
         fmt = self._get_formatter('__index__')
 
         if isinstance(index, ABCMultiIndex):
-            fmt_index = index.format(sparsify=self.sparsify, adjoin=False,
-                                     names=show_index_names, formatter=fmt)
+            fmt_index = index.format(
+                sparsify=self.sparsify, adjoin=False,
+                names=self.show_row_idx_names, formatter=fmt)
         else:
-            fmt_index = [index.format(name=show_index_names, formatter=fmt)]
+            fmt_index = [index.format(
+                name=self.show_row_idx_names, formatter=fmt)]
+
         fmt_index = [tuple(_make_fixed_width(list(x), justify='left',
                                              minimum=(self.col_space or 0),
                                              adj=self.adj)) for x in fmt_index]
@@ -816,7 +827,7 @@ class DataFrameFormatter(TableFormatter):
         adjoined = self.adj.adjoin(1, *fmt_index).split('\n')
 
         # empty space for columns
-        if show_col_names:
+        if self.show_col_idx_names:
             col_header = ['{x}'.format(x=x)
                           for x in self._get_column_name_list()]
         else:
