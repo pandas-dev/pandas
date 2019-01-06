@@ -936,3 +936,36 @@ def test_unstack_fill_frame_object():
         index=list('xyz')
     )
     assert_frame_equal(result, expected)
+
+
+def test_unstack_timezone_aware_values():
+    # GH 18338
+    df = pd.DataFrame({
+        'timestamp': [
+            pd.Timestamp('2017-08-27 01:00:00.709949+0000', tz='UTC')],
+        'a': ['a'],
+        'b': ['b'],
+        'c': ['c'],
+    }, columns=['timestamp', 'a', 'b', 'c'])
+    result = df.set_index(['a', 'b']).unstack()
+    expected = pd.DataFrame([[pd.Timestamp('2017-08-27 01:00:00.709949+0000',
+                                           tz='UTC'),
+                              'c']],
+                            index=pd.Index(['a'], name='a'),
+                            columns=pd.MultiIndex(
+                                levels=[['timestamp', 'c'], ['b']],
+                                codes=[[0, 1], [0, 0]],
+                                names=[None, 'b']))
+    assert_frame_equal(result, expected)
+
+
+def test_stack_timezone_aware_values():
+    # GH 19420
+    ts = pd.date_range(freq="D", start="20180101", end="20180103",
+                       tz="America/New_York")
+    df = pd.DataFrame({"A": ts}, index=["a", "b", "c"])
+    result = df.stack()
+    expected = pd.Series(ts,
+                         index=pd.MultiIndex(levels=[['a', 'b', 'c'], ['A']],
+                                             codes=[[0, 1, 2], [0, 0, 0]]))
+    assert_series_equal(result, expected)
