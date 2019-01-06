@@ -195,7 +195,7 @@ Methods
 
 A collection of timedeltas may be stored in a :class:`TimedeltaArray`.
 
-.. autosumarry::
+.. autosummary::
    :toctree: generated/
 
    arrays.TimedeltaArray
