@@ -14,10 +14,10 @@ from pandas.errors import PerformanceWarning
 from pandas.util._decorators import Appender
 
 from pandas.core.dtypes.common import (
-    _INT64_DTYPE, _NS_DTYPE, is_bool_dtype, is_categorical_dtype,
-    is_datetime64_dtype, is_datetime64_ns_dtype, is_datetime64tz_dtype,
-    is_dtype_equal, is_extension_type, is_float_dtype, is_object_dtype,
-    is_period_dtype, is_string_dtype, is_timedelta64_dtype, pandas_dtype)
+    _INT64_DTYPE, _NS_DTYPE, is_categorical_dtype, is_datetime64_dtype,
+    is_datetime64_ns_dtype, is_datetime64tz_dtype, is_dtype_equal,
+    is_extension_type, is_float_dtype, is_object_dtype, is_period_dtype,
+    is_string_dtype, is_timedelta64_dtype, pandas_dtype)
 from pandas.core.dtypes.dtypes import DatetimeTZDtype
 from pandas.core.dtypes.generic import (
     ABCDataFrame, ABCIndexClass, ABCPandasArray, ABCSeries)
@@ -248,6 +248,11 @@ class DatetimeArray(dtl.DatetimeLikeArrayMixin,
                 "Unexpected type '{vals}'. 'values' must be a DatetimeArray "
                 "ndarray, or Series or Index containing one of those."
                 .format(vals=type(values).__name__))
+
+        if values.dtype == np.bool_:
+            raise ValueError(
+                "The dtype of 'values' is incorrect. Must be 'datetime64[ns]'."
+                " Got {dtype} instead."  .format(dtype=values.dtype))
 
         arr = type(self)._from_sequence(values, dtype=dtype,
                                         freq=freq, copy=copy)
@@ -1803,11 +1808,6 @@ def maybe_convert_dtype(data, copy):
                       "raise a TypeError in a future version",
                       FutureWarning, stacklevel=5)
         data = data.view(_NS_DTYPE)
-
-    elif is_bool_dtype(data):
-        raise TypeError("The dtype of 'data' is incorrect. Must be "
-                        "'datetime64[ns]'. Got {dtype} instead."
-                        .format(dtype=data.dtype))
 
     elif is_period_dtype(data):
         # Note: without explicitly raising here, PeriodIndex
