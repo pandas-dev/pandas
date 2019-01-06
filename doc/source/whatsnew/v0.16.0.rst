@@ -51,7 +51,7 @@ to be inserted (for example, a ``Series`` or NumPy array), or a function
 of one argument to be called on the ``DataFrame``. The new values are inserted,
 and the entire DataFrame (with all original and new columns) is returned.
 
-.. ipython :: python
+.. ipython:: python
 
    iris = pd.read_csv('data/iris.data')
    iris.head()
@@ -61,10 +61,10 @@ and the entire DataFrame (with all original and new columns) is returned.
 Above was an example of inserting a precomputed value. We can also pass in
 a function to be evaluated.
 
-.. ipython :: python
+.. ipython:: python
 
-    iris.assign(sepal_ratio = lambda x: (x['SepalWidth'] /
-                                         x['SepalLength'])).head()
+    iris.assign(sepal_ratio=lambda x: (x['SepalWidth']
+                                       / x['SepalLength'])).head()
 
 The power of ``assign`` comes when used in chains of operations. For example,
 we can limit the DataFrame to just those with a Sepal Length greater than 5,

@@ -578,7 +578,7 @@ Duplicate names parsing
 If the file or header contains duplicate names, pandas will by default
 distinguish between them so as to prevent overwriting data:
 
-.. ipython :: python
+.. ipython:: python
 
    data = ('a,b,a\n'
            '0,1,2\n'
@@ -590,7 +590,7 @@ which modifies a series of duplicate columns 'X', ..., 'X' to become
 'X', 'X.1', ..., 'X.N'.  If ``mangle_dupe_cols=False``, duplicate data can
 arise:
 
-.. code-block :: python
+.. code-block:: ipython
 
    In [2]: data = 'a,b,a\n0,1,2\n3,4,5'
    In [3]: pd.read_csv(StringIO(data), mangle_dupe_cols=False)
@@ -602,7 +602,7 @@ arise:
 To prevent users from encountering this problem with duplicate data, a ``ValueError``
 exception is raised if ``mangle_dupe_cols != True``:
 
-.. code-block :: python
+.. code-block:: ipython
 
    In [2]: data = 'a,b,a\n0,1,2\n3,4,5'
    In [3]: pd.read_csv(StringIO(data), mangle_dupe_cols=False)

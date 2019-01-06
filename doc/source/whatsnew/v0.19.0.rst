@@ -1160,7 +1160,7 @@ from ``n`` for the second, and so on, so that, when concatenated, they are ident
 the result of calling :func:`read_csv` without the ``chunksize=`` argument
 (:issue:`12185`).
 
-.. ipython :: python
+.. ipython:: python
 
    data = 'A,B\n0,1\n2,3\n4,5\n6,7'
 
@@ -1178,7 +1178,7 @@ the result of calling :func:`read_csv` without the ``chunksize=`` argument
 
 **New behavior**:
 
-.. ipython :: python
+.. ipython:: python
 
    pd.concat(pd.read_csv(StringIO(data), chunksize=2))
 

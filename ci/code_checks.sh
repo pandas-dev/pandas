@@ -162,6 +162,14 @@ if [[ -z "$CHECK" || "$CHECK" == "patterns" ]]; then
     # invgrep -R --include '*.py' -E '[[:space:]] pytest.raises' pandas/tests
     # RET=$(($RET + $?)) ; echo $MSG "DONE"
 
+    MSG='Check for wrong space after code-block directive and before colon (".. code-block ::" instead of ".. code-block::")' ; echo $MSG
+    invgrep -R --include="*.rst" ".. code-block ::" doc/source
+    RET=$(($RET + $?)) ; echo $MSG "DONE"
+
+    MSG='Check for wrong space after ipython directive and before colon (".. ipython ::" instead of ".. ipython::")' ; echo $MSG
+    invgrep -R --include="*.rst" ".. ipython ::" doc/source
+    RET=$(($RET + $?)) ; echo $MSG "DONE"
+
     MSG='Check that no file in the repo contains tailing whitespaces' ; echo $MSG
     set -o pipefail
     if [[ "$AZURE" == "true" ]]; then
