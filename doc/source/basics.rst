@@ -76,7 +76,7 @@ The exact details of what an :class:`~pandas.api.extensions.ExtensionArray` is a
 beyond the scope of this introduction. See :ref:`basics.dtypes` for more.
 
 If you know you need a NumPy array, use :meth:`~Series.to_numpy`
-or :meth:`np.asarray`.
+or :meth:`numpy.ndarray.asarray`.
 
 .. ipython:: python
 
@@ -88,13 +88,13 @@ an :class:`~pandas.api.extensions.ExtensionArray`, :meth:`~Series.to_numpy`
 may involve copying data and coercing values. See :ref:`basics.dtypes` for more.
 
 :meth:`~Series.to_numpy` gives some control over the ``dtype`` of the
-resulting :class:`ndarray`. For example, consider datetimes with timezones.
+resulting :class:`numpy.ndarray`. For example, consider datetimes with timezones.
 NumPy doesn't have a dtype to represent timezone-aware datetimes, so there
 are two possibly useful representations:
 
-1. An object-dtype :class:`np.ndarray` with :class:`Timestamp` objects, each
+1. An object-dtype :class:`numpy.ndarray` with :class:`Timestamp` objects, each
    with the correct ``tz``
-2. A ``datetime64[ns]`` -dtype :class:`np.ndarray`, where the values have
+2. A ``datetime64[ns]`` -dtype :class:`numpy.ndarray`, where the values have
    been converted to UTC and the timezone discarded
 
 Timezones may be preserved with ``dtype=object``
