@@ -129,7 +129,7 @@ echo "Show environment"
 conda list
 
 # Install DB for Linux
-if [ "${TRAVIS_OS_NAME}" != "linux" ]; then
+if [ "$UNAME_OS" != "linux" ]; then
    echo "not using dbs on non-linux"
 else
    echo "installing dbs"
@@ -140,7 +140,7 @@ fi
 echo
 echo "Setup virtual framebuffer"
 export DISPLAY=":99."
-if [ "${TRAVIS_OS_NAME}" == "linux" ]; then
+if [ "$UNAME_OS" == "linux" ]; then
    sh -e /etc/init.d/xvfb start
    sleep 3
 fi
