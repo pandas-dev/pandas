@@ -1017,6 +1017,11 @@ class _Rolling_and_Expanding(_Rolling):
 
     _shared_docs['max'] = dedent("""
     Calculate the %(name)s maximum.
+
+    Parameters
+    ----------
+    *args, **kwargs :
+        Arguments and keyword arguments to be passed into func.
     """)
 
     def max(self, *args, **kwargs):
