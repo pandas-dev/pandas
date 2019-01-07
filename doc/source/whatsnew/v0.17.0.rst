@@ -984,9 +984,9 @@ Removal of prior version deprecations/changes
   .. ipython:: python
 
      np.random.seed(1234)
-     df = DataFrame(np.random.randn(5, 2),
-                    columns=list('AB'),
-                    index=date_range('20130101', periods=5))
+     df = pd.DataFrame(np.random.randn(5, 2),
+                       columns=list('AB'),
+                       index=date_range('20130101', periods=5))
      df
 
   Previously
