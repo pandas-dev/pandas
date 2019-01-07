@@ -9224,9 +9224,8 @@ class NDFrame(PandasObject, SelectionMixin):
             if level not in (None, 0, ax.name):
                 raise ValueError("The level {0} is not valid".format(level))
             ax = _tz_convert(ax, tz)
-
         result = self._constructor(self._data, copy=copy)
-        result.set_axis(ax, axis=axis, inplace=True)
+        result = result.set_axis(ax, axis=axis, inplace=False)
         return result.__finalize__(self)
 
     def tz_localize(self, tz, axis=0, level=None, copy=True,
@@ -9390,7 +9389,7 @@ class NDFrame(PandasObject, SelectionMixin):
             ax = _tz_localize(ax, tz, ambiguous, nonexistent)
 
         result = self._constructor(self._data, copy=copy)
-        result.set_axis(ax, axis=axis, inplace=True)
+        result = result.set_axis(ax, axis=axis, inplace=False)
         return result.__finalize__(self)
 
     # ----------------------------------------------------------------------
