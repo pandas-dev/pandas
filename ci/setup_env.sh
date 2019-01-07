@@ -129,7 +129,7 @@ echo "Show environment"
 conda list
 
 # Install DB for Linux
-if [ "$UNAME_OS" != "Linux" ]; then
+if [ ${TRAVIS_OS_NAME} != "linux" ]; then
    echo "not using dbs on non-linux"
 else
    echo "installing dbs"
