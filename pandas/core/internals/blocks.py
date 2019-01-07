@@ -2352,7 +2352,7 @@ class DatetimeTZBlock(ExtensionBlock, DatetimeBlock):
             raise TypeError
         elif is_datetime64_dtype(other):
             # add the tz back
-            other = self._holder(other.ravel(), dtype=self.dtype)
+            other = self._holder(other, dtype=self.dtype)
 
         elif is_null_datetimelike(other):
             other = tslibs.iNaT

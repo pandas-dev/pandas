@@ -16,7 +16,68 @@ import pandas.util.testing as tm
 
 
 class TestDatetimeArrayConstructor(object):
+
+    @pytest.mark.parametrize('tz', [None, 'Asia/Singapore'])
+    def test_constructor_equivalence(self, tz):
+        # GH#24623 check that DatetimeArray.__init__ behavior matches:
+        #   Timestamp.__new__             for int64
+        #   DatetimeArray._from_sequence  for int64, datetime64[ns]
+        #   DatetimeArray._simple_new     for int64
+        #   DatetimeIndex.__new__         for int64, datetime64[ns]
+        #   DatetimeIndex._simple_new     for int64, datetime64[ns]
+        #
+        # and that DatetimeArray._simple_new behaves like
+        #  DatetimeIndex._simple_new for both int64 and datetime64[ns] inputs
+        arr = np.random.randint(-10**9, 10**9, size=5, dtype=np.int64)
+        dti = pd.date_range('1960-01-01', periods=1, tz=tz)
+
+        v1 = DatetimeArray._simple_new(arr.view('i8'), dtype=dti.dtype)
+        v2 = DatetimeArray(arr.view('i8'), dtype=dti.dtype)
+        v3 = DatetimeArray._from_sequence(arr.view('i8'), dtype=dti.dtype)
+        v4 = pd.DatetimeIndex._simple_new(arr.view('i8'), tz=dti.tz)
+        v5 = pd.DatetimeIndex(arr.view('i8'), tz=dti.tz)
+        v6 = pd.to_datetime(arr, utc=True).tz_convert(dti.tz)
+
+        # when dealing with _simple_new, i8 and M8[ns] are interchangeable
+        v7 = DatetimeArray._simple_new(arr.view('M8[ns]'), dtype=dti.dtype)
+        v8 = pd.DatetimeIndex._simple_new(arr.view('M8[ns]'), dtype=dti.dtype)
+
+        tm.assert_datetime_array_equal(v1, v2)
+        tm.assert_datetime_array_equal(v1, v3)
+        tm.assert_datetime_array_equal(v1, v4._data)
+        tm.assert_datetime_array_equal(v1, v5._data)
+        tm.assert_datetime_array_equal(v1, v6._data)
+        tm.assert_datetime_array_equal(v1, v7)
+        tm.assert_datetime_array_equal(v1, v8._data)
+
+        expected = [pd.Timestamp(i8, tz=dti.tz) for i8 in arr]
+        assert list(v1) == expected
+
+        # The guarantees for datetime64 data are fewer
+        dt64arr = arr.view('datetime64[ns]')
+        v1 = DatetimeArray(dt64arr, dtype=dti.dtype)
+        v2 = DatetimeArray._from_sequence(dt64arr, dtype=dti.dtype)
+        v3 = DatetimeArray._from_sequence(dt64arr, tz=dti.tz)
+        v4 = pd.DatetimeIndex(dt64arr, dtype=dti.dtype)
+        v5 = pd.DatetimeIndex(dt64arr, tz=dti.tz)
+
+        tm.assert_datetime_array_equal(v1, v2)
+        tm.assert_datetime_array_equal(v1, v3)
+        tm.assert_datetime_array_equal(v1, v4._data)
+        tm.assert_datetime_array_equal(v1, v5._data)
+
+    def test_freq_validation(self):
+        # GH#24623 check that invalid instances cannot be created with the
+        #  public constructor
+        arr = pd.array(np.arange(5, dtype=np.int64)) * 3600 * 10**9
+
+        msg = ("Inferred frequency H from passed values does not "
+               "conform to passed frequency W-SUN")
+        with pytest.raises(ValueError, match=msg):
+            DatetimeArray(arr, freq="W")
+
     def test_from_pandas_array(self):
+        # GH#24623, GH#24615
         arr = pd.array(np.arange(5, dtype=np.int64)) * 3600 * 10**9
 
         result = DatetimeArray._from_sequence(arr, freq='infer')

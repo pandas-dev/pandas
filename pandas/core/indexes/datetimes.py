@@ -321,13 +321,13 @@ class DatetimeIndex(DatetimeIndexOpsMixin, Int64Index, DatetimeDelegateMixin):
             values = DatetimeArray(values, freq=freq, dtype=dtype)
             tz = values.tz
             freq = values.freq
-            values = values._data.view('i8')
+            values = values._data
+        else:
+            tz = tz or getattr(dtype, 'tz', None)
 
         # DatetimeArray._simple_new will accept either i8 or M8[ns] dtypes
-        if isinstance(values, DatetimeIndex):
-            values = values._data
+        assert isinstance(values, np.ndarray)
         dtarr = DatetimeArray._simple_new(values, freq=freq, tz=tz)
-        assert isinstance(dtarr, DatetimeArray)
 
         result = object.__new__(cls)
         result._data = dtarr
