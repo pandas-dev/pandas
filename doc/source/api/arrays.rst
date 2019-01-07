@@ -195,7 +195,7 @@ Methods
 
 A collection of timedeltas may be stored in a :class:`TimedeltaArray`.
 
-.. autosumarry::
+.. autosummary::
    :toctree: generated/
 
    arrays.TimedeltaArray
@@ -330,13 +330,13 @@ a :class:`pandas.api.types.CategoricalDtype`.
    :toctree: generated/
    :template: autosummary/class_without_autosummary.rst
 
-   api.types.CategoricalDtype
+   CategoricalDtype
 
 .. autosummary::
    :toctree: generated/
 
-   api.types.CategoricalDtype.categories
-   api.types.CategoricalDtype.ordered
+   CategoricalDtype.categories
+   CategoricalDtype.ordered
 
 Categorical data can be stored in a :class:`pandas.Categorical`
 

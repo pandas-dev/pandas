@@ -1,13 +1,14 @@
 # -*- coding: utf-8 -*-
 
 from datetime import datetime
+from decimal import Decimal
 from warnings import catch_warnings, filterwarnings, simplefilter
 
 import numpy as np
 import pytest
 
 from pandas._libs import missing as libmissing
-from pandas._libs.tslib import iNaT
+from pandas._libs.tslibs import iNaT, is_null_datetimelike
 from pandas.compat import u
 
 from pandas.core.dtypes.common import is_scalar
@@ -392,3 +393,106 @@ class TestNAObj(object):
         expected = np.array([True])
 
         self._check_behavior(arr, expected)
+
+
+m8_units = ['as', 'ps', 'ns', 'us', 'ms', 's',
+            'm', 'h', 'D', 'W', 'M', 'Y']
+
+na_vals = [
+    None,
+    NaT,
+    float('NaN'),
+    complex('NaN'),
+    np.nan,
+    np.float64('NaN'),
+    np.float32('NaN'),
+    np.complex64(np.nan),
+    np.complex128(np.nan),
+    np.datetime64('NaT'),
+    np.timedelta64('NaT'),
+] + [
+    np.datetime64('NaT', unit) for unit in m8_units
+] + [
+    np.timedelta64('NaT', unit) for unit in m8_units
+]
+
+inf_vals = [
+    float('inf'),
+    float('-inf'),
+    complex('inf'),
+    complex('-inf'),
+    np.inf,
+    np.NINF,
+]
+
+int_na_vals = [
+    # Values that match iNaT, which we treat as null in specific cases
+    np.int64(NaT.value),
+    int(NaT.value),
+]
+
+sometimes_na_vals = [
+    Decimal('NaN'),
+]
+
+never_na_vals = [
+    # float/complex values that when viewed as int64 match iNaT
+    -0.0,
+    np.float64('-0.0'),
+    -0j,
+    np.complex64(-0j),
+]
+
+
+class TestLibMissing(object):
+    def test_checknull(self):
+        for value in na_vals:
+            assert libmissing.checknull(value)
+
+        for value in inf_vals:
+            assert not libmissing.checknull(value)
+
+        for value in int_na_vals:
+            assert not libmissing.checknull(value)
+
+        for value in sometimes_na_vals:
+            assert not libmissing.checknull(value)
+
+        for value in never_na_vals:
+            assert not libmissing.checknull(value)
+
+    def checknull_old(self):
+        for value in na_vals:
+            assert libmissing.checknull_old(value)
+
+        for value in inf_vals:
+            assert libmissing.checknull_old(value)
+
+        for value in int_na_vals:
+            assert not libmissing.checknull_old(value)
+
+        for value in sometimes_na_vals:
+            assert not libmissing.checknull_old(value)
+
+        for value in never_na_vals:
+            assert not libmissing.checknull_old(value)
+
+    def test_is_null_datetimelike(self):
+        for value in na_vals:
+            assert is_null_datetimelike(value)
+            assert is_null_datetimelike(value, False)
+
+        for value in inf_vals:
+            assert not is_null_datetimelike(value)
+            assert not is_null_datetimelike(value, False)
+
+        for value in int_na_vals:
+            assert is_null_datetimelike(value)
+            assert not is_null_datetimelike(value, False)
+
+        for value in sometimes_na_vals:
+            assert not is_null_datetimelike(value)
+            assert not is_null_datetimelike(value, False)
+
+        for value in never_na_vals:
+            assert not is_null_datetimelike(value)

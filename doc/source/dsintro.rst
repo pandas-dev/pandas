@@ -115,7 +115,7 @@ Series is ndarray-like
 ``Series`` acts very similarly to a ``ndarray``, and is a valid argument to most NumPy functions.
 However, operations such as slicing will also slice the index.
 
-.. ipython :: python
+.. ipython:: python
 
     s[0]
     s[:3]
@@ -171,7 +171,7 @@ Series is dict-like
 A Series is like a fixed-size dict in that you can get and set values by index
 label:
 
-.. ipython :: python
+.. ipython:: python
 
     s['a']
     s['e'] = 12.
