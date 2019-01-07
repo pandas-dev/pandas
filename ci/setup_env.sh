@@ -50,6 +50,8 @@ wget -q "https://repo.continuum.io/miniconda/Miniconda3-latest-$CONDA_OS.sh" -O 
 chmod +x miniconda.sh
 ./miniconda.sh -b
 
+export PATH=$HOME/miniconda3/bin:$PATH
+
 echo
 echo "which conda"
 which conda
@@ -97,7 +99,7 @@ conda list
 #  `conda env remove` issue)
 conda remove --all -q -y -n pandas-dev
 
-echo
+echo ${ENV_FILE}
 echo "conda env create -q --file=${ENV_FILE}"
 time conda env create -q --file="${ENV_FILE}"
 
