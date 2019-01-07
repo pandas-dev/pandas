@@ -18,50 +18,49 @@ function edit_init()
 
 edit_init
 
-home_dir=$(pwd)
+HOME_DIR=$(pwd)
 echo
-echo "home_dir: $home_dir"
+echo "HOME_DIR: $HOME_DIR"
 
-# install miniconda
 MINICONDA_DIR="$HOME/miniconda3"
 
-echo
-echo "Using clean Miniconda install"
 
 if [ -d "$MINICONDA_DIR" ]; then
+    echo
+    echo "Using clean Miniconda install"
     rm -rf "$MINICONDA_DIR"
 fi
 
 echo "Install Miniconda"
-unamestr=`uname`
-if [[ "$unamestr" == 'Linux' ]]; then
+UNAME_OS=$(uname)
+if [[ "$UNAME_OS" == 'Linux' ]]; then
     if [[ "$BITS32" == "yes" ]]; then
-        conda_dist="Linux-x86.sh"
+        CONDA_OS="Linux-x86"
     else
-        conda_dist="Linux-x86_64.sh"
+        CONDA_OS="Linux-x86_64"
     fi
-elif [[ "$unamestr" == 'Darwin' ]]; then
-    conda_dist="MacOSX-x86_64.sh"
+elif [[ "$UNAME_OS" == 'Darwin' ]]; then
+    CONDA_OS="MacOSX-x86_64"
 else
-  echo "OS $unamestr not supported"
+  echo "OS $UNAME_OS not supported"
   exit 1
 fi
 
-wget -q "https://repo.continuum.io/miniconda/Miniconda3-latest-$conda_dist" -O miniconda.sh
+wget -q "https://repo.continuum.io/miniconda/Miniconda3-latest-$CONDA_OS.sh" -O miniconda.sh
 chmod +x miniconda.sh
 ./miniconda.sh -b
 
 echo
-echo "Show conda"
+echo "which conda"
 which conda
 
 echo
 echo "Update conda"
 conda config --set ssl_verify false
 conda config --set quiet true --set always_yes true --set changeps1 false
-conda update -q conda
+conda update -n base conda
 
-# Useful for debugging any issues with conda
+echo "conda info -a"
 conda info -a
 
 echo
@@ -69,10 +68,10 @@ echo "set the compiler cache to work"
 if [ -z "$NOCACHE" ] && [ "${TRAVIS_OS_NAME}" == "linux" ]; then
     echo "Using ccache"
     export PATH=/usr/lib/ccache:/usr/lib64/ccache:$PATH
-    gcc=$(which gcc)
-    echo "gcc: $gcc"
-    ccache=$(which ccache)
-    echo "ccache: $ccache"
+    GCC=$(which gcc)
+    echo "gcc: $GCC"
+    CCACHE=$(which ccache)
+    echo "ccache: $CCACHE"
     export CC='ccache gcc'
 elif [ -z "$NOCACHE" ] && [ "${TRAVIS_OS_NAME}" == "osx" ]; then
     echo "Install ccache"
@@ -81,8 +80,8 @@ elif [ -z "$NOCACHE" ] && [ "${TRAVIS_OS_NAME}" == "osx" ]; then
     export PATH=/usr/local/opt/ccache/libexec:$PATH
     gcc=$(which gcc)
     echo "gcc: $gcc"
-    ccache=$(which ccache)
-    echo "ccache: $ccache"
+    CCACHE=$(which ccache)
+    echo "ccache: $CCACHE"
 else
     echo "Not using ccache"
 fi
@@ -98,9 +97,8 @@ conda list
 #  `conda env remove` issue)
 conda remove --all -q -y -n pandas-dev
 
-# create our environment
 echo
-echo "Create environment"
+echo "conda env create -q --file=${ENV_FILE}"
 time conda env create -q --file="${ENV_FILE}"
 
 set +v
