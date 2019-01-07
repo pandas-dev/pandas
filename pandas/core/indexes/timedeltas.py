@@ -312,7 +312,7 @@ class TimedeltaIndex(DatetimeIndexOpsMixin, dtl.TimelikeOps, Int64Index,
         result = self._data.__getitem__(key)
         if is_scalar(result):
             return result
-        return type(self)(result, freq=result.freq, name=self.name)
+        return type(self)(result, name=self.name)
 
     # -------------------------------------------------------------------
 
