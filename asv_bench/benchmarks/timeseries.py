@@ -62,7 +62,8 @@ class DatetimeIndex(object):
 
 class TzLocalize(object):
 
-    params = [None, 'US/Eastern', 'UTC', dateutil.tz.tzutc()]
+    params = [None, 'US/Eastern', 'UTC', dateutil.tz.tzutc(),
+              dateutil.tz.tzlocal()]
     param_names = 'tz'
 
     def setup(self, tz):
@@ -394,7 +395,8 @@ class ToDatetimeCache(object):
 
 class DatetimeAccessor(object):
 
-    params = [None, 'US/Eastern', 'UTC', dateutil.tz.tzutc()]
+    params = [None, 'US/Eastern', 'UTC', dateutil.tz.tzutc(),
+              dateutil.tz.tzlocal()]
     param_names = 'tz'
 
     def setup(self, tz):

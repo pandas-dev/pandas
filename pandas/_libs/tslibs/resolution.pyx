@@ -9,7 +9,7 @@ from pandas._libs.tslibs.np_datetime cimport (
     npy_datetimestruct, dt64_to_dtstruct)
 from pandas._libs.tslibs.frequencies cimport get_freq_code
 from pandas._libs.tslibs.timezones cimport (
-    is_utc, is_tzlocal, maybe_get_tz, get_dst_info)
+    is_utc, is_tzlocal, maybe_get_tz, get_dst_info, get_tzlocal_tz)
 from pandas._libs.tslibs.conversion cimport tz_convert_utc_to_tzlocal
 from pandas._libs.tslibs.ccalendar cimport get_days_in_month
 
@@ -49,6 +49,9 @@ cdef _reso_local(int64_t[:] stamps, object tz):
         Py_ssize_t[:] pos
         npy_datetimestruct dts
         int64_t local_val, delta
+
+    if is_tzlocal(tz):
+        tz = get_tzlocal_tz(tz)
 
     if is_utc(tz) or tz is None:
         for i in range(n):

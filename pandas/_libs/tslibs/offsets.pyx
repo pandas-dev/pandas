@@ -17,7 +17,7 @@ cimport numpy as cnp
 from numpy cimport int64_t
 cnp.import_array()
 
-
+cimport pandas._libs.tslibs
 from pandas._libs.tslibs cimport util
 from pandas._libs.tslibs.util cimport is_string_object, is_integer_object
 

@@ -12,11 +12,14 @@ from pytz.tzinfo import BaseTzInfo as _pytz_BaseTzInfo
 import pytz
 UTC = pytz.utc
 
+tzlocal_tz = None
 
 import numpy as np
 cimport numpy as cnp
 from numpy cimport int64_t
 cnp.import_array()
+
+import pandas._libs.src.tzlocal as tzlocal_package
 
 # ----------------------------------------------------------------------
 from pandas._libs.tslibs.util cimport (
@@ -32,6 +35,25 @@ cpdef inline bint is_utc(object tz):
 
 cdef inline bint is_tzlocal(object tz):
     return isinstance(tz, _dateutil_tzlocal)
+
+
+cpdef object get_tzlocal_tz(object tz):
+    global tzlocal_tz
+    if tzlocal_tz is None:
+        local_tz = tzlocal_package.get_localzone()
+        tzlocal_tz = local_tz.zone
+
+    try:
+        return pytz.timezone(tzlocal_tz)
+    except pytz.exceptions.UnknownTimeZoneError:
+        tzlocal_tz = None
+
+    return tz
+
+
+cpdef _set_tzlocal_tz(object tz_str):
+    global tzlocal_tz
+    tzlocal_tz = str(tz_str)
 
 
 cdef inline bint treat_tz_as_pytz(object tz):

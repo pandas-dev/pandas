@@ -33,7 +33,7 @@ from pandas._libs.tslibs.timedeltas cimport (cast_from_unit,
                                              delta_to_nanoseconds)
 from pandas._libs.tslibs.timezones cimport (
     is_utc, is_tzlocal, is_fixed_offset, get_utcoffset, get_dst_info,
-    get_timezone, maybe_get_tz, tz_compare)
+    get_timezone, maybe_get_tz, tz_compare, get_tzlocal_tz)
 from pandas._libs.tslibs.timezones import UTC
 from pandas._libs.tslibs.parsing import parse_datetime_string
 
@@ -541,8 +541,18 @@ cdef inline void localize_tso(_TSObject obj, tzinfo tz):
         int64_t local_val
         Py_ssize_t pos
         str typ
+        bint tz_changed
 
     assert obj.tzinfo is None
+
+    orig_tz = tz
+    tz_changed = False
+
+    if is_tzlocal(tz):
+        new_tz = get_tzlocal_tz(tz)
+        if new_tz != tz:
+            tz_changed = True
+            tz = new_tz
 
     if is_utc(tz):
         pass
@@ -574,7 +584,12 @@ cdef inline void localize_tso(_TSObject obj, tzinfo tz):
             # so this branch will never be reached.
             pass
 
-    obj.tzinfo = tz
+    if tz_changed:
+        # We want to return tzlocal() if provided it, even if we map it
+        # to a real tz for performance reasons
+        obj.tzinfo = orig_tz
+    else:
+        obj.tzinfo = tz
 
 
 cdef inline datetime _localize_pydatetime(datetime dt, tzinfo tz):
@@ -652,6 +667,9 @@ cdef inline int64_t[:] _tz_convert_dst(int64_t[:] values, tzinfo tz,
         bint tz_is_local
 
     tz_is_local = is_tzlocal(tz)
+    if tz_is_local:
+        tz = get_tzlocal_tz(tz)
+        tz_is_local = is_tzlocal(tz)
 
     if not tz_is_local:
         # get_dst_info cannot extract offsets from tzlocal because its
@@ -763,6 +781,11 @@ cpdef int64_t tz_convert_single(int64_t val, object tz1, object tz2):
     if val == NPY_NAT:
         return val
 
+    if is_tzlocal(tz1):
+        tz1 = get_tzlocal_tz(tz1)
+    if is_tzlocal(tz2):
+        tz2 = get_tzlocal_tz(tz2)
+
     # Convert to UTC
     if is_tzlocal(tz1):
         utc_date = _tz_convert_tzlocal_utc(val, tz1, to_utc=True)
@@ -807,10 +830,16 @@ cdef inline int64_t[:] _tz_convert_one_way(int64_t[:] vals, object tz,
         int64_t[:] converted, result
         Py_ssize_t i, n = len(vals)
         int64_t val
+        bint tz_is_local
+
+    tz_is_local = is_tzlocal(tz)
+    if tz_is_local:
+        tz = get_tzlocal_tz(tz)
+        tz_is_local = is_tzlocal(tz)
 
     if not is_utc(get_timezone(tz)):
         converted = np.empty(n, dtype=np.int64)
-        if is_tzlocal(tz):
+        if tz_is_local:
             for i in range(n):
                 val = vals[i]
                 if val == NPY_NAT:
@@ -914,6 +943,9 @@ def tz_localize_to_utc(ndarray[int64_t] vals, object tz, object ambiguous=None,
         return vals
 
     result = np.empty(n, dtype=np.int64)
+
+    if is_tzlocal(tz):
+        tz = get_tzlocal_tz(tz)
 
     if is_tzlocal(tz):
         for i in range(n):
@@ -1223,6 +1255,9 @@ cdef int64_t[:] _normalize_local(int64_t[:] stamps, tzinfo tz):
         int64_t delta, local_val
 
     if is_tzlocal(tz):
+        tz = get_tzlocal_tz(tz)
+
+    if is_tzlocal(tz):
         for i in range(n):
             if stamps[i] == NPY_NAT:
                 result[i] = NPY_NAT
@@ -1300,6 +1335,9 @@ def is_date_array_normalized(int64_t[:] stamps, object tz=None):
         npy_datetimestruct dts
         int64_t local_val, delta
         str typ
+
+    if is_tzlocal(tz):
+        tz = get_tzlocal_tz(tz)
 
     if tz is None or is_utc(tz):
         for i in range(n):

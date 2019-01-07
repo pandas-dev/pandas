@@ -28,7 +28,8 @@ from pandas._libs.tslibs.np_datetime import OutOfBoundsDatetime
 from pandas._libs.tslibs.parsing import parse_datetime_string
 
 from pandas._libs.tslibs.timedeltas cimport cast_from_unit
-from pandas._libs.tslibs.timezones cimport is_utc, is_tzlocal, get_dst_info
+from pandas._libs.tslibs.timezones cimport (is_utc, is_tzlocal, get_dst_info,
+    get_tzlocal_tz)
 from pandas._libs.tslibs.timezones import UTC
 from pandas._libs.tslibs.conversion cimport (
     tz_convert_single, _TSObject, convert_datetime_to_tsobject,
@@ -101,7 +102,8 @@ def ints_to_pydatetime(int64_t[:] arr, object tz=None, object freq=None,
         int64_t[:] deltas
         Py_ssize_t pos
         npy_datetimestruct dts
-        object dt, new_tz
+        object dt, new_tz, orig_tz
+        bint tz_changed
         str typ
         int64_t value, delta, local_value
         ndarray[object] result = np.empty(n, dtype=object)
@@ -123,6 +125,15 @@ def ints_to_pydatetime(int64_t[:] arr, object tz=None, object freq=None,
     else:
         raise ValueError("box must be one of 'datetime', 'date', 'time' or"
                          " 'timestamp'")
+
+    orig_tz = tz
+    tz_changed = False
+
+    if is_tzlocal(tz):
+        new_tz = get_tzlocal_tz(tz)
+        if new_tz != tz:
+            tz_changed = True
+            tz = new_tz
 
     if is_utc(tz) or tz is None:
         for i in range(n):
@@ -184,7 +195,8 @@ def ints_to_pydatetime(int64_t[:] arr, object tz=None, object freq=None,
                     new_tz = tz._tzinfos[tz._transition_info[pos]]
 
                     dt64_to_dtstruct(value + deltas[pos], &dts)
-                    result[i] = func_create(value, dts, new_tz, freq)
+                    tz_to_use = orig_tz if tz_changed else new_tz
+                    result[i] = func_create(value, dts, tz_to_use, freq)
 
     return result
 

@@ -32,7 +32,8 @@ cimport pandas._libs.tslibs.util as util
 from pandas._libs.tslibs.util cimport is_period_object, is_string_object
 
 from pandas._libs.tslibs.timestamps import Timestamp
-from pandas._libs.tslibs.timezones cimport is_utc, is_tzlocal, get_dst_info
+from pandas._libs.tslibs.timezones cimport (is_utc, is_tzlocal, get_dst_info,
+    get_tzlocal_tz)
 from pandas._libs.tslibs.timedeltas import Timedelta
 from pandas._libs.tslibs.timedeltas cimport delta_to_nanoseconds
 
@@ -1505,6 +1506,9 @@ cdef int64_t[:] localize_dt64arr_to_period(int64_t[:] stamps,
         Py_ssize_t[:] pos
         npy_datetimestruct dts
         int64_t local_val
+
+    if is_tzlocal(tz):
+        tz = get_tzlocal_tz(tz)
 
     if is_utc(tz) or tz is None:
         with nogil:

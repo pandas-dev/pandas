@@ -3,6 +3,9 @@
 cpdef bint is_utc(object tz)
 cdef bint is_tzlocal(object tz)
 
+cpdef object get_tzlocal_tz(object tz)
+cpdef _set_tzlocal_tz(object tz)
+
 cdef bint treat_tz_as_pytz(object tz)
 cdef bint treat_tz_as_dateutil(object tz)
 
