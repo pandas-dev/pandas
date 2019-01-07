@@ -966,7 +966,7 @@ class _Rolling_and_Expanding(_Rolling):
         not passed. In the future `raw` will default to False.
 
         .. versionadded:: 0.23.0
-    *args, **kwargs :
+    *args, **kwargs
         Arguments and keyword arguments to be passed into func.
 
     Returns
@@ -1020,7 +1020,7 @@ class _Rolling_and_Expanding(_Rolling):
 
     Parameters
     ----------
-    *args, **kwargs :
+    *args, **kwargs
         Arguments and keyword arguments to be passed into func.
     """)
 
@@ -1249,7 +1249,7 @@ class _Rolling_and_Expanding(_Rolling):
 
     Parameters
     ----------
-    **kwargs :
+    **kwargs
         Keyword arguments to be passed into func.
     """
 
@@ -1383,7 +1383,7 @@ class _Rolling_and_Expanding(_Rolling):
         ddof : int, default 1
             Delta Degrees of Freedom.  The divisor used in calculations
             is ``N - ddof``, where ``N`` represents the number of elements.
-        **kwargs :
+        **kwargs
             Keyword arguments to be passed into func.
     """
 
@@ -2091,7 +2091,7 @@ _bias_template = """
         ----------
         bias : bool, default False
             Use a standard estimation bias correction.
-        *args, **kwargs :
+        *args, **kwargs
             Arguments and keyword arguments to be passed into func.
 """
 
@@ -2110,7 +2110,7 @@ _pairwise_template = """
             observations will be used.
         bias : bool, default False
            Use a standard estimation bias correction.
-        **kwargs :
+        **kwargs
            Keyword arguments to be passed into func.
 """
 
@@ -2318,7 +2318,7 @@ class EWM(_Rolling):
 
         Parameters
         ----------
-        *args, **kwargs :
+        *args, **kwargs
             Arguments and keyword arguments to be passed into func.
         """
         nv.validate_window_func('mean', args, kwargs)
