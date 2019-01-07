@@ -76,7 +76,7 @@ The exact details of what an :class:`~pandas.api.extensions.ExtensionArray` is a
 beyond the scope of this introduction. See :ref:`basics.dtypes` for more.
 
 If you know you need a NumPy array, use :meth:`~Series.to_numpy`
-or :meth:`numpy.ndarray.asarray`.
+or :meth:`numpy.asarray`.
 
 .. ipython:: python
 
