@@ -16,7 +16,11 @@ import pandas.util.testing as tm
 
 
 class TestDatetimeArrayConstructor(object):
-    def test_mixing_naive_tzaware_raises(self):
+    @pytest.mark.parametrize('meth', [DatetimeArray._from_sequence,
+                                      sequence_to_dt64ns,
+                                      pd.to_datetime,
+                                      pd.DatetimeIndex])
+    def test_mixing_naive_tzaware_raises(self, meth):
         # GH#24569
         arr = np.array([pd.Timestamp('2000'), pd.Timestamp('2000', tz='CET')])
 
@@ -27,13 +31,8 @@ class TestDatetimeArrayConstructor(object):
         for obj in [arr, arr[::-1]]:
             # check that we raise regardless of whether naive is found
             #  before aware or vice-versa
-            for meth in [DatetimeArray._from_sequence,
-                         sequence_to_dt64ns,
-                         pd.to_datetime,
-                         pd.DatetimeIndex]:
-
-                with pytest.raises(ValueError, match=msg):
-                    meth(obj)
+            with pytest.raises(ValueError, match=msg):
+                meth(obj)
 
     def test_from_pandas_array(self):
         arr = pd.array(np.arange(5, dtype=np.int64)) * 3600 * 10**9
