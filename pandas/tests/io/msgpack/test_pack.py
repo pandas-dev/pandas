@@ -67,13 +67,13 @@ class TestPack(object):
         assert re == "abcdef"
 
     def testStrictUnicodeUnpack(self):
-        msg = ("'utf-8' codec can't decode byte 0xed in position 3:"
+        msg = (r"'utf-*8' codec can't decode byte 0xed in position 3:"
                " invalid continuation byte")
         with pytest.raises(UnicodeDecodeError, match=msg):
             unpackb(packb(b'abc\xeddef'), encoding='utf-8', use_list=1)
 
     def testStrictUnicodePack(self):
-        msg = (r"'ascii' codec can't encode character '\\xed' in position 3:"
+        msg = (r"'ascii' codec can't encode character u*'\\xed' in position 3:"
                r" ordinal not in range\(128\)")
         with pytest.raises(UnicodeEncodeError, match=msg):
             packb(compat.u("abc\xeddef"), encoding='ascii',

@@ -197,7 +197,8 @@ class TestJSONNormalize(object):
                  'data': [{'foo': 'something', 'bar': 'else'},
                           {'foo': 'something2', 'bar': 'else2'}]}]
 
-        msg = "Conflicting metadata name foo, need distinguishing prefix"
+        msg = (r"Conflicting metadata name (foo|bar),"
+               " need distinguishing prefix")
         with pytest.raises(ValueError, match=msg):
             json_normalize(data, 'data', meta=['foo', 'bar'])
 
