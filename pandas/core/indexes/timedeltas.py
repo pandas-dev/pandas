@@ -233,12 +233,14 @@ class TimedeltaIndex(DatetimeIndexOpsMixin, dtl.TimelikeOps, Int64Index,
         if not isinstance(values, TimedeltaArray):
             values = TimedeltaArray._simple_new(values, dtype=dtype,
                                                 freq=freq)
+        else:
+            if freq is None:
+                freq = values.freq
         assert isinstance(values, TimedeltaArray), type(values)
         assert dtype == _TD_DTYPE, dtype
         assert values.dtype == 'm8[ns]', values.dtype
 
-        freq = to_offset(freq)
-        tdarr = TimedeltaArray._simple_new(values, freq=freq)
+        tdarr = TimedeltaArray._simple_new(values._data, freq=freq)
         result = object.__new__(cls)
         result._data = tdarr
         result.name = name
@@ -310,7 +312,7 @@ class TimedeltaIndex(DatetimeIndexOpsMixin, dtl.TimelikeOps, Int64Index,
         result = self._data.__getitem__(key)
         if is_scalar(result):
             return result
-        return type(self)(result, name=self.name)
+        return type(self)(result, freq=result.freq, name=self.name)
 
     # -------------------------------------------------------------------
 
