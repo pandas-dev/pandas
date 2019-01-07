@@ -2091,6 +2091,8 @@ _bias_template = """
         ----------
         bias : bool, default False
             Use a standard estimation bias correction
+        *args, **kwargs :
+            Arguments and keyword arguments to be passed into func.
 """
 
 _pairwise_template = """
