@@ -57,7 +57,7 @@ echo "which conda"
 which conda
 
 echo
-echo "Update conda"
+echo "update conda"
 conda config --set ssl_verify false
 conda config --set quiet true --set always_yes true --set changeps1 false
 conda update -n base conda
@@ -88,10 +88,10 @@ else
     echo "Not using ccache"
 fi
 
-echo "Deactivate any environment"
+echo "source deactivate"
 source deactivate
 
-echo "Display root environment (for debugging)"
+echo "conda list (root environment)"
 conda list
 
 # Clean up any left-over from a previous build
@@ -103,19 +103,17 @@ echo
 echo "conda env create -q --file=${ENV_FILE}"
 time conda env create -q --file="${ENV_FILE}"
 
-set +v
+echo "activate pandas-dev"
 source activate pandas-dev
-set -v
 
-# remove any installed pandas package
-# w/o removing anything else
 echo
-echo "Removing installed pandas"
+echo "remove any installed pandas package"
+echi "w/o removing anything else"
 conda remove pandas -y --force || true
 pip uninstall -y pandas || true
 
 echo
-echo "No installed pandas"
+echo "conda list pandas"
 conda list pandas
 
 # Make sure any error below is reported as such
@@ -125,7 +123,7 @@ python setup.py build_ext -q --inplace
 python -m pip install -e .
 
 echo
-echo "Show environment"
+echo "conda list"
 conda list
 
 # Install DB for Linux
@@ -146,4 +144,3 @@ if [ "$UNAME_OS" == "Linux" ]; then
 fi
 
 echo "done"
-exit 0
