@@ -151,11 +151,7 @@ def test_array_inference(data, expected):
     [pd.Timestamp("2000", tz="CET"), pd.Timestamp("2000", tz="UTC")],
     # Mix of tz-aware and tz-naive
     [pd.Timestamp("2000", tz="CET"), pd.Timestamp("2000")],
-    # GH-24569
-    pytest.param(
-        np.array([pd.Timestamp('2000'), pd.Timestamp('2000', tz='CET')]),
-        marks=pytest.mark.xfail(reason="bug in DTA._from_sequence")
-    ),
+    np.array([pd.Timestamp('2000'), pd.Timestamp('2000', tz='CET')]),
 ])
 def test_array_inference_fails(data):
     result = pd.array(data)
