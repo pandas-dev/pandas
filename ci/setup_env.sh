@@ -99,7 +99,7 @@ conda list
 #  `conda env remove` issue)
 conda remove --all -q -y -n pandas-dev
 
-echo ${ENV_FILE}
+echo
 echo "conda env create -q --file=${ENV_FILE}"
 time conda env create -q --file="${ENV_FILE}"
 
