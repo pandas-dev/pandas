@@ -2090,7 +2090,7 @@ _bias_template = """
         Parameters
         ----------
         bias : bool, default False
-            Use a standard estimation bias correction
+            Use a standard estimation bias correction.
         *args, **kwargs :
             Arguments and keyword arguments to be passed into func.
 """
