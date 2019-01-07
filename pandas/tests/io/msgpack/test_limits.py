@@ -12,8 +12,8 @@ class TestLimits(object):
     def test_integer(self):
         x = -(2 ** 63)
         assert unpackb(packb(x)) == x
-        msg = (r"(int too big to convert|Python int too large"
-               " to convert to C long)")
+        msg = (r"((long |Python )?(int )?too (big|large) to convert"
+               r"( to C (unsigned )?long))?")
         with pytest.raises((OverflowError, ValueError), match=msg):
             packb(x - 1)
         x = 2 ** 64 - 1
