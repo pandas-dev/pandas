@@ -32,12 +32,13 @@ _shared_docs = dict(**_shared_docs)
 _doc_template = """
         Returns
         -------
-        same type as input
+        Series or DataFrame
+            Return type is determined by the caller.
 
         See Also
         --------
-        Series.%(name)s
-        DataFrame.%(name)s
+        Series.%(name)s : Series %(name)s.
+        DataFrame.%(name)s : DataFrame %(name)s.
 """
 
 
@@ -946,13 +947,13 @@ class _Rolling_and_Expanding(_Rolling):
         return self._wrap_results(results, blocks, obj)
 
     _shared_docs['apply'] = dedent(r"""
-    %(name)s function apply.
+    The %(name)s function's apply function.
 
     Parameters
     ----------
     func : function
         Must produce a single value from an ndarray input if ``raw=True``
-        or a Series if ``raw=False``
+        or a Series if ``raw=False``.
     raw : bool, default None
         * ``False`` : passes each row or column as a Series to the
           function.
@@ -965,8 +966,19 @@ class _Rolling_and_Expanding(_Rolling):
         not passed. In the future `raw` will default to False.
 
         .. versionadded:: 0.23.0
+    *args, **kwargs
+        Arguments and keyword arguments to be passed into func.
 
-    \*args and \*\*kwargs are passed to the function""")
+    Returns
+    -------
+    Series or DataFrame
+        Return type is determined by the caller.
+
+    See Also
+    --------
+    Series.%(name)s : Series %(name)s.
+    DataFrame.%(name)s : DataFrame %(name)s.
+    """)
 
     def apply(self, func, raw=None, args=(), kwargs={}):
         from pandas import Series
@@ -1005,6 +1017,11 @@ class _Rolling_and_Expanding(_Rolling):
 
     _shared_docs['max'] = dedent("""
     Calculate the %(name)s maximum.
+
+    Parameters
+    ----------
+    *args, **kwargs
+        Arguments and keyword arguments to be passed into func.
     """)
 
     def max(self, *args, **kwargs):
@@ -1227,7 +1244,14 @@ class _Rolling_and_Expanding(_Rolling):
                            check_minp=_require_min_periods(1), ddof=ddof,
                            **kwargs)
 
-    _shared_docs['skew'] = """Unbiased %(name)s skewness"""
+    _shared_docs['skew'] = """
+    Unbiased %(name)s skewness.
+
+    Parameters
+    ----------
+    **kwargs
+        Keyword arguments to be passed into func.
+    """
 
     def skew(self, **kwargs):
         return self._apply('roll_skew', 'skew',
@@ -1359,6 +1383,8 @@ class _Rolling_and_Expanding(_Rolling):
         ddof : int, default 1
             Delta Degrees of Freedom.  The divisor used in calculations
             is ``N - ddof``, where ``N`` represents the number of elements.
+        **kwargs
+            Keyword arguments to be passed into func.
     """
 
     def cov(self, other=None, pairwise=None, ddof=1, **kwargs):
@@ -1671,7 +1697,6 @@ class Rolling(_Rolling_and_Expanding):
         return super(Rolling, self).count()
 
     @Substitution(name='rolling')
-    @Appender(_doc_template)
     @Appender(_shared_docs['apply'])
     def apply(self, func, raw=None, args=(), kwargs={}):
         return super(Rolling, self).apply(
@@ -1945,7 +1970,6 @@ class Expanding(_Rolling_and_Expanding):
         return super(Expanding, self).count(**kwargs)
 
     @Substitution(name='expanding')
-    @Appender(_doc_template)
     @Appender(_shared_docs['apply'])
     def apply(self, func, raw=None, args=(), kwargs={}):
         return super(Expanding, self).apply(
@@ -2066,7 +2090,9 @@ _bias_template = """
         Parameters
         ----------
         bias : bool, default False
-            Use a standard estimation bias correction
+            Use a standard estimation bias correction.
+        *args, **kwargs
+            Arguments and keyword arguments to be passed into func.
 """
 
 _pairwise_template = """
@@ -2083,7 +2109,9 @@ _pairwise_template = """
             inputs. In the case of missing elements, only complete pairwise
             observations will be used.
         bias : bool, default False
-           Use a standard estimation bias correction
+           Use a standard estimation bias correction.
+        **kwargs
+           Keyword arguments to be passed into func.
 """
 
 
@@ -2287,6 +2315,11 @@ class EWM(_Rolling):
     def mean(self, *args, **kwargs):
         """
         Exponential weighted moving average.
+
+        Parameters
+        ----------
+        *args, **kwargs
+            Arguments and keyword arguments to be passed into func.
         """
         nv.validate_window_func('mean', args, kwargs)
         return self._apply('ewma', **kwargs)
