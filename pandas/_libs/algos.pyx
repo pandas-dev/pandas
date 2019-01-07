@@ -369,31 +369,6 @@ ctypedef fused algos_t:
     uint8_t
 
 
-# TODO: unused; needed?
-@cython.wraparound(False)
-@cython.boundscheck(False)
-cpdef map_indices(ndarray[algos_t] index):
-    """
-    Produce a dict mapping the values of the input array to their respective
-    locations.
-
-    Example:
-        array(['hi', 'there']) --> {'hi' : 0 , 'there' : 1}
-
-    Better to do this with Cython because of the enormous speed boost.
-    """
-    cdef:
-        Py_ssize_t i, length
-        dict result = {}
-
-    length = len(index)
-
-    for i in range(length):
-        result[index[i]] = i
-
-    return result
-
-
 @cython.boundscheck(False)
 @cython.wraparound(False)
 def pad(ndarray[algos_t] old, ndarray[algos_t] new, limit=None):
@@ -458,20 +433,6 @@ def pad(ndarray[algos_t] old, ndarray[algos_t] new, limit=None):
     return indexer
 
 
-pad_float64 = pad["float64_t"]
-pad_float32 = pad["float32_t"]
-pad_object = pad["object"]
-pad_int64 = pad["int64_t"]
-pad_int32 = pad["int32_t"]
-pad_int16 = pad["int16_t"]
-pad_int8 = pad["int8_t"]
-pad_uint64 = pad["uint64_t"]
-pad_uint32 = pad["uint32_t"]
-pad_uint16 = pad["uint16_t"]
-pad_uint8 = pad["uint8_t"]
-pad_bool = pad["uint8_t"]
-
-
 @cython.boundscheck(False)
 @cython.wraparound(False)
 def pad_inplace(ndarray[algos_t] values,
@@ -507,15 +468,6 @@ def pad_inplace(ndarray[algos_t] values,
         else:
             fill_count = 0
             val = values[i]
-
-
-pad_inplace_float64 = pad_inplace["float64_t"]
-pad_inplace_float32 = pad_inplace["float32_t"]
-pad_inplace_object = pad_inplace["object"]
-pad_inplace_int64 = pad_inplace["int64_t"]
-pad_inplace_int32 = pad_inplace["int32_t"]
-pad_inplace_uint64 = pad_inplace["uint64_t"]
-pad_inplace_bool = pad_inplace["uint8_t"]
 
 
 @cython.boundscheck(False)
@@ -555,15 +507,6 @@ def pad_2d_inplace(ndarray[algos_t, ndim=2] values,
             else:
                 fill_count = 0
                 val = values[j, i]
-
-
-pad_2d_inplace_float64 = pad_2d_inplace["float64_t"]
-pad_2d_inplace_float32 = pad_2d_inplace["float32_t"]
-pad_2d_inplace_object = pad_2d_inplace["object"]
-pad_2d_inplace_int64 = pad_2d_inplace["int64_t"]
-pad_2d_inplace_int32 = pad_2d_inplace["int32_t"]
-pad_2d_inplace_uint64 = pad_2d_inplace["uint64_t"]
-pad_2d_inplace_bool = pad_2d_inplace["uint8_t"]
 
 
 """
@@ -657,20 +600,6 @@ def backfill(ndarray[algos_t] old, ndarray[algos_t] new, limit=None):
     return indexer
 
 
-backfill_float64 = backfill["float64_t"]
-backfill_float32 = backfill["float32_t"]
-backfill_object = backfill["object"]
-backfill_int64 = backfill["int64_t"]
-backfill_int32 = backfill["int32_t"]
-backfill_int16 = backfill["int16_t"]
-backfill_int8 = backfill["int8_t"]
-backfill_uint64 = backfill["uint64_t"]
-backfill_uint32 = backfill["uint32_t"]
-backfill_uint16 = backfill["uint16_t"]
-backfill_uint8 = backfill["uint8_t"]
-backfill_bool = backfill["uint8_t"]
-
-
 @cython.boundscheck(False)
 @cython.wraparound(False)
 def backfill_inplace(ndarray[algos_t] values,
@@ -706,15 +635,6 @@ def backfill_inplace(ndarray[algos_t] values,
         else:
             fill_count = 0
             val = values[i]
-
-
-backfill_inplace_float64 = backfill_inplace["float64_t"]
-backfill_inplace_float32 = backfill_inplace["float32_t"]
-backfill_inplace_object = backfill_inplace["object"]
-backfill_inplace_int64 = backfill_inplace["int64_t"]
-backfill_inplace_int32 = backfill_inplace["int32_t"]
-backfill_inplace_uint64 = backfill_inplace["uint64_t"]
-backfill_inplace_bool = backfill_inplace["uint8_t"]
 
 
 @cython.boundscheck(False)
@@ -754,15 +674,6 @@ def backfill_2d_inplace(ndarray[algos_t, ndim=2] values,
             else:
                 fill_count = 0
                 val = values[j, i]
-
-
-backfill_2d_inplace_float64 = backfill_2d_inplace["float64_t"]
-backfill_2d_inplace_float32 = backfill_2d_inplace["float32_t"]
-backfill_2d_inplace_object = backfill_2d_inplace["object"]
-backfill_2d_inplace_int64 = backfill_2d_inplace["int64_t"]
-backfill_2d_inplace_int32 = backfill_2d_inplace["int32_t"]
-backfill_2d_inplace_uint64 = backfill_2d_inplace["uint64_t"]
-backfill_2d_inplace_bool = backfill_2d_inplace["uint8_t"]
 
 
 @cython.wraparound(False)
@@ -873,20 +784,6 @@ def is_monotonic(ndarray[algos_t, ndim=1] arr, bint timelike):
 
     is_strict_monotonic = is_unique and (is_monotonic_inc or is_monotonic_dec)
     return is_monotonic_inc, is_monotonic_dec, is_strict_monotonic
-
-
-is_monotonic_float64 = is_monotonic["float64_t"]
-is_monotonic_float32 = is_monotonic["float32_t"]
-is_monotonic_object = is_monotonic["object"]
-is_monotonic_int64 = is_monotonic["int64_t"]
-is_monotonic_int32 = is_monotonic["int32_t"]
-is_monotonic_int16 = is_monotonic["int16_t"]
-is_monotonic_int8 = is_monotonic["int8_t"]
-is_monotonic_uint64 = is_monotonic["uint64_t"]
-is_monotonic_uint32 = is_monotonic["uint32_t"]
-is_monotonic_uint16 = is_monotonic["uint16_t"]
-is_monotonic_uint8 = is_monotonic["uint8_t"]
-is_monotonic_bool = is_monotonic["uint8_t"]
 
 
 # generated from template

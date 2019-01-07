@@ -392,7 +392,7 @@ cdef class DatetimeEngine(Int64Engine):
         return self.vgetter().view('i8')
 
     def _call_monotonic(self, values):
-        return algos.is_monotonic_int64(values, timelike=True)
+        return algos.is_monotonic(values, timelike=True)
 
     cpdef get_loc(self, object val):
         if is_definitely_invalid_key(val):
@@ -451,14 +451,13 @@ cdef class DatetimeEngine(Int64Engine):
         if other.dtype != self._get_box_dtype():
             return np.repeat(-1, len(other)).astype('i4')
         other = np.asarray(other).view('i8')
-        return algos.pad_int64(self._get_index_values(), other, limit=limit)
+        return algos.pad(self._get_index_values(), other, limit=limit)
 
     def get_backfill_indexer(self, other, limit=None):
         if other.dtype != self._get_box_dtype():
             return np.repeat(-1, len(other)).astype('i4')
         other = np.asarray(other).view('i8')
-        return algos.backfill_int64(self._get_index_values(), other,
-                                    limit=limit)
+        return algos.backfill(self._get_index_values(), other, limit=limit)
 
 
 cdef class TimedeltaEngine(DatetimeEngine):
@@ -492,15 +491,15 @@ cdef class PeriodEngine(Int64Engine):
         freq = super(PeriodEngine, self).vgetter().freq
         ordinal = periodlib.extract_ordinals(other, freq)
 
-        return algos.pad_int64(self._get_index_values(),
-                               np.asarray(ordinal), limit=limit)
+        return algos.pad(self._get_index_values(),
+                         np.asarray(ordinal), limit=limit)
 
     def get_backfill_indexer(self, other, limit=None):
         freq = super(PeriodEngine, self).vgetter().freq
         ordinal = periodlib.extract_ordinals(other, freq)
 
-        return algos.backfill_int64(self._get_index_values(),
-                                    np.asarray(ordinal), limit=limit)
+        return algos.backfill(self._get_index_values(),
+                              np.asarray(ordinal), limit=limit)
 
     def get_indexer_non_unique(self, targets):
         freq = super(PeriodEngine, self).vgetter().freq
