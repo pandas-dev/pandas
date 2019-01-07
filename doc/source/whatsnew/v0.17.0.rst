@@ -986,7 +986,7 @@ Removal of prior version deprecations/changes
      np.random.seed(1234)
      df = pd.DataFrame(np.random.randn(5, 2),
                        columns=list('AB'),
-                       index=date_range('20130101', periods=5))
+                       index=pd.date_range('2013-01-01', periods=5))
      df
 
   Previously
