@@ -166,8 +166,7 @@ class BaseSetitemTests(BaseExtensionTests):
         with pytest.raises(ValueError, match=xpr):
             df['B'] = data[:5]
 
-    @pytest.mark.xfail(reason="GH#20441: setitem on extension types.",
-                       strict=True)
+    @pytest.mark.xfail(reason="GH#20441: setitem on extension types.")
     def test_setitem_tuple_index(self, data):
         s = pd.Series(data[:2], index=[(0, 0), (0, 1)])
         expected = pd.Series(data.take([1, 1]), index=s.index)
@@ -183,3 +182,8 @@ class BaseSetitemTests(BaseExtensionTests):
         arr = data[:5].copy()
         arr[:5] = data[-5:]
         self.assert_extension_array_equal(arr, data[-5:])
+
+    def test_setitem_scalar_key_sequence_raise(self, data):
+        arr = data[:5].copy()
+        with pytest.raises(ValueError):
+            arr[0] = arr[[0, 1]]

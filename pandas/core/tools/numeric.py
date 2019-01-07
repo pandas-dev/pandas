@@ -53,6 +53,13 @@ def to_numeric(arg, errors='raise', downcast=None):
     ret : numeric if parsing succeeded.
         Return type depends on input.  Series if Series, otherwise ndarray
 
+    See Also
+    --------
+    pandas.DataFrame.astype : Cast argument to a specified dtype.
+    pandas.to_datetime : Convert argument to datetime.
+    pandas.to_timedelta : Convert argument to timedelta.
+    numpy.ndarray.astype : Cast a numpy array to a specified type.
+
     Examples
     --------
     Take separate series and convert to numeric, coercing when told to
@@ -86,13 +93,6 @@ def to_numeric(arg, errors='raise', downcast=None):
     2    2.0
     3   -3.0
     dtype: float64
-
-    See Also
-    --------
-    pandas.DataFrame.astype : Cast argument to a specified dtype.
-    pandas.to_datetime : Convert argument to datetime.
-    pandas.to_timedelta : Convert argument to timedelta.
-    numpy.ndarray.astype : Cast a numpy array to a specified type.
     """
     if downcast not in (None, 'integer', 'signed', 'unsigned', 'float'):
         raise ValueError('invalid downcasting method provided')

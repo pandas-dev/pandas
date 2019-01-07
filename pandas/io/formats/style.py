@@ -2,7 +2,8 @@
 Module for applying conditional formatting to
 DataFrames and Series.
 """
-from collections import MutableMapping, defaultdict
+
+from collections import defaultdict
 from contextlib import contextmanager
 import copy
 from functools import partial
@@ -18,7 +19,7 @@ from pandas.core.dtypes.common import is_float, is_string_like
 from pandas.core.dtypes.generic import ABCSeries
 
 import pandas as pd
-from pandas.api.types import is_list_like
+from pandas.api.types import is_dict_like, is_list_like
 import pandas.core.common as com
 from pandas.core.config import get_option
 from pandas.core.generic import _shared_docs
@@ -78,6 +79,10 @@ class Styler(object):
     template : Jinja2 Template
     loader : Jinja2 Loader
 
+    See Also
+    --------
+    pandas.DataFrame.style
+
     Notes
     -----
     Most styling will be done by passing style functions into
@@ -106,10 +111,6 @@ class Styler(object):
 
     * Blank cells include ``blank``
     * Data cells include ``data``
-
-    See Also
-    --------
-    pandas.DataFrame.style
     """
     loader = PackageLoader("pandas", "io/formats/templates")
     env = Environment(
@@ -401,7 +402,7 @@ class Styler(object):
             row_locs = self.data.index.get_indexer_for(sub_df.index)
             col_locs = self.data.columns.get_indexer_for(sub_df.columns)
 
-        if isinstance(formatter, MutableMapping):
+        if is_dict_like(formatter):
             for col, col_formatter in formatter.items():
                 # formatter must be callable, so '{}' are converted to lambdas
                 col_formatter = _maybe_wrap_formatter(col_formatter)
@@ -906,17 +907,17 @@ class Styler(object):
         -------
         self : Styler
 
+        Raises
+        ------
+        ValueError
+            If ``text_color_threshold`` is not a value from 0 to 1.
+
         Notes
         -----
         Set ``text_color_threshold`` or tune ``low`` and ``high`` to keep the
         text legible by not using the entire range of the color map. The range
         of the data is extended by ``low * (x.max() - x.min())`` and ``high *
         (x.max() - x.min())`` before normalizing.
-
-        Raises
-        ------
-        ValueError
-            If ``text_color_threshold`` is not a value from 0 to 1.
         """
         subset = _maybe_numeric_slice(self.data, subset)
         subset = _non_reducing_slice(subset)

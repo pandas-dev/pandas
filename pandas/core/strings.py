@@ -123,16 +123,16 @@ def str_count(arr, pat, flags=0):
     counts : Series or Index
         Same type as the calling object containing the integer counts.
 
+    See Also
+    --------
+    re : Standard library module for regular expressions.
+    str.count : Standard library version, without regular expression support.
+
     Notes
     -----
     Some characters need to be escaped when passing in `pat`.
     eg. ``'$'`` has a special meaning in regex and must be escaped when
     finding this literal character.
-
-    See Also
-    --------
-    re : Standard library module for regular expressions.
-    str.count : Standard library version, without regular expression support.
 
     Examples
     --------
@@ -660,9 +660,9 @@ def str_match(arr, pat, case=True, flags=0, na=np.nan):
 
     See Also
     --------
-    contains : analogous, but less strict, relying on re.search instead of
-        re.match
-    extract : extract matched groups
+    contains : Analogous, but less strict, relying on re.search instead of
+        re.match.
+    extract : Extract matched groups.
     """
     if not case:
         flags |= re.IGNORECASE
@@ -978,6 +978,10 @@ def str_get_dummies(arr, sep='|'):
     -------
     dummies : DataFrame
 
+    See Also
+    --------
+    get_dummies
+
     Examples
     --------
     >>> pd.Series(['a|b', 'a', 'a|c']).str.get_dummies()
@@ -991,10 +995,6 @@ def str_get_dummies(arr, sep='|'):
     0  1  1  0
     1  0  0  0
     2  1  0  1
-
-    See Also
-    --------
-    get_dummies
     """
     arr = arr.fillna('')
     try:
@@ -1039,15 +1039,15 @@ def str_join(arr, sep):
     AttributeError
         If the supplied Series contains neither strings nor lists.
 
-    Notes
-    -----
-    If any of the list items is not a string object, the result of the join
-    will be `NaN`.
-
     See Also
     --------
     str.join : Standard library version of this method.
     Series.str.split : Split strings around given separator/delimiter.
+
+    Notes
+    -----
+    If any of the list items is not a string object, the result of the join
+    will be `NaN`.
 
     Examples
     --------
@@ -1255,13 +1255,13 @@ def str_pad(arr, width, side='left', fillchar=' '):
 
     See Also
     --------
-    Series.str.rjust: Fills the left side of strings with an arbitrary
+    Series.str.rjust : Fills the left side of strings with an arbitrary
         character. Equivalent to ``Series.str.pad(side='left')``.
-    Series.str.ljust: Fills the right side of strings with an arbitrary
+    Series.str.ljust : Fills the right side of strings with an arbitrary
         character. Equivalent to ``Series.str.pad(side='right')``.
-    Series.str.center: Fills boths sides of strings with an arbitrary
+    Series.str.center : Fills boths sides of strings with an arbitrary
         character. Equivalent to ``Series.str.pad(side='both')``.
-    Series.str.zfill:  Pad strings in the Series/Index by prepending '0'
+    Series.str.zfill :  Pad strings in the Series/Index by prepending '0'
         character. Equivalent to ``Series.str.pad(side='left', fillchar='0')``.
 
     Examples
@@ -2485,7 +2485,8 @@ class StringMethods(NoNewAttributesMixin):
         'side': 'first',
         'return': '3 elements containing the string itself, followed by two '
                   'empty strings',
-        'also': 'rpartition : Split the string at the last occurrence of `sep`'
+        'also': 'rpartition : Split the string at the last occurrence of '
+                '`sep`.'
     })
     @deprecate_kwarg(old_arg_name='pat', new_arg_name='sep')
     def partition(self, sep=' ', expand=True):
@@ -2497,7 +2498,8 @@ class StringMethods(NoNewAttributesMixin):
         'side': 'last',
         'return': '3 elements containing two empty strings, followed by the '
                   'string itself',
-        'also': 'partition : Split the string at the first occurrence of `sep`'
+        'also': 'partition : Split the string at the first occurrence of '
+                '`sep`.'
     })
     @deprecate_kwarg(old_arg_name='pat', new_arg_name='sep')
     def rpartition(self, sep=' ', expand=True):
@@ -2593,13 +2595,13 @@ class StringMethods(NoNewAttributesMixin):
 
         See Also
         --------
-        Series.str.rjust: Fills the left side of strings with an arbitrary
+        Series.str.rjust : Fills the left side of strings with an arbitrary
             character.
-        Series.str.ljust: Fills the right side of strings with an arbitrary
+        Series.str.ljust : Fills the right side of strings with an arbitrary
             character.
-        Series.str.pad: Fills the specified sides of strings with an arbitrary
+        Series.str.pad : Fills the specified sides of strings with an arbitrary
             character.
-        Series.str.center: Fills boths sides of strings with an arbitrary
+        Series.str.center : Fills boths sides of strings with an arbitrary
             character.
 
         Notes
@@ -2793,21 +2795,22 @@ class StringMethods(NoNewAttributesMixin):
 
     @Appender(_shared_docs['find'] %
               dict(side='lowest', method='find',
-                   also='rfind : Return highest indexes in each strings'))
+                   also='rfind : Return highest indexes in each strings.'))
     def find(self, sub, start=0, end=None):
         result = str_find(self._parent, sub, start=start, end=end, side='left')
         return self._wrap_result(result)
 
     @Appender(_shared_docs['find'] %
               dict(side='highest', method='rfind',
-                   also='find : Return lowest indexes in each strings'))
+                   also='find : Return lowest indexes in each strings.'))
     def rfind(self, sub, start=0, end=None):
         result = str_find(self._parent, sub,
                           start=start, end=end, side='right')
         return self._wrap_result(result)
 
     def normalize(self, form):
-        """Return the Unicode normal form for the strings in the Series/Index.
+        """
+        Return the Unicode normal form for the strings in the Series/Index.
         For more information on the forms, see the
         :func:`unicodedata.normalize`.
 
@@ -2851,7 +2854,7 @@ class StringMethods(NoNewAttributesMixin):
 
     @Appender(_shared_docs['index'] %
               dict(side='lowest', similar='find', method='index',
-                   also='rindex : Return highest indexes in each strings'))
+                   also='rindex : Return highest indexes in each strings.'))
     def index(self, sub, start=0, end=None):
         result = str_index(self._parent, sub,
                            start=start, end=end, side='left')
@@ -2859,7 +2862,7 @@ class StringMethods(NoNewAttributesMixin):
 
     @Appender(_shared_docs['index'] %
               dict(side='highest', similar='rfind', method='rindex',
-                   also='index : Return lowest indexes in each strings'))
+                   also='index : Return lowest indexes in each strings.'))
     def rindex(self, sub, start=0, end=None):
         result = str_index(self._parent, sub,
                            start=start, end=end, side='right')

@@ -2,18 +2,16 @@
 
 from __future__ import print_function
 
-import pytest
 import numpy as np
+import pytest
 
 from pandas.compat import lrange, u
-from pandas import DataFrame, Series, MultiIndex, date_range
+
 import pandas as pd
-
-from pandas.util.testing import assert_series_equal, assert_frame_equal
-
-import pandas.util.testing as tm
-
+from pandas import DataFrame, MultiIndex, Series, date_range
 from pandas.tests.frame.common import TestData
+import pandas.util.testing as tm
+from pandas.util.testing import assert_frame_equal, assert_series_equal
 
 
 class TestDataFrameNonuniqueIndexes(TestData):

@@ -9,11 +9,10 @@ from pandas._libs import tslib, tslibs
 from pandas.core.dtypes.common import (
     _NS_DTYPE, _TD_DTYPE, is_bool_dtype, is_categorical_dtype,
     is_datetime64_dtype, is_datetime64tz_dtype, is_dtype_equal,
-    is_extension_array_dtype, is_interval_dtype, is_object_dtype,
-    is_period_dtype, is_sparse, is_timedelta64_dtype)
+    is_extension_array_dtype, is_object_dtype, is_sparse, is_timedelta64_dtype)
 from pandas.core.dtypes.generic import (
-    ABCDatetimeIndex, ABCPeriodIndex, ABCRangeIndex, ABCSparseDataFrame,
-    ABCTimedeltaIndex)
+    ABCDatetimeArray, ABCDatetimeIndex, ABCIndexClass, ABCPeriodIndex,
+    ABCRangeIndex, ABCSparseDataFrame, ABCTimedeltaIndex)
 
 from pandas import compat
 
@@ -51,9 +50,7 @@ def get_dtype_kinds(l):
             typ = 'object'
         elif is_bool_dtype(dtype):
             typ = 'bool'
-        elif is_period_dtype(dtype):
-            typ = str(arr.dtype)
-        elif is_interval_dtype(dtype):
+        elif is_extension_array_dtype(dtype):
             typ = str(arr.dtype)
         else:
             typ = dtype.kind
@@ -66,19 +63,19 @@ def _get_series_result_type(result, objs=None):
     return appropriate class of Series concat
     input is either dict or array-like
     """
+    from pandas import SparseSeries, SparseDataFrame, DataFrame
+
     # concat Series with axis 1
     if isinstance(result, dict):
         # concat Series with axis 1
-        if all(is_sparse(c) for c in compat.itervalues(result)):
-            from pandas.core.sparse.api import SparseDataFrame
+        if all(isinstance(c, (SparseSeries, SparseDataFrame))
+               for c in compat.itervalues(result)):
             return SparseDataFrame
         else:
-            from pandas.core.frame import DataFrame
             return DataFrame
 
     # otherwise it is a SingleBlockManager (axis = 0)
     if result._block.is_sparse:
-        from pandas.core.sparse.api import SparseSeries
         return SparseSeries
     else:
         return objs[0]._constructor
@@ -136,7 +133,6 @@ def _concat_compat(to_concat, axis=0):
     # np.concatenate which has them both implemented is compiled.
 
     typs = get_dtype_kinds(to_concat)
-
     _contains_datetime = any(typ.startswith('datetime') for typ in typs)
     _contains_period = any(typ.startswith('period') for typ in typs)
 
@@ -191,15 +187,6 @@ def _concat_categorical(to_concat, axis=0):
         A single array, preserving the combined dtypes
     """
 
-    def _concat_asobject(to_concat):
-        to_concat = [x.get_values() if is_categorical_dtype(x.dtype)
-                     else np.asarray(x).ravel() for x in to_concat]
-        res = _concat_compat(to_concat)
-        if axis == 1:
-            return res.reshape(1, len(res))
-        else:
-            return res
-
     # we could have object blocks and categoricals here
     # if we only have a single categoricals then combine everything
     # else its a non-compat categorical
@@ -214,7 +201,14 @@ def _concat_categorical(to_concat, axis=0):
         if all(first.is_dtype_equal(other) for other in to_concat[1:]):
             return union_categoricals(categoricals)
 
-    return _concat_asobject(to_concat)
+    # extract the categoricals & coerce to object if needed
+    to_concat = [x.get_values() if is_categorical_dtype(x.dtype)
+                 else np.asarray(x).ravel() if not is_datetime64tz_dtype(x)
+                 else np.asarray(x.astype(object)) for x in to_concat]
+    result = _concat_compat(to_concat)
+    if axis == 1:
+        result = result.reshape(1, len(result))
+    return result
 
 
 def union_categoricals(to_union, sort_categories=False, ignore_order=False):
@@ -428,8 +422,7 @@ def _concat_datetime(to_concat, axis=0, typs=None):
     if any(typ.startswith('datetime') for typ in typs):
 
         if 'datetime' in typs:
-            to_concat = [np.array(x, copy=False).view(np.int64)
-                         for x in to_concat]
+            to_concat = [x.astype(np.int64, copy=False) for x in to_concat]
             return _concatenate_2d(to_concat, axis=axis).view(_NS_DTYPE)
         else:
             # when to_concat has different tz, len(typs) > 1.
@@ -453,7 +446,7 @@ def _convert_datetimelike_to_object(x):
     # if dtype is of datetimetz or timezone
     if x.dtype.kind == _NS_DTYPE.kind:
         if getattr(x, 'tz', None) is not None:
-            x = x.astype(object).values
+            x = np.asarray(x.astype(object))
         else:
             shape = x.shape
             x = tslib.ints_to_pydatetime(x.view(np.int64).ravel(),
@@ -474,7 +467,15 @@ def _concat_datetimetz(to_concat, name=None):
     all inputs must be DatetimeIndex
     it is used in DatetimeIndex.append also
     """
-    return to_concat[0]._concat_same_dtype(to_concat, name=name)
+    # Right now, internals will pass a List[DatetimeArray] here
+    # for reductions like quantile. I would like to disentangle
+    # all this before we get here.
+    sample = to_concat[0]
+
+    if isinstance(sample, ABCIndexClass):
+        return sample._concat_same_dtype(to_concat, name=name)
+    elif isinstance(sample, ABCDatetimeArray):
+        return sample._concat_same_type(to_concat)
 
 
 def _concat_index_same_dtype(indexes, klass=None):

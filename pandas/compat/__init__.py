@@ -139,6 +139,7 @@ if PY3:
     Hashable = collections.abc.Hashable
     Iterable = collections.abc.Iterable
     Mapping = collections.abc.Mapping
+    MutableMapping = collections.abc.MutableMapping
     Sequence = collections.abc.Sequence
     Sized = collections.abc.Sized
     Set = collections.abc.Set
@@ -200,6 +201,7 @@ else:
     Hashable = collections.Hashable
     Iterable = collections.Iterable
     Mapping = collections.Mapping
+    MutableMapping = collections.MutableMapping
     Sequence = collections.Sequence
     Sized = collections.Sized
     Set = collections.Set

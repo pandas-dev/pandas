@@ -1,41 +1,33 @@
 # -*- coding: utf-8 -*-
 
 from __future__ import print_function
+
+from datetime import date, datetime, time, timedelta
 from warnings import catch_warnings, simplefilter
 
-from datetime import datetime, date, timedelta, time
-
-from pandas.compat import map, zip, range, lrange, lzip, long
-from pandas import compat
-
+import numpy as np
 from numpy import nan
 from numpy.random import randn
-
 import pytest
-import numpy as np
 
-import pandas.core.common as com
-from pandas import (DataFrame, Index, Series, notna, isna,
-                    MultiIndex, DatetimeIndex, Timestamp,
-                    date_range, Categorical)
+from pandas._libs.tslib import iNaT
+from pandas.compat import long, lrange, lzip, map, range, zip
+
+from pandas.core.dtypes.common import is_float_dtype, is_integer, is_scalar
 from pandas.core.dtypes.dtypes import CategoricalDtype
 
 import pandas as pd
-
-from pandas._libs.tslib import iNaT
-from pandas.tseries.offsets import BDay
-from pandas.core.dtypes.common import (
-    is_float_dtype,
-    is_integer,
-    is_scalar)
-from pandas.util.testing import (assert_almost_equal,
-                                 assert_series_equal,
-                                 assert_frame_equal)
+from pandas import (
+    Categorical, DataFrame, DatetimeIndex, Index, MultiIndex, Series,
+    Timestamp, compat, date_range, isna, notna)
+import pandas.core.common as com
 from pandas.core.indexing import IndexingError
-
-import pandas.util.testing as tm
-
 from pandas.tests.frame.common import TestData
+import pandas.util.testing as tm
+from pandas.util.testing import (
+    assert_almost_equal, assert_frame_equal, assert_series_equal)
+
+from pandas.tseries.offsets import BDay
 
 
 class TestDataFrameIndexing(TestData):
@@ -487,9 +479,9 @@ class TestDataFrameIndexing(TestData):
         # so raise/warn
         smaller = self.frame[:2]
 
-        def f():
+        with pytest.raises(com.SettingWithCopyError):
             smaller['col10'] = ['1', '2']
-        pytest.raises(com.SettingWithCopyError, f)
+
         assert smaller['col10'].dtype == np.object_
         assert (smaller['col10'] == ['1', '2']).all()
 
@@ -1022,9 +1014,9 @@ class TestDataFrameIndexing(TestData):
         # setting it triggers setting with copy
         sliced = self.frame.iloc[:, -3:]
 
-        def f():
+        with pytest.raises(com.SettingWithCopyError):
             sliced['C'] = 4.
-        pytest.raises(com.SettingWithCopyError, f)
+
         assert (self.frame['C'] == 4).all()
 
     def test_fancy_setitem_int_labels(self):
@@ -1555,14 +1547,12 @@ class TestDataFrameIndexing(TestData):
 
         cp = df.copy()
 
-        def f():
+        with pytest.raises(TypeError):
             cp.iloc[1.0:5] = 0
-        pytest.raises(TypeError, f)
 
-        def f():
+        with pytest.raises(TypeError):
             result = cp.iloc[1.0:5] == 0  # noqa
 
-        pytest.raises(TypeError, f)
         assert result.values.all()
         assert (cp.iloc[0:1] == df.iloc[0:1]).values.all()
 
@@ -1948,9 +1938,9 @@ class TestDataFrameIndexing(TestData):
 
         # verify slice is view
         # setting it makes it raise/warn
-        def f():
+        with pytest.raises(com.SettingWithCopyError):
             result[2] = 0.
-        pytest.raises(com.SettingWithCopyError, f)
+
         exp_col = df[2].copy()
         exp_col[4:8] = 0.
         assert_series_equal(df[2], exp_col)
@@ -1979,9 +1969,9 @@ class TestDataFrameIndexing(TestData):
 
         # verify slice is view
         # and that we are setting a copy
-        def f():
+        with pytest.raises(com.SettingWithCopyError):
             result[8] = 0.
-        pytest.raises(com.SettingWithCopyError, f)
+
         assert (df[8] == 0).all()
 
         # list of integers
@@ -2178,7 +2168,7 @@ class TestDataFrameIndexing(TestData):
 
         def verify_first_level(df, level, idx, check_index_type=True):
             def f(val):
-                return np.nonzero(df[level] == val)[0]
+                return np.nonzero((df[level] == val).to_numpy())[0]
             i = np.concatenate(list(map(f, idx)))
             left = df.set_index(icol).reindex(idx, level=level)
             right = df.iloc[i].set_index(icol)
@@ -3191,7 +3181,7 @@ class TestDataFrameIndexing(TestData):
 
         index = Index(range(2), name='i')
         columns = MultiIndex(levels=[['x', 'y'], [0, 1]],
-                             labels=[[0, 1], [0, 0]],
+                             codes=[[0, 1], [0, 0]],
                              names=[None, 'c'])
         expected = DataFrame([[1, 2], [3, 4]], columns=columns, index=index)
 
@@ -3254,8 +3244,8 @@ class TestDataFrameIndexingDatetimeWithTZ(TestData):
         # are copies)
         b1 = df._data.blocks[1]
         b2 = df._data.blocks[2]
-        assert b1.values.equals(b2.values)
-        assert id(b1.values.values.base) != id(b2.values.values.base)
+        tm.assert_extension_array_equal(b1.values, b2.values)
+        assert id(b1.values._data.base) != id(b2.values._data.base)
 
         # with nan
         df2 = df.copy()
@@ -3459,11 +3449,9 @@ class TestDataFrameIndexingCategorical(object):
         tm.assert_frame_equal(df, exp_single_cats_value)
 
         #   - assign a single value not in the current categories set
-        def f():
+        with pytest.raises(ValueError):
             df = orig.copy()
             df.iloc[2, 0] = "c"
-
-        pytest.raises(ValueError, f)
 
         #   - assign a complete row (mixed values) -> exp_single_row
         df = orig.copy()
@@ -3471,22 +3459,18 @@ class TestDataFrameIndexingCategorical(object):
         tm.assert_frame_equal(df, exp_single_row)
 
         #   - assign a complete row (mixed values) not in categories set
-        def f():
+        with pytest.raises(ValueError):
             df = orig.copy()
             df.iloc[2, :] = ["c", 2]
-
-        pytest.raises(ValueError, f)
 
         #   - assign multiple rows (mixed values) -> exp_multi_row
         df = orig.copy()
         df.iloc[2:4, :] = [["b", 2], ["b", 2]]
         tm.assert_frame_equal(df, exp_multi_row)
 
-        def f():
+        with pytest.raises(ValueError):
             df = orig.copy()
             df.iloc[2:4, :] = [["c", 2], ["c", 2]]
-
-        pytest.raises(ValueError, f)
 
         # assign a part of a column with dtype == categorical ->
         # exp_parts_cats_col
@@ -3525,11 +3509,9 @@ class TestDataFrameIndexingCategorical(object):
         tm.assert_frame_equal(df, exp_single_cats_value)
 
         #   - assign a single value not in the current categories set
-        def f():
+        with pytest.raises(ValueError):
             df = orig.copy()
             df.loc["j", "cats"] = "c"
-
-        pytest.raises(ValueError, f)
 
         #   - assign a complete row (mixed values) -> exp_single_row
         df = orig.copy()
@@ -3537,22 +3519,18 @@ class TestDataFrameIndexingCategorical(object):
         tm.assert_frame_equal(df, exp_single_row)
 
         #   - assign a complete row (mixed values) not in categories set
-        def f():
+        with pytest.raises(ValueError):
             df = orig.copy()
             df.loc["j", :] = ["c", 2]
-
-        pytest.raises(ValueError, f)
 
         #   - assign multiple rows (mixed values) -> exp_multi_row
         df = orig.copy()
         df.loc["j":"k", :] = [["b", 2], ["b", 2]]
         tm.assert_frame_equal(df, exp_multi_row)
 
-        def f():
+        with pytest.raises(ValueError):
             df = orig.copy()
             df.loc["j":"k", :] = [["c", 2], ["c", 2]]
-
-        pytest.raises(ValueError, f)
 
         # assign a part of a column with dtype == categorical ->
         # exp_parts_cats_col
@@ -3594,11 +3572,9 @@ class TestDataFrameIndexingCategorical(object):
         tm.assert_frame_equal(df, exp_single_cats_value)
 
         #   - assign a single value not in the current categories set
-        def f():
+        with pytest.raises(ValueError):
             df = orig.copy()
             df.loc["j", df.columns[0]] = "c"
-
-        pytest.raises(ValueError, f)
 
         #   - assign a complete row (mixed values) -> exp_single_row
         df = orig.copy()
@@ -3606,22 +3582,18 @@ class TestDataFrameIndexingCategorical(object):
         tm.assert_frame_equal(df, exp_single_row)
 
         #   - assign a complete row (mixed values) not in categories set
-        def f():
+        with pytest.raises(ValueError):
             df = orig.copy()
             df.loc["j", :] = ["c", 2]
-
-        pytest.raises(ValueError, f)
 
         #   - assign multiple rows (mixed values) -> exp_multi_row
         df = orig.copy()
         df.loc["j":"k", :] = [["b", 2], ["b", 2]]
         tm.assert_frame_equal(df, exp_multi_row)
 
-        def f():
+        with pytest.raises(ValueError):
             df = orig.copy()
             df.loc["j":"k", :] = [["c", 2], ["c", 2]]
-
-        pytest.raises(ValueError, f)
 
         # assign a part of a column with dtype == categorical ->
         # exp_parts_cats_col
@@ -3657,11 +3629,9 @@ class TestDataFrameIndexingCategorical(object):
         tm.assert_frame_equal(df, exp_single_cats_value)
 
         #   - assign a single value not in the current categories set
-        def f():
+        with pytest.raises(ValueError):
             df = orig.copy()
             df.iat[2, 0] = "c"
-
-        pytest.raises(ValueError, f)
 
         # at
         #   - assign a single value -> exp_single_cats_value
@@ -3670,11 +3640,9 @@ class TestDataFrameIndexingCategorical(object):
         tm.assert_frame_equal(df, exp_single_cats_value)
 
         #   - assign a single value not in the current categories set
-        def f():
+        with pytest.raises(ValueError):
             df = orig.copy()
             df.at["j", "cats"] = "c"
-
-        pytest.raises(ValueError, f)
 
         # fancy indexing
         catsf = Categorical(["a", "a", "c", "c", "a", "a", "a"],
@@ -3695,11 +3663,9 @@ class TestDataFrameIndexingCategorical(object):
         df.at["j", "cats"] = "b"
         tm.assert_frame_equal(df, exp_single_cats_value)
 
-        def f():
+        with pytest.raises(ValueError):
             df = orig.copy()
             df.at["j", "cats"] = "c"
-
-        pytest.raises(ValueError, f)
 
         # Assigning a Category to parts of a int/... column uses the values of
         # the Catgorical

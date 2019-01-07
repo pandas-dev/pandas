@@ -1,11 +1,6 @@
 .. _rpy:
 
-.. ipython:: python
-   :suppress:
-
-   import pandas as pd
-   pd.options.display.max_rows = 15
-
+{{ header }}
 
 ******************
 rpy2 / R interface

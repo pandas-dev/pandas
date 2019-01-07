@@ -458,6 +458,10 @@ class HDFStore(StringMixin):
 
     def __init__(self, path, mode=None, complevel=None, complib=None,
                  fletcher32=False, **kwargs):
+
+        if 'format' in kwargs:
+            raise ValueError('format is not a defined argument for HDFStore')
+
         try:
             import tables  # noqa
         except ImportError as ex:  # pragma: no cover
@@ -1948,7 +1952,7 @@ class DataCol(IndexCol):
             return self.set_atom_complex(block)
 
         dtype = block.dtype.name
-        inferred_type = lib.infer_dtype(block.values)
+        inferred_type = lib.infer_dtype(block.values, skipna=False)
 
         if inferred_type == 'date':
             raise TypeError(
@@ -1994,7 +1998,7 @@ class DataCol(IndexCol):
         data = block.values
 
         # see if we have a valid string type
-        inferred_type = lib.infer_dtype(data.ravel())
+        inferred_type = lib.infer_dtype(data.ravel(), skipna=False)
         if inferred_type != 'string':
 
             # we cannot serialize this data, so report an exception on a column
@@ -2002,7 +2006,7 @@ class DataCol(IndexCol):
             for i, item in enumerate(block_items):
 
                 col = block.iget(i)
-                inferred_type = lib.infer_dtype(col.ravel())
+                inferred_type = lib.infer_dtype(col.ravel(), skipna=False)
                 if inferred_type != 'string':
                     raise TypeError(
                         "Cannot serialize the column [%s] because\n"
@@ -2497,7 +2501,7 @@ class GenericFixed(Fixed):
     def get_attrs(self):
         """ retrieve our attributes """
         self.encoding = _ensure_encoding(getattr(self.attrs, 'encoding', None))
-        self.errors = getattr(self.attrs, 'errors', 'strict')
+        self.errors = _ensure_decoded(getattr(self.attrs, 'errors', 'strict'))
         for n in self.attributes:
             setattr(self, n, _ensure_decoded(getattr(self.attrs, n, None)))
 
@@ -2605,9 +2609,9 @@ class GenericFixed(Fixed):
     def write_multi_index(self, key, index):
         setattr(self.attrs, '%s_nlevels' % key, index.nlevels)
 
-        for i, (lev, lab, name) in enumerate(zip(index.levels,
-                                                 index.labels,
-                                                 index.names)):
+        for i, (lev, level_codes, name) in enumerate(zip(index.levels,
+                                                         index.codes,
+                                                         index.names)):
             # write the level
             level_key = '%s_level%d' % (key, i)
             conv_level = _convert_index(lev, self.encoding, self.errors,
@@ -2622,13 +2626,13 @@ class GenericFixed(Fixed):
 
             # write the labels
             label_key = '%s_label%d' % (key, i)
-            self.write_array(label_key, lab)
+            self.write_array(label_key, level_codes)
 
     def read_multi_index(self, key, **kwargs):
         nlevels = getattr(self.attrs, '%s_nlevels' % key)
 
         levels = []
-        labels = []
+        codes = []
         names = []
         for i in range(nlevels):
             level_key = '%s_level%d' % (key, i)
@@ -2638,10 +2642,10 @@ class GenericFixed(Fixed):
             names.append(name)
 
             label_key = '%s_label%d' % (key, i)
-            lab = self.read_array(label_key, **kwargs)
-            labels.append(lab)
+            level_codes = self.read_array(label_key, **kwargs)
+            codes.append(level_codes)
 
-        return MultiIndex(levels=levels, labels=labels, names=names,
+        return MultiIndex(levels=levels, codes=codes, names=names,
                           verify_integrity=True)
 
     def read_index_node(self, node, start=None, stop=None):
@@ -2657,6 +2661,7 @@ class GenericFixed(Fixed):
 
         if 'name' in node._v_attrs:
             name = _ensure_str(node._v_attrs.name)
+            name = _ensure_decoded(name)
 
         index_class = self._alias_to_class(_ensure_decoded(
             getattr(node._v_attrs, 'index_class', '')))
@@ -2708,10 +2713,11 @@ class GenericFixed(Fixed):
             raise NotImplementedError('Cannot store a category dtype in '
                                       'a HDF5 dataset that uses format='
                                       '"fixed". Use format="table".')
-
         if not empty_array:
-            value = value.T
-            transposed = True
+            if hasattr(value, 'T'):
+                # ExtensionArrays (1d) may not have transpose.
+                value = value.T
+                transposed = True
 
         if self._filters is not None:
             atom = None
@@ -2739,7 +2745,7 @@ class GenericFixed(Fixed):
 
             # infer the type, warn if we have a non-string type here (for
             # performance)
-            inferred_type = lib.infer_dtype(value.ravel())
+            inferred_type = lib.infer_dtype(value.ravel(), skipna=False)
             if empty_array:
                 pass
             elif inferred_type == 'string':
@@ -4506,7 +4512,7 @@ def _convert_index(index, encoding=None, errors='strict', format_type=None):
     if isinstance(index, MultiIndex):
         raise TypeError('MultiIndex not supported here!')
 
-    inferred_type = lib.infer_dtype(index)
+    inferred_type = lib.infer_dtype(index, skipna=False)
 
     values = np.asarray(index)
 
@@ -4739,7 +4745,7 @@ class Selection(object):
 
             # see if we have a passed coordinate like
             try:
-                inferred = lib.infer_dtype(where)
+                inferred = lib.infer_dtype(where, skipna=False)
                 if inferred == 'integer' or inferred == 'boolean':
                     where = np.asarray(where)
                     if where.dtype == np.bool_:

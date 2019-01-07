@@ -3,19 +3,18 @@ from collections import deque
 from datetime import datetime
 import operator
 
-import pytest
 import numpy as np
+import pytest
 
 from pandas.compat import range
 
 import pandas as pd
-import pandas.util.testing as tm
-
 from pandas.tests.frame.common import _check_mixed_float, _check_mixed_int
-
+import pandas.util.testing as tm
 
 # -------------------------------------------------------------------
 # Comparisons
+
 
 class TestFrameComparisons(object):
     # Specifically _not_ flex-comparisons
@@ -556,21 +555,6 @@ class TestFrameArithmetic(object):
         result = 1 * df
         kinds = result.dtypes.apply(lambda x: x.kind)
         assert (kinds == 'i').all()
-
-    def test_td64_df_add_int_frame(self):
-        # GH#22696 Check that we don't dispatch to numpy implementation,
-        # which treats int64 as m8[ns]
-        tdi = pd.timedelta_range('1ns', periods=3)
-        df = tdi.to_frame()
-        other = pd.DataFrame([1, 2, 3], index=tdi)  # indexed like `df`
-        with pytest.raises(TypeError):
-            df + other
-        with pytest.raises(TypeError):
-            other + df
-        with pytest.raises(TypeError):
-            df - other
-        with pytest.raises(TypeError):
-            other - df
 
     def test_arith_mixed(self):
 

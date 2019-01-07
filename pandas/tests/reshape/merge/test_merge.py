@@ -1,25 +1,27 @@
 # pylint: disable=E1103
 
-import random
-import re
 from collections import OrderedDict
 from datetime import date, datetime
+import random
+import re
 
 import numpy as np
-import pytest
 from numpy import nan
+import pytest
 
-import pandas as pd
-import pandas.util.testing as tm
-from pandas import (Categorical, CategoricalIndex, DataFrame, DatetimeIndex,
-                    Float64Index, Int64Index, MultiIndex, RangeIndex,
-                    Series, UInt64Index)
-from pandas.api.types import CategoricalDtype as CDT
 from pandas.compat import lrange
+
 from pandas.core.dtypes.common import is_categorical_dtype, is_object_dtype
 from pandas.core.dtypes.dtypes import CategoricalDtype
+
+import pandas as pd
+from pandas import (
+    Categorical, CategoricalIndex, DataFrame, DatetimeIndex, Float64Index,
+    Int64Index, MultiIndex, RangeIndex, Series, UInt64Index)
+from pandas.api.types import CategoricalDtype as CDT
 from pandas.core.reshape.concat import concat
 from pandas.core.reshape.merge import MergeError, merge
+import pandas.util.testing as tm
 from pandas.util.testing import assert_frame_equal, assert_series_equal
 
 N = 50
@@ -924,10 +926,6 @@ class TestMergeDtypes(object):
     @pytest.mark.parametrize('right_vals', [
         ['foo', 'bar'],
         Series(['foo', 'bar']).astype('category'),
-        [1, 2],
-        [1.0, 2.0],
-        Series([1, 2], dtype='uint64'),
-        Series([1, 2], dtype='int32')
     ])
     def test_different(self, right_vals):
 
@@ -942,22 +940,8 @@ class TestMergeDtypes(object):
         # GH 9780
         # We allow merging on object and categorical cols and cast
         # categorical cols to object
-        if (is_categorical_dtype(right['A'].dtype) or
-                is_object_dtype(right['A'].dtype)):
-            result = pd.merge(left, right, on='A')
-            assert is_object_dtype(result.A.dtype)
-
-        # GH 9780
-        # We raise for merging on object col and int/float col and
-        # merging on categorical col and int/float col
-        else:
-            msg = ("You are trying to merge on "
-                   "{lk_dtype} and {rk_dtype} columns. "
-                   "If you wish to proceed you should use "
-                   "pd.concat".format(lk_dtype=left['A'].dtype,
-                                      rk_dtype=right['A'].dtype))
-            with pytest.raises(ValueError, match=msg):
-                pd.merge(left, right, on='A')
+        result = pd.merge(left, right, on='A')
+        assert is_object_dtype(result.A.dtype)
 
     @pytest.mark.parametrize('d1', [np.int64, np.int32,
                                     np.int16, np.int8, np.uint8])
@@ -1056,6 +1040,33 @@ class TestMergeDtypes(object):
         assert_frame_equal(result, expected)
 
     @pytest.mark.parametrize('df1_vals, df2_vals', [
+
+        # merge on category coerces to object
+        ([0, 1, 2], Series(['a', 'b', 'a']).astype('category')),
+        ([0.0, 1.0, 2.0], Series(['a', 'b', 'a']).astype('category')),
+
+        # no not infer
+        ([0, 1], pd.Series([False, True], dtype=object)),
+        ([0, 1], pd.Series([False, True], dtype=bool)),
+    ])
+    def test_merge_incompat_dtypes_are_ok(self, df1_vals, df2_vals):
+        # these are explicity allowed incompat merges, that pass thru
+        # the result type is dependent on if the values on the rhs are
+        # inferred, otherwise these will be coereced to object
+
+        df1 = DataFrame({'A': df1_vals})
+        df2 = DataFrame({'A': df2_vals})
+
+        result = pd.merge(df1, df2, on=['A'])
+        assert is_object_dtype(result.A.dtype)
+        result = pd.merge(df2, df1, on=['A'])
+        assert is_object_dtype(result.A.dtype)
+
+    @pytest.mark.parametrize('df1_vals, df2_vals', [
+        # do not infer to numeric
+
+        (Series([1, 2], dtype='uint64'), ["a", "b", "c"]),
+        (Series([1, 2], dtype='int32'), ["a", "b", "c"]),
         ([0, 1, 2], ["0", "1", "2"]),
         ([0.0, 1.0, 2.0], ["0", "1", "2"]),
         ([0, 1, 2], [u"0", u"1", u"2"]),
@@ -1065,12 +1076,8 @@ class TestMergeDtypes(object):
         (pd.date_range('1/1/2011', periods=2, freq='D'), [0.0, 1.0]),
         (pd.date_range('20130101', periods=3),
             pd.date_range('20130101', periods=3, tz='US/Eastern')),
-        ([0, 1, 2], Series(['a', 'b', 'a']).astype('category')),
-        ([0.0, 1.0, 2.0], Series(['a', 'b', 'a']).astype('category')),
-        # TODO ([0, 1], pd.Series([False, True], dtype=bool)),
-        ([0, 1], pd.Series([False, True], dtype=object))
     ])
-    def test_merge_incompat_dtypes(self, df1_vals, df2_vals):
+    def test_merge_incompat_dtypes_error(self, df1_vals, df2_vals):
         # GH 9780, GH 15800
         # Raise a ValueError when a user tries to merge on
         # dtypes that are incompatible (e.g., obj and int/float)
@@ -1326,6 +1333,16 @@ class TestMergeCategorical(object):
             CDT(categories, ordered=ordered))
         assert_frame_equal(expected, result)
 
+    def test_merge_on_int_array(self):
+        # GH 23020
+        df = pd.DataFrame({'A': pd.Series([1, 2, np.nan], dtype='Int64'),
+                           'B': 1})
+        result = pd.merge(df, df, on='A')
+        expected = pd.DataFrame({'A': pd.Series([1, 2, np.nan], dtype='Int64'),
+                                 'B_x': 1,
+                                 'B_y': 1})
+        assert_frame_equal(result, expected)
+
 
 @pytest.fixture
 def left_df():
@@ -1397,16 +1414,16 @@ def test_merge_index_types(index):
     assert_frame_equal(result, expected)
 
 
-@pytest.mark.parametrize("on,left_on,right_on,left_index,right_index,nms,nm", [
-    (['outer', 'inner'], None, None, False, False, ['outer', 'inner'], 'B'),
-    (None, None, None, True, True, ['outer', 'inner'], 'B'),
-    (None, ['outer', 'inner'], None, False, True, None, 'B'),
-    (None, None, ['outer', 'inner'], True, False, None, 'B'),
-    (['outer', 'inner'], None, None, False, False, ['outer', 'inner'], None),
-    (None, None, None, True, True, ['outer', 'inner'], None),
-    (None, ['outer', 'inner'], None, False, True, None, None),
-    (None, None, ['outer', 'inner'], True, False, None, None)])
-def test_merge_series(on, left_on, right_on, left_index, right_index, nms, nm):
+@pytest.mark.parametrize("on,left_on,right_on,left_index,right_index,nm", [
+    (['outer', 'inner'], None, None, False, False, 'B'),
+    (None, None, None, True, True, 'B'),
+    (None, ['outer', 'inner'], None, False, True, 'B'),
+    (None, None, ['outer', 'inner'], True, False, 'B'),
+    (['outer', 'inner'], None, None, False, False, None),
+    (None, None, None, True, True, None),
+    (None, ['outer', 'inner'], None, False, True, None),
+    (None, None, ['outer', 'inner'], True, False, None)])
+def test_merge_series(on, left_on, right_on, left_index, right_index, nm):
     # GH 21220
     a = pd.DataFrame({"A": [1, 2, 3, 4]},
                      index=pd.MultiIndex.from_product([['a', 'b'], [0, 1]],
@@ -1416,7 +1433,7 @@ def test_merge_series(on, left_on, right_on, left_index, right_index, nms, nm):
                   names=['outer', 'inner']), name=nm)
     expected = pd.DataFrame({"A": [2, 4], "B": [1, 3]},
                             index=pd.MultiIndex.from_product([['a', 'b'], [1]],
-                            names=nms))
+                            names=['outer', 'inner']))
     if nm is not None:
         result = pd.merge(a, b, on=on, left_on=left_on, right_on=right_on,
                           left_index=left_index, right_index=right_index)

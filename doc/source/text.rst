@@ -1,14 +1,6 @@
-.. currentmodule:: pandas
 .. _text:
 
-.. ipython:: python
-   :suppress:
-
-   import numpy as np
-   import pandas as pd
-
-   np.set_printoptions(precision=4, suppress=True)
-   pd.options.display.max_rows = 15
+{{ header }}
 
 ======================
 Working with Text Data
@@ -311,23 +303,24 @@ The same alignment can be used when ``others`` is a ``DataFrame``:
 Concatenating a Series and many objects into a Series
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-All one-dimensional list-likes can be combined in a list-like container (including iterators, ``dict``-views, etc.):
+Several array-like items (specifically: ``Series``, ``Index``, and 1-dimensional variants of ``np.ndarray``)
+can be combined in a list-like container (including iterators, ``dict``-views, etc.).
 
 .. ipython:: python
 
     s
     u
-    s.str.cat([u.array,
-               u.index.astype(str).array], na_rep='-')
+    s.str.cat([u, u.to_numpy()], join='left')
 
-All elements must match in length to the calling ``Series`` (or ``Index``), except those having an index if ``join`` is not None:
+All elements without an index (e.g. ``np.ndarray``) within the passed list-like must match in length to the calling ``Series`` (or ``Index``),
+but ``Series`` and ``Index`` may have arbitrary length (as long as alignment is not disabled with ``join=None``):
 
 .. ipython:: python
 
     v
-    s.str.cat([u, v], join='outer', na_rep='-')
+    s.str.cat([v, u, u.to_numpy()], join='outer', na_rep='-')
 
-If using ``join='right'`` on a list of ``others`` that contains different indexes,
+If using ``join='right'`` on a list-like of ``others`` that contains different indexes,
 the union of these indexes will be used as the basis for the final concatenation:
 
 .. ipython:: python

@@ -1,26 +1,25 @@
 """ Test cases for time series specific (freq conversion, etc) """
-
-from datetime import datetime, timedelta, date, time
+from datetime import date, datetime, time, timedelta
 import pickle
-
-import pytest
-from pandas.compat import lrange, zip
+import sys
 
 import numpy as np
-from pandas import Index, Series, DataFrame, NaT, isna
-from pandas.compat import PY3
-from pandas.core.indexes.datetimes import date_range, bdate_range
-from pandas.core.indexes.timedeltas import timedelta_range
-from pandas.tseries.offsets import DateOffset
-from pandas.core.indexes.period import period_range, Period, PeriodIndex
-from pandas.core.resample import DatetimeIndex
+import pytest
 
-from pandas.util.testing import assert_series_equal, ensure_clean
-import pandas.util.testing as tm
+from pandas.compat import PY3, lrange, zip
 import pandas.util._test_decorators as td
 
-from pandas.tests.plotting.common import (TestPlotBase,
-                                          _skip_if_no_scipy_gaussian_kde)
+from pandas import DataFrame, Index, NaT, Series, isna
+from pandas.core.indexes.datetimes import bdate_range, date_range
+from pandas.core.indexes.period import Period, PeriodIndex, period_range
+from pandas.core.indexes.timedeltas import timedelta_range
+from pandas.core.resample import DatetimeIndex
+from pandas.tests.plotting.common import (
+    TestPlotBase, _skip_if_no_scipy_gaussian_kde)
+import pandas.util.testing as tm
+from pandas.util.testing import assert_series_equal, ensure_clean
+
+from pandas.tseries.offsets import DateOffset
 
 
 @td.skip_if_no_mpl
@@ -1075,6 +1074,7 @@ class TestTSPlot(TestPlotBase):
         _, ax = self.plt.subplots()
         _check_plot_works(df.plot, ax=ax)
 
+    @pytest.mark.xfail(reason="fails with py2.7.15", strict=False)
     @pytest.mark.slow
     def test_time(self):
         t = datetime(1, 1, 1, 3, 30, 0)
@@ -1556,7 +1556,10 @@ def _check_plot_works(f, freq=None, series=None, *args, **kwargs):
         # GH18439
         # this is supported only in Python 3 pickle since
         # pickle in Python2 doesn't support instancemethod pickling
-        if PY3:
+        # TODO(statsmodels 0.10.0): Remove the statsmodels check
+        # https://github.com/pandas-dev/pandas/issues/24088
+        # https://github.com/statsmodels/statsmodels/issues/4772
+        if PY3 and 'statsmodels' not in sys.modules:
             with ensure_clean(return_filelike=True) as path:
                 pickle.dump(fig, path)
     finally:

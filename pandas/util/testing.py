@@ -20,8 +20,8 @@ from numpy.random import rand, randn
 from pandas._libs import testing as _testing
 import pandas.compat as compat
 from pandas.compat import (
-    PY2, PY3, Counter, StringIO, callable, filter, httplib, lmap, lrange, lzip,
-    map, raise_with_traceback, range, string_types, u, unichr, zip)
+    PY2, PY3, Counter, callable, filter, httplib, lmap, lrange, lzip, map,
+    raise_with_traceback, range, string_types, u, unichr, zip)
 
 from pandas.core.dtypes.common import (
     is_bool, is_categorical_dtype, is_datetime64_dtype, is_datetime64tz_dtype,
@@ -33,12 +33,11 @@ from pandas.core.dtypes.missing import array_equivalent
 import pandas as pd
 from pandas import (
     Categorical, CategoricalIndex, DataFrame, DatetimeIndex, Index,
-    IntervalIndex, MultiIndex, Panel, PeriodIndex, RangeIndex, Series,
-    bdate_range)
+    IntervalIndex, MultiIndex, Panel, RangeIndex, Series, bdate_range)
 from pandas.core.algorithms import take_1d
 from pandas.core.arrays import (
-    DatetimeArrayMixin as DatetimeArray, ExtensionArray, IntervalArray,
-    PeriodArray, TimedeltaArrayMixin as TimedeltaArray, period_array)
+    DatetimeArray, ExtensionArray, IntervalArray, PeriodArray, TimedeltaArray,
+    period_array)
 import pandas.core.common as com
 
 from pandas.io.common import urlopen
@@ -242,6 +241,55 @@ def decompress_file(path, compression):
         f.close()
         if compression == "zip":
             zip_file.close()
+
+
+def write_to_compressed(compression, path, data, dest="test"):
+    """
+    Write data to a compressed file.
+
+    Parameters
+    ----------
+    compression : {'gzip', 'bz2', 'zip', 'xz'}
+        The compression type to use.
+    path : str
+        The file path to write the data.
+    data : str
+        The data to write.
+    dest : str, default "test"
+        The destination file (for ZIP only)
+
+    Raises
+    ------
+    ValueError : An invalid compression value was passed in.
+    """
+
+    if compression == "zip":
+        import zipfile
+        compress_method = zipfile.ZipFile
+    elif compression == "gzip":
+        import gzip
+        compress_method = gzip.GzipFile
+    elif compression == "bz2":
+        import bz2
+        compress_method = bz2.BZ2File
+    elif compression == "xz":
+        lzma = compat.import_lzma()
+        compress_method = lzma.LZMAFile
+    else:
+        msg = "Unrecognized compression type: {}".format(compression)
+        raise ValueError(msg)
+
+    if compression == "zip":
+        mode = "w"
+        args = (dest, data)
+        method = "writestr"
+    else:
+        mode = "wb"
+        args = (data,)
+        method = "write"
+
+    with compress_method(path, mode=mode) as f:
+        getattr(f, method)(*args)
 
 
 def assert_almost_equal(left, right, check_dtype="equiv",
@@ -625,99 +673,6 @@ def set_defaultencoding(encoding):
         sys.setdefaultencoding(orig)
 
 
-def capture_stdout(f):
-    r"""
-    Decorator to capture stdout in a buffer so that it can be checked
-    (or suppressed) during testing.
-
-    Parameters
-    ----------
-    f : callable
-        The test that is capturing stdout.
-
-    Returns
-    -------
-    f : callable
-        The decorated test ``f``, which captures stdout.
-
-    Examples
-    --------
-
-    >>> from pandas.util.testing import capture_stdout
-    >>> import sys
-    >>>
-    >>> @capture_stdout
-    ... def test_print_pass():
-    ...     print("foo")
-    ...     out = sys.stdout.getvalue()
-    ...     assert out == "foo\n"
-    >>>
-    >>> @capture_stdout
-    ... def test_print_fail():
-    ...     print("foo")
-    ...     out = sys.stdout.getvalue()
-    ...     assert out == "bar\n"
-    ...
-    AssertionError: assert 'foo\n' == 'bar\n'
-    """
-
-    @compat.wraps(f)
-    def wrapper(*args, **kwargs):
-        try:
-            sys.stdout = StringIO()
-            f(*args, **kwargs)
-        finally:
-            sys.stdout = sys.__stdout__
-
-    return wrapper
-
-
-def capture_stderr(f):
-    r"""
-    Decorator to capture stderr in a buffer so that it can be checked
-    (or suppressed) during testing.
-
-    Parameters
-    ----------
-    f : callable
-        The test that is capturing stderr.
-
-    Returns
-    -------
-    f : callable
-        The decorated test ``f``, which captures stderr.
-
-    Examples
-    --------
-
-    >>> from pandas.util.testing import capture_stderr
-    >>> import sys
-    >>>
-    >>> @capture_stderr
-    ... def test_stderr_pass():
-    ...     sys.stderr.write("foo")
-    ...     out = sys.stderr.getvalue()
-    ...     assert out == "foo\n"
-    >>>
-    >>> @capture_stderr
-    ... def test_stderr_fail():
-    ...     sys.stderr.write("foo")
-    ...     out = sys.stderr.getvalue()
-    ...     assert out == "bar\n"
-    ...
-    AssertionError: assert 'foo\n' == 'bar\n'
-    """
-
-    @compat.wraps(f)
-    def wrapper(*args, **kwargs):
-        try:
-            sys.stderr = StringIO()
-            f(*args, **kwargs)
-        finally:
-            sys.stderr = sys.__stderr__
-
-    return wrapper
-
 # -----------------------------------------------------------------------------
 # Console debugging tools
 
@@ -818,6 +773,22 @@ def ensure_clean_dir():
             pass
 
 
+@contextmanager
+def ensure_safe_environment_variables():
+    """
+    Get a context manager to safely set environment variables
+
+    All changes will be undone on close, hence environment variables set
+    within this contextmanager will neither persist nor change global state.
+    """
+    saved_environ = dict(os.environ)
+    try:
+        yield
+    finally:
+        os.environ.clear()
+        os.environ.update(saved_environ)
+
+
 # -----------------------------------------------------------------------------
 # Comparators
 
@@ -874,7 +845,7 @@ def assert_index_equal(left, right, exact='equiv', check_names=True,
     def _get_ilevel_values(index, level):
         # accept level number only
         unique = index.levels[level]
-        labels = index.labels[level]
+        labels = index.codes[level]
         filled = take_1d(unique.values, labels, fill_value=unique._na_value)
         values = unique._shallow_copy(filled, name=index.names[level])
         return values
@@ -1109,6 +1080,7 @@ def assert_period_array_equal(left, right, obj='PeriodArray'):
 
 
 def assert_datetime_array_equal(left, right, obj='DatetimeArray'):
+    __tracebackhide__ = True
     _check_isinstance(left, right, DatetimeArray)
 
     assert_numpy_array_equal(left._data, right._data,
@@ -1118,6 +1090,7 @@ def assert_datetime_array_equal(left, right, obj='DatetimeArray'):
 
 
 def assert_timedelta_array_equal(left, right, obj='TimedeltaArray'):
+    __tracebackhide__ = True
     _check_isinstance(left, right, TimedeltaArray)
     assert_numpy_array_equal(left._data, right._data,
                              obj='{obj}._data'.format(obj=obj))
@@ -1374,11 +1347,18 @@ def assert_series_equal(left, right, check_dtype=True,
             assert_numpy_array_equal(left.get_values(), right.get_values(),
                                      check_dtype=check_dtype)
     elif is_interval_dtype(left) or is_interval_dtype(right):
-        assert_interval_array_equal(left.values, right.values)
+        assert_interval_array_equal(left.array, right.array)
+
+    elif (is_extension_array_dtype(left.dtype) and
+          is_datetime64tz_dtype(left.dtype)):
+        # .values is an ndarray, but ._values is the ExtensionArray.
+        # TODO: Use .array
+        assert is_extension_array_dtype(right.dtype)
+        return assert_extension_array_equal(left._values, right._values)
 
     elif (is_extension_array_dtype(left) and not is_categorical_dtype(left) and
           is_extension_array_dtype(right) and not is_categorical_dtype(right)):
-        return assert_extension_array_equal(left.values, right.values)
+        return assert_extension_array_equal(left.array, right.array)
 
     else:
         _testing.assert_almost_equal(left.get_values(), right.get_values(),
@@ -1695,9 +1675,9 @@ def to_array(obj):
     if is_period_dtype(obj):
         return period_array(obj)
     elif is_datetime64_dtype(obj) or is_datetime64tz_dtype(obj):
-        return DatetimeArray(obj)
+        return DatetimeArray._from_sequence(obj)
     elif is_timedelta64_dtype(obj):
-        return TimedeltaArray(obj)
+        return TimedeltaArray._from_sequence(obj)
     else:
         return np.array(obj)
 
@@ -1917,10 +1897,6 @@ def getCols(k):
     return string.ascii_uppercase[:k]
 
 
-def getArangeMat():
-    return np.arange(N * K).reshape((N, K))
-
-
 # make index
 def makeStringIndex(k=10, name=None):
     return Index(rands_array(nchars=10, size=k), name=name)
@@ -1980,7 +1956,7 @@ def makeTimedeltaIndex(k=10, freq='D', name=None, **kwargs):
 
 def makePeriodIndex(k=10, name=None, **kwargs):
     dt = datetime(2000, 1, 1)
-    dr = PeriodIndex(start=dt, periods=k, freq='B', name=name, **kwargs)
+    dr = pd.period_range(start=dt, periods=k, freq='B', name=name, **kwargs)
     return dr
 
 
@@ -2376,13 +2352,6 @@ def add_nans(panel):
         for j, col in enumerate(dm.columns):
             dm[col][:i + j] = np.NaN
     return panel
-
-
-def add_nans_panel4d(panel4d):
-    for l, label in enumerate(panel4d.labels):
-        panel = panel4d[label]
-        add_nans(panel)
-    return panel4d
 
 
 class TestSubDict(dict):
@@ -3034,58 +3003,6 @@ class SubclassedCategorical(Categorical):
     @property
     def _constructor(self):
         return SubclassedCategorical
-
-
-@contextmanager
-def patch(ob, attr, value):
-    """Temporarily patch an attribute of an object.
-
-    Parameters
-    ----------
-    ob : any
-        The object to patch. This must support attribute assignment for `attr`.
-    attr : str
-        The name of the attribute to patch.
-    value : any
-        The temporary attribute to assign.
-
-    Examples
-    --------
-    >>> class C(object):
-    ...     attribute = 'original'
-    ...
-    >>> C.attribute
-    'original'
-    >>> with patch(C, 'attribute', 'patched'):
-    ...     in_context = C.attribute
-    ...
-    >>> in_context
-    'patched'
-    >>> C.attribute  # the value is reset when the context manager exists
-    'original'
-
-    Correctly replaces attribute when the manager exits with an exception.
-    >>> with patch(C, 'attribute', 'patched'):
-    ...     in_context = C.attribute
-    ...     raise ValueError()
-    Traceback (most recent call last):
-       ...
-    ValueError
-    >>> in_context
-    'patched'
-    >>> C.attribute
-    'original'
-    """
-    noattr = object()  # mark that the attribute never existed
-    old = getattr(ob, attr, noattr)
-    setattr(ob, attr, value)
-    try:
-        yield
-    finally:
-        if old is noattr:
-            delattr(ob, attr)
-        else:
-            setattr(ob, attr, old)
 
 
 @contextmanager

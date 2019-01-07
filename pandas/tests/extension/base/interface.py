@@ -1,11 +1,10 @@
 import numpy as np
 
-from pandas.compat import StringIO
-
 from pandas.core.dtypes.common import is_extension_array_dtype
 from pandas.core.dtypes.dtypes import ExtensionDtype
 
 import pandas as pd
+import pandas.util.testing as tm
 
 from .base import BaseExtensionTests
 
@@ -35,28 +34,9 @@ class BaseInterfaceTests(BaseExtensionTests):
         result = np.array(data)
         assert result[0] == data[0]
 
-    def test_repr(self, data):
-        ser = pd.Series(data)
-        assert data.dtype.name in repr(ser)
-
-        df = pd.DataFrame({"A": data})
-        repr(df)
-
-    def test_repr_array(self, data):
-        # some arrays may be able to assert
-        # attributes in the repr
-        repr(data)
-
-    def test_repr_array_long(self, data):
-        # some arrays may be able to assert a ... in the repr
-        with pd.option_context('display.max_seq_items', 1):
-            repr(data)
-
-    def test_dtype_name_in_info(self, data):
-        buf = StringIO()
-        pd.DataFrame({"A": data}).info(buf=buf)
-        result = buf.getvalue()
-        assert data.dtype.name in result
+        result = np.array(data, dtype=object)
+        expected = np.array(list(data), dtype=object)
+        tm.assert_numpy_array_equal(result, expected)
 
     def test_is_extension_array_dtype(self, data):
         assert is_extension_array_dtype(data)

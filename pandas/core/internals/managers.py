@@ -16,7 +16,7 @@ from pandas.core.dtypes.cast import (
     maybe_promote)
 from pandas.core.dtypes.common import (
     _NS_DTYPE, is_datetimelike_v_numeric, is_extension_array_dtype,
-    is_extension_type, is_numeric_v_string_like, is_scalar)
+    is_extension_type, is_list_like, is_numeric_v_string_like, is_scalar)
 import pandas.core.dtypes.concat as _concat
 from pandas.core.dtypes.generic import ABCExtensionArray, ABCSeries
 from pandas.core.dtypes.missing import isna
@@ -30,8 +30,9 @@ from pandas.core.indexing import maybe_convert_indices
 from pandas.io.formats.printing import pprint_thing
 
 from .blocks import (
-    Block, CategoricalBlock, DatetimeTZBlock, ExtensionBlock, _extend_blocks,
-    _merge_blocks, _safe_reshape, get_block_type, make_block)
+    Block, CategoricalBlock, DatetimeTZBlock, ExtensionBlock,
+    ObjectValuesExtensionBlock, _extend_blocks, _merge_blocks, _safe_reshape,
+    get_block_type, make_block)
 from .concat import (  # all for concatenate_block_managers
     combine_concat_plans, concatenate_join_units, get_mgr_concatenation_plan,
     is_uniform_join_units)
@@ -401,40 +402,58 @@ class BlockManager(PandasObject):
         bm._consolidate_inplace()
         return bm
 
-    def reduction(self, f, axis=0, consolidate=True, transposed=False,
-                  **kwargs):
+    def quantile(self, axis=0, consolidate=True, transposed=False,
+                 interpolation='linear', qs=None, numeric_only=None):
         """
-        iterate over the blocks, collect and create a new block manager.
+        Iterate over blocks applying quantile reduction.
         This routine is intended for reduction type operations and
         will do inference on the generated blocks.
 
         Parameters
         ----------
-        f: the callable or function name to operate on at the block level
         axis: reduction axis, default 0
         consolidate: boolean, default True. Join together blocks having same
             dtype
         transposed: boolean, default False
             we are holding transposed data
+        interpolation : type of interpolation, default 'linear'
+        qs : a scalar or list of the quantiles to be computed
+        numeric_only : ignored
 
         Returns
         -------
         Block Manager (new object)
-
         """
+
+        # Series dispatches to DataFrame for quantile, which allows us to
+        #  simplify some of the code here and in the blocks
+        assert self.ndim >= 2
 
         if consolidate:
             self._consolidate_inplace()
 
+        def get_axe(block, qs, axes):
+            from pandas import Float64Index
+            if is_list_like(qs):
+                ax = Float64Index(qs)
+            elif block.ndim == 1:
+                ax = Float64Index([qs])
+            else:
+                ax = axes[0]
+            return ax
+
         axes, blocks = [], []
         for b in self.blocks:
-            axe, block = getattr(b, f)(axis=axis, axes=self.axes, **kwargs)
+            block = b.quantile(axis=axis, qs=qs, interpolation=interpolation)
+
+            axe = get_axe(b, qs, axes=self.axes)
 
             axes.append(axe)
             blocks.append(block)
 
         # note that some DatetimeTZ, Categorical are always ndim==1
         ndim = {b.ndim for b in blocks}
+        assert 0 not in ndim, ndim
 
         if 2 in ndim:
 
@@ -460,15 +479,7 @@ class BlockManager(PandasObject):
 
             return self.__class__(blocks, new_axes)
 
-        # 0 ndim
-        if 0 in ndim and 1 not in ndim:
-            values = np.array([b.values for b in blocks])
-            if len(values) == 1:
-                return values.item()
-            blocks = [make_block(values, ndim=1)]
-            axes = Index([ax[0] for ax in axes])
-
-        # single block
+        # single block, i.e. ndim == {1}
         values = _concat._concat_compat([b.values for b in blocks])
 
         # compute the orderings of our original data
@@ -494,9 +505,6 @@ class BlockManager(PandasObject):
 
     def where(self, **kwargs):
         return self.apply('where', **kwargs)
-
-    def quantile(self, **kwargs):
-        return self.reduction('quantile', **kwargs)
 
     def setitem(self, **kwargs):
         return self.apply('setitem', **kwargs)
@@ -749,8 +757,13 @@ class BlockManager(PandasObject):
         else:
             mgr = self
 
-        if self._is_single_block or not self.is_mixed_type:
-            arr = mgr.blocks[0].get_values()
+        if self._is_single_block and mgr.blocks[0].is_datetimetz:
+            # TODO(Block.get_values): Make DatetimeTZBlock.get_values
+            # always be object dtype. Some callers seem to want the
+            # DatetimeArray (previously DTI)
+            arr = mgr.blocks[0].get_values(dtype=object)
+        elif self._is_single_block or not self.is_mixed_type:
+            arr = np.asarray(mgr.blocks[0].get_values())
         else:
             arr = mgr._interleave()
 
@@ -1003,11 +1016,10 @@ class BlockManager(PandasObject):
         self._shape = None
         self._rebuild_blknos_and_blklocs()
 
-    def set(self, item, value, check=False):
+    def set(self, item, value):
         """
         Set new item in-place. Does not consolidate. Adds new Block if not
         contained in the current set of items
-        if check, then validate that we are not setting the same data in-place
         """
         # FIXME: refactor, clearly separate broadcasting & zip-like assignment
         #        can prob also fix the various if tests for sparse/categorical
@@ -1059,7 +1071,7 @@ class BlockManager(PandasObject):
             blk = self.blocks[blkno]
             blk_locs = blklocs[val_locs.indexer]
             if blk.should_store(value):
-                blk.set(blk_locs, value_getitem(val_locs), check=check)
+                blk.set(blk_locs, value_getitem(val_locs))
             else:
                 unfit_mgr_locs.append(blk.mgr_locs.as_array[blk_locs])
                 unfit_val_locs.append(val_locs)
@@ -1748,6 +1760,14 @@ def form_blocks(arrays, names, axes):
         external_blocks = [
             make_block(array, klass=ExtensionBlock, placement=[i])
             for i, _, array in items_dict['ExtensionBlock']
+        ]
+
+        blocks.extend(external_blocks)
+
+    if len(items_dict['ObjectValuesExtensionBlock']):
+        external_blocks = [
+            make_block(array, klass=ObjectValuesExtensionBlock, placement=[i])
+            for i, _, array in items_dict['ObjectValuesExtensionBlock']
         ]
 
         blocks.extend(external_blocks)

@@ -4,15 +4,14 @@ Tests for offsets.Tick and subclasses
 """
 from datetime import datetime, timedelta
 
-from hypothesis import assume, example, given, strategies as st
+from hypothesis import assume, example, given, settings, strategies as st
 import numpy as np
 import pytest
 
 from pandas import Timedelta, Timestamp
 
 from pandas.tseries import offsets
-from pandas.tseries.offsets import (
-    Day, Hour, Micro, Milli, Minute, Nano, Second)
+from pandas.tseries.offsets import Hour, Micro, Milli, Minute, Nano, Second
 
 from .common import assert_offset_equal
 
@@ -39,6 +38,7 @@ def test_delta_to_tick():
 
 
 @pytest.mark.parametrize('cls', tick_classes)
+@settings(deadline=None)  # GH 24641
 @example(n=2, m=3)
 @example(n=800, m=300)
 @example(n=1000, m=5)
@@ -211,13 +211,6 @@ def test_Nanosecond():
     assert Nano(1) + Nano(10) == Nano(11)
     assert Nano(5) + Micro(1) == Nano(1005)
     assert Micro(5) + Nano(1) == Nano(5001)
-
-
-def test_Day_equals_24_Hours():
-    ts = Timestamp('2016-10-30 00:00:00+0300', tz='Europe/Helsinki')
-    result = ts + Day(1)
-    expected = ts + Hour(24)
-    assert result == expected
 
 
 @pytest.mark.parametrize('kls, expected',

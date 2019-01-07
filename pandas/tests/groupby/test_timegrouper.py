@@ -1,17 +1,17 @@
 """ test with the TimeGrouper / grouping with datetimes """
 
+from datetime import datetime
+
+import numpy as np
+from numpy import nan
 import pytest
 import pytz
 
-from datetime import datetime
-import numpy as np
-from numpy import nan
+from pandas.compat import StringIO
 
 import pandas as pd
-from pandas import (DataFrame, date_range, Index,
-                    Series, MultiIndex, Timestamp)
+from pandas import DataFrame, Index, MultiIndex, Series, Timestamp, date_range
 from pandas.core.groupby.ops import BinGrouper
-from pandas.compat import StringIO
 from pandas.util import testing as tm
 from pandas.util.testing import assert_frame_equal, assert_series_equal
 
@@ -43,8 +43,8 @@ class TestGroupBy(object):
 
             expected = DataFrame(
                 {'Quantity': 0},
-                index=date_range('20130901 13:00:00',
-                                 '20131205 13:00:00', freq='5D',
+                index=date_range('20130901',
+                                 '20131205', freq='5D',
                                  name='Date', closed='left'))
             expected.iloc[[0, 6, 18], 0] = np.array([24, 6, 9], dtype='int64')
 

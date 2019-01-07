@@ -1,7 +1,6 @@
 # -*- coding: utf-8 -*-
 
 import cython
-from cython import Py_ssize_t
 
 import time
 from cpython.datetime cimport (PyDateTime_IMPORT,
@@ -18,15 +17,16 @@ from numpy cimport int64_t
 cnp.import_array()
 
 
-from util cimport is_string_object, is_integer_object
+from pandas._libs.tslibs.util cimport is_string_object, is_integer_object
 
-from ccalendar import MONTHS, DAYS
-from ccalendar cimport get_days_in_month, dayofweek
-from conversion cimport tz_convert_single, pydt_to_i8, localize_pydatetime
-from nattype cimport NPY_NAT
-from np_datetime cimport (npy_datetimestruct,
-                          dtstruct_to_dt64, dt64_to_dtstruct)
-from timezones import UTC
+from pandas._libs.tslibs.ccalendar import MONTHS, DAYS
+from pandas._libs.tslibs.ccalendar cimport get_days_in_month, dayofweek
+from pandas._libs.tslibs.conversion cimport (
+    tz_convert_single, pydt_to_i8, localize_pydatetime)
+from pandas._libs.tslibs.nattype cimport NPY_NAT
+from pandas._libs.tslibs.np_datetime cimport (
+    npy_datetimestruct, dtstruct_to_dt64, dt64_to_dtstruct)
+from pandas._libs.tslibs.timezones import UTC
 
 # ---------------------------------------------------------------------
 # Constants
@@ -351,6 +351,14 @@ class _BaseOffset(object):
         kwds = {name: getattr(self, name, None) for name in self._attributes
                 if name not in ['n', 'normalize']}
         return {name: kwds[name] for name in kwds if kwds[name] is not None}
+
+    @property
+    def base(self):
+        """
+        Returns a copy of the calling offset object with n=1 and all other
+        attributes equal.
+        """
+        return type(self)(n=1, normalize=self.normalize, **self.kwds)
 
     def __add__(self, other):
         if getattr(other, "_typ", None) in ["datetimeindex", "periodindex",
@@ -839,11 +847,15 @@ def shift_month(stamp: datetime, months: int,
     ----------
     stamp : datetime or Timestamp
     months : int
-    day_opt : None, 'start', 'end', or an integer
+    day_opt : None, 'start', 'end', 'business_start', 'business_end', or int
         None: returned datetimelike has the same day as the input, or the
               last day of the month if the new month is too short
         'start': returned datetimelike has day=1
         'end': returned datetimelike has day on the last day of the month
+        'business_start': returned datetimelike has day on the first
+            business day of the month
+        'business_end': returned datetimelike has day on the last
+            business day of the month
         int: returned datetimelike has day equal to day_opt
 
     Returns
@@ -891,9 +903,13 @@ cpdef int get_day_of_month(datetime other, day_opt) except? -1:
     Parameters
     ----------
     other : datetime or Timestamp
-    day_opt : 'start', 'end'
+    day_opt : 'start', 'end', 'business_start', 'business_end', or int
         'start': returns 1
         'end': returns last day of the month
+        'business_start': returns the first business day of the month
+        'business_end': returns the last business day of the month
+        int: returns the day in the month indicated by `other`, or the last of
+            day the month if the value exceeds in that month's number of days.
 
     Returns
     -------
@@ -968,7 +984,7 @@ def roll_qtrday(other: datetime, n: int, month: int,
     other : datetime or Timestamp
     n : number of periods to increment, before adjusting for rolling
     month : int reference month giving the first month of the year
-    day_opt : 'start', 'end', 'business_start', 'business_end'
+    day_opt : 'start', 'end', 'business_start', 'business_end', or int
         The convention to use in finding the day in a given month against
         which to compare for rollforward/rollbackward decisions.
     modby : int 3 for quarters, 12 for years
@@ -976,6 +992,10 @@ def roll_qtrday(other: datetime, n: int, month: int,
     Returns
     -------
     n : int number of periods to increment
+
+    See Also
+    --------
+    get_day_of_month : Find the day in a month provided an offset.
     """
     cdef:
         int months_since
@@ -1010,9 +1030,16 @@ def roll_yearday(other: datetime, n: int, month: int, day_opt: object) -> int:
     other : datetime or Timestamp
     n : number of periods to increment, before adjusting for rolling
     month : reference month giving the first month of the year
-    day_opt : 'start', 'end'
-        'start': returns 1
-        'end': returns last day of the month
+    day_opt : 'start', 'end', 'business_start', 'business_end', or int
+        The day of the month to compare against that of `other` when
+        incrementing or decrementing the number of periods:
+
+        'start': 1
+        'end': last day of the month
+        'business_start': first business day of the month
+        'business_end': last business day of the month
+        int: day in the month indicated by `other`, or the last of day
+            the month if the value exceeds in that month's number of days.
 
     Returns
     -------
