@@ -1383,6 +1383,8 @@ class _Rolling_and_Expanding(_Rolling):
         ddof : int, default 1
             Delta Degrees of Freedom.  The divisor used in calculations
             is ``N - ddof``, where ``N`` represents the number of elements.
+        **kwargs :
+            Keyword arguments to be passed into func.
     """
 
     def cov(self, other=None, pairwise=None, ddof=1, **kwargs):
@@ -2105,7 +2107,9 @@ _pairwise_template = """
             inputs. In the case of missing elements, only complete pairwise
             observations will be used.
         bias : bool, default False
-           Use a standard estimation bias correction
+           Use a standard estimation bias correction.
+        **kwargs :
+           Keyword arguments to be passed into func.
 """
 
 
