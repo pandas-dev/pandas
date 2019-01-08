@@ -843,7 +843,7 @@ def sequence_to_td64ns(data, copy=False, unit="ns", errors="raise"):
         data = data._data
 
     # Convert whatever we have into timedelta64[ns] dtype
-    if data.dtype.kind in ['S', 'O']:
+    if data.dtype.kind in ['S', 'U', 'O']:
         # no need to make a copy, need to convert if string-dtyped
         data = objects_to_td64ns(data, unit=unit, errors=errors)
         copy = False
