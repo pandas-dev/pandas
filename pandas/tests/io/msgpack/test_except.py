@@ -22,16 +22,16 @@ class TestExceptions(object):
         def hook(_):
             raise DummyException()
 
-        pytest.raises(DummyException, unpackb, packb({}), object_hook=hook)
-        pytest.raises(DummyException, unpackb, packb({'fizz': 'buzz'}),
-                      object_hook=hook)
-        pytest.raises(DummyException, unpackb, packb({'fizz': 'buzz'}),
-                      object_pairs_hook=hook)
-        pytest.raises(DummyException, unpackb,
-                      packb({'fizz': {'buzz': 'spam'}}), object_hook=hook)
-        pytest.raises(DummyException, unpackb,
-                      packb({'fizz': {'buzz': 'spam'}}),
-                      object_pairs_hook=hook)
+        with pytest.raises(DummyException):
+            unpackb(packb({}), object_hook=hook)
+        with pytest.raises(DummyException):
+            unpackb(packb({'fizz': 'buzz'}), object_hook=hook)
+        with pytest.raises(DummyException):
+            unpackb(packb({'fizz': 'buzz'}), object_pairs_hook=hook)
+        with pytest.raises(DummyException):
+            unpackb(packb({'fizz': {'buzz': 'spam'}}), object_hook=hook)
+        with pytest.raises(DummyException):
+            unpackb(packb({'fizz': {'buzz': 'spam'}}), object_pairs_hook=hook)
 
     def test_invalid_value(self):
         msg = "Unpack failed: error"

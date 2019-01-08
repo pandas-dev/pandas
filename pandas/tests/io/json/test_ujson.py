@@ -422,7 +422,9 @@ class TestUltraJSONTests(object):
         roundtrip = ujson.decode(ujson.encode(val, date_unit='ns'))
         assert roundtrip == stamp.value
 
-        pytest.raises(ValueError, ujson.encode, val, date_unit='foo')
+        msg = "Invalid value 'foo' for option 'date_unit'"
+        with pytest.raises(ValueError, match=msg):
+            ujson.encode(val, date_unit='foo')
 
     def test_encode_to_utf8(self):
         unencoded = "\xe6\x97\xa5\xd1\x88"
@@ -695,7 +697,9 @@ class TestUltraJSONTests(object):
             def __str__(self):
                 return str(self.val)
 
-        pytest.raises(OverflowError, ujson.encode, _TestObject("foo"))
+        msg = "Maximum recursion level reached"
+        with pytest.raises(OverflowError, match=msg):
+            ujson.encode(_TestObject("foo"))
         assert '"foo"' == ujson.encode(_TestObject("foo"),
                                        default_handler=str)
 
