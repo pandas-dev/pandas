@@ -159,6 +159,7 @@ class TimedeltaArray(dtl.DatetimeLikeArrayMixin, dtl.TimelikeOps):
 
     @classmethod
     def _simple_new(cls, values, freq=None, dtype=_TD_DTYPE):
+        assert dtype is _TD_DTYPE, dtype
         assert isinstance(values, np.ndarray), type(values)
 
         result = object.__new__(cls)
@@ -843,17 +844,17 @@ def sequence_to_td64ns(data, copy=False, unit="ns", errors="raise"):
         data = data._data
 
     # Convert whatever we have into timedelta64[ns] dtype
-    if is_object_dtype(data) or is_string_dtype(data):
+    if data.dtype.kind in ['S', 'O']:
         # no need to make a copy, need to convert if string-dtyped
         data = objects_to_td64ns(data, unit=unit, errors=errors)
         copy = False
 
-    elif is_integer_dtype(data):
+    elif data.dtype.kind == 'i':
         # treat as multiples of the given unit
         data, copy_made = ints_to_td64ns(data, unit=unit)
         copy = copy and not copy_made
 
-    elif is_float_dtype(data):
+    elif data.dtype.kind == 'f':
         # treat as multiples of the given unit.  If after converting to nanos,
         #  there are fractional components left, these are truncated
         #  (i.e. NOT rounded)
@@ -863,7 +864,7 @@ def sequence_to_td64ns(data, copy=False, unit="ns", errors="raise"):
         data[mask] = iNaT
         copy = False
 
-    elif is_timedelta64_dtype(data):
+    elif data.dtype.kind == 'm':
         if data.dtype != _TD_DTYPE:
             # non-nano unit
             # TODO: watch out for overflows
