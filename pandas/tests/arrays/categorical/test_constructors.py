@@ -462,11 +462,6 @@ class TestCategoricalConstructors(object):
         res = Categorical.from_codes([0, 1, 2], dtype=dtype)
         tm.assert_categorical_equal(exp, res)
 
-        codes = np.random.choice([0, 1], 5, p=[0.9, 0.1])
-        dtype = CategoricalDtype(categories=["train", "test"])
-        Categorical.from_codes(codes, categories=dtype.categories)
-        Categorical.from_codes(codes, dtype=dtype)
-
     def test_from_codes_with_categorical_categories(self):
         # GH17884
         expected = Categorical(['a', 'b'], categories=['a', 'b', 'c'])
@@ -515,6 +510,16 @@ class TestCategoricalConstructors(object):
         with pytest.raises(ValueError,
                            match="codes need to be array-like integers"):
             Categorical.from_codes(codes, dtype=dtype)
+
+    def test_from_codes_with_dtype_raises(self):
+        msg = 'Cannot specify'
+        with pytest.raises(ValueError, match=msg):
+            Categorical([0, 1], categories=['a', 'b'],
+                        dtype=CategoricalDtype(['a', 'b']))
+
+        with pytest.raises(ValueError, match=msg):
+            Categorical([0, 1], ordered=True,
+                        dtype=CategoricalDtype(['a', 'b']))
 
     @pytest.mark.parametrize('dtype', [None, 'category'])
     def test_from_inferred_categories(self, dtype):

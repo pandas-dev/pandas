@@ -621,27 +621,22 @@ class Categorical(ExtensionArray, PandasObject):
             categories or dtype.categories, or else is -1 for NaN
         categories : index-like, optional
             The categories for the categorical. Items need to be unique.
-            .. versionchanged:: 0.24.0
-
-                The `categories` parameter has been made optional.
         ordered : bool, optional
             Whether or not this categorical is treated as an ordered
-            categorical. If not given, the resulting categorical will be
-            unordered.
-
-            .. versionchanged:: 0.24.0
-
-                The default value has been changed to  ``None``. Previously
-                the default value was ``False``.
+            categorical. If not given here or in `dtype`, the resulting
+            categorical will be unordered.
         dtype : CategoricalDtype or the string "category", optional
             If :class:`CategoricalDtype`, cannot be used together with
             `categories` or `ordered`.
 
             .. versionadded:: 0.24.0
 
+               When `dtype` is provided, neither `categories` nor `ordered`
+               should be provided.
+
         Examples
         --------
-        >>> dtype = pd.api.types.CategoricalDtype(['a', 'b'], ordered=True)
+        >>> dtype = pd.CategoricalDtype(['a', 'b'], ordered=True)
         >>> pd.Categorical.from_codes(codes=[0, 1, 0, 1], dtype=dtype)
         [a, b, a, b]
         Categories (2, object): [a < b]
