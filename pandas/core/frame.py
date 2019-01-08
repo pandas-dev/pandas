@@ -6217,8 +6217,6 @@ class DataFrame(NDFrame):
     array, e.g., ``numpy.mean(arr_2d)`` as opposed to ``numpy.mean(arr_2d,
     axis=0)``.
 
-    `agg` is an alias for `aggregate`. Use the alias.
-
     See Also
     --------
     DataFrame.apply : Perform any type of operations.
