@@ -491,7 +491,7 @@ def srcpath(name=None, suffix='.pyx', subdir='src'):
 
 
 common_include = ['pandas/_libs/src/klib', 'pandas/_libs/src']
-ts_include = ['pandas/_libs/tslibs/src']
+ts_include = ['pandas/_libs/tslibs/src', 'pandas/_libs/tslibs']
 
 
 lib_depends = ['pandas/_libs/src/parse_helper.h',
