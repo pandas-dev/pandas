@@ -2389,7 +2389,7 @@ class DatetimeTZBlock(ExtensionBlock, DatetimeBlock):
                 result = result.reshape(np.prod(result.shape))
             # GH#24096 new values invalidates a frequency
             result = self._holder._simple_new(result, freq=None,
-                                              tz=self.values.tz)
+                                              dtype=self.values.dtype)
 
         return result
 
