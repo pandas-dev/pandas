@@ -748,7 +748,7 @@ class DatetimeTZDtype(_DatetimeDtypeBase):
 
 class TimedeltaDtype(PandasExtensionDtype, ExtensionDtype):
     _metadata = ('unit',)
-    _match = re.compile(r"(timedelta|m8)\[ns\]")
+    _match = re.compile(r"(timedelta64|m8)\[(?P<unit>\w+)\]")
     type = Timedelta
     kind = 'm'
     str = '|m8[ns]'
@@ -775,6 +775,9 @@ class TimedeltaDtype(PandasExtensionDtype, ExtensionDtype):
         if isinstance(other, compat.string_types):
             return other == self.name or other == 'm8[ns]'
         return super(TimedeltaDtype, self).__eq__(other)
+
+    def __hash__(self):
+        return super(PandasExtensionDtype, self).__hash__()
 
     @property
     def unit(self):

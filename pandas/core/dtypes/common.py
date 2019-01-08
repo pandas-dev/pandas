@@ -9,7 +9,7 @@ from pandas.compat import PY3, PY36, string_types
 
 from pandas.core.dtypes.dtypes import (
     CategoricalDtype, DatetimeTZDtype, ExtensionDtype, IntervalDtype,
-    PandasExtensionDtype, PeriodDtype, registry)
+    PandasExtensionDtype, PeriodDtype, TimedeltaDtype, registry)
 from pandas.core.dtypes.generic import (
     ABCCategorical, ABCDateOffset, ABCDatetimeIndex, ABCIndexClass,
     ABCPeriodArray, ABCPeriodIndex, ABCSeries)
@@ -1207,7 +1207,10 @@ def is_timedelta64_ns_dtype(arr_or_dtype):
     >>> is_timedelta64_ns_dtype(np.array([1, 2], dtype=np.timedelta64))
     False
     """
-    return _is_dtype(arr_or_dtype, lambda dtype: dtype == _TD_DTYPE)
+    def condition(dtype):
+        return isinstance(dtype, TimedeltaDtype) or dtype == _TD_DTYPE
+
+    return _is_dtype(arr_or_dtype, condition)
 
 
 def is_datetime_or_timedelta_dtype(arr_or_dtype):

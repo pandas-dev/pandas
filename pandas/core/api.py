@@ -23,6 +23,7 @@ from pandas.core.dtypes.dtypes import (
     IntervalDtype,
     DatetimeDtype,
     DatetimeTZDtype,
+    TimedeltaDtype,
 )
 from pandas.core.arrays import Categorical, array
 from pandas.core.groupby import Grouper
