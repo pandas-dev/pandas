@@ -730,15 +730,14 @@ class DataFrameFormatter(TableFormatter):
 
             .. versionadded:: 0.19.0
          """
-        from pandas.io.formats.html import HTMLFormatter
-        html_renderer = HTMLFormatter(self, classes=classes, notebook=notebook,
-                                      border=border, table_id=self.table_id,
-                                      render_links=self.render_links)
+        from pandas.io.formats.html import HTMLFormatter, NotebookFormatter
+        Klass = NotebookFormatter if notebook else HTMLFormatter
+        html = Klass(self, classes=classes, border=border).render()
         if hasattr(self.buf, 'write'):
-            html_renderer.write_result(self.buf)
+            buffer_put_lines(self.buf, html)
         elif isinstance(self.buf, compat.string_types):
             with open(self.buf, 'w') as f:
-                html_renderer.write_result(f)
+                buffer_put_lines(f, html)
         else:
             raise TypeError('buf is not a file name and it has no write '
                             ' method')
