@@ -36,8 +36,36 @@ import pandas.util.testing as tm
 
     # Datetime (naive)
     ([1, 2], np.dtype('datetime64[ns]'),
-     PandasArray(np.array([1, 2], dtype='datetime64[ns]'))),
-    # TODO(DatetimeArray): add here
+     pd.arrays.DatetimeArray._from_sequence(
+         np.array([1, 2], dtype='datetime64[ns]'))),
+
+    (np.array([1, 2], dtype='datetime64[ns]'), None,
+     pd.arrays.DatetimeArray._from_sequence(
+         np.array([1, 2], dtype='datetime64[ns]'))),
+
+    (pd.DatetimeIndex(['2000', '2001']), np.dtype('datetime64[ns]'),
+     pd.arrays.DatetimeArray._from_sequence(['2000', '2001'])),
+
+    (pd.DatetimeIndex(['2000', '2001']), None,
+     pd.arrays.DatetimeArray._from_sequence(['2000', '2001'])),
+
+    (['2000', '2001'], np.dtype('datetime64[ns]'),
+     pd.arrays.DatetimeArray._from_sequence(['2000', '2001'])),
+
+    # Datetime (tz-aware)
+    (['2000', '2001'], pd.DatetimeTZDtype(tz="CET"),
+     pd.arrays.DatetimeArray._from_sequence(
+         ['2000', '2001'], dtype=pd.DatetimeTZDtype(tz="CET"))),
+
+    # Timedelta
+    (['1H', '2H'], np.dtype('timedelta64[ns]'),
+     pd.arrays.TimedeltaArray._from_sequence(['1H', '2H'])),
+
+    (pd.TimedeltaIndex(['1H', '2H']), np.dtype('timedelta64[ns]'),
+     pd.arrays.TimedeltaArray._from_sequence(['1H', '2H'])),
+
+    (pd.TimedeltaIndex(['1H', '2H']), None,
+     pd.arrays.TimedeltaArray._from_sequence(['1H', '2H'])),
 
     # Category
     (['a', 'b'], 'category', pd.Categorical(['a', 'b'])),
