@@ -605,11 +605,11 @@ class Categorical(ExtensionArray, PandasObject):
     @classmethod
     def from_codes(cls, codes, categories=None, ordered=None, dtype=None):
         """
-        Make a Categorical type from codes and categories arrays.
+        Make a Categorical type from codes and categories or dtype.
 
-        This constructor is useful if you already have codes and categories and
-        so do not need the (computation intensive) factorization step, which is
-        usually done on the constructor.
+        This constructor is useful if you already have codes and
+        categories/dtype and so do not need the (computation intensive)
+        factorization step, which is usually done on the constructor.
 
         If your data does not follow this convention, please use the normal
         constructor.
@@ -618,9 +618,12 @@ class Categorical(ExtensionArray, PandasObject):
         ----------
         codes : array-like, integers
             An integer array, where each integer points to a category in
-            categories or -1 for NaN
+            categories or dtype.categories, or else is -1 for NaN
         categories : index-like, optional
             The categories for the categorical. Items need to be unique.
+            .. versionchanged:: 0.24.0
+
+                The `categories` parameter has been made optional.
         ordered : bool, optional
             Whether or not this categorical is treated as an ordered
             categorical. If not given, the resulting categorical will be
@@ -630,8 +633,9 @@ class Categorical(ExtensionArray, PandasObject):
 
                 The default value has been changed to  ``None``. Previously
                 the default value was ``False``.
-        dtype : CategoricalDtype, optional
-            An instance of ``CategoricalDtype`` to use for this categorical.
+        dtype : CategoricalDtype or the string "category", optional
+            If :class:`CategoricalDtype`, cannot be used together with
+            `categories` or `ordered`.
 
             .. versionadded:: 0.24.0
 
@@ -642,8 +646,9 @@ class Categorical(ExtensionArray, PandasObject):
         [a, b, a, b]
         Categories (2, object): [a < b]
         """
-        dtype = CategoricalDtype._from_values_or_dtype(codes, categories,
-                                                       ordered, dtype)
+        dtype = CategoricalDtype._from_values_or_dtype(categories=categories,
+                                                       ordered=ordered,
+                                                       dtype=dtype)
 
         codes = np.asarray(codes)  # #21767
         if not is_integer_dtype(codes):
@@ -657,12 +662,6 @@ class Categorical(ExtensionArray, PandasObject):
                           "raise a ValueError"), FutureWarning, stacklevel=2)
             if msg:
                 raise ValueError(msg)
-
-        try:
-            codes = coerce_indexer_dtype(codes, dtype.categories)
-        except (ValueError, TypeError):
-            raise ValueError(
-                "codes need to be convertible to an arrays of integers")
 
         if len(codes) and (
                 codes.max() >= len(dtype.categories) or codes.min() < -1):
