@@ -16,17 +16,23 @@ import pandas.core.common as com
 from pandas.core.config import get_option
 
 from pandas.io.common import _is_url
-from pandas.io.formats.format import (
-    TableFormatter, buffer_put_lines, get_level_lengths)
+from pandas.io.formats.format import TableFormatter, get_level_lengths
 from pandas.io.formats.printing import pprint_thing
 
 
 class HTMLFormatter(TableFormatter):
+    """
+    Internal class for formatting output data in html.
+    This class is intended for shared functionality between
+    DataFrame.to_html() and DataFrame._repr_html_().
+    Any logic in common with other output formatting methods
+    should ideally be inherited from classes in format.py
+    and this class responsible for only producing html markup.
+    """
 
     indent_delta = 2
 
-    def __init__(self, formatter, classes=None, notebook=False, border=None,
-                 table_id=None, render_links=False):
+    def __init__(self, formatter, classes=None, border=None):
         self.fmt = formatter
         self.classes = classes
 
@@ -36,12 +42,11 @@ class HTMLFormatter(TableFormatter):
         self.bold_rows = self.fmt.kwds.get('bold_rows', False)
         self.escape = self.fmt.kwds.get('escape', True)
         self.show_dimensions = self.fmt.show_dimensions
-        self.notebook = notebook
         if border is None:
             border = get_option('display.html.border')
         self.border = border
-        self.table_id = table_id
-        self.render_links = render_links
+        self.table_id = self.fmt.table_id
+        self.render_links = self.fmt.render_links
 
     @property
     def show_row_idx_names(self):
@@ -137,48 +142,7 @@ class HTMLFormatter(TableFormatter):
         indent -= indent_delta
         self.write('</tr>', indent)
 
-    def write_style(self):
-        # We use the "scoped" attribute here so that the desired
-        # style properties for the data frame are not then applied
-        # throughout the entire notebook.
-        template_first = """\
-            <style scoped>"""
-        template_last = """\
-            </style>"""
-        template_select = """\
-                .dataframe %s {
-                    %s: %s;
-                }"""
-        element_props = [('tbody tr th:only-of-type',
-                          'vertical-align',
-                          'middle'),
-                         ('tbody tr th',
-                          'vertical-align',
-                          'top')]
-        if isinstance(self.columns, ABCMultiIndex):
-            element_props.append(('thead tr th',
-                                  'text-align',
-                                  'left'))
-            if self.show_row_idx_names:
-                element_props.append(('thead tr:last-of-type th',
-                                      'text-align',
-                                      'right'))
-        else:
-            element_props.append(('thead th',
-                                  'text-align',
-                                  'right'))
-        template_mid = '\n\n'.join(map(lambda t: template_select % t,
-                                       element_props))
-        template = dedent('\n'.join((template_first,
-                                     template_mid,
-                                     template_last)))
-        self.write(template)
-
-    def write_result(self, buf):
-        if self.notebook:
-            self.write('<div>')
-            self.write_style()
-
+    def render(self):
         self._write_table()
 
         if self.should_show_dimensions:
@@ -188,10 +152,7 @@ class HTMLFormatter(TableFormatter):
                                by=by,
                                cols=len(self.frame.columns)))
 
-        if self.notebook:
-            self.write('</div>')
-
-        buffer_put_lines(buf, self.elements)
+        return self.elements
 
     def _write_table(self, indent=0):
         _classes = ['dataframe']  # Default class.
@@ -516,3 +477,55 @@ class HTMLFormatter(TableFormatter):
                     row.insert(self.row_levels + self.fmt.tr_col_num, '...')
                 self.write_tr(row, indent, self.indent_delta, tags=None,
                               nindex_levels=frame.index.nlevels)
+
+
+class NotebookFormatter(HTMLFormatter):
+    """
+    Internal class for formatting output data in html for display in Jupyter
+    Notebooks. This class is intended for functionality specific to
+    DataFrame._repr_html_() and DataFrame.to_html(notebook=True)
+    """
+
+    def write_style(self):
+        # We use the "scoped" attribute here so that the desired
+        # style properties for the data frame are not then applied
+        # throughout the entire notebook.
+        template_first = """\
+            <style scoped>"""
+        template_last = """\
+            </style>"""
+        template_select = """\
+                .dataframe %s {
+                    %s: %s;
+                }"""
+        element_props = [('tbody tr th:only-of-type',
+                          'vertical-align',
+                          'middle'),
+                         ('tbody tr th',
+                          'vertical-align',
+                          'top')]
+        if isinstance(self.columns, ABCMultiIndex):
+            element_props.append(('thead tr th',
+                                  'text-align',
+                                  'left'))
+            if self.show_row_idx_names:
+                element_props.append(('thead tr:last-of-type th',
+                                      'text-align',
+                                      'right'))
+        else:
+            element_props.append(('thead th',
+                                  'text-align',
+                                  'right'))
+        template_mid = '\n\n'.join(map(lambda t: template_select % t,
+                                       element_props))
+        template = dedent('\n'.join((template_first,
+                                     template_mid,
+                                     template_last)))
+        self.write(template)
+
+    def render(self):
+        self.write('<div>')
+        self.write_style()
+        super(NotebookFormatter, self).render()
+        self.write('</div>')
+        return self.elements
