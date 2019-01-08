@@ -621,7 +621,7 @@ class Categorical(ExtensionArray, PandasObject):
             categories or dtype.categories, or else is -1 for NaN
         categories : index-like, optional
             The categories for the categorical. Items need to be unique.
-            If the categories are not given here, then theey must be provided
+            If the categories are not given here, then they must be provided
             in `dtype`.
         ordered : bool, optional
             Whether or not this categorical is treated as an ordered
