@@ -30,7 +30,9 @@ class TestPack(object):
         assert unpacker.unpack() == ord(b'b')
         assert unpacker.unpack() == ord(b'a')
         assert unpacker.unpack() == ord(b'r')
-        pytest.raises(OutOfData, unpacker.unpack)
+        msg = "No more data to unpack"
+        with pytest.raises(OutOfData, match=msg):
+            unpacker.unpack()
 
         unpacker.feed(b'foo')
         unpacker.feed(b'bar')
@@ -50,13 +52,18 @@ class TestPack(object):
         unpacker.skip()
         assert unpacker.unpack() == ord(b'a')
         unpacker.skip()
-        pytest.raises(OutOfData, unpacker.unpack)
+        msg = "No more data to unpack"
+        with pytest.raises(OutOfData, match=msg):
+            unpacker.unpack()
 
     def test_maxbuffersize(self):
-        pytest.raises(ValueError, Unpacker, read_size=5, max_buffer_size=3)
+        msg = "read_size should be less or equal to max_buffer_size"
+        with pytest.raises(ValueError, match=msg):
+            Unpacker(read_size=5, max_buffer_size=3)
         unpacker = Unpacker(read_size=3, max_buffer_size=3, use_list=1)
         unpacker.feed(b'fo')
-        pytest.raises(BufferFull, unpacker.feed, b'ob')
+        with pytest.raises(BufferFull, match=r'$^'):
+            unpacker.feed(b'ob')
         unpacker.feed(b'o')
         assert ord('f') == next(unpacker)
         unpacker.feed(b'b')

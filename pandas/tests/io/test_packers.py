@@ -156,9 +156,15 @@ class TestAPI(TestPackers):
             def __init__(self):
                 self.read = 0
 
-        pytest.raises(ValueError, read_msgpack, path_or_buf=None)
-        pytest.raises(ValueError, read_msgpack, path_or_buf={})
-        pytest.raises(ValueError, read_msgpack, path_or_buf=A())
+        msg = "Invalid file path or buffer object type: <class 'NoneType'>"
+        with pytest.raises(ValueError, match=msg):
+            read_msgpack(path_or_buf=None)
+        msg = "Invalid file path or buffer object type: <class 'dict'>"
+        with pytest.raises(ValueError, match=msg):
+            read_msgpack(path_or_buf={})
+        msg = r"Invalid file path or buffer object type: <class '.*\.A'>"
+        with pytest.raises(ValueError, match=msg):
+            read_msgpack(path_or_buf=A())
 
 
 class TestNumpy(TestPackers):
@@ -567,7 +573,9 @@ class TestSparse(TestPackers):
         # currently these are not implemetned
         # i_rec = self.encode_decode(obj)
         # comparator(obj, i_rec, **kwargs)
-        pytest.raises(NotImplementedError, self.encode_decode, obj)
+        msg = r"msgpack sparse (series|frame) is not implemented"
+        with pytest.raises(NotImplementedError, match=msg):
+            self.encode_decode(obj)
 
     def test_sparse_series(self):
 
