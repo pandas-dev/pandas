@@ -3,10 +3,10 @@ import re
 import warnings
 
 import numpy as np
-import pytz
 
 from pandas._libs.interval import Interval
-from pandas._libs.tslibs import NaT, Period, Timestamp, timezones
+from pandas._libs.tslibs import NaT, Period, Timedelta, Timestamp, timezones
+from pandas._libs.tslibs.timezones import tz_compare
 
 from pandas.core.dtypes.generic import ABCCategoricalIndex, ABCIndexClass
 
@@ -573,9 +573,7 @@ class CategoricalDtype(PandasExtensionDtype, ExtensionDtype):
         return is_bool_dtype(self.categories)
 
 
-@register_extension_dtype
-class DatetimeTZDtype(PandasExtensionDtype, ExtensionDtype):
-
+class _DatetimeDtypeBase(PandasExtensionDtype, ExtensionDtype):
     """
     A np.dtype duck-typed class, suitable for holding a custom datetime with tz
     dtype.
@@ -583,15 +581,104 @@ class DatetimeTZDtype(PandasExtensionDtype, ExtensionDtype):
     THIS IS NOT A REAL NUMPY DTYPE, but essentially a sub-class of
     np.datetime64[ns]
     """
+    _match = None  # type: typing.re.Pattern
     type = Timestamp
     kind = 'M'
     str = '|M8[ns]'
     num = 101
     base = np.dtype('M8[ns]')
     na_value = NaT
+    _cache = {}
+
+    @property
+    def unit(self):
+        """The precision of the datetime data."""
+        return self._unit
+
+    @classmethod
+    def construct_array_type(cls):
+        """
+        Return the array type associated with this dtype
+
+        Returns
+        -------
+        type
+        """
+        from pandas.core.arrays import DatetimeArray
+        return DatetimeArray
+
+    @classmethod
+    def construct_from_string(cls, string):
+        """
+        Construct a DatetimeTZDtype from a string.
+
+        Parameters
+        ----------
+        string : str
+            The string alias for this DatetimeTZDtype.
+            Should be formatted like ``datetime64[ns, <tz>]``,
+            where ``<tz>`` is the timezone name.
+
+        Examples
+        --------
+        >>> DatetimeTZDtype.construct_from_string('datetime64[ns, UTC]')
+        datetime64[ns, UTC]
+        """
+        msg = "Could not construct a {} from '{}'"
+        try:
+            match = cls._match.match(string)
+            if match:
+                d = match.groupdict()
+                return cls(**d)
+        except Exception:
+            # TODO(py3): Change this pass to `raise TypeError(msg) from e`
+            pass
+        raise TypeError(msg.format(cls.__name__, string))
+
+    @property
+    def name(self):
+        """A string representation of the dtype."""
+        return str(self)
+
+    def __hash__(self):
+        # make myself hashable
+        # TODO: update this.
+        return hash(str(self))
+
+    def __eq__(self, other):
+        if isinstance(other, compat.string_types):
+            return other == self.name
+
+        return (isinstance(other, type(self)) and
+                self.unit == other.unit and
+                # TODO: figure out why this was needed
+                # failure in test_get_loc_datetimelike_overlapping
+                # is something not being normalized?
+                tz_compare(getattr(self, 'tz', None),
+                           getattr(other, 'tz', None)))
+
+
+class DatetimeDtype(_DatetimeDtypeBase):
+    # This does not register itself as an ExtensionDtype.
+    # We found it easier to let pandas_dtype('M8[ns]') continue
+    # to be np.dtype('M8[ns]')
+    # Registering as an extension dtype caused issues in places
+    # like is_dtype_equal, is_datetime*, etc.
+    _metadata = ('unit',)
+    _match = re.compile(r"(datetime64|M8)\[ns\]")
+
+    def __init__(self, unit="ns"):
+        assert unit == "ns"
+        self._unit = unit
+
+    def __unicode__(self):
+        return 'datetime64[ns]'
+
+
+@register_extension_dtype
+class DatetimeTZDtype(_DatetimeDtypeBase):
     _metadata = ('unit', 'tz')
     _match = re.compile(r"(datetime64|M8)\[(?P<unit>.+), (?P<tz>.+)\]")
-    _cache = {}
 
     def __init__(self, unit="ns", tz=None):
         """
@@ -639,89 +726,81 @@ class DatetimeTZDtype(PandasExtensionDtype, ExtensionDtype):
 
         if tz:
             tz = timezones.maybe_get_tz(tz)
-        elif tz is not None:
-            raise pytz.UnknownTimeZoneError(tz)
-        elif tz is None:
+        else:
             raise TypeError("A 'tz' is required.")
 
         self._unit = unit
         self._tz = tz
 
     @property
-    def unit(self):
-        """The precision of the datetime data."""
-        return self._unit
-
-    @property
     def tz(self):
         """The timezone."""
         return self._tz
 
-    @classmethod
-    def construct_array_type(cls):
-        """
-        Return the array type associated with this dtype
-
-        Returns
-        -------
-        type
-        """
-        from pandas.core.arrays import DatetimeArray
-        return DatetimeArray
-
-    @classmethod
-    def construct_from_string(cls, string):
-        """
-        Construct a DatetimeTZDtype from a string.
-
-        Parameters
-        ----------
-        string : str
-            The string alias for this DatetimeTZDtype.
-            Should be formatted like ``datetime64[ns, <tz>]``,
-            where ``<tz>`` is the timezone name.
-
-        Examples
-        --------
-        >>> DatetimeTZDtype.construct_from_string('datetime64[ns, UTC]')
-        datetime64[ns, UTC]
-        """
-        msg = "Could not construct DatetimeTZDtype from '{}'"
-        try:
-            match = cls._match.match(string)
-            if match:
-                d = match.groupdict()
-                return cls(unit=d['unit'], tz=d['tz'])
-        except Exception:
-            # TODO(py3): Change this pass to `raise TypeError(msg) from e`
-            pass
-        raise TypeError(msg.format(string))
-
     def __unicode__(self):
         return "datetime64[{unit}, {tz}]".format(unit=self.unit, tz=self.tz)
-
-    @property
-    def name(self):
-        """A string representation of the dtype."""
-        return str(self)
-
-    def __hash__(self):
-        # make myself hashable
-        # TODO: update this.
-        return hash(str(self))
-
-    def __eq__(self, other):
-        if isinstance(other, compat.string_types):
-            return other == self.name
-
-        return (isinstance(other, DatetimeTZDtype) and
-                self.unit == other.unit and
-                str(self.tz) == str(other.tz))
 
     def __setstate__(self, state):
         # for pickle compat.
         self._tz = state['tz']
         self._unit = state['unit']
+
+
+class TimedeltaDtype(PandasExtensionDtype, ExtensionDtype):
+    _metadata = ('unit',)
+    _match = re.compile(r"(timedelta|m8)\[ns\]")
+    type = Timedelta
+    kind = 'm'
+    str = '|m8[ns]'
+    base = np.dtype('m8[ns]')
+    na_value = NaT
+
+    def __init__(self, unit="ns"):
+        if isinstance(unit, np.dtype):
+            if unit != "m8[ns]":
+                # I don't like doing this here.
+                raise TypeError("dtype {} cannot be converted to "
+                                "timedelta64[ns]".format(unit))
+            unit = "ns"
+        if unit != "ns":
+            raise ValueError
+
+        self._unit = unit
+
+    def __unicode__(self):
+        return "timedelta64[ns]"
+
+    def __eq__(self, other):
+        # TODO: Allow comparison with numpy dtypes?
+        if isinstance(other, compat.string_types):
+            return other == self.name or other == 'm8[ns]'
+        return super(TimedeltaDtype, self).__eq__(other)
+
+    @property
+    def unit(self):
+        return self._unit
+
+    @property
+    def name(self):
+        return str(self)
+
+    @classmethod
+    def construct_array_type(cls):
+        from pandas.arrays import TimedeltaArray
+        return TimedeltaArray
+
+    @classmethod
+    def construct_from_string(cls, string):
+        try:
+            match = cls._match.match(string)
+            if match:
+                d = match.groupdict()
+                return cls(d['unit'])
+        except Exception:
+            pass
+
+        msg = "Could not construct a TimedeltaArray from '{}'"
+        raise TypeError(msg.format(string))
 
 
 @register_extension_dtype

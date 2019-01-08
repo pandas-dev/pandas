@@ -144,6 +144,7 @@ class bottleneck_switch(object):
 
 def _bn_ok_dtype(dt, name):
     # Bottleneck chokes on datetime64
+    # import pdb; pdb.set_trace()
     if (not is_object_dtype(dt) and
             not (is_datetime_or_timedelta_dtype(dt) or
                  is_datetime64tz_dtype(dt))):

@@ -311,7 +311,7 @@ class Index(IndexOpsMixin, PandasObject):
               (dtype is not None and is_timedelta64_dtype(dtype))):
             from pandas import TimedeltaIndex
             result = TimedeltaIndex(data, copy=copy, name=name, **kwargs)
-            if dtype is not None and _o_dtype == dtype:
+            if dtype is not None and is_object_dtype(dtype):
                 return Index(result.to_pytimedelta(), dtype=_o_dtype)
             else:
                 return result

@@ -69,7 +69,9 @@ from pandas.core.dtypes.common import (
     is_iterator,
     is_sequence,
     is_named_tuple)
-from pandas.core.dtypes.generic import ABCSeries, ABCIndexClass, ABCMultiIndex
+from pandas.core.dtypes.generic import (
+    ABCSeries, ABCIndexClass, ABCMultiIndex, ABCDatetimeArray
+)
 from pandas.core.dtypes.missing import isna, notna
 
 from pandas.core import algorithms
@@ -3642,8 +3644,12 @@ class DataFrame(NDFrame):
             value = cast_scalar_to_array(len(self.index), value)
             value = maybe_cast_to_datetime(value, infer_dtype)
 
+        if isinstance(value, ABCDatetimeArray) and not value.tz:
+            value = value._data
+
         # return internal types directly
         if is_extension_type(value) or is_extension_array_dtype(value):
+
             return value
 
         # broadcast across multiple columns if necessary

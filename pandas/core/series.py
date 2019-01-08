@@ -22,7 +22,7 @@ from pandas.core.dtypes.common import (
     is_iterator, is_list_like, is_scalar, is_string_like, is_timedelta64_dtype)
 from pandas.core.dtypes.generic import (
     ABCDataFrame, ABCDatetimeArray, ABCDatetimeIndex, ABCSeries,
-    ABCSparseArray, ABCSparseSeries)
+    ABCSparseArray, ABCSparseSeries, ABCTimedeltaArray)
 from pandas.core.dtypes.missing import (
     isna, na_value_for_dtype, notna, remove_na_arraylike)
 
@@ -260,6 +260,9 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
             else:
                 data = sanitize_array(data, index, dtype, copy,
                                       raise_cast_failure=True)
+                if isinstance(data, ABCDatetimeArray):
+                    assert data.tz
+                assert not isinstance(data, ABCTimedeltaArray)
 
                 data = SingleBlockManager(data, index, fastpath=True)
 

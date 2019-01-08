@@ -26,7 +26,7 @@ from pandas.core.dtypes.common import (
     is_re, is_re_compilable, is_sparse, is_timedelta64_dtype, pandas_dtype)
 import pandas.core.dtypes.concat as _concat
 from pandas.core.dtypes.dtypes import (
-    CategoricalDtype, ExtensionDtype, PandasExtensionDtype)
+    CategoricalDtype, DatetimeDtype, ExtensionDtype, PandasExtensionDtype)
 from pandas.core.dtypes.generic import (
     ABCDataFrame, ABCDatetimeIndex, ABCExtensionArray, ABCIndexClass,
     ABCSeries)
@@ -593,6 +593,8 @@ class Block(PandasObject):
 
         # convert dtypes if needed
         dtype = pandas_dtype(dtype)
+        if isinstance(dtype, DatetimeDtype):
+            dtype = _NS_DTYPE
         # astype processing
         if is_dtype_equal(self.dtype, dtype):
             if copy:
@@ -1678,6 +1680,7 @@ class ExtensionBlock(NonConsolidatableMixIn, Block):
 
     def __init__(self, values, placement, ndim=None):
         values = self._maybe_coerce_values(values)
+        assert not isinstance(values.dtype, DatetimeDtype)
         super(ExtensionBlock, self).__init__(values, placement, ndim)
 
     def _maybe_coerce_values(self, values):
@@ -2669,6 +2672,10 @@ class ObjectBlock(Block):
             blocks = self.split_and_operate(None, f, False)
         else:
             values = f(None, self.values.ravel(), None)
+
+            if isinstance(values, DatetimeArray) and not values.tz:
+                # ensure that we get a DatetimeBlock.
+                values = values._data
             blocks = [make_block(values, ndim=self.ndim,
                                  placement=self.mgr_locs)]
 
@@ -3044,7 +3051,10 @@ def get_block_type(values, dtype=None):
         assert not is_datetime64tz_dtype(values)
         cls = DatetimeBlock
     elif is_datetime64tz_dtype(values):
-        cls = DatetimeTZBlock
+        if dtype.tz:
+            cls = DatetimeTZBlock
+        else:
+            cls = DatetimeBlock
     elif is_interval_dtype(dtype) or is_period_dtype(dtype):
         cls = ObjectValuesExtensionBlock
     elif is_extension_array_dtype(values):

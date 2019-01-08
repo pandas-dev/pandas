@@ -19,12 +19,14 @@ from pandas.core.dtypes.cast import (
     maybe_cast_to_datetime, maybe_cast_to_integer_array, maybe_castable,
     maybe_convert_platform, maybe_infer_to_datetimelike, maybe_upcast)
 from pandas.core.dtypes.common import (
-    is_categorical_dtype, is_datetime64tz_dtype, is_dtype_equal,
+    _NS_DTYPE, is_categorical_dtype, is_datetime64tz_dtype, is_dtype_equal,
     is_extension_array_dtype, is_extension_type, is_float_dtype,
     is_integer_dtype, is_iterator, is_list_like, is_object_dtype, pandas_dtype)
+from pandas.core.dtypes.dtypes import DatetimeDtype
 from pandas.core.dtypes.generic import (
-    ABCDataFrame, ABCDatetimeIndex, ABCIndexClass, ABCPandasArray,
-    ABCPeriodIndex, ABCSeries, ABCTimedeltaIndex)
+    ABCDataFrame, ABCDatetimeArray, ABCDatetimeIndex, ABCIndexClass,
+    ABCPandasArray, ABCPeriodIndex, ABCSeries, ABCTimedeltaArray,
+    ABCTimedeltaIndex)
 from pandas.core.dtypes.missing import isna
 
 from pandas.core import algorithms, common as com
@@ -540,6 +542,7 @@ def sanitize_array(data, index, dtype=None, copy=False,
     Sanitize input data to an ndarray, copy if specified, coerce to the
     dtype if specified.
     """
+    from pandas.core.dtypes.generic import ABCDatetimeArray
     if dtype is not None:
         dtype = pandas_dtype(dtype)
 
@@ -598,6 +601,12 @@ def sanitize_array(data, index, dtype=None, copy=False,
 
         if copy:
             subarr = data.copy()
+
+        if isinstance(data, ABCDatetimeArray) and not data.tz:
+            subarr = subarr._data
+        if isinstance(data, ABCTimedeltaArray):
+            subarr = data._data
+
         return subarr
 
     elif isinstance(data, (list, tuple)) and len(data) > 0:
@@ -624,6 +633,11 @@ def sanitize_array(data, index, dtype=None, copy=False,
     else:
         subarr = _try_cast(data, False, dtype, copy, raise_cast_failure)
 
+    if isinstance(data, ABCDatetimeArray) and not data.tz:
+        subarr = subarr._data
+    if isinstance(data, ABCTimedeltaArray):
+        subarr = data._data
+
     # scalar like, GH
     if getattr(subarr, 'ndim', 0) == 0:
         if isinstance(data, list):  # pragma: no cover
@@ -637,6 +651,10 @@ def sanitize_array(data, index, dtype=None, copy=False,
             else:
                 # need to possibly convert the value here
                 value = maybe_cast_to_datetime(value, dtype)
+
+            if isinstance(dtype, DatetimeDtype):
+                # for scalar timestamp / nat
+                dtype = _NS_DTYPE
 
             subarr = construct_1d_arraylike_from_scalar(
                 value, len(index), dtype)
@@ -678,6 +696,9 @@ def sanitize_array(data, index, dtype=None, copy=False,
             except IncompatibleFrequency:
                 pass
 
+    if isinstance(data, ABCDatetimeArray):
+        assert data.tz
+
     return subarr
 
 
@@ -702,6 +723,8 @@ def _try_cast(arr, take_fast_path, dtype, copy, raise_cast_failure):
                                        isinstance(subarr, np.ndarray))):
             subarr = construct_1d_object_array_from_listlike(subarr)
         elif not is_extension_type(subarr):
+            if isinstance(dtype, DatetimeDtype):
+                dtype = _NS_DTYPE
             subarr = construct_1d_ndarray_preserving_na(subarr, dtype,
                                                         copy=copy)
     except (ValueError, TypeError):
@@ -718,4 +741,19 @@ def _try_cast(arr, take_fast_path, dtype, copy, raise_cast_failure):
             raise
         else:
             subarr = np.array(arr, dtype=object, copy=copy)
+
     return subarr
+
+
+def _ensure_dta_tda_ndarray(arr):
+    """Ensure that an ndarray is returned for specific cases.
+
+    * tz-naive DatatimeArray
+    * TimedeltaArray
+    """
+    if isinstance(arr, ABCDatetimeArray):
+        if not arr.tz:
+            arr = arr._data
+    if isinstance(arr, ABCTimedeltaArray):
+        arr = arr._data
+    return arr

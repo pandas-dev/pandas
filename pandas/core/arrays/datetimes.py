@@ -18,7 +18,7 @@ from pandas.core.dtypes.common import (
     is_datetime64_ns_dtype, is_datetime64tz_dtype, is_dtype_equal,
     is_extension_type, is_float_dtype, is_object_dtype, is_period_dtype,
     is_string_dtype, is_timedelta64_dtype, pandas_dtype)
-from pandas.core.dtypes.dtypes import DatetimeTZDtype
+from pandas.core.dtypes.dtypes import DatetimeDtype, DatetimeTZDtype
 from pandas.core.dtypes.generic import (
     ABCDataFrame, ABCIndexClass, ABCPandasArray, ABCSeries)
 from pandas.core.dtypes.missing import isna
@@ -317,6 +317,8 @@ class DatetimeArray(dtl.DatetimeLikeArrayMixin,
             # a  tz-aware Timestamp (with a tz specific to its datetime) will
             # be incorrect(ish?) for the array as a whole
             dtype = DatetimeTZDtype(tz=timezones.tz_standardize(dtype.tz))
+        else:
+            dtype = DatetimeDtype()
 
         self._data = values
         self._dtype = dtype
@@ -1937,7 +1939,8 @@ def _validate_dt64_dtype(dtype):
     if dtype is not None:
         dtype = pandas_dtype(dtype)
         if ((isinstance(dtype, np.dtype) and dtype != _NS_DTYPE)
-                or not isinstance(dtype, (np.dtype, DatetimeTZDtype))):
+                or not isinstance(dtype, (np.dtype, DatetimeTZDtype,
+                                          DatetimeDtype))):
             raise ValueError("Unexpected value for 'dtype': '{dtype}'. "
                              "Must be 'datetime64[ns]' or DatetimeTZDtype'."
                              .format(dtype=dtype))

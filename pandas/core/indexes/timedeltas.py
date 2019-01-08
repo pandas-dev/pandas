@@ -6,6 +6,7 @@ import numpy as np
 
 from pandas._libs import (
     NaT, Timedelta, index as libindex, join as libjoin, lib)
+from pandas._libs.properties import cache_readonly
 import pandas.compat as compat
 from pandas.util._decorators import Appender, Substitution
 
@@ -17,7 +18,8 @@ from pandas.core.dtypes.missing import isna
 
 from pandas.core.accessor import delegate_names
 from pandas.core.arrays import datetimelike as dtl
-from pandas.core.arrays.timedeltas import TimedeltaArray, _is_convertible_to_td
+from pandas.core.arrays.timedeltas import (
+    TimedeltaArray, _is_convertible_to_td, _validate_td64_dtype)
 from pandas.core.base import _shared_docs
 import pandas.core.common as com
 from pandas.core.indexes.base import Index, _index_shared_docs
@@ -233,9 +235,8 @@ class TimedeltaIndex(DatetimeIndexOpsMixin, dtl.TimelikeOps, Int64Index,
         if not isinstance(values, TimedeltaArray):
             values = TimedeltaArray._simple_new(values, dtype=dtype,
                                                 freq=freq)
+        _validate_td64_dtype(dtype)
         assert isinstance(values, TimedeltaArray), type(values)
-        assert dtype == _TD_DTYPE, dtype
-        assert values.dtype == 'm8[ns]', values.dtype
 
         freq = to_offset(freq)
         tdarr = TimedeltaArray._simple_new(values, freq=freq)
@@ -247,6 +248,10 @@ class TimedeltaIndex(DatetimeIndexOpsMixin, dtl.TimelikeOps, Int64Index,
 
         result._reset_identity()
         return result
+
+    @cache_readonly
+    def dtype(self):
+        return self._data.dtype.base
 
     # -------------------------------------------------------------------
 

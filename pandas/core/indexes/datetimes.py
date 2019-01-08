@@ -358,7 +358,9 @@ class DatetimeIndex(DatetimeIndexOpsMixin, Int64Index, DatetimeDelegateMixin):
 
     @property
     def dtype(self):
-        return self._data.dtype
+        if self.tz:
+            return self._data.dtype
+        return _NS_DTYPE
 
     @property
     def tz(self):

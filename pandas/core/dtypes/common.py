@@ -4,7 +4,7 @@ import warnings
 import numpy as np
 
 from pandas._libs import algos, lib
-from pandas._libs.tslibs import conversion
+from pandas._libs.tslibs import Timedelta, Timestamp, conversion
 from pandas.compat import PY3, PY36, string_types
 
 from pandas.core.dtypes.dtypes import (
@@ -426,9 +426,24 @@ def is_datetime64_dtype(arr_or_dtype):
     True
     >>> is_datetime64_dtype([1, 2, 3])
     False
+    >>> is_datetime64_dtype(pd.DatetimeDtype())
+    True
+    >>> is_datetime64_dtype(pd.DatetimeTZDtype(tz="CET"))
+    False
     """
+    # It's somewhat tricky to support both of the following:
+    # 1. is_datetime64_dtype(DatetimeDtype()) == True
+    # 2. is_datetime64_dtype(DatetimeTZDtype()) == False
+    # because both use `Timestamp` as the `type`.
+    # So we look at the `dtype` to see if there's a `.tz` attached.
+    dtype = getattr(arr_or_dtype, 'dtype', arr_or_dtype)
+    try:
+        dtype = pandas_dtype(dtype)
+    except (ValueError, TypeError):
+        dtype = None
 
-    return _is_dtype_type(arr_or_dtype, classes(np.datetime64))
+    return (_is_dtype_type(arr_or_dtype, classes(np.datetime64, Timestamp))
+            and getattr(dtype, 'tz', None) is None)
 
 
 def is_datetime64tz_dtype(arr_or_dtype):
@@ -497,7 +512,7 @@ def is_timedelta64_dtype(arr_or_dtype):
     False
     """
 
-    return _is_dtype_type(arr_or_dtype, classes(np.timedelta64))
+    return _is_dtype_type(arr_or_dtype, classes(np.timedelta64, Timedelta))
 
 
 def is_period_dtype(arr_or_dtype):
@@ -1229,9 +1244,11 @@ def is_datetime_or_timedelta_dtype(arr_or_dtype):
     >>> is_datetime_or_timedelta_dtype(np.array([], dtype=np.datetime64))
     True
     """
+    # TODO: Figure out if these are true for DatetimeDtype
 
-    return _is_dtype_type(
-        arr_or_dtype, classes(np.datetime64, np.timedelta64))
+    return (_is_dtype_type(
+        arr_or_dtype, classes(np.datetime64, np.timedelta64, Timestamp))
+        and getattr(arr_or_dtype, 'tz', None) is None)
 
 
 def _is_unorderable_exception(e):

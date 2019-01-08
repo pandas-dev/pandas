@@ -19,7 +19,7 @@ from pandas.core.dtypes.common import (
     is_integer_dtype, is_list_like, is_object_dtype, is_scalar,
     is_string_dtype, is_timedelta64_dtype, is_timedelta64_ns_dtype,
     pandas_dtype)
-from pandas.core.dtypes.dtypes import DatetimeTZDtype
+from pandas.core.dtypes.dtypes import DatetimeTZDtype, TimedeltaDtype
 from pandas.core.dtypes.generic import (
     ABCDataFrame, ABCIndexClass, ABCSeries, ABCTimedeltaIndex)
 from pandas.core.dtypes.missing import isna
@@ -127,7 +127,7 @@ class TimedeltaArray(dtl.DatetimeLikeArrayMixin, dtl.TimelikeOps):
 
     @property
     def dtype(self):
-        return _TD_DTYPE
+        return self._dtype
 
     # ----------------------------------------------------------------
     # Constructors
@@ -153,16 +153,9 @@ class TimedeltaArray(dtl.DatetimeLikeArrayMixin, dtl.TimelikeOps):
             #  nanosecond UTC (or tz-naive) unix timestamps
             values = values.view(_TD_DTYPE)
 
-        if values.dtype != _TD_DTYPE:
-            raise TypeError(_BAD_DTYPE.format(dtype=values.dtype))
-
-        try:
-            dtype_mismatch = dtype != _TD_DTYPE
-        except TypeError:
-            raise TypeError(_BAD_DTYPE.format(dtype=dtype))
-        else:
-            if dtype_mismatch:
-                raise TypeError(_BAD_DTYPE.format(dtype=dtype))
+        _validate_td64_dtype(values.dtype)
+        if dtype:
+            dtype = _validate_td64_dtype(dtype)
 
         if freq == "infer":
             msg = (
@@ -187,9 +180,7 @@ class TimedeltaArray(dtl.DatetimeLikeArrayMixin, dtl.TimelikeOps):
     @classmethod
     def _from_sequence(cls, data, dtype=_TD_DTYPE, copy=False,
                        freq=None, unit=None):
-        if dtype != _TD_DTYPE:
-            raise ValueError("Only timedelta64[ns] dtype is valid.")
-
+        _validate_td64_dtype(dtype)
         freq, freq_infer = dtl.maybe_infer_freq(freq)
 
         data, inferred_freq = sequence_to_td64ns(data, copy=copy, unit=unit)
@@ -998,6 +989,43 @@ def _generate_regular_range(start, end, periods, offset):
 
     data = np.arange(b, e, stride, dtype=np.int64)
     return data
+
+
+def _validate_td64_dtype(dtype):
+    """
+    Validate a dtype for TimedeltaArray.
+
+    Parameters
+    ----------
+    dtype : Union[str, numpy.dtype, Timedelta]
+        Only np.dtype("m8[ns]") is allowed numpy dtypes.
+
+    Returns
+    -------
+    TimedeltaDtype
+    """
+    if isinstance(dtype, compat.string_types):
+        try:
+            dtype = np.dtype(dtype)
+        except TypeError:
+            # not a NumPy dtype
+            pass
+
+    if isinstance(dtype, np.dtype):
+        if dtype != _TD_DTYPE:
+            raise TypeError(_BAD_DTYPE.format(dtype=dtype))
+
+        dtype = TimedeltaDtype()
+
+    elif isinstance(dtype, compat.string_types):
+        if dtype != "ns":
+            raise TypeError(_BAD_DTYPE.format(dtype=dtype))
+        dtype = TimedeltaDtype(dtype)
+
+    if dtype != TimedeltaDtype():
+        raise TypeError(_BAD_DTYPE.format(dtype=dtype))
+
+    return dtype
 
 
 def extract_values_freq(arr, freq):
