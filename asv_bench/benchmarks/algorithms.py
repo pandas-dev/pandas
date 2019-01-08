@@ -87,13 +87,6 @@ class DuplicatedUniqueIndex(object):
         self.idx.duplicated()
 
 
-class Match(object):
-
-    def setup(self):
-        self.uniques = tm.makeStringIndex(1000).values
-        self.all = self.uniques.repeat(10)
-
-
 class Hashing(object):
 
     def setup_cache(self):
