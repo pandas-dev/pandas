@@ -514,12 +514,17 @@ class TestCategoricalConstructors(object):
     def test_from_codes_with_dtype_raises(self):
         msg = 'Cannot specify'
         with pytest.raises(ValueError, match=msg):
-            Categorical([0, 1], categories=['a', 'b'],
-                        dtype=CategoricalDtype(['a', 'b']))
+            Categorical.from_codes([0, 1], categories=['a', 'b'],
+                                   dtype=CategoricalDtype(['a', 'b']))
 
         with pytest.raises(ValueError, match=msg):
-            Categorical([0, 1], ordered=True,
-                        dtype=CategoricalDtype(['a', 'b']))
+            Categorical.from_codes([0, 1], ordered=True,
+                                   dtype=CategoricalDtype(['a', 'b']))
+
+    def test_from_codes_neither(self):
+        msg = "Both were None"
+        with pytest.raises(ValueError, match=msg):
+            Categorical.from_codes([0, 1])
 
     @pytest.mark.parametrize('dtype', [None, 'category'])
     def test_from_inferred_categories(self, dtype):

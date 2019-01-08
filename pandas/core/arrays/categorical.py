@@ -621,6 +621,8 @@ class Categorical(ExtensionArray, PandasObject):
             categories or dtype.categories, or else is -1 for NaN
         categories : index-like, optional
             The categories for the categorical. Items need to be unique.
+            If the categories are not given here, then theey must be provided
+            in `dtype`.
         ordered : bool, optional
             Whether or not this categorical is treated as an ordered
             categorical. If not given here or in `dtype`, the resulting
@@ -644,6 +646,10 @@ class Categorical(ExtensionArray, PandasObject):
         dtype = CategoricalDtype._from_values_or_dtype(categories=categories,
                                                        ordered=ordered,
                                                        dtype=dtype)
+        if dtype.categories is None:
+            msg = ("The categories must be provided in 'categories' or "
+                   "'dtype'. Both were None.")
+            raise ValueError(msg)
 
         codes = np.asarray(codes)  # #21767
         if not is_integer_dtype(codes):
