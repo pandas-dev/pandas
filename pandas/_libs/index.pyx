@@ -377,6 +377,14 @@ cdef Py_ssize_t _bin_search(ndarray values, object val) except -1:
         return mid + 1
 
 
+cdef class ObjectEngine(IndexEngine):
+    """
+    Index Engine for use with object-dtype Index, namely the base class Index
+    """
+    cdef _make_hash_table(self, n):
+        return _hash.PyObjectHashTable(n)
+
+
 cdef class DatetimeEngine(Int64Engine):
 
     cdef _get_box_dtype(self):
@@ -685,11 +693,6 @@ cdef class BaseMultiIndexCodesEngine:
             return True
         except (KeyError, TypeError, ValueError):
             return False
-
-
-cdef class ObjectEngine(IndexEngine):
-    cdef _make_hash_table(self, n):
-        return _hash.PyObjectHashTable(n)
 
 
 # Generated from template.
