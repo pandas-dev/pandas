@@ -605,7 +605,7 @@ def sanitize_array(data, index, dtype=None, copy=False,
         if isinstance(data, ABCDatetimeArray) and not data.tz:
             subarr = subarr._data
         if isinstance(data, ABCTimedeltaArray):
-            subarr = data._data
+            subarr = subarr._data
 
         return subarr
 
@@ -633,10 +633,10 @@ def sanitize_array(data, index, dtype=None, copy=False,
     else:
         subarr = _try_cast(data, False, dtype, copy, raise_cast_failure)
 
-    if isinstance(data, ABCDatetimeArray) and not data.tz:
+    if isinstance(subarr, ABCDatetimeArray) and not subarr.tz:
         subarr = subarr._data
-    if isinstance(data, ABCTimedeltaArray):
-        subarr = data._data
+    if isinstance(subarr, ABCTimedeltaArray):
+        subarr = subarr._data
 
     # scalar like, GH
     if getattr(subarr, 'ndim', 0) == 0:

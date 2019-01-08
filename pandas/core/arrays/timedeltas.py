@@ -1008,7 +1008,7 @@ def _validate_td64_dtype(dtype):
         try:
             dtype = np.dtype(dtype)
         except TypeError:
-            # not a NumPy dtype
+            # not a Numpy dtype
             pass
 
     if isinstance(dtype, np.dtype):
@@ -1023,7 +1023,7 @@ def _validate_td64_dtype(dtype):
         dtype = TimedeltaDtype(dtype)
 
     if dtype != TimedeltaDtype():
-        raise TypeError(_BAD_DTYPE.format(dtype=dtype))
+        raise ValueError("Only timedelta64[ns] dtype is valid")
 
     return dtype
 
