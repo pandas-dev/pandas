@@ -108,7 +108,7 @@ source activate pandas-dev
 
 echo
 echo "remove any installed pandas package"
-echi "w/o removing anything else"
+echo "w/o removing anything else"
 conda remove pandas -y --force || true
 pip uninstall -y pandas || true
 
