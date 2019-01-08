@@ -484,7 +484,7 @@ cpdef inline parse_timedelta_string(object ts, specified_unit=None):
             raise ValueError("have leftover units")
         if len(number):
             warnings.warn(
-            "number string without units is deprecated and
+            "number string without units is deprecated and"
             " will raise an exception in future versions. Considering as nanoseconds.",
             FutureWarning
             )
