@@ -2,32 +2,23 @@
 
 
 # edit the locale file if needed
-function edit_init()
-{
-    if [ -n "$LOCALE_OVERRIDE" ]; then
-        echo "[Adding locale to the first line of pandas/__init__.py]"
-        rm -f pandas/__init__.pyc
-        sedc="3iimport locale\nlocale.setlocale(locale.LC_ALL, '$LOCALE_OVERRIDE')\n"
-        sed -i "$sedc" pandas/__init__.py
-        echo "[head -4 pandas/__init__.py]"
-        head -4 pandas/__init__.py
-        echo
-        sudo locale-gen "$LOCALE_OVERRIDE"
-    fi
-}
-
-edit_init
-
-HOME_DIR=$(pwd)
-echo
-echo "HOME_DIR: $HOME_DIR"
+if [ -n "$LOCALE_OVERRIDE" ]; then
+    echo "Adding locale to the first line of pandas/__init__.py"
+    rm -f pandas/__init__.pyc
+    SEDC="3iimport locale\nlocale.setlocale(locale.LC_ALL, '$LOCALE_OVERRIDE')\n"
+    sed -i "$SEDC" pandas/__init__.py
+    echo "[head -4 pandas/__init__.py]"
+    head -4 pandas/__init__.py
+    echo
+    sudo locale-gen "$LOCALE_OVERRIDE"
+fi
 
 MINICONDA_DIR="$HOME/miniconda3"
 
 
 if [ -d "$MINICONDA_DIR" ]; then
     echo
-    echo "Using clean Miniconda install"
+    echo "rm -rf "$MINICONDA_DIR""
     rm -rf "$MINICONDA_DIR"
 fi
 
@@ -50,7 +41,7 @@ wget -q "https://repo.continuum.io/miniconda/Miniconda3-latest-$CONDA_OS.sh" -O 
 chmod +x miniconda.sh
 ./miniconda.sh -b
 
-export PATH=$HOME/miniconda3/bin:$PATH
+export PATH=$MINICONDA_DIR/bin:$PATH
 
 echo
 echo "which conda"
