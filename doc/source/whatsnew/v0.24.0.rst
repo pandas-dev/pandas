@@ -403,6 +403,7 @@ Other Enhancements
 - :meth:`pandas.api.types.is_list_like` has gained a keyword ``allow_sets`` which is ``True`` by default; if ``False``,
   all instances of ``set`` will not be considered "list-like" anymore (:issue:`23061`)
 - :meth:`Index.to_frame` now supports overriding column name(s) (:issue:`22580`).
+- :meth:`Categorical.from_codes` now can take a ``dtype`` parameter as an alternative to passing ``categories`` and ``ordered`` (:issue:`24398`).
 - New attribute :attr:`__git_version__` will return git commit sha of current build (:issue:`21295`).
 - Compatibility with Matplotlib 3.0 (:issue:`22790`).
 - Added :meth:`Interval.overlaps`, :meth:`IntervalArray.overlaps`, and :meth:`IntervalIndex.overlaps` for determining overlaps between interval-like objects (:issue:`21998`)
