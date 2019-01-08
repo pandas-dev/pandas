@@ -158,7 +158,7 @@ class TimedeltaArray(dtl.DatetimeLikeArrayMixin, dtl.TimelikeOps):
 
     @classmethod
     def _simple_new(cls, values, freq=None, dtype=_TD_DTYPE):
-        assert dtype is _TD_DTYPE, dtype
+        assert dtype == _TD_DTYPE, dtype
         assert isinstance(values, np.ndarray), type(values)
 
         result = object.__new__(cls)
