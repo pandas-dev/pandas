@@ -18,8 +18,7 @@ from pandas.core.dtypes.common import (
     ensure_int64, ensure_platform_int, is_categorical_dtype, is_hashable,
     is_integer, is_iterator, is_list_like, is_object_dtype, is_scalar,
     pandas_dtype)
-from pandas.core.dtypes.dtypes import (
-    CategoricalDtype, ExtensionDtype, PandasExtensionDtype)
+from pandas.core.dtypes.dtypes import ExtensionDtype, PandasExtensionDtype
 from pandas.core.dtypes.generic import ABCDataFrame
 from pandas.core.dtypes.missing import array_equivalent, isna
 
@@ -2027,14 +2026,13 @@ class MultiIndex(Index):
         """
         from pandas.core.arrays import Categorical
 
-        def as_dtype(level_codes):
-            cats = np.arange(np.array(level_codes).max() + 1 if
+        def cats(level_codes):
+            return np.arange(np.array(level_codes).max() + 1 if
                              len(level_codes) else 0,
                              dtype=level_codes.dtype)
-            return CategoricalDtype(cats, ordered=True)
 
-        return [Categorical.from_codes(level_codes,
-                                       dtype=as_dtype(level_codes))
+        return [Categorical.from_codes(level_codes, cats(level_codes),
+                                       ordered=True)
                 for level_codes in self.codes]
 
     def sortlevel(self, level=0, ascending=True, sort_remaining=True):

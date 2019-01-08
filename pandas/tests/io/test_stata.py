@@ -19,7 +19,6 @@ from pandas.compat import PY3, ResourceWarning, iterkeys
 from pandas.core.dtypes.common import is_categorical_dtype
 
 import pandas as pd
-from pandas.api.types import CategoricalDtype as CDT
 from pandas.core.frame import DataFrame, Series
 import pandas.util.testing as tm
 
@@ -959,7 +958,7 @@ class TestStata(object):
         'file', ['dta19_115', 'dta19_117'])
     def test_categorical_order(self, file):
         # Directly construct using expected codes
-        # Format is is_cat, col_name, categories (in order), underlying data
+        # Format is is_cat, col_name, labels (in order), underlying data
         expected = [(True, 'ordered', ['a', 'b', 'c', 'd', 'e'], np.arange(5)),
                     (True, 'reverse', ['a', 'b', 'c',
                                        'd', 'e'], np.arange(5)[::-1]),
@@ -974,13 +973,11 @@ class TestStata(object):
                     (True, 'int32_mixed', ['d', 2, 'e', 'b', 'a'],
                      np.arange(5))]
         cols = []
-        for is_cat, col, categories, codes in expected:
+        for is_cat, col, labels, codes in expected:
             if is_cat:
-                dtype = CDT(categories)
-                cols.append((col, pd.Categorical.from_codes(codes,
-                                                            dtype=dtype)))
+                cols.append((col, pd.Categorical.from_codes(codes, labels)))
             else:
-                cols.append((col, pd.Series(categories, dtype=np.float32)))
+                cols.append((col, pd.Series(labels, dtype=np.float32)))
         expected = DataFrame.from_dict(OrderedDict(cols))
 
         # Read with and with out categoricals, ensure order is identical
@@ -1008,7 +1005,7 @@ class TestStata(object):
         parsed.index = np.arange(parsed.shape[0])
         codes = [-1, -1, 0, 1, 1, 1, 2, 2, 3, 4]
         categories = ["Poor", "Fair", "Good", "Very good", "Excellent"]
-        cat = pd.Categorical.from_codes(codes=codes, dtype=CDT(categories))
+        cat = pd.Categorical.from_codes(codes=codes, categories=categories)
         expected = pd.Series(cat, name='srh')
         tm.assert_series_equal(expected, parsed["srh"],
                                check_categorical=False)

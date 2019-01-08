@@ -605,9 +605,9 @@ class Categorical(ExtensionArray, PandasObject):
     @classmethod
     def from_codes(cls, codes, categories=None, ordered=None, dtype=None):
         """
-        Make a Categorical type from codes and CategoricalDtype.
+        Make a Categorical type from codes and categories arrays.
 
-        This constructor is useful if you already have codes and the dtype and
+        This constructor is useful if you already have codes and categories and
         so do not need the (computation intensive) factorization step, which is
         usually done on the constructor.
 
@@ -621,21 +621,19 @@ class Categorical(ExtensionArray, PandasObject):
             categories or -1 for NaN
         categories : index-like, optional
             The categories for the categorical. Items need to be unique.
-
-            .. deprecated:: 0.24.0
-                Use ``dtype`` instead.
         ordered : bool, optional
             Whether or not this categorical is treated as an ordered
             categorical. If not given, the resulting categorical will be
             unordered.
 
-            .. deprecated:: 0.24.0
-                Use ``dtype`` instead.
-        dtype : CategoricalDtype
+            .. versionchanged:: 0.24.0
+
+                The default value has been changed to  ``None``. Previously
+                the default value was ``False``.
+        dtype : CategoricalDtype, optional
             An instance of ``CategoricalDtype`` to use for this categorical.
 
             .. versionadded:: 0.24.0
-                dtype will be required in the future.
 
         Examples
         --------
@@ -644,18 +642,8 @@ class Categorical(ExtensionArray, PandasObject):
         [a, b, a, b]
         Categories (2, object): [a < b]
         """
-        if dtype is not None:
-            if categories is not None or ordered is not None:
-                raise ValueError("Cannot specify `categories` or `ordered` "
-                                 "together with `dtype`.")
-        elif categories is None and dtype is None:
-            raise ValueError("Must specify `dtype`.")
-        else:
-            msg = u("The 'categories' and 'ordered' keyword are deprecated "
-                    "and will be removed in a future version. Please use "
-                    "'dtype' instead.")
-            warn(msg, FutureWarning, stacklevel=2)
-            dtype = CategoricalDtype(categories, ordered)
+        dtype = CategoricalDtype._from_values_or_dtype(codes, categories,
+                                                       ordered, dtype)
 
         codes = np.asarray(codes)  # #21767
         if not is_integer_dtype(codes):
@@ -1223,8 +1211,9 @@ class Categorical(ExtensionArray, PandasObject):
         """
         new_categories = self.categories.map(mapper)
         try:
-            new_dtype = CategoricalDtype(new_categories, ordered=self.ordered)
-            return self.from_codes(self._codes.copy(), dtype=new_dtype)
+            return self.from_codes(self._codes.copy(),
+                                   categories=new_categories,
+                                   ordered=self.ordered)
         except ValueError:
             # NA values are represented in self._codes with -1
             # np.take causes NA values to take final element in new_categories

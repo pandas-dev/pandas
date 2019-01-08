@@ -671,9 +671,9 @@ class TestIsin(object):
     def test_categorical_from_codes(self):
         # GH 16639
         vals = np.array([0, 1, 2, 0])
-        dtype = CDT(['a', 'b', 'c'])
-        Sd = Series(Categorical(1).from_codes(vals, dtype=dtype))
-        St = Series(Categorical(1).from_codes(np.array([0, 1]), dtype=dtype))
+        cats = ['a', 'b', 'c']
+        Sd = Series(Categorical(1).from_codes(vals, cats))
+        St = Series(Categorical(1).from_codes(np.array([0, 1]), cats))
         expected = np.array([True, True, False, True])
         result = algos.isin(Sd, St)
         tm.assert_numpy_array_equal(expected, result)
