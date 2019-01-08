@@ -898,8 +898,14 @@ def test_nonexistent_path(all_parsers):
 
     msg = ("does not exist" if parser.engine == "c"
            else r"\[Errno 2\]")
-    with pytest.raises(compat.FileNotFoundError, match=msg):
+    with pytest.raises(compat.FileNotFoundError, match=msg) as e:
         parser.read_csv(path)
+
+        filename = e.value.filename
+        filename = filename.decode() if isinstance(
+            filename, bytes) else filename
+
+        assert path == filename
 
 
 def test_missing_trailing_delimiters(all_parsers):
@@ -1814,13 +1820,16 @@ def test_invalid_file_buffer_class(all_parsers):
         parser.read_csv(InvalidBuffer())
 
 
-def test_invalid_file_buffer_mock(all_parsers, mock):
+def test_invalid_file_buffer_mock(all_parsers):
     # see gh-15337
     parser = all_parsers
     msg = "Invalid file path or buffer object type"
 
+    class Foo():
+        pass
+
     with pytest.raises(ValueError, match=msg):
-        parser.read_csv(mock.Mock())
+        parser.read_csv(Foo())
 
 
 def test_valid_file_buffer_seems_invalid(all_parsers):

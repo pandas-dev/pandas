@@ -25,7 +25,7 @@ from pandas.core.dtypes.common import (
     is_signed_integer_dtype, is_timedelta64_dtype, is_unsigned_integer_dtype)
 import pandas.core.dtypes.concat as _concat
 from pandas.core.dtypes.generic import (
-    ABCDataFrame, ABCDateOffset, ABCDatetimeIndex, ABCIndexClass,
+    ABCDataFrame, ABCDateOffset, ABCDatetimeArray, ABCIndexClass,
     ABCMultiIndex, ABCPandasArray, ABCPeriodIndex, ABCSeries,
     ABCTimedeltaArray, ABCTimedeltaIndex)
 from pandas.core.dtypes.missing import array_equivalent, isna
@@ -68,8 +68,7 @@ def _make_comparison_op(op, cls):
             if other.ndim > 0 and len(self) != len(other):
                 raise ValueError('Lengths must match to compare')
 
-        from .multi import MultiIndex
-        if is_object_dtype(self) and not isinstance(self, MultiIndex):
+        if is_object_dtype(self) and not isinstance(self, ABCMultiIndex):
             # don't pass MultiIndex
             with np.errstate(all='ignore'):
                 result = ops._comp_method_OBJECT_ARRAY(op, self.values, other)
@@ -347,7 +346,7 @@ class Index(IndexOpsMixin, PandasObject):
                     # should not be coerced
                     # GH 11836
                     if is_integer_dtype(dtype):
-                        inferred = lib.infer_dtype(data)
+                        inferred = lib.infer_dtype(data, skipna=False)
                         if inferred == 'integer':
                             data = maybe_cast_to_integer_array(data, dtype,
                                                                copy=copy)
@@ -377,7 +376,7 @@ class Index(IndexOpsMixin, PandasObject):
                         else:
                             data = data.astype(dtype)
                     elif is_float_dtype(dtype):
-                        inferred = lib.infer_dtype(data)
+                        inferred = lib.infer_dtype(data, skipna=False)
                         if inferred == 'string':
                             pass
                         else:
@@ -415,7 +414,7 @@ class Index(IndexOpsMixin, PandasObject):
                 subarr = subarr.copy()
 
             if dtype is None:
-                inferred = lib.infer_dtype(subarr)
+                inferred = lib.infer_dtype(subarr, skipna=False)
                 if inferred == 'integer':
                     try:
                         return cls._try_convert_to_int_index(
@@ -568,9 +567,9 @@ class Index(IndexOpsMixin, PandasObject):
         if not len(values) and 'dtype' not in kwargs:
             attributes['dtype'] = self.dtype
 
-        # _simple_new expects an ndarray
-        values = getattr(values, 'values', values)
-        if isinstance(values, ABCDatetimeIndex):
+        # _simple_new expects an the type of self._data
+        values = getattr(values, '_values', values)
+        if isinstance(values, ABCDatetimeArray):
             # `self.values` returns `self` for tz-aware, so we need to unwrap
             #  more specifically
             values = values.asi8
@@ -1307,8 +1306,7 @@ class Index(IndexOpsMixin, PandasObject):
                    names=['species', 'year'])
         """
 
-        from .multi import MultiIndex
-        if level is not None and not isinstance(self, MultiIndex):
+        if level is not None and not isinstance(self, ABCMultiIndex):
             raise ValueError('Level must be None for non-MultiIndex')
 
         if level is not None and not is_list_like(level) and is_list_like(
@@ -1720,7 +1718,7 @@ class Index(IndexOpsMixin, PandasObject):
         """
         Return a string of the type inferred from the values.
         """
-        return lib.infer_dtype(self)
+        return lib.infer_dtype(self, skipna=False)
 
     @cache_readonly
     def is_all_dates(self):
@@ -1922,7 +1920,7 @@ class Index(IndexOpsMixin, PandasObject):
 
         Returns
         -------
-        filled : %(klass)s
+        filled : Index
         """
 
     @Appender(_index_shared_docs['fillna'])
@@ -3145,9 +3143,8 @@ class Index(IndexOpsMixin, PandasObject):
     @Appender(_index_shared_docs['join'])
     def join(self, other, how='left', level=None, return_indexers=False,
              sort=False):
-        from .multi import MultiIndex
-        self_is_mi = isinstance(self, MultiIndex)
-        other_is_mi = isinstance(other, MultiIndex)
+        self_is_mi = isinstance(self, ABCMultiIndex)
+        other_is_mi = isinstance(other, ABCMultiIndex)
 
         # try to figure out the join level
         # GH3662
@@ -4394,8 +4391,7 @@ class Index(IndexOpsMixin, PandasObject):
 
         # TODO: if we are a MultiIndex, we can do better
         # that converting to tuples
-        from .multi import MultiIndex
-        if isinstance(values, MultiIndex):
+        if isinstance(values, ABCMultiIndex):
             values = values.values
         values = ensure_categorical(values)
         result = values._reverse_indexer()

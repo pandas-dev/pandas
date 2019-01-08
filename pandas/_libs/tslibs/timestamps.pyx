@@ -9,7 +9,7 @@ cimport numpy as cnp
 from numpy cimport int64_t, int32_t, int8_t
 cnp.import_array()
 
-from datetime import time as datetime_time
+from datetime import time as datetime_time, timedelta
 from cpython.datetime cimport (datetime,
                                PyDateTime_Check, PyDelta_Check, PyTZInfo_Check,
                                PyDateTime_IMPORT)
@@ -789,13 +789,17 @@ class Timestamp(_Timestamp):
             - 'raise' will raise an AmbiguousTimeError for an ambiguous time
 
             .. versionadded:: 0.24.0
-        nonexistent : 'shift', 'NaT', default 'raise'
+        nonexistent : 'shift_forward', 'shift_backward, 'NaT', timedelta,
+                      default 'raise'
             A nonexistent time does not exist in a particular timezone
             where clocks moved forward due to DST.
 
-            - 'shift' will shift the nonexistent time forward to the closest
-              existing time
+            - 'shift_forward' will shift the nonexistent time forward to the
+              closest existing time
+            - 'shift_backward' will shift the nonexistent time backward to the
+              closest existing time
             - 'NaT' will return NaT where there are nonexistent times
+            - timedelta objects will shift nonexistent times by the timedelta
             - 'raise' will raise an NonExistentTimeError if there are
               nonexistent times
 
@@ -827,13 +831,17 @@ class Timestamp(_Timestamp):
             - 'raise' will raise an AmbiguousTimeError for an ambiguous time
 
             .. versionadded:: 0.24.0
-        nonexistent : 'shift', 'NaT', default 'raise'
+        nonexistent : 'shift_forward', 'shift_backward, 'NaT', timedelta,
+                      default 'raise'
             A nonexistent time does not exist in a particular timezone
             where clocks moved forward due to DST.
 
-            - 'shift' will shift the nonexistent time forward to the closest
-              existing time
+            - 'shift_forward' will shift the nonexistent time forward to the
+              closest existing time
+            - 'shift_backward' will shift the nonexistent time backward to the
+              closest existing time
             - 'NaT' will return NaT where there are nonexistent times
+            - timedelta objects will shift nonexistent times by the timedelta
             - 'raise' will raise an NonExistentTimeError if there are
               nonexistent times
 
@@ -859,13 +867,17 @@ class Timestamp(_Timestamp):
             - 'raise' will raise an AmbiguousTimeError for an ambiguous time
 
             .. versionadded:: 0.24.0
-        nonexistent : 'shift', 'NaT', default 'raise'
+        nonexistent : 'shift_forward', 'shift_backward, 'NaT', timedelta,
+                      default 'raise'
             A nonexistent time does not exist in a particular timezone
             where clocks moved forward due to DST.
 
-            - 'shift' will shift the nonexistent time forward to the closest
-              existing time
+            - 'shift_forward' will shift the nonexistent time forward to the
+              closest existing time
+            - 'shift_backward' will shift the nonexistent time backward to the
+              closest existing time
             - 'NaT' will return NaT where there are nonexistent times
+            - timedelta objects will shift nonexistent times by the timedelta
             - 'raise' will raise an NonExistentTimeError if there are
               nonexistent times
 
@@ -1060,13 +1072,17 @@ class Timestamp(_Timestamp):
             - 'NaT' will return NaT for an ambiguous time
             - 'raise' will raise an AmbiguousTimeError for an ambiguous time
 
-        nonexistent : 'shift', 'NaT', default 'raise'
+        nonexistent : 'shift_forward', 'shift_backward, 'NaT', timedelta,
+                      default 'raise'
             A nonexistent time does not exist in a particular timezone
             where clocks moved forward due to DST.
 
-            - 'shift' will shift the nonexistent time forward to the closest
-              existing time
+            - 'shift_forward' will shift the nonexistent time forward to the
+              closest existing time
+            - 'shift_backward' will shift the nonexistent time backward to the
+              closest existing time
             - 'NaT' will return NaT where there are nonexistent times
+            - timedelta objects will shift nonexistent times by the timedelta
             - 'raise' will raise an NonExistentTimeError if there are
               nonexistent times
 
@@ -1106,9 +1122,13 @@ class Timestamp(_Timestamp):
                 raise ValueError("The errors argument must be either 'coerce' "
                                  "or 'raise'.")
 
-        if nonexistent not in ('raise', 'NaT', 'shift'):
+        nonexistent_options = ('raise', 'NaT', 'shift_forward',
+                               'shift_backward')
+        if nonexistent not in nonexistent_options and not isinstance(
+            nonexistent, timedelta):
             raise ValueError("The nonexistent argument must be one of 'raise',"
-                             " 'NaT' or 'shift'")
+                             " 'NaT', 'shift_forward', 'shift_backward' or"
+                             " a timedelta object")
 
         if self.tzinfo is None:
             # tz naive, localize

@@ -1,6 +1,5 @@
 from datetime import date, time, timedelta
 from decimal import Decimal
-import importlib
 import os
 
 from dateutil.tz import tzlocal, tzutc
@@ -388,9 +387,14 @@ def tz_aware_fixture(request):
     return request.param
 
 
+# ----------------------------------------------------------------
+# Dtypes
 UNSIGNED_INT_DTYPES = ["uint8", "uint16", "uint32", "uint64"]
+UNSIGNED_EA_INT_DTYPES = ["UInt8", "UInt16", "UInt32", "UInt64"]
 SIGNED_INT_DTYPES = [int, "int8", "int16", "int32", "int64"]
+SIGNED_EA_INT_DTYPES = ["Int8", "Int16", "Int32", "Int64"]
 ALL_INT_DTYPES = UNSIGNED_INT_DTYPES + SIGNED_INT_DTYPES
+ALL_EA_INT_DTYPES = UNSIGNED_EA_INT_DTYPES + SIGNED_EA_INT_DTYPES
 
 FLOAT_DTYPES = [float, "float32", "float64"]
 COMPLEX_DTYPES = [complex, "complex64", "complex128"]
@@ -630,20 +634,6 @@ def any_skipna_inferred_dtype(request):
 
     # correctness of inference tested in tests/dtypes/test_inference.py
     return inferred_dtype, values
-
-
-@pytest.fixture
-def mock():
-    """
-    Fixture providing the 'mock' module.
-
-    Uses 'unittest.mock' for Python 3. Attempts to import the 3rd party 'mock'
-    package for Python 2, skipping if not present.
-    """
-    if PY3:
-        return importlib.import_module("unittest.mock")
-    else:
-        return pytest.importorskip("mock")
 
 
 @pytest.fixture(params=[getattr(pd.offsets, o) for o in pd.offsets.__all__ if

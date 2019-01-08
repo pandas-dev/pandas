@@ -31,15 +31,13 @@ dtypes = [('Float64', 'float64', 'float64_t', 'Float64', 'float64'),
 cdef class {{name}}Engine(IndexEngine):
 
     def _call_monotonic(self, values):
-        return algos.is_monotonic_{{dtype}}(values, timelike=False)
+        return algos.is_monotonic(values, timelike=False)
 
     def get_backfill_indexer(self, other, limit=None):
-        return algos.backfill_{{dtype}}(self._get_index_values(),
-                                        other, limit=limit)
+        return algos.backfill(self._get_index_values(), other, limit=limit)
 
     def get_pad_indexer(self, other, limit=None):
-        return algos.pad_{{dtype}}(self._get_index_values(),
-                                   other, limit=limit)
+        return algos.pad(self._get_index_values(), other, limit=limit)
 
     cdef _make_hash_table(self, n):
         return _hash.{{hashtable_name}}HashTable(n)

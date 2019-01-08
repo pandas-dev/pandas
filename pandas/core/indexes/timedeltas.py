@@ -17,8 +17,7 @@ from pandas.core.dtypes.missing import isna
 
 from pandas.core.accessor import delegate_names
 from pandas.core.arrays import datetimelike as dtl
-from pandas.core.arrays.timedeltas import (
-    TimedeltaArrayMixin as TimedeltaArray, _is_convertible_to_td, _to_m8)
+from pandas.core.arrays.timedeltas import TimedeltaArray, _is_convertible_to_td
 from pandas.core.base import _shared_docs
 import pandas.core.common as com
 from pandas.core.indexes.base import Index, _index_shared_docs
@@ -37,7 +36,7 @@ def _make_wrapped_arith_op(opname):
     meth = getattr(TimedeltaArray, opname)
 
     def method(self, other):
-        result = meth(self._eadata, maybe_unwrap_index(other))
+        result = meth(self._data, maybe_unwrap_index(other))
         return wrap_arithmetic_op(self, other, result)
 
     method.__name__ = opname
@@ -70,8 +69,8 @@ class TimedeltaDelegateMixin(DatetimelikeDelegateMixin):
 @delegate_names(TimedeltaArray,
                 TimedeltaDelegateMixin._delegated_methods,
                 typ="method", overwrite=False)
-class TimedeltaIndex(DatetimeIndexOpsMixin,
-                     dtl.TimelikeOps, Int64Index, TimedeltaDelegateMixin):
+class TimedeltaIndex(DatetimeIndexOpsMixin, dtl.TimelikeOps, Int64Index,
+                     TimedeltaDelegateMixin):
     """
     Immutable ndarray of timedelta64 data, represented internally as int64, and
     which can be boxed to timedelta objects
@@ -209,7 +208,13 @@ class TimedeltaIndex(DatetimeIndexOpsMixin,
                             'collection of some kind, {data} was passed'
                             .format(cls=cls.__name__, data=repr(data)))
 
-        if isinstance(data, TimedeltaIndex) and freq is None and name is None:
+        if isinstance(data, TimedeltaArray):
+            if copy:
+                data = data.copy()
+            return cls._simple_new(data, name=name, freq=freq)
+
+        if (isinstance(data, TimedeltaIndex) and
+                freq is None and name is None):
             if copy:
                 return data.copy()
             else:
@@ -225,20 +230,19 @@ class TimedeltaIndex(DatetimeIndexOpsMixin,
     def _simple_new(cls, values, name=None, freq=None, dtype=_TD_DTYPE):
         # `dtype` is passed by _shallow_copy in corner cases, should always
         #  be timedelta64[ns] if present
-        assert dtype == _TD_DTYPE
-
-        assert isinstance(values, np.ndarray), type(values)
-        if values.dtype == 'i8':
-            values = values.view('m8[ns]')
+        if not isinstance(values, TimedeltaArray):
+            values = TimedeltaArray._simple_new(values, dtype=dtype,
+                                                freq=freq)
+        assert isinstance(values, TimedeltaArray), type(values)
+        assert dtype == _TD_DTYPE, dtype
         assert values.dtype == 'm8[ns]', values.dtype
 
         freq = to_offset(freq)
         tdarr = TimedeltaArray._simple_new(values, freq=freq)
         result = object.__new__(cls)
-        result._eadata = tdarr
+        result._data = tdarr
         result.name = name
         # For groupby perf. See note in indexes/base about _index_data
-        # TODO: make sure this is updated correctly if edited
         result._index_data = tdarr._data
 
         result._reset_identity()
@@ -279,10 +283,6 @@ class TimedeltaIndex(DatetimeIndexOpsMixin,
     # -------------------------------------------------------------------
     # Wrapping TimedeltaArray
 
-    @property
-    def _data(self):
-        return self._eadata._data
-
     __mul__ = _make_wrapped_arith_op("__mul__")
     __rmul__ = _make_wrapped_arith_op("__rmul__")
     __floordiv__ = _make_wrapped_arith_op("__floordiv__")
@@ -302,17 +302,12 @@ class TimedeltaIndex(DatetimeIndexOpsMixin,
     _is_monotonic_decreasing = Index.is_monotonic_decreasing
     _is_unique = Index.is_unique
 
-    _create_comparison_method = DatetimeIndexOpsMixin._create_comparison_method
-    # TODO: make sure we have a test for name retention analogous
-    #  to series.test_arithmetic.test_ser_cmp_result_names;
-    #  also for PeriodIndex which I think may be missing one
-
     @property
     def _box_func(self):
         return lambda x: Timedelta(x, unit='ns')
 
     def __getitem__(self, key):
-        result = self._eadata.__getitem__(key)
+        result = self._data.__getitem__(key)
         if is_scalar(result):
             return result
         return type(self)(result, name=self.name)
@@ -326,7 +321,7 @@ class TimedeltaIndex(DatetimeIndexOpsMixin,
             # Have to repeat the check for 'timedelta64' (not ns) dtype
             #  so that we can return a numeric index, since pandas will return
             #  a TimedeltaIndex when dtype='timedelta'
-            result = self._eadata.astype(dtype, copy=copy)
+            result = self._data.astype(dtype, copy=copy)
             if self.hasnans:
                 return Index(result, name=self.name)
             return Index(result.astype('i8'), name=self.name)
@@ -618,7 +613,7 @@ class TimedeltaIndex(DatetimeIndexOpsMixin,
         if isinstance(value, (np.ndarray, Index)):
             value = np.array(value, dtype=_TD_DTYPE, copy=False)
         else:
-            value = _to_m8(value)
+            value = Timedelta(value).asm8.view(_TD_DTYPE)
 
         return self.values.searchsorted(value, side=side, sorter=sorter)
 
@@ -668,7 +663,7 @@ class TimedeltaIndex(DatetimeIndexOpsMixin,
                     freq = self.freq
                 elif (loc == len(self)) and item - self.freq == self[-1]:
                     freq = self.freq
-            item = _to_m8(item)
+            item = Timedelta(item).asm8.view(_TD_DTYPE)
 
         try:
             new_tds = np.concatenate((self[:loc].asi8, [item.view(np.int64)],

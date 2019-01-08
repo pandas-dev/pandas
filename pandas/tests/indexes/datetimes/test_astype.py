@@ -177,7 +177,7 @@ class TestDatetimeIndex(object):
     def test_astype_raises(self, dtype):
         # GH 13149, GH 13209
         idx = DatetimeIndex(['2016-05-16', 'NaT', NaT, np.NaN])
-        msg = 'Cannot cast DatetimeArrayMixin to dtype'
+        msg = 'Cannot cast DatetimeArray to dtype'
         with pytest.raises(TypeError, match=msg):
             idx.astype(dtype)
 
@@ -293,6 +293,15 @@ class TestToPeriod(object):
 
         tm.assert_index_equal(result, expected)
 
+    @pytest.mark.parametrize('tz', ['Etc/GMT-1', 'Etc/GMT+1'])
+    def test_to_period_tz_utc_offset_consistency(self, tz):
+        # GH 22905
+        ts = pd.date_range('1/1/2000', '2/1/2000', tz='Etc/GMT-1')
+        with tm.assert_produces_warning(UserWarning):
+            result = ts.to_period()[0]
+            expected = ts[0].to_period()
+            assert result == expected
+
     def test_to_period_nofreq(self):
         idx = DatetimeIndex(['2000-01-01', '2000-01-02', '2000-01-04'])
         with pytest.raises(ValueError):
@@ -318,8 +327,7 @@ class TestToPeriod(object):
                                         pd.Timestamp('2000-01-02', tz=tz)])
         tm.assert_index_equal(result, expected)
 
-        # TODO: use \._data following composition changeover
-        result = obj._eadata.astype('category')
+        result = obj._data.astype('category')
         expected = expected.values
         tm.assert_categorical_equal(result, expected)
 

@@ -1,8 +1,10 @@
 from __future__ import print_function
+
 import array
 
 import pandas.io.msgpack as msgpack
 from pandas.io.msgpack import ExtType
+
 from .common import frombytes, tobytes
 
 

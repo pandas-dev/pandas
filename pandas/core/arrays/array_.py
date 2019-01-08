@@ -46,12 +46,14 @@ def array(data,         # type: Sequence[object]
 
         Currently, pandas will infer an extension dtype for sequences of
 
-        ========================== ==================================
-        scalar type                Array Type
-        ========================== ==================================
-        * :class:`pandas.Interval` :class:`pandas.IntervalArray`
-        * :class:`pandas.Period`   :class:`pandas.arrays.PeriodArray`
-        ========================== ==================================
+        ============================== =====================================
+        Scalar Type                    Array Type
+        ============================== =====================================
+        :class:`pandas.Interval`       :class:`pandas.IntervalArray`
+        :class:`pandas.Period`         :class:`pandas.arrays.PeriodArray`
+        :class:`datetime.datetime`     :class:`pandas.arrays.DatetimeArray`
+        :class:`datetime.timedelta`    :class:`pandas.arrays.TimedeltaArray`
+        ============================== =====================================
 
         For all other cases, NumPy's usual inference rules will be used.
 
@@ -62,7 +64,8 @@ def array(data,         # type: Sequence[object]
 
     Returns
     -------
-    array : ExtensionArray
+    ExtensionArray
+        The newly created array.
 
     Raises
     ------
@@ -180,7 +183,9 @@ def array(data,         # type: Sequence[object]
     ValueError: Cannot pass scalar '1' to 'pandas.array'.
     """
     from pandas.core.arrays import (
-        period_array, ExtensionArray, IntervalArray, PandasArray
+        period_array, ExtensionArray, IntervalArray, PandasArray,
+        DatetimeArray,
+        TimedeltaArray,
     )
     from pandas.core.internals.arrays import extract_array
 
@@ -204,7 +209,7 @@ def array(data,         # type: Sequence[object]
         return cls._from_sequence(data, dtype=dtype, copy=copy)
 
     if dtype is None:
-        inferred_dtype = lib.infer_dtype(data)
+        inferred_dtype = lib.infer_dtype(data, skipna=False)
         if inferred_dtype == 'period':
             try:
                 return period_array(data, copy=copy)
@@ -220,7 +225,18 @@ def array(data,         # type: Sequence[object]
                 # We choose to return an ndarray, rather than raising.
                 pass
 
-        # TODO(DatetimeArray): handle this type
+        elif inferred_dtype.startswith('datetime'):
+            # datetime, datetime64
+            try:
+                return DatetimeArray._from_sequence(data, copy=copy)
+            except ValueError:
+                # Mixture of timezones, fall back to PandasArray
+                pass
+
+        elif inferred_dtype.startswith('timedelta'):
+            # timedelta, timedelta64
+            return TimedeltaArray._from_sequence(data, copy=copy)
+
         # TODO(BooleanArray): handle this type
 
     result = PandasArray._from_sequence(data, dtype=dtype, copy=copy)

@@ -2172,7 +2172,9 @@ def boxplot(data, column=None, by=None, ax=None, fontsize=None,
         column = 'x'
 
     def _get_colors():
-        return _get_standard_colors(color=kwds.get('color'), num_colors=1)
+        #  num_colors=3 is required as method maybe_color_bp takes the colors
+        #  in positions 0 and 2.
+        return _get_standard_colors(color=kwds.get('color'), num_colors=3)
 
     def maybe_color_bp(bp):
         if 'color' not in kwds:

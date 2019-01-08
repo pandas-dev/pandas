@@ -60,7 +60,7 @@ from pandas.core.dtypes.common import (
     is_scalar,
     is_dtype_equal,
     needs_i8_conversion,
-    _get_dtype_from_object,
+    infer_dtype_from_object,
     ensure_float64,
     ensure_int64,
     ensure_platform_int,
@@ -78,6 +78,9 @@ from pandas.core import nanops
 from pandas.core import ops
 from pandas.core.accessor import CachedAccessor
 from pandas.core.arrays import Categorical, ExtensionArray
+from pandas.core.arrays.datetimelike import (
+    DatetimeLikeArrayMixin as DatetimeLikeArray
+)
 from pandas.core.config import get_option
 from pandas.core.generic import NDFrame, _shared_docs
 from pandas.core.index import (Index, MultiIndex, ensure_index,
@@ -397,6 +400,7 @@ class DataFrame(NDFrame):
                 mask = ma.getmaskarray(data)
                 if mask.any():
                     data, fill_value = maybe_upcast(data, copy=True)
+                    data.soften_mask()  # set hardmask False if it was True
                     data[mask] = fill_value
                 else:
                     data = data.copy()
@@ -3288,7 +3292,7 @@ class DataFrame(NDFrame):
 
         # convert the myriad valid dtypes object to a single representation
         include, exclude = map(
-            lambda x: frozenset(map(_get_dtype_from_object, x)), selection)
+            lambda x: frozenset(map(infer_dtype_from_object, x)), selection)
         for dtypes in (include, exclude):
             invalidate_string_dtypes(dtypes)
 
@@ -4356,9 +4360,25 @@ class DataFrame(NDFrame):
                     values.fill(np.nan)
                 else:
                     values = values.take(labels)
+
+                    # TODO(https://github.com/pandas-dev/pandas/issues/24206)
+                    # Push this into maybe_upcast_putmask?
+                    # We can't pass EAs there right now. Looks a bit
+                    # complicated.
+                    # So we unbox the ndarray_values, op, re-box.
+                    values_type = type(values)
+                    values_dtype = values.dtype
+
+                    if issubclass(values_type, DatetimeLikeArray):
+                        values = values._data
+
                     if mask.any():
                         values, changed = maybe_upcast_putmask(
                             values, mask, np.nan)
+
+                    if issubclass(values_type, DatetimeLikeArray):
+                        values = values_type(values, dtype=values_dtype)
+
             return values
 
         new_index = ibase.default_index(len(new_obj))
@@ -4569,7 +4589,7 @@ class DataFrame(NDFrame):
                 else:
                     raise TypeError('must specify how or thresh')
 
-            result = self._take(mask.nonzero()[0], axis=axis)
+            result = self.loc(axis=axis)[mask]
 
         if inplace:
             self._update_inplace(result)
@@ -4604,7 +4624,7 @@ class DataFrame(NDFrame):
         duplicated = self.duplicated(subset, keep=keep)
 
         if inplace:
-            inds, = (-duplicated).nonzero()
+            inds, = (-duplicated)._ndarray_values.nonzero()
             new_data = self._data.take(inds)
             self._update_inplace(new_data)
         else:
@@ -5314,7 +5334,6 @@ class DataFrame(NDFrame):
                 arr = arr._values
 
             if needs_i8_conversion(arr):
-                # TODO(DatetimelikeArray): just use .asi8
                 if is_extension_array_dtype(arr.dtype):
                     arr = arr.asi8
                 else:
@@ -6482,6 +6501,14 @@ class DataFrame(NDFrame):
         --------
         DataFrame.apply : Apply a function along input axis of DataFrame.
 
+        Notes
+        -----
+        In the current implementation applymap calls `func` twice on the
+        first column/row to decide whether it can take a fast or slow
+        code path. This can lead to unexpected behavior if `func` has
+        side-effects, as they will take effect twice for the first
+        column/row.
+
         Examples
         --------
         >>> df = pd.DataFrame([[1, 2.12], [3.356, 4.567]])
@@ -6947,6 +6974,11 @@ class DataFrame(NDFrame):
         -------
         y : DataFrame
 
+        See Also
+        --------
+        DataFrame.corrwith
+        Series.corr
+
         Examples
         --------
         >>> histogram_intersection = lambda a, b: np.minimum(a, b
@@ -6957,11 +6989,6 @@ class DataFrame(NDFrame):
               dogs cats
         dogs   1.0  0.3
         cats   0.3  1.0
-
-        See Also
-        -------
-        DataFrame.corrwith
-        Series.corr
         """
         numeric_df = self._get_numeric_data()
         cols = numeric_df.columns
