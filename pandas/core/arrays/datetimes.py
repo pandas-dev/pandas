@@ -35,6 +35,24 @@ from pandas.tseries.offsets import Day, Tick
 _midnight = time(0, 0)
 
 
+def tz_to_dtype(tz):
+    """
+    Return a datetime64[ns] dtype appropriate for the given timezone.
+
+    Parameters
+    ----------
+    tz : tzinfo or None
+
+    Returns
+    -------
+    np.dtype or Datetime64TZDType
+    """
+    if tz is None:
+        return _NS_DTYPE
+    else:
+        return DatetimeTZDtype(tz=tz)
+
+
 def _to_M8(key, tz=None):
     """
     Timestamp-like => dt64
@@ -305,13 +323,7 @@ class DatetimeArray(dtl.DatetimeLikeArrayMixin,
         self._freq = freq
 
     @classmethod
-    def _simple_new(cls, values, freq=None, tz=None):
-        """
-        we require the we have a dtype compat for the values
-        if we are passed a non-dtype compat, then coerce using the constructor
-        """
-        dtype = DatetimeTZDtype(tz=tz) if tz else _NS_DTYPE
-
+    def _simple_new(cls, values, freq=None, dtype=None):
         return cls(values, freq=freq, dtype=dtype)
 
     @classmethod
@@ -328,7 +340,8 @@ class DatetimeArray(dtl.DatetimeLikeArrayMixin,
         freq, freq_infer = dtl.validate_inferred_freq(freq, inferred_freq,
                                                       freq_infer)
 
-        result = cls._simple_new(subarr, freq=freq, tz=tz)
+        dtype = tz_to_dtype(tz)
+        result = cls._simple_new(subarr, freq=freq, dtype=dtype)
 
         if inferred_freq is None and freq is not None:
             # this condition precludes `freq_infer`
@@ -395,7 +408,7 @@ class DatetimeArray(dtl.DatetimeLikeArrayMixin,
                     end = end.tz_localize(None)
             # TODO: consider re-implementing _cached_range; GH#17914
             values, _tz = generate_regular_range(start, end, periods, freq)
-            index = cls._simple_new(values, freq=freq, tz=_tz)
+            index = cls._simple_new(values, freq=freq, dtype=tz_to_dtype(_tz))
 
             if tz is not None and index.tz is None:
                 arr = conversion.tz_localize_to_utc(
@@ -418,8 +431,9 @@ class DatetimeArray(dtl.DatetimeLikeArrayMixin,
             arr = np.linspace(
                 0, end.value - start.value,
                 periods, dtype='int64') + start.value
+            dtype = tz_to_dtype(tz)
             index = cls._simple_new(
-                arr.astype('M8[ns]', copy=False), freq=None, tz=tz
+                arr.astype('M8[ns]', copy=False), freq=None, dtype=dtype
             )
 
         if not left_closed and len(index) and index[0] == start:
@@ -427,7 +441,8 @@ class DatetimeArray(dtl.DatetimeLikeArrayMixin,
         if not right_closed and len(index) and index[-1] == end:
             index = index[:-1]
 
-        return cls._simple_new(index.asi8, freq=freq, tz=tz)
+        dtype = tz_to_dtype(tz)
+        return cls._simple_new(index.asi8, freq=freq, dtype=dtype)
 
     # -----------------------------------------------------------------
     # DatetimeLike Interface
@@ -806,7 +821,8 @@ class DatetimeArray(dtl.DatetimeLikeArrayMixin,
                             'tz_localize to localize')
 
         # No conversion since timestamps are all UTC to begin with
-        return self._simple_new(self.asi8, tz=tz, freq=self.freq)
+        dtype = tz_to_dtype(tz)
+        return self._simple_new(self.asi8, dtype=dtype, freq=self.freq)
 
     def tz_localize(self, tz, ambiguous='raise', nonexistent='raise',
                     errors=None):
@@ -995,7 +1011,8 @@ class DatetimeArray(dtl.DatetimeLikeArrayMixin,
                 self.asi8, tz, ambiguous=ambiguous, nonexistent=nonexistent,
             )
         new_dates = new_dates.view(_NS_DTYPE)
-        return self._simple_new(new_dates, tz=tz, freq=self.freq)
+        dtype = tz_to_dtype(tz)
+        return self._simple_new(new_dates, dtype=dtype, freq=self.freq)
 
     # ----------------------------------------------------------------
     # Conversion Methods - Vectorized analogues of Timestamp methods
