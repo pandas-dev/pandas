@@ -21,6 +21,7 @@ from pandas.core.dtypes.dtypes import (
     CategoricalDtype,
     PeriodDtype,
     IntervalDtype,
+    DatetimeDtype,
     DatetimeTZDtype,
 )
 from pandas.core.arrays import Categorical, array

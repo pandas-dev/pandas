@@ -1244,11 +1244,11 @@ def is_datetime_or_timedelta_dtype(arr_or_dtype):
     >>> is_datetime_or_timedelta_dtype(np.array([], dtype=np.datetime64))
     True
     """
-    # TODO: Figure out if these are true for DatetimeDtype
-
+    dtype = getattr(arr_or_dtype, 'dtype', arr_or_dtype)
     return (_is_dtype_type(
-        arr_or_dtype, classes(np.datetime64, np.timedelta64, Timestamp))
-        and getattr(arr_or_dtype, 'tz', None) is None)
+        arr_or_dtype, classes(np.datetime64, np.timedelta64,
+                              Timestamp, Timedelta))
+            and getattr(dtype, 'tz', None) is None)
 
 
 def _is_unorderable_exception(e):

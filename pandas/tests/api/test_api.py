@@ -48,7 +48,7 @@ class TestPDApi(Base):
                'TimedeltaIndex', 'Timestamp', 'Interval', 'IntervalIndex',
                'IntervalArray',
                'CategoricalDtype', 'PeriodDtype', 'IntervalDtype',
-               'DatetimeTZDtype',
+               'DatetimeDtype', 'DatetimeTZDtype',
                'Int8Dtype', 'Int16Dtype', 'Int32Dtype', 'Int64Dtype',
                'UInt8Dtype', 'UInt16Dtype', 'UInt32Dtype', 'UInt64Dtype',
                ]

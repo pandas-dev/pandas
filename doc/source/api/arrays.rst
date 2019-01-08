@@ -136,7 +136,7 @@ Methods
 
 A collection of timestamps may be stored in a :class:`arrays.DatetimeArray`.
 For timezone-aware data, the ``.dtype`` of a ``DatetimeArray`` is a
-:class:`DatetimeTZDtype`. For timezone-naive data, ``np.dtype("datetime64[ns]")``
+:class:`DatetimeTZDtype`. For timezone-naive data, :class:`DatetimeDtype`
 is used.
 
 If the data are tz-aware, then every value in the array must have the same timezone.
@@ -145,6 +145,7 @@ If the data are tz-aware, then every value in the array must have the same timez
    :toctree: generated/
 
    arrays.DatetimeArray
+   DatetimeDtype
    DatetimeTZDtype
 
 .. _api.arrays.timedelta:

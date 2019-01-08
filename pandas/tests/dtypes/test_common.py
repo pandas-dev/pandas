@@ -201,8 +201,18 @@ def test_is_datetime64_dtype():
     assert not com.is_datetime64_dtype([1, 2, 3])
     assert not com.is_datetime64_dtype(np.array([], dtype=int))
 
+    tzd = DatetimeTZDtype(tz="CET")
+    assert not com.is_datetime64_dtype(tzd)
+    assert not com.is_datetime64_dtype(
+        pd.arrays.DatetimeArray._from_sequence(['2000'], dtype=tzd)
+    )
+
     assert com.is_datetime64_dtype(np.datetime64)
     assert com.is_datetime64_dtype(np.array([], dtype=np.datetime64))
+    assert com.is_datetime64_dtype(pd.DatetimeDtype())
+    assert com.is_datetime64_dtype(
+        pd.arrays.DatetimeArray._from_sequence(['2000'])
+    )
 
 
 def test_is_datetime64tz_dtype():
@@ -211,6 +221,10 @@ def test_is_datetime64tz_dtype():
     assert not com.is_datetime64tz_dtype(pd.DatetimeIndex([1, 2, 3]))
     assert com.is_datetime64tz_dtype(pd.DatetimeIndex(
         [1, 2, 3], tz="US/Eastern"))
+    assert com.is_datetime64tz_dtype(pd.DatetimeIndex(
+        [1, 2, 3], tz="US/Eastern")._data)
+    assert com.is_datetime64tz_dtype(pd.DatetimeIndex(
+        [1, 2, 3], tz="US/Eastern")._data.dtype)
 
 
 def test_is_timedelta64_dtype():
@@ -225,7 +239,13 @@ def test_is_timedelta64_dtype():
 
     assert com.is_timedelta64_dtype(np.timedelta64)
     assert com.is_timedelta64_dtype(pd.Series([], dtype="timedelta64[ns]"))
-    assert com.is_timedelta64_dtype(pd.to_timedelta(['0 days', '1 days']))
+
+    tdi = pd.to_timedelta(['0 days', '1 days'])
+
+    assert com.is_timedelta64_dtype(tdi)
+    assert com.is_timedelta64_dtype(tdi.dtype)
+    assert com.is_timedelta64_dtype(tdi._data)
+    assert com.is_timedelta64_dtype(tdi._data.dtype)
 
 
 def test_is_period_dtype():
@@ -423,6 +443,18 @@ def test_is_datetime_or_timedelta_dtype():
         np.array([], dtype=np.timedelta64))
     assert com.is_datetime_or_timedelta_dtype(
         np.array([], dtype=np.datetime64))
+
+    idx = pd.date_range("2000", periods=2)
+    assert com.is_datetime_or_timedelta_dtype(idx)
+    assert com.is_datetime_or_timedelta_dtype(idx.dtype)
+    assert com.is_datetime_or_timedelta_dtype(idx._data)
+    assert com.is_datetime_or_timedelta_dtype(idx._data.dtype)
+
+    idx = pd.timedelta_range("1H", periods=2)
+    assert com.is_datetime_or_timedelta_dtype(idx)
+    assert com.is_datetime_or_timedelta_dtype(idx.dtype)
+    assert com.is_datetime_or_timedelta_dtype(idx._data)
+    assert com.is_datetime_or_timedelta_dtype(idx._data.dtype)
 
 
 def test_is_numeric_v_string_like():
