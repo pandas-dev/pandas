@@ -62,7 +62,7 @@ class TestPack(object):
             Unpacker(read_size=5, max_buffer_size=3)
         unpacker = Unpacker(read_size=3, max_buffer_size=3, use_list=1)
         unpacker.feed(b'fo')
-        with pytest.raises(BufferFull, match=r'$^'):
+        with pytest.raises(BufferFull, match=r'^$'):
             unpacker.feed(b'ob')
         unpacker.feed(b'o')
         assert ord('f') == next(unpacker)

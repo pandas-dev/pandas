@@ -346,7 +346,7 @@ class TestMMapWrapper(object):
             next_line = next(wrapper)
             assert next_line.strip() == line.strip()
 
-        with pytest.raises(StopIteration, match=r'$^'):
+        with pytest.raises(StopIteration, match=r'^$'):
             next(wrapper)
 
     def test_unknown_engine(self):
