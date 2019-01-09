@@ -226,7 +226,13 @@ cdef class IndexEngine:
         return self.vgetter()
 
     def _call_monotonic(self, values):
-        raise NotImplementedError
+        return algos.is_monotonic(values, timelike=False)
+
+    def get_backfill_indexer(self, other, limit=None):
+        return algos.backfill(self._get_index_values(), other, limit=limit)
+
+    def get_pad_indexer(self, other, limit=None):
+        return algos.pad(self._get_index_values(), other, limit=limit)
 
     cdef _make_hash_table(self, n):
         raise NotImplementedError
@@ -369,6 +375,14 @@ cdef Py_ssize_t _bin_search(ndarray values, object val) except -1:
         return mid
     else:
         return mid + 1
+
+
+cdef class ObjectEngine(IndexEngine):
+    """
+    Index Engine for use with object-dtype Index, namely the base class Index
+    """
+    cdef _make_hash_table(self, n):
+        return _hash.PyObjectHashTable(n)
 
 
 cdef class DatetimeEngine(Int64Engine):

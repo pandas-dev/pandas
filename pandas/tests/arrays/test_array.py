@@ -36,8 +36,36 @@ import pandas.util.testing as tm
 
     # Datetime (naive)
     ([1, 2], np.dtype('datetime64[ns]'),
-     PandasArray(np.array([1, 2], dtype='datetime64[ns]'))),
-    # TODO(DatetimeArray): add here
+     pd.arrays.DatetimeArray._from_sequence(
+         np.array([1, 2], dtype='datetime64[ns]'))),
+
+    (np.array([1, 2], dtype='datetime64[ns]'), None,
+     pd.arrays.DatetimeArray._from_sequence(
+         np.array([1, 2], dtype='datetime64[ns]'))),
+
+    (pd.DatetimeIndex(['2000', '2001']), np.dtype('datetime64[ns]'),
+     pd.arrays.DatetimeArray._from_sequence(['2000', '2001'])),
+
+    (pd.DatetimeIndex(['2000', '2001']), None,
+     pd.arrays.DatetimeArray._from_sequence(['2000', '2001'])),
+
+    (['2000', '2001'], np.dtype('datetime64[ns]'),
+     pd.arrays.DatetimeArray._from_sequence(['2000', '2001'])),
+
+    # Datetime (tz-aware)
+    (['2000', '2001'], pd.DatetimeTZDtype(tz="CET"),
+     pd.arrays.DatetimeArray._from_sequence(
+         ['2000', '2001'], dtype=pd.DatetimeTZDtype(tz="CET"))),
+
+    # Timedelta
+    (['1H', '2H'], np.dtype('timedelta64[ns]'),
+     pd.arrays.TimedeltaArray._from_sequence(['1H', '2H'])),
+
+    (pd.TimedeltaIndex(['1H', '2H']), np.dtype('timedelta64[ns]'),
+     pd.arrays.TimedeltaArray._from_sequence(['1H', '2H'])),
+
+    (pd.TimedeltaIndex(['1H', '2H']), None,
+     pd.arrays.TimedeltaArray._from_sequence(['1H', '2H'])),
 
     # Category
     (['a', 'b'], 'category', pd.Categorical(['a', 'b'])),
@@ -151,11 +179,7 @@ def test_array_inference(data, expected):
     [pd.Timestamp("2000", tz="CET"), pd.Timestamp("2000", tz="UTC")],
     # Mix of tz-aware and tz-naive
     [pd.Timestamp("2000", tz="CET"), pd.Timestamp("2000")],
-    # GH-24569
-    pytest.param(
-        np.array([pd.Timestamp('2000'), pd.Timestamp('2000', tz='CET')]),
-        marks=pytest.mark.xfail(reason="bug in DTA._from_sequence")
-    ),
+    np.array([pd.Timestamp('2000'), pd.Timestamp('2000', tz='CET')]),
 ])
 def test_array_inference_fails(data):
     result = pd.array(data)
