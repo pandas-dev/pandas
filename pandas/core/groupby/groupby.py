@@ -17,8 +17,6 @@ import warnings
 import numpy as np
 
 from pandas._libs import Timestamp, groupby as libgroupby
-from pandas.api.types import (
-    is_integer_dtype, is_datetime64_dtype, is_object_dtype)
 import pandas.compat as compat
 from pandas.compat import callable, range, set_function_name, zip
 from pandas.compat.numpy import function as nv
@@ -31,6 +29,8 @@ from pandas.core.dtypes.common import (
     ensure_float, is_extension_array_dtype, is_numeric_dtype, is_scalar)
 from pandas.core.dtypes.missing import isna, notna
 
+from pandas.api.types import (
+    is_datetime64_dtype, is_integer_dtype, is_object_dtype)
 import pandas.core.algorithms as algorithms
 from pandas.core.base import (
     DataError, GroupByError, PandasObject, SelectionMixin, SpecificationError)
