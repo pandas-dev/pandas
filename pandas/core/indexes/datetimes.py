@@ -22,7 +22,7 @@ from pandas.core.dtypes.missing import isna
 
 from pandas.core.accessor import delegate_names
 from pandas.core.arrays.datetimes import (
-    DatetimeArray, _to_M8, validate_tz_from_dtype)
+    DatetimeArray, _to_M8, tz_to_dtype, validate_tz_from_dtype)
 from pandas.core.base import _shared_docs
 import pandas.core.common as com
 from pandas.core.indexes.base import Index
@@ -327,7 +327,10 @@ class DatetimeIndex(DatetimeIndexOpsMixin, Int64Index, DatetimeDelegateMixin):
 
         # DatetimeArray._simple_new will accept either i8 or M8[ns] dtypes
         assert isinstance(values, np.ndarray)
-        dtarr = DatetimeArray._simple_new(values, freq=freq, tz=tz)
+
+        dtype = tz_to_dtype(tz)
+        dtarr = DatetimeArray._simple_new(values, freq=freq, dtype=dtype)
+        assert isinstance(dtarr, DatetimeArray)
 
         result = object.__new__(cls)
         result._data = dtarr
@@ -401,7 +404,8 @@ class DatetimeIndex(DatetimeIndexOpsMixin, Int64Index, DatetimeDelegateMixin):
 
                 freq = own_state[1]
                 tz = timezones.tz_standardize(own_state[2])
-                dtarr = DatetimeArray._simple_new(data, freq=freq, tz=tz)
+                dtype = tz_to_dtype(tz)
+                dtarr = DatetimeArray._simple_new(data, freq=freq, dtype=dtype)
 
                 self.name = own_state[0]
 

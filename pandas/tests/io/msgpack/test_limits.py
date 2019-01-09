@@ -12,22 +12,26 @@ class TestLimits(object):
     def test_integer(self):
         x = -(2 ** 63)
         assert unpackb(packb(x)) == x
-        pytest.raises((OverflowError, ValueError), packb, x - 1)
+        msg = (r"((long |Python )?(int )?too (big|large) to convert"
+               r"( to C (unsigned )?long))?")
+        with pytest.raises((OverflowError, ValueError), match=msg):
+            packb(x - 1)
         x = 2 ** 64 - 1
         assert unpackb(packb(x)) == x
-        pytest.raises((OverflowError, ValueError), packb, x + 1)
+        with pytest.raises((OverflowError, ValueError), match=msg):
+            packb(x + 1)
 
     def test_array_header(self):
         packer = Packer()
         packer.pack_array_header(2 ** 32 - 1)
-        pytest.raises((OverflowError, ValueError),
-                      packer.pack_array_header, 2 ** 32)
+        with pytest.raises((OverflowError, ValueError)):
+            packer.pack_array_header(2 ** 32)
 
     def test_map_header(self):
         packer = Packer()
         packer.pack_map_header(2 ** 32 - 1)
-        pytest.raises((OverflowError, ValueError),
-                      packer.pack_array_header, 2 ** 32)
+        with pytest.raises((OverflowError, ValueError)):
+            packer.pack_array_header(2 ** 32)
 
     def test_max_str_len(self):
         d = 'x' * 3

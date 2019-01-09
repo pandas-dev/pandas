@@ -149,7 +149,7 @@ if [[ -z "$CHECK" || "$CHECK" == "patterns" ]]; then
     RET=$(($RET + $?)) ; echo $MSG "DONE"
 
     # Check for the following code in testing: `unittest.mock`, `mock.Mock()` or `mock.patch`
-    MSG='Check that unittest.mock is not used (pytest builtin monkeypatch fixture should be used instread)' ; echo $MSG
+    MSG='Check that unittest.mock is not used (pytest builtin monkeypatch fixture should be used instead)' ; echo $MSG
     invgrep -r -E --include '*.py' '(unittest(\.| import )mock|mock\.Mock\(\)|mock\.patch)' pandas/tests/
     RET=$(($RET + $?)) ; echo $MSG "DONE"
 
@@ -161,6 +161,14 @@ if [[ -z "$CHECK" || "$CHECK" == "patterns" ]]; then
     MSG='TODO: This check is currently skipped because so many files fail this. Please enable when all are corrected (xref gh-24332)' ; echo $MSG
     # invgrep -R --include '*.py' -E '[[:space:]] pytest.raises' pandas/tests
     # RET=$(($RET + $?)) ; echo $MSG "DONE"
+
+    MSG='Check for wrong space after code-block directive and before colon (".. code-block ::" instead of ".. code-block::")' ; echo $MSG
+    invgrep -R --include="*.rst" ".. code-block ::" doc/source
+    RET=$(($RET + $?)) ; echo $MSG "DONE"
+
+    MSG='Check for wrong space after ipython directive and before colon (".. ipython ::" instead of ".. ipython::")' ; echo $MSG
+    invgrep -R --include="*.rst" ".. ipython ::" doc/source
+    RET=$(($RET + $?)) ; echo $MSG "DONE"
 
     MSG='Check that no file in the repo contains tailing whitespaces' ; echo $MSG
     set -o pipefail
