@@ -17,7 +17,8 @@ from pandas.util._decorators import Appender
 from pandas.core.dtypes.common import (
     _NS_DTYPE, _TD_DTYPE, ensure_int64, is_datetime64_dtype, is_dtype_equal,
     is_float_dtype, is_integer_dtype, is_list_like, is_object_dtype, is_scalar,
-    is_timedelta64_dtype, is_timedelta64_ns_dtype, pandas_dtype)
+    is_string_dtype, is_timedelta64_dtype, is_timedelta64_ns_dtype,
+    pandas_dtype)
 from pandas.core.dtypes.dtypes import DatetimeTZDtype
 from pandas.core.dtypes.generic import (
     ABCDataFrame, ABCIndexClass, ABCSeries, ABCTimedeltaIndex)
@@ -843,17 +844,17 @@ def sequence_to_td64ns(data, copy=False, unit="ns", errors="raise"):
         data = data._data
 
     # Convert whatever we have into timedelta64[ns] dtype
-    if data.dtype.kind in ['S', 'U', 'O']:
+    if is_object_dtype(data.dtype) or is_string_dtype(data.dtype):
         # no need to make a copy, need to convert if string-dtyped
         data = objects_to_td64ns(data, unit=unit, errors=errors)
         copy = False
 
-    elif data.dtype.kind == 'i':
+    elif is_integer_dtype(data.dtype):
         # treat as multiples of the given unit
         data, copy_made = ints_to_td64ns(data, unit=unit)
         copy = copy and not copy_made
 
-    elif data.dtype.kind == 'f':
+    elif is_float_dtype(data.dtype):
         # treat as multiples of the given unit.  If after converting to nanos,
         #  there are fractional components left, these are truncated
         #  (i.e. NOT rounded)
@@ -863,7 +864,7 @@ def sequence_to_td64ns(data, copy=False, unit="ns", errors="raise"):
         data[mask] = iNaT
         copy = False
 
-    elif data.dtype.kind == 'm':
+    elif is_timedelta64_dtype(data.dtype):
         if data.dtype != _TD_DTYPE:
             # non-nano unit
             # TODO: watch out for overflows
