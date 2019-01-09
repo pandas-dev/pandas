@@ -605,7 +605,13 @@ class BlockManager(PandasObject):
     def is_mixed_type(self):
         # Warning, consolidation needs to get checked upstairs
         self._consolidate_inplace()
-        return len(self.blocks) > 1
+        if len(self.blocks) == 1:
+            return False
+        # If all the blocks are datetimetz and the same timezone, we are
+        # _not_ mixed type
+        elif all(block.is_datetimetz for block in self.blocks):
+            return len({block.dtype for block in self.blocks}) > 1
+        return True
 
     @property
     def is_numeric_mixed_type(self):
