@@ -277,8 +277,8 @@ class DatetimeArray(dtl.DatetimeLikeArrayMixin,
                 dtype=tz_to_dtype(utc)).tz_convert(dtype.tz)
 
         elif not (is_datetime64tz_dtype(values.dtype) or
-                is_datetime64_dtype(values.dtype) or
-                values.dtype == 'i8'):
+                  is_datetime64_dtype(values.dtype) or
+                  values.dtype == 'i8'):
             raise ValueError(
                 "The dtype of 'values' is incorrect. Must be 'datetime64[ns]'."
                 " Got {dtype} instead."  .format(dtype=values.dtype))
