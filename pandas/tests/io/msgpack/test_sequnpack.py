@@ -56,15 +56,20 @@ class TestPack(object):
         with pytest.raises(OutOfData, match=msg):
             unpacker.unpack()
 
-    def test_maxbuffersize(self):
+    def test_maxbuffersize_read_size_exceeds_max_buffer_size(self):
         msg = "read_size should be less or equal to max_buffer_size"
         with pytest.raises(ValueError, match=msg):
             Unpacker(read_size=5, max_buffer_size=3)
+
+    def test_maxbuffersize_bufferfull(self):
         unpacker = Unpacker(read_size=3, max_buffer_size=3, use_list=1)
-        unpacker.feed(b'fo')
+        unpacker.feed(b'foo')
         with pytest.raises(BufferFull, match=r'^$'):
-            unpacker.feed(b'ob')
-        unpacker.feed(b'o')
+            unpacker.feed(b'b')
+
+    def test_maxbuffersize(self):
+        unpacker = Unpacker(read_size=3, max_buffer_size=3, use_list=1)
+        unpacker.feed(b'foo')
         assert ord('f') == next(unpacker)
         unpacker.feed(b'b')
         assert ord('o') == next(unpacker)
