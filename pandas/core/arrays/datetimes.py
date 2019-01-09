@@ -268,7 +268,17 @@ class DatetimeArray(dtl.DatetimeLikeArrayMixin,
                 "ndarray, or Series or Index containing one of those."
                 .format(vals=type(values).__name__))
 
-        if values.dtype == np.bool_:
+        if is_datetime64_dtype(values.dtype) and hasattr(dtype, "tz"):
+            # cast to make _from_sequence treat as unix instead of wall-times;
+            #  see GH#24559
+            values = type(self)._simple_new(
+                np.asarray(values),
+                freq=getattr(values, "freq", None),
+                dtype=tz_to_dtype(utc)).tz_convert(dtype.tz)
+
+        elif not (is_datetime64tz_dtype(values.dtype) or
+                is_datetime64_dtype(values.dtype) or
+                values.dtype == 'i8'):
             raise ValueError(
                 "The dtype of 'values' is incorrect. Must be 'datetime64[ns]'."
                 " Got {dtype} instead."  .format(dtype=values.dtype))
