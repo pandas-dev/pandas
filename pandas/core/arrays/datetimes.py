@@ -50,6 +50,7 @@ def tz_to_dtype(tz):
     if tz is None:
         return _NS_DTYPE
     else:
+        tz = timezones.tz_standardize(tz)
         return DatetimeTZDtype(tz=tz)
 
 

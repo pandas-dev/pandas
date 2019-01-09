@@ -314,6 +314,7 @@ class DatetimeIndex(DatetimeIndexOpsMixin, Int64Index, DatetimeDelegateMixin):
         if isinstance(values, DatetimeArray):
             if tz:
                 tz = validate_tz_from_dtype(dtype, tz)
+                tz = timezones.tz_standardize(tz)
                 dtype = DatetimeTZDtype(tz=tz)
             elif dtype is None:
                 dtype = values.dtype
