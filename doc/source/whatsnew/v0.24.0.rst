@@ -1501,6 +1501,7 @@ Categorical
 - Bug in :meth:`Series.where` losing the categorical dtype for categorical data (:issue:`24077`)
 - Bug in :meth:`Categorical.apply` where ``NaN`` values could be handled unpredictably. They now remain unchanged (:issue:`24241`)
 - Bug in :class:`Categorical` comparison methods incorrectly raising ``ValueError`` when operating against a :class:`DataFrame` (:issue:`24630`)
+- Bug in :meth:`Categorical.set_categories` where setting fewer new categories with ``rename=True`` caused a segmentation fault (:issue:`24675`)
 
 Datetimelike
 ^^^^^^^^^^^^
@@ -1550,6 +1551,7 @@ Datetimelike
 - Bug in :class:`PeriodIndex` where comparisons against an array-like object with length 1 failed to raise ``ValueError`` (:issue:`23078`)
 - Bug in :meth:`DatetimeIndex.astype`, :meth:`PeriodIndex.astype` and :meth:`TimedeltaIndex.astype` ignoring the sign of the ``dtype`` for unsigned integer dtypes (:issue:`24405`).
 - Fixed bug in :meth:`Series.max` with ``datetime64[ns]``-dtype failing to return ``NaT`` when nulls are present and ``skipna=False`` is passed (:issue:`24265`)
+- Bug in :func:`to_datetime` where arrays of ``datetime`` objects containing both timezone-aware and timezone-naive ``datetimes`` would fail to raise ``ValueError`` (:issue:`24569`)
 
 Timedelta
 ^^^^^^^^^
