@@ -145,11 +145,16 @@ bar2,12,13,14,15
         pytest.importorskip(module)
 
         path = os.path.join(HERE, 'data', 'does_not_exist.' + fn_ext)
-        msg = (r"(File b'.+does_not_exist\.csv' does not exist|"
-               r"\[Errno 2\] No such file or directory: '.+does_not_exist"
-               r"\.(txt|dta|sas7bdat|pickle)'|Expected object or value|"
-               "path_or_buf needs to be a string file path or file-like)")
-        with pytest.raises(error_class, match=msg):
+        msg1 = (r"File (b')?.+does_not_exist\.{}'? does not exist"
+                .format(fn_ext))
+        msg2 = (r"\[Errno 2\] No such file or directory: '.+does_not_exist"
+                r"\.{}'").format(fn_ext)
+        msg3 = "Expected object or value"
+        msg4 = "path_or_buf needs to be a string file path or file-like"
+        msg5 = (r"\[Errno 2\] File .+does_not_exist\.{} does not exist:"
+                r" '.+does_not_exist\.{}'").format(fn_ext, fn_ext)
+        with pytest.raises(error_class, match=r"({}|{}|{}|{}|{})".format(
+                msg1, msg2, msg3, msg4, msg5)):
             reader(path)
 
     @pytest.mark.parametrize('reader, module, error_class, fn_ext', [
@@ -172,20 +177,26 @@ bar2,12,13,14,15
         monkeypatch.setattr(icom, '_expand_user',
                             lambda x: os.path.join('foo', x))
 
-        msg1 = r"File b'.+does_not_exist\.{}' does not exist".format(fn_ext)
+        msg1 = (r"File (b')?.+does_not_exist\.{}'? does not exist"
+                .format(fn_ext))
         msg2 = (r"\[Errno 2\] No such file or directory:"
                 r" '.+does_not_exist\.{}'").format(fn_ext)
         msg3 = "Unexpected character found when decoding 'false'"
         msg4 = "path_or_buf needs to be a string file path or file-like"
+        msg5 = (r"\[Errno 2\] File .+does_not_exist\.{} does not exist:"
+                r" '.+does_not_exist\.{}'").format(fn_ext, fn_ext)
 
-        with pytest.raises(error_class, match=r"({}|{}|{}|{})".format(
-                msg1, msg2, msg3, msg4)):
+        with pytest.raises(error_class, match=r"({}|{}|{}|{}|{})".format(
+                msg1, msg2, msg3, msg4, msg5)):
             reader(path)
 
     def test_read_non_existant_read_table(self):
         path = os.path.join(HERE, 'data', 'does_not_exist.' + 'csv')
-        msg = r"File b'.+does_not_exist\.csv' does not exist"
-        with pytest.raises(FileNotFoundError, match=msg):
+        msg1 = r"File b'.+does_not_exist\.csv' does not exist"
+        msg2 = (r"\[Errno 2\] File .+does_not_exist\.csv does not exist:"
+                r" '.+does_not_exist\.csv'")
+        with pytest.raises(FileNotFoundError, match=r"({}|{})".format(
+                msg1, msg2)):
             with tm.assert_produces_warning(FutureWarning):
                 pd.read_table(path)
 

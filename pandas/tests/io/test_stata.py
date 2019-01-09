@@ -1583,9 +1583,12 @@ class TestStata(object):
         df = DataFrame([content], columns=['invalid'])
         expected_exc = UnicodeEncodeError if PY3 else UnicodeDecodeError
         with tm.ensure_clean() as path:
-            msg = (r"'latin-1' codec can't encode character '\\ufffd'"
-                   r" in position 14: ordinal not in range\(256\)")
-            with pytest.raises(expected_exc, match=msg):
+            msg1 = (r"'latin-1' codec can't encode character '\\ufffd'"
+                    r" in position 14: ordinal not in range\(256\)")
+            msg2 = ("'ascii' codec can't decode byte 0xef in position 14:"
+                    r" ordinal not in range\(128\)")
+            with pytest.raises(expected_exc, match=r'{}|{}'.format(
+                    msg1, msg2)):
                 with tm.assert_produces_warning(ResourceWarning):
                     df.to_stata(path)
 
