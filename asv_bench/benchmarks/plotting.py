@@ -74,6 +74,9 @@ class TimeseriesPlotting(object):
     def time_plot_irregular(self):
         self.df2.plot()
 
+    def time_plot_table(self):
+        self.df.plot(table=True)
+
 
 class Misc(object):
 

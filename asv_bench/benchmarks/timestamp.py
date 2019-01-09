@@ -77,16 +77,19 @@ class TimestampProperties(object):
         self.ts.is_quarter_end
 
     def time_is_year_start(self, tz, freq):
-        self.ts.is_quarter_end
+        self.ts.is_year_start
 
     def time_is_year_end(self, tz, freq):
-        self.ts.is_quarter_end
+        self.ts.is_year_end
 
     def time_is_leap_year(self, tz, freq):
-        self.ts.is_quarter_end
+        self.ts.is_leap_year
 
     def time_microsecond(self, tz, freq):
         self.ts.microsecond
+
+    def time_month_name(self, tz, freq):
+        self.ts.month_name()
 
 
 class TimestampOps(object):
@@ -116,6 +119,15 @@ class TimestampOps(object):
     def time_tz_localize(self, tz):
         if self.ts.tz is None:
             self.ts.tz_localize(tz)
+
+    def time_to_julian_date(self, tz):
+        self.ts.to_julian_date()
+
+    def time_floor(self, tz):
+        self.ts.floor('5T')
+
+    def time_ceil(self, tz):
+        self.ts.ceil('5T')
 
 
 class TimestampAcrossDst(object):
