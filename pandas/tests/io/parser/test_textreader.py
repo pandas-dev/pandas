@@ -145,7 +145,10 @@ class TestTextReader(object):
 
         reader = TextReader(StringIO(data), delimiter=':',
                             header=None)
-        pytest.raises(parser.ParserError, reader.read)
+        msg = (r"Error tokenizing data\. C error: Expected 3 fields in"
+               " line 4, saw 4")
+        with pytest.raises(parser.ParserError, match=msg):
+            reader.read()
 
         reader = TextReader(StringIO(data), delimiter=':',
                             header=None,
