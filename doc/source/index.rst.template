@@ -124,13 +124,9 @@ See the package overview for more detail about what's in the library.
     {% if not single_doc -%}
     What's New <whatsnew/v0.24.0>
     install
+    getting_started/index
     contributing
-    overview
-    10min
-    tutorials
     cookbook
-    dsintro
-    basics
     text
     options
     indexing
