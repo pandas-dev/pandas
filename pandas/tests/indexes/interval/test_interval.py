@@ -877,6 +877,7 @@ class TestIntervalIndex(Base):
         index = self.create_index(closed=closed)
         set_op = getattr(index, op_name)
 
+        # TODO: standardize return type of non-union setops type(self vs other)
         # non-IntervalIndex
         if op_name == 'difference':
             expected = index

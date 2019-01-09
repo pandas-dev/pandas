@@ -2350,6 +2350,7 @@ class Index(IndexOpsMixin, PandasObject):
     def _wrap_setop_result(self, other, result):
         return self._constructor(result, name=get_op_result_name(self, other))
 
+    # TODO: standardize return type of non-union setops type(self vs other)
     def intersection(self, other):
         """
         Form the intersection of two Index objects.
