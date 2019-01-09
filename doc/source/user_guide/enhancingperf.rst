@@ -779,7 +779,7 @@ significant performance benefit.  Here is a plot showing the running time of
 computation. The two lines are two different engines.
 
 
-.. image:: _static/eval-perf.png
+.. image:: ../_static/eval-perf.png
 
 
 .. note::
@@ -787,7 +787,7 @@ computation. The two lines are two different engines.
    Operations with smallish objects (around 15k-20k rows) are faster using
    plain Python:
 
-       .. image:: _static/eval-perf-small.png
+       .. image:: ../_static/eval-perf-small.png
 
 
 This plot was created using a ``DataFrame`` with 3 columns each containing
