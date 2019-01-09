@@ -1499,10 +1499,10 @@ class ParserBase(object):
                     counts[col] = cur_count + 1
 
                     if is_potential_mi:
-                        col = col[:-1] + ('{col}.{cnt}'.format(
-                            col=col[-1], cnt=cur_count),)
+                        col = col[:-1] + ('{column}.{count}'.format(
+                            column=col[-1], count=cur_count),)
                     else:
-                        col = '{col}.{cnt}'.format(col=col, cnt=cur_count)
+                        col = '{column}.{count}'.format(column=col, count=cur_count)
                     cur_count = counts[col]
 
                 names[i] = col
@@ -1792,8 +1792,8 @@ class ParserBase(object):
                                         copy=True, skipna=True)
             except ValueError:
                 raise ValueError(
-                    "Unable to convert column {column} to type {type}".format(
-                        column=column, type=cast_type))
+                    "Unable to convert column {column} to type {cast_type}".format(
+                        column=column, cast_type=cast_type))
         return values
 
     def _do_date_conversions(self, names, data):
@@ -2543,8 +2543,8 @@ class PythonParser(ParserBase):
 
                         while cur_count > 0:
                             counts[col] = cur_count + 1
-                            col = "{columns}.{count}".format(
-                                columns=col, count=cur_count)
+                            col = "{column}.{count}".format(
+                                column=col, count=cur_count)
                             cur_count = counts[col]
 
                         this_columns[i] = col
