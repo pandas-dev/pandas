@@ -475,7 +475,6 @@ class TestSeriesMissingData():
         tm.assert_series_equal(r, e)
         tm.assert_series_equal(dr, de)
 
-    @tm.capture_stdout
     def test_isnull_for_inf_deprecated(self):
         # gh-17115
         s = Series(['a', np.inf, np.nan, 1.0])
@@ -1325,3 +1324,9 @@ class TestSeriesInterpolateData():
         result = ts.reindex(new_index).interpolate(method='time')
 
         tm.assert_numpy_array_equal(result.values, exp.values)
+
+    def test_nonzero_warning(self):
+        # GH 24048
+        ser = pd.Series([1, 0, 3, 4])
+        with tm.assert_produces_warning(FutureWarning):
+            ser.nonzero()

@@ -171,7 +171,7 @@ def _convert_listlike_datetimes(arg, box, format, name=None, tz=None,
         - ndarray of Timestamps if box=False
     """
     from pandas import DatetimeIndex
-    from pandas.core.arrays import DatetimeArrayMixin as DatetimeArray
+    from pandas.core.arrays import DatetimeArray
     from pandas.core.arrays.datetimes import (
         maybe_convert_dtype, objects_to_datetime64ns)
 
@@ -568,6 +568,11 @@ def to_datetime(arg, errors='raise', dayfirst=False, yearfirst=False,
 
     if isinstance(arg, Timestamp):
         result = arg
+        if tz is not None:
+            if arg.tz is not None:
+                result = result.tz_convert(tz)
+            else:
+                result = result.tz_localize(tz)
     elif isinstance(arg, ABCSeries):
         cache_array = _maybe_cache(arg, format, cache, convert_listlike)
         if not cache_array.empty:

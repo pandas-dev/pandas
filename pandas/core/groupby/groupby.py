@@ -761,7 +761,7 @@ b  2""")
 
         """
         if obj.ndim > 1:
-            dtype = obj.values.dtype
+            dtype = obj._values.dtype
         else:
             dtype = obj.dtype
 
@@ -770,7 +770,7 @@ b  2""")
                 # The function can return something of any type, so check
                 # if the type is compatible with the calling EA.
                 try:
-                    result = obj.values._from_sequence(result)
+                    result = obj._values._from_sequence(result, dtype=dtype)
                 except Exception:
                     # https://github.com/pandas-dev/pandas/issues/22850
                     # pandas has no control over what 3rd-party ExtensionArrays
@@ -1273,8 +1273,8 @@ class GroupBy(_GroupBy):
         def first_compat(x, axis=0):
 
             def first(x):
+                x = x.to_numpy()
 
-                x = np.asarray(x)
                 x = x[notna(x)]
                 if len(x) == 0:
                     return np.nan
@@ -1288,8 +1288,7 @@ class GroupBy(_GroupBy):
         def last_compat(x, axis=0):
 
             def last(x):
-
-                x = np.asarray(x)
+                x = x.to_numpy()
                 x = x[notna(x)]
                 if len(x) == 0:
                     return np.nan
@@ -1336,7 +1335,7 @@ class GroupBy(_GroupBy):
         Given a grouper, the function resamples it according to a string
         "string" -> "frequency".
 
-        See the :ref:`frequency aliases <timeseries.offset-aliases>`
+        See the :ref:`frequency aliases <timeseries.offset_aliases>`
         documentation for more details.
 
         Parameters
@@ -2062,7 +2061,7 @@ class GroupBy(_GroupBy):
 
     @Substitution(name='groupby')
     @Appender(_common_see_also)
-    def shift(self, periods=1, freq=None, axis=0):
+    def shift(self, periods=1, freq=None, axis=0, fill_value=None):
         """
         Shift each group by periods observations.
 
@@ -2072,10 +2071,14 @@ class GroupBy(_GroupBy):
             number of periods to shift
         freq : frequency string
         axis : axis to shift, default 0
+        fill_value : optional
+
+            .. versionadded:: 0.24.0
         """
 
-        if freq is not None or axis != 0:
-            return self.apply(lambda x: x.shift(periods, freq, axis))
+        if freq is not None or axis != 0 or not isna(fill_value):
+            return self.apply(lambda x: x.shift(periods, freq,
+                                                axis, fill_value))
 
         return self._get_cythonized_result('group_shift_indexer',
                                            self.grouper, cython_dtype=np.int64,

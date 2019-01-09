@@ -35,7 +35,6 @@ from pandas.compat import (range, map, zip, lmap, lzip, StringIO, u,
                            OrderedDict, PY36, raise_with_traceback,
                            string_and_binary_types)
 from pandas.compat.numpy import function as nv
-
 from pandas.core.dtypes.cast import (
     maybe_upcast,
     cast_scalar_to_array,
@@ -49,6 +48,7 @@ from pandas.core.dtypes.cast import (
     maybe_upcast_putmask,
     find_common_type)
 from pandas.core.dtypes.common import (
+    is_dict_like,
     is_object_dtype,
     is_extension_type,
     is_extension_array_dtype,
@@ -60,7 +60,7 @@ from pandas.core.dtypes.common import (
     is_scalar,
     is_dtype_equal,
     needs_i8_conversion,
-    _get_dtype_from_object,
+    infer_dtype_from_object,
     ensure_float64,
     ensure_int64,
     ensure_platform_int,
@@ -78,6 +78,9 @@ from pandas.core import nanops
 from pandas.core import ops
 from pandas.core.accessor import CachedAccessor
 from pandas.core.arrays import Categorical, ExtensionArray
+from pandas.core.arrays.datetimelike import (
+    DatetimeLikeArrayMixin as DatetimeLikeArray
+)
 from pandas.core.config import get_option
 from pandas.core.generic import NDFrame, _shared_docs
 from pandas.core.index import (Index, MultiIndex, ensure_index,
@@ -397,6 +400,7 @@ class DataFrame(NDFrame):
                 mask = ma.getmaskarray(data)
                 if mask.any():
                     data, fill_value = maybe_upcast(data, copy=True)
+                    data.soften_mask()  # set hardmask False if it was True
                     data[mask] = fill_value
                 else:
                     data = data.copy()
@@ -898,10 +902,10 @@ class DataFrame(NDFrame):
         Animal(Index='hawk', num_legs=2, num_wings=2)
         """
         arrays = []
-        fields = []
+        fields = list(self.columns)
         if index:
             arrays.append(self.index)
-            fields.append("Index")
+            fields.insert(0, "Index")
 
         # use integer indexing because of possible duplicate column names
         arrays.extend(self.iloc[:, k] for k in range(len(self.columns)))
@@ -911,10 +915,9 @@ class DataFrame(NDFrame):
         if name is not None and len(self.columns) + index < 256:
             # `rename` is unsupported in Python 2.6
             try:
-                itertuple = collections.namedtuple(name,
-                                                   fields + list(self.columns),
-                                                   rename=True)
+                itertuple = collections.namedtuple(name, fields, rename=True)
                 return map(itertuple._make, zip(*arrays))
+
             except Exception:
                 pass
 
@@ -1541,7 +1544,8 @@ class DataFrame(NDFrame):
 
         return cls(mgr)
 
-    def to_records(self, index=True, convert_datetime64=None):
+    def to_records(self, index=True, convert_datetime64=None,
+                   column_dtypes=None, index_dtypes=None):
         """
         Convert DataFrame to a NumPy record array.
 
@@ -1558,6 +1562,20 @@ class DataFrame(NDFrame):
 
             Whether to convert the index to datetime.datetime if it is a
             DatetimeIndex.
+        column_dtypes : str, type, dict, default None
+            .. versionadded:: 0.24.0
+
+            If a string or type, the data type to store all columns. If
+            a dictionary, a mapping of column names and indices (zero-indexed)
+            to specific data types.
+        index_dtypes : str, type, dict, default None
+            .. versionadded:: 0.24.0
+
+            If a string or type, the data type to store all index levels. If
+            a dictionary, a mapping of index level names and indices
+            (zero-indexed) to specific data types.
+
+            This mapping is applied only if `index=True`.
 
         Returns
         -------
@@ -1599,6 +1617,23 @@ class DataFrame(NDFrame):
         >>> df.to_records(index=False)
         rec.array([(1, 0.5 ), (2, 0.75)],
                   dtype=[('A', '<i8'), ('B', '<f8')])
+
+        Data types can be specified for the columns:
+
+        >>> df.to_records(column_dtypes={"A": "int32"})
+        rec.array([('a', 1, 0.5 ), ('b', 2, 0.75)],
+                  dtype=[('I', 'O'), ('A', '<i4'), ('B', '<f8')])
+
+        As well as for the index:
+
+        >>> df.to_records(index_dtypes="<S2")
+        rec.array([(b'a', 1, 0.5 ), (b'b', 2, 0.75)],
+                  dtype=[('I', 'S2'), ('A', '<i8'), ('B', '<f8')])
+
+        >>> index_dtypes = "<S{}".format(df.index.str.len().max())
+        >>> df.to_records(index_dtypes=index_dtypes)
+        rec.array([(b'a', 1, 0.5 ), (b'b', 2, 0.75)],
+                  dtype=[('I', 'S1'), ('A', '<i8'), ('B', '<f8')])
         """
 
         if convert_datetime64 is not None:
@@ -1621,6 +1656,7 @@ class DataFrame(NDFrame):
 
             count = 0
             index_names = list(self.index.names)
+
             if isinstance(self.index, MultiIndex):
                 for i, n in enumerate(index_names):
                     if n is None:
@@ -1628,13 +1664,66 @@ class DataFrame(NDFrame):
                         count += 1
             elif index_names[0] is None:
                 index_names = ['index']
+
             names = (lmap(compat.text_type, index_names) +
                      lmap(compat.text_type, self.columns))
         else:
             arrays = [self[c].get_values() for c in self.columns]
             names = lmap(compat.text_type, self.columns)
+            index_names = []
 
-        formats = [v.dtype for v in arrays]
+        index_len = len(index_names)
+        formats = []
+
+        for i, v in enumerate(arrays):
+            index = i
+
+            # When the names and arrays are collected, we
+            # first collect those in the DataFrame's index,
+            # followed by those in its columns.
+            #
+            # Thus, the total length of the array is:
+            # len(index_names) + len(DataFrame.columns).
+            #
+            # This check allows us to see whether we are
+            # handling a name / array in the index or column.
+            if index < index_len:
+                dtype_mapping = index_dtypes
+                name = index_names[index]
+            else:
+                index -= index_len
+                dtype_mapping = column_dtypes
+                name = self.columns[index]
+
+            # We have a dictionary, so we get the data type
+            # associated with the index or column (which can
+            # be denoted by its name in the DataFrame or its
+            # position in DataFrame's array of indices or
+            # columns, whichever is applicable.
+            if is_dict_like(dtype_mapping):
+                if name in dtype_mapping:
+                    dtype_mapping = dtype_mapping[name]
+                elif index in dtype_mapping:
+                    dtype_mapping = dtype_mapping[index]
+                else:
+                    dtype_mapping = None
+
+            # If no mapping can be found, use the array's
+            # dtype attribute for formatting.
+            #
+            # A valid dtype must either be a type or
+            # string naming a type.
+            if dtype_mapping is None:
+                formats.append(v.dtype)
+            elif isinstance(dtype_mapping, (type, compat.string_types)):
+                formats.append(dtype_mapping)
+            else:
+                element = "row" if i < index_len else "column"
+                msg = ("Invalid dtype {dtype} specified for "
+                       "{element} {name}").format(dtype=dtype_mapping,
+                                                  element=element, name=name)
+                raise ValueError(msg)
+
         return np.rec.fromarrays(
             arrays,
             dtype={'names': names, 'formats': formats}
@@ -2717,7 +2806,10 @@ class DataFrame(NDFrame):
         except (KeyError, TypeError):
 
             # set using a non-recursive method & reset the cache
-            self.loc[index, col] = value
+            if takeable:
+                self.iloc[index, col] = value
+            else:
+                self.loc[index, col] = value
             self._item_cache.pop(col, None)
 
             return self
@@ -3200,7 +3292,7 @@ class DataFrame(NDFrame):
 
         # convert the myriad valid dtypes object to a single representation
         include, exclude = map(
-            lambda x: frozenset(map(_get_dtype_from_object, x)), selection)
+            lambda x: frozenset(map(infer_dtype_from_object, x)), selection)
         for dtypes in (include, exclude):
             invalidate_string_dtypes(dtypes)
 
@@ -3939,9 +4031,9 @@ class DataFrame(NDFrame):
                                               method=method)
 
     @Appender(_shared_docs['shift'] % _shared_doc_kwargs)
-    def shift(self, periods=1, freq=None, axis=0):
+    def shift(self, periods=1, freq=None, axis=0, fill_value=None):
         return super(DataFrame, self).shift(periods=periods, freq=freq,
-                                            axis=axis)
+                                            axis=axis, fill_value=fill_value)
 
     def set_index(self, keys, drop=True, append=False, inplace=False,
                   verify_integrity=False):
@@ -4268,9 +4360,25 @@ class DataFrame(NDFrame):
                     values.fill(np.nan)
                 else:
                     values = values.take(labels)
+
+                    # TODO(https://github.com/pandas-dev/pandas/issues/24206)
+                    # Push this into maybe_upcast_putmask?
+                    # We can't pass EAs there right now. Looks a bit
+                    # complicated.
+                    # So we unbox the ndarray_values, op, re-box.
+                    values_type = type(values)
+                    values_dtype = values.dtype
+
+                    if issubclass(values_type, DatetimeLikeArray):
+                        values = values._data
+
                     if mask.any():
                         values, changed = maybe_upcast_putmask(
                             values, mask, np.nan)
+
+                    if issubclass(values_type, DatetimeLikeArray):
+                        values = values_type(values, dtype=values_dtype)
+
             return values
 
         new_index = ibase.default_index(len(new_obj))
@@ -4481,7 +4589,7 @@ class DataFrame(NDFrame):
                 else:
                     raise TypeError('must specify how or thresh')
 
-            result = self._take(mask.nonzero()[0], axis=axis)
+            result = self.loc(axis=axis)[mask]
 
         if inplace:
             self._update_inplace(result)
@@ -4516,7 +4624,7 @@ class DataFrame(NDFrame):
         duplicated = self.duplicated(subset, keep=keep)
 
         if inplace:
-            inds, = (-duplicated).nonzero()
+            inds, = (-duplicated)._ndarray_values.nonzero()
             new_data = self._data.take(inds)
             self._update_inplace(new_data)
         else:
@@ -5226,7 +5334,6 @@ class DataFrame(NDFrame):
                 arr = arr._values
 
             if needs_i8_conversion(arr):
-                # TODO(DatetimelikeArray): just use .asi8
                 if is_extension_array_dtype(arr.dtype):
                     arr = arr.asi8
                 else:
@@ -6394,6 +6501,14 @@ class DataFrame(NDFrame):
         --------
         DataFrame.apply : Apply a function along input axis of DataFrame.
 
+        Notes
+        -----
+        In the current implementation applymap calls `func` twice on the
+        first column/row to decide whether it can take a fast or slow
+        code path. This can lead to unexpected behavior if `func` has
+        side-effects, as they will take effect twice for the first
+        column/row.
+
         Examples
         --------
         >>> df = pd.DataFrame([[1, 2.12], [3.356, 4.567]])
@@ -6859,6 +6974,11 @@ class DataFrame(NDFrame):
         -------
         y : DataFrame
 
+        See Also
+        --------
+        DataFrame.corrwith
+        Series.corr
+
         Examples
         --------
         >>> histogram_intersection = lambda a, b: np.minimum(a, b
@@ -7022,10 +7142,11 @@ class DataFrame(NDFrame):
 
         return self._constructor(baseCov, index=idx, columns=cols)
 
-    def corrwith(self, other, axis=0, drop=False):
+    def corrwith(self, other, axis=0, drop=False, method='pearson'):
         """
-        Compute pairwise correlation between rows or columns of two DataFrame
-        objects.
+        Compute pairwise correlation between rows or columns of DataFrame
+        with rows or columns of Series or DataFrame.  DataFrames are first
+        aligned along both axes before computing the correlations.
 
         Parameters
         ----------
@@ -7033,43 +7154,77 @@ class DataFrame(NDFrame):
         axis : {0 or 'index', 1 or 'columns'}, default 0
             0 or 'index' to compute column-wise, 1 or 'columns' for row-wise
         drop : boolean, default False
-            Drop missing indices from result, default returns union of all
+            Drop missing indices from result
+        method : {'pearson', 'kendall', 'spearman'} or callable
+            * pearson : standard correlation coefficient
+            * kendall : Kendall Tau correlation coefficient
+            * spearman : Spearman rank correlation
+            * callable: callable with input two 1d ndarrays
+                and returning a float
+
+            .. versionadded:: 0.24.0
 
         Returns
         -------
         correls : Series
+
+        See Also
+        -------
+        DataFrame.corr
         """
         axis = self._get_axis_number(axis)
         this = self._get_numeric_data()
 
         if isinstance(other, Series):
-            return this.apply(other.corr, axis=axis)
+            return this.apply(lambda x: other.corr(x, method=method),
+                              axis=axis)
 
         other = other._get_numeric_data()
-
         left, right = this.align(other, join='inner', copy=False)
-
-        # mask missing values
-        left = left + right * 0
-        right = right + left * 0
 
         if axis == 1:
             left = left.T
             right = right.T
 
-        # demeaned data
-        ldem = left - left.mean()
-        rdem = right - right.mean()
+        if method == 'pearson':
+            # mask missing values
+            left = left + right * 0
+            right = right + left * 0
 
-        num = (ldem * rdem).sum()
-        dom = (left.count() - 1) * left.std() * right.std()
+            # demeaned data
+            ldem = left - left.mean()
+            rdem = right - right.mean()
 
-        correl = num / dom
+            num = (ldem * rdem).sum()
+            dom = (left.count() - 1) * left.std() * right.std()
+
+            correl = num / dom
+
+        elif method in ['kendall', 'spearman'] or callable(method):
+            def c(x):
+                return nanops.nancorr(x[0], x[1], method=method)
+
+            correl = Series(map(c,
+                                zip(left.values.T, right.values.T)),
+                            index=left.columns)
+
+        else:
+            raise ValueError("Invalid method {method} was passed, "
+                             "valid methods are: 'pearson', 'kendall', "
+                             "'spearman', or callable".
+                             format(method=method))
 
         if not drop:
+            # Find non-matching labels along the given axis
+            # and append missing correlations (GH 22375)
             raxis = 1 if axis == 0 else 0
-            result_index = this._get_axis(raxis).union(other._get_axis(raxis))
-            correl = correl.reindex(result_index)
+            result_index = (this._get_axis(raxis).
+                            union(other._get_axis(raxis)))
+            idx_diff = result_index.difference(correl.index)
+
+            if len(idx_diff) > 0:
+                correl = correl.append(Series([np.nan] * len(idx_diff),
+                                              index=idx_diff))
 
         return correl
 
@@ -7292,7 +7447,7 @@ class DataFrame(NDFrame):
                 if filter_type is None or filter_type == 'numeric':
                     data = self._get_numeric_data()
                 elif filter_type == 'bool':
-                    data = self._get_bool_data()
+                    data = self
                 else:  # pragma: no cover
                     msg = ("Generating numeric_only data with filter_type {f}"
                            "not supported.".format(f=filter_type))

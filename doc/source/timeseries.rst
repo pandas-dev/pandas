@@ -855,40 +855,40 @@ into ``freq`` keyword arguments. The available date offsets and associated frequ
     :header: "Date Offset", "Frequency String", "Description"
     :widths: 15, 15, 65
 
-    ``DateOffset``, None, "Generic offset class, defaults to 1 calendar day"
-    ``BDay`` or ``BusinessDay``, ``'B'``,"business day (weekday)"
-    ``CDay`` or ``CustomBusinessDay``, ``'C'``, "custom business day"
-    ``Week``, ``'W'``, "one week, optionally anchored on a day of the week"
-    ``WeekOfMonth``, ``'WOM'``, "the x-th day of the y-th week of each month"
-    ``LastWeekOfMonth``, ``'LWOM'``, "the x-th day of the last week of each month"
-    ``MonthEnd``, ``'M'``, "calendar month end"
-    ``MonthBegin``, ``'MS'``, "calendar month begin"
-    ``BMonthEnd`` or ``BusinessMonthEnd``, ``'BM'``, "business month end"
-    ``BMonthBegin`` or ``BusinessMonthBegin``, ``'BMS'``, "business month begin"
-    ``CBMonthEnd`` or ``CustomBusinessMonthEnd``, ``'CBM'``, "custom business month end"
-    ``CBMonthBegin`` or ``CustomBusinessMonthBegin``, ``'CBMS'``, "custom business month begin"
-    ``SemiMonthEnd``, ``'SM'``, "15th (or other day_of_month) and calendar month end"
-    ``SemiMonthBegin``, ``'SMS'``, "15th (or other day_of_month) and calendar month begin"
-    ``QuarterEnd``, ``'Q'``, "calendar quarter end"
-    ``QuarterBegin``, ``'QS'``, "calendar quarter begin"
-    ``BQuarterEnd``, ``'BQ``, "business quarter end"
-    ``BQuarterBegin``, ``'BQS'``, "business quarter begin"
-    ``FY5253Quarter``, ``'REQ'``, "retail (aka 52-53 week) quarter"
-    ``YearEnd``, ``'A'``, "calendar year end"
-    ``YearBegin``, ``'AS'`` or ``'BYS'``,"calendar year begin"
-    ``BYearEnd``, ``'BA'``, "business year end"
-    ``BYearBegin``, ``'BAS'``, "business year begin"
-    ``FY5253``, ``'RE'``, "retail (aka 52-53 week) year"
-    ``Easter``, None, "Easter holiday"
-    ``BusinessHour``, ``'BH'``, "business hour"
-    ``CustomBusinessHour``, ``'CBH'``, "custom business hour"
-    ``Day``, ``'D'``, "one absolute day"
-    ``Hour``, ``'H'``, "one hour"
-    ``Minute``, ``'T'`` or ``'min'``,"one minute"
-    ``Second``, ``'S'``, "one second"
-    ``Milli``, ``'L'`` or ``'ms'``, "one millisecond"
-    ``Micro``, ``'U'`` or ``'us'``, "one microsecond"
-    ``Nano``, ``'N'``, "one nanosecond"
+    :class:`~pandas.tseries.offsets.DateOffset`, None, "Generic offset class, defaults to 1 calendar day"
+    :class:`~pandas.tseries.offsets.BDay` or :class:`~pandas.tseries.offsets.BusinessDay`, ``'B'``,"business day (weekday)"
+    :class:`~pandas.tseries.offsets.CDay` or :class:`~pandas.tseries.offsets.CustomBusinessDay`, ``'C'``, "custom business day"
+    :class:`~pandas.tseries.offsets.Week`, ``'W'``, "one week, optionally anchored on a day of the week"
+    :class:`~pandas.tseries.offsets.WeekOfMonth`, ``'WOM'``, "the x-th day of the y-th week of each month"
+    :class:`~pandas.tseries.offsets.LastWeekOfMonth`, ``'LWOM'``, "the x-th day of the last week of each month"
+    :class:`~pandas.tseries.offsets.MonthEnd`, ``'M'``, "calendar month end"
+    :class:`~pandas.tseries.offsets.MonthBegin`, ``'MS'``, "calendar month begin"
+    :class:`~pandas.tseries.offsets.BMonthEnd` or :class:`~pandas.tseries.offsets.BusinessMonthEnd`, ``'BM'``, "business month end"
+    :class:`~pandas.tseries.offsets.BMonthBegin` or :class:`~pandas.tseries.offsets.BusinessMonthBegin`, ``'BMS'``, "business month begin"
+    :class:`~pandas.tseries.offsets.CBMonthEnd` or :class:`~pandas.tseries.offsets.CustomBusinessMonthEnd`, ``'CBM'``, "custom business month end"
+    :class:`~pandas.tseries.offsets.CBMonthBegin` or :class:`~pandas.tseries.offsets.CustomBusinessMonthBegin`, ``'CBMS'``, "custom business month begin"
+    :class:`~pandas.tseries.offsets.SemiMonthEnd`, ``'SM'``, "15th (or other day_of_month) and calendar month end"
+    :class:`~pandas.tseries.offsets.SemiMonthBegin`, ``'SMS'``, "15th (or other day_of_month) and calendar month begin"
+    :class:`~pandas.tseries.offsets.QuarterEnd`, ``'Q'``, "calendar quarter end"
+    :class:`~pandas.tseries.offsets.QuarterBegin`, ``'QS'``, "calendar quarter begin"
+    :class:`~pandas.tseries.offsets.BQuarterEnd`, ``'BQ``, "business quarter end"
+    :class:`~pandas.tseries.offsets.BQuarterBegin`, ``'BQS'``, "business quarter begin"
+    :class:`~pandas.tseries.offsets.FY5253Quarter`, ``'REQ'``, "retail (aka 52-53 week) quarter"
+    :class:`~pandas.tseries.offsets.YearEnd`, ``'A'``, "calendar year end"
+    :class:`~pandas.tseries.offsets.YearBegin`, ``'AS'`` or ``'BYS'``,"calendar year begin"
+    :class:`~pandas.tseries.offsets.BYearEnd`, ``'BA'``, "business year end"
+    :class:`~pandas.tseries.offsets.BYearBegin`, ``'BAS'``, "business year begin"
+    :class:`~pandas.tseries.offsets.FY5253`, ``'RE'``, "retail (aka 52-53 week) year"
+    :class:`~pandas.tseries.offsets.Easter`, None, "Easter holiday"
+    :class:`~pandas.tseries.offsets.BusinessHour`, ``'BH'``, "business hour"
+    :class:`~pandas.tseries.offsets.CustomBusinessHour`, ``'CBH'``, "custom business hour"
+    :class:`~pandas.tseries.offsets.Day`, ``'D'``, "one absolute day"
+    :class:`~pandas.tseries.offsets.Hour`, ``'H'``, "one hour"
+    :class:`~pandas.tseries.offsets.Minute`, ``'T'`` or ``'min'``,"one minute"
+    :class:`~pandas.tseries.offsets.Second`, ``'S'``, "one second"
+    :class:`~pandas.tseries.offsets.Milli`, ``'L'`` or ``'ms'``, "one millisecond"
+    :class:`~pandas.tseries.offsets.Micro`, ``'U'`` or ``'us'``, "one microsecond"
+    :class:`~pandas.tseries.offsets.Nano`, ``'N'``, "one nanosecond"
 
 ``DateOffsets`` additionally have :meth:`rollforward` and :meth:`rollback`
 methods for moving a date forward or backward respectively to a valid offset
@@ -1874,7 +1874,7 @@ has multiplied span.
 
 .. ipython:: python
 
-   pd.PeriodIndex(start='2014-01', freq='3M', periods=4)
+   pd.period_range(start='2014-01', freq='3M', periods=4)
 
 If ``start`` or ``end`` are ``Period`` objects, they will be used as anchor
 endpoints for a ``PeriodIndex`` with frequency matching that of the
@@ -1882,8 +1882,8 @@ endpoints for a ``PeriodIndex`` with frequency matching that of the
 
 .. ipython:: python
 
-   pd.PeriodIndex(start=pd.Period('2017Q1', freq='Q'),
-                  end=pd.Period('2017Q2', freq='Q'), freq='M')
+   pd.period_range(start=pd.Period('2017Q1', freq='Q'),
+                   end=pd.Period('2017Q2', freq='Q'), freq='M')
 
 Just like ``DatetimeIndex``, a ``PeriodIndex`` can also be used to index pandas
 objects:
@@ -2351,9 +2351,11 @@ A DST transition may also shift the local time ahead by 1 hour creating nonexist
 local times. The behavior of localizing a timeseries with nonexistent times
 can be controlled by the ``nonexistent`` argument. The following options are available:
 
-* ``raise``: Raises a ``pytz.NonExistentTimeError`` (the default behavior)
-* ``NaT``: Replaces nonexistent times with ``NaT``
-* ``shift``: Shifts nonexistent times forward to the closest real time
+* ``'raise'``: Raises a ``pytz.NonExistentTimeError`` (the default behavior)
+* ``'NaT'``: Replaces nonexistent times with ``NaT``
+* ``'shift_forward'``: Shifts nonexistent times forward to the closest real time
+* ``'shift_backward'``: Shifts nonexistent times backward to the closest real time
+* timedelta object: Shifts nonexistent times by the timedelta duration
 
 .. ipython:: python
 
@@ -2367,12 +2369,14 @@ Localization of nonexistent times will raise an error by default.
    In [2]: dti.tz_localize('Europe/Warsaw')
    NonExistentTimeError: 2015-03-29 02:30:00
 
-Transform nonexistent times to ``NaT`` or the closest real time forward in time.
+Transform nonexistent times to ``NaT`` or shift the times.
 
 .. ipython:: python
 
     dti
-    dti.tz_localize('Europe/Warsaw', nonexistent='shift')
+    dti.tz_localize('Europe/Warsaw', nonexistent='shift_forward')
+    dti.tz_localize('Europe/Warsaw', nonexistent='shift_backward')
+    dti.tz_localize('Europe/Warsaw', nonexistent=pd.Timedelta(1, unit='H'))
     dti.tz_localize('Europe/Warsaw', nonexistent='NaT')
 
 
@@ -2421,21 +2425,25 @@ a convert on an aware stamp.
 .. note::
 
    Using :meth:`Series.to_numpy` on a ``Series``, returns a NumPy array of the data.
-   These values are converted to UTC, as NumPy does not currently support timezones (even though it is *printing* in the local timezone!).
+   NumPy does not currently support timezones (even though it is *printing* in the local timezone!),
+   therefore an object array of Timestamps is returned for timezone aware data:
 
    .. ipython:: python
 
       s_naive.to_numpy()
       s_aware.to_numpy()
 
-   Further note that once converted to a NumPy array these would lose the tz tenor.
+   By converting to an object array of Timestamps, it preserves the timezone
+   information. For example, when converting back to a Series:
 
    .. ipython:: python
 
       pd.Series(s_aware.to_numpy())
 
-   However, these can be easily converted:
+   However, if you want an actual NumPy ``datetime64[ns]`` array (with the values
+   converted to UTC) instead of an array of objects, you can specify the
+   ``dtype`` argument:
 
    .. ipython:: python
 
-      pd.Series(s_aware.to_numpy()).dt.tz_localize('UTC').dt.tz_convert('US/Eastern')
+      s_aware.to_numpy(dtype='datetime64[ns]')

@@ -56,19 +56,19 @@ class SparseDtype(ExtensionDtype):
     ----------
     dtype : str, ExtensionDtype, numpy.dtype, type, default numpy.float64
         The dtype of the underlying array storing the non-fill value values.
-    fill_value : scalar, optional.
+    fill_value : scalar, optional
         The scalar value not stored in the SparseArray. By default, this
         depends on `dtype`.
 
-        ========== ==========
-        dtype      na_value
-        ========== ==========
-        float      ``np.nan``
-        int        ``0``
-        bool       ``False``
-        datetime64 ``pd.NaT``
+        =========== ==========
+        dtype       na_value
+        =========== ==========
+        float       ``np.nan``
+        int         ``0``
+        bool        ``False``
+        datetime64  ``pd.NaT``
         timedelta64 ``pd.NaT``
-        ========== ==========
+        =========== ==========
 
         The default value may be overridden by specifying a `fill_value`.
     """
@@ -889,12 +889,15 @@ class SparseArray(PandasObject, ExtensionArray, ExtensionOpsMixin):
 
         return self._simple_new(new_values, self._sparse_index, new_dtype)
 
-    def shift(self, periods=1):
+    def shift(self, periods=1, fill_value=None):
 
         if not len(self) or periods == 0:
             return self.copy()
 
-        subtype = np.result_type(np.nan, self.dtype.subtype)
+        if isna(fill_value):
+            fill_value = self.dtype.na_value
+
+        subtype = np.result_type(fill_value, self.dtype.subtype)
 
         if subtype != self.dtype.subtype:
             # just coerce up front
@@ -903,7 +906,7 @@ class SparseArray(PandasObject, ExtensionArray, ExtensionOpsMixin):
             arr = self
 
         empty = self._from_sequence(
-            [self.dtype.na_value] * min(abs(periods), len(self)),
+            [fill_value] * min(abs(periods), len(self)),
             dtype=arr.dtype
         )
 
@@ -1165,6 +1168,16 @@ class SparseArray(PandasObject, ExtensionArray, ExtensionOpsMixin):
             taken[fillable] = self.fill_value
 
         return taken
+
+    def searchsorted(self, v, side="left", sorter=None):
+        msg = "searchsorted requires high memory usage."
+        warnings.warn(msg, PerformanceWarning, stacklevel=2)
+        if not is_scalar(v):
+            v = np.asarray(v)
+        v = np.asarray(v)
+        return np.asarray(self, dtype=self.dtype.subtype).searchsorted(
+            v, side, sorter
+        )
 
     def copy(self, deep=False):
         if deep:

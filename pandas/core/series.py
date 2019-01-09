@@ -17,11 +17,12 @@ from pandas.util._validators import validate_bool_kwarg
 
 from pandas.core.dtypes.common import (
     _is_unorderable_exception, ensure_platform_int, is_bool,
-    is_categorical_dtype, is_datetime64tz_dtype, is_datetimelike, is_dict_like,
+    is_categorical_dtype, is_datetime64_dtype, is_datetimelike, is_dict_like,
     is_extension_array_dtype, is_extension_type, is_hashable, is_integer,
     is_iterator, is_list_like, is_scalar, is_string_like, is_timedelta64_dtype)
 from pandas.core.dtypes.generic import (
-    ABCDataFrame, ABCDatetimeIndex, ABCSeries, ABCSparseArray, ABCSparseSeries)
+    ABCDataFrame, ABCDatetimeArray, ABCDatetimeIndex, ABCSeries,
+    ABCSparseArray, ABCSparseSeries)
 from pandas.core.dtypes.missing import (
     isna, na_value_for_dtype, notna, remove_na_arraylike)
 
@@ -91,6 +92,7 @@ def _coerce_method(converter):
         raise TypeError("cannot convert the series to "
                         "{0}".format(str(converter)))
 
+    wrapper.__name__ = "__{name}__".format(name=converter.__name__)
     return wrapper
 
 # ----------------------------------------------------------------------
@@ -129,6 +131,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
     dtype : str, numpy.dtype, or ExtensionDtype, optional
         dtype for the output Series. If not specified, this will be
         inferred from `data`.
+        See the :ref:`user guide <basics.dtypes>` for more usages.
     copy : bool, default False
         Copy input data.
     """
@@ -436,7 +439,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         .. warning::
 
            We recommend using :attr:`Series.array` or
-           :Series:`Index.to_numpy`, depending on whether you need
+           :meth:`Series.to_numpy`, depending on whether you need
            a reference to the underlying data or a NumPy array.
 
         Returns
@@ -537,6 +540,9 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         """
         Return the *integer* indices of the elements that are non-zero.
 
+        .. deprecated:: 0.24.0
+           Please use .to_numpy().nonzero() as a replacement.
+
         This method is equivalent to calling `numpy.nonzero` on the
         series data. For compatibility with NumPy, the return value is
         the same (a tuple with an array of indices for each dimension),
@@ -566,6 +572,10 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         d    4
         dtype: int64
         """
+        msg = ("Series.nonzero() is deprecated "
+               "and will be removed in a future version."
+               "Use Series.to_numpy().nonzero() instead")
+        warnings.warn(msg, FutureWarning, stacklevel=2)
         return self._values.nonzero()
 
     def put(self, *args, **kwargs):
@@ -656,11 +666,66 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
     # ----------------------------------------------------------------------
     # NDArray Compat
 
-    def __array__(self, result=None):
+    def __array__(self, dtype=None):
         """
-        The array interface, return my values.
+        Return the values as a NumPy array.
+
+        Users should not call this directly. Rather, it is invoked by
+        :func:`numpy.array` and :func:`numpy.asarray`.
+
+        Parameters
+        ----------
+        dtype : str or numpy.dtype, optional
+            The dtype to use for the resulting NumPy array. By default,
+            the dtype is inferred from the data.
+
+        Returns
+        -------
+        numpy.ndarray
+            The values in the series converted to a :class:`numpy.ndarary`
+            with the specified `dtype`.
+
+        See Also
+        --------
+        pandas.array : Create a new array from data.
+        Series.array : Zero-copy view to the array backing the Series.
+        Series.to_numpy : Series method for similar behavior.
+
+        Examples
+        --------
+        >>> ser = pd.Series([1, 2, 3])
+        >>> np.asarray(ser)
+        array([1, 2, 3])
+
+        For timezone-aware data, the timezones may be retained with
+        ``dtype='object'``
+
+        >>> tzser = pd.Series(pd.date_range('2000', periods=2, tz="CET"))
+        >>> np.asarray(tzser, dtype="object")
+        array([Timestamp('2000-01-01 00:00:00+0100', tz='CET', freq='D'),
+               Timestamp('2000-01-02 00:00:00+0100', tz='CET', freq='D')],
+              dtype=object)
+
+        Or the values may be localized to UTC and the tzinfo discared with
+        ``dtype='datetime64[ns]'``
+
+        >>> np.asarray(tzser, dtype="datetime64[ns]")  # doctest: +ELLIPSIS
+        array(['1999-12-31T23:00:00.000000000', ...],
+              dtype='datetime64[ns]')
         """
-        return self.get_values()
+        if (dtype is None and isinstance(self.array, ABCDatetimeArray)
+                and getattr(self.dtype, 'tz', None)):
+            msg = (
+                "Converting timezone-aware DatetimeArray to timezone-naive "
+                "ndarray with 'datetime64[ns]' dtype. In the future, this "
+                "will return an ndarray with 'object' dtype where each "
+                "element is a 'pandas.Timestamp' with the correct 'tz'.\n\t"
+                "To accept the future behavior, pass 'dtype=object'.\n\t"
+                "To keep the old behavior, pass 'dtype=\"datetime64[ns]\"'."
+            )
+            warnings.warn(msg, FutureWarning, stacklevel=3)
+            dtype = 'M8[ns]'
+        return np.asarray(self.array, dtype)
 
     def __array_wrap__(self, result, context=None):
         """
@@ -870,7 +935,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         if isinstance(key, Index):
             key_type = key.inferred_type
         else:
-            key_type = lib.infer_dtype(key)
+            key_type = lib.infer_dtype(key, skipna=False)
 
         if key_type == 'integer':
             if self.index.is_integer() or self.index.is_floating():
@@ -1007,7 +1072,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
             if isinstance(key, Index):
                 key_type = key.inferred_type
             else:
-                key_type = lib.infer_dtype(key)
+                key_type = lib.infer_dtype(key, skipna=False)
 
             if key_type == 'integer':
                 if self.index.inferred_type == 'integer':
@@ -1036,7 +1101,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         self._data = self._data.setitem(indexer=key, value=value)
         self._maybe_update_cacher()
 
-    def repeat(self, repeats, *args, **kwargs):
+    def repeat(self, repeats, axis=None):
         """
         Repeat elements of a Series.
 
@@ -1049,12 +1114,9 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
             The number of repetitions for each element. This should be a
             non-negative integer. Repeating 0 times will return an empty
             Series.
-        *args
-            Additional arguments have no effect but might be accepted for
-            compatibility with numpy.
-        **kwargs
-            Additional keywords have no effect but might be accepted for
-            compatibility with numpy.
+        axis : None
+            Must be ``None``. Has no effect but is accepted for compatibility
+            with numpy.
 
         Returns
         -------
@@ -1091,7 +1153,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         2    c
         dtype: object
         """
-        nv.validate_repeat(args, kwargs)
+        nv.validate_repeat(tuple(), dict(axis=axis))
         new_index = self.index.repeat(repeats)
         new_values = self._values.repeat(repeats)
         return self._constructor(new_values,
@@ -1556,9 +1618,18 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
         Returns
         -------
-        ndarray or Categorical
-            The unique values returned as a NumPy array. In case of categorical
-            data type, returned as a Categorical.
+        ndarray or ExtensionArray
+            The unique values returned as a NumPy array. In case of an
+            extension-array backed Series, a new
+            :class:`~api.extensions.ExtensionArray` of that type with just
+            the unique values is returned. This includes
+
+            * Categorical
+            * Period
+            * Datetime with Timezone
+            * Interval
+            * Sparse
+            * IntegerNA
 
         See Also
         --------
@@ -1575,8 +1646,9 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
         >>> pd.Series([pd.Timestamp('2016-01-01', tz='US/Eastern')
         ...            for _ in range(3)]).unique()
-        array([Timestamp('2016-01-01 00:00:00-0500', tz='US/Eastern')],
-              dtype=object)
+        <DatetimeArray>
+        ['2016-01-01 00:00:00-05:00']
+        Length: 1, dtype: datetime64[ns, US/Eastern]
 
         An unordered Categorical will return categories in the order of
         appearance.
@@ -1593,14 +1665,6 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         Categories (3, object): [a < b < c]
         """
         result = super(Series, self).unique()
-
-        if is_datetime64tz_dtype(self.dtype):
-            # we are special casing datetime64tz_dtype
-            # to return an object array of tz-aware Timestamps
-
-            # TODO: it must return DatetimeArray with tz in pandas 2.0
-            result = result.astype(object).values
-
         return result
 
     def drop_duplicates(self, keep='first', inplace=False):
@@ -1983,15 +2047,23 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
         self._check_percentile(q)
 
-        result = self._data.quantile(qs=q, interpolation=interpolation)
+        # We dispatch to DataFrame so that core.internals only has to worry
+        #  about 2D cases.
+        df = self.to_frame()
+
+        result = df.quantile(q=q, interpolation=interpolation,
+                             numeric_only=False)
+        if result.ndim == 2:
+            result = result.iloc[:, 0]
 
         if is_list_like(q):
+            result.name = self.name
             return self._constructor(result,
                                      index=Float64Index(q),
                                      name=self.name)
         else:
             # scalar
-            return result
+            return result.iloc[0]
 
     def corr(self, other, method='pearson', min_periods=None):
         """
@@ -3539,6 +3611,9 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         # dispatch to ExtensionArray interface
         if isinstance(delegate, ExtensionArray):
             return delegate._reduce(name, skipna=skipna, **kwds)
+        elif is_datetime64_dtype(delegate):
+            # use DatetimeIndex implementation to handle skipna correctly
+            delegate = DatetimeIndex(delegate)
 
         # dispatch to numpy arrays
         elif isinstance(delegate, np.ndarray):
@@ -3764,8 +3839,9 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
                                            regex=regex, method=method)
 
     @Appender(generic._shared_docs['shift'] % _shared_doc_kwargs)
-    def shift(self, periods=1, freq=None, axis=0):
-        return super(Series, self).shift(periods=periods, freq=freq, axis=axis)
+    def shift(self, periods=1, freq=None, axis=0, fill_value=None):
+        return super(Series, self).shift(periods=periods, freq=freq, axis=axis,
+                                         fill_value=fill_value)
 
     def reindex_axis(self, labels, axis=0, **kwargs):
         """

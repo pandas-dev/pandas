@@ -19,6 +19,7 @@ from pandas.core.dtypes.missing import isna, notna
 
 from pandas.core import nanops
 from pandas.core.arrays import ExtensionArray, ExtensionOpsMixin
+from pandas.core.tools.numeric import to_numeric
 
 
 class _IntegerDtype(ExtensionDtype):
@@ -31,8 +32,14 @@ class _IntegerDtype(ExtensionDtype):
     The attributes name & type are set when these subclasses are created.
     """
     name = None
+    base = None
     type = None
     na_value = np.nan
+
+    def __repr__(self):
+        sign = 'U' if self.is_unsigned_integer else ''
+        return "{sign}Int{size}Dtype()".format(sign=sign,
+                                               size=8 * self.itemsize)
 
     @cache_readonly
     def is_signed_integer(self):
@@ -152,6 +159,7 @@ def coerce_to_array(values, dtype, mask=None, copy=False):
             # Avoid DeprecationWarning from NumPy about np.dtype("Int64")
             # https://github.com/numpy/numpy/pull/7476
             dtype = dtype.lower()
+
         if not issubclass(type(dtype), _IntegerDtype):
             try:
                 dtype = _dtypes[str(np.dtype(dtype))]
@@ -170,8 +178,8 @@ def coerce_to_array(values, dtype, mask=None, copy=False):
 
     values = np.array(values, copy=copy)
     if is_object_dtype(values):
-        inferred_type = lib.infer_dtype(values)
-        if inferred_type is 'mixed' and isna(values).all():
+        inferred_type = lib.infer_dtype(values, skipna=True)
+        if inferred_type == 'empty':
             values = np.empty(len(values))
             values.fill(np.nan)
         elif inferred_type not in ['floating', 'integer',
@@ -260,6 +268,11 @@ class IntegerArray(ExtensionArray, ExtensionOpsMixin):
     @classmethod
     def _from_sequence(cls, scalars, dtype=None, copy=False):
         return integer_array(scalars, dtype=dtype, copy=copy)
+
+    @classmethod
+    def _from_sequence_of_strings(cls, strings, dtype=None, copy=False):
+        scalars = to_numeric(strings, errors="raise")
+        return cls._from_sequence(scalars, dtype, copy)
 
     @classmethod
     def _from_factorized(cls, values, original):
@@ -649,7 +662,8 @@ for dtype in ['int8', 'int16', 'int32', 'int64',
     else:
         name = dtype.capitalize()
     classname = "{}Dtype".format(name)
-    attributes_dict = {'type': getattr(np, dtype),
+    numpy_dtype = getattr(np, dtype)
+    attributes_dict = {'type': numpy_dtype,
                        'name': name}
     dtype_type = register_extension_dtype(
         type(classname, (_IntegerDtype, ), attributes_dict)

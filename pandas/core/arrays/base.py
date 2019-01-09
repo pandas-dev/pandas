@@ -16,6 +16,7 @@ from pandas.util._decorators import Appender, Substitution
 
 from pandas.core.dtypes.common import is_list_like
 from pandas.core.dtypes.generic import ABCIndexClass, ABCSeries
+from pandas.core.dtypes.missing import isna
 
 from pandas.core import ops
 
@@ -67,6 +68,7 @@ class ExtensionArray(object):
     * unique
     * factorize / _values_for_factorize
     * argsort / _values_for_argsort
+    * searchsorted
 
     The remaining methods implemented on this class should be performant,
     as they only compose abstract methods. Still, a more efficient
@@ -75,6 +77,11 @@ class ExtensionArray(object):
     One can implement methods to handle array reductions.
 
     * _reduce
+
+    One can implement methods to handle parsing from strings that will be used
+    in methods such as ``pandas.io.parsers.read_csv``.
+
+    * _from_sequence_of_strings
 
     This class does not inherit from 'abc.ABCMeta' for performance reasons.
     Methods and properties required by the interface raise
@@ -123,6 +130,30 @@ class ExtensionArray(object):
         Returns
         -------
         ExtensionArray
+        """
+        raise AbstractMethodError(cls)
+
+    @classmethod
+    def _from_sequence_of_strings(cls, strings, dtype=None, copy=False):
+        """Construct a new ExtensionArray from a sequence of strings.
+
+        .. versionadded:: 0.24.0
+
+        Parameters
+        ----------
+        strings : Sequence
+            Each element will be an instance of the scalar type for this
+            array, ``cls.dtype.type``.
+        dtype : dtype, optional
+            Construct for this particular dtype. This should be a Dtype
+            compatible with the ExtensionArray.
+        copy : boolean, default False
+            If True, copy the underlying data.
+
+        Returns
+        -------
+        ExtensionArray
+
         """
         raise AbstractMethodError(cls)
 
@@ -449,8 +480,8 @@ class ExtensionArray(object):
         """
         return self[~self.isna()]
 
-    def shift(self, periods=1):
-        # type: (int) -> ExtensionArray
+    def shift(self, periods=1, fill_value=None):
+        # type: (int, object) -> ExtensionArray
         """
         Shift values by desired number.
 
@@ -464,6 +495,12 @@ class ExtensionArray(object):
         periods : int, default 1
             The number of periods to shift. Negative values are allowed
             for shifting backwards.
+
+        fill_value : object, optional
+            The scalar value to use for newly introduced missing values.
+            The default is ``self.dtype.na_value``
+
+            .. versionadded:: 0.24.0
 
         Returns
         -------
@@ -483,8 +520,11 @@ class ExtensionArray(object):
         if not len(self) or periods == 0:
             return self.copy()
 
+        if isna(fill_value):
+            fill_value = self.dtype.na_value
+
         empty = self._from_sequence(
-            [self.dtype.na_value] * min(abs(periods), len(self)),
+            [fill_value] * min(abs(periods), len(self)),
             dtype=self.dtype
         )
         if periods > 0:
@@ -507,6 +547,54 @@ class ExtensionArray(object):
 
         uniques = unique(self.astype(object))
         return self._from_sequence(uniques, dtype=self.dtype)
+
+    def searchsorted(self, value, side="left", sorter=None):
+        """
+        Find indices where elements should be inserted to maintain order.
+
+        .. versionadded:: 0.24.0
+
+        Find the indices into a sorted array `self` (a) such that, if the
+        corresponding elements in `v` were inserted before the indices, the
+        order of `self` would be preserved.
+
+        Assuming that `a` is sorted:
+
+        ======  ============================
+        `side`  returned index `i` satisfies
+        ======  ============================
+        left    ``self[i-1] < v <= self[i]``
+        right   ``self[i-1] <= v < self[i]``
+        ======  ============================
+
+        Parameters
+        ----------
+        value : array_like
+            Values to insert into `self`.
+        side : {'left', 'right'}, optional
+            If 'left', the index of the first suitable location found is given.
+            If 'right', return the last such index.  If there is no suitable
+            index, return either 0 or N (where N is the length of `self`).
+        sorter : 1-D array_like, optional
+            Optional array of integer indices that sort array a into ascending
+            order. They are typically the result of argsort.
+
+        Returns
+        -------
+        indices : array of ints
+            Array of insertion points with the same shape as `value`.
+
+        See Also
+        --------
+        numpy.searchsorted : Similar method from NumPy.
+        """
+        # Note: the base tests provided by pandas only test the basics.
+        # We do not test
+        # 1. Values outside the range of the `data_for_sorting` fixture
+        # 2. Values between the values in the `data_for_sorting` fixture
+        # 3. Missing values.
+        arr = self.astype(object)
+        return arr.searchsorted(value, side=side, sorter=sorter)
 
     def _values_for_factorize(self):
         # type: () -> Tuple[ndarray, Any]
@@ -595,12 +683,9 @@ class ExtensionArray(object):
             The number of repetitions for each element. This should be a
             non-negative integer. Repeating 0 times will return an empty
             %(klass)s.
-        *args
-            Additional arguments have no effect but might be accepted for
-            compatibility with numpy.
-        **kwargs
-            Additional keywords have no effect but might be accepted for
-            compatibility with numpy.
+        axis : None
+            Must be ``None``. Has no effect but is accepted for compatibility
+            with numpy.
 
         Returns
         -------
@@ -630,8 +715,8 @@ class ExtensionArray(object):
 
     @Substitution(klass='ExtensionArray')
     @Appender(_extension_array_shared_docs['repeat'])
-    def repeat(self, repeats, *args, **kwargs):
-        nv.validate_repeat(args, kwargs)
+    def repeat(self, repeats, axis=None):
+        nv.validate_repeat(tuple(), dict(axis=axis))
         ind = np.arange(len(self)).repeat(repeats)
         return self.take(ind)
 

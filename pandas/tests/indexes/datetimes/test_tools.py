@@ -24,7 +24,7 @@ import pandas as pd
 from pandas import (
     DataFrame, DatetimeIndex, Index, NaT, Series, Timestamp, compat,
     date_range, isna, to_datetime)
-from pandas.core.arrays import DatetimeArrayMixin as DatetimeArray
+from pandas.core.arrays import DatetimeArray
 from pandas.core.tools import datetimes as tools
 from pandas.util import testing as tm
 from pandas.util.testing import assert_series_equal
@@ -655,6 +655,16 @@ class TestToDatetime(object):
                                            tzinfo=pytz.FixedOffset(240))] * 2)
         tm.assert_index_equal(result, expected)
 
+    @pytest.mark.parametrize('ts, expected', [
+        (Timestamp('2018-01-01'),
+         Timestamp('2018-01-01', tz='UTC')),
+        (Timestamp('2018-01-01', tz='US/Pacific'),
+         Timestamp('2018-01-01 08:00', tz='UTC'))])
+    def test_timestamp_utc_true(self, ts, expected):
+        # GH 24415
+        result = to_datetime(ts, utc=True)
+        assert result == expected
+
 
 class TestToDatetimeUnit(object):
     @pytest.mark.parametrize('cache', [True, False])
@@ -1233,8 +1243,6 @@ class TestToDatetimeMisc(object):
 class TestGuessDatetimeFormat(object):
 
     @td.skip_if_not_us_locale
-    @pytest.mark.filterwarnings("ignore:_timelex:DeprecationWarning")
-    # https://github.com/pandas-dev/pandas/issues/21322
     def test_guess_datetime_format_for_array(self):
         expected_format = '%Y-%m-%d %H:%M:%S.%f'
         dt_string = datetime(2011, 12, 30, 0, 0, 0).strftime(expected_format)

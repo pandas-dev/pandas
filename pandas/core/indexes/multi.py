@@ -1468,9 +1468,9 @@ class MultiIndex(Index):
         # Guarantee resulting column order
         result = DataFrame(
             OrderedDict([
-                ((level if name is None else name),
+                ((level if lvlname is None else lvlname),
                  self._get_level_values(level))
-                for name, level in zip(idx_names, range(len(self.levels)))
+                for lvlname, level in zip(idx_names, range(len(self.levels)))
             ]),
             copy=False
         )
@@ -1858,8 +1858,8 @@ class MultiIndex(Index):
         return self.values.argsort(*args, **kwargs)
 
     @Appender(_index_shared_docs['repeat'] % _index_doc_kwargs)
-    def repeat(self, repeats, *args, **kwargs):
-        nv.validate_repeat(args, kwargs)
+    def repeat(self, repeats, axis=None):
+        nv.validate_repeat(tuple(), dict(axis=axis))
         return MultiIndex(levels=self.levels,
                           codes=[level_codes.view(np.ndarray).repeat(repeats)
                                  for level_codes in self.codes],
@@ -2318,7 +2318,8 @@ class MultiIndex(Index):
             section = labs[start:end]
 
             if lab not in lev:
-                if not lev.is_type_compatible(lib.infer_dtype([lab])):
+                if not lev.is_type_compatible(lib.infer_dtype([lab],
+                                                              skipna=False)):
                     raise TypeError('Level type mismatch: %s' % lab)
 
                 # short circuit

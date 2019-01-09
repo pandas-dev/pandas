@@ -1,12 +1,14 @@
 # coding: utf-8
 
-import pytest
-
 import struct
 
+import pytest
+
+from pandas.compat import OrderedDict, u
+
 from pandas import compat
-from pandas.compat import u, OrderedDict
-from pandas.io.msgpack import packb, unpackb, Unpacker, Packer
+
+from pandas.io.msgpack import Packer, Unpacker, packb, unpackb
 
 
 class TestPack(object):
@@ -65,12 +67,17 @@ class TestPack(object):
         assert re == "abcdef"
 
     def testStrictUnicodeUnpack(self):
-        pytest.raises(UnicodeDecodeError, unpackb, packb(b'abc\xeddef'),
-                      encoding='utf-8', use_list=1)
+        msg = (r"'utf-*8' codec can't decode byte 0xed in position 3:"
+               " invalid continuation byte")
+        with pytest.raises(UnicodeDecodeError, match=msg):
+            unpackb(packb(b'abc\xeddef'), encoding='utf-8', use_list=1)
 
     def testStrictUnicodePack(self):
-        pytest.raises(UnicodeEncodeError, packb, compat.u("abc\xeddef"),
-                      encoding='ascii', unicode_errors='strict')
+        msg = (r"'ascii' codec can't encode character u*'\\xed' in position 3:"
+               r" ordinal not in range\(128\)")
+        with pytest.raises(UnicodeEncodeError, match=msg):
+            packb(compat.u("abc\xeddef"), encoding='ascii',
+                  unicode_errors='strict')
 
     def testIgnoreErrorsPack(self):
         re = unpackb(
@@ -80,7 +87,9 @@ class TestPack(object):
         assert re == compat.u("abcdef")
 
     def testNoEncoding(self):
-        pytest.raises(TypeError, packb, compat.u("abc"), encoding=None)
+        msg = "Can't encode unicode string: no encoding is specified"
+        with pytest.raises(TypeError, match=msg):
+            packb(compat.u("abc"), encoding=None)
 
     def testDecodeBinary(self):
         re = unpackb(packb("abc"), encoding=None, use_list=1)

@@ -20,7 +20,7 @@ from pandas.core.dtypes.common import (
     is_datetime64tz_dtype, is_datetimelike, is_dtype_equal,
     is_extension_array_dtype, is_float_dtype, is_int64_dtype, is_integer,
     is_integer_dtype, is_list_like, is_number, is_numeric_dtype,
-    needs_i8_conversion)
+    is_object_dtype, needs_i8_conversion)
 from pandas.core.dtypes.missing import isnull, na_value_for_dtype
 
 from pandas import Categorical, DataFrame, Index, MultiIndex, Series, Timedelta
@@ -901,6 +901,8 @@ class _MergeOperation(object):
 
             lk_is_cat = is_categorical_dtype(lk)
             rk_is_cat = is_categorical_dtype(rk)
+            lk_is_object = is_object_dtype(lk)
+            rk_is_object = is_object_dtype(rk)
 
             # if either left or right is a categorical
             # then the must match exactly in categories & ordered
@@ -925,7 +927,7 @@ class _MergeOperation(object):
             # the same, then proceed
             if is_numeric_dtype(lk) and is_numeric_dtype(rk):
                 if lk.dtype.kind == rk.dtype.kind:
-                    pass
+                    continue
 
                 # check whether ints and floats
                 elif is_integer_dtype(rk) and is_float_dtype(lk):
@@ -934,6 +936,7 @@ class _MergeOperation(object):
                                       'columns where the float values '
                                       'are not equal to their int '
                                       'representation', UserWarning)
+                    continue
 
                 elif is_float_dtype(rk) and is_integer_dtype(lk):
                     if not (rk == rk.astype(lk.dtype))[~np.isnan(rk)].all():
@@ -941,22 +944,42 @@ class _MergeOperation(object):
                                       'columns where the float values '
                                       'are not equal to their int '
                                       'representation', UserWarning)
+                    continue
 
                 # let's infer and see if we are ok
-                elif lib.infer_dtype(lk) == lib.infer_dtype(rk):
-                    pass
+                elif (lib.infer_dtype(lk, skipna=False)
+                      == lib.infer_dtype(rk, skipna=False)):
+                    continue
 
             # Check if we are trying to merge on obviously
             # incompatible dtypes GH 9780, GH 15800
 
-            # boolean values are considered as numeric, but are still allowed
-            # to be merged on object boolean values
-            elif ((is_numeric_dtype(lk) and not is_bool_dtype(lk))
-                    and not is_numeric_dtype(rk)):
-                raise ValueError(msg)
-            elif (not is_numeric_dtype(lk)
-                    and (is_numeric_dtype(rk) and not is_bool_dtype(rk))):
-                raise ValueError(msg)
+            # bool values are coerced to object
+            elif ((lk_is_object and is_bool_dtype(rk)) or
+                  (is_bool_dtype(lk) and rk_is_object)):
+                pass
+
+            # object values are allowed to be merged
+            elif ((lk_is_object and is_numeric_dtype(rk)) or
+                  (is_numeric_dtype(lk) and rk_is_object)):
+                inferred_left = lib.infer_dtype(lk, skipna=False)
+                inferred_right = lib.infer_dtype(rk, skipna=False)
+                bool_types = ['integer', 'mixed-integer', 'boolean', 'empty']
+                string_types = ['string', 'unicode', 'mixed', 'bytes', 'empty']
+
+                # inferred bool
+                if (inferred_left in bool_types and
+                        inferred_right in bool_types):
+                    pass
+
+                # unless we are merging non-string-like with string-like
+                elif ((inferred_left in string_types and
+                       inferred_right not in string_types) or
+                      (inferred_right in string_types and
+                       inferred_left not in string_types)):
+                    raise ValueError(msg)
+
+            # datetimelikes must match exactly
             elif is_datetimelike(lk) and not is_datetimelike(rk):
                 raise ValueError(msg)
             elif not is_datetimelike(lk) and is_datetimelike(rk):
@@ -966,6 +989,9 @@ class _MergeOperation(object):
             elif not is_datetime64tz_dtype(lk) and is_datetime64tz_dtype(rk):
                 raise ValueError(msg)
 
+            elif lk_is_object and rk_is_object:
+                continue
+
             # Houston, we have a problem!
             # let's coerce to object if the dtypes aren't
             # categorical, otherwise coerce to the category
@@ -973,15 +999,14 @@ class _MergeOperation(object):
             # then we would lose type information on some
             # columns, and end up trying to merge
             # incompatible dtypes. See GH 16900.
-            else:
-                if name in self.left.columns:
-                    typ = lk.categories.dtype if lk_is_cat else object
-                    self.left = self.left.assign(
-                        **{name: self.left[name].astype(typ)})
-                if name in self.right.columns:
-                    typ = rk.categories.dtype if rk_is_cat else object
-                    self.right = self.right.assign(
-                        **{name: self.right[name].astype(typ)})
+            if name in self.left.columns:
+                typ = lk.categories.dtype if lk_is_cat else object
+                self.left = self.left.assign(
+                    **{name: self.left[name].astype(typ)})
+            if name in self.right.columns:
+                typ = rk.categories.dtype if rk_is_cat else object
+                self.right = self.right.assign(
+                    **{name: self.right[name].astype(typ)})
 
     def _validate_specification(self):
         # Hm, any way to make this logic less complicated??

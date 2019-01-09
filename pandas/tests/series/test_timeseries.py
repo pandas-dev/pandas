@@ -129,6 +129,38 @@ class TestTimeSeries(TestData):
         idx = DatetimeIndex(['2000-01-01', '2000-01-02', '2000-01-04'])
         pytest.raises(NullFrequencyError, idx.shift, 1)
 
+    def test_shift_fill_value(self):
+        # GH #24128
+        ts = Series([1.0, 2.0, 3.0, 4.0, 5.0],
+                    index=date_range('1/1/2000', periods=5, freq='H'))
+
+        exp = Series([0.0, 1.0, 2.0, 3.0, 4.0],
+                     index=date_range('1/1/2000', periods=5, freq='H'))
+        # check that fill value works
+        result = ts.shift(1, fill_value=0.0)
+        tm.assert_series_equal(result, exp)
+
+        exp = Series([0.0, 0.0, 1.0, 2.0, 3.0],
+                     index=date_range('1/1/2000', periods=5, freq='H'))
+        result = ts.shift(2, fill_value=0.0)
+        tm.assert_series_equal(result, exp)
+
+        ts = pd.Series([1, 2, 3])
+        res = ts.shift(2, fill_value=0)
+        assert res.dtype == ts.dtype
+
+    def test_categorical_shift_fill_value(self):
+        ts = pd.Series(['a', 'b', 'c', 'd'], dtype="category")
+        res = ts.shift(1, fill_value='a')
+        expected = pd.Series(pd.Categorical(['a', 'a', 'b', 'c'],
+                                            categories=['a', 'b', 'c', 'd'],
+                                            ordered=False))
+        tm.assert_equal(res, expected)
+
+        # check for incorrect fill_value
+        with pytest.raises(ValueError):
+            ts.shift(1, fill_value='f')
+
     def test_shift_dst(self):
         # GH 13926
         dates = date_range('2016-11-06', freq='H', periods=10, tz='US/Eastern')
@@ -1004,3 +1036,44 @@ class TestTimeSeries(TestData):
                               946879200000000000,
                               946965600000000000])
         tm.assert_series_equal(result, expected)
+
+    def test_asarray_tz_naive(self):
+        # This shouldn't produce a warning.
+        ser = pd.Series(pd.date_range('2000', periods=2))
+        expected = np.array(['2000-01-01', '2000-01-02'], dtype='M8[ns]')
+        with tm.assert_produces_warning(None):
+            result = np.asarray(ser)
+
+        tm.assert_numpy_array_equal(result, expected)
+
+        # optionally, object
+        with tm.assert_produces_warning(None):
+            result = np.asarray(ser, dtype=object)
+
+        expected = np.array([pd.Timestamp('2000-01-01'),
+                             pd.Timestamp('2000-01-02')])
+        tm.assert_numpy_array_equal(result, expected)
+
+    def test_asarray_tz_aware(self):
+        tz = 'US/Central'
+        ser = pd.Series(pd.date_range('2000', periods=2, tz=tz))
+        expected = np.array(['2000-01-01T06', '2000-01-02T06'], dtype='M8[ns]')
+        # We warn by default and return an ndarray[M8[ns]]
+        with tm.assert_produces_warning(FutureWarning):
+            result = np.asarray(ser)
+
+        tm.assert_numpy_array_equal(result, expected)
+
+        # Old behavior with no warning
+        with tm.assert_produces_warning(None):
+            result = np.asarray(ser, dtype="M8[ns]")
+
+        tm.assert_numpy_array_equal(result, expected)
+
+        # Future behavior with no warning
+        expected = np.array([pd.Timestamp("2000-01-01", tz=tz),
+                             pd.Timestamp("2000-01-02", tz=tz)])
+        with tm.assert_produces_warning(None):
+            result = np.asarray(ser, dtype=object)
+
+        tm.assert_numpy_array_equal(result, expected)

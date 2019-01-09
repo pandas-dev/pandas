@@ -22,7 +22,7 @@ from pandas.core.dtypes.generic import ABCSeries
 import pandas.core.common as com
 from pandas.core.index import Index
 from pandas.core.indexes.datetimes import date_range
-from pandas.core.indexes.period import Period, PeriodIndex
+from pandas.core.indexes.period import Period, PeriodIndex, period_range
 import pandas.core.tools.datetimes as tools
 
 import pandas.tseries.frequencies as frequencies
@@ -246,7 +246,7 @@ class PeriodConverter(dates.DateConverter):
             return values.asfreq(axis.freq)._ndarray_values
         elif isinstance(values, Index):
             return values.map(lambda x: get_datevalue(x, axis.freq))
-        elif lib.infer_dtype(values) == 'period':
+        elif lib.infer_dtype(values, skipna=False) == 'period':
             # https://github.com/pandas-dev/pandas/issues/24304
             # convert ndarray[period] -> PeriodIndex
             return PeriodIndex(values, freq=axis.freq)._ndarray_values
@@ -630,7 +630,7 @@ def _daily_finder(vmin, vmax, freq):
     (vmin, vmax) = (Period(ordinal=int(vmin), freq=freq),
                     Period(ordinal=int(vmax), freq=freq))
     span = vmax.ordinal - vmin.ordinal + 1
-    dates_ = PeriodIndex(start=vmin, end=vmax, freq=freq)
+    dates_ = period_range(start=vmin, end=vmax, freq=freq)
     # Initialize the output
     info = np.zeros(span,
                     dtype=[('val', np.int64), ('maj', bool),

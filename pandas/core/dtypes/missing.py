@@ -10,11 +10,12 @@ from .common import (
     _NS_DTYPE, _TD_DTYPE, ensure_object, is_bool_dtype, is_complex_dtype,
     is_datetime64_dtype, is_datetime64tz_dtype, is_datetimelike,
     is_datetimelike_v_numeric, is_dtype_equal, is_extension_array_dtype,
-    is_float_dtype, is_integer, is_integer_dtype, is_object_dtype,
-    is_period_dtype, is_scalar, is_string_dtype, is_string_like_dtype,
-    is_timedelta64_dtype, needs_i8_conversion, pandas_dtype)
+    is_float_dtype, is_integer_dtype, is_object_dtype, is_period_dtype,
+    is_scalar, is_string_dtype, is_string_like_dtype, is_timedelta64_dtype,
+    needs_i8_conversion, pandas_dtype)
 from .generic import (
-    ABCExtensionArray, ABCGeneric, ABCIndexClass, ABCMultiIndex, ABCSeries)
+    ABCDatetimeArray, ABCExtensionArray, ABCGeneric, ABCIndexClass,
+    ABCMultiIndex, ABCSeries, ABCTimedeltaArray)
 from .inference import is_list_like
 
 isposinf_scalar = libmissing.isposinf_scalar
@@ -108,7 +109,8 @@ def _isna_new(obj):
     elif isinstance(obj, ABCMultiIndex):
         raise NotImplementedError("isna is not defined for MultiIndex")
     elif isinstance(obj, (ABCSeries, np.ndarray, ABCIndexClass,
-                          ABCExtensionArray)):
+                          ABCExtensionArray,
+                          ABCDatetimeArray, ABCTimedeltaArray)):
         return _isna_ndarraylike(obj)
     elif isinstance(obj, ABCGeneric):
         return obj._constructor(obj._data.isna(func=isna))
@@ -196,6 +198,8 @@ def _isna_ndarraylike(obj):
         else:
             values = obj
         result = values.isna()
+    elif isinstance(obj, ABCDatetimeArray):
+        return obj.isna()
     elif is_string_dtype(dtype):
         # Working around NumPy ticket 1542
         shape = values.shape
@@ -335,22 +339,6 @@ def notna(obj):
 notnull = notna
 
 
-def is_null_datelike_scalar(other):
-    """ test whether the object is a null datelike, e.g. Nat
-    but guard against passing a non-scalar """
-    if other is NaT or other is None:
-        return True
-    elif is_scalar(other):
-
-        # a timedelta
-        if hasattr(other, 'dtype'):
-            return other.view('i8') == iNaT
-        elif is_integer(other) and other == iNaT:
-            return True
-        return isna(other)
-    return False
-
-
 def _isna_compat(arr, fill_value=np.nan):
     """
     Parameters
@@ -470,7 +458,7 @@ def _infer_fill_value(val):
     if is_datetimelike(val):
         return np.array('NaT', dtype=val.dtype)
     elif is_object_dtype(val.dtype):
-        dtype = lib.infer_dtype(ensure_object(val))
+        dtype = lib.infer_dtype(ensure_object(val), skipna=False)
         if dtype in ['datetime', 'datetime64']:
             return np.array('NaT', dtype=_NS_DTYPE)
         elif dtype in ['timedelta', 'timedelta64']:

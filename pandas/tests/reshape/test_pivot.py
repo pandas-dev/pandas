@@ -1,20 +1,20 @@
 # -*- coding: utf-8 -*-
 
-from datetime import datetime, date, timedelta
-
-import pytest
-
+from collections import OrderedDict
+from datetime import date, datetime, timedelta
 
 import numpy as np
+import pytest
 
-from collections import OrderedDict
+from pandas.compat import product, range
+
 import pandas as pd
-from pandas import (DataFrame, Series, Index, MultiIndex,
-                    Grouper, date_range, concat, Categorical)
-from pandas.core.reshape.pivot import pivot_table, crosstab
-from pandas.compat import range, product
-import pandas.util.testing as tm
+from pandas import (
+    Categorical, DataFrame, Grouper, Index, MultiIndex, Series, concat,
+    date_range)
 from pandas.api.types import CategoricalDtype as CDT
+from pandas.core.reshape.pivot import crosstab, pivot_table
+import pandas.util.testing as tm
 
 
 @pytest.fixture(params=[True, False])
@@ -1271,6 +1271,17 @@ class TestPivotTable(object):
         expected = pivot_table(self.data, index='A', columns='B',
                                aggfunc=f_numpy)
         tm.assert_frame_equal(result, expected)
+
+    @pytest.mark.slow
+    def test_pivot_number_of_levels_larger_than_int32(self):
+        # GH 20601
+        df = DataFrame({'ind1': np.arange(2 ** 16),
+                        'ind2': np.arange(2 ** 16),
+                        'count': 0})
+
+        with pytest.raises(ValueError, match='int32 overflow'):
+            df.pivot_table(index='ind1', columns='ind2',
+                           values='count', aggfunc='count')
 
 
 class TestCrosstab(object):

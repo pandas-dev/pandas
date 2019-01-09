@@ -1,22 +1,23 @@
 # -*- coding: utf-8 -*-
 # pylint: disable-msg=W0612,E1101,W0141
-from warnings import catch_warnings, simplefilter
 import datetime
 import itertools
+from warnings import catch_warnings, simplefilter
+
+import numpy as np
+from numpy.random import randn
 import pytest
 import pytz
 
-from numpy.random import randn
-import numpy as np
-
-from pandas.core.index import Index, MultiIndex
-from pandas import (Panel, DataFrame, Series, isna, Timestamp)
+from pandas.compat import (
+    StringIO, lrange, lzip, product as cart_product, range, u, zip)
 
 from pandas.core.dtypes.common import is_float_dtype, is_integer_dtype
-import pandas.util.testing as tm
-from pandas.compat import (range, lrange, StringIO, lzip, u, product as
-                           cart_product, zip)
+
 import pandas as pd
+from pandas import DataFrame, Panel, Series, Timestamp, isna
+from pandas.core.index import Index, MultiIndex
+import pandas.util.testing as tm
 
 AGG_FUNCTIONS = ['sum', 'prod', 'min', 'max', 'median', 'mean', 'skew', 'mad',
                  'std', 'var', 'sem']
@@ -719,6 +720,14 @@ Thur,Lunch,Yes,51.51,17"""
 
         recons = result.stack()
         tm.assert_frame_equal(recons, df)
+
+    @pytest.mark.slow
+    def test_unstack_number_of_levels_larger_than_int32(self):
+        # GH 20601
+        df = DataFrame(np.random.randn(2 ** 16, 2),
+                       index=[np.arange(2 ** 16), np.arange(2 ** 16)])
+        with pytest.raises(ValueError, match='int32 overflow'):
+            df.unstack()
 
     def test_stack_order_with_unsorted_levels(self):
         # GH 16323

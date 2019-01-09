@@ -17,13 +17,13 @@ from numpy cimport (
 cnp.import_array()
 
 
-cimport util
+cimport pandas._libs.util as util
 util.import_array()
 
-from hashtable cimport Int64Vector, Int64VectorData
+from pandas._libs.hashtable cimport Int64Vector, Int64VectorData
 
-from tslibs import Timestamp
-from tslibs.timezones cimport tz_compare
+from pandas._libs.tslibs import Timestamp
+from pandas._libs.tslibs.timezones cimport tz_compare
 
 
 _VALID_CLOSED = frozenset(['left', 'right', 'both', 'neither'])
@@ -389,8 +389,8 @@ cdef class Interval(IntervalMixin):
 
         See Also
         --------
-        IntervalArray.overlaps : The corresponding method for IntervalArray
-        IntervalIndex.overlaps : The corresponding method for IntervalIndex
+        IntervalArray.overlaps : The corresponding method for IntervalArray.
+        IntervalIndex.overlaps : The corresponding method for IntervalIndex.
 
         Examples
         --------

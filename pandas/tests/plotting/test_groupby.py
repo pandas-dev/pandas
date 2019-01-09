@@ -3,13 +3,13 @@
 """ Test cases for GroupBy.plot """
 
 
-from pandas import Series, DataFrame
-import pandas.util.testing as tm
-import pandas.util._test_decorators as td
-
 import numpy as np
 
+import pandas.util._test_decorators as td
+
+from pandas import DataFrame, Series
 from pandas.tests.plotting.common import TestPlotBase
+import pandas.util.testing as tm
 
 
 @td.skip_if_no_mpl
