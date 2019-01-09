@@ -3,12 +3,11 @@ from datetime import timedelta
 import numpy as np
 import pytest
 
-import pandas.util.testing as tm
 import pandas as pd
 from pandas import (
     Float64Index, Index, Int64Index, NaT, Timedelta, TimedeltaIndex,
-    timedelta_range
-)
+    timedelta_range)
+import pandas.util.testing as tm
 
 
 class TestTimedeltaIndex(object):
@@ -84,20 +83,19 @@ class TestTimedeltaIndex(object):
     def test_astype_raises(self, dtype):
         # GH 13149, GH 13209
         idx = TimedeltaIndex([1e14, 'NaT', NaT, np.NaN])
-        msg = 'Cannot cast TimedeltaArrayMixin to dtype'
+        msg = 'Cannot cast TimedeltaArray to dtype'
         with pytest.raises(TypeError, match=msg):
             idx.astype(dtype)
 
-    @pytest.mark.parametrize('tz', [None, 'US/Central'])
-    def test_astype_category(self, tz):
-        obj = pd.date_range("2000", periods=2, tz=tz)
+    def test_astype_category(self):
+        obj = pd.timedelta_range("1H", periods=2, freq='H')
+
         result = obj.astype('category')
-        expected = pd.CategoricalIndex([pd.Timestamp('2000-01-01', tz=tz),
-                                        pd.Timestamp('2000-01-02', tz=tz)])
+        expected = pd.CategoricalIndex([pd.Timedelta('1H'),
+                                        pd.Timedelta('2H')])
         tm.assert_index_equal(result, expected)
 
-        # TODO: Use \._data following composition changeover
-        result = obj._eadata.astype('category')
+        result = obj._data.astype('category')
         expected = expected.values
         tm.assert_categorical_equal(result, expected)
 

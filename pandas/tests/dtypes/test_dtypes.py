@@ -1,24 +1,20 @@
 # -*- coding: utf-8 -*-
 import re
-import pytest
 
 import numpy as np
+import pytest
+
+from pandas.core.dtypes.common import (
+    is_bool_dtype, is_categorical, is_categorical_dtype,
+    is_datetime64_any_dtype, is_datetime64_dtype, is_datetime64_ns_dtype,
+    is_datetime64tz_dtype, is_datetimetz, is_dtype_equal, is_interval_dtype,
+    is_period, is_period_dtype, is_string_dtype)
+from pandas.core.dtypes.dtypes import (
+    CategoricalDtype, DatetimeTZDtype, IntervalDtype, PeriodDtype, registry)
+
 import pandas as pd
 from pandas import (
-    Series, Categorical, CategoricalIndex, IntervalIndex, date_range)
-
-from pandas.core.dtypes.dtypes import (
-    DatetimeTZDtype, PeriodDtype,
-    IntervalDtype, CategoricalDtype, registry, _pandas_registry)
-from pandas.core.dtypes.common import (
-    is_categorical_dtype, is_categorical,
-    is_datetime64tz_dtype, is_datetimetz,
-    is_period_dtype, is_period,
-    is_dtype_equal, is_datetime64_ns_dtype,
-    is_datetime64_dtype, is_interval_dtype,
-    is_datetime64_any_dtype, is_string_dtype,
-    is_bool_dtype,
-)
+    Categorical, CategoricalIndex, IntervalIndex, Series, date_range)
 from pandas.core.sparse.api import SparseDtype
 import pandas.util.testing as tm
 
@@ -94,9 +90,39 @@ class TestCategoricalDtype(Base):
             TypeError, lambda: CategoricalDtype.construct_from_string('foo'))
 
     def test_constructor_invalid(self):
-        msg = "CategoricalIndex.* must be called"
+        msg = "Parameter 'categories' must be list-like"
         with pytest.raises(TypeError, match=msg):
             CategoricalDtype("category")
+
+    dtype1 = CategoricalDtype(['a', 'b'], ordered=True)
+    dtype2 = CategoricalDtype(['x', 'y'], ordered=False)
+    c = Categorical([0, 1], dtype=dtype1, fastpath=True)
+
+    @pytest.mark.parametrize('values, categories, ordered, dtype, expected',
+                             [
+                                 [None, None, None, None,
+                                  CategoricalDtype()],
+                                 [None, ['a', 'b'], True, None, dtype1],
+                                 [c, None, None, dtype2, dtype2],
+                                 [c, ['x', 'y'], False, None, dtype2],
+                             ])
+    def test_from_values_or_dtype(
+            self, values, categories, ordered, dtype, expected):
+        result = CategoricalDtype._from_values_or_dtype(values, categories,
+                                                        ordered, dtype)
+        assert result == expected
+
+    @pytest.mark.parametrize('values, categories, ordered, dtype', [
+        [None, ['a', 'b'], True, dtype2],
+        [None, ['a', 'b'], None, dtype2],
+        [None, None, True, dtype2],
+    ])
+    def test_from_values_or_dtype_raises(self, values, categories,
+                                         ordered, dtype):
+        msg = "Cannot specify `categories` or `ordered` together with `dtype`."
+        with pytest.raises(ValueError, match=msg):
+            CategoricalDtype._from_values_or_dtype(values, categories,
+                                                   ordered, dtype)
 
     def test_is_dtype(self):
         assert CategoricalDtype.is_dtype(self.dtype)
@@ -710,7 +736,7 @@ class TestCategoricalDtypeParametrized(object):
         with pytest.raises(TypeError, match='ordered'):
             CategoricalDtype(['a', 'b'], ordered='foo')
 
-        with pytest.raises(TypeError, match='collection'):
+        with pytest.raises(TypeError, match="'categories' must be list-like"):
             CategoricalDtype('category')
 
     def test_mixed(self):
@@ -798,18 +824,11 @@ class TestCategoricalDtypeParametrized(object):
 @pytest.mark.parametrize('dtype', [
     CategoricalDtype,
     IntervalDtype,
+    DatetimeTZDtype,
     PeriodDtype,
 ])
 def test_registry(dtype):
     assert dtype in registry.dtypes
-
-
-@pytest.mark.parametrize('dtype', [
-    DatetimeTZDtype,
-])
-def test_pandas_registry(dtype):
-    assert dtype not in registry.dtypes
-    assert dtype in _pandas_registry.dtypes
 
 
 @pytest.mark.parametrize('dtype, expected', [
@@ -819,16 +838,10 @@ def test_pandas_registry(dtype):
     ('interval[datetime64[ns]]', IntervalDtype('datetime64[ns]')),
     ('period[D]', PeriodDtype('D')),
     ('category', CategoricalDtype()),
+    ('datetime64[ns, US/Eastern]', DatetimeTZDtype('ns', 'US/Eastern')),
 ])
 def test_registry_find(dtype, expected):
     assert registry.find(dtype) == expected
-
-
-@pytest.mark.parametrize('dtype, expected', [
-    ('datetime64[ns, US/Eastern]', DatetimeTZDtype('ns', 'US/Eastern')),
-])
-def test_pandas_registry_find(dtype, expected):
-    assert _pandas_registry.find(dtype) == expected
 
 
 @pytest.mark.parametrize('dtype, expected', [

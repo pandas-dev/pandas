@@ -404,7 +404,10 @@ class Resampler(_GroupBy):
 
         if isinstance(result, ABCSeries) and result.empty:
             obj = self.obj
-            result.index = obj.index._shallow_copy(freq=to_offset(self.freq))
+            if isinstance(obj.index, PeriodIndex):
+                result.index = obj.index.asfreq(self.freq)
+            else:
+                result.index = obj.index._shallow_copy(freq=self.freq)
             result.name = getattr(obj, 'name', None)
 
         return result
@@ -1407,7 +1410,7 @@ class TimeGrouper(Grouper):
                                      tz=ax.tz,
                                      name=ax.name,
                                      ambiguous='infer',
-                                     nonexistent='shift')
+                                     nonexistent='shift_forward')
 
         ax_values = ax.asi8
         binner, bin_edges = self._adjust_bin_edges(binner, ax_values)

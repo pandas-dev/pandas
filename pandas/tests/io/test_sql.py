@@ -18,28 +18,29 @@ The SQL tests are broken down in different classes:
 """
 
 from __future__ import print_function
-import pytest
-import sqlite3
+
 import csv
-
+from datetime import date, datetime, time
+import sqlite3
 import warnings
-import numpy as np
-import pandas as pd
 
-from datetime import datetime, date, time
+import numpy as np
+import pytest
+
+import pandas.compat as compat
+from pandas.compat import PY36, lrange, range, string_types
 
 from pandas.core.dtypes.common import (
-    is_object_dtype, is_datetime64_dtype,
-    is_datetime64tz_dtype)
-from pandas import DataFrame, Series, Index, MultiIndex, isna, concat
-from pandas import date_range, to_datetime, to_timedelta, Timestamp
-import pandas.compat as compat
-from pandas.compat import range, lrange, string_types, PY36
+    is_datetime64_dtype, is_datetime64tz_dtype)
 
-import pandas.io.sql as sql
-from pandas.io.sql import read_sql_table, read_sql_query
+import pandas as pd
+from pandas import (
+    DataFrame, Index, MultiIndex, Series, Timestamp, concat, date_range, isna,
+    to_datetime, to_timedelta)
 import pandas.util.testing as tm
 
+import pandas.io.sql as sql
+from pandas.io.sql import read_sql_query, read_sql_table
 
 try:
     import sqlalchemy
@@ -1356,9 +1357,7 @@ class _TestSQLAlchemy(SQLAlchemyMixIn, PandasSQLTest):
         # even with the same versions of psycopg2 & sqlalchemy, possibly a
         # Postgrsql server version difference
         col = df.DateColWithTz
-        assert (is_object_dtype(col.dtype) or
-                is_datetime64_dtype(col.dtype) or
-                is_datetime64tz_dtype(col.dtype))
+        assert is_datetime64tz_dtype(col.dtype)
 
         df = pd.read_sql_query("select * from types_test_data",
                                self.conn, parse_dates=['DateColWithTz'])
@@ -2310,7 +2309,6 @@ class TestXSQLite(SQLiteMixIn):
         cur = self.conn.cursor()
         cur.execute(create_sql)
 
-    @tm.capture_stdout
     def test_execute_fail(self):
         create_sql = """
         CREATE TABLE test
@@ -2567,7 +2565,6 @@ class TestXMySQL(MySQLMixIn):
         cur.execute(drop_sql)
         cur.execute(create_sql)
 
-    @tm.capture_stdout
     def test_execute_fail(self):
         drop_sql = "DROP TABLE IF EXISTS test"
         create_sql = """

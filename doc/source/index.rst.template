@@ -113,7 +113,7 @@ See the package overview for more detail about what's in the library.
     {{ single_doc[:-4] }}
 {% elif single_doc %}
 .. autosummary::
-    :toctree: generated/
+    :toctree: api/generated/
 
     {{ single_doc }}
 {% else -%}
@@ -140,7 +140,7 @@ See the package overview for more detail about what's in the library.
     comparison_with_stata
     {% endif -%}
     {% if include_api -%}
-    api
+    api/index
     {% endif -%}
     {% if not single_doc -%}
     developer

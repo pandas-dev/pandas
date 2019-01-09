@@ -389,8 +389,8 @@ cdef class Interval(IntervalMixin):
 
         See Also
         --------
-        IntervalArray.overlaps : The corresponding method for IntervalArray
-        IntervalIndex.overlaps : The corresponding method for IntervalIndex
+        IntervalArray.overlaps : The corresponding method for IntervalArray.
+        IntervalIndex.overlaps : The corresponding method for IntervalIndex.
 
         Examples
         --------

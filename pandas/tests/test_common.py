@@ -1,18 +1,15 @@
 # -*- coding: utf-8 -*-
 
 import collections
-import string
 from functools import partial
+import string
 
 import numpy as np
 import pytest
 
 import pandas as pd
 from pandas import Series, Timestamp
-from pandas.core import (
-    common as com,
-    ops,
-)
+from pandas.core import common as com, ops
 
 
 def test_get_callable_name():

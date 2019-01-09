@@ -935,7 +935,7 @@ class MonthOffset(SingleConstructorOffset):
         shifted = liboffsets.shift_months(i.asi8, self.n, self._day_opt)
         # TODO: going through __new__ raises on call to _validate_frequency;
         #  are we passing incorrect freq?
-        return type(i)._simple_new(shifted, freq=i.freq, tz=i.tz)
+        return type(i)._simple_new(shifted, freq=i.freq, dtype=i.dtype)
 
 
 class MonthEnd(MonthOffset):
@@ -1642,7 +1642,7 @@ class QuarterOffset(DateOffset):
         # TODO: going through __new__ raises on call to _validate_frequency;
         #  are we passing incorrect freq?
         return type(dtindex)._simple_new(shifted, freq=dtindex.freq,
-                                         tz=dtindex.tz)
+                                         dtype=dtindex.dtype)
 
 
 class BQuarterEnd(QuarterOffset):
@@ -1722,7 +1722,7 @@ class YearOffset(DateOffset):
         # TODO: going through __new__ raises on call to _validate_frequency;
         #  are we passing incorrect freq?
         return type(dtindex)._simple_new(shifted, freq=dtindex.freq,
-                                         tz=dtindex.tz)
+                                         dtype=dtindex.dtype)
 
     def onOffset(self, dt):
         if self.normalize and not _is_normalized(dt):

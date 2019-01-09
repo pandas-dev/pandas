@@ -5,35 +5,35 @@ Test output formatting for Series/DataFrame, including to_string & reprs
 """
 
 from __future__ import print_function
-import re
 
-import pytz
-import dateutil
+from datetime import datetime
 import itertools
 from operator import methodcaller
 import os
+import re
 import sys
 import warnings
-from datetime import datetime
 
-import pytest
-
+import dateutil
 import numpy as np
-import pandas as pd
-from pandas import (DataFrame, Series, Index, Timestamp, MultiIndex,
-                    date_range, NaT, read_csv)
-from pandas.compat import (range, zip, lrange, StringIO, PY3,
-                           u, lzip, is_platform_windows,
-                           is_platform_32bit)
+import pytest
+import pytz
+
 import pandas.compat as compat
+from pandas.compat import (
+    PY3, StringIO, is_platform_32bit, is_platform_windows, lrange, lzip, range,
+    u, zip)
+
+import pandas as pd
+from pandas import (
+    DataFrame, Index, MultiIndex, NaT, Series, Timestamp, date_range, read_csv)
+from pandas.core.config import (
+    get_option, option_context, reset_option, set_option)
+import pandas.util.testing as tm
 
 import pandas.io.formats.format as fmt
 import pandas.io.formats.printing as printing
-
-import pandas.util.testing as tm
 from pandas.io.formats.terminal import get_terminal_size
-from pandas.core.config import (set_option, get_option, option_context,
-                                reset_option)
 
 use_32bit_repr = is_platform_windows() or is_platform_32bit()
 
@@ -305,16 +305,14 @@ class TestDataFrameFormatting(object):
             assert not has_truncated_repr(df)
             assert not has_expanded_repr(df)
 
-    def test_repr_truncates_terminal_size(self, mock):
-        # https://github.com/pandas-dev/pandas/issues/21180
-        # TODO: use mock fixutre.
-        # This is being backported, so doing it directly here.
+    def test_repr_truncates_terminal_size(self, monkeypatch):
+        # see gh-21180
 
         terminal_size = (118, 96)
-        p1 = mock.patch('pandas.io.formats.console.get_terminal_size',
-                        return_value=terminal_size)
-        p2 = mock.patch('pandas.io.formats.format.get_terminal_size',
-                        return_value=terminal_size)
+        monkeypatch.setattr('pandas.io.formats.console.get_terminal_size',
+                            lambda: terminal_size)
+        monkeypatch.setattr('pandas.io.formats.format.get_terminal_size',
+                            lambda: terminal_size)
 
         index = range(5)
         columns = pd.MultiIndex.from_tuples([
@@ -323,8 +321,7 @@ class TestDataFrameFormatting(object):
         ])
         df = pd.DataFrame(1, index=index, columns=columns)
 
-        with p1, p2:
-            result = repr(df)
+        result = repr(df)
 
         h1, h2 = result.split('\n')[:2]
         assert 'long' in h1
@@ -334,21 +331,19 @@ class TestDataFrameFormatting(object):
 
         # regular columns
         df2 = pd.DataFrame({"A" * 41: [1, 2], 'B' * 41: [1, 2]})
-        with p1, p2:
-            result = repr(df2)
+        result = repr(df2)
 
         assert df2.columns[0] in result.split('\n')[0]
 
-    def test_repr_truncates_terminal_size_full(self, mock):
+    def test_repr_truncates_terminal_size_full(self, monkeypatch):
         # GH 22984 ensure entire window is filled
         terminal_size = (80, 24)
         df = pd.DataFrame(np.random.rand(1, 7))
-        p1 = mock.patch('pandas.io.formats.console.get_terminal_size',
-                        return_value=terminal_size)
-        p2 = mock.patch('pandas.io.formats.format.get_terminal_size',
-                        return_value=terminal_size)
-        with p1, p2:
-            assert "..." not in str(df)
+        monkeypatch.setattr('pandas.io.formats.console.get_terminal_size',
+                            lambda: terminal_size)
+        monkeypatch.setattr('pandas.io.formats.format.get_terminal_size',
+                            lambda: terminal_size)
+        assert "..." not in str(df)
 
     def test_repr_max_columns_max_rows(self):
         term_width, term_height = get_terminal_size()
@@ -2725,7 +2720,12 @@ def test_format_percentiles():
     expected = ['0%', '50%', '2.0%', '50%', '66.67%', '99.99%']
     assert result == expected
 
-    pytest.raises(ValueError, fmt.format_percentiles, [0.1, np.nan, 0.5])
-    pytest.raises(ValueError, fmt.format_percentiles, [-0.001, 0.1, 0.5])
-    pytest.raises(ValueError, fmt.format_percentiles, [2, 0.1, 0.5])
-    pytest.raises(ValueError, fmt.format_percentiles, [0.1, 0.5, 'a'])
+    msg = r"percentiles should all be in the interval \[0,1\]"
+    with pytest.raises(ValueError, match=msg):
+        fmt.format_percentiles([0.1, np.nan, 0.5])
+    with pytest.raises(ValueError, match=msg):
+        fmt.format_percentiles([-0.001, 0.1, 0.5])
+    with pytest.raises(ValueError, match=msg):
+        fmt.format_percentiles([2, 0.1, 0.5])
+    with pytest.raises(ValueError, match=msg):
+        fmt.format_percentiles([0.1, 0.5, 'a'])

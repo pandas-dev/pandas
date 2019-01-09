@@ -13,8 +13,8 @@ from pandas.errors import AbstractMethodError
 from pandas.util._decorators import Appender, cache_readonly, deprecate_kwarg
 
 from pandas.core.dtypes.common import (
-    ensure_int64, is_bool_dtype, is_dtype_equal, is_float, is_integer,
-    is_list_like, is_period_dtype, is_scalar)
+    ensure_int64, is_dtype_equal, is_float, is_integer, is_list_like,
+    is_period_dtype, is_scalar)
 from pandas.core.dtypes.generic import ABCIndex, ABCIndexClass, ABCSeries
 
 from pandas.core import algorithms, ops
@@ -31,23 +31,24 @@ import pandas.io.formats.printing as printing
 _index_doc_kwargs = dict(ibase._index_doc_kwargs)
 
 
-def ea_passthrough(name):
+def ea_passthrough(array_method):
     """
     Make an alias for a method of the underlying ExtensionArray.
 
     Parameters
     ----------
-    name : str
+    array_method : method on an Array class
 
     Returns
     -------
     method
     """
-    def method(self, *args, **kwargs):
-        return getattr(self._eadata, name)(*args, **kwargs)
 
-    method.__name__ = name
-    # TODO: docstrings
+    def method(self, *args, **kwargs):
+        return array_method(self._data, *args, **kwargs)
+
+    method.__name__ = array_method.__name__
+    method.__doc__ = array_method.__doc__
     return method
 
 
@@ -55,6 +56,7 @@ class DatetimeIndexOpsMixin(ExtensionOpsMixin):
     """
     common ops mixin to support a unified interface datetimelike Index
     """
+    _data = None  # type: DatetimeLikeArrayMixin
 
     # DatetimeLikeArrayMixin assumes subclasses are mutable, so these are
     # properties there.  They can be made into cache_readonly for Index
@@ -66,19 +68,35 @@ class DatetimeIndexOpsMixin(ExtensionOpsMixin):
     _resolution = cache_readonly(DatetimeLikeArrayMixin._resolution.fget)
     resolution = cache_readonly(DatetimeLikeArrayMixin.resolution.fget)
 
-    _box_values = ea_passthrough("_box_values")
-    _maybe_mask_results = ea_passthrough("_maybe_mask_results")
-    __iter__ = ea_passthrough("__iter__")
+    _box_values = ea_passthrough(DatetimeLikeArrayMixin._box_values)
+    _maybe_mask_results = ea_passthrough(
+        DatetimeLikeArrayMixin._maybe_mask_results)
+    __iter__ = ea_passthrough(DatetimeLikeArrayMixin.__iter__)
+
+    @property
+    def freq(self):
+        """
+        Return the frequency object if it is set, otherwise None.
+        """
+        return self._data.freq
+
+    @freq.setter
+    def freq(self, value):
+        # validation is handled by _data setter
+        self._data.freq = value
 
     @property
     def freqstr(self):
-        return self._eadata.freqstr
+        """
+        Return the frequency object as a string if it is set, otherwise None.
+        """
+        return self._data.freqstr
 
     def unique(self, level=None):
         if level is not None:
             self._validate_index_level(level)
 
-        result = self._eadata.unique()
+        result = self._data.unique()
 
         # Note: if `self` is already unique, then self.unique() should share
         #  a `freq` with self.  If not already unique, then self.freq must be
@@ -91,12 +109,35 @@ class DatetimeIndexOpsMixin(ExtensionOpsMixin):
         Create a comparison method that dispatches to ``cls.values``.
         """
         def wrapper(self, other):
-            result = op(self._eadata, maybe_unwrap_index(other))
+            if isinstance(other, ABCSeries):
+                # the arrays defer to Series for comparison ops but the indexes
+                #  don't, so we have to unwrap here.
+                other = other._values
+
+            result = op(self._data, maybe_unwrap_index(other))
             return result
 
         wrapper.__doc__ = op.__doc__
         wrapper.__name__ = '__{}__'.format(op.__name__)
         return wrapper
+
+    @property
+    def _ndarray_values(self):
+        return self._data._ndarray_values
+
+    # ------------------------------------------------------------------------
+    # Abstract data attributes
+
+    @property
+    def values(self):
+        # type: () -> np.ndarray
+        # Note: PeriodArray overrides this to return an ndarray of objects.
+        return self._data._data
+
+    @property
+    @Appender(DatetimeLikeArrayMixin.asi8.__doc__)
+    def asi8(self):
+        return self._data.asi8
 
     # ------------------------------------------------------------------------
 
@@ -132,12 +173,15 @@ class DatetimeIndexOpsMixin(ExtensionOpsMixin):
         """
         Create the join wrapper methods.
         """
+        from pandas.core.arrays.datetimelike import DatetimeLikeArrayMixin
 
         @staticmethod
         def wrapper(left, right):
-            if isinstance(left, (np.ndarray, ABCIndex, ABCSeries)):
+            if isinstance(left, (np.ndarray, ABCIndex, ABCSeries,
+                                 DatetimeLikeArrayMixin)):
                 left = left.view('i8')
-            if isinstance(right, (np.ndarray, ABCIndex, ABCSeries)):
+            if isinstance(right, (np.ndarray, ABCIndex, ABCSeries,
+                                  DatetimeLikeArrayMixin)):
                 right = right.view('i8')
             results = joinf(left, right)
             if with_indexers:
@@ -148,37 +192,20 @@ class DatetimeIndexOpsMixin(ExtensionOpsMixin):
 
         return wrapper
 
-    @Appender(DatetimeLikeArrayMixin._evaluate_compare.__doc__)
-    def _evaluate_compare(self, other, op):
-        result = self._eadata._evaluate_compare(other, op)
-        if is_bool_dtype(result):
-            return result
-        try:
-            return Index(result)
-        except TypeError:
-            return result
-
     def _ensure_localized(self, arg, ambiguous='raise', nonexistent='raise',
                           from_utc=False):
         # See DatetimeLikeArrayMixin._ensure_localized.__doc__
-
         if getattr(self, 'tz', None):
             # ensure_localized is only relevant for tz-aware DTI
-            from pandas.core.arrays import DatetimeArrayMixin as DatetimeArray
-            dtarr = DatetimeArray(self)
-            result = dtarr._ensure_localized(arg,
-                                             ambiguous=ambiguous,
-                                             nonexistent=nonexistent,
-                                             from_utc=from_utc)
-            return type(self)(result, name=self.name)
+            result = self._data._ensure_localized(arg,
+                                                  ambiguous=ambiguous,
+                                                  nonexistent=nonexistent,
+                                                  from_utc=from_utc)
+            return type(self)._simple_new(result, name=self.name)
         return arg
 
-    def _box_values_as_index(self):
-        """
-        Return object Index which contains boxed values.
-        """
-        from pandas.core.index import Index
-        return Index(self._box_values(self.asi8), name=self.name, dtype=object)
+    def _box_values(self, values):
+        return self._data._box_values(values)
 
     @Appender(_index_shared_docs['contains'] % _index_doc_kwargs)
     def __contains__(self, key):
@@ -231,9 +258,6 @@ class DatetimeIndexOpsMixin(ExtensionOpsMixin):
 
             if not ascending:
                 sorted_values = sorted_values[::-1]
-
-            sorted_values = self._maybe_box_as_values(sorted_values,
-                                                      **attribs)
 
             return self._simple_new(sorted_values, **attribs)
 
@@ -462,7 +486,7 @@ class DatetimeIndexOpsMixin(ExtensionOpsMixin):
 
         def __add__(self, other):
             # dispatch to ExtensionArray implementation
-            result = self._eadata.__add__(maybe_unwrap_index(other))
+            result = self._data.__add__(maybe_unwrap_index(other))
             return wrap_arithmetic_op(self, other, result)
 
         cls.__add__ = __add__
@@ -474,13 +498,13 @@ class DatetimeIndexOpsMixin(ExtensionOpsMixin):
 
         def __sub__(self, other):
             # dispatch to ExtensionArray implementation
-            result = self._eadata.__sub__(maybe_unwrap_index(other))
+            result = self._data.__sub__(maybe_unwrap_index(other))
             return wrap_arithmetic_op(self, other, result)
 
         cls.__sub__ = __sub__
 
         def __rsub__(self, other):
-            result = self._eadata.__rsub__(maybe_unwrap_index(other))
+            result = self._data.__rsub__(maybe_unwrap_index(other))
             return wrap_arithmetic_op(self, other, result)
 
         cls.__rsub__ = __rsub__
@@ -511,7 +535,6 @@ class DatetimeIndexOpsMixin(ExtensionOpsMixin):
         nv.validate_repeat(tuple(), dict(axis=axis))
         freq = self.freq if is_period_dtype(self) else None
         return self._shallow_copy(self.asi8.repeat(repeats), freq=freq)
-        # TODO: dispatch to _eadata
 
     @Appender(_index_shared_docs['where'] % _index_doc_kwargs)
     def where(self, cond, other=None):
@@ -566,23 +589,9 @@ class DatetimeIndexOpsMixin(ExtensionOpsMixin):
         if not is_period_dtype(self):
             # reset freq
             attribs['freq'] = None
-            # TODO(DatetimeArray)
-            # - remove the .asi8 here
-            # - remove the _maybe_box_as_values
-            # - combine with the `else` block
-            new_data = self._eadata._concat_same_type(to_concat).asi8
-        else:
-            new_data = type(self._values)._concat_same_type(to_concat)
 
+        new_data = type(self._values)._concat_same_type(to_concat).asi8
         return self._simple_new(new_data, **attribs)
-
-    def _maybe_box_as_values(self, values, **attribs):
-        # TODO(DatetimeArray): remove
-        # This is a temporary shim while PeriodArray is an ExtensoinArray,
-        # but others are not. When everyone is an ExtensionArray, this can
-        # be removed. Currently used in
-        # - sort_values
-        return values
 
     @Appender(_index_shared_docs['astype'])
     def astype(self, dtype, copy=True):
@@ -590,22 +599,45 @@ class DatetimeIndexOpsMixin(ExtensionOpsMixin):
             # Ensure that self.astype(self.dtype) is self
             return self
 
-        new_values = self._eadata.astype(dtype, copy=copy)
+        new_values = self._data.astype(dtype, copy=copy)
 
         # pass copy=False because any copying will be done in the
-        #  _eadata.astype call above
+        #  _data.astype call above
         return Index(new_values,
                      dtype=new_values.dtype, name=self.name, copy=False)
 
-    @Appender(DatetimeLikeArrayMixin._time_shift.__doc__)
-    def _time_shift(self, periods, freq=None):
-        result = self._eadata._time_shift(periods, freq=freq)
-        return type(self)(result, name=self.name)
-
     @deprecate_kwarg(old_arg_name='n', new_arg_name='periods')
-    @Appender(DatetimeLikeArrayMixin.shift.__doc__)
     def shift(self, periods, freq=None):
-        result = self._eadata.shift(periods, freq=freq)
+        """
+        Shift index by desired number of time frequency increments.
+
+        This method is for shifting the values of datetime-like indexes
+        by a specified time increment a given number of times.
+
+        Parameters
+        ----------
+        periods : int
+            Number of periods (or increments) to shift by,
+            can be positive or negative.
+
+            .. versionchanged:: 0.24.0
+
+        freq : pandas.DateOffset, pandas.Timedelta or string, optional
+            Frequency increment to shift by.
+            If None, the index is shifted by its own `freq` attribute.
+            Offset aliases are valid strings, e.g., 'D', 'W', 'M' etc.
+
+        Returns
+        -------
+        pandas.DatetimeIndex
+            Shifted index.
+
+        See Also
+        --------
+        Index.shift : Shift values of Index.
+        PeriodIndex.shift : Shift values of PeriodIndex.
+        """
+        result = self._data._time_shift(periods, freq=freq)
         return type(self)(result, name=self.name)
 
 
@@ -643,9 +675,6 @@ def maybe_unwrap_index(obj):
     unwrapped object
     """
     if isinstance(obj, ABCIndexClass):
-        if isinstance(obj, DatetimeIndexOpsMixin):
-            # i.e. PeriodIndex/DatetimeIndex/TimedeltaIndex
-            return obj._eadata
         return obj._data
     return obj
 
@@ -680,16 +709,16 @@ class DatetimelikeDelegateMixin(PandasDelegate):
         raise AbstractMethodError
 
     def _delegate_property_get(self, name, *args, **kwargs):
-        result = getattr(self._eadata, name)
+        result = getattr(self._data, name)
         if name not in self._raw_properties:
             result = Index(result, name=self.name)
         return result
 
     def _delegate_property_set(self, name, value, *args, **kwargs):
-        setattr(self._eadata, name, value)
+        setattr(self._data, name, value)
 
     def _delegate_method(self, name, *args, **kwargs):
-        result = operator.methodcaller(name, *args, **kwargs)(self._eadata)
+        result = operator.methodcaller(name, *args, **kwargs)(self._data)
         if name not in self._raw_methods:
             result = Index(result, name=self.name)
         return result

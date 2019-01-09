@@ -82,6 +82,17 @@ def _convert_params(sql, params):
     return args
 
 
+def _process_parse_dates_argument(parse_dates):
+    """Process parse_dates argument for read_sql functions"""
+    # handle non-list entries for parse_dates gracefully
+    if parse_dates is True or parse_dates is None or parse_dates is False:
+        parse_dates = []
+
+    elif not hasattr(parse_dates, '__iter__'):
+        parse_dates = [parse_dates]
+    return parse_dates
+
+
 def _handle_date_column(col, utc=None, format=None):
     if isinstance(format, dict):
         return to_datetime(col, errors='ignore', **format)
@@ -96,8 +107,7 @@ def _handle_date_column(col, utc=None, format=None):
         elif is_datetime64tz_dtype(col):
             # coerce to UTC timezone
             # GH11216
-            return (to_datetime(col, errors='coerce')
-                    .astype('datetime64[ns, UTC]'))
+            return to_datetime(col, utc=True)
         else:
             return to_datetime(col, errors='coerce', format=format, utc=utc)
 
@@ -107,27 +117,18 @@ def _parse_date_columns(data_frame, parse_dates):
     Force non-datetime columns to be read as such.
     Supports both string formatted and integer timestamp columns.
     """
-    # handle non-list entries for parse_dates gracefully
-    if parse_dates is True or parse_dates is None or parse_dates is False:
-        parse_dates = []
+    parse_dates = _process_parse_dates_argument(parse_dates)
 
-    if not hasattr(parse_dates, '__iter__'):
-        parse_dates = [parse_dates]
-
-    for col_name in parse_dates:
-        df_col = data_frame[col_name]
-        try:
-            fmt = parse_dates[col_name]
-        except TypeError:
-            fmt = None
-        data_frame[col_name] = _handle_date_column(df_col, format=fmt)
-
-    # we want to coerce datetime64_tz dtypes for now
+    # we want to coerce datetime64_tz dtypes for now to UTC
     # we could in theory do a 'nice' conversion from a FixedOffset tz
     # GH11216
     for col_name, df_col in data_frame.iteritems():
-        if is_datetime64tz_dtype(df_col):
-            data_frame[col_name] = _handle_date_column(df_col)
+        if is_datetime64tz_dtype(df_col) or col_name in parse_dates:
+            try:
+                fmt = parse_dates[col_name]
+            except TypeError:
+                fmt = None
+            data_frame[col_name] = _handle_date_column(df_col, format=fmt)
 
     return data_frame
 
@@ -139,7 +140,7 @@ def _wrap_result(data, columns, index_col=None, coerce_float=True,
     frame = DataFrame.from_records(data, columns=columns,
                                    coerce_float=coerce_float)
 
-    _parse_date_columns(frame, parse_dates)
+    frame = _parse_date_columns(frame, parse_dates)
 
     if index_col is not None:
         frame.set_index(index_col, inplace=True)
@@ -818,17 +819,24 @@ class SQLTable(PandasObject):
         Datetimes should already be converted to np.datetime64 if supported,
         but here we also force conversion if required.
         """
-        # handle non-list entries for parse_dates gracefully
-        if parse_dates is True or parse_dates is None or parse_dates is False:
-            parse_dates = []
-
-        if not hasattr(parse_dates, '__iter__'):
-            parse_dates = [parse_dates]
+        parse_dates = _process_parse_dates_argument(parse_dates)
 
         for sql_col in self.table.columns:
             col_name = sql_col.name
             try:
                 df_col = self.frame[col_name]
+
+                # Handle date parsing upfront; don't try to convert columns
+                # twice
+                if col_name in parse_dates:
+                    try:
+                        fmt = parse_dates[col_name]
+                    except TypeError:
+                        fmt = None
+                    self.frame[col_name] = _handle_date_column(
+                        df_col, format=fmt)
+                    continue
+
                 # the type the dataframe column should have
                 col_type = self._get_dtype(sql_col.type)
 
@@ -846,32 +854,8 @@ class SQLTable(PandasObject):
                     if col_type is np.dtype('int64') or col_type is bool:
                         self.frame[col_name] = df_col.astype(
                             col_type, copy=False)
-
-                # Handle date parsing
-                if col_name in parse_dates:
-                    try:
-                        fmt = parse_dates[col_name]
-                    except TypeError:
-                        fmt = None
-                    self.frame[col_name] = _handle_date_column(
-                        df_col, format=fmt)
-
             except KeyError:
                 pass  # this column not in results
-
-    def _get_notna_col_dtype(self, col):
-        """
-        Infer datatype of the Series col.  In case the dtype of col is 'object'
-        and it contains NA values, this infers the datatype of the not-NA
-        values.  Needed for inserting typed data containing NULLs, GH8778.
-        """
-        col_for_inference = col
-        if col.dtype == 'object':
-            notnadata = col[~isna(col)]
-            if len(notnadata):
-                col_for_inference = notnadata
-
-        return lib.infer_dtype(col_for_inference)
 
     def _sqlalchemy_type(self, col):
 
@@ -879,7 +863,9 @@ class SQLTable(PandasObject):
         if col.name in dtype:
             return self.dtype[col.name]
 
-        col_type = self._get_notna_col_dtype(col)
+        # Infer type of column, while ignoring missing values.
+        # Needed for inserting typed data containing NULLs, GH 8778.
+        col_type = lib.infer_dtype(col, skipna=True)
 
         from sqlalchemy.types import (BigInteger, Integer, Float,
                                       Text, Boolean,
@@ -1376,7 +1362,10 @@ class SQLiteTable(SQLTable):
         if col.name in dtype:
             return dtype[col.name]
 
-        col_type = self._get_notna_col_dtype(col)
+        # Infer type of column, while ignoring missing values.
+        # Needed for inserting typed data containing NULLs, GH 8778.
+        col_type = lib.infer_dtype(col, skipna=True)
+
         if col_type == 'timedelta64':
             warnings.warn("the 'timedelta' type is not supported, and will be "
                           "written as integer values (ns frequency) to the "

@@ -50,7 +50,7 @@ class DocBuilder:
         if single_doc and single_doc.endswith('.rst'):
             self.single_doc_html = os.path.splitext(single_doc)[0] + '.html'
         elif single_doc:
-            self.single_doc_html = 'generated/pandas.{}.html'.format(
+            self.single_doc_html = 'api/generated/pandas.{}.html'.format(
                 single_doc)
 
     def _process_single_doc(self, single_doc):
@@ -124,13 +124,12 @@ class DocBuilder:
         if self.num_jobs:
             cmd += ['-j', str(self.num_jobs)]
         if self.warnings_are_errors:
-            cmd.append('-W')
+            cmd += ['-W', '--keep-going']
         if self.verbosity:
             cmd.append('-{}'.format('v' * self.verbosity))
         cmd += ['-d', os.path.join(BUILD_PATH, 'doctrees'),
                 SOURCE_PATH, os.path.join(BUILD_PATH, kind)]
-        cmd = ['sphinx-build', SOURCE_PATH, os.path.join(BUILD_PATH, kind)]
-        self._run_os(*cmd)
+        return subprocess.call(cmd)
 
     def _open_browser(self, single_doc_html):
         """
@@ -144,13 +143,14 @@ class DocBuilder:
         """
         Build HTML documentation.
         """
-        self._sphinx_build('html')
+        ret_code = self._sphinx_build('html')
         zip_fname = os.path.join(BUILD_PATH, 'html', 'pandas.zip')
         if os.path.exists(zip_fname):
             os.remove(zip_fname)
 
         if self.single_doc_html is not None:
             self._open_browser(self.single_doc_html)
+        return ret_code
 
     def latex(self, force=False):
         """
@@ -159,7 +159,7 @@ class DocBuilder:
         if sys.platform == 'win32':
             sys.stderr.write('latex build has not been tested on windows\n')
         else:
-            self._sphinx_build('latex')
+            ret_code = self._sphinx_build('latex')
             os.chdir(os.path.join(BUILD_PATH, 'latex'))
             if force:
                 for i in range(3):
@@ -170,12 +170,13 @@ class DocBuilder:
                                  '"build/latex/pandas.pdf" for problems.')
             else:
                 self._run_os('make')
+            return ret_code
 
     def latex_forced(self):
         """
         Build PDF documentation with retries to find missing references.
         """
-        self.latex(force=True)
+        return self.latex(force=True)
 
     @staticmethod
     def clean():
@@ -183,7 +184,7 @@ class DocBuilder:
         Clean documentation generated files.
         """
         shutil.rmtree(BUILD_PATH, ignore_errors=True)
-        shutil.rmtree(os.path.join(SOURCE_PATH, 'generated'),
+        shutil.rmtree(os.path.join(SOURCE_PATH, 'api', 'generated'),
                       ignore_errors=True)
 
     def zip_html(self):
@@ -257,7 +258,7 @@ def main():
 
     builder = DocBuilder(args.num_jobs, not args.no_api, args.single,
                          args.verbosity, args.warnings_are_errors)
-    getattr(builder, args.command)()
+    return getattr(builder, args.command)()
 
 
 if __name__ == '__main__':

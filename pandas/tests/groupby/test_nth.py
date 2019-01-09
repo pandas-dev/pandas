@@ -1,12 +1,12 @@
 import numpy as np
-import pandas as pd
-from pandas import DataFrame, MultiIndex, Index, Series, isna, Timestamp
-from pandas.compat import lrange
-from pandas.util.testing import (
-    assert_frame_equal,
-    assert_produces_warning,
-    assert_series_equal)
 import pytest
+
+from pandas.compat import lrange
+
+import pandas as pd
+from pandas import DataFrame, Index, MultiIndex, Series, Timestamp, isna
+from pandas.util.testing import (
+    assert_frame_equal, assert_produces_warning, assert_series_equal)
 
 
 def test_first_last_nth(df):

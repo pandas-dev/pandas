@@ -98,8 +98,7 @@ if pattern:
                 if (fname == 'index.rst'
                         and os.path.abspath(dirname) == source_path):
                     continue
-                elif (pattern == '-api'
-                        and (fname == 'api.rst' or dirname == 'generated')):
+                elif pattern == '-api' and dirname == 'api':
                     exclude_patterns.append(fname)
                 elif fname != pattern:
                     exclude_patterns.append(fname)
@@ -739,6 +738,10 @@ suppress_warnings = [
     # suppress this warning.
     'app.add_directive'
 ]
+if pattern:
+    # When building a single document we don't want to warn because references
+    # to other documents are unknown, as it's expected
+    suppress_warnings.append('ref.ref')
 
 
 def rstjinja(app, docname, source):

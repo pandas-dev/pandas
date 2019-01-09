@@ -2,26 +2,26 @@
 
 from __future__ import print_function
 
-import warnings
 from datetime import timedelta
 import operator
-import pytest
-
 from string import ascii_lowercase
+import warnings
+
+import numpy as np
 from numpy import nan
 from numpy.random import randn
-import numpy as np
+import pytest
 
-from pandas.compat import lrange, PY35
-from pandas import (compat, isna, notna, DataFrame, Series,
-                    MultiIndex, date_range, Timestamp, Categorical,
-                    to_datetime, to_timedelta)
-import pandas as pd
-import pandas.core.nanops as nanops
-import pandas.core.algorithms as algorithms
-
-import pandas.util.testing as tm
+from pandas.compat import PY35, lrange
 import pandas.util._test_decorators as td
+
+import pandas as pd
+from pandas import (
+    Categorical, DataFrame, MultiIndex, Series, Timestamp, compat, date_range,
+    isna, notna, to_datetime, to_timedelta)
+import pandas.core.algorithms as algorithms
+import pandas.core.nanops as nanops
+import pandas.util.testing as tm
 
 
 def assert_stat_op_calc(opname, alternative, frame, has_skipna=True,
@@ -227,13 +227,6 @@ def assert_bool_op_api(opname, bool_frame_with_na, float_string_frame,
     mixed['_bool_'] = np.random.randn(len(mixed)) > 0.5
     getattr(mixed, opname)(axis=0)
     getattr(mixed, opname)(axis=1)
-
-    class NonzeroFail(object):
-
-        def __nonzero__(self):
-            raise ValueError
-
-    mixed['_nonzero_fail_'] = NonzeroFail()
 
     if has_bool_only:
         getattr(mixed, opname)(axis=0, bool_only=True)
@@ -464,6 +457,52 @@ class TestDataFrameAnalytics():
         result = df.corrwith(s)
         corrs = [df['a'].corr(s), df['b'].corr(s)]
         expected = pd.Series(data=corrs, index=['a', 'b'])
+        tm.assert_series_equal(result, expected)
+
+    def test_corrwith_index_intersection(self):
+        df1 = pd.DataFrame(np.random.random(size=(10, 2)),
+                           columns=["a", "b"])
+        df2 = pd.DataFrame(np.random.random(size=(10, 3)),
+                           columns=["a", "b", "c"])
+
+        result = df1.corrwith(df2, drop=True).index.sort_values()
+        expected = df1.columns.intersection(df2.columns).sort_values()
+        tm.assert_index_equal(result, expected)
+
+    def test_corrwith_index_union(self):
+        df1 = pd.DataFrame(np.random.random(size=(10, 2)),
+                           columns=["a", "b"])
+        df2 = pd.DataFrame(np.random.random(size=(10, 3)),
+                           columns=["a", "b", "c"])
+
+        result = df1.corrwith(df2, drop=False).index.sort_values()
+        expected = df1.columns.union(df2.columns).sort_values()
+        tm.assert_index_equal(result, expected)
+
+    def test_corrwith_dup_cols(self):
+        # GH 21925
+        df1 = pd.DataFrame(np.vstack([np.arange(10)] * 3).T)
+        df2 = df1.copy()
+        df2 = pd.concat((df2, df2[0]), axis=1)
+
+        result = df1.corrwith(df2)
+        expected = pd.Series(np.ones(4), index=[0, 0, 1, 2])
+        tm.assert_series_equal(result, expected)
+
+    @td.skip_if_no_scipy
+    def test_corrwith_spearman(self):
+        # GH 21925
+        df = pd.DataFrame(np.random.random(size=(100, 3)))
+        result = df.corrwith(df**2, method="spearman")
+        expected = Series(np.ones(len(result)))
+        tm.assert_series_equal(result, expected)
+
+    @td.skip_if_no_scipy
+    def test_corrwith_kendall(self):
+        # GH 21925
+        df = pd.DataFrame(np.random.random(size=(100, 3)))
+        result = df.corrwith(df**2, method="kendall")
+        expected = Series(np.ones(len(result)))
         tm.assert_series_equal(result, expected)
 
     def test_bool_describe_in_mixed_frame(self):
@@ -1374,25 +1413,22 @@ class TestDataFrameAnalytics():
         result = df[['C']].all(axis=None).item()
         assert result is True
 
-        # skip pathological failure cases
-        # class CantNonzero(object):
+    def test_any_datetime(self):
 
-        #     def __nonzero__(self):
-        #         raise ValueError
+        # GH 23070
+        float_data = [1, np.nan, 3, np.nan]
+        datetime_data = [pd.Timestamp('1960-02-15'),
+                         pd.Timestamp('1960-02-16'),
+                         pd.NaT,
+                         pd.NaT]
+        df = DataFrame({
+            "A": float_data,
+            "B": datetime_data
+        })
 
-        # df[4] = CantNonzero()
-
-        # it works!
-        # df.any(1)
-        # df.all(1)
-        # df.any(1, bool_only=True)
-        # df.all(1, bool_only=True)
-
-        # df[4][4] = np.nan
-        # df.any(1)
-        # df.all(1)
-        # df.any(1, bool_only=True)
-        # df.all(1, bool_only=True)
+        result = df.any(1)
+        expected = Series([True, True, True, False])
+        tm.assert_series_equal(result, expected)
 
     @pytest.mark.parametrize('func, data, expected', [
         (np.any, {}, False),

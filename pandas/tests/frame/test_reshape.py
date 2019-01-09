@@ -2,26 +2,23 @@
 
 from __future__ import print_function
 
-from warnings import catch_warnings, simplefilter
 from datetime import datetime
-
 import itertools
+from warnings import catch_warnings, simplefilter
+
+import numpy as np
+from numpy import nan
+from numpy.random import randn
 import pytest
 
-from numpy.random import randn
-from numpy import nan
-import numpy as np
-
 from pandas.compat import u
-from pandas import (DataFrame, Index, Series, MultiIndex, date_range,
-                    Timedelta, Period)
+
 import pandas as pd
-
-from pandas.util.testing import assert_series_equal, assert_frame_equal
-
-import pandas.util.testing as tm
-
+from pandas import (
+    DataFrame, Index, MultiIndex, Period, Series, Timedelta, date_range)
 from pandas.tests.frame.common import TestData
+import pandas.util.testing as tm
+from pandas.util.testing import assert_frame_equal, assert_series_equal
 
 
 class TestDataFrameReshape(TestData):
@@ -939,3 +936,36 @@ def test_unstack_fill_frame_object():
         index=list('xyz')
     )
     assert_frame_equal(result, expected)
+
+
+def test_unstack_timezone_aware_values():
+    # GH 18338
+    df = pd.DataFrame({
+        'timestamp': [
+            pd.Timestamp('2017-08-27 01:00:00.709949+0000', tz='UTC')],
+        'a': ['a'],
+        'b': ['b'],
+        'c': ['c'],
+    }, columns=['timestamp', 'a', 'b', 'c'])
+    result = df.set_index(['a', 'b']).unstack()
+    expected = pd.DataFrame([[pd.Timestamp('2017-08-27 01:00:00.709949+0000',
+                                           tz='UTC'),
+                              'c']],
+                            index=pd.Index(['a'], name='a'),
+                            columns=pd.MultiIndex(
+                                levels=[['timestamp', 'c'], ['b']],
+                                codes=[[0, 1], [0, 0]],
+                                names=[None, 'b']))
+    assert_frame_equal(result, expected)
+
+
+def test_stack_timezone_aware_values():
+    # GH 19420
+    ts = pd.date_range(freq="D", start="20180101", end="20180103",
+                       tz="America/New_York")
+    df = pd.DataFrame({"A": ts}, index=["a", "b", "c"])
+    result = df.stack()
+    expected = pd.Series(ts,
+                         index=pd.MultiIndex(levels=[['a', 'b', 'c'], ['A']],
+                                             codes=[[0, 1, 2], [0, 0, 0]]))
+    assert_series_equal(result, expected)

@@ -17,6 +17,7 @@ User Guide
     text
     missing_data
     categorical
+    integer_na
     visualization
     computation
     groupby
