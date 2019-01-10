@@ -582,7 +582,7 @@ class TestDatetimeIndex(object):
         pytest.param('US/Pacific', 'datetime64[ns, US/Pacific]',
                      marks=[pytest.mark.xfail(),
                             pytest.mark.filterwarnings(
-                                "ignore:Passing:FutureWarning")]),
+                                "ignore:\\n    Passing:FutureWarning")]),
         [None, 'datetime64[ns]'],
     ])
     def test_constructor_with_int_tz(self, klass, box, tz, dtype):
