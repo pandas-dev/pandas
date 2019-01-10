@@ -16,12 +16,30 @@ import pandas.util.testing as tm
 
 
 class TestDatetimeArrayConstructor(object):
+    @pytest.mark.parametrize('meth', [DatetimeArray._from_sequence,
+                                      sequence_to_dt64ns,
+                                      pd.to_datetime,
+                                      pd.DatetimeIndex])
+    def test_mixing_naive_tzaware_raises(self, meth):
+        # GH#24569
+        arr = np.array([pd.Timestamp('2000'), pd.Timestamp('2000', tz='CET')])
+
+        msg = ('Cannot mix tz-aware with tz-naive values|'
+               'Tz-aware datetime.datetime cannot be converted '
+               'to datetime64 unless utc=True')
+
+        for obj in [arr, arr[::-1]]:
+            # check that we raise regardless of whether naive is found
+            #  before aware or vice-versa
+            with pytest.raises(ValueError, match=msg):
+                meth(obj)
+
     def test_from_pandas_array(self):
         arr = pd.array(np.arange(5, dtype=np.int64)) * 3600 * 10**9
 
         result = DatetimeArray._from_sequence(arr, freq='infer')
 
-        expected = pd.date_range('1970-01-01', periods=5, freq='H')._eadata
+        expected = pd.date_range('1970-01-01', periods=5, freq='H')._data
         tm.assert_datetime_array_equal(result, expected)
 
     def test_mismatched_timezone_raises(self):
@@ -177,6 +195,39 @@ class TestDatetimeArray(object):
         # assert that arr and dti were not modified in-place
         assert arr[2] is pd.NaT
         assert dti[2] == pd.Timestamp('2000-01-03', tz='US/Central')
+
+    def test_array_interface_tz(self):
+        tz = "US/Central"
+        data = DatetimeArray(pd.date_range('2017', periods=2, tz=tz))
+        result = np.asarray(data)
+
+        expected = np.array([pd.Timestamp('2017-01-01T00:00:00', tz=tz),
+                             pd.Timestamp('2017-01-02T00:00:00', tz=tz)],
+                            dtype=object)
+        tm.assert_numpy_array_equal(result, expected)
+
+        result = np.asarray(data, dtype=object)
+        tm.assert_numpy_array_equal(result, expected)
+
+        result = np.asarray(data, dtype='M8[ns]')
+
+        expected = np.array(['2017-01-01T06:00:00',
+                             '2017-01-02T06:00:00'], dtype="M8[ns]")
+        tm.assert_numpy_array_equal(result, expected)
+
+    def test_array_interface(self):
+        data = DatetimeArray(pd.date_range('2017', periods=2))
+        expected = np.array(['2017-01-01T00:00:00', '2017-01-02T00:00:00'],
+                            dtype='datetime64[ns]')
+
+        result = np.asarray(data)
+        tm.assert_numpy_array_equal(result, expected)
+
+        result = np.asarray(data, dtype=object)
+        expected = np.array([pd.Timestamp('2017-01-01T00:00:00'),
+                             pd.Timestamp('2017-01-02T00:00:00')],
+                            dtype=object)
+        tm.assert_numpy_array_equal(result, expected)
 
 
 class TestSequenceToDT64NS(object):

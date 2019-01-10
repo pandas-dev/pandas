@@ -64,7 +64,7 @@ NumPy's type system to add support for custom arrays
 (see :ref:`basics.dtypes`).
 
 To get the actual data inside a :class:`Index` or :class:`Series`, use
-the **array** property
+the ``.array`` property
 
 .. ipython:: python
 
@@ -72,7 +72,7 @@ the **array** property
    s.index.array
 
 :attr:`~Series.array` will always be an :class:`~pandas.api.extensions.ExtensionArray`.
-The exact details of what an ``ExtensionArray`` is and why pandas uses them is a bit
+The exact details of what an :class:`~pandas.api.extensions.ExtensionArray` is and why pandas uses them is a bit
 beyond the scope of this introduction. See :ref:`basics.dtypes` for more.
 
 If you know you need a NumPy array, use :meth:`~Series.to_numpy`
@@ -84,17 +84,17 @@ or :meth:`numpy.asarray`.
    np.asarray(s)
 
 When the Series or Index is backed by
-an :class:`~pandas.api.extension.ExtensionArray`, :meth:`~Series.to_numpy`
+an :class:`~pandas.api.extensions.ExtensionArray`, :meth:`~Series.to_numpy`
 may involve copying data and coercing values. See :ref:`basics.dtypes` for more.
 
 :meth:`~Series.to_numpy` gives some control over the ``dtype`` of the
-resulting :class:`ndarray`. For example, consider datetimes with timezones.
+resulting :class:`numpy.ndarray`. For example, consider datetimes with timezones.
 NumPy doesn't have a dtype to represent timezone-aware datetimes, so there
 are two possibly useful representations:
 
-1. An object-dtype :class:`ndarray` with :class:`Timestamp` objects, each
+1. An object-dtype :class:`numpy.ndarray` with :class:`Timestamp` objects, each
    with the correct ``tz``
-2. A ``datetime64[ns]`` -dtype :class:`ndarray`, where the values have
+2. A ``datetime64[ns]`` -dtype :class:`numpy.ndarray`, where the values have
    been converted to UTC and the timezone discarded
 
 Timezones may be preserved with ``dtype=object``
@@ -105,6 +105,8 @@ Timezones may be preserved with ``dtype=object``
    ser.to_numpy(dtype=object)
 
 Or thrown away with ``dtype='datetime64[ns]'``
+
+.. ipython:: python
 
    ser.to_numpy(dtype="datetime64[ns]")
 
@@ -137,7 +139,7 @@ drawbacks:
 
 1. When your Series contains an :ref:`extension type <extending.extension-types>`, it's
    unclear whether :attr:`Series.values` returns a NumPy array or the extension array.
-   :attr:`Series.array` will always return an ``ExtensionArray``, and will never
+   :attr:`Series.array` will always return an :class:`~pandas.api.extensions.ExtensionArray`, and will never
    copy data. :meth:`Series.to_numpy` will always return a NumPy array,
    potentially at the cost of copying / coercing values.
 2. When your DataFrame contains a mixture of data types, :attr:`DataFrame.values` may
@@ -1947,7 +1949,7 @@ documentation sections for more on each type.
 =================== ========================= ================== ============================= =============================
 Kind of Data        Data Type                 Scalar             Array                         Documentation
 =================== ========================= ================== ============================= =============================
-tz-aware datetime   :class:`DatetimeArray`    :class:`Timestamp` :class:`arrays.DatetimeArray` :ref:`timeseries.timezone`
+tz-aware datetime   :class:`DatetimeTZDtype`  :class:`Timestamp` :class:`arrays.DatetimeArray` :ref:`timeseries.timezone`
 Categorical         :class:`CategoricalDtype` (none)             :class:`Categorical`          :ref:`categorical`
 period (time spans) :class:`PeriodDtype`      :class:`Period`    :class:`arrays.PeriodArray`   :ref:`timeseries.periods`
 sparse              :class:`SparseDtype`      (none)             :class:`arrays.SparseArray`   :ref:`sparse`

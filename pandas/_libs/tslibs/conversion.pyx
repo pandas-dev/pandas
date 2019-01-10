@@ -167,6 +167,7 @@ def datetime_to_datetime64(values: object[:]):
         int64_t[:] iresult
         npy_datetimestruct dts
         _TSObject _ts
+        bint found_naive = False
 
     result = np.empty(n, dtype='M8[ns]')
     iresult = result.view('i8')
@@ -176,6 +177,9 @@ def datetime_to_datetime64(values: object[:]):
             iresult[i] = NPY_NAT
         elif PyDateTime_Check(val):
             if val.tzinfo is not None:
+                if found_naive:
+                    raise ValueError('Cannot mix tz-aware with '
+                                     'tz-naive values')
                 if inferred_tz is not None:
                     if not tz_compare(val.tzinfo, inferred_tz):
                         raise ValueError('Array must be all same time zone')
@@ -186,6 +190,7 @@ def datetime_to_datetime64(values: object[:]):
                 iresult[i] = _ts.value
                 check_dts_bounds(&_ts.dts)
             else:
+                found_naive = True
                 if inferred_tz is not None:
                     raise ValueError('Cannot mix tz-aware with '
                                      'tz-naive values')
@@ -1290,7 +1295,8 @@ def is_date_array_normalized(int64_t[:] stamps, object tz=None):
     cdef:
         Py_ssize_t i, n = len(stamps)
         ndarray[int64_t] trans
-        int64_t[:] deltas, pos
+        int64_t[:] deltas
+        intp_t[:] pos
         npy_datetimestruct dts
         int64_t local_val, delta
         str typ

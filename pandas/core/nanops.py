@@ -144,7 +144,9 @@ class bottleneck_switch(object):
 
 def _bn_ok_dtype(dt, name):
     # Bottleneck chokes on datetime64
-    if (not is_object_dtype(dt) and not is_datetime_or_timedelta_dtype(dt)):
+    if (not is_object_dtype(dt) and
+            not (is_datetime_or_timedelta_dtype(dt) or
+                 is_datetime64tz_dtype(dt))):
 
         # GH 15507
         # bottleneck does not properly upcast during the sum

@@ -4433,8 +4433,8 @@ class NDFrame(PandasObject, SelectionMixin):
               num_legs  num_wings
         dog          4          0
         hawk         2          2
-        >>> df.reindex_axis(['num_wings', 'num_legs', 'num_heads'],
-        ...                 axis='columns')
+        >>> df.reindex(['num_wings', 'num_legs', 'num_heads'],
+        ...            axis='columns')
               num_wings  num_legs  num_heads
         dog           0         4        NaN
         hawk          2         2        NaN
@@ -7352,7 +7352,7 @@ class NDFrame(PandasObject, SelectionMixin):
         4    5
         dtype: int64
 
-        >>> s.clip_upper(3)
+        >>> s.clip(upper=3)
         0    1
         1    2
         2    3
@@ -7360,11 +7360,11 @@ class NDFrame(PandasObject, SelectionMixin):
         4    3
         dtype: int64
 
-        >>> t = [5, 4, 3, 2, 1]
-        >>> t
+        >>> elemwise_thresholds = [5, 4, 3, 2, 1]
+        >>> elemwise_thresholds
         [5, 4, 3, 2, 1]
 
-        >>> s.clip_upper(t)
+        >>> s.clip(upper=elemwise_thresholds)
         0    1
         1    2
         2    3
@@ -7428,7 +7428,7 @@ class NDFrame(PandasObject, SelectionMixin):
         Series single threshold clipping:
 
         >>> s = pd.Series([5, 6, 7, 8, 9])
-        >>> s.clip_lower(8)
+        >>> s.clip(lower=8)
         0    8
         1    8
         2    8
@@ -7440,7 +7440,7 @@ class NDFrame(PandasObject, SelectionMixin):
         should be the same length as the Series.
 
         >>> elemwise_thresholds = [4, 8, 7, 2, 5]
-        >>> s.clip_lower(elemwise_thresholds)
+        >>> s.clip(lower=elemwise_thresholds)
         0    5
         1    8
         2    7
@@ -7457,7 +7457,7 @@ class NDFrame(PandasObject, SelectionMixin):
         1  3  4
         2  5  6
 
-        >>> df.clip_lower(3)
+        >>> df.clip(lower=3)
            A  B
         0  3  3
         1  3  4
@@ -7466,7 +7466,7 @@ class NDFrame(PandasObject, SelectionMixin):
         Or to an array of values. By default, `threshold` should be the same
         shape as the DataFrame.
 
-        >>> df.clip_lower(np.array([[3, 4], [2, 2], [6, 2]]))
+        >>> df.clip(lower=np.array([[3, 4], [2, 2], [6, 2]]))
            A  B
         0  3  4
         1  3  4
@@ -7476,13 +7476,13 @@ class NDFrame(PandasObject, SelectionMixin):
         `threshold` should be the same length as the axis specified by
         `axis`.
 
-        >>> df.clip_lower([3, 3, 5], axis='index')
+        >>> df.clip(lower=[3, 3, 5], axis='index')
            A  B
         0  3  3
         1  3  4
         2  5  6
 
-        >>> df.clip_lower([4, 5], axis='columns')
+        >>> df.clip(lower=[4, 5], axis='columns')
            A  B
         0  4  5
         1  4  5
@@ -8345,8 +8345,17 @@ class NDFrame(PandasObject, SelectionMixin):
         fill_value : scalar, default np.NaN
             Value to use for missing values. Defaults to NaN, but can be any
             "compatible" value
-        method : str, default None
+        method : {'backfill', 'bfill', 'pad', 'ffill', None}, default None
+            Method to use for filling holes in reindexed Series
+            pad / ffill: propagate last valid observation forward to next valid
+            backfill / bfill: use NEXT valid observation to fill gap
         limit : int, default None
+            If method is specified, this is the maximum number of consecutive
+            NaN values to forward/backward fill. In other words, if there is
+            a gap with more than this number of consecutive NaNs, it will only
+            be partially filled. If method is not specified, this is the
+            maximum number of entries along the entire axis where NaNs will be
+            filled. Must be greater than 0 if not None.
         fill_axis : %(axes_single_arg)s, default 0
             Filling axis, method and limit
         broadcast_axis : %(axes_single_arg)s, default None
@@ -9217,13 +9226,16 @@ class NDFrame(PandasObject, SelectionMixin):
             ax = _tz_convert(ax, tz)
 
         result = self._constructor(self._data, copy=copy)
-        result.set_axis(ax, axis=axis, inplace=True)
+        result = result.set_axis(ax, axis=axis, inplace=False)
         return result.__finalize__(self)
 
     def tz_localize(self, tz, axis=0, level=None, copy=True,
                     ambiguous='raise', nonexistent='raise'):
         """
-        Localize tz-naive TimeSeries to target time zone.
+        Localize tz-naive index of a Series or DataFrame to target time zone.
+
+        This operation localizes the Index. To localize the values in a
+        timezone-naive Series, use :meth:`Series.dt.tz_localize`.
 
         Parameters
         ----------
@@ -9250,10 +9262,9 @@ class NDFrame(PandasObject, SelectionMixin):
             - 'NaT' will return NaT where there are ambiguous times
             - 'raise' will raise an AmbiguousTimeError if there are ambiguous
               times
-        nonexistent : 'shift_forward', 'shift_backward, 'NaT', timedelta,
-                      default 'raise'
+        nonexistent : str, default 'raise'
             A nonexistent time does not exist in a particular timezone
-            where clocks moved forward due to DST.
+            where clocks moved forward due to DST. Valid valuse are:
 
             - 'shift_forward' will shift the nonexistent time forward to the
               closest existing time
@@ -9268,6 +9279,8 @@ class NDFrame(PandasObject, SelectionMixin):
 
         Returns
         -------
+        Series or DataFrame
+            Same type as the input.
 
         Raises
         ------
@@ -9377,7 +9390,7 @@ class NDFrame(PandasObject, SelectionMixin):
             ax = _tz_localize(ax, tz, ambiguous, nonexistent)
 
         result = self._constructor(self._data, copy=copy)
-        result.set_axis(ax, axis=axis, inplace=True)
+        result = result.set_axis(ax, axis=axis, inplace=False)
         return result.__finalize__(self)
 
     # ----------------------------------------------------------------------

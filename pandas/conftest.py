@@ -1,6 +1,5 @@
 from datetime import date, time, timedelta
 from decimal import Decimal
-import importlib
 import os
 
 from dateutil.tz import tzlocal, tzutc
@@ -635,20 +634,6 @@ def any_skipna_inferred_dtype(request):
 
     # correctness of inference tested in tests/dtypes/test_inference.py
     return inferred_dtype, values
-
-
-@pytest.fixture
-def mock():
-    """
-    Fixture providing the 'mock' module.
-
-    Uses 'unittest.mock' for Python 3. Attempts to import the 3rd party 'mock'
-    package for Python 2, skipping if not present.
-    """
-    if PY3:
-        return importlib.import_module("unittest.mock")
-    else:
-        return pytest.importorskip("mock")
 
 
 @pytest.fixture(params=[getattr(pd.offsets, o) for o in pd.offsets.__all__ if

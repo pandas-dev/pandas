@@ -310,6 +310,13 @@ class TestCategoricalAPI(object):
         result = c.set_categories(new_categories, ordered=ordered)
         tm.assert_categorical_equal(result, expected)
 
+    def test_set_categories_rename_less(self):
+        # GH 24675
+        cat = Categorical(['A', 'B'])
+        result = cat.set_categories(['A'], rename=True)
+        expected = Categorical(['A', np.nan])
+        tm.assert_categorical_equal(result, expected)
+
     def test_set_categories_private(self):
         cat = Categorical(['a', 'b', 'c'], categories=['a', 'b', 'c', 'd'])
         cat._set_categories(['a', 'c', 'd', 'e'])

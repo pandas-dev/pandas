@@ -4,7 +4,7 @@ Tests for offsets.Tick and subclasses
 """
 from datetime import datetime, timedelta
 
-from hypothesis import assume, example, given, strategies as st
+from hypothesis import assume, example, given, settings, strategies as st
 import numpy as np
 import pytest
 
@@ -38,6 +38,7 @@ def test_delta_to_tick():
 
 
 @pytest.mark.parametrize('cls', tick_classes)
+@settings(deadline=None)  # GH 24641
 @example(n=2, m=3)
 @example(n=800, m=300)
 @example(n=1000, m=5)
