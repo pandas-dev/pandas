@@ -143,7 +143,7 @@ class TestDataFrameAlterAxes():
 
     # MultiIndex constructor does not work directly on Series -> lambda
     # also test index name if append=True (name is duplicate here for A & B)
-    @pytest.mark.parametrize('box', [Series, Index, np.array,
+    @pytest.mark.parametrize('box', [Series, Index, np.array, list,
                                      lambda x: MultiIndex.from_arrays([x])])
     @pytest.mark.parametrize('append, index_name',
                              [(True, None), (True, 'A'), (True, 'B'),
@@ -156,9 +156,13 @@ class TestDataFrameAlterAxes():
 
         keys = ['A', box(df['B'])]
         # np.array "forgets" the name of B
-        names = ['A', None if box in [np.array] else 'B']
+        names = ['A', None if box in [list, np.array] else 'B']
 
-        result = df.set_index(keys, drop=drop, append=append)
+        if box == list:
+            with tm.assert_produces_warning(FutureWarning):
+                result = df.set_index(keys, drop=drop, append=append)
+        else:
+            result = df.set_index(keys, drop=drop, append=append)
 
         # only valid column keys are dropped
         # since B is always passed as array above, only A is dropped, if at all
@@ -171,10 +175,10 @@ class TestDataFrameAlterAxes():
     # MultiIndex constructor does not work directly on Series -> lambda
     # We also emulate a "constructor" for the label -> lambda
     # also test index name if append=True (name is duplicate here for A)
-    @pytest.mark.parametrize('box2', [Series, Index, np.array,
+    @pytest.mark.parametrize('box2', [Series, Index, np.array, list,
                                       lambda x: MultiIndex.from_arrays([x]),
                                       lambda x: x.name])
-    @pytest.mark.parametrize('box1', [Series, Index, np.array,
+    @pytest.mark.parametrize('box1', [Series, Index, np.array, list,
                                       lambda x: MultiIndex.from_arrays([x]),
                                       lambda x: x.name])
     @pytest.mark.parametrize('append, index_name', [(True, None),
@@ -186,7 +190,12 @@ class TestDataFrameAlterAxes():
         df.index.name = index_name
 
         keys = [box1(df['A']), box2(df['A'])]
-        result = df.set_index(keys, drop=drop, append=append)
+
+        if box1 == list or box2 == list:
+            with tm.assert_produces_warning(FutureWarning):
+                result = df.set_index(keys, drop=drop, append=append)
+        else:
+            result = df.set_index(keys, drop=drop, append=append)
 
         # need to adapt first drop for case that both keys are 'A' --
         # cannot drop the same column twice;
@@ -194,9 +203,18 @@ class TestDataFrameAlterAxes():
         first_drop = False if (keys[0] is 'A' and keys[1] is 'A') else drop
 
         # to test against already-tested behaviour, we add sequentially,
-        # hence second append always True
-        expected = df.set_index(keys[0], drop=first_drop, append=append)
-        expected = expected.set_index(keys[1], drop=drop, append=True)
+        # hence second append always True; must wrap keys in list, otherwise
+        # box = list would be interpreted as keys
+        if box1 == list or box2 == list:
+            with tm.assert_produces_warning(FutureWarning):
+                expected = df.set_index([keys[0]], drop=first_drop,
+                                        append=append)
+                expected = expected.set_index([keys[1]], drop=drop,
+                                              append=True)
+        else:
+            expected = df.set_index([keys[0]], drop=first_drop, append=append)
+            expected = expected.set_index([keys[1]], drop=drop, append=True)
+
         tm.assert_frame_equal(result, expected)
 
     @pytest.mark.parametrize('append', [True, False])

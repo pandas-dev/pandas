@@ -4139,20 +4139,27 @@ class DataFrame(NDFrame):
             raise ValueError(err_msg)
 
         missing = []
+        depr_warn = False
         for col in keys:
             if (is_scalar(col) or isinstance(col, tuple)) and col in self:
                 # if col is a valid column key, everything is fine
                 continue
             elif is_scalar(col) and col not in self:
-                # tuples that are not keys will be are excluded here;
-                # will be considered list-like, not missing
+                # tuples that are not keys are not considered missing,
+                # but as an illegal list-like
                 missing.append(col)
+            elif isinstance(col, list):
+                depr_warn = True
             elif (not isinstance(col, (ABCIndexClass, ABCSeries, np.ndarray))
                   or getattr(col, 'ndim', 1) > 1):
                 raise ValueError(err_msg)
 
         if missing:
             raise KeyError('{}'.format(missing))
+        if depr_warn:
+            msg = ('passing lists within a list to the parameter "keys" is '
+                   'deprecated and will be removed in a future version.')
+            warnings.warn(msg, FutureWarning, stacklevel=2)
 
         if inplace:
             frame = self

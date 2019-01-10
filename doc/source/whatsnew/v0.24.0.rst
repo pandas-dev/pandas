@@ -1251,7 +1251,7 @@ Other API Changes
 - :class:`pandas.io.formats.style.Styler` supports a ``number-format`` property when using :meth:`~pandas.io.formats.style.Styler.to_excel` (:issue:`22015`)
 - :meth:`DataFrame.corr` and :meth:`Series.corr` now raise a ``ValueError`` along with a helpful error message instead of a ``KeyError`` when supplied with an invalid method (:issue:`22298`)
 - :meth:`shift` will now always return a copy, instead of the previous behaviour of returning self when shifting by 0 (:issue:`22397`)
-- :meth:`DataFrame.set_index` now allows all one-dimensional list-likes, raises a ``TypeError`` for incorrect types,
+- :meth:`DataFrame.set_index` now gives a better (and less frequent) KeyError, and raises a ``ValueError`` for incorrect types,
   has an improved ``KeyError`` message, and will not fail on duplicate column names with ``drop=True``. (:issue:`22484`)
 - Slicing a single row of a DataFrame with multiple ExtensionArrays of the same type now preserves the dtype, rather than coercing to object (:issue:`22784`)
 - :class:`DateOffset` attribute `_cacheable` and method `_should_cache` have been removed (:issue:`23118`)
@@ -1309,6 +1309,7 @@ Deprecations
 - In :meth:`Series.where` with Categorical data, providing an ``other`` that is not present in the categories is deprecated. Convert the categorical to a different dtype or add the ``other`` to the categories first (:issue:`24077`).
 - :meth:`Series.clip_lower`, :meth:`Series.clip_upper`, :meth:`DataFrame.clip_lower` and :meth:`DataFrame.clip_upper` are deprecated and will be removed in a future version. Use ``Series.clip(lower=threshold)``, ``Series.clip(upper=threshold)`` and the equivalent ``DataFrame`` methods (:issue:`24203`)
 - :meth:`Series.nonzero` is deprecated and will be removed in a future version (:issue:`18262`)
+- :meth:`DataFrame.set_index` has deprecated using lists of values *within* lists. It remains possible to pass array-likes, both directly and within a list.
 
 .. _whatsnew_0240.deprecations.datetimelike_int_ops:
 
