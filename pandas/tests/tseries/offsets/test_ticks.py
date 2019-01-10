@@ -59,6 +59,7 @@ def test_tick_add_sub(cls, n, m):
 
 
 @pytest.mark.parametrize('cls', tick_classes)
+@settings(deadline=None)
 @example(n=2, m=3)
 @given(n=st.integers(-999, 999), m=st.integers(-999, 999))
 def test_tick_equality(cls, n, m):

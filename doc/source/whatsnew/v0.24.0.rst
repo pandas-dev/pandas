@@ -1310,6 +1310,7 @@ Deprecations
 - :meth:`Series.clip_lower`, :meth:`Series.clip_upper`, :meth:`DataFrame.clip_lower` and :meth:`DataFrame.clip_upper` are deprecated and will be removed in a future version. Use ``Series.clip(lower=threshold)``, ``Series.clip(upper=threshold)`` and the equivalent ``DataFrame`` methods (:issue:`24203`)
 - :meth:`Series.nonzero` is deprecated and will be removed in a future version (:issue:`18262`)
 - :meth:`DataFrame.set_index` has deprecated using lists of values *within* lists. It remains possible to pass array-likes, both directly and within a list.
+- Passing an integer to :meth:`Series.fillna` and :meth:`DataFrame.fillna` with ``timedelta64[ns]`` dtypes is deprecated, will raise ``TypeError`` in a future version.  Use ``obj.fillna(pd.Timedelta(...))` instead (:issue:`24694`)
 
 .. _whatsnew_0240.deprecations.datetimelike_int_ops:
 
