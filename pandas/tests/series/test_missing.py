@@ -17,7 +17,7 @@ import pandas.util._test_decorators as td
 import pandas as pd
 from pandas import (
     Categorical, DataFrame, Index, IntervalIndex, MultiIndex, NaT, Series,
-    Timestamp, date_range, isna)
+    Timedelta, Timestamp, date_range, isna)
 from pandas.core.series import remove_na
 import pandas.util.testing as tm
 from pandas.util.testing import assert_frame_equal, assert_series_equal
@@ -70,9 +70,10 @@ class TestSeriesMissingData():
                            timedelta(days=1, seconds=9 * 3600 + 60 + 1)])
         assert_series_equal(result, expected)
 
-        # interprested as seconds
+        # interprested as nanoseconds
         result = td.fillna(1)
-        expected = Series([timedelta(seconds=1), timedelta(0), timedelta(1),
+        expected = Series([Timedelta(nanoseconds=1),
+                           timedelta(0), timedelta(1),
                            timedelta(days=1, seconds=9 * 3600 + 60 + 1)])
         assert_series_equal(result, expected)
 
