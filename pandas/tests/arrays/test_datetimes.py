@@ -16,6 +16,16 @@ import pandas.util.testing as tm
 
 
 class TestDatetimeArrayConstructor(object):
+    def test_freq_validation(self):
+        # GH#24623 check that invalid instances cannot be created with the
+        #  public constructor
+        arr = np.arange(5, dtype=np.int64) * 3600 * 10**9
+
+        msg = ("Inferred frequency H from passed values does not "
+               "conform to passed frequency W-SUN")
+        with pytest.raises(ValueError, match=msg):
+            DatetimeArray(arr, freq="W")
+
     @pytest.mark.parametrize('meth', [DatetimeArray._from_sequence,
                                       sequence_to_dt64ns,
                                       pd.to_datetime,

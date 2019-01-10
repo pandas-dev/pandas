@@ -606,7 +606,7 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin,
 
     def copy(self, deep=False):
         values = self.asi8.copy()
-        return type(self)(values, dtype=self.dtype, freq=self.freq)
+        return type(self)._simple_new(values, dtype=self.dtype, freq=self.freq)
 
     def _values_for_factorize(self):
         return self.asi8, iNaT
