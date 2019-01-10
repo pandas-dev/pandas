@@ -329,13 +329,15 @@ class DatetimeArray(dtl.DatetimeLikeArrayMixin,
     @classmethod
     def _from_sequence(cls, data, dtype=None, copy=False,
                        tz=None, freq=None,
-                       dayfirst=False, yearfirst=False, ambiguous='raise'):
+                       dayfirst=False, yearfirst=False, ambiguous='raise',
+                       int_as_wall_time=False):
 
         freq, freq_infer = dtl.maybe_infer_freq(freq)
 
         subarr, tz, inferred_freq = sequence_to_dt64ns(
             data, dtype=dtype, copy=copy, tz=tz,
-            dayfirst=dayfirst, yearfirst=yearfirst, ambiguous=ambiguous)
+            dayfirst=dayfirst, yearfirst=yearfirst,
+            ambiguous=ambiguous, int_as_wall_time=int_as_wall_time)
 
         freq, freq_infer = dtl.validate_inferred_freq(freq, inferred_freq,
                                                       freq_infer)
@@ -1634,9 +1636,11 @@ DatetimeArray._add_comparison_ops()
 # -------------------------------------------------------------------
 # Constructor Helpers
 
+
 def sequence_to_dt64ns(data, dtype=None, copy=False,
                        tz=None,
-                       dayfirst=False, yearfirst=False, ambiguous='raise'):
+                       dayfirst=False, yearfirst=False, ambiguous='raise',
+                       int_as_wall_time=False):
     """
     Parameters
     ----------
@@ -1662,7 +1666,6 @@ def sequence_to_dt64ns(data, dtype=None, copy=False,
     ------
     TypeError : PeriodDType data is passed
     """
-
     inferred_freq = None
 
     dtype = _validate_dt64_dtype(dtype)
@@ -1733,6 +1736,12 @@ def sequence_to_dt64ns(data, dtype=None, copy=False,
         # assume this data are epoch timestamps
         if data.dtype != _INT64_DTYPE:
             data = data.astype(np.int64, copy=False)
+        if int_as_wall_time and tz is not None:
+            warnings.warn("test", FutureWarning)
+            tz = timezones.maybe_get_tz(tz)
+            data = conversion.tz_localize_to_utc(data.view('i8'), tz,
+                                                 ambiguous=ambiguous)
+            data = data.view(_NS_DTYPE)
         result = data.view(_NS_DTYPE)
 
     if copy:
