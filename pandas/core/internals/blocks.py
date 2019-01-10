@@ -599,6 +599,7 @@ class Block(PandasObject):
                 return self.copy()
             return self
 
+        klass = None
         if is_sparse(self.values):
             # special case sparse, Series[Sparse].astype(object) is sparse
             klass = ExtensionBlock
