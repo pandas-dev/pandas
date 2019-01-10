@@ -117,7 +117,7 @@ class TestDataFrameAlterAxes():
     # MultiIndex constructor does not work directly on Series -> lambda
     # Add list-of-list constructor because list is ambiguous -> lambda
     # also test index name if append=True (name is duplicate here for B)
-    @pytest.mark.parametrize('box', [Series, Index, np.array,
+    @pytest.mark.parametrize('box', [Series, Index, np.array, list,
                                      lambda x: MultiIndex.from_arrays([x])])
     @pytest.mark.parametrize('append, index_name', [(True, None),
                              (True, 'B'), (True, 'test'), (False, None)])
@@ -128,18 +128,24 @@ class TestDataFrameAlterAxes():
         df.index.name = index_name
 
         key = box(df['B'])
-        # np.array "forgets" the name of B
-        name_mi = getattr(key, 'names', None)
-        name = [getattr(key, 'name', None)] if name_mi is None else name_mi
+        if box == list:
+            # list of strings gets interpreted as list of keys
+            msg = "['one', 'two', 'three', 'one', 'two']"
+            with pytest.raises(KeyError, match=msg):
+                df.set_index(key, drop=drop, append=append)
+        else:
+            # np.array "forgets" the name of B
+            name_mi = getattr(key, 'names', None)
+            name = [getattr(key, 'name', None)] if name_mi is None else name_mi
 
-        result = df.set_index(key, drop=drop, append=append)
+            result = df.set_index(key, drop=drop, append=append)
 
-        # only valid column keys are dropped
-        # since B is always passed as array above, nothing is dropped
-        expected = df.set_index(['B'], drop=False, append=append)
-        expected.index.names = [index_name] + name if append else name
+            # only valid column keys are dropped
+            # since B is always passed as array above, nothing is dropped
+            expected = df.set_index(['B'], drop=False, append=append)
+            expected.index.names = [index_name] + name if append else name
 
-        tm.assert_frame_equal(result, expected)
+            tm.assert_frame_equal(result, expected)
 
     # MultiIndex constructor does not work directly on Series -> lambda
     # also test index name if append=True (name is duplicate here for A & B)
