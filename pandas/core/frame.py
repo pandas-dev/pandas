@@ -7390,7 +7390,9 @@ class DataFrame(NDFrame):
             return op(x, axis=axis, skipna=skipna, **kwds)
 
         # exclude timedelta/datetime unless we are uniform types
-        if axis == 1 and self._is_mixed_type and self._is_datelike_mixed_type:
+        if (axis == 1 and self._is_datelike_mixed_type
+                and (self._is_mixed_type
+                     and not self._is_all_same_datetimetz_types)):
             numeric_only = True
 
         if numeric_only is None:
