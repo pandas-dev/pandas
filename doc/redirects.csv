@@ -1,0 +1,23 @@
+# This file should contain all the redirects in the documentation
+# in the format `<old_path>,<new_path>`
+
+# user guide
+advanced,user_guide/advanced
+categorical,user_guide/categorical
+computation,user_guide/computation
+enhancingperf,user_guide/enhancingperf
+gotchas,user_guide/gotchas
+groupby,user_guide/groupby
+indexing,user_guide/indexing
+integer_na,user_guide/integer_na
+io,user_guide/io
+merging,user_guide/merging
+missing_data,user_guide/missing_data
+options,user_guide/options
+reshaping,user_guide/reshaping
+sparse,user_guide/sparse
+style,user_guide/style
+text,user_guide/text
+timedeltas,user_guide/timedeltas
+timeseries,user_guide/timeseries
+visualization,user_guide/visualization

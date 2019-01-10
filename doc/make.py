@@ -15,15 +15,19 @@ import importlib
 import sys
 import os
 import shutil
+import csv
 import subprocess
 import argparse
 import webbrowser
+import docutils
+import docutils.parsers.rst
 
 
 DOC_PATH = os.path.dirname(os.path.abspath(__file__))
 SOURCE_PATH = os.path.join(DOC_PATH, 'source')
 BUILD_PATH = os.path.join(DOC_PATH, 'build')
-BUILD_DIRS = ['doctrees', 'html', 'latex', 'plots', '_static', '_templates']
+REDIRECTS_FILE = os.path.join(DOC_PATH, 'redirects.csv')
+BASE_REDIRECT_URL = 'https://pandas.pydata.org/pandas-docs/stable/'
 
 
 class DocBuilder:
@@ -139,6 +143,72 @@ class DocBuilder:
                            single_doc_html)
         webbrowser.open(url, new=2)
 
+    def _get_page_title(self, page):
+        """
+        Open the rst file `page` and extract its title.
+        """
+        fname = os.path.join(SOURCE_PATH, '{}.rst'.format(page))
+        option_parser = docutils.frontend.OptionParser(
+            components=(docutils.parsers.rst.Parser,))
+        doc = docutils.utils.new_document(
+            '<doc>',
+            option_parser.get_default_values())
+        with open(fname) as f:
+            data = f.read()
+
+        parser = docutils.parsers.rst.Parser()
+        # do not generate any warning when parsing the rst
+        with open(os.devnull, 'a') as f:
+            doc.reporter.stream = f
+            parser.parse(data, doc)
+
+        section = next(node for node in doc.children
+                       if isinstance(node, docutils.nodes.section))
+        title = next(node for node in section.children
+                     if isinstance(node, docutils.nodes.title))
+
+        return title.astext()
+
+    def _add_redirects(self):
+        """
+        Create in the build directory an html file with a redirect,
+        for every row in REDIRECTS_FILE.
+        """
+        html = '''
+        <html>
+            <head>
+                <meta http-equiv="refresh" content="0;URL={url}"/>
+            </head>
+            <body>
+                <p>
+                    The page has been moved to <a href="{url}">{title}</a>
+                </p>
+            </body>
+        <html>
+        '''
+        with open(REDIRECTS_FILE) as mapping_fd:
+            reader = csv.reader(mapping_fd)
+            for row in reader:
+                if not row or row[0].strip().startswith('#'):
+                    continue
+
+                path = os.path.join(BUILD_PATH,
+                                    'html',
+                                    *row[0].split('/')) + '.html'
+
+                try:
+                    title = self._get_page_title(row[1])
+                except Exception:
+                    # the file can be an ipynb and not an rst, or docutils
+                    # may not be able to read the rst because it has some
+                    # sphinx specific stuff
+                    title = 'this page'
+
+                with open(path, 'w') as redirects_fd:
+                    redirects_fd.write(html.format(
+                        url='{}{}.html'.format(BASE_REDIRECT_URL, row[1]),
+                        title=title))
+
     def html(self):
         """
         Build HTML documentation.
@@ -150,6 +220,8 @@ class DocBuilder:
 
         if self.single_doc_html is not None:
             self._open_browser(self.single_doc_html)
+        else:
+            self._add_redirects()
         return ret_code
 
     def latex(self, force=False):
