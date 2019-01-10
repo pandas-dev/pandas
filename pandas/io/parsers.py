@@ -2545,7 +2545,7 @@ class PythonParser(ParserBase):
 
                         while cur_count > 0:
                             counts[col] = cur_count + 1
-                            col = "{column}.{count}".format(
+                            col = u'{column}.{count}'.format(
                                 column=col, count=cur_count)
                             cur_count = counts[col]
 
