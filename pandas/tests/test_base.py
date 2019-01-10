@@ -1037,7 +1037,7 @@ class TestToIterable(object):
             lambda x: list(x.__iter__()),
         ], ids=['tolist', 'to_list', 'list', 'iter'])
     @pytest.mark.parametrize('typ', [Series, Index])
-    @pytest.mark.filterwarnings("ignore::FutureWarning")
+    @pytest.mark.filterwarnings("ignore:Passing integer:FutureWarning")
     def test_iterable(self, typ, method, dtype, rdtype):
         # gh-10904
         # gh-13258
@@ -1090,6 +1090,7 @@ class TestToIterable(object):
             ('object', (int, long)),
             ('category', (int, long))])
     @pytest.mark.parametrize('typ', [Series, Index])
+    @pytest.mark.filterwarnings("ignore:Passing integer:FutureWarning")
     def test_iterable_map(self, typ, dtype, rdtype):
         # gh-13236
         # coerce iteration to underlying python / pandas types

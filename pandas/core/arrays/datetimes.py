@@ -33,20 +33,22 @@ from pandas.tseries.frequencies import get_period_alias, to_offset
 from pandas.tseries.offsets import Day, Tick
 
 _midnight = time(0, 0)
-_i8_message = (
-    "Passing integer-dtype data and a timezone to DatetimeIndex.\n"
-    "Integer values will be interpreted differently in a future version \n"
-    "of pandas. Previously, these were viewed as datetime64[ns] values, \n"
-    "representing the wall time *in the specified timezone*. \n"
-    "In the future, these will be viewed as datetime64[ns] values \n"
-    "representing the wall time *in UTC*. This is similar to a \n"
-    "nanosecond-precision UNIX epoch.\n\n"
-    "To accept the future behavior, use\n\n"
-    "\tpd.to_datetime(integer_data, utc=True).tz_convert(tz) "
-    "\n\n"
-    "To keep the previous behavior, use \n\n"
-    "\tpd.to_datetime(integer_data).tz_localize(tz)"
-)
+_i8_message = """
+    Passing integer-dtype data and a timezone to DatetimeIndex.
+    Integer values will be interpreted differently in a future version
+    of pandas. Previously, these were viewed as datetime64[ns] values
+    representing the wall time *in the specified timezone*.
+    In the future, these will be viewed as datetime64[ns] values
+    representing the wall time *in UTC*. This is similar to a
+    nanosecond-precision UNIX epoch.
+    To accept the future behavior, use
+
+        pd.to_datetime(integer_data, utc=True).tz_convert(tz)
+
+    To keep the previous behavior, use
+
+        pd.to_datetime(integer_data).tz_localize(tz)
+"""
 
 
 def tz_to_dtype(tz):
@@ -1752,10 +1754,12 @@ def sequence_to_dt64ns(data, dtype=None, copy=False,
     else:
         # must be integer dtype otherwise
         # assume this data are epoch timestamps
+        if tz:
+            tz = timezones.maybe_get_tz(tz)
+
         if data.dtype != _INT64_DTYPE:
             data = data.astype(np.int64, copy=False)
-        if int_as_wall_time and tz is not None:
-            tz = timezones.maybe_get_tz(tz)
+        if int_as_wall_time and tz is not None and not timezones.is_utc(tz):
             warnings.warn(_i8_message, FutureWarning, stacklevel=4)
             data = conversion.tz_localize_to_utc(data.view('i8'), tz,
                                                  ambiguous=ambiguous)

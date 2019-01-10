@@ -407,7 +407,8 @@ class TestIndex(Base):
         index = index.tz_localize(tz_naive_fixture)
         dtype = index.dtype
 
-        if tz_naive_fixture and attr == "asi8":
+        if (tz_naive_fixture and attr == "asi8" and
+                str(tz_naive_fixture) not in ('UTC', 'tzutc()')):
             ex_warn = FutureWarning
         else:
             ex_warn = None
