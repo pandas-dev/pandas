@@ -534,7 +534,7 @@ class Block(PandasObject):
                             **kwargs)
 
     def _astype(self, dtype, copy=False, errors='raise', values=None,
-                klass=None, **kwargs):
+                **kwargs):
         """Coerce to the new type
 
         Parameters
@@ -599,14 +599,14 @@ class Block(PandasObject):
                 return self.copy()
             return self
 
-        if klass is None:
-            if is_sparse(self.values):
-                # special case sparse, Series[Sparse].astype(object) is sparse
-                klass = ExtensionBlock
-            elif is_object_dtype(dtype):
-                klass = ObjectBlock
-            elif is_extension_array_dtype(dtype):
-                klass = ExtensionBlock
+        klass = None
+        if is_sparse(self.values):
+            # special case sparse, Series[Sparse].astype(object) is sparse
+            klass = ExtensionBlock
+        elif is_object_dtype(dtype):
+            klass = ObjectBlock
+        elif is_extension_array_dtype(dtype):
+            klass = ExtensionBlock
 
         try:
             # force the copy here
