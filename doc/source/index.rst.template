@@ -161,5 +161,5 @@ See the package overview for more detail about what's in the library.
     {% endif -%}
     {% if not single_doc -%}
     development/index
-    releases
+    whatsnew/index
     {% endif -%}

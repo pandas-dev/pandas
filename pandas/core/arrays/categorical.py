@@ -852,9 +852,9 @@ class Categorical(ExtensionArray, PandasObject):
             if (cat.dtype.categories is not None and
                     len(new_dtype.categories) < len(cat.dtype.categories)):
                 # remove all _codes which are larger and set to -1/NaN
-                self._codes[self._codes >= len(new_dtype.categories)] = -1
+                cat._codes[cat._codes >= len(new_dtype.categories)] = -1
         else:
-            codes = _recode_for_categories(self.codes, self.categories,
+            codes = _recode_for_categories(cat.codes, cat.categories,
                                            new_dtype.categories)
             cat._codes = codes
         cat._dtype = new_dtype

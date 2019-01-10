@@ -306,16 +306,6 @@ class TestDatetimeIndex(object):
         tm.assert_index_equal(result, exp, exact=True)
         assert isinstance(result, DatetimeIndex)
 
-        # different tz coerces tz-naive to tz-awareIndex(dtype=object)
-        result = DatetimeIndex([Timestamp('2011-01-01 10:00'),
-                                Timestamp('2011-01-02 10:00',
-                                          tz='US/Eastern')], name='idx')
-        exp = DatetimeIndex([Timestamp('2011-01-01 05:00'),
-                             Timestamp('2011-01-02 10:00')],
-                            tz='US/Eastern', name='idx')
-        tm.assert_index_equal(result, exp, exact=True)
-        assert isinstance(result, DatetimeIndex)
-
         # tz mismatch affecting to tz-aware raises TypeError/ValueError
 
         with pytest.raises(ValueError):
@@ -323,7 +313,8 @@ class TestDatetimeIndex(object):
                            Timestamp('2011-01-02 10:00', tz='US/Eastern')],
                           name='idx')
 
-        with pytest.raises(TypeError, match='data is already tz-aware'):
+        msg = 'cannot be converted to datetime64'
+        with pytest.raises(ValueError, match=msg):
             DatetimeIndex([Timestamp('2011-01-01 10:00'),
                            Timestamp('2011-01-02 10:00', tz='US/Eastern')],
                           tz='Asia/Tokyo', name='idx')
@@ -333,7 +324,7 @@ class TestDatetimeIndex(object):
                            Timestamp('2011-01-02 10:00', tz='US/Eastern')],
                           tz='US/Eastern', name='idx')
 
-        with pytest.raises(TypeError, match='data is already tz-aware'):
+        with pytest.raises(ValueError, match=msg):
             # passing tz should results in DatetimeIndex, then mismatch raises
             # TypeError
             Index([pd.NaT, Timestamp('2011-01-01 10:00'),

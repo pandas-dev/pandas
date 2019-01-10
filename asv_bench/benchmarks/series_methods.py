@@ -23,7 +23,7 @@ class SeriesConstructor(object):
 
 class IsIn(object):
 
-    params = ['int64', 'object']
+    params = ['int64', 'uint64', 'object']
     param_names = ['dtype']
 
     def setup(self, dtype):
@@ -150,7 +150,7 @@ class Clip(object):
 
 class ValueCounts(object):
 
-    params = ['int', 'float', 'object']
+    params = ['int', 'uint', 'float', 'object']
     param_names = ['dtype']
 
     def setup(self, dtype):
