@@ -398,10 +398,11 @@ class TestIndex(Base):
     @pytest.mark.parametrize("klass", [pd.Index, pd.DatetimeIndex])
     def test_constructor_dtypes_datetime(self, tz_naive_fixture, attr, utc,
                                          klass):
-        # TODO: update comment
         # Test constructing with a datetimetz dtype
         # .values produces numpy datetimes, so these are considered naive
         # .asi8 produces integers, so these are considered epoch timestamps
+        # ^the above will be true in a later version. Right now we `.view`
+        # the i8 values as NS_DTYPE, effectively treating them as wall times.
         index = pd.date_range('2011-01-01', periods=5)
         arg = getattr(index, attr)
         index = index.tz_localize(tz_naive_fixture)
@@ -413,6 +414,8 @@ class TestIndex(Base):
         else:
             ex_warn = None
 
+        # stacklevel is checked elsewhere. We don't do it here since
+        # Index will have an frame, throwing off the expected.
         with tm.assert_produces_warning(ex_warn, check_stacklevel=False):
             result = klass(arg, tz=tz_naive_fixture)
         tm.assert_index_equal(result, index)

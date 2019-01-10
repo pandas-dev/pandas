@@ -592,8 +592,9 @@ class TestDatetimeIndex(object):
         expected = klass([ts])
         assert result == expected
 
-    @pytest.mark.xfail(reason="TBD", strict=False)  # non-strict for tz-naive
-    @pytest.mark.filterwarnings("ignore:Passing integer:FutureWarning")
+    # This is the desired future behavior
+    @pytest.mark.xfail(reason="TBD", strict=False)
+    @pytest.mark.filterwarnings("ignore:\\n    Passing:FutureWarning")
     def test_construction_int_rountrip(self, tz_naive_fixture):
         # GH 12619
         tz = tz_naive_fixture
