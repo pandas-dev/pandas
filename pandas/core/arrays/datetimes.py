@@ -33,6 +33,20 @@ from pandas.tseries.frequencies import get_period_alias, to_offset
 from pandas.tseries.offsets import Day, Tick
 
 _midnight = time(0, 0)
+_i8_message = (
+    "Passing integer-dtype data and a timezone to DatetimeIndex.\n"
+    "Integer values will be interpreted differently in a future version \n"
+    "of pandas. Previously, these were viewed as datetime64[ns] values, \n"
+    "representing the wall time *in the specified timezone*. \n"
+    "In the future, these will be viewed as datetime64[ns] values \n"
+    "representing the wall time *in UTC*. This is similar to a \n"
+    "nanosecond-precision UNIX epoch.\n\n"
+    "To accept the future behavior, use\n\n"
+    "\tpd.to_datetime(integer_data, utc=True).tz_convert(tz) "
+    "\n\n"
+    "To keep the previous behavior, use \n\n"
+    "\tpd.to_datetime(integer_data).tz_localize(tz)"
+)
 
 
 def tz_to_dtype(tz):
@@ -1707,6 +1721,9 @@ def sequence_to_dt64ns(data, dtype=None, copy=False,
             data, inferred_tz = objects_to_datetime64ns(
                 data, dayfirst=dayfirst, yearfirst=yearfirst)
             tz = maybe_infer_tz(tz, inferred_tz)
+            # When a sequence of timestamp objects is passed, we always
+            # want to treat the (now i8-valued) data as UTC timestamps,
+            # not wall times.
             int_as_wall_time = False
 
     # `data` may have originally been a Categorical[datetime64[ns, tz]],
@@ -1738,8 +1755,8 @@ def sequence_to_dt64ns(data, dtype=None, copy=False,
         if data.dtype != _INT64_DTYPE:
             data = data.astype(np.int64, copy=False)
         if int_as_wall_time and tz is not None:
-            warnings.warn("test", FutureWarning)
             tz = timezones.maybe_get_tz(tz)
+            warnings.warn(_i8_message, FutureWarning, stacklevel=4)
             data = conversion.tz_localize_to_utc(data.view('i8'), tz,
                                                  ambiguous=ambiguous)
             data = data.view(_NS_DTYPE)

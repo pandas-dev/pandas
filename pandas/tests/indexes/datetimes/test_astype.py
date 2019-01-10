@@ -246,12 +246,12 @@ class TestDatetimeIndex(object):
         else:
             ex_warn = None
 
-        with tm.assert_produces_warning(ex_warn, check_stacklevel=False):
+        with tm.assert_produces_warning(ex_warn):
             # XXX: This likely shouldn't warn.
             # This raised on 0.24.x, so we can probably do the right thing
             # now.
             result = pd.Index(val).astype(dtype)
-        with tm.assert_produces_warning(ex_warn, check_stacklevel=False):
+        with tm.assert_produces_warning(ex_warn):
             expected = pd.DatetimeIndex(val, tz=tz)
         tm.assert_index_equal(result, expected)
 

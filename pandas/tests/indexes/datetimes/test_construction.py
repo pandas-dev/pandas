@@ -380,6 +380,13 @@ class TestDatetimeIndex(object):
         with tm.assert_produces_warning(FutureWarning):
             DatetimeIndex(start='1/1/2000', end='1/10/2000', freq='D')
 
+    def test_integer_values_and_tz_deprecated(self):
+        values = np.array([946684800000000000])
+        with tm.assert_produces_warning(FutureWarning):
+            result = DatetimeIndex(values, tz='US/Central')
+        expected = pd.DatetimeIndex(['2000-01-01T00:00:00'], tz="US/Central")
+        tm.assert_index_equal(result, expected)
+
     def test_constructor_coverage(self):
         rng = date_range('1/1/2000', periods=10.5)
         exp = date_range('1/1/2000', periods=10)
