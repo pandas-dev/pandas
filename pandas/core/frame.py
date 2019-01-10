@@ -4046,7 +4046,7 @@ class DataFrame(NDFrame):
 
         Parameters
         ----------
-        keys : label or array-like or list-like of labels/arrays
+        keys : label or array-like or list of labels/arrays
             This parameter can be either a single column key, a single array of
             the same length as the calling DataFrame, or a list containing an
             arbitrary combination of column keys and arrays. Here, "array"
