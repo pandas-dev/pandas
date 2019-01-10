@@ -34,14 +34,12 @@ from pandas.tseries.offsets import Day, Tick
 
 _midnight = time(0, 0)
 _i8_message = """
-    Passing integer-dtype data and a timezone to DatetimeIndex.
-    Integer values will be interpreted differently in a future version
-    of pandas. Previously, these were viewed as datetime64[ns] values
-    representing the wall time *in the specified timezone*.
-    In the future, these will be viewed as datetime64[ns] values
-    representing the wall time *in UTC*. This is similar to a
-    nanosecond-precision UNIX epoch.
-    To accept the future behavior, use
+    Passing integer-dtype data and a timezone to DatetimeIndex. Integer values
+    will be interpreted differently in a future version of pandas. Previously,
+    these were viewed as datetime64[ns] values representing the wall time
+    *in the specified timezone*. In the future, these will be viewed as
+    datetime64[ns] values representing the wall time *in UTC*. This is similar
+    to a nanosecond-precision UNIX epoch. To accept the future behavior, use
 
         pd.to_datetime(integer_data, utc=True).tz_convert(tz)
 
