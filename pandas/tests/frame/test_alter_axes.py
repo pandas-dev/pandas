@@ -118,7 +118,6 @@ class TestDataFrameAlterAxes():
     # Add list-of-list constructor because list is ambiguous -> lambda
     # also test index name if append=True (name is duplicate here for B)
     @pytest.mark.parametrize('box', [Series, Index, np.array,
-                                     list, tuple, iter, lambda x: [list(x)],
                                      lambda x: MultiIndex.from_arrays([x])])
     @pytest.mark.parametrize('append, index_name', [(True, None),
                              (True, 'B'), (True, 'test'), (False, None)])
@@ -129,29 +128,22 @@ class TestDataFrameAlterAxes():
         df.index.name = index_name
 
         key = box(df['B'])
-        if box == list:
-            # list of strings gets interpreted as list of keys
-            msg = "['one', 'two', 'three', 'one', 'two']"
-            with pytest.raises(KeyError, match=msg):
-                df.set_index(key, drop=drop, append=append)
-        else:
-            # np.array/tuple/iter/list-of-list "forget" the name of B
-            name_mi = getattr(key, 'names', None)
-            name = [getattr(key, 'name', None)] if name_mi is None else name_mi
+        # np.array "forgets" the name of B
+        name_mi = getattr(key, 'names', None)
+        name = [getattr(key, 'name', None)] if name_mi is None else name_mi
 
-            result = df.set_index(key, drop=drop, append=append)
+        result = df.set_index(key, drop=drop, append=append)
 
-            # only valid column keys are dropped
-            # since B is always passed as array above, nothing is dropped
-            expected = df.set_index(['B'], drop=False, append=append)
-            expected.index.names = [index_name] + name if append else name
+        # only valid column keys are dropped
+        # since B is always passed as array above, nothing is dropped
+        expected = df.set_index(['B'], drop=False, append=append)
+        expected.index.names = [index_name] + name if append else name
 
-            tm.assert_frame_equal(result, expected)
+        tm.assert_frame_equal(result, expected)
 
     # MultiIndex constructor does not work directly on Series -> lambda
     # also test index name if append=True (name is duplicate here for A & B)
     @pytest.mark.parametrize('box', [Series, Index, np.array,
-                                     list, tuple, iter,
                                      lambda x: MultiIndex.from_arrays([x])])
     @pytest.mark.parametrize('append, index_name',
                              [(True, None), (True, 'A'), (True, 'B'),
@@ -163,8 +155,8 @@ class TestDataFrameAlterAxes():
         df.index.name = index_name
 
         keys = ['A', box(df['B'])]
-        # np.array/list/tuple/iter "forget" the name of B
-        names = ['A', None if box in [np.array, list, tuple, iter] else 'B']
+        # np.array "forgets" the name of B
+        names = ['A', None if box in [np.array] else 'B']
 
         result = df.set_index(keys, drop=drop, append=append)
 
@@ -180,11 +172,9 @@ class TestDataFrameAlterAxes():
     # We also emulate a "constructor" for the label -> lambda
     # also test index name if append=True (name is duplicate here for A)
     @pytest.mark.parametrize('box2', [Series, Index, np.array,
-                                      list, tuple, iter,
                                       lambda x: MultiIndex.from_arrays([x]),
                                       lambda x: x.name])
     @pytest.mark.parametrize('box1', [Series, Index, np.array,
-                                      list, tuple, iter,
                                       lambda x: MultiIndex.from_arrays([x]),
                                       lambda x: x.name])
     @pytest.mark.parametrize('append, index_name', [(True, None),
@@ -198,19 +188,15 @@ class TestDataFrameAlterAxes():
         keys = [box1(df['A']), box2(df['A'])]
         result = df.set_index(keys, drop=drop, append=append)
 
-        # if either box was iter, the content has been consumed; re-read it
-        keys = [box1(df['A']), box2(df['A'])]
-
         # need to adapt first drop for case that both keys are 'A' --
         # cannot drop the same column twice;
         # use "is" because == would give ambiguous Boolean error for containers
         first_drop = False if (keys[0] is 'A' and keys[1] is 'A') else drop
 
         # to test against already-tested behaviour, we add sequentially,
-        # hence second append always True; must wrap keys in list, otherwise
-        # box = list would be illegal
-        expected = df.set_index([keys[0]], drop=first_drop, append=append)
-        expected = expected.set_index([keys[1]], drop=drop, append=True)
+        # hence second append always True
+        expected = df.set_index(keys[0], drop=first_drop, append=append)
+        expected = expected.set_index(keys[1], drop=drop, append=True)
         tm.assert_frame_equal(result, expected)
 
     @pytest.mark.parametrize('append', [True, False])
@@ -249,13 +235,13 @@ class TestDataFrameAlterAxes():
         with pytest.raises(KeyError, match='X'):
             df.set_index([df['A'], df['B'], 'X'], drop=drop, append=append)
 
-        msg = 'The parameter "keys" may only contain a combination of.*'
+        msg = 'The parameter "keys" may be a column key, .*'
         # forbidden type, e.g. set
-        with pytest.raises(TypeError, match=msg):
+        with pytest.raises(ValueError, match=msg):
             df.set_index(set(df['A']), drop=drop, append=append)
 
         # forbidden type in list, e.g. set
-        with pytest.raises(TypeError, match=msg):
+        with pytest.raises(ValueError, match=msg):
             df.set_index(['A', df['A'], set(df['A'])],
                          drop=drop, append=append)
 
