@@ -4149,7 +4149,7 @@ class DataFrame(NDFrame):
                 continue
             elif is_scalar(col) and col not in self:
                 # tuples that are not keys are not considered missing,
-                # but as an illegal list-like (see below)
+                # but illegal (see below)
                 missing.append(col)
             elif isinstance(col, list):
                 depr_warn = True
