@@ -1391,6 +1391,7 @@ def check_pinned_names(cls):
         "FrozenList": {
             "__add__": "union",
             "__iadd__": "union",
+            "__imul__": "__mul__",
         },
     }
     ignore = {
