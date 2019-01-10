@@ -398,27 +398,34 @@ class TestIndex(Base):
     @pytest.mark.parametrize("klass", [pd.Index, pd.DatetimeIndex])
     def test_constructor_dtypes_datetime(self, tz_naive_fixture, attr, utc,
                                          klass):
+        # TODO: update comment
         # Test constructing with a datetimetz dtype
         # .values produces numpy datetimes, so these are considered naive
         # .asi8 produces integers, so these are considered epoch timestamps
         index = pd.date_range('2011-01-01', periods=5)
         arg = getattr(index, attr)
-        if utc:
-            index = index.tz_localize('UTC').tz_convert(tz_naive_fixture)
-        else:
-            index = index.tz_localize(tz_naive_fixture)
+        index = index.tz_localize(tz_naive_fixture)
         dtype = index.dtype
 
-        result = klass(arg, tz=tz_naive_fixture)
+        if tz_naive_fixture and attr == "asi8":
+            ex_warn = FutureWarning
+        else:
+            ex_warn = None
+
+        with tm.assert_produces_warning(ex_warn, check_stacklevel=False):
+            result = klass(arg, tz=tz_naive_fixture)
         tm.assert_index_equal(result, index)
 
-        result = klass(arg, dtype=dtype)
+        with tm.assert_produces_warning(ex_warn, check_stacklevel=False):
+            result = klass(arg, dtype=dtype)
         tm.assert_index_equal(result, index)
 
-        result = klass(list(arg), tz=tz_naive_fixture)
+        with tm.assert_produces_warning(ex_warn, check_stacklevel=False):
+            result = klass(list(arg), tz=tz_naive_fixture)
         tm.assert_index_equal(result, index)
 
-        result = klass(list(arg), dtype=dtype)
+        with tm.assert_produces_warning(ex_warn, check_stacklevel=False):
+            result = klass(list(arg), dtype=dtype)
         tm.assert_index_equal(result, index)
 
     @pytest.mark.parametrize("attr", ['values', 'asi8'])

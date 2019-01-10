@@ -240,8 +240,19 @@ class TestDatetimeIndex(object):
     def test_integer_index_astype_datetime(self, tz, dtype):
         # GH 20997, 20964
         val = [pd.Timestamp('2018-01-01', tz=tz).value]
-        result = pd.Index(val).astype(dtype)
-        expected = pd.DatetimeIndex(['2018-01-01'], tz=tz)
+
+        if tz:
+            ex_warn = FutureWarning
+        else:
+            ex_warn = None
+
+        with tm.assert_produces_warning(ex_warn, check_stacklevel=False):
+            # XXX: This likely shouldn't warn.
+            # This raised on 0.24.x, so we can probably do the right thing
+            # now.
+            result = pd.Index(val).astype(dtype)
+        with tm.assert_produces_warning(ex_warn, check_stacklevel=False):
+            expected = pd.DatetimeIndex(val, tz=tz)
         tm.assert_index_equal(result, expected)
 
 

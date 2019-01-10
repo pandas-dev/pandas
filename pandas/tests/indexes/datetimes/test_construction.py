@@ -118,12 +118,15 @@ class TestDatetimeIndex(object):
         tz = tz_aware_fixture
         i = pd.date_range('20130101', periods=5, freq='H', tz=tz)
         kwargs = {key: attrgetter(val)(i) for key, val in kwargs.items()}
-        result = DatetimeIndex(i.tz_localize(None).asi8, **kwargs)
-        expected = i.tz_localize(None).tz_localize('UTC').tz_convert(tz)
+        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+            result = DatetimeIndex(i.tz_localize(None).asi8, **kwargs)
+        expected = DatetimeIndex(i, **kwargs)
+        # expected = i.tz_localize(None).tz_localize('UTC').tz_convert(tz)
         tm.assert_index_equal(result, expected)
 
         # localize into the provided tz
-        i2 = DatetimeIndex(i.tz_localize(None).asi8, tz='UTC')
+        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+            i2 = DatetimeIndex(i.tz_localize(None).asi8, tz='UTC')
         expected = i.tz_localize(None).tz_localize('UTC')
         tm.assert_index_equal(i2, expected)
 
@@ -559,8 +562,11 @@ class TestDatetimeIndex(object):
     @pytest.mark.parametrize('box', [
         np.array, partial(np.array, dtype=object), list])
     @pytest.mark.parametrize('tz, dtype', [
-        ['US/Pacific', 'datetime64[ns, US/Pacific]'],
-        [None, 'datetime64[ns]']])
+        pytest.param('US/Pacific', 'datetime64[ns, US/Pacific]',
+                     marks=[pytest.mark.xfail(),
+                            pytest.mark.filterwarnings("ignore")]),
+        [None, 'datetime64[ns]'],
+    ])
     def test_constructor_with_int_tz(self, klass, box, tz, dtype):
         # GH 20997, 20964
         ts = Timestamp('2018-01-01', tz=tz)
@@ -568,6 +574,8 @@ class TestDatetimeIndex(object):
         expected = klass([ts])
         assert result == expected
 
+    @pytest.mark.xfail(reason="TBD", strict=False)  # non-strict for tz-naive
+    @pytest.mark.filterwarnings("ignore::FutureWarning")
     def test_construction_int_rountrip(self, tz_naive_fixture):
         # GH 12619
         tz = tz_naive_fixture

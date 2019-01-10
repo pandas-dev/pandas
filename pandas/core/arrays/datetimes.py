@@ -1707,6 +1707,7 @@ def sequence_to_dt64ns(data, dtype=None, copy=False,
             data, inferred_tz = objects_to_datetime64ns(
                 data, dayfirst=dayfirst, yearfirst=yearfirst)
             tz = maybe_infer_tz(tz, inferred_tz)
+            int_as_wall_time = False
 
     # `data` may have originally been a Categorical[datetime64[ns, tz]],
     # so we need to handle these types.
