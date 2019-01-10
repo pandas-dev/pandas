@@ -123,8 +123,8 @@ def json_normalize(data, record_path=None, meta=None,
     Parameters
     ----------
     data : dict or list of dicts
-        Unserialized JSON objects.
-    record_path : string or list of string, default None
+        Unserialized JSON objects
+    record_path : str or list of string, default None
         Path in each object to list of records. If not passed, data will be
         assumed to be an array of records.
     meta : list of paths (string or list of strings), default None
@@ -132,7 +132,7 @@ def json_normalize(data, record_path=None, meta=None,
     meta_prefix : string, default None
     record_prefix : string, default None
         If True, prefix records with dotted (?) path, e.g. foo.bar.field if
-        path to records is ['foo', 'bar']
+        path to records is ['foo', 'bar'].
     errors : {'raise', 'ignore'}, default 'raise'
         * 'ignore' : will ignore KeyError if keys listed in meta are not
           always present
@@ -148,11 +148,12 @@ def json_normalize(data, record_path=None, meta=None,
         .. versionadded:: 0.20.0
 
     max_level : integer, default None
-        Max no of levels(depth of dict) to normalize. None, normalizes all levels.
+        Max no of levels(depth of dict) to normalize.
+        if None, normalizes all levels.
 
         .. versionadded:: 0.24.0
 
-    ignore_keys : list, keys to ignore, default 0
+    ignore_keys : list, keys to ignore, default []
         List of keys that you do not want to normalize.
 
         .. versionadded:: 0.24.0
@@ -177,16 +178,16 @@ def json_normalize(data, record_path=None, meta=None,
     >>> from pandas.io.json import json_normalize
     >>> data = [{'id': 1,
     ...          'name': {'first': 'Coleen', 'last': 'Volk'},
-    ...          "fitness":{"height":130, "weight":60}},
+    ...          "fitness": {"height":130, "weight":60}},
     ...         {'name': {'given': 'Mose', 'family': 'Regner'},
-    ...          "fitness":{"height":130, "weight":60}},
+    ...          "fitness": {"height":130, "weight":60}},
     ...         {'id': 2, 'name': 'Faye Raker',
-    ...          "fitness":{"height":130, "weight":60}}]
+    ...          "fitness": {"height":130, "weight":60}}]
     >>> json_normalize(data, max_level=1, ignore_keys=["name"])
-         fitness.height  fitness.weight   id                  name
-    0        130              60          1.0    {'first': 'Coleen', 'last': 'Volk'}
-    1        130              60          NaN  {'given': 'Mose', 'family': 'Regner'}
-    2        130              60          2.0                             Faye Raker
+      fitness.height  fitness.weight   id                  name
+    0   130              60          1.0    {'first': 'Coleen', 'last': 'Volk'}
+    1   130              60          NaN  {'given': 'Mose', 'family': 'Regner'}
+    2   130              60          2.0               Faye Raker
 
     >>> data = [{'state': 'Florida',
     ...          'shortname': 'FL',
@@ -305,10 +306,10 @@ def json_normalize(data, record_path=None, meta=None,
                                                "{err} is not always present"
                                                .format(err=e))
                     meta_vals[key].append(meta_val)
-
                 records.extend(recs)
 
     _recursive_extract(data, record_path, {}, level=0)
+
     result = DataFrame(records)
 
     if record_prefix is not None:
