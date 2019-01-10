@@ -1502,7 +1502,8 @@ class ParserBase(object):
                         col = col[:-1] + ('{column}.{count}'.format(
                             column=col[-1], count=cur_count),)
                     else:
-                        col = '{column}.{count}'.format(column=col, count=cur_count)
+                        col = '{column}.{count}'.format(
+                            column=col, count=cur_count)
                     cur_count = counts[col]
 
                 names[i] = col
@@ -1792,7 +1793,8 @@ class ParserBase(object):
                                         copy=True, skipna=True)
             except ValueError:
                 raise ValueError(
-                    "Unable to convert column {column} to type {cast_type}".format(
+                    "Unable to convert column {column} to type "
+                    "{cast_type}".format(
                         column=column, cast_type=cast_type))
         return values
 
@@ -2259,9 +2261,9 @@ class PythonParser(ParserBase):
 
         if self.thousands is None:
             self.nonnum = re.compile(
-                '[^-^0-9^{decimal}]+'.format(decimal=self.decimal))
+                r'[^-^0-9^{decimal}]+'.format(decimal=self.decimal))
         else:
-            self.nonnum = re.compile('[^-^0-9^{thousands}^{decimal}]+'.format(
+            self.nonnum = re.compile(r'[^-^0-9^{thousands}^{decimal}]+'.format(
                 thousands=self.thousands, decimal=self.decimal))
 
     def _set_no_thousands_columns(self):
