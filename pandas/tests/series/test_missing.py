@@ -17,7 +17,7 @@ import pandas.util._test_decorators as td
 import pandas as pd
 from pandas import (
     Categorical, DataFrame, Index, IntervalIndex, MultiIndex, NaT, Series,
-    Timedelta, Timestamp, date_range, isna)
+    Timestamp, date_range, isna)
 from pandas.core.series import remove_na
 import pandas.util.testing as tm
 from pandas.util.testing import assert_frame_equal, assert_series_equal
@@ -65,14 +65,16 @@ class TestSeriesMissingData():
         td = s.diff()
 
         # reg fillna
-        result = td.fillna(0)
+        with tm.assert_produces_warning(FutureWarning):
+            result = td.fillna(0)
         expected = Series([timedelta(0), timedelta(0), timedelta(1),
                            timedelta(days=1, seconds=9 * 3600 + 60 + 1)])
         assert_series_equal(result, expected)
 
-        # interprested as nanoseconds
-        result = td.fillna(1)
-        expected = Series([Timedelta(nanoseconds=1),
+        # interpreted as seconds, deprecated
+        with tm.assert_produces_warning(FutureWarning):
+            result = td.fillna(1)
+        expected = Series([timedelta(seconds=1),
                            timedelta(0), timedelta(1),
                            timedelta(days=1, seconds=9 * 3600 + 60 + 1)])
         assert_series_equal(result, expected)
@@ -97,14 +99,16 @@ class TestSeriesMissingData():
         # ffill
         td[2] = np.nan
         result = td.ffill()
-        expected = td.fillna(0)
+        with tm.assert_produces_warning(FutureWarning):
+            expected = td.fillna(0)
         expected[0] = np.nan
         assert_series_equal(result, expected)
 
         # bfill
         td[2] = np.nan
         result = td.bfill()
-        expected = td.fillna(0)
+        with tm.assert_produces_warning(FutureWarning):
+            expected = td.fillna(0)
         expected[2] = timedelta(days=1, seconds=9 * 3600 + 60 + 1)
         assert_series_equal(result, expected)
 

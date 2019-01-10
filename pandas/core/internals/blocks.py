@@ -2501,7 +2501,14 @@ class TimeDeltaBlock(DatetimeLikeBlockMixin, IntBlock):
         # allow filling with integers to be
         # interpreted as nanoseconds
         if is_integer(value) and not isinstance(value, np.timedelta64):
-            value = self._box_func(value)
+            # Deprecation GH#24694, GH#19233
+            warnings.warn("The interpretation of integers as seconds in "
+                          "fillna is deprecated, will be changed in a future "
+                          "version to be interpreted as nanoseconds.  To "
+                          "retain the old behavior, pass "
+                          "`fillna(Timedelta(seconds=value))`",
+                          FutureWarning, stacklevel=6)
+            value = Timedelta(value, unit='s')
         return super(TimeDeltaBlock, self).fillna(value, **kwargs)
 
     def _try_coerce_args(self, values, other):
