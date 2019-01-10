@@ -13,9 +13,6 @@ from pandas import (
 from pandas.core.tools.timedeltas import _coerce_scalar_to_timedelta_type as ct
 import pandas.util.testing as tm
 
-from pandas.tseries.offsets import (
-    Day, Hour, Micro, Milli, Minute, Nano, Second)
-
 
 class TestTimedeltaArithmetic(object):
 
@@ -81,10 +78,10 @@ class TestTimedeltaArithmetic(object):
 
 
 class TestTimedeltaComparison(object):
-    @pytest.mark.parametrize('tick_cls', [Nano, Micro, Milli, Second,
-                                          Minute, Hour, Day])
-    def test_compare_tick(self, tick_cls):
-        off = tick_cls(4)
+    def test_compare_tick(self, tick_classes):
+        cls = tick_classes
+
+        off = cls(4)
         td = off.delta
         assert isinstance(td, Timedelta)
 
