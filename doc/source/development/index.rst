@@ -1,6 +1,6 @@
 {{ header }}
 
-.. _developmente:
+.. _development:
 
 ===========
 Development
