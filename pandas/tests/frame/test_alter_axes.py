@@ -161,8 +161,8 @@ class TestDataFrameAlterAxes():
         df.index.name = index_name
 
         keys = ['A', box(df['B'])]
-        # np.array "forgets" the name of B
-        names = ['A', None if box in [list, np.array] else 'B']
+        # np.array/list "forget" the name of B
+        names = ['A', None if box in [np.array, list] else 'B']
 
         if box == list:
             with tm.assert_produces_warning(FutureWarning):

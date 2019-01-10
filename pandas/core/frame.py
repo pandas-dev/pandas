@@ -4048,8 +4048,11 @@ class DataFrame(NDFrame):
         ----------
         keys : label or array-like or list-like of labels/arrays
             This parameter can be either a single column key, a single array of
-            the same length as the calling DataFrame, or a list-like containing
-            an arbitrary combination of column keys and arrays.
+            the same length as the calling DataFrame, or a list containing an
+            arbitrary combination of column keys and arrays. Here, "array"
+            encompasses :class:`Series`, :class:`Index` and ``np.ndarray``.
+            Lists (in the sense of a sequence of values, not column labels)
+            have been deprecated, and will be removed in a future version.
         drop : bool, default True
             Delete columns to be used as the new index.
         append : bool, default False
@@ -4127,8 +4130,8 @@ class DataFrame(NDFrame):
         inplace = validate_bool_kwarg(inplace, 'inplace')
 
         err_msg = ('The parameter "keys" may be a column key, one-dimensional '
-                   'array, or a list-like containing only valid column keys '
-                   'and one-dimensional arrays')
+                   'array, or a list containing only valid column keys and '
+                   'one-dimensional arrays.')
 
         if (is_scalar(keys) or isinstance(keys, tuple)
                 or isinstance(keys, (ABCIndexClass, ABCSeries, np.ndarray))):
@@ -4146,7 +4149,7 @@ class DataFrame(NDFrame):
                 continue
             elif is_scalar(col) and col not in self:
                 # tuples that are not keys are not considered missing,
-                # but as an illegal list-like
+                # but as an illegal list-like (see below)
                 missing.append(col)
             elif isinstance(col, list):
                 depr_warn = True
