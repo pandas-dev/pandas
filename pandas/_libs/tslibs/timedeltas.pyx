@@ -758,14 +758,14 @@ cdef class _Timedelta(timedelta):
 
         if isinstance(other, _Timedelta):
             ots = other
-        elif PyDelta_Check(other):
+        elif PyDelta_Check(other) or isinstance(other, Tick):
             ots = Timedelta(other)
         else:
             ndim = getattr(other, "ndim", -1)
 
             if ndim != -1:
                 if ndim == 0:
-                    if is_timedelta64_object(other) or isinstance(other, Tick):
+                    if is_timedelta64_object(other):
                         other = Timedelta(other)
                     else:
                         if op == Py_EQ:
