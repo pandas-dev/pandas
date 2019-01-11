@@ -183,6 +183,7 @@ class TestDataFrame(Generic):
                   'StringIndex', 'UnicodeIndex',
                   'DateIndex', 'PeriodIndex',
                   'CategoricalIndex', 'TimedeltaIndex'])
+    @pytest.mark.filterwarnings("ignore")  # TODO: Remove. GH-24716
     def test_to_xarray_index_types(self, index):
         from xarray import Dataset
 
@@ -221,6 +222,7 @@ class TestDataFrame(Generic):
                            check_index_type=False, check_categorical=False)
 
     @td.skip_if_no('xarray', min_version='0.7.0')
+    @pytest.mark.filterwarnings("ignore")  # TODO: Remove. GH-24716
     def test_to_xarray(self):
         from xarray import Dataset
 
