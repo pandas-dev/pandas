@@ -1852,6 +1852,7 @@ Other
 ^^^^^
 
 - Bug where C variables were declared with external linkage causing import errors if certain other C libraries were imported before Pandas. (:issue:`24113`)
+- Switched shape in ``ValueError`` message when constructiong a :class:`DataFrame` with parameters ``columns`` and ``index`` not matching the shape of the input data. (:issue:`20742`)
 
 .. _whatsnew_0.24.0.contributors:
 
