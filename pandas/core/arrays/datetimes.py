@@ -1650,7 +1650,6 @@ DatetimeArray._add_comparison_ops()
 # -------------------------------------------------------------------
 # Constructor Helpers
 
-
 def sequence_to_dt64ns(data, dtype=None, copy=False,
                        tz=None,
                        dayfirst=False, yearfirst=False, ambiguous='raise',
@@ -1666,6 +1665,11 @@ def sequence_to_dt64ns(data, dtype=None, copy=False,
     yearfirst : bool, default False
     ambiguous : str, bool, or arraylike, default 'raise'
         See pandas._libs.tslibs.conversion.tz_localize_to_utc
+    int_as_wall_time : bool, default False
+        Whether to treat ints as wall time in specified timezone, or as
+        nanosecond-precision UNIX epoch (wall time in UTC).
+        This is used in DatetimeIndex.__init__ to deprecated the wall-time
+        behaviour.
 
     Returns
     -------
@@ -1680,6 +1684,7 @@ def sequence_to_dt64ns(data, dtype=None, copy=False,
     ------
     TypeError : PeriodDType data is passed
     """
+
     inferred_freq = None
 
     dtype = _validate_dt64_dtype(dtype)
