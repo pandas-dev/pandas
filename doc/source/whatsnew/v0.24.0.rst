@@ -1528,7 +1528,6 @@ Performance Improvements
   without internally allocating lists of all elements (:issue:`20783`)
 - Improved performance of :class:`Period` constructor, additionally benefitting ``PeriodArray`` and ``PeriodIndex`` creation (:issue:`24084` and :issue:`24118`)
 - Improved performance of tz-aware :class:`DatetimeArray` binary operations (:issue:`24491`)
-- Improved performance of :meth:`pandas.core.groupby.GroupBy.describe` (:issue:`20405`)
 
 .. _whatsnew_0240.bug_fixes:
 
