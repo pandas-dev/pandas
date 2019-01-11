@@ -1170,7 +1170,8 @@ class TestMergeDtypes(object):
         with pytest.raises(ValueError, match=msg):
             pd.merge(df2, df1, on=['A'])
 
-    def test_merge_on_index_with_more_values(self):  # GH 24212
+    def test_merge_on_index_with_more_values(self):
+        # GH 24212
         df1 = pd.DataFrame([[1, 2], [2, 4], [3, 6], [4, 8]],
                            columns=['a', 'b'])
         df2 = pd.DataFrame([[3, 30], [4, 40]],
