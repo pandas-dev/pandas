@@ -209,8 +209,8 @@ def test_is_datetime64tz_dtype():
     assert not com.is_datetime64tz_dtype(object)
     assert not com.is_datetime64tz_dtype([1, 2, 3])
     assert not com.is_datetime64tz_dtype(pd.DatetimeIndex([1, 2, 3]))
-    assert com.is_datetime64tz_dtype(pd.DatetimeIndex(
-        [1, 2, 3], tz="US/Eastern"))
+    assert com.is_datetime64tz_dtype(pd.DatetimeIndex(['2000'],
+                                                      tz="US/Eastern"))
 
 
 def test_is_timedelta64_dtype():
@@ -286,7 +286,7 @@ def test_is_datetimelike():
     assert com.is_datetimelike(pd.PeriodIndex([], freq="A"))
     assert com.is_datetimelike(np.array([], dtype=np.datetime64))
     assert com.is_datetimelike(pd.Series([], dtype="timedelta64[ns]"))
-    assert com.is_datetimelike(pd.DatetimeIndex([1, 2, 3], tz="US/Eastern"))
+    assert com.is_datetimelike(pd.DatetimeIndex(["2000"], tz="US/Eastern"))
 
     dtype = DatetimeTZDtype("ns", tz="US/Eastern")
     s = pd.Series([], dtype=dtype)
@@ -480,7 +480,7 @@ def test_needs_i8_conversion():
     assert com.needs_i8_conversion(np.datetime64)
     assert com.needs_i8_conversion(pd.Series([], dtype="timedelta64[ns]"))
     assert com.needs_i8_conversion(pd.DatetimeIndex(
-        [1, 2, 3], tz="US/Eastern"))
+        ["2000"], tz="US/Eastern"))
 
 
 def test_is_numeric_dtype():
@@ -541,7 +541,7 @@ def test_is_extension_type(check_scipy):
     assert com.is_extension_type(pd.Series(cat))
     assert com.is_extension_type(pd.SparseArray([1, 2, 3]))
     assert com.is_extension_type(pd.SparseSeries([1, 2, 3]))
-    assert com.is_extension_type(pd.DatetimeIndex([1, 2, 3], tz="US/Eastern"))
+    assert com.is_extension_type(pd.DatetimeIndex(['2000'], tz="US/Eastern"))
 
     dtype = DatetimeTZDtype("ns", tz="US/Eastern")
     s = pd.Series([], dtype=dtype)
@@ -635,8 +635,8 @@ def test__get_dtype_fails(input_param):
     (pd.DatetimeIndex([1, 2]), np.datetime64),
     (pd.DatetimeIndex([1, 2]).dtype, np.datetime64),
     ('<M8[ns]', np.datetime64),
-    (pd.DatetimeIndex([1, 2], tz='Europe/London'), pd.Timestamp),
-    (pd.DatetimeIndex([1, 2], tz='Europe/London').dtype,
+    (pd.DatetimeIndex(['2000'], tz='Europe/London'), pd.Timestamp),
+    (pd.DatetimeIndex(['2000'], tz='Europe/London').dtype,
      pd.Timestamp),
     ('datetime64[ns, Europe/London]', pd.Timestamp),
     (pd.SparseSeries([1, 2], dtype='int32'), np.int32),

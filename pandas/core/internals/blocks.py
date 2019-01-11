@@ -534,7 +534,7 @@ class Block(PandasObject):
                             **kwargs)
 
     def _astype(self, dtype, copy=False, errors='raise', values=None,
-                klass=None, **kwargs):
+                **kwargs):
         """Coerce to the new type
 
         Parameters
@@ -599,14 +599,14 @@ class Block(PandasObject):
                 return self.copy()
             return self
 
-        if klass is None:
-            if is_sparse(self.values):
-                # special case sparse, Series[Sparse].astype(object) is sparse
-                klass = ExtensionBlock
-            elif is_object_dtype(dtype):
-                klass = ObjectBlock
-            elif is_extension_array_dtype(dtype):
-                klass = ExtensionBlock
+        klass = None
+        if is_sparse(self.values):
+            # special case sparse, Series[Sparse].astype(object) is sparse
+            klass = ExtensionBlock
+        elif is_object_dtype(dtype):
+            klass = ObjectBlock
+        elif is_extension_array_dtype(dtype):
+            klass = ExtensionBlock
 
         try:
             # force the copy here
@@ -2499,8 +2499,14 @@ class TimeDeltaBlock(DatetimeLikeBlockMixin, IntBlock):
     def fillna(self, value, **kwargs):
 
         # allow filling with integers to be
-        # interpreted as seconds
+        # interpreted as nanoseconds
         if is_integer(value) and not isinstance(value, np.timedelta64):
+            # Deprecation GH#24694, GH#19233
+            warnings.warn("Passing integers to fillna is deprecated, will "
+                          "raise a TypeError in a future version.  To retain "
+                          "the old behavior, pass pd.Timedelta(seconds=n) "
+                          "instead.",
+                          FutureWarning, stacklevel=6)
             value = Timedelta(value, unit='s')
         return super(TimeDeltaBlock, self).fillna(value, **kwargs)
 
@@ -3078,7 +3084,7 @@ def make_block(values, placement, klass=None, ndim=None, dtype=None,
     elif klass is DatetimeTZBlock and not is_datetime64tz_dtype(values):
         # TODO: This is no longer hit internally; does it need to be retained
         #  for e.g. pyarrow?
-        values = DatetimeArray(values, dtype)
+        values = DatetimeArray._simple_new(values, dtype=dtype)
 
     return klass(values, ndim=ndim, placement=placement)
 

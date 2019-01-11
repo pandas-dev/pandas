@@ -137,8 +137,15 @@ class TimedeltaArray(dtl.DatetimeLikeArrayMixin, dtl.TimelikeOps):
         if isinstance(values, (ABCSeries, ABCIndexClass)):
             values = values._values
 
+        inferred_freq = getattr(values, "_freq", None)
+
         if isinstance(values, type(self)):
-            values, freq, freq_infer = extract_values_freq(values, freq)
+            if freq is None:
+                freq = values.freq
+            elif freq and values.freq:
+                freq = to_offset(freq)
+                freq, _ = dtl.validate_inferred_freq(freq, values.freq, False)
+            values = values._data
 
         if not isinstance(values, np.ndarray):
             msg = (
@@ -180,9 +187,19 @@ class TimedeltaArray(dtl.DatetimeLikeArrayMixin, dtl.TimelikeOps):
         self._dtype = dtype
         self._freq = freq
 
+        if inferred_freq is None and freq is not None:
+            type(self)._validate_frequency(self, freq)
+
     @classmethod
     def _simple_new(cls, values, freq=None, dtype=_TD_DTYPE):
-        return cls(values, dtype=dtype, freq=freq)
+        assert dtype == _TD_DTYPE, dtype
+        assert isinstance(values, np.ndarray), type(values)
+
+        result = object.__new__(cls)
+        result._data = values.view(_TD_DTYPE)
+        result._freq = to_offset(freq)
+        result._dtype = _TD_DTYPE
+        return result
 
     @classmethod
     def _from_sequence(cls, data, dtype=_TD_DTYPE, copy=False,
@@ -860,17 +877,17 @@ def sequence_to_td64ns(data, copy=False, unit="ns", errors="raise"):
         data = data._data
 
     # Convert whatever we have into timedelta64[ns] dtype
-    if is_object_dtype(data) or is_string_dtype(data):
+    if is_object_dtype(data.dtype) or is_string_dtype(data.dtype):
         # no need to make a copy, need to convert if string-dtyped
         data = objects_to_td64ns(data, unit=unit, errors=errors)
         copy = False
 
-    elif is_integer_dtype(data):
+    elif is_integer_dtype(data.dtype):
         # treat as multiples of the given unit
         data, copy_made = ints_to_td64ns(data, unit=unit)
         copy = copy and not copy_made
 
-    elif is_float_dtype(data):
+    elif is_float_dtype(data.dtype):
         # treat as multiples of the given unit.  If after converting to nanos,
         #  there are fractional components left, these are truncated
         #  (i.e. NOT rounded)
@@ -880,7 +897,7 @@ def sequence_to_td64ns(data, copy=False, unit="ns", errors="raise"):
         data[mask] = iNaT
         copy = False
 
-    elif is_timedelta64_dtype(data):
+    elif is_timedelta64_dtype(data.dtype):
         if data.dtype != _TD_DTYPE:
             # non-nano unit
             # TODO: watch out for overflows
@@ -998,18 +1015,3 @@ def _generate_regular_range(start, end, periods, offset):
 
     data = np.arange(b, e, stride, dtype=np.int64)
     return data
-
-
-def extract_values_freq(arr, freq):
-    # type: (TimedeltaArray, Offset) -> Tuple[ndarray, Offset, bool]
-    freq_infer = False
-    if freq is None:
-        freq = arr.freq
-    elif freq and arr.freq:
-        freq = to_offset(freq)
-        freq, freq_infer = dtl.validate_inferred_freq(
-            freq, arr.freq,
-            freq_infer=False
-        )
-    values = arr._data
-    return values, freq, freq_infer

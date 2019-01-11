@@ -1235,7 +1235,6 @@ Datetimelike API Changes
 - :class:`PeriodIndex` subtraction of another ``PeriodIndex`` will now return an object-dtype :class:`Index` of :class:`DateOffset` objects instead of raising a ``TypeError`` (:issue:`20049`)
 - :func:`cut` and :func:`qcut` now returns a :class:`DatetimeIndex` or :class:`TimedeltaIndex` bins when the input is datetime or timedelta dtype respectively and ``retbins=True`` (:issue:`19891`)
 - :meth:`DatetimeIndex.to_period` and :meth:`Timestamp.to_period` will issue a warning when timezone information will be lost (:issue:`21333`)
-- :class:`DatetimeIndex` now accepts :class:`Int64Index` arguments as epoch timestamps (:issue:`20997`)
 - :meth:`PeriodIndex.tz_convert` and :meth:`PeriodIndex.tz_localize` have been removed (:issue:`21781`)
 
 .. _whatsnew_0240.api.other:
@@ -1309,6 +1308,7 @@ Deprecations
 - In :meth:`Series.where` with Categorical data, providing an ``other`` that is not present in the categories is deprecated. Convert the categorical to a different dtype or add the ``other`` to the categories first (:issue:`24077`).
 - :meth:`Series.clip_lower`, :meth:`Series.clip_upper`, :meth:`DataFrame.clip_lower` and :meth:`DataFrame.clip_upper` are deprecated and will be removed in a future version. Use ``Series.clip(lower=threshold)``, ``Series.clip(upper=threshold)`` and the equivalent ``DataFrame`` methods (:issue:`24203`)
 - :meth:`Series.nonzero` is deprecated and will be removed in a future version (:issue:`18262`)
+- Passing an integer to :meth:`Series.fillna` and :meth:`DataFrame.fillna` with ``timedelta64[ns]`` dtypes is deprecated, will raise ``TypeError`` in a future version.  Use ``obj.fillna(pd.Timedelta(...))` instead (:issue:`24694`)
 
 .. _whatsnew_0240.deprecations.datetimelike_int_ops:
 
@@ -1351,6 +1351,52 @@ the object's ``freq`` attribute (:issue:`21939`, :issue:`23878`).
     dti = pd.date_range('2001-01-01', periods=2, freq='7D')
     dti + pd.Index([1 * dti.freq, 2 * dti.freq])
 
+
+.. _whatsnew_0240.deprecations.integer_tz:
+
+Passing Integer data and a timezone to DatetimeIndex
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+The behavior of :class:`DatetimeIndex` when passed integer data and
+a timezone is changing in a future version of pandas. Previously, these
+were interpreted as wall times in the desired timezone. In the future,
+these will be interpreted as wall times in UTC, which are then converted
+to the desired timezone (:issue:`24559`).
+
+The default behavior remains the same, but issues a warning:
+
+.. code-block:: ipython
+
+   In [3]: pd.DatetimeIndex([946684800000000000], tz="US/Central")
+   /bin/ipython:1: FutureWarning:
+       Passing integer-dtype data and a timezone to DatetimeIndex. Integer values
+       will be interpreted differently in a future version of pandas. Previously,
+       these were viewed as datetime64[ns] values representing the wall time
+       *in the specified timezone*. In the future, these will be viewed as
+       datetime64[ns] values representing the wall time *in UTC*. This is similar
+       to a nanosecond-precision UNIX epoch. To accept the future behavior, use
+
+           pd.to_datetime(integer_data, utc=True).tz_convert(tz)
+
+       To keep the previous behavior, use
+
+           pd.to_datetime(integer_data).tz_localize(tz)
+
+    #!/bin/python3
+    Out[3]: DatetimeIndex(['2000-01-01 00:00:00-06:00'], dtype='datetime64[ns, US/Central]', freq=None)
+
+As the warning message explains, opt in to the future behavior by specifying that
+the integer values are UTC, and then converting to the final timezone:
+
+.. ipython:: python
+
+   pd.to_datetime([946684800000000000], utc=True).tz_convert('US/Central')
+
+The old behavior can be retained with by localizing directly to the final timezone:
+
+.. ipython:: python
+
+   pd.to_datetime([946684800000000000]).tz_localize('US/Central')
 
 .. _whatsnew_0240.deprecations.tz_aware_array:
 
@@ -1638,6 +1684,7 @@ Conversion
 - Bug in :meth:`DataFrame.combine_first` in which column types were unexpectedly converted to float (:issue:`20699`)
 - Bug in :meth:`DataFrame.clip` in which column types are not preserved and casted to float (:issue:`24162`)
 - Bug in :meth:`DataFrame.clip` when order of columns of dataframes doesn't match, result observed is wrong in numeric values (:issue:`20911`)
+- Bug in :meth:`DataFrame.astype` where converting to an extension dtype when duplicate column names are present causes a ``RecursionError`` (:issue:`24704`)
 
 Strings
 ^^^^^^^
