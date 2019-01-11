@@ -5670,9 +5670,10 @@ class NDFrame(PandasObject, SelectionMixin):
                     results.append(results.append(col.copy() if copy else col))
 
         elif is_extension_array_dtype(dtype) and self.ndim > 1:
-            # GH 18099: columnwise conversion to categorical
-            # and extension dtype
-            results = (self[col].astype(dtype, copy=copy) for col in self)
+            # GH 18099/22869: columnwise conversion to extension dtype
+            # GH 24704: use iloc to handle duplicate column names
+            results = (self.iloc[:, i].astype(dtype, copy=copy)
+                       for i in range(len(self.columns)))
 
         else:
             # else, only a single dtype is given
