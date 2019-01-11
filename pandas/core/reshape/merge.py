@@ -760,6 +760,8 @@ class _MergeOperation(object):
                     join_index = self.left.index.take(left_indexer)
                     if (self.how == 'right' and -1 in left_indexer
                             and not isinstance(self.right.index, MultiIndex)):
+                        # if values missing (-1) from left index,
+                        # take from right index instead
                         join_list = join_index.to_numpy()
                         absent = left_indexer == -1
                         join_list[absent] = self.right.index.to_numpy()[absent]
@@ -773,6 +775,8 @@ class _MergeOperation(object):
                     join_index = self.right.index.take(right_indexer)
                     if (self.how == 'left' and -1 in right_indexer
                             and not isinstance(self.left.index, MultiIndex)):
+                        # if values missing (-1) from right index,
+                        # take from left index instead
                         join_list = join_index.to_numpy()
                         absent = right_indexer == -1
                         join_list[absent] = self.left.index.to_numpy()[absent]
