@@ -11,7 +11,7 @@ from pandas._libs.tslibs import OutOfBoundsDatetime, conversion
 
 import pandas as pd
 from pandas import (
-    DatetimeIndex, Index, Timestamp, date_range, datetime, offsets,
+    DatetimeIndex, Index, Timestamp, compat, date_range, datetime, offsets,
     to_datetime)
 from pandas.core.arrays import DatetimeArray, period_array
 import pandas.util.testing as tm
@@ -581,6 +581,7 @@ class TestDatetimeIndex(object):
     @pytest.mark.parametrize('tz, dtype', [
         pytest.param('US/Pacific', 'datetime64[ns, US/Pacific]',
                      marks=[pytest.mark.xfail(),
+                            pytest.mark.skipif(compat.PY2, reason="warn"),
                             pytest.mark.filterwarnings(
                                 "ignore:\\n    Passing:FutureWarning")]),
         [None, 'datetime64[ns]'],
