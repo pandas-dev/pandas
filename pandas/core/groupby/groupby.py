@@ -1031,9 +1031,9 @@ class GroupBy(_GroupBy):
             except ValueError:  # for objects
                 vals = np.array([bool(x) for x in vals])
 
-            return vals.view(np.uint8)
+            return vals.view(np.uint8), None
 
-        def result_to_bool(result):
+        def result_to_bool(result, inferences):
             return result.astype(np.bool, copy=False)
 
         return self._get_cythonized_result('group_any_all', self.grouper,
@@ -1721,12 +1721,12 @@ class GroupBy(_GroupBy):
         >>> df
         """
 
-        inferences = {  # TODO (py27): replace with nonlocal
-            'is_dt': False,
-            'is_int': False
-        }
-
         def pre_processor(vals):
+            inferences = {
+                'is_dt': False,
+                'is_int': False
+            }
+
             if is_object_dtype(vals):
                 raise TypeError("'quantile' cannot be performed against "
                                 "'object' dtypes!")
@@ -1736,9 +1736,9 @@ class GroupBy(_GroupBy):
                 vals = vals.astype(np.float)
                 inferences['is_dt'] = True
 
-            return vals
+            return vals, inferences
 
-        def post_processor(vals):
+        def post_processor(vals, inferences):
             if inferences['is_dt']:
                 vals = vals.astype('datetime64[ns]')
             elif inferences['is_int'] and interpolation in [
@@ -1992,10 +1992,15 @@ class GroupBy(_GroupBy):
             Whether the result of the Cython operation is an index of
             values to be retrieved, instead of the actual values themselves
         pre_processing : function, default None
-            Function to be applied to `values` prior to passing to Cython
-            Raises if `needs_values` is False
+            Function to be applied to `values` prior to passing to Cython.
+            Function should return a tuple where the first element is the
+            values to be passed to Cython and the second element is an
+            optional dictionary containing type inferences to be applied 
+            after the Cython call. Raises if `needs_values` is False
         post_processing : function, default None
-            Function to be applied to result of Cython function
+            Function to be applied to result of Cython function. Should accept
+            an array of values as the first argument and type inferences as its
+            second argument.
         **kwargs : dict
             Extra arguments to be passed back to Cython funcs
 
@@ -2034,7 +2039,7 @@ class GroupBy(_GroupBy):
             if needs_values:
                 vals = obj.values
                 if pre_processing:
-                    vals = pre_processing(vals)
+                    vals, inferences = pre_processing(vals)
                 func = partial(func, vals)
 
             if needs_mask:
@@ -2050,7 +2055,7 @@ class GroupBy(_GroupBy):
                 result = algorithms.take_nd(obj.values, result)
 
             if post_processing:
-                result = post_processing(result)
+                result = post_processing(result, inferences)
 
             output[name] = result
 
