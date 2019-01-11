@@ -137,6 +137,8 @@ class TimedeltaArray(dtl.DatetimeLikeArrayMixin, dtl.TimelikeOps):
         if isinstance(values, (ABCSeries, ABCIndexClass)):
             values = values._values
 
+        inferred_freq = getattr(values, "_freq", None)
+
         if isinstance(values, type(self)):
             values, freq, freq_infer = extract_values_freq(values, freq)
 
@@ -179,6 +181,9 @@ class TimedeltaArray(dtl.DatetimeLikeArrayMixin, dtl.TimelikeOps):
         self._data = values
         self._dtype = dtype
         self._freq = freq
+
+        if inferred_freq is None and freq is not None:
+            type(self)._validate_frequency(self, freq)
 
     @classmethod
     def _simple_new(cls, values, freq=None, dtype=_TD_DTYPE):
