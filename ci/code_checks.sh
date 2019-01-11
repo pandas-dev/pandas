@@ -163,11 +163,14 @@ if [[ -z "$CHECK" || "$CHECK" == "patterns" ]]; then
     MSG='Check that the deprecated `assert_raises_regex` is not used (`pytest.raises(match=pattern)` should be used instead)' ; echo "${MSG}"
     invgrep -R --exclude=*.pyc --exclude=testing.py --exclude=test_util.py assert_raises_regex pandas
     RET=$(("${RET}" + $?)) ; echo "${MSG} DONE"
+<<<<<<< HEAD
 
     # Check for the following code in testing: `unittest.mock`, `mock.Mock()` or `mock.patch`
     MSG='Check that unittest.mock is not used (pytest builtin monkeypatch fixture should be used instead)' ; echo "${MSG}"
     invgrep -r -E --include '*.py' '(unittest(\.| import )mock|mock\.Mock\(\)|mock\.patch)' pandas/tests/
     RET=$(($RET + $?)) ; echo "${MSG}" "DONE"
+=======
+>>>>>>> beb3181c0c1f552dc283b5be41497ed8bd02e0f8
 
     # Check that we use pytest.raises only as a context manager
     #
@@ -177,6 +180,7 @@ if [[ -z "$CHECK" || "$CHECK" == "patterns" ]]; then
     MSG='TODO: This check is currently skipped because so many files fail this. Please enable when all are corrected (xref gh-24332)' ; echo "${MSG}"
     # invgrep -R --include '*.py' -E '[[:space:]] pytest.raises' pandas/tests
     # RET=$(("${RET}" + $?)) ; echo "${MSG} DONE"
+<<<<<<< HEAD
 
     MSG='Check for wrong space after code-block directive and before colon (".. code-block ::" instead of ".. code-block::")' ; echo $MSG
     invgrep -R --include="*.rst" ".. code-block ::" doc/source
@@ -188,6 +192,10 @@ if [[ -z "$CHECK" || "$CHECK" == "patterns" ]]; then
 
     MSG='Check that no file in the repo contains tailing whitespaces' ; echo "${MSG}"
 
+=======
+
+    MSG='Check that no file in the repo contains tailing whitespaces' ; echo "${MSG}"
+>>>>>>> beb3181c0c1f552dc283b5be41497ed8bd02e0f8
     set -o pipefail
     if [[ "$AZURE" == "true" ]]; then
         ! grep -n --exclude="*.svg" -RI "\s$" * | awk -F ":" '{print "##vso[task.logissue type=error;sourcepath=" $1 ";linenumber=" $2 ";] Tailing whitespaces found: " $3}'
