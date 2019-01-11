@@ -709,6 +709,17 @@ class TestDataFrameDataTypes(TestData):
         tm.assert_frame_equal(df.astype(dtype), expected1)
         tm.assert_frame_equal(df.astype('int64').astype(dtype), expected1)
 
+    @pytest.mark.parametrize("dtype", ['category', 'Int64'])
+    def test_astype_extension_dtypes_duplicate_col(self, dtype):
+        # GH 24704
+        a1 = Series([0, np.nan, 4], name='a')
+        a2 = Series([np.nan, 3, 5], name='a')
+        df = concat([a1, a2], axis=1)
+
+        result = df.astype(dtype)
+        expected = concat([a1.astype(dtype), a2.astype(dtype)], axis=1)
+        assert_frame_equal(result, expected)
+
     @pytest.mark.parametrize('dtype', [
         {100: 'float64', 200: 'uint64'}, 'category', 'float64'])
     def test_astype_column_metadata(self, dtype):
