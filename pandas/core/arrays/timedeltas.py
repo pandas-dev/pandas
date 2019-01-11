@@ -15,8 +15,8 @@ import pandas.compat as compat
 from pandas.util._decorators import Appender
 
 from pandas.core.dtypes.common import (
-    _NS_DTYPE, _TD_DTYPE, ensure_int64, is_datetime64_dtype, is_dtype_equal,
-    is_float_dtype, is_integer_dtype, is_list_like, is_object_dtype, is_scalar,
+    _NS_DTYPE, _TD_DTYPE, ensure_int64, is_datetime64_dtype, is_float_dtype,
+    is_integer_dtype, is_list_like, is_object_dtype, is_scalar,
     is_string_dtype, is_timedelta64_dtype, is_timedelta64_ns_dtype,
     pandas_dtype)
 from pandas.core.dtypes.dtypes import DatetimeTZDtype
@@ -140,7 +140,12 @@ class TimedeltaArray(dtl.DatetimeLikeArrayMixin, dtl.TimelikeOps):
         inferred_freq = getattr(values, "_freq", None)
 
         if isinstance(values, type(self)):
-            values, freq, freq_infer = extract_values_freq(values, freq)
+            if freq is None:
+                freq = values.freq
+            elif freq and values.freq:
+                freq = to_offset(freq)
+                freq, _ = dtl.validate_inferred_freq(freq, values.freq, False)
+            values = values._data
 
         if not isinstance(values, np.ndarray):
             msg = (
@@ -1010,18 +1015,3 @@ def _generate_regular_range(start, end, periods, offset):
 
     data = np.arange(b, e, stride, dtype=np.int64)
     return data
-
-
-def extract_values_freq(arr, freq):
-    # type: (TimedeltaArray, Offset) -> Tuple[ndarray, Offset, bool]
-    freq_infer = False
-    if freq is None:
-        freq = arr.freq
-    elif freq and arr.freq:
-        freq = to_offset(freq)
-        freq, freq_infer = dtl.validate_inferred_freq(
-            freq, arr.freq,
-            freq_infer=False
-        )
-    values = arr._data
-    return values, freq, freq_infer
