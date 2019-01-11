@@ -272,6 +272,8 @@ class DatetimeArray(dtl.DatetimeLikeArrayMixin,
         if isinstance(values, (ABCSeries, ABCIndexClass)):
             values = values._values
 
+        inferred_freq = getattr(values, "_freq", None)
+
         if isinstance(values, type(self)):
             # validation
             dtz = getattr(dtype, 'tz', None)
@@ -336,9 +338,20 @@ class DatetimeArray(dtl.DatetimeLikeArrayMixin,
         self._dtype = dtype
         self._freq = freq
 
+        if inferred_freq is None and freq is not None:
+            type(self)._validate_frequency(self, freq)
+
     @classmethod
-    def _simple_new(cls, values, freq=None, dtype=None):
-        return cls(values, freq=freq, dtype=dtype)
+    def _simple_new(cls, values, freq=None, dtype=_NS_DTYPE):
+        assert isinstance(values, np.ndarray)
+        if values.dtype == 'i8':
+            values = values.view(_NS_DTYPE)
+
+        result = object.__new__(cls)
+        result._data = values
+        result._freq = freq
+        result._dtype = dtype
+        return result
 
     @classmethod
     def _from_sequence(cls, data, dtype=None, copy=False,
