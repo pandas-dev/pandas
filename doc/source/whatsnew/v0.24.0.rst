@@ -421,6 +421,7 @@ Other Enhancements
 - :func:`pandas.DataFrame.to_sql` has gained the ``method`` argument to control SQL insertion clause. See the :ref:`insertion method <io.sql.method>` section in the documentation. (:issue:`8953`)
 - :meth:`DataFrame.corrwith` now supports Spearman's rank correlation, Kendall's tau as well as callable correlation methods. (:issue:`21925`)
 - :meth:`DataFrame.to_json`, :meth:`DataFrame.to_csv`, :meth:`DataFrame.to_pickle`, and :meth:`DataFrame.to_XXX` etc. now support tilde(~) in path argument. (:issue:`23473`)
+- :class:`pandas.core.groupby.GroupBy` now has a built-in implementation of :meth:`pandas.core.groupby.GroupBy.quantile`. (:issue:`20405`)
 
 .. _whatsnew_0240.api_breaking:
 
@@ -1527,6 +1528,7 @@ Performance Improvements
   without internally allocating lists of all elements (:issue:`20783`)
 - Improved performance of :class:`Period` constructor, additionally benefitting ``PeriodArray`` and ``PeriodIndex`` creation (:issue:`24084` and :issue:`24118`)
 - Improved performance of tz-aware :class:`DatetimeArray` binary operations (:issue:`24491`)
+- Improved performance of :meth:`pandas.core.groupby.GroupBy.describe` (:issue:`20405`)
 
 .. _whatsnew_0240.bug_fixes:
 
