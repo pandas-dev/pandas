@@ -386,11 +386,23 @@ class TestDataFrameConstructors(TestData):
                        'B': ['a', 'b', 'c']})
 
         # wrong size ndarray, GH 3105
-        msg = r"Shape of passed values is \(3, 4\), indices imply \(3, 3\)"
+        msg = r"Shape of passed values is \(4, 3\), indices imply \(3, 3\)"
         with pytest.raises(ValueError, match=msg):
             DataFrame(np.arange(12).reshape((4, 3)),
                       columns=['foo', 'bar', 'baz'],
                       index=pd.date_range('2000-01-01', periods=3))
+
+        # see issue #20742
+        arr = np.array([[4, 5, 6]])
+        msg = r"Shape of passed values is \(1, 3\), indices imply \(1, 4\)"
+        with pytest.raises(ValueError, match=msg):
+            DataFrame(index=[0], columns=range(0, 4), data=arr)
+
+        # see issue #20742
+        arr = np.array([4, 5, 6])
+        msg = r"Shape of passed values is \(3, 1\), indices imply \(1, 4\)"
+        with pytest.raises(ValueError, match=msg):
+            DataFrame(index=[0], columns=range(0, 4), data=arr)
 
         # higher dim raise exception
         with pytest.raises(ValueError, match='Must pass 2-d input'):
@@ -398,13 +410,13 @@ class TestDataFrameConstructors(TestData):
 
         # wrong size axis labels
         msg = ("Shape of passed values "
-               r"is \(3, 2\), indices "
-               r"imply \(3, 1\)")
+               r"is \(2, 3\), indices "
+               r"imply \(1, 3\)")
         with pytest.raises(ValueError, match=msg):
             DataFrame(np.random.rand(2, 3), columns=['A', 'B', 'C'], index=[1])
 
         msg = ("Shape of passed values "
-               r"is \(3, 2\), indices "
+               r"is \(2, 3\), indices "
                r"imply \(2, 2\)")
         with pytest.raises(ValueError, match=msg):
             DataFrame(np.random.rand(2, 3), columns=['A', 'B'], index=[1, 2])
@@ -638,10 +650,10 @@ class TestDataFrameConstructors(TestData):
         assert frame.values.dtype == np.int64
 
         # wrong size axis labels
-        msg = r'Shape of passed values is \(3, 2\), indices imply \(3, 1\)'
+        msg = r'Shape of passed values is \(2, 3\), indices imply \(1, 3\)'
         with pytest.raises(ValueError, match=msg):
             DataFrame(mat, columns=['A', 'B', 'C'], index=[1])
-        msg = r'Shape of passed values is \(3, 2\), indices imply \(2, 2\)'
+        msg = r'Shape of passed values is \(2, 3\), indices imply \(2, 2\)'
         with pytest.raises(ValueError, match=msg):
             DataFrame(mat, columns=['A', 'B'], index=[1, 2])
 
@@ -1805,7 +1817,7 @@ class TestDataFrameConstructors(TestData):
         tm.assert_frame_equal(DataFrame.from_records(arr2), DataFrame(arr2))
 
         # wrong length
-        msg = r'Shape of passed values is \(3, 2\), indices imply \(3, 1\)'
+        msg = r'Shape of passed values is \(2, 3\), indices imply \(1, 3\)'
         with pytest.raises(ValueError, match=msg):
             DataFrame.from_records(arr, index=index[:-1])
 
