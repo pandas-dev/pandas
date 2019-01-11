@@ -299,7 +299,8 @@ class DatetimeIndex(DatetimeIndexOpsMixin, Int64Index, DatetimeDelegateMixin):
 
         dtarr = DatetimeArray._from_sequence(
             data, dtype=dtype, copy=copy, tz=tz, freq=freq,
-            dayfirst=dayfirst, yearfirst=yearfirst, ambiguous=ambiguous)
+            dayfirst=dayfirst, yearfirst=yearfirst, ambiguous=ambiguous,
+            int_as_wall_time=True)
 
         subarr = cls._simple_new(dtarr, name=name,
                                  freq=dtarr.freq, tz=dtarr.tz)

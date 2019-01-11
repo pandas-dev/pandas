@@ -517,8 +517,10 @@ class TestPeriodIndex(object):
 
     def test_resample_with_dst_time_change(self):
         # GH 15549
-        index = pd.DatetimeIndex([1457537600000000000, 1458059600000000000],
-                                 tz='UTC').tz_convert('America/Chicago')
+        index = (
+            pd.DatetimeIndex([1457537600000000000, 1458059600000000000])
+            .tz_localize("UTC").tz_convert('America/Chicago')
+        )
         df = pd.DataFrame([1, 2], index=index)
         result = df.resample('12h', closed='right',
                              label='right').last().ffill()

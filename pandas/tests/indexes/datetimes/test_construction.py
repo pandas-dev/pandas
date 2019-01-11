@@ -118,8 +118,15 @@ class TestDatetimeIndex(object):
         tz = tz_aware_fixture
         i = pd.date_range('20130101', periods=5, freq='H', tz=tz)
         kwargs = {key: attrgetter(val)(i) for key, val in kwargs.items()}
-        result = DatetimeIndex(i.tz_localize(None).asi8, **kwargs)
-        expected = i.tz_localize(None).tz_localize('UTC').tz_convert(tz)
+
+        if str(tz) in ('UTC', 'tzutc()'):
+            warn = None
+        else:
+            warn = FutureWarning
+
+        with tm.assert_produces_warning(warn, check_stacklevel=False):
+            result = DatetimeIndex(i.tz_localize(None).asi8, **kwargs)
+        expected = DatetimeIndex(i, **kwargs)
         tm.assert_index_equal(result, expected)
 
         # localize into the provided tz
@@ -377,6 +384,19 @@ class TestDatetimeIndex(object):
         with tm.assert_produces_warning(FutureWarning):
             DatetimeIndex(start='1/1/2000', end='1/10/2000', freq='D')
 
+    def test_integer_values_and_tz_deprecated(self):
+        # GH-24559
+        values = np.array([946684800000000000])
+        with tm.assert_produces_warning(FutureWarning):
+            result = DatetimeIndex(values, tz='US/Central')
+        expected = pd.DatetimeIndex(['2000-01-01T00:00:00'], tz="US/Central")
+        tm.assert_index_equal(result, expected)
+
+        # but UTC is *not* deprecated.
+        with tm.assert_produces_warning(None):
+            result = DatetimeIndex(values, tz='UTC')
+        expected = pd.DatetimeIndex(['2000-01-01T00:00:00'], tz="US/Central")
+
     def test_constructor_coverage(self):
         rng = date_range('1/1/2000', periods=10.5)
         exp = date_range('1/1/2000', periods=10)
@@ -555,12 +575,17 @@ class TestDatetimeIndex(object):
                                   ts[1].to_pydatetime()])
         tm.assert_index_equal(result, expected)
 
+    # TODO(GH-24559): Remove the xfail for the tz-aware case.
     @pytest.mark.parametrize('klass', [Index, DatetimeIndex])
     @pytest.mark.parametrize('box', [
         np.array, partial(np.array, dtype=object), list])
     @pytest.mark.parametrize('tz, dtype', [
-        ['US/Pacific', 'datetime64[ns, US/Pacific]'],
-        [None, 'datetime64[ns]']])
+        pytest.param('US/Pacific', 'datetime64[ns, US/Pacific]',
+                     marks=[pytest.mark.xfail(),
+                            pytest.mark.filterwarnings(
+                                "ignore:\\n    Passing:FutureWarning")]),
+        [None, 'datetime64[ns]'],
+    ])
     def test_constructor_with_int_tz(self, klass, box, tz, dtype):
         # GH 20997, 20964
         ts = Timestamp('2018-01-01', tz=tz)
@@ -568,8 +593,12 @@ class TestDatetimeIndex(object):
         expected = klass([ts])
         assert result == expected
 
+    # This is the desired future behavior
+    @pytest.mark.xfail(reason="Future behavior", strict=False)
+    @pytest.mark.filterwarnings("ignore:\\n    Passing:FutureWarning")
     def test_construction_int_rountrip(self, tz_naive_fixture):
         # GH 12619
+        # TODO(GH-24559): Remove xfail
         tz = tz_naive_fixture
         result = 1293858000000000000
         expected = DatetimeIndex([1293858000000000000], tz=tz).asi8[0]

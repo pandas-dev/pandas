@@ -449,7 +449,10 @@ def _convert_bin_to_datelike_type(bins, dtype):
     bins : Array-like of bins, DatetimeIndex or TimedeltaIndex if dtype is
            datelike
     """
-    if is_datetime64tz_dtype(dtype) or is_datetime_or_timedelta_dtype(dtype):
+    if is_datetime64tz_dtype(dtype):
+        bins = to_datetime(bins.astype(np.int64),
+                           utc=True).tz_convert(dtype.tz)
+    elif is_datetime_or_timedelta_dtype(dtype):
         bins = Index(bins.astype(np.int64), dtype=dtype)
     return bins
 
