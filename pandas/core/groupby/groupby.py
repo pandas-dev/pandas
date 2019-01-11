@@ -1724,7 +1724,7 @@ class GroupBy(_GroupBy):
         """
 
         def pre_processor(vals):
-            # type: np.ndarray -> (np.ndarray, typing.Type)
+            # type: np.ndarray -> (np.ndarray, Optional[typing.Type])
             if is_object_dtype(vals):
                 raise TypeError("'quantile' cannot be performed against "
                                 "'object' dtypes!")
@@ -1739,7 +1739,7 @@ class GroupBy(_GroupBy):
             return vals, inference
 
         def post_processor(vals, inference):
-            # type: (np.ndarray, typing.Type) -> np.ndarray
+            # type: (np.ndarray, Optional[typing.Type]) -> np.ndarray
             if inference:
                 # Check for edge case
                 if not (is_integer_dtype(inference) and
@@ -1995,14 +1995,14 @@ class GroupBy(_GroupBy):
         pre_processing : function, default None
             Function to be applied to `values` prior to passing to Cython.
             Function should return a tuple where the first element is the
-            values to be passed to Cython and the second element is an
-            optional dictionary containing type inferences to be applied
-            after the Cython call. Raises if `needs_values` is False
+            values to be passed to Cython and the second element is an optional
+            type which the values should be converted to after being returned
+            by the Cython operation. Raises if `needs_values` is False.
         post_processing : function, default None
             Function to be applied to result of Cython function. Should accept
             an array of values as the first argument and type inferences as its
             second argument, i.e. the signature should be
-            (ndarray, Dict[str, typing.Type]).
+            (ndarray, typing.Type).
         **kwargs : dict
             Extra arguments to be passed back to Cython funcs
 
