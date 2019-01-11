@@ -1026,15 +1026,17 @@ class GroupBy(_GroupBy):
         """
 
         def objs_to_bool(vals):
-            try:
-                vals = vals.astype(np.bool)
-            except ValueError:  # for objects
+            # type: np.ndarray -> (np.ndarray, typing.Type)
+            if is_object_dtype(vals):
                 vals = np.array([bool(x) for x in vals])
+            else:
+                vals = vals.astype(np.bool)
 
-            return vals.view(np.uint8), None
+            return vals.view(np.uint8), np.bool
 
-        def result_to_bool(result, inferences):
-            return result.astype(np.bool, copy=False)
+        def result_to_bool(result, inference):
+            # type: (np.ndarray, typing.Type) -> np.ndarray
+            return result.astype(inference, copy=False)
 
         return self._get_cythonized_result('group_any_all', self.grouper,
                                            aggregate=True,
@@ -1722,28 +1724,27 @@ class GroupBy(_GroupBy):
         """
 
         def pre_processor(vals):
-            inferences = {
-                'is_dt': False,
-                'is_int': False
-            }
-
+            # type: np.ndarray -> (np.ndarray, typing.Type)
             if is_object_dtype(vals):
                 raise TypeError("'quantile' cannot be performed against "
                                 "'object' dtypes!")
-            elif is_integer_dtype(vals):
-                inferences['is_int'] = True
+
+            inference = None
+            if is_integer_dtype(vals):
+                inference = np.int64
             elif is_datetime64_dtype(vals):
+                inference = 'datetime64[ns]'
                 vals = vals.astype(np.float)
-                inferences['is_dt'] = True
 
-            return vals, inferences
+            return vals, inference
 
-        def post_processor(vals, inferences):
-            if inferences['is_dt']:
-                vals = vals.astype('datetime64[ns]')
-            elif inferences['is_int'] and interpolation in [
-                    'lower', 'higher', 'nearest']:
-                vals = vals.astype(np.int64)
+        def post_processor(vals, inference):
+            # type: (np.ndarray, typing.Type) -> np.ndarray
+            if inference:
+                # Check for edge case
+                if not (is_integer_dtype(inference) and
+                        interpolation in {'linear', 'midpoint'}):
+                    vals = vals.astype(inference)
 
             return vals
 
@@ -2000,7 +2001,8 @@ class GroupBy(_GroupBy):
         post_processing : function, default None
             Function to be applied to result of Cython function. Should accept
             an array of values as the first argument and type inferences as its
-            second argument.
+            second argument, i.e. the signature should be
+            (ndarray, Dict[str, typing.Type]).
         **kwargs : dict
             Extra arguments to be passed back to Cython funcs
 
@@ -2055,6 +2057,8 @@ class GroupBy(_GroupBy):
                 result = algorithms.take_nd(obj.values, result)
 
             if post_processing:
+                # TODO: kludgy and will fail if no pre_processor as inferences
+                # will be undefined.
                 result = post_processing(result, inferences)
 
             output[name] = result
