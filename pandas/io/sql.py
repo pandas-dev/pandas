@@ -240,7 +240,7 @@ def read_sql_table(table_name, con, schema=None, index_col=None,
     try:
         meta.reflect(only=[table_name], views=True)
     except sqlalchemy.exc.InvalidRequestError:
-        raise ValueError("Table %s not found" % table_name)
+        raise ValueError("Table {name} not found".format(name=table_name))
 
     pandas_sql = SQLDatabase(con, meta=meta)
     table = pandas_sql.read_table(
@@ -250,7 +250,7 @@ def read_sql_table(table_name, con, schema=None, index_col=None,
     if table is not None:
         return table
     else:
-        raise ValueError("Table %s not found" % table_name, con)
+        raise ValueError("Table {name} not found".format(name=table_name), con)
 
 
 def read_sql_query(sql, con, index_col=None, coerce_float=True, params=None,
@@ -552,7 +552,8 @@ class SQLTable(PandasObject):
             self.table = self.pd_sql.get_table(self.name, self.schema)
 
         if self.table is None:
-            raise ValueError("Could not init table '%s'" % name)
+            raise ValueError(
+                "Could not init table '{name}'".format(name=name))
 
     def exists(self):
         return self.pd_sql.has_table(self.name, self.schema)
@@ -569,7 +570,8 @@ class SQLTable(PandasObject):
     def create(self):
         if self.exists():
             if self.if_exists == 'fail':
-                raise ValueError("Table '%s' already exists." % self.name)
+                raise ValueError(
+                    "Table '{name}' already exists.".format(name=self.name))
             elif self.if_exists == 'replace':
                 self.pd_sql.drop_table(self.name, self.schema)
                 self._execute_create()
@@ -1161,8 +1163,8 @@ class SQLDatabase(PandasSQL):
             from sqlalchemy.types import to_instance, TypeEngine
             for col, my_type in dtype.items():
                 if not isinstance(to_instance(my_type), TypeEngine):
-                    raise ValueError('The type of %s is not a SQLAlchemy '
-                                     'type ' % col)
+                    raise ValueError('The type of {column} is not a '
+                                     'SQLAlchemy type '.format(column=col))
 
         table = SQLTable(name, self, frame=frame, index=index,
                          if_exists=if_exists, index_label=index_label,
@@ -1244,7 +1246,8 @@ def _get_unicode_name(name):
     try:
         uname = text_type(name).encode("utf-8", "strict").decode("utf-8")
     except UnicodeError:
-        raise ValueError("Cannot convert identifier to UTF-8: '%s'" % name)
+        raise ValueError(
+            "Cannot convert identifier to UTF-8: '{name}'".format(name=name))
     return uname
 
 
@@ -1305,8 +1308,9 @@ class SQLiteTable(SQLTable):
         bracketed_names = [escape(column) for column in names]
         col_names = ','.join(bracketed_names)
         wildcards = ','.join([wld] * len(names))
-        insert_statement = 'INSERT INTO %s (%s) VALUES (%s)' % (
-            escape(self.name), col_names, wildcards)
+        insert_statement = \
+            u'INSERT INTO {table} ({columns}) VALUES ({wld})'.format(
+                table=escape(self.name), columns=col_names, wld=wildcards)
         return insert_statement
 
     def _execute_insert(self, conn, keys, data_iter):
@@ -1429,12 +1433,14 @@ class SQLiteDatabase(PandasSQL):
             try:
                 self.con.rollback()
             except Exception:  # pragma: no cover
-                ex = DatabaseError("Execution failed on sql: %s\n%s\nunable"
-                                   " to rollback" % (args[0], exc))
+                ex = DatabaseError(
+                    "Execution failed on sql: {sql}\n{exc}\nunable "
+                    "to rollback".format(sql=args[0], exc=exc))
                 raise_with_traceback(ex)
 
             ex = DatabaseError(
-                "Execution failed on sql '%s': %s" % (args[0], exc))
+                "Execution failed on sql '{sql}': {exc}".format(
+                    sql=args[0], exc=exc))
             raise_with_traceback(ex)
 
     @staticmethod
@@ -1530,8 +1536,8 @@ class SQLiteDatabase(PandasSQL):
         if dtype is not None:
             for col, my_type in dtype.items():
                 if not isinstance(my_type, str):
-                    raise ValueError('%s (%s) not a string' % (
-                        col, str(my_type)))
+                    raise ValueError('{column} ({type!s}) not a string'.format(
+                        column=col, type=my_type))
 
         table = SQLiteTable(name, self, frame=frame, index=index,
                             if_exists=if_exists, index_label=index_label,
@@ -1546,7 +1552,7 @@ class SQLiteDatabase(PandasSQL):
 
         wld = '?'
         query = ("SELECT name FROM sqlite_master "
-                 "WHERE type='table' AND name=%s;") % wld
+                 "WHERE type='table' AND name={wld};").format(wld=wld)
 
         return len(self.execute(query, [name, ]).fetchall()) > 0
 
@@ -1554,7 +1560,8 @@ class SQLiteDatabase(PandasSQL):
         return None  # not supported in fallback mode
 
     def drop_table(self, name, schema=None):
-        drop_sql = "DROP TABLE %s" % _get_valid_sqlite_name(name)
+        drop_sql = "DROP TABLE {name}".format(
+            name=_get_valid_sqlite_name(name))
         self.execute(drop_sql)
 
     def _create_sql_schema(self, frame, table_name, keys=None, dtype=None):

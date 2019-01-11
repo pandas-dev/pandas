@@ -519,7 +519,8 @@ def encode(obj):
         elif isinstance(obj, date):
             return {u'typ': u'date',
                     u'data': u(obj.isoformat())}
-        raise Exception("cannot encode this datetimelike object: %s" % obj)
+        raise Exception(
+            "cannot encode this datetimelike object: {obj}".format(obj=obj))
     elif isinstance(obj, Period):
         return {u'typ': u'period',
                 u'ordinal': obj.ordinal,
