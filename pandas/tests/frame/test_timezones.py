@@ -196,3 +196,15 @@ class TestDataFrameTimezones(object):
                              index=date_range('20131027', periods=5,
                                               freq='1H', tz=tz))
         tm.assert_frame_equal(result, expected)
+
+    @pytest.mark.parametrize('op, expected_col', [
+        ['max', 'a'], ['min', 'b']
+    ])
+    def test_same_tz_min_max_axis_1(self, op, expected_col):
+        # GH 10390
+        df = DataFrame(date_range('2016-01-01 00:00:00', periods=3, tz='UTC'),
+                       columns=['a'])
+        df['b'] = df.a.subtract(pd.Timedelta(seconds=3600))
+        result = getattr(df, op)(axis=1)
+        expected = df[expected_col]
+        tm.assert_series_equal(result, expected)
