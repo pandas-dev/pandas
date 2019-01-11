@@ -33,6 +33,7 @@ from pandas.tseries.frequencies import get_period_alias, to_offset
 from pandas.tseries.offsets import Day, Tick
 
 _midnight = time(0, 0)
+# TODO(GH-24559): Remove warning, int_as_wall_time parameter.
 _i8_message = """
     Passing integer-dtype data and a timezone to DatetimeIndex. Integer values
     will be interpreted differently in a future version of pandas. Previously,
@@ -1681,8 +1682,10 @@ def sequence_to_dt64ns(data, dtype=None, copy=False,
     int_as_wall_time : bool, default False
         Whether to treat ints as wall time in specified timezone, or as
         nanosecond-precision UNIX epoch (wall time in UTC).
-        This is used in DatetimeIndex.__init__ to deprecated the wall-time
+        This is used in DatetimeIndex.__init__ to deprecate the wall-time
         behaviour.
+
+        ..versionadded:: 0.24.0
 
     Returns
     -------

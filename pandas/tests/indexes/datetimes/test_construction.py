@@ -127,7 +127,6 @@ class TestDatetimeIndex(object):
         with tm.assert_produces_warning(warn, check_stacklevel=False):
             result = DatetimeIndex(i.tz_localize(None).asi8, **kwargs)
         expected = DatetimeIndex(i, **kwargs)
-        # expected = i.tz_localize(None).tz_localize('UTC').tz_convert(tz)
         tm.assert_index_equal(result, expected)
 
         # localize into the provided tz
@@ -386,6 +385,7 @@ class TestDatetimeIndex(object):
             DatetimeIndex(start='1/1/2000', end='1/10/2000', freq='D')
 
     def test_integer_values_and_tz_deprecated(self):
+        # GH-24559
         values = np.array([946684800000000000])
         with tm.assert_produces_warning(FutureWarning):
             result = DatetimeIndex(values, tz='US/Central')
@@ -575,6 +575,7 @@ class TestDatetimeIndex(object):
                                   ts[1].to_pydatetime()])
         tm.assert_index_equal(result, expected)
 
+    # TODO(GH-24559): Remove the xfail for the tz-aware case.
     @pytest.mark.parametrize('klass', [Index, DatetimeIndex])
     @pytest.mark.parametrize('box', [
         np.array, partial(np.array, dtype=object), list])
@@ -593,10 +594,11 @@ class TestDatetimeIndex(object):
         assert result == expected
 
     # This is the desired future behavior
-    @pytest.mark.xfail(reason="TBD", strict=False)
+    @pytest.mark.xfail(reason="Future behavior", strict=False)
     @pytest.mark.filterwarnings("ignore:\\n    Passing:FutureWarning")
     def test_construction_int_rountrip(self, tz_naive_fixture):
         # GH 12619
+        # TODO(GH-24559): Remove xfail
         tz = tz_naive_fixture
         result = 1293858000000000000
         expected = DatetimeIndex([1293858000000000000], tz=tz).asi8[0]

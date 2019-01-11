@@ -409,6 +409,7 @@ class TestIndex(Base):
         index = index.tz_localize(tz_naive_fixture)
         dtype = index.dtype
 
+        # TODO(GH-24559): Remove the sys.modules and warnings
         # not sure what this is from. It's Py2 only.
         modules = [sys.modules['pandas.core.indexes.base']]
 

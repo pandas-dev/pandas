@@ -734,6 +734,7 @@ class Index(IndexOpsMixin, PandasObject):
             return CategoricalIndex(self.values, name=self.name, dtype=dtype,
                                     copy=copy)
         elif is_datetime64tz_dtype(dtype):
+            # TODO(GH-24559): Remove this block, use the following elif.
             # avoid FutureWarning from DatetimeIndex constructor.
             from pandas import DatetimeIndex
             tz = pandas_dtype(dtype).tz
