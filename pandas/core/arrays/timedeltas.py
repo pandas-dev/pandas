@@ -15,8 +15,8 @@ import pandas.compat as compat
 from pandas.util._decorators import Appender
 
 from pandas.core.dtypes.common import (
-    _NS_DTYPE, _TD_DTYPE, ensure_int64, is_datetime64_dtype, is_dtype_equal,
-    is_float_dtype, is_integer_dtype, is_list_like, is_object_dtype, is_scalar,
+    _NS_DTYPE, _TD_DTYPE, ensure_int64, is_datetime64_dtype, is_float_dtype,
+    is_integer_dtype, is_list_like, is_object_dtype, is_scalar,
     is_string_dtype, is_timedelta64_dtype, is_timedelta64_ns_dtype,
     pandas_dtype)
 from pandas.core.dtypes.dtypes import DatetimeTZDtype
@@ -134,28 +134,61 @@ class TimedeltaArray(dtl.DatetimeLikeArrayMixin, dtl.TimelikeOps):
     _attributes = ["freq"]
 
     def __init__(self, values, dtype=_TD_DTYPE, freq=None, copy=False):
-        if not hasattr(values, "dtype"):
-            raise ValueError(
+        if isinstance(values, (ABCSeries, ABCIndexClass)):
+            values = values._values
+
+        inferred_freq = getattr(values, "_freq", None)
+
+        if isinstance(values, type(self)):
+            if freq is None:
+                freq = values.freq
+            elif freq and values.freq:
+                freq = to_offset(freq)
+                freq, _ = dtl.validate_inferred_freq(freq, values.freq, False)
+            values = values._data
+
+        if not isinstance(values, np.ndarray):
+            msg = (
                 "Unexpected type '{}'. 'values' must be a TimedeltaArray "
                 "ndarray, or Series or Index containing one of those."
-                .format(type(values).__name__))
-        if freq == "infer":
-            raise ValueError(
-                "Frequency inference not allowed in TimedeltaArray.__init__. "
-                "Use 'pd.array()' instead.")
-
-        if dtype is not None and not is_dtype_equal(dtype, _TD_DTYPE):
-            raise TypeError("dtype {dtype} cannot be converted to "
-                            "timedelta64[ns]".format(dtype=dtype))
+            )
+            raise ValueError(msg.format(type(values).__name__))
 
         if values.dtype == 'i8':
-            values = values.view('timedelta64[ns]')
+            # for compat with datetime/timedelta/period shared methods,
+            #  we can sometimes get here with int64 values.  These represent
+            #  nanosecond UTC (or tz-naive) unix timestamps
+            values = values.view(_TD_DTYPE)
 
-        result = type(self)._from_sequence(values, dtype=dtype,
-                                           copy=copy, freq=freq)
-        self._data = result._data
-        self._freq = result._freq
-        self._dtype = result._dtype
+        if values.dtype != _TD_DTYPE:
+            raise TypeError(_BAD_DTYPE.format(dtype=values.dtype))
+
+        try:
+            dtype_mismatch = dtype != _TD_DTYPE
+        except TypeError:
+            raise TypeError(_BAD_DTYPE.format(dtype=dtype))
+        else:
+            if dtype_mismatch:
+                raise TypeError(_BAD_DTYPE.format(dtype=dtype))
+
+        if freq == "infer":
+            msg = (
+                "Frequency inference not allowed in TimedeltaArray.__init__. "
+                "Use 'pd.array()' instead."
+            )
+            raise ValueError(msg)
+
+        if copy:
+            values = values.copy()
+        if freq:
+            freq = to_offset(freq)
+
+        self._data = values
+        self._dtype = dtype
+        self._freq = freq
+
+        if inferred_freq is None and freq is not None:
+            type(self)._validate_frequency(self, freq)
 
     @classmethod
     def _simple_new(cls, values, freq=None, dtype=_TD_DTYPE):
