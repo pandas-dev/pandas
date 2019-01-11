@@ -1995,7 +1995,7 @@ class GroupBy(_GroupBy):
             Function to be applied to `values` prior to passing to Cython.
             Function should return a tuple where the first element is the
             values to be passed to Cython and the second element is an
-            optional dictionary containing type inferences to be applied 
+            optional dictionary containing type inferences to be applied
             after the Cython call. Raises if `needs_values` is False
         post_processing : function, default None
             Function to be applied to result of Cython function. Should accept
