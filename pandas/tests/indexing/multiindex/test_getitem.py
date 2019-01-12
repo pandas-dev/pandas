@@ -171,13 +171,6 @@ def test_getitem_toplevel(
     tm.assert_frame_equal(result, expected)
 
 
-def test_getitem_iloc(multiindex_dataframe_random_data):
-    df = multiindex_dataframe_random_data
-    result = df.iloc[2]
-    expected = df.xs(df.index[2])
-    tm.assert_series_equal(result, expected)
-
-
 def test_frame_setitem_view_direct(multiindex_dataframe_random_data):
     # this works because we are modifying the underlying array
     # really a no-no
