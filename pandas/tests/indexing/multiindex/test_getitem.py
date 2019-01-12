@@ -32,6 +32,10 @@ def dataframe_with_duplicate_index():
     return DataFrame(data, index=index, columns=columns)
 
 
+# ----------------------------------------------------------------------------
+# test indexing of Series with multi-level Index
+# ----------------------------------------------------------------------------
+
 @pytest.mark.parametrize('access_method', [lambda s, x: s[:, x],
                                            lambda s, x: s.loc[:, x],
                                            lambda s, x: s.xs(x, level=1)])
@@ -115,53 +119,6 @@ def test_getitem_duplicates_multiindex_missing_indexers(indexer, is_level1,
         tm.assert_series_equal(result, expected)
 
 
-@pytest.mark.parametrize('columns_indexer', [
-    ([], slice(None)),
-    (['foo'], [])
-])
-def test_getitem_duplicates_multiindex_empty_indexer(columns_indexer):
-    # GH 8737
-    # empty indexer
-    multi_index = MultiIndex.from_product((['foo', 'bar', 'baz'],
-                                           ['alpha', 'beta']))
-    df = DataFrame(np.random.randn(5, 6), index=range(5), columns=multi_index)
-    df = df.sort_index(level=0, axis=1)
-
-    expected = DataFrame(index=range(5), columns=multi_index.reindex([])[0])
-    result = df.loc[:, columns_indexer]
-    tm.assert_frame_equal(result, expected)
-
-
-def test_getitem_duplicates_multiindex_non_scalar_type_object():
-    # regression from < 0.14.0
-    # GH 7914
-    df = DataFrame([[np.mean, np.median], ['mean', 'median']],
-                   columns=MultiIndex.from_tuples([('functs', 'mean'),
-                                                   ('functs', 'median')]),
-                   index=['function', 'name'])
-    result = df.loc['function', ('functs', 'mean')]
-    expected = np.mean
-    assert result == expected
-
-
-def test_getitem_simple(multiindex_dataframe_random_data):
-    df = multiindex_dataframe_random_data.T
-    expected = df.values[:, 0]
-    result = df['foo', 'one'].values
-    tm.assert_almost_equal(result, expected)
-
-
-@pytest.mark.parametrize('indexer,msg', [
-    (lambda df: df[('foo', 'four')], r"\('foo', 'four'\)"),
-    (lambda df: df['foobar'], "'foobar'")
-])
-def test_getitem_simple_key_error(
-        multiindex_dataframe_random_data, indexer, msg):
-    df = multiindex_dataframe_random_data.T
-    with pytest.raises(KeyError, match=msg):
-        indexer(df)
-
-
 @pytest.mark.parametrize('indexer', [
     lambda s: s[2000, 3],
     lambda s: s.loc[2000, 3]
@@ -225,6 +182,57 @@ def test_series_getitem_corner_generator(
     result = s[(x > 0 for x in s)]
     expected = s[s > 0]
     tm.assert_series_equal(result, expected)
+
+
+# ----------------------------------------------------------------------------
+# test indexing of DataFrame with multi-level Index
+# ----------------------------------------------------------------------------
+
+@pytest.mark.parametrize('columns_indexer', [
+    ([], slice(None)),
+    (['foo'], [])
+])
+def test_getitem_duplicates_multiindex_empty_indexer(columns_indexer):
+    # GH 8737
+    # empty indexer
+    multi_index = MultiIndex.from_product((['foo', 'bar', 'baz'],
+                                           ['alpha', 'beta']))
+    df = DataFrame(np.random.randn(5, 6), index=range(5), columns=multi_index)
+    df = df.sort_index(level=0, axis=1)
+
+    expected = DataFrame(index=range(5), columns=multi_index.reindex([])[0])
+    result = df.loc[:, columns_indexer]
+    tm.assert_frame_equal(result, expected)
+
+
+def test_getitem_duplicates_multiindex_non_scalar_type_object():
+    # regression from < 0.14.0
+    # GH 7914
+    df = DataFrame([[np.mean, np.median], ['mean', 'median']],
+                   columns=MultiIndex.from_tuples([('functs', 'mean'),
+                                                   ('functs', 'median')]),
+                   index=['function', 'name'])
+    result = df.loc['function', ('functs', 'mean')]
+    expected = np.mean
+    assert result == expected
+
+
+def test_getitem_simple(multiindex_dataframe_random_data):
+    df = multiindex_dataframe_random_data.T
+    expected = df.values[:, 0]
+    result = df['foo', 'one'].values
+    tm.assert_almost_equal(result, expected)
+
+
+@pytest.mark.parametrize('indexer,msg', [
+    (lambda df: df[('foo', 'four')], r"\('foo', 'four'\)"),
+    (lambda df: df['foobar'], "'foobar'")
+])
+def test_getitem_simple_key_error(
+        multiindex_dataframe_random_data, indexer, msg):
+    df = multiindex_dataframe_random_data.T
+    with pytest.raises(KeyError, match=msg):
+        indexer(df)
 
 
 def test_frame_getitem_multicolumn_empty_level():
