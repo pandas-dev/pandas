@@ -31,7 +31,7 @@ def test_series_getitem_multiindex(access_method, level1_value, expected):
 
 
 @pytest.mark.parametrize('level0_value', ['D', 'A'])
-def test_getitem_duplicates_multiindex(level0_value):
+def test_series_getitem_duplicates_multiindex(level0_value):
     # GH 5725 the 'A' happens to be a valid Timestamp so the doesn't raise
     # the appropriate error, only in PY3 of course!
 
@@ -124,7 +124,7 @@ def test_getitem_simple(multiindex_dataframe_random_data):
     (lambda df: df[('foo', 'four')], r"^\('foo', 'four'\)$"),
     (lambda df: df['foobar'], r"^'foobar'$")
 ])
-def test_getitem_simple_key_error(
+def test_frame_getitem_simple_key_error(
         multiindex_dataframe_random_data, indexer, expected_error_msg):
     df = multiindex_dataframe_random_data.T
     with pytest.raises(KeyError, match=expected_error_msg):
@@ -147,7 +147,7 @@ def test_frame_getitem_multicolumn_empty_level():
     (lambda df: df['bar'], slice(3, 5)),
     (lambda df: df.loc[:, 'bar'], slice(3, 5))
 ])
-def test_getitem_toplevel(
+def test_frame_getitem_toplevel(
         multiindex_dataframe_random_data, indexer, expected_slice):
     df = multiindex_dataframe_random_data.T
     expected = df.reindex(columns=df.columns[expected_slice])
@@ -157,7 +157,7 @@ def test_getitem_toplevel(
 
 
 @pytest.mark.parametrize('unicode_strings', [True, False])
-def test_mixed_depth_get(unicode_strings):
+def test_frame_mixed_depth_get(unicode_strings):
     # If unicode_strings is True, the column labels in dataframe
     # construction will use unicode strings in Python 2 (pull request
     # #17099).
@@ -205,7 +205,7 @@ def dataframe_with_duplicate_index():
     lambda df: df[('A', 'A1')],
     lambda df: df.loc[:, ('A', 'A1')]
 ])
-def test_mi_access(dataframe_with_duplicate_index, indexer):
+def test_frame_mi_access(dataframe_with_duplicate_index, indexer):
     # GH 4145
     df = dataframe_with_duplicate_index
     index = Index(['h1', 'h3', 'h5'])
@@ -216,7 +216,7 @@ def test_mi_access(dataframe_with_duplicate_index, indexer):
     tm.assert_frame_equal(result, expected)
 
 
-def test_mi_access_returns_series(dataframe_with_duplicate_index):
+def test_frame_mi_access_returns_series(dataframe_with_duplicate_index):
     # GH 4146, not returning a block manager when selecting a unique index
     # from a duplicate index
     # as of 4879, this returns a Series (which is similar to what happens
@@ -227,7 +227,7 @@ def test_mi_access_returns_series(dataframe_with_duplicate_index):
     tm.assert_series_equal(result, expected)
 
 
-def test_mi_access_returns_frame(dataframe_with_duplicate_index):
+def test_frame_mi_access_returns_frame(dataframe_with_duplicate_index):
     # selecting a non_unique from the 2nd level
     df = dataframe_with_duplicate_index
     expected = DataFrame([['d', 4, 4], ['e', 5, 5]],
