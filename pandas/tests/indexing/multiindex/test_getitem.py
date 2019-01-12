@@ -68,12 +68,10 @@ def test_getitem_duplicates_multiindex(level0_value):
 
     # confirm indexing on missing value raises KeyError
     if level0_value != 'A':
-        msg = "'A'"
-        with pytest.raises(KeyError, match=msg):
+        with pytest.raises(KeyError, match=r"^'A'$"):
             df.val['A']
 
-    msg = "'X'"
-    with pytest.raises(KeyError, match=msg):
+    with pytest.raises(KeyError, match=r"^'X'$"):
         df.val['X']
 
     result = df.val[level0_value]
@@ -109,9 +107,9 @@ def test_series_getitem_returns_scalar(
     assert result == expected
 
 
-@pytest.mark.parametrize('indexer,error,msg', [
-    (lambda s: s.__getitem__((2000, 3, 4)), KeyError, '356'),
-    (lambda s: s[(2000, 3, 4)], KeyError, '356'),
+@pytest.mark.parametrize('indexer,expected_error,expected_error_msg', [
+    (lambda s: s.__getitem__((2000, 3, 4)), KeyError, r"^356$"),
+    (lambda s: s[(2000, 3, 4)], KeyError, r"^356$"),
     (lambda s: s.loc[(2000, 3, 4)], IndexingError, 'Too many indexers'),
     (lambda s: s.__getitem__(len(s)), IndexError, 'index out of bounds'),
     (lambda s: s[len(s)], IndexError, 'index out of bounds'),
@@ -119,9 +117,10 @@ def test_series_getitem_returns_scalar(
      'single positional indexer is out-of-bounds')
 ])
 def test_series_getitem_indexing_errors(
-        multiindex_year_month_day_dataframe_random_data, indexer, error, msg):
+        multiindex_year_month_day_dataframe_random_data, indexer,
+        expected_error, expected_error_msg):
     s = multiindex_year_month_day_dataframe_random_data['A']
-    with pytest.raises(error, match=msg):
+    with pytest.raises(expected_error, match=expected_error_msg):
         indexer(s)
 
 
@@ -144,14 +143,14 @@ def test_getitem_simple(multiindex_dataframe_random_data):
     tm.assert_almost_equal(result, expected)
 
 
-@pytest.mark.parametrize('indexer,msg', [
-    (lambda df: df[('foo', 'four')], r"\('foo', 'four'\)"),
-    (lambda df: df['foobar'], "'foobar'")
+@pytest.mark.parametrize('indexer,expected_error_msg', [
+    (lambda df: df[('foo', 'four')], r"^\('foo', 'four'\)$"),
+    (lambda df: df['foobar'], r"^'foobar'$")
 ])
 def test_getitem_simple_key_error(
-        multiindex_dataframe_random_data, indexer, msg):
+        multiindex_dataframe_random_data, indexer, expected_error_msg):
     df = multiindex_dataframe_random_data.T
-    with pytest.raises(KeyError, match=msg):
+    with pytest.raises(KeyError, match=expected_error_msg):
         indexer(df)
 
 
@@ -202,9 +201,8 @@ def test_getitem_int(frame_random_data_integer_multi_index):
 
 def test_getitem_int_raises_exception(frame_random_data_integer_multi_index):
     df = frame_random_data_integer_multi_index
-    msg = "3"
-    with pytest.raises(KeyError, match=msg):
-        df.loc.__getitem__(3)
+    with pytest.raises(KeyError, match=r"^3$"):
+        df.loc[3]
 
 
 def test_getitem_iloc(multiindex_dataframe_random_data):
@@ -246,7 +244,7 @@ def test_getitem_lowerdim_corner(multiindex_dataframe_random_data):
     df = multiindex_dataframe_random_data
 
     # test setup - check key not in dataframe
-    with pytest.raises(KeyError, match="11"):
+    with pytest.raises(KeyError, match=r"^11$"):
         df.loc[('bar', 'three'), 'B']
 
     # in theory should be inserting in a sorted space????
