@@ -16,6 +16,14 @@ def single_level_multiindex():
                       codes=[[0, 1, 2, 3]], names=['first'])
 
 
+@pytest.fixture
+def frame_random_data_integer_multi_index():
+    levels = [[0, 1], [0, 1, 2]]
+    codes = [[0, 0, 0, 1, 1, 1], [0, 1, 2, 0, 1, 2]]
+    index = MultiIndex(levels=levels, codes=codes)
+    return DataFrame(np.random.randn(6, 2), index=index)
+
+
 @pytest.mark.filterwarnings("ignore:\\n.ix:DeprecationWarning")
 class TestMultiIndexLoc(object):
 
@@ -339,3 +347,17 @@ def test_getitem_tuple_plus_slice():
     expected = df.loc[0, 0]
     result = df.loc[(0, 0), :]
     tm.assert_series_equal(result, expected)
+
+
+def test_getitem_int(frame_random_data_integer_multi_index):
+    df = frame_random_data_integer_multi_index
+    result = df.loc[1]
+    expected = df[-3:]
+    expected.index = expected.index.droplevel(0)
+    tm.assert_frame_equal(result, expected)
+
+
+def test_getitem_int_raises_exception(frame_random_data_integer_multi_index):
+    df = frame_random_data_integer_multi_index
+    with pytest.raises(KeyError, match=r"^3$"):
+        df.loc[3]

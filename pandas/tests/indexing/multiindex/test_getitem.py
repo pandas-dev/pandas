@@ -10,14 +10,6 @@ from pandas.util import testing as tm
 
 
 @pytest.fixture
-def frame_random_data_integer_multi_index():
-    levels = [[0, 1], [0, 1, 2]]
-    codes = [[0, 0, 0, 1, 1, 1], [0, 1, 2, 0, 1, 2]]
-    index = MultiIndex(levels=levels, codes=codes)
-    return DataFrame(np.random.randn(6, 2), index=index)
-
-
-@pytest.fixture
 def dataframe_with_duplicate_index():
     """Fixture for DataFrame used in tests for gh-4145 and gh-4146"""
     data = [['a', 'd', 'e', 'c', 'f', 'b'],
@@ -177,20 +169,6 @@ def test_getitem_toplevel(
     expected.columns = expected.columns.droplevel(0)
     result = indexer(df)
     tm.assert_frame_equal(result, expected)
-
-
-def test_getitem_int(frame_random_data_integer_multi_index):
-    df = frame_random_data_integer_multi_index
-    result = df.loc[1]
-    expected = df[-3:]
-    expected.index = expected.index.droplevel(0)
-    tm.assert_frame_equal(result, expected)
-
-
-def test_getitem_int_raises_exception(frame_random_data_integer_multi_index):
-    df = frame_random_data_integer_multi_index
-    with pytest.raises(KeyError, match=r"^3$"):
-        df.loc[3]
 
 
 def test_getitem_iloc(multiindex_dataframe_random_data):
