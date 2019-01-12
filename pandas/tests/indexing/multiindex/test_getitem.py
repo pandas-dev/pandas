@@ -109,20 +109,6 @@ def test_series_getitem_returns_scalar(
     assert result == expected
 
 
-@pytest.mark.filterwarnings("ignore:\\n.ix:DeprecationWarning")
-@pytest.mark.parametrize('indexer', [
-    lambda s: s.loc[[(2000, 3, 10), (2000, 3, 13)]],
-    lambda s: s.ix[[(2000, 3, 10), (2000, 3, 13)]]
-])
-def test_series_getitem_fancy(
-        multiindex_year_month_day_dataframe_random_data, indexer):
-    s = multiindex_year_month_day_dataframe_random_data['A']
-    expected = s.reindex(s.index[49:51])
-
-    result = indexer(s)
-    tm.assert_series_equal(result, expected)
-
-
 @pytest.mark.parametrize('indexer,error,msg', [
     (lambda s: s.__getitem__((2000, 3, 4)), KeyError, '356'),
     (lambda s: s[(2000, 3, 4)], KeyError, '356'),

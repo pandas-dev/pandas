@@ -284,3 +284,17 @@ def test_getitem_duplicates_multiindex_missing_indexers(indexer, is_level1,
     else:
         result = s.loc[indexer]
         tm.assert_series_equal(result, expected)
+
+
+@pytest.mark.filterwarnings("ignore:\\n.ix:DeprecationWarning")
+@pytest.mark.parametrize('indexer', [
+    lambda s: s.loc[[(2000, 3, 10), (2000, 3, 13)]],
+    lambda s: s.ix[[(2000, 3, 10), (2000, 3, 13)]]
+])
+def test_series_getitem_fancy(
+        multiindex_year_month_day_dataframe_random_data, indexer):
+    s = multiindex_year_month_day_dataframe_random_data['A']
+    expected = s.reindex(s.index[49:51])
+
+    result = indexer(s)
+    tm.assert_series_equal(result, expected)
