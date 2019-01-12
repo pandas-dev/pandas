@@ -8,22 +8,11 @@ from numpy cimport (ndarray, uint8_t, int64_t, int32_t, int16_t, int8_t,
 cnp.import_array()
 
 
-from distutils.version import LooseVersion
-
-# numpy versioning
-_np_version = np.version.short_version
-_np_version_under1p10 = LooseVersion(_np_version) < LooseVersion('1.10')
-_np_version_under1p11 = LooseVersion(_np_version) < LooseVersion('1.11')
-
-
 # -----------------------------------------------------------------------------
 # Preamble stuff
 
 cdef float64_t NaN = <float64_t>np.NaN
 cdef float64_t INF = <float64_t>np.inf
-
-cdef inline int int_max(int a, int b): return a if a >= b else b
-cdef inline int int_min(int a, int b): return a if a <= b else b
 
 # -----------------------------------------------------------------------------
 
@@ -673,13 +662,6 @@ cdef class BlockMerge(object):
             self.yi = xi
 
 
-cdef class BlockIntersection(BlockMerge):
-    """
-    not done yet
-    """
-    pass
-
-
 cdef class BlockUnion(BlockMerge):
     """
     Object-oriented approach makes sharing state between recursive functions a
@@ -803,63 +785,6 @@ cdef class BlockUnion(BlockMerge):
 # Sparse arithmetic
 
 include "sparse_op_helper.pxi"
-
-
-# -----------------------------------------------------------------------------
-# Indexing operations
-
-def get_reindexer(ndarray[object, ndim=1] values, dict index_map):
-    cdef:
-        object idx
-        Py_ssize_t i
-        Py_ssize_t new_length = len(values)
-        ndarray[int32_t, ndim=1] indexer
-
-    indexer = np.empty(new_length, dtype=np.int32)
-
-    for i in range(new_length):
-        idx = values[i]
-        if idx in index_map:
-            indexer[i] = index_map[idx]
-        else:
-            indexer[i] = -1
-
-    return indexer
-
-# def reindex_block(ndarray[float64_t, ndim=1] values,
-#                   BlockIndex sparse_index,
-#                   ndarray[int32_t, ndim=1] indexer):
-#     cdef:
-#         Py_ssize_t i, length
-#         ndarray[float64_t, ndim=1] out
-
-#     out = np.empty(length, dtype=np.float64)
-
-#     for i in range(length):
-#         if indexer[i] == -1:
-#             pass
-
-
-# cdef class SparseCruncher(object):
-#     """
-#     Class to acquire float pointer for convenient operations on sparse data
-#     structures
-#     """
-#     cdef:
-#         SparseIndex index
-#         float64_t* buf
-
-#     def __init__(self, ndarray[float64_t, ndim=1, mode='c'] values,
-#                  SparseIndex index):
-
-#         self.index = index
-#         self.buf = <float64_t*>values.data
-
-
-def reindex_integer(ndarray[float64_t, ndim=1] values,
-                    IntIndex sparse_index,
-                    ndarray[int32_t, ndim=1] indexer):
-    pass
 
 
 # -----------------------------------------------------------------------------

@@ -26,7 +26,7 @@ def cartesian_product(X):
     [array(['A', 'A', 'B', 'B', 'C', 'C'], dtype='|S1'),
     array([1, 2, 1, 2, 1, 2])]
 
-    See also
+    See Also
     --------
     itertools.product : Cartesian product of input iterables.  Equivalent to
         nested for-loops.

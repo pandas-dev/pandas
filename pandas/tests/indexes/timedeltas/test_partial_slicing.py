@@ -2,7 +2,6 @@ import numpy as np
 import pytest
 
 import pandas as pd
-import pandas.util.testing as tm
 from pandas import Series, Timedelta, timedelta_range
 from pandas.util.testing import assert_series_equal
 
@@ -78,9 +77,9 @@ class TestSlicing(object):
 
     def test_slice_with_zero_step_raises(self):
         ts = Series(np.arange(20), timedelta_range('0', periods=20, freq='H'))
-        tm.assert_raises_regex(ValueError, 'slice step cannot be zero',
-                               lambda: ts[::0])
-        tm.assert_raises_regex(ValueError, 'slice step cannot be zero',
-                               lambda: ts.loc[::0])
-        tm.assert_raises_regex(ValueError, 'slice step cannot be zero',
-                               lambda: ts.loc[::0])
+        with pytest.raises(ValueError, match='slice step cannot be zero'):
+            ts[::0]
+        with pytest.raises(ValueError, match='slice step cannot be zero'):
+            ts.loc[::0]
+        with pytest.raises(ValueError, match='slice step cannot be zero'):
+            ts.loc[::0]

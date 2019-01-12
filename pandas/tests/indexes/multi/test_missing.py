@@ -3,11 +3,12 @@
 import numpy as np
 import pytest
 
-import pandas as pd
-import pandas.util.testing as tm
-from pandas import Int64Index, MultiIndex, PeriodIndex, UInt64Index
 from pandas._libs.tslib import iNaT
+
+import pandas as pd
+from pandas import Int64Index, MultiIndex, PeriodIndex, UInt64Index
 from pandas.core.indexes.datetimelike import DatetimeIndexOpsMixin
+import pandas.util.testing as tm
 
 
 def test_fillna(idx):
@@ -20,7 +21,7 @@ def test_fillna(idx):
         elif isinstance(index, MultiIndex):
             idx = index.copy()
             msg = "isna is not defined for MultiIndex"
-            with tm.assert_raises_regex(NotImplementedError, msg):
+            with pytest.raises(NotImplementedError, match=msg):
                 idx.fillna(idx[0])
         else:
             idx = index.copy()
@@ -29,7 +30,7 @@ def test_fillna(idx):
             assert result is not idx
 
             msg = "'value' must be a scalar, passed: "
-            with tm.assert_raises_regex(TypeError, msg):
+            with pytest.raises(TypeError, match=msg):
                 idx.fillna([idx[0]])
 
             idx = index.copy()
@@ -71,7 +72,7 @@ def test_dropna():
     tm.assert_index_equal(idx.dropna(how='all'), exp)
 
     msg = "invalid how option: xxx"
-    with tm.assert_raises_regex(ValueError, msg):
+    with pytest.raises(ValueError, match=msg):
         idx.dropna(how='xxx')
 
 
@@ -80,11 +81,11 @@ def test_nulls(idx):
     # as these are adequately tested for function elsewhere
 
     msg = "isna is not defined for MultiIndex"
-    with tm.assert_raises_regex(NotImplementedError, msg):
+    with pytest.raises(NotImplementedError, match=msg):
         idx.isna()
 
 
-@pytest.mark.xfail(strict=True)
+@pytest.mark.xfail
 def test_hasnans_isnans(idx):
     # GH 11343, added tests for hasnans / isnans
     index = idx.copy()
@@ -110,10 +111,10 @@ def test_nan_stays_float():
 
     # GH 7031
     idx0 = pd.MultiIndex(levels=[["A", "B"], []],
-                         labels=[[1, 0], [-1, -1]],
+                         codes=[[1, 0], [-1, -1]],
                          names=[0, 1])
     idx1 = pd.MultiIndex(levels=[["C"], ["D"]],
-                         labels=[[0], [0]],
+                         codes=[[0], [0]],
                          names=[0, 1])
     idxm = idx0.join(idx1, how='outer')
     assert pd.isna(idx0.get_level_values(1)).all()

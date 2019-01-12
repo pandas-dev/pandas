@@ -21,7 +21,6 @@ from pandas.core.dtypes.dtypes import IntervalDtype
 from pandas import Interval
 from pandas.core.arrays import IntervalArray
 from pandas.tests.extension import base
-import pandas.util.testing as tm
 
 
 def make_data():
@@ -137,7 +136,7 @@ class TestMissing(BaseInterval, base.BaseMissingTests):
 
     def test_non_scalar_raises(self, data_missing):
         msg = "Got a 'list' instead."
-        with tm.assert_raises_regex(TypeError, msg):
+        with pytest.raises(TypeError, match=msg):
             data_missing.fillna([1, 1])
 
 
@@ -147,3 +146,17 @@ class TestReshaping(BaseInterval, base.BaseReshapingTests):
 
 class TestSetitem(BaseInterval, base.BaseSetitemTests):
     pass
+
+
+class TestPrinting(BaseInterval, base.BasePrintingTests):
+    @pytest.mark.skip(reason="custom repr")
+    def test_array_repr(self, data, size):
+        pass
+
+
+class TestParsing(BaseInterval, base.BaseParsingTests):
+    @pytest.mark.parametrize('engine', ['c', 'python'])
+    def test_EA_types(self, engine, data):
+        expected_msg = r'.*must implement _from_sequence_of_strings.*'
+        with pytest.raises(NotImplementedError, match=expected_msg):
+            super(TestParsing, self).test_EA_types(engine, data)

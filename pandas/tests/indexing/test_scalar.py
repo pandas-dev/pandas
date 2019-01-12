@@ -151,8 +151,8 @@ class TestScalar(Base):
         df.columns = ['x', 'x', 'z']
 
         # Check that we get the correct value in the KeyError
-        tm.assert_raises_regex(KeyError, r"\['y'\] not in index",
-                               lambda: df[['x', 'y', 'z']])
+        with pytest.raises(KeyError, match=r"\['y'\] not in index"):
+            df[['x', 'y', 'z']]
 
     def test_at_with_tz(self):
         # gh-15822
@@ -198,3 +198,10 @@ class TestScalar(Base):
             df.at[0, 3]
         with pytest.raises(KeyError):
             df.loc[0, 3]
+
+    def test_iat_setter_incompatible_assignment(self):
+        # GH 23236
+        result = DataFrame({'a': [0, 1], 'b': [4, 5]})
+        result.iat[0, 0] = None
+        expected = DataFrame({"a": [None, 1], "b": [4, 5]})
+        tm.assert_frame_equal(result, expected)

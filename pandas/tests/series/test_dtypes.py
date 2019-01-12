@@ -68,7 +68,7 @@ class TestSeriesDtypes(object):
         msg = 'Cannot convert non-finite values \\(NA or inf\\) to integer'
         s = Series([value])
 
-        with tm.assert_raises_regex(ValueError, msg):
+        with pytest.raises(ValueError, match=msg):
             s.astype(dtype)
 
     @pytest.mark.parametrize("dtype", [int, np.int8, np.int64])
@@ -404,7 +404,7 @@ class TestSeriesDtypes(object):
         s = Series(data)
 
         msg = "dtype has no unit. Please pass in"
-        with tm.assert_raises_regex(ValueError, msg):
+        with pytest.raises(ValueError, match=msg):
             s.astype(dtype)
 
     @pytest.mark.parametrize("dtype", np.typecodes['All'])
@@ -492,3 +492,13 @@ class TestSeriesDtypes(object):
         assert Series()._is_homogeneous_type
         assert Series([1, 2])._is_homogeneous_type
         assert Series(pd.Categorical([1, 2]))._is_homogeneous_type
+
+    @pytest.mark.parametrize("data", [
+        pd.period_range("2000", periods=4),
+        pd.IntervalIndex.from_breaks([1, 2, 3, 4])
+    ])
+    def test_values_compatibility(self, data):
+        # https://github.com/pandas-dev/pandas/issues/23995
+        result = pd.Series(data).values
+        expected = np.array(data.astype(object))
+        tm.assert_numpy_array_equal(result, expected)

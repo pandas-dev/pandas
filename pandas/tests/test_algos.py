@@ -1,27 +1,30 @@
 # -*- coding: utf-8 -*-
 
-import numpy as np
-import pytest
-
-from numpy.random import RandomState
-from numpy import nan
 from datetime import datetime
 from itertools import permutations
 import struct
-from pandas import (Series, Categorical, CategoricalIndex,
-                    Timestamp, DatetimeIndex, Index, IntervalIndex)
-import pandas as pd
 
-from pandas import compat
-from pandas._libs import (groupby as libgroupby, algos as libalgos,
-                          hashtable as ht)
+import numpy as np
+from numpy import nan
+from numpy.random import RandomState
+import pytest
+
+from pandas._libs import (
+    algos as libalgos, groupby as libgroupby, hashtable as ht)
 from pandas.compat import lrange, range
+from pandas.compat.numpy import np_array_datetime64_compat
+import pandas.util._test_decorators as td
+
+from pandas.core.dtypes.dtypes import CategoricalDtype as CDT
+
+import pandas as pd
+from pandas import (
+    Categorical, CategoricalIndex, DatetimeIndex, Index, IntervalIndex, Series,
+    Timestamp, compat)
 import pandas.core.algorithms as algos
+from pandas.core.arrays import DatetimeArray
 import pandas.core.common as com
 import pandas.util.testing as tm
-import pandas.util._test_decorators as td
-from pandas.core.dtypes.dtypes import CategoricalDtype as CDT
-from pandas.compat.numpy import np_array_datetime64_compat
 from pandas.util.testing import assert_almost_equal
 
 
@@ -456,9 +459,10 @@ class TestUnique(object):
         result = Series(
             Index([Timestamp('20160101', tz='US/Eastern'),
                    Timestamp('20160101', tz='US/Eastern')])).unique()
-        expected = np.array([Timestamp('2016-01-01 00:00:00-0500',
-                                       tz='US/Eastern')], dtype=object)
-        tm.assert_numpy_array_equal(result, expected)
+        expected = DatetimeArray._from_sequence(np.array([
+            Timestamp('2016-01-01 00:00:00-0500', tz="US/Eastern")
+        ]))
+        tm.assert_extension_array_equal(result, expected)
 
         result = Index([Timestamp('20160101', tz='US/Eastern'),
                         Timestamp('20160101', tz='US/Eastern')]).unique()
@@ -469,9 +473,10 @@ class TestUnique(object):
         result = pd.unique(
             Series(Index([Timestamp('20160101', tz='US/Eastern'),
                           Timestamp('20160101', tz='US/Eastern')])))
-        expected = np.array([Timestamp('2016-01-01 00:00:00-0500',
-                                       tz='US/Eastern')], dtype=object)
-        tm.assert_numpy_array_equal(result, expected)
+        expected = DatetimeArray._from_sequence(np.array([
+            Timestamp('2016-01-01', tz="US/Eastern"),
+        ]))
+        tm.assert_extension_array_equal(result, expected)
 
         result = pd.unique(Index([Timestamp('20160101', tz='US/Eastern'),
                                   Timestamp('20160101', tz='US/Eastern')]))
@@ -1328,7 +1333,7 @@ class TestHashTable(object):
         if safely_resizes:
             htable.get_labels(vals, uniques, 0, -1)
         else:
-            with tm.assert_raises_regex(ValueError, 'external reference.*'):
+            with pytest.raises(ValueError, match='external reference.*'):
                 htable.get_labels(vals, uniques, 0, -1)
 
         uniques.to_array()   # should not raise here
@@ -1361,6 +1366,14 @@ class TestHashTable(object):
         result_unique = htable().unique(s_duplicated.values)
         tm.assert_numpy_array_equal(result_unique, expected_unique)
 
+        # test return_inverse=True
+        # reconstruction can only succeed if the inverse is correct
+        result_unique, result_inverse = htable().unique(s_duplicated.values,
+                                                        return_inverse=True)
+        tm.assert_numpy_array_equal(result_unique, expected_unique)
+        reconstr = result_unique[result_inverse]
+        tm.assert_numpy_array_equal(reconstr, s_duplicated.values)
+
     @pytest.mark.parametrize('htable, tm_dtype', [
         (ht.PyObjectHashTable, 'String'),
         (ht.StringHashTable, 'String'),
@@ -1383,7 +1396,7 @@ class TestHashTable(object):
         s_duplicated.values.setflags(write=writable)
         na_mask = s_duplicated.isna().values
 
-        result_inverse, result_unique = htable().factorize(s_duplicated.values)
+        result_unique, result_inverse = htable().factorize(s_duplicated.values)
 
         # drop_duplicates has own cython code (hash_table_func_helper.pxi)
         # and is tested separately; keeps first occurrence like ht.factorize()
@@ -1459,8 +1472,18 @@ class TestRank(object):
         arr = np.array([[[1, 2, 3], [4, 5, 6], [7, 8, 9]]])
         msg = "Array with ndim > 2 are not supported"
 
-        with tm.assert_raises_regex(TypeError, msg):
+        with pytest.raises(TypeError, match=msg):
             algos.rank(arr)
+
+    @pytest.mark.single
+    @pytest.mark.parametrize('values', [
+        np.arange(2**24 + 1),
+        np.arange(2**25 + 2).reshape(2**24 + 1, 2)],
+        ids=['1d', '2d'])
+    def test_pct_max_many_rows(self, values):
+        # GH 18271
+        result = algos.rank(values, pct=True).max()
+        assert result == 1
 
 
 def test_pad_backfill_object_segfault():
@@ -1468,19 +1491,19 @@ def test_pad_backfill_object_segfault():
     old = np.array([], dtype='O')
     new = np.array([datetime(2010, 12, 31)], dtype='O')
 
-    result = libalgos.pad_object(old, new)
+    result = libalgos.pad["object"](old, new)
     expected = np.array([-1], dtype=np.int64)
     tm.assert_numpy_array_equal(result, expected)
 
-    result = libalgos.pad_object(new, old)
+    result = libalgos.pad["object"](new, old)
     expected = np.array([], dtype=np.int64)
     tm.assert_numpy_array_equal(result, expected)
 
-    result = libalgos.backfill_object(old, new)
+    result = libalgos.backfill["object"](old, new)
     expected = np.array([-1], dtype=np.int64)
     tm.assert_numpy_array_equal(result, expected)
 
-    result = libalgos.backfill_object(new, old)
+    result = libalgos.backfill["object"](new, old)
     expected = np.array([], dtype=np.int64)
     tm.assert_numpy_array_equal(result, expected)
 
@@ -1512,7 +1535,7 @@ class TestTseriesUtil(object):
         old = Index([1, 5, 10])
         new = Index(lrange(12))
 
-        filler = libalgos.backfill_int64(old.values, new.values)
+        filler = libalgos.backfill["int64_t"](old.values, new.values)
 
         expect_filler = np.array([0, 0, 1, 1, 1, 1,
                                   2, 2, 2, 2, 2, -1], dtype=np.int64)
@@ -1521,7 +1544,7 @@ class TestTseriesUtil(object):
         # corner case
         old = Index([1, 4])
         new = Index(lrange(5, 10))
-        filler = libalgos.backfill_int64(old.values, new.values)
+        filler = libalgos.backfill["int64_t"](old.values, new.values)
 
         expect_filler = np.array([-1, -1, -1, -1, -1], dtype=np.int64)
         tm.assert_numpy_array_equal(filler, expect_filler)
@@ -1530,7 +1553,7 @@ class TestTseriesUtil(object):
         old = Index([1, 5, 10])
         new = Index(lrange(12))
 
-        filler = libalgos.pad_int64(old.values, new.values)
+        filler = libalgos.pad["int64_t"](old.values, new.values)
 
         expect_filler = np.array([-1, 0, 0, 0, 0, 1,
                                   1, 1, 1, 1, 2, 2], dtype=np.int64)
@@ -1539,7 +1562,7 @@ class TestTseriesUtil(object):
         # corner case
         old = Index([5, 10])
         new = Index(lrange(5))
-        filler = libalgos.pad_int64(old.values, new.values)
+        filler = libalgos.pad["int64_t"](old.values, new.values)
         expect_filler = np.array([-1, -1, -1, -1, -1], dtype=np.int64)
         tm.assert_numpy_array_equal(filler, expect_filler)
 
@@ -1664,27 +1687,27 @@ def test_int64_add_overflow():
     m = np.iinfo(np.int64).max
     n = np.iinfo(np.int64).min
 
-    with tm.assert_raises_regex(OverflowError, msg):
+    with pytest.raises(OverflowError, match=msg):
         algos.checked_add_with_arr(np.array([m, m]), m)
-    with tm.assert_raises_regex(OverflowError, msg):
+    with pytest.raises(OverflowError, match=msg):
         algos.checked_add_with_arr(np.array([m, m]), np.array([m, m]))
-    with tm.assert_raises_regex(OverflowError, msg):
+    with pytest.raises(OverflowError, match=msg):
         algos.checked_add_with_arr(np.array([n, n]), n)
-    with tm.assert_raises_regex(OverflowError, msg):
+    with pytest.raises(OverflowError, match=msg):
         algos.checked_add_with_arr(np.array([n, n]), np.array([n, n]))
-    with tm.assert_raises_regex(OverflowError, msg):
+    with pytest.raises(OverflowError, match=msg):
         algos.checked_add_with_arr(np.array([m, n]), np.array([n, n]))
-    with tm.assert_raises_regex(OverflowError, msg):
+    with pytest.raises(OverflowError, match=msg):
         algos.checked_add_with_arr(np.array([m, m]), np.array([m, m]),
                                    arr_mask=np.array([False, True]))
-    with tm.assert_raises_regex(OverflowError, msg):
+    with pytest.raises(OverflowError, match=msg):
         algos.checked_add_with_arr(np.array([m, m]), np.array([m, m]),
                                    b_mask=np.array([False, True]))
-    with tm.assert_raises_regex(OverflowError, msg):
+    with pytest.raises(OverflowError, match=msg):
         algos.checked_add_with_arr(np.array([m, m]), np.array([m, m]),
                                    arr_mask=np.array([False, True]),
                                    b_mask=np.array([False, True]))
-    with tm.assert_raises_regex(OverflowError, msg):
+    with pytest.raises(OverflowError, match=msg):
         with tm.assert_produces_warning(RuntimeWarning):
             algos.checked_add_with_arr(np.array([m, m]),
                                        np.array([np.nan, m]))
@@ -1692,19 +1715,13 @@ def test_int64_add_overflow():
     # Check that the nan boolean arrays override whether or not
     # the addition overflows. We don't check the result but just
     # the fact that an OverflowError is not raised.
-    with pytest.raises(AssertionError):
-        with tm.assert_raises_regex(OverflowError, msg):
-            algos.checked_add_with_arr(np.array([m, m]), np.array([m, m]),
-                                       arr_mask=np.array([True, True]))
-    with pytest.raises(AssertionError):
-        with tm.assert_raises_regex(OverflowError, msg):
-            algos.checked_add_with_arr(np.array([m, m]), np.array([m, m]),
-                                       b_mask=np.array([True, True]))
-    with pytest.raises(AssertionError):
-        with tm.assert_raises_regex(OverflowError, msg):
-            algos.checked_add_with_arr(np.array([m, m]), np.array([m, m]),
-                                       arr_mask=np.array([True, False]),
-                                       b_mask=np.array([False, True]))
+    algos.checked_add_with_arr(np.array([m, m]), np.array([m, m]),
+                               arr_mask=np.array([True, True]))
+    algos.checked_add_with_arr(np.array([m, m]), np.array([m, m]),
+                               b_mask=np.array([True, True]))
+    algos.checked_add_with_arr(np.array([m, m]), np.array([m, m]),
+                               arr_mask=np.array([True, False]),
+                               b_mask=np.array([False, True]))
 
 
 class TestMode(object):

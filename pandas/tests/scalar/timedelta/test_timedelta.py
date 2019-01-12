@@ -1,15 +1,17 @@
 """ test the scalar Timedelta """
-import pytest
-
-import numpy as np
 from datetime import timedelta
 
+import numpy as np
+import pytest
+
+from pandas._libs.tslibs import NaT, iNaT
+import pandas.compat as compat
+
 import pandas as pd
-import pandas.util.testing as tm
+from pandas import (
+    Series, Timedelta, TimedeltaIndex, timedelta_range, to_timedelta)
 from pandas.core.tools.timedeltas import _coerce_scalar_to_timedelta_type as ct
-from pandas import (Timedelta, TimedeltaIndex, timedelta_range, Series,
-                    to_timedelta, compat)
-from pandas._libs.tslib import iNaT, NaT
+import pandas.util.testing as tm
 
 
 class TestTimedeltaArithmetic(object):
@@ -42,10 +44,8 @@ class TestTimedeltaArithmetic(object):
             with pytest.raises(TypeError):
                 left + right
 
-            # GH 20829: python 2 comparison naturally does not raise TypeError
-            if compat.PY3:
-                with pytest.raises(TypeError):
-                    left > right
+            with pytest.raises(TypeError):
+                left > right
 
             assert not left == right
             assert left != right
@@ -105,9 +105,12 @@ class TestTimedeltaComparison(object):
         expected = np.array([False, False])
         tm.assert_numpy_array_equal(result, expected)
 
+    @pytest.mark.skip(reason="GH#20829 is reverted until after 0.24.0")
     def test_compare_custom_object(self):
-        """Make sure non supported operations on Timedelta returns NonImplemented
-        and yields to other operand (GH20829)."""
+        """
+        Make sure non supported operations on Timedelta returns NonImplemented
+        and yields to other operand (GH#20829).
+        """
         class CustomClass(object):
 
             def __init__(self, cmp_result=None):
@@ -137,11 +140,7 @@ class TestTimedeltaComparison(object):
 
         assert t == CustomClass(cmp_result=True)
 
-    @pytest.mark.skipif(compat.PY2,
-                        reason="python 2 does not raise TypeError for \
-                               comparisons of different types")
-    @pytest.mark.parametrize("val", [
-        "string", 1])
+    @pytest.mark.parametrize("val", ["string", 1])
     def test_compare_unknown_type(self, val):
         # GH20829
         t = Timedelta('1s')
@@ -548,7 +547,7 @@ class TestTimedeltas(object):
 
         # mean
         result = (s - s.min()).mean()
-        expected = pd.Timedelta((pd.DatetimeIndex((s - s.min())).asi8 / len(s)
+        expected = pd.Timedelta((pd.TimedeltaIndex((s - s.min())).asi8 / len(s)
                                  ).sum())
 
         # the computation is converted to float so

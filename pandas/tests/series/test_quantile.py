@@ -44,7 +44,7 @@ class TestSeriesQuantile(TestData):
 
         msg = 'percentiles should all be in the interval \\[0, 1\\]'
         for invalid in [-1, 2, [0.5, -1], [0.5, 2]]:
-            with tm.assert_raises_regex(ValueError, msg):
+            with pytest.raises(ValueError, match=msg):
                 self.ts.quantile(invalid)
 
     def test_quantile_multi(self):

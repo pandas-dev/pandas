@@ -1,20 +1,6 @@
-.. currentmodule:: pandas
-
-.. ipython:: python
-   :suppress:
-
-   import numpy as np
-   np.set_printoptions(precision=4, suppress=True)
-   import pandas as pd
-   pd.set_option('display.precision', 4, 'display.max_columns', 8)
-   pd.options.display.max_rows = 15
-
-   import matplotlib
-   # matplotlib.style.use('default')
-   import matplotlib.pyplot as plt
-   plt.close('all')
-
 .. _dsintro:
+
+{{ header }}
 
 ************************
 Intro to Data Structures
@@ -85,7 +71,7 @@ Series can be instantiated from dicts:
 
 .. ipython:: python
 
-   d = {'b' : 1, 'a' : 0, 'c' : 2}
+   d = {'b': 1, 'a': 0, 'c': 2}
    pd.Series(d)
 
 .. note::
@@ -106,7 +92,7 @@ index will be pulled out.
 
 .. ipython:: python
 
-   d = {'a' : 0., 'b' : 1., 'c' : 2.}
+   d = {'a': 0., 'b': 1., 'c': 2.}
    pd.Series(d)
    pd.Series(d, index=['b', 'c', 'd', 'a'])
 
@@ -129,7 +115,7 @@ Series is ndarray-like
 ``Series`` acts very similarly to a ``ndarray``, and is a valid argument to most NumPy functions.
 However, operations such as slicing will also slice the index.
 
-.. ipython :: python
+.. ipython:: python
 
     s[0]
     s[:3]
@@ -137,7 +123,47 @@ However, operations such as slicing will also slice the index.
     s[[4, 3, 1]]
     np.exp(s)
 
-We will address array-based indexing in a separate :ref:`section <indexing>`.
+.. note::
+
+   We will address array-based indexing like ``s[[4, 3, 1]]``
+   in :ref:`section <indexing>`.
+
+Like a NumPy array, a pandas Series has a :attr:`~Series.dtype`.
+
+.. ipython:: python
+
+   s.dtype
+
+This is often a NumPy dtype. However, pandas and 3rd-party libraries
+extend NumPy's type system in a few places, in which case the dtype would
+be a :class:`~pandas.api.extensions.ExtensionDtype`. Some examples within
+pandas are :ref:`categorical` and :ref:`integer_na`. See :ref:`basics.dtypes`
+for more.
+
+If you need the actual array backing a ``Series``, use :attr:`Series.array`.
+
+.. ipython:: python
+
+   s.array
+
+Accessing the array can be useful when you need to do some operation without the
+index (to disable :ref:`automatic alignment <dsintro.alignment>`, for example).
+
+:attr:`Series.array` will always be an :class:`~pandas.api.extensions.ExtensionArray`.
+Briefly, an ExtensionArray is a thin wrapper around one or more *concrete* arrays like a
+:class:`numpy.ndarray`. Pandas knows how to take an ``ExtensionArray`` and
+store it in a ``Series`` or a column of a ``DataFrame``.
+See :ref:`basics.dtypes` for more.
+
+While Series is ndarray-like, if you need an *actual* ndarray, then use
+:meth:`Series.to_numpy`.
+
+.. ipython:: python
+
+   s.to_numpy()
+
+Even if the Series is backed by a :class:`~pandas.api.extensions.ExtensionArray`,
+:meth:`Series.to_numpy` will return a NumPy ndarray.
 
 Series is dict-like
 ~~~~~~~~~~~~~~~~~~~
@@ -145,7 +171,7 @@ Series is dict-like
 A Series is like a fixed-size dict in that you can get and set values by index
 label:
 
-.. ipython :: python
+.. ipython:: python
 
     s['a']
     s['e'] = 12.
@@ -282,8 +308,8 @@ keys.
 
 .. ipython:: python
 
-    d = {'one' : pd.Series([1., 2., 3.], index=['a', 'b', 'c']),
-         'two' : pd.Series([1., 2., 3., 4.], index=['a', 'b', 'c', 'd'])}
+    d = {'one': pd.Series([1., 2., 3.], index=['a', 'b', 'c']),
+         'two': pd.Series([1., 2., 3., 4.], index=['a', 'b', 'c', 'd'])}
     df = pd.DataFrame(d)
     df
 
@@ -312,8 +338,8 @@ result will be ``range(n)``, where ``n`` is the array length.
 
 .. ipython:: python
 
-   d = {'one' : [1., 2., 3., 4.],
-        'two' : [4., 3., 2., 1.]}
+   d = {'one': [1., 2., 3., 4.],
+        'two': [4., 3., 2., 1.]}
    pd.DataFrame(d)
    pd.DataFrame(d, index=['a', 'b', 'c', 'd'])
 
@@ -324,8 +350,8 @@ This case is handled identically to a dict of arrays.
 
 .. ipython:: python
 
-   data = np.zeros((2,), dtype=[('A', 'i4'),('B', 'f4'),('C', 'a10')])
-   data[:] = [(1,2.,'Hello'), (2,3.,"World")]
+   data = np.zeros((2, ), dtype=[('A', 'i4'), ('B', 'f4'), ('C', 'a10')])
+   data[:] = [(1, 2., 'Hello'), (2, 3., "World")]
 
    pd.DataFrame(data)
    pd.DataFrame(data, index=['first', 'second'])
@@ -485,8 +511,7 @@ derived from existing columns.
 
    iris = pd.read_csv('data/iris.data')
    iris.head()
-
-   (iris.assign(sepal_ratio = iris['SepalWidth'] / iris['SepalLength'])
+   (iris.assign(sepal_ratio=iris['SepalWidth'] / iris['SepalLength'])
         .head())
 
 In the example above, we inserted a precomputed value. We can also pass in
@@ -494,8 +519,7 @@ a function of one argument to be evaluated on the DataFrame being assigned to.
 
 .. ipython:: python
 
-   iris.assign(sepal_ratio = lambda x: (x['SepalWidth'] /
-                                        x['SepalLength'])).head()
+   iris.assign(sepal_ratio=lambda x: (x['SepalWidth'] / x['SepalLength'])).head()
 
 ``assign`` **always** returns a copy of the data, leaving the original
 DataFrame untouched.
@@ -510,8 +534,8 @@ greater than 5, calculate the ratio, and plot:
 
    @savefig basics_assign.png
    (iris.query('SepalLength > 5')
-        .assign(SepalRatio = lambda x: x.SepalWidth / x.SepalLength,
-                PetalRatio = lambda x: x.PetalWidth / x.PetalLength)
+        .assign(SepalRatio=lambda x: x.SepalWidth / x.SepalLength,
+                PetalRatio=lambda x: x.PetalWidth / x.PetalLength)
         .plot(kind='scatter', x='SepalRatio', y='PetalRatio'))
 
 Since a function is passed in, the function is computed on the DataFrame
@@ -617,6 +641,8 @@ slicing, see the :ref:`section on indexing <indexing>`. We will address the
 fundamentals of reindexing / conforming to new sets of labels in the
 :ref:`section on reindexing <basics.reindexing>`.
 
+.. _dsintro.alignment:
+
 Data alignment and arithmetic
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -681,8 +707,8 @@ Boolean operators work as well:
 
 .. ipython:: python
 
-   df1 = pd.DataFrame({'a' : [1, 0, 1], 'b' : [0, 1, 1] }, dtype=bool)
-   df2 = pd.DataFrame({'a' : [0, 1, 1], 'b' : [1, 1, 0] }, dtype=bool)
+   df1 = pd.DataFrame({'a': [1, 0, 1], 'b': [0, 1, 1]}, dtype=bool)
+   df2 = pd.DataFrame({'a': [0, 1, 1], 'b': [1, 1, 0]}, dtype=bool)
    df1 & df2
    df1 | df2
    df1 ^ df2
@@ -722,7 +748,7 @@ Similarly, the dot method on Series implements dot product:
 
 .. ipython:: python
 
-   s1 = pd.Series(np.arange(5,10))
+   s1 = pd.Series(np.arange(5, 10))
    s1.dot(s1)
 
 DataFrame is not intended to be a drop-in replacement for ndarray as its
@@ -753,7 +779,7 @@ R package):
    :okwarning:
 
    # restore GlobalPrintConfig
-   pd.reset_option('^display\.')
+   pd.reset_option(r'^display\.')
 
 However, using ``to_string`` will return a string representation of the
 DataFrame in tabular form, though it won't always fit the console width:
@@ -774,7 +800,7 @@ option:
 
 .. ipython:: python
 
-   pd.set_option('display.width', 40) # default is 80
+   pd.set_option('display.width', 40)  # default is 80
 
    pd.DataFrame(np.random.randn(3, 12))
 
@@ -782,14 +808,14 @@ You can adjust the max width of the individual columns by setting ``display.max_
 
 .. ipython:: python
 
-   datafile={'filename': ['filename_01','filename_02'],
-             'path': ["media/user_name/storage/folder_01/filename_01",
-                      "media/user_name/storage/folder_02/filename_02"]}
+   datafile = {'filename': ['filename_01', 'filename_02'],
+               'path': ["media/user_name/storage/folder_01/filename_01",
+                        "media/user_name/storage/folder_02/filename_02"]}
 
-   pd.set_option('display.max_colwidth',30)
+   pd.set_option('display.max_colwidth', 30)
    pd.DataFrame(datafile)
 
-   pd.set_option('display.max_colwidth',100)
+   pd.set_option('display.max_colwidth', 100)
    pd.DataFrame(datafile)
 
 .. ipython:: python
@@ -809,8 +835,8 @@ accessed like an attribute:
 
 .. ipython:: python
 
-   df = pd.DataFrame({'foo1' : np.random.randn(5),
-                      'foo2' : np.random.randn(5)})
+   df = pd.DataFrame({'foo1': np.random.randn(5),
+                      'foo2': np.random.randn(5)})
    df
    df.foo1
 
@@ -819,7 +845,7 @@ completion mechanism so they can be tab-completed:
 
 .. code-block:: ipython
 
-    In [5]: df.fo<TAB>
+    In [5]: df.fo<TAB>  # noqa: E225, E999
     df.foo1  df.foo2
 
 .. _basics.panel:
@@ -866,8 +892,8 @@ From dict of DataFrame objects
 .. ipython:: python
    :okwarning:
 
-   data = {'Item1' : pd.DataFrame(np.random.randn(4, 3)),
-           'Item2' : pd.DataFrame(np.random.randn(4, 2))}
+   data = {'Item1': pd.DataFrame(np.random.randn(4, 3)),
+           'Item2': pd.DataFrame(np.random.randn(4, 2))}
    pd.Panel(data)
 
 Note that the values in the dict need only be **convertible to
@@ -923,8 +949,9 @@ From DataFrame using ``to_panel`` method
 .. ipython:: python
    :okwarning:
 
-   midx = pd.MultiIndex(levels=[['one', 'two'], ['x','y']], labels=[[1,1,0,0],[1,0,1,0]])
-   df = pd.DataFrame({'A' : [1, 2, 3, 4], 'B': [5, 6, 7, 8]}, index=midx)
+   midx = pd.MultiIndex(levels=[['one', 'two'], ['x', 'y']],
+                        codes=[[1, 1, 0, 0], [1, 0, 1, 0]])
+   df = pd.DataFrame({'A': [1, 2, 3, 4], 'B': [5, 6, 7, 8]}, index=midx)
    df.to_panel()
 
 .. _dsintro.panel_item_selection:
@@ -1028,6 +1055,7 @@ support the multi-dimensional analysis that is one of ``Panel`` s main use cases
 .. ipython:: python
    :okwarning:
 
+   import pandas.util.testing as tm
    p = tm.makePanel()
    p
 

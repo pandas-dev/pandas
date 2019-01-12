@@ -20,7 +20,7 @@ class TestPeriodRepresentation(object):
     """
 
     def _check_freq(self, freq, base_date):
-        rng = PeriodIndex(start=base_date, periods=10, freq=freq)
+        rng = period_range(start=base_date, periods=10, freq=freq)
         exp = np.arange(10, dtype=np.int64)
 
         tm.assert_numpy_array_equal(rng.asi8, exp)
@@ -56,7 +56,7 @@ class TestPeriodRepresentation(object):
 
 class TestPeriodIndex(object):
     def test_to_timestamp(self):
-        index = PeriodIndex(freq='A', start='1/1/2001', end='12/1/2009')
+        index = period_range(freq='A', start='1/1/2001', end='12/1/2009')
         series = Series(1, index=index, name='foo')
 
         exp_index = date_range('1/1/2001', end='12/31/2009', freq='A-DEC')
@@ -91,7 +91,7 @@ class TestPeriodIndex(object):
         exp_index = exp_index + Timedelta(1, 's') - Timedelta(1, 'ns')
         tm.assert_index_equal(result.index, exp_index)
 
-        index = PeriodIndex(freq='H', start='1/1/2001', end='1/2/2001')
+        index = period_range(freq='H', start='1/1/2001', end='1/2/2001')
         series = Series(1, index=index, name='foo')
 
         exp_index = date_range('1/1/2001 00:59:59', end='1/2/2001 00:59:59',
@@ -127,7 +127,7 @@ class TestPeriodIndex(object):
         tm.assert_index_equal(res, exp)
 
     def test_dti_to_period(self):
-        dti = DatetimeIndex(start='1/1/2005', end='12/1/2005', freq='M')
+        dti = pd.date_range(start='1/1/2005', end='12/1/2005', freq='M')
         pi1 = dti.to_period()
         pi2 = dti.to_period(freq='D')
         pi3 = dti.to_period(freq='3D')
@@ -180,7 +180,7 @@ class TestPeriodIndex(object):
         assert prng.freq == 'M'
 
         msg = pd._libs.tslibs.frequencies.INVALID_FREQ_ERR_MSG
-        with tm.assert_raises_regex(ValueError, msg):
+        with pytest.raises(ValueError, match=msg):
             date_range('01-Jan-2012', periods=8, freq='EOM')
 
     def test_period_dt64_round_trip(self):
@@ -193,10 +193,10 @@ class TestPeriodIndex(object):
         tm.assert_index_equal(pi.to_timestamp(), dti)
 
     def test_combine_first(self):
-        # GH 3367
-        didx = pd.DatetimeIndex(start='1950-01-31', end='1950-07-31', freq='M')
-        pidx = pd.PeriodIndex(start=pd.Period('1950-1'),
-                              end=pd.Period('1950-7'), freq='M')
+        # GH#3367
+        didx = pd.date_range(start='1950-01-31', end='1950-07-31', freq='M')
+        pidx = pd.period_range(start=pd.Period('1950-1'),
+                               end=pd.Period('1950-7'), freq='M')
         # check to be consistent with DatetimeIndex
         for idx in [didx, pidx]:
             a = pd.Series([1, np.nan, np.nan, 4, 5, np.nan, 7], index=idx)
@@ -219,17 +219,17 @@ class TestPeriodIndex(object):
         assert pidx.searchsorted(p2) == 3
 
         msg = "Input has different freq=H from PeriodIndex"
-        with tm.assert_raises_regex(period.IncompatibleFrequency, msg):
+        with pytest.raises(period.IncompatibleFrequency, match=msg):
             pidx.searchsorted(pd.Period('2014-01-01', freq='H'))
 
         msg = "Input has different freq=5D from PeriodIndex"
-        with tm.assert_raises_regex(period.IncompatibleFrequency, msg):
+        with pytest.raises(period.IncompatibleFrequency, match=msg):
             pidx.searchsorted(pd.Period('2014-01-01', freq='5D'))
 
 
 class TestPeriodIndexConversion(object):
     def test_tolist(self):
-        index = PeriodIndex(freq='A', start='1/1/2001', end='12/1/2009')
+        index = period_range(freq='A', start='1/1/2001', end='12/1/2009')
         rs = index.tolist()
         for x in rs:
             assert isinstance(x, Period)
@@ -260,12 +260,12 @@ class TestPeriodIndexConversion(object):
 
         msg = ('Frequency must be positive, because it'
                ' represents span: -2A')
-        with tm.assert_raises_regex(ValueError, msg):
+        with pytest.raises(ValueError, match=msg):
             result.to_period(freq='-2A')
 
     def test_to_timestamp_preserve_name(self):
-        index = PeriodIndex(freq='A', start='1/1/2001', end='12/1/2009',
-                            name='foo')
+        index = period_range(freq='A', start='1/1/2001', end='12/1/2009',
+                             name='foo')
         assert index.name == 'foo'
 
         conv = index.to_timestamp('D')
@@ -297,7 +297,7 @@ class TestPeriodIndexConversion(object):
         tm.assert_index_equal(result, expected)
 
     def test_to_timestamp_pi_combined(self):
-        idx = PeriodIndex(start='2011', periods=2, freq='1D1H', name='idx')
+        idx = period_range(start='2011', periods=2, freq='1D1H', name='idx')
 
         result = idx.to_timestamp()
         expected = DatetimeIndex(['2011-01-01 00:00', '2011-01-02 01:00'],

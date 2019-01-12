@@ -1,11 +1,14 @@
-import numpy as np
-from numpy.random import randn
 from datetime import timedelta
 
+import numpy as np
+from numpy.random import randn
+import pytest
+
 import pandas as pd
+from pandas import (
+    DataFrame, DatetimeIndex, Index, PeriodIndex, Timedelta, date_range,
+    period_range, to_datetime)
 import pandas.util.testing as tm
-from pandas import (PeriodIndex, period_range, DataFrame, date_range,
-                    Index, to_datetime, DatetimeIndex, Timedelta)
 
 
 def _permute(obj):
@@ -43,7 +46,7 @@ class TestPeriodIndex(object):
 
     def test_frame_to_time_stamp(self):
         K = 5
-        index = PeriodIndex(freq='A', start='1/1/2001', end='12/1/2009')
+        index = period_range(freq='A', start='1/1/2001', end='12/1/2009')
         df = DataFrame(randn(len(index), K), index=index)
         df['mix'] = 'a'
 
@@ -111,8 +114,8 @@ class TestPeriodIndex(object):
         tm.assert_index_equal(result.columns, exp_index)
 
         # invalid axis
-        tm.assert_raises_regex(
-            ValueError, 'axis', df.to_timestamp, axis=2)
+        with pytest.raises(ValueError, match='axis'):
+            df.to_timestamp(axis=2)
 
         result1 = df.to_timestamp('5t', axis=1)
         result2 = df.to_timestamp('t', axis=1)

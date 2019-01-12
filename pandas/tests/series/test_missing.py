@@ -65,14 +65,17 @@ class TestSeriesMissingData():
         td = s.diff()
 
         # reg fillna
-        result = td.fillna(0)
+        with tm.assert_produces_warning(FutureWarning):
+            result = td.fillna(0)
         expected = Series([timedelta(0), timedelta(0), timedelta(1),
                            timedelta(days=1, seconds=9 * 3600 + 60 + 1)])
         assert_series_equal(result, expected)
 
-        # interprested as seconds
-        result = td.fillna(1)
-        expected = Series([timedelta(seconds=1), timedelta(0), timedelta(1),
+        # interpreted as seconds, deprecated
+        with tm.assert_produces_warning(FutureWarning):
+            result = td.fillna(1)
+        expected = Series([timedelta(seconds=1),
+                           timedelta(0), timedelta(1),
                            timedelta(days=1, seconds=9 * 3600 + 60 + 1)])
         assert_series_equal(result, expected)
 
@@ -96,14 +99,16 @@ class TestSeriesMissingData():
         # ffill
         td[2] = np.nan
         result = td.ffill()
-        expected = td.fillna(0)
+        with tm.assert_produces_warning(FutureWarning):
+            expected = td.fillna(0)
         expected[0] = np.nan
         assert_series_equal(result, expected)
 
         # bfill
         td[2] = np.nan
         result = td.bfill()
-        expected = td.fillna(0)
+        with tm.assert_produces_warning(FutureWarning):
+            expected = td.fillna(0)
         expected[2] = timedelta(days=1, seconds=9 * 3600 + 60 + 1)
         assert_series_equal(result, expected)
 
@@ -401,31 +406,31 @@ class TestSeriesMissingData():
         data = ['a', np.nan, 'b', np.nan, np.nan]
         s = Series(Categorical(data, categories=['a', 'b']))
 
-        with tm.assert_raises_regex(ValueError,
-                                    "fill value must be in categories"):
+        with pytest.raises(ValueError,
+                           match="fill value must be in categories"):
             s.fillna('d')
 
-        with tm.assert_raises_regex(ValueError,
-                                    "fill value must be in categories"):
+        with pytest.raises(ValueError,
+                           match="fill value must be in categories"):
             s.fillna(Series('d'))
 
-        with tm.assert_raises_regex(ValueError,
-                                    "fill value must be in categories"):
+        with pytest.raises(ValueError,
+                           match="fill value must be in categories"):
             s.fillna({1: 'd', 3: 'a'})
 
-        with tm.assert_raises_regex(TypeError,
-                                    '"value" parameter must be a scalar or '
-                                    'dict, but you passed a "list"'):
+        msg = ('"value" parameter must be a scalar or '
+               'dict, but you passed a "list"')
+        with pytest.raises(TypeError, match=msg):
             s.fillna(['a', 'b'])
 
-        with tm.assert_raises_regex(TypeError,
-                                    '"value" parameter must be a scalar or '
-                                    'dict, but you passed a "tuple"'):
+        msg = ('"value" parameter must be a scalar or '
+               'dict, but you passed a "tuple"')
+        with pytest.raises(TypeError, match=msg):
             s.fillna(('a', 'b'))
 
-        with tm.assert_raises_regex(TypeError,
-                                    '"value" parameter must be a scalar, dict '
-                                    'or Series, but you passed a "DataFrame"'):
+        msg = ('"value" parameter must be a scalar, dict '
+               'or Series, but you passed a "DataFrame"')
+        with pytest.raises(TypeError, match=msg):
             s.fillna(DataFrame({1: ['a'], 3: ['b']}))
 
     def test_fillna_nat(self):
@@ -475,7 +480,6 @@ class TestSeriesMissingData():
         tm.assert_series_equal(r, e)
         tm.assert_series_equal(dr, de)
 
-    @tm.capture_stdout
     def test_isnull_for_inf_deprecated(self):
         # gh-17115
         s = Series(['a', np.inf, np.nan, 1.0])
@@ -1325,3 +1329,9 @@ class TestSeriesInterpolateData():
         result = ts.reindex(new_index).interpolate(method='time')
 
         tm.assert_numpy_array_equal(result.values, exp.values)
+
+    def test_nonzero_warning(self):
+        # GH 24048
+        ser = pd.Series([1, 0, 3, 4])
+        with tm.assert_produces_warning(FutureWarning):
+            ser.nonzero()

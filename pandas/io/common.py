@@ -10,11 +10,10 @@ import zipfile
 import pandas.compat as compat
 from pandas.compat import BytesIO, StringIO, string_types, text_type
 from pandas.errors import (  # noqa
-    DtypeWarning, EmptyDataError, ParserError, ParserWarning)
+    AbstractMethodError, DtypeWarning, EmptyDataError, ParserError,
+    ParserWarning)
 
 from pandas.core.dtypes.common import is_file_like, is_number
-
-import pandas.core.common as com
 
 from pandas.io.formats.printing import pprint_thing
 
@@ -67,7 +66,7 @@ class BaseIterator(object):
         return self
 
     def __next__(self):
-        raise com.AbstractMethodError(self)
+        raise AbstractMethodError(self)
 
 
 if not compat.PY3:
@@ -158,7 +157,7 @@ def _stringify_path(filepath_or_buffer):
         return text_type(filepath_or_buffer)
     if _PY_PATH_INSTALLED and isinstance(filepath_or_buffer, LocalPath):
         return filepath_or_buffer.strpath
-    return filepath_or_buffer
+    return _expand_user(filepath_or_buffer)
 
 
 def is_s3_url(url):

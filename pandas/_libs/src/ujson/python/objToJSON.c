@@ -228,6 +228,11 @@ static PyObject *get_values(PyObject *obj) {
     PRINTMARK();
 
     if (values && !PyArray_CheckExact(values)) {
+
+        if (PyObject_HasAttrString(values, "to_numpy")) {
+            values = PyObject_CallMethod(values, "to_numpy", NULL);
+        }
+
         if (PyObject_HasAttrString(values, "values")) {
             PyObject *subvals = get_values(values);
             PyErr_Clear();
@@ -279,8 +284,8 @@ static PyObject *get_values(PyObject *obj) {
             repr = PyString_FromString("<unknown dtype>");
         }
 
-        PyErr_Format(PyExc_ValueError, "%s or %s are not JSON serializable yet",
-                     PyString_AS_STRING(repr), PyString_AS_STRING(typeRepr));
+        PyErr_Format(PyExc_ValueError, "%R or %R are not JSON serializable yet",
+                     repr, typeRepr);
         Py_DECREF(repr);
         Py_DECREF(typeRepr);
 
@@ -433,8 +438,7 @@ static void *PyUnicodeToUTF8(JSOBJ _obj, JSONTypeContext *tc, void *outValue,
     }
 #endif
 
-    newObj = PyUnicode_EncodeUTF8(PyUnicode_AS_UNICODE(obj),
-                                  PyUnicode_GET_SIZE(obj), NULL);
+    newObj = PyUnicode_AsUTF8String(obj);
 
     GET_TC(tc)->newObj = newObj;
 

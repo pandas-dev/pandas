@@ -1,16 +1,20 @@
 """ test parquet compat """
-
-import pytest
 import datetime
 from distutils.version import LooseVersion
+import os
 from warnings import catch_warnings
 
 import numpy as np
+import pytest
+
+from pandas.compat import PY3
+import pandas.util._test_decorators as td
+
 import pandas as pd
-from pandas.compat import PY3, is_platform_windows, is_platform_mac
-from pandas.io.parquet import (to_parquet, read_parquet, get_engine,
-                               PyArrowImpl, FastParquetImpl)
 from pandas.util import testing as tm
+
+from pandas.io.parquet import (
+    FastParquetImpl, PyArrowImpl, get_engine, read_parquet, to_parquet)
 
 try:
     import pyarrow  # noqa
@@ -52,15 +56,6 @@ def pa():
 def fp():
     if not _HAVE_FASTPARQUET:
         pytest.skip("fastparquet is not installed")
-    return 'fastparquet'
-
-
-@pytest.fixture
-def fp_lt_014():
-    if not _HAVE_FASTPARQUET:
-        pytest.skip("fastparquet is not installed")
-    if LooseVersion(fastparquet.__version__) >= LooseVersion('0.1.4'):
-        pytest.skip("fastparquet is >= 0.1.4")
     return 'fastparquet'
 
 
@@ -199,9 +194,6 @@ def test_options_get_engine(fp, pa):
         assert isinstance(get_engine('fastparquet'), FastParquetImpl)
 
 
-@pytest.mark.xfail(is_platform_windows() or is_platform_mac(),
-                   reason="reading pa metadata failing on Windows/mac",
-                   strict=True)
 def test_cross_engine_pa_fp(df_cross_compat, pa, fp):
     # cross-compat with differing reading/writing engines
 
@@ -403,7 +395,8 @@ class TestParquetPyArrow(Base):
         check_round_trip(df, pa)
 
     # TODO: This doesn't fail on all systems; track down which
-    @pytest.mark.xfail(reason="pyarrow fails on this (ARROW-1883)")
+    @pytest.mark.xfail(reason="pyarrow fails on this (ARROW-1883)",
+                       strict=False)
     def test_basic_subset_columns(self, pa, df_full):
         # GH18628
 
@@ -421,7 +414,6 @@ class TestParquetPyArrow(Base):
                           columns=list('aaa')).copy()
         self.check_error_on_write(df, pa, ValueError)
 
-    @pytest.mark.xfail(reason="failing for pyarrow < 0.11.0")
     def test_unsupported(self, pa):
         # period
         df = pd.DataFrame({'a': pd.period_range('2013', freq='M', periods=3)})
@@ -454,9 +446,22 @@ class TestParquetPyArrow(Base):
         check_round_trip(df_compat, pa,
                          path='s3://pandas-test/pyarrow.parquet')
 
+    def test_partition_cols_supported(self, pa, df_full):
+        # GH #23283
+        partition_cols = ['bool', 'int']
+        df = df_full
+        with tm.ensure_clean_dir() as path:
+            df.to_parquet(path, partition_cols=partition_cols,
+                          compression=None)
+            import pyarrow.parquet as pq
+            dataset = pq.ParquetDataset(path, validate_schema=False)
+            assert len(dataset.partitions.partition_names) == 2
+            assert dataset.partitions.partition_names == set(partition_cols)
+
 
 class TestParquetFastParquet(Base):
 
+    @td.skip_if_no('fastparquet', min_version="0.2.1")
     def test_basic(self, fp, df_full):
         df = df_full
 
@@ -496,16 +501,6 @@ class TestParquetFastParquet(Base):
         df = pd.DataFrame({'a': pd.Categorical(list('abc'))})
         check_round_trip(df, fp)
 
-    def test_datetime_tz(self, fp_lt_014):
-
-        # fastparquet<0.1.4 doesn't preserve tz
-        df = pd.DataFrame({'a': pd.date_range('20130101', periods=3,
-                                              tz='US/Eastern')})
-        # warns on the coercion
-        with catch_warnings(record=True):
-            check_round_trip(df, fp_lt_014,
-                             expected=df.astype('datetime64[ns]'))
-
     def test_filter_row_groups(self, fp):
         d = {'a': list(range(0, 3))}
         df = pd.DataFrame(d)
@@ -519,3 +514,37 @@ class TestParquetFastParquet(Base):
         # GH #19134
         check_round_trip(df_compat, fp,
                          path='s3://pandas-test/fastparquet.parquet')
+
+    def test_partition_cols_supported(self, fp, df_full):
+        # GH #23283
+        partition_cols = ['bool', 'int']
+        df = df_full
+        with tm.ensure_clean_dir() as path:
+            df.to_parquet(path, engine="fastparquet",
+                          partition_cols=partition_cols, compression=None)
+            assert os.path.exists(path)
+            import fastparquet
+            actual_partition_cols = fastparquet.ParquetFile(path, False).cats
+            assert len(actual_partition_cols) == 2
+
+    def test_partition_on_supported(self, fp, df_full):
+        # GH #23283
+        partition_cols = ['bool', 'int']
+        df = df_full
+        with tm.ensure_clean_dir() as path:
+            df.to_parquet(path, engine="fastparquet", compression=None,
+                          partition_on=partition_cols)
+            assert os.path.exists(path)
+            import fastparquet
+            actual_partition_cols = fastparquet.ParquetFile(path, False).cats
+            assert len(actual_partition_cols) == 2
+
+    def test_error_on_using_partition_cols_and_partition_on(self, fp, df_full):
+        # GH #23283
+        partition_cols = ['bool', 'int']
+        df = df_full
+        with pytest.raises(ValueError):
+            with tm.ensure_clean_dir() as path:
+                df.to_parquet(path, engine="fastparquet", compression=None,
+                              partition_on=partition_cols,
+                              partition_cols=partition_cols)

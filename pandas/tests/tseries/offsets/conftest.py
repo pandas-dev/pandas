@@ -1,4 +1,5 @@
 import pytest
+
 import pandas.tseries.offsets as offsets
 
 
@@ -16,14 +17,5 @@ def offset_types(request):
 def month_classes(request):
     """
     Fixture for month based datetime offsets available for a time series.
-    """
-    return request.param
-
-
-@pytest.fixture(params=[getattr(offsets, o) for o in offsets.__all__ if
-                        issubclass(getattr(offsets, o), offsets.Tick)])
-def tick_classes(request):
-    """
-    Fixture for Tick based datetime offsets available for a time series.
     """
     return request.param

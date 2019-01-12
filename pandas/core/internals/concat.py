@@ -1,23 +1,20 @@
 # -*- coding: utf-8 -*-
 # TODO: Needs a better name; too many modules are already called "concat"
-import copy
 from collections import defaultdict
+import copy
 
 import numpy as np
 
-from pandas._libs import tslibs, internals as libinternals
+from pandas._libs import internals as libinternals, tslibs
 from pandas.util._decorators import cache_readonly
 
-from pandas.core.dtypes.missing import isna
-from pandas.core.dtypes.common import (
-    is_timedelta64_dtype,
-    is_datetime64_dtype, is_datetimetz,
-    is_categorical_dtype,
-    is_float_dtype, is_numeric_dtype,
-    is_sparse,
-    _get_dtype)
 from pandas.core.dtypes.cast import maybe_promote
+from pandas.core.dtypes.common import (
+    _get_dtype, is_categorical_dtype, is_datetime64_dtype,
+    is_datetime64tz_dtype, is_extension_array_dtype, is_float_dtype,
+    is_numeric_dtype, is_sparse, is_timedelta64_dtype)
 import pandas.core.dtypes.concat as _concat
+from pandas.core.dtypes.missing import isna
 
 import pandas.core.algorithms as algos
 
@@ -183,11 +180,11 @@ class JoinUnit(object):
                         fill_value = None
 
                 if (getattr(self.block, 'is_datetimetz', False) or
-                        is_datetimetz(empty_dtype)):
+                        is_datetime64tz_dtype(empty_dtype)):
                     if self.block is None:
                         array = empty_dtype.construct_array_type()
-                        missing_arr = array([fill_value], dtype=empty_dtype)
-                        return missing_arr.repeat(self.shape[1])
+                        return array(np.full(self.shape[1], fill_value),
+                                     dtype=empty_dtype)
                     pass
                 elif getattr(self.block, 'is_categorical', False):
                     pass
@@ -297,7 +294,7 @@ def get_empty_dtype_and_na(join_units):
 
         if is_categorical_dtype(dtype):
             upcast_cls = 'category'
-        elif is_datetimetz(dtype):
+        elif is_datetime64tz_dtype(dtype):
             upcast_cls = 'datetimetz'
         elif issubclass(dtype.type, np.bool_):
             upcast_cls = 'bool'
@@ -309,6 +306,8 @@ def get_empty_dtype_and_na(join_units):
             upcast_cls = 'timedelta'
         elif is_sparse(dtype):
             upcast_cls = dtype.subtype.name
+        elif is_extension_array_dtype(dtype):
+            upcast_cls = 'object'
         elif is_float_dtype(dtype) or is_numeric_dtype(dtype):
             upcast_cls = dtype.name
         else:

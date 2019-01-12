@@ -21,12 +21,10 @@ class TestiLoc(Base):
         # GH6296
         # iloc should allow indexers that exceed the bounds
         df = DataFrame(np.random.random_sample((20, 5)), columns=list('ABCDE'))
-        expected = df
 
         # lists of positions should raise IndexErrror!
-        with tm.assert_raises_regex(IndexError,
-                                    'positional indexers '
-                                    'are out-of-bounds'):
+        msg = 'positional indexers are out-of-bounds'
+        with pytest.raises(IndexError, match=msg):
             df.iloc[:, [0, 1, 2, 3, 4, 5]]
         pytest.raises(IndexError, lambda: df.iloc[[1, 30]])
         pytest.raises(IndexError, lambda: df.iloc[[1, -30]])
@@ -38,14 +36,14 @@ class TestiLoc(Base):
 
         # still raise on a single indexer
         msg = 'single positional indexer is out-of-bounds'
-        with tm.assert_raises_regex(IndexError, msg):
+        with pytest.raises(IndexError, match=msg):
             df.iloc[30]
         pytest.raises(IndexError, lambda: df.iloc[-30])
 
         # GH10779
         # single positive/negative indexer exceeding Series bounds should raise
         # an IndexError
-        with tm.assert_raises_regex(IndexError, msg):
+        with pytest.raises(IndexError, match=msg):
             s.iloc[30]
         pytest.raises(IndexError, lambda: s.iloc[-30])
 
@@ -136,8 +134,8 @@ class TestiLoc(Base):
         else:
             s = DataFrame(np.arange(100).reshape(10, 10))
 
-        tm.assert_raises_regex(TypeError, 'Cannot index by location index',
-                               lambda: s.iloc['a'])
+        with pytest.raises(TypeError, match='Cannot index by location index'):
+            s.iloc['a']
 
     def test_iloc_array_not_mutating_negative_indices(self):
 
@@ -298,33 +296,6 @@ class TestiLoc(Base):
         expected = Series([0, 1, 0], index=[4, 5, 6])
         tm.assert_series_equal(s, expected)
 
-    @pytest.mark.parametrize(
-        'data, indexes, values, expected_k', [
-            # test without indexer value in first level of MultiIndex
-            ([[2, 22, 5], [2, 33, 6]], [0, -1, 1], [2, 3, 1], [7, 10]),
-            # test like code sample 1 in the issue
-            ([[1, 22, 555], [1, 33, 666]], [0, -1, 1], [200, 300, 100],
-                [755, 1066]),
-            # test like code sample 2 in the issue
-            ([[1, 3, 7], [2, 4, 8]], [0, -1, 1], [10, 10, 1000], [17, 1018]),
-            # test like code sample 3 in the issue
-            ([[1, 11, 4], [2, 22, 5], [3, 33, 6]], [0, -1, 1], [4, 7, 10],
-                [8, 15, 13])
-        ])
-    def test_iloc_setitem_int_multiindex_series(
-            self, data, indexes, values, expected_k):
-        # GH17148
-        df = DataFrame(data=data, columns=['i', 'j', 'k'])
-        df = df.set_index(['i', 'j'])
-
-        series = df.k.copy()
-        for i, v in zip(indexes, values):
-            series.iloc[i] += v
-
-        df['k'] = expected_k
-        expected = df.k
-        tm.assert_series_equal(series, expected)
-
     def test_iloc_setitem_list(self):
 
         # setitem with an iloc list
@@ -339,7 +310,7 @@ class TestiLoc(Base):
         tm.assert_frame_equal(df, expected)
 
     def test_iloc_setitem_pandas_object(self):
-        # GH 17193, affecting old numpy (1.7 and 1.8)
+        # GH 17193
         s_orig = Series([0, 1, 2, 3])
         expected = Series([0, -1, -2, 3])
 

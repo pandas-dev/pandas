@@ -1,12 +1,15 @@
 # -*- coding: utf-8 -*-
 import pytest
+
+from pandas.compat import StringIO
+
 import pandas as pd
 from pandas import DataFrame, read_json
-from pandas.compat import StringIO
-from pandas.io.json.json import JsonReader
 import pandas.util.testing as tm
-from pandas.util.testing import (assert_frame_equal, assert_series_equal,
-                                 ensure_clean)
+from pandas.util.testing import (
+    assert_frame_equal, assert_series_equal, ensure_clean)
+
+from pandas.io.json.json import JsonReader
 
 
 @pytest.fixture
@@ -81,7 +84,7 @@ def test_readjson_chunks(lines_json_df, chunksize):
 
 def test_readjson_chunksize_requires_lines(lines_json_df):
     msg = "chunksize can only be passed if lines=True"
-    with tm.assert_raises_regex(ValueError, msg):
+    with pytest.raises(ValueError, match=msg):
         pd.read_json(StringIO(lines_json_df), lines=False, chunksize=2)
 
 
@@ -138,7 +141,7 @@ def test_readjson_chunks_closes(chunksize):
 def test_readjson_invalid_chunksize(lines_json_df, chunksize):
     msg = r"'chunksize' must be an integer >=1"
 
-    with tm.assert_raises_regex(ValueError, msg):
+    with pytest.raises(ValueError, match=msg):
         pd.read_json(StringIO(lines_json_df), lines=True,
                      chunksize=chunksize)
 

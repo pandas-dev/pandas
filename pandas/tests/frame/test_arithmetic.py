@@ -3,19 +3,18 @@ from collections import deque
 from datetime import datetime
 import operator
 
-import pytest
 import numpy as np
+import pytest
 
 from pandas.compat import range
 
 import pandas as pd
-import pandas.util.testing as tm
-
 from pandas.tests.frame.common import _check_mixed_float, _check_mixed_int
-
+import pandas.util.testing as tm
 
 # -------------------------------------------------------------------
 # Comparisons
+
 
 class TestFrameComparisons(object):
     # Specifically _not_ flex-comparisons
@@ -173,7 +172,7 @@ class TestFrameFlexComparisons(object):
             # NAs
             msg = "Unable to coerce to Series/DataFrame"
             tm.assert_frame_equal(f(np.nan), o(df, np.nan))
-            with tm.assert_raises_regex(ValueError, msg):
+            with pytest.raises(ValueError, match=msg):
                 f(ndim_5)
 
         # Series
@@ -382,7 +381,7 @@ class TestFrameFlexArithmetic(object):
         for dim in range(3, 6):
             arr = np.ones((1,) * dim)
             msg = "Unable to coerce to Series/DataFrame"
-            with tm.assert_raises_regex(ValueError, msg):
+            with pytest.raises(ValueError, match=msg):
                 getattr(float_frame, op)(arr)
 
     def test_arith_flex_frame_corner(self, float_frame):
@@ -397,10 +396,10 @@ class TestFrameFlexArithmetic(object):
         result = float_frame[:0].add(float_frame)
         tm.assert_frame_equal(result, float_frame * np.nan)
 
-        with tm.assert_raises_regex(NotImplementedError, 'fill_value'):
+        with pytest.raises(NotImplementedError, match='fill_value'):
             float_frame.add(float_frame.iloc[0], fill_value=3)
 
-        with tm.assert_raises_regex(NotImplementedError, 'fill_value'):
+        with pytest.raises(NotImplementedError, match='fill_value'):
             float_frame.add(float_frame.iloc[0], axis='index', fill_value=3)
 
     def test_arith_flex_series(self, simple_frame):
@@ -441,10 +440,10 @@ class TestFrameFlexArithmetic(object):
         df_len0 = pd.DataFrame([], columns=['A', 'B'])
         df = pd.DataFrame([[1, 2], [3, 4]], columns=['A', 'B'])
 
-        with tm.assert_raises_regex(NotImplementedError, 'fill_value'):
+        with pytest.raises(NotImplementedError, match='fill_value'):
             df.add(ser_len0, fill_value='E')
 
-        with tm.assert_raises_regex(NotImplementedError, 'fill_value'):
+        with pytest.raises(NotImplementedError, match='fill_value'):
             df_len0.sub(df['A'], axis=None, fill_value=3)
 
 
@@ -556,21 +555,6 @@ class TestFrameArithmetic(object):
         result = 1 * df
         kinds = result.dtypes.apply(lambda x: x.kind)
         assert (kinds == 'i').all()
-
-    def test_td64_df_add_int_frame(self):
-        # GH#22696 Check that we don't dispatch to numpy implementation,
-        # which treats int64 as m8[ns]
-        tdi = pd.timedelta_range('1', periods=3)
-        df = tdi.to_frame()
-        other = pd.DataFrame([1, 2, 3], index=tdi)  # indexed like `df`
-        with pytest.raises(TypeError):
-            df + other
-        with pytest.raises(TypeError):
-            other + df
-        with pytest.raises(TypeError):
-            df - other
-        with pytest.raises(TypeError):
-            other - df
 
     def test_arith_mixed(self):
 

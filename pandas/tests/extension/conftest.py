@@ -11,7 +11,11 @@ def dtype():
 
 @pytest.fixture
 def data():
-    """Length-100 array for this type."""
+    """Length-100 array for this type.
+
+    * data[0] and data[1] should both be non missing
+    * data[0] and data[1] should not gbe equal
+    """
     raise NotImplementedError
 
 

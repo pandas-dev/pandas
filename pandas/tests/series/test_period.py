@@ -64,8 +64,7 @@ class TestSeriesPeriod(object):
     # ---------------------------------------------------------------------
     # NaT support
 
-    @pytest.mark.xfail(reason="PeriodDtype Series not supported yet",
-                       strict=True)
+    @pytest.mark.xfail(reason="PeriodDtype Series not supported yet")
     def test_NaT_scalar(self):
         series = Series([0, 1000, 2000, pd._libs.iNaT], dtype='period[D]')
 
@@ -75,8 +74,7 @@ class TestSeriesPeriod(object):
         series[2] = val
         assert pd.isna(series[2])
 
-    @pytest.mark.xfail(reason="PeriodDtype Series not supported yet",
-                       strict=True)
+    @pytest.mark.xfail(reason="PeriodDtype Series not supported yet")
     def test_NaT_cast(self):
         result = Series([np.nan]).astype('period[D]')
         expected = Series([pd.NaT])

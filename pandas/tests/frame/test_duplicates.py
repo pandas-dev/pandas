@@ -2,13 +2,12 @@
 
 from __future__ import print_function
 
+import numpy as np
 import pytest
 
-import numpy as np
-
 from pandas.compat import lrange, string_types
-from pandas import DataFrame, Series
 
+from pandas import DataFrame, Series
 import pandas.util.testing as tm
 
 
@@ -55,8 +54,7 @@ def test_duplicated_keep(keep, expected):
     tm.assert_series_equal(result, expected)
 
 
-@pytest.mark.xfail(reason="GH#21720; nan/None falsely considered equal",
-                   strict=True)
+@pytest.mark.xfail(reason="GH#21720; nan/None falsely considered equal")
 @pytest.mark.parametrize('keep, expected', [
     ('first', Series([False, False, True, False, True])),
     ('last', Series([True, True, False, False, False])),

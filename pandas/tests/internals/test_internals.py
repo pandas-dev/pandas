@@ -11,8 +11,13 @@ import re
 from distutils.version import LooseVersion
 import itertools
 from pandas import (Index, MultiIndex, DataFrame, DatetimeIndex,
-                    Series, Categorical, TimedeltaIndex, SparseArray)
+                    Series, Categorical, SparseArray)
+
 from pandas.compat import OrderedDict, lrange
+from pandas.core.arrays import (
+    DatetimeArray,
+    TimedeltaArray,
+)
 from pandas.core.internals import (SingleBlockManager,
                                    make_block, BlockManager)
 import pandas.core.algorithms as algos
@@ -290,7 +295,7 @@ class TestBlock(object):
         block = create_block('M8[ns, US/Eastern]', [3])
         with tm.assert_produces_warning(DeprecationWarning,
                                         check_stacklevel=False):
-            block.make_block_same_class(block.values.values,
+            block.make_block_same_class(block.values,
                                         dtype=block.values.dtype)
 
 
@@ -451,7 +456,7 @@ class TestBlockManager(object):
                 assert cp_blk.values.base is blk.values.base
             else:
                 # DatetimeTZBlock has DatetimeIndex values
-                assert cp_blk.values.values.base is blk.values.values.base
+                assert cp_blk.values._data.base is blk.values._data.base
 
         cp = mgr.copy(deep=True)
         for blk, cp_blk in zip(mgr.blocks, cp.blocks):
@@ -460,7 +465,7 @@ class TestBlockManager(object):
             # some blocks it is an array (e.g. datetimetz), but was copied
             assert cp_blk.equals(blk)
             if not isinstance(cp_blk.values, np.ndarray):
-                assert cp_blk.values.values.base is not blk.values.values.base
+                assert cp_blk.values._data.base is not blk.values._data.base
             else:
                 assert cp_blk.values.base is None and blk.values.base is None
 
@@ -711,8 +716,8 @@ class TestBlockManager(object):
 
         index = MultiIndex(levels=[['foo', 'bar', 'baz', 'qux'], ['one', 'two',
                                                                   'three']],
-                           labels=[[0, 0, 0, 1, 1, 2, 2, 3, 3, 3],
-                                   [0, 1, 2, 0, 1, 1, 2, 0, 1, 2]],
+                           codes=[[0, 0, 0, 1, 1, 2, 2, 3, 3, 3],
+                                  [0, 1, 2, 0, 1, 1, 2, 0, 1, 2]],
                            names=['first', 'second'])
 
         mgr.set_axis(1, index)
@@ -1055,8 +1060,8 @@ class TestBlockPlacement(object):
 
     def test_unbounded_slice_raises(self):
         def assert_unbounded_slice_error(slc):
-            tm.assert_raises_regex(ValueError, "unbounded slice",
-                                   lambda: BlockPlacement(slc))
+            with pytest.raises(ValueError, match="unbounded slice"):
+                BlockPlacement(slc)
 
         assert_unbounded_slice_error(slice(None, None))
         assert_unbounded_slice_error(slice(10, None))
@@ -1247,7 +1252,7 @@ class TestCanHoldElement(object):
 
         if (op, dtype) in invalid:
             with pytest.raises(TypeError):
-                result = op(s, e.value)
+                op(s, e.value)
         else:
             # FIXME: Since dispatching to Series, this test no longer
             # asserts anything meaningful
@@ -1258,9 +1263,9 @@ class TestCanHoldElement(object):
 
 @pytest.mark.parametrize('typestr, holder', [
     ('category', Categorical),
-    ('M8[ns]', DatetimeIndex),
-    ('M8[ns, US/Central]', DatetimeIndex),
-    ('m8[ns]', TimedeltaIndex),
+    ('M8[ns]', DatetimeArray),
+    ('M8[ns, US/Central]', DatetimeArray),
+    ('m8[ns]', TimedeltaArray),
     ('sparse', SparseArray),
 ])
 def test_holder(typestr, holder):
@@ -1281,5 +1286,14 @@ def test_validate_ndim():
     placement = slice(2)
     msg = r"Wrong number of dimensions. values.ndim != ndim \[1 != 2\]"
 
-    with tm.assert_raises_regex(ValueError, msg):
+    with pytest.raises(ValueError, match=msg):
         make_block(values, placement, ndim=2)
+
+
+def test_block_shape():
+    idx = pd.Index([0, 1, 2, 3, 4])
+    a = pd.Series([1, 2, 3]).reindex(idx)
+    b = pd.Series(pd.Categorical([1, 2, 3])).reindex(idx)
+
+    assert (a._data.blocks[0].mgr_locs.indexer ==
+            b._data.blocks[0].mgr_locs.indexer)

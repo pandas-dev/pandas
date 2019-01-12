@@ -33,7 +33,7 @@ class TestSeriesConstructors():
         msg = 'not understood'
         invalid_list = [pd.Timestamp, 'pd.Timestamp', list]
         for dtype in invalid_list:
-            with tm.assert_raises_regex(TypeError, msg):
+            with pytest.raises(TypeError, match=msg):
                 Series([], name='time', dtype=dtype)
 
     def test_scalar_conversion(self):
@@ -133,6 +133,17 @@ class TestSeriesConstructors():
     def test_constructor_no_data_index_order(self):
         result = pd.Series(index=['b', 'a', 'c'])
         assert result.index.tolist() == ['b', 'a', 'c']
+
+    def test_constructor_no_data_string_type(self):
+        # GH 22477
+        result = pd.Series(index=[1], dtype=str)
+        assert np.isnan(result.iloc[0])
+
+    @pytest.mark.parametrize('item', ['entry', 'ѐ', 13])
+    def test_constructor_string_element_string_type(self, item):
+        # GH 22477
+        result = pd.Series(item, index=[1], dtype=str)
+        assert result.iloc[0] == str(item)
 
     def test_constructor_dtype_str_na_values(self, string_dtype):
         # https://github.com/pandas-dev/pandas/issues/21083
@@ -440,6 +451,13 @@ class TestSeriesConstructors():
                            datetime(2001, 1, 3)], index=index, dtype='M8[ns]')
         assert_series_equal(result, expected)
 
+    def test_constructor_maskedarray_hardened(self):
+        # Check numpy masked arrays with hard masks -- from GH24574
+        data = ma.masked_all((3, ), dtype=float).harden_mask()
+        result = pd.Series(data)
+        expected = pd.Series([nan, nan, nan])
+        tm.assert_series_equal(result, expected)
+
     def test_series_ctor_plus_datetimeindex(self):
         rng = date_range('20090415', '20090519', freq='B')
         data = {k: 1 for k in rng}
@@ -560,19 +578,19 @@ class TestSeriesConstructors():
 
     def test_constructor_cast(self):
         msg = "could not convert string to float"
-        with tm.assert_raises_regex(ValueError, msg):
+        with pytest.raises(ValueError, match=msg):
             Series(["a", "b", "c"], dtype=float)
 
     def test_constructor_unsigned_dtype_overflow(self, uint_dtype):
         # see gh-15832
         msg = 'Trying to coerce negative values to unsigned integers'
-        with tm.assert_raises_regex(OverflowError, msg):
+        with pytest.raises(OverflowError, match=msg):
             Series([-1], dtype=uint_dtype)
 
     def test_constructor_coerce_float_fail(self, any_int_dtype):
         # see gh-15832
         msg = "Trying to coerce float values to integers"
-        with tm.assert_raises_regex(ValueError, msg):
+        with pytest.raises(ValueError, match=msg):
             Series([1, 2, 3.5], dtype=any_int_dtype)
 
     def test_constructor_coerce_float_valid(self, float_dtype):
@@ -795,12 +813,12 @@ class TestSeriesConstructors():
         s = Series([pd.Timestamp('2013-01-01 13:00:00-0800', tz='US/Pacific'),
                     pd.Timestamp('2013-01-02 14:00:00-0800', tz='US/Pacific')])
         assert s.dtype == 'datetime64[ns, US/Pacific]'
-        assert lib.infer_dtype(s) == 'datetime64'
+        assert lib.infer_dtype(s, skipna=True) == 'datetime64'
 
         s = Series([pd.Timestamp('2013-01-01 13:00:00-0800', tz='US/Pacific'),
                     pd.Timestamp('2013-01-02 14:00:00-0800', tz='US/Eastern')])
         assert s.dtype == 'object'
-        assert lib.infer_dtype(s) == 'datetime'
+        assert lib.infer_dtype(s, skipna=True) == 'datetime'
 
         # with all NaT
         s = Series(pd.NaT, index=[0, 1], dtype='datetime64[ns, US/Eastern]')
@@ -1162,7 +1180,7 @@ class TestSeriesConstructors():
             # PeriodIndex or PeriodArray
             type(index).__name__.rstrip("Index")
         )
-        with tm.assert_raises_regex(TypeError, msg):
+        with pytest.raises(TypeError, match=msg):
             Series(index, dtype=float)
 
         # ints are ok
@@ -1200,7 +1218,7 @@ class TestSeriesConstructors():
         # see gh-15524, gh-15987
         msg = "dtype has no unit. Please pass in"
 
-        with tm.assert_raises_regex(ValueError, msg):
+        with pytest.raises(ValueError, match=msg):
             Series([], dtype=dtype)
 
     @pytest.mark.parametrize("dtype,msg", [
@@ -1210,7 +1228,7 @@ class TestSeriesConstructors():
     def test_constructor_generic_timestamp_bad_frequency(self, dtype, msg):
         # see gh-15524, gh-15987
 
-        with tm.assert_raises_regex(TypeError, msg):
+        with pytest.raises(TypeError, match=msg):
             Series([], dtype=dtype)
 
     @pytest.mark.parametrize('dtype', [None, 'uint8', 'category'])

@@ -1,28 +1,26 @@
 # pylint: disable-msg=E1101,W0612
 
-import operator
 from datetime import datetime
+import operator
 
+import numpy as np
+from numpy import nan
 import pytest
 
-from numpy import nan
-import numpy as np
-import pandas as pd
-
-
-from pandas import Series, DataFrame, bdate_range, isna, compat
-from pandas.errors import PerformanceWarning
-from pandas.tseries.offsets import BDay
-import pandas.util.testing as tm
-import pandas.util._test_decorators as td
-from pandas.compat import range, PY36
-from pandas.core.reshape.util import cartesian_product
-
-import pandas.core.sparse.frame as spf
-
 from pandas._libs.sparse import BlockIndex, IntIndex
-from pandas import SparseSeries, SparseDtype
+from pandas.compat import PY36, range
+from pandas.errors import PerformanceWarning
+import pandas.util._test_decorators as td
+
+import pandas as pd
+from pandas import (
+    DataFrame, Series, SparseDtype, SparseSeries, bdate_range, compat, isna)
+from pandas.core.reshape.util import cartesian_product
+import pandas.core.sparse.frame as spf
 from pandas.tests.series.test_api import SharedWithSparse
+import pandas.util.testing as tm
+
+from pandas.tseries.offsets import BDay
 
 
 def _test_data1():
@@ -159,11 +157,6 @@ class TestSparseSeries(SharedWithSparse):
         df['col']
         df.dtypes
         str(df)
-
-        tm.assert_sp_series_equal(df['col'], self.bseries, check_names=False)
-
-        result = df.iloc[:, 0]
-        tm.assert_sp_series_equal(result, self.bseries, check_names=False)
 
         # blocking
         expected = Series({'col': 'float64:sparse'})
@@ -553,12 +546,12 @@ class TestSparseSeries(SharedWithSparse):
                                np.take(sp.to_dense(), indices, axis=0))
 
         msg = "the 'out' parameter is not supported"
-        tm.assert_raises_regex(ValueError, msg, np.take,
-                               sp, indices, out=np.empty(sp.shape))
+        with pytest.raises(ValueError, match=msg):
+            np.take(sp, indices, out=np.empty(sp.shape))
 
         msg = "the 'mode' parameter is not supported"
-        tm.assert_raises_regex(ValueError, msg, np.take,
-                               sp, indices, out=None, mode='clip')
+        with pytest.raises(ValueError, match=msg):
+            np.take(sp, indices, out=None, mode='clip')
 
     def test_setitem(self):
         self.bseries[5] = 7.
@@ -776,9 +769,9 @@ class TestSparseSeries(SharedWithSparse):
         first_series = SparseSeries(values1,
                                     sparse_index=IntIndex(length, index1),
                                     fill_value=nan)
-        with tm.assert_raises_regex(TypeError,
-                                    'new index must be a SparseIndex'):
-            reindexed = first_series.sparse_reindex(0)  # noqa
+        with pytest.raises(TypeError,
+                           match='new index must be a SparseIndex'):
+            first_series.sparse_reindex(0)
 
     def test_repr(self):
         # TODO: These aren't used
@@ -848,10 +841,10 @@ class TestSparseSeries(SharedWithSparse):
 
     def test_homogenize(self):
         def _check_matches(indices, expected):
-            data = {}
-            for i, idx in enumerate(indices):
-                data[i] = SparseSeries(idx.to_int_index().indices,
-                                       sparse_index=idx, fill_value=np.nan)
+            data = {i: SparseSeries(idx.to_int_index().indices,
+                                    sparse_index=idx, fill_value=np.nan)
+                    for i, idx in enumerate(indices)}
+
             # homogenized is only valid with NaN fill values
             homogenized = spf.homogenize(data)
 
@@ -870,7 +863,7 @@ class TestSparseSeries(SharedWithSparse):
         # must have NaN fill value
         data = {'a': SparseSeries(np.arange(7), sparse_index=expected2,
                                   fill_value=0)}
-        with tm.assert_raises_regex(TypeError, "NaN fill value"):
+        with pytest.raises(TypeError, match="NaN fill value"):
             spf.homogenize(data)
 
     def test_fill_value_corner(self):
@@ -1444,7 +1437,7 @@ class TestSparseSeriesAnalytics(object):
 
         axis = 1  # Series is 1-D, so only axis = 0 is valid.
         msg = "No axis named {axis}".format(axis=axis)
-        with tm.assert_raises_regex(ValueError, msg):
+        with pytest.raises(ValueError, match=msg):
             self.bseries.cumsum(axis=axis)
 
     def test_numpy_cumsum(self):
@@ -1457,12 +1450,12 @@ class TestSparseSeriesAnalytics(object):
         tm.assert_series_equal(result, expected)
 
         msg = "the 'dtype' parameter is not supported"
-        tm.assert_raises_regex(ValueError, msg, np.cumsum,
-                               self.bseries, dtype=np.int64)
+        with pytest.raises(ValueError, match=msg):
+            np.cumsum(self.bseries, dtype=np.int64)
 
         msg = "the 'out' parameter is not supported"
-        tm.assert_raises_regex(ValueError, msg, np.cumsum,
-                               self.zbseries, out=result)
+        with pytest.raises(ValueError, match=msg):
+            np.cumsum(self.zbseries, out=result)
 
     def test_numpy_func_call(self):
         # no exception should be raised even though
@@ -1520,7 +1513,7 @@ def test_to_sparse():
 
 def test_constructor_mismatched_raises():
     msg = "Length of passed values is 2, index implies 3"
-    with tm.assert_raises_regex(ValueError, msg):
+    with pytest.raises(ValueError, match=msg):
         SparseSeries([1, 2], index=[1, 2, 3])
 
 

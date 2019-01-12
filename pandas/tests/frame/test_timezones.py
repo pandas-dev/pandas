@@ -4,18 +4,55 @@ Tests for DataFrame timezone-related methods
 """
 from datetime import datetime
 
+import numpy as np
 import pytest
 import pytz
-import numpy as np
 
-import pandas.util.testing as tm
 from pandas.compat import lrange
-from pandas.core.indexes.datetimes import date_range
+
 from pandas.core.dtypes.dtypes import DatetimeTZDtype
-from pandas import Series, DataFrame
+
+import pandas as pd
+from pandas import DataFrame, Series
+from pandas.core.indexes.datetimes import date_range
+import pandas.util.testing as tm
 
 
 class TestDataFrameTimezones(object):
+
+    def test_frame_values_with_tz(self):
+        tz = "US/Central"
+        df = DataFrame({"A": date_range('2000', periods=4, tz=tz)})
+        result = df.values
+        expected = np.array([
+            [pd.Timestamp('2000-01-01', tz=tz)],
+            [pd.Timestamp('2000-01-02', tz=tz)],
+            [pd.Timestamp('2000-01-03', tz=tz)],
+            [pd.Timestamp('2000-01-04', tz=tz)],
+        ])
+        tm.assert_numpy_array_equal(result, expected)
+
+        # two columns, homogenous
+
+        df = df.assign(B=df.A)
+        result = df.values
+        expected = np.concatenate([expected, expected], axis=1)
+        tm.assert_numpy_array_equal(result, expected)
+
+        # three columns, heterogenous
+        est = "US/Eastern"
+        df = df.assign(C=df.A.dt.tz_convert(est))
+
+        new = np.array([
+            [pd.Timestamp('2000-01-01T01:00:00', tz=est)],
+            [pd.Timestamp('2000-01-02T01:00:00', tz=est)],
+            [pd.Timestamp('2000-01-03T01:00:00', tz=est)],
+            [pd.Timestamp('2000-01-04T01:00:00', tz=est)],
+        ])
+        expected = np.concatenate([expected, new], axis=1)
+        result = df.values
+        tm.assert_numpy_array_equal(result, expected)
+
     def test_frame_from_records_utc(self):
         rec = {'datum': 1.5,
                'begin_time': datetime(2006, 4, 27, tzinfo=pytz.utc)}
@@ -142,4 +179,20 @@ class TestDataFrameTimezones(object):
                        index=idx)
         result = df.T == df.T
         expected = DataFrame(True, index=list('ab'), columns=idx)
+        tm.assert_frame_equal(result, expected)
+
+    @pytest.mark.parametrize('copy', [True, False])
+    @pytest.mark.parametrize('method, tz', [
+        ['tz_localize', None],
+        ['tz_convert', 'Europe/Berlin']
+    ])
+    def test_tz_localize_convert_copy_inplace_mutate(self, copy, method, tz):
+        # GH 6326
+        result = DataFrame(np.arange(0, 5),
+                           index=date_range('20131027', periods=5,
+                                            freq='1H', tz=tz))
+        getattr(result, method)('UTC', copy=copy)
+        expected = DataFrame(np.arange(0, 5),
+                             index=date_range('20131027', periods=5,
+                                              freq='1H', tz=tz))
         tm.assert_frame_equal(result, expected)

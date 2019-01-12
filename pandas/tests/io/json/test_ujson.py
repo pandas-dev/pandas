@@ -4,26 +4,27 @@ try:
     import json
 except ImportError:
     import simplejson as json
-import math
-import pytz
-import locale
-import pytest
-import time
-import datetime
 import calendar
-import re
+import datetime
 import decimal
-import dateutil
 from functools import partial
-from pandas.compat import range, StringIO, u
-from pandas._libs.tslib import Timestamp
-import pandas._libs.json as ujson
-import pandas.compat as compat
+import locale
+import math
+import re
+import time
 
+import dateutil
 import numpy as np
-from pandas import DataFrame, Series, Index, NaT, DatetimeIndex, date_range
-import pandas.util.testing as tm
+import pytest
+import pytz
 
+import pandas._libs.json as ujson
+from pandas._libs.tslib import Timestamp
+import pandas.compat as compat
+from pandas.compat import StringIO, range, u
+
+from pandas import DataFrame, DatetimeIndex, Index, NaT, Series, date_range
+import pandas.util.testing as tm
 
 json_unicode = (json.dumps if compat.PY3
                 else partial(json.dumps, encoding="utf-8"))
@@ -421,7 +422,9 @@ class TestUltraJSONTests(object):
         roundtrip = ujson.decode(ujson.encode(val, date_unit='ns'))
         assert roundtrip == stamp.value
 
-        pytest.raises(ValueError, ujson.encode, val, date_unit='foo')
+        msg = "Invalid value 'foo' for option 'date_unit'"
+        with pytest.raises(ValueError, match=msg):
+            ujson.encode(val, date_unit='foo')
 
     def test_encode_to_utf8(self):
         unencoded = "\xe6\x97\xa5\xd1\x88"
@@ -694,7 +697,9 @@ class TestUltraJSONTests(object):
             def __str__(self):
                 return str(self.val)
 
-        pytest.raises(OverflowError, ujson.encode, _TestObject("foo"))
+        msg = "Maximum recursion level reached"
+        with pytest.raises(OverflowError, match=msg):
+            ujson.encode(_TestObject("foo"))
         assert '"foo"' == ujson.encode(_TestObject("foo"),
                                        default_handler=str)
 
@@ -707,7 +712,7 @@ class TestUltraJSONTests(object):
         def my_handler_raises(_):
             raise TypeError("I raise for anything")
 
-        with tm.assert_raises_regex(TypeError, "I raise for anything"):
+        with pytest.raises(TypeError, match="I raise for anything"):
             ujson.encode(_TestObject("foo"), default_handler=my_handler_raises)
 
         def my_int_handler(_):

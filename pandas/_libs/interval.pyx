@@ -1,22 +1,29 @@
 # -*- coding: utf-8 -*-
 import numbers
+from operator import le, lt
 
 from cpython.object cimport (Py_EQ, Py_NE, Py_GT, Py_LT, Py_GE, Py_LE,
                              PyObject_RichCompare)
 
-cimport cython
-from cython cimport Py_ssize_t
+import cython
+from cython import Py_ssize_t
 
 import numpy as np
-from numpy cimport ndarray
+cimport numpy as cnp
+from numpy cimport (
+    int64_t, int32_t, float64_t, float32_t, uint64_t,
+    ndarray,
+    PyArray_ArgSort, NPY_QUICKSORT, PyArray_Take)
+cnp.import_array()
 
-from operator import le, lt
 
-cimport util
+cimport pandas._libs.util as util
 util.import_array()
 
-from tslibs import Timestamp
-from tslibs.timezones cimport tz_compare
+from pandas._libs.hashtable cimport Int64Vector, Int64VectorData
+
+from pandas._libs.tslibs import Timestamp
+from pandas._libs.tslibs.timezones cimport tz_compare
 
 
 _VALID_CLOSED = frozenset(['left', 'right', 'both', 'neither'])
@@ -151,6 +158,16 @@ cdef class Interval(IntervalMixin):
         Whether the interval is closed on the left-side, right-side, both or
         neither. See the Notes for more detailed explanation.
 
+    See Also
+    --------
+    IntervalIndex : An Index of Interval objects that are all closed on the
+        same side.
+    cut : Convert continuous data into discrete bins (Categorical
+        of Interval objects).
+    qcut : Convert continuous data into bins (Categorical of Interval objects)
+        based on quantiles.
+    Period : Represents a period of time.
+
     Notes
     -----
     The parameters `left` and `right` must be from the same type, you must be
@@ -219,16 +236,6 @@ cdef class Interval(IntervalMixin):
     >>> volume_1 = pd.Interval('Ant', 'Dog', closed='both')
     >>> 'Bee' in volume_1
     True
-
-    See Also
-    --------
-    IntervalIndex : An Index of Interval objects that are all closed on the
-        same side.
-    cut : Convert continuous data into discrete bins (Categorical
-        of Interval objects).
-    qcut : Convert continuous data into bins (Categorical of Interval objects)
-        based on quantiles.
-    Period : Represents a period of time.
     """
     _typ = "interval"
 
@@ -380,6 +387,11 @@ cdef class Interval(IntervalMixin):
         bool
             ``True`` if the two intervals overlap, else ``False``.
 
+        See Also
+        --------
+        IntervalArray.overlaps : The corresponding method for IntervalArray.
+        IntervalIndex.overlaps : The corresponding method for IntervalIndex.
+
         Examples
         --------
         >>> i1 = pd.Interval(0, 2)
@@ -402,11 +414,6 @@ cdef class Interval(IntervalMixin):
         >>> i6 = pd.Interval(1, 2, closed='neither')
         >>> i4.overlaps(i6)
         False
-
-        See Also
-        --------
-        IntervalArray.overlaps : The corresponding method for IntervalArray
-        IntervalIndex.overlaps : The corresponding method for IntervalIndex
         """
         if not isinstance(other, Interval):
             msg = '`other` must be an Interval, got {other}'

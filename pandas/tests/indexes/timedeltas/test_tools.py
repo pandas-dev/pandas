@@ -3,10 +3,11 @@ from datetime import time, timedelta
 import numpy as np
 import pytest
 
-import pandas as pd
-import pandas.util.testing as tm
-from pandas import Series, TimedeltaIndex, isna, to_timedelta
 from pandas._libs.tslib import iNaT
+
+import pandas as pd
+from pandas import Series, TimedeltaIndex, isna, to_timedelta
+import pandas.util.testing as tm
 from pandas.util.testing import assert_series_equal
 
 
@@ -110,8 +111,8 @@ class TestTimedeltas(object):
 
         # bad value for errors parameter
         msg = "errors must be one of"
-        tm.assert_raises_regex(ValueError, msg, to_timedelta,
-                               ['foo'], errors='never')
+        with pytest.raises(ValueError, match=msg):
+            to_timedelta(['foo'], errors='never')
 
         # these will error
         pytest.raises(ValueError, lambda: to_timedelta([1, 2], unit='foo'))

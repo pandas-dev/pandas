@@ -2,15 +2,17 @@
 """
 Testing that we work in the downstream packages
 """
+import importlib
 import subprocess
 import sys
 
-import pytest
 import numpy as np  # noqa
-from pandas import DataFrame
+import pytest
+
 from pandas.compat import PY36
+
+from pandas import DataFrame
 from pandas.util import testing as tm
-import importlib
 
 
 def import_module(name):
@@ -101,7 +103,7 @@ def test_pandas_gbq(df):
     pandas_gbq = import_module('pandas_gbq')  # noqa
 
 
-@pytest.mark.xfail(reason="0.7.0 pending", strict=True)
+@pytest.mark.xfail(reason="0.7.0 pending")
 @tm.network
 def test_pandas_datareader():
 

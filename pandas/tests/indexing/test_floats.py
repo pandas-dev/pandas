@@ -50,11 +50,9 @@ class TestFloatIndexers(object):
 
             s = Series(np.arange(len(i)), index=i)
 
-            def f():
+            msg = 'Cannot index by location index'
+            with pytest.raises(TypeError, match=msg):
                 s.iloc[3.0]
-            tm.assert_raises_regex(TypeError,
-                                   'Cannot index by location index',
-                                   f)
 
             def f():
                 s.iloc[3.0] = 0

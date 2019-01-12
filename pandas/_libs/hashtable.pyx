@@ -9,14 +9,14 @@ from libc.stdlib cimport malloc, free
 
 import numpy as np
 cimport numpy as cnp
-from numpy cimport ndarray, uint8_t, uint32_t
+from numpy cimport ndarray, uint8_t, uint32_t, float64_t
 cnp.import_array()
 
 cdef extern from "numpy/npy_math.h":
-    double NAN "NPY_NAN"
+    float64_t NAN "NPY_NAN"
 
 
-from khash cimport (
+from pandas._libs.khash cimport (
     khiter_t,
 
     kh_str_t, kh_init_str, kh_put_str, kh_exist_str,
@@ -37,14 +37,12 @@ from khash cimport (
     kh_put_pymap, kh_resize_pymap)
 
 
-cimport util
+cimport pandas._libs.util as util
 
-from missing cimport checknull
+from pandas._libs.missing cimport checknull
 
 
-nan = np.nan
-
-cdef int64_t iNaT = util.get_nat()
+cdef int64_t NPY_NAT = util.get_nat()
 _SIZE_HINT_LIMIT = (1 << 20) + 7
 
 

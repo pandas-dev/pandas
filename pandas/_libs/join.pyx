@@ -10,10 +10,6 @@ from numpy cimport (ndarray,
                     uint32_t, uint64_t, float32_t, float64_t)
 cnp.import_array()
 
-
-cdef double NaN = <double>np.NaN
-cdef double nan = NaN
-
 from pandas._libs.algos import groupsort_indexer, ensure_platform_int
 from pandas.core.algorithms import take_nd
 
@@ -660,7 +656,7 @@ outer_join_indexer_uint64 = outer_join_indexer["uint64_t"]
 # asof_join_by
 # ----------------------------------------------------------------------
 
-from hashtable cimport (
+from pandas._libs.hashtable cimport (
     HashTable, PyObjectHashTable, UInt64HashTable, Int64HashTable)
 
 ctypedef fused asof_t:
@@ -673,7 +669,7 @@ ctypedef fused asof_t:
     int32_t
     int64_t
     float
-    double
+    float64_t
 
 ctypedef fused by_t:
     object

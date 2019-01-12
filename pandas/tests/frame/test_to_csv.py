@@ -2,30 +2,27 @@
 
 from __future__ import print_function
 
-import os
 import csv
+import os
+
+import numpy as np
 import pytest
 
-from numpy import nan
-import numpy as np
-
-from pandas.compat import (lmap, range, lrange, StringIO, u)
-from pandas.io.common import _get_handle
-import pandas.core.common as com
+from pandas.compat import StringIO, lmap, lrange, range, u
 from pandas.errors import ParserError
-from pandas import (DataFrame, Index, Series, MultiIndex, Timestamp,
-                    date_range, read_csv, compat, to_datetime)
+
 import pandas as pd
-
-from pandas.util.testing import (assert_almost_equal,
-                                 assert_series_equal,
-                                 assert_frame_equal,
-                                 ensure_clean,
-                                 makeCustomDataframe as mkdf)
-import pandas.util.testing as tm
-
+from pandas import (
+    DataFrame, Index, MultiIndex, Series, Timestamp, compat, date_range,
+    read_csv, to_datetime)
+import pandas.core.common as com
 from pandas.tests.frame.common import TestData
+import pandas.util.testing as tm
+from pandas.util.testing import (
+    assert_almost_equal, assert_frame_equal, assert_series_equal, ensure_clean,
+    makeCustomDataframe as mkdf)
 
+from pandas.io.common import _get_handle
 
 MIXED_FLOAT_DTYPES = ['float16', 'float32', 'float64']
 MIXED_INT_DTYPES = ['uint8', 'uint16', 'uint32', 'uint64', 'int8', 'int16',
@@ -52,7 +49,7 @@ class TestDataFrameToCSV(TestData):
     def test_to_csv_from_csv1(self):
 
         with ensure_clean('__tmp_to_csv_from_csv1__') as path:
-            self.frame['A'][:5] = nan
+            self.frame['A'][:5] = np.nan
 
             self.frame.to_csv(path)
             self.frame.to_csv(path, columns=['A', 'B'])
@@ -621,12 +618,12 @@ class TestDataFrameToCSV(TestData):
 
             for i in [6, 7]:
                 msg = 'len of {i}, but only 5 lines in file'.format(i=i)
-                with tm.assert_raises_regex(ParserError, msg):
+                with pytest.raises(ParserError, match=msg):
                     read_csv(path, header=lrange(i), index_col=0)
 
             # write with cols
-            with tm.assert_raises_regex(TypeError, 'cannot specify cols '
-                                        'with a MultiIndex'):
+            msg = 'cannot specify cols with a MultiIndex'
+            with pytest.raises(TypeError, match=msg):
                 df.to_csv(path, columns=['foo', 'bar'])
 
         with ensure_clean('__tmp_to_csv_multiindex__') as path:
@@ -1124,11 +1121,11 @@ class TestDataFrameToCSV(TestData):
         assert result == expected
 
         msg = "need to escape, but no escapechar set"
-        tm.assert_raises_regex(csv.Error, msg, df.to_csv,
-                               quoting=csv.QUOTE_NONE)
-        tm.assert_raises_regex(csv.Error, msg, df.to_csv,
-                               quoting=csv.QUOTE_NONE,
-                               escapechar=None)
+        with pytest.raises(csv.Error, match=msg):
+            df.to_csv(quoting=csv.QUOTE_NONE)
+
+        with pytest.raises(csv.Error, match=msg):
+            df.to_csv(quoting=csv.QUOTE_NONE, escapechar=None)
 
         expected_rows = [',c_bool,c_float,c_int,c_string',
                          '0,True,1.0,42.0,a',

@@ -14,10 +14,12 @@ cimport numpy as cnp
 from numpy cimport int64_t
 cnp.import_array()
 
-cimport util
-from util cimport (get_nat,
-                   is_integer_object, is_float_object,
-                   is_datetime64_object, is_timedelta64_object)
+from pandas._libs.tslibs.np_datetime cimport (
+    get_datetime64_value, get_timedelta64_value)
+cimport pandas._libs.tslibs.util as util
+from pandas._libs.tslibs.util cimport (
+    get_nat, is_integer_object, is_float_object, is_datetime64_object,
+    is_timedelta64_object)
 
 # ----------------------------------------------------------------------
 # Constants
@@ -47,7 +49,7 @@ def _make_nan_func(func_name, doc):
 
 def _make_nat_func(func_name, doc):
     def f(*args, **kwargs):
-        return NaT
+        return c_NaT
     f.__name__ = func_name
     f.__doc__ = doc
     return f
@@ -67,10 +69,10 @@ def _make_error_func(func_name, cls):
 
 
 cdef _nat_divide_op(self, other):
-    if PyDelta_Check(other) or is_timedelta64_object(other) or other is NaT:
+    if PyDelta_Check(other) or is_timedelta64_object(other) or other is c_NaT:
         return np.nan
     if is_integer_object(other) or is_float_object(other):
-        return NaT
+        return c_NaT
     return NotImplemented
 
 
@@ -82,15 +84,15 @@ cdef _nat_rdivide_op(self, other):
 
 def __nat_unpickle(*args):
     # return constant defined in the module
-    return NaT
+    return c_NaT
 
 # ----------------------------------------------------------------------
 
 
 cdef class _NaT(datetime):
-    cdef readonly:
-        int64_t value
-        object freq
+    # cdef readonly:
+    #    int64_t value
+    #    object freq
 
     def __hash__(_NaT self):
         # py3k needs this defined here
@@ -116,18 +118,18 @@ cdef class _NaT(datetime):
 
     def __add__(self, other):
         if PyDateTime_Check(other):
-            return NaT
+            return c_NaT
 
         elif hasattr(other, 'delta'):
             # Timedelta, offsets.Tick, offsets.Week
-            return NaT
+            return c_NaT
         elif getattr(other, '_typ', None) in ['dateoffset', 'series',
                                               'period', 'datetimeindex',
                                               'timedeltaindex']:
             # Duplicate logic in _Timestamp.__add__ to avoid needing
             # to subclass; allows us to @final(_Timestamp.__add__)
             return NotImplemented
-        return NaT
+        return c_NaT
 
     def __sub__(self, other):
         # Duplicate some logic from _Timestamp.__sub__ to avoid needing
@@ -184,19 +186,6 @@ cdef class _NaT(datetime):
         """ Returns a numpy.datetime64 object with 'ns' precision """
         return np.datetime64('NaT', 'ns')
 
-
-class NaTType(_NaT):
-    """(N)ot-(A)-(T)ime, the time equivalent of NaN"""
-
-    def __new__(cls):
-        cdef _NaT base
-
-        base = _NaT.__new__(cls, 1, 1, 1)
-        base.value = NPY_NAT
-        base.freq = None
-
-        return base
-
     def __repr__(self):
         return 'NaT'
 
@@ -216,20 +205,11 @@ class NaTType(_NaT):
     def __long__(self):
         return NPY_NAT
 
-    def __reduce_ex__(self, protocol):
-        # python 3.6 compat
-        # http://bugs.python.org/issue28730
-        # now __reduce_ex__ is defined and higher priority than __reduce__
-        return self.__reduce__()
-
-    def __reduce__(self):
-        return (__nat_unpickle, (None, ))
-
     def total_seconds(self):
         """
         Total duration of timedelta in seconds (to ns precision)
         """
-        # GH 10939
+        # GH#10939
         return np.nan
 
     @property
@@ -260,6 +240,28 @@ class NaTType(_NaT):
     def is_year_end(self):
         return False
 
+
+class NaTType(_NaT):
+    """(N)ot-(A)-(T)ime, the time equivalent of NaN"""
+
+    def __new__(cls):
+        cdef _NaT base
+
+        base = _NaT.__new__(cls, 1, 1, 1)
+        base.value = NPY_NAT
+        base.freq = None
+
+        return base
+
+    def __reduce_ex__(self, protocol):
+        # python 3.6 compat
+        # http://bugs.python.org/issue28730
+        # now __reduce_ex__ is defined and higher priority than __reduce__
+        return self.__reduce__()
+
+    def __reduce__(self):
+        return (__nat_unpickle, (None, ))
+
     def __rdiv__(self, other):
         return _nat_rdivide_op(self, other)
 
@@ -271,7 +273,7 @@ class NaTType(_NaT):
 
     def __rmul__(self, other):
         if is_integer_object(other) or is_float_object(other):
-            return NaT
+            return c_NaT
         return NotImplemented
 
     # ----------------------------------------------------------------------
@@ -471,10 +473,6 @@ class NaTType(_NaT):
         """
         Round the Timestamp to the specified resolution
 
-        Returns
-        -------
-        a new Timestamp rounded to the given resolution of `freq`
-
         Parameters
         ----------
         freq : a freq string indicating the rounding resolution
@@ -485,17 +483,25 @@ class NaTType(_NaT):
             - 'raise' will raise an AmbiguousTimeError for an ambiguous time
 
             .. versionadded:: 0.24.0
-        nonexistent : 'shift', 'NaT', default 'raise'
+        nonexistent : 'shift_forward', 'shift_backward, 'NaT', timedelta,
+                      default 'raise'
             A nonexistent time does not exist in a particular timezone
             where clocks moved forward due to DST.
 
-            - 'shift' will shift the nonexistent time forward to the closest
-              existing time
+            - 'shift_forward' will shift the nonexistent time forward to the
+              closest existing time
+            - 'shift_backward' will shift the nonexistent time backward to the
+              closest existing time
             - 'NaT' will return NaT where there are nonexistent times
+            - timedelta objects will shift nonexistent times by the timedelta
             - 'raise' will raise an NonExistentTimeError if there are
               nonexistent times
 
             .. versionadded:: 0.24.0
+
+        Returns
+        -------
+        a new Timestamp rounded to the given resolution of `freq`
 
         Raises
         ------
@@ -515,13 +521,17 @@ class NaTType(_NaT):
             - 'raise' will raise an AmbiguousTimeError for an ambiguous time
 
             .. versionadded:: 0.24.0
-        nonexistent : 'shift', 'NaT', default 'raise'
+        nonexistent : 'shift_forward', 'shift_backward, 'NaT', timedelta,
+                      default 'raise'
             A nonexistent time does not exist in a particular timezone
             where clocks moved forward due to DST.
 
-            - 'shift' will shift the nonexistent time forward to the closest
-              existing time
+            - 'shift_forward' will shift the nonexistent time forward to the
+              closest existing time
+            - 'shift_backward' will shift the nonexistent time backward to the
+              closest existing time
             - 'NaT' will return NaT where there are nonexistent times
+            - timedelta objects will shift nonexistent times by the timedelta
             - 'raise' will raise an NonExistentTimeError if there are
               nonexistent times
 
@@ -545,13 +555,17 @@ class NaTType(_NaT):
             - 'raise' will raise an AmbiguousTimeError for an ambiguous time
 
             .. versionadded:: 0.24.0
-        nonexistent : 'shift', 'NaT', default 'raise'
+        nonexistent : 'shift_forward', 'shift_backward, 'NaT', timedelta,
+                      default 'raise'
             A nonexistent time does not exist in a particular timezone
             where clocks moved forward due to DST.
 
-            - 'shift' will shift the nonexistent time forward to the closest
-              existing time
+            - 'shift_forward' will shift the nonexistent time forward to the
+              closest existing time
+            - 'shift_backward' will shift the nonexistent time backward to the
+              closest existing time
             - 'NaT' will return NaT where there are nonexistent times
+            - timedelta objects will shift nonexistent times by the timedelta
             - 'raise' will raise an NonExistentTimeError if there are
               nonexistent times
 
@@ -605,13 +619,17 @@ class NaTType(_NaT):
             - 'NaT' will return NaT for an ambiguous time
             - 'raise' will raise an AmbiguousTimeError for an ambiguous time
 
-        nonexistent : 'shift', 'NaT', default 'raise'
+        nonexistent : 'shift_forward', 'shift_backward, 'NaT', timedelta,
+                      default 'raise'
             A nonexistent time does not exist in a particular timezone
             where clocks moved forward due to DST.
 
-            - 'shift' will shift the nonexistent time forward to the closest
-              existing time
+            - 'shift_forward' will shift the nonexistent time forward to the
+              closest existing time
+            - 'shift_backward' will shift the nonexistent time backward to the
+              closest existing time
             - 'NaT' will return NaT where there are nonexistent times
+            - timedelta objects will shift nonexistent times by the timedelta
             - 'raise' will raise an NonExistentTimeError if there are
               nonexistent times
 
@@ -648,7 +666,7 @@ class NaTType(_NaT):
         minute : int, optional
         second : int, optional
         microsecond : int, optional
-        nanosecond: int, optional
+        nanosecond : int, optional
         tzinfo : tz-convertible, optional
         fold : int, optional, default is 0
             added in 3.6, NotImplemented
@@ -659,36 +677,41 @@ class NaTType(_NaT):
         """)
 
 
-NaT = NaTType()
+c_NaT = NaTType()  # C-visible
+NaT = c_NaT        # Python-visible
 
 
 # ----------------------------------------------------------------------
 
 cdef inline bint checknull_with_nat(object val):
     """ utility to check if a value is a nat or not """
-    return val is None or util.is_nan(val) or val is NaT
+    return val is None or util.is_nan(val) or val is c_NaT
 
 
-cdef inline bint is_null_datetimelike(object val):
+cpdef bint is_null_datetimelike(object val, bint inat_is_null=True):
     """
     Determine if we have a null for a timedelta/datetime (or integer versions)
 
     Parameters
     ----------
     val : object
+    inat_is_null : bool, default True
+        Whether to treat integer iNaT value as null
 
     Returns
     -------
     null_datetimelike : bool
     """
-    if val is None or util.is_nan(val):
+    if val is None:
         return True
-    elif val is NaT:
+    elif val is c_NaT:
         return True
+    elif util.is_float_object(val) or util.is_complex_object(val):
+        return val != val
     elif util.is_timedelta64_object(val):
-        return val.view('int64') == NPY_NAT
+        return get_timedelta64_value(val) == NPY_NAT
     elif util.is_datetime64_object(val):
-        return val.view('int64') == NPY_NAT
-    elif util.is_integer_object(val):
+        return get_datetime64_value(val) == NPY_NAT
+    elif inat_is_null and util.is_integer_object(val):
         return val == NPY_NAT
     return False

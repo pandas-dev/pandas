@@ -1,10 +1,11 @@
 # pylint: disable-msg=E1101,W0612
 
-import pytest
 import numpy as np
+import pytest
+
 import pandas as pd
-import pandas.util.testing as tm
 from pandas.core.sparse.api import SparseDtype
+import pandas.util.testing as tm
 
 
 class TestSparseSeriesIndexing(object):
@@ -451,7 +452,7 @@ class TestSparseSeriesIndexing(object):
 
         msg = ("iLocation based boolean indexing cannot "
                "use an indexable as a mask")
-        with tm.assert_raises_regex(ValueError, msg):
+        with pytest.raises(ValueError, match=msg):
             s.iloc[indexer]
 
 

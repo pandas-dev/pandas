@@ -5,7 +5,6 @@ from datetime import datetime, timedelta
 import operator
 
 import numpy as np
-from numpy import nan
 import pytest
 
 import pandas.compat as compat
@@ -13,7 +12,7 @@ from pandas.compat import range
 
 import pandas as pd
 from pandas import (
-    Categorical, DataFrame, Index, NaT, Series, bdate_range, date_range, isna)
+    Categorical, DataFrame, Index, Series, bdate_range, date_range, isna)
 from pandas.core import ops
 import pandas.core.nanops as nanops
 import pandas.util.testing as tm
@@ -121,24 +120,12 @@ class TestSeriesLogicalOps(object):
             s_0123 & [0.1, 4, 3.14, 2]
 
         # s_0123 will be all false now because of reindexing like s_tft
-        if compat.PY3:
-            # unable to sort incompatible object via .union.
-            exp = Series([False] * 7, index=['b', 'c', 'a', 0, 1, 2, 3])
-            with tm.assert_produces_warning(RuntimeWarning):
-                assert_series_equal(s_tft & s_0123, exp)
-        else:
-            exp = Series([False] * 7, index=[0, 1, 2, 3, 'a', 'b', 'c'])
-            assert_series_equal(s_tft & s_0123, exp)
+        exp = Series([False] * 7, index=[0, 1, 2, 3, 'a', 'b', 'c'])
+        assert_series_equal(s_tft & s_0123, exp)
 
         # s_tft will be all false now because of reindexing like s_0123
-        if compat.PY3:
-            # unable to sort incompatible object via .union.
-            exp = Series([False] * 7, index=[0, 1, 2, 3, 'b', 'c', 'a'])
-            with tm.assert_produces_warning(RuntimeWarning):
-                assert_series_equal(s_0123 & s_tft, exp)
-        else:
-            exp = Series([False] * 7, index=[0, 1, 2, 3, 'a', 'b', 'c'])
-            assert_series_equal(s_0123 & s_tft, exp)
+        exp = Series([False] * 7, index=[0, 1, 2, 3, 'a', 'b', 'c'])
+        assert_series_equal(s_0123 & s_tft, exp)
 
         assert_series_equal(s_0123 & False, Series([False] * 4))
         assert_series_equal(s_0123 ^ False, Series([False, True, True, True]))
@@ -190,20 +177,7 @@ class TestSeriesLogicalOps(object):
         operator.and_,
         operator.or_,
         operator.xor,
-        pytest.param(ops.rand_,
-                     marks=pytest.mark.xfail(reason="GH#22092 Index "
-                                                    "implementation returns "
-                                                    "Index",
-                                             raises=AssertionError,
-                                             strict=True)),
-        pytest.param(ops.ror_,
-                     marks=pytest.mark.xfail(reason="GH#22092 Index "
-                                                    "implementation raises",
-                                             raises=ValueError, strict=True)),
-        pytest.param(ops.rxor,
-                     marks=pytest.mark.xfail(reason="GH#22092 Index "
-                                                    "implementation raises",
-                                             raises=TypeError, strict=True))
+
     ])
     def test_logical_ops_with_index(self, op):
         # GH#22092, GH#19792
@@ -221,6 +195,19 @@ class TestSeriesLogicalOps(object):
 
         result = op(ser, idx2)
         assert_series_equal(result, expected)
+
+    @pytest.mark.parametrize("op, expected", [
+        (ops.rand_, pd.Index([False, True])),
+        (ops.ror_, pd.Index([False, True])),
+        (ops.rxor, pd.Index([])),
+    ])
+    def test_reverse_ops_with_index(self, op, expected):
+        # https://github.com/pandas-dev/pandas/pull/23628
+        # multi-set Index ops are buggy, so let's avoid duplicates...
+        ser = Series([True, False])
+        idx = Index([False, True])
+        result = op(ser, idx)
+        tm.assert_index_equal(result, expected)
 
     def test_logical_ops_label_based(self):
         # GH#4947
@@ -281,11 +268,7 @@ class TestSeriesLogicalOps(object):
             assert_series_equal(result, a[a])
 
         for e in [Series(['z'])]:
-            if compat.PY3:
-                with tm.assert_produces_warning(RuntimeWarning):
-                    result = a[a | e]
-            else:
-                result = a[a | e]
+            result = a[a | e]
             assert_series_equal(result, a[a])
 
         # vs scalars
@@ -544,49 +527,6 @@ class TestSeriesComparisons(object):
         tm.assert_series_equal(cat == "d", Series([False, False, False]))
         tm.assert_series_equal(cat != "d", Series([True, True, True]))
 
-    @pytest.mark.parametrize('pair', [
-        ([pd.Timestamp('2011-01-01'), NaT, pd.Timestamp('2011-01-03')],
-         [NaT, NaT, pd.Timestamp('2011-01-03')]),
-
-        ([pd.Timedelta('1 days'), NaT, pd.Timedelta('3 days')],
-         [NaT, NaT, pd.Timedelta('3 days')]),
-
-        ([pd.Period('2011-01', freq='M'), NaT,
-          pd.Period('2011-03', freq='M')],
-         [NaT, NaT, pd.Period('2011-03', freq='M')]),
-
-    ])
-    @pytest.mark.parametrize('reverse', [True, False])
-    @pytest.mark.parametrize('box', [Series, Index])
-    @pytest.mark.parametrize('dtype', [None, object])
-    def test_nat_comparisons(self, dtype, box, reverse, pair):
-        l, r = pair
-        if reverse:
-            # add lhs / rhs switched data
-            l, r = r, l
-
-        left = Series(l, dtype=dtype)
-        right = box(r, dtype=dtype)
-        # Series, Index
-
-        expected = Series([False, False, True])
-        assert_series_equal(left == right, expected)
-
-        expected = Series([True, True, False])
-        assert_series_equal(left != right, expected)
-
-        expected = Series([False, False, False])
-        assert_series_equal(left < right, expected)
-
-        expected = Series([False, False, False])
-        assert_series_equal(left > right, expected)
-
-        expected = Series([False, False, True])
-        assert_series_equal(left >= right, expected)
-
-        expected = Series([False, False, True])
-        assert_series_equal(left <= right, expected)
-
     def test_ne(self):
         ts = Series([3, 4, 5, 6, 7], [3, 4, 5, 6, 7], dtype=float)
         expected = [True, True, False, True, True]
@@ -604,23 +544,23 @@ class TestSeriesComparisons(object):
         for left, right in [(s1, s2), (s2, s1), (s3, s4), (s4, s3)]:
 
             msg = "Can only compare identically-labeled Series objects"
-            with tm.assert_raises_regex(ValueError, msg):
+            with pytest.raises(ValueError, match=msg):
                 left == right
 
-            with tm.assert_raises_regex(ValueError, msg):
+            with pytest.raises(ValueError, match=msg):
                 left != right
 
-            with tm.assert_raises_regex(ValueError, msg):
+            with pytest.raises(ValueError, match=msg):
                 left < right
 
             msg = "Can only compare identically-labeled DataFrame objects"
-            with tm.assert_raises_regex(ValueError, msg):
+            with pytest.raises(ValueError, match=msg):
                 left.to_frame() == right.to_frame()
 
-            with tm.assert_raises_regex(ValueError, msg):
+            with pytest.raises(ValueError, match=msg):
                 left.to_frame() != right.to_frame()
 
-            with tm.assert_raises_regex(ValueError, msg):
+            with pytest.raises(ValueError, match=msg):
                 left.to_frame() < right.to_frame()
 
 
@@ -750,12 +690,12 @@ class TestSeriesOperators(TestData):
                 with np.errstate(all='ignore'):
                     if amask[i]:
                         if bmask[i]:
-                            exp_values.append(nan)
+                            exp_values.append(np.nan)
                             continue
                         exp_values.append(op(fill_value, b[i]))
                     elif bmask[i]:
                         if amask[i]:
-                            exp_values.append(nan)
+                            exp_values.append(np.nan)
                             continue
                         exp_values.append(op(a[i], fill_value))
                     else:
@@ -765,8 +705,8 @@ class TestSeriesOperators(TestData):
             expected = Series(exp_values, exp_index)
             assert_series_equal(result, expected)
 
-        a = Series([nan, 1., 2., 3., nan], index=np.arange(5))
-        b = Series([nan, 1, nan, 3, nan, 4.], index=np.arange(6))
+        a = Series([np.nan, 1., 2., 3., np.nan], index=np.arange(5))
+        b = Series([np.nan, 1, np.nan, 3, np.nan, 4.], index=np.arange(6))
 
         result = op(a, b)
         exp = equiv_op(a, b)
@@ -793,53 +733,6 @@ class TestSeriesOperators(TestData):
         result = s1 + s2
         expected = pd.Series([11, 12, np.nan], index=[1, 1, 2])
         assert_series_equal(result, expected)
-
-    @pytest.mark.parametrize(
-        "test_input,error_type",
-        [
-            (pd.Series([]), ValueError),
-
-            # For strings, or any Series with dtype 'O'
-            (pd.Series(['foo', 'bar', 'baz']), TypeError),
-            (pd.Series([(1,), (2,)]), TypeError),
-
-            # For mixed data types
-            (
-                pd.Series(['foo', 'foo', 'bar', 'bar', None, np.nan, 'baz']),
-                TypeError
-            ),
-        ]
-    )
-    def test_assert_idxminmax_raises(self, test_input, error_type):
-        """
-        Cases where ``Series.argmax`` and related should raise an exception
-        """
-        with pytest.raises(error_type):
-            test_input.idxmin()
-        with pytest.raises(error_type):
-            test_input.idxmin(skipna=False)
-        with pytest.raises(error_type):
-            test_input.idxmax()
-        with pytest.raises(error_type):
-            test_input.idxmax(skipna=False)
-
-    def test_idxminmax_with_inf(self):
-        # For numeric data with NA and Inf (GH #13595)
-        s = pd.Series([0, -np.inf, np.inf, np.nan])
-
-        assert s.idxmin() == 1
-        assert np.isnan(s.idxmin(skipna=False))
-
-        assert s.idxmax() == 2
-        assert np.isnan(s.idxmax(skipna=False))
-
-        # Using old-style behavior that treats floating point nan, -inf, and
-        # +inf as missing
-        with pd.option_context('mode.use_inf_as_na', True):
-            assert s.idxmin() == 0
-            assert np.isnan(s.idxmin(skipna=False))
-            assert s.idxmax() == 0
-            np.isnan(s.idxmax(skipna=False))
 
 
 class TestSeriesUnaryOps(object):

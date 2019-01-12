@@ -1,16 +1,32 @@
 # -*- coding: utf-8 -*-
 
-import pytest
 import numpy as np
-import pandas as pd
+import pytest
 
-from pandas.core.dtypes.dtypes import (DatetimeTZDtype, PeriodDtype,
-                                       CategoricalDtype, IntervalDtype)
-from pandas.core.sparse.api import SparseDtype
+import pandas.util._test_decorators as td
 
 import pandas.core.dtypes.common as com
+from pandas.core.dtypes.dtypes import (
+    CategoricalDtype, CategoricalDtypeType, DatetimeTZDtype, IntervalDtype,
+    PeriodDtype)
+
+import pandas as pd
+from pandas.conftest import (
+    ALL_EA_INT_DTYPES, ALL_INT_DTYPES, SIGNED_EA_INT_DTYPES, SIGNED_INT_DTYPES,
+    UNSIGNED_EA_INT_DTYPES, UNSIGNED_INT_DTYPES)
+from pandas.core.sparse.api import SparseDtype
 import pandas.util.testing as tm
-import pandas.util._test_decorators as td
+
+
+# EA & Actual Dtypes
+def to_ea_dtypes(dtypes):
+    """ convert list of string dtypes to EA dtype """
+    return [getattr(pd, dt + 'Dtype') for dt in dtypes]
+
+
+def to_numpy_dtypes(dtypes):
+    """ convert list of string dtypes to numpy dtype """
+    return [getattr(np, dt) for dt in dtypes if isinstance(dt, str)]
 
 
 class TestPandasDtype(object):
@@ -19,7 +35,7 @@ class TestPandasDtype(object):
     # Per issue GH15520
     @pytest.mark.parametrize('box', [pd.Timestamp, 'pd.Timestamp', list])
     def test_invalid_dtype_error(self, box):
-        with tm.assert_raises_regex(TypeError, 'not understood'):
+        with pytest.raises(TypeError, match='not understood'):
             com.pandas_dtype(box)
 
     @pytest.mark.parametrize('dtype', [
@@ -43,8 +59,8 @@ class TestPandasDtype(object):
         'datetime64[ns, Asia/Tokyo]',
         'datetime64[ns, UTC]'])
     def test_datetimetz_dtype(self, dtype):
-        assert com.pandas_dtype(dtype) is DatetimeTZDtype(dtype)
-        assert com.pandas_dtype(dtype) == DatetimeTZDtype(dtype)
+        assert (com.pandas_dtype(dtype) ==
+                DatetimeTZDtype.construct_from_string(dtype))
         assert com.pandas_dtype(dtype) == dtype
 
     def test_categorical_dtype(self):
@@ -162,20 +178,22 @@ def test_is_categorical():
 
 
 def test_is_datetimetz():
-    assert not com.is_datetimetz([1, 2, 3])
-    assert not com.is_datetimetz(pd.DatetimeIndex([1, 2, 3]))
+    with tm.assert_produces_warning(FutureWarning):
+        assert not com.is_datetimetz([1, 2, 3])
+        assert not com.is_datetimetz(pd.DatetimeIndex([1, 2, 3]))
 
-    assert com.is_datetimetz(pd.DatetimeIndex([1, 2, 3], tz="US/Eastern"))
+        assert com.is_datetimetz(pd.DatetimeIndex([1, 2, 3], tz="US/Eastern"))
 
-    dtype = DatetimeTZDtype("ns", tz="US/Eastern")
-    s = pd.Series([], dtype=dtype)
-    assert com.is_datetimetz(s)
+        dtype = DatetimeTZDtype("ns", tz="US/Eastern")
+        s = pd.Series([], dtype=dtype)
+        assert com.is_datetimetz(s)
 
 
-def test_is_period():
-    assert not com.is_period([1, 2, 3])
-    assert not com.is_period(pd.Index([1, 2, 3]))
-    assert com.is_period(pd.PeriodIndex(["2017-01-01"], freq="D"))
+def test_is_period_deprecated():
+    with tm.assert_produces_warning(FutureWarning):
+        assert not com.is_period([1, 2, 3])
+        assert not com.is_period(pd.Index([1, 2, 3]))
+        assert com.is_period(pd.PeriodIndex(["2017-01-01"], freq="D"))
 
 
 def test_is_datetime64_dtype():
@@ -191,8 +209,8 @@ def test_is_datetime64tz_dtype():
     assert not com.is_datetime64tz_dtype(object)
     assert not com.is_datetime64tz_dtype([1, 2, 3])
     assert not com.is_datetime64tz_dtype(pd.DatetimeIndex([1, 2, 3]))
-    assert com.is_datetime64tz_dtype(pd.DatetimeIndex(
-        [1, 2, 3], tz="US/Eastern"))
+    assert com.is_datetime64tz_dtype(pd.DatetimeIndex(['2000'],
+                                                      tz="US/Eastern"))
 
 
 def test_is_timedelta64_dtype():
@@ -268,80 +286,87 @@ def test_is_datetimelike():
     assert com.is_datetimelike(pd.PeriodIndex([], freq="A"))
     assert com.is_datetimelike(np.array([], dtype=np.datetime64))
     assert com.is_datetimelike(pd.Series([], dtype="timedelta64[ns]"))
-    assert com.is_datetimelike(pd.DatetimeIndex([1, 2, 3], tz="US/Eastern"))
+    assert com.is_datetimelike(pd.DatetimeIndex(["2000"], tz="US/Eastern"))
 
     dtype = DatetimeTZDtype("ns", tz="US/Eastern")
     s = pd.Series([], dtype=dtype)
     assert com.is_datetimelike(s)
 
 
-def test_is_integer_dtype():
-    assert not com.is_integer_dtype(str)
-    assert not com.is_integer_dtype(float)
-    assert not com.is_integer_dtype(np.datetime64)
-    assert not com.is_integer_dtype(np.timedelta64)
-    assert not com.is_integer_dtype(pd.Index([1, 2.]))
-    assert not com.is_integer_dtype(np.array(['a', 'b']))
-    assert not com.is_integer_dtype(np.array([], dtype=np.timedelta64))
-
-    assert com.is_integer_dtype(int)
-    assert com.is_integer_dtype(np.uint64)
-    assert com.is_integer_dtype(pd.Series([1, 2]))
+@pytest.mark.parametrize(
+    'dtype', [
+        pd.Series([1, 2])] +
+    ALL_INT_DTYPES + to_numpy_dtypes(ALL_INT_DTYPES) +
+    ALL_EA_INT_DTYPES + to_ea_dtypes(ALL_EA_INT_DTYPES))
+def test_is_integer_dtype(dtype):
+    assert com.is_integer_dtype(dtype)
 
 
-def test_is_signed_integer_dtype():
-    assert not com.is_signed_integer_dtype(str)
-    assert not com.is_signed_integer_dtype(float)
-    assert not com.is_signed_integer_dtype(np.uint64)
-    assert not com.is_signed_integer_dtype(np.datetime64)
-    assert not com.is_signed_integer_dtype(np.timedelta64)
-    assert not com.is_signed_integer_dtype(pd.Index([1, 2.]))
-    assert not com.is_signed_integer_dtype(np.array(['a', 'b']))
-    assert not com.is_signed_integer_dtype(np.array([1, 2], dtype=np.uint32))
-    assert not com.is_signed_integer_dtype(np.array([], dtype=np.timedelta64))
-
-    assert com.is_signed_integer_dtype(int)
-    assert com.is_signed_integer_dtype(pd.Series([1, 2]))
+@pytest.mark.parametrize(
+    'dtype', [str, float, np.datetime64, np.timedelta64,
+              pd.Index([1, 2.]), np.array(['a', 'b']),
+              np.array([], dtype=np.timedelta64)])
+def test_is_not_integer_dtype(dtype):
+    assert not com.is_integer_dtype(dtype)
 
 
-def test_is_unsigned_integer_dtype():
-    assert not com.is_unsigned_integer_dtype(str)
-    assert not com.is_unsigned_integer_dtype(int)
-    assert not com.is_unsigned_integer_dtype(float)
-    assert not com.is_unsigned_integer_dtype(pd.Series([1, 2]))
-    assert not com.is_unsigned_integer_dtype(pd.Index([1, 2.]))
-    assert not com.is_unsigned_integer_dtype(np.array(['a', 'b']))
-
-    assert com.is_unsigned_integer_dtype(np.uint64)
-    assert com.is_unsigned_integer_dtype(np.array([1, 2], dtype=np.uint32))
+@pytest.mark.parametrize(
+    'dtype', [
+        pd.Series([1, 2])] +
+    SIGNED_INT_DTYPES + to_numpy_dtypes(SIGNED_INT_DTYPES) +
+    SIGNED_EA_INT_DTYPES + to_ea_dtypes(SIGNED_EA_INT_DTYPES))
+def test_is_signed_integer_dtype(dtype):
+    assert com.is_integer_dtype(dtype)
 
 
-def test_is_int64_dtype():
-    assert not com.is_int64_dtype(str)
-    assert not com.is_int64_dtype(float)
-    assert not com.is_int64_dtype(np.int32)
-    assert not com.is_int64_dtype(np.uint64)
-    assert not com.is_int64_dtype(pd.Index([1, 2.]))
-    assert not com.is_int64_dtype(np.array(['a', 'b']))
-    assert not com.is_int64_dtype(np.array([1, 2], dtype=np.uint32))
+@pytest.mark.parametrize(
+    'dtype',
+    [
+        str, float, np.datetime64, np.timedelta64,
+        pd.Index([1, 2.]), np.array(['a', 'b']),
+        np.array([], dtype=np.timedelta64)] +
+    UNSIGNED_INT_DTYPES + to_numpy_dtypes(UNSIGNED_INT_DTYPES) +
+    UNSIGNED_EA_INT_DTYPES + to_ea_dtypes(UNSIGNED_EA_INT_DTYPES))
+def test_is_not_signed_integer_dtype(dtype):
+    assert not com.is_signed_integer_dtype(dtype)
 
-    assert com.is_int64_dtype(np.int64)
-    assert com.is_int64_dtype(np.array([1, 2], dtype=np.int64))
+
+@pytest.mark.parametrize(
+    'dtype',
+    [pd.Series([1, 2], dtype=np.uint32)] +
+    UNSIGNED_INT_DTYPES + to_numpy_dtypes(UNSIGNED_INT_DTYPES) +
+    UNSIGNED_EA_INT_DTYPES + to_ea_dtypes(UNSIGNED_EA_INT_DTYPES))
+def test_is_unsigned_integer_dtype(dtype):
+    assert com.is_unsigned_integer_dtype(dtype)
 
 
-def test_is_int_or_datetime_dtype():
-    assert not com.is_int_or_datetime_dtype(str)
-    assert not com.is_int_or_datetime_dtype(float)
-    assert not com.is_int_or_datetime_dtype(pd.Index([1, 2.]))
-    assert not com.is_int_or_datetime_dtype(np.array(['a', 'b']))
+@pytest.mark.parametrize(
+    'dtype',
+    [
+        str, float, np.datetime64, np.timedelta64,
+        pd.Index([1, 2.]), np.array(['a', 'b']),
+        np.array([], dtype=np.timedelta64)] +
+    SIGNED_INT_DTYPES + to_numpy_dtypes(SIGNED_INT_DTYPES) +
+    SIGNED_EA_INT_DTYPES + to_ea_dtypes(SIGNED_EA_INT_DTYPES))
+def test_is_not_unsigned_integer_dtype(dtype):
+    assert not com.is_unsigned_integer_dtype(dtype)
 
-    assert com.is_int_or_datetime_dtype(int)
-    assert com.is_int_or_datetime_dtype(np.uint64)
-    assert com.is_int_or_datetime_dtype(np.datetime64)
-    assert com.is_int_or_datetime_dtype(np.timedelta64)
-    assert com.is_int_or_datetime_dtype(pd.Series([1, 2]))
-    assert com.is_int_or_datetime_dtype(np.array([], dtype=np.datetime64))
-    assert com.is_int_or_datetime_dtype(np.array([], dtype=np.timedelta64))
+
+@pytest.mark.parametrize(
+    'dtype',
+    [np.int64, np.array([1, 2], dtype=np.int64), 'Int64', pd.Int64Dtype])
+def test_is_int64_dtype(dtype):
+    assert com.is_int64_dtype(dtype)
+
+
+@pytest.mark.parametrize(
+    'dtype',
+    [
+        str, float, np.int32, np.uint64, pd.Index([1, 2.]),
+        np.array(['a', 'b']), np.array([1, 2], dtype=np.uint32),
+        'int8', 'Int8', pd.Int8Dtype])
+def test_is_not_int64_dtype(dtype):
+    assert not com.is_int64_dtype(dtype)
 
 
 def test_is_datetime64_any_dtype():
@@ -353,8 +378,8 @@ def test_is_datetime64_any_dtype():
     assert com.is_datetime64_any_dtype(np.datetime64)
     assert com.is_datetime64_any_dtype(np.array([], dtype=np.datetime64))
     assert com.is_datetime64_any_dtype(DatetimeTZDtype("ns", "US/Eastern"))
-    assert com.is_datetime64_any_dtype(pd.DatetimeIndex([1, 2, 3],
-                                                        dtype=np.datetime64))
+    assert com.is_datetime64_any_dtype(
+        pd.DatetimeIndex([1, 2, 3], dtype="datetime64[ns]"))
 
 
 def test_is_datetime64_ns_dtype():
@@ -369,8 +394,8 @@ def test_is_datetime64_ns_dtype():
     assert not com.is_datetime64_ns_dtype(np.array([], dtype="datetime64[ps]"))
 
     assert com.is_datetime64_ns_dtype(DatetimeTZDtype("ns", "US/Eastern"))
-    assert com.is_datetime64_ns_dtype(pd.DatetimeIndex([1, 2, 3],
-                                                       dtype=np.datetime64))
+    assert com.is_datetime64_ns_dtype(
+        pd.DatetimeIndex([1, 2, 3], dtype=np.dtype('datetime64[ns]')))
 
 
 def test_is_timedelta64_ns_dtype():
@@ -387,6 +412,8 @@ def test_is_datetime_or_timedelta_dtype():
     assert not com.is_datetime_or_timedelta_dtype(str)
     assert not com.is_datetime_or_timedelta_dtype(pd.Series([1, 2]))
     assert not com.is_datetime_or_timedelta_dtype(np.array(['a', 'b']))
+
+    # TODO(jreback), this is sligthly suspect
     assert not com.is_datetime_or_timedelta_dtype(
         DatetimeTZDtype("ns", "US/Eastern"))
 
@@ -453,7 +480,7 @@ def test_needs_i8_conversion():
     assert com.needs_i8_conversion(np.datetime64)
     assert com.needs_i8_conversion(pd.Series([], dtype="timedelta64[ns]"))
     assert com.needs_i8_conversion(pd.DatetimeIndex(
-        [1, 2, 3], tz="US/Eastern"))
+        ["2000"], tz="US/Eastern"))
 
 
 def test_is_numeric_dtype():
@@ -514,7 +541,7 @@ def test_is_extension_type(check_scipy):
     assert com.is_extension_type(pd.Series(cat))
     assert com.is_extension_type(pd.SparseArray([1, 2, 3]))
     assert com.is_extension_type(pd.SparseSeries([1, 2, 3]))
-    assert com.is_extension_type(pd.DatetimeIndex([1, 2, 3], tz="US/Eastern"))
+    assert com.is_extension_type(pd.DatetimeIndex(['2000'], tz="US/Eastern"))
 
     dtype = DatetimeTZDtype("ns", tz="US/Eastern")
     s = pd.Series([], dtype=dtype)
@@ -600,16 +627,16 @@ def test__get_dtype_fails(input_param):
     (pd.Series(['a', 'b']), np.object_),
     (pd.Index([1, 2], dtype='int64'), np.int64),
     (pd.Index(['a', 'b']), np.object_),
-    ('category', com.CategoricalDtypeType),
-    (pd.Categorical(['a', 'b']).dtype, com.CategoricalDtypeType),
-    (pd.Categorical(['a', 'b']), com.CategoricalDtypeType),
-    (pd.CategoricalIndex(['a', 'b']).dtype, com.CategoricalDtypeType),
-    (pd.CategoricalIndex(['a', 'b']), com.CategoricalDtypeType),
+    ('category', CategoricalDtypeType),
+    (pd.Categorical(['a', 'b']).dtype, CategoricalDtypeType),
+    (pd.Categorical(['a', 'b']), CategoricalDtypeType),
+    (pd.CategoricalIndex(['a', 'b']).dtype, CategoricalDtypeType),
+    (pd.CategoricalIndex(['a', 'b']), CategoricalDtypeType),
     (pd.DatetimeIndex([1, 2]), np.datetime64),
     (pd.DatetimeIndex([1, 2]).dtype, np.datetime64),
     ('<M8[ns]', np.datetime64),
-    (pd.DatetimeIndex([1, 2], tz='Europe/London'), pd.Timestamp),
-    (pd.DatetimeIndex([1, 2], tz='Europe/London').dtype,
+    (pd.DatetimeIndex(['2000'], tz='Europe/London'), pd.Timestamp),
+    (pd.DatetimeIndex(['2000'], tz='Europe/London').dtype,
      pd.Timestamp),
     ('datetime64[ns, Europe/London]', pd.Timestamp),
     (pd.SparseSeries([1, 2], dtype='int32'), np.int32),
@@ -622,5 +649,5 @@ def test__get_dtype_fails(input_param):
     (1.2, type(None)),
     (pd.DataFrame([1, 2]), type(None)),  # composite dtype
 ])
-def test__get_dtype_type(input_param, result):
-    assert com._get_dtype_type(input_param) == result
+def test__is_dtype_type(input_param, result):
+    assert com._is_dtype_type(input_param, lambda tipo: tipo == result)

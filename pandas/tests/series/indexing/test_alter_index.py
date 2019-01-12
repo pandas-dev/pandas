@@ -520,7 +520,7 @@ def test_drop_unique_and_non_unique_index(data, index, axis, drop_labels,
 def test_drop_exception_raised(data, index, drop_labels,
                                axis, error_type, error_desc):
 
-    with tm.assert_raises_regex(error_type, error_desc):
+    with pytest.raises(error_type, match=error_desc):
         Series(data, index=index).drop(drop_labels, axis=axis)
 
 
@@ -557,5 +557,5 @@ def test_drop_empty_list(index, drop_labels):
 ])
 def test_drop_non_empty_list(data, index, drop_labels):
     # GH 21494 and GH 16877
-    with tm.assert_raises_regex(KeyError, 'not found in axis'):
+    with pytest.raises(KeyError, match='not found in axis'):
         pd.Series(data=data, index=index).drop(drop_labels)

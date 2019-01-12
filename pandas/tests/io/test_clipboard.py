@@ -1,19 +1,18 @@
 # -*- coding: utf-8 -*-
-import numpy as np
-from numpy.random import randint
 from textwrap import dedent
 
+import numpy as np
+from numpy.random import randint
 import pytest
-import pandas as pd
 
-from pandas import DataFrame
-from pandas import read_clipboard
-from pandas import get_option
 from pandas.compat import PY2
+
+import pandas as pd
+from pandas import DataFrame, get_option, read_clipboard
 from pandas.util import testing as tm
 from pandas.util.testing import makeCustomDataframe as mkdf
-from pandas.io.clipboard.exceptions import PyperclipException
 
+from pandas.io.clipboard.exceptions import PyperclipException
 
 try:
     DataFrame({'A': [1, 2]}).to_clipboard()
@@ -76,7 +75,7 @@ def df(request):
 
 
 @pytest.fixture
-def mock_clipboard(mock, request):
+def mock_clipboard(monkeypatch, request):
     """Fixture mocking clipboard IO.
 
     This mocks pandas.io.clipboard.clipboard_get and
@@ -98,12 +97,10 @@ def mock_clipboard(mock, request):
     def _mock_get():
         return _mock_data[request.node.name]
 
-    mock_set = mock.patch("pandas.io.clipboard.clipboard_set",
-                          side_effect=_mock_set)
-    mock_get = mock.patch("pandas.io.clipboard.clipboard_get",
-                          side_effect=_mock_get)
-    with mock_get, mock_set:
-        yield _mock_data
+    monkeypatch.setattr("pandas.io.clipboard.clipboard_set", _mock_set)
+    monkeypatch.setattr("pandas.io.clipboard.clipboard_get", _mock_get)
+
+    yield _mock_data
 
 
 @pytest.mark.clipboard

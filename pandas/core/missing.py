@@ -1,26 +1,19 @@
 """
 Routines for filling missing data
 """
+from distutils.version import LooseVersion
 import operator
 
 import numpy as np
-from distutils.version import LooseVersion
 
 from pandas._libs import algos, lib
-
 from pandas.compat import range, string_types
-from pandas.core.dtypes.common import (
-    is_numeric_v_string_like,
-    is_float_dtype,
-    is_datetime64_dtype,
-    is_datetime64tz_dtype,
-    is_integer_dtype,
-    is_scalar,
-    is_integer,
-    needs_i8_conversion,
-    ensure_float64)
 
 from pandas.core.dtypes.cast import infer_dtype_from_array
+from pandas.core.dtypes.common import (
+    ensure_float64, is_datetime64_dtype, is_datetime64tz_dtype, is_float_dtype,
+    is_integer, is_integer_dtype, is_numeric_v_string_like, is_scalar,
+    is_timedelta64_dtype, needs_i8_conversion)
 from pandas.core.dtypes.missing import isna
 
 
@@ -459,99 +452,56 @@ def interpolate_2d(values, method='pad', axis=0, limit=None, fill_value=None,
     return values
 
 
-def _interp_wrapper(f, wrap_dtype, na_override=None):
-    def wrapper(arr, mask, limit=None):
-        view = arr.view(wrap_dtype)
-        f(view, mask, limit=limit)
+def _cast_values_for_fillna(values, dtype):
+    """
+    Cast values to a dtype that algos.pad and algos.backfill can handle.
+    """
+    # TODO: for int-dtypes we make a copy, but for everything else this
+    #  alters the values in-place.  Is this intentional?
 
-    return wrapper
+    if (is_datetime64_dtype(dtype) or is_datetime64tz_dtype(dtype) or
+            is_timedelta64_dtype(dtype)):
+        values = values.view(np.int64)
+
+    elif is_integer_dtype(values):
+        # NB: this check needs to come after the datetime64 check above
+        values = ensure_float64(values)
+
+    return values
 
 
-_pad_1d_datetime = _interp_wrapper(algos.pad_inplace_int64, np.int64)
-_pad_2d_datetime = _interp_wrapper(algos.pad_2d_inplace_int64, np.int64)
-_backfill_1d_datetime = _interp_wrapper(algos.backfill_inplace_int64, np.int64)
-_backfill_2d_datetime = _interp_wrapper(algos.backfill_2d_inplace_int64,
-                                        np.int64)
+def _fillna_prep(values, mask=None, dtype=None):
+    # boilerplate for pad_1d, backfill_1d, pad_2d, backfill_2d
+    if dtype is None:
+        dtype = values.dtype
+
+    if mask is None:
+        # This needs to occur before datetime/timedeltas are cast to int64
+        mask = isna(values)
+
+    values = _cast_values_for_fillna(values, dtype)
+
+    mask = mask.view(np.uint8)
+    return values, mask
 
 
 def pad_1d(values, limit=None, mask=None, dtype=None):
-    if dtype is None:
-        dtype = values.dtype
-    _method = None
-    if is_float_dtype(values):
-        name = 'pad_inplace_{name}'.format(name=dtype.name)
-        _method = getattr(algos, name, None)
-    elif is_datetime64_dtype(dtype) or is_datetime64tz_dtype(dtype):
-        _method = _pad_1d_datetime
-    elif is_integer_dtype(values):
-        values = ensure_float64(values)
-        _method = algos.pad_inplace_float64
-    elif values.dtype == np.object_:
-        _method = algos.pad_inplace_object
-
-    if _method is None:
-        raise ValueError('Invalid dtype for pad_1d [{name}]'
-                         .format(name=dtype.name))
-
-    if mask is None:
-        mask = isna(values)
-    mask = mask.view(np.uint8)
-    _method(values, mask, limit=limit)
+    values, mask = _fillna_prep(values, mask, dtype)
+    algos.pad_inplace(values, mask, limit=limit)
     return values
 
 
 def backfill_1d(values, limit=None, mask=None, dtype=None):
-    if dtype is None:
-        dtype = values.dtype
-    _method = None
-    if is_float_dtype(values):
-        name = 'backfill_inplace_{name}'.format(name=dtype.name)
-        _method = getattr(algos, name, None)
-    elif is_datetime64_dtype(dtype) or is_datetime64tz_dtype(dtype):
-        _method = _backfill_1d_datetime
-    elif is_integer_dtype(values):
-        values = ensure_float64(values)
-        _method = algos.backfill_inplace_float64
-    elif values.dtype == np.object_:
-        _method = algos.backfill_inplace_object
-
-    if _method is None:
-        raise ValueError('Invalid dtype for backfill_1d [{name}]'
-                         .format(name=dtype.name))
-
-    if mask is None:
-        mask = isna(values)
-    mask = mask.view(np.uint8)
-
-    _method(values, mask, limit=limit)
+    values, mask = _fillna_prep(values, mask, dtype)
+    algos.backfill_inplace(values, mask, limit=limit)
     return values
 
 
 def pad_2d(values, limit=None, mask=None, dtype=None):
-    if dtype is None:
-        dtype = values.dtype
-    _method = None
-    if is_float_dtype(values):
-        name = 'pad_2d_inplace_{name}'.format(name=dtype.name)
-        _method = getattr(algos, name, None)
-    elif is_datetime64_dtype(dtype) or is_datetime64tz_dtype(dtype):
-        _method = _pad_2d_datetime
-    elif is_integer_dtype(values):
-        values = ensure_float64(values)
-        _method = algos.pad_2d_inplace_float64
-    elif values.dtype == np.object_:
-        _method = algos.pad_2d_inplace_object
-
-    if _method is None:
-        raise ValueError('Invalid dtype for pad_2d [{name}]'
-                         .format(name=dtype.name))
-
-    if mask is None:
-        mask = isna(values)
-    mask = mask.view(np.uint8)
+    values, mask = _fillna_prep(values, mask, dtype)
 
     if np.all(values.shape):
-        _method(values, mask, limit=limit)
+        algos.pad_2d_inplace(values, mask, limit=limit)
     else:
         # for test coverage
         pass
@@ -559,30 +509,10 @@ def pad_2d(values, limit=None, mask=None, dtype=None):
 
 
 def backfill_2d(values, limit=None, mask=None, dtype=None):
-    if dtype is None:
-        dtype = values.dtype
-    _method = None
-    if is_float_dtype(values):
-        name = 'backfill_2d_inplace_{name}'.format(name=dtype.name)
-        _method = getattr(algos, name, None)
-    elif is_datetime64_dtype(dtype) or is_datetime64tz_dtype(dtype):
-        _method = _backfill_2d_datetime
-    elif is_integer_dtype(values):
-        values = ensure_float64(values)
-        _method = algos.backfill_2d_inplace_float64
-    elif values.dtype == np.object_:
-        _method = algos.backfill_2d_inplace_object
-
-    if _method is None:
-        raise ValueError('Invalid dtype for backfill_2d [{name}]'
-                         .format(name=dtype.name))
-
-    if mask is None:
-        mask = isna(values)
-    mask = mask.view(np.uint8)
+    values, mask = _fillna_prep(values, mask, dtype)
 
     if np.all(values.shape):
-        _method(values, mask, limit=limit)
+        algos.backfill_2d_inplace(values, mask, limit=limit)
     else:
         # for test coverage
         pass

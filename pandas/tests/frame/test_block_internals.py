@@ -2,32 +2,46 @@
 
 from __future__ import print_function
 
-import pytest
-
 from datetime import datetime, timedelta
 import itertools
 
-from numpy import nan
 import numpy as np
+from numpy import nan
+import pytest
 
-from pandas import (DataFrame, Series, Timestamp, date_range, compat,
-                    option_context, Categorical)
-from pandas.core.arrays import IntervalArray, integer_array
 from pandas.compat import StringIO
+
 import pandas as pd
-
-from pandas.util.testing import (assert_almost_equal,
-                                 assert_series_equal,
-                                 assert_frame_equal)
-
+from pandas import (
+    Categorical, DataFrame, Series, Timestamp, compat, date_range,
+    option_context)
+from pandas.core.arrays import IntervalArray, integer_array
+from pandas.core.internals.blocks import IntBlock
 import pandas.util.testing as tm
-
+from pandas.util.testing import (
+    assert_almost_equal, assert_frame_equal, assert_series_equal)
 
 # Segregated collection of methods that require the BlockManager internal data
 # structure
 
 
 class TestDataFrameBlockInternals():
+    def test_setitem_invalidates_datetime_index_freq(self):
+        # GH#24096 altering a datetime64tz column inplace invalidates the
+        #  `freq` attribute on the underlying DatetimeIndex
+
+        dti = date_range('20130101', periods=3, tz='US/Eastern')
+        ts = dti[1]
+
+        df = DataFrame({'B': dti})
+        assert df['B']._values.freq == 'D'
+
+        df.iloc[1, 0] = pd.NaT
+        assert df['B']._values.freq is None
+
+        # check that the DatetimeIndex was not altered in place
+        assert dti.freq == 'D'
+        assert dti[1] == ts
 
     def test_cast_internals(self, float_frame):
         casted = DataFrame(float_frame._data, dtype=int)
@@ -474,7 +488,7 @@ starting,ending,measure
 
         # via astype, but errors
         converted = float_string_frame.copy()
-        with tm.assert_raises_regex(ValueError, 'invalid literal'):
+        with pytest.raises(ValueError, match='invalid literal'):
             converted['H'].astype('int32')
 
         # mixed in a single column
@@ -563,3 +577,12 @@ starting,ending,measure
         first = len(df.loc[pd.isna(df[myid]), [myid]])
         second = len(df.loc[pd.isna(df[myid]), [myid]])
         assert first == second == 0
+
+    def test_constructor_no_pandas_array(self):
+        # Ensure that PandasArray isn't allowed inside Series
+        # See https://github.com/pandas-dev/pandas/issues/23995 for more.
+        arr = pd.Series([1, 2, 3]).array
+        result = pd.DataFrame({"A": arr})
+        expected = pd.DataFrame({"A": [1, 2, 3]})
+        tm.assert_frame_equal(result, expected)
+        assert isinstance(result._data.blocks[0], IntBlock)

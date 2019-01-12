@@ -4,18 +4,17 @@
 # Specifically for object dtype
 import operator
 
-import pytest
 import numpy as np
+import pytest
 
 import pandas as pd
-import pandas.util.testing as tm
-from pandas.core import ops
-
 from pandas import Series, Timestamp
-
+from pandas.core import ops
+import pandas.util.testing as tm
 
 # ------------------------------------------------------------------
 # Comparisons
+
 
 class TestObjectComparisons(object):
 
@@ -73,6 +72,21 @@ class TestObjectComparisons(object):
 
 class TestArithmetic(object):
 
+    # TODO: parametrize
+    def test_pow_ops_object(self):
+        # GH#22922
+        # pow is weird with masking & 1, so testing here
+        a = Series([1, np.nan, 1, np.nan], dtype=object)
+        b = Series([1, np.nan, np.nan, 1], dtype=object)
+        result = a ** b
+        expected = Series(a.values ** b.values, dtype=object)
+        tm.assert_series_equal(result, expected)
+
+        result = b ** a
+        expected = Series(b.values ** a.values, dtype=object)
+
+        tm.assert_series_equal(result, expected)
+
     @pytest.mark.parametrize("op", [operator.add, ops.radd])
     @pytest.mark.parametrize("other", ["category", "Int64"])
     def test_add_extension_scalar(self, other, box, op):
@@ -92,7 +106,7 @@ class TestArithmetic(object):
     @pytest.mark.parametrize('box', [
         pytest.param(pd.Index,
                      marks=pytest.mark.xfail(reason="Does not mask nulls",
-                                             strict=True, raises=TypeError)),
+                                             raises=TypeError)),
         pd.Series,
         pd.DataFrame
     ], ids=lambda x: x.__name__)
@@ -109,7 +123,7 @@ class TestArithmetic(object):
     @pytest.mark.parametrize('box', [
         pytest.param(pd.Index,
                      marks=pytest.mark.xfail(reason="Does not mask nulls",
-                                             strict=True, raises=TypeError)),
+                                             raises=TypeError)),
         pd.Series,
         pd.DataFrame
     ], ids=lambda x: x.__name__)

@@ -131,6 +131,38 @@ class PivotTable(object):
     def time_pivot_table(self):
         self.df.pivot_table(index='key1', columns=['key2', 'key3'])
 
+    def time_pivot_table_agg(self):
+        self.df.pivot_table(index='key1', columns=['key2', 'key3'],
+                            aggfunc=['sum', 'mean'])
+
+    def time_pivot_table_margins(self):
+        self.df.pivot_table(index='key1', columns=['key2', 'key3'],
+                            margins=True)
+
+
+class Crosstab(object):
+
+    def setup(self):
+        N = 100000
+        fac1 = np.array(['A', 'B', 'C'], dtype='O')
+        fac2 = np.array(['one', 'two'], dtype='O')
+        self.ind1 = np.random.randint(0, 3, size=N)
+        self.ind2 = np.random.randint(0, 2, size=N)
+        self.vec1 = fac1.take(self.ind1)
+        self.vec2 = fac2.take(self.ind2)
+
+    def time_crosstab(self):
+        pd.crosstab(self.vec1, self.vec2)
+
+    def time_crosstab_values(self):
+        pd.crosstab(self.vec1, self.vec2, values=self.ind1, aggfunc='sum')
+
+    def time_crosstab_normalize(self):
+        pd.crosstab(self.vec1, self.vec2, normalize=True)
+
+    def time_crosstab_normalize_margins(self):
+        pd.crosstab(self.vec1, self.vec2, normalize=True, margins=True)
+
 
 class GetDummies(object):
     def setup(self):
@@ -144,6 +176,44 @@ class GetDummies(object):
 
     def time_get_dummies_1d_sparse(self):
         pd.get_dummies(self.s, sparse=True)
+
+
+class Cut(object):
+    params = [[4, 10, 1000]]
+    param_names = ['bins']
+
+    def setup(self, bins):
+        N = 10**5
+        self.int_series = pd.Series(np.arange(N).repeat(5))
+        self.float_series = pd.Series(np.random.randn(N).repeat(5))
+        self.timedelta_series = pd.Series(np.random.randint(N, size=N),
+                                          dtype='timedelta64[ns]')
+        self.datetime_series = pd.Series(np.random.randint(N, size=N),
+                                         dtype='datetime64[ns]')
+
+    def time_cut_int(self, bins):
+        pd.cut(self.int_series, bins)
+
+    def time_cut_float(self, bins):
+        pd.cut(self.float_series, bins)
+
+    def time_cut_timedelta(self, bins):
+        pd.cut(self.timedelta_series, bins)
+
+    def time_cut_datetime(self, bins):
+        pd.cut(self.datetime_series, bins)
+
+    def time_qcut_int(self, bins):
+        pd.qcut(self.int_series, bins)
+
+    def time_qcut_float(self, bins):
+        pd.qcut(self.float_series, bins)
+
+    def time_qcut_timedelta(self, bins):
+        pd.qcut(self.timedelta_series, bins)
+
+    def time_qcut_datetime(self, bins):
+        pd.qcut(self.datetime_series, bins)
 
 
 from .pandas_vb_common import setup  # noqa: F401

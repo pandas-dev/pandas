@@ -31,8 +31,9 @@ class TestSeriesTimezones(object):
         # Can't localize if already tz-aware
         rng = date_range('1/1/2011', periods=100, freq='H', tz='utc')
         ts = Series(1, index=rng)
-        tm.assert_raises_regex(TypeError, 'Already tz-aware',
-                               ts.tz_localize, 'US/Eastern')
+
+        with pytest.raises(TypeError, match='Already tz-aware'):
+            ts.tz_localize('US/Eastern')
 
     @pytest.mark.filterwarnings('ignore::FutureWarning')
     def test_tz_localize_errors_deprecation(self):
@@ -78,7 +79,7 @@ class TestSeriesTimezones(object):
 
     @pytest.mark.parametrize('tz', ['Europe/Warsaw', 'dateutil/Europe/Warsaw'])
     @pytest.mark.parametrize('method, exp', [
-        ['shift', '2015-03-29 03:00:00'],
+        ['shift_forward', '2015-03-29 03:00:00'],
         ['NaT', NaT],
         ['raise', None],
         ['foo', 'invalid']
@@ -123,8 +124,9 @@ class TestSeriesTimezones(object):
         # can't convert tz-naive
         rng = date_range('1/1/2011', periods=200, freq='D')
         ts = Series(1, index=rng)
-        tm.assert_raises_regex(TypeError, "Cannot convert tz-naive",
-                               ts.tz_convert, 'US/Eastern')
+
+        with pytest.raises(TypeError, match="Cannot convert tz-naive"):
+            ts.tz_convert('US/Eastern')
 
     def test_series_tz_convert_to_utc(self):
         base = DatetimeIndex(['2011-01-01', '2011-01-02', '2011-01-03'],
@@ -341,8 +343,24 @@ class TestSeriesTimezones(object):
 
     def test_series_truncate_datetimeindex_tz(self):
         # GH 9243
-        idx = date_range('4/1/2005', '4/30/2005', freq='CD', tz='US/Pacific')
+        idx = date_range('4/1/2005', '4/30/2005', freq='D', tz='US/Pacific')
         s = Series(range(len(idx)), index=idx)
         result = s.truncate(datetime(2005, 4, 2), datetime(2005, 4, 4))
         expected = Series([1, 2, 3], index=idx[1:4])
+        tm.assert_series_equal(result, expected)
+
+    @pytest.mark.parametrize('copy', [True, False])
+    @pytest.mark.parametrize('method, tz', [
+        ['tz_localize', None],
+        ['tz_convert', 'Europe/Berlin']
+    ])
+    def test_tz_localize_convert_copy_inplace_mutate(self, copy, method, tz):
+        # GH 6326
+        result = Series(np.arange(0, 5),
+                        index=date_range('20131027', periods=5, freq='1H',
+                                         tz=tz))
+        getattr(result, method)('UTC', copy=copy)
+        expected = Series(np.arange(0, 5),
+                          index=date_range('20131027', periods=5, freq='1H',
+                                           tz=tz))
         tm.assert_series_equal(result, expected)

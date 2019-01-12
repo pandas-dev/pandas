@@ -2,26 +2,22 @@
 
 from __future__ import print_function
 
+import datetime
+from distutils.version import LooseVersion
+
+import dateutil
+import numpy as np
+from numpy import nan, random
 import pytest
 
-from distutils.version import LooseVersion
-from numpy import nan, random
-import numpy as np
-
-import datetime
-import dateutil
-
 from pandas.compat import lrange
-from pandas import (DataFrame, Series, Timestamp,
-                    date_range, Categorical)
-import pandas as pd
-
-from pandas.util.testing import assert_series_equal, assert_frame_equal
-
-import pandas.util.testing as tm
 import pandas.util._test_decorators as td
-from pandas.tests.frame.common import TestData, _check_mixed_float
 
+import pandas as pd
+from pandas import Categorical, DataFrame, Series, Timestamp, date_range
+from pandas.tests.frame.common import TestData, _check_mixed_float
+import pandas.util.testing as tm
+from pandas.util.testing import assert_frame_equal, assert_series_equal
 
 try:
     import scipy
@@ -330,8 +326,8 @@ class TestDataFrameMissingData(TestData):
         res = df.fillna(value={"cats": 3, "vals": "b"})
         tm.assert_frame_equal(res, df_exp_fill)
 
-        with tm.assert_raises_regex(ValueError, "fill value must be "
-                                                "in categories"):
+        with pytest.raises(ValueError, match=("fill value must "
+                                              "be in categories")):
             df.fillna(value={"cats": 4, "vals": "c"})
 
         res = df.fillna(method='pad')
@@ -555,8 +551,7 @@ class TestDataFrameMissingData(TestData):
         assert_frame_equal(result, expected)
 
         # disable this for now
-        with tm.assert_raises_regex(NotImplementedError,
-                                    'column by column'):
+        with pytest.raises(NotImplementedError, match='column by column'):
             df.fillna(df.max(1), axis=1)
 
     def test_fillna_dataframe(self):
@@ -596,7 +591,7 @@ class TestDataFrameMissingData(TestData):
         assert_frame_equal(result, expected)
 
     def test_fillna_invalid_method(self):
-        with tm.assert_raises_regex(ValueError, 'ffil'):
+        with pytest.raises(ValueError, match='ffil'):
             self.frame.fillna(method='ffil')
 
     def test_fillna_invalid_value(self):
@@ -820,11 +815,10 @@ class TestDataFrameInterpolate(TestData):
             'A': [1, 2, 3],
             'B': [4, 5, 6]},
             dtype='object')
-        with tm.assert_raises_regex(
-                TypeError,
-                "Cannot interpolate with all object-dtype columns "
-                "in the DataFrame. Try setting at least one "
-                "column to a numeric dtype."):
+        msg = ("Cannot interpolate with all object-dtype columns "
+               "in the DataFrame. Try setting at least one "
+               "column to a numeric dtype.")
+        with pytest.raises(TypeError, match=msg):
             df.interpolate()
 
     def test_interp_inplace(self):

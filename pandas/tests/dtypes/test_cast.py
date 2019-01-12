@@ -5,32 +5,24 @@ These test the private routines in types/cast.py
 
 """
 
-import pytest
-from datetime import datetime, timedelta, date
-import numpy as np
+from datetime import date, datetime, timedelta
 
-import pandas as pd
-from pandas import (Timedelta, Timestamp, DatetimeIndex,
-                    DataFrame, NaT, Period, Series)
+import numpy as np
+import pytest
 
 from pandas.core.dtypes.cast import (
-    maybe_downcast_to_dtype,
-    maybe_convert_objects,
-    cast_scalar_to_array,
-    infer_dtype_from_scalar,
-    infer_dtype_from_array,
-    maybe_convert_string_to_object,
-    maybe_convert_scalar,
-    find_common_type,
-    construct_1d_object_array_from_listlike,
+    cast_scalar_to_array, construct_1d_arraylike_from_scalar,
     construct_1d_ndarray_preserving_na,
-    construct_1d_arraylike_from_scalar)
+    construct_1d_object_array_from_listlike, find_common_type,
+    infer_dtype_from_array, infer_dtype_from_scalar, maybe_convert_objects,
+    maybe_downcast_to_dtype)
+from pandas.core.dtypes.common import is_dtype_equal
 from pandas.core.dtypes.dtypes import (
-    CategoricalDtype,
-    DatetimeTZDtype,
-    PeriodDtype)
-from pandas.core.dtypes.common import (
-    is_dtype_equal)
+    CategoricalDtype, DatetimeTZDtype, PeriodDtype)
+
+import pandas as pd
+from pandas import (
+    DataFrame, DatetimeIndex, NaT, Period, Series, Timedelta, Timestamp)
 from pandas.util import testing as tm
 
 
@@ -242,61 +234,6 @@ class TestInferDtype(object):
 
 
 class TestMaybe(object):
-
-    def test_maybe_convert_string_to_array(self):
-        result = maybe_convert_string_to_object('x')
-        tm.assert_numpy_array_equal(result, np.array(['x'], dtype=object))
-        assert result.dtype == object
-
-        result = maybe_convert_string_to_object(1)
-        assert result == 1
-
-        arr = np.array(['x', 'y'], dtype=str)
-        result = maybe_convert_string_to_object(arr)
-        tm.assert_numpy_array_equal(result, np.array(['x', 'y'], dtype=object))
-        assert result.dtype == object
-
-        # unicode
-        arr = np.array(['x', 'y']).astype('U')
-        result = maybe_convert_string_to_object(arr)
-        tm.assert_numpy_array_equal(result, np.array(['x', 'y'], dtype=object))
-        assert result.dtype == object
-
-        # object
-        arr = np.array(['x', 2], dtype=object)
-        result = maybe_convert_string_to_object(arr)
-        tm.assert_numpy_array_equal(result, np.array(['x', 2], dtype=object))
-        assert result.dtype == object
-
-    def test_maybe_convert_scalar(self):
-
-        # pass thru
-        result = maybe_convert_scalar('x')
-        assert result == 'x'
-        result = maybe_convert_scalar(np.array([1]))
-        assert result == np.array([1])
-
-        # leave scalar dtype
-        result = maybe_convert_scalar(np.int64(1))
-        assert result == np.int64(1)
-        result = maybe_convert_scalar(np.int32(1))
-        assert result == np.int32(1)
-        result = maybe_convert_scalar(np.float32(1))
-        assert result == np.float32(1)
-        result = maybe_convert_scalar(np.int64(1))
-        assert result == np.float64(1)
-
-        # coerce
-        result = maybe_convert_scalar(1)
-        assert result == np.int64(1)
-        result = maybe_convert_scalar(1.0)
-        assert result == np.float64(1)
-        result = maybe_convert_scalar(Timestamp('20130101'))
-        assert result == Timestamp('20130101').value
-        result = maybe_convert_scalar(datetime(2013, 1, 1))
-        assert result == Timestamp('20130101').value
-        result = maybe_convert_scalar(Timedelta('1 day 1 min'))
-        assert result == Timedelta('1 day 1 min').value
 
     def test_maybe_infer_to_datetimelike(self):
         # GH16362

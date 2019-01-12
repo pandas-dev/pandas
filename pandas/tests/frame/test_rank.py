@@ -1,15 +1,15 @@
 # -*- coding: utf-8 -*-
-import pytest
-import numpy as np
-import pandas.util.testing as tm
-
+from datetime import datetime, timedelta
 from distutils.version import LooseVersion
-from datetime import timedelta, datetime
-from numpy import nan
 
-from pandas.util.testing import assert_frame_equal
+import numpy as np
+from numpy import nan
+import pytest
+
+from pandas import DataFrame, Series
 from pandas.tests.frame.common import TestData
-from pandas import Series, DataFrame
+import pandas.util.testing as tm
+from pandas.util.testing import assert_frame_equal
 
 
 class TestRank(TestData):
@@ -194,11 +194,11 @@ class TestRank(TestData):
         # bad values throw error
         msg = "na_option must be one of 'keep', 'top', or 'bottom'"
 
-        with tm.assert_raises_regex(ValueError, msg):
+        with pytest.raises(ValueError, match=msg):
             self.frame.rank(na_option='bad', ascending=False)
 
         # invalid type
-        with tm.assert_raises_regex(ValueError, msg):
+        with pytest.raises(ValueError, match=msg):
             self.frame.rank(na_option=True, ascending=False)
 
     def test_rank_axis(self):
@@ -309,3 +309,11 @@ class TestRank(TestData):
 
         expected = DataFrame(exp)
         tm.assert_frame_equal(result, expected)
+
+    @pytest.mark.single
+    def test_pct_max_many_rows(self):
+        # GH 18271
+        df = DataFrame({'A': np.arange(2**24 + 1),
+                        'B': np.arange(2**24 + 1, 0, -1)})
+        result = df.rank(pct=True).max()
+        assert (result == 1).all()

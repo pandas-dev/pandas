@@ -44,7 +44,7 @@ def is_number(obj):
 
     See Also
     --------
-    pandas.api.types.is_integer: checks a subgroup of numbers
+    pandas.api.types.is_integer: Checks a subgroup of numbers.
 
     Examples
     --------
@@ -73,7 +73,7 @@ def is_string_like(obj):
 
     Parameters
     ----------
-    obj : The object to check.
+    obj : The object to check
 
     Examples
     --------
@@ -127,7 +127,7 @@ def is_iterator(obj):
 
     Parameters
     ----------
-    obj : The object to check.
+    obj : The object to check
 
     Returns
     -------
@@ -172,7 +172,7 @@ def is_file_like(obj):
 
     Parameters
     ----------
-    obj : The object to check.
+    obj : The object to check
 
     Returns
     -------
@@ -203,7 +203,7 @@ def is_re(obj):
 
     Parameters
     ----------
-    obj : The object to check.
+    obj : The object to check
 
     Returns
     -------
@@ -227,7 +227,7 @@ def is_re_compilable(obj):
 
     Parameters
     ----------
-    obj : The object to check.
+    obj : The object to check
 
     Returns
     -------
@@ -261,7 +261,7 @@ def is_list_like(obj, allow_sets=True):
 
     Parameters
     ----------
-    obj : The object to check.
+    obj : The object to check
     allow_sets : boolean, default True
         If this parameter is False, sets will not be considered list-like
 
@@ -310,7 +310,7 @@ def is_array_like(obj):
 
     Parameters
     ----------
-    obj : The object to check.
+    obj : The object to check
 
     Returns
     -------
@@ -343,7 +343,7 @@ def is_nested_list_like(obj):
 
     Parameters
     ----------
-    obj : The object to check.
+    obj : The object to check
 
     Returns
     -------
@@ -384,7 +384,7 @@ def is_dict_like(obj):
 
     Parameters
     ----------
-    obj : The object to check.
+    obj : The object to check
 
     Returns
     -------
@@ -398,8 +398,11 @@ def is_dict_like(obj):
     >>> is_dict_like([1, 2, 3])
     False
     """
+    for attr in ("__getitem__", "keys", "__contains__"):
+        if not hasattr(obj, attr):
+            return False
 
-    return hasattr(obj, '__getitem__') and hasattr(obj, 'keys')
+    return True
 
 
 def is_named_tuple(obj):
@@ -408,7 +411,7 @@ def is_named_tuple(obj):
 
     Parameters
     ----------
-    obj : The object to check.
+    obj : The object to check
 
     Returns
     -------
@@ -468,7 +471,7 @@ def is_sequence(obj):
 
     Parameters
     ----------
-    obj : The object to check.
+    obj : The object to check
 
     Returns
     -------

@@ -30,9 +30,8 @@ def _align_core_single_unary_op(term):
 
 
 def _zip_axes_from_type(typ, new_axes):
-    axes = {}
-    for ax_ind, ax_name in compat.iteritems(typ._AXIS_NAMES):
-        axes[ax_name] = new_axes[ax_ind]
+    axes = {ax_name: new_axes[ax_ind]
+            for ax_ind, ax_name in compat.iteritems(typ._AXIS_NAMES)}
     return axes
 
 

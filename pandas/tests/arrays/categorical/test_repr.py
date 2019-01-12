@@ -37,7 +37,6 @@ class TestCategoricalRepr(object):
     def test_empty_print(self):
         factor = Categorical([], ["a", "b", "c"])
         expected = ("[], Categories (3, object): [a, b, c]")
-        # hack because array_repr changed in numpy > 1.6.x
         actual = repr(factor)
         assert actual == expected
 
@@ -240,6 +239,17 @@ Categories (5, datetime64[ns, US/Eastern]): [2011-01-01 09:00:00-05:00 < 2011-01
                                              2011-01-01 13:00:00-05:00]"""  # noqa
 
         assert repr(c) == exp
+
+    def test_categorical_repr_int_with_nan(self):
+        c = Categorical([1, 2, np.nan])
+        c_exp = """[1, 2, NaN]\nCategories (2, int64): [1, 2]"""
+        assert repr(c) == c_exp
+
+        s = Series([1, 2, np.nan], dtype="object").astype("category")
+        s_exp = """0      1\n1      2\n2    NaN
+dtype: category
+Categories (2, int64): [1, 2]"""
+        assert repr(s) == s_exp
 
     def test_categorical_repr_period(self):
         idx = period_range('2011-01-01 09:00', freq='H', periods=5)

@@ -1,11 +1,12 @@
 # -*- coding: utf-8 -*-
 from __future__ import print_function
-import pytest
 
 import numpy as np
-import pandas.util.testing as tm
-from pandas import Timestamp, DataFrame, Series
+import pytest
+
 import pandas as pd
+from pandas import DataFrame, Series, Timestamp
+import pandas.util.testing as tm
 
 
 def test_filter_series():
@@ -542,8 +543,7 @@ def test_filter_enforces_scalarness():
         ['worst', 'd', 'y'],
         ['best', 'd', 'z'],
     ], columns=['a', 'b', 'c'])
-    with tm.assert_raises_regex(TypeError,
-                                'filter function returned a.*'):
+    with pytest.raises(TypeError, match='filter function returned a.*'):
         df.groupby('c').filter(lambda g: g['a'] == 'best')
 
 
@@ -557,8 +557,7 @@ def test_filter_non_bool_raises():
         ['worst', 'd', 1],
         ['best', 'd', 1],
     ], columns=['a', 'b', 'c'])
-    with tm.assert_raises_regex(TypeError,
-                                'filter function returned a.*'):
+    with pytest.raises(TypeError, match='filter function returned a.*'):
         df.groupby('a').filter(lambda g: g.c.mean())
 
 

@@ -2,18 +2,14 @@
 
 from __future__ import print_function
 
-
-import pytest
 import numpy as np
+import pytest
 
-from pandas import DataFrame, Series, Timestamp
 import pandas as pd
-
-from pandas.util.testing import assert_series_equal, assert_frame_equal
-
-import pandas.util.testing as tm
-
+from pandas import DataFrame, Series, Timestamp
 from pandas.tests.frame.common import TestData
+import pandas.util.testing as tm
+from pandas.util.testing import assert_frame_equal, assert_series_equal
 
 
 class TestDataFrameQuantile(TestData):
@@ -72,9 +68,8 @@ class TestDataFrameQuantile(TestData):
         assert_series_equal(result, expected)
 
         # must raise
-        def f():
+        with pytest.raises(TypeError):
             df.quantile(.5, axis=1, numeric_only=False)
-        pytest.raises(TypeError, f)
 
     def test_quantile_axis_parameter(self):
         # GH 9543/9544
@@ -220,7 +215,7 @@ class TestDataFrameQuantile(TestData):
     def test_quantile_invalid(self):
         msg = 'percentiles should all be in the interval \\[0, 1\\]'
         for invalid in [-1, 2, [0.5, -1], [0.5, 2]]:
-            with tm.assert_raises_regex(ValueError, msg):
+            with pytest.raises(ValueError, match=msg):
                 self.tsframe.quantile(invalid)
 
     def test_quantile_box(self):
