@@ -101,8 +101,30 @@ def test_fast_apply():
     splitter = grouper._get_splitter(g._selected_obj, axis=g.axis)
     group_keys = grouper._get_group_keys()
 
-    values, mutated = splitter.fast_apply(f, group_keys)
+    values, mutated, status = splitter.fast_apply(f, group_keys)
+    assert status == 0
     assert not mutated
+
+
+def test_group_apply_once_per_group():
+    # GH24748 ,GH2936, GH2656, GH7739, GH10519, GH12155, GH20084, GH21417
+    df = pd.DataFrame({'a': [0, 0, 1, 1, 2, 2], 'b': np.arange(6)})
+
+    names = []
+
+    def f_copy(group):
+        names.append(group.name)
+        return group.copy()
+    df.groupby("a").apply(f_copy)
+    assert names == [0, 1, 2]
+
+    def f_nocopy(group):
+        names.append(group.name)
+        return group
+    names = []
+    # this takes the slow apply path
+    df.groupby("a").apply(f_nocopy)
+    assert names == [0, 1, 2]
 
 
 def test_apply_with_mixed_dtype():

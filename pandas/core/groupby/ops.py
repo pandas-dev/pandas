@@ -165,14 +165,17 @@ class BaseGrouper(object):
         mutated = self.mutated
         splitter = self._get_splitter(data, axis=axis)
         group_keys = self._get_group_keys()
-
+        status = 0
+        result_values = []
         # oh boy
         f_name = com.get_callable_name(f)
         if (f_name not in base.plotting_methods and
                 hasattr(splitter, 'fast_apply') and axis == 0):
             try:
-                values, mutated = splitter.fast_apply(f, group_keys)
-                return group_keys, values, mutated
+                result = splitter.fast_apply(f, group_keys)
+                result_values, mutated, status = result
+                if status == 0:
+                    return group_keys, result_values, mutated
             except reduction.InvalidApply:
                 # we detect a mutation of some kind
                 # so take slow path
@@ -181,9 +184,10 @@ class BaseGrouper(object):
                 # raise this error to the caller
                 pass
 
-        result_values = []
         for key, (i, group) in zip(group_keys, splitter):
             object.__setattr__(group, 'name', key)
+            if status > 0 and i == 0:
+                continue
 
             # group might be modified
             group_axes = _get_axes(group)
@@ -854,10 +858,7 @@ class FrameSplitter(DataSplitter):
             return [], True
 
         sdata = self._get_sorted_data()
-        results, mutated = reduction.apply_frame_axis0(sdata, f, names,
-                                                       starts, ends)
-
-        return results, mutated
+        return reduction.apply_frame_axis0(sdata, f, names, starts, ends)
 
     def _chop(self, sdata, slice_obj):
         if self.axis == 0:

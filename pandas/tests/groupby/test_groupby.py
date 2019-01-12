@@ -1374,19 +1374,29 @@ def test_set_group_name(df, grouper):
 
 def test_group_name_available_in_inference_pass():
     # gh-15062
+    # GH24748 ,GH2936, GH2656, GH7739, GH10519, GH12155, GH20084, GH21417
     df = pd.DataFrame({'a': [0, 0, 1, 1, 2, 2], 'b': np.arange(6)})
 
     names = []
 
-    def f(group):
+    def f_fast(group):
         names.append(group.name)
         return group.copy()
 
-    df.groupby('a', sort=False, group_keys=False).apply(f)
-    # we expect 2 zeros because we call ``f`` once to see if a faster route
-    # can be used.
-    expected_names = [0, 0, 1, 2]
+    df.groupby('a', sort=False, group_keys=False).apply(f_fast)
+
+    # every group should appear once, i.e. apply is called once per group
+    expected_names = [0, 1, 2]
     assert names == expected_names
+
+    names_slow = []
+
+    def f_slow(group):
+        names_slow.append(group.name)
+        return group
+
+    df.groupby('a', sort=False, group_keys=False).apply(f_slow)
+    assert names_slow == [0, 1, 2]
 
 
 def test_no_dummy_key_names(df):

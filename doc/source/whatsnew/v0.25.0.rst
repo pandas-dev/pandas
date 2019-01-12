@@ -63,6 +63,53 @@ is respected in indexing. (:issue:`24076`, :issue:`16785`)
     df = pd.DataFrame([0], index=pd.DatetimeIndex(['2019-01-01'], tz='US/Pacific'))
     df['2019-01-01 12:00:00+04:00':'2019-01-01 13:00:00+04:00']
 
+.. _whatsnew_0250.api_breaking.groupby_apply_first_group_once:
+
+GroupBy.apply on ``DataFrame`` evaluates first group only once
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+(:issue:`2936`, :issue:`2656`, :issue:`7739`, :issue:`10519`, :issue:`12155`,
+:issue:`20084`, :issue:`21417`)
+
+The implementation of ``DataFrame.groupby.apply`` previously evaluated func
+consistently twice on the first group to infer if it is safe to use a fast
+code path. Particularly for functions with side effects, this was an undesired
+behavior and may have led to surprises.
+
+Now every group is evaluated only a single time.
+
+Previous behavior:
+
+.. code-block:: ipython
+
+    In [2]: df = pd.DataFrame({"a": ["x", "y"], "b": [1, 2]})
+
+    In [3]: side_effects = []
+
+    In [4]: def func_fast_apply(group):
+    ...:     side_effects.append(group.name)
+    ...:     return len(group)
+    ...:
+
+    In [5]: df.groupby("a").apply(func_fast_apply)
+
+    In [6]: assert side_effects == ["x", "x", "y"]
+
+New behavior:
+
+.. ipython:: python
+
+    df = pd.DataFrame({"a": ["x", "y"], "b": [1, 2]})
+
+    side_effects = []
+    def func(group):
+        side_effects.append(group.name)
+        return group
+
+    df.groupby("a").apply(func)
+    assert side_effects == ["x", "y"]
+
+
 .. _whatsnew_0250.api.other:
 
 Other API Changes
