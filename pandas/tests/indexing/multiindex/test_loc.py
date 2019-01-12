@@ -4,6 +4,7 @@ from warnings import catch_warnings
 import numpy as np
 import pytest
 
+import pandas as pd
 from pandas import DataFrame, Index, MultiIndex, Series
 from pandas.util import testing as tm
 
@@ -246,4 +247,40 @@ class TestMultiIndexLoc(object):
             [1, 2, 4, 5], name='Data',
             index=MultiIndex.from_product(keys))
 
+        tm.assert_series_equal(result, expected)
+
+
+@pytest.mark.parametrize('indexer, is_level1, expected_error', [
+    ([], False, None),  # empty ok
+    (['A'], False, None),
+    (['A', 'D'], False, None),
+    (['D'], False, r"\['D'\] not in index"),  # not any values found
+    (pd.IndexSlice[:, ['foo']], True, None),
+    (pd.IndexSlice[:, ['foo', 'bah']], True, None)
+])
+def test_getitem_duplicates_multiindex_missing_indexers(indexer, is_level1,
+                                                        expected_error):
+    # GH 7866
+    # multi-index slicing with missing indexers
+    idx = MultiIndex.from_product([['A', 'B', 'C'],
+                                   ['foo', 'bar', 'baz']],
+                                  names=['one', 'two'])
+    s = Series(np.arange(9, dtype='int64'), index=idx).sort_index()
+
+    if indexer == []:
+        expected = s.iloc[[]]
+    elif is_level1:
+        expected = Series([0, 3, 6], index=MultiIndex.from_product(
+            [['A', 'B', 'C'], ['foo']], names=['one', 'two'])).sort_index()
+    else:
+        exp_idx = MultiIndex.from_product([['A'], ['foo', 'bar', 'baz']],
+                                          names=['one', 'two'])
+        expected = Series(np.arange(3, dtype='int64'),
+                          index=exp_idx).sort_index()
+
+    if expected_error is not None:
+        with pytest.raises(KeyError, match=expected_error):
+            s.loc[indexer]
+    else:
+        result = s.loc[indexer]
         tm.assert_series_equal(result, expected)
