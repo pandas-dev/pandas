@@ -165,18 +165,6 @@ def test_frame_getitem_multicolumn_empty_level():
     tm.assert_frame_equal(result, expected)
 
 
-def test_getitem_tuple_plus_slice():
-    # GH 671
-    df = DataFrame({'a': np.arange(10),
-                    'b': np.arange(10),
-                    'c': np.random.randn(10),
-                    'd': np.random.randn(10)}
-                   ).set_index(['a', 'b'])
-    expected = df.loc[0, 0]
-    result = df.loc[(0, 0), :]
-    tm.assert_series_equal(result, expected)
-
-
 @pytest.mark.parametrize('indexer,expected_slice', [
     (lambda df: df['foo'], slice(3)),
     (lambda df: df['bar'], slice(3, 5)),
