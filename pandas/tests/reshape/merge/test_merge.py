@@ -940,7 +940,6 @@ class TestMerge(object):
             merge(a, a, on=('a', 'b'))
 
     @pytest.mark.parametrize('how', ['left', 'outer'])
-    @pytest.mark.xfail(reason="GH-24897")
     def test_merge_on_index_with_more_values(self, how):
         # GH 24212
         # pd.merge gets [-1, -1, 0, 1] as right_indexer, ensure that -1 is
@@ -1169,17 +1168,6 @@ class TestMergeDtypes(object):
         msg = re.escape(msg)
         with pytest.raises(ValueError, match=msg):
             pd.merge(df2, df1, on=['A'])
-
-    def test_merge_on_index_with_more_values(self):
-        # GH 24212
-        df1 = pd.DataFrame([[1, 2], [2, 4], [3, 6], [4, 8]],
-                           columns=['a', 'b'])
-        df2 = pd.DataFrame([[3, 30], [4, 40]],
-                           columns=['a', 'c'])
-        df1.set_index('a', drop=False, inplace=True)
-        df2.set_index('a', inplace=True)
-        result = pd.merge(df1, df2, left_index=True, right_on='a', how='left')
-        assert 1 in result.index
 
 
 @pytest.fixture
