@@ -1852,7 +1852,9 @@ Other
 ^^^^^
 
 - Bug where C variables were declared with external linkage causing import errors if certain other C libraries were imported before Pandas. (:issue:`24113`)
-- Switched shape in ``ValueError`` message when constructiong a :class:`DataFrame` with parameters ``columns`` and ``index`` not matching the shape of the input data. (:issue:`20742`)
+- Changed ``ValueError`` message when constructiong a :class:`DataFrame` with parameters ``columns`` and ``index`` not matching the shape of the input data. New message: "Shape of passed values is (``index``, ``columns``), indices imply (``index``, ``columns``)" (:issue:`20742`)
+- Changed ``ValueError`` message when constructiong a :class:`Panel` with parameters ``items``, ``major index`` and ``minor index`` not matching the shape of the input data. New message: "Shape of passed values is (``major``, ``minor``, ``items``), indices imply (``major``, ``minor``, ``items``)" (related to :issue:`20742`)
+
 
 .. _whatsnew_0.24.0.contributors:
 

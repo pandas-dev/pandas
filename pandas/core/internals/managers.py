@@ -1673,8 +1673,10 @@ def create_block_manager_from_arrays(arrays, names, axes):
 
 def construction_error(tot_items, block_shape, axes, e=None):
     """ raise a helpful message about our construction """
-    passed = tuple(map(int, reversed([tot_items] + list(block_shape))))
-    implied = tuple(map(int, reversed([len(ax) for ax in axes])))
+    passed = tuple(map(int, list(block_shape) + [tot_items]))
+
+    implied = [] if len(axes) == 0 \
+        else [len(ax) for ax in axes[1:] + [axes[0]]]
     if passed == implied and e is not None:
         raise e
     if block_shape[0] == 0:
