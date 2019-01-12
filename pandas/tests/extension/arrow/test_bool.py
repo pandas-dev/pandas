@@ -5,9 +5,9 @@ import pandas as pd
 from pandas.tests.extension import base
 import pandas.util.testing as tm
 
-from .bool import ArrowBoolArray, ArrowBoolDtype
-
 pytest.importorskip('pyarrow', minversion="0.10.0")
+
+from .bool import ArrowBoolArray, ArrowBoolDtype # isort:skip
 
 
 @pytest.fixture
