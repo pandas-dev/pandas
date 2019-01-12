@@ -137,18 +137,6 @@ def test_series_getitem_corner_generator(
 # test indexing of DataFrame with multi-level Index
 # ----------------------------------------------------------------------------
 
-def test_getitem_duplicates_multiindex_non_scalar_type_object():
-    # regression from < 0.14.0
-    # GH 7914
-    df = DataFrame([[np.mean, np.median], ['mean', 'median']],
-                   columns=MultiIndex.from_tuples([('functs', 'mean'),
-                                                   ('functs', 'median')]),
-                   index=['function', 'name'])
-    result = df.loc['function', ('functs', 'mean')]
-    expected = np.mean
-    assert result == expected
-
-
 def test_getitem_simple(multiindex_dataframe_random_data):
     df = multiindex_dataframe_random_data.T
     expected = df.values[:, 0]
