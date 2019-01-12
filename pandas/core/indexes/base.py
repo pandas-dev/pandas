@@ -3244,9 +3244,9 @@ class Index(IndexOpsMixin, PandasObject):
         elif how == 'right':
             join_index = other
         elif how == 'inner':
-            join_index = self.intersection(other, sort=sort)
+            join_index = self.intersection(other, sort=False)
         elif how == 'outer':
-            join_index = self.union(other, sort=sort)
+            join_index = self.union(other)
 
         if sort:
             join_index = join_index.sort_values()
