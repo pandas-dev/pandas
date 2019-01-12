@@ -266,8 +266,8 @@ class TestMultiIndexLoc(object):
     (pd.IndexSlice[:, ['foo']], True, None),
     (pd.IndexSlice[:, ['foo', 'bah']], True, None)
 ])
-def test_getitem_duplicates_multiindex_missing_indexers(indexer, is_level1,
-                                                        expected_error):
+def test_loc_getitem_duplicates_multiindex_missing_indexers(indexer, is_level1,
+                                                            expected_error):
     # GH 7866
     # multi-index slicing with missing indexers
     idx = MultiIndex.from_product([['A', 'B', 'C'],
@@ -299,7 +299,7 @@ def test_getitem_duplicates_multiindex_missing_indexers(indexer, is_level1,
     lambda s: s.loc[[(2000, 3, 10), (2000, 3, 13)]],
     lambda s: s.ix[[(2000, 3, 10), (2000, 3, 13)]]
 ])
-def test_series_getitem_fancy(
+def test_series_loc_getitem_fancy(
         multiindex_year_month_day_dataframe_random_data, indexer):
     s = multiindex_year_month_day_dataframe_random_data['A']
     expected = s.reindex(s.index[49:51])
@@ -312,7 +312,7 @@ def test_series_getitem_fancy(
     ([], slice(None)),
     (['foo'], [])
 ])
-def test_getitem_duplicates_multiindex_empty_indexer(columns_indexer):
+def test_loc_getitem_duplicates_multiindex_empty_indexer(columns_indexer):
     # GH 8737
     # empty indexer
     multi_index = MultiIndex.from_product((['foo', 'bar', 'baz'],
@@ -325,7 +325,7 @@ def test_getitem_duplicates_multiindex_empty_indexer(columns_indexer):
     tm.assert_frame_equal(result, expected)
 
 
-def test_getitem_duplicates_multiindex_non_scalar_type_object():
+def test_loc_getitem_duplicates_multiindex_non_scalar_type_object():
     # regression from < 0.14.0
     # GH 7914
     df = DataFrame([[np.mean, np.median], ['mean', 'median']],
@@ -337,7 +337,7 @@ def test_getitem_duplicates_multiindex_non_scalar_type_object():
     assert result == expected
 
 
-def test_getitem_tuple_plus_slice():
+def test_loc_getitem_tuple_plus_slice():
     # GH 671
     df = DataFrame({'a': np.arange(10),
                     'b': np.arange(10),
@@ -349,7 +349,7 @@ def test_getitem_tuple_plus_slice():
     tm.assert_series_equal(result, expected)
 
 
-def test_getitem_int(frame_random_data_integer_multi_index):
+def test_loc_getitem_int(frame_random_data_integer_multi_index):
     df = frame_random_data_integer_multi_index
     result = df.loc[1]
     expected = df[-3:]
@@ -357,13 +357,14 @@ def test_getitem_int(frame_random_data_integer_multi_index):
     tm.assert_frame_equal(result, expected)
 
 
-def test_getitem_int_raises_exception(frame_random_data_integer_multi_index):
+def test_loc_getitem_int_raises_exception(
+        frame_random_data_integer_multi_index):
     df = frame_random_data_integer_multi_index
-    with pytest.raises(KeyError, match=r"^3$"):
+    with pytest.raises(KeyError, match=r"^3L?$"):
         df.loc[3]
 
 
-def test_getitem_lowerdim_corner(multiindex_dataframe_random_data):
+def test_loc_getitem_lowerdim_corner(multiindex_dataframe_random_data):
     df = multiindex_dataframe_random_data
 
     # test setup - check key not in dataframe
