@@ -10,7 +10,6 @@ from .bool import ArrowBoolArray, ArrowBoolDtype
 pytest.importorskip('pyarrow', minversion="0.10.0")
 
 
-
 @pytest.fixture
 def dtype():
     return ArrowBoolDtype()
