@@ -7,10 +7,10 @@ from pandas import DataFrame, Index, MultiIndex, Series
 from pandas.core.indexing import IndexingError
 from pandas.util import testing as tm
 
-
 # ----------------------------------------------------------------------------
 # test indexing of Series with multi-level Index
 # ----------------------------------------------------------------------------
+
 
 @pytest.mark.parametrize('access_method', [lambda s, x: s[:, x],
                                            lambda s, x: s.loc[:, x],
@@ -85,8 +85,8 @@ def test_series_getitem_returns_scalar(
 
 
 @pytest.mark.parametrize('indexer,expected_error,expected_error_msg', [
-    (lambda s: s.__getitem__((2000, 3, 4)), KeyError, r"^356$"),
-    (lambda s: s[(2000, 3, 4)], KeyError, r"^356$"),
+    (lambda s: s.__getitem__((2000, 3, 4)), KeyError, r"^356L?$"),
+    (lambda s: s[(2000, 3, 4)], KeyError, r"^356L?$"),
     (lambda s: s.loc[(2000, 3, 4)], IndexingError, 'Too many indexers'),
     (lambda s: s.__getitem__(len(s)), IndexError, 'index out of bounds'),
     (lambda s: s[len(s)], IndexError, 'index out of bounds'),
