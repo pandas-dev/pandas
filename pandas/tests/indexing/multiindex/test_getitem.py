@@ -4,7 +4,6 @@ import pytest
 from pandas.compat import u, zip
 
 from pandas import DataFrame, Index, MultiIndex, Series
-import pandas.core.common as com
 from pandas.core.indexing import IndexingError
 from pandas.util import testing as tm
 
@@ -168,34 +167,6 @@ def test_getitem_toplevel(
     expected = df.reindex(columns=df.columns[expected_slice])
     expected.columns = expected.columns.droplevel(0)
     result = indexer(df)
-    tm.assert_frame_equal(result, expected)
-
-
-def test_frame_setitem_view_direct(multiindex_dataframe_random_data):
-    # this works because we are modifying the underlying array
-    # really a no-no
-    df = multiindex_dataframe_random_data.T
-    df['foo'].values[:] = 0
-    assert (df['foo'].values == 0).all()
-
-
-def test_frame_setitem_copy_raises(multiindex_dataframe_random_data):
-    # will raise/warn as its chained assignment
-    df = multiindex_dataframe_random_data.T
-    msg = "A value is trying to be set on a copy of a slice from a DataFrame"
-    with pytest.raises(com.SettingWithCopyError, match=msg):
-        df['foo']['one'] = 2
-
-
-def test_frame_setitem_copy_no_write(multiindex_dataframe_random_data):
-    frame = multiindex_dataframe_random_data.T
-    expected = frame
-    df = frame.copy()
-    msg = "A value is trying to be set on a copy of a slice from a DataFrame"
-    with pytest.raises(com.SettingWithCopyError, match=msg):
-        df['foo']['one'] = 2
-
-    result = df
     tm.assert_frame_equal(result, expected)
 
 
