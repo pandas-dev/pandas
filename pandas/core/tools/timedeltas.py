@@ -2,6 +2,7 @@
 timedelta support tools
 """
 
+import warnings
 import numpy as np
 
 
@@ -92,8 +93,9 @@ def to_timedelta(arg, unit='ns', box=True, errors='raise'):
                          "'raise', or 'coerce'}")
 
     if unit in {'Y', 'y', 'M'}:
-        raise FutureWarning("M and Y units are deprecated and "
-                            "will be removed in a future version.")
+        warnings.warn("M and Y units are deprecated and "
+                      "will be removed in a future version.",
+                      FutureWarning, stacklevel=2)
 
     if arg is None:
         return arg
