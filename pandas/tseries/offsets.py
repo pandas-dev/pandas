@@ -2343,7 +2343,8 @@ class Tick(liboffsets._Tick, SingleConstructorOffset):
 
 
 def _delta_to_tick(delta):
-    if delta.microseconds == 0:
+    if delta.microseconds == 0 and getattr(delta, "nanoseconds", 0) == 0:
+        # nanoseconds only for pd.Timedelta
         if delta.seconds == 0:
             return Day(delta.days)
         else:
