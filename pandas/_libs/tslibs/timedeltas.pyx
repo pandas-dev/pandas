@@ -1185,6 +1185,10 @@ class Timedelta(_Timedelta):
                 "Value must be Timedelta, string, integer, "
                 "float, timedelta or convertible")
 
+        if unit in {'Y', 'y', 'M'}:
+            raise FutureWarning("M and Y units are deprecated and "
+                                "will be removed in a future version.")
+
         if is_timedelta64_object(value):
             value = value.view('i8')
 

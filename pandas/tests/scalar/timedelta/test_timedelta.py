@@ -368,19 +368,17 @@ class TestTimedeltas(object):
 
             result = to_timedelta('2{}'.format(unit))
             assert result == expected
-            result = Timedelta('2{}'.format(units))
+            result = Timedelta('2{}'.format(unit))
             assert result == expected
 
     @pytest.mark.parametrize('units', ['Y', 'y', 'M'])
     def test_unit_m_y_deprecated(self, units):
-        with pytest.warns(FutureWarning) as record1:
-            to_timedelta(10, units)
-        assert len(record1) == 1
-        assert str(record1[0].message) == "M and Y units are deprecated."
-        with pytest.warns(FutureWarning) as record2:
-            Timedelta(10, units)
-        assert len(record2) == 1
-        assert str(record2[0].message) == "M and Y units are deprecated."
+        for unit in units:
+            with pytest.raises(FutureWarning,
+                               match=r'.* units are deprecated .*'):
+                to_timedelta(10, unit)
+                Timedelta(10, unit)
+                TimedeltaIndex(10, unit)
 
     def test_numeric_conversions(self):
         assert Timedelta(0) == np.timedelta64(0, 'ns')
