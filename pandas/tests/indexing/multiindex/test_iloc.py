@@ -142,3 +142,10 @@ def test_iloc_setitem_int_multiindex_series(data, indexes, values, expected_k):
     df['k'] = expected_k
     expected = df.k
     tm.assert_series_equal(series, expected)
+
+
+def test_getitem_iloc(multiindex_dataframe_random_data):
+    df = multiindex_dataframe_random_data
+    result = df.iloc[2]
+    expected = df.xs(df.index[2])
+    tm.assert_series_equal(result, expected)
