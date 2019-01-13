@@ -1434,6 +1434,34 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin,
         # Don't have to worry about NA `result`, since no NA went in.
         return self._box_func(result)
 
+    def mean(self, axis=None, skipna=True):
+        """
+        Return the mean value of the Array or maximum along
+        an axis.
+
+        See Also
+        --------
+        numpy.ndarray.mean
+        Series.mean : Return the mean value in a Series.
+        """
+        nv.validate_minmax_axis(axis)
+
+        mask = self.isna()
+        if skipna:
+            values = self[~mask]
+        elif mask.any():
+            return NaT
+        else:
+            values = self
+
+        if not len(values):
+            # short-circut for empty max / min
+            return NaT
+
+        result = nanops.nanmean(values.view('i8'), skipna=skipna)
+        # Don't have to worry about NA `result`, since no NA went in.
+        return self._box_func(result)
+
 
 # -------------------------------------------------------------------
 # Shared Constructor Helpers

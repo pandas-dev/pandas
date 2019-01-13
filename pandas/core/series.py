@@ -3546,6 +3546,9 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         elif is_datetime64_dtype(delegate):
             # use DatetimeIndex implementation to handle skipna correctly
             delegate = DatetimeIndex(delegate)
+        elif is_timedelta64_dtype(delegate) and hasattr(TimedeltaIndex, name):
+            # use TimedeltaIndex to handle skipna correctly
+            delegate = TimedeltaIndex(delegate)
 
         # dispatch to numpy arrays
         elif isinstance(delegate, np.ndarray):
