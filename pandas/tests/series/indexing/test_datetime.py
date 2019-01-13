@@ -411,7 +411,7 @@ def test_datetime_indexing():
     s = s[::-1]
 
     with pytest.raises(KeyError, match=r"^947289600000000000$"):
-        s.__getitem__(stamp)
+        s[stamp]
     s[stamp] = 0
     assert s[stamp] == 0
 
