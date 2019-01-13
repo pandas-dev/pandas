@@ -1453,7 +1453,6 @@ def assert_frame_equal(left, right, check_dtype=True,
                             '{shape!r}'.format(shape=right.shape))
 
     if check_like:
-        check_index_type = True
         left, right = left.reindex_like(right), right
 
     # index comparison

@@ -220,4 +220,24 @@ def test_frame_equal_index_different_type():
     right = right.set_index("one")
     left = left.set_index("one")
 
-    assert_frame_equal(left, right, check_like=True)
+    msg = "columns must have same names and dtypes when reindexing"
+
+    with pytest.raises(AssertionError, match=msg):
+        assert_frame_equal(left, right, check_like=True)
+
+
+def test_frame_equal_index_crossed_different_type():
+    honest = DataFrame(data=[["2", 3, 4], ["1", 2, 3], ["6", 6, 8]],
+                       columns=["a_string", "a_int", "some_data"])
+    liar = DataFrame(data=[["2", 3, 4], ["1", 2, 3], ["6", 6, 8]],
+                     columns=["a_int", "a_string", "some_data"])
+
+    honest = honest.set_index(["a_string", "a_int"])
+    liar = liar.set_index(["a_string", "a_int"])
+
+    msg = """columns must have same names and dtypes when reindexing"""
+
+    with pytest.raises(AssertionError, match=msg):
+        assert_frame_equal(honest, liar, check_like=True)
+
+test_frame_equal_index_crossed_different_type()

@@ -3744,6 +3744,16 @@ class NDFrame(PandasObject, SelectionMixin):
                                        copy=copy, limit=limit,
                                        tolerance=tolerance)
 
+        if isinstance(self.index, MultiIndex) and isinstance(other.index, MultiIndex):
+            assert [f"{self.index.names[i]}: {self.index.get_level_values(n).dtype}"
+                    for i, n in enumerate(self.index.names)] == [
+                       f"{other.index.names[i]}: {other.index.get_level_values(n).dtype}"
+                       for i, n in enumerate(other.index.names)],\
+                "columns must have same names and dtypes when reindexing"
+        else:
+            assert type(self.index) == type(other.index),\
+                "columns must have same names and dtypes when reindexing"
+
         return self.reindex(**d)
 
     def drop(self, labels=None, axis=0, index=None, columns=None, level=None,
