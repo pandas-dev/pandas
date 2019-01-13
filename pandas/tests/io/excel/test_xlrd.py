@@ -97,11 +97,6 @@ class XlrdReadingTestsBase(XlrdSharedItems):
         yield
         setattr(self, func_name, old_func)
 
-    @pytest.mark.parametrize("usecols", [
-        [0, 1, 3], [0, 3, 1],
-        [1, 0, 3], [1, 3, 0],
-        [3, 0, 1], [3, 1, 0],
-    ])
     @td.skip_if_no("xlrd", "1.0.1")  # see gh-22682
     def test_usecols_int(self, ext):
 
