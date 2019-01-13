@@ -82,7 +82,6 @@ class ReadingTestsBase(SharedItems):
         [1, 0, 3], [1, 3, 0],
         [3, 0, 1], [3, 1, 0],
     ])
-    
     def test_usecols_diff_positional_int_columns_order(self, ext, usecols):
         expected = self.get_csv_refdf("test1")[["A", "C"]]
         result = self.get_exceldf("test1", ext, "Sheet1",
@@ -92,7 +91,6 @@ class ReadingTestsBase(SharedItems):
     @pytest.mark.parametrize("usecols", [
         ["B", "D"], ["D", "B"]
     ])
-    
     def test_usecols_diff_positional_str_columns_order(self, ext, usecols):
         expected = self.get_csv_refdf("test1")[["B", "D"]]
         expected.index = range(len(expected))
@@ -931,7 +929,7 @@ class ReadingTestsBase(SharedItems):
         actual = pd.read_excel(f, 'one_column', squeeze=True)
         expected = pd.Series([1, 2, 3], name='a')
         tm.assert_series_equal(actual, expected)
-        
+
 
 class _WriterBase(SharedItems):
 
@@ -973,8 +971,6 @@ class _WriterBase(SharedItems):
     pytest.param('xlsxwriter', '.xlsx', marks=pytest.mark.skipif(
         not td.safe_import('xlsxwriter'), reason='No xlsxwriter'))
 ])
-    
-    
 class TestExcelWriter(_WriterBase):
     # Base class for test cases to run with different Excel writers.
 
@@ -1958,7 +1954,7 @@ class TestOpenpyxlTests(_WriterBase):
 
             for index, cell_value in enumerate(expected):
                 assert wb2.worksheets[index]['A1'].value == cell_value
-                
+
 
 @td.skip_if_no('xlwt')
 @pytest.mark.parametrize("merge_cells,ext,engine", [
@@ -2019,7 +2015,7 @@ class TestXlwtTests(_WriterBase):
         with ensure_clean(ext) as f:
             with pytest.raises(ValueError, match=msg):
                 ExcelWriter(f, engine=engine, mode='a')
-                
+
 
 @td.skip_if_no('xlsxwriter')
 @pytest.mark.parametrize("merge_cells,ext,engine", [
@@ -2142,7 +2138,7 @@ class TestExcelWriterEngineTests(object):
                 check_called(
                     lambda: df.to_excel(
                         'something.xls', engine='dummy'))
-                
+
 
 @pytest.mark.parametrize('engine', [
     pytest.param('xlwt',
@@ -2294,7 +2290,7 @@ def test_styler_to_excel(engine):
                 n_cells += 1
 
         assert n_cells == (11 + 1) * (3 + 1)
-        
+
 
 @td.skip_if_no('openpyxl')
 @pytest.mark.skipif(not PY36, reason='requires fspath')

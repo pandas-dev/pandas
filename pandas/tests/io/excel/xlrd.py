@@ -83,11 +83,11 @@ class XlrdSharedItems(object):
         """
         pth = os.path.join(self.dirpath, basename + ext)
         return read_excel(pth, *args, **kwds)
-    
-    
+
+
 class XlrdReadingTestsBase(XlrdSharedItems):
     # This is based on ExcelWriterBase
-    
+
     @pytest.fixture(autouse=True, params=['xlrd'])
     def set_engine(self, request):
         func_name = "get_exceldf"
@@ -102,7 +102,6 @@ class XlrdReadingTestsBase(XlrdSharedItems):
         [1, 0, 3], [1, 3, 0],
         [3, 0, 1], [3, 1, 0],
     ])
-    
     @td.skip_if_no("xlrd", "1.0.1")  # see gh-22682
     def test_usecols_int(self, ext):
 
@@ -192,7 +191,7 @@ class XlrdReadingTestsBase(XlrdSharedItems):
                                index_col=0, usecols='A,C:D')
         tm.assert_frame_equal(df2, df1, check_names=False)
         tm.assert_frame_equal(df3, df1, check_names=False)
-        
+
     @td.skip_if_no('xlrd', '1.0.1')  # GH-22682
     def test_deprecated_sheetname(self, ext):
         # gh-17964
@@ -233,7 +232,7 @@ class XlrdReadingTestsBase(XlrdSharedItems):
         import xlrd
         with pytest.raises(xlrd.XLRDError):
             read_excel(excel, 'asdf')
-            
+
     @td.skip_if_no("xlrd", "1.0.1")  # see gh-22682
     def test_sheet_name_and_sheetname(self, ext):
         # gh-10559: Minor improvement: Change "sheet_name" to "sheetname"
@@ -262,7 +261,7 @@ class XlrdReadingTestsBase(XlrdSharedItems):
         tm.assert_frame_equal(df2, df_ref, check_names=False)
         tm.assert_frame_equal(df1_parse, df_ref, check_names=False)
         tm.assert_frame_equal(df2_parse, df_ref, check_names=False)
-        
+
 
 @pytest.mark.parametrize("ext", ['.xls', '.xlsx', '.xlsm'])
 class TestXlrdReader(XlrdReadingTestsBase):
@@ -290,8 +289,8 @@ class TestXlrdReader(XlrdReadingTestsBase):
             result = read_excel(book, sheet_name=sheet_name,
                                 engine=engine, index_col=0)
             tm.assert_frame_equal(df, result)
-            
-            
+
+
 class _XlrdWriterBase(XlrdSharedItems):
 
     @pytest.fixture(autouse=True)
@@ -332,8 +331,6 @@ class _XlrdWriterBase(XlrdSharedItems):
     pytest.param('xlsxwriter', '.xlsx', marks=pytest.mark.skipif(
         not td.safe_import('xlsxwriter'), reason='No xlsxwriter'))
 ])
-            
-
 class XlrdTestExcelWriter(_XlrdWriterBase):
     # Base class for test cases to run with different Excel writers.
 
