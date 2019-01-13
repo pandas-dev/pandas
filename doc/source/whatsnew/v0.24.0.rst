@@ -149,7 +149,7 @@ These dtypes can be merged & reshaped & casted.
    pd.concat([df[['A']], df[['B', 'C']]], axis=1).dtypes
    df['A'].astype(float)
 
-Reduction and groupby operations such as 'sum' work.
+Reduction and groupby operations such as ``sum`` work.
 
 .. ipython:: python
 
