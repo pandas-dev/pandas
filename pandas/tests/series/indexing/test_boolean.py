@@ -172,7 +172,7 @@ def test_where_unsafe_upcast(dtype):
     assert_series_equal(s, expected)
 
 
-@pytest.mark.xfail
+@pytest.mark.xfail(reason="Failed: DID NOT RAISE <class 'Exception'>")
 @pytest.mark.parametrize("dtype", [
     np.int8, np.int16, np.int32, np.float32
 ])
