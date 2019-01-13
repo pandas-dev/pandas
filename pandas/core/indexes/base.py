@@ -2393,15 +2393,23 @@ class Index(IndexOpsMixin, PandasObject):
             indexer = indexer[indexer != -1]
 
         taken = other.take(indexer)
-        if self.name != other.name:
-            taken.name = None
+
         if sort:
             try:
-                taken = taken.sort_values()
+                taken = sorting.safe_sort(taken.values)
+                if self.name != other.name:
+                    name = None
+                else:
+                    name = self.name
+                return self._shallow_copy(taken, name=name)
             except TypeError as e:
                 warnings.warn("%s, sort order is undefined for "
                               "incomparable objects" % e, RuntimeWarning,
                               stacklevel=3)
+
+        if self.name != other.name:
+            taken.name = None
+
         return taken
 
     def difference(self, other, sort=True):

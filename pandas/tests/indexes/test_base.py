@@ -2254,17 +2254,8 @@ class TestMixedIntIndex(Base):
         first = index[:5]
         second = index[:3]
 
-        if PY3 and sort:
-            # unorderable types
-            warn_type = RuntimeWarning
-            expected = Index([0, 'a', 1])
-        else:
-            warn_type = None
-            expected = Index([0, 1, 'a']) if sort else Index([0, 'a', 1])
-
-        with tm.assert_produces_warning(warn_type):
-            result = first.intersection(second, sort=sort)
-
+        expected = Index([0, 1, 'a']) if sort else Index([0, 'a', 1])
+        result = first.intersection(second, sort=sort)
         tm.assert_index_equal(result, expected)
 
     @pytest.mark.parametrize("klass", [
@@ -2276,14 +2267,7 @@ class TestMixedIntIndex(Base):
         first = index[:5]
         second = index[:3]
 
-        if PY3 and sort:
-            # unorderable types
-            warn_type = RuntimeWarning
-        else:
-            warn_type = None
-
-        with tm.assert_produces_warning(warn_type):
-            result = first.intersection(klass(second.values), sort=sort)
+        result = first.intersection(klass(second.values), sort=sort)
         assert tm.equalContents(result, second)
 
     @pytest.mark.parametrize("sort", [True, False])
