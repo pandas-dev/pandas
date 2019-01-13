@@ -33,8 +33,8 @@ def test_fancy_getitem():
     assert s['2009-1-2'] == 48
     assert s[datetime(2009, 1, 2)] == 48
     assert s[Timestamp(datetime(2009, 1, 2))] == 48
-    pytest.raises(KeyError, s.__getitem__, '2009-1-3')
-
+    with pytest.raises(KeyError, match=r"^'2009-1-3'$"):
+        s['2009-1-3']
     assert_series_equal(s['3/6/2009':'2009-06-05'],
                         s[datetime(2009, 3, 6):datetime(2009, 6, 5)])
 
@@ -298,7 +298,8 @@ def test_getitem_setitem_datetimeindex():
 
     lb = datetime(1990, 1, 1, 4)
     rb = datetime(1990, 1, 1, 7)
-    with pytest.raises(TypeError):
+    msg = "Cannot compare tz-naive and tz-aware datetime-like objects"
+    with pytest.raises(TypeError, match=msg):
         # tznaive vs tzaware comparison is invalid
         # see GH#18376, GH#18162
         ts[(ts.index >= lb) & (ts.index <= rb)]
@@ -400,7 +401,8 @@ def test_datetime_indexing():
     s = Series(len(index), index=index)
     stamp = Timestamp('1/8/2000')
 
-    pytest.raises(KeyError, s.__getitem__, stamp)
+    with pytest.raises(KeyError, match=r"^947289600000000000L?$"):
+        s[stamp]
     s[stamp] = 0
     assert s[stamp] == 0
 
@@ -408,7 +410,8 @@ def test_datetime_indexing():
     s = Series(len(index), index=index)
     s = s[::-1]
 
-    pytest.raises(KeyError, s.__getitem__, stamp)
+    with pytest.raises(KeyError, match=r"^947289600000000000L?$"):
+        s[stamp]
     s[stamp] = 0
     assert s[stamp] == 0
 
@@ -499,7 +502,8 @@ def test_duplicate_dates_indexing(dups):
         expected = Series(np.where(mask, 0, ts), index=ts.index)
         assert_series_equal(cp, expected)
 
-    pytest.raises(KeyError, ts.__getitem__, datetime(2000, 1, 6))
+    with pytest.raises(KeyError, match=r"^947116800000000000L?$"):
+        ts[datetime(2000, 1, 6)]
 
     # new index
     ts[datetime(2000, 1, 6)] = 0
@@ -664,8 +668,11 @@ def test_indexing():
     expected = df.loc[[df.index[2]]]
 
     # this is a single date, so will raise
-    pytest.raises(KeyError, df.__getitem__, '2012-01-02 18:01:02', )
-    pytest.raises(KeyError, df.__getitem__, df.index[2], )
+    with pytest.raises(KeyError, match=r"^'2012-01-02 18:01:02'$"):
+        df['2012-01-02 18:01:02']
+    msg = r"Timestamp\('2012-01-02 18:01:02-0600', tz='US/Central', freq='S'\)"
+    with pytest.raises(KeyError, match=msg):
+        df[df.index[2]]
 
 
 """

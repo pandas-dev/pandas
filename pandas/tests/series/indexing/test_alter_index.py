@@ -243,7 +243,10 @@ def test_reindex_corner(test_data):
 
     # bad fill method
     ts = test_data.ts[::2]
-    pytest.raises(Exception, ts.reindex, test_data.ts.index, method='foo')
+    msg = (r"Invalid fill method\. Expecting pad \(ffill\), backfill"
+           r" \(bfill\) or nearest\. Got foo")
+    with pytest.raises(ValueError, match=msg):
+        ts.reindex(test_data.ts.index, method='foo')
 
 
 def test_reindex_pad():
