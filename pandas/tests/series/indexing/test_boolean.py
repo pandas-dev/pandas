@@ -172,19 +172,16 @@ def test_where_unsafe_upcast(dtype):
     assert_series_equal(s, expected)
 
 
-@pytest.mark.xfail(reason="Failed: DID NOT RAISE <class 'Exception'>")
 @pytest.mark.parametrize("dtype", [
     np.int8, np.int16, np.int32, np.float32
 ])
-def test_where_unsafe_itemsize_fail(dtype):
-    # Can't do these, as we are forced to change the
-    # item size of the input to something we cannot.
+def test_where_upcast(dtype):
+    # see gh-9743
     s = Series(np.arange(10), dtype=dtype)
     mask = s < 5
 
     values = [2.5, 3.5, 4.5, 5.5, 6.5]
-    with pytest.raises(Exception):
-        s[mask] = values
+    s[mask] = values
 
 
 def test_where_unsafe():
