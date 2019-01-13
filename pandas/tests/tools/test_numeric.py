@@ -1,12 +1,12 @@
-import pytest
 import decimal
 
 import numpy as np
+from numpy import iinfo
+import pytest
+
 import pandas as pd
 from pandas import to_numeric
-
 from pandas.util import testing as tm
-from numpy import iinfo
 
 
 class TestToNumeric(object):
