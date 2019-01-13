@@ -401,7 +401,7 @@ def test_datetime_indexing():
     s = Series(len(index), index=index)
     stamp = Timestamp('1/8/2000')
 
-    with pytest.raises(KeyError, match=r"^947289600000000000$"):
+    with pytest.raises(KeyError, match=r"^947289600000000000L?$"):
         s[stamp]
     s[stamp] = 0
     assert s[stamp] == 0
@@ -410,7 +410,7 @@ def test_datetime_indexing():
     s = Series(len(index), index=index)
     s = s[::-1]
 
-    with pytest.raises(KeyError, match=r"^947289600000000000$"):
+    with pytest.raises(KeyError, match=r"^947289600000000000L?$"):
         s[stamp]
     s[stamp] = 0
     assert s[stamp] == 0
@@ -502,7 +502,7 @@ def test_duplicate_dates_indexing(dups):
         expected = Series(np.where(mask, 0, ts), index=ts.index)
         assert_series_equal(cp, expected)
 
-    with pytest.raises(KeyError, match=r"^947116800000000000$"):
+    with pytest.raises(KeyError, match=r"^947116800000000000L?$"):
         ts[datetime(2000, 1, 6)]
 
     # new index

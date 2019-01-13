@@ -36,9 +36,10 @@ def test_basic_indexing():
 
     s = s.sort_index()
 
-    with pytest.raises(IndexError, match=r"^5$"):
+    msg = r"index out of bounds|^5$"
+    with pytest.raises(IndexError, match=msg):
         s[5]
-    msg = "index 5 is out of bounds for axis 0 with size 5"
+    msg = r"index 5 is out of bounds for axis (0|1) with size 5|^5$"
     with pytest.raises(IndexError, match=msg):
         s[5] = 0
 
@@ -257,9 +258,9 @@ def test_series_box_timestamp():
 
 def test_getitem_ambiguous_keyerror():
     s = Series(lrange(10), index=lrange(0, 20, 2))
-    with pytest.raises(KeyError, match=r"^1$"):
+    with pytest.raises(KeyError, match=r"^1L?$"):
         s[1]
-    with pytest.raises(KeyError, match=r"^1$"):
+    with pytest.raises(KeyError, match=r"^1L?$"):
         s.loc[1]
 
 
@@ -423,7 +424,7 @@ def test_basic_getitem_setitem_corner(test_data):
     assert_series_equal(result, expected)
 
     # OK
-    msg = "unhashable type: 'slice'"
+    msg = r"unhashable type(: 'slice')?"
     with pytest.raises(TypeError, match=msg):
         test_data.ts[[5, slice(None, None)]]
     with pytest.raises(TypeError, match=msg):
