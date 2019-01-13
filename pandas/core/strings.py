@@ -2473,7 +2473,7 @@ class StringMethods(NoNewAttributesMixin):
 
     >>> idx.str.partition()
     MultiIndex(levels=[['X', 'Y'], [' '], ['123', '999']],
-               labels=[[0, 1], [0, 0], [0, 1]])
+               codes=[[0, 1], [0, 0], [0, 1]])
 
     Or an index with tuples with ``expand=False``:
 

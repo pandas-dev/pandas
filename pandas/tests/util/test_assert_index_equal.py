@@ -13,7 +13,7 @@ def test_index_equal_levels_mismatch():
 Index levels are different
 \\[left\\]:  1, Int64Index\\(\\[1, 2, 3\\], dtype='int64'\\)
 \\[right\\]: 2, MultiIndex\\(levels=\\[\\[u?'A', u?'B'\\], \\[1, 2, 3, 4\\]\\],
-           labels=\\[\\[0, 0, 1, 1\\], \\[0, 1, 2, 3\\]\\]\\)"""
+           codes=\\[\\[0, 0, 1, 1\\], \\[0, 1, 2, 3\\]\\]\\)"""
 
     idx1 = Index([1, 2, 3])
     idx2 = MultiIndex.from_tuples([("A", 1), ("A", 2),
