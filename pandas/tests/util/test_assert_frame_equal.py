@@ -240,4 +240,9 @@ def test_frame_equal_index_crossed_different_type():
     with pytest.raises(AssertionError, match=msg):
         assert_frame_equal(honest, liar, check_like=True)
 
-test_frame_equal_index_crossed_different_type()
+
+def test_frame_equal_multi_index():
+    a = DataFrame(data=[["2", 3, 4], ["1", 2, 3], ["6", 6, 8]],
+                  columns=["a_string", "a_int", "some_data"])
+
+    _assert_frame_equal_both(a, a.copy())
