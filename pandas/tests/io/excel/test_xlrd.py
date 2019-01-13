@@ -14,6 +14,7 @@ import pandas.util.testing as tm
 from pandas.util.testing import ensure_clean
 
 from pandas.io.excel import ExcelFile, read_excel
+from pandas.io.parsers import read_csv
 
 _seriesd = tm.getSeriesData()
 _tsd = tm.getTimeSeriesData()
@@ -48,6 +49,25 @@ class XlrdSharedItems(object):
         self.frame2 = _frame2.copy()
         self.tsframe = _tsframe.copy()
         self.mixed_frame = _mixed_frame.copy()
+
+    def get_csv_refdf(self, basename):
+        """
+        Obtain the reference data from read_csv with the Python engine.
+        
+        Parameters
+        ----------
+        
+        basename : str
+            File base name, excluding file extension.
+        
+        Returns
+        -------
+        
+        dfref : DataFrame
+        """
+        pref = os.path.join(self.dirpath, basename + '.csv')
+        dfref = read_csv(pref, index_col=0, parse_dates=True, engine='python')
+        return dfref
 
     def get_excelfile(self, basename, ext):
         """
