@@ -2498,6 +2498,8 @@ class CategoricalAccessor(PandasDelegate, PandasObject, NoNewAttributesMixin):
     def __init__(self, data):
         self._validate(data)
         self._parent = data.values
+        self._index = data.index
+        self._name = data.name
         self._freeze()
 
     @staticmethod
@@ -2539,14 +2541,14 @@ class CategoricalAccessor(PandasDelegate, PandasObject, NoNewAttributesMixin):
         warn("s.cat.name has been deprecated",
              DeprecationWarning,
              stacklevel=2)
-        return self._parent
+        return self._name
 
     @property
     def index(self):
         warn("s.cat.index has been deprecated",
              DeprecationWarning,
              stacklevel=2)
-        return self._parent
+        return self._index
 
 # utility routines
 
