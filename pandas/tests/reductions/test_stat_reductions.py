@@ -12,10 +12,7 @@ import pandas.util._test_decorators as td
 import pandas as pd
 from pandas import DataFrame, Series, compat
 import pandas.util.testing as tm
-from pandas.core.arrays import (
-    DatetimeArrayMixin as DatetimeArray,
-    TimedeltaArrayMixin as TimedeltaArray,
-    PeriodArray)
+from pandas.core.arrays import DatetimeArray, TimedeltaArray, PeriodArray
 
 
 class TestDatetimeLikeStatReductions(object):
