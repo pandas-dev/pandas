@@ -757,32 +757,15 @@ class _MergeOperation(object):
 
             if self.right_index:
                 if len(self.left) > 0:
-                    join_index = self.left.index.take(left_indexer)
-                    if (self.how == 'right' and -1 in left_indexer
-                            and not isinstance(self.right.index, MultiIndex)):
-                        # if values missing (-1) from left index,
-                        # take from right index instead
-                        join_list = join_index.to_numpy()
-                        absent = left_indexer == -1
-                        join_list[absent] = self.right.index.to_numpy()[absent]
-                        join_index = Index(join_list, dtype=join_index.dtype,
-                                           name=join_index.name)
+                    join_index = self._create_join_index(left_indexer,
+                                                         using_left=True)
                 else:
                     join_index = self.right.index.take(right_indexer)
                     left_indexer = np.array([-1] * len(join_index))
             elif self.left_index:
                 if len(self.right) > 0:
-                    join_index = self.right.index.take(right_indexer)
-                    if (self.how == 'left' and -1 in right_indexer
-                            and not isinstance(self.left.index, MultiIndex)):
-                        # if values missing (-1) from right index,
-                        # take from left index instead
-                        print(right_indexer)
-                        join_list = join_index.to_numpy()
-                        absent = right_indexer == -1
-                        join_list[absent] = self.left.index.to_numpy()[absent]
-                        join_index = Index(join_list, dtype=join_index.dtype,
-                                           name=join_index.name)
+                    join_index = self._create_join_index(right_indexer,
+                                                         using_left=False)
                 else:
                     join_index = self.left.index.take(left_indexer)
                     right_indexer = np.array([-1] * len(join_index))
@@ -792,6 +775,28 @@ class _MergeOperation(object):
         if len(join_index) == 0:
             join_index = join_index.astype(object)
         return join_index, left_indexer, right_indexer
+
+    def _create_join_index(self, indexer, using_left=True):
+        if using_left:
+            index = self.left.index
+            other_index = self.right.index
+            how_check = 'right'
+        else:
+            index = self.right.index
+            other_index = self.left.index
+            how_check = 'left'
+
+        join_index = index.take(indexer)
+        if self.how == how_check and not isinstance(other_index, MultiIndex):
+            absent = indexer == -1
+            if any(absent):
+                # if values missing (-1) from target index,
+                # take from other index instead
+                join_list = join_index.to_numpy()
+                join_list[absent] = other_index.to_numpy()[absent]
+                join_index = Index(join_list, dtype=join_index.dtype,
+                                   name=join_index.name)
+        return join_index
 
     def _get_merge_keys(self):
         """
