@@ -7391,8 +7391,8 @@ class DataFrame(NDFrame):
 
         # exclude timedelta/datetime unless we are uniform types
         if (axis == 1 and self._is_datelike_mixed_type
-                and not (self._is_homogeneous_type
-                         and self._data.blocks[0].is_datetimetz)):
+                and (not self._is_homogeneous_type
+                     and not self._data.blocks[0].is_datetimetz)):
             numeric_only = True
 
         if numeric_only is None:
