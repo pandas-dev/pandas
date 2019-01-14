@@ -49,10 +49,12 @@ def test_getitem_boolean_empty():
 
     # invalid because of the boolean indexer
     # that's empty or not-aligned
-    with pytest.raises(IndexingError):
+    msg = (r"Unalignable boolean Series provided as indexer \(index of"
+           r" the boolean Series and of the indexed object do not match")
+    with pytest.raises(IndexingError, match=msg):
         s[Series([], dtype=bool)]
 
-    with pytest.raises(IndexingError):
+    with pytest.raises(IndexingError, match=msg):
         s[Series([True], dtype=bool)]
 
 
@@ -77,8 +79,11 @@ def test_getitem_boolean_object(test_data):
 
     # nans raise exception
     omask[5:10] = np.nan
-    pytest.raises(Exception, s.__getitem__, omask)
-    pytest.raises(Exception, s.__setitem__, omask, 5)
+    msg = "cannot index with vector containing NA / NaN values"
+    with pytest.raises(ValueError, match=msg):
+        s[omask]
+    with pytest.raises(ValueError, match=msg):
+        s[omask] = 5
 
 
 def test_getitem_setitem_boolean_corner(test_data):
@@ -87,15 +92,17 @@ def test_getitem_setitem_boolean_corner(test_data):
 
     # these used to raise...??
 
-    pytest.raises(Exception, ts.__getitem__, mask_shifted)
-    pytest.raises(Exception, ts.__setitem__, mask_shifted, 1)
-    # ts[mask_shifted]
-    # ts[mask_shifted] = 1
+    msg = (r"Unalignable boolean Series provided as indexer \(index of"
+           r" the boolean Series and of the indexed object do not match")
+    with pytest.raises(IndexingError, match=msg):
+        ts[mask_shifted]
+    with pytest.raises(IndexingError, match=msg):
+        ts[mask_shifted] = 1
 
-    pytest.raises(Exception, ts.loc.__getitem__, mask_shifted)
-    pytest.raises(Exception, ts.loc.__setitem__, mask_shifted, 1)
-    # ts.loc[mask_shifted]
-    # ts.loc[mask_shifted] = 2
+    with pytest.raises(IndexingError, match=msg):
+        ts.loc[mask_shifted]
+    with pytest.raises(IndexingError, match=msg):
+        ts.loc[mask_shifted] = 1
 
 
 def test_setitem_boolean(test_data):
@@ -168,14 +175,13 @@ def test_where_unsafe_upcast(dtype):
 @pytest.mark.parametrize("dtype", [
     np.int8, np.int16, np.int32, np.float32
 ])
-def test_where_unsafe_itemsize_fail(dtype):
-    # Can't do these, as we are forced to change the
-    # item size of the input to something we cannot.
+def test_where_upcast(dtype):
+    # see gh-9743
     s = Series(np.arange(10), dtype=dtype)
     mask = s < 5
 
     values = [2.5, 3.5, 4.5, 5.5, 6.5]
-    pytest.raises(Exception, s.__setitem__, tuple(mask), values)
+    s[mask] = values
 
 
 def test_where_unsafe():
@@ -206,10 +212,11 @@ def test_where_unsafe():
     s = Series(np.arange(10))
     mask = s > 5
 
-    with pytest.raises(ValueError):
+    msg = "cannot assign mismatch length to masked array"
+    with pytest.raises(ValueError, match=msg):
         s[mask] = [5, 4, 3, 2, 1]
 
-    with pytest.raises(ValueError):
+    with pytest.raises(ValueError, match=msg):
         s[mask] = [0] * 5
 
     # dtype changes
@@ -276,8 +283,11 @@ def test_where_error():
     s = Series(np.random.randn(5))
     cond = s > 0
 
-    pytest.raises(ValueError, s.where, 1)
-    pytest.raises(ValueError, s.where, cond[:3].values, -s)
+    msg = "Array conditional must be same shape as self"
+    with pytest.raises(ValueError, match=msg):
+        s.where(1)
+    with pytest.raises(ValueError, match=msg):
+        s.where(cond[:3].values, -s)
 
     # GH 2745
     s = Series([1, 2])
@@ -286,10 +296,13 @@ def test_where_error():
     assert_series_equal(s, expected)
 
     # failures
-    pytest.raises(ValueError, s.__setitem__, tuple([[[True, False]]]),
-                  [0, 2, 3])
-    pytest.raises(ValueError, s.__setitem__, tuple([[[True, False]]]),
-                  [])
+    msg = "cannot assign mismatch length to masked array"
+    with pytest.raises(ValueError, match=msg):
+        s[[True, False]] = [0, 2, 3]
+    msg = ("NumPy boolean array indexing assignment cannot assign 0 input"
+           " values to the 1 output values where the mask is true")
+    with pytest.raises(ValueError, match=msg):
+        s[[True, False]] = []
 
 
 @pytest.mark.parametrize('klass', [list, tuple, np.array, Series])
@@ -349,10 +362,13 @@ def test_where_setitem_invalid():
     # GH 2702
     # make sure correct exceptions are raised on invalid list assignment
 
+    msg = ("cannot set using a {} indexer with a different length than"
+           " the value")
+
     # slice
     s = Series(list('abc'))
 
-    with pytest.raises(ValueError):
+    with pytest.raises(ValueError, match=msg.format('slice')):
         s[0:3] = list(range(27))
 
     s[0:3] = list(range(3))
@@ -362,7 +378,7 @@ def test_where_setitem_invalid():
     # slice with step
     s = Series(list('abcdef'))
 
-    with pytest.raises(ValueError):
+    with pytest.raises(ValueError, match=msg.format('slice')):
         s[0:4:2] = list(range(27))
 
     s = Series(list('abcdef'))
@@ -373,7 +389,7 @@ def test_where_setitem_invalid():
     # neg slices
     s = Series(list('abcdef'))
 
-    with pytest.raises(ValueError):
+    with pytest.raises(ValueError, match=msg.format('slice')):
         s[:-1] = list(range(27))
 
     s[-3:-1] = list(range(2))
@@ -383,12 +399,12 @@ def test_where_setitem_invalid():
     # list
     s = Series(list('abc'))
 
-    with pytest.raises(ValueError):
+    with pytest.raises(ValueError, match=msg.format('list-like')):
         s[[0, 1, 2]] = list(range(27))
 
     s = Series(list('abc'))
 
-    with pytest.raises(ValueError):
+    with pytest.raises(ValueError, match=msg.format('list-like')):
         s[[0, 1, 2]] = list(range(2))
 
     # scalar
@@ -590,8 +606,11 @@ def test_mask():
     rs2 = s2.mask(cond[:3], -s2)
     assert_series_equal(rs, rs2)
 
-    pytest.raises(ValueError, s.mask, 1)
-    pytest.raises(ValueError, s.mask, cond[:3].values, -s)
+    msg = "Array conditional must be same shape as self"
+    with pytest.raises(ValueError, match=msg):
+        s.mask(1)
+    with pytest.raises(ValueError, match=msg):
+        s.mask(cond[:3].values, -s)
 
     # dtype changes
     s = Series([1, 2, 3, 4])

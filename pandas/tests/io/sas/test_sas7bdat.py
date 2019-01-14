@@ -1,12 +1,15 @@
-import pandas as pd
-from pandas.compat import PY2
-import pandas.util.testing as tm
-import pandas.util._test_decorators as td
-from pandas.errors import EmptyDataError
-import os
 import io
+import os
+
 import numpy as np
 import pytest
+
+from pandas.compat import PY2
+from pandas.errors import EmptyDataError
+import pandas.util._test_decorators as td
+
+import pandas as pd
+import pandas.util.testing as tm
 
 
 # https://github.com/cython/cython/issues/1720

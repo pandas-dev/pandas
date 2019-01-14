@@ -3,17 +3,16 @@
 # behave identically.
 from datetime import datetime, timedelta
 
-import pytest
 import numpy as np
-
-import pandas as pd
-import pandas.util.testing as tm
+import pytest
 
 from pandas.errors import NullFrequencyError, PerformanceWarning
+
+import pandas as pd
 from pandas import (
-    timedelta_range,
-    Timedelta, Timestamp, NaT, Series, TimedeltaIndex, DatetimeIndex,
-    DataFrame)
+    DataFrame, DatetimeIndex, NaT, Series, Timedelta, TimedeltaIndex,
+    Timestamp, timedelta_range)
+import pandas.util.testing as tm
 
 
 def get_upcast_box(box, vector):
@@ -1476,7 +1475,7 @@ class TestTimedeltaArraylikeMulDivOps(object):
 
         tdi = TimedeltaIndex(['1 Day'] * 10)
         expected = timedelta_range('1 days', '10 days')
-        expected._eadata._freq = None
+        expected._data.freq = None
 
         tdi = tm.box_expected(tdi, box)
         expected = tm.box_expected(expected, xbox)

@@ -324,7 +324,7 @@ Timedeltas
 
 .. ipython:: python
 
-   t = timedelta_range('1 days 2 hr 13 min 45 us', periods=3, freq='d')
+   t = pd.timedelta_range('1 days 2 hr 13 min 45 us', periods=3, freq='d')
    t
    t.round('10min')
 
@@ -810,8 +810,8 @@ performed with the ``Resampler`` objects with :meth:`~Resampler.backfill`,
 
 .. ipython:: python
 
-   s = pd.Series(np.arange(5,dtype='int64'),
-                 index=date_range('2010-01-01', periods=5, freq='Q'))
+   s = pd.Series(np.arange(5, dtype='int64'),
+                 index=pd.date_range('2010-01-01', periods=5, freq='Q'))
    s
 
 Previously

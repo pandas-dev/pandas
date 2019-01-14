@@ -16,18 +16,19 @@ from pandas.compat.numpy import function as nv
 from pandas.errors import (
     AbstractMethodError, NullFrequencyError, PerformanceWarning)
 from pandas.util._decorators import Appender, Substitution
+from pandas.util._validators import validate_fillna_kwargs
 
 from pandas.core.dtypes.common import (
-    is_bool_dtype, is_categorical_dtype, is_datetime64_any_dtype,
-    is_datetime64_dtype, is_datetime64tz_dtype, is_datetime_or_timedelta_dtype,
-    is_dtype_equal, is_extension_array_dtype, is_float_dtype, is_integer_dtype,
-    is_list_like, is_object_dtype, is_offsetlike, is_period_dtype,
-    is_string_dtype, is_timedelta64_dtype, is_unsigned_integer_dtype,
-    needs_i8_conversion, pandas_dtype)
+    is_categorical_dtype, is_datetime64_any_dtype, is_datetime64_dtype,
+    is_datetime64tz_dtype, is_datetime_or_timedelta_dtype, is_dtype_equal,
+    is_extension_array_dtype, is_float_dtype, is_integer_dtype, is_list_like,
+    is_object_dtype, is_offsetlike, is_period_dtype, is_string_dtype,
+    is_timedelta64_dtype, is_unsigned_integer_dtype, pandas_dtype)
 from pandas.core.dtypes.generic import ABCDataFrame, ABCIndexClass, ABCSeries
+from pandas.core.dtypes.inference import is_array_like
 from pandas.core.dtypes.missing import isna
 
-from pandas.core import nanops
+from pandas.core import missing, nanops
 from pandas.core.algorithms import (
     checked_add_with_arr, take, unique1d, value_counts)
 import pandas.core.common as com
@@ -36,36 +37,6 @@ from pandas.tseries import frequencies
 from pandas.tseries.offsets import DateOffset, Tick
 
 from .base import ExtensionArray, ExtensionOpsMixin
-
-
-def _make_comparison_op(cls, op):
-    # TODO: share code with indexes.base version?  Main difference is that
-    # the block for MultiIndex was removed here.
-    def cmp_method(self, other):
-        if isinstance(other, ABCDataFrame):
-            return NotImplemented
-
-        if isinstance(other, (np.ndarray, ABCIndexClass, ABCSeries)):
-            if other.ndim > 0 and len(self) != len(other):
-                raise ValueError('Lengths must match to compare')
-
-        if needs_i8_conversion(self) and needs_i8_conversion(other):
-            # we may need to directly compare underlying
-            # representations
-            return self._evaluate_compare(other, op)
-
-        # numpy will show a DeprecationWarning on invalid elementwise
-        # comparisons, this will raise in the future
-        with warnings.catch_warnings(record=True):
-            warnings.filterwarnings("ignore", "elementwise", FutureWarning)
-            with np.errstate(all='ignore'):
-                result = op(self._data, np.asarray(other))
-
-        return result
-
-    name = '__{name}__'.format(name=op.__name__)
-    # TODO: docstring?
-    return compat.set_function_name(cmp_method, name, cls)
 
 
 class AttributesMixin(object):
@@ -235,13 +206,17 @@ class TimelikeOps(object):
 
             .. versionadded:: 0.24.0
 
-        nonexistent : 'shift', 'NaT', default 'raise'
+        nonexistent : 'shift_forward', 'shift_backward, 'NaT', timedelta,
+                      default 'raise'
             A nonexistent time does not exist in a particular timezone
             where clocks moved forward due to DST.
 
-            - 'shift' will shift the nonexistent time forward to the closest
-              existing time
+            - 'shift_forward' will shift the nonexistent time forward to the
+              closest existing time
+            - 'shift_backward' will shift the nonexistent time backward to the
+              closest existing time
             - 'NaT' will return NaT where there are nonexistent times
+            - timedelta objects will shift nonexistent times by the timedelta
             - 'raise' will raise an NonExistentTimeError if there are
               nonexistent times
 
@@ -321,12 +296,11 @@ class TimelikeOps(object):
         result = round_nsint64(values, mode, freq)
         result = self._maybe_mask_results(result, fill_value=NaT)
 
-        attribs = self._get_attributes_dict()
-        attribs['freq'] = None
-        if 'tz' in attribs:
-            attribs['tz'] = None
+        dtype = self.dtype
+        if is_datetime64tz_dtype(self):
+            dtype = None
         return self._ensure_localized(
-            self._simple_new(result, **attribs), ambiguous, nonexistent
+            self._simple_new(result, dtype=dtype), ambiguous, nonexistent
         )
 
     @Appender((_round_doc + _round_example).format(op="round"))
@@ -416,6 +390,12 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin,
     def nbytes(self):
         return self._data.nbytes
 
+    def __array__(self, dtype=None):
+        # used for Timedelta/DatetimeArray, overwritten by PeriodArray
+        if is_object_dtype(dtype):
+            return np.array(list(self), dtype=object)
+        return self._data
+
     @property
     def shape(self):
         return (len(self),)
@@ -453,8 +433,6 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin,
             else:
                 key = lib.maybe_booleans_to_slice(key.view(np.uint8))
 
-        attribs = self._get_attributes_dict()
-
         is_period = is_period_dtype(self)
         if is_period:
             freq = self.freq
@@ -470,17 +448,15 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin,
                 #  should preserve `freq` attribute
                 freq = self.freq
 
-        attribs['freq'] = freq
-
         result = getitem(key)
         if result.ndim > 1:
             # To support MPL which performs slicing with 2 dim
             # even though it only has 1 dim by definition
             if is_period:
-                return self._simple_new(result, **attribs)
+                return self._simple_new(result, dtype=self.dtype, freq=freq)
             return result
 
-        return self._simple_new(result, **attribs)
+        return self._simple_new(result, dtype=self.dtype, freq=freq)
 
     def __setitem__(
             self,
@@ -584,10 +560,6 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin,
 
     # ------------------------------------------------------------------
     # ExtensionArray Interface
-    # TODO:
-    #   * _from_sequence
-    #   * argsort / _values_for_argsort
-    #   * _reduce
 
     def unique(self):
         result = unique1d(self.asi8)
@@ -634,7 +606,7 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin,
 
     def copy(self, deep=False):
         values = self.asi8.copy()
-        return type(self)(values, dtype=self.dtype, freq=self.freq)
+        return type(self)._simple_new(values, dtype=self.dtype, freq=self.freq)
 
     def _values_for_factorize(self):
         return self.asi8, iNaT
@@ -786,6 +758,52 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin,
                 fill_value = np.nan
             result[self._isnan] = fill_value
         return result
+
+    def fillna(self, value=None, method=None, limit=None):
+        # TODO(GH-20300): remove this
+        # Just overriding to ensure that we avoid an astype(object).
+        # Either 20300 or a `_values_for_fillna` would avoid this duplication.
+        if isinstance(value, ABCSeries):
+            value = value.array
+
+        value, method = validate_fillna_kwargs(value, method)
+
+        mask = self.isna()
+
+        if is_array_like(value):
+            if len(value) != len(self):
+                raise ValueError("Length of 'value' does not match. Got ({}) "
+                                 " expected {}".format(len(value), len(self)))
+            value = value[mask]
+
+        if mask.any():
+            if method is not None:
+                if method == 'pad':
+                    func = missing.pad_1d
+                else:
+                    func = missing.backfill_1d
+
+                values = self._data
+                if not is_period_dtype(self):
+                    # For PeriodArray self._data is i8, which gets copied
+                    #  by `func`.  Otherwise we need to make a copy manually
+                    # to avoid modifying `self` in-place.
+                    values = values.copy()
+
+                new_values = func(values, limit=limit,
+                                  mask=mask)
+                if is_datetime64tz_dtype(self):
+                    # we need to pass int64 values to the constructor to avoid
+                    #  re-localizing incorrectly
+                    new_values = new_values.view("i8")
+                new_values = type(self)(new_values, dtype=self.dtype)
+            else:
+                # fill with value
+                new_values = self.copy()
+                new_values[mask] = value
+        else:
+            new_values = self.copy()
+        return new_values
 
     # ------------------------------------------------------------------
     # Frequency Properties/Methods
@@ -1114,9 +1132,10 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin,
         left = lib.values_from_object(self.astype('O'))
 
         res_values = op(left, np.array(other))
+        kwargs = {}
         if not is_period_dtype(self):
-            return type(self)(res_values, freq='infer')
-        return self._from_sequence(res_values)
+            kwargs['freq'] = 'infer'
+        return self._from_sequence(res_values, **kwargs)
 
     def _time_shift(self, periods, freq=None):
         """
@@ -1210,9 +1229,9 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin,
             return NotImplemented
 
         if is_timedelta64_dtype(result) and isinstance(result, np.ndarray):
-            from pandas.core.arrays import TimedeltaArrayMixin
+            from pandas.core.arrays import TimedeltaArray
             # TODO: infer freq?
-            return TimedeltaArrayMixin(result)
+            return TimedeltaArray(result)
         return result
 
     def __radd__(self, other):
@@ -1277,9 +1296,9 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin,
             return NotImplemented
 
         if is_timedelta64_dtype(result) and isinstance(result, np.ndarray):
-            from pandas.core.arrays import TimedeltaArrayMixin
+            from pandas.core.arrays import TimedeltaArray
             # TODO: infer freq?
-            return TimedeltaArrayMixin(result)
+            return TimedeltaArray(result)
         return result
 
     def __rsub__(self, other):
@@ -1288,8 +1307,8 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin,
             # we need to wrap in DatetimeArray/Index and flip the operation
             if not isinstance(other, DatetimeLikeArrayMixin):
                 # Avoid down-casting DatetimeIndex
-                from pandas.core.arrays import DatetimeArrayMixin
-                other = DatetimeArrayMixin(other)
+                from pandas.core.arrays import DatetimeArray
+                other = DatetimeArray(other)
             return other - self
         elif (is_datetime64_any_dtype(self) and hasattr(other, 'dtype') and
               not is_datetime64_any_dtype(other)):
@@ -1316,41 +1335,6 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin,
 
     # --------------------------------------------------------------
     # Comparison Methods
-
-    # Called by _add_comparison_methods defined in ExtensionOpsMixin
-    _create_comparison_method = classmethod(_make_comparison_op)
-
-    def _evaluate_compare(self, other, op):
-        """
-        We have been called because a comparison between
-        8 aware arrays. numpy will warn about NaT comparisons
-        """
-        # Called by comparison methods when comparing datetimelike
-        # with datetimelike
-
-        if not isinstance(other, type(self)):
-            # coerce to a similar object
-            if not is_list_like(other):
-                # scalar
-                other = [other]
-            elif lib.is_scalar(lib.item_from_zerodim(other)):
-                # ndarray scalar
-                other = [other.item()]
-            other = type(self)._from_sequence(other)
-
-        # compare
-        result = op(self.asi8, other.asi8)
-
-        # technically we could support bool dtyped Index
-        # for now just return the indexing array directly
-        mask = (self._isnan) | (other._isnan)
-
-        filler = iNaT
-        if is_bool_dtype(result):
-            filler = False
-
-        result[mask] = filler
-        return result
 
     def _ensure_localized(self, arg, ambiguous='raise', nonexistent='raise',
                           from_utc=False):
@@ -1450,9 +1434,6 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin,
         result = nanops.nanmax(values, skipna=skipna)
         # Don't have to worry about NA `result`, since no NA went in.
         return self._box_func(result)
-
-
-DatetimeLikeArrayMixin._add_comparison_ops()
 
 
 # -------------------------------------------------------------------

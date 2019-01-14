@@ -155,7 +155,7 @@ class TestObjectEngine(object):
         new = np.array(list('abcdefghij'), dtype=self.dtype)
         result = engine.get_backfill_indexer(new)
 
-        expected = libalgos.backfill_object(arr, new)
+        expected = libalgos.backfill["object"](arr, new)
         tm.assert_numpy_array_equal(result, expected)
 
     def test_get_pad_indexer(self):
@@ -165,5 +165,5 @@ class TestObjectEngine(object):
         new = np.array(list('abcdefghij'), dtype=self.dtype)
         result = engine.get_pad_indexer(new)
 
-        expected = libalgos.pad_object(arr, new)
+        expected = libalgos.pad["object"](arr, new)
         tm.assert_numpy_array_equal(result, expected)

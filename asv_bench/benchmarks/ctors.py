@@ -3,26 +3,68 @@ import pandas.util.testing as tm
 from pandas import Series, Index, DatetimeIndex, Timestamp, MultiIndex
 
 
+def no_change(arr):
+    return arr
+
+
+def list_of_str(arr):
+    return list(arr.astype(str))
+
+
+def gen_of_str(arr):
+    return (x for x in arr.astype(str))
+
+
+def arr_dict(arr):
+    return dict(zip(range(len(arr)), arr))
+
+
+def list_of_tuples(arr):
+    return [(i, -i) for i in arr]
+
+
+def gen_of_tuples(arr):
+    return ((i, -i) for i in arr)
+
+
+def list_of_lists(arr):
+    return [[i, -i] for i in arr]
+
+
+def list_of_tuples_with_none(arr):
+    return [(i, -i) for i in arr][:-1] + [None]
+
+
+def list_of_lists_with_none(arr):
+    return [[i, -i] for i in arr][:-1] + [None]
+
+
 class SeriesConstructors(object):
 
-    param_names = ["data_fmt", "with_index"]
-    params = [[lambda x: x,
+    param_names = ["data_fmt", "with_index", "dtype"]
+    params = [[no_change,
                list,
-               lambda arr: list(arr.astype(str)),
-               lambda arr: dict(zip(range(len(arr)), arr)),
-               lambda arr: [(i, -i) for i in arr],
-               lambda arr: [[i, -i] for i in arr],
-               lambda arr: ([(i, -i) for i in arr][:-1] + [None]),
-               lambda arr: ([[i, -i] for i in arr][:-1] + [None])],
-              [False, True]]
+               list_of_str,
+               gen_of_str,
+               arr_dict,
+               list_of_tuples,
+               gen_of_tuples,
+               list_of_lists,
+               list_of_tuples_with_none,
+               list_of_lists_with_none],
+              [False, True],
+              ['float', 'int']]
 
-    def setup(self, data_fmt, with_index):
+    def setup(self, data_fmt, with_index, dtype):
         N = 10**4
-        arr = np.random.randn(N)
+        if dtype == 'float':
+            arr = np.random.randn(N)
+        else:
+            arr = np.arange(N)
         self.data = data_fmt(arr)
         self.index = np.arange(N) if with_index else None
 
-    def time_series_constructor(self, data_fmt, with_index):
+    def time_series_constructor(self, data_fmt, with_index, dtype):
         Series(self.data, index=self.index)
 
 

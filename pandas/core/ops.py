@@ -1539,16 +1539,19 @@ def _arith_method_SERIES(cls, op, special):
             raise TypeError("{typ} cannot perform the operation "
                             "{op}".format(typ=type(left).__name__, op=str_rep))
 
-        elif (is_extension_array_dtype(left) or
-                (is_extension_array_dtype(right) and not is_scalar(right))):
-            # GH#22378 disallow scalar to exclude e.g. "category", "Int64"
-            return dispatch_to_extension_op(op, left, right)
-
         elif is_datetime64_dtype(left) or is_datetime64tz_dtype(left):
+            # Give dispatch_to_index_op a chance for tests like
+            # test_dt64_series_add_intlike, which the index dispatching handles
+            # specifically.
             result = dispatch_to_index_op(op, left, right, pd.DatetimeIndex)
             return construct_result(left, result,
                                     index=left.index, name=res_name,
                                     dtype=result.dtype)
+
+        elif (is_extension_array_dtype(left) or
+                (is_extension_array_dtype(right) and not is_scalar(right))):
+            # GH#22378 disallow scalar to exclude e.g. "category", "Int64"
+            return dispatch_to_extension_op(op, left, right)
 
         elif is_timedelta64_dtype(left):
             result = dispatch_to_index_op(op, left, right, pd.TimedeltaIndex)

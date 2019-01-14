@@ -357,7 +357,7 @@ def _stata_elapsed_date_to_datetime_vec(dates, fmt):
         month = np.ones_like(dates)
         conv_dates = convert_year_month_safe(year, month)
     else:
-        raise ValueError("Date fmt %s not understood" % fmt)
+        raise ValueError("Date fmt {fmt} not understood".format(fmt=fmt))
 
     if has_bad_values:  # Restore NaT for bad values
         conv_dates[bad_locs] = NaT
@@ -396,7 +396,7 @@ def _datetime_to_stata_elapsed_vec(dates, fmt):
                         to_datetime(d['year'], format='%Y').astype(np.int64))
                 d['days'] = days // NS_PER_DAY
 
-        elif infer_dtype(dates) == 'datetime':
+        elif infer_dtype(dates, skipna=False) == 'datetime':
             if delta:
                 delta = dates.values - stata_epoch
                 f = lambda x: \
@@ -452,7 +452,8 @@ def _datetime_to_stata_elapsed_vec(dates, fmt):
         d = parse_dates_safe(dates, year=True)
         conv_dates = d.year
     else:
-        raise ValueError("Format %s is not a known Stata date format" % fmt)
+        raise ValueError(
+            "Format {fmt} is not a known Stata date format".format(fmt=fmt))
 
     conv_dates = Series(conv_dates, dtype=np.float64)
     missing_value = struct.unpack('<d', b'\x00\x00\x00\x00\x00\x00\xe0\x7f')[0]
@@ -813,7 +814,7 @@ class StataMissingValue(StringMixin):
 
     def __repr__(self):
         # not perfect :-/
-        return "%s(%s)" % (self.__class__, self)
+        return "{cls}({obj})".format(cls=self.__class__, obj=self)
 
     def __eq__(self, other):
         return (isinstance(other, self.__class__) and
@@ -1629,7 +1630,8 @@ class StataReader(StataParser, BaseIterator):
                 continue
 
             if convert_missing:  # Replacement follows Stata notation
-                missing_loc = np.argwhere(missing)
+
+                missing_loc = np.argwhere(missing._ndarray_values)
                 umissing, umissing_loc = np.unique(series[missing],
                                                    return_inverse=True)
                 replacement = Series(series, dtype=np.object)
@@ -1770,7 +1772,8 @@ def _set_endianness(endianness):
     elif endianness.lower() in [">", "big"]:
         return ">"
     else:  # pragma : no cover
-        raise ValueError("Endianness %s not understood" % endianness)
+        raise ValueError(
+            "Endianness {endian} not understood".format(endian=endianness))
 
 
 def _pad_bytes(name, length):
@@ -1788,7 +1791,8 @@ def _convert_datetime_to_stata_type(fmt):
                "%tq", "th", "%th", "ty", "%ty"]:
         return np.float64  # Stata expects doubles for SIFs
     else:
-        raise NotImplementedError("Format %s not implemented" % fmt)
+        raise NotImplementedError(
+            "Format {fmt} not implemented".format(fmt=fmt))
 
 
 def _maybe_convert_to_int_keys(convert_dates, varlist):
@@ -1839,7 +1843,8 @@ def _dtype_to_stata_type(dtype, column):
     elif dtype == np.int8:
         return 251
     else:  # pragma : no cover
-        raise NotImplementedError("Data type %s not supported." % dtype)
+        raise NotImplementedError(
+            "Data type {dtype} not supported.".format(dtype=dtype))
 
 
 def _dtype_to_default_stata_fmt(dtype, column, dta_version=114,
@@ -1867,7 +1872,7 @@ def _dtype_to_default_stata_fmt(dtype, column, dta_version=114,
         if force_strl:
             return '%9s'
     if dtype.type == np.object_:
-        inferred_dtype = infer_dtype(column.dropna())
+        inferred_dtype = infer_dtype(column, skipna=True)
         if not (inferred_dtype in ('string', 'unicode') or
                 len(column) == 0):
             raise ValueError('Column `{col}` cannot be exported.\n\nOnly '
@@ -1894,7 +1899,8 @@ def _dtype_to_default_stata_fmt(dtype, column, dta_version=114,
     elif dtype == np.int8 or dtype == np.int16:
         return "%8.0g"
     else:  # pragma : no cover
-        raise NotImplementedError("Data type %s not supported." % dtype)
+        raise NotImplementedError(
+            "Data type {dtype} not supported.".format(dtype=dtype))
 
 
 class StataWriter(StataParser):
@@ -2388,7 +2394,7 @@ class StataWriter(StataParser):
             if typ <= self._max_string_length:
                 has_strings = True
                 data[col] = data[col].fillna('').apply(_pad_bytes, args=(typ,))
-                stype = 'S%d' % typ
+                stype = 'S{type}'.format(type=typ)
                 dtypes.append(('c' + str(i), stype))
                 string = data[col].str.encode(self._encoding)
                 data_cols.append(string.values.astype(stype))

@@ -1874,7 +1874,7 @@ has multiplied span.
 
 .. ipython:: python
 
-   pd.PeriodIndex(start='2014-01', freq='3M', periods=4)
+   pd.period_range(start='2014-01', freq='3M', periods=4)
 
 If ``start`` or ``end`` are ``Period`` objects, they will be used as anchor
 endpoints for a ``PeriodIndex`` with frequency matching that of the
@@ -1882,8 +1882,8 @@ endpoints for a ``PeriodIndex`` with frequency matching that of the
 
 .. ipython:: python
 
-   pd.PeriodIndex(start=pd.Period('2017Q1', freq='Q'),
-                  end=pd.Period('2017Q2', freq='Q'), freq='M')
+   pd.period_range(start=pd.Period('2017Q1', freq='Q'),
+                   end=pd.Period('2017Q2', freq='Q'), freq='M')
 
 Just like ``DatetimeIndex``, a ``PeriodIndex`` can also be used to index pandas
 objects:
@@ -2351,9 +2351,11 @@ A DST transition may also shift the local time ahead by 1 hour creating nonexist
 local times. The behavior of localizing a timeseries with nonexistent times
 can be controlled by the ``nonexistent`` argument. The following options are available:
 
-* ``raise``: Raises a ``pytz.NonExistentTimeError`` (the default behavior)
-* ``NaT``: Replaces nonexistent times with ``NaT``
-* ``shift``: Shifts nonexistent times forward to the closest real time
+* ``'raise'``: Raises a ``pytz.NonExistentTimeError`` (the default behavior)
+* ``'NaT'``: Replaces nonexistent times with ``NaT``
+* ``'shift_forward'``: Shifts nonexistent times forward to the closest real time
+* ``'shift_backward'``: Shifts nonexistent times backward to the closest real time
+* timedelta object: Shifts nonexistent times by the timedelta duration
 
 .. ipython:: python
 
@@ -2367,12 +2369,14 @@ Localization of nonexistent times will raise an error by default.
    In [2]: dti.tz_localize('Europe/Warsaw')
    NonExistentTimeError: 2015-03-29 02:30:00
 
-Transform nonexistent times to ``NaT`` or the closest real time forward in time.
+Transform nonexistent times to ``NaT`` or shift the times.
 
 .. ipython:: python
 
     dti
-    dti.tz_localize('Europe/Warsaw', nonexistent='shift')
+    dti.tz_localize('Europe/Warsaw', nonexistent='shift_forward')
+    dti.tz_localize('Europe/Warsaw', nonexistent='shift_backward')
+    dti.tz_localize('Europe/Warsaw', nonexistent=pd.Timedelta(1, unit='H'))
     dti.tz_localize('Europe/Warsaw', nonexistent='NaT')
 
 
@@ -2421,21 +2425,25 @@ a convert on an aware stamp.
 .. note::
 
    Using :meth:`Series.to_numpy` on a ``Series``, returns a NumPy array of the data.
-   These values are converted to UTC, as NumPy does not currently support timezones (even though it is *printing* in the local timezone!).
+   NumPy does not currently support timezones (even though it is *printing* in the local timezone!),
+   therefore an object array of Timestamps is returned for timezone aware data:
 
    .. ipython:: python
 
       s_naive.to_numpy()
       s_aware.to_numpy()
 
-   Further note that once converted to a NumPy array these would lose the tz tenor.
+   By converting to an object array of Timestamps, it preserves the timezone
+   information. For example, when converting back to a Series:
 
    .. ipython:: python
 
       pd.Series(s_aware.to_numpy())
 
-   However, these can be easily converted:
+   However, if you want an actual NumPy ``datetime64[ns]`` array (with the values
+   converted to UTC) instead of an array of objects, you can specify the
+   ``dtype`` argument:
 
    .. ipython:: python
 
-      pd.Series(s_aware.to_numpy()).dt.tz_localize('UTC').dt.tz_convert('US/Eastern')
+      s_aware.to_numpy(dtype='datetime64[ns]')

@@ -1,17 +1,20 @@
 """ test parquet compat """
-import os
-
-import pytest
 import datetime
 from distutils.version import LooseVersion
+import os
 from warnings import catch_warnings
 
 import numpy as np
-import pandas as pd
+import pytest
+
 from pandas.compat import PY3
-from pandas.io.parquet import (to_parquet, read_parquet, get_engine,
-                               PyArrowImpl, FastParquetImpl)
+import pandas.util._test_decorators as td
+
+import pandas as pd
 from pandas.util import testing as tm
+
+from pandas.io.parquet import (
+    FastParquetImpl, PyArrowImpl, get_engine, read_parquet, to_parquet)
 
 try:
     import pyarrow  # noqa
@@ -53,15 +56,6 @@ def pa():
 def fp():
     if not _HAVE_FASTPARQUET:
         pytest.skip("fastparquet is not installed")
-    return 'fastparquet'
-
-
-@pytest.fixture
-def fp_lt_014():
-    if not _HAVE_FASTPARQUET:
-        pytest.skip("fastparquet is not installed")
-    if LooseVersion(fastparquet.__version__) >= LooseVersion('0.1.4'):
-        pytest.skip("fastparquet is >= 0.1.4")
     return 'fastparquet'
 
 
@@ -467,6 +461,7 @@ class TestParquetPyArrow(Base):
 
 class TestParquetFastParquet(Base):
 
+    @td.skip_if_no('fastparquet', min_version="0.2.1")
     def test_basic(self, fp, df_full):
         df = df_full
 
@@ -505,16 +500,6 @@ class TestParquetFastParquet(Base):
             pytest.skip("CategoricalDtype not supported for older fp")
         df = pd.DataFrame({'a': pd.Categorical(list('abc'))})
         check_round_trip(df, fp)
-
-    def test_datetime_tz(self, fp_lt_014):
-
-        # fastparquet<0.1.4 doesn't preserve tz
-        df = pd.DataFrame({'a': pd.date_range('20130101', periods=3,
-                                              tz='US/Eastern')})
-        # warns on the coercion
-        with catch_warnings(record=True):
-            check_round_trip(df, fp_lt_014,
-                             expected=df.astype('datetime64[ns]'))
 
     def test_filter_row_groups(self, fp):
         d = {'a': list(range(0, 3))}

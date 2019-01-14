@@ -7,19 +7,19 @@ import operator
 import numpy as np
 import pytest
 
-import pandas as pd
-import pandas.util.testing as tm
-
 from pandas._libs.tslibs.period import IncompatibleFrequency
 from pandas.errors import PerformanceWarning
 
+import pandas as pd
+from pandas import Period, PeriodIndex, Series, period_range
 from pandas.core import ops
-from pandas import Period, PeriodIndex, period_range, Series
-from pandas.tseries.frequencies import to_offset
+import pandas.util.testing as tm
 
+from pandas.tseries.frequencies import to_offset
 
 # ------------------------------------------------------------------
 # Comparisons
+
 
 class TestPeriodIndexComparisons(object):
 
@@ -152,7 +152,10 @@ class TestPeriodIndexComparisons(object):
 
         # TODO: Could parametrize over boxes for idx?
         idx = PeriodIndex(['2011', '2012', '2013', '2014'], freq='A')
-        with pytest.raises(IncompatibleFrequency, match=msg):
+        rev_msg = (r'Input has different freq=(M|2M|3M) from '
+                   r'PeriodArray\(freq=A-DEC\)')
+        idx_msg = rev_msg if box_with_array is tm.to_array else msg
+        with pytest.raises(IncompatibleFrequency, match=idx_msg):
             base <= idx
 
         # Different frequency
@@ -164,7 +167,10 @@ class TestPeriodIndexComparisons(object):
             Period('2011', freq='4M') >= base
 
         idx = PeriodIndex(['2011', '2012', '2013', '2014'], freq='4M')
-        with pytest.raises(IncompatibleFrequency, match=msg):
+        rev_msg = (r'Input has different freq=(M|2M|3M) from '
+                   r'PeriodArray\(freq=4M\)')
+        idx_msg = rev_msg if box_with_array is tm.to_array else msg
+        with pytest.raises(IncompatibleFrequency, match=idx_msg):
             base <= idx
 
     @pytest.mark.parametrize('freq', ['M', '2M', '3M'])

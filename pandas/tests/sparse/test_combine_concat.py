@@ -1,11 +1,13 @@
 # pylint: disable-msg=E1101,W0612
-import pytest
+import itertools
 
 import numpy as np
+import pytest
+
+from pandas.errors import PerformanceWarning
+
 import pandas as pd
 import pandas.util.testing as tm
-from pandas.errors import PerformanceWarning
-import itertools
 
 
 class TestSparseArrayConcat(object):

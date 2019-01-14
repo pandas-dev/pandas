@@ -1,11 +1,12 @@
 import numpy as np
 import pytest
 
-import pandas as pd
-import pandas.util.testing as tm
-from pandas import SparseArray, SparseDtype
 from pandas.errors import PerformanceWarning
+
+import pandas as pd
+from pandas import SparseArray, SparseDtype
 from pandas.tests.extension import base
+import pandas.util.testing as tm
 
 
 def make_data(fill_value):
@@ -359,3 +360,11 @@ class TestPrinting(BaseSparseTests, base.BasePrintingTests):
     @pytest.mark.xfail(reason='Different repr', strict=True)
     def test_array_repr(self, data, size):
         super(TestPrinting, self).test_array_repr(data, size)
+
+
+class TestParsing(BaseSparseTests, base.BaseParsingTests):
+    @pytest.mark.parametrize('engine', ['c', 'python'])
+    def test_EA_types(self, engine, data):
+        expected_msg = r'.*must implement _from_sequence_of_strings.*'
+        with pytest.raises(NotImplementedError, match=expected_msg):
+            super(TestParsing, self).test_EA_types(engine, data)

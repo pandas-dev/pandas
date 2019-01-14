@@ -5,7 +5,7 @@ import pytest
 
 import pandas as pd
 from pandas import Timedelta, TimedeltaIndex, timedelta_range, to_timedelta
-from pandas.core.arrays import TimedeltaArrayMixin as TimedeltaArray
+from pandas.core.arrays import TimedeltaArray
 import pandas.util.testing as tm
 
 
@@ -26,7 +26,7 @@ class TestTimedeltaIndex(object):
         #  and copy=False
         arr = np.arange(10, dtype=np.int64)
         tdi = TimedeltaIndex(arr, copy=False)
-        assert tdi._data.base is arr
+        assert tdi._data._data.base is arr
 
     def test_infer_from_tdi(self):
         # GH#23539

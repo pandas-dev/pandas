@@ -36,6 +36,7 @@ from pandas._libs.tslibs.nattype import nat_strings
 from pandas._libs.tslibs.nattype cimport (
     checknull_with_nat, NPY_NAT, c_NaT as NaT)
 from pandas._libs.tslibs.offsets cimport to_offset
+from pandas._libs.tslibs.offsets import _Tick as Tick
 
 # ----------------------------------------------------------------------
 # Constants
@@ -757,7 +758,7 @@ cdef class _Timedelta(timedelta):
 
         if isinstance(other, _Timedelta):
             ots = other
-        elif PyDelta_Check(other):
+        elif PyDelta_Check(other) or isinstance(other, Tick):
             ots = Timedelta(other)
         else:
             ndim = getattr(other, "ndim", -1)
