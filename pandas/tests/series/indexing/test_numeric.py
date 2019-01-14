@@ -96,7 +96,7 @@ def test_delitem():
     # empty
     s = Series()
 
-    with pytest.raises(KeyError):
+    with pytest.raises(KeyError, match=r"^0$"):
         del s[0]
 
     # only 1 left, del, add, del
@@ -150,8 +150,12 @@ def test_slice_float64():
 def test_getitem_negative_out_of_bounds():
     s = Series(tm.rands_array(5, 10), index=tm.rands_array(10, 10))
 
-    pytest.raises(IndexError, s.__getitem__, -11)
-    pytest.raises(IndexError, s.__setitem__, -11, 'foo')
+    msg = "index out of bounds"
+    with pytest.raises(IndexError, match=msg):
+        s[-11]
+    msg = "index -11 is out of bounds for axis 0 with size 10"
+    with pytest.raises(IndexError, match=msg):
+        s[-11] = 'foo'
 
 
 def test_getitem_regression():
@@ -203,13 +207,19 @@ def test_setitem_float_labels():
 
 
 def test_slice_float_get_set(test_data):
-    pytest.raises(TypeError, lambda: test_data.ts[4.0:10.0])
+    msg = (r"cannot do slice indexing on <class 'pandas\.core\.indexes"
+           r"\.datetimes\.DatetimeIndex'> with these indexers \[{key}\]"
+           r" of <(class|type) 'float'>")
+    with pytest.raises(TypeError, match=msg.format(key=r"4\.0")):
+        test_data.ts[4.0:10.0]
 
-    with pytest.raises(TypeError):
+    with pytest.raises(TypeError, match=msg.format(key=r"4\.0")):
         test_data.ts[4.0:10.0] = 0
 
-    pytest.raises(TypeError, test_data.ts.__getitem__, slice(4.5, 10.0))
-    pytest.raises(TypeError, test_data.ts.__setitem__, slice(4.5, 10.0), 0)
+    with pytest.raises(TypeError, match=msg.format(key=r"4\.5")):
+        test_data.ts[4.5:10.0]
+    with pytest.raises(TypeError, match=msg.format(key=r"4\.5")):
+        test_data.ts[4.5:10.0] = 0
 
 
 def test_slice_floats2():
@@ -228,16 +238,20 @@ def test_slice_floats2():
 def test_int_indexing():
     s = Series(np.random.randn(6), index=[0, 0, 1, 1, 2, 2])
 
-    pytest.raises(KeyError, s.__getitem__, 5)
+    with pytest.raises(KeyError, match=r"^5$"):
+        s[5]
 
-    pytest.raises(KeyError, s.__getitem__, 'c')
+    with pytest.raises(KeyError, match=r"^'c'$"):
+        s['c']
 
     # not monotonic
     s = Series(np.random.randn(6), index=[2, 2, 0, 0, 1, 1])
 
-    pytest.raises(KeyError, s.__getitem__, 5)
+    with pytest.raises(KeyError, match=r"^5$"):
+        s[5]
 
-    pytest.raises(KeyError, s.__getitem__, 'c')
+    with pytest.raises(KeyError, match=r"^'c'$"):
+        s['c']
 
 
 def test_getitem_int64(test_data):
