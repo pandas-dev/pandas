@@ -495,7 +495,7 @@ class TestConcatAppendCommon(ConcatenateBase):
         s1 = pd.Series([10, 11, np.nan], dtype='category')
         s2 = pd.Series([np.nan, 1, 3, 2], dtype='category')
 
-        exp = pd.Series([10, 11, np.nan, np.nan, 1, 3, 2])
+        exp = pd.Series([10, 11, np.nan, np.nan, 1, 3, 2], dtype='object')
         tm.assert_series_equal(pd.concat([s1, s2], ignore_index=True), exp)
         tm.assert_series_equal(s1.append(s2, ignore_index=True), exp)
 
@@ -515,12 +515,12 @@ class TestConcatAppendCommon(ConcatenateBase):
         s1 = pd.Series([1, 2, np.nan], dtype='category')
         s2 = pd.Series([2, 1, 2])
 
-        exp = pd.Series([1, 2, np.nan, 2, 1, 2])
+        exp = pd.Series([1, 2, np.nan, 2, 1, 2], dtype='object')
         tm.assert_series_equal(pd.concat([s1, s2], ignore_index=True), exp)
         tm.assert_series_equal(s1.append(s2, ignore_index=True), exp)
 
         # result shouldn't be affected by 1st elem dtype
-        exp = pd.Series([2, 1, 2, 1, 2, np.nan])
+        exp = pd.Series([2, 1, 2, 1, 2, np.nan], dtype='object')
         tm.assert_series_equal(pd.concat([s2, s1], ignore_index=True), exp)
         tm.assert_series_equal(s2.append(s1, ignore_index=True), exp)
 
@@ -540,11 +540,11 @@ class TestConcatAppendCommon(ConcatenateBase):
         s1 = pd.Series([10, 11, np.nan], dtype='category')
         s2 = pd.Series([1, 3, 2])
 
-        exp = pd.Series([10, 11, np.nan, 1, 3, 2])
+        exp = pd.Series([10, 11, np.nan, 1, 3, 2], dtype='object')
         tm.assert_series_equal(pd.concat([s1, s2], ignore_index=True), exp)
         tm.assert_series_equal(s1.append(s2, ignore_index=True), exp)
 
-        exp = pd.Series([1, 3, 2, 10, 11, np.nan])
+        exp = pd.Series([1, 3, 2, 10, 11, np.nan], dtype='object')
         tm.assert_series_equal(pd.concat([s2, s1], ignore_index=True), exp)
         tm.assert_series_equal(s2.append(s1, ignore_index=True), exp)
 
@@ -580,11 +580,13 @@ class TestConcatAppendCommon(ConcatenateBase):
         s2 = pd.Series([2, 1, 2], dtype='category')
         s3 = pd.Series([1, 2, 1, 2, np.nan])
 
-        exp = pd.Series([1, 2, np.nan, 2, 1, 2, 1, 2, 1, 2, np.nan])
+        exp = pd.Series([1, 2, np.nan, 2, 1, 2, 1, 2, 1, 2, np.nan],
+                        dtype='object')
         tm.assert_series_equal(pd.concat([s1, s2, s3], ignore_index=True), exp)
         tm.assert_series_equal(s1.append([s2, s3], ignore_index=True), exp)
 
-        exp = pd.Series([1, 2, 1, 2, np.nan, 1, 2, np.nan, 2, 1, 2])
+        exp = pd.Series([1, 2, 1, 2, np.nan, 1, 2, np.nan, 2, 1, 2],
+                        dtype='object')
         tm.assert_series_equal(pd.concat([s3, s1, s2], ignore_index=True), exp)
         tm.assert_series_equal(s3.append([s1, s2], ignore_index=True), exp)
 
@@ -668,7 +670,7 @@ class TestConcatAppendCommon(ConcatenateBase):
         s1 = pd.Series([1, np.nan], dtype='category')
         s2 = pd.Series([np.nan, np.nan])
 
-        exp = pd.Series([1, np.nan, np.nan, np.nan])
+        exp = pd.Series([1, np.nan, np.nan, np.nan], dtype='object')
         tm.assert_series_equal(pd.concat([s1, s2], ignore_index=True), exp)
         tm.assert_series_equal(s1.append(s2, ignore_index=True), exp)
 

@@ -65,14 +65,17 @@ class TestSeriesMissingData():
         td = s.diff()
 
         # reg fillna
-        result = td.fillna(0)
+        with tm.assert_produces_warning(FutureWarning):
+            result = td.fillna(0)
         expected = Series([timedelta(0), timedelta(0), timedelta(1),
                            timedelta(days=1, seconds=9 * 3600 + 60 + 1)])
         assert_series_equal(result, expected)
 
-        # interprested as seconds
-        result = td.fillna(1)
-        expected = Series([timedelta(seconds=1), timedelta(0), timedelta(1),
+        # interpreted as seconds, deprecated
+        with tm.assert_produces_warning(FutureWarning):
+            result = td.fillna(1)
+        expected = Series([timedelta(seconds=1),
+                           timedelta(0), timedelta(1),
                            timedelta(days=1, seconds=9 * 3600 + 60 + 1)])
         assert_series_equal(result, expected)
 
@@ -96,14 +99,16 @@ class TestSeriesMissingData():
         # ffill
         td[2] = np.nan
         result = td.ffill()
-        expected = td.fillna(0)
+        with tm.assert_produces_warning(FutureWarning):
+            expected = td.fillna(0)
         expected[0] = np.nan
         assert_series_equal(result, expected)
 
         # bfill
         td[2] = np.nan
         result = td.bfill()
-        expected = td.fillna(0)
+        with tm.assert_produces_warning(FutureWarning):
+            expected = td.fillna(0)
         expected[2] = timedelta(days=1, seconds=9 * 3600 + 60 + 1)
         assert_series_equal(result, expected)
 
@@ -1324,3 +1329,9 @@ class TestSeriesInterpolateData():
         result = ts.reindex(new_index).interpolate(method='time')
 
         tm.assert_numpy_array_equal(result.values, exp.values)
+
+    def test_nonzero_warning(self):
+        # GH 24048
+        ser = pd.Series([1, 0, 3, 4])
+        with tm.assert_produces_warning(FutureWarning):
+            ser.nonzero()

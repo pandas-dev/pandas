@@ -2168,7 +2168,7 @@ class TestDataFrameIndexing(TestData):
 
         def verify_first_level(df, level, idx, check_index_type=True):
             def f(val):
-                return np.nonzero(df[level] == val)[0]
+                return np.nonzero((df[level] == val).to_numpy())[0]
             i = np.concatenate(list(map(f, idx)))
             left = df.set_index(icol).reindex(idx, level=level)
             right = df.iloc[i].set_index(icol)
@@ -3245,9 +3245,7 @@ class TestDataFrameIndexingDatetimeWithTZ(TestData):
         b1 = df._data.blocks[1]
         b2 = df._data.blocks[2]
         tm.assert_extension_array_equal(b1.values, b2.values)
-        if b1.values._data.base is not None:
-            # base being None suffices to assure a copy was made
-            assert id(b1.values._data.base) != id(b2.values._data.base)
+        assert id(b1.values._data.base) != id(b2.values._data.base)
 
         # with nan
         df2 = df.copy()

@@ -6,19 +6,19 @@ from decimal import Decimal
 from itertools import combinations
 import operator
 
-import pytest
 import numpy as np
-
-import pandas as pd
-import pandas.util.testing as tm
+import pytest
 
 from pandas.compat import PY3, Iterable
-from pandas.core import ops
-from pandas import Timedelta, Series, Index, TimedeltaIndex
 
+import pandas as pd
+from pandas import Index, Series, Timedelta, TimedeltaIndex
+from pandas.core import ops
+import pandas.util.testing as tm
 
 # ------------------------------------------------------------------
 # Comparisons
+
 
 class TestNumericComparisons(object):
     def test_operator_series_comparison_zerorank(self):
@@ -149,10 +149,6 @@ class TestNumericArraylikeArithmeticWithTimedeltaLike(object):
         tm.assert_equal(commute, expected)
 
     def test_numeric_arr_rdiv_tdscalar(self, three_days, numeric_idx, box):
-
-        if box is not pd.Index and isinstance(three_days, pd.offsets.Tick):
-            raise pytest.xfail("Tick division not implemented")
-
         index = numeric_idx[1:3]
 
         expected = TimedeltaIndex(['3 Days', '36 Hours'])

@@ -17,7 +17,8 @@ from pandas.core.dtypes.common import (
     _TD_DTYPE, ensure_object, is_datetime64_dtype, is_float_dtype,
     is_list_like, is_period_dtype, pandas_dtype)
 from pandas.core.dtypes.dtypes import PeriodDtype
-from pandas.core.dtypes.generic import ABCIndexClass, ABCPeriodIndex, ABCSeries
+from pandas.core.dtypes.generic import (
+    ABCDataFrame, ABCIndexClass, ABCPeriodIndex, ABCSeries)
 from pandas.core.dtypes.missing import isna, notna
 
 import pandas.core.algorithms as algos
@@ -48,16 +49,12 @@ def _period_array_cmp(cls, op):
 
     def wrapper(self, other):
         op = getattr(self.asi8, opname)
-        # We want to eventually defer to the Series or PeriodIndex (which will
-        # return here with an unboxed PeriodArray). But before we do that,
-        # we do a bit of validation on type (Period) and freq, so that our
-        # error messages are sensible
+
+        if isinstance(other, (ABCDataFrame, ABCSeries, ABCIndexClass)):
+            return NotImplemented
+
         if is_list_like(other) and len(other) != len(self):
             raise ValueError("Lengths must match")
-
-        not_implemented = isinstance(other, (ABCSeries, ABCIndexClass))
-        if not_implemented:
-            other = other._values
 
         if isinstance(other, Period):
             self._check_compatible_with(other)
@@ -66,8 +63,6 @@ def _period_array_cmp(cls, op):
         elif isinstance(other, cls):
             self._check_compatible_with(other)
 
-            if not_implemented:
-                return NotImplemented
             result = op(other.asi8)
 
             mask = self._isnan | other._isnan
@@ -189,6 +184,13 @@ class PeriodArray(dtl.DatetimeLikeArrayMixin, dtl.DatelikeOps):
             freq = dtype.freq
         else:
             freq = None
+
+        if isinstance(scalars, cls):
+            validate_dtype_freq(scalars.dtype, freq)
+            if copy:
+                scalars = scalars.copy()
+            return scalars
+
         periods = np.asarray(scalars, dtype=object)
         if copy:
             periods = periods.copy()
@@ -275,6 +277,10 @@ class PeriodArray(dtl.DatetimeLikeArrayMixin, dtl.DatelikeOps):
         """
         return self.dtype.freq
 
+    def __array__(self, dtype=None):
+        # overriding DatetimelikeArray
+        return np.array(list(self), dtype=object)
+
     # --------------------------------------------------------------------
     # Vectorized analogues of Period properties
 
@@ -327,7 +333,7 @@ class PeriodArray(dtl.DatetimeLikeArrayMixin, dtl.DatelikeOps):
         -------
         DatetimeArray/Index
         """
-        from pandas.core.arrays import DatetimeArrayMixin
+        from pandas.core.arrays import DatetimeArray
 
         how = libperiod._validate_end_alias(how)
 
@@ -351,7 +357,7 @@ class PeriodArray(dtl.DatetimeLikeArrayMixin, dtl.DatelikeOps):
         new_data = self.asfreq(freq, how=how)
 
         new_data = libperiod.periodarr_to_dt64arr(new_data.asi8, base)
-        return DatetimeArrayMixin._from_sequence(new_data, freq='infer')
+        return DatetimeArray._from_sequence(new_data, freq='infer')
 
     # --------------------------------------------------------------------
     # Array-like / EA-Interface Methods

@@ -3,24 +3,24 @@
 """ Test cases for Series.plot """
 
 
-from itertools import chain
-import pytest
-
 from datetime import datetime
-
-import pandas as pd
-from pandas import Series, DataFrame, date_range
-from pandas.compat import range, lrange
-import pandas.util.testing as tm
-import pandas.util._test_decorators as td
+from itertools import chain
 
 import numpy as np
 from numpy.random import randn
+import pytest
+
+from pandas.compat import lrange, range
+import pandas.util._test_decorators as td
+
+import pandas as pd
+from pandas import DataFrame, Series, date_range
+from pandas.tests.plotting.common import (
+    TestPlotBase, _check_plot_works, _ok_for_gaussian_kde,
+    _skip_if_no_scipy_gaussian_kde)
+import pandas.util.testing as tm
 
 import pandas.plotting as plotting
-from pandas.tests.plotting.common import (TestPlotBase, _check_plot_works,
-                                          _skip_if_no_scipy_gaussian_kde,
-                                          _ok_for_gaussian_kde)
 
 
 @td.skip_if_no_mpl
@@ -878,18 +878,18 @@ class TestSeriesPlots(TestPlotBase):
 
         _check_plot_works(s.plot)
 
-    def test_misc_bindings(self, mock):
+    def test_misc_bindings(self, monkeypatch):
         s = Series(randn(10))
-        p1 = mock.patch('pandas.plotting._misc.lag_plot',
-                        return_value=2)
-        p2 = mock.patch('pandas.plotting._misc.autocorrelation_plot',
-                        return_value=2)
-        p3 = mock.patch('pandas.plotting._misc.bootstrap_plot',
-                        return_value=2)
-        with p1, p2, p3:
-            assert s.plot.lag() == 2
-            assert s.plot.autocorrelation() == 2
-            assert s.plot.bootstrap() == 2
+        monkeypatch.setattr('pandas.plotting._misc.lag_plot',
+                            lambda x: 2)
+        monkeypatch.setattr('pandas.plotting._misc.autocorrelation_plot',
+                            lambda x: 2)
+        monkeypatch.setattr('pandas.plotting._misc.bootstrap_plot',
+                            lambda x: 2)
+
+        assert s.plot.lag() == 2
+        assert s.plot.autocorrelation() == 2
+        assert s.plot.bootstrap() == 2
 
     @pytest.mark.xfail
     def test_plot_accessor_updates_on_inplace(self):

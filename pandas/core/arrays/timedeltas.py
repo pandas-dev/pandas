@@ -16,7 +16,7 @@ from pandas.util._decorators import Appender
 
 from pandas.core.dtypes.common import (
     _NS_DTYPE, _TD_DTYPE, ensure_int64, is_datetime64_dtype, is_float_dtype,
-    is_int64_dtype, is_integer_dtype, is_list_like, is_object_dtype, is_scalar,
+    is_integer_dtype, is_list_like, is_object_dtype, is_scalar,
     is_string_dtype, is_timedelta64_dtype, is_timedelta64_ns_dtype,
     pandas_dtype)
 from pandas.core.dtypes.dtypes import DatetimeTZDtype
@@ -64,6 +64,9 @@ def _td_array_cmp(cls, op):
     nat_result = True if opname == '__ne__' else False
 
     def wrapper(self, other):
+        if isinstance(other, (ABCDataFrame, ABCSeries, ABCIndexClass)):
+            return NotImplemented
+
         if _is_convertible_to_td(other) or other is NaT:
             try:
                 other = Timedelta(other)
@@ -102,7 +105,7 @@ def _td_array_cmp(cls, op):
     return compat.set_function_name(wrapper, opname, cls)
 
 
-class TimedeltaArrayMixin(dtl.DatetimeLikeArrayMixin, dtl.TimelikeOps):
+class TimedeltaArray(dtl.DatetimeLikeArrayMixin, dtl.TimelikeOps):
     _typ = "timedeltaarray"
     _scalar_type = Timedelta
     __array_priority__ = 1000
@@ -134,8 +137,15 @@ class TimedeltaArrayMixin(dtl.DatetimeLikeArrayMixin, dtl.TimelikeOps):
         if isinstance(values, (ABCSeries, ABCIndexClass)):
             values = values._values
 
+        inferred_freq = getattr(values, "_freq", None)
+
         if isinstance(values, type(self)):
-            values, freq, freq_infer = extract_values_freq(values, freq)
+            if freq is None:
+                freq = values.freq
+            elif freq and values.freq:
+                freq = to_offset(freq)
+                freq, _ = dtl.validate_inferred_freq(freq, values.freq, False)
+            values = values._data
 
         if not isinstance(values, np.ndarray):
             msg = (
@@ -177,9 +187,19 @@ class TimedeltaArrayMixin(dtl.DatetimeLikeArrayMixin, dtl.TimelikeOps):
         self._dtype = dtype
         self._freq = freq
 
+        if inferred_freq is None and freq is not None:
+            type(self)._validate_frequency(self, freq)
+
     @classmethod
     def _simple_new(cls, values, freq=None, dtype=_TD_DTYPE):
-        return cls(values, dtype=dtype, freq=freq)
+        assert dtype == _TD_DTYPE, dtype
+        assert isinstance(values, np.ndarray), type(values)
+
+        result = object.__new__(cls)
+        result._data = values.view(_TD_DTYPE)
+        result._freq = to_offset(freq)
+        result._dtype = _TD_DTYPE
+        return result
 
     @classmethod
     def _from_sequence(cls, data, dtype=_TD_DTYPE, copy=False,
@@ -200,7 +220,9 @@ class TimedeltaArrayMixin(dtl.DatetimeLikeArrayMixin, dtl.TimelikeOps):
             cls._validate_frequency(result, freq)
 
         elif freq_infer:
-            result.freq = to_offset(result.inferred_freq)
+            # Set _freq directly to bypass duplicative _validate_frequency
+            # check.
+            result._freq = to_offset(result.inferred_freq)
 
         return result
 
@@ -262,16 +284,6 @@ class TimedeltaArrayMixin(dtl.DatetimeLikeArrayMixin, dtl.TimelikeOps):
 
     # ----------------------------------------------------------------
     # Array-Like / EA-Interface Methods
-
-    def __array__(self, dtype=None):
-        # TODO(https://github.com/pandas-dev/pandas/pull/23593)
-        # Maybe push to parent once datetimetz __array__ is figured out.
-        if is_object_dtype(dtype):
-            return np.array(list(self), dtype=object)
-        elif is_int64_dtype(dtype):
-            return self.asi8
-
-        return self._data
 
     @Appender(dtl.DatetimeLikeArrayMixin._validate_fill_value.__doc__)
     def _validate_fill_value(self, fill_value):
@@ -348,7 +360,7 @@ class TimedeltaArrayMixin(dtl.DatetimeLikeArrayMixin, dtl.TimelikeOps):
         -------
         result : TimedeltaArray
         """
-        new_values = super(TimedeltaArrayMixin, self)._add_delta(delta)
+        new_values = super(TimedeltaArray, self)._add_delta(delta)
         return type(self)._from_sequence(new_values, freq='infer')
 
     def _add_datetime_arraylike(self, other):
@@ -357,15 +369,15 @@ class TimedeltaArrayMixin(dtl.DatetimeLikeArrayMixin, dtl.TimelikeOps):
         """
         if isinstance(other, np.ndarray):
             # At this point we have already checked that dtype is datetime64
-            from pandas.core.arrays import DatetimeArrayMixin
-            other = DatetimeArrayMixin(other)
+            from pandas.core.arrays import DatetimeArray
+            other = DatetimeArray(other)
 
         # defer to implementation in DatetimeArray
         return other + self
 
     def _add_datetimelike_scalar(self, other):
         # adding a timedeltaindex to a datetimelike
-        from pandas.core.arrays import DatetimeArrayMixin
+        from pandas.core.arrays import DatetimeArray
 
         assert other is not NaT
         other = Timestamp(other)
@@ -373,14 +385,14 @@ class TimedeltaArrayMixin(dtl.DatetimeLikeArrayMixin, dtl.TimelikeOps):
             # In this case we specifically interpret NaT as a datetime, not
             # the timedelta interpretation we would get by returning self + NaT
             result = self.asi8.view('m8[ms]') + NaT.to_datetime64()
-            return DatetimeArrayMixin(result)
+            return DatetimeArray(result)
 
         i8 = self.asi8
         result = checked_add_with_arr(i8, other.value,
                                       arr_mask=self._isnan)
         result = self._maybe_mask_results(result)
         dtype = DatetimeTZDtype(tz=other.tz) if other.tz else _NS_DTYPE
-        return DatetimeArrayMixin(result, dtype=dtype, freq=self.freq)
+        return DatetimeArray(result, dtype=dtype, freq=self.freq)
 
     def _addsub_offset_array(self, other, op):
         # Add or subtract Array-like of DateOffset objects
@@ -388,7 +400,7 @@ class TimedeltaArrayMixin(dtl.DatetimeLikeArrayMixin, dtl.TimelikeOps):
             # TimedeltaIndex can only operate with a subset of DateOffset
             # subclasses.  Incompatible classes will raise AttributeError,
             # which we re-raise as TypeError
-            return super(TimedeltaArrayMixin, self)._addsub_offset_array(
+            return super(TimedeltaArray, self)._addsub_offset_array(
                 other, op
             )
         except AttributeError:
@@ -813,7 +825,7 @@ class TimedeltaArrayMixin(dtl.DatetimeLikeArrayMixin, dtl.TimelikeOps):
         return result
 
 
-TimedeltaArrayMixin._add_comparison_ops()
+TimedeltaArray._add_comparison_ops()
 
 
 # ---------------------------------------------------------------------
@@ -860,22 +872,22 @@ def sequence_to_td64ns(data, copy=False, unit="ns", errors="raise"):
         data = np.array(data, copy=False)
     elif isinstance(data, ABCSeries):
         data = data._values
-    elif isinstance(data, (ABCTimedeltaIndex, TimedeltaArrayMixin)):
+    elif isinstance(data, (ABCTimedeltaIndex, TimedeltaArray)):
         inferred_freq = data.freq
         data = data._data
 
     # Convert whatever we have into timedelta64[ns] dtype
-    if is_object_dtype(data) or is_string_dtype(data):
+    if is_object_dtype(data.dtype) or is_string_dtype(data.dtype):
         # no need to make a copy, need to convert if string-dtyped
         data = objects_to_td64ns(data, unit=unit, errors=errors)
         copy = False
 
-    elif is_integer_dtype(data):
+    elif is_integer_dtype(data.dtype):
         # treat as multiples of the given unit
         data, copy_made = ints_to_td64ns(data, unit=unit)
         copy = copy and not copy_made
 
-    elif is_float_dtype(data):
+    elif is_float_dtype(data.dtype):
         # treat as multiples of the given unit.  If after converting to nanos,
         #  there are fractional components left, these are truncated
         #  (i.e. NOT rounded)
@@ -885,7 +897,7 @@ def sequence_to_td64ns(data, copy=False, unit="ns", errors="raise"):
         data[mask] = iNaT
         copy = False
 
-    elif is_timedelta64_dtype(data):
+    elif is_timedelta64_dtype(data.dtype):
         if data.dtype != _TD_DTYPE:
             # non-nano unit
             # TODO: watch out for overflows
@@ -1003,18 +1015,3 @@ def _generate_regular_range(start, end, periods, offset):
 
     data = np.arange(b, e, stride, dtype=np.int64)
     return data
-
-
-def extract_values_freq(arr, freq):
-    # type: (TimedeltaArray, Offset) -> Tuple[ndarray, Offset, bool]
-    freq_infer = False
-    if freq is None:
-        freq = arr.freq
-    elif freq and arr.freq:
-        freq = to_offset(freq)
-        freq, freq_infer = dtl.validate_inferred_freq(
-            freq, arr.freq,
-            freq_infer=False
-        )
-    values = arr._data
-    return values, freq, freq_infer

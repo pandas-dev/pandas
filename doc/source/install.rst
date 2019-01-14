@@ -24,11 +24,11 @@ The Python core team plans to stop supporting Python 2.7 on January 1st, 2020.
 In line with `NumPy's plans`_, all pandas releases through December 31, 2018
 will support Python 2.
 
-The final release before **December 31, 2018** will be the last release to
+The 0.24.x feature release will be the last release to
 support Python 2. The released package will continue to be available on
 PyPI and through conda.
 
-Starting **January 1, 2019**, all releases will be Python 3 only.
+ Starting **January 1, 2019**, all new feature releases (> 0.24) will be Python 3 only.
 
 If there are people interested in continued support for Python 2.7 past December
 31, 2018 (either backporting bug fixes or funding) please reach out to the
@@ -258,7 +258,7 @@ Optional Dependencies
 * `xarray <http://xarray.pydata.org>`__: pandas like handling for > 2 dims, needed for converting Panels to xarray objects. Version 0.7.0 or higher is recommended.
 * `PyTables <http://www.pytables.org>`__: necessary for HDF5-based storage, Version 3.4.2 or higher
 * `pyarrow <http://arrow.apache.org/docs/python/>`__ (>= 0.7.0): necessary for feather-based storage.
-* `Apache Parquet <https://parquet.apache.org/>`__, either `pyarrow <http://arrow.apache.org/docs/python/>`__ (>= 0.7.0) or `fastparquet <https://fastparquet.readthedocs.io/en/latest>`__ (>= 0.1.2) for parquet-based storage. The `snappy <https://pypi.org/project/python-snappy>`__ and `brotli <https://pypi.org/project/brotlipy>`__ are available for compression support.
+* `Apache Parquet <https://parquet.apache.org/>`__, either `pyarrow <http://arrow.apache.org/docs/python/>`__ (>= 0.7.0) or `fastparquet <https://fastparquet.readthedocs.io/en/latest>`__ (>= 0.2.1) for parquet-based storage. The `snappy <https://pypi.org/project/python-snappy>`__ and `brotli <https://pypi.org/project/brotlipy>`__ are available for compression support.
 * `SQLAlchemy <http://www.sqlalchemy.org>`__: for SQL database support. Version 0.8.1 or higher recommended. Besides SQLAlchemy, you also need a database specific driver. You can find an overview of supported drivers for each SQL dialect in the `SQLAlchemy docs <http://docs.sqlalchemy.org/en/latest/dialects/index.html>`__. Some common drivers are:
 
     * `psycopg2 <http://initd.org/psycopg/>`__: for PostgreSQL

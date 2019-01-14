@@ -53,14 +53,15 @@ from pandas.util._move import (
     BadMove as _BadMove, move_into_mutable_buffer as _move_into_mutable_buffer)
 
 from pandas.core.dtypes.common import (
-    is_categorical_dtype, is_object_dtype, needs_i8_conversion, pandas_dtype)
+    is_categorical_dtype, is_datetime64tz_dtype, is_object_dtype,
+    needs_i8_conversion, pandas_dtype)
 
 from pandas import (  # noqa:F401
     Categorical, CategoricalIndex, DataFrame, DatetimeIndex, Float64Index,
     Index, Int64Index, Interval, IntervalIndex, MultiIndex, NaT, Panel, Period,
     PeriodIndex, RangeIndex, Series, TimedeltaIndex, Timestamp)
 from pandas.core import internals
-from pandas.core.arrays import IntervalArray, PeriodArray
+from pandas.core.arrays import DatetimeArray, IntervalArray, PeriodArray
 from pandas.core.arrays.sparse import BlockIndex, IntIndex
 from pandas.core.generic import NDFrame
 from pandas.core.internals import BlockManager, _safe_reshape, make_block
@@ -518,7 +519,8 @@ def encode(obj):
         elif isinstance(obj, date):
             return {u'typ': u'date',
                     u'data': u(obj.isoformat())}
-        raise Exception("cannot encode this datetimelike object: %s" % obj)
+        raise Exception(
+            "cannot encode this datetimelike object: {obj}".format(obj=obj))
     elif isinstance(obj, Period):
         return {u'typ': u'period',
                 u'ordinal': obj.ordinal,
@@ -651,6 +653,12 @@ def decode(obj):
                 placement = b[u'locs']
             else:
                 placement = axes[0].get_indexer(b[u'items'])
+
+            if is_datetime64tz_dtype(b[u'dtype']):
+                assert isinstance(values, np.ndarray), type(values)
+                assert values.dtype == 'M8[ns]', values.dtype
+                values = DatetimeArray(values, dtype=b[u'dtype'])
+
             return make_block(values=values,
                               klass=getattr(internals, b[u'klass']),
                               placement=placement,

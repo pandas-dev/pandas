@@ -32,8 +32,14 @@ class _IntegerDtype(ExtensionDtype):
     The attributes name & type are set when these subclasses are created.
     """
     name = None
+    base = None
     type = None
     na_value = np.nan
+
+    def __repr__(self):
+        sign = 'U' if self.is_unsigned_integer else ''
+        return "{sign}Int{size}Dtype()".format(sign=sign,
+                                               size=8 * self.itemsize)
 
     @cache_readonly
     def is_signed_integer(self):
@@ -153,6 +159,7 @@ def coerce_to_array(values, dtype, mask=None, copy=False):
             # Avoid DeprecationWarning from NumPy about np.dtype("Int64")
             # https://github.com/numpy/numpy/pull/7476
             dtype = dtype.lower()
+
         if not issubclass(type(dtype), _IntegerDtype):
             try:
                 dtype = _dtypes[str(np.dtype(dtype))]
@@ -655,7 +662,8 @@ for dtype in ['int8', 'int16', 'int32', 'int64',
     else:
         name = dtype.capitalize()
     classname = "{}Dtype".format(name)
-    attributes_dict = {'type': getattr(np, dtype),
+    numpy_dtype = getattr(np, dtype)
+    attributes_dict = {'type': numpy_dtype,
                        'name': name}
     dtype_type = register_extension_dtype(
         type(classname, (_IntegerDtype, ), attributes_dict)

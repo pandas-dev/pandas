@@ -12,7 +12,7 @@ except ImportError:
 
 class DatetimeIndex(object):
 
-    params = ['dst', 'repeated', 'tz_aware', 'tz_naive']
+    params = ['dst', 'repeated', 'tz_aware', 'tz_local', 'tz_naive']
     param_names = ['index_type']
 
     def setup(self, index_type):
@@ -26,6 +26,10 @@ class DatetimeIndex(object):
                                           periods=N,
                                           freq='s',
                                           tz='US/Eastern'),
+                   'tz_local': date_range(start='2000',
+                                          periods=N,
+                                          freq='s',
+                                          tz=dateutil.tz.tzlocal()),
                    'tz_naive': date_range(start='2000',
                                           periods=N,
                                           freq='s')}
@@ -336,6 +340,15 @@ class ToDatetimeNONISO8601(object):
 
     def time_different_offset(self):
         to_datetime(self.diff_offset)
+
+
+class ToDatetimeFormatQuarters(object):
+
+    def setup(self):
+        self.s = Series(['2Q2005', '2Q05', '2005Q1', '05Q1'] * 10000)
+
+    def time_infer_quarter(self):
+        to_datetime(self.s)
 
 
 class ToDatetimeFormat(object):

@@ -5,13 +5,13 @@ from datetime import datetime, timedelta
 import numpy as np
 
 from pandas._libs import lib, tslib, tslibs
-from pandas._libs.tslibs import OutOfBoundsDatetime, Period, iNaT
+from pandas._libs.tslibs import NaT, OutOfBoundsDatetime, Period, iNaT
 from pandas.compat import PY3, string_types, text_type, to_str
 
 from .common import (
-    _INT64_DTYPE, _NS_DTYPE, _POSSIBLY_CAST_DTYPES, _TD_DTYPE, _string_dtypes,
-    ensure_int8, ensure_int16, ensure_int32, ensure_int64, ensure_object,
-    is_bool, is_bool_dtype, is_categorical_dtype, is_complex, is_complex_dtype,
+    _INT64_DTYPE, _NS_DTYPE, _POSSIBLY_CAST_DTYPES, _TD_DTYPE, ensure_int8,
+    ensure_int16, ensure_int32, ensure_int64, ensure_object, is_bool,
+    is_bool_dtype, is_categorical_dtype, is_complex, is_complex_dtype,
     is_datetime64_dtype, is_datetime64_ns_dtype, is_datetime64tz_dtype,
     is_datetime_or_timedelta_dtype, is_datetimelike, is_dtype_equal,
     is_extension_array_dtype, is_extension_type, is_float, is_float_dtype,
@@ -272,7 +272,7 @@ def maybe_promote(dtype, fill_value=np.nan):
         fill_value = tslibs.Timedelta(fill_value).value
     elif is_datetime64tz_dtype(dtype):
         if isna(fill_value):
-            fill_value = iNaT
+            fill_value = NaT
     elif is_extension_array_dtype(dtype) and isna(fill_value):
         fill_value = dtype.na_value
     elif is_float(fill_value):
@@ -544,7 +544,7 @@ def invalidate_string_dtypes(dtype_set):
     """Change string like dtypes to object for
     ``DataFrame.select_dtypes()``.
     """
-    non_string_dtypes = dtype_set - _string_dtypes
+    non_string_dtypes = dtype_set - {np.dtype('S').type, np.dtype('<U').type}
     if non_string_dtypes != dtype_set:
         raise TypeError("string dtypes are not allowed, use 'object' instead")
 
@@ -1020,7 +1020,7 @@ def maybe_cast_to_datetime(value, dtype, errors='raise'):
                             # datetime64tz is assumed to be naive which should
                             # be localized to the timezone.
                             is_dt_string = is_string_dtype(value)
-                            value = to_datetime(value, errors=errors)
+                            value = to_datetime(value, errors=errors).array
                             if is_dt_string:
                                 # Strings here are naive, so directly localize
                                 value = value.tz_localize(dtype.tz)
