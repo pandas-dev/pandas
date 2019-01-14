@@ -1,11 +1,14 @@
 # -*- coding: utf-8 -*-
-from datetime import datetime
+from datetime import datetime, timedelta
 
 import numpy as np
 import pytest
 
 import pandas as pd
-from pandas import Categorical, DataFrame, Index, PeriodIndex, Series, compat
+from pandas import (
+    Categorical, DataFrame, DatetimeIndex, Index, PeriodIndex, Series,
+    Timedelta, TimedeltaIndex, Timestamp, compat, timedelta_range,
+    to_timedelta)
 from pandas.core import nanops
 import pandas.util.testing as tm
 
@@ -134,6 +137,168 @@ class TestReductions(object):
         assert obj.argmax() == -1
         assert obj.argmin(skipna=False) == -1
         assert obj.argmax(skipna=False) == -1
+
+
+class TestIndexReductions(object):
+    # Note: the name TestIndexReductions indicates these tests
+    #  were moved from a Index-specific test file, _not_ that these tests are
+    #  intended long-term to be Index-specific
+
+    def test_minmax_timedelta64(self):
+
+        # monotonic
+        idx1 = TimedeltaIndex(['1 days', '2 days', '3 days'])
+        assert idx1.is_monotonic
+
+        # non-monotonic
+        idx2 = TimedeltaIndex(['1 days', np.nan, '3 days', 'NaT'])
+        assert not idx2.is_monotonic
+
+        for idx in [idx1, idx2]:
+            assert idx.min() == Timedelta('1 days')
+            assert idx.max() == Timedelta('3 days')
+            assert idx.argmin() == 0
+            assert idx.argmax() == 2
+
+        for op in ['min', 'max']:
+            # Return NaT
+            obj = TimedeltaIndex([])
+            assert pd.isna(getattr(obj, op)())
+
+            obj = TimedeltaIndex([pd.NaT])
+            assert pd.isna(getattr(obj, op)())
+
+            obj = TimedeltaIndex([pd.NaT, pd.NaT, pd.NaT])
+            assert pd.isna(getattr(obj, op)())
+
+    def test_numpy_minmax_timedelta64(self):
+        td = timedelta_range('16815 days', '16820 days', freq='D')
+
+        assert np.min(td) == Timedelta('16815 days')
+        assert np.max(td) == Timedelta('16820 days')
+
+        errmsg = "the 'out' parameter is not supported"
+        with pytest.raises(ValueError, match=errmsg):
+            np.min(td, out=0)
+        with pytest.raises(ValueError, match=errmsg):
+            np.max(td, out=0)
+
+        assert np.argmin(td) == 0
+        assert np.argmax(td) == 5
+
+        errmsg = "the 'out' parameter is not supported"
+        with pytest.raises(ValueError, match=errmsg):
+            np.argmin(td, out=0)
+        with pytest.raises(ValueError, match=errmsg):
+            np.argmax(td, out=0)
+
+    def test_timedelta_ops(self):
+        # GH#4984
+        # make sure ops return Timedelta
+        s = Series([Timestamp('20130101') + timedelta(seconds=i * i)
+                    for i in range(10)])
+        td = s.diff()
+
+        result = td.mean()
+        expected = to_timedelta(timedelta(seconds=9))
+        assert result == expected
+
+        result = td.to_frame().mean()
+        assert result[0] == expected
+
+        result = td.quantile(.1)
+        expected = Timedelta(np.timedelta64(2600, 'ms'))
+        assert result == expected
+
+        result = td.median()
+        expected = to_timedelta('00:00:09')
+        assert result == expected
+
+        result = td.to_frame().median()
+        assert result[0] == expected
+
+        # GH#6462
+        # consistency in returned values for sum
+        result = td.sum()
+        expected = to_timedelta('00:01:21')
+        assert result == expected
+
+        result = td.to_frame().sum()
+        assert result[0] == expected
+
+        # std
+        result = td.std()
+        expected = to_timedelta(Series(td.dropna().values).std())
+        assert result == expected
+
+        result = td.to_frame().std()
+        assert result[0] == expected
+
+        # invalid ops
+        for op in ['skew', 'kurt', 'sem', 'prod']:
+            pytest.raises(TypeError, getattr(td, op))
+
+        # GH#10040
+        # make sure NaT is properly handled by median()
+        s = Series([Timestamp('2015-02-03'), Timestamp('2015-02-07')])
+        assert s.diff().median() == timedelta(days=4)
+
+        s = Series([Timestamp('2015-02-03'), Timestamp('2015-02-07'),
+                    Timestamp('2015-02-15')])
+        assert s.diff().median() == timedelta(days=6)
+
+    def test_minmax_tz(self, tz_naive_fixture):
+        tz = tz_naive_fixture
+        # monotonic
+        idx1 = pd.DatetimeIndex(['2011-01-01', '2011-01-02',
+                                 '2011-01-03'], tz=tz)
+        assert idx1.is_monotonic
+
+        # non-monotonic
+        idx2 = pd.DatetimeIndex(['2011-01-01', pd.NaT, '2011-01-03',
+                                 '2011-01-02', pd.NaT], tz=tz)
+        assert not idx2.is_monotonic
+
+        for idx in [idx1, idx2]:
+            assert idx.min() == Timestamp('2011-01-01', tz=tz)
+            assert idx.max() == Timestamp('2011-01-03', tz=tz)
+            assert idx.argmin() == 0
+            assert idx.argmax() == 2
+
+    @pytest.mark.parametrize('op', ['min', 'max'])
+    def test_minmax_nat_datetime64(self, op):
+        # Return NaT
+        obj = DatetimeIndex([])
+        assert pd.isna(getattr(obj, op)())
+
+        obj = DatetimeIndex([pd.NaT])
+        assert pd.isna(getattr(obj, op)())
+
+        obj = DatetimeIndex([pd.NaT, pd.NaT, pd.NaT])
+        assert pd.isna(getattr(obj, op)())
+
+    def test_numpy_minmax_datetime64(self):
+        dr = pd.date_range(start='2016-01-15', end='2016-01-20')
+
+        assert np.min(dr) == Timestamp('2016-01-15 00:00:00', freq='D')
+        assert np.max(dr) == Timestamp('2016-01-20 00:00:00', freq='D')
+
+        errmsg = "the 'out' parameter is not supported"
+        with pytest.raises(ValueError, match=errmsg):
+            np.min(dr, out=0)
+
+        with pytest.raises(ValueError, match=errmsg):
+            np.max(dr, out=0)
+
+        assert np.argmin(dr) == 0
+        assert np.argmax(dr) == 5
+
+        errmsg = "the 'out' parameter is not supported"
+        with pytest.raises(ValueError, match=errmsg):
+            np.argmin(dr, out=0)
+
+        with pytest.raises(ValueError, match=errmsg):
+            np.argmax(dr, out=0)
 
 
 class TestSeriesReductions(object):
