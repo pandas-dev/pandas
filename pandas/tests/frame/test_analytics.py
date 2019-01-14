@@ -1304,6 +1304,39 @@ class TestDataFrameAnalytics():
         means = float_frame.mean(0)
         assert means['bool'] == float_frame['bool'].values.mean()
 
+    def test_mean_datetimelike(self):
+        # GH#24757 check that datetimelike are excluded by default, handled
+        #  correctly with numeric_only=True
+
+        df = pd.DataFrame({
+            'A': np.arange(3),
+            'B': pd.date_range('2016-01-01', periods=3),
+            'C': pd.timedelta_range('1D', periods=3),
+            'D': pd.period_range('2016', periods=3, freq='A')
+        })
+        result = df.mean(numeric_only=True)
+        expected = pd.Series({'A': 1.})
+        tm.assert_series_equal(result, expected)
+
+        result = df.mean()
+        expected = pd.Series({
+            'A': 1.,
+            'B': df.loc[1, 'B'],
+            'C': df.loc[1, 'C']
+        })
+        tm.assert_series_equal(result, expected)
+
+        # FIXME: df.mean(numeric_only=False) raises TypeError because
+        #  it casts to object-dtype and tries to add Timestamps.
+        # result = df.mean(numeric_only=False)
+        # expected = pd.Series({
+        #    'A': 1,
+        #    'B': df.loc[1, 'B'],
+        #    'C': df.loc[1, 'C'],
+        #    'D': df.loc[1, 'D']
+        # })
+        # tm.assert_series_equal(result, expected)
+
     def test_stats_mixed_type(self, float_string_frame):
         # don't blow up
         float_string_frame.std(1)
