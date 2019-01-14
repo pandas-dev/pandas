@@ -4041,12 +4041,16 @@ class DataFrame(NDFrame):
         Set the DataFrame index using existing columns.
 
         Set the DataFrame index (row labels) using one or more existing
-        columns. The index can replace the existing index or expand on it.
+        columns or arrays (of the correct length). The index can replace the
+        existing index or expand on it.
 
         Parameters
         ----------
-        keys : label or list of label
-            Name or names of the columns that will be used as the index.
+        keys : label or array-like or list of labels/arrays
+            This parameter can be either a single column key, a single array of
+            the same length as the calling DataFrame, or a list containing an
+            arbitrary combination of column keys and arrays. Here, "array"
+            encompasses :class:`Series`, :class:`Index` and ``np.ndarray``.
         drop : bool, default True
             Delete columns to be used as the new index.
         append : bool, default False
@@ -4091,7 +4095,7 @@ class DataFrame(NDFrame):
         7      2013    84
         10     2014    31
 
-        Create a multi-index using columns 'year' and 'month':
+        Create a MultiIndex using columns 'year' and 'month':
 
         >>> df.set_index(['year', 'month'])
                     sale
@@ -4101,15 +4105,25 @@ class DataFrame(NDFrame):
         2013  7     84
         2014  10    31
 
-        Create a multi-index using a set of values and a column:
+        Create a MultiIndex using a set of values and a column:
 
-        >>> df.set_index([[1, 2, 3, 4], 'year'])
+        >>> df.set_index([pd.Index([1, 2, 3, 4]), 'year'])
                  month  sale
            year
         1  2012  1      55
         2  2014  4      40
         3  2013  7      84
         4  2014  10     31
+
+        Create a MultiIndex using a set of values and a column:
+
+        >>> s = pd.Series([1, 2, 3, 4])
+        >>> df.set_index([s, s**2])
+              month  year  sale
+        1 1       1  2012    55
+        2 4       4  2014    40
+        3 9       7  2013    84
+        4 16     10  2014    31
         """
         inplace = validate_bool_kwarg(inplace, 'inplace')
         if not isinstance(keys, list):
