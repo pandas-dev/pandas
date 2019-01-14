@@ -4105,7 +4105,7 @@ class DataFrame(NDFrame):
         2013  7     84
         2014  10    31
 
-        Create a MultiIndex using a set of values and a column:
+        Create a MultiIndex using an Index and a column:
 
         >>> df.set_index([pd.Index([1, 2, 3, 4]), 'year'])
                  month  sale
@@ -4115,7 +4115,7 @@ class DataFrame(NDFrame):
         3  2013  7      84
         4  2014  10     31
 
-        Create a MultiIndex using a set of values and a column:
+        Create a MultiIndex using two Series:
 
         >>> s = pd.Series([1, 2, 3, 4])
         >>> df.set_index([s, s**2])
