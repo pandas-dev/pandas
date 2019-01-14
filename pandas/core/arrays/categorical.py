@@ -2520,14 +2520,14 @@ class CategoricalAccessor(PandasDelegate, PandasObject, NoNewAttributesMixin):
         Return Series of codes as well as the index.
         """
         from pandas import Series
-        return Series(self._parent.codes, index=self.index)
+        return Series(self._parent.codes, index=self._index)
 
     def _delegate_method(self, name, *args, **kwargs):
         from pandas import Series
         method = getattr(self._parent, name)
         res = method(*args, **kwargs)
         if res is not None:
-            return Series(res, index=self.index, name=self.name)
+            return Series(res, index=self._index, name=self._name)
 
     @property
     def categorical(self):
