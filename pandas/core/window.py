@@ -32,12 +32,13 @@ _shared_docs = dict(**_shared_docs)
 _doc_template = """
         Returns
         -------
-        same type as input
+        Series or DataFrame
+            Return type is determined by the caller.
 
         See Also
         --------
-        Series.%(name)s
-        DataFrame.%(name)s
+        Series.%(name)s : Series %(name)s.
+        DataFrame.%(name)s : DataFrame %(name)s.
 """
 
 
@@ -693,7 +694,14 @@ class Window(_Window):
 
         return self._wrap_results(results, blocks, obj)
 
-    _agg_doc = dedent("""
+    _agg_see_also_doc = dedent("""
+    See Also
+    --------
+    pandas.DataFrame.rolling.aggregate
+    pandas.DataFrame.aggregate
+    """)
+
+    _agg_examples_doc = dedent("""
     Examples
     --------
 
@@ -723,19 +731,14 @@ class Window(_Window):
     7  0.906020  1.283573  0.085482
     8 -0.096361  0.818139  0.472290
     9  0.070889  0.134399 -0.031308
-
-    See Also
-    --------
-    pandas.DataFrame.rolling.aggregate
-    pandas.DataFrame.aggregate
-
     """)
 
-    @Appender(_agg_doc)
-    @Appender(_shared_docs['aggregate'] % dict(
-        versionadded='',
-        klass='Series/DataFrame',
-        axis=''))
+    @Substitution(see_also=_agg_see_also_doc,
+                  examples=_agg_examples_doc,
+                  versionadded='',
+                  klass='Series/DataFrame',
+                  axis='')
+    @Appender(_shared_docs['aggregate'])
     def aggregate(self, arg, *args, **kwargs):
         result, how = self._aggregate(arg, *args, **kwargs)
         if result is None:
@@ -944,13 +947,13 @@ class _Rolling_and_Expanding(_Rolling):
         return self._wrap_results(results, blocks, obj)
 
     _shared_docs['apply'] = dedent(r"""
-    %(name)s function apply.
+    The %(name)s function's apply function.
 
     Parameters
     ----------
     func : function
         Must produce a single value from an ndarray input if ``raw=True``
-        or a Series if ``raw=False``
+        or a Series if ``raw=False``.
     raw : bool, default None
         * ``False`` : passes each row or column as a Series to the
           function.
@@ -963,8 +966,19 @@ class _Rolling_and_Expanding(_Rolling):
         not passed. In the future `raw` will default to False.
 
         .. versionadded:: 0.23.0
+    *args, **kwargs
+        Arguments and keyword arguments to be passed into func.
 
-    \*args and \*\*kwargs are passed to the function""")
+    Returns
+    -------
+    Series or DataFrame
+        Return type is determined by the caller.
+
+    See Also
+    --------
+    Series.%(name)s : Series %(name)s.
+    DataFrame.%(name)s : DataFrame %(name)s.
+    """)
 
     def apply(self, func, raw=None, args=(), kwargs={}):
         from pandas import Series
@@ -1003,6 +1017,11 @@ class _Rolling_and_Expanding(_Rolling):
 
     _shared_docs['max'] = dedent("""
     Calculate the %(name)s maximum.
+
+    Parameters
+    ----------
+    *args, **kwargs
+        Arguments and keyword arguments to be passed into func.
     """)
 
     def max(self, *args, **kwargs):
@@ -1225,7 +1244,14 @@ class _Rolling_and_Expanding(_Rolling):
                            check_minp=_require_min_periods(1), ddof=ddof,
                            **kwargs)
 
-    _shared_docs['skew'] = """Unbiased %(name)s skewness"""
+    _shared_docs['skew'] = """
+    Unbiased %(name)s skewness.
+
+    Parameters
+    ----------
+    **kwargs
+        Keyword arguments to be passed into func.
+    """
 
     def skew(self, **kwargs):
         return self._apply('roll_skew', 'skew',
@@ -1294,6 +1320,13 @@ class _Rolling_and_Expanding(_Rolling):
         Returned object type is determined by the caller of the %(name)s
         calculation.
 
+    See Also
+    --------
+    pandas.Series.quantile : Computes value at the given quantile over all data
+        in Series.
+    pandas.DataFrame.quantile : Computes values at the given quantile over
+        requested axis in DataFrame.
+
     Examples
     --------
     >>> s = pd.Series([1, 2, 3, 4])
@@ -1310,13 +1343,6 @@ class _Rolling_and_Expanding(_Rolling):
     2    2.5
     3    3.5
     dtype: float64
-
-    See Also
-    --------
-    pandas.Series.quantile : Computes value at the given quantile over all data
-        in Series.
-    pandas.DataFrame.quantile : Computes values at the given quantile over
-        requested axis in DataFrame.
     """)
 
     def quantile(self, quantile, interpolation='linear', **kwargs):
@@ -1357,6 +1383,8 @@ class _Rolling_and_Expanding(_Rolling):
         ddof : int, default 1
             Delta Degrees of Freedom.  The divisor used in calculations
             is ``N - ddof``, where ``N`` represents the number of elements.
+        **kwargs
+            Keyword arguments to be passed into func.
     """
 
     def cov(self, other=None, pairwise=None, ddof=1, **kwargs):
@@ -1595,12 +1623,14 @@ class Rolling(_Rolling_and_Expanding):
                              "compatible with a datetimelike "
                              "index".format(self.window))
 
-    _agg_doc = dedent("""
+    _agg_see_also_doc = dedent("""
     See Also
     --------
     pandas.Series.rolling
     pandas.DataFrame.rolling
+    """)
 
+    _agg_examples_doc = dedent("""
     Examples
     --------
 
@@ -1645,11 +1675,12 @@ class Rolling(_Rolling_and_Expanding):
     9  0.212668 -1.647453
     """)
 
-    @Appender(_agg_doc)
-    @Appender(_shared_docs['aggregate'] % dict(
-        versionadded='',
-        klass='Series/DataFrame',
-        axis=''))
+    @Substitution(see_also=_agg_see_also_doc,
+                  examples=_agg_examples_doc,
+                  versionadded='',
+                  klass='Series/Dataframe',
+                  axis='')
+    @Appender(_shared_docs['aggregate'])
     def aggregate(self, arg, *args, **kwargs):
         return super(Rolling, self).aggregate(arg, *args, **kwargs)
 
@@ -1666,7 +1697,6 @@ class Rolling(_Rolling_and_Expanding):
         return super(Rolling, self).count()
 
     @Substitution(name='rolling')
-    @Appender(_doc_template)
     @Appender(_shared_docs['apply'])
     def apply(self, func, raw=None, args=(), kwargs={}):
         return super(Rolling, self).apply(
@@ -1883,7 +1913,15 @@ class Expanding(_Rolling_and_Expanding):
         other = self.min_periods or -1
         return max(length, other)
 
-    _agg_doc = dedent("""
+    _agg_see_also_doc = dedent("""
+    See Also
+    --------
+    pandas.DataFrame.expanding.aggregate
+    pandas.DataFrame.rolling.aggregate
+    pandas.DataFrame.aggregate
+    """)
+
+    _agg_examples_doc = dedent("""
     Examples
     --------
 
@@ -1913,19 +1951,14 @@ class Expanding(_Rolling_and_Expanding):
     7  0.680292  0.132049  0.548693
     8  0.067236  0.948257  0.163353
     9 -0.286980  0.618493 -0.694496
-
-    See Also
-    --------
-    pandas.DataFrame.expanding.aggregate
-    pandas.DataFrame.rolling.aggregate
-    pandas.DataFrame.aggregate
     """)
 
-    @Appender(_agg_doc)
-    @Appender(_shared_docs['aggregate'] % dict(
-        versionadded='',
-        klass='Series/DataFrame',
-        axis=''))
+    @Substitution(see_also=_agg_see_also_doc,
+                  examples=_agg_examples_doc,
+                  versionadded='',
+                  klass='Series/Dataframe',
+                  axis='')
+    @Appender(_shared_docs['aggregate'])
     def aggregate(self, arg, *args, **kwargs):
         return super(Expanding, self).aggregate(arg, *args, **kwargs)
 
@@ -1937,7 +1970,6 @@ class Expanding(_Rolling_and_Expanding):
         return super(Expanding, self).count(**kwargs)
 
     @Substitution(name='expanding')
-    @Appender(_doc_template)
     @Appender(_shared_docs['apply'])
     def apply(self, func, raw=None, args=(), kwargs={}):
         return super(Expanding, self).apply(
@@ -2058,7 +2090,9 @@ _bias_template = """
         Parameters
         ----------
         bias : bool, default False
-            Use a standard estimation bias correction
+            Use a standard estimation bias correction.
+        *args, **kwargs
+            Arguments and keyword arguments to be passed into func.
 """
 
 _pairwise_template = """
@@ -2075,7 +2109,9 @@ _pairwise_template = """
             inputs. In the case of missing elements, only complete pairwise
             observations will be used.
         bias : bool, default False
-           Use a standard estimation bias correction
+           Use a standard estimation bias correction.
+        **kwargs
+           Keyword arguments to be passed into func.
 """
 
 
@@ -2184,7 +2220,13 @@ class EWM(_Rolling):
     def _constructor(self):
         return EWM
 
-    _agg_doc = dedent("""
+    _agg_see_also_doc = dedent("""
+    See Also
+    --------
+    pandas.DataFrame.rolling.aggregate
+    """)
+
+    _agg_examples_doc = dedent("""
     Examples
     --------
 
@@ -2214,17 +2256,14 @@ class EWM(_Rolling):
     7  0.680292  0.132049  0.548693
     8  0.067236  0.948257  0.163353
     9 -0.286980  0.618493 -0.694496
-
-    See Also
-    --------
-    pandas.DataFrame.rolling.aggregate
     """)
 
-    @Appender(_agg_doc)
-    @Appender(_shared_docs['aggregate'] % dict(
-        versionadded='',
-        klass='Series/DataFrame',
-        axis=''))
+    @Substitution(see_also=_agg_see_also_doc,
+                  examples=_agg_examples_doc,
+                  versionadded='',
+                  klass='Series/Dataframe',
+                  axis='')
+    @Appender(_shared_docs['aggregate'])
     def aggregate(self, arg, *args, **kwargs):
         return super(EWM, self).aggregate(arg, *args, **kwargs)
 
@@ -2276,6 +2315,11 @@ class EWM(_Rolling):
     def mean(self, *args, **kwargs):
         """
         Exponential weighted moving average.
+
+        Parameters
+        ----------
+        *args, **kwargs
+            Arguments and keyword arguments to be passed into func.
         """
         nv.validate_window_func('mean', args, kwargs)
         return self._apply('ewma', **kwargs)

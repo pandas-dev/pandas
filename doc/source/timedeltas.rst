@@ -365,7 +365,7 @@ Generating Ranges of Time Deltas
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Similar to :func:`date_range`, you can construct regular ranges of a ``TimedeltaIndex``
-using :func:`timedelta_range`.  The default frequency for ``timedelta_range`` is 
+using :func:`timedelta_range`.  The default frequency for ``timedelta_range`` is
 calendar day:
 
 .. ipython:: python
@@ -436,11 +436,11 @@ Finally, the combination of ``TimedeltaIndex`` with ``DatetimeIndex`` allow cert
 .. ipython:: python
 
    tdi = pd.TimedeltaIndex(['1 days', pd.NaT, '2 days'])
-   tdi.tolist()
+   tdi.to_list()
    dti = pd.date_range('20130101', periods=3)
-   dti.tolist()
-   (dti + tdi).tolist()
-   (dti - tdi).tolist()
+   dti.to_list()
+   (dti + tdi).to_list()
+   (dti - tdi).to_list()
 
 Conversions
 ~~~~~~~~~~~
@@ -461,7 +461,7 @@ Scalars type ops work as well. These can potentially return a *different* type o
 
    # subtraction of a date and a timedelta -> datelike
    # note that trying to subtract a date from a Timedelta will raise an exception
-   (pd.Timestamp('20130101') - tdi).tolist()
+   (pd.Timestamp('20130101') - tdi).to_list()
 
    # timedelta + timedelta -> timedelta
    tdi + pd.Timedelta('10 days')

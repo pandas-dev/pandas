@@ -1,26 +1,25 @@
 # -*- coding: utf-8 -*-
 from __future__ import print_function
 
-import pytest
-
+from collections import defaultdict
 from datetime import datetime
 from decimal import Decimal
 
-from pandas import (date_range, Timestamp,
-                    Index, MultiIndex, DataFrame, Series,
-                    Panel, read_csv)
-from pandas.errors import PerformanceWarning
-from pandas.util.testing import (assert_frame_equal,
-                                 assert_series_equal, assert_almost_equal)
-from pandas.compat import (range, lrange, StringIO, lmap, lzip, map, zip,
-                           OrderedDict)
-from pandas import compat
-from collections import defaultdict
-import pandas.core.common as com
 import numpy as np
+import pytest
 
-import pandas.util.testing as tm
+from pandas.compat import (
+    OrderedDict, StringIO, lmap, lrange, lzip, map, range, zip)
+from pandas.errors import PerformanceWarning
+
 import pandas as pd
+from pandas import (
+    DataFrame, Index, MultiIndex, Panel, Series, Timestamp, compat, date_range,
+    read_csv)
+import pandas.core.common as com
+import pandas.util.testing as tm
+from pandas.util.testing import (
+    assert_almost_equal, assert_frame_equal, assert_series_equal)
 
 
 def test_repr():
@@ -1613,6 +1612,23 @@ def test_group_shift_with_null_key():
                           for i in range(n_rows)], dtype=float,
                          columns=["Z"], index=None)
     result = g.shift(-1)
+
+    assert_frame_equal(result, expected)
+
+
+def test_group_shift_with_fill_value():
+    # GH #24128
+    n_rows = 24
+    df = DataFrame([(i % 12, i % 3, i)
+                    for i in range(n_rows)], dtype=float,
+                   columns=["A", "B", "Z"], index=None)
+    g = df.groupby(["A", "B"])
+
+    expected = DataFrame([(i + 12 if i < n_rows - 12
+                           else 0)
+                          for i in range(n_rows)], dtype=float,
+                         columns=["Z"], index=None)
+    result = g.shift(-1, fill_value=0)[["Z"]]
 
     assert_frame_equal(result, expected)
 

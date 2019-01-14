@@ -16,6 +16,15 @@ START, END = datetime(2009, 1, 1), datetime(2010, 1, 1)
 
 
 class TestGetItem(object):
+    def test_ellipsis(self):
+        # GH#21282
+        idx = pd.date_range('2011-01-01', '2011-01-31', freq='D',
+                            tz='Asia/Tokyo', name='idx')
+
+        result = idx[...]
+        assert result.equals(idx)
+        assert result is not idx
+
     def test_getitem(self):
         idx1 = pd.date_range('2011-01-01', '2011-01-31', freq='D', name='idx')
         idx2 = pd.date_range('2011-01-01', '2011-01-31', freq='D',

@@ -190,8 +190,8 @@ class MultiIndex(Index):
     >>> arrays = [[1, 1, 2, 2], ['red', 'blue', 'red', 'blue']]
     >>> pd.MultiIndex.from_arrays(arrays, names=('number', 'color'))
     MultiIndex(levels=[[1, 2], ['blue', 'red']],
-           labels=[[0, 0, 1, 1], [1, 0, 1, 0]],
-           names=['number', 'color'])
+               codes=[[0, 0, 1, 1], [1, 0, 1, 0]],
+               names=['number', 'color'])
 
     See further examples for how to construct a MultiIndex in the doc strings
     of the mentioned helper methods.
@@ -321,7 +321,7 @@ class MultiIndex(Index):
         >>> arrays = [[1, 1, 2, 2], ['red', 'blue', 'red', 'blue']]
         >>> pd.MultiIndex.from_arrays(arrays, names=('number', 'color'))
         MultiIndex(levels=[[1, 2], ['blue', 'red']],
-                   labels=[[0, 0, 1, 1], [1, 0, 1, 0]],
+                   codes=[[0, 0, 1, 1], [1, 0, 1, 0]],
                    names=['number', 'color'])
         """
         if not is_list_like(arrays):
@@ -376,7 +376,7 @@ class MultiIndex(Index):
         ...           (2, u'red'), (2, u'blue')]
         >>> pd.MultiIndex.from_tuples(tuples, names=('number', 'color'))
         MultiIndex(levels=[[1, 2], ['blue', 'red']],
-                   labels=[[0, 0, 1, 1], [1, 0, 1, 0]],
+                   codes=[[0, 0, 1, 1], [1, 0, 1, 0]],
                    names=['number', 'color'])
         """
         if not is_list_like(tuples):
@@ -433,7 +433,7 @@ class MultiIndex(Index):
         >>> pd.MultiIndex.from_product([numbers, colors],
         ...                            names=['number', 'color'])
         MultiIndex(levels=[[0, 1, 2], ['green', 'purple']],
-                   labels=[[0, 0, 1, 1, 2, 2], [0, 1, 0, 1, 0, 1]],
+                   codes=[[0, 0, 1, 1, 2, 2], [0, 1, 0, 1, 0, 1]],
                    names=['number', 'color'])
         """
         from pandas.core.arrays.categorical import _factorize_from_iterables
@@ -493,14 +493,14 @@ class MultiIndex(Index):
 
         >>> pd.MultiIndex.from_frame(df)
         MultiIndex(levels=[['HI', 'NJ'], ['Precip', 'Temp']],
-                   labels=[[0, 0, 1, 1], [1, 0, 1, 0]],
+                   codes=[[0, 0, 1, 1], [1, 0, 1, 0]],
                    names=['a', 'b'])
 
         Using explicit names, instead of the column names
 
         >>> pd.MultiIndex.from_frame(df, names=['state', 'observation'])
         MultiIndex(levels=[['HI', 'NJ'], ['Precip', 'Temp']],
-                   labels=[[0, 0, 1, 1], [1, 0, 1, 0]],
+                   codes=[[0, 0, 1, 1], [1, 0, 1, 0]],
                    names=['state', 'observation'])
         """
         if not isinstance(df, ABCDataFrame):
@@ -619,19 +619,19 @@ class MultiIndex(Index):
                                             names=['foo', 'bar'])
         >>> idx.set_levels([['a','b'], [1,2]])
         MultiIndex(levels=[[u'a', u'b'], [1, 2]],
-                   labels=[[0, 0, 1, 1], [0, 1, 0, 1]],
+                   codes=[[0, 0, 1, 1], [0, 1, 0, 1]],
                    names=[u'foo', u'bar'])
         >>> idx.set_levels(['a','b'], level=0)
         MultiIndex(levels=[[u'a', u'b'], [u'one', u'two']],
-                   labels=[[0, 0, 1, 1], [0, 1, 0, 1]],
+                   codes=[[0, 0, 1, 1], [0, 1, 0, 1]],
                    names=[u'foo', u'bar'])
         >>> idx.set_levels(['a','b'], level='bar')
         MultiIndex(levels=[[1, 2], [u'a', u'b']],
-                   labels=[[0, 0, 1, 1], [0, 1, 0, 1]],
+                   codes=[[0, 0, 1, 1], [0, 1, 0, 1]],
                    names=[u'foo', u'bar'])
         >>> idx.set_levels([['a','b'], [1,2]], level=[0,1])
         MultiIndex(levels=[[u'a', u'b'], [1, 2]],
-                   labels=[[0, 0, 1, 1], [0, 1, 0, 1]],
+                   codes=[[0, 0, 1, 1], [0, 1, 0, 1]],
                    names=[u'foo', u'bar'])
         """
         if is_list_like(levels) and not isinstance(levels, Index):
@@ -738,19 +738,19 @@ class MultiIndex(Index):
                                             names=['foo', 'bar'])
         >>> idx.set_codes([[1,0,1,0], [0,0,1,1]])
         MultiIndex(levels=[[1, 2], [u'one', u'two']],
-                   labels=[[1, 0, 1, 0], [0, 0, 1, 1]],
+                   codes=[[1, 0, 1, 0], [0, 0, 1, 1]],
                    names=[u'foo', u'bar'])
         >>> idx.set_codes([1,0,1,0], level=0)
         MultiIndex(levels=[[1, 2], [u'one', u'two']],
-                   labels=[[1, 0, 1, 0], [0, 1, 0, 1]],
+                   codes=[[1, 0, 1, 0], [0, 1, 0, 1]],
                    names=[u'foo', u'bar'])
         >>> idx.set_codes([0,0,1,1], level='bar')
         MultiIndex(levels=[[1, 2], [u'one', u'two']],
-                   labels=[[0, 0, 1, 1], [0, 0, 1, 1]],
+                   codes=[[0, 0, 1, 1], [0, 0, 1, 1]],
                    names=[u'foo', u'bar'])
         >>> idx.set_codes([[1,0,1,0], [0,0,1,1]], level=[0,1])
         MultiIndex(levels=[[1, 2], [u'one', u'two']],
-                   labels=[[1, 0, 1, 0], [0, 0, 1, 1]],
+                   codes=[[1, 0, 1, 0], [0, 0, 1, 1]],
                    names=[u'foo', u'bar'])
         """
         if level is not None and not is_list_like(level):
@@ -909,8 +909,8 @@ class MultiIndex(Index):
         attrs = [
             ('levels', ibase.default_pprint(self._levels,
                                             max_seq_items=False)),
-            ('labels', ibase.default_pprint(self._codes,
-                                            max_seq_items=False))]
+            ('codes', ibase.default_pprint(self._codes,
+                                           max_seq_items=False))]
         if com._any_not_none(*self.names):
             attrs.append(('names', ibase.default_pprint(self.names)))
         if self.sortorder is not None:
@@ -1468,9 +1468,9 @@ class MultiIndex(Index):
         # Guarantee resulting column order
         result = DataFrame(
             OrderedDict([
-                ((level if name is None else name),
+                ((level if lvlname is None else lvlname),
                  self._get_level_values(level))
-                for name, level in zip(idx_names, range(len(self.levels)))
+                for lvlname, level in zip(idx_names, range(len(self.levels)))
             ]),
             copy=False
         )
@@ -1484,10 +1484,10 @@ class MultiIndex(Index):
         Return a MultiIndex reshaped to conform to the
         shapes given by n_repeat and n_shuffle.
 
+        .. deprecated:: 0.24.0
+
         Useful to replicate and rearrange a MultiIndex for combination
         with another Index with n_repeat items.
-
-        .. deprecated:: 0.24.0
 
         Parameters
         ----------
@@ -1509,8 +1509,8 @@ class MultiIndex(Index):
                                             (2, u'one'), (2, u'two')])
         >>> idx.to_hierarchical(3)
         MultiIndex(levels=[[1, 2], [u'one', u'two']],
-                   labels=[[0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1],
-                           [0, 0, 0, 1, 1, 1, 0, 0, 0, 1, 1, 1]])
+                   codes=[[0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1],
+                          [0, 0, 0, 1, 1, 1, 0, 0, 0, 1, 1, 1]])
         """
         levels = self.levels
         codes = [np.repeat(level_codes, n_repeat) for
@@ -1601,11 +1601,11 @@ class MultiIndex(Index):
                               codes=[[0, 0, 1, 1], [0, 1, 0, 1]])
         >>> i
         MultiIndex(levels=[['a', 'b'], ['bb', 'aa']],
-                   labels=[[0, 0, 1, 1], [0, 1, 0, 1]])
+                   codes=[[0, 0, 1, 1], [0, 1, 0, 1]])
 
         >>> i.sort_monotonic()
         MultiIndex(levels=[['a', 'b'], ['aa', 'bb']],
-                   labels=[[0, 0, 1, 1], [1, 0, 1, 0]])
+                   codes=[[0, 0, 1, 1], [1, 0, 1, 0]])
 
         """
 
@@ -1657,18 +1657,18 @@ class MultiIndex(Index):
         --------
         >>> i = pd.MultiIndex.from_product([range(2), list('ab')])
         MultiIndex(levels=[[0, 1], ['a', 'b']],
-                   labels=[[0, 0, 1, 1], [0, 1, 0, 1]])
+                   codes=[[0, 0, 1, 1], [0, 1, 0, 1]])
 
         >>> i[2:]
         MultiIndex(levels=[[0, 1], ['a', 'b']],
-                   labels=[[1, 1], [0, 1]])
+                   codes=[[1, 1], [0, 1]])
 
         The 0 from the first level is not represented
         and can be removed
 
         >>> i[2:].remove_unused_levels()
         MultiIndex(levels=[[1], ['a', 'b']],
-                   labels=[[0, 0], [0, 1]])
+                   codes=[[0, 0], [0, 1]])
         """
 
         new_levels = []
@@ -1857,8 +1857,9 @@ class MultiIndex(Index):
     def argsort(self, *args, **kwargs):
         return self.values.argsort(*args, **kwargs)
 
-    def repeat(self, repeats, *args, **kwargs):
-        nv.validate_repeat(args, kwargs)
+    @Appender(_index_shared_docs['repeat'] % _index_doc_kwargs)
+    def repeat(self, repeats, axis=None):
+        nv.validate_repeat(tuple(), dict(axis=axis))
         return MultiIndex(levels=self.levels,
                           codes=[level_codes.view(np.ndarray).repeat(repeats)
                                  for level_codes in self.codes],
@@ -1974,10 +1975,10 @@ class MultiIndex(Index):
         ...                    codes=[[0, 0, 1, 1], [0, 1, 0, 1]])
         >>> mi
         MultiIndex(levels=[['a', 'b'], ['bb', 'aa']],
-           labels=[[0, 0, 1, 1], [0, 1, 0, 1]])
+                   codes=[[0, 0, 1, 1], [0, 1, 0, 1]])
         >>> mi.swaplevel(0, 1)
         MultiIndex(levels=[['bb', 'aa'], ['a', 'b']],
-           labels=[[0, 1, 0, 1], [0, 0, 1, 1]])
+                   codes=[[0, 1, 0, 1], [0, 0, 1, 1]])
         """
         new_levels = list(self.levels)
         new_codes = list(self.codes)
@@ -2317,7 +2318,8 @@ class MultiIndex(Index):
             section = labs[start:end]
 
             if lab not in lev:
-                if not lev.is_type_compatible(lib.infer_dtype([lab])):
+                if not lev.is_type_compatible(lib.infer_dtype([lab],
+                                                              skipna=False)):
                     raise TypeError('Level type mismatch: %s' % lab)
 
                 # short circuit

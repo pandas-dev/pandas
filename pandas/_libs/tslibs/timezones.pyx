@@ -1,9 +1,5 @@
 # -*- coding: utf-8 -*-
 
-from cython import Py_ssize_t
-
-from cpython.datetime cimport tzinfo
-
 # dateutil compat
 from dateutil.tz import (
     tzutc as _dateutil_tzutc,
@@ -23,7 +19,8 @@ from numpy cimport int64_t
 cnp.import_array()
 
 # ----------------------------------------------------------------------
-from util cimport is_string_object, is_integer_object, get_nat
+from pandas._libs.tslibs.util cimport (
+    is_string_object, is_integer_object, get_nat)
 
 cdef int64_t NPY_NAT = get_nat()
 

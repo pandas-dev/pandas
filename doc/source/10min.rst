@@ -657,7 +657,7 @@ Categoricals
 ------------
 
 pandas can include categorical data in a ``DataFrame``. For full docs, see the
-:ref:`categorical introduction <categorical>` and the :ref:`API documentation <api.categorical>`.
+:ref:`categorical introduction <categorical>` and the :ref:`API documentation <api.arrays.categorical>`.
 
 .. ipython:: python
 

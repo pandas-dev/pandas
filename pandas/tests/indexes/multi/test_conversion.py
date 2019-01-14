@@ -2,19 +2,26 @@
 
 from collections import OrderedDict
 
-import pytest
 import numpy as np
+import pytest
+
+from pandas.compat import range
 
 import pandas as pd
-import pandas.util.testing as tm
 from pandas import DataFrame, MultiIndex, date_range
-from pandas.compat import range
+import pandas.util.testing as tm
 
 
 def test_tolist(idx):
     result = idx.tolist()
     exp = list(idx.values)
     assert result == exp
+
+
+def test_to_numpy(idx):
+    result = idx.to_numpy()
+    exp = idx.values
+    tm.assert_numpy_array_equal(result, exp)
 
 
 def test_to_frame():

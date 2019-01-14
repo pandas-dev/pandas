@@ -11,9 +11,9 @@ from pandas.core.dtypes.generic import ABCSeries
 
 from pandas.core.accessor import PandasDelegate, delegate_names
 from pandas.core.algorithms import take_1d
+from pandas.core.arrays import DatetimeArray, PeriodArray, TimedeltaArray
 from pandas.core.base import NoNewAttributesMixin, PandasObject
 from pandas.core.indexes.datetimes import DatetimeIndex
-from pandas.core.indexes.period import PeriodArray
 from pandas.core.indexes.timedeltas import TimedeltaIndex
 
 
@@ -27,7 +27,6 @@ class Properties(PandasDelegate, PandasObject, NoNewAttributesMixin):
         self._parent = data
         self.orig = orig
         self.name = getattr(data, 'name', None)
-        self.index = getattr(data, 'index', None)
         self._freeze()
 
     def _get_values(self):
@@ -71,8 +70,7 @@ class Properties(PandasDelegate, PandasObject, NoNewAttributesMixin):
             result = take_1d(result, self.orig.cat.codes)
             index = self.orig.index
         else:
-            index = self.index
-
+            index = self._parent.index
         # return the result as a Series, which is by definition a copy
         result = Series(result, index=index, name=self.name)
 
@@ -98,7 +96,7 @@ class Properties(PandasDelegate, PandasObject, NoNewAttributesMixin):
         if not is_list_like(result):
             return result
 
-        result = Series(result, index=self.index, name=self.name)
+        result = Series(result, index=self._parent.index, name=self.name)
 
         # setting this object will show a SettingWithCopyWarning/Error
         result._is_copy = ("modifications to a method of a datetimelike "
@@ -108,11 +106,11 @@ class Properties(PandasDelegate, PandasObject, NoNewAttributesMixin):
         return result
 
 
-@delegate_names(delegate=DatetimeIndex,
-                accessors=DatetimeIndex._datetimelike_ops,
+@delegate_names(delegate=DatetimeArray,
+                accessors=DatetimeArray._datetimelike_ops,
                 typ="property")
-@delegate_names(delegate=DatetimeIndex,
-                accessors=DatetimeIndex._datetimelike_methods,
+@delegate_names(delegate=DatetimeArray,
+                accessors=DatetimeArray._datetimelike_methods,
                 typ="method")
 class DatetimeProperties(Properties):
     """
@@ -179,11 +177,11 @@ class DatetimeProperties(Properties):
         return self._get_values().inferred_freq
 
 
-@delegate_names(delegate=TimedeltaIndex,
-                accessors=TimedeltaIndex._datetimelike_ops,
+@delegate_names(delegate=TimedeltaArray,
+                accessors=TimedeltaArray._datetimelike_ops,
                 typ="property")
-@delegate_names(delegate=TimedeltaIndex,
-                accessors=TimedeltaIndex._datetimelike_methods,
+@delegate_names(delegate=TimedeltaArray,
+                accessors=TimedeltaArray._datetimelike_methods,
                 typ="method")
 class TimedeltaProperties(Properties):
     """
@@ -261,7 +259,7 @@ class TimedeltaProperties(Properties):
         3     0      0        0        3             0             0            0
         4     0      0        0        4             0             0            0
         """  # noqa: E501
-        return self._get_values().components.set_index(self.index)
+        return self._get_values().components.set_index(self._parent.index)
 
     @property
     def freq(self):
@@ -289,7 +287,8 @@ class PeriodProperties(Properties):
     """
 
 
-class CombinedDatetimelikeProperties(DatetimeProperties, TimedeltaProperties):
+class CombinedDatetimelikeProperties(DatetimeProperties,
+                                     TimedeltaProperties, PeriodProperties):
 
     def __new__(cls, data):
         # CombinedDatetimelikeProperties isn't really instantiated. Instead
@@ -315,11 +314,10 @@ class CombinedDatetimelikeProperties(DatetimeProperties, TimedeltaProperties):
                 return DatetimeProperties(data, orig)
             elif is_timedelta64_dtype(data.dtype):
                 return TimedeltaProperties(data, orig)
-            else:
-                if is_period_arraylike(data):
-                    return PeriodProperties(data, orig)
-                if is_datetime_arraylike(data):
-                    return DatetimeProperties(data, orig)
+            elif is_period_arraylike(data):
+                return PeriodProperties(data, orig)
+            elif is_datetime_arraylike(data):
+                return DatetimeProperties(data, orig)
         except Exception:
             pass  # we raise an attribute error anyway
 

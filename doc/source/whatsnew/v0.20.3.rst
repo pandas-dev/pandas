@@ -58,7 +58,7 @@ Plotting
 Reshaping
 ^^^^^^^^^
 
-- ``PeriodIndex`` / ``TimedeltaIndex.join`` was missing the ``sort=`` kwarg (:issue:`16541`) 
+- ``PeriodIndex`` / ``TimedeltaIndex.join`` was missing the ``sort=`` kwarg (:issue:`16541`)
 - Bug in joining on a ``MultiIndex`` with a ``category`` dtype for a level (:issue:`16627`).
 - Bug in :func:`merge` when merging/joining with multiple categorical columns (:issue:`16767`)
 

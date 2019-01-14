@@ -22,16 +22,17 @@ from pandas.core.dtypes.common import (
     is_dtype_union_equal, is_extension_array_dtype, is_float, is_float_dtype,
     is_hashable, is_integer, is_integer_dtype, is_interval_dtype, is_iterator,
     is_list_like, is_object_dtype, is_period_dtype, is_scalar,
-    is_signed_integer_dtype, is_timedelta64_dtype, is_unsigned_integer_dtype)
+    is_signed_integer_dtype, is_timedelta64_dtype, is_unsigned_integer_dtype,
+    pandas_dtype)
 import pandas.core.dtypes.concat as _concat
 from pandas.core.dtypes.generic import (
-    ABCDataFrame, ABCDateOffset, ABCDatetimeIndex, ABCIndexClass,
-    ABCMultiIndex, ABCPeriodIndex, ABCSeries, ABCTimedeltaArray,
-    ABCTimedeltaIndex)
+    ABCDataFrame, ABCDateOffset, ABCDatetimeArray, ABCIndexClass,
+    ABCMultiIndex, ABCPandasArray, ABCPeriodIndex, ABCSeries,
+    ABCTimedeltaArray, ABCTimedeltaIndex)
 from pandas.core.dtypes.missing import array_equivalent, isna
 
 from pandas.core import ops
-from pandas.core.accessor import CachedAccessor
+from pandas.core.accessor import CachedAccessor, DirNamesMixin
 import pandas.core.algorithms as algos
 from pandas.core.arrays import ExtensionArray
 from pandas.core.base import IndexOpsMixin, PandasObject
@@ -68,8 +69,7 @@ def _make_comparison_op(op, cls):
             if other.ndim > 0 and len(self) != len(other):
                 raise ValueError('Lengths must match to compare')
 
-        from .multi import MultiIndex
-        if is_object_dtype(self) and not isinstance(self, MultiIndex):
+        if is_object_dtype(self) and not isinstance(self, ABCMultiIndex):
             # don't pass MultiIndex
             with np.errstate(all='ignore'):
                 result = ops._comp_method_OBJECT_ARRAY(op, self.values, other)
@@ -202,6 +202,9 @@ class Index(IndexOpsMixin, PandasObject):
     >>> pd.Index(list('abc'))
     Index(['a', 'b', 'c'], dtype='object')
     """
+    # tolist is not actually deprecated, just suppressed in the __dir__
+    _deprecations = DirNamesMixin._deprecations | frozenset(['tolist'])
+
     # To hand over control to subclasses
     _join_precedence = 1
 
@@ -261,6 +264,9 @@ class Index(IndexOpsMixin, PandasObject):
                 return cls._simple_new(data, name)
 
         from .range import RangeIndex
+        if isinstance(data, ABCPandasArray):
+            # ensure users don't accidentally put a PandasArray in an index.
+            data = data.to_numpy()
 
         # range
         if isinstance(data, RangeIndex):
@@ -341,7 +347,7 @@ class Index(IndexOpsMixin, PandasObject):
                     # should not be coerced
                     # GH 11836
                     if is_integer_dtype(dtype):
-                        inferred = lib.infer_dtype(data)
+                        inferred = lib.infer_dtype(data, skipna=False)
                         if inferred == 'integer':
                             data = maybe_cast_to_integer_array(data, dtype,
                                                                copy=copy)
@@ -371,7 +377,7 @@ class Index(IndexOpsMixin, PandasObject):
                         else:
                             data = data.astype(dtype)
                     elif is_float_dtype(dtype):
-                        inferred = lib.infer_dtype(data)
+                        inferred = lib.infer_dtype(data, skipna=False)
                         if inferred == 'string':
                             pass
                         else:
@@ -409,7 +415,7 @@ class Index(IndexOpsMixin, PandasObject):
                 subarr = subarr.copy()
 
             if dtype is None:
-                inferred = lib.infer_dtype(subarr)
+                inferred = lib.infer_dtype(subarr, skipna=False)
                 if inferred == 'integer':
                     try:
                         return cls._try_convert_to_int_index(
@@ -516,6 +522,12 @@ class Index(IndexOpsMixin, PandasObject):
 
         result = object.__new__(cls)
         result._data = values
+        # _index_data is a (temporary?) fix to ensure that the direct data
+        # manipulation we do in `_libs/reduction.pyx` continues to work.
+        # We need access to the actual ndarray, since we're messing with
+        # data buffers and strides. We don't re-use `_ndarray_values`, since
+        # we actually set this value too.
+        result._index_data = values
         result.name = name
         for k, v in compat.iteritems(kwargs):
             setattr(result, k, v)
@@ -556,9 +568,9 @@ class Index(IndexOpsMixin, PandasObject):
         if not len(values) and 'dtype' not in kwargs:
             attributes['dtype'] = self.dtype
 
-        # _simple_new expects an ndarray
-        values = getattr(values, 'values', values)
-        if isinstance(values, ABCDatetimeIndex):
+        # _simple_new expects an the type of self._data
+        values = getattr(values, '_values', values)
+        if isinstance(values, ABCDatetimeArray):
             # `self.values` returns `self` for tz-aware, so we need to unwrap
             #  more specifically
             values = values.asi8
@@ -589,36 +601,6 @@ class Index(IndexOpsMixin, PandasObject):
             except (TypeError, ValueError):
                 pass
         return Index(values, **attributes)
-
-    def _deepcopy_if_needed(self, orig, copy=False):
-        """
-        Make a copy of self if data coincides (in memory) with orig.
-        Subclasses should override this if self._base is not an ndarray.
-
-        .. versionadded:: 0.19.0
-
-        Parameters
-        ----------
-        orig : ndarray
-            other ndarray to compare self._data against
-        copy : boolean, default False
-            when False, do not run any check, just return self
-
-        Returns
-        -------
-        A copy of self if needed, otherwise self : Index
-        """
-        if copy:
-            # Retrieve the "base objects", i.e. the original memory allocations
-            if not isinstance(orig, np.ndarray):
-                # orig is a DatetimeIndex
-                orig = orig.values
-            orig = orig if orig.base is None else orig.base
-            new = self._data if self._data.base is None else self._data.base
-            if orig is new:
-                return self.copy(deep=True)
-
-        return self
 
     def _update_inplace(self, result, **kwargs):
         # guard when called from IndexOpsMixin
@@ -673,7 +655,7 @@ class Index(IndexOpsMixin, PandasObject):
         """
         The array interface, return my values.
         """
-        return self._data.view(np.ndarray)
+        return np.asarray(self._data, dtype=dtype)
 
     def __array_wrap__(self, result, context=None):
         """
@@ -730,6 +712,9 @@ class Index(IndexOpsMixin, PandasObject):
         Parameters
         ----------
         dtype : numpy dtype or pandas type
+            Note that any signed integer `dtype` is treated as ``'int64'``,
+            and any unsigned integer `dtype` is treated as ``'uint64'``,
+            regardless of the size.
         copy : bool, default True
             By default, astype always returns a newly allocated object.
             If copy is set to False and internal requirements on dtype are
@@ -748,6 +733,13 @@ class Index(IndexOpsMixin, PandasObject):
             from .category import CategoricalIndex
             return CategoricalIndex(self.values, name=self.name, dtype=dtype,
                                     copy=copy)
+        elif is_datetime64tz_dtype(dtype):
+            # TODO(GH-24559): Remove this block, use the following elif.
+            # avoid FutureWarning from DatetimeIndex constructor.
+            from pandas import DatetimeIndex
+            tz = pandas_dtype(dtype).tz
+            return (DatetimeIndex(np.asarray(self))
+                    .tz_localize("UTC").tz_convert(tz))
 
         elif is_extension_array_dtype(dtype):
             return Index(np.asarray(self), dtype=dtype, copy=copy)
@@ -823,42 +815,46 @@ class Index(IndexOpsMixin, PandasObject):
             taken = values.take(indices)
         return taken
 
-    def repeat(self, repeats, *args, **kwargs):
-        """
-        Repeat elements of an Index.
+    _index_shared_docs['repeat'] = """
+        Repeat elements of a %(klass)s.
 
-        Returns a new index where each element of the current index
+        Returns a new %(klass)s where each element of the current %(klass)s
         is repeated consecutively a given number of times.
 
         Parameters
         ----------
-        repeats : int
-            The number of repetitions for each element.
-        **kwargs
-            Additional keywords have no effect but might be accepted for
-            compatibility with numpy.
+        repeats : int or array of ints
+            The number of repetitions for each element. This should be a
+            non-negative integer. Repeating 0 times will return an empty
+            %(klass)s.
+        axis : None
+            Must be ``None``. Has no effect but is accepted for compatibility
+            with numpy.
 
         Returns
         -------
-        pandas.Index
-            Newly created Index with repeated elements.
+        repeated_index : %(klass)s
+            Newly created %(klass)s with repeated elements.
 
         See Also
         --------
         Series.repeat : Equivalent function for Series.
-        numpy.repeat : Underlying implementation.
+        numpy.repeat : Similar method for :class:`numpy.ndarray`.
 
         Examples
         --------
-        >>> idx = pd.Index([1, 2, 3])
+        >>> idx = pd.Index(['a', 'b', 'c'])
         >>> idx
-        Int64Index([1, 2, 3], dtype='int64')
+        Index(['a', 'b', 'c'], dtype='object')
         >>> idx.repeat(2)
-        Int64Index([1, 1, 2, 2, 3, 3], dtype='int64')
-        >>> idx.repeat(3)
-        Int64Index([1, 1, 1, 2, 2, 2, 3, 3, 3], dtype='int64')
+        Index(['a', 'a', 'b', 'b', 'c', 'c'], dtype='object')
+        >>> idx.repeat([1, 2, 3])
+        Index(['a', 'b', 'b', 'c', 'c', 'c'], dtype='object')
         """
-        nv.validate_repeat(args, kwargs)
+
+    @Appender(_index_shared_docs['repeat'] % _index_doc_kwargs)
+    def repeat(self, repeats, axis=None):
+        nv.validate_repeat(tuple(), dict(axis=axis))
         return self._shallow_copy(self._values.repeat(repeats))
 
     # --------------------------------------------------------------------
@@ -1306,20 +1302,19 @@ class Index(IndexOpsMixin, PandasObject):
         ...                                   [2018, 2019]])
         >>> idx
         MultiIndex(levels=[['cobra', 'python'], [2018, 2019]],
-                   labels=[[1, 1, 0, 0], [0, 1, 0, 1]])
+                   codes=[[1, 1, 0, 0], [0, 1, 0, 1]])
         >>> idx.set_names(['kind', 'year'], inplace=True)
         >>> idx
         MultiIndex(levels=[['cobra', 'python'], [2018, 2019]],
-                   labels=[[1, 1, 0, 0], [0, 1, 0, 1]],
+                   codes=[[1, 1, 0, 0], [0, 1, 0, 1]],
                    names=['kind', 'year'])
         >>> idx.set_names('species', level=0)
         MultiIndex(levels=[['cobra', 'python'], [2018, 2019]],
-                   labels=[[1, 1, 0, 0], [0, 1, 0, 1]],
+                   codes=[[1, 1, 0, 0], [0, 1, 0, 1]],
                    names=['species', 'year'])
         """
 
-        from .multi import MultiIndex
-        if level is not None and not isinstance(self, MultiIndex):
+        if level is not None and not isinstance(self, ABCMultiIndex):
             raise ValueError('Level must be None for non-MultiIndex')
 
         if level is not None and not is_list_like(level) and is_list_like(
@@ -1378,11 +1373,11 @@ class Index(IndexOpsMixin, PandasObject):
         ...                                   names=['kind', 'year'])
         >>> idx
         MultiIndex(levels=[['cobra', 'python'], [2018, 2019]],
-                   labels=[[1, 1, 0, 0], [0, 1, 0, 1]],
+                   codes=[[1, 1, 0, 0], [0, 1, 0, 1]],
                    names=['kind', 'year'])
         >>> idx.rename(['species', 'year'])
         MultiIndex(levels=[['cobra', 'python'], [2018, 2019]],
-                   labels=[[1, 1, 0, 0], [0, 1, 0, 1]],
+                   codes=[[1, 1, 0, 0], [0, 1, 0, 1]],
                    names=['species', 'year'])
         >>> idx.rename('species')
         Traceback (most recent call last):
@@ -1731,7 +1726,7 @@ class Index(IndexOpsMixin, PandasObject):
         """
         Return a string of the type inferred from the values.
         """
-        return lib.infer_dtype(self)
+        return lib.infer_dtype(self, skipna=False)
 
     @cache_readonly
     def is_all_dates(self):
@@ -1933,7 +1928,7 @@ class Index(IndexOpsMixin, PandasObject):
 
         Returns
         -------
-        filled : %(klass)s
+        filled : Index
         """
 
     @Appender(_index_shared_docs['fillna'])
@@ -2110,11 +2105,11 @@ class Index(IndexOpsMixin, PandasObject):
         """
         Extract duplicated index elements.
 
-        Returns a sorted list of index elements which appear more than once in
-        the index.
-
         .. deprecated:: 0.23.0
             Use idx[idx.duplicated()].unique() instead
+
+        Returns a sorted list of index elements which appear more than once in
+        the index.
 
         Returns
         -------
@@ -2313,27 +2308,15 @@ class Index(IndexOpsMixin, PandasObject):
                                            allow_fill=False)
                 result = _concat._concat_compat((lvals, other_diff))
 
-                try:
-                    lvals[0] < other_diff[0]
-                except TypeError as e:
-                    warnings.warn("%s, sort order is undefined for "
-                                  "incomparable objects" % e, RuntimeWarning,
-                                  stacklevel=3)
-                else:
-                    types = frozenset((self.inferred_type,
-                                       other.inferred_type))
-                    if not types & _unsortable_types:
-                        result.sort()
-
             else:
                 result = lvals
 
-                try:
-                    result = np.sort(result)
-                except TypeError as e:
-                    warnings.warn("%s, sort order is undefined for "
-                                  "incomparable objects" % e, RuntimeWarning,
-                                  stacklevel=3)
+            try:
+                result = sorting.safe_sort(result)
+            except TypeError as e:
+                warnings.warn("%s, sort order is undefined for "
+                              "incomparable objects" % e, RuntimeWarning,
+                              stacklevel=3)
 
         # for subclasses
         return self._wrap_setop_result(other, result)
@@ -3168,9 +3151,8 @@ class Index(IndexOpsMixin, PandasObject):
     @Appender(_index_shared_docs['join'])
     def join(self, other, how='left', level=None, return_indexers=False,
              sort=False):
-        from .multi import MultiIndex
-        self_is_mi = isinstance(self, MultiIndex)
-        other_is_mi = isinstance(other, MultiIndex)
+        self_is_mi = isinstance(self, ABCMultiIndex)
+        other_is_mi = isinstance(other, ABCMultiIndex)
 
         # try to figure out the join level
         # GH3662
@@ -4417,8 +4399,7 @@ class Index(IndexOpsMixin, PandasObject):
 
         # TODO: if we are a MultiIndex, we can do better
         # that converting to tuples
-        from .multi import MultiIndex
-        if isinstance(values, MultiIndex):
+        if isinstance(values, ABCMultiIndex):
             values = values.values
         values = ensure_categorical(values)
         result = values._reverse_indexer()
@@ -4530,7 +4511,7 @@ class Index(IndexOpsMixin, PandasObject):
         ...                                  names=('number', 'color'))
         >>> midx
         MultiIndex(levels=[[1, 2, 3], ['blue', 'green', 'red']],
-                   labels=[[0, 1, 2], [2, 0, 1]],
+                   codes=[[0, 1, 2], [2, 0, 1]],
                    names=['number', 'color'])
 
         Check whether the strings in the 'color' level of the MultiIndex
@@ -5076,6 +5057,7 @@ class Index(IndexOpsMixin, PandasObject):
                 attrs = self._maybe_update_attributes(attrs)
                 return Index(op(self.values), **attrs)
 
+            _evaluate_numeric_unary.__name__ = opstr
             return _evaluate_numeric_unary
 
         cls.__neg__ = _make_evaluate_unary(operator.neg, '__neg__')
@@ -5232,7 +5214,7 @@ def ensure_index_from_sequences(sequences, names=None):
     >>> ensure_index_from_sequences([['a', 'a'], ['a', 'b']],
                                     names=['L1', 'L2'])
     MultiIndex(levels=[['a'], ['a', 'b']],
-               labels=[[0, 0], [0, 1]],
+               codes=[[0, 0], [0, 1]],
                names=['L1', 'L2'])
 
     See Also
@@ -5273,7 +5255,7 @@ def ensure_index(index_like, copy=False):
 
     >>> ensure_index([['a', 'a'], ['b', 'c']])
     MultiIndex(levels=[['a'], ['b', 'c']],
-               labels=[[0, 0], [0, 1]])
+               codes=[[0, 0], [0, 1]])
 
     See Also
     --------

@@ -1,27 +1,30 @@
 # -*- coding: utf-8 -*-
 
-import numpy as np
-import pytest
-
-from numpy.random import RandomState
-from numpy import nan
 from datetime import datetime
 from itertools import permutations
 import struct
-from pandas import (Series, Categorical, CategoricalIndex,
-                    Timestamp, DatetimeIndex, Index, IntervalIndex)
-import pandas as pd
 
-from pandas import compat
-from pandas._libs import (groupby as libgroupby, algos as libalgos,
-                          hashtable as ht)
+import numpy as np
+from numpy import nan
+from numpy.random import RandomState
+import pytest
+
+from pandas._libs import (
+    algos as libalgos, groupby as libgroupby, hashtable as ht)
 from pandas.compat import lrange, range
+from pandas.compat.numpy import np_array_datetime64_compat
+import pandas.util._test_decorators as td
+
+from pandas.core.dtypes.dtypes import CategoricalDtype as CDT
+
+import pandas as pd
+from pandas import (
+    Categorical, CategoricalIndex, DatetimeIndex, Index, IntervalIndex, Series,
+    Timestamp, compat)
 import pandas.core.algorithms as algos
+from pandas.core.arrays import DatetimeArray
 import pandas.core.common as com
 import pandas.util.testing as tm
-import pandas.util._test_decorators as td
-from pandas.core.dtypes.dtypes import CategoricalDtype as CDT
-from pandas.compat.numpy import np_array_datetime64_compat
 from pandas.util.testing import assert_almost_equal
 
 
@@ -456,9 +459,10 @@ class TestUnique(object):
         result = Series(
             Index([Timestamp('20160101', tz='US/Eastern'),
                    Timestamp('20160101', tz='US/Eastern')])).unique()
-        expected = np.array([Timestamp('2016-01-01 00:00:00-0500',
-                                       tz='US/Eastern')], dtype=object)
-        tm.assert_numpy_array_equal(result, expected)
+        expected = DatetimeArray._from_sequence(np.array([
+            Timestamp('2016-01-01 00:00:00-0500', tz="US/Eastern")
+        ]))
+        tm.assert_extension_array_equal(result, expected)
 
         result = Index([Timestamp('20160101', tz='US/Eastern'),
                         Timestamp('20160101', tz='US/Eastern')]).unique()
@@ -469,9 +473,10 @@ class TestUnique(object):
         result = pd.unique(
             Series(Index([Timestamp('20160101', tz='US/Eastern'),
                           Timestamp('20160101', tz='US/Eastern')])))
-        expected = np.array([Timestamp('2016-01-01 00:00:00-0500',
-                                       tz='US/Eastern')], dtype=object)
-        tm.assert_numpy_array_equal(result, expected)
+        expected = DatetimeArray._from_sequence(np.array([
+            Timestamp('2016-01-01', tz="US/Eastern"),
+        ]))
+        tm.assert_extension_array_equal(result, expected)
 
         result = pd.unique(Index([Timestamp('20160101', tz='US/Eastern'),
                                   Timestamp('20160101', tz='US/Eastern')]))
@@ -1494,19 +1499,19 @@ def test_pad_backfill_object_segfault():
     old = np.array([], dtype='O')
     new = np.array([datetime(2010, 12, 31)], dtype='O')
 
-    result = libalgos.pad_object(old, new)
+    result = libalgos.pad["object"](old, new)
     expected = np.array([-1], dtype=np.int64)
     tm.assert_numpy_array_equal(result, expected)
 
-    result = libalgos.pad_object(new, old)
+    result = libalgos.pad["object"](new, old)
     expected = np.array([], dtype=np.int64)
     tm.assert_numpy_array_equal(result, expected)
 
-    result = libalgos.backfill_object(old, new)
+    result = libalgos.backfill["object"](old, new)
     expected = np.array([-1], dtype=np.int64)
     tm.assert_numpy_array_equal(result, expected)
 
-    result = libalgos.backfill_object(new, old)
+    result = libalgos.backfill["object"](new, old)
     expected = np.array([], dtype=np.int64)
     tm.assert_numpy_array_equal(result, expected)
 
@@ -1538,7 +1543,7 @@ class TestTseriesUtil(object):
         old = Index([1, 5, 10])
         new = Index(lrange(12))
 
-        filler = libalgos.backfill_int64(old.values, new.values)
+        filler = libalgos.backfill["int64_t"](old.values, new.values)
 
         expect_filler = np.array([0, 0, 1, 1, 1, 1,
                                   2, 2, 2, 2, 2, -1], dtype=np.int64)
@@ -1547,7 +1552,7 @@ class TestTseriesUtil(object):
         # corner case
         old = Index([1, 4])
         new = Index(lrange(5, 10))
-        filler = libalgos.backfill_int64(old.values, new.values)
+        filler = libalgos.backfill["int64_t"](old.values, new.values)
 
         expect_filler = np.array([-1, -1, -1, -1, -1], dtype=np.int64)
         tm.assert_numpy_array_equal(filler, expect_filler)
@@ -1556,7 +1561,7 @@ class TestTseriesUtil(object):
         old = Index([1, 5, 10])
         new = Index(lrange(12))
 
-        filler = libalgos.pad_int64(old.values, new.values)
+        filler = libalgos.pad["int64_t"](old.values, new.values)
 
         expect_filler = np.array([-1, 0, 0, 0, 0, 1,
                                   1, 1, 1, 1, 2, 2], dtype=np.int64)
@@ -1565,7 +1570,7 @@ class TestTseriesUtil(object):
         # corner case
         old = Index([5, 10])
         new = Index(lrange(5))
-        filler = libalgos.pad_int64(old.values, new.values)
+        filler = libalgos.pad["int64_t"](old.values, new.values)
         expect_filler = np.array([-1, -1, -1, -1, -1], dtype=np.int64)
         tm.assert_numpy_array_equal(filler, expect_filler)
 

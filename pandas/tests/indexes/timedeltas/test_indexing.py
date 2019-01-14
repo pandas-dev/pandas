@@ -4,11 +4,19 @@ import numpy as np
 import pytest
 
 import pandas as pd
-import pandas.util.testing as tm
 from pandas import Index, Timedelta, TimedeltaIndex, compat, timedelta_range
+import pandas.util.testing as tm
 
 
 class TestGetItem(object):
+    def test_ellipsis(self):
+        # GH#21282
+        idx = timedelta_range('1 day', '31 day', freq='D', name='idx')
+
+        result = idx[...]
+        assert result.equals(idx)
+        assert result is not idx
+
     def test_getitem(self):
         idx1 = timedelta_range('1 day', '31 day', freq='D', name='idx')
 

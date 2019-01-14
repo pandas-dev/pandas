@@ -1,7 +1,9 @@
 import pytest
 
 from pandas.compat import StringIO
+
 from pandas import read_sas
+import pandas.util.testing as tm
 
 
 class TestSas(object):
@@ -14,3 +16,10 @@ class TestSas(object):
                "name, you must specify a format string")
         with pytest.raises(ValueError, match=msg):
             read_sas(b)
+
+    def test_sas_read_no_format_or_extension(self):
+        # see gh-24548
+        msg = ("unable to infer format of SAS file")
+        with tm.ensure_clean('test_file_no_extension') as path:
+            with pytest.raises(ValueError, match=msg):
+                read_sas(path)

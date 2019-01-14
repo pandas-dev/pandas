@@ -57,6 +57,20 @@ def test_dtypes(dtype):
     assert dtype.name is not None
 
 
+@pytest.mark.parametrize('dtype, expected', [
+    (Int8Dtype(), 'Int8Dtype()'),
+    (Int16Dtype(), 'Int16Dtype()'),
+    (Int32Dtype(), 'Int32Dtype()'),
+    (Int64Dtype(), 'Int64Dtype()'),
+    (UInt8Dtype(), 'UInt8Dtype()'),
+    (UInt16Dtype(), 'UInt16Dtype()'),
+    (UInt32Dtype(), 'UInt32Dtype()'),
+    (UInt64Dtype(), 'UInt64Dtype()'),
+])
+def test_repr_dtype(dtype, expected):
+    assert repr(dtype) == expected
+
+
 def test_repr_array():
     result = repr(integer_array([1, None, 3]))
     expected = (
