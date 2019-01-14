@@ -2531,21 +2531,24 @@ class CategoricalAccessor(PandasDelegate, PandasObject, NoNewAttributesMixin):
 
     @property
     def categorical(self):
-        warn("`Series.cat.categorical` has been deprecated. Use the attributes on 'Series.cat' directly instead.",
+        warn("`Series.cat.categorical` has been deprecated. Use the "
+             "attributes on 'Series.cat' directly instead.",
              FutureWarning,
              stacklevel=2)
         return self._parent
 
     @property
     def name(self):
-        warn("`Series.cat.name` has been deprecated. Use `Series.name` instead.",
+        warn("`Series.cat.name` has been deprecated. Use `Series.name` "
+             "instead.",
              FutureWarning,
              stacklevel=2)
         return self._name
 
     @property
     def index(self):
-        warn("`Series.cat.index` has been deprecated. Use `Series.index` instead.",
+        warn("`Series.cat.index` has been deprecated. Use `Series.index` "
+             "instead.",
              FutureWarning,
              stacklevel=2)
         return self._index

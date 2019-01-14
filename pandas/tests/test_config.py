@@ -251,7 +251,8 @@ class TestConfig(object):
                     KeyError,
                     message="Nonexistent option didn't raise KeyError"):
                 self.cf.get_option('foo')
-
+            for wa in w:
+                print(wa, wa.source, wa.line, wa.lineno)
             assert len(w) == 1  # should have raised one warning
             assert 'deprecated' in str(w[-1])  # we get the default message
 
