@@ -394,7 +394,7 @@ Consider the following toy example of doubling each observation:
    1000 loops, best of 3: 233 us per loop
 
    # Custom function with numba
-   In [7]: %timeit (df['col1_doubled'] = double_every_value_with_numba(df.a.values)
+   In [7]: %timeit (df['col1_doubled'] = double_every_value_withnumba(df.a.values)
    1000 loops, best of 3: 145 us per loop
 
 Caveats
