@@ -4164,7 +4164,7 @@ class DataFrame(NDFrame):
                    'deprecated and will be removed in a future version. To '
                    'silence this warning, wrap the lists in a Series / Index '
                    'or np.ndarray. E.g. df.set_index(["A", [1, 2, 3]]) should '
-                   'be passed as df.set_index(["A", pd.Series([1, 2, 3])).')
+                   'be passed as df.set_index(["A", pd.Series([1, 2, 3])]).')
             warnings.warn(msg, FutureWarning, stacklevel=2)
 
         if inplace:
