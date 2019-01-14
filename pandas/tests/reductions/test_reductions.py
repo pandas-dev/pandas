@@ -6,8 +6,8 @@ import pytest
 
 import pandas as pd
 from pandas import (
-    Categorical, DataFrame, DatetimeIndex, Index, PeriodIndex, Series,
-    Timedelta, TimedeltaIndex, Timestamp, compat, timedelta_range,
+    Categorical, DataFrame, DatetimeIndex, Index, NaT, Period, PeriodIndex,
+    Series, Timedelta, TimedeltaIndex, Timestamp, compat, timedelta_range,
     to_timedelta)
 from pandas.core import nanops
 import pandas.util.testing as tm
@@ -299,6 +299,61 @@ class TestIndexReductions(object):
 
         with pytest.raises(ValueError, match=errmsg):
             np.argmax(dr, out=0)
+
+    def test_minmax_period(self):
+
+        # monotonic
+        idx1 = pd.PeriodIndex([NaT, '2011-01-01', '2011-01-02',
+                               '2011-01-03'], freq='D')
+        assert idx1.is_monotonic
+
+        # non-monotonic
+        idx2 = pd.PeriodIndex(['2011-01-01', NaT, '2011-01-03',
+                               '2011-01-02', NaT], freq='D')
+        assert not idx2.is_monotonic
+
+        for idx in [idx1, idx2]:
+            assert idx.min() == pd.Period('2011-01-01', freq='D')
+            assert idx.max() == pd.Period('2011-01-03', freq='D')
+        assert idx1.argmin() == 1
+        assert idx2.argmin() == 0
+        assert idx1.argmax() == 3
+        assert idx2.argmax() == 2
+
+        for op in ['min', 'max']:
+            # Return NaT
+            obj = PeriodIndex([], freq='M')
+            result = getattr(obj, op)()
+            assert result is NaT
+
+            obj = PeriodIndex([NaT], freq='M')
+            result = getattr(obj, op)()
+            assert result is NaT
+
+            obj = PeriodIndex([NaT, NaT, NaT], freq='M')
+            result = getattr(obj, op)()
+            assert result is NaT
+
+    def test_numpy_minmax_period(self):
+        pr = pd.period_range(start='2016-01-15', end='2016-01-20')
+
+        assert np.min(pr) == Period('2016-01-15', freq='D')
+        assert np.max(pr) == Period('2016-01-20', freq='D')
+
+        errmsg = "the 'out' parameter is not supported"
+        with pytest.raises(ValueError, match=errmsg):
+            np.min(pr, out=0)
+        with pytest.raises(ValueError, match=errmsg):
+            np.max(pr, out=0)
+
+        assert np.argmin(pr) == 0
+        assert np.argmax(pr) == 5
+
+        errmsg = "the 'out' parameter is not supported"
+        with pytest.raises(ValueError, match=errmsg):
+            np.argmin(pr, out=0)
+        with pytest.raises(ValueError, match=errmsg):
+            np.argmax(pr, out=0)
 
 
 class TestSeriesReductions(object):
