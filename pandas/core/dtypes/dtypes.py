@@ -588,7 +588,6 @@ class _DatetimeDtypeBase(PandasExtensionDtype, ExtensionDtype):
     num = 101
     base = np.dtype('M8[ns]')
     na_value = NaT
-    _cache = {}
 
     @property
     def unit(self):
@@ -760,13 +759,11 @@ class TimedeltaDtype(PandasExtensionDtype, ExtensionDtype):
 
     def __init__(self, unit="ns"):
         if isinstance(unit, np.dtype):
-            if unit != "m8[ns]":
-                # I don't like doing this here.
-                raise TypeError("dtype {} cannot be converted to "
-                                "timedelta64[ns]".format(unit))
+            if unit != np.dtype("m8[ns]"):
+                raise ValueError()
             unit = "ns"
         if unit != "ns":
-            raise ValueError
+            raise ValueError()
 
         self._unit = unit
 

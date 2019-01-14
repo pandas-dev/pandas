@@ -602,9 +602,15 @@ def sanitize_array(data, index, dtype=None, copy=False,
         if copy:
             subarr = data.copy()
 
-        if isinstance(data, ABCDatetimeArray) and not data.tz:
+        # Ensure that we don't allow the following in Internals
+        # * DatetimeArray[DatetimeDtype] (tz-naive)
+        # * TimedeltaArray
+        # For the time being, we only want to allow storing those
+        # as DatetimeBlock and TimedeltaBlocks.
+
+        if isinstance(subarr, ABCDatetimeArray) and not subarr.tz:
             subarr = subarr._data
-        if isinstance(data, ABCTimedeltaArray):
+        if isinstance(subarr, ABCTimedeltaArray):
             subarr = subarr._data
 
         return subarr

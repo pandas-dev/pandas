@@ -185,7 +185,7 @@ class TimedeltaArray(dtl.DatetimeLikeArrayMixin, dtl.TimelikeOps):
 
     @classmethod
     def _simple_new(cls, values, freq=None, dtype=_TD_DTYPE):
-        assert dtype == _TD_DTYPE, dtype
+        _validate_td64_dtype(dtype)
         assert isinstance(values, np.ndarray), type(values)
 
         result = object.__new__(cls)
