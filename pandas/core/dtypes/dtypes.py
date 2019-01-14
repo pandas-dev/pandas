@@ -624,16 +624,19 @@ class _DatetimeDtypeBase(PandasExtensionDtype, ExtensionDtype):
         >>> DatetimeTZDtype.construct_from_string('datetime64[ns, UTC]')
         datetime64[ns, UTC]
         """
-        msg = "Could not construct a {} from '{}'"
-        try:
-            match = cls._match.match(string)
-            if match:
-                d = match.groupdict()
-                return cls(**d)
-        except Exception:
-            # TODO(py3): Change this pass to `raise TypeError(msg) from e`
-            pass
-        raise TypeError(msg.format(cls.__name__, string))
+        if isinstance(string, compat.string_types):
+            msg = "Could not construct DatetimeTZDtype from '{}'"
+            try:
+                match = cls._match.match(string)
+                if match:
+                    d = match.groupdict()
+                    return cls(unit=d['unit'], tz=d['tz'])
+            except Exception:
+                # TODO(py3): Change this pass to `raise TypeError(msg) from e`
+                pass
+            raise TypeError(msg.format(string))
+
+        raise TypeError("Could not construct DatetimeTZDtype")
 
     @property
     def name(self):

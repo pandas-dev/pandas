@@ -235,11 +235,13 @@ class TimedeltaIndex(DatetimeIndexOpsMixin, dtl.TimelikeOps, Int64Index,
         if not isinstance(values, TimedeltaArray):
             values = TimedeltaArray._simple_new(values, dtype=dtype,
                                                 freq=freq)
+        else:
+            if freq is None:
+                freq = values.freq
         _validate_td64_dtype(dtype)
         assert isinstance(values, TimedeltaArray), type(values)
 
-        freq = to_offset(freq)
-        tdarr = TimedeltaArray._simple_new(values, freq=freq)
+        tdarr = TimedeltaArray._simple_new(values._data, freq=freq)
         result = object.__new__(cls)
         result._data = tdarr
         result.name = name

@@ -4,6 +4,7 @@ from collections import defaultdict
 from datetime import datetime, timedelta
 from decimal import Decimal
 import math
+import sys
 
 import numpy as np
 import pytest
@@ -401,24 +402,40 @@ class TestIndex(Base):
         # Test constructing with a datetimetz dtype
         # .values produces numpy datetimes, so these are considered naive
         # .asi8 produces integers, so these are considered epoch timestamps
+        # ^the above will be true in a later version. Right now we `.view`
+        # the i8 values as NS_DTYPE, effectively treating them as wall times.
         index = pd.date_range('2011-01-01', periods=5)
         arg = getattr(index, attr)
-        if utc:
-            index = index.tz_localize('UTC').tz_convert(tz_naive_fixture)
-        else:
-            index = index.tz_localize(tz_naive_fixture)
+        index = index.tz_localize(tz_naive_fixture)
         dtype = index.dtype
 
-        result = klass(arg, tz=tz_naive_fixture)
+        # TODO(GH-24559): Remove the sys.modules and warnings
+        # not sure what this is from. It's Py2 only.
+        modules = [sys.modules['pandas.core.indexes.base']]
+
+        if (tz_naive_fixture and attr == "asi8" and
+                str(tz_naive_fixture) not in ('UTC', 'tzutc()')):
+            ex_warn = FutureWarning
+        else:
+            ex_warn = None
+
+        # stacklevel is checked elsewhere. We don't do it here since
+        # Index will have an frame, throwing off the expected.
+        with tm.assert_produces_warning(ex_warn, check_stacklevel=False,
+                                        clear=modules):
+            result = klass(arg, tz=tz_naive_fixture)
         tm.assert_index_equal(result, index)
 
-        result = klass(arg, dtype=dtype)
+        with tm.assert_produces_warning(ex_warn, check_stacklevel=False):
+            result = klass(arg, dtype=dtype)
         tm.assert_index_equal(result, index)
 
-        result = klass(list(arg), tz=tz_naive_fixture)
+        with tm.assert_produces_warning(ex_warn, check_stacklevel=False):
+            result = klass(list(arg), tz=tz_naive_fixture)
         tm.assert_index_equal(result, index)
 
-        result = klass(list(arg), dtype=dtype)
+        with tm.assert_produces_warning(ex_warn, check_stacklevel=False):
+            result = klass(list(arg), dtype=dtype)
         tm.assert_index_equal(result, index)
 
     @pytest.mark.parametrize("attr", ['values', 'asi8'])
