@@ -5164,11 +5164,6 @@ class NDFrame(PandasObject, SelectionMixin):
         f = lambda: self._data.is_datelike_mixed_type
         return self._protect_consolidate(f)
 
-    @property
-    def _is_all_same_datetimetz_types(self):
-        f = lambda: self._data.all_same_datetimetz_types
-        return self._protect_consolidate(f)
-
     def _check_inplace_setting(self, value):
         """ check whether we allow in-place setting with this type of value """
 

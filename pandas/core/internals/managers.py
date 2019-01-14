@@ -639,16 +639,6 @@ class BlockManager(PandasObject):
 
         return False
 
-    @property
-    def all_same_datetimetz_types(self):
-        """Whether all blocks are datetimetz and the same timezone"""
-        dtypes = set()
-        for block in self.blocks:
-            if not block.is_datetimetz or len(dtypes) > 1:
-                return False
-            dtypes.add(block.dtype)
-        return len(dtypes) == 1
-
     def get_bool_data(self, copy=False):
         """
         Parameters
