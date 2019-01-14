@@ -5282,13 +5282,6 @@ def ensure_index(index_like, copy=False):
         if len(converted) > 0 and all_arrays:
             from .multi import MultiIndex
             return MultiIndex.from_arrays(converted)
-        elif isinstance(converted, np.ndarray) and converted.shape == (1, 2,
-                                                                       2):
-            # When nested tuples are incorrectly converted
-            # to > 2 dimensions (Extremely rare)
-            index_like = np.ndarray((1, 2), dtype=tuple)
-            index_like[0][0] = tuple(converted[0][0])
-            index_like[0][1] = tuple(converted[0][1])
         else:
             index_like = converted
     else:
