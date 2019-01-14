@@ -33,7 +33,8 @@ from pandas.core.dtypes.missing import array_equivalent
 import pandas as pd
 from pandas import (
     Categorical, CategoricalIndex, DataFrame, DatetimeIndex, Index,
-    IntervalIndex, MultiIndex, Panel, RangeIndex, Series, bdate_range)
+    IntervalIndex, MultiIndex, NaT, Panel, RangeIndex, Series, bdate_range,
+    date_range)
 from pandas.core.algorithms import take_1d
 from pandas.core.arrays import (
     DatetimeArray, ExtensionArray, IntervalArray, PeriodArray, TimedeltaArray,
@@ -3060,3 +3061,117 @@ def convert_rows_list_to_csv_str(rows_list):
     sep = os.linesep
     expected = sep.join(rows_list) + sep
     return expected
+
+
+# -----------------------------------------------------------------------------
+# Fixture-Like Singletons
+
+def get_simple_frame():
+    """
+    Fixture for simple 3x3 DataFrame
+
+    Columns are ['one', 'two', 'three'], index is ['a', 'b', 'c'].
+    """
+    arr = np.array([[1., 2., 3.],
+                    [4., 5., 6.],
+                    [7., 8., 9.]])
+
+    return DataFrame(arr, columns=['one', 'two', 'three'],
+                     index=['a', 'b', 'c'])
+
+
+def get_int_frame():
+    """
+    Fixture for DataFrame of ints with index of unique strings
+
+    Columns are ['A', 'B', 'C', 'D']
+    """
+    df = DataFrame({k: v.astype(int)
+                   for k, v in compat.iteritems(getSeriesData())})
+    # force these all to int64 to avoid platform testing issues
+    return DataFrame({c: s for c, s in compat.iteritems(df)}, dtype=np.int64)
+
+
+def get_mixed_int_frame():
+    """
+    Fixture for DataFrame of different int types with index of unique strings
+
+    Columns are ['A', 'B', 'C', 'D'].
+    """
+    df = DataFrame({k: v.astype(int)
+                   for k, v in compat.iteritems(getSeriesData())})
+    df.A = df.A.astype('int32')
+    df.B = np.ones(len(df.B), dtype='uint64')
+    df.C = df.C.astype('uint8')
+    df.D = df.C.astype('int64')
+    return df
+
+
+def get_float_frame_with_na():
+    """
+    Fixture for DataFrame of floats with index of unique strings
+
+    Columns are ['A', 'B', 'C', 'D']; some entries are missing
+    """
+    df = DataFrame(getSeriesData())
+    # set some NAs
+    df.loc[5:10] = np.nan
+    df.loc[15:20, -2:] = np.nan
+    return df
+
+
+def get_float_string_frame():
+    """
+    Fixture for DataFrame of floats and strings with index of unique strings
+
+    Columns are ['A', 'B', 'C', 'D', 'foo'].
+    """
+    df = DataFrame(getSeriesData())
+    df['foo'] = 'bar'
+    return df
+
+
+def get_mixed_float_frame():
+    """
+    Fixture for DataFrame of different float types with index of unique strings
+
+    Columns are ['A', 'B', 'C', 'D'].
+    """
+    df = DataFrame(getSeriesData())
+    df.A = df.A.astype('float32')
+    df.B = df.B.astype('float32')
+    df.C = df.C.astype('float16')
+    df.D = df.D.astype('float64')
+    return df
+
+
+def get_timezone_frame():
+    """
+    Fixture for DataFrame of date_range Series with different time zones
+
+    Columns are ['A', 'B', 'C']; some entries are missing
+    """
+    df = DataFrame({'A': date_range('20130101', periods=3),
+                    'B': date_range('20130101', periods=3,
+                                    tz='US/Eastern'),
+                    'C': date_range('20130101', periods=3,
+                                    tz='CET')})
+    df.iloc[1, 1] = NaT
+    df.iloc[1, 2] = NaT
+    return df
+
+
+def get_frame_of_index_cols():
+    """
+    Fixture for DataFrame of columns that can be used for indexing
+
+    Columns are ['A', 'B', 'C', 'D', 'E', ('tuple', 'as', 'label')];
+    'A' & 'B' contain duplicates (but are jointly unique), the rest are unique.
+    """
+    df = DataFrame({'A': ['foo', 'foo', 'foo', 'bar', 'bar'],
+                    'B': ['one', 'two', 'three', 'one', 'two'],
+                    'C': ['a', 'b', 'c', 'd', 'e'],
+                    'D': np.random.randn(5),
+                    'E': np.random.randn(5),
+                    ('tuple', 'as', 'label'): np.random.randn(5)})
+    return df

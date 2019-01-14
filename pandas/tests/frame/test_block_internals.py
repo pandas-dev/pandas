@@ -43,7 +43,8 @@ class TestDataFrameBlockInternals():
         assert dti.freq == 'D'
         assert dti[1] == ts
 
-    def test_cast_internals(self, float_frame):
+    def test_cast_internals(self):
+        float_frame = DataFrame(tm.getSeriesData())
         casted = DataFrame(float_frame._data, dtype=int)
         expected = DataFrame(float_frame._series, dtype=int)
         assert_frame_equal(casted, expected)
@@ -52,7 +53,8 @@ class TestDataFrameBlockInternals():
         expected = DataFrame(float_frame._series, dtype=np.int32)
         assert_frame_equal(casted, expected)
 
-    def test_consolidate(self, float_frame):
+    def test_consolidate(self):
+        float_frame = DataFrame(tm.getSeriesData())
         float_frame['E'] = 7.
         consolidated = float_frame._consolidate()
         assert len(consolidated._data.blocks) == 1
@@ -68,20 +70,23 @@ class TestDataFrameBlockInternals():
         float_frame._consolidate(inplace=True)
         assert len(float_frame._data.blocks) == 1
 
-    def test_consolidate_inplace(self, float_frame):
+    def test_consolidate_inplace(self):
+        float_frame = DataFrame(tm.getSeriesData())
         frame = float_frame.copy()  # noqa
 
         # triggers in-place consolidation
         for letter in range(ord('A'), ord('Z')):
             float_frame[chr(letter)] = chr(letter)
 
-    def test_values_consolidate(self, float_frame):
+    def test_values_consolidate(self):
+        float_frame = DataFrame(tm.getSeriesData())
         float_frame['E'] = 7.
         assert not float_frame._data.is_consolidated()
         _ = float_frame.values  # noqa
         assert float_frame._data.is_consolidated()
 
-    def test_modify_values(self, float_frame):
+    def test_modify_values(self):
+        float_frame = DataFrame(tm.getSeriesData())
         float_frame.values[5] = 5
         assert (float_frame.values[5] == 5).all()
 
@@ -90,7 +95,8 @@ class TestDataFrameBlockInternals():
         float_frame.values[6] = 6
         assert (float_frame.values[6] == 6).all()
 
-    def test_boolean_set_uncons(self, float_frame):
+    def test_boolean_set_uncons(self):
+        float_frame = DataFrame(tm.getSeriesData())
         float_frame['E'] = 7.
 
         expected = float_frame.values.copy()
@@ -99,13 +105,15 @@ class TestDataFrameBlockInternals():
         float_frame[float_frame > 1] = 2
         assert_almost_equal(expected, float_frame.values)
 
-    def test_values_numeric_cols(self, float_frame):
+    def test_values_numeric_cols(self):
+        float_frame = DataFrame(tm.getSeriesData())
         float_frame['foo'] = 'bar'
 
         values = float_frame[['A', 'B', 'C', 'D']].values
         assert values.dtype == np.float64
 
-    def test_values_lcd(self, mixed_float_frame, mixed_int_frame):
+    def test_values_lcd(self):
+        mixed_float_frame = tm.get_mixed_float_frame()
 
         # mixed lcd
         values = mixed_float_frame[['A', 'B', 'C', 'D']].values
@@ -119,6 +127,8 @@ class TestDataFrameBlockInternals():
 
         # GH 10364
         # B uint64 forces float because there are other signed int types
+        mixed_int_frame = tm.get_mixed_int_frame()
+
         values = mixed_int_frame[['A', 'B', 'C', 'D']].values
         assert values.dtype == np.float64
 
@@ -212,8 +222,10 @@ class TestDataFrameBlockInternals():
                                       None], np.object_), name='A')
         assert_series_equal(result, expected)
 
-    def test_construction_with_mixed(self, float_string_frame):
+    def test_construction_with_mixed(self):
         # test construction edge cases with mixed types
+
+        float_string_frame = tm.get_float_string_frame()
 
         # f7u12, this does not work without extensive workaround
         data = [[datetime(2001, 1, 5), nan, datetime(2001, 1, 2)],
@@ -303,8 +315,9 @@ class TestDataFrameBlockInternals():
         assert df0.equals(df1)
         assert df1.equals(df0)
 
-    def test_copy_blocks(self, float_frame):
+    def test_copy_blocks(self):
         # API/ENH 9607
+        float_frame = DataFrame(tm.getSeriesData())
         df = DataFrame(float_frame, copy=True)
         column = df.columns[0]
 
@@ -321,8 +334,9 @@ class TestDataFrameBlockInternals():
         # make sure we did not change the original DataFrame
         assert not _df[column].equals(df[column])
 
-    def test_no_copy_blocks(self, float_frame):
+    def test_no_copy_blocks(self):
         # API/ENH 9607
+        float_frame = DataFrame(tm.getSeriesData())
         df = DataFrame(float_frame, copy=True)
         column = df.columns[0]
 
@@ -339,7 +353,10 @@ class TestDataFrameBlockInternals():
         # make sure we did change the original DataFrame
         assert _df[column].equals(df[column])
 
-    def test_copy(self, float_frame, float_string_frame):
+    def test_copy(self):
+        float_frame = DataFrame(tm.getSeriesData())
+        float_string_frame = tm.get_float_string_frame()
+
         cop = float_frame.copy()
         cop['E'] = cop['A']
         assert 'E' not in float_frame
@@ -348,7 +365,10 @@ class TestDataFrameBlockInternals():
         copy = float_string_frame.copy()
         assert copy._data is not float_string_frame._data
 
-    def test_pickle(self, float_string_frame, empty_frame, timezone_frame):
+    def test_pickle(self):
+        empty_frame = DataFrame({})
+        float_string_frame = tm.get_float_string_frame()
+
         unpickled = tm.round_trip_pickle(float_string_frame)
         assert_frame_equal(float_string_frame, unpickled)
 
@@ -360,6 +380,7 @@ class TestDataFrameBlockInternals():
         repr(unpickled)
 
         # tz frame
+        timezone_frame = tm.get_timezone_frame()
         unpickled = tm.round_trip_pickle(timezone_frame)
         assert_frame_equal(timezone_frame, unpickled)
 
@@ -395,7 +416,10 @@ starting,ending,measure
             df.starting), ser_starting.index)
         tm.assert_index_equal(pd.DatetimeIndex(df.ending), ser_ending.index)
 
-    def test_is_mixed_type(self, float_frame, float_string_frame):
+    def test_is_mixed_type(self):
+        float_string_frame = tm.get_float_string_frame()
+        float_frame = DataFrame(tm.getSeriesData())
+
         assert not float_frame._is_mixed_type
         assert float_string_frame._is_mixed_type
 
@@ -455,7 +479,9 @@ starting,ending,measure
         expected = df.loc[:, ['A', 'C']]
         assert_frame_equal(result, expected)
 
-    def test_convert_objects(self, float_string_frame):
+    def test_convert_objects(self):
+
+        float_string_frame = tm.get_float_string_frame()
 
         oops = float_string_frame.T.T
         converted = oops._convert(datetime=True)

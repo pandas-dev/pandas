@@ -36,7 +36,9 @@ def int_frame_const_col():
 
 class TestDataFrameApply():
 
-    def test_apply(self, float_frame):
+    def test_apply(self):
+        float_frame = DataFrame(tm.getSeriesData())
+
         with np.errstate(all='ignore'):
             # ufunc
             applied = float_frame.apply(np.sqrt)
@@ -74,14 +76,17 @@ class TestDataFrameApply():
         result = df.apply(lambda x: x, axis=1)
         assert_frame_equal(result, df)
 
-    def test_apply_empty(self, float_frame, empty_frame):
+    def test_apply_empty(self):
         # empty
+        empty_frame = DataFrame({})
+
         applied = empty_frame.apply(np.sqrt)
         assert applied.empty
 
         applied = empty_frame.apply(np.mean)
         assert applied.empty
 
+        float_frame = DataFrame(tm.getSeriesData())
         no_rows = float_frame[:0]
         result = no_rows.apply(lambda x: x.mean())
         expected = Series(np.nan, index=float_frame.columns)
@@ -97,8 +102,10 @@ class TestDataFrameApply():
         result = expected.apply(lambda x: x['a'], axis=1)
         assert_frame_equal(expected, result)
 
-    def test_apply_with_reduce_empty(self, empty_frame):
+    def test_apply_with_reduce_empty(self):
         # reduce with an empty DataFrame
+        empty_frame = DataFrame({})
+
         x = []
         result = empty_frame.apply(x.append, axis=1, result_type='expand')
         assert_frame_equal(result, empty_frame)
@@ -116,7 +123,9 @@ class TestDataFrameApply():
         # Ensure that x.append hasn't been called
         assert x == []
 
-    def test_apply_deprecate_reduce(self, empty_frame):
+    def test_apply_deprecate_reduce(self):
+        empty_frame = DataFrame({})
+
         x = []
         with tm.assert_produces_warning(FutureWarning):
             empty_frame.apply(x.append, axis=1, reduce=True)
@@ -140,16 +149,21 @@ class TestDataFrameApply():
         pytest.param([], {'numeric_only': True}, id='optional_kwds'),
         pytest.param([1, None], {'numeric_only': True}, id='args_and_kwds')
     ])
-    def test_apply_with_string_funcs(self, float_frame, func, args, kwds):
+    def test_apply_with_string_funcs(self, func, args, kwds):
+        float_frame = DataFrame(tm.getSeriesData())
+
         result = float_frame.apply(func, *args, **kwds)
         expected = getattr(float_frame, func)(*args, **kwds)
         tm.assert_series_equal(result, expected)
 
-    def test_apply_broadcast_deprecated(self, float_frame):
+    def test_apply_broadcast_deprecated(self):
+        float_frame = DataFrame(tm.getSeriesData())
+
         with tm.assert_produces_warning(FutureWarning):
             float_frame.apply(np.mean, broadcast=True)
 
-    def test_apply_broadcast(self, float_frame, int_frame_const_col):
+    def test_apply_broadcast(self, int_frame_const_col):
+        float_frame = DataFrame(tm.getSeriesData())
 
         # scalars
         result = float_frame.apply(np.mean, result_type='broadcast')
@@ -208,7 +222,9 @@ class TestDataFrameApply():
         with pytest.raises(ValueError):
             df.apply(lambda x: Series([1, 2]), axis=1, result_type='broadcast')
 
-    def test_apply_raw(self, float_frame):
+    def test_apply_raw(self):
+        float_frame = DataFrame(tm.getSeriesData())
+
         result0 = float_frame.apply(np.mean, raw=True)
         result1 = float_frame.apply(np.mean, axis=1, raw=True)
 
@@ -223,12 +239,16 @@ class TestDataFrameApply():
         expected = float_frame * 2
         assert_frame_equal(result, expected)
 
-    def test_apply_axis1(self, float_frame):
+    def test_apply_axis1(self):
+        float_frame = DataFrame(tm.getSeriesData())
+
         d = float_frame.index[0]
         tapplied = float_frame.apply(np.mean, axis=1)
         assert tapplied[d] == np.mean(float_frame.xs(d))
 
-    def test_apply_ignore_failures(self, float_string_frame):
+    def test_apply_ignore_failures(self):
+        float_string_frame = tm.get_float_string_frame()
+
         result = frame_apply(float_string_frame, np.mean, 0,
                              ignore_failures=True).apply_standard()
         expected = float_string_frame._get_numeric_data().apply(np.mean)
@@ -286,7 +306,9 @@ class TestDataFrameApply():
         result = no_cols.apply(lambda x: x.mean(), result_type='broadcast')
         assert isinstance(result, DataFrame)
 
-    def test_apply_with_args_kwds(self, float_frame):
+    def test_apply_with_args_kwds(self):
+        float_frame = DataFrame(tm.getSeriesData())
+
         def add_some(x, howmuch=0):
             return x + howmuch
 
@@ -308,11 +330,15 @@ class TestDataFrameApply():
         expected = float_frame.apply(lambda x: (x - 2.) / 2.)
         assert_frame_equal(result, expected)
 
-    def test_apply_yield_list(self, float_frame):
+    def test_apply_yield_list(self):
+        float_frame = DataFrame(tm.getSeriesData())
+
         result = float_frame.apply(list)
         assert_frame_equal(result, float_frame)
 
-    def test_apply_reduce_Series(self, float_frame):
+    def test_apply_reduce_Series(self):
+        float_frame = DataFrame(tm.getSeriesData())
+
         float_frame.loc[::2, 'A'] = np.nan
         expected = float_frame.mean(1)
         result = float_frame.apply(np.mean, axis=1)
@@ -406,7 +432,9 @@ class TestDataFrameApply():
         result = data.apply(lambda x: x, axis=1)
         assert_frame_equal(result._convert(datetime=True), data)
 
-    def test_apply_attach_name(self, float_frame):
+    def test_apply_attach_name(self):
+        float_frame = DataFrame(tm.getSeriesData())
+
         result = float_frame.apply(lambda x: x.name)
         expected = Series(float_frame.columns, index=float_frame.columns)
         assert_series_equal(result, expected)
@@ -430,7 +458,8 @@ class TestDataFrameApply():
         expected.index = float_frame.index
         assert_series_equal(result, expected)
 
-    def test_apply_multi_index(self, float_frame):
+    def test_apply_multi_index(self):
+
         index = MultiIndex.from_arrays([['a', 'a', 'b'], ['c', 'd', 'd']])
         s = DataFrame([[1, 2], [3, 4], [5, 6]],
                       index=index,
@@ -461,7 +490,9 @@ class TestDataFrameApply():
             assert_frame_equal(reduce_false, df)
             assert_series_equal(reduce_none, dicts)
 
-    def test_applymap(self, float_frame):
+    def test_applymap(self):
+        float_frame = DataFrame(tm.getSeriesData())
+
         applied = float_frame.applymap(lambda x: x * 2)
         tm.assert_frame_equal(applied, float_frame * 2)
         float_frame.applymap(type)
@@ -823,7 +854,9 @@ def zip_frames(frames, axis=1):
 
 class TestDataFrameAggregate():
 
-    def test_agg_transform(self, axis, float_frame):
+    def test_agg_transform(self, axis):
+        float_frame = DataFrame(tm.getSeriesData())
+
         other_axis = 1 if axis in {0, 'index'} else 0
 
         with np.errstate(all='ignore'):
@@ -872,7 +905,9 @@ class TestDataFrameAggregate():
             result = float_frame.transform([np.abs, 'sqrt'], axis=axis)
             assert_frame_equal(result, expected)
 
-    def test_transform_and_agg_err(self, axis, float_frame):
+    def test_transform_and_agg_err(self, axis):
+        float_frame = DataFrame(tm.getSeriesData())
+
         # cannot both transform and agg
         with pytest.raises(ValueError):
             float_frame.transform(['max', 'min'], axis=axis)
@@ -952,7 +987,9 @@ class TestDataFrameAggregate():
             df.agg({'A': {'foo': 'min'},
                     'B': {'bar': 'max'}})
 
-    def test_agg_reduce(self, axis, float_frame):
+    def test_agg_reduce(self, axis):
+        float_frame = DataFrame(tm.getSeriesData())
+
         other_axis = 1 if axis in {0, 'index'} else 0
         name1, name2 = float_frame.axes[other_axis].unique()[:2].sort_values()
 

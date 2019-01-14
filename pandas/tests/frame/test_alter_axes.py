@@ -21,7 +21,9 @@ import pandas.util.testing as tm
 
 class TestDataFrameAlterAxes():
 
-    def test_set_index_directly(self, float_string_frame):
+    def test_set_index_directly(self):
+        float_string_frame = tm.get_float_string_frame()
+
         df = float_string_frame
         idx = Index(np.arange(len(df))[::-1])
 
@@ -30,7 +32,9 @@ class TestDataFrameAlterAxes():
         with pytest.raises(ValueError, match='Length mismatch'):
             df.index = idx[::2]
 
-    def test_set_index(self, float_string_frame):
+    def test_set_index(self):
+        float_string_frame = tm.get_float_string_frame()
+
         df = float_string_frame
         idx = Index(np.arange(len(df))[::-1])
 
@@ -51,9 +55,8 @@ class TestDataFrameAlterAxes():
                                       ('tuple', 'as', 'label')])
     @pytest.mark.parametrize('inplace', [True, False])
     @pytest.mark.parametrize('drop', [True, False])
-    def test_set_index_drop_inplace(self, frame_of_index_cols,
-                                    drop, inplace, keys):
-        df = frame_of_index_cols
+    def test_set_index_drop_inplace(self, drop, inplace, keys):
+        df = tm.get_frame_of_index_cols()
 
         if isinstance(keys, list):
             idx = MultiIndex.from_arrays([df[x] for x in keys], names=keys)
@@ -74,8 +77,8 @@ class TestDataFrameAlterAxes():
     @pytest.mark.parametrize('keys', ['A', 'C', ['A', 'B'],
                                       ('tuple', 'as', 'label')])
     @pytest.mark.parametrize('drop', [True, False])
-    def test_set_index_append(self, frame_of_index_cols, drop, keys):
-        df = frame_of_index_cols
+    def test_set_index_append(self, drop, keys):
+        df = tm.get_frame_of_index_cols()
 
         keys = keys if isinstance(keys, list) else [keys]
         idx = MultiIndex.from_arrays([df.index] + [df[x] for x in keys],
@@ -91,9 +94,9 @@ class TestDataFrameAlterAxes():
     @pytest.mark.parametrize('keys', ['A', 'C', ['A', 'B'],
                                       ('tuple', 'as', 'label')])
     @pytest.mark.parametrize('drop', [True, False])
-    def test_set_index_append_to_multiindex(self, frame_of_index_cols,
-                                            drop, keys):
+    def test_set_index_append_to_multiindex(self, drop, keys):
         # append to existing multiindex
+        frame_of_index_cols = tm.get_frame_of_index_cols()
         df = frame_of_index_cols.set_index(['D'], drop=drop, append=True)
 
         keys = keys if isinstance(keys, list) else [keys]
@@ -123,9 +126,8 @@ class TestDataFrameAlterAxes():
     @pytest.mark.parametrize('append, index_name', [(True, None),
                              (True, 'B'), (True, 'test'), (False, None)])
     @pytest.mark.parametrize('drop', [True, False])
-    def test_set_index_pass_single_array(self, frame_of_index_cols,
-                                         drop, append, index_name, box):
-        df = frame_of_index_cols
+    def test_set_index_pass_single_array(self, drop, append, index_name, box):
+        df = tm.get_frame_of_index_cols()
         df.index.name = index_name
 
         key = box(df['B'])
@@ -157,9 +159,8 @@ class TestDataFrameAlterAxes():
                              [(True, None), (True, 'A'), (True, 'B'),
                               (True, 'test'), (False, None)])
     @pytest.mark.parametrize('drop', [True, False])
-    def test_set_index_pass_arrays(self, frame_of_index_cols,
-                                   drop, append, index_name, box):
-        df = frame_of_index_cols
+    def test_set_index_pass_arrays(self, drop, append, index_name, box):
+        df = tm.get_frame_of_index_cols()
         df.index.name = index_name
 
         keys = ['A', box(df['B'])]
@@ -190,9 +191,9 @@ class TestDataFrameAlterAxes():
     @pytest.mark.parametrize('append, index_name', [(True, None),
                              (True, 'A'), (True, 'test'), (False, None)])
     @pytest.mark.parametrize('drop', [True, False])
-    def test_set_index_pass_arrays_duplicate(self, frame_of_index_cols, drop,
+    def test_set_index_pass_arrays_duplicate(self, drop,
                                              append, index_name, box1, box2):
-        df = frame_of_index_cols
+        df = tm.get_frame_of_index_cols()
         df.index.name = index_name
 
         keys = [box1(df['A']), box2(df['A'])]
@@ -215,9 +216,8 @@ class TestDataFrameAlterAxes():
 
     @pytest.mark.parametrize('append', [True, False])
     @pytest.mark.parametrize('drop', [True, False])
-    def test_set_index_pass_multiindex(self, frame_of_index_cols,
-                                       drop, append):
-        df = frame_of_index_cols
+    def test_set_index_pass_multiindex(self, drop, append):
+        df = tm.get_frame_of_index_cols()
         keys = MultiIndex.from_arrays([df['A'], df['B']], names=['A', 'B'])
 
         result = df.set_index(keys, drop=drop, append=append)
@@ -227,8 +227,8 @@ class TestDataFrameAlterAxes():
 
         tm.assert_frame_equal(result, expected)
 
-    def test_set_index_verify_integrity(self, frame_of_index_cols):
-        df = frame_of_index_cols
+    def test_set_index_verify_integrity(self):
+        df = tm.get_frame_of_index_cols()
 
         with pytest.raises(ValueError, match='Index has duplicate keys'):
             df.set_index('A', verify_integrity=True)
@@ -238,8 +238,8 @@ class TestDataFrameAlterAxes():
 
     @pytest.mark.parametrize('append', [True, False])
     @pytest.mark.parametrize('drop', [True, False])
-    def test_set_index_raise(self, frame_of_index_cols, drop, append):
-        df = frame_of_index_cols
+    def test_set_index_raise(self, drop, append):
+        df = tm.get_frame_of_index_cols()
 
         with pytest.raises(KeyError, match="['foo', 'bar', 'baz']"):
             # column names are A-E, as well as one tuple
@@ -429,7 +429,9 @@ class TestDataFrameAlterAxes():
                                                 names=['a', 'x'])
         tm.assert_frame_equal(result, expected)
 
-    def test_set_columns(self, float_string_frame):
+    def test_set_columns(self):
+        float_string_frame = tm.get_float_string_frame()
+
         cols = Index(np.arange(len(float_string_frame.columns)))
         float_string_frame.columns = cols
         with pytest.raises(ValueError, match='Length mismatch'):
@@ -461,7 +463,9 @@ class TestDataFrameAlterAxes():
 
     # Renaming
 
-    def test_rename(self, float_frame):
+    def test_rename(self):
+        float_frame = DataFrame(tm.getSeriesData())
+
         mapping = {
             'A': 'a',
             'B': 'b',
@@ -508,8 +512,10 @@ class TestDataFrameAlterAxes():
                               Index(['bar', 'foo'], name='name'))
         assert renamed.index.name == renamer.index.name
 
-    def test_rename_axis_inplace(self, float_frame):
+    def test_rename_axis_inplace(self):
         # GH 15704
+        float_frame = DataFrame(tm.getSeriesData())
+
         expected = float_frame.rename_axis('foo')
         result = float_frame.copy()
         no_return = result.rename_axis('foo', inplace=True)
@@ -664,12 +670,16 @@ class TestDataFrameAlterAxes():
                             level=0)
         tm.assert_index_equal(renamed.index, new_index)
 
-    def test_rename_nocopy(self, float_frame):
+    def test_rename_nocopy(self):
+        float_frame = DataFrame(tm.getSeriesData())
+
         renamed = float_frame.rename(columns={'C': 'foo'}, copy=False)
         renamed['foo'] = 1.
         assert (float_frame['C'] == 1.).all()
 
-    def test_rename_inplace(self, float_frame):
+    def test_rename_inplace(self):
+        float_frame = DataFrame(tm.getSeriesData())
+
         float_frame.rename(columns={'C': 'foo'})
         assert 'C' in float_frame
         assert 'foo' not in float_frame
@@ -748,7 +758,9 @@ class TestDataFrameAlterAxes():
         result = df.reorder_levels(['L0', 'L0', 'L0'])
         tm.assert_frame_equal(result, expected)
 
-    def test_reset_index(self, float_frame):
+    def test_reset_index(self):
+        float_frame = DataFrame(tm.getSeriesData())
+
         stacked = float_frame.stack()[::2]
         stacked = DataFrame({'foo': stacked, 'bar': stacked})
 
@@ -1004,7 +1016,9 @@ class TestDataFrameAlterAxes():
         # Check equality
         tm.assert_index_equal(df.set_index([df.index, idx2]).index, mi2)
 
-    def test_rename_objects(self, float_string_frame):
+    def test_rename_objects(self):
+        float_string_frame = tm.get_float_string_frame()
+
         renamed = float_string_frame.rename(columns=str.upper)
 
         assert 'FOO' in renamed
@@ -1128,7 +1142,8 @@ class TestDataFrameAlterAxes():
         assert 'rename' in message
         assert 'Use named arguments' in message
 
-    def test_assign_columns(self, float_frame):
+    def test_assign_columns(self):
+        float_frame = DataFrame(tm.getSeriesData())
         float_frame['hi'] = 'there'
 
         df = float_frame.copy()

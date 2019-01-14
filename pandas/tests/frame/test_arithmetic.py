@@ -65,11 +65,11 @@ class TestFrameComparisons(object):
     def test_timestamp_compare(self):
         # make sure we can compare Timestamps on the right AND left hand side
         # GH#4982
-        df = pd. DataFrame({'dates1': pd.date_range('20010101', periods=10),
-                            'dates2': pd.date_range('20010102', periods=10),
-                            'intcol': np.random.randint(1000000000, size=10),
-                            'floatcol': np.random.randn(10),
-                            'stringcol': list(tm.rands(10))})
+        df = pd.DataFrame({'dates1': pd.date_range('20010101', periods=10),
+                           'dates2': pd.date_range('20010102', periods=10),
+                           'intcol': np.random.randint(1000000000, size=10),
+                           'floatcol': np.random.randn(10),
+                           'stringcol': list(tm.rands(10))})
         df.loc[np.random.rand(len(df)) > 0.5, 'dates2'] = pd.NaT
         ops = {'gt': 'lt', 'lt': 'gt', 'ge': 'le', 'le': 'ge', 'eq': 'eq',
                'ne': 'ne'}
@@ -322,10 +322,12 @@ class TestFrameFlexArithmetic(object):
              'B': ser * 2})
         tm.assert_frame_equal(result, expected)
 
-    def test_arith_flex_frame(self, all_arithmetic_operators, float_frame,
-                              mixed_float_frame):
+    def test_arith_flex_frame(self, all_arithmetic_operators):
         # one instance of parametrized fixture
         op = all_arithmetic_operators
+
+        mixed_float_frame = tm.get_mixed_float_frame()
+        float_frame = pd.DataFrame(tm.getSeriesData())
 
         def f(x, y):
             # r-versions not in operator-stdlib; get op without "r" and invert
@@ -344,8 +346,12 @@ class TestFrameFlexArithmetic(object):
         _check_mixed_float(result, dtype=dict(C=None))
 
     @pytest.mark.parametrize('op', ['__add__', '__sub__', '__mul__'])
-    def test_arith_flex_frame_mixed(self, op, int_frame, mixed_int_frame,
-                                    mixed_float_frame):
+    def test_arith_flex_frame_mixed(self, op):
+
+        int_frame = tm.get_int_frame()
+        mixed_int_frame = tm.get_mixed_int_frame()
+        mixed_float_frame = tm.get_mixed_float_frame()
+
         f = getattr(operator, op)
 
         # vs mix int
@@ -372,10 +378,11 @@ class TestFrameFlexArithmetic(object):
         expected = f(int_frame, 2 * int_frame)
         tm.assert_frame_equal(result, expected)
 
-    def test_arith_flex_frame_raise(self, all_arithmetic_operators,
-                                    float_frame):
+    def test_arith_flex_frame_raise(self, all_arithmetic_operators):
         # one instance of parametrized fixture
         op = all_arithmetic_operators
+
+        float_frame = pd.DataFrame(tm.getSeriesData())
 
         # Check that arrays with dim >= 3 raise
         for dim in range(3, 6):
@@ -384,7 +391,8 @@ class TestFrameFlexArithmetic(object):
             with pytest.raises(ValueError, match=msg):
                 getattr(float_frame, op)(arr)
 
-    def test_arith_flex_frame_corner(self, float_frame):
+    def test_arith_flex_frame_corner(self):
+        float_frame = pd.DataFrame(tm.getSeriesData())
 
         const_add = float_frame.add(1)
         tm.assert_frame_equal(const_add, float_frame + 1)
@@ -402,8 +410,8 @@ class TestFrameFlexArithmetic(object):
         with pytest.raises(NotImplementedError, match='fill_value'):
             float_frame.add(float_frame.iloc[0], axis='index', fill_value=3)
 
-    def test_arith_flex_series(self, simple_frame):
-        df = simple_frame
+    def test_arith_flex_series(self):
+        df = tm.get_simple_frame()
 
         row = df.xs('a')
         col = df['two']
