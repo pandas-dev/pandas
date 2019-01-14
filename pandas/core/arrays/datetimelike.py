@@ -1440,6 +1440,13 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin,
         Return the mean value of the Array or maximum along
         an axis.
 
+        Parameters
+        ----------
+        axis : None
+            Dummy parameter to match NumPy signature
+        skipna : bool, default True
+            Whether to ignore any NaT elements
+
         See Also
         --------
         numpy.ndarray.mean
