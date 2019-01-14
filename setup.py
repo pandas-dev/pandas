@@ -36,6 +36,7 @@ setuptools_kwargs = {
         'python-dateutil >= 2.5.0',
         'pytz >= 2011k',
         'numpy >= {numpy_ver}'.format(numpy_ver=min_numpy_ver),
+        'tables >= 3.4.4'
     ],
     'setup_requires': ['numpy >= {numpy_ver}'.format(numpy_ver=min_numpy_ver)],
     'zip_safe': False,
