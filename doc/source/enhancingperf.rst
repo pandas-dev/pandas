@@ -549,11 +549,11 @@ Now let's do the same thing but with comparisons:
 
    Operations such as
 
-     .. code-block:: python
+      .. code-block:: python
 
-        1 and 2  # would parse to 1 & 2, but should evaluate to 2
-        3 or 4  # would parse to 3 | 4, but should evaluate to 3
-        ~1  # this is okay, but slower when using eval
+         1 and 2  # would parse to 1 & 2, but should evaluate to 2
+         3 or 4  # would parse to 3 | 4, but should evaluate to 3
+         ~1  # this is okay, but slower when using eval
 
    should be performed in Python. An exception will be raised if you try to
    perform any boolean/bitwise operations with scalar operands that are not
