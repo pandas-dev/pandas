@@ -286,7 +286,7 @@ advanced Cython techniques:
 
 .. code-block:: ipython
 
-   In [4]: %timeit apply_integrate_f_wrap(df['a'].values, df['b'].values, df['N'].values
+   In [4]: %timeit apply_integrate_f_wrap(df['a'].values, df['b'].values, df['N'].values)
    1000 loops, best of 3: 987 us per loop
 
 Even faster, with the caveat that a bug in our Cython code (an off-by-one error,
