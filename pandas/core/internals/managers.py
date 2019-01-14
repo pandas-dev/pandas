@@ -647,7 +647,7 @@ class BlockManager(PandasObject):
             if not block.is_datetimetz or len(dtypes) > 1:
                 return False
             dtypes.add(block.dtype)
-        return True
+        return len(dtypes) == 1
 
     def get_bool_data(self, copy=False):
         """
