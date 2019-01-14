@@ -5,13 +5,13 @@ import warnings
 import numpy as np
 import pytest
 
-import pandas.util._test_decorators as td
 from pandas.compat import lrange
+import pandas.util._test_decorators as td
 
 import pandas as pd
 from pandas import (
-    Categorical, DataFrame, Index, MultiIndex,
-    PeriodIndex, Series, compat, date_range, isna)
+    Categorical, DataFrame, Index, MultiIndex, PeriodIndex, Series, compat,
+    date_range, isna)
 from pandas.core import nanops
 import pandas.util.testing as tm
 
@@ -1372,7 +1372,14 @@ class TestDataFrameReductions(object):
 
     # TODO: Ensure warning isn't emitted in the first place
     @pytest.mark.filterwarnings("ignore:All-NaN:RuntimeWarning")
-    def test_median_corner(self, int_frame, float_frame, float_string_frame):
+    def test_median_corner(self):
+
+        int_frame = get_int_frame()
+        float_frame = pd.DataFrame(tm.getSeriesData())
+
+        float_string_frame = pd.DataFrame(tm.getSeriesData())
+        float_string_frame['foo'] = 'bar'
+
         def wrapper(x):
             if isna(x).any():
                 return np.nan
@@ -1750,7 +1757,11 @@ class TestDataFrameReductions(object):
 
     # ----------------------------------------------------------------
 
-    def test_product(self, float_frame_with_na, float_frame,
-                     float_string_frame):
+    def test_product(self):
+
+        float_frame = DataFrame(tm.getSeriesData())
+        float_frame_with_na = get_float_frame_with_na()
+        float_string_frame = get_float_string_frame()
+
         assert_stat_op_calc('product', np.prod, float_frame_with_na)
         assert_stat_op_api('product', float_frame, float_string_frame)
