@@ -4160,8 +4160,11 @@ class DataFrame(NDFrame):
         if missing:
             raise KeyError('{}'.format(missing))
         if depr_warn:
-            msg = ('passing lists within a list to the parameter "keys" is '
-                   'deprecated and will be removed in a future version.')
+            msg = ('Passing lists within a list to the parameter "keys" is '
+                   'deprecated and will be removed in a future version. To '
+                   'silence this warning, wrap the lists in a Series / Index '
+                   'or np.ndarray. E.g. df.set_index(["A", [1, 2, 3]]) should '
+                   'be passed as df.set_index(["A", pd.Series([1, 2, 3])).')
             warnings.warn(msg, FutureWarning, stacklevel=2)
 
         if inplace:
