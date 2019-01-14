@@ -7,8 +7,8 @@ import pytest
 import pandas as pd
 from pandas import (
     Categorical, DataFrame, DatetimeIndex, Index, NaT, Period, PeriodIndex,
-    Series, Timedelta, TimedeltaIndex, Timestamp, compat, timedelta_range,
-    to_timedelta)
+    RangeIndex, Series, Timedelta, TimedeltaIndex, Timestamp, compat, isna,
+    timedelta_range, to_timedelta)
 from pandas.core import nanops
 import pandas.util.testing as tm
 
@@ -143,6 +143,33 @@ class TestIndexReductions(object):
     # Note: the name TestIndexReductions indicates these tests
     #  were moved from a Index-specific test file, _not_ that these tests are
     #  intended long-term to be Index-specific
+
+    @pytest.mark.parametrize('start,stop,step',
+                             [(0, 400, 3), (500, 0, -6), (-10**6, 10**6, 4),
+                              (10**6, -10**6, -4), (0, 10, 20)])
+    def test_max_min_range(self, start, stop, step):
+        # GH#17607
+        idx = RangeIndex(start, stop, step)
+        expected = idx._int64index.max()
+        result = idx.max()
+        assert result == expected
+
+        # skipna should be irrelevant since RangeIndex should never have NAs
+        result2 = idx.max(skipna=False)
+        assert result2 == expected
+
+        expected = idx._int64index.min()
+        result = idx.min()
+        assert result == expected
+
+        # skipna should be irrelevant since RangeIndex should never have NAs
+        result2 = idx.min(skipna=False)
+        assert result2 == expected
+
+        # empty
+        idx = RangeIndex(start, stop, -step)
+        assert isna(idx.max())
+        assert isna(idx.min())
 
     def test_minmax_timedelta64(self):
 
@@ -354,6 +381,22 @@ class TestIndexReductions(object):
             np.argmin(pr, out=0)
         with pytest.raises(ValueError, match=errmsg):
             np.argmax(pr, out=0)
+
+    def test_min_max_categorical(self):
+
+        ci = pd.CategoricalIndex(list('aabbca'),
+                                 categories=list('cab'),
+                                 ordered=False)
+        with pytest.raises(TypeError):
+            ci.min()
+        with pytest.raises(TypeError):
+            ci.max()
+
+        ci = pd.CategoricalIndex(list('aabbca'),
+                                 categories=list('cab'),
+                                 ordered=True)
+        assert ci.min() == 'c'
+        assert ci.max() == 'b'
 
 
 class TestSeriesReductions(object):
