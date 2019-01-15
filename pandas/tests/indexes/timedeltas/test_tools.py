@@ -173,3 +173,10 @@ class TestTimedeltas(object):
 
         actual = pd.to_timedelta(pd.NaT)
         assert actual.value == timedelta_NaT.astype('int64')
+
+    @pytest.mark.parametrize('arg', [1, [1, 2]])
+    @pytest.mark.parametrize('unit', ['Y', 'y', 'M'])
+    def test_to_timedelta_unit_m_y_deprecated(self, arg, unit):
+        with pytest.raises(FutureWarning,
+                           match=r'.* units are deprecated .*'):
+            to_timedelta(arg, unit)

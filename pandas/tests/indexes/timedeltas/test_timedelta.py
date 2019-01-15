@@ -325,6 +325,12 @@ class TestTimedeltaIndex(DatetimeLike):
         result = td.astype('timedelta64[s]')
         assert_index_equal(result, expected)
 
+    @pytest.mark.parametrize('unit', ['Y', 'y', 'M'])
+    def test_unit_m_y_deprecated(self, unit):
+        with pytest.raises(FutureWarning,
+                           match=r'.* units are deprecated .*'):
+            TimedeltaIndex([1, 3, 7], unit)
+
 
 class TestTimeSeries(object):
 
