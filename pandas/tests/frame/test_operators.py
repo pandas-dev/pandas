@@ -62,10 +62,21 @@ class TestDataFrameUnaryOperators(object):
 
     @pytest.mark.parametrize('df', [
         pd.DataFrame({'a': [-1, 1]}),
+        pd.DataFrame({'a': [0.0, 1.1]}),
+    ])
+    def test_pos_numeric(self, df):
+        # GH#16073
+        assert_frame_equal(+df, df)
+        assert_series_equal(+df['a'], df['a'])
+
+    @pytest.mark.skipif(not pd.compat.numpy._np_version_under1p16,
+                        reason='NumPy 1.6 or later shows warning when op '
+                        'performed against non-numeric dtype')
+    @pytest.mark.parametrize('df', [
         pd.DataFrame({'a': [False, True]}),
         pd.DataFrame({'a': pd.Series(pd.to_timedelta([-1, 1]))}),
     ])
-    def test_pos_numeric(self, df):
+    def test_pos_non_numeric(self, df):
         # GH#16073
         assert_frame_equal(+df, df)
         assert_series_equal(+df['a'], df['a'])

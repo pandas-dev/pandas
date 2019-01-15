@@ -762,6 +762,9 @@ class TestFrameUnary(object):
         df = df.astype({'a': typ, 'b': typ})
         pytest.raises(TypeError, op, df)
 
+    @pytest.mark.skipif(not pd.compat.numpy._np_version_under1p16,
+                        reason='NumPy 1.6 or later shows warning when op '
+                        'performed against non-numeric dtype')
     @pytest.mark.parametrize('typ', ['Int64', 'Int32', 'Int16', 'Int8'])
     @pytest.mark.parametrize('op', [operator.pos])
     def test_object_mixed(self, typ, op):
