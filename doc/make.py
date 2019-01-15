@@ -27,7 +27,6 @@ DOC_PATH = os.path.dirname(os.path.abspath(__file__))
 SOURCE_PATH = os.path.join(DOC_PATH, 'source')
 BUILD_PATH = os.path.join(DOC_PATH, 'build')
 REDIRECTS_FILE = os.path.join(DOC_PATH, 'redirects.csv')
-BASE_REDIRECT_URL = 'https://pandas.pydata.org/pandas-docs/stable/'
 
 
 class DocBuilder:
@@ -204,10 +203,10 @@ class DocBuilder:
                     # sphinx specific stuff
                     title = 'this page'
 
-                with open(path, 'w') as redirects_fd:
-                    redirects_fd.write(html.format(
-                        url='{}{}.html'.format(BASE_REDIRECT_URL, row[1]),
-                        title=title))
+                with open(path, 'w') as moved_page_fd:
+                    moved_page_fd.write(
+                        html.format(url='{}.html'.format(row[1]),
+                                    title=title))
 
     def html(self):
         """
