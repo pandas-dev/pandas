@@ -49,6 +49,7 @@ from pandas.core.dtypes.cast import (
     find_common_type)
 from pandas.core.dtypes.common import (
     is_dict_like,
+    is_datetime64tz_dtype,
     is_object_dtype,
     is_extension_type,
     is_extension_array_dtype,
@@ -7392,7 +7393,7 @@ class DataFrame(NDFrame):
         # exclude timedelta/datetime unless we are uniform types
         if (axis == 1 and self._is_datelike_mixed_type
                 and (not self._is_homogeneous_type
-                     and not self._data.blocks[0].is_datetimetz)):
+                     and not is_datetime64tz_dtype(self.dtypes[0]))):
             numeric_only = True
 
         if numeric_only is None:
