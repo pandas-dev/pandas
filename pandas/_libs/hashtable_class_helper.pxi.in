@@ -262,9 +262,10 @@ dtypes = [('Float64', 'float64', True, 'np.nan'),
 
 cdef class {{name}}HashTable(HashTable):
 
-    def __cinit__(self, size_hint=1):
+    def __cinit__(self, int64_t size_hint=1):
         self.table = kh_init_{{dtype}}()
         if size_hint is not None:
+            size_hint = min(size_hint, _SIZE_HINT_LIMIT)
             kh_resize_{{dtype}}(self.table, size_hint)
 
     def __len__(self):
@@ -573,9 +574,10 @@ cdef class StringHashTable(HashTable):
     # or a sentinel np.nan / None missing value
     na_string_sentinel = '__nan__'
 
-    def __init__(self, int size_hint=1):
+    def __init__(self, int64_t size_hint=1):
         self.table = kh_init_str()
         if size_hint is not None:
+            size_hint = min(size_hint, _SIZE_HINT_LIMIT)
             kh_resize_str(self.table, size_hint)
 
     def __dealloc__(self):
@@ -876,9 +878,11 @@ cdef class StringHashTable(HashTable):
 
 cdef class PyObjectHashTable(HashTable):
 
-    def __init__(self, size_hint=1):
+    def __init__(self, int64_t size_hint=1):
         self.table = kh_init_pymap()
-        kh_resize_pymap(self.table, size_hint)
+        if size_hint is not None:
+            size_hint = min(size_hint, _SIZE_HINT_LIMIT)
+            kh_resize_pymap(self.table, size_hint)
 
     def __dealloc__(self):
         if self.table is not NULL:
