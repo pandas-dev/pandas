@@ -203,6 +203,11 @@ class DocBuilder:
                     # sphinx specific stuff
                     title = 'this page'
 
+                if os.path.exists(path):
+                    raise RuntimeError((
+                        'Redirection would overwrite an existing file: '
+                        '{}').format(path))
+
                 with open(path, 'w') as moved_page_fd:
                     moved_page_fd.write(
                         html.format(url='{}.html'.format(row[1]),
