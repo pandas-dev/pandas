@@ -71,6 +71,12 @@ class TestDataFrameConvertTo(TestData):
         tm.assert_dict_equal(test_data_mixed.to_dict(orient='split'),
                              expected_split_mixed)
 
+    def test_to_dict_index_not_unique_with_index_orient(self):
+        # GH22801
+        # Data loss when indexes are not unique. Raise ValueError.
+        df = DataFrame({'a': [1, 2], 'b': [0.5, 0.75]}, index=['A', 'A'])
+        pytest.raises(ValueError, df.to_dict, orient='index')
+
     def test_to_dict_invalid_orient(self):
         df = DataFrame({'A': [0, 1]})
         pytest.raises(ValueError, df.to_dict, orient='xinvalid')
@@ -110,9 +116,8 @@ class TestDataFrameConvertTo(TestData):
     def test_to_records_with_Mapping_type(self):
         import email
         from email.parser import Parser
-        import collections
 
-        collections.Mapping.register(email.message.Message)
+        compat.Mapping.register(email.message.Message)
 
         headers = Parser().parsestr('From: <user@example.com>\n'
                                     'To: <someone_else@example.com>\n'
@@ -145,7 +150,7 @@ class TestDataFrameConvertTo(TestData):
     def test_to_records_with_unicode_index(self):
         # GH13172
         # unicode_literals conflict with to_records
-        result = DataFrame([{u'a': u'x', u'b': 'y'}]).set_index(u'a')\
+        result = DataFrame([{u'a': u'x', u'b': 'y'}]).set_index(u'a') \
             .to_records()
         expected = np.rec.array([('x', 'y')], dtype=[('a', 'O'), ('b', 'O')])
         tm.assert_almost_equal(result, expected)
@@ -276,17 +281,23 @@ class TestDataFrameConvertTo(TestData):
         # both converted to UTC, so they are equal
         tm.assert_numpy_array_equal(result, expected)
 
-    def test_to_dict_box_scalars(self):
-        # 14216
+    # orient - orient argument to to_dict function
+    # item_getter - function for extracting value from
+    # the resulting dict using column name and index
+    @pytest.mark.parametrize('orient,item_getter', [
+        ('dict', lambda d, col, idx: d[col][idx]),
+        ('records', lambda d, col, idx: d[idx][col]),
+        ('list', lambda d, col, idx: d[col][idx]),
+        ('split', lambda d, col, idx: d['data'][idx][d['columns'].index(col)]),
+        ('index', lambda d, col, idx: d[idx][col])
+    ])
+    def test_to_dict_box_scalars(self, orient, item_getter):
+        # 14216, 23753
         # make sure that we are boxing properly
-        d = {'a': [1], 'b': ['b']}
-
-        result = DataFrame(d).to_dict()
-        assert isinstance(list(result['a'])[0], (int, long))
-        assert isinstance(list(result['b'])[0], (int, long))
-
-        result = DataFrame(d).to_dict(orient='records')
-        assert isinstance(result[0]['a'], (int, long))
+        df = DataFrame({'a': [1, 2], 'b': [.1, .2]})
+        result = df.to_dict(orient=orient)
+        assert isinstance(item_getter(result, 'a', 0), (int, long))
+        assert isinstance(item_getter(result, 'b', 0), float)
 
     def test_frame_to_dict_tz(self):
         # GH18372 When converting to dict with orient='records' columns of

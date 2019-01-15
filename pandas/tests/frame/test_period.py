@@ -1,3 +1,4 @@
+import pytest
 import numpy as np
 from numpy.random import randn
 from datetime import timedelta
@@ -13,9 +14,6 @@ def _permute(obj):
 
 
 class TestPeriodIndex(object):
-
-    def setup_method(self, method):
-        pass
 
     def test_as_frame_columns(self):
         rng = period_range('1/1/2000', periods=5)
@@ -114,8 +112,8 @@ class TestPeriodIndex(object):
         tm.assert_index_equal(result.columns, exp_index)
 
         # invalid axis
-        tm.assert_raises_regex(
-            ValueError, 'axis', df.to_timestamp, axis=2)
+        with pytest.raises(ValueError, match='axis'):
+            df.to_timestamp(axis=2)
 
         result1 = df.to_timestamp('5t', axis=1)
         result2 = df.to_timestamp('t', axis=1)

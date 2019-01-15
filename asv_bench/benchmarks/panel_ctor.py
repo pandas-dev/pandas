@@ -1,14 +1,10 @@
 import warnings
 from datetime import datetime, timedelta
 
-from pandas import DataFrame, DatetimeIndex, date_range
-
-from .pandas_vb_common import Panel, setup  # noqa
+from pandas import DataFrame, Panel, DatetimeIndex, date_range
 
 
 class DifferentIndexes(object):
-    goal_time = 0.2
-
     def setup(self):
         self.data_frames = {}
         start = datetime(1990, 1, 1)
@@ -26,8 +22,6 @@ class DifferentIndexes(object):
 
 class SameIndexes(object):
 
-    goal_time = 0.2
-
     def setup(self):
         idx = DatetimeIndex(start=datetime(1990, 1, 1),
                             end=datetime(2012, 1, 1),
@@ -41,8 +35,6 @@ class SameIndexes(object):
 
 
 class TwoIndexes(object):
-
-    goal_time = 0.2
 
     def setup(self):
         start = datetime(1990, 1, 1)
@@ -58,3 +50,6 @@ class TwoIndexes(object):
     def time_from_dict(self):
         with warnings.catch_warnings(record=True):
             Panel.from_dict(self.data_frames)
+
+
+from .pandas_vb_common import setup  # noqa: F401

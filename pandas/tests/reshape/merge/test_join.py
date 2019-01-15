@@ -19,6 +19,7 @@ from pandas.tests.reshape.merge.test_merge import get_test_data, N, NGROUPS
 a_ = np.array
 
 
+@pytest.mark.filterwarnings("ignore:\\nPanel:FutureWarning")
 class TestJoin(object):
 
     def setup_method(self, method):
@@ -236,9 +237,9 @@ class TestJoin(object):
         # Edited test to remove the Series object from test parameters
 
         df = DataFrame({'a': [1, 1]})
-        with tm.assert_raises_regex(TypeError, str(type(wrong_type))):
+        with pytest.raises(TypeError, match=str(type(wrong_type))):
             merge(wrong_type, df, left_on='a', right_on='a')
-        with tm.assert_raises_regex(TypeError, str(type(wrong_type))):
+        with pytest.raises(TypeError, match=str(type(wrong_type))):
             merge(df, wrong_type, left_on='a', right_on='a')
 
     def test_join_on_pass_vector(self):
@@ -400,8 +401,8 @@ class TestJoin(object):
 
         index = MultiIndex(levels=[['foo', 'bar', 'baz', 'qux'],
                                    ['one', 'two', 'three']],
-                           labels=[[0, 0, 0, 1, 1, 2, 2, 3, 3, 3],
-                                   [0, 1, 2, 0, 1, 1, 2, 0, 1, 2]],
+                           codes=[[0, 0, 0, 1, 1, 2, 2, 3, 3, 3],
+                                  [0, 1, 2, 0, 1, 1, 2, 0, 1, 2]],
                            names=['first', 'second'])
         to_join = DataFrame(np.random.randn(10, 3), index=index,
                             columns=['j_one', 'j_two', 'j_three'])
@@ -728,6 +729,31 @@ class TestJoin(object):
                           how='outer', lsuffix='foo', rsuffix='bar')
             pytest.raises(ValueError, panels[0].join, panels[1:],
                           how='right')
+
+    def test_join_multi_to_multi(self, join_type):
+        # GH 20475
+        leftindex = MultiIndex.from_product([list('abc'), list('xy'), [1, 2]],
+                                            names=['abc', 'xy', 'num'])
+        left = DataFrame({'v1': range(12)}, index=leftindex)
+
+        rightindex = MultiIndex.from_product([list('abc'), list('xy')],
+                                             names=['abc', 'xy'])
+        right = DataFrame({'v2': [100 * i for i in range(1, 7)]},
+                          index=rightindex)
+
+        result = left.join(right, on=['abc', 'xy'], how=join_type)
+        expected = (left.reset_index()
+                        .merge(right.reset_index(),
+                               on=['abc', 'xy'], how=join_type)
+                        .set_index(['abc', 'xy', 'num'])
+                    )
+        assert_frame_equal(expected, result)
+
+        with pytest.raises(ValueError):
+            left.join(right, on='xy', how=join_type)
+
+        with pytest.raises(ValueError):
+            right.join(left, on=['abc', 'xy'], how=join_type)
 
 
 def _check_join(left, right, result, join_col, how='left',

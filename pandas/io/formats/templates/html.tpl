@@ -50,17 +50,17 @@
 {%- endblock thead %} 
 {%- block tbody %} 
 <tbody> 
-    {%- block before_rows %}{%- endblock before_rows %}
-    {%- for r in body %} 
-    {%- block tr scoped %}
-    <tr> 
-        {%- for c in r %} 
-        {%- if c.is_visible != False %} 
-        <{{ c.type }} id="T_{{ uuid }}{{ c.id }}" class="{{ c.class }}" {{ c.attributes|join(" ") }}>{{ c.display_value }}</{{ c.type }}>
-        {%- endif %} 
-        {%- endfor %} 
-    </tr> 
-    {%- endblock tr %}
+    {% block before_rows %}{% endblock before_rows %}
+    {% for r in body %}
+    {% block tr scoped %}
+    <tr>
+        {% for c in r %}
+        {% if c.is_visible != False %}
+        <{{ c.type }} {% if c.id is defined -%} id="T_{{ uuid }}{{ c.id }}" {%- endif %} class="{{ c.class }}" {{ c.attributes|join(" ") }}>{{ c.display_value }}</{{ c.type }}>
+        {% endif %}
+        {%- endfor %}
+    </tr>
+    {% endblock tr %}
     {%- endfor %} 
     {%- block after_rows %}{%- endblock after_rows %}
 </tbody> 

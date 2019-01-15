@@ -1,19 +1,6 @@
 .. _enhancingperf:
 
-.. currentmodule:: pandas
-
-.. ipython:: python
-   :suppress:
-
-   import numpy as np
-   np.random.seed(123456)
-   np.set_printoptions(precision=4, suppress=True)
-   import pandas as pd
-   pd.options.display.max_rows=15
-
-   import os
-   import csv
-
+{{ header }}
 
 *********************
 Enhancing Performance
@@ -221,7 +208,7 @@ the rows, applying our ``integrate_f_typed``, and putting this in the zeros arra
 
    You can **not pass** a ``Series`` directly as a ``ndarray`` typed parameter
    to a Cython function. Instead pass the actual ``ndarray`` using the
-   ``.values`` attribute of the ``Series``. The reason is that the Cython
+   :meth:`Series.to_numpy`. The reason is that the Cython
    definition is specific to an ndarray and not the passed ``Series``.
 
    So, do not do this:
@@ -230,11 +217,13 @@ the rows, applying our ``integrate_f_typed``, and putting this in the zeros arra
 
         apply_integrate_f(df['a'], df['b'], df['N'])
 
-   But rather, use ``.values`` to get the underlying ``ndarray``:
+   But rather, use :meth:`Series.to_numpy` to get the underlying ``ndarray``:
 
    .. code-block:: python
 
-        apply_integrate_f(df['a'].values, df['b'].values, df['N'].values)
+        apply_integrate_f(df['a'].to_numpy(),
+                          df['b'].to_numpy(),
+                          df['N'].to_numpy())
 
 .. note::
 
@@ -298,7 +287,7 @@ advanced Cython techniques:
 
 Even faster, with the caveat that a bug in our Cython code (an off-by-one error,
 for example) might cause a segfault because memory access isn't checked.
-For more about ``boundscheck`` and ``wraparound``, see the Cython docs on 
+For more about ``boundscheck`` and ``wraparound``, see the Cython docs on
 `compiler directives <http://cython.readthedocs.io/en/latest/src/reference/compilation.html?highlight=wraparound#compiler-directives>`__.
 
 .. _enhancingperf.numba:
@@ -323,39 +312,45 @@ Numba works by generating optimized machine code using the LLVM compiler infrast
 Jit
 ~~~
 
-We demonstrate how to use Numba to just-in-time compile our code. We simply 
+We demonstrate how to use Numba to just-in-time compile our code. We simply
 take the plain Python code from above and annotate with the ``@jit`` decorator.
 
 .. code-block:: python
 
     import numba
 
+
     @numba.jit
     def f_plain(x):
-       return x * (x - 1)
+        return x * (x - 1)
+
 
     @numba.jit
     def integrate_f_numba(a, b, N):
-       s = 0
-       dx = (b - a) / N
-       for i in range(N):
-           s += f_plain(a + i * dx)
-       return s * dx
+        s = 0
+        dx = (b - a) / N
+        for i in range(N):
+            s += f_plain(a + i * dx)
+        return s * dx
+
 
     @numba.jit
     def apply_integrate_f_numba(col_a, col_b, col_N):
-       n = len(col_N)
-       result = np.empty(n, dtype='float64')
-       assert len(col_a) == len(col_b) == n
-       for i in range(n):
-          result[i] = integrate_f_numba(col_a[i], col_b[i], col_N[i])
-       return result
+        n = len(col_N)
+        result = np.empty(n, dtype='float64')
+        assert len(col_a) == len(col_b) == n
+        for i in range(n):
+            result[i] = integrate_f_numba(col_a[i], col_b[i], col_N[i])
+        return result
+
 
     def compute_numba(df):
-       result = apply_integrate_f_numba(df['a'].values, df['b'].values, df['N'].values)
-       return pd.Series(result, index=df.index, name='result')
+        result = apply_integrate_f_numba(df['a'].values, df['b'].values,
+                                         df['N'].values)
+        return pd.Series(result, index=df.index, name='result')
 
-Note that we directly pass NumPy arrays to the Numba function. ``compute_numba`` is just a wrapper that provides a nicer interface by passing/returning pandas objects.
+Note that we directly pass NumPy arrays to the Numba function. ``compute_numba`` is just a wrapper that provides a
+nicer interface by passing/returning pandas objects.
 
 .. code-block:: ipython
 
@@ -375,13 +370,16 @@ Consider the following toy example of doubling each observation:
 
     import numba
 
+
     def double_every_value_nonumba(x):
-        return x*2
+        return x * 2
+
 
     @numba.vectorize
     def double_every_value_withnumba(x):
-        return x*2
+        return x * 2
 
+.. code-block:: ipython
 
     # Custom function without numba
     In [5]: %timeit df['col1_doubled'] = df.a.apply(double_every_value_nonumba)
@@ -402,18 +400,18 @@ Caveats
 
     Numba will execute on any function, but can only accelerate certain classes of functions.
 
-Numba is best at accelerating functions that apply numerical functions to NumPy 
-arrays. When passed a function that only uses operations it knows how to 
+Numba is best at accelerating functions that apply numerical functions to NumPy
+arrays. When passed a function that only uses operations it knows how to
 accelerate, it will execute in ``nopython`` mode.
 
-If Numba is passed a function that includes something it doesn't know how to 
-work with -- a category that currently includes sets, lists, dictionaries, or 
-string functions -- it will revert to ``object mode``. In ``object mode``, 
-Numba will execute but your code will not speed up significantly. If you would 
-prefer that Numba throw an error if it cannot compile a function in a way that 
-speeds up your code, pass Numba the argument 
-``nopython=True`` (e.g.  ``@numba.jit(nopython=True)``). For more on 
-troubleshooting Numba modes, see the `Numba troubleshooting page 
+If Numba is passed a function that includes something it doesn't know how to
+work with -- a category that currently includes sets, lists, dictionaries, or
+string functions -- it will revert to ``object mode``. In ``object mode``,
+Numba will execute but your code will not speed up significantly. If you would
+prefer that Numba throw an error if it cannot compile a function in a way that
+speeds up your code, pass Numba the argument
+``nopython=True`` (e.g.  ``@numba.jit(nopython=True)``). For more on
+troubleshooting Numba modes, see the `Numba troubleshooting page
 <http://numba.pydata.org/numba-doc/latest/user/troubleshoot.html#the-compiled-code-is-too-slow>`__.
 
 Read more in the `Numba docs <http://numba.pydata.org/>`__.
@@ -471,7 +469,7 @@ These operations are supported by :func:`pandas.eval`:
 * Simple variable evaluation, e.g., ``pd.eval('df')`` (this is not very useful)
 * Math functions: `sin`, `cos`, `exp`, `log`, `expm1`, `log1p`,
   `sqrt`, `sinh`, `cosh`, `tanh`, `arcsin`, `arccos`, `arctan`, `arccosh`,
-  `arcsinh`, `arctanh`, `abs` and `arctan2`.
+  `arcsinh`, `arctanh`, `abs`, `arctan2` and `log10`.
 
 This Python syntax is **not** allowed:
 

@@ -15,7 +15,7 @@ import pytest
 
 import pandas as pd
 import pandas.util.testing as tm
-from pandas import compat
+import pandas.compat as compat
 from pandas.compat import iterkeys
 from pandas.core.dtypes.common import is_categorical_dtype
 from pandas.core.frame import DataFrame, Series
@@ -120,7 +120,7 @@ class TestStata(object):
     def test_data_method(self):
         # Minimal testing of legacy data method
         with StataReader(self.dta1_114) as rdr:
-            with warnings.catch_warnings(record=True) as w:  # noqa
+            with tm.assert_produces_warning(UserWarning):
                 parsed_114_data = rdr.data()
 
         with StataReader(self.dta1_114) as rdr:
@@ -388,10 +388,8 @@ class TestStata(object):
         formatted = formatted.astype(np.int32)
 
         with tm.ensure_clean() as path:
-            with warnings.catch_warnings(record=True) as w:
+            with tm.assert_produces_warning(pd.io.stata.InvalidColumnName):
                 original.to_stata(path, None)
-                # should get a warning for that format.
-            assert len(w) == 1
 
             written_and_read_again = self.read_dta(path)
             tm.assert_frame_equal(
@@ -871,6 +869,9 @@ class TestStata(object):
             read_stata(self.dta15_117, convert_dates=True, columns=columns)
 
     @pytest.mark.parametrize('version', [114, 117])
+    @pytest.mark.filterwarnings(
+        "ignore:\\nStata value:pandas.io.stata.ValueLabelTypeMismatch"
+    )
     def test_categorical_writing(self, version):
         original = DataFrame.from_records(
             [
@@ -901,12 +902,10 @@ class TestStata(object):
         expected.index.name = 'index'
 
         with tm.ensure_clean() as path:
-            with warnings.catch_warnings(record=True) as w:  # noqa
-                # Silence warnings
-                original.to_stata(path, version=version)
-                written_and_read_again = self.read_dta(path)
-                res = written_and_read_again.set_index('index')
-                tm.assert_frame_equal(res, expected, check_categorical=False)
+            original.to_stata(path, version=version)
+            written_and_read_again = self.read_dta(path)
+            res = written_and_read_again.set_index('index')
+            tm.assert_frame_equal(res, expected, check_categorical=False)
 
     def test_categorical_warnings_and_errors(self):
         # Warning for non-string labels
@@ -933,10 +932,9 @@ class TestStata(object):
         original = pd.concat([original[col].astype('category')
                               for col in original], axis=1)
 
-        with warnings.catch_warnings(record=True) as w:
+        with tm.assert_produces_warning(pd.io.stata.ValueLabelTypeMismatch):
             original.to_stata(path)
             # should get a warning for mixed content
-            assert len(w) == 1
 
     @pytest.mark.parametrize('version', [114, 117])
     def test_categorical_with_stata_missing_values(self, version):
@@ -997,7 +995,7 @@ class TestStata(object):
         parsed = read_stata(getattr(self, file))
 
         # Sort based on codes, not strings
-        parsed = parsed.sort_values("srh")
+        parsed = parsed.sort_values("srh", na_position='first')
 
         # Don't sort index
         parsed.index = np.arange(parsed.shape[0])
@@ -1445,7 +1443,7 @@ class TestStata(object):
                              columns=['long1' * 10, 'long', 1])
         original.index.name = 'index'
 
-        with warnings.catch_warnings(record=True) as w:  # noqa
+        with tm.assert_produces_warning(pd.io.stata.InvalidColumnName):
             with tm.ensure_clean() as path:
                 original.to_stata(path, convert_strl=['long', 1], version=117)
                 reread = self.read_dta(path)
@@ -1507,3 +1505,44 @@ class TestStata(object):
         expected = pd.DataFrame(values, columns=columns)
 
         tm.assert_frame_equal(unicode_df, expected)
+
+    def test_mixed_string_strl(self):
+        # GH 23633
+        output = [
+            {'mixed': 'string' * 500,
+             'number': 0},
+            {'mixed': None,
+             'number': 1}
+        ]
+        output = pd.DataFrame(output)
+        output.number = output.number.astype('int32')
+
+        with tm.ensure_clean() as path:
+            output.to_stata(path, write_index=False, version=117)
+            reread = read_stata(path)
+            expected = output.fillna('')
+            tm.assert_frame_equal(reread, expected)
+
+            # Check strl supports all None (null)
+            output.loc[:, 'mixed'] = None
+            output.to_stata(path, write_index=False, convert_strl=['mixed'],
+                            version=117)
+            reread = read_stata(path)
+            expected = output.fillna('')
+            tm.assert_frame_equal(reread, expected)
+
+    @pytest.mark.parametrize('version', [114, 117])
+    def test_all_none_exception(self, version):
+        output = [
+            {'none': 'none',
+             'number': 0},
+            {'none': None,
+             'number': 1}
+        ]
+        output = pd.DataFrame(output)
+        output.loc[:, 'none'] = None
+        with tm.ensure_clean() as path:
+            with pytest.raises(ValueError) as excinfo:
+                output.to_stata(path, version=version)
+        assert 'Only string-like' in excinfo.value.args[0]
+        assert 'Column `none`' in excinfo.value.args[0]

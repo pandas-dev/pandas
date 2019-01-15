@@ -3,12 +3,10 @@ import numpy as np
 import pytest
 
 import pandas as pd
-import pandas._libs.tslib as tslib
-import pandas.util.testing as tm
-from pandas import (DatetimeIndex, PeriodIndex, Series, Period,
-                    _np_version_under1p10, Index)
-
+from pandas import DatetimeIndex, Index, NaT, Period, PeriodIndex, Series
+from pandas.core.arrays import PeriodArray
 from pandas.tests.test_base import Ops
+import pandas.util.testing as tm
 
 
 class TestPeriodIndexOps(Ops):
@@ -22,20 +20,20 @@ class TestPeriodIndexOps(Ops):
 
     def test_ops_properties(self):
         f = lambda x: isinstance(x, PeriodIndex)
-        self.check_ops_properties(PeriodIndex._field_ops, f)
-        self.check_ops_properties(PeriodIndex._object_ops, f)
-        self.check_ops_properties(PeriodIndex._bool_ops, f)
+        self.check_ops_properties(PeriodArray._field_ops, f)
+        self.check_ops_properties(PeriodArray._object_ops, f)
+        self.check_ops_properties(PeriodArray._bool_ops, f)
 
     def test_minmax(self):
 
         # monotonic
-        idx1 = pd.PeriodIndex([pd.NaT, '2011-01-01', '2011-01-02',
+        idx1 = pd.PeriodIndex([NaT, '2011-01-01', '2011-01-02',
                                '2011-01-03'], freq='D')
         assert idx1.is_monotonic
 
         # non-monotonic
-        idx2 = pd.PeriodIndex(['2011-01-01', pd.NaT, '2011-01-03',
-                               '2011-01-02', pd.NaT], freq='D')
+        idx2 = pd.PeriodIndex(['2011-01-01', NaT, '2011-01-03',
+                               '2011-01-02', NaT], freq='D')
         assert not idx2.is_monotonic
 
         for idx in [idx1, idx2]:
@@ -50,15 +48,15 @@ class TestPeriodIndexOps(Ops):
             # Return NaT
             obj = PeriodIndex([], freq='M')
             result = getattr(obj, op)()
-            assert result is tslib.NaT
+            assert result is NaT
 
-            obj = PeriodIndex([pd.NaT], freq='M')
+            obj = PeriodIndex([NaT], freq='M')
             result = getattr(obj, op)()
-            assert result is tslib.NaT
+            assert result is NaT
 
-            obj = PeriodIndex([pd.NaT, pd.NaT, pd.NaT], freq='M')
+            obj = PeriodIndex([NaT, NaT, NaT], freq='M')
             result = getattr(obj, op)()
-            assert result is tslib.NaT
+            assert result is NaT
 
     def test_numpy_minmax(self):
         pr = pd.period_range(start='2016-01-15', end='2016-01-20')
@@ -67,18 +65,19 @@ class TestPeriodIndexOps(Ops):
         assert np.max(pr) == Period('2016-01-20', freq='D')
 
         errmsg = "the 'out' parameter is not supported"
-        tm.assert_raises_regex(ValueError, errmsg, np.min, pr, out=0)
-        tm.assert_raises_regex(ValueError, errmsg, np.max, pr, out=0)
+        with pytest.raises(ValueError, match=errmsg):
+            np.min(pr, out=0)
+        with pytest.raises(ValueError, match=errmsg):
+            np.max(pr, out=0)
 
         assert np.argmin(pr) == 0
         assert np.argmax(pr) == 5
 
-        if not _np_version_under1p10:
-            errmsg = "the 'out' parameter is not supported"
-            tm.assert_raises_regex(
-                ValueError, errmsg, np.argmin, pr, out=0)
-            tm.assert_raises_regex(
-                ValueError, errmsg, np.argmax, pr, out=0)
+        errmsg = "the 'out' parameter is not supported"
+        with pytest.raises(ValueError, match=errmsg):
+            np.argmin(pr, out=0)
+        with pytest.raises(ValueError, match=errmsg):
+            np.argmax(pr, out=0)
 
     def test_resolution(self):
         for freq, expected in zip(['A', 'Q', 'M', 'D', 'H',
@@ -94,7 +93,7 @@ class TestPeriodIndexOps(Ops):
         # GH 7735
         idx = pd.period_range('2011-01-01 09:00', freq='H', periods=10)
         # create repeated values, 'n'th element is repeated by n+1 times
-        idx = PeriodIndex(np.repeat(idx.values, range(1, len(idx) + 1)),
+        idx = PeriodIndex(np.repeat(idx._values, range(1, len(idx) + 1)),
                           freq='H')
 
         exp_idx = PeriodIndex(['2011-01-01 18:00', '2011-01-01 17:00',
@@ -114,7 +113,7 @@ class TestPeriodIndexOps(Ops):
 
         idx = PeriodIndex(['2013-01-01 09:00', '2013-01-01 09:00',
                            '2013-01-01 09:00', '2013-01-01 08:00',
-                           '2013-01-01 08:00', pd.NaT], freq='H')
+                           '2013-01-01 08:00', NaT], freq='H')
 
         exp_idx = PeriodIndex(['2013-01-01 09:00', '2013-01-01 08:00'],
                               freq='H')
@@ -124,7 +123,7 @@ class TestPeriodIndexOps(Ops):
             tm.assert_series_equal(obj.value_counts(), expected)
 
         exp_idx = PeriodIndex(['2013-01-01 09:00', '2013-01-01 08:00',
-                               pd.NaT], freq='H')
+                               NaT], freq='H')
         expected = Series([3, 2, 1], index=exp_idx)
 
         for obj in [idx, Series(idx)]:
@@ -285,9 +284,9 @@ class TestPeriodIndexOps(Ops):
                             '2011-01-03', '2011-01-05'],
                            freq='D', name='idx2')
 
-        idx3 = PeriodIndex([pd.NaT, '2011-01-03', '2011-01-05',
-                            '2011-01-02', pd.NaT], freq='D', name='idx3')
-        exp3 = PeriodIndex([pd.NaT, pd.NaT, '2011-01-02', '2011-01-03',
+        idx3 = PeriodIndex([NaT, '2011-01-03', '2011-01-05',
+                            '2011-01-02', NaT], freq='D', name='idx3')
+        exp3 = PeriodIndex([NaT, NaT, '2011-01-02', '2011-01-03',
                             '2011-01-05'], freq='D', name='idx3')
 
         for idx, expected in [(idx1, exp1), (idx2, exp2), (idx3, exp3)]:
@@ -314,17 +313,6 @@ class TestPeriodIndexOps(Ops):
             tm.assert_numpy_array_equal(indexer, exp, check_dtype=False)
             assert ordered.freq == 'D'
 
-    def test_nat_new(self):
-
-        idx = pd.period_range('2011-01', freq='M', periods=5, name='x')
-        result = idx._nat_new()
-        exp = pd.PeriodIndex([pd.NaT] * 5, freq='M', name='x')
-        tm.assert_index_equal(result, exp)
-
-        result = idx._nat_new(box=False)
-        exp = np.array([tslib.iNaT] * 5, dtype=np.int64)
-        tm.assert_numpy_array_equal(result, exp)
-
     def test_shift(self):
         # This is tested in test_arithmetic
         pass
@@ -350,14 +338,14 @@ class TestPeriodIndexOps(Ops):
             tm.assert_index_equal(res, exp)
 
     def test_nat(self):
-        assert pd.PeriodIndex._na_value is pd.NaT
-        assert pd.PeriodIndex([], freq='M')._na_value is pd.NaT
+        assert pd.PeriodIndex._na_value is NaT
+        assert pd.PeriodIndex([], freq='M')._na_value is NaT
 
         idx = pd.PeriodIndex(['2011-01-01', '2011-01-02'], freq='D')
         assert idx._can_hold_na
 
         tm.assert_numpy_array_equal(idx._isnan, np.array([False, False]))
-        assert not idx.hasnans
+        assert idx.hasnans is False
         tm.assert_numpy_array_equal(idx._nan_idxs,
                                     np.array([], dtype=np.intp))
 
@@ -365,7 +353,7 @@ class TestPeriodIndexOps(Ops):
         assert idx._can_hold_na
 
         tm.assert_numpy_array_equal(idx._isnan, np.array([False, True]))
-        assert idx.hasnans
+        assert idx.hasnans is True
         tm.assert_numpy_array_equal(idx._nan_idxs,
                                     np.array([1], dtype=np.intp))
 
@@ -392,7 +380,9 @@ class TestPeriodIndexOps(Ops):
         assert not idx.equals(pd.Series(idx2))
 
         # same internal, different tz
-        idx3 = pd.PeriodIndex._simple_new(idx.asi8, freq='H')
+        idx3 = pd.PeriodIndex._simple_new(
+            idx._values._simple_new(idx._values.asi8, freq="H")
+        )
         tm.assert_numpy_array_equal(idx.asi8, idx3.asi8)
         assert not idx.equals(idx3)
         assert not idx.equals(idx3.copy())
@@ -470,10 +460,10 @@ class TestPeriodIndexSeriesMethods(object):
         f = lambda x: pd.Period('2011-03', freq='M') == x
         self._check(idx, f, exp)
 
-        f = lambda x: x == tslib.NaT
+        f = lambda x: x == NaT
         exp = np.array([False, False, False, False], dtype=np.bool)
         self._check(idx, f, exp)
-        f = lambda x: tslib.NaT == x
+        f = lambda x: NaT == x
         self._check(idx, f, exp)
 
         f = lambda x: x != pd.Period('2011-03', freq='M')
@@ -482,10 +472,10 @@ class TestPeriodIndexSeriesMethods(object):
         f = lambda x: pd.Period('2011-03', freq='M') != x
         self._check(idx, f, exp)
 
-        f = lambda x: x != tslib.NaT
+        f = lambda x: x != NaT
         exp = np.array([True, True, True, True], dtype=np.bool)
         self._check(idx, f, exp)
-        f = lambda x: tslib.NaT != x
+        f = lambda x: NaT != x
         self._check(idx, f, exp)
 
         f = lambda x: pd.Period('2011-03', freq='M') >= x
@@ -496,10 +486,19 @@ class TestPeriodIndexSeriesMethods(object):
         exp = np.array([True, False, False, False], dtype=np.bool)
         self._check(idx, f, exp)
 
-        f = lambda x: x > tslib.NaT
+        f = lambda x: x > NaT
         exp = np.array([False, False, False, False], dtype=np.bool)
         self._check(idx, f, exp)
 
-        f = lambda x: tslib.NaT >= x
+        f = lambda x: NaT >= x
         exp = np.array([False, False, False, False], dtype=np.bool)
         self._check(idx, f, exp)
+
+
+@pytest.mark.parametrize("other", ["2017", 2017])
+def test_eq(other):
+    idx = pd.PeriodIndex(['2017', '2017', '2018'], freq="D")
+    expected = np.array([True, True, False])
+    result = idx == other
+
+    tm.assert_numpy_array_equal(result, expected)

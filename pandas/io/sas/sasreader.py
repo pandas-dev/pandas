@@ -2,6 +2,7 @@
 Read SAS sas7bdat or xport files.
 """
 from pandas import compat
+
 from pandas.io.common import _stringify_path
 
 
@@ -46,7 +47,7 @@ def read_sas(filepath_or_buffer, format=None, index=None, encoding=None,
                 format = "sas7bdat"
             else:
                 raise ValueError("unable to infer format of SAS file")
-        except:
+        except ValueError:
             pass
 
     if format.lower() == 'xport':

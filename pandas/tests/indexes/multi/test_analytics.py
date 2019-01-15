@@ -1,9 +1,10 @@
 # -*- coding: utf-8 -*-
 
 import numpy as np
+import pytest
+
 import pandas as pd
 import pandas.util.testing as tm
-import pytest
 from pandas import Index, MultiIndex, date_range, period_range
 from pandas.compat import lrange
 
@@ -31,11 +32,11 @@ def test_truncate():
     major_axis = Index(lrange(4))
     minor_axis = Index(lrange(2))
 
-    major_labels = np.array([0, 0, 1, 2, 3, 3])
-    minor_labels = np.array([0, 1, 0, 1, 0, 1])
+    major_codes = np.array([0, 0, 1, 2, 3, 3])
+    minor_codes = np.array([0, 1, 0, 1, 0, 1])
 
     index = MultiIndex(levels=[major_axis, minor_axis],
-                       labels=[major_labels, minor_labels])
+                       codes=[major_codes, minor_codes])
 
     result = index.truncate(before=1)
     assert 'foo' not in result.levels[0]
@@ -76,8 +77,8 @@ def test_where_array_like():
 
 def test_reorder_levels(idx):
     # this blows up
-    tm.assert_raises_regex(IndexError, '^Too many levels',
-                           idx.reorder_levels, [2, 1, 0])
+    with pytest.raises(IndexError, match='^Too many levels'):
+        idx.reorder_levels([2, 1, 0])
 
 
 def test_numpy_repeat():
@@ -92,8 +93,8 @@ def test_numpy_repeat():
     tm.assert_index_equal(np.repeat(m, reps), expected)
 
     msg = "the 'axis' parameter is not supported"
-    tm.assert_raises_regex(
-        ValueError, msg, np.repeat, m, reps, axis=1)
+    with pytest.raises(ValueError, match=msg):
+        np.repeat(m, reps, axis=1)
 
 
 def test_append_mixed_dtypes():
@@ -150,16 +151,16 @@ def test_take_invalid_kwargs(idx):
     indices = [1, 2]
 
     msg = r"take\(\) got an unexpected keyword argument 'foo'"
-    tm.assert_raises_regex(TypeError, msg, idx.take,
-                           indices, foo=2)
+    with pytest.raises(TypeError, match=msg):
+        idx.take(indices, foo=2)
 
     msg = "the 'out' parameter is not supported"
-    tm.assert_raises_regex(ValueError, msg, idx.take,
-                           indices, out=indices)
+    with pytest.raises(ValueError, match=msg):
+        idx.take(indices, out=indices)
 
     msg = "the 'mode' parameter is not supported"
-    tm.assert_raises_regex(ValueError, msg, idx.take,
-                           indices, mode='clip')
+    with pytest.raises(ValueError, match=msg):
+        idx.take(indices, mode='clip')
 
 
 def test_take_fill_value():
@@ -194,9 +195,9 @@ def test_take_fill_value():
 
     msg = ('When allow_fill=True and fill_value is not None, '
            'all indices must be >= -1')
-    with tm.assert_raises_regex(ValueError, msg):
+    with pytest.raises(ValueError, match=msg):
         idx.take(np.array([1, 0, -2]), fill_value=True)
-    with tm.assert_raises_regex(ValueError, msg):
+    with pytest.raises(ValueError, match=msg):
         idx.take(np.array([1, 0, -5]), fill_value=True)
 
     with pytest.raises(IndexError):
@@ -274,23 +275,20 @@ def test_map_dictlike(idx, mapper):
     np.rad2deg
 ])
 def test_numpy_ufuncs(func):
-    # test ufuncs of numpy 1.9.2. see:
+    # test ufuncs of numpy. see:
     # http://docs.scipy.org/doc/numpy/reference/ufuncs.html
-
-    # some functions are skipped because it may return different result
-    # for unicode input depending on numpy version
 
     # copy and paste from idx fixture as pytest doesn't support
     # parameters and fixtures at the same time.
     major_axis = Index(['foo', 'bar', 'baz', 'qux'])
     minor_axis = Index(['one', 'two'])
-    major_labels = np.array([0, 0, 1, 2, 3, 3])
-    minor_labels = np.array([0, 1, 0, 1, 0, 1])
+    major_codes = np.array([0, 0, 1, 2, 3, 3])
+    minor_codes = np.array([0, 1, 0, 1, 0, 1])
     index_names = ['first', 'second']
 
     idx = MultiIndex(
         levels=[major_axis, minor_axis],
-        labels=[major_labels, minor_labels],
+        codes=[major_codes, minor_codes],
         names=index_names,
         verify_integrity=False
     )
@@ -309,13 +307,13 @@ def test_numpy_type_funcs(func):
     # parameters and fixtures at the same time.
     major_axis = Index(['foo', 'bar', 'baz', 'qux'])
     minor_axis = Index(['one', 'two'])
-    major_labels = np.array([0, 0, 1, 2, 3, 3])
-    minor_labels = np.array([0, 1, 0, 1, 0, 1])
+    major_codes = np.array([0, 0, 1, 2, 3, 3])
+    minor_codes = np.array([0, 1, 0, 1, 0, 1])
     index_names = ['first', 'second']
 
     idx = MultiIndex(
         levels=[major_axis, minor_axis],
-        labels=[major_labels, minor_labels],
+        codes=[major_codes, minor_codes],
         names=index_names,
         verify_integrity=False
     )

@@ -27,6 +27,7 @@ See LICENSE for the license
 #define ERROR_INVALID_CHARS 3
 
 #include "../headers/stdint.h"
+#include "../inline_helper.h"
 
 #include "khash.h"
 
@@ -38,17 +39,6 @@ See LICENSE for the license
 #define REACHED_EOF 1
 #define CALLING_READ_FAILED 2
 
-#ifndef P_INLINE
-#if defined(__GNUC__)
-#define P_INLINE static __inline__
-#elif defined(_MSC_VER)
-#define P_INLINE
-#elif defined(__STDC_VERSION__) && __STDC_VERSION__ >= 199901L
-#define P_INLINE static inline
-#else
-#define P_INLINE
-#endif
-#endif
 
 #if defined(_MSC_VER)
 #define strtoll _strtoi64
@@ -152,6 +142,7 @@ typedef struct parser_t {
     int64_t *word_starts;   // where we are in the stream
     int64_t words_len;
     int64_t words_cap;
+    int64_t max_words_cap;  // maximum word cap encountered
 
     char *pword_start;      // pointer to stream start of current field
     int64_t word_start;     // position start of current field

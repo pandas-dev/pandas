@@ -47,10 +47,19 @@ int PANDAS_INLINE pyobject_cmp(PyObject* a, PyObject* b) {
 		PyErr_Clear();
 		return 0;
 	}
+    if (result == 0) {  // still could be two NaNs
+        return PyFloat_CheckExact(a) &&
+               PyFloat_CheckExact(b) &&
+               Py_IS_NAN(PyFloat_AS_DOUBLE(a)) &&
+               Py_IS_NAN(PyFloat_AS_DOUBLE(b));
+    }
 	return result;
 }
 
-
+// For PyObject_Hash holds:
+//    hash(0.0) == 0 == hash(-0.0)
+//    hash(X) == 0 if X is a NaN-value
+// so it is OK to use it directly
 #define kh_python_hash_func(key) (PyObject_Hash(key))
 #define kh_python_hash_equal(a, b) (pyobject_cmp(a, b))
 

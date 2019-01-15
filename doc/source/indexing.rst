@@ -1,15 +1,6 @@
 .. _indexing:
 
-.. currentmodule:: pandas
-
-.. ipython:: python
-   :suppress:
-
-   import numpy as np
-   np.random.seed(123456)
-   np.set_printoptions(precision=4, suppress=True)
-   import pandas as pd
-   pd.options.display.max_rows=15
+{{ header }}
 
 ***************************
 Indexing and Selecting Data
@@ -190,7 +181,7 @@ columns.
 
    .. ipython:: python
 
-      df.loc[:,['B', 'A']] = df[['A', 'B']].values
+      df.loc[:,['B', 'A']] = df[['A', 'B']].to_numpy()
       df[['A', 'B']]
 
 
@@ -537,10 +528,10 @@ A list of indexers where any element is out of bounds will raise an
 
 .. code-block:: python
 
-   dfl.iloc[[4, 5, 6]]
+   >>> dfl.iloc[[4, 5, 6]]
    IndexError: positional indexers are out-of-bounds
 
-   dfl.iloc[:, 4]
+   >>> dfl.iloc[:, 4]
    IndexError: single positional indexer is out-of-bounds
 
 .. _indexing.callable:
@@ -1571,9 +1562,9 @@ Setting metadata
 
 Indexes are "mostly immutable", but it is possible to set and change their
 metadata, like the index ``name`` (or, for ``MultiIndex``, ``levels`` and
-``labels``).
+``codes``).
 
-You can use the ``rename``, ``set_names``, ``set_levels``, and ``set_labels``
+You can use the ``rename``, ``set_names``, ``set_levels``, and ``set_codes``
 to set these attributes directly. They default to returning a copy; however,
 you can specify ``inplace=True`` to have the data change in place.
 
@@ -1588,7 +1579,7 @@ See :ref:`Advanced Indexing <advanced>` for usage of MultiIndexes.
   ind.name = "bob"
   ind
 
-``set_names``, ``set_levels``, and ``set_labels`` also take an optional
+``set_names``, ``set_levels``, and ``set_codes`` also take an optional
 `level`` argument
 
 .. ipython:: python
@@ -1794,7 +1785,7 @@ interpreter executes this code:
 
 .. code-block:: python
 
-   dfmi.loc[:,('one','second')] = value
+   dfmi.loc[:, ('one', 'second')] = value
    # becomes
    dfmi.loc.__setitem__((slice(None), ('one', 'second')), value)
 
@@ -1827,10 +1818,10 @@ that you've done this:
 .. code-block:: python
 
    def do_something(df):
-      foo = df[['bar', 'baz']]  # Is foo a view? A copy? Nobody knows!
-      # ... many lines here ...
-      foo['quux'] = value       # We don't know whether this will modify df or not!
-      return foo
+       foo = df[['bar', 'baz']]  # Is foo a view? A copy? Nobody knows!
+       # ... many lines here ...
+       foo['quux'] = value  # We don't know whether this will modify df or not!
+       return foo
 
 Yikes!
 

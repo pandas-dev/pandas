@@ -4,7 +4,6 @@ from __future__ import (absolute_import, division, print_function,
 from pandas.io.msgpack import packb, unpackb, Packer, Unpacker, ExtType
 
 import pytest
-import pandas.util.testing as tm
 
 
 class TestLimits(object):
@@ -41,7 +40,7 @@ class TestLimits(object):
         unpacker.feed(packed)
 
         msg = "3 exceeds max_str_len"
-        with tm.assert_raises_regex(ValueError, msg):
+        with pytest.raises(ValueError, match=msg):
             unpacker.unpack()
 
     def test_max_bin_len(self):
@@ -56,7 +55,7 @@ class TestLimits(object):
         unpacker.feed(packed)
 
         msg = "3 exceeds max_bin_len"
-        with tm.assert_raises_regex(ValueError, msg):
+        with pytest.raises(ValueError, match=msg):
             unpacker.unpack()
 
     def test_max_array_len(self):
@@ -71,7 +70,7 @@ class TestLimits(object):
         unpacker.feed(packed)
 
         msg = "3 exceeds max_array_len"
-        with tm.assert_raises_regex(ValueError, msg):
+        with pytest.raises(ValueError, match=msg):
             unpacker.unpack()
 
     def test_max_map_len(self):
@@ -86,7 +85,7 @@ class TestLimits(object):
         unpacker.feed(packed)
 
         msg = "3 exceeds max_map_len"
-        with tm.assert_raises_regex(ValueError, msg):
+        with pytest.raises(ValueError, match=msg):
             unpacker.unpack()
 
     def test_max_ext_len(self):
@@ -101,5 +100,5 @@ class TestLimits(object):
         unpacker.feed(packed)
 
         msg = "4 exceeds max_ext_len"
-        with tm.assert_raises_regex(ValueError, msg):
+        with pytest.raises(ValueError, match=msg):
             unpacker.unpack()

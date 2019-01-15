@@ -47,4 +47,5 @@ class TestPivotTable(object):
                                     values=['D', 'E'])
         res_dense = pd.pivot_table(self.dense, index='A', columns='B',
                                    values=['D', 'E'])
+        res_dense = res_dense.apply(lambda x: x.astype("Sparse[float64]"))
         tm.assert_frame_equal(res_sparse, res_dense)

@@ -1,26 +1,19 @@
 """
 Routines for filling missing data
 """
+from distutils.version import LooseVersion
 import operator
 
 import numpy as np
-from distutils.version import LooseVersion
 
 from pandas._libs import algos, lib
-
 from pandas.compat import range, string_types
-from pandas.core.dtypes.common import (
-    is_numeric_v_string_like,
-    is_float_dtype,
-    is_datetime64_dtype,
-    is_datetime64tz_dtype,
-    is_integer_dtype,
-    is_scalar,
-    is_integer,
-    needs_i8_conversion,
-    ensure_float64)
 
 from pandas.core.dtypes.cast import infer_dtype_from_array
+from pandas.core.dtypes.common import (
+    ensure_float64, is_datetime64_dtype, is_datetime64tz_dtype, is_float_dtype,
+    is_integer, is_integer_dtype, is_numeric_v_string_like, is_scalar,
+    needs_i8_conversion)
 from pandas.core.dtypes.missing import isna
 
 
@@ -67,6 +60,10 @@ def mask_missing(arr, values_to_mask):
             mask = isna(arr)
         else:
             mask |= isna(arr)
+
+    # GH 21977
+    if mask is None:
+        mask = np.zeros(arr.shape, dtype=bool)
 
     return mask
 
@@ -756,9 +753,10 @@ def _interp_limit(invalid, fw_limit, bw_limit):
 
     .. code-block:: python
 
-       for x in np.where(invalid)[0]:
-           if invalid[max(0, x - fw_limit):x + bw_limit + 1].all():
-               yield x
+        def _interp_limit(invalid, fw_limit, bw_limit):
+            for x in np.where(invalid)[0]:
+                if invalid[max(0, x - fw_limit):x + bw_limit + 1].all():
+                    yield x
     """
     # handle forward first; the backward direction is the same except
     # 1. operate on the reversed array

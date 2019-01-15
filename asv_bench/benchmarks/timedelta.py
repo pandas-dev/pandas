@@ -1,12 +1,11 @@
 import datetime
 
 import numpy as np
-from pandas import Series, timedelta_range, to_timedelta, Timestamp, Timedelta
+from pandas import Series, timedelta_range, to_timedelta, Timestamp, \
+    Timedelta, TimedeltaIndex, DataFrame
 
 
 class TimedeltaConstructor(object):
-
-    goal_time = 0.2
 
     def time_from_int(self):
         Timedelta(123456789)
@@ -36,8 +35,6 @@ class TimedeltaConstructor(object):
 
 class ToTimedelta(object):
 
-    goal_time = 0.2
-
     def setup(self):
         self.ints = np.random.randint(0, 60, size=10000)
         self.str_days = []
@@ -58,7 +55,6 @@ class ToTimedelta(object):
 
 class ToTimedeltaErrors(object):
 
-    goal_time = 0.2
     params = ['coerce', 'ignore']
     param_names = ['errors']
 
@@ -73,8 +69,6 @@ class ToTimedeltaErrors(object):
 
 class TimedeltaOps(object):
 
-    goal_time = 0.2
-
     def setup(self):
         self.td = to_timedelta(np.arange(1000000))
         self.ts = Timestamp('2000')
@@ -84,8 +78,6 @@ class TimedeltaOps(object):
 
 
 class TimedeltaProperties(object):
-
-    goal_time = 0.2
 
     def setup_cache(self):
         td = Timedelta(days=365, minutes=35, seconds=25, milliseconds=35)
@@ -106,8 +98,6 @@ class TimedeltaProperties(object):
 
 class DatetimeAccessor(object):
 
-    goal_time = 0.2
-
     def setup_cache(self):
         N = 100000
         series = Series(timedelta_range('1 days', periods=N, freq='h'))
@@ -127,3 +117,36 @@ class DatetimeAccessor(object):
 
     def time_timedelta_nanoseconds(self, series):
         series.dt.nanoseconds
+
+
+class TimedeltaIndexing(object):
+
+    def setup(self):
+        self.index = TimedeltaIndex(start='1985', periods=1000, freq='D')
+        self.index2 = TimedeltaIndex(start='1986', periods=1000, freq='D')
+        self.series = Series(range(1000), index=self.index)
+        self.timedelta = self.index[500]
+
+    def time_get_loc(self):
+        self.index.get_loc(self.timedelta)
+
+    def time_shape(self):
+        self.index.shape
+
+    def time_shallow_copy(self):
+        self.index._shallow_copy()
+
+    def time_series_loc(self):
+        self.series.loc[self.timedelta]
+
+    def time_align(self):
+        DataFrame({'a': self.series, 'b': self.series[:500]})
+
+    def time_intersection(self):
+        self.index.intersection(self.index2)
+
+    def time_union(self):
+        self.index.union(self.index2)
+
+    def time_unique(self):
+        self.index.unique()

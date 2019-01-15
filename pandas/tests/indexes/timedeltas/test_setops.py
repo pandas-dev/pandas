@@ -2,7 +2,7 @@ import numpy as np
 
 import pandas as pd
 import pandas.util.testing as tm
-from pandas import TimedeltaIndex, timedelta_range, Int64Index
+from pandas import Int64Index, TimedeltaIndex, timedelta_range
 
 
 class TestTimedeltaIndex(object):
@@ -16,7 +16,7 @@ class TestTimedeltaIndex(object):
         tm.assert_index_equal(result, expected)
 
         i1 = Int64Index(np.arange(0, 20, 2))
-        i2 = TimedeltaIndex(start='1 day', periods=10, freq='D')
+        i2 = timedelta_range(start='1 day', periods=10, freq='D')
         i1.union(i2)  # Works
         i2.union(i1)  # Fails with "AttributeError: can't set attribute"
 

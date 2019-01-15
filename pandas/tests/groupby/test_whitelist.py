@@ -107,8 +107,8 @@ def s_whitelist_fixture(request):
 def mframe():
     index = MultiIndex(levels=[['foo', 'bar', 'baz', 'qux'], ['one', 'two',
                                                               'three']],
-                       labels=[[0, 0, 0, 1, 1, 2, 2, 3, 3, 3],
-                               [0, 1, 2, 0, 1, 1, 2, 0, 1, 2]],
+                       codes=[[0, 0, 0, 1, 1, 2, 2, 3, 3, 3],
+                              [0, 1, 2, 0, 1, 1, 2, 0, 1, 2]],
                        names=['first', 'second'])
     return DataFrame(np.random.randn(10, 3), index=index,
                      columns=['A', 'B', 'C'])
@@ -133,11 +133,15 @@ def df_letters():
     return df
 
 
-@pytest.mark.parametrize(
-    "obj, whitelist", zip((df_letters(), df_letters().floats),
-                          (df_whitelist, s_whitelist)))
-def test_groupby_whitelist(df_letters, obj, whitelist):
+@pytest.mark.parametrize("whitelist", [df_whitelist, s_whitelist])
+def test_groupby_whitelist(df_letters, whitelist):
     df = df_letters
+    if whitelist == df_whitelist:
+        # dataframe
+        obj = df_letters
+    else:
+        obj = df_letters['floats']
+
     gb = obj.groupby(df.letters)
 
     assert set(whitelist) == set(gb._apply_whitelist)
@@ -191,8 +195,8 @@ def test_groupby_frame_whitelist(df_letters, df_whitelist_fixture):
 def raw_frame():
     index = MultiIndex(levels=[['foo', 'bar', 'baz', 'qux'], ['one', 'two',
                                                               'three']],
-                       labels=[[0, 0, 0, 1, 1, 2, 2, 3, 3, 3],
-                               [0, 1, 2, 0, 1, 1, 2, 0, 1, 2]],
+                       codes=[[0, 0, 0, 1, 1, 2, 2, 3, 3, 3],
+                              [0, 1, 2, 0, 1, 1, 2, 0, 1, 2]],
                        names=['first', 'second'])
     raw_frame = DataFrame(np.random.randn(10, 3), index=index,
                           columns=Index(['A', 'B', 'C'], name='exp'))
@@ -259,7 +263,7 @@ def test_groupby_blacklist(df_letters):
         for obj in (df, s):
             gb = obj.groupby(df.letters)
             msg = fmt.format(bl, type(gb).__name__)
-            with tm.assert_raises_regex(AttributeError, msg):
+            with pytest.raises(AttributeError, match=msg):
                 getattr(gb, bl)
 
 

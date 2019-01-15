@@ -77,8 +77,8 @@ class BaseMissingTests(BaseExtensionTests):
         ser = pd.Series(data_missing)
 
         result = ser.fillna(fill_value)
-        expected = pd.Series(
-            data_missing._from_sequence([fill_value, fill_value]))
+        expected = pd.Series(data_missing._from_sequence(
+            [fill_value, fill_value], dtype=data_missing.dtype))
         self.assert_series_equal(result, expected)
 
         # Fill with a series
@@ -94,11 +94,11 @@ class BaseMissingTests(BaseExtensionTests):
         fill_value = data_missing[1]
 
         if method == 'ffill':
-            data_missing = type(data_missing)(data_missing[::-1])
+            data_missing = data_missing[::-1]
 
         result = pd.Series(data_missing).fillna(method=method)
-        expected = pd.Series(
-            data_missing._from_sequence([fill_value, fill_value]))
+        expected = pd.Series(data_missing._from_sequence(
+            [fill_value, fill_value], dtype=data_missing.dtype))
 
         self.assert_series_equal(result, expected)
 
@@ -111,7 +111,8 @@ class BaseMissingTests(BaseExtensionTests):
         }).fillna(fill_value)
 
         expected = pd.DataFrame({
-            "A": data_missing._from_sequence([fill_value, fill_value]),
+            "A": data_missing._from_sequence([fill_value, fill_value],
+                                             dtype=data_missing.dtype),
             "B": [1, 2],
         })
 

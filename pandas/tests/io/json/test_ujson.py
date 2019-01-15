@@ -707,7 +707,7 @@ class TestUltraJSONTests(object):
         def my_handler_raises(_):
             raise TypeError("I raise for anything")
 
-        with tm.assert_raises_regex(TypeError, "I raise for anything"):
+        with pytest.raises(TypeError, match="I raise for anything"):
             ujson.encode(_TestObject("foo"), default_handler=my_handler_raises)
 
         def my_int_handler(_):

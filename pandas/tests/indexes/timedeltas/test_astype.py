@@ -1,12 +1,13 @@
 from datetime import timedelta
 
+import numpy as np
 import pytest
 
-import numpy as np
-
 import pandas.util.testing as tm
-from pandas import (TimedeltaIndex, timedelta_range, Int64Index, Float64Index,
-                    Index, Timedelta, NaT)
+from pandas import (
+    Float64Index, Index, Int64Index, NaT, Timedelta, TimedeltaIndex,
+    timedelta_range
+)
 
 
 class TestTimedeltaIndex(object):
@@ -74,5 +75,5 @@ class TestTimedeltaIndex(object):
         # GH 13149, GH 13209
         idx = TimedeltaIndex([1e14, 'NaT', NaT, np.NaN])
         msg = 'Cannot cast TimedeltaIndex to dtype'
-        with tm.assert_raises_regex(TypeError, msg):
+        with pytest.raises(TypeError, match=msg):
             idx.astype(dtype)

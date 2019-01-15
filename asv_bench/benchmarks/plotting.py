@@ -7,27 +7,52 @@ except ImportError:
 import matplotlib
 matplotlib.use('Agg')
 
-from .pandas_vb_common import setup  # noqa
+
+class SeriesPlotting(object):
+    params = [['line', 'bar', 'area', 'barh', 'hist', 'kde', 'pie']]
+    param_names = ['kind']
+
+    def setup(self, kind):
+        if kind in ['bar', 'barh', 'pie']:
+            n = 100
+        elif kind in ['kde']:
+            n = 10000
+        else:
+            n = 1000000
+
+        self.s = Series(np.random.randn(n))
+        if kind in ['area', 'pie']:
+            self.s = self.s.abs()
+
+    def time_series_plot(self, kind):
+        self.s.plot(kind=kind)
 
 
-class Plotting(object):
+class FramePlotting(object):
+    params = [['line', 'bar', 'area', 'barh', 'hist', 'kde', 'pie', 'scatter',
+               'hexbin']]
+    param_names = ['kind']
 
-    goal_time = 0.2
+    def setup(self, kind):
+        if kind in ['bar', 'barh', 'pie']:
+            n = 100
+        elif kind in ['kde', 'scatter', 'hexbin']:
+            n = 10000
+        else:
+            n = 1000000
 
-    def setup(self):
-        self.s = Series(np.random.randn(1000000))
-        self.df = DataFrame({'col': self.s})
+        self.x = Series(np.random.randn(n))
+        self.y = Series(np.random.randn(n))
+        if kind in ['area', 'pie']:
+            self.x = self.x.abs()
+            self.y = self.y.abs()
+        self.df = DataFrame({'x': self.x, 'y': self.y})
 
-    def time_series_plot(self):
-        self.s.plot()
-
-    def time_frame_plot(self):
-        self.df.plot()
+    def time_frame_plot(self, kind):
+        self.df.plot(x='x', y='y', kind=kind)
 
 
 class TimeseriesPlotting(object):
-
-    goal_time = 0.2
 
     def setup(self):
         N = 2000
@@ -52,8 +77,6 @@ class TimeseriesPlotting(object):
 
 class Misc(object):
 
-    goal_time = 0.6
-
     def setup(self):
         N = 500
         M = 10
@@ -62,3 +85,6 @@ class Misc(object):
 
     def time_plot_andrews_curves(self):
         andrews_curves(self.df, "Name")
+
+
+from .pandas_vb_common import setup  # noqa: F401

@@ -7,6 +7,7 @@ Offer fast expression evaluation through numexpr
 """
 
 import warnings
+
 import numpy as np
 
 import pandas.core.common as com
@@ -24,8 +25,8 @@ _where = None
 
 # the set of dtypes that we will allow pass to numexpr
 _ALLOWED_DTYPES = {
-    'evaluate': set(['int64', 'int32', 'float64', 'float32', 'bool']),
-    'where': set(['int64', 'float64', 'bool'])
+    'evaluate': {'int64', 'int32', 'float64', 'float32', 'bool'},
+    'where': {'int64', 'float64', 'bool'}
 }
 
 # the minimum prod shape that we will use numexpr
@@ -81,7 +82,7 @@ def _can_use_numexpr(op, op_str, a, b, dtype_check):
                         return False
                     dtypes |= set(s.index)
                 elif isinstance(o, np.ndarray):
-                    dtypes |= set([o.dtype.name])
+                    dtypes |= {o.dtype.name}
 
             # allowed are a superset
             if not len(dtypes) or _ALLOWED_DTYPES[dtype_check] >= dtypes:

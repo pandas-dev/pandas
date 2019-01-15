@@ -1,5 +1,6 @@
-.. currentmodule:: pandas
 .. _compare_with_sas:
+
+{{ header }}
 
 Comparison with SAS
 ********************
@@ -105,9 +106,7 @@ and the values are the data.
 
 .. ipython:: python
 
-   df = pd.DataFrame({
-             'x': [1, 3, 5],
-             'y': [2, 4, 6]})
+   df = pd.DataFrame({'x': [1, 3, 5], 'y': [2, 4, 6]})
    df
 
 
@@ -131,7 +130,8 @@ The pandas method is :func:`read_csv`, which works similarly.
 
 .. ipython:: python
 
-   url = 'https://raw.github.com/pandas-dev/pandas/master/pandas/tests/data/tips.csv'
+   url = ('https://raw.github.com/pandas-dev/'
+          'pandas/master/pandas/tests/data/tips.csv')
    tips = pd.read_csv(url)
    tips.head()
 
@@ -289,17 +289,17 @@ see the :ref:`timeseries documentation<timeseries>` for more details.
    tips['date1_year'] = tips['date1'].dt.year
    tips['date2_month'] = tips['date2'].dt.month
    tips['date1_next'] = tips['date1'] + pd.offsets.MonthBegin()
-   tips['months_between'] = (tips['date2'].dt.to_period('M') -
-                             tips['date1'].dt.to_period('M'))
+   tips['months_between'] = (
+       tips['date2'].dt.to_period('M') - tips['date1'].dt.to_period('M'))
 
-   tips[['date1','date2','date1_year','date2_month',
-         'date1_next','months_between']].head()
+   tips[['date1', 'date2', 'date1_year', 'date2_month',
+         'date1_next', 'months_between']].head()
 
 .. ipython:: python
    :suppress:
 
-   tips = tips.drop(['date1','date2','date1_year',
-      'date2_month','date1_next','months_between'], axis=1)
+   tips = tips.drop(['date1', 'date2', 'date1_year',
+                     'date2_month', 'date1_next', 'months_between'], axis=1)
 
 Selection of Columns
 ~~~~~~~~~~~~~~~~~~~~
@@ -335,7 +335,7 @@ The same operations are expressed in pandas below.
    tips.drop('sex', axis=1).head()
 
    # rename
-   tips.rename(columns={'total_bill':'total_bill_2'}).head()
+   tips.rename(columns={'total_bill': 'total_bill_2'}).head()
 
 
 Sorting by Values
@@ -365,8 +365,8 @@ Length
 ~~~~~~
 
 SAS determines the length of a character string with the 
-`LENGTHN <http://support.sas.com/documentation/cdl/en/lrdict/64316/HTML/default/viewer.htm#a002284668.htm>`__  
-and `LENGTHC <http://support.sas.com/documentation/cdl/en/lrdict/64316/HTML/default/viewer.htm#a002283942.htm>`__ 
+`LENGTHN <https://support.sas.com/documentation/cdl/en/lrdict/64316/HTML/default/viewer.htm#a002284668.htm>`__
+and `LENGTHC <https://support.sas.com/documentation/cdl/en/lrdict/64316/HTML/default/viewer.htm#a002283942.htm>`__
 functions. ``LENGTHN`` excludes trailing blanks and ``LENGTHC`` includes trailing blanks.
 
 .. code-block:: sas
@@ -391,7 +391,7 @@ Find
 ~~~~
 
 SAS determines the position of a character in a string with the 
-`FINDW <http://support.sas.com/documentation/cdl/en/lrdict/64316/HTML/default/viewer.htm#a002978282.htm>`__ function. 
+`FINDW <https://support.sas.com/documentation/cdl/en/lrdict/64316/HTML/default/viewer.htm#a002978282.htm>`__ function.
 ``FINDW`` takes the string defined by the first argument and searches for the first position of the substring 
 you supply as the second argument.
 
@@ -417,7 +417,7 @@ Substring
 ~~~~~~~~~
 
 SAS extracts a substring from a string based on its position with the 
-`SUBSTR <http://www2.sas.com/proceedings/sugi25/25/cc/25p088.pdf>`__ function. 
+`SUBSTR <https://www2.sas.com/proceedings/sugi25/25/cc/25p088.pdf>`__ function.
 
 .. code-block:: sas
 
@@ -438,7 +438,7 @@ indexes are zero-based.
 Scan
 ~~~~
 
-The SAS `SCAN <http://support.sas.com/documentation/cdl/en/lrdict/64316/HTML/default/viewer.htm#a000214639.htm>`__ 
+The SAS `SCAN <https://support.sas.com/documentation/cdl/en/lrdict/64316/HTML/default/viewer.htm#a000214639.htm>`__
 function returns the nth word from a string. The first argument is the string you want to parse and the 
 second argument specifies which word you want to extract.
 
@@ -469,9 +469,9 @@ approaches, but this just shows a simple approach.
 Upcase, Lowcase, and Propcase
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-The SAS `UPCASE <http://support.sas.com/documentation/cdl/en/lrdict/64316/HTML/default/viewer.htm#a000245965.htm>`__ 
-`LOWCASE <http://support.sas.com/documentation/cdl/en/lrdict/64316/HTML/default/viewer.htm#a000245912.htm>`__ and 
-`PROPCASE <http://support.sas.com/documentation/cdl/en/lrdict/64316/HTML/default/a002598106.htm>`__ 
+The SAS `UPCASE <https://support.sas.com/documentation/cdl/en/lrdict/64316/HTML/default/viewer.htm#a000245965.htm>`__
+`LOWCASE <https://support.sas.com/documentation/cdl/en/lrdict/64316/HTML/default/viewer.htm#a000245912.htm>`__ and
+`PROPCASE <https://support.sas.com/documentation/cdl/en/lrdict/64316/HTML/default/a002598106.htm>`__
 functions change the case of the argument.
 
 .. code-block:: sas
@@ -508,7 +508,7 @@ The following tables will be used in the merge examples
                        'value': np.random.randn(4)})
    df1
    df2 = pd.DataFrame({'key': ['B', 'D', 'D', 'E'],
-                        'value': np.random.randn(4)})
+                       'value': np.random.randn(4)})
    df2
 
 In SAS, data must be explicitly sorted before merging.  Different
@@ -695,7 +695,7 @@ In pandas this would be written as:
 
 .. ipython:: python
 
-   tips.groupby(['sex','smoker']).first()
+   tips.groupby(['sex', 'smoker']).first()
 
 
 Other Considerations
@@ -709,7 +709,7 @@ This means that the size of data able to be loaded in pandas is limited by your
 machine's memory, but also that the operations on that data may be faster.
 
 If out of core processing is needed, one possibility is the
-`dask.dataframe <http://dask.pydata.org/en/latest/dataframe.html>`_
+`dask.dataframe <https://dask.pydata.org/en/latest/dataframe.html>`_
 library (currently in development) which
 provides a subset of pandas functionality for an on-disk ``DataFrame``
 
@@ -744,7 +744,7 @@ XPORT is a relatively limited format and the parsing of it is not as
 optimized as some of the other pandas readers. An alternative way
 to interop data between SAS and pandas is to serialize to csv.
 
-.. code-block:: python
+.. code-block:: ipython
 
    # version 0.17, 10M rows
 

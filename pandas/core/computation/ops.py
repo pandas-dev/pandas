@@ -1,27 +1,29 @@
 """Operator classes for eval.
 """
 
-import operator as op
-from functools import partial
 from datetime import datetime
+from functools import partial
+import operator as op
 
 import numpy as np
 
-from pandas.core.dtypes.common import is_list_like, is_scalar
-import pandas as pd
 from pandas.compat import PY3, string_types, text_type
-import pandas.core.common as com
-from pandas.io.formats.printing import pprint_thing, pprint_thing_encoded
+
+from pandas.core.dtypes.common import is_list_like, is_scalar
+
+import pandas as pd
 from pandas.core.base import StringMixin
+import pandas.core.common as com
 from pandas.core.computation.common import _ensure_decoded, _result_type_many
 from pandas.core.computation.scope import _DEFAULT_GLOBALS
 
+from pandas.io.formats.printing import pprint_thing, pprint_thing_encoded
 
 _reductions = 'sum', 'prod'
 
 _unary_math_ops = ('sin', 'cos', 'exp', 'log', 'expm1', 'log1p',
                    'sqrt', 'sinh', 'cosh', 'tanh', 'arcsin', 'arccos',
-                   'arctan', 'arccosh', 'arcsinh', 'arctanh', 'abs')
+                   'arctan', 'arccosh', 'arcsinh', 'arctanh', 'abs', 'log10')
 _binary_math_ops = ('arctan2',)
 _mathops = _unary_math_ops + _binary_math_ops
 

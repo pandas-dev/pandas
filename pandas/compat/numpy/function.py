@@ -19,11 +19,13 @@ easier to adjust to future upstream changes in the analogous numpy signatures.
 """
 
 from numpy import ndarray
-from pandas.util._validators import (validate_args, validate_kwargs,
-                                     validate_args_and_kwargs)
-from pandas.errors import UnsupportedFunctionCall
-from pandas.core.dtypes.common import is_integer, is_bool
+
 from pandas.compat import OrderedDict
+from pandas.errors import UnsupportedFunctionCall
+from pandas.util._validators import (
+    validate_args, validate_args_and_kwargs, validate_kwargs)
+
+from pandas.core.dtypes.common import is_bool, is_integer
 
 
 class CompatValidator(object):
@@ -360,3 +362,24 @@ def validate_resampler_func(method, args, kwargs):
                 "{func}() instead".format(func=method)))
         else:
             raise TypeError("too many arguments passed in")
+
+
+def validate_minmax_axis(axis):
+    """
+    Ensure that the axis argument passed to min, max, argmin, or argmax is
+    zero or None, as otherwise it will be incorrectly ignored.
+
+    Parameters
+    ----------
+    axis : int or None
+
+    Raises
+    ------
+    ValueError
+    """
+    ndim = 1  # hard-coded for Index
+    if axis is None:
+        return
+    if axis >= ndim or (axis < 0 and ndim + axis < 0):
+        raise ValueError("`axis` must be fewer than the number of "
+                         "dimensions ({ndim})".format(ndim=ndim))

@@ -1,19 +1,19 @@
 # -*- coding: utf-8 -*-
 from __future__ import division, print_function
 
+import warnings
 from functools import partial
 
-import pytest
-import warnings
 import numpy as np
+import pytest
 
 import pandas as pd
-from pandas import Series, isna
-from pandas.core.dtypes.common import is_integer_dtype
 import pandas.core.nanops as nanops
-import pandas.util.testing as tm
 import pandas.util._test_decorators as td
+import pandas.util.testing as tm
+from pandas import Series, isna
 from pandas.compat.numpy import _np_version_under1p13
+from pandas.core.dtypes.common import is_integer_dtype
 
 use_bn = nanops._USE_BOTTLENECK
 
@@ -141,12 +141,12 @@ class TestnanopsDataFrame(object):
             if axis != 0 and hasattr(
                     targ, 'shape') and targ.ndim and targ.shape != res.shape:
                 res = np.split(res, [targ.shape[0]], axis=0)[0]
-        except:
+        except (ValueError, IndexError):
             targ, res = _coerce_tds(targ, res)
 
         try:
             tm.assert_almost_equal(targ, res, check_dtype=check_dtype)
-        except:
+        except AssertionError:
 
             # handle timedelta dtypes
             if hasattr(targ, 'dtype') and targ.dtype == 'm8[ns]':
@@ -167,11 +167,11 @@ class TestnanopsDataFrame(object):
                 else:
                     try:
                         res = res.astype('c16')
-                    except:
+                    except RuntimeError:
                         res = res.astype('f8')
                     try:
                         targ = targ.astype('c16')
-                    except:
+                    except RuntimeError:
                         targ = targ.astype('f8')
             # there should never be a case where numpy returns an object
             # but nanops doesn't, so make that an exception
@@ -359,6 +359,7 @@ class TestnanopsDataFrame(object):
 
     def test_nanmedian(self):
         with warnings.catch_warnings(record=True):
+            warnings.simplefilter("ignore", RuntimeWarning)
             self.check_funs(nanops.nanmedian, np.median, allow_complex=False,
                             allow_str=False, allow_date=False,
                             allow_tdelta=True, allow_obj='convert')
@@ -394,12 +395,14 @@ class TestnanopsDataFrame(object):
 
     def test_nanmin(self):
         with warnings.catch_warnings(record=True):
+            warnings.simplefilter("ignore", RuntimeWarning)
             func = partial(self._minmax_wrap, func=np.min)
             self.check_funs(nanops.nanmin, func,
                             allow_str=False, allow_obj=False)
 
     def test_nanmax(self):
-        with warnings.catch_warnings(record=True):
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore", RuntimeWarning)
             func = partial(self._minmax_wrap, func=np.max)
             self.check_funs(nanops.nanmax, func,
                             allow_str=False, allow_obj=False)
@@ -417,6 +420,7 @@ class TestnanopsDataFrame(object):
 
     def test_nanargmax(self):
         with warnings.catch_warnings(record=True):
+            warnings.simplefilter("ignore", RuntimeWarning)
             func = partial(self._argminmax_wrap, func=np.argmax)
             self.check_funs(nanops.nanargmax, func,
                             allow_str=False, allow_obj=False,
@@ -424,6 +428,7 @@ class TestnanopsDataFrame(object):
 
     def test_nanargmin(self):
         with warnings.catch_warnings(record=True):
+            warnings.simplefilter("ignore", RuntimeWarning)
             func = partial(self._argminmax_wrap, func=np.argmin)
             self.check_funs(nanops.nanargmin, func, allow_str=False,
                             allow_obj=False)
@@ -459,7 +464,6 @@ class TestnanopsDataFrame(object):
                             allow_str=False, allow_date=False,
                             allow_tdelta=False)
 
-    @td.skip_if_no("numpy", min_version="1.10.0")
     def test_nanprod(self):
         self.check_funs(nanops.nanprod, np.prod, allow_str=False,
                         allow_date=False, allow_tdelta=False,
@@ -1036,3 +1040,29 @@ def test_numpy_ops_np_version_under1p13(numpy_op, expected):
             assert result == expected
     else:
         assert result == expected
+
+
+@pytest.mark.parametrize("operation", [
+    nanops.nanany,
+    nanops.nanall,
+    nanops.nansum,
+    nanops.nanmean,
+    nanops.nanmedian,
+    nanops.nanstd,
+    nanops.nanvar,
+    nanops.nansem,
+    nanops.nanargmax,
+    nanops.nanargmin,
+    nanops.nanmax,
+    nanops.nanmin,
+    nanops.nanskew,
+    nanops.nankurt,
+    nanops.nanprod,
+])
+def test_nanops_independent_of_mask_param(operation):
+    # GH22764
+    s = pd.Series([1, 2, np.nan, 3, np.nan, 4])
+    mask = s.isna()
+    median_expected = operation(s)
+    median_result = operation(s, mask=mask)
+    assert median_expected == median_result

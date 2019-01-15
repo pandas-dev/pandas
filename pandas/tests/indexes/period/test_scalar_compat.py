@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """Tests for PeriodIndex behaving like a vectorized Period scalar"""
 
-from pandas import PeriodIndex, date_range, Timedelta
+from pandas import PeriodIndex, Timedelta, date_range
 import pandas.util.testing as tm
 
 

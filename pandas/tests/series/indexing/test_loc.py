@@ -1,15 +1,24 @@
 # coding=utf-8
 # pylint: disable-msg=E1101,W0612
 
+import numpy as np
 import pytest
 
-import numpy as np
-import pandas as pd
-
-from pandas import (Series, Timestamp)
-
 from pandas.compat import lrange
-from pandas.util.testing import (assert_series_equal)
+
+import pandas as pd
+from pandas import Series, Timestamp
+from pandas.util.testing import assert_series_equal
+
+
+@pytest.mark.parametrize("val,expected", [
+    (2**63 - 1, 3),
+    (2**63, 4),
+])
+def test_loc_uint64(val, expected):
+    # see gh-19399
+    s = Series({2**63 - 1: 3, 2**63: 4})
+    assert s.loc[val] == expected
 
 
 def test_loc_getitem(test_data):

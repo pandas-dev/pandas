@@ -12,6 +12,7 @@ The full license is in the LICENSE file, distributed with this software.
 
 #include <errno.h>
 #include <float.h>
+#include "inline_helper.h"
 #include "headers/portable.h"
 
 static double xstrtod(const char *p, char **q, char decimal, char sci,
@@ -137,11 +138,11 @@ parsingerror:
 //
 
 PANDAS_INLINE void lowercase(char *p) {
-    for (; *p; ++p) *p = tolower(*p);
+    for (; *p; ++p) *p = tolower_ascii(*p);
 }
 
 PANDAS_INLINE void uppercase(char *p) {
-    for (; *p; ++p) *p = toupper(*p);
+    for (; *p; ++p) *p = toupper_ascii(*p);
 }
 
 static double xstrtod(const char *str, char **endptr, char decimal, char sci,
@@ -176,7 +177,7 @@ static double xstrtod(const char *str, char **endptr, char decimal, char sci,
     num_decimals = 0;
 
     // Process string of digits
-    while (isdigit(*p)) {
+    while (isdigit_ascii(*p)) {
         number = number * 10. + (*p - '0');
         p++;
         num_digits++;
@@ -187,7 +188,7 @@ static double xstrtod(const char *str, char **endptr, char decimal, char sci,
         *maybe_int = 0;
         p++;
 
-        while (isdigit(*p)) {
+        while (isdigit_ascii(*p)) {
             number = number * 10. + (*p - '0');
             p++;
             num_digits++;
@@ -206,7 +207,7 @@ static double xstrtod(const char *str, char **endptr, char decimal, char sci,
     if (negative) number = -number;
 
     // Process an exponent string
-    if (toupper(*p) == toupper(sci)) {
+    if (toupper_ascii(*p) == toupper_ascii(sci)) {
         *maybe_int = 0;
 
         // Handle optional sign
@@ -221,7 +222,7 @@ static double xstrtod(const char *str, char **endptr, char decimal, char sci,
         // Process string of digits
         num_digits = 0;
         n = 0;
-        while (isdigit(*p)) {
+        while (isdigit_ascii(*p)) {
             n = n * 10 + (*p - '0');
             num_digits++;
             p++;
@@ -262,7 +263,7 @@ static double xstrtod(const char *str, char **endptr, char decimal, char sci,
 
     if (skip_trailing) {
         // Skip trailing whitespace
-        while (isspace(*p)) p++;
+        while (isspace_ascii(*p)) p++;
     }
 
     if (endptr) *endptr = p;

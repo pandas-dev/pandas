@@ -38,16 +38,14 @@ def test_get_dtype_kinds(klass, to_concat, expected):
 
 
 @pytest.mark.parametrize('to_concat, expected', [
-    # because we don't have Period dtype (yet),
-    # Series results in object dtype
     ([PeriodIndex(['2011-01'], freq='M'),
       PeriodIndex(['2011-01'], freq='M')], ['period[M]']),
     ([Series([Period('2011-01', freq='M')]),
-      Series([Period('2011-02', freq='M')])], ['object']),
+      Series([Period('2011-02', freq='M')])], ['period[M]']),
     ([PeriodIndex(['2011-01'], freq='M'),
       PeriodIndex(['2011-01'], freq='D')], ['period[M]', 'period[D]']),
     ([Series([Period('2011-01', freq='M')]),
-      Series([Period('2011-02', freq='D')])], ['object'])])
+      Series([Period('2011-02', freq='D')])], ['period[M]', 'period[D]'])])
 def test_get_dtype_kinds_period(to_concat, expected):
     result = _concat.get_dtype_kinds(to_concat)
     assert result == set(expected)

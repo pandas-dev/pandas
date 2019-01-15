@@ -1,16 +1,6 @@
-.. currentmodule:: pandas
-
-.. ipython:: python
-   :suppress:
-
-   import numpy as np
-   import pandas as pd
-   pd.options.display.max_rows=15
-   import matplotlib
-   # matplotlib.style.use('default')
-   import matplotlib.pyplot as plt
-
 .. _missing_data:
+
+{{ header }}
 
 *************************
 Working with missing data
@@ -678,7 +668,7 @@ Replacing more than one value is possible by passing a list.
 
 .. ipython:: python
 
-   df00 = df.values[0, 0]
+   df00 = df.iloc[0, 0]
    df.replace([1.5, df00], [np.nan, 'a'])
    df[1].dtype
 
@@ -696,9 +686,8 @@ You can also operate on the DataFrame in place:
 
    .. code-block:: python
 
-      s = pd.Series([True, False, True])
-      s.replace({'a string': 'new value', True: False})  # raises
-
+      >>> s = pd.Series([True, False, True])
+      >>> s.replace({'a string': 'new value', True: False})  # raises
       TypeError: Cannot compare types 'ndarray(dtype=bool)' and 'str'
 
    will raise a ``TypeError`` because one of the ``dict`` keys is not of the
@@ -728,7 +717,7 @@ rules introduced in the table below.
     :header: "data type", "Cast to"
     :widths: 40, 40
 
-	integer, float
+    integer, float
     boolean, object
     float, no cast
     object, no cast

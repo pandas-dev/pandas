@@ -1,14 +1,12 @@
 # -*- coding: utf-8 -*-
 
+import numpy as np
 import pytest
 
-import numpy as np
-
-import pandas.util.testing as tm
-from pandas import Categorical, CategoricalIndex, Index, Series, DataFrame
-
+from pandas import Categorical, CategoricalIndex, DataFrame, Index, Series
 from pandas.core.arrays.categorical import _recode_for_categories
 from pandas.tests.arrays.categorical.common import TestCategorical
+import pandas.util.testing as tm
 
 
 class TestCategoricalAPI(object):
@@ -52,9 +50,9 @@ class TestCategoricalAPI(object):
 
         # removed in 0.19.0
         msg = "can\'t set attribute"
-        with tm.assert_raises_regex(AttributeError, msg):
+        with pytest.raises(AttributeError, match=msg):
             cat.ordered = True
-        with tm.assert_raises_regex(AttributeError, msg):
+        with pytest.raises(AttributeError, match=msg):
             cat.ordered = False
 
     def test_rename_categories(self):
