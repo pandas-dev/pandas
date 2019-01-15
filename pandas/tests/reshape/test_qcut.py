@@ -199,7 +199,7 @@ def test_date_like_qcut_bins(arg, expected_bins):
     tm.assert_index_equal(result_bins, expected_bins)
 
 
-def test_qcut_unbounded(self):
+def test_qcut_unbounded():
     # GH 17282
     labels = qcut(range(5), 4, bounded=False)
     left = labels.categories.left.values
@@ -210,7 +210,7 @@ def test_qcut_unbounded(self):
 
 
 @pytest.mark.parametrize('bins', [3, np.linspace(0, 1, 4)])
-def test_datetimetz_qcut_unbounded(self, bins):
+def test_datetimetz_qcut_unbounded(bins):
     # GH 19872
     tz = 'US/Eastern'
     s = Series(date_range('20130101', periods=3, tz=tz))
