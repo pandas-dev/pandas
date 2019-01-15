@@ -392,13 +392,11 @@ class TestDataFrameConstructors(TestData):
                       columns=['foo', 'bar', 'baz'],
                       index=pd.date_range('2000-01-01', periods=3))
 
-        # see issue #20742
         arr = np.array([[4, 5, 6]])
         msg = r"Shape of passed values is \(1, 3\), indices imply \(1, 4\)"
         with pytest.raises(ValueError, match=msg):
             DataFrame(index=[0], columns=range(0, 4), data=arr)
 
-        # see issue #20742
         arr = np.array([4, 5, 6])
         msg = r"Shape of passed values is \(3, 1\), indices imply \(1, 4\)"
         with pytest.raises(ValueError, match=msg):

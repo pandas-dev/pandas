@@ -1144,10 +1144,22 @@ class TestPanel(PanelTests, CheckIndexing, SafeForLongAndSparse,
 
     def test_constructor_error_msgs(self):
         msg = (r"Shape of passed values is \(4, 5, 3\), "
-               r"indices imply \(5, 6, 4\)")
+               r"indices imply \(5, 5, 4\)")
         with pytest.raises(ValueError, match=msg):
             Panel(np.random.randn(3, 4, 5),
-                  lrange(4), lrange(5), lrange(6))
+                  lrange(4), lrange(5), lrange(5))
+
+        msg = (r"Shape of passed values is \(4, 5, 3\), "
+               r"indices imply \(4, 5, 5\)")
+        with pytest.raises(ValueError, match=msg):
+            Panel(np.random.randn(3, 4, 5),
+                  lrange(5), lrange(4), lrange(5))
+
+        msg = (r"Shape of passed values is \(4, 5, 3\), "
+               r"indices imply \(5, 4, 5\)")
+        with pytest.raises(ValueError, match=msg):
+            Panel(np.random.randn(3, 4, 5),
+                  lrange(5), lrange(5), lrange(4))
 
     def test_conform(self):
         df = self.panel['ItemA'][:-5].filter(items=['A', 'B'])
