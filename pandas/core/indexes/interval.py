@@ -102,7 +102,7 @@ def _new_IntervalIndex(cls, d):
     summary="Immutable index of intervals that are closed on the same side.",
     name=_index_doc_kwargs['name'],
     versionadded="0.20.0",
-    extra_attributes="is_overlapping\n",
+    extra_attributes="is_overlapping\nvalues\n",
     extra_methods="contains\n",
     examples=textwrap.dedent("""\
     Examples
@@ -465,6 +465,8 @@ class IntervalIndex(IntervalMixin, Index):
         return self._multiindex.is_unique
 
     @cache_readonly
+    @Appender(_interval_shared_docs['is_non_overlapping_monotonic']
+              % _index_doc_kwargs)
     def is_non_overlapping_monotonic(self):
         return self._data.is_non_overlapping_monotonic
 

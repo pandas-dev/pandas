@@ -1828,6 +1828,7 @@ Groupby/Resample/Rolling
 - Calling :meth:`pandas.core.groupby.GroupBy.rank` with empty groups and ``pct=True`` was raising a ``ZeroDivisionError`` (:issue:`22519`)
 - Bug in :meth:`DataFrame.resample` when resampling ``NaT`` in ``TimeDeltaIndex`` (:issue:`13223`).
 - Bug in :meth:`DataFrame.groupby` did not respect the ``observed`` argument when selecting a column and instead always used ``observed=False`` (:issue:`23970`)
+- Bug preventing hash table creation with very large number (2^32) of rows (:issue:`22805`)
 
 Reshaping
 ^^^^^^^^^
