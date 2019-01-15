@@ -7,7 +7,6 @@ import pandas as pd
 from pandas.core.indexes.api import Index, MultiIndex
 import pandas.util.testing as tm
 
-
 indices_list = [tm.makeUnicodeIndex(100),
                 tm.makeStringIndex(100),
                 tm.makeDateIndex(100),
