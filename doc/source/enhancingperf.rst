@@ -73,7 +73,7 @@ four calls) using the `prun ipython magic function <http://ipython.org/ipython-d
 
 .. ipython:: python
 
-   %prun -l 4 df.apply(lambda x: integrate_f(x['a'], x['b'], x['N']), axis=1)
+   %prun -l 4 df.apply(lambda x: integrate_f(x['a'], x['b'], x['N']), axis=1)  # noqa E999
 
 By far the majority of time is spend inside either ``integrate_f`` or ``f``,
 hence we'll concentrate our efforts cythonizing these two functions.
@@ -189,8 +189,10 @@ in Python, so maybe we could minimize these by cythonizing the apply part.
       ...:     for i in range(N):
       ...:         s += f_typed(a + i * dx)
       ...:     return s * dx
-      ...: cpdef np.ndarray[double] apply_integrate_f(np.ndarray col_a, np.ndarray col_b, np.ndarray col_N):
-      ...:     assert (col_a.dtype == np.float and col_b.dtype == np.float and col_N.dtype == np.int)
+      ...: cpdef np.ndarray[double] apply_integrate_f(np.ndarray col_a, np.ndarray col_b,
+      ...:                                            np.ndarray col_N):
+      ...:     assert (col_a.dtype == np.float
+      ...:             and col_b.dtype == np.float and col_N.dtype == np.int)
       ...:     cdef Py_ssize_t i, n = len(col_N)
       ...:     assert (len(col_a) == len(col_b) == n)
       ...:     cdef np.ndarray[double] res = np.empty(n)
@@ -271,7 +273,9 @@ advanced Cython techniques:
       ...:     return s * dx
       ...: @cython.boundscheck(False)
       ...: @cython.wraparound(False)
-      ...: cpdef np.ndarray[double] apply_integrate_f_wrap(np.ndarray[double] col_a, np.ndarray[double] col_b, np.ndarray[int] col_N):
+      ...: cpdef np.ndarray[double] apply_integrate_f_wrap(np.ndarray[double] col_a,
+      ...:                                                 np.ndarray[double] col_b,
+      ...:                                                 np.ndarray[int] col_N):
       ...:     cdef int i, n = len(col_N)
       ...:     assert len(col_a) == len(col_b) == n
       ...:     cdef np.ndarray[double] res = np.empty(n)
@@ -317,45 +321,45 @@ take the plain Python code from above and annotate with the ``@jit`` decorator.
 
 .. code-block:: python
 
-    import numba
+   import numba
 
 
-    @numba.jit
-    def f_plain(x):
-        return x * (x - 1)
+   @numba.jit
+   def f_plain(x):
+       return x * (x - 1)
 
 
-    @numba.jit
-    def integrate_f_numba(a, b, N):
-        s = 0
-        dx = (b - a) / N
-        for i in range(N):
-            s += f_plain(a + i * dx)
-        return s * dx
+   @numba.jit
+   def integrate_f_numba(a, b, N):
+       s = 0
+       dx = (b - a) / N
+       for i in range(N):
+           s += f_plain(a + i * dx)
+       return s * dx
 
 
-    @numba.jit
-    def apply_integrate_f_numba(col_a, col_b, col_N):
-        n = len(col_N)
-        result = np.empty(n, dtype='float64')
-        assert len(col_a) == len(col_b) == n
-        for i in range(n):
-            result[i] = integrate_f_numba(col_a[i], col_b[i], col_N[i])
-        return result
+   @numba.jit
+   def apply_integrate_f_numba(col_a, col_b, col_N):
+       n = len(col_N)
+       result = np.empty(n, dtype='float64')
+       assert len(col_a) == len(col_b) == n
+       for i in range(n):
+           result[i] = integrate_f_numba(col_a[i], col_b[i], col_N[i])
+       return result
 
 
-    def compute_numba(df):
-        result = apply_integrate_f_numba(df['a'].values, df['b'].values,
-                                         df['N'].values)
-        return pd.Series(result, index=df.index, name='result')
+   def compute_numba(df):
+       result = apply_integrate_f_numba(df['a'].values, df['b'].values,
+                                        df['N'].values)
+       return pd.Series(result, index=df.index, name='result')
 
 Note that we directly pass NumPy arrays to the Numba function. ``compute_numba`` is just a wrapper that provides a
 nicer interface by passing/returning pandas objects.
 
 .. code-block:: ipython
 
-    In [4]: %timeit compute_numba(df)
-    1000 loops, best of 3: 798 us per loop
+   In [4]: %timeit compute_numba(df)
+   1000 loops, best of 3: 798 us per loop
 
 In this example, using Numba was faster than Cython.
 
@@ -368,30 +372,30 @@ Consider the following toy example of doubling each observation:
 
 .. code-block:: python
 
-    import numba
+   import numba
 
 
-    def double_every_value_nonumba(x):
-        return x * 2
+   def double_every_value_nonumba(x):
+       return x * 2
 
 
-    @numba.vectorize
-    def double_every_value_withnumba(x):
-        return x * 2
+   @numba.vectorize
+   def double_every_value_withnumba(x):  # noqa E501
+       return x * 2
 
 .. code-block:: ipython
 
-    # Custom function without numba
-    In [5]: %timeit df['col1_doubled'] = df.a.apply(double_every_value_nonumba)
-    1000 loops, best of 3: 797 us per loop
+   # Custom function without numba
+   In [5]: %timeit df['col1_doubled'] = df.a.apply(double_every_value_nonumba)  # noqa E501
+   1000 loops, best of 3: 797 us per loop
 
-    # Standard implementation (faster than a custom function)
-    In [6]: %timeit df['col1_doubled'] = df.a*2
-    1000 loops, best of 3: 233 us per loop
+   # Standard implementation (faster than a custom function)
+   In [6]: %timeit df['col1_doubled'] = df.a * 2
+   1000 loops, best of 3: 233 us per loop
 
-    # Custom function with numba
-    In [7]: %timeit df['col1_doubled'] = double_every_value_withnumba(df.a.values)
-    1000 loops, best of 3: 145 us per loop
+   # Custom function with numba
+   In [7]: %timeit (df['col1_doubled'] = double_every_value_withnumba(df.a.values)
+   1000 loops, best of 3: 145 us per loop
 
 Caveats
 ~~~~~~~
