@@ -1,5 +1,8 @@
 .. _io:
 
+.. currentmodule:: pandas
+
+
 {{ header }}
 
 .. ipython:: python
@@ -359,16 +362,17 @@ columns:
 
 .. ipython:: python
 
-    data = ('a,b,c\n'
-            '1,2,3\n'
-            '4,5,6\n'
-            '7,8,9')
+    data = ('a,b,c,d\n'
+            '1,2,3,4\n'
+            '5,6,7,8\n'
+            '9,10,11')
     print(data)
 
     df = pd.read_csv(StringIO(data), dtype=object)
     df
     df['a'][0]
-    df = pd.read_csv(StringIO(data), dtype={'b': object, 'c': np.float64})
+    df = pd.read_csv(StringIO(data),
+                     dtype={'b': object, 'c': np.float64, 'd': 'Int64'})
     df.dtypes
 
 Fortunately, pandas offers more than one way to ensure that your column(s)
@@ -574,7 +578,7 @@ Duplicate names parsing
 If the file or header contains duplicate names, pandas will by default
 distinguish between them so as to prevent overwriting data:
 
-.. ipython :: python
+.. ipython:: python
 
    data = ('a,b,a\n'
            '0,1,2\n'
@@ -586,7 +590,7 @@ which modifies a series of duplicate columns 'X', ..., 'X' to become
 'X', 'X.1', ..., 'X.N'.  If ``mangle_dupe_cols=False``, duplicate data can
 arise:
 
-.. code-block :: python
+.. code-block:: ipython
 
    In [2]: data = 'a,b,a\n0,1,2\n3,4,5'
    In [3]: pd.read_csv(StringIO(data), mangle_dupe_cols=False)
@@ -598,7 +602,7 @@ arise:
 To prevent users from encountering this problem with duplicate data, a ``ValueError``
 exception is raised if ``mangle_dupe_cols != True``:
 
-.. code-block :: python
+.. code-block:: ipython
 
    In [2]: data = 'a,b,a\n0,1,2\n3,4,5'
    In [3]: pd.read_csv(StringIO(data), mangle_dupe_cols=False)
@@ -1863,7 +1867,9 @@ Writing to a file, with a date index and a date column:
    dfj2['bools'] = True
    dfj2.index = pd.date_range('20130101', periods=5)
    dfj2.to_json('test.json')
-   open('test.json').read()
+
+   with open('test.json') as fh:
+       print(fh.read())
 
 Fallback Behavior
 +++++++++++++++++
@@ -2321,6 +2327,11 @@ indicate missing values and the subsequent read cannot distinguish the intent.
    new_df = pd.read_json('test.json', orient='table')
    print(new_df.index.name)
 
+.. ipython:: python
+   :suppress:
+
+   os.remove('test.json')
+
 .. _Table Schema: https://specs.frictionlessdata.io/json-table-schema/
 
 HTML
@@ -2595,6 +2606,28 @@ table CSS classes. Note that these classes are *appended* to the existing
 .. ipython:: python
 
    print(df.to_html(classes=['awesome_table_class', 'even_more_awesome_class']))
+
+The ``render_links`` argument provides the ability to add hyperlinks to cells
+that contain URLs.
+
+.. versionadded:: 0.24
+
+.. ipython:: python
+
+   url_df = pd.DataFrame({
+       'name': ['Python', 'Pandas'],
+       'url': ['https://www.python.org/', 'http://pandas.pydata.org']})
+   print(url_df.to_html(render_links=True))
+
+.. ipython:: python
+   :suppress:
+
+   write_html(url_df, 'render_links', render_links=True)
+
+HTML:
+
+.. raw:: html
+   :file: _static/render_links.html
 
 Finally, the ``escape`` argument allows you to control whether the
 "<", ">" and "&" characters escaped in the resulting HTML (by default it is
@@ -4614,6 +4647,7 @@ Write to a feather file.
 Read from a feather file.
 
 .. ipython:: python
+   :okwarning:
 
    result = pd.read_feather('example.feather')
    result
@@ -4688,6 +4722,7 @@ Write to a parquet file.
 Read from a parquet file.
 
 .. ipython:: python
+   :okwarning:
 
    result = pd.read_parquet('example_fp.parquet', engine='fastparquet')
    result = pd.read_parquet('example_pa.parquet', engine='pyarrow')
@@ -4744,6 +4779,11 @@ this file into a ``DataFrame``.
 Passing ``index=True`` will *always* write the index, even if that's not the
 underlying engine's default behavior.
 
+.. ipython:: python
+   :suppress:
+
+   os.remove('test.parquet')
+
 
 Partitioning Parquet files
 ''''''''''''''''''''''''''
@@ -4753,6 +4793,7 @@ Partitioning Parquet files
 Parquet supports partitioning of data based on the values of one or more columns.
 
 .. ipython:: python
+    :okwarning:
 
     df = pd.DataFrame({'a': [0, 0, 1, 1], 'b': [0, 1, 0, 1]})
     df.to_parquet(fname='test', engine='pyarrow',
@@ -4951,6 +4992,54 @@ with respect to the timezone.
 :func:`~pandas.read_sql_table` is also capable of reading datetime data that is
 timezone aware or naive. When reading ``TIMESTAMP WITH TIME ZONE`` types, pandas
 will convert the data to UTC.
+
+.. _io.sql.method:
+
+Insertion Method
+++++++++++++++++
+
+.. versionadded:: 0.24.0
+
+The parameter ``method`` controls the SQL insertion clause used.
+Possible values are:
+
+- ``None``: Uses standard SQL ``INSERT`` clause (one per row).
+- ``'multi'``: Pass multiple values in a single ``INSERT`` clause.
+  It uses a *special* SQL syntax not supported by all backends.
+  This usually provides better performance for analytic databases
+  like *Presto* and *Redshift*, but has worse performance for
+  traditional SQL backend if the table contains many columns.
+  For more information check the SQLAlchemy `documention
+  <http://docs.sqlalchemy.org/en/latest/core/dml.html#sqlalchemy.sql.expression.Insert.values.params.*args>`__.
+- callable with signature ``(pd_table, conn, keys, data_iter)``:
+  This can be used to implement a more performant insertion method based on
+  specific backend dialect features.
+
+Example of a callable using PostgreSQL `COPY clause
+<https://www.postgresql.org/docs/current/static/sql-copy.html>`__::
+
+  # Alternative to_sql() *method* for DBs that support COPY FROM
+  import csv
+  from io import StringIO
+
+  def psql_insert_copy(table, conn, keys, data_iter):
+      # gets a DBAPI connection that can provide a cursor
+      dbapi_conn = conn.connection
+      with dbapi_conn.cursor() as cur:
+          s_buf = StringIO()
+          writer = csv.writer(s_buf)
+          writer.writerows(data_iter)
+          s_buf.seek(0)
+
+          columns = ', '.join('"{}"'.format(k) for k in keys)
+          if table.schema:
+              table_name = '{}.{}'.format(table.schema, table.name)
+          else:
+              table_name = table.name
+
+          sql = 'COPY {} ({}) FROM STDIN WITH CSV'.format(
+              table_name, columns)
+          cur.copy_expert(sql=sql, file=s_buf)
 
 Reading Tables
 ''''''''''''''

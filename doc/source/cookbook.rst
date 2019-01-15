@@ -1399,7 +1399,6 @@ of the data values:
 
 .. ipython:: python
 
-
    def expand_grid(data_dict):
        rows = itertools.product(*data_dict.values())
        return pd.DataFrame.from_records(rows, columns=data_dict.keys())

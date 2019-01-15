@@ -2,28 +2,29 @@
 
 """ Test cases for DataFrame.plot """
 
-import pytest
+from datetime import date, datetime
 import string
 import warnings
 
-from datetime import datetime, date
-
-import pandas as pd
-from pandas import (Series, DataFrame, MultiIndex, PeriodIndex, date_range,
-                    bdate_range)
-from pandas.core.dtypes.api import is_list_like
-from pandas.compat import range, lrange, lmap, lzip, u, zip, PY3
-from pandas.io.formats.printing import pprint_thing
-import pandas.util.testing as tm
-import pandas.util._test_decorators as td
-
 import numpy as np
 from numpy.random import rand, randn
+import pytest
 
+from pandas.compat import PY3, lmap, lrange, lzip, range, u, zip
+import pandas.util._test_decorators as td
+
+from pandas.core.dtypes.api import is_list_like
+
+import pandas as pd
+from pandas import (
+    DataFrame, MultiIndex, PeriodIndex, Series, bdate_range, date_range)
+from pandas.tests.plotting.common import (
+    TestPlotBase, _check_plot_works, _ok_for_gaussian_kde,
+    _skip_if_no_scipy_gaussian_kde)
+import pandas.util.testing as tm
+
+from pandas.io.formats.printing import pprint_thing
 import pandas.plotting as plotting
-from pandas.tests.plotting.common import (TestPlotBase, _check_plot_works,
-                                          _skip_if_no_scipy_gaussian_kde,
-                                          _ok_for_gaussian_kde)
 
 
 @td.skip_if_no_mpl
@@ -1819,7 +1820,6 @@ class TestDataFramePlots(TestPlotBase):
         assert ax.get_legend().get_texts()[0].get_text() == 'None'
 
     @pytest.mark.slow
-    @tm.capture_stdout
     def test_line_colors(self):
         from matplotlib import cm
 
@@ -2987,6 +2987,22 @@ class TestDataFramePlots(TestPlotBase):
         ax = getattr(df.plot, method)(**kwargs)
         self._check_ticks_props(axes=ax.right_ax,
                                 ylabelsize=fontsize)
+
+    def test_misc_bindings(self, monkeypatch):
+        df = pd.DataFrame(randn(10, 10), columns=list('abcdefghij'))
+        monkeypatch.setattr('pandas.plotting._misc.scatter_matrix',
+                            lambda x: 2)
+        monkeypatch.setattr('pandas.plotting._misc.andrews_curves',
+                            lambda x, y: 2)
+        monkeypatch.setattr('pandas.plotting._misc.parallel_coordinates',
+                            lambda x, y: 2)
+        monkeypatch.setattr('pandas.plotting._misc.radviz',
+                            lambda x, y: 2)
+
+        assert df.plot.scatter_matrix() == 2
+        assert df.plot.andrews_curves('a') == 2
+        assert df.plot.parallel_coordinates('a') == 2
+        assert df.plot.radviz('a') == 2
 
 
 def _generate_4_axes_via_gridspec():

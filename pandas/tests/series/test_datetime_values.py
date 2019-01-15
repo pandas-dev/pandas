@@ -289,7 +289,7 @@ class TestSeriesDatetimeValues():
     def test_dt_round_tz_nonexistent(self, method, ts_str, freq):
         # GH 23324 round near "spring forward" DST
         s = Series([pd.Timestamp(ts_str, tz='America/Chicago')])
-        result = getattr(s.dt, method)(freq, nonexistent='shift')
+        result = getattr(s.dt, method)(freq, nonexistent='shift_forward')
         expected = Series(
             [pd.Timestamp('2018-03-11 03:00:00', tz='America/Chicago')]
         )
@@ -485,6 +485,13 @@ class TestSeriesDatetimeValues():
             ser.dt
         assert not hasattr(ser, 'dt')
 
+    def test_dt_accessor_updates_on_inplace(self):
+        s = Series(pd.date_range('2018-01-01', periods=10))
+        s[2] = None
+        s.fillna(pd.Timestamp('2018-01-01'), inplace=True)
+        result = s.dt.date
+        assert result[0] == result[2]
+
     def test_between(self):
         s = Series(bdate_range('1/1/2000', periods=20).astype(object))
         s[::2] = np.nan
@@ -531,27 +538,19 @@ class TestSeriesDatetimeValues():
         result = s.dt.timetz
         tm.assert_series_equal(result, expected)
 
-    @pytest.mark.parametrize('nat', [
-        pd.Series([pd.NaT, pd.NaT]),
-        pd.Series([pd.NaT, pd.Timedelta('nat')]),
-        pd.Series([pd.Timedelta('nat'), pd.Timedelta('nat')])])
-    def test_minmax_nat_series(self, nat):
-        # GH 23282
-        assert nat.min() is pd.NaT
-        assert nat.max() is pd.NaT
-
-    @pytest.mark.parametrize('nat', [
-        # GH 23282
-        pd.DataFrame([pd.NaT, pd.NaT]),
-        pd.DataFrame([pd.NaT, pd.Timedelta('nat')]),
-        pd.DataFrame([pd.Timedelta('nat'), pd.Timedelta('nat')])])
-    def test_minmax_nat_dataframe(self, nat):
-        assert nat.min()[0] is pd.NaT
-        assert nat.max()[0] is pd.NaT
-
     def test_setitem_with_string_index(self):
         # GH 23451
         x = pd.Series([1, 2, 3], index=['Date', 'b', 'other'])
         x['Date'] = date.today()
         assert x.Date == date.today()
         assert x['Date'] == date.today()
+
+    def test_setitem_with_different_tz(self):
+        # GH#24024
+        ser = pd.Series(pd.date_range('2000', periods=2, tz="US/Central"))
+        ser[0] = pd.Timestamp("2000", tz='US/Eastern')
+        expected = pd.Series([
+            pd.Timestamp("2000-01-01 00:00:00-05:00", tz="US/Eastern"),
+            pd.Timestamp("2000-01-02 00:00:00-06:00", tz="US/Central"),
+        ], dtype=object)
+        tm.assert_series_equal(ser, expected)

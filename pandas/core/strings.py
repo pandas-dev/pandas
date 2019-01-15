@@ -660,9 +660,9 @@ def str_match(arr, pat, case=True, flags=0, na=np.nan):
 
     See Also
     --------
-    contains : analogous, but less strict, relying on re.search instead of
-        re.match
-    extract : extract matched groups
+    contains : Analogous, but less strict, relying on re.search instead of
+        re.match.
+    extract : Extract matched groups.
     """
     if not case:
         flags |= re.IGNORECASE
@@ -1255,13 +1255,13 @@ def str_pad(arr, width, side='left', fillchar=' '):
 
     See Also
     --------
-    Series.str.rjust: Fills the left side of strings with an arbitrary
+    Series.str.rjust : Fills the left side of strings with an arbitrary
         character. Equivalent to ``Series.str.pad(side='left')``.
-    Series.str.ljust: Fills the right side of strings with an arbitrary
+    Series.str.ljust : Fills the right side of strings with an arbitrary
         character. Equivalent to ``Series.str.pad(side='right')``.
-    Series.str.center: Fills boths sides of strings with an arbitrary
+    Series.str.center : Fills boths sides of strings with an arbitrary
         character. Equivalent to ``Series.str.pad(side='both')``.
-    Series.str.zfill:  Pad strings in the Series/Index by prepending '0'
+    Series.str.zfill :  Pad strings in the Series/Index by prepending '0'
         character. Equivalent to ``Series.str.pad(side='left', fillchar='0')``.
 
     Examples
@@ -2473,7 +2473,7 @@ class StringMethods(NoNewAttributesMixin):
 
     >>> idx.str.partition()
     MultiIndex(levels=[['X', 'Y'], [' '], ['123', '999']],
-               labels=[[0, 1], [0, 0], [0, 1]])
+               codes=[[0, 1], [0, 0], [0, 1]])
 
     Or an index with tuples with ``expand=False``:
 
@@ -2485,7 +2485,8 @@ class StringMethods(NoNewAttributesMixin):
         'side': 'first',
         'return': '3 elements containing the string itself, followed by two '
                   'empty strings',
-        'also': 'rpartition : Split the string at the last occurrence of `sep`'
+        'also': 'rpartition : Split the string at the last occurrence of '
+                '`sep`.'
     })
     @deprecate_kwarg(old_arg_name='pat', new_arg_name='sep')
     def partition(self, sep=' ', expand=True):
@@ -2497,7 +2498,8 @@ class StringMethods(NoNewAttributesMixin):
         'side': 'last',
         'return': '3 elements containing two empty strings, followed by the '
                   'string itself',
-        'also': 'partition : Split the string at the first occurrence of `sep`'
+        'also': 'partition : Split the string at the first occurrence of '
+                '`sep`.'
     })
     @deprecate_kwarg(old_arg_name='pat', new_arg_name='sep')
     def rpartition(self, sep=' ', expand=True):
@@ -2593,13 +2595,13 @@ class StringMethods(NoNewAttributesMixin):
 
         See Also
         --------
-        Series.str.rjust: Fills the left side of strings with an arbitrary
+        Series.str.rjust : Fills the left side of strings with an arbitrary
             character.
-        Series.str.ljust: Fills the right side of strings with an arbitrary
+        Series.str.ljust : Fills the right side of strings with an arbitrary
             character.
-        Series.str.pad: Fills the specified sides of strings with an arbitrary
+        Series.str.pad : Fills the specified sides of strings with an arbitrary
             character.
-        Series.str.center: Fills boths sides of strings with an arbitrary
+        Series.str.center : Fills boths sides of strings with an arbitrary
             character.
 
         Notes
@@ -2793,14 +2795,14 @@ class StringMethods(NoNewAttributesMixin):
 
     @Appender(_shared_docs['find'] %
               dict(side='lowest', method='find',
-                   also='rfind : Return highest indexes in each strings'))
+                   also='rfind : Return highest indexes in each strings.'))
     def find(self, sub, start=0, end=None):
         result = str_find(self._parent, sub, start=start, end=end, side='left')
         return self._wrap_result(result)
 
     @Appender(_shared_docs['find'] %
               dict(side='highest', method='rfind',
-                   also='find : Return lowest indexes in each strings'))
+                   also='find : Return lowest indexes in each strings.'))
     def rfind(self, sub, start=0, end=None):
         result = str_find(self._parent, sub,
                           start=start, end=end, side='right')
@@ -2852,7 +2854,7 @@ class StringMethods(NoNewAttributesMixin):
 
     @Appender(_shared_docs['index'] %
               dict(side='lowest', similar='find', method='index',
-                   also='rindex : Return highest indexes in each strings'))
+                   also='rindex : Return highest indexes in each strings.'))
     def index(self, sub, start=0, end=None):
         result = str_index(self._parent, sub,
                            start=start, end=end, side='left')
@@ -2860,7 +2862,7 @@ class StringMethods(NoNewAttributesMixin):
 
     @Appender(_shared_docs['index'] %
               dict(side='highest', similar='rfind', method='rindex',
-                   also='index : Return lowest indexes in each strings'))
+                   also='index : Return lowest indexes in each strings.'))
     def rindex(self, sub, start=0, end=None):
         result = str_index(self._parent, sub,
                            start=start, end=end, side='right')

@@ -1,9 +1,10 @@
-import pytest
-import numpy as np
 import json
 
+import numpy as np
+import pytest
+
+from pandas import DataFrame, Index, compat
 import pandas.util.testing as tm
-from pandas import compat, Index, DataFrame
 
 from pandas.io.json import json_normalize
 from pandas.io.json.normalize import nested_to_record
@@ -129,6 +130,21 @@ class TestJSONNormalize(object):
         expected = DataFrame([[1], [2]], columns=['Prefix.0'])
         tm.assert_frame_equal(result, expected)
 
+    def test_nested_object_record_path(self):
+        # GH 22706
+        data = {'state': 'Florida',
+                'info': {
+                    'governor': 'Rick Scott',
+                    'counties': [{'name': 'Dade', 'population': 12345},
+                                 {'name': 'Broward', 'population': 40000},
+                                 {'name': 'Palm Beach', 'population': 60000}]}}
+        result = json_normalize(data, record_path=["info", "counties"])
+        expected = DataFrame([['Dade', 12345],
+                              ['Broward', 40000],
+                              ['Palm Beach', 60000]],
+                             columns=['name', 'population'])
+        tm.assert_frame_equal(result, expected)
+
     def test_more_deeply_nested(self, deep_nested):
 
         result = json_normalize(deep_nested, ['states', 'cities'],
@@ -181,7 +197,9 @@ class TestJSONNormalize(object):
                  'data': [{'foo': 'something', 'bar': 'else'},
                           {'foo': 'something2', 'bar': 'else2'}]}]
 
-        with pytest.raises(ValueError):
+        msg = (r"Conflicting metadata name (foo|bar),"
+               " need distinguishing prefix")
+        with pytest.raises(ValueError, match=msg):
             json_normalize(data, 'data', meta=['foo', 'bar'])
 
         result = json_normalize(data, 'data', meta=['foo', 'bar'],
@@ -350,13 +368,15 @@ class TestNestedToRecord(object):
 
         assert j.fillna('').to_dict() == expected
 
-        pytest.raises(KeyError,
-                      json_normalize, data=i['Trades'],
-                      record_path=[['general', 'stocks']],
-                      meta=[['general', 'tradeid'],
-                            ['general', 'trade_version']],
-                      errors='raise'
-                      )
+        msg = ("Try running with errors='ignore' as key 'trade_version'"
+               " is not always present")
+        with pytest.raises(KeyError, match=msg):
+            json_normalize(
+                data=i['Trades'],
+                record_path=[['general', 'stocks']],
+                meta=[['general', 'tradeid'],
+                      ['general', 'trade_version']],
+                errors='raise')
 
     def test_donot_drop_nonevalues(self):
         # GH21356

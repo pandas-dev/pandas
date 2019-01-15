@@ -11,7 +11,6 @@ import csv
 from datetime import datetime
 import os
 import platform
-import sys
 from tempfile import TemporaryFile
 
 import numpy as np
@@ -899,8 +898,14 @@ def test_nonexistent_path(all_parsers):
 
     msg = ("does not exist" if parser.engine == "c"
            else r"\[Errno 2\]")
-    with pytest.raises(compat.FileNotFoundError, match=msg):
+    with pytest.raises(compat.FileNotFoundError, match=msg) as e:
         parser.read_csv(path)
+
+        filename = e.value.filename
+        filename = filename.decode() if isinstance(
+            filename, bytes) else filename
+
+        assert path == filename
 
 
 def test_missing_trailing_delimiters(all_parsers):
@@ -1509,8 +1514,7 @@ def test_whitespace_regex_separator(all_parsers, data, expected):
     tm.assert_frame_equal(result, expected)
 
 
-@tm.capture_stdout
-def test_verbose_read(all_parsers):
+def test_verbose_read(all_parsers, capsys):
     parser = all_parsers
     data = """a,b,c,d
 one,1,2,3
@@ -1524,17 +1528,16 @@ two,1,2,3"""
 
     # Engines are verbose in different ways.
     parser.read_csv(StringIO(data), verbose=True)
-    output = sys.stdout.getvalue()
+    captured = capsys.readouterr()
 
     if parser.engine == "c":
-        assert "Tokenization took:" in output
-        assert "Parser memory cleanup took:" in output
+        assert "Tokenization took:" in captured.out
+        assert "Parser memory cleanup took:" in captured.out
     else:  # Python engine
-        assert output == "Filled 3 NA values in column a\n"
+        assert captured.out == "Filled 3 NA values in column a\n"
 
 
-@tm.capture_stdout
-def test_verbose_read2(all_parsers):
+def test_verbose_read2(all_parsers, capsys):
     parser = all_parsers
     data = """a,b,c,d
 one,1,2,3
@@ -1547,14 +1550,14 @@ seven,1,2,3
 eight,1,2,3"""
 
     parser.read_csv(StringIO(data), verbose=True, index_col=0)
-    output = sys.stdout.getvalue()
+    captured = capsys.readouterr()
 
     # Engines are verbose in different ways.
     if parser.engine == "c":
-        assert "Tokenization took:" in output
-        assert "Parser memory cleanup took:" in output
+        assert "Tokenization took:" in captured.out
+        assert "Parser memory cleanup took:" in captured.out
     else:  # Python engine
-        assert output == "Filled 1 NA values in column a\n"
+        assert captured.out == "Filled 1 NA values in column a\n"
 
 
 def test_iteration_open_handle(all_parsers):
@@ -1817,13 +1820,16 @@ def test_invalid_file_buffer_class(all_parsers):
         parser.read_csv(InvalidBuffer())
 
 
-def test_invalid_file_buffer_mock(all_parsers, mock):
+def test_invalid_file_buffer_mock(all_parsers):
     # see gh-15337
     parser = all_parsers
     msg = "Invalid file path or buffer object type"
 
+    class Foo():
+        pass
+
     with pytest.raises(ValueError, match=msg):
-        parser.read_csv(mock.Mock())
+        parser.read_csv(Foo())
 
 
 def test_valid_file_buffer_seems_invalid(all_parsers):
@@ -1867,8 +1873,7 @@ def test_error_bad_lines(all_parsers, kwargs, warn_kwargs):
         parser.read_csv(StringIO(data), **kwargs)
 
 
-@tm.capture_stderr
-def test_warn_bad_lines(all_parsers):
+def test_warn_bad_lines(all_parsers, capsys):
     # see gh-15925
     parser = all_parsers
     data = "a\n1\n1,2,3\n4\n5,6,7"
@@ -1879,13 +1884,12 @@ def test_warn_bad_lines(all_parsers):
                              warn_bad_lines=True)
     tm.assert_frame_equal(result, expected)
 
-    val = sys.stderr.getvalue()
-    assert "Skipping line 3" in val
-    assert "Skipping line 5" in val
+    captured = capsys.readouterr()
+    assert "Skipping line 3" in captured.err
+    assert "Skipping line 5" in captured.err
 
 
-@tm.capture_stderr
-def test_suppress_error_output(all_parsers):
+def test_suppress_error_output(all_parsers, capsys):
     # see gh-15925
     parser = all_parsers
     data = "a\n1\n1,2,3\n4\n5,6,7"
@@ -1896,8 +1900,20 @@ def test_suppress_error_output(all_parsers):
                              warn_bad_lines=False)
     tm.assert_frame_equal(result, expected)
 
-    val = sys.stderr.getvalue()
-    assert val == ""
+    captured = capsys.readouterr()
+    assert captured.err == ""
+
+
+def test_filename_with_special_chars(all_parsers):
+    # see gh-15086.
+    parser = all_parsers
+    df = DataFrame({"a": [1, 2, 3]})
+
+    with tm.ensure_clean("sé-es-vé.csv") as path:
+        df.to_csv(path, index=False)
+
+        result = parser.read_csv(path)
+        tm.assert_frame_equal(result, df)
 
 
 def test_read_table_deprecated(all_parsers):

@@ -1,14 +1,14 @@
 import numpy as np
 import pandas.util.testing as tm
-from pandas import (DataFrame, Series, DatetimeIndex, MultiIndex, Index,
-                    date_range)
+from pandas import (DataFrame, Series, MultiIndex, Index, date_range,
+                    period_range)
 from .pandas_vb_common import lib
 
 
 class Reindex(object):
 
     def setup(self):
-        rng = DatetimeIndex(start='1/1/1970', periods=10000, freq='1min')
+        rng = date_range(start='1/1/1970', periods=10000, freq='1min')
         self.df = DataFrame(np.random.rand(10000, 10), index=rng,
                             columns=range(10))
         self.df['foo'] = 'bar'
@@ -35,15 +35,15 @@ class Reindex(object):
 
 class ReindexMethod(object):
 
-    params = ['pad', 'backfill']
-    param_names = ['method']
+    params = [['pad', 'backfill'], [date_range, period_range]]
+    param_names = ['method', 'constructor']
 
-    def setup(self, method):
+    def setup(self, method, constructor):
         N = 100000
-        self.idx = date_range('1/1/2000', periods=N, freq='1min')
+        self.idx = constructor('1/1/2000', periods=N, freq='1min')
         self.ts = Series(np.random.randn(N), index=self.idx)[::2]
 
-    def time_reindex_method(self, method):
+    def time_reindex_method(self, method, constructor):
         self.ts.reindex(self.idx, method=method)
 
 

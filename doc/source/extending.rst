@@ -162,7 +162,7 @@ your ``MyExtensionArray`` class, as follows:
 
 .. code-block:: python
 
-    from pandas.core.arrays import ExtensionArray, ExtensionScalarOpsMixin
+    from pandas.api.extensions import ExtensionArray, ExtensionScalarOpsMixin
 
     class MyExtensionArray(ExtensionArray, ExtensionScalarOpsMixin):
         pass

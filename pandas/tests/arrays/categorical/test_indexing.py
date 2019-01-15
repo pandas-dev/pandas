@@ -133,16 +133,12 @@ class TestCategoricalIndexing(object):
         tm.assert_index_equal(s.categories, Index([1, 2, 3]))
 
         # lengthen
-        def f():
+        with pytest.raises(ValueError):
             s.categories = [1, 2, 3, 4]
 
-        pytest.raises(ValueError, f)
-
         # shorten
-        def f():
+        with pytest.raises(ValueError):
             s.categories = [1, 2]
-
-        pytest.raises(ValueError, f)
 
     # Combinations of sorted/unique:
     @pytest.mark.parametrize("idx_values", [[1, 2, 3, 4], [1, 3, 2, 4],

@@ -3,11 +3,13 @@
 Testing that functions from compat work as expected
 """
 
-import pytest
 import re
-from pandas.compat import (range, zip, map, filter, lrange, lzip, lmap,
-                           lfilter, builtins, iterkeys, itervalues, iteritems,
-                           next, get_range_parameters, PY2, re_type)
+
+import pytest
+
+from pandas.compat import (
+    PY2, builtins, filter, get_range_parameters, iteritems, iterkeys,
+    itervalues, lfilter, lmap, lrange, lzip, map, next, range, re_type, zip)
 
 
 class TestBuiltinIterators(object):

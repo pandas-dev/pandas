@@ -16,9 +16,9 @@ import pandas.compat as compat
 from pandas.compat.numpy import function as nv
 from pandas.util._decorators import Appender, Substitution
 
-from pandas.core.dtypes.common import is_scalar
+from pandas.core.dtypes.common import is_integer, is_scalar
 from pandas.core.dtypes.generic import ABCSeries, ABCSparseSeries
-from pandas.core.dtypes.missing import is_integer, isna, notna
+from pandas.core.dtypes.missing import isna, notna
 
 from pandas.core import generic
 from pandas.core.arrays import SparseArray

@@ -17,6 +17,7 @@ import os
 import sys
 import json
 import re
+import glob
 import functools
 import collections
 import argparse
@@ -79,6 +80,7 @@ ERROR_MSGS = {
     'GL07': 'Sections are in the wrong order. Correct order is: '
             '{correct_sections}',
     'GL08': 'The object does not have a docstring',
+    'GL09': 'Deprecation warning should precede extended summary',
     'SS01': 'No summary found (a short summary in a single line should be '
             'present at the beginning of the docstring)',
     'SS02': 'Summary does not start with a capital letter',
@@ -103,6 +105,11 @@ ERROR_MSGS = {
     'PR10': 'Parameter "{param_name}" requires a space before the colon '
             'separating the parameter name and type',
     'RT01': 'No Returns section found',
+    'RT02': 'The first line of the Returns section should contain only the '
+            'type, unless multiple values are being returned',
+    'RT03': 'Return value has no description',
+    'RT04': 'Return value description should start with a capital letter',
+    'RT05': 'Return value description should finish with "."',
     'YD01': 'No Yields section found',
     'SA01': 'See Also section not found',
     'SA02': 'Missing period at end of description for See Also '
@@ -493,11 +500,13 @@ class Docstring(object):
             return self.doc.split('\n')[0][-1] == '.'
 
     @property
+    def deprecated_with_directive(self):
+        return '.. deprecated:: ' in (self.summary + self.extended_summary)
+
+    @property
     def deprecated(self):
-        pattern = re.compile('.. deprecated:: ')
         return (self.name.startswith('pandas.Panel')
-                or bool(pattern.search(self.summary))
-                or bool(pattern.search(self.extended_summary)))
+                or self.deprecated_with_directive)
 
     @property
     def mentioned_private_classes(self):
@@ -625,6 +634,10 @@ def get_validation_data(doc):
         errs.append(error('GL07',
                           correct_sections=', '.join(correct_order)))
 
+    if (doc.deprecated_with_directive
+            and not doc.extended_summary.startswith('.. deprecated:: ')):
+        errs.append(error('GL09'))
+
     if not doc.summary:
         errs.append(error('SS01'))
     else:
@@ -677,8 +690,22 @@ def get_validation_data(doc):
                 errs.append(error('PR09', param_name=param))
 
     if doc.is_function_or_method:
-        if not doc.returns and 'return' in doc.method_source:
-            errs.append(error('RT01'))
+        if not doc.returns:
+            if 'return' in doc.method_source:
+                errs.append(error('RT01'))
+        else:
+            if len(doc.returns) == 1 and doc.returns[0][1]:
+                errs.append(error('RT02'))
+            for name_or_type, type_, desc in doc.returns:
+                if not desc:
+                    errs.append(error('RT03'))
+                else:
+                    desc = ' '.join(desc)
+                    if not desc[0].isupper():
+                        errs.append(error('RT04'))
+                    if not desc.endswith('.'):
+                        errs.append(error('RT05'))
+
         if not doc.yields and 'yield' in doc.method_source:
             errs.append(error('YD01'))
 
@@ -769,9 +796,11 @@ def validate_all(prefix, ignore_deprecated=False):
     seen = {}
 
     # functions from the API docs
-    api_doc_fname = os.path.join(BASE_PATH, 'doc', 'source', 'api.rst')
-    with open(api_doc_fname) as f:
-        api_items = list(get_api_items(f))
+    api_doc_fnames = os.path.join(BASE_PATH, 'doc', 'source', 'api', '*.rst')
+    api_items = []
+    for api_doc_fname in glob.glob(api_doc_fnames):
+        with open(api_doc_fname) as f:
+            api_items += list(get_api_items(f))
     for func_name, func_obj, section, subsection in api_items:
         if prefix and not func_name.startswith(prefix):
             continue

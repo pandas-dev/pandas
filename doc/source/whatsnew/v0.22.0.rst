@@ -137,8 +137,8 @@ sum and ``1`` for product.
 .. code-block:: ipython
 
    In [11]: s = pd.Series([1, 1, np.nan, np.nan],
-      ...:                index=pd.date_range('2017', periods=4))
-      ...:  s
+      ....:               index=pd.date_range('2017', periods=4))
+      ....: s
    Out[11]:
    2017-01-01    1.0
    2017-01-02    1.0
