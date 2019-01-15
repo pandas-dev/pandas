@@ -262,8 +262,8 @@ For earlier versions this can be done using the following.
 ``ExtensionArray`` operator support
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-A ``Series`` based on an ``ExtensionArray`` now supports arithmetic and comparison
-operators (:issue:`19577`). There are two approaches for providing operator support for an ``ExtensionArray``:
+A ``Series`` based on an ``ExtensionArray`` now supports arithmetic, comparison and unary
+operators (:issue:`19577`, :issue:`23313`). There are two approaches for providing operator support for an ``ExtensionArray``:
 
 1. Define each of the operators on your ``ExtensionArray`` subclass.
 2. Use an operator implementation from pandas that depends on operators that are already defined
@@ -1629,6 +1629,8 @@ Numeric
 - Logical operations ``&, |, ^`` between :class:`Series` and :class:`Index` will no longer raise ``ValueError`` (:issue:`22092`)
 - Checking PEP 3141 numbers in :func:`~pandas.api.types.is_scalar` function returns ``True`` (:issue:`22903`)
 - Reduction methods like :meth:`Series.sum` now accept the default value of ``keepdims=False`` when called from a NumPy ufunc, rather than raising a ``TypeError``. Full support for ``keepdims`` has not been implemented (:issue:`24356`).
+- Bug in unary operators on a ``DataFrame`` including integer or bool dtype may be changed to float (:issue:`23313`)
+
 
 Conversion
 ^^^^^^^^^^
