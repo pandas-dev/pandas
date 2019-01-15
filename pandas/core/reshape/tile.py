@@ -10,7 +10,7 @@ from pandas._libs.lib import infer_dtype
 from pandas.core.dtypes.common import (
     _NS_DTYPE, ensure_int64, is_categorical_dtype, is_datetime64_dtype,
     is_datetime64tz_dtype, is_datetime_or_timedelta_dtype, is_integer,
-    is_scalar, is_timedelta64_dtype, is_integer_dtype)
+    is_integer_dtype, is_scalar, is_timedelta64_dtype)
 from pandas.core.dtypes.missing import isna
 
 from pandas import (
