@@ -183,4 +183,3 @@ class TestTimedeltas(object):
             to_timedelta(arg, unit)
         msg = r'.* units are deprecated .*'
         assert re.match(msg, str(w[0].message))
-
