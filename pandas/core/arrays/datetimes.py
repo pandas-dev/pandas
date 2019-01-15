@@ -33,6 +33,21 @@ from pandas.tseries.frequencies import get_period_alias, to_offset
 from pandas.tseries.offsets import Day, Tick
 
 _midnight = time(0, 0)
+# TODO(GH-24559): Remove warning, int_as_wall_time parameter.
+_i8_message = """
+    Passing integer-dtype data and a timezone to DatetimeIndex. Integer values
+    will be interpreted differently in a future version of pandas. Previously,
+    these were viewed as datetime64[ns] values representing the wall time
+    *in the specified timezone*. In the future, these will be viewed as
+    datetime64[ns] values representing the wall time *in UTC*. This is similar
+    to a nanosecond-precision UNIX epoch. To accept the future behavior, use
+
+        pd.to_datetime(integer_data, utc=True).tz_convert(tz)
+
+    To keep the previous behavior, use
+
+        pd.to_datetime(integer_data).tz_localize(tz)
+"""
 
 
 def tz_to_dtype(tz):
@@ -258,6 +273,8 @@ class DatetimeArray(dtl.DatetimeLikeArrayMixin,
         if isinstance(values, (ABCSeries, ABCIndexClass)):
             values = values._values
 
+        inferred_freq = getattr(values, "_freq", None)
+
         if isinstance(values, type(self)):
             # validation
             dtz = getattr(dtype, 'tz', None)
@@ -322,20 +339,33 @@ class DatetimeArray(dtl.DatetimeLikeArrayMixin,
         self._dtype = dtype
         self._freq = freq
 
+        if inferred_freq is None and freq is not None:
+            type(self)._validate_frequency(self, freq)
+
     @classmethod
-    def _simple_new(cls, values, freq=None, dtype=None):
-        return cls(values, freq=freq, dtype=dtype)
+    def _simple_new(cls, values, freq=None, dtype=_NS_DTYPE):
+        assert isinstance(values, np.ndarray)
+        if values.dtype == 'i8':
+            values = values.view(_NS_DTYPE)
+
+        result = object.__new__(cls)
+        result._data = values
+        result._freq = freq
+        result._dtype = dtype
+        return result
 
     @classmethod
     def _from_sequence(cls, data, dtype=None, copy=False,
                        tz=None, freq=None,
-                       dayfirst=False, yearfirst=False, ambiguous='raise'):
+                       dayfirst=False, yearfirst=False, ambiguous='raise',
+                       int_as_wall_time=False):
 
         freq, freq_infer = dtl.maybe_infer_freq(freq)
 
         subarr, tz, inferred_freq = sequence_to_dt64ns(
             data, dtype=dtype, copy=copy, tz=tz,
-            dayfirst=dayfirst, yearfirst=yearfirst, ambiguous=ambiguous)
+            dayfirst=dayfirst, yearfirst=yearfirst,
+            ambiguous=ambiguous, int_as_wall_time=int_as_wall_time)
 
         freq, freq_infer = dtl.validate_inferred_freq(freq, inferred_freq,
                                                       freq_infer)
@@ -1636,7 +1666,8 @@ DatetimeArray._add_comparison_ops()
 
 def sequence_to_dt64ns(data, dtype=None, copy=False,
                        tz=None,
-                       dayfirst=False, yearfirst=False, ambiguous='raise'):
+                       dayfirst=False, yearfirst=False, ambiguous='raise',
+                       int_as_wall_time=False):
     """
     Parameters
     ----------
@@ -1648,6 +1679,13 @@ def sequence_to_dt64ns(data, dtype=None, copy=False,
     yearfirst : bool, default False
     ambiguous : str, bool, or arraylike, default 'raise'
         See pandas._libs.tslibs.conversion.tz_localize_to_utc
+    int_as_wall_time : bool, default False
+        Whether to treat ints as wall time in specified timezone, or as
+        nanosecond-precision UNIX epoch (wall time in UTC).
+        This is used in DatetimeIndex.__init__ to deprecate the wall-time
+        behaviour.
+
+        ..versionadded:: 0.24.0
 
     Returns
     -------
@@ -1704,6 +1742,10 @@ def sequence_to_dt64ns(data, dtype=None, copy=False,
             data, inferred_tz = objects_to_datetime64ns(
                 data, dayfirst=dayfirst, yearfirst=yearfirst)
             tz = maybe_infer_tz(tz, inferred_tz)
+            # When a sequence of timestamp objects is passed, we always
+            # want to treat the (now i8-valued) data as UTC timestamps,
+            # not wall times.
+            int_as_wall_time = False
 
     # `data` may have originally been a Categorical[datetime64[ns, tz]],
     # so we need to handle these types.
@@ -1731,8 +1773,16 @@ def sequence_to_dt64ns(data, dtype=None, copy=False,
     else:
         # must be integer dtype otherwise
         # assume this data are epoch timestamps
+        if tz:
+            tz = timezones.maybe_get_tz(tz)
+
         if data.dtype != _INT64_DTYPE:
             data = data.astype(np.int64, copy=False)
+        if int_as_wall_time and tz is not None and not timezones.is_utc(tz):
+            warnings.warn(_i8_message, FutureWarning, stacklevel=4)
+            data = conversion.tz_localize_to_utc(data.view('i8'), tz,
+                                                 ambiguous=ambiguous)
+            data = data.view(_NS_DTYPE)
         result = data.view(_NS_DTYPE)
 
     if copy:
