@@ -2,6 +2,7 @@
 
 import pytest
 
+import pandas as pd
 import pandas.util.testing as tm
 
 
@@ -16,3 +17,15 @@ class TestCategoricalWarnings(object):
         with tm.assert_produces_warning(None):
             with provisionalcompleter('ignore'):
                 list(ip.Completer.completions('c.', 1))
+
+    def test_CategoricalAccessor_categorical_deprecation(object):
+        with tm.assert_produces_warning(FutureWarning):
+            pd.Series(['a', 'b'], dtype='category').cat.categorical
+
+    def test_CategoricalAccessor_name_deprecation(object):
+        with tm.assert_produces_warning(FutureWarning):
+            pd.Series(['a', 'b'], dtype='category').cat.name
+
+    def test_CategoricalAccessor_index_deprecation(object):
+        with tm.assert_produces_warning(FutureWarning):
+            pd.Series(['a', 'b'], dtype='category').cat.index
