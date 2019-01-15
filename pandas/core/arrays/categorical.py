@@ -2531,6 +2531,11 @@ class CategoricalAccessor(PandasDelegate, PandasObject, NoNewAttributesMixin):
 
     @property
     def categorical(self):
+        """
+            Note: Upon deprecation, `test_tab_completion_with_categorical`
+            will need to be updated. `categorical` will need to be removed
+            from `ok_for_cat`.
+        """
         warn("`Series.cat.categorical` has been deprecated. Use the "
              "attributes on 'Series.cat' directly instead.",
              FutureWarning,
@@ -2539,6 +2544,11 @@ class CategoricalAccessor(PandasDelegate, PandasObject, NoNewAttributesMixin):
 
     @property
     def name(self):
+        """
+            Note: Upon deprecation, `test_tab_completion_with_categorical`
+            will need to be updated. `name` will need to be removed from
+            ok_for_cat`.
+        """
         warn("`Series.cat.name` has been deprecated. Use `Series.name` "
              "instead.",
              FutureWarning,
@@ -2547,6 +2557,11 @@ class CategoricalAccessor(PandasDelegate, PandasObject, NoNewAttributesMixin):
 
     @property
     def index(self):
+        """
+            Note: Upon deprecation, `test_tab_completion_with_categorical`
+            will need to be updated. `index` will need to be removed from `
+            ok_for_cat`.
+        """
         warn("`Series.cat.index` has been deprecated. Use `Series.index` "
              "instead.",
              FutureWarning,
