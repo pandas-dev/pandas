@@ -174,6 +174,7 @@ class TestSeriesComparison(object):
 # ------------------------------------------------------------------
 # Unary
 
+
 class TestSeriesUnary(object):
 
     def test_neg(self):
@@ -233,8 +234,12 @@ class TestSeriesUnary(object):
             exp = Series(operator.inv(ser.values), index=ser.index)
             tm.assert_series_equal(result, exp)
 
-            # inconsistent with NumPy
-            pytest.raises(TypeError, op, ser.values)
+            if pd.compat.numpy._np_version_under1p13:
+                # older NumPy support this
+                tm.assert_numpy_array_equal(~ser.values, op(ser.values))
+            else:
+                # inconsistent with NumPy
+                pytest.raises(TypeError, op, ser.values)
         else:
             result = op(ser)
             exp = Series(op(ser.values), index=ser.index)

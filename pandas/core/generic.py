@@ -4,7 +4,6 @@ from datetime import timedelta
 import functools
 import gc
 import json
-import operator
 from textwrap import dedent
 import warnings
 import weakref
@@ -27,8 +26,8 @@ from pandas.core.dtypes.common import (
     ensure_int64, ensure_object, is_bool, is_bool_dtype,
     is_datetime64_any_dtype, is_datetime64tz_dtype, is_dict_like,
     is_extension_array_dtype, is_integer, is_list_like, is_number,
-    is_numeric_dtype, is_object_dtype, is_period_arraylike, is_re_compilable,
-    is_scalar, is_timedelta64_dtype, pandas_dtype)
+    is_numeric_dtype, is_re_compilable, is_scalar, is_timedelta64_dtype,
+    pandas_dtype)
 from pandas.core.dtypes.generic import ABCDataFrame, ABCPanel, ABCSeries
 from pandas.core.dtypes.inference import is_hashable
 from pandas.core.dtypes.missing import isna, notna
