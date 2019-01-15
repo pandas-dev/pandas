@@ -161,8 +161,7 @@ class TimedeltaArray(dtl.DatetimeLikeArrayMixin, dtl.TimelikeOps):
             values = values.view(_TD_DTYPE)
 
         _validate_td64_dtype(values.dtype)
-        if dtype:
-            dtype = _validate_td64_dtype(dtype)
+        dtype = _validate_td64_dtype(dtype)
 
         if freq == "infer":
             msg = (
@@ -185,13 +184,13 @@ class TimedeltaArray(dtl.DatetimeLikeArrayMixin, dtl.TimelikeOps):
 
     @classmethod
     def _simple_new(cls, values, freq=None, dtype=_TD_DTYPE):
-        _validate_td64_dtype(dtype)
+        dtype = _validate_td64_dtype(dtype)
         assert isinstance(values, np.ndarray), type(values)
 
         result = object.__new__(cls)
         result._data = values.view(_TD_DTYPE)
         result._freq = to_offset(freq)
-        result._dtype = _TD_DTYPE
+        result._dtype = dtype
         return result
 
     @classmethod

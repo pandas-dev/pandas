@@ -26,7 +26,8 @@ from pandas.core.dtypes.common import (
     is_re, is_re_compilable, is_sparse, is_timedelta64_dtype, pandas_dtype)
 import pandas.core.dtypes.concat as _concat
 from pandas.core.dtypes.dtypes import (
-    CategoricalDtype, DatetimeDtype, ExtensionDtype, PandasExtensionDtype)
+    CategoricalDtype, DatetimeDtype, ExtensionDtype, PandasExtensionDtype,
+    TimedeltaDtype)
 from pandas.core.dtypes.generic import (
     ABCDataFrame, ABCDatetimeIndex, ABCExtensionArray, ABCIndexClass,
     ABCSeries)
@@ -3089,6 +3090,13 @@ def make_block(values, placement, klass=None, ndim=None, dtype=None,
                       "in a future release.", DeprecationWarning)
     if klass is None:
         dtype = dtype or values.dtype
+
+        if isinstance(dtype, (DatetimeDtype, TimedeltaDtype)):
+            # for DataFrame.__setitem__[scalar]
+            # this is... not great.
+            values, dtype = values._data, values.dtype
+            values = _block_shape(values, ndim)
+
         klass = get_block_type(values, dtype)
 
     elif klass is DatetimeTZBlock and not is_datetime64tz_dtype(values):

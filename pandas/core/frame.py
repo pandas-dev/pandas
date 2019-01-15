@@ -3645,6 +3645,9 @@ class DataFrame(NDFrame):
             value = maybe_cast_to_datetime(value, infer_dtype)
 
         if isinstance(value, ABCDatetimeArray) and not value.tz:
+            # Ensure that tz-naive data are only stored internally as ndarray.
+            # This should be unnecessary when sanitize_array and
+            # maybe_cast_to_datetime are cleaned up.
             value = value._data
 
         # return internal types directly
