@@ -12,6 +12,8 @@ from pandas import (
     Series, Timedelta, TimedeltaIndex, timedelta_range, to_timedelta)
 import pandas.util.testing as tm
 
+import re
+
 
 class TestTimedeltaArithmetic(object):
 
@@ -373,9 +375,10 @@ class TestTimedeltas(object):
 
     @pytest.mark.parametrize('unit', ['Y', 'y', 'M'])
     def test_unit_m_y_deprecated(self, unit):
-        with pytest.raises(FutureWarning,
-                           match=r'.* units are deprecated .*'):
+        with tm.assert_produces_warning(FutureWarning) as w:
             Timedelta(10, unit)
+        msg = r'.* units are deprecated .*'
+        assert re.match(msg, str(w[0].message))
 
     def test_numeric_conversions(self):
         assert Timedelta(0) == np.timedelta64(0, 'ns')

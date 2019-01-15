@@ -13,6 +13,9 @@ from pandas.util.testing import (
 
 from ..datetimelike import DatetimeLike
 
+import re
+
+
 randn = np.random.randn
 
 
@@ -327,9 +330,10 @@ class TestTimedeltaIndex(DatetimeLike):
 
     @pytest.mark.parametrize('unit', ['Y', 'y', 'M'])
     def test_unit_m_y_deprecated(self, unit):
-        with pytest.raises(FutureWarning,
-                           match=r'.* units are deprecated .*'):
+        with tm.assert_produces_warning(FutureWarning) as w:
             TimedeltaIndex([1, 3, 7], unit)
+        msg = r'.* units are deprecated .*'
+        assert re.match(msg, str(w[0].message))
 
 
 class TestTimeSeries(object):

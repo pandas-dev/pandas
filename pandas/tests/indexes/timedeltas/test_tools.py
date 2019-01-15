@@ -10,6 +10,8 @@ from pandas import Series, TimedeltaIndex, isna, to_timedelta
 import pandas.util.testing as tm
 from pandas.util.testing import assert_series_equal
 
+import re
+
 
 class TestTimedeltas(object):
 
@@ -177,6 +179,8 @@ class TestTimedeltas(object):
     @pytest.mark.parametrize('arg', [1, [1, 2]])
     @pytest.mark.parametrize('unit', ['Y', 'y', 'M'])
     def test_to_timedelta_unit_m_y_deprecated(self, arg, unit):
-        with pytest.raises(FutureWarning,
-                           match=r'.* units are deprecated .*'):
+        with tm.assert_produces_warning(FutureWarning) as w:
             to_timedelta(arg, unit)
+        msg = r'.* units are deprecated .*'
+        assert re.match(msg, str(w[0].message))
+
