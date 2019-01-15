@@ -19,6 +19,9 @@ from pandas import (
 import pandas.util.testing as tm
 
 
+ff = tm.get_float_frame()
+
+
 class TestDataFrameAlterAxes():
 
     def test_set_index_directly(self):
@@ -678,16 +681,14 @@ class TestDataFrameAlterAxes():
         assert (float_frame['C'] == 1.).all()
 
     def test_rename_inplace(self):
-        float_frame = DataFrame(tm.getSeriesData())
+        float_frame = ff  # get from outside local scope
 
         float_frame.rename(columns={'C': 'foo'})
         assert 'C' in float_frame
         assert 'foo' not in float_frame
 
-        fid = id(float_frame)
         c_id = id(float_frame['C'])
         float_frame = float_frame.copy()
-        assert fid != id(float_frame)
         float_frame.rename(columns={'C': 'foo'}, inplace=True)
 
         assert 'C' not in float_frame
