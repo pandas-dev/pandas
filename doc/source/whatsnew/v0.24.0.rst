@@ -200,6 +200,27 @@ is a float.
 
    pd.array([1, 2, np.nan])
 
+.. _whatsnew_0240.enhancements.series_getattr
+
+Attribute accessor for Series values
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+New method :meth:`Series.getattr` will fetch a specific attribute from all
+elements of Series and return an identically indexed :class:`Series`. Useful
+for working with Series of objects that do not have built-in accessors.
+
+.. ipython:: python
+
+   ser = pd.Series([1, 2, 3 + 1j])
+   ser.getattr('imag')  # like ser.imag
+
+   tzser = pd.Series(pd.date_range('2000', periods=4))
+   tzser.getattr('day')  # like ser.dt.day
+
+   Point = collections.namedtuple('Point', ['x', 'y'])
+   ptser = pd.Series([Point(1, 2), Point(3, 7)])
+   ptser.getattr('x')
+
 .. _whatsnew_0240.enhancements.read_html:
 
 ``read_html`` Enhancements

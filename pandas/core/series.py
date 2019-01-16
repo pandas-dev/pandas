@@ -5,6 +5,7 @@ from __future__ import division
 
 from textwrap import dedent
 import warnings
+import operator
 
 import numpy as np
 
@@ -3380,6 +3381,60 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
             arg, na_action=na_action)
         return self._constructor(new_values,
                                  index=self.index).__finalize__(self)
+
+    def getattr(self, attr):
+        """
+        Get attribute from values of Series by attr name.
+
+        Used to substitute each value in a Series with one of its attributes.
+
+        .. versionadded:: 0.24.0
+
+        Parameters
+        ----------
+        attr : str
+            Name of attribute to fetch from Series values.
+
+        Returns
+        -------
+        Series
+            Same index as caller.
+
+        See Also
+        --------
+        Series.map: For element-wise operations.
+        Series.apply : For applying more complex functions on a Series.
+
+        Notes
+        -----
+        Values in Series that do not have the requested attribute are converted
+        to ``NaN``.
+
+        Examples
+        --------
+        >>> ser = pd.Series([1.0, 2.5 + 0.1j, 3.7 + 2.1j])
+        >>> ser.getattr('real')  # same as ser.real
+        0    1.0
+        1    2.5
+        2    3.7
+        dtype: float64
+
+        For time data
+        >>> tzser = pd.Series(pd.date_range('2000', periods=2, tz="CET"))
+        >>> tzser.getattr('tz')
+        0    CET
+        1    CET
+        dtype: object
+        """
+        attrgetter = operator.attrgetter(attr)
+
+        def attrgetter_noerr(obj):
+            try:
+                return attrgetter(obj)
+            except AttributeError:
+                return np.NaN
+
+        return self.map(attrgetter_noerr)
 
     def _gotitem(self, key, ndim, subset=None):
         """

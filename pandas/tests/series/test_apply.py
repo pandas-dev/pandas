@@ -1,7 +1,7 @@
 # coding=utf-8
 # pylint: disable-msg=E1101,W0612
 
-from collections import Counter, OrderedDict, defaultdict
+from collections import Counter, OrderedDict, defaultdict, namedtuple
 from itertools import chain
 
 import numpy as np
@@ -408,6 +408,61 @@ class TestSeriesAggregate():
         with pytest.raises(expected):
             # e.g. Series('a b'.split()).cumprod() will raise
             series.agg(func)
+
+
+class TestSeriesGetattr():
+
+    def test_getattr(self):
+        s = Series([1.5, 3, 5, 7.0])
+        result = s.getattr('real')
+        assert_series_equal(result, s)
+
+        s = Series([1.1 + 0.2j, 4.1 + 1.0j, np.nan, 1.0])
+        tm.assert_numpy_array_equal(s.getattr('real').values, s.real)
+        tm.assert_numpy_array_equal(s.getattr('imag').values, s.imag)
+
+        index, data = tm.getMixedTypeDict()
+
+        dates = Series(data['D'])
+        tm.assert_series_equal(
+            dates.map(lambda d: d.day),
+            dates.getattr('day'))
+
+        tm.assert_series_equal(
+            dates.map(lambda d: d.resolution.microseconds),
+            dates.getattr('resolution.microseconds'))
+
+        tdiff = Series(tm.makeTimedeltaIndex())
+        tm.assert_series_equal(
+            tdiff.map(lambda td: td.days),
+            tdiff.getattr('days'))
+
+    def test_getattr_namedtuple(self):
+        Point = namedtuple('Point', ['x', 'y'])
+        ptser = pd.Series([Point(1, 2), Point(3, 7)])
+        tm.assert_series_equal(
+            ptser.getattr('x'),
+            ptser.map(lambda pt: pt.x))
+
+    @pytest.mark.parametrize("index", tm.all_index_generator(10))
+    def test_getattr_empty(self, index):
+        s = Series(index)
+        result = s.getattr('')
+
+        expected = pd.Series(np.nan, index=s.index)
+        tm.assert_series_equal(result, expected)
+
+    def test_getattr_na_exclusion(self):
+        s = Series([1.5, np.nan, 3, np.nan, 5])
+        tm.assert_series_equal(
+            s.getattr('real'),
+            Series(s.real, index=s.index))
+
+    def test_getattr_missing_attr(self):
+        s = Series(list('ABCDEFG'))
+        result = s.getattr('missing')
+        exp = pd.Series(np.NaN, index=s.index)
+        assert_series_equal(result, exp)
 
 
 class TestSeriesMap():
