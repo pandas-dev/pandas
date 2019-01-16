@@ -3923,7 +3923,7 @@ class TestHDFStore(Base):
             # HDFStore.select_column should raise a KeyError
             # exception if the key is not a valid store
             with pytest.raises(KeyError,
-                               message='No object named index in the file'):
+                               match='No object named df in the file'):
                 store.select_column('df', 'index')
 
             store.append('df', df)

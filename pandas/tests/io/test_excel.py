@@ -698,7 +698,7 @@ class ReadingTestsBase(SharedItems):
 
     def test_bad_engine_raises(self, ext):
         bad_engine = 'foo'
-        with pytest.raises(ValueError, message="Unknown engine: foo"):
+        with pytest.raises(ValueError, match="Unknown engine: foo"):
             read_excel('', engine=bad_engine)
 
     @tm.network

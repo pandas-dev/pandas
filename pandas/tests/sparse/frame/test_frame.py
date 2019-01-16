@@ -216,8 +216,8 @@ class TestSparseDataFrame(SharedWithSparse):
         class Unknown(object):
             pass
         with pytest.raises(TypeError,
-                           message='SparseDataFrame called with unknown type '
-                                   '"Unknown" for data argument'):
+                           match=('SparseDataFrame called with unknown type '
+                                  '"Unknown" for data argument')):
             SparseDataFrame(Unknown())
 
     def test_constructor_preserve_attr(self):
