@@ -1437,8 +1437,7 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin,
 
     def mean(self, axis=None, skipna=True):
         """
-        Return the mean value of the Array or maximum along
-        an axis.
+        Return the mean value of the Array or mean along an axis.
 
         Parameters
         ----------
