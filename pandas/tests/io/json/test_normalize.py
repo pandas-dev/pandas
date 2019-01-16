@@ -80,7 +80,7 @@ def data_records_path_with_nested_data():
              }]
 
 
-def expected_data_for_test_records_path_with_nested_data():
+def expected_data_test_path_with_nested_data():
     return {0: [{"TextField": "Some text",
                  'UserField': {'Id': 'ID001', 'Name': 'Name001'},
                  "CreatedBy": {"Name": "User001"},
@@ -97,6 +97,7 @@ def expected_data_for_test_records_path_with_nested_data():
                  "UserField.Name": "Name001",
                  "CreatedBy": {"Name": "User001"},
                  'Image': {'a': 'b'}}]}
+
 
 class TestJSONNormalize(object):
 
@@ -310,13 +311,15 @@ class TestJSONNormalize(object):
         tm.assert_frame_equal(result, expected)
 
     @pytest.mark.parametrize("max_level, columns", [
-        (0, ['TextField', 'UserField', 'CreatedBy', "Image"] ),
-        (1, ['TextField', 'UserField.Id', 'UserField.Name', 'CreatedBy', "Image"]),
+        (0, ['TextField', 'UserField', 'CreatedBy', "Image"]),
+        (1, ['TextField', 'UserField.Id',
+             'UserField.Name', 'CreatedBy', "Image"]),
     ])
-    def test_records_path_with_nested_data(self, data_records_path_with_nested_data,
+    def test_records_path_with_nested_data(self,
+                                           data_records_path_with_nested_data,
                                            max_level, columns):
         test_input = data_records_path_with_nested_data
-        expected_data = expected_data_for_test_records_path_with_nested_data()[max_level]
+        expected_data = expected_data_test_path_with_nested_data()[max_level]
         result = json_normalize(test_input,
                                 record_path=["Lookup"],
                                 meta=[["CreatedBy"], ["Image"]],
@@ -331,7 +334,6 @@ class TestNestedToRecord(object):
         recs = [dict(flat1=1, flat2=2),
                 dict(flat1=3, flat2=4),
                 ]
-
         result = nested_to_record(recs)
         expected = recs
         assert result == expected
