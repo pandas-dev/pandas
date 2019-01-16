@@ -311,11 +311,14 @@ class Index(IndexOpsMixin, PandasObject):
         elif (is_timedelta64_dtype(data) or
               (dtype is not None and is_timedelta64_dtype(dtype))):
             from pandas import TimedeltaIndex
-            result = TimedeltaIndex(data, copy=copy, name=name, dtype=dtype,
-                                    **kwargs)
-            if dtype is not None and _o_dtype == dtype:
-                return Index(result.to_pytimedelta(), dtype=_o_dtype)
+            if dtype is not None and is_dtype_equal(_o_dtype, dtype):
+                # Note we can pass copy=False because the .astype below
+                #  will always make a copy
+                result = TimedeltaIndex(data, copy=False, name=name, **kwargs)
+                return result.astype(object)
             else:
+                result = TimedeltaIndex(data, copy=copy, name=name,
+                                        dtype=dtype, **kwargs)
                 return result
 
         elif is_period_dtype(data) and not is_object_dtype(dtype):
