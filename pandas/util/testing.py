@@ -1199,6 +1199,11 @@ def assert_extension_array_equal(left, right, check_dtype=True,
     if check_dtype:
         assert_attr_equal('dtype', left, right, obj='ExtensionArray')
 
+    if hasattr(left, "asi8") and type(right) == type(left):
+        # Avoid slow object-dtype comparisons
+        assert_numpy_array_equal(left.asi8, right.asi8)
+        return
+
     left_na = np.asarray(left.isna())
     right_na = np.asarray(right.isna())
     assert_numpy_array_equal(left_na, right_na, obj='ExtensionArray NA mask')
