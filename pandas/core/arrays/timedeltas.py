@@ -2,6 +2,7 @@
 from __future__ import division
 
 from datetime import timedelta
+import textwrap
 import warnings
 
 import numpy as np
@@ -160,16 +161,8 @@ class TimedeltaArray(dtl.DatetimeLikeArrayMixin, dtl.TimelikeOps):
             #  nanosecond UTC (or tz-naive) unix timestamps
             values = values.view(_TD_DTYPE)
 
-        if values.dtype != _TD_DTYPE:
-            raise TypeError(_BAD_DTYPE.format(dtype=values.dtype))
-
-        try:
-            dtype_mismatch = dtype != _TD_DTYPE
-        except TypeError:
-            raise TypeError(_BAD_DTYPE.format(dtype=dtype))
-        else:
-            if dtype_mismatch:
-                raise TypeError(_BAD_DTYPE.format(dtype=dtype))
+        _validate_td64_dtype(values.dtype)
+        dtype = _validate_td64_dtype(dtype)
 
         if freq == "infer":
             msg = (
@@ -204,9 +197,8 @@ class TimedeltaArray(dtl.DatetimeLikeArrayMixin, dtl.TimelikeOps):
     @classmethod
     def _from_sequence(cls, data, dtype=_TD_DTYPE, copy=False,
                        freq=None, unit=None):
-        if dtype != _TD_DTYPE:
-            raise ValueError("Only timedelta64[ns] dtype is valid.")
-
+        if dtype:
+            _validate_td64_dtype(dtype)
         freq, freq_infer = dtl.maybe_infer_freq(freq)
 
         data, inferred_freq = sequence_to_td64ns(data, copy=copy, unit=unit)
@@ -995,6 +987,30 @@ def objects_to_td64ns(data, unit="ns", errors="raise"):
     result = array_to_timedelta64(values,
                                   unit=unit, errors=errors)
     return result.view('timedelta64[ns]')
+
+
+def _validate_td64_dtype(dtype):
+    try:
+        if dtype == np.dtype("timedelta64"):
+            dtype = _TD_DTYPE
+            msg = textwrap.dedent("""\
+                Passing in 'timedelta' dtype with no precision is deprecated
+                and will raise in a future version. Please pass in
+                'timedelta64[ns]' instead.""")
+            warnings.warn(msg, FutureWarning, stacklevel=4)
+    except TypeError:
+        # extension dtype
+        pass
+
+    try:
+        dtype_mismatch = dtype != _TD_DTYPE
+    except TypeError:
+        raise ValueError(_BAD_DTYPE.format(dtype=dtype))
+    else:
+        if dtype_mismatch:
+            raise ValueError(_BAD_DTYPE.format(dtype=dtype))
+
+    return dtype
 
 
 def _generate_regular_range(start, end, periods, offset):

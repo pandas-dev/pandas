@@ -436,6 +436,7 @@ Backwards incompatible API changes
 - Incorrectly passing a :class:`DatetimeIndex` to :meth:`MultiIndex.from_tuples`, rather than a sequence of tuples, now raises a ``TypeError`` rather than a ``ValueError`` (:issue:`24024`)
 - :func:`pd.offsets.generate_range` argument ``time_rule`` has been removed; use ``offset`` instead (:issue:`24157`)
 - In 0.23.x, pandas would raise a ``ValueError`` on a merge of a numeric column (e.g. ``int`` dtyped column) and an ``object`` dtyped column (:issue:`9780`). We have re-enabled the ability to merge ``object`` and other dtypes; pandas will still raise on a merge between a numeric and an ``object`` dtyped column that is composed only of strings (:issue:`21681`)
+- :class:`DatetimeIndex` and :class:`TimedeltaIndex` no longer ignore the dtype precision. Passing a non-nanosecond resolution dtype will raise a ``ValueError`` (:issue:`24753`)
 
 Percentage change on groupby
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -1310,6 +1311,7 @@ Deprecations
 - :meth:`Series.nonzero` is deprecated and will be removed in a future version (:issue:`18262`)
 - Passing an integer to :meth:`Series.fillna` and :meth:`DataFrame.fillna` with ``timedelta64[ns]`` dtypes is deprecated, will raise ``TypeError`` in a future version.  Use ``obj.fillna(pd.Timedelta(...))`` instead (:issue:`24694`)
 - ``Series.cat.categorical``, ``Series.cat.name`` and ``Sersies.cat.index`` have been deprecated. Use the attributes on ``Series.cat`` or ``Series`` directly. (:issue:`24751`).
+- Passing a dtype without a precision like ``np.dtype('datetime64')`` or ``timedelta64`` to :class:`DatetimeIndex` and :class:`TimedeltaIndex` is now deprecated. Use the nanosecond-precision dtype instead (:issue:`24753`).
 
 .. _whatsnew_0240.deprecations.datetimelike_int_ops:
 
