@@ -4145,13 +4145,11 @@ class DataFrame(NDFrame):
         missing = []
         depr_warn = False
         for col in keys:
-            if (is_scalar(col) or isinstance(col, tuple)) and col in self:
+            if (is_scalar(col) or isinstance(col, tuple)):
                 # if col is a valid column key, everything is fine
-                continue
-            elif is_scalar(col) and col not in self:
-                # tuples that are not keys are not considered missing,
-                # but illegal (see below)
-                missing.append(col)
+                # tuples are always considered keys, never as list-likes
+                if col not in self:
+                    missing.append(col)
             elif isinstance(col, list):
                 depr_warn = True
             elif (not isinstance(col, (ABCIndexClass, ABCSeries, np.ndarray))
