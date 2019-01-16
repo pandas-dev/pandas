@@ -18,7 +18,7 @@ def dtype():
 
 @pytest.fixture
 def data():
-    return pd.arrays.TimedeltaArray(np.arange(100))
+    return pd.arrays.TimedeltaArray(np.arange(0, 100, dtype='m8[ns]'))
 
 
 class BaseTimedeltaTests(object):
