@@ -561,20 +561,3 @@ z
             result = pd.read_csv(path, index_col=0,
                                  compression=read_compression)
             tm.assert_frame_equal(result, df)
-
-
-def test_csv_formatter_line_terminator_default(monkeypatch):
-    # see GH #23608
-    # ensure default line_terminator used is os.linesep
-    from pandas.io.formats.csvs import CSVFormatter
-    df = DataFrame()
-
-    with monkeypatch.context() as m:
-        m.setattr(os, 'linesep', 'foo')
-        assert os.linesep == 'foo'
-
-        formatter_with_default = CSVFormatter(df)
-        assert formatter_with_default.line_terminator == os.linesep
-
-        formatter_with_argument = CSVFormatter(df, line_terminator='bar')
-        assert formatter_with_argument.line_terminator == 'bar'
