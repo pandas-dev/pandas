@@ -1008,6 +1008,13 @@ class TestStringMethods(object):
                     values = klass(data)
                     pytest.raises(TypeError, values.str.replace, 'a', repl)
 
+    def test_replace_single_pattern(self):
+        values = Series(['abc','123'])
+
+        result = values.str.replace('.', 'foo')
+        exp = Series(['foofoofoo', 'foofoofoo'])
+        tm.assert_series_equal(result, exp)
+
     def test_replace_callable(self):
         # GH 15055
         values = Series(['fooBAD__barBAD', NA])
