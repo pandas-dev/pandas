@@ -6996,7 +6996,8 @@ class DataFrame(NDFrame):
         mat = numeric_df.values
 
         if method == 'pearson':
-            correl = libalgos.nancorr(ensure_float64(mat), minp=min_periods)
+            correl = libalgos.nancorr(ensure_float64(mat), minp=min_periods,
+                                      parallel=True)
         elif method == 'spearman':
             correl = libalgos.nancorr_spearman(ensure_float64(mat),
                                                minp=min_periods)

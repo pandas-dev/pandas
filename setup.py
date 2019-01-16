@@ -9,6 +9,7 @@ BSD license. Parts are from lxml (https://github.com/lxml/lxml)
 import os
 from os.path import join as pjoin
 
+import numpy
 import pkg_resources
 import platform
 from distutils.sysconfig import get_config_var
@@ -677,10 +678,11 @@ for name, data in ext_data.items():
     obj = Extension('pandas.{name}'.format(name=name),
                     sources=sources,
                     depends=data.get('depends', []),
-                    include_dirs=include,
+                    include_dirs=include + [numpy.get_include()],
                     language=data.get('language', 'c'),
                     define_macros=data.get('macros', macros),
-                    extra_compile_args=extra_compile_args)
+                    extra_compile_args=['-fopenmp'] + extra_compile_args,
+                    extra_link_args=['-fopenmp'])
 
     extensions.append(obj)
 
@@ -704,11 +706,12 @@ ujson_ext = Extension('pandas._libs.json',
                                np_datetime_sources),
                       include_dirs=['pandas/_libs/src/ujson/python',
                                     'pandas/_libs/src/ujson/lib',
-                                    'pandas/_libs/src/datetime'],
-                      extra_compile_args=(['-D_GNU_SOURCE'] +
+                                    'pandas/_libs/src/datetime',
+                                    numpy.get_include()],
+                      extra_compile_args=(['-D_GNU_SOURCE', '-fopenmp'] +
                                           extra_compile_args),
+                      extra_link_args=['-fopenmp'],
                       define_macros=macros)
-
 
 extensions.append(ujson_ext)
 

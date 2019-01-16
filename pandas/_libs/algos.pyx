@@ -2,10 +2,12 @@
 
 import cython
 from cython import Py_ssize_t
+from cython.parallel import prange
 
 from libc.stdlib cimport malloc, free
 from libc.string cimport memmove
 from libc.math cimport fabs, sqrt
+from cpython cimport bool
 
 import numpy as np
 cimport numpy as cnp
@@ -230,14 +232,15 @@ def kth_smallest(numeric[:] a, Py_ssize_t k) -> numeric:
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
-def nancorr(ndarray[float64_t, ndim=2] mat, bint cov=0, minp=None):
+def nancorr(float64_t[:, :] mat, bint cov=0, minp=None, bool parallel=False):
     cdef:
         Py_ssize_t i, j, xi, yi, N, K
         bint minpv
-        ndarray[float64_t, ndim=2] result
-        ndarray[uint8_t, ndim=2] mask
+        float64_t[:, :] result
+        uint8_t[:, :] mask
         int64_t nobs = 0
         float64_t vx, vy, sumx, sumy, sumxx, sumyy, meanx, meany, divisor
+        int64_t blah = 0
 
     N, K = (<object>mat).shape
 
@@ -249,44 +252,82 @@ def nancorr(ndarray[float64_t, ndim=2] mat, bint cov=0, minp=None):
     result = np.empty((K, K), dtype=np.float64)
     mask = np.isfinite(mat).view(np.uint8)
 
-    with nogil:
-        for xi in range(K):
-            for yi in range(xi + 1):
-                nobs = sumxx = sumyy = sumx = sumy = 0
-                for i in range(N):
-                    if mask[i, xi] and mask[i, yi]:
-                        vx = mat[i, xi]
-                        vy = mat[i, yi]
-                        nobs += 1
-                        sumx += vx
-                        sumy += vy
+    if parallel:
+        with nogil:
+            for xi in prange(K, schedule='dynamic'):
+                nancorr_single_row(mat, N, K, result, xi, mask, minpv, cov)
+    else:
+        with nogil:
+            for xi in range(K):
+                nancorr_single_row(mat, N, K, result, xi, mask, minpv, cov)
 
-                if nobs < minpv:
-                    result[xi, yi] = result[yi, xi] = NaN
-                else:
-                    meanx = sumx / nobs
-                    meany = sumy / nobs
+    return np.asarray(result)
 
-                    # now the cov numerator
-                    sumx = 0
 
-                    for i in range(N):
-                        if mask[i, xi] and mask[i, yi]:
-                            vx = mat[i, xi] - meanx
-                            vy = mat[i, yi] - meany
+@cython.boundscheck(False)
+@cython.wraparound(False)
+cdef void nancorr_single_row(float64_t[:, :] mat,
+                             Py_ssize_t N,
+                             Py_ssize_t K,
+                             float64_t[:, :] result,
+                             Py_ssize_t xi,
+                             uint8_t[:, :] mask,
+                             bint minpv,
+                             bint cov=0) nogil:
+    for yi in range(xi + 1):
+        nancorr_single(mat, N, K, result, xi, yi, mask, minpv, cov)
 
-                            sumx += vx * vy
-                            sumxx += vx * vx
-                            sumyy += vy * vy
 
-                    divisor = (nobs - 1.0) if cov else sqrt(sumxx * sumyy)
+@cython.boundscheck(False)
+@cython.wraparound(False)
+cdef void nancorr_single(float64_t[:, :] mat,
+                         Py_ssize_t N,
+                         Py_ssize_t K,
+                         float64_t[:, :] result,
+                         Py_ssize_t xi,
+                         Py_ssize_t yi,
+                         uint8_t[:, :] mask,
+                         bint minpv,
+                         bint cov=0) nogil:
+    cdef:
+        Py_ssize_t i, j
+        int64_t nobs = 0
+        float64_t vx, vy, sumx, sumy, sumxx, sumyy, meanx, meany, divisor
 
-                    if divisor != 0:
-                        result[xi, yi] = result[yi, xi] = sumx / divisor
-                    else:
-                        result[xi, yi] = result[yi, xi] = NaN
+    nobs = sumxx = sumyy = sumx = sumy = 0
+    for i in range(N):
+        if mask[i, xi] and mask[i, yi]:
+            vx = mat[i, xi]
+            vy = mat[i, yi]
+            nobs += 1
+            sumx += vx
+            sumy += vy
 
-    return result
+    if nobs < minpv:
+        result[xi, yi] = result[yi, xi] = NaN
+    else:
+        meanx = sumx / nobs
+        meany = sumy / nobs
+
+        # now the cov numerator
+        sumx = 0
+
+        for i in range(N):
+            if mask[i, xi] and mask[i, yi]:
+                vx = mat[i, xi] - meanx
+                vy = mat[i, yi] - meany
+
+                sumx += vx * vy
+                sumxx += vx * vx
+                sumyy += vy * vy
+
+        divisor = (nobs - 1.0) if cov else sqrt(sumxx * sumyy)
+
+        if divisor != 0:
+            result[xi, yi] = result[yi, xi] = sumx / divisor
+        else:
+            result[xi, yi] = result[yi, xi] = NaN
+
 
 # ----------------------------------------------------------------------
 # Pairwise Spearman correlation
