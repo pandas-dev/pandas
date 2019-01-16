@@ -825,6 +825,62 @@ class TestCategoricalDtypeParametrized(object):
             dtype.update_dtype(bad_dtype)
 
 
+class TestDatetimeDtype(Base):
+    def create(self):
+        return pd.DatetimeDtype()
+
+    def test_equality(self):
+        a = pd.DatetimeDtype()
+        b = pd.DatetimeDtype()
+        assert a == b
+
+        c = np.dtype("int8")
+        assert a != c
+        # TODO: equality to 'M8[ns]'? np.dtype('M8[ns]')?
+
+    def test_construct_from_string(self):
+        result = pd.DatetimeDtype.construct_from_string('datetime64[ns]')
+        expected = pd.DatetimeDtype()
+        assert result == expected
+
+    def test_attrs(self):
+        assert self.dtype.unit == 'ns'
+        assert self.dtype.kind == 'M'
+        assert str(self.dtype) == 'datetime64[ns]'
+        assert self.dtype.base == np.dtype('M8[ns]')
+        assert self.dtype.type is pd.Timestamp
+        assert self.dtype.na_value is pd.NaT
+        assert self.dtype.construct_array_type() is pd.arrays.DatetimeArray
+
+
+class TestTimedeltaDtype(Base):
+    def create(self):
+        return pd.TimedeltaDtype()
+
+    def test_equality(self):
+        a = pd.TimedeltaDtype()
+        b = pd.TimedeltaDtype()
+        assert a == b
+
+        c = np.dtype("int")
+        assert a != c
+        # TODO: equality to 'm8[ns]'? np.dtype('m8[ns]')?
+
+    def test_construct_from_string(self):
+        result = pd.DatetimeDtype.construct_from_string('datetime64[ns]')
+        expected = pd.DatetimeDtype()
+        assert result == expected
+
+    def test_attrs(self):
+        assert self.dtype.unit == 'ns'
+        assert self.dtype.kind == 'm'
+        assert str(self.dtype) == 'timedelta64[ns]'
+        assert self.dtype.base == np.dtype('m8[ns]')
+        assert self.dtype.type is pd.Timedelta
+        assert self.dtype.na_value is pd.NaT
+        assert self.dtype.construct_array_type() is pd.arrays.TimedeltaArray
+
+
 @pytest.mark.parametrize('dtype', [
     CategoricalDtype,
     IntervalDtype,

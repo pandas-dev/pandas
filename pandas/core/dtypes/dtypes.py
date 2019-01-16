@@ -629,7 +629,7 @@ class _DatetimeDtypeBase(PandasExtensionDtype, ExtensionDtype):
                 match = cls._match.match(string)
                 if match:
                     d = match.groupdict()
-                    return cls(unit=d['unit'], tz=d['tz'])
+                    return cls(**d)
             except Exception:
                 # TODO(py3): Change this pass to `raise TypeError(msg) from e`
                 pass
@@ -675,6 +675,10 @@ class DatetimeDtype(_DatetimeDtypeBase):
 
     def __unicode__(self):
         return 'datetime64[ns]'
+
+    def __getstate__(self):
+        # override PandasExtensionDtype.__getstate__
+        return self.__dict__
 
 
 @register_extension_dtype
@@ -778,6 +782,10 @@ class TimedeltaDtype(PandasExtensionDtype, ExtensionDtype):
 
     def __hash__(self):
         return super(PandasExtensionDtype, self).__hash__()
+
+    def __getstate__(self):
+        # override PandasExtensionDtype.__getstate__
+        return self.__dict__
 
     @property
     def unit(self):
