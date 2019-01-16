@@ -1648,6 +1648,7 @@ Timezones
 - Bug in :meth:`DataFrame.any` returns wrong value when ``axis=1`` and the data is of datetimelike type (:issue:`23070`)
 - Bug in :meth:`DatetimeIndex.to_period` where a timezone aware index was converted to UTC first before creating :class:`PeriodIndex` (:issue:`22905`)
 - Bug in :meth:`DataFrame.tz_localize`, :meth:`DataFrame.tz_convert`, :meth:`Series.tz_localize`, and :meth:`Series.tz_convert` where ``copy=False`` would mutate the original argument inplace (:issue:`6326`)
+- Bug in :meth:`DataFrame.max` and :meth:`DataFrame.min` with ``axis=1`` where a :class:`Series` with ``NaN`` would be returned when all columns contained the same timezone (:issue:`10390`)
 
 Offsets
 ^^^^^^^
