@@ -717,7 +717,7 @@ class TestDataFrameSelectReindex(TestData):
 
         result = df1 - df1.mean()
         expected = df2 - df2.mean()
-        assert_frame_equal(result.astype('f8'), expected)
+        assert_frame_equal(result, expected)
 
     def test_align_multiindex(self):
         # GH 10665
