@@ -1309,6 +1309,7 @@ Deprecations
 - :meth:`Series.clip_lower`, :meth:`Series.clip_upper`, :meth:`DataFrame.clip_lower` and :meth:`DataFrame.clip_upper` are deprecated and will be removed in a future version. Use ``Series.clip(lower=threshold)``, ``Series.clip(upper=threshold)`` and the equivalent ``DataFrame`` methods (:issue:`24203`)
 - :meth:`Series.nonzero` is deprecated and will be removed in a future version (:issue:`18262`)
 - Passing an integer to :meth:`Series.fillna` and :meth:`DataFrame.fillna` with ``timedelta64[ns]`` dtypes is deprecated, will raise ``TypeError`` in a future version.  Use ``obj.fillna(pd.Timedelta(...))`` instead (:issue:`24694`)
+- ``Series.cat.categorical``, ``Series.cat.name`` and ``Sersies.cat.index`` have been deprecated. Use the attributes on ``Series.cat`` or ``Series`` directly. (:issue:`24751`).
 
 .. _whatsnew_0240.deprecations.datetimelike_int_ops:
 
@@ -1647,6 +1648,7 @@ Timezones
 - Bug in :meth:`DataFrame.any` returns wrong value when ``axis=1`` and the data is of datetimelike type (:issue:`23070`)
 - Bug in :meth:`DatetimeIndex.to_period` where a timezone aware index was converted to UTC first before creating :class:`PeriodIndex` (:issue:`22905`)
 - Bug in :meth:`DataFrame.tz_localize`, :meth:`DataFrame.tz_convert`, :meth:`Series.tz_localize`, and :meth:`Series.tz_convert` where ``copy=False`` would mutate the original argument inplace (:issue:`6326`)
+- Bug in :meth:`DataFrame.max` and :meth:`DataFrame.min` with ``axis=1`` where a :class:`Series` with ``NaN`` would be returned when all columns contained the same timezone (:issue:`10390`)
 
 Offsets
 ^^^^^^^
