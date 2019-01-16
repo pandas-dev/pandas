@@ -1108,6 +1108,7 @@ update the ``ExtensionDtype._metadata`` tuple to match the signature of your
 - :meth:`~pandas.api.types.ExtensionArray.searchsorted` has been added (:issue:`24350`)
 - Support for reduction operations such as ``sum``, ``mean`` via opt-in base class method override (:issue:`22762`)
 - :func:`ExtensionArray.isna` is allowed to return an ``ExtensionArray`` (:issue:`22325`).
+- Cleanup ``ValueError`` message thrown in creation of block manager: list block shape before number of total items in passed input shape and implied shape. (:issue:`20742`)
 
 **Dtype changes**
 
@@ -1852,7 +1853,6 @@ Other
 ^^^^^
 
 - Bug where C variables were declared with external linkage causing import errors if certain other C libraries were imported before Pandas. (:issue:`24113`)
-- Cleanup ``ValueError`` message thrown in creation of block manager: list block shape before number of total items in passed input shape and implied shape. (:issue:`20742`)
 
 
 .. _whatsnew_0.24.0.contributors:
