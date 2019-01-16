@@ -300,7 +300,7 @@ class TestSeriesDatetimeValues():
         tm.assert_series_equal(result, expected)
 
         with pytest.raises(pytz.NonExistentTimeError,
-                           message='2018-03-11 02:00:00'):
+                           match='2018-03-11 02:00:00'):
             getattr(s.dt, method)(freq, nonexistent='raise')
 
     def test_dt_namespace_accessor_categorical(self):
