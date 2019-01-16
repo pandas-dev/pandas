@@ -16,9 +16,11 @@ import pandas.util.testing as tm
 
 
 class TestDatetimeLikeStatReductions(object):
+
     @pytest.mark.parametrize('box', [Series, pd.Index, DatetimeArray])
-    @pytest.mark.parametrize('tz', [None, 'US/Mountain'])
-    def test_dt64_mean(self, tz, box):
+    def test_dt64_mean(self, tz_naive_fixture, box):
+        tz = tz_naive_fixture
+
         dti = pd.date_range('2001-01-01', periods=11, tz=tz)
         # shuffle so that we are not just working with monotone-increasing
         dti = dti.take([4, 1, 3, 10, 9, 7, 8, 5, 0, 2, 6])
