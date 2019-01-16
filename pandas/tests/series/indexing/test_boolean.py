@@ -160,28 +160,22 @@ def test_where_unsafe_float(float_dtype):
     assert_series_equal(s, expected)
 
 
-@pytest.mark.parametrize("dtype", [np.int64, np.float64])
-def test_where_unsafe_upcast(dtype):
-    s = Series(np.arange(10), dtype=dtype)
-    values = [2.5, 3.5, 4.5, 5.5, 6.5]
-
-    mask = s < 5
-    expected = Series(values + lrange(5, 10), dtype="float64")
-
-    s[mask] = values
-    assert_series_equal(s, expected)
-
-
-@pytest.mark.parametrize("dtype", [
-    np.int8, np.int16, np.int32, np.float32
+@pytest.mark.parametrize("dtype,expected_dtype", [
+    (np.int8, np.float64),
+    (np.int16, np.float64),
+    (np.int32, np.float64),
+    (np.int64, np.float64),
+    (np.float32, np.float32),
+    (np.float64, np.float64)
 ])
-def test_where_upcast(dtype):
+def test_where_unsafe_upcast(dtype, expected_dtype):
     # see gh-9743
     s = Series(np.arange(10), dtype=dtype)
-    mask = s < 5
-
     values = [2.5, 3.5, 4.5, 5.5, 6.5]
+    mask = s < 5
+    expected = Series(values + lrange(5, 10), dtype=expected_dtype)
     s[mask] = values
+    assert_series_equal(s, expected)
 
 
 def test_where_unsafe():
