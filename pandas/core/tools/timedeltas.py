@@ -95,7 +95,7 @@ def to_timedelta(arg, unit='ns', box=True, errors='raise'):
     if unit in {'Y', 'y', 'M'}:
         warnings.warn("M and Y units are deprecated and "
                       "will be removed in a future version.",
-                      FutureWarning)
+                      FutureWarning, stacklevel=3)
 
     if arg is None:
         return arg

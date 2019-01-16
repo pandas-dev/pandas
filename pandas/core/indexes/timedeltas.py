@@ -210,7 +210,7 @@ class TimedeltaIndex(DatetimeIndexOpsMixin, dtl.TimelikeOps, Int64Index,
         if unit in {'Y', 'y', 'M'}:
             warnings.warn("M and Y units are deprecated and "
                           "will be removed in a future version.",
-                          FutureWarning)
+                          FutureWarning, stacklevel=3)
 
         if isinstance(data, TimedeltaArray):
             if copy:
