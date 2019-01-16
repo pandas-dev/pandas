@@ -2,8 +2,8 @@
 
 from collections import defaultdict
 from datetime import datetime, timedelta
-from decimal import Decimal
 import math
+import sys
 
 import numpy as np
 import pytest
@@ -401,24 +401,40 @@ class TestIndex(Base):
         # Test constructing with a datetimetz dtype
         # .values produces numpy datetimes, so these are considered naive
         # .asi8 produces integers, so these are considered epoch timestamps
+        # ^the above will be true in a later version. Right now we `.view`
+        # the i8 values as NS_DTYPE, effectively treating them as wall times.
         index = pd.date_range('2011-01-01', periods=5)
         arg = getattr(index, attr)
-        if utc:
-            index = index.tz_localize('UTC').tz_convert(tz_naive_fixture)
-        else:
-            index = index.tz_localize(tz_naive_fixture)
+        index = index.tz_localize(tz_naive_fixture)
         dtype = index.dtype
 
-        result = klass(arg, tz=tz_naive_fixture)
+        # TODO(GH-24559): Remove the sys.modules and warnings
+        # not sure what this is from. It's Py2 only.
+        modules = [sys.modules['pandas.core.indexes.base']]
+
+        if (tz_naive_fixture and attr == "asi8" and
+                str(tz_naive_fixture) not in ('UTC', 'tzutc()')):
+            ex_warn = FutureWarning
+        else:
+            ex_warn = None
+
+        # stacklevel is checked elsewhere. We don't do it here since
+        # Index will have an frame, throwing off the expected.
+        with tm.assert_produces_warning(ex_warn, check_stacklevel=False,
+                                        clear=modules):
+            result = klass(arg, tz=tz_naive_fixture)
         tm.assert_index_equal(result, index)
 
-        result = klass(arg, dtype=dtype)
+        with tm.assert_produces_warning(ex_warn, check_stacklevel=False):
+            result = klass(arg, dtype=dtype)
         tm.assert_index_equal(result, index)
 
-        result = klass(list(arg), tz=tz_naive_fixture)
+        with tm.assert_produces_warning(ex_warn, check_stacklevel=False):
+            result = klass(list(arg), tz=tz_naive_fixture)
         tm.assert_index_equal(result, index)
 
-        result = klass(list(arg), dtype=dtype)
+        with tm.assert_produces_warning(ex_warn, check_stacklevel=False):
+            result = klass(list(arg), dtype=dtype)
         tm.assert_index_equal(result, index)
 
     @pytest.mark.parametrize("attr", ['values', 'asi8'])
@@ -817,61 +833,6 @@ class TestIndex(Base):
         tm.assert_contains_all(self.strIndex, secondCat)
         tm.assert_contains_all(self.dateIndex, firstCat)
 
-    def test_add(self):
-        index = self.strIndex
-        expected = Index(self.strIndex.values * 2)
-        tm.assert_index_equal(index + index, expected)
-        tm.assert_index_equal(index + index.tolist(), expected)
-        tm.assert_index_equal(index.tolist() + index, expected)
-
-        # test add and radd
-        index = Index(list('abc'))
-        expected = Index(['a1', 'b1', 'c1'])
-        tm.assert_index_equal(index + '1', expected)
-        expected = Index(['1a', '1b', '1c'])
-        tm.assert_index_equal('1' + index, expected)
-
-    def test_sub_fail(self):
-        index = self.strIndex
-        pytest.raises(TypeError, lambda: index - 'a')
-        pytest.raises(TypeError, lambda: index - index)
-        pytest.raises(TypeError, lambda: index - index.tolist())
-        pytest.raises(TypeError, lambda: index.tolist() - index)
-
-    def test_sub_object(self):
-        # GH#19369
-        index = pd.Index([Decimal(1), Decimal(2)])
-        expected = pd.Index([Decimal(0), Decimal(1)])
-
-        result = index - Decimal(1)
-        tm.assert_index_equal(result, expected)
-
-        result = index - pd.Index([Decimal(1), Decimal(1)])
-        tm.assert_index_equal(result, expected)
-
-        with pytest.raises(TypeError):
-            index - 'foo'
-
-        with pytest.raises(TypeError):
-            index - np.array([2, 'foo'])
-
-    def test_rsub_object(self):
-        # GH#19369
-        index = pd.Index([Decimal(1), Decimal(2)])
-        expected = pd.Index([Decimal(1), Decimal(0)])
-
-        result = Decimal(2) - index
-        tm.assert_index_equal(result, expected)
-
-        result = np.array([Decimal(2), Decimal(2)]) - index
-        tm.assert_index_equal(result, expected)
-
-        with pytest.raises(TypeError):
-            'foo' - index
-
-        with pytest.raises(TypeError):
-            np.array([True, pd.Timestamp.now()]) - index
-
     def test_map_identity_mapping(self):
         # GH 12766
         # TODO: replace with fixture
@@ -990,22 +951,6 @@ class TestIndex(Base):
 
         result = left.append(right)
         assert result.name == expected
-
-    def test_add_string(self):
-        # from bug report
-        index = Index(['a', 'b', 'c'])
-        index2 = index + 'foo'
-
-        assert 'a' not in index2
-        assert 'afoo' in index2
-
-    def test_iadd_string(self):
-        index = pd.Index(['a', 'b', 'c'])
-        # doesn't fail test unless there is a check before `+=`
-        assert 'a' in index
-
-        index += '_x'
-        assert 'a_x' in index
 
     @pytest.mark.parametrize("second_name,expected", [
         (None, None), ('name', 'name')])
@@ -2128,36 +2073,6 @@ Index([u'a', u'bb', u'ccc', u'a', u'bb', u'ccc', u'a', u'bb', u'ccc', u'a',
         with cf.option_context('display.unicode.east_asian_width', True):
             result = unicode(index)  # noqa
             assert result == expected
-
-    @pytest.mark.parametrize('dtype', [np.int64, np.float64])
-    @pytest.mark.parametrize('delta', [1, 0, -1])
-    def test_addsub_arithmetic(self, dtype, delta):
-        # GH 8142
-        delta = dtype(delta)
-        index = pd.Index([10, 11, 12], dtype=dtype)
-        result = index + delta
-        expected = pd.Index(index.values + delta, dtype=dtype)
-        tm.assert_index_equal(result, expected)
-
-        # this subtraction used to fail
-        result = index - delta
-        expected = pd.Index(index.values - delta, dtype=dtype)
-        tm.assert_index_equal(result, expected)
-
-        tm.assert_index_equal(index + index, 2 * index)
-        tm.assert_index_equal(index - index, 0 * index)
-        assert not (index - index).empty
-
-    def test_iadd_preserves_name(self):
-        # GH#17067, GH#19723 __iadd__ and __isub__ should preserve index name
-        ser = pd.Series([1, 2, 3])
-        ser.index.name = 'foo'
-
-        ser.index += 1
-        assert ser.index.name == "foo"
-
-        ser.index -= 1
-        assert ser.index.name == "foo"
 
     def test_cached_properties_not_settable(self):
         index = pd.Index([1, 2, 3])

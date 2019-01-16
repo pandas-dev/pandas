@@ -149,7 +149,7 @@ These dtypes can be merged & reshaped & casted.
    pd.concat([df[['A']], df[['B', 'C']]], axis=1).dtypes
    df['A'].astype(float)
 
-Reduction and groupby operations such as 'sum' work.
+Reduction and groupby operations such as ``sum`` work.
 
 .. ipython:: python
 
@@ -1128,7 +1128,7 @@ update the ``ExtensionDtype._metadata`` tuple to match the signature of your
 - :meth:`~Series.shift` now dispatches to :meth:`ExtensionArray.shift` (:issue:`22386`)
 - :meth:`Series.combine()` works correctly with :class:`~pandas.api.extensions.ExtensionArray` inside of :class:`Series` (:issue:`20825`)
 - :meth:`Series.combine()` with scalar argument now works for any function type (:issue:`21248`)
-- :meth:`Series.astype` and :meth:`DataFrame.astype` now dispatch to :meth:`ExtensionArray.astype` (:issue:`21185:`).
+- :meth:`Series.astype` and :meth:`DataFrame.astype` now dispatch to :meth:`ExtensionArray.astype` (:issue:`21185`).
 - Slicing a single row of a ``DataFrame`` with multiple ExtensionArrays of the same type now preserves the dtype, rather than coercing to object (:issue:`22784`)
 - Bug when concatenating multiple ``Series`` with different extension dtypes not casting to object dtype (:issue:`22994`)
 - Series backed by an ``ExtensionArray`` now work with :func:`util.hash_pandas_object` (:issue:`23066`)
@@ -1235,7 +1235,6 @@ Datetimelike API Changes
 - :class:`PeriodIndex` subtraction of another ``PeriodIndex`` will now return an object-dtype :class:`Index` of :class:`DateOffset` objects instead of raising a ``TypeError`` (:issue:`20049`)
 - :func:`cut` and :func:`qcut` now returns a :class:`DatetimeIndex` or :class:`TimedeltaIndex` bins when the input is datetime or timedelta dtype respectively and ``retbins=True`` (:issue:`19891`)
 - :meth:`DatetimeIndex.to_period` and :meth:`Timestamp.to_period` will issue a warning when timezone information will be lost (:issue:`21333`)
-- :class:`DatetimeIndex` now accepts :class:`Int64Index` arguments as epoch timestamps (:issue:`20997`)
 - :meth:`PeriodIndex.tz_convert` and :meth:`PeriodIndex.tz_localize` have been removed (:issue:`21781`)
 
 .. _whatsnew_0240.api.other:
@@ -1262,7 +1261,7 @@ Other API Changes
 - The order of the arguments of :func:`DataFrame.to_html` and :func:`DataFrame.to_string` is rearranged to be consistent with each other. (:issue:`23614`)
 - :meth:`CategoricalIndex.reindex` now raises a ``ValueError`` if the target index is non-unique and not equal to the current index. It previously only raised if the target index was not of a categorical dtype (:issue:`23963`).
 - :func:`Series.to_list` and :func:`Index.to_list` are now aliases of ``Series.tolist`` respectively ``Index.tolist`` (:issue:`8826`)
-- The result of ``SparseSeries.unstack`` is now a :class:`DataFrame` with sparse values, rather than a :class:`SparseDataFrame` (issue:`24372`).
+- The result of ``SparseSeries.unstack`` is now a :class:`DataFrame` with sparse values, rather than a :class:`SparseDataFrame` (:issue:`24372`).
 
 .. _whatsnew_0240.deprecations:
 
@@ -1301,14 +1300,16 @@ Deprecations
 - The ``keep_tz=False`` option (the default) of the ``keep_tz`` keyword of
   :meth:`DatetimeIndex.to_series` is deprecated (:issue:`17832`).
 - Timezone converting a tz-aware ``datetime.datetime`` or :class:`Timestamp` with :class:`Timestamp` and the ``tz`` argument is now deprecated. Instead, use :meth:`Timestamp.tz_convert` (:issue:`23579`)
-- :func:`pandas.api.types.is_period` is deprecated in favor of `pandas.api.types.is_period_dtype` (:issue:`23917`)
-- :func:`pandas.api.types.is_datetimetz` is deprecated in favor of `pandas.api.types.is_datetime64tz` (:issue:`23917`)
+- :func:`pandas.api.types.is_period` is deprecated in favor of ``pandas.api.types.is_period_dtype`` (:issue:`23917`)
+- :func:`pandas.api.types.is_datetimetz` is deprecated in favor of ``pandas.api.types.is_datetime64tz`` (:issue:`23917`)
 - Creating a :class:`TimedeltaIndex`, :class:`DatetimeIndex`, or :class:`PeriodIndex` by passing range arguments `start`, `end`, and `periods` is deprecated in favor of :func:`timedelta_range`, :func:`date_range`, or :func:`period_range` (:issue:`23919`)
 - Passing a string alias like ``'datetime64[ns, UTC]'`` as the ``unit`` parameter to :class:`DatetimeTZDtype` is deprecated. Use :class:`DatetimeTZDtype.construct_from_string` instead (:issue:`23990`).
 - The ``skipna`` parameter of :meth:`~pandas.api.types.infer_dtype` will switch to ``True`` by default in a future version of pandas (:issue:`17066`, :issue:`24050`)
 - In :meth:`Series.where` with Categorical data, providing an ``other`` that is not present in the categories is deprecated. Convert the categorical to a different dtype or add the ``other`` to the categories first (:issue:`24077`).
 - :meth:`Series.clip_lower`, :meth:`Series.clip_upper`, :meth:`DataFrame.clip_lower` and :meth:`DataFrame.clip_upper` are deprecated and will be removed in a future version. Use ``Series.clip(lower=threshold)``, ``Series.clip(upper=threshold)`` and the equivalent ``DataFrame`` methods (:issue:`24203`)
 - :meth:`Series.nonzero` is deprecated and will be removed in a future version (:issue:`18262`)
+- Passing an integer to :meth:`Series.fillna` and :meth:`DataFrame.fillna` with ``timedelta64[ns]`` dtypes is deprecated, will raise ``TypeError`` in a future version.  Use ``obj.fillna(pd.Timedelta(...))`` instead (:issue:`24694`)
+- ``Series.cat.categorical``, ``Series.cat.name`` and ``Sersies.cat.index`` have been deprecated. Use the attributes on ``Series.cat`` or ``Series`` directly. (:issue:`24751`).
 
 .. _whatsnew_0240.deprecations.datetimelike_int_ops:
 
@@ -1351,6 +1352,52 @@ the object's ``freq`` attribute (:issue:`21939`, :issue:`23878`).
     dti = pd.date_range('2001-01-01', periods=2, freq='7D')
     dti + pd.Index([1 * dti.freq, 2 * dti.freq])
 
+
+.. _whatsnew_0240.deprecations.integer_tz:
+
+Passing Integer data and a timezone to DatetimeIndex
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+The behavior of :class:`DatetimeIndex` when passed integer data and
+a timezone is changing in a future version of pandas. Previously, these
+were interpreted as wall times in the desired timezone. In the future,
+these will be interpreted as wall times in UTC, which are then converted
+to the desired timezone (:issue:`24559`).
+
+The default behavior remains the same, but issues a warning:
+
+.. code-block:: ipython
+
+   In [3]: pd.DatetimeIndex([946684800000000000], tz="US/Central")
+   /bin/ipython:1: FutureWarning:
+       Passing integer-dtype data and a timezone to DatetimeIndex. Integer values
+       will be interpreted differently in a future version of pandas. Previously,
+       these were viewed as datetime64[ns] values representing the wall time
+       *in the specified timezone*. In the future, these will be viewed as
+       datetime64[ns] values representing the wall time *in UTC*. This is similar
+       to a nanosecond-precision UNIX epoch. To accept the future behavior, use
+
+           pd.to_datetime(integer_data, utc=True).tz_convert(tz)
+
+       To keep the previous behavior, use
+
+           pd.to_datetime(integer_data).tz_localize(tz)
+
+    #!/bin/python3
+    Out[3]: DatetimeIndex(['2000-01-01 00:00:00-06:00'], dtype='datetime64[ns, US/Central]', freq=None)
+
+As the warning message explains, opt in to the future behavior by specifying that
+the integer values are UTC, and then converting to the final timezone:
+
+.. ipython:: python
+
+   pd.to_datetime([946684800000000000], utc=True).tz_convert('US/Central')
+
+The old behavior can be retained with by localizing directly to the final timezone:
+
+.. ipython:: python
+
+   pd.to_datetime([946684800000000000]).tz_localize('US/Central')
 
 .. _whatsnew_0240.deprecations.tz_aware_array:
 
@@ -1479,7 +1526,7 @@ Performance Improvements
 - Improved performance of :meth:`~DataFrame.where` for Categorical data (:issue:`24077`)
 - Improved performance of iterating over a :class:`Series`. Using :meth:`DataFrame.itertuples` now creates iterators
   without internally allocating lists of all elements (:issue:`20783`)
-- Improved performance of :class:`Period` constructor, additionally benefitting ``PeriodArray`` and ``PeriodIndex`` creation (:issue:`24084` and :issue:`24118`)
+- Improved performance of :class:`Period` constructor, additionally benefitting ``PeriodArray`` and ``PeriodIndex`` creation (:issue:`24084`, :issue:`24118`)
 - Improved performance of tz-aware :class:`DatetimeArray` binary operations (:issue:`24491`)
 
 .. _whatsnew_0240.bug_fixes:
@@ -1568,6 +1615,7 @@ Timedelta
 - Bug in :class:`Timedelta` and :func:`to_timedelta()` have inconsistencies in supported unit string (:issue:`21762`)
 - Bug in :class:`TimedeltaIndex` division where dividing by another :class:`TimedeltaIndex` raised ``TypeError`` instead of returning a :class:`Float64Index` (:issue:`23829`, :issue:`22631`)
 - Bug in :class:`TimedeltaIndex` comparison operations where comparing against non-``Timedelta``-like objects would raise ``TypeError`` instead of returning all-``False`` for ``__eq__`` and all-``True`` for ``__ne__`` (:issue:`24056`)
+- Bug in :class:`Timedelta` comparisons when comparing with a ``Tick`` object incorrectly raising ``TypeError`` (:issue:`24710`)
 
 Timezones
 ^^^^^^^^^
@@ -1600,6 +1648,7 @@ Timezones
 - Bug in :meth:`DataFrame.any` returns wrong value when ``axis=1`` and the data is of datetimelike type (:issue:`23070`)
 - Bug in :meth:`DatetimeIndex.to_period` where a timezone aware index was converted to UTC first before creating :class:`PeriodIndex` (:issue:`22905`)
 - Bug in :meth:`DataFrame.tz_localize`, :meth:`DataFrame.tz_convert`, :meth:`Series.tz_localize`, and :meth:`Series.tz_convert` where ``copy=False`` would mutate the original argument inplace (:issue:`6326`)
+- Bug in :meth:`DataFrame.max` and :meth:`DataFrame.min` with ``axis=1`` where a :class:`Series` with ``NaN`` would be returned when all columns contained the same timezone (:issue:`10390`)
 
 Offsets
 ^^^^^^^
@@ -1625,7 +1674,7 @@ Numeric
 - Bug in :class:`DataFrame` with ``timedelta64[ns]`` dtype arithmetic operations with ``ndarray`` with integer dtype incorrectly treating the narray as ``timedelta64[ns]`` dtype (:issue:`23114`)
 - Bug in :meth:`Series.rpow` with object dtype ``NaN`` for ``1 ** NA`` instead of ``1`` (:issue:`22922`).
 - :meth:`Series.agg` can now handle numpy NaN-aware methods like :func:`numpy.nansum` (:issue:`19629`)
-- Bug in :meth:`Series.rank` and :meth:`DataFrame.rank` when ``pct=True`` and more than 2:sup:`24` rows are present resulted in percentages greater than 1.0 (:issue:`18271`)
+- Bug in :meth:`Series.rank` and :meth:`DataFrame.rank` when ``pct=True`` and more than 2\ :sup:`24` rows are present resulted in percentages greater than 1.0 (:issue:`18271`)
 - Calls such as :meth:`DataFrame.round` with a non-unique :meth:`CategoricalIndex` now return expected data. Previously, data would be improperly duplicated (:issue:`21809`).
 - Added ``log10``, `floor` and `ceil` to the list of supported functions in :meth:`DataFrame.eval` (:issue:`24139`, :issue:`24353`)
 - Logical operations ``&, |, ^`` between :class:`Series` and :class:`Index` will no longer raise ``ValueError`` (:issue:`22092`)
@@ -1638,6 +1687,7 @@ Conversion
 - Bug in :meth:`DataFrame.combine_first` in which column types were unexpectedly converted to float (:issue:`20699`)
 - Bug in :meth:`DataFrame.clip` in which column types are not preserved and casted to float (:issue:`24162`)
 - Bug in :meth:`DataFrame.clip` when order of columns of dataframes doesn't match, result observed is wrong in numeric values (:issue:`20911`)
+- Bug in :meth:`DataFrame.astype` where converting to an extension dtype when duplicate column names are present causes a ``RecursionError`` (:issue:`24704`)
 
 Strings
 ^^^^^^^
@@ -1711,7 +1761,7 @@ I/O
 - Bug in :meth:`read_excel()` when ``parse_cols`` is specified with an empty dataset (:issue:`9208`)
 - :func:`read_html()` no longer ignores all-whitespace ``<tr>`` within ``<thead>`` when considering the ``skiprows`` and ``header`` arguments. Previously, users had to decrease their ``header`` and ``skiprows`` values on such tables to work around the issue. (:issue:`21641`)
 - :func:`read_excel()` will correctly show the deprecation warning for previously deprecated ``sheetname`` (:issue:`17994`)
-- :func:`read_csv()` and func:`read_table()` will throw ``UnicodeError`` and not coredump on badly encoded strings (:issue:`22748`)
+- :func:`read_csv()` and :func:`read_table()` will throw ``UnicodeError`` and not coredump on badly encoded strings (:issue:`22748`)
 - :func:`read_csv()` will correctly parse timezone-aware datetimes (:issue:`22256`)
 - Bug in :func:`read_csv()` in which memory management was prematurely optimized for the C engine when the data was being read in chunks (:issue:`23509`)
 - Bug in :func:`read_csv()` in unnamed columns were being improperly identified when extracting a multi-index (:issue:`23687`)
@@ -1742,6 +1792,7 @@ I/O
 - Bug in :meth:`DataFrame.to_dict` when the resulting dict contains non-Python scalars in the case of numeric data (:issue:`23753`)
 - :func:`DataFrame.to_string()`, :func:`DataFrame.to_html()`, :func:`DataFrame.to_latex()` will correctly format output when a string is passed as the ``float_format`` argument (:issue:`21625`, :issue:`22270`)
 - Bug in :func:`read_csv` that caused it to raise ``OverflowError`` when trying to use 'inf' as ``na_value`` with integer index column (:issue:`17128`)
+- Bug in :func:`read_csv` that caused the C engine on Python 3.6+ on Windows to improperly read CSV filenames with accented or special characters (:issue:`15086`)
 - Bug in :func:`read_fwf` in which the compression type of a file was not being properly inferred (:issue:`22199`)
 - Bug in :func:`pandas.io.json.json_normalize` that caused it to raise ``TypeError`` when two consecutive elements of ``record_path`` are dicts (:issue:`22706`)
 - Bug in :meth:`DataFrame.to_stata`, :class:`pandas.io.stata.StataWriter` and :class:`pandas.io.stata.StataWriter117` where a exception would leave a partially written and invalid dta file (:issue:`23573`)
@@ -1779,6 +1830,7 @@ Groupby/Resample/Rolling
 - Calling :meth:`pandas.core.groupby.GroupBy.rank` with empty groups and ``pct=True`` was raising a ``ZeroDivisionError`` (:issue:`22519`)
 - Bug in :meth:`DataFrame.resample` when resampling ``NaT`` in ``TimeDeltaIndex`` (:issue:`13223`).
 - Bug in :meth:`DataFrame.groupby` did not respect the ``observed`` argument when selecting a column and instead always used ``observed=False`` (:issue:`23970`)
+- Bug preventing hash table creation with very large number (2^32) of rows (:issue:`22805`)
 
 Reshaping
 ^^^^^^^^^

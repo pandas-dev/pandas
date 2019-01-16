@@ -1,4 +1,3 @@
-from datetime import timedelta
 
 import numpy as np
 import pytest
@@ -6,9 +5,7 @@ import pytest
 from pandas.core.dtypes.generic import ABCDateOffset
 
 import pandas as pd
-from pandas import (
-    Series, Timedelta, TimedeltaIndex, Timestamp, timedelta_range,
-    to_timedelta)
+from pandas import Series, TimedeltaIndex, timedelta_range
 from pandas.tests.test_base import Ops
 import pandas.util.testing as tm
 
@@ -26,54 +23,6 @@ class TestTimedeltaIndexOps(Ops):
         f = lambda x: isinstance(x, TimedeltaIndex)
         self.check_ops_properties(TimedeltaIndex._field_ops, f)
         self.check_ops_properties(TimedeltaIndex._object_ops, f)
-
-    def test_minmax(self):
-
-        # monotonic
-        idx1 = TimedeltaIndex(['1 days', '2 days', '3 days'])
-        assert idx1.is_monotonic
-
-        # non-monotonic
-        idx2 = TimedeltaIndex(['1 days', np.nan, '3 days', 'NaT'])
-        assert not idx2.is_monotonic
-
-        for idx in [idx1, idx2]:
-            assert idx.min() == Timedelta('1 days')
-            assert idx.max() == Timedelta('3 days')
-            assert idx.argmin() == 0
-            assert idx.argmax() == 2
-
-        for op in ['min', 'max']:
-            # Return NaT
-            obj = TimedeltaIndex([])
-            assert pd.isna(getattr(obj, op)())
-
-            obj = TimedeltaIndex([pd.NaT])
-            assert pd.isna(getattr(obj, op)())
-
-            obj = TimedeltaIndex([pd.NaT, pd.NaT, pd.NaT])
-            assert pd.isna(getattr(obj, op)())
-
-    def test_numpy_minmax(self):
-        td = timedelta_range('16815 days', '16820 days', freq='D')
-
-        assert np.min(td) == Timedelta('16815 days')
-        assert np.max(td) == Timedelta('16820 days')
-
-        errmsg = "the 'out' parameter is not supported"
-        with pytest.raises(ValueError, match=errmsg):
-            np.min(td, out=0)
-        with pytest.raises(ValueError, match=errmsg):
-            np.max(td, out=0)
-
-        assert np.argmin(td) == 0
-        assert np.argmax(td) == 5
-
-        errmsg = "the 'out' parameter is not supported"
-        with pytest.raises(ValueError, match=errmsg):
-            np.argmin(td, out=0)
-        with pytest.raises(ValueError, match=errmsg):
-            np.argmax(td, out=0)
 
     def test_value_counts_unique(self):
         # GH 7735
@@ -330,61 +279,3 @@ class TestTimedeltaIndexOps(Ops):
         # setting with non-freq string
         with pytest.raises(ValueError, match='Invalid frequency'):
             idx.freq = 'foo'
-
-
-class TestTimedeltas(object):
-
-    def test_timedelta_ops(self):
-        # GH4984
-        # make sure ops return Timedelta
-        s = Series([Timestamp('20130101') + timedelta(seconds=i * i)
-                    for i in range(10)])
-        td = s.diff()
-
-        result = td.mean()
-        expected = to_timedelta(timedelta(seconds=9))
-        assert result == expected
-
-        result = td.to_frame().mean()
-        assert result[0] == expected
-
-        result = td.quantile(.1)
-        expected = Timedelta(np.timedelta64(2600, 'ms'))
-        assert result == expected
-
-        result = td.median()
-        expected = to_timedelta('00:00:09')
-        assert result == expected
-
-        result = td.to_frame().median()
-        assert result[0] == expected
-
-        # GH 6462
-        # consistency in returned values for sum
-        result = td.sum()
-        expected = to_timedelta('00:01:21')
-        assert result == expected
-
-        result = td.to_frame().sum()
-        assert result[0] == expected
-
-        # std
-        result = td.std()
-        expected = to_timedelta(Series(td.dropna().values).std())
-        assert result == expected
-
-        result = td.to_frame().std()
-        assert result[0] == expected
-
-        # invalid ops
-        for op in ['skew', 'kurt', 'sem', 'prod']:
-            pytest.raises(TypeError, getattr(td, op))
-
-        # GH 10040
-        # make sure NaT is properly handled by median()
-        s = Series([Timestamp('2015-02-03'), Timestamp('2015-02-07')])
-        assert s.diff().median() == timedelta(days=4)
-
-        s = Series([Timestamp('2015-02-03'), Timestamp('2015-02-07'),
-                    Timestamp('2015-02-15')])
-        assert s.diff().median() == timedelta(days=6)

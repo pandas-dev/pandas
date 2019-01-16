@@ -3,7 +3,7 @@ import numpy as np
 import pytest
 
 import pandas as pd
-from pandas import DatetimeIndex, Index, NaT, Period, PeriodIndex, Series
+from pandas import DatetimeIndex, Index, NaT, PeriodIndex, Series
 from pandas.core.arrays import PeriodArray
 from pandas.tests.test_base import Ops
 import pandas.util.testing as tm
@@ -23,61 +23,6 @@ class TestPeriodIndexOps(Ops):
         self.check_ops_properties(PeriodArray._field_ops, f)
         self.check_ops_properties(PeriodArray._object_ops, f)
         self.check_ops_properties(PeriodArray._bool_ops, f)
-
-    def test_minmax(self):
-
-        # monotonic
-        idx1 = pd.PeriodIndex([NaT, '2011-01-01', '2011-01-02',
-                               '2011-01-03'], freq='D')
-        assert idx1.is_monotonic
-
-        # non-monotonic
-        idx2 = pd.PeriodIndex(['2011-01-01', NaT, '2011-01-03',
-                               '2011-01-02', NaT], freq='D')
-        assert not idx2.is_monotonic
-
-        for idx in [idx1, idx2]:
-            assert idx.min() == pd.Period('2011-01-01', freq='D')
-            assert idx.max() == pd.Period('2011-01-03', freq='D')
-        assert idx1.argmin() == 1
-        assert idx2.argmin() == 0
-        assert idx1.argmax() == 3
-        assert idx2.argmax() == 2
-
-        for op in ['min', 'max']:
-            # Return NaT
-            obj = PeriodIndex([], freq='M')
-            result = getattr(obj, op)()
-            assert result is NaT
-
-            obj = PeriodIndex([NaT], freq='M')
-            result = getattr(obj, op)()
-            assert result is NaT
-
-            obj = PeriodIndex([NaT, NaT, NaT], freq='M')
-            result = getattr(obj, op)()
-            assert result is NaT
-
-    def test_numpy_minmax(self):
-        pr = pd.period_range(start='2016-01-15', end='2016-01-20')
-
-        assert np.min(pr) == Period('2016-01-15', freq='D')
-        assert np.max(pr) == Period('2016-01-20', freq='D')
-
-        errmsg = "the 'out' parameter is not supported"
-        with pytest.raises(ValueError, match=errmsg):
-            np.min(pr, out=0)
-        with pytest.raises(ValueError, match=errmsg):
-            np.max(pr, out=0)
-
-        assert np.argmin(pr) == 0
-        assert np.argmax(pr) == 5
-
-        errmsg = "the 'out' parameter is not supported"
-        with pytest.raises(ValueError, match=errmsg):
-            np.argmin(pr, out=0)
-        with pytest.raises(ValueError, match=errmsg):
-            np.argmax(pr, out=0)
 
     def test_resolution(self):
         for freq, expected in zip(['A', 'Q', 'M', 'D', 'H',
