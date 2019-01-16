@@ -17,8 +17,8 @@ Highlights include
 
 * :ref:`Optional Nullable Integer Support <whatsnew_0240.enhancements.intna>`
 * :ref:`New APIs for accessing the array backing a Series or Index <whatsnew_0240.values_api>`
-* :ref:`A new top-level :func:`pandas.array` method for creating arrays <whatsnew_0240.enhancements.array>`
-* :ref:`Store Interval and Period data in a :class:`Series` or :class:`DataFrame` <whatsnew_0240.enhancements.interval>`
+* :ref:`A new top-level method for creating arrays <whatsnew_0240.enhancements.array>`
+* :ref:`Store Interval and Period data in a Series or DataFrame <whatsnew_0240.enhancements.interval>`
 * :ref:`Support for joining on two MultiIndexes <whatsnew_0240.enhancements.join_with_two_multiindexes>`
 
 .. _whatsnew_0240.enhancements.intna:
@@ -685,8 +685,8 @@ is the case with :attr:`Period.end_time`, for example
 
 .. _whatsnew_0240.api_breaking.datetime_unique:
 
-Datetime w/tz and unique
-^^^^^^^^^^^^^^^^^^^^^^^^
+Series.unique for Timezone-Aware Data
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 The return type of :meth:`Series.unique` for datetime with timezone values has changed
 from an :class:`numpy.ndarray` of :class:`Timestamp` objects to a :class:`arrays.DatetimeArray` (:issue:`24024`).
@@ -1104,12 +1104,12 @@ cast from integer dtype to floating dtype (:issue:`22019`)
 
 *New Behavior*:
 
-.. code-block:: ipython
+.. ipython:: python
 
-    In [3]: df = pd.DataFrame({'a': [1, 2, 2, 2, 2],
-       ...:                    'b': [3, 3, 4, 4, 4],
-       ...:                    'c': [1, 1, np.nan, 1, 1]})
-    In [4]: pd.crosstab(df.a, df.b, normalize='columns')
+    df = pd.DataFrame({'a': [1, 2, 2, 2, 2],
+                       'b': [3, 3, 4, 4, 4],
+                       'c': [1, 1, np.nan, 1, 1]})
+    pd.crosstab(df.a, df.b, normalize='columns')
 
 .. _whatsnew_0240.api.concat_categorical:
 
