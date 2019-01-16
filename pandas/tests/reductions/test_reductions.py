@@ -1,11 +1,14 @@
 # -*- coding: utf-8 -*-
-from datetime import datetime
+from datetime import datetime, timedelta
 
 import numpy as np
 import pytest
 
 import pandas as pd
-from pandas import Categorical, DataFrame, Index, PeriodIndex, Series, compat
+from pandas import (
+    Categorical, DataFrame, DatetimeIndex, Index, NaT, Period, PeriodIndex,
+    RangeIndex, Series, Timedelta, TimedeltaIndex, Timestamp, compat, isna,
+    timedelta_range, to_timedelta)
 from pandas.core import nanops
 import pandas.util.testing as tm
 
@@ -134,6 +137,279 @@ class TestReductions(object):
         assert obj.argmax() == -1
         assert obj.argmin(skipna=False) == -1
         assert obj.argmax(skipna=False) == -1
+
+    @pytest.mark.parametrize('op, expected_col', [
+        ['max', 'a'], ['min', 'b']
+    ])
+    def test_same_tz_min_max_axis_1(self, op, expected_col):
+        # GH 10390
+        df = DataFrame(pd.date_range('2016-01-01 00:00:00', periods=3,
+                                     tz='UTC'),
+                       columns=['a'])
+        df['b'] = df.a.subtract(pd.Timedelta(seconds=3600))
+        result = getattr(df, op)(axis=1)
+        expected = df[expected_col]
+        tm.assert_series_equal(result, expected)
+
+
+class TestIndexReductions(object):
+    # Note: the name TestIndexReductions indicates these tests
+    #  were moved from a Index-specific test file, _not_ that these tests are
+    #  intended long-term to be Index-specific
+
+    @pytest.mark.parametrize('start,stop,step',
+                             [(0, 400, 3), (500, 0, -6), (-10**6, 10**6, 4),
+                              (10**6, -10**6, -4), (0, 10, 20)])
+    def test_max_min_range(self, start, stop, step):
+        # GH#17607
+        idx = RangeIndex(start, stop, step)
+        expected = idx._int64index.max()
+        result = idx.max()
+        assert result == expected
+
+        # skipna should be irrelevant since RangeIndex should never have NAs
+        result2 = idx.max(skipna=False)
+        assert result2 == expected
+
+        expected = idx._int64index.min()
+        result = idx.min()
+        assert result == expected
+
+        # skipna should be irrelevant since RangeIndex should never have NAs
+        result2 = idx.min(skipna=False)
+        assert result2 == expected
+
+        # empty
+        idx = RangeIndex(start, stop, -step)
+        assert isna(idx.max())
+        assert isna(idx.min())
+
+    def test_minmax_timedelta64(self):
+
+        # monotonic
+        idx1 = TimedeltaIndex(['1 days', '2 days', '3 days'])
+        assert idx1.is_monotonic
+
+        # non-monotonic
+        idx2 = TimedeltaIndex(['1 days', np.nan, '3 days', 'NaT'])
+        assert not idx2.is_monotonic
+
+        for idx in [idx1, idx2]:
+            assert idx.min() == Timedelta('1 days')
+            assert idx.max() == Timedelta('3 days')
+            assert idx.argmin() == 0
+            assert idx.argmax() == 2
+
+        for op in ['min', 'max']:
+            # Return NaT
+            obj = TimedeltaIndex([])
+            assert pd.isna(getattr(obj, op)())
+
+            obj = TimedeltaIndex([pd.NaT])
+            assert pd.isna(getattr(obj, op)())
+
+            obj = TimedeltaIndex([pd.NaT, pd.NaT, pd.NaT])
+            assert pd.isna(getattr(obj, op)())
+
+    def test_numpy_minmax_timedelta64(self):
+        td = timedelta_range('16815 days', '16820 days', freq='D')
+
+        assert np.min(td) == Timedelta('16815 days')
+        assert np.max(td) == Timedelta('16820 days')
+
+        errmsg = "the 'out' parameter is not supported"
+        with pytest.raises(ValueError, match=errmsg):
+            np.min(td, out=0)
+        with pytest.raises(ValueError, match=errmsg):
+            np.max(td, out=0)
+
+        assert np.argmin(td) == 0
+        assert np.argmax(td) == 5
+
+        errmsg = "the 'out' parameter is not supported"
+        with pytest.raises(ValueError, match=errmsg):
+            np.argmin(td, out=0)
+        with pytest.raises(ValueError, match=errmsg):
+            np.argmax(td, out=0)
+
+    def test_timedelta_ops(self):
+        # GH#4984
+        # make sure ops return Timedelta
+        s = Series([Timestamp('20130101') + timedelta(seconds=i * i)
+                    for i in range(10)])
+        td = s.diff()
+
+        result = td.mean()
+        expected = to_timedelta(timedelta(seconds=9))
+        assert result == expected
+
+        result = td.to_frame().mean()
+        assert result[0] == expected
+
+        result = td.quantile(.1)
+        expected = Timedelta(np.timedelta64(2600, 'ms'))
+        assert result == expected
+
+        result = td.median()
+        expected = to_timedelta('00:00:09')
+        assert result == expected
+
+        result = td.to_frame().median()
+        assert result[0] == expected
+
+        # GH#6462
+        # consistency in returned values for sum
+        result = td.sum()
+        expected = to_timedelta('00:01:21')
+        assert result == expected
+
+        result = td.to_frame().sum()
+        assert result[0] == expected
+
+        # std
+        result = td.std()
+        expected = to_timedelta(Series(td.dropna().values).std())
+        assert result == expected
+
+        result = td.to_frame().std()
+        assert result[0] == expected
+
+        # invalid ops
+        for op in ['skew', 'kurt', 'sem', 'prod']:
+            pytest.raises(TypeError, getattr(td, op))
+
+        # GH#10040
+        # make sure NaT is properly handled by median()
+        s = Series([Timestamp('2015-02-03'), Timestamp('2015-02-07')])
+        assert s.diff().median() == timedelta(days=4)
+
+        s = Series([Timestamp('2015-02-03'), Timestamp('2015-02-07'),
+                    Timestamp('2015-02-15')])
+        assert s.diff().median() == timedelta(days=6)
+
+    def test_minmax_tz(self, tz_naive_fixture):
+        tz = tz_naive_fixture
+        # monotonic
+        idx1 = pd.DatetimeIndex(['2011-01-01', '2011-01-02',
+                                 '2011-01-03'], tz=tz)
+        assert idx1.is_monotonic
+
+        # non-monotonic
+        idx2 = pd.DatetimeIndex(['2011-01-01', pd.NaT, '2011-01-03',
+                                 '2011-01-02', pd.NaT], tz=tz)
+        assert not idx2.is_monotonic
+
+        for idx in [idx1, idx2]:
+            assert idx.min() == Timestamp('2011-01-01', tz=tz)
+            assert idx.max() == Timestamp('2011-01-03', tz=tz)
+            assert idx.argmin() == 0
+            assert idx.argmax() == 2
+
+    @pytest.mark.parametrize('op', ['min', 'max'])
+    def test_minmax_nat_datetime64(self, op):
+        # Return NaT
+        obj = DatetimeIndex([])
+        assert pd.isna(getattr(obj, op)())
+
+        obj = DatetimeIndex([pd.NaT])
+        assert pd.isna(getattr(obj, op)())
+
+        obj = DatetimeIndex([pd.NaT, pd.NaT, pd.NaT])
+        assert pd.isna(getattr(obj, op)())
+
+    def test_numpy_minmax_datetime64(self):
+        dr = pd.date_range(start='2016-01-15', end='2016-01-20')
+
+        assert np.min(dr) == Timestamp('2016-01-15 00:00:00', freq='D')
+        assert np.max(dr) == Timestamp('2016-01-20 00:00:00', freq='D')
+
+        errmsg = "the 'out' parameter is not supported"
+        with pytest.raises(ValueError, match=errmsg):
+            np.min(dr, out=0)
+
+        with pytest.raises(ValueError, match=errmsg):
+            np.max(dr, out=0)
+
+        assert np.argmin(dr) == 0
+        assert np.argmax(dr) == 5
+
+        errmsg = "the 'out' parameter is not supported"
+        with pytest.raises(ValueError, match=errmsg):
+            np.argmin(dr, out=0)
+
+        with pytest.raises(ValueError, match=errmsg):
+            np.argmax(dr, out=0)
+
+    def test_minmax_period(self):
+
+        # monotonic
+        idx1 = pd.PeriodIndex([NaT, '2011-01-01', '2011-01-02',
+                               '2011-01-03'], freq='D')
+        assert idx1.is_monotonic
+
+        # non-monotonic
+        idx2 = pd.PeriodIndex(['2011-01-01', NaT, '2011-01-03',
+                               '2011-01-02', NaT], freq='D')
+        assert not idx2.is_monotonic
+
+        for idx in [idx1, idx2]:
+            assert idx.min() == pd.Period('2011-01-01', freq='D')
+            assert idx.max() == pd.Period('2011-01-03', freq='D')
+        assert idx1.argmin() == 1
+        assert idx2.argmin() == 0
+        assert idx1.argmax() == 3
+        assert idx2.argmax() == 2
+
+        for op in ['min', 'max']:
+            # Return NaT
+            obj = PeriodIndex([], freq='M')
+            result = getattr(obj, op)()
+            assert result is NaT
+
+            obj = PeriodIndex([NaT], freq='M')
+            result = getattr(obj, op)()
+            assert result is NaT
+
+            obj = PeriodIndex([NaT, NaT, NaT], freq='M')
+            result = getattr(obj, op)()
+            assert result is NaT
+
+    def test_numpy_minmax_period(self):
+        pr = pd.period_range(start='2016-01-15', end='2016-01-20')
+
+        assert np.min(pr) == Period('2016-01-15', freq='D')
+        assert np.max(pr) == Period('2016-01-20', freq='D')
+
+        errmsg = "the 'out' parameter is not supported"
+        with pytest.raises(ValueError, match=errmsg):
+            np.min(pr, out=0)
+        with pytest.raises(ValueError, match=errmsg):
+            np.max(pr, out=0)
+
+        assert np.argmin(pr) == 0
+        assert np.argmax(pr) == 5
+
+        errmsg = "the 'out' parameter is not supported"
+        with pytest.raises(ValueError, match=errmsg):
+            np.argmin(pr, out=0)
+        with pytest.raises(ValueError, match=errmsg):
+            np.argmax(pr, out=0)
+
+    def test_min_max_categorical(self):
+
+        ci = pd.CategoricalIndex(list('aabbca'),
+                                 categories=list('cab'),
+                                 ordered=False)
+        with pytest.raises(TypeError):
+            ci.min()
+        with pytest.raises(TypeError):
+            ci.max()
+
+        ci = pd.CategoricalIndex(list('aabbca'),
+                                 categories=list('cab'),
+                                 ordered=True)
+        assert ci.min() == 'c'
+        assert ci.max() == 'b'
 
 
 class TestSeriesReductions(object):

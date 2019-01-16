@@ -412,12 +412,12 @@ class _BaseOffset(object):
                           **self.kwds)
 
     def __neg__(self):
-        # Note: we are defering directly to __mul__ instead of __rmul__, as
+        # Note: we are deferring directly to __mul__ instead of __rmul__, as
         # that allows us to use methods that can go in a `cdef class`
         return self * -1
 
     def copy(self):
-        # Note: we are defering directly to __mul__ instead of __rmul__, as
+        # Note: we are deferring directly to __mul__ instead of __rmul__, as
         # that allows us to use methods that can go in a `cdef class`
         return self * 1
 

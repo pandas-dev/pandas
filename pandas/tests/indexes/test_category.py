@@ -251,17 +251,6 @@ class TestCategoricalIndex(Base):
             list('aabbca') + [np.nan], categories=list('cabdef'))
         assert np.nan in ci
 
-    def test_min_max(self):
-
-        ci = self.create_index(ordered=False)
-        pytest.raises(TypeError, lambda: ci.min())
-        pytest.raises(TypeError, lambda: ci.max())
-
-        ci = self.create_index(ordered=True)
-
-        assert ci.min() == 'c'
-        assert ci.max() == 'b'
-
     def test_map(self):
         ci = pd.CategoricalIndex(list('ABABC'), categories=list('CBA'),
                                  ordered=True)
