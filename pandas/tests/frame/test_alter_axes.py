@@ -24,7 +24,7 @@ def float_frame():
     # GH#24769
     # Because for some reason a test behaves differently depending on
     #  whether it uses a fixture or not
-    return tm.get_float_frame()
+    return DataFrame(tm.getSeriesData())
 
 
 class TestDataFrameAlterAxes():
