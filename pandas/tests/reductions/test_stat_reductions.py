@@ -39,6 +39,7 @@ class TestDatetimeLikeStatReductions(object):
 
     @pytest.mark.parametrize('box', [Series, pd.Index, PeriodArray])
     def test_period_mean(self, box):
+        # GH#24757
         dti = pd.date_range('2001-01-01', periods=11)
         # shuffle so that we are not just working with monotone-increasing
         dti = dti.take([4, 1, 3, 10, 9, 7, 8, 5, 0, 2, 6])
@@ -47,17 +48,21 @@ class TestDatetimeLikeStatReductions(object):
         #  TODO: flesh this out with different frequencies
         parr = dti._data.to_period('H')
         obj = box(parr)
-        assert obj.mean() == pd.Period('2001-01-06', freq='H')
-        assert obj.mean(skipna=False) == pd.Period('2001-01-06', freq='H')
+        with pytest.raises(NotImplementedError, match="ambiguous"):
+            obj.mean()
+        with pytest.raises(NotImplementedError, match="ambiguous"):
+            obj.mean(skipna=True)
 
         # parr[-2] will be the first date 2001-01-1
         parr[-2] = pd.NaT
 
-        # with rounding, we get the period containing the result
-        #  for the dt64 case above
-        obj = box(parr)
-        assert obj.mean() == pd.Period('2001-01-06 07:00', freq='H')
-        assert obj.mean(skipna=False) is pd.NaT
+        with pytest.raises(NotImplementedError, match="ambiguous"):
+            obj.mean()
+        with pytest.raises(NotImplementedError, match="ambiguous"):
+            obj.mean(skipna=True)
+
+        assert obj.mean() == pd.Period('2001-01-06', freq='H')
+        assert obj.mean(skipna=False) == pd.Period('2001-01-06', freq='H')
 
     @pytest.mark.parametrize('box', [Series, pd.Index, TimedeltaArray])
     def test_td64_mean(self, box):

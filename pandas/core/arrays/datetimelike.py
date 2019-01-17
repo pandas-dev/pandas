@@ -1451,6 +1451,14 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin,
         numpy.ndarray.mean
         Series.mean : Return the mean value in a Series.
         """
+        if is_period_dtype(self):
+            # See discussion in GH#24757
+            raise NotImplementedError(
+                "mean is not implemented for {cls} since the meaning may be "
+                "ambiguous.  An alternative is "
+                "obj.to_timestamp(how='start').mean()"
+                .format(cls=type(self).__name__))
+
         nv.validate_minmax_axis(axis)
 
         mask = self.isna()
