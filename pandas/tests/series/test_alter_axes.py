@@ -16,11 +16,16 @@ class TestSeriesAlterAxes(object):
 
     def test_setindex(self, string_series):
         # wrong type
-        pytest.raises(TypeError, setattr, string_series, 'index', None)
+        msg = (r"Index\(\.\.\.\) must be called with a collection of some"
+               r" kind, None was passed")
+        with pytest.raises(TypeError, match=msg):
+            string_series.index = None
 
         # wrong length
-        pytest.raises(Exception, setattr, string_series, 'index',
-                      np.arange(len(string_series) - 1))
+        msg = (r"Length mismatch: Expected axis has 30 elements, new values"
+               r" have 29 elements")
+        with pytest.raises(ValueError, match=msg):
+            string_series.index = np.arange(len(string_series) - 1)
 
         # works
         string_series.index = np.arange(len(string_series))
