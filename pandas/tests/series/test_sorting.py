@@ -109,7 +109,7 @@ class TestSeriesSorting(TestData):
         sorted_series = random_order.sort_index(axis=0)
         assert_series_equal(sorted_series, self.ts)
 
-        msg = "No axis named 1 for object type <class 'type'>"
+        msg = r"No axis named 1 for object type <(class|type) 'type'>"
         with pytest.raises(ValueError, match=msg):
             random_order.sort_values(axis=1)
 

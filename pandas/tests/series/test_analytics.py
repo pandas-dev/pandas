@@ -97,8 +97,8 @@ class TestSeriesAnalytics(object):
                                check_dtype=False)
         tm.assert_series_equal(qindexer, Series(qexpected),
                                check_dtype=False)
-        msg = (r"ndarray Expected type <class 'numpy\.ndarray'>, found"
-               r" <class 'pandas\.core\.series\.Series'> instead")
+        msg = (r"ndarray Expected type <(class|type) 'numpy\.ndarray'>,"
+               r" found <class 'pandas\.core\.series\.Series'> instead")
         with pytest.raises(AssertionError, match=msg):
             tm.assert_numpy_array_equal(qindexer, mindexer)
 
@@ -478,7 +478,7 @@ class TestSeriesAnalytics(object):
         assert_almost_equal(a.dot(b['1']), expected['1'])
         assert_almost_equal(a.dot(b2['1']), expected['1'])
 
-        msg = r"Dot product shape mismatch, \(4,\) vs \(3,\)"
+        msg = r"Dot product shape mismatch, \(4L?,\) vs \(3L?,\)"
         # exception raised is of type Exception
         with pytest.raises(Exception, match=msg):
             a.dot(a.values[:3])
@@ -785,7 +785,7 @@ class TestSeriesAnalytics(object):
         with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
             tm.assert_series_equal(s.ptp(level=0, skipna=False), expected)
 
-        msg = "No axis named 1 for object type <class 'type'>"
+        msg = r"No axis named 1 for object type <(class|type) 'type'>"
         with pytest.raises(ValueError, match=msg):
             with tm.assert_produces_warning(FutureWarning,
                                             check_stacklevel=False):
