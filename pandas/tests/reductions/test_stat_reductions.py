@@ -61,9 +61,6 @@ class TestDatetimeLikeStatReductions(object):
         with pytest.raises(NotImplementedError, match="ambiguous"):
             obj.mean(skipna=True)
 
-        assert obj.mean() == pd.Period('2001-01-06', freq='H')
-        assert obj.mean(skipna=False) == pd.Period('2001-01-06', freq='H')
-
     @pytest.mark.parametrize('box', [Series, pd.Index, TimedeltaArray])
     def test_td64_mean(self, box):
         tdi = pd.TimedeltaIndex([0, 3, -2, -7, 1, 2, -1, 3, 5, -2, 4],
