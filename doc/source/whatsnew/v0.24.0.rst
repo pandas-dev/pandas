@@ -432,6 +432,30 @@ Backwards incompatible API changes
 
 Pandas 0.24.0 includes a number of API breaking changes.
 
+Replacing strings using Pattern
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Be sure to perform a replace of literal strings by passing the
+regex=False parameter to func:`str.replace`. Mainly when the 
+pattern is 1 size string (:issue:`24809`)
+
+Before:
+
+.. ipython:: python
+
+    s = pd.Series(['A|B|C'])
+
+    result = s.str.replace('|', ' ')
+    result
+
+After:
+
+.. ipython:: python
+
+    s = pd.Series(['A|B|C'])
+
+    result = s.str.replace('|', ' ', regex=False)
+    result
 
 .. _whatsnew_0240.api_breaking.deps:
 
@@ -794,9 +818,6 @@ Now, the return type is consistently a :class:`DataFrame`.
    There's no difference in memory usage between a :class:`SparseDataFrame`
    and a :class:`DataFrame` with sparse values. The memory usage will
    be the same as in the previous version of pandas.
-
-   Be sure to perform a replace of literal strings by passing the
-   regex=False parameter to func:`str.replace`.
 
 .. _whatsnew_0240.api_breaking.frame_to_dict_index_orient:
 
