@@ -293,7 +293,9 @@ class TestSeriesInternals(object):
 
     def test_convert_no_arg_error(self):
         s = Series(['1.0', '2'])
-        pytest.raises(ValueError, s._convert)
+        msg = r"At least one of datetime, numeric or timedelta must be True\."
+        with pytest.raises(ValueError, match=msg):
+            s._convert()
 
     def test_convert_preserve_bool(self):
         s = Series([1, True, 3, 5], dtype=object)

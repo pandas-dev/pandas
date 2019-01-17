@@ -73,7 +73,9 @@ class TestSeriesReplace(TestData):
         tm.assert_series_equal(ser.replace(np.nan, 0), ser.fillna(0))
 
         # malformed
-        pytest.raises(ValueError, ser.replace, [1, 2, 3], [np.nan, 0])
+        msg = r"Replacement lists must match in length\. Expecting 3 got 2"
+        with pytest.raises(ValueError, match=msg):
+            ser.replace([1, 2, 3], [np.nan, 0])
 
         # make sure that we aren't just masking a TypeError because bools don't
         # implement indexing
@@ -125,7 +127,9 @@ class TestSeriesReplace(TestData):
 
         # make sure things don't get corrupted when fillna call fails
         s = ser.copy()
-        with pytest.raises(ValueError):
+        msg = (r"Invalid fill method\. Expecting pad \(ffill\) or backfill"
+               r" \(bfill\)\. Got crash_cymbal")
+        with pytest.raises(ValueError, match=msg):
             s.replace([1, 2, 3], inplace=True, method='crash_cymbal')
         tm.assert_series_equal(s, ser)
 

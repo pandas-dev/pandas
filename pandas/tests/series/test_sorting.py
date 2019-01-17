@@ -55,16 +55,21 @@ class TestSeriesSorting(TestData):
         expected = ts.sort_values(ascending=False, na_position='first')
         assert_series_equal(expected, ordered)
 
-        pytest.raises(ValueError,
-                      lambda: ts.sort_values(ascending=None))
-        pytest.raises(ValueError,
-                      lambda: ts.sort_values(ascending=[]))
-        pytest.raises(ValueError,
-                      lambda: ts.sort_values(ascending=[1, 2, 3]))
-        pytest.raises(ValueError,
-                      lambda: ts.sort_values(ascending=[False, False]))
-        pytest.raises(ValueError,
-                      lambda: ts.sort_values(ascending='foobar'))
+        msg = "ascending must be boolean"
+        with pytest.raises(ValueError, match=msg):
+            ts.sort_values(ascending=None)
+        msg = r"Length of ascending \(0\) must be 1 for Series"
+        with pytest.raises(ValueError, match=msg):
+            ts.sort_values(ascending=[])
+        msg = r"Length of ascending \(3\) must be 1 for Series"
+        with pytest.raises(ValueError, match=msg):
+            ts.sort_values(ascending=[1, 2, 3])
+        msg = r"Length of ascending \(2\) must be 1 for Series"
+        with pytest.raises(ValueError, match=msg):
+            ts.sort_values(ascending=[False, False])
+        msg = "ascending must be boolean"
+        with pytest.raises(ValueError, match=msg):
+            ts.sort_values(ascending='foobar')
 
         # inplace=True
         ts = self.ts.copy()
@@ -78,10 +83,10 @@ class TestSeriesSorting(TestData):
         df = DataFrame(np.random.randn(10, 4))
         s = df.iloc[:, 0]
 
-        def f():
+        msg = ("This Series is a view of some other array, to sort in-place"
+               " you must create a copy")
+        with pytest.raises(ValueError, match=msg):
             s.sort_values(inplace=True)
-
-        pytest.raises(ValueError, f)
 
     def test_sort_index(self):
         rindex = list(self.ts.index)
@@ -104,13 +109,15 @@ class TestSeriesSorting(TestData):
         sorted_series = random_order.sort_index(axis=0)
         assert_series_equal(sorted_series, self.ts)
 
-        pytest.raises(ValueError, lambda: random_order.sort_values(axis=1))
+        msg = r"No axis named 1 for object type <(class|type) 'type'>"
+        with pytest.raises(ValueError, match=msg):
+            random_order.sort_values(axis=1)
 
         sorted_series = random_order.sort_index(level=0, axis=0)
         assert_series_equal(sorted_series, self.ts)
 
-        pytest.raises(ValueError,
-                      lambda: random_order.sort_index(level=0, axis=1))
+        with pytest.raises(ValueError, match=msg):
+            random_order.sort_index(level=0, axis=1)
 
     def test_sort_index_inplace(self):
 

@@ -25,8 +25,9 @@ class TestSeriesCombine(object):
             else:
                 raise AssertionError("orphaned index!")
 
-        pytest.raises(ValueError, datetime_series.append, datetime_series,
-                      verify_integrity=True)
+        msg = "Indexes have overlapping values:"
+        with pytest.raises(ValueError, match=msg):
+            datetime_series.append(datetime_series, verify_integrity=True)
 
     def test_append_many(self, datetime_series):
         pieces = [datetime_series[:5], datetime_series[5:10],

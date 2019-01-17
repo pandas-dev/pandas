@@ -7,6 +7,7 @@ import numpy as np
 import pytest
 
 from pandas._libs.tslib import iNaT
+from pandas._libs.tslibs.np_datetime import OutOfBoundsDatetime
 from pandas.compat import StringIO, lrange, product
 from pandas.errors import NullFrequencyError
 import pandas.util._test_decorators as td
@@ -78,7 +79,8 @@ class TestTimeSeries(TestData):
         assert_series_equal(shifted2, shifted3)
         assert_series_equal(ps, shifted2.shift(-1, 'B'))
 
-        with pytest.raises(ValueError):
+        msg = "Given freq D does not match PeriodIndex freq B"
+        with pytest.raises(ValueError, match=msg):
             ps.shift(freq='D')
 
         # legacy support
@@ -110,7 +112,9 @@ class TestTimeSeries(TestData):
         # incompat tz
         s2 = Series(date_range('2000-01-01 09:00:00', periods=5,
                                tz='CET'), name='foo')
-        with pytest.raises(TypeError):
+        msg = ("DatetimeArray subtraction must have the same timezones or no"
+               " timezones")
+        with pytest.raises(TypeError, match=msg):
             s - s2
 
     def test_shift2(self):
@@ -127,7 +131,9 @@ class TestTimeSeries(TestData):
         tm.assert_index_equal(result.index, exp_index)
 
         idx = DatetimeIndex(['2000-01-01', '2000-01-02', '2000-01-04'])
-        pytest.raises(NullFrequencyError, idx.shift, 1)
+        msg = "Cannot shift with no freq"
+        with pytest.raises(NullFrequencyError, match=msg):
+            idx.shift(1)
 
     def test_shift_fill_value(self):
         # GH #24128
@@ -158,7 +164,8 @@ class TestTimeSeries(TestData):
         tm.assert_equal(res, expected)
 
         # check for incorrect fill_value
-        with pytest.raises(ValueError):
+        msg = "'fill_value=f' is not present in this Categorical's categories"
+        with pytest.raises(ValueError, match=msg):
             ts.shift(1, fill_value='f')
 
     def test_shift_dst(self):
@@ -202,7 +209,8 @@ class TestTimeSeries(TestData):
         shifted3 = ps.tshift(freq=BDay())
         assert_series_equal(shifted, shifted3)
 
-        with pytest.raises(ValueError):
+        msg = "Given freq M does not match PeriodIndex freq B"
+        with pytest.raises(ValueError, match=msg):
             ps.tshift(freq='M')
 
         # DatetimeIndex
@@ -222,7 +230,8 @@ class TestTimeSeries(TestData):
         assert_series_equal(unshifted, inferred_ts)
 
         no_freq = self.ts[[0, 5, 7]]
-        with pytest.raises(ValueError):
+        msg = "Freq was not given and was not set in the index"
+        with pytest.raises(ValueError, match=msg):
             no_freq.tshift()
 
     def test_truncate(self):
@@ -271,9 +280,10 @@ class TestTimeSeries(TestData):
         truncated = ts.truncate(before=self.ts.index[-1] + offset)
         assert (len(truncated) == 0)
 
-        pytest.raises(ValueError, ts.truncate,
-                      before=self.ts.index[-1] + offset,
-                      after=self.ts.index[0] - offset)
+        msg = "Truncate: 1999-12-31 00:00:00 must be after 2000-02-14 00:00:00"
+        with pytest.raises(ValueError, match=msg):
+            ts.truncate(before=self.ts.index[-1] + offset,
+                        after=self.ts.index[0] - offset)
 
     def test_truncate_nonsortedindex(self):
         # GH 17935
@@ -553,9 +563,11 @@ class TestTimeSeries(TestData):
                                   Timestamp('1970-01-03')] + ['NaT'] * 3)
         tm.assert_index_equal(result, expected)
 
-        with pytest.raises(ValueError):
+        msg = "non convertible value foo with the unit 'D'"
+        with pytest.raises(ValueError, match=msg):
             to_datetime([1, 2, 'foo'], unit='D')
-        with pytest.raises(ValueError):
+        msg = "cannot convert input 111111111 with the unit 'D'"
+        with pytest.raises(OutOfBoundsDatetime, match=msg):
             to_datetime([1, 2, 111111111], unit='D')
 
         # coerce we can process
@@ -660,7 +672,8 @@ class TestTimeSeries(TestData):
     def test_first_raises(self):
         # GH20725
         ser = pd.Series('a b c'.split())
-        with pytest.raises(TypeError):  # index is not a DatetimeIndex
+        msg = "'first' only supports a DatetimeIndex index"
+        with pytest.raises(TypeError, match=msg):
             ser.first('1D')
 
     def test_last_subset(self):
@@ -686,7 +699,8 @@ class TestTimeSeries(TestData):
     def test_last_raises(self):
         # GH20725
         ser = pd.Series('a b c'.split())
-        with pytest.raises(TypeError):  # index is not a DatetimeIndex
+        msg = "'last' only supports a DatetimeIndex index"
+        with pytest.raises(TypeError, match=msg):
             ser.last('1D')
 
     def test_format_pre_1900_dates(self):
@@ -740,7 +754,8 @@ class TestTimeSeries(TestData):
     def test_at_time_raises(self):
         # GH20725
         ser = pd.Series('a b c'.split())
-        with pytest.raises(TypeError):  # index is not a DatetimeIndex
+        msg = "Index must be DatetimeIndex"
+        with pytest.raises(TypeError, match=msg):
             ser.at_time('00:00')
 
     def test_between(self):
@@ -814,23 +829,26 @@ class TestTimeSeries(TestData):
     def test_between_time_raises(self):
         # GH20725
         ser = pd.Series('a b c'.split())
-        with pytest.raises(TypeError):  # index is not a DatetimeIndex
+        msg = "Index must be DatetimeIndex"
+        with pytest.raises(TypeError, match=msg):
             ser.between_time(start_time='00:00', end_time='12:00')
 
     def test_between_time_types(self):
         # GH11818
         rng = date_range('1/1/2000', '1/5/2000', freq='5min')
-        with pytest.raises(ValueError):
+        msg = (r"Cannot convert arg \[datetime\.datetime\(2010, 1, 2, 1, 0\)\]"
+               " to a time")
+        with pytest.raises(ValueError, match=msg):
             rng.indexer_between_time(datetime(2010, 1, 2, 1),
                                      datetime(2010, 1, 2, 5))
 
         frame = DataFrame({'A': 0}, index=rng)
-        with pytest.raises(ValueError):
+        with pytest.raises(ValueError, match=msg):
             frame.between_time(datetime(2010, 1, 2, 1),
                                datetime(2010, 1, 2, 5))
 
         series = Series(0, index=rng)
-        with pytest.raises(ValueError):
+        with pytest.raises(ValueError, match=msg):
             series.between_time(datetime(2010, 1, 2, 1),
                                 datetime(2010, 1, 2, 5))
 
@@ -858,7 +876,9 @@ class TestTimeSeries(TestData):
 
         assert len(ts.between_time(stime, etime)) == expected_length
         assert len(ts.between_time(stime, etime, axis=0)) == expected_length
-        pytest.raises(ValueError, ts.between_time, stime, etime, axis=1)
+        msg = r"No axis named 1 for object type <(class|type) 'type'>"
+        with pytest.raises(ValueError, match=msg):
+            ts.between_time(stime, etime, axis=1)
 
     def test_to_period(self):
         from pandas.core.indexes.period import period_range
