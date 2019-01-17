@@ -249,9 +249,8 @@ class TestConfig(object):
             warnings.simplefilter('always')
             with pytest.raises(
                     KeyError,
-                    message="Nonexistent option didn't raise KeyError"):
+                    match="No such keys.s.: 'foo'"):
                 self.cf.get_option('foo')
-
             assert len(w) == 1  # should have raised one warning
             assert 'deprecated' in str(w[-1])  # we get the default message
 
