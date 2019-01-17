@@ -4183,12 +4183,6 @@ class DataFrame(NDFrame):
             elif isinstance(col, (list, np.ndarray)):
                 arrays.append(col)
                 names.append(None)
-            elif (is_list_like(col)
-                  and not (isinstance(col, tuple) and col in self)):
-                # all other list-likes (but avoid valid column keys)
-                col = list(col)  # ensure iterator do not get read twice etc.
-                arrays.append(col)
-                names.append(None)
             # from here, col can only be a column label
             else:
                 arrays.append(frame[col]._values)
