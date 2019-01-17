@@ -795,7 +795,7 @@ Now, the return type is consistently a :class:`DataFrame`.
    and a :class:`DataFrame` with sparse values. The memory usage will
    be the same as in the previous version of pandas.
 
-   Be sure to perform a replace of literal strings by passing the 
+   Be sure to perform a replace of literal strings by passing the
    regex=False parameter to func:`str.replace`.
 
 .. _whatsnew_0240.api_breaking.frame_to_dict_index_orient:
