@@ -425,7 +425,7 @@ def str_endswith(arr, pat, na=np.nan):
     return _na_map(f, arr, na, dtype=bool)
 
 
-def str_replace(arr, pat, repl, n=-1, case=None, flags=0, regex=True):
+def str_replace(arr, pat, repl, n=-1, case=None, flags=0, regex=None):
     r"""
     Replace occurrences of pattern/regex in the Series/Index with
     some other string. Equivalent to :meth:`str.replace` or
@@ -577,6 +577,9 @@ def str_replace(arr, pat, repl, n=-1, case=None, flags=0, regex=True):
         if callable(repl):
             raise ValueError("Cannot use a callable replacement when "
                              "regex=False")
+        if regex==None:
+            warnings.warn("Warning: Interpreting '%s' as a literal, not a regex... " % pat + 
+                            "The default will change in the future.", FutureWarning, stacklevel=3)
         f = lambda x: x.replace(pat, repl, n)
 
     return _na_map(f, arr)
@@ -2529,7 +2532,7 @@ class StringMethods(NoNewAttributesMixin):
         return self._wrap_result(result, fill_value=na)
 
     @copy(str_replace)
-    def replace(self, pat, repl, n=-1, case=None, flags=0, regex=True):
+    def replace(self, pat, repl, n=-1, case=None, flags=0, regex=None):
         result = str_replace(self._parent, pat, repl, n=n, case=case,
                              flags=flags, regex=regex)
         return self._wrap_result(result)

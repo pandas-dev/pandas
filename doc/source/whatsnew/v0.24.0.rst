@@ -1669,7 +1669,7 @@ Strings
 - Bug in :meth:`Index.str.split` was not nan-safe (:issue:`23677`).
 - Bug :func:`Series.str.contains` not respecting the ``na`` argument for a ``Categorical`` dtype ``Series`` (:issue:`22158`)
 - Bug in :meth:`Index.str.cat` when the result contained only ``NaN`` (:issue:`24044`)
-- Bug in :func:`Series.str.replace` not applying regex in patterns of len size = 1 (:issue:`24809`)
+- Bug in :func:`Series.str.replace` not applying regex in patterns of length 1 (:issue:`24809`)
 
 Interval
 ^^^^^^^^

@@ -1012,9 +1012,16 @@ class TestStringMethods(object):
     def test_replace_single_pattern(self):
         values = Series(['abc', '123'])
 
-        result = values.str.replace('.', 'foo')
+        result = values.str.replace('.', 'foo', regex=True)
         expected = Series(['foofoofoo', 'foofoofoo'])
         tm.assert_series_equal(result, expected)
+
+    def test_replace_without_specifying_regex_parameter(self):
+        values = Series(['a.c'])
+
+        result = values.str.replace('.', 'b')
+        expected = Series(['abc'])
+        tm.assert_series_equal(result, expected)        
 
     def test_replace_callable(self):
         # GH 15055
