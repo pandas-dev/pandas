@@ -7,6 +7,7 @@ import pytest
 import pandas as pd
 from pandas import (
     DataFrame, MultiIndex, Series, Timestamp, date_range, isna, notna)
+import pandas.core.common as com
 from pandas.util import testing as tm
 
 
@@ -408,3 +409,31 @@ class TestMultiIndexSetItem(object):
 
         df['A'] = df['A'].astype(np.float64)
         tm.assert_index_equal(df.index, index)
+
+
+def test_frame_setitem_view_direct(multiindex_dataframe_random_data):
+    # this works because we are modifying the underlying array
+    # really a no-no
+    df = multiindex_dataframe_random_data.T
+    df['foo'].values[:] = 0
+    assert (df['foo'].values == 0).all()
+
+
+def test_frame_setitem_copy_raises(multiindex_dataframe_random_data):
+    # will raise/warn as its chained assignment
+    df = multiindex_dataframe_random_data.T
+    msg = "A value is trying to be set on a copy of a slice from a DataFrame"
+    with pytest.raises(com.SettingWithCopyError, match=msg):
+        df['foo']['one'] = 2
+
+
+def test_frame_setitem_copy_no_write(multiindex_dataframe_random_data):
+    frame = multiindex_dataframe_random_data.T
+    expected = frame
+    df = frame.copy()
+    msg = "A value is trying to be set on a copy of a slice from a DataFrame"
+    with pytest.raises(com.SettingWithCopyError, match=msg):
+        df['foo']['one'] = 2
+
+    result = df
+    tm.assert_frame_equal(result, expected)
