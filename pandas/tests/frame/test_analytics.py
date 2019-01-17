@@ -1,7 +1,5 @@
 # -*- coding: utf-8 -*-
 
-from __future__ import print_function
-
 from datetime import timedelta
 import operator
 from string import ascii_lowercase
@@ -1209,7 +1207,6 @@ class TestDataFrameAnalytics():
         tm.assert_frame_equal(result, expected)
 
     def test_operators_timedelta64(self):
-        from datetime import timedelta
         df = DataFrame(dict(A=date_range('2012-1-1', periods=3, freq='D'),
                             B=date_range('2012-1-2', periods=3, freq='D'),
                             C=Timestamp('20120101') -
@@ -1250,12 +1247,9 @@ class TestDataFrameAnalytics():
         mixed['F'] = Timestamp('20130101')
 
         # results in an object array
-        from pandas.core.tools.timedeltas import (
-            _coerce_scalar_to_timedelta_type as _coerce)
-
         result = mixed.min()
-        expected = Series([_coerce(timedelta(seconds=5 * 60 + 5)),
-                           _coerce(timedelta(days=-1)),
+        expected = Series([pd.Timedelta(timedelta(seconds=5 * 60 + 5)),
+                           pd.Timedelta(timedelta(days=-1)),
                            'foo', 1, 1.0,
                            Timestamp('20130101')],
                           index=mixed.columns)

@@ -569,8 +569,6 @@ def coerce_to_dtypes(result, dtypes):
     if len(result) != len(dtypes):
         raise AssertionError("_coerce_to_dtypes requires equal len arrays")
 
-    from pandas.core.tools.timedeltas import _coerce_scalar_to_timedelta_type
-
     def conv(r, dtype):
         try:
             if isna(r):
@@ -578,7 +576,7 @@ def coerce_to_dtypes(result, dtypes):
             elif dtype == _NS_DTYPE:
                 r = tslibs.Timestamp(r)
             elif dtype == _TD_DTYPE:
-                r = _coerce_scalar_to_timedelta_type(r)
+                r = tslibs.Timedelta(r)
             elif dtype == np.bool_:
                 # messy. non 0/1 integers do not get converted.
                 if is_integer(r) and r not in [0, 1]:
