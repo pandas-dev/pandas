@@ -2264,7 +2264,7 @@ class Index(IndexOpsMixin, PandasObject):
         Form the union of two Index objects and sorts if possible.
 
         If the Index objects are incompatible, both Index objects will be
-        cast to dtype('O') first.
+        cast to dtype('object') first.
 
         Parameters
         ----------
@@ -2292,9 +2292,6 @@ class Index(IndexOpsMixin, PandasObject):
         if not self._is_compatible_with_other(other):
             return self._union_incompatible_dtypes(other)
 
-        # This line needs to be after _union_incompatible_dtypes to ensure
-        # the original type of other is not lost after being cast to Index
-        other = ensure_index(other)
         return self._union(other)
 
     def _union(self, other):
@@ -2302,7 +2299,6 @@ class Index(IndexOpsMixin, PandasObject):
         Specific union logic should go here. In subclasses union behavior
         should be overwritten here rather than in `self.union`
         """
-        self._assert_can_do_setop(other)
 
         if not len(other) or self.equals(other):
             return self._get_reconciled_name_object(other)
