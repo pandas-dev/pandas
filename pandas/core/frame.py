@@ -4127,24 +4127,30 @@ class DataFrame(NDFrame):
         4 16     10  2014    31
         """
         inplace = validate_bool_kwarg(inplace, 'inplace')
-        if not isinstance(keys, list):
+
+        err_msg = ('The parameter "keys" may be a column key, one-dimensional '
+                   'array, or a list containing only valid column keys and '
+                   'one-dimensional arrays.')
+
+        if (is_scalar(keys) or isinstance(keys, tuple)
+                or isinstance(keys, (ABCIndexClass, ABCSeries, np.ndarray))):
+            # make sure we have a container of keys/arrays we can iterate over
+            # tuples can appear as valid column keys!
             keys = [keys]
+        elif not isinstance(keys, list):
+            raise ValueError(err_msg)
 
         missing = []
         for col in keys:
-            if (is_scalar(col) or isinstance(col, tuple)) and col in self:
-                # tuples can be both column keys or list-likes
-                # if they are valid column keys, everything is fine
-                continue
-            elif is_scalar(col) and col not in self:
-                # tuples that are not column keys are considered list-like,
-                # not considered missing
-                missing.append(col)
-            elif (not is_list_like(col, allow_sets=False)
+            if (is_scalar(col) or isinstance(col, tuple)):
+                # if col is a valid column key, everything is fine
+                # tuples are always considered keys, never as list-likes
+                if col not in self:
+                    missing.append(col)
+            elif (not isinstance(col, (ABCIndexClass, ABCSeries,
+                                       np.ndarray, list))
                   or getattr(col, 'ndim', 1) > 1):
-                raise TypeError('The parameter "keys" may only contain a '
-                                'combination of valid column keys and '
-                                'one-dimensional list-likes')
+                raise ValueError(err_msg)
 
         if missing:
             raise KeyError('{}'.format(missing))
