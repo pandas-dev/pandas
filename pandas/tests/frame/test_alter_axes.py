@@ -19,7 +19,12 @@ from pandas import (
 import pandas.util.testing as tm
 
 
-ff = tm.get_float_frame()
+@pytest.fixture
+def float_frame():
+    # GH#24769
+    # Because for some reason a test behaves differently depending on
+    #  whether it uses a fixture or not
+    return tm.get_float_frame()
 
 
 class TestDataFrameAlterAxes():
@@ -680,8 +685,7 @@ class TestDataFrameAlterAxes():
         renamed['foo'] = 1.
         assert (float_frame['C'] == 1.).all()
 
-    def test_rename_inplace(self):
-        float_frame = ff  # get from outside local scope
+    def test_rename_inplace(self, float_frame):
 
         float_frame.rename(columns={'C': 'foo'})
         assert 'C' in float_frame
