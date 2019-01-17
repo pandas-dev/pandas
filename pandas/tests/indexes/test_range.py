@@ -8,7 +8,7 @@ import pytest
 from pandas.compat import PY3, range, u
 
 import pandas as pd
-from pandas import Float64Index, Index, Int64Index, RangeIndex, Series, isna
+from pandas import Float64Index, Index, Int64Index, RangeIndex, Series
 import pandas.util.testing as tm
 
 from .test_numeric import Numeric
@@ -884,30 +884,3 @@ class TestRangeIndex(Numeric):
                 # Append single item rather than list
                 result2 = indices[0].append(indices[1])
                 tm.assert_index_equal(result2, expected, exact=True)
-
-    @pytest.mark.parametrize('start,stop,step',
-                             [(0, 400, 3), (500, 0, -6), (-10**6, 10**6, 4),
-                              (10**6, -10**6, -4), (0, 10, 20)])
-    def test_max_min(self, start, stop, step):
-        # GH17607
-        idx = RangeIndex(start, stop, step)
-        expected = idx._int64index.max()
-        result = idx.max()
-        assert result == expected
-
-        # skipna should be irrelevant since RangeIndex should never have NAs
-        result2 = idx.max(skipna=False)
-        assert result2 == expected
-
-        expected = idx._int64index.min()
-        result = idx.min()
-        assert result == expected
-
-        # skipna should be irrelevant since RangeIndex should never have NAs
-        result2 = idx.min(skipna=False)
-        assert result2 == expected
-
-        # empty
-        idx = RangeIndex(start, stop, -step)
-        assert isna(idx.max())
-        assert isna(idx.min())

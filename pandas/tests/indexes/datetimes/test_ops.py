@@ -47,59 +47,6 @@ class TestDatetimeIndexOps(Ops):
         assert s.day == 10
         pytest.raises(AttributeError, lambda: s.weekday)
 
-    def test_minmax_tz(self, tz_naive_fixture):
-        tz = tz_naive_fixture
-        # monotonic
-        idx1 = pd.DatetimeIndex(['2011-01-01', '2011-01-02',
-                                 '2011-01-03'], tz=tz)
-        assert idx1.is_monotonic
-
-        # non-monotonic
-        idx2 = pd.DatetimeIndex(['2011-01-01', pd.NaT, '2011-01-03',
-                                 '2011-01-02', pd.NaT], tz=tz)
-        assert not idx2.is_monotonic
-
-        for idx in [idx1, idx2]:
-            assert idx.min() == Timestamp('2011-01-01', tz=tz)
-            assert idx.max() == Timestamp('2011-01-03', tz=tz)
-            assert idx.argmin() == 0
-            assert idx.argmax() == 2
-
-    @pytest.mark.parametrize('op', ['min', 'max'])
-    def test_minmax_nat(self, op):
-        # Return NaT
-        obj = DatetimeIndex([])
-        assert pd.isna(getattr(obj, op)())
-
-        obj = DatetimeIndex([pd.NaT])
-        assert pd.isna(getattr(obj, op)())
-
-        obj = DatetimeIndex([pd.NaT, pd.NaT, pd.NaT])
-        assert pd.isna(getattr(obj, op)())
-
-    def test_numpy_minmax(self):
-        dr = pd.date_range(start='2016-01-15', end='2016-01-20')
-
-        assert np.min(dr) == Timestamp('2016-01-15 00:00:00', freq='D')
-        assert np.max(dr) == Timestamp('2016-01-20 00:00:00', freq='D')
-
-        errmsg = "the 'out' parameter is not supported"
-        with pytest.raises(ValueError, match=errmsg):
-            np.min(dr, out=0)
-
-        with pytest.raises(ValueError, match=errmsg):
-            np.max(dr, out=0)
-
-        assert np.argmin(dr) == 0
-        assert np.argmax(dr) == 5
-
-        errmsg = "the 'out' parameter is not supported"
-        with pytest.raises(ValueError, match=errmsg):
-            np.argmin(dr, out=0)
-
-        with pytest.raises(ValueError, match=errmsg):
-            np.argmax(dr, out=0)
-
     def test_repeat_range(self, tz_naive_fixture):
         tz = tz_naive_fixture
         rng = date_range('1/1/2000', '1/1/2001')

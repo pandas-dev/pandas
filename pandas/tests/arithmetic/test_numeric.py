@@ -149,10 +149,6 @@ class TestNumericArraylikeArithmeticWithTimedeltaLike(object):
         tm.assert_equal(commute, expected)
 
     def test_numeric_arr_rdiv_tdscalar(self, three_days, numeric_idx, box):
-
-        if box is not pd.Index and isinstance(three_days, pd.offsets.Tick):
-            raise pytest.xfail("Tick division not implemented")
-
         index = numeric_idx[1:3]
 
         expected = TimedeltaIndex(['3 Days', '36 Hours'])
@@ -1059,3 +1055,22 @@ class TestNumericArithmeticUnsorted(object):
             (pd.RangeIndex(-100, -200, 3), 2, pd.RangeIndex(0))]
         for idx, div, expected in cases_exact:
             tm.assert_index_equal(idx // div, expected, exact=True)
+
+    @pytest.mark.parametrize('dtype', [np.int64, np.float64])
+    @pytest.mark.parametrize('delta', [1, 0, -1])
+    def test_addsub_arithmetic(self, dtype, delta):
+        # GH#8142
+        delta = dtype(delta)
+        index = pd.Index([10, 11, 12], dtype=dtype)
+        result = index + delta
+        expected = pd.Index(index.values + delta, dtype=dtype)
+        tm.assert_index_equal(result, expected)
+
+        # this subtraction used to fail
+        result = index - delta
+        expected = pd.Index(index.values - delta, dtype=dtype)
+        tm.assert_index_equal(result, expected)
+
+        tm.assert_index_equal(index + index, 2 * index)
+        tm.assert_index_equal(index - index, 0 * index)
+        assert not (index - index).empty
