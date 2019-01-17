@@ -97,8 +97,10 @@ class TestSeriesAnalytics(object):
                                check_dtype=False)
         tm.assert_series_equal(qindexer, Series(qexpected),
                                check_dtype=False)
-        pytest.raises(AssertionError, tm.assert_numpy_array_equal,
-                      qindexer, mindexer)
+        msg = (r"ndarray Expected type <(class|type) 'numpy\.ndarray'>,"
+               r" found <class 'pandas\.core\.series\.Series'> instead")
+        with pytest.raises(AssertionError, match=msg):
+            tm.assert_numpy_array_equal(qindexer, mindexer)
 
     def test_cumsum(self, datetime_series):
         self._check_accum_op('cumsum', datetime_series)
@@ -476,8 +478,13 @@ class TestSeriesAnalytics(object):
         assert_almost_equal(a.dot(b['1']), expected['1'])
         assert_almost_equal(a.dot(b2['1']), expected['1'])
 
-        pytest.raises(Exception, a.dot, a.values[:3])
-        pytest.raises(ValueError, a.dot, b.T)
+        msg = r"Dot product shape mismatch, \(4L?,\) vs \(3L?,\)"
+        # exception raised is of type Exception
+        with pytest.raises(Exception, match=msg):
+            a.dot(a.values[:3])
+        msg = "matrices are not aligned"
+        with pytest.raises(ValueError, match=msg):
+            a.dot(b.T)
 
     @pytest.mark.skipif(not PY35,
                         reason='matmul supported for Python>=3.5')
@@ -541,8 +548,13 @@ class TestSeriesAnalytics(object):
                           index=['1', '2', '3'])
         assert_series_equal(result, expected)
 
-        pytest.raises(Exception, a.dot, a.values[:3])
-        pytest.raises(ValueError, a.dot, b.T)
+        msg = r"Dot product shape mismatch, \(4,\) vs \(3,\)"
+        # exception raised is of type Exception
+        with pytest.raises(Exception, match=msg):
+            a.dot(a.values[:3])
+        msg = "matrices are not aligned"
+        with pytest.raises(ValueError, match=msg):
+            a.dot(b.T)
 
     def test_clip(self, datetime_series):
         val = datetime_series.median()
@@ -697,11 +709,13 @@ class TestSeriesAnalytics(object):
     def test_isin_with_string_scalar(self):
         # GH4763
         s = Series(['A', 'B', 'C', 'a', 'B', 'B', 'A', 'C'])
-        with pytest.raises(TypeError):
+        msg = (r"only list-like objects are allowed to be passed to isin\(\),"
+               r" you passed a \[str\]")
+        with pytest.raises(TypeError, match=msg):
             s.isin('a')
 
-        with pytest.raises(TypeError):
-            s = Series(['aaa', 'b', 'c'])
+        s = Series(['aaa', 'b', 'c'])
+        with pytest.raises(TypeError, match=msg):
             s.isin('aaa')
 
     def test_isin_with_i8(self):
@@ -771,18 +785,21 @@ class TestSeriesAnalytics(object):
         with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
             tm.assert_series_equal(s.ptp(level=0, skipna=False), expected)
 
-        with pytest.raises(ValueError):
+        msg = r"No axis named 1 for object type <(class|type) 'type'>"
+        with pytest.raises(ValueError, match=msg):
             with tm.assert_produces_warning(FutureWarning,
                                             check_stacklevel=False):
                 s.ptp(axis=1)
 
         s = pd.Series(['a', 'b', 'c', 'd', 'e'])
-        with pytest.raises(TypeError):
+        msg = r"unsupported operand type\(s\) for -: 'str' and 'str'"
+        with pytest.raises(TypeError, match=msg):
             with tm.assert_produces_warning(FutureWarning,
                                             check_stacklevel=False):
                 s.ptp()
 
-        with pytest.raises(NotImplementedError):
+        msg = r"Series\.ptp does not implement numeric_only\."
+        with pytest.raises(NotImplementedError, match=msg):
             with tm.assert_produces_warning(FutureWarning,
                                             check_stacklevel=False):
                 s.ptp(numeric_only=True)
@@ -1103,20 +1120,27 @@ class TestSeriesAnalytics(object):
         param = list(kwargs)[0]
         name = func.__name__
 
-        msg = "the '{}' parameter .* {}".format(param, name)
+        msg = (r"the '{arg}' parameter is not "
+               r"supported in the pandas "
+               r"implementation of {fname}\(\)").format(arg=param, fname=name)
         with pytest.raises(ValueError, match=msg):
             func(s, **kwargs)
 
     @td.skip_if_np_lt_115
     def test_validate_sum_initial(self):
         s = pd.Series([1, 2])
-        with pytest.raises(ValueError, match="the 'initial' .* sum"):
+        msg = (r"the 'initial' parameter is not "
+               r"supported in the pandas "
+               r"implementation of sum\(\)")
+        with pytest.raises(ValueError, match=msg):
             np.sum(s, initial=10)
 
     def test_validate_median_initial(self):
         s = pd.Series([1, 2])
-        with pytest.raises(ValueError,
-                           match="the 'overwrite_input' .* median"):
+        msg = (r"the 'overwrite_input' parameter is not "
+               r"supported in the pandas "
+               r"implementation of median\(\)")
+        with pytest.raises(ValueError, match=msg):
             # It seems like np.median doesn't dispatch, so we use the
             # method instead of the ufunc.
             s.median(overwrite_input=True)
@@ -1124,8 +1148,10 @@ class TestSeriesAnalytics(object):
     @td.skip_if_np_lt_115
     def test_validate_stat_keepdims(self):
         s = pd.Series([1, 2])
-        with pytest.raises(ValueError,
-                           match="the 'keepdims'"):
+        msg = (r"the 'keepdims' parameter is not "
+               r"supported in the pandas "
+               r"implementation of sum\(\)")
+        with pytest.raises(ValueError, match=msg):
             np.sum(s, keepdims=True)
 
 

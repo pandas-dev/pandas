@@ -258,6 +258,7 @@ IntervalIndex Components
    IntervalIndex.get_indexer
    IntervalIndex.set_closed
    IntervalIndex.overlaps
+   IntervalIndex.to_tuples
 
 .. _api.multiindex:
 
