@@ -1674,11 +1674,13 @@ def create_block_manager_from_arrays(arrays, names, axes):
 def construction_error(tot_items, block_shape, axes, e=None):
     """ raise a helpful message about our construction """
     passed = tuple(map(int, [tot_items] + list(block_shape)))
-    if len(passed) == 2:
+    # Correcting the user facing error message during dataframe construction
+    if len(passed) <= 2:
         passed = passed[::-1]
 
     implied = tuple(len(ax) for ax in axes)
-    if len(implied) == 2:
+    # Correcting the user facing error message during dataframe construction
+    if len(implied) <= 2:
         implied = implied[::-1]
 
     if passed == implied and e is not None:
