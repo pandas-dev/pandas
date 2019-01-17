@@ -406,8 +406,7 @@ class _XlrdReader(object):
 
         if isinstance(filepath_or_buffer, xlrd.Book):
             self.book = filepath_or_buffer
-        elif not isinstance(filepath_or_buffer, xlrd.Book) and hasattr(
-                filepath_or_buffer, "read"):
+        elif hasattr(filepath_or_buffer, "read"):
             # N.B. xlrd.Book has a read attribute too
             if hasattr(filepath_or_buffer, 'seek'):
                 try:
@@ -430,31 +429,13 @@ class _XlrdReader(object):
     def sheet_names(self):
         return self.book.sheet_names()
 
-    def parse(self,
-              sheet_name=0,
-              header=0,
-              names=None,
-              index_col=None,
-              usecols=None,
-              squeeze=False,
-              dtype=None,
-              true_values=None,
-              false_values=None,
-              skiprows=None,
-              nrows=None,
-              na_values=None,
-              verbose=False,
-              parse_dates=False,
-              date_parser=None,
-              thousands=None,
-              comment=None,
-              skipfooter=0,
-              convert_float=True,
-              mangle_dupe_cols=True,
-              **kwds):
+    def get_sheet_by_name(self, name):
+        return self.book.sheet_by_name(name)
 
-        _validate_header_arg(header)
+    def get_sheet_by_index(self, index):
+        return self.book.sheet_by_index(index)
 
+    def get_sheet_data(self, sheet, convert_float):
         from xlrd import (xldate, XL_CELL_DATE,
                           XL_CELL_ERROR, XL_CELL_BOOLEAN,
                           XL_CELL_NUMBER)
@@ -497,6 +478,41 @@ class _XlrdReader(object):
                     cell_contents = val
             return cell_contents
 
+        data = []
+
+        for i in range(sheet.nrows):
+            row = [_parse_cell(value, typ)
+                   for value, typ in zip(sheet.row_values(i),
+                                         sheet.row_types(i))]
+            data.append(row)
+
+        return data
+
+    def parse(self,
+              sheet_name=0,
+              header=0,
+              names=None,
+              index_col=None,
+              usecols=None,
+              squeeze=False,
+              dtype=None,
+              true_values=None,
+              false_values=None,
+              skiprows=None,
+              nrows=None,
+              na_values=None,
+              verbose=False,
+              parse_dates=False,
+              date_parser=None,
+              thousands=None,
+              comment=None,
+              skipfooter=0,
+              convert_float=True,
+              mangle_dupe_cols=True,
+              **kwds):
+
+        _validate_header_arg(header)
+
         ret_dict = False
 
         # Keep sheetname to maintain backwards compatibility.
@@ -504,7 +520,7 @@ class _XlrdReader(object):
             sheets = sheet_name
             ret_dict = True
         elif sheet_name is None:
-            sheets = self.book.sheet_names()
+            sheets = self.sheet_names
             ret_dict = True
         else:
             sheets = [sheet_name]
@@ -519,18 +535,12 @@ class _XlrdReader(object):
                 print("Reading sheet {sheet}".format(sheet=asheetname))
 
             if isinstance(asheetname, compat.string_types):
-                sheet = self.book.sheet_by_name(asheetname)
+                sheet = self.get_sheet_by_name(asheetname)
             else:  # assume an integer if not a string
-                sheet = self.book.sheet_by_index(asheetname)
+                sheet = self.get_sheet_by_index(asheetname)
 
-            data = []
+            data = self.get_sheet_data(sheet, convert_float)
             usecols = _maybe_convert_usecols(usecols)
-
-            for i in range(sheet.nrows):
-                row = [_parse_cell(value, typ)
-                       for value, typ in zip(sheet.row_values(i),
-                                             sheet.row_types(i))]
-                data.append(row)
 
             if sheet.nrows == 0:
                 output[asheetname] = DataFrame()
