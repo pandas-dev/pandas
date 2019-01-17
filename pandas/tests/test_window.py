@@ -520,14 +520,14 @@ class TestRolling(Base):
         with pytest.raises(ValueError):
             df.rolling(window=3, closed='neither')
 
-    @pytest.mark.parametrize("func", [('min'), ('max')])
+    @pytest.mark.parametrize("func", ['min', 'max'])
     def test_closed_one_entry(self, func):
         # GH24718
         ser = pd.Series(data=[2], index=pd.date_range('2000', periods=1))
         result = getattr(ser.rolling('10D', closed='left'), func)()
         tm.assert_series_equal(result, pd.Series([np.nan], index=ser.index))
 
-    @pytest.mark.parametrize("func", [('min'), ('max')])
+    @pytest.mark.parametrize("func", ['min', 'max'])
     def test_closed_one_entry_groupby(self, func):
         # GH24718
         ser = pd.DataFrame(data={'A': [1, 1, 2], 'B': [3, 2, 1]},
