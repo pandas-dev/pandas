@@ -436,7 +436,7 @@ Replacing strings using Pattern
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 Be sure to perform a replace of literal strings by passing the
-regex=False parameter to func:`str.replace`. Mainly when the 
+regex=False parameter to func:`str.replace`. Mainly when the
 pattern is 1 size string (:issue:`24809`)
 
 Before:
