@@ -757,15 +757,19 @@ class _MergeOperation(object):
 
             if self.right_index:
                 if len(self.left) > 0:
-                    join_index = self._create_join_index(left_indexer,
-                                                         using_left=True)
+                    join_index = self._create_join_index(self.left.index,
+                                                         self.right.index,
+                                                         left_indexer,
+                                                         how='right')
                 else:
                     join_index = self.right.index.take(right_indexer)
                     left_indexer = np.array([-1] * len(join_index))
             elif self.left_index:
                 if len(self.right) > 0:
-                    join_index = self._create_join_index(right_indexer,
-                                                         using_left=False)
+                    join_index = self._create_join_index(self.right.index,
+                                                         self.left.index,
+                                                         right_indexer,
+                                                         how='left')
                 else:
                     join_index = self.left.index.take(left_indexer)
                     right_indexer = np.array([-1] * len(join_index))
@@ -776,24 +780,33 @@ class _MergeOperation(object):
             join_index = join_index.astype(object)
         return join_index, left_indexer, right_indexer
 
-    def _create_join_index(self, indexer, using_left=True):
-        if using_left:
-            index = self.left.index
-            other_index = self.right.index
-            how_check = 'right'
-        else:
-            index = self.right.index
-            other_index = self.left.index
-            how_check = 'left'
+    def _create_join_index(self, index, other_index, indexer, how='left'):
+        """
+        Create a join index by rearranging one index to match another
 
+        Parameters
+        ----------
+        index: Index being rearranged
+        other_index: Index used to supply values not found in index
+        indexer: how to rearrange index
+        how: replacement is only necessary if indexer based on other_index
+
+        Returns
+        -------
+        join_index
+        """
         join_index = index.take(indexer)
-        if self.how == how_check and not isinstance(other_index, MultiIndex):
-            absent = indexer == -1
-            if any(absent):
+        if (self.how in (how, 'outer') and
+                not isinstance(other_index, MultiIndex)):
+            # if final index requires values in other_index but not target
+            # index, indexer may hold missing (-1) values, causing Index.take
+            # to take the final value in target index
+            mask = indexer == -1
+            if np.any(mask):
                 # if values missing (-1) from target index,
-                # take from other index instead
+                # take from other_index instead
                 join_list = join_index.to_numpy()
-                join_list[absent] = other_index.to_numpy()[absent]
+                join_list[mask] = other_index.to_numpy()[mask]
                 join_index = Index(join_list, dtype=join_index.dtype,
                                    name=join_index.name)
         return join_index

@@ -908,7 +908,8 @@ class TestMerge(object):
         with np.errstate(divide='raise'):
             merge(a, a, on=('a', 'b'))
 
-    def test_merge_on_index_with_more_values(self):
+    @pytest.mark.parametrize('how', ['left', 'outer'])
+    def test_merge_on_index_with_more_values(self, how):
         # GH 24212
         # pd.merge gets [-1, -1, 0, 1] as right_indexer, ensure that -1 is
         # interpreted as a missing value instead of the last element
@@ -918,7 +919,7 @@ class TestMerge(object):
                            columns=['a', 'c'])
         df1.set_index('a', drop=False, inplace=True)
         df2.set_index('a', inplace=True)
-        result = pd.merge(df1, df2, left_index=True, right_on='a', how='left')
+        result = pd.merge(df1, df2, left_index=True, right_on='a', how=how)
         expected = pd.DataFrame([[1, 2, np.nan],
                                  [2, 4, np.nan],
                                  [3, 6, 30.0],
