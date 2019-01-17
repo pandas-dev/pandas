@@ -192,14 +192,12 @@ class TestSeriesUnary(object):
         ser.name = 'series'
         tm.assert_series_equal(-(ser < 0), ~(ser < 0))
 
-    @pytest.mark.parametrize('typ', ['int64', 'int32', 'int16', 'int8',
-                                     'uint64', 'uint32', 'uint16', 'uint8',
-                                     'Int64', 'Int32', 'Int16', 'Int8',
-                                     'UInt64', 'UInt32', 'UInt16', 'UInt8'])
     @pytest.mark.parametrize('op', [operator.pos, operator.neg,
                                     operator.inv, operator.abs])
-    def test_integer(self, typ, op):
+    def test_integer(self, any_numpy_ea_int_dtype, op):
         # GH#23087
+        typ = any_numpy_ea_int_dtype
+
         ser = Series([1, 3, 2], index=range(3), dtype=typ)
         result = op(ser)
         exp = Series(op(ser.values), index=ser.index)
@@ -218,9 +216,11 @@ class TestSeriesUnary(object):
     def test_float_inv_raise(self, float_dtype, op):
         # GH#23087
         ser = Series([1.1, 3.1, 2.1], index=range(3), dtype=float_dtype)
-        pytest.raises(TypeError, op, ser)
+        with pytest.raises(TypeError):
+            op(ser)
         # consistent with numpy
-        pytest.raises(TypeError, op, ser.values)
+        with pytest.raises(TypeError):
+            op(ser.values)
 
     @pytest.mark.skipif(not pd.compat.numpy._np_version_under1p16,
                         reason='NumPy 1.6 or later shows warning when op '
@@ -242,7 +242,8 @@ class TestSeriesUnary(object):
                 tm.assert_numpy_array_equal(~ser.values, op(ser.values))
             else:
                 # inconsistent with NumPy
-                pytest.raises(TypeError, op, ser.values)
+                with pytest.raises(TypeError):
+                    op(ser.values)
         else:
             result = op(ser)
             exp = Series(op(ser.values), index=ser.index)
@@ -259,7 +260,8 @@ class TestSeriesUnary(object):
         ser = Series([pd.Timestamp('2011-01-01'), pd.Timestamp('2011-01-02'),
                       pd.Timestamp('2011-01-03')], index=range(3), dtype=typ)
         # pandas all raises
-        pytest.raises(TypeError, op, ser)
+        with pytest.raises(TypeError):
+            op(ser)
         # inconsistent with NumPy
         tm.assert_numpy_array_equal(ser.values, op(ser.values))
 
@@ -272,8 +274,10 @@ class TestSeriesUnary(object):
         ser = Series([pd.Timestamp('2011-01-01'), pd.Timestamp('2011-01-02'),
                       pd.Timestamp('2011-01-03')], index=range(3), dtype=typ)
         # pandas all raises
-        pytest.raises(TypeError, op, ser)
-        pytest.raises(TypeError, op, ser.values)
+        with pytest.raises(TypeError):
+            op(ser)
+        with pytest.raises(TypeError):
+            op(ser.values)
 
     @pytest.mark.parametrize('typ', ['timedelta64[ns]'])
     @pytest.mark.parametrize('op', [operator.pos, operator.neg,
@@ -292,9 +296,11 @@ class TestSeriesUnary(object):
         # GH#23087
         ser = Series([pd.Timedelta('1 days'), pd.Timedelta('2 days'),
                       pd.Timedelta('3 days')], index=range(3), dtype=typ)
-        pytest.raises(TypeError, op, ser)
+        with pytest.raises(TypeError):
+            op(ser)
         # consistent with numpy
-        pytest.raises(TypeError, op, ser.values)
+        with pytest.raises(TypeError):
+            op(ser.values)
 
     @pytest.mark.skipif(not pd.compat.numpy._np_version_under1p16,
                         reason='NumPy 1.6 or later shows warning when op '
@@ -314,6 +320,8 @@ class TestSeriesUnary(object):
     def test_object_raises(self, typ, op):
         # GH#23087
         ser = Series(['a', 'b', 'c'], index=range(3), dtype=typ)
-        pytest.raises(TypeError, op, ser)
+        with pytest.raises(TypeError):
+            op(ser)
         # consistent with numpy
-        pytest.raises(TypeError, op, ser.values)
+        with pytest.raises(TypeError):
+            op(ser.values)

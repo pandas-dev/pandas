@@ -409,6 +409,7 @@ SIGNED_INT_DTYPES = [int, "int8", "int16", "int32", "int64"]
 SIGNED_EA_INT_DTYPES = ["Int8", "Int16", "Int32", "Int64"]
 ALL_INT_DTYPES = UNSIGNED_INT_DTYPES + SIGNED_INT_DTYPES
 ALL_EA_INT_DTYPES = UNSIGNED_EA_INT_DTYPES + SIGNED_EA_INT_DTYPES
+ALL_NUMPY_EA_INT_DTYPES = ALL_INT_DTYPES + ALL_EA_INT_DTYPES
 
 FLOAT_DTYPES = [float, "float32", "float64"]
 COMPLEX_DTYPES = [complex, "complex64", "complex128"]
@@ -507,6 +508,51 @@ def any_int_dtype(request):
     * 'uint32'
     * 'int64'
     * 'uint64'
+    """
+
+    return request.param
+
+
+@pytest.fixture(params=ALL_EA_INT_DTYPES)
+def any_ea_int_dtype(request):
+    """
+    Parameterized fixture for any integer dtype.
+
+    * 'Int8'
+    * 'UInt8'
+    * 'Int16'
+    * 'UInt16'
+    * 'Int32'
+    * 'UInt32'
+    * 'Int64'
+    * 'UInt64'
+    """
+
+    return request.param
+
+
+@pytest.fixture(params=ALL_NUMPY_EA_INT_DTYPES)
+def any_numpy_ea_int_dtype(request):
+    """
+    Parameterized fixture for any integer dtype.
+
+    * int
+    * 'int8'
+    * 'uint8'
+    * 'int16'
+    * 'uint16'
+    * 'int32'
+    * 'uint32'
+    * 'int64'
+    * 'uint64'
+    * 'Int8'
+    * 'UInt8'
+    * 'Int16'
+    * 'UInt16'
+    * 'Int32'
+    * 'UInt32'
+    * 'Int64'
+    * 'UInt64'
     """
 
     return request.param

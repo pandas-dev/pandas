@@ -183,4 +183,5 @@ class BaseUnaryOpsTests(BaseOpsUtil):
             self.assert_series_equal(result, expected)
         else:
             s = pd.Series(data)
-            pytest.raises(self.exc[op], s, op)
+            with pytest.raises(self.exc[op]):
+                s(op)
