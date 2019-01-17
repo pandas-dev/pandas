@@ -16,7 +16,6 @@ from pandas.core.computation import expr, ops
 from pandas.core.computation.common import _ensure_decoded
 from pandas.core.computation.expr import BaseExprVisitor
 from pandas.core.computation.ops import UndefinedVariableError, is_term
-from pandas.core.tools.timedeltas import _coerce_scalar_to_timedelta_type
 
 from pandas.io.formats.printing import pprint_thing, pprint_thing_encoded
 
@@ -191,7 +190,7 @@ class BinOp(ops.BinOp):
                 v = v.tz_convert('UTC')
             return TermValue(v, v.value, kind)
         elif kind == u('timedelta64') or kind == u('timedelta'):
-            v = _coerce_scalar_to_timedelta_type(v, unit='s').value
+            v = pd.Timedelta(v, unit='s').value
             return TermValue(int(v), v, kind)
         elif meta == u('category'):
             metadata = com.values_from_object(self.metadata)
