@@ -564,7 +564,7 @@ def str_replace(arr, pat, repl, n=-1, case=None, flags=0, regex=True):
             # add case flag, if provided
             if case is False:
                 flags |= re.IGNORECASE
-        if is_compiled_re or len(pat) > 0 or flags or callable(repl):
+        if is_compiled_re or pat or flags or callable(repl):
             n = n if n >= 0 else 0
             compiled = re.compile(pat, flags=flags)
             f = lambda x: compiled.sub(repl=repl, string=x, count=n)
