@@ -795,6 +795,9 @@ Now, the return type is consistently a :class:`DataFrame`.
    and a :class:`DataFrame` with sparse values. The memory usage will
    be the same as in the previous version of pandas.
 
+   Be sure to perform a replace of literal strings by passing the 
+   regex=False parameter to func:`str.replace`.
+
 .. _whatsnew_0240.api_breaking.frame_to_dict_index_orient:
 
 Raise ValueError in ``DataFrame.to_dict(orient='index')``
@@ -1645,6 +1648,7 @@ Strings
 - Bug in :meth:`Index.str.split` was not nan-safe (:issue:`23677`).
 - Bug :func:`Series.str.contains` not respecting the ``na`` argument for a ``Categorical`` dtype ``Series`` (:issue:`22158`)
 - Bug in :meth:`Index.str.cat` when the result contained only ``NaN`` (:issue:`24044`)
+- Bug in :func:`Series.str.replace` not applying regex in patterns of len size = 1 (:issue:`24809`)
 
 Interval
 ^^^^^^^^

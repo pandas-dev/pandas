@@ -1013,8 +1013,8 @@ class TestStringMethods(object):
         values = Series(['abc', '123'])
 
         result = values.str.replace('.', 'foo')
-        chars_replaced_expected = Series(['foofoofoo', 'foofoofoo'])
-        tm.assert_series_equal(result, chars_replaced_expected)
+        expected = Series(['foofoofoo', 'foofoofoo'])
+        tm.assert_series_equal(result, expected)
 
     def test_replace_callable(self):
         # GH 15055
