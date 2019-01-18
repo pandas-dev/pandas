@@ -346,7 +346,7 @@ class TestPandasContainer(object):
         json = StringIO('{"columns":["A","B"],'
                         '"index":["2","3"],'
                         '"data":[[1.0,"1"],[2.0,"2"],[null,"3"]]}')
-        msg = r"Shape of passed values is \(2, 3\), indices imply \(2, 2\)"
+        msg = r"Shape of passed values is \(3, 2\), indices imply \(2, 2\)"
         with pytest.raises(ValueError, match=msg):
             read_json(json, orient="split")
 
