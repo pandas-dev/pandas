@@ -202,7 +202,7 @@ cpdef object to_offset(object freq):
 
     elif PyDelta_Check(freq):
         delta = None
-        from .timedeltas import Timedelta  # TODO: avoid runtime/circular import
+        from .timedeltas import Timedelta
         freq = Timedelta(freq)
         try:
             for name in freq.components._fields:
@@ -259,7 +259,9 @@ cpdef object to_offset(object freq):
     return delta
 
 
-def get_offset(name):
+# TODO: If we can get rid of getOffset alias in frequencies.py, we get make
+#  this just cdef
+cpdef get_offset(name):
     """
     Return DateOffset object associated with rule name
 
