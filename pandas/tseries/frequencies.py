@@ -1,26 +1,21 @@
 # -*- coding: utf-8 -*-
-from datetime import timedelta
-import re
 
 import numpy as np
 from pytz import AmbiguousTimeError
 
 from pandas._libs.algos import unique_deltas
-from pandas._libs.tslibs import Timedelta, Timestamp
+from pandas._libs.tslibs import Timestamp
 from pandas._libs.tslibs.ccalendar import MONTH_ALIASES, int_to_weekday
 from pandas._libs.tslibs.conversion import tz_convert
 from pandas._libs.tslibs.fields import build_field_sarray
-import pandas._libs.tslibs.frequencies as libfreqs
 from pandas._libs.tslibs.frequencies import (  # noqa, semi-public API
     FreqGroup, get_base_alias, get_freq, get_freq_code, get_to_timestamp_base,
     is_subperiod, is_superperiod, _offset_map, get_offset, to_offset,
     _name_to_offset_map)
 from pandas._libs.tslibs.offsets import _offset_to_period_map  # noqa:E402
 import pandas._libs.tslibs.resolution as libresolution
-from pandas._libs.tslibs.resolution import Resolution
+from pandas._libs.tslibs.resolution import Resolution  # noqa:F401
 from pandas._libs.tslibs.timezones import UTC
-import pandas.compat as compat
-from pandas.compat import zip
 from pandas.util._decorators import cache_readonly
 
 from pandas.core.dtypes.common import (
