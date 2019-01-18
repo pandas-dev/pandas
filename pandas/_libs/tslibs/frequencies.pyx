@@ -1,9 +1,14 @@
 # -*- coding: utf-8 -*-
 import re
 
+from cpython.datetime cimport PyDateTime_IMPORT, PyDelta_Check
+PyDateTime_IMPORT
+
+import numpy as np
 cimport numpy as cnp
 cnp.import_array()
 
+from pandas._libs.tslibs cimport util
 from pandas._libs.tslibs.util cimport is_integer_object, is_string_object
 
 from pandas._libs.tslibs.ccalendar import MONTH_NUMBERS
@@ -132,7 +137,126 @@ _offset_map = _c_offset_map  # visible from python modules
 cdef dict _c_prefix_mapping = {}
 prefix_mapping = _c_prefix_mapping  # visible from python modules
 
+cdef dict _c_name_to_offset_map = {}
+_name_to_offset_map = _c_name_to_offset_map  # visible from python modules
+
 # ----------------------------------------------------------------------
+
+def to_offset(freq):
+    """
+    Return DateOffset object from string or tuple representation
+    or datetime.timedelta object
+
+    Parameters
+    ----------
+    freq : str, tuple, datetime.timedelta, DateOffset or None
+
+    Returns
+    -------
+    delta : DateOffset
+        None if freq is None
+
+    Raises
+    ------
+    ValueError
+        If freq is an invalid frequency
+
+    See Also
+    --------
+    pandas.DateOffset
+
+    Examples
+    --------
+    >>> to_offset('5min')
+    <5 * Minutes>
+
+    >>> to_offset('1D1H')
+    <25 * Hours>
+
+    >>> to_offset(('W', 2))
+    <2 * Weeks: weekday=6>
+
+    >>> to_offset((2, 'B'))
+    <2 * BusinessDays>
+
+    >>> to_offset(datetime.timedelta(days=1))
+    <Day>
+
+    >>> to_offset(Hour())
+    <Hour>
+    """
+    if freq is None:
+        return None
+
+    if util.is_offset_object(freq):
+        return freq
+
+    if isinstance(freq, tuple):
+        name = freq[0]
+        stride = freq[1]
+        if isinstance(stride, (str, unicode)):
+            name, stride = stride, name
+        name, _ = _base_and_stride(name)
+        delta = get_offset(name) * stride
+
+    elif PyDelta_Check(freq):
+        delta = None
+        from .timedeltas import Timedelta  # TODO: avoid runtime/circular import
+        freq = Timedelta(freq)
+        try:
+            for name in freq.components._fields:
+                offset = _name_to_offset_map[name]
+                stride = getattr(freq.components, name)
+                if stride != 0:
+                    offset = stride * offset
+                    if delta is None:
+                        delta = offset
+                    else:
+                        delta = delta + offset
+        except Exception:
+            raise ValueError(INVALID_FREQ_ERR_MSG.format(freq))
+
+    else:
+        # TODO: Avoid runtime/circular import
+        from .resolution import Resolution
+
+        delta = None
+        stride_sign = None
+        try:
+            splitted = re.split(opattern, freq)
+            if splitted[-1] != '' and not splitted[-1].isspace():
+                # the last element must be blank
+                raise ValueError('last element must be blank')
+
+            for sep, stride, name in zip(splitted[0::4], splitted[1::4],
+                                         splitted[2::4]):
+                if sep != '' and not sep.isspace():
+                    raise ValueError('separator must be spaces')
+
+                prefix = _lite_rule_alias.get(name) or name
+                if stride_sign is None:
+                    stride_sign = -1 if stride.startswith('-') else 1
+                if not stride:
+                    stride = 1
+                if prefix in Resolution._reso_str_bump_map:
+                    stride, name = Resolution.get_stride_from_decimal(
+                        float(stride), prefix
+                    )
+                stride = int(stride)
+                offset = get_offset(name)
+                offset = offset * int(np.fabs(stride) * stride_sign)
+                if delta is None:
+                    delta = offset
+                else:
+                    delta = delta + offset
+        except Exception:
+            raise ValueError(INVALID_FREQ_ERR_MSG.format(freq))
+
+    if delta is None:
+        raise ValueError(INVALID_FREQ_ERR_MSG.format(freq))
+
+    return delta
+
 
 def get_offset(name):
     """
