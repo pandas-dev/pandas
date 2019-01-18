@@ -10,7 +10,6 @@ import pandas.compat as compat
 import pandas as pd
 from pandas import (
     Series, Timedelta, TimedeltaIndex, timedelta_range, to_timedelta)
-from pandas.core.tools.timedeltas import _coerce_scalar_to_timedelta_type as ct
 import pandas.util.testing as tm
 
 
@@ -373,21 +372,21 @@ class TestTimedeltas(object):
             assert result == expected
 
     def test_numeric_conversions(self):
-        assert ct(0) == np.timedelta64(0, 'ns')
-        assert ct(10) == np.timedelta64(10, 'ns')
-        assert ct(10, unit='ns') == np.timedelta64(10, 'ns').astype('m8[ns]')
+        assert Timedelta(0) == np.timedelta64(0, 'ns')
+        assert Timedelta(10) == np.timedelta64(10, 'ns')
+        assert Timedelta(10, unit='ns') == np.timedelta64(10, 'ns')
 
-        assert ct(10, unit='us') == np.timedelta64(10, 'us').astype('m8[ns]')
-        assert ct(10, unit='ms') == np.timedelta64(10, 'ms').astype('m8[ns]')
-        assert ct(10, unit='s') == np.timedelta64(10, 's').astype('m8[ns]')
-        assert ct(10, unit='d') == np.timedelta64(10, 'D').astype('m8[ns]')
+        assert Timedelta(10, unit='us') == np.timedelta64(10, 'us')
+        assert Timedelta(10, unit='ms') == np.timedelta64(10, 'ms')
+        assert Timedelta(10, unit='s') == np.timedelta64(10, 's')
+        assert Timedelta(10, unit='d') == np.timedelta64(10, 'D')
 
     def test_timedelta_conversions(self):
-        assert (ct(timedelta(seconds=1)) ==
+        assert (Timedelta(timedelta(seconds=1)) ==
                 np.timedelta64(1, 's').astype('m8[ns]'))
-        assert (ct(timedelta(microseconds=1)) ==
+        assert (Timedelta(timedelta(microseconds=1)) ==
                 np.timedelta64(1, 'us').astype('m8[ns]'))
-        assert (ct(timedelta(days=1)) ==
+        assert (Timedelta(timedelta(days=1)) ==
                 np.timedelta64(1, 'D').astype('m8[ns]'))
 
     def test_round(self):
@@ -493,47 +492,49 @@ class TestTimedeltas(object):
         def conv(v):
             return v.astype('m8[ns]')
 
-        assert ct('10') == np.timedelta64(10, 'ns')
-        assert ct('10ns') == np.timedelta64(10, 'ns')
-        assert ct('100') == np.timedelta64(100, 'ns')
-        assert ct('100ns') == np.timedelta64(100, 'ns')
+        assert Timedelta('10') == np.timedelta64(10, 'ns')
+        assert Timedelta('10ns') == np.timedelta64(10, 'ns')
+        assert Timedelta('100') == np.timedelta64(100, 'ns')
+        assert Timedelta('100ns') == np.timedelta64(100, 'ns')
 
-        assert ct('1000') == np.timedelta64(1000, 'ns')
-        assert ct('1000ns') == np.timedelta64(1000, 'ns')
-        assert ct('1000NS') == np.timedelta64(1000, 'ns')
+        assert Timedelta('1000') == np.timedelta64(1000, 'ns')
+        assert Timedelta('1000ns') == np.timedelta64(1000, 'ns')
+        assert Timedelta('1000NS') == np.timedelta64(1000, 'ns')
 
-        assert ct('10us') == np.timedelta64(10000, 'ns')
-        assert ct('100us') == np.timedelta64(100000, 'ns')
-        assert ct('1000us') == np.timedelta64(1000000, 'ns')
-        assert ct('1000Us') == np.timedelta64(1000000, 'ns')
-        assert ct('1000uS') == np.timedelta64(1000000, 'ns')
+        assert Timedelta('10us') == np.timedelta64(10000, 'ns')
+        assert Timedelta('100us') == np.timedelta64(100000, 'ns')
+        assert Timedelta('1000us') == np.timedelta64(1000000, 'ns')
+        assert Timedelta('1000Us') == np.timedelta64(1000000, 'ns')
+        assert Timedelta('1000uS') == np.timedelta64(1000000, 'ns')
 
-        assert ct('1ms') == np.timedelta64(1000000, 'ns')
-        assert ct('10ms') == np.timedelta64(10000000, 'ns')
-        assert ct('100ms') == np.timedelta64(100000000, 'ns')
-        assert ct('1000ms') == np.timedelta64(1000000000, 'ns')
+        assert Timedelta('1ms') == np.timedelta64(1000000, 'ns')
+        assert Timedelta('10ms') == np.timedelta64(10000000, 'ns')
+        assert Timedelta('100ms') == np.timedelta64(100000000, 'ns')
+        assert Timedelta('1000ms') == np.timedelta64(1000000000, 'ns')
 
-        assert ct('-1s') == -np.timedelta64(1000000000, 'ns')
-        assert ct('1s') == np.timedelta64(1000000000, 'ns')
-        assert ct('10s') == np.timedelta64(10000000000, 'ns')
-        assert ct('100s') == np.timedelta64(100000000000, 'ns')
-        assert ct('1000s') == np.timedelta64(1000000000000, 'ns')
+        assert Timedelta('-1s') == -np.timedelta64(1000000000, 'ns')
+        assert Timedelta('1s') == np.timedelta64(1000000000, 'ns')
+        assert Timedelta('10s') == np.timedelta64(10000000000, 'ns')
+        assert Timedelta('100s') == np.timedelta64(100000000000, 'ns')
+        assert Timedelta('1000s') == np.timedelta64(1000000000000, 'ns')
 
-        assert ct('1d') == conv(np.timedelta64(1, 'D'))
-        assert ct('-1d') == -conv(np.timedelta64(1, 'D'))
-        assert ct('1D') == conv(np.timedelta64(1, 'D'))
-        assert ct('10D') == conv(np.timedelta64(10, 'D'))
-        assert ct('100D') == conv(np.timedelta64(100, 'D'))
-        assert ct('1000D') == conv(np.timedelta64(1000, 'D'))
-        assert ct('10000D') == conv(np.timedelta64(10000, 'D'))
+        assert Timedelta('1d') == conv(np.timedelta64(1, 'D'))
+        assert Timedelta('-1d') == -conv(np.timedelta64(1, 'D'))
+        assert Timedelta('1D') == conv(np.timedelta64(1, 'D'))
+        assert Timedelta('10D') == conv(np.timedelta64(10, 'D'))
+        assert Timedelta('100D') == conv(np.timedelta64(100, 'D'))
+        assert Timedelta('1000D') == conv(np.timedelta64(1000, 'D'))
+        assert Timedelta('10000D') == conv(np.timedelta64(10000, 'D'))
 
         # space
-        assert ct(' 10000D ') == conv(np.timedelta64(10000, 'D'))
-        assert ct(' - 10000D ') == -conv(np.timedelta64(10000, 'D'))
+        assert Timedelta(' 10000D ') == conv(np.timedelta64(10000, 'D'))
+        assert Timedelta(' - 10000D ') == -conv(np.timedelta64(10000, 'D'))
 
         # invalid
-        pytest.raises(ValueError, ct, '1foo')
-        pytest.raises(ValueError, ct, 'foo')
+        with pytest.raises(ValueError):
+            Timedelta('1foo')
+        with pytest.raises(ValueError):
+            Timedelta('foo')
 
     def test_full_format_converters(self):
         def conv(v):
@@ -541,25 +542,27 @@ class TestTimedeltas(object):
 
         d1 = np.timedelta64(1, 'D')
 
-        assert ct('1days') == conv(d1)
-        assert ct('1days,') == conv(d1)
-        assert ct('- 1days,') == -conv(d1)
+        assert Timedelta('1days') == conv(d1)
+        assert Timedelta('1days,') == conv(d1)
+        assert Timedelta('- 1days,') == -conv(d1)
 
-        assert ct('00:00:01') == conv(np.timedelta64(1, 's'))
-        assert ct('06:00:01') == conv(np.timedelta64(6 * 3600 + 1, 's'))
-        assert ct('06:00:01.0') == conv(np.timedelta64(6 * 3600 + 1, 's'))
-        assert ct('06:00:01.01') == conv(np.timedelta64(
+        assert Timedelta('00:00:01') == conv(np.timedelta64(1, 's'))
+        assert Timedelta('06:00:01') == conv(np.timedelta64(6 * 3600 + 1, 's'))
+        assert Timedelta('06:00:01.0') == conv(
+            np.timedelta64(6 * 3600 + 1, 's'))
+        assert Timedelta('06:00:01.01') == conv(np.timedelta64(
             1000 * (6 * 3600 + 1) + 10, 'ms'))
 
-        assert (ct('- 1days, 00:00:01') ==
+        assert (Timedelta('- 1days, 00:00:01') ==
                 conv(-d1 + np.timedelta64(1, 's')))
-        assert (ct('1days, 06:00:01') ==
+        assert (Timedelta('1days, 06:00:01') ==
                 conv(d1 + np.timedelta64(6 * 3600 + 1, 's')))
-        assert (ct('1days, 06:00:01.01') ==
+        assert (Timedelta('1days, 06:00:01.01') ==
                 conv(d1 + np.timedelta64(1000 * (6 * 3600 + 1) + 10, 'ms')))
 
         # invalid
-        pytest.raises(ValueError, ct, '- 1days, 00')
+        with pytest.raises(ValueError):
+            Timedelta('- 1days, 00')
 
     def test_overflow(self):
         # GH 9442

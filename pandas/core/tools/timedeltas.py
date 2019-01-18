@@ -4,9 +4,7 @@ timedelta support tools
 
 import numpy as np
 
-from pandas._libs import tslibs
-from pandas._libs.tslibs.timedeltas import (
-    convert_to_timedelta64, parse_timedelta_unit)
+from pandas._libs.tslibs.timedeltas import Timedelta, parse_timedelta_unit
 
 from pandas.core.dtypes.common import is_list_like
 from pandas.core.dtypes.generic import ABCIndexClass, ABCSeries
@@ -120,7 +118,9 @@ def _coerce_scalar_to_timedelta_type(r, unit='ns', box=True, errors='raise'):
     """Convert string 'r' to a timedelta object."""
 
     try:
-        result = convert_to_timedelta64(r, unit)
+        result = Timedelta(r, unit)
+        if not box:
+            result = result.asm8
     except ValueError:
         if errors == 'raise':
             raise
@@ -130,8 +130,6 @@ def _coerce_scalar_to_timedelta_type(r, unit='ns', box=True, errors='raise'):
         # coerce
         result = pd.NaT
 
-    if box:
-        result = tslibs.Timedelta(result)
     return result
 
 

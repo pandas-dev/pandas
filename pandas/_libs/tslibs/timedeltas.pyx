@@ -149,7 +149,7 @@ cpdef int64_t delta_to_nanoseconds(delta) except? -1:
     raise TypeError(type(delta))
 
 
-cpdef convert_to_timedelta64(object ts, object unit):
+cdef convert_to_timedelta64(object ts, object unit):
     """
     Convert an incoming object to a timedelta64 if possible.
     Before calling, unit must be standardized to avoid repeated unit conversion
@@ -178,16 +178,12 @@ cpdef convert_to_timedelta64(object ts, object unit):
         if ts == NPY_NAT:
             return np.timedelta64(NPY_NAT)
         else:
-            if util.is_array(ts):
-                ts = ts.astype('int64').item()
             if unit in ['Y', 'M', 'W']:
                 ts = np.timedelta64(ts, unit)
             else:
                 ts = cast_from_unit(ts, unit)
                 ts = np.timedelta64(ts)
     elif is_float_object(ts):
-        if util.is_array(ts):
-            ts = ts.astype('int64').item()
         if unit in ['Y', 'M', 'W']:
             ts = np.timedelta64(int(ts), unit)
         else:
