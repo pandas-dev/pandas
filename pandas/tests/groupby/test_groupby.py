@@ -736,7 +736,8 @@ def test_omit_nuisance(df):
     grouped = df.groupby({'A': 0, 'C': 0, 'D': 1, 'E': 1}, axis=1)
     msg = (r'\("unsupported operand type\(s\) for \+: '
            "'Timestamp' and 'float'"
-           '"'r", 'occurred at index 0'\)")
+           '"'
+           r", u?'occurred at index 0'\)")
     with pytest.raises(TypeError, match=msg):
         grouped.agg(lambda x: x.sum(0, numeric_only=False))
 
@@ -771,7 +772,7 @@ def test_empty_groups_corner(mframe):
 
 def test_nonsense_func():
     df = DataFrame([0])
-    msg = r"unsupported operand type\(s\) for \+: 'int' and 'str'"
+    msg = r"unsupported operand type\(s\) for \+: '(int|long)' and 'str'"
     with pytest.raises(TypeError, match=msg):
         df.groupby(lambda x: x + 'foo')
 
