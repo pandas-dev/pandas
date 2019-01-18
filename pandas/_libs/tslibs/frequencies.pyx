@@ -125,7 +125,45 @@ _lite_rule_alias = {
 
 _dont_uppercase = {'MS', 'ms'}
 
+#: cache of previously seen offsets
+cdef dict _c_offset_map = {}
+_offset_map = _c_offset_map  # visible from python modules
+
+cdef dict _c_prefix_mapping = {}
+prefix_mapping = _c_prefix_mapping  # visible from python modules
+
 # ----------------------------------------------------------------------
+
+def get_offset(name):
+    """
+    Return DateOffset object associated with rule name
+
+    Examples
+    --------
+    get_offset('EOM') --> BMonthEnd(1)
+    """
+    if name not in _dont_uppercase:
+        name = name.upper()
+        name = _lite_rule_alias.get(name, name)
+        name = _lite_rule_alias.get(name.lower(), name)
+    else:
+        name = _lite_rule_alias.get(name, name)
+
+    if name not in _c_offset_map:
+        try:
+            split = name.split('-')
+            klass = _c_prefix_mapping[split[0]]
+            # handles case where there's no suffix (and will TypeError if too
+            #  many '-')
+            offset = klass._from_name(*split[1:])
+        except (ValueError, TypeError, KeyError):
+            # bad prefix or suffix
+            raise ValueError(INVALID_FREQ_ERR_MSG.format(name))
+        # cache
+        _c_offset_map[name] = offset
+
+    return _c_offset_map[name]
+
 
 cpdef get_freq_code(freqstr):
     """

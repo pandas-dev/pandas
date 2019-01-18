@@ -10,6 +10,7 @@ from pandas._libs.tslibs import (
     NaT, OutOfBoundsDatetime, Timedelta, Timestamp, ccalendar, conversion,
     delta_to_nanoseconds, frequencies as libfrequencies, normalize_date,
     offsets as liboffsets, timezones)
+from pandas._libs.tslibs.frequencies import prefix_mapping
 from pandas._libs.tslibs.offsets import (
     ApplyTypeError, BaseOffset, _get_calendar, _is_normalized, _to_dt64,
     apply_index_wraps, as_datetime, roll_yearday, shift_month)
@@ -2479,7 +2480,9 @@ def generate_range(start=None, end=None, periods=None, offset=BDay()):
             cur = next_date
 
 
-prefix_mapping = {offset._prefix: offset for offset in [
+# We use a dict defined in libfrequencies and update it here to avoid
+#  circular import.
+prefix_mapping.update({offset._prefix: offset for offset in [
     YearBegin,                 # 'AS'
     YearEnd,                   # 'A'
     BYearBegin,                # 'BAS'
@@ -2511,4 +2514,4 @@ prefix_mapping = {offset._prefix: offset for offset in [
     WeekOfMonth,               # 'WOM'
     FY5253,
     FY5253Quarter
-]}
+]})

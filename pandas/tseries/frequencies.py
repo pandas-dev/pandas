@@ -13,7 +13,7 @@ from pandas._libs.tslibs.fields import build_field_sarray
 import pandas._libs.tslibs.frequencies as libfreqs
 from pandas._libs.tslibs.frequencies import (  # noqa, semi-public API
     FreqGroup, get_base_alias, get_freq, get_freq_code, get_to_timestamp_base,
-    is_subperiod, is_superperiod)
+    is_subperiod, is_superperiod, _offset_map, get_offset)
 from pandas._libs.tslibs.offsets import _offset_to_period_map  # noqa:E402
 import pandas._libs.tslibs.resolution as libresolution
 from pandas._libs.tslibs.resolution import Resolution
@@ -56,9 +56,6 @@ try:
     cday = CDay()
 except NotImplementedError:
     cday = None
-
-#: cache of previously seen offsets
-_offset_map = {}
 
 
 def get_period_alias(offset_str):
@@ -165,7 +162,7 @@ def to_offset(freq):
                     stride_sign = -1 if stride.startswith('-') else 1
                 if not stride:
                     stride = 1
-                if prefix in Resolution._reso_str_bump_map.keys():
+                if prefix in Resolution._reso_str_bump_map:
                     stride, name = Resolution.get_stride_from_decimal(
                         float(stride), prefix
                     )
@@ -183,37 +180,6 @@ def to_offset(freq):
         raise ValueError(libfreqs.INVALID_FREQ_ERR_MSG.format(freq))
 
     return delta
-
-
-def get_offset(name):
-    """
-    Return DateOffset object associated with rule name
-
-    Examples
-    --------
-    get_offset('EOM') --> BMonthEnd(1)
-    """
-    if name not in libfreqs._dont_uppercase:
-        name = name.upper()
-        name = libfreqs._lite_rule_alias.get(name, name)
-        name = libfreqs._lite_rule_alias.get(name.lower(), name)
-    else:
-        name = libfreqs._lite_rule_alias.get(name, name)
-
-    if name not in _offset_map:
-        try:
-            split = name.split('-')
-            klass = prefix_mapping[split[0]]
-            # handles case where there's no suffix (and will TypeError if too
-            # many '-')
-            offset = klass._from_name(*split[1:])
-        except (ValueError, TypeError, KeyError):
-            # bad prefix or suffix
-            raise ValueError(libfreqs.INVALID_FREQ_ERR_MSG.format(name))
-        # cache
-        _offset_map[name] = offset
-
-    return _offset_map[name]
 
 
 getOffset = get_offset
