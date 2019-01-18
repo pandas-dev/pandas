@@ -533,12 +533,20 @@ class _Tick(object):
     can do isinstance checks on _Tick and avoid importing tseries.offsets
     """
 
+    # ensure that reversed-ops with numpy scalars return NotImplemented
+    __array_priority__ = 1000
+
     def __truediv__(self, other):
         result = self.delta.__truediv__(other)
         return _wrap_timedelta_result(result)
 
+    def __rtruediv__(self, other):
+        result = self.delta.__rtruediv__(other)
+        return _wrap_timedelta_result(result)
+
     if PY2:
         __div__ = __truediv__
+        __rdiv__ = __rtruediv__
 
 
 # ----------------------------------------------------------------------
