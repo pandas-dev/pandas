@@ -478,7 +478,7 @@ class TestGrouping():
         assert_frame_equal(result1, expected1.T)
 
         # raise exception for non-MultiIndex
-        msg = "level > 0 or level < -1 only valid with  MultiIndex"
+        msg = "level > 0 or level < -1 only valid with MultiIndex"
         with pytest.raises(ValueError, match=msg):
             df.groupby(level=1)
 

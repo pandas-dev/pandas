@@ -840,7 +840,7 @@ def test_groupby_level_nonmulti():
     result = s.groupby(level=[-1]).sum()
     tm.assert_series_equal(result, expected)
 
-    msg = "level > 0 or level < -1 only valid with  MultiIndex"
+    msg = "level > 0 or level < -1 only valid with MultiIndex"
     with pytest.raises(ValueError, match=msg):
         s.groupby(level=1)
     with pytest.raises(ValueError, match=msg):
@@ -853,7 +853,7 @@ def test_groupby_level_nonmulti():
         s.groupby(level=[0, 0])
     with pytest.raises(ValueError, match=msg):
         s.groupby(level=[0, 1])
-    msg = "level > 0 or level < -1 only valid with  MultiIndex"
+    msg = "level > 0 or level < -1 only valid with MultiIndex"
     with pytest.raises(ValueError, match=msg):
         s.groupby(level=[1])
 
