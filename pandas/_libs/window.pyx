@@ -1339,7 +1339,10 @@ cdef _roll_min_max_variable(ndarray[numeric] values,
             Q.push_back(i)
             W.push_back(i)
 
-        output[N-1] = calc_mm(minp, nobs, values[Q.front()])
+        if not Q.empty():
+            output[N-1] = calc_mm(minp, nobs, values[Q.front()])
+        else:
+            output[N-1] = NaN
 
     return output
 
