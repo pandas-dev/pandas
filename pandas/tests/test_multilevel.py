@@ -47,8 +47,10 @@ class Base(object):
         s[3] = np.NaN
         self.series = s
 
+        n = tm.N
         tm.N = 100
         self.tdf = tm.makeTimeDataFrame()
+        tm.N = n
         self.ymd = self.tdf.groupby([lambda x: x.year, lambda x: x.month,
                                      lambda x: x.day]).sum()
 
