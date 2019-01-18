@@ -18,12 +18,10 @@ def multiindex_dataframe_random_data():
 
 
 @pytest.fixture
-def multiindex_year_month_day_dataframe_random_data(monkeypatch):
+def multiindex_year_month_day_dataframe_random_data():
     """DataFrame with 3 level MultiIndex (year, month, day) covering
     first 100 business days from 2000-01-01 with random data"""
-    with monkeypatch.context() as m:
-        m.setattr("pandas.util.testing.N", 100)
-        tdf = tm.makeTimeDataFrame()
+    tdf = tm.makeTimeDataFrame(100)
     ymd = tdf.groupby([lambda x: x.year, lambda x: x.month,
                        lambda x: x.day]).sum()
     # use Int64Index, to make sure things work

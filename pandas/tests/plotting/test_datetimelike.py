@@ -312,10 +312,8 @@ class TestTSPlot(TestPlotBase):
         assert PeriodIndex(data=idx).freqstr == 'B'
 
     @pytest.mark.slow
-    def test_business_freq_convert(self, monkeypatch):
-        with monkeypatch.context() as m:
-            m.setattr("pandas.util.testing.N", 300)
-            bts = tm.makeTimeSeries().asfreq('BM')
+    def test_business_freq_convert(self):
+        bts = tm.makeTimeSeries(300).asfreq('BM')
         ts = bts.to_period('M')
         _, ax = self.plt.subplots()
         bts.plot(ax=ax)

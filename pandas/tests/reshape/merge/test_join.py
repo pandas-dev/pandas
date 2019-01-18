@@ -697,11 +697,11 @@ class TestJoin(object):
             expected = no_overlap.join(p1_suf.join(p2_suf))
             tm.assert_panel_equal(joined, expected)
 
-    def test_panel_join_many(self, monkeypatch):
+    def test_panel_join_many(self):
         with catch_warnings(record=True):
-            with monkeypatch.context() as m:
-                m.setattr("pandas.util.testing.K", 10)
-                panel = tm.makePanel()
+            tm.K = 10
+            panel = tm.makePanel()
+            tm.K = 4
 
             panels = [panel.iloc[:2], panel.iloc[2:6], panel.iloc[6:]]
 
