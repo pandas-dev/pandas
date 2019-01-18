@@ -1816,7 +1816,7 @@ Reshaping
 - Bug in :func:`DataFrame.unstack` where a ``ValueError`` was raised when unstacking timezone aware values (:issue:`18338`)
 - Bug in :func:`DataFrame.stack` where timezone aware values were converted to timezone naive values (:issue:`19420`)
 - Bug in :func:`merge_asof` where a ``TypeError`` was raised when ``by_col`` were timezone aware values (:issue:`21184`)
-- Bug incorrect shape in ``DataFrame`` construction ValueError message. (:issue:`20742`)
+- Bug showing an incorrect shape when throwing error during ``DataFrame`` construction. (:issue:`20742`)
 
 .. _whatsnew_0240.bug_fixes.sparse:
 
