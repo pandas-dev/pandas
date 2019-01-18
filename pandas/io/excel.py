@@ -382,10 +382,10 @@ class _BaseExcelReader(object):
         raise NotImplementedError
 
     def get_sheet_by_name(self, name):
-        raise NotImplementedError        
+        raise NotImplementedError
 
     def get_sheet_by_index(self, index):
-        raise NotImplementedError        
+        raise NotImplementedError
 
     def get_sheet_data(self, sheet, convert_float):
         raise NotImplementedError
@@ -530,7 +530,6 @@ class _BaseExcelReader(object):
             return output
         else:
             return output[asheetname]
-    
 
 
 class _XlrdReader(_BaseExcelReader):
