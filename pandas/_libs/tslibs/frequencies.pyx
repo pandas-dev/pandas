@@ -130,7 +130,7 @@ _lite_rule_alias = {
 
 _dont_uppercase = {'MS', 'ms'}
 
-#: cache of previously seen offsets
+# cache of previously seen offsets
 cdef dict _c_offset_map = {}
 _offset_map = _c_offset_map  # visible from python modules
 
@@ -140,9 +140,10 @@ prefix_mapping = _c_prefix_mapping  # visible from python modules
 cdef dict _c_name_to_offset_map = {}
 _name_to_offset_map = _c_name_to_offset_map  # visible from python modules
 
+
 # ----------------------------------------------------------------------
 
-def to_offset(freq):
+cpdef object to_offset(object freq):
     """
     Return DateOffset object from string or tuple representation
     or datetime.timedelta object

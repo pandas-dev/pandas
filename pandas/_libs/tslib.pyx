@@ -39,7 +39,7 @@ from pandas._libs.tslibs.nattype import nat_strings, iNaT  # noqa:F821
 from pandas._libs.tslibs.nattype cimport (
     checknull_with_nat, NPY_NAT, c_NaT as NaT)
 
-from pandas._libs.tslibs.offsets cimport to_offset
+from pandas._libs.tslibs.frequencies cimport to_offset
 
 from pandas._libs.tslibs.timestamps cimport create_timestamp_from_ts
 from pandas._libs.tslibs.timestamps import Timestamp

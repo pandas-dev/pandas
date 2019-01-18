@@ -7,3 +7,5 @@ cpdef object get_freq(object freq)
 cpdef str get_base_alias(freqstr)
 cpdef int get_to_timestamp_base(int base)
 cpdef str get_freq_str(base, mult=*)
+
+cpdef object to_offset(object freq)

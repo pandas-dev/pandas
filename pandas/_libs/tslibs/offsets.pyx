@@ -84,17 +84,6 @@ for _d in DAYS:
 # ---------------------------------------------------------------------
 # Misc Helpers
 
-cdef to_offset(object obj):
-    """
-    Wrap pandas.tseries.frequencies.to_offset to keep centralize runtime
-    imports
-    """
-    if isinstance(obj, _BaseOffset):
-        return obj
-    from pandas.tseries.frequencies import to_offset
-    return to_offset(obj)
-
-
 def as_datetime(obj):
     f = getattr(obj, 'to_pydatetime', None)
     if f is not None:
@@ -333,6 +322,7 @@ class _BaseOffset(object):
 
     def __eq__(self, other):
         if is_string_object(other):
+            from .frequencies import to_offset
             try:
                 # GH#23524 if to_offset fails, we are dealing with an
                 #  incomparable type so == is False and != is True
