@@ -2129,7 +2129,7 @@ These can easily be converted to a ``PeriodIndex``:
 Time Zone Handling
 ------------------
 
-Pandas provides rich support for working with timestamps in different time
+pandas provides rich support for working with timestamps in different time
 zones using the ``pytz`` and ``dateutil`` libraries.
 
 .. note::
@@ -2147,15 +2147,15 @@ By default, pandas objects are time zone unaware:
    rng = pd.date_range('3/6/2012 00:00', periods=15, freq='D')
    rng.tz is None
 
-To localize these dates to a the time zone, you can use the ``tz_localize`` method
+To localize these dates to a time zone, you can use the ``tz_localize`` method
 or the ``tz`` keyword argument in :func:`date_range`, :class:`Timestamp`, or :class:`DatetimeIndex`.
-You can either pass ``pytz`` or ``dateutil`` timezone objects or time zone strings.
-Time zone strings will return ``pytz`` time zone objects by default.
-To specify ``dateutil`` time zone strings, append ``dateutil/`` before the string.
+You can either pass ``pytz`` or ``dateutil`` time zone objects or Olson time zone database strings.
+Olson time zone strings will return ``pytz`` time zone objects by default.
+To return ``dateutil`` time zone objects, append ``dateutil/`` before the string.
 
 * In ``pytz`` you can find a list of common (and less common) time zones using
   ``from pytz import common_timezones, all_timezones``.
-* ``dateutil`` uses the OS timezones so there isn't a fixed list available. For
+* ``dateutil`` uses the OS time zones so there isn't a fixed list available. For
   common zones, the names are the same as ``pytz``.
 
 .. ipython:: python
@@ -2179,7 +2179,7 @@ To specify ``dateutil`` time zone strings, append ``dateutil/`` before the strin
 
 Note that the ``UTC`` time zone is a special case in ``dateutil`` and should be constructed explicitly
 as an instance of ``dateutil.tz.tzutc``. You can also construct other the time
-zones objects explicitly first,
+zones objects explicitly first.
 
 .. ipython:: python
 
@@ -2207,19 +2207,19 @@ you can use the ``tz_convert`` method.
 .. warning::
 
 	Be wary of conversions between libraries. For some time zones, ``pytz`` and ``dateutil`` have different
-	definitions of the zone. This is more of a problem for unusual timezones than for
+	definitions of the zone. This is more of a problem for unusual time zones than for
 	'standard' zones like ``US/Eastern``.
 
 .. warning::
 
-    Be aware that a timezone definition across versions of timezone libraries may not
+    Be aware that a time zone definition across versions of time zone libraries may not
     be considered equal.  This may cause problems when working with stored data that
     is localized using one version and operated on with a different version.
     See :ref:`here<io.hdf5-notes>` for how to handle such a situation.
 
 .. warning::
 
-    For ``pytz`` time zones, it is incorrect to pass a timezone directly into
+    For ``pytz`` time zones, it is incorrect to pass a time zone object directly into
     the ``datetime.datetime`` constructor
     (e.g., ``datetime.datetime(2011, 1, 1, tz=pytz.timezone('US/Eastern'))``.
     Instead, the datetime needs to be localized using the ``localize`` method
@@ -2235,9 +2235,9 @@ still considered to be equal even if they are in different time zones:
    rng_eastern = rng_utc.tz_convert('US/Eastern')
    rng_berlin = rng_utc.tz_convert('Europe/Berlin')
 
-   rng_eastern[5]
-   rng_berlin[5]
-   rng_eastern[5] == rng_berlin[5]
+   rng_eastern[2]
+   rng_berlin[2]
+   rng_eastern[2] == rng_berlin[2]
 
 Operations between :class:`Series` in different time zones will yield UTC
 :class:`Series`, aligning the data on the UTC timestamps:
@@ -2252,8 +2252,8 @@ Operations between :class:`Series` in different time zones will yield UTC
    result.index
 
 To remove time zone information, use ``tz_localize(None)`` or ``tz_convert(None)``.
-``tz_localize(None)`` will remove timezone holding local time representations.
-``tz_convert(None)`` will remove timezone after converting to UTC time.
+``tz_localize(None)`` will remove the time zone yielding the local time representation.
+``tz_convert(None)`` will remove the time zone after converting to UTC time.
 
 .. ipython:: python
 
@@ -2276,27 +2276,29 @@ because daylight savings time (DST) in a local time zone causes some times to oc
 twice within one day ("clocks fall back"). The following options are available:
 
 * ``'raise'``: Raises a ``pytz.AmbiguousTimeError`` (the default behavior)
-* ``'infer'``: Attempt to determine the correct offset base on the monoticity of the timestamps
+* ``'infer'``: Attempt to determine the correct offset base on the monotonicity of the timestamps
 * ``'NaT'``: Replaces ambiguous times with ``NaT``
-* ``bool``: ``True`` represents a DST time, ``False`` represents non-DST time. An array-like of ``bool``s is supported for a sequence of times.
+* ``bool``: ``True`` represents a DST time, ``False`` represents non-DST time. An array-like of ``bool`` values is supported for a sequence of times.
 
 .. ipython:: python
 
    rng_hourly = pd.DatetimeIndex(['11/06/2011 00:00', '11/06/2011 01:00',
                                   '11/06/2011 01:00', '11/06/2011 02:00'])
 
-This will fail as there are ambiguous times
+This will fail as there are ambiguous times (``'11/06/2011 01:00'``)
 
 .. code-block:: ipython
 
    In [2]: rng_hourly.tz_localize('US/Eastern')
    AmbiguousTimeError: Cannot infer dst time from Timestamp('2011-11-06 01:00:00'), try using the 'ambiguous' argument
 
+Handle these ambiguous times by specifying the following.
+
 .. ipython:: python
 
    rng_hourly.tz_localize('US/Eastern', ambiguous='infer')
    rng_hourly.tz_localize('US/Eastern', ambiguous='NaT')
-   rng_hourly.tz_localize('US/Eastern', ambiguous=[True, True, False, False, False])
+   rng_hourly.tz_localize('US/Eastern', ambiguous=[True, True, False, False])
 
 .. _timeseries.timezone_nonexistent:
 
@@ -2358,27 +2360,27 @@ represented with a dtype of ``datetime64[ns, tz]`` where ``tz`` is the time zone
    s_aware
 
 Both of these :class:`Series` time zone information
-can be manipulated via the ``.dt`` accessor, see :ref:`here <basics.dt_accessors>`.
+can be manipulated via the ``.dt`` accessor, see :ref:`the dt accessor section <basics.dt_accessors>`.
 
-For example, to localize and convert a naive stamp to timezone aware.
+For example, to localize and convert a naive stamp to time zone aware.
 
 .. ipython:: python
 
    s_naive.dt.tz_localize('UTC').dt.tz_convert('US/Eastern')
 
 Time zone information can also be manipulated using the ``astype`` method.
-This method can localize AND convert time zone naive timestamps or
-a convert time zone aware timestamps.
+This method can localize and convert time zone naive timestamps or
+convert time zone aware timestamps.
 
 .. ipython:: python
 
-   # localize and convert a naive timezone
+   # localize and convert a naive time zone
    s_naive.astype('datetime64[ns, US/Eastern]')
 
    # make an aware tz naive
    s_aware.astype('datetime64[ns]')
 
-   # convert to a new timezone
+   # convert to a new time zone
    s_aware.astype('datetime64[ns, CET]')
 
 .. note::
@@ -2392,7 +2394,7 @@ a convert time zone aware timestamps.
       s_naive.to_numpy()
       s_aware.to_numpy()
 
-   By converting to an object array of Timestamps, it preserves the timezone
+   By converting to an object array of Timestamps, it preserves the time zone
    information. For example, when converting back to a Series:
 
    .. ipython:: python
