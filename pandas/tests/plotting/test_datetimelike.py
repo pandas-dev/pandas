@@ -313,10 +313,7 @@ class TestTSPlot(TestPlotBase):
 
     @pytest.mark.slow
     def test_business_freq_convert(self):
-        n = tm.N
-        tm.N = 300
-        bts = tm.makeTimeSeries().asfreq('BM')
-        tm.N = n
+        bts = tm.makeTimeSeries(300).asfreq('BM')
         ts = bts.to_period('M')
         _, ax = self.plt.subplots()
         bts.plot(ax=ax)
