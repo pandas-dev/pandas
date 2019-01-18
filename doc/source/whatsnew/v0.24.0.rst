@@ -1817,6 +1817,7 @@ Reshaping
 - Bug in :func:`DataFrame.unstack` where a ``ValueError`` was raised when unstacking timezone aware values (:issue:`18338`)
 - Bug in :func:`DataFrame.stack` where timezone aware values were converted to timezone naive values (:issue:`19420`)
 - Bug in :func:`merge_asof` where a ``TypeError`` was raised when ``by_col`` were timezone aware values (:issue:`21184`)
+- Bug showing an incorrect shape when throwing error during ``DataFrame`` construction. (:issue:`20742`)
 
 .. _whatsnew_0240.bug_fixes.sparse:
 
@@ -1853,6 +1854,7 @@ Other
 ^^^^^
 
 - Bug where C variables were declared with external linkage causing import errors if certain other C libraries were imported before Pandas. (:issue:`24113`)
+
 
 .. _whatsnew_0.24.0.contributors:
 
