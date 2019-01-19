@@ -18,6 +18,7 @@ from numpy cimport int64_t
 cnp.import_array()
 
 
+from pandas._libs.tslibs cimport util
 from pandas._libs.tslibs.util cimport is_string_object, is_integer_object
 
 from pandas._libs.tslibs.ccalendar import MONTHS, DAYS
@@ -410,6 +411,9 @@ class _BaseOffset(object):
     def __mul__(self, other):
         if hasattr(other, "_typ"):
             return NotImplemented
+        if util.is_array(other):
+            result = [self * x for x in other.ravel()]
+            return np.array(result).reshape(other.shape)
         return type(self)(n=other * self.n, normalize=self.normalize,
                           **self.kwds)
 
