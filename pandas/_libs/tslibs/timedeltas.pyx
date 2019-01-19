@@ -149,7 +149,7 @@ cpdef int64_t delta_to_nanoseconds(delta) except? -1:
     raise TypeError(type(delta))
 
 
-cpdef convert_to_timedelta64(object ts, object unit):
+cdef convert_to_timedelta64(object ts, object unit):
     """
     Convert an incoming object to a timedelta64 if possible.
     Before calling, unit must be standardized to avoid repeated unit conversion
