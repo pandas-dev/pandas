@@ -2147,8 +2147,9 @@ By default, pandas objects are time zone unaware:
    rng = pd.date_range('3/6/2012 00:00', periods=15, freq='D')
    rng.tz is None
 
-To localize these dates to a time zone, you can use the ``tz_localize`` method
-or the ``tz`` keyword argument in :func:`date_range`, :class:`Timestamp`, or :class:`DatetimeIndex`.
+To localize these dates to a time zone (assign a particular time zone to a naive date),
+you can use the ``tz_localize`` method or the ``tz`` keyword argument in
+:func:`date_range`, :class:`Timestamp`, or :class:`DatetimeIndex`.
 You can either pass ``pytz`` or ``dateutil`` time zone objects or Olson time zone database strings.
 Olson time zone strings will return ``pytz`` time zone objects by default.
 To return ``dateutil`` time zone objects, append ``dateutil/`` before the string.
@@ -2178,7 +2179,7 @@ To return ``dateutil`` time zone objects, append ``dateutil/`` before the string
    rng_utc.tz
 
 Note that the ``UTC`` time zone is a special case in ``dateutil`` and should be constructed explicitly
-as an instance of ``dateutil.tz.tzutc``. You can also construct other the time
+as an instance of ``dateutil.tz.tzutc``. You can also construct other time
 zones objects explicitly first.
 
 .. ipython:: python
@@ -2197,7 +2198,7 @@ zones objects explicitly first.
                                 tz=tz_dateutil)
    rng_dateutil.tz == tz_dateutil
 
-To convert a pandas objects from one time zone to another,
+To convert a time zone aware pandas object from one time zone to another,
 you can use the ``tz_convert`` method.
 
 .. ipython:: python
