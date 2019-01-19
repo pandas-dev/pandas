@@ -408,6 +408,8 @@ class _BaseOffset(object):
         return self.apply(other)
 
     def __mul__(self, other):
+        if hasattr(other, "_typ"):
+            return NotImplemented
         return type(self)(n=other * self.n, normalize=self.normalize,
                           **self.kwds)
 
