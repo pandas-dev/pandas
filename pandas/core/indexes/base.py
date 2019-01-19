@@ -2319,9 +2319,9 @@ class Index(IndexOpsMixin, PandasObject):
                 try:
                     result = sorting.safe_sort(result)
                 except TypeError as e:
-                    warnings.warn("%s, sort order is undefined for "
-                                  "incomparable objects" % e, RuntimeWarning,
-                                  stacklevel=3)
+                    warnings.warn("{}, sort order is undefined for "
+                                  "incomparable objects".format(e),
+                                  RuntimeWarning, stacklevel=3)
 
         # for subclasses
         return self._wrap_setop_result(other, result)
@@ -2395,17 +2395,12 @@ class Index(IndexOpsMixin, PandasObject):
         taken = other.take(indexer)
 
         if sort:
-            try:
-                taken = sorting.safe_sort(taken.values)
-                if self.name != other.name:
-                    name = None
-                else:
-                    name = self.name
-                return self._shallow_copy(taken, name=name)
-            except TypeError as e:
-                warnings.warn("%s, sort order is undefined for "
-                              "incomparable objects" % e, RuntimeWarning,
-                              stacklevel=3)
+            taken = sorting.safe_sort(taken.values)
+            if self.name != other.name:
+                name = None
+            else:
+                name = self.name
+            return self._shallow_copy(taken, name=name)
 
         if self.name != other.name:
             taken.name = None
@@ -3252,8 +3247,12 @@ class Index(IndexOpsMixin, PandasObject):
         elif how == 'right':
             join_index = other
         elif how == 'inner':
+            # TODO: sort=False here for backwards compat. It may
+            # be better to use the sort parameter passed into join
             join_index = self.intersection(other, sort=False)
         elif how == 'outer':
+            # TODO: sort=True here for backwards compat. It may
+            # be better to use the sort parameter passed into join
             join_index = self.union(other)
 
         if sort:
