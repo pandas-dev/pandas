@@ -137,11 +137,13 @@ class TestMerge(object):
                   right_on=['key1', 'key2'])
 
     def test_index_and_on_parameters_confusion(self):
-        msg = "right_index parameter must be of type bool, not <class 'list'>"
+        msg = ("right_index parameter must be of type bool, not"
+               r" <(class|type) 'list'>")
         with pytest.raises(ValueError, match=msg):
             merge(self.df, self.df2, how='left',
                   left_index=False, right_index=['key1', 'key2'])
-        msg = "left_index parameter must be of type bool, not <class 'list'>"
+        msg = ("left_index parameter must be of type bool, not "
+               r"<(class|type) 'list'>")
         with pytest.raises(ValueError, match=msg):
             merge(self.df, self.df2, how='left',
                   left_index=['key1', 'key2'], right_index=False)
@@ -575,7 +577,7 @@ class TestMerge(object):
 
         # #2649, #10639
         df2.columns = ['key1', 'foo', 'foo']
-        msg = (r"Data columns not unique: Index\(\['foo', 'foo'\],"
+        msg = (r"Data columns not unique: Index\(\[u?'foo', u?'foo'\],"
                r" dtype='object'\)")
         with pytest.raises(MergeError, match=msg):
             merge(df, df2)
