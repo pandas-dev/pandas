@@ -963,7 +963,7 @@ class TestAppend(ConcatenateBase):
                         name=2)
         msg = ("the other index needs to be an IntervalIndex too, but was"
                r" type {}|"
-               r"object of type '(int|float|Timestamp)' has no len\(\)|"
+               r"object of type '(int|long|float|Timestamp)' has no len\(\)|"
                "Expected tuple, got str")
         with pytest.raises(TypeError, match=msg.format(
                 index_can_append.__class__.__name__)):
@@ -972,9 +972,10 @@ class TestAppend(ConcatenateBase):
         df = pd.DataFrame([[1, 2, 3], [4, 5, 6]],
                           columns=index_cannot_append_with_other)
         ser = pd.Series([7, 8, 9], index=index_can_append, name=2)
-        msg = (r"unorderable types: (Interval|int)\(\) > (int|float|str)\(\)|"
+        msg = (r"unorderable types: (Interval|int)\(\) > "
+               r"(int|long|float|str)\(\)|"
                r"Expected tuple, got (int|long|float|str)|"
-               "Cannot compare type 'Timestamp' with type 'int'")
+               r"Cannot compare type 'Timestamp' with type '(int|long)'")
         with pytest.raises(TypeError, match=msg):
             df.append(ser)
 
