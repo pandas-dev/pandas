@@ -1087,7 +1087,7 @@ class _MergeOperation(object):
         elif validate in ["one_to_many", "1:m"]:
             if not left_unique:
                 raise MergeError("Merge keys are not unique in left dataset;"
-                                 "not a one-to-many merge")
+                                 " not a one-to-many merge")
 
         elif validate in ["many_to_one", "m:1"]:
             if not right_unique:
