@@ -15,6 +15,8 @@ from pandas.util import testing as tm
 
 import pandas.io.formats.format as fmt
 
+lorum_ipsum = "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum."  # noqa    
+
 
 def expected_html(datapath, name):
     """
@@ -600,3 +602,20 @@ def test_to_html_render_links(render_links, expected, datapath):
     result = df.to_html(render_links=render_links)
     expected = expected_html(datapath, expected)
     assert result == expected
+
+
+@pytest.mark.parametrize('max_colwidth', [10, 20, 50, 100])
+def test_display_max_colwidth(max_colwidth):
+    df = DataFrame([lorum_ipsum])
+    with pd.option_context('display.max_colwidth', max_colwidth):
+        result = df._repr_html_()
+    expected = lorum_ipsum[:max_colwidth - 4] + '...'
+    assert expected in result
+
+
+@pytest.mark.parametrize('max_colwidth', [10, 20, 50, 100])
+def test_ignore_display_max_colwidth(max_colwidth):
+    df = DataFrame([lorum_ipsum])
+    with pd.option_context('display.max_colwidth', max_colwidth):
+        result = df.to_html()
+    assert lorum_ipsum in result
