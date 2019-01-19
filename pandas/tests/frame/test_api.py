@@ -7,7 +7,6 @@ from copy import deepcopy
 import pydoc
 
 import numpy as np
-from numpy.random import randn
 import pytest
 
 from pandas.compat import long, lrange, range
@@ -149,8 +148,8 @@ class SharedWithSparse(object):
         pytest.raises(TypeError, hash, empty_frame)
 
     def test_new_empty_index(self):
-        df1 = self.klass(randn(0, 3))
-        df2 = self.klass(randn(0, 3))
+        df1 = self.klass(np.random.randn(0, 3))
+        df2 = self.klass(np.random.randn(0, 3))
         df1.index.name = 'foo'
         assert df2.index.name is None
 

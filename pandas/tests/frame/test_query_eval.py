@@ -5,7 +5,6 @@ from __future__ import print_function
 import operator
 
 import numpy as np
-from numpy.random import randn
 import pytest
 
 from pandas.compat import StringIO, lrange, range, zip
@@ -153,7 +152,7 @@ class TestDataFrameEval(TestData):
 
     def test_eval_resolvers_as_list(self):
         # GH 14095
-        df = DataFrame(randn(10, 2), columns=list('ab'))
+        df = DataFrame(np.random.randn(10, 2), columns=list('ab'))
         dict1 = {'a': 1}
         dict2 = {'b': 2}
         assert (df.eval('a + b', resolvers=[dict1, dict2]) ==
@@ -169,7 +168,7 @@ class TestDataFrameQueryWithMultiIndex(object):
         a = np.random.choice(['red', 'green'], size=10)
         b = np.random.choice(['eggs', 'ham'], size=10)
         index = MultiIndex.from_arrays([a, b], names=['color', 'food'])
-        df = DataFrame(randn(10, 2), index=index)
+        df = DataFrame(np.random.randn(10, 2), index=index)
         ind = Series(df.index.get_level_values('color').values, index=index,
                      name='color')
 
@@ -218,7 +217,7 @@ class TestDataFrameQueryWithMultiIndex(object):
         a = np.random.choice(['red', 'green'], size=10)
         b = np.random.choice(['eggs', 'ham'], size=10)
         index = MultiIndex.from_arrays([a, b])
-        df = DataFrame(randn(10, 2), index=index)
+        df = DataFrame(np.random.randn(10, 2), index=index)
         ind = Series(df.index.get_level_values(0).values, index=index)
 
         res1 = df.query('ilevel_0 == "red"', parser=parser, engine=engine)
@@ -309,7 +308,7 @@ class TestDataFrameQueryWithMultiIndex(object):
         b = np.arange(10)
         index = MultiIndex.from_arrays([a, b])
         index.names = [None, 'rating']
-        df = DataFrame(randn(10, 2), index=index)
+        df = DataFrame(np.random.randn(10, 2), index=index)
         res = df.query('rating == 1', parser=parser, engine=engine)
         ind = Series(df.index.get_level_values('rating').values, index=index,
                      name='rating')
@@ -379,7 +378,7 @@ class TestDataFrameQueryNumExprPandas(object):
     def test_date_query_with_attribute_access(self):
         engine, parser = self.engine, self.parser
         skip_if_no_pandas_parser(parser)
-        df = DataFrame(randn(5, 3))
+        df = DataFrame(np.random.randn(5, 3))
         df['dates1'] = date_range('1/1/2012', periods=5)
         df['dates2'] = date_range('1/1/2013', periods=5)
         df['dates3'] = date_range('1/1/2014', periods=5)
@@ -390,7 +389,7 @@ class TestDataFrameQueryNumExprPandas(object):
 
     def test_date_query_no_attribute_access(self):
         engine, parser = self.engine, self.parser
-        df = DataFrame(randn(5, 3))
+        df = DataFrame(np.random.randn(5, 3))
         df['dates1'] = date_range('1/1/2012', periods=5)
         df['dates2'] = date_range('1/1/2013', periods=5)
         df['dates3'] = date_range('1/1/2014', periods=5)
@@ -402,7 +401,7 @@ class TestDataFrameQueryNumExprPandas(object):
     def test_date_query_with_NaT(self):
         engine, parser = self.engine, self.parser
         n = 10
-        df = DataFrame(randn(n, 3))
+        df = DataFrame(np.random.randn(n, 3))
         df['dates1'] = date_range('1/1/2012', periods=n)
         df['dates2'] = date_range('1/1/2013', periods=n)
         df['dates3'] = date_range('1/1/2014', periods=n)
@@ -416,7 +415,7 @@ class TestDataFrameQueryNumExprPandas(object):
     def test_date_index_query(self):
         engine, parser = self.engine, self.parser
         n = 10
-        df = DataFrame(randn(n, 3))
+        df = DataFrame(np.random.randn(n, 3))
         df['dates1'] = date_range('1/1/2012', periods=n)
         df['dates3'] = date_range('1/1/2014', periods=n)
         df.set_index('dates1', inplace=True, drop=True)
@@ -428,7 +427,7 @@ class TestDataFrameQueryNumExprPandas(object):
     def test_date_index_query_with_NaT(self):
         engine, parser = self.engine, self.parser
         n = 10
-        df = DataFrame(randn(n, 3))
+        df = DataFrame(np.random.randn(n, 3))
         df['dates1'] = date_range('1/1/2012', periods=n)
         df['dates3'] = date_range('1/1/2014', periods=n)
         df.iloc[0, 0] = pd.NaT
@@ -603,7 +602,7 @@ class TestDataFrameQueryNumExprPandas(object):
         skip_if_no_pandas_parser(self.parser)
 
         engine, parser = self.engine, self.parser
-        df = DataFrame(randn(100, 10), columns=list('abcdefghij'))
+        df = DataFrame(np.random.randn(100, 10), columns=list('abcdefghij'))
         b = 1
         expect = df[df.a < b]
         result = df.query('a < @b', engine=engine, parser=parser)
@@ -617,7 +616,7 @@ class TestDataFrameQueryNumExprPandas(object):
         skip_if_no_pandas_parser(self.parser)
         engine, parser = self.engine, self.parser
         cols = list('abc')
-        df = DataFrame(randn(100, len(cols)), columns=cols)
+        df = DataFrame(np.random.randn(100, len(cols)), columns=cols)
         res = df.query('a < b < c and a not in b not in c', engine=engine,
                        parser=parser)
         ind = (df.a < df.b) & (df.b < df.c) & ~df.b.isin(df.a) & ~df.c.isin(df.b)  # noqa
@@ -712,7 +711,7 @@ class TestDataFrameQueryNumExprPython(TestDataFrameQueryNumExprPandas):
 
     def test_date_query_no_attribute_access(self):
         engine, parser = self.engine, self.parser
-        df = DataFrame(randn(5, 3))
+        df = DataFrame(np.random.randn(5, 3))
         df['dates1'] = date_range('1/1/2012', periods=5)
         df['dates2'] = date_range('1/1/2013', periods=5)
         df['dates3'] = date_range('1/1/2014', periods=5)
@@ -724,7 +723,7 @@ class TestDataFrameQueryNumExprPython(TestDataFrameQueryNumExprPandas):
     def test_date_query_with_NaT(self):
         engine, parser = self.engine, self.parser
         n = 10
-        df = DataFrame(randn(n, 3))
+        df = DataFrame(np.random.randn(n, 3))
         df['dates1'] = date_range('1/1/2012', periods=n)
         df['dates2'] = date_range('1/1/2013', periods=n)
         df['dates3'] = date_range('1/1/2014', periods=n)
@@ -738,7 +737,7 @@ class TestDataFrameQueryNumExprPython(TestDataFrameQueryNumExprPandas):
     def test_date_index_query(self):
         engine, parser = self.engine, self.parser
         n = 10
-        df = DataFrame(randn(n, 3))
+        df = DataFrame(np.random.randn(n, 3))
         df['dates1'] = date_range('1/1/2012', periods=n)
         df['dates3'] = date_range('1/1/2014', periods=n)
         df.set_index('dates1', inplace=True, drop=True)
@@ -750,7 +749,7 @@ class TestDataFrameQueryNumExprPython(TestDataFrameQueryNumExprPandas):
     def test_date_index_query_with_NaT(self):
         engine, parser = self.engine, self.parser
         n = 10
-        df = DataFrame(randn(n, 3))
+        df = DataFrame(np.random.randn(n, 3))
         df['dates1'] = date_range('1/1/2012', periods=n)
         df['dates3'] = date_range('1/1/2014', periods=n)
         df.iloc[0, 0] = pd.NaT
@@ -763,7 +762,7 @@ class TestDataFrameQueryNumExprPython(TestDataFrameQueryNumExprPandas):
     def test_date_index_query_with_NaT_duplicates(self):
         engine, parser = self.engine, self.parser
         n = 10
-        df = DataFrame(randn(n, 3))
+        df = DataFrame(np.random.randn(n, 3))
         df['dates1'] = date_range('1/1/2012', periods=n)
         df['dates3'] = date_range('1/1/2014', periods=n)
         df.loc[np.random.rand(n) > 0.5, 'dates1'] = pd.NaT
@@ -845,7 +844,7 @@ class TestDataFrameQueryPythonPython(TestDataFrameQueryNumExprPython):
 class TestDataFrameQueryStrings(object):
 
     def test_str_query_method(self, parser, engine):
-        df = DataFrame(randn(10, 1), columns=['b'])
+        df = DataFrame(np.random.randn(10, 1), columns=['b'])
         df['strings'] = Series(list('aabbccddee'))
         expect = df[df.strings == 'a']
 
@@ -881,7 +880,7 @@ class TestDataFrameQueryStrings(object):
             assert_frame_equal(res, df[~df.strings.isin(['a'])])
 
     def test_str_list_query_method(self, parser, engine):
-        df = DataFrame(randn(10, 1), columns=['b'])
+        df = DataFrame(np.random.randn(10, 1), columns=['b'])
         df['strings'] = Series(list('aabbccddee'))
         expect = df[df.strings.isin(['a', 'b'])]
 
@@ -1017,7 +1016,7 @@ class TestDataFrameQueryStrings(object):
 class TestDataFrameEvalWithFrame(object):
 
     def setup_method(self, method):
-        self.frame = DataFrame(randn(10, 3), columns=list('abc'))
+        self.frame = DataFrame(np.random.randn(10, 3), columns=list('abc'))
 
     def teardown_method(self, method):
         del self.frame

@@ -7,7 +7,6 @@ from distutils.version import LooseVersion
 
 import dateutil
 import numpy as np
-from numpy import nan, random
 import pytest
 
 from pandas.compat import lrange
@@ -39,8 +38,8 @@ class TestDataFrameMissingData(TestData):
 
     def test_dropEmptyRows(self):
         N = len(self.frame.index)
-        mat = random.randn(N)
-        mat[:5] = nan
+        mat = np.random.randn(N)
+        mat[:5] = np.nan
 
         frame = DataFrame({'foo': mat}, index=self.frame.index)
         original = Series(mat, index=self.frame.index, name='foo')
@@ -61,8 +60,8 @@ class TestDataFrameMissingData(TestData):
 
     def test_dropIncompleteRows(self):
         N = len(self.frame.index)
-        mat = random.randn(N)
-        mat[:5] = nan
+        mat = np.random.randn(N)
+        mat[:5] = np.nan
 
         frame = DataFrame({'foo': mat}, index=self.frame.index)
         frame['bar'] = 5
@@ -86,7 +85,7 @@ class TestDataFrameMissingData(TestData):
 
     def test_dropna(self):
         df = DataFrame(np.random.randn(6, 4))
-        df[2][:2] = nan
+        df[2][:2] = np.nan
 
         dropped = df.dropna(axis=1)
         expected = df.loc[:, [0, 1, 3]]
@@ -134,7 +133,7 @@ class TestDataFrameMissingData(TestData):
         dropped = df.dropna(axis=1, how='all')
         assert_frame_equal(dropped, df)
 
-        df[2] = nan
+        df[2] = np.nan
         dropped = df.dropna(axis=1, how='all')
         expected = df.loc[:, [0, 1, 3]]
         assert_frame_equal(dropped, expected)
@@ -209,8 +208,8 @@ class TestDataFrameMissingData(TestData):
 
     def test_fillna(self):
         tf = self.tsframe
-        tf.loc[tf.index[:5], 'A'] = nan
-        tf.loc[tf.index[-5:], 'A'] = nan
+        tf.loc[tf.index[:5], 'A'] = np.nan
+        tf.loc[tf.index[-5:], 'A'] = np.nan
 
         zero_filled = self.tsframe.fillna(0)
         assert (zero_filled.loc[zero_filled.index[:5], 'A'] == 0).all()
@@ -222,8 +221,8 @@ class TestDataFrameMissingData(TestData):
 
         # mixed type
         mf = self.mixed_frame
-        mf.loc[mf.index[5:20], 'foo'] = nan
-        mf.loc[mf.index[-10:], 'A'] = nan
+        mf.loc[mf.index[5:20], 'foo'] = np.nan
+        mf.loc[mf.index[-10:], 'A'] = np.nan
         result = self.mixed_frame.fillna(value=0)
         result = self.mixed_frame.fillna(method='pad')
 
@@ -232,7 +231,7 @@ class TestDataFrameMissingData(TestData):
 
         # mixed numeric (but no float16)
         mf = self.mixed_float.reindex(columns=['A', 'B', 'D'])
-        mf.loc[mf.index[-10:], 'A'] = nan
+        mf.loc[mf.index[-10:], 'A'] = np.nan
         result = mf.fillna(value=0)
         _check_mixed_float(result, dtype=dict(C=None))
 
@@ -453,15 +452,15 @@ class TestDataFrameMissingData(TestData):
         tm.assert_frame_equal(result, expected)
 
     def test_ffill(self):
-        self.tsframe['A'][:5] = nan
-        self.tsframe['A'][-5:] = nan
+        self.tsframe['A'][:5] = np.nan
+        self.tsframe['A'][-5:] = np.nan
 
         assert_frame_equal(self.tsframe.ffill(),
                            self.tsframe.fillna(method='ffill'))
 
     def test_bfill(self):
-        self.tsframe['A'][:5] = nan
-        self.tsframe['A'][-5:] = nan
+        self.tsframe['A'][:5] = np.nan
+        self.tsframe['A'][-5:] = np.nan
 
         assert_frame_equal(self.tsframe.bfill(),
                            self.tsframe.fillna(method='bfill'))
@@ -531,9 +530,9 @@ class TestDataFrameMissingData(TestData):
         tm.assert_frame_equal(df, expected)
 
     def test_fillna_dict_series(self):
-        df = DataFrame({'a': [nan, 1, 2, nan, nan],
-                        'b': [1, 2, 3, nan, nan],
-                        'c': [nan, 1, 2, 3, 4]})
+        df = DataFrame({'a': [np.nan, 1, 2, np.nan, np.nan],
+                        'b': [1, 2, 3, np.nan, np.nan],
+                        'c': [np.nan, 1, 2, 3, 4]})
 
         result = df.fillna({'a': 0, 'b': 5})
 
@@ -556,13 +555,13 @@ class TestDataFrameMissingData(TestData):
 
     def test_fillna_dataframe(self):
         # GH 8377
-        df = DataFrame({'a': [nan, 1, 2, nan, nan],
-                        'b': [1, 2, 3, nan, nan],
-                        'c': [nan, 1, 2, 3, 4]},
+        df = DataFrame({'a': [np.nan, 1, 2, np.nan, np.nan],
+                        'b': [1, 2, 3, np.nan, np.nan],
+                        'c': [np.nan, 1, 2, 3, 4]},
                        index=list('VWXYZ'))
 
         # df2 may have different index and columns
-        df2 = DataFrame({'a': [nan, 10, 20, 30, 40],
+        df2 = DataFrame({'a': [np.nan, 10, 20, 30, 40],
                          'b': [50, 60, 70, 80, 90],
                          'foo': ['bar'] * 5},
                         index=list('VWXuZ'))
@@ -570,9 +569,9 @@ class TestDataFrameMissingData(TestData):
         result = df.fillna(df2)
 
         # only those columns and indices which are shared get filled
-        expected = DataFrame({'a': [nan, 1, 2, nan, 40],
-                              'b': [1, 2, 3, nan, 90],
-                              'c': [nan, 1, 2, 3, 4]},
+        expected = DataFrame({'a': [np.nan, 1, 2, np.nan, 40],
+                              'b': [1, 2, 3, np.nan, 90],
+                              'c': [np.nan, 1, 2, 3, 4]},
                              index=list('VWXYZ'))
 
         assert_frame_equal(result, expected)
@@ -611,8 +610,8 @@ class TestDataFrameMissingData(TestData):
 
     def test_fill_corner(self):
         mf = self.mixed_frame
-        mf.loc[mf.index[5:20], 'foo'] = nan
-        mf.loc[mf.index[-10:], 'A'] = nan
+        mf.loc[mf.index[5:20], 'foo'] = np.nan
+        mf.loc[mf.index[-10:], 'A'] = np.nan
 
         filled = self.mixed_frame.fillna(value=0)
         assert (filled.loc[filled.index[5:20], 'foo'] == 0).all()
