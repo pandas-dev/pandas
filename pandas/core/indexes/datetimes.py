@@ -594,7 +594,7 @@ class DatetimeIndex(DatetimeIndexOpsMixin, Int64Index, DatetimeDelegateMixin):
         name = get_op_result_name(self, other)
         return self._shallow_copy(result, name=name, freq=None, tz=self.tz)
 
-    def intersection(self, other):
+    def intersection(self, other, sort=True):
         """
         Specialized intersection for DatetimeIndex objects. May be much faster
         than Index.intersection
@@ -617,7 +617,7 @@ class DatetimeIndex(DatetimeIndexOpsMixin, Int64Index, DatetimeDelegateMixin):
                 other = DatetimeIndex(other)
             except (TypeError, ValueError):
                 pass
-            result = Index.intersection(self, other)
+            result = Index.intersection(self, other, sort=sort)
             if isinstance(result, DatetimeIndex):
                 if result.freq is None:
                     result.freq = to_offset(result.inferred_freq)
@@ -627,7 +627,7 @@ class DatetimeIndex(DatetimeIndexOpsMixin, Int64Index, DatetimeDelegateMixin):
               other.freq != self.freq or
               not other.freq.isAnchored() or
               (not self.is_monotonic or not other.is_monotonic)):
-            result = Index.intersection(self, other)
+            result = Index.intersection(self, other, sort=sort)
             # Invalidate the freq of `result`, which may not be correct at
             # this point, depending on the values.
             result.freq = None

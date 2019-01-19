@@ -200,7 +200,21 @@ def item_from_zerodim(val: object) -> object:
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
-def fast_unique_multiple(list arrays):
+def fast_unique_multiple(list arrays, sort: bool=True):
+    """
+    Generate a list of unique values from a list of arrays.
+
+    Parameters
+    ----------
+    list : array-like
+        A list of array-like objects
+    sort : boolean
+        Whether or not to sort the resulting unique list
+
+    Returns
+    -------
+    unique_list : list of unique values
+    """
     cdef:
         ndarray[object] buf
         Py_ssize_t k = len(arrays)
@@ -217,10 +231,11 @@ def fast_unique_multiple(list arrays):
             if val not in table:
                 table[val] = stub
                 uniques.append(val)
-    try:
-        uniques.sort()
-    except Exception:
-        pass
+    if sort:
+        try:
+            uniques.sort()
+        except Exception:
+            pass
 
     return uniques
 

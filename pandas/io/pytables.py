@@ -4473,7 +4473,7 @@ def _reindex_axis(obj, axis, labels, other=None):
 
     labels = ensure_index(labels.unique())
     if other is not None:
-        labels = ensure_index(other.unique()) & labels
+        labels = ensure_index(other.unique()).intersection(labels, sort=False)
     if not labels.equals(ax):
         slicer = [slice(None, None)] * obj.ndim
         slicer[axis] = labels

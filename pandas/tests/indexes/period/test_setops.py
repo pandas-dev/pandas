@@ -38,10 +38,11 @@ class TestPeriodIndex(object):
                           df.columns[0], df.columns[1]], object)
         tm.assert_index_equal(res, expected)
 
-    def test_union(self):
+    @pytest.mark.parametrize("sort", [True, False])
+    def test_union(self, sort):
         # union
-        rng1 = pd.period_range('1/1/2000', freq='D', periods=5)
-        other1 = pd.period_range('1/6/2000', freq='D', periods=5)
+        other1 = pd.period_range('1/1/2000', freq='D', periods=5)
+        rng1 = pd.period_range('1/6/2000', freq='D', periods=5)
         expected1 = pd.period_range('1/1/2000', freq='D', periods=10)
 
         rng2 = pd.period_range('1/1/2000', freq='D', periods=5)
@@ -78,32 +79,46 @@ class TestPeriodIndex(object):
         other7 = pd.period_range('1998-01-01', freq='A', periods=8)
         expected7 = pd.period_range('1998-01-01', freq='A', periods=10)
 
+        rng8 = pd.PeriodIndex(['1/3/2000', '1/2/2000', '1/1/2000',
+                               '1/5/2000', '1/4/2000'], freq='D')
+        other8 = pd.period_range('1/6/2000', freq='D', periods=5)
+        expected8 = pd.PeriodIndex(['1/3/2000', '1/2/2000', '1/1/2000',
+                                    '1/5/2000', '1/4/2000', '1/6/2000',
+                                    '1/7/2000', '1/8/2000', '1/9/2000',
+                                    '1/10/2000'], freq='D')
+
         for rng, other, expected in [(rng1, other1, expected1),
                                      (rng2, other2, expected2),
-                                     (rng3, other3, expected3), (rng4, other4,
-                                                                 expected4),
-                                     (rng5, other5, expected5), (rng6, other6,
-                                                                 expected6),
-                                     (rng7, other7, expected7)]:
+                                     (rng3, other3, expected3),
+                                     (rng4, other4, expected4),
+                                     (rng5, other5, expected5),
+                                     (rng6, other6, expected6),
+                                     (rng7, other7, expected7),
+                                     (rng8, other8, expected8)]:
 
-            result_union = rng.union(other)
+            result_union = rng.union(other, sort=sort)
+            if sort:
+                expected = expected.sort_values()
             tm.assert_index_equal(result_union, expected)
 
-    def test_union_misc(self):
+    @pytest.mark.parametrize("sort", [True, False])
+    def test_union_misc(self, sort):
         index = period_range('1/1/2000', '1/20/2000', freq='D')
 
-        result = index[:-5].union(index[10:])
+        result = index[:-5].union(index[10:], sort=sort)
         tm.assert_index_equal(result, index)
 
         # not in order
-        result = _permute(index[:-5]).union(_permute(index[10:]))
-        tm.assert_index_equal(result, index)
+        result = _permute(index[:-5]).union(_permute(index[10:]), sort=sort)
+        if sort:
+            tm.assert_index_equal(result, index)
+        assert tm.equalContents(result, index)
 
         # raise if different frequencies
         index = period_range('1/1/2000', '1/20/2000', freq='D')
         index2 = period_range('1/1/2000', '1/20/2000', freq='W-WED')
         with pytest.raises(period.IncompatibleFrequency):
-            index.union(index2)
+            index.union(index2, sort=sort)
 
         msg = 'can only call with other PeriodIndex-ed objects'
         with pytest.raises(ValueError, match=msg):
@@ -124,29 +139,33 @@ class TestPeriodIndex(object):
         exp = pd.period_range('1/1/1980', '1/1/2012', freq='M')
         tm.assert_index_equal(df.index, exp)
 
-    def test_intersection(self):
+    @pytest.mark.parametrize("sort", [True, False])
+    def test_intersection(self, sort):
         index = period_range('1/1/2000', '1/20/2000', freq='D')
 
-        result = index[:-5].intersection(index[10:])
+        result = index[:-5].intersection(index[10:], sort=sort)
         tm.assert_index_equal(result, index[10:-5])
 
         # not in order
         left = _permute(index[:-5])
         right = _permute(index[10:])
-        result = left.intersection(right).sort_values()
-        tm.assert_index_equal(result, index[10:-5])
+        result = left.intersection(right, sort=sort)
+        if sort:
+            tm.assert_index_equal(result, index[10:-5])
+        assert tm.equalContents(result, index[10:-5])
 
         # raise if different frequencies
         index = period_range('1/1/2000', '1/20/2000', freq='D')
         index2 = period_range('1/1/2000', '1/20/2000', freq='W-WED')
         with pytest.raises(period.IncompatibleFrequency):
-            index.intersection(index2)
+            index.intersection(index2, sort=sort)
 
         index3 = period_range('1/1/2000', '1/20/2000', freq='2D')
         with pytest.raises(period.IncompatibleFrequency):
-            index.intersection(index3)
+            index.intersection(index3, sort=sort)
 
-    def test_intersection_cases(self):
+    @pytest.mark.parametrize("sort", [True, False])
+    def test_intersection_cases(self, sort):
         base = period_range('6/1/2000', '6/30/2000', freq='D', name='idx')
 
         # if target has the same name, it is preserved
@@ -164,7 +183,7 @@ class TestPeriodIndex(object):
 
         for (rng, expected) in [(rng2, expected2), (rng3, expected3),
                                 (rng4, expected4)]:
-            result = base.intersection(rng)
+            result = base.intersection(rng, sort=sort)
             tm.assert_index_equal(result, expected)
             assert result.name == expected.name
             assert result.freq == expected.freq
@@ -190,7 +209,9 @@ class TestPeriodIndex(object):
 
         for (rng, expected) in [(rng2, expected2), (rng3, expected3),
                                 (rng4, expected4)]:
-            result = base.intersection(rng)
+            result = base.intersection(rng, sort=sort)
+            if sort:
+                expected = expected.sort_values()
             tm.assert_index_equal(result, expected)
             assert result.name == expected.name
             assert result.freq == 'D'
@@ -254,7 +275,7 @@ class TestPeriodIndex(object):
                                      (rng5, other5, expected5),
                                      (rng6, other6, expected6),
                                      (rng7, other7, expected7), ]:
-            result_union = rng.difference(other, sort)
+            result_difference = rng.difference(other, sort=sort)
             if sort:
                 expected = expected.sort_values()
-            tm.assert_index_equal(result_union, expected)
+            tm.assert_index_equal(result_difference, expected)

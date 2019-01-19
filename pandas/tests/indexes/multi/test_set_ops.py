@@ -9,91 +9,110 @@ import pandas.util.testing as tm
 
 
 @pytest.mark.parametrize("case", [0.5, "xxx"])
+@pytest.mark.parametrize("sort", [True, False])
 @pytest.mark.parametrize("method", ["intersection", "union",
                                     "difference", "symmetric_difference"])
-def test_set_ops_error_cases(idx, case, method):
+def test_set_ops_error_cases(idx, case, sort, method):
     # non-iterable input
     msg = "Input must be Index or array-like"
     with pytest.raises(TypeError, match=msg):
-        getattr(idx, method)(case)
+        getattr(idx, method)(case, sort=sort)
 
 
-def test_intersection_base(idx):
+@pytest.mark.parametrize("sort", [True, False])
+def test_intersection_base(idx, sort):
     first = idx[:5]
     second = idx[:3]
-    intersect = first.intersection(second)
+    intersect = first.intersection(second, sort=sort)
 
+    if sort:
+        tm.assert_index_equal(intersect, second.sort_values())
     assert tm.equalContents(intersect, second)
 
     # GH 10149
     cases = [klass(second.values)
              for klass in [np.array, Series, list]]
     for case in cases:
-        result = first.intersection(case)
+        result = first.intersection(case, sort=sort)
+        if sort:
+            tm.assert_index_equal(result, second.sort_values())
         assert tm.equalContents(result, second)
 
     msg = "other must be a MultiIndex or a list of tuples"
     with pytest.raises(TypeError, match=msg):
-        first.intersection([1, 2, 3])
+        first.intersection([1, 2, 3], sort=sort)
 
 
-def test_union_base(idx):
+@pytest.mark.parametrize("sort", [True, False])
+def test_union_base(idx, sort):
     first = idx[3:]
     second = idx[:5]
     everything = idx
-    union = first.union(second)
+    union = first.union(second, sort=sort)
+    if sort:
+        tm.assert_index_equal(union, everything.sort_values())
     assert tm.equalContents(union, everything)
 
     # GH 10149
     cases = [klass(second.values)
              for klass in [np.array, Series, list]]
     for case in cases:
-        result = first.union(case)
+        result = first.union(case, sort=sort)
+        if sort:
+            tm.assert_index_equal(result, everything.sort_values())
         assert tm.equalContents(result, everything)
 
     msg = "other must be a MultiIndex or a list of tuples"
     with pytest.raises(TypeError, match=msg):
-        first.union([1, 2, 3])
+        first.union([1, 2, 3], sort=sort)
 
 
 @pytest.mark.parametrize("sort", [True, False])
 def test_difference_base(idx, sort):
-    first = idx[2:]
-    second = idx[:4]
-    answer = idx[4:]
-    result = first.difference(second, sort)
+    second = idx[4:]
+    answer = idx[:4]
+    result = idx.difference(second, sort=sort)
 
-    assert tm.equalContents(result, answer)
+    if sort:
+        answer = answer.sort_values()
+
+    assert result.equals(answer)
+    tm.assert_index_equal(result, answer)
 
     # GH 10149
     cases = [klass(second.values)
              for klass in [np.array, Series, list]]
     for case in cases:
-        result = first.difference(case, sort)
-        assert tm.equalContents(result, answer)
+        result = idx.difference(case, sort=sort)
+        tm.assert_index_equal(result, answer)
 
     msg = "other must be a MultiIndex or a list of tuples"
     with pytest.raises(TypeError, match=msg):
-        first.difference([1, 2, 3], sort)
+        idx.difference([1, 2, 3], sort=sort)
 
 
-def test_symmetric_difference(idx):
+@pytest.mark.parametrize("sort", [True, False])
+def test_symmetric_difference(idx, sort):
     first = idx[1:]
     second = idx[:-1]
-    answer = idx[[0, -1]]
-    result = first.symmetric_difference(second)
-    assert tm.equalContents(result, answer)
+    answer = idx[[-1, 0]]
+    result = first.symmetric_difference(second, sort=sort)
+
+    if sort:
+        answer = answer.sort_values()
+
+    tm.assert_index_equal(result, answer)
 
     # GH 10149
     cases = [klass(second.values)
              for klass in [np.array, Series, list]]
     for case in cases:
-        result = first.symmetric_difference(case)
-        assert tm.equalContents(result, answer)
+        result = first.symmetric_difference(case, sort=sort)
+        tm.assert_index_equal(result, answer)
 
     msg = "other must be a MultiIndex or a list of tuples"
     with pytest.raises(TypeError, match=msg):
-        first.symmetric_difference([1, 2, 3])
+        first.symmetric_difference([1, 2, 3], sort=sort)
 
 
 def test_empty(idx):
@@ -106,7 +125,7 @@ def test_empty(idx):
 def test_difference(idx, sort):
 
     first = idx
-    result = first.difference(idx[-3:], sort)
+    result = first.difference(idx[-3:], sort=sort)
     vals = idx[:-3].values
 
     if sort:
@@ -119,21 +138,22 @@ def test_difference(idx, sort):
     assert isinstance(result, MultiIndex)
     assert result.equals(expected)
     assert result.names == idx.names
+    tm.assert_index_equal(result, expected)
 
     # empty difference: reflexive
-    result = idx.difference(idx, sort)
+    result = idx.difference(idx, sort=sort)
     expected = idx[:0]
     assert result.equals(expected)
     assert result.names == idx.names
 
     # empty difference: superset
-    result = idx[-3:].difference(idx, sort)
+    result = idx[-3:].difference(idx, sort=sort)
     expected = idx[:0]
     assert result.equals(expected)
     assert result.names == idx.names
 
     # empty difference: degenerate
-    result = idx[:0].difference(idx, sort)
+    result = idx[:0].difference(idx, sort=sort)
     expected = idx[:0]
     assert result.equals(expected)
     assert result.names == idx.names
@@ -141,24 +161,24 @@ def test_difference(idx, sort):
     # names not the same
     chunklet = idx[-3:]
     chunklet.names = ['foo', 'baz']
-    result = first.difference(chunklet, sort)
+    result = first.difference(chunklet, sort=sort)
     assert result.names == (None, None)
 
     # empty, but non-equal
-    result = idx.difference(idx.sortlevel(1)[0], sort)
+    result = idx.difference(idx.sortlevel(1)[0], sort=sort)
     assert len(result) == 0
 
     # raise Exception called with non-MultiIndex
-    result = first.difference(first.values, sort)
+    result = first.difference(first.values, sort=sort)
     assert result.equals(first[:0])
 
     # name from empty array
-    result = first.difference([], sort)
+    result = first.difference([], sort=sort)
     assert first.equals(result)
     assert first.names == result.names
 
     # name from non-empty array
-    result = first.difference([('foo', 'one')], sort)
+    result = first.difference([('foo', 'one')], sort=sort)
     expected = pd.MultiIndex.from_tuples([('bar', 'one'), ('baz', 'two'), (
         'foo', 'two'), ('qux', 'one'), ('qux', 'two')])
     expected.names = first.names
@@ -166,25 +186,26 @@ def test_difference(idx, sort):
 
     msg = "other must be a MultiIndex or a list of tuples"
     with pytest.raises(TypeError, match=msg):
-        first.difference([1, 2, 3, 4, 5])
+        first.difference([1, 2, 3, 4, 5], sort=sort)
 
 
-def test_union(idx):
+@pytest.mark.parametrize("sort", [True, False])
+def test_union(idx, sort):
     piece1 = idx[:5][::-1]
     piece2 = idx[3:]
 
-    the_union = piece1 | piece2
+    the_union = piece1.union(piece2, sort=sort)
 
-    tups = sorted(idx.values)
-    expected = MultiIndex.from_tuples(tups)
+    if sort:
+        tm.assert_index_equal(the_union, idx.sort_values())
 
-    assert the_union.equals(expected)
+    assert tm.equalContents(the_union, idx)
 
     # corner case, pass self or empty thing:
-    the_union = idx.union(idx)
+    the_union = idx.union(idx, sort=sort)
     assert the_union is idx
 
-    the_union = idx.union(idx[:0])
+    the_union = idx.union(idx[:0], sort=sort)
     assert the_union is idx
 
     # won't work in python 3
@@ -204,21 +225,23 @@ def test_union(idx):
     #     assert result.equals(result2)
 
 
-def test_intersection(idx):
+@pytest.mark.parametrize("sort", [True, False])
+def test_intersection(idx, sort):
     piece1 = idx[:5][::-1]
     piece2 = idx[3:]
 
-    the_int = piece1 & piece2
-    tups = sorted(idx[3:5].values)
-    expected = MultiIndex.from_tuples(tups)
-    assert the_int.equals(expected)
+    the_int = piece1.intersection(piece2, sort=sort)
+
+    if sort:
+        tm.assert_index_equal(the_int, idx[3:5])
+    assert tm.equalContents(the_int, idx[3:5])
 
     # corner case, pass self
-    the_int = idx.intersection(idx)
+    the_int = idx.intersection(idx, sort=sort)
     assert the_int is idx
 
     # empty intersection: disjoint
-    empty = idx[:2] & idx[2:]
+    empty = idx[:2].intersection(idx[2:], sort=sort)
     expected = idx[:0]
     assert empty.equals(expected)
 

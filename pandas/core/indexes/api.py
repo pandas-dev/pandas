@@ -112,7 +112,7 @@ def _get_combined_index(indexes, intersect=False, sort=False):
     elif intersect:
         index = indexes[0]
         for other in indexes[1:]:
-            index = index.intersection(other)
+            index = index.intersection(other, sort=sort)
     else:
         index = _union_indexes(indexes, sort=sort)
         index = ensure_index(index)
