@@ -11,10 +11,7 @@ from pandas._libs.tslibs.ccalendar import MONTH_ALIASES, int_to_weekday
 from pandas._libs.tslibs.conversion import tz_convert
 from pandas._libs.tslibs.fields import build_field_sarray
 import pandas._libs.tslibs.frequencies as libfreqs
-from pandas._libs.tslibs.frequencies import (  # noqa, semi-public API
-    FreqGroup, get_base_alias, get_freq, get_freq_code, get_to_timestamp_base,
-    is_subperiod, is_superperiod)
-from pandas._libs.tslibs.offsets import _offset_to_period_map  # noqa:E402
+from pandas._libs.tslibs.offsets import _offset_to_period_map
 import pandas._libs.tslibs.resolution as libresolution
 from pandas._libs.tslibs.resolution import Resolution
 from pandas._libs.tslibs.timezones import UTC
@@ -28,19 +25,8 @@ from pandas.core.dtypes.generic import ABCSeries
 
 from pandas.core.algorithms import unique
 
-from pandas.tseries.offsets import (  # noqa
-    BDay, BMonthBegin, BMonthEnd, BQuarterBegin, BQuarterEnd, BYearBegin,
-    BYearEnd, CDay, DateOffset, Day, Hour, Micro, Milli, Minute, MonthBegin,
-    MonthEnd, Nano, QuarterBegin, QuarterEnd, Second, Week, YearBegin, YearEnd,
-    prefix_mapping)
-
-RESO_NS = 0
-RESO_US = 1
-RESO_MS = 2
-RESO_SEC = 3
-RESO_MIN = 4
-RESO_HR = 5
-RESO_DAY = 6
+from pandas.tseries.offsets import (
+    DateOffset, Day, Hour, Micro, Milli, Minute, Nano, Second, prefix_mapping)
 
 _ONE_MICRO = 1000
 _ONE_MILLI = (_ONE_MICRO * 1000)
@@ -51,11 +37,6 @@ _ONE_DAY = (24 * _ONE_HOUR)
 
 # ---------------------------------------------------------------------
 # Offset names ("time rules") and related functions
-
-try:
-    cday = CDay()
-except NotImplementedError:
-    cday = None
 
 #: cache of previously seen offsets
 _offset_map = {}
@@ -216,8 +197,6 @@ def get_offset(name):
     return _offset_map[name]
 
 
-getOffset = get_offset
-
 # ---------------------------------------------------------------------
 # Period codes
 
@@ -314,7 +293,7 @@ class _FrequencyInferer(object):
     def is_unique_asi8(self):
         return len(self.deltas_asi8) == 1
 
-    def get_freq(self):  # noqa:F811
+    def get_freq(self):
         """
         Find the appropriate frequency string to describe the inferred
         frequency of self.values

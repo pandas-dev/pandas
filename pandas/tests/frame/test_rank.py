@@ -3,7 +3,6 @@ from datetime import datetime, timedelta
 from distutils.version import LooseVersion
 
 import numpy as np
-from numpy import nan
 import pytest
 
 from pandas import DataFrame, Series
@@ -13,16 +12,16 @@ from pandas.util.testing import assert_frame_equal
 
 
 class TestRank(TestData):
-    s = Series([1, 3, 4, 2, nan, 2, 1, 5, nan, 3])
+    s = Series([1, 3, 4, 2, np.nan, 2, 1, 5, np.nan, 3])
     df = DataFrame({'A': s, 'B': s})
 
     results = {
-        'average': np.array([1.5, 5.5, 7.0, 3.5, nan,
-                             3.5, 1.5, 8.0, nan, 5.5]),
-        'min': np.array([1, 5, 7, 3, nan, 3, 1, 8, nan, 5]),
-        'max': np.array([2, 6, 7, 4, nan, 4, 2, 8, nan, 6]),
-        'first': np.array([1, 5, 7, 3, nan, 4, 2, 8, nan, 6]),
-        'dense': np.array([1, 3, 4, 2, nan, 2, 1, 5, nan, 3]),
+        'average': np.array([1.5, 5.5, 7.0, 3.5, np.nan,
+                             3.5, 1.5, 8.0, np.nan, 5.5]),
+        'min': np.array([1, 5, 7, 3, np.nan, 3, 1, 8, np.nan, 5]),
+        'max': np.array([2, 6, 7, 4, np.nan, 4, 2, 8, np.nan, 6]),
+        'first': np.array([1, 5, 7, 3, np.nan, 4, 2, 8, np.nan, 6]),
+        'dense': np.array([1, 3, 4, 2, np.nan, 2, 1, 5, np.nan, 3]),
     }
 
     @pytest.fixture(params=['average', 'min', 'max', 'first', 'dense'])
@@ -87,27 +86,27 @@ class TestRank(TestData):
         tm.assert_frame_equal(result, expected)
 
         df = DataFrame([['b', np.nan, 'a'], ['a', 'c', 'b']])
-        expected = DataFrame([[2.0, nan, 1.0], [1.0, 3.0, 2.0]])
+        expected = DataFrame([[2.0, np.nan, 1.0], [1.0, 3.0, 2.0]])
         result = df.rank(1, numeric_only=False)
         tm.assert_frame_equal(result, expected)
 
-        expected = DataFrame([[2.0, nan, 1.0], [1.0, 1.0, 2.0]])
+        expected = DataFrame([[2.0, np.nan, 1.0], [1.0, 1.0, 2.0]])
         result = df.rank(0, numeric_only=False)
         tm.assert_frame_equal(result, expected)
 
         # f7u12, this does not work without extensive workaround
-        data = [[datetime(2001, 1, 5), nan, datetime(2001, 1, 2)],
+        data = [[datetime(2001, 1, 5), np.nan, datetime(2001, 1, 2)],
                 [datetime(2000, 1, 2), datetime(2000, 1, 3),
                  datetime(2000, 1, 1)]]
         df = DataFrame(data)
 
         # check the rank
-        expected = DataFrame([[2., nan, 1.],
+        expected = DataFrame([[2., np.nan, 1.],
                               [2., 3., 1.]])
         result = df.rank(1, numeric_only=False, ascending=True)
         tm.assert_frame_equal(result, expected)
 
-        expected = DataFrame([[1., nan, 2.],
+        expected = DataFrame([[1., np.nan, 2.],
                               [2., 1., 3.]])
         result = df.rank(1, numeric_only=False, ascending=False)
         tm.assert_frame_equal(result, expected)

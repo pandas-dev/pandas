@@ -22,7 +22,8 @@ from pandas.core.dtypes.common import (
     is_dtype_union_equal, is_extension_array_dtype, is_float, is_float_dtype,
     is_hashable, is_integer, is_integer_dtype, is_interval_dtype, is_iterator,
     is_list_like, is_object_dtype, is_period_dtype, is_scalar,
-    is_signed_integer_dtype, is_timedelta64_dtype, is_unsigned_integer_dtype)
+    is_signed_integer_dtype, is_timedelta64_dtype, is_unsigned_integer_dtype,
+    pandas_dtype)
 import pandas.core.dtypes.concat as _concat
 from pandas.core.dtypes.generic import (
     ABCDataFrame, ABCDateOffset, ABCDatetimeArray, ABCIndexClass,
@@ -732,6 +733,13 @@ class Index(IndexOpsMixin, PandasObject):
             from .category import CategoricalIndex
             return CategoricalIndex(self.values, name=self.name, dtype=dtype,
                                     copy=copy)
+        elif is_datetime64tz_dtype(dtype):
+            # TODO(GH-24559): Remove this block, use the following elif.
+            # avoid FutureWarning from DatetimeIndex constructor.
+            from pandas import DatetimeIndex
+            tz = pandas_dtype(dtype).tz
+            return (DatetimeIndex(np.asarray(self))
+                    .tz_localize("UTC").tz_convert(tz))
 
         elif is_extension_array_dtype(dtype):
             return Index(np.asarray(self), dtype=dtype, copy=copy)
@@ -1294,15 +1302,15 @@ class Index(IndexOpsMixin, PandasObject):
         ...                                   [2018, 2019]])
         >>> idx
         MultiIndex(levels=[['cobra', 'python'], [2018, 2019]],
-                   labels=[[1, 1, 0, 0], [0, 1, 0, 1]])
+                   codes=[[1, 1, 0, 0], [0, 1, 0, 1]])
         >>> idx.set_names(['kind', 'year'], inplace=True)
         >>> idx
         MultiIndex(levels=[['cobra', 'python'], [2018, 2019]],
-                   labels=[[1, 1, 0, 0], [0, 1, 0, 1]],
+                   codes=[[1, 1, 0, 0], [0, 1, 0, 1]],
                    names=['kind', 'year'])
         >>> idx.set_names('species', level=0)
         MultiIndex(levels=[['cobra', 'python'], [2018, 2019]],
-                   labels=[[1, 1, 0, 0], [0, 1, 0, 1]],
+                   codes=[[1, 1, 0, 0], [0, 1, 0, 1]],
                    names=['species', 'year'])
         """
 
@@ -1365,11 +1373,11 @@ class Index(IndexOpsMixin, PandasObject):
         ...                                   names=['kind', 'year'])
         >>> idx
         MultiIndex(levels=[['cobra', 'python'], [2018, 2019]],
-                   labels=[[1, 1, 0, 0], [0, 1, 0, 1]],
+                   codes=[[1, 1, 0, 0], [0, 1, 0, 1]],
                    names=['kind', 'year'])
         >>> idx.rename(['species', 'year'])
         MultiIndex(levels=[['cobra', 'python'], [2018, 2019]],
-                   labels=[[1, 1, 0, 0], [0, 1, 0, 1]],
+                   codes=[[1, 1, 0, 0], [0, 1, 0, 1]],
                    names=['species', 'year'])
         >>> idx.rename('species')
         Traceback (most recent call last):
@@ -2233,13 +2241,17 @@ class Index(IndexOpsMixin, PandasObject):
             return self._shallow_copy(name=name)
         return self
 
-    def union(self, other):
+    def union(self, other, sort=True):
         """
-        Form the union of two Index objects and sorts if possible.
+        Form the union of two Index objects.
 
         Parameters
         ----------
         other : Index or array-like
+        sort : bool, default True
+            Sort the resulting index if possible
+
+            .. versionadded:: 0.24.0
 
         Returns
         -------
@@ -2269,7 +2281,7 @@ class Index(IndexOpsMixin, PandasObject):
         if not is_dtype_union_equal(self.dtype, other.dtype):
             this = self.astype('O')
             other = other.astype('O')
-            return this.union(other)
+            return this.union(other, sort=sort)
 
         # TODO(EA): setops-refactor, clean all this up
         if is_period_dtype(self) or is_datetime64tz_dtype(self):
@@ -2303,12 +2315,13 @@ class Index(IndexOpsMixin, PandasObject):
             else:
                 result = lvals
 
-            try:
-                result = sorting.safe_sort(result)
-            except TypeError as e:
-                warnings.warn("%s, sort order is undefined for "
-                              "incomparable objects" % e, RuntimeWarning,
-                              stacklevel=3)
+            if sort:
+                try:
+                    result = sorting.safe_sort(result)
+                except TypeError as e:
+                    warnings.warn("{}, sort order is undefined for "
+                                  "incomparable objects".format(e),
+                                  RuntimeWarning, stacklevel=3)
 
         # for subclasses
         return self._wrap_setop_result(other, result)
@@ -2316,16 +2329,19 @@ class Index(IndexOpsMixin, PandasObject):
     def _wrap_setop_result(self, other, result):
         return self._constructor(result, name=get_op_result_name(self, other))
 
-    def intersection(self, other):
+    def intersection(self, other, sort=True):
         """
         Form the intersection of two Index objects.
 
-        This returns a new Index with elements common to the index and `other`,
-        preserving the order of the calling index.
+        This returns a new Index with elements common to the index and `other`.
 
         Parameters
         ----------
         other : Index or array-like
+        sort : bool, default True
+            Sort the resulting index if possible
+
+            .. versionadded:: 0.24.0
 
         Returns
         -------
@@ -2348,7 +2364,7 @@ class Index(IndexOpsMixin, PandasObject):
         if not is_dtype_equal(self.dtype, other.dtype):
             this = self.astype('O')
             other = other.astype('O')
-            return this.intersection(other)
+            return this.intersection(other, sort=sort)
 
         # TODO(EA): setops-refactor, clean all this up
         if is_period_dtype(self):
@@ -2377,8 +2393,18 @@ class Index(IndexOpsMixin, PandasObject):
             indexer = indexer[indexer != -1]
 
         taken = other.take(indexer)
+
+        if sort:
+            taken = sorting.safe_sort(taken.values)
+            if self.name != other.name:
+                name = None
+            else:
+                name = self.name
+            return self._shallow_copy(taken, name=name)
+
         if self.name != other.name:
             taken.name = None
+
         return taken
 
     def difference(self, other, sort=True):
@@ -2434,16 +2460,18 @@ class Index(IndexOpsMixin, PandasObject):
 
         return this._shallow_copy(the_diff, name=result_name, freq=None)
 
-    def symmetric_difference(self, other, result_name=None):
+    def symmetric_difference(self, other, result_name=None, sort=True):
         """
         Compute the symmetric difference of two Index objects.
-
-        It's sorted if sorting is possible.
 
         Parameters
         ----------
         other : Index or array-like
         result_name : str
+        sort : bool, default True
+            Sort the resulting index if possible
+
+            .. versionadded:: 0.24.0
 
         Returns
         -------
@@ -2488,10 +2516,11 @@ class Index(IndexOpsMixin, PandasObject):
         right_diff = other.values.take(right_indexer)
 
         the_diff = _concat._concat_compat([left_diff, right_diff])
-        try:
-            the_diff = sorting.safe_sort(the_diff)
-        except TypeError:
-            pass
+        if sort:
+            try:
+                the_diff = sorting.safe_sort(the_diff)
+            except TypeError:
+                pass
 
         attribs = self._get_attributes_dict()
         attribs['name'] = result_name
@@ -3218,8 +3247,12 @@ class Index(IndexOpsMixin, PandasObject):
         elif how == 'right':
             join_index = other
         elif how == 'inner':
-            join_index = self.intersection(other)
+            # TODO: sort=False here for backwards compat. It may
+            # be better to use the sort parameter passed into join
+            join_index = self.intersection(other, sort=False)
         elif how == 'outer':
+            # TODO: sort=True here for backwards compat. It may
+            # be better to use the sort parameter passed into join
             join_index = self.union(other)
 
         if sort:
@@ -4503,7 +4536,7 @@ class Index(IndexOpsMixin, PandasObject):
         ...                                  names=('number', 'color'))
         >>> midx
         MultiIndex(levels=[[1, 2, 3], ['blue', 'green', 'red']],
-                   labels=[[0, 1, 2], [2, 0, 1]],
+                   codes=[[0, 1, 2], [2, 0, 1]],
                    names=['number', 'color'])
 
         Check whether the strings in the 'color' level of the MultiIndex
@@ -5206,7 +5239,7 @@ def ensure_index_from_sequences(sequences, names=None):
     >>> ensure_index_from_sequences([['a', 'a'], ['a', 'b']],
                                     names=['L1', 'L2'])
     MultiIndex(levels=[['a'], ['a', 'b']],
-               labels=[[0, 0], [0, 1]],
+               codes=[[0, 0], [0, 1]],
                names=['L1', 'L2'])
 
     See Also
@@ -5247,7 +5280,7 @@ def ensure_index(index_like, copy=False):
 
     >>> ensure_index([['a', 'a'], ['b', 'c']])
     MultiIndex(levels=[['a'], ['b', 'c']],
-               labels=[[0, 0], [0, 1]])
+               codes=[[0, 0], [0, 1]])
 
     See Also
     --------
