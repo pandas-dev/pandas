@@ -1835,6 +1835,7 @@ Sparse
 - Bug in :meth:`SparseArray.nonzero` and :meth:`SparseDataFrame.dropna` returning shifted/incorrect results (:issue:`21172`)
 - Bug in :meth:`DataFrame.apply` where dtypes would lose sparseness (:issue:`23744`)
 - Bug in :func:`concat` when concatenating a list of :class:`Series` with all-sparse values changing the ``fill_value`` and converting to a dense Series (:issue:`24371`)
+- Bug in :class:`SparseFrame` constructor where passing ``None`` as the data would cause ``default_fill_value`` to be ignored (:issue:`16807`)
 
 Style
 ^^^^^

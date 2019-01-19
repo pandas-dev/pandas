@@ -1246,6 +1246,14 @@ class TestSparseDataFrame(SharedWithSparse):
                             'B': [True, False, True, True, False]})
         tm.assert_frame_equal(res.to_dense(), exp)
 
+    def test_default_fill_value_with_no_data(self):
+        # GH 16807
+        expected = pd.SparseDataFrame([[1.0, 1.0], [1.0, 1.0]],
+                                      columns=list('ab'), index=range(2))
+        result = pd.SparseDataFrame(columns=list('ab'), index=range(2),
+                                    default_fill_value=1.0)
+        tm.assert_frame_equal(expected, result)
+
 
 class TestSparseDataFrameArithmetic(object):
 
