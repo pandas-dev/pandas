@@ -195,38 +195,47 @@ class TestJoin(object):
         assert np.isnan(joined['three']['c'])
 
         # merge column not p resent
-        pytest.raises(KeyError, target.join, source, on='E')
+        with pytest.raises(KeyError, match="^'E'$"):
+            target.join(source, on='E')
 
         # overlap
         source_copy = source.copy()
         source_copy['A'] = 0
-        pytest.raises(ValueError, target.join, source_copy, on='A')
+        msg = ("You are trying to merge on float64 and object columns. If"
+               " you wish to proceed you should use pd.concat")
+        with pytest.raises(ValueError, match=msg):
+            target.join(source_copy, on='A')
 
     def test_join_on_fails_with_different_right_index(self):
-        with pytest.raises(ValueError):
-            df = DataFrame({'a': np.random.choice(['m', 'f'], size=3),
-                            'b': np.random.randn(3)})
-            df2 = DataFrame({'a': np.random.choice(['m', 'f'], size=10),
-                             'b': np.random.randn(10)},
-                            index=tm.makeCustomIndex(10, 2))
+        df = DataFrame({'a': np.random.choice(['m', 'f'], size=3),
+                        'b': np.random.randn(3)})
+        df2 = DataFrame({'a': np.random.choice(['m', 'f'], size=10),
+                         'b': np.random.randn(10)},
+                        index=tm.makeCustomIndex(10, 2))
+        msg = (r'len\(left_on\) must equal the number of levels in the index'
+               ' of "right"')
+        with pytest.raises(ValueError, match=msg):
             merge(df, df2, left_on='a', right_index=True)
 
     def test_join_on_fails_with_different_left_index(self):
-        with pytest.raises(ValueError):
-            df = DataFrame({'a': np.random.choice(['m', 'f'], size=3),
-                            'b': np.random.randn(3)},
-                           index=tm.makeCustomIndex(10, 2))
-            df2 = DataFrame({'a': np.random.choice(['m', 'f'], size=10),
-                             'b': np.random.randn(10)})
+        df = DataFrame({'a': np.random.choice(['m', 'f'], size=3),
+                        'b': np.random.randn(3)},
+                       index=tm.makeCustomIndex(3, 2))
+        df2 = DataFrame({'a': np.random.choice(['m', 'f'], size=10),
+                         'b': np.random.randn(10)})
+        msg = (r'len\(right_on\) must equal the number of levels in the index'
+               ' of "left"')
+        with pytest.raises(ValueError, match=msg):
             merge(df, df2, right_on='b', left_index=True)
 
     def test_join_on_fails_with_different_column_counts(self):
-        with pytest.raises(ValueError):
-            df = DataFrame({'a': np.random.choice(['m', 'f'], size=3),
-                            'b': np.random.randn(3)})
-            df2 = DataFrame({'a': np.random.choice(['m', 'f'], size=10),
-                             'b': np.random.randn(10)},
-                            index=tm.makeCustomIndex(10, 2))
+        df = DataFrame({'a': np.random.choice(['m', 'f'], size=3),
+                        'b': np.random.randn(3)})
+        df2 = DataFrame({'a': np.random.choice(['m', 'f'], size=10),
+                         'b': np.random.randn(10)},
+                        index=tm.makeCustomIndex(10, 2))
+        msg = r"len\(right_on\) must equal len\(left_on\)"
+        with pytest.raises(ValueError, match=msg):
             merge(df, df2, right_on='a', left_on=['a', 'b'])
 
     @pytest.mark.parametrize("wrong_type", [2, 'str', None, np.array([0, 1])])
@@ -237,9 +246,11 @@ class TestJoin(object):
         # Edited test to remove the Series object from test parameters
 
         df = DataFrame({'a': [1, 1]})
-        with pytest.raises(TypeError, match=str(type(wrong_type))):
+        msg = ("Can only merge Series or DataFrame objects, a {} was passed"
+               .format(str(type(wrong_type))))
+        with pytest.raises(TypeError, match=msg):
             merge(wrong_type, df, left_on='a', right_on='a')
-        with pytest.raises(TypeError, match=str(type(wrong_type))):
+        with pytest.raises(TypeError, match=msg):
             merge(df, wrong_type, left_on='a', right_on='a')
 
     def test_join_on_pass_vector(self):
@@ -603,7 +614,9 @@ class TestJoin(object):
         joined = df_list[0].join(df_list[1:], how='inner')
         _check_diff_index(df_list, joined, df.index[2:8])
 
-        pytest.raises(ValueError, df_list[0].join, df_list[1:], on='a')
+        msg = "Joining multiple DataFrames only supported for joining on index"
+        with pytest.raises(ValueError, match=msg):
+            df_list[0].join(df_list[1:], on='a')
 
     def test_join_many_mixed(self):
         df = DataFrame(np.random.randn(8, 4), columns=['A', 'B', 'C', 'D'])
@@ -725,10 +738,13 @@ class TestJoin(object):
             tm.assert_panel_equal(joined, expected)
 
             # edge cases
-            pytest.raises(ValueError, panels[0].join, panels[1:],
-                          how='outer', lsuffix='foo', rsuffix='bar')
-            pytest.raises(ValueError, panels[0].join, panels[1:],
-                          how='right')
+            msg = "Suffixes not supported when passing multiple panels"
+            with pytest.raises(ValueError, match=msg):
+                panels[0].join(panels[1:], how='outer', lsuffix='foo',
+                               rsuffix='bar')
+            msg = "Right join not supported with multiple panels"
+            with pytest.raises(ValueError, match=msg):
+                panels[0].join(panels[1:], how='right')
 
     def test_join_multi_to_multi(self, join_type):
         # GH 20475
@@ -749,10 +765,12 @@ class TestJoin(object):
                     )
         assert_frame_equal(expected, result)
 
-        with pytest.raises(ValueError):
+        msg = (r'len\(left_on\) must equal the number of levels in the index'
+               ' of "right"')
+        with pytest.raises(ValueError, match=msg):
             left.join(right, on='xy', how=join_type)
 
-        with pytest.raises(ValueError):
+        with pytest.raises(ValueError, match=msg):
             right.join(left, on=['abc', 'xy'], how=join_type)
 
 
