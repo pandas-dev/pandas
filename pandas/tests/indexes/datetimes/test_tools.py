@@ -291,7 +291,7 @@ class TestToDatetime(object):
          "'%G' and a weekday directive '%A', '%a', '%w', or '%u'.", "20", "%V"]
     ])
     def test_ValueError_iso_week_year(self, msg, s, _format):
-        with tm.assert_raises_regex(ValueError, msg):
+        with pytest.raises(ValueError, message=msg):
             to_datetime(s, format=_format)
 
     @pytest.mark.parametrize('tz', [None, 'US/Central'])
