@@ -247,6 +247,53 @@ class TestTimeConversionFormats(object):
 
 
 class TestToDatetime(object):
+    @pytest.mark.parametrize("s, _format, dt", [
+        ['2015-1-1', '%G-%V-%u', datetime(2014, 12, 29, 0, 0)],
+        ['2015-1-4', '%G-%V-%u', datetime(2015, 1, 1, 0, 0)],
+        ['2015-1-7', '%G-%V-%u', datetime(2015, 1, 4, 0, 0)]
+    ])
+    def test_to_datetime_iso_week_year_format(self, s, _format, dt):
+        assert to_datetime(s, format=_format) == dt
+
+    @pytest.mark.parametrize("msg, s, _format", [
+        ["ISO week directive '%V' must be used with the ISO year directive "
+         "'%G' and a weekday directive '%A', '%a', '%w', or '%u'.", "1999 50",
+         "%Y %V"],
+        ["ISO year directive '%G' must be used with the ISO week directive "
+         "'%V' and a weekday directive '%A', '%a', '%w', or '%u'.", "1999 51",
+         "%G %V"],
+        ["ISO year directive '%G' must be used with the ISO week directive "
+         "'%V' and a weekday directive '%A', '%a', '%w', or '%u'.", "1999 "
+         "Monday", "%G %A"],
+        ["ISO year directive '%G' must be used with the ISO week directive "
+         "'%V' and a weekday directive '%A', '%a', '%w', or '%u'.", "1999 Mon",
+         "%G %a"],
+        ["ISO year directive '%G' must be used with the ISO week directive "
+         "'%V' and a weekday directive '%A', '%a', '%w', or '%u'.", "1999 6",
+         "%G %w"],
+        ["ISO year directive '%G' must be used with the ISO week directive "
+         "'%V' and a weekday directive '%A', '%a', '%w', or '%u'.", "1999 6",
+         "%G %u"],
+        ["ISO year directive '%G' must be used with the ISO week directive "
+         "'%V' and a weekday directive '%A', '%a', '%w', or '%u'.", "2051",
+         "%G"],
+        ["Day of the year directive '%j' is not compatible with ISO year "
+         "directive '%G'. Use '%Y' instead.", "1999 51 6 256", "%G %V %u %j"],
+        ["ISO week directive '%V' is incompatible with the year directive "
+         "'%Y'. Use the ISO year '%G' instead.", "1999 51 Sunday", "%Y %V %A"],
+        ["ISO week directive '%V' is incompatible with the year directive "
+         "'%Y'. Use the ISO year '%G' instead.", "1999 51 Sun", "%Y %V %a"],
+        ["ISO week directive '%V' is incompatible with the year directive "
+         "'%Y'. Use the ISO year '%G' instead.", "1999 51 1", "%Y %V %w"],
+        ["ISO week directive '%V' is incompatible with the year directive "
+         "'%Y'. Use the ISO year '%G' instead.", "1999 51 1", "%Y %V %u"],
+        ["ISO week directive '%V' must be used with the ISO year directive "
+         "'%G' and a weekday directive '%A', '%a', '%w', or '%u'.", "20", "%V"]
+    ])
+    def test_ValueError_iso_week_year(self, msg, s, _format):
+        with tm.assert_raises_regex(ValueError, msg):
+            to_datetime(s, format=_format)
+
     @pytest.mark.parametrize('tz', [None, 'US/Central'])
     def test_to_datetime_dtarr(self, tz):
         # DatetimeArray
