@@ -148,8 +148,6 @@ def _dt_array_cmp(cls, op):
                 result.fill(nat_result)
         elif lib.is_scalar(other) or np.ndim(other) == 0:
             return ops.invalid_comparison(self, other, op)
-        #elif len(other) != len(self):
-        #    raise ValueError("Lengths must match")
         else:
             if isinstance(other, list):
                 try:

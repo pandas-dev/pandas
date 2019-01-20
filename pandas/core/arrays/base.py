@@ -1120,31 +1120,6 @@ class ExtensionScalarOpsMixin(ExtensionOpsMixin):
     def _create_comparison_method(cls, op):
         return cls._create_method(op, coerce_to_dtype=False)
 
-'''
-def validate_comp_other(comp, list_to_array=False, validate_len=False,
-                        zerodim=False, inst_from_senior_cls=False):
-    def wrapper(self, other):
-        if list_to_array is True:
-            if is_list_like(other):
-                other = np.asarray(other)
-
-        if validate_len is True:
-            if is_list_like(other) and len(other) != len(self):
-                raise ValueError("Lenghts must match")
-
-        if zerodim is True:
-            import pandas._libs as lib
-            other = lib.item_from_zerodim(other)
-
-        if inst_from_senior_cls is True:
-            if isinstance(other, (ABCDataFrame, ABCSeries, ABCIndexClass)):
-                # Rely on pandas to unbox and dispatch to us.
-                return NotImplemented
-
-        comp(self, other)
-    return wrapper
-'''
-
 
 class CompWrapper(object):
     __key__ = ['list_to_array', 'validate_len',
