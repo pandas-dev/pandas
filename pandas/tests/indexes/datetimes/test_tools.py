@@ -253,6 +253,7 @@ class TestToDatetime(object):
         ['2015-1-7', '%G-%V-%u', datetime(2015, 1, 4, 0, 0)]
     ])
     def test_to_datetime_iso_week_year_format(self, s, _format, dt):
+        # See GH#16607
         assert to_datetime(s, format=_format) == dt
 
     @pytest.mark.parametrize("msg, s, _format", [
@@ -291,6 +292,7 @@ class TestToDatetime(object):
          "'%G' and a weekday directive '%A', '%a', '%w', or '%u'.", "20", "%V"]
     ])
     def test_ValueError_iso_week_year(self, msg, s, _format):
+        # See GH#16607
         with pytest.raises(ValueError, message=msg):
             to_datetime(s, format=_format)
 
