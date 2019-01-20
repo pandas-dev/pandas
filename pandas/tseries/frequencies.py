@@ -9,7 +9,7 @@ from pandas._libs.tslibs.ccalendar import MONTH_ALIASES, int_to_weekday
 from pandas._libs.tslibs.conversion import tz_convert
 from pandas._libs.tslibs.fields import build_field_sarray
 from pandas._libs.tslibs.frequencies import (  # noqa:F401
-    _name_to_offset_map, to_offset)
+    _name_to_offset_map, get_offset, to_offset)
 from pandas._libs.tslibs.offsets import _offset_to_period_map
 import pandas._libs.tslibs.resolution as libresolution
 from pandas._libs.tslibs.resolution import Resolution  # noqa:F401

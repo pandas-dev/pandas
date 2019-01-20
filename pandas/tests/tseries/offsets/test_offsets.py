@@ -7,7 +7,7 @@ import pytest
 from pandas._libs.tslibs import (
     NaT, OutOfBoundsDatetime, Timestamp, conversion, timezones)
 from pandas._libs.tslibs.frequencies import (
-    INVALID_FREQ_ERR_MSG, get_freq_code, get_freq_str)
+    INVALID_FREQ_ERR_MSG, _offset_map, get_freq_code, get_freq_str, get_offset)
 import pandas._libs.tslibs.offsets as liboffsets
 import pandas.compat as compat
 from pandas.compat import range
@@ -18,7 +18,6 @@ from pandas.core.series import Series
 import pandas.util.testing as tm
 
 from pandas.io.pickle import read_pickle
-from pandas.tseries.frequencies import _offset_map, get_offset
 from pandas.tseries.holiday import USFederalHolidayCalendar
 import pandas.tseries.offsets as offsets
 from pandas.tseries.offsets import (
