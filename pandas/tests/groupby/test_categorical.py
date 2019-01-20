@@ -420,6 +420,18 @@ def test_observed_groups(observed):
     tm.assert_dict_equal(result, expected)
 
 
+def test_observed_groups_with_nan(observed=True):
+    # GH 24740
+    df = pd.DataFrame({'cat': pd.Categorical(['a', 'c', 'a'],
+                       categories=['a', 'b', 'd', 'e', 'f']),
+                       'vals': [1, 2, 3]})
+
+    g = df.groupby('cat', observed=observed)
+    result = g.groups
+    expected = {'a': Index([0, 2], dtype='int64')}
+    tm.assert_dict_equal(result, expected)
+
+
 def test_datetime():
     # GH9049: ensure backward compatibility
     levels = pd.date_range('2014-01-01', periods=4)
