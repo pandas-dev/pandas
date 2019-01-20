@@ -18,7 +18,7 @@ from pandas.core.dtypes.generic import ABCIndexClass, ABCSeries
 from pandas.core.dtypes.missing import isna, notna
 
 from pandas.core import nanops
-from pandas.core.arrays import ExtensionArray, ExtensionOpsMixin, CompWrapper
+from pandas.core.arrays import CompWrapper, ExtensionArray, ExtensionOpsMixin
 from pandas.core.tools.numeric import to_numeric
 
 

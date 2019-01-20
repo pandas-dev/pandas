@@ -15,7 +15,6 @@ from pandas._libs.tslibs.timedeltas import (
 import pandas.compat as compat
 from pandas.util._decorators import Appender
 
-from pandas.core.arrays import CompWrapper
 from pandas.core.dtypes.common import (
     _NS_DTYPE, _TD_DTYPE, ensure_int64, is_datetime64_dtype, is_dtype_equal,
     is_float_dtype, is_integer_dtype, is_list_like, is_object_dtype, is_scalar,
@@ -28,6 +27,7 @@ from pandas.core.dtypes.missing import isna
 
 from pandas.core import ops
 from pandas.core.algorithms import checked_add_with_arr
+from pandas.core.arrays import CompWrapper
 import pandas.core.common as com
 
 from pandas.tseries.frequencies import to_offset

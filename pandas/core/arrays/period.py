@@ -18,8 +18,7 @@ from pandas.core.dtypes.common import (
     _TD_DTYPE, ensure_object, is_datetime64_dtype, is_float_dtype,
     is_period_dtype, pandas_dtype)
 from pandas.core.dtypes.dtypes import PeriodDtype
-from pandas.core.dtypes.generic import (
-    ABCIndexClass, ABCPeriodIndex, ABCSeries)
+from pandas.core.dtypes.generic import ABCIndexClass, ABCPeriodIndex, ABCSeries
 from pandas.core.dtypes.missing import isna, notna
 
 import pandas.core.algorithms as algos

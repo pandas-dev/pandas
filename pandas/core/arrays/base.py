@@ -5,8 +5,8 @@
    This is an experimental API and subject to breaking changes
    without warning.
 """
-import operator
 from functools import wraps
+import operator
 
 import numpy as np
 
