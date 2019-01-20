@@ -42,19 +42,36 @@ _index_doc_kwargs.update(dict(target_klass='CategoricalIndex'))
     typ='method', overwrite=True)
 class CategoricalIndex(Index, accessor.PandasDelegate):
     """
-    Immutable Index implementing an ordered, sliceable set. CategoricalIndex
-    represents a sparsely populated Index with an underlying Categorical.
+    Immutable index implementing an ordered, sliceable set. CategoricalIndex
+    represents a sparsely populated index with an underlying
+    :class:`Categorical`.
+
+    `CategoricalIndex`, like `Categorical` can only take on a limited,
+    and usually fixed, number of possible values (`categories`). Also,
+    like `Categorical`, it might have an order, but numerical operations
+    (additions, divisions, ...) are not possible.
 
     Parameters
     ----------
-    data : array-like or Categorical, (1-dimensional)
-    categories : optional, array-like
-        categories for the CategoricalIndex
-    ordered : boolean,
-        designating if the categories are ordered
-    copy : bool
+    data : list-like
+        The values of the categorical. If categories are given, values not in
+        categories will be replaced with NaN.
+    categories : index-like, optional
+        The categories for the categorical. Items need to be unique.
+        If the categories are not given here, then they must be provided
+        in `dtype`.
+    ordered : bool, optional
+        Whether or not this categorical is treated as an ordered
+        categorical. If not given here or in `dtype`, the resulting
+        categorical will be unordered.
+    dtype : CategoricalDtype or the string "category", optional
+        If :class:`CategoricalDtype`, cannot be used together with
+        `categories` or `ordered`.
+
+        .. versionadded:: 0.21.0
+    copy : bool, default False
         Make a copy of input ndarray
-    name : object
+    name : object, optional
         Name to be stored in the index
 
     Attributes
@@ -62,6 +79,7 @@ class CategoricalIndex(Index, accessor.PandasDelegate):
     codes
     categories
     ordered
+    dtype
 
     Methods
     -------
@@ -75,9 +93,46 @@ class CategoricalIndex(Index, accessor.PandasDelegate):
     as_unordered
     map
 
+    Raises
+    ------
+    ValueError
+        If the categories do not validate.
+    TypeError
+        If an explicit ``ordered=True`` is given but no `categories` and the
+        `values` are not sortable.
+
     See Also
     --------
-    Categorical, Index
+    Index : The base pandas Index type
+    Categorical : A categorical variable in classic R / S-plus fashion
+    CategoricalDtype : Type for categorical data
+
+    Notes
+    -----
+    See the `user guide
+    <https://pandas-docs.github.io/pandas-docs-travis/advanced.html#categoricalindex>`_
+    for more.
+
+    Examples
+    --------
+    >>> pd.CategoricalIndex(['a', 'b', 'c', 'a', 'b', 'c'])
+    CategoricalIndex(['a', 'b', 'c', 'a', 'b', 'c'], categories=['a', 'b', 'c'], ordered=False, dtype='category')  # noqa
+
+    ``CategoricalIndex`` can also be instantiated from a ``Categorical``:
+
+    >>> c = pd.Categorical(['a', 'b', 'c', 'a', 'b', 'c'])
+    >>> pd.CategoricalIndex(c)
+    CategoricalIndex(['a', 'b', 'c', 'a', 'b', 'c'], categories=['a', 'b', 'c'], ordered=False, dtype='category')  # noqa
+
+    Ordered `CategoricalIndex` can be sorted according to the custom order
+    of the categories and can have a min and max value.
+
+    >>> ci = pd.CategoricalIndex(['a','b','c','a','b','c'], ordered=True,
+    ...                          categories=['c', 'b', 'a'])
+    >>> ci
+    CategoricalIndex(['a', 'b', 'c', 'a', 'b', 'c'], categories=['c', 'b', 'a'], ordered=True, dtype='category')  # noqa
+    >>> ci.min()
+    'c'
     """
 
     _typ = 'categoricalindex'
