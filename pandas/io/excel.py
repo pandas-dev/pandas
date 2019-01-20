@@ -18,7 +18,7 @@ import pandas._libs.json as json
 import pandas.compat as compat
 from pandas.compat import (
     OrderedDict, add_metaclass, lrange, map, range, string_types, u, zip)
-from pandas.errors import EmptyDataError
+from pandas.errors import AbstractMethodError, EmptyDataError
 from pandas.util._decorators import Appender, deprecate_kwarg
 
 from pandas.core.dtypes.common import (
@@ -379,16 +379,16 @@ class _BaseExcelReader(object):
 
     @property
     def sheet_names(self):
-        raise NotImplementedError
+        raise AbstractMethodError
 
     def get_sheet_by_name(self, name):
-        raise NotImplementedError
+        raise AbstractMethodError
 
     def get_sheet_by_index(self, index):
-        raise NotImplementedError
+        raise AbstractMethodError
 
     def get_sheet_data(self, sheet, convert_float):
-        raise NotImplementedError
+        raise AbstractMethodError
 
     def parse(self,
               sheet_name=0,
