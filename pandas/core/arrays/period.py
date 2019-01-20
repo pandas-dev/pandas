@@ -16,14 +16,15 @@ from pandas.util._decorators import Appender, cache_readonly
 
 from pandas.core.dtypes.common import (
     _TD_DTYPE, ensure_object, is_datetime64_dtype, is_float_dtype,
-    is_list_like, is_period_dtype, pandas_dtype)
+    is_period_dtype, pandas_dtype)
 from pandas.core.dtypes.dtypes import PeriodDtype
 from pandas.core.dtypes.generic import (
-    ABCDataFrame, ABCIndexClass, ABCPeriodIndex, ABCSeries)
+    ABCIndexClass, ABCPeriodIndex, ABCSeries)
 from pandas.core.dtypes.missing import isna, notna
 
 import pandas.core.algorithms as algos
 from pandas.core.arrays import datetimelike as dtl
+from pandas.core.arrays.base import CompWrapper
 import pandas.core.common as com
 
 from pandas.tseries import frequencies
@@ -48,14 +49,9 @@ def _period_array_cmp(cls, op):
     opname = '__{name}__'.format(name=op.__name__)
     nat_result = True if opname == '__ne__' else False
 
+    @CompWrapper(validate_len=True, inst_from_senior_cls=True)
     def wrapper(self, other):
         op = getattr(self.asi8, opname)
-
-        if isinstance(other, (ABCDataFrame, ABCSeries, ABCIndexClass)):
-            return NotImplemented
-
-        if is_list_like(other) and len(other) != len(self):
-            raise ValueError("Lengths must match")
 
         if isinstance(other, Period):
             self._check_compatible_with(other)

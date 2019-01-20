@@ -1,7 +1,8 @@
 from .array_ import array  # noqa
 from .base import (ExtensionArray,    # noqa
                    ExtensionOpsMixin,
-                   ExtensionScalarOpsMixin)
+                   ExtensionScalarOpsMixin,
+                   CompWrapper)
 from .categorical import Categorical  # noqa
 from .datetimes import DatetimeArray  # noqa
 from .interval import IntervalArray  # noqa

@@ -15,6 +15,7 @@ from pandas._libs.tslibs.timedeltas import (
 import pandas.compat as compat
 from pandas.util._decorators import Appender
 
+from pandas.core.arrays import CompWrapper
 from pandas.core.dtypes.common import (
     _NS_DTYPE, _TD_DTYPE, ensure_int64, is_datetime64_dtype, is_dtype_equal,
     is_float_dtype, is_integer_dtype, is_list_like, is_object_dtype, is_scalar,
@@ -64,10 +65,8 @@ def _td_array_cmp(cls, op):
     opname = '__{name}__'.format(name=op.__name__)
     nat_result = True if opname == '__ne__' else False
 
+    @CompWrapper(validate_len=True, inst_from_senior_cls=True)
     def wrapper(self, other):
-        if isinstance(other, (ABCDataFrame, ABCSeries, ABCIndexClass)):
-            return NotImplemented
-
         if _is_convertible_to_td(other) or other is NaT:
             try:
                 other = Timedelta(other)
@@ -81,9 +80,6 @@ def _td_array_cmp(cls, op):
 
         elif not is_list_like(other):
             return ops.invalid_comparison(self, other, op)
-
-        elif len(other) != len(self):
-            raise ValueError("Lengths must match")
 
         else:
             try:

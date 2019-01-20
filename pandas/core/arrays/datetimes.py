@@ -21,12 +21,12 @@ from pandas.core.dtypes.common import (
     is_string_dtype, is_timedelta64_dtype, pandas_dtype)
 from pandas.core.dtypes.dtypes import DatetimeTZDtype
 from pandas.core.dtypes.generic import (
-    ABCDataFrame, ABCIndexClass, ABCPandasArray, ABCSeries)
+    ABCIndexClass, ABCPandasArray, ABCSeries)
 from pandas.core.dtypes.missing import isna
 
 from pandas.core import ops
 from pandas.core.algorithms import checked_add_with_arr
-from pandas.core.arrays import datetimelike as dtl
+from pandas.core.arrays import datetimelike as dtl, CompWrapper
 from pandas.core.arrays._ranges import generate_regular_range
 import pandas.core.common as com
 
@@ -130,12 +130,8 @@ def _dt_array_cmp(cls, op):
     opname = '__{name}__'.format(name=op.__name__)
     nat_result = True if opname == '__ne__' else False
 
+    @CompWrapper(inst_from_senior_cls=True, validate_len=True, zerodim=True)
     def wrapper(self, other):
-        if isinstance(other, (ABCDataFrame, ABCSeries, ABCIndexClass)):
-            return NotImplemented
-
-        other = lib.item_from_zerodim(other)
-
         if isinstance(other, (datetime, np.datetime64, compat.string_types)):
             if isinstance(other, (datetime, np.datetime64)):
                 # GH#18435 strings get a pass from tzawareness compat
@@ -152,8 +148,8 @@ def _dt_array_cmp(cls, op):
                 result.fill(nat_result)
         elif lib.is_scalar(other) or np.ndim(other) == 0:
             return ops.invalid_comparison(self, other, op)
-        elif len(other) != len(self):
-            raise ValueError("Lengths must match")
+        #elif len(other) != len(self):
+        #    raise ValueError("Lengths must match")
         else:
             if isinstance(other, list):
                 try:
