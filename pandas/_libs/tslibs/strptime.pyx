@@ -304,7 +304,7 @@ def array_strptime(object[:] values, object fmt,
             if week_of_year != -1:
                 week_starts_Mon = week_of_year_start == 0
                 julian = _calc_julian_from_U_or_W(year, week_of_year, weekday,
-                                                  week_starts_Mon)
+                                                week_starts_Mon)
             elif iso_year != -1 and iso_week != -1:
                 year, julian = _calc_julian_from_V(iso_year, iso_week,
                                                    weekday + 1)
@@ -666,10 +666,6 @@ cdef _calc_julian_from_V(int iso_year, int iso_week, int iso_weekday):
 
     cdef:
         int correction, ordinal
-<<<<<<< HEAD
-=======
-
->>>>>>> n
     correction = datetime_date(iso_year, 1, 4).isoweekday() + 3
     ordinal = (iso_week * 7) + iso_weekday - correction
     # ordinal may be negative or 0 now, which means the date is in the previous
