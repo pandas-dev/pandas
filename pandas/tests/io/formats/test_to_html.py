@@ -604,6 +604,7 @@ def test_to_html_render_links(render_links, expected, datapath):
 
 @pytest.mark.parametrize('max_colwidth', [10, 20, 50, 100])
 def test_display_max_colwidth(lorem_ipsum, max_colwidth):
+    # see gh-17004
     df = DataFrame([lorem_ipsum])
     with pd.option_context('display.max_colwidth', max_colwidth):
         result = df._repr_html_()
@@ -613,6 +614,7 @@ def test_display_max_colwidth(lorem_ipsum, max_colwidth):
 
 @pytest.mark.parametrize('max_colwidth', [10, 20, 50, 100])
 def test_ignore_display_max_colwidth(lorem_ipsum, max_colwidth):
+    # see gh-17004
     df = DataFrame([lorem_ipsum])
     with pd.option_context('display.max_colwidth', max_colwidth):
         result = df.to_html()
