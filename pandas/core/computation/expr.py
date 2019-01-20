@@ -18,7 +18,6 @@ from pandas.core.computation.ops import (
     UndefinedVariableError, _arith_ops_syms, _bool_ops_syms, _cmp_ops_syms,
     _mathops, _reductions, _unary_ops_syms, is_term)
 from pandas.core.computation.scope import Scope
-from pandas.core.reshape.util import compose
 
 import pandas.io.formats.printing as printing
 
@@ -101,6 +100,17 @@ def _replace_locals(tok):
     if toknum == tokenize.OP and tokval == '@':
         return tokenize.OP, _LOCAL_TAG
     return toknum, tokval
+
+
+def _compose2(f, g):
+    """Compose 2 callables"""
+    return lambda *args, **kwargs: f(g(*args, **kwargs))
+
+
+def compose(*funcs):
+    """Compose 2 or more callables"""
+    assert len(funcs) > 1, 'At least 2 callables must be passed to compose'
+    return reduce(_compose2, funcs)
 
 
 def _preparse(source, f=compose(_replace_locals, _replace_booleans,

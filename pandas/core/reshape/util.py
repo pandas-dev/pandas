@@ -57,14 +57,3 @@ def cartesian_product(X):
     return [np.tile(np.repeat(np.asarray(com.values_from_object(x)), b[i]),
                     np.product(a[i]))
             for i, x in enumerate(X)]
-
-
-def _compose2(f, g):
-    """Compose 2 callables"""
-    return lambda *args, **kwargs: f(g(*args, **kwargs))
-
-
-def compose(*funcs):
-    """Compose 2 or more callables"""
-    assert len(funcs) > 1, 'At least 2 callables must be passed to compose'
-    return reduce(_compose2, funcs)
