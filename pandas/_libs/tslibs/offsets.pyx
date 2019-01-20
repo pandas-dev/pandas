@@ -412,8 +412,11 @@ class _BaseOffset(object):
         if hasattr(other, "_typ"):
             return NotImplemented
         if util.is_array(other):
-            result = [self * x for x in other.ravel()]
-            return np.array(result).reshape(other.shape)
+            try:
+                return np.array([self * x for x in other])
+            except ValueError:
+                # raised in self._validate_n, re-raise as TypeError
+                raise TypeError
         return type(self)(n=other * self.n, normalize=self.normalize,
                           **self.kwds)
 
