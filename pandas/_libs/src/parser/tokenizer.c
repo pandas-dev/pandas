@@ -300,7 +300,7 @@ static int make_stream_space(parser_t *self, size_t nbytes) {
      * just because a recent chunk did not have as many words.
      */
     if (self->words_len + nbytes < self->max_words_cap) {
-        length = self->max_words_cap - nbytes;
+        length = self->max_words_cap - nbytes - 1;
     } else {
         length = self->words_len;
     }

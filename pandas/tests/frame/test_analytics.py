@@ -6,8 +6,6 @@ from string import ascii_lowercase
 import warnings
 
 import numpy as np
-from numpy import nan
-from numpy.random import randn
 import pytest
 
 from pandas.compat import PY35, lrange
@@ -240,22 +238,22 @@ class TestDataFrameAnalytics():
 
     @td.skip_if_no_scipy
     def test_corr_pearson(self, float_frame):
-        float_frame['A'][:5] = nan
-        float_frame['B'][5:10] = nan
+        float_frame['A'][:5] = np.nan
+        float_frame['B'][5:10] = np.nan
 
         self._check_method(float_frame, 'pearson')
 
     @td.skip_if_no_scipy
     def test_corr_kendall(self, float_frame):
-        float_frame['A'][:5] = nan
-        float_frame['B'][5:10] = nan
+        float_frame['A'][:5] = np.nan
+        float_frame['B'][5:10] = np.nan
 
         self._check_method(float_frame, 'kendall')
 
     @td.skip_if_no_scipy
     def test_corr_spearman(self, float_frame):
-        float_frame['A'][:5] = nan
-        float_frame['B'][5:10] = nan
+        float_frame['A'][:5] = np.nan
+        float_frame['B'][5:10] = np.nan
 
         self._check_method(float_frame, 'spearman')
 
@@ -266,8 +264,8 @@ class TestDataFrameAnalytics():
 
     @td.skip_if_no_scipy
     def test_corr_non_numeric(self, float_frame, float_string_frame):
-        float_frame['A'][:5] = nan
-        float_frame['B'][5:10] = nan
+        float_frame['A'][:5] = np.nan
+        float_frame['B'][5:10] = np.nan
 
         # exclude non-numeric types
         result = float_string_frame.corr()
@@ -351,16 +349,16 @@ class TestDataFrameAnalytics():
 
         # with NAs
         frame = float_frame.copy()
-        frame['A'][:5] = nan
-        frame['B'][5:10] = nan
+        frame['A'][:5] = np.nan
+        frame['B'][5:10] = np.nan
         result = float_frame.cov(min_periods=len(float_frame) - 8)
         expected = float_frame.cov()
         expected.loc['A', 'B'] = np.nan
         expected.loc['B', 'A'] = np.nan
 
         # regular
-        float_frame['A'][:5] = nan
-        float_frame['B'][:10] = nan
+        float_frame['A'][:5] = np.nan
+        float_frame['B'][:10] = np.nan
         cov = float_frame.cov()
 
         tm.assert_almost_equal(cov['A']['C'],
@@ -385,7 +383,7 @@ class TestDataFrameAnalytics():
 
     def test_corrwith(self, datetime_frame):
         a = datetime_frame
-        noise = Series(randn(len(a)), index=a.index)
+        noise = Series(np.random.randn(len(a)), index=a.index)
 
         b = datetime_frame.add(noise, axis=0)
 
@@ -409,8 +407,9 @@ class TestDataFrameAnalytics():
         # non time-series data
         index = ['a', 'b', 'c', 'd', 'e']
         columns = ['one', 'two', 'three', 'four']
-        df1 = DataFrame(randn(5, 4), index=index, columns=columns)
-        df2 = DataFrame(randn(4, 4), index=index[:4], columns=columns)
+        df1 = DataFrame(np.random.randn(5, 4), index=index, columns=columns)
+        df2 = DataFrame(np.random.randn(4, 4),
+                        index=index[:4], columns=columns)
         correls = df1.corrwith(df2, axis=1)
         for row in index[:4]:
             tm.assert_almost_equal(correls[row],
@@ -823,9 +822,9 @@ class TestDataFrameAnalytics():
         assert_stat_op_api('min', float_frame, float_string_frame)
 
     def test_cummin(self, datetime_frame):
-        datetime_frame.loc[5:10, 0] = nan
-        datetime_frame.loc[10:15, 1] = nan
-        datetime_frame.loc[15:, 2] = nan
+        datetime_frame.loc[5:10, 0] = np.nan
+        datetime_frame.loc[10:15, 1] = np.nan
+        datetime_frame.loc[15:, 2] = np.nan
 
         # axis = 0
         cummin = datetime_frame.cummin()
@@ -846,9 +845,9 @@ class TestDataFrameAnalytics():
         assert np.shape(cummin_xs) == np.shape(datetime_frame)
 
     def test_cummax(self, datetime_frame):
-        datetime_frame.loc[5:10, 0] = nan
-        datetime_frame.loc[10:15, 1] = nan
-        datetime_frame.loc[15:, 2] = nan
+        datetime_frame.loc[5:10, 0] = np.nan
+        datetime_frame.loc[10:15, 1] = np.nan
+        datetime_frame.loc[15:, 2] = np.nan
 
         # axis = 0
         cummax = datetime_frame.cummax()
@@ -950,9 +949,9 @@ class TestDataFrameAnalytics():
             assert len(result) == 2
 
     def test_cumsum(self, datetime_frame):
-        datetime_frame.loc[5:10, 0] = nan
-        datetime_frame.loc[10:15, 1] = nan
-        datetime_frame.loc[15:, 2] = nan
+        datetime_frame.loc[5:10, 0] = np.nan
+        datetime_frame.loc[10:15, 1] = np.nan
+        datetime_frame.loc[15:, 2] = np.nan
 
         # axis = 0
         cumsum = datetime_frame.cumsum()
@@ -973,9 +972,9 @@ class TestDataFrameAnalytics():
         assert np.shape(cumsum_xs) == np.shape(datetime_frame)
 
     def test_cumprod(self, datetime_frame):
-        datetime_frame.loc[5:10, 0] = nan
-        datetime_frame.loc[10:15, 1] = nan
-        datetime_frame.loc[15:, 2] = nan
+        datetime_frame.loc[5:10, 0] = np.nan
+        datetime_frame.loc[10:15, 1] = np.nan
+        datetime_frame.loc[15:, 2] = np.nan
 
         # axis = 0
         cumprod = datetime_frame.cumprod()
@@ -1753,7 +1752,7 @@ class TestDataFrameAnalytics():
                               expected_neg_rounded)
 
         # nan in Series round
-        nan_round_Series = Series({'col1': nan, 'col2': 1})
+        nan_round_Series = Series({'col1': np.nan, 'col2': 1})
 
         # TODO(wesm): unused?
         expected_nan_round = DataFrame({  # noqa
@@ -2084,8 +2083,10 @@ class TestDataFrameAnalytics():
         result = A.dot(b)
 
         # unaligned
-        df = DataFrame(randn(3, 4), index=[1, 2, 3], columns=lrange(4))
-        df2 = DataFrame(randn(5, 3), index=lrange(5), columns=[1, 2, 3])
+        df = DataFrame(np.random.randn(3, 4),
+                       index=[1, 2, 3], columns=lrange(4))
+        df2 = DataFrame(np.random.randn(5, 3),
+                        index=lrange(5), columns=[1, 2, 3])
 
         with pytest.raises(ValueError, match='aligned'):
             df.dot(df2)
@@ -2144,8 +2145,10 @@ class TestDataFrameAnalytics():
         tm.assert_frame_equal(result, expected)
 
         # unaligned
-        df = DataFrame(randn(3, 4), index=[1, 2, 3], columns=lrange(4))
-        df2 = DataFrame(randn(5, 3), index=lrange(5), columns=[1, 2, 3])
+        df = DataFrame(np.random.randn(3, 4),
+                       index=[1, 2, 3], columns=lrange(4))
+        df2 = DataFrame(np.random.randn(5, 3),
+                        index=lrange(5), columns=[1, 2, 3])
 
         with pytest.raises(ValueError, match='aligned'):
             operator.matmul(df, df2)
