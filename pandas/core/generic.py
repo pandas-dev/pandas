@@ -3977,7 +3977,7 @@ class NDFrame(PandasObject, SelectionMixin):
              orders.  If this is a list of bools, must match the length of
              the by.
         inplace : bool, default False
-             if True, perform operation in-place
+             If True, perform operation in-place
         kind : {'quicksort', 'mergesort', 'heapsort'}, default 'quicksort'
              Choice of sorting algorithm. See also ndarray.np.sort for more
              information.  `mergesort` is the only stable algorithm. For
@@ -4062,11 +4062,11 @@ class NDFrame(PandasObject, SelectionMixin):
         ----------
         axis : %(axes)s to direct sorting
         level : int or level name or list of ints or list of level names
-            if not None, sort on values in specified index level(s)
+            If not None, sort on values in specified index level(s)
         ascending : boolean, default True
             Sort ascending vs. descending
         inplace : bool, default False
-            if True, perform operation in-place
+            If True, perform operation in-place
         kind : {'quicksort', 'mergesort', 'heapsort'}, default 'quicksort'
              Choice of sorting algorithm. See also ndarray.np.sort for more
              information.  `mergesort` is the only stable algorithm. For
@@ -4076,7 +4076,7 @@ class NDFrame(PandasObject, SelectionMixin):
              `first` puts NaNs at the beginning, `last` puts NaNs at the end.
              Not implemented for MultiIndex.
         sort_remaining : bool, default True
-            if true and sorting by level and index is multilevel, sort by other
+            If True and sorting by level and index is multilevel, sort by other
             levels too (in order) after sorting by specified level
 
         Returns
