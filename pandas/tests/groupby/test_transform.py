@@ -637,8 +637,11 @@ def test_cython_transform_frame(op, args, targop):
             for c in df:
                 if c not in ['float', 'int', 'float_missing'
                              ] and op != 'shift':
-                    pytest.raises(DataError, gb[c].transform, op)
-                    pytest.raises(DataError, getattr(gb[c], op))
+                    msg = "No numeric types to aggregate"
+                    with pytest.raises(DataError, match=msg):
+                        gb[c].transform(op)
+                    with pytest.raises(DataError, match=msg):
+                        getattr(gb[c], op)()
                 else:
                     expected = gb[c].apply(targop)
                     expected.name = c

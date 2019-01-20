@@ -116,8 +116,9 @@ def test_filter_condition_raises():
     s = pd.Series([-1, 0, 1, 2])
     grouper = s.apply(lambda x: x % 2)
     grouped = s.groupby(grouper)
-    pytest.raises(TypeError,
-                  lambda: grouped.filter(raise_if_sum_is_zero))
+    msg = "the filter must return a boolean result"
+    with pytest.raises(TypeError, match=msg):
+        grouped.filter(raise_if_sum_is_zero)
 
 
 def test_filter_with_axis_in_groupby():
@@ -140,16 +141,28 @@ def test_filter_bad_shapes():
     g_s = s.groupby(s)
 
     f = lambda x: x
-    pytest.raises(TypeError, lambda: g_df.filter(f))
-    pytest.raises(TypeError, lambda: g_s.filter(f))
+    msg = "filter function returned a DataFrame, but expected a scalar bool"
+    with pytest.raises(TypeError, match=msg):
+        g_df.filter(f)
+    msg = "the filter must return a boolean result"
+    with pytest.raises(TypeError, match=msg):
+        g_s.filter(f)
 
     f = lambda x: x == 1
-    pytest.raises(TypeError, lambda: g_df.filter(f))
-    pytest.raises(TypeError, lambda: g_s.filter(f))
+    msg = "filter function returned a DataFrame, but expected a scalar bool"
+    with pytest.raises(TypeError, match=msg):
+        g_df.filter(f)
+    msg = "the filter must return a boolean result"
+    with pytest.raises(TypeError, match=msg):
+        g_s.filter(f)
 
     f = lambda x: np.outer(x, x)
-    pytest.raises(TypeError, lambda: g_df.filter(f))
-    pytest.raises(TypeError, lambda: g_s.filter(f))
+    msg = "can't multiply sequence by non-int of type 'str'"
+    with pytest.raises(TypeError, match=msg):
+        g_df.filter(f)
+    msg = "the filter must return a boolean result"
+    with pytest.raises(TypeError, match=msg):
+        g_s.filter(f)
 
 
 def test_filter_nan_is_false():
