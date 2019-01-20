@@ -214,4 +214,23 @@ class ReadCSVParseDates(StringIORewind):
                  names=list(string.digits[:9]))
 
 
+class ReadCSVMemoryGrowth(BaseIO):
+
+    chunksize = 20
+    num_rows = 1000
+    fname = "__test__.csv"
+
+    def setup(self):
+        with open(self.fname, "w") as f:
+            for i in range(self.num_rows):
+                f.write("{i}\n".format(i=i))
+
+    def mem_parser_chunks(self):
+        # see gh-24805.
+        result = read_csv(self.fname, chunksize=self.chunksize)
+
+        for _ in result:
+            pass
+
+
 from ..pandas_vb_common import setup  # noqa: F401
