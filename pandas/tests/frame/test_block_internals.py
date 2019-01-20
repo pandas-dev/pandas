@@ -6,7 +6,6 @@ from datetime import datetime, timedelta
 import itertools
 
 import numpy as np
-from numpy import nan
 import pytest
 
 from pandas.compat import StringIO
@@ -228,7 +227,7 @@ class TestDataFrameBlockInternals():
         float_string_frame = tm.get_float_string_frame()
 
         # f7u12, this does not work without extensive workaround
-        data = [[datetime(2001, 1, 5), nan, datetime(2001, 1, 2)],
+        data = [[datetime(2001, 1, 5), np.nan, datetime(2001, 1, 2)],
                 [datetime(2000, 1, 2), datetime(2000, 1, 3),
                  datetime(2000, 1, 1)]]
         df = DataFrame(data)
@@ -584,18 +583,18 @@ starting,ending,measure
     def test_strange_column_corruption_issue(self):
         # (wesm) Unclear how exactly this is related to internal matters
         df = DataFrame(index=[0, 1])
-        df[0] = nan
+        df[0] = np.nan
         wasCol = {}
         # uncommenting these makes the results match
         # for col in xrange(100, 200):
         #    wasCol[col] = 1
-        #    df[col] = nan
+        #    df[col] = np.nan
 
         for i, dt in enumerate(df.index):
             for col in range(100, 200):
                 if col not in wasCol:
                     wasCol[col] = 1
-                    df[col] = nan
+                    df[col] = np.nan
                 df[col][dt] = i
 
         myid = 100

@@ -1916,6 +1916,24 @@ def test_filename_with_special_chars(all_parsers):
         tm.assert_frame_equal(result, df)
 
 
+def test_read_csv_memory_growth_chunksize(all_parsers):
+    # see gh-24805
+    #
+    # Let's just make sure that we don't crash
+    # as we iteratively process all chunks.
+    parser = all_parsers
+
+    with tm.ensure_clean() as path:
+        with open(path, "w") as f:
+            for i in range(1000):
+                f.write(str(i) + "\n")
+
+        result = parser.read_csv(path, chunksize=20)
+
+        for _ in result:
+            pass
+
+
 def test_read_table_deprecated(all_parsers):
     # see gh-21948
     parser = all_parsers
