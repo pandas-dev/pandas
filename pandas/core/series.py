@@ -2992,11 +2992,13 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
         Parameters
         ----------
-        axis : int (can only be zero)
+        axis : int
+            Has no effect but is accepted for compatibility with numpy.
         kind : {'mergesort', 'quicksort', 'heapsort'}, default 'quicksort'
             Choice of sorting algorithm. See np.sort for more
             information. 'mergesort' is the only stable algorithm
-        order : ignored
+        order : None
+            Has no effect but is accepted for compatibility with numpy.
 
         Returns
         -------

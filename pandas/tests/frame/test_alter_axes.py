@@ -115,7 +115,6 @@ class TestDataFrameAlterAxes():
         tm.assert_frame_equal(result, expected)
 
     # MultiIndex constructor does not work directly on Series -> lambda
-    # Add list-of-list constructor because list is ambiguous -> lambda
     # also test index name if append=True (name is duplicate here for B)
     @pytest.mark.parametrize('box', [Series, Index, np.array, list,
                                      lambda x: MultiIndex.from_arrays([x])])
@@ -248,7 +247,7 @@ class TestDataFrameAlterAxes():
 
     @pytest.mark.parametrize('append', [True, False])
     @pytest.mark.parametrize('drop', [True, False])
-    def test_set_index_raise(self, frame_of_index_cols, drop, append):
+    def test_set_index_raise_keys(self, frame_of_index_cols, drop, append):
         df = frame_of_index_cols
 
         with pytest.raises(KeyError, match="['foo', 'bar', 'baz']"):
@@ -259,14 +258,31 @@ class TestDataFrameAlterAxes():
         with pytest.raises(KeyError, match='X'):
             df.set_index([df['A'], df['B'], 'X'], drop=drop, append=append)
 
-        msg = 'The parameter "keys" may be a column key, .*'
-        # forbidden type, e.g. set
-        with pytest.raises(ValueError, match=msg):
-            df.set_index(set(df['A']), drop=drop, append=append)
+        msg = "[('foo', 'foo', 'foo', 'bar', 'bar')]"
+        # tuples always raise KeyError
+        with pytest.raises(KeyError, match=msg):
+            df.set_index(tuple(df['A']), drop=drop, append=append)
 
-        # forbidden type in list, e.g. set
+        # also within a list
+        with pytest.raises(KeyError, match=msg):
+            df.set_index(['A', df['A'], tuple(df['A'])],
+                         drop=drop, append=append)
+
+    @pytest.mark.parametrize('append', [True, False])
+    @pytest.mark.parametrize('drop', [True, False])
+    @pytest.mark.parametrize('box', [set, iter])
+    def test_set_index_raise_on_type(self, frame_of_index_cols, box,
+                                     drop, append):
+        df = frame_of_index_cols
+
+        msg = 'The parameter "keys" may be a column key, .*'
+        # forbidden type, e.g. set/iter
         with pytest.raises(ValueError, match=msg):
-            df.set_index(['A', df['A'], set(df['A'])],
+            df.set_index(box(df['A']), drop=drop, append=append)
+
+        # forbidden type in list, e.g. set/iter
+        with pytest.raises(ValueError, match=msg):
+            df.set_index(['A', df['A'], box(df['A'])],
                          drop=drop, append=append)
 
     def test_construction_with_categorical_index(self):
