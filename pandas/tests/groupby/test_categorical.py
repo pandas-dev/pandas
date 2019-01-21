@@ -420,13 +420,13 @@ def test_observed_groups(observed):
     tm.assert_dict_equal(result, expected)
 
 
-def test_observed_groups_with_nan(observed=True):
+def test_observed_groups_with_nan():
     # GH 24740
     df = pd.DataFrame({'cat': pd.Categorical(['a', 'c', 'a'],
                        categories=['a', 'b', 'd', 'e', 'f']),
                        'vals': [1, 2, 3]})
 
-    g = df.groupby('cat', observed=observed)
+    g = df.groupby('cat', observed=True)
     result = g.groups
     expected = {'a': Index([0, 2], dtype='int64')}
     tm.assert_dict_equal(result, expected)
