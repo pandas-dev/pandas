@@ -2114,7 +2114,6 @@ class DataFrameGroups(dict):
     def __repr__(self):
         from pandas.compat import u
 
-        # nitems = len(self)
         nitems = get_option('display.max_rows') or len(self)
 
         fmt = u("{{{things}}}")
