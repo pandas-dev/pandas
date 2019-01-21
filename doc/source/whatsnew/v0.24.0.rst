@@ -1708,6 +1708,7 @@ I/O
 ^^^
 
 - Bug in :func:`read_csv` in which a column specified with ``CategoricalDtype`` of boolean categories was not being correctly coerced from string values to booleans (:issue:`20498`)
+- Bug in :func:`read_csv` in which unicode column names were not being properly recognized with Python 2.x (:issue:`13253`)
 - Bug in :meth:`DataFrame.to_sql` when writing timezone aware data (``datetime64[ns, tz]`` dtype) would raise a ``TypeError`` (:issue:`9086`)
 - Bug in :meth:`DataFrame.to_sql` where a naive :class:`DatetimeIndex` would be written as ``TIMESTAMP WITH TIMEZONE`` type in supported databases, e.g. PostgreSQL (:issue:`23510`)
 - Bug in :meth:`read_excel()` when ``parse_cols`` is specified with an empty dataset (:issue:`9208`)
