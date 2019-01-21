@@ -42,9 +42,7 @@ _index_doc_kwargs.update(dict(target_klass='CategoricalIndex'))
     typ='method', overwrite=True)
 class CategoricalIndex(Index, accessor.PandasDelegate):
     """
-    Immutable index implementing an ordered, sliceable set. CategoricalIndex
-    represents a sparsely populated index with an underlying
-    :class:`Categorical`.
+    Index based on an underlying :class:`Categorical`.
 
     `CategoricalIndex`, like `Categorical` can only take on a limited,
     and usually fixed, number of possible values (`categories`). Also,
@@ -70,9 +68,9 @@ class CategoricalIndex(Index, accessor.PandasDelegate):
 
         .. versionadded:: 0.21.0
     copy : bool, default False
-        Make a copy of input ndarray
+        Make a copy of input ndarray.
     name : object, optional
-        Name to be stored in the index
+        Name to be stored in the index.
 
     Attributes
     ----------
@@ -103,9 +101,9 @@ class CategoricalIndex(Index, accessor.PandasDelegate):
 
     See Also
     --------
-    Index : The base pandas Index type
-    Categorical : A categorical variable in classic R / S-plus fashion
-    CategoricalDtype : Type for categorical data
+    Index : The base pandas Index type.
+    Categorical : A categorical variable in classic R / S-plus fashion.
+    CategoricalDtype : Type for categorical data.
 
     Notes
     -----
