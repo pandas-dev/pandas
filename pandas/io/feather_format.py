@@ -24,8 +24,8 @@ def _try_import():
                           "or via pip\n"
                           "pip install -U pyarrow\n")
 
-    if LooseVersion(pyarrow.__version__) < LooseVersion('0.4.1'):
-        raise ImportError("pyarrow >= 0.4.1 required for feather support\n\n"
+    if LooseVersion(pyarrow.__version__) < LooseVersion('0.9.0'):
+        raise ImportError("pyarrow >= 0.9.0 required for feather support\n\n"
                           "you can install via conda\n"
                           "conda install pyarrow -c conda-forge"
                           "or via pip\n"

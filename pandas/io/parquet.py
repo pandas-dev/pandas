@@ -89,9 +89,9 @@ class PyArrowImpl(BaseImpl):
                 "\nor via pip\n"
                 "pip install -U pyarrow\n"
             )
-        if LooseVersion(pyarrow.__version__) < '0.7.0':
+        if LooseVersion(pyarrow.__version__) < '0.9.0':
             raise ImportError(
-                "pyarrow >= 0.7.0 is required for parquet support\n\n"
+                "pyarrow >= 0.9.0 is required for parquet support\n\n"
                 "you can install via conda\n"
                 "conda install pyarrow -c conda-forge\n"
                 "\nor via pip\n"
