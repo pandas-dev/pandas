@@ -1415,7 +1415,7 @@ def _trim_zeros(str_floats, na_rep='NaN'):
     trimmed = str_floats
 
     def _is_number(x):
-         return (x != na_rep and not x.endswith('inf'))
+        return (x != na_rep and not x.endswith('inf'))
 
     def _cond(values):
         finite = [x for x in values if _is_number(x)]
