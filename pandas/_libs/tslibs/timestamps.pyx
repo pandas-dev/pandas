@@ -420,20 +420,6 @@ cdef class _Timestamp(datetime):
         elif other.tzinfo is None:
             raise TypeError('Cannot compare tz-naive and tz-aware timestamps')
 
-    cpdef datetime to_pydatetime(_Timestamp self, bint warn=True):
-        """
-        Convert a Timestamp object to a native Python datetime object.
-
-        If warn=True, issue a warning if nanoseconds is nonzero.
-        """
-        if self.nanosecond != 0 and warn:
-            warnings.warn("Discarding nonzero nanoseconds in conversion",
-                          UserWarning, stacklevel=2)
-
-        return datetime(self.year, self.month, self.day,
-                        self.hour, self.minute, self.second,
-                        self.microsecond, self.tzinfo)
-
     def __add__(self, other):
         cdef:
             int64_t other_int, nanos
@@ -661,6 +647,20 @@ cdef class _Timestamp(datetime):
 
     # --------------------------------------------------------------------
     # Conversion
+
+    cpdef datetime to_pydatetime(_Timestamp self, bint warn=True):
+        """
+        Convert a Timestamp object to a native Python datetime object.
+
+        If warn=True, issue a warning if nanoseconds is nonzero.
+        """
+        if self.nanosecond != 0 and warn:
+            warnings.warn("Discarding nonzero nanoseconds in conversion",
+                          UserWarning, stacklevel=2)
+
+        return datetime(self.year, self.month, self.day,
+                        self.hour, self.minute, self.second,
+                        self.microsecond, self.tzinfo)
 
     def timestamp(self):
         """Return POSIX timestamp as float."""
