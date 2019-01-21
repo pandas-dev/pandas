@@ -777,7 +777,8 @@ class TestAppend(ConcatenateBase):
         assert appended is not self.frame
 
         # Overlap
-        with pytest.raises(ValueError):
+        msg = "Indexes have overlapping values"
+        with pytest.raises(ValueError, match=msg):
             self.frame.append(self.frame, verify_integrity=True)
 
         # see gh-6129: new columns
@@ -960,13 +961,23 @@ class TestAppend(ConcatenateBase):
         df = pd.DataFrame([[1, 2, 3], [4, 5, 6]], columns=index_can_append)
         ser = pd.Series([7, 8, 9], index=index_cannot_append_with_other,
                         name=2)
-        with pytest.raises(TypeError):
+        msg = ("the other index needs to be an IntervalIndex too, but was"
+               r" type {}|"
+               r"object of type '(int|long|float|Timestamp)' has no len\(\)|"
+               "Expected tuple, got str")
+        with pytest.raises(TypeError, match=msg.format(
+                index_can_append.__class__.__name__)):
             df.append(ser)
 
         df = pd.DataFrame([[1, 2, 3], [4, 5, 6]],
                           columns=index_cannot_append_with_other)
         ser = pd.Series([7, 8, 9], index=index_can_append, name=2)
-        with pytest.raises(TypeError):
+        msg = (r"unorderable types: (Interval|int)\(\) > "
+               r"(int|long|float|str)\(\)|"
+               r"Expected tuple, got (int|long|float|str)|"
+               r"Cannot compare type 'Timestamp' with type '(int|long)'|"
+               r"'>' not supported between instances of 'int' and 'str'")
+        with pytest.raises(TypeError, match=msg):
             df.append(ser)
 
     def test_append_dtype_coerce(self, sort):
@@ -1291,11 +1302,15 @@ class TestConcatenate(ConcatenateBase):
         df = DataFrame(np.random.randn(1, 3), index=['a'])
         df2 = DataFrame(np.random.randn(1, 4), index=['b'])
 
-        pytest.raises(ValueError, concat, [df, df],
-                      keys=['one', 'two'], levels=[['foo', 'bar', 'baz']])
+        msg = "Values not found in passed level"
+        with pytest.raises(ValueError, match=msg):
+            concat([df, df],
+                   keys=['one', 'two'], levels=[['foo', 'bar', 'baz']])
 
-        pytest.raises(ValueError, concat, [df, df2],
-                      keys=['one', 'two'], levels=[['foo', 'bar', 'baz']])
+        msg = "Key one not in level"
+        with pytest.raises(ValueError, match=msg):
+            concat([df, df2],
+                   keys=['one', 'two'], levels=[['foo', 'bar', 'baz']])
 
     def test_concat_rename_index(self):
         a = DataFrame(np.random.rand(3, 3),
@@ -1488,7 +1503,10 @@ class TestConcatenate(ConcatenateBase):
         with catch_warnings(record=True):
             simplefilter("ignore", FutureWarning)
             panel = tm.makePanel()
-            pytest.raises(ValueError, lambda: concat([panel, s1], axis=1))
+            msg = ("cannot concatenate unaligned mixed dimensional NDFrame"
+                   " objects")
+            with pytest.raises(ValueError, match=msg):
+                concat([panel, s1], axis=1)
 
     def test_empty_dtype_coerce(self):
 
@@ -1666,7 +1684,8 @@ class TestConcatenate(ConcatenateBase):
         pieces = [df[:5], None, None, df[5:]]
         result = concat(pieces)
         tm.assert_frame_equal(result, df)
-        pytest.raises(ValueError, concat, [None, None])
+        with pytest.raises(ValueError, match="All objects passed were None"):
+            concat([None, None])
 
     def test_concat_datetime64_block(self):
         from pandas.core.indexes.datetimes import date_range
@@ -1799,13 +1818,20 @@ class TestConcatenate(ConcatenateBase):
 
         # trying to concat a ndframe with a non-ndframe
         df1 = mkdf(10, 2)
+        msg = ('cannot concatenate object of type "{}";'
+               ' only pd.Series, pd.DataFrame, and pd.Panel'
+               r' \(deprecated\) objs are valid')
         for obj in [1, dict(), [1, 2], (1, 2)]:
-            pytest.raises(TypeError, lambda x: concat([df1, obj]))
+            with pytest.raises(TypeError, match=msg.format(type(obj))):
+                concat([df1, obj])
 
     def test_concat_invalid_first_argument(self):
         df1 = mkdf(10, 2)
         df2 = mkdf(10, 2)
-        pytest.raises(TypeError, concat, df1, df2)
+        msg = ('first argument must be an iterable of pandas '
+               'objects, you passed an object of type "DataFrame"')
+        with pytest.raises(TypeError, match=msg):
+            concat(df1, df2)
 
         # generator ok though
         concat(DataFrame(np.random.rand(5, 5)) for _ in range(3))
@@ -2310,7 +2336,9 @@ bar2,12,13,14,15
         # wrong catgories
         df3 = DataFrame({'A': a, 'B': Categorical(b, categories=list('abe'))
                          }).set_index('B')
-        pytest.raises(TypeError, lambda: pd.concat([df2, df3]))
+        msg = "categories must match existing categories when appending"
+        with pytest.raises(TypeError, match=msg):
+            pd.concat([df2, df3])
 
     def test_concat_categoricalindex(self):
         # GH 16111, categories that aren't lexsorted

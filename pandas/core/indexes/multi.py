@@ -2879,13 +2879,17 @@ class MultiIndex(Index):
                 return False
         return True
 
-    def union(self, other):
+    def union(self, other, sort=True):
         """
-        Form the union of two MultiIndex objects, sorting if possible
+        Form the union of two MultiIndex objects
 
         Parameters
         ----------
         other : MultiIndex or array / Index of tuples
+        sort : bool, default True
+            Sort the resulting MultiIndex if possible
+
+            .. versionadded:: 0.24.0
 
         Returns
         -------
@@ -2900,17 +2904,23 @@ class MultiIndex(Index):
             return self
 
         uniq_tuples = lib.fast_unique_multiple([self._ndarray_values,
-                                                other._ndarray_values])
+                                                other._ndarray_values],
+                                               sort=sort)
+
         return MultiIndex.from_arrays(lzip(*uniq_tuples), sortorder=0,
                                       names=result_names)
 
-    def intersection(self, other):
+    def intersection(self, other, sort=True):
         """
-        Form the intersection of two MultiIndex objects, sorting if possible
+        Form the intersection of two MultiIndex objects.
 
         Parameters
         ----------
         other : MultiIndex or array / Index of tuples
+        sort : bool, default True
+            Sort the resulting MultiIndex if possible
+
+            .. versionadded:: 0.24.0
 
         Returns
         -------
@@ -2924,7 +2934,11 @@ class MultiIndex(Index):
 
         self_tuples = self._ndarray_values
         other_tuples = other._ndarray_values
-        uniq_tuples = sorted(set(self_tuples) & set(other_tuples))
+        uniq_tuples = set(self_tuples) & set(other_tuples)
+
+        if sort:
+            uniq_tuples = sorted(uniq_tuples)
+
         if len(uniq_tuples) == 0:
             return MultiIndex(levels=self.levels,
                               codes=[[]] * self.nlevels,
@@ -2935,7 +2949,7 @@ class MultiIndex(Index):
 
     def difference(self, other, sort=True):
         """
-        Compute sorted set difference of two MultiIndex objects
+        Compute set difference of two MultiIndex objects
 
         Parameters
         ----------
