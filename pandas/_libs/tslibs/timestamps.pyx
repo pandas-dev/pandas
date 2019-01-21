@@ -497,6 +497,11 @@ cdef class _Timestamp(datetime):
         elif hasattr(other, '_typ'):
             return NotImplemented
 
+        elif not PyDateTime_Check(self):
+            # cython has called this method with `self, other` swapped,
+            #  since __radd__ is not called by cython classes
+            return other + self
+
         result = datetime.__add__(self, other)
         if PyDateTime_Check(result):
             result = Timestamp(result)
@@ -1351,11 +1356,6 @@ class Timestamp(_Timestamp):
             freq = to_offset(freq)
 
         return create_timestamp_from_ts(ts.value, ts.dts, ts.tzinfo, freq)
-
-    def __radd__(self, other):
-        # __radd__ on cython extension types like _Timestamp is not used, so
-        # define it here instead
-        return self + other
 
 
 # Add the min and max fields at the class level
