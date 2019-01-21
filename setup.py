@@ -462,6 +462,7 @@ if linetrace:
 #  cython+numpy version mismatches.
 macros.append(('NPY_NO_DEPRECATED_API', '0'))
 
+
 # ----------------------------------------------------------------------
 # Specification of Dependencies
 
