@@ -1105,6 +1105,36 @@ cdef class _Timedelta(timedelta):
                .format(td=components, seconds=seconds))
         return tpl
 
+    # ----------------------------------------------------------------
+
+    def _round(self, freq, rounder):
+        cdef:
+            int64_t result, unit
+
+        unit = to_offset(freq).nanos
+        result = unit * rounder(self.value / float(unit))
+        return Timedelta(result, unit='ns')
+
+    def floor(self, freq):
+        """
+        return a new Timedelta floored to this resolution
+
+        Parameters
+        ----------
+        freq : a freq string indicating the flooring resolution
+        """
+        return self._round(freq, np.floor)
+
+    def ceil(self, freq):
+        """
+        return a new Timedelta ceiled to this resolution
+
+        Parameters
+        ----------
+        freq : a freq string indicating the ceiling resolution
+        """
+        return self._round(freq, np.ceil)
+
 
 # Python front end to C extension type _Timedelta
 # This serves as the box for timedelta64
@@ -1206,14 +1236,6 @@ class Timedelta(_Timedelta):
         object_state = self.value,
         return (Timedelta, object_state)
 
-    def _round(self, freq, rounder):
-        cdef:
-            int64_t result, unit
-
-        unit = to_offset(freq).nanos
-        result = unit * rounder(self.value / float(unit))
-        return Timedelta(result, unit='ns')
-
     def round(self, freq):
         """
         Round the Timedelta to the specified resolution
@@ -1231,26 +1253,6 @@ class Timedelta(_Timedelta):
         ValueError if the freq cannot be converted
         """
         return self._round(freq, np.round)
-
-    def floor(self, freq):
-        """
-        return a new Timedelta floored to this resolution
-
-        Parameters
-        ----------
-        freq : a freq string indicating the flooring resolution
-        """
-        return self._round(freq, np.floor)
-
-    def ceil(self, freq):
-        """
-        return a new Timedelta ceiled to this resolution
-
-        Parameters
-        ----------
-        freq : a freq string indicating the ceiling resolution
-        """
-        return self._round(freq, np.ceil)
 
     # ----------------------------------------------------------------
     # Arithmetic Methods

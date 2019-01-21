@@ -382,7 +382,7 @@ class NaTType(_NaT):
     )
     combine = _make_error_func('combine',  # noqa:E128
         """
-        Timsetamp.combine(date, time)
+        Timestamp.combine(date, time)
 
         date, time -> datetime with same date and time fields
         """
@@ -401,24 +401,7 @@ class NaTType(_NaT):
     # GH9513 NaT methods (except to_datetime64) to raise, return np.nan, or
     # return NaT create functions that raise, for binding to NaTType
     astimezone = _make_error_func('astimezone',  # noqa:E128
-        """
-        Convert tz-aware Timestamp to another time zone.
-
-        Parameters
-        ----------
-        tz : str, pytz.timezone, dateutil.tz.tzfile or None
-            Time zone for time which Timestamp will be converted to.
-            None will remove timezone holding UTC time.
-
-        Returns
-        -------
-        converted : Timestamp
-
-        Raises
-        ------
-        TypeError
-            If Timestamp is tz-naive.
-        """)
+        """Alias for tz_convert.  See tz_convert.__doc__""")
     fromordinal = _make_error_func('fromordinal',  # noqa:E128
         """
         Timestamp.fromordinal(ordinal, freq=None, tz=None)

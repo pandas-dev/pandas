@@ -197,7 +197,7 @@ def round_nsint64(values, mode, freq):
 
 # This is PITA. Because we inherit from datetime, which has very specific
 # construction requirements, we need to do object instantiation in python
-# (see Timestamp class above). This will serve as a C extension type that
+# (see Timestamp class below). This will serve as a C extension type that
 # shadows the python class, where we do any heavy lifting.
 cdef class _Timestamp(datetime):
 
@@ -205,6 +205,119 @@ cdef class _Timestamp(datetime):
         int64_t value, nanosecond
         object freq       # frequency reference
         list _date_attributes
+
+    # --------------------------------------------------------------------
+    # Constructors
+
+    @classmethod
+    def fromordinal(cls, ordinal, freq=None, tz=None):
+        """
+        Timestamp.fromordinal(ordinal, freq=None, tz=None)
+
+        passed an ordinal, translate and convert to a ts
+        note: by definition there cannot be any tz info on the ordinal itself
+
+        Parameters
+        ----------
+        ordinal : int
+            date corresponding to a proleptic Gregorian ordinal
+        freq : str, DateOffset
+            Offset which Timestamp will have
+        tz : str, pytz.timezone, dateutil.tz.tzfile or None
+            Time zone for time which Timestamp will have.
+        """
+        return cls(datetime.fromordinal(ordinal),
+                   freq=freq, tz=tz)
+
+    @classmethod
+    def now(cls, tz=None):
+        """
+        Timestamp.now(tz=None)
+
+        Returns new Timestamp object representing current time local to
+        tz.
+
+        Parameters
+        ----------
+        tz : str or timezone object, default None
+            Timezone to localize to
+        """
+        if is_string_object(tz):
+            tz = maybe_get_tz(tz)
+        return cls(datetime.now(tz))
+
+    @classmethod
+    def today(cls, tz=None):
+        """
+        Timestamp.today(cls, tz=None)
+
+        Return the current time in the local timezone.  This differs
+        from datetime.today() in that it can be localized to a
+        passed timezone.
+
+        Parameters
+        ----------
+        tz : str or timezone object, default None
+            Timezone to localize to
+        """
+        return cls.now(tz)
+
+    @classmethod
+    def utcnow(cls):
+        """
+        Timestamp.utcnow()
+
+        Return a new Timestamp representing UTC day and time.
+        """
+        return cls.now(UTC)
+
+    @classmethod
+    def utcfromtimestamp(cls, ts):
+        """
+        Timestamp.utcfromtimestamp(ts)
+
+        Construct a naive UTC datetime from a POSIX timestamp.
+        """
+        return cls(datetime.utcfromtimestamp(ts))
+
+    @classmethod
+    def fromtimestamp(cls, ts):
+        """
+        Timestamp.fromtimestamp(ts)
+
+        timestamp[, tz] -> tz's local time from POSIX timestamp.
+        """
+        return cls(datetime.fromtimestamp(ts))
+
+    @classmethod
+    def combine(cls, date, time):
+        """
+        Timestamp.combine(date, time)
+
+        date, time -> datetime with same date and time fields
+        """
+        return cls(datetime.combine(date, time))
+
+    # --------------------------------------------------------------------
+
+    @property
+    def tz(self):
+        """
+        Alias for tzinfo
+        """
+        return self.tzinfo
+
+    @tz.setter
+    def tz(self, value):
+        # GH 3746: Prevent localizing or converting the index by setting tz
+        raise AttributeError("Cannot directly set timezone. Use tz_localize() "
+                             "or tz_convert() as appropriate")
+
+    @property
+    def freqstr(self):
+        return getattr(self.freq, 'freqstr', self.freq)
+
+    # --------------------------------------------------------------------
 
     def __hash__(_Timestamp self):
         if self.nanosecond:
@@ -266,6 +379,15 @@ cdef class _Timestamp(datetime):
         # http://bugs.python.org/issue28730
         # now __reduce_ex__ is defined and higher priority than __reduce__
         return self.__reduce__()
+
+    def __setstate__(self, state):
+        self.value = state[0]
+        self.freq = state[1]
+        self.tzinfo = state[2]
+
+    def __reduce__(self):
+        object_state = self.value, self.freq, self.tzinfo
+        return (Timestamp, object_state)
 
     def __repr__(self):
         stamp = self._repr_base
@@ -498,6 +620,32 @@ cdef class _Timestamp(datetime):
             return self._date_repr
         return self._repr_base
 
+    def isoformat(self, sep='T'):
+        base = super(_Timestamp, self).isoformat(sep=sep)
+        if self.nanosecond == 0:
+            return base
+
+        if self.tzinfo is not None:
+            base1, base2 = base[:-6], base[-6:]
+        else:
+            base1, base2 = base, ""
+
+        if self.microsecond != 0:
+            base1 += "%.3d" % self.nanosecond
+        else:
+            base1 += ".%.9d" % self.nanosecond
+
+        return base1 + base2
+
+    def _has_time_component(self):
+        """
+        Returns if the Timestamp has a time component
+        in addition to the date part
+        """
+        return (self.time() != _zero_time
+                or self.tzinfo is not None
+                or self.nanosecond != 0)
+
     @property
     def asm8(self):
         return np.datetime64(self.value, 'ns')
@@ -516,247 +664,287 @@ cdef class _Timestamp(datetime):
         # py27 compat, see GH#17329
         return round(self.value / 1e9, 6)
 
+    # --------------------------------------------------------------------
+    # Conversion
 
-# ----------------------------------------------------------------------
-
-# Python front end to C extension type _Timestamp
-# This serves as the box for datetime64
-
-
-class Timestamp(_Timestamp):
-    """Pandas replacement for datetime.datetime
-
-    Timestamp is the pandas equivalent of python's Datetime
-    and is interchangeable with it in most cases. It's the type used
-    for the entries that make up a DatetimeIndex, and other timeseries
-    oriented data structures in pandas.
-
-    Parameters
-    ----------
-    ts_input : datetime-like, str, int, float
-        Value to be converted to Timestamp
-    freq : str, DateOffset
-        Offset which Timestamp will have
-    tz : str, pytz.timezone, dateutil.tz.tzfile or None
-        Time zone for time which Timestamp will have.
-    unit : str
-        Unit used for conversion if ts_input is of type int or float. The
-        valid values are 'D', 'h', 'm', 's', 'ms', 'us', and 'ns'. For
-        example, 's' means seconds and 'ms' means milliseconds.
-    year, month, day : int
-        .. versionadded:: 0.19.0
-    hour, minute, second, microsecond : int, optional, default 0
-        .. versionadded:: 0.19.0
-    nanosecond : int, optional, default 0
-        .. versionadded:: 0.23.0
-    tzinfo : datetime.tzinfo, optional, default None
-        .. versionadded:: 0.19.0
-
-    Notes
-    -----
-    There are essentially three calling conventions for the constructor. The
-    primary form accepts four parameters. They can be passed by position or
-    keyword.
-
-    The other two forms mimic the parameters from ``datetime.datetime``. They
-    can be passed by either position or keyword, but not both mixed together.
-
-    Examples
-    --------
-    Using the primary calling convention:
-
-    This converts a datetime-like string
-    >>> pd.Timestamp('2017-01-01T12')
-    Timestamp('2017-01-01 12:00:00')
-
-    This converts a float representing a Unix epoch in units of seconds
-    >>> pd.Timestamp(1513393355.5, unit='s')
-    Timestamp('2017-12-16 03:02:35.500000')
-
-    This converts an int representing a Unix-epoch in units of seconds
-    and for a particular timezone
-    >>> pd.Timestamp(1513393355, unit='s', tz='US/Pacific')
-    Timestamp('2017-12-15 19:02:35-0800', tz='US/Pacific')
-
-    Using the other two forms that mimic the API for ``datetime.datetime``:
-
-    >>> pd.Timestamp(2017, 1, 1, 12)
-    Timestamp('2017-01-01 12:00:00')
-
-    >>> pd.Timestamp(year=2017, month=1, day=1, hour=12)
-    Timestamp('2017-01-01 12:00:00')
-    """
-
-    @classmethod
-    def fromordinal(cls, ordinal, freq=None, tz=None):
+    def to_period(self, freq=None):
         """
-        Timestamp.fromordinal(ordinal, freq=None, tz=None)
-
-        passed an ordinal, translate and convert to a ts
-        note: by definition there cannot be any tz info on the ordinal itself
-
-        Parameters
-        ----------
-        ordinal : int
-            date corresponding to a proleptic Gregorian ordinal
-        freq : str, DateOffset
-            Offset which Timestamp will have
-        tz : str, pytz.timezone, dateutil.tz.tzfile or None
-            Time zone for time which Timestamp will have.
+        Return an period of which this timestamp is an observation.
         """
-        return cls(datetime.fromordinal(ordinal),
-                   freq=freq, tz=tz)
+        from .period import Period
 
-    @classmethod
-    def now(cls, tz=None):
-        """
-        Timestamp.now(tz=None)
-
-        Returns new Timestamp object representing current time local to
-        tz.
-
-        Parameters
-        ----------
-        tz : str or timezone object, default None
-            Timezone to localize to
-        """
-        if is_string_object(tz):
-            tz = maybe_get_tz(tz)
-        return cls(datetime.now(tz))
-
-    @classmethod
-    def today(cls, tz=None):
-        """
-        Timestamp.today(cls, tz=None)
-
-        Return the current time in the local timezone.  This differs
-        from datetime.today() in that it can be localized to a
-        passed timezone.
-
-        Parameters
-        ----------
-        tz : str or timezone object, default None
-            Timezone to localize to
-        """
-        return cls.now(tz)
-
-    @classmethod
-    def utcnow(cls):
-        """
-        Timestamp.utcnow()
-
-        Return a new Timestamp representing UTC day and time.
-        """
-        return cls.now(UTC)
-
-    @classmethod
-    def utcfromtimestamp(cls, ts):
-        """
-        Timestamp.utcfromtimestamp(ts)
-
-        Construct a naive UTC datetime from a POSIX timestamp.
-        """
-        return cls(datetime.utcfromtimestamp(ts))
-
-    @classmethod
-    def fromtimestamp(cls, ts):
-        """
-        Timestamp.fromtimestamp(ts)
-
-        timestamp[, tz] -> tz's local time from POSIX timestamp.
-        """
-        return cls(datetime.fromtimestamp(ts))
-
-    @classmethod
-    def combine(cls, date, time):
-        """
-        Timsetamp.combine(date, time)
-
-        date, time -> datetime with same date and time fields
-        """
-        return cls(datetime.combine(date, time))
-
-    def __new__(cls, object ts_input=_no_input,
-                object freq=None, tz=None, unit=None,
-                year=None, month=None, day=None,
-                hour=None, minute=None, second=None, microsecond=None,
-                nanosecond=None, tzinfo=None):
-        # The parameter list folds together legacy parameter names (the first
-        # four) and positional and keyword parameter names from pydatetime.
-        #
-        # There are three calling forms:
-        #
-        # - In the legacy form, the first parameter, ts_input, is required
-        #   and may be datetime-like, str, int, or float. The second
-        #   parameter, offset, is optional and may be str or DateOffset.
-        #
-        # - ints in the first, second, and third arguments indicate
-        #   pydatetime positional arguments. Only the first 8 arguments
-        #   (standing in for year, month, day, hour, minute, second,
-        #   microsecond, tzinfo) may be non-None. As a shortcut, we just
-        #   check that the second argument is an int.
-        #
-        # - Nones for the first four (legacy) arguments indicate pydatetime
-        #   keyword arguments. year, month, and day are required. As a
-        #   shortcut, we just check that the first argument was not passed.
-        #
-        # Mixing pydatetime positional and keyword arguments is forbidden!
-
-        cdef _TSObject ts
-
-        _date_attributes = [year, month, day, hour, minute, second,
-                            microsecond, nanosecond]
-
-        if tzinfo is not None:
-            if not PyTZInfo_Check(tzinfo):
-                # tzinfo must be a datetime.tzinfo object, GH#17690
-                raise TypeError('tzinfo must be a datetime.tzinfo object, '
-                                'not %s' % type(tzinfo))
-            elif tz is not None:
-                raise ValueError('Can provide at most one of tz, tzinfo')
-
-            # User passed tzinfo instead of tz; avoid silently ignoring
-            tz, tzinfo = tzinfo, None
-
-        if is_string_object(ts_input):
-            # User passed a date string to parse.
-            # Check that the user didn't also pass a date attribute kwarg.
-            if any(arg is not None for arg in _date_attributes):
-                raise ValueError('Cannot pass a date attribute keyword '
-                                 'argument when passing a date string')
-
-        elif ts_input is _no_input:
-            # User passed keyword arguments.
-            ts_input = datetime(year, month, day, hour or 0,
-                                minute or 0, second or 0,
-                                microsecond or 0)
-        elif is_integer_object(freq):
-            # User passed positional arguments:
-            # Timestamp(year, month, day[, hour[, minute[, second[,
-            # microsecond[, nanosecond[, tzinfo]]]]]])
-            ts_input = datetime(ts_input, freq, tz, unit or 0,
-                                year or 0, month or 0, day or 0)
-            nanosecond = hour
-            tz = minute
-            freq = None
-
-        if getattr(ts_input, 'tzinfo', None) is not None and tz is not None:
-            warnings.warn("Passing a datetime or Timestamp with tzinfo and the"
-                          " tz parameter will raise in the future. Use"
-                          " tz_convert instead.", FutureWarning)
-
-        ts = convert_to_tsobject(ts_input, tz, unit, 0, 0, nanosecond or 0)
-
-        if ts.value == NPY_NAT:
-            return NaT
+        if self.tz is not None:
+            # GH#21333
+            warnings.warn("Converting to Period representation will "
+                          "drop timezone information.",
+                          UserWarning)
 
         if freq is None:
-            # GH 22311: Try to extract the frequency of a given Timestamp input
-            freq = getattr(ts_input, 'freq', None)
-        elif not is_offset_object(freq):
-            freq = to_offset(freq)
+            freq = self.freq
 
-        return create_timestamp_from_ts(ts.value, ts.dts, ts.tzinfo, freq)
+        return Period(self, freq=freq)
+
+    def tz_localize(self, tz, ambiguous='raise', nonexistent='raise',
+                    errors=None):
+        """
+        Convert naive Timestamp to local time zone, or remove
+        timezone from tz-aware Timestamp.
+
+        Parameters
+        ----------
+        tz : str, pytz.timezone, dateutil.tz.tzfile or None
+            Time zone for time which Timestamp will be converted to.
+            None will remove timezone holding local time.
+
+        ambiguous : bool, 'NaT', default 'raise'
+            When clocks moved backward due to DST, ambiguous times may arise.
+            For example in Central European Time (UTC+01), when going from
+            03:00 DST to 02:00 non-DST, 02:30:00 local time occurs both at
+            00:30:00 UTC and at 01:30:00 UTC. In such a situation, the
+            `ambiguous` parameter dictates how ambiguous times should be
+            handled.
+
+            - bool contains flags to determine if time is dst or not (note
+              that this flag is only applicable for ambiguous fall dst dates)
+            - 'NaT' will return NaT for an ambiguous time
+            - 'raise' will raise an AmbiguousTimeError for an ambiguous time
+
+        nonexistent : 'shift_forward', 'shift_backward, 'NaT', timedelta,
+                      default 'raise'
+            A nonexistent time does not exist in a particular timezone
+            where clocks moved forward due to DST.
+
+            - 'shift_forward' will shift the nonexistent time forward to the
+              closest existing time
+            - 'shift_backward' will shift the nonexistent time backward to the
+              closest existing time
+            - 'NaT' will return NaT where there are nonexistent times
+            - timedelta objects will shift nonexistent times by the timedelta
+            - 'raise' will raise an NonExistentTimeError if there are
+              nonexistent times
+
+            .. versionadded:: 0.24.0
+
+        errors : 'raise', 'coerce', default None
+            - 'raise' will raise a NonExistentTimeError if a timestamp is not
+               valid in the specified timezone (e.g. due to a transition from
+               or to DST time). Use ``nonexistent='raise'`` instead.
+            - 'coerce' will return NaT if the timestamp can not be converted
+              into the specified timezone. Use ``nonexistent='NaT'`` instead.
+
+              .. deprecated:: 0.24.0
+
+        Returns
+        -------
+        localized : Timestamp
+
+        Raises
+        ------
+        TypeError
+            If the Timestamp is tz-aware and tz is not None.
+        """
+        if ambiguous == 'infer':
+            raise ValueError('Cannot infer offset with only one time.')
+
+        if errors is not None:
+            warnings.warn("The errors argument is deprecated and will be "
+                          "removed in a future release. Use "
+                          "nonexistent='NaT' or nonexistent='raise' "
+                          "instead.", FutureWarning)
+            if errors == 'coerce':
+                nonexistent = 'NaT'
+            elif errors == 'raise':
+                nonexistent = 'raise'
+            else:
+                raise ValueError("The errors argument must be either 'coerce' "
+                                 "or 'raise'.")
+
+        nonexistent_options = ('raise', 'NaT', 'shift_forward',
+                               'shift_backward')
+        if nonexistent not in nonexistent_options and not isinstance(
+            nonexistent, timedelta):
+            raise ValueError("The nonexistent argument must be one of 'raise',"
+                             " 'NaT', 'shift_forward', 'shift_backward' or"
+                             " a timedelta object")
+
+        if self.tzinfo is None:
+            # tz naive, localize
+            tz = maybe_get_tz(tz)
+            if not is_string_object(ambiguous):
+                ambiguous = [ambiguous]
+            value = tz_localize_to_utc(np.array([self.value], dtype='i8'), tz,
+                                       ambiguous=ambiguous,
+                                       nonexistent=nonexistent)[0]
+            return Timestamp(value, tz=tz)
+        else:
+            if tz is None:
+                # reset tz
+                value = tz_convert_single(self.value, UTC, self.tz)
+                return Timestamp(value, tz=None)
+            else:
+                raise TypeError('Cannot localize tz-aware Timestamp, use '
+                                'tz_convert for conversions')
+
+    def tz_convert(self, tz):
+        """
+        Convert tz-aware Timestamp to another time zone.
+
+        Parameters
+        ----------
+        tz : str, pytz.timezone, dateutil.tz.tzfile or None
+            Time zone for time which Timestamp will be converted to.
+            None will remove timezone holding UTC time.
+
+        Returns
+        -------
+        converted : Timestamp
+
+        Raises
+        ------
+        TypeError
+            If Timestamp is tz-naive.
+        """
+        if self.tzinfo is None:
+            # tz naive, use tz_localize
+            raise TypeError('Cannot convert tz-naive Timestamp, use '
+                            'tz_localize to localize')
+        else:
+            # Same UTC timestamp, different time zone
+            return Timestamp(self.value, tz=tz)
+
+    def astimezone(self, tz):
+        """Alias for tz_convert.  See tz_convert.__doc__"""
+        return self.tz_convert(tz)
+
+    def to_julian_date(self):
+        """
+        Convert TimeStamp to a Julian Date.
+        0 Julian date is noon January 1, 4713 BC.
+        """
+        year = self.year
+        month = self.month
+        day = self.day
+        if month <= 2:
+            year -= 1
+            month += 12
+        return (day +
+                np.fix((153 * month - 457) / 5) +
+                365 * year +
+                np.floor(year / 4) -
+                np.floor(year / 100) +
+                np.floor(year / 400) +
+                1721118.5 +
+                (self.hour +
+                 self.minute / 60.0 +
+                 self.second / 3600.0 +
+                 self.microsecond / 3600.0 / 1e+6 +
+                 self.nanosecond / 3600.0 / 1e+9
+                ) / 24.0)
+
+    def normalize(self):
+        """
+        Normalize Timestamp to midnight, preserving
+        tz information.
+        """
+        if self.tz is None or is_utc(self.tz):
+            DAY_NS = DAY_SECONDS * 1000000000
+            normalized_value = self.value - (self.value % DAY_NS)
+            return Timestamp(normalized_value).tz_localize(self.tz)
+        normalized_value = normalize_i8_timestamps(
+            np.array([self.value], dtype='i8'), tz=self.tz)[0]
+        return Timestamp(normalized_value).tz_localize(self.tz)
+
+    def replace(self, year=None, month=None, day=None,
+                hour=None, minute=None, second=None, microsecond=None,
+                nanosecond=None, tzinfo=object, fold=0):
+        """
+        implements datetime.replace, handles nanoseconds
+
+        Parameters
+        ----------
+        year : int, optional
+        month : int, optional
+        day : int, optional
+        hour : int, optional
+        minute : int, optional
+        second : int, optional
+        microsecond : int, optional
+        nanosecond : int, optional
+        tzinfo : tz-convertible, optional
+        fold : int, optional, default is 0
+            added in 3.6, NotImplemented
+
+        Returns
+        -------
+        Timestamp with fields replaced
+        """
+
+        cdef:
+            npy_datetimestruct dts
+            int64_t value, value_tz, offset
+            object _tzinfo, result, k, v
+            datetime ts_input
+
+        # set to naive if needed
+        _tzinfo = self.tzinfo
+        value = self.value
+        if _tzinfo is not None:
+            value_tz = tz_convert_single(value, _tzinfo, UTC)
+            value += value - value_tz
+
+        # setup components
+        dt64_to_dtstruct(value, &dts)
+        dts.ps = self.nanosecond * 1000
+
+        # replace
+        def validate(k, v):
+            """ validate integers """
+            if not is_integer_object(v):
+                raise ValueError("value must be an integer, received "
+                                 "{v} for {k}".format(v=type(v), k=k))
+            return v
+
+        if year is not None:
+            dts.year = validate('year', year)
+        if month is not None:
+            dts.month = validate('month', month)
+        if day is not None:
+            dts.day = validate('day', day)
+        if hour is not None:
+            dts.hour = validate('hour', hour)
+        if minute is not None:
+            dts.min = validate('minute', minute)
+        if second is not None:
+            dts.sec = validate('second', second)
+        if microsecond is not None:
+            dts.us = validate('microsecond', microsecond)
+        if nanosecond is not None:
+            dts.ps = validate('nanosecond', nanosecond) * 1000
+        if tzinfo is not object:
+            _tzinfo = tzinfo
+
+        # reconstruct & check bounds
+        if _tzinfo is not None and treat_tz_as_pytz(_tzinfo):
+            # replacing across a DST boundary may induce a new tzinfo object
+            # see GH#18319
+            ts_input = _tzinfo.localize(datetime(dts.year, dts.month, dts.day,
+                                                 dts.hour, dts.min, dts.sec,
+                                                 dts.us))
+            _tzinfo = ts_input.tzinfo
+        else:
+            ts_input = datetime(dts.year, dts.month, dts.day,
+                                dts.hour, dts.min, dts.sec, dts.us,
+                                tzinfo=_tzinfo)
+
+        ts = convert_datetime_to_tsobject(ts_input, _tzinfo)
+        value = ts.value + (dts.ps // 1000)
+        if value != NPY_NAT:
+            check_dts_bounds(&dts)
+
+        return create_timestamp_from_ts(value, dts, _tzinfo, self.freq)
+
+    # --------------------------------------------------------------------
+    # Rounding Methods
 
     def _round(self, freq, mode, ambiguous='raise', nonexistent='raise'):
         if self.tz is not None:
@@ -889,44 +1077,8 @@ class Timestamp(_Timestamp):
         """
         return self._round(freq, RoundTo.PLUS_INFTY, ambiguous, nonexistent)
 
-    @property
-    def tz(self):
-        """
-        Alias for tzinfo
-        """
-        return self.tzinfo
-
-    @tz.setter
-    def tz(self, value):
-        # GH 3746: Prevent localizing or converting the index by setting tz
-        raise AttributeError("Cannot directly set timezone. Use tz_localize() "
-                             "or tz_convert() as appropriate")
-
-    def __setstate__(self, state):
-        self.value = state[0]
-        self.freq = state[1]
-        self.tzinfo = state[2]
-
-    def __reduce__(self):
-        object_state = self.value, self.freq, self.tzinfo
-        return (Timestamp, object_state)
-
-    def to_period(self, freq=None):
-        """
-        Return an period of which this timestamp is an observation.
-        """
-        from pandas import Period
-
-        if self.tz is not None:
-            # GH#21333
-            warnings.warn("Converting to Period representation will "
-                          "drop timezone information.",
-                          UserWarning)
-
-        if freq is None:
-            freq = self.freq
-
-        return Period(self, freq=freq)
+    # --------------------------------------------------------------------
+    # Fields
 
     @property
     def dayofweek(self):
@@ -985,7 +1137,9 @@ class Timestamp(_Timestamp):
     def week(self):
         return ccalendar.get_week_of_year(self.year, self.month, self.day)
 
-    weekofyear = week
+    @property
+    def weekofyear(self):
+        return self.week
 
     @property
     def quarter(self):
@@ -995,11 +1149,9 @@ class Timestamp(_Timestamp):
     def days_in_month(self):
         return ccalendar.get_days_in_month(self.year, self.month)
 
-    daysinmonth = days_in_month
-
     @property
-    def freqstr(self):
-        return getattr(self.freq, 'freqstr', self.freq)
+    def daysinmonth(self):
+        return self.days_in_month
 
     @property
     def is_month_start(self):
@@ -1047,288 +1199,158 @@ class Timestamp(_Timestamp):
     def is_leap_year(self):
         return bool(ccalendar.is_leapyear(self.year))
 
-    def tz_localize(self, tz, ambiguous='raise', nonexistent='raise',
-                    errors=None):
-        """
-        Convert naive Timestamp to local time zone, or remove
-        timezone from tz-aware Timestamp.
 
-        Parameters
-        ----------
-        tz : str, pytz.timezone, dateutil.tz.tzfile or None
-            Time zone for time which Timestamp will be converted to.
-            None will remove timezone holding local time.
+# ----------------------------------------------------------------------
 
-        ambiguous : bool, 'NaT', default 'raise'
-            When clocks moved backward due to DST, ambiguous times may arise.
-            For example in Central European Time (UTC+01), when going from
-            03:00 DST to 02:00 non-DST, 02:30:00 local time occurs both at
-            00:30:00 UTC and at 01:30:00 UTC. In such a situation, the
-            `ambiguous` parameter dictates how ambiguous times should be
-            handled.
+# Python front end to C extension type _Timestamp
+# This serves as the box for datetime64
 
-            - bool contains flags to determine if time is dst or not (note
-              that this flag is only applicable for ambiguous fall dst dates)
-            - 'NaT' will return NaT for an ambiguous time
-            - 'raise' will raise an AmbiguousTimeError for an ambiguous time
 
-        nonexistent : 'shift_forward', 'shift_backward, 'NaT', timedelta,
-                      default 'raise'
-            A nonexistent time does not exist in a particular timezone
-            where clocks moved forward due to DST.
+class Timestamp(_Timestamp):
+    """Pandas replacement for datetime.datetime
 
-            - 'shift_forward' will shift the nonexistent time forward to the
-              closest existing time
-            - 'shift_backward' will shift the nonexistent time backward to the
-              closest existing time
-            - 'NaT' will return NaT where there are nonexistent times
-            - timedelta objects will shift nonexistent times by the timedelta
-            - 'raise' will raise an NonExistentTimeError if there are
-              nonexistent times
+    Timestamp is the pandas equivalent of python's Datetime
+    and is interchangeable with it in most cases. It's the type used
+    for the entries that make up a DatetimeIndex, and other timeseries
+    oriented data structures in pandas.
 
-            .. versionadded:: 0.24.0
+    Parameters
+    ----------
+    ts_input : datetime-like, str, int, float
+        Value to be converted to Timestamp
+    freq : str, DateOffset
+        Offset which Timestamp will have
+    tz : str, pytz.timezone, dateutil.tz.tzfile or None
+        Time zone for time which Timestamp will have.
+    unit : str
+        Unit used for conversion if ts_input is of type int or float. The
+        valid values are 'D', 'h', 'm', 's', 'ms', 'us', and 'ns'. For
+        example, 's' means seconds and 'ms' means milliseconds.
+    year, month, day : int
+        .. versionadded:: 0.19.0
+    hour, minute, second, microsecond : int, optional, default 0
+        .. versionadded:: 0.19.0
+    nanosecond : int, optional, default 0
+        .. versionadded:: 0.23.0
+    tzinfo : datetime.tzinfo, optional, default None
+        .. versionadded:: 0.19.0
 
-        errors : 'raise', 'coerce', default None
-            - 'raise' will raise a NonExistentTimeError if a timestamp is not
-               valid in the specified timezone (e.g. due to a transition from
-               or to DST time). Use ``nonexistent='raise'`` instead.
-            - 'coerce' will return NaT if the timestamp can not be converted
-              into the specified timezone. Use ``nonexistent='NaT'`` instead.
+    Notes
+    -----
+    There are essentially three calling conventions for the constructor. The
+    primary form accepts four parameters. They can be passed by position or
+    keyword.
 
-              .. deprecated:: 0.24.0
+    The other two forms mimic the parameters from ``datetime.datetime``. They
+    can be passed by either position or keyword, but not both mixed together.
 
-        Returns
-        -------
-        localized : Timestamp
+    Examples
+    --------
+    Using the primary calling convention:
 
-        Raises
-        ------
-        TypeError
-            If the Timestamp is tz-aware and tz is not None.
-        """
-        if ambiguous == 'infer':
-            raise ValueError('Cannot infer offset with only one time.')
+    This converts a datetime-like string
+    >>> pd.Timestamp('2017-01-01T12')
+    Timestamp('2017-01-01 12:00:00')
 
-        if errors is not None:
-            warnings.warn("The errors argument is deprecated and will be "
-                          "removed in a future release. Use "
-                          "nonexistent='NaT' or nonexistent='raise' "
-                          "instead.", FutureWarning)
-            if errors == 'coerce':
-                nonexistent = 'NaT'
-            elif errors == 'raise':
-                nonexistent = 'raise'
-            else:
-                raise ValueError("The errors argument must be either 'coerce' "
-                                 "or 'raise'.")
+    This converts a float representing a Unix epoch in units of seconds
+    >>> pd.Timestamp(1513393355.5, unit='s')
+    Timestamp('2017-12-16 03:02:35.500000')
 
-        nonexistent_options = ('raise', 'NaT', 'shift_forward',
-                               'shift_backward')
-        if nonexistent not in nonexistent_options and not isinstance(
-            nonexistent, timedelta):
-            raise ValueError("The nonexistent argument must be one of 'raise',"
-                             " 'NaT', 'shift_forward', 'shift_backward' or"
-                             " a timedelta object")
+    This converts an int representing a Unix-epoch in units of seconds
+    and for a particular timezone
+    >>> pd.Timestamp(1513393355, unit='s', tz='US/Pacific')
+    Timestamp('2017-12-15 19:02:35-0800', tz='US/Pacific')
 
-        if self.tzinfo is None:
-            # tz naive, localize
-            tz = maybe_get_tz(tz)
-            if not is_string_object(ambiguous):
-                ambiguous = [ambiguous]
-            value = tz_localize_to_utc(np.array([self.value], dtype='i8'), tz,
-                                       ambiguous=ambiguous,
-                                       nonexistent=nonexistent)[0]
-            return Timestamp(value, tz=tz)
-        else:
-            if tz is None:
-                # reset tz
-                value = tz_convert_single(self.value, UTC, self.tz)
-                return Timestamp(value, tz=None)
-            else:
-                raise TypeError('Cannot localize tz-aware Timestamp, use '
-                                'tz_convert for conversions')
+    Using the other two forms that mimic the API for ``datetime.datetime``:
 
-    def tz_convert(self, tz):
-        """
-        Convert tz-aware Timestamp to another time zone.
+    >>> pd.Timestamp(2017, 1, 1, 12)
+    Timestamp('2017-01-01 12:00:00')
 
-        Parameters
-        ----------
-        tz : str, pytz.timezone, dateutil.tz.tzfile or None
-            Time zone for time which Timestamp will be converted to.
-            None will remove timezone holding UTC time.
+    >>> pd.Timestamp(year=2017, month=1, day=1, hour=12)
+    Timestamp('2017-01-01 12:00:00')
+    """
 
-        Returns
-        -------
-        converted : Timestamp
-
-        Raises
-        ------
-        TypeError
-            If Timestamp is tz-naive.
-        """
-        if self.tzinfo is None:
-            # tz naive, use tz_localize
-            raise TypeError('Cannot convert tz-naive Timestamp, use '
-                            'tz_localize to localize')
-        else:
-            # Same UTC timestamp, different time zone
-            return Timestamp(self.value, tz=tz)
-
-    astimezone = tz_convert
-
-    def replace(self, year=None, month=None, day=None,
+    def __new__(cls, object ts_input=_no_input,
+                object freq=None, tz=None, unit=None,
+                year=None, month=None, day=None,
                 hour=None, minute=None, second=None, microsecond=None,
-                nanosecond=None, tzinfo=object, fold=0):
-        """
-        implements datetime.replace, handles nanoseconds
+                nanosecond=None, tzinfo=None):
+        # The parameter list folds together legacy parameter names (the first
+        # four) and positional and keyword parameter names from pydatetime.
+        #
+        # There are three calling forms:
+        #
+        # - In the legacy form, the first parameter, ts_input, is required
+        #   and may be datetime-like, str, int, or float. The second
+        #   parameter, offset, is optional and may be str or DateOffset.
+        #
+        # - ints in the first, second, and third arguments indicate
+        #   pydatetime positional arguments. Only the first 8 arguments
+        #   (standing in for year, month, day, hour, minute, second,
+        #   microsecond, tzinfo) may be non-None. As a shortcut, we just
+        #   check that the second argument is an int.
+        #
+        # - Nones for the first four (legacy) arguments indicate pydatetime
+        #   keyword arguments. year, month, and day are required. As a
+        #   shortcut, we just check that the first argument was not passed.
+        #
+        # Mixing pydatetime positional and keyword arguments is forbidden!
 
-        Parameters
-        ----------
-        year : int, optional
-        month : int, optional
-        day : int, optional
-        hour : int, optional
-        minute : int, optional
-        second : int, optional
-        microsecond : int, optional
-        nanosecond : int, optional
-        tzinfo : tz-convertible, optional
-        fold : int, optional, default is 0
-            added in 3.6, NotImplemented
+        cdef _TSObject ts
 
-        Returns
-        -------
-        Timestamp with fields replaced
-        """
+        _date_attributes = [year, month, day, hour, minute, second,
+                            microsecond, nanosecond]
 
-        cdef:
-            npy_datetimestruct dts
-            int64_t value, value_tz, offset
-            object _tzinfo, result, k, v
-            datetime ts_input
+        if tzinfo is not None:
+            if not PyTZInfo_Check(tzinfo):
+                # tzinfo must be a datetime.tzinfo object, GH#17690
+                raise TypeError('tzinfo must be a datetime.tzinfo object, '
+                                'not %s' % type(tzinfo))
+            elif tz is not None:
+                raise ValueError('Can provide at most one of tz, tzinfo')
 
-        # set to naive if needed
-        _tzinfo = self.tzinfo
-        value = self.value
-        if _tzinfo is not None:
-            value_tz = tz_convert_single(value, _tzinfo, UTC)
-            value += value - value_tz
+            # User passed tzinfo instead of tz; avoid silently ignoring
+            tz, tzinfo = tzinfo, None
 
-        # setup components
-        dt64_to_dtstruct(value, &dts)
-        dts.ps = self.nanosecond * 1000
+        if is_string_object(ts_input):
+            # User passed a date string to parse.
+            # Check that the user didn't also pass a date attribute kwarg.
+            if any(arg is not None for arg in _date_attributes):
+                raise ValueError('Cannot pass a date attribute keyword '
+                                 'argument when passing a date string')
 
-        # replace
-        def validate(k, v):
-            """ validate integers """
-            if not is_integer_object(v):
-                raise ValueError("value must be an integer, received "
-                                 "{v} for {k}".format(v=type(v), k=k))
-            return v
+        elif ts_input is _no_input:
+            # User passed keyword arguments.
+            ts_input = datetime(year, month, day, hour or 0,
+                                minute or 0, second or 0,
+                                microsecond or 0)
+        elif is_integer_object(freq):
+            # User passed positional arguments:
+            # Timestamp(year, month, day[, hour[, minute[, second[,
+            # microsecond[, nanosecond[, tzinfo]]]]]])
+            ts_input = datetime(ts_input, freq, tz, unit or 0,
+                                year or 0, month or 0, day or 0)
+            nanosecond = hour
+            tz = minute
+            freq = None
 
-        if year is not None:
-            dts.year = validate('year', year)
-        if month is not None:
-            dts.month = validate('month', month)
-        if day is not None:
-            dts.day = validate('day', day)
-        if hour is not None:
-            dts.hour = validate('hour', hour)
-        if minute is not None:
-            dts.min = validate('minute', minute)
-        if second is not None:
-            dts.sec = validate('second', second)
-        if microsecond is not None:
-            dts.us = validate('microsecond', microsecond)
-        if nanosecond is not None:
-            dts.ps = validate('nanosecond', nanosecond) * 1000
-        if tzinfo is not object:
-            _tzinfo = tzinfo
+        if getattr(ts_input, 'tzinfo', None) is not None and tz is not None:
+            warnings.warn("Passing a datetime or Timestamp with tzinfo and the"
+                          " tz parameter will raise in the future. Use"
+                          " tz_convert instead.", FutureWarning)
 
-        # reconstruct & check bounds
-        if _tzinfo is not None and treat_tz_as_pytz(_tzinfo):
-            # replacing across a DST boundary may induce a new tzinfo object
-            # see GH#18319
-            ts_input = _tzinfo.localize(datetime(dts.year, dts.month, dts.day,
-                                                 dts.hour, dts.min, dts.sec,
-                                                 dts.us))
-            _tzinfo = ts_input.tzinfo
-        else:
-            ts_input = datetime(dts.year, dts.month, dts.day,
-                                dts.hour, dts.min, dts.sec, dts.us,
-                                tzinfo=_tzinfo)
+        ts = convert_to_tsobject(ts_input, tz, unit, 0, 0, nanosecond or 0)
 
-        ts = convert_datetime_to_tsobject(ts_input, _tzinfo)
-        value = ts.value + (dts.ps // 1000)
-        if value != NPY_NAT:
-            check_dts_bounds(&dts)
+        if ts.value == NPY_NAT:
+            return NaT
 
-        return create_timestamp_from_ts(value, dts, _tzinfo, self.freq)
+        if freq is None:
+            # GH 22311: Try to extract the frequency of a given Timestamp input
+            freq = getattr(ts_input, 'freq', None)
+        elif not is_offset_object(freq):
+            freq = to_offset(freq)
 
-    def isoformat(self, sep='T'):
-        base = super(_Timestamp, self).isoformat(sep=sep)
-        if self.nanosecond == 0:
-            return base
-
-        if self.tzinfo is not None:
-            base1, base2 = base[:-6], base[-6:]
-        else:
-            base1, base2 = base, ""
-
-        if self.microsecond != 0:
-            base1 += "%.3d" % self.nanosecond
-        else:
-            base1 += ".%.9d" % self.nanosecond
-
-        return base1 + base2
-
-    def _has_time_component(self):
-        """
-        Returns if the Timestamp has a time component
-        in addition to the date part
-        """
-        return (self.time() != _zero_time
-                or self.tzinfo is not None
-                or self.nanosecond != 0)
-
-    def to_julian_date(self):
-        """
-        Convert TimeStamp to a Julian Date.
-        0 Julian date is noon January 1, 4713 BC.
-        """
-        year = self.year
-        month = self.month
-        day = self.day
-        if month <= 2:
-            year -= 1
-            month += 12
-        return (day +
-                np.fix((153 * month - 457) / 5) +
-                365 * year +
-                np.floor(year / 4) -
-                np.floor(year / 100) +
-                np.floor(year / 400) +
-                1721118.5 +
-                (self.hour +
-                 self.minute / 60.0 +
-                 self.second / 3600.0 +
-                 self.microsecond / 3600.0 / 1e+6 +
-                 self.nanosecond / 3600.0 / 1e+9
-                ) / 24.0)
-
-    def normalize(self):
-        """
-        Normalize Timestamp to midnight, preserving
-        tz information.
-        """
-        if self.tz is None or is_utc(self.tz):
-            DAY_NS = DAY_SECONDS * 1000000000
-            normalized_value = self.value - (self.value % DAY_NS)
-            return Timestamp(normalized_value).tz_localize(self.tz)
-        normalized_value = normalize_i8_timestamps(
-            np.array([self.value], dtype='i8'), tz=self.tz)[0]
-        return Timestamp(normalized_value).tz_localize(self.tz)
+        return create_timestamp_from_ts(ts.value, ts.dts, ts.tzinfo, freq)
 
     def __radd__(self, other):
         # __radd__ on cython extension types like _Timestamp is not used, so
