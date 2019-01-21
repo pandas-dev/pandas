@@ -233,12 +233,18 @@ class TestDataFramePlots(TestPlotBase):
         df = DataFrame({'a': np.arange(100)}, index=np.arange(100))
         ax = df.plot(logy=True)
         self._check_ax_scales(ax, yaxis='log')
+        ax = df.plot(logy=True, sym=True)
+        self._check_ax_scales(ax, yaxis='symlog')
 
         ax = df.plot(logx=True)
         self._check_ax_scales(ax, xaxis='log')
+        ax = df.plot(logx=True, sym=True)
+        self._check_ax_scales(ax, xaxis='symlog')
 
         ax = df.plot(loglog=True)
         self._check_ax_scales(ax, xaxis='log', yaxis='log')
+        ax = df.plot(loglog=True, sym=True)
+        self._check_ax_scales(ax, xaxis='symlog', yaxis='symlog')
 
     @pytest.mark.slow
     def test_xcompat(self):
