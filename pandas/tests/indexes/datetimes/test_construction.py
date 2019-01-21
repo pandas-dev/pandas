@@ -634,6 +634,23 @@ class TestDatetimeIndex(object):
         expected = DatetimeIndex([Timestamp('2018', tz=tz), pd.NaT])
         tm.assert_index_equal(result, expected)
 
+    def test_constructor_no_precision_warns(self):
+        # GH-24753, GH-24739
+        expected = pd.DatetimeIndex(['2000'], dtype='datetime64[ns]')
+
+        # we set the stacklevel for DatetimeIndex
+        with tm.assert_produces_warning(FutureWarning):
+            result = pd.DatetimeIndex(['2000'], dtype='datetime64')
+        tm.assert_index_equal(result, expected)
+
+        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+            result = pd.Index(['2000'], dtype='datetime64')
+        tm.assert_index_equal(result, expected)
+
+    def test_constructor_wrong_precision_raises(self):
+        with pytest.raises(ValueError):
+            pd.DatetimeIndex(['2000'], dtype='datetime64[us]')
+
 
 class TestTimeSeries(object):
 
