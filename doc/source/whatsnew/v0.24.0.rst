@@ -1550,6 +1550,7 @@ Datetimelike
 - Bug in :meth:`DatetimeIndex.astype`, :meth:`PeriodIndex.astype` and :meth:`TimedeltaIndex.astype` ignoring the sign of the ``dtype`` for unsigned integer dtypes (:issue:`24405`).
 - Fixed bug in :meth:`Series.max` with ``datetime64[ns]``-dtype failing to return ``NaT`` when nulls are present and ``skipna=False`` is passed (:issue:`24265`)
 - Bug in :func:`to_datetime` where arrays of ``datetime`` objects containing both timezone-aware and timezone-naive ``datetimes`` would fail to raise ``ValueError`` (:issue:`24569`)
+- Bug in :func:`to_datetime` with invalid datetime format doesn't coerce input to ``NaT`` even if ``errors='coerce'`` (:issue:`24763`)
 
 Timedelta
 ^^^^^^^^^
