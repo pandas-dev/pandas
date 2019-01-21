@@ -40,11 +40,12 @@ cdef extern from "numpy/arrayobject.h":
         # Use PyDataType_* macros when possible, however there are no macros
         # for accessing some of the fields, so some are defined. Please
         # ask on cython-dev if you need more.
-        cdef int type_num
-        cdef int itemsize "elsize"
-        cdef char byteorder
-        cdef object fields
-        cdef tuple names
+        cdef:
+            int type_num
+            int itemsize "elsize"
+            char byteorder
+            object fields
+            tuple names
 
 
 cdef extern from "src/parse_helper.h":
@@ -67,12 +68,13 @@ from pandas._libs.missing cimport (
 
 # constants that will be compared to potentially arbitrarily large
 # python int
-cdef object oINT64_MAX = <int64_t>INT64_MAX
-cdef object oINT64_MIN = <int64_t>INT64_MIN
-cdef object oUINT64_MAX = <uint64_t>UINT64_MAX
+cdef:
+    object oINT64_MAX = <int64_t>INT64_MAX
+    object oINT64_MIN = <int64_t>INT64_MIN
+    object oUINT64_MAX = <uint64_t>UINT64_MAX
 
-cdef bint PY2 = sys.version_info[0] == 2
-cdef float64_t NaN = <float64_t>np.NaN
+    bint PY2 = sys.version_info[0] == 2
+    float64_t NaN = <float64_t>np.NaN
 
 
 def values_from_object(obj: object):

@@ -52,9 +52,10 @@ include "hashtable_class_helper.pxi"
 include "hashtable_func_helper.pxi"
 
 cdef class Factorizer:
-    cdef public PyObjectHashTable table
-    cdef public ObjectVector uniques
-    cdef public Py_ssize_t count
+    cdef public:
+        PyObjectHashTable table
+        ObjectVector uniques
+        Py_ssize_t count
 
     def __init__(self, size_hint):
         self.table = PyObjectHashTable(size_hint)
@@ -96,9 +97,10 @@ cdef class Factorizer:
 
 
 cdef class Int64Factorizer:
-    cdef public Int64HashTable table
-    cdef public Int64Vector uniques
-    cdef public Py_ssize_t count
+    cdef public:
+        Int64HashTable table
+        Int64Vector uniques
+        Py_ssize_t count
 
     def __init__(self, size_hint):
         self.table = Int64HashTable(size_hint)

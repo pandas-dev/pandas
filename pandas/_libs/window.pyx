@@ -26,13 +26,14 @@ from pandas._libs.skiplist cimport (
     skiplist_t, skiplist_init, skiplist_destroy, skiplist_get, skiplist_insert,
     skiplist_remove)
 
-cdef float32_t MINfloat32 = np.NINF
-cdef float64_t MINfloat64 = np.NINF
+cdef:
+    float32_t MINfloat32 = np.NINF
+    float64_t MINfloat64 = np.NINF
 
-cdef float32_t MAXfloat32 = np.inf
-cdef float64_t MAXfloat64 = np.inf
+    float32_t MAXfloat32 = np.inf
+    float64_t MAXfloat64 = np.inf
 
-cdef float64_t NaN = <float64_t>np.NaN
+    float64_t NaN = <float64_t>np.NaN
 
 cdef inline int int_max(int a, int b): return a if a >= b else b
 cdef inline int int_min(int a, int b): return a if a <= b else b
