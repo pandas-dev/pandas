@@ -1414,16 +1414,20 @@ def _trim_zeros(str_floats, na_rep='NaN'):
     """
     trimmed = str_floats
 
+    def _is_number(x):
+         return (x != na_rep and not x.endswith('inf'))
+
     def _cond(values):
-        non_na = [x for x in values if x != na_rep]
-        return (len(non_na) > 0 and all(x.endswith('0') for x in non_na) and
-                not (any(('e' in x) or ('E' in x) for x in non_na)))
+        finite = [x for x in values if _is_number(x)]
+        return (len(finite) > 0 and all(x.endswith('0') for x in finite) and
+                not (any(('e' in x) or ('E' in x) for x in finite)))
 
     while _cond(trimmed):
-        trimmed = [x[:-1] if x != na_rep else x for x in trimmed]
+        trimmed = [x[:-1] if _is_number(x) else x for x in trimmed]
 
     # leave one 0 after the decimal points if need be.
-    return [x + "0" if x.endswith('.') and x != na_rep else x for x in trimmed]
+    return [x + "0" if x.endswith('.') and _is_number(x) else x
+            for x in trimmed]
 
 
 def _has_names(index):
