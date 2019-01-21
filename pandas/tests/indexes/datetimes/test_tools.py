@@ -293,7 +293,7 @@ class TestToDatetime(object):
     ])
     def test_ValueError_iso_week_year(self, msg, s, _format):
         # See GH#16607
-        with pytest.raises(ValueError, message=msg):
+        with pytest.raises(ValueError, match=msg):
             to_datetime(s, format=_format)
 
     @pytest.mark.parametrize('tz', [None, 'US/Central'])
