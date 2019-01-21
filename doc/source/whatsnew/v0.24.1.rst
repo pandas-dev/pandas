@@ -1,6 +1,6 @@
 :orphan:
 
-.. _whatsnew_0240:
+.. _whatsnew_0241:
 
 Whats New in 0.24.1 (February XX, 2019)
 ---------------------------------------
@@ -69,7 +69,7 @@ Bug Fixes
 -
 -
 
-.. _whatsnew_0.240.contributors:
+.. _whatsnew_0.241.contributors:
 
 Contributors
 ~~~~~~~~~~~~
