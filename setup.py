@@ -457,6 +457,8 @@ if linetrace:
     directives['linetrace'] = True
     macros = [('CYTHON_TRACE', '1'), ('CYTHON_TRACE_NOGIL', '1')]
 
+# in numpy>=1.16.0, silence build warnings about deprecated API usage
+macros.append(('NPY_NO_DEPRECATED_API', '0'))
 
 # ----------------------------------------------------------------------
 # Specification of Dependencies
