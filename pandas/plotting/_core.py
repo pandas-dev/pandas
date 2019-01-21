@@ -83,9 +83,9 @@ class MPLPlot(object):
     _default_rot = 0
     orientation = None
     _pop_attributes = ['label', 'style', 'logy', 'logx', 'loglog',
-                       'mark_right', 'stacked']
+                       'mark_right', 'stacked', 'sym']
     _attr_defaults = {'logy': False, 'logx': False, 'loglog': False,
-                      'mark_right': True, 'stacked': False}
+                      'mark_right': True, 'stacked': False, 'sym': False}
 
     def __init__(self, data, kind=None, by=None, subplots=False, sharex=None,
                  sharey=False, use_index=True,
@@ -310,9 +310,15 @@ class MPLPlot(object):
         axes = _flatten(axes)
 
         if self.logx or self.loglog:
-            [a.set_xscale('log') for a in axes]
+            if self.sym:
+                [a.set_xscale('symlog') for a in axes]
+            else:
+                [a.set_xscale('log') for a in axes]
         if self.logy or self.loglog:
-            [a.set_yscale('log') for a in axes]
+            if self.sym:
+                [a.set_yscale('symlog') for a in axes]
+            else:
+                [a.set_yscale('log') for a in axes]
 
         self.fig = fig
         self.axes = axes
