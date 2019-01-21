@@ -688,14 +688,20 @@ class TestSeriesConstructors():
         pytest.raises(TypeError, lambda x: Series(
             Series(dates).astype('int') / 1000000, dtype='M8[ms]'))
 
-        dates_not_np = [
+        expected = Series([
             datetime(2013, 1, 1),
             datetime(2013, 1, 2),
             datetime(2013, 1, 3),
-        ]
-
-        expected = Series(dates_not_np)
+        ])
         result = Series(dates, dtype='datetime64[ns]')
+        tm.assert_series_equal(result, expected)
+
+        expected = Series([
+            pd.NaT,
+            datetime(2013, 1, 2),
+            datetime(2013, 1, 3),
+        ])
+        result = Series([np.nan] + dates[1:], dtype='datetime64[ns]')
         tm.assert_series_equal(result, expected)
 
         # invalid dates can be help as object
