@@ -68,6 +68,7 @@ from pandas.core.arrays import ExtensionArray
 from pandas.core.base import IndexOpsMixin, PandasObject
 import pandas.core.common as com
 from pandas.core.indexers import maybe_convert_indices
+from pandas.core.config import get_option
 from pandas.core.indexes.frozen import FrozenList
 import pandas.core.missing as missing
 from pandas.core.ops import get_op_result_name
@@ -4790,7 +4791,7 @@ class Index(IndexOpsMixin, PandasObject):
         # map to the label
         result = {k: self.take(v) for k, v in result.items()}
 
-        return result
+        return IndexGroupbyGroups(result)
 
     def map(self, mapper, na_action=None):
         """
@@ -5499,6 +5500,14 @@ class Index(IndexOpsMixin, PandasObject):
 Index._add_numeric_methods_disabled()
 Index._add_logical_methods()
 Index._add_comparison_methods()
+
+
+class IndexGroupbyGroups(dict):
+    """Dict extension to support abbreviated __repr__"""
+    from pandas.io.formats.printing import pprint_thing
+
+    def __repr__(self):
+        return pprint_thing(self, max_seq_items=get_option('display.max_rows'))
 
 
 def ensure_index_from_sequences(sequences, names=None):

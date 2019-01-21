@@ -56,6 +56,7 @@ import pandas.core.algorithms as algorithms
 from pandas.core.arrays import Categorical, DatetimeArray, try_cast_to_ea
 from pandas.core.base import DataError, PandasObject, SelectionMixin
 import pandas.core.common as com
+from pandas.core.config import option_context
 from pandas.core.frame import DataFrame
 from pandas.core.generic import NDFrame
 from pandas.core.groupby import base, ops
@@ -72,7 +73,7 @@ _common_see_also = """
 
 _apply_docs = dict(
     template="""
-    Apply function `func`  group-wise and combine the results together.
+    Apply function `func` group-wise and combine the results together.
 
     The function passed to `apply` must take a {input} as its first
     argument and return a DataFrame, Series or scalar. `apply` will
@@ -2567,3 +2568,25 @@ def get_groupby(
         observed=observed,
         mutated=mutated,
     )
+
+
+class DataFrameGroups(dict):
+    def __repr__(self):
+        from pandas.compat import u
+
+        nitems = get_option('display.max_rows') or len(self)
+
+        fmt = u("{{{things}}}")
+        pfmt = u("{key}: {val}")
+
+        pairs = []
+        for k, v in list(self.items()):
+            pairs.append(pfmt.format(key=k, val=v))
+
+        if nitems < len(self):
+            start_cnt, end_cnt = nitems - int(nitems / 2), int(nitems / 2)
+            return fmt.format(things=", ".join(pairs[:start_cnt]) +
+                                     ", ... , " +
+                                     ", ".join(pairs[-end_cnt:]))
+        else:
+            return fmt.format(things=", ".join(pairs))

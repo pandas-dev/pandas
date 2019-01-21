@@ -607,7 +607,7 @@ class DataFrame(NDFrame):
         Check if full repr fits in horizontal boundaries imposed by the display
         options width and max_columns.
 
-        In case off non-interactive session, no boundaries apply.
+        In case of non-interactive session, no boundaries apply.
 
         `ignore_width` is here so ipnb+HTML output can behave the way
         users expect. display.max_columns remains in effect.

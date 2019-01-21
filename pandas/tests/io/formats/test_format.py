@@ -2128,6 +2128,22 @@ c  10  11  12  13  14\
         assert str(df) == exp
 
 
+class TestDataFrameGroupByFormatting(object):
+    def test_groups_repr_truncates(self):
+        df = pd.DataFrame({
+            'a': [1, 1, 1, 2, 2, 3],
+            'b': [1, 2, 3, 4, 5, 6]
+        })
+
+        with option_context('display.max_rows', 2):
+            x = df.groupby('a').groups
+            assert x.__repr__().endswith('...}')
+
+        with option_context('display.max_rows', 5):
+            x = df.groupby('a').groups
+            assert not x.__repr__().endswith('...}')
+
+
 def gen_series_formatting():
     s1 = pd.Series(["a"] * 100)
     s2 = pd.Series(["ab"] * 100)
