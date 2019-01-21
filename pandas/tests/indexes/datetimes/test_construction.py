@@ -366,8 +366,8 @@ class TestDatetimeIndex(object):
         dates = [datetime(2013, 10, 7),
                  datetime(2013, 10, 8),
                  datetime(2013, 10, 9)]
-        data = DatetimeIndex(dates, freq=pd.tseries.frequencies.BDay()).values
-        result = DatetimeIndex(data, freq=pd.tseries.frequencies.BDay())
+        data = DatetimeIndex(dates, freq=pd.offsets.BDay()).values
+        result = DatetimeIndex(data, freq=pd.offsets.BDay())
         expected = DatetimeIndex(['2013-10-07',
                                   '2013-10-08',
                                   '2013-10-09'],

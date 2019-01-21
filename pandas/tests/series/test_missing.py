@@ -360,14 +360,24 @@ class TestSeriesMissingData():
 
     def test_fillna_raise(self):
         s = Series(np.random.randint(-100, 100, 50))
-        pytest.raises(TypeError, s.fillna, [1, 2])
-        pytest.raises(TypeError, s.fillna, (1, 2))
+        msg = ('"value" parameter must be a scalar or dict, but you passed a'
+               ' "list"')
+        with pytest.raises(TypeError, match=msg):
+            s.fillna([1, 2])
+
+        msg = ('"value" parameter must be a scalar or dict, but you passed a'
+               ' "tuple"')
+        with pytest.raises(TypeError, match=msg):
+            s.fillna((1, 2))
 
         # related GH 9217, make sure limit is an int and greater than 0
         s = Series([1, 2, 3, None])
+        msg = (r"Cannot specify both 'value' and 'method'\.|"
+               r"Limit must be greater than 0|"
+               "Limit must be an integer")
         for limit in [-1, 0, 1., 2.]:
             for method in ['backfill', 'bfill', 'pad', 'ffill', None]:
-                with pytest.raises(ValueError):
+                with pytest.raises(ValueError, match=msg):
                     s.fillna(1, limit=limit, method=method)
 
     def test_categorical_nan_equality(self):
@@ -508,9 +518,13 @@ class TestSeriesMissingData():
         exp = Series([0., 1., 5., 3., 4.], index=ts.index)
         tm.assert_series_equal(ts.fillna(value=5), exp)
 
-        pytest.raises(ValueError, ts.fillna)
-        pytest.raises(ValueError, datetime_series.fillna, value=0,
-                      method='ffill')
+        msg = "Must specify a fill 'value' or 'method'"
+        with pytest.raises(ValueError, match=msg):
+            ts.fillna()
+
+        msg = "Cannot specify both 'value' and 'method'"
+        with pytest.raises(ValueError, match=msg):
+            datetime_series.fillna(value=0, method='ffill')
 
         # GH 5703
         s1 = Series([np.nan])
@@ -647,7 +661,9 @@ class TestSeriesMissingData():
         assert len(s) == 0
 
         # invalid axis
-        pytest.raises(ValueError, s.dropna, axis=1)
+        msg = r"No axis named 1 for object type <(class|type) 'type'>"
+        with pytest.raises(ValueError, match=msg):
+            s.dropna(axis=1)
 
     def test_datetime64_tz_dropna(self):
         # DatetimeBlock
@@ -736,7 +752,9 @@ class TestSeriesMissingData():
         # neither monotonic increasing or decreasing
         rng2 = rng[[1, 0, 2]]
 
-        pytest.raises(ValueError, rng2.get_indexer, rng, method='pad')
+        msg = "index must be monotonic increasing or decreasing"
+        with pytest.raises(ValueError, match=msg):
+            rng2.get_indexer(rng, method='pad')
 
     def test_dropna_preserve_name(self, datetime_series):
         datetime_series[:5] = np.nan
@@ -861,7 +879,10 @@ class TestSeriesInterpolateData():
         # Only raises ValueError if there are NaNs.
         non_ts = string_series.copy()
         non_ts[0] = np.NaN
-        pytest.raises(ValueError, non_ts.interpolate, method='time')
+        msg = ("time-weighted interpolation only works on Series or DataFrames"
+               " with a DatetimeIndex")
+        with pytest.raises(ValueError, match=msg):
+            non_ts.interpolate(method='time')
 
     @td.skip_if_no_scipy
     def test_interpolate_pchip(self):
@@ -956,7 +977,9 @@ class TestSeriesInterpolateData():
 
     def test_interpolate_non_ts(self):
         s = Series([1, 3, np.nan, np.nan, np.nan, 11])
-        with pytest.raises(ValueError):
+        msg = ("time-weighted interpolation only works on Series or DataFrames"
+               " with a DatetimeIndex")
+        with pytest.raises(ValueError, match=msg):
             s.interpolate(method='time')
 
     @pytest.mark.parametrize("kwargs", [
@@ -1044,9 +1067,14 @@ class TestSeriesInterpolateData():
                    'polynomial', 'spline', 'piecewise_polynomial', None,
                    'from_derivatives', 'pchip', 'akima']
         s = pd.Series([1, 2, np.nan, np.nan, 5])
+        msg = (r"Limit must be greater than 0|"
+               "time-weighted interpolation only works on Series or"
+               r" DataFrames with a DatetimeIndex|"
+               r"invalid method '(polynomial|spline|None)' to interpolate|"
+               "Limit must be an integer")
         for limit in [-1, 0, 1., 2.]:
             for method in methods:
-                with pytest.raises(ValueError):
+                with pytest.raises(ValueError, match=msg):
                     s.interpolate(limit=limit, method=method)
 
     def test_interp_limit_forward(self):
@@ -1084,12 +1112,14 @@ class TestSeriesInterpolateData():
     def test_interp_limit_bad_direction(self):
         s = Series([1, 3, np.nan, np.nan, np.nan, 11])
 
-        pytest.raises(ValueError, s.interpolate, method='linear', limit=2,
-                      limit_direction='abc')
+        msg = (r"Invalid limit_direction: expecting one of \['forward',"
+               r" 'backward', 'both'\], got 'abc'")
+        with pytest.raises(ValueError, match=msg):
+            s.interpolate(method='linear', limit=2, limit_direction='abc')
 
         # raises an error even if no limit is specified.
-        pytest.raises(ValueError, s.interpolate, method='linear',
-                      limit_direction='abc')
+        with pytest.raises(ValueError, match=msg):
+            s.interpolate(method='linear', limit_direction='abc')
 
     # limit_area introduced GH #16284
     def test_interp_limit_area(self):
@@ -1127,8 +1157,10 @@ class TestSeriesInterpolateData():
                                direction='backward')
 
         # raises an error even if limit type is wrong.
-        pytest.raises(ValueError, s.interpolate, method='linear',
-                      limit_area='abc')
+        msg = (r"Invalid limit_area: expecting one of \['inside', 'outside'\],"
+               " got abc")
+        with pytest.raises(ValueError, match=msg):
+            s.interpolate(method='linear', limit_area='abc')
 
     def test_interp_limit_direction(self):
         # These tests are for issue #9218 -- fill NaNs in both directions.
@@ -1214,14 +1246,16 @@ class TestSeriesInterpolateData():
         result = s.interpolate()
         assert_series_equal(result, expected)
 
+        msg = "Only `method=linear` interpolation is supported on MultiIndexes"
         if check_scipy:
-            with pytest.raises(ValueError):
+            with pytest.raises(ValueError, match=msg):
                 s.interpolate(method='polynomial', order=1)
 
     @td.skip_if_no_scipy
     def test_interp_nonmono_raise(self):
         s = Series([1, np.nan, 3], index=[0, 2, 1])
-        with pytest.raises(ValueError):
+        msg = "krogh interpolation requires that the index be monotonic"
+        with pytest.raises(ValueError, match=msg):
             s.interpolate(method='krogh')
 
     @td.skip_if_no_scipy
@@ -1243,7 +1277,8 @@ class TestSeriesInterpolateData():
     @pytest.mark.parametrize("method", ['polynomial', 'spline'])
     def test_no_order(self, method):
         s = Series([0, 1, np.nan, 3])
-        with pytest.raises(ValueError):
+        msg = "invalid method '{}' to interpolate".format(method)
+        with pytest.raises(ValueError, match=msg):
             s.interpolate(method=method)
 
     @td.skip_if_no_scipy
@@ -1283,10 +1318,12 @@ class TestSeriesInterpolateData():
         # see gh-10633
         s = pd.Series(np.arange(10) ** 2)
         s[np.random.randint(0, 9, 3)] = np.nan
-        with pytest.raises(ValueError):
+        msg = "invalid method 'spline' to interpolate"
+        with pytest.raises(ValueError, match=msg):
             s.interpolate(method='spline')
 
-        with pytest.raises(ValueError):
+        msg = "order needs to be specified and greater than 0"
+        with pytest.raises(ValueError, match=msg):
             s.interpolate(method='spline', order=0)
 
     def test_interp_timedelta64(self):

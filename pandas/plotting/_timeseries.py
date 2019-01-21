@@ -5,6 +5,8 @@ import functools
 from matplotlib import pylab
 import numpy as np
 
+from pandas._libs.tslibs.frequencies import (
+    FreqGroup, get_base_alias, get_freq, is_subperiod, is_superperiod)
 from pandas._libs.tslibs.period import Period
 import pandas.compat as compat
 
@@ -73,7 +75,7 @@ def _maybe_resample(series, ax, kwargs):
         series = series.to_period(freq=freq)
 
     if ax_freq is not None and freq != ax_freq:
-        if frequencies.is_superperiod(freq, ax_freq):  # upsample input
+        if is_superperiod(freq, ax_freq):  # upsample input
             series = series.copy()
             series.index = series.index.asfreq(ax_freq, how='s')
             freq = ax_freq
@@ -82,7 +84,7 @@ def _maybe_resample(series, ax, kwargs):
             series = getattr(series.resample('D'), how)().dropna()
             series = getattr(series.resample(ax_freq), how)().dropna()
             freq = ax_freq
-        elif frequencies.is_subperiod(freq, ax_freq) or _is_sub(freq, ax_freq):
+        elif is_subperiod(freq, ax_freq) or _is_sub(freq, ax_freq):
             _upsample_others(ax, freq, kwargs)
         else:  # pragma: no cover
             raise ValueError('Incompatible frequency conversion')
@@ -90,13 +92,13 @@ def _maybe_resample(series, ax, kwargs):
 
 
 def _is_sub(f1, f2):
-    return ((f1.startswith('W') and frequencies.is_subperiod('D', f2)) or
-            (f2.startswith('W') and frequencies.is_subperiod(f1, 'D')))
+    return ((f1.startswith('W') and is_subperiod('D', f2)) or
+            (f2.startswith('W') and is_subperiod(f1, 'D')))
 
 
 def _is_sup(f1, f2):
-    return ((f1.startswith('W') and frequencies.is_superperiod('D', f2)) or
-            (f2.startswith('W') and frequencies.is_superperiod(f1, 'D')))
+    return ((f1.startswith('W') and is_superperiod('D', f2)) or
+            (f2.startswith('W') and is_superperiod(f1, 'D')))
 
 
 def _upsample_others(ax, freq, kwargs):
@@ -209,7 +211,7 @@ def _get_freq(ax, series):
     if isinstance(freq, DateOffset):
         freq = freq.rule_code
     else:
-        freq = frequencies.get_base_alias(freq)
+        freq = get_base_alias(freq)
 
     freq = frequencies.get_period_alias(freq)
     return freq, ax_freq
@@ -231,7 +233,7 @@ def _use_dynamic_x(ax, data):
     if isinstance(freq, DateOffset):
         freq = freq.rule_code
     else:
-        freq = frequencies.get_base_alias(freq)
+        freq = get_base_alias(freq)
     freq = frequencies.get_period_alias(freq)
 
     if freq is None:
@@ -239,9 +241,9 @@ def _use_dynamic_x(ax, data):
 
     # hack this for 0.10.1, creating more technical debt...sigh
     if isinstance(data.index, ABCDatetimeIndex):
-        base = frequencies.get_freq(freq)
+        base = get_freq(freq)
         x = data.index
-        if (base <= frequencies.FreqGroup.FR_DAY):
+        if (base <= FreqGroup.FR_DAY):
             return x[:1].is_normalized
         return Period(x[0], freq).to_timestamp(tz=x.tz) == x[0]
     return True
@@ -275,7 +277,7 @@ def _maybe_convert_index(ax, data):
         if freq is None:
             raise ValueError('Could not get frequency alias for plotting')
 
-        freq = frequencies.get_base_alias(freq)
+        freq = get_base_alias(freq)
         freq = frequencies.get_period_alias(freq)
 
         data = data.to_period(freq=freq)
