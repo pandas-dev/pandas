@@ -265,7 +265,12 @@ def _convert_listlike_datetimes(arg, box, format, name=None, tz=None,
                 except tslibs.OutOfBoundsDatetime:
                     if errors == 'raise':
                         raise
-                    result = arg
+                    elif errors == 'coerce':
+                        result = np.empty(arg.shape, dtype='M8[ns]')
+                        iresult = result.view('i8')
+                        iresult.fill(tslibs.iNaT)
+                    else:
+                        result = arg
                 except ValueError:
                     # if format was inferred, try falling back
                     # to array_to_datetime - terminate here
@@ -273,7 +278,12 @@ def _convert_listlike_datetimes(arg, box, format, name=None, tz=None,
                     if not infer_datetime_format:
                         if errors == 'raise':
                             raise
-                        result = arg
+                        elif errors == 'coerce':
+                            result = np.empty(arg.shape, dtype='M8[ns]')
+                            iresult = result.view('i8')
+                            iresult.fill(tslibs.iNaT)
+                        else:
+                            result = arg
         except ValueError as e:
             # Fallback to try to convert datetime objects if timezone-aware
             #  datetime objects are found without passing `utc=True`
