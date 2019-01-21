@@ -9,7 +9,7 @@ import numpy as np
 import pytest
 
 from pandas._libs.tslib import Timestamp
-from pandas.compat import PY2, StringIO
+from pandas.compat import StringIO
 
 from pandas import DataFrame, Index
 import pandas.util.testing as tm
@@ -387,8 +387,7 @@ def test_usecols_with_mixed_encoding_strings(all_parsers, usecols):
 
 @pytest.mark.parametrize("usecols", [
     ["あああ", "いい"],
-    pytest.param([u"あああ", u"いい"], marks=pytest.mark.skipif(
-        PY2, reason="Buggy behavior: see gh-13253"))
+    [u"あああ", u"いい"]
 ])
 def test_usecols_with_multi_byte_characters(all_parsers, usecols):
     data = """あああ,いい,ううう,ええええ
