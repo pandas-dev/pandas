@@ -2112,6 +2112,22 @@ def groupby(obj, by, **kwds):
 
 class DataFrameGroups(dict):
     def __repr__(self):
-        from pandas.io.formats.printing import _pprint_dict
-        return _pprint_dict(self, max_seq_items=get_option('display.max_rows'),
-                            recurse=False, truncate_at='middle')
+        from pandas.compat import u
+
+        # nitems = len(self)
+        nitems = get_option('display.max_rows') or len(self)
+
+        fmt = u("{{{things}}}")
+        pfmt = u("{key}: {val}")
+
+        pairs = []
+        for k, v in list(self.items()):
+            pairs.append(pfmt.format(key=k, val=v))
+
+        if nitems < len(self):
+            start_cnt, end_cnt = nitems - int(nitems / 2), int(nitems / 2)
+            return fmt.format(things=", ".join(pairs[:start_cnt]) +
+                                     ", ... , " +
+                                     ", ".join(pairs[-end_cnt:]))
+        else:
+            return fmt.format(things=", ".join(pairs))

@@ -1757,11 +1757,11 @@ class TestDataFrameGroupByFormatting(object):
 
         with option_context('display.max_rows', 2):
             x = df.groupby('a').groups
+            assert ', ... ,' in x.__repr__()
 
-            expected = ("{1: Int64Index([0, 1, 2], dtype='int64'), ... , "
-                        "2: Int64Index([3, 4], dtype='int64')}")
-
-            assert x.__repr__() == expected
+        with option_context('display.max_rows', 5):
+            x = df.groupby('a').groups
+            assert ', ... ,' not in x.__repr__()
 
 
 def gen_series_formatting():

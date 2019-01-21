@@ -124,8 +124,7 @@ def _pprint_seq(seq, _nest_lvl=0, max_seq_items=None, **kwds):
     return fmt.format(body=body)
 
 
-def _pprint_dict(seq, _nest_lvl=0, max_seq_items=None, recurse=True,
-                 truncate_at='end', **kwds):
+def _pprint_dict(seq, _nest_lvl=0, max_seq_items=None, **kwds):
     """
     internal. pprinter for iterables. you should probably use pprint_thing()
     rather than calling this directly.
@@ -141,26 +140,16 @@ def _pprint_dict(seq, _nest_lvl=0, max_seq_items=None, recurse=True,
     else:
         nitems = max_seq_items or get_option("max_seq_items") or len(seq)
 
-    if recurse:
-        for k, v in list(seq.items())[:nitems]:
-            pairs.append(
-                pfmt.format(
-                    key=pprint_thing(k, _nest_lvl + 1,
-                                     max_seq_items=max_seq_items, **kwds),
-                    val=pprint_thing(v, _nest_lvl + 1,
-                                     max_seq_items=max_seq_items, **kwds)))
-    else:
-        for k, v in list(seq.items())[:nitems]:
-            pairs.append(pfmt.format(key=k, val=v))
+    for k, v in list(seq.items())[:nitems]:
+        pairs.append(
+            pfmt.format(
+                key=pprint_thing(k, _nest_lvl + 1,
+                                 max_seq_items=max_seq_items, **kwds),
+                val=pprint_thing(v, _nest_lvl + 1,
+                                 max_seq_items=max_seq_items, **kwds)))
 
     if nitems < len(seq):
-        if truncate_at == 'middle':
-            start_cnt, end_cnt = nitems - int(nitems / 2), int(nitems / 2)
-            return fmt.format(things=", ".join(pairs[:start_cnt]) +
-                                     ", ... , " +
-                                     ", ".join(pairs[end_cnt:]))
-        else:
-            return fmt.format(things=", ".join(pairs) + ", ...")
+        return fmt.format(things=", ".join(pairs) + ", ...")
     else:
         return fmt.format(things=", ".join(pairs))
 
