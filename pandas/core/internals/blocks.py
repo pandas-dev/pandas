@@ -35,7 +35,7 @@ from pandas.core.dtypes.missing import (
 
 import pandas.core.algorithms as algos
 from pandas.core.arrays import (
-    Categorical, DatetimeArray, ExtensionArray, TimedeltaArray)
+    Categorical, DatetimeArray, ExtensionArray, PandasDtype, TimedeltaArray)
 from pandas.core.base import PandasObject
 import pandas.core.common as com
 from pandas.core.indexes.datetimes import DatetimeIndex
@@ -530,6 +530,10 @@ class Block(PandasObject):
         return self.split_and_operate(None, f, False)
 
     def astype(self, dtype, copy=False, errors='raise', values=None, **kwargs):
+        dtype = pandas_dtype(dtype)
+        if isinstance(dtype, PandasDtype):
+            dtype = dtype.numpy_dtype
+
         return self._astype(dtype, copy=copy, errors=errors, values=values,
                             **kwargs)
 
@@ -591,8 +595,6 @@ class Block(PandasObject):
 
             return self.make_block(Categorical(self.values, dtype=dtype))
 
-        # convert dtypes if needed
-        dtype = pandas_dtype(dtype)
         # astype processing
         if is_dtype_equal(self.dtype, dtype):
             if copy:

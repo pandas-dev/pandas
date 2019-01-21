@@ -315,6 +315,11 @@ class TestSeriesInternals(object):
         tm.assert_series_equal(ser, result)
         assert isinstance(result._data.blocks[0], IntBlock)
 
+    def test_astype_no_pandas_dtype(self):
+        ser = pd.Series([1, 2], dtype="int64")
+        result = ser.astype(ser.array.dtype)
+        tm.assert_series_equal(result, ser)
+
     def test_from_array(self):
         result = pd.Series(pd.array(['1H', '2H'], dtype='timedelta64[ns]'))
         assert result._data.blocks[0].is_extension is False
