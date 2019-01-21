@@ -343,14 +343,17 @@ class RangeIndex(Int64Index):
 
         return super(RangeIndex, self).equals(other)
 
-    def intersection(self, other):
+    def intersection(self, other, sort=True):
         """
-        Form the intersection of two Index objects. Sortedness of the result is
-        not guaranteed
+        Form the intersection of two Index objects.
 
         Parameters
         ----------
         other : Index or array-like
+        sort : bool, default True
+            Sort the resulting index if possible
+
+            .. versionadded:: 0.24.0
 
         Returns
         -------
@@ -361,7 +364,7 @@ class RangeIndex(Int64Index):
             return self._get_reconciled_name_object(other)
 
         if not isinstance(other, RangeIndex):
-            return super(RangeIndex, self).intersection(other)
+            return super(RangeIndex, self).intersection(other, sort=sort)
 
         if not len(self) or not len(other):
             return RangeIndex._simple_new(None)
@@ -398,6 +401,8 @@ class RangeIndex(Int64Index):
 
         if (self._step < 0 and other._step < 0) is not (new_index._step < 0):
             new_index = new_index[::-1]
+        if sort:
+            new_index = new_index.sort_values()
         return new_index
 
     def _min_fitting_element(self, lower_limit):
@@ -427,9 +432,9 @@ class RangeIndex(Int64Index):
             old_t, t = t, old_t - quotient * t
         return old_r, old_s, old_t
 
-    def _union(self, other):
+    def _union(self, other, sort):
         if not len(other) or self.equals(other) or not len(self):
-            return super(RangeIndex, self)._union(other)
+            return super(RangeIndex, self)._union(other, sort=sort)
 
         if isinstance(other, RangeIndex):
             start_s, step_s = self._start, self._step
@@ -468,7 +473,7 @@ class RangeIndex(Int64Index):
                         (end_s - step_o <= end_o)):
                     return RangeIndex(start_r, end_r + step_o, step_o)
 
-        return self._int64index._union(other)
+        return self._int64index._union(other, sort=sort)
 
     @Appender(_index_shared_docs['join'])
     def join(self, other, how='left', level=None, return_indexers=False,

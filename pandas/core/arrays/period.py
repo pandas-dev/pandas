@@ -4,7 +4,8 @@ import operator
 
 import numpy as np
 
-from pandas._libs.tslibs import NaT, iNaT, period as libperiod
+from pandas._libs.tslibs import (
+    NaT, frequencies as libfrequencies, iNaT, period as libperiod)
 from pandas._libs.tslibs.fields import isleapyear_arr
 from pandas._libs.tslibs.period import (
     DIFFERENT_FREQ, IncompatibleFrequency, Period, get_period_field_arr,
@@ -31,7 +32,7 @@ from pandas.tseries.offsets import DateOffset, Tick, _delta_to_tick
 
 def _field_accessor(name, alias, docstring=None):
     def f(self):
-        base, mult = frequencies.get_freq_code(self.freq)
+        base, mult = libfrequencies.get_freq_code(self.freq)
         result = get_period_field_arr(alias, self.asi8, base)
         return result
 
@@ -348,12 +349,12 @@ class PeriodArray(dtl.DatetimeLikeArrayMixin, dtl.DatelikeOps):
                 return (self + self.freq).to_timestamp(how='start') - adjust
 
         if freq is None:
-            base, mult = frequencies.get_freq_code(self.freq)
-            freq = frequencies.get_to_timestamp_base(base)
+            base, mult = libfrequencies.get_freq_code(self.freq)
+            freq = libfrequencies.get_to_timestamp_base(base)
         else:
             freq = Period._maybe_convert_freq(freq)
 
-        base, mult = frequencies.get_freq_code(freq)
+        base, mult = libfrequencies.get_freq_code(freq)
         new_data = self.asfreq(freq, how=how)
 
         new_data = libperiod.periodarr_to_dt64arr(new_data.asi8, base)
@@ -450,8 +451,8 @@ class PeriodArray(dtl.DatetimeLikeArrayMixin, dtl.DatelikeOps):
 
         freq = Period._maybe_convert_freq(freq)
 
-        base1, mult1 = frequencies.get_freq_code(self.freq)
-        base2, mult2 = frequencies.get_freq_code(freq)
+        base1, mult1 = libfrequencies.get_freq_code(self.freq)
+        base2, mult2 = libfrequencies.get_freq_code(freq)
 
         asi8 = self.asi8
         # mult1 can't be negative or 0
@@ -551,7 +552,7 @@ class PeriodArray(dtl.DatetimeLikeArrayMixin, dtl.DatelikeOps):
 
     def _add_offset(self, other):
         assert not isinstance(other, Tick)
-        base = frequencies.get_base_alias(other.rule_code)
+        base = libfrequencies.get_base_alias(other.rule_code)
         if base != self.freq.rule_code:
             _raise_on_incompatible(self, other)
 
@@ -855,7 +856,7 @@ def dt64arr_to_periodarr(data, freq, tz=None):
     if isinstance(data, (ABCIndexClass, ABCSeries)):
         data = data._values
 
-    base, mult = frequencies.get_freq_code(freq)
+    base, mult = libfrequencies.get_freq_code(freq)
     return libperiod.dt64arr_to_periodarr(data.view('i8'), base, tz), freq
 
 
@@ -865,7 +866,7 @@ def _get_ordinal_range(start, end, periods, freq, mult=1):
                          'exactly two must be specified')
 
     if freq is not None:
-        _, mult = frequencies.get_freq_code(freq)
+        _, mult = libfrequencies.get_freq_code(freq)
 
     if start is not None:
         start = Period(start, freq)
@@ -919,10 +920,10 @@ def _range_from_fields(year=None, month=None, quarter=None, day=None,
     if quarter is not None:
         if freq is None:
             freq = 'Q'
-            base = frequencies.FreqGroup.FR_QTR
+            base = libfrequencies.FreqGroup.FR_QTR
         else:
-            base, mult = frequencies.get_freq_code(freq)
-            if base != frequencies.FreqGroup.FR_QTR:
+            base, mult = libfrequencies.get_freq_code(freq)
+            if base != libfrequencies.FreqGroup.FR_QTR:
                 raise AssertionError("base must equal FR_QTR")
 
         year, quarter = _make_field_arrays(year, quarter)
@@ -931,7 +932,7 @@ def _range_from_fields(year=None, month=None, quarter=None, day=None,
             val = libperiod.period_ordinal(y, m, 1, 1, 1, 1, 0, 0, base)
             ordinals.append(val)
     else:
-        base, mult = frequencies.get_freq_code(freq)
+        base, mult = libfrequencies.get_freq_code(freq)
         arrays = _make_field_arrays(year, month, day, hour, minute, second)
         for y, mth, d, h, mn, s in compat.zip(*arrays):
             ordinals.append(libperiod.period_ordinal(

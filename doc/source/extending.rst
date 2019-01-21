@@ -28,7 +28,13 @@ decorate a class, providing the name of attribute to add. The class's
    @pd.api.extensions.register_dataframe_accessor("geo")
    class GeoAccessor(object):
        def __init__(self, pandas_obj):
+           self._validate(pandas_obj)
            self._obj = pandas_obj
+
+       @staticmethod
+       def _validate(obj):
+           if 'lat' not in obj.columns or 'lon' not in obj.columns:
+               raise AttributeError("Must have 'lat' and 'lon'.")
 
        @property
        def center(self):
@@ -53,6 +59,13 @@ Now users can access your methods using the ``geo`` namespace:
 This can be a convenient way to extend pandas objects without subclassing them.
 If you write a custom accessor, make a pull request adding it to our
 :ref:`ecosystem` page.
+
+We highly recommend validating the data in your accessor's `__init__`.
+In our ``GeoAccessor``, we validate that the data contains the expected columns,
+raising an ``AttributeError`` when the validation fails.
+For a ``Series`` accessor, you should validate the ``dtype`` if the accessor
+applies only to certain dtypes.
+
 
 .. _extending.extension-types:
 

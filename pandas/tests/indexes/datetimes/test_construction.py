@@ -366,8 +366,8 @@ class TestDatetimeIndex(object):
         dates = [datetime(2013, 10, 7),
                  datetime(2013, 10, 8),
                  datetime(2013, 10, 9)]
-        data = DatetimeIndex(dates, freq=pd.tseries.frequencies.BDay()).values
-        result = DatetimeIndex(data, freq=pd.tseries.frequencies.BDay())
+        data = DatetimeIndex(dates, freq=pd.offsets.BDay()).values
+        result = DatetimeIndex(data, freq=pd.offsets.BDay())
         expected = DatetimeIndex(['2013-10-07',
                                   '2013-10-08',
                                   '2013-10-09'],
@@ -633,6 +633,23 @@ class TestDatetimeIndex(object):
         result = DatetimeIndex(['2018', 'NaT'], tz=tz)
         expected = DatetimeIndex([Timestamp('2018', tz=tz), pd.NaT])
         tm.assert_index_equal(result, expected)
+
+    def test_constructor_no_precision_warns(self):
+        # GH-24753, GH-24739
+        expected = pd.DatetimeIndex(['2000'], dtype='datetime64[ns]')
+
+        # we set the stacklevel for DatetimeIndex
+        with tm.assert_produces_warning(FutureWarning):
+            result = pd.DatetimeIndex(['2000'], dtype='datetime64')
+        tm.assert_index_equal(result, expected)
+
+        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+            result = pd.Index(['2000'], dtype='datetime64')
+        tm.assert_index_equal(result, expected)
+
+    def test_constructor_wrong_precision_raises(self):
+        with pytest.raises(ValueError):
+            pd.DatetimeIndex(['2000'], dtype='datetime64[us]')
 
 
 class TestTimeSeries(object):

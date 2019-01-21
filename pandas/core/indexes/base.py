@@ -310,10 +310,14 @@ class Index(IndexOpsMixin, PandasObject):
         elif (is_timedelta64_dtype(data) or
               (dtype is not None and is_timedelta64_dtype(dtype))):
             from pandas import TimedeltaIndex
-            result = TimedeltaIndex(data, copy=copy, name=name, **kwargs)
-            if dtype is not None and _o_dtype == dtype:
-                return Index(result.to_pytimedelta(), dtype=_o_dtype)
+            if dtype is not None and is_dtype_equal(_o_dtype, dtype):
+                # Note we can pass copy=False because the .astype below
+                #  will always make a copy
+                result = TimedeltaIndex(data, copy=False, name=name, **kwargs)
+                return result.astype(object)
             else:
+                result = TimedeltaIndex(data, copy=copy, name=name,
+                                        dtype=dtype, **kwargs)
                 return result
 
         elif is_period_dtype(data) and not is_object_dtype(dtype):
@@ -2240,7 +2244,7 @@ class Index(IndexOpsMixin, PandasObject):
             return self._shallow_copy(name=name)
         return self
 
-    def _union_incompatible_dtypes(self, other):
+    def _union_incompatible_dtypes(self, other, sort):
         """
         Casts this and other index to object dtype to allow the formation
         of a union between incompatible types.
@@ -2248,7 +2252,7 @@ class Index(IndexOpsMixin, PandasObject):
         this = self.astype(object, copy=False)
         # cast to Index for when `other` is list-like
         other = Index(other).astype(object, copy=False)
-        return Index.union(this, other).astype(object, copy=False)
+        return Index.union(this, other, sort=sort).astype(object, copy=False)
 
     def _is_compatible_with_other(self, other):
         """
@@ -2259,9 +2263,9 @@ class Index(IndexOpsMixin, PandasObject):
         return (type(self) is type(other)
                 and is_dtype_equal(self.dtype, other.dtype))
 
-    def union(self, other):
+    def union(self, other, sort=True):
         """
-        Form the union of two Index objects and sorts if possible.
+        Form the union of two Index objects.
 
         If the Index objects are incompatible, both Index objects will be
         cast to dtype('object') first.
@@ -2269,6 +2273,10 @@ class Index(IndexOpsMixin, PandasObject):
         Parameters
         ----------
         other : Index or array-like
+        sort : bool, default True
+            Sort the resulting index if possible
+
+            .. versionadded:: 0.24.0
 
         Returns
         -------
@@ -2290,11 +2298,11 @@ class Index(IndexOpsMixin, PandasObject):
         self._assert_can_do_setop(other)
 
         if not self._is_compatible_with_other(other):
-            return self._union_incompatible_dtypes(other)
+            return self._union_incompatible_dtypes(other, sort=sort)
 
-        return self._union(other)
+        return self._union(other, sort=sort)
 
-    def _union(self, other):
+    def _union(self, other, sort):
         """
         Specific union logic should go here. In subclasses union behavior
         should be overwritten here rather than in `self.union`
@@ -2338,12 +2346,13 @@ class Index(IndexOpsMixin, PandasObject):
             else:
                 result = lvals
 
-            try:
-                result = sorting.safe_sort(result)
-            except TypeError as e:
-                warnings.warn("%s, sort order is undefined for "
-                              "incomparable objects" % e, RuntimeWarning,
-                              stacklevel=3)
+            if sort:
+                try:
+                    result = sorting.safe_sort(result)
+                except TypeError as e:
+                    warnings.warn("{}, sort order is undefined for "
+                                  "incomparable objects".format(e),
+                                  RuntimeWarning, stacklevel=3)
 
         # for subclasses
         return self._wrap_setop_result(other, result)
@@ -2352,16 +2361,19 @@ class Index(IndexOpsMixin, PandasObject):
         return self._constructor(result, name=get_op_result_name(self, other))
 
     # TODO: standardize return type of non-union setops type(self vs other)
-    def intersection(self, other):
+    def intersection(self, other, sort=True):
         """
         Form the intersection of two Index objects.
 
-        This returns a new Index with elements common to the index and `other`,
-        preserving the order of the calling index.
+        This returns a new Index with elements common to the index and `other`.
 
         Parameters
         ----------
         other : Index or array-like
+        sort : bool, default True
+            Sort the resulting index if possible
+
+            .. versionadded:: 0.24.0
 
         Returns
         -------
@@ -2384,7 +2396,7 @@ class Index(IndexOpsMixin, PandasObject):
         if not is_dtype_equal(self.dtype, other.dtype):
             this = self.astype('O')
             other = other.astype('O')
-            return this.intersection(other)
+            return this.intersection(other, sort=sort)
 
         # TODO(EA): setops-refactor, clean all this up
         if is_period_dtype(self):
@@ -2413,8 +2425,18 @@ class Index(IndexOpsMixin, PandasObject):
             indexer = indexer[indexer != -1]
 
         taken = other.take(indexer)
+
+        if sort:
+            taken = sorting.safe_sort(taken.values)
+            if self.name != other.name:
+                name = None
+            else:
+                name = self.name
+            return self._shallow_copy(taken, name=name)
+
         if self.name != other.name:
             taken.name = None
+
         return taken
 
     def difference(self, other, sort=True):
@@ -2470,16 +2492,18 @@ class Index(IndexOpsMixin, PandasObject):
 
         return this._shallow_copy(the_diff, name=result_name, freq=None)
 
-    def symmetric_difference(self, other, result_name=None):
+    def symmetric_difference(self, other, result_name=None, sort=True):
         """
         Compute the symmetric difference of two Index objects.
-
-        It's sorted if sorting is possible.
 
         Parameters
         ----------
         other : Index or array-like
         result_name : str
+        sort : bool, default True
+            Sort the resulting index if possible
+
+            .. versionadded:: 0.24.0
 
         Returns
         -------
@@ -2524,10 +2548,11 @@ class Index(IndexOpsMixin, PandasObject):
         right_diff = other.values.take(right_indexer)
 
         the_diff = _concat._concat_compat([left_diff, right_diff])
-        try:
-            the_diff = sorting.safe_sort(the_diff)
-        except TypeError:
-            pass
+        if sort:
+            try:
+                the_diff = sorting.safe_sort(the_diff)
+            except TypeError:
+                pass
 
         attribs = self._get_attributes_dict()
         attribs['name'] = result_name
@@ -3254,8 +3279,12 @@ class Index(IndexOpsMixin, PandasObject):
         elif how == 'right':
             join_index = other
         elif how == 'inner':
-            join_index = self.intersection(other)
+            # TODO: sort=False here for backwards compat. It may
+            # be better to use the sort parameter passed into join
+            join_index = self.intersection(other, sort=False)
         elif how == 'outer':
+            # TODO: sort=True here for backwards compat. It may
+            # be better to use the sort parameter passed into join
             join_index = self.union(other)
 
         if sort:

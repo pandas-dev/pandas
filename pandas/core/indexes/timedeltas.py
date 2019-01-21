@@ -26,7 +26,6 @@ from pandas.core.indexes.datetimelike import (
     wrap_arithmetic_op)
 from pandas.core.indexes.numeric import Int64Index
 from pandas.core.ops import get_op_result_name
-from pandas.core.tools.timedeltas import _coerce_scalar_to_timedelta_type
 
 from pandas.tseries.frequencies import to_offset
 
@@ -329,9 +328,9 @@ class TimedeltaIndex(DatetimeIndexOpsMixin, dtl.TimelikeOps, Int64Index,
             return Index(result.astype('i8'), name=self.name)
         return DatetimeIndexOpsMixin.astype(self, dtype, copy=copy)
 
-    def _union(self, other):
+    def _union(self, other, sort):
         if len(other) == 0 or self.equals(other) or len(self) == 0:
-            return super(TimedeltaIndex, self)._union(other)
+            return super(TimedeltaIndex, self)._union(other, sort=sort)
 
         if not isinstance(other, TimedeltaIndex):
             try:
@@ -343,7 +342,7 @@ class TimedeltaIndex(DatetimeIndexOpsMixin, dtl.TimelikeOps, Int64Index,
         if this._can_fast_union(other):
             return this._fast_union(other)
         else:
-            result = Index._union(this, other)
+            result = Index._union(this, other, sort=sort)
             if isinstance(result, TimedeltaIndex):
                 if result.freq is None:
                     result.freq = to_offset(result.inferred_freq)
@@ -567,7 +566,7 @@ class TimedeltaIndex(DatetimeIndexOpsMixin, dtl.TimelikeOps, Int64Index,
         assert kind in ['ix', 'loc', 'getitem', None]
 
         if isinstance(label, compat.string_types):
-            parsed = _coerce_scalar_to_timedelta_type(label, box=True)
+            parsed = Timedelta(label)
             lbound = parsed.round(parsed.resolution)
             if side == 'left':
                 return lbound

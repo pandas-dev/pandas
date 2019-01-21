@@ -1410,6 +1410,14 @@ class TestHashTable(object):
         expected_reconstruct = s_duplicated.dropna().values
         tm.assert_numpy_array_equal(result_reconstruct, expected_reconstruct)
 
+    @pytest.mark.parametrize('hashtable', [
+        ht.PyObjectHashTable, ht.StringHashTable,
+        ht.Float64HashTable, ht.Int64HashTable, ht.UInt64HashTable])
+    def test_hashtable_large_sizehint(self, hashtable):
+        # GH 22729
+        size_hint = np.iinfo(np.uint32).max + 1
+        tbl = hashtable(size_hint=size_hint) # noqa
+
 
 def test_quantile():
     s = Series(np.random.randn(100))

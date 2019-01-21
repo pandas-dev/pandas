@@ -460,9 +460,9 @@ class DatetimeIndex(DatetimeIndexOpsMixin, Int64Index, DatetimeDelegateMixin):
     # --------------------------------------------------------------------
     # Set Operation Methods
 
-    def _union(self, other):
+    def _union(self, other, sort):
         if not len(other) or self.equals(other) or not len(self):
-            return super(DatetimeIndex, self)._union(other)
+            return super(DatetimeIndex, self)._union(other, sort=sort)
 
         if not isinstance(other, DatetimeIndex):
             try:
@@ -475,7 +475,7 @@ class DatetimeIndex(DatetimeIndexOpsMixin, Int64Index, DatetimeDelegateMixin):
         if this._can_fast_union(other):
             return this._fast_union(other)
         else:
-            result = Index._union(this, other)
+            result = Index._union(this, other, sort=sort)
             if isinstance(result, DatetimeIndex):
                 # TODO: we shouldn't be setting attributes like this;
                 #  in all the tests this equality already holds
@@ -579,7 +579,7 @@ class DatetimeIndex(DatetimeIndexOpsMixin, Int64Index, DatetimeDelegateMixin):
         name = get_op_result_name(self, other)
         return self._shallow_copy(result, name=name, freq=None, tz=self.tz)
 
-    def intersection(self, other):
+    def intersection(self, other, sort=True):
         """
         Specialized intersection for DatetimeIndex objects. May be much faster
         than Index.intersection
@@ -602,7 +602,7 @@ class DatetimeIndex(DatetimeIndexOpsMixin, Int64Index, DatetimeDelegateMixin):
                 other = DatetimeIndex(other)
             except (TypeError, ValueError):
                 pass
-            result = Index.intersection(self, other)
+            result = Index.intersection(self, other, sort=sort)
             if isinstance(result, DatetimeIndex):
                 if result.freq is None:
                     result.freq = to_offset(result.inferred_freq)
@@ -612,7 +612,7 @@ class DatetimeIndex(DatetimeIndexOpsMixin, Int64Index, DatetimeDelegateMixin):
               other.freq != self.freq or
               not other.freq.isAnchored() or
               (not self.is_monotonic or not other.is_monotonic)):
-            result = Index.intersection(self, other)
+            result = Index.intersection(self, other, sort=sort)
             # Invalidate the freq of `result`, which may not be correct at
             # this point, depending on the values.
             result.freq = None

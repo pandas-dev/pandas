@@ -5,7 +5,8 @@ import warnings
 import numpy as np
 
 from pandas._libs import index as libindex
-from pandas._libs.tslibs import NaT, iNaT, resolution
+from pandas._libs.tslibs import (
+    NaT, frequencies as libfrequencies, iNaT, resolution)
 from pandas._libs.tslibs.period import (
     DIFFERENT_FREQ, IncompatibleFrequency, Period)
 from pandas.util._decorators import Appender, Substitution, cache_readonly
@@ -376,7 +377,7 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index, PeriodDelegateMixin):
                 return delta
         elif isinstance(other, DateOffset):
             freqstr = other.rule_code
-            base = frequencies.get_base_alias(freqstr)
+            base = libfrequencies.get_base_alias(freqstr)
             if base == self.freq.rule_code:
                 return other.n
 

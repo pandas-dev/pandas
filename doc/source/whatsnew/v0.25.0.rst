@@ -1,0 +1,206 @@
+:orphan:
+
+.. _whatsnew_0250:
+
+What's New in 0.25.0 (April XX, 2019)
+-------------------------------------
+
+{{ header }}
+
+These are the changes in pandas 0.25.0. See :ref:`release` for a full changelog
+including other versions of pandas.
+
+
+.. _whatsnew_0250.enhancements.other:
+
+Other Enhancements
+^^^^^^^^^^^^^^^^^^
+
+-
+-
+-
+
+
+.. _whatsnew_0250.api_breaking:
+
+Backwards incompatible API changes
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+.. _whatsnew_0250.api.other:
+
+Other API Changes
+^^^^^^^^^^^^^^^^^
+
+-
+-
+-
+
+.. _whatsnew_0250.deprecations:
+
+Deprecations
+~~~~~~~~~~~~
+
+-
+-
+-
+
+
+.. _whatsnew_0250.prior_deprecations:
+
+Removal of prior version deprecations/changes
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+-
+-
+-
+
+.. _whatsnew_0250.performance:
+
+Performance Improvements
+~~~~~~~~~~~~~~~~~~~~~~~~
+
+-
+-
+-
+
+
+.. _whatsnew_0250.bug_fixes:
+
+Bug Fixes
+~~~~~~~~~
+
+Categorical
+^^^^^^^^^^^
+
+-
+-
+-
+
+Datetimelike
+^^^^^^^^^^^^
+
+-
+-
+-
+
+Timedelta
+^^^^^^^^^
+
+-
+-
+-
+
+Timezones
+^^^^^^^^^
+
+-
+-
+-
+
+Numeric
+^^^^^^^
+
+-
+-
+-
+
+
+Conversion
+^^^^^^^^^^
+
+-
+-
+-
+
+Strings
+^^^^^^^
+
+-
+-
+-
+
+
+Interval
+^^^^^^^^
+
+-
+-
+-
+
+Indexing
+^^^^^^^^
+
+-
+-
+-
+
+
+Missing
+^^^^^^^
+
+-
+-
+-
+
+MultiIndex
+^^^^^^^^^^
+
+-
+-
+-
+
+
+I/O
+^^^
+
+-
+-
+-
+
+
+Plotting
+^^^^^^^^
+
+-
+-
+-
+
+Groupby/Resample/Rolling
+^^^^^^^^^^^^^^^^^^^^^^^^
+
+-
+-
+-
+
+
+Reshaping
+^^^^^^^^^
+
+-
+-
+-
+
+
+Sparse
+^^^^^^
+
+-
+-
+-
+
+
+Other
+^^^^^
+
+-
+-
+-
+
+
+.. _whatsnew_0.250.contributors:
+
+Contributors
+~~~~~~~~~~~~
+
+.. contributors:: v0.24.x..HEAD
+

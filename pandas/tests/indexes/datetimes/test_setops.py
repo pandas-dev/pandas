@@ -141,7 +141,8 @@ class TestDatetimeIndexSetOps(object):
 
     @pytest.mark.parametrize("tz", [None, 'Asia/Tokyo', 'US/Eastern',
                                     'dateutil/US/Pacific'])
-    def test_intersection(self, tz):
+    @pytest.mark.parametrize("sort", [True, False])
+    def test_intersection(self, tz, sort):
         # GH 4690 (with tz)
         base = date_range('6/1/2000', '6/30/2000', freq='D', name='idx')
 
@@ -188,7 +189,9 @@ class TestDatetimeIndexSetOps(object):
 
         for (rng, expected) in [(rng2, expected2), (rng3, expected3),
                                 (rng4, expected4)]:
-            result = base.intersection(rng)
+            result = base.intersection(rng, sort=sort)
+            if sort:
+                expected = expected.sort_values()
             tm.assert_index_equal(result, expected)
             assert result.name == expected.name
             assert result.freq is None
