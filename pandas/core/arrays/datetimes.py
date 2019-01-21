@@ -1987,8 +1987,7 @@ def _validate_dt64_dtype(dtype):
     """
     if dtype is not None:
         dtype = pandas_dtype(dtype)
-
-        if isinstance(dtype, np.dtype) and dtype == np.dtype("M8"):
+        if is_dtype_equal(dtype, np.dtype("M8")):
             # no precision, warn
             dtype = _NS_DTYPE
             msg = textwrap.dedent("""\

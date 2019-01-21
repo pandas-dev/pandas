@@ -16,8 +16,8 @@ import pandas.compat as compat
 from pandas.util._decorators import Appender
 
 from pandas.core.dtypes.common import (
-    _NS_DTYPE, _TD_DTYPE, ensure_int64, is_datetime64_dtype, is_float_dtype,
-    is_integer_dtype, is_list_like, is_object_dtype, is_scalar,
+    _NS_DTYPE, _TD_DTYPE, ensure_int64, is_datetime64_dtype, is_dtype_equal,
+    is_float_dtype, is_integer_dtype, is_list_like, is_object_dtype, is_scalar,
     is_string_dtype, is_timedelta64_dtype, is_timedelta64_ns_dtype,
     pandas_dtype)
 from pandas.core.dtypes.dtypes import DatetimeTZDtype
@@ -990,25 +990,17 @@ def objects_to_td64ns(data, unit="ns", errors="raise"):
 
 
 def _validate_td64_dtype(dtype):
-    try:
-        if dtype == np.dtype("timedelta64"):
-            dtype = _TD_DTYPE
-            msg = textwrap.dedent("""\
-                Passing in 'timedelta' dtype with no precision is deprecated
-                and will raise in a future version. Please pass in
-                'timedelta64[ns]' instead.""")
-            warnings.warn(msg, FutureWarning, stacklevel=4)
-    except TypeError:
-        # extension dtype
-        pass
+    dtype = pandas_dtype(dtype)
+    if is_dtype_equal(dtype, np.dtype("timedelta64")):
+        dtype = _TD_DTYPE
+        msg = textwrap.dedent("""\
+            Passing in 'timedelta' dtype with no precision is deprecated
+            and will raise in a future version. Please pass in
+            'timedelta64[ns]' instead.""")
+        warnings.warn(msg, FutureWarning, stacklevel=4)
 
-    try:
-        dtype_mismatch = dtype != _TD_DTYPE
-    except TypeError:
+    if not is_dtype_equal(dtype, _TD_DTYPE):
         raise ValueError(_BAD_DTYPE.format(dtype=dtype))
-    else:
-        if dtype_mismatch:
-            raise ValueError(_BAD_DTYPE.format(dtype=dtype))
 
     return dtype
 
