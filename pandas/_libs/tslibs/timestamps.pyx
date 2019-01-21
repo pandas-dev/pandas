@@ -389,31 +389,6 @@ cdef class _Timestamp(datetime):
         object_state = self.value, self.freq, self.tzinfo
         return (Timestamp, object_state)
 
-    def __repr__(self):
-        stamp = self._repr_base
-        zone = None
-
-        try:
-            stamp += self.strftime('%z')
-            if self.tzinfo:
-                zone = get_timezone(self.tzinfo)
-        except ValueError:
-            year2000 = self.replace(year=2000)
-            stamp += year2000.strftime('%z')
-            if self.tzinfo:
-                zone = get_timezone(self.tzinfo)
-
-        try:
-            stamp += zone.strftime(' %%Z')
-        except:
-            pass
-
-        tz = ", tz='{0}'".format(zone) if zone is not None else ""
-        freq = "" if self.freq is None else ", freq='{0}'".format(self.freqstr)
-
-        return "Timestamp('{stamp}'{tz}{freq})".format(stamp=stamp,
-                                                       tz=tz, freq=freq)
-
     cdef bint _compare_outside_nanorange(_Timestamp self, datetime other,
                                          int op) except -1:
         cdef:
@@ -458,10 +433,6 @@ cdef class _Timestamp(datetime):
         return datetime(self.year, self.month, self.day,
                         self.hour, self.minute, self.second,
                         self.microsecond, self.tzinfo)
-
-    cpdef to_datetime64(self):
-        """ Returns a numpy.datetime64 object with 'ns' precision """
-        return np.datetime64(self.value, 'ns')
 
     def __add__(self, other):
         cdef:
@@ -560,7 +531,7 @@ cdef class _Timestamp(datetime):
             val = tz_convert_single(self.value, UTC, self.tz)
         return val
 
-    cpdef bint _get_start_end_field(self, str field):
+    cdef bint _get_start_end_field(self, str field):
         cdef:
             int64_t val
             dict kwds
@@ -581,7 +552,7 @@ cdef class _Timestamp(datetime):
                                   field, freqstr, month_kw)
         return out[0]
 
-    cpdef _get_date_name_field(self, object field, object locale):
+    cdef _get_date_name_field(self, object field, object locale):
         cdef:
             int64_t val
             object[:] out
@@ -590,6 +561,52 @@ cdef class _Timestamp(datetime):
         out = get_date_name_field(np.array([val], dtype=np.int64),
                                   field, locale=locale)
         return out[0]
+
+    def _has_time_component(self):
+        """
+        Returns if the Timestamp has a time component
+        in addition to the date part
+        """
+        return (self.time() != _zero_time
+                or self.tzinfo is not None
+                or self.nanosecond != 0)
+
+    @property
+    def resolution(self):
+        """
+        Return resolution describing the smallest difference between two
+        times that can be represented by Timestamp object_state
+        """
+        # GH#21336, GH#21365
+        return Timedelta(nanoseconds=1)
+
+    # --------------------------------------------------------------------
+    # Rendering Methods
+
+    def __repr__(self):
+        stamp = self._repr_base
+        zone = None
+
+        try:
+            stamp += self.strftime('%z')
+            if self.tzinfo:
+                zone = get_timezone(self.tzinfo)
+        except ValueError:
+            year2000 = self.replace(year=2000)
+            stamp += year2000.strftime('%z')
+            if self.tzinfo:
+                zone = get_timezone(self.tzinfo)
+
+        try:
+            stamp += zone.strftime(' %%Z')
+        except:
+            pass
+
+        tz = ", tz='{0}'".format(zone) if zone is not None else ""
+        freq = "" if self.freq is None else ", freq='{0}'".format(self.freqstr)
+
+        return "Timestamp('{stamp}'{tz}{freq})".format(stamp=stamp,
+                                                       tz=tz, freq=freq)
 
     @property
     def _repr_base(self):
@@ -642,35 +659,21 @@ cdef class _Timestamp(datetime):
 
         return base1 + base2
 
-    def _has_time_component(self):
-        """
-        Returns if the Timestamp has a time component
-        in addition to the date part
-        """
-        return (self.time() != _zero_time
-                or self.tzinfo is not None
-                or self.nanosecond != 0)
-
-    @property
-    def asm8(self):
-        return np.datetime64(self.value, 'ns')
-
-    @property
-    def resolution(self):
-        """
-        Return resolution describing the smallest difference between two
-        times that can be represented by Timestamp object_state
-        """
-        # GH#21336, GH#21365
-        return Timedelta(nanoseconds=1)
+    # --------------------------------------------------------------------
+    # Conversion
 
     def timestamp(self):
         """Return POSIX timestamp as float."""
         # py27 compat, see GH#17329
         return round(self.value / 1e9, 6)
 
-    # --------------------------------------------------------------------
-    # Conversion
+    def to_datetime64(self):
+        """ Returns a numpy.datetime64 object with 'ns' precision """
+        return np.datetime64(self.value, 'ns')
+
+    @property
+    def asm8(self):
+        return np.datetime64(self.value, 'ns')
 
     def to_period(self, freq=None):
         """
