@@ -1748,6 +1748,22 @@ c  10  11  12  13  14\
         assert str(df) == exp
 
 
+class TestDataFrameGroupByFormatting(object):
+    def test_groups_repr_truncates(self):
+        df = pd.DataFrame({
+            'a': [1, 1, 1, 2, 2, 3],
+            'b': [1, 2, 3, 4, 5, 6]
+        })
+
+        with option_context('display.max_rows', 2):
+            x = df.groupby('a').groups
+
+            expected = ("{1: Int64Index([0, 1, 2], dtype='int64'), ... , "
+                        "2: Int64Index([3, 4], dtype='int64')}")
+
+            assert x.__repr__() == expected
+
+
 def gen_series_formatting():
     s1 = pd.Series(['a'] * 100)
     s2 = pd.Series(['ab'] * 100)
