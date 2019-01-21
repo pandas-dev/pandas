@@ -460,6 +460,7 @@ if linetrace:
 # in numpy>=1.16.0, silence build warnings about deprecated API usage
 macros.append(('NPY_NO_DEPRECATED_API', '0'))
 
+
 # ----------------------------------------------------------------------
 # Specification of Dependencies
 
