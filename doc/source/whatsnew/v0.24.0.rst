@@ -438,7 +438,7 @@ Pandas 0.24.0 includes a number of API breaking changes.
 Dependencies have increased minimum versions
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-We have updated our minimum supported versions of dependencies (:issue:`21242`, :issue:`18742`, :issue:`23774`).
+We have updated our minimum supported versions of dependencies (:issue:`21242`, :issue:`18742`, :issue:`23774`, :issue:`24767`).
 If installed, we now require:
 
 +-----------------+-----------------+----------+
@@ -456,7 +456,7 @@ If installed, we now require:
 +-----------------+-----------------+----------+
 | pandas-gbq      | 0.8.0           |          |
 +-----------------+-----------------+----------+
-| pyarrow         | 0.7.0           |          |
+| pyarrow         | 0.9.0           |          |
 +-----------------+-----------------+----------+
 | pytables        | 3.4.2           |          |
 +-----------------+-----------------+----------+
