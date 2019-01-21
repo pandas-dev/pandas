@@ -975,7 +975,8 @@ class TestAppend(ConcatenateBase):
         msg = (r"unorderable types: (Interval|int)\(\) > "
                r"(int|long|float|str)\(\)|"
                r"Expected tuple, got (int|long|float|str)|"
-               r"Cannot compare type 'Timestamp' with type '(int|long)'")
+               r"Cannot compare type 'Timestamp' with type '(int|long)'|"
+               r"'>' not supported between instances of 'int' and 'str'")
         with pytest.raises(TypeError, match=msg):
             df.append(ser)
 
