@@ -7,6 +7,7 @@ This is not a public API.
 from __future__ import division
 
 import datetime
+from functools import wraps
 import operator
 import textwrap
 import warnings
@@ -134,6 +135,61 @@ def maybe_upcast_for_op(obj):
         # timedelta64 when operating with timedelta64
         return pd.TimedeltaIndex(obj)
     return obj
+
+
+class CompWrapper(object):
+    __key__ = ['list_to_array', 'validate_len',
+               'zerodim', 'inst_from_senior_cls']
+
+    def __init__(self,
+                 list_to_array=None,
+                 validate_len=None,
+                 zerodim=None,
+                 inst_from_senior_cls=None):
+        self.list_to_array = list_to_array
+        self.validate_len = validate_len
+        self.zerodim = zerodim
+        self.inst_from_senior_cls = inst_from_senior_cls
+
+    def _list_to_array(self, comp):
+        @wraps(comp)
+        def wrapper(comp_self, comp_other):
+            if is_list_like(comp_other):
+                comp_other = np.asarray(comp_other)
+            return comp(comp_self, comp_other)
+        return wrapper
+
+    def _validate_len(self, comp):
+        @wraps(comp)
+        def wrapper(comp_self, comp_other):
+            if is_list_like(comp_other) and len(comp_other) != len(comp_self):
+                raise ValueError("Lengths must match to compare")
+            return comp(comp_self, comp_other)
+        return wrapper
+
+    def _zerodim(self, comp):
+        @wraps(comp)
+        def wrapper(comp_self, comp_other):
+            from pandas._libs import lib
+            comp_other = lib.item_from_zerodim(comp_other)
+            return comp(comp_self, comp_other)
+        return wrapper
+
+    def _inst_from_senior_cls(self, comp):
+        @wraps(comp)
+        def wrapper(comp_self, comp_other):
+            if isinstance(comp_other, (ABCDataFrame,
+                                       ABCSeries, ABCIndexClass)):
+                # Rely on pandas to unbox and dispatch to us.
+                return NotImplemented
+            return comp(comp_self, comp_other)
+        return wrapper
+
+    def __call__(self, comp):
+        for key in CompWrapper.__key__:
+                if getattr(self, key) is True:
+                    comp = getattr(self, '_' + key)(comp)
+        return comp
 
 
 # -----------------------------------------------------------------------------

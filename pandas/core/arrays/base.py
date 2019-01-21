@@ -5,7 +5,6 @@
    This is an experimental API and subject to breaking changes
    without warning.
 """
-from functools import wraps
 import operator
 
 import numpy as np
@@ -16,7 +15,7 @@ from pandas.errors import AbstractMethodError
 from pandas.util._decorators import Appender, Substitution
 
 from pandas.core.dtypes.common import is_list_like
-from pandas.core.dtypes.generic import ABCDataFrame, ABCIndexClass, ABCSeries
+from pandas.core.dtypes.generic import ABCIndexClass, ABCSeries
 from pandas.core.dtypes.missing import isna
 
 from pandas.core import ops
@@ -1119,58 +1118,3 @@ class ExtensionScalarOpsMixin(ExtensionOpsMixin):
     @classmethod
     def _create_comparison_method(cls, op):
         return cls._create_method(op, coerce_to_dtype=False)
-
-
-class CompWrapper(object):
-    __key__ = ['list_to_array', 'validate_len',
-               'zerodim', 'inst_from_senior_cls']
-
-    def __init__(self,
-                 list_to_array=None,
-                 validate_len=None,
-                 zerodim=None,
-                 inst_from_senior_cls=None):
-        self.list_to_array = list_to_array
-        self.validate_len = validate_len
-        self.zerodim = zerodim
-        self.inst_from_senior_cls = inst_from_senior_cls
-
-    def _list_to_array(self, comp):
-        @wraps(comp)
-        def wrapper(comp_self, comp_other):
-            if is_list_like(comp_other):
-                comp_other = np.asarray(comp_other)
-            return comp(comp_self, comp_other)
-        return wrapper
-
-    def _validate_len(self, comp):
-        @wraps(comp)
-        def wrapper(comp_self, comp_other):
-            if is_list_like(comp_other) and len(comp_other) != len(comp_self):
-                raise ValueError("Lengths must match to compare")
-            return comp(comp_self, comp_other)
-        return wrapper
-
-    def _zerodim(self, comp):
-        @wraps(comp)
-        def wrapper(comp_self, comp_other):
-            from pandas._libs import lib
-            comp_other = lib.item_from_zerodim(comp_other)
-            return comp(comp_self, comp_other)
-        return wrapper
-
-    def _inst_from_senior_cls(self, comp):
-        @wraps(comp)
-        def wrapper(comp_self, comp_other):
-            if isinstance(comp_other, (ABCDataFrame,
-                                       ABCSeries, ABCIndexClass)):
-                # Rely on pandas to unbox and dispatch to us.
-                return NotImplemented
-            return comp(comp_self, comp_other)
-        return wrapper
-
-    def __call__(self, comp):
-        for key in CompWrapper.__key__:
-                if getattr(self, key) is True:
-                    comp = getattr(self, '_' + key)(comp)
-        return comp
