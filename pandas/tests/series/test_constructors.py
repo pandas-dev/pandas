@@ -688,10 +688,15 @@ class TestSeriesConstructors():
         pytest.raises(TypeError, lambda x: Series(
             Series(dates).astype('int') / 1000000, dtype='M8[ms]'))
 
-        msg = (r"The 'datetime64' dtype has no unit\. Please pass in"
-               r" 'datetime64\[ns\]' instead\.")
-        with pytest.raises(ValueError, match=msg):
-            Series(dates, dtype='datetime64')
+        dates_not_np = [
+            datetime(2013, 1, 1),
+            datetime(2013, 1, 2),
+            datetime(2013, 1, 3),
+        ]
+
+        expected = Series(dates_not_np)
+        result = Series(dates, dtype='datetime64[ns]')
+        tm.assert_series_equal(result, expected)
 
         # invalid dates can be help as object
         result = Series([datetime(2, 1, 1)])
