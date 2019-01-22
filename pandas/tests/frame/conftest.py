@@ -1,7 +1,7 @@
 import numpy as np
 import pytest
 
-from pandas import DataFrame, NaT, compat, date_range
+from pandas import DataFrame
 import pandas.util.testing as tm
 
 

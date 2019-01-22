@@ -389,7 +389,6 @@ class SharedWithSparse(object):
         assert values.shape[1] == len(float_string_frame.columns)
 
     def test_repr_with_mi_nat(self):
-        float_string_frame = tm.get_float_string_frame()
 
         df = self.klass({'X': [1, 2]},
                         index=[[pd.NaT, pd.Timestamp('20130101')], ['a', 'b']])
