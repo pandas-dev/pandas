@@ -1,3 +1,4 @@
+import contextlib
 import os
 import re
 import subprocess
@@ -33,6 +34,7 @@ def check_file(path):
     return rc
 
 
+@contextlib.contextmanager
 def ensure_clean(filename):
     """
     A poor-man's version of pandas.util.testing.ensure_clean
