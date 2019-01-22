@@ -5670,9 +5670,10 @@ class NDFrame(PandasObject, SelectionMixin):
                     results.append(results.append(col.copy() if copy else col))
 
         elif is_extension_array_dtype(dtype) and self.ndim > 1:
-            # GH 18099: columnwise conversion to categorical
-            # and extension dtype
-            results = (self[col].astype(dtype, copy=copy) for col in self)
+            # GH 18099/22869: columnwise conversion to extension dtype
+            # GH 24704: use iloc to handle duplicate column names
+            results = (self.iloc[:, i].astype(dtype, copy=copy)
+                       for i in range(len(self.columns)))
 
         else:
             # else, only a single dtype is given
@@ -7147,12 +7148,18 @@ class NDFrame(PandasObject, SelectionMixin):
             raise ValueError("Cannot use an NA value as a clip threshold")
 
         result = self
-        if upper is not None:
-            subset = self.le(upper, axis=None) | isna(result)
-            result = result.where(subset, upper, axis=None, inplace=False)
-        if lower is not None:
-            subset = self.ge(lower, axis=None) | isna(result)
-            result = result.where(subset, lower, axis=None, inplace=False)
+        mask = isna(self.values)
+
+        with np.errstate(all='ignore'):
+            if upper is not None:
+                subset = self.to_numpy() <= upper
+                result = result.where(subset, upper, axis=None, inplace=False)
+            if lower is not None:
+                subset = self.to_numpy() >= lower
+                result = result.where(subset, lower, axis=None, inplace=False)
+
+        if np.any(mask):
+            result[mask] = np.nan
 
         if inplace:
             self._update_inplace(result)

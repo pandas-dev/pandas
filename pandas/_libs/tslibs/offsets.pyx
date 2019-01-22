@@ -5,6 +5,7 @@ import cython
 import time
 from cpython.datetime cimport (PyDateTime_IMPORT,
                                PyDateTime_Check,
+                               PyDelta_Check,
                                datetime, timedelta,
                                time as dt_time)
 PyDateTime_IMPORT
@@ -27,6 +28,9 @@ from pandas._libs.tslibs.nattype cimport NPY_NAT
 from pandas._libs.tslibs.np_datetime cimport (
     npy_datetimestruct, dtstruct_to_dt64, dt64_to_dtstruct)
 from pandas._libs.tslibs.timezones import UTC
+
+
+PY2 = bytes == str
 
 # ---------------------------------------------------------------------
 # Constants
@@ -125,6 +129,26 @@ def apply_index_wraps(func):
         pass
     return wrapper
 
+
+cdef _wrap_timedelta_result(result):
+    """
+    Tick operations dispatch to their Timedelta counterparts.  Wrap the result
+    of these operations in a Tick if possible.
+
+    Parameters
+    ----------
+    result : object
+
+    Returns
+    -------
+    object
+    """
+    if PyDelta_Check(result):
+        # convert Timedelta back to a Tick
+        from pandas.tseries.offsets import _delta_to_tick
+        return _delta_to_tick(result)
+
+    return result
 
 # ---------------------------------------------------------------------
 # Business Helpers
@@ -388,12 +412,12 @@ class _BaseOffset(object):
                           **self.kwds)
 
     def __neg__(self):
-        # Note: we are defering directly to __mul__ instead of __rmul__, as
+        # Note: we are deferring directly to __mul__ instead of __rmul__, as
         # that allows us to use methods that can go in a `cdef class`
         return self * -1
 
     def copy(self):
-        # Note: we are defering directly to __mul__ instead of __rmul__, as
+        # Note: we are deferring directly to __mul__ instead of __rmul__, as
         # that allows us to use methods that can go in a `cdef class`
         return self * 1
 
@@ -508,7 +532,13 @@ class _Tick(object):
     dummy class to mix into tseries.offsets.Tick so that in tslibs.period we
     can do isinstance checks on _Tick and avoid importing tseries.offsets
     """
-    pass
+
+    def __truediv__(self, other):
+        result = self.delta.__truediv__(other)
+        return _wrap_timedelta_result(result)
+
+    if PY2:
+        __div__ = __truediv__
 
 
 # ----------------------------------------------------------------------

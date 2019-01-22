@@ -732,8 +732,7 @@ A   250      100
 B   150      250
 C   100      300
 
-Compare to a scalar and operator version which return the same
-results.
+Comparison with a scalar, using either the operator or method:
 
 >>> df == 100
     cost  revenue
@@ -747,33 +746,40 @@ A  False     True
 B  False    False
 C   True    False
 
-Compare to a list and Series by axis and operator version. As shown,
-for list axis is by default 'index', but for Series axis is by
-default 'columns'.
+When `other` is a :class:`Series`, the columns of a DataFrame are aligned
+with the index of `other` and broadcast:
 
->>> df != [100, 250, 300]
+>>> df != pd.Series([100, 250], index=["cost", "revenue"])
+    cost  revenue
+A   True     True
+B   True    False
+C  False     True
+
+Use the method to control the broadcast axis:
+
+>>> df.ne(pd.Series([100, 300], index=["A", "D"]), axis='index')
    cost  revenue
 A  True    False
-B  True    False
-C  True    False
+B  True     True
+C  True     True
+D  True     True
 
->>> df.ne([100, 250, 300], axis='index')
-   cost  revenue
-A  True    False
-B  True    False
-C  True    False
+When comparing to an arbitrary sequence, the number of columns must
+match the number elements in `other`:
 
->>> df != pd.Series([100, 250, 300])
-   cost  revenue     0     1     2
-A  True     True  True  True  True
-B  True     True  True  True  True
-C  True     True  True  True  True
+>>> df == [250, 100]
+    cost  revenue
+A   True     True
+B  False    False
+C  False    False
 
->>> df.ne(pd.Series([100, 250, 300]), axis='columns')
-   cost  revenue     0     1     2
-A  True     True  True  True  True
-B  True     True  True  True  True
-C  True     True  True  True  True
+Use the method to control the axis:
+
+>>> df.eq([250, 250, 100], axis='index')
+    cost  revenue
+A   True    False
+B  False     True
+C   True    False
 
 Compare to a DataFrame of different shape.
 
@@ -798,7 +804,7 @@ Compare to a MultiIndex by level.
 >>> df_multindex = pd.DataFrame({{'cost': [250, 150, 100, 150, 300, 220],
 ...                              'revenue': [100, 250, 300, 200, 175, 225]}},
 ...                             index=[['Q1', 'Q1', 'Q1', 'Q2', 'Q2', 'Q2'],
-...                                    ['A', 'B', 'C', 'A', 'B' ,'C']])
+...                                    ['A', 'B', 'C', 'A', 'B', 'C']])
 >>> df_multindex
       cost  revenue
 Q1 A   250      100

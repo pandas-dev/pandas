@@ -158,7 +158,7 @@ class TestCategoricalIndex(Base):
         tm.assert_index_equal(result, expected, exact=True)
 
         # error when combining categories/ordered and dtype kwargs
-        msg = 'Cannot specify `categories` or `ordered` together with `dtype`.'
+        msg = "Cannot specify `categories` or `ordered` together with `dtype`."
         with pytest.raises(ValueError, match=msg):
             CategoricalIndex(data, categories=cats, dtype=dtype)
 
@@ -250,17 +250,6 @@ class TestCategoricalIndex(Base):
         ci = CategoricalIndex(
             list('aabbca') + [np.nan], categories=list('cabdef'))
         assert np.nan in ci
-
-    def test_min_max(self):
-
-        ci = self.create_index(ordered=False)
-        pytest.raises(TypeError, lambda: ci.min())
-        pytest.raises(TypeError, lambda: ci.max())
-
-        ci = self.create_index(ordered=True)
-
-        assert ci.min() == 'c'
-        assert ci.max() == 'b'
 
     def test_map(self):
         ci = pd.CategoricalIndex(list('ABABC'), categories=list('CBA'),

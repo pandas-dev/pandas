@@ -5,7 +5,6 @@ from __future__ import print_function
 from datetime import datetime, time
 
 import numpy as np
-from numpy.random import randn
 import pytest
 
 from pandas.compat import product
@@ -530,7 +529,7 @@ class TestDataFrameTimeSeriesMethods(TestData):
     def test_first_last_valid(self, data, idx,
                               expected_first, expected_last):
         N = len(self.frame.index)
-        mat = randn(N)
+        mat = np.random.randn(N)
         mat[:5] = np.nan
         mat[-5:] = np.nan
 
@@ -812,7 +811,7 @@ class TestDataFrameTimeSeriesMethods(TestData):
 
         dr = date_range('1/1/2000', '1/1/2001')
         pr = period_range('1/1/2000', '1/1/2001')
-        df = DataFrame(randn(len(dr), K), index=dr)
+        df = DataFrame(np.random.randn(len(dr), K), index=dr)
         df['mix'] = 'a'
 
         pts = df.to_period()

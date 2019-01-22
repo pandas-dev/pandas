@@ -7,6 +7,7 @@ import numpy as np
 
 from pandas._libs import lib
 from pandas._libs.tslibs import NaT, Timestamp
+from pandas._libs.tslibs.frequencies import is_subperiod, is_superperiod
 from pandas._libs.tslibs.period import IncompatibleFrequency
 import pandas.compat as compat
 from pandas.compat.numpy import function as nv
@@ -28,7 +29,7 @@ from pandas.core.indexes.datetimes import DatetimeIndex, date_range
 from pandas.core.indexes.period import PeriodIndex
 from pandas.core.indexes.timedeltas import TimedeltaIndex, timedelta_range
 
-from pandas.tseries.frequencies import is_subperiod, is_superperiod, to_offset
+from pandas.tseries.frequencies import to_offset
 from pandas.tseries.offsets import (
     DateOffset, Day, Nano, Tick, delta_to_nanoseconds)
 
