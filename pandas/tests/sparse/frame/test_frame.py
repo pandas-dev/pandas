@@ -269,6 +269,19 @@ class TestSparseDataFrame(SharedWithSparse):
             default_fill_value=0)
         tm.assert_sp_frame_equal(result, expected)
 
+    def test_default_dtype(self):
+        result = pd.SparseDataFrame(columns=list('ab'), index=range(2))
+        expected = pd.SparseDataFrame([[np.nan, np.nan], [np.nan, np.nan]],
+                                      columns=list('ab'), index=range(2))
+        tm.assert_sp_frame_equal(result, expected)
+
+    def test_nan_data_with_int_dtype_raises_error(self):
+        sdf = pd.SparseDataFrame([[np.nan, np.nan], [np.nan, np.nan]],
+                                 columns=list('ab'), index=range(2))
+        msg = "Cannot convert non-finite values (NA or inf) to integer"
+        with pytest.raises(ValueError, match=msg):
+            pd.SparseDataFrame(sdf, dtype=np.int64)
+
     def test_dtypes(self):
         df = DataFrame(np.random.randn(10000, 4))
         df.loc[:9998] = np.nan
