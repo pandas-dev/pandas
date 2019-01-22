@@ -5,7 +5,6 @@ import sys
 import tempfile
 
 
-
 def check_file(path):
     """
     Run a flake8-like check on the cython file at the given path.
