@@ -71,22 +71,6 @@ def mixed_float_frame():
 
 
 @pytest.fixture
-def mixed_int_frame():
-    """
-    Fixture for DataFrame of different int types with index of unique strings
-
-    Columns are ['A', 'B', 'C', 'D'].
-    """
-    df = DataFrame({k: v.astype(int)
-                   for k, v in compat.iteritems(tm.getSeriesData())})
-    df.A = df.A.astype('int32')
-    df.B = np.ones(len(df.B), dtype='uint64')
-    df.C = df.C.astype('uint8')
-    df.D = df.C.astype('int64')
-    return df
-
-
-@pytest.fixture
 def empty_frame():
     """
     Fixture for empty DataFrame
