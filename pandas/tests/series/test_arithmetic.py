@@ -222,9 +222,6 @@ class TestSeriesUnary(object):
         with pytest.raises(TypeError):
             op(ser.values)
 
-    @pytest.mark.skipif(not pd.compat.numpy._np_version_under1p16,
-                        reason='NumPy 1.6 or later shows warning when op '
-                        'performed against non-numeric dtype')
     @pytest.mark.parametrize('typ', ['bool'])
     @pytest.mark.parametrize('op', [operator.pos, operator.neg,
                                     operator.inv, operator.abs])
@@ -249,9 +246,6 @@ class TestSeriesUnary(object):
             exp = Series(op(ser.values), index=ser.index)
             tm.assert_series_equal(result, exp)
 
-    @pytest.mark.skipif(not pd.compat.numpy._np_version_under1p16,
-                        reason='NumPy 1.6 or later shows warning when op '
-                        'performed against non-numeric dtype')
     @pytest.mark.parametrize('typ', ['datetime64[ns]', 'datetime64[ns, GMT]',
                                      'datetime64[ns, US/Eastern]'])
     @pytest.mark.parametrize('op', [operator.pos])
@@ -262,6 +256,7 @@ class TestSeriesUnary(object):
         # pandas all raises
         with pytest.raises(TypeError):
             op(ser)
+
         # inconsistent with NumPy
         tm.assert_numpy_array_equal(ser.values, op(ser.values))
 

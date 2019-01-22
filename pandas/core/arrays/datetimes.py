@@ -767,10 +767,6 @@ class DatetimeArray(dtl.DatetimeLikeArrayMixin,
         new_values = super(DatetimeArray, self)._add_delta(delta)
         return type(self)._from_sequence(new_values, tz=self.tz, freq='infer')
 
-    def __pos__(self):
-        raise TypeError("Unary plus expects numeric dtype, not {}"
-                        .format(self.dtype))
-
     # -----------------------------------------------------------------
     # Timezone Conversion and Localization Methods
 

@@ -1475,9 +1475,16 @@ def _unary_method(cls, op, special=True):
     return f
 
 
+def pos(values):
+    if is_datetime64_any_dtype(values):
+        raise TypeError("Unary plus expects numeric dtype, not {}"
+                        .format(values.dtype))
+    else:
+        return operator.pos(values)
+
+
 def neg(values):
     if is_bool_dtype(values):
-        # TODO: move to BoolArray.__neg__ once we implement it
         return operator.invert(values)
     else:
         return operator.neg(values)
@@ -1488,7 +1495,7 @@ def invert(values):
         return operator.inv(values)
     except Exception:
         # inv fails with 0 len
-        if not values.size:
+        if not values.size():
             return values
         raise
 
@@ -1502,7 +1509,7 @@ def add_unary_methods(cls):
     cls : class
         unary methods will be defined and pinned to this class
     """
-    new_methods = dict(pos=_unary_method(cls, operator.pos),
+    new_methods = dict(pos=_unary_method(cls, pos),
                        neg=_unary_method(cls, neg),
                        invert=_unary_method(cls, invert),
                        inv=_unary_method(cls, invert),
