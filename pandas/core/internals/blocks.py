@@ -530,10 +530,6 @@ class Block(PandasObject):
         return self.split_and_operate(None, f, False)
 
     def astype(self, dtype, copy=False, errors='raise', values=None, **kwargs):
-        dtype = pandas_dtype(dtype)
-        if isinstance(dtype, PandasDtype):
-            dtype = dtype.numpy_dtype
-
         return self._astype(dtype, copy=copy, errors=errors, values=values,
                             **kwargs)
 
@@ -595,20 +591,15 @@ class Block(PandasObject):
 
             return self.make_block(Categorical(self.values, dtype=dtype))
 
+        dtype = pandas_dtype(dtype)
+        if isinstance(dtype, PandasDtype):
+            dtype = dtype.numpy_dtype
+
         # astype processing
         if is_dtype_equal(self.dtype, dtype):
             if copy:
                 return self.copy()
             return self
-
-        klass = None
-        if is_sparse(self.values):
-            # special case sparse, Series[Sparse].astype(object) is sparse
-            klass = ExtensionBlock
-        elif is_object_dtype(dtype):
-            klass = ObjectBlock
-        elif is_extension_array_dtype(dtype):
-            klass = ExtensionBlock
 
         try:
             # force the copy here
@@ -642,7 +633,7 @@ class Block(PandasObject):
                     pass
 
             newb = make_block(values, placement=self.mgr_locs,
-                              klass=klass, ndim=self.ndim)
+                              ndim=self.ndim)
         except Exception:  # noqa: E722
             if errors == 'raise':
                 raise
