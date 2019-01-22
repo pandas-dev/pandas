@@ -114,7 +114,7 @@ def _compose(*funcs):
 
 
 def _preparse(source, f=_compose(_replace_locals, _replace_booleans,
-                                _rewrite_assign)):
+                                 _rewrite_assign)):
     """Compose a collection of tokenization functions
 
     Parameters
