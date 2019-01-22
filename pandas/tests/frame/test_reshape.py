@@ -7,8 +7,6 @@ import itertools
 from warnings import catch_warnings, simplefilter
 
 import numpy as np
-from numpy import nan
-from numpy.random import randn
 import pytest
 
 from pandas.compat import u
@@ -388,7 +386,7 @@ class TestDataFrameReshape(TestData):
              ('A', 'dog', 'short'), ('B', 'dog', 'short')],
             names=['exp', 'animal', 'hair_length']
         )
-        df = DataFrame(randn(4, 4), columns=columns)
+        df = DataFrame(np.random.randn(4, 4), columns=columns)
 
         animal_hair_stacked = df.stack(level=['animal', 'hair_length'])
         exp_hair_stacked = df.stack(level=['exp', 'hair_length'])
@@ -420,7 +418,7 @@ class TestDataFrameReshape(TestData):
              ('A', 'dog', 'short'), ('B', 'dog', 'short')],
             names=['exp', 'animal', 'hair_length']
         )
-        df = DataFrame(randn(4, 4), columns=columns)
+        df = DataFrame(np.random.randn(4, 4), columns=columns)
 
         exp_animal_stacked = df.stack(level=['exp', 'animal'])
         animal_hair_stacked = df.stack(level=['animal', 'hair_length'])
@@ -634,7 +632,6 @@ class TestDataFrameReshape(TestData):
 
     def test_unstack_nan_index(self):  # GH7466
         cast = lambda val: '{0:1}'.format('' if val != val else val)
-        nan = np.nan
 
         def verify(df):
             mk_list = lambda a: list(a) if isinstance(a, tuple) else [a]
@@ -645,7 +642,7 @@ class TestDataFrameReshape(TestData):
                 right = sorted(list(map(cast, right)))
                 assert left == right
 
-        df = DataFrame({'jim': ['a', 'b', nan, 'd'],
+        df = DataFrame({'jim': ['a', 'b', np.nan, 'd'],
                         'joe': ['w', 'x', 'y', 'z'],
                         'jolie': ['a.w', 'b.x', ' .y', 'd.z']})
 
@@ -660,10 +657,10 @@ class TestDataFrameReshape(TestData):
                 assert udf.notna().values.sum() == len(df)
                 verify(udf['jolie'])
 
-        df = DataFrame({'1st': ['d'] * 3 + [nan] * 5 + ['a'] * 2 +
+        df = DataFrame({'1st': ['d'] * 3 + [np.nan] * 5 + ['a'] * 2 +
                         ['c'] * 3 + ['e'] * 2 + ['b'] * 5,
-                        '2nd': ['y'] * 2 + ['w'] * 3 + [nan] * 3 +
-                        ['z'] * 4 + [nan] * 3 + ['x'] * 3 + [nan] * 2,
+                        '2nd': ['y'] * 2 + ['w'] * 3 + [np.nan] * 3 +
+                        ['z'] * 4 + [np.nan] * 3 + ['x'] * 3 + [np.nan] * 2,
                         '3rd': [67, 39, 53, 72, 57, 80, 31, 18, 11, 30, 59,
                                 50, 62, 59, 76, 52, 14, 53, 60, 51]})
 
@@ -685,10 +682,10 @@ class TestDataFrameReshape(TestData):
         df.iloc[3, 1] = np.NaN
         left = df.set_index(['A', 'B']).unstack(0)
 
-        vals = [[3, 0, 1, 2, nan, nan, nan, nan],
-                [nan, nan, nan, nan, 4, 5, 6, 7]]
+        vals = [[3, 0, 1, 2, np.nan, np.nan, np.nan, np.nan],
+                [np.nan, np.nan, np.nan, np.nan, 4, 5, 6, 7]]
         vals = list(map(list, zip(*vals)))
-        idx = Index([nan, 0, 1, 2, 4, 5, 6, 7], name='B')
+        idx = Index([np.nan, 0, 1, 2, 4, 5, 6, 7], name='B')
         cols = MultiIndex(levels=[['C'], ['a', 'b']],
                           codes=[[0, 0], [0, 1]],
                           names=[None, 'A'])
@@ -701,11 +698,11 @@ class TestDataFrameReshape(TestData):
         df.iloc[2, 1] = np.NaN
         left = df.set_index(['A', 'B']).unstack(0)
 
-        vals = [[2, nan], [0, 4], [1, 5], [nan, 6], [3, 7]]
+        vals = [[2, np.nan], [0, 4], [1, 5], [np.nan, 6], [3, 7]]
         cols = MultiIndex(levels=[['C'], ['a', 'b']],
                           codes=[[0, 0], [0, 1]],
                           names=[None, 'A'])
-        idx = Index([nan, 0, 1, 2, 3], name='B')
+        idx = Index([np.nan, 0, 1, 2, 3], name='B')
         right = DataFrame(vals, columns=cols, index=idx)
         assert_frame_equal(left, right)
 
@@ -714,11 +711,11 @@ class TestDataFrameReshape(TestData):
         df.iloc[3, 1] = np.NaN
         left = df.set_index(['A', 'B']).unstack(0)
 
-        vals = [[3, nan], [0, 4], [1, 5], [2, 6], [nan, 7]]
+        vals = [[3, np.nan], [0, 4], [1, 5], [2, 6], [np.nan, 7]]
         cols = MultiIndex(levels=[['C'], ['a', 'b']],
                           codes=[[0, 0], [0, 1]],
                           names=[None, 'A'])
-        idx = Index([nan, 0, 1, 2, 3], name='B')
+        idx = Index([np.nan, 0, 1, 2, 3], name='B')
         right = DataFrame(vals, columns=cols, index=idx)
         assert_frame_equal(left, right)
 
@@ -731,7 +728,7 @@ class TestDataFrameReshape(TestData):
         df.iloc[3, 1] = np.NaN
         left = df.set_index(['A', 'B']).unstack()
 
-        vals = np.array([[3, 0, 1, 2, nan, 4], [nan, 5, 6, 7, 8, 9]])
+        vals = np.array([[3, 0, 1, 2, np.nan, 4], [np.nan, 5, 6, 7, 8, 9]])
         idx = Index(['a', 'b'], name='A')
         cols = MultiIndex(levels=[['C'], date_range('2012-01-01', periods=5)],
                           codes=[[0, 0, 0, 0, 0, 0], [-1, 0, 1, 2, 3, 4]],
@@ -741,9 +738,9 @@ class TestDataFrameReshape(TestData):
         assert_frame_equal(left, right)
 
         # GH4862
-        vals = [['Hg', nan, nan, 680585148],
-                ['U', 0.0, nan, 680585148],
-                ['Pb', 7.07e-06, nan, 680585148],
+        vals = [['Hg', np.nan, np.nan, 680585148],
+                ['U', 0.0, np.nan, 680585148],
+                ['Pb', 7.07e-06, np.nan, 680585148],
                 ['Sn', 2.3614e-05, 0.0133, 680607017],
                 ['Ag', 0.0, 0.0133, 680607017],
                 ['Hg', -0.00015, 0.0133, 680607017]]
@@ -752,8 +749,8 @@ class TestDataFrameReshape(TestData):
 
         left = df.copy().set_index(['s_id', 'dosage', 'agent']).unstack()
 
-        vals = [[nan, nan, 7.07e-06, nan, 0.0],
-                [0.0, -0.00015, nan, 2.3614e-05, nan]]
+        vals = [[np.nan, np.nan, 7.07e-06, np.nan, 0.0],
+                [0.0, -0.00015, np.nan, 2.3614e-05, np.nan]]
 
         idx = MultiIndex(levels=[[680585148, 680607017], [0.0133]],
                          codes=[[0, 1], [-1, 0]],
@@ -777,8 +774,8 @@ class TestDataFrameReshape(TestData):
                         'joe': (np.random.randn(6) * 10).round(2)})
 
         df['3rd'] = df['2nd'] - pd.Timestamp('2014-02-02')
-        df.loc[1, '2nd'] = df.loc[3, '2nd'] = nan
-        df.loc[1, '3rd'] = df.loc[4, '3rd'] = nan
+        df.loc[1, '2nd'] = df.loc[3, '2nd'] = np.nan
+        df.loc[1, '3rd'] = df.loc[4, '3rd'] = np.nan
 
         left = df.set_index(['1st', '2nd', '3rd']).unstack(['2nd', '3rd'])
         assert left.notna().values.sum() == 2 * len(df)
@@ -845,7 +842,7 @@ class TestDataFrameReshape(TestData):
         df = DataFrame(np.arange(6).reshape(2, 3),
                        columns=full_multiindex[[0, 1, 3]])
         result = df.stack(dropna=False)
-        expected = DataFrame([[0, 2], [1, nan], [3, 5], [4, nan]],
+        expected = DataFrame([[0, 2], [1, np.nan], [3, 5], [4, np.nan]],
                              index=MultiIndex(
                                  levels=[[0, 1], ['u', 'x', 'y', 'z']],
                                  codes=[[0, 0, 1, 1],

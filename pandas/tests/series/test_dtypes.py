@@ -74,7 +74,8 @@ class TestSeriesDtypes(object):
     @pytest.mark.parametrize("dtype", [int, np.int8, np.int64])
     def test_astype_cast_object_int_fail(self, dtype):
         arr = Series(["car", "house", "tree", "1"])
-        with pytest.raises(ValueError):
+        msg = r"invalid literal for (int|long)\(\) with base 10: 'car'"
+        with pytest.raises(ValueError, match=msg):
             arr.astype(dtype)
 
     def test_astype_cast_object_int(self):
@@ -213,17 +214,19 @@ class TestSeriesDtypes(object):
         tm.assert_series_equal(result, expected)
 
         dt3 = dtype_class({'abc': str, 'def': str})
-        with pytest.raises(KeyError):
+        msg = ("Only the Series name can be used for the key in Series dtype"
+               r" mappings\.")
+        with pytest.raises(KeyError, match=msg):
             s.astype(dt3)
 
         dt4 = dtype_class({0: str})
-        with pytest.raises(KeyError):
+        with pytest.raises(KeyError, match=msg):
             s.astype(dt4)
 
         # GH16717
         # if dtypes provided is empty, it should error
         dt5 = dtype_class({})
-        with pytest.raises(KeyError):
+        with pytest.raises(KeyError, match=msg):
             s.astype(dt5)
 
     def test_astype_categories_deprecation(self):
@@ -288,7 +291,10 @@ class TestSeriesDtypes(object):
         expected = s
         tm.assert_series_equal(s.astype('category'), expected)
         tm.assert_series_equal(s.astype(CategoricalDtype()), expected)
-        pytest.raises(ValueError, lambda: s.astype('float64'))
+        msg = (r"could not convert string to float: '(0 - 499|9500 - 9999)'|"
+               r"invalid literal for float\(\): (0 - 499|9500 - 9999)")
+        with pytest.raises(ValueError, match=msg):
+            s.astype('float64')
 
         cat = Series(Categorical(['a', 'b', 'b', 'a', 'a', 'c', 'c', 'c']))
         exp = Series(['a', 'b', 'b', 'a', 'a', 'c', 'c', 'c'])
@@ -324,9 +330,12 @@ class TestSeriesDtypes(object):
             tm.assert_series_equal(result, s, check_categorical=False)
 
         # invalid conversion (these are NOT a dtype)
+        msg = (r"invalid type <class 'pandas\.core\.arrays\.categorical\."
+               "Categorical'> for astype")
         for invalid in [lambda x: x.astype(Categorical),
                         lambda x: x.astype('object').astype(Categorical)]:
-            pytest.raises(TypeError, lambda: invalid(s))
+            with pytest.raises(TypeError, match=msg):
+                invalid(s)
 
     @pytest.mark.parametrize('name', [None, 'foo'])
     @pytest.mark.parametrize('dtype_ordered', [True, False])
@@ -387,11 +396,14 @@ class TestSeriesDtypes(object):
         s = Series(['a', 'b'])
         type_ = CategoricalDtype(['a', 'b'])
 
-        with pytest.raises(TypeError):
+        msg = (r"Cannot specify a CategoricalDtype and also `categories` or"
+               r" `ordered`\. Use `dtype=CategoricalDtype\(categories,"
+               r" ordered\)` instead\.")
+        with pytest.raises(TypeError, match=msg):
             s.astype(type_, ordered=True)
-        with pytest.raises(TypeError):
+        with pytest.raises(TypeError, match=msg):
             s.astype(type_, categories=['a', 'b'])
-        with pytest.raises(TypeError):
+        with pytest.raises(TypeError, match=msg):
             s.astype(type_, categories=['a', 'b'], ordered=False)
 
     @pytest.mark.parametrize("dtype", [
@@ -435,7 +447,9 @@ class TestSeriesDtypes(object):
         # see gh-14878
         s = Series([1, 2, 3])
 
-        with pytest.raises(ValueError):
+        msg = (r"Expected value of kwarg 'errors' to be one of \['raise',"
+               r" 'ignore'\]\. Supplied value is 'False'")
+        with pytest.raises(ValueError, match=msg):
             s.astype(np.float64, errors=False)
 
         s.astype(np.int8, errors='raise')

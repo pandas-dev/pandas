@@ -206,7 +206,9 @@ class TestSeriesRank(TestData):
     def test_rank_signature(self):
         s = Series([0, 1])
         s.rank(method='average')
-        pytest.raises(ValueError, s.rank, 'average')
+        msg = r"No axis named average for object type <(class|type) 'type'>"
+        with pytest.raises(ValueError, match=msg):
+            s.rank('average')
 
     @pytest.mark.parametrize('contents,dtype', [
         ([-np.inf, -50, -1, -1e-20, -1e-25, -1e-50, 0, 1e-40, 1e-20, 1e-10,
