@@ -611,20 +611,15 @@ def test_to_html_render_links(render_links, expected, datapath):
     assert result == expected
 
 
+@pytest.mark.parametrize('method,expected', [
+    ('to_html', lambda x:lorem_ipsum),
+    ('_repr_html_', lambda x:lorem_ipsum[:x - 4] + '...')  # regression case
+])
 @pytest.mark.parametrize('max_colwidth', [10, 20, 50, 100])
-def test_display_max_colwidth(max_colwidth):
+def test_ignore_display_max_colwidth(method, expected, max_colwidth):
     # see gh-17004
     df = DataFrame([lorem_ipsum])
     with pd.option_context('display.max_colwidth', max_colwidth):
-        result = df._repr_html_()
-    expected = lorem_ipsum[:max_colwidth - 4] + '...'
+        result = getattr(df, method)()
+    expected = expected(max_colwidth)
     assert expected in result
-
-
-@pytest.mark.parametrize('max_colwidth', [10, 20, 50, 100])
-def test_ignore_display_max_colwidth(max_colwidth):
-    # see gh-17004
-    df = DataFrame([lorem_ipsum])
-    with pd.option_context('display.max_colwidth', max_colwidth):
-        result = df.to_html()
-    assert lorem_ipsum in result
