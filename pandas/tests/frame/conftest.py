@@ -101,23 +101,6 @@ def mixed_int_frame():
 
 
 @pytest.fixture
-def timezone_frame():
-    """
-    Fixture for DataFrame of date_range Series with different time zones
-
-    Columns are ['A', 'B', 'C']; some entries are missing
-    """
-    df = DataFrame({'A': date_range('20130101', periods=3),
-                    'B': date_range('20130101', periods=3,
-                                    tz='US/Eastern'),
-                    'C': date_range('20130101', periods=3,
-                                    tz='CET')})
-    df.iloc[1, 1] = NaT
-    df.iloc[1, 2] = NaT
-    return df
-
-
-@pytest.fixture
 def empty_frame():
     """
     Fixture for empty DataFrame

@@ -33,7 +33,8 @@ from pandas.core.dtypes.missing import array_equivalent
 import pandas as pd
 from pandas import (
     Categorical, CategoricalIndex, DataFrame, DatetimeIndex, Index,
-    IntervalIndex, MultiIndex, Panel, RangeIndex, Series, bdate_range)
+    IntervalIndex, MultiIndex, NaT, Panel, RangeIndex, Series, bdate_range,
+    date_range)
 from pandas.core.algorithms import take_1d
 from pandas.core.arrays import (
     DatetimeArray, ExtensionArray, IntervalArray, PeriodArray, TimedeltaArray,
