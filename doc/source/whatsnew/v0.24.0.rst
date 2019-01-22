@@ -1782,8 +1782,7 @@ Groupby/Resample/Rolling
 - Bug in :meth:`DataFrame.groupby` did not respect the ``observed`` argument when selecting a column and instead always used ``observed=False`` (:issue:`23970`)
 - Bug in :func:`pandas.core.groupby.SeriesGroupBy.pct_change` or :func:`pandas.core.groupby.DataFrameGroupBy.pct_change` would previously work across groups when calculating the percent change, where it now correctly works per group (:issue:`21200`, :issue:`21235`).
 - Bug preventing hash table creation with very large number (2^32) of rows (:issue:`22805`)
-- Bug in groupby which casues ``ValueError`` if ``observed=True`` and ``nan`` is present in group column (:issue:`22805`).
-- Bug in groupby which casues wrong grouping of categorical if ``observed=True`` and ``nan`` is present in group column (:issue:`21151`).
+- Bug in groupby when grouping on categorical causes ``ValueError`` and incorrect grouping if ``observed=True`` and ``nan`` is present in categorical column (:issue:`24850`, :issue:`21151`).
 
 Reshaping
 ^^^^^^^^^
