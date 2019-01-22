@@ -278,7 +278,7 @@ class TestSparseDataFrame(SharedWithSparse):
     def test_nan_data_with_int_dtype_raises_error(self):
         sdf = pd.SparseDataFrame([[np.nan, np.nan], [np.nan, np.nan]],
                                  columns=list('ab'), index=range(2))
-        msg = "Cannot convert non-finite values (NA or inf) to integer"
+        msg = "Cannot convert non-finite values"
         with pytest.raises(ValueError, match=msg):
             pd.SparseDataFrame(sdf, dtype=np.int64)
 
