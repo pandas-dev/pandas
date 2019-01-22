@@ -1104,11 +1104,8 @@ class IntervalIndex(IntervalMixin, Index):
                        'objects that have compatible dtypes')
                 raise TypeError(msg.format(op=op_name))
 
-            if op_name == 'difference':
-                result = getattr(self._multiindex, op_name)(other._multiindex,
-                                                            sort)
-            else:
-                result = getattr(self._multiindex, op_name)(other._multiindex)
+            result = getattr(self._multiindex, op_name)(other._multiindex,
+                                                        sort=sort)
             result_name = get_op_result_name(self, other)
 
             # GH 19101: ensure empty results have correct dtype
