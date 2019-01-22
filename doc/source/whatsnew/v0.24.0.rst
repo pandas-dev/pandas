@@ -1693,7 +1693,7 @@ Missing
 - :func:`Series.isin` now treats all NaN-floats as equal also for ``np.object``-dtype. This behavior is consistent with the behavior for float64 (:issue:`22119`)
 - :func:`unique` no longer mangles NaN-floats and the ``NaT``-object for ``np.object``-dtype, i.e. ``NaT`` is no longer coerced to a NaN-value and is treated as a different entity. (:issue:`22295`)
 - :class:`DataFrame` and :class:`Series` now properly handle numpy masked arrays with hardened masks. Previously, constructing a DataFrame or Series from a masked array with a hard mask would create a pandas object containing the underlying value, rather than the expected NaN. (:issue:`24574`)
-- Bug in :class:`DataFrame` constructor where ``dtype`` argument was not honored when handling a numpy masked record array. (:issue:`24874`)
+- Bug in :class:`DataFrame` constructor where ``dtype`` argument was not honored when handling numpy masked record arrays. (:issue:`24874`)
 
 MultiIndex
 ^^^^^^^^^^
