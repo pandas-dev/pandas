@@ -58,16 +58,6 @@ def int_frame():
 
 
 @pytest.fixture
-def datetime_frame():
-    """
-    Fixture for DataFrame of floats with DatetimeIndex
-
-    Columns are ['A', 'B', 'C', 'D']
-    """
-    return DataFrame(tm.getTimeSeriesData())
-
-
-@pytest.fixture
 def float_string_frame():
     """
     Fixture for DataFrame of floats and strings with index of unique strings

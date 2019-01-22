@@ -381,7 +381,8 @@ class TestDataFrameAnalytics():
                              index=df.columns, columns=df.columns)
         tm.assert_frame_equal(result, expected)
 
-    def test_corrwith(self, datetime_frame):
+    def test_corrwith(self):
+        datetime_frame = DataFrame(tm.getTimeSeriesData())
         a = datetime_frame
         noise = Series(np.random.randn(len(a)), index=a.index)
 
@@ -431,7 +432,9 @@ class TestDataFrameAnalytics():
         expected = df1.loc[:, cols].corrwith(df2.loc[:, cols], axis=1)
         tm.assert_series_equal(result, expected)
 
-    def test_corrwith_series(self, datetime_frame):
+    def test_corrwith_series(self):
+        datetime_frame = DataFrame(tm.getTimeSeriesData())
+
         result = datetime_frame.corrwith(datetime_frame['A'])
         expected = datetime_frame.apply(datetime_frame['A'].corr)
 
@@ -821,7 +824,9 @@ class TestDataFrameAnalytics():
         assert_stat_op_calc('min', np.min, int_frame)
         assert_stat_op_api('min', float_frame, float_string_frame)
 
-    def test_cummin(self, datetime_frame):
+    def test_cummin(self):
+        datetime_frame = DataFrame(tm.getTimeSeriesData())
+
         datetime_frame.loc[5:10, 0] = np.nan
         datetime_frame.loc[10:15, 1] = np.nan
         datetime_frame.loc[15:, 2] = np.nan
@@ -844,7 +849,9 @@ class TestDataFrameAnalytics():
         cummin_xs = datetime_frame.cummin(axis=1)
         assert np.shape(cummin_xs) == np.shape(datetime_frame)
 
-    def test_cummax(self, datetime_frame):
+    def test_cummax(self):
+        datetime_frame = DataFrame(tm.getTimeSeriesData())
+
         datetime_frame.loc[5:10, 0] = np.nan
         datetime_frame.loc[10:15, 1] = np.nan
         datetime_frame.loc[15:, 2] = np.nan
@@ -881,8 +888,10 @@ class TestDataFrameAnalytics():
         assert_stat_op_calc('mad', f, float_frame_with_na)
         assert_stat_op_api('mad', float_frame, float_string_frame)
 
-    def test_var_std(self, float_frame_with_na, datetime_frame, float_frame,
+    def test_var_std(self, float_frame_with_na, float_frame,
                      float_string_frame):
+        datetime_frame = DataFrame(tm.getTimeSeriesData())
+
         alt = lambda x: np.var(x, ddof=1)
         assert_stat_op_calc('var', alt, float_frame_with_na)
         assert_stat_op_api('var', float_frame, float_string_frame)
@@ -948,7 +957,9 @@ class TestDataFrameAnalytics():
             result = getattr(df, op)()
             assert len(result) == 2
 
-    def test_cumsum(self, datetime_frame):
+    def test_cumsum(self):
+        datetime_frame = DataFrame(tm.getTimeSeriesData())
+
         datetime_frame.loc[5:10, 0] = np.nan
         datetime_frame.loc[10:15, 1] = np.nan
         datetime_frame.loc[15:, 2] = np.nan
@@ -971,7 +982,9 @@ class TestDataFrameAnalytics():
         cumsum_xs = datetime_frame.cumsum(axis=1)
         assert np.shape(cumsum_xs) == np.shape(datetime_frame)
 
-    def test_cumprod(self, datetime_frame):
+    def test_cumprod(self):
+        datetime_frame = DataFrame(tm.getTimeSeriesData())
+
         datetime_frame.loc[5:10, 0] = np.nan
         datetime_frame.loc[10:15, 1] = np.nan
         datetime_frame.loc[15:, 2] = np.nan
@@ -1000,8 +1013,9 @@ class TestDataFrameAnalytics():
         df.cumprod(0)
         df.cumprod(1)
 
-    def test_sem(self, float_frame_with_na, datetime_frame,
-                 float_frame, float_string_frame):
+    def test_sem(self, float_frame_with_na, float_frame, float_string_frame):
+        datetime_frame = DataFrame(tm.getTimeSeriesData())
+
         alt = lambda x: np.std(x, ddof=1) / np.sqrt(len(x))
         assert_stat_op_calc('sem', alt, float_frame_with_na)
         assert_stat_op_api('sem', float_frame, float_string_frame)
