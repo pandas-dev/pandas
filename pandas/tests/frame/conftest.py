@@ -31,19 +31,6 @@ def bool_frame_with_na():
 
 
 @pytest.fixture
-def int_frame():
-    """
-    Fixture for DataFrame of ints with index of unique strings
-
-    Columns are ['A', 'B', 'C', 'D']
-    """
-    df = DataFrame({k: v.astype(int)
-                   for k, v in compat.iteritems(tm.getSeriesData())})
-    # force these all to int64 to avoid platform testing issues
-    return DataFrame({c: s for c, s in compat.iteritems(df)}, dtype=np.int64)
-
-
-@pytest.fixture
 def empty_frame():
     """
     Fixture for empty DataFrame

@@ -345,9 +345,10 @@ class TestFrameFlexArithmetic(object):
         _check_mixed_float(result, dtype=dict(C=None))
 
     @pytest.mark.parametrize('op', ['__add__', '__sub__', '__mul__'])
-    def test_arith_flex_frame_mixed(self, op, int_frame):
+    def test_arith_flex_frame_mixed(self, op):
         f = getattr(operator, op)
 
+        int_frame = tm.get_int_frame()
         mixed_int_frame = tm.get_mixed_int_frame()
         mixed_float_frame = tm.get_mixed_float_frame()
 

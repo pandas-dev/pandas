@@ -834,9 +834,10 @@ class TestDataFrameAnalytics():
                             check_dates=True)
         assert_stat_op_api('median', float_frame, float_string_frame)
 
-    def test_min(self, int_frame, float_frame):
+    def test_min(self, float_frame):
         float_frame_with_na = tm.get_float_frame_with_na()
         float_string_frame = tm.get_float_string_frame()
+        int_frame = tm.get_int_frame()
 
         with warnings.catch_warnings(record=True):
             warnings.simplefilter("ignore", RuntimeWarning)
@@ -895,9 +896,10 @@ class TestDataFrameAnalytics():
         cummax_xs = datetime_frame.cummax(axis=1)
         assert np.shape(cummax_xs) == np.shape(datetime_frame)
 
-    def test_max(self, int_frame, float_frame):
+    def test_max(self, float_frame):
         float_frame_with_na = tm.get_float_frame_with_na()
         float_string_frame = tm.get_float_string_frame()
+        int_frame = tm.get_int_frame()
 
         with warnings.catch_warnings(record=True):
             warnings.simplefilter("ignore", RuntimeWarning)
@@ -1359,8 +1361,9 @@ class TestDataFrameAnalytics():
 
     # TODO: Ensure warning isn't emitted in the first place
     @pytest.mark.filterwarnings("ignore:All-NaN:RuntimeWarning")
-    def test_median_corner(self, int_frame, float_frame):
+    def test_median_corner(self, float_frame):
         float_string_frame = tm.get_float_string_frame()
+        int_frame = tm.get_int_frame()
 
         def wrapper(x):
             if isna(x).any():
@@ -1395,8 +1398,10 @@ class TestDataFrameAnalytics():
 
     # Index of max / min
 
-    def test_idxmin(self, float_frame, int_frame):
+    def test_idxmin(self, float_frame):
+        int_frame = tm.get_int_frame()
         frame = float_frame
+
         frame.loc[5:10] = np.nan
         frame.loc[15:20, -2:] = np.nan
         for skipna in [True, False]:
@@ -1409,8 +1414,10 @@ class TestDataFrameAnalytics():
 
         pytest.raises(ValueError, frame.idxmin, axis=2)
 
-    def test_idxmax(self, float_frame, int_frame):
+    def test_idxmax(self, float_frame):
+        int_frame = tm.get_int_frame()
         frame = float_frame
+
         frame.loc[5:10] = np.nan
         frame.loc[15:20, -2:] = np.nan
         for skipna in [True, False]:
