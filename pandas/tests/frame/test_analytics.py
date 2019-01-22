@@ -1969,10 +1969,10 @@ class TestDataFrameAnalytics():
         (0, [[2., 2., 3.], [4., 5., 6.], [7., 7., 7.]]),
         (1, [[2., 3., 4.], [4., 5., 6.], [5., 6., 7.]])
     ])
-    def test_clip_against_list_like(self, simple_frame,
-                                    inplace, lower, axis, res):
+    def test_clip_against_list_like(self, inplace, lower, axis, res):
         # GH 15390
-        original = simple_frame.copy(deep=True)
+
+        original = tm.get_simple_frame()
 
         result = original.clip(lower=lower, upper=[5, 6, 7],
                                axis=axis, inplace=inplace)

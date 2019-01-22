@@ -165,21 +165,6 @@ def datetime_series_short():
 
 
 @pytest.fixture
-def simple_frame():
-    """
-    Fixture for simple 3x3 DataFrame
-
-    Columns are ['one', 'two', 'three'], index is ['a', 'b', 'c'].
-    """
-    arr = np.array([[1., 2., 3.],
-                    [4., 5., 6.],
-                    [7., 8., 9.]])
-
-    return DataFrame(arr, columns=['one', 'two', 'three'],
-                     index=['a', 'b', 'c'])
-
-
-@pytest.fixture
 def frame_of_index_cols():
     """
     Fixture for DataFrame of columns that can be used for indexing

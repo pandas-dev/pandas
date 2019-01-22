@@ -402,8 +402,8 @@ class TestFrameFlexArithmetic(object):
         with pytest.raises(NotImplementedError, match='fill_value'):
             float_frame.add(float_frame.iloc[0], axis='index', fill_value=3)
 
-    def test_arith_flex_series(self, simple_frame):
-        df = simple_frame
+    def test_arith_flex_series(self):
+        df = tm.get_simple_frame()
 
         row = df.xs('a')
         col = df['two']
