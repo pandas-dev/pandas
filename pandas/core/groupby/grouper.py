@@ -299,6 +299,7 @@ class Grouping(object):
                 self._labels = self.grouper.codes
                 if observed:
                     codes = algorithms.unique1d(self.grouper.codes)
+                    codes = codes[codes != -1]
                 else:
                     codes = np.arange(len(categories))
 
@@ -464,8 +465,8 @@ def _get_grouper(obj, key=None, axis=0, level=None, sort=True,
                     raise ValueError('level name {} is not the name of the '
                                      'index'.format(level))
             elif level > 0 or level < -1:
-                raise ValueError('level > 0 or level < -1 only valid with '
-                                 ' MultiIndex')
+                raise ValueError(
+                    'level > 0 or level < -1 only valid with MultiIndex')
 
             # NOTE: `group_axis` and `group_axis.get_level_values(level)`
             # are same in this section.

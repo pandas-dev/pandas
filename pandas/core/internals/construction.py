@@ -93,7 +93,7 @@ def masked_rec_array_to_mgr(data, index, columns, dtype, copy):
     if columns is None:
         columns = arr_columns
 
-    mgr = arrays_to_mgr(arrays, arr_columns, index, columns)
+    mgr = arrays_to_mgr(arrays, arr_columns, index, columns, dtype)
 
     if copy:
         mgr = mgr.copy()

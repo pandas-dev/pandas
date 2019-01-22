@@ -438,7 +438,7 @@ class _GroupBy(PandasObject, SelectionMixin):
                     return [self.indices[name] for name in names]
                 except KeyError:
                     # turns out it wasn't a tuple
-                    msg = ("must supply a a same-length tuple to get_group"
+                    msg = ("must supply a same-length tuple to get_group"
                            " with multiple grouping keys")
                     raise ValueError(msg)
 

@@ -342,6 +342,15 @@ class ToDatetimeNONISO8601(object):
         to_datetime(self.diff_offset)
 
 
+class ToDatetimeFormatQuarters(object):
+
+    def setup(self):
+        self.s = Series(['2Q2005', '2Q05', '2005Q1', '05Q1'] * 10000)
+
+    def time_infer_quarter(self):
+        to_datetime(self.s)
+
+
 class ToDatetimeFormat(object):
 
     def setup(self):
