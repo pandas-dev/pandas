@@ -104,9 +104,10 @@ class TestDataFrameBlockInternals():
         values = float_frame[['A', 'B', 'C', 'D']].values
         assert values.dtype == np.float64
 
-    def test_values_lcd(self, mixed_float_frame):
+    def test_values_lcd(self):
 
         mixed_int_frame = tm.get_mixed_int_frame()
+        mixed_float_frame = tm.get_mixed_float_frame()
 
         # mixed lcd
         values = mixed_float_frame[['A', 'B', 'C', 'D']].values

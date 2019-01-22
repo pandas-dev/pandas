@@ -761,8 +761,9 @@ class TestDataFrameAnalytics():
         tm.assert_series_equal(df.nunique(axis=1, dropna=False),
                                Series({0: 1, 1: 3, 2: 2}))
 
-    def test_sum(self, mixed_float_frame, float_frame, float_string_frame):
+    def test_sum(self, float_frame, float_string_frame):
         float_frame_with_na = tm.get_float_frame_with_na()
+        mixed_float_frame = tm.get_mixed_float_frame()
 
         assert_stat_op_api('sum', float_frame, float_string_frame,
                            has_numeric_only=True)

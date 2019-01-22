@@ -56,21 +56,6 @@ def float_string_frame():
 
 
 @pytest.fixture
-def mixed_float_frame():
-    """
-    Fixture for DataFrame of different float types with index of unique strings
-
-    Columns are ['A', 'B', 'C', 'D'].
-    """
-    df = DataFrame(tm.getSeriesData())
-    df.A = df.A.astype('float32')
-    df.B = df.B.astype('float32')
-    df.C = df.C.astype('float16')
-    df.D = df.D.astype('float64')
-    return df
-
-
-@pytest.fixture
 def empty_frame():
     """
     Fixture for empty DataFrame

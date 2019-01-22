@@ -322,10 +322,11 @@ class TestFrameFlexArithmetic(object):
              'B': ser * 2})
         tm.assert_frame_equal(result, expected)
 
-    def test_arith_flex_frame(self, all_arithmetic_operators, float_frame,
-                              mixed_float_frame):
+    def test_arith_flex_frame(self, all_arithmetic_operators, float_frame):
         # one instance of parametrized fixture
         op = all_arithmetic_operators
+
+        mixed_float_frame = tm.get_mixed_float_frame()
 
         def f(x, y):
             # r-versions not in operator-stdlib; get op without "r" and invert
@@ -344,10 +345,11 @@ class TestFrameFlexArithmetic(object):
         _check_mixed_float(result, dtype=dict(C=None))
 
     @pytest.mark.parametrize('op', ['__add__', '__sub__', '__mul__'])
-    def test_arith_flex_frame_mixed(self, op, int_frame, mixed_float_frame):
+    def test_arith_flex_frame_mixed(self, op, int_frame):
         f = getattr(operator, op)
 
         mixed_int_frame = tm.get_mixed_int_frame()
+        mixed_float_frame = tm.get_mixed_float_frame()
 
         # vs mix int
         result = getattr(mixed_int_frame, op)(2 + mixed_int_frame)
