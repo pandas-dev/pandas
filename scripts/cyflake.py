@@ -98,10 +98,8 @@ def call_flake8(temp_path, orig_path):
     stdout, stderr = p.communicate()
 
     # Edit the messages to include the original path
-    temp_path = temp_path.encode('utf-8')
-    orig_path = orig_path.encode('utf-8')
-    stdout = stdout.replace(temp_path, orig_path)
-    stderr = stderr.replace(temp_path, orig_path)
+    stdout = stdout.decode('utf-8').replace(temp_path, orig_path)
+    stderr = stderr.decode('utf-8').replace(temp_path, orig_path)
 
     # TODO: better to just print?
     sys.stdout.write(stdout)
