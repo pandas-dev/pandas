@@ -1699,7 +1699,7 @@ class GroupBy(_GroupBy):
         Parameters
         ----------
         q : float or array-like, default 0.5 (50% quantile)
-            0 <= q <= 1, the quantile(s) to compute
+            Value(s) between 0 and 1 providing the quantile(s) to compute.
         interpolation : {'linear', 'lower', 'higher', 'midpoint', 'nearest'}
             Method to use when the desired quantile falls between two points.
 
@@ -1710,17 +1710,21 @@ class GroupBy(_GroupBy):
 
         See Also
         --------
-        Series.quantile : Similar method for Series
-        DataFrame.quantile : Similar method for DataFrame
-        numpy.percentile : NumPy method to compute qth percentile
+        Series.quantile : Similar method for Series.
+        DataFrame.quantile : Similar method for DataFrame.
+        numpy.percentile : NumPy method to compute qth percentile.
 
         Examples
         --------
-        >>> df = pd.DataFrame(
-        ...    [['foo'] * 5 + ['bar'] * 5,
-        ...     [1, 2, 3, 4, 5, 5, 4, 3, 2, 1]],
-        ...    columns=['key', 'val'])
-        >>> df
+        >>> df = pd.DataFrame([
+        ...     ['a', 1], ['a', 2], ['a', 3],
+        ...     ['b', 1], ['b', 3], ['b', 5]
+        ... ], columns=['key', 'val'])
+        >>> df.groupby('key').quantile()
+            val
+        key
+        a    2.0
+        b    3.0
         """
 
         def pre_processor(vals):
