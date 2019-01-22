@@ -2,8 +2,8 @@ import os
 import re
 import subprocess
 import sys
+import tempfile
 
-import pandas.util.testing as tm
 
 
 def check_file(path):
@@ -25,13 +25,34 @@ def check_file(path):
 
     fname = os.path.split(path)[1]
 
-    with tm.ensure_clean(fname) as temp_path:
+    with ensure_clean(fname) as temp_path:
         with open(temp_path, 'wb') as fd:
             fd.write(py_content.encode('utf-8'))
 
         rc = call_flake8(temp_path, path)
 
     return rc
+
+
+def ensure_clean(filename):
+    """
+    A poor-man's version of pandas.util.testing.ensure_clean
+    """
+    fd, filename = tempfile.mkstemp(suffix=filename)
+
+    try:
+        yield filename
+    finally:
+        try:
+            os.close(fd)
+        except Exception:
+            print("Couldn't close file descriptor: {fdesc} (file: {fname})"
+                  .format(fdesc=fd, fname=filename))
+        try:
+            if os.path.exists(filename):
+                os.remove(filename)
+        except Exception as e:
+            print("Exception on removing file: {error}".format(error=e))
 
 
 def clean_cy_content(content):
