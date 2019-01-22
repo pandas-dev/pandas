@@ -82,9 +82,9 @@ class MPLPlot(object):
     _default_rot = 0
     orientation = None
     _pop_attributes = ['label', 'style', 'logy', 'logx', 'loglog',
-                       'mark_right', 'stacked', 'sym']
+                       'mark_right', 'stacked']
     _attr_defaults = {'logy': False, 'logx': False, 'loglog': False,
-                      'mark_right': True, 'stacked': False, 'sym': False}
+                      'mark_right': True, 'stacked': False}
 
     def __init__(self, data, kind=None, by=None, subplots=False, sharex=None,
                  sharey=False, use_index=True,
@@ -308,16 +308,20 @@ class MPLPlot(object):
 
         axes = _flatten(axes)
 
-        if self.logx or self.loglog:
-            if self.sym:
-                [a.set_xscale('symlog') for a in axes]
-            else:
-                [a.set_xscale('log') for a in axes]
-        if self.logy or self.loglog:
-            if self.sym:
-                [a.set_yscale('symlog') for a in axes]
-            else:
-                [a.set_yscale('log') for a in axes]
+        valid_log = [False, True, 'sym']
+        for i in [self.logx, self.logy, self.loglog]:
+            if i not in valid_log:
+                raise ValueError("Wrong input for log option.")
+
+        if self.logx is True or self.loglog is True:
+            [a.set_xscale('log') for a in axes]
+        elif self.logx == 'sym' or self.loglog == 'sym':
+            [a.set_xscale('symlog') for a in axes]
+
+        if self.logy is True or self.loglog is True:
+            [a.set_yscale('log') for a in axes]
+        elif self.logy == 'sym' or self.loglog == 'sym':
+            [a.set_yscale('symlog') for a in axes]
 
         self.fig = fig
         self.axes = axes

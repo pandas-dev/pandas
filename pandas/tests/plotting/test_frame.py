@@ -231,20 +231,40 @@ class TestDataFramePlots(TestPlotBase):
     @pytest.mark.slow
     def test_logscales(self):
         df = DataFrame({'a': np.arange(100)}, index=np.arange(100))
+
         ax = df.plot(logy=True)
         self._check_ax_scales(ax, yaxis='log')
-        ax = df.plot(logy=True, sym=True)
+        assert ax.get_yscale() == 'log'
+
+        ax = df.plot(logy='sym')
         self._check_ax_scales(ax, yaxis='symlog')
+        assert ax.get_yscale() == 'symlog'
 
         ax = df.plot(logx=True)
         self._check_ax_scales(ax, xaxis='log')
-        ax = df.plot(logx=True, sym=True)
+        assert ax.get_xscale() == 'log'
+
+        ax = df.plot(logx='sym')
         self._check_ax_scales(ax, xaxis='symlog')
+        assert ax.get_xscale() == 'symlog'
 
         ax = df.plot(loglog=True)
         self._check_ax_scales(ax, xaxis='log', yaxis='log')
-        ax = df.plot(loglog=True, sym=True)
+        assert ax.get_xscale() == 'log'
+        assert ax.get_yscale() == 'log'
+
+        ax = df.plot(loglog='sym')
         self._check_ax_scales(ax, xaxis='symlog', yaxis='symlog')
+        assert ax.get_xscale() == 'symlog'
+        assert ax.get_yscale() == 'symlog'
+
+    @pytest.mark.parametrize("wrong_input", ["sm", "symlog"])
+    def test_invalid_logscale(self, wrong_input):
+        df = DataFrame({'a': np.arange(100)}, index=np.arange(100))
+
+        msg = "Wrong input for log option."
+        with pytest.raises(ValueError, match=msg):
+            df.plot(logy=wrong_input)
 
     @pytest.mark.slow
     def test_xcompat(self):
