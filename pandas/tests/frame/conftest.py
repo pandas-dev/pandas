@@ -109,14 +109,6 @@ def empty_frame():
 
 
 @pytest.fixture
-def datetime_series():
-    """
-    Fixture for Series of floats with DatetimeIndex
-    """
-    return tm.makeTimeSeries(nper=30)
-
-
-@pytest.fixture
 def frame_of_index_cols():
     """
     Fixture for DataFrame of columns that can be used for indexing
