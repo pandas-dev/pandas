@@ -107,13 +107,13 @@ def _compose2(f, g):
     return lambda *args, **kwargs: f(g(*args, **kwargs))
 
 
-def compose(*funcs):
+def _compose(*funcs):
     """Compose 2 or more callables"""
     assert len(funcs) > 1, 'At least 2 callables must be passed to compose'
     return reduce(_compose2, funcs)
 
 
-def _preparse(source, f=compose(_replace_locals, _replace_booleans,
+def _preparse(source, f=_compose(_replace_locals, _replace_booleans,
                                 _rewrite_assign)):
     """Compose a collection of tokenization functions
 
@@ -711,8 +711,8 @@ _numexpr_supported_calls = frozenset(_reductions + _mathops)
 class PandasExprVisitor(BaseExprVisitor):
 
     def __init__(self, env, engine, parser,
-                 preparser=partial(_preparse, f=compose(_replace_locals,
-                                                        _replace_booleans))):
+                 preparser=partial(_preparse, f=_compose(_replace_locals,
+                                                         _replace_booleans))):
         super(PandasExprVisitor, self).__init__(env, engine, parser, preparser)
 
 
