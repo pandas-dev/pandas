@@ -894,7 +894,7 @@ class TestDataFrameAnalytics():
         assert_stat_op_calc('max', np.max, int_frame)
         assert_stat_op_api('max', float_frame, float_string_frame)
 
-    def test_mad(self, float_frame_with_na, float_frame, float_string_frame):
+    def test_mad(self, float_frame, float_string_frame):
         float_frame_with_na = tm.get_float_frame_with_na()
 
         f = lambda x: np.abs(x - x.mean()).mean()
