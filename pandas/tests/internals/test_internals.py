@@ -1294,3 +1294,23 @@ def test_block_shape():
 
     assert (a._data.blocks[0].mgr_locs.indexer ==
             b._data.blocks[0].mgr_locs.indexer)
+
+
+def test_make_block_no_pandas_array():
+    # https://github.com/pandas-dev/pandas/pull/24866
+    arr = pd.array([1, 2])
+
+    # PandasArray, no dtype
+    result = make_block(arr, slice(len(arr)))
+    assert result.is_integer is True
+    assert result.is_extension is False
+
+    # PandasArray, PandasDtype
+    result = make_block(arr, slice(len(arr)), dtype=arr.dtype)
+    assert result.is_integer is True
+    assert result.is_extension is False
+
+    # ndarray, PandasDtype
+    result = make_block(arr.to_numpy(), slice(len(arr)), dtype=arr.dtype)
+    assert result.is_integer is True
+    assert result.is_extension is False

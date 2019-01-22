@@ -29,7 +29,7 @@ from pandas.core.dtypes.dtypes import (
     CategoricalDtype, ExtensionDtype, PandasExtensionDtype)
 from pandas.core.dtypes.generic import (
     ABCDataFrame, ABCDatetimeIndex, ABCExtensionArray, ABCIndexClass,
-    ABCSeries)
+    ABCPandasArray, ABCSeries)
 from pandas.core.dtypes.missing import (
     _isna_compat, array_equivalent, isna, notna)
 
@@ -592,8 +592,6 @@ class Block(PandasObject):
             return self.make_block(Categorical(self.values, dtype=dtype))
 
         dtype = pandas_dtype(dtype)
-        if isinstance(dtype, PandasDtype):
-            dtype = dtype.numpy_dtype
 
         # astype processing
         if is_dtype_equal(self.dtype, dtype):
@@ -3072,6 +3070,13 @@ def get_block_type(values, dtype=None):
 
 def make_block(values, placement, klass=None, ndim=None, dtype=None,
                fastpath=None):
+    # Ensure that we don't allow PandasArray / PandasDtype in internals.
+    # For now, blocks should be backed by ndarrays when possible.
+    if isinstance(values, ABCPandasArray):
+        values = values.to_numpy()
+    if isinstance(dtype, PandasDtype):
+        dtype = dtype.numpy_dtype
+
     if fastpath is not None:
         # GH#19265 pyarrow is passing this
         warnings.warn("fastpath argument is deprecated, will be removed "
