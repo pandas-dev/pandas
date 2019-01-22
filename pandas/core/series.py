@@ -1446,6 +1446,50 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
     def iteritems(self):
         """
         Lazily iterate over (index, value) tuples.
+
+        This method returns a zip of tuples (index, value). This is useful When
+        one want to create new series from the values of an old one. Be aware
+        that this might not the fastest way of creating new series.
+
+        Returns
+        -------
+        zip
+            Iterable tuples (index, value) of the Series.
+
+        See Also
+        --------
+        Series.apply : Invoke function on values of Series.
+        Series.map : Map values of Series according to input correspondence.
+        DataFrame.iteritems : Equivalent to Series.iteritems for DataFrame.
+
+        Examples
+        --------
+        >>> s = pd.Series(['A', 'B', 'C'])
+        >>> for index, value in s.iteritems():
+        ...     print("Index : {}, Value : {}".format(index, value))
+        Index : 0, Value : A
+        Index : 1, Value : B
+        Index : 2, Value : C
+
+        **Creation of another Series**
+
+        >>> s2 = pd.Series([])
+        >>> for index, value in s.iteritems():
+        ...     s2[index] = value + value
+        >>> s2
+        0    AA
+        1    BB
+        2    CC
+        dtype: object
+
+        **A faster way of creating the same Series**
+
+        >>> s3 = s + s
+        >>> s3
+        0    AA
+        1    BB
+        2    CC
+        dtype: object
         """
         return zip(iter(self.index), iter(self))
 
