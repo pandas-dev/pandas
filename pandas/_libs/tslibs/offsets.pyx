@@ -412,11 +412,7 @@ class _BaseOffset(object):
         if hasattr(other, "_typ"):
             return NotImplemented
         if util.is_array(other):
-            try:
-                return np.array([self * x for x in other])
-            except ValueError:
-                # raised in self._validate_n, re-raise as TypeError
-                raise TypeError
+            return np.array([self * x for x in other])
         return type(self)(n=other * self.n, normalize=self.normalize,
                           **self.kwds)
 
@@ -467,6 +463,9 @@ class _BaseOffset(object):
         TypeError if `int(n)` raises
         ValueError if n != int(n)
         """
+        if util.is_timedelta64_object(n):
+            raise TypeError('`n` argument must be an integer, '
+                            'got {ntype}'.format(ntype=type(n)))
         try:
             nint = int(n)
         except (ValueError, TypeError):

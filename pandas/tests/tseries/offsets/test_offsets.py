@@ -257,6 +257,15 @@ class TestCommon(Base):
         mul_offset = offset * 3
         assert mul_offset.n == 3
 
+    def test_offset_timedelta64_arg(self, offset_types):
+        # check that offset._validate_n raises TypeError on a timedelt64
+        #  object
+        off = self._get_offset(offset_types)
+
+        td64 = np.timedelta64(4567, 's')
+        with pytest.raises(TypeError, match="argument must be an integer"):
+            type(off)(n=td64, **td64.kwds)
+
     def test_offset_mul_ndarray(self, offset_types):
         off = self._get_offset(offset_types)
 
