@@ -3984,7 +3984,8 @@ class NDFrame(PandasObject, SelectionMixin):
              DataFrames, this option is only applied when sorting on a single
              column or label.
         na_position : {'first', 'last'}, default 'last'
-             Puts NaNs at the beginning if `first`; `last` puts NaNs at the end.
+             Puts NaNs at the beginning if `first`; `last` puts NaNs at the
+             end.
 
         Returns
         -------
