@@ -1,12 +1,16 @@
 # -*- coding: utf-8 -*-
+import cython
 
 
-cdef class _NDFrameIndexerBase:
+@cython.cclass
+class _NDFrameIndexerBase:
     """
     A base class for _NDFrameIndexer for fast instantiation and attribute
     access.
     """
-    cdef public object obj, name, _ndim
+    obj = cython.declare(object, visibility='public')
+    name = cython.declare(object, visibility='public')
+    _ndim = cython.declare(object, visibility='public')
 
     def __init__(self, name, obj):
         self.obj = obj

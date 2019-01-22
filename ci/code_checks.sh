@@ -69,6 +69,10 @@ if [[ -z "$CHECK" || "$CHECK" == "lint" ]]; then
     flake8 --format="$FLAKE8_FORMAT" pandas/_libs --filename=*.pxi.in,*.pxd --select=E501,E302,E203,E111,E114,E221,E303,E231,E126,F403
     RET=$(($RET + $?)) ; echo $MSG "DONE"
 
+    MSG='Linting python-compatible .pyx files' ; echo $MSG
+    python $BASE_DIR/scripts/cyflake.py pandas/_libs/indexing.pyx
+    RET=$(($RET + $?)) ; echo $MSG "DONE"
+
     echo "flake8-rst --version"
     flake8-rst --version
 
