@@ -299,6 +299,7 @@ class Grouping(object):
                 self._labels = self.grouper.codes
                 if observed:
                     codes = algorithms.unique1d(self.grouper.codes)
+                    codes = codes[codes != -1]
                 else:
                     codes = np.arange(len(categories))
 
