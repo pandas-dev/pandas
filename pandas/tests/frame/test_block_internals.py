@@ -214,8 +214,9 @@ class TestDataFrameBlockInternals():
                                       None], np.object_), name='A')
         assert_series_equal(result, expected)
 
-    def test_construction_with_mixed(self, float_string_frame):
+    def test_construction_with_mixed(self):
         # test construction edge cases with mixed types
+        float_string_frame = tm.get_float_string_frame()
 
         # f7u12, this does not work without extensive workaround
         data = [[datetime(2001, 1, 5), np.nan, datetime(2001, 1, 2)],
@@ -341,7 +342,9 @@ class TestDataFrameBlockInternals():
         # make sure we did change the original DataFrame
         assert _df[column].equals(df[column])
 
-    def test_copy(self, float_frame, float_string_frame):
+    def test_copy(self, float_frame):
+        float_string_frame = tm.get_float_string_frame()
+
         cop = float_frame.copy()
         cop['E'] = cop['A']
         assert 'E' not in float_frame
@@ -350,8 +353,9 @@ class TestDataFrameBlockInternals():
         copy = float_string_frame.copy()
         assert copy._data is not float_string_frame._data
 
-    def test_pickle(self, float_string_frame, empty_frame):
+    def test_pickle(self, empty_frame):
         timezone_frame = tm.get_timezone_frame()
+        float_string_frame = tm.get_float_string_frame()
 
         unpickled = tm.round_trip_pickle(float_string_frame)
         assert_frame_equal(float_string_frame, unpickled)
@@ -399,7 +403,9 @@ starting,ending,measure
             df.starting), ser_starting.index)
         tm.assert_index_equal(pd.DatetimeIndex(df.ending), ser_ending.index)
 
-    def test_is_mixed_type(self, float_frame, float_string_frame):
+    def test_is_mixed_type(self, float_frame):
+        float_string_frame = tm.get_float_string_frame()
+
         assert not float_frame._is_mixed_type
         assert float_string_frame._is_mixed_type
 
@@ -459,7 +465,8 @@ starting,ending,measure
         expected = df.loc[:, ['A', 'C']]
         assert_frame_equal(result, expected)
 
-    def test_convert_objects(self, float_string_frame):
+    def test_convert_objects(self):
+        float_string_frame = tm.get_float_string_frame()
 
         oops = float_string_frame.T.T
         converted = oops._convert(datetime=True)

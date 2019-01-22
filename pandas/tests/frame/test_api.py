@@ -171,7 +171,9 @@ class SharedWithSparse(object):
 
         pytest.raises(ValueError, float_frame._get_agg_axis, 2)
 
-    def test_nonzero(self, float_frame, float_string_frame, empty_frame):
+    def test_nonzero(self, float_frame, empty_frame):
+        float_string_frame = tm.get_float_string_frame()
+
         assert empty_frame.empty
 
         assert not float_frame.empty
@@ -201,7 +203,9 @@ class SharedWithSparse(object):
     def test_iter(self, float_frame):
         assert tm.equalContents(list(float_frame), float_frame.columns)
 
-    def test_iterrows(self, float_frame, float_string_frame):
+    def test_iterrows(self, float_frame):
+        float_string_frame = tm.get_float_string_frame()
+
         for k, v in float_frame.iterrows():
             exp = float_frame.loc[k]
             self._assert_series_equal(v, exp)
@@ -288,7 +292,9 @@ class SharedWithSparse(object):
     def test_len(self, float_frame):
         assert len(float_frame) == len(float_frame.index)
 
-    def test_values(self, float_frame, float_string_frame):
+    def test_values(self, float_frame):
+        float_string_frame = tm.get_float_string_frame()
+
         frame = float_frame
         arr = frame.values
 
@@ -376,22 +382,30 @@ class SharedWithSparse(object):
         assert pydoc.getdoc(DataFrame.index)
         assert pydoc.getdoc(DataFrame.columns)
 
-    def test_more_values(self, float_string_frame):
+    def test_more_values(self):
+        float_string_frame = tm.get_float_string_frame()
+
         values = float_string_frame.values
         assert values.shape[1] == len(float_string_frame.columns)
 
-    def test_repr_with_mi_nat(self, float_string_frame):
+    def test_repr_with_mi_nat(self):
+        float_string_frame = tm.get_float_string_frame()
+
         df = self.klass({'X': [1, 2]},
                         index=[[pd.NaT, pd.Timestamp('20130101')], ['a', 'b']])
         result = repr(df)
         expected = '              X\nNaT        a  1\n2013-01-01 b  2'
         assert result == expected
 
-    def test_iteritems_names(self, float_string_frame):
+    def test_iteritems_names(self):
+        float_string_frame = tm.get_float_string_frame()
+
         for k, v in compat.iteritems(float_string_frame):
             assert v.name == k
 
-    def test_series_put_names(self, float_string_frame):
+    def test_series_put_names(self):
+        float_string_frame = tm.get_float_string_frame()
+
         series = float_string_frame._series
         for k, v in compat.iteritems(series):
             assert v.name == k

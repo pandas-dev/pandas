@@ -21,8 +21,8 @@ import pandas.util.testing as tm
 
 class TestDataFrameAlterAxes():
 
-    def test_set_index_directly(self, float_string_frame):
-        df = float_string_frame
+    def test_set_index_directly(self):
+        df = tm.get_float_string_frame()
         idx = Index(np.arange(len(df))[::-1])
 
         df.index = idx
@@ -30,8 +30,8 @@ class TestDataFrameAlterAxes():
         with pytest.raises(ValueError, match='Length mismatch'):
             df.index = idx[::2]
 
-    def test_set_index(self, float_string_frame):
-        df = float_string_frame
+    def test_set_index(self):
+        df = tm.get_float_string_frame()
         idx = Index(np.arange(len(df))[::-1])
 
         df = df.set_index(idx)
@@ -435,7 +435,9 @@ class TestDataFrameAlterAxes():
                                                 names=['a', 'x'])
         tm.assert_frame_equal(result, expected)
 
-    def test_set_columns(self, float_string_frame):
+    def test_set_columns(self):
+        float_string_frame = tm.get_float_string_frame()
+
         cols = Index(np.arange(len(float_string_frame.columns)))
         float_string_frame.columns = cols
         with pytest.raises(ValueError, match='Length mismatch'):
@@ -1010,7 +1012,8 @@ class TestDataFrameAlterAxes():
         # Check equality
         tm.assert_index_equal(df.set_index([df.index, idx2]).index, mi2)
 
-    def test_rename_objects(self, float_string_frame):
+    def test_rename_objects(self):
+        float_string_frame = tm.get_float_string_frame()
         renamed = float_string_frame.rename(columns=str.upper)
 
         assert 'FOO' in renamed

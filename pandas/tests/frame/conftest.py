@@ -44,18 +44,6 @@ def int_frame():
 
 
 @pytest.fixture
-def float_string_frame():
-    """
-    Fixture for DataFrame of floats and strings with index of unique strings
-
-    Columns are ['A', 'B', 'C', 'D', 'foo'].
-    """
-    df = DataFrame(tm.getSeriesData())
-    df['foo'] = 'bar'
-    return df
-
-
-@pytest.fixture
 def empty_frame():
     """
     Fixture for empty DataFrame
