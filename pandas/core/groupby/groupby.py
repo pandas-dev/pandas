@@ -2038,6 +2038,8 @@ class GroupBy(_GroupBy):
 
             result = np.zeros(result_sz, dtype=cython_dtype)
             func = partial(base_func, result, labels)
+            inferences = None
+
             if needs_values:
                 vals = obj.values
                 if pre_processing:
@@ -2057,8 +2059,6 @@ class GroupBy(_GroupBy):
                 result = algorithms.take_nd(obj.values, result)
 
             if post_processing:
-                # TODO: kludgy and will fail if no pre_processor as inferences
-                # will be undefined.
                 result = post_processing(result, inferences)
 
             output[name] = result
