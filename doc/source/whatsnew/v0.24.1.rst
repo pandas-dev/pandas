@@ -41,7 +41,7 @@ Bug Fixes
 
 **I/O**
 
-- Bug in :func:`DataFrame.to_html()` where values were truncated using display options instead of displaying the full content (:issue:`17004`)
+- Bug in :func:`DataFrame.to_html()` where values were truncated using display options instead of outputting the full content (:issue:`17004`)
 -
 -
 
