@@ -28,7 +28,7 @@ matplotlib>=2.0.0
 nbsphinx
 numexpr>=2.6.8
 openpyxl
-pyarrow>=0.7.0
+pyarrow>=0.9.0
 tables>=3.4.2
 pytest-cov
 pytest-xdist

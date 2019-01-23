@@ -2,6 +2,7 @@
 # Arithmetc tests for DataFrame/Series/Index/Array classes that should
 # behave identically.
 # Specifically for object dtype
+from decimal import Decimal
 import operator
 
 import numpy as np
@@ -224,3 +225,90 @@ class TestArithmetic(object):
                         name='xxx')
         tm.assert_series_equal(ser + pd.Timedelta('00:30:00'), exp)
         tm.assert_series_equal(pd.Timedelta('00:30:00') + ser, exp)
+
+    # TODO: cleanup & parametrize over box
+    def test_iadd_preserves_name(self):
+        # GH#17067, GH#19723 __iadd__ and __isub__ should preserve index name
+        ser = pd.Series([1, 2, 3])
+        ser.index.name = 'foo'
+
+        ser.index += 1
+        assert ser.index.name == "foo"
+
+        ser.index -= 1
+        assert ser.index.name == "foo"
+
+    def test_add_string(self):
+        # from bug report
+        index = pd.Index(['a', 'b', 'c'])
+        index2 = index + 'foo'
+
+        assert 'a' not in index2
+        assert 'afoo' in index2
+
+    def test_iadd_string(self):
+        index = pd.Index(['a', 'b', 'c'])
+        # doesn't fail test unless there is a check before `+=`
+        assert 'a' in index
+
+        index += '_x'
+        assert 'a_x' in index
+
+    def test_add(self):
+        index = tm.makeStringIndex(100)
+        expected = pd.Index(index.values * 2)
+        tm.assert_index_equal(index + index, expected)
+        tm.assert_index_equal(index + index.tolist(), expected)
+        tm.assert_index_equal(index.tolist() + index, expected)
+
+        # test add and radd
+        index = pd.Index(list('abc'))
+        expected = pd.Index(['a1', 'b1', 'c1'])
+        tm.assert_index_equal(index + '1', expected)
+        expected = pd.Index(['1a', '1b', '1c'])
+        tm.assert_index_equal('1' + index, expected)
+
+    def test_sub_fail(self):
+        index = tm.makeStringIndex(100)
+        with pytest.raises(TypeError):
+            index - 'a'
+        with pytest.raises(TypeError):
+            index - index
+        with pytest.raises(TypeError):
+            index - index.tolist()
+        with pytest.raises(TypeError):
+            index.tolist() - index
+
+    def test_sub_object(self):
+        # GH#19369
+        index = pd.Index([Decimal(1), Decimal(2)])
+        expected = pd.Index([Decimal(0), Decimal(1)])
+
+        result = index - Decimal(1)
+        tm.assert_index_equal(result, expected)
+
+        result = index - pd.Index([Decimal(1), Decimal(1)])
+        tm.assert_index_equal(result, expected)
+
+        with pytest.raises(TypeError):
+            index - 'foo'
+
+        with pytest.raises(TypeError):
+            index - np.array([2, 'foo'])
+
+    def test_rsub_object(self):
+        # GH#19369
+        index = pd.Index([Decimal(1), Decimal(2)])
+        expected = pd.Index([Decimal(1), Decimal(0)])
+
+        result = Decimal(2) - index
+        tm.assert_index_equal(result, expected)
+
+        result = np.array([Decimal(2), Decimal(2)]) - index
+        tm.assert_index_equal(result, expected)
+
+        with pytest.raises(TypeError):
+            'foo' - index
+
+        with pytest.raises(TypeError):
+            np.array([True, pd.Timestamp.now()]) - index
