@@ -48,8 +48,11 @@ def test_loc_getitem_not_monotonic(test_data):
 
     ts2 = test_data.ts[::2][[1, 2, 0]]
 
-    pytest.raises(KeyError, ts2.loc.__getitem__, slice(d1, d2))
-    pytest.raises(KeyError, ts2.loc.__setitem__, slice(d1, d2), 0)
+    msg = r"Timestamp\('2000-01-10 00:00:00'\)"
+    with pytest.raises(KeyError, match=msg):
+        ts2.loc[d1:d2]
+    with pytest.raises(KeyError, match=msg):
+        ts2.loc[d1:d2] = 0
 
 
 def test_loc_getitem_setitem_integer_slice_keyerrors():
@@ -74,8 +77,10 @@ def test_loc_getitem_setitem_integer_slice_keyerrors():
 
     # non-monotonic, raise KeyError
     s2 = s.iloc[lrange(5) + lrange(5, 10)[::-1]]
-    pytest.raises(KeyError, s2.loc.__getitem__, slice(3, 11))
-    pytest.raises(KeyError, s2.loc.__setitem__, slice(3, 11), 0)
+    with pytest.raises(KeyError, match=r"^3L?$"):
+        s2.loc[3:11]
+    with pytest.raises(KeyError, match=r"^3L?$"):
+        s2.loc[3:11] = 0
 
 
 def test_loc_getitem_iterator(test_data):
@@ -97,8 +102,9 @@ def test_loc_setitem_boolean(test_data):
 def test_loc_setitem_corner(test_data):
     inds = list(test_data.series.index[[5, 8, 12]])
     test_data.series.loc[inds] = 5
-    pytest.raises(Exception, test_data.series.loc.__setitem__,
-                  inds + ['foo'], 5)
+    msg = r"\['foo'\] not in index"
+    with pytest.raises(KeyError, match=msg):
+        test_data.series.loc[inds + ['foo']] = 5
 
 
 def test_basic_setitem_with_labels(test_data):
@@ -135,8 +141,11 @@ def test_basic_setitem_with_labels(test_data):
 
     inds_notfound = [0, 4, 5, 6]
     arr_inds_notfound = np.array([0, 4, 5, 6])
-    pytest.raises(Exception, s.__setitem__, inds_notfound, 0)
-    pytest.raises(Exception, s.__setitem__, arr_inds_notfound, 0)
+    msg = r"\[5\] not contained in the index"
+    with pytest.raises(ValueError, match=msg):
+        s[inds_notfound] = 0
+    with pytest.raises(Exception, match=msg):
+        s[arr_inds_notfound] = 0
 
     # GH12089
     # with tz for values

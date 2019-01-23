@@ -3,10 +3,10 @@ from datetime import datetime, timedelta
 import numpy as np
 import pytest
 
-from pandas._libs.tslibs import resolution
+from pandas._libs.tslibs import frequencies as libfrequencies, resolution
 from pandas._libs.tslibs.ccalendar import MONTHS
 from pandas._libs.tslibs.frequencies import (
-    INVALID_FREQ_ERR_MSG, _period_code_map)
+    INVALID_FREQ_ERR_MSG, FreqGroup, _period_code_map, get_freq, get_freq_code)
 import pandas.compat as compat
 from pandas.compat import is_platform_windows, range
 
@@ -277,20 +277,20 @@ def test_rule_aliases():
 class TestFrequencyCode(object):
 
     def test_freq_code(self):
-        assert frequencies.get_freq('A') == 1000
-        assert frequencies.get_freq('3A') == 1000
-        assert frequencies.get_freq('-1A') == 1000
+        assert get_freq('A') == 1000
+        assert get_freq('3A') == 1000
+        assert get_freq('-1A') == 1000
 
-        assert frequencies.get_freq('Y') == 1000
-        assert frequencies.get_freq('3Y') == 1000
-        assert frequencies.get_freq('-1Y') == 1000
+        assert get_freq('Y') == 1000
+        assert get_freq('3Y') == 1000
+        assert get_freq('-1Y') == 1000
 
-        assert frequencies.get_freq('W') == 4000
-        assert frequencies.get_freq('W-MON') == 4001
-        assert frequencies.get_freq('W-FRI') == 4005
+        assert get_freq('W') == 4000
+        assert get_freq('W-MON') == 4001
+        assert get_freq('W-FRI') == 4005
 
         for freqstr, code in compat.iteritems(_period_code_map):
-            result = frequencies.get_freq(freqstr)
+            result = get_freq(freqstr)
             assert result == code
 
             result = resolution.get_freq_group(freqstr)
@@ -324,24 +324,24 @@ class TestFrequencyCode(object):
         assert resolution.get_freq_group(offsets.Week(weekday=5)) == 4000
 
     def test_get_to_timestamp_base(self):
-        tsb = frequencies.get_to_timestamp_base
+        tsb = libfrequencies.get_to_timestamp_base
 
-        assert (tsb(frequencies.get_freq_code('D')[0]) ==
-                frequencies.get_freq_code('D')[0])
-        assert (tsb(frequencies.get_freq_code('W')[0]) ==
-                frequencies.get_freq_code('D')[0])
-        assert (tsb(frequencies.get_freq_code('M')[0]) ==
-                frequencies.get_freq_code('D')[0])
+        assert (tsb(get_freq_code('D')[0]) ==
+                get_freq_code('D')[0])
+        assert (tsb(get_freq_code('W')[0]) ==
+                get_freq_code('D')[0])
+        assert (tsb(get_freq_code('M')[0]) ==
+                get_freq_code('D')[0])
 
-        assert (tsb(frequencies.get_freq_code('S')[0]) ==
-                frequencies.get_freq_code('S')[0])
-        assert (tsb(frequencies.get_freq_code('T')[0]) ==
-                frequencies.get_freq_code('S')[0])
-        assert (tsb(frequencies.get_freq_code('H')[0]) ==
-                frequencies.get_freq_code('S')[0])
+        assert (tsb(get_freq_code('S')[0]) ==
+                get_freq_code('S')[0])
+        assert (tsb(get_freq_code('T')[0]) ==
+                get_freq_code('S')[0])
+        assert (tsb(get_freq_code('H')[0]) ==
+                get_freq_code('S')[0])
 
     def test_freq_to_reso(self):
-        Reso = frequencies.Resolution
+        Reso = resolution.Resolution
 
         assert Reso.get_str_from_freq('A') == 'year'
         assert Reso.get_str_from_freq('Q') == 'quarter'
@@ -365,7 +365,7 @@ class TestFrequencyCode(object):
 
     def test_resolution_bumping(self):
         # see gh-14378
-        Reso = frequencies.Resolution
+        Reso = resolution.Resolution
 
         assert Reso.get_stride_from_decimal(1.5, 'T') == (90, 'S')
         assert Reso.get_stride_from_decimal(62.4, 'T') == (3744, 'S')
@@ -384,63 +384,63 @@ class TestFrequencyCode(object):
 
     def test_get_freq_code(self):
         # frequency str
-        assert (frequencies.get_freq_code('A') ==
-                (frequencies.get_freq('A'), 1))
-        assert (frequencies.get_freq_code('3D') ==
-                (frequencies.get_freq('D'), 3))
-        assert (frequencies.get_freq_code('-2M') ==
-                (frequencies.get_freq('M'), -2))
+        assert (get_freq_code('A') ==
+                (get_freq('A'), 1))
+        assert (get_freq_code('3D') ==
+                (get_freq('D'), 3))
+        assert (get_freq_code('-2M') ==
+                (get_freq('M'), -2))
 
         # tuple
-        assert (frequencies.get_freq_code(('D', 1)) ==
-                (frequencies.get_freq('D'), 1))
-        assert (frequencies.get_freq_code(('A', 3)) ==
-                (frequencies.get_freq('A'), 3))
-        assert (frequencies.get_freq_code(('M', -2)) ==
-                (frequencies.get_freq('M'), -2))
+        assert (get_freq_code(('D', 1)) ==
+                (get_freq('D'), 1))
+        assert (get_freq_code(('A', 3)) ==
+                (get_freq('A'), 3))
+        assert (get_freq_code(('M', -2)) ==
+                (get_freq('M'), -2))
 
         # numeric tuple
-        assert frequencies.get_freq_code((1000, 1)) == (1000, 1)
+        assert get_freq_code((1000, 1)) == (1000, 1)
 
         # offsets
-        assert (frequencies.get_freq_code(offsets.Day()) ==
-                (frequencies.get_freq('D'), 1))
-        assert (frequencies.get_freq_code(offsets.Day(3)) ==
-                (frequencies.get_freq('D'), 3))
-        assert (frequencies.get_freq_code(offsets.Day(-2)) ==
-                (frequencies.get_freq('D'), -2))
+        assert (get_freq_code(offsets.Day()) ==
+                (get_freq('D'), 1))
+        assert (get_freq_code(offsets.Day(3)) ==
+                (get_freq('D'), 3))
+        assert (get_freq_code(offsets.Day(-2)) ==
+                (get_freq('D'), -2))
 
-        assert (frequencies.get_freq_code(offsets.MonthEnd()) ==
-                (frequencies.get_freq('M'), 1))
-        assert (frequencies.get_freq_code(offsets.MonthEnd(3)) ==
-                (frequencies.get_freq('M'), 3))
-        assert (frequencies.get_freq_code(offsets.MonthEnd(-2)) ==
-                (frequencies.get_freq('M'), -2))
+        assert (get_freq_code(offsets.MonthEnd()) ==
+                (get_freq('M'), 1))
+        assert (get_freq_code(offsets.MonthEnd(3)) ==
+                (get_freq('M'), 3))
+        assert (get_freq_code(offsets.MonthEnd(-2)) ==
+                (get_freq('M'), -2))
 
-        assert (frequencies.get_freq_code(offsets.Week()) ==
-                (frequencies.get_freq('W'), 1))
-        assert (frequencies.get_freq_code(offsets.Week(3)) ==
-                (frequencies.get_freq('W'), 3))
-        assert (frequencies.get_freq_code(offsets.Week(-2)) ==
-                (frequencies.get_freq('W'), -2))
+        assert (get_freq_code(offsets.Week()) ==
+                (get_freq('W'), 1))
+        assert (get_freq_code(offsets.Week(3)) ==
+                (get_freq('W'), 3))
+        assert (get_freq_code(offsets.Week(-2)) ==
+                (get_freq('W'), -2))
 
         # Monday is weekday=0
-        assert (frequencies.get_freq_code(offsets.Week(weekday=1)) ==
-                (frequencies.get_freq('W-TUE'), 1))
-        assert (frequencies.get_freq_code(offsets.Week(3, weekday=0)) ==
-                (frequencies.get_freq('W-MON'), 3))
-        assert (frequencies.get_freq_code(offsets.Week(-2, weekday=4)) ==
-                (frequencies.get_freq('W-FRI'), -2))
+        assert (get_freq_code(offsets.Week(weekday=1)) ==
+                (get_freq('W-TUE'), 1))
+        assert (get_freq_code(offsets.Week(3, weekday=0)) ==
+                (get_freq('W-MON'), 3))
+        assert (get_freq_code(offsets.Week(-2, weekday=4)) ==
+                (get_freq('W-FRI'), -2))
 
     def test_frequency_misc(self):
         assert (resolution.get_freq_group('T') ==
-                frequencies.FreqGroup.FR_MIN)
+                FreqGroup.FR_MIN)
 
-        code, stride = frequencies.get_freq_code(offsets.Hour())
-        assert code == frequencies.FreqGroup.FR_HR
+        code, stride = get_freq_code(offsets.Hour())
+        assert code == FreqGroup.FR_HR
 
-        code, stride = frequencies.get_freq_code((5, 'T'))
-        assert code == frequencies.FreqGroup.FR_MIN
+        code, stride = get_freq_code((5, 'T'))
+        assert code == FreqGroup.FR_MIN
         assert stride == 5
 
         offset = offsets.Hour()
@@ -452,7 +452,7 @@ class TestFrequencyCode(object):
         assert result == expected
 
         with pytest.raises(ValueError, match='Invalid frequency'):
-            frequencies.get_freq_code((5, 'baz'))
+            get_freq_code((5, 'baz'))
 
         with pytest.raises(ValueError, match='Invalid frequency'):
             frequencies.to_offset('100foo')

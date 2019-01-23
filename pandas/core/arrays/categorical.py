@@ -852,9 +852,9 @@ class Categorical(ExtensionArray, PandasObject):
             if (cat.dtype.categories is not None and
                     len(new_dtype.categories) < len(cat.dtype.categories)):
                 # remove all _codes which are larger and set to -1/NaN
-                self._codes[self._codes >= len(new_dtype.categories)] = -1
+                cat._codes[cat._codes >= len(new_dtype.categories)] = -1
         else:
-            codes = _recode_for_categories(self.codes, self.categories,
+            codes = _recode_for_categories(cat.codes, cat.categories,
                                            new_dtype.categories)
             cat._codes = codes
         cat._dtype = new_dtype
@@ -2498,8 +2498,8 @@ class CategoricalAccessor(PandasDelegate, PandasObject, NoNewAttributesMixin):
     def __init__(self, data):
         self._validate(data)
         self._parent = data.values
-        self.index = data.index
-        self.name = data.name
+        self._index = data.index
+        self._name = data.name
         self._freeze()
 
     @staticmethod
@@ -2520,15 +2520,47 @@ class CategoricalAccessor(PandasDelegate, PandasObject, NoNewAttributesMixin):
         Return Series of codes as well as the index.
         """
         from pandas import Series
-        return Series(self._parent.codes, index=self.index)
+        return Series(self._parent.codes, index=self._index)
 
     def _delegate_method(self, name, *args, **kwargs):
         from pandas import Series
         method = getattr(self._parent, name)
         res = method(*args, **kwargs)
         if res is not None:
-            return Series(res, index=self.index, name=self.name)
+            return Series(res, index=self._index, name=self._name)
 
+    @property
+    def categorical(self):
+        # Note: Upon deprecation, `test_tab_completion_with_categorical` will
+        # need to be updated. `categorical` will need to be removed from
+        # `ok_for_cat`.
+        warn("`Series.cat.categorical` has been deprecated. Use the "
+             "attributes on 'Series.cat' directly instead.",
+             FutureWarning,
+             stacklevel=2)
+        return self._parent
+
+    @property
+    def name(self):
+        # Note: Upon deprecation, `test_tab_completion_with_categorical` will
+        # need to be updated. `name` will need to be removed from
+        # `ok_for_cat`.
+        warn("`Series.cat.name` has been deprecated. Use `Series.name` "
+             "instead.",
+             FutureWarning,
+             stacklevel=2)
+        return self._name
+
+    @property
+    def index(self):
+        # Note: Upon deprecation, `test_tab_completion_with_categorical` will
+        # need to be updated. `index` will need to be removed from
+        # ok_for_cat`.
+        warn("`Series.cat.index` has been deprecated. Use `Series.index` "
+             "instead.",
+             FutureWarning,
+             stacklevel=2)
+        return self._index
 
 # utility routines
 

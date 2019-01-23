@@ -1296,15 +1296,28 @@ def _validate_usecols_arg(usecols):
     if usecols is not None:
         if callable(usecols):
             return usecols, None
-        # GH20529, ensure is iterable container but not string.
-        elif not is_list_like(usecols):
+
+        if not is_list_like(usecols):
+            # see gh-20529
+            #
+            # Ensure it is iterable container but not string.
             raise ValueError(msg)
-        else:
-            usecols_dtype = lib.infer_dtype(usecols, skipna=False)
-            if usecols_dtype not in ('empty', 'integer',
-                                     'string', 'unicode'):
-                raise ValueError(msg)
-        return set(usecols), usecols_dtype
+
+        usecols_dtype = lib.infer_dtype(usecols, skipna=False)
+
+        if usecols_dtype not in ("empty", "integer",
+                                 "string", "unicode"):
+            raise ValueError(msg)
+
+        usecols = set(usecols)
+
+        if usecols_dtype == "unicode":
+            # see gh-13253
+            #
+            # Python 2.x compatibility
+            usecols = {col.encode("utf-8") for col in usecols}
+
+        return usecols, usecols_dtype
     return usecols, None
 
 

@@ -49,6 +49,7 @@ from pandas.core.dtypes.cast import (
     find_common_type)
 from pandas.core.dtypes.common import (
     is_dict_like,
+    is_datetime64tz_dtype,
     is_object_dtype,
     is_extension_type,
     is_extension_array_dtype,
@@ -4041,12 +4042,16 @@ class DataFrame(NDFrame):
         Set the DataFrame index using existing columns.
 
         Set the DataFrame index (row labels) using one or more existing
-        columns. The index can replace the existing index or expand on it.
+        columns or arrays (of the correct length). The index can replace the
+        existing index or expand on it.
 
         Parameters
         ----------
-        keys : label or list of label
-            Name or names of the columns that will be used as the index.
+        keys : label or array-like or list of labels/arrays
+            This parameter can be either a single column key, a single array of
+            the same length as the calling DataFrame, or a list containing an
+            arbitrary combination of column keys and arrays. Here, "array"
+            encompasses :class:`Series`, :class:`Index` and ``np.ndarray``.
         drop : bool, default True
             Delete columns to be used as the new index.
         append : bool, default False
@@ -4091,7 +4096,7 @@ class DataFrame(NDFrame):
         7      2013    84
         10     2014    31
 
-        Create a multi-index using columns 'year' and 'month':
+        Create a MultiIndex using columns 'year' and 'month':
 
         >>> df.set_index(['year', 'month'])
                     sale
@@ -4101,35 +4106,51 @@ class DataFrame(NDFrame):
         2013  7     84
         2014  10    31
 
-        Create a multi-index using a set of values and a column:
+        Create a MultiIndex using an Index and a column:
 
-        >>> df.set_index([[1, 2, 3, 4], 'year'])
+        >>> df.set_index([pd.Index([1, 2, 3, 4]), 'year'])
                  month  sale
            year
         1  2012  1      55
         2  2014  4      40
         3  2013  7      84
         4  2014  10     31
+
+        Create a MultiIndex using two Series:
+
+        >>> s = pd.Series([1, 2, 3, 4])
+        >>> df.set_index([s, s**2])
+              month  year  sale
+        1 1       1  2012    55
+        2 4       4  2014    40
+        3 9       7  2013    84
+        4 16     10  2014    31
         """
         inplace = validate_bool_kwarg(inplace, 'inplace')
-        if not isinstance(keys, list):
+
+        err_msg = ('The parameter "keys" may be a column key, one-dimensional '
+                   'array, or a list containing only valid column keys and '
+                   'one-dimensional arrays.')
+
+        if (is_scalar(keys) or isinstance(keys, tuple)
+                or isinstance(keys, (ABCIndexClass, ABCSeries, np.ndarray))):
+            # make sure we have a container of keys/arrays we can iterate over
+            # tuples can appear as valid column keys!
             keys = [keys]
+        elif not isinstance(keys, list):
+            raise ValueError(err_msg)
 
         missing = []
         for col in keys:
-            if (is_scalar(col) or isinstance(col, tuple)) and col in self:
-                # tuples can be both column keys or list-likes
-                # if they are valid column keys, everything is fine
-                continue
-            elif is_scalar(col) and col not in self:
-                # tuples that are not column keys are considered list-like,
-                # not considered missing
-                missing.append(col)
-            elif (not is_list_like(col, allow_sets=False)
+            if (is_scalar(col) or isinstance(col, tuple)):
+                # if col is a valid column key, everything is fine
+                # tuples are always considered keys, never as list-likes
+                if col not in self:
+                    missing.append(col)
+            elif (not isinstance(col, (ABCIndexClass, ABCSeries,
+                                       np.ndarray, list))
                   or getattr(col, 'ndim', 1) > 1):
-                raise TypeError('The parameter "keys" may only contain a '
-                                'combination of valid column keys and '
-                                'one-dimensional list-likes')
+                raise ValueError(err_msg)
 
         if missing:
             raise KeyError('{}'.format(missing))
@@ -4160,12 +4181,6 @@ class DataFrame(NDFrame):
                 arrays.append(col)
                 names.append(col.name)
             elif isinstance(col, (list, np.ndarray)):
-                arrays.append(col)
-                names.append(None)
-            elif (is_list_like(col)
-                  and not (isinstance(col, tuple) and col in self)):
-                # all other list-likes (but avoid valid column keys)
-                col = list(col)  # ensure iterator do not get read twice etc.
                 arrays.append(col)
                 names.append(None)
             # from here, col can only be a column label
@@ -7390,7 +7405,9 @@ class DataFrame(NDFrame):
             return op(x, axis=axis, skipna=skipna, **kwds)
 
         # exclude timedelta/datetime unless we are uniform types
-        if axis == 1 and self._is_mixed_type and self._is_datelike_mixed_type:
+        if (axis == 1 and self._is_datelike_mixed_type
+                and (not self._is_homogeneous_type
+                     and not is_datetime64tz_dtype(self.dtypes[0]))):
             numeric_only = True
 
         if numeric_only is None:
