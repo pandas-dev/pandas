@@ -125,27 +125,8 @@ See the package overview for more detail about what's in the library.
     What's New <whatsnew/v0.24.0>
     install
     getting_started/index
-    contributing
     cookbook
-    text
-    options
-    indexing
-    advanced
-    computation
-    missing_data
-    groupby
-    merging
-    reshaping
-    timeseries
-    timedeltas
-    categorical
-    integer_na
-    visualization
-    style
-    io
-    enhancingperf
-    sparse
-    gotchas
+    user_guide/index
     r_interface
     ecosystem
     comparison_with_r
@@ -157,8 +138,6 @@ See the package overview for more detail about what's in the library.
     api/index
     {% endif -%}
     {% if not single_doc -%}
-    developer
-    internals
-    extending
+    development/index
     whatsnew/index
     {% endif -%}
