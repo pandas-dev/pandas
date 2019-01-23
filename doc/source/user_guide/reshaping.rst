@@ -9,7 +9,7 @@ Reshaping and Pivot Tables
 Reshaping by pivoting DataFrame objects
 ---------------------------------------
 
-.. image:: _static/reshaping_pivot.png
+.. image:: ../_static/reshaping_pivot.png
 
 .. ipython:: python
    :suppress:
@@ -101,7 +101,7 @@ are homogeneously-typed.
 Reshaping by stacking and unstacking
 ------------------------------------
 
-.. image:: _static/reshaping_stack.png
+.. image:: ../_static/reshaping_stack.png
 
 Closely related to the :meth:`~DataFrame.pivot` method are the related
 :meth:`~DataFrame.stack` and :meth:`~DataFrame.unstack` methods available on
@@ -116,7 +116,7 @@ Closely related to the :meth:`~DataFrame.pivot` method are the related
   (possibly hierarchical) row index to the column axis, producing a reshaped
   ``DataFrame`` with a new inner-most level of column labels.
 
-.. image:: _static/reshaping_unstack.png
+.. image:: ../_static/reshaping_unstack.png
 
 The clearest way to explain is by example. Let's take a prior example data set
 from the hierarchical indexing section:
@@ -158,7 +158,7 @@ unstacks the **last level**:
 
 .. _reshaping.unstack_by_name:
 
-.. image:: _static/reshaping_unstack_1.png
+.. image:: ../_static/reshaping_unstack_1.png
 
 If the indexes have names, you can use the level names instead of specifying
 the level numbers:
@@ -168,7 +168,7 @@ the level numbers:
    stacked.unstack('second')
 
 
-.. image:: _static/reshaping_unstack_0.png
+.. image:: ../_static/reshaping_unstack_0.png
 
 Notice that the ``stack`` and ``unstack`` methods implicitly sort the index
 levels involved. Hence a call to ``stack`` and then ``unstack``, or vice versa,
@@ -279,7 +279,7 @@ the right thing:
 Reshaping by Melt
 -----------------
 
-.. image:: _static/reshaping_melt.png
+.. image:: ../_static/reshaping_melt.png
 
 The top-level :func:`~pandas.melt` function and the corresponding :meth:`DataFrame.melt`
 are useful to massage a ``DataFrame`` into a format where one or more columns
