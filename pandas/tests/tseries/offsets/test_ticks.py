@@ -2,6 +2,8 @@
 """
 Tests for offsets.Tick and subclasses
 """
+from __future__ import division
+
 from datetime import datetime, timedelta
 
 from hypothesis import assume, example, given, settings, strategies as st
@@ -36,6 +38,10 @@ def test_delta_to_tick():
     tick = offsets._delta_to_tick(delta)
     assert (tick == offsets.Day(3))
 
+    td = Timedelta(nanoseconds=5)
+    tick = offsets._delta_to_tick(td)
+    assert tick == Nano(5)
+
 
 @pytest.mark.parametrize('cls', tick_classes)
 @settings(deadline=None)  # GH 24641
@@ -59,6 +65,7 @@ def test_tick_add_sub(cls, n, m):
 
 
 @pytest.mark.parametrize('cls', tick_classes)
+@settings(deadline=None)
 @example(n=2, m=3)
 @given(n=st.integers(-999, 999), m=st.integers(-999, 999))
 def test_tick_equality(cls, n, m):
@@ -225,6 +232,34 @@ def test_tick_addition(kls, expected):
     result = offset + Timedelta(hours=2)
     assert isinstance(result, Timedelta)
     assert result == expected
+
+
+@pytest.mark.parametrize('cls', tick_classes)
+def test_tick_division(cls):
+    off = cls(10)
+
+    assert off / cls(5) == 2
+    assert off / 2 == cls(5)
+    assert off / 2.0 == cls(5)
+
+    assert off / off.delta == 1
+    assert off / off.delta.to_timedelta64() == 1
+
+    assert off / Nano(1) == off.delta / Nano(1).delta
+
+    if cls is not Nano:
+        # A case where we end up with a smaller class
+        result = off / 1000
+        assert isinstance(result, offsets.Tick)
+        assert not isinstance(result, cls)
+        assert result.delta == off.delta / 1000
+
+    if cls._inc < Timedelta(seconds=1):
+        # Case where we end up with a bigger class
+        result = off / .001
+        assert isinstance(result, offsets.Tick)
+        assert not isinstance(result, cls)
+        assert result.delta == off.delta / .001
 
 
 @pytest.mark.parametrize('cls1', tick_classes)

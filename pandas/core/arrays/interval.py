@@ -71,7 +71,6 @@ right
 closed
 mid
 length
-values
 is_non_overlapping_monotonic
 %(extra_attributes)s\
 
@@ -936,13 +935,16 @@ class IntervalArray(IntervalMixin, ExtensionArray):
             # datetime safe version
             return self.left + 0.5 * self.length
 
-    @property
-    def is_non_overlapping_monotonic(self):
-        """
-        Return True if the IntervalArray is non-overlapping (no Intervals share
+    _interval_shared_docs['is_non_overlapping_monotonic'] = """
+        Return True if the %(klass)s is non-overlapping (no Intervals share
         points) and is either monotonic increasing or monotonic decreasing,
         else False
         """
+
+    @property
+    @Appender(_interval_shared_docs['is_non_overlapping_monotonic']
+              % _shared_docs_kwargs)
+    def is_non_overlapping_monotonic(self):
         # must be increasing  (e.g., [0, 1), [1, 2), [2, 3), ... )
         # or decreasing (e.g., [-1, 0), [-2, -1), [-3, -2), ...)
         # we already require left <= right
@@ -986,7 +988,7 @@ class IntervalArray(IntervalMixin, ExtensionArray):
             Returns NA as a tuple if True, ``(nan, nan)``, or just as the NA
             value itself if False, ``nan``.
 
-            ..versionadded:: 0.23.0
+            .. versionadded:: 0.23.0
 
         Returns
         -------

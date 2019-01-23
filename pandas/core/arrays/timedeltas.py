@@ -2,6 +2,7 @@
 from __future__ import division
 
 from datetime import timedelta
+import textwrap
 import warnings
 
 import numpy as np
@@ -134,28 +135,53 @@ class TimedeltaArray(dtl.DatetimeLikeArrayMixin, dtl.TimelikeOps):
     _attributes = ["freq"]
 
     def __init__(self, values, dtype=_TD_DTYPE, freq=None, copy=False):
-        if not hasattr(values, "dtype"):
-            raise ValueError(
+        if isinstance(values, (ABCSeries, ABCIndexClass)):
+            values = values._values
+
+        inferred_freq = getattr(values, "_freq", None)
+
+        if isinstance(values, type(self)):
+            if freq is None:
+                freq = values.freq
+            elif freq and values.freq:
+                freq = to_offset(freq)
+                freq, _ = dtl.validate_inferred_freq(freq, values.freq, False)
+            values = values._data
+
+        if not isinstance(values, np.ndarray):
+            msg = (
                 "Unexpected type '{}'. 'values' must be a TimedeltaArray "
                 "ndarray, or Series or Index containing one of those."
-                .format(type(values).__name__))
-        if freq == "infer":
-            raise ValueError(
-                "Frequency inference not allowed in TimedeltaArray.__init__. "
-                "Use 'pd.array()' instead.")
-
-        if dtype is not None and not is_dtype_equal(dtype, _TD_DTYPE):
-            raise TypeError("dtype {dtype} cannot be converted to "
-                            "timedelta64[ns]".format(dtype=dtype))
+            )
+            raise ValueError(msg.format(type(values).__name__))
 
         if values.dtype == 'i8':
-            values = values.view('timedelta64[ns]')
+            # for compat with datetime/timedelta/period shared methods,
+            #  we can sometimes get here with int64 values.  These represent
+            #  nanosecond UTC (or tz-naive) unix timestamps
+            values = values.view(_TD_DTYPE)
 
-        result = type(self)._from_sequence(values, dtype=dtype,
-                                           copy=copy, freq=freq)
-        self._data = result._data
-        self._freq = result._freq
-        self._dtype = result._dtype
+        _validate_td64_dtype(values.dtype)
+        dtype = _validate_td64_dtype(dtype)
+
+        if freq == "infer":
+            msg = (
+                "Frequency inference not allowed in TimedeltaArray.__init__. "
+                "Use 'pd.array()' instead."
+            )
+            raise ValueError(msg)
+
+        if copy:
+            values = values.copy()
+        if freq:
+            freq = to_offset(freq)
+
+        self._data = values
+        self._dtype = dtype
+        self._freq = freq
+
+        if inferred_freq is None and freq is not None:
+            type(self)._validate_frequency(self, freq)
 
     @classmethod
     def _simple_new(cls, values, freq=None, dtype=_TD_DTYPE):
@@ -171,9 +197,8 @@ class TimedeltaArray(dtl.DatetimeLikeArrayMixin, dtl.TimelikeOps):
     @classmethod
     def _from_sequence(cls, data, dtype=_TD_DTYPE, copy=False,
                        freq=None, unit=None):
-        if dtype != _TD_DTYPE:
-            raise ValueError("Only timedelta64[ns] dtype is valid.")
-
+        if dtype:
+            _validate_td64_dtype(dtype)
         freq, freq_infer = dtl.maybe_infer_freq(freq)
 
         data, inferred_freq = sequence_to_td64ns(data, copy=copy, unit=unit)
@@ -962,6 +987,22 @@ def objects_to_td64ns(data, unit="ns", errors="raise"):
     result = array_to_timedelta64(values,
                                   unit=unit, errors=errors)
     return result.view('timedelta64[ns]')
+
+
+def _validate_td64_dtype(dtype):
+    dtype = pandas_dtype(dtype)
+    if is_dtype_equal(dtype, np.dtype("timedelta64")):
+        dtype = _TD_DTYPE
+        msg = textwrap.dedent("""\
+            Passing in 'timedelta' dtype with no precision is deprecated
+            and will raise in a future version. Please pass in
+            'timedelta64[ns]' instead.""")
+        warnings.warn(msg, FutureWarning, stacklevel=4)
+
+    if not is_dtype_equal(dtype, _TD_DTYPE):
+        raise ValueError(_BAD_DTYPE.format(dtype=dtype))
+
+    return dtype
 
 
 def _generate_regular_range(start, end, periods, offset):

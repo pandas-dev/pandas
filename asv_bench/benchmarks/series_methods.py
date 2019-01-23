@@ -140,11 +140,13 @@ class Map(object):
 
 
 class Clip(object):
+    params = [50, 1000, 10**5]
+    param_names = ['n']
 
-    def setup(self):
-        self.s = Series(np.random.randn(50))
+    def setup(self, n):
+        self.s = Series(np.random.randn(n))
 
-    def time_clip(self):
+    def time_clip(self, n):
         self.s.clip(0, 1)
 
 

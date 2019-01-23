@@ -761,8 +761,11 @@ def test_frame_describe_tupleindex():
                      'z': [100, 200, 300, 400, 500] * 3})
     df1['k'] = [(0, 0, 1), (0, 1, 0), (1, 0, 0)] * 5
     df2 = df1.rename(columns={'k': 'key'})
-    pytest.raises(ValueError, lambda: df1.groupby('k').describe())
-    pytest.raises(ValueError, lambda: df2.groupby('key').describe())
+    msg = "Names should be list-like for a MultiIndex"
+    with pytest.raises(ValueError, match=msg):
+        df1.groupby('k').describe()
+    with pytest.raises(ValueError, match=msg):
+        df2.groupby('key').describe()
 
 
 def test_frame_describe_unstacked_format():
