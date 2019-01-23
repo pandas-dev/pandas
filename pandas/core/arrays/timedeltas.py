@@ -703,6 +703,9 @@ class TimedeltaArray(dtl.DatetimeLikeArrayMixin, dtl.TimelikeOps):
         return res1, res2
 
     # Note: TimedeltaIndex overrides this in call to cls._add_numeric_methods
+    def __pos__(self):
+        return self.copy()
+
     def __neg__(self):
         if self.freq is not None:
             return type(self)(-self._data, freq=-self.freq)

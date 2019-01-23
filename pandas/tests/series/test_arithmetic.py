@@ -258,7 +258,13 @@ class TestSeriesUnary(object):
             op(ser)
 
         # inconsistent with NumPy
-        tm.assert_numpy_array_equal(ser.values, op(ser.values))
+        if pd.compat.numpy._np_version_under1p16:
+            tm.assert_numpy_array_equal(ser.values, op(ser.values))
+        else:
+            ivalues = ser.values.view('i8')
+            ivalues = op(ivalues)
+            result = ivalues.view('<M8[ns]')
+            tm.assert_numpy_array_equal(ser.values, result)
 
     @pytest.mark.parametrize('typ', ['datetime64[ns]', 'datetime64[ns, GMT]',
                                      'datetime64[ns, US/Eastern]'])

@@ -1466,7 +1466,7 @@ def _unary_method(cls, op, special=True):
             return result.__finalize__(self)
         else:
             with np.errstate(all='ignore'):
-                new_data = op(self._values)
+                new_data = op(self.array)
             return self._constructor(new_data, name=self.name,
                                      index=self.index).__finalize__(self)
 
@@ -1476,16 +1476,15 @@ def _unary_method(cls, op, special=True):
 
 
 def pos(values):
-    if is_datetime64_any_dtype(values):
-        raise TypeError("Unary plus expects numeric dtype, not {}"
-                        .format(values.dtype))
+    if is_object_dtype(values) or is_bool_dtype(values):
+        return values.copy()
     else:
         return operator.pos(values)
 
 
 def neg(values):
     if is_bool_dtype(values):
-        return operator.invert(values)
+        return operator.inv(values)
     else:
         return operator.neg(values)
 
@@ -1495,7 +1494,7 @@ def invert(values):
         return operator.inv(values)
     except Exception:
         # inv fails with 0 len
-        if not values.size():
+        if not len(values):
             return values
         raise
 
