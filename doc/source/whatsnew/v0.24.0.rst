@@ -1751,6 +1751,7 @@ I/O
 - Bug in :meth:`DataFrame.to_stata`, :class:`pandas.io.stata.StataWriter` and :class:`pandas.io.stata.StataWriter117` where a exception would leave a partially written and invalid dta file (:issue:`23573`)
 - Bug in :meth:`DataFrame.to_stata` and :class:`pandas.io.stata.StataWriter117` that produced invalid files when using strLs with non-ASCII characters (:issue:`23573`)
 - Bug in :class:`HDFStore` that caused it to raise ``ValueError`` when reading a Dataframe in Python 3 from fixed format written in Python 2 (:issue:`24510`)
+- Bug in :func:`DataFrame.to_string()` and more generally in the floating ``repr`` formatter. Zeros were not trimmed if ``inf`` was present in a columns while it was the case with NA values. Zeros are now trimmed as in the presence of NA (:issue:`24861`).
 
 Plotting
 ^^^^^^^^
