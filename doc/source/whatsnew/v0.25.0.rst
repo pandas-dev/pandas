@@ -23,14 +23,6 @@ Other Enhancements
 -
 -
 
-.. _whatsnew_0250.performance:
-
-Performance Improvements
-~~~~~~~~~~~~~~~~~~~~~~~~
- - Significant speedup in `SparseArray` initialization that benefits most operations, fixing performance regression introduced in v0.20.0 (:issue:`24985`)
-
-
-
 .. _whatsnew_0250.api_breaking:
 
 Backwards incompatible API changes
@@ -69,8 +61,8 @@ Removal of prior version deprecations/changes
 Performance Improvements
 ~~~~~~~~~~~~~~~~~~~~~~~~
 
--
--
+- Significant speedup in `SparseArray` initialization that benefits most operations, fixing performance regression introduced in v0.20.0 (:issue:`24985`)
+- `DataFrame.to_stata()` is now faster when outputting data with any string or non-native endian columns (:issue:`25045`)
 -
 
 
