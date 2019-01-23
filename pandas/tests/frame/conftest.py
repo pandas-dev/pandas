@@ -166,14 +166,6 @@ def timezone_frame():
 
 
 @pytest.fixture
-def empty_frame():
-    """
-    Fixture for empty DataFrame
-    """
-    return DataFrame({})
-
-
-@pytest.fixture
 def datetime_series():
     """
     Fixture for Series of floats with DatetimeIndex

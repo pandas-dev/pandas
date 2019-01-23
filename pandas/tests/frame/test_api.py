@@ -142,7 +142,9 @@ class SharedWithSparse(object):
             assert key not in dir(df)
         assert isinstance(df.__getitem__('A'), pd.DataFrame)
 
-    def test_not_hashable(self, empty_frame):
+    def test_not_hashable(self):
+        empty_frame = DataFrame({})
+
         df = self.klass([1])
         pytest.raises(TypeError, hash, df)
         pytest.raises(TypeError, hash, empty_frame)
@@ -171,7 +173,8 @@ class SharedWithSparse(object):
 
         pytest.raises(ValueError, float_frame._get_agg_axis, 2)
 
-    def test_nonzero(self, float_frame, float_string_frame, empty_frame):
+    def test_nonzero(self, float_frame, float_string_frame):
+        empty_frame = DataFrame({})
         assert empty_frame.empty
 
         assert not float_frame.empty
