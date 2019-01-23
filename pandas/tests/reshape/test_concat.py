@@ -961,12 +961,11 @@ class TestAppend(ConcatenateBase):
         df = pd.DataFrame([[1, 2, 3], [4, 5, 6]], columns=index_can_append)
         ser = pd.Series([7, 8, 9], index=index_cannot_append_with_other,
                         name=2)
-        msg = (r"unorderable types: (Interval|int)\(\) > "
+        msg = (r"unorderable types: (Interval|int)\(\) (<|>) "
                r"(int|long|float|str)\(\)|"
                r"Expected tuple, got (int|long|float|str)|"
                r"Cannot compare type 'Timestamp' with type '(int|long)'|"
-               r"'>' not supported between instances of 'int' and 'str'|"
-               r"'<' not supported between instances of 'int' and 'str'|"
+               r"'(<|>)' not supported between instances of 'int' and 'str'|"
                r"the other index needs to be an IntervalIndex too, but was"
                r" type {}|"
                r"object of type '(int|long|float|Timestamp)' has no len\(\)|"
