@@ -30,16 +30,6 @@ def float_frame_with_na():
 
 
 @pytest.fixture
-def float_frame2():
-    """
-    Fixture for DataFrame of floats with index of unique strings
-
-    Columns are ['D', 'C', 'B', 'A']
-    """
-    return DataFrame(tm.getSeriesData(), columns=['D', 'C', 'B', 'A'])
-
-
-@pytest.fixture
 def bool_frame_with_na():
     """
     Fixture for DataFrame of booleans with index of unique strings
@@ -100,21 +90,6 @@ def mixed_float_frame():
     df.A = df.A.astype('float32')
     df.B = df.B.astype('float32')
     df.C = df.C.astype('float16')
-    df.D = df.D.astype('float64')
-    return df
-
-
-@pytest.fixture
-def mixed_float_frame2():
-    """
-    Fixture for DataFrame of different float types with index of unique strings
-
-    Columns are ['A', 'B', 'C', 'D'].
-    """
-    df = DataFrame(tm.getSeriesData())
-    df.D = df.D.astype('float32')
-    df.C = df.C.astype('float32')
-    df.B = df.B.astype('float16')
     df.D = df.D.astype('float64')
     return df
 
