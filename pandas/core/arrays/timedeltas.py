@@ -115,8 +115,9 @@ class TimedeltaArray(dtl.DatetimeLikeArrayMixin, dtl.TimelikeOps):
     .. warning::
 
        TimedeltaArray is currently experimental, and its API may change
-       without warning. In particular, :meth:`TimedeltaArray.dtype` is
-       expected to change to be an ``ExtensionDtype``.
+       without warning. In particular, :attr:`TimedeltaArray.dtype` is
+       expected to change to be an instance of an ``ExtensionDtype``
+       subclass.
 
     Parameters
     ----------
