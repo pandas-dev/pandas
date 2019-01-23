@@ -13,6 +13,9 @@ What's New in 0.24.0 (January XX, 2019)
 These are the changes in pandas 0.24.0. See :ref:`release` for a full changelog
 including other versions of pandas.
 
+Enhancements
+~~~~~~~~~~~~
+
 Highlights include
 
 * :ref:`Optional Nullable Integer Support <whatsnew_0240.enhancements.intna>`
@@ -1165,7 +1168,7 @@ Other API Changes
 .. _whatsnew_0240.api.extension:
 
 ExtensionType Changes
-^^^^^^^^^^^^^^^^^^^^^
+~~~~~~~~~~~~~~~~~~~~~
 
 **Equality and Hashability**
 
