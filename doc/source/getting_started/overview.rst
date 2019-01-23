@@ -119,5 +119,5 @@ The information about current institutional partners can be found on `pandas web
 License
 -------
 
-.. literalinclude:: ../../LICENSE
+.. literalinclude:: ../../../LICENSE
 
