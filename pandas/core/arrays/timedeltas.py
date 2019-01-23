@@ -110,7 +110,7 @@ class TimedeltaArray(dtl.DatetimeLikeArrayMixin, dtl.TimelikeOps):
     """
     Pandas ExtensionArray for timedelta data.
 
-    .. versionadded :: 0.24.0
+    .. versionadded:: 0.24.0
 
     .. warning::
 
