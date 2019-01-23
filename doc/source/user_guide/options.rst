@@ -487,7 +487,7 @@ If a DataFrame or Series contains these characters, the default output mode may 
    df = pd.DataFrame({u'国籍': ['UK', u'日本'], u'名前': ['Alice', u'しのぶ']})
    df
 
-.. image:: _static/option_unicode01.png
+.. image:: ../_static/option_unicode01.png
 
 Enabling ``display.unicode.east_asian_width`` allows pandas to check each character's "East Asian Width" property.
 These characters can be aligned properly by setting this option to ``True``. However, this will result in longer render
@@ -498,7 +498,7 @@ times than the standard ``len`` function.
    pd.set_option('display.unicode.east_asian_width', True)
    df
 
-.. image:: _static/option_unicode02.png
+.. image:: ../_static/option_unicode02.png
 
 In addition, Unicode characters whose width is "Ambiguous" can either be 1 or 2 characters wide depending on the
 terminal setting or encoding. The option ``display.unicode.ambiguous_as_wide`` can be used to handle the ambiguity.
@@ -510,7 +510,7 @@ By default, an "Ambiguous" character's width, such as "¡" (inverted exclamation
    df = pd.DataFrame({'a': ['xxx', u'¡¡'], 'b': ['yyy', u'¡¡']})
    df
 
-.. image:: _static/option_unicode03.png
+.. image:: ../_static/option_unicode03.png
 
 Enabling ``display.unicode.ambiguous_as_wide`` makes pandas interpret these characters' widths to be 2.
 (Note that this option will only be effective when ``display.unicode.east_asian_width`` is enabled.)
@@ -522,7 +522,7 @@ However, setting this option incorrectly for your terminal will cause these char
    pd.set_option('display.unicode.ambiguous_as_wide', True)
    df
 
-.. image:: _static/option_unicode04.png
+.. image:: ../_static/option_unicode04.png
 
 .. ipython:: python
    :suppress:
