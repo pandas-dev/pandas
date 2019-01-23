@@ -210,6 +210,9 @@ from the ``Series``:
    ser.array
    pser.array
 
+These return an instance of :class:`IntervalArray` or :class:`arrays.PeriodArray`,
+the new extension arrays that back interval and period data.
+
 .. warning::
 
    For backwards compatibility, :attr:`Series.values` continues to return

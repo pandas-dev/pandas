@@ -218,6 +218,12 @@ class DatetimeArray(dtl.DatetimeLikeArrayMixin,
 
     .. versionadded:: 0.24.0
 
+    .. warning::
+
+       DatetimeArray is currently experimental, and its API may change
+       without warning. In particular, :meth:`DatetimeArray.dtype` is
+       expected to change to always be an ``ExtensionDtype``.
+
     Parameters
     ----------
     values : Series, Index, DatetimeArray, ndarray
@@ -510,6 +516,12 @@ class DatetimeArray(dtl.DatetimeLikeArrayMixin,
         # type: () -> Union[np.dtype, DatetimeTZDtype]
         """
         The dtype for the DatetimeArray.
+
+        .. warning::
+
+           A future version of pandas will change dtype to never be a
+           ``numpy.dtype``. Instead it will always be a subclass of
+           :class:`pandas.api.extensions.ExtensionDtype`.
 
         Returns
         -------

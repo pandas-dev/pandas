@@ -107,6 +107,28 @@ def _td_array_cmp(cls, op):
 
 
 class TimedeltaArray(dtl.DatetimeLikeArrayMixin, dtl.TimelikeOps):
+    """
+    Pandas ExtensionArray for timedelta data.
+
+    .. versionadded :: 0.24.0
+
+    .. warning::
+
+       TimedeltaArray is currently experimental, and its API may change
+       without warning. In particular, :meth:`TimedeltaArray.dtype` is
+       expected to change to be an ``ExtensionDtype``.
+
+    Parameters
+    ----------
+    values : array-like
+        The timedelta data.
+
+    dtype : numpy.dtype
+        Currently, only ``numpy.dtype("timedelta64[ns]")`` is accepted.
+    freq : Offset, optional
+    copy : bool, default False
+        Whether to copy the underlying array of data.
+    """
     _typ = "timedeltaarray"
     _scalar_type = Timedelta
     __array_priority__ = 1000
@@ -128,6 +150,19 @@ class TimedeltaArray(dtl.DatetimeLikeArrayMixin, dtl.TimelikeOps):
 
     @property
     def dtype(self):
+        """
+        The dtype for the TimedeltaArray.
+
+        .. warning::
+
+           A future version of pandas will change dtype to be an instance
+           of a :class:`pandas.api.extensions.ExtensionDtype` subclass,
+           not a ``numpy.dtype``.
+
+        Returns
+        -------
+        numpy.dtype
+        """
         return _TD_DTYPE
 
     # ----------------------------------------------------------------
