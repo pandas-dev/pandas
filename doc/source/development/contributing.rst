@@ -698,7 +698,7 @@ A pull-request will be considered for merging when you have an all 'green' build
 then you will get a red 'X', where you can click through to see the individual failed tests.
 This is an example of a green build.
 
-.. image:: _static/ci.png
+.. image:: ../_static/ci.png
 
 .. note::
 
