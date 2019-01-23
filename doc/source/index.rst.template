@@ -124,12 +124,8 @@ See the package overview for more detail about what's in the library.
     {% if not single_doc -%}
     What's New <whatsnew/v0.24.0>
     install
-    overview
-    10min
-    tutorials
+    getting_started/index
     cookbook
-    dsintro
-    basics
     user_guide/index
     r_interface
     ecosystem
