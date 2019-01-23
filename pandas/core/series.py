@@ -1447,14 +1447,12 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         """
         Lazily iterate over (index, value) tuples.
 
-        This method returns a zip of tuples (index, value). This is useful When
-        one want to create new series from the values of an old one. Be aware
-        that this might not the fastest way of creating new series.
+        This method returns an iterable tuple (index, value).
 
         Returns
         -------
-        zip
-            Iterable tuples (index, value) of the Series.
+        iterable
+            Iterable tuples (index, value) from a Series.
 
         See Also
         --------
@@ -1489,6 +1487,20 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         0    AA
         1    BB
         2    CC
+        dtype: object
+
+        ** Another example **
+
+        >>> s4 = pd.Series([])
+        >>> for index, value in s.iteritems():
+        ...     if index % 2 == 0:
+        ...         s4[index] = value + '_even_index'
+        ...     else:
+        ...         s4[index] = value + '_odd_index'
+        >>> s4
+        0    A_even_index
+        1     B_odd_index
+        2    C_even_index
         dtype: object
         """
         return zip(iter(self.index), iter(self))
