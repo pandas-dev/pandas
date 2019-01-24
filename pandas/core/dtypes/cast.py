@@ -354,7 +354,7 @@ def infer_dtype_from_scalar(val, pandas_dtype=False):
 
     # a 1-element ndarray
     if isinstance(val, np.ndarray):
-        msg = "invalid ndarray passed to _infer_dtype_from_scalar"
+        msg = "invalid ndarray passed to infer_dtype_from_scalar"
         if val.ndim != 0:
             raise ValueError(msg)
 

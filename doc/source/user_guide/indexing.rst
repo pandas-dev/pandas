@@ -1392,7 +1392,7 @@ Performance of :meth:`~pandas.DataFrame.query`
 ``DataFrame.query()`` using ``numexpr`` is slightly faster than Python for
 large frames.
 
-.. image:: _static/query-perf.png
+.. image:: ../_static/query-perf.png
 
 .. note::
 
@@ -1400,7 +1400,7 @@ large frames.
    with ``DataFrame.query()`` if your frame has more than approximately 200,000
    rows.
 
-      .. image:: _static/query-perf-small.png
+      .. image:: ../_static/query-perf-small.png
 
 This plot was created using a ``DataFrame`` with 3 columns each containing
 floating point values generated using ``numpy.random.randn()``.
