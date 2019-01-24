@@ -817,6 +817,17 @@ class TestDataFrameAnalytics(object):
         assert_stat_op_calc('median', wrapper, float_frame_with_na,
                             check_dates=True)
 
+    # TODO: Ensure warning isn't emitted in the first place
+    @pytest.mark.filterwarnings("ignore:All-NaN:RuntimeWarning")
+    def test_median_corner(self, int_frame):
+        def wrapper(x):
+            if isna(x).any():
+                return np.nan
+            return np.median(x)
+
+        assert_stat_op_calc('median', wrapper, int_frame, check_dtype=False,
+                            check_dates=True)
+
     def test_min(self, float_frame_with_na, int_frame):
         with warnings.catch_warnings(record=True):
             warnings.simplefilter("ignore", RuntimeWarning)
@@ -1183,17 +1194,6 @@ class TestDataFrameAnalytics(object):
         float_string_frame.var(1)
         float_string_frame.mean(1)
         float_string_frame.skew(1)
-
-    # TODO: Ensure warning isn't emitted in the first place
-    @pytest.mark.filterwarnings("ignore:All-NaN:RuntimeWarning")
-    def test_median_corner(self, int_frame, float_frame):
-        def wrapper(x):
-            if isna(x).any():
-                return np.nan
-            return np.median(x)
-
-        assert_stat_op_calc('median', wrapper, int_frame, check_dtype=False,
-                            check_dates=True)
 
     def test_sum_bools(self):
         df = DataFrame(index=lrange(1), columns=lrange(10))
