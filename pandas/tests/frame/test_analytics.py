@@ -233,7 +233,7 @@ def assert_bool_op_api(opname, bool_frame_with_na, float_string_frame,
 
 class TestDataFrameAnalytics(object):
 
-    # ---------------------------------------------------------------------=
+    # ---------------------------------------------------------------------
     # Correlation and covariance
 
     @td.skip_if_no_scipy
@@ -502,7 +502,7 @@ class TestDataFrameAnalytics(object):
         expected = Series(np.ones(len(result)))
         tm.assert_series_equal(result, expected)
 
-    # ---------------------------------------------------------------------=
+    # ---------------------------------------------------------------------
     # Describe
 
     def test_bool_describe_in_mixed_frame(self):
@@ -696,7 +696,7 @@ class TestDataFrameAnalytics(object):
         result = df.describe(include='all')
         tm.assert_frame_equal(result, expected)
 
-    # ---------------------------------------------------------------------=
+    # ---------------------------------------------------------------------
     # Reductions
 
     def test_stat_op_api(self, float_frame, float_string_frame):
@@ -1219,7 +1219,7 @@ class TestDataFrameAnalytics(object):
         bools = isna(df)
         assert bools.sum(axis=1)[0] == 10
 
-    # ---------------------------------------------------------------------=
+    # ---------------------------------------------------------------------
     # Cumulative Reductions - cumsum, cummax, ...
 
     def test_cumsum_corner(self):
@@ -1326,7 +1326,7 @@ class TestDataFrameAnalytics(object):
         cummax_xs = datetime_frame.cummax(axis=1)
         assert np.shape(cummax_xs) == np.shape(datetime_frame)
 
-    # ---------------------------------------------------------------------=
+    # ---------------------------------------------------------------------
     # Miscellanea
 
     def test_count(self, float_frame_with_na):
@@ -1707,7 +1707,7 @@ class TestDataFrameAnalytics(object):
         result = df1_td.isin(df3)
         tm.assert_frame_equal(result, expected)
 
-    # ---------------------------------------------------------------------=
+    # ---------------------------------------------------------------------
     # Rounding
 
     def test_round(self):
@@ -1897,7 +1897,7 @@ class TestDataFrameAnalytics(object):
 
         tm.assert_frame_equal(result, expected)
 
-    # ---------------------------------------------------------------------=
+    # ---------------------------------------------------------------------
     # Clip
 
     def test_clip(self, float_frame):
@@ -2072,7 +2072,7 @@ class TestDataFrameAnalytics(object):
                               'col_2': [np.nan, np.nan, np.nan]})
         tm.assert_frame_equal(result, expected)
 
-    # ---------------------------------------------------------------------=
+    # ---------------------------------------------------------------------
     # Matrix-like
 
     def test_dot(self):
