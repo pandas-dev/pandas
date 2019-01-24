@@ -961,7 +961,9 @@ class TestMerge(object):
         assert_frame_equal(result, expected)
 
     def test_merge_right_index_right(self):
-        # https://github.com/pandas-dev/pandas/issues/24897
+        # Note: the expected output here is probably incorrect.
+        # See https://github.com/pandas-dev/pandas/issues/17257 for more.
+        # We include this as a regression test for GH-24897.
         left = pd.DataFrame({'a': [1, 2, 3], 'key': [0, 1, 1]})
         right = pd.DataFrame({'b': [1, 2, 3]})
 
