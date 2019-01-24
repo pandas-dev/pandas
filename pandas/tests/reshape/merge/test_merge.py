@@ -959,6 +959,24 @@ class TestMerge(object):
         expected.set_index('a', drop=False, inplace=True)
         assert_frame_equal(result, expected)
 
+    @pytest.mark.parametrize('how', ['right', 'outer'])
+    def test_merge_on_index_with_more_values(self, how):
+        # GH 24212
+        # pd.merge gets [-1, -1, 0, 1] as right_indexer, ensure that -1 is
+        # interpreted as a missing value instead of the last element
+        df1 = pd.DataFrame({'a': [1, 2, 3], 'key': [0, 2, 2]})
+        df2 = pd.DataFrame({'b': [1, 2, 3, 4, 5]})
+        result = df1.merge(df2, left_on='key', right_index=True, how=how)
+        expected = pd.DataFrame([[1.0, 0, 1],
+                                 [2.0, 2, 3],
+                                 [3.0, 2, 3],
+                                 [np.nan, 1, 2],
+                                 [np.nan, 3, 4],
+                                 [np.nan, 4, 5]],
+                                columns=['a', 'key', 'b'])
+        expected.set_index(Int64Index([0, 1, 2, 1, 3, 4]), inplace=True)
+        assert_frame_equal(result, expected)
+
     def test_merge_right_index_right(self):
         # Note: the expected output here is probably incorrect.
         # See https://github.com/pandas-dev/pandas/issues/17257 for more.
