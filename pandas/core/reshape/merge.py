@@ -757,6 +757,7 @@ class _MergeOperation(object):
 
             if self.right_index:
                 if len(self.left) > 0:
+                    print(left_indexer)
                     join_index = self._create_join_index(self.left.index,
                                                          self.right.index,
                                                          left_indexer,

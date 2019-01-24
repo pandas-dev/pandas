@@ -939,31 +939,11 @@ class TestMerge(object):
         with np.errstate(divide='raise'):
             merge(a, a, on=('a', 'b'))
 
-    @pytest.mark.parametrize('how', ['left', 'outer'])
-    def test_merge_on_index_with_more_values(self, how):
-        # GH 24212
-        # pd.merge gets [-1, -1, 0, 1] as right_indexer, ensure that -1 is
-        # interpreted as a missing value instead of the last element
-        df1 = pd.DataFrame([[1, 2], [2, 4], [3, 6], [4, 8]],
-                           columns=['a', 'b'])
-        df2 = pd.DataFrame([[3, 30], [4, 40]],
-                           columns=['a', 'c'])
-        df1.set_index('a', drop=False, inplace=True)
-        df2.set_index('a', inplace=True)
-        result = pd.merge(df1, df2, left_index=True, right_on='a', how=how)
-        expected = pd.DataFrame([[1, 2, np.nan],
-                                 [2, 4, np.nan],
-                                 [3, 6, 30.0],
-                                 [4, 8, 40.0]],
-                                columns=['a', 'b', 'c'])
-        expected.set_index('a', drop=False, inplace=True)
-        assert_frame_equal(result, expected)
-
     @pytest.mark.parametrize('how', ['right', 'outer'])
     def test_merge_on_index_with_more_values(self, how):
         # GH 24212
-        # pd.merge gets [-1, -1, 0, 1] as right_indexer, ensure that -1 is
-        # interpreted as a missing value instead of the last element
+        # pd.merge gets [0, 1, 2, -1, -1, -1] as left_indexer, ensure that
+        # -1 is interpreted as a missing value instead of the last element
         df1 = pd.DataFrame({'a': [1, 2, 3], 'key': [0, 2, 2]})
         df2 = pd.DataFrame({'b': [1, 2, 3, 4, 5]})
         result = df1.merge(df2, left_on='key', right_index=True, how=how)
@@ -984,7 +964,7 @@ class TestMerge(object):
         left = pd.DataFrame({'a': [1, 2, 3], 'key': [0, 1, 1]})
         right = pd.DataFrame({'b': [1, 2, 3]})
 
-        expected = pd.DataFrame({'a': [1, 2, 3, None],
+        expected = pd.DataFrame({'a': [1, 2, 3, None, None, None],
                                  'key': [0, 1, 1, 2],
                                  'b': [1, 2, 2, 3]},
                                 columns=['a', 'key', 'b'],
