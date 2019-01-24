@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 from datetime import datetime, time, timedelta
+import textwrap
 import warnings
 
 import numpy as np
@@ -216,6 +217,13 @@ class DatetimeArray(dtl.DatetimeLikeArrayMixin,
     Pandas ExtensionArray for tz-naive or tz-aware datetime data.
 
     .. versionadded:: 0.24.0
+
+    .. warning::
+
+       DatetimeArray is currently experimental, and its API may change
+       without warning. In particular, :attr:`DatetimeArray.dtype` is
+       expected to change to always be an instance of an ``ExtensionDtype``
+       subclass.
 
     Parameters
     ----------
@@ -509,6 +517,12 @@ class DatetimeArray(dtl.DatetimeLikeArrayMixin,
         # type: () -> Union[np.dtype, DatetimeTZDtype]
         """
         The dtype for the DatetimeArray.
+
+        .. warning::
+
+           A future version of pandas will change dtype to never be a
+           ``numpy.dtype``. Instead, :attr:`DatetimeArray.dtype` will
+           always be an instance of an ``ExtensionDtype`` subclass.
 
         Returns
         -------
@@ -1986,6 +2000,15 @@ def _validate_dt64_dtype(dtype):
     """
     if dtype is not None:
         dtype = pandas_dtype(dtype)
+        if is_dtype_equal(dtype, np.dtype("M8")):
+            # no precision, warn
+            dtype = _NS_DTYPE
+            msg = textwrap.dedent("""\
+                Passing in 'datetime64' dtype with no precision is deprecated
+                and will raise in a future version. Please pass in
+                'datetime64[ns]' instead.""")
+            warnings.warn(msg, FutureWarning, stacklevel=5)
+
         if ((isinstance(dtype, np.dtype) and dtype != _NS_DTYPE)
                 or not isinstance(dtype, (np.dtype, DatetimeTZDtype))):
             raise ValueError("Unexpected value for 'dtype': '{dtype}'. "
