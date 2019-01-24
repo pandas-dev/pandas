@@ -1,4 +1,4 @@
-# -*- coding: utf-8 -*-
+f # -*- coding: utf-8 -*-
 
 from datetime import timedelta
 import operator
@@ -704,7 +704,7 @@ class TestDataFrameAnalytics(object):
                            has_numeric_only=True)
         assert_stat_op_api('sum', float_frame, float_string_frame,
                            has_numeric_only=True)
-       
+
         assert_stat_op_api('nunique', float_frame, float_string_frame)
         assert_stat_op_api('mean', float_frame, float_string_frame)
         assert_stat_op_api('product', float_frame, float_string_frame)
@@ -723,7 +723,71 @@ class TestDataFrameAnalytics(object):
             assert_stat_op_api('kurt', float_frame, float_string_frame)
         except ImportError:
             pass
-   
+
+    def test_stat_op_calc(self, float_frame_with_na, mixed_float_frame):
+
+        def count(s):
+            return notna(s).sum()
+
+        def nunique(s):
+            return len(algorithms.unique1d(s.dropna()))
+
+        def mad(x):
+            return np.abs(x - x.mean()).mean()
+
+        def var(x):
+            return np.var(x, ddof=1)
+
+        def std(x):
+            return x: np.std(x, ddof=1)
+
+        def sem(x):
+            return np.std(x, ddof=1) / np.sqrt(len(x))
+
+        def skew(x):
+            from scipy.stats import skew
+            if len(x) < 3:
+                return np.nan
+            return skew(x, bias=False)
+
+        def kurt(x):
+            from scipy.stats import kurtosis
+            if len(x) < 4:
+                return np.nan
+            return kurtosis(x, bias=False)
+
+        assert_stat_op_calc('nunique', nunique, float_frame_with_na,
+                            has_skipna=False, check_dtype=False,
+                            check_dates=True)
+
+        # mixed types (with upcasting happening)
+        assert_stat_op_calc('sum', np.sum, mixed_float_frame.astype('float32'),
+                            check_dtype=False, check_less_precise=True)
+
+        assert_stat_op_calc('sum', np.sum, float_frame_with_na,
+                            skipna_alternative=np.nansum)
+        assert_stat_op_calc('mean', np.mean, float_frame_with_na,
+                            check_dates=True)
+        assert_stat_op_calc('product', np.prod, float_frame_with_na)
+
+
+        assert_stat_op_calc('mad', mad, float_frame_with_na)
+        assert_stat_op_calc('var', var, float_frame_with_na)
+        assert_stat_op_calc('std', std, float_frame_with_na)
+        assert_stat_op_calc('sem', sem, float_frame_with_na)
+
+
+        assert_stat_op_calc('count', count, float_frame_with_na,
+                            has_skipna=False, check_dtype=False,
+                            check_dates=True)
+
+        try:
+            from scipy import skew, kurtosis
+            assert_stat_op_calc('skew', skew, float_frame_with_na)
+            assert_stat_op_calc('kurt', kurt, float_frame_with_na)
+        except ImportError:
+            pass
+
     @pytest.mark.parametrize('method', ['sum', 'mean', 'prod', 'var',
                                         'std', 'skew', 'min', 'max'])
     def test_stat_operators_attempt_obj_array(self, method):
@@ -776,12 +840,7 @@ class TestDataFrameAnalytics(object):
                                     np.array([2, 150, 'abcde'], dtype=object))
         tm.assert_series_equal(test, df.T.sum(axis=1))
 
-    def test_nunique(self, float_frame_with_na):
-        f = lambda s: len(algorithms.unique1d(s.dropna()))
-        assert_stat_op_calc('nunique', f, float_frame_with_na,
-                            has_skipna=False, check_dtype=False,
-                            check_dates=True)
-
+    def test_nunique(self):
         df = DataFrame({'A': [1, 1, 1],
                         'B': [1, 2, 3],
                         'C': [1, np.nan, 3]})
@@ -791,20 +850,6 @@ class TestDataFrameAnalytics(object):
         tm.assert_series_equal(df.nunique(axis=1), Series({0: 1, 1: 2, 2: 2}))
         tm.assert_series_equal(df.nunique(axis=1, dropna=False),
                                Series({0: 1, 1: 3, 2: 2}))
-
-    def test_sum(self, float_frame_with_na, mixed_float_frame):
-        assert_stat_op_calc('sum', np.sum, float_frame_with_na,
-                            skipna_alternative=np.nansum)
-        # mixed types (with upcasting happening)
-        assert_stat_op_calc('sum', np.sum, mixed_float_frame.astype('float32'),
-                            check_dtype=False, check_less_precise=True)
-
-    def test_mean(self, float_frame_with_na):
-        assert_stat_op_calc('mean', np.mean, float_frame_with_na,
-                            check_dates=True)
-
-    def test_product(self, float_frame_with_na):
-        assert_stat_op_calc('product', np.prod, float_frame_with_na)
 
     @pytest.mark.parametrize('tz', [None, 'UTC'])
     def test_mean_mixed_datetime_numeric(self, tz):
@@ -861,17 +906,7 @@ class TestDataFrameAnalytics(object):
                                 check_dates=True)
         assert_stat_op_calc('max', np.max, int_frame)
 
-    def test_mad(self, float_frame_with_na):
-        f = lambda x: np.abs(x - x.mean()).mean()
-        assert_stat_op_calc('mad', f, float_frame_with_na)
-
-    def test_var_std(self, float_frame_with_na, datetime_frame):
-        alt = lambda x: np.var(x, ddof=1)
-        assert_stat_op_calc('var', alt, float_frame_with_na)
-
-        alt = lambda x: np.std(x, ddof=1)
-        assert_stat_op_calc('std', alt, float_frame_with_na)
-
+    def test_var_std(self, datetime_frame):
         result = datetime_frame.std(ddof=4)
         expected = datetime_frame.apply(lambda x: x.std(ddof=4))
         tm.assert_almost_equal(result, expected)
@@ -914,10 +949,7 @@ class TestDataFrameAnalytics(object):
         pytest.raises(TypeError, lambda: getattr(df2, meth)(
             axis=1, numeric_only=False))
 
-    def test_sem(self, float_frame_with_na, datetime_frame):
-        alt = lambda x: np.std(x, ddof=1) / np.sqrt(len(x))
-        assert_stat_op_calc('sem', alt, float_frame_with_na)
-
+    def test_sem(self, datetime_frame):
         result = datetime_frame.sem(ddof=4)
         expected = datetime_frame.apply(
             lambda x: x.std(ddof=4) / np.sqrt(len(x)))
@@ -932,27 +964,7 @@ class TestDataFrameAnalytics(object):
             assert not (result < 0).any()
 
     @td.skip_if_no_scipy
-    def test_skew(self, float_frame_with_na, float_frame):
-        from scipy.stats import skew
-
-        def alt(x):
-            if len(x) < 3:
-                return np.nan
-            return skew(x, bias=False)
-
-        assert_stat_op_calc('skew', alt, float_frame_with_na)
-
-    @td.skip_if_no_scipy
-    def test_kurt(self, float_frame_with_na, float_frame):
-        from scipy.stats import kurtosis
-
-        def alt(x):
-            if len(x) < 4:
-                return np.nan
-            return kurtosis(x, bias=False)
-
-        assert_stat_op_calc('kurt', alt, float_frame_with_na)
-
+    def test_kurt(self):
         index = MultiIndex(levels=[['bar'], ['one', 'two', 'three'], [0, 1]],
                            codes=[[0, 0, 0, 0, 0, 0],
                                   [0, 1, 2, 0, 1, 2],
@@ -1329,11 +1341,7 @@ class TestDataFrameAnalytics(object):
     # ---------------------------------------------------------------------
     # Miscellanea
 
-    def test_count(self, float_frame_with_na):
-        f = lambda s: notna(s).sum()
-        assert_stat_op_calc('count', f, float_frame_with_na, has_skipna=False,
-                            check_dtype=False, check_dates=True)
-
+    def test_count(self):
         # corner case
         frame = DataFrame()
         ct1 = frame.count(1)
