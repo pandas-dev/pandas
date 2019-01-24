@@ -32,6 +32,11 @@ Optional Integer NA Support
 Pandas has gained the ability to hold integer dtypes with missing values. This long requested feature is enabled through the use of :ref:`extension types <extending.extension-types>`.
 Here is an example of the usage.
 
+.. note::
+
+   IntegerArray is currently experimental. Its API or implementation may
+   change without warning.
+
 We can construct a ``Series`` with the specified dtype. The dtype string ``Int64`` is a pandas ``ExtensionDtype``. Specifying a list or array using the traditional missing value
 marker of ``np.nan`` will infer to integer dtype. The display of the ``Series`` will also use the ``NaN`` to indicate missing values in string outputs. (:issue:`20700`, :issue:`20747`, :issue:`22441`, :issue:`21789`, :issue:`22346`)
 
@@ -212,6 +217,9 @@ from the ``Series``:
 
    ser.array
    pser.array
+
+These return an instance of :class:`IntervalArray` or :class:`arrays.PeriodArray`,
+the new extension arrays that back interval and period data.
 
 .. warning::
 
@@ -1755,6 +1763,7 @@ I/O
 - Bug in :meth:`DataFrame.to_stata` and :class:`pandas.io.stata.StataWriter117` that produced invalid files when using strLs with non-ASCII characters (:issue:`23573`)
 - Bug in :class:`HDFStore` that caused it to raise ``ValueError`` when reading a Dataframe in Python 3 from fixed format written in Python 2 (:issue:`24510`)
 - Bug in :func:`DataFrame.to_string()` and more generally in the floating ``repr`` formatter. Zeros were not trimmed if ``inf`` was present in a columns while it was the case with NA values. Zeros are now trimmed as in the presence of NA (:issue:`24861`).
+- Bug in the ``repr`` when truncating the number of columns and having a wide last column (:issue:`24849`).
 
 Plotting
 ^^^^^^^^
@@ -1826,7 +1835,6 @@ Reshaping
 - Bug in :func:`DataFrame.unstack` where a ``ValueError`` was raised when unstacking timezone aware values (:issue:`18338`)
 - Bug in :func:`DataFrame.stack` where timezone aware values were converted to timezone naive values (:issue:`19420`)
 - Bug in :func:`merge_asof` where a ``TypeError`` was raised when ``by_col`` were timezone aware values (:issue:`21184`)
-- Bug in :func:`merge` when merging by index name would sometimes result in an incorrectly numbered index (:issue:`24212`)
 - Bug showing an incorrect shape when throwing error during ``DataFrame`` construction. (:issue:`20742`)
 
 .. _whatsnew_0240.bug_fixes.sparse:
