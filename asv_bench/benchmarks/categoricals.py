@@ -223,11 +223,16 @@ class CategoricalSlicing(object):
 
     def setup(self, index):
         N = 10**6
-        values = list('a' * N + 'b' * N + 'c' * N)
+        categories = ['a', 'b', 'c']
+        values = [0] * N + [1] * N + [2] * N
         indices = {
-            'monotonic_incr': pd.Categorical(values),
-            'monotonic_decr': pd.Categorical(reversed(values)),
-            'non_monotonic': pd.Categorical(list('abc' * N))}
+            'monotonic_incr': pd.Categorical.from_codes(values,
+                                                        categories=categories),
+            'monotonic_decr': pd.Categorical.from_codes(list(reversed(values)),
+                                                        categories=categories),
+            'non_monotonic': pd.Categorical.from_codes([0, 1, 2] * N,
+                                                       categories=categories)
+        }
         self.data = indices[index]
 
         self.scalar = 10000
