@@ -63,6 +63,9 @@ Bug Fixes
 -
 -
 
+**Reshaping**
+
+- Bug in :func:`merge` when merging by index name would sometimes result in an incorrectly numbered index (:issue:`24212`)
 
 **Other**
 
