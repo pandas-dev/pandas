@@ -72,7 +72,7 @@ class SeriesDtypesConstructors(object):
 
     def setup(self):
         N = 10**4
-        self.arr = np.random.randn(N, N)
+        self.arr = np.random.randn(N)
         self.arr_str = np.array(['foo', 'bar', 'baz'], dtype=object)
         self.s = Series([Timestamp('20110101'), Timestamp('20120101'),
                          Timestamp('20130101')] * N * 10)
