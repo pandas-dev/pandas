@@ -699,6 +699,31 @@ class TestDataFrameAnalytics(object):
     # ---------------------------------------------------------------------=
     # Reductions
 
+    def test_stat_op_api(self, float_frame, float_string_frame):
+        assert_stat_op_api('count', float_frame, float_string_frame,
+                           has_numeric_only=True)
+        assert_stat_op_api('sum', float_frame, float_string_frame,
+                           has_numeric_only=True)
+       
+        assert_stat_op_api('nunique', float_frame, float_string_frame)
+        assert_stat_op_api('mean', float_frame, float_string_frame)
+        assert_stat_op_api('product', float_frame, float_string_frame)
+        assert_stat_op_api('median', float_frame, float_string_frame)
+        assert_stat_op_api('min', float_frame, float_string_frame)
+        assert_stat_op_api('max', float_frame, float_string_frame)
+        assert_stat_op_api('mad', float_frame, float_string_frame)
+        assert_stat_op_api('var', float_frame, float_string_frame)
+        assert_stat_op_api('std', float_frame, float_string_frame)
+        assert_stat_op_api('sem', float_frame, float_string_frame)
+        assert_stat_op_api('median', float_frame, float_string_frame)
+
+        try:
+            from scipy.stats import skew, kurtosis
+            assert_stat_op_api('skew', float_frame, float_string_frame)
+            assert_stat_op_api('kurt', float_frame, float_string_frame)
+        except ImportError:
+            pass
+   
     def test_reduce_mixed_frame(self):
         # GH 6806
         df = DataFrame({
@@ -712,13 +737,11 @@ class TestDataFrameAnalytics(object):
                                     np.array([2, 150, 'abcde'], dtype=object))
         tm.assert_series_equal(test, df.T.sum(axis=1))
 
-    def test_nunique(self, float_frame_with_na, float_frame,
-                     float_string_frame):
+    def test_nunique(self, float_frame_with_na):
         f = lambda s: len(algorithms.unique1d(s.dropna()))
         assert_stat_op_calc('nunique', f, float_frame_with_na,
                             has_skipna=False, check_dtype=False,
                             check_dates=True)
-        assert_stat_op_api('nunique', float_frame, float_string_frame)
 
         df = DataFrame({'A': [1, 1, 1],
                         'B': [1, 2, 3],
@@ -730,10 +753,7 @@ class TestDataFrameAnalytics(object):
         tm.assert_series_equal(df.nunique(axis=1, dropna=False),
                                Series({0: 1, 1: 3, 2: 2}))
 
-    def test_sum(self, float_frame_with_na, mixed_float_frame,
-                 float_frame, float_string_frame):
-        assert_stat_op_api('sum', float_frame, float_string_frame,
-                           has_numeric_only=True)
+    def test_sum(self, float_frame_with_na, mixed_float_frame):
         assert_stat_op_calc('sum', np.sum, float_frame_with_na,
                             skipna_alternative=np.nansum)
         # mixed types (with upcasting happening)
@@ -764,20 +784,16 @@ class TestDataFrameAnalytics(object):
             if method in ['sum', 'prod']:
                 tm.assert_series_equal(result, expected)
 
-    def test_mean(self, float_frame_with_na, float_frame, float_string_frame):
+    def test_mean(self, float_frame_with_na):
         assert_stat_op_calc('mean', np.mean, float_frame_with_na,
                             check_dates=True)
-        assert_stat_op_api('mean', float_frame, float_string_frame)
 
-    def test_product(self, float_frame_with_na, float_frame,
-                     float_string_frame):
+    def test_product(self, float_frame_with_na):
         assert_stat_op_calc('product', np.prod, float_frame_with_na)
-        assert_stat_op_api('product', float_frame, float_string_frame)
 
     # TODO: Ensure warning isn't emitted in the first place
     @pytest.mark.filterwarnings("ignore:All-NaN:RuntimeWarning")
-    def test_median(self, float_frame_with_na, float_frame,
-                    float_string_frame):
+    def test_median(self, float_frame_with_na):
         def wrapper(x):
             if isna(x).any():
                 return np.nan
@@ -785,40 +801,31 @@ class TestDataFrameAnalytics(object):
 
         assert_stat_op_calc('median', wrapper, float_frame_with_na,
                             check_dates=True)
-        assert_stat_op_api('median', float_frame, float_string_frame)
 
-    def test_min(self, float_frame_with_na, int_frame,
-                 float_frame, float_string_frame):
+    def test_min(self, float_frame_with_na, int_frame):
         with warnings.catch_warnings(record=True):
             warnings.simplefilter("ignore", RuntimeWarning)
             assert_stat_op_calc('min', np.min, float_frame_with_na,
                                 check_dates=True)
         assert_stat_op_calc('min', np.min, int_frame)
-        assert_stat_op_api('min', float_frame, float_string_frame)
 
-    def test_max(self, float_frame_with_na, int_frame,
-                 float_frame, float_string_frame):
+    def test_max(self, float_frame_with_na, int_frame):
         with warnings.catch_warnings(record=True):
             warnings.simplefilter("ignore", RuntimeWarning)
             assert_stat_op_calc('max', np.max, float_frame_with_na,
                                 check_dates=True)
         assert_stat_op_calc('max', np.max, int_frame)
-        assert_stat_op_api('max', float_frame, float_string_frame)
 
-    def test_mad(self, float_frame_with_na, float_frame, float_string_frame):
+    def test_mad(self, float_frame_with_na):
         f = lambda x: np.abs(x - x.mean()).mean()
         assert_stat_op_calc('mad', f, float_frame_with_na)
-        assert_stat_op_api('mad', float_frame, float_string_frame)
 
-    def test_var_std(self, float_frame_with_na, datetime_frame, float_frame,
-                     float_string_frame):
+    def test_var_std(self, float_frame_with_na, datetime_frame):
         alt = lambda x: np.var(x, ddof=1)
         assert_stat_op_calc('var', alt, float_frame_with_na)
-        assert_stat_op_api('var', float_frame, float_string_frame)
 
         alt = lambda x: np.std(x, ddof=1)
         assert_stat_op_calc('std', alt, float_frame_with_na)
-        assert_stat_op_api('std', float_frame, float_string_frame)
 
         result = datetime_frame.std(ddof=4)
         expected = datetime_frame.apply(lambda x: x.std(ddof=4))
@@ -877,11 +884,9 @@ class TestDataFrameAnalytics(object):
             result = getattr(df, op)()
             assert len(result) == 2
 
-    def test_sem(self, float_frame_with_na, datetime_frame,
-                 float_frame, float_string_frame):
+    def test_sem(self, float_frame_with_na, datetime_frame):
         alt = lambda x: np.std(x, ddof=1) / np.sqrt(len(x))
         assert_stat_op_calc('sem', alt, float_frame_with_na)
-        assert_stat_op_api('sem', float_frame, float_string_frame)
 
         result = datetime_frame.sem(ddof=4)
         expected = datetime_frame.apply(
@@ -897,7 +902,7 @@ class TestDataFrameAnalytics(object):
             assert not (result < 0).any()
 
     @td.skip_if_no_scipy
-    def test_skew(self, float_frame_with_na, float_frame, float_string_frame):
+    def test_skew(self, float_frame_with_na, float_frame):
         from scipy.stats import skew
 
         def alt(x):
@@ -906,10 +911,9 @@ class TestDataFrameAnalytics(object):
             return skew(x, bias=False)
 
         assert_stat_op_calc('skew', alt, float_frame_with_na)
-        assert_stat_op_api('skew', float_frame, float_string_frame)
 
     @td.skip_if_no_scipy
-    def test_kurt(self, float_frame_with_na, float_frame, float_string_frame):
+    def test_kurt(self, float_frame_with_na, float_frame):
         from scipy.stats import kurtosis
 
         def alt(x):
@@ -918,7 +922,6 @@ class TestDataFrameAnalytics(object):
             return kurtosis(x, bias=False)
 
         assert_stat_op_calc('kurt', alt, float_frame_with_na)
-        assert_stat_op_api('kurt', float_frame, float_string_frame)
 
         index = MultiIndex(levels=[['bar'], ['one', 'two', 'three'], [0, 1]],
                            codes=[[0, 0, 0, 0, 0, 0],
@@ -1183,7 +1186,7 @@ class TestDataFrameAnalytics(object):
 
     # TODO: Ensure warning isn't emitted in the first place
     @pytest.mark.filterwarnings("ignore:All-NaN:RuntimeWarning")
-    def test_median_corner(self, int_frame, float_frame, float_string_frame):
+    def test_median_corner(self, int_frame, float_frame):
         def wrapper(x):
             if isna(x).any():
                 return np.nan
@@ -1191,7 +1194,6 @@ class TestDataFrameAnalytics(object):
 
         assert_stat_op_calc('median', wrapper, int_frame, check_dtype=False,
                             check_dates=True)
-        assert_stat_op_api('median', float_frame, float_string_frame)
 
     def test_sum_bools(self):
         df = DataFrame(index=lrange(1), columns=lrange(10))
@@ -1308,12 +1310,10 @@ class TestDataFrameAnalytics(object):
     # ---------------------------------------------------------------------=
     # Miscellanea
 
-    def test_count(self, float_frame_with_na, float_frame, float_string_frame):
+    def test_count(self, float_frame_with_na):
         f = lambda s: notna(s).sum()
         assert_stat_op_calc('count', f, float_frame_with_na, has_skipna=False,
                             check_dtype=False, check_dates=True)
-        assert_stat_op_api('count', float_frame, float_string_frame,
-                           has_numeric_only=True)
 
         # corner case
         frame = DataFrame()
@@ -1323,7 +1323,7 @@ class TestDataFrameAnalytics(object):
         ct2 = frame.count(0)
         assert isinstance(ct2, Series)
 
-        # GH 423
+        # GH#423
         df = DataFrame(index=lrange(10))
         result = df.count(1)
         expected = Series(0, index=df.index)
