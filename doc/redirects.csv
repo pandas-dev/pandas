@@ -4,7 +4,12 @@
 # getting started
 10min,getting_started/10min
 basics,getting_started/basics
+comparison_with_r,getting_started/comparison/comparison_with_r
+comparison_with_sql,getting_started/comparison/comparison_with_sql
+comparison_with_sas,getting_started/comparison/comparison_with_sas
+comparison_with_stata,getting_started/comparison/comparison_with_stata
 dsintro,getting_started/dsintro
+ecosystem,getting_started/ecosystem
 overview,getting_started/overview
 tutorials,getting_started/tutorials
 
@@ -12,6 +17,7 @@ tutorials,getting_started/tutorials
 advanced,user_guide/advanced
 categorical,user_guide/categorical
 computation,user_guide/computation
+cookbook,user_guide/cookbook
 enhancingperf,user_guide/enhancingperf
 gotchas,user_guide/gotchas
 groupby,user_guide/groupby
