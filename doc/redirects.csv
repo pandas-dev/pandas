@@ -1,6 +1,9 @@
 # This file should contain all the redirects in the documentation
 # in the format `<old_path>,<new_path>`
 
+# whatsnew
+whatsnew,whatsnew/index
+
 # getting started
 10min,getting_started/10min
 basics,getting_started/basics
