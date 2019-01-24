@@ -794,6 +794,25 @@ class TestDataFrameAnalytics():
                             check_dates=True)
         assert_stat_op_api('mean', float_frame, float_string_frame)
 
+    @pytest.mark.parametrize('tz', [None, 'UTC'])
+    def test_mean_mixed_datetime_numeric(self, tz):
+        # https://github.com/pandas-dev/pandas/issues/24752
+        df = pd.DataFrame({"A": [1, 1],
+                           "B": [pd.Timestamp('2000', tz=tz)] * 2})
+        result = df.mean()
+        expected = pd.Series([1.0], index=['A'])
+        tm.assert_series_equal(result, expected)
+
+    @pytest.mark.parametrize('tz', [None, 'UTC'])
+    def test_mean_excludeds_datetimes(self, tz):
+        # https://github.com/pandas-dev/pandas/issues/24752
+        # Our long-term desired behavior is unclear, but the behavior in
+        # 0.24.0rc1 was buggy.
+        df = pd.DataFrame({"A": [pd.Timestamp('2000', tz=tz)] * 2})
+        result = df.mean()
+        expected = pd.Series()
+        tm.assert_series_equal(result, expected)
+
     def test_product(self, float_frame_with_na, float_frame,
                      float_string_frame):
         assert_stat_op_calc('product', np.prod, float_frame_with_na)

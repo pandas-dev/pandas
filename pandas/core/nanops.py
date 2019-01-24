@@ -14,7 +14,8 @@ from pandas.core.dtypes.common import (
     _get_dtype, is_any_int_dtype, is_bool_dtype, is_complex, is_complex_dtype,
     is_datetime64_dtype, is_datetime64tz_dtype, is_datetime_or_timedelta_dtype,
     is_float, is_float_dtype, is_integer, is_integer_dtype, is_numeric_dtype,
-    is_object_dtype, is_scalar, is_timedelta64_dtype)
+    is_object_dtype, is_scalar, is_timedelta64_dtype, pandas_dtype)
+from pandas.core.dtypes.dtypes import DatetimeTZDtype
 from pandas.core.dtypes.missing import isna, na_value_for_dtype, notna
 
 import pandas.core.common as com
@@ -57,7 +58,7 @@ class disallow(object):
 
     def __init__(self, *dtypes):
         super(disallow, self).__init__()
-        self.dtypes = tuple(np.dtype(dtype).type for dtype in dtypes)
+        self.dtypes = tuple(pandas_dtype(dtype).type for dtype in dtypes)
 
     def check(self, obj):
         return hasattr(obj, 'dtype') and issubclass(obj.dtype.type,
@@ -437,6 +438,7 @@ def nansum(values, axis=None, skipna=True, min_count=0, mask=None):
     return _wrap_results(the_sum, dtype)
 
 
+@disallow('M8', DatetimeTZDtype)
 @bottleneck_switch()
 def nanmean(values, axis=None, skipna=True, mask=None):
     """
