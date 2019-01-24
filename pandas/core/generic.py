@@ -4067,7 +4067,7 @@ class NDFrame(PandasObject, SelectionMixin):
         ascending : bool, default True
             Sort ascending vs. descending.
         inplace : bool, default False
-            If True, perform operation in-place
+            If True, perform operation in-place.
         kind : {'quicksort', 'mergesort', 'heapsort'}, default 'quicksort'
             Choice of sorting algorithm. See also ndarray.np.sort for more
             information.  `mergesort` is the only stable algorithm. For

@@ -2863,7 +2863,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         Returns
         -------
         pandas.Series
-            The original Series sorted by the labels
+            The original Series sorted by the labels.
 
         See Also
         --------
