@@ -530,7 +530,7 @@ class NDFrame(PandasObject, SelectionMixin):
             The axis to update. The value 0 identifies the rows, and 1
             identifies the columns.
 
-        inplace : boolean, default None
+        inplace : bool, default None
             Whether to return a new %(klass)s instance.
 
             .. warning::
@@ -3989,7 +3989,8 @@ class NDFrame(PandasObject, SelectionMixin):
 
         Returns
         -------
-        sorted_obj : %(klass)s
+        sorted_obj : %(klass)s or None
+            An object of same type as caller if inplace=False, None otherwise.
 
         Examples
         --------
@@ -4061,7 +4062,9 @@ class NDFrame(PandasObject, SelectionMixin):
 
         Parameters
         ----------
-        axis : %(axes)s to direct sorting
+        axis : {0 or 'index', 1 or 'columns'}, default 0
+            The axis along which to sort.  The value 0 identifies the rows,
+            and 1 identifies the columns.
         level : int or level name or list of ints or list of level names
             If not None, sort on values in specified index level(s).
         ascending : bool, default True
@@ -4082,7 +4085,8 @@ class NDFrame(PandasObject, SelectionMixin):
 
         Returns
         -------
-        sorted_obj : %(klass)s
+        sorted_obj : %(klass)s or None
+            An object of same type as caller if inplace=False, None otherwise.
         """
         inplace = validate_bool_kwarg(inplace, 'inplace')
         axis = self._get_axis_number(axis)
