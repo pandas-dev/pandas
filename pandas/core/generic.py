@@ -4064,7 +4064,7 @@ class NDFrame(PandasObject, SelectionMixin):
         axis : %(axes)s to direct sorting
         level : int or level name or list of ints or list of level names
             If not None, sort on values in specified index level(s).
-        ascending : boolean, default True
+        ascending : bool, default True
             Sort ascending vs. descending.
         inplace : bool, default False
             If True, perform operation in-place
