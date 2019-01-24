@@ -2103,7 +2103,7 @@ class NDFrame(PandasObject, SelectionMixin):
                  float_format=None, columns=None, header=True, index=True,
                  index_label=None, startrow=0, startcol=0, engine=None,
                  merge_cells=True, encoding=None, inf_rep="inf", verbose=True,
-                 freeze_panes=None):
+                 freeze_panes=None, as_table=False):
         df = self if isinstance(self, ABCDataFrame) else self.to_frame()
 
         from pandas.io.formats.excel import ExcelFormatter
@@ -2115,7 +2115,7 @@ class NDFrame(PandasObject, SelectionMixin):
                                    inf_rep=inf_rep)
         formatter.write(excel_writer, sheet_name=sheet_name, startrow=startrow,
                         startcol=startcol, freeze_panes=freeze_panes,
-                        engine=engine)
+                        engine=engine, as_table=as_table)
 
     def to_json(self, path_or_buf=None, orient=None, date_format=None,
                 double_precision=10, force_ascii=True, date_unit='ms',

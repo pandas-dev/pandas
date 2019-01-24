@@ -1579,6 +1579,14 @@ class _OpenpyxlWriter(ExcelWriter):
 
         return Protection(**protection_dict)
 
+    @classmethod
+    def _to_excel_range(cls, startrow, startcol, endrow, endcol):
+        """Convert (zero based) numeric coordinates to excel range."""
+        from openpyxl.utils.cell import get_column_letter
+        return (f"{get_column_letter(startcol+1)}{startrow+1}"
+                ":"
+                f"{get_column_letter(endcol+1)}{endrow+1}")
+
     def write_cells(self, cells, sheet_name=None, startrow=0, startcol=0,
                     freeze_panes=None):
         # Write the frame cells using openpyxl.
@@ -1621,10 +1629,10 @@ class _OpenpyxlWriter(ExcelWriter):
             if cell.mergestart is not None and cell.mergeend is not None:
 
                 wks.merge_cells(
-                    start_row=startrow + cell.row + 1,
+                    startrow=startrow + cell.row + 1,
                     start_column=startcol + cell.col + 1,
                     end_column=startcol + cell.mergeend + 1,
-                    end_row=startrow + cell.mergestart + 1
+                    endrow=startrow + cell.mergestart + 1
                 )
 
                 # When cells are merged only the top-left cell is preserved
@@ -1644,6 +1652,65 @@ class _OpenpyxlWriter(ExcelWriter):
                             xcell = wks.cell(column=col, row=row)
                             for k, v in style_kwargs.items():
                                 setattr(xcell, k, v)
+
+    def write_table(self, cells, sheet_name=None, startrow=0, startcol=0,
+                    freeze_panes=None, header=True):
+        # Write the frame to an excel table using openpyxl.
+
+        from openpyxl.worksheet.table import Table, TableStyleInfo
+        sheet_name = self._get_sheet_name(sheet_name)
+
+        _style_cache = {}
+
+        if sheet_name in self.sheets:
+            wks = self.sheets[sheet_name]
+        else:
+            wks = self.book.create_sheet()
+            wks.title = sheet_name
+            self.sheets[sheet_name] = wks
+
+        if _validate_freeze_panes(freeze_panes):
+            wks.freeze_panes = wks.cell(row=freeze_panes[0] + 1,
+                                        column=freeze_panes[1] + 1)
+
+        header_rows = 1 if header > 0 else 0
+
+        n_cols = 0
+        n_rows = 0
+        header_cells = {}
+        for cell in cells:
+            val, fmt = self._value_with_fmt(cell.val)
+            if header and cell.row == 0 and cell.val:
+                header_cells[cell.col] = cell.val
+                continue
+            xcell = wks.cell(
+                row=startrow + cell.row + 1,
+                column=startcol + cell.col + 1,
+                value=val,
+            )
+            n_cols = max(n_cols, cell.col) 
+            n_rows = max(n_rows, cell.row)
+
+        # add generic name for every unnamed (index) column that is included
+        [wks.cell(
+                row=startrow + 1,
+                column=startcol + col + 1,
+                value=(str(header_cells[col])
+                       if col in header_cells
+                       else f'Column{col + 1}'),
+            ) for col in range(n_cols + 1)]
+
+        ref = self._to_excel_range(startrow, startcol, startrow + n_rows,
+                                   startcol + n_cols)
+        tab = Table(displayName="Table1", ref=ref, headerRowCount=header_rows)
+
+        # Add a default style with striped rows
+        style = TableStyleInfo(
+            name="TableStyleMedium9", showFirstColumn=False,
+            showLastColumn=False, showRowStripes=True, showColumnStripes=False)
+        tab.tableStyleInfo = style
+        
+        wks.add_table(tab)
 
 
 register_writer(_OpenpyxlWriter)
@@ -1991,6 +2058,44 @@ class _XlsxWriter(ExcelWriter):
                 wks.write(startrow + cell.row,
                           startcol + cell.col,
                           val, style)
+
+    def write_table(self, cells, sheet_name=None, startrow=0, startcol=0,
+                    freeze_panes=None, header=True):
+        # Write the frame to an excel table using xlsxwriter.
+        sheet_name = self._get_sheet_name(sheet_name)
+
+        if sheet_name in self.sheets:
+            wks = self.sheets[sheet_name]
+        else:
+            wks = self.book.add_worksheet(sheet_name)
+            self.sheets[sheet_name] = wks
+
+        if _validate_freeze_panes(freeze_panes):
+            wks.freeze_panes(*(freeze_panes))
+
+        n_cols = 0
+        n_rows = 0
+        header_cells = {}
+        for cell in cells:
+            val, fmt = self._value_with_fmt(cell.val)
+            if header and cell.row == 0 and cell.val:
+                header_cells[cell.col] = cell.val
+                continue
+            wks.write(startrow + cell.row,
+                      startcol + cell.col,
+                      val)
+            n_cols = max(n_cols, cell.col)
+            n_rows = max(n_rows, cell.row)
+
+        # add generic name for every unnamed (index) column that is included
+        columns = [{'header': str(header_cells[col])
+                   if col in header_cells else f'Column{col + 1}'}
+                   for col in range(n_cols + 1)]
+
+        options = {'columns': columns}
+
+        wks.add_table(startrow, startcol, startrow + n_rows,
+                      startcol + n_cols, options)
 
 
 register_writer(_XlsxWriter)

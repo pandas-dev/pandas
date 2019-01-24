@@ -622,14 +622,18 @@ class ExcelFormatter(object):
                 yield ExcelCell(self.rowcounter + i, colidx + coloffset, val,
                                 xlstyle)
 
-    def get_formatted_cells(self):
-        for cell in itertools.chain(self._format_header(),
-                                    self._format_body()):
+    def get_formatted_cells(self, include_header=True):
+        if include_header:
+            cells = itertools.chain(self._format_header(),
+                                    self._format_body())
+        else:
+            cells = self._format_body()
+        for cell in cells:
             cell.val = self._format_value(cell.val)
             yield cell
 
     def write(self, writer, sheet_name='Sheet1', startrow=0,
-              startcol=0, freeze_panes=None, engine=None):
+              startcol=0, freeze_panes=None, engine=None, as_table=False):
         """
         writer : string or ExcelWriter object
             File path or existing ExcelWriter
@@ -657,8 +661,14 @@ class ExcelFormatter(object):
             need_save = True
 
         formatted_cells = self.get_formatted_cells()
-        writer.write_cells(formatted_cells, sheet_name,
-                           startrow=startrow, startcol=startcol,
-                           freeze_panes=freeze_panes)
+        if as_table:
+            writer.write_table(formatted_cells, sheet_name,
+                               startrow=startrow, startcol=startcol,
+                               freeze_panes=freeze_panes,
+                               header=self.header)
+        else:            
+            writer.write_cells(formatted_cells, sheet_name,
+                               startrow=startrow, startcol=startcol,
+                               freeze_panes=freeze_panes)
         if need_save:
             writer.save()
