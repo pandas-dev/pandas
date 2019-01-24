@@ -225,15 +225,17 @@ class CategoricalSlicing(object):
         N = 10**6
         categories = ['a', 'b', 'c']
         values = [0] * N + [1] * N + [2] * N
-        indices = {
-            'monotonic_incr': pd.Categorical.from_codes(values,
-                                                        categories=categories),
-            'monotonic_decr': pd.Categorical.from_codes(list(reversed(values)),
-                                                        categories=categories),
-            'non_monotonic': pd.Categorical.from_codes([0, 1, 2] * N,
-                                                       categories=categories)
-        }
-        self.data = indices[index]
+        if index == 'monotonic_incr':
+            self.data = pd.Categorical.from_codes(values,
+                                                  categories=categories)
+        elif index == 'monotonic_decr':
+            self.data = pd.Categorical.from_codes(list(reversed(values)),
+                                                  categories=categories)
+        elif index == 'non_monotonic':
+            self.data = pd.Categorical.from_codes([0, 1, 2] * N,
+                                                  categories=categories)
+        else:
+            raise ValueError('Invalid index param: {}'.format(index))
 
         self.scalar = 10000
         self.list = list(range(10000))
