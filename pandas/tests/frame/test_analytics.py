@@ -231,7 +231,7 @@ def assert_bool_op_api(opname, bool_frame_with_na, float_string_frame,
         getattr(bool_frame_with_na, opname)(axis=1, bool_only=False)
 
 
-class TestDataFrameAnalytics():
+class TestDataFrameAnalytics(object):
 
     # ---------------------------------------------------------------------=
     # Correlation and covariance
@@ -502,6 +502,9 @@ class TestDataFrameAnalytics():
         expected = Series(np.ones(len(result)))
         tm.assert_series_equal(result, expected)
 
+    # ---------------------------------------------------------------------=
+    # Describe
+
     def test_bool_describe_in_mixed_frame(self):
         df = DataFrame({
             'string_data': ['a', 'b', 'c', 'd', 'e'],
@@ -693,6 +696,9 @@ class TestDataFrameAnalytics():
         result = df.describe(include='all')
         tm.assert_frame_equal(result, expected)
 
+    # ---------------------------------------------------------------------=
+    # Reductions
+
     def test_reduce_mixed_frame(self):
         # GH 6806
         df = DataFrame({
@@ -705,37 +711,6 @@ class TestDataFrameAnalytics():
         tm.assert_numpy_array_equal(test.values,
                                     np.array([2, 150, 'abcde'], dtype=object))
         tm.assert_series_equal(test, df.T.sum(axis=1))
-
-    def test_count(self, float_frame_with_na, float_frame, float_string_frame):
-        f = lambda s: notna(s).sum()
-        assert_stat_op_calc('count', f, float_frame_with_na, has_skipna=False,
-                            check_dtype=False, check_dates=True)
-        assert_stat_op_api('count', float_frame, float_string_frame,
-                           has_numeric_only=True)
-
-        # corner case
-        frame = DataFrame()
-        ct1 = frame.count(1)
-        assert isinstance(ct1, Series)
-
-        ct2 = frame.count(0)
-        assert isinstance(ct2, Series)
-
-        # GH 423
-        df = DataFrame(index=lrange(10))
-        result = df.count(1)
-        expected = Series(0, index=df.index)
-        tm.assert_series_equal(result, expected)
-
-        df = DataFrame(columns=lrange(10))
-        result = df.count(0)
-        expected = Series(0, index=df.columns)
-        tm.assert_series_equal(result, expected)
-
-        df = DataFrame()
-        result = df.count()
-        expected = Series(0, index=[])
-        tm.assert_series_equal(result, expected)
 
     def test_nunique(self, float_frame_with_na, float_frame,
                      float_string_frame):
@@ -821,52 +796,6 @@ class TestDataFrameAnalytics():
         assert_stat_op_calc('min', np.min, int_frame)
         assert_stat_op_api('min', float_frame, float_string_frame)
 
-    def test_cummin(self, datetime_frame):
-        datetime_frame.loc[5:10, 0] = np.nan
-        datetime_frame.loc[10:15, 1] = np.nan
-        datetime_frame.loc[15:, 2] = np.nan
-
-        # axis = 0
-        cummin = datetime_frame.cummin()
-        expected = datetime_frame.apply(Series.cummin)
-        tm.assert_frame_equal(cummin, expected)
-
-        # axis = 1
-        cummin = datetime_frame.cummin(axis=1)
-        expected = datetime_frame.apply(Series.cummin, axis=1)
-        tm.assert_frame_equal(cummin, expected)
-
-        # it works
-        df = DataFrame({'A': np.arange(20)}, index=np.arange(20))
-        result = df.cummin()  # noqa
-
-        # fix issue
-        cummin_xs = datetime_frame.cummin(axis=1)
-        assert np.shape(cummin_xs) == np.shape(datetime_frame)
-
-    def test_cummax(self, datetime_frame):
-        datetime_frame.loc[5:10, 0] = np.nan
-        datetime_frame.loc[10:15, 1] = np.nan
-        datetime_frame.loc[15:, 2] = np.nan
-
-        # axis = 0
-        cummax = datetime_frame.cummax()
-        expected = datetime_frame.apply(Series.cummax)
-        tm.assert_frame_equal(cummax, expected)
-
-        # axis = 1
-        cummax = datetime_frame.cummax(axis=1)
-        expected = datetime_frame.apply(Series.cummax, axis=1)
-        tm.assert_frame_equal(cummax, expected)
-
-        # it works
-        df = DataFrame({'A': np.arange(20)}, index=np.arange(20))
-        result = df.cummax()  # noqa
-
-        # fix issue
-        cummax_xs = datetime_frame.cummax(axis=1)
-        assert np.shape(cummax_xs) == np.shape(datetime_frame)
-
     def test_max(self, float_frame_with_na, int_frame,
                  float_frame, float_string_frame):
         with warnings.catch_warnings(record=True):
@@ -947,58 +876,6 @@ class TestDataFrameAnalytics():
         with pd.option_context('use_bottleneck', False):
             result = getattr(df, op)()
             assert len(result) == 2
-
-    def test_cumsum(self, datetime_frame):
-        datetime_frame.loc[5:10, 0] = np.nan
-        datetime_frame.loc[10:15, 1] = np.nan
-        datetime_frame.loc[15:, 2] = np.nan
-
-        # axis = 0
-        cumsum = datetime_frame.cumsum()
-        expected = datetime_frame.apply(Series.cumsum)
-        tm.assert_frame_equal(cumsum, expected)
-
-        # axis = 1
-        cumsum = datetime_frame.cumsum(axis=1)
-        expected = datetime_frame.apply(Series.cumsum, axis=1)
-        tm.assert_frame_equal(cumsum, expected)
-
-        # works
-        df = DataFrame({'A': np.arange(20)}, index=np.arange(20))
-        result = df.cumsum()  # noqa
-
-        # fix issue
-        cumsum_xs = datetime_frame.cumsum(axis=1)
-        assert np.shape(cumsum_xs) == np.shape(datetime_frame)
-
-    def test_cumprod(self, datetime_frame):
-        datetime_frame.loc[5:10, 0] = np.nan
-        datetime_frame.loc[10:15, 1] = np.nan
-        datetime_frame.loc[15:, 2] = np.nan
-
-        # axis = 0
-        cumprod = datetime_frame.cumprod()
-        expected = datetime_frame.apply(Series.cumprod)
-        tm.assert_frame_equal(cumprod, expected)
-
-        # axis = 1
-        cumprod = datetime_frame.cumprod(axis=1)
-        expected = datetime_frame.apply(Series.cumprod, axis=1)
-        tm.assert_frame_equal(cumprod, expected)
-
-        # fix issue
-        cumprod_xs = datetime_frame.cumprod(axis=1)
-        assert np.shape(cumprod_xs) == np.shape(datetime_frame)
-
-        # ints
-        df = datetime_frame.fillna(0).astype(int)
-        df.cumprod(0)
-        df.cumprod(1)
-
-        # ints32
-        df = datetime_frame.fillna(0).astype(np.int32)
-        df.cumprod(0)
-        df.cumprod(1)
 
     def test_sem(self, float_frame_with_na, datetime_frame,
                  float_frame, float_string_frame):
@@ -1316,7 +1193,151 @@ class TestDataFrameAnalytics():
                             check_dates=True)
         assert_stat_op_api('median', float_frame, float_string_frame)
 
+    def test_sum_bools(self):
+        df = DataFrame(index=lrange(1), columns=lrange(10))
+        bools = isna(df)
+        assert bools.sum(axis=1)[0] == 10
+
+    # ---------------------------------------------------------------------=
+    # Cumulative Reductions - cumsum, cummax, ...
+
+    def test_cumsum_corner(self):
+        dm = DataFrame(np.arange(20).reshape(4, 5),
+                       index=lrange(4), columns=lrange(5))
+        # ?(wesm)
+        result = dm.cumsum()  # noqa
+
+    def test_cumsum(self, datetime_frame):
+        datetime_frame.loc[5:10, 0] = np.nan
+        datetime_frame.loc[10:15, 1] = np.nan
+        datetime_frame.loc[15:, 2] = np.nan
+
+        # axis = 0
+        cumsum = datetime_frame.cumsum()
+        expected = datetime_frame.apply(Series.cumsum)
+        tm.assert_frame_equal(cumsum, expected)
+
+        # axis = 1
+        cumsum = datetime_frame.cumsum(axis=1)
+        expected = datetime_frame.apply(Series.cumsum, axis=1)
+        tm.assert_frame_equal(cumsum, expected)
+
+        # works
+        df = DataFrame({'A': np.arange(20)}, index=np.arange(20))
+        result = df.cumsum()  # noqa
+
+        # fix issue
+        cumsum_xs = datetime_frame.cumsum(axis=1)
+        assert np.shape(cumsum_xs) == np.shape(datetime_frame)
+
+    def test_cumprod(self, datetime_frame):
+        datetime_frame.loc[5:10, 0] = np.nan
+        datetime_frame.loc[10:15, 1] = np.nan
+        datetime_frame.loc[15:, 2] = np.nan
+
+        # axis = 0
+        cumprod = datetime_frame.cumprod()
+        expected = datetime_frame.apply(Series.cumprod)
+        tm.assert_frame_equal(cumprod, expected)
+
+        # axis = 1
+        cumprod = datetime_frame.cumprod(axis=1)
+        expected = datetime_frame.apply(Series.cumprod, axis=1)
+        tm.assert_frame_equal(cumprod, expected)
+
+        # fix issue
+        cumprod_xs = datetime_frame.cumprod(axis=1)
+        assert np.shape(cumprod_xs) == np.shape(datetime_frame)
+
+        # ints
+        df = datetime_frame.fillna(0).astype(int)
+        df.cumprod(0)
+        df.cumprod(1)
+
+        # ints32
+        df = datetime_frame.fillna(0).astype(np.int32)
+        df.cumprod(0)
+        df.cumprod(1)
+
+    def test_cummin(self, datetime_frame):
+        datetime_frame.loc[5:10, 0] = np.nan
+        datetime_frame.loc[10:15, 1] = np.nan
+        datetime_frame.loc[15:, 2] = np.nan
+
+        # axis = 0
+        cummin = datetime_frame.cummin()
+        expected = datetime_frame.apply(Series.cummin)
+        tm.assert_frame_equal(cummin, expected)
+
+        # axis = 1
+        cummin = datetime_frame.cummin(axis=1)
+        expected = datetime_frame.apply(Series.cummin, axis=1)
+        tm.assert_frame_equal(cummin, expected)
+
+        # it works
+        df = DataFrame({'A': np.arange(20)}, index=np.arange(20))
+        result = df.cummin()  # noqa
+
+        # fix issue
+        cummin_xs = datetime_frame.cummin(axis=1)
+        assert np.shape(cummin_xs) == np.shape(datetime_frame)
+
+    def test_cummax(self, datetime_frame):
+        datetime_frame.loc[5:10, 0] = np.nan
+        datetime_frame.loc[10:15, 1] = np.nan
+        datetime_frame.loc[15:, 2] = np.nan
+
+        # axis = 0
+        cummax = datetime_frame.cummax()
+        expected = datetime_frame.apply(Series.cummax)
+        tm.assert_frame_equal(cummax, expected)
+
+        # axis = 1
+        cummax = datetime_frame.cummax(axis=1)
+        expected = datetime_frame.apply(Series.cummax, axis=1)
+        tm.assert_frame_equal(cummax, expected)
+
+        # it works
+        df = DataFrame({'A': np.arange(20)}, index=np.arange(20))
+        result = df.cummax()  # noqa
+
+        # fix issue
+        cummax_xs = datetime_frame.cummax(axis=1)
+        assert np.shape(cummax_xs) == np.shape(datetime_frame)
+
+    # ---------------------------------------------------------------------=
     # Miscellanea
+
+    def test_count(self, float_frame_with_na, float_frame, float_string_frame):
+        f = lambda s: notna(s).sum()
+        assert_stat_op_calc('count', f, float_frame_with_na, has_skipna=False,
+                            check_dtype=False, check_dates=True)
+        assert_stat_op_api('count', float_frame, float_string_frame,
+                           has_numeric_only=True)
+
+        # corner case
+        frame = DataFrame()
+        ct1 = frame.count(1)
+        assert isinstance(ct1, Series)
+
+        ct2 = frame.count(0)
+        assert isinstance(ct2, Series)
+
+        # GH 423
+        df = DataFrame(index=lrange(10))
+        result = df.count(1)
+        expected = Series(0, index=df.index)
+        tm.assert_series_equal(result, expected)
+
+        df = DataFrame(columns=lrange(10))
+        result = df.count(0)
+        expected = Series(0, index=df.columns)
+        tm.assert_series_equal(result, expected)
+
+        df = DataFrame()
+        result = df.count()
+        expected = Series(0, index=[])
+        tm.assert_series_equal(result, expected)
 
     def test_count_objects(self, float_string_frame):
         dm = DataFrame(float_string_frame._series)
@@ -1325,17 +1346,23 @@ class TestDataFrameAnalytics():
         tm.assert_series_equal(dm.count(), df.count())
         tm.assert_series_equal(dm.count(1), df.count(1))
 
-    def test_cumsum_corner(self):
-        dm = DataFrame(np.arange(20).reshape(4, 5),
-                       index=lrange(4), columns=lrange(5))
-        # ?(wesm)
-        result = dm.cumsum()  # noqa
+    def test_pct_change(self):
+        # GH#11150
+        pnl = DataFrame([np.arange(0, 40, 10),
+                         np.arange(0, 40, 10),
+                         np.arange(0, 40, 10)]).astype(np.float64)
+        pnl.iat[1, 0] = np.nan
+        pnl.iat[1, 1] = np.nan
+        pnl.iat[2, 3] = 60
 
-    def test_sum_bools(self):
-        df = DataFrame(index=lrange(1), columns=lrange(10))
-        bools = isna(df)
-        assert bools.sum(axis=1)[0] == 10
+        for axis in range(2):
+            expected = pnl.ffill(axis=axis) / pnl.ffill(axis=axis).shift(
+                axis=axis) - 1
+            result = pnl.pct_change(axis=axis, fill_method='pad')
 
+            tm.assert_frame_equal(result, expected)
+
+    # ----------------------------------------------------------------------
     # Index of max / min
 
     def test_idxmin(self, float_frame, int_frame):
@@ -1661,7 +1688,9 @@ class TestDataFrameAnalytics():
         result = df1_td.isin(df3)
         tm.assert_frame_equal(result, expected)
 
+    # ---------------------------------------------------------------------=
     # Rounding
+
     def test_round(self):
         # GH 2665
 
@@ -1849,22 +1878,9 @@ class TestDataFrameAnalytics():
 
         tm.assert_frame_equal(result, expected)
 
-    def test_pct_change(self):
-        # GH 11150
-        pnl = DataFrame([np.arange(0, 40, 10), np.arange(0, 40, 10), np.arange(
-            0, 40, 10)]).astype(np.float64)
-        pnl.iat[1, 0] = np.nan
-        pnl.iat[1, 1] = np.nan
-        pnl.iat[2, 3] = 60
-
-        for axis in range(2):
-            expected = pnl.ffill(axis=axis) / pnl.ffill(axis=axis).shift(
-                axis=axis) - 1
-            result = pnl.pct_change(axis=axis, fill_method='pad')
-
-            tm.assert_frame_equal(result, expected)
-
+    # ---------------------------------------------------------------------=
     # Clip
+
     def test_clip(self, float_frame):
         median = float_frame.median().median()
         original = float_frame.copy()
@@ -2037,7 +2053,9 @@ class TestDataFrameAnalytics():
                               'col_2': [np.nan, np.nan, np.nan]})
         tm.assert_frame_equal(result, expected)
 
+    # ---------------------------------------------------------------------=
     # Matrix-like
+
     def test_dot(self):
         a = DataFrame(np.random.randn(3, 4), index=['a', 'b', 'c'],
                       columns=['p', 'q', 'r', 's'])
