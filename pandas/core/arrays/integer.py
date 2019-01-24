@@ -225,24 +225,57 @@ class IntegerArray(ExtensionArray, ExtensionOpsMixin):
     """
     Array of integer (optional missing) values.
 
+    .. versionadded:: 0.24.0
+
+    .. warning::
+
+       IntegerArray is currently experimental, and its API or internal
+       implementation may change without warning.
+
     We represent an IntegerArray with 2 numpy arrays:
 
     - data: contains a numpy integer array of the appropriate dtype
     - mask: a boolean array holding a mask on the data, True is missing
 
     To construct an IntegerArray from generic array-like input, use
-    ``integer_array`` function instead.
+    :func:`pandas.array` with one of the integer dtypes (see examples).
+
+    See :ref:`integer_na` for more.
 
     Parameters
     ----------
-    values : integer 1D numpy array
-    mask : boolean 1D numpy array
+    values : numpy.ndarray
+        A 1-d integer-dtype array.
+    mask : numpy.ndarray
+        A 1-d boolean-dtype array indicating missing values.
     copy : bool, default False
+        Whether to copy the `values` and `mask`.
 
     Returns
     -------
     IntegerArray
 
+    Examples
+    --------
+    Create an IntegerArray with :func:`pandas.array`.
+
+    >>> int_array = pd.array([1, None, 3], dtype=pd.Int32Dtype())
+    >>> int_array
+    <IntegerArray>
+    [1, NaN, 3]
+    Length: 3, dtype: Int32
+
+    String aliases for the dtypes are also available. They are capitalized.
+
+    >>> pd.array([1, None, 3], dtype='Int32')
+    <IntegerArray>
+    [1, NaN, 3]
+    Length: 3, dtype: Int32
+
+    >>> pd.array([1, None, 3], dtype='UInt16')
+    <IntegerArray>
+    [1, NaN, 3]
+    Length: 3, dtype: UInt16
     """
 
     @cache_readonly
