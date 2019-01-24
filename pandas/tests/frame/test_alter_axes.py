@@ -688,7 +688,9 @@ class TestDataFrameAlterAxes():
         assert (float_frame['C'] == 1.).all()
 
     def test_rename_inplace(self):
+        # See GH#24769 re dereferencing semantics
         float_frame = DataFrame(tm.getSeriesData())
+        float_frame_orig = float_frame
 
         float_frame.rename(columns={'C': 'foo'})
         assert 'C' in float_frame
@@ -701,6 +703,7 @@ class TestDataFrameAlterAxes():
         assert 'C' not in float_frame
         assert 'foo' in float_frame
         assert id(float_frame['foo']) != c_id
+        assert float_frame is not float_frame_orig
 
     def test_rename_bug(self):
         # GH 5344
