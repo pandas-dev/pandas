@@ -437,6 +437,7 @@ def nansum(values, axis=None, skipna=True, min_count=0, mask=None):
     return _wrap_results(the_sum, dtype)
 
 
+@disallow('M8')
 @bottleneck_switch()
 def nanmean(values, axis=None, skipna=True, mask=None):
     """
