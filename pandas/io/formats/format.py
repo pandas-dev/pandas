@@ -435,9 +435,6 @@ class DataFrameFormatter(TableFormatter):
         """
         from pandas.core.reshape.concat import concat
 
-        # Column of which first element is used to determine width of a dot col
-        self.tr_size_col = -1
-
         # Cut the data to the information actually printed
         max_cols = self.max_cols
         max_rows = self.max_rows
@@ -556,10 +553,7 @@ class DataFrameFormatter(TableFormatter):
 
         if truncate_h:
             col_num = self.tr_col_num
-            # infer from column header
-            col_width = self.adj.len(strcols[self.tr_size_col][0])
-            strcols.insert(self.tr_col_num + 1, ['...'.center(col_width)] *
-                           (len(str_index)))
+            strcols.insert(self.tr_col_num + 1, [' ...'] * (len(str_index)))
         if truncate_v:
             n_header_rows = len(str_index) - len(frame)
             row_num = self.tr_row_num
@@ -577,8 +571,8 @@ class DataFrameFormatter(TableFormatter):
                 if ix == 0:
                     dot_mode = 'left'
                 elif is_dot_col:
-                    cwidth = self.adj.len(strcols[self.tr_size_col][0])
-                    dot_mode = 'center'
+                    cwidth = 4
+                    dot_mode = 'right'
                 else:
                     dot_mode = 'right'
                 dot_str = self.adj.justify([my_str], cwidth, mode=dot_mode)[0]
