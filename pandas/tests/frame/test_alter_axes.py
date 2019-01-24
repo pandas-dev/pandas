@@ -256,9 +256,8 @@ class TestDataFrameAlterAxes():
     @pytest.mark.parametrize('append', [True, False])
     @pytest.mark.parametrize('drop', [True, False])
     @pytest.mark.parametrize('box', [set, iter])
-    def test_set_index_raise_on_type(self, frame_of_index_cols, box,
-                                     drop, append):
-        df = frame_of_index_cols
+    def test_set_index_raise_on_type(self, box, drop, append):
+        df = tm.get_frame_of_index_cols()
 
         msg = 'The parameter "keys" may be a column key, .*'
         # forbidden type, e.g. set/tuple/iter
