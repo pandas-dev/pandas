@@ -940,6 +940,7 @@ class TestMerge(object):
             merge(a, a, on=('a', 'b'))
 
     @pytest.mark.parametrize('how', ['left', 'outer'])
+    @pytest.mark.xfail(reason="GH-24897")
     def test_merge_on_index_with_more_values(self, how):
         # GH 24212
         # pd.merge gets [-1, -1, 0, 1] as right_indexer, ensure that -1 is
