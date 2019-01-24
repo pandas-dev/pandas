@@ -121,8 +121,6 @@ class DocBuilder:
             raise ValueError('kind must be html or latex, '
                              'not {}'.format(kind))
 
-        self.clean()
-
         cmd = ['sphinx-build', '-b', kind]
         if self.num_jobs:
             cmd += ['-j', str(self.num_jobs)]
