@@ -2857,7 +2857,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
             If 'first' puts NaNs at the beginning, 'last' puts NaNs at the end.
             Not implemented for MultiIndex.
         sort_remaining : bool, default True
-            If true and sorting by level and index is multilevel, sort by other
+            If True and sorting by level and index is multilevel, sort by other
             levels too (in order) after sorting by specified level.
 
         Returns
