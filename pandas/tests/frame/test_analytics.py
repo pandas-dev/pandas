@@ -724,6 +724,45 @@ class TestDataFrameAnalytics(object):
         except ImportError:
             pass
    
+    @pytest.mark.parametrize('method', ['sum', 'mean', 'prod', 'var',
+                                        'std', 'skew', 'min', 'max'])
+    def test_stat_operators_attempt_obj_array(self, method):
+        # GH#676
+        data = {
+            'a': [-0.00049987540199591344, -0.0016467257772919831,
+                  0.00067695870775883013],
+            'b': [-0, -0, 0.0],
+            'c': [0.00031111847529610595, 0.0014902627951905339,
+                  -0.00094099200035979691]
+        }
+        df1 = DataFrame(data, index=['foo', 'bar', 'baz'], dtype='O')
+
+        df2 = DataFrame({0: [np.nan, 2], 1: [np.nan, 3],
+                         2: [np.nan, 4]}, dtype=object)
+
+        for df in [df1, df2]:
+            assert df.values.dtype == np.object_
+            result = getattr(df, method)(1)
+            expected = getattr(df.astype('f8'), method)(1)
+
+            if method in ['sum', 'prod']:
+                tm.assert_series_equal(result, expected)
+
+    @pytest.mark.parametrize('op', ['mean', 'std', 'var',
+                                    'skew', 'kurt', 'sem'])
+    def test_mixed_ops(self, op):
+        # GH#16116
+        df = DataFrame({'int': [1, 2, 3, 4],
+                        'float': [1., 2., 3., 4.],
+                        'str': ['a', 'b', 'c', 'd']})
+
+        result = getattr(df, op)()
+        assert len(result) == 2
+
+        with pd.option_context('use_bottleneck', False):
+            result = getattr(df, op)()
+            assert len(result) == 2
+
     def test_reduce_mixed_frame(self):
         # GH 6806
         df = DataFrame({
@@ -759,30 +798,6 @@ class TestDataFrameAnalytics(object):
         # mixed types (with upcasting happening)
         assert_stat_op_calc('sum', np.sum, mixed_float_frame.astype('float32'),
                             check_dtype=False, check_less_precise=True)
-
-    @pytest.mark.parametrize('method', ['sum', 'mean', 'prod', 'var',
-                                        'std', 'skew', 'min', 'max'])
-    def test_stat_operators_attempt_obj_array(self, method):
-        # GH 676
-        data = {
-            'a': [-0.00049987540199591344, -0.0016467257772919831,
-                  0.00067695870775883013],
-            'b': [-0, -0, 0.0],
-            'c': [0.00031111847529610595, 0.0014902627951905339,
-                  -0.00094099200035979691]
-        }
-        df1 = DataFrame(data, index=['foo', 'bar', 'baz'], dtype='O')
-
-        df2 = DataFrame({0: [np.nan, 2], 1: [np.nan, 3],
-                         2: [np.nan, 4]}, dtype=object)
-
-        for df in [df1, df2]:
-            assert df.values.dtype == np.object_
-            result = getattr(df, method)(1)
-            expected = getattr(df.astype('f8'), method)(1)
-
-            if method in ['sum', 'prod']:
-                tm.assert_series_equal(result, expected)
 
     def test_mean(self, float_frame_with_na):
         assert_stat_op_calc('mean', np.mean, float_frame_with_na,
@@ -868,21 +883,6 @@ class TestDataFrameAnalytics(object):
             axis=1, numeric_only=False))
         pytest.raises(TypeError, lambda: getattr(df2, meth)(
             axis=1, numeric_only=False))
-
-    @pytest.mark.parametrize('op', ['mean', 'std', 'var',
-                                    'skew', 'kurt', 'sem'])
-    def test_mixed_ops(self, op):
-        # GH 16116
-        df = DataFrame({'int': [1, 2, 3, 4],
-                        'float': [1., 2., 3., 4.],
-                        'str': ['a', 'b', 'c', 'd']})
-
-        result = getattr(df, op)()
-        assert len(result) == 2
-
-        with pd.option_context('use_bottleneck', False):
-            result = getattr(df, op)()
-            assert len(result) == 2
 
     def test_sem(self, float_frame_with_na, datetime_frame):
         alt = lambda x: np.std(x, ddof=1) / np.sqrt(len(x))
