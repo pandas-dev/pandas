@@ -1,6 +1,6 @@
 .. _whatsnew_0240:
 
-What's New in 0.24.0 (January XX, 2019)
+What's New in 0.24.0 (January 25, 2019)
 ---------------------------------------
 
 .. warning::
