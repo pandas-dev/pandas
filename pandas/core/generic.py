@@ -4085,8 +4085,8 @@ class NDFrame(PandasObject, SelectionMixin):
 
         Returns
         -------
-        sorted_obj : DataFrame
-            DataFrame with sorted values.
+        sorted_obj : DataFrame or None
+            DataFrame with sorted index if inplace=False, None otherwise.
         """
         inplace = validate_bool_kwarg(inplace, 'inplace')
         axis = self._get_axis_number(axis)
