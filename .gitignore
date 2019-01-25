@@ -101,8 +101,6 @@ asv_bench/pandas/
 # Documentation generated files #
 #################################
 doc/source/generated
-doc/source/api/
-doc/source/user_guide/generated/
 doc/source/user_guide/styled.xlsx
 doc/source/reference/api
 doc/source/_static
