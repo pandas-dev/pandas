@@ -23,18 +23,18 @@ class TestTimedeltaArrayConstructor(object):
             TimedeltaArray([1, 2, 3])
 
     def test_other_type_raises(self):
-        with pytest.raises(TypeError,
+        with pytest.raises(ValueError,
                            match="dtype bool cannot be converted"):
             TimedeltaArray(np.array([1, 2, 3], dtype='bool'))
 
     def test_incorrect_dtype_raises(self):
         # TODO: why TypeError for 'category' but ValueError for i8?
-        with pytest.raises(TypeError,
+        with pytest.raises(ValueError,
                            match=r'category cannot be converted '
                                  r'to timedelta64\[ns\]'):
             TimedeltaArray(np.array([1, 2, 3], dtype='i8'), dtype='category')
 
-        with pytest.raises(TypeError,
+        with pytest.raises(ValueError,
                            match=r"dtype int64 cannot be converted "
                                  r"to timedelta64\[ns\]"):
             TimedeltaArray(np.array([1, 2, 3], dtype='i8'),
@@ -52,7 +52,7 @@ class TestTimedeltaArrayConstructor(object):
 
 class TestTimedeltaArray(object):
     def test_from_sequence_dtype(self):
-        msg = r"Only timedelta64\[ns\] dtype is valid"
+        msg = "dtype .*object.* cannot be converted to timedelta64"
         with pytest.raises(ValueError, match=msg):
             TimedeltaArray._from_sequence([], dtype=object)
 

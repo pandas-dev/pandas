@@ -2549,7 +2549,7 @@ in the method ``to_string`` described above.
 HTML:
 
 .. raw:: html
-   :file: _static/basic.html
+   :file: ../_static/basic.html
 
 The ``columns`` argument will limit the columns shown:
 
@@ -2565,7 +2565,7 @@ The ``columns`` argument will limit the columns shown:
 HTML:
 
 .. raw:: html
-   :file: _static/columns.html
+   :file: ../_static/columns.html
 
 ``float_format`` takes a Python callable to control the precision of floating
 point values:
@@ -2582,7 +2582,7 @@ point values:
 HTML:
 
 .. raw:: html
-   :file: _static/float_format.html
+   :file: ../_static/float_format.html
 
 ``bold_rows`` will make the row labels bold by default, but you can turn that
 off:
@@ -2597,7 +2597,7 @@ off:
    write_html(df, 'nobold', bold_rows=False)
 
 .. raw:: html
-   :file: _static/nobold.html
+   :file: ../_static/nobold.html
 
 The ``classes`` argument provides the ability to give the resulting HTML
 table CSS classes. Note that these classes are *appended* to the existing
@@ -2627,7 +2627,7 @@ that contain URLs.
 HTML:
 
 .. raw:: html
-   :file: _static/render_links.html
+   :file: ../_static/render_links.html
 
 Finally, the ``escape`` argument allows you to control whether the
 "<", ">" and "&" characters escaped in the resulting HTML (by default it is
@@ -2651,7 +2651,7 @@ Escaped:
    print(df.to_html())
 
 .. raw:: html
-   :file: _static/escape.html
+   :file: ../_static/escape.html
 
 Not escaped:
 
@@ -2660,7 +2660,7 @@ Not escaped:
    print(df.to_html(escape=False))
 
 .. raw:: html
-   :file: _static/noescape.html
+   :file: ../_static/noescape.html
 
 .. note::
 
