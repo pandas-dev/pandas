@@ -12,7 +12,7 @@ GroupBy objects are returned by groupby calls: :func:`pandas.DataFrame.groupby`,
 Indexing, iteration
 -------------------
 .. autosummary::
-   :toctree: generated/
+   :toctree: api/
 
    GroupBy.__iter__
    GroupBy.groups
@@ -22,7 +22,7 @@ Indexing, iteration
 .. currentmodule:: pandas
 
 .. autosummary::
-   :toctree: generated/
+   :toctree: api/
    :template: autosummary/class_without_autosummary.rst
 
    Grouper
@@ -32,7 +32,7 @@ Indexing, iteration
 Function application
 --------------------
 .. autosummary::
-   :toctree: generated/
+   :toctree: api/
 
    GroupBy.apply
    GroupBy.agg
@@ -43,7 +43,7 @@ Function application
 Computations / Descriptive Stats
 --------------------------------
 .. autosummary::
-   :toctree: generated/
+   :toctree: api/
 
    GroupBy.all
    GroupBy.any
@@ -78,7 +78,7 @@ axis argument, and often an argument indicating whether to restrict
 application to columns of a specific data type.
 
 .. autosummary::
-   :toctree: generated/
+   :toctree: api/
 
    DataFrameGroupBy.all
    DataFrameGroupBy.any
@@ -113,7 +113,7 @@ application to columns of a specific data type.
 The following methods are available only for ``SeriesGroupBy`` objects.
 
 .. autosummary::
-   :toctree: generated/
+   :toctree: api/
 
    SeriesGroupBy.nlargest
    SeriesGroupBy.nsmallest
@@ -126,7 +126,7 @@ The following methods are available only for ``SeriesGroupBy`` objects.
 The following methods are available only for ``DataFrameGroupBy`` objects.
 
 .. autosummary::
-   :toctree: generated/
+   :toctree: api/
 
    DataFrameGroupBy.corrwith
    DataFrameGroupBy.boxplot

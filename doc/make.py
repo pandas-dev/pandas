@@ -53,7 +53,7 @@ class DocBuilder:
         if single_doc and single_doc.endswith('.rst'):
             self.single_doc_html = os.path.splitext(single_doc)[0] + '.html'
         elif single_doc:
-            self.single_doc_html = 'api/generated/pandas.{}.html'.format(
+            self.single_doc_html = 'reference/api/pandas.{}.html'.format(
                 single_doc)
 
     def _process_single_doc(self, single_doc):
@@ -63,7 +63,7 @@ class DocBuilder:
 
         For example, categorial.rst or pandas.DataFrame.head. For the latter,
         return the corresponding file path
-        (e.g. generated/pandas.DataFrame.head.rst).
+        (e.g. reference/api/pandas.DataFrame.head.rst).
         """
         base_name, extension = os.path.splitext(single_doc)
         if extension in ('.rst', '.ipynb'):
@@ -258,7 +258,7 @@ class DocBuilder:
         Clean documentation generated files.
         """
         shutil.rmtree(BUILD_PATH, ignore_errors=True)
-        shutil.rmtree(os.path.join(SOURCE_PATH, 'api', 'generated'),
+        shutil.rmtree(os.path.join(SOURCE_PATH, 'reference', 'api'),
                       ignore_errors=True)
 
     def zip_html(self):

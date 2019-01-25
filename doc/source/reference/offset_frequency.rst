@@ -10,14 +10,14 @@ Date Offsets
 DateOffset
 ----------
 .. autosummary::
-   :toctree: generated/
+   :toctree: api/
 
     DateOffset
 
 Properties
 ~~~~~~~~~~
 .. autosummary::
-   :toctree: generated/
+   :toctree: api/
 
     DateOffset.freqstr
     DateOffset.kwds
@@ -29,7 +29,7 @@ Properties
 Methods
 ~~~~~~~
 .. autosummary::
-   :toctree: generated/
+   :toctree: api/
 
     DateOffset.apply
     DateOffset.copy
@@ -39,14 +39,14 @@ Methods
 BusinessDay
 -----------
 .. autosummary::
-   :toctree: generated/
+   :toctree: api/
 
     BusinessDay
 
 Properties
 ~~~~~~~~~~
 .. autosummary::
-   :toctree: generated/
+   :toctree: api/
 
     BusinessDay.freqstr
     BusinessDay.kwds
@@ -58,7 +58,7 @@ Properties
 Methods
 ~~~~~~~
 .. autosummary::
-   :toctree: generated/
+   :toctree: api/
 
     BusinessDay.apply
     BusinessDay.apply_index
@@ -69,14 +69,14 @@ Methods
 BusinessHour
 ------------
 .. autosummary::
-   :toctree: generated/
+   :toctree: api/
 
     BusinessHour
 
 Properties
 ~~~~~~~~~~
 .. autosummary::
-   :toctree: generated/
+   :toctree: api/
 
     BusinessHour.freqstr
     BusinessHour.kwds
@@ -88,7 +88,7 @@ Properties
 Methods
 ~~~~~~~
 .. autosummary::
-   :toctree: generated/
+   :toctree: api/
 
     BusinessHour.apply
     BusinessHour.copy
@@ -98,14 +98,14 @@ Methods
 CustomBusinessDay
 -----------------
 .. autosummary::
-   :toctree: generated/
+   :toctree: api/
 
     CustomBusinessDay
 
 Properties
 ~~~~~~~~~~
 .. autosummary::
-   :toctree: generated/
+   :toctree: api/
 
     CustomBusinessDay.freqstr
     CustomBusinessDay.kwds
@@ -117,7 +117,7 @@ Properties
 Methods
 ~~~~~~~
 .. autosummary::
-   :toctree: generated/
+   :toctree: api/
 
     CustomBusinessDay.apply
     CustomBusinessDay.copy
@@ -127,14 +127,14 @@ Methods
 CustomBusinessHour
 ------------------
 .. autosummary::
-   :toctree: generated/
+   :toctree: api/
 
     CustomBusinessHour
 
 Properties
 ~~~~~~~~~~
 .. autosummary::
-   :toctree: generated/
+   :toctree: api/
 
     CustomBusinessHour.freqstr
     CustomBusinessHour.kwds
@@ -146,7 +146,7 @@ Properties
 Methods
 ~~~~~~~
 .. autosummary::
-   :toctree: generated/
+   :toctree: api/
 
     CustomBusinessHour.apply
     CustomBusinessHour.copy
@@ -156,14 +156,14 @@ Methods
 MonthOffset
 -----------
 .. autosummary::
-   :toctree: generated/
+   :toctree: api/
 
     MonthOffset
 
 Properties
 ~~~~~~~~~~
 .. autosummary::
-   :toctree: generated/
+   :toctree: api/
 
     MonthOffset.freqstr
     MonthOffset.kwds
@@ -175,7 +175,7 @@ Properties
 Methods
 ~~~~~~~
 .. autosummary::
-   :toctree: generated/
+   :toctree: api/
 
     MonthOffset.apply
     MonthOffset.apply_index
@@ -186,14 +186,14 @@ Methods
 MonthEnd
 --------
 .. autosummary::
-   :toctree: generated/
+   :toctree: api/
 
     MonthEnd
 
 Properties
 ~~~~~~~~~~
 .. autosummary::
-   :toctree: generated/
+   :toctree: api/
 
     MonthEnd.freqstr
     MonthEnd.kwds
@@ -205,7 +205,7 @@ Properties
 Methods
 ~~~~~~~
 .. autosummary::
-   :toctree: generated/
+   :toctree: api/
 
     MonthEnd.apply
     MonthEnd.apply_index
@@ -216,14 +216,14 @@ Methods
 MonthBegin
 ----------
 .. autosummary::
-   :toctree: generated/
+   :toctree: api/
 
     MonthBegin
 
 Properties
 ~~~~~~~~~~
 .. autosummary::
-   :toctree: generated/
+   :toctree: api/
 
     MonthBegin.freqstr
     MonthBegin.kwds
@@ -235,7 +235,7 @@ Properties
 Methods
 ~~~~~~~
 .. autosummary::
-   :toctree: generated/
+   :toctree: api/
 
     MonthBegin.apply
     MonthBegin.apply_index
@@ -246,14 +246,14 @@ Methods
 BusinessMonthEnd
 ----------------
 .. autosummary::
-   :toctree: generated/
+   :toctree: api/
 
     BusinessMonthEnd
 
 Properties
 ~~~~~~~~~~
 .. autosummary::
-   :toctree: generated/
+   :toctree: api/
 
     BusinessMonthEnd.freqstr
     BusinessMonthEnd.kwds
@@ -265,7 +265,7 @@ Properties
 Methods
 ~~~~~~~
 .. autosummary::
-   :toctree: generated/
+   :toctree: api/
 
     BusinessMonthEnd.apply
     BusinessMonthEnd.apply_index
@@ -276,14 +276,14 @@ Methods
 BusinessMonthBegin
 ------------------
 .. autosummary::
-   :toctree: generated/
+   :toctree: api/
 
     BusinessMonthBegin
 
 Properties
 ~~~~~~~~~~
 .. autosummary::
-   :toctree: generated/
+   :toctree: api/
 
     BusinessMonthBegin.freqstr
     BusinessMonthBegin.kwds
@@ -295,7 +295,7 @@ Properties
 Methods
 ~~~~~~~
 .. autosummary::
-   :toctree: generated/
+   :toctree: api/
 
     BusinessMonthBegin.apply
     BusinessMonthBegin.apply_index
@@ -306,14 +306,14 @@ Methods
 CustomBusinessMonthEnd
 ----------------------
 .. autosummary::
-   :toctree: generated/
+   :toctree: api/
 
     CustomBusinessMonthEnd
 
 Properties
 ~~~~~~~~~~
 .. autosummary::
-   :toctree: generated/
+   :toctree: api/
 
     CustomBusinessMonthEnd.freqstr
     CustomBusinessMonthEnd.kwds
@@ -326,7 +326,7 @@ Properties
 Methods
 ~~~~~~~
 .. autosummary::
-   :toctree: generated/
+   :toctree: api/
 
     CustomBusinessMonthEnd.apply
     CustomBusinessMonthEnd.copy
@@ -336,14 +336,14 @@ Methods
 CustomBusinessMonthBegin
 ------------------------
 .. autosummary::
-   :toctree: generated/
+   :toctree: api/
 
     CustomBusinessMonthBegin
 
 Properties
 ~~~~~~~~~~
 .. autosummary::
-   :toctree: generated/
+   :toctree: api/
 
     CustomBusinessMonthBegin.freqstr
     CustomBusinessMonthBegin.kwds
@@ -356,7 +356,7 @@ Properties
 Methods
 ~~~~~~~
 .. autosummary::
-   :toctree: generated/
+   :toctree: api/
 
     CustomBusinessMonthBegin.apply
     CustomBusinessMonthBegin.copy
@@ -366,14 +366,14 @@ Methods
 SemiMonthOffset
 ---------------
 .. autosummary::
-   :toctree: generated/
+   :toctree: api/
 
     SemiMonthOffset
 
 Properties
 ~~~~~~~~~~
 .. autosummary::
-   :toctree: generated/
+   :toctree: api/
 
     SemiMonthOffset.freqstr
     SemiMonthOffset.kwds
@@ -385,7 +385,7 @@ Properties
 Methods
 ~~~~~~~
 .. autosummary::
-   :toctree: generated/
+   :toctree: api/
 
     SemiMonthOffset.apply
     SemiMonthOffset.apply_index
@@ -396,14 +396,14 @@ Methods
 SemiMonthEnd
 ------------
 .. autosummary::
-   :toctree: generated/
+   :toctree: api/
 
     SemiMonthEnd
 
 Properties
 ~~~~~~~~~~
 .. autosummary::
-   :toctree: generated/
+   :toctree: api/
 
     SemiMonthEnd.freqstr
     SemiMonthEnd.kwds
@@ -415,7 +415,7 @@ Properties
 Methods
 ~~~~~~~
 .. autosummary::
-   :toctree: generated/
+   :toctree: api/
 
     SemiMonthEnd.apply
     SemiMonthEnd.apply_index
@@ -426,14 +426,14 @@ Methods
 SemiMonthBegin
 --------------
 .. autosummary::
-   :toctree: generated/
+   :toctree: api/
 
     SemiMonthBegin
 
 Properties
 ~~~~~~~~~~
 .. autosummary::
-   :toctree: generated/
+   :toctree: api/
 
     SemiMonthBegin.freqstr
     SemiMonthBegin.kwds
@@ -445,7 +445,7 @@ Properties
 Methods
 ~~~~~~~
 .. autosummary::
-   :toctree: generated/
+   :toctree: api/
 
     SemiMonthBegin.apply
     SemiMonthBegin.apply_index
@@ -456,14 +456,14 @@ Methods
 Week
 ----
 .. autosummary::
-   :toctree: generated/
+   :toctree: api/
 
     Week
 
 Properties
 ~~~~~~~~~~
 .. autosummary::
-   :toctree: generated/
+   :toctree: api/
 
     Week.freqstr
     Week.kwds
@@ -475,7 +475,7 @@ Properties
 Methods
 ~~~~~~~
 .. autosummary::
-   :toctree: generated/
+   :toctree: api/
 
     Week.apply
     Week.apply_index
@@ -486,14 +486,14 @@ Methods
 WeekOfMonth
 -----------
 .. autosummary::
-   :toctree: generated/
+   :toctree: api/
 
     WeekOfMonth
 
 Properties
 ~~~~~~~~~~
 .. autosummary::
-   :toctree: generated/
+   :toctree: api/
 
     WeekOfMonth.freqstr
     WeekOfMonth.kwds
@@ -505,7 +505,7 @@ Properties
 Methods
 ~~~~~~~
 .. autosummary::
-   :toctree: generated/
+   :toctree: api/
 
     WeekOfMonth.apply
     WeekOfMonth.copy
@@ -515,14 +515,14 @@ Methods
 LastWeekOfMonth
 ---------------
 .. autosummary::
-   :toctree: generated/
+   :toctree: api/
 
     LastWeekOfMonth
 
 Properties
 ~~~~~~~~~~
 .. autosummary::
-   :toctree: generated/
+   :toctree: api/
 
     LastWeekOfMonth.freqstr
     LastWeekOfMonth.kwds
@@ -534,7 +534,7 @@ Properties
 Methods
 ~~~~~~~
 .. autosummary::
-   :toctree: generated/
+   :toctree: api/
 
     LastWeekOfMonth.apply
     LastWeekOfMonth.copy
@@ -544,14 +544,14 @@ Methods
 QuarterOffset
 -------------
 .. autosummary::
-   :toctree: generated/
+   :toctree: api/
 
     QuarterOffset
 
 Properties
 ~~~~~~~~~~
 .. autosummary::
-   :toctree: generated/
+   :toctree: api/
 
     QuarterOffset.freqstr
     QuarterOffset.kwds
@@ -563,7 +563,7 @@ Properties
 Methods
 ~~~~~~~
 .. autosummary::
-   :toctree: generated/
+   :toctree: api/
 
     QuarterOffset.apply
     QuarterOffset.apply_index
@@ -574,14 +574,14 @@ Methods
 BQuarterEnd
 -----------
 .. autosummary::
-   :toctree: generated/
+   :toctree: api/
 
     BQuarterEnd
 
 Properties
 ~~~~~~~~~~
 .. autosummary::
-   :toctree: generated/
+   :toctree: api/
 
     BQuarterEnd.freqstr
     BQuarterEnd.kwds
@@ -593,7 +593,7 @@ Properties
 Methods
 ~~~~~~~
 .. autosummary::
-   :toctree: generated/
+   :toctree: api/
 
     BQuarterEnd.apply
     BQuarterEnd.apply_index
@@ -604,14 +604,14 @@ Methods
 BQuarterBegin
 -------------
 .. autosummary::
-   :toctree: generated/
+   :toctree: api/
 
     BQuarterBegin
 
 Properties
 ~~~~~~~~~~
 .. autosummary::
-   :toctree: generated/
+   :toctree: api/
 
     BQuarterBegin.freqstr
     BQuarterBegin.kwds
@@ -623,7 +623,7 @@ Properties
 Methods
 ~~~~~~~
 .. autosummary::
-   :toctree: generated/
+   :toctree: api/
 
     BQuarterBegin.apply
     BQuarterBegin.apply_index
@@ -634,14 +634,14 @@ Methods
 QuarterEnd
 ----------
 .. autosummary::
-   :toctree: generated/
+   :toctree: api/
 
     QuarterEnd
 
 Properties
 ~~~~~~~~~~
 .. autosummary::
-   :toctree: generated/
+   :toctree: api/
 
     QuarterEnd.freqstr
     QuarterEnd.kwds
@@ -653,7 +653,7 @@ Properties
 Methods
 ~~~~~~~
 .. autosummary::
-   :toctree: generated/
+   :toctree: api/
 
     QuarterEnd.apply
     QuarterEnd.apply_index
@@ -664,14 +664,14 @@ Methods
 QuarterBegin
 ------------
 .. autosummary::
-   :toctree: generated/
+   :toctree: api/
 
     QuarterBegin
 
 Properties
 ~~~~~~~~~~
 .. autosummary::
-   :toctree: generated/
+   :toctree: api/
 
     QuarterBegin.freqstr
     QuarterBegin.kwds
@@ -683,7 +683,7 @@ Properties
 Methods
 ~~~~~~~
 .. autosummary::
-   :toctree: generated/
+   :toctree: api/
 
     QuarterBegin.apply
     QuarterBegin.apply_index
@@ -694,14 +694,14 @@ Methods
 YearOffset
 ----------
 .. autosummary::
-   :toctree: generated/
+   :toctree: api/
 
     YearOffset
 
 Properties
 ~~~~~~~~~~
 .. autosummary::
-   :toctree: generated/
+   :toctree: api/
 
     YearOffset.freqstr
     YearOffset.kwds
@@ -713,7 +713,7 @@ Properties
 Methods
 ~~~~~~~
 .. autosummary::
-   :toctree: generated/
+   :toctree: api/
 
     YearOffset.apply
     YearOffset.apply_index
@@ -724,14 +724,14 @@ Methods
 BYearEnd
 --------
 .. autosummary::
-   :toctree: generated/
+   :toctree: api/
 
     BYearEnd
 
 Properties
 ~~~~~~~~~~
 .. autosummary::
-   :toctree: generated/
+   :toctree: api/
 
     BYearEnd.freqstr
     BYearEnd.kwds
@@ -743,7 +743,7 @@ Properties
 Methods
 ~~~~~~~
 .. autosummary::
-   :toctree: generated/
+   :toctree: api/
 
     BYearEnd.apply
     BYearEnd.apply_index
@@ -754,14 +754,14 @@ Methods
 BYearBegin
 ----------
 .. autosummary::
-   :toctree: generated/
+   :toctree: api/
 
     BYearBegin
 
 Properties
 ~~~~~~~~~~
 .. autosummary::
-   :toctree: generated/
+   :toctree: api/
 
     BYearBegin.freqstr
     BYearBegin.kwds
@@ -773,7 +773,7 @@ Properties
 Methods
 ~~~~~~~
 .. autosummary::
-   :toctree: generated/
+   :toctree: api/
 
     BYearBegin.apply
     BYearBegin.apply_index
@@ -784,14 +784,14 @@ Methods
 YearEnd
 -------
 .. autosummary::
-   :toctree: generated/
+   :toctree: api/
 
     YearEnd
 
 Properties
 ~~~~~~~~~~
 .. autosummary::
-   :toctree: generated/
+   :toctree: api/
 
     YearEnd.freqstr
     YearEnd.kwds
@@ -803,7 +803,7 @@ Properties
 Methods
 ~~~~~~~
 .. autosummary::
-   :toctree: generated/
+   :toctree: api/
 
     YearEnd.apply
     YearEnd.apply_index
@@ -814,14 +814,14 @@ Methods
 YearBegin
 ---------
 .. autosummary::
-   :toctree: generated/
+   :toctree: api/
 
     YearBegin
 
 Properties
 ~~~~~~~~~~
 .. autosummary::
-   :toctree: generated/
+   :toctree: api/
 
     YearBegin.freqstr
     YearBegin.kwds
@@ -833,7 +833,7 @@ Properties
 Methods
 ~~~~~~~
 .. autosummary::
-   :toctree: generated/
+   :toctree: api/
 
     YearBegin.apply
     YearBegin.apply_index
@@ -844,14 +844,14 @@ Methods
 FY5253
 ------
 .. autosummary::
-   :toctree: generated/
+   :toctree: api/
 
     FY5253
 
 Properties
 ~~~~~~~~~~
 .. autosummary::
-   :toctree: generated/
+   :toctree: api/
 
     FY5253.freqstr
     FY5253.kwds
@@ -863,7 +863,7 @@ Properties
 Methods
 ~~~~~~~
 .. autosummary::
-   :toctree: generated/
+   :toctree: api/
 
     FY5253.apply
     FY5253.copy
@@ -875,14 +875,14 @@ Methods
 FY5253Quarter
 -------------
 .. autosummary::
-   :toctree: generated/
+   :toctree: api/
 
     FY5253Quarter
 
 Properties
 ~~~~~~~~~~
 .. autosummary::
-   :toctree: generated/
+   :toctree: api/
 
     FY5253Quarter.freqstr
     FY5253Quarter.kwds
@@ -894,7 +894,7 @@ Properties
 Methods
 ~~~~~~~
 .. autosummary::
-   :toctree: generated/
+   :toctree: api/
 
     FY5253Quarter.apply
     FY5253Quarter.copy
@@ -906,14 +906,14 @@ Methods
 Easter
 ------
 .. autosummary::
-   :toctree: generated/
+   :toctree: api/
 
     Easter
 
 Properties
 ~~~~~~~~~~
 .. autosummary::
-   :toctree: generated/
+   :toctree: api/
 
     Easter.freqstr
     Easter.kwds
@@ -925,7 +925,7 @@ Properties
 Methods
 ~~~~~~~
 .. autosummary::
-   :toctree: generated/
+   :toctree: api/
 
     Easter.apply
     Easter.copy
@@ -935,14 +935,14 @@ Methods
 Tick
 ----
 .. autosummary::
-   :toctree: generated/
+   :toctree: api/
 
     Tick
 
 Properties
 ~~~~~~~~~~
 .. autosummary::
-   :toctree: generated/
+   :toctree: api/
 
     Tick.delta
     Tick.freqstr
@@ -955,7 +955,7 @@ Properties
 Methods
 ~~~~~~~
 .. autosummary::
-   :toctree: generated/
+   :toctree: api/
 
     Tick.copy
     Tick.isAnchored
@@ -964,14 +964,14 @@ Methods
 Day
 ---
 .. autosummary::
-   :toctree: generated/
+   :toctree: api/
 
     Day
 
 Properties
 ~~~~~~~~~~
 .. autosummary::
-   :toctree: generated/
+   :toctree: api/
 
     Day.delta
     Day.freqstr
@@ -984,7 +984,7 @@ Properties
 Methods
 ~~~~~~~
 .. autosummary::
-   :toctree: generated/
+   :toctree: api/
 
     Day.copy
     Day.isAnchored
@@ -993,14 +993,14 @@ Methods
 Hour
 ----
 .. autosummary::
-   :toctree: generated/
+   :toctree: api/
 
     Hour
 
 Properties
 ~~~~~~~~~~
 .. autosummary::
-   :toctree: generated/
+   :toctree: api/
 
     Hour.delta
     Hour.freqstr
@@ -1013,7 +1013,7 @@ Properties
 Methods
 ~~~~~~~
 .. autosummary::
-   :toctree: generated/
+   :toctree: api/
 
     Hour.copy
     Hour.isAnchored
@@ -1022,14 +1022,14 @@ Methods
 Minute
 ------
 .. autosummary::
-   :toctree: generated/
+   :toctree: api/
 
     Minute
 
 Properties
 ~~~~~~~~~~
 .. autosummary::
-   :toctree: generated/
+   :toctree: api/
 
     Minute.delta
     Minute.freqstr
@@ -1042,7 +1042,7 @@ Properties
 Methods
 ~~~~~~~
 .. autosummary::
-   :toctree: generated/
+   :toctree: api/
 
     Minute.copy
     Minute.isAnchored
@@ -1051,14 +1051,14 @@ Methods
 Second
 ------
 .. autosummary::
-   :toctree: generated/
+   :toctree: api/
 
     Second
 
 Properties
 ~~~~~~~~~~
 .. autosummary::
-   :toctree: generated/
+   :toctree: api/
 
     Second.delta
     Second.freqstr
@@ -1071,7 +1071,7 @@ Properties
 Methods
 ~~~~~~~
 .. autosummary::
-   :toctree: generated/
+   :toctree: api/
 
     Second.copy
     Second.isAnchored
@@ -1080,14 +1080,14 @@ Methods
 Milli
 -----
 .. autosummary::
-   :toctree: generated/
+   :toctree: api/
 
     Milli
 
 Properties
 ~~~~~~~~~~
 .. autosummary::
-   :toctree: generated/
+   :toctree: api/
 
     Milli.delta
     Milli.freqstr
@@ -1100,7 +1100,7 @@ Properties
 Methods
 ~~~~~~~
 .. autosummary::
-   :toctree: generated/
+   :toctree: api/
 
     Milli.copy
     Milli.isAnchored
@@ -1109,14 +1109,14 @@ Methods
 Micro
 -----
 .. autosummary::
-   :toctree: generated/
+   :toctree: api/
 
     Micro
 
 Properties
 ~~~~~~~~~~
 .. autosummary::
-   :toctree: generated/
+   :toctree: api/
 
     Micro.delta
     Micro.freqstr
@@ -1129,7 +1129,7 @@ Properties
 Methods
 ~~~~~~~
 .. autosummary::
-   :toctree: generated/
+   :toctree: api/
 
     Micro.copy
     Micro.isAnchored
@@ -1138,14 +1138,14 @@ Methods
 Nano
 ----
 .. autosummary::
-   :toctree: generated/
+   :toctree: api/
 
     Nano
 
 Properties
 ~~~~~~~~~~
 .. autosummary::
-   :toctree: generated/
+   :toctree: api/
 
     Nano.delta
     Nano.freqstr
@@ -1158,7 +1158,7 @@ Properties
 Methods
 ~~~~~~~
 .. autosummary::
-   :toctree: generated/
+   :toctree: api/
 
     Nano.copy
     Nano.isAnchored
@@ -1167,14 +1167,14 @@ Methods
 BDay
 ----
 .. autosummary::
-   :toctree: generated/
+   :toctree: api/
 
     BDay
 
 Properties
 ~~~~~~~~~~
 .. autosummary::
-   :toctree: generated/
+   :toctree: api/
 
     BDay.base
     BDay.freqstr
@@ -1188,7 +1188,7 @@ Properties
 Methods
 ~~~~~~~
 .. autosummary::
-   :toctree: generated/
+   :toctree: api/
 
     BDay.apply
     BDay.apply_index
@@ -1201,14 +1201,14 @@ Methods
 BMonthEnd
 ---------
 .. autosummary::
-   :toctree: generated/
+   :toctree: api/
 
     BMonthEnd
 
 Properties
 ~~~~~~~~~~
 .. autosummary::
-   :toctree: generated/
+   :toctree: api/
 
     BMonthEnd.base
     BMonthEnd.freqstr
@@ -1221,7 +1221,7 @@ Properties
 Methods
 ~~~~~~~
 .. autosummary::
-   :toctree: generated/
+   :toctree: api/
 
     BMonthEnd.apply
     BMonthEnd.apply_index
@@ -1234,14 +1234,14 @@ Methods
 BMonthBegin
 -----------
 .. autosummary::
-   :toctree: generated/
+   :toctree: api/
 
     BMonthBegin
 
 Properties
 ~~~~~~~~~~
 .. autosummary::
-   :toctree: generated/
+   :toctree: api/
 
     BMonthBegin.base
     BMonthBegin.freqstr
@@ -1254,7 +1254,7 @@ Properties
 Methods
 ~~~~~~~
 .. autosummary::
-   :toctree: generated/
+   :toctree: api/
 
     BMonthBegin.apply
     BMonthBegin.apply_index
@@ -1267,14 +1267,14 @@ Methods
 CBMonthEnd
 ----------
 .. autosummary::
-   :toctree: generated/
+   :toctree: api/
 
     CBMonthEnd
 
 Properties
 ~~~~~~~~~~
 .. autosummary::
-   :toctree: generated/
+   :toctree: api/
 
     CBMonthEnd.base
     CBMonthEnd.cbday_roll
@@ -1291,7 +1291,7 @@ Properties
 Methods
 ~~~~~~~
 .. autosummary::
-   :toctree: generated/
+   :toctree: api/
 
     CBMonthEnd.apply
     CBMonthEnd.apply_index
@@ -1304,14 +1304,14 @@ Methods
 CBMonthBegin
 ------------
 .. autosummary::
-   :toctree: generated/
+   :toctree: api/
 
     CBMonthBegin
 
 Properties
 ~~~~~~~~~~
 .. autosummary::
-   :toctree: generated/
+   :toctree: api/
 
     CBMonthBegin.base
     CBMonthBegin.cbday_roll
@@ -1328,7 +1328,7 @@ Properties
 Methods
 ~~~~~~~
 .. autosummary::
-   :toctree: generated/
+   :toctree: api/
 
     CBMonthBegin.apply
     CBMonthBegin.apply_index
@@ -1341,14 +1341,14 @@ Methods
 CDay
 ----
 .. autosummary::
-   :toctree: generated/
+   :toctree: api/
 
     CDay
 
 Properties
 ~~~~~~~~~~
 .. autosummary::
-   :toctree: generated/
+   :toctree: api/
 
     CDay.base
     CDay.freqstr
@@ -1362,7 +1362,7 @@ Properties
 Methods
 ~~~~~~~
 .. autosummary::
-   :toctree: generated/
+   :toctree: api/
 
     CDay.apply
     CDay.apply_index
@@ -1382,6 +1382,6 @@ Frequencies
 .. _api.offsets:
 
 .. autosummary::
-   :toctree: generated/
+   :toctree: api/
 
    to_offset

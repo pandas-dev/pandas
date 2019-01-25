@@ -11,7 +11,7 @@ These are primarily intended for library authors looking to extend pandas
 objects.
 
 .. autosummary::
-   :toctree: generated/
+   :toctree: api/
 
    api.extensions.register_extension_dtype
    api.extensions.register_dataframe_accessor

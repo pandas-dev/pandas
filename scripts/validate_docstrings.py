@@ -796,7 +796,8 @@ def validate_all(prefix, ignore_deprecated=False):
     seen = {}
 
     # functions from the API docs
-    api_doc_fnames = os.path.join(BASE_PATH, 'doc', 'source', 'api', '*.rst')
+    api_doc_fnames = os.path.join(
+        BASE_PATH, 'doc', 'source', 'reference', '*.rst')
     api_items = []
     for api_doc_fname in glob.glob(api_doc_fnames):
         with open(api_doc_fname) as f:

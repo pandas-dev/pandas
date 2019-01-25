@@ -12,7 +12,7 @@ Style
 Styler Constructor
 ------------------
 .. autosummary::
-   :toctree: generated/
+   :toctree: api/
 
    Styler
    Styler.from_custom_template
@@ -20,7 +20,7 @@ Styler Constructor
 Styler Properties
 -----------------
 .. autosummary::
-   :toctree: generated/
+   :toctree: api/
 
    Styler.env
    Styler.template
@@ -29,7 +29,7 @@ Styler Properties
 Style Application
 -----------------
 .. autosummary::
-   :toctree: generated/
+   :toctree: api/
 
    Styler.apply
    Styler.applymap
@@ -47,7 +47,7 @@ Style Application
 Builtin Styles
 --------------
 .. autosummary::
-   :toctree: generated/
+   :toctree: api/
 
    Styler.highlight_max
    Styler.highlight_min
@@ -58,7 +58,7 @@ Builtin Styles
 Style Export and Import
 -----------------------
 .. autosummary::
-   :toctree: generated/
+   :toctree: api/
 
    Styler.render
    Styler.export

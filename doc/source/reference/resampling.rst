@@ -12,7 +12,7 @@ Resampler objects are returned by resample calls: :func:`pandas.DataFrame.resamp
 Indexing, iteration
 ~~~~~~~~~~~~~~~~~~~
 .. autosummary::
-   :toctree: generated/
+   :toctree: api/
 
    Resampler.__iter__
    Resampler.groups
@@ -22,7 +22,7 @@ Indexing, iteration
 Function application
 ~~~~~~~~~~~~~~~~~~~~
 .. autosummary::
-   :toctree: generated/
+   :toctree: api/
 
    Resampler.apply
    Resampler.aggregate
@@ -32,7 +32,7 @@ Function application
 Upsampling
 ~~~~~~~~~~
 .. autosummary::
-   :toctree: generated/
+   :toctree: api/
 
    Resampler.ffill
    Resampler.backfill
@@ -46,7 +46,7 @@ Upsampling
 Computations / Descriptive Stats
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 .. autosummary::
-   :toctree: generated/
+   :toctree: api/
 
    Resampler.count
    Resampler.nunique

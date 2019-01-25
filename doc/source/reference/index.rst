@@ -44,31 +44,31 @@ public functions related to data types in pandas.
 .. toctree::
    :hidden:
 
-   generated/pandas.DataFrame.blocks
-   generated/pandas.DataFrame.as_matrix
-   generated/pandas.DataFrame.ix
-   generated/pandas.Index.asi8
-   generated/pandas.Index.data
-   generated/pandas.Index.flags
-   generated/pandas.Index.holds_integer
-   generated/pandas.Index.is_type_compatible
-   generated/pandas.Index.nlevels
-   generated/pandas.Index.sort
-   generated/pandas.Panel.agg
-   generated/pandas.Panel.aggregate
-   generated/pandas.Panel.blocks
-   generated/pandas.Panel.empty
-   generated/pandas.Panel.is_copy
-   generated/pandas.Panel.items
-   generated/pandas.Panel.ix
-   generated/pandas.Panel.major_axis
-   generated/pandas.Panel.minor_axis
-   generated/pandas.Series.asobject
-   generated/pandas.Series.blocks
-   generated/pandas.Series.from_array
-   generated/pandas.Series.ix
-   generated/pandas.Series.imag
-   generated/pandas.Series.real
+   api/pandas.DataFrame.blocks
+   api/pandas.DataFrame.as_matrix
+   api/pandas.DataFrame.ix
+   api/pandas.Index.asi8
+   api/pandas.Index.data
+   api/pandas.Index.flags
+   api/pandas.Index.holds_integer
+   api/pandas.Index.is_type_compatible
+   api/pandas.Index.nlevels
+   api/pandas.Index.sort
+   api/pandas.Panel.agg
+   api/pandas.Panel.aggregate
+   api/pandas.Panel.blocks
+   api/pandas.Panel.empty
+   api/pandas.Panel.is_copy
+   api/pandas.Panel.items
+   api/pandas.Panel.ix
+   api/pandas.Panel.major_axis
+   api/pandas.Panel.minor_axis
+   api/pandas.Series.asobject
+   api/pandas.Series.blocks
+   api/pandas.Series.from_array
+   api/pandas.Series.ix
+   api/pandas.Series.imag
+   api/pandas.Series.real
 
 
 .. Can't convince sphinx to generate toctree for this class attribute.
@@ -77,4 +77,4 @@ public functions related to data types in pandas.
 .. toctree::
    :hidden:
 
-   generated/pandas.api.extensions.ExtensionDtype.na_value
+   api/pandas.api.extensions.ExtensionDtype.na_value

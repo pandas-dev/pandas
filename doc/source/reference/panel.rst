@@ -10,7 +10,7 @@ Panel
 Constructor
 ~~~~~~~~~~~
 .. autosummary::
-   :toctree: generated/
+   :toctree: api/
 
    Panel
 
@@ -23,7 +23,7 @@ Properties and underlying data
 * **minor_axis**: axis 2; the columns of each of the DataFrames
 
 .. autosummary::
-   :toctree: generated/
+   :toctree: api/
 
    Panel.values
    Panel.axes
@@ -38,7 +38,7 @@ Properties and underlying data
 Conversion
 ~~~~~~~~~~
 .. autosummary::
-   :toctree: generated/
+   :toctree: api/
 
    Panel.astype
    Panel.copy
@@ -48,7 +48,7 @@ Conversion
 Getting and setting
 ~~~~~~~~~~~~~~~~~~~
 .. autosummary::
-   :toctree: generated/
+   :toctree: api/
 
    Panel.get_value
    Panel.set_value
@@ -56,7 +56,7 @@ Getting and setting
 Indexing, iteration, slicing
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 .. autosummary::
-   :toctree: generated/
+   :toctree: api/
 
    Panel.at
    Panel.iat
@@ -75,7 +75,7 @@ For more information on ``.at``, ``.iat``, ``.loc``, and
 Binary operator functions
 ~~~~~~~~~~~~~~~~~~~~~~~~~
 .. autosummary::
-   :toctree: generated/
+   :toctree: api/
 
    Panel.add
    Panel.sub
@@ -103,7 +103,7 @@ Binary operator functions
 Function application, GroupBy
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 .. autosummary::
-   :toctree: generated/
+   :toctree: api/
 
    Panel.apply
    Panel.groupby
@@ -113,7 +113,7 @@ Function application, GroupBy
 Computations / Descriptive Stats
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 .. autosummary::
-   :toctree: generated/
+   :toctree: api/
 
    Panel.abs
    Panel.clip
@@ -139,7 +139,7 @@ Computations / Descriptive Stats
 Reindexing / Selection / Label manipulation
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 .. autosummary::
-   :toctree: generated/
+   :toctree: api/
 
    Panel.add_prefix
    Panel.add_suffix
@@ -160,14 +160,14 @@ Reindexing / Selection / Label manipulation
 Missing data handling
 ~~~~~~~~~~~~~~~~~~~~~
 .. autosummary::
-   :toctree: generated/
+   :toctree: api/
 
    Panel.dropna
 
 Reshaping, sorting, transposing
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 .. autosummary::
-   :toctree: generated/
+   :toctree: api/
 
    Panel.sort_index
    Panel.swaplevel
@@ -178,7 +178,7 @@ Reshaping, sorting, transposing
 Combining / joining / merging
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 .. autosummary::
-   :toctree: generated/
+   :toctree: api/
 
    Panel.join
    Panel.update
@@ -186,7 +186,7 @@ Combining / joining / merging
 Time series-related
 ~~~~~~~~~~~~~~~~~~~
 .. autosummary::
-   :toctree: generated/
+   :toctree: api/
 
    Panel.asfreq
    Panel.shift
@@ -197,7 +197,7 @@ Time series-related
 Serialization / IO / Conversion
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 .. autosummary::
-   :toctree: generated/
+   :toctree: api/
 
    Panel.from_dict
    Panel.to_pickle
