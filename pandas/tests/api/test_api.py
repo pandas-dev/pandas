@@ -46,7 +46,6 @@ class TestPDApi(Base):
                'Series', 'SparseArray', 'SparseDataFrame', 'SparseDtype',
                'SparseSeries', 'Timedelta',
                'TimedeltaIndex', 'Timestamp', 'Interval', 'IntervalIndex',
-               'IntervalArray',
                'CategoricalDtype', 'PeriodDtype', 'IntervalDtype',
                'DatetimeTZDtype',
                'Int8Dtype', 'Int16Dtype', 'Int32Dtype', 'Int64Dtype',

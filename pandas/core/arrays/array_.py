@@ -50,7 +50,7 @@ def array(data,         # type: Sequence[object]
         ============================== =====================================
         Scalar Type                    Array Type
         ============================== =====================================
-        :class:`pandas.Interval`       :class:`pandas.IntervalArray`
+        :class:`pandas.Interval`       :class:`pandas.arrays.IntervalArray`
         :class:`pandas.Period`         :class:`pandas.arrays.PeriodArray`
         :class:`datetime.datetime`     :class:`pandas.arrays.DatetimeArray`
         :class:`datetime.timedelta`    :class:`pandas.arrays.TimedeltaArray`
