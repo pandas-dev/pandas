@@ -35,7 +35,7 @@ See the :ref:`overview` for more detail about what's in the library.
     {{ single_doc[:-4] }}
 {% elif single_doc %}
 .. autosummary::
-    :toctree: api/generated/
+    :toctree: reference/api/
 
     {{ single_doc }}
 {% else -%}
@@ -51,7 +51,7 @@ See the :ref:`overview` for more detail about what's in the library.
     ecosystem
     {% endif -%}
     {% if include_api -%}
-    api/index
+    reference/index
     {% endif -%}
     {% if not single_doc -%}
     development/index

@@ -10,7 +10,7 @@ Plotting
 The following functions are contained in the `pandas.plotting` module.
 
 .. autosummary::
-   :toctree: generated/
+   :toctree: api/
 
    andrews_curves
    bootstrap_plot

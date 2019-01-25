@@ -14,7 +14,7 @@ EWM objects are returned by ``.ewm`` calls: :func:`pandas.DataFrame.ewm`, :func:
 Standard moving window functions
 --------------------------------
 .. autosummary::
-   :toctree: generated/
+   :toctree: api/
 
    Rolling.count
    Rolling.sum
@@ -39,7 +39,7 @@ Standard moving window functions
 Standard expanding window functions
 -----------------------------------
 .. autosummary::
-   :toctree: generated/
+   :toctree: api/
 
    Expanding.count
    Expanding.sum
@@ -60,7 +60,7 @@ Standard expanding window functions
 Exponentially-weighted moving window functions
 ----------------------------------------------
 .. autosummary::
-   :toctree: generated/
+   :toctree: api/
 
    EWM.mean
    EWM.std
