@@ -165,9 +165,12 @@ class TestSeriesPeriod(object):
         expected = s.apply(lambda x: x.end_time)
         tm.assert_series_equal(result, expected)
 
-    def test_to_period(self):
-        series = pd.Series(['2001'], dtype='datetime64[ns]')
-        assert series.dt.to_period('D').dtype == 'Period[D]'
-
-        series = pd.Series(['NaT'], dtype='datetime64[ns]')
-        assert series.dt.to_period('D').dtype == 'Period[D]'
+    @pytest.mark.parametrize('input_vals, expected', [
+        (Series(['2001'], dtype='datetime64[ns]'),
+         Series(['2001'], dtype='period[D]')),
+        (Series(['NaT'], dtype='datetime64[ns]'),
+         Series(['NaT'], dtype='period[D]'))
+    ])
+    def test_to_period(self, input_vals, expected):
+        result = input_vals.dt.to_period('D')
+        tm.assert_series_equal(result, expected)
