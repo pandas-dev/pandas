@@ -16,8 +16,8 @@ from pandas.util._validators import validate_bool_kwarg
 
 from pandas.core.dtypes.common import (
     is_datetime64_ns_dtype, is_datetime64tz_dtype, is_datetimelike,
-    is_extension_array_dtype, is_extension_type, is_list_like, is_object_dtype,
-    is_scalar, is_timedelta64_ns_dtype)
+    is_extension_array_dtype, is_extension_type, is_hashable, is_list_like,
+    is_object_dtype, is_scalar, is_timedelta64_ns_dtype)
 from pandas.core.dtypes.generic import ABCDataFrame, ABCIndexClass, ABCSeries
 from pandas.core.dtypes.missing import isna
 
@@ -546,10 +546,10 @@ class SelectionMixin(object):
             try:
                 result = DataFrame(result)
             except ValueError:
-
+                name_attr = getattr(self, 'name', None)
+                name_attr = name_attr if is_hashable(name_attr) else None
                 # we have a dict of scalars
-                result = Series(result,
-                                name=getattr(self, 'name', None))
+                result = Series(result, name=name_attr)
 
             return result, True
         elif is_list_like(arg) and arg not in compat.string_types:
