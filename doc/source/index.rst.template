@@ -1,26 +1,21 @@
 .. pandas documentation master file, created by
 
+.. module:: pandas
+
 *********************************************
 pandas: powerful Python data analysis toolkit
 *********************************************
 
-`PDF Version <pandas.pdf>`__
-
-`Zipped HTML <pandas.zip>`__
-
-.. module:: pandas
-
 **Date**: |today| **Version**: |version|
 
-**Binary Installers:** https://pypi.org/project/pandas
+**Download documentation**: `PDF Version <pandas.pdf>`__ | `Zipped HTML <pandas.zip>`__
 
-**Source Repository:** https://github.com/pandas-dev/pandas
-
-**Issues & Ideas:** https://github.com/pandas-dev/pandas/issues
-
-**Q&A Support:** https://stackoverflow.com/questions/tagged/pandas
-
-**Developer Mailing List:** https://groups.google.com/forum/#!forum/pydata
+**Useful links**:
+`Binary Installers <https://pypi.org/project/pandas>`__ |
+`Source Repository <https://github.com/pandas-dev/pandas>`__ |
+`Issues & Ideas <https://github.com/pandas-dev/pandas/issues>`__ |
+`Q&A Support <https://stackoverflow.com/questions/tagged/pandas>`__ |
+`Mailing List <https://groups.google.com/forum/#!forum/pydata>`__
 
 :mod:`pandas` is an open source, BSD-licensed library providing high-performance,
 easy-to-use data structures and data analysis tools for the `Python <https://www.python.org/>`__
