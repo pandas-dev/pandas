@@ -878,19 +878,6 @@ class TestSeriesPlots(TestPlotBase):
 
         _check_plot_works(s.plot)
 
-    def test_misc_bindings(self, monkeypatch):
-        s = Series(randn(10))
-        monkeypatch.setattr('pandas.plotting._misc.lag_plot',
-                            lambda x: 2)
-        monkeypatch.setattr('pandas.plotting._misc.autocorrelation_plot',
-                            lambda x: 2)
-        monkeypatch.setattr('pandas.plotting._misc.bootstrap_plot',
-                            lambda x: 2)
-
-        assert s.plot.lag() == 2
-        assert s.plot.autocorrelation() == 2
-        assert s.plot.bootstrap() == 2
-
     @pytest.mark.xfail
     def test_plot_accessor_updates_on_inplace(self):
         s = Series([1, 2, 3, 4])
