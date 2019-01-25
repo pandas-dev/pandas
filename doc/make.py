@@ -258,7 +258,7 @@ class DocBuilder:
         Clean documentation generated files.
         """
         shutil.rmtree(BUILD_PATH, ignore_errors=True)
-        shutil.rmtree(os.path.join(SOURCE_PATH, 'api', 'generated'),
+        shutil.rmtree(os.path.join(SOURCE_PATH, 'reference', 'api'),
                       ignore_errors=True)
 
     def zip_html(self):
