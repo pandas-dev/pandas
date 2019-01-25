@@ -24,6 +24,7 @@ import pandas as pd
 from pandas import (
     DataFrame, DatetimeIndex, Index, NaT, Series, Timestamp, compat,
     date_range, isna, to_datetime)
+from pandas.core.arrays import DatetimeArray
 from pandas.core.tools import datetimes as tools
 from pandas.util import testing as tm
 from pandas.util.testing import assert_series_equal
@@ -246,6 +247,18 @@ class TestTimeConversionFormats(object):
 
 
 class TestToDatetime(object):
+    @pytest.mark.parametrize('tz', [None, 'US/Central'])
+    def test_to_datetime_dtarr(self, tz):
+        # DatetimeArray
+        dti = date_range('1965-04-03', periods=19, freq='2W', tz=tz)
+        arr = DatetimeArray(dti)
+
+        result = to_datetime(arr)
+        assert result is arr
+
+        result = to_datetime(arr, box=True)
+        assert result is arr
+
     def test_to_datetime_pydatetime(self):
         actual = pd.to_datetime(datetime(2008, 1, 15))
         assert actual == datetime(2008, 1, 15)
@@ -542,6 +555,63 @@ class TestToDatetime(object):
         with pytest.raises(TypeError):
             pd.to_datetime(pd.to_datetime)
 
+    @pytest.mark.parametrize('value', ["a", "00:01:99"])
+    @pytest.mark.parametrize('infer', [True, False])
+    @pytest.mark.parametrize('format', [None, 'H%:M%:S%'])
+    def test_datetime_invalid_scalar(self, value, format, infer):
+        # GH24763
+        res = pd.to_datetime(value, errors='ignore', format=format,
+                             infer_datetime_format=infer)
+        assert res == value
+
+        res = pd.to_datetime(value, errors='coerce', format=format,
+                             infer_datetime_format=infer)
+        assert res is pd.NaT
+
+        with pytest.raises(ValueError):
+            pd.to_datetime(value, errors='raise', format=format,
+                           infer_datetime_format=infer)
+
+    @pytest.mark.parametrize('value', ["3000/12/11 00:00:00"])
+    @pytest.mark.parametrize('infer', [True, False])
+    @pytest.mark.parametrize('format', [None, 'H%:M%:S%'])
+    def test_datetime_outofbounds_scalar(self, value, format, infer):
+        # GH24763
+        res = pd.to_datetime(value, errors='ignore', format=format,
+                             infer_datetime_format=infer)
+        assert res == value
+
+        res = pd.to_datetime(value, errors='coerce', format=format,
+                             infer_datetime_format=infer)
+        assert res is pd.NaT
+
+        if format is not None:
+            with pytest.raises(ValueError):
+                pd.to_datetime(value, errors='raise', format=format,
+                               infer_datetime_format=infer)
+        else:
+            with pytest.raises(OutOfBoundsDatetime):
+                pd.to_datetime(value, errors='raise', format=format,
+                               infer_datetime_format=infer)
+
+    @pytest.mark.parametrize('values', [["a"], ["00:01:99"],
+                                        ["a", "b", "99:00:00"]])
+    @pytest.mark.parametrize('infer', [True, False])
+    @pytest.mark.parametrize('format', [None, 'H%:M%:S%'])
+    def test_datetime_invalid_index(self, values, format, infer):
+        # GH24763
+        res = pd.to_datetime(values, errors='ignore', format=format,
+                             infer_datetime_format=infer)
+        tm.assert_index_equal(res, pd.Index(values))
+
+        res = pd.to_datetime(values, errors='coerce', format=format,
+                             infer_datetime_format=infer)
+        tm.assert_index_equal(res, pd.DatetimeIndex([pd.NaT] * len(values)))
+
+        with pytest.raises(ValueError):
+            pd.to_datetime(values, errors='raise', format=format,
+                           infer_datetime_format=infer)
+
     @pytest.mark.parametrize("utc", [True, None])
     @pytest.mark.parametrize("format", ['%Y%m%d %H:%M:%S', None])
     @pytest.mark.parametrize("box", [True, False])
@@ -641,6 +711,16 @@ class TestToDatetime(object):
         expected = DatetimeIndex([datetime(2018, 3, 1, 12,
                                            tzinfo=pytz.FixedOffset(240))] * 2)
         tm.assert_index_equal(result, expected)
+
+    @pytest.mark.parametrize('ts, expected', [
+        (Timestamp('2018-01-01'),
+         Timestamp('2018-01-01', tz='UTC')),
+        (Timestamp('2018-01-01', tz='US/Pacific'),
+         Timestamp('2018-01-01 08:00', tz='UTC'))])
+    def test_timestamp_utc_true(self, ts, expected):
+        # GH 24415
+        result = to_datetime(ts, utc=True)
+        assert result == expected
 
 
 class TestToDatetimeUnit(object):
@@ -936,6 +1016,33 @@ class TestToDatetimeUnit(object):
         with pytest.raises(ValueError):
             to_datetime(df, cache=cache)
 
+    def test_dataframe_box_false(self):
+        # GH 23760
+        df = pd.DataFrame({'year': [2015, 2016],
+                           'month': [2, 3],
+                           'day': [4, 5]})
+        result = pd.to_datetime(df, box=False)
+        expected = np.array(['2015-02-04', '2016-03-05'],
+                            dtype='datetime64[ns]')
+        tm.assert_numpy_array_equal(result, expected)
+
+    def test_dataframe_utc_true(self):
+        # GH 23760
+        df = pd.DataFrame({'year': [2015, 2016],
+                           'month': [2, 3],
+                           'day': [4, 5]})
+        result = pd.to_datetime(df, utc=True)
+        expected = pd.Series(np.array(['2015-02-04', '2016-03-05'],
+                             dtype='datetime64[ns]')).dt.tz_localize('UTC')
+        tm.assert_series_equal(result, expected)
+
+    def test_to_datetime_errors_ignore_utc_true(self):
+        # GH 23758
+        result = pd.to_datetime([1], unit='s', box=True, utc=True,
+                                errors='ignore')
+        expected = DatetimeIndex(['1970-01-01 00:00:01'], tz='UTC')
+        tm.assert_index_equal(result, expected)
+
 
 class TestToDatetimeMisc(object):
     def test_to_datetime_barely_out_of_bounds(self):
@@ -1193,8 +1300,6 @@ class TestToDatetimeMisc(object):
 class TestGuessDatetimeFormat(object):
 
     @td.skip_if_not_us_locale
-    @pytest.mark.filterwarnings("ignore:_timelex:DeprecationWarning")
-    # https://github.com/pandas-dev/pandas/issues/21322
     def test_guess_datetime_format_for_array(self):
         expected_format = '%Y-%m-%d %H:%M:%S.%f'
         dt_string = datetime(2011, 12, 30, 0, 0, 0).strftime(expected_format)

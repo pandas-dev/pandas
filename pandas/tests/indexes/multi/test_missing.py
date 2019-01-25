@@ -3,11 +3,12 @@
 import numpy as np
 import pytest
 
-import pandas as pd
-import pandas.util.testing as tm
-from pandas import Int64Index, MultiIndex, PeriodIndex, UInt64Index
 from pandas._libs.tslib import iNaT
+
+import pandas as pd
+from pandas import Int64Index, MultiIndex, PeriodIndex, UInt64Index
 from pandas.core.indexes.datetimelike import DatetimeIndexOpsMixin
+import pandas.util.testing as tm
 
 
 def test_fillna(idx):
@@ -110,10 +111,10 @@ def test_nan_stays_float():
 
     # GH 7031
     idx0 = pd.MultiIndex(levels=[["A", "B"], []],
-                         labels=[[1, 0], [-1, -1]],
+                         codes=[[1, 0], [-1, -1]],
                          names=[0, 1])
     idx1 = pd.MultiIndex(levels=[["C"], ["D"]],
-                         labels=[[0], [0]],
+                         codes=[[0], [0]],
                          names=[0, 1])
     idxm = idx0.join(idx1, how='outer')
     assert pd.isna(idx0.get_level_values(1)).all()

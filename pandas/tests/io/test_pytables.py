@@ -1,39 +1,37 @@
-import pytest
-import os
-import tempfile
 from contextlib import contextmanager
-from warnings import catch_warnings, simplefilter
-from distutils.version import LooseVersion
-
 import datetime
 from datetime import timedelta
+from distutils.version import LooseVersion
+import os
+import tempfile
+from warnings import catch_warnings, simplefilter
 
 import numpy as np
+import pytest
 
-import pandas as pd
-from pandas import (Series, DataFrame, Panel, MultiIndex, Int64Index,
-                    RangeIndex, Categorical, bdate_range,
-                    date_range, timedelta_range, Index, DatetimeIndex,
-                    isna, compat, concat, Timestamp)
-
-import pandas.util.testing as tm
+from pandas.compat import (
+    PY35, PY36, BytesIO, is_platform_little_endian, is_platform_windows,
+    lrange, range, text_type, u)
 import pandas.util._test_decorators as td
-from pandas.util.testing import (assert_panel_equal,
-                                 assert_frame_equal,
-                                 assert_series_equal,
-                                 set_timezone)
 
-from pandas.compat import (is_platform_windows, is_platform_little_endian,
-                           PY35, PY36, BytesIO, text_type,
-                           range, lrange, u)
-from pandas.io.formats.printing import pprint_thing
 from pandas.core.dtypes.common import is_categorical_dtype
 
-tables = pytest.importorskip('tables')
+import pandas as pd
+from pandas import (
+    Categorical, DataFrame, DatetimeIndex, Index, Int64Index, MultiIndex,
+    Panel, RangeIndex, Series, Timestamp, bdate_range, compat, concat,
+    date_range, isna, timedelta_range)
+import pandas.util.testing as tm
+from pandas.util.testing import (
+    assert_frame_equal, assert_panel_equal, assert_series_equal, set_timezone)
+
 from pandas.io import pytables as pytables  # noqa:E402
-from pandas.io.pytables import (TableIterator,  # noqa:E402
-                                HDFStore, Term, read_hdf,
-                                PossibleDataLossError, ClosedFileError)
+from pandas.io.formats.printing import pprint_thing
+from pandas.io.pytables import (
+    ClosedFileError, HDFStore, PossibleDataLossError, Term, read_hdf)
+from pandas.io.pytables import TableIterator  # noqa:E402
+
+tables = pytest.importorskip('tables')
 
 
 _default_compressor = ('blosc' if LooseVersion(tables.__version__) >=
@@ -145,6 +143,11 @@ class Base(object):
 @pytest.mark.single
 @pytest.mark.filterwarnings("ignore:\\nPanel:FutureWarning")
 class TestHDFStore(Base):
+
+    def test_format_kwarg_in_constructor(self):
+        # GH 13291
+        with ensure_clean_path(self.path) as path:
+            pytest.raises(ValueError, HDFStore, path, format='table')
 
     def test_context(self):
         path = create_tempfile(self.path)
@@ -1774,8 +1777,8 @@ class TestHDFStore(Base):
     def test_append_hierarchical(self):
         index = MultiIndex(levels=[['foo', 'bar', 'baz', 'qux'],
                                    ['one', 'two', 'three']],
-                           labels=[[0, 0, 0, 1, 1, 2, 2, 3, 3, 3],
-                                   [0, 1, 2, 0, 1, 1, 2, 0, 1, 2]],
+                           codes=[[0, 0, 0, 1, 1, 2, 2, 3, 3, 3],
+                                  [0, 1, 2, 0, 1, 1, 2, 0, 1, 2]],
                            names=['foo', 'bar'])
         df = DataFrame(np.random.randn(10, 3), index=index,
                        columns=['A', 'B', 'C'])
@@ -1908,8 +1911,8 @@ class TestHDFStore(Base):
         # in the `where` argument
         index = MultiIndex(levels=[['foo', 'bar', 'baz', 'qux'],
                                    ['one', 'two', 'three']],
-                           labels=[[0, 0, 0, 1, 1, 2, 2, 3, 3, 3],
-                                   [0, 1, 2, 0, 1, 1, 2, 0, 1, 2]],
+                           codes=[[0, 0, 0, 1, 1, 2, 2, 3, 3, 3],
+                                  [0, 1, 2, 0, 1, 1, 2, 0, 1, 2]],
                            names=['foo_name', 'bar_name'])
 
         # With a DataFrame
@@ -2877,8 +2880,8 @@ class TestHDFStore(Base):
     def test_store_hierarchical(self):
         index = MultiIndex(levels=[['foo', 'bar', 'baz', 'qux'],
                                    ['one', 'two', 'three']],
-                           labels=[[0, 0, 0, 1, 1, 2, 2, 3, 3, 3],
-                                   [0, 1, 2, 0, 1, 1, 2, 0, 1, 2]],
+                           codes=[[0, 0, 0, 1, 1, 2, 2, 3, 3, 3],
+                                  [0, 1, 2, 0, 1, 1, 2, 0, 1, 2]],
                            names=['foo', 'bar'])
         frame = DataFrame(np.random.randn(10, 3), index=index,
                           columns=['A', 'B', 'C'])
@@ -3920,7 +3923,7 @@ class TestHDFStore(Base):
             # HDFStore.select_column should raise a KeyError
             # exception if the key is not a valid store
             with pytest.raises(KeyError,
-                               message='No object named index in the file'):
+                               match='No object named df in the file'):
                 store.select_column('df', 'index')
 
             store.append('df', df)
@@ -4534,6 +4537,20 @@ class TestHDFStore(Base):
             str(store)
             d1 = store['detector']
             assert isinstance(d1, DataFrame)
+
+    def test_legacy_table_fixed_format_read_py2(self, datapath):
+        # GH 24510
+        # legacy table with fixed format written en Python 2
+        with ensure_clean_store(
+                datapath('io', 'data', 'legacy_hdf',
+                         'legacy_table_fixed_py2.h5'),
+                mode='r') as store:
+            result = store.select('df')
+            expected = pd.DataFrame([[1, 2, 3, 'D']],
+                                    columns=['A', 'B', 'C', 'D'],
+                                    index=pd.Index(['ABC'],
+                                                   name='INDEX_NAME'))
+            assert_frame_equal(expected, result)
 
     def test_legacy_table_read(self, datapath):
         # legacy table types

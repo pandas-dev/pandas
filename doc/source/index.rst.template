@@ -106,45 +106,27 @@ Some other notes
 See the package overview for more detail about what's in the library.
 
 
-{% if single_doc_type == 'docstring' -%}
+{% if single_doc and single_doc.endswith('.rst') -%}
+.. toctree::
+    :maxdepth: 4
+
+    {{ single_doc[:-4] }}
+{% elif single_doc %}
 .. autosummary::
-    :toctree: generated_single/
+    :toctree: api/generated/
+
+    {{ single_doc }}
 {% else -%}
 .. toctree::
     :maxdepth: 4
 {% endif %}
 
-    {% if single_doc -%}
-    {{ single_doc }}
-    {% endif -%}
     {% if not single_doc -%}
     What's New <whatsnew/v0.24.0>
     install
-    contributing
-    overview
-    10min
-    tutorials
+    getting_started/index
     cookbook
-    dsintro
-    basics
-    text
-    options
-    indexing
-    advanced
-    computation
-    missing_data
-    groupby
-    merging
-    reshaping
-    timeseries
-    timedeltas
-    categorical
-    visualization
-    style
-    io
-    enhancingperf
-    sparse
-    gotchas
+    user_guide/index
     r_interface
     ecosystem
     comparison_with_r
@@ -153,11 +135,9 @@ See the package overview for more detail about what's in the library.
     comparison_with_stata
     {% endif -%}
     {% if include_api -%}
-    api
+    api/index
     {% endif -%}
     {% if not single_doc -%}
-    developer
-    internals
-    extending
-    releases
+    development/index
+    whatsnew/index
     {% endif -%}

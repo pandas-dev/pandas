@@ -8,6 +8,7 @@ from __future__ import division, print_function
 
 from contextlib import contextmanager
 from datetime import date, datetime, time
+from functools import partial
 import re
 import warnings
 
@@ -81,6 +82,17 @@ def _convert_params(sql, params):
     return args
 
 
+def _process_parse_dates_argument(parse_dates):
+    """Process parse_dates argument for read_sql functions"""
+    # handle non-list entries for parse_dates gracefully
+    if parse_dates is True or parse_dates is None or parse_dates is False:
+        parse_dates = []
+
+    elif not hasattr(parse_dates, '__iter__'):
+        parse_dates = [parse_dates]
+    return parse_dates
+
+
 def _handle_date_column(col, utc=None, format=None):
     if isinstance(format, dict):
         return to_datetime(col, errors='ignore', **format)
@@ -95,8 +107,7 @@ def _handle_date_column(col, utc=None, format=None):
         elif is_datetime64tz_dtype(col):
             # coerce to UTC timezone
             # GH11216
-            return (to_datetime(col, errors='coerce')
-                    .astype('datetime64[ns, UTC]'))
+            return to_datetime(col, utc=True)
         else:
             return to_datetime(col, errors='coerce', format=format, utc=utc)
 
@@ -106,27 +117,18 @@ def _parse_date_columns(data_frame, parse_dates):
     Force non-datetime columns to be read as such.
     Supports both string formatted and integer timestamp columns.
     """
-    # handle non-list entries for parse_dates gracefully
-    if parse_dates is True or parse_dates is None or parse_dates is False:
-        parse_dates = []
+    parse_dates = _process_parse_dates_argument(parse_dates)
 
-    if not hasattr(parse_dates, '__iter__'):
-        parse_dates = [parse_dates]
-
-    for col_name in parse_dates:
-        df_col = data_frame[col_name]
-        try:
-            fmt = parse_dates[col_name]
-        except TypeError:
-            fmt = None
-        data_frame[col_name] = _handle_date_column(df_col, format=fmt)
-
-    # we want to coerce datetime64_tz dtypes for now
+    # we want to coerce datetime64_tz dtypes for now to UTC
     # we could in theory do a 'nice' conversion from a FixedOffset tz
     # GH11216
     for col_name, df_col in data_frame.iteritems():
-        if is_datetime64tz_dtype(df_col):
-            data_frame[col_name] = _handle_date_column(df_col)
+        if is_datetime64tz_dtype(df_col) or col_name in parse_dates:
+            try:
+                fmt = parse_dates[col_name]
+            except TypeError:
+                fmt = None
+            data_frame[col_name] = _handle_date_column(df_col, format=fmt)
 
     return data_frame
 
@@ -138,7 +140,7 @@ def _wrap_result(data, columns, index_col=None, coerce_float=True,
     frame = DataFrame.from_records(data, columns=columns,
                                    coerce_float=coerce_float)
 
-    _parse_date_columns(frame, parse_dates)
+    frame = _parse_date_columns(frame, parse_dates)
 
     if index_col is not None:
         frame.set_index(index_col, inplace=True)
@@ -218,14 +220,14 @@ def read_sql_table(table_name, con, schema=None, index_col=None,
     -------
     DataFrame
 
-    Notes
-    -----
-    Any datetime values with time zone information will be converted to UTC.
-
     See Also
     --------
     read_sql_query : Read SQL query into a DataFrame.
     read_sql
+
+    Notes
+    -----
+    Any datetime values with time zone information will be converted to UTC.
     """
 
     con = _engine_builder(con)
@@ -238,7 +240,7 @@ def read_sql_table(table_name, con, schema=None, index_col=None,
     try:
         meta.reflect(only=[table_name], views=True)
     except sqlalchemy.exc.InvalidRequestError:
-        raise ValueError("Table %s not found" % table_name)
+        raise ValueError("Table {name} not found".format(name=table_name))
 
     pandas_sql = SQLDatabase(con, meta=meta)
     table = pandas_sql.read_table(
@@ -248,7 +250,7 @@ def read_sql_table(table_name, con, schema=None, index_col=None,
     if table is not None:
         return table
     else:
-        raise ValueError("Table %s not found" % table_name, con)
+        raise ValueError("Table {name} not found".format(name=table_name), con)
 
 
 def read_sql_query(sql, con, index_col=None, coerce_float=True, params=None,
@@ -296,15 +298,15 @@ def read_sql_query(sql, con, index_col=None, coerce_float=True, params=None,
     -------
     DataFrame
 
-    Notes
-    -----
-    Any datetime values with time zone information parsed via the `parse_dates`
-    parameter will be converted to UTC.
-
     See Also
     --------
     read_sql_table : Read SQL database table into a DataFrame.
     read_sql
+
+    Notes
+    -----
+    Any datetime values with time zone information parsed via the `parse_dates`
+    parameter will be converted to UTC.
     """
     pandas_sql = pandasSQL_builder(con)
     return pandas_sql.read_query(
@@ -395,7 +397,7 @@ def read_sql(sql, con, index_col=None, coerce_float=True, params=None,
 
 
 def to_sql(frame, name, con, schema=None, if_exists='fail', index=True,
-           index_label=None, chunksize=None, dtype=None):
+           index_label=None, chunksize=None, dtype=None, method=None):
     """
     Write records stored in a DataFrame to a SQL database.
 
@@ -429,6 +431,17 @@ def to_sql(frame, name, con, schema=None, if_exists='fail', index=True,
         Optional specifying the datatype for columns. The SQL type should
         be a SQLAlchemy type, or a string for sqlite3 fallback connection.
         If all columns are of the same type, one single value can be used.
+    method : {None, 'multi', callable}, default None
+        Controls the SQL insertion clause used:
+
+        - None : Uses standard SQL ``INSERT`` clause (one per row).
+        - 'multi': Pass multiple values in a single ``INSERT`` clause.
+        - callable with signature ``(pd_table, conn, keys, data_iter)``.
+
+        Details and a sample callable implementation can be found in the
+        section :ref:`insert method <io.sql.method>`.
+
+        .. versionadded:: 0.24.0
     """
     if if_exists not in ('fail', 'replace', 'append'):
         raise ValueError("'{0}' is not valid for if_exists".format(if_exists))
@@ -443,7 +456,7 @@ def to_sql(frame, name, con, schema=None, if_exists='fail', index=True,
 
     pandas_sql.to_sql(frame, name, if_exists=if_exists, index=index,
                       index_label=index_label, schema=schema,
-                      chunksize=chunksize, dtype=dtype)
+                      chunksize=chunksize, dtype=dtype, method=method)
 
 
 def has_table(table_name, con, schema=None):
@@ -539,7 +552,8 @@ class SQLTable(PandasObject):
             self.table = self.pd_sql.get_table(self.name, self.schema)
 
         if self.table is None:
-            raise ValueError("Could not init table '%s'" % name)
+            raise ValueError(
+                "Could not init table '{name}'".format(name=name))
 
     def exists(self):
         return self.pd_sql.has_table(self.name, self.schema)
@@ -556,7 +570,8 @@ class SQLTable(PandasObject):
     def create(self):
         if self.exists():
             if self.if_exists == 'fail':
-                raise ValueError("Table '%s' already exists." % self.name)
+                raise ValueError(
+                    "Table '{name}' already exists.".format(name=self.name))
             elif self.if_exists == 'replace':
                 self.pd_sql.drop_table(self.name, self.schema)
                 self._execute_create()
@@ -568,8 +583,29 @@ class SQLTable(PandasObject):
         else:
             self._execute_create()
 
-    def insert_statement(self):
-        return self.table.insert()
+    def _execute_insert(self, conn, keys, data_iter):
+        """Execute SQL statement inserting data
+
+        Parameters
+        ----------
+        conn : sqlalchemy.engine.Engine or sqlalchemy.engine.Connection
+        keys : list of str
+           Column names
+        data_iter : generator of list
+           Each item contains a list of values to be inserted
+        """
+        data = [dict(zip(keys, row)) for row in data_iter]
+        conn.execute(self.table.insert(), data)
+
+    def _execute_insert_multi(self, conn, keys, data_iter):
+        """Alternative to _execute_insert for DBs support multivalue INSERT.
+
+        Note: multi-value insert is usually faster for analytics DBs
+        and tables containing a few columns
+        but performance degrades quickly with increase of columns.
+        """
+        data = [dict(zip(keys, row)) for row in data_iter]
+        conn.execute(self.table.insert(data))
 
     def insert_data(self):
         if self.index is not None:
@@ -612,11 +648,18 @@ class SQLTable(PandasObject):
 
         return column_names, data_list
 
-    def _execute_insert(self, conn, keys, data_iter):
-        data = [dict(zip(keys, row)) for row in data_iter]
-        conn.execute(self.insert_statement(), data)
+    def insert(self, chunksize=None, method=None):
 
-    def insert(self, chunksize=None):
+        # set insert method
+        if method is None:
+            exec_insert = self._execute_insert
+        elif method == 'multi':
+            exec_insert = self._execute_insert_multi
+        elif callable(method):
+            exec_insert = partial(method, self)
+        else:
+            raise ValueError('Invalid parameter `method`: {}'.format(method))
+
         keys, data_list = self.insert_data()
 
         nrows = len(self.frame)
@@ -639,7 +682,7 @@ class SQLTable(PandasObject):
                     break
 
                 chunk_iter = zip(*[arr[start_i:end_i] for arr in data_list])
-                self._execute_insert(conn, keys, chunk_iter)
+                exec_insert(conn, keys, chunk_iter)
 
     def _query_iterator(self, result, chunksize, columns, coerce_float=True,
                         parse_dates=None):
@@ -778,17 +821,24 @@ class SQLTable(PandasObject):
         Datetimes should already be converted to np.datetime64 if supported,
         but here we also force conversion if required.
         """
-        # handle non-list entries for parse_dates gracefully
-        if parse_dates is True or parse_dates is None or parse_dates is False:
-            parse_dates = []
-
-        if not hasattr(parse_dates, '__iter__'):
-            parse_dates = [parse_dates]
+        parse_dates = _process_parse_dates_argument(parse_dates)
 
         for sql_col in self.table.columns:
             col_name = sql_col.name
             try:
                 df_col = self.frame[col_name]
+
+                # Handle date parsing upfront; don't try to convert columns
+                # twice
+                if col_name in parse_dates:
+                    try:
+                        fmt = parse_dates[col_name]
+                    except TypeError:
+                        fmt = None
+                    self.frame[col_name] = _handle_date_column(
+                        df_col, format=fmt)
+                    continue
+
                 # the type the dataframe column should have
                 col_type = self._get_dtype(sql_col.type)
 
@@ -806,32 +856,8 @@ class SQLTable(PandasObject):
                     if col_type is np.dtype('int64') or col_type is bool:
                         self.frame[col_name] = df_col.astype(
                             col_type, copy=False)
-
-                # Handle date parsing
-                if col_name in parse_dates:
-                    try:
-                        fmt = parse_dates[col_name]
-                    except TypeError:
-                        fmt = None
-                    self.frame[col_name] = _handle_date_column(
-                        df_col, format=fmt)
-
             except KeyError:
                 pass  # this column not in results
-
-    def _get_notna_col_dtype(self, col):
-        """
-        Infer datatype of the Series col.  In case the dtype of col is 'object'
-        and it contains NA values, this infers the datatype of the not-NA
-        values.  Needed for inserting typed data containing NULLs, GH8778.
-        """
-        col_for_inference = col
-        if col.dtype == 'object':
-            notnadata = col[~isna(col)]
-            if len(notnadata):
-                col_for_inference = notnadata
-
-        return lib.infer_dtype(col_for_inference)
 
     def _sqlalchemy_type(self, col):
 
@@ -839,7 +865,9 @@ class SQLTable(PandasObject):
         if col.name in dtype:
             return self.dtype[col.name]
 
-        col_type = self._get_notna_col_dtype(col)
+        # Infer type of column, while ignoring missing values.
+        # Needed for inserting typed data containing NULLs, GH 8778.
+        col_type = lib.infer_dtype(col, skipna=True)
 
         from sqlalchemy.types import (BigInteger, Integer, Float,
                                       Text, Boolean,
@@ -1085,7 +1113,8 @@ class SQLDatabase(PandasSQL):
     read_sql = read_query
 
     def to_sql(self, frame, name, if_exists='fail', index=True,
-               index_label=None, schema=None, chunksize=None, dtype=None):
+               index_label=None, schema=None, chunksize=None, dtype=None,
+               method=None):
         """
         Write records stored in a DataFrame to a SQL database.
 
@@ -1115,7 +1144,17 @@ class SQLDatabase(PandasSQL):
             Optional specifying the datatype for columns. The SQL type should
             be a SQLAlchemy type. If all columns are of the same type, one
             single value can be used.
+        method : {None', 'multi', callable}, default None
+            Controls the SQL insertion clause used:
 
+            * None : Uses standard SQL ``INSERT`` clause (one per row).
+            * 'multi': Pass multiple values in a single ``INSERT`` clause.
+            * callable with signature ``(pd_table, conn, keys, data_iter)``.
+
+            Details and a sample callable implementation can be found in the
+            section :ref:`insert method <io.sql.method>`.
+
+            .. versionadded:: 0.24.0
         """
         if dtype and not is_dict_like(dtype):
             dtype = {col_name: dtype for col_name in frame}
@@ -1124,14 +1163,14 @@ class SQLDatabase(PandasSQL):
             from sqlalchemy.types import to_instance, TypeEngine
             for col, my_type in dtype.items():
                 if not isinstance(to_instance(my_type), TypeEngine):
-                    raise ValueError('The type of %s is not a SQLAlchemy '
-                                     'type ' % col)
+                    raise ValueError('The type of {column} is not a '
+                                     'SQLAlchemy type '.format(column=col))
 
         table = SQLTable(name, self, frame=frame, index=index,
                          if_exists=if_exists, index_label=index_label,
                          schema=schema, dtype=dtype)
         table.create()
-        table.insert(chunksize)
+        table.insert(chunksize, method=method)
         if (not name.isdigit() and not name.islower()):
             # check for potentially case sensitivity issues (GH7815)
             # Only check when name is not a number and name is not lower case
@@ -1207,7 +1246,8 @@ def _get_unicode_name(name):
     try:
         uname = text_type(name).encode("utf-8", "strict").decode("utf-8")
     except UnicodeError:
-        raise ValueError("Cannot convert identifier to UTF-8: '%s'" % name)
+        raise ValueError(
+            "Cannot convert identifier to UTF-8: '{name}'".format(name=name))
     return uname
 
 
@@ -1268,8 +1308,9 @@ class SQLiteTable(SQLTable):
         bracketed_names = [escape(column) for column in names]
         col_names = ','.join(bracketed_names)
         wildcards = ','.join([wld] * len(names))
-        insert_statement = 'INSERT INTO %s (%s) VALUES (%s)' % (
-            escape(self.name), col_names, wildcards)
+        insert_statement = \
+            u'INSERT INTO {table} ({columns}) VALUES ({wld})'.format(
+                table=escape(self.name), columns=col_names, wld=wildcards)
         return insert_statement
 
     def _execute_insert(self, conn, keys, data_iter):
@@ -1325,7 +1366,10 @@ class SQLiteTable(SQLTable):
         if col.name in dtype:
             return dtype[col.name]
 
-        col_type = self._get_notna_col_dtype(col)
+        # Infer type of column, while ignoring missing values.
+        # Needed for inserting typed data containing NULLs, GH 8778.
+        col_type = lib.infer_dtype(col, skipna=True)
+
         if col_type == 'timedelta64':
             warnings.warn("the 'timedelta' type is not supported, and will be "
                           "written as integer values (ns frequency) to the "
@@ -1389,12 +1433,14 @@ class SQLiteDatabase(PandasSQL):
             try:
                 self.con.rollback()
             except Exception:  # pragma: no cover
-                ex = DatabaseError("Execution failed on sql: %s\n%s\nunable"
-                                   " to rollback" % (args[0], exc))
+                ex = DatabaseError(
+                    "Execution failed on sql: {sql}\n{exc}\nunable "
+                    "to rollback".format(sql=args[0], exc=exc))
                 raise_with_traceback(ex)
 
             ex = DatabaseError(
-                "Execution failed on sql '%s': %s" % (args[0], exc))
+                "Execution failed on sql '{sql}': {exc}".format(
+                    sql=args[0], exc=exc))
             raise_with_traceback(ex)
 
     @staticmethod
@@ -1442,7 +1488,8 @@ class SQLiteDatabase(PandasSQL):
         return result
 
     def to_sql(self, frame, name, if_exists='fail', index=True,
-               index_label=None, schema=None, chunksize=None, dtype=None):
+               index_label=None, schema=None, chunksize=None, dtype=None,
+               method=None):
         """
         Write records stored in a DataFrame to a SQL database.
 
@@ -1471,7 +1518,17 @@ class SQLiteDatabase(PandasSQL):
             Optional specifying the datatype for columns. The SQL type should
             be a string. If all columns are of the same type, one single value
             can be used.
+        method : {None, 'multi', callable}, default None
+            Controls the SQL insertion clause used:
 
+            * None : Uses standard SQL ``INSERT`` clause (one per row).
+            * 'multi': Pass multiple values in a single ``INSERT`` clause.
+            * callable with signature ``(pd_table, conn, keys, data_iter)``.
+
+            Details and a sample callable implementation can be found in the
+            section :ref:`insert method <io.sql.method>`.
+
+            .. versionadded:: 0.24.0
         """
         if dtype and not is_dict_like(dtype):
             dtype = {col_name: dtype for col_name in frame}
@@ -1479,14 +1536,14 @@ class SQLiteDatabase(PandasSQL):
         if dtype is not None:
             for col, my_type in dtype.items():
                 if not isinstance(my_type, str):
-                    raise ValueError('%s (%s) not a string' % (
-                        col, str(my_type)))
+                    raise ValueError('{column} ({type!s}) not a string'.format(
+                        column=col, type=my_type))
 
         table = SQLiteTable(name, self, frame=frame, index=index,
                             if_exists=if_exists, index_label=index_label,
                             dtype=dtype)
         table.create()
-        table.insert(chunksize)
+        table.insert(chunksize, method)
 
     def has_table(self, name, schema=None):
         # TODO(wesm): unused?
@@ -1495,7 +1552,7 @@ class SQLiteDatabase(PandasSQL):
 
         wld = '?'
         query = ("SELECT name FROM sqlite_master "
-                 "WHERE type='table' AND name=%s;") % wld
+                 "WHERE type='table' AND name={wld};").format(wld=wld)
 
         return len(self.execute(query, [name, ]).fetchall()) > 0
 
@@ -1503,7 +1560,8 @@ class SQLiteDatabase(PandasSQL):
         return None  # not supported in fallback mode
 
     def drop_table(self, name, schema=None):
-        drop_sql = "DROP TABLE %s" % _get_valid_sqlite_name(name)
+        drop_sql = "DROP TABLE {name}".format(
+            name=_get_valid_sqlite_name(name))
         self.execute(drop_sql)
 
     def _create_sql_schema(self, frame, table_name, keys=None, dtype=None):

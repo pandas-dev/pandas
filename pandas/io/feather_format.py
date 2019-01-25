@@ -24,8 +24,8 @@ def _try_import():
                           "or via pip\n"
                           "pip install -U pyarrow\n")
 
-    if LooseVersion(pyarrow.__version__) < LooseVersion('0.4.1'):
-        raise ImportError("pyarrow >= 0.4.1 required for feather support\n\n"
+    if LooseVersion(pyarrow.__version__) < LooseVersion('0.9.0'):
+        raise ImportError("pyarrow >= 0.9.0 required for feather support\n\n"
                           "you can install via conda\n"
                           "conda install pyarrow -c conda-forge"
                           "or via pip\n"
@@ -84,7 +84,7 @@ def to_feather(df, path):
 
 
 @deprecate_kwarg(old_arg_name='nthreads', new_arg_name='use_threads')
-def read_feather(path, use_threads=True):
+def read_feather(path, columns=None, use_threads=True):
     """
     Load a feather-format object from the file path
 
@@ -93,6 +93,10 @@ def read_feather(path, use_threads=True):
     Parameters
     ----------
     path : string file path, or file-like object
+    columns : sequence, default None
+        If not provided, all columns are read
+
+        .. versionadded 0.24.0
     nthreads : int, default 1
         Number of CPU threads to use when reading to pandas.DataFrame
 
@@ -116,6 +120,8 @@ def read_feather(path, use_threads=True):
         int_use_threads = int(use_threads)
         if int_use_threads < 1:
             int_use_threads = 1
-        return feather.read_feather(path, nthreads=int_use_threads)
+        return feather.read_feather(path, columns=columns,
+                                    nthreads=int_use_threads)
 
-    return feather.read_feather(path, use_threads=bool(use_threads))
+    return feather.read_feather(path, columns=columns,
+                                use_threads=bool(use_threads))

@@ -1,25 +1,27 @@
 # pylint: disable=E1103
 
-import random
-import re
 from collections import OrderedDict
 from datetime import date, datetime
+import random
+import re
 
 import numpy as np
-import pytest
 from numpy import nan
+import pytest
 
-import pandas as pd
-import pandas.util.testing as tm
-from pandas import (Categorical, CategoricalIndex, DataFrame, DatetimeIndex,
-                    Float64Index, Int64Index, MultiIndex, RangeIndex,
-                    Series, UInt64Index)
-from pandas.api.types import CategoricalDtype as CDT
 from pandas.compat import lrange
+
 from pandas.core.dtypes.common import is_categorical_dtype, is_object_dtype
 from pandas.core.dtypes.dtypes import CategoricalDtype
+
+import pandas as pd
+from pandas import (
+    Categorical, CategoricalIndex, DataFrame, DatetimeIndex, Float64Index,
+    Int64Index, MultiIndex, RangeIndex, Series, UInt64Index)
+from pandas.api.types import CategoricalDtype as CDT
 from pandas.core.reshape.concat import concat
 from pandas.core.reshape.merge import MergeError, merge
+import pandas.util.testing as tm
 from pandas.util.testing import assert_frame_equal, assert_series_equal
 
 N = 50
@@ -117,25 +119,37 @@ class TestMerge(object):
         assert_frame_equal(result, expected.loc[:, result.columns])
 
     def test_merge_misspecified(self):
-        pytest.raises(ValueError, merge, self.left, self.right,
-                      left_index=True)
-        pytest.raises(ValueError, merge, self.left, self.right,
-                      right_index=True)
+        msg = "Must pass right_on or right_index=True"
+        with pytest.raises(pd.errors.MergeError, match=msg):
+            merge(self.left, self.right, left_index=True)
+        msg = "Must pass left_on or left_index=True"
+        with pytest.raises(pd.errors.MergeError, match=msg):
+            merge(self.left, self.right, right_index=True)
 
-        pytest.raises(ValueError, merge, self.left, self.left,
-                      left_on='key', on='key')
+        msg = ('Can only pass argument "on" OR "left_on" and "right_on", not'
+               ' a combination of both')
+        with pytest.raises(pd.errors.MergeError, match=msg):
+            merge(self.left, self.left, left_on='key', on='key')
 
-        pytest.raises(ValueError, merge, self.df, self.df2,
-                      left_on=['key1'], right_on=['key1', 'key2'])
+        msg = r"len\(right_on\) must equal len\(left_on\)"
+        with pytest.raises(ValueError, match=msg):
+            merge(self.df, self.df2, left_on=['key1'],
+                  right_on=['key1', 'key2'])
 
     def test_index_and_on_parameters_confusion(self):
-        pytest.raises(ValueError, merge, self.df, self.df2, how='left',
-                      left_index=False, right_index=['key1', 'key2'])
-        pytest.raises(ValueError, merge, self.df, self.df2, how='left',
-                      left_index=['key1', 'key2'], right_index=False)
-        pytest.raises(ValueError, merge, self.df, self.df2, how='left',
-                      left_index=['key1', 'key2'],
-                      right_index=['key1', 'key2'])
+        msg = ("right_index parameter must be of type bool, not"
+               r" <(class|type) 'list'>")
+        with pytest.raises(ValueError, match=msg):
+            merge(self.df, self.df2, how='left',
+                  left_index=False, right_index=['key1', 'key2'])
+        msg = ("left_index parameter must be of type bool, not "
+               r"<(class|type) 'list'>")
+        with pytest.raises(ValueError, match=msg):
+            merge(self.df, self.df2, how='left',
+                  left_index=['key1', 'key2'], right_index=False)
+        with pytest.raises(ValueError, match=msg):
+            merge(self.df, self.df2, how='left',
+                  left_index=['key1', 'key2'], right_index=['key1', 'key2'])
 
     def test_merge_overlap(self):
         merged = merge(self.left, self.left, on='key')
@@ -267,7 +281,6 @@ class TestMerge(object):
         df1 = DataFrame({'x': ['a']}, index=[dt])
 
         df2 = DataFrame({'y': ['b', 'c']}, index=[dt, dt])
-        pytest.raises(MergeError, merge, df1, df2)
 
         msg = ('No common columns to perform merge on. '
                'Merge options: left_on={lon}, right_on={ron}, '
@@ -564,7 +577,10 @@ class TestMerge(object):
 
         # #2649, #10639
         df2.columns = ['key1', 'foo', 'foo']
-        pytest.raises(ValueError, merge, df, df2)
+        msg = (r"Data columns not unique: Index\(\[u?'foo', u?'foo'\],"
+               r" dtype='object'\)")
+        with pytest.raises(MergeError, match=msg):
+            merge(df, df2)
 
     def test_merge_on_datetime64tz(self):
 
@@ -715,9 +731,10 @@ class TestMerge(object):
         assert_frame_equal(test_custom_name, df_result_custom_name)
 
         # Check only accepts strings and booleans
-        with pytest.raises(ValueError):
+        msg = "indicator option can only accept boolean or string arguments"
+        with pytest.raises(ValueError, match=msg):
             merge(df1, df2, on='col1', how='outer', indicator=5)
-        with pytest.raises(ValueError):
+        with pytest.raises(ValueError, match=msg):
             df1.merge(df2, on='col1', how='outer', indicator=5)
 
         # Check result integrity
@@ -741,20 +758,25 @@ class TestMerge(object):
         for i in ['_right_indicator', '_left_indicator', '_merge']:
             df_badcolumn = DataFrame({'col1': [1, 2], i: [2, 2]})
 
-            with pytest.raises(ValueError):
+            msg = ("Cannot use `indicator=True` option when data contains a"
+                   " column named {}|"
+                   "Cannot use name of an existing column for indicator"
+                   " column").format(i)
+            with pytest.raises(ValueError, match=msg):
                 merge(df1, df_badcolumn, on='col1',
                       how='outer', indicator=True)
-            with pytest.raises(ValueError):
+            with pytest.raises(ValueError, match=msg):
                 df1.merge(df_badcolumn, on='col1', how='outer', indicator=True)
 
         # Check for name conflict with custom name
         df_badcolumn = DataFrame(
             {'col1': [1, 2], 'custom_column_name': [2, 2]})
 
-        with pytest.raises(ValueError):
+        msg = "Cannot use name of an existing column for indicator column"
+        with pytest.raises(ValueError, match=msg):
             merge(df1, df_badcolumn, on='col1', how='outer',
                   indicator='custom_column_name')
-        with pytest.raises(ValueError):
+        with pytest.raises(ValueError, match=msg):
             df1.merge(df_badcolumn, on='col1', how='outer',
                       indicator='custom_column_name')
 
@@ -841,11 +863,13 @@ class TestMerge(object):
         merge(left, right_w_dups, left_index=True, right_index=True,
               validate='one_to_many')
 
-        with pytest.raises(MergeError):
+        msg = ("Merge keys are not unique in right dataset; not a one-to-one"
+               " merge")
+        with pytest.raises(MergeError, match=msg):
             merge(left, right_w_dups, left_index=True, right_index=True,
                   validate='one_to_one')
 
-        with pytest.raises(MergeError):
+        with pytest.raises(MergeError, match=msg):
             merge(left, right_w_dups, on='a', validate='one_to_one')
 
         # Dups on left
@@ -854,26 +878,33 @@ class TestMerge(object):
         merge(left_w_dups, right, left_index=True, right_index=True,
               validate='many_to_one')
 
-        with pytest.raises(MergeError):
+        msg = ("Merge keys are not unique in left dataset; not a one-to-one"
+               " merge")
+        with pytest.raises(MergeError, match=msg):
             merge(left_w_dups, right, left_index=True, right_index=True,
                   validate='one_to_one')
 
-        with pytest.raises(MergeError):
+        with pytest.raises(MergeError, match=msg):
             merge(left_w_dups, right, on='a', validate='one_to_one')
 
         # Dups on both
         merge(left_w_dups, right_w_dups, on='a', validate='many_to_many')
 
-        with pytest.raises(MergeError):
+        msg = ("Merge keys are not unique in right dataset; not a many-to-one"
+               " merge")
+        with pytest.raises(MergeError, match=msg):
             merge(left_w_dups, right_w_dups, left_index=True,
                   right_index=True, validate='many_to_one')
 
-        with pytest.raises(MergeError):
+        msg = ("Merge keys are not unique in left dataset; not a one-to-many"
+               " merge")
+        with pytest.raises(MergeError, match=msg):
             merge(left_w_dups, right_w_dups, on='a',
                   validate='one_to_many')
 
         # Check invalid arguments
-        with pytest.raises(ValueError):
+        msg = "Not a valid argument for validate"
+        with pytest.raises(ValueError, match=msg):
             merge(left, right, on='a', validate='jibberish')
 
         # Two column merge, dups in both, but jointly no dups.
@@ -894,7 +925,9 @@ class TestMerge(object):
                                           'um... weasel noise?']},
                                    index=range(3))
 
-        with pytest.raises(MergeError):
+        msg = ("Merge keys are not unique in either left or right dataset;"
+               " not a one-to-one merge")
+        with pytest.raises(MergeError, match=msg):
             merge(left, right, on='a', validate='1:1')
 
         result = merge(left, right, on=['a', 'b'], validate='1:1')
@@ -905,6 +938,43 @@ class TestMerge(object):
         a = pd.DataFrame({'a': [], 'b': [], 'c': []})
         with np.errstate(divide='raise'):
             merge(a, a, on=('a', 'b'))
+
+    @pytest.mark.parametrize('how', ['left', 'outer'])
+    @pytest.mark.xfail(reason="GH-24897")
+    def test_merge_on_index_with_more_values(self, how):
+        # GH 24212
+        # pd.merge gets [-1, -1, 0, 1] as right_indexer, ensure that -1 is
+        # interpreted as a missing value instead of the last element
+        df1 = pd.DataFrame([[1, 2], [2, 4], [3, 6], [4, 8]],
+                           columns=['a', 'b'])
+        df2 = pd.DataFrame([[3, 30], [4, 40]],
+                           columns=['a', 'c'])
+        df1.set_index('a', drop=False, inplace=True)
+        df2.set_index('a', inplace=True)
+        result = pd.merge(df1, df2, left_index=True, right_on='a', how=how)
+        expected = pd.DataFrame([[1, 2, np.nan],
+                                 [2, 4, np.nan],
+                                 [3, 6, 30.0],
+                                 [4, 8, 40.0]],
+                                columns=['a', 'b', 'c'])
+        expected.set_index('a', drop=False, inplace=True)
+        assert_frame_equal(result, expected)
+
+    def test_merge_right_index_right(self):
+        # Note: the expected output here is probably incorrect.
+        # See https://github.com/pandas-dev/pandas/issues/17257 for more.
+        # We include this as a regression test for GH-24897.
+        left = pd.DataFrame({'a': [1, 2, 3], 'key': [0, 1, 1]})
+        right = pd.DataFrame({'b': [1, 2, 3]})
+
+        expected = pd.DataFrame({'a': [1, 2, 3, None],
+                                 'key': [0, 1, 1, 2],
+                                 'b': [1, 2, 2, 3]},
+                                columns=['a', 'key', 'b'],
+                                index=[0, 1, 2, 2])
+        result = left.merge(right, left_on='key', right_index=True,
+                            how='right')
+        tm.assert_frame_equal(result, expected)
 
 
 def _check_merge(x, y):
@@ -924,10 +994,6 @@ class TestMergeDtypes(object):
     @pytest.mark.parametrize('right_vals', [
         ['foo', 'bar'],
         Series(['foo', 'bar']).astype('category'),
-        [1, 2],
-        [1.0, 2.0],
-        Series([1, 2], dtype='uint64'),
-        Series([1, 2], dtype='int32')
     ])
     def test_different(self, right_vals):
 
@@ -942,22 +1008,8 @@ class TestMergeDtypes(object):
         # GH 9780
         # We allow merging on object and categorical cols and cast
         # categorical cols to object
-        if (is_categorical_dtype(right['A'].dtype) or
-                is_object_dtype(right['A'].dtype)):
-            result = pd.merge(left, right, on='A')
-            assert is_object_dtype(result.A.dtype)
-
-        # GH 9780
-        # We raise for merging on object col and int/float col and
-        # merging on categorical col and int/float col
-        else:
-            msg = ("You are trying to merge on "
-                   "{lk_dtype} and {rk_dtype} columns. "
-                   "If you wish to proceed you should use "
-                   "pd.concat".format(lk_dtype=left['A'].dtype,
-                                      rk_dtype=right['A'].dtype))
-            with pytest.raises(ValueError, match=msg):
-                pd.merge(left, right, on='A')
+        result = pd.merge(left, right, on='A')
+        assert is_object_dtype(result.A.dtype)
 
     @pytest.mark.parametrize('d1', [np.int64, np.int32,
                                     np.int16, np.int8, np.uint8])
@@ -1056,6 +1108,33 @@ class TestMergeDtypes(object):
         assert_frame_equal(result, expected)
 
     @pytest.mark.parametrize('df1_vals, df2_vals', [
+
+        # merge on category coerces to object
+        ([0, 1, 2], Series(['a', 'b', 'a']).astype('category')),
+        ([0.0, 1.0, 2.0], Series(['a', 'b', 'a']).astype('category')),
+
+        # no not infer
+        ([0, 1], pd.Series([False, True], dtype=object)),
+        ([0, 1], pd.Series([False, True], dtype=bool)),
+    ])
+    def test_merge_incompat_dtypes_are_ok(self, df1_vals, df2_vals):
+        # these are explicity allowed incompat merges, that pass thru
+        # the result type is dependent on if the values on the rhs are
+        # inferred, otherwise these will be coereced to object
+
+        df1 = DataFrame({'A': df1_vals})
+        df2 = DataFrame({'A': df2_vals})
+
+        result = pd.merge(df1, df2, on=['A'])
+        assert is_object_dtype(result.A.dtype)
+        result = pd.merge(df2, df1, on=['A'])
+        assert is_object_dtype(result.A.dtype)
+
+    @pytest.mark.parametrize('df1_vals, df2_vals', [
+        # do not infer to numeric
+
+        (Series([1, 2], dtype='uint64'), ["a", "b", "c"]),
+        (Series([1, 2], dtype='int32'), ["a", "b", "c"]),
         ([0, 1, 2], ["0", "1", "2"]),
         ([0.0, 1.0, 2.0], ["0", "1", "2"]),
         ([0, 1, 2], [u"0", u"1", u"2"]),
@@ -1065,12 +1144,8 @@ class TestMergeDtypes(object):
         (pd.date_range('1/1/2011', periods=2, freq='D'), [0.0, 1.0]),
         (pd.date_range('20130101', periods=3),
             pd.date_range('20130101', periods=3, tz='US/Eastern')),
-        ([0, 1, 2], Series(['a', 'b', 'a']).astype('category')),
-        ([0.0, 1.0, 2.0], Series(['a', 'b', 'a']).astype('category')),
-        # TODO ([0, 1], pd.Series([False, True], dtype=bool)),
-        ([0, 1], pd.Series([False, True], dtype=object))
     ])
-    def test_merge_incompat_dtypes(self, df1_vals, df2_vals):
+    def test_merge_incompat_dtypes_error(self, df1_vals, df2_vals):
         # GH 9780, GH 15800
         # Raise a ValueError when a user tries to merge on
         # dtypes that are incompatible (e.g., obj and int/float)
@@ -1326,6 +1401,16 @@ class TestMergeCategorical(object):
             CDT(categories, ordered=ordered))
         assert_frame_equal(expected, result)
 
+    def test_merge_on_int_array(self):
+        # GH 23020
+        df = pd.DataFrame({'A': pd.Series([1, 2, np.nan], dtype='Int64'),
+                           'B': 1})
+        result = pd.merge(df, df, on='A')
+        expected = pd.DataFrame({'A': pd.Series([1, 2, np.nan], dtype='Int64'),
+                                 'B_x': 1,
+                                 'B_y': 1})
+        assert_frame_equal(result, expected)
+
 
 @pytest.fixture
 def left_df():
@@ -1397,16 +1482,16 @@ def test_merge_index_types(index):
     assert_frame_equal(result, expected)
 
 
-@pytest.mark.parametrize("on,left_on,right_on,left_index,right_index,nms,nm", [
-    (['outer', 'inner'], None, None, False, False, ['outer', 'inner'], 'B'),
-    (None, None, None, True, True, ['outer', 'inner'], 'B'),
-    (None, ['outer', 'inner'], None, False, True, None, 'B'),
-    (None, None, ['outer', 'inner'], True, False, None, 'B'),
-    (['outer', 'inner'], None, None, False, False, ['outer', 'inner'], None),
-    (None, None, None, True, True, ['outer', 'inner'], None),
-    (None, ['outer', 'inner'], None, False, True, None, None),
-    (None, None, ['outer', 'inner'], True, False, None, None)])
-def test_merge_series(on, left_on, right_on, left_index, right_index, nms, nm):
+@pytest.mark.parametrize("on,left_on,right_on,left_index,right_index,nm", [
+    (['outer', 'inner'], None, None, False, False, 'B'),
+    (None, None, None, True, True, 'B'),
+    (None, ['outer', 'inner'], None, False, True, 'B'),
+    (None, None, ['outer', 'inner'], True, False, 'B'),
+    (['outer', 'inner'], None, None, False, False, None),
+    (None, None, None, True, True, None),
+    (None, ['outer', 'inner'], None, False, True, None),
+    (None, None, ['outer', 'inner'], True, False, None)])
+def test_merge_series(on, left_on, right_on, left_index, right_index, nm):
     # GH 21220
     a = pd.DataFrame({"A": [1, 2, 3, 4]},
                      index=pd.MultiIndex.from_product([['a', 'b'], [0, 1]],
@@ -1416,12 +1501,13 @@ def test_merge_series(on, left_on, right_on, left_index, right_index, nms, nm):
                   names=['outer', 'inner']), name=nm)
     expected = pd.DataFrame({"A": [2, 4], "B": [1, 3]},
                             index=pd.MultiIndex.from_product([['a', 'b'], [1]],
-                            names=nms))
+                            names=['outer', 'inner']))
     if nm is not None:
         result = pd.merge(a, b, on=on, left_on=left_on, right_on=right_on,
                           left_index=left_index, right_index=right_index)
         tm.assert_frame_equal(result, expected)
     else:
-        with pytest.raises(ValueError, match='a Series without a name'):
+        msg = "Cannot merge a Series without a name"
+        with pytest.raises(ValueError, match=msg):
             result = pd.merge(a, b, on=on, left_on=left_on, right_on=right_on,
                               left_index=left_index, right_index=right_index)

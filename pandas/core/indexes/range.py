@@ -46,11 +46,6 @@ class RangeIndex(Int64Index):
     copy : bool, default False
         Unused, accepted for homogeneity with other index types.
 
-    See Also
-    --------
-    Index : The base pandas Index type.
-    Int64Index : Index of int64 data.
-
     Attributes
     ----------
     None
@@ -58,6 +53,11 @@ class RangeIndex(Int64Index):
     Methods
     -------
     from_range
+
+    See Also
+    --------
+    Index : The base pandas Index type.
+    Int64Index : Index of int64 data.
     """
 
     _typ = 'rangeindex'
@@ -297,12 +297,14 @@ class RangeIndex(Int64Index):
 
         return self._start + self._step * no_steps
 
-    def min(self):
+    def min(self, axis=None, skipna=True):
         """The minimum value of the RangeIndex"""
+        nv.validate_minmax_axis(axis)
         return self._minmax('min')
 
-    def max(self):
+    def max(self, axis=None, skipna=True):
         """The maximum value of the RangeIndex"""
+        nv.validate_minmax_axis(axis)
         return self._minmax('max')
 
     def argsort(self, *args, **kwargs):
@@ -341,14 +343,17 @@ class RangeIndex(Int64Index):
 
         return super(RangeIndex, self).equals(other)
 
-    def intersection(self, other):
+    def intersection(self, other, sort=True):
         """
-        Form the intersection of two Index objects. Sortedness of the result is
-        not guaranteed
+        Form the intersection of two Index objects.
 
         Parameters
         ----------
         other : Index or array-like
+        sort : bool, default True
+            Sort the resulting index if possible
+
+            .. versionadded:: 0.24.0
 
         Returns
         -------
@@ -359,7 +364,7 @@ class RangeIndex(Int64Index):
             return self._get_reconciled_name_object(other)
 
         if not isinstance(other, RangeIndex):
-            return super(RangeIndex, self).intersection(other)
+            return super(RangeIndex, self).intersection(other, sort=sort)
 
         if not len(self) or not len(other):
             return RangeIndex._simple_new(None)
@@ -396,6 +401,8 @@ class RangeIndex(Int64Index):
 
         if (self._step < 0 and other._step < 0) is not (new_index._step < 0):
             new_index = new_index[::-1]
+        if sort:
+            new_index = new_index.sort_values()
         return new_index
 
     def _min_fitting_element(self, lower_limit):

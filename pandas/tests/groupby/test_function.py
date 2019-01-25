@@ -1,14 +1,16 @@
-import pytest
+from string import ascii_lowercase
 
 import numpy as np
-import pandas as pd
-from pandas import (DataFrame, Index, compat, isna,
-                    Series, MultiIndex, Timestamp, date_range)
-from pandas.errors import UnsupportedFunctionCall
-from pandas.util import testing as tm
-import pandas.core.nanops as nanops
-from string import ascii_lowercase
+import pytest
+
 from pandas.compat import product as cart_product
+from pandas.errors import UnsupportedFunctionCall
+
+import pandas as pd
+from pandas import (
+    DataFrame, Index, MultiIndex, Series, Timestamp, compat, date_range, isna)
+import pandas.core.nanops as nanops
+from pandas.util import testing as tm
 
 
 @pytest.mark.parametrize("agg_func", ['any', 'all'])
@@ -247,7 +249,7 @@ def test_non_cython_api():
     expected_col = pd.MultiIndex(levels=[['B'],
                                          ['count', 'mean', 'std', 'min',
                                           '25%', '50%', '75%', 'max']],
-                                 labels=[[0] * 8, list(range(8))])
+                                 codes=[[0] * 8, list(range(8))])
     expected = pd.DataFrame([[1.0, 2.0, np.nan, 2.0, 2.0, 2.0, 2.0, 2.0],
                              [0.0, np.nan, np.nan, np.nan, np.nan, np.nan,
                               np.nan, np.nan]],
@@ -733,7 +735,7 @@ def test_frame_describe_multikey(tsframe):
         # GH 17464 - Remove duplicate MultiIndex levels
         group_col = pd.MultiIndex(
             levels=[[col], group.columns],
-            labels=[[0] * len(group.columns), range(len(group.columns))])
+            codes=[[0] * len(group.columns), range(len(group.columns))])
         group = pd.DataFrame(group.values,
                              columns=group_col,
                              index=group.index)
@@ -747,7 +749,7 @@ def test_frame_describe_multikey(tsframe):
     expected = tsframe.describe().T
     expected.index = pd.MultiIndex(
         levels=[[0, 1], expected.index],
-        labels=[[0, 0, 1, 1], range(len(expected.index))])
+        codes=[[0, 0, 1, 1], range(len(expected.index))])
     tm.assert_frame_equal(result, expected)
 
 
@@ -759,8 +761,11 @@ def test_frame_describe_tupleindex():
                      'z': [100, 200, 300, 400, 500] * 3})
     df1['k'] = [(0, 0, 1), (0, 1, 0), (1, 0, 0)] * 5
     df2 = df1.rename(columns={'k': 'key'})
-    pytest.raises(ValueError, lambda: df1.groupby('k').describe())
-    pytest.raises(ValueError, lambda: df2.groupby('key').describe())
+    msg = "Names should be list-like for a MultiIndex"
+    with pytest.raises(ValueError, match=msg):
+        df1.groupby('k').describe()
+    with pytest.raises(ValueError, match=msg):
+        df2.groupby('key').describe()
 
 
 def test_frame_describe_unstacked_format():

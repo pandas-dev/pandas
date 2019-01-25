@@ -78,8 +78,6 @@ def pivot_table(data, values=None, index=None, columns=None, aggfunc='mean',
                 pass
         values = list(values)
 
-    # group by the cartesian product of the grouper
-    # if we have a categorical
     grouped = data.groupby(keys, observed=False)
     agged = grouped.agg(aggfunc)
     if dropna and isinstance(agged, ABCDataFrame) and len(agged.columns):
@@ -433,6 +431,10 @@ def crosstab(index, columns, values=None, rownames=None, colnames=None,
 
         .. versionadded:: 0.18.1
 
+    Returns
+    -------
+    crosstab : DataFrame
+
     Notes
     -----
     Any Series passed will have their name attributes used unless row or column
@@ -484,10 +486,6 @@ def crosstab(index, columns, values=None, rownames=None, colnames=None,
     a      1  0  0
     b      0  1  0
     c      0  0  0
-
-    Returns
-    -------
-    crosstab : DataFrame
     """
 
     index = com.maybe_make_list(index)

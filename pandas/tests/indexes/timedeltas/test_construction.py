@@ -4,9 +4,9 @@ import numpy as np
 import pytest
 
 import pandas as pd
+from pandas import Timedelta, TimedeltaIndex, timedelta_range, to_timedelta
+from pandas.core.arrays import TimedeltaArray
 import pandas.util.testing as tm
-from pandas import TimedeltaIndex, timedelta_range, to_timedelta, Timedelta
-from pandas.core.arrays import TimedeltaArrayMixin as TimedeltaArray
 
 
 class TestTimedeltaIndex(object):
@@ -26,7 +26,7 @@ class TestTimedeltaIndex(object):
         #  and copy=False
         arr = np.arange(10, dtype=np.int64)
         tdi = TimedeltaIndex(arr, copy=False)
-        assert tdi._data.base is arr
+        assert tdi._data._data.base is arr
 
     def test_infer_from_tdi(self):
         # GH#23539
@@ -180,3 +180,20 @@ class TestTimedeltaIndex(object):
         # GH10025
         idx2 = TimedeltaIndex(idx, name='something else')
         assert idx2.name == 'something else'
+
+    def test_constructor_no_precision_warns(self):
+        # GH-24753, GH-24739
+        expected = pd.TimedeltaIndex(['2000'], dtype='timedelta64[ns]')
+
+        # we set the stacklevel for DatetimeIndex
+        with tm.assert_produces_warning(FutureWarning):
+            result = pd.TimedeltaIndex(['2000'], dtype='timedelta64')
+        tm.assert_index_equal(result, expected)
+
+        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+            result = pd.Index(['2000'], dtype='timedelta64')
+        tm.assert_index_equal(result, expected)
+
+    def test_constructor_wrong_precision_raises(self):
+        with pytest.raises(ValueError):
+            pd.TimedeltaIndex(['2000'], dtype='timedelta64[us]')

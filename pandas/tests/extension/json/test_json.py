@@ -217,9 +217,24 @@ class TestMethods(BaseJSON, base.BaseMethodsTests):
     def test_combine_add(self, data_repeated):
         pass
 
+    @pytest.mark.skip(reason="combine for JSONArray not supported")
+    def test_combine_first(self, data):
+        pass
+
     @unhashable
     def test_hash_pandas_object_works(self, data, kind):
         super().test_hash_pandas_object_works(data, kind)
+
+    @pytest.mark.skip(reason="broadcasting error")
+    def test_where_series(self, data, na_value):
+        # Fails with
+        # *** ValueError: operands could not be broadcast together
+        # with shapes (4,) (4,) (0,)
+        super().test_where_series(data, na_value)
+
+    @pytest.mark.skip(reason="Can't compare dicts.")
+    def test_searchsorted(self, data_for_sorting):
+        super(TestMethods, self).test_searchsorted(data_for_sorting)
 
 
 class TestCasting(BaseJSON, base.BaseCastingTests):
@@ -282,4 +297,8 @@ class TestArithmeticOps(BaseJSON, base.BaseArithmeticOpsTests):
 
 
 class TestComparisonOps(BaseJSON, base.BaseComparisonOpsTests):
+    pass
+
+
+class TestPrinting(BaseJSON, base.BasePrintingTests):
     pass

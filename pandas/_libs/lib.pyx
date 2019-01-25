@@ -4,6 +4,7 @@ from fractions import Fraction
 from numbers import Number
 
 import sys
+import warnings
 
 import cython
 from cython import Py_ssize_t
@@ -49,18 +50,19 @@ cdef extern from "numpy/arrayobject.h":
 cdef extern from "src/parse_helper.h":
     int floatify(object, float64_t *result, int *maybe_int) except -1
 
-cimport util
-from util cimport is_nan, UINT64_MAX, INT64_MAX, INT64_MIN
+cimport pandas._libs.util as util
+from pandas._libs.util cimport is_nan, UINT64_MAX, INT64_MAX, INT64_MIN
 
-from tslib import array_to_datetime
-from tslibs.nattype cimport NPY_NAT
-from tslibs.nattype import NaT
-from tslibs.conversion cimport convert_to_tsobject
-from tslibs.timedeltas cimport convert_to_timedelta64
-from tslibs.timezones cimport get_timezone, tz_compare
+from pandas._libs.tslib import array_to_datetime
+from pandas._libs.tslibs.nattype cimport NPY_NAT
+from pandas._libs.tslibs.nattype import NaT
+from pandas._libs.tslibs.conversion cimport convert_to_tsobject
+from pandas._libs.tslibs.timedeltas cimport convert_to_timedelta64
+from pandas._libs.tslibs.timezones cimport get_timezone, tz_compare
 
-from missing cimport (checknull, isnaobj,
-                      is_null_datetime64, is_null_timedelta64, is_null_period)
+from pandas._libs.missing cimport (
+    checknull, isnaobj, is_null_datetime64, is_null_timedelta64, is_null_period
+)
 
 
 # constants that will be compared to potentially arbitrarily large
@@ -153,10 +155,10 @@ def is_scalar(val: object) -> bool:
     """
 
     return (cnp.PyArray_IsAnyScalar(val)
-            # As of numpy-1.9, PyArray_IsAnyScalar misses bytearrays on Py3.
-            or isinstance(val, (bytes, Fraction, Number))
-            # We differ from numpy (as of 1.10), which claims that None is
-            # not scalar in np.isscalar().
+            # PyArray_IsAnyScalar is always False for bytearrays on Py3
+            or isinstance(val, (Fraction, Number))
+            # We differ from numpy, which claims that None is not scalar;
+            # see np.isscalar
             or val is None
             or PyDate_Check(val)
             or PyDelta_Check(val)
@@ -198,7 +200,21 @@ def item_from_zerodim(val: object) -> object:
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
-def fast_unique_multiple(list arrays):
+def fast_unique_multiple(list arrays, sort: bool=True):
+    """
+    Generate a list of unique values from a list of arrays.
+
+    Parameters
+    ----------
+    list : array-like
+        A list of array-like objects
+    sort : boolean
+        Whether or not to sort the resulting unique list
+
+    Returns
+    -------
+    unique_list : list of unique values
+    """
     cdef:
         ndarray[object] buf
         Py_ssize_t k = len(arrays)
@@ -215,10 +231,11 @@ def fast_unique_multiple(list arrays):
             if val not in table:
                 table[val] = stub
                 uniques.append(val)
-    try:
-        uniques.sort()
-    except Exception:
-        pass
+    if sort:
+        try:
+            uniques.sort()
+        except Exception:
+            pass
 
     return uniques
 
@@ -622,7 +639,7 @@ def clean_index_list(obj: list):
         return obj, all_arrays
 
     # don't force numpy coerce with nan's
-    inferred = infer_dtype(obj)
+    inferred = infer_dtype(obj, skipna=False)
     if inferred in ['string', 'bytes', 'unicode', 'mixed', 'mixed-integer']:
         return np.asarray(obj, dtype=object), 0
     elif inferred in ['integer']:
@@ -1078,7 +1095,7 @@ cdef _try_infer_map(v):
     return None
 
 
-def infer_dtype(value: object, skipna: bool=False) -> str:
+def infer_dtype(value: object, skipna: object=None) -> str:
     """
     Efficiently infer the type of a passed val, or list-like
     array of values. Return a string describing the type.
@@ -1087,8 +1104,7 @@ def infer_dtype(value: object, skipna: bool=False) -> str:
     ----------
     value : scalar, list, ndarray, or pandas type
     skipna : bool, default False
-        Ignore NaN values when inferring the type. The default of ``False``
-        will be deprecated in a later version of pandas.
+        Ignore NaN values when inferring the type.
 
         .. versionadded:: 0.21.0
 
@@ -1185,6 +1201,12 @@ def infer_dtype(value: object, skipna: bool=False) -> str:
         bint seen_pdnat = False
         bint seen_val = False
 
+    if skipna is None:
+        msg = ('A future version of pandas will default to `skipna=True`. To '
+               'silence this warning, pass `skipna=True|False` explicitly.')
+        warnings.warn(msg, FutureWarning, stacklevel=2)
+        skipna = False
+
     if util.is_array(value):
         values = value
     elif hasattr(value, 'dtype'):
@@ -1209,6 +1231,10 @@ def infer_dtype(value: object, skipna: bool=False) -> str:
         values = construct_1d_object_array_from_listlike(value)
 
     values = getattr(values, 'values', values)
+
+    # make contiguous
+    values = values.ravel()
+
     if skipna:
         values = values[~isnaobj(values)]
 
@@ -1218,9 +1244,6 @@ def infer_dtype(value: object, skipna: bool=False) -> str:
 
     if values.dtype != np.object_:
         values = values.astype('O')
-
-    # make contiguous
-    values = values.ravel()
 
     n = len(values)
     if n == 0:
@@ -2003,7 +2026,8 @@ def maybe_convert_objects(ndarray[object] objects, bint try_float=0,
             floats[i] = <float64_t>val
             complexes[i] = <double complex>val
             if not seen.null_:
-                seen.saw_int(int(val))
+                val = int(val)
+                seen.saw_int(val)
 
                 if ((seen.uint_ and seen.sint_) or
                         val > oUINT64_MAX or val < oINT64_MIN):
@@ -2208,7 +2232,7 @@ def map_infer(ndarray arr, object f, bint convert=1):
     return result
 
 
-def to_object_array(rows: list, min_width: int=0):
+def to_object_array(rows: object, int min_width=0):
     """
     Convert a list of lists into an object array.
 
@@ -2229,20 +2253,22 @@ def to_object_array(rows: list, min_width: int=0):
     cdef:
         Py_ssize_t i, j, n, k, tmp
         ndarray[object, ndim=2] result
+        list input_rows
         list row
 
-    n = len(rows)
+    input_rows = <list>rows
+    n = len(input_rows)
 
     k = min_width
     for i in range(n):
-        tmp = len(rows[i])
+        tmp = len(input_rows[i])
         if tmp > k:
             k = tmp
 
     result = np.empty((n, k), dtype=object)
 
     for i in range(n):
-        row = rows[i]
+        row = <list>input_rows[i]
 
         for j in range(len(row)):
             result[i, j] = row[j]

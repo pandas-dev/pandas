@@ -8,6 +8,7 @@ import pytest
 
 import pandas as pd
 from pandas import NaT, Series, Timestamp
+from pandas.core.internals.blocks import IntBlock
 import pandas.util.testing as tm
 from pandas.util.testing import assert_series_equal
 
@@ -292,7 +293,9 @@ class TestSeriesInternals(object):
 
     def test_convert_no_arg_error(self):
         s = Series(['1.0', '2'])
-        pytest.raises(ValueError, s._convert)
+        msg = r"At least one of datetime, numeric or timedelta must be True\."
+        with pytest.raises(ValueError, match=msg):
+            s._convert()
 
     def test_convert_preserve_bool(self):
         s = Series([1, True, 3, 5], dtype=object)
@@ -305,6 +308,26 @@ class TestSeriesInternals(object):
         r = s._convert(datetime=True, numeric=True)
         e = Series([False, True, False, False], dtype=bool)
         tm.assert_series_equal(r, e)
+
+    def test_constructor_no_pandas_array(self):
+        ser = pd.Series([1, 2, 3])
+        result = pd.Series(ser.array)
+        tm.assert_series_equal(ser, result)
+        assert isinstance(result._data.blocks[0], IntBlock)
+
+    def test_from_array(self):
+        result = pd.Series(pd.array(['1H', '2H'], dtype='timedelta64[ns]'))
+        assert result._data.blocks[0].is_extension is False
+
+        result = pd.Series(pd.array(['2015'], dtype='datetime64[ns]'))
+        assert result._data.blocks[0].is_extension is False
+
+    def test_from_list_dtype(self):
+        result = pd.Series(['1H', '2H'], dtype='timedelta64[ns]')
+        assert result._data.blocks[0].is_extension is False
+
+        result = pd.Series(['2015'], dtype='datetime64[ns]')
+        assert result._data.blocks[0].is_extension is False
 
 
 def test_hasnans_unchached_for_series():

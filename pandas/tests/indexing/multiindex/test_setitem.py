@@ -7,6 +7,7 @@ import pytest
 import pandas as pd
 from pandas import (
     DataFrame, MultiIndex, Series, Timestamp, date_range, isna, notna)
+import pandas.core.common as com
 from pandas.util import testing as tm
 
 
@@ -132,10 +133,8 @@ class TestMultiIndexSetItem(object):
         tm.assert_frame_equal(df.loc[['bar']], expected)
 
         # raise because these have differing levels
-        def f():
+        with pytest.raises(TypeError):
             df.loc['bar'] *= 2
-
-        pytest.raises(TypeError, f)
 
         # from SO
         # http://stackoverflow.com/questions/24572040/pandas-access-the-level-of-multiindex-for-inplace-operation
@@ -195,17 +194,13 @@ class TestMultiIndexSetItem(object):
             tm.assert_series_equal(df.ix[4, 'c'], exp)
 
         # invalid assignments
-        def f():
+        with pytest.raises(ValueError):
             with catch_warnings(record=True):
                 df.ix[4, 'c'] = [0, 1, 2, 3]
 
-        pytest.raises(ValueError, f)
-
-        def f():
+        with pytest.raises(ValueError):
             with catch_warnings(record=True):
                 df.ix[4, 'c'] = [0]
-
-        pytest.raises(ValueError, f)
 
         # groupby example
         NUM_ROWS = 100
@@ -277,8 +272,8 @@ class TestMultiIndexSetItem(object):
 
     def test_frame_getitem_setitem_multislice(self):
         levels = [['t1', 't2'], ['a', 'b', 'c']]
-        labels = [[0, 0, 0, 1, 1], [0, 1, 2, 0, 1]]
-        midx = MultiIndex(labels=labels, levels=levels, names=[None, 'id'])
+        codes = [[0, 0, 0, 1, 1], [0, 1, 2, 0, 1]]
+        midx = MultiIndex(codes=codes, levels=levels, names=[None, 'id'])
         df = DataFrame({'value': [1, 2, 3, 7, 8]}, index=midx)
 
         result = df.loc[:, 'value']
@@ -350,7 +345,7 @@ class TestMultiIndexSetItem(object):
 
     def test_getitem_setitem_slice_integers(self):
         index = MultiIndex(levels=[[0, 1, 2], [0, 2]],
-                           labels=[[0, 0, 1, 1, 2, 2], [0, 1, 0, 1, 0, 1]])
+                           codes=[[0, 0, 1, 1, 2, 2], [0, 1, 0, 1, 0, 1]])
 
         frame = DataFrame(np.random.randn(len(index), 4), index=index,
                           columns=['a', 'b', 'c', 'd'])
@@ -402,3 +397,43 @@ class TestMultiIndexSetItem(object):
         df.loc[ix, "C"] = '_'
 
         assert (df.xs((1, 1))['C'] == '_').all()
+
+    def test_astype_assignment_with_dups(self):
+
+        # GH 4686
+        # assignment with dups that has a dtype change
+        cols = MultiIndex.from_tuples([('A', '1'), ('B', '1'), ('A', '2')])
+        df = DataFrame(np.arange(3).reshape((1, 3)),
+                       columns=cols, dtype=object)
+        index = df.index.copy()
+
+        df['A'] = df['A'].astype(np.float64)
+        tm.assert_index_equal(df.index, index)
+
+
+def test_frame_setitem_view_direct(multiindex_dataframe_random_data):
+    # this works because we are modifying the underlying array
+    # really a no-no
+    df = multiindex_dataframe_random_data.T
+    df['foo'].values[:] = 0
+    assert (df['foo'].values == 0).all()
+
+
+def test_frame_setitem_copy_raises(multiindex_dataframe_random_data):
+    # will raise/warn as its chained assignment
+    df = multiindex_dataframe_random_data.T
+    msg = "A value is trying to be set on a copy of a slice from a DataFrame"
+    with pytest.raises(com.SettingWithCopyError, match=msg):
+        df['foo']['one'] = 2
+
+
+def test_frame_setitem_copy_no_write(multiindex_dataframe_random_data):
+    frame = multiindex_dataframe_random_data.T
+    expected = frame
+    df = frame.copy()
+    msg = "A value is trying to be set on a copy of a slice from a DataFrame"
+    with pytest.raises(com.SettingWithCopyError, match=msg):
+        df['foo']['one'] = 2
+
+    result = df
+    tm.assert_frame_equal(result, expected)
