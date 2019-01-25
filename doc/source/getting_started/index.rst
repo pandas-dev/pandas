@@ -13,6 +13,5 @@ Getting started
     10min
     basics
     dsintro
-    ecosystem
     comparison/index
     tutorials

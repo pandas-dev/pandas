@@ -48,6 +48,7 @@ See the :ref:`overview` for more detail about what's in the library.
     install
     getting_started/index
     user_guide/index
+    ecosystem
     {% endif -%}
     {% if include_api -%}
     api/index
