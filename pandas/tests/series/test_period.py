@@ -164,3 +164,10 @@ class TestSeriesPeriod(object):
         result = s.dt.end_time
         expected = s.apply(lambda x: x.end_time)
         tm.assert_series_equal(result, expected)
+
+    def test_to_period(self):
+        series = pd.Series(['2001'], dtype='datetime64[ns]')
+        assert series.dt.to_period('D').dtype == 'Period[D]'
+
+        series = pd.Series(['NaT'], dtype='datetime64[ns]')
+        assert series.dt.to_period('D').dtype == 'Period[D]'
