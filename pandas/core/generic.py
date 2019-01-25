@@ -4086,7 +4086,7 @@ class NDFrame(PandasObject, SelectionMixin):
         Returns
         -------
         sorted_obj : %(klass)s or None
-            An object of same type as caller if inplace=False, None otherwise.
+            DataFrame with sorted values.
         """
         inplace = validate_bool_kwarg(inplace, 'inplace')
         axis = self._get_axis_number(axis)
