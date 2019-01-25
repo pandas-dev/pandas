@@ -288,12 +288,12 @@ Properties
    Interval.overlaps
    Interval.right
 
-A collection of intervals may be stored in an :class:`IntervalArray`.
+A collection of intervals may be stored in an :class:`arrays.IntervalArray`.
 
 .. autosummary::
    :toctree: api/
 
-   IntervalArray
+   arrays.IntervalArray
    IntervalDtype
 
 .. _api.arrays.integer_na:
