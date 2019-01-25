@@ -115,7 +115,7 @@ for more.
     A new ``IntervalArray`` can be constructed directly from an array-like of
     ``Interval`` objects:
 
-    >>> pd.IntervalArray([pd.Interval(0, 1), pd.Interval(1, 5)])
+    >>> pandas.IntervalArray([pd.Interval(0, 1), pd.Interval(1, 5)])
     IntervalArray([(0, 1], (1, 5]],
                   closed='right',
                   dtype='interval[int64]')
