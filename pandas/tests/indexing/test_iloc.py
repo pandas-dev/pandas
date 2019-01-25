@@ -675,3 +675,10 @@ class TestiLoc(Base):
         # should also be a shallow copy
         original_series[:3] = [7, 8, 9]
         assert all(sliced_series[:3] == [7, 8, 9])
+
+    def test_indexing_zero_dim_np_array(self):
+        # GH24919
+        df = DataFrame([[1, 2], [3, 4]])
+
+        # should not raise an error
+        df.iloc[np.array(0)]

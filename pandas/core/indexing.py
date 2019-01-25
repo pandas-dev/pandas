@@ -5,6 +5,7 @@ import warnings
 import numpy as np
 
 from pandas._libs.indexing import _NDFrameIndexerBase
+from pandas._libs.lib import item_from_zerodim
 import pandas.compat as compat
 from pandas.compat import range, zip
 from pandas.errors import AbstractMethodError
@@ -2222,6 +2223,7 @@ class _iLocIndexer(_LocationIndexer):
 
         # a single integer
         else:
+            key = item_from_zerodim(key)
             if not is_integer(key):
                 raise TypeError("Cannot index by location index with a "
                                 "non-integer key")
