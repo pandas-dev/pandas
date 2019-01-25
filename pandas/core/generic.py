@@ -4085,7 +4085,7 @@ class NDFrame(PandasObject, SelectionMixin):
 
         Returns
         -------
-        sorted_obj : %(klass)s or None
+        sorted_obj : DataFrame
             DataFrame with sorted values.
         """
         inplace = validate_bool_kwarg(inplace, 'inplace')
