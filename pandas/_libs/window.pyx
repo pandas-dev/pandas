@@ -243,7 +243,7 @@ cdef class VariableWindowIndexer(WindowIndexer):
         # max window size
         self.win = (self.end - self.start).max()
 
-    def build(self, ndarray[int64_t] index, int64_t win, bint left_closed,
+    def build(self, const int64_t[:] index, int64_t win, bint left_closed,
               bint right_closed):
 
         cdef:

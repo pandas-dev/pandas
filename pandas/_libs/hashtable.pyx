@@ -142,7 +142,7 @@ cdef class Int64Factorizer:
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
-def unique_label_indices(ndarray[int64_t, ndim=1] labels):
+def unique_label_indices(const int64_t[:] labels):
     """
     indices of the first occurrences of the unique labels
     *excluding* -1. equivalent to:
@@ -170,6 +170,6 @@ def unique_label_indices(ndarray[int64_t, ndim=1] labels):
     kh_destroy_int64(table)
 
     arr = idx.to_array()
-    arr = arr[labels[arr].argsort()]
+    arr = arr[np.asarray(labels)[arr].argsort()]
 
     return arr[1:] if arr.size != 0 and labels[arr[0]] == -1 else arr

@@ -378,7 +378,7 @@ def fast_zip(list ndarrays):
     return result
 
 
-def get_reverse_indexer(ndarray[int64_t] indexer, Py_ssize_t length):
+def get_reverse_indexer(const int64_t[:] indexer, Py_ssize_t length):
     """
     Reverse indexing operation.
 
@@ -407,7 +407,7 @@ def get_reverse_indexer(ndarray[int64_t] indexer, Py_ssize_t length):
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
-def has_infs_f4(ndarray[float32_t] arr) -> bool:
+def has_infs_f4(const float32_t[:] arr) -> bool:
     cdef:
         Py_ssize_t i, n = len(arr)
         float32_t inf, neginf, val
@@ -424,7 +424,7 @@ def has_infs_f4(ndarray[float32_t] arr) -> bool:
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
-def has_infs_f8(ndarray[float64_t] arr) -> bool:
+def has_infs_f8(const float64_t[:] arr) -> bool:
     cdef:
         Py_ssize_t i, n = len(arr)
         float64_t inf, neginf, val
@@ -662,7 +662,7 @@ def clean_index_list(obj: list):
 # is a general, O(max(len(values), len(binner))) method.
 @cython.boundscheck(False)
 @cython.wraparound(False)
-def generate_bins_dt64(ndarray[int64_t] values, ndarray[int64_t] binner,
+def generate_bins_dt64(ndarray[int64_t] values, const int64_t[:] binner,
                        object closed='left', bint hasnans=0):
     """
     Int64 (datetime64) version of generic python version in groupby.py
@@ -725,7 +725,7 @@ def generate_bins_dt64(ndarray[int64_t] values, ndarray[int64_t] binner,
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
-def row_bool_subset(ndarray[float64_t, ndim=2] values,
+def row_bool_subset(const float64_t[:, :] values,
                     ndarray[uint8_t, cast=True] mask):
     cdef:
         Py_ssize_t i, j, n, k, pos = 0
@@ -769,8 +769,8 @@ def row_bool_subset_object(ndarray[object, ndim=2] values,
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
-def get_level_sorter(ndarray[int64_t, ndim=1] label,
-                     ndarray[int64_t, ndim=1] starts):
+def get_level_sorter(const int64_t[:] label,
+                     const int64_t[:] starts):
     """
     argsort for a single level of a multi-index, keeping the order of higher
     levels unchanged. `starts` points to starts of same-key indices w.r.t
@@ -782,10 +782,11 @@ def get_level_sorter(ndarray[int64_t, ndim=1] label,
         int64_t l, r
         Py_ssize_t i
         ndarray[int64_t, ndim=1] out = np.empty(len(label), dtype=np.int64)
+        ndarray[int64_t, ndim=1] label_arr = np.asarray(label)
 
     for i in range(len(starts) - 1):
         l, r = starts[i], starts[i + 1]
-        out[l:r] = l + label[l:r].argsort(kind='mergesort')
+        out[l:r] = l + label_arr[l:r].argsort(kind='mergesort')
 
     return out
 
@@ -793,7 +794,7 @@ def get_level_sorter(ndarray[int64_t, ndim=1] label,
 @cython.boundscheck(False)
 @cython.wraparound(False)
 def count_level_2d(ndarray[uint8_t, ndim=2, cast=True] mask,
-                   ndarray[int64_t, ndim=1] labels,
+                   const int64_t[:] labels,
                    Py_ssize_t max_bin,
                    int axis):
     cdef:
@@ -820,7 +821,7 @@ def count_level_2d(ndarray[uint8_t, ndim=2, cast=True] mask,
     return counts
 
 
-def generate_slices(ndarray[int64_t] labels, Py_ssize_t ngroups):
+def generate_slices(const int64_t[:] labels, Py_ssize_t ngroups):
     cdef:
         Py_ssize_t i, group_size, n, start
         int64_t lab
@@ -849,7 +850,7 @@ def generate_slices(ndarray[int64_t] labels, Py_ssize_t ngroups):
     return starts, ends
 
 
-def indices_fast(object index, ndarray[int64_t] labels, list keys,
+def indices_fast(object index, const int64_t[:] labels, list keys,
                  list sorted_labels):
     cdef:
         Py_ssize_t i, j, k, lab, cur, start, n = len(labels)
@@ -2148,7 +2149,7 @@ def maybe_convert_objects(ndarray[object] objects, bint try_float=0,
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
-def map_infer_mask(ndarray arr, object f, ndarray[uint8_t] mask,
+def map_infer_mask(ndarray arr, object f, const uint8_t[:] mask,
                    bint convert=1):
     """
     Substitute for np.vectorize with pandas-friendly dtype inference
