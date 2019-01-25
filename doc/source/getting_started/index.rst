@@ -13,4 +13,5 @@ Getting started
     10min
     basics
     dsintro
+    comparison/index
     tutorials
