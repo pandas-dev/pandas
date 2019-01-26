@@ -718,7 +718,7 @@ class TestDataFrameAnalytics(object):
         assert_stat_op_api('median', float_frame, float_string_frame)
 
         try:
-            from scipy.stats import skew, kurtosis
+            from scipy.stats import skew, kurtosis  # noqa:F401
             assert_stat_op_api('skew', float_frame, float_string_frame)
             assert_stat_op_api('kurt', float_frame, float_string_frame)
         except ImportError:
@@ -739,19 +739,19 @@ class TestDataFrameAnalytics(object):
             return np.var(x, ddof=1)
 
         def std(x):
-            return x: np.std(x, ddof=1)
+            return np.std(x, ddof=1)
 
         def sem(x):
             return np.std(x, ddof=1) / np.sqrt(len(x))
 
-        def skew(x):
-            from scipy.stats import skew
+        def skewness(x):
+            from scipy.stats import skew  # noqa:F811
             if len(x) < 3:
                 return np.nan
             return skew(x, bias=False)
 
         def kurt(x):
-            from scipy.stats import kurtosis
+            from scipy.stats import kurtosis  # noqa:F811
             if len(x) < 4:
                 return np.nan
             return kurtosis(x, bias=False)
@@ -770,20 +770,18 @@ class TestDataFrameAnalytics(object):
                             check_dates=True)
         assert_stat_op_calc('product', np.prod, float_frame_with_na)
 
-
         assert_stat_op_calc('mad', mad, float_frame_with_na)
         assert_stat_op_calc('var', var, float_frame_with_na)
         assert_stat_op_calc('std', std, float_frame_with_na)
         assert_stat_op_calc('sem', sem, float_frame_with_na)
-
 
         assert_stat_op_calc('count', count, float_frame_with_na,
                             has_skipna=False, check_dtype=False,
                             check_dates=True)
 
         try:
-            from scipy import skew, kurtosis
-            assert_stat_op_calc('skew', skew, float_frame_with_na)
+            from scipy import skew, kurtosis  # noqa:F401
+            assert_stat_op_calc('skew', skewness, float_frame_with_na)
             assert_stat_op_calc('kurt', kurt, float_frame_with_na)
         except ImportError:
             pass
