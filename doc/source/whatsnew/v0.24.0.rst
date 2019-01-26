@@ -426,6 +426,7 @@ Other Enhancements
 - :func:`pandas.DataFrame.to_sql` has gained the ``method`` argument to control SQL insertion clause. See the :ref:`insertion method <io.sql.method>` section in the documentation. (:issue:`8953`)
 - :meth:`DataFrame.corrwith` now supports Spearman's rank correlation, Kendall's tau as well as callable correlation methods. (:issue:`21925`)
 - :meth:`DataFrame.to_json`, :meth:`DataFrame.to_csv`, :meth:`DataFrame.to_pickle`, and other export methods now support tilde(~) in path argument. (:issue:`23473`)
+- :meth:`DataFrame.pivot_table` now accepts ``observed`` parameter which is passed to underlying calls to :meth:`DataFrame.groupby` to speed up grouping categorical data. (:issue:`24923`)
 
 .. _whatsnew_0240.api_breaking:
 
