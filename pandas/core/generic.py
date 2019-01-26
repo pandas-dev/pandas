@@ -2938,7 +2938,7 @@ class NDFrame(PandasObject, SelectionMixin):
             will treat them as non-numeric.
         quotechar : str, default '\"'
             String of length 1. Character used to quote fields.
-        line_terminator : string, optional
+        line_terminator : str, optional
             The newline character or character sequence to use in the output
             file. Defaults to `os.linesep`, which depends on the OS in which
             this method is called ('\n' for linux, '\r\n' for Windows, i.e.).
