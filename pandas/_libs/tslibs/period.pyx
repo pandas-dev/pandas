@@ -52,9 +52,10 @@ from pandas._libs.tslibs.nattype cimport (
 from pandas._libs.tslibs.offsets cimport to_offset
 from pandas._libs.tslibs.offsets import _Tick
 
-cdef bint PY2 = str == bytes
-cdef enum:
-    INT32_MIN = -2147483648
+cdef:
+    bint PY2 = str == bytes
+    enum:
+        INT32_MIN = -2147483648
 
 
 ctypedef struct asfreq_info:

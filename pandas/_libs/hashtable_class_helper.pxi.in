@@ -322,7 +322,7 @@ cdef class {{name}}HashTable(HashTable):
                 self.table.vals[k] = <Py_ssize_t>values[i]
 
     @cython.boundscheck(False)
-    def map_locations(self, ndarray[{{dtype}}_t, ndim=1] values):
+    def map_locations(self, const {{dtype}}_t[:] values):
         cdef:
             Py_ssize_t i, n = len(values)
             int ret = 0

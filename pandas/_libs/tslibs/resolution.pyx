@@ -16,15 +16,16 @@ from pandas._libs.tslibs.ccalendar cimport get_days_in_month
 # ----------------------------------------------------------------------
 # Constants
 
-cdef int64_t NPY_NAT = get_nat()
+cdef:
+    int64_t NPY_NAT = get_nat()
 
-cdef int RESO_NS = 0
-cdef int RESO_US = 1
-cdef int RESO_MS = 2
-cdef int RESO_SEC = 3
-cdef int RESO_MIN = 4
-cdef int RESO_HR = 5
-cdef int RESO_DAY = 6
+    int RESO_NS = 0
+    int RESO_US = 1
+    int RESO_MS = 2
+    int RESO_SEC = 3
+    int RESO_MIN = 4
+    int RESO_HR = 5
+    int RESO_DAY = 6
 
 # ----------------------------------------------------------------------
 
