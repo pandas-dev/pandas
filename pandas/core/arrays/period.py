@@ -23,8 +23,8 @@ from pandas.core.dtypes.missing import isna, notna
 
 import pandas.core.algorithms as algos
 from pandas.core.arrays import datetimelike as dtl
-from pandas.core.arrays.base import CompWrapper
 import pandas.core.common as com
+from pandas.core.ops import CompWrapper
 
 from pandas.tseries import frequencies
 from pandas.tseries.offsets import DateOffset, Tick, _delta_to_tick

@@ -27,8 +27,8 @@ from pandas.core.dtypes.missing import isna
 
 from pandas.core import ops
 from pandas.core.algorithms import checked_add_with_arr
-from pandas.core.arrays import CompWrapper
 import pandas.core.common as com
+from pandas.core.ops import CompWrapper
 
 from pandas.tseries.frequencies import to_offset
 from pandas.tseries.offsets import Tick
