@@ -786,6 +786,19 @@ class TestDataFrameAnalytics(object):
         except ImportError:
             pass
 
+    # TODO: Ensure warning isn't emitted in the first place
+    @pytest.mark.filterwarnings("ignore:All-NaN:RuntimeWarning")
+    def test_median(self, float_frame_with_na, int_frame):
+        def wrapper(x):
+            if isna(x).any():
+                return np.nan
+            return np.median(x)
+
+        assert_stat_op_calc('median', wrapper, float_frame_with_na,
+                            check_dates=True)
+        assert_stat_op_calc('median', wrapper, int_frame, check_dtype=False,
+                            check_dates=True)
+
     @pytest.mark.parametrize('method', ['sum', 'mean', 'prod', 'var',
                                         'std', 'skew', 'min', 'max'])
     def test_stat_operators_attempt_obj_array(self, method):
@@ -867,42 +880,6 @@ class TestDataFrameAnalytics(object):
         result = df.mean()
         expected = pd.Series()
         tm.assert_series_equal(result, expected)
-
-    # TODO: Ensure warning isn't emitted in the first place
-    @pytest.mark.filterwarnings("ignore:All-NaN:RuntimeWarning")
-    def test_median(self, float_frame_with_na):
-        def wrapper(x):
-            if isna(x).any():
-                return np.nan
-            return np.median(x)
-
-        assert_stat_op_calc('median', wrapper, float_frame_with_na,
-                            check_dates=True)
-
-    # TODO: Ensure warning isn't emitted in the first place
-    @pytest.mark.filterwarnings("ignore:All-NaN:RuntimeWarning")
-    def test_median_corner(self, int_frame):
-        def wrapper(x):
-            if isna(x).any():
-                return np.nan
-            return np.median(x)
-
-        assert_stat_op_calc('median', wrapper, int_frame, check_dtype=False,
-                            check_dates=True)
-
-    def test_min(self, float_frame_with_na, int_frame):
-        with warnings.catch_warnings(record=True):
-            warnings.simplefilter("ignore", RuntimeWarning)
-            assert_stat_op_calc('min', np.min, float_frame_with_na,
-                                check_dates=True)
-        assert_stat_op_calc('min', np.min, int_frame)
-
-    def test_max(self, float_frame_with_na, int_frame):
-        with warnings.catch_warnings(record=True):
-            warnings.simplefilter("ignore", RuntimeWarning)
-            assert_stat_op_calc('max', np.max, float_frame_with_na,
-                                check_dates=True)
-        assert_stat_op_calc('max', np.max, int_frame)
 
     def test_var_std(self, datetime_frame):
         result = datetime_frame.std(ddof=4)
