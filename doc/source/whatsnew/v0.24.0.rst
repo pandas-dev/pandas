@@ -6,7 +6,8 @@ What's New in 0.24.0 (January 25, 2019)
 .. warning::
 
    The 0.24.x series of releases will be the last to support Python 2. Future feature
-   releases will support Python 3 only. See :ref:`install.dropping-27` for more.
+   releases will support Python 3 only. See :ref:`install.dropping-27` for more
+   details.
 
 {{ header }}
 
@@ -244,7 +245,7 @@ the new extension arrays that back interval and period data.
 Joining with two multi-indexes
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-:func:`DataFrame.merge` and :func:`DataFrame.join` can now be used to join multi-indexed ``Dataframe`` instances on the overlaping index levels (:issue:`6360`)
+:func:`DataFrame.merge` and :func:`DataFrame.join` can now be used to join multi-indexed ``Dataframe`` instances on the overlapping index levels (:issue:`6360`)
 
 See the :ref:`Merge, join, and concatenate
 <merging.Join_with_two_multi_indexes>` documentation section.
