@@ -53,19 +53,14 @@ _take_msg = textwrap.dedent("""\
     Use 'allow_fill=False' to accept the new behavior.""")
 
 
-@CompWrapper(inst_from_senior_cls=True, zerodim=True)
 def _cat_compare_op(op):
+    @CompWrapper(inst_from_senior_cls=True, zerodim=True)
     def f(self, other):
         # On python2, you can usually compare any type to any type, and
         # Categoricals can be seen as a custom type, but having different
         # results depending whether categories are the same or not is kind of
         # insane, so be a bit stricter here and use the python3 idea of
         # comparing only things of equal type.
-        if isinstance(other, (ABCDataFrame, ABCSeries, ABCIndexClass)):
-            return NotImplemented
-
-        other = lib.item_from_zerodim(other)
-
         if not self.ordered:
             if op in ['__lt__', '__gt__', '__le__', '__ge__']:
                 raise TypeError("Unordered Categoricals can only compare "
