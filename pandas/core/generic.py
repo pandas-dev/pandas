@@ -530,7 +530,7 @@ class NDFrame(PandasObject, SelectionMixin):
             The axis to update. The value 0 identifies the rows, and 1
             identifies the columns.
 
-        inplace : boolean, default None
+        inplace : bool, default None
             Whether to return a new %(klass)s instance.
 
             .. warning::
@@ -763,7 +763,7 @@ class NDFrame(PandasObject, SelectionMixin):
         Parameters
         ----------
         item : str
-            Column label to be popped
+            Column label to be popped.
 
         Returns
         -------
@@ -926,7 +926,7 @@ class NDFrame(PandasObject, SelectionMixin):
 
         Parameters
         ----------
-        i, j : int, string (can be mixed)
+        i, j : int, str (can be mixed)
             Level of index to be swapped. Can pass level name as string.
 
         Returns
@@ -962,9 +962,9 @@ class NDFrame(PandasObject, SelectionMixin):
             and raise on DataFrame or Panel.
             dict-like or functions are transformations to apply to
             that axis' values
-        copy : boolean, default True
-            Also copy underlying data
-        inplace : boolean, default False
+        copy : bool, default True
+            Also copy underlying data.
+        inplace : bool, default False
             Whether to return a new %(klass)s. If True then value of copy is
             ignored.
         level : int or level name, default None
@@ -977,7 +977,7 @@ class NDFrame(PandasObject, SelectionMixin):
 
         See Also
         --------
-        pandas.NDFrame.rename_axis
+        NDFrame.rename_axis
 
         Examples
         --------
