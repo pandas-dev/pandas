@@ -26,7 +26,6 @@ from pandas.core.config import get_option
 from pandas.core.generic import _shared_doc_kwargs, _shared_docs
 
 from pandas.io.formats.printing import pprint_thing
-from pandas.plotting import _misc as misc
 from pandas.plotting._compat import _mpl_ge_3_0_0
 from pandas.plotting._style import _get_standard_colors, plot_params
 from pandas.plotting._tools import (
@@ -2906,15 +2905,6 @@ class SeriesPlotMethods(BasePlotMethods):
         """
         return self(kind='pie', **kwds)
 
-    def lag(self, *args, **kwds):
-        return misc.lag_plot(self._parent, *args, **kwds)
-
-    def autocorrelation(self, *args, **kwds):
-        return misc.autocorrelation_plot(self._parent, *args, **kwds)
-
-    def bootstrap(self, *args, **kwds):
-        return misc.bootstrap_plot(self._parent, *args, **kwds)
-
 
 class FramePlotMethods(BasePlotMethods):
     """DataFrame plotting accessor and method
@@ -3610,16 +3600,3 @@ class FramePlotMethods(BasePlotMethods):
         if gridsize is not None:
             kwds['gridsize'] = gridsize
         return self(kind='hexbin', x=x, y=y, C=C, **kwds)
-
-    def scatter_matrix(self, *args, **kwds):
-        return misc.scatter_matrix(self._parent, *args, **kwds)
-
-    def andrews_curves(self, class_column, *args, **kwds):
-        return misc.andrews_curves(self._parent, class_column, *args, **kwds)
-
-    def parallel_coordinates(self, class_column, *args, **kwds):
-        return misc.parallel_coordinates(self._parent, class_column,
-                                         *args, **kwds)
-
-    def radviz(self, class_column, *args, **kwds):
-        return misc.radviz(self._parent, class_column, *args, **kwds)

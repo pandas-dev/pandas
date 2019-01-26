@@ -760,6 +760,7 @@ class _MergeOperation(object):
                     join_index = self._create_join_index(self.left.index,
                                                          self.right.index,
                                                          left_indexer,
+                                                         right_indexer,
                                                          how='right')
                 else:
                     join_index = self.right.index.take(right_indexer)
@@ -769,6 +770,7 @@ class _MergeOperation(object):
                     join_index = self._create_join_index(self.right.index,
                                                          self.left.index,
                                                          right_indexer,
+                                                         left_indexer,
                                                          how='left')
                 else:
                     join_index = self.left.index.take(left_indexer)
@@ -780,7 +782,8 @@ class _MergeOperation(object):
             join_index = join_index.astype(object)
         return join_index, left_indexer, right_indexer
 
-    def _create_join_index(self, index, other_index, indexer, how='left'):
+    def _create_join_index(self, index, other_index, indexer,
+                           other_indexer, how='left'):
         """
         Create a join index by rearranging one index to match another
 
@@ -806,7 +809,8 @@ class _MergeOperation(object):
                 # if values missing (-1) from target index,
                 # take from other_index instead
                 join_list = join_index.to_numpy()
-                join_list[mask] = other_index.to_numpy()[mask]
+                other_list = other_index.take(other_indexer).to_numpy()
+                join_list[mask] = other_list[mask]
                 join_index = Index(join_list, dtype=join_index.dtype,
                                    name=join_index.name)
         return join_index
