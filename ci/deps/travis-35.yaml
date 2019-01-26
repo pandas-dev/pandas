@@ -29,7 +29,7 @@ dependencies:
   - blosc=1.14.3
   - python-blosc
   - python-dateutil=2.5.0
-  - python=2.7*
+  - python=3.5*
   - pytz=2013b
   - s3fs
   - scipy

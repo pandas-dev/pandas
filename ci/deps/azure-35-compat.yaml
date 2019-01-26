@@ -11,7 +11,7 @@ dependencies:
   - openpyxl=2.5.5
   - pytables=3.4.2
   - python-dateutil=2.5.0
-  - python=2.7*
+  - python=3.5*
   - pytz=2013b
   - scipy=0.18.1
   - xlrd=1.0.0

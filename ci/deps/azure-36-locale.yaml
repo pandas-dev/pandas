@@ -11,7 +11,7 @@ dependencies:
   - openpyxl=2.4.0
   - python-dateutil
   - python-blosc
-  - python=2.7
+  - python=3.6
   - pytz
   - pytz=2013b
   - scipy
