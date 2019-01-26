@@ -2965,7 +2965,8 @@ class DataFrame(NDFrame):
         expr : str
             The query string to evaluate.  You can refer to variables
             in the environment by prefixing them with an '@' character like
-            ``@a + b``.
+            ``@a + b``. You can refer to column names with spaces by quoting
+            them in backticks like ```a a` + b``.
         inplace : bool
             Whether the query should modify the data in place or return
             a modified copy.
