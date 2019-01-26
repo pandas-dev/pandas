@@ -1447,12 +1447,14 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         """
         Lazily iterate over (index, value) tuples.
 
-        This method returns an iterable tuple (index, value).
+        This method returns an iterable tuple (index, value). This is
+        convienient if you want to create a a Lazy iterator.
 
         Returns
         -------
         iterable
-            Iterable tuples (index, value) from a Series.
+            Iterable of tuples containing the (index, value) pairs from a
+            Series.
 
         See Also
         --------
@@ -1468,40 +1470,6 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         Index : 0, Value : A
         Index : 1, Value : B
         Index : 2, Value : C
-
-        **Creation of another Series**
-
-        >>> s2 = pd.Series([])
-        >>> for index, value in s.iteritems():
-        ...     s2[index] = value + value
-        >>> s2
-        0    AA
-        1    BB
-        2    CC
-        dtype: object
-
-        **A faster way of creating the same Series**
-
-        >>> s3 = s + s
-        >>> s3
-        0    AA
-        1    BB
-        2    CC
-        dtype: object
-
-        ** Another example **
-
-        >>> s4 = pd.Series([])
-        >>> for index, value in s.iteritems():
-        ...     if index % 2 == 0:
-        ...         s4[index] = value + '_even_index'
-        ...     else:
-        ...         s4[index] = value + '_odd_index'
-        >>> s4
-        0    A_even_index
-        1     B_odd_index
-        2    C_even_index
-        dtype: object
         """
         return zip(iter(self.index), iter(self))
 
