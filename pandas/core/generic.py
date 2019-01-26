@@ -3989,8 +3989,8 @@ class NDFrame(PandasObject, SelectionMixin):
 
         Returns
         -------
-        sorted_obj : %(klass)s or None
-            An object of same type as caller if inplace=False, None otherwise.
+        sorted_obj : DataFrame or None
+            DataFrame with sorted values if inplace=False, None otherwise.
 
         Examples
         --------
