@@ -1030,3 +1030,34 @@ class TestDataFrameEvalWithFrame(object):
 
         with pytest.raises(TypeError, match=msg):
             df.eval('a {0} b'.format(op), engine=engine, parser=parser)
+
+
+class TestDataFrameQueryBacktickQuoting(object):
+
+    def setup_method(self, method):
+        self.df = DataFrame({'A': [1, 2, 3],
+                             'B B': [3, 2, 1],
+                             'C C': [4, 5, 6]})
+
+    def teardown_method(self, method):
+        del self.df
+
+    def test_single_backtick_variable_query(self):
+        res = self.df.query('1 < `B B`')
+        expect = self.df[1 < self.df['B B']]
+        assert_frame_equal(res, expect)
+
+    def test_two_backtick_variables_query(self):
+        res = self.df.query('1 < `B B` and 4 < `C C`')
+        expect = self.df[(1 < self.df['B B']) & (4 < self.df['C C'])]
+        assert_frame_equal(res, expect)
+
+    def test_single_backtick_variable_expr(self):
+        res = self.df.eval('A + `B B`')
+        expect = self.df['A'] + self.df['B B']
+        assert_series_equal(res, expect)
+
+    def test_two_backtick_variables_expr(self):
+        res = self.df.eval('`B B` + `C C`')
+        expect = self.df['B B'] + self.df['C C']
+        assert_series_equal(res, expect)
