@@ -4911,8 +4911,7 @@ class NDFrame(PandasObject, SelectionMixin):
         return com._pipe(self, func, *args, **kwargs)
 
     _shared_docs['aggregate'] = dedent("""
-    Aggregate using one or more operations over the specified axis.
-
+    
     %(versionadded)s
 
     Parameters
@@ -4936,10 +4935,10 @@ class NDFrame(PandasObject, SelectionMixin):
     Returns
     -------
     DataFrame, Series or scalar
-        if DataFrame.agg is called with a single function, returns a Series
-        if DataFrame.agg is called with several functions, returns a DataFrame
-        if Series.agg is called with single function, returns a scalar
-        if Series.agg is called with several functions, returns a Series
+       - if DataFrame.agg is called with a single function, returns a Series
+       - if DataFrame.agg is called with several functions, returns a DataFrame
+       - if Series.agg is called with single function, returns a scalar
+       - if Series.agg is called with several functions, returns a Series
 
     %(see_also)s
 

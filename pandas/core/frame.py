@@ -6224,16 +6224,7 @@ class DataFrame(NDFrame):
         # TODO: _shallow_copy(subset)?
         return subset[key]
 
-    _agg_summary_and_see_also_doc = dedent("""
-    The aggregation operations are always performed over an axis, either the
-    index (default) or the column axis. This behavior is different from
-    `numpy` aggregation functions (`mean`, `median`, `prod`, `sum`, `std`,
-    `var`), where the default is to compute the aggregation of the flattened
-    array, e.g., ``numpy.mean(arr_2d)`` as opposed to ``numpy.mean(arr_2d,
-    axis=0)``.
-
-    `agg` is an alias for `aggregate`. Use the alias.
-
+    _agg_see_also_doc = dedent("""
     See Also
     --------
     DataFrame.apply : Perform any type of operations.
@@ -6280,12 +6271,24 @@ class DataFrame(NDFrame):
     dtype: float64
     """)
 
-    @Substitution(see_also=_agg_summary_and_see_also_doc,
+    @Substitution(see_also=_agg_see_also_doc,
                   examples=_agg_examples_doc,
                   versionadded='.. versionadded:: 0.20.0',
                   **_shared_doc_kwargs)
     @Appender(_shared_docs['aggregate'])
     def aggregate(self, func, axis=0, *args, **kwargs):
+        """    
+        Aggregate using one or more operations over the specified axis.
+        
+        The aggregation operations are always performed over an axis, either the
+        index (default) or the column axis. This behavior is different from
+        `numpy` aggregation functions (`mean`, `median`, `prod`, `sum`, `std`,
+        `var`), where the default is to compute the aggregation of the flattened
+        array, e.g., ``numpy.mean(arr_2d)`` as opposed to ``numpy.mean(arr_2d,
+        axis=0)``.
+ 
+        """
+
         axis = self._get_axis_number(axis)
 
         result = None
