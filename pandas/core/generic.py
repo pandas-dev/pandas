@@ -4911,7 +4911,6 @@ class NDFrame(PandasObject, SelectionMixin):
         return com._pipe(self, func, *args, **kwargs)
 
     _shared_docs['aggregate'] = dedent("""
-    
     %(versionadded)s
 
     Parameters
