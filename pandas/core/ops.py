@@ -30,7 +30,7 @@ from pandas.core.dtypes.common import (
     is_scalar, is_timedelta64_dtype, needs_i8_conversion)
 from pandas.core.dtypes.generic import (
     ABCDataFrame, ABCIndex, ABCIndexClass, ABCPanel, ABCSeries, ABCSparseArray,
-    ABCSparseSeries)
+    ABCSparseSeries, ABCExtensionArray)
 from pandas.core.dtypes.missing import isna, notna
 
 import pandas as pd
@@ -178,10 +178,11 @@ class CompWrapper(object):
     def _inst_from_senior_cls(self, comp):
         @wraps(comp)
         def wrapper(comp_self, comp_other):
-            if isinstance(comp_other, (ABCDataFrame,
-                                       ABCSeries, ABCIndexClass)):
-                # Rely on pandas to unbox and dispatch to us.
-                return NotImplemented
+            if isinstance(comp_self, ABCExtensionArray):
+                if isinstance(comp_other, (ABCDataFrame, ABCSeries,
+                                           ABCIndexClass)):
+                    # Rely on pandas to unbox and dispatch to us.
+                    return NotImplemented
             return comp(comp_self, comp_other)
         return wrapper
 
