@@ -8,7 +8,7 @@ dependencies:
   - dateutil
   - gcsfs
   - html5lib
-  - jinja2=2.8
+  - jinja2
   - lxml
   - matplotlib=3.0.1
   - numexpr
