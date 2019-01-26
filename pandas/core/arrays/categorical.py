@@ -34,6 +34,7 @@ from pandas.core.base import NoNewAttributesMixin, PandasObject, _shared_docs
 import pandas.core.common as com
 from pandas.core.config import get_option
 from pandas.core.missing import interpolate_2d
+from pandas.core.ops import CompWrapper
 from pandas.core.sorting import nargsort
 
 from pandas.io.formats import console
@@ -52,6 +53,7 @@ _take_msg = textwrap.dedent("""\
     Use 'allow_fill=False' to accept the new behavior.""")
 
 
+@CompWrapper(inst_from_senior_cls=True, zerodim=True)
 def _cat_compare_op(op):
     def f(self, other):
         # On python2, you can usually compare any type to any type, and
