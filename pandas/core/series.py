@@ -513,6 +513,10 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         """
         Return the flattened underlying data as an ndarray.
 
+        Returns
+        -------
+        arr : numpy.ndarray or ndarray-like
+
         See Also
         --------
         numpy.ndarray.ravel
@@ -1394,29 +1398,30 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         Parameters
         ----------
         buf : StringIO-like, optional
-            buffer to write to
-        na_rep : string, optional
-            string representation of NAN to use, default 'NaN'
+            Buffer to write to.
+        na_rep : str, optional
+            String representation of NaN to use, default 'NaN'.
         float_format : one-parameter function, optional
-            formatter function to apply to columns' elements if they are floats
-            default None
-        header : boolean, default True
-            Add the Series header (index name)
+            Formatter function to apply to columns' elements if they are floats,
+            default None.
+        header : bool, default True
+            Add the Series header (index name).
         index : bool, optional
-            Add index (row) labels, default True
-        length : boolean, default False
-            Add the Series length
-        dtype : boolean, default False
-            Add the Series dtype
-        name : boolean, default False
-            Add the Series name if not None
+            Add index (row) labels, default True.
+        length : bool, default False
+            Add the Series length.
+        dtype : bool, default False
+            Add the Series dtype.
+        name : bool, default False
+            Add the Series name if not None.
         max_rows : int, optional
             Maximum number of rows to show before truncating. If None, show
             all.
 
         Returns
         -------
-        formatted : string (if not buffer passed)
+        formatted : str or None
+            String representation of Series if buf=None, otherwise None.
         """
 
         formatter = fmt.SeriesFormatter(self, name=name, length=length,
@@ -1488,7 +1493,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         OrderedDict([(0, 1), (1, 2), (2, 3), (3, 4)])
         >>> dd = defaultdict(list)
         >>> s.to_dict(dd)
-        defaultdict(<type 'list'>, {0: 1, 1: 2, 2: 3, 3: 4})
+        defaultdict(<class 'list'>, {0: 1, 1: 2, 2: 3, 3: 4})
         """
         # GH16122
         into_c = com.standardize_mapping(into)
@@ -1507,6 +1512,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         Returns
         -------
         data_frame : DataFrame
+            DataFrame representation of Series.
         """
         if name is None:
             df = self._constructor_expanddim(self)
@@ -1564,11 +1570,12 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         ----------
         level : int or level name, default None
             If the axis is a MultiIndex (hierarchical), count along a
-            particular level, collapsing into a smaller Series
+            particular level, collapsing into a smaller Series.
 
         Returns
         -------
         nobs : int or Series (if level specified)
+            Number of non-null values in the Series.
         """
         if level is None:
             return notna(com.values_from_object(self)).sum()
@@ -1597,7 +1604,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
         Parameters
         ----------
-        dropna : boolean, default True
+        dropna : bool, default True
             Don't consider counts of NaN/NaT.
 
             .. versionadded:: 0.24.0
@@ -1605,6 +1612,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         Returns
         -------
         modes : Series (sorted)
+            Mode of the Series.
         """
         # TODO: Add option for bins like value_counts()
         return algorithms.mode(self, dropna=dropna)
@@ -1823,7 +1831,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
         Parameters
         ----------
-        skipna : boolean, default True
+        skipna : bool, default True
             Exclude NA/null values. If the entire Series is NA, the result
             will be NA.
         axis : int, default 0
@@ -1860,7 +1868,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         Examples
         --------
         >>> s = pd.Series(data=[1, None, 4, 1],
-        ...               index=['A' ,'B' ,'C' ,'D'])
+        ...               index=['A', 'B', 'C', 'D'])
         >>> s
         A    1.0
         B    NaN
