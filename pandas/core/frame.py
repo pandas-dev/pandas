@@ -5675,6 +5675,8 @@ class DataFrame(NDFrame):
             If True: only show observed values for categorical groupers.
             If False: show all values for categorical groupers.
 
+            .. versionchanged :: 0.25.0
+
         Returns
         -------
         table : DataFrame

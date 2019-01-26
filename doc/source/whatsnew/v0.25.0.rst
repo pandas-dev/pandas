@@ -19,7 +19,7 @@ including other versions of pandas.
 Other Enhancements
 ^^^^^^^^^^^^^^^^^^
 
--
+:meth:`DataFrame.pivot_table` now accepts ``observed`` parameter which is passed to underlying calls to :meth:`DataFrame.groupby` to speed up grouping categorical data. (:issue:`24923`)
 -
 -
 

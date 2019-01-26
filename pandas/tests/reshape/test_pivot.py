@@ -38,18 +38,18 @@ class TestPivotTable(object):
                                'E': np.random.randn(11),
                                'F': np.random.randn(11)})
 
-    def test_pivot_table(self):
+    def test_pivot_table(self, observed):
         index = ['A', 'B']
         columns = 'C'
         table = pivot_table(self.data, values='D',
-                            index=index, columns=columns)
+                            index=index, columns=columns, observed=observed)
 
         table2 = self.data.pivot_table(
-            values='D', index=index, columns=columns)
+            values='D', index=index, columns=columns, observed=observed)
         tm.assert_frame_equal(table, table2)
 
         # this works
-        pivot_table(self.data, values='D', index=index)
+        pivot_table(self.data, values='D', index=index, observed=observed)
 
         if len(index) > 1:
             assert table.index.names == tuple(index)
