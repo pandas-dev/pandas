@@ -1402,8 +1402,8 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         na_rep : str, optional
             String representation of NaN to use, default 'NaN'.
         float_format : one-parameter function, optional
-            Formatter function to apply to columns' elements if they are floats,
-            default None.
+            Formatter function to apply to columns' elements if they are
+            floats, default None.
         header : bool, default True
             Add the Series header (index name).
         index : bool, optional
