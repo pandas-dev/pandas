@@ -4109,8 +4109,8 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
         Parameters
         ----------
-        path : string file path or file handle / StringIO
-        sep : string, default ','
+        path : str, file path, or file handle / StringIO
+        sep : str, default ','
             Field delimiter
         parse_dates : boolean, default True
             Parse dates. Different default from read_table
@@ -4119,9 +4119,9 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         index_col : int or sequence, default 0
             Column to use for index. If a sequence is given, a MultiIndex
             is used. Different default from read_table
-        encoding : string, optional
-            a string representing the encoding to use if the contents are
-            non-ascii, for python versions prior to 3
+        encoding : str, optional
+            A string representing the encoding to use if the contents are
+            non-ascii, for python versions prior to 3.
         infer_datetime_format : boolean, default False
             If True and `parse_dates` is True for a column, try to infer the
             datetime format based on the first datetime string. If the format
@@ -4334,11 +4334,13 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
         Parameters
         ----------
-        freq : string, default frequency of PeriodIndex
-            Desired frequency
+        freq : str, default frequency of PeriodIndex
+            Desired frequency.
         how : {'s', 'e', 'start', 'end'}
             Convention for converting period to timestamp; start of period
-            vs. end
+            vs. end.
+        copy : bool, default True
+            Whether or not to return a copy.
 
         Returns
         -------
@@ -4359,7 +4361,8 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
         Parameters
         ----------
-        freq : string, default
+        freq : str, default None
+            Frequency associated with the PeriodIndex.
 
         Returns
         -------
