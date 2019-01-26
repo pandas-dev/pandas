@@ -988,9 +988,6 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin,
         Add a delta of a TimedeltaIndex
         return the i8 result view
         """
-        if len(self) != len(other):
-            raise ValueError("cannot add indices of unequal length")
-
         if isinstance(other, np.ndarray):
             # ndarray[timedelta64]; wrap in TimedeltaIndex for op
             from pandas import TimedeltaIndex
@@ -1055,9 +1052,6 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin,
                             .format(dtype=other.dtype,
                                     cls=type(self).__name__))
 
-        if len(self) != len(other):
-            raise ValueError("cannot subtract arrays/indices of "
-                             "unequal length")
         if self.freq != other.freq:
             msg = DIFFERENT_FREQ.format(cls=type(self).__name__,
                                         own_freq=self.freqstr,
@@ -1176,7 +1170,7 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin,
         return self._generate_range(start=start, end=end, periods=None,
                                     freq=self.freq)
 
-    @CompWrapper(zerodim=True, inst_from_senior_cls=True)
+    @CompWrapper(zerodim=True, inst_from_senior_cls=True, validate_len=True)
     def __add__(self, other):
         # scalar others
         if other is NaT:
@@ -1236,7 +1230,7 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin,
         # alias for __add__
         return self.__add__(other)
 
-    @CompWrapper(zerodim=True, inst_from_senior_cls=True)
+    @CompWrapper(zerodim=True, inst_from_senior_cls=True, validate_len=True)
     def __sub__(self, other):
         # scalar others
         if other is NaT:
