@@ -10270,7 +10270,7 @@ _num_ddof_doc = """
 Parameters
 ----------
 axis : %(axis_descr)s
-skipna : boolean, default True
+skipna : bool, default True
     Exclude NA/null values. If an entire row/column is NA, the result
     will be NA
 level : int or level name, default None
@@ -10279,7 +10279,7 @@ level : int or level name, default None
 ddof : int, default 1
     Delta Degrees of Freedom. The divisor used in calculations is N - ddof,
     where N represents the number of elements.
-numeric_only : boolean, default None
+numeric_only : bool, default None
     Include only float, int, boolean columns. If None, will attempt to use
     everything, then use only numeric data. Not implemented for Series.
 
