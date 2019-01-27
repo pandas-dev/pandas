@@ -5,7 +5,6 @@ import numpy as np
 import pandas as pd
 from pandas.util import testing as tm
 
-
 for imp in ['pandas.util', 'pandas.tools.hashing']:
     try:
         hashing = import_module(imp)
