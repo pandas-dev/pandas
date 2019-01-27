@@ -31,13 +31,21 @@ Backwards incompatible API changes
 Indexing and getitem
 ^^^^^^^^^^^^^^^^^^^^
 
-Indexing and getitem of pd.dataframe now accept zerodim np.array.
+Indexing and getitem of pd.DataFrame now accept zerodim np.array.
 
 .. ipython:: python
     df = pd.DataFrame([[1, 2], [3, 4]])[np.array(0)]
     df.iloc[np.array(0)]
     df.loc[np.array(0)]
     df[np.array(0)]
+
+Indexing and getitem of pd.Series now accept zerodim np.array.
+
+.. ipython:: python
+    sr = pd.Series([1, 2])
+    sr.iloc[np.array(0)]
+    sr.loc[np.array(0)]
+    sr[np.array(0)]
 
 Other API Changes
 ^^^^^^^^^^^^^^^^^

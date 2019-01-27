@@ -686,3 +686,12 @@ class TestiLoc(Base):
         # expected series
         sr = pd.Series([1, 2], name=0)
         tm.assert_series_equal(result, sr)
+
+    def test_series_indexing_zero_dim_np_array(self):
+        # GH24919
+        sr = Series([1, 2])
+
+        # should not raise an error
+        result = sr.iloc[np.array(0)]
+
+        assert result == 1
