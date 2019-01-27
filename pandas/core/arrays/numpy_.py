@@ -12,7 +12,8 @@ from pandas.core.dtypes.generic import ABCIndexClass, ABCSeries
 from pandas.core.dtypes.inference import is_array_like, is_list_like
 
 from pandas import compat
-from pandas.core import common as com, nanops
+from pandas.core import nanops
+from pandas.core.algorithms import searchsorted
 from pandas.core.missing import backfill_1d, pad_1d
 
 from .base import ExtensionArray, ExtensionOpsMixin
@@ -426,8 +427,8 @@ class PandasArray(ExtensionArray, ExtensionOpsMixin, NDArrayOperatorsMixin):
 
     @Appender(ExtensionArray.searchsorted.__doc__)
     def searchsorted(self, value, side='left', sorter=None):
-        return com.searchsorted(self.to_numpy(), value,
-                                side=side, sorter=sorter)
+        return searchsorted(self.to_numpy(), value,
+                            side=side, sorter=sorter)
 
     # ------------------------------------------------------------------------
     # Ops

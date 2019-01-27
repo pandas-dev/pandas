@@ -2392,8 +2392,8 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
     @Substitution(klass='Series')
     @Appender(base._shared_docs['searchsorted'])
     def searchsorted(self, value, side='left', sorter=None):
-        return com.searchsorted(self._values, value,
-                                side=side, sorter=sorter)
+        return algorithms.searchsorted(self._values, value,
+                                       side=side, sorter=sorter)
 
     # -------------------------------------------------------------------
     # Combination
