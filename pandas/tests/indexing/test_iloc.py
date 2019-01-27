@@ -681,4 +681,8 @@ class TestiLoc(Base):
         df = DataFrame([[1, 2], [3, 4]])
 
         # should not raise an error
-        df.iloc[np.array(0)]
+        result = df.iloc[np.array(0)]
+
+        # expected series
+        sr = pd.Series([1, 2], name=0)
+        tm.assert_series_equal(result, sr)
