@@ -18,10 +18,7 @@ including other versions of pandas.
 
 Other Enhancements
 ^^^^^^^^^^^^^^^^^^
-
--
--
--
+:func:`DataFrame.plot` now can take 'sym' so as to expose symlog scaling.
 
 
 .. _whatsnew_0250.api_breaking:
