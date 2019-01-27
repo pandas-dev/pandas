@@ -5032,7 +5032,7 @@ class DataFrame(NDFrame):
 
         Returns
         -------
-        same type as caller (new object)
+        DataFrame
 
         .. versionchanged:: 0.18.1
 
