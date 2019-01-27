@@ -1713,7 +1713,7 @@ class _OpenpyxlWriter(ExcelWriter):
         header_cells = {}
         for cell in cells:
             val, fmt = self._value_with_fmt(cell.val)
-            if header and cell.row == 0 and cell.val:
+            if header and cell.row == 0:
                 header_cells[cell.col] = cell.val
                 continue
             xcell = wks.cell(
@@ -2114,7 +2114,7 @@ class _XlsxWriter(ExcelWriter):
         header_cells = {}
         for cell in cells:
             val, fmt = self._value_with_fmt(cell.val)
-            if header and cell.row == 0 and cell.val:
+            if header and cell.row == 0:
                 header_cells[cell.col] = cell.val
                 continue
             wks.write(startrow + cell.row,

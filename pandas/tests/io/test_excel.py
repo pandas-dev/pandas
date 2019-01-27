@@ -2091,6 +2091,23 @@ class TestExcelWriter(_WriterBase):
                                        path="foo.{ext}".format(ext=ext))
         tm.assert_frame_equal(result, df)
 
+    def test_excel_as_table_roundtrip_indexname(self, engine, ext):
+        if ext == '.xls':
+            pytest.skip()
+        df = DataFrame(np.random.randn(10, 4))
+
+        df.columns = df.columns.map(str)
+        df.index.name = 'foo'
+
+        df.to_excel(self.path, header=True, as_table=True)
+
+        xf = ExcelFile(self.path)
+        result = read_excel(xf, xf.sheet_names[0],
+                            index_col=0)
+
+        tm.assert_frame_equal(result, df)
+        assert result.index.name == 'foo'
+
 
 @td.skip_if_no('openpyxl')
 @pytest.mark.parametrize("merge_cells,ext,engine", [
