@@ -29,8 +29,8 @@ from pandas.core.dtypes.common import (
     is_integer_dtype, is_list_like, is_object_dtype, is_period_dtype,
     is_scalar, is_timedelta64_dtype, needs_i8_conversion)
 from pandas.core.dtypes.generic import (
-    ABCDataFrame, ABCIndex, ABCIndexClass, ABCPanel, ABCSeries, ABCSparseArray,
-    ABCSparseSeries, ABCExtensionArray)
+    ABCDataFrame, ABCExtensionArray, ABCIndex, ABCIndexClass, ABCPanel,
+    ABCSeries, ABCSparseArray, ABCSparseSeries)
 from pandas.core.dtypes.missing import isna, notna
 
 import pandas as pd
