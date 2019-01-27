@@ -983,6 +983,7 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin,
         new_values = self._maybe_mask_results(new_values)
         return new_values.view('i8')
 
+    @CompWrapper(validate_len=True)
     def _add_delta_tdi(self, other):
         """
         Add a delta of a TimedeltaIndex
@@ -1032,6 +1033,7 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin,
         result.fill(iNaT)
         return result.view('timedelta64[ns]')
 
+    @CompWrapper(validate_len=True)
     def _sub_period_array(self, other):
         """
         Subtract a Period Array/Index from self.  This is only valid if self
@@ -1138,7 +1140,7 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin,
 
         Note this is different from ExtensionArray.shift, which
         shifts the *position* of each element, padding the end with
-        missing values.
+        missing values.x
 
         Parameters
         ----------
@@ -1170,13 +1172,13 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin,
         return self._generate_range(start=start, end=end, periods=None,
                                     freq=self.freq)
 
-    @CompWrapper(zerodim=True, validate_len=True)
+    @CompWrapper(zerodim=True)
     def __add__(self, other):
         if isinstance(other, (ABCSeries, ABCDataFrame)):
             return NotImplemented
 
         # scalar others
-        if other is NaT:
+        elif other is NaT:
             result = self._add_nat()
         elif isinstance(other, (Tick, timedelta, np.timedelta64)):
             result = self._add_delta(other)
@@ -1233,13 +1235,13 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin,
         # alias for __add__
         return self.__add__(other)
 
-    @CompWrapper(zerodim=True, validate_len=True)
+    @CompWrapper(zerodim=True)
     def __sub__(self, other):
         if isinstance(other, (ABCSeries, ABCDataFrame)):
             return NotImplemented
 
         # scalar others
-        if other is NaT:
+        elif other is NaT:
             result = self._sub_nat()
         elif isinstance(other, (Tick, timedelta, np.timedelta64)):
             result = self._add_delta(-other)
