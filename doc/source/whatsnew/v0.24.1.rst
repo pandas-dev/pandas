@@ -67,6 +67,11 @@ Bug Fixes
 
 - Bug in :func:`merge` when merging by index name would sometimes result in an incorrectly numbered index (:issue:`24212`)
 
+**Visualization**
+
+- Fixed the warning for implicitly registered matplotlib converters not showing. See :ref:`whatsnew_0211.converters` for more (:issue:`24963`).
+
+
 **Other**
 
 -
