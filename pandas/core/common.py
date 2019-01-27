@@ -511,6 +511,7 @@ def searchsorted_integer(arr, value, side="left", sorter=None):
     int or numpy.array
         The locations(s) of `value` in `arr`.
     """
+    from .arrays.array_ import array
     if sorter is not None:
         sorter = ensure_platform_int(sorter)
 
@@ -518,12 +519,16 @@ def searchsorted_integer(arr, value, side="left", sorter=None):
     # against integer overflows. If the value of `value` is outside of the
     # bound of `arr`, `arr` would be recast by numpy, causing a slower search.
     value_arr = np.array([value]) if is_scalar(value) else np.array(value)
-    iinfo = np.iinfo(arr.dtype)
+    iinfo = np.iinfo(arr.dtype.type)
     if (value_arr >= iinfo.min).all() and (value_arr <= iinfo.max).all():
         dtype = arr.dtype
     else:
         dtype = value_arr.dtype
-    value = np.asarray(value, dtype=dtype)
+
+    if is_scalar(value):
+        value = dtype.type(value)
+    else:
+        value = array(value, dtype=dtype)
 
     return arr.searchsorted(value, side=side, sorter=sorter)
 
