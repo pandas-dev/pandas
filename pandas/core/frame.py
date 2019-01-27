@@ -5959,7 +5959,7 @@ class DataFrame(NDFrame):
 
         Returns
         -------
-        DataFrame or Series
+        Series or DataFrame
 
         See Also
         --------
