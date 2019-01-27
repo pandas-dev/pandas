@@ -444,7 +444,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
         Returns
         -------
-        arr : numpy.ndarray or ndarray-like
+        numpy.ndarray or ndarray-like
 
         See Also
         --------
@@ -835,7 +835,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
         Returns
         -------
-        value : scalar (int) or Series (slice, sequence)
+        scalar (int) or Series (slice, sequence)
         """
         try:
 
@@ -1125,7 +1125,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
         Returns
         -------
-        repeated_series : Series
+        Series
             Newly created Series with repeated elements.
 
         See Also
@@ -1178,7 +1178,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
         Returns
         -------
-        value : scalar value
+        scalar value
         """
         warnings.warn("get_value is deprecated and will be removed "
                       "in a future release. Please use "
@@ -1212,7 +1212,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
         Returns
         -------
-        series : Series
+        Series
             If label is contained, will be reference to calling Series,
             otherwise a new object
         """
@@ -1534,7 +1534,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
         Returns
         -------
-        sp : SparseSeries
+        SparseSeries
         """
         # TODO: deprecate
         from pandas.core.sparse.series import SparseSeries
@@ -1692,7 +1692,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
         Returns
         -------
-        deduplicated : Series
+        Series
 
         See Also
         --------
@@ -1769,7 +1769,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
         Returns
         -------
-        pandas.core.series.Series
+        Series
 
         See Also
         --------
@@ -1998,7 +1998,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
         Returns
         -------
-        Series object
+        Series
 
         See Also
         --------
@@ -2034,7 +2034,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
         Returns
         -------
-        quantile : float or Series
+        float or Series
             if ``q`` is an array, a Series will be returned where the
             index is ``q`` and the values are the quantiles.
 
@@ -2095,7 +2095,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
         Returns
         -------
-        correlation : float
+        float
 
         Examples
         --------
@@ -2130,7 +2130,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
         Returns
         -------
-        covariance : float
+        float
 
         Normalized by N-1 (unbiased estimator).
         """
@@ -2155,7 +2155,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
         Returns
         -------
-        diffed : Series
+        Series
 
         See Also
         --------
@@ -2368,7 +2368,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
         Returns
         -------
-        appended : Series
+        Series
 
         See Also
         --------
@@ -2449,7 +2449,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
         Returns
         -------
-        combined : Series
+        Series
         """
         if not isinstance(other, Series):
             raise AssertionError('Other operand must be Series')
@@ -2872,7 +2872,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
         Returns
         -------
-        pandas.Series
+        Series
             The original Series sorted by the labels
 
         See Also
@@ -3012,7 +3012,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
         Returns
         -------
-        argsorted : Series, with -1 indicated where nan values are present
+        Series, with -1 indicated where nan values are present
 
         See Also
         --------
@@ -3235,7 +3235,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
         Returns
         -------
-        swapped : Series
+        Series
 
         .. versionchanged:: 0.18.1
 
@@ -3284,7 +3284,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
         Returns
         -------
-        unstacked : DataFrame
+        DataFrame
 
         Examples
         --------
@@ -3699,7 +3699,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
         Returns
         -------
-        renamed : Series (new object)
+        Series (new object)
 
         See Also
         --------
@@ -3772,7 +3772,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
         Returns
         -------
-        dropped : pandas.Series
+        Series
 
         Raises
         ------
@@ -3970,7 +3970,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
         Returns
         -------
-        isin : Series (bool dtype)
+        Series (bool dtype)
 
         Raises
         ------
@@ -4131,7 +4131,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
         Returns
         -------
-        y : Series
+        Series
 
         See Also
         --------
@@ -4346,7 +4346,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
         Returns
         -------
-        ts : Series with DatetimeIndex
+        Series with DatetimeIndex
         """
         new_values = self._values
         if copy:
