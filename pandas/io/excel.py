@@ -2125,7 +2125,7 @@ class _XlsxWriter(ExcelWriter):
 
         # add generic name for every unnamed (index) column that is included
         columns = [{'header': str(header_cells[col])
-                    if col in header_cells else f'Column{col + 1}'}
+                    if col in header_cells else 'Column%d' % (col + 1)}
                    for col in range(n_cols + 1)]
 
         options = {'columns': columns}
