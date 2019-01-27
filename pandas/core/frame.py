@@ -2881,6 +2881,7 @@ class DataFrame(NDFrame):
                 return result
 
     def __getitem__(self, key):
+        key = lib.item_from_zerodim(key)
         key = com.apply_if_callable(key, self)
 
         # shortcut if the key is in columns

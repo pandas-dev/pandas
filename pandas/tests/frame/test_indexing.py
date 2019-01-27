@@ -3682,3 +3682,14 @@ class TestDataFrameIndexingCategorical(object):
         with tm.assert_produces_warning(False):
             df['group'] = pd.cut(df.value, range(0, 105, 10), right=False,
                                  labels=labels)
+
+    def test_getitem_zerodim_np_array(self):
+        # GH24924
+        df = DataFrame([[1, 2], [3, 4]])
+
+        # should not raise an error
+        result = df[np.array(0)]
+
+        # expected series
+        sr = pd.Series([1, 3], name=0)
+        tm.assert_series_equal(result, sr)
