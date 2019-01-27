@@ -3569,7 +3569,7 @@ class DataFrame(NDFrame):
 
         Returns
         -------
-        numpy-array
+        numpy.ndarray
         """
 
         def reindexer(value):
