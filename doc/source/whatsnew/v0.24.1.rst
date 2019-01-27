@@ -29,8 +29,8 @@ Bug Fixes
 
 **Conversion**
 
--
--
+- Bug in :meth:`DataFrame.itertuples` with ``records`` orient raising an AttributeError when the ``DataFrame`` contained more than 255 columns (:issue:`24939`)
+- Bug in :meth:`DataFrame.itertuples` orient converting integer column names to strings prepended with an underscore (:issue:`24940`)
 -
 
 **Indexing**

@@ -1296,10 +1296,13 @@ class DataFrame(NDFrame):
             return into_c((k, com.maybe_box_datetimelike(v))
                           for k, v in compat.iteritems(self))
         elif orient.lower().startswith('r'):
+            columns = self.columns.tolist()
+            rows = (dict(zip(columns, row))
+                    for row in self.itertuples(index=False))
             return [
                 into_c((k, com.maybe_box_datetimelike(v))
-                       for k, v in compat.iteritems(row._asdict()))
-                for row in self.itertuples(index=False)]
+                       for k, v in compat.iteritems(row))
+                for row in rows]
         elif orient.lower().startswith('i'):
             if not self.index.is_unique:
                 raise ValueError(
