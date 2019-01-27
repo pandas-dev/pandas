@@ -129,7 +129,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         sequence are used, the index will override the keys found in the
         dict.
     dtype : str, numpy.dtype, or ExtensionDtype, optional
-        dtype for the output Series. If not specified, this will be
+        Data type for the output Series. If not specified, this will be
         inferred from `data`.
         See the :ref:`user guide <basics.dtypes>` for more usages.
     copy : bool, default False
@@ -3970,7 +3970,8 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
         Returns
         -------
-        Series (bool dtype)
+        Series
+            Series of booleans indicating if each element is in values.
 
         Raises
         ------
@@ -4029,7 +4030,8 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         Returns
         -------
         Series
-            Each element will be a boolean.
+            Series representing whether each element is between left and
+            right (inclusive).
 
         See Also
         --------
@@ -4332,7 +4334,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
     def to_timestamp(self, freq=None, how='start', copy=True):
         """
-        Cast to datetimeindex of timestamps, at *beginning* of period.
+        Cast to DatetimeIndex of Timestamps, at *beginning* of period.
 
         Parameters
         ----------
