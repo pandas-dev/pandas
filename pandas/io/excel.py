@@ -1660,10 +1660,10 @@ class _OpenpyxlWriter(ExcelWriter):
             if cell.mergestart is not None and cell.mergeend is not None:
 
                 wks.merge_cells(
-                    startrow=startrow + cell.row + 1,
+                    start_row=startrow + cell.row + 1,
                     start_column=startcol + cell.col + 1,
                     end_column=startcol + cell.mergeend + 1,
-                    endrow=startrow + cell.mergestart + 1
+                    end_row=startrow + cell.mergestart + 1
                 )
 
                 # When cells are merged only the top-left cell is preserved
