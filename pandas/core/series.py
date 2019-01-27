@@ -515,7 +515,8 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
         Returns
         -------
-        arr : numpy.ndarray or ndarray-like
+        numpy.ndarray or ndarray-like
+            Flattened data of the Series.
 
         See Also
         --------
@@ -1420,7 +1421,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
         Returns
         -------
-        formatted : str or None
+        str or None
             String representation of Series if buf=None, otherwise None.
         """
 
@@ -1481,7 +1482,8 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
         Returns
         -------
-        value_dict : collections.Mapping
+        collections.Mapping
+            Key-value representation of Series.
 
         Examples
         --------
@@ -1511,7 +1513,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
         Returns
         -------
-        data_frame : DataFrame
+        DataFrame
             DataFrame representation of Series.
         """
         if name is None:
@@ -1574,7 +1576,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
         Returns
         -------
-        nobs : int or Series (if level specified)
+        int or Series (if level specified)
             Number of non-null values in the Series.
         """
         if level is None:
@@ -1611,8 +1613,8 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
         Returns
         -------
-        modes : Series (sorted)
-            Mode of the Series.
+        Series (sorted)
+            Modes of the Series.
         """
         # TODO: Add option for bins like value_counts()
         return algorithms.mode(self, dropna=dropna)
@@ -4366,7 +4368,8 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
         Returns
         -------
-        ts : Series with PeriodIndex
+        Series
+            Series with index converted to PeriodIndex.
         """
         new_values = self._values
         if copy:
