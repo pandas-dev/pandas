@@ -309,10 +309,10 @@ class MPLPlot(object):
 
         axes = _flatten(axes)
 
-        valid_log = [False, True, 'sym']
-        for i in [self.logx, self.logy, self.loglog]:
+        valid_log = [False, True, 'sym', None]
+        for i in (self.logx, self.logy, self.loglog):
             if i not in valid_log:
-                raise ValueError("Wrong input for log option.")
+                raise ValueError("Valid inputs are boolean, None and 'sym'.")
 
         if self.logx is True or self.loglog is True:
             [a.set_xscale('log') for a in axes]
