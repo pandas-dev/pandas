@@ -2091,7 +2091,7 @@ class TestDatetimeIndexArithmetic(object):
         # different length raises ValueError
         dti1 = date_range('20130101', periods=3)
         dti2 = date_range('20130101', periods=4)
-        msg = 'cannot add indices of unequal length'
+        msg = 'Lengths must match to compare'
         with pytest.raises(ValueError, match=msg):
             dti1 - dti2
 
