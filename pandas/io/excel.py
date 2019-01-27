@@ -1614,9 +1614,11 @@ class _OpenpyxlWriter(ExcelWriter):
     def _to_excel_range(cls, startrow, startcol, endrow, endcol):
         """Convert (zero based) numeric coordinates to excel range."""
         from openpyxl.utils.cell import get_column_letter
-        return (f"{get_column_letter(startcol+1)}{startrow+1}"
-                ":"
-                f"{get_column_letter(endcol+1)}{endrow+1}")
+        return ('%s%d:%s%d' % (
+            get_column_letter(startcol + 1),
+            startrow + 1,
+            get_column_letter(endcol + 1),
+            endrow + 1))
 
     def write_cells(self, cells, sheet_name=None, startrow=0, startcol=0,
                     freeze_panes=None):
@@ -1723,13 +1725,16 @@ class _OpenpyxlWriter(ExcelWriter):
             n_rows = max(n_rows, cell.row)
 
         # add generic name for every unnamed (index) column that is included
-        [wks.cell(
+        for col in range(n_cols + 1):
+            if col in header_cells:
+                val = str(header_cells[col])
+            else:
+                val = 'Column%d' % col + 1
+            wks.cell(
                 row=startrow + 1,
                 column=startcol + col + 1,
-                value=(str(header_cells[col])
-                       if col in header_cells
-                       else f'Column{col + 1}'),
-            ) for col in range(n_cols + 1)]
+                value=val,
+            )
 
         ref = self._to_excel_range(startrow, startcol, startrow + n_rows,
                                    startcol + n_cols)
