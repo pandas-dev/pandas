@@ -1693,8 +1693,6 @@ class _OpenpyxlWriter(ExcelWriter):
         from openpyxl.worksheet.table import Table, TableStyleInfo
         sheet_name = self._get_sheet_name(sheet_name)
 
-        _style_cache = {}
-
         if sheet_name in self.sheets:
             wks = self.sheets[sheet_name]
         else:
@@ -1716,7 +1714,7 @@ class _OpenpyxlWriter(ExcelWriter):
             if header and cell.row == 0:
                 header_cells[cell.col] = cell.val
                 continue
-            xcell = wks.cell(
+            wks.cell(
                 row=startrow + cell.row + 1,
                 column=startcol + cell.col + 1,
                 value=val,

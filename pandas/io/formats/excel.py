@@ -666,7 +666,7 @@ class ExcelFormatter(object):
                                startrow=startrow, startcol=startcol,
                                freeze_panes=freeze_panes,
                                header=self.header)
-        else:            
+        else:
             writer.write_cells(formatted_cells, sheet_name,
                                startrow=startrow, startcol=startcol,
                                freeze_panes=freeze_panes)
