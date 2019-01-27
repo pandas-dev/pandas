@@ -6987,8 +6987,8 @@ class DataFrame(NDFrame):
 
         Returns
         -------
-        y : DataFrame
-            Correlation matrix as a DataFrame.
+        DataFrame
+            Correlation matrix.
 
         See Also
         --------
@@ -7184,8 +7184,8 @@ class DataFrame(NDFrame):
 
         Returns
         -------
-        correls : Series
-            Series of correlations.
+        Series
+            Pairwise correlations.
 
         See Also
         -------
@@ -7552,8 +7552,8 @@ class DataFrame(NDFrame):
 
         Returns
         -------
-        idxmin : Series
-            Series of indexes of minima along the specified axis.
+        Series
+            Indexes of minima along the specified axis.
 
         Raises
         ------
@@ -7589,8 +7589,8 @@ class DataFrame(NDFrame):
 
         Returns
         -------
-        idxmax : Series
-            Series of indexes of maxima along the specified axis.
+        Series
+            Indexes of maxima along the specified axis.
 
         Raises
         ------
@@ -7819,7 +7819,7 @@ class DataFrame(NDFrame):
 
         Returns
         -------
-        df : DataFrame with DatetimeIndex
+        DataFrame with DatetimeIndex
         """
         new_data = self._data
         if copy:
