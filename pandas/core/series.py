@@ -1613,8 +1613,8 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
         Returns
         -------
-        Series (sorted)
-            Modes of the Series.
+        Series
+            Modes of the Series in sorted order.
         """
         # TODO: Add option for bins like value_counts()
         return algorithms.mode(self, dropna=dropna)
