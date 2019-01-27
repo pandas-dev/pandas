@@ -1857,6 +1857,7 @@ class _LocIndexer(_LocationIndexer):
         if axis is None:
             axis = self.axis or 0
 
+        key = item_from_zerodim(key)
         if is_iterator(key):
             key = list(key)
 
