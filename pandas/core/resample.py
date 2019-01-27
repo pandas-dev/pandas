@@ -256,7 +256,8 @@ class Resampler(_GroupBy):
     2013-01-01 00:00:04      5       NaN
     """)
 
-    @Substitution(see_also=_agg_see_also_doc,
+    @Substitution(summary='',
+                  see_also=_agg_see_also_doc,
                   examples=_agg_examples_doc,
                   versionadded='',
                   klass='DataFrame',

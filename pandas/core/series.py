@@ -3424,7 +3424,8 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
     dtype: int64
     """)
 
-    @Substitution(see_also=_agg_see_also_doc,
+    @Substitution(summary='',
+                  see_also=_agg_see_also_doc,
                   examples=_agg_examples_doc,
                   versionadded='.. versionadded:: 0.20.0',
                   **_shared_doc_kwargs)

@@ -733,7 +733,8 @@ class Window(_Window):
     9  0.070889  0.134399 -0.031308
     """)
 
-    @Substitution(see_also=_agg_see_also_doc,
+    @Substitution(summary='',
+                  see_also=_agg_see_also_doc,
                   examples=_agg_examples_doc,
                   versionadded='',
                   klass='Series/DataFrame',
@@ -1675,7 +1676,8 @@ class Rolling(_Rolling_and_Expanding):
     9  0.212668 -1.647453
     """)
 
-    @Substitution(see_also=_agg_see_also_doc,
+    @Substitution(summary='',
+                  see_also=_agg_see_also_doc,
                   examples=_agg_examples_doc,
                   versionadded='',
                   klass='Series/Dataframe',
@@ -1953,7 +1955,8 @@ class Expanding(_Rolling_and_Expanding):
     9 -0.286980  0.618493 -0.694496
     """)
 
-    @Substitution(see_also=_agg_see_also_doc,
+    @Substitution(summary='',
+                  see_also=_agg_see_also_doc,
                   examples=_agg_examples_doc,
                   versionadded='',
                   klass='Series/Dataframe',
@@ -2258,7 +2261,8 @@ class EWM(_Rolling):
     9 -0.286980  0.618493 -0.694496
     """)
 
-    @Substitution(see_also=_agg_see_also_doc,
+    @Substitution(summary='',
+                  see_also=_agg_see_also_doc,
                   examples=_agg_examples_doc,
                   versionadded='',
                   klass='Series/Dataframe',

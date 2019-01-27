@@ -4913,12 +4913,7 @@ class NDFrame(PandasObject, SelectionMixin):
     _shared_docs['aggregate'] = dedent("""
     Aggregate using one or more operations over the specified axis.
 
-    The aggregation operations are always performed over an axis, either
-    the index (default) or the column axis. This behavior is different from
-    `numpy` aggregation functions (`mean`, `median`, `prod`, `sum`, `std`,
-    `var`), where the default is to compute the aggregation of the
-    flattened array, e.g., ``numpy.mean(arr_2d)`` as opposed to
-    ``numpy.mean(arr_2d, axis=0)``.
+    %(summary)s
 
     %(versionadded)s
 

@@ -6270,8 +6270,18 @@ class DataFrame(NDFrame):
     3    NaN
     dtype: float64
     """)
+    _agg_summary = dedent("""
+    The aggregation operations are always performed over an axis, either
+    the index (default) or the column axis. This behavior is different from
+    `numpy` aggregation functions (`mean`, `median`, `prod`, `sum`, `std`,
+    `var`), where the default is to compute the aggregation of the
+    flattened array, e.g., ``numpy.mean(arr_2d)`` as opposed to
+    ``numpy.mean(arr_2d, axis=0)``.
 
-    @Substitution(see_also=_agg_see_also_doc,
+    """)
+
+    @Substitution(summary=_agg_summary,
+                  see_also=_agg_see_also_doc,
                   examples=_agg_examples_doc,
                   versionadded='.. versionadded:: 0.20.0',
                   **_shared_doc_kwargs)

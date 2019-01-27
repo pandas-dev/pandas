@@ -748,7 +748,8 @@ class SeriesGroupBy(GroupBy):
     def apply(self, func, *args, **kwargs):
         return super(SeriesGroupBy, self).apply(func, *args, **kwargs)
 
-    @Substitution(see_also=_agg_see_also_doc,
+    @Substitution(summary='',
+                  see_also=_agg_see_also_doc,
                   examples=_agg_examples_doc,
                   versionadded='',
                   klass='Series',
@@ -1305,7 +1306,8 @@ class DataFrameGroupBy(NDFrameGroupBy):
     2   3   4  0.704907
     """)
 
-    @Substitution(see_also=_agg_see_also_doc,
+    @Substitution(summary='',
+                  see_also=_agg_see_also_doc,
                   examples=_agg_examples_doc,
                   versionadded='',
                   klass='DataFrame',
