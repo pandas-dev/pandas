@@ -1721,7 +1721,7 @@ class _OpenpyxlWriter(ExcelWriter):
                 column=startcol + cell.col + 1,
                 value=val,
             )
-            n_cols = max(n_cols, cell.col) 
+            n_cols = max(n_cols, cell.col)
             n_rows = max(n_rows, cell.row)
 
         # add generic name for every unnamed (index) column that is included
@@ -1745,7 +1745,7 @@ class _OpenpyxlWriter(ExcelWriter):
             name="TableStyleMedium9", showFirstColumn=False,
             showLastColumn=False, showRowStripes=True, showColumnStripes=False)
         tab.tableStyleInfo = style
-        
+
         wks.add_table(tab)
 
 
@@ -2125,7 +2125,7 @@ class _XlsxWriter(ExcelWriter):
 
         # add generic name for every unnamed (index) column that is included
         columns = [{'header': str(header_cells[col])
-                   if col in header_cells else f'Column{col + 1}'}
+                    if col in header_cells else f'Column{col + 1}'}
                    for col in range(n_cols + 1)]
 
         options = {'columns': columns}
