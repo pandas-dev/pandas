@@ -165,7 +165,7 @@ class BaseGrouper(object):
         mutated = self.mutated
         splitter = self._get_splitter(data, axis=axis)
         group_keys = self._get_group_keys()
-        status = 0
+        reuse_result = False
         result_values = []
         # oh boy
         f_name = com.get_callable_name(f)
@@ -173,12 +173,20 @@ class BaseGrouper(object):
                 hasattr(splitter, 'fast_apply') and axis == 0):
             try:
                 result = splitter.fast_apply(f, group_keys)
-                result_values, mutated, status = result
-                if status == 0:
-                    return group_keys, result_values, mutated
+                fast_apply_result, mutated, successful_fast_apply = result
+                # If the fast apply path could be used we can return here.
+                # Otherwise we need to fall back to the slow implementation.
+                if successful_fast_apply:
+                    return group_keys, fast_apply_result, mutated
+                else:
+                    # The slow implementation can still reuse the result
+                    # for the first group
+                    result_values = fast_apply_result
+                    reuse_result = True
             except reduction.InvalidApply:
-                # we detect a mutation of some kind
-                # so take slow path
+                # Cannot fast apply on MultiIndex (_has_complex_internals).
+                # This Exception is also raised if `f` triggers an exception but
+                # it is preferable if the exception is raised in Python.
                 pass
             except Exception:
                 # raise this error to the caller
@@ -186,9 +194,8 @@ class BaseGrouper(object):
 
         for key, (i, group) in zip(group_keys, splitter):
             object.__setattr__(group, 'name', key)
-            if status > 0 and i == 0:
+            if reuse_result and i == 0:
                 continue
-
             # group might be modified
             group_axes = _get_axes(group)
             res = f(group)
@@ -855,7 +862,7 @@ class FrameSplitter(DataSplitter):
             starts, ends = lib.generate_slices(self.slabels, self.ngroups)
         except Exception:
             # fails when all -1
-            return [], True
+            return [], True, False
 
         sdata = self._get_sorted_data()
         return reduction.apply_frame_axis0(sdata, f, names, starts, ends)

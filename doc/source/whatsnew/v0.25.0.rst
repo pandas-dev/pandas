@@ -68,46 +68,40 @@ is respected in indexing. (:issue:`24076`, :issue:`16785`)
 GroupBy.apply on ``DataFrame`` evaluates first group only once
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-(:issue:`2936`, :issue:`2656`, :issue:`7739`, :issue:`10519`, :issue:`12155`,
-:issue:`20084`, :issue:`21417`)
-
-The implementation of ``DataFrame.groupby.apply`` previously evaluated func
-consistently twice on the first group to infer if it is safe to use a fast
-code path. Particularly for functions with side effects, this was an undesired
-behavior and may have led to surprises.
+The implementation of :meth:`DataFrameGroupBy.apply() <pandas.core.groupby.DataFrameGroupBy.apply>`
+previously evaluated func consistently twice on the first group to infer if it
+is safe to use a fast code path. Particularly for functions with side effects,
+this was an undesired behavior and may have led to surprises.
 
 Now every group is evaluated only a single time.
 
-Previous behavior:
+:issue:`2936`, :issue:`2656`, :issue:`7739`, :issue:`10519`, :issue:`12155`,
+:issue:`20084`, :issue:`21417`
 
-.. code-block:: ipython
-
-    In [2]: df = pd.DataFrame({"a": ["x", "y"], "b": [1, 2]})
-
-    In [3]: side_effects = []
-
-    In [4]: def func_fast_apply(group):
-    ...:     side_effects.append(group.name)
-    ...:     return len(group)
-    ...:
-
-    In [5]: df.groupby("a").apply(func_fast_apply)
-
-    In [6]: assert side_effects == ["x", "x", "y"]
-
-New behavior:
 
 .. ipython:: python
 
     df = pd.DataFrame({"a": ["x", "y"], "b": [1, 2]})
+    df
 
     side_effects = []
     def func(group):
         side_effects.append(group.name)
         return group
-
     df.groupby("a").apply(func)
-    assert side_effects == ["x", "y"]
+
+Previous behavior:
+
+.. code-block:: python
+
+    side_effects
+    >>> ["x", "x", "y"]
+
+New behavior:
+
+.. ipython:: python
+
+    side_effects
 
 
 .. _whatsnew_0250.api.other:
