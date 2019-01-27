@@ -1729,7 +1729,7 @@ class _OpenpyxlWriter(ExcelWriter):
             if col in header_cells:
                 val = str(header_cells[col])
             else:
-                val = 'Column%d' % col + 1
+                val = 'Column%d' % (col + 1)
             wks.cell(
                 row=startrow + 1,
                 column=startcol + col + 1,
