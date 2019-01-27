@@ -1170,8 +1170,11 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin,
         return self._generate_range(start=start, end=end, periods=None,
                                     freq=self.freq)
 
-    @CompWrapper(zerodim=True, inst_from_senior_cls=True, validate_len=True)
+    @CompWrapper(zerodim=True, validate_len=True)
     def __add__(self, other):
+        if isinstance(other, (ABCSeries, ABCDataFrame)):
+            return NotImplemented
+
         # scalar others
         if other is NaT:
             result = self._add_nat()
@@ -1230,8 +1233,11 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin,
         # alias for __add__
         return self.__add__(other)
 
-    @CompWrapper(zerodim=True, inst_from_senior_cls=True, validate_len=True)
+    @CompWrapper(zerodim=True, validate_len=True)
     def __sub__(self, other):
+        if isinstance(other, (ABCSeries, ABCDataFrame)):
+            return NotImplemented
+
         # scalar others
         if other is NaT:
             result = self._sub_nat()
