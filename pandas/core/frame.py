@@ -1074,7 +1074,7 @@ class DataFrame(NDFrame):
 
         Returns
         -------
-        pandas.DataFrame
+        DataFrame
 
         See Also
         --------
@@ -1154,7 +1154,7 @@ class DataFrame(NDFrame):
 
         Returns
         -------
-        array : numpy.ndarray
+        numpy.ndarray
 
         See Also
         --------
@@ -1445,7 +1445,7 @@ class DataFrame(NDFrame):
 
         Returns
         -------
-        df : DataFrame
+        DataFrame
         """
 
         # Make a copy of the input columns so we can modify it
@@ -1760,7 +1760,7 @@ class DataFrame(NDFrame):
 
         Returns
         -------
-        frame : DataFrame
+        DataFrame
         """
 
         warnings.warn("from_items is deprecated. Please use "
@@ -1871,7 +1871,7 @@ class DataFrame(NDFrame):
 
         Returns
         -------
-        y : DataFrame
+        DataFrame
 
         See Also
         --------
@@ -1961,7 +1961,7 @@ class DataFrame(NDFrame):
 
         Returns
         -------
-        panel : Panel
+        Panel
         """
         # only support this kind for now
         if (not isinstance(self.index, MultiIndex) or  # pragma: no cover
@@ -2521,7 +2521,7 @@ class DataFrame(NDFrame):
 
         Returns
         -------
-        sizes : Series
+        Series
             A Series whose index is the original column names and whose values
             is the memory usage of each column in bytes.
 
@@ -2739,7 +2739,7 @@ class DataFrame(NDFrame):
 
         Returns
         -------
-        value : scalar value
+        scalar value
         """
 
         warnings.warn("get_value is deprecated and will be removed "
@@ -2784,7 +2784,7 @@ class DataFrame(NDFrame):
 
         Returns
         -------
-        frame : DataFrame
+        DataFrame
             If label pair is contained, will be reference to calling DataFrame,
             otherwise a new object
         """
@@ -3021,7 +3021,7 @@ class DataFrame(NDFrame):
 
         Returns
         -------
-        q : DataFrame
+        DataFrame
 
         See Also
         --------
@@ -3204,7 +3204,7 @@ class DataFrame(NDFrame):
 
         Returns
         -------
-        subset : DataFrame
+        DataFrame
             The subset of the frame including the dtypes in ``include`` and
             excluding the dtypes in ``exclude``.
 
@@ -3569,7 +3569,7 @@ class DataFrame(NDFrame):
 
         Returns
         -------
-        sanitized_column : numpy-array
+        numpy-array
         """
 
         def reindexer(value):
@@ -3838,7 +3838,7 @@ class DataFrame(NDFrame):
 
         Returns
         -------
-        dropped : pandas.DataFrame
+        DataFrame
 
         Raises
         ------
@@ -3963,7 +3963,7 @@ class DataFrame(NDFrame):
 
         Returns
         -------
-        renamed : DataFrame
+        DataFrame
 
         See Also
         --------
@@ -4630,7 +4630,7 @@ class DataFrame(NDFrame):
 
         Returns
         -------
-        deduplicated : DataFrame
+        DataFrame
         """
         if self.empty:
             return self.copy()
@@ -4664,7 +4664,7 @@ class DataFrame(NDFrame):
 
         Returns
         -------
-        duplicated : Series
+        Series
         """
         from pandas.core.sorting import get_group_index
         from pandas._libs.hashtable import duplicated_int64, _SIZE_HINT_LIMIT
@@ -5032,7 +5032,7 @@ class DataFrame(NDFrame):
 
         Returns
         -------
-        swapped : same type as caller (new object)
+        same type as caller (new object)
 
         .. versionchanged:: 0.18.1
 
@@ -5153,7 +5153,7 @@ class DataFrame(NDFrame):
 
         Returns
         -------
-        result : DataFrame
+        DataFrame
 
         See Also
         --------
@@ -5311,7 +5311,7 @@ class DataFrame(NDFrame):
 
         Returns
         -------
-        combined : DataFrame
+        DataFrame
 
         See Also
         --------
@@ -5672,7 +5672,7 @@ class DataFrame(NDFrame):
 
         Returns
         -------
-        table : DataFrame
+        DataFrame
 
         See Also
         --------
@@ -5959,7 +5959,7 @@ class DataFrame(NDFrame):
 
         Returns
         -------
-        unstacked : DataFrame or Series
+        DataFrame or Series
 
         See Also
         --------
@@ -6125,7 +6125,7 @@ class DataFrame(NDFrame):
 
         Returns
         -------
-        diffed : DataFrame
+        DataFrame
 
         See Also
         --------
@@ -6397,7 +6397,7 @@ class DataFrame(NDFrame):
 
         Returns
         -------
-        applied : Series or DataFrame
+        Series or DataFrame
 
         See Also
         --------
@@ -6590,7 +6590,7 @@ class DataFrame(NDFrame):
 
         Returns
         -------
-        appended : DataFrame
+        DataFrame
 
         See Also
         --------
@@ -7514,7 +7514,7 @@ class DataFrame(NDFrame):
 
         Returns
         -------
-        nunique : Series
+        Series
 
         See Also
         --------
@@ -7737,7 +7737,7 @@ class DataFrame(NDFrame):
 
         Returns
         -------
-        quantiles : Series or DataFrame
+        Series or DataFrame
 
             - If ``q`` is an array, a DataFrame will be returned where the
               index is ``q``, the columns are the columns of self, and the
@@ -7852,7 +7852,7 @@ class DataFrame(NDFrame):
 
         Returns
         -------
-        ts : TimeSeries with PeriodIndex
+        TimeSeries with PeriodIndex
         """
         new_data = self._data
         if copy:
