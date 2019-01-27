@@ -5,7 +5,7 @@ from warnings import warn
 
 import numpy as np
 
-from pandas._libs import algos as libalgos, lib
+from pandas._libs import algos as libalgos
 import pandas.compat as compat
 from pandas.compat import lzip, u
 from pandas.compat.numpy import function as nv
@@ -23,7 +23,7 @@ from pandas.core.dtypes.common import (
     is_timedelta64_dtype)
 from pandas.core.dtypes.dtypes import CategoricalDtype
 from pandas.core.dtypes.generic import (
-    ABCCategoricalIndex, ABCDataFrame, ABCIndexClass, ABCSeries)
+    ABCCategoricalIndex, ABCIndexClass, ABCSeries)
 from pandas.core.dtypes.inference import is_hashable
 from pandas.core.dtypes.missing import isna, notna
 
