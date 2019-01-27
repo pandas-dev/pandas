@@ -594,7 +594,7 @@ class DatetimeIndex(DatetimeIndexOpsMixin, Int64Index, DatetimeDelegateMixin):
         name = get_op_result_name(self, other)
         return self._shallow_copy(result, name=name, freq=None, tz=self.tz)
 
-    def intersection(self, other, sort=True):
+    def intersection(self, other, sort=False):
         """
         Specialized intersection for DatetimeIndex objects. May be much faster
         than Index.intersection
@@ -602,6 +602,14 @@ class DatetimeIndex(DatetimeIndexOpsMixin, Int64Index, DatetimeDelegateMixin):
         Parameters
         ----------
         other : DatetimeIndex or array-like
+        sort : bool, default True
+            Sort the resulting MultiIndex if possible
+
+            .. versionadded:: 0.24.0
+
+            .. versionchanged:: 0.24.1
+
+               Changed the default from ``True`` to ``False``.
 
         Returns
         -------

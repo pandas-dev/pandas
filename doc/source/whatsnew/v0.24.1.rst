@@ -16,6 +16,13 @@ These are the changes in pandas 0.24.1. See :ref:`release` for a full changelog
 including other versions of pandas.
 
 
+.. _whatsnew_0241.regressions:
+
+Fixed Regressions
+^^^^^^^^^^^^^^^^^
+
+- Fixed regression in :class:`Index.intersection` incorrectly sorting the values by default (:issue:`24959`).
+
 .. _whatsnew_0241.enhancements:
 
 Enhancements
