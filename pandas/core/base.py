@@ -1522,15 +1522,11 @@ class IndexOpsMixin(object):
         array([3])
         """)
 
-    @Substitution(klass='IndexOpsMixin')
+    @Substitution(klass='Index')
     @Appender(_shared_docs['searchsorted'])
     def searchsorted(self, value, side='left', sorter=None):
-        result = com.searchsorted(self._values, value,
-                                  side=side, sorter=sorter)
-
-        if is_scalar(value):
-            return result if is_scalar(result) else result[0]
-        return result
+        return com.searchsorted(self._values, value,
+                                side=side, sorter=sorter)
 
     def drop_duplicates(self, keep='first', inplace=False):
         inplace = validate_bool_kwarg(inplace, 'inplace')

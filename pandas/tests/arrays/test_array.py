@@ -9,6 +9,7 @@ from pandas.core.dtypes.dtypes import registry
 
 import pandas as pd
 from pandas.api.extensions import register_extension_dtype
+from pandas.api.types import is_scalar
 from pandas.core.arrays import PandasArray, integer_array, period_array
 from pandas.tests.extension.decimal import (
     DecimalArray, DecimalDtype, to_decimal)
@@ -254,3 +255,45 @@ def test_array_not_registered(registry_without_decimal):
     result = pd.array(data, dtype=DecimalDtype)
     expected = DecimalArray._from_sequence(data)
     tm.assert_equal(result, expected)
+
+
+class TestArrayAnalytics(object):
+    def test_searchsorted(self, string_dtype):
+        arr = pd.array(['a', 'b', 'c'], dtype=string_dtype)
+
+        result = arr.searchsorted('a', side='left')
+        assert is_scalar(result)
+        assert result == 0
+
+        result = arr.searchsorted('a', side='right')
+        assert is_scalar(result)
+        assert result == 1
+
+    def test_searchsorted_numeric_dtypes_scalar(self, any_real_dtype):
+        arr = pd.array([1, 3, 90], dtype=any_real_dtype)
+        result = arr.searchsorted(30)
+        assert is_scalar(result)
+        assert result == 2
+
+        result = arr.searchsorted([30])
+        expected = np.array([2], dtype=np.intp)
+        tm.assert_numpy_array_equal(result, expected)
+
+    def test_searchsorted_numeric_dtypes_vector(self, any_real_dtype):
+        arr = pd.array([1, 3, 90], dtype=any_real_dtype)
+        result = arr.searchsorted([2, 30])
+        expected = np.array([1, 2], dtype=np.intp)
+        tm.assert_numpy_array_equal(result, expected)
+
+    def test_search_sorted_datetime64_scalar(self):
+        arr = pd.array(pd.date_range('20120101', periods=10, freq='2D'))
+        val = pd.Timestamp('20120102')
+        result = arr.searchsorted(val)
+        assert is_scalar(result)
+        assert result == 1
+
+    def test_searchsorted_sorter(self, any_real_dtype):
+        arr = pd.array([3, 1, 2], dtype=any_real_dtype)
+        result = arr.searchsorted([0, 3], sorter=np.argsort(arr))
+        expected = np.array([0, 2], dtype=np.intp)
+        tm.assert_numpy_array_equal(result, expected)
