@@ -23,6 +23,13 @@ Other Enhancements
 -
 -
 
+.. _whatsnew_0250.performance:
+
+Performance Improvements
+~~~~~~~~~~~~~~~~~~~~~~~~
+ - Significant speedup in `SparseArray` initialization that benefits most operations, fixing performance regression introduced in v0.20.0 (:issue:`24985`)
+
+
 
 .. _whatsnew_0250.api_breaking:
 
@@ -187,7 +194,7 @@ Reshaping
 Sparse
 ^^^^^^
 
--
+- Significant speedup in `SparseArray` initialization that benefits most operations, fixing performance regression introduced in v0.20.0 (:issue:`24985`)
 -
 -
 
