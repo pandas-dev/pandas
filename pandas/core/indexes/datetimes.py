@@ -603,7 +603,7 @@ class DatetimeIndex(DatetimeIndexOpsMixin, Int64Index, DatetimeDelegateMixin):
         ----------
         other : DatetimeIndex or array-like
         sort : bool, default True
-            Sort the resulting MultiIndex if possible
+            Sort the resulting index if possible.
 
             .. versionadded:: 0.24.0
 
