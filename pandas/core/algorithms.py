@@ -1724,9 +1724,9 @@ def take_2d_multi(arr, indexer, out=None, fill_value=np.nan, mask_info=None,
     return out
 
 
-# ---- #
+# ------------ #
 # searchsorted #
-# ---- #
+# ------------ #
 
 def searchsorted(arr, value, side="left", sorter=None):
     """
@@ -1774,7 +1774,7 @@ def searchsorted(arr, value, side="left", sorter=None):
     if sorter is not None:
         sorter = ensure_platform_int(sorter)
 
-    if is_integer_dtype(arr) and (
+    if isinstance(arr, np.ndarray) and is_integer_dtype(arr) and (
             is_integer(value) or is_integer_dtype(value)):
         from .arrays.array_ import array
         # if `arr` and `value` have different dtypes, `arr` would be
