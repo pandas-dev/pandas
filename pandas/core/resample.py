@@ -1413,6 +1413,16 @@ class TimeGrouper(Grouper):
                                      ambiguous='infer',
                                      nonexistent='shift_forward')
 
+        # GH #24972
+        # In edge case of tz-aware grouping binner last index can be
+        # less than the ax.max() variable in data object, this happens
+        # because of normalization
+        if len(binner) > 1 and binner[-1] < ax.max():
+            extra_date_range = pd.date_range(binner[-1], ax.max() + self.freq,
+                                             freq=self.freq, tz=binner[-1].tz,
+                                             name=ax.name)
+            binner = labels = binner.append(extra_date_range[1:])
+
         ax_values = ax.asi8
         binner, bin_edges = self._adjust_bin_edges(binner, ax_values)
 
