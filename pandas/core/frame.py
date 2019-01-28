@@ -847,7 +847,7 @@ class DataFrame(NDFrame):
         ----------
         index : bool, default True
             If True, return the index as the first element of the tuple.
-        name : str, default "Pandas"
+        name : str or None, default "Pandas"
             The name of the returned namedtuples or None to return regular
             tuples.
 
@@ -1290,23 +1290,26 @@ class DataFrame(NDFrame):
                            ('columns', self.columns.tolist()),
                            ('data', [
                                list(map(com.maybe_box_datetimelike, t))
-                               for t in self.itertuples(index=False)]
-                            )))
+                               for t in self.itertuples(index=False, name=None)
+                           ])))
         elif orient.lower().startswith('s'):
             return into_c((k, com.maybe_box_datetimelike(v))
                           for k, v in compat.iteritems(self))
         elif orient.lower().startswith('r'):
+            columns = self.columns.tolist()
+            rows = (dict(zip(columns, row))
+                    for row in self.itertuples(index=False, name=None))
             return [
                 into_c((k, com.maybe_box_datetimelike(v))
-                       for k, v in compat.iteritems(row._asdict()))
-                for row in self.itertuples(index=False)]
+                       for k, v in compat.iteritems(row))
+                for row in rows]
         elif orient.lower().startswith('i'):
             if not self.index.is_unique:
                 raise ValueError(
                     "DataFrame index must be unique for orient='index'."
                 )
             return into_c((t[0], dict(zip(self.columns, t[1:])))
-                          for t in self.itertuples())
+                          for t in self.itertuples(name=None))
         else:
             raise ValueError("orient '{o}' not understood".format(o=orient))
 
