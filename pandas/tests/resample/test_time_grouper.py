@@ -112,7 +112,7 @@ def test_fails_on_no_datetime_index(name, func):
     df = DataFrame({'a': np.random.randn(n)}, index=index)
 
     msg = ("Only valid with DatetimeIndex, TimedeltaIndex "
-           "or PeriodIndex, but got an instance of %r" % name)
+           "or PeriodIndex, but got an instance of '{}'".format(name))
     with pytest.raises(TypeError, match=msg):
         df.groupby(TimeGrouper('D'))
 
