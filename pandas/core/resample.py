@@ -1416,7 +1416,7 @@ class TimeGrouper(Grouper):
         # GH #24972
         # In edge case of tz-aware grouping binner last index can be
         # less than the ax.max() variable in data object, this happens
-        # because of normalization
+        # because of normalization and DST time change
         if len(binner) > 1 and binner[-1] < ax.max():
             extra_date_range = pd.date_range(binner[-1], ax.max() + self.freq,
                                              freq=self.freq, tz=binner[-1].tz,
