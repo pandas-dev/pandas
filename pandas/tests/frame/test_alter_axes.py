@@ -270,6 +270,31 @@ class TestDataFrameAlterAxes():
             df.set_index(['A', df['A'], box(df['A'])],
                          drop=drop, append=append)
 
+    def test_set_index_custom_label_type(self):
+        # GH 24969
+
+        class Thing:
+            def __init__(self, name, color):
+                self.name = name
+                self.color = color
+
+            def __str__(self):
+                return "<Thing %r>" % (self.name,)
+
+        thing1 = Thing('One', 'red')
+        thing2 = Thing('Two', 'blue')
+        df = DataFrame({thing1: [0, 1], thing2: [2, 3]})
+        expected = DataFrame({thing1: [0, 1]},
+                             index=Index([2, 3], name=thing2))
+
+        # use custom label directly
+        result = df.set_index(thing2)
+        tm.assert_frame_equal(result, expected)
+
+        # custom label wrapped in list
+        result = df.set_index([thing2])
+        tm.assert_frame_equal(result, expected)
+
     def test_construction_with_categorical_index(self):
         ci = tm.makeCategoricalIndex(10)
         ci.name = 'B'

@@ -4135,13 +4135,8 @@ class DataFrame(NDFrame):
                    'array, or a list containing only valid column keys and '
                    'one-dimensional arrays.')
 
-        if (is_scalar(keys) or isinstance(keys, tuple)
-                or isinstance(keys, (ABCIndexClass, ABCSeries, np.ndarray))):
-            # make sure we have a container of keys/arrays we can iterate over
-            # tuples can appear as valid column keys!
+        if not isinstance(keys, list):
             keys = [keys]
-        elif not isinstance(keys, list):
-            raise ValueError(err_msg)
 
         missing = []
         for col in keys:
@@ -4150,10 +4145,20 @@ class DataFrame(NDFrame):
                 # tuples are always considered keys, never as list-likes
                 if col not in self:
                     missing.append(col)
-            elif (not isinstance(col, (ABCIndexClass, ABCSeries,
-                                       np.ndarray, list))
-                  or getattr(col, 'ndim', 1) > 1):
-                raise ValueError(err_msg)
+            elif isinstance(col, (ABCIndexClass, ABCSeries,
+                                  np.ndarray, list)):
+                # arrays are fine as long as they are one-dimensional
+                if getattr(col, 'ndim', 1) > 1:
+                    raise ValueError(err_msg)
+            else:
+                # everything else gets tried as a key; see GH 24969
+                try:
+                    self[col]
+                    str(col)
+                except KeyError:
+                    tipo = type(col)
+                    raise ValueError(err_msg,
+                                     'Received column of type {}'.format(tipo))
 
         if missing:
             raise KeyError('{}'.format(missing))
