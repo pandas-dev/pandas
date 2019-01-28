@@ -1744,3 +1744,19 @@ def test_groupby_agg_ohlc_non_first():
     result = df.groupby(pd.Grouper(freq='D')).agg(['sum', 'ohlc'])
 
     tm.assert_frame_equal(result, expected)
+
+
+def test_groupby_with_dst_time_change():
+    # GH 24972
+    import pandas as pd
+    index = pd.DatetimeIndex([1478064900001000000, 1480037118776792000],
+                             tz='UTC').tz_convert('America/Chicago')
+
+    df = pd.DataFrame([1, 2], index=index)
+    result = df.groupby(pd.Grouper(freq='1d')).last()
+    expected_index_values = pd.date_range('2016-11-02', '2016-11-24',
+                                          freq='d', tz='America/Chicago')
+
+    index = pd.DatetimeIndex(expected_index_values)
+    expected = pd.DataFrame([1.0] + ([np.nan] * 21) + [2.0], index=index)
+    assert_frame_equal(result, expected)
