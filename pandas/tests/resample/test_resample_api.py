@@ -115,12 +115,12 @@ def test_getitem():
 
 @pytest.mark.parametrize('key', [['D'], ['A', 'D']])
 def test_select_bad_cols(key):
-    df = test_frame.resample('H')
+    g = test_frame.resample('H')
     # 'A' should not be referenced as a bad column...
     # will have to rethink regex if you change message!
     msg = r"^\"Columns not found: 'D'\"$"
     with pytest.raises(KeyError, match=msg):
-        df[key]
+        g[key]
 
 
 def test_attribute_access():
