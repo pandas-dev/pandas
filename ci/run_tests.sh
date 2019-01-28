@@ -59,4 +59,4 @@ done
 
 # TODO: Remove this and tests/plotting/test_converter_warns.py
 echo "Running test_converter_warns.py"
-python pandas/tests/plotting/test_converter_warns.py
+python pandas/tests/plotting/test_converter_warns.py -v

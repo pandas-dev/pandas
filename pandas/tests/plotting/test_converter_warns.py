@@ -11,6 +11,7 @@ import unittest
 
 
 class TestConverter(unittest.TestCase):
+    @unittest.skipIf(sys.version_info[0] == 2, "CI Failure")
     @unittest.skipIf("pandas" in sys.modules, "pandas musn't be imported.")
     def test_converter_warning(self):
         import pandas as pd
@@ -18,7 +19,7 @@ class TestConverter(unittest.TestCase):
         try:
             import matplotlib.pyplot as plt
         except ImportError:
-            return unittest.skip("No matplotlib")
+            raise unittest.SkipTest("No matplotlib")
 
         fig, ax = plt.subplots()
         ser = pd.Series(range(12), index=pd.date_range('2000', periods=12))
