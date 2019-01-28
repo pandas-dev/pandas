@@ -4154,7 +4154,6 @@ class DataFrame(NDFrame):
                 # everything else gets tried as a key; see GH 24969
                 try:
                     self[col]
-                    str(col)
                 except KeyError:
                     tipo = type(col)
                     raise ValueError(err_msg,
