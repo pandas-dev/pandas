@@ -1748,7 +1748,6 @@ def test_groupby_agg_ohlc_non_first():
 
 def test_groupby_with_dst_time_change():
     # GH 24972
-    import pandas as pd
     index = pd.DatetimeIndex([1478064900001000000, 1480037118776792000],
                              tz='UTC').tz_convert('America/Chicago')
 
