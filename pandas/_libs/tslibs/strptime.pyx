@@ -302,7 +302,7 @@ def array_strptime(object[:] values, object fmt,
         # out the Julian day of the year.
         if julian == -1 and weekday != -1:
             if week_of_year != -1:
-                week_starts_Mon = True if week_of_year_start == 0 else False
+                week_starts_Mon = week_of_year_start == 0
                 julian = _calc_julian_from_U_or_W(year, week_of_year, weekday,
                                                   week_starts_Mon)
             elif iso_year != -1 and iso_week != -1:
