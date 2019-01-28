@@ -838,13 +838,3 @@ def test_head_tail(test_data):
     assert_series_equal(test_data.series.head(0), test_data.series[0:0])
     assert_series_equal(test_data.series.tail(), test_data.series[-5:])
     assert_series_equal(test_data.series.tail(0), test_data.series[0:0])
-
-
-def test_getitem_with_zerodim_np_array():
-    # GH24924
-    sr = Series([1, 2])
-
-    # should not raise an error
-    result = sr[np.array(0)]
-
-    assert result == 1
