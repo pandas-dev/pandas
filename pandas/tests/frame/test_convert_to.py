@@ -488,3 +488,17 @@ class TestDataFrameConvertTo(TestData):
         result = DataFrame.from_dict(result, orient='index')[cols]
         expected = DataFrame.from_dict(expected, orient='index')[cols]
         tm.assert_frame_equal(result, expected)
+
+    def test_to_dict_numeric_names(self):
+        # https://github.com/pandas-dev/pandas/issues/24940
+        df = DataFrame({str(i): [i] for i in range(5)})
+        result = set(df.to_dict('records')[0].keys())
+        expected = set(df.columns)
+        assert result == expected
+
+    def test_to_dict_wide(self):
+        # https://github.com/pandas-dev/pandas/issues/24939
+        df = DataFrame({('A_{:d}'.format(i)): [i] for i in range(256)})
+        result = df.to_dict('records')[0]
+        expected = {'A_{:d}'.format(i): i for i in range(256)}
+        assert result == expected
