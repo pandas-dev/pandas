@@ -463,7 +463,7 @@ def test_agg_nested_dicts():
         df.groupby(pd.Grouper(freq='2D'))
     ]
 
-    msg = "cannot perform renaming for r1 with a nested dictionary"
+    msg = r"cannot perform renaming for r(1|2) with a nested dictionary"
     for t in cases:
         with pytest.raises(pd.core.base.SpecificationError, match=msg):
             t.aggregate({'r1': {'A': ['mean', 'sum']},
