@@ -985,8 +985,7 @@ class TestMerge(object):
                                  'key': pd.Categorical(['a', 'a', 'b', 'c']),
                                  'b': [1, 1, 2, 3]},
                                 index=[0, 1, 2, 2])
-        print(result.dtypes)
-        print(expected.dtypes)
+        expected = expected.reindex(columns=['a', 'key', 'b'])
         tm.assert_frame_equal(result, expected)
 
 
