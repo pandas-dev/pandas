@@ -3618,6 +3618,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
             delegate = DatetimeIndex(delegate)
         elif is_timedelta64_dtype(delegate) and hasattr(TimedeltaIndex, name):
             # use TimedeltaIndex to handle skipna correctly
+            # TODO: remove hasattr check after TimedeltaIndex has `std` method
             delegate = TimedeltaIndex(delegate)
 
         # dispatch to numpy arrays
