@@ -741,7 +741,7 @@ class TestTimeSeries(object):
 
     def test_datetimeindex_constructor_misc(self):
         arr = ['1/1/2005', '1/2/2005', 'Jn 3, 2005', '2005-01-04']
-        msg = r"\('Unknown string format:', 'Jn 3, 2005'\)"
+        msg = r"(\(u?')?Unknown string format(:', 'Jn 3, 2005'\))?"
         with pytest.raises(ValueError, match=msg):
             DatetimeIndex(arr)
 

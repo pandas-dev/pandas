@@ -1096,7 +1096,7 @@ class TestToDatetimeMisc(object):
     def test_to_datetime_with_space_in_series(self, cache):
         # GH 6428
         s = Series(['10/18/2006', '10/18/2008', ' '])
-        msg = r"\('String does not contain a date:', ' '\)"
+        msg = r"(\(u?')?String does not contain a date(:', ' '\))?"
         with pytest.raises(ValueError, match=msg):
             to_datetime(s, errors='raise', cache=cache)
         result_coerce = to_datetime(s, errors='coerce', cache=cache)
@@ -1233,7 +1233,8 @@ class TestToDatetimeMisc(object):
         malformed = np.array(['1/100/2000', np.nan], dtype=object)
 
         # GH 10636, default is now 'raise'
-        msg = r"\('Unknown string format:', '1/100/2000'\)"
+        msg = (r"\(u?'Unknown string format:', '1/100/2000'\)|"
+               "day is out of range for month")
         with pytest.raises(ValueError, match=msg):
             to_datetime(malformed, errors='raise', cache=cache)
 

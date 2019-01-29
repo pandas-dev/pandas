@@ -32,7 +32,8 @@ class Base(object):
         # need an object to create with
         msg = (r"Index\(\.\.\.\) must be called with a collection of some"
                r" kind, None was passed|"
-               r"__new__\(\) missing 1 required positional argument: 'data'")
+               r"__new__\(\) missing 1 required positional argument: 'data'|"
+               r"__new__\(\) takes at least 2 arguments \(1 given\)")
         with pytest.raises(TypeError, match=msg):
             self._holder()
 
