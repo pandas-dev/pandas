@@ -113,16 +113,18 @@ def test_resample_basic_grouper(series):
 @pytest.mark.parametrize(
     '_index_start,_index_end,_index_name',
     [('1/1/2000 00:00:00', '1/1/2000 00:13:00', 'index')])
-@pytest.mark.parametrize('kwargs', [
-    dict(label='righttt'),
-    dict(closed='righttt'),
-    dict(convention='starttt')
+@pytest.mark.parametrize('keyword,value', [
+    ('label', 'righttt'),
+    ('closed', 'righttt'),
+    ('convention', 'starttt')
 ])
-def test_resample_string_kwargs(series, kwargs):
+def test_resample_string_kwargs(series, keyword, value):
     # see gh-19303
     # Check that wrong keyword argument strings raise an error
-    with pytest.raises(ValueError, match='Unsupported value'):
-        series.resample('5min', **kwargs)
+    msg = "Unsupported value {value} for `{keyword}`".format(
+        value=value, keyword=keyword)
+    with pytest.raises(ValueError, match=msg):
+        series.resample('5min', **({keyword: value}))
 
 
 @pytest.mark.parametrize(
@@ -676,7 +678,7 @@ def test_asfreq_non_unique():
     ts = Series(np.random.randn(len(rng2)), index=rng2)
 
     msg = 'cannot reindex from a duplicate axis'
-    with pytest.raises(Exception, match=msg):
+    with pytest.raises(ValueError, match=msg):
         ts.asfreq('B')
 
 
@@ -1273,6 +1275,21 @@ def test_resample_across_dst():
     result = df.resample(rule='H').sum()
     expected = DataFrame([5, 5], index=dti2)
 
+    assert_frame_equal(result, expected)
+
+
+def test_groupby_with_dst_time_change():
+    # GH 24972
+    index = pd.DatetimeIndex([1478064900001000000, 1480037118776792000],
+                             tz='UTC').tz_convert('America/Chicago')
+
+    df = pd.DataFrame([1, 2], index=index)
+    result = df.groupby(pd.Grouper(freq='1d')).last()
+    expected_index_values = pd.date_range('2016-11-02', '2016-11-24',
+                                          freq='d', tz='America/Chicago')
+
+    index = pd.DatetimeIndex(expected_index_values)
+    expected = pd.DataFrame([1.0] + ([np.nan] * 21) + [2.0], index=index)
     assert_frame_equal(result, expected)
 
 

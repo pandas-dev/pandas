@@ -38,6 +38,7 @@ _index_doc_kwargs = dict(ibase._index_doc_kwargs)
 
 _index_doc_kwargs.update(
     dict(klass='IntervalIndex',
+         qualname="IntervalIndex",
          target_klass='IntervalIndex or list of Intervals',
          name=textwrap.dedent("""\
          name : object, optional
@@ -282,10 +283,10 @@ class IntervalIndex(IntervalMixin, Index):
         examples="""
         Examples
         --------
-        >>>  idx = pd.IntervalIndex.from_arrays([0, np.nan, 2], [1, np.nan, 3])
-        >>>  idx.to_tuples()
+        >>> idx = pd.IntervalIndex.from_arrays([0, np.nan, 2], [1, np.nan, 3])
+        >>> idx.to_tuples()
         Index([(0.0, 1.0), (nan, nan), (2.0, 3.0)], dtype='object')
-        >>>  idx.to_tuples(na_tuple=False)
+        >>> idx.to_tuples(na_tuple=False)
         Index([(0.0, 1.0), nan, (2.0, 3.0)], dtype='object')""",
     ))
     def to_tuples(self, na_tuple=True):
@@ -1104,11 +1105,8 @@ class IntervalIndex(IntervalMixin, Index):
                        'objects that have compatible dtypes')
                 raise TypeError(msg.format(op=op_name))
 
-            if op_name == 'difference':
-                result = getattr(self._multiindex, op_name)(other._multiindex,
-                                                            sort)
-            else:
-                result = getattr(self._multiindex, op_name)(other._multiindex)
+            result = getattr(self._multiindex, op_name)(other._multiindex,
+                                                        sort=sort)
             result_name = get_op_result_name(self, other)
 
             # GH 19101: ensure empty results have correct dtype
@@ -1204,15 +1202,15 @@ def interval_range(start=None, end=None, periods=None, freq=None,
     Numeric ``start`` and  ``end`` is supported.
 
     >>> pd.interval_range(start=0, end=5)
-    IntervalIndex([(0, 1], (1, 2], (2, 3], (3, 4], (4, 5]]
+    IntervalIndex([(0, 1], (1, 2], (2, 3], (3, 4], (4, 5]],
                   closed='right', dtype='interval[int64]')
 
     Additionally, datetime-like input is also supported.
 
     >>> pd.interval_range(start=pd.Timestamp('2017-01-01'),
-                          end=pd.Timestamp('2017-01-04'))
+    ...                   end=pd.Timestamp('2017-01-04'))
     IntervalIndex([(2017-01-01, 2017-01-02], (2017-01-02, 2017-01-03],
-                   (2017-01-03, 2017-01-04]]
+                   (2017-01-03, 2017-01-04]],
                   closed='right', dtype='interval[datetime64[ns]]')
 
     The ``freq`` parameter specifies the frequency between the left and right.
@@ -1220,23 +1218,23 @@ def interval_range(start=None, end=None, periods=None, freq=None,
     numeric ``start`` and ``end``, the frequency must also be numeric.
 
     >>> pd.interval_range(start=0, periods=4, freq=1.5)
-    IntervalIndex([(0.0, 1.5], (1.5, 3.0], (3.0, 4.5], (4.5, 6.0]]
+    IntervalIndex([(0.0, 1.5], (1.5, 3.0], (3.0, 4.5], (4.5, 6.0]],
                   closed='right', dtype='interval[float64]')
 
     Similarly, for datetime-like ``start`` and ``end``, the frequency must be
     convertible to a DateOffset.
 
     >>> pd.interval_range(start=pd.Timestamp('2017-01-01'),
-                          periods=3, freq='MS')
+    ...                   periods=3, freq='MS')
     IntervalIndex([(2017-01-01, 2017-02-01], (2017-02-01, 2017-03-01],
-                   (2017-03-01, 2017-04-01]]
+                   (2017-03-01, 2017-04-01]],
                   closed='right', dtype='interval[datetime64[ns]]')
 
     Specify ``start``, ``end``, and ``periods``; the frequency is generated
     automatically (linearly spaced).
 
     >>> pd.interval_range(start=0, end=6, periods=4)
-    IntervalIndex([(0.0, 1.5], (1.5, 3.0], (3.0, 4.5], (4.5, 6.0]]
+    IntervalIndex([(0.0, 1.5], (1.5, 3.0], (3.0, 4.5], (4.5, 6.0]],
               closed='right',
               dtype='interval[float64]')
 
@@ -1244,7 +1242,7 @@ def interval_range(start=None, end=None, periods=None, freq=None,
     intervals within the ``IntervalIndex`` are closed.
 
     >>> pd.interval_range(end=5, periods=4, closed='both')
-    IntervalIndex([[1, 2], [2, 3], [3, 4], [4, 5]]
+    IntervalIndex([[1, 2], [2, 3], [3, 4], [4, 5]],
                   closed='both', dtype='interval[int64]')
     """
     start = com.maybe_box_datetimelike(start)

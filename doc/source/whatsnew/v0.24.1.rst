@@ -1,0 +1,92 @@
+:orphan:
+
+.. _whatsnew_0241:
+
+Whats New in 0.24.1 (February XX, 2019)
+---------------------------------------
+
+.. warning::
+
+   The 0.24.x series of releases will be the last to support Python 2. Future feature
+   releases will support Python 3 only. See :ref:`install.dropping-27` for more.
+
+{{ header }}
+
+These are the changes in pandas 0.24.1. See :ref:`release` for a full changelog
+including other versions of pandas.
+
+.. _whatsnew_0241.regressions:
+
+Fixed Regressions
+^^^^^^^^^^^^^^^^^
+
+- Bug in :meth:`DataFrame.itertuples` with ``records`` orient raising an ``AttributeError`` when the ``DataFrame`` contained more than 255 columns (:issue:`24939`)
+- Bug in :meth:`DataFrame.itertuples` orient converting integer column names to strings prepended with an underscore (:issue:`24940`)
+
+.. _whatsnew_0241.enhancements:
+
+Enhancements
+^^^^^^^^^^^^
+
+
+.. _whatsnew_0241.bug_fixes:
+
+Bug Fixes
+~~~~~~~~~
+
+**Conversion**
+
+-
+-
+-
+
+**Indexing**
+
+-
+-
+-
+
+**I/O**
+
+-
+-
+-
+
+**Categorical**
+
+-
+-
+-
+
+**Timezones**
+
+-
+-
+-
+
+**Timedelta**
+
+-
+-
+-
+
+**Reshaping**
+
+- Bug in :meth:`DataFrame.groupby` with :class:`Grouper` when there is a time change (DST) and grouping frequency is ``'1d'`` (:issue:`24972`)
+
+**Visualization**
+
+- Fixed the warning for implicitly registered matplotlib converters not showing. See :ref:`whatsnew_0211.converters` for more (:issue:`24963`).
+
+
+**Other**
+
+-
+-
+
+.. _whatsnew_0.241.contributors:
+
+Contributors
+~~~~~~~~~~~~
+
+.. contributors:: v0.24.0..v0.24.1

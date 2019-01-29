@@ -11,6 +11,7 @@ import numpy as np
 
 from pandas._libs import lib, tslibs
 from pandas._libs.tslibs import resolution
+from pandas._libs.tslibs.frequencies import FreqGroup, get_freq
 import pandas.compat as compat
 from pandas.compat import lrange
 
@@ -24,9 +25,6 @@ from pandas.core.index import Index
 from pandas.core.indexes.datetimes import date_range
 from pandas.core.indexes.period import Period, PeriodIndex, period_range
 import pandas.core.tools.datetimes as tools
-
-import pandas.tseries.frequencies as frequencies
-from pandas.tseries.frequencies import FreqGroup
 
 # constants
 HOURS_PER_DAY = 24.
@@ -955,7 +953,7 @@ def _annual_finder(vmin, vmax, freq):
 
 def get_finder(freq):
     if isinstance(freq, compat.string_types):
-        freq = frequencies.get_freq(freq)
+        freq = get_freq(freq)
     fgroup = resolution.get_freq_group(freq)
 
     if fgroup == FreqGroup.FR_ANN:
@@ -992,7 +990,7 @@ class TimeSeries_DateLocator(Locator):
     def __init__(self, freq, minor_locator=False, dynamic_mode=True,
                  base=1, quarter=1, month=1, day=1, plot_obj=None):
         if isinstance(freq, compat.string_types):
-            freq = frequencies.get_freq(freq)
+            freq = get_freq(freq)
         self.freq = freq
         self.base = base
         (self.quarter, self.month, self.day) = (quarter, month, day)
@@ -1073,7 +1071,7 @@ class TimeSeries_DateFormatter(Formatter):
     def __init__(self, freq, minor_locator=False, dynamic_mode=True,
                  plot_obj=None):
         if isinstance(freq, compat.string_types):
-            freq = frequencies.get_freq(freq)
+            freq = get_freq(freq)
         self.format = None
         self.freq = freq
         self.locs = []

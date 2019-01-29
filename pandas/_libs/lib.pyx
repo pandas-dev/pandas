@@ -40,11 +40,12 @@ cdef extern from "numpy/arrayobject.h":
         # Use PyDataType_* macros when possible, however there are no macros
         # for accessing some of the fields, so some are defined. Please
         # ask on cython-dev if you need more.
-        cdef int type_num
-        cdef int itemsize "elsize"
-        cdef char byteorder
-        cdef object fields
-        cdef tuple names
+        cdef:
+            int type_num
+            int itemsize "elsize"
+            char byteorder
+            object fields
+            tuple names
 
 
 cdef extern from "src/parse_helper.h":
@@ -67,12 +68,13 @@ from pandas._libs.missing cimport (
 
 # constants that will be compared to potentially arbitrarily large
 # python int
-cdef object oINT64_MAX = <int64_t>INT64_MAX
-cdef object oINT64_MIN = <int64_t>INT64_MIN
-cdef object oUINT64_MAX = <uint64_t>UINT64_MAX
+cdef:
+    object oINT64_MAX = <int64_t>INT64_MAX
+    object oINT64_MIN = <int64_t>INT64_MIN
+    object oUINT64_MAX = <uint64_t>UINT64_MAX
 
-cdef bint PY2 = sys.version_info[0] == 2
-cdef float64_t NaN = <float64_t>np.NaN
+    bint PY2 = sys.version_info[0] == 2
+    float64_t NaN = <float64_t>np.NaN
 
 
 def values_from_object(obj: object):
@@ -200,7 +202,21 @@ def item_from_zerodim(val: object) -> object:
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
-def fast_unique_multiple(list arrays):
+def fast_unique_multiple(list arrays, sort: bool=True):
+    """
+    Generate a list of unique values from a list of arrays.
+
+    Parameters
+    ----------
+    list : array-like
+        A list of array-like objects
+    sort : boolean
+        Whether or not to sort the resulting unique list
+
+    Returns
+    -------
+    unique_list : list of unique values
+    """
     cdef:
         ndarray[object] buf
         Py_ssize_t k = len(arrays)
@@ -217,10 +233,11 @@ def fast_unique_multiple(list arrays):
             if val not in table:
                 table[val] = stub
                 uniques.append(val)
-    try:
-        uniques.sort()
-    except Exception:
-        pass
+    if sort:
+        try:
+            uniques.sort()
+        except Exception:
+            pass
 
     return uniques
 
@@ -361,7 +378,7 @@ def fast_zip(list ndarrays):
     return result
 
 
-def get_reverse_indexer(ndarray[int64_t] indexer, Py_ssize_t length):
+def get_reverse_indexer(const int64_t[:] indexer, Py_ssize_t length):
     """
     Reverse indexing operation.
 
@@ -390,7 +407,7 @@ def get_reverse_indexer(ndarray[int64_t] indexer, Py_ssize_t length):
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
-def has_infs_f4(ndarray[float32_t] arr) -> bool:
+def has_infs_f4(const float32_t[:] arr) -> bool:
     cdef:
         Py_ssize_t i, n = len(arr)
         float32_t inf, neginf, val
@@ -407,7 +424,7 @@ def has_infs_f4(ndarray[float32_t] arr) -> bool:
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
-def has_infs_f8(ndarray[float64_t] arr) -> bool:
+def has_infs_f8(const float64_t[:] arr) -> bool:
     cdef:
         Py_ssize_t i, n = len(arr)
         float64_t inf, neginf, val
@@ -645,7 +662,7 @@ def clean_index_list(obj: list):
 # is a general, O(max(len(values), len(binner))) method.
 @cython.boundscheck(False)
 @cython.wraparound(False)
-def generate_bins_dt64(ndarray[int64_t] values, ndarray[int64_t] binner,
+def generate_bins_dt64(ndarray[int64_t] values, const int64_t[:] binner,
                        object closed='left', bint hasnans=0):
     """
     Int64 (datetime64) version of generic python version in groupby.py
@@ -708,7 +725,7 @@ def generate_bins_dt64(ndarray[int64_t] values, ndarray[int64_t] binner,
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
-def row_bool_subset(ndarray[float64_t, ndim=2] values,
+def row_bool_subset(const float64_t[:, :] values,
                     ndarray[uint8_t, cast=True] mask):
     cdef:
         Py_ssize_t i, j, n, k, pos = 0
@@ -752,8 +769,8 @@ def row_bool_subset_object(ndarray[object, ndim=2] values,
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
-def get_level_sorter(ndarray[int64_t, ndim=1] label,
-                     ndarray[int64_t, ndim=1] starts):
+def get_level_sorter(const int64_t[:] label,
+                     const int64_t[:] starts):
     """
     argsort for a single level of a multi-index, keeping the order of higher
     levels unchanged. `starts` points to starts of same-key indices w.r.t
@@ -765,10 +782,11 @@ def get_level_sorter(ndarray[int64_t, ndim=1] label,
         int64_t l, r
         Py_ssize_t i
         ndarray[int64_t, ndim=1] out = np.empty(len(label), dtype=np.int64)
+        ndarray[int64_t, ndim=1] label_arr = np.asarray(label)
 
     for i in range(len(starts) - 1):
         l, r = starts[i], starts[i + 1]
-        out[l:r] = l + label[l:r].argsort(kind='mergesort')
+        out[l:r] = l + label_arr[l:r].argsort(kind='mergesort')
 
     return out
 
@@ -776,7 +794,7 @@ def get_level_sorter(ndarray[int64_t, ndim=1] label,
 @cython.boundscheck(False)
 @cython.wraparound(False)
 def count_level_2d(ndarray[uint8_t, ndim=2, cast=True] mask,
-                   ndarray[int64_t, ndim=1] labels,
+                   const int64_t[:] labels,
                    Py_ssize_t max_bin,
                    int axis):
     cdef:
@@ -803,7 +821,7 @@ def count_level_2d(ndarray[uint8_t, ndim=2, cast=True] mask,
     return counts
 
 
-def generate_slices(ndarray[int64_t] labels, Py_ssize_t ngroups):
+def generate_slices(const int64_t[:] labels, Py_ssize_t ngroups):
     cdef:
         Py_ssize_t i, group_size, n, start
         int64_t lab
@@ -832,7 +850,7 @@ def generate_slices(ndarray[int64_t] labels, Py_ssize_t ngroups):
     return starts, ends
 
 
-def indices_fast(object index, ndarray[int64_t] labels, list keys,
+def indices_fast(object index, const int64_t[:] labels, list keys,
                  list sorted_labels):
     cdef:
         Py_ssize_t i, j, k, lab, cur, start, n = len(labels)
@@ -2131,7 +2149,7 @@ def maybe_convert_objects(ndarray[object] objects, bint try_float=0,
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
-def map_infer_mask(ndarray arr, object f, ndarray[uint8_t] mask,
+def map_infer_mask(ndarray arr, object f, const uint8_t[:] mask,
                    bint convert=1):
     """
     Substitute for np.vectorize with pandas-friendly dtype inference

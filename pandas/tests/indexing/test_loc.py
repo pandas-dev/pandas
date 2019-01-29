@@ -233,8 +233,10 @@ class TestLoc(Base):
                        columns=['e', 'f', 'g'])
 
         # raise a KeyError?
-        pytest.raises(KeyError, df.loc.__getitem__,
-                      tuple([[1, 2], [1, 2]]))
+        msg = (r"\"None of \[Int64Index\(\[1, 2\], dtype='int64'\)\] are"
+               r" in the \[index\]\"")
+        with pytest.raises(KeyError, match=msg):
+            df.loc[[1, 2], [1, 2]]
 
         # GH  7496
         # loc should not fallback
@@ -243,10 +245,18 @@ class TestLoc(Base):
         s.loc[1] = 1
         s.loc['a'] = 2
 
-        pytest.raises(KeyError, lambda: s.loc[-1])
-        pytest.raises(KeyError, lambda: s.loc[[-1, -2]])
+        with pytest.raises(KeyError, match=r"^-1$"):
+            s.loc[-1]
 
-        pytest.raises(KeyError, lambda: s.loc[['4']])
+        msg = (r"\"None of \[Int64Index\(\[-1, -2\], dtype='int64'\)\] are"
+               r" in the \[index\]\"")
+        with pytest.raises(KeyError, match=msg):
+            s.loc[[-1, -2]]
+
+        msg = (r"\"None of \[Index\(\[u?'4'\], dtype='object'\)\] are"
+               r" in the \[index\]\"")
+        with pytest.raises(KeyError, match=msg):
+            s.loc[['4']]
 
         s.loc[-1] = 3
         with tm.assert_produces_warning(FutureWarning,
@@ -256,28 +266,27 @@ class TestLoc(Base):
         tm.assert_series_equal(result, expected)
 
         s['a'] = 2
-        pytest.raises(KeyError, lambda: s.loc[[-2]])
+        msg = (r"\"None of \[Int64Index\(\[-2\], dtype='int64'\)\] are"
+               r" in the \[index\]\"")
+        with pytest.raises(KeyError, match=msg):
+            s.loc[[-2]]
 
         del s['a']
 
-        def f():
+        with pytest.raises(KeyError, match=msg):
             s.loc[[-2]] = 0
-
-        pytest.raises(KeyError, f)
 
         # inconsistency between .loc[values] and .loc[values,:]
         # GH 7999
         df = DataFrame([['a'], ['b']], index=[1, 2], columns=['value'])
 
-        def f():
+        msg = (r"\"None of \[Int64Index\(\[3\], dtype='int64'\)\] are"
+               r" in the \[index\]\"")
+        with pytest.raises(KeyError, match=msg):
             df.loc[[3], :]
 
-        pytest.raises(KeyError, f)
-
-        def f():
+        with pytest.raises(KeyError, match=msg):
             df.loc[[3]]
-
-        pytest.raises(KeyError, f)
 
     def test_loc_getitem_list_with_fail(self):
         # 15747
@@ -600,11 +609,15 @@ Region_1,Site_2,3977723089,A,5/20/2015 8:33,5/20/2015 9:09,Yes,No"""
         # these are going to raise because the we are non monotonic
         df = DataFrame({'A': [1, 2, 3, 4, 5, 6],
                         'B': [3, 4, 5, 6, 7, 8]}, index=[0, 1, 0, 1, 2, 3])
-        pytest.raises(KeyError, df.loc.__getitem__,
-                      tuple([slice(1, None)]))
-        pytest.raises(KeyError, df.loc.__getitem__,
-                      tuple([slice(0, None)]))
-        pytest.raises(KeyError, df.loc.__getitem__, tuple([slice(1, 2)]))
+        msg = "'Cannot get left slice bound for non-unique label: 1'"
+        with pytest.raises(KeyError, match=msg):
+            df.loc[1:]
+        msg = "'Cannot get left slice bound for non-unique label: 0'"
+        with pytest.raises(KeyError, match=msg):
+            df.loc[0:]
+        msg = "'Cannot get left slice bound for non-unique label: 1'"
+        with pytest.raises(KeyError, match=msg):
+            df.loc[1:2]
 
         # monotonic are ok
         df = DataFrame({'A': [1, 2, 3, 4, 5, 6],

@@ -530,7 +530,7 @@ class NDFrame(PandasObject, SelectionMixin):
             The axis to update. The value 0 identifies the rows, and 1
             identifies the columns.
 
-        inplace : boolean, default None
+        inplace : bool, default None
             Whether to return a new %(klass)s instance.
 
             .. warning::
@@ -3966,35 +3966,37 @@ class NDFrame(PandasObject, SelectionMixin):
     def sort_values(self, by=None, axis=0, ascending=True, inplace=False,
                     kind='quicksort', na_position='last'):
         """
-        Sort by the values along either axis
+        Sort by the values along either axis.
 
         Parameters
         ----------%(optional_by)s
         axis : %(axes_single_arg)s, default 0
-             Axis to be sorted
+             Axis to be sorted.
         ascending : bool or list of bool, default True
              Sort ascending vs. descending. Specify list for multiple sort
              orders.  If this is a list of bools, must match the length of
              the by.
         inplace : bool, default False
-             if True, perform operation in-place
+             If True, perform operation in-place.
         kind : {'quicksort', 'mergesort', 'heapsort'}, default 'quicksort'
              Choice of sorting algorithm. See also ndarray.np.sort for more
              information.  `mergesort` is the only stable algorithm. For
              DataFrames, this option is only applied when sorting on a single
              column or label.
         na_position : {'first', 'last'}, default 'last'
-             `first` puts NaNs at the beginning, `last` puts NaNs at the end
+             Puts NaNs at the beginning if `first`; `last` puts NaNs at the
+             end.
 
         Returns
         -------
-        sorted_obj : %(klass)s
+        sorted_obj : DataFrame or None
+            DataFrame with sorted values if inplace=False, None otherwise.
 
         Examples
         --------
         >>> df = pd.DataFrame({
-        ...     'col1' : ['A', 'A', 'B', np.nan, 'D', 'C'],
-        ...     'col2' : [2, 1, 9, 8, 7, 4],
+        ...     'col1': ['A', 'A', 'B', np.nan, 'D', 'C'],
+        ...     'col2': [2, 1, 9, 8, 7, 4],
         ...     'col3': [0, 1, 9, 4, 2, 3],
         ... })
         >>> df
@@ -4056,32 +4058,35 @@ class NDFrame(PandasObject, SelectionMixin):
     def sort_index(self, axis=0, level=None, ascending=True, inplace=False,
                    kind='quicksort', na_position='last', sort_remaining=True):
         """
-        Sort object by labels (along an axis)
+        Sort object by labels (along an axis).
 
         Parameters
         ----------
-        axis : %(axes)s to direct sorting
+        axis : {0 or 'index', 1 or 'columns'}, default 0
+            The axis along which to sort.  The value 0 identifies the rows,
+            and 1 identifies the columns.
         level : int or level name or list of ints or list of level names
-            if not None, sort on values in specified index level(s)
-        ascending : boolean, default True
-            Sort ascending vs. descending
+            If not None, sort on values in specified index level(s).
+        ascending : bool, default True
+            Sort ascending vs. descending.
         inplace : bool, default False
-            if True, perform operation in-place
+            If True, perform operation in-place.
         kind : {'quicksort', 'mergesort', 'heapsort'}, default 'quicksort'
-             Choice of sorting algorithm. See also ndarray.np.sort for more
-             information.  `mergesort` is the only stable algorithm. For
-             DataFrames, this option is only applied when sorting on a single
-             column or label.
+            Choice of sorting algorithm. See also ndarray.np.sort for more
+            information.  `mergesort` is the only stable algorithm. For
+            DataFrames, this option is only applied when sorting on a single
+            column or label.
         na_position : {'first', 'last'}, default 'last'
-             `first` puts NaNs at the beginning, `last` puts NaNs at the end.
-             Not implemented for MultiIndex.
+            Puts NaNs at the beginning if `first`; `last` puts NaNs at the end.
+            Not implemented for MultiIndex.
         sort_remaining : bool, default True
-            if true and sorting by level and index is multilevel, sort by other
-            levels too (in order) after sorting by specified level
+            If True and sorting by level and index is multilevel, sort by other
+            levels too (in order) after sorting by specified level.
 
         Returns
         -------
-        sorted_obj : %(klass)s
+        sorted_obj : DataFrame or None
+            DataFrame with sorted index if inplace=False, None otherwise.
         """
         inplace = validate_bool_kwarg(inplace, 'inplace')
         axis = self._get_axis_number(axis)
@@ -7148,12 +7153,18 @@ class NDFrame(PandasObject, SelectionMixin):
             raise ValueError("Cannot use an NA value as a clip threshold")
 
         result = self
-        if upper is not None:
-            subset = self.le(upper, axis=None) | isna(result)
-            result = result.where(subset, upper, axis=None, inplace=False)
-        if lower is not None:
-            subset = self.ge(lower, axis=None) | isna(result)
-            result = result.where(subset, lower, axis=None, inplace=False)
+        mask = isna(self.values)
+
+        with np.errstate(all='ignore'):
+            if upper is not None:
+                subset = self.to_numpy() <= upper
+                result = result.where(subset, upper, axis=None, inplace=False)
+            if lower is not None:
+                subset = self.to_numpy() >= lower
+                result = result.where(subset, lower, axis=None, inplace=False)
+
+        if np.any(mask):
+            result[mask] = np.nan
 
         if inplace:
             self._update_inplace(result)

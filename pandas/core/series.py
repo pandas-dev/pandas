@@ -2857,13 +2857,13 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
             If 'first' puts NaNs at the beginning, 'last' puts NaNs at the end.
             Not implemented for MultiIndex.
         sort_remaining : bool, default True
-            If true and sorting by level and index is multilevel, sort by other
+            If True and sorting by level and index is multilevel, sort by other
             levels too (in order) after sorting by specified level.
 
         Returns
         -------
         pandas.Series
-            The original Series sorted by the labels
+            The original Series sorted by the labels.
 
         See Also
         --------
@@ -2992,11 +2992,13 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
         Parameters
         ----------
-        axis : int (can only be zero)
+        axis : int
+            Has no effect but is accepted for compatibility with numpy.
         kind : {'mergesort', 'quicksort', 'heapsort'}, default 'quicksort'
             Choice of sorting algorithm. See np.sort for more
             information. 'mergesort' is the only stable algorithm
-        order : ignored
+        order : None
+            Has no effect but is accepted for compatibility with numpy.
 
         Returns
         -------
