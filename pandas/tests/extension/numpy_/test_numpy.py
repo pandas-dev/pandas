@@ -9,55 +9,19 @@ import pandas.util.testing as tm
 from .. import base
 
 
-@pytest.fixture(params=['float', 'object'])
-def dtype(request):
-    return PandasDtype(np.dtype(request.param))
-
-
 @pytest.fixture
-def allow_in_pandas(monkeypatch):
-    """
-    A monkeypatch to tells pandas to let us in.
-
-    By default, passing a PandasArray to an index / series / frame
-    constructor will unbox that PandasArray to an ndarray, and treat
-    it as a non-EA column. We don't want people using EAs without
-    reason.
-
-    The mechanism for this is a check against ABCPandasArray
-    in each constructor.
-
-    But, for testing, we need to allow them in pandas. So we patch
-    the _typ of PandasArray, so that we evade the ABCPandasArray
-    check.
-    """
-    with monkeypatch.context() as m:
-        m.setattr(PandasArray, '_typ', 'extension')
-        yield
+def dtype():
+    return PandasDtype(np.dtype('float'))
 
 
 @pytest.fixture
 def data(allow_in_pandas, dtype):
-    if dtype.numpy_dtype == 'object':
-        return pd.Series([(i,) for i in range(100)]).array
     return PandasArray(np.arange(1, 101, dtype=dtype._dtype))
 
 
 @pytest.fixture
 def data_missing(allow_in_pandas):
     return PandasArray(np.array([np.nan, 1.0]))
-
-
-@pytest.fixture
-def na_value():
-    return np.nan
-
-
-@pytest.fixture
-def na_cmp():
-    def cmp(a, b):
-        return np.isnan(a) and np.isnan(b)
-    return cmp
 
 
 @pytest.fixture
@@ -152,19 +116,6 @@ class TestArithmetics(BaseNumPyTests, base.BaseArithmeticOpsTests):
     frame_scalar_exc = None
     series_array_exc = None
 
-    def _check_op(self, s, op, other, op_name, exc=NotImplementedError):
-        if s.dtype == 'object':
-            raise pytest.skip("Skipping for object dtype.")
-        super(TestArithmetics, self)._check_op(s, op, other, op_name, exc)
-
-    def _check_divmod_op(self, s, op, other, exc=Exception):
-        if isinstance(s, pd.Series) and s.dtype == 'object':
-            raise pytest.skip("Skipping for object dtype.")
-        elif isinstance(other, pd.Series) and other.dtype == 'object':
-            raise pytest.skip("Skipping for object dtype.")
-
-        super(TestArithmetics, self)._check_divmod_op(s, op, other, exc)
-
     def test_divmod_series_array(self, data):
         s = pd.Series(data)
         self._check_divmod_op(s, divmod, data, exc=None)
@@ -201,8 +152,6 @@ class TestPrinting(BaseNumPyTests, base.BasePrintingTests):
 class TestNumericReduce(BaseNumPyTests, base.BaseNumericReduceTests):
 
     def check_reduce(self, s, op_name, skipna):
-        if s.dtype == 'object':
-            raise pytest.skip("Skipping for object dtype.")
         result = getattr(s, op_name)(skipna=skipna)
         # avoid coercing int -> float. Just cast to the actual numpy type.
         expected = getattr(s.astype(s.dtype._dtype), op_name)(skipna=skipna)
@@ -210,15 +159,10 @@ class TestNumericReduce(BaseNumPyTests, base.BaseNumericReduceTests):
 
 
 class TestBooleanReduce(BaseNumPyTests, base.BaseBooleanReduceTests):
-
-    def check_reduce(self, s, op_name, skipna):
-        if s.dtype == 'object':
-            raise pytest.skip("Skipping for object dtype.")
-
-        super(TestBooleanReduce, self).check_reduce(s, op_name, skipna)
+    pass
 
 
-class TestMissing(BaseNumPyTests, base.BaseMissingTests):
+class TestMising(BaseNumPyTests, base.BaseMissingTests):
     pass
 
 
