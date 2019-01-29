@@ -1,9 +1,12 @@
-:orphan:
-
 .. _whatsnew_0250:
 
 What's New in 0.25.0 (April XX, 2019)
 -------------------------------------
+
+.. warning::
+
+   Starting with the 0.25.x series of releases, pandas only supports Python 3.5 and higher.
+   See :ref:`install.dropping-27` for more details.
 
 {{ header }}
 
@@ -176,7 +179,7 @@ Groupby/Resample/Rolling
 Reshaping
 ^^^^^^^^^
 
--
+- Bug in :func:`merge` when merging by index name would sometimes result in an incorrectly numbered index (:issue:`24212`)
 -
 -
 
