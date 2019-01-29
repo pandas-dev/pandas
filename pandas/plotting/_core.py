@@ -39,7 +39,7 @@ except ImportError:
 else:
     _HAS_MPL = True
     if get_option('plotting.matplotlib.register_converters'):
-        _converter.register(explicit=True)
+        _converter.register(explicit=False)
 
 
 def _raise_if_no_mpl():
