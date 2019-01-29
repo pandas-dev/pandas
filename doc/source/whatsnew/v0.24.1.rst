@@ -15,6 +15,13 @@ Whats New in 0.24.1 (February XX, 2019)
 These are the changes in pandas 0.24.1. See :ref:`release` for a full changelog
 including other versions of pandas.
 
+.. _whatsnew_0241.regressions:
+
+Fixed Regressions
+^^^^^^^^^^^^^^^^^
+
+- Bug in :meth:`DataFrame.itertuples` with ``records`` orient raising an ``AttributeError`` when the ``DataFrame`` contained more than 255 columns (:issue:`24939`)
+- Bug in :meth:`DataFrame.itertuples` orient converting integer column names to strings prepended with an underscore (:issue:`24940`)
 
 .. _whatsnew_0241.enhancements:
 
@@ -63,6 +70,9 @@ Bug Fixes
 -
 -
 
+**Reshaping**
+
+- Bug in :func:`merge` when merging by index name would sometimes result in an incorrectly numbered index (:issue:`24212`)
 
 **Other**
 
