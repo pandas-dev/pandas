@@ -261,12 +261,17 @@ class TestDataFrameAlterAxes():
         df = frame_of_index_cols
 
         msg = 'The parameter "keys" may be a column key, .*'
-        # forbidden type, e.g. set/tuple/iter
-        with pytest.raises(ValueError, match=msg):
+        # forbidden type, e.g. set/iter
+
+        # iter is hashable, hence it is treated as a ValueError
+        # set is unhashable, hence it is a TypeError
+        exc = ValueError if box == iter else TypeError
+
+        with pytest.raises(exc, match=msg):
             df.set_index(box(df['A']), drop=drop, append=append)
 
-        # forbidden type in list, e.g. set/tuple/iter
-        with pytest.raises(ValueError, match=msg):
+        # forbidden type in list, e.g. set/iter
+        with pytest.raises(exc, match=msg):
             df.set_index(['A', df['A'], box(df['A'])],
                          drop=drop, append=append)
 
@@ -294,6 +299,32 @@ class TestDataFrameAlterAxes():
         # custom label wrapped in list
         result = df.set_index([thing2])
         tm.assert_frame_equal(result, expected)
+
+    def test_set_index_custom_label_type_raises(self):
+        # GH 24969
+
+        # purposefully inherit from something unhashable
+        class Thing(set):
+            def __init__(self, name, color):
+                self.name = name
+                self.color = color
+
+            def __str__(self):
+                return "<Thing %r>" % (self.name,)
+
+        thing1 = Thing('One', 'red')
+        thing2 = Thing('Two', 'blue')
+        df = DataFrame([[0, 2], [1, 3]], columns=[thing1, thing2])
+
+        msg = 'The parameter "keys" may be a column key, .*'
+
+        with pytest.raises(TypeError, match=msg):
+            # use custom label directly
+            df.set_index(thing2)
+
+        with pytest.raises(TypeError, match=msg):
+            # custom label wrapped in list
+            df.set_index([thing2])
 
     def test_construction_with_categorical_index(self):
         ci = tm.makeCategoricalIndex(10)

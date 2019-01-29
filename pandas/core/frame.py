@@ -4153,8 +4153,15 @@ class DataFrame(NDFrame):
             else:
                 # everything else gets tried as a key; see GH 24969
                 try:
-                    self[col]
+                    hash(col) and self[col]
+                except TypeError:
+                    # for unhashable types
+                    tipo = type(col)
+                    raise TypeError(err_msg,
+                                    'Received column of type {}'.format(tipo))
                 except KeyError:
+                    # for hashable types that are not keys;
+                    # treat as ValueError, not missing key
                     tipo = type(col)
                     raise ValueError(err_msg,
                                      'Received column of type {}'.format(tipo))
