@@ -689,7 +689,7 @@ To convert the strings to an array of datetimes, the ``date_parser`` argument
 .. ipython:: python
 
    df = pd.read_csv(io.StringIO(content), parse_dates=['a'],
-                    date_parser=lambda col: pd.to_datetime(col, utc=True)
+                    date_parser=lambda col: pd.to_datetime(col, utc=True))
    df.a
 
 See :ref:`whatsnew_0240.api.timezone_offset_parsing` for more.
