@@ -30,8 +30,7 @@ from pandas.core.indexes.period import PeriodIndex
 from pandas.core.indexes.timedeltas import TimedeltaIndex, timedelta_range
 
 from pandas.tseries.frequencies import to_offset
-from pandas.tseries.offsets import (
-    DateOffset, Day, Nano, Tick, delta_to_nanoseconds)
+from pandas.tseries.offsets import DateOffset, Day, Nano, Tick
 
 _shared_docs_kwargs = dict()
 
@@ -1613,20 +1612,20 @@ def _get_timestamp_range_edges(first, last, offset, closed='left', base=0):
     A tuple of length 2, containing the adjusted pd.Timestamp objects.
     """
     if isinstance(offset, Tick):
-        is_day = isinstance(offset, Day)
-        day_nanos = delta_to_nanoseconds(timedelta(1))
+        if isinstance(offset, Day):
+            # _adjust_dates_anchored assumes 'D' means 24H, but first/last
+            # might contain a DST transition (23H, 24H, or 25H).
+            # So "pretend" the dates are naive when adjusting the endpoints
+            tz = first.tz
+            first = first.tz_localize(None)
+            last = last.tz_localize(None)
 
-        # #1165 and #24127
-        if (is_day and not offset.nanos % day_nanos) or not is_day:
-            first, last = _adjust_dates_anchored(first, last, offset,
-                                                 closed=closed, base=base)
-            if is_day and first.tz is not None:
-                # _adjust_dates_anchored assumes 'D' means 24H, but first/last
-                # might contain a DST transition (23H, 24H, or 25H).
-                # Ensure first/last snap to midnight.
-                first = first.normalize()
-                last = last.normalize()
-            return first, last
+        first, last = _adjust_dates_anchored(first, last, offset,
+                                             closed=closed, base=base)
+        if isinstance(offset, Day):
+            first = first.tz_localize(tz)
+            last = last.tz_localize(tz)
+        return first, last
 
     else:
         first = first.normalize()

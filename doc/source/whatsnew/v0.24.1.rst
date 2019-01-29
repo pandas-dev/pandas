@@ -70,6 +70,9 @@ Bug Fixes
 -
 -
 
+**Reshaping**
+
+- Bug in :meth:`DataFrame.groupby` with :class:`Grouper` when there is a time change (DST) and grouping frequency is ``'1d'`` (:issue:`24972`)
 
 **Visualization**
 
