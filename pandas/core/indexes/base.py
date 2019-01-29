@@ -2268,7 +2268,7 @@ class Index(IndexOpsMixin, PandasObject):
 
             .. versionadded:: 0.24.0
 
-            .. versionchanged:: 0.24.0
+            .. versionchanged:: 0.24.1
 
                Changed the default `sort` to None, matching the
                behavior of pandas 0.23.4 and earlier.

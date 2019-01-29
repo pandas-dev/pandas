@@ -856,19 +856,20 @@ class TestIndex(Base):
             tm.assert_index_equal(result, everything.sort_values())
         assert tm.equalContents(result, everything)
 
-    @pytest.mark.parametrize("sort", [True, False])
+    @pytest.mark.parametrize("sort", [None, True, False])
     def test_union_identity(self, sort):
         # TODO: replace with fixturesult
         first = self.strIndex[5:20]
 
         union = first.union(first, sort=sort)
-        assert union is first
+        # i.e. identity is not preserved when sort is True
+        assert (union is first) is (not sort)
 
         union = first.union([], sort=sort)
-        assert union is first
+        assert (union is first) is (not sort)
 
         union = Index([]).union(first, sort=sort)
-        assert union is first
+        assert (union is first) is (not sort)
 
     @pytest.mark.parametrize("first_list", [list('ba'), list()])
     @pytest.mark.parametrize("second_list", [list('ab'), list()])
