@@ -238,10 +238,10 @@ class GoodDocStrings(object):
         x : int
             Useless parameter.
         """
-        if random.random()%2:
-            return #the method might return here
+        if random.random() % 2:
+            return  # the method might return here
         else:
-            return None #or perhaps here
+            return None  # or perhaps here
 
 
 class BadGenericDocStrings(object):
