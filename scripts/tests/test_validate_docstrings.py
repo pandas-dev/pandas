@@ -231,7 +231,8 @@ class GoodDocStrings(object):
 
     def does_nothing(self, x):
         """
-        Do nothing and always return none.
+        Do nothing and always return none, but might
+        return nothing as well.
 
         Parameters
         ----------
