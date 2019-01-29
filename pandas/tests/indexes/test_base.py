@@ -794,6 +794,52 @@ class TestIndex(Base):
             tm.assert_index_equal(union, everything.sort_values())
         assert tm.equalContents(union, everything)
 
+    def test_union_sort_other_equal(self):
+        a = pd.Index([1, 0, 2])
+        # default, sort=None
+        result = a.union(a)
+        tm.assert_index_equal(result, a)
+
+        # sort=True
+        result = a.union(a, sort=True)
+        expected = pd.Index([0, 1, 2])
+        tm.assert_index_equal(result, expected)
+
+        # sort=False
+        result = a.union(a, sort=False)
+        tm.assert_index_equal(result, a)
+
+    def test_union_sort_other_empty(self):
+        a = pd.Index([1, 0, 2])
+        # default, sort=None
+        tm.assert_index_equal(a.union(a[:0]), a)
+        tm.assert_index_equal(a[:0].union(a), a)
+
+        # sort=True
+        expected = pd.Index([0, 1, 2])
+        tm.assert_index_equal(a.union(a[:0], sort=True), expected)
+        tm.assert_index_equal(a[:0].union(a, sort=True), expected)
+
+        # sort=False
+        tm.assert_index_equal(a.union(a[:0], sort=False), a)
+        tm.assert_index_equal(a[:0].union(a, sort=False), a)
+
+    def test_union_sort_other_incomparable(self):
+        a = pd.Index([1, pd.Timestamp('2000')])
+        # default, sort=None
+        with tm.assert_produces_warning(RuntimeWarning):
+            result = a.union(a[:1])
+
+        tm.assert_index_equal(result, a)
+
+        # sort=True
+        with pytest.raises(TypeError, match='.*'):
+            a.union(a[:1], sort=True)
+
+        # sort=False
+        result = a.union(a[:1], sort=False)
+        tm.assert_index_equal(result, a)
+
     @pytest.mark.parametrize("klass", [
         np.array, Series, list])
     @pytest.mark.parametrize("sort", [True, False])

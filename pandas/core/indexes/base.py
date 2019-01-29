@@ -2245,17 +2245,33 @@ class Index(IndexOpsMixin, PandasObject):
             return self._shallow_copy(name=name)
         return self
 
-    def union(self, other, sort=True):
+    def union(self, other, sort=None):
         """
         Form the union of two Index objects.
 
         Parameters
         ----------
         other : Index or array-like
-        sort : bool, default True
-            Sort the resulting index if possible
+        sort : bool or None, default None
+            Whether to sort the resulting Index.
+
+            * None : Sort the result, except when
+
+              1. `self` and `other` are equal.
+              2. `self` or `other` has length 0.
+              3. Some values in `self` or `other` cannot be compared.
+                 A RuntimeWarning is issued in this case.
+
+            * True : sort the result. A TypeError is raised when the
+              values cannot be compared.
+            * False : do not sort the result.
 
             .. versionadded:: 0.24.0
+
+            .. versionchanged:: 0.24.0
+
+               Changed the default `sort` to None, matching the
+               behavior of pandas 0.23.4 and earlier.
 
         Returns
         -------
@@ -2273,10 +2289,16 @@ class Index(IndexOpsMixin, PandasObject):
         other = ensure_index(other)
 
         if len(other) == 0 or self.equals(other):
-            return self._get_reconciled_name_object(other)
+            result = self._get_reconciled_name_object(other)
+            if sort:
+                result = result.sort_values()
+            return result
 
         if len(self) == 0:
-            return other._get_reconciled_name_object(self)
+            result = other._get_reconciled_name_object(self)
+            if sort:
+                result = result.sort_values()
+            return result
 
         # TODO: is_dtype_union_equal is a hack around
         # 1. buggy set ops with duplicates (GH #13432)
@@ -2319,13 +2341,16 @@ class Index(IndexOpsMixin, PandasObject):
             else:
                 result = lvals
 
-            if sort:
+            if sort is None:
                 try:
                     result = sorting.safe_sort(result)
                 except TypeError as e:
                     warnings.warn("{}, sort order is undefined for "
                                   "incomparable objects".format(e),
                                   RuntimeWarning, stacklevel=3)
+            elif sort:
+                # raise if not sortable.
+                result = sorting.safe_sort(result)
 
         # for subclasses
         return self._wrap_setop_result(other, result)
