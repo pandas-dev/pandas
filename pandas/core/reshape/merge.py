@@ -809,10 +809,18 @@ class _MergeOperation(object):
                 # if values missing (-1) from target index,
                 # take from other_index instead
                 join_list = join_index.to_numpy()
-                other_list = other_index.take(other_indexer).to_numpy()
-                join_list[mask] = other_list[mask]
-                join_index = Index(join_list, dtype=join_index.dtype,
-                                   name=join_index.name)
+                try:
+                    other_list = other_index.take(other_indexer).to_numpy()
+                    join_list[mask] = other_list[mask]
+                    join_index = Index(join_list, dtype=other_index.dtype,
+                                       name=other_index.name)
+                except ValueError:
+                    # if other_index does not have a compatible dtype, naively
+                    # replace missing values by their column position in other
+                    naive_index = np.arange(len(other_index))
+                    other_list = naive_index.take(other_indexer)
+                    join_list[mask] = other_list[mask]
+                    join_index = Index(join_list, name=other_index.name)
         return join_index
 
     def _get_merge_keys(self):
