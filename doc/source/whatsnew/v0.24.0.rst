@@ -648,6 +648,52 @@ that the dates have been converted to UTC
     pd.to_datetime(["2015-11-18 15:30:00+05:30",
                     "2015-11-18 16:30:00+06:30"], utc=True)
 
+
+.. _whatsnew_0240.api_breaking.read_csv_mixed_tz:
+
+Parsing mixed-timezones with :func:`read_csv`
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+:func:`read_csv` no longer silently converts mixed-timezone columns to UTC (:issue:`24987`).
+
+*Previous Behavior*
+
+.. code-block:: python
+
+   >>> import io
+   >>> content = """\
+   ... a
+   ... 2000-01-01T00:00:00+05:00
+   ... 2000-01-01T00:00:00+06:00"""
+   >>> df = pd.read_csv(io.StringIO(content), parse_dates=['a'])
+   >>> df.a
+   0   1999-12-31 19:00:00
+   1   1999-12-31 18:00:00
+   Name: a, dtype: datetime64[ns]
+
+*New Behavior*
+
+.. ipython:: python
+
+   import io
+   content = """\
+   a
+   2000-01-01T00:00:00+05:00
+   2000-01-01T00:00:00+06:00"""
+   df = pd.read_csv(io.StringIO(content), parse_dates=['a'])
+   df.a
+
+As can be seen, the ``dtype`` is object; each value in the column is a string.
+To convert the strings to an array of datetimes, the ``date_parser`` argument
+
+.. ipython:: python
+
+   df = pd.read_csv(io.StringIO(content), parse_dates=['a'],
+                    date_parser=lambda col: pd.to_datetime(col, utc=True))
+   df.a
+
+See :ref:`whatsnew_0240.api.timezone_offset_parsing` for more.
+
 .. _whatsnew_0240.api_breaking.period_end_time:
 
 Time values in ``dt.end_time`` and ``to_timestamp(how='end')``
