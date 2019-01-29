@@ -37,15 +37,19 @@ class TestDatetimeIndexOps(Ops):
 
         # sanity check that the behavior didn't change
         # GH#7206
+        msg = "'Series' object has no attribute '{}'"
         for op in ['year', 'day', 'second', 'weekday']:
-            pytest.raises(TypeError, lambda x: getattr(self.dt_series, op))
+            with pytest.raises(AttributeError, match=msg.format(op)):
+                getattr(self.dt_series, op)
 
         # attribute access should still work!
         s = Series(dict(year=2000, month=1, day=10))
         assert s.year == 2000
         assert s.month == 1
         assert s.day == 10
-        pytest.raises(AttributeError, lambda: s.weekday)
+        msg = "'Series' object has no attribute 'weekday'"
+        with pytest.raises(AttributeError, match=msg):
+            s.weekday
 
     def test_repeat_range(self, tz_naive_fixture):
         tz = tz_naive_fixture
