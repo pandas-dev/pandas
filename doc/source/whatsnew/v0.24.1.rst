@@ -66,7 +66,7 @@ Bug Fixes
 **Reshaping**
 
 - Bug in :func:`merge` when merging by index name would sometimes result in an incorrectly numbered index (:issue:`24212`)
-Bug in :meth:`DataFrame.groupby`(:class:`pd.Grouper`(freq='1d')) when there is a time change (DST) and grouping frequency is 1d (:issue:`24972`)
+- Bug in :meth:`DataFrame.groupby` with :class:`Grouper` when there is a time change (DST) and grouping frequency is ``'1d'`` (:issue:`24972`)
 **Other**
 
 -
