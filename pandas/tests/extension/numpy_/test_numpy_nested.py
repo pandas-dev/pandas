@@ -23,18 +23,6 @@ def data_missing(allow_in_pandas):
 
 
 @pytest.fixture
-def na_value():
-    return np.nan
-
-
-@pytest.fixture
-def na_cmp():
-    def cmp(a, b):
-        return np.isnan(a) and np.isnan(b)
-    return cmp
-
-
-@pytest.fixture
 def data_for_sorting(allow_in_pandas):
     """Length-3 array with a known sort order.
 
