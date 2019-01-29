@@ -809,7 +809,6 @@ class _MergeOperation(object):
                 # if values missing (-1) from target index,
                 # take from other_index instead
                 join_list = join_index.to_numpy()
-<<<<<<< HEAD
                 try:
                     other_list = other_index.take(other_indexer).to_numpy()
                     join_list[mask] = other_list[mask]
@@ -822,12 +821,6 @@ class _MergeOperation(object):
                     other_list = naive_index.take(other_indexer)
                     join_list[mask] = other_list[mask]
                     join_index = Index(join_list, name=other_index.name)
-=======
-                other_list = other_index.take(other_indexer).to_numpy()
-                join_list[mask] = other_list[mask]
-                join_index = Index(join_list, dtype=join_index.dtype,
-                                   name=join_index.name)
->>>>>>> master
         return join_index
 
     def _get_merge_keys(self):
