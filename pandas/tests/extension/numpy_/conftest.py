@@ -42,7 +42,7 @@ skips = {
 
 
 def pytest_collection_modifyitems(config, items):
-    skip = pytest.mark.skip(reason="Skipping this because ...")
+    skip = pytest.mark.skip(reason="Skipping for nested data.")
     for item in items:
         # TODO: See if pytest has a better way to resolve the *value*
         # supplied to a fixture. Right now .keywords gets things
