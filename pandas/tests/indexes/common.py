@@ -30,7 +30,11 @@ class Base(object):
 
     def test_pickle_compat_construction(self):
         # need an object to create with
-        pytest.raises(TypeError, self._holder)
+        msg = (r"Index\(\.\.\.\) must be called with a collection of some"
+               r" kind, None was passed|"
+               r"__new__\(\) missing 1 required positional argument: 'data'")
+        with pytest.raises(TypeError, match=msg):
+            self._holder()
 
     def test_to_series(self):
         # assert that we are creating a copy of the index
@@ -84,8 +88,11 @@ class Base(object):
 
         # GH8083 test the base class for shift
         idx = self.create_index()
-        pytest.raises(NotImplementedError, idx.shift, 1)
-        pytest.raises(NotImplementedError, idx.shift, 1, 2)
+        msg = "Not supported for type {}".format(type(idx).__name__)
+        with pytest.raises(NotImplementedError, match=msg):
+            idx.shift(1)
+        with pytest.raises(NotImplementedError, match=msg):
+            idx.shift(1, 2)
 
     def test_create_index_existing_name(self):
 
