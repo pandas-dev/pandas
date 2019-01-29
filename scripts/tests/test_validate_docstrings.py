@@ -229,6 +229,20 @@ class GoodDocStrings(object):
         """
         pass
 
+    def does_nothing(self, x):
+        """
+        Do nothing and always return none.
+
+        Parameters
+        ----------
+        x : int
+            Useless parameter.
+        """
+        if random.random()%2:
+            return #the method might return here
+        else:
+            return None #or perhaps here
+
 
 class BadGenericDocStrings(object):
     """Everything here has a bad docstring
@@ -783,7 +797,7 @@ class TestValidator(object):
 
     @pytest.mark.parametrize("func", [
         'plot', 'sample', 'random_letters', 'sample_values', 'head', 'head1',
-        'contains', 'mode', 'good_imports'])
+        'contains', 'mode', 'good_imports', 'does_nothing'])
     def test_good_functions(self, capsys, func):
         errors = validate_one(self._import_path(
             klass='GoodDocStrings', func=func))['errors']
