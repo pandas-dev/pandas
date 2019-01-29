@@ -1333,7 +1333,6 @@ class TestDataFrameAnalytics():
         result = df.mean()
         expected = pd.Series({
             'A': 1.,
-            'B': df.loc[1, 'B'],
             'C': df.loc[1, 'C']
         })
         tm.assert_series_equal(result, expected)
