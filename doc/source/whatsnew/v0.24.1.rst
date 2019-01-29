@@ -71,6 +71,11 @@ Bug Fixes
 -
 
 
+**Visualization**
+
+- Fixed the warning for implicitly registered matplotlib converters not showing. See :ref:`whatsnew_0211.converters` for more (:issue:`24963`).
+
+
 **Other**
 
 -
