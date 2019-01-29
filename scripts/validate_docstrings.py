@@ -691,9 +691,10 @@ def get_validation_data(doc):
 
     if doc.is_function_or_method:
         if not doc.returns:
-            if re.search('\n[ \t\f\v]*return' +
+            if re.search('\"\"\".*\"\"\".*' +
+                         '\n[ \t\f\v]*return' +
                          '(?![ \t\f\v]*(None)?[ \t\f\v]*[\n#])',
-                         doc.method_source):
+                         doc.method_source, flags=re.DOTALL):
                 errs.append(error('RT01'))
         else:
             if len(doc.returns) == 1 and doc.returns[0][1]:
