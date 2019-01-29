@@ -6,12 +6,12 @@ from pandas import compat
 from pandas.core.arrays.numpy_ import PandasArray, PandasDtype
 import pandas.util.testing as tm
 
-from . import base
+from .. import base
 
 
-@pytest.fixture
-def dtype():
-    return PandasDtype(np.dtype('float'))
+@pytest.fixture(params=['float', 'object'])
+def dtype(request):
+    return PandasDtype(np.dtype(request.param))
 
 
 @pytest.fixture
@@ -38,6 +38,8 @@ def allow_in_pandas(monkeypatch):
 
 @pytest.fixture
 def data(allow_in_pandas, dtype):
+    if dtype.numpy_dtype == 'object':
+        return pd.Series([(i,) for i in range(100)]).array
     return PandasArray(np.arange(1, 101, dtype=dtype._dtype))
 
 
@@ -150,6 +152,19 @@ class TestArithmetics(BaseNumPyTests, base.BaseArithmeticOpsTests):
     frame_scalar_exc = None
     series_array_exc = None
 
+    def _check_op(self, s, op, other, op_name, exc=NotImplementedError):
+        if s.dtype == 'object':
+            raise pytest.skip("Skipping for object dtype.")
+        super(TestArithmetics, self)._check_op(s, op, other, op_name, exc)
+
+    def _check_divmod_op(self, s, op, other, exc=Exception):
+        if isinstance(s, pd.Series) and s.dtype == 'object':
+            raise pytest.skip("Skipping for object dtype.")
+        elif isinstance(other, pd.Series) and other.dtype == 'object':
+            raise pytest.skip("Skipping for object dtype.")
+
+        super(TestArithmetics, self)._check_divmod_op(s, op, other, exc)
+
     def test_divmod_series_array(self, data):
         s = pd.Series(data)
         self._check_divmod_op(s, divmod, data, exc=None)
@@ -186,6 +201,8 @@ class TestPrinting(BaseNumPyTests, base.BasePrintingTests):
 class TestNumericReduce(BaseNumPyTests, base.BaseNumericReduceTests):
 
     def check_reduce(self, s, op_name, skipna):
+        if s.dtype == 'object':
+            raise pytest.skip("Skipping for object dtype.")
         result = getattr(s, op_name)(skipna=skipna)
         # avoid coercing int -> float. Just cast to the actual numpy type.
         expected = getattr(s.astype(s.dtype._dtype), op_name)(skipna=skipna)
@@ -193,10 +210,15 @@ class TestNumericReduce(BaseNumPyTests, base.BaseNumericReduceTests):
 
 
 class TestBooleanReduce(BaseNumPyTests, base.BaseBooleanReduceTests):
-    pass
+
+    def check_reduce(self, s, op_name, skipna):
+        if s.dtype == 'object':
+            raise pytest.skip("Skipping for object dtype.")
+
+        super(TestBooleanReduce, self).check_reduce(s, op_name, skipna)
 
 
-class TestMising(BaseNumPyTests, base.BaseMissingTests):
+class TestMissing(BaseNumPyTests, base.BaseMissingTests):
     pass
 
 
