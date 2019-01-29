@@ -1,10 +1,13 @@
-import numpy as np
 import pytest
 
 import pandas as pd
 from pandas.core.arrays.numpy_ import PandasArray, PandasDtype
 
 from .. import base
+
+# For NumPy <1.16, np.array([np.nan, (1,)]) raises
+# ValueError: setting an array element with a sequence.
+np = pytest.importorskip('numpy', minversion='1.16.0')
 
 
 @pytest.fixture
