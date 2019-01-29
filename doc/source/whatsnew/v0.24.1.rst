@@ -73,6 +73,7 @@ Bug Fixes
 **Reshaping**
 
 - Bug in :func:`merge` when merging by index name would sometimes result in an incorrectly numbered index (:issue:`24212`)
+- Fixed regression where custom hashable types could not be used as column keys in :meth:`DataFrame.set_index` anymore (:issue:`24969`)
 
 **Other**
 
