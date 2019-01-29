@@ -1,9 +1,7 @@
-from contextlib import contextmanager
 import datetime
 from datetime import timedelta
 from distutils.version import LooseVersion
 import os
-import tempfile
 from warnings import catch_warnings, simplefilter
 
 import numpy as np
@@ -23,13 +21,17 @@ from pandas import (
     date_range, isna, timedelta_range)
 import pandas.util.testing as tm
 from pandas.util.testing import (
-    assert_frame_equal, assert_panel_equal, assert_series_equal, set_timezone)
+    assert_frame_equal, assert_panel_equal, assert_series_equal)
 
 from pandas.io import pytables as pytables  # noqa:E402
 from pandas.io.formats.printing import pprint_thing
 from pandas.io.pytables import (
     ClosedFileError, HDFStore, PossibleDataLossError, Term, read_hdf)
 from pandas.io.pytables import TableIterator  # noqa:E402
+
+from .base import (
+    Base, create_tempfile, ensure_clean_path, ensure_clean_store, maybe_remove,
+    safe_close, safe_remove)
 
 tables = pytest.importorskip('tables')
 
@@ -42,102 +44,11 @@ ignore_natural_naming_warning = pytest.mark.filterwarnings(
     "ignore:object name:tables.exceptions.NaturalNameWarning"
 )
 
-# contextmanager to ensure the file cleanup
-
-
-def safe_remove(path):
-    if path is not None:
-        try:
-            os.remove(path)
-        except OSError:
-            pass
-
-
-def safe_close(store):
-    try:
-        if store is not None:
-            store.close()
-    except IOError:
-        pass
-
-
-def create_tempfile(path):
-    """ create an unopened named temporary file """
-    return os.path.join(tempfile.gettempdir(), path)
-
-
-@contextmanager
-def ensure_clean_store(path, mode='a', complevel=None, complib=None,
-                       fletcher32=False):
-
-    try:
-
-        # put in the temporary path if we don't have one already
-        if not len(os.path.dirname(path)):
-            path = create_tempfile(path)
-
-        store = HDFStore(path, mode=mode, complevel=complevel,
-                         complib=complib, fletcher32=False)
-        yield store
-    finally:
-        safe_close(store)
-        if mode == 'w' or mode == 'a':
-            safe_remove(path)
-
-
-@contextmanager
-def ensure_clean_path(path):
-    """
-    return essentially a named temporary file that is not opened
-    and deleted on existing; if path is a list, then create and
-    return list of filenames
-    """
-    try:
-        if isinstance(path, list):
-            filenames = [create_tempfile(p) for p in path]
-            yield filenames
-        else:
-            filenames = [create_tempfile(path)]
-            yield filenames[0]
-    finally:
-        for f in filenames:
-            safe_remove(f)
-
 
 # set these parameters so we don't have file sharing
 tables.parameters.MAX_NUMEXPR_THREADS = 1
 tables.parameters.MAX_BLOSC_THREADS = 1
 tables.parameters.MAX_THREADS = 1
-
-
-def _maybe_remove(store, key):
-    """For tests using tables, try removing the table to be sure there is
-    no content from previous tests using the same table name."""
-    try:
-        store.remove(key)
-    except (ValueError, KeyError):
-        pass
-
-
-class Base(object):
-
-    @classmethod
-    def setup_class(cls):
-
-        # Pytables 3.0.0 deprecates lots of things
-        tm.reset_testing_mode()
-
-    @classmethod
-    def teardown_class(cls):
-
-        # Pytables 3.0.0 deprecates lots of things
-        tm.set_testing_mode()
-
-    def setup_method(self, method):
-        self.path = 'tmp.__%s__.h5' % tm.rands(10)
-
-    def teardown_method(self, method):
-        pass
 
 
 @pytest.mark.single
@@ -259,24 +170,24 @@ class TestHDFStore(Base):
             path = store._path
             df = tm.makeDataFrame()
 
-            _maybe_remove(store, 'df')
+            maybe_remove(store, 'df')
             store.append('df', df.iloc[:10], append=True, format='table')
             store.append('df', df.iloc[10:], append=True, format='table')
             assert_frame_equal(store.select('df'), df)
 
             # append to False
-            _maybe_remove(store, 'df')
+            maybe_remove(store, 'df')
             store.append('df', df.iloc[:10], append=False, format='table')
             store.append('df', df.iloc[10:], append=True, format='table')
             assert_frame_equal(store.select('df'), df)
 
             # formats
-            _maybe_remove(store, 'df')
+            maybe_remove(store, 'df')
             store.append('df', df.iloc[:10], append=False, format='table')
             store.append('df', df.iloc[10:], append=True, format='table')
             assert_frame_equal(store.select('df'), df)
 
-            _maybe_remove(store, 'df')
+            maybe_remove(store, 'df')
             store.append('df', df.iloc[:10], append=False, format='table')
             store.append('df', df.iloc[10:], append=True, format=None)
             assert_frame_equal(store.select('df'), df)
@@ -307,16 +218,16 @@ class TestHDFStore(Base):
             df = tm.makeDataFrame()
 
             pd.set_option('io.hdf.default_format', 'fixed')
-            _maybe_remove(store, 'df')
+            maybe_remove(store, 'df')
             store.put('df', df)
             assert not store.get_storer('df').is_table
             pytest.raises(ValueError, store.append, 'df2', df)
 
             pd.set_option('io.hdf.default_format', 'table')
-            _maybe_remove(store, 'df')
+            maybe_remove(store, 'df')
             store.put('df', df)
             assert store.get_storer('df').is_table
-            _maybe_remove(store, 'df2')
+            maybe_remove(store, 'df2')
             store.append('df2', df)
             assert store.get_storer('df').is_table
 
@@ -455,7 +366,7 @@ class TestHDFStore(Base):
             store['a'] = tm.makeTimeSeries()
             store['b'] = tm.makeDataFrame()
             df = tm.makeTimeDataFrame()
-            _maybe_remove(store, 'df1')
+            maybe_remove(store, 'df1')
             store.append('df1', df[:10])
             store.append('df1', df[10:])
             assert store.root.a._v_attrs.pandas_version == '0.15.2'
@@ -463,7 +374,7 @@ class TestHDFStore(Base):
             assert store.root.df1._v_attrs.pandas_version == '0.15.2'
 
             # write a file and wipe its versioning
-            _maybe_remove(store, 'df2')
+            maybe_remove(store, 'df2')
             store.append('df2', df)
 
             # this is an error because its table_type is appendable, but no
@@ -717,7 +628,7 @@ class TestHDFStore(Base):
 
             # node does not currently exist, test _is_table_type returns False
             # in this case
-            # _maybe_remove(store, 'f')
+            # maybe_remove(store, 'f')
             # pytest.raises(ValueError, store.put, 'f', df[10:],
             #                   append=True)
 
@@ -892,7 +803,7 @@ class TestHDFStore(Base):
         df = df._consolidate()._convert(datetime=True)
 
         with ensure_clean_store(self.path) as store:
-            _maybe_remove(store, 'df')
+            maybe_remove(store, 'df')
 
             # PerformanceWarning
             with catch_warnings(record=True):
@@ -914,37 +825,37 @@ class TestHDFStore(Base):
             with catch_warnings(record=True):
 
                 df = tm.makeTimeDataFrame()
-                _maybe_remove(store, 'df1')
+                maybe_remove(store, 'df1')
                 store.append('df1', df[:10])
                 store.append('df1', df[10:])
                 tm.assert_frame_equal(store['df1'], df)
 
-                _maybe_remove(store, 'df2')
+                maybe_remove(store, 'df2')
                 store.put('df2', df[:10], format='table')
                 store.append('df2', df[10:])
                 tm.assert_frame_equal(store['df2'], df)
 
-                _maybe_remove(store, 'df3')
+                maybe_remove(store, 'df3')
                 store.append('/df3', df[:10])
                 store.append('/df3', df[10:])
                 tm.assert_frame_equal(store['df3'], df)
 
                 # this is allowed by almost always don't want to do it
                 # tables.NaturalNameWarning
-                _maybe_remove(store, '/df3 foo')
+                maybe_remove(store, '/df3 foo')
                 store.append('/df3 foo', df[:10])
                 store.append('/df3 foo', df[10:])
                 tm.assert_frame_equal(store['df3 foo'], df)
 
                 # panel
                 wp = tm.makePanel()
-                _maybe_remove(store, 'wp1')
+                maybe_remove(store, 'wp1')
                 store.append('wp1', wp.iloc[:, :10, :])
                 store.append('wp1', wp.iloc[:, 10:, :])
                 assert_panel_equal(store['wp1'], wp)
 
                 # test using differt order of items on the non-index axes
-                _maybe_remove(store, 'wp1')
+                maybe_remove(store, 'wp1')
                 wp_append1 = wp.iloc[:, :10, :]
                 store.append('wp1', wp_append1)
                 wp_append2 = wp.iloc[:, 10:, :].reindex(items=wp.items[::-1])
@@ -955,7 +866,7 @@ class TestHDFStore(Base):
                 df = DataFrame(data=[[1, 2], [0, 1], [1, 2], [0, 0]])
                 df['mixed_column'] = 'testing'
                 df.loc[2, 'mixed_column'] = np.nan
-                _maybe_remove(store, 'df')
+                maybe_remove(store, 'df')
                 store.append('df', df)
                 tm.assert_frame_equal(store['df'], df)
 
@@ -969,12 +880,12 @@ class TestHDFStore(Base):
                                   dtype=np.uint32),
                     'u64': Series([2**58, 2**59, 2**60, 2**61, 2**62],
                                   dtype=np.uint64)}, index=np.arange(5))
-                _maybe_remove(store, 'uints')
+                maybe_remove(store, 'uints')
                 store.append('uints', uint_data)
                 tm.assert_frame_equal(store['uints'], uint_data)
 
                 # uints - test storage of uints in indexable columns
-                _maybe_remove(store, 'uints')
+                maybe_remove(store, 'uints')
                 # 64-bit indices not yet supported
                 store.append('uints', uint_data, data_columns=[
                              'u08', 'u16', 'u32'])
@@ -1036,7 +947,7 @@ class TestHDFStore(Base):
                 df = DataFrame(np.random.randn(10, 2), columns=list('AB'))
                 df.index = index(len(df))
 
-                _maybe_remove(store, 'df')
+                maybe_remove(store, 'df')
                 store.put('df', df, format=format)
                 assert_frame_equal(df, store['df'])
 
@@ -1074,7 +985,7 @@ class TestHDFStore(Base):
             df = DataFrame(dict(A='foo', B='bar'), index=range(5))
             df.loc[2, 'A'] = np.nan
             df.loc[3, 'B'] = np.nan
-            _maybe_remove(store, 'df')
+            maybe_remove(store, 'df')
             store.append('df', df, encoding='ascii')
             tm.assert_frame_equal(store['df'], df)
 
@@ -1141,7 +1052,7 @@ class TestHDFStore(Base):
                             'E': datetime.datetime(2001, 1, 2, 0, 0)},
                            index=np.arange(20))
             # some nans
-            _maybe_remove(store, 'df1')
+            maybe_remove(store, 'df1')
             df.loc[0:15, ['A1', 'B', 'D', 'E']] = np.nan
             store.append('df1', df[:10])
             store.append('df1', df[10:])
@@ -1150,7 +1061,7 @@ class TestHDFStore(Base):
             # first column
             df1 = df.copy()
             df1.loc[:, 'A1'] = np.nan
-            _maybe_remove(store, 'df1')
+            maybe_remove(store, 'df1')
             store.append('df1', df1[:10])
             store.append('df1', df1[10:])
             tm.assert_frame_equal(store['df1'], df1)
@@ -1158,7 +1069,7 @@ class TestHDFStore(Base):
             # 2nd column
             df2 = df.copy()
             df2.loc[:, 'A2'] = np.nan
-            _maybe_remove(store, 'df2')
+            maybe_remove(store, 'df2')
             store.append('df2', df2[:10])
             store.append('df2', df2[10:])
             tm.assert_frame_equal(store['df2'], df2)
@@ -1166,7 +1077,7 @@ class TestHDFStore(Base):
             # datetimes
             df3 = df.copy()
             df3.loc[:, 'E'] = np.nan
-            _maybe_remove(store, 'df3')
+            maybe_remove(store, 'df3')
             store.append('df3', df3[:10])
             store.append('df3', df3[10:])
             tm.assert_frame_equal(store['df3'], df3)
@@ -1181,26 +1092,26 @@ class TestHDFStore(Base):
             df.loc[0:15, :] = np.nan
 
             # nan some entire rows (dropna=True)
-            _maybe_remove(store, 'df')
+            maybe_remove(store, 'df')
             store.append('df', df[:10], dropna=True)
             store.append('df', df[10:], dropna=True)
             tm.assert_frame_equal(store['df'], df[-4:])
 
             # nan some entire rows (dropna=False)
-            _maybe_remove(store, 'df2')
+            maybe_remove(store, 'df2')
             store.append('df2', df[:10], dropna=False)
             store.append('df2', df[10:], dropna=False)
             tm.assert_frame_equal(store['df2'], df)
 
             # tests the option io.hdf.dropna_table
             pd.set_option('io.hdf.dropna_table', False)
-            _maybe_remove(store, 'df3')
+            maybe_remove(store, 'df3')
             store.append('df3', df[:10])
             store.append('df3', df[10:])
             tm.assert_frame_equal(store['df3'], df)
 
             pd.set_option('io.hdf.dropna_table', True)
-            _maybe_remove(store, 'df4')
+            maybe_remove(store, 'df4')
             store.append('df4', df[:10])
             store.append('df4', df[10:])
             tm.assert_frame_equal(store['df4'], df[-4:])
@@ -1213,12 +1124,12 @@ class TestHDFStore(Base):
 
             df.loc[0:15, :] = np.nan
 
-            _maybe_remove(store, 'df')
+            maybe_remove(store, 'df')
             store.append('df', df[:10], dropna=True)
             store.append('df', df[10:], dropna=True)
             tm.assert_frame_equal(store['df'], df)
 
-            _maybe_remove(store, 'df2')
+            maybe_remove(store, 'df2')
             store.append('df2', df[:10], dropna=False)
             store.append('df2', df[10:], dropna=False)
             tm.assert_frame_equal(store['df2'], df)
@@ -1234,12 +1145,12 @@ class TestHDFStore(Base):
 
             df.loc[0:15, :] = np.nan
 
-            _maybe_remove(store, 'df')
+            maybe_remove(store, 'df')
             store.append('df', df[:10], dropna=True)
             store.append('df', df[10:], dropna=True)
             tm.assert_frame_equal(store['df'], df)
 
-            _maybe_remove(store, 'df2')
+            maybe_remove(store, 'df2')
             store.append('df2', df[:10], dropna=False)
             store.append('df2', df[10:], dropna=False)
             tm.assert_frame_equal(store['df2'], df)
@@ -1276,7 +1187,7 @@ class TestHDFStore(Base):
 
             # column oriented
             df = tm.makeTimeDataFrame()
-            _maybe_remove(store, 'df1')
+            maybe_remove(store, 'df1')
             store.append('df1', df.iloc[:, :2], axes=['columns'])
             store.append('df1', df.iloc[:, 2:])
             tm.assert_frame_equal(store['df1'], df)
@@ -1428,7 +1339,7 @@ class TestHDFStore(Base):
                                        pd.concat([df['B'], df2['B']]))
 
                 # with nans
-                _maybe_remove(store, 'df')
+                maybe_remove(store, 'df')
                 df = tm.makeTimeDataFrame()
                 df['string'] = 'foo'
                 df.loc[1:4, 'string'] = np.nan
@@ -1449,19 +1360,19 @@ class TestHDFStore(Base):
             df = DataFrame(dict(A='foo', B='bar'), index=range(10))
 
             # a min_itemsize that creates a data_column
-            _maybe_remove(store, 'df')
+            maybe_remove(store, 'df')
             store.append('df', df, min_itemsize={'A': 200})
             check_col('df', 'A', 200)
             assert store.get_storer('df').data_columns == ['A']
 
             # a min_itemsize that creates a data_column2
-            _maybe_remove(store, 'df')
+            maybe_remove(store, 'df')
             store.append('df', df, data_columns=['B'], min_itemsize={'A': 200})
             check_col('df', 'A', 200)
             assert store.get_storer('df').data_columns == ['B', 'A']
 
             # a min_itemsize that creates a data_column2
-            _maybe_remove(store, 'df')
+            maybe_remove(store, 'df')
             store.append('df', df, data_columns=[
                          'B'], min_itemsize={'values': 200})
             check_col('df', 'B', 200)
@@ -1469,7 +1380,7 @@ class TestHDFStore(Base):
             assert store.get_storer('df').data_columns == ['B']
 
             # infer the .typ on subsequent appends
-            _maybe_remove(store, 'df')
+            maybe_remove(store, 'df')
             store.append('df', df[:5], min_itemsize=200)
             store.append('df', df[5:], min_itemsize=200)
             tm.assert_frame_equal(store['df'], df)
@@ -1477,7 +1388,7 @@ class TestHDFStore(Base):
             # invalid min_itemsize keys
             df = DataFrame(['foo', 'foo', 'foo', 'barh',
                             'barh', 'barh'], columns=['A'])
-            _maybe_remove(store, 'df')
+            maybe_remove(store, 'df')
             pytest.raises(ValueError, store.append, 'df',
                           df, min_itemsize={'foo': 20, 'foobar': 20})
 
@@ -1528,7 +1439,7 @@ class TestHDFStore(Base):
         with ensure_clean_store(self.path) as store:
             df = tm.makeTimeDataFrame()
             df.iloc[0, df.columns.get_loc('B')] = 1.
-            _maybe_remove(store, 'df')
+            maybe_remove(store, 'df')
             store.append('df', df[:2], data_columns=['B'])
             store.append('df', df[2:])
             tm.assert_frame_equal(store['df'], df)
@@ -1554,7 +1465,7 @@ class TestHDFStore(Base):
             df_new['string'] = 'foo'
             df_new.loc[1:4, 'string'] = np.nan
             df_new.loc[5:6, 'string'] = 'bar'
-            _maybe_remove(store, 'df')
+            maybe_remove(store, 'df')
             store.append('df', df_new, data_columns=['string'])
             result = store.select('df', "string='foo'")
             expected = df_new[df_new.string == 'foo']
@@ -1566,15 +1477,15 @@ class TestHDFStore(Base):
                                .table.description, name).itemsize == size
 
         with ensure_clean_store(self.path) as store:
-            _maybe_remove(store, 'df')
+            maybe_remove(store, 'df')
             store.append('df', df_new, data_columns=['string'],
                          min_itemsize={'string': 30})
             check_col('df', 'string', 30)
-            _maybe_remove(store, 'df')
+            maybe_remove(store, 'df')
             store.append(
                 'df', df_new, data_columns=['string'], min_itemsize=30)
             check_col('df', 'string', 30)
-            _maybe_remove(store, 'df')
+            maybe_remove(store, 'df')
             store.append('df', df_new, data_columns=['string'],
                          min_itemsize={'values': 30})
             check_col('df', 'string', 30)
@@ -1583,7 +1494,7 @@ class TestHDFStore(Base):
             df_new['string2'] = 'foobarbah'
             df_new['string_block1'] = 'foobarbah1'
             df_new['string_block2'] = 'foobarbah2'
-            _maybe_remove(store, 'df')
+            maybe_remove(store, 'df')
             store.append('df', df_new, data_columns=['string', 'string2'],
                          min_itemsize={'string': 30, 'string2': 40,
                                        'values': 50})
@@ -1606,7 +1517,7 @@ class TestHDFStore(Base):
             sl = df_new.columns.get_loc('string2')
             df_new.iloc[2:5, sl] = np.nan
             df_new.iloc[7:8, sl] = 'bar'
-            _maybe_remove(store, 'df')
+            maybe_remove(store, 'df')
             store.append(
                 'df', df_new, data_columns=['A', 'B', 'string', 'string2'])
             result = store.select('df',
@@ -1633,7 +1544,7 @@ class TestHDFStore(Base):
             df_dc = df_dc._convert(datetime=True)
             df_dc.loc[3:5, ['A', 'B', 'datetime']] = np.nan
 
-            _maybe_remove(store, 'df_dc')
+            maybe_remove(store, 'df_dc')
             store.append('df_dc', df_dc,
                          data_columns=['B', 'C', 'string',
                                        'string2', 'datetime'])
@@ -1757,7 +1668,7 @@ class TestHDFStore(Base):
                 assert(col('f2', 'string2').is_indexed is False)
 
                 # try to index a non-table
-                _maybe_remove(store, 'f2')
+                maybe_remove(store, 'f2')
                 store.put('f2', df)
                 pytest.raises(TypeError, store.create_table_index, 'f2')
 
@@ -1864,21 +1775,21 @@ class TestHDFStore(Base):
                                               names=names)
 
             # no names
-            _maybe_remove(store, 'df')
+            maybe_remove(store, 'df')
             df = DataFrame(np.zeros((12, 2)), columns=[
                            'a', 'b'], index=make_index())
             store.append('df', df)
             tm.assert_frame_equal(store.select('df'), df)
 
             # partial names
-            _maybe_remove(store, 'df')
+            maybe_remove(store, 'df')
             df = DataFrame(np.zeros((12, 2)), columns=[
                            'a', 'b'], index=make_index(['date', None, None]))
             store.append('df', df)
             tm.assert_frame_equal(store.select('df'), df)
 
             # series
-            _maybe_remove(store, 's')
+            maybe_remove(store, 's')
             s = Series(np.zeros(12), index=make_index(['date', None, None]))
             store.append('s', s)
             xp = Series(np.zeros(12), index=make_index(
@@ -1886,19 +1797,19 @@ class TestHDFStore(Base):
             tm.assert_series_equal(store.select('s'), xp)
 
             # dup with column
-            _maybe_remove(store, 'df')
+            maybe_remove(store, 'df')
             df = DataFrame(np.zeros((12, 2)), columns=[
                            'a', 'b'], index=make_index(['date', 'a', 't']))
             pytest.raises(ValueError, store.append, 'df', df)
 
             # dup within level
-            _maybe_remove(store, 'df')
+            maybe_remove(store, 'df')
             df = DataFrame(np.zeros((12, 2)), columns=['a', 'b'],
                            index=make_index(['date', 'date', 'date']))
             pytest.raises(ValueError, store.append, 'df', df)
 
             # fully names
-            _maybe_remove(store, 'df')
+            maybe_remove(store, 'df')
             df = DataFrame(np.zeros((12, 2)), columns=[
                            'a', 'b'], index=make_index(['date', 's', 't']))
             store.append('df', df)
@@ -2241,7 +2152,7 @@ class TestHDFStore(Base):
         with ensure_clean_store(self.path) as store:
 
             # table
-            _maybe_remove(store, 'df')
+            maybe_remove(store, 'df')
             store.append('df', df, data_columns=True)
             result = store.select('df')
             assert_frame_equal(result, df)
@@ -2266,7 +2177,7 @@ class TestHDFStore(Base):
             assert_frame_equal(result, df.iloc[4:])
 
             # fixed
-            _maybe_remove(store, 'df2')
+            maybe_remove(store, 'df2')
             store.put('df2', df)
             result = store.select('df2')
             assert_frame_equal(result, df)
@@ -2279,11 +2190,11 @@ class TestHDFStore(Base):
             df = tm.makeDataFrame()
             store['a'] = ts
             store['b'] = df
-            _maybe_remove(store, 'a')
+            maybe_remove(store, 'a')
             assert len(store) == 1
             tm.assert_frame_equal(df, store['b'])
 
-            _maybe_remove(store, 'b')
+            maybe_remove(store, 'b')
             assert len(store) == 0
 
             # nonexistence
@@ -2292,13 +2203,13 @@ class TestHDFStore(Base):
             # pathing
             store['a'] = ts
             store['b/foo'] = df
-            _maybe_remove(store, 'foo')
-            _maybe_remove(store, 'b/foo')
+            maybe_remove(store, 'foo')
+            maybe_remove(store, 'b/foo')
             assert len(store) == 1
 
             store['a'] = ts
             store['b/foo'] = df
-            _maybe_remove(store, 'b')
+            maybe_remove(store, 'b')
             assert len(store) == 1
 
             # __delitem__
@@ -2328,7 +2239,7 @@ class TestHDFStore(Base):
                 assert_panel_equal(rs, expected)
 
                 # empty where
-                _maybe_remove(store, 'wp')
+                maybe_remove(store, 'wp')
                 store.put('wp', wp, format='table')
 
                 # deleted number (entire table)
@@ -2336,7 +2247,7 @@ class TestHDFStore(Base):
                 assert n == 120
 
                 # non - empty where
-                _maybe_remove(store, 'wp')
+                maybe_remove(store, 'wp')
                 store.put('wp', wp, format='table')
                 pytest.raises(ValueError, store.remove,
                               'wp', ['foo'])
@@ -2350,7 +2261,7 @@ class TestHDFStore(Base):
                 wp = tm.makePanel(30)
 
                 # start
-                _maybe_remove(store, 'wp1')
+                maybe_remove(store, 'wp1')
                 store.put('wp1', wp, format='t')
                 n = store.remove('wp1', start=32)
                 assert n == 120 - 32
@@ -2358,7 +2269,7 @@ class TestHDFStore(Base):
                 expected = wp.reindex(major_axis=wp.major_axis[:32 // 4])
                 assert_panel_equal(result, expected)
 
-                _maybe_remove(store, 'wp2')
+                maybe_remove(store, 'wp2')
                 store.put('wp2', wp, format='t')
                 n = store.remove('wp2', start=-32)
                 assert n == 32
@@ -2367,7 +2278,7 @@ class TestHDFStore(Base):
                 assert_panel_equal(result, expected)
 
                 # stop
-                _maybe_remove(store, 'wp3')
+                maybe_remove(store, 'wp3')
                 store.put('wp3', wp, format='t')
                 n = store.remove('wp3', stop=32)
                 assert n == 32
@@ -2375,7 +2286,7 @@ class TestHDFStore(Base):
                 expected = wp.reindex(major_axis=wp.major_axis[32 // 4:])
                 assert_panel_equal(result, expected)
 
-                _maybe_remove(store, 'wp4')
+                maybe_remove(store, 'wp4')
                 store.put('wp4', wp, format='t')
                 n = store.remove('wp4', stop=-32)
                 assert n == 120 - 32
@@ -2384,7 +2295,7 @@ class TestHDFStore(Base):
                 assert_panel_equal(result, expected)
 
                 # start n stop
-                _maybe_remove(store, 'wp5')
+                maybe_remove(store, 'wp5')
                 store.put('wp5', wp, format='t')
                 n = store.remove('wp5', start=16, stop=-16)
                 assert n == 120 - 32
@@ -2394,7 +2305,7 @@ class TestHDFStore(Base):
                                 .union(wp.major_axis[-16 // 4:])))
                 assert_panel_equal(result, expected)
 
-                _maybe_remove(store, 'wp6')
+                maybe_remove(store, 'wp6')
                 store.put('wp6', wp, format='t')
                 n = store.remove('wp6', start=16, stop=16)
                 assert n == 0
@@ -2403,7 +2314,7 @@ class TestHDFStore(Base):
                 assert_panel_equal(result, expected)
 
                 # with where
-                _maybe_remove(store, 'wp7')
+                maybe_remove(store, 'wp7')
 
                 # TODO: unused?
                 date = wp.major_axis.take(np.arange(0, 30, 3))  # noqa
@@ -2425,7 +2336,7 @@ class TestHDFStore(Base):
                 wp = tm.makePanel(30)
 
                 # group row removal
-                _maybe_remove(store, 'wp3')
+                maybe_remove(store, 'wp3')
                 date4 = wp.major_axis.take([0, 1, 2, 4, 5, 6, 8, 9, 10])
                 crit4 = 'major_axis=date4'
                 store.put('wp3', wp, format='t')
@@ -2438,7 +2349,7 @@ class TestHDFStore(Base):
                 assert_panel_equal(result, expected)
 
                 # upper half
-                _maybe_remove(store, 'wp')
+                maybe_remove(store, 'wp')
                 store.put('wp', wp, format='table')
                 date = wp.major_axis[len(wp.major_axis) // 2]
 
@@ -2455,7 +2366,7 @@ class TestHDFStore(Base):
                 assert_panel_equal(result, expected)
 
                 # individual row elements
-                _maybe_remove(store, 'wp2')
+                maybe_remove(store, 'wp2')
                 store.put('wp2', wp, format='table')
 
                 date1 = wp.major_axis[1:3]
@@ -2488,7 +2399,7 @@ class TestHDFStore(Base):
                 assert_panel_equal(result, expected)
 
                 # corners
-                _maybe_remove(store, 'wp4')
+                maybe_remove(store, 'wp4')
                 store.put('wp4', wp, format='table')
                 n = store.remove(
                     'wp4', where="major_axis>wp.major_axis[-1]")
@@ -3122,12 +3033,12 @@ class TestHDFStore(Base):
                 wp = tm.makePanel()
 
                 # put/select ok
-                _maybe_remove(store, 'wp')
+                maybe_remove(store, 'wp')
                 store.put('wp', wp, format='table')
                 store.select('wp')
 
                 # non-table ok (where = None)
-                _maybe_remove(store, 'wp')
+                maybe_remove(store, 'wp')
                 store.put('wp2', wp)
                 store.select('wp2')
 
@@ -3137,7 +3048,7 @@ class TestHDFStore(Base):
                            major_axis=date_range('1/1/2000', periods=100),
                            minor_axis=['E%03d' % i for i in range(100)])
 
-                _maybe_remove(store, 'wp')
+                maybe_remove(store, 'wp')
                 store.append('wp', wp)
                 items = ['Item%03d' % i for i in range(80)]
                 result = store.select('wp', 'items=items')
@@ -3150,7 +3061,7 @@ class TestHDFStore(Base):
 
                 # select with columns=
                 df = tm.makeTimeDataFrame()
-                _maybe_remove(store, 'df')
+                maybe_remove(store, 'df')
                 store.append('df', df)
                 result = store.select('df', columns=['A', 'B'])
                 expected = df.reindex(columns=['A', 'B'])
@@ -3162,21 +3073,21 @@ class TestHDFStore(Base):
                 tm.assert_frame_equal(expected, result)
 
                 # with a data column
-                _maybe_remove(store, 'df')
+                maybe_remove(store, 'df')
                 store.append('df', df, data_columns=['A'])
                 result = store.select('df', ['A > 0'], columns=['A', 'B'])
                 expected = df[df.A > 0].reindex(columns=['A', 'B'])
                 tm.assert_frame_equal(expected, result)
 
                 # all a data columns
-                _maybe_remove(store, 'df')
+                maybe_remove(store, 'df')
                 store.append('df', df, data_columns=True)
                 result = store.select('df', ['A > 0'], columns=['A', 'B'])
                 expected = df[df.A > 0].reindex(columns=['A', 'B'])
                 tm.assert_frame_equal(expected, result)
 
                 # with a data column, but different columns
-                _maybe_remove(store, 'df')
+                maybe_remove(store, 'df')
                 store.append('df', df, data_columns=['A'])
                 result = store.select('df', ['A > 0'], columns=['C', 'D'])
                 expected = df[df.A > 0].reindex(columns=['C', 'D'])
@@ -3189,7 +3100,7 @@ class TestHDFStore(Base):
             df = DataFrame(dict(
                 ts=bdate_range('2012-01-01', periods=300),
                 A=np.random.randn(300)))
-            _maybe_remove(store, 'df')
+            maybe_remove(store, 'df')
             store.append('df', df, data_columns=['ts', 'A'])
 
             result = store.select('df', "ts>=Timestamp('2012-02-01')")
@@ -3201,7 +3112,7 @@ class TestHDFStore(Base):
             df['object'] = 'foo'
             df.loc[4:5, 'object'] = 'bar'
             df['boolv'] = df['A'] > 0
-            _maybe_remove(store, 'df')
+            maybe_remove(store, 'df')
             store.append('df', df, data_columns=True)
 
             expected = (df[df.boolv == True]  # noqa
@@ -3220,7 +3131,7 @@ class TestHDFStore(Base):
 
             # integer index
             df = DataFrame(dict(A=np.random.rand(20), B=np.random.rand(20)))
-            _maybe_remove(store, 'df_int')
+            maybe_remove(store, 'df_int')
             store.append('df_int', df)
             result = store.select(
                 'df_int', "index<10 and columns=['A']")
@@ -3230,7 +3141,7 @@ class TestHDFStore(Base):
             # float index
             df = DataFrame(dict(A=np.random.rand(
                 20), B=np.random.rand(20), index=np.arange(20, dtype='f8')))
-            _maybe_remove(store, 'df_float')
+            maybe_remove(store, 'df_float')
             store.append('df_float', df)
             result = store.select(
                 'df_float', "index<10.0 and columns=['A']")
@@ -3300,7 +3211,7 @@ class TestHDFStore(Base):
                                 B=range(300),
                                 users=['a'] * 50 + ['b'] * 50 + ['c'] * 100 +
                                 ['a%03d' % i for i in range(100)]))
-            _maybe_remove(store, 'df')
+            maybe_remove(store, 'df')
             store.append('df', df, data_columns=['ts', 'A', 'B', 'users'])
 
             # regular select
@@ -3344,7 +3255,7 @@ class TestHDFStore(Base):
         with ensure_clean_store(self.path) as store:
 
             df = tm.makeTimeDataFrame(500)
-            _maybe_remove(store, 'df')
+            maybe_remove(store, 'df')
             store.append('df', df)
 
             expected = store.select('df')
@@ -3414,7 +3325,7 @@ class TestHDFStore(Base):
         with ensure_clean_store(self.path) as store:
 
             expected = tm.makeTimeDataFrame(100064, 'S')
-            _maybe_remove(store, 'df')
+            maybe_remove(store, 'df')
             store.append('df', expected)
 
             beg_dt = expected.index[0]
@@ -3446,7 +3357,7 @@ class TestHDFStore(Base):
         with ensure_clean_store(self.path) as store:
 
             expected = tm.makeTimeDataFrame(100064, 'S')
-            _maybe_remove(store, 'df')
+            maybe_remove(store, 'df')
             store.append('df', expected)
 
             beg_dt = expected.index[0]
@@ -3488,7 +3399,7 @@ class TestHDFStore(Base):
         with ensure_clean_store(self.path) as store:
 
             expected = tm.makeTimeDataFrame(100064, 'S')
-            _maybe_remove(store, 'df')
+            maybe_remove(store, 'df')
             store.append('df', expected)
 
             beg_dt = expected.index[1]
@@ -3523,7 +3434,7 @@ class TestHDFStore(Base):
         with ensure_clean_store(self.path) as store:
 
             expected = tm.makeTimeDataFrame(100064, 'S')
-            _maybe_remove(store, 'df')
+            maybe_remove(store, 'df')
             store.append('df', expected)
 
             end_dt = expected.index[-1]
@@ -3545,7 +3456,7 @@ class TestHDFStore(Base):
         with ensure_clean_store(self.path) as store:
 
             expected = tm.makeTimeDataFrame(100000, 'S')
-            _maybe_remove(store, 'df')
+            maybe_remove(store, 'df')
             store.append('df', expected)
 
             beg_dt = expected.index[0]
@@ -3606,7 +3517,7 @@ class TestHDFStore(Base):
                      index=date_range('2000-1-1', periods=3, freq='H'))))
 
         with ensure_clean_store(self.path) as store:
-            _maybe_remove(store, 'data')
+            maybe_remove(store, 'data')
             store.put('data', df, format='table')
 
             result = store.get('data')
@@ -3628,7 +3539,7 @@ class TestHDFStore(Base):
             assert store.get_storer('data').info['index']['freq'] is None
 
             # this is ok
-            _maybe_remove(store, 'df2')
+            maybe_remove(store, 'df2')
             df2 = DataFrame(dict(
                 A=Series(lrange(3),
                          index=[Timestamp('20010101'), Timestamp('20010102'),
@@ -3917,7 +3828,7 @@ class TestHDFStore(Base):
         df = tm.makeTimeDataFrame()
 
         with ensure_clean_store(self.path) as store:
-            _maybe_remove(store, 'df')
+            maybe_remove(store, 'df')
 
             # GH 17912
             # HDFStore.select_column should raise a KeyError
@@ -3989,7 +3900,7 @@ class TestHDFStore(Base):
 
         with ensure_clean_store(self.path) as store:
 
-            _maybe_remove(store, 'df')
+            maybe_remove(store, 'df')
             store.append('df', df)
 
             # all
@@ -3997,7 +3908,7 @@ class TestHDFStore(Base):
             assert((c.values == np.arange(len(df.index))).all())
 
             # get coordinates back & test vs frame
-            _maybe_remove(store, 'df')
+            maybe_remove(store, 'df')
 
             df = DataFrame(dict(A=lrange(5), B=lrange(5)))
             store.append('df', df)
@@ -4015,8 +3926,8 @@ class TestHDFStore(Base):
             assert isinstance(c, Index)
 
             # multiple tables
-            _maybe_remove(store, 'df1')
-            _maybe_remove(store, 'df2')
+            maybe_remove(store, 'df1')
+            maybe_remove(store, 'df2')
             df1 = tm.makeTimeDataFrame()
             df2 = tm.makeTimeDataFrame().rename(columns=lambda x: "%s_2" % x)
             store.append('df1', df1, data_columns=['A', 'B'])
@@ -4756,41 +4667,41 @@ class TestHDFStore(Base):
         with ensure_clean_store(self.path) as store:
 
             # Basic
-            _maybe_remove(store, 's')
+            maybe_remove(store, 's')
             s = Series(Categorical(['a', 'b', 'b', 'a', 'a', 'c'], categories=[
                        'a', 'b', 'c', 'd'], ordered=False))
             store.append('s', s, format='table')
             result = store.select('s')
             tm.assert_series_equal(s, result)
 
-            _maybe_remove(store, 's_ordered')
+            maybe_remove(store, 's_ordered')
             s = Series(Categorical(['a', 'b', 'b', 'a', 'a', 'c'], categories=[
                        'a', 'b', 'c', 'd'], ordered=True))
             store.append('s_ordered', s, format='table')
             result = store.select('s_ordered')
             tm.assert_series_equal(s, result)
 
-            _maybe_remove(store, 'df')
+            maybe_remove(store, 'df')
             df = DataFrame({"s": s, "vals": [1, 2, 3, 4, 5, 6]})
             store.append('df', df, format='table')
             result = store.select('df')
             tm.assert_frame_equal(result, df)
 
             # Dtypes
-            _maybe_remove(store, 'si')
+            maybe_remove(store, 'si')
             s = Series([1, 1, 2, 2, 3, 4, 5]).astype('category')
             store.append('si', s)
             result = store.select('si')
             tm.assert_series_equal(result, s)
 
-            _maybe_remove(store, 'si2')
+            maybe_remove(store, 'si2')
             s = Series([1, 1, np.nan, 2, 3, 4, 5]).astype('category')
             store.append('si2', s)
             result = store.select('si2')
             tm.assert_series_equal(result, s)
 
             # Multiple
-            _maybe_remove(store, 'df2')
+            maybe_remove(store, 'df2')
             df2 = df.copy()
             df2['s2'] = Series(list('abcdefg')).astype('category')
             store.append('df2', df2)
@@ -4804,7 +4715,7 @@ class TestHDFStore(Base):
             assert '/df2/meta/values_block_1/meta' in info
 
             # unordered
-            _maybe_remove(store, 's2')
+            maybe_remove(store, 's2')
             s = Series(Categorical(['a', 'b', 'b', 'a', 'a', 'c'], categories=[
                        'a', 'b', 'c', 'd'], ordered=False))
             store.append('s2', s, format='table')
@@ -4812,7 +4723,7 @@ class TestHDFStore(Base):
             tm.assert_series_equal(result, s)
 
             # Query
-            _maybe_remove(store, 'df3')
+            maybe_remove(store, 'df3')
             store.append('df3', df, data_columns=['s'])
             expected = df[df.s.isin(['b', 'c'])]
             result = store.select('df3', where=['s in ["b","c"]'])
@@ -5228,424 +5139,3 @@ class TestHDFStore(Base):
                 mode='r') as store:
             result = store['p']
             assert_frame_equal(result, expected)
-
-
-class TestHDFComplexValues(Base):
-    # GH10447
-
-    def test_complex_fixed(self):
-        df = DataFrame(np.random.rand(4, 5).astype(np.complex64),
-                       index=list('abcd'),
-                       columns=list('ABCDE'))
-
-        with ensure_clean_path(self.path) as path:
-            df.to_hdf(path, 'df')
-            reread = read_hdf(path, 'df')
-            assert_frame_equal(df, reread)
-
-        df = DataFrame(np.random.rand(4, 5).astype(np.complex128),
-                       index=list('abcd'),
-                       columns=list('ABCDE'))
-        with ensure_clean_path(self.path) as path:
-            df.to_hdf(path, 'df')
-            reread = read_hdf(path, 'df')
-            assert_frame_equal(df, reread)
-
-    def test_complex_table(self):
-        df = DataFrame(np.random.rand(4, 5).astype(np.complex64),
-                       index=list('abcd'),
-                       columns=list('ABCDE'))
-
-        with ensure_clean_path(self.path) as path:
-            df.to_hdf(path, 'df', format='table')
-            reread = read_hdf(path, 'df')
-            assert_frame_equal(df, reread)
-
-        df = DataFrame(np.random.rand(4, 5).astype(np.complex128),
-                       index=list('abcd'),
-                       columns=list('ABCDE'))
-
-        with ensure_clean_path(self.path) as path:
-            df.to_hdf(path, 'df', format='table', mode='w')
-            reread = read_hdf(path, 'df')
-            assert_frame_equal(df, reread)
-
-    def test_complex_mixed_fixed(self):
-        complex64 = np.array([1.0 + 1.0j, 1.0 + 1.0j,
-                              1.0 + 1.0j, 1.0 + 1.0j], dtype=np.complex64)
-        complex128 = np.array([1.0 + 1.0j, 1.0 + 1.0j, 1.0 + 1.0j, 1.0 + 1.0j],
-                              dtype=np.complex128)
-        df = DataFrame({'A': [1, 2, 3, 4],
-                        'B': ['a', 'b', 'c', 'd'],
-                        'C': complex64,
-                        'D': complex128,
-                        'E': [1.0, 2.0, 3.0, 4.0]},
-                       index=list('abcd'))
-        with ensure_clean_path(self.path) as path:
-            df.to_hdf(path, 'df')
-            reread = read_hdf(path, 'df')
-            assert_frame_equal(df, reread)
-
-    def test_complex_mixed_table(self):
-        complex64 = np.array([1.0 + 1.0j, 1.0 + 1.0j,
-                              1.0 + 1.0j, 1.0 + 1.0j], dtype=np.complex64)
-        complex128 = np.array([1.0 + 1.0j, 1.0 + 1.0j, 1.0 + 1.0j, 1.0 + 1.0j],
-                              dtype=np.complex128)
-        df = DataFrame({'A': [1, 2, 3, 4],
-                        'B': ['a', 'b', 'c', 'd'],
-                        'C': complex64,
-                        'D': complex128,
-                        'E': [1.0, 2.0, 3.0, 4.0]},
-                       index=list('abcd'))
-
-        with ensure_clean_store(self.path) as store:
-            store.append('df', df, data_columns=['A', 'B'])
-            result = store.select('df', where='A>2')
-            assert_frame_equal(df.loc[df.A > 2], result)
-
-        with ensure_clean_path(self.path) as path:
-            df.to_hdf(path, 'df', format='table')
-            reread = read_hdf(path, 'df')
-            assert_frame_equal(df, reread)
-
-    @pytest.mark.filterwarnings("ignore:\\nPanel:FutureWarning")
-    def test_complex_across_dimensions_fixed(self):
-        with catch_warnings(record=True):
-            complex128 = np.array(
-                [1.0 + 1.0j, 1.0 + 1.0j, 1.0 + 1.0j, 1.0 + 1.0j])
-            s = Series(complex128, index=list('abcd'))
-            df = DataFrame({'A': s, 'B': s})
-            p = Panel({'One': df, 'Two': df})
-
-            objs = [s, df, p]
-            comps = [tm.assert_series_equal, tm.assert_frame_equal,
-                     tm.assert_panel_equal]
-            for obj, comp in zip(objs, comps):
-                with ensure_clean_path(self.path) as path:
-                    obj.to_hdf(path, 'obj', format='fixed')
-                    reread = read_hdf(path, 'obj')
-                    comp(obj, reread)
-
-    @pytest.mark.filterwarnings("ignore:\\nPanel:FutureWarning")
-    def test_complex_across_dimensions(self):
-        complex128 = np.array([1.0 + 1.0j, 1.0 + 1.0j, 1.0 + 1.0j, 1.0 + 1.0j])
-        s = Series(complex128, index=list('abcd'))
-        df = DataFrame({'A': s, 'B': s})
-
-        with catch_warnings(record=True):
-            p = Panel({'One': df, 'Two': df})
-
-            objs = [df, p]
-            comps = [tm.assert_frame_equal, tm.assert_panel_equal]
-            for obj, comp in zip(objs, comps):
-                with ensure_clean_path(self.path) as path:
-                    obj.to_hdf(path, 'obj', format='table')
-                    reread = read_hdf(path, 'obj')
-                    comp(obj, reread)
-
-    def test_complex_indexing_error(self):
-        complex128 = np.array([1.0 + 1.0j, 1.0 + 1.0j, 1.0 + 1.0j, 1.0 + 1.0j],
-                              dtype=np.complex128)
-        df = DataFrame({'A': [1, 2, 3, 4],
-                        'B': ['a', 'b', 'c', 'd'],
-                        'C': complex128},
-                       index=list('abcd'))
-        with ensure_clean_store(self.path) as store:
-            pytest.raises(TypeError, store.append,
-                          'df', df, data_columns=['C'])
-
-    def test_complex_series_error(self):
-        complex128 = np.array([1.0 + 1.0j, 1.0 + 1.0j, 1.0 + 1.0j, 1.0 + 1.0j])
-        s = Series(complex128, index=list('abcd'))
-
-        with ensure_clean_path(self.path) as path:
-            pytest.raises(TypeError, s.to_hdf, path, 'obj', format='t')
-
-        with ensure_clean_path(self.path) as path:
-            s.to_hdf(path, 'obj', format='t', index=False)
-            reread = read_hdf(path, 'obj')
-            tm.assert_series_equal(s, reread)
-
-    def test_complex_append(self):
-        df = DataFrame({'a': np.random.randn(100).astype(np.complex128),
-                        'b': np.random.randn(100)})
-
-        with ensure_clean_store(self.path) as store:
-            store.append('df', df, data_columns=['b'])
-            store.append('df', df)
-            result = store.select('df')
-            assert_frame_equal(pd.concat([df, df], 0), result)
-
-
-class TestTimezones(Base):
-
-    def _compare_with_tz(self, a, b):
-        tm.assert_frame_equal(a, b)
-
-        # compare the zones on each element
-        for c in a.columns:
-            for i in a.index:
-                a_e = a.loc[i, c]
-                b_e = b.loc[i, c]
-                if not (a_e == b_e and a_e.tz == b_e.tz):
-                    raise AssertionError(
-                        "invalid tz comparison [%s] [%s]" % (a_e, b_e))
-
-    def test_append_with_timezones_dateutil(self):
-
-        from datetime import timedelta
-
-        # use maybe_get_tz instead of dateutil.tz.gettz to handle the windows
-        # filename issues.
-        from pandas._libs.tslibs.timezones import maybe_get_tz
-        gettz = lambda x: maybe_get_tz('dateutil/' + x)
-
-        # as columns
-        with ensure_clean_store(self.path) as store:
-
-            _maybe_remove(store, 'df_tz')
-            df = DataFrame(dict(A=[Timestamp('20130102 2:00:00', tz=gettz(
-                'US/Eastern')) + timedelta(hours=1) * i for i in range(5)]))
-
-            store.append('df_tz', df, data_columns=['A'])
-            result = store['df_tz']
-            self._compare_with_tz(result, df)
-            assert_frame_equal(result, df)
-
-            # select with tz aware
-            expected = df[df.A >= df.A[3]]
-            result = store.select('df_tz', where='A>=df.A[3]')
-            self._compare_with_tz(result, expected)
-
-            # ensure we include dates in DST and STD time here.
-            _maybe_remove(store, 'df_tz')
-            df = DataFrame(dict(A=Timestamp('20130102',
-                                            tz=gettz('US/Eastern')),
-                                B=Timestamp('20130603',
-                                            tz=gettz('US/Eastern'))),
-                           index=range(5))
-            store.append('df_tz', df)
-            result = store['df_tz']
-            self._compare_with_tz(result, df)
-            assert_frame_equal(result, df)
-
-            df = DataFrame(dict(A=Timestamp('20130102',
-                                            tz=gettz('US/Eastern')),
-                                B=Timestamp('20130102', tz=gettz('EET'))),
-                           index=range(5))
-            pytest.raises(ValueError, store.append, 'df_tz', df)
-
-            # this is ok
-            _maybe_remove(store, 'df_tz')
-            store.append('df_tz', df, data_columns=['A', 'B'])
-            result = store['df_tz']
-            self._compare_with_tz(result, df)
-            assert_frame_equal(result, df)
-
-            # can't append with diff timezone
-            df = DataFrame(dict(A=Timestamp('20130102',
-                                            tz=gettz('US/Eastern')),
-                                B=Timestamp('20130102', tz=gettz('CET'))),
-                           index=range(5))
-            pytest.raises(ValueError, store.append, 'df_tz', df)
-
-        # as index
-        with ensure_clean_store(self.path) as store:
-
-            # GH 4098 example
-            df = DataFrame(dict(A=Series(lrange(3), index=date_range(
-                '2000-1-1', periods=3, freq='H', tz=gettz('US/Eastern')))))
-
-            _maybe_remove(store, 'df')
-            store.put('df', df)
-            result = store.select('df')
-            assert_frame_equal(result, df)
-
-            _maybe_remove(store, 'df')
-            store.append('df', df)
-            result = store.select('df')
-            assert_frame_equal(result, df)
-
-    def test_append_with_timezones_pytz(self):
-
-        from datetime import timedelta
-
-        # as columns
-        with ensure_clean_store(self.path) as store:
-
-            _maybe_remove(store, 'df_tz')
-            df = DataFrame(dict(A=[Timestamp('20130102 2:00:00',
-                                             tz='US/Eastern') +
-                                   timedelta(hours=1) * i
-                                   for i in range(5)]))
-            store.append('df_tz', df, data_columns=['A'])
-            result = store['df_tz']
-            self._compare_with_tz(result, df)
-            assert_frame_equal(result, df)
-
-            # select with tz aware
-            self._compare_with_tz(store.select(
-                'df_tz', where='A>=df.A[3]'), df[df.A >= df.A[3]])
-
-            _maybe_remove(store, 'df_tz')
-            # ensure we include dates in DST and STD time here.
-            df = DataFrame(dict(A=Timestamp('20130102', tz='US/Eastern'),
-                                B=Timestamp('20130603', tz='US/Eastern')),
-                           index=range(5))
-            store.append('df_tz', df)
-            result = store['df_tz']
-            self._compare_with_tz(result, df)
-            assert_frame_equal(result, df)
-
-            df = DataFrame(dict(A=Timestamp('20130102', tz='US/Eastern'),
-                                B=Timestamp('20130102', tz='EET')),
-                           index=range(5))
-            pytest.raises(ValueError, store.append, 'df_tz', df)
-
-            # this is ok
-            _maybe_remove(store, 'df_tz')
-            store.append('df_tz', df, data_columns=['A', 'B'])
-            result = store['df_tz']
-            self._compare_with_tz(result, df)
-            assert_frame_equal(result, df)
-
-            # can't append with diff timezone
-            df = DataFrame(dict(A=Timestamp('20130102', tz='US/Eastern'),
-                                B=Timestamp('20130102', tz='CET')),
-                           index=range(5))
-            pytest.raises(ValueError, store.append, 'df_tz', df)
-
-        # as index
-        with ensure_clean_store(self.path) as store:
-
-            # GH 4098 example
-            df = DataFrame(dict(A=Series(lrange(3), index=date_range(
-                '2000-1-1', periods=3, freq='H', tz='US/Eastern'))))
-
-            _maybe_remove(store, 'df')
-            store.put('df', df)
-            result = store.select('df')
-            assert_frame_equal(result, df)
-
-            _maybe_remove(store, 'df')
-            store.append('df', df)
-            result = store.select('df')
-            assert_frame_equal(result, df)
-
-    def test_tseries_select_index_column(self):
-        # GH7777
-        # selecting a UTC datetimeindex column did
-        # not preserve UTC tzinfo set before storing
-
-        # check that no tz still works
-        rng = date_range('1/1/2000', '1/30/2000')
-        frame = DataFrame(np.random.randn(len(rng), 4), index=rng)
-
-        with ensure_clean_store(self.path) as store:
-            store.append('frame', frame)
-            result = store.select_column('frame', 'index')
-            assert rng.tz == DatetimeIndex(result.values).tz
-
-        # check utc
-        rng = date_range('1/1/2000', '1/30/2000', tz='UTC')
-        frame = DataFrame(np.random.randn(len(rng), 4), index=rng)
-
-        with ensure_clean_store(self.path) as store:
-            store.append('frame', frame)
-            result = store.select_column('frame', 'index')
-            assert rng.tz == result.dt.tz
-
-        # double check non-utc
-        rng = date_range('1/1/2000', '1/30/2000', tz='US/Eastern')
-        frame = DataFrame(np.random.randn(len(rng), 4), index=rng)
-
-        with ensure_clean_store(self.path) as store:
-            store.append('frame', frame)
-            result = store.select_column('frame', 'index')
-            assert rng.tz == result.dt.tz
-
-    def test_timezones_fixed(self):
-        with ensure_clean_store(self.path) as store:
-
-            # index
-            rng = date_range('1/1/2000', '1/30/2000', tz='US/Eastern')
-            df = DataFrame(np.random.randn(len(rng), 4), index=rng)
-            store['df'] = df
-            result = store['df']
-            assert_frame_equal(result, df)
-
-            # as data
-            # GH11411
-            _maybe_remove(store, 'df')
-            df = DataFrame({'A': rng,
-                            'B': rng.tz_convert('UTC').tz_localize(None),
-                            'C': rng.tz_convert('CET'),
-                            'D': range(len(rng))}, index=rng)
-            store['df'] = df
-            result = store['df']
-            assert_frame_equal(result, df)
-
-    def test_fixed_offset_tz(self):
-        rng = date_range('1/1/2000 00:00:00-07:00', '1/30/2000 00:00:00-07:00')
-        frame = DataFrame(np.random.randn(len(rng), 4), index=rng)
-
-        with ensure_clean_store(self.path) as store:
-            store['frame'] = frame
-            recons = store['frame']
-            tm.assert_index_equal(recons.index, rng)
-            assert rng.tz == recons.index.tz
-
-    @td.skip_if_windows
-    def test_store_timezone(self):
-        # GH2852
-        # issue storing datetime.date with a timezone as it resets when read
-        # back in a new timezone
-
-        # original method
-        with ensure_clean_store(self.path) as store:
-
-            today = datetime.date(2013, 9, 10)
-            df = DataFrame([1, 2, 3], index=[today, today, today])
-            store['obj1'] = df
-            result = store['obj1']
-            assert_frame_equal(result, df)
-
-        # with tz setting
-        with ensure_clean_store(self.path) as store:
-
-            with set_timezone('EST5EDT'):
-                today = datetime.date(2013, 9, 10)
-                df = DataFrame([1, 2, 3], index=[today, today, today])
-                store['obj1'] = df
-
-            with set_timezone('CST6CDT'):
-                result = store['obj1']
-
-            assert_frame_equal(result, df)
-
-    def test_legacy_datetimetz_object(self, datapath):
-        # legacy from < 0.17.0
-        # 8260
-        expected = DataFrame(dict(A=Timestamp('20130102', tz='US/Eastern'),
-                                  B=Timestamp('20130603', tz='CET')),
-                             index=range(5))
-        with ensure_clean_store(
-                datapath('io', 'data', 'legacy_hdf', 'datetimetz_object.h5'),
-                mode='r') as store:
-            result = store['df']
-            assert_frame_equal(result, expected)
-
-    def test_dst_transitions(self):
-        # make sure we are not failing on transaitions
-        with ensure_clean_store(self.path) as store:
-            times = pd.date_range("2013-10-26 23:00", "2013-10-27 01:00",
-                                  tz="Europe/London",
-                                  freq="H",
-                                  ambiguous='infer')
-
-            for i in [times, times + pd.Timedelta('10min')]:
-                _maybe_remove(store, 'df')
-                df = DataFrame({'A': range(len(i)), 'B': i}, index=i)
-                store.append('df', df)
-                result = store.select('df')
-                assert_frame_equal(result, df)
