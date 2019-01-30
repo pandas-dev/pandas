@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+import sys
 import warnings
 
 from cpython cimport (PyObject_RichCompareBool, PyObject_RichCompare,
@@ -43,7 +44,7 @@ from pandas._libs.tslibs.timezones import UTC
 # Constants
 _zero_time = datetime_time(0, 0)
 _no_input = object()
-
+PY36 = sys.version_info >= (3, 6)
 
 # ----------------------------------------------------------------------
 
@@ -1255,9 +1256,12 @@ class Timestamp(_Timestamp):
                                         is_dst=not bool(fold))
             _tzinfo = ts_input.tzinfo
         else:
-            ts_input = datetime(dts.year, dts.month, dts.day,
-                                dts.hour, dts.min, dts.sec, dts.us,
-                                tzinfo=_tzinfo, fold=fold)
+            kwargs = {'year': dts.year, 'month': dts.month, 'day': dts.day,
+                      'hour': dts.hour, 'minute': dts.min, 'second': dts.sec,
+                      'microsecond': dts.us, 'tzinfo': _tzinfo}
+            if PY36:
+                kwargs['fold'] = fold
+            ts_input = datetime(**kwargs)
 
         ts = convert_datetime_to_tsobject(ts_input, _tzinfo)
         value = ts.value + (dts.ps // 1000)
