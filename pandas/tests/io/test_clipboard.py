@@ -233,7 +233,7 @@ class TestClipboard(object):
                     reason="clipboard primitives not installed")
 class TestRawClipboard(object):
 
-    @pytest.mark.parametrize('data', [u'\U0001f44d...', 'Ωœ∑´...', 'abcd...'])
+    @pytest.mark.parametrize('data', [u'\U0001f44d...', u'Ωœ∑´...', 'abcd...'])
     def test_raw_roundtrip(self, data):
         import pandas.io.clipboard
         pandas.io.clipboard.clipboard_set(data)
