@@ -2937,7 +2937,7 @@ class MultiIndex(Index):
         Parameters
         ----------
         other : MultiIndex or array / Index of tuples
-        sort : bool, default True
+        sort : bool, default False
             Sort the resulting MultiIndex if possible
 
             .. versionadded:: 0.24.0
