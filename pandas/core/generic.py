@@ -6601,7 +6601,7 @@ class NDFrame(PandasObject, SelectionMixin):
               'barycentric', 'polynomial': Passed to
               `scipy.interpolate.interp1d`. Both 'polynomial' and 'spline'
               require that you also specify an `order` (int),
-              e.g. ``df.interpolate(method='polynomial', order=4)``.
+              e.g. ``df.interpolate(method='polynomial', order=5)``.
               These use the numerical values of the index.
             * 'krogh', 'piecewise_polynomial', 'spline', 'pchip', 'akima':
               Wrappers around the SciPy interpolation methods of similar
