@@ -20,7 +20,7 @@ including other versions of pandas.
 API Changes
 ~~~~~~~~~~~
 
-Changing the ``sort`` parameter for :meth:`Index.Union`
+Changing the ``sort`` parameter for :meth:`Index.union`
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 The default ``sort`` value for :meth:`Index.union` has changed from ``True`` to ``None``.
@@ -30,14 +30,61 @@ The default *behavior* remains the same: The result is sorted, unless
 2. ``self`` or ``other`` is empty
 3. ``self`` or ``other`` contain values that can not be compared (a ``RuntimeWarning`` is raised).
 
-This allows ``sort=True`` to now mean "always sort" A ``TypeError`` is raised if the values cannot be compared.
+This allows ``sort=True`` to now mean "always sort". A ``TypeError`` is raised if the values cannot be compared.
+
+**Behavior in 0.24.0**
+
+.. ipython:: python
+
+   In [1]: idx = pd.Index(['b', 'a'])
+
+   In [2]: idx.union(idx)  # sort=True was the default.
+   Out[2]: Index(['b', 'a'], dtype='object')
+
+   In [3]: idx.union(idx, sort=True)  # result is still not sorted.
+   Out[32]: Index(['b', 'a'], dtype='object')
+
+**New Behavior**
+
+.. ipython:: python
+
+   idx = pd.Index(['b', 'a'])
+   idx.union(idx)  # sort=None is the default. Don't sort identical operands.
+
+   idx.union(idx, sort=True)
 
 Changed the behavior of :meth:`Index.intersection` with ``sort=True``
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 When ``sort=True`` is provided to :meth:`Index.intersection`, the values are always sorted. In 0.24.0,
 the values would not be sorted when ``self`` and ``other`` were identical. Pass ``sort=False`` to not
-sort the values.
+sort the values. This matches the behavior of pandas 0.23.4 and earlier.
+
+**Behavior in 0.23.4**
+
+.. ipython:: python
+
+   In [2]: idx = pd.Index(['b', 'a'])
+
+   In [3]: idx.intersection(idx)  # sort was not a keyword.
+   Out[3]: Index(['b', 'a'], dtype='object')
+
+**Behavior in 0.24.0**
+
+.. ipython:: python
+
+   In [5]: idx.intersection(idx)  # sort=True by default. Don't sort identical.
+   Out[5]: Index(['b', 'a'], dtype='object')
+
+   In [6]: idx.intersection(idx, sort=True)
+   Out[6]: Index(['b', 'a'], dtype='object')
+
+**New Behavior**
+
+.. ipython:: python
+
+   idx.intersection(idx)  # sort=False by default
+   idx.intersection(idx, sort=True)
 
 .. _whatsnew_0241.regressions:
 
