@@ -695,7 +695,10 @@ class TestIndex(Base):
 
         # Corner cases
         inter = first.intersection(first, sort=sort)
-        assert inter is first
+        if sort:
+            tm.assert_index_equal(inter, first.sort_values())
+        else:
+            assert inter is first
 
     @pytest.mark.parametrize("index2,keeps_name", [
         (Index([3, 4, 5, 6, 7], name="index"), True),  # preserve same name
@@ -769,6 +772,12 @@ class TestIndex(Base):
         result = pd.Index(['c', 'b', 'a']).intersection(['b', 'a'])
         expected = pd.Index(['b', 'a'])
         tm.assert_index_equal(result, expected)
+
+    def test_intersect_equal_sort(self):
+        idx = pd.Index(['c', 'a', 'b'])
+        sorted_ = pd.Index(['a', 'b', 'c'])
+        tm.assert_index_equal(idx.intersection(idx, sort=False), idx)
+        tm.assert_index_equal(idx.intersection(idx, sort=True), sorted_)
 
     @pytest.mark.parametrize("sort", [True, False])
     def test_chained_union(self, sort):

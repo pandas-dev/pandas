@@ -2954,6 +2954,8 @@ class MultiIndex(Index):
         other, result_names = self._convert_can_do_setop(other)
 
         if self.equals(other):
+            if sort:
+                return self.sort_values()
             return self
 
         self_tuples = self._ndarray_values

@@ -203,10 +203,16 @@ def test_union(idx, sort):
 
     # corner case, pass self or empty thing:
     the_union = idx.union(idx, sort=sort)
-    assert the_union is idx
+    if sort:
+        tm.assert_index_equal(the_union, idx.sort_values())
+    else:
+        assert the_union is idx
 
     the_union = idx.union(idx[:0], sort=sort)
-    assert the_union is idx
+    if sort:
+        tm.assert_index_equal(the_union, idx.sort_values())
+    else:
+        assert the_union is idx
 
     # won't work in python 3
     # tuples = _index.values
@@ -238,7 +244,10 @@ def test_intersection(idx, sort):
 
     # corner case, pass self
     the_int = idx.intersection(idx, sort=sort)
-    assert the_int is idx
+    if sort:
+        tm.assert_index_equal(the_int, idx.sort_values())
+    else:
+        assert the_int is idx
 
     # empty intersection: disjoint
     empty = idx[:2].intersection(idx[2:], sort=sort)
@@ -249,6 +258,13 @@ def test_intersection(idx, sort):
     # tuples = _index.values
     # result = _index & tuples
     # assert result.equals(tuples)
+
+
+def test_intersect_equal_sort():
+    idx = pd.MultiIndex.from_product([[1, 0], ['a', 'b']])
+    sorted_ = pd.MultiIndex.from_product([[0, 1], ['a', 'b']])
+    tm.assert_index_equal(idx.intersection(idx, sort=False), idx)
+    tm.assert_index_equal(idx.intersection(idx, sort=True), sorted_)
 
 
 @pytest.mark.parametrize('slice_', [slice(None), slice(0)])

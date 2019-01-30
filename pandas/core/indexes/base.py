@@ -2367,8 +2367,12 @@ class Index(IndexOpsMixin, PandasObject):
         Parameters
         ----------
         other : Index or array-like
-        sort : bool, default False
-            Sort the resulting index if possible
+        sort : bool or None, default False
+            Whether to sort the resulting index.
+
+            * False : do not sort the result.
+            * True : sort the result. A TypeError is raised when the
+              values cannot be compared.
 
             .. versionadded:: 0.24.0
 
@@ -2392,7 +2396,10 @@ class Index(IndexOpsMixin, PandasObject):
         other = ensure_index(other)
 
         if self.equals(other):
-            return self._get_reconciled_name_object(other)
+            result = self._get_reconciled_name_object(other)
+            if sort:
+                result = result.sort_values()
+            return result
 
         if not is_dtype_equal(self.dtype, other.dtype):
             this = self.astype('O')
