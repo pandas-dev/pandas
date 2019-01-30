@@ -23,6 +23,13 @@ Other Enhancements
 -
 -
 
+.. _whatsnew_0250.performance:
+
+Performance Improvements
+~~~~~~~~~~~~~~~~~~~~~~~~
+ - Significant speedup in `SparseArray` initialization that benefits most operations, fixing performance regression introduced in v0.20.0 (:issue:`24985`)
+
+
 
 .. _whatsnew_0250.api_breaking:
 
@@ -179,7 +186,7 @@ Groupby/Resample/Rolling
 Reshaping
 ^^^^^^^^^
 
--
+- Bug in :func:`merge` when merging by index name would sometimes result in an incorrectly numbered index (:issue:`24212`)
 -
 -
 
@@ -187,7 +194,7 @@ Reshaping
 Sparse
 ^^^^^^
 
--
+- Significant speedup in `SparseArray` initialization that benefits most operations, fixing performance regression introduced in v0.20.0 (:issue:`24985`)
 -
 -
 
