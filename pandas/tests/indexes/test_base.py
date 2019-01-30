@@ -765,6 +765,11 @@ class TestIndex(Base):
 
         assert len(result) == 0
 
+    def test_intersect_nosort(self):
+        result = pd.Index(['c', 'b', 'a']).intersection(['b', 'a'])
+        expected = pd.Index(['b', 'a'])
+        tm.assert_index_equal(result, expected)
+
     @pytest.mark.parametrize("sort", [True, False])
     def test_chained_union(self, sort):
         # Chained unions handles names correctly
@@ -1595,20 +1600,27 @@ class TestIndex(Base):
         for drop_me in to_drop[1], [to_drop[1]]:
             pytest.raises(KeyError, removed.drop, drop_me)
 
-    @pytest.mark.parametrize("method,expected", [
+    @pytest.mark.parametrize("method,expected,sort", [
+        ('intersection', np.array([(1, 'A'), (2, 'A'), (1, 'B'), (2, 'B')],
+                                  dtype=[('num', int), ('let', 'a1')]),
+         False),
+
         ('intersection', np.array([(1, 'A'), (1, 'B'), (2, 'A'), (2, 'B')],
-                                  dtype=[('num', int), ('let', 'a1')])),
+                                  dtype=[('num', int), ('let', 'a1')]),
+         True),
+
         ('union', np.array([(1, 'A'), (1, 'B'), (1, 'C'), (2, 'A'), (2, 'B'),
-                            (2, 'C')], dtype=[('num', int), ('let', 'a1')]))
+                            (2, 'C')], dtype=[('num', int), ('let', 'a1')]),
+         True)
     ])
-    def test_tuple_union_bug(self, method, expected):
+    def test_tuple_union_bug(self, method, expected, sort):
         index1 = Index(np.array([(1, 'A'), (2, 'A'), (1, 'B'), (2, 'B')],
                                 dtype=[('num', int), ('let', 'a1')]))
         index2 = Index(np.array([(1, 'A'), (2, 'A'), (1, 'B'),
                                  (2, 'B'), (1, 'C'), (2, 'C')],
                                 dtype=[('num', int), ('let', 'a1')]))
 
-        result = getattr(index1, method)(index2)
+        result = getattr(index1, method)(index2, sort=sort)
         assert result.ndim == 1
 
         expected = Index(expected)
