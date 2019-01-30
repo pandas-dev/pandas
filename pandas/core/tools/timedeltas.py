@@ -120,7 +120,8 @@ def _coerce_scalar_to_timedelta_type(r, unit='ns', box=True, errors='raise'):
     try:
         result = Timedelta(r, unit)
         if not box:
-            result = result.asm8
+            # explicitly view as timedelta64 for case when result is pd.NaT
+            result = result.asm8.view('timedelta64[ns]')
     except ValueError:
         if errors == 'raise':
             raise
