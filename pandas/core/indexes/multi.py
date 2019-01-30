@@ -2930,7 +2930,7 @@ class MultiIndex(Index):
         return MultiIndex.from_arrays(lzip(*uniq_tuples), sortorder=0,
                                       names=result_names)
 
-    def intersection(self, other, sort=True):
+    def intersection(self, other, sort=False):
         """
         Form the intersection of two MultiIndex objects.
 
@@ -2941,6 +2941,10 @@ class MultiIndex(Index):
             Sort the resulting MultiIndex if possible
 
             .. versionadded:: 0.24.0
+
+            .. versionchanged:: 0.24.1
+
+               Changed the default from ``True`` to ``False``.
 
         Returns
         -------
