@@ -219,11 +219,6 @@ class JoinUnit(object):
 
         else:
             for ax, indexer in self.indexers.items():
-                # GH-25014: get_upcasted_na returns iNaT, but
-                # DatetimeArray.take expects NaT.
-                # TODO: update get_empty_dtype_and_na to use EAs earlier?
-                if is_datetime64tz_dtype(values) and fill_value == tslibs.iNaT:
-                    fill_value = tslibs.NaT
                 values = algos.take_nd(values, indexer, axis=ax,
                                        fill_value=fill_value)
 
@@ -340,8 +335,10 @@ def get_empty_dtype_and_na(join_units):
     elif 'category' in upcast_classes:
         return np.dtype(np.object_), np.nan
     elif 'datetimetz' in upcast_classes:
+        # GH-25014. We use NaT instead of iNaT, since this eventually
+        # ends up in DatetimeArray.take, which does not allow iNaT.
         dtype = upcast_classes['datetimetz']
-        return dtype[0], tslibs.iNaT
+        return dtype[0], tslibs.NaT
     elif 'datetime' in upcast_classes:
         return np.dtype('M8[ns]'), tslibs.iNaT
     elif 'timedelta' in upcast_classes:
