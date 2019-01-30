@@ -31,6 +31,12 @@ Fixed Regressions
 Enhancements
 ^^^^^^^^^^^^
 
+.. _whatsnew_0241.enhancements.get_schema:
+
+``get_schema`` Enhancements
+^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+:func:`get_schema` now accepts an `index` parameter (default: `False`) that includes the index in the generated schema. (:issue:`9084`)
 
 .. _whatsnew_0241.bug_fixes:
 
