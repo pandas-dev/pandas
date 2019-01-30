@@ -219,6 +219,11 @@ class JoinUnit(object):
 
         else:
             for ax, indexer in self.indexers.items():
+                # GH-25014: get_upcasted_na returns iNaT, but
+                # DatetimeArray.take expects NaT.
+                # TODO: update get_empty_dtype_and_na to use EAs earlier?
+                if is_datetime64tz_dtype(values) and fill_value == tslibs.iNaT:
+                    fill_value = tslibs.NaT
                 values = algos.take_nd(values, indexer, axis=ax,
                                        fill_value=fill_value)
 
