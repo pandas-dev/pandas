@@ -11,6 +11,43 @@ from pandas import DataFrame, Index, Series, to_numeric
 from pandas.util import testing as tm
 
 
+@pytest.fixture(params=[None, "ignore", "raise", "coerce"])
+def errors(request):
+    return request.param
+
+
+@pytest.fixture(params=[True, False])
+def signed(request):
+    return request.param
+
+
+@pytest.fixture(params=[lambda x: x, str], ids=["identity", "str"])
+def transform(request):
+    return request.param
+
+
+@pytest.fixture(params=[
+    47393996303418497800,
+    100000000000000000000
+])
+def large_val(request):
+    return request.param
+
+
+@pytest.fixture(params=[True, False])
+def multiple_elts(request):
+    return request.param
+
+
+@pytest.fixture(params=[
+    (lambda x: Index(x, name="idx"), tm.assert_index_equal),
+    (lambda x: Series(x, name="ser"), tm.assert_series_equal),
+    (lambda x: np.array(Index(x).values), tm.assert_numpy_array_equal)
+])
+def transform_assert_equal(request):
+    return request.param
+
+
 @pytest.mark.parametrize("input_kwargs,result_kwargs", [
     (dict(), dict(dtype=np.int64)),
     (dict(errors="coerce", downcast="integer"), dict(dtype=np.int8))
@@ -174,11 +211,6 @@ def test_all_nan():
     tm.assert_series_equal(result, expected)
 
 
-@pytest.fixture(params=[None, "ignore", "raise", "coerce"])
-def errors(request):
-    return request.param
-
-
 def test_type_check(errors):
     # see gh-11776
     df = DataFrame({"a": [1, -3.14, 7], "b": ["4", "5", "6"]})
@@ -189,28 +221,10 @@ def test_type_check(errors):
         to_numeric(df, **kwargs)
 
 
-@pytest.fixture(params=[True, False])
-def signed(request):
-    return request.param
-
-
-@pytest.fixture(params=[lambda x: x, str], ids=["identity", "str"])
-def transform(request):
-    return request.param
-
-
 @pytest.mark.parametrize("val", [1, 1.1, 20001])
 def test_scalar(val, signed, transform):
     val = -val if signed else val
     assert to_numeric(transform(val)) == float(val)
-
-
-@pytest.fixture(params=[
-    47393996303418497800,
-    100000000000000000000
-])
-def large_val(request):
-    return request.param
 
 
 def test_really_large_scalar(large_val, signed, transform, errors):
@@ -229,11 +243,6 @@ def test_really_large_scalar(large_val, signed, transform, errors):
         expected = float(val) if (errors == "coerce" and
                                   val_is_string) else val
         assert tm.assert_almost_equal(to_numeric(val, **kwargs), expected)
-
-
-@pytest.fixture(params=[True, False])
-def multiple_elts(request):
-    return request.param
 
 
 def test_really_large_in_arr(large_val, signed, transform,
@@ -321,15 +330,6 @@ def test_scalar_fail(errors, checker):
             to_numeric(scalar, errors=errors)
     else:
         assert checker(to_numeric(scalar, errors=errors))
-
-
-@pytest.fixture(params=[
-    (lambda x: Index(x, name="idx"), tm.assert_index_equal),
-    (lambda x: Series(x, name="ser"), tm.assert_series_equal),
-    (lambda x: np.array(Index(x).values), tm.assert_numpy_array_equal)
-])
-def transform_assert_equal(request):
-    return request.param
 
 
 @pytest.mark.parametrize("data", [

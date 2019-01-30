@@ -21,11 +21,11 @@ def to_numeric(arg, errors='raise', downcast=None):
 
     Please note that precision loss may occur if really large numbers
     are passed in. Due to the internal limitations of `ndarray`, if
-    numbers smaller than `-9223372036854775808` or larger than
-    `18446744073709551615` are passed in, it is very likely they
-    will be converted to float so that they can stored in an `ndarray`.
-    These warnings apply similarly to `Series` since it internally
-    leverages `ndarray`.
+    numbers smaller than `-9223372036854775808` (np.iinfo(np.int64).min)
+    or larger than `18446744073709551615` (np.iinfo(np.uint64).max) are
+    passed in, it is very likely they will be converted to float so that
+    they can stored in an `ndarray`. These warnings apply similarly to
+    `Series` since it internally leverages `ndarray`.
 
     Parameters
     ----------
