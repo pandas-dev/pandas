@@ -616,6 +616,24 @@ class TestMerge(object):
         assert result['value_x'].dtype == 'datetime64[ns, US/Eastern]'
         assert result['value_y'].dtype == 'datetime64[ns, US/Eastern]'
 
+    def test_merge_on_datetime64tz_empty(self):
+        # https://github.com/pandas-dev/pandas/issues/25014
+        dtz = pd.DatetimeTZDtype(tz='UTC')
+        right = pd.DataFrame({'date': [pd.Timestamp('2018', tz=dtz.tz)],
+                              'value': [4.0],
+                              'date2': [pd.Timestamp('2019', tz=dtz.tz)]},
+                             columns=['date', 'value', 'date2'])
+        left = right[:0]
+        result = left.merge(right, on='date')
+        expected = pd.DataFrame({
+            'value_x': pd.Series(dtype=float),
+            'date2_x': pd.Series(dtype=dtz),
+            'date': pd.Series(dtype=dtz),
+            'value_y': pd.Series(dtype=float),
+            'date2_y': pd.Series(dtype=dtz),
+        }, columns=['value_x', 'date2_x', 'date', 'value_y', 'date2_y'])
+        tm.assert_frame_equal(result, expected)
+
     def test_merge_datetime64tz_with_dst_transition(self):
         # GH 18885
         df1 = pd.DataFrame(pd.date_range(
