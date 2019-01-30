@@ -695,7 +695,7 @@ def get_validation_data(doc):
                               \n[ \t\f\v]*return  # Find a return command.
                               # Check if it's not bare or simply returns None.
                               (?![ \t\f\v]*(None)?[ \t\f\v]*[\n#]) """,
-                         doc.method_source, flags=re.DOTALL|re.VERBOSE):
+                         doc.method_source, re.DOTALL | re.VERBOSE):
                 errs.append(error('RT01'))
         else:
             if len(doc.returns) == 1 and doc.returns[0][1]:
