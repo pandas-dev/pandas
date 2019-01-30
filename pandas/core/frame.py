@@ -4154,18 +4154,23 @@ class DataFrame(NDFrame):
             else:
                 # everything else gets tried as a key; see GH 24969
                 try:
-                    hash(col) and self[col]
+                    found = col in self.columns
+                    if not found:
+                        # check if this raises KeyError (e.g. iter is hashable
+                        # but never a valid key); will be caught below
+                        self[col]
+                        # otherwise the key is missing
+                        missing.append(col)
                 except TypeError:
                     # for unhashable types
                     tipo = type(col)
-                    raise TypeError(err_msg,
-                                    'Received column of type {}'.format(tipo))
+                    raise TypeError(err_msg + 'Received column of '
+                                    'type {}'.format(tipo))
                 except KeyError:
-                    # for hashable types that are not keys;
-                    # treat as ValueError, not missing key
+                    # for hashable types that are not keys
                     tipo = type(col)
-                    raise ValueError(err_msg,
-                                     'Received column of type {}'.format(tipo))
+                    raise ValueError(err_msg + ' Received column of '
+                                     'type {}'.format(tipo))
 
         if missing:
             raise KeyError('{}'.format(missing))
