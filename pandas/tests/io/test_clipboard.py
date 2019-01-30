@@ -13,7 +13,7 @@ from pandas.util import testing as tm
 from pandas.util.testing import makeCustomDataframe as mkdf
 
 from pandas.io.clipboard.exceptions import PyperclipException
-
+from pandas.io.clipboard import clipboard_get, clipboard_set
 try:
     DataFrame({'A': [1, 2]}).to_clipboard()
     _DEPS_INSTALLED = 1
@@ -30,8 +30,8 @@ def build_kwargs(sep, excel):
     return kwargs
 
 
-@pytest.fixture(params=['delims', 'utf8', 'string', 'long', 'nonascii',
-                        'colwidth', 'mixed', 'float', 'int'])
+@pytest.fixture(params=['delims', 'utf8', 'utf16', 'string', 'long',
+                        'nonascii', 'colwidth', 'mixed', 'float', 'int'])
 def df(request):
     data_type = request.param
 
@@ -41,6 +41,10 @@ def df(request):
     elif data_type == 'utf8':
         return pd.DataFrame({'a': ['µasd', 'Ωœ∑´'],
                              'b': ['øπ∆˚¬', 'œ∑´®']})
+    elif data_type == 'utf16':
+        return pd.DataFrame({'a': ['\U0001f44d\U0001f44d',
+                                   '\U0001f44d\U0001f44d'],
+                             'b': ['abc', 'def']})
     elif data_type == 'string':
         return mkdf(5, 3, c_idx_type='s', r_idx_type='i',
                     c_idx_names=[None], r_idx_names=[None])
@@ -231,10 +235,7 @@ class TestClipboard(object):
 @pytest.mark.clipboard
 @pytest.mark.skipif(not _DEPS_INSTALLED,
                     reason="clipboard primitives not installed")
-class TestRawClipboard(object):
-
-    @pytest.mark.parametrize('data', [u'\U0001f44d...', u'Ωœ∑´...', 'abcd...'])
-    def test_raw_roundtrip(self, data):
-        import pandas.io.clipboard
-        pandas.io.clipboard.clipboard_set(data)
-        assert data == pandas.io.clipboard.clipboard_get()
+@pytest.mark.parametrize('data', [u'\U0001f44d...', u'Ωœ∑´...', 'abcd...'])
+def test_raw_roundtrip(data):
+    clipboard_set(data)
+    assert data == clipboard_get()
