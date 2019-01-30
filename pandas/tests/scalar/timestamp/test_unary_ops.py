@@ -329,6 +329,17 @@ class TestTimestampUnaryOps(object):
         expected = Timestamp('2013-11-3 03:00:00', tz='America/Chicago')
         assert result == expected
 
+    @pytest.mark.parametrize('fold', [0, 1])
+    def test_replace_dst_fold(self, fold):
+        # GH 25017
+        tz = pytz.timezone('Europe/London')
+        d = datetime(2019, 10, 27, 1, 0)
+        d_loc = tz.localize(d, is_dst=True)
+        ts = Timestamp(d_loc)
+        result = ts.replace(minute=0, fold=fold)
+        expected = Timestamp(d).tz_localize(tz, ambiguous=not fold)
+        assert result == expected
+
     # --------------------------------------------------------------
     # Timestamp.normalize
 

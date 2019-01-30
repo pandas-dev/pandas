@@ -19,7 +19,7 @@ including other versions of pandas.
 Other Enhancements
 ^^^^^^^^^^^^^^^^^^
 
--
+- :meth:`Timestamp.replace` now supports the ``fold`` argument to disambiguate DST transition times (:issue:`25017`)
 -
 -
 

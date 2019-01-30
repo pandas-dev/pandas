@@ -1195,7 +1195,6 @@ class Timestamp(_Timestamp):
         nanosecond : int, optional
         tzinfo : tz-convertible, optional
         fold : int, optional, default is 0
-            added in 3.6, NotImplemented
 
         Returns
         -------
@@ -1252,12 +1251,13 @@ class Timestamp(_Timestamp):
             # see GH#18319
             ts_input = _tzinfo.localize(datetime(dts.year, dts.month, dts.day,
                                                  dts.hour, dts.min, dts.sec,
-                                                 dts.us))
+                                                 dts.us),
+                                        is_dst=not bool(fold))
             _tzinfo = ts_input.tzinfo
         else:
             ts_input = datetime(dts.year, dts.month, dts.day,
                                 dts.hour, dts.min, dts.sec, dts.us,
-                                tzinfo=_tzinfo)
+                                tzinfo=_tzinfo, fold=fold)
 
         ts = convert_datetime_to_tsobject(ts_input, _tzinfo)
         value = ts.value + (dts.ps // 1000)
