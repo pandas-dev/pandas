@@ -1,3 +1,8 @@
+"""
+Tests for PandasArray with nested data. Users typically won't create
+these objects via `pd.array`, but they can show up through `.array`
+on a Series with nested data.
+"""
 import pytest
 
 import pandas as pd
