@@ -1223,8 +1223,9 @@ class SQLDatabase(PandasSQL):
             self.get_table(table_name, schema).drop()
             self.meta.clear()
 
-    def _create_sql_schema(self, frame, table_name, keys=None, dtype=None):
-        table = SQLTable(table_name, self, frame=frame, index=False, keys=keys,
+    def _create_sql_schema(self, frame, table_name, keys=None, dtype=None,
+                           index=False):
+        table = SQLTable(table_name, self, frame=frame, index=index, keys=keys,
                          dtype=dtype)
         return str(table.sql_schema())
 
@@ -1565,13 +1566,14 @@ class SQLiteDatabase(PandasSQL):
             name=_get_valid_sqlite_name(name))
         self.execute(drop_sql)
 
-    def _create_sql_schema(self, frame, table_name, keys=None, dtype=None):
-        table = SQLiteTable(table_name, self, frame=frame, index=False,
+    def _create_sql_schema(self, frame, table_name, keys=None, dtype=None,
+                           index=False):
+        table = SQLiteTable(table_name, self, frame=frame, index=index,
                             keys=keys, dtype=dtype)
         return str(table.sql_schema())
 
 
-def get_schema(frame, name, keys=None, con=None, dtype=None):
+def get_schema(frame, name, keys=None, con=None, dtype=None, index=False):
     """
     Get the SQL db table schema for the given frame.
 
@@ -1593,4 +1595,5 @@ def get_schema(frame, name, keys=None, con=None, dtype=None):
     """
 
     pandas_sql = pandasSQL_builder(con=con)
-    return pandas_sql._create_sql_schema(frame, name, keys=keys, dtype=dtype)
+    return pandas_sql._create_sql_schema(
+        frame, name, keys=keys, dtype=dtype, index=index)
