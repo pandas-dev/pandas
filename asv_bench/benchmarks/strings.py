@@ -102,10 +102,10 @@ class Repeat(object):
         N = 10**5
         self.s = Series(tm.makeStringIndex(N))
         repeat = {'int': 1, 'array': np.random.randint(1, 3, N)}
-        self.repeat = repeat[repeats]
+        self.values = repeat[repeats]
 
     def time_repeat(self, repeats):
-        self.s.str.repeat(self.repeat)
+        self.s.str.repeat(self.values)
 
 
 class Cat(object):
