@@ -222,7 +222,7 @@ class PandasArray(ExtensionArray, ExtensionOpsMixin, NDArrayOperatorsMixin):
             item = item._ndarray
 
         result = self._ndarray[item]
-        if not lib.is_scalar(result):
+        if not lib.is_scalar(item):
             result = type(self)(result)
         return result
 
