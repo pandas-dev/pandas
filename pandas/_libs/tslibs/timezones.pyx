@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+from datetime import timezone
 
 # dateutil compat
 from dateutil.tz import (
@@ -27,7 +28,7 @@ cdef int64_t NPY_NAT = get_nat()
 # ----------------------------------------------------------------------
 
 cpdef inline bint is_utc(object tz):
-    return tz is UTC or isinstance(tz, _dateutil_tzutc)
+    return tz is UTC or isinstance(tz, _dateutil_tzutc) or tz is timezone.utc
 
 
 cdef inline bint is_tzlocal(object tz):
@@ -156,7 +157,9 @@ cdef get_utcoffset(tzinfo, obj):
 
 
 cdef inline bint is_fixed_offset(object tz):
-    if treat_tz_as_dateutil(tz):
+    if isinstance(tz, timezone):
+        return 1
+    elif treat_tz_as_dateutil(tz):
         if len(tz._trans_idx) == 0 and len(tz._trans_list) == 0:
             return 1
         else:

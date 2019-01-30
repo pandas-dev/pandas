@@ -1,4 +1,4 @@
-from datetime import date, time, timedelta
+from datetime import date, time, timedelta, timezone
 from decimal import Decimal
 import os
 
@@ -366,7 +366,9 @@ unique_nulls_fixture2 = unique_nulls_fixture
 
 TIMEZONES = [None, 'UTC', 'US/Eastern', 'Asia/Tokyo', 'dateutil/US/Pacific',
              'dateutil/Asia/Singapore', tzutc(), tzlocal(), FixedOffset(300),
-             FixedOffset(0), FixedOffset(-300)]
+             FixedOffset(0), FixedOffset(-300), timezone.utc,
+             timezone(timedelta(hours=1)),
+             timezone(timedelta(hours=-1), name='foo')]
 
 
 @td.parametrize_fixture_doc(str(TIMEZONES))
