@@ -249,3 +249,42 @@ def test_intersection(idx, sort):
     # tuples = _index.values
     # result = _index & tuples
     # assert result.equals(tuples)
+
+
+@pytest.mark.parametrize('slice_', [slice(None), slice(0)])
+def test_union_sort_other_empty(slice_):
+    idx = pd.MultiIndex.from_product([[1, 0], ['a', 'b']])
+    # Two cases:
+    # 1. idx is other
+    # 2. other is empty
+
+    # default, sort=None
+    other = idx[slice_]
+    tm.assert_index_equal(idx.union(other), idx)
+    # MultiIndex does not special case empty.union(idx)
+    # tm.assert_index_equal(other.union(idx), idx)
+
+    # sort=False
+    tm.assert_index_equal(idx.union(other, sort=False), idx)
+
+    # sort=True
+    result = idx.union(other, sort=True)
+    expected = pd.MultiIndex.from_product([[0, 1], ['a', 'b']])
+    tm.assert_index_equal(result, expected)
+
+
+def test_union_sort_other_incomparable():
+    idx = pd.MultiIndex.from_product([[1, pd.Timestamp('2000')], ['a', 'b']])
+
+    # default, sort=None
+    # with tm.assert_produces_warning(RuntimeWarning):
+    result = idx.union(idx[:1])
+    tm.assert_index_equal(result, idx)
+
+    # sort=True
+    with pytest.raises(TypeError, match='Cannot compare'):
+        idx.union(idx[:1], sort=True)
+
+    # sort=False
+    result = idx.union(idx[:1], sort=False)
+    tm.assert_index_equal(result, idx)
