@@ -801,9 +801,7 @@ class TestIndex(Base):
 
     @pytest.mark.parametrize('slice_', [slice(None), slice(0)])
     def test_union_sort_other_special(self, slice_):
-        # Two cases:
-        # 1. idx is other
-        # 2. other is empty
+        # https://github.com/pandas-dev/pandas/issues/24959
 
         idx = pd.Index([1, 0, 2])
         # default, sort=None
@@ -820,6 +818,7 @@ class TestIndex(Base):
         tm.assert_index_equal(result, expected)
 
     def test_union_sort_other_incomparable(self):
+        # https://github.com/pandas-dev/pandas/issues/24959
         idx = pd.Index([1, pd.Timestamp('2000')])
         # default, sort=None
         with tm.assert_produces_warning(RuntimeWarning):
