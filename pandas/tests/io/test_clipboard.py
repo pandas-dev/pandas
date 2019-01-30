@@ -225,3 +225,16 @@ class TestClipboard(object):
     @pytest.mark.parametrize('enc', ['UTF-8', 'utf-8', 'utf8'])
     def test_round_trip_valid_encodings(self, enc, df):
         self.check_round_trip_frame(df, encoding=enc)
+
+
+@pytest.mark.single
+@pytest.mark.clipboard
+@pytest.mark.skipif(not _DEPS_INSTALLED,
+                    reason="clipboard primitives not installed")
+class TestRawClipboard(object):
+
+    @pytest.mark.parametrize('data', [u'\U0001f44d...', 'Ωœ∑´...', 'abcd...'])
+    def test_raw_roundtrip(self, data):
+        import pandas.io.clipboard
+        pandas.io.clipboard.clipboard_set(data)
+        assert data == pandas.io.clipboard.clipboard_get()

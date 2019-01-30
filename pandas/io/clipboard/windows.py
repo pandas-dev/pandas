@@ -3,7 +3,7 @@ This module implements clipboard handling on Windows using ctypes.
 """
 import contextlib
 import ctypes
-from ctypes import c_size_t, c_wchar, c_wchar_p, get_errno, sizeof
+from ctypes import c_size_t, c_wchar, c_wchar_p, c_char_p, get_errno, sizeof
 import time
 
 from .exceptions import PyperclipWindowsException
@@ -129,13 +129,15 @@ def init_windows_clipboard():
                     # If the hMem parameter identifies a memory object,
                     # the object must have been allocated using the
                     # function with the GMEM_MOVEABLE flag.
-                    count = len(text) + 1
+                    text = text.encode('utf-16LE')
+                    mem_size = len(text) + sizeof(c_wchar)
                     handle = safeGlobalAlloc(GMEM_MOVEABLE,
-                                             count * sizeof(c_wchar))
+                                             mem_size)
+
                     locked_handle = safeGlobalLock(handle)
 
-                    ctypes.memmove(c_wchar_p(locked_handle),
-                                   c_wchar_p(text), count * sizeof(c_wchar))
+                    ctypes.memmove(c_char_p(locked_handle),
+                                   c_char_p(text), mem_size)
 
                     safeGlobalUnlock(handle)
                     safeSetClipboardData(CF_UNICODETEXT, handle)
