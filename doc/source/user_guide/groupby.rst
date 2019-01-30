@@ -15,7 +15,7 @@ steps:
 
 Out of these, the split step is the most straightforward. In fact, in many
 situations we may wish to split the data set into groups and do something with
-those groups. In the apply step, we might wish to one of the
+those groups. In the apply step, we might wish to do one of the
 following:
 
 * **Aggregation**: compute a summary statistic (or statistics) for each
