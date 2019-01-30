@@ -7,7 +7,7 @@ from pandas.core.arrays.numpy_ import PandasArray
 @pytest.fixture
 def allow_in_pandas(monkeypatch):
     """
-    A monkeypatch to tells pandas to let us in.
+    A monkeypatch to tell pandas to let us in.
 
     By default, passing a PandasArray to an index / series / frame
     constructor will unbox that PandasArray to an ndarray, and treat
