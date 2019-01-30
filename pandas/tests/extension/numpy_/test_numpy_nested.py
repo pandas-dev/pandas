@@ -2,6 +2,11 @@
 Tests for PandasArray with nested data. Users typically won't create
 these objects via `pd.array`, but they can show up through `.array`
 on a Series with nested data.
+
+We partition these tests into their own file, as many of the base
+tests fail, as they aren't appropriate for nested data. It is easier
+to have a seperate file with its own data generating fixtures, than
+trying to skip based upon the value of a fixture.
 """
 import pytest
 
