@@ -10,7 +10,9 @@ import pytz
 
 from pandas.compat import long
 
-from pandas import DataFrame, MultiIndex, Series, Timestamp, compat, date_range
+from pandas import (
+    CategoricalDtype, DataFrame, MultiIndex, Series, Timestamp, compat,
+    date_range)
 from pandas.tests.frame.common import TestData
 import pandas.util.testing as tm
 
@@ -220,6 +222,12 @@ class TestDataFrameConvertTo(TestData):
                       dtype=[("index", "<i8"), ("A", "<U"),
                              ("B", "<U"), ("C", "<U")])),
 
+        # Pass in a dtype instance.
+        (dict(column_dtypes=np.dtype('unicode')),
+         np.rec.array([("0", "1", "0.2", "a"), ("1", "2", "1.5", "bc")],
+                      dtype=[("index", "<i8"), ("A", "<U"),
+                             ("B", "<U"), ("C", "<U")])),
+
         # Pass in a dictionary (name-only).
         (dict(column_dtypes={"A": np.int8, "B": np.float32, "C": "<U2"}),
          np.rec.array([("0", "1", "0.2", "a"), ("1", "2", "1.5", "bc")],
@@ -249,6 +257,12 @@ class TestDataFrameConvertTo(TestData):
                       dtype=[("index", "<i8"), ("A", "i1"),
                              ("B", "<f4"), ("C", "O")])),
 
+        # Names / indices not in dtype mapping default to array dtype.
+        (dict(column_dtypes={"A": np.dtype('int8'), "B": np.dtype('float32')}),
+         np.rec.array([("0", "1", "0.2", "a"), ("1", "2", "1.5", "bc")],
+                      dtype=[("index", "<i8"), ("A", "i1"),
+                             ("B", "<f4"), ("C", "O")])),
+
         # Mixture of everything.
         (dict(column_dtypes={"A": np.int8, "B": np.float32},
               index_dtypes="<U2"),
@@ -258,17 +272,26 @@ class TestDataFrameConvertTo(TestData):
 
         # Invalid dype values.
         (dict(index=False, column_dtypes=list()),
-         "Invalid dtype \\[\\] specified for column A"),
+         (ValueError, "Invalid dtype \\[\\] specified for column A")),
 
         (dict(index=False, column_dtypes={"A": "int32", "B": 5}),
-         "Invalid dtype 5 specified for column B"),
+         (ValueError, "Invalid dtype 5 specified for column B")),
+
+        # Numpy can't handle EA types, so check error is raised
+        (dict(index=False, column_dtypes={"A": "int32",
+                                          "B": CategoricalDtype(['a', 'b'])}),
+         (ValueError, 'Invalid dtype category specified for column B')),
+
+        # Check that bad types raise
+        (dict(index=False, column_dtypes={"A": "int32", "B": "foo"}),
+         (TypeError, 'data type "foo" not understood')),
     ])
     def test_to_records_dtype(self, kwargs, expected):
         # see gh-18146
         df = DataFrame({"A": [1, 2], "B": [0.2, 1.5], "C": ["a", "bc"]})
 
-        if isinstance(expected, str):
-            with pytest.raises(ValueError, match=expected):
+        if not isinstance(expected, np.recarray):
+            with pytest.raises(expected[0], match=expected[1]):
                 df.to_records(**kwargs)
         else:
             result = df.to_records(**kwargs)
