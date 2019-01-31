@@ -4151,14 +4151,23 @@ class DataFrame(NDFrame):
                 # arrays are fine as long as they are one-dimensional
                 if getattr(col, 'ndim', 1) > 1:
                     raise ValueError(err_msg)
+            elif is_list_like(col, allow_sets=False):
+                # various iterators/generators are hashable, but should not
+                # raise a KeyError
+                tipo = type(col)
+                raise ValueError(err_msg + ' Received column of '
+                                 'type {}'.format(tipo))
             else:
                 # everything else gets tried as a key; see GH 24969
                 try:
-                    self[col]
-                except KeyError:
+                    found = col in self.columns
+                except TypeError:
                     tipo = type(col)
-                    raise ValueError(err_msg,
-                                     'Received column of type {}'.format(tipo))
+                    raise TypeError(err_msg + ' Received column of '
+                                    'type {}'.format(tipo))
+                else:
+                    if not found:
+                        missing.append(col)
 
         if missing:
             raise KeyError('{}'.format(missing))
