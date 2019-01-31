@@ -48,6 +48,7 @@ PY36 = sys.version_info >= (3, 6)
 
 # ----------------------------------------------------------------------
 
+
 def maybe_integer_op_deprecated(obj):
     # GH#22535 add/sub of integers and int-arrays is deprecated
     if obj.freq is not None:
