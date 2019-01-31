@@ -2006,11 +2006,12 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         Returns
         -------
         Series
+            Rounded values of the Series.
 
         See Also
         --------
-        numpy.around
-        DataFrame.round
+        numpy.around : Round values of an np.array.
+        DataFrame.round : Round values of a DataFrame.
         """
         nv.validate_round(args, kwargs)
         result = com.values_from_object(self).round(decimals)
