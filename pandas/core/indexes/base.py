@@ -2273,8 +2273,8 @@ class Index(IndexOpsMixin, PandasObject):
 
             .. versionchanged:: 0.24.1
 
-               Changed the default `sort` from True to None (without
-               change in behaviour).
+               Changed the default value from ``True`` to ``None``
+               (without change in behaviour).
 
         Returns
         -------
@@ -2373,7 +2373,8 @@ class Index(IndexOpsMixin, PandasObject):
 
             .. versionchanged:: 0.24.1
 
-               Changed the default from ``True`` to ``False``.
+               Changed the default from ``True`` to ``False``, to match
+               the behaviour of 0.23.4 and earlier.
 
         Returns
         -------
@@ -2463,8 +2464,8 @@ class Index(IndexOpsMixin, PandasObject):
 
             .. versionchanged:: 0.24.1
 
-               Changed `True` to `None`, which matches the behavior of
-               pandas 0.23.4 and earlier.
+               Changed the default value from ``True`` to ``None``
+               (without change in behaviour).
 
         Returns
         -------
@@ -2526,8 +2527,8 @@ class Index(IndexOpsMixin, PandasObject):
 
             .. versionchanged:: 0.24.1
 
-               Changed `True` to `None`, which matches the behavior of
-               pandas 0.23.4 and earlier.
+               Changed the default value from ``True`` to ``None``
+               (without change in behaviour).
 
         Returns
         -------

@@ -2902,8 +2902,8 @@ class MultiIndex(Index):
 
             .. versionchanged:: 0.24.1
 
-               Changed the default `sort` from True to None, matching the
-               behavior of pandas 0.23.4 and earlier.
+               Changed the default value from ``True`` to ``None``
+               (without change in behaviour).
 
         Returns
         -------
@@ -2941,7 +2941,7 @@ class MultiIndex(Index):
 
             .. versionchanged:: 0.24.1
 
-               Changed the default to ``False``, to match
+               Changed the default from ``True`` to ``False``, to match
                behaviour from before 0.24.0
 
         Returns
@@ -2981,6 +2981,11 @@ class MultiIndex(Index):
             Sort the resulting MultiIndex if possible
 
             .. versionadded:: 0.24.0
+
+            .. versionchanged:: 0.24.1
+
+               Changed the default value from ``True`` to ``None``
+               (without change in behaviour).
 
         Returns
         -------
