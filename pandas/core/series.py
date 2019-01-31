@@ -2882,7 +2882,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         Returns
         -------
         Series
-            The original Series sorted by the labels
+            The original Series sorted by the labels.
 
         See Also
         --------
@@ -4126,18 +4126,18 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         ----------
         path : str, file path, or file handle / StringIO
         sep : str, default ','
-            Field delimiter
-        parse_dates : boolean, default True
-            Parse dates. Different default from read_table
+            Field delimiter.
+        parse_dates : bool, default True
+            Parse dates. Different default from read_table.
         header : int, default None
-            Row to use as header (skip prior rows)
+            Row to use as header (skip prior rows).
         index_col : int or sequence, default 0
             Column to use for index. If a sequence is given, a MultiIndex
-            is used. Different default from read_table
+            is used. Different default from read_table.
         encoding : str, optional
             A string representing the encoding to use if the contents are
             non-ascii, for python versions prior to 3.
-        infer_datetime_format : boolean, default False
+        infer_datetime_format : bool, default False
             If True and `parse_dates` is True for a column, try to infer the
             datetime format based on the first datetime string. If the format
             can be inferred, there often will be a large parsing speed-up.
