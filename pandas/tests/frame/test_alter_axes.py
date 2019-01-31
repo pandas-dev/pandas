@@ -255,36 +255,18 @@ class TestDataFrameAlterAxes():
 
     @pytest.mark.parametrize('append', [True, False])
     @pytest.mark.parametrize('drop', [True, False])
-    @pytest.mark.parametrize('box', [iter, lambda x: (y for y in x)],
-                             ids=['iter', 'generator'])
-    def test_set_index_raise_on_type_iter(self, frame_of_index_cols, box,
-                                          drop, append):
+    @pytest.mark.parametrize('box', [set, iter, lambda x: (y for y in x)],
+                             ids=['set', 'iter', 'generator'])
+    def test_set_index_raise_on_type(self, frame_of_index_cols, box,
+                                     drop, append):
         df = frame_of_index_cols
 
         msg = 'The parameter "keys" may be a column key, .*'
-        # forbidden type, e.g. iter/generator
-        with pytest.raises(ValueError, match=msg):
-            df.set_index(box(df['A']), drop=drop, append=append)
-
-        # forbidden type in list, e.g. iter/generator
-        with pytest.raises(ValueError, match=msg):
-            df.set_index(['A', df['A'], box(df['A'])],
-                         drop=drop, append=append)
-
-    @pytest.mark.parametrize('append', [True, False])
-    @pytest.mark.parametrize('drop', [True, False])
-    @pytest.mark.parametrize('box', [set, lambda x: dict(zip(x, x)).keys()],
-                             ids=['set', 'dict-view'])
-    def test_set_index_raise_on_type_unhashable(self, frame_of_index_cols, box,
-                                                drop, append):
-        df = frame_of_index_cols
-
-        msg = 'The parameter "keys" may be a column key, .*'
-        # forbidden type that is unhashable, e.g. set/dict-view
+        # forbidden type, e.g. set/iter/generator
         with pytest.raises(TypeError, match=msg):
             df.set_index(box(df['A']), drop=drop, append=append)
 
-        # forbidden type in list that is unhashable, e.g. set/dict-view
+        # forbidden type in list, e.g. set/iter/generator
         with pytest.raises(TypeError, match=msg):
             df.set_index(['A', df['A'], box(df['A'])],
                          drop=drop, append=append)
@@ -321,6 +303,38 @@ class TestDataFrameAlterAxes():
         # missing key
         thing3 = Thing('Three', 'pink')
         msg = "<Thing 'Three'>"
+        with pytest.raises(KeyError, match=msg):
+            # missing label directly
+            df.set_index(thing3)
+
+        with pytest.raises(KeyError, match=msg):
+            # missing label in list
+            df.set_index([thing3])
+
+    def test_set_index_custom_label_hashable_iterable(self):
+        # GH 24969
+
+        # actual example discussed in GH 24984 was e.g. for shapely.geometry
+        # objects (e.g. a collection of Points) that can be both hashable and
+        # iterable; using frozenset as a stand-in for testing here
+
+        thing1 = frozenset(['One', 'red'])
+        thing2 = frozenset(['Two', 'blue'])
+        df = DataFrame({thing1: [0, 1], thing2: [2, 3]})
+        expected = DataFrame({thing1: [0, 1]},
+                             index=Index([2, 3], name=thing2))
+
+        # use custom label directly
+        result = df.set_index(thing2)
+        tm.assert_frame_equal(result, expected)
+
+        # custom label wrapped in list
+        result = df.set_index([thing2])
+        tm.assert_frame_equal(result, expected)
+
+        # missing key
+        thing3 = frozenset(['Three', 'pink'])
+        msg = r"frozenset\(\{'Three', 'pink'\}\)"
         with pytest.raises(KeyError, match=msg):
             # missing label directly
             df.set_index(thing3)

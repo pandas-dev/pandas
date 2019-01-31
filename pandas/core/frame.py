@@ -4151,12 +4151,13 @@ class DataFrame(NDFrame):
                 # arrays are fine as long as they are one-dimensional
                 if getattr(col, 'ndim', 1) > 1:
                     raise ValueError(err_msg)
-            elif is_list_like(col, allow_sets=False):
+            elif is_list_like(col) and not hasattr(col, '__len__'):
                 # various iterators/generators are hashable, but should not
-                # raise a KeyError
+                # raise a KeyError; we identify them by their lack of __len__.
+                # hashable listlikes with __len__ get tested as keys below.
                 tipo = type(col)
-                raise ValueError(err_msg + ' Received column of '
-                                 'type {}'.format(tipo))
+                raise TypeError(err_msg + ' Received column of '
+                                'type {}'.format(tipo))
             else:
                 # everything else gets tried as a key; see GH 24969
                 try:
