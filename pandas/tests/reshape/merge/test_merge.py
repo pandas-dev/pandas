@@ -17,8 +17,8 @@ from pandas.core.dtypes.dtypes import CategoricalDtype
 import pandas as pd
 from pandas import (
     Categorical, CategoricalIndex, DataFrame, DatetimeIndex, Float64Index,
-    Int64Index, IntervalIndex, MultiIndex, PeriodIndex, RangeIndex,
-    Series, UInt64Index, TimedeltaIndex)
+    Int64Index, IntervalIndex, MultiIndex, PeriodIndex, RangeIndex, Series,
+    TimedeltaIndex, UInt64Index)
 from pandas.api.types import CategoricalDtype as CDT
 from pandas.core.reshape.concat import concat
 from pandas.core.reshape.merge import MergeError, merge
