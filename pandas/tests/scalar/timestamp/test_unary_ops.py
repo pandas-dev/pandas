@@ -329,7 +329,7 @@ class TestTimestampUnaryOps(object):
         expected = Timestamp('2013-11-3 03:00:00', tz='America/Chicago')
         assert result == expected
 
-    @pytest.mark.skif(not PY36, reason='Fold not available until PY3.6')
+    @pytest.mark.skipif(not PY36, reason='Fold not available until PY3.6')
     @pytest.mark.parametrize('fold', [0, 1])
     @pytest.mark.parametrize('tz', ['dateutil/Europe/London', 'Europe/London'])
     def test_replace_dst_fold(self, fold, tz):
