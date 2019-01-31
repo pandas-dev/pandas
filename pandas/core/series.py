@@ -1773,6 +1773,8 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         Returns
         -------
         Series
+            Series indicating whether each value has occurred in the
+            preceding values.
 
         See Also
         --------
