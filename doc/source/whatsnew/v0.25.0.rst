@@ -103,13 +103,15 @@ Timedelta
 Timezones
 ^^^^^^^^^
 
--
+- Bug in :func:`to_datetime` with ``utc=True`` and datetime strings that would apply previously parsed UTC offsets to subsequent arguments (:issue:`24992`)
 -
 -
 
 Numeric
 ^^^^^^^
 
+- Bug in :meth:`to_numeric` in which large negative numbers were being improperly handled (:issue:`24910`)
+- Bug in :meth:`to_numeric` in which numbers were being coerced to float, even though ``errors`` was not ``coerce`` (:issue:`24910`)
 -
 -
 -
