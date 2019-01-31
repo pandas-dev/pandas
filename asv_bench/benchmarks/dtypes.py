@@ -1,9 +1,9 @@
-import numpy as np
-
 from pandas.api.types import pandas_dtype
 
+import numpy as np
 from .pandas_vb_common import (
-    datetime_dtypes, extension_dtypes, numeric_dtypes, string_dtypes)
+    numeric_dtypes, datetime_dtypes, string_dtypes, extension_dtypes)
+
 
 _numpy_dtypes = [np.dtype(dtype)
                  for dtype in (numeric_dtypes +
@@ -36,4 +36,4 @@ class DtypesInvalid(object):
             pass
 
 
-from .pandas_vb_common import setup  # noqa: F401 isort:skip
+from .pandas_vb_common import setup  # noqa: F401
