@@ -2026,7 +2026,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         Parameters
         ----------
         q : float or array-like, default 0.5 (50% quantile)
-            0 <= q <= 1, the quantile(s) to compute
+            0 <= q <= 1, the quantile(s) to compute.
         interpolation : {'linear', 'lower', 'higher', 'midpoint', 'nearest'}
             .. versionadded:: 0.18.0
 
@@ -2043,8 +2043,9 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         Returns
         -------
         float or Series
-            if ``q`` is an array, a Series will be returned where the
-            index is ``q`` and the values are the quantiles.
+            If ``q`` is an array, a Series will be returned where the
+            index is ``q`` and the values are the quantiles, otherwise
+            a float will be returned.
 
         See Also
         --------
@@ -2134,13 +2135,13 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         ----------
         other : Series
         min_periods : int, optional
-            Minimum number of observations needed to have a valid result
+            Minimum number of observations needed to have a valid result.
 
         Returns
         -------
         float
-
-        Normalized by N-1 (unbiased estimator).
+            Covariance between Series and other normalized by N-1
+            (unbiased estimator).
         """
         this, other = self.align(other, join='inner', copy=False)
         if len(this) == 0:
@@ -2367,17 +2368,18 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         Parameters
         ----------
         to_append : Series or list/tuple of Series
-        ignore_index : boolean, default False
+        ignore_index : bool, default False
             If True, do not use the index labels.
 
             .. versionadded:: 0.19.0
 
-        verify_integrity : boolean, default False
-            If True, raise Exception on creating index with duplicates
+        verify_integrity : bool, default False
+            If True, raise Exception on creating index with duplicates.
 
         Returns
         -------
         Series
+            Concatenated Series.
 
         See Also
         --------
@@ -2395,7 +2397,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         --------
         >>> s1 = pd.Series([1, 2, 3])
         >>> s2 = pd.Series([4, 5, 6])
-        >>> s3 = pd.Series([4, 5, 6], index=[3,4,5])
+        >>> s3 = pd.Series([4, 5, 6], index=[3, 4, 5])
         >>> s1.append(s2)
         0    1
         1    2
@@ -3241,12 +3243,13 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
         Parameters
         ----------
-        i, j : int, string (can be mixed)
+        i, j : int, str (can be mixed)
             Level of index to be swapped. Can pass level name as string.
 
         Returns
         -------
         Series
+            Series with levels swapped in MultiIndex.
 
         .. versionchanged:: 0.18.1
 
@@ -3286,8 +3289,8 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
         Parameters
         ----------
-        level : int, string, or list of these, default last level
-            Level(s) to unstack, can pass level name
+        level : int, str, or list of these, default last level
+            Level(s) to unstack, can pass level name.
         fill_value : replace NaN with this value if the unstack produces
             missing values
 
@@ -3296,6 +3299,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         Returns
         -------
         DataFrame
+            Unstacked Series.
 
         Examples
         --------
@@ -3799,7 +3803,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
         Examples
         --------
-        >>> s = pd.Series(data=np.arange(3), index=['A','B','C'])
+        >>> s = pd.Series(data=np.arange(3), index=['A', 'B', 'C'])
         >>> s
         A  0
         B  1
@@ -3808,7 +3812,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
         Drop labels B en C
 
-        >>> s.drop(labels=['B','C'])
+        >>> s.drop(labels=['B', 'C'])
         A  0
         dtype: int64
 
