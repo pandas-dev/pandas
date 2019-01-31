@@ -65,6 +65,8 @@ class TestPivotTable(object):
             index + [columns])['D'].agg(np.mean).unstack()
         tm.assert_frame_equal(table, expected)
 
+    def test_pivot_table_categorical_observed(self, observed):
+        # issue #24923
         df = pd.DataFrame({'col1': list('abcde'),
                            'col2': list('fghij'),
                            'col3': [1, 2, 3, 4, 5]})
@@ -72,15 +74,15 @@ class TestPivotTable(object):
         df.col1 = df.col1.astype('category')
         df.col2 = df.col1.astype('category')
 
-        df_pivot = df.pivot_table(index='col1', values='col3',
+        expected = df.pivot_table(index='col1', values='col3',
                                   columns='col2', aggfunc=np.sum,
                                   fill_value=0)
 
-        df_pivot_observed = df.pivot_table(index='col1', values='col3',
-                                           columns='col2', aggfunc=np.sum,
-                                           fill_value=0, observed=observed)
+        result = df.pivot_table(index='col1', values='col3',
+                                columns='col2', aggfunc=np.sum,
+                                fill_value=0, observed=observed)
 
-        tm.assert_frame_equal(df_pivot, df_pivot_observed)
+        tm.assert_frame_equal(result, expected)
 
     def test_pivot_table_nocols(self):
         df = DataFrame({'rows': ['a', 'b', 'c'],
