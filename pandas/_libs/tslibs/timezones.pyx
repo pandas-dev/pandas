@@ -157,9 +157,7 @@ cdef get_utcoffset(tzinfo, obj):
 
 
 cdef inline bint is_fixed_offset(object tz):
-    if isinstance(tz, timezone):
-        return 1
-    elif treat_tz_as_dateutil(tz):
+    if treat_tz_as_dateutil(tz):
         if len(tz._trans_idx) == 0 and len(tz._trans_list) == 0:
             return 1
         else:
@@ -170,6 +168,8 @@ cdef inline bint is_fixed_offset(object tz):
             return 1
         else:
             return 0
+    # This also implicitly accepts datetime.timezone objects which are
+    # considered fixed
     return 1
 
 
