@@ -239,8 +239,6 @@ def fast_unique_multiple(list arrays, sort: bool=True):
         except Exception:
             # TODO: RuntimeWarning?
             pass
-    elif sort:
-        uniques.sort()
 
     return uniques
 

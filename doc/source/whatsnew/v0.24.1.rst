@@ -20,74 +20,24 @@ including other versions of pandas.
 API Changes
 ~~~~~~~~~~~
 
-Changing the ``sort`` parameter for :meth:`Index.union`
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Changing the ``sort`` parameter for :class:`Index` set operations
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 The default ``sort`` value for :meth:`Index.union` has changed from ``True`` to ``None`` (:issue:`24959`).
-The default *behavior* remains the same: The result is sorted, unless
+The default *behavior*, however, remains the same: the result is sorted, unless
 
 1. ``self`` and ``other`` are identical
 2. ``self`` or ``other`` is empty
 3. ``self`` or ``other`` contain values that can not be compared (a ``RuntimeWarning`` is raised).
 
-This allows ``sort=True`` to now mean "always sort". A ``TypeError`` is raised if the values cannot be compared.
-
-**Behavior in 0.24.0**
-
-.. ipython:: python
-
-   In [1]: idx = pd.Index(['b', 'a'])
-
-   In [2]: idx.union(idx)  # sort=True was the default.
-   Out[2]: Index(['b', 'a'], dtype='object')
-
-   In [3]: idx.union(idx, sort=True)  # result is still not sorted.
-   Out[32]: Index(['b', 'a'], dtype='object')
-
-**New Behavior**
-
-.. ipython:: python
-
-   idx = pd.Index(['b', 'a'])
-   idx.union(idx)  # sort=None is the default. Don't sort identical operands.
-
-   idx.union(idx, sort=True)
+This change will allow to preserve ``sort=True`` to mean "always sort" in a future release.
 
 The same change applies to :meth:`Index.difference` and :meth:`Index.symmetric_difference`, which
-would previously not sort the result when ``sort=True`` but the values could not be compared.
+would do not sort the result when the values could not be compared.
 
-Changed the behavior of :meth:`Index.intersection` with ``sort=True``
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-When ``sort=True`` is provided to :meth:`Index.intersection`, the values are always sorted. In 0.24.0,
-the values would not be sorted when ``self`` and ``other`` were identical. Pass ``sort=False`` to not
-sort the values. This matches the behavior of pandas 0.23.4 and earlier.
-
-**Behavior in 0.23.4**
-
-.. ipython:: python
-
-   In [2]: idx = pd.Index(['b', 'a'])
-
-   In [3]: idx.intersection(idx)  # sort was not a keyword.
-   Out[3]: Index(['b', 'a'], dtype='object')
-
-**Behavior in 0.24.0**
-
-.. ipython:: python
-
-   In [5]: idx.intersection(idx)  # sort=True by default. Don't sort identical.
-   Out[5]: Index(['b', 'a'], dtype='object')
-
-   In [6]: idx.intersection(idx, sort=True)
-   Out[6]: Index(['b', 'a'], dtype='object')
-
-**New Behavior**
-
-.. ipython:: python
-
-   idx.intersection(idx)  # sort=False by default
-   idx.intersection(idx, sort=True)
+For :meth:`Index.intersection` the option of ``sort=True`` is also renamed
+to ``sort=None`` (but for :meth:`Index.intersection` it is not the default), as
+the result is not sorted when ``self`` and ``other`` were identical.
 
 .. _whatsnew_0241.regressions:
 

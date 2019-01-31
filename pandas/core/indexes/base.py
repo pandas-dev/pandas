@@ -2245,6 +2245,11 @@ class Index(IndexOpsMixin, PandasObject):
             return self._shallow_copy(name=name)
         return self
 
+    def _validate_sort_keyword(self, sort):
+        if sort not in [None, False]:
+            raise ValueError("The 'sort' keyword only takes the values of "
+                             "None or False; {0} was passed.".format(sort))
+
     def union(self, other, sort=None):
         """
         Form the union of two Index objects.
@@ -2262,16 +2267,14 @@ class Index(IndexOpsMixin, PandasObject):
               3. Some values in `self` or `other` cannot be compared.
                  A RuntimeWarning is issued in this case.
 
-            * True : sort the result. A TypeError is raised when the
-              values cannot be compared.
             * False : do not sort the result.
 
             .. versionadded:: 0.24.0
 
             .. versionchanged:: 0.24.1
 
-               Changed the default `sort` to None, matching the
-               behavior of pandas 0.23.4 and earlier.
+               Changed the default `sort` from True to None (without
+               change in behaviour).
 
         Returns
         -------
@@ -2285,20 +2288,15 @@ class Index(IndexOpsMixin, PandasObject):
         >>> idx1.union(idx2)
         Int64Index([1, 2, 3, 4, 5, 6], dtype='int64')
         """
+        self._validate_sort_keyword(sort)
         self._assert_can_do_setop(other)
         other = ensure_index(other)
 
         if len(other) == 0 or self.equals(other):
-            result = self._get_reconciled_name_object(other)
-            if sort:
-                result = result.sort_values()
-            return result
+            return self._get_reconciled_name_object(other)
 
         if len(self) == 0:
-            result = other._get_reconciled_name_object(self)
-            if sort:
-                result = result.sort_values()
-            return result
+            return other._get_reconciled_name_object(self)
 
         # TODO: is_dtype_union_equal is a hack around
         # 1. buggy set ops with duplicates (GH #13432)
@@ -2348,9 +2346,6 @@ class Index(IndexOpsMixin, PandasObject):
                     warnings.warn("{}, sort order is undefined for "
                                   "incomparable objects".format(e),
                                   RuntimeWarning, stacklevel=3)
-            elif sort:
-                # raise if not sortable.
-                result = sorting.safe_sort(result)
 
         # for subclasses
         return self._wrap_setop_result(other, result)
@@ -2367,12 +2362,12 @@ class Index(IndexOpsMixin, PandasObject):
         Parameters
         ----------
         other : Index or array-like
-        sort : bool or None, default False
+        sort : False or None, default False
             Whether to sort the resulting index.
 
             * False : do not sort the result.
-            * True : sort the result. A TypeError is raised when the
-              values cannot be compared.
+            * None : sort the result, except when `self` and `other` are equal
+              or when the values cannot be compared. 
 
             .. versionadded:: 0.24.0
 
@@ -2392,14 +2387,12 @@ class Index(IndexOpsMixin, PandasObject):
         >>> idx1.intersection(idx2)
         Int64Index([3, 4], dtype='int64')
         """
+        self._validate_sort_keyword(sort)
         self._assert_can_do_setop(other)
         other = ensure_index(other)
 
         if self.equals(other):
-            result = self._get_reconciled_name_object(other)
-            if sort:
-                result = result.sort_values()
-            return result
+            return self._get_reconciled_name_object(other)
 
         if not is_dtype_equal(self.dtype, other.dtype):
             this = self.astype('O')
@@ -2434,7 +2427,7 @@ class Index(IndexOpsMixin, PandasObject):
 
         taken = other.take(indexer)
 
-        if sort:
+        if sort is None:
             taken = sorting.safe_sort(taken.values)
             if self.name != other.name:
                 name = None
@@ -2457,7 +2450,7 @@ class Index(IndexOpsMixin, PandasObject):
         Parameters
         ----------
         other : Index or array-like
-        sort : bool or None, default None
+        sort : False or None, default None
             Whether to sort the resulting index. By default, the
             values are attempted to be sorted, but any TypeError from
             incomparable elements is caught by pandas.
@@ -2465,14 +2458,12 @@ class Index(IndexOpsMixin, PandasObject):
             * None : Attempt to sort the result, but catch any TypeErrors
               from comparing incomparable elements.
             * False : Do not sort the result.
-            * True : Sort the result, raising a TypeError if any elements
-              cannot be compared.
 
             .. versionadded:: 0.24.0
 
             .. versionchanged:: 0.24.1
 
-               Added the `None` option, which matches the behavior of
+               Changed `True` to `None`, which matches the behavior of
                pandas 0.23.4 and earlier.
 
         Returns
@@ -2489,6 +2480,7 @@ class Index(IndexOpsMixin, PandasObject):
         >>> idx1.difference(idx2, sort=False)
         Int64Index([2, 1], dtype='int64')
         """
+        self._validate_sort_keyword(sort)
         self._assert_can_do_setop(other)
 
         if self.equals(other):
@@ -2510,8 +2502,6 @@ class Index(IndexOpsMixin, PandasObject):
                 the_diff = sorting.safe_sort(the_diff)
             except TypeError:
                 pass
-        elif sort:
-            the_diff = sorting.safe_sort(the_diff)
 
         return this._shallow_copy(the_diff, name=result_name, freq=None)
 
@@ -2523,7 +2513,7 @@ class Index(IndexOpsMixin, PandasObject):
         ----------
         other : Index or array-like
         result_name : str
-        sort : bool or None, default None
+        sort : False or None, default None
             Whether to sort the resulting index. By default, the
             values are attempted to be sorted, but any TypeError from
             incomparable elements is caught by pandas.
@@ -2531,14 +2521,12 @@ class Index(IndexOpsMixin, PandasObject):
             * None : Attempt to sort the result, but catch any TypeErrors
               from comparing incomparable elements.
             * False : Do not sort the result.
-            * True : Sort the result, raising a TypeError if any elements
-              cannot be compared.
 
             .. versionadded:: 0.24.0
 
             .. versionchanged:: 0.24.1
 
-               Added the `None` option, which matches the behavior of
+               Changed `True` to `None`, which matches the behavior of
                pandas 0.23.4 and earlier.
 
         Returns
@@ -2564,6 +2552,7 @@ class Index(IndexOpsMixin, PandasObject):
         >>> idx1 ^ idx2
         Int64Index([1, 5], dtype='int64')
         """
+        self._validate_sort_keyword(sort)
         self._assert_can_do_setop(other)
         other, result_name_update = self._convert_can_do_setop(other)
         if result_name is None:
@@ -2589,8 +2578,6 @@ class Index(IndexOpsMixin, PandasObject):
                 the_diff = sorting.safe_sort(the_diff)
             except TypeError:
                 pass
-        elif sort:
-            the_diff = sorting.safe_sort(the_diff)
 
         attribs = self._get_attributes_dict()
         attribs['name'] = result_name

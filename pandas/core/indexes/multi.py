@@ -2886,7 +2886,7 @@ class MultiIndex(Index):
         Parameters
         ----------
         other : MultiIndex or array / Index of tuples
-        sort : bool or None, default None
+        sort : False or None, default None
             Whether to sort the resulting Index.
 
             * None : Sort the result, except when
@@ -2896,15 +2896,13 @@ class MultiIndex(Index):
               3. Some values in `self` or `other` cannot be compared.
                  A RuntimeWarning is issued in this case.
 
-            * True : sort the result. A TypeError is raised when the
-              values cannot be compared.
             * False : do not sort the result.
 
             .. versionadded:: 0.24.0
 
             .. versionchanged:: 0.24.1
 
-               Changed the default `sort` to None, matching the
+               Changed the default `sort` from True to None, matching the
                behavior of pandas 0.23.4 and earlier.
 
         Returns
@@ -2913,12 +2911,11 @@ class MultiIndex(Index):
 
         >>> index.union(index2)
         """
+        self._validate_sort_keyword(sort)
         self._assert_can_do_setop(other)
         other, result_names = self._convert_can_do_setop(other)
 
         if len(other) == 0 or self.equals(other):
-            if sort:
-                return self.sort_values()
             return self
 
         # TODO: Index.union returns other when `len(self)` is 0.
@@ -2937,32 +2934,32 @@ class MultiIndex(Index):
         Parameters
         ----------
         other : MultiIndex or array / Index of tuples
-        sort : bool, default False
+        sort : False or None, default False
             Sort the resulting MultiIndex if possible
 
             .. versionadded:: 0.24.0
 
             .. versionchanged:: 0.24.1
 
-               Changed the default from ``True`` to ``False``.
+               Changed the default to ``False``, to match
+               behaviour from before 0.24.0
 
         Returns
         -------
         Index
         """
+        self._validate_sort_keyword(sort)
         self._assert_can_do_setop(other)
         other, result_names = self._convert_can_do_setop(other)
 
         if self.equals(other):
-            if sort:
-                return self.sort_values()
             return self
 
         self_tuples = self._ndarray_values
         other_tuples = other._ndarray_values
         uniq_tuples = set(self_tuples) & set(other_tuples)
 
-        if sort:
+        if sort is None:
             uniq_tuples = sorted(uniq_tuples)
 
         if len(uniq_tuples) == 0:
@@ -2980,7 +2977,7 @@ class MultiIndex(Index):
         Parameters
         ----------
         other : MultiIndex
-        sort : bool, default True
+        sort : False or None, default None
             Sort the resulting MultiIndex if possible
 
             .. versionadded:: 0.24.0
@@ -2989,12 +2986,11 @@ class MultiIndex(Index):
         -------
         diff : MultiIndex
         """
+        self._validate_sort_keyword(sort)
         self._assert_can_do_setop(other)
         other, result_names = self._convert_can_do_setop(other)
 
         if len(other) == 0:
-            if sort:
-                return self.sort_values()
             return self
 
         if self.equals(other):
@@ -3010,8 +3006,13 @@ class MultiIndex(Index):
         label_diff = np.setdiff1d(np.arange(this.size), indexer,
                                   assume_unique=True)
         difference = this.values.take(label_diff)
-        if sort:
-            difference = sorted(difference)
+        if sort is None:
+            try:
+                difference = sorted(difference)
+            except TypeError as e:
+                    warnings.warn("{}, sort order is undefined for "
+                                  "incomparable objects".format(e),
+                                  RuntimeWarning, stacklevel=2)
 
         if len(difference) == 0:
             return MultiIndex(levels=[[]] * self.nlevels,
