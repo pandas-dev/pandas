@@ -12,8 +12,9 @@ from pandas import DataFrame, get_option, read_clipboard
 from pandas.util import testing as tm
 from pandas.util.testing import makeCustomDataframe as mkdf
 
-from pandas.io.clipboard.exceptions import PyperclipException
 from pandas.io.clipboard import clipboard_get, clipboard_set
+from pandas.io.clipboard.exceptions import PyperclipException
+
 try:
     DataFrame({'A': [1, 2]}).to_clipboard()
     _DEPS_INSTALLED = 1
