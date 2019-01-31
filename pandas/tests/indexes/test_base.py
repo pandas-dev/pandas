@@ -773,7 +773,7 @@ class TestIndex(Base):
 
     def test_intersection_equal_sort(self):
         idx = pd.Index(['c', 'a', 'b'])
-        sorted_ = pd.Index(['a', 'b', 'c'])
+        # sorted_ = pd.Index(['a', 'b', 'c'])
         tm.assert_index_equal(idx.intersection(idx, sort=False), idx)
         tm.assert_index_equal(idx.intersection(idx, sort=None), idx)
         # TODO decide on True behaviour
