@@ -197,7 +197,7 @@ def round_nsint64(values, mode, freq):
 
 # This is PITA. Because we inherit from datetime, which has very specific
 # construction requirements, we need to do object instantiation in python
-# (see Timestamp class above). This will serve as a C extension type that
+# (see Timestamp class below). This will serve as a C extension type that
 # shadows the python class, where we do any heavy lifting.
 cdef class _Timestamp(datetime):
 
@@ -670,7 +670,7 @@ class Timestamp(_Timestamp):
     @classmethod
     def combine(cls, date, time):
         """
-        Timsetamp.combine(date, time)
+        Timestamp.combine(date, time)
 
         date, time -> datetime with same date and time fields
         """
