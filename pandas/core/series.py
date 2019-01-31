@@ -2164,6 +2164,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         Returns
         -------
         Series
+            First differences of the Series.
 
         See Also
         --------
