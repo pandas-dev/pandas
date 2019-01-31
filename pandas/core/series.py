@@ -1689,12 +1689,13 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
             - 'first' : Drop duplicates except for the first occurrence.
             - 'last' : Drop duplicates except for the last occurrence.
             - ``False`` : Drop all duplicates.
-        inplace : boolean, default ``False``
+        inplace : bool, default ``False``
             If ``True``, performs operation inplace and returns None.
 
         Returns
         -------
         Series
+            Series with duplicates dropped.
 
         See Also
         --------
