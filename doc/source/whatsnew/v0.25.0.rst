@@ -187,7 +187,7 @@ Reshaping
 ^^^^^^^^^
 
 - Bug in :func:`merge` when merging by index name would sometimes result in an incorrectly numbered index (:issue:`24212`)
--
+- :func:`to_records` now accepts dtypes to its `column_dtypes` parameter (:issue:`24895`)
 -
 
 
@@ -213,4 +213,3 @@ Contributors
 ~~~~~~~~~~~~
 
 .. contributors:: v0.24.x..HEAD
-
