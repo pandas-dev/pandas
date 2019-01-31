@@ -4,9 +4,48 @@ import numpy as np
 from numpy import iinfo
 import pytest
 
+import pandas.compat as compat
+
 import pandas as pd
 from pandas import DataFrame, Index, Series, to_numeric
 from pandas.util import testing as tm
+
+
+@pytest.fixture(params=[None, "ignore", "raise", "coerce"])
+def errors(request):
+    return request.param
+
+
+@pytest.fixture(params=[True, False])
+def signed(request):
+    return request.param
+
+
+@pytest.fixture(params=[lambda x: x, str], ids=["identity", "str"])
+def transform(request):
+    return request.param
+
+
+@pytest.fixture(params=[
+    47393996303418497800,
+    100000000000000000000
+])
+def large_val(request):
+    return request.param
+
+
+@pytest.fixture(params=[True, False])
+def multiple_elts(request):
+    return request.param
+
+
+@pytest.fixture(params=[
+    (lambda x: Index(x, name="idx"), tm.assert_index_equal),
+    (lambda x: Series(x, name="ser"), tm.assert_series_equal),
+    (lambda x: np.array(Index(x).values), tm.assert_numpy_array_equal)
+])
+def transform_assert_equal(request):
+    return request.param
 
 
 @pytest.mark.parametrize("input_kwargs,result_kwargs", [
@@ -172,7 +211,6 @@ def test_all_nan():
     tm.assert_series_equal(result, expected)
 
 
-@pytest.mark.parametrize("errors", [None, "ignore", "raise", "coerce"])
 def test_type_check(errors):
     # see gh-11776
     df = DataFrame({"a": [1, -3.14, 7], "b": ["4", "5", "6"]})
@@ -183,11 +221,100 @@ def test_type_check(errors):
         to_numeric(df, **kwargs)
 
 
-@pytest.mark.parametrize("val", [
-    1, 1.1, "1", "1.1", -1.5, "-1.5"
-])
-def test_scalar(val):
-    assert to_numeric(val) == float(val)
+@pytest.mark.parametrize("val", [1, 1.1, 20001])
+def test_scalar(val, signed, transform):
+    val = -val if signed else val
+    assert to_numeric(transform(val)) == float(val)
+
+
+def test_really_large_scalar(large_val, signed, transform, errors):
+    # see gh-24910
+    kwargs = dict(errors=errors) if errors is not None else dict()
+    val = -large_val if signed else large_val
+
+    val = transform(val)
+    val_is_string = isinstance(val, str)
+
+    if val_is_string and errors in (None, "raise"):
+        msg = "Integer out of range. at position 0"
+        with pytest.raises(ValueError, match=msg):
+            to_numeric(val, **kwargs)
+    else:
+        expected = float(val) if (errors == "coerce" and
+                                  val_is_string) else val
+        assert tm.assert_almost_equal(to_numeric(val, **kwargs), expected)
+
+
+def test_really_large_in_arr(large_val, signed, transform,
+                             multiple_elts, errors):
+    # see gh-24910
+    kwargs = dict(errors=errors) if errors is not None else dict()
+    val = -large_val if signed else large_val
+    val = transform(val)
+
+    extra_elt = "string"
+    arr = [val] + multiple_elts * [extra_elt]
+
+    val_is_string = isinstance(val, str)
+    coercing = errors == "coerce"
+
+    if errors in (None, "raise") and (val_is_string or multiple_elts):
+        if val_is_string:
+            msg = "Integer out of range. at position 0"
+        else:
+            msg = 'Unable to parse string "string" at position 1'
+
+        with pytest.raises(ValueError, match=msg):
+            to_numeric(arr, **kwargs)
+    else:
+        result = to_numeric(arr, **kwargs)
+
+        exp_val = float(val) if (coercing and val_is_string) else val
+        expected = [exp_val]
+
+        if multiple_elts:
+            if coercing:
+                expected.append(np.nan)
+                exp_dtype = float
+            else:
+                expected.append(extra_elt)
+                exp_dtype = object
+        else:
+            exp_dtype = float if isinstance(exp_val, (
+                int, compat.long, float)) else object
+
+        tm.assert_almost_equal(result, np.array(expected, dtype=exp_dtype))
+
+
+def test_really_large_in_arr_consistent(large_val, signed,
+                                        multiple_elts, errors):
+    # see gh-24910
+    #
+    # Even if we discover that we have to hold float, does not mean
+    # we should be lenient on subsequent elements that fail to be integer.
+    kwargs = dict(errors=errors) if errors is not None else dict()
+    arr = [str(-large_val if signed else large_val)]
+
+    if multiple_elts:
+        arr.insert(0, large_val)
+
+    if errors in (None, "raise"):
+        index = int(multiple_elts)
+        msg = "Integer out of range. at position {index}".format(index=index)
+
+        with pytest.raises(ValueError, match=msg):
+            to_numeric(arr, **kwargs)
+    else:
+        result = to_numeric(arr, **kwargs)
+
+        if errors == "coerce":
+            expected = [float(i) for i in arr]
+            exp_dtype = float
+        else:
+            expected = arr
+            exp_dtype = object
+
+        tm.assert_almost_equal(result, np.array(expected, dtype=exp_dtype))
 
 
 @pytest.mark.parametrize("errors,checker", [
@@ -203,15 +330,6 @@ def test_scalar_fail(errors, checker):
             to_numeric(scalar, errors=errors)
     else:
         assert checker(to_numeric(scalar, errors=errors))
-
-
-@pytest.fixture(params=[
-    (lambda x: Index(x, name="idx"), tm.assert_index_equal),
-    (lambda x: Series(x, name="ser"), tm.assert_series_equal),
-    (lambda x: np.array(Index(x).values), tm.assert_numpy_array_equal)
-])
-def transform_assert_equal(request):
-    return request.param
 
 
 @pytest.mark.parametrize("data", [
