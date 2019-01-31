@@ -2500,7 +2500,7 @@ class Index(IndexOpsMixin, PandasObject):
 
         return this._shallow_copy(the_diff, name=result_name, freq=None)
 
-    def symmetric_difference(self, other, result_name=None, sort=True):
+    def symmetric_difference(self, other, result_name=None, sort=None):
         """
         Compute the symmetric difference of two Index objects.
 
@@ -2508,10 +2508,22 @@ class Index(IndexOpsMixin, PandasObject):
         ----------
         other : Index or array-like
         result_name : str
-        sort : bool, default True
-            Sort the resulting index if possible
+        sort : bool or None, default None.
+            Whether to sort the resulting index. By default, the
+            values are attempted to be sorted, but any TypeError from
+            incomparable elements is caught by pandas.
+
+            * None : Attempt to sort the result, but catch any TypeErrors
+              from comparing incomparable elements.
+            * False : Do not sort the result.
+            * True : Sort the result, raising a TypeError if any elements
+              cannot be compared.
 
             .. versionadded:: 0.24.0
+
+            .. versionchanged:: 0.24.1
+
+               Added the `None` option.
 
         Returns
         -------
@@ -2556,11 +2568,13 @@ class Index(IndexOpsMixin, PandasObject):
         right_diff = other.values.take(right_indexer)
 
         the_diff = _concat._concat_compat([left_diff, right_diff])
-        if sort:
+        if sort is None:
             try:
                 the_diff = sorting.safe_sort(the_diff)
             except TypeError:
                 pass
+        elif sort:
+            the_diff = sorting.safe_sort(the_diff)
 
         attribs = self._get_attributes_dict()
         attribs['name'] = result_name

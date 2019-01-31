@@ -1099,6 +1099,23 @@ class TestIndex(Base):
         assert tm.equalContents(result, expected)
         assert result.name is None
 
+    def test_symmetric_difference_incomparable(self):
+        a = pd.Index([3, pd.Timestamp('2000'), 1])
+        b = pd.Index([2, pd.Timestamp('1999'), 1])
+
+        # sort=None, the default
+        result = a.symmetric_difference(b)
+        expected = pd.Index([3, pd.Timestamp('2000'), 2, pd.Timestamp('1999')])
+        tm.assert_index_equal(result, expected)
+
+        # sort=False
+        result = a.symmetric_difference(b, sort=False)
+        tm.assert_index_equal(result, expected)
+
+        # sort=True, raises
+        with pytest.raises(TypeError, match='Cannot compare'):
+            a.symmetric_difference(b, sort=True)
+
     @pytest.mark.parametrize("sort", [True, False])
     def test_symmetric_difference_mi(self, sort):
         index1 = MultiIndex.from_tuples(self.tuples)
