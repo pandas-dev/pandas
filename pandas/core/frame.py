@@ -640,6 +640,16 @@ class DataFrame(NDFrame):
 
         Mainly for IPython notebook.
         """
+        # qtconsole doesn't report its line width, and also
+        # behaves badly when outputting an HTML table
+        # that doesn't fit the window, so disable it.
+        # XXX: In IPython 3.x and above, the Qt console will not attempt to
+        # display HTML, so this check can be removed when support for
+        # IPython 2.x is no longer needed.
+        if console.in_qtconsole():
+            # 'HTML output is disabled in QtConsole'
+            return None
+
         if self._info_repr():
             buf = StringIO(u(""))
             self.info(buf=buf)
