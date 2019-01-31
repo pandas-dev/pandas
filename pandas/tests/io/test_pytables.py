@@ -4553,7 +4553,7 @@ class TestHDFStore(Base):
             assert_frame_equal(expected, result)
 
     def test_legacy_table_read_py2(self, datapath):
-        # GH xxxxx
+        # issue: 24925
         # legacy table written in Python 2
         with ensure_clean_store(
                 datapath('io', 'data', 'legacy_hdf',
