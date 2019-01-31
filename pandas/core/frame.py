@@ -1709,7 +1709,8 @@ class DataFrame(NDFrame):
             # string naming a type.
             if dtype_mapping is None:
                 formats.append(v.dtype)
-            elif isinstance(dtype_mapping, (type, compat.string_types)):
+            elif isinstance(dtype_mapping, (type, np.dtype,
+                                            compat.string_types)):
                 formats.append(dtype_mapping)
             else:
                 element = "row" if i < index_len else "column"
