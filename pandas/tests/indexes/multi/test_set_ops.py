@@ -287,9 +287,10 @@ def test_intersection(idx, sort):
 
 def test_intersect_equal_sort():
     idx = pd.MultiIndex.from_product([[1, 0], ['a', 'b']])
-    sorted_ = pd.MultiIndex.from_product([[0, 1], ['a', 'b']])
+    # sorted_ = pd.MultiIndex.from_product([[0, 1], ['a', 'b']])
     tm.assert_index_equal(idx.intersection(idx, sort=False), idx)
     tm.assert_index_equal(idx.intersection(idx, sort=None), idx)
+    # TODO decide on True behaviour
     # tm.assert_index_equal(idx.intersection(idx, sort=True), sorted_)
 
 
