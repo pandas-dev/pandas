@@ -3,6 +3,7 @@
 from collections import defaultdict
 from datetime import datetime, timedelta
 import math
+import operator
 import sys
 
 import numpy as np
@@ -1099,22 +1100,28 @@ class TestIndex(Base):
         assert tm.equalContents(result, expected)
         assert result.name is None
 
-    def test_symmetric_difference_incomparable(self):
+    @pytest.mark.parametrize('opname', ['difference', 'symmetric_difference'])
+    def test_difference_incomparable(self, opname):
         a = pd.Index([3, pd.Timestamp('2000'), 1])
         b = pd.Index([2, pd.Timestamp('1999'), 1])
+        op = operator.methodcaller(opname, b)
 
         # sort=None, the default
-        result = a.symmetric_difference(b)
+        result = op(a)
         expected = pd.Index([3, pd.Timestamp('2000'), 2, pd.Timestamp('1999')])
+        if opname == 'difference':
+            expected = expected[:2]
         tm.assert_index_equal(result, expected)
 
         # sort=False
-        result = a.symmetric_difference(b, sort=False)
+        op = operator.methodcaller(opname, b, sort=False)
+        result = op(a)
         tm.assert_index_equal(result, expected)
 
         # sort=True, raises
+        op = operator.methodcaller(opname, b, sort=True)
         with pytest.raises(TypeError, match='Cannot compare'):
-            a.symmetric_difference(b, sort=True)
+            op(a)
 
     @pytest.mark.parametrize("sort", [True, False])
     def test_symmetric_difference_mi(self, sort):

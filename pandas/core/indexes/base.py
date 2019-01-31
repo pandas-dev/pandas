@@ -2447,7 +2447,7 @@ class Index(IndexOpsMixin, PandasObject):
 
         return taken
 
-    def difference(self, other, sort=True):
+    def difference(self, other, sort=None):
         """
         Return a new Index with elements from the index that are not in
         `other`.
@@ -2457,10 +2457,23 @@ class Index(IndexOpsMixin, PandasObject):
         Parameters
         ----------
         other : Index or array-like
-        sort : bool, default True
-            Sort the resulting index if possible
+        sort : bool or None, default None
+            Whether to sort the resulting index. By default, the
+            values are attempted to be sorted, but any TypeError from
+            incomparable elements is caught by pandas.
+
+            * None : Attempt to sort the result, but catch any TypeErrors
+              from comparing incomparable elements.
+            * False : Do not sort the result.
+            * True : Sort the result, raising a TypeError if any elements
+              cannot be compared.
 
             .. versionadded:: 0.24.0
+
+            .. versionchanged:: 0.24.1
+
+               Added the `None` option, which matches the behavior of
+               pandas 0.23.4 and earlier.
 
         Returns
         -------
@@ -2492,11 +2505,13 @@ class Index(IndexOpsMixin, PandasObject):
         label_diff = np.setdiff1d(np.arange(this.size), indexer,
                                   assume_unique=True)
         the_diff = this.values.take(label_diff)
-        if sort:
+        if sort is None:
             try:
                 the_diff = sorting.safe_sort(the_diff)
             except TypeError:
                 pass
+        elif sort:
+            the_diff = sorting.safe_sort(the_diff)
 
         return this._shallow_copy(the_diff, name=result_name, freq=None)
 
@@ -2508,7 +2523,7 @@ class Index(IndexOpsMixin, PandasObject):
         ----------
         other : Index or array-like
         result_name : str
-        sort : bool or None, default None.
+        sort : bool or None, default None
             Whether to sort the resulting index. By default, the
             values are attempted to be sorted, but any TypeError from
             incomparable elements is caught by pandas.

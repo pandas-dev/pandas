@@ -174,7 +174,10 @@ def test_difference(idx, sort):
 
     # name from empty array
     result = first.difference([], sort=sort)
-    assert first.equals(result)
+    if sort:
+        assert first.sort_values().equals(result)
+    else:
+        assert first.equals(result)
     assert first.names == result.names
 
     # name from non-empty array
@@ -187,6 +190,36 @@ def test_difference(idx, sort):
     msg = "other must be a MultiIndex or a list of tuples"
     with pytest.raises(TypeError, match=msg):
         first.difference([1, 2, 3, 4, 5], sort=sort)
+
+
+def test_difference_sort_special():
+    idx = pd.MultiIndex.from_product([[1, 0], ['a', 'b']])
+    # sort=None, the default
+    result = idx.difference([])
+    tm.assert_index_equal(result, idx)
+
+    result = idx.difference([], sort=True)
+    expected = pd.MultiIndex.from_product([[0, 1], ['a', 'b']])
+    tm.assert_index_equal(result, expected)
+
+
+def test_difference_sort_incomparable():
+    idx = pd.MultiIndex.from_product([[1, pd.Timestamp('2000'), 2],
+                                      ['a', 'b']])
+
+    other = pd.MultiIndex.from_product([[3, pd.Timestamp('2000'), 4],
+                                        ['c', 'd']])
+    # sort=None, the default
+    # result = idx.difference(other)
+    # tm.assert_index_equal(result, idx)
+
+    # sort=False
+    result = idx.difference(other)
+    tm.assert_index_equal(result, idx)
+
+    # sort=True, raises
+    with pytest.raises(TypeError):
+        idx.difference(other, sort=True)
 
 
 @pytest.mark.parametrize("sort", [True, False])

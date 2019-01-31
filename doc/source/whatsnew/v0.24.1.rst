@@ -53,8 +53,8 @@ This allows ``sort=True`` to now mean "always sort". A ``TypeError`` is raised i
 
    idx.union(idx, sort=True)
 
-The same change applies to :meth:`Index.symmetric_difference`, which would previously not
-sort the result when ``sort=True`` but the values could not be compared.
+The same change applies to :meth:`Index.difference` and :meth:`Index.symmetric_difference`, which
+would previously not sort the result when ``sort=True`` but the values could not be compared.
 
 Changed the behavior of :meth:`Index.intersection` with ``sort=True``
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^

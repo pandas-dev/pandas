@@ -2973,7 +2973,7 @@ class MultiIndex(Index):
             return MultiIndex.from_arrays(lzip(*uniq_tuples), sortorder=0,
                                           names=result_names)
 
-    def difference(self, other, sort=True):
+    def difference(self, other, sort=None):
         """
         Compute set difference of two MultiIndex objects
 
@@ -2993,6 +2993,8 @@ class MultiIndex(Index):
         other, result_names = self._convert_can_do_setop(other)
 
         if len(other) == 0:
+            if sort:
+                return self.sort_values()
             return self
 
         if self.equals(other):
