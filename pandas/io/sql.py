@@ -381,7 +381,8 @@ def read_sql(sql, con, index_col=None, coerce_float=True, params=None,
 
     try:
         _is_table_name = pandas_sql.has_table(sql)
-    except (ImportError, AttributeError):
+    except Exception:
+        # using generic exception to catch errors from sql drivers (GH24988)
         _is_table_name = False
 
     if _is_table_name:

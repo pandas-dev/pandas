@@ -302,10 +302,10 @@ class TestChaining(object):
                         'c': ['a', 'b', np.nan, 'd']})
         mask = pd.isna(df.c)
 
-        def f():
+        msg = ("A value is trying to be set on a copy of a slice from a"
+               " DataFrame")
+        with pytest.raises(com.SettingWithCopyError, match=msg):
             df[['c']][mask] = df[['b']][mask]
-
-        pytest.raises(com.SettingWithCopyError, f)
 
         # invalid warning as we are returning a new object
         # GH 8730
