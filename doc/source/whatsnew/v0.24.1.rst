@@ -23,7 +23,7 @@ API Changes
 Changing the ``sort`` parameter for :meth:`Index.union`
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-The default ``sort`` value for :meth:`Index.union` has changed from ``True`` to ``None``.
+The default ``sort`` value for :meth:`Index.union` has changed from ``True`` to ``None`` (:issue:`24959`).
 The default *behavior* remains the same: The result is sorted, unless
 
 1. ``self`` and ``other`` are identical
@@ -52,6 +52,9 @@ This allows ``sort=True`` to now mean "always sort". A ``TypeError`` is raised i
    idx.union(idx)  # sort=None is the default. Don't sort identical operands.
 
    idx.union(idx, sort=True)
+
+The same change applies to :meth:`Index.symmetric_difference`, which would previously not
+sort the result when ``sort=True`` but the values could not be compared.
 
 Changed the behavior of :meth:`Index.intersection` with ``sort=True``
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
