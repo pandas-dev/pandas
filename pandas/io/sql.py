@@ -1591,6 +1591,8 @@ def get_schema(frame, name, keys=None, con=None, dtype=None, index=False):
     dtype : dict of column name to SQL type, default None
         Optional specifying the datatype for columns. The SQL type should
         be a SQLAlchemy type, or a string for sqlite3 fallback connection.
+    index : boolean, default False
+        include DataFrame index as a column
 
     """
 
