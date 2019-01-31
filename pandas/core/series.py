@@ -1529,12 +1529,14 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
         Parameters
         ----------
-        kind : {'block', 'integer'}
+        kind : {'block', 'integer'}, default 'block'
         fill_value : float, defaults to NaN (missing)
+            Value to use for filling NaN values.
 
         Returns
         -------
         SparseSeries
+            Sparse representation of the Series.
         """
         # TODO: deprecate
         from pandas.core.sparse.series import SparseSeries
