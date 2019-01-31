@@ -696,26 +696,6 @@ def test_is_monotonic_decreasing(in_vals, out_vals):
 
 # describe
 # --------------------------------
-def test_describe():
-    df = DataFrame([
-        [1, 2, 'foo'],
-        [1, np.nan, 'bar'],
-        [3, np.nan, 'baz']
-    ], columns=['A', 'B', 'C'])
-    grp = df.groupby('A')
-
-    index = pd.Index([1, 3], name='A')
-    columns = pd.MultiIndex.from_product([
-        ['B'], ['count', 'mean', 'std', 'min', '25%', '50%', '75%', 'max']])
-
-    expected = pd.DataFrame([
-        [1.0, 2.0, np.nan, 2.0, 2.0, 2.0, 2.0, 2.0],
-        [0.0, np.nan, np.nan, np.nan, np.nan, np.nan, np.nan, np.nan]
-    ], index=index, columns=columns)
-
-    result = grp.describe()
-    tm.assert_frame_equal(result, expected)
-
 
 def test_apply_describe_bug(mframe):
     grouped = mframe.groupby(level='first')
