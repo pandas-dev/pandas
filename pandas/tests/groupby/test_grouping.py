@@ -14,8 +14,7 @@ from pandas import (
 from pandas.core.groupby.grouper import Grouping
 import pandas.util.testing as tm
 from pandas.util.testing import (
-    assert_almost_equal, assert_frame_equal, assert_panel_equal,
-    assert_series_equal)
+    assert_almost_equal, assert_frame_equal, assert_series_equal)
 
 # selection
 # --------------------------------
@@ -564,52 +563,6 @@ class TestGrouping():
 
 class TestGetGroup():
 
-    @pytest.mark.filterwarnings("ignore:\\nPanel:FutureWarning")
-    def test_get_group(self):
-        wp = tm.makePanel()
-        grouped = wp.groupby(lambda x: x.month, axis='major')
-
-        gp = grouped.get_group(1)
-        expected = wp.reindex(
-            major=[x for x in wp.major_axis if x.month == 1])
-        assert_panel_equal(gp, expected)
-
-        # GH 5267
-        # be datelike friendly
-        df = DataFrame({'DATE': pd.to_datetime(
-            ['10-Oct-2013', '10-Oct-2013', '10-Oct-2013', '11-Oct-2013',
-             '11-Oct-2013', '11-Oct-2013']),
-            'label': ['foo', 'foo', 'bar', 'foo', 'foo', 'bar'],
-            'VAL': [1, 2, 3, 4, 5, 6]})
-
-        g = df.groupby('DATE')
-        key = list(g.groups)[0]
-        result1 = g.get_group(key)
-        result2 = g.get_group(Timestamp(key).to_pydatetime())
-        result3 = g.get_group(str(Timestamp(key)))
-        assert_frame_equal(result1, result2)
-        assert_frame_equal(result1, result3)
-
-        g = df.groupby(['DATE', 'label'])
-
-        key = list(g.groups)[0]
-        result1 = g.get_group(key)
-        result2 = g.get_group((Timestamp(key[0]).to_pydatetime(), key[1]))
-        result3 = g.get_group((str(Timestamp(key[0])), key[1]))
-        assert_frame_equal(result1, result2)
-        assert_frame_equal(result1, result3)
-
-        # must pass a same-length tuple with multiple keys
-        msg = "must supply a tuple to get_group with multiple grouping keys"
-        with pytest.raises(ValueError, match=msg):
-            g.get_group('foo')
-        with pytest.raises(ValueError, match=msg):
-            g.get_group(('foo'))
-        msg = ("must supply a same-length tuple to get_group with multiple"
-               " grouping keys")
-        with pytest.raises(ValueError, match=msg):
-            g.get_group(('foo', 'bar', 'baz'))
-
     def test_get_group_empty_bins(self, observed):
 
         d = pd.DataFrame([3, 1, 7, 6])
@@ -754,19 +707,6 @@ class TestIteration():
         grouped = three_levels.T.groupby(axis=1, level=(1, 2))
         for key, group in grouped:
             pass
-
-    @pytest.mark.filterwarnings("ignore:\\nPanel:FutureWarning")
-    def test_multi_iter_panel(self):
-        wp = tm.makePanel()
-        grouped = wp.groupby([lambda x: x.month, lambda x: x.weekday()],
-                             axis=1)
-
-        for (month, wd), group in grouped:
-            exp_axis = [x
-                        for x in wp.major_axis
-                        if x.month == month and x.weekday() == wd]
-            expected = wp.reindex(major=exp_axis)
-            assert_panel_equal(group, expected)
 
     def test_dictify(self, df):
         dict(iter(df.groupby('A')))
