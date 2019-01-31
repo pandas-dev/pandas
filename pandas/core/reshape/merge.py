@@ -28,6 +28,7 @@ import pandas.core.algorithms as algos
 from pandas.core.arrays.categorical import _recode_for_categories
 import pandas.core.common as com
 from pandas.core.frame import _merge_doc
+from pandas.core.indexes.category import CategoricalIndex
 from pandas.core.internals import (
     concatenate_block_managers, items_overlap_with_suffix)
 import pandas.core.sorting as sorting
@@ -798,7 +799,6 @@ class _MergeOperation(object):
         -------
         join_index
         """
-        join_index = index.take(indexer)
         if (self.how in (how, 'outer') and
                 not isinstance(other_index, MultiIndex)):
             # if final index requires values in other_index but not target
@@ -806,22 +806,26 @@ class _MergeOperation(object):
             # to take the final value in target index
             mask = indexer == -1
             if np.any(mask):
-                # if values missing (-1) from target index,
-                # take from other_index instead
-                join_list = join_index.to_numpy()
-                try:
-                    other_list = other_index.take(other_indexer).to_numpy()
-                    join_list[mask] = other_list[mask]
-                    join_index = Index(join_list, dtype=other_index.dtype,
-                                       name=other_index.name)
-                except ValueError:
-                    # if other_index does not have a compatible dtype, naively
-                    # replace missing values by their column position in other
+                # if values missing (-1) from target index, replace missing
+                # values by their column position or NA if not applicable
+                if is_numeric_dtype(index.dtype):
+                    join_index = index.take(indexer)
+                    join_list = join_index.to_numpy()
                     naive_index = np.arange(len(other_index))
                     other_list = naive_index.take(other_indexer)
                     join_list[mask] = other_list[mask]
                     join_index = Index(join_list, name=other_index.name)
-        return join_index
+                elif is_categorical_dtype(index.dtype):
+                    join_index = index.take(indexer)
+                    codes = np.array(join_index.codes) + 1
+                    codes[mask] = -1
+                    join_index = CategoricalIndex(codes, index.categories)
+                else:
+                    fill_value = na_value_for_dtype(index.dtype)
+                    join_index = index.take(indexer, allow_fill=True,
+                                            fill_value=fill_value)
+                return join_index
+        return index.take(indexer)
 
     def _get_merge_keys(self):
         """
