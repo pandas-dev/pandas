@@ -1448,7 +1448,8 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         Lazily iterate over (index, value) tuples.
 
         This method returns an iterable tuple (index, value). This is
-        convienient if you want to create a a Lazy iterator.
+        convienient if you want to create a lazy iterator. Note that the methods
+        Series.items and Series.iteritems are the same methods.
 
         Returns
         -------
