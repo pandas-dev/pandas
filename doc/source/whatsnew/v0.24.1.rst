@@ -83,7 +83,7 @@ Bug Fixes
 
 **Other**
 
--
+- Fixed AttributeError when printing a DataFrame's HTML repr after accessing the IPython config object (:issue:`25036`)
 -
 
 .. _whatsnew_0.241.contributors:
