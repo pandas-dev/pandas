@@ -17,6 +17,7 @@ import functools
 import itertools
 import sys
 import warnings
+from distutils.version import LooseVersion
 from textwrap import dedent
 
 import numpy as np
@@ -646,9 +647,15 @@ class DataFrame(NDFrame):
         # XXX: In IPython 3.x and above, the Qt console will not attempt to
         # display HTML, so this check can be removed when support for
         # IPython 2.x is no longer needed.
-        if console.in_qtconsole():
-            # 'HTML output is disabled in QtConsole'
-            return None
+        try:
+            import IPython
+        except ImportError:
+            pass
+        else:
+            if LooseVersion(IPython.__version__) < LooseVersion('3.0'):
+                if console.in_qtconsole():
+                    # 'HTML output is disabled in QtConsole'
+                    return None
 
         if self._info_repr():
             buf = StringIO(u(""))
@@ -1719,7 +1726,8 @@ class DataFrame(NDFrame):
             # string naming a type.
             if dtype_mapping is None:
                 formats.append(v.dtype)
-            elif isinstance(dtype_mapping, (type, compat.string_types)):
+            elif isinstance(dtype_mapping, (type, np.dtype,
+                                            compat.string_types)):
                 formats.append(dtype_mapping)
             else:
                 element = "row" if i < index_len else "column"

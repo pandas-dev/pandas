@@ -382,7 +382,7 @@ class NaTType(_NaT):
     )
     combine = _make_error_func('combine',  # noqa:E128
         """
-        Timsetamp.combine(date, time)
+        Timestamp.combine(date, time)
 
         date, time -> datetime with same date and time fields
         """
