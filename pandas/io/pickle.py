@@ -1,8 +1,7 @@
 """ pickle compat """
 import warnings
 
-import numpy as np
-from numpy.lib.format import read_array, write_array
+from numpy.lib.format import read_array
 
 from pandas.compat import PY3, BytesIO, cPickle as pkl, pickle_compat as pc
 
