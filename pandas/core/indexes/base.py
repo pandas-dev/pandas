@@ -2367,7 +2367,7 @@ class Index(IndexOpsMixin, PandasObject):
 
             * False : do not sort the result.
             * None : sort the result, except when `self` and `other` are equal
-              or when the values cannot be compared. 
+              or when the values cannot be compared.
 
             .. versionadded:: 0.24.0
 
