@@ -1831,7 +1831,7 @@ def maybe_convert_numeric(ndarray[object] values, set na_values,
         except (ValueError, OverflowError, TypeError):
             pass
 
-    # otherwise, iterate and do full infererence
+    # Otherwise, iterate and do full inference.
     cdef:
         int status, maybe_int
         Py_ssize_t i, n = values.size
@@ -1868,10 +1868,10 @@ def maybe_convert_numeric(ndarray[object] values, set na_values,
                 else:
                     seen.float_ = True
 
-            if val <= oINT64_MAX:
+            if oINT64_MIN <= val <= oINT64_MAX:
                 ints[i] = val
 
-            if seen.sint_ and seen.uint_:
+            if val < oINT64_MIN or (seen.sint_ and seen.uint_):
                 seen.float_ = True
 
         elif util.is_bool_object(val):
@@ -1913,23 +1913,28 @@ def maybe_convert_numeric(ndarray[object] values, set na_values,
                     else:
                         seen.saw_int(as_int)
 
-                    if not (seen.float_ or as_int in na_values):
+                    if as_int not in na_values:
                         if as_int < oINT64_MIN or as_int > oUINT64_MAX:
-                            raise ValueError('Integer out of range.')
+                            if seen.coerce_numeric:
+                                seen.float_ = True
+                            else:
+                                raise ValueError("Integer out of range.")
+                        else:
+                            if as_int >= 0:
+                                uints[i] = as_int
 
-                        if as_int >= 0:
-                            uints[i] = as_int
-                        if as_int <= oINT64_MAX:
-                            ints[i] = as_int
+                            if as_int <= oINT64_MAX:
+                                ints[i] = as_int
 
                     seen.float_ = seen.float_ or (seen.uint_ and seen.sint_)
                 else:
                     seen.float_ = True
             except (TypeError, ValueError) as e:
                 if not seen.coerce_numeric:
-                    raise type(e)(str(e) + ' at position {pos}'.format(pos=i))
+                    raise type(e)(str(e) + " at position {pos}".format(pos=i))
                 elif "uint64" in str(e):  # Exception from check functions.
                     raise
+
                 seen.saw_null()
                 floats[i] = NaN
 
