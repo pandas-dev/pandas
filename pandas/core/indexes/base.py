@@ -2523,7 +2523,8 @@ class Index(IndexOpsMixin, PandasObject):
 
             .. versionchanged:: 0.24.1
 
-               Added the `None` option.
+               Added the `None` option, which matches the behavior of
+               pandas 0.23.4 and earlier.
 
         Returns
         -------
