@@ -103,7 +103,7 @@ Timedelta
 Timezones
 ^^^^^^^^^
 
--
+- Bug in :func:`to_datetime` with ``utc=True`` and datetime strings that would apply previously parsed UTC offsets to subsequent arguments (:issue:`24992`)
 -
 -
 
