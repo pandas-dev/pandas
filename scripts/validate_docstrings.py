@@ -692,9 +692,9 @@ def get_validation_data(doc):
     if doc.is_function_or_method:
         if not doc.returns:
             if re.search(r""" \"\"\".*\"\"\".*  # Skip the docstring.
-                              \n[ \t\f\v]*return  # Find a return command.
+                              \n\s*return  # Find a return command.
                               # Check if it's not bare or simply returns None.
-                              (?![ \t\f\v]*(None)?[ \t\f\v]*[\n#]) """,
+                              (?!\s*(None)?\s*[\n#]) """,
                          doc.method_source, re.DOTALL | re.VERBOSE):
                 errs.append(error('RT01'))
         else:
