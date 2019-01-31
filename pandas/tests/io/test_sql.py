@@ -823,18 +823,20 @@ class _TestSQLApi(PandasSQLTest):
         constraint_sentence = 'CONSTRAINT test_pk PRIMARY KEY ("A", "B")'
         assert constraint_sentence in create_sql
 
-    def test_get_schema_with_index(self):
+    @pytest.mark.parametrize("index_arg, expected", [
+        ({}, False),
+        ({"index": False}, False),
+        ({"index": True}, True),
+    ])
+    def test_get_schema_with_index(self, index_arg, expected):
         frame = DataFrame({
             'one': pd.Series([1, 2, 3], index=['a', 'b', 'c']),
             'two': pd.Series([1, 2, 3], index=['a', 'b', 'c'])
         })
         frame.index.name = 'alphabet'
 
-        create_sql = sql.get_schema(frame, 'test', con=self.conn)
-        assert 'alphabet' not in create_sql
-
-        create_sql = sql.get_schema(frame, 'test', con=self.conn, index=True)
-        assert 'alphabet' in create_sql
+        create_sql = sql.get_schema(frame, 'test', con=self.conn, **index_arg)
+        assert ('alphabet' in create_sql) == expected
 
     def test_chunksize_read(self):
         df = DataFrame(np.random.randn(22, 5), columns=list('abcde'))
