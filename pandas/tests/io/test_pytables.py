@@ -4554,7 +4554,7 @@ class TestHDFStore(Base):
 
     def test_legacy_table_read_py2(self, datapath):
         # GH xxxxx
-        # legacy table written en Python 2
+        # legacy table written in Python 2
         with ensure_clean_store(
                 datapath('io', 'data', 'legacy_hdf',
                          'legacy_table_py2.h5'),
