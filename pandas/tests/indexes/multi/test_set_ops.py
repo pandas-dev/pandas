@@ -208,9 +208,10 @@ def test_difference_sort_incomparable():
     other = pd.MultiIndex.from_product([[3, pd.Timestamp('2000'), 4],
                                         ['c', 'd']])
     # sort=None, the default
-    with tm.assert_produces_warning(RuntimeWarning):
+    # MultiIndex.difference deviates here from other difference
+    # implementations in not catching the TypeError
+    with pytest.raises(TypeError):
         result = idx.difference(other)
-    tm.assert_index_equal(result, idx)
 
     # sort=False
     result = idx.difference(other, sort=False)

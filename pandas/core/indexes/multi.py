@@ -3007,12 +3007,7 @@ class MultiIndex(Index):
                                   assume_unique=True)
         difference = this.values.take(label_diff)
         if sort is None:
-            try:
-                difference = sorted(difference)
-            except TypeError as e:
-                    warnings.warn("{}, sort order is undefined for "
-                                  "incomparable objects".format(e),
-                                  RuntimeWarning, stacklevel=2)
+            difference = sorted(difference)
 
         if len(difference) == 0:
             return MultiIndex(levels=[[]] * self.nlevels,
