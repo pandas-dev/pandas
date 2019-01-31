@@ -128,7 +128,8 @@ class PivotTable(object):
                              'value2': np.random.randn(N),
                              'value3': np.random.randn(N)})
 
-        self.df2 = pd.DataFrame({'col1': list('abcde'), 'col2': list('fghij'), 'col3': [1, 2, 3, 4, 5]})
+        self.df2 = pd.DataFrame({'col1': list('abcde'), 'col2': list('fghij'),
+                                 'col3': [1, 2, 3, 4, 5]})
         self.df2.col1 = self.df2.col1.astype('category')
         self.df2.col2 = self.df2.col2.astype('category')
 
