@@ -1422,7 +1422,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         Returns
         -------
         str or None
-            String representation of Series if buf=None, otherwise None.
+            String representation of Series if ``buf=None``, otherwise None.
         """
 
         formatter = fmt.SeriesFormatter(self, name=name, length=length,
@@ -3012,7 +3012,9 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
         Returns
         -------
-        Series, with -1 indicated where nan values are present
+        Series
+            Positions of values within the sort order with -1 indicating
+            nan values.
 
         See Also
         --------
