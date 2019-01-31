@@ -1850,7 +1850,8 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
         Returns
         -------
-        idxmin : Index of minimum of values.
+        Index
+            Label of the minimum value.
 
         Raises
         ------
@@ -1907,7 +1908,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
         Parameters
         ----------
-        skipna : boolean, default True
+        skipna : bool, default True
             Exclude NA/null values. If the entire Series is NA, the result
             will be NA.
         axis : int, default 0
@@ -1919,7 +1920,8 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
         Returns
         -------
-        idxmax : Index of maximum of values.
+        Index
+            Label of the maximum value.
 
         Raises
         ------
