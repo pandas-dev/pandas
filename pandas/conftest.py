@@ -247,13 +247,11 @@ def writable(request):
 
 @pytest.fixture(scope='module')
 def datetime_tz_utc():
-    from datetime import timezone
     return timezone.utc
 
 
 utc_objs = ['utc', 'dateutil/UTC', utc, tzutc()]
 if PY3:
-    from datetime import timezone
     utc_objs.append(timezone.utc)
 
 
