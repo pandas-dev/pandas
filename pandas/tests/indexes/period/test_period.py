@@ -77,7 +77,7 @@ class TestPeriodIndex(DatetimeLike):
         with pytest.raises(AttributeError):
             DatetimeIndex([]).millisecond
 
-    @pytest.mark.parametrize("sort", [True, False])
+    @pytest.mark.parametrize("sort", [None, False])
     def test_difference_freq(self, sort):
         # GH14323: difference of Period MUST preserve frequency
         # but the ability to union results must be preserved

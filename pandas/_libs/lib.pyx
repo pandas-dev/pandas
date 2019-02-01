@@ -233,10 +233,11 @@ def fast_unique_multiple(list arrays, sort: bool=True):
             if val not in table:
                 table[val] = stub
                 uniques.append(val)
-    if sort:
+    if sort is None:
         try:
             uniques.sort()
         except Exception:
+            # TODO: RuntimeWarning?
             pass
 
     return uniques

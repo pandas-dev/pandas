@@ -1093,7 +1093,7 @@ class IntervalIndex(IntervalMixin, Index):
     def overlaps(self, other):
         return self._data.overlaps(other)
 
-    def _setop(op_name, sort=True):
+    def _setop(op_name, sort=None):
         def func(self, other, sort=sort):
             other = self._as_like_interval_index(other)
 

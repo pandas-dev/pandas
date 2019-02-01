@@ -15,10 +15,40 @@ Whats New in 0.24.1 (February XX, 2019)
 These are the changes in pandas 0.24.1. See :ref:`release` for a full changelog
 including other versions of pandas.
 
+.. _whatsnew_0241.api:
+
+API Changes
+~~~~~~~~~~~
+
+Changing the ``sort`` parameter for :class:`Index` set operations
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+The default ``sort`` value for :meth:`Index.union` has changed from ``True`` to ``None`` (:issue:`24959`).
+The default *behavior*, however, remains the same: the result is sorted, unless
+
+1. ``self`` and ``other`` are identical
+2. ``self`` or ``other`` is empty
+3. ``self`` or ``other`` contain values that can not be compared (a ``RuntimeWarning`` is raised).
+
+This change will allow ``sort=True`` to mean "always sort" in a future release.
+
+The same change applies to :meth:`Index.difference` and :meth:`Index.symmetric_difference`, which
+would not sort the result when the values could not be compared.
+
+The `sort` option for :meth:`Index.intersection` has changed in three ways.
+
+1. The default has changed from ``True`` to ``False``, to restore the
+   pandas 0.23.4 and earlier behavior of not sorting by default.
+2. The behavior of ``sort=True`` can now be obtained with ``sort=None``.
+   This will sort the result only if the values in ``self`` and ``other``
+   are not identical.
+3. The value ``sort=True`` is no longer allowed. A future version of pandas
+   will properly support ``sort=True`` meaning "always sort".
+
 .. _whatsnew_0241.regressions:
 
 Fixed Regressions
-^^^^^^^^^^^^^^^^^
+~~~~~~~~~~~~~~~~~
 
 - Bug in :meth:`DataFrame.itertuples` with ``records`` orient raising an ``AttributeError`` when the ``DataFrame`` contained more than 255 columns (:issue:`24939`)
 - Bug in :meth:`DataFrame.itertuples` orient converting integer column names to strings prepended with an underscore (:issue:`24940`)
@@ -30,7 +60,7 @@ Fixed Regressions
 .. _whatsnew_0241.enhancements:
 
 Enhancements
-^^^^^^^^^^^^
+~~~~~~~~~~~~
 
 
 .. _whatsnew_0241.bug_fixes:
