@@ -384,24 +384,16 @@ class TestUnique(object):
         tm.assert_numpy_array_equal(result, expected)
         assert result.dtype == expected.dtype
 
-    def test_timedelta64_dtype_array_returned(self):
+    @pytest.mark.parametrize('box', [Index, Series, np.array])
+    def test_timedelta64_dtype_array_returned(self, box):
         # GH 9431
         expected = np.array([31200, 45678, 10000], dtype='m8[ns]')
 
         td_index = pd.to_timedelta([31200, 45678, 31200, 10000, 45678])
-        result = algos.unique(td_index)
-        tm.assert_numpy_array_equal(result, expected)
-        assert result.dtype == expected.dtype
+        obj = box(td_index)
 
-        s = Series(td_index)
-        result = algos.unique(s)
+        result = algos.unique(obj)
         tm.assert_numpy_array_equal(result, expected)
-        assert result.dtype == expected.dtype
-
-        arr = s.values
-        result = algos.unique(arr)
-        tm.assert_numpy_array_equal(result, expected)
-        assert result.dtype == expected.dtype
 
     def test_uint64_overflow(self):
         s = Series([1, 2, 2**63, 2**63], dtype=np.uint64)
