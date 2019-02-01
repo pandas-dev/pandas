@@ -331,6 +331,16 @@ class TestUnique(object):
         result = algos.unique(arr)
         assert isinstance(result, np.ndarray)
 
+        # reuse result as expected outcome of return_inverse case
+        expected_uniques = result.copy()
+
+        result_uniques, result_inverse = algos.unique(arr, return_inverse=True)
+        tm.assert_numpy_array_equal(result_uniques, expected_uniques)
+
+        # reconstruction can only work if inverse is correct
+        reconstr = result_uniques[result_inverse]
+        tm.assert_numpy_array_equal(reconstr, arr, check_dtype=False)
+
     def test_object_refcount_bug(self):
         lst = ['A', 'B', 'C', 'D', 'E']
         for i in range(1000):
