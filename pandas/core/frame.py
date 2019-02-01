@@ -4625,7 +4625,7 @@ class DataFrame(NDFrame):
     def drop_duplicates(self, subset=None, keep='first', inplace=False):
         """
         Return DataFrame with duplicate rows removed, optionally only
-        considering certain columns. Indexes, including time indexes 
+        considering certain columns. Indexes, including time indexes
         are ignored.
 
         Parameters
