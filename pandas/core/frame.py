@@ -6946,7 +6946,7 @@ class DataFrame(NDFrame):
         3  0.21  0.18
 
         By providing an integer each column is rounded to the same number
-        of places
+        of decimal places
 
         >>> df.round(1)
             dogs  cats
@@ -6956,8 +6956,8 @@ class DataFrame(NDFrame):
         3   0.2   0.2
 
         With a dict, the number of places for specific columns can be
-        specfified with the column names as key and the number of places as
-        value
+        specfified with the column names as key and the number of decimal
+        places as value
 
         >>> df.round({'dogs': 1, 'cats': 0})
             dogs  cats
@@ -6967,8 +6967,8 @@ class DataFrame(NDFrame):
         3   0.2   0.0
 
         Using a Series, the number of places for specific columns can be
-        specfified with the column names as index and the number of places as
-        value
+        specfified with the column names as index and the number of
+        decimal places as value
 
         >>> decimals = pd.Series([0, 1], index=['cats', 'dogs'])
         >>> df.round(decimals)
