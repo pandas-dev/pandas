@@ -52,7 +52,7 @@ Bug Fixes
 
 **I/O**
 
-- Bug in :class:`HDFStore` that caused it to raise ``ValueError`` when reading a Dataframe in Python 3 from dataframe written in Python 2 (:issue:`24925`)
+-
 -
 -
 
