@@ -33,7 +33,7 @@ The default *behavior*, however, remains the same: the result is sorted, unless
 This change will allow ``sort=True`` to mean "always sort" in a future release.
 
 The same change applies to :meth:`Index.difference` and :meth:`Index.symmetric_difference`, which
-would do not sort the result when the values could not be compared.
+would not sort the result when the values could not be compared.
 
 The `sort` option for :meth:`Index.intersection` has changed in three ways.
 
