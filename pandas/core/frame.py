@@ -4148,13 +4148,7 @@ class DataFrame(NDFrame):
 
         missing = []
         for col in keys:
-            if (is_scalar(col) or isinstance(col, tuple)):
-                # if col is a valid column key, everything is fine
-                # tuples are always considered keys, never as list-likes
-                if col not in self:
-                    missing.append(col)
-            elif isinstance(col, (ABCIndexClass, ABCSeries,
-                                  np.ndarray, list)):
+            if isinstance(col, (ABCIndexClass, ABCSeries, np.ndarray, list)):
                 # arrays are fine as long as they are one-dimensional
                 if getattr(col, 'ndim', 1) > 1:
                     raise ValueError(err_msg)
