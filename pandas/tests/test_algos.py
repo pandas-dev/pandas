@@ -324,14 +324,9 @@ class TestFactorize(object):
 
 class TestUnique(object):
 
-    def test_ints(self):
-        arr = np.random.randint(0, 100, size=50)
-
-        result = algos.unique(arr)
-        assert isinstance(result, np.ndarray)
-
-    def test_objects(self):
-        arr = np.random.randint(0, 100, size=50).astype('O')
+    def test_unique_all_dtypes(self, any_numpy_dtype):
+        dtype = any_numpy_dtype
+        arr = np.random.randint(0, 100, size=50).astype(dtype)
 
         result = algos.unique(arr)
         assert isinstance(result, np.ndarray)
