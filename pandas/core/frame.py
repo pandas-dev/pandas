@@ -6902,7 +6902,8 @@ class DataFrame(NDFrame):
                      copy=copy, indicator=indicator, validate=validate)
 
     def round(self, decimals=0, *args, **kwargs):
-        """Round a DataFrame to a variable number of decimal places.
+        """
+        Round a DataFrame to a variable number of decimal places.
 
         Parameters
         ----------
@@ -6915,10 +6916,18 @@ class DataFrame(NDFrame):
             columns not included in `decimals` will be left as is. Elements
             of `decimals` which are not columns of the input will be
             ignored.
+        *args
+            Additional keywords have no effect but might be accepted for
+            compatibility with numpy.
+        **kwargs
+            Additional keywords have no effect but might be accepted for
+            compatibility with numpy.
 
         Returns
         -------
-        DataFrame
+        DataFrame :
+            A DataFrame with the affected columns rounded to the specified
+            number of decimal places
 
         See Also
         --------
