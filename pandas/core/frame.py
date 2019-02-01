@@ -3076,9 +3076,23 @@ class DataFrame(NDFrame):
 
         Examples
         --------
-        >>> df = pd.DataFrame(np.random.randn(10, 2), columns=list('ab'))
-        >>> df.query('a > b')
-        >>> df[df.a > df.b]  # same result as the previous expression
+        >>> df = pd.DataFrame({'A': range(1, 6), 'B': range(10, 0, -2)})
+        >>> df
+           A   B
+        0  1  10
+        1  2   8
+        2  3   6
+        3  4   4
+        4  5   2
+        >>> df.query('A > B')
+           A  B
+        4  5  2
+
+        The previous expression is equivalent to
+
+        >>> df[df.A > df.B]
+           A  B
+        4  5  2
         """
         inplace = validate_bool_kwarg(inplace, 'inplace')
         if not isinstance(expr, compat.string_types):
