@@ -3016,28 +3016,30 @@ class DataFrame(NDFrame):
 
         Parameters
         ----------
-        expr : string
+        expr : str
             The query string to evaluate.  You can refer to variables
             in the environment by prefixing them with an '@' character like
             ``@a + b``.
         inplace : bool
             Whether the query should modify the data in place or return
-            a modified copy
-
-            .. versionadded:: 0.18.0
-
-        kwargs : dict
+            a modified copy.
+        **kwargs
             See the documentation for :func:`pandas.eval` for complete details
             on the keyword arguments accepted by :meth:`DataFrame.query`.
 
+            .. versionadded:: 0.18.0
+
         Returns
         -------
-        q : DataFrame
+        DataFrame
+            DataFrame resulting from the provided query expression.
 
         See Also
         --------
-        pandas.eval
-        DataFrame.eval
+        eval : Evaluate a string describing operations on
+            DataFrame columns.
+        DataFrame.eval : Evaluate a string describing operations on
+            DataFrame columns.
 
         Notes
         -----
