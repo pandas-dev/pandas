@@ -2385,32 +2385,22 @@ class StataWriter(StataParser):
         data = self._convert_strls(data)
 
         # 3. Convert bad string data to '' and pad to correct length
-        dtypes = []
-        data_cols = []
-        has_strings = False
+        dtypes = {}
         native_byteorder = self._byteorder == _set_endianness(sys.byteorder)
         for i, col in enumerate(data):
             typ = typlist[i]
             if typ <= self._max_string_length:
-                has_strings = True
                 data[col] = data[col].fillna('').apply(_pad_bytes, args=(typ,))
                 stype = 'S{type}'.format(type=typ)
-                dtypes.append(('c' + str(i), stype))
-                string = data[col].str.encode(self._encoding)
-                data_cols.append(string.values.astype(stype))
+                dtypes[col] = stype
+                data[col] = data[col].str.encode(self._encoding).astype(stype)
             else:
-                values = data[col].values
                 dtype = data[col].dtype
                 if not native_byteorder:
                     dtype = dtype.newbyteorder(self._byteorder)
-                dtypes.append(('c' + str(i), dtype))
-                data_cols.append(values)
-        dtypes = np.dtype(dtypes)
+                dtypes[col] = dtype
 
-        if has_strings or not native_byteorder:
-            self.data = np.fromiter(zip(*data_cols), dtype=dtypes)
-        else:
-            self.data = data.to_records(index=False)
+        self.data = data.to_records(index=False, column_dtypes=dtypes)
 
     def _write_data(self):
         data = self.data
