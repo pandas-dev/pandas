@@ -6927,12 +6927,12 @@ class DataFrame(NDFrame):
         -------
         DataFrame :
             A DataFrame with the affected columns rounded to the specified
-            number of decimal places
+            number of decimal places.
 
         See Also
         --------
-        numpy.around
-        Series.round
+        numpy.around : Round a numpy array to the given number of decimals.
+        Series.round : Round a Series to the given number of decimals.
 
         Examples
         --------
