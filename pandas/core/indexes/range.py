@@ -350,19 +350,21 @@ class RangeIndex(Int64Index):
         Parameters
         ----------
         other : Index or array-like
-        sort : bool, default True
+        sort : False or None, default False
             Sort the resulting index if possible
 
             .. versionadded:: 0.24.0
 
             .. versionchanged:: 0.24.1
 
-               Changed the default from ``True`` to ``False``.
+               Changed the default to ``False`` to match the behaviour
+               from before 0.24.0.
 
         Returns
         -------
         intersection : Index
         """
+        self._validate_sort_keyword(sort)
 
         if self.equals(other):
             return self._get_reconciled_name_object(other)
@@ -405,7 +407,7 @@ class RangeIndex(Int64Index):
 
         if (self._step < 0 and other._step < 0) is not (new_index._step < 0):
             new_index = new_index[::-1]
-        if sort:
+        if sort is None:
             new_index = new_index.sort_values()
         return new_index
 

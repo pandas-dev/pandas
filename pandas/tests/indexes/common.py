@@ -486,7 +486,7 @@ class Base(object):
                 with pytest.raises(TypeError, match=msg):
                     first.union([1, 2, 3])
 
-    @pytest.mark.parametrize("sort", [True, False])
+    @pytest.mark.parametrize("sort", [None, False])
     def test_difference_base(self, sort):
         for name, idx in compat.iteritems(self.indices):
             first = idx[2:]
