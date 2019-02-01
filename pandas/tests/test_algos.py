@@ -430,6 +430,11 @@ class TestUnique(object):
         expected = np.array(['a', np.nan, 'c'], dtype=object)
         tm.assert_numpy_array_equal(result, expected)
 
+        result_uniques, result_inverse = pd.unique(duplicated_items,
+                                                   return_inverse=True)
+        expected_inverse = np.array([0, 1, 2, 2], dtype='int64')
+        tm.assert_numpy_array_equal(result_inverse, expected_inverse)
+
     def test_categorical(self):
 
         # we are expecting to return in the order
