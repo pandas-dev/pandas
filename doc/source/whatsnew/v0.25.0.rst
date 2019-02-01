@@ -165,7 +165,7 @@ MultiIndex
 I/O
 ^^^
 
--
+- :func:`get_schema` now accepts an `index` parameter (default: `False`) that includes the index in the generated schema. (:issue:`9084`)
 -
 -
 
