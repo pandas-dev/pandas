@@ -61,6 +61,10 @@ _shared_doc_kwargs = dict(
         by : str or list of str
             Name or list of names to sort by""")
 
+# sentinel value to use as kwarg in place of None when None has special meaning
+# and needs to be distinguished from a user explicitly passing None.
+sentinel = com.sentinel_factory()
+
 
 def _single_replace(self, to_replace, method, inplace, limit):
     """
@@ -290,11 +294,16 @@ class NDFrame(PandasObject, SelectionMixin):
         d.update(kwargs)
         return d
 
-    def _construct_axes_from_arguments(self, args, kwargs, require_all=False):
+    def _construct_axes_from_arguments(
+            self, args, kwargs, require_all=False, sentinel=None):
         """Construct and returns axes if supplied in args/kwargs.
 
         If require_all, raise if all axis arguments are not supplied
         return a tuple of (axes, kwargs).
+
+        sentinel specifies the default parameter when an axis is not
+        supplied; useful to distinguish when a user explicitly passes None
+        in scenarios where None has special meaning.
         """
 
         # construct the args
@@ -322,7 +331,7 @@ class NDFrame(PandasObject, SelectionMixin):
                         raise TypeError("not enough/duplicate arguments "
                                         "specified!")
 
-        axes = {a: kwargs.pop(a, None) for a in self._AXIS_ORDERS}
+        axes = {a: kwargs.pop(a, sentinel) for a in self._AXIS_ORDERS}
         return axes, kwargs
 
     @classmethod
@@ -1089,7 +1098,7 @@ class NDFrame(PandasObject, SelectionMixin):
 
     @rewrite_axis_style_signature('mapper', [('copy', True),
                                              ('inplace', False)])
-    def rename_axis(self, mapper=None, **kwargs):
+    def rename_axis(self, mapper=sentinel, **kwargs):
         """
         Set the name of the axis for the index or columns.
 
@@ -1218,7 +1227,8 @@ class NDFrame(PandasObject, SelectionMixin):
                cat            4         0
                monkey         2         2
         """
-        axes, kwargs = self._construct_axes_from_arguments((), kwargs)
+        axes, kwargs = self._construct_axes_from_arguments(
+            (), kwargs, sentinel=sentinel)
         copy = kwargs.pop('copy', True)
         inplace = kwargs.pop('inplace', False)
         axis = kwargs.pop('axis', 0)
@@ -1231,7 +1241,7 @@ class NDFrame(PandasObject, SelectionMixin):
 
         inplace = validate_bool_kwarg(inplace, 'inplace')
 
-        if (mapper is not None):
+        if (mapper is not sentinel):
             # Use v0.23 behavior if a scalar or list
             non_mapper = is_scalar(mapper) or (is_list_like(mapper) and not
                                                is_dict_like(mapper))
@@ -1254,7 +1264,7 @@ class NDFrame(PandasObject, SelectionMixin):
 
             for axis in lrange(self._AXIS_LEN):
                 v = axes.get(self._AXIS_NAMES[axis])
-                if v is None:
+                if v is sentinel:
                     continue
                 non_mapper = is_scalar(v) or (is_list_like(v) and not
                                               is_dict_like(v))
