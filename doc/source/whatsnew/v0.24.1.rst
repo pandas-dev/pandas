@@ -13,7 +13,7 @@ Whats New in 0.24.1 (February XX, 2019)
 {{ header }}
 
 These are the changes in pandas 0.24.1. See :ref:`release` for a full changelog
-including other versions of pandas.
+including other versions of pandas. See :ref:`whatsnew_0240` for the 0.24.0 changelog.
 
 .. _whatsnew_0241.api:
 
@@ -57,52 +57,9 @@ Fixed Regressions
 - Fixed regression in :func:`merge` when merging an empty ``DataFrame`` with multiple timezone-aware columns on one of the timezone-aware columns (:issue:`25014`).
 - Fixed regression in :meth:`Series.rename_axis` and :meth:`DataFrame.rename_axis` where passing ``None`` failed to remove the axis name (:issue:`25034`)
 
-.. _whatsnew_0241.enhancements:
-
-Enhancements
-~~~~~~~~~~~~
-
-
-.. _whatsnew_0241.bug_fixes:
-
-Bug Fixes
-~~~~~~~~~
-
-**Conversion**
-
--
--
--
-
-**Indexing**
-
--
--
--
-
-**I/O**
-
--
--
--
-
-**Categorical**
-
--
--
--
-
-**Timezones**
-
--
--
--
-
 **Timedelta**
+
 - Bug in :func:`to_timedelta` with `box=False` incorrectly returning a ``datetime64`` object instead of a ``timedelta64`` object (:issue:`24961`)
--
--
--
 
 **Reshaping**
 
@@ -116,7 +73,6 @@ Bug Fixes
 **Other**
 
 - Fixed AttributeError when printing a DataFrame's HTML repr after accessing the IPython config object (:issue:`25036`)
--
 
 .. _whatsnew_0.241.contributors:
 
