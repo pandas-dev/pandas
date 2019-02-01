@@ -63,7 +63,7 @@ _shared_doc_kwargs = dict(
 
 # sentinel value to use as kwarg in place of None when None has special meaning
 # and needs to be distinguished from a user explicitly passing None.
-sentinel = com.sentinel_factory()
+sentinel = object()
 
 
 def _single_replace(self, to_replace, method, inplace, limit):
