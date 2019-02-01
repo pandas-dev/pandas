@@ -193,7 +193,7 @@ class TestDataFrameAlterAxes():
 
         # == gives ambiguous Boolean for Series
         if drop and keys[0] is 'A' and keys[1] is 'A':
-            with tm.assert_raises_regex(KeyError, '.*'):
+            with pytest.raises(KeyError, match='.*'):
                 df.set_index(keys, drop=drop, append=append)
         else:
             result = df.set_index(keys, drop=drop, append=append)
@@ -234,11 +234,11 @@ class TestDataFrameAlterAxes():
     def test_set_index_raise(self, frame_of_index_cols, drop, append):
         df = frame_of_index_cols
 
-        with tm.assert_raises_regex(KeyError, '.*'):  # column names are A-E
+        with pytest.raises(KeyError, match='.*'):  # column names are A-E
             df.set_index(['foo', 'bar', 'baz'], drop=drop, append=append)
 
         # non-existent key in list with arrays
-        with tm.assert_raises_regex(KeyError, '.*'):
+        with pytest.raises(KeyError, match='.*'):
             df.set_index([df['A'], df['B'], 'X'], drop=drop, append=append)
 
     def test_construction_with_categorical_index(self):
