@@ -3714,7 +3714,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
         Returns
         -------
-        Series (new object)
+        Series
 
         See Also
         --------
