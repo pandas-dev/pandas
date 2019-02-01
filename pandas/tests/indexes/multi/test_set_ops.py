@@ -190,18 +190,24 @@ def test_difference(idx, sort):
 
 
 def test_difference_sort_special():
+    # GH-24959
     idx = pd.MultiIndex.from_product([[1, 0], ['a', 'b']])
     # sort=None, the default
     result = idx.difference([])
     tm.assert_index_equal(result, idx)
 
+
+@pytest.mark.xfail(reason="Not implemented.")
+def test_difference_sort_special_true():
     # TODO decide on True behaviour
-    # result = idx.difference([], sort=True)
-    # expected = pd.MultiIndex.from_product([[0, 1], ['a', 'b']])
-    # tm.assert_index_equal(result, expected)
+    idx = pd.MultiIndex.from_product([[1, 0], ['a', 'b']])
+    result = idx.difference([], sort=True)
+    expected = pd.MultiIndex.from_product([[0, 1], ['a', 'b']])
+    tm.assert_index_equal(result, expected)
 
 
 def test_difference_sort_incomparable():
+    # GH-24959
     idx = pd.MultiIndex.from_product([[1, pd.Timestamp('2000'), 2],
                                       ['a', 'b']])
 
@@ -217,10 +223,18 @@ def test_difference_sort_incomparable():
     result = idx.difference(other, sort=False)
     tm.assert_index_equal(result, idx)
 
+
+@pytest.mark.xfail(reason="Not implemented.")
+def test_difference_sort_incomparable_true():
     # TODO decide on True behaviour
     # # sort=True, raises
-    # with pytest.raises(TypeError):
-    #     idx.difference(other, sort=True)
+    idx = pd.MultiIndex.from_product([[1, pd.Timestamp('2000'), 2],
+                                      ['a', 'b']])
+    other = pd.MultiIndex.from_product([[3, pd.Timestamp('2000'), 4],
+                                        ['c', 'd']])
+
+    with pytest.raises(TypeError):
+        idx.difference(other, sort=True)
 
 
 @pytest.mark.parametrize("sort", [None, False])
@@ -286,12 +300,18 @@ def test_intersection(idx, sort):
 
 
 def test_intersect_equal_sort():
+    # GH-24959
     idx = pd.MultiIndex.from_product([[1, 0], ['a', 'b']])
-    # sorted_ = pd.MultiIndex.from_product([[0, 1], ['a', 'b']])
     tm.assert_index_equal(idx.intersection(idx, sort=False), idx)
     tm.assert_index_equal(idx.intersection(idx, sort=None), idx)
+
+
+@pytest.mark.xfail(reason="Not implemented.")
+def test_intersect_equal_sort_true():
     # TODO decide on True behaviour
-    # tm.assert_index_equal(idx.intersection(idx, sort=True), sorted_)
+    idx = pd.MultiIndex.from_product([[1, 0], ['a', 'b']])
+    sorted_ = pd.MultiIndex.from_product([[0, 1], ['a', 'b']])
+    tm.assert_index_equal(idx.intersection(idx, sort=True), sorted_)
 
 
 @pytest.mark.parametrize('slice_', [slice(None), slice(0)])
@@ -308,11 +328,16 @@ def test_union_sort_other_empty(slice_):
     # sort=False
     tm.assert_index_equal(idx.union(other, sort=False), idx)
 
+
+@pytest.mark.xfail(reason="Not implemented.")
+def test_union_sort_other_empty_sort(slice_):
     # TODO decide on True behaviour
     # # sort=True
-    # result = idx.union(other, sort=True)
-    # expected = pd.MultiIndex.from_product([[0, 1], ['a', 'b']])
-    # tm.assert_index_equal(result, expected)
+    idx = pd.MultiIndex.from_product([[1, 0], ['a', 'b']])
+    other = idx[:0]
+    result = idx.union(other, sort=True)
+    expected = pd.MultiIndex.from_product([[0, 1], ['a', 'b']])
+    tm.assert_index_equal(result, expected)
 
 
 def test_union_sort_other_incomparable():
@@ -327,10 +352,14 @@ def test_union_sort_other_incomparable():
     result = idx.union(idx[:1], sort=False)
     tm.assert_index_equal(result, idx)
 
+
+@pytest.mark.xfail(reason="Not implemented.")
+def test_union_sort_other_incomparable_sort():
     # TODO decide on True behaviour
     # # sort=True
-    # with pytest.raises(TypeError, match='Cannot compare'):
-    #     idx.union(idx[:1], sort=True)
+    idx = pd.MultiIndex.from_product([[1, pd.Timestamp('2000')], ['a', 'b']])
+    with pytest.raises(TypeError, match='Cannot compare'):
+        idx.union(idx[:1], sort=True)
 
 
 @pytest.mark.parametrize("method", ['union', 'intersection', 'difference',

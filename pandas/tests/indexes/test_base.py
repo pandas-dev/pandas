@@ -773,11 +773,15 @@ class TestIndex(Base):
 
     def test_intersection_equal_sort(self):
         idx = pd.Index(['c', 'a', 'b'])
-        # sorted_ = pd.Index(['a', 'b', 'c'])
         tm.assert_index_equal(idx.intersection(idx, sort=False), idx)
         tm.assert_index_equal(idx.intersection(idx, sort=None), idx)
+
+    @pytest.mark.xfail(reason="Not implemented")
+    def test_intersection_equal_sort_true(self):
         # TODO decide on True behaviour
-        # tm.assert_index_equal(idx.intersection(idx, sort=True), sorted_)
+        idx = pd.Index(['c', 'a', 'b'])
+        sorted_ = pd.Index(['a', 'b', 'c'])
+        tm.assert_index_equal(idx.intersection(idx, sort=True), sorted_)
 
     @pytest.mark.parametrize("sort", [None, False])
     def test_chained_union(self, sort):
@@ -821,11 +825,18 @@ class TestIndex(Base):
         # sort=False
         tm.assert_index_equal(idx.union(other, sort=False), idx)
 
+    @pytest.mark.xfail(reason="Not implemented")
+    @pytest.mark.parametrize('slice_', [slice(None), slice(0)])
+    def test_union_sort_special_true(self, slice_):
         # TODO decide on True behaviour
-        # # sort=True
-        # result = idx.union(other, sort=True)
-        # expected = pd.Index([0, 1, 2])
-        # tm.assert_index_equal(result, expected)
+        # sort=True
+        idx = pd.Index([1, 0, 2])
+        # default, sort=None
+        other = idx[slice_]
+
+        result = idx.union(other, sort=True)
+        expected = pd.Index([0, 1, 2])
+        tm.assert_index_equal(result, expected)
 
     def test_union_sort_other_incomparable(self):
         # https://github.com/pandas-dev/pandas/issues/24959
@@ -841,14 +852,17 @@ class TestIndex(Base):
             result = idx.union(idx[:1], sort=None)
         tm.assert_index_equal(result, idx)
 
-        # TODO decide on True behaviour
-        # # sort=True
-        # with pytest.raises(TypeError, match='.*'):
-        #     idx.union(idx[:1], sort=True)
-
         # sort=False
         result = idx.union(idx[:1], sort=False)
         tm.assert_index_equal(result, idx)
+
+    @pytest.mark.xfail(reason="Not implemented")
+    def test_union_sort_other_incomparable_true(self):
+        # TODO decide on True behaviour
+        # sort=True
+        idx = pd.Index([1, pd.Timestamp('2000')])
+        with pytest.raises(TypeError, match='.*'):
+            idx.union(idx[:1], sort=True)
 
     @pytest.mark.parametrize("klass", [
         np.array, Series, list])
@@ -1133,11 +1147,17 @@ class TestIndex(Base):
         result = op(a)
         tm.assert_index_equal(result, expected)
 
+    @pytest.mark.xfail(reason="Not implemented")
+    @pytest.mark.parametrize('opname', ['difference', 'symmetric_difference'])
+    def test_difference_incomparable_true(self, opname):
         # TODO decide on True behaviour
         # # sort=True, raises
-        # op = operator.methodcaller(opname, b, sort=True)
-        # with pytest.raises(TypeError, match='Cannot compare'):
-        #     op(a)
+        a = pd.Index([3, pd.Timestamp('2000'), 1])
+        b = pd.Index([2, pd.Timestamp('1999'), 1])
+        op = operator.methodcaller(opname, b, sort=True)
+
+        with pytest.raises(TypeError, match='Cannot compare'):
+            op(a)
 
     @pytest.mark.parametrize("sort", [None, False])
     def test_symmetric_difference_mi(self, sort):
