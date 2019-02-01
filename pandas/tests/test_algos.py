@@ -28,6 +28,20 @@ import pandas.util.testing as tm
 from pandas.util.testing import assert_almost_equal
 
 
+def assert_series_or_index_or_array_or_categorical_equal(left, right):
+    if isinstance(left, Series):
+        tm.assert_series_equal(left, right)
+    elif isinstance(left, Index):
+        tm.assert_index_equal(left, right)
+    elif isinstance(left, np.ndarray):
+        tm.assert_numpy_array_equal(left, right)
+    elif isinstance(left, Categorical):
+        tm.assert_categorical_equal(left, right)
+    else:
+        # will fail
+        assert isinstance(left, (Series, Index, np.ndarray, Categorical))
+
+
 class TestMatch(object):
 
     def test_ints(self):
@@ -394,6 +408,16 @@ class TestUnique(object):
 
         result = algos.unique(obj)
         tm.assert_numpy_array_equal(result, expected)
+
+        # reuse result as expected outcome of return_inverse case
+        expected_uniques = result.copy()
+
+        result_uniques, result_inverse = algos.unique(obj, return_inverse=True)
+        tm.assert_numpy_array_equal(result_uniques, expected_uniques)
+
+        # reconstruction can only work if inverse is correct
+        reconstr = box(result_uniques[result_inverse])
+        assert_series_or_index_or_array_or_categorical_equal(reconstr, obj)
 
     def test_uint64_overflow(self):
         s = Series([1, 2, 2**63, 2**63], dtype=np.uint64)
