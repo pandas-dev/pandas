@@ -163,6 +163,7 @@ MultiIndex
 I/O
 ^^^
 
+- Fixed bug in missing text when using `to_clipboard` if copying utf-16 characters in Python 3 on Windows (:issue:`25040`)
 -
 -
 -

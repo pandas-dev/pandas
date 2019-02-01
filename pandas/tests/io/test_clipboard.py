@@ -238,5 +238,6 @@ class TestClipboard(object):
                     reason="clipboard primitives not installed")
 @pytest.mark.parametrize('data', [u'\U0001f44d...', u'Ωœ∑´...', 'abcd...'])
 def test_raw_roundtrip(data):
+    # PR #25040 wide unicode wasn't copied correctly on PY3 on windows
     clipboard_set(data)
     assert data == clipboard_get()
