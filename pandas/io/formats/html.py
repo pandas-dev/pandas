@@ -190,7 +190,7 @@ class HTMLFormatter(TableFormatter):
 
             if self.fmt.sparsify:
                 # GH3547
-                sentinel = com.sentinel_factory()
+                sentinel = object()
             else:
                 sentinel = False
             levels = self.columns.format(sparsify=sentinel, adjoin=False,
@@ -386,7 +386,7 @@ class HTMLFormatter(TableFormatter):
 
         if self.fmt.sparsify:
             # GH3547
-            sentinel = com.sentinel_factory()
+            sentinel = object()
             levels = frame.index.format(sparsify=sentinel, adjoin=False,
                                         names=False)
 
