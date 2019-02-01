@@ -282,9 +282,8 @@ class TestDataFrameAlterAxes():
             def __str__(self):
                 return "<Thing %r>" % (self.name,)
 
-            def __repr__(self):
-                # necessary for pretty KeyError
-                return self.__str__()
+            # necessary for pretty KeyError
+            __repr__ = __str__
 
         thing1 = Thing('One', 'red')
         thing2 = Thing('Two', 'blue')
@@ -318,8 +317,15 @@ class TestDataFrameAlterAxes():
         # objects (e.g. a collection of Points) that can be both hashable and
         # iterable; using frozenset as a stand-in for testing here
 
-        thing1 = frozenset(['One', 'red'])
-        thing2 = frozenset(['Two', 'blue'])
+        class Thing(frozenset):
+            # need to stabilize repr for KeyError (due to random order in sets)
+            def __repr__(self):
+                tmp = sorted(list(self))
+                # double curly brace prints one brace in format string
+                return "frozenset({{{}}})".format(', '.join(map(repr, tmp)))
+
+        thing1 = Thing(['One', 'red'])
+        thing2 = Thing(['Two', 'blue'])
         df = DataFrame({thing1: [0, 1], thing2: [2, 3]})
         expected = DataFrame({thing1: [0, 1]},
                              index=Index([2, 3], name=thing2))
@@ -333,7 +339,7 @@ class TestDataFrameAlterAxes():
         tm.assert_frame_equal(result, expected)
 
         # missing key
-        thing3 = frozenset(['Three', 'pink'])
+        thing3 = Thing(['Three', 'pink'])
         msg = r"frozenset\(\{'Three', 'pink'\}\)"
         with pytest.raises(KeyError, match=msg):
             # missing label directly
