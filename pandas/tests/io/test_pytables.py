@@ -4560,7 +4560,7 @@ class TestHDFStore(Base):
                          'legacy_table_py2.h5'),
                 mode='r') as store:
             result = store.select('table')
-            
+
         expected = pd.DataFrame({
             "a": ["a", "b"],
             "b": [2, 3]
