@@ -1592,7 +1592,7 @@ def get_schema(frame, name, keys=None, con=None, dtype=None, index=False):
         Optional specifying the datatype for columns. The SQL type should
         be a SQLAlchemy type, or a string for sqlite3 fallback connection.
     index : boolean, default False
-        include DataFrame index as a column
+        Whether to include DataFrame index as a column
 
     """
 
